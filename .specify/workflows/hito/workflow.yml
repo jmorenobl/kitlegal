@@ -1,0 +1,271 @@
+schema_version: "1.0"
+workflow:
+  id: "hito"
+  name: "Hito del roadmap (SDD con gates automáticos)"
+  version: "1.0.0"
+  author: "kitlegal"
+  description: "Implementa un hito de docs/ROADMAP.md: specify → clarify → plan → tasks → analyze → implement → make ci → converge → revisión. Gates evaluados por Claude con el Criterio de decisión autónoma de la constitución."
+
+requires:
+  speckit_version: ">=1.0.0"
+  integrations:
+    any: ["claude"]
+
+# Seguridad: `inputs.hito` se interpola en pasos `shell`, por eso está
+# restringido a un enum. Ningún otro valor interpolado entra en un `run:`.
+inputs:
+  hito:
+    type: string
+    required: true
+    prompt: "Hito del roadmap a implementar (H0..H26)"
+    enum: ["H0","H1","H2","H3","H4","H5","H6","H7","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26"]
+  modo:
+    type: string
+    default: "desatendido"
+    enum: ["desatendido", "supervisado"]
+    prompt: "desatendido: los gates los decide Claude con el criterio de la constitución; supervisado: además pausa para revisión humana"
+  veredicto_spec:
+    type: string
+    default: ""
+  veredicto_plan:
+    type: string
+    default: ""
+  veredicto_final:
+    type: string
+    default: ""
+
+steps:
+  # ------------------------------------------------------------------ contexto
+  - id: extraer_hito
+    type: shell
+    output_format: json
+    timeout: 30
+    run: |
+      set -eu
+      h="{{ inputs.hito }}"
+      sec=$(awk -v h="$h" 'BEGIN{p=0} $0 ~ ("^#### " h " · "){p=1; print; next} p && /^(#{2,4} |---)/{exit} p{print}' docs/ROADMAP.md)
+      [ -n "$sec" ] || { echo "hito $h no encontrado en docs/ROADMAP.md" >&2; exit 1; }
+      titulo=$(printf '%s\n' "$sec" | head -1 | sed -E 's/^#### [A-Z0-9]+ · //')
+      palabras=$(printf '%s' "$titulo" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT 2>/dev/null | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -d- -f1-3)
+      slug="$(printf '%s' "$h" | tr '[:upper:]' '[:lower:]')-$palabras"
+      jq -n --arg hito "$h" --arg titulo "$titulo" --arg slug "$slug" --arg texto "$sec" \
+        '{hito:$hito, titulo:$titulo, slug:$slug, texto:$texto}'
+
+  # ------------------------------------------------------------------ specify
+  - id: specify
+    command: speckit.specify
+    input:
+      args: |
+        Hito {{ inputs.hito }} · {{ steps.extraer_hito.output.data.titulo }}.
+        Nombre corto OBLIGATORIO para la rama y el directorio: {{ steps.extraer_hito.output.data.slug }}
+
+        MODO DESATENDIDO. Nadie va a responder preguntas en esta sesión:
+        - No esperes respuesta del usuario. Si detectas un [NEEDS CLARIFICATION], resuélvelo tú aplicando la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y registra la decisión en la sección Assumptions con prefijo "(auto)".
+        - El alcance del spec es EXACTAMENTE la sección del hito que sigue. Lo que no esté en ella, en CLAUDE.md, en refs/ o en la constitución, va a una sección "## Fuera de alcance" y no se implementa.
+        - Lee antes CLAUDE.md, docs/ROADMAP.md (§1 Definition of Done, §2 arquitectura, §3 controles, §6 ritual) y los refs/ que el hito cite.
+        - Los criterios de aceptación del spec deben incluir literalmente los de "Aceptación" y "Controles" del hito.
+
+        Sección del roadmap:
+
+        {{ steps.extraer_hito.output.data.texto }}
+
+  - id: clarify
+    command: speckit.clarify
+    input:
+      args: |
+        MODO DESATENDIDO: no hay usuario que responda. Ejecuta el escaneo de ambigüedad completo y, para cada pregunta que generarías, elige tú la respuesta aplicando la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md:
+        1) la opción de mayor calidad, escalabilidad y mejores prácticas, sin atajos;
+        2) si la pregunta se refiere a algo no especificado en el hito, CLAUDE.md, refs/ o la constitución, la respuesta es "fuera de alcance: no se implementa";
+        3) si la pregunta afecta a alcance, frontera humana, privacidad, TOS de una fuente o a una decisión cerrada de CLAUDE.md, NO decidas: añade "[ESCALAR] <pregunta>" en ## Clarifications y termina.
+        Registra cada respuesta en ## Clarifications como "- Q: … → A: … (auto: <criterio aplicado>)" y actualiza el spec y checklists/requirements.md como haría el flujo normal. No presentes preguntas ni esperes respuesta.
+
+  - id: gate_spec
+    type: prompt
+    timeout: 1800
+    prompt: |
+      Actúas como gate de calidad del spec del hito {{ inputs.hito }} de kitlegal. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
+      1. Lee .specify/feature.json para localizar el directorio del feature; lee spec.md y checklists/requirements.md de ese directorio, la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md, CLAUDE.md y la constitución.
+      2. Comprueba: (a) el alcance coincide con el hito, ni más ni menos; (b) todo lo no especificado está en "Fuera de alcance"; (c) no quedan [NEEDS CLARIFICATION] ni marcadores [ESCALAR]; (d) los criterios de aceptación y controles del hito están en el spec; (e) no se reabre ninguna decisión cerrada; (f) requirements.md tiene todos los ítems marcados y cada marca es cierta.
+      3. Si encuentras defectos corregibles sin decisión humana, corrige spec.md y el checklist directamente (con la mejor solución, sin atajos). Si hay [ESCALAR] o un defecto que requiere decisión humana, no lo resuelvas.
+      4. Escribe <feature_dir>/gates/spec.json con el formato exacto {"veredicto":"aprobado"|"rechazado","motivos":["…"],"correcciones":["…"]}. "aprobado" solo si tras tus correcciones se cumplen (a)-(f).
+      No hagas preguntas; no esperes respuesta.
+
+  - id: check_gate_spec
+    type: shell
+    timeout: 30
+    run: |
+      set -eu
+      d=$(jq -r .feature_directory .specify/feature.json)
+      jq -e '.veredicto == "aprobado"' "$d/gates/spec.json" >/dev/null || { echo "gate_spec RECHAZADO:"; jq -r '.motivos[]' "$d/gates/spec.json"; exit 1; }
+      ! grep -q "\[NEEDS CLARIFICATION\|\[ESCALAR\]" "$d/spec.md" || { echo "quedan marcadores sin resolver en spec.md"; exit 1; }
+      ! grep -qE '^\s*- \[ \]' "$d"/checklists/*.md || { echo "checklists con ítems sin marcar"; exit 1; }
+      echo "gate_spec aprobado"
+
+  - id: revision_humana_spec
+    type: if
+    condition: "{{ inputs.modo == 'supervisado' }}"
+    then:
+      - id: gate_humano_spec
+        type: gate
+        message: "Revisa el spec (specs/<hito>/spec.md) y gates/spec.json antes de planificar."
+        options: [approve, reject]
+        on_reject: abort
+        verdict_input: veredicto_spec
+
+  # ------------------------------------------------------------------ plan
+  - id: plan
+    command: speckit.plan
+    input:
+      args: |
+        MODO DESATENDIDO: no preguntes ni esperes respuesta; resuelve dudas con la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y déjalas documentadas en research.md.
+        Restricciones para este hito {{ inputs.hito }}:
+        - Stack y dependencias: solo las fijadas en la constitución (§V) y en docs/ROADMAP.md §3; cualquier otra va a Complexity Tracking con justificación o no se usa.
+        - Estructura: la de docs/ROADMAP.md §2 y CLAUDE.md (arquitectura prevista). Reglas de dependencia entre paquetes obligatorias.
+        - Rellena el Constitution Check con un ítem por principio (I-VII) y por regla de dependencia, indicando cómo lo cumple este hito. Si un gate falla sin justificación, detente con ERROR.
+        - Aplica las skills golang-* instaladas (golang-how-to orquesta) al decidir layout, tests, lint y CLI.
+        - Lo que no esté en el spec no entra en el plan.
+
+  - id: gate_plan
+    type: prompt
+    timeout: 1800
+    prompt: |
+      Actúas como gate de arquitectura del plan del hito {{ inputs.hito }} de kitlegal. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
+      1. Lee .specify/feature.json, y en el directorio del feature: spec.md, plan.md, research.md, data-model.md y contracts/ (los que existan). Lee la constitución, CLAUDE.md y docs/ROADMAP.md §2-§3.
+      2. Comprueba: (a) Constitution Check completo y veraz; (b) ninguna dependencia fuera de la lista fijada sin justificación; (c) reglas de dependencia entre paquetes respetadas en la estructura propuesta; (d) errores tipados y exit codes; (e) tests primero: el plan nombra el test e2e y los unitarios/fixtures del hito; (f) nada fuera del spec; (g) ningún atajo (nolint, tests saltados, TODO diferidos, errores silenciados); (h) si hay varias alternativas técnicas, la elegida es la de mayor calidad y escalabilidad, y research.md explica la rechazada.
+      3. Corrige directamente plan.md/research.md/data-model.md si el defecto no requiere decisión humana. Si requiere decisión humana (alcance, frontera humana, privacidad, TOS, decisión cerrada), no lo resuelvas.
+      4. Escribe <feature_dir>/gates/plan.json con el formato exacto {"veredicto":"aprobado"|"rechazado","motivos":["…"],"correcciones":["…"]}.
+      No hagas preguntas; no esperes respuesta.
+
+  - id: check_gate_plan
+    type: shell
+    timeout: 30
+    run: |
+      set -eu
+      d=$(jq -r .feature_directory .specify/feature.json)
+      jq -e '.veredicto == "aprobado"' "$d/gates/plan.json" >/dev/null || { echo "gate_plan RECHAZADO:"; jq -r '.motivos[]' "$d/gates/plan.json"; exit 1; }
+      ! grep -q "NEEDS CLARIFICATION" "$d/plan.md" || { echo "plan.md conserva NEEDS CLARIFICATION"; exit 1; }
+      echo "gate_plan aprobado"
+
+  - id: revision_humana_plan
+    type: if
+    condition: "{{ inputs.modo == 'supervisado' }}"
+    then:
+      - id: gate_humano_plan
+        type: gate
+        message: "Revisa plan.md, research.md y gates/plan.json antes de generar tareas."
+        options: [approve, reject]
+        on_reject: abort
+        verdict_input: veredicto_plan
+
+  # ------------------------------------------------------------------ tasks + analyze
+  - id: tasks
+    command: speckit.tasks
+    input:
+      args: |
+        MODO DESATENDIDO: no preguntes. Genera tasks.md siguiendo docs/ROADMAP.md §6 (ritual por hito): la primera tarea de implementación es el test e2e testscript que describe la entrega; después core → adaptador → applet → skill; tests antes que código en cada fase. Incluye tareas explícitas para cada punto de la Definition of Done (§1) que aplique al hito: CHANGELOG.md, ADR, docs/SOURCES.md, schemas, fixtures, `make ci` en verde. Ninguna tarea fuera del spec.
+
+  - id: analyze
+    command: speckit.analyze
+    input:
+      args: |
+        MODO DESATENDIDO: no preguntes ni ofrezcas remediaciones para después. Además de mostrar el informe, escríbelo íntegro en <feature_dir>/gates/analyze.md (localiza <feature_dir> con .specify/feature.json).
+
+  - id: gate_tasks
+    type: prompt
+    timeout: 1800
+    prompt: |
+      Actúas como gate de consistencia del hito {{ inputs.hito }} de kitlegal. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
+      1. Lee .specify/feature.json y, en el directorio del feature: gates/analyze.md, spec.md, plan.md, tasks.md y checklists/.
+      2. Resuelve cada hallazgo CRITICAL y HIGH del análisis corrigiendo el artefacto que corresponda (spec, plan o tasks), con la mejor solución y sin atajos. Los MEDIUM/LOW corrígelos si no requieren decisión humana. Un hallazgo que exija decisión humana (alcance, frontera humana, privacidad, TOS, decisión cerrada) no se resuelve: se documenta.
+      3. Verifica que toda tarea traza a un requisito del spec y que todo requisito tiene tareas; que las tareas de tests preceden a las de implementación; que las checklists están todas marcadas y cada marca es verdad (si una no lo es, corrige el artefacto, nunca marques sin cumplir).
+      4. Escribe <feature_dir>/gates/tasks.json con el formato exacto {"veredicto":"aprobado"|"rechazado","motivos":["…"],"correcciones":["…"]}.
+      No hagas preguntas; no esperes respuesta.
+
+  - id: check_gate_tasks
+    type: shell
+    timeout: 30
+    run: |
+      set -eu
+      d=$(jq -r .feature_directory .specify/feature.json)
+      jq -e '.veredicto == "aprobado"' "$d/gates/tasks.json" >/dev/null || { echo "gate_tasks RECHAZADO:"; jq -r '.motivos[]' "$d/gates/tasks.json"; exit 1; }
+      ! grep -qE '^\s*- \[ \]' "$d"/checklists/*.md || { echo "checklists con ítems sin marcar: implement se detendría a preguntar"; exit 1; }
+      echo "gate_tasks aprobado"
+
+  # ------------------------------------------------------------------ implement + CI
+  - id: implement
+    command: speckit.implement
+    input:
+      args: |
+        MODO DESATENDIDO: no preguntes ni esperes respuesta. Las checklists ya han sido verificadas por el gate anterior. Ejecuta todas las tareas de tasks.md en orden; tests antes que código; sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados). Aplica las skills golang-* (golang-how-to). Al terminar ejecuta `make ci` y no des por terminado el hito hasta que esté en verde; si un control falla, arregla la causa, no el control. Marca cada tarea completada como [X] en tasks.md.
+
+  - id: ci
+    type: shell
+    timeout: 1800
+    run: "make ci"
+
+  - id: reparar_ci
+    type: if
+    condition: "{{ steps.ci.output.exit_code != 0 }}"
+    then:
+      - id: bucle_reparacion
+        type: do-while
+        max_iterations: 3
+        condition: "{{ steps.ci_reintento.output.exit_code != 0 }}"
+        steps:
+          - id: reparar
+            type: prompt
+            timeout: 1800
+            prompt: |
+              `make ci` falla en el hito {{ inputs.hito }} de kitlegal. Ejecuta `make ci`, lee la salida completa y arregla la causa raíz aplicando la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md: nada de desactivar linters, tests o controles; nada de nolint sin justificación en el propio código. Repite hasta que `make ci` esté en verde o hasta que el fallo requiera una decisión humana; en ese caso escribe el motivo en <feature_dir>/gates/ci-bloqueado.md y termina. No preguntes.
+          - id: ci_reintento
+            type: shell
+            timeout: 1800
+            run: "make ci"
+
+  # ------------------------------------------------------------------ converge + revisión
+  - id: converge
+    command: speckit.converge
+    input:
+      args: |
+        MODO DESATENDIDO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec.
+
+  - id: implement_restante
+    command: speckit.implement
+    input:
+      args: |
+        MODO DESATENDIDO: ejecuta únicamente las tareas pendientes ([ ]) que converge haya añadido. Si no hay ninguna, termina sin cambios. Termina con `make ci` en verde.
+
+  - id: revision
+    type: prompt
+    timeout: 1800
+    prompt: |
+      Actúas como revisor final del hito {{ inputs.hito }} de kitlegal antes de la PR. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y la Definition of Done de docs/ROADMAP.md §1.
+      1. Revisa `git diff main...HEAD` completo: corrección, seguridad (frontera humana, HTTP solo vía internal/httpx y solo GET/HEAD, sin secretos, sin NIF de persona), reglas de dependencia entre paquetes, errores tipados y exit codes, cobertura de tests del código nuevo, ausencia de atajos.
+      2. Corrige directamente todo lo que encuentres y vuelve a ejecutar `make ci` hasta verde.
+      3. Comprueba cada punto de la Definition of Done y escribe <feature_dir>/gates/revision.md con: tabla DoD (punto, cumple sí/no, evidencia), hallazgos corregidos, y una sección "Pendientes" con lo que quedó fuera de alcance o requiere decisión humana. Escribe además <feature_dir>/gates/revision.json con {"veredicto":"aprobado"|"rechazado","motivos":["…"]}: "aprobado" solo si la DoD se cumple entera.
+      4. Deja todo commiteado en la rama del hito con Conventional Commits. No hagas push ni merge.
+      No preguntes; no esperes respuesta.
+
+  - id: ci_final
+    type: shell
+    timeout: 1800
+    run: |
+      set -eu
+      d=$(jq -r .feature_directory .specify/feature.json)
+      make ci
+      jq -e '.veredicto == "aprobado"' "$d/gates/revision.json" >/dev/null || { echo "revisión final RECHAZADA:"; jq -r '.motivos[]' "$d/gates/revision.json"; exit 1; }
+      test -z "$(git status --porcelain)" || { echo "quedan cambios sin commitear"; git status --short; exit 1; }
+      echo "== Hito {{ inputs.hito }} listo para PR =="
+      git log --oneline main..HEAD
+      git diff --stat main...HEAD | tail -1
+
+  - id: revision_humana_final
+    type: if
+    condition: "{{ inputs.modo == 'supervisado' }}"
+    then:
+      - id: gate_humano_final
+        type: gate
+        message: "Revisa gates/revision.md y el diff. approve = listo para abrir PR y squash-merge (acción humana)."
+        options: [approve, reject]
+        on_reject: abort
+        verdict_input: veredicto_final

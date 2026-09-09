@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **No hay código todavía.** El repo contiene únicamente documentos de diseño (en español) para `kitlegal`, un binario Go multicall + skills agénticas para consultar fuentes legales públicas españolas (BOE, PLACSP, BDNS, BORME, EUR-Lex…). No existe `go.mod`, `Makefile`, tests ni CI.
 
+**Método de trabajo: spec-kit por hito.** El proyecto se implementa hito a hito (`docs/ROADMAP.md`) con el workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`, documentado en `docs/WORKFLOW.md`). La constitución `.specify/memory/constitution.md` recoge principios, restricciones y el «Criterio de decisión autónoma» que rige `clarify` y los gates automáticos: siempre la mejor solución sin atajos; lo no especificado no se implementa; escalar (parar) ante alcance, frontera humana, privacidad, TOS o decisiones cerradas. Artefactos por hito en `specs/NNN-hN-slug/`. Lanzar con `scripts/hito.sh H<n>`.
+
 Skills de agente instaladas (no son parte del producto): el conjunto `samber/cc-skills-golang` vive en `.agents/skills/` (registro en `skills-lock.json`); `.claude/skills/` son symlinks a ese directorio. Al escribir Go, `golang-how-to` orquesta el resto (`golang-cli`, `golang-project-layout`, `golang-testing`, `golang-database`…).
 
 Antes de escribir código, lee los documentos semilla de `refs/` en este orden:
