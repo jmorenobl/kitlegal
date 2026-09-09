@@ -59,6 +59,26 @@ Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de qu
 
 `granularidad=hito` conserva la pasada única de `implement` (más barata, menos control).
 
+## Modelo por paso
+
+Cada paso `command` y `prompt` lleva `model: "{{ inputs.modelo_<rol> }}"`, que spec-kit traduce en `claude -p … --model <valor>`. Los valores admitidos son los alias `fable`, `opus`, `sonnet`, `haiku` o el nombre completo del modelo.
+
+| Input | Pasos | Por defecto | Razón |
+|---|---|---|---|
+| `modelo_juez` | `resolver_clarify`, `gate_spec`, `gate_plan`, `gate_tasks`, `revision` | `fable` | Decisiones con el criterio de la constitución; es donde un error cuesta más |
+| `modelo_redaccion` | `specify`, `clarify_preguntas`, `clarify_integrar`, `plan`, `tasks` | `opus` | Artefactos largos con muchas reglas que respetar |
+| `modelo_implementacion` | `implementar_tarea`, `implement`, `implement_restante`, `reparar`, `reparar_hito` | `opus` | Código y depuración |
+| `modelo_analisis` | `analyze`, `converge` | `sonnet` | Lectura y contraste de artefactos; barato y suficiente |
+
+Sobrescritura por run:
+
+```bash
+specify workflow run hito -i hito=H0 -i modelo_implementacion=sonnet -i modelo_analisis=haiku
+KITLEGAL_MODELO_IMPLEMENTACION=sonnet KITLEGAL_MODELO_ANALISIS=haiku scripts/hito.sh H0
+```
+
+Los pasos `shell` no usan modelo. Para fijar un modelo distinto en un solo paso sin tocar los inputs, edita su `model:` en el YAML o usa un overlay (`specify workflow overlay add …`).
+
 ## Uso
 
 ```bash

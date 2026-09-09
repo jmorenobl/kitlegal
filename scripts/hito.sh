@@ -4,6 +4,7 @@
 #   scripts/hito.sh H0                  # desatendido (gates automáticos)
 #   scripts/hito.sh H0 supervisado      # además pausa para revisión humana
 #   scripts/hito.sh --resume <run_id> [key=value ...]
+#   KITLEGAL_MODELO_JUEZ=fable KITLEGAL_MODELO_IMPLEMENTACION=sonnet scripts/hito.sh H0
 #
 # Claude se ejecuta en modo headless (`claude -p`). Los permisos de
 # herramientas vienen de .claude/settings.json; aquí solo se aceptan las
@@ -34,4 +35,14 @@ if [ "$(git branch --show-current)" != "main" ]; then
   exit 1
 fi
 
-exec specify workflow run hito --input "hito=$hito" --input "modo=$modo"
+# Modelos por rol (alias de `claude --model` o nombre completo). Ejemplo:
+#   KITLEGAL_MODELO_IMPLEMENTACION=sonnet scripts/hito.sh H0
+modelos=()
+for rol in JUEZ REDACCION IMPLEMENTACION ANALISIS; do
+  var="KITLEGAL_MODELO_$rol"
+  if [ -n "${!var:-}" ]; then
+    modelos+=(--input "modelo_$(printf '%s' "$rol" | tr '[:upper:]' '[:lower:]')=${!var}")
+  fi
+done
+
+exec specify workflow run hito --input "hito=$hito" --input "modo=$modo" "${modelos[@]}"

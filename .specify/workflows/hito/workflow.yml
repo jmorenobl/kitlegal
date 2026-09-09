@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.1.0"
+  version: "1.2.0"
   author: "kitlegal"
   description: "Implementa un hito de docs/ROADMAP.md: specify → clarify (preguntas / resolución en contexto limpio / integración) → plan → tasks → analyze → implement tarea a tarea con verificación determinista → converge → revisión. Gates evaluados con el Criterio de decisión autónoma de la constitución."
 
@@ -39,6 +39,27 @@ inputs:
   veredicto_final:
     type: string
     default: ""
+  # ---- modelo por rol (alias de claude --model o nombre completo) ----
+  modelo_juez:
+    type: string
+    default: "fable"
+    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
+    prompt: "Modelo para resolver clarificaciones, gates y revisión final (decisiones con criterio)"
+  modelo_redaccion:
+    type: string
+    default: "opus"
+    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
+    prompt: "Modelo para specify, clarify (preguntas e integración), plan y tasks"
+  modelo_implementacion:
+    type: string
+    default: "opus"
+    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
+    prompt: "Modelo para implement (por tarea, por hito, restante) y reparaciones de CI"
+  modelo_analisis:
+    type: string
+    default: "sonnet"
+    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
+    prompt: "Modelo para analyze y converge (lectura y contraste de artefactos)"
 
 steps:
   # ================================================================ contexto
@@ -60,6 +81,7 @@ steps:
   # ================================================================ specify
   - id: specify
     command: speckit.specify
+    model: "{{ inputs.modelo_redaccion }}"
     input:
       args: |
         Hito {{ inputs.hito }} · {{ steps.extraer_hito.output.data.titulo }}.
@@ -81,6 +103,7 @@ steps:
   # 3) el comando clarify integra las respuestas en el spec
   - id: clarify_preguntas
     command: speckit.clarify
+    model: "{{ inputs.modelo_redaccion }}"
     input:
       args: |
         MODO DESATENDIDO, FASE 1 (solo preguntas). Ejecuta el escaneo de ambigüedad y cobertura y genera la cola priorizada de preguntas (máximo 5) exactamente como en modo interactivo, PERO:
@@ -96,6 +119,7 @@ steps:
 
   - id: resolver_clarify
     type: prompt
+    model: "{{ inputs.modelo_juez }}"
     timeout: 1800
     prompt: |
       Eres un proceso independiente con contexto limpio: no has visto la sesión que formuló las preguntas, no debes buscar su razonamiento y decides únicamente con documentos.
@@ -137,6 +161,7 @@ steps:
     then:
       - id: clarify_integrar
         command: speckit.clarify
+        model: "{{ inputs.modelo_redaccion }}"
         input:
           args: |
             MODO DESATENDIDO, FASE 2 (integración). No generes preguntas nuevas ni esperes respuesta. Las preguntas están en <feature_dir>/gates/clarify-preguntas.json y las respuestas ya decididas en <feature_dir>/gates/clarify-respuestas.json (localiza <feature_dir> en .specify/feature.json). Trata cada par como una pregunta ya aceptada por el usuario y aplica tus reglas de integración incremental:
@@ -149,6 +174,7 @@ steps:
   # ================================================================ gate del spec
   - id: gate_spec
     type: prompt
+    model: "{{ inputs.modelo_juez }}"
     timeout: 1800
     prompt: |
       Actúas como gate de calidad del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
@@ -183,6 +209,7 @@ steps:
   # ================================================================ plan
   - id: plan
     command: speckit.plan
+    model: "{{ inputs.modelo_redaccion }}"
     input:
       args: |
         MODO DESATENDIDO: no preguntes ni esperes respuesta; resuelve dudas técnicas con la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y déjalas documentadas en research.md (decisión, alternativas, por qué).
@@ -195,6 +222,7 @@ steps:
 
   - id: gate_plan
     type: prompt
+    model: "{{ inputs.modelo_juez }}"
     timeout: 1800
     prompt: |
       Actúas como gate de arquitectura del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
@@ -228,6 +256,7 @@ steps:
   # ================================================================ tasks + analyze
   - id: tasks
     command: speckit.tasks
+    model: "{{ inputs.modelo_redaccion }}"
     input:
       args: |
         MODO DESATENDIDO: no preguntes. Genera tasks.md siguiendo docs/ROADMAP.md §6 (ritual por hito) con estas reglas, porque las tareas se ejecutarán y verificarán UNA A UNA por un proceso automático:
@@ -239,12 +268,14 @@ steps:
 
   - id: analyze
     command: speckit.analyze
+    model: "{{ inputs.modelo_analisis }}"
     input:
       args: |
         MODO DESATENDIDO: no preguntes ni ofrezcas remediaciones para después. Además de mostrar el informe, escríbelo íntegro en <feature_dir>/gates/analyze.md (localiza <feature_dir> con .specify/feature.json).
 
   - id: gate_tasks
     type: prompt
+    model: "{{ inputs.modelo_juez }}"
     timeout: 1800
     prompt: |
       Actúas como gate de consistencia del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md.
@@ -302,6 +333,7 @@ steps:
             then:
               - id: implementar_tarea
                 command: speckit.implement
+                model: "{{ inputs.modelo_implementacion }}"
                 input:
                   args: |
                     MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
@@ -331,6 +363,7 @@ steps:
                 then:
                   - id: reparar
                     type: prompt
+                    model: "{{ inputs.modelo_implementacion }}"
                     timeout: 1800
                     prompt: |
                       La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
@@ -362,6 +395,7 @@ steps:
     then:
       - id: implement
         command: speckit.implement
+        model: "{{ inputs.modelo_implementacion }}"
         input:
           args: |
             MODO DESATENDIDO: no preguntes ni esperes respuesta. Las checklists ya han sido verificadas. Ejecuta todas las tareas de tasks.md en orden; tests antes que código; sin atajos. Aplica las skills golang-*. Al terminar ejecuta `make ci` y no des por terminado el hito hasta que esté en verde; si un control falla, arregla la causa, no el control. Marca cada tarea completada como [X].
@@ -390,6 +424,7 @@ steps:
         steps:
           - id: reparar_hito
             type: prompt
+            model: "{{ inputs.modelo_implementacion }}"
             timeout: 1800
             prompt: |
               `make ci` falla en el hito {{ inputs.hito }} de kitlegal. Salida (final del log; completo en <feature_dir>/gates/ci.log):
@@ -416,18 +451,21 @@ steps:
   # ================================================================ converge + revisión
   - id: converge
     command: speckit.converge
+    model: "{{ inputs.modelo_analisis }}"
     input:
       args: |
         MODO DESATENDIDO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md, con el formato "- [ ] Tnnn …" e ids correlativos, solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec.
 
   - id: implement_restante
     command: speckit.implement
+    model: "{{ inputs.modelo_implementacion }}"
     input:
       args: |
         MODO DESATENDIDO: ejecuta únicamente las tareas pendientes ([ ]) que converge haya añadido, una a una, con test primero y verificación `make ci` tras cada una. Si no hay ninguna, termina sin cambios. Termina con `make ci` en verde y las tareas marcadas [X]. No preguntes.
 
   - id: revision
     type: prompt
+    model: "{{ inputs.modelo_juez }}"
     timeout: 1800
     prompt: |
       Actúas como revisor final del hito {{ inputs.hito }} de kitlegal antes de la PR, en un proceso nuevo con contexto limpio. Aplica la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y la Definition of Done de docs/ROADMAP.md §1.
