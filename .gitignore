@@ -1,0 +1,14 @@
+# Go
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
+
+# kitlegal runtime
+.kitlegal/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
