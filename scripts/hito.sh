@@ -20,7 +20,7 @@ if [ "${1:-}" = "--resume" ]; then
   run_id="${2:?run_id}"; shift 2
   args=()
   for kv in "$@"; do args+=(--input "$kv"); done
-  exec specify workflow resume "$run_id" "${args[@]}"
+  exec specify workflow resume "$run_id" ${args[@]+"${args[@]}"}
 fi
 
 hito="${1:?uso: scripts/hito.sh H<n> [desatendido|supervisado]}"
@@ -45,4 +45,4 @@ for rol in JUEZ REDACCION IMPLEMENTACION ANALISIS; do
   fi
 done
 
-exec specify workflow run hito --input "hito=$hito" --input "modo=$modo" "${modelos[@]}"
+exec specify workflow run hito --input "hito=$hito" --input "modo=$modo" ${modelos[@]+"${modelos[@]}"}
