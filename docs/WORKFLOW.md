@@ -21,43 +21,59 @@ extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
 → clarify_preguntas (command: solo formula preguntas, sin recomendación → gates/clarify-preguntas.json)
 → resolver_clarify (prompt en PROCESO NUEVO, contexto limpio → gates/clarify-respuestas.json)
 → check_clarify (shell: todas respondidas; ninguna escalada) → clarify_integrar (command: integra respuestas en spec.md)
-→ gate_spec (juez → gates/spec.json) → check_gate_spec (shell) → [supervisado] gate humano
-→ plan (Constitution Check estricto) → gate_plan → check_gate_plan → [supervisado] gate humano
-→ tasks (cada tarea = rebanada vertical que deja `make ci` en verde) → analyze → gate_tasks → check_gate_tasks
+→ precheck_spec (shell) → ronda_spec ×2 [juez_spec → leer_gate_spec → corrector_spec si rechazado y corregible] → check_gate_spec
+→ [supervisado] gate humano
+→ plan → precheck_plan → ronda_plan ×2 [juez → leer → corrector] → check_gate_plan → [supervisado] gate humano
+→ tasks → analyze → precheck_tasks (formato, ids, rutas declaradas, [datos]) → ronda_tasks ×2 → check_gate_tasks
 → bucle por tarea (do-while):
-     siguiente_tarea (shell: primera "- [ ] Tnnn" de tasks.md, cuenta intentos)
+     siguiente_tarea (shell: primera "- [ ] Tnnn", intentos, base git, rutas declaradas, [datos] → gates/tarea-actual.json)
      → implementar_tarea (command implement, solo esa tarea)
+     → guardian_diff (shell: rutas declaradas; testdata/ y schemas/ solo con [datos])
      → verificar (shell: make ci | go build+vet+test; log en gates/ci.log)
-     → si falla: reparar (prompt con las últimas 80 líneas del log) → verificar_reparacion (si sigue rojo, parada)
+     → si falla: reparar (prompt con las últimas 80 líneas del log) → guardian_diff_reparacion → verificar_reparacion
+     → si la tarea es [datos]: gate humano (independiente de `modo`)
 → ci (make ci del hito) → si falla: do-while (reparar_hito + ci_reintento) ×3 → ci_tras_reparacion
 → converge → implement_restante
-→ revision (diff completo contra DoD → gates/revision.md/.json) → ci_final
+→ ronda_revision ×2 [juez A (DoD) + juez B (adversarial) → leer_revision → corrector si ambos rechazan y es corregible]
+→ ci_final (make ci; ambos jueces aprobado; sin tareas pendientes; árbol limpio)
+→ rutas_sensibles → gate humano forzado si el diff toca docs/SOURCES.md, data/anomalias/ o una fuente nueva
 → [supervisado] gate humano final
 ```
 
 La fusión a `main` (PR + squash-merge) y el release son siempre acciones humanas. El workflow deja la rama del hito commiteada y en verde; nunca hace `push` ni `merge`.
+
+## Tres capas de gate
+
+Sigue la sección «Gates» de la constitución: cada comprobación vive en la capa más baja que pueda verificarla.
+
+1. **Mecánica (shell, sin LLM).** `precheck_*` corre antes de cualquier juez: marcadores pendientes, checklists, sección "Fuera de alcance", formato e ids de tareas, rutas declaradas, etiqueta `[datos]`. `verificar`/`ci` ejecutan `make ci`, que debe encadenar lint, `-race`, schema-check, drift de `references/`, test de arquitectura y golden files de citas. `leer_gate_*` valida el JSON del juez y su coherencia (aprobado ⇔ todos los criterios cumplen).
+2. **Juez LLM con rúbrica.** `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a` y `revision_juez_b` reciben criterios fijos (`a`…`i`) y escriben `{"veredicto","corregible","criterios":[{id,criterio,cumple,evidencia}],"motivos"}`. **No corrigen nada.** Si rechazan y el motivo es corregible, un `corrector_*` (proceso distinto, modelo de redacción o implementación) aplica los motivos y se vuelve a juzgar, con tope de dos rondas. Si el motivo requiere decisión humana (`corregible: false`), el `check_gate_*` para el run.
+3. **Humano.** Pausas que no dependen de `modo` ni admiten pre-aprobación por input: tras cada tarea `[datos]` (tocó `testdata/` o `schemas/`) y al final si el diff toca `docs/SOURCES.md`, `data/anomalias/` o crea un directorio nuevo bajo `internal/source/`. Se reanudan con `specify workflow resume <run_id>` desde un terminal, que pregunta approve/reject.
 
 ## Clarificación sin sesgo
 
 `clarify` se divide en tres pasos para que quien formula las preguntas no sea quien las responde:
 
 1. **`clarify_preguntas`** ejecuta `/speckit-clarify` con la orden de solo escribir las preguntas y sus opciones en `gates/clarify-preguntas.json`, sin recomendación ni opción preferida, y sin tocar el spec.
-2. **`resolver_clarify`** es un `prompt` que spec-kit lanza como un proceso `claude -p` nuevo: no comparte conversación con el paso anterior y se le dice que decida solo con documentos (hito, `CLAUDE.md`, `refs/`, constitución). Aplica el criterio en este orden: (a) lo determinan las fuentes → esa es la respuesta; (b) no está especificado → "fuera de alcance: no se implementa"; (c) varias opciones válidas → la de mayor calidad y mejores prácticas, con la alternativa rechazada; (d) alcance, frontera humana, privacidad, TOS o decisión cerrada → `escalar: true`.
+2. **`resolver_clarify`** es un `prompt` que spec-kit lanza como un proceso `claude -p` nuevo: no comparte conversación con el paso anterior y se le dice que decida solo con documentos (hito, `CLAUDE.md`, `refs/`, constitución). Aplica el criterio en este orden: (a) lo determinan las fuentes → esa es la respuesta; (b) no está especificado → "fuera de alcance: no se implementa"; (c) varias opciones válidas → la de mayor calidad y mejores prácticas, con la alternativa rechazada; (d) alcance, frontera humana, privacidad, TOS, anomalías o decisión cerrada → `escalar: true`.
 3. **`check_clarify`** detiene el run si alguna respuesta está escalada. Se edita `gates/clarify-respuestas.json` a mano y se reanuda. **`clarify_integrar`** vuelve a llamar a `/speckit-clarify` solo para integrar los pares Q/A en `spec.md` con marca `(auto: criterio, fuente)`.
 
-Los jueces de cada gate y el revisor final son también procesos nuevos, por la misma razón.
+## Implementación tarea a tarea y guardián de diff
 
-## Implementación tarea a tarea
+Con `granularidad=tarea` (valor por defecto) el bucle toma la primera línea `- [ ] Tnnn` de `tasks.md`, anota el commit base y las rutas que la tarea declara, lanza `/speckit-implement` restringido a esa tarea y después:
 
-Con `granularidad=tarea` (valor por defecto) el bucle toma la primera línea `- [ ] Tnnn` de `tasks.md`, lanza `/speckit-implement` restringido a esa tarea y ejecuta la batería determinista. Si falla:
+- **`guardian_diff`** compara `git diff --name-only <base>` más los ficheros nuevos con las rutas declaradas. Falla, y el run se para, si un fichero queda fuera (scope creep) o si toca `testdata/` o `schemas/` sin etiqueta `[datos]` (arreglar el test en vez del código, grabar fixtures en el bucle). Siempre permitidos: `go.mod`, `go.sum`, `CHANGELOG.md`, el directorio del feature, y `x_test.go` cuando se declara `x.go`. Declarar un directorio (`internal/cli/`) permite todo lo que cuelga de él.
+- **`verificar`** ejecuta la batería determinista. Si falla, `reparar` recibe **las últimas 80 líneas de la salida** en el prompt y la ruta del log completo, con la orden de arreglar la causa y no el control; después vuelven a pasar el guardián y la verificación. Si sigue en rojo, el run se detiene.
+- Una tarea que no queda marcada `[X]` tras 3 intentos detiene el run (`gates/tareas-intentos.json`, `gates/tarea-Tnnn.md`).
+- Una tarea `[datos]` termina siempre en un gate humano.
 
-- el paso `reparar` recibe **las últimas 80 líneas de la salida** interpoladas en el prompt y la ruta del log completo (`gates/ci.log`), con la orden de arreglar la causa y no el control;
-- `verificar_reparacion` vuelve a ejecutar la batería; si sigue en rojo, el run se detiene para revisión humana;
-- una tarea que no queda marcada `[X]` tras 3 intentos detiene el run (`gates/tareas-intentos.json`, `gates/tarea-Tnnn.md`).
+Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de que cada tarea es una rebanada vertical (test + implementación) que deja `make ci` en verde por sí sola, con todas sus rutas declaradas, y `precheck_tasks` + `juez_tasks` lo comprueban. Mientras no exista `Makefile` con objetivo `ci`, la batería es `go build ./... && go vet ./... && go test -race ./...`; sin `go.mod` no hay nada que verificar (primeras tareas de H0).
 
-Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de que cada tarea es una rebanada vertical (test + implementación) que deja `make ci` en verde por sí sola; el gate de tareas lo comprueba. Mientras no exista `Makefile` con objetivo `ci`, la batería es `go build ./... && go vet ./... && go test -race ./...`; sin `go.mod` no hay nada que verificar (primeras tareas de H0).
+`granularidad=hito` conserva la pasada única de `implement` sin guardián por tarea (más barata, menos control).
 
-`granularidad=hito` conserva la pasada única de `implement` (más barata, menos control).
+## Revisión final con dos jueces
+
+`revision_juez_a` evalúa la Definition of Done con rúbrica; `revision_juez_b` parte de la hipótesis contraria y busca evidencia de atajos, fixtures retocados, tests vacíos, alcance excedido y violaciones que el linter no ve. Ninguno modifica ficheros. `leer_revision` combina: ambos aprueban → sigue; ambos rechazan y es corregible → `corrector_revision` y nueva ronda (máximo dos); cualquier desacuerdo o motivo no corregible → `ci_final` para el run para un humano.
 
 ## Modelo por paso
 
@@ -65,9 +81,9 @@ Cada paso `command` y `prompt` lleva `model: "{{ inputs.modelo_<rol> }}"`, que s
 
 | Input | Pasos | Por defecto | Razón |
 |---|---|---|---|
-| `modelo_juez` | `resolver_clarify`, `gate_spec`, `gate_plan`, `gate_tasks`, `revision` | `fable` | Decisiones con el criterio de la constitución; es donde un error cuesta más |
-| `modelo_redaccion` | `specify`, `clarify_preguntas`, `clarify_integrar`, `plan`, `tasks` | `opus` | Artefactos largos con muchas reglas que respetar |
-| `modelo_implementacion` | `implementar_tarea`, `implement`, `implement_restante`, `reparar`, `reparar_hito` | `opus` | Código y depuración |
+| `modelo_juez` | `resolver_clarify`, `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a`, `revision_juez_b` | `fable` | Decisiones con el criterio de la constitución; es donde un error cuesta más |
+| `modelo_redaccion` | `specify`, `clarify_preguntas`, `clarify_integrar`, `plan`, `tasks`, `corrector_spec`, `corrector_plan`, `corrector_tasks` | `opus` | Artefactos largos con muchas reglas que respetar |
+| `modelo_implementacion` | `implementar_tarea`, `implement`, `implement_restante`, `reparar`, `reparar_hito`, `corrector_revision` | `opus` | Código y depuración |
 | `modelo_analisis` | `analyze`, `converge` | `sonnet` | Lectura y contraste de artefactos; barato y suficiente |
 
 Sobrescritura por run:
@@ -126,7 +142,9 @@ Estado de cada run en `.specify/workflows/runs/<run_id>/` (`state.json`, `inputs
 
 - Los pasos `command` transmiten la salida al terminal y no la capturan; por eso los jueces escriben ficheros en `gates/` y `analyze` recibe la instrucción de guardar su informe.
 - Los pasos `prompt` y `shell` tienen `timeout` explícito (1800 s); `make ci` debe caber en ese margen.
-- Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación (`verificar`, `ci`, `ci_reintento`). Los `check_*` fallan a propósito para parar.
+- Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación (`verificar`, `ci`, `ci_reintento`). Los `precheck_*`, `check_*`, `guardian_diff*` y `leer_*` fallan a propósito para parar.
+- En las rondas juez → corrector, la segunda corrección no vuelve a juzgarse: `check_gate_*` lee el último veredicto y, si sigue rechazado, para. Es el tope de dos rondas de la constitución.
+- El guardián de diff extrae rutas de la línea de la tarea (tokens con `/` o con extensión conocida, `Makefile`, `LICENSE`). Una tarea que toque muchos ficheros debe declarar directorios.
 - La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista. Si hace falta, añadir un objetivo `make check` más rápido y usarlo en `verificar`.
 - `inputs.hito` se interpola en un `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`.
 - Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow y la constitución no se tocan.

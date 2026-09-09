@@ -39,6 +39,18 @@ Ids naturales (ELI, ECLI, DIR3, NIF de entidad, INE) en `world.db`; el grafo del
 3. Gates automáticos: Constitution Check en el plan (violaciones no justificadas = ERROR), checklists completas antes de implementar, `make ci` verde antes de revisión, revisión de código y seguridad antes de la PR.
 4. La fusión a `main` y el release son siempre acciones humanas.
 
+## Gates: mecánico antes que juez, juez antes que humano
+
+Tres capas, y cada comprobación vive en la capa más baja que pueda verificarla. Lo que se puede comprobar con un script nunca se delega a un modelo; lo que exige criterio se juzga con rúbrica cerrada; lo que compromete responsabilidad legal lo decide siempre una persona.
+
+**Capa 1 · Mecánica (sin LLM, forma parte de `make ci` y del workflow):** `gofumpt`/`goimports`, `golangci-lint`, `go vet`, `go test -race`, `govulncheck`, `gitleaks`, `go mod tidy -diff`; test de arquitectura sobre las reglas de dependencia; validación de toda salida de applet contra `schemas/*.json`; exit codes con fixtures que fuerzan 2, 3, 4, 5 y 6; tests offline contra `testdata/` grabado; **corrección de citas contra la respuesta grabada del BOE** (la verdad terreno existe; nunca la sustituye la opinión de un modelo); frontmatter válido en cada `SKILL.md` y `references/` idénticas a lo generado desde `data/*.yaml` (diff vacío); en el workflow, guardián de diff por tarea (rutas declaradas, `testdata/` y `schemas/` protegidos), ausencia de marcadores pendientes y checklists completas.
+
+**Capa 2 · Juez LLM (rúbrica cerrada):** protocolo de razonamiento de cada `SKILL.md`; que la `description` de una skill active con las preguntas que debe y no con las que no debe (evals); claridad de las explicaciones de `graph check` y `anomalies`; que un adaptador nuevo respeta las reglas de fuentes que el linter no ve (rate limit, User-Agent, TOS); coherencia spec ↔ plan ↔ tasks. Reglas: criterios fijos con `cumple`/`no cumple`, evidencia citada y umbral (todos cumplen); el juez no corrige, solo emite veredicto; las correcciones las aplica un proceso distinto y se vuelve a juzgar, con un tope de dos rondas; cada juez es un proceso nuevo sin acceso al razonamiento anterior; el gate que bloquea el merge lo emiten dos jueces con prompts distintos (uno de ellos adversarial) y el desacuerdo escala a humano.
+
+**Capa 3 · Humano (nunca se automatiza):** cualquier cambio en `docs/SOURCES.md` (qué fuentes se tocan y cómo: responsabilidad legal); cualquier cambio en `data/anomalias/` (una regla mal calibrada produce acusaciones implícitas a escala); un adaptador de fuente nuevo bajo `internal/source/`; toda modificación de ficheros existentes en `testdata/` y `schemas/` y toda grabación de fixtures (solo en tareas etiquetadas `[datos]`, con pausa obligatoria); la fusión a `main` y el release.
+
+**Reglas del modo desatendido:** el ejecutor arregla el código, nunca el test ni el fixture; `KITLEGAL_RECORD=1` solo se ejecuta en un job separado y revisado, jamás dentro del bucle de implementación; el diff de cada tarea se limita a las rutas que la tarea declara (más `go.mod`, `go.sum`, `CHANGELOG.md` y el directorio del feature); una tarea sin rutas declaradas no se ejecuta.
+
 ## Criterio de decisión autónoma
 
 Se aplica en `clarify`, en los gates automáticos del workflow `hito` y en cualquier punto en que un agente deba elegir sin intervención humana:
@@ -46,11 +58,11 @@ Se aplica en `clarify`, en los gates automáticos del workflow `hito` y en cualq
 1. **Siempre la mejor solución.** Entre alternativas, elegir la que mejor cumpla calidad, escalabilidad, mantenibilidad, seguridad y buenas prácticas del ecosistema Go y de este proyecto. Ni atajos ni ñapas: nada de `//nolint` sin justificación, nada de tests desactivados, nada de "TODO: arreglar luego", nada de capturar errores para silenciarlos.
 2. **Lo no especificado no se implementa.** Si una funcionalidad, comportamiento o parámetro no está definido en el hito del roadmap, en `CLAUDE.md`, en `refs/` o en esta constitución, se deja fuera de alcance y se anota como tal (sección *Fuera de alcance* del spec o *Pendientes* de la PR). No se inventan requisitos ni se anticipan fases futuras.
 3. **Cuando hay que elegir, elegir con criterio y dejar rastro.** Cada decisión automática se registra en el artefacto correspondiente (`spec.md` → `## Clarifications` con prefijo `(auto)`, `plan.md` → *Complexity Tracking* o *Decisiones*, `gates/*.json` → `motivos`) con la alternativa rechazada y por qué.
-4. **Escalar en lugar de adivinar.** Si la duda afecta a alcance, a la frontera humana, a privacidad, a términos de uso de una fuente o a una decisión ya cerrada, el agente no decide: marca el gate como `rechazado` con el motivo y el workflow se detiene para que un humano resuelva.
+4. **Escalar en lugar de adivinar.** Si la duda afecta a alcance, a la frontera humana, a privacidad, a términos de uso de una fuente, a las reglas de anomalías o a una decisión ya cerrada, el agente no decide: marca el gate como `rechazado` con el motivo y el workflow se detiene para que un humano resuelva.
 5. **Verificar antes de aprobar.** Un gate solo se marca `aprobado` tras comprobar el artefacto contra el hito, los principios anteriores y la Definition of Done; corregir el artefacto es preferible a rechazarlo, salvo en el caso 4.
 
 ## Gobernanza
 
 Esta constitución prevalece sobre cualquier otra práctica. Toda PR se revisa contra ella. Enmiendas: cambio en este fichero + ADR que lo motive + actualización de `CLAUDE.md` si afecta a una decisión cerrada. Las decisiones listadas como cerradas en `CLAUDE.md` no se reabren en spec, plan ni clarify.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-09
+**Version**: 1.1.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-09
