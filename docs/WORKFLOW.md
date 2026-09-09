@@ -17,13 +17,19 @@ Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de sp
 
 ```
 extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
-→ specify (args: modo desatendido, alcance = sección, no especificado = fuera de alcance)
-→ clarify (args: se autorresponde con el criterio; [ESCALAR] si toca alcance/frontera/privacidad/TOS/decisión cerrada)
-→ gate_spec (prompt juez → gates/spec.json) → check_gate_spec (shell: veredicto, marcadores, checklists)
-→ [supervisado] gate humano
+→ specify (modo desatendido: alcance = sección; ambigüedades como [NEEDS CLARIFICATION], sin resolver)
+→ clarify_preguntas (command: solo formula preguntas, sin recomendación → gates/clarify-preguntas.json)
+→ resolver_clarify (prompt en PROCESO NUEVO, contexto limpio → gates/clarify-respuestas.json)
+→ check_clarify (shell: todas respondidas; ninguna escalada) → clarify_integrar (command: integra respuestas en spec.md)
+→ gate_spec (juez → gates/spec.json) → check_gate_spec (shell) → [supervisado] gate humano
 → plan (Constitution Check estricto) → gate_plan → check_gate_plan → [supervisado] gate humano
-→ tasks → analyze (informe a gates/analyze.md) → gate_tasks → check_gate_tasks
-→ implement → make ci → si falla: do-while (reparar + make ci) ×3
+→ tasks (cada tarea = rebanada vertical que deja `make ci` en verde) → analyze → gate_tasks → check_gate_tasks
+→ bucle por tarea (do-while):
+     siguiente_tarea (shell: primera "- [ ] Tnnn" de tasks.md, cuenta intentos)
+     → implementar_tarea (command implement, solo esa tarea)
+     → verificar (shell: make ci | go build+vet+test; log en gates/ci.log)
+     → si falla: reparar (prompt con las últimas 80 líneas del log) → verificar_reparacion (si sigue rojo, parada)
+→ ci (make ci del hito) → si falla: do-while (reparar_hito + ci_reintento) ×3 → ci_tras_reparacion
 → converge → implement_restante
 → revision (diff completo contra DoD → gates/revision.md/.json) → ci_final
 → [supervisado] gate humano final
@@ -31,19 +37,34 @@ extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
 
 La fusión a `main` (PR + squash-merge) y el release son siempre acciones humanas. El workflow deja la rama del hito commiteada y en verde; nunca hace `push` ni `merge`.
 
-## Cómo funcionan los gates desatendidos
+## Clarificación sin sesgo
 
-1. **Los comandos no preguntan.** Cada `command` recibe en `args` la instrucción "MODO DESATENDIDO" con la regla de decisión. En `clarify`, Claude genera sus preguntas y las responde él mismo; deja rastro en `## Clarifications` con `(auto: <criterio>)`.
-2. **Un juez por fase.** `gate_spec`, `gate_plan`, `gate_tasks` y `revision` son pasos `prompt`: leen los artefactos, corrigen lo corregible y escriben `gates/<fase>.json` con `{"veredicto","motivos","correcciones"}`.
-3. **Un `shell` determinista decide.** `check_gate_*` lee el JSON con `jq` y además comprueba invariantes mecánicos (sin `[NEEDS CLARIFICATION]`, sin `[ESCALAR]`, checklists completas). Si falla, el run queda en estado `failed`.
-4. **Escalado = parada.** Cuando el criterio dice "no decidas" (alcance, frontera humana, privacidad, TOS, decisión cerrada), el juez responde `rechazado` y el workflow se detiene. Se corrige a mano el artefacto y se reanuda desde ese paso.
-5. **Modo supervisado.** `modo=supervisado` añade gates humanos tras spec, plan y revisión final; se resuelven con `resume … veredicto_spec=approve`, etc.
+`clarify` se divide en tres pasos para que quien formula las preguntas no sea quien las responde:
+
+1. **`clarify_preguntas`** ejecuta `/speckit-clarify` con la orden de solo escribir las preguntas y sus opciones en `gates/clarify-preguntas.json`, sin recomendación ni opción preferida, y sin tocar el spec.
+2. **`resolver_clarify`** es un `prompt` que spec-kit lanza como un proceso `claude -p` nuevo: no comparte conversación con el paso anterior y se le dice que decida solo con documentos (hito, `CLAUDE.md`, `refs/`, constitución). Aplica el criterio en este orden: (a) lo determinan las fuentes → esa es la respuesta; (b) no está especificado → "fuera de alcance: no se implementa"; (c) varias opciones válidas → la de mayor calidad y mejores prácticas, con la alternativa rechazada; (d) alcance, frontera humana, privacidad, TOS o decisión cerrada → `escalar: true`.
+3. **`check_clarify`** detiene el run si alguna respuesta está escalada. Se edita `gates/clarify-respuestas.json` a mano y se reanuda. **`clarify_integrar`** vuelve a llamar a `/speckit-clarify` solo para integrar los pares Q/A en `spec.md` con marca `(auto: criterio, fuente)`.
+
+Los jueces de cada gate y el revisor final son también procesos nuevos, por la misma razón.
+
+## Implementación tarea a tarea
+
+Con `granularidad=tarea` (valor por defecto) el bucle toma la primera línea `- [ ] Tnnn` de `tasks.md`, lanza `/speckit-implement` restringido a esa tarea y ejecuta la batería determinista. Si falla:
+
+- el paso `reparar` recibe **las últimas 80 líneas de la salida** interpoladas en el prompt y la ruta del log completo (`gates/ci.log`), con la orden de arreglar la causa y no el control;
+- `verificar_reparacion` vuelve a ejecutar la batería; si sigue en rojo, el run se detiene para revisión humana;
+- una tarea que no queda marcada `[X]` tras 3 intentos detiene el run (`gates/tareas-intentos.json`, `gates/tarea-Tnnn.md`).
+
+Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de que cada tarea es una rebanada vertical (test + implementación) que deja `make ci` en verde por sí sola; el gate de tareas lo comprueba. Mientras no exista `Makefile` con objetivo `ci`, la batería es `go build ./... && go vet ./... && go test -race ./...`; sin `go.mod` no hay nada que verificar (primeras tareas de H0).
+
+`granularidad=hito` conserva la pasada única de `implement` (más barata, menos control).
 
 ## Uso
 
 ```bash
-scripts/hito.sh H0                     # desatendido
+scripts/hito.sh H0                     # desatendido, tarea a tarea
 scripts/hito.sh H0 supervisado         # con pausas humanas
+specify workflow run hito -i hito=H0 -i granularidad=hito   # implement en una pasada
 specify workflow status                # runs y estado
 specify workflow status <run_id>
 scripts/hito.sh --resume <run_id>      # tras corregir a mano un artefacto
@@ -85,5 +106,7 @@ Estado de cada run en `.specify/workflows/runs/<run_id>/` (`state.json`, `inputs
 
 - Los pasos `command` transmiten la salida al terminal y no la capturan; por eso los jueces escriben ficheros en `gates/` y `analyze` recibe la instrucción de guardar su informe.
 - Los pasos `prompt` y `shell` tienen `timeout` explícito (1800 s); `make ci` debe caber en ese margen.
+- Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación (`verificar`, `ci`, `ci_reintento`). Los `check_*` fallan a propósito para parar.
+- La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista. Si hace falta, añadir un objetivo `make check` más rápido y usarlo en `verificar`.
 - `inputs.hito` se interpola en un `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`.
 - Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow y la constitución no se tocan.

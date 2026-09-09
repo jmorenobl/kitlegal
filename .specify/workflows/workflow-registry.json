@@ -11,11 +11,11 @@
     },
     "hito": {
       "name": "Hito del roadmap (SDD con gates autom\u00e1ticos)",
-      "version": "1.0.0",
-      "description": "Implementa un hito de docs/ROADMAP.md: specify \u2192 clarify \u2192 plan \u2192 tasks \u2192 analyze \u2192 implement \u2192 make ci \u2192 converge \u2192 revisi\u00f3n. Gates evaluados por Claude con el Criterio de decisi\u00f3n aut\u00f3noma de la constituci\u00f3n.",
-      "source": "/private/tmp/claude-501/-Users-jorge-Projects-kitlegal/197011ee-4b42-4126-bd3a-9c512d81f7e1/scratchpad/hito",
+      "version": "1.1.0",
+      "description": "Implementa un hito de docs/ROADMAP.md: specify \u2192 clarify (preguntas / resoluci\u00f3n en contexto limpio / integraci\u00f3n) \u2192 plan \u2192 tasks \u2192 analyze \u2192 implement tarea a tarea con verificaci\u00f3n determinista \u2192 converge \u2192 revisi\u00f3n. Gates evaluados con el Criterio de decisi\u00f3n aut\u00f3noma de la constituci\u00f3n.",
+      "source": "/private/tmp/claude-501/-Users-jorge-Projects-kitlegal/197011ee-4b42-4126-bd3a-9c512d81f7e1/scratchpad/hito-v11",
       "installed_at": "2026-09-09T14:03:00.853197+00:00",
-      "updated_at": "2026-09-09T14:03:00.853308+00:00"
+      "updated_at": "2026-09-09T14:15:08.598543+00:00"
     }
   }
 }
