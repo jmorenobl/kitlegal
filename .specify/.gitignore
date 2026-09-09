@@ -10,3 +10,6 @@ extensions/*/local-config.yml
 
 # Lock transitorio de `specify workflow add`.
 .workflow-install.lock
+
+# Estado de ejecución de workflows (por máquina).
+workflows/runs/

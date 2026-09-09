@@ -4,6 +4,7 @@ workflow:
   name: "Hito del roadmap (SDD con gates automáticos)"
   version: "1.3.0"
   author: "kitlegal"
+  integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff."
 
 requires:
