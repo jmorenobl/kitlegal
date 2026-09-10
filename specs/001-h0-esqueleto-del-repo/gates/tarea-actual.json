@@ -1,10 +1,10 @@
 {
-  "id": "T006",
-  "texto": "T006 [P] [US2] `.github/workflows/codeql.yml`: análisis estático de seguridad semanal con la acción oficial de CodeQL sobre el lenguaje go y la suite security-extended, con el permiso de escritura de eventos de seguridad acotado a ese job.",
+  "id": "T007",
+  "texto": "T007 [P] [US2] `.github/dependabot.yml` con revisión semanal y seis entradas: una gomod para el módulo raíz, una gomod por cada uno de los cuatro módulos de herramienta —de modo que las versiones fijadas de los controles se actualicen solas— y una github-actions para las acciones que usan los flujos.",
   "intento": 1,
   "datos": false,
-  "base": "192d80bdb4757b5ed53df5cabfba6bc0aebae556",
+  "base": "57a9e853c7432d396be6cd58962b03363ca1a07a",
   "rutas": [
-    ".github/workflows/codeql.yml"
+    ".github/dependabot.yml"
   ]
 }

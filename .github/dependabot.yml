@@ -1,0 +1,71 @@
+# Actualización automática de dependencias (FR-028, research.md D14).
+#
+# Seis entradas y periodicidad semanal. Junto con CodeQL, Dependabot es el único
+# control del repositorio que no pasa por el `Makefile`: no opera sobre un árbol
+# de trabajo local sino sobre la plataforma, así que no hay orden equivalente
+# que invocar y SC-004 —el veredicto local y el de la integración continua
+# coinciden— lo excluye de forma explícita.
+#
+# Por qué una entrada por directorio y no una sola: Dependabot descubre módulos
+# Go por ficheros llamados `go.mod` en el `directory` que se le indica, y no
+# sigue subdirectorios. Como cada herramienta de control vive en su propio
+# módulo (research.md D2 —un módulo compartido no compila: la Selección de
+# Versión Mínima entre `golangci-lint` y `gitleaks` produce un `charmbracelet/x/ansi`
+# incompatible—), cada uno necesita su entrada. Sin ella la versión fijada de
+# esa herramienta se quedaría atrás en silencio, que es justo lo que FR-042 (c)
+# quiere impedir: las versiones de los controles se actualizan solas.
+version: 2
+
+updates:
+  # Módulo raíz: las dependencias del producto. Hoy no hay ninguna —H0 entrega
+  # el esqueleto—, así que esta entrada no abrirá ninguna propuesta de cambio
+  # hasta que la haya. Se declara desde ahora para que la primera dependencia
+  # que entre ya esté cubierta sin tocar este fichero.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Los cuatro módulos de herramienta. Cada uno agrupa sus actualizaciones en
+  # una sola propuesta de cambio: lo que importa es la versión de la
+  # herramienta, no la de sus decenas de dependencias indirectas, y una PR por
+  # indirecta convertiría el control en ruido que nadie revisa.
+  - package-ecosystem: gomod
+    directory: /tools/golangci-lint
+    schedule:
+      interval: weekly
+    groups:
+      golangci-lint:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /tools/govulncheck
+    schedule:
+      interval: weekly
+    groups:
+      govulncheck:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /tools/gitleaks
+    schedule:
+      interval: weekly
+    groups:
+      gitleaks:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /tools/lefthook
+    schedule:
+      interval: weekly
+    groups:
+      lefthook:
+        patterns: ["*"]
+
+  # Las acciones que usan los tres flujos de `.github/workflows/`: Dependabot
+  # las descubre bajo el directorio declarado, así que una única entrada en la
+  # raíz cubre `ci`, `nightly` y `codeql` a la vez.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
