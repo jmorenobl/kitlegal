@@ -1,7 +1,9 @@
 # Verificación en la plataforma · escenario 11 (SC-005 · SC-006)
 
 **Fecha**: 2026-09-10 · **Hito**: H0 · **Tarea**: T014 · **Rama**: `h0-esqueleto-del-repo`
-**Intentos**: 1 (bloqueo detectado) · 2 (bloqueo reverificado; fixture del escenario corregido)
+**Intentos**: 1 (bloqueo detectado) · 2 (bloqueo reverificado; fixture del escenario corregido) ·
+3 y último (bloqueo reverificado **sin cambio**: `git remote -v` sigue sin salida a 2026-09-10; nada nuevo
+que ejecutar en el repositorio hasta que exista `origin`)
 
 ## Veredicto
 
