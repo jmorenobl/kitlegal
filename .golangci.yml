@@ -1,0 +1,88 @@
+# Configuración de golangci-lint (formato v2).
+# Contrato: FR-012 a FR-014 y FR-017 del hito H0; decisión en research.md D9.
+# La versión de la herramienta está fijada en tools/golangci-lint/go.mod.
+version: "2"
+
+run:
+  # Los tests son código del proyecto y se lintan igual que el resto.
+  tests: true
+
+linters:
+  # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
+  default: standard
+  enable:
+    # Los de FR-013 que no vienen en `standard`.
+    - bodyclose
+    - contextcheck
+    - dupl
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gocyclo
+    - gosec
+    - misspell
+    - nilerr
+    - noctx
+    - nolintlint
+    - paralleltest
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - testifylint
+    - thelper
+    - tparallel
+    # FR-014: prohibición de escrituras directas a la salida estándar.
+    - forbidigo
+  # depguard y el resto de reglas de arquitectura son alcance de H1 (FR-014).
+
+  settings:
+    dupl:
+      threshold: 100
+    errcheck:
+      check-type-assertions: true
+      # El punto de entrada escribe en los io.Writer que recibe y su contrato de
+      # códigos de salida solo admite 0 y 2 (contracts/cli-version.md): un fallo
+      # al escribir en stdout o stderr no tiene ni recuperación ni código propio.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+    exhaustive:
+      default-signifies-exhaustive: true
+    forbidigo:
+      forbid:
+        - pattern: ^fmt\.Print(|f|ln)$
+          msg: la salida se emite por el escritor que recibe la función; en H1 solo internal/render escribe en stdout
+    gocyclo:
+      min-complexity: 13
+    misspell:
+      # El diccionario de misspell es solo inglés; el español se neutraliza
+      # falso positivo a falso positivo en ignore-rules (research.md D9).
+      locale: US
+      ignore-rules:
+        # Plural español de «argumento»; misspell lo lee como «arguments».
+        - argumentos
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+  exclusions:
+    rules:
+      # forbidigo se aplica únicamente bajo internal/**: cmd/ puede escribir en
+      # stdout en H0 (FR-014).
+      - linters:
+          - forbidigo
+        path-except: ^internal/
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra:
+        group-params: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

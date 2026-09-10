@@ -1,0 +1,12 @@
+# Huellas de hallazgos comprobados que no son credenciales. Una línea por
+# hallazgo, en formato fichero:regla:línea, con el comentario que la justifica.
+# El control no se debilita: ninguna regla queda desactivada y ninguna ruta
+# queda excluida del recorrido de `make secrets` (contracts/make-targets.md).
+# El procedimiento para añadir una huella nueva está en CONTRIBUTING.md.
+
+# Ejemplo de credencial en el bloque «Bad» de la documentación vendorizada de
+# las skills de agente (samber/cc-skills-golang), marcado `// DON'T` en el
+# propio fichero: enseña qué no hacer, no es una credencial de este proyecto.
+.agents/skills/golang-security/references/secrets.md:generic-api-key:31
+# Segundo ejemplo del mismo bloque «Bad» del mismo fichero, también `// DON'T`.
+.agents/skills/golang-security/references/secrets.md:generic-api-key:37
