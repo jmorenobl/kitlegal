@@ -1,13 +1,11 @@
 {
-  "id": "T011",
-  "texto": "T011 [P] [US4] Los cuatro ADR fundacionales en formato MADR corto —contexto y problema, opciones consideradas, decisión y consecuencias, ninguno vacío ni marcador de posición—: `docs/ADR/0001-multicall.md`, `docs/ADR/0002-sqlite-sin-cgo.md`, `docs/ADR/0003-no-cendoj-masivo.md` y `docs/ADR/0004-frontera-humana.md`, que registran decisiones ya cerradas sin reabrirlas ni matizarlas.",
+  "id": "T012",
+  "texto": "T012 [US4] `CHANGELOG.md` con la sección Unreleased y la entrada de este hito: el binario con su verbo version y el conjunto de controles que quedan activos, siguiendo la convención de changelog que el propio `CONTRIBUTING.md` declara.",
   "intento": 1,
   "datos": false,
-  "base": "2306213826d54152c0972d5fa0eed8d2bec34130",
+  "base": "84d83d148dd88daea474f1fbbff0015c7e67c7c8",
   "rutas": [
-    "docs/ADR/0001-multicall.md",
-    "docs/ADR/0002-sqlite-sin-cgo.md",
-    "docs/ADR/0003-no-cendoj-masivo.md",
-    "docs/ADR/0004-frontera-humana.md"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
   ]
 }
