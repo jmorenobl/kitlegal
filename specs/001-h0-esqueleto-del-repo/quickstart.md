@@ -290,8 +290,9 @@ configuración del control, no en el escenario.
 > 8— y gitleaks analiza el texto del fichero, no su árbol sintáctico.
 
 > **Ningún fichero versionado puede contener un token detectable.** `make secrets` es
-> `gitleaks dir . --redact --no-banner`: recorre **todo** el árbol, `specs/` incluido, y H0 no crea
-> `.gitleaksignore` («Notas» de `tasks.md`). Un token literal en esta guía, en `README.md` o en los
+> `gitleaks dir . --redact --no-banner`: recorre **todo** el árbol, `specs/` incluido, y el
+> `.gitleaksignore` que crea T001 solo excluye dos huellas concretas de la documentación vendorizada
+> («Notas» de `tasks.md`), ninguna de esta guía. Un token literal en esta guía, en `README.md` o en los
 > registros de `gates/` dejaría `make ci` en rojo de forma permanente y no por un control, sino por el
 > propio documento. De ahí que el token se genere al vuelo, que `--redact` mantenga su valor fuera de la
 > salida de gitleaks y que T013 lo excluya del registro de la validación.

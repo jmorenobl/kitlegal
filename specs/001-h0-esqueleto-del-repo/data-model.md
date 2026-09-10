@@ -241,6 +241,7 @@ real.
 | `docs/ADR/0002-sqlite-sin-cgo.md` | FR-034 |
 | `docs/ADR/0003-no-cendoj-masivo.md` | FR-035 |
 | `docs/ADR/0004-frontera-humana.md` | FR-036 |
+| `.gitleaksignore` | FR-018 |
 
 **Ausencias deliberadas**
 
@@ -248,11 +249,13 @@ real.
   que FR-005 persigue la aportan los cuatro `tools/*/go.sum` más `go mod verify` sobre los módulos
   existentes dentro de `make ci` (ver *Complexity Tracking* en [plan.md](./plan.md) y
   [research.md D5](./research.md)).
-- No hay `.gitleaksignore`. FR-018 exige **ejecutar** la detección de secretos, no publicar su fichero de
-  exclusiones, y esa ejecución la aportan el `Makefile` (orden `secrets`, dentro de `ci`) y `lefthook.yml`
-  (pre-commit). La vía trazable de exclusión que pide el caso límite del spec es un **procedimiento**, y
-  vive en `CONTRIBUTING.md` (FR-021, FR-032): huella a huella, con comentario justificativo y sin
-  desactivar el control ([research.md D10](./research.md)). El fichero nace con la primera huella real que
-  haya que excluir; crearlo vacío en H0 sería exactamente el marcador de posición sin contenido que SC-008
+- ~~No hay `.gitleaksignore`.~~ **Sí lo hay**, con dos huellas reales: el árbol heredado trae dos líneas
+  de ejemplo marcadas `// DON'T` en la documentación vendorizada de `samber/cc-skills-golang` que la regla
+  `generic-api-key` detecta. No es un marcador de posición vacío, así que SC-008 se cumple. FR-018 sigue
+  cubierto por la **ejecución** del control (`Makefile`, orden `secrets` dentro de `ci`, y `lefthook.yml`
+  en pre-commit) y `CONTRIBUTING.md` (FR-021, FR-032) sigue documentando el procedimiento huella a huella
+  ([research.md D10](./research.md), [gates/decision-humana-secretos.md](./gates/decision-humana-secretos.md)).
+  El párrafo que sigue describe la situación anterior a esa decisión y se conserva como rastro; crear el
+  fichero **vacío** seguiría siendo el marcador de posición sin contenido que SC-008
   prohíbe, y contradiría «lo no especificado no se implementa». Coincide con la decisión de
   [tasks.md](./tasks.md) («Notas»), que es la fuente que ejecuta el workflow.

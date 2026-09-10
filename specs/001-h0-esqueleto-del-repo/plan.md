@@ -186,6 +186,7 @@ Makefile                        build test test-integration test-e2e lint fmt vu
 lefthook.yml                    pre-commit: make fmt / lint-fast / secrets / mod-tidy-check
 codecov.yml                     global ≥ 70 %, componente internal/core/** ≥ 85 %, no informativos
 .gitignore                      ya existe (/bin/, *.out, coverage.*, .kitlegal/)
+.gitleaksignore                 2 huellas justificadas de la documentación vendorizada (T001)
 
 .github/
 ├── workflows/
@@ -210,14 +211,15 @@ docs/ADR/
 └── 0004-frontera-humana.md
 ```
 
-**`.gitleaksignore` no está en la lista, y es deliberado**: H0 entrega el *procedimiento* trazable de
-exclusión de falsos positivos —por huella, con comentario justificativo y sin desactivar el control— en
-`CONTRIBUTING.md` (T010), no un fichero. El fichero nace con la primera huella real que haya que excluir;
-crearlo vacío en H0 sería el marcador de posición sin contenido que SC-008 prohíbe, y FR-018 exige
-*ejecutar* la detección de secretos (orden `secrets` dentro de `ci`, más el pre-commit), no publicar su
-lista de exclusiones. Coincide con la decisión de [tasks.md](./tasks.md) («Notas») y con el inventario de
-[data-model.md](./data-model.md); tampoco lo declara ninguna tarea, así que el guardián de diff del
-workflow `hito` rechazaría el fichero si apareciera.
+**`.gitleaksignore` sí forma parte de H0, con dos huellas reales.** La versión anterior de este plan
+afirmaba lo contrario sobre una premisa falsa: que el árbol no tenía ningún falso positivo que excluir. Lo
+tiene. La documentación vendorizada de `samber/cc-skills-golang` incluye dos líneas de ejemplo marcadas
+`// DON'T` que la regla `generic-api-key` detecta y que no son credenciales; sin exclusión `make secrets`
+no queda en verde y el control no queda instalado, que es lo que el hito entrega. El fichero nace con
+contenido justificado —huella a huella, con comentario, sin desactivar ninguna regla—, no como marcador de
+posición, así que SC-008 se cumple. T001 lo declara entre sus rutas y `CONTRIBUTING.md` (T010) sigue
+documentando el procedimiento. FR-018 sigue satisfecho por la *ejecución* del control. Decisión humana del
+2026-09-10 en [gates/decision-humana-secretos.md](./gates/decision-humana-secretos.md).
 
 **Structure Decision**: layout `cmd/` + `internal/` estándar de Go para una herramienta de línea de
 órdenes, con la particularidad de que **H0 no crea `internal/`** (FR-002, respuesta Q4 del `clarify`): el

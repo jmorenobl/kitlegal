@@ -405,10 +405,19 @@ herramienta; después el `-diff` sale vacío. Es un paso de la tarea de creació
 - **Vía de exclusión** (caso límite del spec): fichero `.gitleaksignore` en la raíz, con la huella
   (*fingerprint*) del hallazgo concreto y un comentario que justifique cada línea; `CONTRIBUTING.md`
   documenta el procedimiento. No se añade `.gitleaks.toml`: se usa el conjunto de reglas por defecto.
-  **H0 no crea el fichero**: lo que el hito entrega es el procedimiento escrito, y el fichero nace con la
-  primera huella real que haya que excluir (uno vacío sería el marcador de posición sin contenido que
-  SC-008 prohíbe). Por eso no figura en el inventario de artefactos de
-  [data-model.md](./data-model.md) ni en ninguna tarea de [tasks.md](./tasks.md).
+  **H0 sí crea el fichero, con dos huellas reales.** La premisa original de esta decisión —que en H0 no
+  había ningún falso positivo que excluir— era falsa: el árbol heredado trae dos líneas de ejemplo
+  marcadas `// DON'T` en la documentación de la skill `golang-security` del paquete vendorizado
+  `samber/cc-skills-golang`, que la regla `generic-api-key` detecta y que no son credenciales. Sin
+  exclusión, `make secrets` no puede quedar en verde y el control no queda instalado, que es justo lo que
+  el hito entrega. El fichero nace con contenido justificado, no como marcador de posición, así que SC-008
+  se cumple; figura en el inventario de [data-model.md](./data-model.md) y entre las rutas de T001.
+  Decisión humana del 2026-09-10 en
+  [gates/decision-humana-secretos.md](./gates/decision-humana-secretos.md).
+- **Verificado sobre el árbol real** (gitleaks v8.30.1, subcomando `dir`): `.gitignore` **no** se
+  respeta, así que dejar de versionar un directorio no lo saca del escaneo —solo borrarlo del disco—; una
+  ruta desnuda en `.gitleaksignore` tampoco excluye nada; la huella `fichero:regla:línea` sí. Es la única
+  vía por hallazgo que funciona en este modo.
 - **Alternativa rechazada**: `.gitleaks.toml` con `[allowlist]` por expresión regular. Excluye por patrón,
   no por hallazgo, así que puede silenciar secretos futuros que nadie ha visto; `.gitleaksignore` excluye
   exactamente una coincidencia identificada, que es lo que pide «trazable, sin desactivar el control».
