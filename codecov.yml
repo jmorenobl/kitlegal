@@ -1,0 +1,23 @@
+# Umbrales de cobertura de la Definition of Done (docs/ROADMAP.md §1.9, spec FR-029).
+# Ambos estados son bloqueantes: informational: false. Sin exclusiones ni excepciones.
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        informational: false
+
+# El componente del dominio interno declara su umbral desde H0. Codecov no evalúa un
+# componente cuyos paths no casan con ningún fichero del informe, así que en H0 —donde
+# internal/core/ todavía no existe— el estado no aparece, y empieza a aplicarse por sí
+# solo en cuanto ese árbol tenga ficheros. No hay nada que editar entonces.
+component_management:
+  individual_components:
+    - component_id: internal_core
+      name: internal/core
+      paths:
+        - internal/core/**
+      statuses:
+        - type: project
+          target: 85%
+          informational: false
