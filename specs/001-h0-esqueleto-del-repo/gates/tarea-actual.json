@@ -1,10 +1,10 @@
 {
-  "id": "T007",
-  "texto": "T007 [P] [US2] `.github/dependabot.yml` con revisión semanal y seis entradas: una gomod para el módulo raíz, una gomod por cada uno de los cuatro módulos de herramienta —de modo que las versiones fijadas de los controles se actualicen solas— y una github-actions para las acciones que usan los flujos.",
+  "id": "T008",
+  "texto": "T008 [P] [US4] `LICENSE` con el texto canónico y sin editar de Apache-2.0, licencia del núcleo conforme a la decisión open-core.",
   "intento": 1,
   "datos": false,
-  "base": "57a9e853c7432d396be6cd58962b03363ca1a07a",
+  "base": "dd28fdc9f12d35d2137acabe07a95ee25c718834",
   "rutas": [
-    ".github/dependabot.yml"
+    "LICENSE"
   ]
 }
