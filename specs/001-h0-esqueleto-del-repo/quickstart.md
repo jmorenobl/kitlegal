@@ -344,8 +344,10 @@ Tres precondiciones que hacen falsable el criterio y son fáciles de romper por 
 git checkout h0-esqueleto-del-repo
 git checkout -b prueba-forbidigo
 mkdir -p internal/prueba
-printf 'package prueba\n\nimport "fmt"\n\nfunc P() { fmt.Println("no") }\n' > internal/prueba/p.go
-make lint     # debe FALLAR con forbidigo
+# Los dos comentarios NO son adorno: sin ellos `revive` ocupa la misma línea que
+# `forbidigo` y `uniq-by-line` descarta el segundo (ver la nota de abajo).
+printf '// Package prueba es un fixture desechable del escenario 11.\npackage prueba\n\nimport "fmt"\n\n// P escribe directamente en stdout, que es lo que forbidigo debe bloquear.\nfunc P() { fmt.Println("no") }\n' > internal/prueba/p.go
+make lint     # debe FALLAR, y el hallazgo debe ser `forbidigo: 1`, no otro
 git add internal/prueba/p.go                                  # solo este fichero, nunca `git add -A`
 git commit --no-verify -m "test: comprobar forbidigo"         # el gancho local no es lo que se mide aquí
 git push -u origin prueba-forbidigo
@@ -355,9 +357,18 @@ gh pr create --draft --base h0-esqueleto-del-repo --head prueba-forbidigo \
 gh pr checks prueba-forbidigo --watch   # debe terminar en fallo
 ```
 
-**Esperado**: el control de lint falla, en local y en la PR, señalando `fmt.Println` en
-`internal/prueba/p.go`. El mismo `fmt.Println` en `cmd/` **no** falla: la regla está acotada por ruta
-(FR-014).
+**Esperado**: el control de lint falla, en local y en la PR, **señalando `fmt.Println`** en
+`internal/prueba/p.go` (`forbidigo: 1`). El mismo `fmt.Println` en `cmd/` **no** falla: la regla está
+acotada por ruta (FR-014).
+
+> **No basta con que el lint falle: hay que leer qué regla falló.** El fixture debe dejar la escritura
+> prohibida como su **único** defecto. El procesador `uniq-by-line` de golangci-lint, activo por omisión,
+> deja un solo hallazgo por línea; si el fixture va sin comentario de paquete ni de función exportada, el
+> `exported` de `revive` cae en la misma línea que el `fmt.Println` y **desplaza al de `forbidigo`**. El
+> lint termina en error igualmente —SC-005 se daría por bueno— pero señalando dos comentarios ausentes, y
+> FR-014 se quedaría sin comprobar. Comprobado por bisección: con `issues.uniq-by-line: false` reaparecen
+> los dos hallazgos. De ahí los comentarios del `printf` de arriba. Si `make lint` no dice exactamente
+> `forbidigo: 1`, el escenario no está midiendo lo que cree medir.
 
 > **Por qué `--no-verify` en este commit, y solo en este.** El gancho de pre-commit instalado en T003
 > ejecuta `make lint-fast`, que es exactamente el control que este fichero está diseñado para infringir: sin

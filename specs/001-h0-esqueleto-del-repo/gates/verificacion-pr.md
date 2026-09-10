@@ -1,6 +1,7 @@
 # Verificación en la plataforma · escenario 11 (SC-005 · SC-006)
 
 **Fecha**: 2026-09-10 · **Hito**: H0 · **Tarea**: T014 · **Rama**: `h0-esqueleto-del-repo`
+**Intentos**: 1 (bloqueo detectado) · 2 (bloqueo reverificado; fixture del escenario corregido)
 
 ## Veredicto
 
@@ -134,9 +135,37 @@ anterior.
   sin mirar qué regla falló dejaría `forbidigo` sin comprobar nunca, que es precisamente lo que FR-014
   quiere asegurar.
 
-Por eso, cuando haya remoto y se ejecute el escenario de verdad, el fixture debe llevar sus dos
-comentarios, o bien hay que leer el hallazgo concreto y exigir que sea `forbidigo`. Corregir el guion de
-`quickstart.md` queda **fuera** del alcance de T014, que no declara ese fichero entre sus rutas.
+**Corregido en el intento 2.** El intento 1 tuvo que dejar esto anotado sin arreglarlo porque
+`quickstart.md` no figuraba entre sus rutas declaradas; el intento 2 **sí** lo declara, así que el guion del
+escenario 11 queda corregido en el propio `quickstart.md`:
+
+- el `printf` del fixture ahora lleva comentario de paquete y de función exportada, de modo que la escritura
+  prohibida es su **único** defecto;
+- el paso pasa de `# debe FALLAR con forbidigo` a `# debe FALLAR, y el hallazgo debe ser forbidigo: 1`;
+- el apartado «Esperado» incorpora una nota que explica el enmascaramiento por `uniq-by-line` y advierte de
+  que **no basta con que el lint falle: hay que leer qué regla falló**.
+
+Reproducido y verificado en local antes y después del cambio, sin red y sin tocar `.golangci.yml`:
+
+```console
+$ # fixture literal del intento 1 (el que el guion dictaba)
+$ make lint
+internal/prueba/p.go:1:1: package-comments: should have a package comment (revive)
+internal/prueba/p.go:5:1: exported: exported function P should have comment or be unexported (revive)
+2 issues:
+* revive: 2          # ← ni rastro de forbidigo: el «Esperado» no se cumplía
+
+$ # fixture corregido, ya en quickstart.md
+$ make lint
+internal/prueba/p.go:7:12: use of `fmt.Println` forbidden because "la salida se emite por el escritor
+que recibe la función; en H1 solo internal/render escribe en stdout" (forbidigo)
+1 issues:
+* forbidigo: 1       # ← el hallazgo que FR-014 quiere asegurar
+```
+
+El fixture se borró al terminar (`internal/prueba/` inexistente, `git status --porcelain -- internal/`
+vacío). Con esto, cuando exista el remoto el escenario 11 se ejecuta tal cual está escrito y mide de verdad
+lo que dice medir.
 
 ## Qué hace falta para cerrar esta tarea
 
