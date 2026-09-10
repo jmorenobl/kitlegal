@@ -40,7 +40,8 @@
             "Bash(.specify/scripts/bash/*)",
             "Bash(.specify/extensions/git/scripts/bash/*)",
             "Bash(./kitlegal:*)",
-            "Bash(./bin/kitlegal:*)"
+            "Bash(./bin/kitlegal:*)",
+            "Bash(rm:*)"
         ],
         "deny": [
             "Bash(git push:*)",
