@@ -31,10 +31,10 @@ def walk(steps):
             if isinstance(s.get(k), list): walk(s[k])
 walk(wf['steps'])
 if not found or found.get('type') != 'prompt':
-    sys.exit(f"echo 'no existe un paso prompt con id {paso}' >&2; exit 2")
+    print(f"echo 'no existe un paso prompt con id {paso}' >&2; exit 2"); sys.exit(0)
 prompt = found['prompt'].replace('{{ inputs.hito }}', hito)
 if '{{' in prompt:
-    sys.exit(f"echo 'el paso {paso} interpola salidas de otros pasos; no se puede lanzar suelto' >&2; exit 2")
+    print(f"echo 'el paso {paso} interpola salidas de otros pasos; no se puede lanzar suelto' >&2; exit 2"); sys.exit(0)
 m = found.get('model', '')
 if not modelo:
     key = m.replace('{{', '').replace('}}', '').replace('inputs.', '').strip()
