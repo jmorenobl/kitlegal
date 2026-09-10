@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.4.0"
+  version: "1.4.1"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff."
@@ -385,7 +385,7 @@ steps:
         MODO DESATENDIDO: no preguntes. Genera tasks.md siguiendo docs/ROADMAP.md §6 (ritual por hito) con estas reglas, porque las tareas se ejecutarán y verificarán UNA A UNA por un proceso automático con un guardián de diff:
         - Cada tarea es una rebanada vertical que deja `make ci` en verde al terminar: incluye su test (unitario, integración o e2e) y la implementación mínima que lo hace pasar. No separes "escribir el test" e "implementar" en tareas distintas salvo que el test cubra código ya existente.
         - Orden estrictamente ejecutable en secuencia: ninguna tarea depende de una posterior. La primera tarea entrega el esqueleto mínimo que hace que `make ci` exista y pase (en H0, el propio Makefile y los gates); el test e2e testscript que describe la entrega del hito va en la primera tarea que pueda dejarlo en verde.
-        - Formato de línea obligatorio: "- [ ] T001 [P] [US1] Descripción" con TODAS las rutas que la tarea va a crear o modificar (ficheros o directorios, p. ej. internal/cli/, cmd/kitlegal/main.go, Makefile). El guardián rechaza cualquier fichero fuera de esas rutas; go.mod, go.sum, CHANGELOG.md y el directorio del feature siempre están permitidos, y declarar x.go permite x_test.go.
+        - Formato de línea obligatorio: "- [ ] T001 [P] [US1] Descripción" con TODAS las rutas que la tarea va a crear o modificar (ficheros o directorios, p. ej. internal/cli/, cmd/kitlegal/main.go, Makefile, .gitleaksignore). El guardián rechaza cualquier fichero fuera de esas rutas; go.mod, go.sum, CHANGELOG.md y el directorio del feature siempre están permitidos, y declarar x.go permite x_test.go.
         - Toda tarea que cree o modifique ficheros bajo testdata/ o schemas/ lleva la etiqueta [datos] y provocará una pausa para revisión humana. Sepáralas del resto: una tarea [datos] solo toca testdata/ y schemas/. Nunca se graban fixtures contra la red dentro del workflow (KITLEGAL_RECORD queda fuera).
         - Ids T001, T002… únicos y correlativos; una tarea por línea.
         - Incluye tareas explícitas para cada punto de la Definition of Done (§1) que aplique al hito: CHANGELOG.md, ADR, docs/SOURCES.md, schemas, fixtures.
@@ -409,7 +409,7 @@ steps:
       grep -qE '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" || { echo "tasks.md no contiene tareas con el formato '- [ ] Tnnn'"; exit 1; }
       dup=$(grep -oE '^[[:space:]]*- \[[ xX]\] T[0-9]+' "$d/tasks.md" | grep -oE 'T[0-9]+' | sort | uniq -d || true)
       [ -z "$dup" ] || { echo "ids de tarea duplicados: $dup"; exit 1; }
-      sin_rutas=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | tr '`,;()' '     ' | grep -vE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|Makefile|LICENSE' || true)
+      sin_rutas=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | tr '`,;()' '     ' | grep -vE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|\.[A-Za-z0-9_-]*ignore|\.editorconfig|Makefile|LICENSE' || true)
       [ -z "$sin_rutas" ] || { echo "tareas sin rutas declaradas (el guardián de diff las rechazaría):"; echo "$sin_rutas"; exit 1; }
       mixtas=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | grep -E '(^|[^A-Za-z0-9_])(testdata|schemas)/' | grep -v '\[datos\]' || true)
       [ -z "$mixtas" ] || { echo "tareas que tocan testdata/ o schemas/ sin etiqueta [datos]:"; echo "$mixtas"; exit 1; }
@@ -521,7 +521,7 @@ steps:
               fi
               datos=false; printf '%s' "$texto" | grep -q '\[datos\]' && datos=true
               base=$(git rev-parse HEAD)
-              rutas=$(printf '%s' "$texto" | tr '`,;()' '     ' | grep -oE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|Makefile|LICENSE' | grep -vE '^https?:' | sort -u | jq -R . | jq -s .)
+              rutas=$(printf '%s' "$texto" | tr '`,;()' '     ' | grep -oE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|\.[A-Za-z0-9_-]*ignore|\.editorconfig|Makefile|LICENSE' | grep -vE '^https?:' | sort -u | jq -R . | jq -s .)
               jq -n --arg id "$id" --arg texto "$texto" --argjson n "$n" --argjson datos "$datos" --arg base "$base" --argjson rutas "$rutas" \
                 '{id:$id, texto:$texto, intento:$n, datos:$datos, base:$base, rutas:$rutas}' | tee "$d/gates/tarea-actual.json"
 
