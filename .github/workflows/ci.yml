@@ -1,0 +1,66 @@
+# Flujo de integración continua (FR-025, research.md D12).
+#
+# Sus pasos propios se limitan a preparar el entorno y a publicar el perfil de
+# cobertura. Todos los controles —formato, lint, detector de carreras,
+# vulnerabilidades, esquemas, secretos, integridad de módulos y dependencias
+# saneadas— los aplica `make ci`, exactamente la misma orden que se ejecuta en
+# local y en el gancho de pre-commit. Esa identidad es lo que hace cierta SC-004:
+# lo que pasa en local pasa aquí, y lo que falla aquí falla en local.
+#
+# Ninguna acción de terceros aplica un control por su cuenta (R5.1): ni
+# golangci-lint-action, ni gitleaks-action, ni un `go test` suelto.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    # Permisos mínimos: este flujo solo lee el árbol (R5.5).
+    permissions:
+      contents: read
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v5
+
+      # La versión de Go sale de las directivas de go.mod, que la acción lee por
+      # sí sola; el parche efectivo lo fija el GOTOOLCHAIN que exporta el
+      # Makefile, y una asignación del Makefile gana al GOTOOLCHAIN=local que
+      # esta acción deja en el entorno (research.md D1). Por eso no se declara
+      # go-version ni check-latest: introducirían una segunda fuente de verdad
+      # sobre el parche que compila, testea y analiza (R5.6, R7.4).
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          # La caché de la acción cubre GOMODCACHE y GOCACHE, es decir las
+          # dependencias, la construcción y los binarios de las cuatro
+          # herramientas de control, que `go tool` compila desde fuente. Sin
+          # ella la ejecución en frío domina el tiempo del flujo y SC-006 («PR
+          # limpia en < 3 min») es inalcanzable (R5.2, research.md D12).
+          cache: true
+          # Los modfiles de herramienta entran en la clave: sin ellos, subir la
+          # versión de una herramienta reutilizaría la caché anterior. El go.sum
+          # del módulo raíz aún no existe —H0 no tiene dependencias de
+          # producto— y el patrón simplemente no casa hasta que las haya.
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      - name: Ejecutar los controles
+        run: make ci
+
+      # fail_ci_if_error: una subida que falla en silencio deja el estado de
+      # cobertura sin llegar nunca y convierte el gate en un adorno (R5.7,
+      # research.md D15). Requiere el secreto CODECOV_TOKEN dado de alta en el
+      # repositorio: es un prerrequisito de plataforma, y su ausencia se
+      # resuelve dándolo de alta, no rebajando esta bandera.
+      - name: Publicar el perfil de cobertura
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.out
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
