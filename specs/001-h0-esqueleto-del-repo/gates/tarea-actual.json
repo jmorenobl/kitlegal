@@ -1,10 +1,11 @@
 {
-  "id": "T008",
-  "texto": "T008 [P] [US4] `LICENSE` con el texto canónico y sin editar de Apache-2.0, licencia del núcleo conforme a la decisión open-core.",
+  "id": "T009",
+  "texto": "T009 [P] [US4] `README.md`: qué es kitlegal y qué entrega este hito, los dos únicos prerrequisitos —una cadena Go 1.21 o superior y git, sin instalar ninguna herramienta de control ni ningún parche concreto de Go—, cómo construir e instalar el binario, cómo invocar el verbo version y qué imprime, y cómo ejecutar los controles con las órdenes del `Makefile`, incluida la instalación de los ganchos.",
   "intento": 1,
   "datos": false,
-  "base": "dd28fdc9f12d35d2137acabe07a95ee25c718834",
+  "base": "a3dee64269ee98da45b2f0a96202899fdaac9354",
   "rutas": [
-    "LICENSE"
+    "Makefile",
+    "README.md"
   ]
 }
