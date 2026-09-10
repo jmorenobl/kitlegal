@@ -1,0 +1,63 @@
+# Flujo de análisis estático de seguridad (FR-017, FR-026, research.md D13).
+#
+# Es el segundo SAST del repositorio: `gosec` corre dentro de `golangci-lint` en
+# cada propuesta de cambio (FR-013), y CodeQL corre aquí, una vez por semana,
+# sobre una base de datos que construye la propia acción.
+#
+# Por qué NO pasa por el `Makefile`, a diferencia de todos los demás controles:
+# CodeQL no opera sobre un árbol de trabajo local sino sobre esa base de datos,
+# así que no hay orden local equivalente que invocar. SC-004 —el veredicto local
+# y el de la integración continua coinciden— lo excluye de forma explícita, junto
+# con Dependabot, y por eso FR-025 (que restringe los pasos propios del flujo
+# `ci`) no aplica a este flujo. Sus pasos son los de la acción y nada más.
+name: codeql
+
+on:
+  # Semanal, no por propuesta de cambio: un análisis completo de CodeQL dura
+  # bastante más que los controles de `ci.yml`, y SC-006 exige veredicto de PR
+  # limpia en menos de 3 minutos. El disparador `schedule` se ejecuta siempre
+  # sobre la rama por defecto, así que no hay filtro `branches` que declarar.
+  #
+  # Lunes por la mañana y en un minuto arbitrario, no en punto: las ejecuciones
+  # programadas en :00 compiten con el pico de carga de la plataforma y se
+  # retrasan más. Tampoco coincide con el `nightly` (03:27), que ese mismo día
+  # también arranca.
+  schedule:
+    - cron: '41 4 * * 1'
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    # Permisos mínimos, acotados a este job (R5.5). `security-events: write` es
+    # el permiso que necesita el paso `analyze` para subir los hallazgos SARIF a
+    # la pestaña Security, y es el único job del repositorio que lo tiene: ni
+    # `ci.yml` ni `nightly.yml` lo declaran, y aquí no se declara al nivel del
+    # flujo, para que no lo herede ningún job que se añada después.
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v5
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: go
+          # `security-extended` y no `security-and-quality` (research.md D13):
+          # la suite `-and-quality` añade consultas de mantenibilidad que
+          # solapan con `golangci-lint`, y el mismo hallazgo reportado por dos
+          # herramientas distintas es ruido, no cobertura. CodeQL está aquí como
+          # SAST (FR-017), no como segundo linter.
+          queries: security-extended
+          # `autobuild` es hoy el modo por defecto para Go, pero se declara
+          # explícitamente porque de él depende que el análisis llegue a
+          # ocurrir: sin base de datos construida no hay consultas que ejecutar,
+          # y un cambio del valor implícito dejaría el flujo en verde sin
+          # analizar nada. No se instala Go aparte —la acción resuelve el
+          # toolchain que pide `go.mod` por el mecanismo estándar—, que sería un
+          # paso propio ajeno a la acción.
+          build-mode: autobuild
+
+      - name: Analizar
+        uses: github/codeql-action/analyze@v4

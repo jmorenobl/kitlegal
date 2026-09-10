@@ -1,10 +1,10 @@
 {
-  "id": "T005",
-  "texto": "T005 [P] [US2] `.github/workflows/nightly.yml`: flujo programado a diario sobre la rama principal que prepara el entorno igual que el flujo de PR y ejecuta `make ci`, sin ninguna verificación contra fuentes reales, sin invocar `release` y sin ningún control que no esté ya especificado en el hito.",
+  "id": "T006",
+  "texto": "T006 [P] [US2] `.github/workflows/codeql.yml`: análisis estático de seguridad semanal con la acción oficial de CodeQL sobre el lenguaje go y la suite security-extended, con el permiso de escritura de eventos de seguridad acotado a ese job.",
   "intento": 1,
   "datos": false,
-  "base": "cfdbf117f19a0d73e5e00e1f3075f1d8f6b836e7",
+  "base": "192d80bdb4757b5ed53df5cabfba6bc0aebae556",
   "rutas": [
-    ".github/workflows/nightly.yml"
+    ".github/workflows/codeql.yml"
   ]
 }
