@@ -1,0 +1,49 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "analyze.md registra 0 CRITICAL y 1 HIGH (F1, `.gitleaksignore` prescrito por plan.md y data-model.md pero no por tasks.md). F1 está resuelto en los tres artefactos: la «Project Structure» de plan.md (líneas 164-211) no lista el fichero y el párrafo 213-220 declara la ausencia deliberada con el motivo; el paso 3 de «Orden de implementación» (línea 277) es `.golangci.yml` + `codecov.yml`; data-model.md «Ausencias deliberadas» (251-258) coincide con tasks.md «Notas» (176-181). grep de `gitleaksignore` en spec/plan/data-model/tasks/quickstart solo devuelve las notas de ausencia. F2 (MEDIUM) resuelto: tasks.md:128 añade la fila «SC-004, SC-008 → T013 (vía escenarios 3, 9, 10 y 12)» y 134-138 la explica. F3 (LOW) resuelto: plan.md:296 dice «Ocho órdenes» e incluye `help` con su justificación. Además, los tres motivos del veredicto de la ronda anterior (tasks.json previo) están aplicados: T003 (tasks.md:44) y quickstart.md esc. 8 (213-247) deshacen con `git reset --soft \"$antes\"` + `git restore --source=\"$antes\" --staged --worktree -- cmd/kitlegal/main.go`, prohíben `HEAD~1` y `--hard`, y acotan la comprobación final a HEAD y al fichero mutado; esc. 9 (269-276) acota `git diff --stat -- cmd/kitlegal/main.go`; T014 (tasks.md:72) y esc. 11 (328-338, 348-349, 376-377, 415-419) sustituyen `git add -A` por `git add` del fichero propio, añaden `--no-verify` solo al commit sucio, escriben el registro en la rama del hito tras borrar las ramas y ofrecen `git worktree add` como alternativa. No hay gates/tasks-pendiente.md."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Tabla «Requisitos → tareas» (tasks.md:113-129) más las notas 131-138: FR-001…FR-014, FR-017, FR-037…FR-042 → T001; FR-015/016/018/019/020 → T001 (órdenes dentro de `ci`) + T004 (la CI las invoca); FR-021/032 → T010; FR-022 → T003; FR-023 → T012; FR-024, FR-033…036 → T011; FR-025 → T004; FR-026 → T006; FR-027 → T005; FR-028 → T007; FR-029 → T002; FR-030 → T008; FR-031 → T009; SC-001…003, 007, 010…012 → T013; SC-004/008 → T013; SC-005/006/009 → T014. Cotejado con spec.md:109-169 (42 FR sin huecos) y 184-195 (12 SC): todos tienen tarea y las 14 tareas aparecen en la tabla; la tabla «Historias → tareas» (104-109) cubre US1-US4. Ninguna tarea añade ficheros fuera de la enumeración de SC-008 (spec:191) más los artefactos de FR-005/FR-040/FR-042 (`tools/*/go.{mod,sum}`, `main_test.go`), coherente con el inventario de data-model.md:221-243 y el «Alcance» de H0 en docs/ROADMAP.md."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "T001 entrega a la vez módulo, binario con su tabla de casos, los tres módulos de herramienta que `ci` necesita, `.golangci.yml` y el `Makefile` completo, de modo que `make ci` existe y pasa desde la primera tarea (tasks.md:34, 80-82); `mod-verify` recorre `tools/*/go.mod` por glob (contracts/make-targets.md:29 y 42), así que está en verde con tres módulos en T001 y con cuatro tras T003. T002 (codecov.yml) y T004-T012 (flujos, Dependabot, documentación) no tocan ningún control del árbol: `ci` sigue verde; T012 va tras T010 porque la convención de changelog se declara allí (87-88). T003: el commit de prueba del esc. 8 se deshace con `reset --soft \"$antes\"` + `restore` acotado al fichero mutado, idempotente tanto si el gancho impidió el commit como si no, sin tocar `gates/tarea-actual.json` ni `gates/tareas-intentos.json` que el workflow escribe antes de cada tarea (workflow.yml:513-526) y confirma con `git add -A` después (658-660); el guardián (541-570) lee entonces el id y las rutas correctas. T013 restaura ruta a ruta cada fichero mutado (esc. 3, 8, 9, 10) y solo aporta `gates/validacion-local.md`, sin transcribir el token del esc. 9 (que dejaría `make secrets` en rojo sobre `specs/`). T014 crea las ramas desechables desde la rama del hito, prepara solo su propio fichero, vuelve a la rama del hito y escribe el registro al final; `internal/prueba/p.go` solo existe en la rama sucia y desaparece al borrarla, así que en la rama del hito ni `internal/` ni el `CHANGELOG.md` mutado sobreviven. Orden estrictamente secuencial (78-90): ninguna tarea depende de una posterior. Observación no bloqueante: T014 abre las PR contra la rama del hito y no dice explícitamente que esa rama deba existir en el remoto; si `gh pr create` fallara por base ausente, la propia tarea prevé documentar el prerrequisito de plataforma sin simular resultados."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Aplicado el extractor literal de workflow.yml:524 a cada línea `- [ ] Tnnn`: T001 → go.mod, cmd/kitlegal/main.go, tools/golangci-lint/, tools/govulncheck/, tools/gitleaks/, .golangci.yml, Makefile (+ tools/lefthook/ citado en prosa, inocuo); T002 → codecov.yml; T003 → lefthook.yml, Makefile, tools/lefthook/, cmd/kitlegal/main.go (se restaura); T004 → .github/workflows/ci.yml (+ go.mod, Makefile por prosa); T005 → .github/workflows/nightly.yml; T006 → .github/workflows/codeql.yml; T007 → .github/dependabot.yml; T008 → LICENSE; T009 → README.md (+ Makefile); T010 → CONTRIBUTING.md (+ go.mod); T011 → los cuatro docs/ADR/000N-*.md; T012 → CHANGELOG.md (+ CONTRIBUTING.md); T013 → quickstart.md y gates/validacion-local.md del feature; T014 → quickstart.md, internal/prueba/p.go (solo en rama desechable), CHANGELOG.md, gates/verificacion-pr.md. `main_test.go` queda cubierto por la regla x.go → x_test.go del guardián (562). Ninguna tarea usa una ruta genérica de código como `internal/` (T014 escribe «árbol interno prohibido» en su prosa y solo declara el fichero concreto); `specs/` aparece en T013 por la nota sobre gitleaks y es inocua porque el directorio del feature siempre está permitido. precheck_tasks (412-413) no detectaría tareas sin rutas."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "grep de `testdata/`, `schemas/` y `[datos]` sobre las 14 líneas de tarea: 0 coincidencias. tasks.md:17-18 y 173-175 declaran que H0 no crea ni modifica fixtures ni esquemas y que `KITLEGAL_RECORD` no se usa, coherente con plan.md «Fixtures» (255-258), «Tests de contrato» (260-264) y «Fuera de alcance» del spec (225, 230). No hay nada que etiquetar ni que separar; el precheck mecánico de tareas mixtas (workflow.yml:414-415) tampoco encontraría nada."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "Tabla «Definition of Done → tareas» (tasks.md:140-152) cubre los 9 puntos de docs/ROADMAP.md §1: (1) `make ci` → T001 y todas las posteriores lo mantienen; (2) tests offline → T001 con escritores en memoria, sin fixtures porque H0 no toca red; (3) stdout/`os.Exit` → T001 (forbidigo acotado a `internal/**`, único `os.Exit` en `main`); (4) esquemas → no aplica, `version` emite texto plano (spec Assumptions:204, plan Constitution Check II); (5) exit codes/panic → T001 (0 y 2, `run` devuelve int); (6) comportamiento visible → CHANGELOG en T012, e2e sin objeto porque `testscript` es H1 (plan.md:95, spec:225); (7) ADR → T011 con los cuatro ficheros de FR-033…036; (8) SOURCES.md → no aplica, H0 no toca fuentes (spec:228); (9) cobertura → T002 (umbrales) + T001 (tests) + T013 esc. 5 (comprobación). Las inaplicabilidades coinciden con las del spec y del plan ya aprobados por sus gates (gates/spec.json, gates/plan.json)."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md: 16 marcas [x], 0 sin marcar. Verificado: `NEEDS CLARIFICATION` no aparece en spec.md, plan.md ni tasks.md; las cinco preguntas de gates/clarify-preguntas.json tienen su línea `- Q: … → A:` en spec.md:247-251; SC-001…SC-012 tienen condición observable (spec:184-195); escenarios de aceptación en las cuatro historias (27-87); edge cases (91-101); «Fuera de alcance» (218-241); Assumptions y Dependencias (197-216). Las tres marcas sobre «implementation details» se sostienen con el reparto documentado en «Notas de validación» (34-38): los FR nombran las herramientas que el propio hito hereda de docs/ROADMAP.md §3 y el «cómo» vive en Clarifications y en el plan; ya validadas por gates/spec.json y no se reabren."
+    }
+  ],
+  "motivos": []
+}

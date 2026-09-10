@@ -1,0 +1,60 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check» tiene una fila por principio I-VII con el modo en que H0 lo cumple o por qué no aplica sin deuda (I: sin red ni httpx, FR-037, ADR 0003/0004; II: `version` es texto plano sobre el binario, sobre en H1 por Assumptions del spec; III: main_test.go antes que el Makefile, codecov.yml con los dos umbrales como estado que falla, e2e testscript en H1 según ROADMAP §3 y «Fuera de alcance» del spec aprobado; IV: run() devuelve int, os.Exit una sola vez en main(), forbidigo acotado a internal/**, códigos 0 y 2; V: go.mod sin dependencias y herramientas dentro de ROADMAP §3; VI: run(args, stdout, stderr) int absorbible por el kernel de H1; VII: sin bases de datos, .kitlegal/ en .gitignore). Tiene una fila por cada una de las cinco reglas de dependencia de ROADMAP §2 con situación en H0 y mecanismo. Incluye los gates mecánicos de capa 1 con hito asignado a cada pendiente y la re-evaluación tras la fase 1. Veracidad comprobada: la afirmación sobre .gitignore (/bin/, *.out, coverage.*, .kitlegal/) coincide con el fichero real; «seis divergencias conscientes» coincide con las seis filas de Complexity Tracking; las afirmaciones «verificado» de D1 se reprodujeron en esta máquina (Go local 1.26.6; con `toolchain go1.26.1` y el fragmento de Makefile del plan, `make v` ejecuta go1.26.1, `GOTOOLCHAIN=local make v` ejecuta igualmente go1.26.1, y `make v GO_TOOLCHAIN=go1.26.99` falla con `toolchain not available`); `go help tool` documenta `-modfile`."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "plan.md «Technical Context» y research.md D5: el go.mod del producto no declara ninguna dependencia; el código usa solo os/io/fmt y testing. Kong, testify y testscript quedan en H1/H3 conforme a «Fuera de alcance» del spec. Las cuatro herramientas de control (golangci-lint v2.13.2, govulncheck, gitleaks v8.30.1 en su ruta real github.com/zricethezav/gitleaks/v8, lefthook v1.13.6) son exactamente las que ROADMAP §3 marca H0 y viven en módulos propios bajo tools/, fuera del go.mod del producto (FR-042 e); la estructura de cuatro módulos está justificada en Complexity Tracking fila 1 y research.md D2 (módulo compartido verificado que no compila), y gofumpt sin módulo propio en fila 3 y D3. Ninguna dependencia fuera de la lista de la constitución §V entra en el módulo del producto."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "plan.md «Source Code»: solo cmd/kitlegal/{main.go,main_test.go}; H0 no crea internal/ (FR-002, Q4). contracts/cli-version.md: os.Exit aparece exactamente una vez, en main(); run escribe solo por los io.Writer recibidos y nunca entra en pánico. FR-037 y Constitution Check: ningún import de net/http, database/sql ni SQLite. cmd/ escribe en stdout por autorización explícita de Assumptions del spec; .golangci.yml activa forbidigo con `^fmt\\.Print(|f|ln)$` acotado a internal/** mediante `path-except: '^internal/'` (research.md D9), demostrable por SC-005 y quickstart escenario 11. depguard, la ampliación de forbidigo a internal/render y arch_test.go quedan en H1 por FR-014 y ROADMAP §3."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Los errores tipados con mapeo a exit codes (internal/cli/errors.go) están en «Fuera de alcance» del spec (H1). En su forma H0, contracts/cli-version.md fija un único camino de error (verbo ausente, desconocido o argumento sobrante) que devuelve 2 («args») escribiendo la línea de uso en stderr; `version` devuelve 0; la tabla de códigos declara que 3-6 no se producen ni se contradicen (FR-039). research.md D7 documenta las alternativas rechazadas (0 contradice FR-039; 1 sería un código fuera de la tabla). Sin panic (FR-038): run devuelve int. El exit ≠ 0 de `release` y de `check-tools` pertenece al Makefile, no al binario, y no contradice la tabla."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "plan.md «Orden de implementación» paso 1: go.mod + main.go + main_test.go, «el test primero» (principio III). contracts/cli-version.md enumera los cuatro casos de main_test.go (version con valores inyectados; sin argumentos; verbo desconocido; version con argumento sobrante), package main, table-driven, t.Parallel(); C2 (commit exacto) se verifica en quickstart escenario 4. Fixtures: el plan declara que H0 no crea testdata/ y por qué (sin adaptadores; KITLEGAL_RECORD sin objeto). E2E: el plan nombra el testscript como alcance de H1 conforme a ROADMAP §3 y al spec aprobado, con `make test-e2e` anunciándolo (FR-011, D17). Controles mecánicos: tabla «Controles mecánicos que este hito añade o toca» con 18 filas, cada una con herramienta, orden, pertenencia a `make ci` y demostración de que está activo (SC-007), más quickstart.md con 12 escenarios ejecutables trazados a SC-001..SC-012."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Todo artefacto del «Inventario de artefactos» de data-model.md se traza a un FR (FR-001..FR-042) y coincide con el «Alcance» literal de H0 en ROADMAP más los artefactos que exigen FR-005, FR-040 y FR-042. Los añadidos respecto a la lectura literal están amparados por el spec: siete órdenes extra del Makefile (FR-006 «al menos», Complexity Tracking fila 4); tools/ (FR-042); `export GOTOOLCHAIN` derivado de go.mod (FR-001, FR-042 a, SC-004); .gitleaksignore (Edge Case del detector de secretos); `hooks` (FR-022); `check-tools` (FR-010); CODECOV_TOKEN documentado como prerrequisito de plataforma (D15, R5.7). Nada anticipa H1: sin banderas globales, sin sobre, sin --help ni --version (D7), sin internal/, sin depguard, sin log/slog, sin SOURCE_DATE_EPOCH (D8). nightly limitado a `make ci` (FR-027); release fuera de ci y nightly (FR-011); CodeQL fuera del Makefile por no operar sobre árbol de trabajo (SC-004)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "research.md D9: nolintlint con require-explanation y require-specific; sin exclusiones de cobertura (SC-011, quickstart escenario 5). D19: `make vuln` no captura el fallo sin red. D4: `ci` ejecuta solo el modo de verificación del formato. D17: ninguna orden con objeto ausente es un no-op silencioso y `release` falla. D15: `fail_ci_if_error: true` se mantiene y no se rebaja para esquivar el token. D18/R7.6: el Makefile falla con `$(error)` si falta la directiva toolchain en vez de degradar el pin en silencio. Las seis obligaciones trasladadas a tasks.md (medir el flujo en frío y caliente; stage_fixed de lefthook; PR desechables; Dependabot y directiva toolchain; estado del componente internal/core en Codecov; alta de CODECOV_TOKEN) son verificaciones con criterio de resolución definido en ambas direcciones, no TODO diferidos ni tests saltados. No hay //nolint previsto ni errores silenciados."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md D1 corrige el defecto señalado en la ronda anterior: reconoce que la directiva `toolchain` sola es un suelo con GOTOOLCHAIN=auto (citando go.dev/doc/toolchain y select.go), y elige que el Makefile exporte GOTOOLCHAIN leído de la directiva de go.mod, con una sola fuente de verdad; documenta y rechaza con motivo la directiva sola, `<name>+auto` (verificado que sube en silencio desde los módulos de herramienta), fijar GOTOOLCHAIN en el job o con `go env -w`, `go-version`/`check-latest` en los flujos y `go-version: stable`. D18 se rediseña en consecuencia (check-tools verifica postcondición: toolchain obtenible) y quickstart escenario 7, data-model R2.4/R7.x y contracts/make-targets.md están alineados. El mecanismo se reprodujo en esta máquina en las tres direcciones (pin más viejo que el local, pin frente a GOTOOLCHAIN=local heredado, pin inexistente). Las demás decisiones D2-D20 presentan la alternativa rechazada con motivo verificable (D2 módulo compartido que no compila; D3 dos versiones de gofumpt; D4 gofumpt -l; D5 testify solo para tener go.sum; D6 internal/version; D8 ReadBuildInfo; D9 default: none; D10 allowlist por regex; D11 tidy en tools; D12 acciones de terceros; D13 security-and-quality; D16 comandos propios en lefthook; D19 capturar el error de red)."
+    }
+  ],
+  "motivos": [
+    "Todos los criterios cumplen. El motivo bloqueante de la ronda anterior ([h], pin del parche de Go) está corregido en research.md D1/D18, plan.md, data-model.md §7, contracts/make-targets.md y quickstart.md escenario 7, y la observación no bloqueante sobre CODECOV_TOKEN está incorporada en D15, R5.7 y la obligación 6 del plan.",
+    "Observación no bloqueante para tasks.md: la afirmación de que `go test -race` termina en error con CGO_ENABLED=0 es cierta en darwin, pero en algunos linux/amd64 y linux/arm64 recientes el detector puede enlazar sin cgo; la decisión del plan (no desactivar cgo en `test` ni exportar CGO_ENABLED en los jobs) es correcta en ambos casos y no requiere cambio.",
+    "Observación no bloqueante para tasks.md: al crear cada tools/<n>/go.mod, comprobar que su directiva `go` no supera go1.26.6, porque con el pin exacto una directiva mayor hace fallar `go tool -modfile=…` (comportamiento deliberado y documentado en D1, pero conviene verificarlo en la tarea de creación).",
+    "Ningún motivo requiere decisión humana: nada afecta a alcance del hito, frontera humana, privacidad, TOS, reglas de anomalías ni a una decisión cerrada."
+  ]
+}

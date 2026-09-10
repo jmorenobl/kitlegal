@@ -1,0 +1,129 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Alcance funcional y comportamiento (FR-011, FR-027)",
+      "pregunta": "¿Cómo deben comportarse en H0 las órdenes del Makefile cuyo objeto todavía no existe (`test-integration`, `test-e2e`, `schema-check`, `skills-sync`, `release`) y el flujo `nightly`?",
+      "por_que_importa": "La Definition of Done §1.1 exige `make ci` en verde en H0, y FR-007 incluye `schema-check` dentro de `ci`; si esas órdenes fallan por falta de objeto, la propia PR de H0 no puede pasar sus propios controles. También determina qué tareas de implementación se generan y qué comprueba SC-002.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Se declaran y terminan con éxito sin hacer nada (no-op silencioso o con mensaje informativo) hasta el hito que las dota de contenido; `ci` las invoca y pasa en verde."
+        },
+        {
+          "id": "B",
+          "texto": "Se declaran y fallan con un mensaje que indica el hito en el que se dotarán de contenido; `ci` no las invoca todavía y solo las incorpora en el hito correspondiente."
+        },
+        {
+          "id": "C",
+          "texto": "Se declaran, `ci` no las invoca en H0 (quedan fuera de la orden agregada), y su comportamiento aislado al ejecutarlas a mano es un aviso que termina con éxito."
+        },
+        {
+          "id": "D",
+          "texto": "Se declaran con detección dinámica de su objeto: si el directorio o fichero correspondiente existe hacen su trabajo, y si no existe terminan con éxito sin actuar; `ci` las invoca siempre."
+        },
+        {
+          "id": "E",
+          "texto": "No se declaran en H0: el Makefile expone solo las órdenes con contenido real y las restantes se añaden en el hito que las necesita, ajustando FR-006."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Restricciones y conflictos entre fuentes normativas (FR-014, SC-005)",
+      "pregunta": "¿Qué mecanismo de lint activa H0 para que un `fmt.Println` en un fichero bajo `internal/` falle, dado que `docs/ROADMAP.md` §3 sitúa `depguard` y `forbidigo` en H1?",
+      "por_que_importa": "Es el criterio de aceptación literal del hito («PR de prueba con un `fmt.Println` en `internal/` falla en lint»), y a la vez el roadmap coloca esas herramientas en el hito siguiente; la respuesta fija el contenido de `.golangci.yml` en H0 y la frontera con el alcance de H1, que el spec declara fuera de alcance.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "H0 activa únicamente `forbidigo` con la regla de prohibición de `fmt.Print*` restringida a `internal/`; el juego completo de reglas de dependencia (`depguard`) se mantiene en H1."
+        },
+        {
+          "id": "B",
+          "texto": "H0 activa `forbidigo` y `depguard` completos, adelantando desde H1 las reglas de dependencia de la constitución §IV; H1 deja de incorporarlas y solo añade `internal/arch_test.go`."
+        },
+        {
+          "id": "C",
+          "texto": "H0 no activa `forbidigo` ni `depguard`: la prohibición se satisface con un linter ya presente en la lista de FR-013 (por ejemplo una regla de `revive` o `gocritic`) configurada por ruta."
+        },
+        {
+          "id": "D",
+          "texto": "H0 no cubre la prohibición mediante lint sino mediante una comprobación propia del repositorio invocada desde `lint`/`ci`; `forbidigo` y `depguard` entran íntegros en H1."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Atributos de calidad no funcionales — cobertura (FR-029)",
+      "pregunta": "¿Cómo se aplican en H0 los umbrales de cobertura de la Definition of Done (`internal/core/**` ≥ 85 %, global ≥ 70 %) sobre un repositorio que aún no tiene prácticamente código?",
+      "por_que_importa": "Determina si la propia PR de H0 queda bloqueada por su falta de código, y fija si `codecov.yml` se configura como control bloqueante o informativo y desde qué hito; afecta a SC-006 (PR limpia pasa) y a la coherencia entre lo declarado y lo exigido.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Los umbrales se declaran y bloquean desde H0; H0 debe aportar los tests necesarios para alcanzarlos con el código que introduce."
+        },
+        {
+          "id": "B",
+          "texto": "Los umbrales se declaran en `codecov.yml` en modo informativo (no bloquean la propuesta de cambio) y pasan a bloquear en el hito que aporta código con lógica (H1)."
+        },
+        {
+          "id": "C",
+          "texto": "Los umbrales se declaran como bloqueantes pero acotados a las rutas que ya existen en el repositorio, de modo que `internal/core/**` no se evalúa mientras no exista."
+        },
+        {
+          "id": "D",
+          "texto": "En H0 no se configura control de cobertura en la propuesta de cambio: `codecov.yml` solo publica el informe, y los umbrales se introducen enteros en el hito que los hace exigibles."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Modelo de dominio y alcance de ficheros (FR-002, FR-014, SC-005, SC-007)",
+      "pregunta": "¿Debe H0 crear algún paquete bajo `internal/` en el repositorio, o el directorio `internal/` no existe hasta H1?",
+      "por_que_importa": "El alcance del hito en `docs/ROADMAP.md` solo enumera `cmd/kitlegal/main.go`, pero FR-014 y SC-005 exigen una regla de lint sobre `internal/` y SC-007 pide que cada control sea demostrable; la respuesta decide qué ficheros produce H0, dónde vive el dato de versión de FR-003/FR-004, y si la regla se verifica sobre código propio o solo sobre una propuesta de cambio desechable.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "H0 no crea nada bajo `internal/`: todo el código vive en `cmd/kitlegal/`, la regla de lint se configura por ruta y se verifica únicamente con la propuesta de cambio de prueba desechable."
+        },
+        {
+          "id": "B",
+          "texto": "H0 crea un paquete mínimo bajo `internal/` que aloja los datos de versión inyectados en construcción, con su test, de modo que la regla de lint se ejerce sobre código real del repositorio."
+        },
+        {
+          "id": "C",
+          "texto": "H0 crea bajo `internal/` únicamente material de verificación del propio control (fichero o fixture destinado a comprobar que la regla falla), sin código de producto."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Dependencias externas y reproducibilidad (FR-006 `install`, FR-010, SC-004, SC-010)",
+      "pregunta": "¿De dónde obtiene el repositorio las herramientas externas de los controles (`golangci-lint`, `govulncheck`, `gofumpt`, `gitleaks`, `lefthook`) y qué significa exactamente la orden `install` del Makefile?",
+      "por_que_importa": "SC-004 exige que el veredicto local y el de la integración continua coincidan, lo que depende de que ambos ejecuten la misma versión de cada herramienta, y SC-010 exige que alguien recién llegado pueda ejecutar todos los controles siguiendo solo `README.md` y `CONTRIBUTING.md`; además `install` aparece en FR-006 sin que ningún requisito defina su cometido.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El repositorio fija las versiones de las herramientas en el propio módulo Go y las ejecuta desde ahí, de modo que no requieren instalación previa; `install` instala el binario `kitlegal` en el directorio de binarios del usuario."
+        },
+        {
+          "id": "B",
+          "texto": "`install` es la orden que instala o actualiza la cadena de herramientas de desarrollo con versiones fijadas, y la instalación del binario `kitlegal` no forma parte del Makefile en H0."
+        },
+        {
+          "id": "C",
+          "texto": "Las herramientas se declaran con versión fijada en un manifiesto de gestor de versiones externo al módulo Go, que tanto quien contribuye como la integración continua consumen; `install` delega en ese gestor."
+        },
+        {
+          "id": "D",
+          "texto": "Las herramientas se asumen preinstaladas en la máquina: el proyecto solo documenta cómo obtenerlas y detecta su ausencia (FR-010) sin fijar versión; `install` instala el binario `kitlegal`."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
