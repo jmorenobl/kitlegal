@@ -11,11 +11,11 @@
     },
     "hito": {
       "name": "Hito del roadmap (SDD con gates autom\u00e1ticos)",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "description": "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mec\u00e1nicos (shell, antes de cualquier juez), jueces LLM con r\u00fabrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementaci\u00f3n tarea a tarea con guardi\u00e1n de diff.",
-      "source": "/private/tmp/claude-501/-Users-jorge-Projects-kitlegal/197011ee-4b42-4126-bd3a-9c512d81f7e1/scratchpad/hito-v13b",
+      "source": "/private/tmp/claude-501/-Users-jorge-Projects-kitlegal/197011ee-4b42-4126-bd3a-9c512d81f7e1/scratchpad/hito-v14",
       "installed_at": "2026-09-09T14:03:00.853197+00:00",
-      "updated_at": "2026-09-09T19:21:37.749273+00:00"
+      "updated_at": "2026-09-10T08:11:31.824307+00:00"
     }
   }
 }

@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.3.0"
+  version: "1.4.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff."
@@ -185,11 +185,12 @@ steps:
         q=$(grep -cE '^[[:space:]]*- Q:' "$d/spec.md" || true)
         [ "$q" -ge "$n" ] || { echo "## Clarifications tiene $q entradas y hubo $n preguntas"; exit 1; }
       fi
+      rm -f "$d/gates/spec-rondas"
       echo "precheck_spec ok"
 
   - id: ronda_spec
     type: do-while
-    max_iterations: 2
+    max_iterations: 3
     condition: "{{ steps.leer_gate_spec.output.data.veredicto != 'aprobado' and steps.leer_gate_spec.output.data.corregible }}"
     steps:
       - id: juez_spec
@@ -210,7 +211,7 @@ steps:
           Escribe <feature_dir>/gates/spec.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"alcance","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           Reglas: "aprobado" solo si TODOS los criterios cumplen. "corregible": false si algún motivo requiere decisión humana (alcance del hito, frontera humana, privacidad, TOS, reglas de anomalías, decisión cerrada); en ese caso explícalo en motivos. Sé concreto en motivos: qué cambiar y dónde.
-          No preguntes; no esperes respuesta.
+          Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_spec
         type: shell
@@ -223,11 +224,12 @@ steps:
           [ -f "$g" ] || { echo "falta $g" >&2; exit 1; }
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
-          jq '{veredicto, corregible, motivos}' "$g"
+          c="$d/gates/spec-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_spec
         type: if
-        condition: "{{ steps.leer_gate_spec.output.data.veredicto != 'aprobado' and steps.leer_gate_spec.output.data.corregible }}"
+        condition: "{{ steps.leer_gate_spec.output.data.veredicto != 'aprobado' and steps.leer_gate_spec.output.data.corregible and steps.leer_gate_spec.output.data.ronda < 3 }}"
         then:
           - id: corrector_spec
             type: prompt
@@ -237,7 +239,7 @@ steps:
               Eres el CORRECTOR del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el spec; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/spec.json (criterios con cumple=false y motivos), spec.md, checklists/, la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md, CLAUDE.md y .specify/memory/constitution.md.
               Para cada criterio incumplido, corrige spec.md y/o checklists/ con la mejor solución posible, sin atajos: nunca marques un ítem de checklist sin que el spec lo satisfaga. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/spec-pendiente.md.
-              No modifiques gates/*.json. No preguntes; no esperes respuesta.
+              No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_spec
     type: shell
@@ -286,11 +288,12 @@ steps:
       [ -f "$d/research.md" ] || { echo "falta research.md"; exit 1; }
       ! grep -q "NEEDS CLARIFICATION" "$d/plan.md" || { echo "plan.md conserva NEEDS CLARIFICATION"; exit 1; }
       grep -q "## Constitution Check" "$d/plan.md" || { echo "plan.md sin Constitution Check"; exit 1; }
+      rm -f "$d/gates/plan-rondas"
       echo "precheck_plan ok"
 
   - id: ronda_plan
     type: do-while
-    max_iterations: 2
+    max_iterations: 3
     condition: "{{ steps.leer_gate_plan.output.data.veredicto != 'aprobado' and steps.leer_gate_plan.output.data.corregible }}"
     steps:
       - id: juez_plan
@@ -312,7 +315,7 @@ steps:
           Escribe <feature_dir>/gates/plan.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"constitution_check","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana (alcance, frontera humana, privacidad, TOS, reglas de anomalías, decisión cerrada). Motivos concretos: qué cambiar y dónde.
-          No preguntes; no esperes respuesta.
+          Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_plan
         type: shell
@@ -325,11 +328,12 @@ steps:
           [ -f "$g" ] || { echo "falta $g" >&2; exit 1; }
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
-          jq '{veredicto, corregible, motivos}' "$g"
+          c="$d/gates/plan-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_plan
         type: if
-        condition: "{{ steps.leer_gate_plan.output.data.veredicto != 'aprobado' and steps.leer_gate_plan.output.data.corregible }}"
+        condition: "{{ steps.leer_gate_plan.output.data.veredicto != 'aprobado' and steps.leer_gate_plan.output.data.corregible and steps.leer_gate_plan.output.data.ronda < 3 }}"
         then:
           - id: corrector_plan
             type: prompt
@@ -339,7 +343,7 @@ steps:
               Eres el CORRECTOR del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el plan; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/plan.json (criterios con cumple=false y motivos), plan.md, research.md, data-model.md, contracts/, spec.md, .specify/memory/constitution.md, CLAUDE.md y docs/ROADMAP.md §2-§3.
               Para cada criterio incumplido, corrige plan.md/research.md/data-model.md/contracts/ con la mejor solución posible, sin atajos. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/plan-pendiente.md.
-              No modifiques spec.md ni gates/*.json. No preguntes; no esperes respuesta.
+              No modifiques spec.md ni gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_plan
     type: shell
@@ -350,6 +354,16 @@ steps:
       jq -e '.veredicto == "aprobado"' "$d/gates/plan.json" >/dev/null || { echo "gate_plan RECHAZADO tras las rondas de corrección; requiere humano:"; jq -r '.motivos[]' "$d/gates/plan.json"; exit 1; }
       ! grep -q "NEEDS CLARIFICATION" "$d/plan.md" || { echo "plan.md conserva NEEDS CLARIFICATION"; exit 1; }
       echo "gate_plan aprobado"
+
+  - id: commit_artefactos_plan
+    type: shell
+    timeout: 120
+    run: |
+      set -eu
+      git add -A
+      git diff --cached --quiet && { echo "nada que commitear"; exit 0; }
+      git commit -q -m "docs({{ inputs.hito }}): spec, clarificaciones y plan del hito"
+      git log --oneline -1
 
   - id: revision_humana_plan
     type: if
@@ -399,11 +413,12 @@ steps:
       [ -z "$sin_rutas" ] || { echo "tareas sin rutas declaradas (el guardián de diff las rechazaría):"; echo "$sin_rutas"; exit 1; }
       mixtas=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | grep -E '(^|[^A-Za-z0-9_])(testdata|schemas)/' | grep -v '\[datos\]' || true)
       [ -z "$mixtas" ] || { echo "tareas que tocan testdata/ o schemas/ sin etiqueta [datos]:"; echo "$mixtas"; exit 1; }
+      rm -f "$d/gates/tasks-rondas"
       echo "precheck_tasks ok: $(grep -cE '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md") tareas"
 
   - id: ronda_tasks
     type: do-while
-    max_iterations: 2
+    max_iterations: 3
     condition: "{{ steps.leer_gate_tasks.output.data.veredicto != 'aprobado' and steps.leer_gate_tasks.output.data.corregible }}"
     steps:
       - id: juez_tasks
@@ -424,7 +439,7 @@ steps:
           Escribe <feature_dir>/gates/tasks.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"analisis_critico","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana. Motivos concretos: qué cambiar, en qué artefacto.
-          No preguntes; no esperes respuesta.
+          Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_tasks
         type: shell
@@ -437,11 +452,12 @@ steps:
           [ -f "$g" ] || { echo "falta $g" >&2; exit 1; }
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
-          jq '{veredicto, corregible, motivos}' "$g"
+          c="$d/gates/tasks-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_tasks
         type: if
-        condition: "{{ steps.leer_gate_tasks.output.data.veredicto != 'aprobado' and steps.leer_gate_tasks.output.data.corregible }}"
+        condition: "{{ steps.leer_gate_tasks.output.data.veredicto != 'aprobado' and steps.leer_gate_tasks.output.data.corregible and steps.leer_gate_tasks.output.data.ronda < 3 }}"
         then:
           - id: corrector_tasks
             type: prompt
@@ -451,7 +467,7 @@ steps:
               Eres el CORRECTOR de artefactos del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado la consistencia spec/plan/tasks; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/tasks.json (criterios con cumple=false y motivos), gates/analyze.md, spec.md, plan.md, tasks.md y checklists/.
               Para cada criterio incumplido corrige el artefacto que corresponda (spec, plan o tasks) con la mejor solución, sin atajos; nunca marques un checklist sin que el artefacto lo satisfaga. Mantén el formato de tareas ("- [ ] Tnnn … rutas", [datos] para testdata/ y schemas/). Si un motivo requiere decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/tasks-pendiente.md.
-              No modifiques gates/*.json. No preguntes; no esperes respuesta.
+              No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_tasks
     type: shell
@@ -463,6 +479,16 @@ steps:
       ! grep -qE '^[[:space:]]*- \[ \]' "$d"/checklists/*.md || { echo "checklists con ítems sin marcar"; exit 1; }
       grep -qE '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" || { echo "tasks.md sin tareas pendientes con formato '- [ ] Tnnn'"; exit 1; }
       echo "gate_tasks aprobado: $(grep -cE '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md") tareas"
+
+  - id: commit_artefactos_tasks
+    type: shell
+    timeout: 120
+    run: |
+      set -eu
+      git add -A
+      git diff --cached --quiet && { echo "nada que commitear"; exit 0; }
+      git commit -q -m "docs({{ inputs.hito }}): tareas y análisis del hito"
+      git log --oneline -1
 
   # ================================================================ implementación tarea a tarea con guardián de diff
   - id: implementacion_por_tarea
@@ -622,6 +648,18 @@ steps:
                       tail -80 "$log"
                       exit "$rc"
 
+              - id: commit_tarea
+                type: shell
+                timeout: 120
+                run: |
+                  set -eu
+                  d=$(jq -r .feature_directory .specify/feature.json)
+                  id=$(jq -r .id "$d/gates/tarea-actual.json")
+                  git add -A
+                  git diff --cached --quiet && { echo "tarea $id: nada que commitear"; exit 0; }
+                  git commit -q -m "feat({{ inputs.hito }}): $id" -m "$(jq -r .texto "$d/gates/tarea-actual.json")"
+                  git log --oneline -1
+
               - id: revision_humana_datos
                 type: if
                 condition: "{{ steps.siguiente_tarea.output.data.datos }}"
@@ -652,7 +690,7 @@ steps:
     run: |
       set -u
       d=$(jq -r .feature_directory .specify/feature.json)
-      mkdir -p "$d/gates"; log="$d/gates/ci.log"
+      mkdir -p "$d/gates"; log="$d/gates/ci.log"; rm -f "$d/gates/revision-rondas"
       make ci > "$log" 2>&1; rc=$?
       if [ "$rc" -eq 0 ]; then echo "make ci en verde"; exit 0; fi
       echo "make ci FALLA (exit $rc). Últimas 80 líneas:"; tail -80 "$log"; exit "$rc"
@@ -707,10 +745,20 @@ steps:
       args: |
         MODO DESATENDIDO: ejecuta únicamente las tareas pendientes ([ ]) que converge haya añadido, una a una, con test primero y verificación `make ci` tras cada una; respeta las rutas declaradas y nunca toques testdata/ ni schemas/ salvo en una tarea [datos]. Si no hay ninguna, termina sin cambios. Termina con `make ci` en verde y las tareas marcadas [X]. No preguntes.
 
-  # ================================================================ revisión final: dos jueces independientes → corrector (2 rondas)
+  - id: commit_restante
+    type: shell
+    timeout: 120
+    run: |
+      set -eu
+      git add -A
+      git diff --cached --quiet && { echo "nada que commitear"; exit 0; }
+      git commit -q -m "feat({{ inputs.hito }}): tareas restantes tras converge"
+      git log --oneline -1
+
+  # ================================================================ revisión final: dos jueces independientes → corrector (3 rondas)
   - id: ronda_revision
     type: do-while
-    max_iterations: 2
+    max_iterations: 3
     condition: "{{ steps.leer_revision.output.data.estado == 'corregir' }}"
     steps:
       - id: revision_juez_a
@@ -732,7 +780,7 @@ steps:
             i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas).
           Escribe <feature_dir>/gates/revision-a.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana. No preguntes; no esperes respuesta.
+          "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana. Escribe en español. No preguntes; no esperes respuesta.
 
       - id: revision_juez_b
         type: prompt
@@ -744,7 +792,7 @@ steps:
           Evalúa la misma rúbrica que el juez A (a. dod_ci, b. dod_tests, c. dod_reglas, d. dod_sobre, e. dod_errores, f. dod_docs, g. frontera_humana, h. sin_atajos, i. alcance), cada criterio cumple/no cumple con evidencia (fichero y línea). Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
           Escribe <feature_dir>/gates/revision-b.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen. No preguntes; no esperes respuesta.
+          "aprobado" solo si TODOS cumplen. Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_revision
         type: shell
@@ -764,13 +812,14 @@ steps:
           if [ "$va" = aprobado ] && [ "$vb" = aprobado ]; then estado=aprobado
           elif [ "$va" = rechazado ] && [ "$vb" = rechazado ] && [ "$ca" = true ] && [ "$cb" = true ]; then estado=corregir
           else estado=humano; fi
-          jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" \
+          c="$d/gates/revision-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" --argjson ronda "$n" \
             --slurpfile a "$a" --slurpfile b "$b" \
-            '{estado:$estado, juez_a:$va, juez_b:$vb, motivos:(($a[0].motivos // []) + ($b[0].motivos // []))}'
+            '{estado:$estado, juez_a:$va, juez_b:$vb, ronda:$ronda, motivos:(($a[0].motivos // []) + ($b[0].motivos // []))}'
 
       - id: corregir_revision
         type: if
-        condition: "{{ steps.leer_revision.output.data.estado == 'corregir' }}"
+        condition: "{{ steps.leer_revision.output.data.estado == 'corregir' and steps.leer_revision.output.data.ronda < 3 }}"
         then:
           - id: corrector_revision
             type: prompt
@@ -780,7 +829,7 @@ steps:
               Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Dos jueces independientes han rechazado el hito; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-a.json y gates/revision-b.json (criterios con cumple=false y motivos), spec.md, plan.md, tasks.md y `git diff main...HEAD`.
               Para cada criterio incumplido corrige el código, los tests o la documentación con la mejor solución, sin atajos, aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Nunca modifiques testdata/ ni schemas/ (si un motivo lo exige, anótalo en gates/revision-pendiente.md para un humano). Ejecuta `make ci` hasta verde y deja todo commiteado en la rama del hito con Conventional Commits. No hagas push ni merge. Si un motivo requiere decisión humana, no lo resuelvas: anótalo en gates/revision-pendiente.md.
-              No modifiques gates/*.json. No preguntes; no esperes respuesta.
+              No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: ci_final
     type: shell

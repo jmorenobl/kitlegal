@@ -12,3 +12,6 @@ coverage.*
 .DS_Store
 .idea/
 *.swp
+
+# Logs de verificación del workflow (se regeneran en cada tarea)
+specs/*/gates/ci.log
