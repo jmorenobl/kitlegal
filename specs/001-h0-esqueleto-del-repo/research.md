@@ -539,9 +539,12 @@ herramienta; después el `-diff` sale vacío. Es un paso de la tarea de creació
   con un repositorio de este tamaño, la optimización no compensa el riesgo de divergencia.
 - **Instalación**: orden `make hooks` → `lefthook install`. `README.md` y `CONTRIBUTING.md` la documentan;
   el gancho **no** es la autoridad final (caso límite del spec): la CI ejecuta los mismos controles.
-- **Nota a verificar en implementación**: el comportamiento exacto de `stage_fixed` cuando la orden no
-  recibe `{staged_files}` debe comprobarse contra lefthook v1.13.6; si no re-preparara los ficheros
-  corregidos, se pasa a `run: make fmt` seguido de un `git add {staged_files}` explícito.
+- **Verificado en T003 (2026-09-10, lefthook v1.13.6)**: `stage_fixed: true` **sí** vuelve a preparar los
+  ficheros que la orden corrige aunque `run` no reciba `{staged_files}`. Comprobado ejecutando el escenario
+  8 completo: con `func  main( )  {` y una línea de comentario en el índice, el gancho ejecutó `make fmt`,
+  devolvió la declaración a su forma canónica y el commit resultante contiene **solo** la línea de
+  comentario ya formateada; `git diff HEAD -- cmd/kitlegal/main.go` quedó vacío. No hace falta el
+  `git add {staged_files}` explícito que preveía la alternativa.
 - **Rastro**: FR-022, SC-004, `docs/ROADMAP.md` §3, «Edge Cases» del spec.
 
 ---
@@ -645,7 +648,8 @@ D3 gofumpt sin pin propio, D5 ausencia de `go.sum` raíz, D7 verbo desconocido, 
 D11 alcance del `tidy -diff`) y deja **cinco obligaciones de verificación** para `tasks.md`:
 
 1. Medir el flujo `ci` en frío y en caliente y registrar ambos números (D12).
-2. Comprobar el comportamiento de `stage_fixed` de lefthook v1.13.6 (D16).
+2. ~~Comprobar el comportamiento de `stage_fixed` de lefthook v1.13.6 (D16).~~ **Resuelta en T003**: sí
+   re-prepara; ver D16.
 3. Comprobar si el ecosistema `gomod` de Dependabot propone la subida de la directiva `toolchain` de
    `go.mod`; si no lo hace, dejar el procedimiento manual escrito en `CONTRIBUTING.md` (D1).
 4. Comprobar en la PR de prueba limpia que el estado del componente `internal/core` de Codecov no aparece
