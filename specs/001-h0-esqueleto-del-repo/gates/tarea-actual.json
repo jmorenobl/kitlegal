@@ -1,11 +1,12 @@
 {
-  "id": "T012",
-  "texto": "T012 [US4] `CHANGELOG.md` con la sección Unreleased y la entrada de este hito: el binario con su verbo version y el conjunto de controles que quedan activos, siguiendo la convención de changelog que el propio `CONTRIBUTING.md` declara.",
+  "id": "T013",
+  "texto": "T013 [US1] Ejecutar en local los escenarios 1 a 10 y 12 de `specs/001-h0-esqueleto-del-repo/quickstart.md` —veredicto reproducible, árbol intacto antes y después de `make ci`, el formato como gate que falla sin corregir, salida y códigos de salida del verbo version contra la revisión construida, cobertura por encima del umbral, órdenes con el objeto ausente, prerrequisitos ausentes y pin de toolchain indiferente al entorno, ganchos de pre-commit, detección de secretos y dependencias saneadas— y registrar el resultado de cada escenario, con el comando y su salida relevante, en `specs/001-h0-esqueleto-del-repo/gates/validacion-local.md`, dejando al terminar cada fichero que un escenario haya mutado exactamente como estaba —comprobado ruta a ruta (`git diff --stat -- <ruta>` vacío), no exigiendo un árbol globalmente limpio, que bajo el workflow nunca lo está porque el propio registro y el estado de la tarea son cambios sin confirmar—, de modo que el único cambio que esta tarea aporta al árbol es ese registro. **Ningún secreto detectable entra en ese registro**: el token que el escenario 9 genera al vuelo no se transcribe —ni en el comando, ni en la salida, ni en un extracto del fichero mutado—, se anota redactado o se anota solo el veredicto de `make secrets` y de `make ci`; como `make secrets` es `gitleaks dir .` sobre todo el árbol, `specs/` incluido, y H0 no crea fichero de exclusiones, un token literal en el registro dejaría en rojo el propio `make ci` con el que se verifica esta tarea y todos los posteriores, y por un fichero de gates, no por un control. La misma regla vale para cualquier otro valor que las reglas de detección puedan reconocer.",
   "intento": 1,
   "datos": false,
-  "base": "84d83d148dd88daea474f1fbbff0015c7e67c7c8",
+  "base": "615ae60352b14f317d53f13252598dd1b367ce31",
   "rutas": [
-    "CHANGELOG.md",
-    "CONTRIBUTING.md"
+    "specs/",
+    "specs/001-h0-esqueleto-del-repo/gates/validacion-local.md",
+    "specs/001-h0-esqueleto-del-repo/quickstart.md"
   ]
 }
