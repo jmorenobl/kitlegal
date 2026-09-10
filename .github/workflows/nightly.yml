@@ -1,0 +1,72 @@
+# Flujo nocturno (FR-027, research.md D1 y D12).
+#
+# Ejecuta a diario la misma orden agregada que la propuesta de cambio, sobre la
+# rama principal. No añade ningún control: `make ci` es idéntica aquí, en
+# `ci.yml`, en el gancho de pre-commit y en local.
+#
+# Existe por dos razones, ambas de segundo orden respecto de `ci.yml`:
+#
+#   1. Hace visible sin esperar a la siguiente propuesta de cambio un hallazgo
+#      que aparece por el paso del tiempo y no por un cambio en el árbol: el
+#      caso previsto es `govulncheck`, que empieza a fallar sobre el
+#      `toolchain` fijado en `go.mod` cuando se publica un parche de Go que
+#      corrige la biblioteca estándar (research.md D1). El arreglo es subir esa
+#      directiva; el detector no se vuelve un adorno.
+#   2. Mantiene viva la caché de la rama por defecto, de la que heredan por
+#      *fallback* todas las propuestas de cambio, así que la primera ejecución
+#      de una rama nueva ya arranca en caliente y SC-006 se mide en caliente
+#      (research.md D12).
+#
+# Lo que este flujo NO hace, por FR-027: ninguna verificación contra fuentes
+# reales —H0 no toca ninguna red y `KITLEGAL_RECORD` no aparece en ningún
+# flujo—, ninguna invocación de `release` —que no entra ni en `ci` ni en
+# `nightly` y falla a propósito hasta H6— y ninguna publicación del perfil de
+# cobertura, que FR-029 encomienda únicamente al flujo `ci`.
+name: nightly
+
+on:
+  # Un evento `schedule` se dispara siempre sobre la rama por defecto del
+  # repositorio, así que «sobre la rama principal» ya queda garantizado por el
+  # propio disparador: no hay filtro `branches` que aplicar ni `ref` que
+  # declarar en el paso de obtención del código, y declararlo introduciría una
+  # segunda fuente de verdad sobre cuál es esa rama.
+  #
+  # La hora es intencionadamente un minuto arbitrario y no en punto: las
+  # ejecuciones programadas en :00 compiten con el pico de carga de la
+  # plataforma y se retrasan más.
+  schedule:
+    - cron: '27 3 * * *'
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    # Permisos mínimos: este flujo solo lee el árbol, igual que `ci.yml`.
+    permissions:
+      contents: read
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v5
+
+      # Preparación idéntica a la de `ci.yml`: la versión de Go sale de las
+      # directivas de `go.mod` y el parche efectivo lo fija el `GOTOOLCHAIN`
+      # que exporta el `Makefile`. Sin `go-version` ni `check-latest`, que
+      # serían una segunda fuente de verdad sobre el parche que compila,
+      # testea y analiza —y justamente aquí importa, porque es este flujo el
+      # que ha de delatar que ese parche se ha quedado atrás (research.md D1)—.
+      # Tampoco se exporta `CGO_ENABLED` en el entorno del job: dejaría
+      # `make test -race` sin detector de carreras.
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          # Misma clave que en `ci.yml`. Es la caché de esta rama la que
+          # heredan por *fallback* las propuestas de cambio, así que ha de
+          # cubrir lo mismo: dependencias, construcción y los binarios de las
+          # herramientas de control, que `go tool` compila desde fuente.
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      - name: Ejecutar los controles
+        run: make ci

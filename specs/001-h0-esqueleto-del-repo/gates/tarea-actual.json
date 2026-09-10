@@ -1,12 +1,10 @@
 {
-  "id": "T004",
-  "texto": "T004 [US2] `.github/workflows/ci.yml`: un solo job disparado por pull_request y por push a la rama principal cuyos pasos propios se limitan a preparar el entorno —obtener el código, instalar Go con go-version-file apuntando al go.mod y sin declarar go-version ni check-latest, y conservar entre ejecuciones la caché de dependencias, de construcción y de herramientas— más ejecutar `make ci` y publicar el perfil de cobertura con fail_ci_if_error activado; permisos mínimos de solo lectura del contenido; ningún control aplicado por una vía distinta de las órdenes del `Makefile` y ninguna variable CGO_ENABLED ni GOTOOLCHAIN exportada en el entorno del job.",
+  "id": "T005",
+  "texto": "T005 [P] [US2] `.github/workflows/nightly.yml`: flujo programado a diario sobre la rama principal que prepara el entorno igual que el flujo de PR y ejecuta `make ci`, sin ninguna verificación contra fuentes reales, sin invocar `release` y sin ningún control que no esté ya especificado en el hito.",
   "intento": 1,
   "datos": false,
-  "base": "2e0dc5b73e687b089f89d6292ce25ea3c90d03ae",
+  "base": "cfdbf117f19a0d73e5e00e1f3075f1d8f6b836e7",
   "rutas": [
-    ".github/workflows/ci.yml",
-    "go.mod",
-    "Makefile"
+    ".github/workflows/nightly.yml"
   ]
 }
