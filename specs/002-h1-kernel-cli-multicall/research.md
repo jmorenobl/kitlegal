@@ -593,6 +593,25 @@ cerrada. Dos reglas que evitan la regresión infinita:
    descriptor roto: solo se intenta el mensaje para la persona en stderr y se devuelve el código.
 2. Si también falla stderr, no queda nada que hacer salvo devolver el código; nunca se entra en pánico.
 
+**La tubería cerrada de verdad exige desarmar `SIGPIPE`** (corrección tras la revisión final). Propagar
+el error no basta por sí solo: cuando un programa Go escribe en una tubería sin lector por el descriptor
+1 o 2, el runtime termina el proceso con la señal `SIGPIPE` en lugar de devolver `EPIPE` —«A write to a
+broken pipe on file descriptors 1 or 2 (standard output or standard error) will cause the program to exit
+with a SIGPIPE signal», `go doc os/signal`, sección *SIGPIPE*, comprobado en la cadena fijada—, de modo
+que ni la propagación ni la traducción llegan a ejecutarse y el proceso muere sin código y sin mensaje
+(`141` en el intérprete de órdenes). Por eso `app.Main` empieza por `signal.Ignore(syscall.SIGPIPE)`:
+con la señal ignorada, la misma escritura devuelve el error y sigue las dos reglas anteriores. Vive en
+`app.Main` y no en cada `package main` porque la garantía es del kernel y no de un binario concreto —el
+distribuido y el del e2e la heredan por llamar a `Main`, y un tercero no podría olvidarla—, y porque el
+`main` del e2e es material protegido de `testdata/`. Ignorar la señal es idempotente y no afecta a
+ninguna otra señal, así que los tests pueden llamar a `Main` tantas veces como quieran en el mismo
+proceso. *Alternativas consideradas*: `signal.Notify` sobre un canal que nadie lee (rechazada: consigue
+lo mismo con un canal y una gorrutina de más); ignorarla solo en `cmd/kitlegal/main.go` (rechazada: el
+e2e seguiría muriendo por señal y la garantía dependería de que cada raíz la repitiera). El control es
+`TestTuberiaCerrada` (`internal/app`), que ejecuta el binario real contra una tubería cuyo lector se ha
+cerrado antes de arrancarlo y exige código `1`, el mensaje en stderr y ningún estado de señal, para el
+sobre, la tabla, las tres ayudas, `version` y el esquema de `--describe`.
+
 Esto obliga a retirar la exclusión de `errcheck` heredada de H0
 ([D27](#d27--la-exclusión-de-errcheck-para-fmtfprint-se-retira)): mientras esté, el control que vigila
 esta regla no existe.

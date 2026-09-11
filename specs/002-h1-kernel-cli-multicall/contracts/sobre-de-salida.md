@@ -104,7 +104,8 @@ estándar: nunca se emite un sobre a medias. El fallo se clasifica como `inesper
 
 **Si falla la escritura** del sobre ya construido (tubería cerrada), el error se propaga y sale también
 como `inesperado` (código 1), y **no se intenta un segundo sobre** por el descriptor roto
-([`banderas-y-exit-codes.md`](./banderas-y-exit-codes.md) §4).
+([`banderas-y-exit-codes.md`](./banderas-y-exit-codes.md) §4). Vale también con una tubería del sistema
+cuyo lector ha terminado: el binario ignora `SIGPIPE`, así que termina con el código y no por la señal.
 
 ---
 
@@ -139,7 +140,9 @@ de los argumentos**, declarado y probado
 ([research.md D25](../research.md#d25--pre-escaneo-acotado-de-argv-antes-de-la-gramática)):
 
 - Reconoce exactamente `--json`, `--verbose` y `--help` en su forma larga, con o sin valor booleano
-  explícito; se detiene en el terminador `--`; ignora todo lo demás; **nunca falla ni consume argumentos**.
+  explícito, y una sola forma corta, el token exacto `-h` (la que la ayuda de un verbo anuncia como
+  `-h, --help`; ni agrupada, ni con valor, ni en mayúscula); se detiene en el terminador `--`; ignora
+  todo lo demás; **nunca falla ni consume argumentos**.
 - **No decide qué se ejecuta**: solo la forma en que se presenta un fallo temprano, el nivel del registro
   y si se suprime el verbo por omisión.
 - En cuanto el análisis termina bien, **manda lo analizado**; el pre-escaneo es un valor provisional. Un

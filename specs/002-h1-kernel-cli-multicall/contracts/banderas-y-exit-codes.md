@@ -100,12 +100,17 @@ para otra cosa.
 - **Ningún camino de usuario termina en pánico.** Los fallos se propagan como error y salen por el único
   punto que termina el proceso.
 - Escribir en la salida estándar puede fallar (tubería cerrada): eso también se traduce a un código de
-  salida, nunca a un pánico. En concreto: el presentador **comprueba y propaga** el error de toda
-  escritura; el fallo se clasifica como `inesperado` y el proceso termina con **1**; y **no se intenta
-  emitir un segundo sobre** por el descriptor que acaba de fallar —solo el mensaje para la persona en la
-  salida de error, y si esa también falla, únicamente el código—. Esta garantía tiene control mecánico
-  propio: la exclusión de `errcheck` para `fmt.Fprint*` que H0 dejó para su punto de entrada **se retira
-  en H1**, porque taparía justamente este camino.
+  salida, nunca a un pánico **ni a una muerte por señal**. En concreto: el presentador **comprueba y
+  propaga** el error de toda escritura; el fallo se clasifica como `inesperado` y el proceso termina con
+  **1**; y **no se intenta emitir un segundo sobre** por el descriptor que acaba de fallar —solo el mensaje
+  para la persona en la salida de error, y si esa también falla, únicamente el código—. Para que valga
+  con una tubería del sistema y no solo con un escritor en memoria, la raíz de composición del kernel
+  ignora la señal `SIGPIPE` al arrancar: sin eso el runtime de Go termina el proceso con la señal —sin
+  código y sin mensaje; `141` en el intérprete de órdenes— antes de que el error exista. Esta garantía
+  tiene control mecánico propio: la exclusión de `errcheck` para `fmt.Fprint*` que H0 dejó para su punto
+  de entrada **se retira en H1**, porque taparía justamente este camino, y `TestTuberiaCerrada`
+  (`internal/app`) ejecuta el binario real contra una tubería cuyo lector se ha cerrado y exige el código
+  `1`, el mensaje y ninguna señal, para cada una de las cosas que se escriben en la salida estándar.
 
 ---
 

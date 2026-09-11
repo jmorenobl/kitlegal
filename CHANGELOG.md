@@ -140,7 +140,11 @@ a escribirla.
 - **Un descriptor de salida roto termina siempre con `1`**, sea lo que sea lo que se estaba escribiendo:
   el sobre, la tabla, el esquema de `--describe`, `version` o cualquiera de las tres ayudas —también la
   del verbo, que escribe el analizador y que sin vigilar el escritor habría salido con el `2` de
-  argumentos inválidos—.
+  argumentos inválidos—. Vale también para una tubería del sistema cuyo lector ha terminado
+  (`kitlegal … | head -1`): el binario ignora la señal `SIGPIPE` con la que el runtime de Go mataría el
+  proceso sin código ni mensaje, de modo que la escritura fallida se traduce como cualquier otro fallo,
+  con el mensaje en la salida de error y el código `1`, y nunca con la muerte por señal (`141` en el
+  intérprete de órdenes).
 - **La exclusión de `errcheck` desaparece.** H0 eximía `fmt.Fprint`, `fmt.Fprintf` y `fmt.Fprintln` porque
   el punto de entrada escribía él mismo y su contrato de códigos de salida no tenía dónde poner un fallo
   de escritura. Ya no escribe —inyecta los descriptores del sistema, el registro de producción y los datos

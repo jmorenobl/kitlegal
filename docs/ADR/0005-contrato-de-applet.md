@@ -147,10 +147,19 @@ un test que recorre el grafo transitivo real—, y el fallo nombra la regla viol
   `default`, `help`, `name`—, que es el de Kong: sustituir la biblioteca exigiría o bien que la nueva
   leyera esas mismas etiquetas, o bien migrar las etiquetas de cada applet. Es un coste acotado a un
   `struct` por verbo y sin lógica, pero no es cero, y decirlo evita suponer lo contrario.
-- `--describe` no puede mentir sobre la forma de `data`, porque la deriva del tipo y no de una descripción
-  paralela.
+- `--describe` no puede mentir sobre la forma **declarada** de `data`: la deriva del tipo que el verbo
+  pone en `Salida`, y no de una descripción escrita a mano que pudiera envejecer aparte. Lo que sí puede
+  divergir es la declaración de lo que `Ejecutar` devuelve —ver el último punto de la lista siguiente—, y
+  eso lo vigila un test por applet, no el contrato.
 
 **En contra, y asumido**
+
+- `Salida` y `Resultado.Datos` son dos valores distintos que nada relaciona en tiempo de compilación: un
+  applet que declarase un tipo y devolviera otro publicaría con `--describe` un esquema que rechaza su
+  propio sobre, sin que el compilador ni el kernel dijeran nada. Es el precio de que `Salida` sea un valor
+  reflejado y no un parámetro de tipo del contrato. Se paga con el control de la Definition of Done §1.4:
+  cada applet valida en test su salida real contra el esquema que él mismo emite, con las aserciones de
+  formato activadas (`TestSalidaContraSuEsquema` para los dos de ejemplo, en `internal/app`).
 
 - La firma de análisis del kernel recibe un `any` y pierde la comprobación de tipos en ese punto: es el
   precio de no mover el registro fuera de donde el roadmap lo puso, y se paga con tests.

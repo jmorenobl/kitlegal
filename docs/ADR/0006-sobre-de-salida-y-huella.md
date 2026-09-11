@@ -149,6 +149,13 @@ falla es la escritura del sobre ya montado —una tubería cerrada—, el error 
 como inesperado, y **no se intenta un segundo sobre por el descriptor roto**. Nunca se emite un sobre a
 medias.
 
+Para que esa regla sea cierta con una tubería del sistema, y no solo con un escritor en memoria, la raíz
+de composición del kernel ignora la señal `SIGPIPE` al arrancar: sin eso, el runtime de Go termina el
+proceso con la señal —sin código de salida y sin mensaje— en cuanto una escritura en la salida estándar
+o de error falla con `EPIPE`, antes de que el error exista y llegue a propagarse. Con la señal ignorada,
+la escritura devuelve el error y sigue el camino descrito. Lo comprueba un test sobre el binario real con
+una tubería cuyo lector se ha cerrado (`TestTuberiaCerrada`, en `internal/app`).
+
 ## Consecuencias
 
 **A favor**

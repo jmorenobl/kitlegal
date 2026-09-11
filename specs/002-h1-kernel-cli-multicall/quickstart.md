@@ -239,16 +239,37 @@ rm -rf "$E2E"
 ```
 
 Y el caso de la tubería cerrada —escribir en stdout puede fallar, y eso es un código de salida, nunca un
-pánico— con un escritor que siempre falla, que un guion no puede simular de forma portable:
+pánico ni una muerte por señal—, en sus dos mitades. La del kernel, con un escritor que siempre falla:
 
 ```bash
 go test ./internal/render/ -run TestEscrituraFallida -v
-go test ./internal/app/  -run 'TestCodigoSalida/inesperado' -v
+go test ./internal/app/  -run 'TestCodigoSalida/inesperado|TestSalidaEstandarRota' -v
 ```
 
 **Esperado**: el primero, que el fallo de escritura se **propaga**, que no se intenta un segundo sobre por
 el descriptor roto y que no hay pánico; el segundo, que ese error propagado sale con código `1` —la mitad
 del contrato que vive en la traducción única, no en el presentador—.
+
+Y la del proceso, con una tubería del sistema de verdad cuyo lector se cierra antes de arrancar el
+binario. Un guion `testscript` no puede provocarla de forma portable, así que la provoca un test de Go
+sobre el binario que el propio e2e construye:
+
+```bash
+go test ./internal/app/ -run TestTuberiaCerrada -v
+```
+
+**Esperado**: para el sobre, la tabla, las tres ayudas, `version` y el esquema de `--describe`, el
+binario termina con código `1` y no por la señal `SIGPIPE`, y la salida de error lleva «no se pudo
+escribir en la salida estándar» con la causa del sistema («broken pipe»). A mano, desde el intérprete de
+órdenes, se ve lo mismo —el mensaje y el `1` en lugar del `141` de una muerte por señal—. La pausa
+previa es para que `true` haya terminado, y con él el lector de la tubería, antes de que el binario
+escriba; el test de Go no la necesita porque cierra el lector él mismo antes de arrancar el binario:
+
+```bash
+E2E=$(mktemp -d); go build -o "$E2E/kitlegal" ./internal/app/testdata/kitlegal-e2e
+( sleep 1; "$E2E/kitlegal" echo hola --json; echo "código: $?" >&2 ) | true   # código: 1, y el mensaje
+rm -rf "$E2E"
+```
 
 Y el plazo agotado, la otra mitad de la regla de `--timeout`: no solo un applet que devuelve el error
 tipado produce el código `4`; **vencer el plazo también**. Lo fuerza un applet de prueba que tarda más que

@@ -1,7 +1,44 @@
 # Revisión final de H1 — pendientes que requieren a una persona
 
-**Fecha**: 2026-09-11 · **Ronda**: corrección tras `gates/revision-a.json` (aprobado) y
-`gates/revision-b.json` (rechazado, 13 motivos) · **Rama**: `h1-kernel-cli-multicall`
+## Ronda 2 · 2026-09-12 · A rechazado (5 motivos) / B aprobado
+
+**Ronda**: corrección tras `gates/revision-a.json` (rechazado, criterios b, d, e y f) y
+`gates/revision-b.json` (aprobado) · **Rama**: `h1-kernel-cli-multicall`.
+
+Los cinco motivos del juez A están corregidos en la rama y `make ci` termina en verde. **No queda
+ninguna decisión pendiente de esta ronda**; lo que sigue es el rastro de cada corrección y una decisión
+de diseño que conviene conocer.
+
+| Motivo | Corrección | Dónde |
+|---|---|---|
+| [e][f] La tubería cerrada mataba el proceso por `SIGPIPE` en lugar de terminar con `1` | La raíz de composición del kernel desarma la señal al arrancar (`signal.Ignore(syscall.SIGPIPE)`), de modo que la escritura devuelve `EPIPE` y sigue el camino ya escrito: presentador → traducción única → código `1` y mensaje en la salida de error. Test nuevo sobre el binario real con una tubería cuyo lector se cierra antes de arrancarlo, para el sobre, la tabla, las tres ayudas, `version` y `--describe` | `internal/app/main.go` (`desarmarTuberiaCerrada`), `internal/app/tuberia_test.go` (`TestTuberiaCerrada`); research.md D15, ADR 0006, CHANGELOG, contratos de banderas y del sobre, quickstart esc. 5, plan.md fila 11 |
+| [d][b] Nada validaba la salida real de los applets de ejemplo contra el esquema que ellos mismos emiten | Test nuevo que, por cada verbo de cada applet de ejemplo, pide el esquema con `--describe`, lo compila con `AssertFormat()` y valida contra él un sobre de éxito real y dos de fallo reales; comprueba además que la validación restringe `data` (una clave de más o de menos deja de validar). La tabla exige una fila por verbo registrado, así que un verbo nuevo sin caso falla en lugar de quedar sin validar. La mutación del juez (`Salida: cuenta{}` en `echo`) lo hace fallar | `internal/app/esquema_test.go` (`TestSalidaContraSuEsquema`); plan.md filas 4 y 5 |
+| [b] `TestCodigoSalida/correcto` y `TestAppletHereda/{echo,contar}` dependían de `KITLEGAL_LOG` | Las dos tablas fijan la variable —en el test y en cada subcaso— y dejan de ser paralelas, con el mismo patrón y la misma explicación que `TestSalidaEstandarRota`, `TestDryRun` y `TestPuntoDeEntrada`. Comprobado: `KITLEGAL_LOG=debug` y `KITLEGAL_LOG=verbose` (inválido) en el entorno dejan `internal/app`, `internal/cli` y `cmd/...` en verde | `internal/app/codigos_test.go`, `internal/app/hereda_test.go` |
+| [f] ADR 0005 afirmaba que `--describe` «no puede mentir» sobre `data` | La consecuencia se reformula a lo que es cierto —no puede mentir sobre la forma **declarada**— y el punto ciego pasa a «En contra, y asumido»: `Salida` y `Resultado.Datos` son dos declaraciones que nada relaciona en compilación, y la coincidencia la vigila el test anterior, que es el control de la DoD §1.4 | `docs/ADR/0005-contrato-de-applet.md` |
+| [f] El contrato del sobre decía que el pre-escaneo reconoce solo las tres formas largas | Añadido el token exacto `-h`, con las mismas exclusiones que research.md D25 regla 1 | `contracts/sobre-de-salida.md` §5 |
+
+**Decisión de diseño que conviene conocer.** La señal se desarma en `app.Main` y no en los dos
+`package main`, por dos razones: la garantía es del kernel y no de un binario concreto, de modo que todo
+ejecutable que compone el kernel la hereda sin poder olvidarla; y el `main` del binario de e2e vive bajo
+`internal/app/testdata/`, material protegido que el corrector tiene prohibido tocar, y sin él el test
+con la tubería real no podría ejercer el binario que el e2e construye. Alternativas y motivo en
+research.md D15.
+
+**Observaciones del juez B que no eran motivos** y quedan como están, por si la persona quiere
+resolverlas: `gates/quickstart-h1.md:307` conserva la cifra de 18 `//nolint` de la ejecución de T020
+(es el registro de aquella ejecución; hoy son dos, `internal/arch_test.go` y
+`internal/app/tuberia_test.go`, las dos `gosec` G204 sobre un subproceso con argumentos literales y
+justificadas en la propia línea); y `spec.md` FR-026 nombra solo `--help` mientras `-h` está en los
+contratos, en research.md D25 y en el CHANGELOG. El spec está cerrado por su gate, así que anotarlo
+allí es decisión de la persona.
+
+Sigue vigente de la ronda 1 el punto 2 (copiar a la propuesta #9 la tabla de módulos) y, como
+información, el 3.
+
+## Ronda 1 · 2026-09-11 · A aprobado / B rechazado (13 motivos)
+
+**Ronda**: corrección tras `gates/revision-a.json` (aprobado) y `gates/revision-b.json` (rechazado, 13
+motivos) · **Rama**: `h1-kernel-cli-multicall`
 
 Los trece motivos del juez B están corregidos en la rama (commits `fix(H1)`, `test(H1)` y `docs(H1)`
 posteriores a `461331f`) y `make ci` termina en verde, **salvo tres puntos que el corrector no puede
