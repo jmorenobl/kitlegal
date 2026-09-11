@@ -24,7 +24,7 @@ jobs:
       contents: read
     steps:
       - name: Obtener el código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # La versión de Go sale de las directivas de go.mod, que la acción lee por
       # sí sola; el parche efectivo lo fija el GOTOOLCHAIN que exporta el
