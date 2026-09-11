@@ -1,15 +1,18 @@
 {
-  "id": "T007",
-  "texto": "T007 [US5] Autodescripción del applet: `internal/cli/describe.go` que emite en la salida estándar **un** esquema JSON válido del borrador 2020-12 generado con `github.com/invopop/jsonschema` a partir de la definición del verbo y de los tipos del sobre —sin ninguna parte mantenida a mano—, con `entrada` (los argumentos del verbo más las ocho banderas globales) y `salida` (el sobre completo con `additionalProperties: false` y `data` **condicionado a `ok`** mediante `if`/`then`/`else` y `$defs/DatosError`), que excluye la ejecución y termina con código 0; y `internal/cli/describe_test.go`, cuyo `TestDescribe` —el nombre que invoca el escenario 6 de `quickstart.md`— compila el esquema emitido con `santhosh-tekuri/jsonschema/v6` y `AssertFormat()`, comprueba que un sobre de éxito y un sobre de fallo de ese mismo verbo validan contra él, y que quitar la rama `else` hace fallar el caso del sobre de fallo (FR-046 … FR-049, SC-007, SC-015).",
+  "id": "T008",
+  "texto": "T008 [US1] El presentador, único escritor de los dos descriptores: `internal/render/render.go` con `Nuevo(stdout, stderr)`, la implementación de la interfaz que consume el kernel y la regla de que **toda** escritura comprueba y propaga su error (incluido el vaciado final); `internal/render/json.go` con el sobre serializado sin escapar caracteres HTML, con salto de línea final y **nada más** en la salida estándar; `internal/render/tabla.go` con la tabla mínima —las cuatro líneas de procedencia `fuente`, `url`, `fecha_consulta` y `hash` seguidas del contenido de `data` aplanado a pares ruta/valor, donde la ruta concatena claves e índices con `.`—; `internal/render/texto.go` con el texto para personas: las tres líneas de `version` y la ayuda derivada del registro en la salida estándar, y los avisos —mensaje de un fallo, lista de applets disponibles y descripción de `--dry-run`— en la salida de error, sin pasar por el registro de eventos y por tanto sin que ningún nivel pueda ocultarlos; y los tests `internal/render/render_test.go`, `internal/render/json_test.go`, `internal/render/tabla_test.go` y `internal/render/texto_test.go`, incluido `TestEscrituraFallida` con un `io.Writer` que siempre devuelve error, que comprueba que el fallo se propaga, que no se intenta un segundo sobre por el descriptor roto y que no hay pánico (FR-040 … FR-044, SC-011).",
   "intento": 1,
   "datos": false,
-  "base": "c6ad6068b14cef56677001fecec8194770c3953c",
+  "base": "3ae7549d3c6775cd2e757b8fad1a2d2dca81aceb",
   "rutas": [
-    ".com/invopop/jsonschema",
-    "defs/DatosError",
-    "internal/cli/describe_test.go",
-    "internal/cli/describe.go",
-    "quickstart.md",
-    "santhosh-tekuri/jsonschema/v6"
+    "internal/render/json_test.go",
+    "internal/render/json.go",
+    "internal/render/render_test.go",
+    "internal/render/render.go",
+    "internal/render/tabla_test.go",
+    "internal/render/tabla.go",
+    "internal/render/texto_test.go",
+    "internal/render/texto.go",
+    "ruta/valor"
   ]
 }
