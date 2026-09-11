@@ -300,6 +300,7 @@ func TestSobreDeFallo(t *testing.T) {
 	}{
 		{nombre: "bandera desconocida", argv: []string{"kitlegal", "prueba", "hola", "--jsno", "--json"}},
 		{nombre: "applet no registrado", argv: []string{"kitlegal", "noexiste", "--json"}},
+		{nombre: "verbo reservado con argumentos", argv: []string{"kitlegal", "version", "extra", "--json"}},
 	}
 
 	for _, caso := range antesDelApplet {

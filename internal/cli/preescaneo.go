@@ -28,21 +28,28 @@ type Preliminar struct {
 // una bandera aunque se escriba como tal.
 const terminador = "--"
 
-// Los tres nombres largos exactos que el pre-escaneo reconoce, y ninguno más.
-// No hay formas cortas ni abreviaturas: una abreviatura que Kong aceptara y el
-// pre-escaneo no —o al revés— sería una divergencia silenciosa entre lo que se
-// lee aquí y lo que Kong analiza después, y lo estrecho es justamente lo que
-// hace este procedimiento comprobable (research.md D25, regla 1).
+// Los tres nombres largos exactos que el pre-escaneo reconoce, y la única forma
+// corta: `-h`, que la ayuda integrada de Kong anuncia junto a `--help` en toda
+// gramática y que por tanto tiene que pedir la ayuda en las mismas posiciones
+// que la forma larga. No hay ninguna otra forma corta ni abreviatura: una
+// abreviatura que Kong aceptara y el pre-escaneo no —o al revés— sería una
+// divergencia silenciosa entre lo que se lee aquí y lo que Kong analiza
+// después, y lo estrecho es justamente lo que hace este procedimiento
+// comprobable (research.md D25, regla 1).
 const (
-	banderaJSON    = "--json"
-	banderaVerbose = "--verbose"
-	banderaAyuda   = "--help"
+	banderaJSON       = "--json"
+	banderaVerbose    = "--verbose"
+	banderaAyuda      = "--help"
+	banderaAyudaCorta = "-h"
 )
 
 // PreEscanear lee --json, --verbose y --help de la lista de argumentos antes de
 // que exista gramática, con un procedimiento deliberadamente estrecho: solo las
-// tres formas largas exactas y sus formas con valor booleano explícito
-// (--json=false), se detiene en el terminador y cualquier otro token se ignora.
+// tres formas largas exactas, sus formas con valor booleano explícito
+// (--json=false) y el token exacto `-h`; se detiene en el terminador y
+// cualquier otro token se ignora. `-h` se reconoce solo suelto: ni agrupado con
+// otras formas cortas (`-hv`) ni con valor pegado, que es la superficie que la
+// regla 1 deja fuera para que el procedimiento siga siendo comprobable.
 //
 // No valida, no falla y no consume: no devuelve error porque cuando se ejecuta
 // no hay todavía nada que pueda emitir un fallo, y deja la lista
@@ -60,6 +67,12 @@ func PreEscanear(args []string) Preliminar {
 	for _, arg := range args {
 		if arg == terminador {
 			break
+		}
+
+		if arg == banderaAyudaCorta {
+			previo.Ayuda = true
+
+			continue
 		}
 
 		nombre, literal, conValor := strings.Cut(arg, "=")

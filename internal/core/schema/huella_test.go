@@ -5,7 +5,6 @@ import (
 	"math"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,9 +13,9 @@ import (
 // TestHuella ejerce los tres pasos de la forma canónica y las propiedades de la
 // huella que fija contracts/sobre-de-salida.md §4: claves ordenadas, números
 // conservados como literales, caracteres HTML sin escapar, ni espacios ni
-// saltos, y una huella que depende solo del contenido de data —nunca de
-// fecha_consulta ni del orden de serialización— con error, y no pánico, cuando
-// data no es serializable (FR-011, FR-012, SC-005).
+// saltos, y una huella que depende solo del contenido de data —nunca del orden
+// de serialización— con error, y no pánico, cuando data no es serializable
+// (FR-011, FR-012, SC-005).
 //
 // Es el test que invoca el escenario 4 de quickstart.md.
 func TestHuella(t *testing.T) {
@@ -149,21 +148,12 @@ func TestHuella(t *testing.T) {
 		})
 	}
 
-	t.Run("propiedad: la huella no depende de fecha_consulta", func(t *testing.T) {
-		t.Parallel()
-
-		data := map[string]any{"mensaje": "hola"}
-		madrid := time.FixedZone("CEST", 2*60*60)
-		primer := Sobre{FechaConsulta: time.Date(2026, time.September, 11, 10, 12, 0, 0, madrid), Data: data}
-		segundo := Sobre{FechaConsulta: time.Date(2027, time.March, 1, 23, 59, 59, 0, time.UTC), Data: data}
-
-		primera, err := Huella(primer.Data)
-		require.NoError(t, err)
-		segunda, err := Huella(segundo.Data)
-		require.NoError(t, err)
-
-		assert.Equal(t, primera, segunda)
-	})
+	// Que la huella no dependa de fecha_consulta no se comprueba aquí, y no es
+	// un olvido: Huella recibe solo el contenido, así que en este paquete la
+	// independencia es cierta por la firma y un caso que la afirmara no
+	// comprobaría nada. Donde sí se puede romper es en el kernel, que es quien
+	// fecha el sobre y calcula la huella al montarlo: lo comprueba
+	// TestContratoSobre de internal/cli con dos relojes distintos.
 
 	// Huellas conocidas: sha256 de la forma canónica, calculado fuera de este
 	// código, de modo que un cambio del algoritmo no pueda pasar inadvertido.

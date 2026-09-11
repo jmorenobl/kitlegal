@@ -134,7 +134,25 @@ func TestDespacho(t *testing.T) {
 			argv:      []string{"/usr/local/bin/kitlegal", "version"},
 			destino:   DestinoReservado,
 			reservado: "version",
-			args:      []string{},
+		},
+		{
+			// Un verbo reservado no admite nada detrás: «version» no tiene sobre
+			// ni banderas, y lo que sobra es una invocación que hay que corregir,
+			// no un argumento que descartar (FR-027, contrato de version de H0).
+			nombre:        "un verbo reservado con un argumento de más",
+			argv:          []string{"/usr/local/bin/kitlegal", "version", "extra"},
+			errorContiene: []string{"version", "extra", "no admite argumentos ni banderas"},
+		},
+		{
+			nombre:        "un verbo reservado con una bandera desconocida",
+			argv:          []string{"/usr/local/bin/kitlegal", "version", "--jsno"},
+			errorContiene: []string{"version", "--jsno"},
+		},
+		{
+			nombre:        "un verbo reservado con una bandera global, que tampoco admite",
+			argv:          []string{"/usr/local/bin/kitlegal", "version", "--timeout", "abc"},
+			previo:        cli.Preliminar{},
+			errorContiene: []string{"version", "--timeout", "abc"},
 		},
 		{
 			nombre:  "un nombre de enlace desconocido no inutiliza el binario",

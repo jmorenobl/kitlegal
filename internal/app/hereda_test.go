@@ -328,13 +328,22 @@ func exigirDescribeYAyuda(t *testing.T, caso ejemplar) {
 	descrito := invocarEjemplo(t, caso.invocacionCon("--describe")...)
 	require.Equal(t, 0, descrito.codigo, descrito.errores)
 	assert.Empty(t, descrito.errores)
-	assert.NotContains(t, descrito.salida, schema.PrefijoHuella,
+
+	// Describirse y actuar son excluyentes: en la salida no hay ningún sobre
+	// firmado. El esquema sí nombra el patrón de la huella —es parte del
+	// contrato que describe—, así que lo que no puede aparecer es una huella
+	// real, con sus 64 dígitos.
+	assert.NotRegexp(t, schema.PrefijoHuella+"[0-9a-f]{64}", descrito.salida,
 		"describirse y actuar son excluyentes: no hay sobre que firmar")
 
 	var esquema map[string]any
 	require.NoError(t, json.Unmarshal([]byte(descrito.salida), &esquema))
 	assert.Equal(t, borrador, esquema["$schema"])
 	assert.Equal(t, nombre+" "+caso.verbo, esquema["title"])
+
+	for _, clave := range clavesDelSobre {
+		assert.NotContains(t, esquema, clave, "el documento es un esquema, no un sobre")
+	}
 
 	propiedades, esObjeto := esquema["properties"].(map[string]any)
 	require.True(t, esObjeto, "el esquema declara sus propiedades")

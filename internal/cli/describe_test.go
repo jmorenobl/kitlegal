@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -48,6 +50,58 @@ type (
 		Cuenta int `json:"cuenta"`
 	}
 )
+
+// Los nombres con los que esos dos tipos aparecen en los `$defs` del
+// documento: cualificados con el paquete, porque no son tipos del sobre sino
+// del applet, y así no pueden pisar los del contrato.
+const (
+	definicionDelEco    = "cli.datosDelEco"
+	definicionDeCuenta  = "cli.datosDeCuenta"
+	definicionDeError   = "DatosError"
+	definicionHomonima  = "cli.DatosError"
+	definicionDeSobre   = "Sobre"
+	prefijoDeDefinicion = "#/$defs/"
+)
+
+// DatosError es un tipo de `data` que un applet podría declarar con el mismo
+// nombre que el del kernel y otra forma. Existe para comprobar que el documento
+// no los confunde: sin cualificar los nombres, la biblioteca haría que las dos
+// ramas de la condición apuntaran al mismo `$defs` y el esquema rechazaría el
+// sobre de éxito correcto de ese verbo.
+type DatosError struct {
+	Codigo int `json:"codigo"`
+}
+
+// homonimoUno y homonimoDos son dos tipos **distintos** que se llaman igual y
+// viven en el mismo paquete —solo un tipo local puede hacerlo—, de modo que ni
+// cualificar el nombre los separa. Son la única forma de provocar, sin inventar
+// paquetes, el choque de nombres que el documento tiene que rechazar en lugar de
+// describir otra cosa.
+func homonimoUno() reflect.Type {
+	type Homonimo struct {
+		Uno int `json:"uno"`
+	}
+
+	return reflect.TypeOf(Homonimo{})
+}
+
+func homonimoDos() reflect.Type {
+	type Homonimo struct {
+		Dos int `json:"dos"`
+	}
+
+	return reflect.TypeOf(Homonimo{})
+}
+
+// salidaConHomonimos es un `data` que contiene un campo de cada homónimo.
+func salidaConHomonimos() any {
+	tipo := reflect.StructOf([]reflect.StructField{
+		{Name: "Uno", Type: homonimoUno(), Tag: `json:"uno"`},
+		{Name: "Dos", Type: homonimoDos(), Tag: `json:"dos"`},
+	})
+
+	return reflect.New(tipo).Elem().Interface()
+}
 
 // verboDePrueba es la definición del verbo `repetir` del applet de las
 // tablas: la misma que el paquete de composición construirá desde su registro.
@@ -154,6 +208,24 @@ func sobreDeFalloConTraza(t *testing.T) map[string]any {
 	return documento
 }
 
+// datosDe devuelve el `data` de un sobre como objeto, para poder alterarlo.
+func datosDe(t *testing.T, sobre map[string]any) map[string]any {
+	t.Helper()
+
+	datos, esObjeto := sobre["data"].(map[string]any)
+	require.True(t, esObjeto, "el data de este sobre es un objeto")
+
+	return datos
+}
+
+// referencia devuelve el `$ref` con el que una rama de la condición describe
+// `data`.
+func referencia(t *testing.T, salida map[string]any, rama string) any {
+	t.Helper()
+
+	return bajar(t, salida, rama, "properties", "data")["$ref"]
+}
+
 // sinRamaElse devuelve el mismo documento sin la rama `else` de la condición. Es
 // la mutación con la que se comprueba que esa rama es la que sostiene el caso del
 // sobre de fallo: si el test siguiera en verde sin ella, no estaría comprobando
@@ -255,16 +327,154 @@ func TestDescribe(t *testing.T) {
 
 		assert.Equal(t, true, bajar(t, salida, "if", "properties", "ok")["const"],
 			"la condición se decide por `ok`")
-		assert.Equal(t, "#/$defs/datosDelEco",
-			bajar(t, salida, "then", "properties", "data")["$ref"],
-			"con ok verdadero, `data` es el del applet")
-		assert.Equal(t, "#/$defs/DatosError",
-			bajar(t, salida, "else", "properties", "data")["$ref"],
-			"con ok falso, `data` es la forma común de error del kernel")
+		assert.Equal(t, prefijoDeDefinicion+definicionDelEco, referencia(t, salida, "then"),
+			"con ok verdadero, `data` es el del applet, nombrado con su paquete")
+		assert.Equal(t, prefijoDeDefinicion+definicionDeError, referencia(t, salida, "else"),
+			"con ok falso, `data` es la forma común de error del kernel, nombrada como en el contrato")
 
 		definiciones := bajar(t, documento, "$defs")
-		assert.Contains(t, definiciones, "DatosError")
-		assert.Contains(t, definiciones, "datosDelEco")
+		assert.Contains(t, definiciones, definicionDeError)
+		assert.Contains(t, definiciones, definicionDelEco)
+		assert.NotContains(t, definiciones, definicionDeSobre,
+			"el sobre va escrito en su sitio y no como una definición referenciada")
+	})
+
+	t.Run("la salida lleva las restricciones del contrato, derivadas de los tipos", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboDePrueba())
+		propiedades := bajar(t, documento, "properties", "salida", "properties")
+
+		// Las restricciones salen de las etiquetas del sobre y del vocabulario de
+		// clases del dominio, no de una lista escrita en el generador: son las de
+		// contracts/sobre-de-salida.md §6, clave por clave (FR-017, FR-048).
+		assert.Equal(t, json.Number("1"), bajar(t, propiedades, "fuente")["minLength"],
+			"fuente no va vacía")
+		assert.Equal(t, json.Number("1"), bajar(t, propiedades, "url")["minLength"],
+			"url no va vacía")
+		assert.Equal(t, "uri", bajar(t, propiedades, "url")["format"],
+			"url es un URI")
+		assert.Equal(t, "date-time", bajar(t, propiedades, "fecha_consulta")["format"],
+			"fecha_consulta es RFC 3339")
+		assert.Equal(t, schema.PatronHuella, bajar(t, propiedades, "hash")["pattern"],
+			"hash lleva el prefijo del algoritmo y 64 dígitos hexadecimales")
+
+		datosDeError := bajar(t, documento, "$defs", definicionDeError)
+		assert.Equal(t, false, datosDeError["additionalProperties"])
+		assert.Equal(t, []any{"clase", "mensaje"}, datosDeError["required"])
+
+		clases := make([]any, 0, len(schema.Clases()))
+		for _, clase := range schema.Clases() {
+			clases = append(clases, string(clase))
+		}
+
+		assert.Equal(t, clases, bajar(t, datosDeError, "properties", "clase")["enum"],
+			"clase está dentro del vocabulario del dominio, y en su orden")
+		assert.Equal(t, json.Number("1"), bajar(t, datosDeError, "properties", "mensaje")["minLength"],
+			"mensaje no va vacío")
+	})
+
+	t.Run("el esquema emitido rechaza lo que el contrato prohíbe", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboDePrueba())
+		compilado := compilarGenerado(t, documento, rutaDeLaSalida)
+
+		deExito := func() map[string]any { return sobreEmitido(t, resultadoDePrueba(), nil) }
+		deFallo := func() map[string]any {
+			return sobreEmitido(t, schema.Resultado{}, fmt.Errorf("el bloque a99: %w", ErrNoEncontrado))
+		}
+
+		// Ninguno de estos sobres lo produce el kernel —el dominio y el montador
+		// los rechazan antes—, así que se alteran a mano sobre un sobre real: lo
+		// que se comprueba es que la descripción formal que el binario publica
+		// los rechazaría igualmente, que es la mitad de FR-017 que no depende del
+		// código que los emite.
+		casos := []struct {
+			nombre  string
+			sobre   func() map[string]any
+			alterar func(sobre map[string]any)
+		}{
+			{"url vacía", deExito, func(s map[string]any) { s["url"] = "" }},
+			{"url que no es un URI", deExito, func(s map[string]any) { s["url"] = "no-es-un-uri" }},
+			{"url sin esquema", deExito, func(s map[string]any) { s["url"] = "www.boe.es/buscar" }},
+			{"fuente vacía", deExito, func(s map[string]any) { s["fuente"] = "" }},
+			{"hash sin el prefijo del algoritmo", deExito, func(s map[string]any) { s["hash"] = "x" }},
+			{"hash con el prefijo pero sin los 64 dígitos", deExito, func(s map[string]any) {
+				s["hash"] = schema.PrefijoHuella + "abc"
+			}},
+			{"fecha_consulta que no es RFC 3339", deExito, func(s map[string]any) { s["fecha_consulta"] = "ayer" }},
+			{"una séptima clave", deExito, func(s map[string]any) { s["traza"] = "cli.Emitir(...)" }},
+			{"clase fuera del vocabulario", deFallo, func(s map[string]any) { datosDe(t, s)["clase"] = "inventada" }},
+			{"mensaje vacío", deFallo, func(s map[string]any) { datosDe(t, s)["mensaje"] = "" }},
+		}
+
+		for _, caso := range casos {
+			t.Run(caso.nombre, func(t *testing.T) {
+				t.Parallel()
+
+				sobre := caso.sobre()
+				require.NoError(t, compilado.Validate(sobre),
+					"el sobre real vale antes de alterarlo: si no, el rechazo no probaría nada")
+
+				caso.alterar(sobre)
+				require.Error(t, compilado.Validate(sobre))
+			})
+		}
+	})
+
+	t.Run("el esquema emitido y la copia del contrato describen el mismo sobre", func(t *testing.T) {
+		t.Parallel()
+
+		// La copia a mano del contrato (TestContratoSobre) y el esquema generado
+		// son dos descripciones del mismo sobre, y tienen que decir lo mismo de
+		// sus seis claves y del `data` de fallo: si el generador dejara de
+		// derivar una restricción, o el contrato cambiara sin que el sobre lo
+		// siguiera, se verían aquí. Lo único que difiere es la rama `then`, que
+		// el contrato deja abierta porque el `data` de éxito es de cada applet.
+		documento, _ := describirDePrueba(t, verboDePrueba())
+		salida := bajar(t, documento, "properties", "salida")
+		contrato := unicoDocumento(t, esquemaDelContrato)
+
+		assert.Equal(t, contrato["properties"], salida["properties"])
+		assert.Equal(t, contrato["required"], salida["required"])
+		assert.Equal(t, contrato["additionalProperties"], salida["additionalProperties"])
+		assert.Equal(t, contrato["if"], salida["if"])
+		assert.Equal(t, contrato["else"], salida["else"])
+		assert.Equal(t, bajar(t, contrato, "$defs")[definicionDeError],
+			bajar(t, documento, "$defs")[definicionDeError])
+	})
+
+	t.Run("un tipo del applet que se llama como uno del kernel no lo pisa", func(t *testing.T) {
+		t.Parallel()
+
+		def := verboDePrueba()
+		def.Salida = DatosError{}
+
+		documento, _ := describirDePrueba(t, def)
+		salida := bajar(t, documento, "properties", "salida")
+
+		assert.Equal(t, prefijoDeDefinicion+definicionHomonima, referencia(t, salida, "then"))
+		assert.Equal(t, prefijoDeDefinicion+definicionDeError, referencia(t, salida, "else"))
+
+		compilado := compilarGenerado(t, documento, rutaDeLaSalida)
+
+		delApplet := schema.Resultado{Procedencia: procedenciaDelApplet, Datos: DatosError{Codigo: 7}}
+		require.NoError(t, compilado.Validate(sobreEmitido(t, delApplet, nil)),
+			"el sobre de éxito de ese verbo valida contra su propio esquema")
+
+		for _, caso := range casosDeFallo(t) {
+			require.NoError(t, compilado.Validate(
+				sobreEmitido(t, schema.Resultado{Procedencia: caso.delApplet}, caso.err)),
+				"el sobre de fallo sigue describiéndose con la forma del kernel: %s", caso.nombre)
+		}
+
+		delKernel := schema.Resultado{
+			Procedencia: procedenciaDelApplet,
+			Datos:       schema.DatosError{Clase: schema.ClaseArgumentos, Mensaje: "no soy el data del applet"},
+		}
+		require.Error(t, compilado.Validate(sobreEmitido(t, delKernel, nil)),
+			"con ok verdadero, la forma de error del kernel no es el data de ese applet")
 	})
 
 	t.Run("el sobre de éxito de ese verbo valida", func(t *testing.T) {
@@ -336,9 +546,9 @@ func TestDescribe(t *testing.T) {
 			"otro verbo, otros argumentos, sin editar nada")
 		assert.Equal(t, "integer",
 			bajar(t, documento, "properties", "entrada", "properties", "veces")["type"])
-		assert.Equal(t, "#/$defs/datosDeCuenta",
-			bajar(t, documento, "properties", "salida", "then", "properties", "data")["$ref"])
-		assert.NotContains(t, bajar(t, documento, "$defs"), "datosDelEco")
+		assert.Equal(t, prefijoDeDefinicion+definicionDeCuenta,
+			referencia(t, bajar(t, documento, "properties", "salida"), "then"))
+		assert.NotContains(t, bajar(t, documento, "$defs"), definicionDelEco)
 	})
 
 	t.Run("un verbo sin argumentos describe solo las ocho banderas", func(t *testing.T) {
@@ -507,6 +717,41 @@ func TestDescribeDefectosDelKernel(t *testing.T) {
 			assert.Equal(t, esperada, clave,
 				"la condición sigue al sobre y no a una copia de sus claves (FR-048)")
 		}
+	})
+
+	t.Run("dos tipos distintos con el mismo nombre no se describen", func(t *testing.T) {
+		t.Parallel()
+
+		def := verboDePrueba()
+		def.Salida = salidaConHomonimos()
+
+		doble := &presentadorConJSON{}
+		err := Describir(doble, def)
+
+		require.ErrorIs(t, err, errEsquemaImposible)
+		assert.Contains(t, err.Error(), "Homonimo", "el fallo nombra el nombre en conflicto")
+		assert.Equal(t, 1, CodigoSalida(err),
+			"un choque de nombres es un defecto de quien declaró el verbo, no de quien invoca")
+		assert.Empty(t, doble.salida.String(),
+			"no se emite un esquema que describiría otra cosa: la biblioteca, sola, "+
+				"haría que el segundo tipo referenciara la definición del primero")
+	})
+
+	t.Run("el mismo tipo dos veces no es un choque de nombres", func(t *testing.T) {
+		t.Parallel()
+
+		// El sobre de fallo se refleja en la rama `else` y puede aparecer además
+		// dentro del data de un applet: es el mismo tipo y la misma definición,
+		// no una colisión.
+		g := nuevoGenerador()
+		g.registrar(definicionDeError, tipoDatosDeFallo)
+		g.registrar(definicionDeError, tipoDatosDeFallo)
+		require.NoError(t, g.colision)
+
+		g.registrar(definicionDeError, reflect.TypeOf(DatosError{}))
+		require.ErrorIs(t, g.colision, errEsquemaImposible)
+		assert.Contains(t, g.colision.Error(), "schema.DatosError")
+		assert.Contains(t, g.colision.Error(), "cli.DatosError")
 	})
 
 	t.Run("un documento que no se puede codificar no se emite a medias", func(t *testing.T) {

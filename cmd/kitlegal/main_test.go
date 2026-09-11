@@ -22,12 +22,13 @@ const registroVacio = "este binario no registra ningún applet"
 // descriptores del sistema, que es lo que hace comprobable el contrato entero sin
 // lanzar ningún subproceso (FR-035).
 //
-// De contracts/cli-version.md de H0 se conserva exactamente la parte que no
-// cambia: las tres líneas de version, la salida de error vacía y el código 0
-// (D16). Lo que H0 resolvía con la línea «uso: kitlegal version» y el código 2
-// dejó de ser contrato de version: un nombre que no es ningún applet lo resuelve
-// el despacho, que **nombra lo desconocido** y enumera lo disponible —nada, en
-// este binario— con código 2 (FR-006, contracts/registro-y-describe.md §2 y §3).
+// De contracts/cli-version.md de H0 se conservan las tres líneas de version, la
+// salida de error vacía y el código 0 (D16), y también el código 2 de cualquier
+// otra invocación: lo que cambia es el mensaje. Un nombre que no es ningún
+// applet lo resuelve el despacho, que **nombra lo desconocido** y enumera lo
+// disponible —nada, en este binario— (FR-006, contracts/registro-y-describe.md
+// §2 y §3); y lo que sobra tras «version», que no admite argumentos ni
+// banderas, se nombra en el mensaje en lugar de descartarse (FR-027).
 //
 // No es paralelo, y no es un descuido: fija KITLEGAL_LOG —en el test y en cada
 // subcaso, que es lo que lo deja hermético por separado— para que el nivel del
@@ -57,16 +58,21 @@ func TestPuntoDeEntrada(t *testing.T) {
 			codigo: 0,
 		},
 		{
-			// Lo que H0 resolvía con el código 2. El verbo reservado se reconoce
-			// **antes** que el registro, así que aquí no hay ningún applet
-			// desconocido que nombrar y version se atiende sin mirar lo que
-			// sobra: sin sobre y sin banderas (contracts/registro-y-describe.md
-			// §2, D16). Este caso fija ese comportamiento, que el contrato no
-			// nombraba (gates/tasks.json, observación no bloqueante).
-			nombre: "un argumento de más no altera version: el verbo reservado se atiende igual",
-			argv:   []string{"kitlegal", "version", "extra"},
-			salida: salidaVersion,
-			codigo: 0,
+			// El verbo reservado se reconoce **antes** que el registro y no
+			// admite nada detrás: «version» no tiene sobre ni banderas, y lo que
+			// sobra es una invocación que hay que corregir —código 2, como en
+			// H0— con un mensaje que nombra lo que sobra (FR-027, D16,
+			// contracts/cli-version.md de H0).
+			nombre:  "un argumento de más tras version termina con 2 y se nombra",
+			argv:    []string{"kitlegal", "version", "extra"},
+			errores: []string{`"version"`, `"extra"`},
+			codigo:  2,
+		},
+		{
+			nombre:  "una bandera tras version tampoco se admite",
+			argv:    []string{"kitlegal", "version", "--jsno"},
+			errores: []string{`"version"`, `"--jsno"`},
+			codigo:  2,
 		},
 		{
 			nombre:  "sin applet, el fallo enumera lo que hay y termina con 2",

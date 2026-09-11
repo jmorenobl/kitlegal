@@ -28,13 +28,34 @@ const (
 	ClaseInesperado Clase = "inesperado"
 )
 
+// Clases es el vocabulario completo, en el orden del contrato: las seis clases
+// y ninguna más. Es de lo que el kernel deriva el `enum` con el que --describe
+// restringe `clase` en el sobre de fallo, de modo que el esquema y las
+// constantes no puedan decir cosas distintas (FR-017, FR-048). Devuelve una
+// lista nueva en cada llamada: nadie puede alterar el vocabulario desde fuera.
+func Clases() []Clase {
+	return []Clase{
+		ClaseArgumentos,
+		ClaseNoEncontrado,
+		ClaseFuenteNoDisponible,
+		ClaseLimiteOTos,
+		ClaseIdentidadHumana,
+		ClaseInesperado,
+	}
+}
+
 // DatosError es lo que ocupa data cuando ok es falso: dos claves y ninguna más
 // —ni traza, ni código numérico, ni error envuelto—, porque el detalle técnico
 // va al registro de eventos y no al sobre (FR-045, research.md D7).
+//
+// La etiqueta `jsonschema` de Mensaje es, como las del sobre, la descripción
+// formal del contrato escrita junto a la clave (contracts/sobre-de-salida.md
+// §6); la de Clase no hace falta, porque el kernel describe el tipo Clase
+// entero con el vocabulario de Clases.
 type DatosError struct {
 	// Clase es una de las seis, y corresponde al código de salida emitido.
 	Clase Clase `json:"clase"`
 	// Mensaje es el mensaje dirigido a la persona, el mismo que va a la salida
-	// de error.
-	Mensaje string `json:"mensaje"`
+	// de error. Nunca va vacío: un fallo sin mensaje no le dice nada a nadie.
+	Mensaje string `json:"mensaje" jsonschema:"minLength=1"`
 }

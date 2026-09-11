@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"reflect"
 	"strings"
 	"time"
@@ -23,21 +24,29 @@ const (
 )
 
 // errEsquemaImposible es el fallo de quien declaró el verbo, no el de quien lo
-// invoca: unos argumentos que no son un struct o un sobre que dejó de declarar
-// sus claves. No lleva ninguno de los cinco sentinelas, así que sale con el
-// código de lo que nadie previó y nunca con el de argumentos inválidos (FR-031).
+// invoca: unos argumentos que no son un struct, un sobre que dejó de declarar
+// sus claves o dos tipos distintos que se describirían con el mismo nombre. No
+// lleva ninguno de los cinco sentinelas, así que sale con el código de lo que
+// nadie previó y nunca con el de argumentos inválidos (FR-031).
 var errEsquemaImposible = errors.New("cli: el esquema del verbo no se pudo construir")
 
-// tipoDelSobre y tipoDeDuracion son los dos tipos que la generación necesita
-// nombrar. El primero, porque la condición de la salida se decide sobre dos de
-// sus claves; el segundo, porque su representación en la línea de órdenes no es
-// la de su tipo Go.
+// Los tipos que la generación necesita nombrar. El sobre, porque la condición
+// de la salida se decide sobre dos de sus claves; la duración y la clase de
+// error, porque su representación en el documento no es la de su tipo Go; las
+// globales, porque sus campos son la mitad de la entrada; y los datos de fallo,
+// porque son la rama `else` de la condición.
 var (
 	tipoDelSobre     = reflect.TypeOf(schema.Sobre{})
 	tipoDeDuracion   = reflect.TypeOf(time.Duration(0))
+	tipoDeClase      = reflect.TypeOf(schema.Clase(""))
 	tipoDeGlobales   = reflect.TypeOf(Globales{})
 	tipoDatosDeFallo = reflect.TypeOf(schema.DatosError{})
 )
+
+// paqueteDelSobre es el paquete cuyos tipos se nombran en el documento tal y
+// como el contrato los nombra —`DatosError`, sin cualificar—: son el
+// vocabulario del sobre, no el de un applet.
+var paqueteDelSobre = tipoDelSobre.PkgPath()
 
 // Verbo es lo que el kernel necesita saber de un verbo para describirlo: su
 // nombre, el del applet que lo ofrece, una línea de descripción y los dos tipos
@@ -93,16 +102,23 @@ func Describir(p Presentador, def Verbo) error {
 // ambas comparten, reunidas en la raíz porque es contra ella donde resuelven las
 // referencias `#/$defs/…`.
 func (d Verbo) esquema() (*jsonschema.Schema, error) {
-	definiciones := jsonschema.Definitions{}
+	g := nuevoGenerador()
 
-	entrada, err := esquemaDeEntrada(definiciones, d.Argumentos)
+	entrada, err := g.entrada(d.Argumentos)
 	if err != nil {
 		return nil, err
 	}
 
-	salida, err := esquemaDeSalida(definiciones, d.Salida)
+	salida, err := g.salida(d.Salida)
 	if err != nil {
 		return nil, err
+	}
+
+	// Se comprueba después de reflejar las dos partes y antes de emitir nada:
+	// un documento cuyas definiciones no se pueden nombrar sin ambigüedad no
+	// describe el verbo, y no se emite a medias (FR-047, FR-048).
+	if g.colision != nil {
+		return nil, g.colision
 	}
 
 	partes := jsonschema.NewProperties()
@@ -114,21 +130,49 @@ func (d Verbo) esquema() (*jsonschema.Schema, error) {
 		Title:       strings.TrimSpace(d.Applet + " " + d.Verbo),
 		Description: d.Ayuda,
 		Properties:  partes,
-		Definitions: definiciones,
+		Definitions: g.definiciones,
 	}, nil
 }
 
-// esquemaDeEntrada describe lo que se escribe en la línea de órdenes: los
-// argumentos del verbo y, detrás, las ocho banderas globales que el applet no
-// declara y recibe igualmente (FR-018, SC-010).
+// generador es el estado de la construcción de **un** documento: las
+// definiciones que las dos partes comparten y el nombre con el que cada tipo
+// aparece en ellas.
+//
+// Nombrar es lo que evita la colisión que una reflexión suelta dejaría pasar en
+// silencio: la biblioteca identifica cada definición por el nombre del tipo y,
+// cuando dos tipos distintos se llaman igual, el segundo referencia o pisa la
+// definición del primero sin decir nada. Aquí los tipos del sobre conservan el
+// nombre que el contrato les da y los de cualquier otro paquete van
+// cualificados con el nombre de su paquete —`ejemplo.mensaje`—, de modo que un
+// applet que declare su propio `DatosError` no pise el del kernel; y si aun así
+// dos tipos distintos acabaran con el mismo nombre, el documento no se
+// construye (errEsquemaImposible), nunca se emite uno que describa otra cosa.
+type generador struct {
+	// definiciones son los `$defs` del documento, comunes a las dos partes.
+	definiciones jsonschema.Definitions
+	// vistos asocia cada nombre de definición ya usado con el tipo que lo
+	// ocupa, para detectar que otro tipo lo reclama.
+	vistos map[string]reflect.Type
+	// colision es el primer choque de nombres detectado, o nulo.
+	colision error
+}
+
+func nuevoGenerador() *generador {
+	return &generador{
+		definiciones: jsonschema.Definitions{},
+		vistos:       map[string]reflect.Type{},
+	}
+}
+
+// entrada describe lo que se escribe en la línea de órdenes: los argumentos del
+// verbo y, detrás, las ocho banderas globales que el applet no declara y recibe
+// igualmente (FR-018, SC-010).
 //
 // Se recorren los campos en lugar de reflejar el struct entero porque las dos
 // mitades vienen de dos tipos distintos y el documento las presenta como una
 // sola: quien invoca no distingue una bandera del kernel de un argumento del
 // verbo.
-func esquemaDeEntrada(
-	definiciones jsonschema.Definitions, argumentos any,
-) (*jsonschema.Schema, error) {
+func (g *generador) entrada(argumentos any) (*jsonschema.Schema, error) {
 	campos, err := camposDeLosArgumentos(argumentos)
 	if err != nil {
 		return nil, err
@@ -142,7 +186,7 @@ func esquemaDeEntrada(
 
 	for _, campo := range append(campos, camposVisibles(tipoDeGlobales)...) {
 		nombre := nombreEnLaInvocacion(campo)
-		entrada.Properties.Set(nombre, reflejar(definiciones, campo.Type))
+		entrada.Properties.Set(nombre, g.reflejar(campo.Type))
 
 		if exigidoPorLaGramatica(campo) {
 			entrada.Required = append(entrada.Required, nombre)
@@ -152,13 +196,18 @@ func esquemaDeEntrada(
 	return entrada, nil
 }
 
-// esquemaDeSalida describe el sobre completo con `data` condicionado a `ok`: el
-// del applet cuando la operación fue bien y la forma común de error del kernel
+// salida describe el sobre completo con `data` condicionado a `ok`: el del
+// applet cuando la operación fue bien y la forma común de error del kernel
 // cuando no. Es lo que hace que una ejecución fallida valide contra el esquema
 // que ese mismo applet emite (FR-047, SC-015).
-func esquemaDeSalida(
-	definiciones jsonschema.Definitions, salidaDelApplet any,
-) (*jsonschema.Schema, error) {
+//
+// Las restricciones de cada clave —`fuente` y `url` no vacías, `url` con formato
+// de URI, `hash` con el patrón de la huella, `clase` dentro del vocabulario y
+// `mensaje` no vacío— no se escriben aquí: salen de las etiquetas de los tipos
+// del sobre y del vocabulario de clases del dominio, que es lo que hace cierto
+// que el esquema emitido sea el del contrato y no una copia (FR-017, FR-048,
+// contracts/sobre-de-salida.md §6).
+func (g *generador) salida(salidaDelApplet any) (*jsonschema.Schema, error) {
 	claveOk, err := claveDelSobre("Ok")
 	if err != nil {
 		return nil, err
@@ -169,10 +218,10 @@ func esquemaDeSalida(
 		return nil, err
 	}
 
-	sobre := reflejarExpandido(definiciones, tipoDelSobre)
+	sobre := g.reflejarExpandido(tipoDelSobre)
 	sobre.If = sobreCuyaClave(claveOk, &jsonschema.Schema{Const: true})
-	sobre.Then = sobreCuyaClave(claveDatos, datosDelApplet(definiciones, salidaDelApplet))
-	sobre.Else = sobreCuyaClave(claveDatos, reflejar(definiciones, tipoDatosDeFallo))
+	sobre.Then = sobreCuyaClave(claveDatos, g.datosDelApplet(salidaDelApplet))
+	sobre.Else = sobreCuyaClave(claveDatos, g.reflejar(tipoDatosDeFallo))
 
 	return sobre, nil
 }
@@ -190,12 +239,12 @@ func sobreCuyaClave(clave string, esquema *jsonschema.Schema) *jsonschema.Schema
 // datosDelApplet es la forma del `data` de un sobre correcto. Un verbo que no
 // declara su tipo de salida deja la clave sin restringir en lugar de recibir una
 // forma inventada.
-func datosDelApplet(definiciones jsonschema.Definitions, salida any) *jsonschema.Schema {
+func (g *generador) datosDelApplet(salida any) *jsonschema.Schema {
 	if salida == nil {
 		return jsonschema.TrueSchema
 	}
 
-	return reflejar(definiciones, reflect.TypeOf(salida))
+	return g.reflejar(reflect.TypeOf(salida))
 }
 
 // claveDelSobre lee de la etiqueta el nombre con el que un campo del sobre viaja
@@ -220,20 +269,18 @@ func claveDelSobre(nombre string) (string, error) {
 
 // reflejar convierte un tipo en su esquema y traslada al documento las
 // definiciones que la reflexión haya creado.
-func reflejar(definiciones jsonschema.Definitions, tipo reflect.Type) *jsonschema.Schema {
-	return trasladar(definiciones, reflector().ReflectFromType(tipo))
+func (g *generador) reflejar(tipo reflect.Type) *jsonschema.Schema {
+	return g.trasladar(g.reflector().ReflectFromType(tipo))
 }
 
 // reflejarExpandido es lo mismo con el tipo raíz escrito en su sitio en lugar de
 // referenciado, que es como el sobre tiene que aparecer: la parte de salida es el
 // sobre y no un apuntador a él.
-func reflejarExpandido(
-	definiciones jsonschema.Definitions, tipo reflect.Type,
-) *jsonschema.Schema {
-	generador := reflector()
+func (g *generador) reflejarExpandido(tipo reflect.Type) *jsonschema.Schema {
+	generador := g.reflector()
 	generador.ExpandedStruct = true
 
-	return trasladar(definiciones, generador.ReflectFromType(tipo))
+	return g.trasladar(generador.ReflectFromType(tipo))
 }
 
 // trasladar recoge en las definiciones del documento las que trae una reflexión
@@ -241,12 +288,12 @@ func reflejarExpandido(
 //
 // El `$schema` se quita porque va una sola vez, en la raíz; las definiciones
 // propias, porque todas las referencias son `#/$defs/…` y solo resuelven si están
-// en la raíz del documento que se compila.
-func trasladar(
-	definiciones jsonschema.Definitions, reflejado *jsonschema.Schema,
-) *jsonschema.Schema {
+// en la raíz del documento que se compila. Que un nombre repetido entre dos
+// reflexiones sea siempre el mismo tipo —y por tanto la misma definición— lo
+// garantiza nombre, que es quien vigila las colisiones.
+func (g *generador) trasladar(reflejado *jsonschema.Schema) *jsonschema.Schema {
 	for nombre, propia := range reflejado.Definitions {
-		definiciones[nombre] = propia
+		g.definiciones[nombre] = propia
 	}
 
 	reflejado.Definitions = nil
@@ -255,27 +302,92 @@ func trasladar(
 	return reflejado
 }
 
-// reflector es el generador con el que se refleja cada tipo.
+// reflector es la biblioteca configurada para este documento.
 //
 // Anonymous no es un detalle: sin él cada reflexión llevaría su propio `$id`, y
 // una referencia `#/$defs/…` escrita bajo ese identificador resolvería contra esa
 // base y no contra el documento emitido, de modo que el esquema no compilaría.
-func reflector() *jsonschema.Reflector {
+func (g *generador) reflector() *jsonschema.Reflector {
 	return &jsonschema.Reflector{
 		Anonymous: true,
-		Mapper:    representacionEnLaInvocacion,
+		Mapper:    representacionEnElDocumento,
+		Namer:     g.nombre,
 	}
 }
 
-// representacionEnLaInvocacion describe los tipos cuya forma en la línea de
-// órdenes no es la de su tipo Go. Solo hay uno: la duración de --timeout, que se
-// escribe «30s» y no el número de nanosegundos con que Go la representa.
-func representacionEnLaInvocacion(tipo reflect.Type) *jsonschema.Schema {
-	if tipo == tipoDeDuracion {
+// nombre decide cómo se llama un tipo en los `$defs` del documento y anota qué
+// tipo ocupa cada nombre. La biblioteca lo consulta para todo tipo con nombre,
+// pero solo los struct llegan a ser definiciones: los demás se describen en su
+// sitio, así que solo los struct entran en la vigilancia de colisiones.
+//
+// Los tipos del paquete del sobre se llaman como el contrato los llama; los de
+// cualquier otro paquete llevan delante el nombre de su paquete, que es lo que
+// separa el `DatosError` del kernel del `DatosError` que un applet pudiera
+// declarar. Un tipo sin nombre no se nombra: la biblioteca lo describe en su
+// sitio, como hace por omisión.
+func (g *generador) nombre(tipo reflect.Type) string {
+	if tipo.Name() == "" {
+		return ""
+	}
+
+	nombre := tipo.Name()
+	if tipo.PkgPath() != "" && tipo.PkgPath() != paqueteDelSobre {
+		nombre = path.Base(tipo.PkgPath()) + "." + nombre
+	}
+
+	if tipo.Kind() == reflect.Struct {
+		g.registrar(nombre, tipo)
+	}
+
+	return nombre
+}
+
+// registrar anota que el nombre lo ocupa ese tipo, y deja constancia del choque
+// si ya lo ocupaba otro distinto. Solo se guarda el primero: es el que nombra
+// los dos tipos en conflicto, que es lo que quien escribió el applet necesita
+// para deshacerlo.
+func (g *generador) registrar(nombre string, tipo reflect.Type) {
+	ocupante, ocupado := g.vistos[nombre]
+	if !ocupado {
+		g.vistos[nombre] = tipo
+
+		return
+	}
+
+	if ocupante != tipo && g.colision == nil {
+		g.colision = fmt.Errorf("%w: los tipos %s y %s se describirían los dos como %q en $defs",
+			errEsquemaImposible, ocupante, tipo, nombre)
+	}
+}
+
+// representacionEnElDocumento describe los tipos cuya forma en el documento no
+// es la de su tipo Go. Son dos: la duración de --timeout, que se escribe «30s»
+// y no el número de nanosegundos con que Go la representa, y la clase de error,
+// que es una cadena dentro de un vocabulario cerrado y no cualquier cadena
+// (FR-017, contracts/sobre-de-salida.md §6).
+func representacionEnElDocumento(tipo reflect.Type) *jsonschema.Schema {
+	switch tipo {
+	case tipoDeDuracion:
 		return &jsonschema.Schema{Type: "string"}
+	case tipoDeClase:
+		return &jsonschema.Schema{Type: "string", Enum: vocabularioDeClases()}
 	}
 
 	return nil
+}
+
+// vocabularioDeClases es el `enum` de `clase`, derivado del vocabulario del
+// dominio y no de una lista escrita aquí: si el dominio ganara una clase, el
+// esquema la admitiría sin que nadie edite este fichero (FR-048).
+func vocabularioDeClases() []any {
+	clases := schema.Clases()
+	valores := make([]any, 0, len(clases))
+
+	for _, clase := range clases {
+		valores = append(valores, string(clase))
+	}
+
+	return valores
 }
 
 // camposDeLosArgumentos son los campos del struct de argumentos del verbo. Un

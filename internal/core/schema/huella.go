@@ -11,6 +11,13 @@ import (
 // que debe comprobar el prefijo antes de interpretar el resto (FR-012).
 const PrefijoHuella = "sha256:"
 
+// PatronHuella es la expresión regular que cumple toda huella que produce
+// Huella: el prefijo del algoritmo y los 64 dígitos hexadecimales en minúscula
+// del SHA-256 (contracts/sobre-de-salida.md §2). Es el mismo patrón que la
+// etiqueta de Sobre.Hash declara para la descripción formal del sobre; se
+// exporta para que quien valide una huella fuera del dominio no lo reescriba.
+const PatronHuella = "^sha256:[0-9a-f]{64}$"
+
 // Huella devuelve la huella del contenido de un sobre: el prefijo del algoritmo
 // seguido de los 64 dígitos hexadecimales en minúscula del SHA-256 de la forma
 // canónica de data. El mismo contenido produce siempre la misma huella, con

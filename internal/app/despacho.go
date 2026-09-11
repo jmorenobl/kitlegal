@@ -60,7 +60,8 @@ type Despacho struct {
 	// Args son los argumentos que quedan tras resolver el applet, con el verbo
 	// por omisión ya insertado si tocaba: es lo que recibe la gramática. Cuando
 	// lo que se pidió es la ayuda llegan tal cual, sin nada insertado, porque
-	// pedir la ayuda de un applet no resuelve ningún verbo.
+	// pedir la ayuda de un applet no resuelve ningún verbo. En un verbo
+	// reservado van vacíos: no admite ninguno.
 	Args []string
 }
 
@@ -93,7 +94,7 @@ func Despachar(registro *Registro, argv []string, previo cli.Preliminar) (Despac
 	// ellos y por lo que el registro los rechaza al construirse (FR-003, D17).
 	if len(resto) > 0 {
 		if slices.Contains(verbosReservados, resto[0]) {
-			return Despacho{Destino: DestinoReservado, Reservado: resto[0], Args: resto[1:]}, nil
+			return despachoReservado(resto)
 		}
 
 		if applet, registrado := registro.Buscar(resto[0]); registrado {
@@ -112,6 +113,21 @@ func Despachar(registro *Registro, argv []string, previo cli.Preliminar) (Despac
 	}
 
 	return Despacho{}, appletNoResuelto(registro, resto)
+}
+
+// despachoReservado atiende un verbo del propio binario, que no admite
+// argumentos ni banderas: «version» no tiene sobre ni banderas (D16) y lo que
+// sobra tras él no es un argumento que descartar sino una invocación que hay
+// que corregir, código 2, con el mensaje nombrando lo que sobra (FR-027; es el
+// mismo código con el que H0 respondía a «kitlegal version extra»,
+// specs/001-h0-esqueleto-del-repo/contracts/cli-version.md).
+func despachoReservado(resto []string) (Despacho, error) {
+	if len(resto) > 1 {
+		return Despacho{}, fmt.Errorf("%w: el verbo %q no admite argumentos ni banderas, y recibió %q",
+			cli.ErrArgumentos, resto[0], resto[1:])
+	}
+
+	return Despacho{Destino: DestinoReservado, Reservado: resto[0]}, nil
 }
 
 // despachoDeApplet normaliza el verbo con el applet ya resuelto y **antes** de

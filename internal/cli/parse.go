@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/alecthomas/kong"
 )
@@ -74,7 +75,11 @@ type gramatica struct {
 // el verbo desconocido llegan como un único tipo de error y la distinción entre
 // ellos la lleva el mensaje, no la clase (FR-027, gates/supuestos-kong.md, S5).
 // Lo que no se puede construir, en cambio, no es un fallo de quien invoca: una
-// gramática inválida es un defecto del applet y sale como error inesperado.
+// gramática inválida es un defecto del applet y sale como error inesperado. Y
+// tampoco lo es que la salida estándar falle mientras Kong escribe la ayuda: un
+// descriptor roto es el fallo inesperado del contrato, código 1, se rompa
+// escribiendo un sobre o escribiendo la ayuda (FR-031,
+// contracts/banderas-y-exit-codes.md §4).
 func Analizar(p Presentador, nombre string, verbos any, args []string) (Analisis, error) {
 	gram := gramatica{Plugins: kong.Plugins{verbos}}
 
@@ -87,9 +92,16 @@ func Analizar(p Presentador, nombre string, verbos any, args []string) (Analisis
 	// (gates/supuestos-kong.md, detalle de S3).
 	ayudaEmitida := false
 
+	// Lo único que Kong escribe durante el análisis es la ayuda, y lo hace por
+	// este escritor: si la escritura falla, Kong devuelve ese fallo como un
+	// error de análisis más, sin llamar a la terminación (kong@v1.16.1,
+	// help.go, BeforeReset). Vigilar el escritor es lo que permite distinguir
+	// «la invocación está mal» de «el descriptor está roto».
+	salida := &escrituraVigilada{Writer: p.Salida()}
+
 	analizador, err := kong.New(&gram,
 		kong.Name(nombre),
-		kong.Writers(p.Salida(), p.Error()),
+		kong.Writers(salida, p.Error()),
 		kong.Exit(func(int) { ayudaEmitida = true }),
 	)
 	if err != nil {
@@ -97,6 +109,11 @@ func Analizar(p Presentador, nombre string, verbos any, args []string) (Analisis
 	}
 
 	contexto, errAnalisis := analizador.Parse(args)
+
+	if salida.fallo != nil {
+		return Analisis{}, fmt.Errorf("la ayuda no se pudo escribir en la salida estándar: %w",
+			salida.fallo)
+	}
 
 	if ayudaEmitida {
 		return Analisis{Decision: DecisionAyuda, Globales: gram.Globales}, nil
@@ -115,6 +132,25 @@ func Analizar(p Presentador, nombre string, verbos any, args []string) (Analisis
 		Globales: gram.Globales,
 		Verbo:    verboSeleccionado(contexto),
 	}, nil
+}
+
+// escrituraVigilada es el escritor de la salida estándar que se entrega a Kong:
+// escribe en el de verdad y retiene el primer fallo, porque Kong devuelve ese
+// fallo envuelto en el mismo tipo de error con el que devuelve una invocación
+// mal formada, y solo quien vio fallar la escritura puede decir que no fue la
+// invocación lo que falló.
+type escrituraVigilada struct {
+	io.Writer
+	fallo error
+}
+
+func (e *escrituraVigilada) Write(p []byte) (int, error) {
+	n, err := e.Writer.Write(p)
+	if err != nil && e.fallo == nil {
+		e.fallo = err
+	}
+
+	return n, err
 }
 
 // validarGlobales comprueba lo que la gramática no puede expresar: que el plazo

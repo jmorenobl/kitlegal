@@ -169,16 +169,19 @@ func TestEscrituraFallida(t *testing.T) {
 			assert.Contains(t, err.Error(), "la salida estándar",
 				"el mensaje nombra el descriptor que falló")
 
-			intentos := roto.escrituras
-			require.Positive(t, intentos, "el presentador llegó a intentar la escritura")
+			// El presentador no reintenta por su cuenta: la escritura que falló es
+			// la única que se intentó por ese descriptor. Para el JSON y el texto
+			// es una sola escritura por construcción; para la tabla, el tabwriter
+			// retiene lo escrito y el fallo aparece en el vaciado final, que se
+			// interrumpe en la primera escritura que falla. Que no se emita un
+			// segundo sobre es decisión del kernel, y la comprueba el test del
+			// montador en internal/cli, no este.
+			assert.Equal(t, 1, roto.escrituras,
+				"el presentador intenta la escritura una sola vez y no la reintenta")
 
-			// Así reacciona el kernel a una escritura fallida: el mensaje para la
-			// persona por la salida de error, sin volver a tocar el descriptor
-			// roto. El presentador no reintenta por su cuenta ni emite un segundo
-			// sobre por el descriptor que acaba de romperse.
+			// La salida de error sigue sana, que es por donde el kernel contará el
+			// fallo: los dos descriptores son independientes.
 			require.NoError(t, presentador.Aviso("la salida estándar falló"))
-			assert.Equal(t, intentos, roto.escrituras,
-				"no se intenta un segundo sobre por el descriptor roto")
 			assert.Contains(t, errores.String(), "la salida estándar falló")
 		})
 	}

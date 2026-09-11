@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -517,6 +519,87 @@ func TestAnalizarSinVerbos(t *testing.T) {
 	assert.Equal(t, DecisionEjecutar, analisis.Decision)
 	assert.Empty(t, analisis.Verbo)
 	assert.Equal(t, Globales{JSON: true, Timeout: timeoutPorOmision}, analisis.Globales)
+}
+
+// escritorQueFalla es el escritor crudo de una tubería cerrada: cuenta los
+// intentos y falla siempre.
+type escritorQueFalla struct {
+	intentos int
+}
+
+func (e *escritorQueFalla) Write([]byte) (int, error) {
+	e.intentos++
+
+	return 0, errEscrituraRota
+}
+
+// presentadorConSalidaRota es el doble cuyo escritor crudo de la salida estándar
+// —el que se le entrega a Kong— está roto, mientras que las tres escrituras del
+// presentador siguen funcionando: es la situación exacta en la que Kong, y no
+// el presentador, es quien tropieza con el descriptor.
+type presentadorConSalidaRota struct {
+	presentadorDoble
+	rota escritorQueFalla
+}
+
+func (p *presentadorConSalidaRota) Salida() io.Writer { return &p.rota }
+
+// TestAnalizarSalidaEstandarRota comprueba que la salida estándar rota mientras
+// Kong escribe la ayuda es el fallo inesperado del contrato —código 1, como
+// cualquier otra escritura fallida— y no un error de argumentos: Kong devuelve
+// el fallo de escritura envuelto en el mismo tipo con el que devuelve una
+// invocación mal formada, y sin vigilar el escritor las dos cosas saldrían con
+// el 2 (FR-031, contracts/banderas-y-exit-codes.md §4).
+func TestAnalizarSalidaEstandarRota(t *testing.T) {
+	t.Parallel()
+
+	pidenAyuda := [][]string{
+		{"--help"},
+		{"-h"},
+		{"repetir", "--help"},
+		{"repetir", "hola", "--help"},
+		{"repetir", "hola", "-h"},
+	}
+
+	for _, args := range pidenAyuda {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			t.Parallel()
+
+			doble := &presentadorConSalidaRota{}
+			analisis, err := Analizar(doble, nombreDePrueba, &verbosDeEjemplo{}, args)
+
+			require.ErrorIs(t, err, errEscrituraRota, "el fallo original de la escritura se conserva")
+			require.NotErrorIs(t, err, ErrArgumentos,
+				"un descriptor roto no convierte la invocación en inválida")
+			assert.Equal(t, schema.ClaseInesperado, Clasificar(err))
+			assert.Equal(t, codigoInesperado, CodigoSalida(err))
+			assert.Contains(t, err.Error(), "la salida estándar", "el mensaje nombra el descriptor")
+			assert.Equal(t, Analisis{}, analisis)
+			assert.Positive(t, doble.rota.intentos, "Kong llegó a intentar escribir la ayuda")
+		})
+	}
+
+	t.Run("sin ayuda que escribir, el descriptor roto no se toca", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConSalidaRota{}
+		analisis, err := Analizar(doble, nombreDePrueba, &verbosDeEjemplo{}, []string{"repetir", "hola"})
+
+		require.NoError(t, err, "el análisis no escribe nada, así que no hay escritura que falle")
+		assert.Equal(t, DecisionEjecutar, analisis.Decision)
+		assert.Zero(t, doble.rota.intentos)
+	})
+
+	t.Run("una invocación mal formada sigue siendo un error de argumentos", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConSalidaRota{}
+		_, err := Analizar(doble, nombreDePrueba, &verbosDeEjemplo{},
+			[]string{"repetir", "hola", "--bandera-que-nadie-ha-declarado"})
+
+		require.ErrorIs(t, err, ErrArgumentos)
+		assert.Zero(t, doble.rota.intentos, "Kong no escribe nada al fallar")
+	})
 }
 
 // verbosQueRedefinenUnaGlobal es un applet mal escrito: declara una bandera que

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -177,14 +178,50 @@ func TestSobre(t *testing.T) {
 	t.Run("el resultado lleva procedencia y datos, y nada más", func(t *testing.T) {
 		t.Parallel()
 
-		resultado := Resultado{
-			Procedencia: Procedencia{Fuente: "kitlegal.echo", URL: "kitlegal:applet/echo"},
-			Datos:       map[string]any{"mensaje": "hola"},
+		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella,
+		// la fecha de consulta ni un código de salida: todo eso lo pone el
+		// kernel, y la forma de garantizarlo es que el tipo no tenga más campos
+		// (FR-015, FR-044, contracts/registro-y-describe.md §1).
+		assert.Equal(t, []string{"Procedencia", "Datos"}, camposDe(reflect.TypeFor[Resultado]()))
+		assert.Equal(t, []string{"Fuente", "URL"}, camposDe(reflect.TypeFor[Procedencia]()))
+	})
+
+	t.Run("las restricciones del contrato viajan en las etiquetas del sobre", func(t *testing.T) {
+		t.Parallel()
+
+		// De estas etiquetas deriva el kernel el esquema de --describe (FR-017,
+		// FR-048). Que el esquema resultante rechace de verdad un sobre inválido
+		// lo comprueba internal/cli; aquí se fija que la declaración está donde
+		// el contrato dice que está y que dice lo que el contrato dice.
+		etiquetas := map[string]string{
+			"Fuente": "minLength=1",
+			"URL":    "minLength=1,format=uri",
+			"Hash":   "pattern=" + PatronHuella,
 		}
 
-		require.NoError(t, resultado.Procedencia.Validar())
-		assert.Equal(t, "kitlegal.echo", resultado.Procedencia.Fuente)
-		assert.Equal(t, "kitlegal:applet/echo", resultado.Procedencia.URL)
-		assert.Equal(t, map[string]any{"mensaje": "hola"}, resultado.Datos)
+		for campo, esperada := range etiquetas {
+			declarado, existe := reflect.TypeFor[Sobre]().FieldByName(campo)
+			require.True(t, existe, "el sobre declara el campo %s", campo)
+			assert.Equal(t, esperada, declarado.Tag.Get("jsonschema"), campo)
+		}
+
+		mensaje, existe := reflect.TypeFor[DatosError]().FieldByName("Mensaje")
+		require.True(t, existe)
+		assert.Equal(t, "minLength=1", mensaje.Tag.Get("jsonschema"))
+
+		huella, err := Huella(map[string]any{"mensaje": "hola"})
+		require.NoError(t, err)
+		assert.Regexp(t, PatronHuella, huella,
+			"el patrón que declara la etiqueta es el que cumplen las huellas que produce el dominio")
 	})
+}
+
+// camposDe enumera los campos de un struct en el orden en que se declaran.
+func camposDe(tipo reflect.Type) []string {
+	nombres := make([]string, 0, tipo.NumField())
+	for i := range tipo.NumField() {
+		nombres = append(nombres, tipo.Field(i).Name)
+	}
+
+	return nombres
 }

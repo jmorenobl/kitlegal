@@ -50,6 +50,20 @@ func casosReconocidos() []casoDePreEscaneo {
 			esperado: Preliminar{Ayuda: true},
 		},
 		{
+			// La única forma corta: la ayuda integrada de Kong la anuncia en toda
+			// gramática («-h, --help»), así que pide la ayuda en las mismas
+			// posiciones que la forma larga, también donde todavía no hay
+			// gramática que la reconozca.
+			nombre:   "-h, la forma corta de la ayuda",
+			args:     []string{"-h"},
+			esperado: Preliminar{Ayuda: true},
+		},
+		{
+			nombre:   "-h entre los argumentos de una invocación real",
+			args:     []string{"contar", "-h"},
+			esperado: Preliminar{Ayuda: true},
+		},
+		{
 			nombre:   "las tres a la vez",
 			args:     []string{"--json", "--verbose", "--help"},
 			esperado: Preliminar{JSON: true, Verbose: true, Ayuda: true},
@@ -171,6 +185,11 @@ func casosIgnorados() []casoDePreEscaneo {
 	return []casoDePreEscaneo{
 		{nombre: "la forma corta no se reconoce", args: []string{"-j"}},
 		{nombre: "la forma corta de --verbose tampoco", args: []string{"-v"}},
+		// Las tres son errores de argumentos para Kong, que solo acepta -h suelto:
+		// no reconocerlas es coincidir con él, no divergir.
+		{nombre: "-h con valor pegado no se reconoce", args: []string{"-h=false"}},
+		{nombre: "-h agrupada con otra forma corta tampoco", args: []string{"-hv"}},
+		{nombre: "-H en mayúsculas tampoco", args: []string{"-H"}},
 		{nombre: "un solo guion delante del nombre largo", args: []string{"-json"}},
 		{nombre: "la abreviatura del nombre largo", args: []string{"--jso"}},
 		{nombre: "un nombre más largo que empieza igual", args: []string{"--json-lines"}},
@@ -220,6 +239,11 @@ func casosTrasElTerminador() []casoDePreEscaneo {
 		{
 			nombre:   "tras el terminador, tampoco con valor explícito",
 			args:     []string{"--", "--json=true"},
+			esperado: Preliminar{},
+		},
+		{
+			nombre:   "tras el terminador, -h es un argumento",
+			args:     []string{"--", "-h"},
 			esperado: Preliminar{},
 		},
 		{
@@ -392,6 +416,9 @@ func casosDeCoincidencia() []casoDePreEscaneo {
 		{nombre: "tras el terminador, con una de las tres antes", args: []string{"--verbose", "repetir", "--", "--help"}},
 		{nombre: "la ayuda con el verbo completo", args: []string{"repetir", "hola", "--help"}},
 		{nombre: "la ayuda antes del verbo", args: []string{"--help", "repetir", "hola"}},
+		{nombre: "la forma corta de la ayuda con el verbo completo", args: []string{"repetir", "hola", "-h"}},
+		{nombre: "la forma corta de la ayuda sola", args: []string{"-h"}},
+		{nombre: "la forma corta de la ayuda antes del verbo", args: []string{"-h", "repetir", "hola"}},
 		{nombre: "la ayuda con --json, que no la altera", args: []string{"--json", "--help", "repetir", "hola"}},
 		{nombre: "la ayuda con --verbose", args: []string{"repetir", "hola", "--help", "--verbose"}},
 		{nombre: "la autodescripción no es la ayuda", args: []string{"repetir", "hola", "--describe", "--json"}},
@@ -463,23 +490,22 @@ func TestPreescaneo(t *testing.T) {
 	})
 }
 
-// TestPreescaneoFormasNoSoportadas fija las dos formas de pedir la ayuda en las
+// TestPreescaneoFormasNoSoportadas fija la única forma de pedir la ayuda en la
 // que el pre-escaneo y el análisis **no** coinciden, para que la divergencia sea
-// un hecho comprobado y no un descuido: la forma corta -h, que el pre-escaneo no
-// reconoce por diseño (D25, regla 1), y el nombre con un valor falso pegado, que
-// Kong atiende igual porque su ayuda es un gancho anterior a la lectura del
-// valor.
+// un hecho comprobado y no un descuido: el nombre largo con un valor falso
+// pegado, que Kong atiende igual porque su ayuda es un gancho anterior a la
+// lectura del valor. La forma corta -h ya no está aquí: el pre-escaneo la
+// reconoce, y TestPreescaneo comprueba que coincide con el análisis.
 //
-// Ninguna de las dos rompe nada, y el motivo está en cómo se decide la
-// prelación: la decisión de mostrar la ayuda no sale del pre-escaneo sino de que
-// Kong la haya escrito, así que las dos formas terminan en la ayuda y en el
-// código 0 como cualquier otra. Lo que el pre-escaneo se pierde es la supresión
-// del verbo por omisión (D26), y eso queda declarado en
-// specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md.
+// No rompe nada, y el motivo está en cómo se decide la prelación: la decisión
+// de mostrar la ayuda no sale del pre-escaneo sino de que Kong la haya escrito,
+// así que esa forma termina en la ayuda y en el código 0 como cualquier otra. Lo
+// que el pre-escaneo se pierde es la supresión del verbo por omisión (D26), y
+// eso queda declarado en specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md.
 func TestPreescaneoFormasNoSoportadas(t *testing.T) {
 	t.Parallel()
 
-	noSoportadas := []string{"-h", "--help=false", "--help=0", "--help=no"}
+	noSoportadas := []string{"--help=false", "--help=0", "--help=no"}
 
 	for _, forma := range noSoportadas {
 		t.Run(forma, func(t *testing.T) {

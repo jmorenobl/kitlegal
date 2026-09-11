@@ -16,20 +16,30 @@ import "time"
 // lleva omitempty, de modo que una clave con el valor cero se sigue emitiendo
 // y ningún consumidor tiene que contar con que falte
 // (contracts/sobre-de-salida.md §1, FR-010).
+//
+// Las etiquetas `jsonschema` son la descripción formal del contrato escrita
+// junto a cada clave (contracts/sobre-de-salida.md §6): el kernel deriva de
+// ellas el esquema que emite --describe, así que lo que ese esquema exige de
+// `fuente`, `url` y `hash` se declara aquí, una sola vez, y no en una copia
+// mantenida a mano (FR-017, FR-048). Son texto: el dominio no importa la
+// biblioteca que las lee. La huella de la fecha —RFC 3339— no necesita
+// etiqueta: el tipo time.Time ya se describe como `format: date-time`.
 type Sobre struct {
 	// Ok es verdadero si y solo si el código de salida del proceso es 0.
 	Ok bool `json:"ok"`
 	// Fuente identifica la procedencia comprobable del contenido y nunca va
 	// vacía.
-	Fuente string `json:"fuente"`
+	Fuente string `json:"fuente" jsonschema:"minLength=1"`
 	// URL es el URI absoluto de esa procedencia y nunca va vacía.
-	URL string `json:"url"`
+	URL string `json:"url" jsonschema:"minLength=1,format=uri"`
 	// FechaConsulta es el instante de la consulta, serializado en RFC 3339 con
 	// desplazamiento horario explícito.
 	FechaConsulta time.Time `json:"fecha_consulta"`
 	// Hash es la huella del contenido de Data en su forma canónica, precedida
-	// del algoritmo que la produjo.
-	Hash string `json:"hash"`
+	// del algoritmo que la produjo. El patrón de la etiqueta es PatronHuella,
+	// escrito aquí como literal porque una etiqueta no puede nombrar una
+	// constante; que los dos digan lo mismo lo comprueba TestSobre.
+	Hash string `json:"hash" jsonschema:"pattern=^sha256:[0-9a-f]{64}$"`
 	// Data es el contenido del applet cuando Ok, y DatosError cuando no.
 	Data any `json:"data"`
 }

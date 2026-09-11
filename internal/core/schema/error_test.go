@@ -52,6 +52,26 @@ func TestClase(t *testing.T) {
 		assert.Len(t, vistas, len(casos))
 	})
 
+	t.Run("el vocabulario enumera las seis del contrato, en su orden, y ninguna más", func(t *testing.T) {
+		t.Parallel()
+
+		// La lista esperada sale de la tabla de arriba, que escribe los valores
+		// del contrato a mano: si alguien añadiera una séptima constante y se
+		// olvidara de Clases —o al revés—, el esquema de --describe y el sobre
+		// dejarían de hablar del mismo vocabulario, y esto lo señalaría.
+		esperadas := make([]Clase, 0, len(casos))
+		for _, caso := range casos {
+			esperadas = append(esperadas, Clase(caso.valor))
+		}
+
+		assert.Equal(t, esperadas, Clases())
+
+		primera, segunda := Clases(), Clases()
+		primera[0] = "alterada"
+		assert.NotEqual(t, primera[0], segunda[0],
+			"cada llamada devuelve una lista propia: el vocabulario no se altera desde fuera")
+	})
+
 	t.Run("los datos de error llevan exactamente clase y mensaje", func(t *testing.T) {
 		t.Parallel()
 

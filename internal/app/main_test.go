@@ -2,13 +2,254 @@ package app
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
+
+// timeoutDelContrato es el plazo por omisión que promete
+// contracts/banderas-y-exit-codes.md §1, escrito aquí y no leído del kernel:
+// si el kernel lo cambiara, el contrato seguiría diciendo esto y el test lo
+// notaría.
+const timeoutDelContrato = 30 * time.Second
+
+// appletDeContexto es el applet que **anota** lo que el kernel le entrega en
+// cada ejecución, para poder comprobar desde fuera del applet dos cosas que
+// ninguna otra tabla puede ver: si el applet llegó a ejecutarse y con qué
+// contexto. Declara lo mismo que cualquier applet y nada más (SC-010).
+type appletDeContexto struct {
+	ejecuciones *[]schema.Contexto
+}
+
+func (a appletDeContexto) Nombre() string { return "contexto" }
+
+//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+func (a appletDeContexto) Descripcion() string { return "applet que anota su contexto de ejecución" }
+
+func (a appletDeContexto) Verbos() []Verbo {
+	return []Verbo{{
+		Nombre: "anotar",
+		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+		Descripcion: "anota el contexto con el que se ejecuta",
+		Argumentos:  func() Argumentos { return &argumentosDeContexto{ejecuciones: a.ejecuciones} },
+		Salida:      map[string]any{},
+		PorOmision:  true,
+	}}
+}
+
+// argumentosDeContexto son los argumentos del verbo: un mensaje opcional, y el
+// cuaderno en un campo no exportado que la gramática no ve.
+type argumentosDeContexto struct {
+	Mensaje string `arg:"" optional:"" help:"Mensaje que se devuelve."`
+
+	ejecuciones *[]schema.Contexto
+}
+
+func (a *argumentosDeContexto) Ejecutar(
+	_ context.Context, ec schema.Contexto, _ *slog.Logger,
+) (schema.Resultado, error) {
+	*a.ejecuciones = append(*a.ejecuciones, ec)
+
+	return schema.Resultado{
+		Procedencia: schema.Procedencia{Fuente: "kitlegal.contexto", URL: "kitlegal:applet/contexto"},
+		Datos:       map[string]any{"mensaje": a.Mensaje},
+	}, nil
+}
+
+var (
+	_ Applet     = appletDeContexto{}
+	_ Argumentos = (*argumentosDeContexto)(nil)
+)
+
+// registroDeContexto construye el registro con el applet que anota, y devuelve
+// además el cuaderno en el que anota.
+func registroDeContexto(t *testing.T) (*Registro, *[]schema.Contexto) {
+	t.Helper()
+
+	ejecuciones := &[]schema.Contexto{}
+
+	var registro Registro
+
+	require.NoError(t, registro.Registrar(appletDeContexto{ejecuciones: ejecuciones}))
+
+	return &registro, ejecuciones
+}
+
+// TestContextoDeEjecucion comprueba, desde el applet, lo que el kernel promete
+// entregarle y cuándo: que las seis opciones globales llegan tal cual en el
+// contexto de ejecución —también --offline, --no-graph y --asunto, que en H1 no
+// tienen objeto pero sí tienen que llegar (FR-021, FR-023, FR-024)—, que
+// --dry-run **no corta antes del applet** sino que viaja en el contexto
+// (FR-022, US4.7) y que --describe y la ayuda no lo ejecutan (FR-049, US5.3).
+//
+// Es la comprobación que ninguna otra tabla hace: las demás miran los
+// descriptores y el código, y esas dos cosas no cambiarían si el kernel cortara
+// en --dry-run o entregara un contexto vacío.
+func TestContextoDeEjecucion(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre      string
+		argv        []string
+		ejecuciones int
+		contexto    schema.Contexto
+		codigo      int
+	}{
+		{
+			nombre:      "sin banderas, el contexto lleva los valores por omisión",
+			argv:        []string{"kitlegal", "contexto", "hola"},
+			ejecuciones: 1,
+			contexto:    schema.Contexto{Timeout: timeoutDelContrato},
+			codigo:      0,
+		},
+		{
+			nombre: "las seis opciones globales llegan tal cual al applet",
+			argv: []string{
+				"kitlegal", "contexto", "hola",
+				"--json", "--timeout", "5s", "--offline", "--dry-run", "--no-graph", "--asunto", "demo",
+			},
+			ejecuciones: 1,
+			contexto: schema.Contexto{
+				JSON:     true,
+				Timeout:  5 * time.Second,
+				Offline:  true,
+				DryRun:   true,
+				SinGrafo: true,
+				Asunto:   "demo",
+			},
+			codigo: 0,
+		},
+		{
+			nombre:      "--dry-run no corta antes del applet: la bandera viaja en el contexto",
+			argv:        []string{"kitlegal", "contexto", "hola", "--dry-run"},
+			ejecuciones: 1,
+			contexto:    schema.Contexto{Timeout: timeoutDelContrato, DryRun: true},
+			codigo:      0,
+		},
+		{
+			nombre:      "--verbose no viaja al applet: solo fija el nivel del registro",
+			argv:        []string{"kitlegal", "contexto", "hola", "--verbose"},
+			ejecuciones: 1,
+			contexto:    schema.Contexto{Timeout: timeoutDelContrato},
+			codigo:      0,
+		},
+		{
+			nombre:      "--describe no ejecuta el applet: describirse y actuar son excluyentes",
+			argv:        []string{"kitlegal", "contexto", "hola", "--describe"},
+			ejecuciones: 0,
+			codigo:      0,
+		},
+		{
+			nombre:      "--describe con --dry-run tampoco lo ejecuta",
+			argv:        []string{"kitlegal", "contexto", "hola", "--describe", "--dry-run"},
+			ejecuciones: 0,
+			codigo:      0,
+		},
+		{
+			nombre:      "la ayuda del applet no lo ejecuta",
+			argv:        []string{"kitlegal", "contexto", "--help"},
+			ejecuciones: 0,
+			codigo:      0,
+		},
+		{
+			nombre:      "la ayuda del verbo no lo ejecuta",
+			argv:        []string{"kitlegal", "contexto", "anotar", "--help"},
+			ejecuciones: 0,
+			codigo:      0,
+		},
+		{
+			nombre:      "una invocación mal formada no llega al applet",
+			argv:        []string{"kitlegal", "contexto", "hola", "--timeout", "abc"},
+			ejecuciones: 0,
+			codigo:      2,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			registro, ejecuciones := registroDeContexto(t)
+			res := invocar(t, registro, caso.argv...)
+
+			assert.Equal(t, caso.codigo, res.codigo, res.errores)
+			require.Len(t, *ejecuciones, caso.ejecuciones,
+				"el applet se ejecuta exactamente cuando la invocación lo pide")
+
+			if caso.ejecuciones > 0 {
+				assert.Equal(t, caso.contexto, (*ejecuciones)[0],
+					"el contexto de ejecución es el que las banderas describen, y nada más")
+			}
+		})
+	}
+}
+
+// errTuberiaCerrada es el fallo del descriptor que ya no admite nada.
+var errTuberiaCerrada = errors.New("la tubería está cerrada")
+
+// escritorRoto es el io.Writer que siempre falla.
+type escritorRoto struct{}
+
+func (escritorRoto) Write([]byte) (int, error) { return 0, errTuberiaCerrada }
+
+// TestSalidaEstandarRota comprueba extremo a extremo que la salida estándar rota
+// termina siempre con el código del fallo inesperado, sea lo que sea lo que se
+// estaba escribiendo: el sobre, la tabla, el esquema, «version», la ayuda del
+// binario, la del applet o la del verbo —que escribe Kong y que sin vigilar el
+// escritor saldría con el código de argumentos inválidos— (FR-031,
+// contracts/banderas-y-exit-codes.md §4).
+//
+// No es paralelo porque fija KITLEGAL_LOG, que es estado del proceso entero.
+func TestSalidaEstandarRota(t *testing.T) {
+	t.Setenv(cli.VariableNivel, "")
+
+	escriben := [][]string{
+		{"kitlegal", "version"},
+		{"kitlegal", "--help"},
+		{"kitlegal", "prueba", "--help"},
+		{"kitlegal", "prueba", "probar", "--help"},
+		{"kitlegal", "prueba", "probar", "-h"},
+		{"kitlegal", "prueba", "hola"},
+		{"kitlegal", "prueba", "hola", "--json"},
+		{"kitlegal", "prueba", "hola", "--describe"},
+	}
+
+	for _, argv := range escriben {
+		t.Run(strings.Join(argv[1:], " "), func(t *testing.T) {
+			t.Setenv(cli.VariableNivel, "")
+
+			var errores strings.Builder
+
+			codigo := Main(argv, registroDeCodigos(t, resultadoCorrecto), escritorRoto{}, &errores,
+				versionDePrueba, commitDePrueba, fechaDePrueba)
+
+			assert.Equal(t, 1, codigo, "una escritura fallida es el fallo inesperado, nunca un error de argumentos")
+			assert.Contains(t, errores.String(), errTuberiaCerrada.Error(),
+				"el mensaje para la persona sale por la salida de error, que sigue sana")
+		})
+	}
+
+	t.Run("--dry-run no escribe en la salida estándar y no la echa en falta", func(t *testing.T) {
+		t.Setenv(cli.VariableNivel, "")
+
+		var errores strings.Builder
+
+		codigo := Main([]string{"kitlegal", "prueba", "hola", "--dry-run", "--json"},
+			registroDeCodigos(t, resultadoCorrecto), escritorRoto{}, &errores,
+			versionDePrueba, commitDePrueba, fechaDePrueba)
+
+		assert.Equal(t, 0, codigo)
+		assert.Contains(t, errores.String(), "--dry-run")
+	})
+}
 
 // TestDryRun comprueba las tres reglas de FR-022 sobre la misma invocación: la
 // salida estándar queda vacía —también con --json—, la descripción del applet,
