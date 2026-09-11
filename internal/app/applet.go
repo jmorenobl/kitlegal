@@ -24,8 +24,6 @@ type Applet interface {
 	// primer argumento o por el nombre de un enlace simbólico (FR-002, FR-003).
 	Nombre() string
 	// Descripcion es la línea que aparece en la ayuda del binario.
-	//
-	//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 	Descripcion() string
 	// Verbos es el catálogo del applet: al menos uno, con nombres únicos y como
 	// mucho uno marcado por omisión, lo que comprueba el registro al construirse
@@ -40,8 +38,6 @@ type Verbo struct {
 	// «buscar», «resolver».
 	Nombre string
 	// Descripcion es la línea que aparece en la ayuda del applet.
-	//
-	//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 	Descripcion string
 	// Argumentos es una **fábrica**: devuelve un valor nuevo en cada invocación
 	// y nunca una instancia compartida, de modo que dos invocaciones simultáneas

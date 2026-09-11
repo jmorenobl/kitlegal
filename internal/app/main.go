@@ -363,7 +363,6 @@ func describir(p cli.Presentador, applet Applet, nombre string) error {
 		return fmt.Errorf("%w: %q de %q", errVerboDesconocido, nombre, applet.Nombre())
 	}
 
-	//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 	ayuda := verbo.Descripcion
 
 	return cli.Describir(p, cli.Verbo{
@@ -465,7 +464,6 @@ func argumentosDelVerbo(applet Applet, verbo Verbo) (reflect.Value, error) {
 // de Kong deshace, de modo que una descripción con comillas no rompa la
 // gramática.
 func etiquetaDelVerbo(verbo Verbo) reflect.StructTag {
-	//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 	ayuda := verbo.Descripcion
 
 	return reflect.StructTag(fmt.Sprintf(`cmd:"" name:%s help:%s`,

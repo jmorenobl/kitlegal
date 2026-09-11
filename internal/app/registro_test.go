@@ -22,7 +22,6 @@ type appletDePrueba struct {
 
 func (a appletDePrueba) Nombre() string { return a.nombre }
 
-//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 func (a appletDePrueba) Descripcion() string { return "applet de prueba" }
 
 func (a appletDePrueba) Verbos() []Verbo { return a.verbos }
@@ -58,8 +57,7 @@ var (
 // que solo se refleja.
 func verboDePrueba(nombre string, porOmision bool) Verbo {
 	return Verbo{
-		Nombre: nombre,
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+		Nombre:      nombre,
 		Descripcion: "verbo de prueba",
 		Argumentos:  func() Argumentos { return &argumentosDePrueba{} },
 		Salida:      map[string]any{},

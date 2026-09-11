@@ -37,21 +37,18 @@ type appletContar struct{}
 
 func (appletContar) Nombre() string { return "contar" }
 
-//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 func (appletContar) Descripcion() string { return "Cuenta lo que hay en un texto." }
 
 func (appletContar) Verbos() []app.Verbo {
 	return []app.Verbo{
 		{
-			Nombre: "letras",
-			//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+			Nombre:      "letras",
 			Descripcion: "Cuenta las letras del texto.",
 			Argumentos:  func() app.Argumentos { return &argumentosLetras{} },
 			Salida:      cuenta{},
 		},
 		{
-			Nombre: "palabras",
-			//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+			Nombre:      "palabras",
 			Descripcion: "Cuenta las palabras del texto.",
 			Argumentos:  func() app.Argumentos { return &argumentosPalabras{} },
 			Salida:      cuenta{},

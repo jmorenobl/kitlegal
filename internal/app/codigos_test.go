@@ -60,13 +60,11 @@ type appletDeCodigos struct {
 
 func (a appletDeCodigos) Nombre() string { return "prueba" }
 
-//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 func (a appletDeCodigos) Descripcion() string { return "applet de la tabla de códigos" }
 
 func (a appletDeCodigos) Verbos() []Verbo {
 	return []Verbo{{
-		Nombre: "probar",
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+		Nombre:      "probar",
 		Descripcion: "devuelve el desenlace que el caso fija",
 		Argumentos:  func() Argumentos { return &argumentosDeCodigos{desenlace: a.desenlace} },
 		Salida:      map[string]any{},

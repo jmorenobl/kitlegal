@@ -31,13 +31,11 @@ type appletDeContexto struct {
 
 func (a appletDeContexto) Nombre() string { return "contexto" }
 
-//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 func (a appletDeContexto) Descripcion() string { return "applet que anota su contexto de ejecución" }
 
 func (a appletDeContexto) Verbos() []Verbo {
 	return []Verbo{{
-		Nombre: "anotar",
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+		Nombre:      "anotar",
 		Descripcion: "anota el contexto con el que se ejecuta",
 		Argumentos:  func() Argumentos { return &argumentosDeContexto{ejecuciones: a.ejecuciones} },
 		Salida:      map[string]any{},

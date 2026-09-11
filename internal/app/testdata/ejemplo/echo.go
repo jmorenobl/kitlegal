@@ -28,13 +28,11 @@ type appletEcho struct{}
 
 func (appletEcho) Nombre() string { return "echo" }
 
-//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 func (appletEcho) Descripcion() string { return "Devuelve el mensaje que recibe." }
 
 func (appletEcho) Verbos() []app.Verbo {
 	return []app.Verbo{{
-		Nombre: "repetir",
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
+		Nombre:      "repetir",
 		Descripcion: "Devuelve el mensaje tal y como se escribió.",
 		Argumentos:  func() app.Argumentos { return &argumentosRepetir{} },
 		Salida:      mensaje{},

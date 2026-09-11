@@ -175,6 +175,9 @@ linters:
       ignore-rules:
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
+        # fija el contrato del applet; misspell lo lee como «Description».
+        - descripcion
     nolintlint:
       require-explanation: true
       require-specific: true

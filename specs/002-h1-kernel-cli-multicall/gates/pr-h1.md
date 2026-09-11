@@ -158,10 +158,12 @@ local.
 | `codecov.yml` | componente `internal_cli` **añadido** (90 %, `informational: false`); 70 % global y 85 % de `internal_core` **intactos** |
 | `Makefile` | `TESTDATA_PKGS` **amplía** lint y formato; `test-e2e` deja de ser un aviso |
 
-Directivas en el código: **17**, todas con su justificación en la misma línea. Son 16 `//nolint:misspell`
-por el identificador `Descripcion` que fija el contrato (el diccionario de `misspell` solo es inglés; la deuda
-está en `nota-T009-misspell.md`) y 1 `//nolint:gosec` en `internal/arch_test.go` (G204: el ejecutable es
-constante y los argumentos son literales y rutas del propio árbol).
+Directivas en el código: **1**, `//nolint:gosec` en `internal/arch_test.go` (G204: el ejecutable es
+constante y los argumentos son literales y rutas del propio árbol), con su justificación en la misma línea.
+Las `//nolint:misspell` por el identificador `Descripcion` que fija el contrato (deuda descrita en
+`nota-T009-misspell.md`) se retiraron tras la revisión final: `descripcion` está en
+`misspell.ignore-rules` de `.golangci.yml`, así que ningún fichero —tampoco los applets de ejemplo— lleva
+excepción de lint por ese identificador.
 
 ## Dependencias que el binario enlaza (FR-060, constitución §V) — añadido tras la revisión final
 

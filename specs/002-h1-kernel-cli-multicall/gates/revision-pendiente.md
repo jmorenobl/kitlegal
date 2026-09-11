@@ -7,7 +7,11 @@ Los trece motivos del juez B están corregidos en la rama (commits `fix(H1)`, `t
 posteriores a `461331f`) y `make ci` termina en verde, **salvo tres puntos que el corrector no puede
 cerrar por sí solo**. Ninguno bloquea `make ci`; los tres son acciones de la persona.
 
-## 1. `//nolint:misspell` por `Descripcion` — toca `internal/app/testdata/` (motivo [h])
+## 1. `//nolint:misspell` por `Descripcion` — toca `internal/app/testdata/` (motivo [h]) — **resuelto**
+
+> **Resuelto por la persona** tras esta corrección: parche aplicado sin cambios, `make ci` en verde y
+> commit `refactor(H1)` en la rama. No queda ninguna `//nolint:misspell`; el parche se ha retirado del
+> repositorio. Lo que sigue documenta por qué no lo aplicó el corrector.
 
 **Qué pide el motivo.** Añadir `descripcion` a `misspell.ignore-rules` en `.golangci.yml` y retirar las
 directivas `//nolint:misspell` que neutralizan el identificador `Descripcion` (fijado por el contrato del
@@ -61,6 +65,9 @@ operativa en esta máquina, que conviene resolver **antes de lanzar el siguiente
   en la PR #8).
 - El corrector no ha podido escribir en `.git/info/exclude` (fichero protegido por la política de la
   sesión).
+
+> **Hecho en local**: la persona ha añadido las dos entradas a `.git/info/exclude` de esta máquina.
+> Queda llevarlas a `main` en un commit de mantenimiento propio antes de lanzar H2.
 
 **Decisión de la persona**: o bien traer las dos entradas a `main` en un commit de mantenimiento propio
 —es la opción limpia: son hygiene del repositorio, no del hito—, o bien excluirlas solo en local con

@@ -67,7 +67,6 @@ func AyudaDelApplet(a Applet) string {
 
 	fmt.Fprintf(&ayuda, "uso: %s <verbo> [banderas]\n", nombre)
 
-	//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 	if descripcion := a.Descripcion(); descripcion != "" {
 		fmt.Fprintf(&ayuda, "\n%s\n", descripcion)
 	}
@@ -115,7 +114,6 @@ func entradasDeApplets(r *Registro) []entrada {
 		// está siempre: no hay ausencia que tratar.
 		applet, _ := r.Buscar(nombre)
 
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 		entradas = append(entradas, entrada{nombre: nombre, detalle: applet.Descripcion()})
 	}
 
@@ -130,7 +128,6 @@ func entradasDeVerbos(a Applet) []entrada {
 	entradas := make([]entrada, 0, len(verbos))
 
 	for _, verbo := range verbos {
-		//nolint:misspell // «Descripcion» es español y lo fija el contrato; el diccionario de misspell es solo inglés (research.md D9).
 		detalle := verbo.Descripcion
 
 		if verbo.PorOmision {
