@@ -1,0 +1,39 @@
+# La entrega literal del hito, ejecutándose: «kitlegal echo hola --json» emite
+# un único sobre citable con las seis claves exactas y termina con código 0
+# (SC-001, FR-009, FR-010).
+#
+# El sobre se comprueba entero y anclado a los dos extremos de la salida
+# estándar (\A … \z), no clave a clave: así la comprobación falla tanto si falta
+# una de las seis como si aparece una séptima, tanto si cambia el orden como si
+# algo más se cuela por ese descriptor. Como «.» no casa con el salto de línea,
+# el ancla prueba además que la salida estándar es **una sola línea**.
+#
+# Lo único que no se fija es fecha_consulta, que depende del instante de la
+# consulta y por eso es lo único que dos invocaciones iguales no comparten.
+
+exec $KITLEGAL_BIN echo hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo","url":"kitlegal:applet/echo","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"mensaje":"hola"\}\}\n\z'
+! stderr .
+
+# La invocación no nombra verbo: `echo` declara `repetir` por omisión y el
+# kernel lo inserta antes de construir la gramática. Nombrarlo da exactamente lo
+# mismo (contracts/registro-y-describe.md §2 bis).
+exec $KITLEGAL_BIN echo repetir hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo","url":"kitlegal:applet/echo","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"mensaje":"hola"\}\}\n\z'
+! stderr .
+
+# Y la ambigüedad, resuelta en un solo sentido: si el primer argumento nombra un
+# verbo, es el verbo. «echo repetir» es `repetir` sin mensaje, no el verbo por
+# omisión con el mensaje «repetir».
+exec $KITLEGAL_BIN echo repetir --json
+stdout '"data":\{"mensaje":""\}\}\n\z'
+
+# Sin --json, la tabla mínima para personas conserva los cuatro datos de
+# procedencia —sin ellos no hay cita— y después el contenido (FR-041, FR-043).
+exec $KITLEGAL_BIN echo hola
+stdout '\Afuente +kitlegal\.echo\n'
+stdout '^url +kitlegal:applet/echo$'
+stdout '^fecha_consulta +[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+stdout '^hash +sha256:[0-9a-f]{64}$'
+stdout '^mensaje +hola\n\z'
+! stderr .

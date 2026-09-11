@@ -1,0 +1,49 @@
+# La ayuda sale del registro y de ninguna lista mantenida a mano: registrar un
+# applet basta para que aparezca, y declarar un verbo basta para que se enumere
+# (FR-001, FR-026, contracts/registro-y-describe.md §4).
+#
+# El binario se invoca por un enlace con nombre fijo para que el nombre de
+# invocación —que la ayuda escribe tal cual— no dependa de cómo lo haya llamado
+# quien construyó el binario.
+
+symlink kitlegal -> $KITLEGAL_BIN
+
+# La ayuda del binario: los dos applets de ejemplo, ordenados y con su
+# descripción, y dónde seguir buscando.
+exec ./kitlegal --help
+stdout '\Auso: kitlegal <applet> \[verbo\] \[banderas\]\n'
+stdout '^applets:$'
+stdout '^  contar  Cuenta '
+stdout '^  echo    Devuelve '
+stdout 'Los verbos de cada applet, en «kitlegal <applet> --help»\.\n\z'
+! stderr .
+
+# La ayuda de un applet: sus verbos, con el de omisión marcado como tal. Pedirla
+# no resuelve ningún verbo, así que la lista es la del applet entero.
+exec ./kitlegal echo --help
+stdout '\Auso: echo <verbo> \[banderas\]\n'
+stdout '^verbos:$'
+stdout '^  repetir  Devuelve el mensaje .* \(por omisión\)$'
+stdout 'Las banderas de cada verbo, en «echo <verbo> --help»\.\n\z'
+! stderr .
+
+# El segundo applet declara dos verbos y ninguno por omisión: la lista los trae
+# los dos y no marca ninguno.
+exec ./kitlegal contar --help
+stdout '^uso: contar <verbo> \[banderas\]$'
+stdout '^  letras +Cuenta '
+stdout '^  palabras +Cuenta '
+! stdout 'por omisión'
+! stderr .
+
+# Y la ayuda de un verbo concreto es la del analizador: enumera las ocho
+# banderas globales que el applet hereda sin declarar ninguna (FR-018, SC-010).
+exec ./kitlegal echo repetir --help
+stdout '--json'
+stdout '--timeout'
+stdout '--offline'
+stdout '--dry-run'
+stdout '--describe'
+stdout '--no-graph'
+stdout '--asunto'
+stdout '--verbose'

@@ -3,72 +3,120 @@ package main
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cli"
 )
 
-// TestRun ejerce el contrato de contracts/cli-version.md con escritores en
-// memoria: los tres datos y el código 0 del verbo version, y el código 2 con
-// línea de uso en stderr ante verbo ausente, desconocido o argumento sobrante.
-func TestRun(t *testing.T) {
-	t.Parallel()
+// registroVacio es la lista de applets que escribe el kernel cuando no hay
+// ninguno registrado: la evidencia observable de que el binario que se publica
+// no registra ningún applet en H1 —el primer applet de kitlegal llega en H4—
+// (contracts/registro-y-describe.md §3).
+const registroVacio = "este binario no registra ningún applet"
 
-	// La salida esperada del verbo version se compone aquí a partir de las
-	// variables de paquete, no de la constante de formato del código, de modo
-	// que el caso siga siendo válido cuando -ldflags las inyecte (FR-004).
+// TestPuntoDeEntrada ejerce el contrato observable del binario distribuido con la
+// **misma composición que main()** —el registro de producción y los datos de
+// construcción de este paquete— y dos escritores en memoria en lugar de los
+// descriptores del sistema, que es lo que hace comprobable el contrato entero sin
+// lanzar ningún subproceso (FR-035).
+//
+// De contracts/cli-version.md de H0 se conservan las tres líneas de version, la
+// salida de error vacía y el código 0 (D16), y también el código 2 de cualquier
+// otra invocación: lo que cambia es el mensaje. Un nombre que no es ningún
+// applet lo resuelve el despacho, que **nombra lo desconocido** y enumera lo
+// disponible —nada, en este binario— (FR-006, contracts/registro-y-describe.md
+// §2 y §3); y lo que sobra tras «version», que no admite argumentos ni
+// banderas, se nombra en el mensaje en lugar de descartarse (FR-027).
+//
+// No es paralelo, y no es un descuido: fija KITLEGAL_LOG —en el test y en cada
+// subcaso, que es lo que lo deja hermético por separado— para que el nivel del
+// registro de eventos no dependa del entorno de quien ejecuta los tests, y eso
+// es estado del proceso entero.
+func TestPuntoDeEntrada(t *testing.T) {
+	t.Setenv(cli.VariableNivel, "")
+
+	// La salida de version se compone a partir de las variables del paquete y no
+	// de un literal, de modo que el caso siga siendo válido cuando -ldflags las
+	// inyecte (FR-004).
 	salidaVersion := "kitlegal " + version + "\ncommit: " + commit + "\nfecha:  " + fecha + "\n"
 
 	casos := []struct {
 		nombre string
-		args   []string
-		stdout string
-		stderr string
-		codigo int
+		argv   []string
+		salida string
+		// errores son los fragmentos que el mensaje para la persona tiene que
+		// llevar; vacío significa que la salida de error queda vacía.
+		errores []string
+		codigo  int
 	}{
 		{
-			nombre: "version imprime los tres datos y termina con 0",
-			args:   []string{"version"},
-			stdout: salidaVersion,
-			stderr: "",
+			nombre: "version escribe los tres datos y termina con 0",
+			argv:   []string{"kitlegal", "version"},
+			salida: salidaVersion,
 			codigo: 0,
 		},
 		{
-			nombre: "sin argumentos imprime el uso en stderr y termina con 2",
-			args:   []string{},
-			stdout: "",
-			stderr: "uso: kitlegal version\n",
-			codigo: 2,
+			// El verbo reservado se reconoce **antes** que el registro y no
+			// admite nada detrás: «version» no tiene sobre ni banderas, y lo que
+			// sobra es una invocación que hay que corregir —código 2, como en
+			// H0— con un mensaje que nombra lo que sobra (FR-027, D16,
+			// contracts/cli-version.md de H0).
+			nombre:  "un argumento de más tras version termina con 2 y se nombra",
+			argv:    []string{"kitlegal", "version", "extra"},
+			errores: []string{`"version"`, `"extra"`},
+			codigo:  2,
 		},
 		{
-			nombre: "verbo desconocido imprime el uso en stderr y termina con 2",
-			args:   []string{"inventado"},
-			stdout: "",
-			stderr: "uso: kitlegal version\n",
-			codigo: 2,
+			nombre:  "una bandera tras version tampoco se admite",
+			argv:    []string{"kitlegal", "version", "--jsno"},
+			errores: []string{`"version"`, `"--jsno"`},
+			codigo:  2,
 		},
 		{
-			nombre: "version con argumento sobrante termina con 2",
-			args:   []string{"version", "extra"},
-			stdout: "",
-			stderr: "uso: kitlegal version\n",
-			codigo: 2,
+			nombre:  "sin applet, el fallo enumera lo que hay y termina con 2",
+			argv:    []string{"kitlegal"},
+			errores: []string{"no se ha indicado ningún applet", registroVacio},
+			codigo:  2,
+		},
+		{
+			nombre:  "un applet que no existe se nombra en el fallo y termina con 2",
+			argv:    []string{"kitlegal", "inventado"},
+			errores: []string{`"inventado"`, registroVacio},
+			codigo:  2,
+		},
+		{
+			// El applet de ejemplo vive en el binario que compila el test e2e y
+			// nunca en el que se publica: sobre el distribuido es un nombre
+			// desconocido como cualquier otro
+			// (contracts/registro-y-describe.md §3).
+			nombre:  "echo no es del binario distribuido, sino del binario del e2e",
+			argv:    []string{"kitlegal", "echo", "hola"},
+			errores: []string{`"echo"`, registroVacio},
+			codigo:  2,
 		},
 	}
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
+			t.Setenv(cli.VariableNivel, "")
 
-			var stdout, stderr bytes.Buffer
+			var salida, errores bytes.Buffer
 
-			codigo := run(caso.args, &stdout, &stderr)
+			codigo := app.Main(caso.argv, app.RegistroDeProduccion(),
+				&salida, &errores, version, commit, fecha)
 
-			if codigo != caso.codigo {
-				t.Errorf("código de salida = %d, se esperaba %d", codigo, caso.codigo)
+			assert.Equal(t, caso.codigo, codigo, "código de salida")
+			assert.Equal(t, caso.salida, salida.String(), "salida estándar")
+
+			if len(caso.errores) == 0 {
+				assert.Empty(t, errores.String(), "la salida de error queda vacía")
 			}
-			if stdout.String() != caso.stdout {
-				t.Errorf("stdout = %q, se esperaba %q", stdout.String(), caso.stdout)
-			}
-			if stderr.String() != caso.stderr {
-				t.Errorf("stderr = %q, se esperaba %q", stderr.String(), caso.stderr)
+
+			for _, fragmento := range caso.errores {
+				assert.Contains(t, errores.String(), fragmento,
+					"el mensaje para la persona dice qué ha pasado")
 			}
 		})
 	}

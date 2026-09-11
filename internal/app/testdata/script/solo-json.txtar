@@ -1,0 +1,36 @@
+# El criterio literal del hito: con --json, en la salida estándar hay **solo**
+# el documento JSON —ni una línea de registro, ni un aviso, ni una cabecera—
+# incluso con el registro de eventos al máximo detalle (SC-002, FR-036, FR-042).
+#
+# Es el caso duro, porque es el único en el que dos canales compiten por
+# escribir a la vez. El ancla \A … \z con «.», que no casa con el salto de
+# línea, prueba que la salida estándar es una sola línea y que esa línea es el
+# documento entero: no hay prefijo ni sufijo que analizar.
+
+env KITLEGAL_LOG=debug
+
+exec $KITLEGAL_BIN echo hola --json --verbose
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo",.*"data":\{"mensaje":"hola"\}\}\n\z'
+
+# Y sí hubo registro, con todo su detalle, por la salida de error: la salida
+# estándar limpia no es la de un registro apagado. El evento de una invocación
+# correcta se emite al nivel informativo —hay poco que decir—, y lo que el
+# máximo detalle añade son los argumentos, que solo se registran ahí (FR-039).
+stderr 'level=INFO'
+stderr 'applet=echo'
+stderr 'verbo=repetir'
+stderr 'argumentos="\[repetir hola --json --verbose\]"'
+
+# Lo mismo vale para un fallo: el sobre de fallo es también un único documento.
+# El mensaje lleva comillas escapadas, así que el patrón no puede excluirlas.
+exec sh -c 'kitlegal contar hola --json --verbose; test $? -eq 2'
+stdout '\A\{"ok":false,.*"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'argumentos inválidos'
+
+# Y con el registro apagado hasta el máximo la salida estándar es la misma: el
+# nivel elige qué se cuenta en la salida de error, nunca qué se emite en la
+# estándar.
+env KITLEGAL_LOG=error
+exec $KITLEGAL_BIN echo hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo",.*"data":\{"mensaje":"hola"\}\}\n\z'
+! stderr .

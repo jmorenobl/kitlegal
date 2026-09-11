@@ -1,5 +1,7 @@
 # Configuración de golangci-lint (formato v2).
 # Contrato: FR-012 a FR-014 y FR-017 del hito H0; decisión en research.md D9.
+# H1 añade las cinco reglas de dependencia de docs/ROADMAP.md §2 (FR-050 a
+# FR-053): specs/002-h1-kernel-cli-multicall/contracts/reglas-de-arquitectura.md.
 # La versión de la herramienta está fijada en tools/golangci-lint/go.mod.
 version: "2"
 
@@ -31,28 +33,139 @@ linters:
     - testifylint
     - thelper
     - tparallel
-    # FR-014: prohibición de escrituras directas a la salida estándar.
+    # FR-014 y FR-050: las cinco reglas de dependencia de docs/ROADMAP.md §2.
+    # depguard vigila las tres de importación; forbidigo, las dos de símbolo.
+    # El reparto y el porqué están en
+    # specs/002-h1-kernel-cli-multicall/contracts/reglas-de-arquitectura.md §2.
+    - depguard
     - forbidigo
-  # depguard y el resto de reglas de arquitectura son alcance de H1 (FR-014).
 
   settings:
+    depguard:
+      # Una lista por regla de importación. Los patrones de `files` se comparan
+      # contra la **ruta absoluta** del fichero normalizada a `/`, así que se
+      # escriben como `**/internal/…/**` y no como `internal/…/**`
+      # (depguard v2.2.1, depguard.go:71; H1 research.md D18). Un patrón con `!`
+      # delante exceptúa.
+      #
+      # Esta configuración no es la única garantía: internal/arch_test.go
+      # comprueba las mismas tres reglas sobre el grafo transitivo real, de modo
+      # que borrar estas listas no basta para que una violación pase (FR-051).
+      rules:
+        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los ocho
+        # paquetes de internal/ —la dependencia va siempre hacia dentro— y los
+        # paquetes de entrada y salida de la biblioteca estándar, que es lo que
+        # impide que un *slog.Logger o un io.Writer se instalen en internal/core
+        # sin que ningún control diga nada (research.md D2, D18).
+        core:
+          # `original`: sin lista de permitidos, se deniega exactamente lo
+          # enumerado y se permite el resto.
+          list-mode: original
+          files:
+            - "**/internal/core/**"
+          deny:
+            - pkg: github.com/jmorenobl/kitlegal/internal/app
+              desc: "R1: el dominio no importa el kernel; es el kernel quien depende del dominio"
+            - pkg: github.com/jmorenobl/kitlegal/internal/cache
+              desc: "R1: el dominio no importa adaptadores; la caché se usa desde internal/source"
+            - pkg: github.com/jmorenobl/kitlegal/internal/cli
+              desc: "R1: el dominio no importa el kernel; es el kernel quien depende del dominio"
+            - pkg: github.com/jmorenobl/kitlegal/internal/graph
+              desc: "R1: el dominio no importa adaptadores; el grafo se alimenta desde el applet, con GraphOp"
+            - pkg: github.com/jmorenobl/kitlegal/internal/httpx
+              desc: "R1: el dominio no importa adaptadores; la red vive en internal/httpx"
+            - pkg: github.com/jmorenobl/kitlegal/internal/render
+              desc: "R1: el dominio no presenta nada; la presentación se inyecta desde la raíz de composición"
+            - pkg: github.com/jmorenobl/kitlegal/internal/source
+              desc: "R1: el dominio no importa adaptadores; son las fuentes las que usan el dominio"
+            - pkg: github.com/jmorenobl/kitlegal/internal/store
+              desc: "R1: el dominio no importa adaptadores; el almacén se usa desde internal/source"
+            - pkg: log
+              desc: "R1: el dominio no registra eventos; el *slog.Logger llega como argumento al método Ejecutar"
+            - pkg: log/slog
+              desc: "R1: el dominio no registra eventos; el *slog.Logger llega como argumento al método Ejecutar, nunca dentro de schema.Contexto"
+            - pkg: os
+              desc: "R1: el dominio no hace entrada ni salida; lo que necesite del entorno se lo pasa quien lo llama"
+            - pkg: io
+              desc: "R1: el dominio no hace entrada ni salida; devuelve datos, no los escribe"
+            - pkg: net/http
+              desc: "R1: el dominio no hace entrada ni salida; la red vive en internal/httpx (R2)"
+            - pkg: database/sql
+              desc: "R1: el dominio no hace entrada ni salida; el almacenamiento vive en internal/{cache,store,graph} (R3)"
+
+        # R2 · la biblioteca HTTP es de internal/httpx y de nadie más. El paquete
+        # todavía no existe —lo aporta H2—, así que hoy la regla está activa y
+        # vacía: nadie puede importar net/http.
+        red:
+          list-mode: original
+          files:
+            - "**"
+            - "!**/internal/httpx/**"
+          deny:
+            - pkg: net/http
+              desc: "R2: la red se usa a través de internal/httpx, que concentra reintentos, límite por sitio, robots.txt y User-Agent identificable"
+
+        # R3 · SQLite y database/sql son de los tres paquetes de almacenamiento y
+        # de nadie más. Ninguno de los tres existe todavía —los aportan H3, H12 y
+        # H16—, así que hoy la regla también está activa y vacía.
+        sql:
+          list-mode: original
+          files:
+            - "**"
+            - "!**/internal/cache/**"
+            - "!**/internal/store/**"
+            - "!**/internal/graph/**"
+          deny:
+            - pkg: database/sql
+              desc: "R3: el acceso a base de datos vive en internal/{cache,store,graph}; el resto del árbol los usa por su interfaz"
+            - pkg: modernc.org/sqlite
+              desc: "R3: el controlador de SQLite vive en internal/{cache,store,graph}; el resto del árbol los usa por su interfaz"
+
     dupl:
       threshold: 100
     errcheck:
       check-type-assertions: true
-      # El punto de entrada escribe en los io.Writer que recibe y su contrato de
-      # códigos de salida solo admite 0 y 2 (contracts/cli-version.md): un fallo
-      # al escribir en stdout o stderr no tiene ni recuperación ni código propio.
-      exclude-functions:
-        - fmt.Fprint
-        - fmt.Fprintf
-        - fmt.Fprintln
+      # Sin exclusiones: la de H0 para fmt.Fprint, fmt.Fprintf y fmt.Fprintln
+      # existía porque el punto de entrada escribía por su cuenta en los
+      # descriptores. Desde H1 no queda ninguna escritura sin comprobar —el
+      # presentador de internal/render es el único camino a la salida y propaga
+      # el error de cada escritura—, así que mantenerla solo taparía el camino
+      # que el contrato obliga a vigilar (FR-035, FR-040, FR-057, research.md D27).
     exhaustive:
       default-signifies-exhaustive: true
     forbidigo:
+      # R4 y R5 son reglas de **símbolo**, no de importación: todo paquete
+      # importa `os`, y lo prohibido es llamar a `os.Exit` o referenciar
+      # `os.Stdout`. Un grafo de dependencias no lo ve, así que el lint es la
+      # única capa que puede vigilarlas (FR-051, reglas-de-arquitectura.md §2).
+      #
+      # `analyze-types` es obligatorio: sin él el campo `pkg` de cada patrón se
+      # ignora y el patrón casa por texto, de modo que `import o "os"` seguido de
+      # `o.Exit(1)` lo esquivaría (forbidigo v2.3.1, patterns.go:23-26).
+      analyze-types: true
       forbid:
+        # R4. El mensaje de forbidigo incorpora este `msg`, así que el fallo
+        # nombra la regla violada (FR-053) y las excepciones de más abajo pueden
+        # acotarse a una marca concreta.
+        - pattern: ^os\.Exit$
+          pkg: ^os$
+          msg: "R4: solo la raíz de composición de cada binario termina el proceso; todo lo demás devuelve un error o un código"
+        # R5, primera mitad: sin excepción alguna en todo el árbol. Desaparece
+        # así la acotación por ruta que H0 dejó como provisional mientras
+        # internal/render no existía (FR-052).
         - pattern: ^fmt\.Print(|f|ln)$
-          msg: la salida se emite por el escritor que recibe la función; en H1 solo internal/render escribe en stdout
+          pkg: ^fmt$
+          msg: "R5: la salida se emite por el escritor que recibe la función; solo internal/render escribe en la salida estándar"
+        # R5, segunda mitad: los descriptores del sistema se nombran únicamente
+        # donde se inyectan. Van con una marca propia para que exceptuarlos en
+        # una raíz de composición no pueda desactivar de paso la prohibición de
+        # fmt.Print*, que lleva la marca `R5:`.
+        - pattern: ^os\.Stdout$
+          pkg: ^os$
+          msg: "R5-descriptores: os.Stdout solo se nombra en la raíz de composición, que lo inyecta; todo lo demás recibe un io.Writer"
+        - pattern: ^os\.Stderr$
+          pkg: ^os$
+          msg: "R5-descriptores: os.Stderr solo se nombra en la raíz de composición, que lo inyecta; todo lo demás recibe un io.Writer"
     gocyclo:
       min-complexity: 13
     misspell:
@@ -62,17 +175,47 @@ linters:
       ignore-rules:
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
+        # fija el contrato del applet; misspell lo lee como «Description».
+        - descripcion
     nolintlint:
       require-explanation: true
       require-specific: true
 
   exclusions:
     rules:
-      # forbidigo se aplica únicamente bajo internal/**: cmd/ puede escribir en
-      # stdout en H0 (FR-014).
+      # Las dos únicas excepciones del árbol, y las dos son raíces de
+      # composición: el punto de entrada del binario distribuido y el `package
+      # main` del binario de e2e. Un `package main` no puede propagar un código
+      # de salida sin os.Exit —retornar de main sale siempre con 0— ni inyectar
+      # descriptores sin nombrarlos (research.md D18, D19).
+      #
+      # Se escriben como `path` + `text` sobre la **marca** de la regla, nunca
+      # sobre el linter entero: exceptuar os.Exit en una raíz de composición no
+      # puede así desactivar por accidente la prohibición de fmt.Print*, que
+      # lleva otra marca y no tiene excepción ninguna (FR-052).
+      #
+      # Ni el kernel (internal/cli, aunque docs/ROADMAP.md §2 se lo permitiría)
+      # ni el paquete hermano de applets de ejemplo
+      # (internal/app/testdata/ejemplo) entran aquí: el plan elige la forma
+      # estricta —un único punto de salida por binario— y el control vigila esa,
+      # no la permisiva.
       - linters:
           - forbidigo
-        path-except: ^internal/
+        path: ^cmd/
+        text: "R4:"
+      - linters:
+          - forbidigo
+        path: ^cmd/
+        text: "R5-descriptores:"
+      - linters:
+          - forbidigo
+        path: ^internal/app/testdata/kitlegal-e2e/
+        text: "R4:"
+      - linters:
+          - forbidigo
+        path: ^internal/app/testdata/kitlegal-e2e/
+        text: "R5-descriptores:"
 
 formatters:
   enable:

@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reejecutado por este juez sobre HEAD 4ac77e2 sin tocar el árbol: golangci-lint fmt --diff y run sobre ./... más los dos paquetes de TESTDATA_PKGS → «0 issues»; go test -race -shuffle=on -coverprofile → los 6 paquetes en verde; govulncheck «No vulnerabilities found»; schema-check (sin schemas/ todavía, los aportan H4 y H11); gitleaks «no leaks found»; go mod verify «all modules verified» en la raíz y en los 4 módulos de herramienta; go mod tidy -diff sin salida; «ci: todos los controles en verde». Coincide línea a línea con gates/ci.log, que esta vez sí es posterior al contenido de los tres commits de la ronda (00:31 frente a 00:32:04-00:32:34, que es el orden habitual: se ejecuta ci y después se commitea). Cobertura medida: internal/cli 98,6 %, internal/core/schema 90,1 %, internal/app 92,6 %, internal/render 95,8 %, total 94,8 %, por encima de los umbrales de codecov.yml (90 %, 85 %, 70 %) y de FR-056/SC-004. Árbol limpio: `git status --porcelain` solo devuelve gates/revision-a.json y gates/revision-b.json —los artefactos de los propios jueces, que ci_final commitea— y ningún fichero sin seguir; coverage.out está ignorado (.gitignore:6)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Cero red y ningún fixture de fuente: el único testdata que nace es material de test —código Go y guiones .txtar— como fija FR-009 (spec.md:181) y plan.md «Fixtures». Los dos motivos de tests de la ronda 2 están corregidos. (1) La batería es ahora hermética respecto de KITLEGAL_LOG: TestCodigoSalida (internal/app/codigos_test.go:243-250) y TestAppletHereda (internal/app/hereda_test.go:114-154) fijan la variable en el test y en cada subcaso en lugar de declararse paralelos, con la misma explicación que las tres tablas que ya lo hacían. Comprobado por este juez: `KITLEGAL_LOG=debug go test ./internal/app/ ./internal/cli/ ./cmd/... ./internal/render/ ./internal/core/schema/` termina en verde, y `KITLEGAL_LOG=verbose` —valor inválido— sobre ./... también, porque un valor no reconocido avisa y no aborta (internal/cli/log.go:48-61, 71-87). (2) Falta cubierto el control por applet del criterio d, en internal/app/esquema_test.go. El resto de la cobertura sigue en pie: los siete códigos de salida forzados con casos (codigos_test.go), el e2e con testscript sobre el binario compilado (e2e_test.go y los siete .txtar), y lo no cubierto son ramas defensivas —errSinAtender y similares—, nunca comportamiento del contrato."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Búsqueda en cmd/ e internal/: os.Exit solo en cmd/kitlegal/main.go:32 y en internal/app/testdata/kitlegal-e2e/main.go:39 —las dos raíces de composición—, ningún fmt.Print*, ningún net/http ni database/sql (las apariciones de internal/arch_test.go:287 son literales de la lista de denegación). .golangci.yml:44-123 activa depguard con las listas core/red/sql y :136-168 forbidigo con analyze-types: true y las marcas R4/R5/R5-descriptores, con excepciones por `path`+`text` acotadas a las dos raíces (.golangci.yml:203-218). internal/arch_test.go comprueba R1-R3 sobre el grafo transitivo de `go list -deps`, paquetes de ejemplo incluidos, y falla en vacío si `go list` dejara de devolver lo pedido (:317-324). Las dos importaciones nuevas de esta ronda —os/signal y syscall en internal/app/main.go:10 y :13— están en la raíz de composición del kernel y no rozan R1: internal/core/schema sigue importando únicamente time, crypto/sha256, encoding/hex y encoding/json (contexto.go:3, sobre.go:12, huella.go:3-7)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 2 está corregido con el control que faltaba: internal/app/esquema_test.go:49-85 (TestSalidaContraSuEsquema) pide, por cada verbo de cada applet de ejemplo, el esquema que ese verbo emite con --describe, lo compila con AssertFormat() (:103-110) y valida contra él un sobre de éxito real y dos de fallo reales (:65-81); comprueba además que la validación **restringe** `data` —una clave de más o de menos deja de validar (:132-142)— y exige una fila por verbo registrado (:56-57), de modo que un verbo nuevo sin caso falla en lugar de quedar sin validar. Es exactamente la mutación que la ronda anterior demostraba impune: declarar en Verbo.Salida un tipo distinto del que devuelve Ejecutar publicaría un esquema que rechaza el propio sobre, y ahora lo ve este test. El resto del sobre sigue correcto: internal/core/schema/sobre.go:27-45 declara las seis claves sin omitempty y con las restricciones del contrato en las etiquetas, internal/cli/sobre.go:68-190 es el único punto que lo monta —también en fallo—, e internal/cli/describe.go:210-226 condiciona `data` a `ok` con if/then/else derivados de las claves json del propio sobre (:255-268)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 2 está corregido: internal/app/main.go:77 y :100-119 desarman SIGPIPE en la raíz de composición del kernel, de modo que la escritura en un descriptor roto devuelve EPIPE y sube por el presentador hasta la traducción única. internal/app/tuberia_test.go:41-70 lo ejerce sobre el binario real con una tubería cuyo lector se cierra antes de arrancarlo (:82-115), exigiendo en sus siete casos código 1, el mensaje y —lo que importa— que el estado no esté señalado. Comprobado de forma independiente por este juez con una sonda propia contra el binario compilado de cmd/kitlegal: `version` y `--help` con el lector de la tubería cerrado terminan con ExitError, código 1, señal ninguna y «render: no se pudo escribir en la salida estándar: write /dev/stdout: broken pipe» en la salida de error. La traducción sigue siendo única y exhaustiva (internal/cli/errors.go:95-131, switch sin rama default vigilado por exhaustive), app.Main devuelve int y nunca llama a os.Exit, las siete clases están forzadas con casos, y el único pánico de todo el árbol es el de arranque del binario de e2e ante un registro inválido (internal/app/testdata/kitlegal-e2e/main.go:52), que no es ruta de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md sección [Unreleased] con la entrega de H1, y la regla del descriptor roto ya dice cómo es cierta con una tubería del sistema (:143-147). Los dos ADR nuevos en formato MADR (0005 contrato de applet, 0006 sobre y huella) siguen en pie, y los tres motivos [f] de la ronda 2 están corregidos: docs/ADR/0006:152-157 explica que la raíz de composición ignora SIGPIPE y nombra el test que lo vigila; docs/ADR/0005:147-150 reformula la consecuencia a «no puede mentir sobre la forma **declarada**» y traslada el punto ciego a «En contra, y asumido» (:152-158), apuntando al control que lo vigila; contracts/sobre-de-salida.md:141-143 reconoce ya el token exacto `-h` en el pre-escaneo, que es lo que hace internal/cli/preescaneo.go:39-44 y :63-76. docs/SOURCES.md no se toca —correctamente: H1 no toca ninguna fuente (spec.md «Fuera de alcance»)— y ADR 0006 deja anotada la prohibición que H4 tendrá que hacer mecánica."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "H1 no introduce ningún cliente HTTP ni ninguna acción con identidad: internal/httpx no existe y la lista `red` de depguard más R2 del test de arquitectura mantienen net/http vacío en todo el árbol, así que no hay método HTTP alguno —ni GET ni POST— que revisar, ni User-Agent, ni límite de peticiones, ni robots.txt que juzgar todavía. gitleaks sobre el árbol entero: «no leaks found». No hay grafo, almacén ni escritura en disco fuera del directorio de construcción y de los temporales de test (internal/app/e2e_test.go:81-99 usa os.MkdirTemp y lo borra; internal/app/tuberia_test.go:85-87 usa os.Pipe). El único dato que parece personal es el NIF ficticio de internal/cli/log_test.go:304, con el que se prueba que los argumentos solo se registran en `debug` (FR-039), comportamiento que implementa internal/cli/log.go:146-148. El espacio reservado kitlegal./kitlegal: (internal/cli/sobre.go:15-40, internal/app/testdata/ejemplo/echo.go:15-18) distingue un resultado calculado de una cita de fuente pública, como exige FR-016."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Dos directivas //nolint en todo el árbol, las dos gosec G204 sobre un subproceso con argumentos literales y con justificación específica en la propia línea (internal/arch_test.go:366 e internal/app/tuberia_test.go:95, la nueva escrita con el mismo patrón). Ninguna //nolint:misspell queda desde que `descripcion` entró en misspell.ignore-rules (.golangci.yml:175-180). Ningún t.Skip, ningún TODO/FIXME/HACK, ningún umbral rebajado y ningún error silenciado. La corrección de la hermeticidad no debilita ninguna aserción: el diff de 02dd4ad sustituye t.Parallel por t.Setenv y añade el comentario que lo explica, sin tocar una sola comprobación. Ningún fichero de internal/app/testdata/ejemplo se tocó en los tres commits de esta ronda (a151a14 toca main.go y tuberia_test.go; 02dd4ad, tres ficheros de test de internal/app; 4ac77e2, solo documentación), así que tampoco se ha ajustado material de test para que pase nada."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Los 102 ficheros del diff caen dentro de lo que plan.md «Project Structure» anuncia; fuera de specs/, internal/, cmd/ y docs/ solo se tocan .golangci.yml, CHANGELOG.md, Makefile, codecov.yml, go.mod y go.sum. No se crean internal/httpx, cache, store, graph, source ni pkg/legalkit (SC-012). Lo que añade esta ronda es estrictamente lo que los motivos pedían: 25 líneas en internal/app/main.go que cierran un caso límite que el propio spec nombra («La salida estándar falla al escribirse (tubería cerrada)», spec.md:162), un test que es el control de la Definition of Done §1.4, la hermeticidad de dos tablas y la documentación correspondiente; ninguna «mejora» no pedida. Los seis módulos que enlaza el binario quedan fijados por TestDependenciasDelBinario (internal/arch_test.go:107-144) y justificados en plan.md (Complexity Tracking). Pendiente de la persona y no del diff: empujar los commits, copiar a la descripción de la propuesta #9 la tabla de módulos que la constitución §V exige «en la PR» (gates/revision-pendiente.md §2), y el contador gates/revision-rondas, que sigue marcando 1 pese a ser esta la tercera ronda de juicio —la constitución fija un tope de dos, de modo que continuar es una decisión que ya tomó la persona al lanzar este proceso."
+    }
+  ],
+  "motivos": []
+}

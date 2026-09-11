@@ -1,0 +1,125 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Alcance funcional y superficie del binario",
+      "pregunta": "¿El binario `kitlegal` que se distribuye registra el applet de ejemplo `echo`, o la entrega literal del hito (`kitlegal echo hola --json` y `ln -s kitlegal echo && ./echo hola`) se demuestra sobre un binario compilado por el test e2e a partir del applet de ejemplo de `internal/app/testdata`? (FR-009)",
+      "por_que_importa": "El «Alcance» de H1 dice que el applet de ejemplo vive solo en tests, mientras que la «Entrega» exige que esas dos invocaciones funcionen. La respuesta fija qué comandos expone el binario publicado, dónde vive la definición de `echo`, cómo se construye el binario bajo `testscript` y qué demuestran SC-001 y SC-003.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El binario distribuido registra `echo`: el applet de ejemplo forma parte de la superficie pública del binario publicado y la entrega literal se demuestra sobre él."
+        },
+        {
+          "id": "B",
+          "texto": "El binario distribuido no registra `echo`: el applet de ejemplo vive solo en `internal/app/testdata` y la entrega literal se demuestra sobre un binario compilado por el test e2e que lo registra."
+        },
+        {
+          "id": "C",
+          "texto": "El binario registra `echo` solo cuando se compila con una marca de construcción de desarrollo; el binario de release no lo incluye y el e2e usa la variante con la marca activada."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Modelo de datos · contrato del sobre",
+      "pregunta": "¿Qué valores toman `fuente` y `url` en un applet que no consulta ninguna fuente externa —`echo` hoy, `cita` y `plazos` en H8 y H9? (FR-016)",
+      "por_que_importa": "El sobre es obligatorio en todos los applets y los cuatro datos de procedencia son condición de cita (constitución §II), pero un applet de cálculo no tiene URL que citar. La respuesta fija el contrato de todos los applets de cálculo del proyecto, la validación del esquema del sobre y si `url` puede ser una cadena vacía.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "`url` puede ir vacía en applets sin fuente externa y `fuente` identifica el componente de cálculo (p. ej. `kitlegal.echo`); el esquema admite `url` vacía."
+        },
+        {
+          "id": "B",
+          "texto": "`url` nunca va vacía: toma una URL documental estable del propio proyecto que describe el applet o la norma de cálculo, y el esquema la exige no vacía."
+        },
+        {
+          "id": "C",
+          "texto": "El sobre define un modo propio para applets de cálculo: `fuente` con prefijo reservado y `url` con un URI no http (p. ej. `kitlegal:applet/echo`), distinguible por quien lea el sobre."
+        },
+        {
+          "id": "D",
+          "texto": "`fuente` y `url` se toman de la norma o dato de entrada que fundamenta el cálculo; un applet que no puede señalar ninguno no emite sobre y falla."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Presentación · representación del fallo",
+      "pregunta": "Cuando un applet falla y se pidió `--json`, ¿qué se escribe exactamente en la salida estándar y dónde viaja la causa del fallo, dado que el sobre no tiene campo de error? (FR-045)",
+      "por_que_importa": "El sobre incluye `ok`, lo que sugiere que existe `ok: false`, pero no tiene clave donde alojar la causa, y la aceptación literal del hito exige que con `--json` la salida estándar contenga solo JSON. La respuesta fija el esquema del sobre para H11, el comportamiento de `internal/render` en todos los applets y qué debe comprobar el e2e.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La salida estándar lleva el sobre con `ok: false` y la causa dentro de `data` (clase y mensaje); las seis claves del nivel superior no cambian."
+        },
+        {
+          "id": "B",
+          "texto": "La salida estándar lleva el sobre con `ok: false` y `data` nulo; la causa va solo a la salida de error y el código de salida la clasifica."
+        },
+        {
+          "id": "C",
+          "texto": "La salida estándar queda vacía; la causa va solo a la salida de error y el código de salida la clasifica."
+        },
+        {
+          "id": "D",
+          "texto": "La salida estándar lleva un documento JSON de error distinto del sobre, con su propio esquema y su propia clave de causa."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Contrato de banderas · ejecución simulada",
+      "pregunta": "¿Qué escribe en la salida estándar un applet invocado con `--dry-run` y `--json`? (FR-022, FR-010)",
+      "por_que_importa": "FR-010 obliga a que todo resultado vaya dentro del sobre y FR-022 exige describir la operación sin realizarla y terminar con código 0, pero el sobre no tiene lugar previsto para esa descripción. La respuesta determina si el kernel corta la ejecución antes de llamar al applet o si cada applet interpreta la bandera, y qué esquema emite `--describe` para el caso simulado.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El sobre completo con `ok` verdadero y `data` conteniendo la descripción de la operación que se habría realizado."
+        },
+        {
+          "id": "B",
+          "texto": "El sobre completo con `ok` verdadero y `data` nulo; la descripción de la operación va a la salida de error."
+        },
+        {
+          "id": "C",
+          "texto": "Un documento JSON distinto del sobre, con su propio esquema, que describe la operación planificada."
+        },
+        {
+          "id": "D",
+          "texto": "Nada: la salida estándar queda vacía, la descripción va a la salida de error y el código de salida es 0."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Interacción · banderas mutuamente excluyentes",
+      "pregunta": "¿Qué ocurre cuando se combinan `--json` y `--help`, es decir, cuando se pide salida legible por máquina para una salida que no es el sobre de un applet? (FR-028, FR-026, FR-042)",
+      "por_que_importa": "FR-026 exige ayuda con código 0 y FR-042 exige que con `--json` la salida estándar contenga exactamente un documento JSON y nada más; las dos reglas chocan en esta combinación, que además es uno de los cuatro casos literales del e2e. La respuesta fija el alcance real de FR-042 y de SC-002.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La ayuda se emite como JSON derivado del registro de applets en la salida estándar: `--json` implica siempre JSON en la salida estándar, sin excepción."
+        },
+        {
+          "id": "B",
+          "texto": "La ayuda se emite siempre en texto para personas en la salida estándar y `--json` se ignora en ese caso; FR-042 queda acotado a la salida de applet."
+        },
+        {
+          "id": "C",
+          "texto": "La combinación se rechaza como error de argumentos con código de salida 2."
+        },
+        {
+          "id": "D",
+          "texto": "La ayuda se emite en texto para personas por la salida de error, la salida estándar queda vacía y el código de salida es 0."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
