@@ -77,9 +77,9 @@ test: check-tools
 test-integration: check-tools
 	go test -race -tags=integration ./...
 
-## test-e2e: tests de extremo a extremo (los aporta H1)
-test-e2e:
-	@echo "test-e2e: sin tests e2e todavía; los aporta H1 (testscript)"
+## test-e2e: tests de extremo a extremo con testscript, contra el binario que construye el propio test
+test-e2e: check-tools
+	go test -race ./internal/app/
 
 ## lint: análisis estático completo, gosec incluido
 lint: check-tools

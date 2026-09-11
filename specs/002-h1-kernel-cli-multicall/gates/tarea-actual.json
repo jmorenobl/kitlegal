@@ -1,16 +1,14 @@
 {
-  "id": "T014",
-  "texto": "T014 [datos] [US1] Material de test del hito, bajo `internal/app/testdata/`: paquete `internal/app/testdata/ejemplo/` con los **dos** applets de ejemplo —`echo`, con un único verbo `repetir` marcado por omisión, `data` derivada de sus argumentos, procedencia `kitlegal.echo` / `kitlegal:applet/echo`, sin red y sin tocar disco; y un segundo applet con **dos** verbos y **ninguno** por omisión, de modo que invocarlo sin nombrar verbo termina en código 2—, ambos sin ninguna excepción de lint y sin `os.Exit`, `os.Stdout`, `os.Stderr` ni `fmt.Print*`; `internal/app/testdata/kitlegal-e2e/main.go`, `package main` que es la raíz de composición del binario de e2e —kernel real más el registro de ejemplo, línea por línea el mismo `main()` que el distribuido salvo qué applets se registran—; y los guiones `internal/app/testdata/script/*.txtar` que describen la entrega del hito: `kitlegal echo hola --json` con las seis claves y código 0, el enlace simbólico `echo -> $KITLEGAL_BIN` con salida y código idénticos a los de la invocación con el applet como primer argumento, `--help` con la lista derivada del registro y código 0, código 2 con argumentos malos, `--describe` con esquema válido y código 0, el segundo applet sin verbo con código 2, y que con `--json` y el registro de eventos al máximo detalle la salida estándar contiene **solo** el documento JSON; verificado construyendo el binario a mano con `go build ./internal/app/testdata/kitlegal-e2e` en un temporal y contrastando salida, descriptores y códigos con lo que afirma cada guion (FR-009, SC-001, SC-003, SC-010). Los guiones son **la definición ejecutable de la entrega** que pide el ritual de `docs/ROADMAP.md` §6.1, pero se escriben aquí y no como primera tarea: eso **no cumple** el ritual, lo invierte, y queda registrado como divergencia consciente en la sección homónima de este documento.",
+  "id": "T015",
+  "texto": "T015 [US2] El e2e ejecuta la entrega, y el segundo applet demuestra que no hay código duplicado: `internal/app/e2e_test.go`, cuyo `TestMain` construye el binario con `go build` en un directorio temporal, lo antepone al `PATH`, lo expone al guion en `$KITLEGAL_BIN` y **retorna** en lugar de terminar el proceso —para que el borrado del temporal ocurra y el fichero no necesite ninguna excepción de lint—, y que ejecuta con `testscript.Run` y `RequireExplicitExec` los guiones `.txtar` del material de test del paquete de composición, sin red y sin escribir fuera de su temporal; `internal/app/hereda_test.go` con **`TestAppletHereda`** —el test que el escenario 7 de `quickstart.md` invoca por su nombre y que hasta ahora no escribía ninguna tarea: recorre los **dos** applets de ejemplo y comprueba, sobre los mismos casos para ambos, que cada uno acepta las **ocho** banderas globales sin declarar ninguna, que emite el sobre con las seis claves, que su tabla de códigos de salida es la misma, que responde a `--describe` y a `--help` y que las dos formas de presentación —JSON y tabla mínima— salen idénticas en estructura, **sin que el segundo applet declare nada más que nombre, verbos y contenido de `data`** (SC-010); un `-run` sobre un test inexistente termina en 0, así que la evidencia del escenario 7 depende de que este fichero exista—; y `Makefile` con el objetivo `test-e2e` que deja de anunciar el hito ausente y pasa a ejecutar ese paquete; incorpora `github.com/rogpeppe/go-internal` al módulo con `go get` (FR-055, SC-002, SC-003, SC-009, SC-010).",
   "intento": 1,
-  "datos": true,
-  "base": "456413cc0b71017ed95f4e82800ac73d799587cc",
+  "datos": false,
+  "base": "541658f4ff0cdf291f70c1fe6a3e578cd40c8261",
   "rutas": [
-    "applet/echo",
-    "docs/ROADMAP.md",
-    "internal/app/testdata/",
-    "internal/app/testdata/ejemplo/",
-    "internal/app/testdata/kitlegal-e2e",
-    "internal/app/testdata/kitlegal-e2e/main.go",
-    "internal/app/testdata/script/*.txtar"
+    ".com/rogpeppe/go-internal",
+    "internal/app/e2e_test.go",
+    "internal/app/hereda_test.go",
+    "Makefile",
+    "quickstart.md"
   ]
 }
