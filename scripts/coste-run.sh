@@ -47,9 +47,17 @@ def precio(modelo):
 def ts(s):
     return datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
 
+# Plantillas de fan-out: el modelo es "{{ item.modelo }}" y el rol depende del item.
+# Orden de los items tal y como los genera preparar_jueces en el workflow.
+FAN_OUT_ROLES = {"revision_juez": ["modelo_revisor", "modelo_juez"]}
+
+
 def nombre(step_id):
-    # "ronda_plan:juez_plan:1" → "juez_plan"
-    return [p for p in step_id.split(":") if not p.isdigit()][-1]
+    # "ronda_plan:juez_plan:1" → "juez_plan"; "ronda_revision:revision_jueces:revision_juez:0" → "revision_juez:0"
+    partes = step_id.split(":")
+    if len(partes) >= 2 and partes[-1].isdigit() and partes[-2] in FAN_OUT_ROLES:
+        return f"{partes[-2]}:{partes[-1]}"
+    return [p for p in partes if not p.isdigit()][-1]
 
 # ---- rol de cada paso según la copia congelada del workflow del run
 rol_de = {}
@@ -61,7 +69,12 @@ def walk(steps):
         for k in ("then", "else", "steps"):
             if isinstance(s.get(k), list):
                 walk(s[k])
+        if isinstance(s.get("step"), dict):
+            walk([s["step"]])
 walk(yaml.safe_load(open(os.path.join(run_dir, "workflow.yml")))["steps"])
+for base, roles in FAN_OUT_ROLES.items():
+    for i, rol in enumerate(roles):
+        rol_de[f"{base}:{i}"] = rol
 inputs = json.load(open(os.path.join(run_dir, "inputs.json"))).get("inputs", {})
 
 # ---- intervalos de los pasos que invocan a Claude
@@ -113,11 +126,20 @@ for f in glob.glob(os.path.join(tdir, "*.jsonl")):
                 break
     if not inicio or not headless or inicio < ini_run:
         continue
-    paso = next((n for a, b, n in intervalos if a <= inicio <= b), None)
-    if paso is None:
+    candidatos = [n for a, b, n in intervalos if a <= inicio <= b]
+    if not candidatos:
         continue
     sesion = os.path.splitext(os.path.basename(f))[0]
     mensajes = consumo([f] + glob.glob(os.path.join(tdir, sesion, "**", "*.jsonl"), recursive=True))
+    paso = candidatos[0]
+    if len(candidatos) > 1 and mensajes:
+        # dos pasos a la vez (jueces en paralelo): el que declare la misma familia de modelo que la sesión
+        familia = re.sub(r"^claude-|-[0-9].*$", "", mensajes[-1].get("model", ""))
+        for n in candidatos:
+            valor = str(inputs.get(rol_de.get(n, ""), ""))
+            if re.sub(r"^claude-|@.*$|-[0-9].*$", "", valor) == familia:
+                paso = n
+                break
     fila = filas[paso]
     fila["ses"] += 1
     for m in mensajes:
