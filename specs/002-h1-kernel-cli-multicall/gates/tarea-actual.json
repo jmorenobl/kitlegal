@@ -1,19 +1,11 @@
 {
-  "id": "T017",
-  "texto": "T017 Cobertura de `internal/cli` ≥ 90 %, por el mismo control que ya usa el proyecto: `codecov.yml` con un componente `internal_cli` sobre el árbol del kernel con estado de tipo `project`, objetivo 90 % e `informational: false` —bloqueante, sin exclusiones y sin tocar los umbrales de H0—, y los tests que falten para alcanzarlo en `internal/cli/errors.go`, `internal/cli/preescaneo.go`, `internal/cli/log.go`, `internal/cli/presentador.go`, `internal/cli/globales.go`, `internal/cli/parse.go`, `internal/cli/sobre.go` y `internal/cli/describe.go`, comprobando en local con `go tool cover -func` sobre el perfil que genera `make test` que el paquete llega al umbral; nunca se rebaja el objetivo para que el estado pase (FR-056, SC-004).",
+  "id": "T018",
+  "texto": "T018 [P] Decisiones de arquitectura registradas: `docs/ADR/0005-contrato-de-applet.md` en formato MADR corto con el contrato `Applet`/`Verbo`/`Argumentos`/`Resultado`, el verbo por omisión y el reparto entre kernel, composición, dominio y presentación con la dirección de dependencia que lo hace posible; y `docs/ADR/0006-sobre-de-salida-y-huella.md` con la forma canónica de `data` y el algoritmo de la huella con prefijo de algoritmo, el espacio de nombres reservado `kitlegal.` / `kitlegal:` —anotando la prohibición que nace en H4: ningún adaptador de fuente puede usar ese prefijo ni ese esquema, y la comprobación mecánica se escribe con el primer adaptador— y la forma del sobre de fallo (Definition of Done §1.7, D23, obligación 6 del plan).",
   "intento": 1,
   "datos": false,
-  "base": "5ef7bd88d23fd3d2b353820d07a1e01974c5411b",
+  "base": "0b8606ad1391d80ec3840f4fd41359337050da5b",
   "rutas": [
-    "codecov.yml",
-    "internal/cli",
-    "internal/cli/describe.go",
-    "internal/cli/errors.go",
-    "internal/cli/globales.go",
-    "internal/cli/log.go",
-    "internal/cli/parse.go",
-    "internal/cli/preescaneo.go",
-    "internal/cli/presentador.go",
-    "internal/cli/sobre.go"
+    "docs/ADR/0005-contrato-de-applet.md",
+    "docs/ADR/0006-sobre-de-salida-y-huella.md"
   ]
 }
