@@ -82,7 +82,7 @@ export GOTOOLCHAIN := $(GO_TOOLCHAIN)
 ```
 
 Con eso, **todas** las órdenes de este contrato —incluidas las que operan sobre los módulos de
-herramienta— se ejecutan con `go1.26.6` exacto, en local y en la integración continua. La directiva sola
+herramienta— se ejecutan con `go1.27.1` exacto, en local y en la integración continua. La directiva sola
 no bastaría: con `GOTOOLCHAIN=auto` es un suelo, y una máquina con un parche más nuevo ejecutaría ese. Un
 `GOTOOLCHAIN` con nombre exacto, en cambio, ejecuta ese toolchain sea más nuevo o más viejo que el local, y
 lo descarga y verifica si falta. En la CI el pin prevalece sobre el `GOTOOLCHAIN=local` que exporta
@@ -181,4 +181,4 @@ para el toolchain que fija `GOTOOLCHAIN`: si el `go` local no es ya ese parche y
 descargado, la primera orden lo obtiene —`check-tools` falla con el mensaje del cuadro anterior si eso no
 es posible—, y después queda en la caché de toolchains de Go. Cuando el `go` que se ejecuta **ya es** el
 parche fijado, el go command no descarga nada: es el caso de la integración continua, donde
-`actions/setup-go` instala precisamente go1.26.6, y el del desarrollo local en cuanto el parche coincide.
+`actions/setup-go` instala precisamente go1.27.1, y el del desarrollo local en cuanto el parche coincide.

@@ -73,6 +73,15 @@ SC-003, SC-011, SC-012).
 
 ---
 
+## Phase 6: Correcciones de la revisión final
+
+Tareas que nacen de los motivos de `gates/revision-a.json` y `gates/revision-b.json` (ronda 1). No amplían
+el alcance: corrigen un requisito del spec que la implementación anterior no cumplía.
+
+- [X] T015 [US1] Fijar la versión estable actual de Go (FR-001; motivo [i] del juez B): sustituir en `go.mod` las directivas `go 1.26.0` y `toolchain go1.26.6` que fijó T001 por `go 1.27.0` y `toolchain go1.27.1`, porque go1.27.1 era ya la última estable publicada (2026-08-28) cuando se implementó el hito y la comprobación de T001 se hizo contra el `go` instalado y no contra el proxy de módulos; subir a `go 1.27.1` la directiva `go` de los cuatro módulos de herramienta `tools/golangci-lint/`, `tools/govulncheck/`, `tools/gitleaks/` y `tools/lefthook/`, comprobando con `go mod tidy -diff` en cada uno que sus ficheros de sumas siguen completos; dejar `make ci` en verde con ese toolchain sin tocar ninguna herramienta ni ningún control, y comprobar con `go version -m bin/kitlegal` que el binario lleva go1.27.1; actualizar el número de parche allí donde la documentación del hito y del repositorio lo cita —`specs/001-h0-esqueleto-del-repo/plan.md`, `specs/001-h0-esqueleto-del-repo/research.md` (D1, con la alternativa rechazada de quedarse en go1.26.8 y el procedimiento de comprobación contra el proxy), `specs/001-h0-esqueleto-del-repo/data-model.md`, `specs/001-h0-esqueleto-del-repo/contracts/make-targets.md`, `specs/001-h0-esqueleto-del-repo/quickstart.md`, `specs/001-h0-esqueleto-del-repo/spec.md` (Clarifications, prefijo auto), `CONTRIBUTING.md` y `CHANGELOG.md`— sin reescribir los registros de `gates/`, que documentan lo ejecutado con el parche anterior.
+
+---
+
 ## Dependencias y orden de ejecución
 
 El orden es **estrictamente secuencial y ejecutable**: ninguna tarea depende de una posterior.
@@ -88,6 +97,8 @@ El orden es **estrictamente secuencial y ejecutable**: ninguna tarea depende de 
   (changelog) va después de T010 porque la convención de changelog se declara allí.
 - **T013** valida en local todo lo anterior; **T014** valida lo que solo se puede comprobar en la
   plataforma y cierra el criterio de aceptación literal del hito.
+- **T015** es posterior a la revisión final de la ronda 1 y depende de T001 (sustituye sus directivas de
+  versión); vuelve a dejar `make ci` en verde, que es la batería con la que se verifica.
 
 ### Oportunidades de paralelismo
 
@@ -113,6 +124,7 @@ dependencia y podrían repartirse si alguien las hiciera a mano.
 | Requisitos | Tarea |
 |---|---|
 | FR-001 a FR-011, FR-012 a FR-014, FR-017, FR-037 a FR-042 | T001 |
+| FR-001 (versión estable actual de Go, corrección de la revisión final) | T015 |
 | FR-029 | T002 |
 | FR-022 | T003 |
 | FR-025 | T004 |

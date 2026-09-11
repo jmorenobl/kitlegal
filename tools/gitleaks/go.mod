@@ -1,6 +1,6 @@
 module github.com/jmorenobl/kitlegal/tools/gitleaks
 
-go 1.26.6
+go 1.27.1
 
 tool github.com/zricethezav/gitleaks/v8
 

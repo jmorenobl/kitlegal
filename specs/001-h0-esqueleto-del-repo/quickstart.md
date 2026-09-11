@@ -23,7 +23,7 @@ Nada más. Ni `golangci-lint`, ni `govulncheck`, ni `gitleaks`, ni `lefthook`: l
 desde los módulos pinados en `tools/` la primera vez que se invocan (FR-042 d).
 
 Tampoco hace falta instalar el parche exacto de Go, **ni importa cuál se tenga**, más nuevo o más viejo:
-`go.mod` declara `toolchain go1.26.6` y el `Makefile` exporta `GOTOOLCHAIN` con ese valor, de modo que cada
+`go.mod` declara `toolchain go1.27.1` y el `Makefile` exporta `GOTOOLCHAIN` con ese valor, de modo que cada
 orden se ejecuta con ese parche —el mismo que ejecuta la integración continua— y el go command lo descarga
 y lo verifica solo si falta. Cualquier `go` ≥ 1.21 sirve. `make check-tools` comprueba que `go` y `git`
 están y que el toolchain fijado es obtenible ([research.md D1 y D18](./research.md)).
@@ -167,13 +167,13 @@ el parche que cada quien tenga instalado es indiferente.
 make check-tools                        # pasa
 GOTOOLCHAIN=local make check-tools      # pasa igualmente
 GOTOOLCHAIN=auto  make check-tools      # pasa igualmente
-go version                              # puede ser cualquier go >= 1.21, no tiene que ser go1.26.6
-make build && go version -m bin/kitlegal | head -2   # el binario sí lleva go1.26.6
+go version                              # puede ser cualquier go >= 1.21, no tiene que ser go1.27.1
+make build && go version -m bin/kitlegal | head -2   # el binario sí lleva go1.27.1
 ```
 
 **Esperado**: las tres invocaciones pasan, porque la asignación del `Makefile` prevalece sobre la variable
-heredada del entorno. Que `go version` no diga `go1.26.6` **no** es un fallo: lo que tiene que decir
-`go1.26.6` es el toolchain con el que se construye y se analiza, y eso se lee en el binario producido.
+heredada del entorno. Que `go version` no diga `go1.27.1` **no** es un fallo: lo que tiene que decir
+`go1.27.1` es el toolchain con el que se construye y se analiza, y eso se lee en el binario producido.
 Si alguna de las tres fallara por la versión de Go instalada, el pin no estaría haciendo su trabajo
 ([research.md D1](./research.md)).
 

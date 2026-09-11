@@ -10,7 +10,10 @@ criterio §4 (escalar).
 
 **Las decisiones marcadas «verificado» se comprobaron ejecutando el comando en esta máquina**
 (Go 1.26.6 darwin/arm64, 2026-09-10) en módulos de prueba desechables fuera del repositorio. Las marcadas
-«pendiente de medir» generan una obligación explícita para `tasks.md`.
+«pendiente de medir» generan una obligación explícita para `tasks.md`. Los experimentos de D1 se hicieron
+con los valores de aquel momento (`toolchain go1.26.6`); la corrección del 2026-09-11 (ver D1, «Por qué
+go1.27.1») subió el parche fijado y volvió a ejecutar `make ci` con él, y las conclusiones sobre el
+mecanismo —qué es suelo y qué es pin— no dependen del número concreto.
 
 Cuando lo verificado es el **comportamiento documentado de una herramienta** y no su ejecución, se cita la
 fuente: la documentación oficial (go.dev/doc/toolchain) o el propio código del go command instalado
@@ -19,11 +22,11 @@ memoria sobre el funcionamiento de una herramienta.
 
 ---
 
-## D1 · Versión de Go: `go 1.26.0` + `toolchain go1.26.6`, y el `Makefile` exporta `GOTOOLCHAIN`
+## D1 · Versión de Go: `go 1.27.0` + `toolchain go1.27.1`, y el `Makefile` exporta `GOTOOLCHAIN`
 
 - **Decisión**: dos piezas, no una.
-  1. `go.mod` declara **dos** directivas: `go 1.26.0`, que es el suelo del lenguaje, y
-     `toolchain go1.26.6`, que nombra el parche con el que se compila y se analiza. La directiva es la
+  1. `go.mod` declara **dos** directivas: `go 1.27.0`, que es el suelo del lenguaje, y
+     `toolchain go1.27.1`, que nombra el parche con el que se compila y se analiza. La directiva es la
      **única fuente de verdad** de la versión de Go del proyecto.
   2. El `Makefile` **deriva de esa directiva** el valor de `GOTOOLCHAIN` y lo **exporta** a todas sus
      recetas:
@@ -58,11 +61,11 @@ memoria sobre el funcionamiento de una herramienta.
   (`if gover.Compare(toolVers, minVers) > 0`).
   **Verificado en esta máquina** (go1.26.6 darwin/arm64, módulo desechable con `toolchain go1.26.1` y
   `GOTOOLCHAIN=auto`): `go version` responde `go version go1.26.6 darwin/arm64` — ejecuta el local, **no**
-  el de la directiva. Es decir: en cuanto se publique go1.26.7 y alguien lo instale, su máquina ejecutará
-  go1.26.7 mientras la CI ejecuta go1.26.6, que es exactamente la divergencia que esta decisión existe para
-  cerrar. La premisa anterior —«quien contribuye ejecuta go1.26.6 aunque tenga instalado otro parche, sin
-  hacer nada»— era falsa en esa dirección, y con ella caían el diseño de `check-tools` ([D18](#d18--comprobación-de-prerrequisitos-fr-010))
-  y el escenario 7 de `quickstart.md`.
+  el de la directiva. Es decir: cualquier parche posterior al fijado que alguien instale en su máquina se
+  ejecutaría allí mientras la CI ejecuta el fijado, que es exactamente la divergencia que esta decisión
+  existe para cerrar. La premisa anterior —«quien contribuye ejecuta el parche de la directiva aunque tenga
+  instalado otro, sin hacer nada»— era falsa en esa dirección, y con ella caían el diseño de `check-tools`
+  ([D18](#d18--comprobación-de-prerrequisitos-fr-010)) y el escenario 7 de `quickstart.md`.
 - **Cómo se cumple ahora, con los datos del mecanismo** (no con supuestos):
   - **`GOTOOLCHAIN=<nombre>` sí es un pin exacto, en las dos direcciones.** Documentación oficial:
     «*When `GOTOOLCHAIN` is set to `<name>` (for example, `GOTOOLCHAIN=go1.21.0`), the `go` command always
@@ -86,13 +89,15 @@ memoria sobre el funcionamiento de una herramienta.
     asignación del `Makefile` prevalece sobre el entorno heredado (GNU Make, «Variables from the
     Environment»; solo `make -e` invertiría la precedencia, y no se usa). **Verificado**:
     `GOTOOLCHAIN=local make …` sobre el módulo desechable ejecuta igualmente el toolchain de la directiva.
-    Resultado: la CI ejecuta **go1.26.6** por dos vías concordantes, y si alguna vez discreparan, manda el
-    `Makefile` —que es la superficie única de invocación de los controles—.
+    Resultado: la CI ejecuta **el parche de la directiva** (`go1.27.1`) por dos vías concordantes, y si
+    alguna vez discreparan, manda el `Makefile` —que es la superficie única de invocación de los
+    controles—.
   - **Coste en la CI: ninguno.** Cuando el toolchain pedido coincide con el que ya se está ejecutando,
     `select.go` corta en seco sin descargar nada
     (`if gotoolchain == "local" || gotoolchain == gover.LocalToolchain() { … return }`). Como setup-go
-    instala precisamente go1.26.6, el pin es un no-op. **Verificado**: con Go local 1.26.6 y el pin en
-    `go1.26.6`, la receta no imprime ninguna línea `downloading`.
+    instala precisamente el parche de la directiva, el pin es un no-op. **Verificado** (con los valores
+    del momento): con Go local 1.26.6 y el pin en `go1.26.6`, la receta no imprime ninguna línea
+    `downloading`.
 - **Alternativas rechazadas**:
   - **La directiva `toolchain` sola, sin exportar `GOTOOLCHAIN`** (la decisión de la ronda anterior, aquí
     corregida): cierra la divergencia solo hacia abajo —protege de un Go **más viejo**— y la deja abierta
@@ -100,16 +105,16 @@ memoria sobre el funcionamiento de una herramienta.
     toolchain distinto al de la CI, con `make vuln` capaz de dar veredictos distintos a ambos lados
     (SC-004, FR-042 a). Además obligaba a `check-tools` a comparar cadenas contra un valor que un Go más
     nuevo nunca cumple, con dos remedios que no funcionaban en ese caso (dejar `GOTOOLCHAIN=auto` sigue
-    eligiendo el local más nuevo; instalar go1.26.6 exige degradar la instalación de Go).
-  - **`GOTOOLCHAIN=<nombre>+auto`** (p. ej. `go1.26.6+auto`): parece más tolerante, pero reabre justo la
+    eligiendo el local más nuevo; instalar el parche fijado exige degradar la instalación de Go).
+  - **`GOTOOLCHAIN=<nombre>+auto`** (p. ej. `go1.27.1+auto`): parece más tolerante, pero reabre justo la
     puerta que se quiere cerrar. Con el sufijo `+auto`, `select.go` vuelve a leer los `go.mod` y **sube**
     el toolchain si encuentra una directiva `go` o `toolchain` mayor. Desde el módulo raíz no cambiaría
     nada —el valor sale de su propia directiva—, pero las órdenes que operan sobre los módulos de
     herramientas (`go tool -modfile=tools/<n>/go.mod …`, [D2](#d2--herramientas-de-los-controles-un-módulo-go-por-herramienta-bajo-tools))
     sí podrían subir en silencio si un bump de Dependabot eleva el `go` de una herramienta: los
     analizadores de `golangci-lint` pasarían a compilarse con otro parche sin que nadie se entere. Con el
-    nombre a secas ese caso **falla ruidosamente y con la salida escrita**. **Verificado** (submódulo con
-    `go 1.27.0` y pin `go1.26.6`):
+    nombre a secas ese caso **falla ruidosamente y con la salida escrita**. **Verificado** con los valores
+    del momento (pin `go1.26.6` y un submódulo desechable con una directiva `go` mayor, `go 1.27.0`):
     `go: go.mod requires go >= 1.27.0 (running go 1.26.6; GOTOOLCHAIN=go1.26.6)`, exit ≠ 0. El mensaje
     nombra las dos versiones y la variable, y el arreglo es el commit de una línea sobre la directiva
     `toolchain`. Un fallo accionable es preferible a un cambio silencioso de parche: mismo criterio que en
@@ -119,7 +124,7 @@ memoria sobre el funcionamiento de una herramienta.
     caso de `go env -w` un estado invisible en el control de versiones que además contamina otros
     proyectos. Derivarlo del `Makefile` mantiene una sola fuente de verdad, versionada, y aplica igual en
     los dos lados.
-  - **`go-version: '1.26'` o `'~1.26.0'` con `check-latest: true` en `ci.yml`/`nightly.yml`**, dejando
+  - **`go-version: '1.27'` o `'~1.27.0'` con `check-latest: true` en `ci.yml`/`nightly.yml`**, dejando
     `go.mod` sin `toolchain`: sí resuelve al último parche publicado —es la forma correcta de expresar «el
     último parche» en la acción—, pero mueve la versión de Go fuera del control de versiones del módulo y
     la desacopla de la local, que sigue siendo la que cada quien tenga instalada. Con eso, el parche que
@@ -131,7 +136,7 @@ memoria sobre el funcionamiento de una herramienta.
     llegue sin PR ni revisión. Contradice FR-042 (a).
 - **Coste asumido —que el parche se quede atrás— y cómo se cubre sin depender de nadie**:
   - El detector es `govulncheck`, que ya es un gate: cuando se publique un parche de Go que corrija un
-    fallo de la biblioteca estándar, `make vuln` **empieza a fallar** sobre `toolchain go1.26.6`, tanto en
+    fallo de la biblioteca estándar, `make vuln` **empieza a fallar** sobre el parche fijado, tanto en
     la PR como en el flujo `nightly` sobre `main` (FR-027), que existe precisamente para que un hallazgo
     nuevo aparezca sin esperar a la siguiente propuesta de cambio. El arreglo es subir la directiva
     `toolchain`. El control no se vuelve un adorno: falla ruidosamente y con un hallazgo accionable.
@@ -139,7 +144,7 @@ memoria sobre el funcionamiento de una herramienta.
     quien tuviera ya instalado el parche corregido vería `make vuln` en verde sobre una stdlib que la CI
     no está usando, y el hallazgo solo aparecería en la PR.
   - `CONTRIBUTING.md` documenta el procedimiento «cómo se sube el parche de Go»: cambiar `toolchain` en
-    `go.mod`, ejecutar `make ci`, un commit `chore(deps): go1.26.x`.
+    `go.mod`, ejecutar `make ci`, un commit `chore(deps): go1.27.x`.
   - **Pendiente de verificar en la implementación** (obligación para `tasks.md`, no se asume aquí): si el
     ecosistema `gomod` de Dependabot propone la subida de la directiva `toolchain`. Si la propone, la
     actualización queda además cubierta por FR-028 sin trabajo manual; si no, el mecanismo de detección
@@ -152,14 +157,35 @@ memoria sobre el funcionamiento de una herramienta.
   único que puede fallar es que el toolchain fijado **no se pueda obtener**. La comprobación pasa a ser
   «`go` presente y capaz de cambiar de toolchain, `git` presente, y el toolchain fijado obtenible», y el
   mensaje de fallo es el de esa causa real, no el de una versión local «equivocada» que ya no lo es.
-- **Por qué go1.26.6**: es la versión estable actual (verificado: `go version` → `go1.26.6`); la
+- **Por qué go1.27.1** (corrección del 2026-09-11, ronda de revisión final, motivo [i] del juez B): la
   constitución («Restricciones técnicas») y FR-001 piden «Go estable actual», y *Assumptions* del spec lo
-  interpreta como «la última versión estable publicada en el momento de implementar el hito». Si al
-  implementar hubiera un parche posterior, la directiva `toolchain` toma ese, y el `go` directive sigue en
-  `1.26.0`.
-- **Nota**: `go test` de Go 1.27+ ejecuta `stdversion` por defecto; con el `go` directive en `1.26.0` no hay
-  riesgo de usar API más nueva sin darse cuenta. El suelo del lenguaje y el parche de construcción son dos
-  cosas distintas y por eso son dos directivas distintas.
+  interpreta como «la última versión estable publicada en el momento de implementar el hito». La ronda
+  anterior de este documento fijaba `go1.26.6` porque era el `go` instalado en la máquina —eso es lo que
+  verificaba `go version`—, **no** porque fuera la última publicada: la comprobación correcta es contra el
+  proxy de módulos, no contra la instalación local. Hecha esa comprobación
+  (`go list -m -json golang.org/toolchain@v0.0.1-<versión>.darwin-arm64`, que responde con la fecha de
+  publicación o con `404 Not Found`): go1.27.0 se publicó el 2026-08-18; go1.27.1 y go1.26.8 el
+  2026-08-28; go1.27.2 y go1.26.9 no existen a 2026-09-11. La estable actual es, por tanto, `go1.27.1`, y
+  el hito se implementó (2026-09-10) y se corrigió (2026-09-11) después de su publicación.
+  - **Verificado** que las herramientas fijadas funcionan con Go 1.27: con `toolchain go1.27.1` en `go.mod`
+    y `go 1.27.1` en los cuatro `tools/*/go.mod`, `make ci` termina en verde (`golangci-lint` v2.13.2
+    `0 issues`, `go test -race` ok, `govulncheck` sin hallazgos, `gitleaks` sin fugas, `go mod verify` en
+    los cinco módulos, `go mod tidy -diff` vacío en la raíz y en cada módulo de herramienta) y
+    `go version -m bin/kitlegal` responde `go1.27.1`.
+  - La directiva `go` sube a `1.27.0` por coherencia con la regla de esta decisión —«`go X.Y.0` es el
+    suelo del lenguaje y `toolchain goX.Y.Z` el parche»—: `kitlegal` es un binario, no una biblioteca, y
+    no hay ningún consumidor que necesite compilarlo con Go 1.26. Los `tools/*/go.mod` pasan a `go 1.27.1`,
+    que es lo que `go get -tool` escribiría hoy al crearlos.
+  - **Alternativa rechazada**: quedarse en la rama 1.26 subiendo solo a `go1.26.8`. Habría sido la salida
+    si alguna herramienta fijada no soportara aún Go 1.27; verificado que no es el caso, no hay motivo
+    para fijar un minor que ya no es el estable actual, y hacerlo dejaría FR-001 incumplido con una
+    justificación falsa.
+  - **Alternativa rechazada**: `toolchain go1.27.1` manteniendo `go 1.26.0`. Mantiene el suelo del lenguaje
+    un minor por debajo del parche sin ninguna razón que lo exija, y contradice la propia regla «`go X.Y.0`
+    + `toolchain goX.Y.Z`» de esta decisión.
+- **Nota**: `go test` de Go 1.27+ ejecuta `stdversion` por defecto; con el `go` directive en `1.27.0` el
+  código no puede usar API posterior al suelo declarado sin que el test lo señale. El suelo del lenguaje y
+  el parche de construcción son dos cosas distintas y por eso son dos directivas distintas.
 - **Rastro**: FR-001, FR-010, FR-016, FR-027, FR-042 (a) y (d), SC-004, *Assumptions* del spec,
   constitución «Restricciones técnicas».
 
@@ -447,7 +473,7 @@ herramienta; después el `-diff` sale vacío. Es un paso de la tarea de creació
   `checkout` → `setup-go` (con `go-version-file: go.mod` y caché; **sin** `go-version` ni `check-latest`,
   porque la versión sale de la directiva `toolchain` del `go.mod` y el parche efectivo lo fija el
   `GOTOOLCHAIN` que exporta el `Makefile`,
-  [D1](#d1--versión-de-go-go-1260--toolchain-go1266-y-el-makefile-exporta-gotoolchain))
+  [D1](#d1--versión-de-go-go-1270--toolchain-go1271-y-el-makefile-exporta-gotoolchain))
   → `actions/cache` de `GOCACHE` +
   `GOMODCACHE` con clave derivada de `tools/*/go.sum` → **`make ci`** → subida del perfil de cobertura.
   Ningún paso aplica un control por su cuenta.
@@ -573,7 +599,7 @@ el objeto y el hito:
 - **Decisión**: una orden `check-tools` del `Makefile`, de la que dependen las órdenes reales, comprueba
   **tres** cosas y nada más, porque tras [D2](#d2--herramientas-de-los-controles-un-módulo-go-por-herramienta-bajo-tools)
   no hay más prerrequisitos externos —las cuatro herramientas las construye `go tool`— y tras
-  [D1](#d1--versión-de-go-go-1260--toolchain-go1266-y-el-makefile-exporta-gotoolchain) el parche de Go lo
+  [D1](#d1--versión-de-go-go-1270--toolchain-go1271-y-el-makefile-exporta-gotoolchain) el parche de Go lo
   fija la propia orden:
 
   | # | Comprobación | Cómo | Si falla |
@@ -602,7 +628,7 @@ el objeto y el hito:
   se cumple en su letra («presencia **y versión**»): la presencia se comprueba con 1 y 2, y la versión con
   3, que es donde ahora vive de verdad.
 - **El entorno no puede debilitar el pin**: una asignación del `Makefile` prevalece sobre la variable
-  heredada del entorno (verificado con `GOTOOLCHAIN=local make …`, [D1](#d1--versión-de-go-go-1260--toolchain-go1266-y-el-makefile-exporta-gotoolchain)),
+  heredada del entorno (verificado con `GOTOOLCHAIN=local make …`, [D1](#d1--versión-de-go-go-1270--toolchain-go1271-y-el-makefile-exporta-gotoolchain)),
   así que `GOTOOLCHAIN=local` en la sesión de alguien —o el que exporta `actions/setup-go` en el job— ya no
   es un modo de fallo. Sí queda una palanca deliberada para probar la orden: `make … GO_TOOLCHAIN=<otro>`,
   porque una asignación en la línea de órdenes de `make` tiene precedencia sobre el fichero. Es la que usa
@@ -623,7 +649,7 @@ el objeto y el hito:
 - **Alcance del análisis**: `govulncheck` evalúa el código del módulo, sus dependencias **y la biblioteca
   estándar del toolchain en uso**. De ahí que el parche de Go tenga que ser el mismo en local y en la CI
   —y que no baste la directiva `toolchain`, que es solo un suelo: lo fija el `GOTOOLCHAIN` que exporta el
-  `Makefile` ([D1](#d1--versión-de-go-go-1260--toolchain-go1266-y-el-makefile-exporta-gotoolchain))— y que este control sea, además, el detector de un
+  `Makefile` ([D1](#d1--versión-de-go-go-1270--toolchain-go1271-y-el-makefile-exporta-gotoolchain))— y que este control sea, además, el detector de un
   `toolchain` que se ha quedado atrás: un parche de seguridad de la stdlib se manifiesta como un hallazgo
   en `make vuln`, en la PR y en el flujo `nightly`.
 - **Rastro**: FR-016, FR-027, SC-004, «Edge Cases» del spec.

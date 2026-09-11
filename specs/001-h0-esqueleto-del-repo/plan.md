@@ -33,8 +33,9 @@ Todo el código Go del hito vive en `cmd/kitlegal/` (`main.go` + `main_test.go`)
 
 ## Technical Context
 
-**Language/Version**: Go 1.26. `go.mod` lleva **dos** directivas: `go 1.26.0` (suelo del lenguaje) y
-`toolchain go1.26.6` (el parche con el que se compila y se analiza; estable actual verificada), y es la
+**Language/Version**: Go 1.27. `go.mod` lleva **dos** directivas: `go 1.27.0` (suelo del lenguaje) y
+`toolchain go1.27.1` (el parche con el que se compila y se analiza; estable actual verificada contra el
+proxy de módulos el 2026-09-11: go1.27.1 publicado el 2026-08-28, go1.27.2 inexistente), y es la
 única fuente de verdad de la versión de Go. La directiva **por sí sola no fija el parche**: con
 `GOTOOLCHAIN=auto` es un suelo, y una máquina con un parche más nuevo ejecutaría ese (verificado). Por eso
 el **`Makefile` deriva de la directiva el valor de `GOTOOLCHAIN` y lo exporta a todas sus recetas**
@@ -43,9 +44,19 @@ el **`Makefile` deriva de la directiva el valor de `GOTOOLCHAIN` y lo exporta a 
 command obtiene solo si falta. Como una asignación del `Makefile` prevalece sobre el entorno heredado, el
 pin manda también en la CI, por encima del `GOTOOLCHAIN=local` que exporta `actions/setup-go` (verificado);
 la acción sigue instalando Go con `go-version-file: go.mod` y **sin** `go-version` ni `check-latest`, con
-lo que instala ya go1.26.6 y el pin no cuesta ninguna descarga. Resultado: local y CI ejecutan el mismo
+lo que instala ya go1.27.1 y el pin no cuesta ninguna descarga. Resultado: local y CI ejecutan el mismo
 parche y `make vuln` —que analiza también la biblioteca estándar del toolchain— da el mismo veredicto a
 ambos lados (SC-004, FR-042 a). Ver [research.md D1](./research.md).
+
+**Corrección de la revisión final (2026-09-11, motivo [i] del juez B)**: la primera versión de este plan
+fijaba `go 1.26.0` + `toolchain go1.26.6` y lo daba por «estable actual verificada» cuando lo verificado
+era solo el `go` instalado en la máquina; en el momento de implementar (2026-09-10) ya estaba publicada
+go1.27.1. Se sube la directiva `toolchain` a `go1.27.1`, la directiva `go` a `1.27.0` y los cuatro
+`tools/*/go.mod` a `go 1.27.1`, y se deja `make ci` en verde con ese toolchain (todas las herramientas
+fijadas soportan Go 1.27, verificado). Alternativas rechazadas —quedarse en `go1.26.8`, o subir solo
+`toolchain` dejando `go 1.26.0`— y motivo en [research.md D1](./research.md), «Por qué go1.27.1». La
+comprobación de «estable actual» contra el proxy de módulos, y no contra `go version`, es el
+procedimiento que se deja escrito allí para la próxima vez.
 
 **Primary Dependencies**: **ninguna en el módulo del producto.** El punto de entrada usa solo la
 biblioteca estándar (`os`, `io`, `fmt`) y los tests solo `testing`. Kong (`alecthomas/kong`) es alcance de
@@ -162,7 +173,7 @@ specs/001-h0-esqueleto-del-repo/
 ### Source Code (repository root)
 
 ```text
-go.mod                          módulo github.com/jmorenobl/kitlegal, go 1.26.0 + toolchain go1.26.6,
+go.mod                          módulo github.com/jmorenobl/kitlegal, go 1.27.0 + toolchain go1.27.1,
                                 sin dependencias (no hay go.sum en la raíz: no hay dependencias que
                                 sumar — ver D5; el porqué de las dos directivas, en D1). Única fuente
                                 de verdad de la versión de Go: el Makefile lee de aquí el GOTOOLCHAIN

@@ -181,9 +181,9 @@ La versión de Go es una entidad de configuración más, con tres campos: dos qu
 
 | Campo | Dónde vive | Valor en H0 | Qué significa |
 |---|---|---|---|
-| directiva `go` | `go.mod` | `1.26.0` | Suelo del lenguaje: la API y las reglas de compilación que el código puede usar |
-| directiva `toolchain` | `go.mod` | `go1.26.6` | Parche declarado. **Es un suelo, no un pin**: con `GOTOOLCHAIN=auto` un Go local más nuevo se impone a la directiva ([research.md D1](./research.md), verificado) |
-| `GOTOOLCHAIN` | exportado por el `Makefile`, derivado de la directiva `toolchain` | `go1.26.6` | Parche **efectivo**: el que compila, testea y analiza, idéntico en local y en la integración continua |
+| directiva `go` | `go.mod` | `1.27.0` | Suelo del lenguaje: la API y las reglas de compilación que el código puede usar |
+| directiva `toolchain` | `go.mod` | `go1.27.1` | Parche declarado (la estable actual, verificada contra el proxy de módulos el 2026-09-11). **Es un suelo, no un pin**: con `GOTOOLCHAIN=auto` un Go local más nuevo se impone a la directiva ([research.md D1](./research.md), verificado) |
+| `GOTOOLCHAIN` | exportado por el `Makefile`, derivado de la directiva `toolchain` | `go1.27.1` | Parche **efectivo**: el que compila, testea y analiza, idéntico en local y en la integración continua |
 
 La derivación es `GO_TOOLCHAIN := $(shell awk '$$1 == "toolchain" { print $$2; exit }' go.mod)` seguida de
 `export GOTOOLCHAIN := $(GO_TOOLCHAIN)`. Hay **una sola fuente de verdad** —la directiva— y el `Makefile`
@@ -220,7 +220,7 @@ real.
 
 | Artefacto | Requisito |
 |---|---|
-| `go.mod` (directivas `go 1.26.0` y `toolchain go1.26.6`, §7) | FR-001, FR-042 (a) |
+| `go.mod` (directivas `go 1.27.0` y `toolchain go1.27.1`, §7) | FR-001, FR-042 (a) |
 | `Makefile` → `export GOTOOLCHAIN` derivado de la directiva `toolchain` (§7, R7.2) | FR-001, FR-042 (a) |
 | `cmd/kitlegal/main.go` | FR-002, FR-003, FR-004 |
 | `cmd/kitlegal/main_test.go` | FR-040 |

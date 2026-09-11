@@ -62,7 +62,7 @@ corto). Un cambio de comportamiento visible añade su entrada en `CHANGELOG.md`.
   explique la migración.
 - El cuerpo del mensaje explica el **porqué**, no el qué: el qué ya está en el diff.
 
-Ejemplos del propio repositorio: `feat(H0): T009`, `chore(deps): go1.26.7`, `docs(adr): 0002 sqlite sin cgo`.
+Ejemplos del propio repositorio: `feat(H0): T009`, `chore(deps): go1.27.1`, `docs(adr): 0002 sqlite sin cgo`.
 
 Como los hitos se integran con *squash-merge*, el mensaje que acaba en `main` es el título de la
 propuesta de cambio: también tiene que cumplir la convención.
@@ -235,11 +235,11 @@ la siguiente propuesta—. El arreglo no es rebajar el control, es subir el parc
 Procedimiento manual, cuatro pasos:
 
 1. Editar **solo** la directiva `toolchain` de `go.mod`, al parche que corrige el hallazgo
-   (`toolchain go1.26.7`). El `Makefile` no se toca: no repite el número. La directiva `go` se queda como
+   (`toolchain go1.27.2`). El `Makefile` no se toca: no repite el número. La directiva `go` se queda como
    está —marca la versión mínima del lenguaje, no el parche—.
 2. `make ci`. Tiene que quedar en verde, y `vuln` en particular: si el hallazgo persiste, el parche
    elegido no lo corrige.
-3. Commit de una línea: `chore(deps): go1.26.7`, con el identificador de la vulnerabilidad en el cuerpo.
+3. Commit de una línea: `chore(deps): go1.27.2`, con el identificador de la vulnerabilidad en el cuerpo.
 4. Propuesta de cambio como cualquier otra. La subida de parche es un cambio versionado y revisable, no
    una actualización silenciosa.
 

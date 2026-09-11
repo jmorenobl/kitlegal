@@ -36,9 +36,10 @@ Go que entre después atraviese los mismos gates.
   dependencia de las demás órdenes.
 - **Cadena de herramientas reproducible y sin instalación previa**: los cuatro controles con binario
   propio —`golangci-lint`, `govulncheck`, `gitleaks` y `lefthook`— se construyen solos desde la versión
-  fijada en `tools/<herramienta>/go.mod`, y `go.mod` declara la directiva `toolchain` que el `Makefile`
-  exporta como `GOTOOLCHAIN`, de modo que todas las órdenes usan el mismo parche de Go que la integración
-  continua. Los dos únicos prerrequisitos son una cadena Go 1.21 o superior y `git`.
+  fijada en `tools/<herramienta>/go.mod`, y `go.mod` declara la directiva `toolchain` (`go1.27.1`, la
+  estable actual al cerrar el hito) que el `Makefile` exporta como `GOTOOLCHAIN`, de modo que todas las
+  órdenes usan el mismo parche de Go que la integración continua. Los dos únicos prerrequisitos son una
+  cadena Go 1.21 o superior y `git`.
 - **Ganchos de pre-commit** (`make hooks`, con `lefthook`): cada commit corrige el formato y vuelve a
   preparar lo corregido, y ejecuta `lint-fast`, `secrets` y `mod-tidy-check`. Es un subconjunto rápido, no
   el veredicto: la autoridad final sigue siendo la integración continua.
