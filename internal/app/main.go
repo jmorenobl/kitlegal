@@ -7,8 +7,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"reflect"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
@@ -72,6 +74,8 @@ func Main(
 	stdout, stderr io.Writer,
 	version, commit, fecha string,
 ) int {
+	desarmarTuberiaCerrada()
+
 	presentador := render.Nuevo(stdout, stderr)
 	previo := cli.PreEscanear(argumentosDe(argv))
 
@@ -91,6 +95,27 @@ func Main(
 	var montador cli.Montador
 
 	return montador.Emitir(presentador, fin.enJSON, fin.resultado, fin.err)
+}
+
+// desarmarTuberiaCerrada hace que escribir en una tubería cuyo lector ha
+// terminado —«kitlegal … | head -1»— sea un error corriente y no la muerte del
+// proceso.
+//
+// Sin esto, el runtime de Go termina el proceso con SIGPIPE en cuanto una
+// escritura en el descriptor 1 o 2 falla con EPIPE (os/signal, «SIGPIPE»): sin
+// código de salida, sin mensaje y sin pasar por la traducción única, de modo que
+// la propagación del presentador y el código 1 que promete el contrato nunca
+// llegarían a ejecutarse. Con la señal ignorada, la escritura devuelve EPIPE y
+// sube como cualquier otro fallo de escritura (FR-031, FR-033,
+// contracts/banderas-y-exit-codes.md §4, research.md D15).
+//
+// Vive aquí y no en cada `package main` porque la garantía es del kernel y no
+// de un binario concreto: todo ejecutable que compone el kernel —el distribuido
+// y el del e2e— la hereda por llamar a Main, sin poder olvidarla. Ignorar la
+// señal es idempotente y no toca nada más del proceso, que es lo que permite
+// que los tests llamen a Main tantas veces como quieran en el mismo proceso.
+func desarmarTuberiaCerrada() {
+	signal.Ignore(syscall.SIGPIPE)
 }
 
 // desenlace es en qué queda una invocación una vez resuelta y antes de
