@@ -15,3 +15,7 @@ coverage.*
 
 # Logs de verificación del workflow (se regeneran en cada tarea)
 specs/*/gates/ci.log
+
+# Caché regenerable de spec-kit y worktrees de agente (nunca se versionan)
+.specify/integrations/.cache/
+.claude/worktrees/
