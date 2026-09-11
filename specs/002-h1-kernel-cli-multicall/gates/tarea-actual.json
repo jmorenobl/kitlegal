@@ -1,18 +1,13 @@
 {
-  "id": "T008",
-  "texto": "T008 [US1] El presentador, único escritor de los dos descriptores: `internal/render/render.go` con `Nuevo(stdout, stderr)`, la implementación de la interfaz que consume el kernel y la regla de que **toda** escritura comprueba y propaga su error (incluido el vaciado final); `internal/render/json.go` con el sobre serializado sin escapar caracteres HTML, con salto de línea final y **nada más** en la salida estándar; `internal/render/tabla.go` con la tabla mínima —las cuatro líneas de procedencia `fuente`, `url`, `fecha_consulta` y `hash` seguidas del contenido de `data` aplanado a pares ruta/valor, donde la ruta concatena claves e índices con `.`—; `internal/render/texto.go` con el texto para personas: las tres líneas de `version` y la ayuda derivada del registro en la salida estándar, y los avisos —mensaje de un fallo, lista de applets disponibles y descripción de `--dry-run`— en la salida de error, sin pasar por el registro de eventos y por tanto sin que ningún nivel pueda ocultarlos; y los tests `internal/render/render_test.go`, `internal/render/json_test.go`, `internal/render/tabla_test.go` y `internal/render/texto_test.go`, incluido `TestEscrituraFallida` con un `io.Writer` que siempre devuelve error, que comprueba que el fallo se propaga, que no se intenta un segundo sobre por el descriptor roto y que no hay pánico (FR-040 … FR-044, SC-011).",
+  "id": "T009",
+  "texto": "T009 [US2] Contrato del applet y registro: `internal/app/applet.go` con las interfaces `Applet` (`Nombre`, `Descripcion`, `Verbos`) y `Argumentos` (`Ejecutar(ctx, schema.Contexto, *slog.Logger) (schema.Resultado, error)`) y el struct `Verbo` (`Nombre`, `Descripcion`, `Argumentos` como **fábrica** que devuelve un valor nuevo en cada invocación, `Salida` como valor cero solo para reflexión y `PorOmision`); `internal/app/registro.go` con `Registrar`, `Buscar`, `Nombres` ordenados y `RegistroDeProduccion()` **vacío** —el primer applet de producto llega en H4—, rechazando **al construirse** un nombre vacío, con espacios, con prefijo `-`, duplicado o igual a un verbo reservado del binario (`version`), un applet sin verbos, con nombres de verbo repetidos o con **más de un** verbo marcado por omisión, y convirtiendo la raíz de composición ese error en fallo de arranque y nunca en código de salida de usuario; y `internal/app/registro_test.go` con la tabla de las **ocho causas de rechazo** que recogen las cinco reglas de validación de `contracts/registro-y-describe.md` §1 —nombre vacío, con espacios, con prefijo `-`, duplicado, igual a un verbo reservado, applet sin verbos, verbos repetidos y dos verbos por omisión— y la comprobación de que el registro de producción está vacío (FR-001, FR-008, FR-009 parcial, FR-044, SC-010 parcial, SC-012 parcial).",
   "intento": 1,
   "datos": false,
-  "base": "3ae7549d3c6775cd2e757b8fad1a2d2dca81aceb",
+  "base": "482bc88b04087d08838e1c2f1ce9d172121ddb86",
   "rutas": [
-    "internal/render/json_test.go",
-    "internal/render/json.go",
-    "internal/render/render_test.go",
-    "internal/render/render.go",
-    "internal/render/tabla_test.go",
-    "internal/render/tabla.go",
-    "internal/render/texto_test.go",
-    "internal/render/texto.go",
-    "ruta/valor"
+    "contracts/registro-y-describe.md",
+    "internal/app/applet.go",
+    "internal/app/registro_test.go",
+    "internal/app/registro.go"
   ]
 }
