@@ -1,0 +1,41 @@
+# El segundo applet de ejemplo declara **dos** verbos y **ninguno** por omisión,
+# de modo que nombrar el verbo es obligatorio: invocarlo sin nombrarlo es un
+# error de argumentos, código 2, con la lista de sus verbos en la salida de
+# error (contracts/registro-y-describe.md §2 bis, research.md D26).
+#
+# Sin esta rama, la regla del verbo por omisión no tendría prueba: `echo` solo
+# ejerce la contraria.
+
+exec sh -c 'kitlegal contar hola; test $? -eq 2'
+! stdout .
+stderr 'el applet "contar" no declara ningún verbo por omisión'
+stderr 'verbos de contar: letras, palabras'
+
+# Nombrado el verbo, el applet funciona y hereda del kernel el sobre, la huella,
+# la fecha de consulta y las dos formas de presentación sin declarar ninguna de
+# las ocho banderas globales (SC-010).
+exec $KITLEGAL_BIN contar letras hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.contar","url":"kitlegal:applet/contar","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"texto":"hola","total":4\}\}\n\z'
+! stderr .
+
+# El otro verbo del mismo applet, con un argumento que lleva espacios.
+exec $KITLEGAL_BIN contar palabras 'hola mundo' --json
+stdout '"data":\{"texto":"hola mundo","total":2\}\}\n\z'
+! stderr .
+
+# Y las letras se cuentan en runas y no en octetos: «canción» son siete.
+exec $KITLEGAL_BIN contar letras canción --json
+stdout '"total":7\}\}\n\z'
+
+# Las ocho banderas globales, sobre este applet y con idéntica sintaxis, sin que
+# declare ninguna (US4, SC-010).
+exec $KITLEGAL_BIN contar letras hola --json --timeout 5s --offline --no-graph --asunto demo --verbose
+stdout '\A\{"ok":true,.*"total":4\}\}\n\z'
+
+# --dry-run no ejecuta nada: la salida estándar queda vacía **también con
+# --json**, la descripción va a la de error y el código es 0 (FR-022).
+exec $KITLEGAL_BIN contar letras hola --dry-run --json
+! stdout .
+stderr '--dry-run: no se ha ejecutado nada'
+stderr 'el applet "contar"'
+stderr 'el verbo "letras"'

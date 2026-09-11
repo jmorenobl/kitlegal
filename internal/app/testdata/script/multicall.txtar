@@ -1,0 +1,45 @@
+# Un binario, muchos nombres: el enlace simbólico produce la misma salida
+# estándar, la misma salida de error y el mismo código de salida que la
+# invocación con el applet como primer argumento (US2, SC-003, FR-002, FR-007).
+#
+# El enlace es real y apunta al binario real, que es la única forma de ejercer
+# el despacho del kernel: un despacho simulado por el arnés de pruebas probaría
+# el arnés (research.md D20).
+
+symlink echo -> $KITLEGAL_BIN
+symlink kitlegal -> $KITLEGAL_BIN
+symlink kitlegal-dev -> $KITLEGAL_BIN
+
+# Las dos invocaciones se comprueban contra el **mismo** patrón, huella incluida:
+# lo único que pueden no compartir es el instante de la consulta.
+exec ./echo hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo","url":"kitlegal:applet/echo","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"mensaje":"hola"\}\}\n\z'
+! stderr .
+
+exec ./kitlegal echo hola --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.echo","url":"kitlegal:applet/echo","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"mensaje":"hola"\}\}\n\z'
+! stderr .
+
+# Con el nombre de invocación registrado, los argumentos se entregan **íntegros**
+# al applet: «./echo boe» ejecuta `echo` con el argumento «boe», y no el applet
+# `boe` (FR-004).
+exec ./echo boe --json
+stdout '"data":\{"mensaje":"boe"\}\}\n\z'
+
+# Un nombre de enlace que no es de ningún applet no inutiliza el binario: se
+# comporta como si se hubiera invocado por su nombre propio (FR-005).
+exec ./kitlegal-dev echo hola --json
+stdout '"data":\{"mensaje":"hola"\}\}\n\z'
+
+# La ayuda de un applet no depende del nombre con el que se invocó al binario,
+# así que aquí la identidad se comprueba byte a byte y no por patrón: es el
+# texto completo el que tiene que coincidir (FR-007, SC-003).
+exec ./echo --help
+cp stdout ayuda-por-enlace.txt
+! stderr .
+
+exec ./kitlegal echo --help
+cp stdout ayuda-por-argumento.txt
+! stderr .
+
+cmp ayuda-por-enlace.txt ayuda-por-argumento.txt

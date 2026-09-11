@@ -1,0 +1,42 @@
+# Una invocación mal escrita termina con el código 2 y dice qué está mal: el
+# mensaje para la persona en la salida de error y, cuando se pidió la forma
+# legible por máquina, el sobre de fallo de seis claves en la estándar
+# (FR-006, FR-027, FR-045, contracts/sobre-de-salida.md §5).
+#
+# testscript no sabe comprobar un código de salida **concreto**: sus órdenes
+# solo distinguen el éxito del fallo. Los códigos exactos —que son contrato
+# estable del proyecto y no un detalle— se comprueban con el intérprete de
+# órdenes, que sí sabe leerlos. Dentro de las comillas simples no hay expansión
+# de variables, así que el binario se nombra por el PATH, donde el e2e antepone
+# el que acaba de construir.
+
+# Bandera desconocida. El pre-escaneo ya ha visto --json, así que el fallo sale
+# también en su forma legible por máquina aunque el análisis no llegara a
+# terminar (research.md D25).
+exec sh -c 'kitlegal echo hola --jsno --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'argumentos inválidos'
+
+# Applet que nadie registró: el mensaje lo nombra y enumera los que existen.
+exec sh -c 'kitlegal noexiste; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos: "noexiste" no es ningún applet de kitlegal'
+stderr 'applets disponibles: contar, echo'
+
+# Sin ningún applet que resolver, la misma lista y el mismo código.
+exec sh -c 'kitlegal; test $? -eq 2'
+! stdout .
+stderr 'no se ha indicado ningún applet'
+stderr 'applets disponibles: contar, echo'
+
+# Valor con formato inválido. Sin --json, un fallo no lleva sobre: la salida
+# estándar queda **vacía** y el mensaje va solo a la de error.
+exec sh -c 'kitlegal echo hola --timeout abc; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos'
+
+# Y un plazo que no describe ninguna operación posible tampoco es una operación
+# que vence en el acto: es una invocación que hay que corregir.
+exec sh -c 'kitlegal echo hola --timeout 0s; test $? -eq 2'
+! stdout .
+stderr '--timeout espera una duración positiva'

@@ -1,0 +1,44 @@
+# El applet se describe a sí mismo: --describe emite un esquema JSON del
+# borrador 2020-12 con la entrada y la salida del verbo, y termina con código 0
+# **sin ejecutar nada** —describirse y actuar son excluyentes— (US5, SC-007,
+# FR-046, FR-047, FR-049).
+#
+# La invocación lleva «hola» y no nombra verbo, así que lo que se describe es el
+# verbo por omisión: la autodescripción se refiere siempre a un verbo concreto.
+
+exec $KITLEGAL_BIN echo hola --describe
+stdout '\A\{\n'
+stdout '"\$schema": "https://json-schema\.org/draft/2020-12/schema"'
+stdout '"title": "echo repetir"'
+stdout '"entrada":'
+stdout '"salida":'
+! stderr .
+
+# La entrada son los argumentos del verbo **más** las ocho banderas globales,
+# que el applet hereda sin declarar ninguna (FR-018, SC-010).
+stdout '"mensaje":'
+stdout '"timeout":'
+stdout '"no-graph":'
+stdout '"asunto":'
+
+# La salida es el sobre entero con `data` condicionado a `ok`: el contenido del
+# applet cuando la operación fue bien y la forma común de error del kernel
+# cuando no, que es lo que hace que una ejecución fallida valide contra el
+# esquema que ese mismo applet emite (FR-047, SC-015).
+stdout '"fecha_consulta":'
+stdout '"if":'
+stdout '"then":'
+stdout '"else":'
+stdout '"clase":'
+
+# Y no se ha ejecutado nada: lo que hay en la salida estándar es el esquema y no
+# un sobre, así que no aparece ninguna huella calculada.
+! stdout 'sha256:[0-9a-f]{64}'
+
+# El segundo applet se describe igual sin declarar nada más que su nombre, sus
+# verbos y el contenido de su `data`, y describe el verbo **nombrado**.
+exec $KITLEGAL_BIN contar palabras --describe
+stdout '"title": "contar palabras"'
+stdout '"texto":'
+stdout '"total":'
+! stderr .

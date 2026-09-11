@@ -1,11 +1,16 @@
 {
-  "id": "T013",
-  "texto": "T013 [US6] Los applets de ejemplo pasan el mismo listón que el resto del código: `Makefile` con la variable `TESTDATA_PKGS` **derivada con `wildcard`** de los subdirectorios de `internal/app/testdata` que contienen ficheros Go —misma convención que `TOOL_MODULES` de H0, de modo que la orden queda en verde tanto ahora, cuando no existe ninguno, como después, sin volver a tocar el fichero— y añadida explícitamente a los objetivos `lint`, `fmt` y `fmt-check`, porque los comodines de Go no descienden a ese directorio y sin enumerarlos el código que copiará cada applet posterior sería el único que no pasa el listón (FR-050 parcial, D19, obligación 2 del plan).",
+  "id": "T014",
+  "texto": "T014 [datos] [US1] Material de test del hito, bajo `internal/app/testdata/`: paquete `internal/app/testdata/ejemplo/` con los **dos** applets de ejemplo —`echo`, con un único verbo `repetir` marcado por omisión, `data` derivada de sus argumentos, procedencia `kitlegal.echo` / `kitlegal:applet/echo`, sin red y sin tocar disco; y un segundo applet con **dos** verbos y **ninguno** por omisión, de modo que invocarlo sin nombrar verbo termina en código 2—, ambos sin ninguna excepción de lint y sin `os.Exit`, `os.Stdout`, `os.Stderr` ni `fmt.Print*`; `internal/app/testdata/kitlegal-e2e/main.go`, `package main` que es la raíz de composición del binario de e2e —kernel real más el registro de ejemplo, línea por línea el mismo `main()` que el distribuido salvo qué applets se registran—; y los guiones `internal/app/testdata/script/*.txtar` que describen la entrega del hito: `kitlegal echo hola --json` con las seis claves y código 0, el enlace simbólico `echo -> $KITLEGAL_BIN` con salida y código idénticos a los de la invocación con el applet como primer argumento, `--help` con la lista derivada del registro y código 0, código 2 con argumentos malos, `--describe` con esquema válido y código 0, el segundo applet sin verbo con código 2, y que con `--json` y el registro de eventos al máximo detalle la salida estándar contiene **solo** el documento JSON; verificado construyendo el binario a mano con `go build ./internal/app/testdata/kitlegal-e2e` en un temporal y contrastando salida, descriptores y códigos con lo que afirma cada guion (FR-009, SC-001, SC-003, SC-010). Los guiones son **la definición ejecutable de la entrega** que pide el ritual de `docs/ROADMAP.md` §6.1, pero se escriben aquí y no como primera tarea: eso **no cumple** el ritual, lo invierte, y queda registrado como divergencia consciente en la sección homónima de este documento.",
   "intento": 1,
-  "datos": false,
-  "base": "173c7273ad2d0f94b17e3822df2fb978563d8a35",
+  "datos": true,
+  "base": "456413cc0b71017ed95f4e82800ac73d799587cc",
   "rutas": [
-    "internal/app/testdata",
-    "Makefile"
+    "applet/echo",
+    "docs/ROADMAP.md",
+    "internal/app/testdata/",
+    "internal/app/testdata/ejemplo/",
+    "internal/app/testdata/kitlegal-e2e",
+    "internal/app/testdata/kitlegal-e2e/main.go",
+    "internal/app/testdata/script/*.txtar"
   ]
 }
