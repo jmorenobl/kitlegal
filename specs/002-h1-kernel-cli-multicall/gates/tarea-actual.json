@@ -1,9 +1,9 @@
 {
   "id": "T021",
   "texto": "T021 Evidencia en la propuesta de cambio: comprobar que el estado de cobertura del componente `internal_cli` aparece y **bloquea**, igual que se hizo con el del dominio en H0 —si no apareciera, la causa es la configuración de la plataforma de cobertura, nunca el umbral—, que el flujo de integración continua termina en verde con todos los controles de H0 más los que añade H1 y sin exclusiones nuevas sin justificar, y registrar el resultado, la duración del flujo y el enlace a la propuesta en `specs/002-h1-kernel-cli-multicall/gates/pr-h1.md` (SC-004, SC-013, FR-057, obligación 5 del plan).",
-  "intento": 1,
+  "intento": 2,
   "datos": false,
-  "base": "75210ab6ad6db57f99cb9584c922329a3aa8919b",
+  "base": "c2a6d636c3cba770de1dbf61dfb5f47358335651",
   "rutas": [
     "specs/002-h1-kernel-cli-multicall/gates/pr-h1.md"
   ]
