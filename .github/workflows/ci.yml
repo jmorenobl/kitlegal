@@ -33,7 +33,7 @@ jobs:
       # go-version ni check-latest: introducirían una segunda fuente de verdad
       # sobre el parche que compila, testea y analiza (R5.6, R7.4).
       - name: Instalar Go y restaurar la caché
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           # La caché de la acción cubre GOMODCACHE y GOCACHE, es decir las
