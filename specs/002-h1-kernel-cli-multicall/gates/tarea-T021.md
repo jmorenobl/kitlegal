@@ -1,3 +1,18 @@
+# T021 · resuelta el 2026-09-11 — lo que sigue queda solo como historia
+
+**Estado actual de la tarea**: `[X]`. El registro válido es [`gates/pr-h1.md`](./pr-h1.md); lo que viene
+debajo de este apartado **ya no describe el estado del hito**.
+
+Los intentos 1 a 3 (desatendidos) no pudieron hacer nada porque la rama no estaba en el remoto. El intento 4 se
+hizo en una sesión interactiva, después de que la persona subiera la rama y abriera [#9](https://github.com/jmorenobl/kitlegal/pull/9).
+Confirmó el riesgo que había detectado el intento 3, pero **la causa era otra**: en #9,
+`codecov/project/internal/cli` salió `SUCCESS` con «No coverage information found on base report». No era un
+fallo de rutas: Codecov no evalúa el objetivo de un componente cuando la base, filtrada por sus `paths`, no
+tiene cobertura, y `main` no tiene `internal/cli/`. `fixes:` no hacía falta. La medida y el bloqueo se
+demostraron con dos sondas contra la rama del hito: 97,77 % en #10 y `FAILURE` con 81,98 % en #11.
+
+---
+
 # T021 · intento 3 de 3 (2026-09-11) — **sin marcar**; se agota la vía desatendida
 
 **Estado de la tarea**: `[ ]`. **`gates/pr-h1.md` sigue sin crearse.** El prerrequisito humano no se ha
