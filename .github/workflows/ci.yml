@@ -59,7 +59,7 @@ jobs:
       # repositorio: es un prerrequisito de plataforma, y su ausencia se
       # resuelve dándolo de alta, no rebajando esta bandera.
       - name: Publicar el perfil de cobertura
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.out
           fail_ci_if_error: true
