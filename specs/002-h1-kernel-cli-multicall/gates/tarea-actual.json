@@ -1,13 +1,13 @@
 {
-  "id": "T009",
-  "texto": "T009 [US2] Contrato del applet y registro: `internal/app/applet.go` con las interfaces `Applet` (`Nombre`, `Descripcion`, `Verbos`) y `Argumentos` (`Ejecutar(ctx, schema.Contexto, *slog.Logger) (schema.Resultado, error)`) y el struct `Verbo` (`Nombre`, `Descripcion`, `Argumentos` como **fábrica** que devuelve un valor nuevo en cada invocación, `Salida` como valor cero solo para reflexión y `PorOmision`); `internal/app/registro.go` con `Registrar`, `Buscar`, `Nombres` ordenados y `RegistroDeProduccion()` **vacío** —el primer applet de producto llega en H4—, rechazando **al construirse** un nombre vacío, con espacios, con prefijo `-`, duplicado o igual a un verbo reservado del binario (`version`), un applet sin verbos, con nombres de verbo repetidos o con **más de un** verbo marcado por omisión, y convirtiendo la raíz de composición ese error en fallo de arranque y nunca en código de salida de usuario; y `internal/app/registro_test.go` con la tabla de las **ocho causas de rechazo** que recogen las cinco reglas de validación de `contracts/registro-y-describe.md` §1 —nombre vacío, con espacios, con prefijo `-`, duplicado, igual a un verbo reservado, applet sin verbos, verbos repetidos y dos verbos por omisión— y la comprobación de que el registro de producción está vacío (FR-001, FR-008, FR-009 parcial, FR-044, SC-010 parcial, SC-012 parcial).",
+  "id": "T010",
+  "texto": "T010 [US2] Despacho multicall, verbo por omisión y ayuda derivada del registro: `internal/app/despacho.go` con la precedencia fijada —el último componente de `os.Args[0]` sin sufijo `.exe`; si ese nombre está registrado **manda él** y los argumentos se entregan íntegros al applet; si no lo está, incluido `kitlegal`, el applet se toma del primer argumento; sin primer argumento o con un primer argumento que no es applet, código 2 con el nombre desconocido y la lista de applets en la salida de error; los verbos reservados (`version`) se reconocen antes del registro; un nombre de enlace desconocido no inutiliza el binario— y la normalización del verbo **antes** de construir la gramática (si el primer argumento restante no nombra un verbo del applet y hay verbo por omisión, se inserta a la cabeza; si no lo hay, código 2 con la lista de verbos; si se pidió la ayuda del applet, no se inserta nada); `internal/app/ayuda.go` con la ayuda del binario y la de cada applet derivadas **solo** del registro, sin ninguna lista paralela mantenida a mano; y `internal/app/despacho_test.go` y `internal/app/ayuda_test.go` con la tabla de los cinco casos de despacho, la de `TestVerboPorOmision` (con verbo por omisión, sin él, con el argumento que se llama como un verbo y con `--help`) y la comprobación de que registrar un applet lo hace aparecer en la ayuda sin tocar nada más (FR-002 … FR-007, FR-026, SC-003 parcial).",
   "intento": 1,
   "datos": false,
-  "base": "482bc88b04087d08838e1c2f1ce9d172121ddb86",
+  "base": "908c1c3554818ca2a0da8f8c21c1f167eb72fb9c",
   "rutas": [
-    "contracts/registro-y-describe.md",
-    "internal/app/applet.go",
-    "internal/app/registro_test.go",
-    "internal/app/registro.go"
+    "internal/app/ayuda_test.go",
+    "internal/app/ayuda.go",
+    "internal/app/despacho_test.go",
+    "internal/app/despacho.go"
   ]
 }
