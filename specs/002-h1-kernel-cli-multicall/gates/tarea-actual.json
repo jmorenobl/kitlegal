@@ -1,14 +1,15 @@
 {
-  "id": "T006",
-  "texto": "T006 [US1] Montaje del sobre, en éxito y en fallo, desde un único punto: `internal/cli/sobre.go` con la construcción del sobre de éxito a partir de `schema.Resultado` (procedencia del applet, `fecha_consulta` con reloj inyectable y huella sobre la forma canónica de `data`) y del **sobre de fallo** —mismas seis claves, `ok: false` si y solo si el código de salida no es 0, `data` exactamente `{clase, mensaje}`, procedencia de la fuente consultada cuando se conoce y el espacio reservado del kernel (`kitlegal.cli` / `kitlegal:cli`) cuando no, `fecha_consulta` y huella calculadas igual que en el de éxito—, emitido por el mismo punto que traduce el error a código de salida y nunca por un applet, sin emitir un segundo sobre si la escritura del primero falló; y `internal/cli/sobre_test.go`, cuyo `TestContratoSobre` —el nombre que invoca el escenario 6 de `quickstart.md`— valida los sobres emitidos contra la descripción formal del contrato (`contracts/sobre-de-salida.md` §6) compilada con `github.com/santhosh-tekuri/jsonschema/v6` **con `AssertFormat()` activado** —sin el cual un `url` vacío pasaría—, y cubre las seis clases de error con `--json`, incluidos los dos fallos anteriores a la ejecución del applet (FR-014 … FR-017, FR-045, SC-014, SC-015 parcial).",
+  "id": "T007",
+  "texto": "T007 [US5] Autodescripción del applet: `internal/cli/describe.go` que emite en la salida estándar **un** esquema JSON válido del borrador 2020-12 generado con `github.com/invopop/jsonschema` a partir de la definición del verbo y de los tipos del sobre —sin ninguna parte mantenida a mano—, con `entrada` (los argumentos del verbo más las ocho banderas globales) y `salida` (el sobre completo con `additionalProperties: false` y `data` **condicionado a `ok`** mediante `if`/`then`/`else` y `$defs/DatosError`), que excluye la ejecución y termina con código 0; y `internal/cli/describe_test.go`, cuyo `TestDescribe` —el nombre que invoca el escenario 6 de `quickstart.md`— compila el esquema emitido con `santhosh-tekuri/jsonschema/v6` y `AssertFormat()`, comprueba que un sobre de éxito y un sobre de fallo de ese mismo verbo validan contra él, y que quitar la rama `else` hace fallar el caso del sobre de fallo (FR-046 … FR-049, SC-007, SC-015).",
   "intento": 1,
   "datos": false,
-  "base": "addb643521c8b83a0030885ef8e33985bb88579f",
+  "base": "c6ad6068b14cef56677001fecec8194770c3953c",
   "rutas": [
-    ".com/santhosh-tekuri/jsonschema/v6",
-    "contracts/sobre-de-salida.md",
-    "internal/cli/sobre_test.go",
-    "internal/cli/sobre.go",
-    "quickstart.md"
+    ".com/invopop/jsonschema",
+    "defs/DatosError",
+    "internal/cli/describe_test.go",
+    "internal/cli/describe.go",
+    "quickstart.md",
+    "santhosh-tekuri/jsonschema/v6"
   ]
 }
