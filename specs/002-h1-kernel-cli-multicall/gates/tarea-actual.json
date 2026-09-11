@@ -1,14 +1,11 @@
 {
-  "id": "T012",
-  "texto": "T012 [US6] Punto de entrada reducido y control de escrituras endurecido: `cmd/kitlegal/main.go` reducido a inyectar los descriptores del sistema y el registro de producción —`os.Exit(app.Main(os.Args, app.RegistroDeProduccion(), os.Stdout, os.Stderr, version, commit, fecha))`—, de modo que deja de escribir en la salida estándar y las variables `version`, `commit` y `fecha` siguen inyectándose por `-ldflags`; `cmd/kitlegal/main_test.go` adaptado **conservando exactamente la parte del contrato que no cambia: las tres líneas de `version` y su código 0** (D16, `contracts/cli-version.md` de H0). Lo que H0 resolvía con la línea `uso: kitlegal version` y código 2 —verbo ausente, verbo desconocido, argumento sobrante— **deja de ser contrato de `version`** y pasa a regirse por el despacho que fijó T010: mensaje que nombra el applet desconocido más la lista de applets registrados —**vacía** en el registro de producción— en la salida de error, con código 2 (FR-006, `contracts/registro-y-describe.md` §2 y §3). El test se adapta a ese mensaje; mantener la aserción de H0 contradiría FR-006 y es el atajo que esta tarea no toma; y `.golangci.yml` retirando **entera** la exclusión de `errcheck` para `fmt.Fprint`, `fmt.Fprintf` y `fmt.Fprintln`, que a partir de aquí taparía el único camino que el contrato obliga a vigilar —retirar una exclusión endurece el control y no es una exclusión nueva de las que FR-057 prohíbe— (FR-035, FR-040, FR-052 parcial, FR-057, D16, D27).",
+  "id": "T013",
+  "texto": "T013 [US6] Los applets de ejemplo pasan el mismo listón que el resto del código: `Makefile` con la variable `TESTDATA_PKGS` **derivada con `wildcard`** de los subdirectorios de `internal/app/testdata` que contienen ficheros Go —misma convención que `TOOL_MODULES` de H0, de modo que la orden queda en verde tanto ahora, cuando no existe ninguno, como después, sin volver a tocar el fichero— y añadida explícitamente a los objetivos `lint`, `fmt` y `fmt-check`, porque los comodines de Go no descienden a ese directorio y sin enumerarlos el código que copiará cada applet posterior sería el único que no pasa el listón (FR-050 parcial, D19, obligación 2 del plan).",
   "intento": 1,
   "datos": false,
-  "base": "21e765fa0cca28df0467e5f5765af3c2e0dd8a71",
+  "base": "173c7273ad2d0f94b17e3822df2fb978563d8a35",
   "rutas": [
-    ".golangci.yml",
-    "cmd/kitlegal/main_test.go",
-    "cmd/kitlegal/main.go",
-    "contracts/cli-version.md",
-    "contracts/registro-y-describe.md"
+    "internal/app/testdata",
+    "Makefile"
   ]
 }

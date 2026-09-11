@@ -43,6 +43,18 @@ LEFTHOOK    := go tool -modfile=tools/lefthook/go.mod lefthook
 # después sin tocar este fichero (contracts/make-targets.md).
 TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 
+# Paquetes de ejemplo bajo internal/app/testdata: los subdirectorios que
+# contienen ficheros Go. Hay que nombrarlos porque los comodines de Go nunca
+# descienden a un directorio `testdata` —ni `./...` ni `./internal/app/testdata/...`
+# los listan—, y sin ellos la implementación de referencia que copiará cada
+# applet posterior sería el único código del árbol que no pasa el lint ni la
+# comprobación de formato (H1 research.md D19).
+#
+# Se descubren con `wildcard`, igual que TOOL_MODULES: la lista está vacía
+# mientras no exista ninguno —y entonces las recetas son literalmente las de
+# H0— y se llena sola cuando aparecen, sin volver a tocar este fichero.
+TESTDATA_PKGS := $(sort $(patsubst %/,./%,$(dir $(wildcard internal/app/testdata/*/*.go))))
+
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
@@ -71,7 +83,7 @@ test-e2e:
 
 ## lint: análisis estático completo, gosec incluido
 lint: check-tools
-	$(GOLANGCI) run ./...
+	$(GOLANGCI) run ./... $(TESTDATA_PKGS)
 
 ## lint-fast: análisis estático rápido, el del gancho de pre-commit
 lint-fast: check-tools
@@ -79,11 +91,11 @@ lint-fast: check-tools
 
 ## fmt: aplica el formato (gofumpt + goimports) corrigiendo los ficheros
 fmt: check-tools
-	$(GOLANGCI) fmt ./...
+	$(GOLANGCI) fmt ./... $(TESTDATA_PKGS)
 
 ## fmt-check: comprueba el formato sin tocar ningún fichero
 fmt-check: check-tools
-	$(GOLANGCI) fmt --diff ./...
+	$(GOLANGCI) fmt --diff ./... $(TESTDATA_PKGS)
 
 ## vuln: análisis de vulnerabilidades conocidas (requiere red)
 vuln: check-tools
