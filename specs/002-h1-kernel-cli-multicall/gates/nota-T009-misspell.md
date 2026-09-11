@@ -28,3 +28,16 @@ Añadir `descripcion` a `misspell.ignore-rules` en `.golangci.yml` —junto a `a
 retirar los cuatro `//nolint:misspell`. Sin eso, **cada applet que se escriba a partir de H4 necesitará su
 propia excepción**, porque todos implementan `Descripcion()`: la excepción por línea no escala y la regla
 de ignorado sí. Retirar `nolint` endurece el control y no es una exclusión nueva de las que FR-057 prohíbe.
+
+## Por qué T012 tampoco la saldó
+
+Declarar `.golangci.yml` entre las rutas **no basta**, y esta nota daba a entender que sí. Las dos mitades
+del cambio son inseparables: en cuanto la regla de ignorado entra, los cuatro `//nolint:misspell` quedan
+sin uso y `nolintlint` los rechaza, así que hay que retirarlos en el mismo paso. Y ya no son cuatro: T010
+y T011 añadieron los suyos, de modo que al cerrar T012 son **once**, repartidos en cinco ficheros
+—`internal/app/applet.go` (2), `ayuda.go` (3), `main.go` (2), `codigos_test.go` (2) y `registro_test.go`
+(2)—, ninguno de ellos ruta de T012 ni de T016: el guardián de diff rechazaría el cambio. La deuda
+necesita una tarea que declare **`.golangci.yml` y esos cinco ficheros de `internal/app`**, y cada tarea
+que escriba un applet nuevo la agranda. Hasta entonces, los falsos
+positivos en español se siguen resolviendo reescribiendo el texto, que es lo que hizo T012 en
+`cmd/kitlegal/main_test.go` (`distribuye`, `producto`).

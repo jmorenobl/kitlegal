@@ -1,12 +1,19 @@
-// Command kitlegal es el punto de entrada del binario del proyecto. En H0 su
-// única superficie observable es el verbo version, definido en
-// specs/001-h0-esqueleto-del-repo/contracts/cli-version.md.
+// Command kitlegal es el punto de entrada del binario del proyecto. No decide
+// nada y no escribe nada: inyecta en la raíz de composición del kernel los
+// descriptores del sistema, el registro de producción y los datos de
+// construcción, y termina el proceso con el código que esta devuelve (FR-035,
+// FR-040, research.md D16 y D27).
+//
+// El contrato observable ya no es el de H0
+// (specs/001-h0-esqueleto-del-repo/contracts/cli-version.md): de aquel se
+// conservan las tres líneas de version y su código 0, y lo demás lo fija el
+// despacho multicall de contracts/registro-y-describe.md §2 y §3.
 package main
 
 import (
-	"fmt"
-	"io"
 	"os"
+
+	"github.com/jmorenobl/kitlegal/internal/app"
 )
 
 // Datos de construcción. Los inyectan con -ldflags las órdenes build e install
@@ -17,24 +24,12 @@ var (
 	fecha   = "unknown"
 )
 
-// uso es la única línea que el binario escribe cuando no reconoce la invocación.
-const uso = "uso: kitlegal version\n"
-
-func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
-
-// run ejecuta la invocación y devuelve el código de salida: 0 cuando el verbo
-// es version y 2 («args» en la tabla de códigos estables del proyecto) ante un
-// verbo ausente, desconocido o un argumento sobrante. Nunca llama a os.Exit,
-// nunca entra en pánico y no abre ninguna conexión ni escribe ningún fichero:
-// toda su salida va por los escritores recibidos.
-func run(args []string, stdout, stderr io.Writer) int {
-	if len(args) != 1 || args[0] != "version" {
-		fmt.Fprint(stderr, uso)
-
-		return 2
-	}
-
-	fmt.Fprintf(stdout, "kitlegal %s\ncommit: %s\nfecha:  %s\n", version, commit, fecha)
-
-	return 0
+// main es el único sitio del binario que llama a os.Exit: app.Main devuelve el
+// código de salida y nunca termina el proceso, que es lo que permite ejercer el
+// contrato entero con escritores en memoria
+// (contracts/reglas-de-arquitectura.md §2, R4).
+func main() {
+	os.Exit(app.Main(
+		os.Args, app.RegistroDeProduccion(), os.Stdout, os.Stderr, version, commit, fecha,
+	))
 }

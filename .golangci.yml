@@ -40,13 +40,12 @@ linters:
       threshold: 100
     errcheck:
       check-type-assertions: true
-      # El punto de entrada escribe en los io.Writer que recibe y su contrato de
-      # códigos de salida solo admite 0 y 2 (contracts/cli-version.md): un fallo
-      # al escribir en stdout o stderr no tiene ni recuperación ni código propio.
-      exclude-functions:
-        - fmt.Fprint
-        - fmt.Fprintf
-        - fmt.Fprintln
+      # Sin exclusiones: la de H0 para fmt.Fprint, fmt.Fprintf y fmt.Fprintln
+      # existía porque el punto de entrada escribía por su cuenta en los
+      # descriptores. Desde H1 no queda ninguna escritura sin comprobar —el
+      # presentador de internal/render es el único camino a la salida y propaga
+      # el error de cada escritura—, así que mantenerla solo taparía el camino
+      # que el contrato obliga a vigilar (FR-035, FR-040, FR-057, research.md D27).
     exhaustive:
       default-signifies-exhaustive: true
     forbidigo:
