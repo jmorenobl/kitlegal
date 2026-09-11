@@ -8,7 +8,9 @@ Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de sp
 |---|---|---|
 | Constitución | `.specify/memory/constitution.md` | Principios, restricciones, DoD y el criterio con el que se decide sin humano |
 | Workflow | `.specify/workflows/hito/workflow.yml` | Secuencia, gates, bucle de reparación de CI |
-| Lanzador | `scripts/hito.sh` | Comprueba `main` limpio, exporta flags de Claude y lanza/reanuda |
+| Lanzador | `scripts/hito.sh` | Comprueba `main` limpio, exporta flags de Claude y el wrapper de modelo, y lanza/reanuda |
+| Wrapper de modelo | `scripts/claude-modelo.sh` | Ejecutable de Claude para spec-kit: traduce `--model <modelo>@<esfuerzo>` a `--model` + `--effort` |
+| Coste por paso | `scripts/coste-run.sh` | Consumo y coste estimado de un run por paso y por rol, desde los transcripts |
 | Extensión git | `.specify/extensions/git/` | Rama `NNN-hN-slug` por hito y auto-commit (Conventional Commits) tras cada fase |
 | Skills | `.claude/skills/speckit-*` | Los comandos `/speckit-*` (generados por `specify init`, no editar a mano) |
 | Artefactos | `specs/NNN-hN-slug/` | `spec.md`, `plan.md`, `research.md`, `tasks.md`, `checklists/`, `gates/*.json` |
@@ -27,7 +29,7 @@ extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
 → tasks → analyze → precheck_tasks (formato, ids, rutas declaradas, [datos]) → ronda_tasks ×2 → check_gate_tasks
 → bucle por tarea (do-while):
      siguiente_tarea (shell: primera "- [ ] Tnnn", intentos, base git, rutas declaradas, [datos] → gates/tarea-actual.json)
-     → implementar_tarea (command implement, solo esa tarea)
+     → implementar_tarea (command implement, solo esa tarea; intento 1 con modelo_implementacion, reintentos con modelo_escalada)
      → guardian_diff (shell: rutas declaradas; testdata/ y schemas/ solo con [datos])
      → verificar (shell: make ci | go build+vet+test; log en gates/ci.log)
      → si falla: reparar (prompt con las últimas 80 líneas del log) → guardian_diff_reparacion → verificar_reparacion
@@ -35,7 +37,7 @@ extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
 → ci (make ci del hito) → si falla: do-while (reparar_hito + ci_reintento) ×3 → ci_tras_reparacion
 → converge → implement_restante
 → ronda_revision ×2 [juez A (DoD) + juez B (adversarial) → leer_revision → corrector si ambos rechazan y es corregible]
-→ ci_final (make ci; ambos jueces aprobado; sin tareas pendientes; árbol limpio)
+→ ci_final (commitea los veredictos; make ci; ambos jueces aprobado; sin tareas pendientes; árbol limpio)
 → rutas_sensibles → gate humano forzado si el diff toca docs/SOURCES.md, data/anomalias/ o una fuente nueva
 → [supervisado] gate humano final
 ```
@@ -47,7 +49,7 @@ La fusión a `main` (PR + squash-merge) y el release son siempre acciones humana
 Sigue la sección «Gates» de la constitución: cada comprobación vive en la capa más baja que pueda verificarla.
 
 1. **Mecánica (shell, sin LLM).** `precheck_*` corre antes de cualquier juez: marcadores pendientes, checklists, sección "Fuera de alcance", formato e ids de tareas, rutas declaradas, etiqueta `[datos]`. `verificar`/`ci` ejecutan `make ci`, que debe encadenar lint, `-race`, schema-check, drift de `references/`, test de arquitectura y golden files de citas. `leer_gate_*` valida el JSON del juez y su coherencia (aprobado ⇔ todos los criterios cumplen).
-2. **Juez LLM con rúbrica.** `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a` y `revision_juez_b` reciben criterios fijos (`a`…`i`) y escriben `{"veredicto","corregible","criterios":[{id,criterio,cumple,evidencia}],"motivos"}`. **No corrigen nada.** Si rechazan y el motivo es corregible, un `corrector_*` (proceso distinto, modelo de redacción o implementación) aplica los motivos y se vuelve a juzgar, con tope de dos rondas. Si el motivo requiere decisión humana (`corregible: false`), el `check_gate_*` para el run.
+2. **Juez LLM con rúbrica.** `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a` y `revision_juez_b` reciben criterios fijos (`a`…`i`) y escriben `{"veredicto","corregible","criterios":[{id,criterio,cumple,evidencia}],"motivos"}`. **No corrigen nada.** Revisan de forma exhaustiva (todos los incumplimientos en el primer veredicto, no uno por ronda) y, en rondas posteriores, comprueban primero los motivos anteriores. Si rechazan y el motivo es corregible, un `corrector_*` (proceso distinto) aplica los motivos, generalizando cada uno a la clase de defecto que lo causa, y se vuelve a juzgar, con tope de dos rondas. Si el motivo requiere decisión humana (`corregible: false`), el `check_gate_*` para el run.
 3. **Humano.** Pausas que no dependen de `modo` ni admiten pre-aprobación por input: tras cada tarea `[datos]` (tocó `testdata/` o `schemas/`) y al final si el diff toca `docs/SOURCES.md`, `data/anomalias/` o crea un directorio nuevo bajo `internal/source/`. Se reanudan con `specify workflow resume <run_id>` desde un terminal, que pregunta approve/reject.
 
 ## Clarificación sin sesgo
@@ -73,40 +75,52 @@ Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de qu
 
 ## Revisión final con dos jueces
 
-`revision_juez_a` evalúa la Definition of Done con rúbrica; `revision_juez_b` parte de la hipótesis contraria y busca evidencia de atajos, fixtures retocados, tests vacíos, alcance excedido y violaciones que el linter no ve. Ninguno modifica ficheros. `leer_revision` combina: ambos aprueban → sigue; ambos rechazan y es corregible → `corrector_revision` y nueva ronda (máximo dos); cualquier desacuerdo o motivo no corregible → `ci_final` para el run para un humano.
+`revision_juez_a` (`modelo_revisor`) evalúa la Definition of Done con rúbrica; `revision_juez_b` (`modelo_juez`, un modelo distinto para que los dos votos no compartan puntos ciegos) parte de la hipótesis contraria y busca evidencia de atajos, fixtures retocados, tests vacíos, alcance excedido y violaciones que el linter no ve. Ninguno modifica ficheros. `leer_revision` combina: ambos aprueban → sigue; ambos rechazan y es corregible → `corrector_revision` y nueva ronda (máximo dos); cualquier desacuerdo o motivo no corregible → `ci_final` para el run para un humano.
 
 ## Modelo por paso
 
-Cada paso `command` y `prompt` lleva `model: "{{ inputs.modelo_<rol> }}"`, que spec-kit traduce en `claude -p … --model <valor>`. Los valores admitidos son los alias `fable`, `opus`, `sonnet`, `haiku` o el nombre completo del modelo.
+Cada paso `command` y `prompt` lleva `model: "{{ inputs.modelo_<rol> }}"`. El valor es `<modelo>` o `<modelo>@<esfuerzo>`: alias (`fable`, `opus`, `sonnet`, `haiku`) o nombre completo, y esfuerzo `low`, `medium`, `high`, `xhigh` o `max` (Haiku 4.5 no admite esfuerzo). spec-kit solo sabe pasar `--model`, así que `scripts/hito.sh` exporta `SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE=scripts/claude-modelo.sh`: el wrapper valida el valor con una expresión estricta y lo traduce a `claude … --model <modelo> --effort <esfuerzo>`. **Sin el wrapper, `claude` rechaza los valores con `@`**: lanza siempre con `scripts/hito.sh` o exporta esa variable.
+
+Los roles agrupan pasos por el tipo de trabajo, no por fase:
 
 | Input | Pasos | Por defecto | Razón |
 |---|---|---|---|
-| `modelo_juez` | `resolver_clarify`, `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a`, `revision_juez_b` | `fable` | Decisiones con el criterio de la constitución; es donde un error cuesta más |
-| `modelo_redaccion` | `specify`, `clarify_preguntas`, `clarify_integrar`, `plan`, `tasks`, `corrector_spec`, `corrector_plan`, `corrector_tasks` | `opus` | Artefactos largos con muchas reglas que respetar |
-| `modelo_implementacion` | `implementar_tarea`, `implement`, `implement_restante`, `reparar`, `reparar_hito`, `corrector_revision` | `opus` | Código y depuración |
-| `modelo_analisis` | `analyze`, `converge` | `sonnet` | Lectura y contraste de artefactos; barato y suficiente |
+| `modelo_decision` | `resolver_clarify`, `plan`, `corrector_plan` | `fable@high` | Decisiones cuyos errores se arrastran a todas las tareas. El plan fija herramientas, versiones y CI; su corrector necesita ver la premisa equivocada, no solo la línea citada |
+| `modelo_juez` | `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_b` | `fable@xhigh` | El juez debe ser al menos tan capaz como el autor; `xhigh` para que el primer veredicto sea exhaustivo y ahorre rondas |
+| `modelo_revisor` | `revision_juez_a` | `opus@xhigh` | Rúbrica DoD casi toda comprobable; un modelo distinto de `modelo_juez` hace que los dos votos no fallen a la vez |
+| `modelo_redaccion` | `specify`, `clarify_preguntas`, `tasks`, `corrector_spec`, `corrector_tasks` | `opus@high` | Artefactos largos con muchas reglas; los correctores aplican motivos concretos del juez |
+| `modelo_implementacion` | `implementar_tarea` (intento 1), `implement`, `implement_restante` | `opus@xhigh` | Código y depuración; `xhigh` es el nivel recomendado para trabajo agéntico de código |
+| `modelo_escalada` | `implementar_tarea_escalada` (intentos 2 y 3), `reparar`, `reparar_hito`, `corrector_revision` | `fable@xhigh` | Solo actúa cuando `modelo_implementacion` ya falló: no repetir con el mismo modelo lo que acaba de salir mal. No cuesta nada si todo va bien |
+| `modelo_analisis` | `clarify_integrar`, `analyze`, `converge` | `sonnet@high` | Lectura, contraste y transformación de artefactos; los fallos de `converge` los cubren los dos jueces finales |
+
+Criterio de coste: estos pasos son sobre todo lectura de contexto en caché, y Fable 5.1 lee de caché a mitad de precio que Opus 5. Con el mismo perfil de tokens, pasar un paso de Opus a Fable lo encarece un 5-30 %, no el doble del precio nominal; en los jueces, que escriben más, en torno al 60 %. Medido en el run de H0 con `scripts/coste-run.sh`.
 
 Sobrescritura por run:
 
 ```bash
-specify workflow run hito -i hito=H0 -i modelo_implementacion=sonnet -i modelo_analisis=haiku
-KITLEGAL_MODELO_IMPLEMENTACION=sonnet KITLEGAL_MODELO_ANALISIS=haiku scripts/hito.sh H0
+KITLEGAL_MODELO_IMPLEMENTACION=opus@max KITLEGAL_MODELO_ANALISIS=haiku scripts/hito.sh H0
+SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE=$PWD/scripts/claude-modelo.sh \
+  specify workflow run hito -i hito=H0 -i modelo_juez=fable@max
 ```
 
 Los pasos `shell` no usan modelo. Para fijar un modelo distinto en un solo paso sin tocar los inputs, edita su `model:` en el YAML o usa un overlay (`specify workflow overlay add …`).
+
+Para ajustar la asignación con datos, `scripts/coste-run.sh [run_id]` reconstruye desde los transcripts de Claude Code (spec-kit no conserva la salida de `claude -p`) las sesiones, turnos, tokens de salida y coste estimado de cada paso y de cada rol del run.
 
 ## Uso
 
 ```bash
 scripts/hito.sh H0                     # desatendido, tarea a tarea
 scripts/hito.sh H0 supervisado         # con pausas humanas
-specify workflow run hito -i hito=H0 -i granularidad=hito   # implement en una pasada
+SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE=$PWD/scripts/claude-modelo.sh \
+  specify workflow run hito -i hito=H0 -i granularidad=hito   # implement en una pasada
 specify workflow status                # runs y estado
 specify workflow status <run_id>
 scripts/hito.sh --resume <run_id>      # tras corregir a mano un artefacto
 scripts/hito.sh --resume <run_id> veredicto_plan=approve
 scripts/paso.sh juez_plan H0           # relanzar a mano un paso prompt (juez, corrector) con su modelo
-scripts/paso.sh corrector_plan H0 sonnet
+scripts/paso.sh corrector_plan H0 opus@xhigh
+scripts/coste-run.sh [run_id]          # coste por paso y por rol (por defecto, el run más reciente)
 specify workflow resolve hito          # ver el workflow compuesto con overlays
 ```
 
@@ -146,7 +160,7 @@ Estado de cada run en `.specify/workflows/runs/<run_id>/` (`state.json`, `inputs
 - Los pasos `prompt` y `shell` tienen `timeout` explícito (1800 s); `make ci` debe caber en ese margen.
 - Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación (`verificar`, `ci`, `ci_reintento`). Los `precheck_*`, `check_*`, `guardian_diff*` y `leer_*` fallan a propósito para parar.
 - Rondas juez → corrector: hasta tres veredictos y dos correcciones (`gates/<fase>-rondas` cuenta; el corrector no actúa en la tercera ronda), de modo que toda corrección se vuelve a juzgar. Si el tercer veredicto sigue rechazado, `check_gate_*` para. Para una ronda extra a mano: `scripts/paso.sh juez_plan H0` y después `scripts/hito.sh --resume <run_id>`.
-- Los hooks de auto-commit de la extensión git son opcionales y en headless no se ejecutan; los commits los hacen pasos `shell` deterministas: `commit_artefactos_plan`, `commit_artefactos_tasks`, `commit_tarea` (uno por tarea, mensaje `feat(Hn): Tnnn`) y `commit_restante`.
+- Los hooks de auto-commit de la extensión git son opcionales y en headless no se ejecutan; los commits los hacen pasos `shell` deterministas: `commit_artefactos_plan`, `commit_artefactos_tasks`, `commit_tarea` (uno por tarea, mensaje `feat(Hn): Tnnn`), `commit_restante` y, al principio de `ci_final`, el de los veredictos de la revisión final (`gates/revision-{a,b}.json`, `gates/revision-rondas`). Este último vive dentro de `ci_final` porque un `--resume` tras re-juzgar a mano con `scripts/paso.sh` vuelve a ejecutar ese paso; sin él, `ci_final` fallaría por árbol sucio aunque los dos jueces aprobaran.
 - El guardián de diff extrae rutas de la línea de la tarea: tokens con `/`, con extensión conocida, ficheros de raíz sin extensión que terminan en `ignore` (`.gitleaksignore`, `.gitignore`), `.editorconfig`, `Makefile` y `LICENSE`. Una tarea que toque muchos ficheros debe declarar directorios; un fichero de raíz con otro nombre extensionless no es declarable y hay que ampliar la expresión en el YAML.
 - **Cada run congela el workflow**: `specify workflow run` copia la definición a `.specify/workflows/runs/<run_id>/workflow.yml` y `resume` la lee de ahí, resolviendo el paso por índice. Editar `.specify/workflows/hito/workflow.yml` a mitad de un run no afecta a ese run. Para aplicar un cambio a un run parado, copia la definición nueva sobre el snapshot y comprueba que `current_step_index` sigue apuntando al paso correcto (`state.json`), porque insertar pasos desplaza los índices.
 - La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista. Si hace falta, añadir un objetivo `make check` más rápido y usarlo en `verificar`.

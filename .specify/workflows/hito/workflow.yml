@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.4.1"
+  version: "1.5.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff."
@@ -40,27 +40,55 @@ inputs:
   veredicto_final:
     type: string
     default: ""
-  # ---- modelo por rol (alias de claude --model o nombre completo) ----
+  # ---- modelo y esfuerzo por rol: "<modelo>" o "<modelo>@<esfuerzo>" ----
+  # (Haiku 4.5 no admite esfuerzo: solo sin sufijo.)
+  # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
+  # por scripts/hito.sh) traduce "@<esfuerzo>" a `--effort`; sin el wrapper,
+  # `claude` rechaza el valor. Criterio de asignación en docs/WORKFLOW.md.
+  modelo_decision:
+    type: string
+    default: "fable@high"
+    enum: &modelos [
+      "fable", "fable@low", "fable@medium", "fable@high", "fable@xhigh", "fable@max",
+      "opus", "opus@low", "opus@medium", "opus@high", "opus@xhigh", "opus@max",
+      "sonnet", "sonnet@low", "sonnet@medium", "sonnet@high", "sonnet@xhigh", "sonnet@max",
+      "haiku",
+      "claude-fable-5-1", "claude-fable-5-1@low", "claude-fable-5-1@medium", "claude-fable-5-1@high", "claude-fable-5-1@xhigh", "claude-fable-5-1@max",
+      "claude-opus-5", "claude-opus-5@low", "claude-opus-5@medium", "claude-opus-5@high", "claude-opus-5@xhigh", "claude-opus-5@max",
+      "claude-sonnet-5", "claude-sonnet-5@low", "claude-sonnet-5@medium", "claude-sonnet-5@high", "claude-sonnet-5@xhigh", "claude-sonnet-5@max",
+      "claude-haiku-4-5"
+    ]
+    prompt: "Decisiones con más consecuencias aguas abajo: resolver clarificaciones, plan y corrector del plan"
   modelo_juez:
     type: string
-    default: "fable"
-    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
-    prompt: "Modelo para resolver clarificaciones y para los jueces (spec, plan, tasks, revisión A y B)"
+    default: "fable@xhigh"
+    enum: *modelos
+    prompt: "Jueces de spec, plan y tasks y juez B (adversarial) de la revisión final"
+  modelo_revisor:
+    type: string
+    default: "opus@xhigh"
+    enum: *modelos
+    prompt: "Juez A de la revisión final (rúbrica DoD); distinto de modelo_juez para que los dos votos no fallen a la vez"
   modelo_redaccion:
     type: string
-    default: "opus"
-    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
-    prompt: "Modelo para specify, clarify, plan, tasks y los correctores de artefactos"
+    default: "opus@high"
+    enum: *modelos
+    prompt: "specify, formular preguntas de clarify, tasks y correctores de spec y tasks"
   modelo_implementacion:
     type: string
-    default: "opus"
-    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
-    prompt: "Modelo para implement, reparaciones de CI y corrector de la revisión final"
+    default: "opus@xhigh"
+    enum: *modelos
+    prompt: "Primer intento de cada tarea, implement en una pasada e implement_restante"
+  modelo_escalada:
+    type: string
+    default: "fable@xhigh"
+    enum: *modelos
+    prompt: "Lo que ya falló con modelo_implementacion: reintentos de tarea, reparaciones de CI y corrector de la revisión final"
   modelo_analisis:
     type: string
-    default: "sonnet"
-    enum: ["fable", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
-    prompt: "Modelo para analyze y converge"
+    default: "sonnet@high"
+    enum: *modelos
+    prompt: "Pasos de lectura y transformación: integrar clarificaciones, analyze y converge"
 
 steps:
   # ================================================================ contexto
@@ -117,7 +145,7 @@ steps:
 
   - id: resolver_clarify
     type: prompt
-    model: "{{ inputs.modelo_juez }}"
+    model: "{{ inputs.modelo_decision }}"
     timeout: 1800
     prompt: |
       Eres un proceso independiente con contexto limpio: no has visto la sesión que formuló las preguntas, no debes buscar su razonamiento y decides únicamente con documentos.
@@ -159,7 +187,7 @@ steps:
     then:
       - id: clarify_integrar
         command: speckit.clarify
-        model: "{{ inputs.modelo_redaccion }}"
+        model: "{{ inputs.modelo_analisis }}"
         input:
           args: |
             MODO DESATENDIDO, FASE 2 (integración). No generes preguntas nuevas ni esperes respuesta. Las preguntas están en <feature_dir>/gates/clarify-preguntas.json y las respuestas ya decididas en <feature_dir>/gates/clarify-respuestas.json (localiza <feature_dir> en .specify/feature.json). Trata cada par como una pregunta ya aceptada por el usuario y aplica tus reglas de integración incremental:
@@ -211,6 +239,7 @@ steps:
           Escribe <feature_dir>/gates/spec.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"alcance","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           Reglas: "aprobado" solo si TODOS los criterios cumplen. "corregible": false si algún motivo requiere decisión humana (alcance del hito, frontera humana, privacidad, TOS, reglas de anomalías, decisión cerrada); en ese caso explícalo en motivos. Sé concreto en motivos: qué cambiar y dónde.
+          Revisión exhaustiva: evalúa cada criterio contra todos los artefactos y enumera en motivos TODOS los incumplimientos que encuentres, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y un juicio más. Si gates/spec.json ya existe, es el veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
           Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_spec
@@ -238,7 +267,7 @@ steps:
             prompt: |
               Eres el CORRECTOR del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el spec; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/spec.json (criterios con cumple=false y motivos), spec.md, checklists/, la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md, CLAUDE.md y .specify/memory/constitution.md.
-              Para cada criterio incumplido, corrige spec.md y/o checklists/ con la mejor solución posible, sin atajos: nunca marques un ítem de checklist sin que el spec lo satisfaga. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/spec-pendiente.md.
+              Para cada criterio incumplido, corrige spec.md y/o checklists/ con la mejor solución posible, sin atajos: nunca marques un ítem de checklist sin que el spec lo satisfaga. Un motivo describe un caso de un defecto: identifica la clase de error que lo causa, búscala en todo el spec y corrígela en cada aparición, no solo en la línea citada. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/spec-pendiente.md.
               No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_spec
@@ -266,11 +295,13 @@ steps:
   # ================================================================ plan
   - id: plan
     command: speckit.plan
-    model: "{{ inputs.modelo_redaccion }}"
+    model: "{{ inputs.modelo_decision }}"
     input:
       args: |
         MODO DESATENDIDO: no preguntes ni esperes respuesta; resuelve dudas técnicas con la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y déjalas documentadas en research.md (decisión, alternativas, por qué).
         Restricciones para este hito {{ inputs.hito }}:
+        - Toda afirmación sobre el comportamiento de una herramienta o dependencia externa (acciones de CI, linters, escáneres, toolchain de Go) se verifica contra su código o documentación disponibles en local (module cache, `go doc`, `go help`, la propia herramienta con `--help`) y research.md cita dónde se comprobó. Lo que no puedas verificar sin red se declara como supuesto no verificado, no como hecho.
+        - Cada escenario de quickstart.md debe poder ejecutarse tal cual: órdenes, rutas, flags y datos de prueba reales, y sin efectos colaterales en el árbol de trabajo, el índice ni el historial de git más allá de lo que el escenario declara.
         - Stack y dependencias: solo las fijadas en la constitución (§V) y en docs/ROADMAP.md §3; cualquier otra va a Complexity Tracking con justificación o no se usa.
         - Estructura: la de docs/ROADMAP.md §2 y CLAUDE.md. Reglas de dependencia entre paquetes obligatorias.
         - Rellena el Constitution Check con un ítem por principio (I-VII) y por regla de dependencia, indicando cómo lo cumple este hito. Si un gate falla sin justificación, detente con ERROR.
@@ -302,7 +333,7 @@ steps:
         timeout: 1800
         prompt: |
           Eres el JUEZ del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
-          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, research.md, data-model.md, contracts/ (los que existan) y, si existe, gates/plan-pendiente.md; la constitución; CLAUDE.md; docs/ROADMAP.md §2-§3.
+          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md (los que existan) y, si existe, gates/plan-pendiente.md; la constitución; CLAUDE.md; docs/ROADMAP.md §2-§3.
           Rúbrica (cumple/no cumple con evidencia):
             a. constitution_check: completo, un ítem por principio y regla de dependencia, y veraz;
             b. dependencias: ninguna fuera de la lista fijada sin justificación en Complexity Tracking;
@@ -311,10 +342,13 @@ steps:
             e. tests_primero: el plan nombra el test e2e y los unitarios/fixtures del hito y los controles mecánicos que añade;
             f. alcance: nada fuera del spec;
             g. sin_atajos: ningún nolint, test saltado, TODO diferido o error silenciado previsto;
-            h. mejor_alternativa: si hay varias opciones técnicas, la elegida es la de mayor calidad y escalabilidad y research.md documenta la rechazada.
+            h. mejor_alternativa: si hay varias opciones técnicas, la elegida es la de mayor calidad y escalabilidad y research.md documenta la rechazada;
+            i. afirmaciones_verificadas: cada afirmación sobre el comportamiento de una herramienta o dependencia externa está comprobada contra su código o documentación en local (compruébalo tú también) y research.md cita dónde, o figura como supuesto no verificado;
+            j. quickstart_ejecutable: cada escenario de quickstart.md funciona tal cual (órdenes, flags, rutas y datos de prueba reales) y no deja efectos colaterales en el árbol de trabajo, el índice ni el historial de git más allá de lo que declara.
           Escribe <feature_dir>/gates/plan.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"constitution_check","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana (alcance, frontera humana, privacidad, TOS, reglas de anomalías, decisión cerrada). Motivos concretos: qué cambiar y dónde.
+          Revisión exhaustiva: evalúa cada criterio contra todos los artefactos y enumera en motivos TODOS los incumplimientos que encuentres, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y un juicio más. Si gates/plan.json ya existe, es el veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
           Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_plan
@@ -337,12 +371,12 @@ steps:
         then:
           - id: corrector_plan
             type: prompt
-            model: "{{ inputs.modelo_redaccion }}"
+            model: "{{ inputs.modelo_decision }}"
             timeout: 1800
             prompt: |
               Eres el CORRECTOR del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el plan; tú aplicas sus motivos, no los discutes.
-              Lee .specify/feature.json para localizar <feature_dir>; lee gates/plan.json (criterios con cumple=false y motivos), plan.md, research.md, data-model.md, contracts/, spec.md, .specify/memory/constitution.md, CLAUDE.md y docs/ROADMAP.md §2-§3.
-              Para cada criterio incumplido, corrige plan.md/research.md/data-model.md/contracts/ con la mejor solución posible, sin atajos. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/plan-pendiente.md.
+              Lee .specify/feature.json para localizar <feature_dir>; lee gates/plan.json (criterios con cumple=false y motivos), plan.md, research.md, data-model.md, contracts/, quickstart.md, spec.md, .specify/memory/constitution.md, CLAUDE.md y docs/ROADMAP.md §2-§3.
+              Para cada criterio incumplido, corrige plan.md/research.md/data-model.md/contracts/quickstart.md con la mejor solución posible, sin atajos. Un motivo describe un caso de un defecto: identifica la premisa o la clase de error que lo causa, búscala en todos los artefactos del plan y corrígela en cada aparición, no solo en la línea citada. Si un motivo requiere una decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/plan-pendiente.md.
               No modifiques spec.md ni gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_plan
@@ -427,7 +461,7 @@ steps:
         timeout: 1800
         prompt: |
           Eres el JUEZ de consistencia (spec ↔ plan ↔ tasks) del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
-          Lee .specify/feature.json para localizar <feature_dir>; lee gates/analyze.md, spec.md, plan.md, tasks.md, checklists/ y, si existe, gates/tasks-pendiente.md.
+          Lee .specify/feature.json para localizar <feature_dir>; lee gates/analyze.md, spec.md, plan.md, tasks.md, quickstart.md, checklists/ y, si existe, gates/tasks-pendiente.md.
           Rúbrica (cumple/no cumple con evidencia):
             a. analisis_critico: ningún hallazgo CRITICAL o HIGH de analyze.md sigue sin resolver en los artefactos;
             b. trazabilidad: toda tarea traza a un requisito del spec y todo requisito tiene tareas;
@@ -439,6 +473,7 @@ steps:
           Escribe <feature_dir>/gates/tasks.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"analisis_critico","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
           "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana. Motivos concretos: qué cambiar, en qué artefacto.
+          Revisión exhaustiva: evalúa cada criterio contra todos los artefactos (incluido quickstart.md cuando una tarea ejecute sus escenarios) y enumera en motivos TODOS los incumplimientos que encuentres, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y un juicio más. Si gates/tasks.json ya existe, es el veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
           Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_gate_tasks
@@ -465,8 +500,8 @@ steps:
             timeout: 1800
             prompt: |
               Eres el CORRECTOR de artefactos del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado la consistencia spec/plan/tasks; tú aplicas sus motivos, no los discutes.
-              Lee .specify/feature.json para localizar <feature_dir>; lee gates/tasks.json (criterios con cumple=false y motivos), gates/analyze.md, spec.md, plan.md, tasks.md y checklists/.
-              Para cada criterio incumplido corrige el artefacto que corresponda (spec, plan o tasks) con la mejor solución, sin atajos; nunca marques un checklist sin que el artefacto lo satisfaga. Mantén el formato de tareas ("- [ ] Tnnn … rutas", [datos] para testdata/ y schemas/). Si un motivo requiere decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/tasks-pendiente.md.
+              Lee .specify/feature.json para localizar <feature_dir>; lee gates/tasks.json (criterios con cumple=false y motivos), gates/analyze.md, spec.md, plan.md, tasks.md, quickstart.md y checklists/.
+              Para cada criterio incumplido corrige el artefacto que corresponda (spec, plan, quickstart o tasks) con la mejor solución, sin atajos; nunca marques un checklist sin que el artefacto lo satisfaga. Un motivo describe un caso de un defecto: identifica la clase de error que lo causa (p. ej. una orden que no hace lo que el escenario supone), búscala en todos los artefactos y corrígela en cada aparición, no solo en la línea citada. Mantén el formato de tareas ("- [ ] Tnnn … rutas", [datos] para testdata/ y schemas/). Si un motivo requiere decisión humana, no lo resuelvas: anótalo en <feature_dir>/gates/tasks-pendiente.md.
               No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
 
   - id: check_gate_tasks
@@ -529,14 +564,27 @@ steps:
             type: if
             condition: "{{ steps.siguiente_tarea.output.data.id != '' }}"
             then:
-              - id: implementar_tarea
-                command: speckit.implement
-                model: "{{ inputs.modelo_implementacion }}"
-                input:
-                  args: |
-                    MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
-                    {{ steps.siguiente_tarea.output.data.texto }}
-                    Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni la red. Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
+              # Primer intento con modelo_implementacion; si la tarea vuelve sin
+              # quedar [X], los reintentos pasan a modelo_escalada. Mismo prompt
+              # (ancla YAML); solo cambian id y modelo.
+              - id: implementar
+                type: if
+                condition: "{{ steps.siguiente_tarea.output.data.intento < 2 }}"
+                then:
+                  - &implementar_tarea
+                    id: implementar_tarea
+                    command: speckit.implement
+                    model: "{{ inputs.modelo_implementacion }}"
+                    input:
+                      args: |
+                        MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
+                        {{ steps.siguiente_tarea.output.data.texto }}
+                        Si existe <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, léelo antes de empezar: documenta por qué no quedó en verde un intento anterior.
+                        Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni la red. Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
+                else:
+                  - <<: *implementar_tarea
+                    id: implementar_tarea_escalada
+                    model: "{{ inputs.modelo_escalada }}"
 
               - id: guardian_diff
                 type: shell
@@ -592,7 +640,7 @@ steps:
                 then:
                   - id: reparar
                     type: prompt
-                    model: "{{ inputs.modelo_implementacion }}"
+                    model: "{{ inputs.modelo_escalada }}"
                     timeout: 1800
                     prompt: |
                       La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
@@ -706,7 +754,7 @@ steps:
         steps:
           - id: reparar_hito
             type: prompt
-            model: "{{ inputs.modelo_implementacion }}"
+            model: "{{ inputs.modelo_escalada }}"
             timeout: 1800
             prompt: |
               `make ci` falla en el hito {{ inputs.hito }} de kitlegal. Salida (final del log; completo en <feature_dir>/gates/ci.log):
@@ -763,7 +811,7 @@ steps:
     steps:
       - id: revision_juez_a
         type: prompt
-        model: "{{ inputs.modelo_juez }}"
+        model: "{{ inputs.modelo_revisor }}"
         timeout: 1800
         prompt: |
           Eres el JUEZ A de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica la Definition of Done de docs/ROADMAP.md §1 y las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
@@ -780,7 +828,9 @@ steps:
             i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas).
           Escribe <feature_dir>/gates/revision-a.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana. Escribe en español. No preguntes; no esperes respuesta.
+          "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana.
+          Revisión exhaustiva: evalúa cada criterio contra todo el diff y enumera en motivos TODOS los incumplimientos, no solo el primero de cada criterio. Si gates/revision-a.json ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
+          Escribe en español. No preguntes; no esperes respuesta.
 
       - id: revision_juez_b
         type: prompt
@@ -792,7 +842,9 @@ steps:
           Evalúa la misma rúbrica que el juez A (a. dod_ci, b. dod_tests, c. dod_reglas, d. dod_sobre, e. dod_errores, f. dod_docs, g. frontera_humana, h. sin_atajos, i. alcance), cada criterio cumple/no cumple con evidencia (fichero y línea). Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
           Escribe <feature_dir>/gates/revision-b.json con este formato exacto:
             {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen. Escribe en español. No preguntes; no esperes respuesta.
+          "aprobado" solo si TODOS cumplen.
+          Revisión exhaustiva: enumera en motivos TODOS los incumplimientos que encuentres, no solo el primero de cada criterio. Si gates/revision-b.json ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
+          Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_revision
         type: shell
@@ -823,7 +875,7 @@ steps:
         then:
           - id: corrector_revision
             type: prompt
-            model: "{{ inputs.modelo_implementacion }}"
+            model: "{{ inputs.modelo_escalada }}"
             timeout: 1800
             prompt: |
               Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Dos jueces independientes han rechazado el hito; tú aplicas sus motivos, no los discutes.
@@ -837,6 +889,18 @@ steps:
     run: |
       set -eu
       d=$(jq -r .feature_directory .specify/feature.json)
+      # Los jueces dejan sus veredictos sin commitear. Se versionan aquí, y no en
+      # un paso previo, porque un resume tras re-juzgar a mano (scripts/paso.sh)
+      # vuelve a ejecutar este paso. Solo esos ficheros: cualquier otro cambio
+      # pendiente sigue haciendo fallar la comprobación de árbol limpio.
+      veredictos=""
+      for f in revision-a.json revision-b.json revision-rondas; do
+        [ -f "$d/gates/$f" ] && veredictos="$veredictos $d/gates/$f"
+      done
+      if [ -n "$veredictos" ]; then
+        git add -- $veredictos
+        git diff --cached --quiet -- $veredictos || git commit -q -m "docs({{ inputs.hito }}): veredictos de la revisión final" -- $veredictos
+      fi
       make ci
       estado=$(jq -r 'if (.veredicto == "aprobado") then "a" else "x" end' "$d/gates/revision-a.json")$(jq -r 'if (.veredicto == "aprobado") then "b" else "x" end' "$d/gates/revision-b.json")
       if [ "$estado" != "ab" ]; then

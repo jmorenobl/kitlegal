@@ -4,7 +4,7 @@
 #
 #   scripts/paso.sh juez_plan H0            # vuelve a juzgar el plan
 #   scripts/paso.sh corrector_plan H0       # aplica los motivos del último veredicto
-#   scripts/paso.sh revision_juez_b H0 opus # con otro modelo
+#   scripts/paso.sh revision_juez_b H0 opus@xhigh   # con otro modelo y esfuerzo
 #
 # Útil cuando un run se ha parado en check_gate_* y quieres una ronda más
 # antes de reanudar con scripts/hito.sh --resume <run_id>.
@@ -45,4 +45,4 @@ PYEOF
 )"
 
 echo "→ paso $paso · hito $hito · modelo $MODELO" >&2
-exec claude -p "$PROMPT" --model "$MODELO" --permission-mode acceptEdits ${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:-}
+exec scripts/claude-modelo.sh -p "$PROMPT" --model "$MODELO" --permission-mode acceptEdits ${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:-}

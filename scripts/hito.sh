@@ -4,7 +4,7 @@
 #   scripts/hito.sh H0                  # desatendido (gates automáticos)
 #   scripts/hito.sh H0 supervisado      # además pausa para revisión humana
 #   scripts/hito.sh --resume <run_id> [key=value ...]
-#   KITLEGAL_MODELO_JUEZ=fable KITLEGAL_MODELO_IMPLEMENTACION=sonnet scripts/hito.sh H0
+#   KITLEGAL_MODELO_JUEZ=fable@max KITLEGAL_MODELO_IMPLEMENTACION=sonnet@xhigh scripts/hito.sh H0
 #
 # Claude se ejecuta en modo headless (`claude -p`). Los permisos de
 # herramientas vienen de .claude/settings.json; aquí solo se aceptan las
@@ -15,6 +15,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 export SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS="${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:---permission-mode acceptEdits}"
+# Los inputs modelo_* admiten <modelo>@<esfuerzo>; el wrapper lo traduce a
+# --model/--effort. Sin él, `claude` rechazaría el valor.
+export SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE="${SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE:-$PWD/scripts/claude-modelo.sh}"
 
 if [ "${1:-}" = "--resume" ]; then
   run_id="${2:?run_id}"; shift 2
@@ -35,10 +38,11 @@ if [ "$(git branch --show-current)" != "main" ]; then
   exit 1
 fi
 
-# Modelos por rol (alias de `claude --model` o nombre completo). Ejemplo:
-#   KITLEGAL_MODELO_IMPLEMENTACION=sonnet scripts/hito.sh H0
+# Modelo y esfuerzo por rol (<alias o nombre completo>[@esfuerzo]; roles en
+# docs/WORKFLOW.md «Modelo por paso»). Ejemplo:
+#   KITLEGAL_MODELO_IMPLEMENTACION=opus@max scripts/hito.sh H0
 modelos=()
-for rol in JUEZ REDACCION IMPLEMENTACION ANALISIS; do
+for rol in DECISION JUEZ REVISOR REDACCION IMPLEMENTACION ESCALADA ANALISIS; do
   var="KITLEGAL_MODELO_$rol"
   if [ -n "${!var:-}" ]; then
     modelos+=(--input "modelo_$(printf '%s' "$rol" | tr '[:upper:]' '[:lower:]')=${!var}")
