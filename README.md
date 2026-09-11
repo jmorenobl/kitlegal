@@ -10,20 +10,29 @@ cita, y sin cita no hay respuesta.
 Solo se automatizan fuentes públicas. Cualquier acción que exija identidad —presentar un escrito,
 recoger una notificación— termina en un fichero listo para firmar, nunca en un envío a una sede.
 
-## Qué entrega este hito (H0)
+## Qué entrega este hito (H1)
 
-H0 es el **esqueleto del repositorio y sus controles**: un repo todavía sin fuentes legales, pero
-blindado, para que cualquier línea de Go que entre después pase por los mismos gates. Concretamente:
+H1 es el **kernel de la línea de órdenes**: todo lo que un applet de fuente **no** tendrá que
+declarar. El binario todavía no consulta ninguna fuente legal, pero ya fija la forma de invocarse, de
+fallar y de citar que heredarán todos los hitos siguientes:
 
-- El binario `kitlegal` con un único verbo, `version`, que imprime versión, commit y fecha de
-  construcción.
-- El `Makefile` como única superficie de invocación de los controles: la misma orden que ejecutas tú
-  es la que ejecutan el gancho de pre-commit y la integración continua.
-- Los controles activos: formato, análisis estático, tests con detector de carreras, vulnerabilidades
-  conocidas, detección de secretos e integridad de los módulos.
+- **Despacho multicall**: el applet lo elige el nombre de invocación —un enlace `boe -> kitlegal`
+  ejecuta el applet `boe`— y, si ese nombre no está registrado, el primer argumento.
+- **Ocho banderas globales** que ningún applet escribe: `--json`, `--timeout`, `--offline`,
+  `--dry-run`, `--describe`, `--no-graph`, `--asunto` y `--verbose`.
+- **Sobre de salida** `{ok, fuente, url, fecha_consulta, hash, data}` y **códigos de salida estables**
+  (`0` ok · `2` args · `3` no encontrado · `4` fuente no disponible · `5` límite o TOS · `6` requiere
+  identidad humana; `1` queda para el fallo inesperado), traducidos en un único punto.
+- **`--describe`**: esquema JSON 2020-12 de la entrada y la salida de cada verbo, derivado por
+  reflexión y sin nada escrito a mano, para que un agente descubra el contrato sin leer código.
 
-Los applets de fuentes (`boe`, `placsp`, `bdns`…) llegan en hitos posteriores; el orden está en
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+H0, el hito anterior, dejó el **esqueleto del repositorio y sus controles**: el `Makefile` como única
+superficie de invocación, y los controles de formato, análisis estático, tests con detector de
+carreras, vulnerabilidades conocidas, secretos e integridad de los módulos.
+
+El binario distribuido **no registra todavía ningún applet**: los de ejemplo (`echo`, `contar`) viven
+solo en los tests. Los applets de fuentes (`boe`, `placsp`, `bdns`…) llegan en hitos posteriores; el
+orden está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Prerrequisitos
 
@@ -65,7 +74,8 @@ Las dos inyectan los mismos datos de construcción —versión, commit y fecha�
 
 ## `kitlegal version`
 
-Único verbo de este hito. Sin banderas y sin subverbos:
+Verbo reservado del kernel, que se reconoce antes que el registro de applets. Sin banderas y sin
+subverbos:
 
 ```console
 $ ./bin/kitlegal version
@@ -82,16 +92,19 @@ construida y la fecha es el instante de construcción en UTC. Un binario hecho c
 `make install` nunca imprime los valores por defecto del código (`dev`, `none`, `unknown`); si los
 ves, lo estás ejecutando con `go run`.
 
-Cualquier otra invocación —sin verbo, con un verbo desconocido o con un argumento sobrante— escribe
-una línea de uso en la salida de error y termina con código `2`, que es «args» en la tabla de códigos
-de salida estables del proyecto:
+Cualquier otra invocación —sin applet, con un applet desconocido o con un argumento sobrante tras
+`version`— escribe el fallo en la salida de error, nombrando lo que no ha reconocido y enumerando los
+applets que existen, y termina con código `2`, que es «args» en la tabla de códigos de salida
+estables del proyecto:
 
 ```console
 $ ./bin/kitlegal inventado
-uso: kitlegal version
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; este binario no registra ningún applet
 $ echo $?
 2
 ```
+
+`kitlegal --help` describe el uso y enumera los applets registrados, con código `0`.
 
 ## Ejecutar los controles
 
@@ -118,9 +131,10 @@ propuesta de cambio. Cada control se puede invocar por separado mientras se depu
 | `make fmt` | **Corrige** el formato; por eso no forma parte de `ci` | no |
 | `make lint-fast` | Análisis estático rápido, el del gancho de pre-commit | no |
 | `make test-integration` | Tests con la etiqueta de compilación `integration` | no |
+| `make test-e2e` | Tests de extremo a extremo con `testscript`, contra un binario que registra los applets de ejemplo | no |
 
 `make help` —el objetivo por defecto— enumera todas las órdenes, incluidas las que existen pero
-reciben su contenido en un hito posterior (`test-e2e`, `skills-sync`, `release`).
+reciben su contenido en un hito posterior (`skills-sync`, `release`).
 
 ### Ganchos de pre-commit
 
