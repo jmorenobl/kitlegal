@@ -11,11 +11,16 @@ se abre una nueva vacía.
 
 ## [Unreleased]
 
-Todavía no hay ninguna versión publicada. Lo que sigue es lo que aporta **H0 — esqueleto del repositorio
-y sus controles**: un repositorio sin fuentes legales todavía, pero blindado, para que cualquier línea de
-Go que entre después atraviese los mismos gates.
+Todavía no hay ninguna versión publicada. Lo que sigue es lo que aportan los hitos cerrados hasta hoy, en
+orden de llegada: **H0 — esqueleto del repositorio y sus controles**, un repositorio sin fuentes legales
+todavía, pero blindado, para que cualquier línea de Go que entre después atraviese los mismos gates; y
+**H1 — kernel de la línea de órdenes**, lo que un applet **no** tiene que declarar, de modo que cada
+fuente legal de los hitos siguientes herede la misma forma de invocarse, de fallar y de citar sin volver
+a escribirla.
 
 ### Añadido
+
+*De H0 — el repositorio y sus controles:*
 
 - **Binario `kitlegal`** con un único verbo, `version`, que imprime en tres líneas de la salida estándar
   la versión, el commit y la fecha de construcción, deja vacía la salida de error y termina con código
@@ -54,7 +59,79 @@ Go que entre después atraviese los mismos gates.
   justificación obligatoria de toda dependencia nueva—, este `CHANGELOG.md` y los cuatro ADR fundacionales
   en `docs/ADR/`: multicall, SQLite sin cgo, CENDOJ no masivo y frontera humana.
 
-Cinco órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
-`test-integration`, `test-e2e` (H1), `schema-check` (H4 y H11), `skills-sync` (H5) y `release`, que falla
-con código distinto de `0` hasta H6 por ser la única con efectos externos. Los applets de fuentes (`boe`,
-`placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.
+*De H1 — el kernel de la línea de órdenes:*
+
+- **Despacho multicall**: un solo ejecutable atiende a todos los applets. Manda el **nombre con el que se
+  invoca**, de modo que un enlace simbólico `echo -> kitlegal` ejecuta el applet `echo` y le entrega
+  íntegros los argumentos —`./echo boe` ejecuta `echo` con el argumento `boe`, y no el applet `boe`—; solo
+  cuando ese nombre no está registrado —`kitlegal` entre ellos— el applet sale del **primer argumento**.
+  Los verbos reservados del binario se reconocen antes que el registro, y por eso el registro rechaza al
+  construirse un applet que se llame como uno de ellos. Una invocación que no resuelve ningún applet
+  termina con código `2` nombrando lo que no reconoció y enumerando lo que existe; nunca con un pánico.
+- **El registro es la única lista**: registrar un applet basta para que aparezca en `--help` y declarar un
+  verbo basta para que se enumere, sin ninguna lista paralela mantenida a mano. Si el applet declara un
+  verbo por omisión, invocarlo sin nombrar verbo lo usa; si no lo declara, nombrarlo es obligatorio y
+  omitirlo termina con código `2`. La ayuda del binario, la de un applet y la de un verbo son texto para
+  una persona y `--json` no las altera.
+- **Ocho banderas globales idénticas en todos los applets**, declaradas una sola vez en el kernel y
+  heredadas sin escribir ninguna: `--json`, `--timeout` (30 s por omisión, plazo de **toda** la operación
+  y no de una petición suelta), `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto` y
+  `--verbose`. Un applet declara su nombre, sus verbos y el contenido de `data`, y las recibe ya
+  interpretadas. Tres —`--offline`, `--no-graph` y `--asunto`— fijan hoy solo su sintaxis y se propagan
+  tal cual: su semántica llega con la caché (H3), con el grafo (H12) y con el asunto (H14), y no se
+  inventa antes.
+- **Códigos de salida estables**: `0` correcto, `2` argumentos inválidos, `3` no encontrado, `4` fuente no
+  disponible, `5` límite de peticiones o términos de uso, `6` requiere identidad humana, y **`1` reservado
+  al fallo inesperado** —lo que nadie declaró—, que es la convención de Unix para el error general y el
+  único valor que un consumidor interpreta sin documentación. Un applet nombra la clase de su fallo con un
+  sentinela y **nunca** un número; la traducción de clase a código ocurre en un único punto por binario,
+  cubre las seis clases sin rama por defecto y el linter falla si alguien añade una clase y se olvida de
+  darle código. Ninguna ruta de usuario termina en pánico.
+- **Sobre de salida con huella reproducible**: toda invocación emite las mismas **seis** claves —`ok`,
+  `fuente`, `url`, `fecha_consulta`, `hash` y `data`—, en éxito y en fallo, sin omitir ninguna aunque su
+  valor sea el cero. `fecha_consulta` va en RFC 3339 con desplazamiento horario explícito; `hash` lleva
+  delante el algoritmo que lo produjo —`sha256:`— seguido de los 64 dígitos hexadecimales del SHA-256 de
+  la forma canónica de `data`, de modo que el mismo contenido dé siempre la misma huella con
+  independencia del orden de las claves y del instante de la consulta, y que un solo byte distinto dé
+  otra. Sin `fuente` y sin una `url` absoluta no se emite sobre, porque sin ellas no hay cita. Cuando `ok`
+  es falso, `data` lleva exactamente `clase` y `mensaje`: el detalle técnico va al registro de eventos y
+  no al sobre.
+- **Dos formas de presentación y una sola salida estándar**: con `--json`, un único documento en una línea
+  y nada más, ni siquiera con el registro de eventos al máximo detalle; sin `--json`, la **tabla mínima**,
+  que escribe las cuatro líneas de procedencia —`fuente`, `url`, `fecha_consulta` y `hash`— y a
+  continuación el contenido de `data` aplanado a pares ruta/valor, de modo que elegir la forma legible por
+  una persona no pierda la cita. El registro de eventos va **siempre** a la salida de error, y su nivel se
+  fija con `--verbose` o con la variable de entorno `KITLEGAL_LOG` (`debug`, `info`, `warn`, `error`); un
+  valor fuera de esa lista se ignora, se avisa y no aborta la invocación.
+- **Autodescripción**: `--describe` emite un esquema JSON con la entrada y la salida del verbo —las dos en
+  un mismo documento, bajo `entrada` y `salida`— y excluye la ejecución, así que el applet nunca llega a
+  ver esa invocación. Es la contraparte legible por máquina de `--help`, y de ella saldrán las tools MCP y
+  la tabla de órdenes de cada `SKILL.md`.
+- **Cinco dependencias nuevas**, todas de la lista cerrada de la constitución (§V) y ninguna más: en el
+  binario, `github.com/alecthomas/kong` (análisis de la línea de órdenes) e `github.com/invopop/jsonschema`
+  (generación del esquema de `--describe`); solo en los tests, `github.com/stretchr/testify` (aserciones),
+  `github.com/rogpeppe/go-internal` (los guiones `testscript` del e2e) y
+  `github.com/santhosh-tekuri/jsonschema/v6` (validación del sobre contra su descripción formal). Con
+  ellas aparece por primera vez un `go.sum` en la raíz del módulo.
+
+### Cambiado
+
+- **El contrato observable del binario deja de ser el de H0.** De aquel se conservan las tres líneas de
+  `version` y su código `0` —ahora escritas por el presentador, y un fallo al escribirlas se propaga en
+  lugar de descartarse—, y lo demás lo fija el despacho multicall: `--help` responde la ayuda derivada del
+  registro y termina con `0`, donde H0 terminaba con `2` por no ser `version`; y los códigos de salida
+  posibles ya no son solo `0` y `2`, sino los siete de la tabla estable.
+- **La exclusión de `errcheck` desaparece.** H0 eximía `fmt.Fprint`, `fmt.Fprintf` y `fmt.Fprintln` porque
+  el punto de entrada escribía él mismo y su contrato de códigos de salida no tenía dónde poner un fallo
+  de escritura. Ya no escribe —inyecta los descriptores del sistema, el registro de producción y los datos
+  de construcción, y termina con el código que le devuelve la raíz de composición—, así que ninguna
+  función queda exenta y todo error de escritura se comprueba.
+- **`make test-e2e` deja de anunciar el hito ausente** y ejecuta los guiones `testscript` que describen la
+  entrega, contra el binario que el propio test construye.
+
+Cuatro órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
+`test-integration`, `schema-check` (H4 y H11), `skills-sync` (H5) y `release`, que falla con código
+distinto de `0` hasta H6 por ser la única con efectos externos. El binario que se publica **no registra
+todavía ningún applet** y su ayuda lo dice en lugar de enumerar una lista vacía: los de fuentes (`boe`,
+`placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`, y el primero es el de
+H4.

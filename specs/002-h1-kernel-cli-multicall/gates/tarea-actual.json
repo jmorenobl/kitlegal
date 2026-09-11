@@ -1,11 +1,10 @@
 {
-  "id": "T018",
-  "texto": "T018 [P] Decisiones de arquitectura registradas: `docs/ADR/0005-contrato-de-applet.md` en formato MADR corto con el contrato `Applet`/`Verbo`/`Argumentos`/`Resultado`, el verbo por omisión y el reparto entre kernel, composición, dominio y presentación con la dirección de dependencia que lo hace posible; y `docs/ADR/0006-sobre-de-salida-y-huella.md` con la forma canónica de `data` y el algoritmo de la huella con prefijo de algoritmo, el espacio de nombres reservado `kitlegal.` / `kitlegal:` —anotando la prohibición que nace en H4: ningún adaptador de fuente puede usar ese prefijo ni ese esquema, y la comprobación mecánica se escribe con el primer adaptador— y la forma del sobre de fallo (Definition of Done §1.7, D23, obligación 6 del plan).",
+  "id": "T019",
+  "texto": "T019 [P] Registro del cambio visible: `CHANGELOG.md`, sección *Unreleased*, con el kernel CLI —multicall por nombre de invocación o primer argumento, las ocho banderas globales, los códigos de salida estables con el 1 reservado al fallo inesperado, el sobre de salida con huella reproducible, la autodescripción y la tabla mínima—, la retirada de la exclusión de `errcheck` y las cinco dependencias nuevas, siguiendo la convención de changelog que fijó H0 (Definition of Done §1.6).",
   "intento": 1,
   "datos": false,
-  "base": "0b8606ad1391d80ec3840f4fd41359337050da5b",
+  "base": "4223316df978b306a6e8b336705f0d803383785c",
   "rutas": [
-    "docs/ADR/0005-contrato-de-applet.md",
-    "docs/ADR/0006-sobre-de-salida-y-huella.md"
+    "CHANGELOG.md"
   ]
 }
