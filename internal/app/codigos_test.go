@@ -235,12 +235,18 @@ func casosDeCodigo() []casoDeCodigo {
 // --json: el mensaje del fallo va a la salida de error y la estándar queda
 // vacía, porque un resultado que no existe no se cita
 // (FR-030, SC-006, SC-011, contracts/banderas-y-exit-codes.md §5).
+//
+// No es paralelo porque fija KITLEGAL_LOG —en el test y en cada subcaso, que es
+// lo que deja hermético cada uno por separado—: el caso correcto afirma que la
+// salida de error queda vacía, y el kernel lee el nivel del registro del
+// entorno del proceso, así que sin fijarlo el veredicto dependería del entorno
+// de quien ejecuta los tests.
 func TestCodigoSalida(t *testing.T) {
-	t.Parallel()
+	t.Setenv(cli.VariableNivel, "")
 
 	for _, caso := range casosDeCodigo() {
 		t.Run(string(caso.clase), func(t *testing.T) {
-			t.Parallel()
+			t.Setenv(cli.VariableNivel, "")
 
 			res := invocar(t, registroDeCodigos(t, caso.desenlace),
 				"kitlegal", "prueba", "hola")

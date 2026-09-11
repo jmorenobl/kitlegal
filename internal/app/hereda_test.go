@@ -16,6 +16,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/app/testdata/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
@@ -104,43 +105,49 @@ type fila struct {
 // Es el test que invoca por su nombre el escenario 7 de quickstart.md. Que exista
 // no es un detalle: `go test -run` sobre un test que no existe termina en 0, así
 // que sin este fichero el escenario daría por demostrado lo que nadie comprobó.
+//
+// No es paralelo porque fija KITLEGAL_LOG —en el test y en cada subcaso, que es
+// lo que deja hermético cada uno por separado—: tres de las tablas afirman que
+// la salida de error queda vacía, y el kernel lee el nivel del registro del
+// entorno del proceso, así que sin fijarlo el veredicto dependería del entorno
+// de quien ejecuta los tests.
 func TestAppletHereda(t *testing.T) {
-	t.Parallel()
+	t.Setenv(cli.VariableNivel, "")
 
 	for _, caso := range ejemplares(t) {
 		t.Run(caso.applet.Nombre(), func(t *testing.T) {
-			t.Parallel()
+			t.Setenv(cli.VariableNivel, "")
 
 			t.Run("no declara nada más que nombre, verbos y el contenido de data",
 				func(t *testing.T) {
-					t.Parallel()
+					t.Setenv(cli.VariableNivel, "")
 					exigirQueNoDeclaraNadaMas(t, caso)
 				})
 
 			t.Run("acepta las ocho banderas globales sin declarar ninguna",
 				func(t *testing.T) {
-					t.Parallel()
+					t.Setenv(cli.VariableNivel, "")
 					exigirLasOchoBanderas(t, caso)
 				})
 
 			t.Run("emite el sobre con las seis claves", func(t *testing.T) {
-				t.Parallel()
+				t.Setenv(cli.VariableNivel, "")
 				exigirElSobre(t, caso)
 			})
 
 			t.Run("la misma tabla de códigos de salida", func(t *testing.T) {
-				t.Parallel()
+				t.Setenv(cli.VariableNivel, "")
 				exigirLaTablaDeCodigos(t, caso)
 			})
 
 			t.Run("responde a --describe y a --help", func(t *testing.T) {
-				t.Parallel()
+				t.Setenv(cli.VariableNivel, "")
 				exigirDescribeYAyuda(t, caso)
 			})
 
 			t.Run("las dos formas de presentación, idénticas en estructura",
 				func(t *testing.T) {
-					t.Parallel()
+					t.Setenv(cli.VariableNivel, "")
 					exigirLasDosPresentaciones(t, caso)
 				})
 		})
