@@ -26,7 +26,7 @@ Regla: todo nodo tiene un **id natural** externo cuando existe. Así dos ejecuci
 | `BloqueVersion` | Bloque + fecha_vigencia + hash del texto | `…#a21@20231001:sha256…` | boe articulo |
 | `Resolucion` | ECLI | `ECLI:ES:TS:2025:1234` | ecli, tc |
 | `Doctrina` | id DGT / TEAC / Consejo de Estado | `DGT:V1234-24` | dgt, teac |
-| `Organo` | código DIR3 | `L01280740` (Ayto. Leganés) | placsp, bdns, sede |
+| `Organo` | código DIR3 | `L01280740` (Ayto. Leganés) | territorio, placsp, bdns, sede |
 | `Entidad` | NIF | `B12345678` | placsp, bdns, borme |
 | `Persona` | nombre normalizado (sin NIF; ver §7) | `persona:garcia-lopez-juan` | borme |
 | `Licitacion` | id expediente PLACSP | `placsp:2026/00123` | placsp |
@@ -35,7 +35,7 @@ Regla: todo nodo tiene un **id natural** externo cuando existe. Así dos ejecuci
 | `Concesion` | id concesión BDNS | `bdns:concesion:…` | bdns |
 | `Inmueble` | referencia catastral | `rc:1234567AB1234C` | catastro |
 | `Publicacion` | id BOE/BORME/boletín | `BOE-B-2026-12345` | boe sumario, edictos, boletin |
-| `Municipio` | código INE | `ine:28074` | datos/entidades |
+| `Municipio` | código INE | `ine:28074` | territorio |
 | `Materia` | código materia BOE / EuroVoc | `materia:tributos` | boe |
 | **Asunto** | uuid local | `asunto:…` | (privado) |
 | `Hecho` | uuid | | (privado) |
@@ -69,7 +69,7 @@ Donde ELI tiene nombre, se usa el de ELI. El resto, prefijo `lb:`.
 | `lb:administra` | Persona → Entidad (con fechas nombramiento/cese) | borme |
 | `lb:participa` | Entidad → Entidad (socio, fusión, escisión) | borme |
 | `lb:titular_de` | Entidad/Organo → Inmueble | catastro (solo si público) |
-| `lb:pertenece_a` | Organo → Municipio/CCAA | data/organos.yaml |
+| `lb:pertenece_a` | Organo → Municipio/CCAA | territorio (registros INE y DIR3) |
 | `lb:competente` | Organo/nivel → Materia | competencia |
 | `lb:consulta` | Consulta → cualquier nodo del mundo | todos los applets |
 | `lb:en_asunto` | Consulta/Hecho/Parte/Plazo/Escrito → Asunto | privado |
@@ -149,7 +149,10 @@ kitlegal boe articulo BOE-A-2015-10565 a21
 kitlegal boe analisis BOE-A-2015-10565
   world: eli:amends / amended_by / repeals con las normas relacionadas (nodos stub si no existen)
 
-kitlegal placsp sync --organo L01280740
+kitlegal territorio resolver 28074          # cualquier municipio, por nombre o código INE
+  world: Municipio(ine:28074), Organo(DIR3 del ayuntamiento); pertenece_a (Organo → Municipio)
+
+kitlegal placsp sync --organo L01280740     # o --municipio 28074, que resuelve el DIR3 con territorio
   world: Organo, Licitacion×N, Contrato×N, Entidad×N; convoca, licita, adjudica, modifica_contrato
          con props: importe_licitacion, importe_adjudicacion, procedimiento, num_licitadores, fechas
 
@@ -253,15 +256,17 @@ Salida: JSON y tabla; exit 0 (limpio), 1 (warnings), 2 (errores). `escrito gener
 
 Aquí el grafo deja de ser memoria y pasa a ser instrumento. Todas las reglas son **señales**, no acusaciones: la salida siempre lista las aristas y fuentes que la sustentan para que un humano las verifique. Las reglas se definen en YAML (`data/anomalias/*.yaml`) con una consulta SQL y umbrales, de modo que sean auditables y ampliables sin recompilar.
 
+Las reglas son genéricas: ninguna referencia un municipio u órgano concreto. Las que dependen de un umbral legal (fraccionamiento, plazos) lo toman de la ley; las relativas (licitador único, concentración…) comparan con órganos de municipios de tamaño parecido (tramos de población del padrón del INE), porque en un municipio pequeño la concentración de adjudicatarios es alta por naturaleza. Nunca se calibran sobre un solo municipio.
+
 ### 7.1 Contratación
 
 | Regla | Señal | Consulta (idea) |
 |---|---|---|
 | `fraccionamiento` | Varios contratos menores del mismo órgano al mismo adjudicatario, mismo objeto o CPV, en 12 meses, cuya suma supera el umbral del menor (LCSP art. 118) | agrupar `adjudica` por (organo, entidad, cpv, ventana 365d), sumar importe |
-| `licitador-unico` | Procedimientos abiertos con `num_licitadores = 1` en proporción alta para un órgano | ratio por órgano vs. media del grafo |
+| `licitador-unico` | Procedimientos abiertos con `num_licitadores = 1` en proporción alta para un órgano | ratio por órgano vs. órganos de municipios de tamaño parecido |
 | `baja-anomala-inversa` | Adjudicación al precio de licitación (0 % de baja) de forma recurrente | props importe_licitacion ≈ importe_adjudicacion |
 | `modificados-recurrentes` | Contrato con `modifica_contrato` que supera +20 % del precio inicial | suma de modificaciones / importe inicial |
-| `concentracion` | Un adjudicatario acumula > X % del importe de un órgano en un ejercicio | Herfindahl por órgano/año |
+| `concentracion` | Un adjudicatario acumula una proporción del importe de un órgano en un ejercicio anómala respecto a municipios de tamaño parecido | Herfindahl por órgano/año vs. grupo de comparación |
 | `plazo-publicacion` | Contrato adjudicado cuya publicación en PLACSP excede el plazo legal | fecha_adjudicacion vs fecha_publicacion |
 | `empresa-recien-creada` | Adjudicatario con constitución en BORME < 6 meses antes de la licitación | `Entidad.fecha_constitucion` vs `Licitacion.fecha` |
 
@@ -302,7 +307,7 @@ El `score` es heurístico (peso por regla × solapamiento temporal × importe) y
 
 ### 7.5 Vigilancia continua
 
-`kitlegal vigilar run` (cron) hace `placsp sync`, `bdns`, `borme sumario`, `boe vigilar` sobre las entidades de `.kitlegal/config.yaml`, aplica las operaciones al grafo y ejecuta `anomalies` **solo sobre el delta**: nuevas aristas de hoy. Emite únicamente anomalías nuevas o cuyo score ha subido. Es la capa de monitorización, y por diseño solo toca fuentes públicas.
+`kitlegal vigilar run` (cron) hace `placsp sync`, `bdns`, `borme sumario`, `boletin`, `edictos` y `boe vigilar` sobre el municipio y las entidades de `.kitlegal/config.yaml` (el municipio de cada persona vive ahí, nunca en el repositorio), aplica las operaciones al grafo y ejecuta `anomalies` **solo sobre el delta**: nuevas aristas de hoy. Emite únicamente anomalías nuevas o cuyo score ha subido. Es la capa de monitorización, y por diseño solo toca fuentes públicas.
 
 ---
 
@@ -327,13 +332,16 @@ El `score` es heurístico (peso por regla × solapamiento temporal × importe) y
 
 ## 10. Orden de implementación
 
-1. Tablas `nodes/edges/texts` + `internal/graph` con `Apply([]GraphOp)`. Applet `boe` emite Norma/Bloque/BloqueVersion. (`graph show`, `graph stats`.)
-2. `boe analisis` → aristas ELI. `graph history` con diff de versiones.
-3. Grafo del asunto: `Consulta`, `en_asunto`, `.kitlegal/` en cwd. Primera regla de `check`: `version-obsoleta`.
-4. `placsp`, `bdns`, `borme` emiten sus nodos. `graph neighbors`, `graph path`.
-5. Reglas de anomalías de contratación (fraccionamiento, licitador único, concentración) sobre Leganés. Validar contra casos que ya conozcas.
-6. Cruces entre fuentes (administrador-comun, beneficiario-adjudicatario).
-7. `escrito` + `Afirmacion` + `fundamenta`; `check` completo bloqueando escritos sin fundamento.
-8. Exportaciones y `vigilar run` sobre delta.
+El grafo llega cuando las skills del municipio ya existen (fases 3 y 4 de `docs/ROADMAP.md`); los applets anteriores incorporan `Emit` en ese momento.
+
+1. Tablas `nodes/edges/texts` + `internal/graph` con `Apply([]GraphOp)`. Emiten los applets que ya existen: `boe` (Norma/Bloque/BloqueVersion), `territorio` (Municipio/Organo), `placsp` y `bdns`. (`graph show`, `graph stats`.)
+2. Grafo del asunto: `Consulta`, `en_asunto`, `.kitlegal/` en cwd con el municipio de la persona, expedientes. Primeras reglas de `check`: `version-obsoleta`, `plazo-vencido`.
+3. `borme` emite sus nodos. `graph neighbors`, `graph path`.
+4. Reglas de anomalías de contratación (fraccionamiento, licitador único, concentración), genéricas y relativas a municipios comparables. Validar primero en Leganés contra casos que ya conozcas y después en un municipio de otra comunidad.
+5. Cruces entre fuentes (administrador-comun, beneficiario-adjudicatario).
+6. `vigilar run` sobre delta.
+7. `boe analisis` → aristas ELI. `graph history` con diff de versiones.
+8. `escrito` + `Afirmacion` + `fundamenta`; `check` completo bloqueando escritos sin fundamento.
+9. Exportaciones.
 
 Lo que deliberadamente queda fuera hasta que haya volumen que lo justifique: triple store, SPARQL, embeddings sobre el grafo, y cualquier sincronización entre máquinas.

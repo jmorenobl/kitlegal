@@ -1,11 +1,13 @@
 # kitlegal
 
-`kitlegal` es un binario Go **multicall** y un conjunto de skills agénticas para consultar fuentes
-legales públicas españolas —BOE, PLACSP, BDNS, BORME, EUR-Lex…— desde la línea de órdenes o desde un
-agente. Un solo ejecutable: el applet lo elige `os.Args[0]` o el primer argumento, de modo que
-`kitlegal boe articulo …` y un symlink `boe -> kitlegal` son la misma cosa. Toda respuesta va envuelta
-en `{ok, fuente, url, fecha_consulta, hash, data}`: sin fuente, URL, fecha de consulta y hash no hay
-cita, y sin cita no hay respuesta.
+`kitlegal` es un conjunto de **skills agénticas** para consultar fuentes legales públicas españolas
+—BOE, PLACSP, BDNS, BORME, EUR-Lex…— y actuar en tu municipio, sea cual sea: qué contrata y subvenciona
+tu ayuntamiento, qué dicen sus ordenanzas, cuándo vence un plazo, qué escrito presentar. Las skills
+razonan; las herramientas deterministas que usan las da un binario Go **multicall**, que también se
+puede usar desde la línea de órdenes. Un solo ejecutable: el applet lo elige `os.Args[0]` o el primer
+argumento, de modo que `kitlegal boe articulo …` y un symlink `boe -> kitlegal` son la misma cosa.
+Toda respuesta va envuelta en `{ok, fuente, url, fecha_consulta, hash, data}`: sin fuente, URL, fecha
+de consulta y hash no hay cita, y sin cita no hay respuesta.
 
 Solo se automatizan fuentes públicas. Cualquier acción que exija identidad —presentar un escrito,
 recoger una notificación— termina en un fichero listo para firmar, nunca en un envío a una sede.
@@ -124,7 +126,7 @@ propuesta de cambio. Cada control se puede invocar por separado mientras se depu
 | `make lint` | Análisis estático completo, `gosec` incluido | sí |
 | `make test` | Tests unitarios con detector de carreras; deja `coverage.out` | sí |
 | `make vuln` | Vulnerabilidades conocidas (consulta la base de datos de Go: requiere red) | sí |
-| `make schema-check` | Validación de salidas contra esquemas (los aportan H4 y H11) | sí |
+| `make schema-check` | Validación de salidas contra esquemas (los aportan H4 y H10) | sí |
 | `make secrets` | Detección de secretos en todo el árbol | sí |
 | `make mod-verify` | Integridad del módulo raíz y de cada módulo de herramienta | sí |
 | `make mod-tidy-check` | Comprueba que `go.mod` y `go.sum` están saneados | sí |

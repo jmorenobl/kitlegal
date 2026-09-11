@@ -7,6 +7,10 @@ Convención usada en todo el documento:
 - 🟡 Fuente web sin API formal (HTML/RSS/Atom) → scraping ligero, frágil, revisar TOS.
 - 🔴 Requiere identidad (certificado, Cl@ve), CAPTCHA o está prohibida la automatización → **firma humana**, el agente solo prepara.
 
+Dos reglas de lectura:
+- **Las skills son el producto; las herramientas, su apoyo.** Los comandos `*.py` del catálogo son los nombres de la propuesta original: en `kitlegal` cada uno es un applet del binario Go (`kitlegal placsp …`, o `scripts/placsp …` desde la skill). Solo va a una herramienta lo que exige determinismo o verificabilidad; el razonamiento vive en la skill.
+- **Genérico para cualquier municipio.** Donde un comando recibe un municipio, acepta cualquiera (nombre o código INE) y lo resuelve con `territorio`. Los ejemplos usan Leganés (INE 28074) porque la Comunidad de Madrid es el territorio de validación, que se implementa primero; fuera de él la salida declara su cobertura. Ninguna herramienta ni skill se particulariza para un municipio.
+
 ---
 
 ## 1. Mapa del sistema legal
@@ -134,7 +138,7 @@ Cada fila = un dato que un agente legal necesita, y dónde está.
 | Datos estadísticos | INE (API Tempus), datos.gob.es (CKAN) | JSON | 🟢 |
 | Cargos públicos, agendas, retribuciones, bienes | Portal de Transparencia (AGE), portales autonómicos/locales | HTML/CSV | 🟡 |
 | Resoluciones sobre acceso a información | CTBG y consejos autonómicos | Web, PDF | 🟡 |
-| Informes de fiscalización | Tribunal de Cuentas, Cámara de Cuentas de Madrid, etc. | PDF | 🟡 |
+| Informes de fiscalización | Tribunal de Cuentas y órgano de control externo de cada comunidad (Cámara de Cuentas de Madrid, Consejo de Cuentas de Castilla y León…) | PDF | 🟡 |
 | Notificaciones administrativas propias | DEHú, Notifica, sede electrónica | Certificado/Cl@ve | 🔴 |
 | Presentar solicitud, recurso, reclamación | Registro electrónico (REC), sedes | Certificado/Cl@ve + firma | 🔴 |
 | Estado de un expediente propio | Carpeta Ciudadana | Certificado/Cl@ve | 🔴 |
@@ -143,16 +147,17 @@ Cada fila = un dato que un agente legal necesita, y dónde está.
 
 ## 3. Catálogo de skills agénticas
 
-Diseño coherente con lo que ya tienes: `boe-fiscal` es el patrón (skill = SKILL.md con protocolo de razonamiento + `scripts/` + `references/` con identificadores). Todas las skills devuelven **JSON** por stdout, con `fuente`, `url`, `fecha_consulta` en cada resultado, para que la cita sea verificable.
+Diseño coherente con lo que ya tienes: `boe-fiscal` es el patrón (skill = SKILL.md con protocolo de razonamiento + `scripts/` + `references/` con identificadores). Todas las herramientas que usan las skills devuelven **JSON** por stdout, con `fuente`, `url`, `fecha_consulta` en cada resultado, para que la cita sea verificable.
 
 ### Capa 0 — Núcleo transversal
 
 **`legal-core`** (skill madre, se carga siempre)
-- Contenido: jerarquía normativa, reparto competencial, mapa de recursos y plazos, tabla de leyes vertebrales, reglas de cita (`Art. X.Y de la Ley Z/AAAA, BOE-A-...`), reglas de no invención.
+- Contenido: jerarquía normativa, reparto competencial, mapa de recursos y plazos, tabla de leyes vertebrales, reglas de cita (`Art. X.Y de la Ley Z/AAAA, BOE-A-...`), reglas de no invención. Su protocolo empieza por identificar el territorio de la pregunta: de él dependen la normativa autonómica, los boletines, los festivos y los órganos competentes.
 - Herramientas:
-  - `plazos.py calcular --tipo alzada --fecha-notificacion 2026-09-01` → fecha límite aplicando arts. 30-31 LPAC (días hábiles, agosto inhábil en judicial, festivos locales).
+  - `territorio.py resolver "Leganés"` (o por código INE) → municipio, provincia, comunidad, DIR3 del ayuntamiento, régimen común o foral, boletines aplicables y cobertura. Datos de municipio desde registros nacionales (INE, DIR3); lo territorial, configurado por comunidad y por boletín.
+  - `plazos.py calcular --tipo alzada --fecha-notificacion 2026-09-01 --municipio 28074` → fecha límite aplicando arts. 30-31 LPAC (días hábiles, agosto inhábil en judicial, festivos nacionales, autonómicos y locales; art. 30.6: inhábil en el municipio del interesado o en la sede del órgano). Si faltan los festivos locales del territorio, lo dice.
   - `competencia.py quien-regula "licencia de terraza"` → tabla heurística Estado/CCAA/Local con referencia al art. 148-149 CE y LRBRL.
-- Datos: `references/leyes_vertebrales.md`, `references/plazos.md`, `references/calendario_festivos.json` (descargado del BOE/Ayuntamiento).
+- Datos: `references/leyes_vertebrales.md`, `references/plazos.md`; festivos en `data/festivos/` (nacionales y autonómicos, del BOE; locales, de la publicación de cada comunidad).
 
 **`cita-verificada`**
 - Recibe una cita (`Art. 21 LPAC`) y la resuelve a texto vigente + URL ELI + fecha de última modificación. Es la que impide alucinar.
@@ -168,19 +173,18 @@ Diseño coherente con lo que ya tienes: `boe-fiscal` es el patrón (skill = SKIL
 - Cubre también normas autonómicas: el BOE consolida legislación de CCAA (filtrar por `departamento@codigo`).
 
 **`boletines-autonomicos`**
-- Un adaptador por boletín; empezar por BOCM (tu ámbito).
-  - DOGC tiene API pública (`https://dogc.gencat.cat` → verificar endpoint actual).
-  - BOCM: RSS + buscador HTML → `bocm.py sumario 2026-09-09`, `bocm.py buscar "Leganés"`.
-  - Patrón genérico: `boletin.py --config bocm.yaml sumario FECHA` con configuración YAML (URL, selectores CSS, RSS).
+- Un motor genérico configurado por YAML, un fichero por boletín: `boletin.py --boletin bocm sumario FECHA`, `boletin.py buscar --municipio 28074 "terrazas"` (URL, selectores CSS, RSS en `data/boletines/<boletin>.yaml`). Añadir un boletín es añadir un YAML; un adaptador propio solo si el motor no basta (p. ej. DOGC, que tiene API pública: verificar endpoint actual).
+- Primero el BOCM, por ser el del territorio de validación; después el resto (BOCYL, DOGC, BOJA…), sin tocar la skill.
 - Normalizar todo a un mismo esquema `{boletin, fecha, seccion, organo, titulo, url, pdf}`.
 
 **`bop-y-edictos`**
-- BOP de la Comunidad de Madrid (lo publica el BOCM en sección III/IV) y Tablón Edictal Único (BOE Sección V-B).
-- `edictos.py buscar --municipio Leganés --desde 2026-01-01` (notificaciones por comparecencia, expropiaciones, licitaciones locales).
+- El boletín provincial del municipio y el Tablón Edictal Único (BOE Sección V-B, nacional). En las comunidades uniprovinciales (Madrid, Asturias, Cantabria, La Rioja, Murcia, Navarra, Baleares) no hay BOP y hace sus veces el boletín autonómico: en la Comunidad de Madrid, el BOCM. En las multiprovinciales hacen falta los dos (Tordesillas: BOCYL y BOP de Valladolid).
+- `edictos.py buscar --municipio 28074 --desde 2026-01-01` (notificaciones por comparecencia, expropiaciones, licitaciones locales). El TEU funciona para cualquier municipio; los boletines, según la cobertura del territorio.
 
 **`ordenanzas-locales`**
-- Descarga e indexa ordenanzas y reglamentos de un ayuntamiento desde su sede/portal de transparencia.
-- `ordenanzas.py listar --municipio leganes` → crawler con config por ayuntamiento; guarda PDF + texto extraído (`pdftotext`) + fecha BOCM de aprobación definitiva.
+- Ordenanzas y reglamentos de cualquier ayuntamiento, obtenidos del boletín donde la ley obliga a publicarlos íntegros: el provincial o, en comunidades uniprovinciales, el autonómico (art. 70.2 LRBRL; ordenanzas fiscales, art. 17.4 TRLRHL). Así no hace falta un crawler ni una configuración por ayuntamiento.
+- `ordenanzas.py listar --municipio 28074` → anuncios de aprobación definitiva y de modificación en el boletín del territorio, con fecha y URL; `ordenanzas.py ver <id>` → texto publicado. La skill no presenta como consolidado un texto que no lo es.
+- La sede o el portal de transparencia del ayuntamiento, solo como complemento donde el boletín no baste.
 
 **`eurlex`**
 - `eurlex.py buscar "directiva servicios de pago"` → SPARQL contra Cellar (`https://publications.europa.eu/webapi/rdf/sparql`).
@@ -212,43 +216,43 @@ Diseño coherente con lo que ya tienes: `boe-fiscal` es el patrón (skill = SKIL
 **`contratacion-publica`**
 - PLACSP sindicación Atom (perfiles de contratante, licitaciones, adjudicaciones, contratos menores): `https://contrataciondelsectorpublico.gob.es/sindicacion/...` (feeds `licitacionesPerfilesContratanteCompleto3.atom`, `PlataformasAgregadasSinMenores.atom`, `contratosMenoresPerfilesContratantes.atom` — verificar nombres actuales).
 - `placsp.py sync --desde 2026-01-01` → descarga incremental de Atom + parseo XML CODICE a SQLite.
-- `placsp.py organo "Ayuntamiento de Leganés"`, `placsp.py adjudicatario "XXXX SL"`, `placsp.py anomalias --organo ...` (fraccionamiento en menores, un solo licitador, modificados > 20%, plazos de publicación incumplidos).
-- Portal de Contratación de la Comunidad de Madrid: adaptador aparte.
+- `placsp.py organo --municipio 28074` (el DIR3 del ayuntamiento lo da `territorio`), `placsp.py adjudicatario "XXXX SL"`, `placsp.py anomalias --organo ...` (fraccionamiento en menores, un solo licitador, modificados > 20%, plazos de publicación incumplidos). PLACSP es nacional: funciona para cualquier municipio.
+- Plataformas autonómicas de contratación (la de la Comunidad de Madrid y las demás): PLACSP agrega parte de sus datos; lo que no llegue agregado (verificar, p. ej. los contratos menores) se declara en la cobertura y se añade como adaptador por plataforma cuando el territorio lo requiera.
 
 **`subvenciones`**
-- BDNS API pública (`https://www.infosubvenciones.es/bdnstrans/api/...` — convocatorias, concesiones, beneficiarios; verificar swagger actual en `bdnstrans/api/swagger`).
-- `bdns.py convocatorias --organo "Leganés" --anio 2026`, `bdns.py beneficiario "NIF|nombre"`, `bdns.py concesiones --convocatoria 123456`.
+- BDNS API pública (`https://www.infosubvenciones.es/bdnstrans/api/...` — convocatorias, concesiones, beneficiarios; verificar swagger actual en `bdnstrans/api/swagger`). Nacional: funciona para cualquier municipio.
+- `bdns.py convocatorias --municipio 28074 --anio 2026`, `bdns.py beneficiario "NIF|nombre"`, `bdns.py concesiones --convocatoria 123456`.
 - Cruce con PLACSP y BORME: mismo beneficiario ↔ adjudicatario ↔ administrador (señal de conflicto de interés).
 
 **`presupuestos-y-cuentas`**
 - Presupuestos Generales del Estado (datos abiertos Hacienda), liquidaciones de EELL (Ministerio: `datos.gob.es` datasets "liquidaciones entidades locales"), Rendición de Cuentas (`rendiciondecuentas.es`).
-- `presupuesto.py descargar --entidad 28074 --ejercicio 2025` (código INE del municipio), `presupuesto.py comparar --aprobado --liquidado` → desviaciones por capítulo y programa.
+- `presupuesto.py descargar --entidad 28074 --ejercicio 2025` (código INE del municipio; sirve para cualquiera), `presupuesto.py comparar --aprobado --liquidado` → desviaciones por capítulo y programa.
 
 **`transparencia-portal`**
-- Portal de Transparencia AGE (datos abiertos), portal de la CAM, portal municipal.
+- Portal de Transparencia AGE (datos abiertos), portal autonómico y portal municipal del territorio.
 - `transparencia.py altos-cargos --organo`, `transparencia.py agenda`, `transparencia.py retribuciones`.
-- `ctbg.py resoluciones "Leganés"` → resoluciones del Consejo de Transparencia (precedentes útiles para redactar reclamaciones).
+- `transparencia.py resoluciones --municipio 28074` → resoluciones del consejo de transparencia competente según el territorio (CTBG o el autonómico; algunas comunidades han convenido con el CTBG): precedentes útiles para redactar reclamaciones.
 
 **`entidades-y-registros`**
 - BORME vía BOE API: `GET https://www.boe.es/datosabiertos/api/borme/sumario/AAAAMMDD` → `borme.py empresa "XXXX SL"`, `borme.py administrador "Nombre"` (histórico de nombramientos/ceses, constituciones, disoluciones).
-- Catastro OVC: `catastro.py rc 1234567AB1234C` / `catastro.py direccion "calle X 1, Leganés"` (sin titular; el titular es 🔴).
+- Catastro OVC: `catastro.py rc 1234567AB1234C` / `catastro.py direccion "calle X 1, Leganés"` (sin titular; el titular es 🔴). No cubre País Vasco ni Navarra, que tienen catastros forales: ahí la salida declara la cobertura.
 - Registro de Fundaciones, Registro de Asociaciones (Ministerio del Interior), Registro de Entidades Locales.
 - `entidad.py perfil "nombre|NIF"` → agrega BORME + BDNS + PLACSP + Catastro en un único perfil.
 
 **`datos-abiertos`**
 - INE Tempus: `ine.py tabla 2852` (`https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/{id}`).
-- datos.gob.es CKAN: `datosgob.py buscar "Leganés"` (`https://datos.gob.es/apidata/catalog/dataset?...`).
-- Portal de datos abiertos de Leganés / CAM.
+- datos.gob.es CKAN: `datosgob.py buscar --municipio 28074` (`https://datos.gob.es/apidata/catalog/dataset?...`), que federa buena parte de los portales autonómicos y municipales.
+- Portales de datos abiertos autonómicos y municipales, solo cuando no estén federados en datos.gob.es.
 
 ### Capa 4 — Acción (todo 🔴, el agente redacta, el humano firma)
 
 **`redaccion-escritos`**
 - Plantillas: solicitud de acceso a información (LTAIBG art. 17), recurso de alzada/reposición, reclamación ante CTBG, queja al Defensor, denuncia a Tribunal de Cuentas, escrito de alegaciones, recurso especial en contratación.
-- `escrito.py generar --tipo acceso-informacion --hechos hechos.md --organo "..."` → DOCX/PDF con fundamentación jurídica resuelta por `cita-verificada` y plazo calculado por `legal-core`.
-- Nunca presenta: entrega el fichero y la URL de la sede donde presentarlo.
+- `escrito.py generar --tipo acceso-informacion --hechos hechos.md --municipio 28074` → documento con fundamentación jurídica resuelta por `cita-verificada`, órgano destinatario resuelto por `territorio` y plazo calculado por `legal-core`.
+- Nunca presenta: entrega el fichero y dónde presentarlo. El Registro Electrónico General de la AGE admite escritos dirigidos a cualquier administración (art. 16.4 LPAC), así que siempre hay una vía genérica; la sede del ayuntamiento, cuando conste.
 
 **`seguimiento-expedientes`**
-- Registro propio (SQLite/Markdown) de solicitudes presentadas, fechas, plazos de silencio (1 mes LTAIBG, 3 meses LPAC por defecto), próximos pasos.
+- Registro propio (SQLite/Markdown) de solicitudes presentadas, fechas, plazos de silencio (1 mes LTAIBG, 3 meses LPAC por defecto; la normativa autonómica puede fijar otros, y se aplica cuando el territorio la configura), próximos pasos.
 - `expedientes.py vencimientos` → alerta de silencios administrativos que habilitan reclamación.
 
 ---
@@ -256,19 +260,22 @@ Diseño coherente con lo que ya tienes: `boe-fiscal` es el patrón (skill = SKIL
 ## 4. Arquitectura del kit
 
 ```
-kitlegal (binario Go multicall)
- ├─ legal-core ───────────── siempre cargada
+skills (el producto)
+ ├─ legal-core ───────────── siempre cargada; identifica el territorio
  ├─ cita-verificada ───────── usada por todas las demás al citar
  ├─ normas/    boe-legislacion · boletines-autonomicos · bop-y-edictos · ordenanzas-locales · eurlex · tramitacion-parlamentaria
  ├─ doctrina/  jurisprudencia · doctrina-administrativa
  ├─ actividad/ contratacion-publica · subvenciones · presupuestos-y-cuentas · transparencia-portal · entidades-y-registros · datos-abiertos
  └─ accion/    redaccion-escritos · seguimiento-expedientes
+        │ scripts/<applet> …
+        ▼
+kitlegal (binario Go multicall: las herramientas deterministas de todas las skills)
 ```
 
 Principios de implementación:
 1. **Una fuente, un script, un esquema JSON.** Cada script imprime JSON con `fuente`, `url`, `fecha_consulta`, `hash_contenido`. Sin eso no hay cita.
 2. **Caché local con TTL** (SQLite en `~/.cache/legal-kit/`): las normas cambian poco, los feeds de contratación cada hora.
-3. **Config por entidad en YAML** (`entidades/leganes.yaml`: código INE, URLs de sede, portal de transparencia, perfil de contratante, boletín). Añadir un ayuntamiento = añadir un YAML.
+3. **Territorio por datos, nunca por municipio.** Los datos de cada municipio (código INE, provincia, comunidad, DIR3) salen de registros nacionales; lo que varía por territorio (boletines, festivos locales, órganos de control y de transparencia, plataformas de contratación, régimen foral) se configura por comunidad o por boletín (`data/territorio/`, `data/boletines/`). No hay YAML por ayuntamiento: el municipio de cada persona va en su `.kitlegal/config.yaml`. Se configura primero la Comunidad de Madrid (validación en Leganés); fuera de ella cada herramienta declara su cobertura.
 4. **Rate limiting y `User-Agent` identificable** en todo scraping 🟡; respetar `robots.txt`; nada de CENDOJ masivo.
 5. **Monitorización = diff sobre fuentes 🟢**: `kit vigilar` ejecuta `boe.py vigilar`, `placsp.py sync`, `bdns.py convocatorias`, `edictos.py` y emite solo novedades.
 6. **Frontera humana explícita**: cualquier skill de Capa 4 termina en "fichero listo para firmar", nunca en un POST a una sede.
@@ -277,12 +284,14 @@ Principios de implementación:
 
 ## 5. Orden de construcción sugerido
 
-1. `legal-core` + `cita-verificada` + generalizar `boe-fiscal` → `boe-legislacion` (reutilizas el 90% del código existente).
-2. `contratacion-publica` (PLACSP) y `subvenciones` (BDNS): las dos fuentes 🟢 con más valor fiscalizador y las que dan resultados en Leganés desde el primer día.
-3. `entidades-y-registros` (BORME + Catastro) para cruzar beneficiarios/adjudicatarios.
-4. `bop-y-edictos` + `boletines-autonomicos` (BOCM) + `ordenanzas-locales`.
-5. `presupuestos-y-cuentas` + `transparencia-portal`.
-6. `redaccion-escritos` + `seguimiento-expedientes`.
-7. `jurisprudencia` y `doctrina-administrativa` al final: son las de mayor fricción legal/técnica y las menos necesarias para fiscalizar.
+Prioridad: lo que sirve para actuar en el propio municipio, genérico para cualquiera y validado primero en la Comunidad de Madrid. El detalle por hitos está en `docs/ROADMAP.md`.
+
+1. `legal-core` (con `territorio` y `plazos`) + `cita-verificada`, sobre el `boe` portado de `boe-fiscal`.
+2. `contratacion-publica` (PLACSP) y `subvenciones` (BDNS): fuentes 🟢 nacionales, con valor fiscalizador para cualquier municipio desde el primer día.
+3. `bop-y-edictos` (BOCM + TEU) + `ordenanzas-locales` (vía boletín).
+4. `redaccion-escritos` (acceso a información, reposición) + `seguimiento-expedientes`.
+5. `entidades-y-registros` (BORME) + `presupuestos-y-cuentas`, y los cruces del pack fiscalizador.
+6. `boe-legislacion` (sumario, vigilancia) y el resto de territorios: boletines autonómicos y provinciales, plataformas autonómicas, régimen foral.
+7. `transparencia-portal`, `datos-abiertos`, `eurlex`, `tramitacion-parlamentaria`, `jurisprudencia` y `doctrina-administrativa` al final: son las de mayor fricción legal/técnica o las menos necesarias para actuar en el municipio.
 
 Riesgos a verificar antes de codificar: endpoints exactos de BDNS y PLACSP (cambian), TOS de PETETE/DYCTEA/HJ-TC, y el estado de despliegue de los Tribunales de Instancia (afecta a cómo se citan órganos desde 2025).

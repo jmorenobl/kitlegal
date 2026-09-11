@@ -1,10 +1,11 @@
-# kitlegal: estructura del proyecto, buenas prácticas y ecosistema "Ventanilla"
+# kitlegal: estructura del proyecto (skills y herramientas), buenas prácticas y ecosistema "Ventanilla"
 
 Estado de partida (importante para quien arranque el proyecto): **no existe código previo**. Lo único implementado es la skill `boe-fiscal` (Python, `scripts/boe.py` contra la API de Legislación Consolidada del BOE), que se toma como patrón y se porta a Go. Nombre único para repo, módulo, binario y directorios: `kitlegal`.
 
 Premisas de diseño:
-- El binario Go es multicall: un único ejecutable, `os.Args[0]` o el primer argumento decide el applet (`boe`, `placsp`, `bdns`…). CLI con Kong (`github.com/alecthomas/kong`) y un paquete propio `internal/cli` con las convenciones para agentes: `--json`, `--timeout`, `--offline`, `--dry-run`, exit codes estables. Esas convenciones se escriben dentro de kitlegal; no se extraen a una librería aparte hasta que haya al menos tres applets que las repitan.
-- Las skills siguen el estándar abierto Agent Skills (`SKILL.md` con frontmatter `name`/`description`, `references/`, `scripts/`), lo que las hace portables a Claude Code, Claude.ai, Codex, Cursor, etc.
+- **El producto son las skills.** Siguen el estándar abierto Agent Skills (`SKILL.md` con frontmatter `name`/`description`, `references/`, `scripts/`), lo que las hace portables a Claude Code, Claude.ai, Codex, Cursor, etc. Cada hito se define por lo que una skill pasa a poder resolver y se mide con evals.
+- **El binario Go es su herramienta.** Solo va a Go lo que exige determinismo o verificabilidad: acceso a fuentes, parseo, caché, fechas y plazos, identificadores, hashes, grafo. Es multicall: un único ejecutable, `os.Args[0]` o el primer argumento decide el applet (`boe`, `placsp`, `bdns`…). CLI con Kong (`github.com/alecthomas/kong`) y un paquete propio `internal/cli` con las convenciones para agentes: `--json`, `--timeout`, `--offline`, `--dry-run`, exit codes estables. Esas convenciones se escriben dentro de kitlegal; no se extraen a una librería aparte hasta que haya al menos tres applets que las repitan.
+- **Genérico para cualquier municipio.** Nada se particulariza para un ayuntamiento: los datos de municipio salen de registros nacionales y lo territorial se configura por comunidad o por boletín. Se valida primero en la Comunidad de Madrid (Leganés); los demás territorios llegan después como datos.
 - Los dominios `ventanilla{legal,fiscal,laboral,mercantil}.es` son **verticales** sobre un mismo núcleo, no cuatro productos distintos.
 
 ---
@@ -19,45 +20,7 @@ kitlegal/
 ├── README.md
 ├── LICENSE                       # ver §6 (open-core)
 │
-├── cmd/
-│   └── kitlegal/
-│       └── main.go               # multicall: os.Args[0] decide el applet (boe, placsp, bdns…)
-│
-├── internal/                     # no importable desde fuera del módulo
-│   ├── cli/                      # Kong + flags globales (--json, --timeout, --offline, --dry-run) + exit codes
-│   ├── app/                      # registro de applets, dispatch multicall
-│   ├── core/
-│   │   ├── cita/                 # parser "art. 21.1 Ley 39/2015" → {norma, bloque}; resolver a ELI
-│   │   ├── plazos/               # días hábiles, festivos, LPAC 30-31, LJCA, LTAIBG
-│   │   ├── competencia/          # heurística Estado/CCAA/Local
-│   │   ├── schema/               # tipos Go de salida + JSON Schema generado
-│   │   └── ids/                  # BOE-A-…, ELI, ECLI, CELEX, código INE, NIF: parse + validate
-│   ├── source/                   # UN paquete por fuente = adaptador
-│   │   ├── boe/                  # legislación consolidada, sumario, BORME, TEU (misma API)
-│   │   ├── placsp/               # Atom + CODICE XML
-│   │   ├── bdns/                 # REST
-│   │   ├── catastro/             # OVC SOAP/JSON
-│   │   ├── ine/                  # Tempus
-│   │   ├── datosgob/             # CKAN
-│   │   ├── eurlex/               # SPARQL Cellar
-│   │   ├── congreso/             # Open Data
-│   │   ├── dgt/                  # PETETE (HTML, ratelimited)
-│   │   ├── teac/                 # DYCTEA (HTML)
-│   │   ├── tc/                   # HJ (HTML)
-│   │   ├── ecli/                 # resolutor, sin CENDOJ masivo
-│   │   ├── boletin/              # motor genérico por YAML (BOCM, DOGC, BOJA, BOP…)
-│   │   └── sede/                 # crawler de sedes/portales municipales (ordenanzas, transparencia)
-│   ├── httpx/                    # cliente HTTP: retries, rate limit por host, UA identificable, robots.txt
-│   ├── cache/                    # SQLite (modernc.org/sqlite, sin cgo) con TTL por fuente
-│   ├── store/                    # DB local para sync incremental (PLACSP, BDNS, BORME)
-│   ├── analysis/                 # reglas de anomalías: fraccionamiento, único licitador, cruces beneficiario/adjudicatario/administrador
-│   ├── render/                   # json / table / markdown; --json manda
-│   └── docgen/                   # plantillas de escritos → DOCX/MD (capa acción)
-│
-├── pkg/                          # API pública estable para terceros (opcional, pequeña)
-│   └── legalkit/                 # tipos de dominio + cliente Go de alto nivel
-│
-├── skills/                       # LAS SKILLS (estándar Agent Skills). Una carpeta por skill.
+├── skills/                       # EL PRODUCTO (estándar Agent Skills). Una carpeta por skill.
 │   ├── legal-core/
 │   │   ├── SKILL.md
 │   │   ├── references/
@@ -66,7 +29,8 @@ kitlegal/
 │   │   │   ├── recursos_y_plazos.md
 │   │   │   └── reglas_de_cita.md
 │   │   └── scripts/
-│   │       └── plazos -> ../../../bin/kitlegal   # symlink al multicall (o wrapper sh)
+│   │       ├── territorio -> ../../../bin/kitlegal   # symlink al multicall (o wrapper sh)
+│   │       └── plazos -> ../../../bin/kitlegal
 │   ├── cita-verificada/
 │   ├── boe-legislacion/
 │   ├── boe-fiscal/                # tu skill actual, migrada (scripts/boe.py → kitlegal boe)
@@ -93,12 +57,57 @@ kitlegal/
 │   ├── mercantil/pack.yaml
 │   └── fiscalizador/pack.yaml
 │
-├── data/                         # datos de referencia versionados, fuente de verdad
+├── data/                         # datos de referencia versionados, fuente de verdad de skills y binario
 │   ├── normas.yaml               # id BOE ↔ nombre corto ↔ ELI ↔ materia ↔ vertical
 │   ├── organos.yaml              # códigos DIR3, INE, NIF de entidades
-│   ├── festivos/2026.json
-│   ├── boletines/                # bocm.yaml, dogc.yaml, boja.yaml… (motor genérico)
-│   └── entidades/                # leganes.yaml, comunidad-madrid.yaml…
+│   ├── festivos/                 # nacionales y autonómicos (BOE); locales por comunidad cubierta
+│   ├── boletines/                # bocm.yaml primero; bocyl.yaml, dogc.yaml… después (motor genérico)
+│   └── territorio/               # municipios (generado desde INE y DIR3) + configuración por comunidad (madrid.yaml primero)
+│
+├── evals/                        # evaluación de skills: tareas + respuestas y citas esperadas
+│   ├── boe-fiscal/
+│   └── contratacion-publica/
+│
+│   ── debajo, la capa de herramientas: el binario que invocan las skills ──
+│
+├── cmd/
+│   └── kitlegal/
+│       └── main.go               # multicall: os.Args[0] decide el applet (boe, placsp, bdns…)
+│
+├── internal/                     # no importable desde fuera del módulo
+│   ├── cli/                      # Kong + flags globales (--json, --timeout, --offline, --dry-run) + exit codes
+│   ├── app/                      # registro de applets, dispatch multicall
+│   ├── core/
+│   │   ├── territorio/           # municipio → INE, provincia, comunidad, DIR3, boletines, régimen, cobertura
+│   │   ├── cita/                 # parser "art. 21.1 Ley 39/2015" → {norma, bloque}; resolver a ELI
+│   │   ├── plazos/               # días hábiles, festivos, LPAC 30-31, LJCA, LTAIBG
+│   │   ├── competencia/          # heurística Estado/CCAA/Local
+│   │   ├── schema/               # tipos Go de salida + JSON Schema generado
+│   │   └── ids/                  # BOE-A-…, ELI, ECLI, CELEX, código INE, NIF: parse + validate
+│   ├── source/                   # UN paquete por fuente = adaptador
+│   │   ├── boe/                  # legislación consolidada, sumario, BORME, TEU (misma API)
+│   │   ├── placsp/               # Atom + CODICE XML
+│   │   ├── bdns/                 # REST
+│   │   ├── catastro/             # OVC SOAP/JSON
+│   │   ├── ine/                  # Tempus
+│   │   ├── datosgob/             # CKAN
+│   │   ├── eurlex/               # SPARQL Cellar
+│   │   ├── congreso/             # Open Data
+│   │   ├── dgt/                  # PETETE (HTML, ratelimited)
+│   │   ├── teac/                 # DYCTEA (HTML)
+│   │   ├── tc/                   # HJ (HTML)
+│   │   ├── ecli/                 # resolutor, sin CENDOJ masivo
+│   │   ├── boletin/              # motor genérico por YAML (BOCM primero; BOCYL, DOGC, BOJA, BOP… después)
+│   │   └── sede/                 # crawler de sedes/portales municipales, solo donde el boletín no baste
+│   ├── httpx/                    # cliente HTTP: retries, rate limit por host, UA identificable, robots.txt
+│   ├── cache/                    # SQLite (modernc.org/sqlite, sin cgo) con TTL por fuente
+│   ├── store/                    # DB local para sync incremental (PLACSP, BDNS, BORME)
+│   ├── analysis/                 # reglas de anomalías: fraccionamiento, único licitador, cruces beneficiario/adjudicatario/administrador
+│   ├── render/                   # json / table / markdown; --json manda
+│   └── docgen/                   # plantillas de escritos → DOCX/MD (capa acción)
+│
+├── pkg/                          # API pública estable para terceros (opcional, pequeña)
+│   └── legalkit/                 # tipos de dominio + cliente Go de alto nivel
 │
 ├── schemas/                      # JSON Schema de cada salida (generado desde internal/core/schema)
 │   ├── norma.json
@@ -111,10 +120,6 @@ kitlegal/
 │   ├── boe/
 │   ├── placsp/
 │   └── …
-│
-├── evals/                        # evaluación de skills: tareas + respuestas y citas esperadas
-│   ├── boe-legislacion/
-│   └── contratacion-publica/
 │
 ├── mcp/                          # servidor MCP que expone los mismos applets como tools
 │   └── server.go                 # kitlegal mcp serve --stdio | --http
@@ -135,7 +140,7 @@ kitlegal/
     └── record-fixtures.sh
 ```
 
-Punto clave: **las skills no llevan código**. `scripts/` de cada skill apunta al mismo binario; el conocimiento (protocolo de razonamiento, identificadores, reglas) vive en `SKILL.md` y `references/`, y se **genera** desde `data/*.yaml` para que no haya dos verdades.
+Punto clave: **las skills son el producto y no llevan código**. `scripts/` de cada skill apunta al mismo binario; el conocimiento (protocolo de razonamiento, identificadores, reglas) vive en `SKILL.md` y `references/`, y se **genera** desde `data/*.yaml` para que no haya dos verdades. Una herramienta del binario que ninguna skill usa no se construye.
 
 ---
 
@@ -144,12 +149,14 @@ Punto clave: **las skills no llevan código**. `scripts/` de cada skill apunta a
 ```
 kitlegal <applet> <verbo> [args] [--json] [--describe] [--dry-run]
 
-applets (uno por fuente o por capacidad core):
+applets (uno por fuente o por capacidad core; --municipio acepta nombre o código INE de cualquier municipio):
+  territorio resolver                  (municipio → INE, provincia, comunidad, DIR3, boletines, régimen, cobertura)
   boe        buscar | indice | articulo | articulos | metadatos | analisis | sumario | vigilar | eli
   borme      sumario | empresa | administrador
-  edictos    buscar
-  boletin    sumario | buscar          (--boletin bocm|dogc|…)
-  sede       ordenanzas | transparencia (--entidad leganes)
+  edictos    buscar                    (--municipio)
+  boletin    sumario | buscar          (--boletin bocm|… o --municipio)
+  ordenanzas listar | ver              (--municipio; vía boletín)
+  sede       ordenanzas | transparencia (--municipio; solo donde el boletín no baste)
   eurlex     buscar | celex | nim
   congreso   iniciativa | votaciones
   ecli       resolver
@@ -167,7 +174,7 @@ applets (uno por fuente o por capacidad core):
   competencia quien-regula
   escrito    generar
   expediente listar | vencimientos | add
-  vigilar    run                       (orquesta: boe vigilar + placsp sync + bdns + edictos → diff)
+  vigilar    run                       (orquesta sobre el municipio de .kitlegal/config.yaml: placsp sync + bdns + boletin + edictos + boe vigilar → diff)
   mcp        serve
   skills     list | install | doctor   (gestiona packs en ~/.claude/skills o donde toque)
 ```
@@ -189,9 +196,18 @@ Convenciones de salida (en `internal/core/schema`), obligatorias en todos los ap
 
 Exit codes estables (definidos en `internal/cli`): 0 ok · 2 args · 3 no encontrado · 4 fuente no disponible · 5 rate-limited/TOS · 6 requiere identidad humana.
 
+Cobertura territorial: los applets con dimensión territorial incluyen dentro de `data` qué parte del territorio está cubierta y qué no (p. ej. para Tordesillas, `boletin` declara no configurados el boletín autonómico y el provincial). El sobre no cambia.
+
 ---
 
-## 3. Buenas prácticas (Go + skills + fuentes públicas)
+## 3. Buenas prácticas (skills + Go + fuentes públicas)
+
+**Skills**
+- SKILL.md corto (< 300 líneas): protocolo de razonamiento + tabla de comandos + reglas. Lo pesado va a `references/` y se carga bajo demanda (progressive disclosure).
+- `description` escrito para el trigger, no para el humano: incluye los términos que un usuario usaría ("IRPF", "licitación", "ordenanza", "recurso de alzada", identificadores BOE…). Optimizar el triggering con evals (preguntas que deben activar la skill y preguntas que no).
+- Reglas invariantes en **todas** las skills: nunca inventar contenido legal; cada afirmación con cita resuelta por `cita`; distinguir ley/reglamento; señalar variación autonómica; identificar el territorio antes de razonar y no concluir «no existe» de un resultado sin cobertura completa; nunca ejecutar acción con identidad.
+- `references/*.md` generados, con cabecera `<!-- generado desde data/normas.yaml, no editar -->`.
+- Evals por skill en `evals/`: 10-20 preguntas reales con respuesta esperada y citas esperadas, escritas antes que el código del hito. Corren en CI con un modelo barato. Las que tienen dimensión territorial incluyen un municipio cubierto y otro no cubierto.
 
 **Go**
 - `internal/source/<x>`: interfaz común `Source` con `Name()`, `Fetch(ctx, req) (Result, error)`, `TTL()`, `Terms()` (URL de TOS + fecha revisada). Nada de HTTP fuera de `httpx`.
@@ -200,13 +216,7 @@ Exit codes estables (definidos en `internal/cli`): 0 ok · 2 args · 3 no encont
 - Fixtures grabados en `testdata/` con un modo `KITLEGAL_RECORD=1`; los tests unitarios no tocan la red. Un job nightly de CI (`verify-sources.sh`) sí lo hace y abre issue si una API cambió.
 - Versionado semántico del binario **y** de cada skill (`version:` en frontmatter, o `metadata.version`). El `SKILL.md` declara la versión mínima de `kitlegal` que necesita.
 - `--describe` en cada applet emite el JSON Schema de entrada/salida → de ahí se generan automáticamente las `tools` del servidor MCP y la tabla de comandos de cada SKILL.md. Una definición, tres consumidores.
-
-**Skills**
-- SKILL.md corto (< 300 líneas): protocolo de razonamiento + tabla de comandos + reglas. Lo pesado va a `references/` y se carga bajo demanda (progressive disclosure).
-- `description` escrito para el trigger, no para el humano: incluye los términos que un usuario usaría ("IRPF", "licitación", "ordenanza", "recurso de alzada", identificadores BOE…). Optimizar el triggering con evals (preguntas que deben activar la skill y preguntas que no).
-- Reglas invariantes en **todas** las skills: nunca inventar contenido legal; cada afirmación con cita resuelta por `cita`; distinguir ley/reglamento; señalar variación autonómica; nunca ejecutar acción con identidad.
-- `references/*.md` generados, con cabecera `<!-- generado desde data/normas.yaml, no editar -->`.
-- Evals por skill en `evals/`: 10-20 preguntas reales con respuesta esperada y citas esperadas. Corren en CI con un modelo barato.
+- Nada de casos especiales por municipio: el territorio entra como dato (`data/territorio/`, `data/boletines/`), nunca como rama de código.
 
 **Fuentes públicas**
 - `docs/SOURCES.md` es el contrato legal del proyecto: por fuente, licencia de reutilización (la mayoría de datos del sector público español van bajo la Ley 37/2007 + RD 1495/2011, reutilizables con atribución; CENDOJ es la excepción notable), TOS, rate limit acordado, fecha de última revisión.
@@ -225,12 +235,12 @@ Exit codes estables (definidos en `internal/cli`): 0 ok · 2 args · 3 no encont
         ┌────────────────┬───────┴────────┬────────────────┐
   ventanillafiscal   ventanillalaboral   ventanillamercantil   (verticales = packs + producto)
         │                    │                  │
-        └──────────── kitlegal (núcleo Go + skills, open source) ─────────────┘
+        └──────────── kitlegal (skills + binario Go de herramientas, open source) ─────────────┘
                                  │
               fuentes públicas: BOE · PLACSP · BDNS · BORME · DGT · TEAC · INE · EUR-Lex …
 ```
 
-- **Núcleo** (`kitlegal`): un solo repo, un solo binario, todas las fuentes. Open source. Es lo que da credibilidad y adopción.
+- **Núcleo** (`kitlegal`): un solo repo con todas las skills y un solo binario con todas las fuentes. Open source. Es lo que da credibilidad y adopción.
 - **Packs** (`packs/*.yaml`): selección de skills + `references/` específicas + evals por vertical. Un pack es lo que un usuario instala con `kitlegal skills install fiscal`.
 - **Verticales** (dominios): cada uno = pack + producto hospedado (chat/agente con la skill precargada, como ya es Ventanilla Fiscal) + documentación + casos de uso. Ventanilla Fiscal migra a consumir el núcleo en vez de su loop propio.
 - **Paraguas** (`ventanillalegal.es`): catálogo/registro de skills, docs del binario, página del bot, blog, y el punto de entrada para agentes ("añade `https://ventanillalegal.es/mcp` a tu cliente").
@@ -243,7 +253,7 @@ Exit codes estables (definidos en `internal/cli`): 0 ok · 2 args · 3 no encont
 | **fiscal** | + boe-fiscal (existente) | normas_fiscales.md, calendario del contribuyente, modelos AEAT, DGT/TEAC | BOE, PETETE, DYCTEA, AEAT |
 | **laboral** | + `laboral-normas` (ET, LGSS, LPRL, LISOS, LRJS), `convenios` (REGCON: buscador de convenios colectivos), `seguridad-social` (bases y tipos de cotización, SEPE) | tablas de cotización, indemnizaciones, plazos laborales (20 días hábiles despido…) | BOE, REGCON, SEPE, Seg. Social, TSJ social vía ECLI |
 | **mercantil** | + `borme`, `entidades-y-registros`, `concursal` (Registro Público Concursal), `contabilidad` (PGC), `competencia` (CNMC) | LSC, Código de Comercio, TRLC, modelos de cuentas, cláusulas | BORME, RPC, CNMC, Catastro, BDNS/PLACSP para due diligence |
-| **fiscalizador** (tu kit cívico) | + contratacion-publica, subvenciones, presupuestos-y-cuentas, transparencia-portal, bop-y-edictos, ordenanzas-locales, seguimiento-expedientes | entidades/*.yaml, reglas de anomalías | PLACSP, BDNS, Rendición de Cuentas, BOCM/BOP |
+| **fiscalizador** (tu kit cívico, para cualquier municipio) | + contratacion-publica, subvenciones, presupuestos-y-cuentas, transparencia-portal, bop-y-edictos, ordenanzas-locales, seguimiento-expedientes | reglas de anomalías (relativas a municipios comparables) | PLACSP, BDNS, BORME, Hacienda (entidades locales), Rendición de Cuentas, boletín del territorio (BOCM primero) |
 
 `pack.yaml` mínimo:
 
@@ -255,9 +265,10 @@ extends: legal
 skills: [boe-fiscal, doctrina-administrativa]
 references:
   - data/normas.yaml#materia=tributario
-entities: []            # el fiscalizador sí lista leganes, comunidad-madrid…
 evals: evals/fiscal/
 ```
+
+Un pack nunca lista municipios: el municipio lo pone cada persona en su `.kitlegal/config.yaml`, y el territorio se resuelve con `territorio`.
 
 ### 4.3 Superficies de distribución (todas desde el mismo código)
 
@@ -280,8 +291,8 @@ evals: evals/fiscal/
 
 1. Crear el repo con `cmd/kitlegal` e `internal/cli` (Kong + convenciones); portar `boe.py` a `internal/source/boe` (es el más maduro y el que valida el patrón). Mantener el `SKILL.md` de `boe-fiscal` idéntico salvo `scripts/boe.py` → `scripts/boe`.
 2. Extraer `references/normas_fiscales.md` a `data/normas.yaml` con campo `vertical: fiscal` y generar el .md.
-3. Añadir `cita`, `plazos` y `legal-core`.
-4. `placsp`, `bdns`, `borme` → pack `fiscalizador` funcionando en Leganés.
+3. Añadir `territorio`, `cita`, `plazos` y `legal-core`.
+4. Skills del municipio (`contratacion-publica`, `subvenciones`, `bop-y-edictos`, `ordenanzas-locales`, `redaccion-escritos`, `seguimiento-expedientes`) y después `borme` y los cruces → pack `fiscalizador` funcionando para cualquier municipio, validado primero en Leganés.
 5. Ventanilla Fiscal pasa a llamar al binario (o al MCP) en vez de su loop propio con google-genai; el loop se queda solo como orquestador.
 6. Publicar `ventanillalegal.es` con docs, registro e índice de packs; laboral y mercantil arrancan como packs "mínimos" (normas + citas) y crecen con fuentes propias.
 
@@ -289,6 +300,6 @@ evals: evals/fiscal/
 
 ## 6. Licencia y modelo (para decidir pronto, cambia la estructura)
 
-- **Open-core recomendado**: núcleo + skills bajo Apache-2.0 o MIT (adopción, contribuciones, credibilidad jurídica de "puedes auditar cómo cito"); MCP remoto, productos hospedados, packs premium (p. ej. `entidades/*.yaml` curados de 8.000 municipios, reglas de anomalías avanzadas) y soporte, de pago bajo los dominios.
+- **Open-core recomendado**: núcleo + skills bajo Apache-2.0 o MIT (adopción, contribuciones, credibilidad jurídica de "puedes auditar cómo cito"); MCP remoto, productos hospedados, packs premium (p. ej. reglas de anomalías avanzadas; los datos de municipio no, porque son públicos y se generan desde registros nacionales) y soporte, de pago bajo los dominios.
 - Marca única: "Ventanilla" como familia, `kitlegal` como herramienta. Registrar la marca antes de abrir el repo.
 - Aviso legal en todo output: "información, no asesoramiento; citas verificables en origen". Especialmente en laboral y fiscal, donde el usuario final actúa sobre la respuesta.

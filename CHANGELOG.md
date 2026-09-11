@@ -78,7 +78,7 @@ a escribirla.
   y no de una petición suelta), `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto` y
   `--verbose`. Un applet declara su nombre, sus verbos y el contenido de `data`, y las recibe ya
   interpretadas. Tres —`--offline`, `--no-graph` y `--asunto`— fijan hoy solo su sintaxis y se propagan
-  tal cual: su semántica llega con la caché (H3), con el grafo (H12) y con el asunto (H14), y no se
+  tal cual: su semántica llega con la caché (H3), con el grafo (H17) y con el asunto (H18), y no se
   inventa antes.
 - **Códigos de salida estables**: `0` correcto, `2` argumentos inválidos, `3` no encontrado, `4` fuente no
   disponible, `5` límite de peticiones o términos de uso, `6` requiere identidad humana, y **`1` reservado
@@ -154,7 +154,7 @@ a escribirla.
   entrega, contra el binario que el propio test construye.
 
 Cuatro órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
-`test-integration`, `schema-check` (H4 y H11), `skills-sync` (H5) y `release`, que falla con código
+`test-integration`, `schema-check` (H4 y H10), `skills-sync` (H5) y `release`, que falla con código
 distinto de `0` hasta H6 por ser la única con efectos externos. El binario que se publica **no registra
 todavía ningún applet** y su ayuda lo dice en lugar de enumerar una lista vacía: los de fuentes (`boe`,
 `placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`, y el primero es el de

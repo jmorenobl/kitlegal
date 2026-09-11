@@ -101,9 +101,9 @@ fmt-check: check-tools
 vuln: check-tools
 	$(GOVULNCHECK) ./...
 
-## schema-check: validación de salidas contra esquemas (los aportan H4 y H11)
+## schema-check: validación de salidas contra esquemas (los aportan H4 y H10)
 schema-check:
-	@echo "schema-check: no hay schemas/ todavía; los aportan H4 (borrador) y H11 (contrato)"
+	@echo "schema-check: no hay schemas/ todavía; los aportan H4 (borrador) y H10 (contrato)"
 
 ## skills-sync: regeneración de las referencias de las skills (las aporta H5)
 skills-sync:

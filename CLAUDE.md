@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repositorio
 
-**No hay código todavía.** El repo contiene únicamente documentos de diseño (en español) para `kitlegal`, un binario Go multicall + skills agénticas para consultar fuentes legales públicas españolas (BOE, PLACSP, BDNS, BORME, EUR-Lex…). No existe `go.mod`, `Makefile`, tests ni CI.
+`kitlegal` es un conjunto de **skills agénticas** para consultar fuentes legales públicas españolas (BOE, PLACSP, BDNS, BORME, EUR-Lex…) y actuar en el propio municipio, apoyadas en un binario Go multicall que les da **herramientas deterministas**. El producto son las skills; el binario es su herramienta (constitución, principio VIII; ADR 0005). Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés (principio IX; ADR 0006). En `main` está H0 (esqueleto y gates de CI); el resto aún no existe.
 
 **Método de trabajo: spec-kit por hito.** El proyecto se implementa hito a hito (`docs/ROADMAP.md`) con el workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`, documentado en `docs/WORKFLOW.md`). La constitución `.specify/memory/constitution.md` recoge principios, restricciones y el «Criterio de decisión autónoma» que rige `clarify` y los gates automáticos: siempre la mejor solución sin atajos; lo no especificado no se implementa; escalar (parar) ante alcance, frontera humana, privacidad, TOS o decisiones cerradas. Artefactos por hito en `specs/NNN-hN-slug/`. Lanzar con `scripts/hito.sh H<n>`.
 
@@ -16,7 +16,7 @@ Antes de escribir código, lee los documentos semilla de `refs/` en este orden:
 2. `refs/kitlegal-estructura-y-ecosistema.md` — estructura del monorepo, convenciones del multicall, packs por vertical, distribución (skills, plugin, MCP, librería Go).
 3. `refs/kitlegal-grafo.md` — grafo legal sobre ELI en SQLite (mundo público + asunto privado), alimentación por uso, `graph check` y reglas de anomalías.
 
-`refs/00-README.md` resume el estado, el primer hito y las decisiones cerradas.
+`refs/00-README.md` resume el estado, el primer hito y las decisiones cerradas. Ante conflicto, la constitución y `docs/ROADMAP.md` prevalecen sobre `refs/`.
 
 ## Primer hito
 
@@ -32,6 +32,8 @@ Cuando se cree el proyecto Go, el `Makefile` debe exponer `build`, `test`, `lint
 
 ## Decisiones ya tomadas (no reabrir)
 
+- **Skills primero**: cada hito entrega o mejora una skill medible con evals, o protege las existentes. Solo va a Go lo que exige determinismo o verificabilidad (fuentes, parseo, caché, fechas y plazos, ids, hashes, grafo); una herramienta que ninguna skill usa no se construye. Se planifica de fuera adentro (skill → herramientas) y se implementa de dentro afuera.
+- **Genericidad territorial**: ningún caso especial para un municipio en código, `data/` ni skills. Datos de municipio desde registros nacionales (INE, DIR3); lo territorial se configura por comunidad o boletín en `data/territorio/` y `data/boletines/`; el municipio del usuario va en `.kitlegal/config.yaml`. Territorio de validación: Comunidad de Madrid (Leganés); otros territorios (BOCYL, BOP multiprovinciales, forales…) en la fase 6. Fuera de cobertura, la salida la declara dentro de `data` y ninguna skill concluye «no existe» sin cobertura completa.
 - **Nombre único** `kitlegal` para repo, módulo, binario y directorios (`.kitlegal/` en cwd para el asunto, `~/.cache/kitlegal/` para caché y grafo del mundo).
 - **Multicall**: un solo ejecutable; `os.Args[0]` o el primer argumento elige el applet (`boe`, `placsp`, `bdns`, `cita`, `plazos`, `graph`…). Un symlink `boe -> kitlegal` permite que las skills sigan llamando `scripts/boe articulo …`.
 - **Convenciones de agente** en `internal/cli`: flags globales `--json`, `--timeout`, `--offline`, `--dry-run`, `--describe` (emite JSON Schema de entrada/salida, del que se generan las tools MCP y la tabla de comandos de cada SKILL.md), `--no-graph`, `--asunto`. No se extrae `internal/cli` a librería externa hasta que tres applets repitan el patrón.
@@ -47,21 +49,24 @@ Cuando se cree el proyecto Go, el `Makefile` debe exponer `build`, `test`, `lint
 ## Arquitectura prevista (resumen)
 
 ```
+skills/<skill>/             EL PRODUCTO: SKILL.md + references/ (generadas) + scripts/ → kitlegal
+packs/  data/  evals/       packs por vertical · fuente de verdad (normas, territorio, boletines, festivos, anomalías) · evals de skills
 cmd/kitlegal/main.go        multicall → internal/app (registro y dispatch de applets)
 internal/cli                Kong + flags globales + exit codes
-internal/core/{cita,plazos,competencia,schema,ids}
+internal/core/{territorio,cita,plazos,competencia,schema,ids}
 internal/source/<fuente>    un adaptador por fuente: Source{Name, Fetch(ctx,req), TTL, Terms}
 internal/{httpx,cache,store,graph,analysis,render,docgen}
 pkg/legalkit                API pública pequeña y estable
-skills/  packs/  data/  schemas/  testdata/  evals/  mcp/  plugin/  docs/
+schemas/  testdata/  mcp/  plugin/  docs/
 ```
 
-Cada applet implementa además `Emit(ctx) []GraphOp`; `internal/graph` aplica las operaciones tras cada comando. Los packs (`packs/<vertical>/pack.yaml`) agrupan skills por vertical (`legal` base; `fiscal`, `laboral`, `mercantil`, `fiscalizador` extienden `legal`).
+Cada applet implementa además `Emit(ctx) []GraphOp` desde que existe `internal/graph` (H17; los applets anteriores lo incorporan ahí); `internal/graph` aplica las operaciones tras cada comando. Los packs (`packs/<vertical>/pack.yaml`) agrupan skills por vertical (`legal` base; `fiscal`, `laboral`, `mercantil`, `fiscalizador` extienden `legal`).
 
 ## Pendiente de verificar antes de fijar en código o `data/`
 
 - Identificadores BOE de la tabla de leyes vertebrales (algunos están de memoria; comprobar con `kitlegal boe buscar`).
-- Endpoints actuales de BDNS (swagger) y nombres de los feeds Atom de PLACSP.
+- Endpoints actuales de BDNS (swagger) y nombres de los feeds Atom de PLACSP (y qué llega agregado desde plataformas autonómicas).
+- Formato, licencia y actualización de la relación de municipios del INE, del inventario DIR3 y de los festivos locales publicados por la Comunidad de Madrid.
 - Términos de uso de PETETE (DGT), DYCTEA (TEAC) y del buscador HJ del TC.
 
 ## Convenciones de idioma
