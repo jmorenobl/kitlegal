@@ -26,12 +26,14 @@ package internal_test
 
 import (
 	"errors"
+	"maps"
 	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,6 +92,55 @@ func TestArquitectura(t *testing.T) {
 			denegados: []string{"database/sql", "modernc.org/sqlite"},
 		})
 	})
+}
+
+// modulosDelBinario son los módulos de terceros que el binario distribuido
+// enlaza, y ninguno más: los dos de la lista cerrada de la constitución §V que
+// van en producción y los cuatro que el segundo arrastra consigo. Cada uno de
+// los cuatro está justificado en plan.md (Complexity Tracking) y en
+// gates/pr-h1.md: entran por `invopop/jsonschema`, que sí está en la lista, y
+// no hay versión de esa biblioteca que no los traiga (FR-060).
+//
+// Es una lista escrita a mano a propósito. Cuando un hito, o una actualización
+// de módulos, enlace uno nuevo, este test falla y obliga a hacer lo que la
+// constitución exige: justificarlo por escrito antes de añadirlo aquí.
+var modulosDelBinario = []string{
+	"github.com/alecthomas/kong",
+	"github.com/bahlo/generic-list-go",
+	"github.com/buger/jsonparser",
+	"github.com/invopop/jsonschema",
+	"github.com/pb33f/ordered-map/v2",
+	"go.yaml.in/yaml/v4",
+}
+
+// plantillaDeModulos pide a `go list` el módulo de cada paquete del cierre; los
+// de la biblioteca estándar no tienen módulo y salen como línea vacía.
+const plantillaDeModulos = "{{if .Module}}{{.Module.Path}}{{end}}"
+
+// TestDependenciasDelBinario comprueba que el binario distribuido no enlaza
+// ningún módulo de terceros fuera de los declarados (FR-060, constitución §V).
+// Mira el cierre transitivo real de `go list -deps` sobre el punto de entrada,
+// que es lo mismo que acaba en `go version -m` del ejecutable: ni los módulos
+// que solo usan los tests ni los de las herramientas cuentan aquí.
+func TestDependenciasDelBinario(t *testing.T) {
+	t.Parallel()
+
+	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
+	require.NotEmpty(t, modulo)
+
+	enlazados := map[string]bool{}
+
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "-f", plantillaDeModulos, "./cmd/kitlegal"), "\n") {
+		if linea = strings.TrimSpace(linea); linea != "" && linea != modulo {
+			enlazados[linea] = true
+		}
+	}
+
+	require.NotEmpty(t, enlazados, "el binario enlaza al menos el analizador de la línea de órdenes")
+
+	assert.ElementsMatch(t, modulosDelBinario, slices.Sorted(maps.Keys(enlazados)),
+		"el binario distribuido enlaza un módulo que no está declarado y justificado "+
+			"(FR-060, constitución §V): justifícalo en plan.md y en la propuesta de cambio antes de añadirlo")
 }
 
 // grafo es el grafo de importación que devuelve `go list -deps`: el cierre
