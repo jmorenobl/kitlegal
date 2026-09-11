@@ -57,3 +57,5 @@ Cinco órdenes existen ya pero reciben su contenido en un hito posterior y ningu
 `test-integration`, `test-e2e` (H1), `schema-check` (H4 y H11), `skills-sync` (H5) y `release`, que falla
 con código distinto de `0` hasta H6 por ser la única con efectos externos. Los applets de fuentes (`boe`,
 `placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.
+
+<!-- comprobación desechable del escenario 11 de H0 -->
