@@ -4,11 +4,15 @@ Guía **ejecutable** para comprobar que H1 entrega lo que dice. Cada escenario s
 la raíz del repositorio, sobre la rama `h1-kernel-cli-multicall` y **con el hito ya implementado**: esto
 no es la implementación, es cómo se verifica.
 
-**Sin efectos colaterales.** Los escenarios 8, 9 y 12 crean ficheros o directorios; cada uno declara
-exactamente cuáles y termina borrándolos. Todos cierran con `git status --porcelain` vacío. Los artefactos
-de construcción (`bin/`, `coverage.out`) están en `.gitignore` desde H0. **Ningún escenario toca el índice
-ni el historial de git, ni escribe fuera del repositorio salvo en directorios temporales que él mismo
-borra.**
+**Sin efectos colaterales.** Ningún escenario crea ni modifica un fichero versionado del árbol de trabajo.
+Los escenarios **8 y 9**, que necesitan introducir violaciones deliberadas, lo hacen sobre una **copia
+desechable del árbol fuera del repositorio** (`$(mktemp -d)`, sin `.git`), que se borra al terminar: el
+árbol de trabajo queda limpio **por construcción**, no por una limpieza cuidadosa, y en ningún instante
+hay un fichero de más bajo `internal/` ni bajo `internal/app/testdata/` —que el guardián de diff protege
+como material de test (plan.md, obligaciones 2, 3 y 8)—. El escenario 12 solo produce `bin/`, que está en
+`.gitignore` desde H0, igual que `coverage.out`. Todos cierran con `git status --porcelain` vacío.
+**Ningún escenario toca el índice ni el historial de git, ni escribe fuera del repositorio salvo en
+directorios temporales que él mismo borra.**
 
 ## Prerrequisitos
 
@@ -183,10 +187,12 @@ go test ./internal/core/schema/ -run TestHuella -v
 
 ## Escenario 5 — Los fallos se distinguen sin leer el mensaje (US3 · SC-006 · SC-014 · SC-015)
 
-Los seis códigos y sus sobres de fallo se fuerzan desde el applet de prueba y se comprueban en tabla:
+Los seis códigos y sus sobres de fallo se fuerzan desde el applet de prueba y se comprueban en tabla. La
+tabla vive en la raíz de composición del kernel —que es quien traduce el error a código de salida—, no en
+`internal/cli`:
 
 ```bash
-go test ./internal/cli/ -run 'TestCodigoSalida|TestSobreDeFallo' -v
+go test ./internal/app/ -run 'TestCodigoSalida|TestSobreDeFallo' -v
 ```
 
 **Esperado**: un caso por cada código —`0`, `1`, `2`, `3`, `4`, `5`, `6`— y, para los seis de fallo, la
@@ -237,9 +243,23 @@ pánico— con un escritor que siempre falla, que un guion no puede simular de f
 
 ```bash
 go test ./internal/render/ -run TestEscrituraFallida -v
+go test ./internal/app/  -run 'TestCodigoSalida/inesperado' -v
 ```
 
-**Esperado**: código `1`, ningún pánico y **ningún segundo sobre** emitido por el descriptor roto.
+**Esperado**: el primero, que el fallo de escritura se **propaga**, que no se intenta un segundo sobre por
+el descriptor roto y que no hay pánico; el segundo, que ese error propagado sale con código `1` —la mitad
+del contrato que vive en la traducción única, no en el presentador—.
+
+Y el plazo agotado, la otra mitad de la regla de `--timeout`: no solo un applet que devuelve el error
+tipado produce el código `4`; **vencer el plazo también**. Lo fuerza un applet de prueba que tarda más que
+el plazo que se le da, lo que un guion no puede hacer con `echo`, que responde al instante:
+
+```bash
+go test ./internal/app/ -run TestPlazoAgotado -v
+```
+
+**Esperado**: código `4` y sobre de fallo con la clase de fuente no disponible, igual que si el applet
+hubiera devuelto el error tipado.
 
 ---
 
@@ -298,6 +318,21 @@ test ! -s "$E2E/out2.txt" && echo "stdout vacío"
 test -s "$E2E/err2.txt"  && echo "descripción en stderr, que ningún nivel de registro puede ocultar"
 ```
 
+Las tres reglas de `--dry-run` —salida estándar vacía **también con `--json`**, descripción en la de error
+**visible con el registro apagado hasta el máximo** y código `0`— no se quedan en esta comprobación manual:
+las cubre en tabla el test de la raíz de composición, que es lo que hace que una regresión se vea en
+`make ci` y no solo aquí:
+
+```bash
+go test ./internal/app/ -run TestDryRun -v
+```
+
+Y que el registro de eventos no lleve los argumentos salvo en el nivel de depuración (FR-039):
+
+```bash
+go test ./internal/cli/ -run TestRegistroPrivacidad -v
+```
+
 `--verbose` y `KITLEGAL_LOG` cambian el detalle del registro **sin alterar la salida estándar**:
 
 ```bash
@@ -338,9 +373,26 @@ go test ./internal/app/ -run TestAppletHereda -v
 
 ## Escenario 8 — Las reglas de arquitectura fallan si se violan (US6 · SC-008)
 
-**Crea y borra** seis ficheros y un directorio, declarados uno a uno. Ejercen las cinco reglas —R1 en sus
-dos mitades, la de paquetes internos y la de I/O de la biblioteca estándar— y las **dos capas** de
-comprobación.
+**Nada de esto ocurre dentro del repositorio.** El escenario trabaja sobre una **copia desechable del
+árbol**, fuera de él y sin `.git`: es lo que permite introducir seis ficheros y un directorio de violación
+sin que el árbol de trabajo se ensucie en ningún momento —incluido `internal/app/testdata/`, que el
+guardián de diff protege— y sin depender de acordarse de borrarlos (plan.md, obligación 3).
+
+```bash
+COPIA="$(mktemp -d)/kitlegal"
+mkdir -p "$COPIA"
+tar -cf - --exclude=./.git --exclude=./bin --exclude=./coverage.out . | tar -xf - -C "$COPIA"
+cd "$COPIA"
+```
+
+La copia lleva `go.mod`, `Makefile`, `.golangci.yml` y los módulos de `tools/`, así que `make lint` y
+`go test` funcionan exactamente igual que en el repositorio; `check-tools` no exige estar dentro de un
+repositorio de git, y la caché de módulos es la misma, de modo que no hace falta red.
+
+Las violaciones ejercen las cinco reglas —R1 en sus dos mitades, la de paquetes internos y la de I/O de la
+biblioteca estándar— y **las dos capas en R1, R2 y R3**; R4 y R5 son reglas de **símbolo** y solo las ve el
+lint, porque una llamada a `os.Exit` o una referencia a `os.Stdout` no aparecen en el grafo de
+`go list -deps` ([`contracts/reglas-de-arquitectura.md`](./contracts/reglas-de-arquitectura.md) §2).
 
 ```bash
 # R1 · el dominio no importa adaptadores (en un paquete nuevo, para que no haya ciclo de importación)
@@ -406,28 +458,36 @@ func ViolacionR5() { fmt.Println("esto no puede pasar el lint") }
 EOF
 ```
 
-Capa 1, el lint —debe fallar y **nombrar la regla**:
+Capa 1, el lint —debe fallar por **las cinco** y **nombrar la regla** en cada caso (`R1`/lista `core`,
+lista `red`, lista `sql`, marca `R4:`, marcas `R5:` y `R5-descriptores:`):
 
 ```bash
 make lint; echo "código de make lint: $?"    # distinto de 0
 ```
 
 Capa 2, el test de arquitectura, **independiente de la configuración del lint** —debe fallar por R1, R2 y
-R3 aunque no se haya tocado `.golangci.yml`:
+R3, y **solo** por ellas, aunque no se haya tocado `.golangci.yml`:
 
 ```bash
 go test ./internal/ -run TestArquitectura -v; echo "código: $?"    # distinto de 0
 ```
 
-Limpieza y comprobación de que el árbol queda intacto:
+**Esperado**: el test nombra R1 (dos veces: paquete interno e I/O de la biblioteca estándar), R2 y R3, y
+**no** menciona R4 ni R5, que no son observables en el grafo de dependencias. Que esas dos están vivas lo
+demuestra el fallo del lint de la capa 1 y, en su alcance, el escenario 9.
+
+Comprobación de que el control vuelve a pasar sobre el árbol sano, retirando una a una las violaciones
+**dentro de la copia**:
 
 ```bash
 rm -rf internal/core/prueba
 rm -f internal/cli/violacion_r2.go internal/cli/violacion_r3.go \
       internal/app/violacion_r4.go internal/render/violacion_r5.go
-git status --porcelain    # vacío
-make lint                 # vuelve a pasar
+make lint                                        # vuelve a pasar
+go test ./internal/ -run TestArquitectura -v     # vuelve a pasar
 ```
+
+La copia se conserva para el escenario 9, que sigue justo aquí y parte del mismo árbol sano.
 
 ---
 
@@ -437,6 +497,19 @@ Los comodines de Go **no descienden a `testdata`**: si los paquetes de ejemplo n
 explícitamente en el `Makefile`, quedarían sin lintar sin que nadie se enterase. Este escenario comprueba
 que sí lo están **y** que la única excepción de lint que H1 concede —la del `package main` del binario de
 e2e, que necesita `os.Exit` y los descriptores por ser una raíz de composición— está acotada a esa ruta.
+
+**Se ejecuta sobre la misma copia desechable del escenario 8**, ya limpia de violaciones. Es la única
+forma admisible: los ficheros de este escenario cuelgan de `internal/app/testdata/`, que la capa 3 de la
+constitución protege, y crearlos en el árbol de trabajo convertiría la validación en una tarea `[datos]`
+con pausa de revisión humana (plan.md, obligaciones 2 y 8). Si se llega aquí sin haber hecho el escenario
+8, la copia se prepara igual:
+
+```bash
+# solo si no se viene del escenario 8, y desde la raíz del repositorio
+COPIA="$(mktemp -d)/kitlegal"; mkdir -p "$COPIA"
+tar -cf - --exclude=./.git --exclude=./bin --exclude=./coverage.out . | tar -xf - -C "$COPIA"
+cd "$COPIA"
+```
 
 ```bash
 cat > internal/app/testdata/ejemplo/violacion.go <<'EOF'
@@ -478,7 +551,14 @@ supresión**, y el lint pasa. Que no haya ninguna es comprobable:
 ```bash
 grep -rn "nolint" internal/ cmd/ ; echo "sin //nolint: $?"   # 1 = ninguna coincidencia
 make lint; echo "código: $?"      # 0
-git status --porcelain            # vacío
+```
+
+Y se destruye la copia, que es todo lo que hubo que limpiar:
+
+```bash
+cd - >/dev/null
+rm -rf "$(dirname "$COPIA")"
+git status --porcelain            # vacío: el árbol de trabajo nunca llegó a tocarse
 ```
 
 **Si el primer `make lint` pasara**, la causa es que `golangci-lint` está excluyendo `testdata/`: se

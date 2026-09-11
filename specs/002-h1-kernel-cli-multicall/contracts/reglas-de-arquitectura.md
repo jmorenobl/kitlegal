@@ -70,15 +70,17 @@ importaciones declaradas en cada fichero; el test recorre el grafo **transitivo*
 - **Falla, no avisa.** Una violación rompe la orden, no genera una nota.
 - **Nombra la regla violada**, para que quien la provoque sepa qué ha roto sin leer la configuración.
 - **Es demostrable**: para cada regla existe una comprobación que falla si la regla se retira o se viola
-  (SC-008). Eso se ejerce rompiendo cada regla a propósito, una por una, y viendo fallar las dos capas
-  ([`quickstart.md`](../quickstart.md), escenario 8).
+  (SC-008). Eso se ejerce rompiendo cada regla a propósito, una por una, **en una copia desechable del
+  árbol fuera del repositorio**, y viendo fallar **las dos capas en R1, R2 y R3** y **el lint en R4 y R5**
+  —las dos reglas de símbolo, por el motivo de §2— ([`quickstart.md`](../quickstart.md), escenario 8).
 - **Cubre también los applets de ejemplo.** Los comodines de Go no descienden a `testdata`, así que los
   dos paquetes bajo `internal/app/testdata/` se enumeran explícitamente. Son la implementación de
   referencia que copiará cada applet posterior: no pueden estar por debajo del listón.
 - **Las excepciones son mínimas y demostrablemente estrechas.** Las únicas que existen son las de R4 y
   R5-descriptores en las dos raíces de composición. Que no se desborden a los paquetes vecinos se
-  comprueba introduciendo las mismas violaciones en `internal/app/testdata/ejemplo` y viendo fallar
-  `make lint` ([`quickstart.md`](../quickstart.md), escenario 9).
+  comprueba introduciendo las mismas violaciones en `internal/app/testdata/ejemplo` —sobre la misma copia
+  desechable, nunca sobre el árbol de trabajo, que ahí está protegido por el guardián de diff— y viendo
+  fallar `make lint` ([`quickstart.md`](../quickstart.md), escenario 9).
 
 ---
 

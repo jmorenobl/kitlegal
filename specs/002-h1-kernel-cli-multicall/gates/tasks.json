@@ -1,0 +1,53 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md:22-24 deja la tabla de hallazgos vacía y analyze.md:75-78 declara 0 incidencias CRITICAL, HIGH, MEDIUM y LOW: no hay ningún hallazgo que pueda quedar sin resolver en spec.md, plan.md ni tasks.md. Se anota, sin que afecte a este criterio, que analyze.md:54-57 quedó desfasado —afirma doble capa de comprobación para las cinco reglas de dependencia—; lo que los artefactos dicen hoy es lo correcto y lo que pedía el veredicto anterior: spec.md:248 (FR-051) y spec.md:293 (SC-008) distinguen las tres reglas de importación (dos capas) de las dos de símbolo (lint con análisis de tipos), igual que contracts/reglas-de-arquitectura.md:45-60 y plan.md:40-45."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "tasks.md:199-220 mapea las 60 FR sin hueco; verificado una a una: FR-001/FR-008→T009, FR-002…FR-007 y FR-026→T010, FR-009→T014, FR-010…FR-013 y FR-015…FR-017→T001, FR-014 y FR-045→T006 (con T003 para el pre-escaneo que lo hace posible), FR-018…FR-021, FR-023, FR-024 y FR-026…FR-028→T005, FR-020 (plazo aplicado), FR-022, FR-030 y FR-033…FR-035→T011, FR-025 y FR-036…FR-039→T004, FR-029, FR-031 y FR-032→T002, FR-040…FR-044→T008, FR-046…FR-049→T007, FR-050→T013 y T016, FR-051…FR-053→T016, FR-054→T001…T011, FR-055→T015, FR-056→T017, FR-057→T012, T016, T020 y T021, FR-058…FR-060→todas. tasks.md:224-240 cubre SC-001…SC-015 y tasks.md:188-195 las seis historias con su prueba independiente. En sentido inverso, las 21 tareas citan al menos una FR, una SC o un punto de la Definition of Done: T013→FR-050 parcial y D19, T017→FR-056/SC-004, T018→DoD §1.7, T019→DoD §1.6, T020→SC-002 y SC-004…SC-013, T021→SC-004, SC-013 y FR-057."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "Los cuatro defectos que la ronda anterior declaró están corregidos y no he encontrado otros. (1) T012 (tasks.md:88) acota ya la parte invariante del contrato de `version` a las tres líneas y el código 0, y declara que verbo ausente, desconocido y argumento sobrante pasan a regirse por el despacho de T010 (contracts/registro-y-describe.md §2), de modo que la aserción pedida a cmd/kitlegal/main_test.go:37-53 deja de contradecir FR-006. (2) T020 (tasks.md:125) exige ahora «las dos capas fallan en R1, R2 y R3» y «el lint falla en R4 y R5», que es lo que contracts/reglas-de-arquitectura.md:45-60 y quickstart.md:392-395 y 468-477 sostienen. (3) T015 (tasks.md:101) crea internal/app/hereda_test.go con TestAppletHereda, el test que quickstart.md:369 invoca por su nombre, y lo justifica —un `-run` sobre un test inexistente termina en 0—. (4) Los tres requisitos sin caso de prueba tienen ya el suyo declarado: T011 (tasks.md:86) añade TestDryRun (stdout vacía también con --json, descripción visible con KITLEGAL_LOG=error, código 0: FR-022) y TestPlazoAgotado (vencer --timeout produce el 4, no solo el error tipado: FR-020), y T004 (tasks.md:59) añade TestRegistroPrivacidad (los argumentos solo en debug: FR-039); quickstart.md:327, 333 y 258 los invocan. El orden T001→T021 sigue siendo ejecutable en secuencia (tasks.md:133-160) y ninguna tarea abre una ventana en rojo: la retirada de la exclusión de errcheck va en T012, la misma tarea en que cmd/kitlegal/main.go:32-37 deja de escribir; las reglas de símbolo R4 y R5-descriptores nacen en T016 con sus dos excepciones, después de que T014 haya creado la raíz de composición del e2e, y el .golangci.yml vigente (líneas 52-55) solo prohíbe fmt.Print* bajo internal/, que ese main no usa; T013 introduce TESTDATA_PKGS con wildcard cuando aún está vacía. Las cinco tareas sin test propio son las que no aportan código de producto —T013 (configuración de Makefile, demostrada en T020/quickstart esc. 9), T018 y T019 (ADR y CHANGELOG, exigidos por el criterio f) y T020/T021 (evidencia)—, y su verificación es make ci."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Las 21 tareas declaran rutas concretas en su propia línea y ninguna usa una ruta genérica tipo internal/: T001 los cuatro ficheros de internal/core/schema y sus cuatro tests, T002 internal/cli/supuestos_kong_test.go, internal/cli/errors.go, internal/cli/errors_test.go y gates/supuestos-kong.md, T005 globales.go, parse.go y los tres tests, T008 los cuatro ficheros de internal/render y sus cuatro tests, T012 cmd/kitlegal/main.go, cmd/kitlegal/main_test.go y .golangci.yml, T014 internal/app/testdata/ejemplo/, internal/app/testdata/kitlegal-e2e/main.go e internal/app/testdata/script/*.txtar, T016 .golangci.yml e internal/arch_test.go, T017 codecov.yml y los ocho ficheros de internal/cli. La excepción de la ronda anterior está resuelta: T020 (tasks.md:125) declara gates/quickstart-h1.md como única ruta que crea o modifica y ejerce los escenarios 8 y 9 sobre una copia desechable del árbol fuera del repositorio, como ahora describen quickstart.md:7-15, 376-386 y 501-512 y admite la obligación 3 de plan.md:454-461; los siete ficheros de violación nacen y mueren fuera del repositorio (quickstart.md:556-562). Lo único que las tareas producen dentro del árbol sin declararlo son bin/ y coverage.out, ignorados desde H0 (.gitignore:2, 5-6)."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "T014 sigue siendo la única tarea [datos] (tasks.md:22-23, 99) y toca exclusivamente material bajo internal/app/testdata/ —el paquete ejemplo/, kitlegal-e2e/main.go y los guiones script/*.txtar—, sin mezclar ningún otro trabajo: su verificación es construir a mano ese mismo binario y contrastar los guiones. El incumplimiento anterior desaparece: T020 ya no crea internal/app/testdata/ejemplo/violacion.go ni violacion_exit.go en el árbol, sino en la copia desechable (tasks.md:125, 285-288 y la segunda fila de «Divergencias conscientes», tasks.md:180). Ninguna otra tarea modifica material bajo un directorio testdata: T015 y T016 solo lo leen —hereda_test.go importa el paquete de ejemplo y el test de arquitectura recorre los dos paquetes enumerados—, y el e2e escribe únicamente en su temporal. En H1 no existe schemas/, correctamente diferido a H4/H11 (tasks.md:249)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md:244-254 recorre los nueve puntos de docs/ROADMAP.md:20-28 con tarea o con justificación de no aplicabilidad: §1.1 make ci (existe desde H0; toda tarea lo deja en verde y T020/T021 lo comprueban), §1.2 unitarios offline sin fixtures de fuente porque H1 no toca red y KITLEGAL_RECORD no aparece en ninguna tarea, §1.3 reglas de importación y de símbolo (T012 y T016, demostradas en T020), §1.4 validación formal de toda salida con santhosh-tekuri/jsonschema/v6 y AssertFormat() (T006 y T007), con el directorio schemas/ diferido a H4/H11 y make schema-check aún anunciando su hito, §1.5 errores tipados y ningún pánico (T002 y T011), §1.6 e2e y CHANGELOG.md (T014, T015 y T019), §1.7 ADR (T018 crea docs/ADR/0005-contrato-de-applet.md y 0006-sobre-de-salida-y-huella.md), §1.8 SOURCES.md y verify-sources.sh no aplican —H1 no toca fuente alguna— y T018 deja anotada la prohibición del espacio reservado que H4 hará mecánica (obligación 6 de plan.md:469-472), §1.9 cobertura (T001 y T017, sin rebajar los umbrales de H0). Las nueve obligaciones que plan.md:442-484 traslada a tasks.md tienen tarea: 1→T002, 2 y 8→T020, 3→T020, 4→T020, 5→T021, 6→T018, 7→T014, 9→T005."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md es la única checklist del hito y sus 16 marcas [x] (líneas 9-30) son ciertas: sin marcadores [NEEDS CLARIFICATION] en spec.md, las cinco preguntas del clarify integradas en el cuerpo (FR-009, FR-016, FR-022, FR-045, FR-047 y spec.md:28-32), seis historias con escenarios de aceptación y prueba independiente, Edge Cases (spec.md:155-165), Fuera de alcance (spec.md:326-346), Dependencias y Assumptions completas, y las notas de líneas 34-57 justifican una a una las marcas de «no implementation details» y «technology-agnostic». El único error de la ronda anterior está corregido: la línea 39 dice ya «quince» criterios de éxito, que es el recuento real de spec.md:286-300 (SC-001…SC-015). Las dos afirmaciones nuevas de las líneas 57-60 también son ciertas: FR-051 (spec.md:248) y SC-008 (spec.md:293) distinguen hoy las tres reglas de importación de las dos de símbolo, y no existe gates/tasks-pendiente.md porque ninguno de los ocho motivos anteriores requería decisión humana."
+    }
+  ],
+  "motivos": [
+    "(no bloqueante) tasks.md:86 (T011) escribe la firma Main(argv []string, registro, stdout, stderr io.Writer, version, commit, fecha string) int, cuya agrupación de tipos convierte `registro` en un io.Writer. Según T012 (tasks.md:88) y plan.md:246-247, el segundo argumento es app.RegistroDeProduccion(), el registro de applets. Conviene separar el tipo al implementarlo para que la firma no se copie tal cual.",
+    "(no bloqueante) tasks.md:61 (T005) declara en gates/supuestos-kong.md las formas sintácticas de bandera booleana que el pre-escaneo no soporte, mientras que la obligación 9 del plan (plan.md:481-484) pide declararlas «por escrito en el contrato», es decir en contracts/banderas-y-exit-codes.md. Cualquiera de los dos sitios deja rastro, pero conviene o bien escribirlo también en el contrato o bien anotar el cambio de sitio.",
+    "(no bloqueante) tasks.md:88 (T012) incluye «argumento sobrante» entre los casos que dejan de ser contrato de `version` y pasan al despacho, pero ni T010 ni contracts/registro-y-describe.md §2 fijan qué hace `kitlegal version extra`: el verbo reservado se reconoce antes del registro, así que ahí no hay ningún applet desconocido que nombrar. Conviene fijar ese comportamiento antes de adaptar el caso de cmd/kitlegal/main_test.go:47-53."
+  ]
+}
