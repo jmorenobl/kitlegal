@@ -1,13 +1,15 @@
 {
-  "id": "T004",
-  "texto": "T004 [P] [US4] Registro de eventos y contrato del presentador: `internal/cli/log.go` con el `*slog.Logger` estructurado que escribe **siempre** en el escritor de error, nivel resuelto con prioridad de `KITLEGAL_LOG` (`debug`, `info`, `warn`, `error`) sobre `--verbose` (equivale a `debug`) y `warn` por omisión, un valor inválido de la variable que **no aborta** la invocación y se avisa por el canal no filtrable, y sin registrar por omisión contenido que identifique a una persona física —applet, verbo, duración y clase de error; los argumentos solo en `debug`—; `internal/cli/presentador.go` con la interfaz `Presentador` que el kernel consume y que el paquete de presentación implementará (`Presentar(sobre, json) error`, `Texto(string) error`, `Aviso(string) error`, `Salida() io.Writer`, `Error() io.Writer`), de modo que el kernel no importa el paquete de presentación; y `internal/cli/log_test.go` con el doble de presentador en memoria que comprueba, en `TestRegistro`, niveles, prioridad de la variable sobre la bandera, aviso del valor inválido y que nada de esto llega a la salida estándar, y en **`TestRegistroPrivacidad`** —el nombre que invoca el escenario 7 de `quickstart.md`— lo que FR-039 exige y hasta ahora no verificaba ningún caso: que con el nivel por omisión (`warn`) y con `info` el registro emitido lleva applet, verbo, duración y clase de error pero **no** los argumentos de la invocación, y que esos argumentos aparecen **solo** cuando el nivel resuelto es `debug`, tanto si lo pide `--verbose` como si lo pide `KITLEGAL_LOG` (FR-025, FR-036 … FR-039, FR-040 parcial, SC-011 parcial).",
+  "id": "T005",
+  "texto": "T005 [US4] Las ocho banderas globales y la gramática de una invocación: `internal/cli/globales.go` con `Globales` y las ocho banderas declaradas **una sola vez** con sus etiquetas —`--json`, `--timeout` (duración, 30s por omisión), `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto` y `--verbose`— y su conversión a `schema.Contexto`; `internal/cli/parse.go` que construye y analiza la gramática de **una** invocación ya resuelto el applet (globales embebidas más los verbos que recibe como `any`, sin importar el paquete de composición), entrega a Kong los escritores del presentador, traduce todo fallo del análisis a `ErrArgumentos` —bandera desconocida, valor con formato inválido, argumento obligatorio ausente, `--timeout` no positivo o sin unidad— y devuelve la precedencia fija e independiente del orden de escritura: `--help` gana sobre todo (texto para personas en la salida estándar, código 0, sin que `--json` lo altere), después `--describe`, y en otro caso ejecución; y las tablas de casos en `internal/cli/globales_test.go` y `internal/cli/parse_test.go` más el `TestPreescaneo` de coincidencia en `internal/cli/preescaneo_test.go`, que comprueba que para toda invocación bien formada el pre-escaneo y el análisis coinciden en `--json`, `--verbose` y `--help` sobre todas las formas sintácticas que Kong acepta para una bandera booleana larga, declarando por escrito en `specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md` las que no se soporten (FR-018 … FR-021, FR-023, FR-024, FR-026 … FR-028, FR-042 parcial, FR-049 parcial, SC-010 parcial).",
   "intento": 1,
   "datos": false,
-  "base": "2bd09ed0a68ac835c81f87d70ea4fff97bdddfb0",
+  "base": "6c61f3d34b9492fd0450b3d4872281190dc37714",
   "rutas": [
-    "internal/cli/log_test.go",
-    "internal/cli/log.go",
-    "internal/cli/presentador.go",
-    "quickstart.md"
+    "internal/cli/globales_test.go",
+    "internal/cli/globales.go",
+    "internal/cli/parse_test.go",
+    "internal/cli/parse.go",
+    "internal/cli/preescaneo_test.go",
+    "specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md"
   ]
 }

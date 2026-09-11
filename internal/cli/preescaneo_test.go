@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // casoDePreEscaneo es una fila de la tabla: unos argumentos tal como llegarían
@@ -317,6 +318,185 @@ func TestPreEscanearNoConsume(t *testing.T) {
 			PreEscanear(caso.args)
 
 			assert.Equal(t, intactos, caso.args)
+		})
+	}
+}
+
+// formaBooleana es una de las formas sintácticas con las que Kong acepta una
+// bandera booleana larga: lo que se escribe pegado al nombre y lo que la bandera
+// vale al escribirlo.
+type formaBooleana struct {
+	sufijo string
+	valor  bool
+}
+
+// formasBooleanasDeKong son **todas** las formas con las que Kong acepta una
+// bandera booleana larga, y no una muestra: el nombre solo, que vale por lo que
+// afirma, y el nombre con uno de los seis literales pegado con el signo igual,
+// sin distinguir mayúsculas (kong@v1.16.1: context.go, que parte el token por el
+// primer «=», y mapper.go, cuyo boolMapper solo consume el valor pegado y nunca
+// el argumento siguiente).
+//
+// No hay ninguna más: Kong no abrevia nombres largos, y la forma negada
+// `--no-<bandera>` exige la etiqueta `negatable`, que ninguna global lleva.
+func formasBooleanasDeKong() []formaBooleana {
+	return []formaBooleana{
+		{sufijo: "", valor: true},
+		{sufijo: "=true", valor: true},
+		{sufijo: "=1", valor: true},
+		{sufijo: "=yes", valor: true},
+		{sufijo: "=TRUE", valor: true},
+		{sufijo: "=Yes", valor: true},
+		{sufijo: "=false", valor: false},
+		{sufijo: "=0", valor: false},
+		{sufijo: "=no", valor: false},
+		{sufijo: "=False", valor: false},
+		{sufijo: "=NO", valor: false},
+	}
+}
+
+// exigirCoincidencia comprueba sobre una invocación bien formada lo que sostiene
+// la regla 5 de D25: que el valor provisional que el pre-escaneo lee de argv y
+// el que entrega el análisis dicen lo mismo de las tres banderas.
+//
+// Se compara el pre-escaneo contra el análisis y no contra un valor escrito a
+// mano: lo que este test defiende es que los dos mecanismos no divergen, sea
+// cual sea el valor.
+func exigirCoincidencia(t *testing.T, args []string) {
+	t.Helper()
+
+	previo := PreEscanear(args)
+	res := analizarDePrueba(t, args...)
+
+	require.NoError(t, res.err,
+		"solo una invocación bien formada tiene análisis con el que comparar")
+	assert.Equal(t, res.analisis.Globales.JSON, previo.JSON, "--json")
+	assert.Equal(t, res.analisis.Globales.Verbose, previo.Verbose, "--verbose")
+	assert.Equal(t, res.analisis.Decision == DecisionAyuda, previo.Ayuda, "--help")
+}
+
+// casosDeCoincidencia son invocaciones bien formadas que mezclan las tres
+// banderas con el resto de la línea de órdenes: antes del verbo, después de sus
+// argumentos, con valor explícito y con el terminador de por medio.
+func casosDeCoincidencia() []casoDePreEscaneo {
+	return []casoDePreEscaneo{
+		{nombre: "sin ninguna de las tres", args: []string{"repetir", "hola"}},
+		{nombre: "las dos que no excluyen la ejecución", args: []string{"repetir", "hola", "--json", "--verbose"}},
+		{nombre: "en el otro orden", args: []string{"--verbose", "--json", "repetir", "hola"}},
+		{nombre: "una encendida y otra apagada", args: []string{"repetir", "hola", "--json=yes", "--verbose=no"}},
+		{nombre: "repetida: manda la última", args: []string{"repetir", "hola", "--json", "--json=false"}},
+		{nombre: "repetida al revés", args: []string{"repetir", "hola", "--json=false", "--json"}},
+		{nombre: "entre banderas que el pre-escaneo no lee", args: []string{"--timeout=5s", "--json", "repetir", "hola", "--asunto=expediente-3"}},
+		{nombre: "el valor de otra bandera que se escribe como una de las tres", args: []string{"repetir", "hola", "--asunto=--json"}},
+		{nombre: "tras el terminador, el argumento se escribe como una bandera", args: []string{"repetir", "--", "--json"}},
+		{nombre: "tras el terminador, con una de las tres antes", args: []string{"--verbose", "repetir", "--", "--help"}},
+		{nombre: "la ayuda con el verbo completo", args: []string{"repetir", "hola", "--help"}},
+		{nombre: "la ayuda antes del verbo", args: []string{"--help", "repetir", "hola"}},
+		{nombre: "la ayuda con --json, que no la altera", args: []string{"--json", "--help", "repetir", "hola"}},
+		{nombre: "la ayuda con --verbose", args: []string{"repetir", "hola", "--help", "--verbose"}},
+		{nombre: "la autodescripción no es la ayuda", args: []string{"repetir", "hola", "--describe", "--json"}},
+	}
+}
+
+// TestPreescaneo es la comprobación que mantiene honesto al pre-escaneo: para
+// toda invocación bien formada, lo que lee de argv antes de que exista gramática
+// y lo que el análisis entrega después coinciden en --json, --verbose y --help.
+//
+// Se recorren todas las formas sintácticas que Kong acepta para una bandera
+// booleana larga. Las que no coinciden no se esconden: están en
+// TestPreescaneoFormasNoSoportadas y declaradas por escrito en
+// specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md (FR-045,
+// research.md D25, SC-014).
+func TestPreescaneo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("--json en todas las formas que Kong acepta", func(t *testing.T) {
+		t.Parallel()
+
+		for _, forma := range formasBooleanasDeKong() {
+			t.Run("--json"+forma.sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				exigirCoincidencia(t, []string{"repetir", "hola", "--json" + forma.sufijo})
+			})
+		}
+	})
+
+	t.Run("--verbose en todas las formas que Kong acepta", func(t *testing.T) {
+		t.Parallel()
+
+		for _, forma := range formasBooleanasDeKong() {
+			t.Run("--verbose"+forma.sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				exigirCoincidencia(t, []string{"repetir", "hola", "--verbose" + forma.sufijo})
+			})
+		}
+	})
+
+	t.Run("--help en las formas que lo piden", func(t *testing.T) {
+		t.Parallel()
+
+		for _, forma := range formasBooleanasDeKong() {
+			if !forma.valor {
+				continue
+			}
+
+			t.Run("--help"+forma.sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				exigirCoincidencia(t, []string{"repetir", "hola", "--help" + forma.sufijo})
+			})
+		}
+	})
+
+	t.Run("invocaciones completas", func(t *testing.T) {
+		t.Parallel()
+
+		for _, caso := range casosDeCoincidencia() {
+			t.Run(caso.nombre, func(t *testing.T) {
+				t.Parallel()
+
+				exigirCoincidencia(t, caso.args)
+			})
+		}
+	})
+}
+
+// TestPreescaneoFormasNoSoportadas fija las dos formas de pedir la ayuda en las
+// que el pre-escaneo y el análisis **no** coinciden, para que la divergencia sea
+// un hecho comprobado y no un descuido: la forma corta -h, que el pre-escaneo no
+// reconoce por diseño (D25, regla 1), y el nombre con un valor falso pegado, que
+// Kong atiende igual porque su ayuda es un gancho anterior a la lectura del
+// valor.
+//
+// Ninguna de las dos rompe nada, y el motivo está en cómo se decide la
+// prelación: la decisión de mostrar la ayuda no sale del pre-escaneo sino de que
+// Kong la haya escrito, así que las dos formas terminan en la ayuda y en el
+// código 0 como cualquier otra. Lo que el pre-escaneo se pierde es la supresión
+// del verbo por omisión (D26), y eso queda declarado en
+// specs/002-h1-kernel-cli-multicall/gates/supuestos-kong.md.
+func TestPreescaneoFormasNoSoportadas(t *testing.T) {
+	t.Parallel()
+
+	noSoportadas := []string{"-h", "--help=false", "--help=0", "--help=no"}
+
+	for _, forma := range noSoportadas {
+		t.Run(forma, func(t *testing.T) {
+			t.Parallel()
+
+			args := []string{"repetir", "hola", forma}
+
+			assert.False(t, PreEscanear(args).Ayuda,
+				"el pre-escaneo no reconoce esta forma")
+
+			res := analizarDePrueba(t, args...)
+
+			require.NoError(t, res.err)
+			assert.Equal(t, DecisionAyuda, res.analisis.Decision,
+				"el análisis sí la atiende, y la decisión de la ayuda sale de él")
+			assert.NotEmpty(t, res.doble.salida.String(),
+				"la ayuda se escribe, que es lo que hace que el código 0 sea honesto")
 		})
 	}
 }

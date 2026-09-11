@@ -1,4 +1,9 @@
-# Supuestos de Kong — resultado de la comprobación (T002)
+# Supuestos de Kong — resultado de la comprobación (T002 y T005)
+
+Este documento tiene dos partes. La primera, de T002, comprueba los cinco supuestos que el plan no pudo
+verificar sin red. La segunda, [de T005](#lo-que-t005-cierra-la-gramática-de-una-invocación), cierra lo
+que aquella dejó abierto para el kernel y declara por escrito las formas sintácticas que el pre-escaneo
+**no** soporta.
 
 `research.md` [D24](../research.md) dejó cinco supuestos sobre
 `github.com/alecthomas/kong` **sin verificar** porque la biblioteca no estaba en el módulo local y la
@@ -150,3 +155,68 @@ como intención y aquí queda comprobado:
   el motivo por el que la tarea la prohíbe.
 - Envolver con `fmt.Errorf("…: %w", …)` no cambia la clase, en uno y en dos niveles, ni cuando el texto de
   la envoltura nombra otra clase (FR-032).
+
+---
+
+# Lo que T005 cierra: la gramática de una invocación
+
+T002 dejó una obligación escrita para T005 —decidir la prelación de `--help` sin poder leerla del error
+devuelto— y la tarea añade una segunda: declarar las formas sintácticas en las que el pre-escaneo de D25 y
+el análisis **no** coinciden. Las dos quedan cerradas aquí, con el test que comprueba cada afirmación.
+
+## Cómo se decide la prelación de `--help`
+
+**Por la anotación de la terminación, no por el pre-escaneo.** A `kong.Exit` se le entrega una función que
+no termina nada y solo anota que la llamaron; durante el análisis, el **único** camino que la invoca es el
+gancho `BeforeReset` de la ayuda integrada (`help.go:21-29`), así que haberla llamado equivale a haber
+escrito la ayuda. Los otros dos sitios donde Kong termina el proceso son `Fatalf` y `FatalIfErrorf`
+(`kong.go:463` y `kong.go:490`), y el kernel no llama a ninguno.
+
+Se descartó decidirlo con el pre-escaneo, que era la otra opción que T002 dejaba abierta, por un caso
+concreto: en `echo --bandera-desconocida --help` el análisis falla en el recorrido de los argumentos
+(`Parse` devuelve antes de aplicar el gancho) y **la ayuda no llega a escribirse**. Con el pre-escaneo, esa
+invocación habría terminado con código 0 y la salida estándar vacía —una ayuda prometida que nadie
+escribió—. Con la anotación, termina en código 2 y su mensaje. Lo comprueban los dos subcasos de
+`TestAnalizarArgumentosInvalidos` que escriben la bandera desconocida y `--help` juntos, en los dos
+órdenes; que la ayuda gana en todas las demás combinaciones lo comprueba `TestAnalizarPrecedencia`.
+
+## Las formas de una bandera booleana larga, y las dos que el pre-escaneo no soporta
+
+Kong acepta exactamente dos formas para una bandera booleana larga, y no hay ninguna tercera: el nombre
+solo, y el nombre con uno de los seis literales pegado con `=` sin distinguir mayúsculas —`true`, `1`,
+`yes`, `false`, `0`, `no`— (`context.go:437-444`, que parte el token por el primer `=`, y `mapper.go:296-326`,
+cuyo `boolMapper` solo consume el valor pegado y **nunca** el argumento siguiente). No abrevia nombres
+largos —la comparación es de igualdad (`context.go:753-777`)— y la forma negada `--no-<bandera>` exige la
+etiqueta `negatable`, que ninguna global lleva (`negatable.go`).
+
+`TestPreescaneo` recorre las once formas sobre `--json`, `--verbose` y `--help` y comprueba que el
+pre-escaneo y el análisis dicen lo mismo. **Dos formas de pedir la ayuda no coinciden**, y se declaran aquí
+en lugar de esconderse; las fija `TestPreescaneoFormasNoSoportadas`:
+
+| Forma | Qué hace el análisis | Qué lee el pre-escaneo | Consecuencia |
+|---|---|---|---|
+| `-h` | escribe la ayuda | nada: la regla 1 de D25 excluye las formas cortas | la ayuda se muestra igual, con código 0 |
+| `--help=false`, `--help=0`, `--help=no` | escribe la ayuda: su gancho es anterior a la lectura del valor y no lo consulta (`kong.go:358-387`) | `Ayuda: false`, que es lo que el valor dice | la ayuda se muestra igual, con código 0 |
+
+**Por qué ninguna de las dos rompe nada.** El pre-escaneo no decide qué se ejecuta (D25, regla 4). Lo único
+que se pierde en estas dos formas es la supresión de la normalización del verbo por omisión (D26, regla 3):
+`echo -h` y `echo --help=false` mostrarán la ayuda del verbo por omisión en lugar de la del applet. La
+decisión de mostrar la ayuda, el texto y el código 0 son correctos en los dos casos, porque salen del
+análisis y no del pre-escaneo.
+
+**No se amplía el pre-escaneo para cubrirlas**, y no es por economía: reconocer `-h` obligaría a leer
+formas cortas, y con ellas los grupos (`-abc`) y los valores pegados, que es justo la superficie que D25
+dejó fuera para que el procedimiento fuera comprobable. `--help=false` es peor: para coincidir habría que
+**imitar el orden interno de los ganchos de Kong**, que no es contrato de nadie.
+
+## Dos hechos más que T005 comprueba
+
+- **La parte de la gramática que el kernel no conoce viaja en `kong.Plugins`**, el mecanismo con el que la
+  biblioteca acepta estructuras que no se conocen al compilar (`build.go:99-108`). Es lo que permite a
+  `internal/cli` recibir los verbos como `any` sin importar el paquete de composición ni conocer el tipo
+  `Applet` (D1, D2). Los elementos han de ser punteros a `struct`.
+- **Un applet no puede redefinir una bandera global, y no porque nadie lo vigile**: Kong rechaza la
+  gramática al construirla con `duplicate flag --<nombre>` (`build.go:346-348`), porque las globales
+  embebidas ya ocupan esos nombres. El kernel traduce ese fallo a error **inesperado** —código 1— y no a
+  error de argumentos: no hay invocación que corregir, es un defecto del applet. Lo comprueba
+  `TestAnalizarGramaticaInvalida`, y es la mitad mecánica de la invariante de FR-018 y SC-010.
