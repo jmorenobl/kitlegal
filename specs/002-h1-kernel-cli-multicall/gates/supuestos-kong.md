@@ -189,25 +189,33 @@ cuyo `boolMapper` solo consume el valor pegado y **nunca** el argumento siguient
 largos —la comparación es de igualdad (`context.go:753-777`)— y la forma negada `--no-<bandera>` exige la
 etiqueta `negatable`, que ninguna global lleva (`negatable.go`).
 
-`TestPreescaneo` recorre las once formas sobre `--json`, `--verbose` y `--help` y comprueba que el
-pre-escaneo y el análisis dicen lo mismo. **Dos formas de pedir la ayuda no coinciden**, y se declaran aquí
-en lugar de esconderse; las fija `TestPreescaneoFormasNoSoportadas`:
+`TestPreescaneo` recorre las once formas sobre `--json`, `--verbose` y `--help` —y `-h` suelta— y comprueba
+que el pre-escaneo y el análisis dicen lo mismo. **Una forma de pedir la ayuda no coincide**, y se declara
+aquí en lugar de esconderse; la fija `TestPreescaneoFormasNoSoportadas`:
 
 | Forma | Qué hace el análisis | Qué lee el pre-escaneo | Consecuencia |
 |---|---|---|---|
-| `-h` | escribe la ayuda | nada: la regla 1 de D25 excluye las formas cortas | la ayuda se muestra igual, con código 0 |
 | `--help=false`, `--help=0`, `--help=no` | escribe la ayuda: su gancho es anterior a la lectura del valor y no lo consulta (`kong.go:358-387`) | `Ayuda: false`, que es lo que el valor dice | la ayuda se muestra igual, con código 0 |
 
-**Por qué ninguna de las dos rompe nada.** El pre-escaneo no decide qué se ejecuta (D25, regla 4). Lo único
-que se pierde en estas dos formas es la supresión de la normalización del verbo por omisión (D26, regla 3):
-`echo -h` y `echo --help=false` mostrarán la ayuda del verbo por omisión en lugar de la del applet. La
-decisión de mostrar la ayuda, el texto y el código 0 son correctos en los dos casos, porque salen del
-análisis y no del pre-escaneo.
+**Por qué no rompe nada.** El pre-escaneo no decide qué se ejecuta (D25, regla 4). Lo único que se pierde
+en esa forma es la supresión de la normalización del verbo por omisión (D26, regla 3): `echo --help=false`
+mostrará la ayuda del verbo por omisión en lugar de la del applet. La decisión de mostrar la ayuda, el
+texto y el código 0 son correctos, porque salen del análisis y no del pre-escaneo.
 
-**No se amplía el pre-escaneo para cubrirlas**, y no es por economía: reconocer `-h` obligaría a leer
-formas cortas, y con ellas los grupos (`-abc`) y los valores pegados, que es justo la superficie que D25
-dejó fuera para que el procedimiento fuera comprobable. `--help=false` es peor: para coincidir habría que
-**imitar el orden interno de los ganchos de Kong**, que no es contrato de nadie.
+**No se amplía el pre-escaneo para cubrirla**: para coincidir habría que **imitar el orden interno de los
+ganchos de Kong**, que no es contrato de nadie.
+
+**Corrección tras la revisión final: `-h` sí se reconoce.** Esta nota decía que la forma corta quedaba
+fuera por diseño y que «la ayuda se muestra igual, con código 0». Lo segundo solo era cierto con el verbo
+ya nombrado: en `kitlegal -h` y en `kitlegal contar -h` no existe gramática que la lea, el pre-escaneo no
+la veía y la invocación terminaba con código 2 —«`-h` no es ningún applet», «hay que nombrar un verbo»—,
+mientras la ayuda del verbo la anunciaba como `-h, --help`. El pre-escaneo reconoce ahora **el token
+exacto `-h`**, y solo ese: la sonda contra Kong v1.16.1 muestra que `-h=false`, `-hv` y `-H` son para él
+errores de argumentos (`unknown flag`), así que reconocer únicamente `-h` suelta coincide con el análisis
+en todas las formas y no abre la superficie de grupos y valores pegados que D25 dejó fuera. Con ello
+`kitlegal -h`, `kitlegal contar -h` y `kitlegal contar letras -h` terminan los tres en la ayuda que
+corresponde a su posición y con código 0, igual que `--help` (`TestPreescaneo`, `casosReconocidos` y
+`TestSalidaEstandarRota` de `internal/app`).
 
 ## Dos hechos más que T005 comprueba
 

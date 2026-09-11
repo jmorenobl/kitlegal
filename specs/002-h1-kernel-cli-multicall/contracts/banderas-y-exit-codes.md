@@ -33,7 +33,9 @@ es explícito, no un silencio engañoso.
 
 ## 2. Ayuda
 
-- `--help` funciona en el binario y en cada applet, y termina con código **0**.
+- `--help` funciona en el binario y en cada applet, y termina con código **0**. La forma corta `-h`,
+  que la ayuda de un verbo anuncia como `-h, --help`, pide la ayuda en las mismas tres posiciones —el
+  binario, el applet y el verbo— con el mismo resultado; es la única forma corta del juego común.
 - La lista de applets y de verbos que muestra **procede del registro de applets**; no existe ninguna lista
   paralela mantenida a mano.
 - La ayuda se emite **siempre como texto para personas en la salida estándar**. `--json` **no la altera**:

@@ -92,8 +92,11 @@ huella sin prefijo no es una huella de este proyecto.
 | El propio kernel, cuando falla antes de llegar al applet | `kitlegal.cli` | `kitlegal:cli` |
 | Adaptador de fuente pública (H4 en adelante) | el nombre de la fuente, p. ej. `boe.legislacion-consolidada` | URL `http(s)` comprobable |
 
-`kitlegal:applet/echo` es un URI absoluto —esquema `kitlegal`, parte opaca `applet/echo`—, así que pasa la
-validación formal de `url` que el sobre exige, mientras que la cadena vacía no. La regla para el consumidor
+`kitlegal:applet/echo` es un URI absoluto —esquema `kitlegal`, parte opaca `applet/echo`—, así que pasa las
+dos validaciones de `url` que el sobre exige, mientras que la cadena vacía no pasa ninguna: la del dominio
+(`Procedencia.Validar`, que rechaza la procedencia antes de montar el sobre) y la de la descripción formal
+que el binario emite con `--describe` (`minLength: 1` y `format: uri`, derivadas de las etiquetas del
+propio tipo del sobre, con las aserciones de formato activadas al validar). La regla para el consumidor
 es de una línea: **un sobre cuya `url` empieza por `kitlegal:` es un resultado calculado, no una cita de
 fuente pública**, y no debe presentarse como fuente ni usarse para fundamentar una afirmación legal.
 

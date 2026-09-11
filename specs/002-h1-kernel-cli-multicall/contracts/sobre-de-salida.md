@@ -193,6 +193,12 @@ El sobre es validable contra un esquema JSON (borrador 2020-12) que el propio bi
 borrador 2020-12. Un validador que no las active explícitamente aceptará un `url` vacío o no-URI, y el
 control quedará muerto aunque el test esté en verde. Los tests de H1 las activan siempre.
 
+**Nota sobre los nombres de `$defs`**: `DatosError` se llama así porque es un tipo del sobre; el `data` del
+applet se nombra con su paquete delante (`ejemplo.mensaje`, `boe.Articulo`), de modo que un applet que
+declare su propio `DatosError` no pise el del kernel. Dos tipos distintos que aun así acabaran con el mismo
+nombre hacen fallar la construcción del esquema (código 1): nunca se emite un esquema que describa otra
+cosa.
+
 ---
 
 ## 7. Presentación legible

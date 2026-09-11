@@ -902,6 +902,18 @@ Con esto **aparece por primera vez un `go.sum` en la raíz**, lo que cierra la d
 su *Complexity Tracking* («no existe `go.sum` en la raíz»): `go mod verify` y `go mod tidy -diff` pasan a
 cubrir también el módulo del producto sin tocar el `Makefile`.
 
+**Corrección tras la revisión final del hito.** «Exactamente cinco módulos» describe las dependencias
+**directas**; no lo que el binario enlaza. `invopop/jsonschema` arrastra cuatro módulos transitivos que
+acaban en `go version -m` del ejecutable —`github.com/pb33f/ordered-map/v2`, `github.com/bahlo/generic-list-go`,
+`github.com/buger/jsonparser` y `go.yaml.in/yaml/v4` en versión candidata— y que este análisis no
+examinó, al contrario de lo que se hizo con Kong (`gates/supuestos-kong.md`, «Dependencias que arrastra»).
+Ninguna versión publicada de la biblioteca deja de traer un juego equivalente, así que no cambian la
+decisión; quedan justificados en `plan.md` (*Complexity Tracking*) y en `gates/pr-h1.md`, y
+`TestDependenciasDelBinario` (`internal/arch_test.go`) fija desde entonces la lista exacta de módulos que
+el binario enlaza. Los módulos que solo usan los tests (`go.yaml.in/yaml/v3` por `testify`,
+`golang.org/x/sys` y `golang.org/x/tools` por `testscript`, `golang.org/x/text` por el validador) no se
+enlazan en el binario.
+
 **No se fija ninguna versión en este plan.** Las versiones las fija `go get` en la tarea de
 implementación y las congela `go.sum`; Dependabot ya está configurado para el módulo raíz desde H0. Fijar
 aquí un número sería inventarse un dato que no se ha podido verificar (`kong`) o congelar
@@ -982,7 +994,11 @@ func PreEscanear(args []string) Preliminar
 Reglas, deliberadamente estrechas:
 
 1. Solo reconoce tres formas largas exactas: `--json`, `--verbose` y `--help`, y sus formas con valor
-   booleano explícito (`--json=false`). Nada de formas cortas, abreviaturas ni valores separados.
+   booleano explícito (`--json=false`). Nada de abreviaturas ni valores separados. **Una sola forma
+   corta, `-h` suelta** (corrección tras la revisión final): la ayuda integrada de Kong la anuncia en toda
+   gramática como `-h, --help`, así que tiene que pedir la ayuda también donde aún no hay gramática que la
+   lea —el binario y el applet—; y es la única forma corta que Kong acepta para ella, porque `-h=false`,
+   `-hv` y `-H` son errores de argumentos para Kong, de modo que no reconocerlas es coincidir con él.
 2. **Se detiene en el terminador `--`**: lo que va después son argumentos, no banderas.
 3. No valida, no falla y no consume: un token desconocido se ignora; el pre-escaneo nunca produce un
    error ni un código de salida.

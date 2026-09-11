@@ -107,20 +107,40 @@ a escribirla.
   un mismo documento, bajo `entrada` y `salida`— y excluye la ejecución, así que el applet nunca llega a
   ver esa invocación. Es la contraparte legible por máquina de `--help`, y de ella saldrán las tools MCP y
   la tabla de órdenes de cada `SKILL.md`.
-- **Cinco dependencias nuevas**, todas de la lista cerrada de la constitución (§V) y ninguna más: en el
+- **Cinco dependencias directas nuevas**, todas de la lista cerrada de la constitución (§V): en el
   binario, `github.com/alecthomas/kong` (análisis de la línea de órdenes) e `github.com/invopop/jsonschema`
   (generación del esquema de `--describe`); solo en los tests, `github.com/stretchr/testify` (aserciones),
   `github.com/rogpeppe/go-internal` (los guiones `testscript` del e2e) y
   `github.com/santhosh-tekuri/jsonschema/v6` (validación del sobre contra su descripción formal). Con
-  ellas aparece por primera vez un `go.sum` en la raíz del módulo.
+  ellas aparece por primera vez un `go.sum` en la raíz del módulo. **El binario distribuido enlaza además
+  los cuatro módulos que `invopop/jsonschema` arrastra** y que ninguna versión de esa biblioteca deja de
+  traer: `github.com/pb33f/ordered-map/v2` (las propiedades del esquema conservan el orden de
+  declaración), `github.com/bahlo/generic-list-go` y `github.com/buger/jsonparser` (dependencias de ese
+  mapa) y `go.yaml.in/yaml/v4` (en versión candidata, `v4.0.0-rc.2`, fijada por aquel mapa; Dependabot la
+  sigue). Están justificados en el plan del hito (*Complexity Tracking*) y en la propuesta de cambio, y
+  un test de arquitectura (`TestDependenciasDelBinario`) fija la lista exacta de módulos que el binario
+  enlaza, de modo que uno nuevo no entra sin justificarse por escrito. Los módulos que solo usan los
+  tests —`go.yaml.in/yaml/v3` por `testify`, `golang.org/x/sys` y `golang.org/x/tools` por `testscript`,
+  `golang.org/x/text` por el validador— no se enlazan en el binario.
+- **La forma corta `-h` pide la ayuda en las mismas posiciones que `--help`**: en el binario, en un
+  applet y en un verbo. La ayuda del verbo, que escribe el analizador, la anunciaba ya como `-h, --help`;
+  ahora el kernel la reconoce también donde todavía no hay gramática que la lea.
 
 ### Cambiado
 
 - **El contrato observable del binario deja de ser el de H0.** De aquel se conservan las tres líneas de
   `version` y su código `0` —ahora escritas por el presentador, y un fallo al escribirlas se propaga en
-  lugar de descartarse—, y lo demás lo fija el despacho multicall: `--help` responde la ayuda derivada del
-  registro y termina con `0`, donde H0 terminaba con `2` por no ser `version`; y los códigos de salida
-  posibles ya no son solo `0` y `2`, sino los siete de la tabla estable.
+  lugar de descartarse— y el código `2` de cualquier otra invocación; lo que cambia es el mensaje y lo
+  que hay detrás. `version` sigue sin admitir argumentos ni banderas: `kitlegal version extra` o
+  `kitlegal version --json` terminan con `2`, como en H0, pero el mensaje nombra lo que sobra en lugar de
+  la línea `uso: kitlegal version`. Un applet desconocido lo resuelve el despacho multicall, que nombra lo
+  que no reconoció y enumera lo registrado. `--help` responde la ayuda derivada del registro y termina
+  con `0`, donde H0 terminaba con `2` por no ser `version`; y los códigos de salida posibles ya no son
+  solo `0` y `2`, sino los siete de la tabla estable.
+- **Un descriptor de salida roto termina siempre con `1`**, sea lo que sea lo que se estaba escribiendo:
+  el sobre, la tabla, el esquema de `--describe`, `version` o cualquiera de las tres ayudas —también la
+  del verbo, que escribe el analizador y que sin vigilar el escritor habría salido con el `2` de
+  argumentos inválidos—.
 - **La exclusión de `errcheck` desaparece.** H0 eximía `fmt.Fprint`, `fmt.Fprintf` y `fmt.Fprintln` porque
   el punto de entrada escribía él mismo y su contrato de códigos de salida no tenía dónde poner un fallo
   de escritura. Ya no escribe —inyecta los descriptores del sistema, el registro de producción y los datos

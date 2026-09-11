@@ -163,6 +163,30 @@ por el identificador `Descripcion` que fija el contrato (el diccionario de `miss
 está en `nota-T009-misspell.md`) y 1 `//nolint:gosec` en `internal/arch_test.go` (G204: el ejecutable es
 constante y los argumentos son literales y rutas del propio árbol).
 
+## Dependencias que el binario enlaza (FR-060, constitución §V) — añadido tras la revisión final
+
+Las cinco dependencias **directas** de H1 están en la lista cerrada de §V. Lo que no se había declarado
+es lo que `go version -m` del binario distribuido muestra además, y que §V obliga a justificar «en el
+plan (sección Complexity Tracking) y en la PR»:
+
+| Módulo | Versión | Por qué está | `go mod why -m` |
+|---|---|---|---|
+| `github.com/pb33f/ordered-map/v2` | v2.3.1 | `invopop/jsonschema` guarda las propiedades del esquema en un mapa ordenado, para que salgan en el orden de declaración | `internal/cli → invopop/jsonschema → pb33f/ordered-map/v2` |
+| `github.com/bahlo/generic-list-go` | v0.2.0 | la lista enlazada con la que el mapa ordenado conserva el orden | `… → pb33f/ordered-map/v2 → bahlo/generic-list-go` |
+| `github.com/buger/jsonparser` | v1.1.2 | el mapa ordenado lo usa al deserializar JSON conservando el orden | `… → pb33f/ordered-map/v2 → buger/jsonparser` |
+| `go.yaml.in/yaml/v4` | v4.0.0-rc.2 (candidata; no hay estable de v4) | el mapa ordenado se puede serializar a YAML; este proyecto no ejecuta ese camino, pero el enlazador lo incluye. La versión la fija el mapa ordenado y Dependabot la sigue | `… → pb33f/ordered-map/v2 → go.yaml.in/yaml/v4` |
+
+Ninguna versión publicada de `invopop/jsonschema` deja de traer un juego equivalente (las anteriores a
+v0.14 traían `wk8/go-ordered-map/v2` y `mailru/easyjson`), así que la única alternativa es no usar la
+biblioteca, y D12 y FR-048 la exigen. La justificación completa, con las alternativas rechazadas, está en
+`plan.md` (*Complexity Tracking*, primera fila). Desde esta corrección, **`TestDependenciasDelBinario`**
+(`internal/arch_test.go`) fija la lista exacta de módulos que enlaza `cmd/kitlegal`: un módulo nuevo hace
+fallar `make ci` hasta que se justifique por escrito. Los módulos que solo usan los tests
+(`go.yaml.in/yaml/v3`, `golang.org/x/sys`, `golang.org/x/text`, `golang.org/x/tools`) no se enlazan.
+
+**La descripción de la propuesta #9 en la plataforma tiene que llevar esta misma tabla**: editarla es una
+acción sobre la plataforma que la política reserva a la persona (`gates/revision-pendiente.md`).
+
 ## Cierre y limpieza
 
 ```console

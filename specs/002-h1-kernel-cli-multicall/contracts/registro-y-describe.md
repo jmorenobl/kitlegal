@@ -72,7 +72,7 @@ ruta y sin el sufijo `.exe`).
 | `n` no está registrado (incluido `n == "kitlegal"`) | El applet se toma del **primer argumento**; el resto se entrega al applet |
 | `n` no está registrado y no hay primer argumento | Código **2**, y la lista de applets disponibles en la salida de error |
 | El primer argumento no corresponde a ningún applet | Código **2**, mensaje que **nombra el applet desconocido**, y la lista de applets disponibles en la salida de error |
-| `n` no está registrado y el primer argumento es un verbo reservado (`version`) | Lo atiende el binario |
+| `n` no está registrado y el primer argumento es un verbo reservado (`version`) | Lo atiende el binario, **sin argumentos ni banderas**: cualquier cosa detrás de `version` —`kitlegal version extra`, `kitlegal version --json`— es código **2** con un mensaje que nombra lo que sobra, como en H0 (FR-027, [`cli-version.md`](../../001-h0-esqueleto-del-repo/contracts/cli-version.md)) |
 
 **Garantía de indistinguibilidad** (FR-007, SC-003): invocar un applet por enlace simbólico produce la
 **misma salida estándar, la misma salida de error y el mismo código de salida** que invocarlo con el

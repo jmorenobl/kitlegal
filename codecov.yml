@@ -7,14 +7,22 @@ coverage:
         target: 70%
         informational: false
 
-# Los componentes declaran el umbral del árbol que nombran. Codecov no evalúa un
-# componente cuyos paths no casan con ningún fichero del informe, así que un umbral
-# se puede declarar antes de que exista el código y empieza a aplicarse por sí solo
-# en cuanto ese árbol tenga ficheros. No hay nada que editar entonces.
+# Los componentes declaran el umbral del árbol que nombran. Un umbral se puede
+# declarar antes de que exista el código, pero conviene saber cuándo empieza a
+# medir de verdad: Codecov compara el head con el informe de la base filtrado por
+# los paths del componente, y si en la base no hay ningún fichero de ese árbol el
+# estado sale en verde sin evaluar el objetivo («No coverage information found on
+# base report»). Es decir: en la propuesta de cambio que **crea** el árbol de un
+# componente su estado es un verde vacío, y solo mide —y bloquea— a partir de la
+# siguiente, cuando la base ya lo contiene. Por eso todo hito que declare un
+# componente nuevo tiene que demostrarlo con una sonda contra su propia rama
+# (specs/002-h1-kernel-cli-multicall/gates/pr-h1.md).
 component_management:
   individual_components:
-    # El dominio interno, declarado desde H0: en aquel hito internal/core/ todavía no
-    # existía y el estado no aparecía; desde H1 sí, y bloquea.
+    # El dominio interno, declarado desde H0. En aquel hito internal/core/ no
+    # existía y el estado salía en verde vacío; en la propuesta de H1, que crea
+    # el árbol, también, y mide de verdad desde la primera propuesta posterior
+    # (las sondas de H1 lo midieron ya contra la rama del hito).
     - component_id: internal_core
       name: internal/core
       paths:
@@ -27,7 +35,10 @@ component_management:
     # depende todo applet posterior, y por eso su listón es más alto que el del
     # proyecto (FR-056, SC-004). El umbral no se rebaja para que el estado pase: si
     # cae por debajo, lo que falta son tests. Sin exclusiones: todo internal/cli/
-    # cuenta, también lo que es difícil de cubrir.
+    # cuenta, también lo que es difícil de cubrir. En la propuesta de H1 el estado
+    # es un verde vacío por lo dicho arriba; que mide y bloquea se demostró con dos
+    # sondas contra la rama del hito (gates/pr-h1.md), y medirá en toda propuesta
+    # posterior.
     - component_id: internal_cli
       name: internal/cli
       paths:

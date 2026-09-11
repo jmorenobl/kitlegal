@@ -141,8 +141,12 @@ un test que recorre el grafo transitivo real—, y el fallo nombra la regla viol
   hacerlo: no escribe, no monta el sobre y no elige el código de salida.
 - El dominio se mantiene puro por construcción y no por disciplina: lo que el applet recibe del kernel ya
   está interpretado, y lo que devuelve es dominio.
-- La superficie de la biblioteca de análisis de la línea de órdenes queda confinada a `internal/cli`;
-  sustituirla no tocaría ningún applet.
+- La **API** de la biblioteca de análisis de la línea de órdenes queda confinada a `internal/cli`: ningún
+  applet importa Kong ni recibe su contexto. Lo que sí forma parte del contrato del applet es el
+  **vocabulario de etiquetas** con el que declara sus argumentos —`arg`, `optional`, `required`,
+  `default`, `help`, `name`—, que es el de Kong: sustituir la biblioteca exigiría o bien que la nueva
+  leyera esas mismas etiquetas, o bien migrar las etiquetas de cada applet. Es un coste acotado a un
+  `struct` por verbo y sin lógica, pero no es cero, y decirlo evita suponer lo contrario.
 - `--describe` no puede mentir sobre la forma de `data`, porque la deriva del tipo y no de una descripción
   paralela.
 
