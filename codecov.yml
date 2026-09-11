@@ -1,5 +1,5 @@
 # Umbrales de cobertura de la Definition of Done (docs/ROADMAP.md §1.9, spec FR-029).
-# Ambos estados son bloqueantes: informational: false. Sin exclusiones ni excepciones.
+# Los tres estados son bloqueantes: informational: false. Sin exclusiones ni excepciones.
 coverage:
   status:
     project:
@@ -7,12 +7,14 @@ coverage:
         target: 70%
         informational: false
 
-# El componente del dominio interno declara su umbral desde H0. Codecov no evalúa un
-# componente cuyos paths no casan con ningún fichero del informe, así que en H0 —donde
-# internal/core/ todavía no existe— el estado no aparece, y empieza a aplicarse por sí
-# solo en cuanto ese árbol tenga ficheros. No hay nada que editar entonces.
+# Los componentes declaran el umbral del árbol que nombran. Codecov no evalúa un
+# componente cuyos paths no casan con ningún fichero del informe, así que un umbral
+# se puede declarar antes de que exista el código y empieza a aplicarse por sí solo
+# en cuanto ese árbol tenga ficheros. No hay nada que editar entonces.
 component_management:
   individual_components:
+    # El dominio interno, declarado desde H0: en aquel hito internal/core/ todavía no
+    # existía y el estado no aparecía; desde H1 sí, y bloquea.
     - component_id: internal_core
       name: internal/core
       paths:
@@ -20,4 +22,17 @@ component_management:
       statuses:
         - type: project
           target: 85%
+          informational: false
+    # El kernel de la línea de órdenes, que H1 aporta entero: es el código del que
+    # depende todo applet posterior, y por eso su listón es más alto que el del
+    # proyecto (FR-056, SC-004). El umbral no se rebaja para que el estado pase: si
+    # cae por debajo, lo que falta son tests. Sin exclusiones: todo internal/cli/
+    # cuenta, también lo que es difícil de cubrir.
+    - component_id: internal_cli
+      name: internal/cli
+      paths:
+        - internal/cli/**
+      statuses:
+        - type: project
+          target: 90%
           informational: false

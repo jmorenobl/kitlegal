@@ -5,6 +5,11 @@ import (
 	"sort"
 	"testing"
 
+	// El alias distingue las dos bibliotecas de esquemas que este test necesita a
+	// la vez y que se llaman igual: `invopop` es la que **genera** el documento
+	// —la misma que usa describe.go— y `jsonschema`, sin alias, la que lo
+	// **compila** para comprobar que un validador lo acepta.
+	invopop "github.com/invopop/jsonschema"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -399,5 +404,121 @@ func TestDescribe(t *testing.T) {
 		assert.Equal(t, 1, CodigoSalida(err),
 			"lo que ningún usuario puede provocar no es un error de argumentos")
 		assert.Empty(t, doble.salida.String(), "no se escribe un esquema a medias")
+	})
+}
+
+// ArgumentosComunes es el trozo de gramática que varios verbos de un mismo applet
+// comparten embebiéndolo, igual que toda gramática embebe Globales. Va exportado
+// porque es así como Kong puede rellenar sus campos promovidos, que es justo lo que
+// hace pertinente la regla que TestDescribeGramatica comprueba.
+type ArgumentosComunes struct {
+	Compartido string `required:""`
+}
+
+// argumentosConMarcas ejerce de una vez las cuatro marcas con las que la gramática
+// decide si la invocación tiene que escribir un campo, más las dos formas que
+// camposVisibles descarta: el propio campo embebido y uno no exportado.
+type argumentosConMarcas struct {
+	ArgumentosComunes
+
+	Opcional       string `optional:""`
+	Predeterminado string `default:"7"`
+	DePosicion     string `arg:""`
+
+	// descartado no nombra ninguna bandera: la gramática no puede rellenar un
+	// campo que no se exporta, así que describirlo describiría algo que la
+	// invocación no puede escribir.
+	descartado string
+}
+
+// verboConMarcas es la definición del verbo cuyos argumentos son los de arriba. No
+// declara salida a propósito: lo que este verbo existe para comprobar está entero
+// en la parte de entrada del documento.
+func verboConMarcas() Verbo {
+	return Verbo{
+		Applet:     nombreDePrueba,
+		Verbo:      "marcar",
+		Ayuda:      "Ejerce las marcas de la gramática.",
+		Argumentos: &argumentosConMarcas{descartado: "ni se describe ni se escribe"},
+	}
+}
+
+// TestDescribeGramatica comprueba que la entrada descrita es exactamente la que la
+// gramática acepta: qué campos nombran una bandera y cuáles de ellos tiene que
+// escribir quien invoca. Describir como obligatorio lo que no lo es —o describir un
+// campo que la invocación no puede escribir— describiría un binario distinto del
+// que se publica (FR-048, SC-010).
+func TestDescribeGramatica(t *testing.T) {
+	t.Parallel()
+
+	t.Run("las cuatro marcas deciden qué es obligatorio", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboConMarcas())
+		entrada := bajar(t, documento, "properties", "entrada")
+
+		assert.ElementsMatch(t, []any{"compartido", "de-posicion"}, entrada["required"],
+			"lo marcado como obligatorio y el argumento de posición, que lo es por "+
+				"serlo; lo marcado como opcional y lo que tiene valor por omisión, no")
+	})
+
+	t.Run("el campo embebido no se describe y sus hijos sí", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboConMarcas())
+		propiedades := bajar(t, documento, "properties", "entrada", "properties")
+
+		assert.ElementsMatch(t,
+			append([]string{"compartido", "opcional", "predeterminado", "de-posicion"},
+				nombresDeLasOcho...),
+			claves(propiedades),
+			"el campo embebido no nombra ninguna bandera —sus hijos ya están en la "+
+				"lista— y lo no exportado no lo puede rellenar la gramática")
+	})
+}
+
+// TestDescribeDefectosDelKernel comprueba los dos fallos que no puede provocar quien
+// invoca, sino quien declara el sobre o el documento: el sobre que dejara de
+// declarar una de las dos claves de las que depende la condición, y el documento que
+// no se puede codificar. Los dos salen con el código de lo que nadie previó y
+// ninguno emite un esquema a medias (FR-031, FR-048).
+func TestDescribeDefectosDelKernel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("un campo que el sobre no declara no se puede describir", func(t *testing.T) {
+		t.Parallel()
+
+		clave, err := claveDelSobre("NoExiste")
+
+		require.ErrorIs(t, err, errEsquemaImposible)
+		assert.Empty(t, clave)
+		assert.Contains(t, err.Error(), "NoExiste", "el fallo nombra el campo que falta")
+		assert.Equal(t, 1, CodigoSalida(err),
+			"que el sobre deje de declarar un campo no es un error de quien invoca")
+	})
+
+	t.Run("las dos claves de la condición salen de la etiqueta del sobre", func(t *testing.T) {
+		t.Parallel()
+
+		for nombre, esperada := range map[string]string{"Ok": "ok", "Data": "data"} {
+			clave, err := claveDelSobre(nombre)
+
+			require.NoError(t, err)
+			assert.Equal(t, esperada, clave,
+				"la condición sigue al sobre y no a una copia de sus claves (FR-048)")
+		}
+	})
+
+	t.Run("un documento que no se puede codificar no se emite a medias", func(t *testing.T) {
+		t.Parallel()
+
+		// Extras es la única vía por la que un esquema puede acabar llevando un
+		// valor que json no sabe escribir; un canal es el más corto que hay.
+		documento, err := serializar(&invopop.Schema{
+			Extras: map[string]any{"roto": make(chan int)},
+		})
+
+		require.ErrorIs(t, err, errEsquemaImposible)
+		assert.Empty(t, documento, "un documento a medias es peor que ninguno")
 	})
 }
