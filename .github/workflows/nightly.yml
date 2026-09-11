@@ -56,7 +56,7 @@ jobs:
       # Tampoco se exporta `CGO_ENABLED` en el entorno del job: dejaría
       # `make test -race` sin detector de carreras.
       - name: Instalar Go y restaurar la caché
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
