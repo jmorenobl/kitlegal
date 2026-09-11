@@ -80,7 +80,11 @@ Después, este parche puede borrarse. Si se prefiere no tocar `testdata/` en est
 documentada en `gates/nota-T009-misspell.md` y `gates/nota-T014-verificacion.md` y el motivo [h] sigue
 abierto: es una decisión, no un olvido.
 
-## 2. La descripción de la propuesta #9 en la plataforma (motivo [i], FR-060)
+## 2. La descripción de la propuesta #9 en la plataforma (motivo [i], FR-060) — **resuelto**
+
+> **Hecho**: la tabla está en la descripción de la #9 desde el 2026-09-12, junto con las cifras de
+> cobertura al día y sin los pendientes que la revisión final cerró. La #9 se integró con squash en
+> `main` (`29637e0`).
 
 La constitución §V exige justificar «en el plan (sección Complexity Tracking) y en la PR» todo módulo
 fuera de la lista. Los cuatro que `invopop/jsonschema` arrastra al binario están justificados ya en
@@ -89,7 +93,10 @@ descripción de la propuesta #9** en GitHub: editar la propuesta es una acción 
 política del repositorio reserva a la persona, igual que el push. La tabla está lista para pegar en
 `gates/pr-h1.md`.
 
-## 3. Las dos entradas de `.gitignore` retiradas (motivo [i], menor)
+## 3. Las dos entradas de `.gitignore` retiradas (motivo [i], menor) — **resuelto**
+
+> **Hecho**: las dos entradas están en `main` desde la propuesta #12 (`52188e0`), en un commit de
+> mantenimiento propio, que era la opción limpia de las dos que se planteaban abajo.
 
 `.gitignore` vuelve a la versión de `main`: las entradas `.specify/integrations/.cache/` y
 `.claude/worktrees/` eran ajenas al spec y a cualquier tarea de H1, como dice el motivo. Consecuencia
