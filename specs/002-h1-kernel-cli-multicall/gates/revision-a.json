@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-32: golangci-lint fmt+run '0 issues.'; go test -race -shuffle=on con los cinco paquetes en verde (internal/app 90.8%, internal/cli 98.3%, internal/core/schema 90.0%, internal/render 95.8%); govulncheck 'No vulnerabilities found.'; gitleaks 'no leaks found'; go mod verify 'all modules verified' (raíz + 4 herramientas); cierre 'ci: todos los controles en verde'. `git status` al inicio de esta revisión: 'clean — nothing to commit'. gates/pr-h1.md confirma además el mismo resultado en la plataforma (PR #9, ejecución 34638125765, SUCCESS, 1 min 11 s en caliente)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Cero red: FR-058 (spec.md:261) y tasks.md:32-34 ('Cero red en el código y en los tests… KITLEGAL_RECORD no se usa en ningún punto del hito'), consistente con el código leído (ningún internal/httpx, ningún net/http real importado). El único directorio testdata/ que nace es internal/app/testdata/ (código Go + guiones .txtar), explícitamente material de test y no fixtures de fuente (FR-009, spec.md:181; plan.md 'Fixtures'), justificado porque el hito no toca ninguna fuente externa. Tests unitarios table-driven con t.Parallel() en los cinco paquetes nuevos (sobre_test.go, huella_test.go, errors_test.go, sobre_test.go de cli, codigos_test.go, hereda_test.go…) más e2e con testscript (internal/app/e2e_test.go, script/*.txtar) que compila un binario real y lo ejercita sin red."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep confirma os.Exit solo en cmd/kitlegal/main.go:32 y internal/app/testdata/kitlegal-e2e/main.go:39 (las dos raíces de composición documentadas); ningún fmt.Print/Printf/Println fuera de comentarios; las apariciones de \"net/http\" y \"database/sql\" en internal/arch_test.go:236 son literales de la lista de denegación (entradaYSalidaEstandar), no imports reales. .golangci.yml añade depguard con listas core/red/sql (R1-R3) y forbidigo con analyze-types:true (R4-R5) acotado a las dos raíces de composición; internal/arch_test.go (TestArquitectura) recorre go list -deps como segunda capa independiente. Confirmado en ejecución: ci.log '0 issues' y los cinco paquetes con -race en verde."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "internal/core/schema/sobre.go:19-35 define Sobre con las seis claves exactas sin omitempty; internal/cli/sobre.go (Montador.Emitir/Exito/Fallo/montar) es el único punto que monta el sobre, también en fallo (FR-045); internal/cli/sobre_test.go (TestContratoSobre, T006) y internal/cli/describe_test.go (TestDescribe, T007) validan con santhosh-tekuri/jsonschema/v6 y AssertFormat() activado, que rechaza url vacía (D13, verificado contra compiler.go:47-53 en research.md). internal/cli/describe.go genera el esquema de --describe por reflexión desde los tipos reales del sobre (FR-048), con data condicionado a ok vía if/then/else."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "internal/cli/errors.go:114-131 (codigoDeClase) es un switch exhaustivo sin rama default, vigilado por el linter exhaustive (.golangci.yml:134-135 default-signifies-exhaustive:true); internal/app/main.go:69-94 (Main) nunca llama a os.Exit y devuelve int. Único panic en código de producción: internal/app/testdata/kitlegal-e2e/main.go:52 (registroDeEjemplo), deliberado y documentado como defecto de arranque de una raíz de composición —no una ruta de usuario— consistente con FR-008 (spec.md:180) y con la tabla de Complexity Tracking de plan.md:440. No se encontró ningún otro panic( en código no-test bajo internal/ ni cmd/."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:12-20 añade la sección [Unreleased] con la entrega de H1; docs/ADR/0005-contrato-de-applet.md y docs/ADR/0006-sobre-de-salida-y-huella.md, ambos en formato MADR con contexto/opciones/decisión/consecuencias. docs/SOURCES.md no se toca, correctamente: H1 no toca ninguna fuente externa (spec.md 'Fuera de alcance', línea 331), y ADR 0006:100-106 deja anotada la prohibición que H4 deberá hacer mecánica."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "H1 no introduce ningún cliente HTTP ni toca ninguna fuente pública: internal/httpx no existe todavía y la regla R2 de depguard (.golangci.yml) mantiene net/http reservado y vacío. gitleaks 'no leaks found' (ci.log:18-20). No hay grafo ni almacén en H1, así que no hay manejo de NIF/datos de persona; internal/cli/log.go:99-119 (Evento, FR-039) ya deja sentado que argumentos —el único campo que podría llevar datos personales— solo se registra en debug. El espacio de nombres reservado kitlegal./kitlegal: (internal/core/schema/sobre.go:37-40, ADR 0006) distingue explícitamente un resultado calculado de una cita de fuente pública, y su prohibición para adaptadores de fuente queda anotada para H4."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "17 directivas //nolint en total (16 :misspell por el identificador español 'Descripcion' contra un diccionario solo-inglés, 1 :gosec en internal/arch_test.go:315 por G204 con argumentos literales), todas con justificación específica en la misma línea, no genérica. gates/nota-T009-misspell.md y gates/nota-T014-verificacion.md documentan con transparencia que la solución ideal (regla de ignorado en .golangci.yml) no cupo en las rutas declaradas de esas tareas y queda como deuda explícita para una tarea futura que si declare .golangci.yml; no es un atajo oculto. Ningún t.Skip, ningún TODO/FIXME/HACK en código de producción. gates/pr-h1.md:152-160 confirma que la única exclusión retirada (errcheck sobre fmt.Fprint*) endurece el control y no hay exclusiones nuevas sin justificar (FR-057). Las dos correcciones de aserciones de guiones .txtar documentadas en nota-T014 (nivel de log, comillas escapadas) son correcciones de la propia definición del test contra el comportamiento real verificado a mano, no ajustes para ocultar un defecto."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "git diff main...HEAD --stat: 97 ficheros, todos dentro de lo que plan.md 'Project Structure' anuncia (internal/core/schema, internal/cli, internal/app + testdata/, internal/render, internal/arch_test.go, cmd/kitlegal, .golangci.yml, codecov.yml, Makefile, go.mod/go.sum, CHANGELOG.md, docs/ADR/0005-0006, artefactos de specs/002-h1-kernel-cli-multicall/). No se crean internal/httpx, cache, store, graph, source ni pkg/legalkit (SC-012, spec.md:297). gates/analyze.md:75-76 (gate mecánico de spec-kit) registra 0 incidencias CRITICAL y 0 HIGH de consistencia spec↔plan↔tasks. Las tres observaciones 'no bloqueantes' de gates/tasks.json quedaron resueltas en la implementación: firma de Main con *Registro (internal/app/main.go:69-74), formas de Kong declaradas en gates/supuestos-kong.md, y comportamiento de 'kitlegal version extra' fijado y testeado (cmd/kitlegal/main_test.go:59-70)."
+    }
+  ],
+  "motivos": []
+}
