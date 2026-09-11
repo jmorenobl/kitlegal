@@ -1,0 +1,66 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-27 muestra los ocho controles en verde (fmt --diff, lint '0 issues', test -race 83.3 %, govulncheck 'No vulnerabilities found', schema-check, gitleaks 'no leaks found', go mod verify en raíz y en los cuatro tools/*, tidy -diff vacío) y 'ci: todos los controles en verde'. Reproducido en este proceso: `make fmt-check lint` → 0 issues, `go test -race -count=1 ./...` ok, `go vet ./...` ok, `golangci-lint config verify` sin errores. Makefile:143 encadena fmt-check lint test vuln schema-check secrets mod-verify mod-tidy-check sin ningún objetivo mutante. El único aviso del log ('ld: warning: -bind_at_load') lo emite el enlazador de macOS al compilar golangci-lint, no un control."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main_test.go:11-73 es una tabla de cuatro casos con aserciones reales sobre código de salida, stdout y stderr (líneas 60-68), con t.Parallel() en padre e hijos y escritores en memoria; main_test.go:80-87 fija los valores por defecto. Cubre el camino feliz y los tres de error (sin verbo, verbo desconocido, argumento sobrante). Sin t.Skip, sin nolint, sin `_ =` (grep sobre cmd/). No hay testdata/ ni schemas/ y `git log main..HEAD -- testdata schemas` está vacío: nada retocado. Cobertura 83.3 % > 70 % (ci.log:9)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Único os.Exit en cmd/kitlegal/main.go:23, en main(); run() escribe solo en los io.Writer recibidos (main.go:31-38). Ningún import de net/http ni exec (grep sobre cmd/). .golangci.yml:35,52-55 activa forbidigo con el patrón ^fmt\\.Print(|f|ln)$ y .golangci.yml:71-75 lo acota a internal/ con path-except, como exige FR-014; depguard no se activa (H1). Los 22 linters de FR-013 están presentes (errcheck/govet/staticcheck vía default: standard, los 19 restantes en enable). gates/verificacion-pr.md:70-92 demuestra en la plataforma que un fmt.Println bajo internal/ falla con 'forbidigo: 1'."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No aplica en H0 por decisión del spec (spec.md:204, Assumptions: `kitlegal version` es texto plano; el sobre entra en H1). El código no anticipa el sobre ni banderas globales (main.go:31-38), conforme al criterio 'lo no especificado no se implementa'."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "run() devuelve 0 o 2 (main.go:31-38), ambos de la tabla estable (2 = args); ningún panic en cmd/ (grep). El único error silenciado es el de escritura en stdout/stderr, excluido en errcheck (.golangci.yml:40-47) con justificación escrita: el contrato de la orden solo admite 0 y 2 y un fallo de escritura no tiene código propio. Se acepta como práctica idiomática documentada, no como atajo."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:12 tiene '## [Unreleased]' con la entrada del hito; los cuatro ADR existen con contexto, opciones, decisión y consecuencias (docs/ADR/0001-multicall.md:7-75, 0002:7-…, 0003:7-…, 0004-frontera-humana.md:7-72) y registran decisiones cerradas sin reabrirlas. README.md:28-135 cubre prerrequisitos, build/install, `version` y controles; CONTRIBUTING.md:11-247 cubre ritual, estructura de PR, Conventional Commits, SemVer, catálogo de controles, justificación de dependencias (120-149), las cinco órdenes-marcador (151-164), `vuln` sin red (166-179), exclusión trazable de secretos (181-221) y subida de toolchain (223-247). LICENSE es Apache-2.0 canónica (201 líneas)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El código de H0 no abre red ni escribe fichero (main.go:31-38; sin imports de net/http, os/exec ni escritura en disco). Ningún flujo toca fuentes reales: nightly.yml:72 solo ejecuta `make ci`, KITLEGAL_RECORD no aparece en ningún flujo. `release` falla a propósito (Makefile:117-119) y no está en `ci`. docs/ADR/0004-frontera-humana.md:35-48 fija la frontera (solo fuentes públicas, exit 6, nunca POST a una sede). Sin datos personales en el diff: .gitleaksignore:10,12 apunta a ejemplos `// DON'T` de documentación vendorizada (verificado en .agents/skills/golang-security/references/secrets.md:31,37)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin nolint, t.Skip ni linters desactivados; nolintlint exige explicación y linter concreto (.golangci.yml:65-67). El fichero .gitleaksignore no excluye rutas ni reglas, solo dos huellas comprobadas y comentadas. La corrección del fixture del escenario 11 en quickstart.md (commit 4d26719) hizo el guion MÁS estricto (exige 'forbidigo: 1' en lugar de un fallo genérico) y está documentada en gates/tarea-T014.md:20-28 y verificacion-pr.md:200-245; no es un retoque para aprobar. fail_ci_if_error se mantuvo en true (ci.yml:65). T014 no se marcó [X] hasta ejecutar el escenario real (tarea-T014.md:8-10). Observación no bloqueante: misspell corre solo con locale US porque la herramienta no tiene diccionario español, límite documentado en research.md:380-385."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "FR-001 (spec.md:109) exige 'fijar la versión estable actual de Go'; spec.md:205 la define como 'la última versión estable publicada de Go en el momento de implementar el hito' y la constitución (.specify/memory/constitution.md:30) dice 'Go estable actual'. go.mod:3,5 fija `go 1.26.0` y `toolchain go1.26.6`. Según el proxy de módulos (`go list -m -json golang.org/toolchain@…`), go1.27.0 se publicó el 2026-08-18, y go1.26.8 y go1.27.1 el 2026-08-28; T001 se implementó el 2026-09-10 (commit 65c4586). Es decir: en el momento de implementar, la estable actual era go1.27.1 y, dentro de la propia rama 1.26, el último parche era go1.26.8. plan.md:37 afirma 'estable actual verificada' y research.md:61 habla de go1.26.7 como algo futuro ('en cuanto se publique'), cuando llevaba tres semanas publicado: la verificación no se hizo. No hay en spec, plan, research ni Clarifications ninguna decisión registrada que justifique quedarse en 1.26.6 (por ejemplo, incompatibilidad de golangci-lint v2.13.2 con Go 1.27). El resto del alcance sí cumple: los 18 ficheros del alcance de docs/ROADMAP.md:122 existen con contenido, no se creó internal/ en el repositorio (`git ls-files internal` vacío), y los cambios ajenos a las tareas (.specify/workflows/hito/workflow.yml, scripts/paso.sh, docs/WORKFLOW.md, .gitignore, .claude/settings.json en commits 7a3fa29, 1d2239e, 033b9f7) son infraestructura del workflow spec-kit, no producto."
+    }
+  ],
+  "motivos": [
+    "[i] FR-001 incumplido: go.mod:5 fija `toolchain go1.26.6` cuando la versión estable de Go publicada al implementar el hito (2026-09-10) era go1.27.1 (publicada 2026-08-28; go1.27.0 el 2026-08-18) y el último parche de la rama 1.26 era go1.26.8 (2026-08-28). plan.md:37 dice 'estable actual verificada' sin que lo fuera. Corrección: subir la directiva `toolchain` (y, si procede, la directiva `go` del módulo raíz y de tools/*/go.mod) a la estable actual y dejar `make ci` en verde con esa versión; si golangci-lint v2.13.2 u otra herramienta no soporta aún Go 1.27, subir al menos a go1.26.8 y registrar en plan.md (Complexity Tracking) y en spec.md (Clarifications, prefijo auto) la decisión con la alternativa rechazada y el motivo, conforme al Criterio de decisión autónoma §3. Actualizar también la mención de plan.md:37.",
+    "[observación, no bloqueante] La verificación de que las PR #1 y #2 quedaron cerradas y las ramas borradas (verificacion-pr.md:173-196) no pudo reproducirse desde este proceso (sin acceso a `gh`); el registro es internamente consistente (ids de ejecución, marcas de tiempo, salidas literales) y se da por bueno.",
+    "[observación, no bloqueante] Las acciones de los flujos van fijadas por etiqueta mayor (actions/checkout@v5, actions/setup-go@v6, codecov/codecov-action@v5, github/codeql-action@v4), no por SHA. El spec no exige SHA y Dependabot cubre github-actions (dependabot.yml:66-70); se anota como posible endurecimiento futuro.",
+    "[observación, no bloqueante] Existe un directorio `internal/` vacío y no versionado en el árbol de trabajo local (probable resto del escenario 11 en el intento 1 de T014). No forma parte del diff ni del repositorio; conviene borrarlo para que el árbol coincida con lo que el spec afirma (Assumptions: 'internal/ no existe en H0')."
+  ]
+}

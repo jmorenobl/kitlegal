@@ -1,0 +1,64 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-27 registra fmt-check, lint (0 issues), test -race (coverage 83.3%), govulncheck (sin vulnerabilidades), schema-check, gitleaks (no leaks), go mod verify en raíz y en los cuatro tools/*, go mod tidy -diff y 'ci: todos los controles en verde'. Reejecutado de forma independiente por este juez el 2026-09-11 con el mismo resultado y `git status --porcelain` vacío antes y después. El único commit posterior al ci.log (4917326) toca solo specs/001-h0-esqueleto-del-repo/, no código. Makefile:141-143 encadena los ocho controles sin mutar el árbol."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main_test.go:11-72 (TestRun, tabla de cuatro casos con t.Parallel y escritores en memoria: version→0 con tres datos; sin verbo, verbo desconocido y argumento sobrante→2 con línea de uso en stderr) y :77-86 (TestValoresPorDefecto). Cubre todo el código nuevo (run es la única función con lógica; main solo hace os.Exit). Sin fixtures ni testdata/: el hito no toca red (spec FR-037, plan.md:257-260). Cobertura 83.3% ≥ 70% (ci.log:9)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`go list -deps ./...` no contiene net/http, database/sql ni sqlite. os.Exit aparece una sola vez, en cmd/kitlegal/main.go:23 (paquete autorizado). No existe internal/ en el árbol versionado (spec FR-002). fmt.Fprint* escribe en los io.Writer recibidos (main.go:31,36), no en stdout directo. .golangci.yml:19-36 activa los 22 linters de FR-013 más forbidigo con la regla ^fmt\\.Print(|f|ln)$ acotada a ^internal/ (:53-56, :74-78); depguard queda para H1 como fija FR-014. SC-005 demostrado en la plataforma: gates/verificacion-pr.md:19,81-91 (PR #1 bloqueada con 'forbidigo: 1')."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No aplica sin deuda: H0 no tiene ningún applet; `version` emite texto plano sobre el propio binario, no un dato legal (spec.md:204 Assumptions; plan.md:94 Constitution Check II). El sobre y schemas/ entran en H1/H4/H11. `make schema-check` no simula: anuncia el objeto ausente y el hito que lo aporta (Makefile:92-93, ci.log:12)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main.go:30-39: run devuelve int, 0 en éxito y 2 ('args') ante invocación no reconocida, ambos de la tabla estable; ninguna otra ruta de error existe. `grep panic cmd/` vacío. Errores tipados con errors.As son alcance de H1 (docs/ROADMAP.md:129); H0 no los contradice (spec FR-039). Makefile:114-116: `release` termina con exit 1 y mensaje explícito, como exige FR-011."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:12-59 con sección [Unreleased] y la entrada de H0. Los cuatro ADR exigidos existen con contexto, opciones, decisión y consecuencias: docs/ADR/0001-multicall.md, 0002-sqlite-sin-cgo.md, 0003-no-cendoj-masivo.md, 0004-frontera-humana.md (cabeceras en :7,:26,:39,:53 y equivalentes). No cambia ninguna decisión cerrada, luego no procede ADR adicional. docs/SOURCES.md no aplica: H0 no toca ninguna fuente (plan.md:257-260). README.md y CONTRIBUTING.md cubren FR-031/FR-032 (CONTRIBUTING.md:11,34,50,70,84,120,151,166,181,223)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El código de producto no importa net/http ni abre sockets (`go list -deps` limpio; main.go:6-10 solo fmt, io, os). No existe internal/httpx todavía porque no hay adaptador que lo necesite (H2). Ningún POST a sede; ninguna referencia a NIF/DNI. Sin secretos en el diff: gitleaks limpio (ci.log:15) y CODECOV_TOKEN solo como referencia a secreto de plataforma (.github/workflows/ci.yml:65). .gitleaksignore:10,12 excluye dos huellas fichero:regla:línea de documentación vendorizada marcada `// DON'T` (verificado en .agents/skills/golang-security/references/secrets.md:31,37), sin desactivar reglas ni rutas. Rate limit y User-Agent no tienen objeto en H0."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin //nolint, t.Skip, TODO ni FIXME en cmd/, Makefile, .golangci.yml, lefthook.yml, codecov.yml ni .github/ (grep vacío; nolintlint con require-explanation y require-specific en .golangci.yml:65-67). La exclusión de errcheck sobre fmt.Fprint* (.golangci.yml:41-49) está justificada en el propio fichero y en el contrato de exit codes. misspell.ignore-rules contiene una sola entrada comentada (:61-63). codecov.yml:5-8,20-22 sin informational ni exclusiones; fail_ci_if_error: true no se rebajó (ci.yml:64, verificacion-pr.md:142). La corrección del fixture del escenario 11 (verificacion-pr.md:200-245) endurece la comprobación (exige 'forbidigo: 1' en vez de un fallo genérico), no la relaja, y no toca tests ni fixtures del producto. Las dos huellas de .gitleaksignore proceden de una decisión humana registrada (gates/decision-humana-secretos.md:37-45)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff de producto contiene exactamente los artefactos del «Alcance» de H0 (docs/ROADMAP.md:122) y los que exigen FR-005/FR-040/FR-042: go.mod, cmd/kitlegal/{main,main_test}.go, Makefile, .golangci.yml, lefthook.yml, codecov.yml, .github/{workflows/{ci,codeql,nightly}.yml,dependabot.yml}, LICENSE, README.md, CONTRIBUTING.md, CHANGELOG.md, docs/ADR/000{1,2,3,4}-*.md, tools/{golangci-lint,govulncheck,gitleaks,lefthook}/go.{mod,sum} (plan.md Complexity Tracking :295-300) y .gitleaksignore (decisión humana). Sin internal/, sin dependencias de producto (go.mod:1-5), sin flags globales ni sobre. Los commits 7a3fa29, 78b0ec6, 1d2239e y 033b9f7 (workflow spec-kit, scripts/paso.sh, docs/WORKFLOW.md, .gitignore, .claude/settings.json) y 00494e5 (borrado de la copia duplicada agent/) son mantenimiento del proceso anteriores a T001 y documentados como acciones humanas; no añaden funcionalidad de producto ni controles fuera del spec."
+    }
+  ],
+  "motivos": [
+    "(observación, no bloqueante) La rama incluye cinco commits de mantenimiento del proceso ajenos al spec de H0 (workflow hito 1.4.1, scripts/paso.sh, docs/WORKFLOW.md, .gitignore para specs/*/gates/ci.log, permiso Bash(rm:*) en .claude/settings.json, y borrado de agent/). Son decisiones humanas registradas y no tocan producto ni controles; quien fusione debe ser consciente de que viajan en la misma PR.",
+    "(observación, no bloqueante) Existe en disco un directorio vacío y no versionado internal/ (creado 2026-09-10 21:53, resto de los intentos de T014). No forma parte del diff ni afecta a `make ci`; conviene borrarlo antes de fusionar para que el clon local coincida con el spec (FR-002: H0 no crea internal/)."
+  ]
+}
