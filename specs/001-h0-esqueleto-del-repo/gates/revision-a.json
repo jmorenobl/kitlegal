@@ -1,0 +1,65 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-27 muestra los ocho controles en verde y 'ci: todos los controles en verde', pero su fecha (2026-09-11 09:35) es anterior al commit 9cfbf37 de T015 (10:05) que subió el toolchain a go1.27.1, así que se reejecutó `make ci` en este proceso sobre HEAD 5a8ab0d: fmt --diff sin salida, lint '0 issues', `go test -race -shuffle=on` ok con cobertura 90.0 %, govulncheck 'No vulnerabilities found', schema-check anunciando H4/H11, gitleaks 'no leaks found', `go mod verify` en raíz y en los cuatro tools/*, `go mod tidy -diff` vacío y exit 0. `git status --porcelain` vacío antes y después de la orden. `go version` bajo el Makefile responde go1.27.1 y `go version -m bin/kitlegal` lleva go1.27.1. Makefile:143 encadena fmt-check lint test vuln schema-check secrets mod-verify mod-tidy-check sin ningún objetivo mutante. El único aviso del log ('ld: warning: -bind_at_load') lo emite el enlazador de macOS al compilar golangci-lint, no un control."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main_test.go:11-75 (TestRun: tabla de cuatro casos con t.Parallel en padre e hijos, escritores en memoria y aserciones sobre código, stdout y stderr: version→0 con tres datos; sin verbo, verbo desconocido y argumento sobrante→2 con línea de uso en stderr) y :80-87 (TestValoresPorDefecto). Cubre todo el código nuevo: run (main.go:30-40) es la única función con lógica y main (main.go:23) solo hace os.Exit. Sin fixtures ni testdata/: el hito no toca red (spec FR-037; plan.md:268-271 «Fixtures») y `git ls-files testdata schemas` está vacío. Cobertura 90.0 % ≥ 70 % en la reejecución (83.3 % en ci.log:9), sin exclusiones en codecov.yml:5-8."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`go list -deps ./...` filtrado por net/http, database/sql y sqlite está vacío. os.Exit aparece una sola vez, en cmd/kitlegal/main.go:23, paquete autorizado. fmt.Fprint* escribe en los io.Writer recibidos (main.go:32,37), no en stdout directo. No existe internal/ ni en el árbol versionado ni en disco (`ls internal` → no such file), conforme a FR-002. .golangci.yml:12-35 activa los 22 linters de FR-013 (errcheck, govet y staticcheck vía default: standard; los 19 restantes en enable) y forbidigo con el patrón ^fmt\\.Print(|f|ln)$ (:52-55) acotado a internal/ con path-except (:71-75); depguard no se activa, como fija FR-014 para H1. SC-005 demostrado en la plataforma: gates/verificacion-pr.md:19,75-84 (PR #1 bloqueada con 'forbidigo: 1' sobre internal/prueba/p.go:7:12)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No aplica sin deuda: H0 no tiene ningún applet y `version` emite texto plano sobre el propio binario, no un dato legal (spec.md:204 Assumptions; plan.md:105 Constitution Check II). El código no anticipa el sobre ni banderas globales (main.go:30-40), conforme a «lo no especificado no se implementa». `make schema-check` no simula validación: anuncia el objeto ausente y el hito que lo aporta (Makefile:93-94; salida de la reejecución)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "run devuelve 0 en éxito y 2 («args») ante cualquier invocación no reconocida (main.go:31-39), ambos de la tabla estable; no existe otra ruta de error. `grep -rn 'panic(' cmd/` vacío. Errores tipados con errors.As son alcance de H1 (docs/ROADMAP.md:129) y H0 no los contradice (spec FR-039). El único error no comprobado es el de escritura en stdout/stderr, excluido en errcheck (.golangci.yml:40-47) con justificación escrita en el propio fichero y en contracts/cli-version.md: el contrato solo admite 0 y 2. Makefile:117-119: `release` termina con exit 1 y mensaje explícito, como exige FR-011."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:12-60 con sección [Unreleased] y la entrada de H0, ya con go1.27.1 (:39). Los cuatro ADR exigidos existen con contexto y problema, opciones consideradas, decisión y consecuencias: docs/ADR/0001-multicall.md (:7,:26,:39,:53), 0002-sqlite-sin-cgo.md (:7,:26,:38,:51), 0003-no-cendoj-masivo.md (:7,:20,:32,:53), 0004-frontera-humana.md (:7,:22,:33,:50); registran decisiones cerradas sin reabrirlas. No cambia ninguna decisión de arquitectura, luego no procede ADR adicional. docs/SOURCES.md no aplica: H0 no toca ninguna fuente. README.md:28-135 y CONTRIBUTING.md:11-247 cubren FR-031/FR-032 (ritual, estructura de PR, Conventional Commits, SemVer, catálogo de controles, justificación de dependencias :120-149, órdenes-marcador :151-164, vuln sin red :166-179, exclusión trazable de secretos :181-221, subida de toolchain :223-247). La corrección de T015 está registrada en spec.md:264-266 (Clarifications, prefijo auto), plan.md:51-59 y research.md D1 (:163-185) con la alternativa rechazada."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El código de H0 no abre red ni escribe fichero: main.go:6-10 importa solo fmt, io y os; sin net/http ni os/exec en `go list -deps`. No existe internal/httpx porque no hay adaptador que lo necesite (H2); ningún POST a sede; ninguna referencia a NIF/DNI. nightly.yml:72 solo ejecuta `make ci` y KITLEGAL_RECORD no aparece en ningún flujo. Sin secretos en el diff: gitleaks limpio en la reejecución; CODECOV_TOKEN aparece solo como referencia a secreto de plataforma (ci.yml:65). .gitleaksignore:10,12 excluye dos huellas fichero:regla:línea de documentación vendorizada, verificadas en .agents/skills/golang-security/references/secrets.md:31,37 (líneas marcadas `// DON'T`), sin desactivar reglas ni rutas, con decisión humana en gates/decision-humana-secretos.md. Rate limit y User-Agent no tienen objeto en H0; docs/ADR/0004-frontera-humana.md:33-48 deja fijada la regla antes del primer adaptador."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "`grep -rnE 'nolint|t\\.Skip|TODO|FIXME'` sobre cmd/, Makefile, .golangci.yml, lefthook.yml, codecov.yml y .github/ solo devuelve la activación y configuración de nolintlint (.golangci.yml:26,65-67, con require-explanation y require-specific). misspell.ignore-rules tiene una sola entrada comentada (:61-63). codecov.yml sin informational ni exclusiones (:8,:23); fail_ci_if_error: true no se rebajó (ci.yml:64; verificacion-pr.md:130-132). T015 no tocó ninguna herramienta ni control: solo directivas de versión (go.mod:3,5 y los cuatro tools/*/go.mod), y `go mod tidy -diff` en cada módulo de herramienta sigue vacío (reejecutado). La corrección del fixture del escenario 11 (verificacion-pr.md:226-241) endurece la comprobación (exige 'forbidigo: 1'), no la relaja, y no afecta a tests ni fixtures de producto. Los registros de gates/ no se reescribieron tras T015, como pedía la tarea."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff de producto contiene exactamente los artefactos del «Alcance» de H0 (docs/ROADMAP.md:122) y los que exigen FR-005/FR-040/FR-042: go.mod, cmd/kitlegal/{main,main_test}.go, Makefile, .golangci.yml, lefthook.yml, codecov.yml, .github/{workflows/{ci,codeql,nightly}.yml,dependabot.yml}, LICENSE, README.md, CONTRIBUTING.md, CHANGELOG.md, docs/ADR/000{1,2,3,4}-*.md, tools/{golangci-lint,govulncheck,gitleaks,lefthook}/go.{mod,sum} y .gitleaksignore (decisión humana). El motivo [i] del juez B en ronda 1 queda resuelto: go.mod:3,5 fija `go 1.27.0` y `toolchain go1.27.1`; comprobado contra el proxy de módulos en este proceso que go1.27.1 se publicó el 2026-08-28 y que go1.27.2 y go1.28.0 responden 404, luego es la estable actual a 2026-09-11 (FR-001, constitución «Restricciones técnicas»). Sin internal/, sin dependencias de producto, sin flags globales ni sobre. Los cambios ajenos a las tareas (.specify/workflows/hito/workflow.yml 1.3.0→1.4.1, workflow-registry.json, scripts/paso.sh, docs/WORKFLOW.md, .gitignore, .claude/settings.json y el borrado de agent/ en 00494e5) son infraestructura del workflow spec-kit anterior a T001 y documentada como acción humana; no añaden funcionalidad de producto ni controles fuera del spec. Las menciones restantes a 1.26.x fuera de gates/ son históricas y están marcadas como tales (research.md:12-14) o son el parche inexistente go1.26.99 del escenario de fallo de check-tools (Makefile:12, quickstart.md:157)."
+    }
+  ],
+  "motivos": [
+    "(observación, no bloqueante) gates/ci.log está desactualizado: su fecha (2026-09-11 09:35) es anterior al commit 9cfbf37 de T015 (10:05) y documenta la ejecución con go1.26.6, no con el toolchain actual; la cobertura que registra (83.3 %) tampoco coincide con la de HEAD (90.0 %). Este juez reejecutó `make ci` sobre HEAD 5a8ab0d con go1.27.1 y quedó en verde con el árbol limpio, que es en lo que se apoya el criterio a. Conviene que el workflow regenere el log (está en .gitignore) para que el registro del hito refleje la revisión que se fusiona.",
+    "(observación, no bloqueante) La rama incluye commits de mantenimiento del proceso ajenos al spec de H0 (workflow hito 1.4.1, scripts/paso.sh, docs/WORKFLOW.md, .gitignore para specs/*/gates/ci.log, permiso Bash(rm:*) en .claude/settings.json y el borrado de la copia duplicada agent/). Son decisiones humanas registradas y no tocan producto ni controles; quien fusione debe ser consciente de que viajan en la misma PR.",
+    "(observación, no bloqueante) La obligación 4 del plan (comprobar si Dependabot propone subir la directiva toolchain) sigue sin respuesta porque Dependabot lee su configuración de la rama por defecto y .github/dependabot.yml solo existe en esta rama (verificacion-pr.md:149-170). Está documentado con el procedimiento manual en CONTRIBUTING.md:223-247 y solo podrá observarse tras la fusión a main; no es un defecto del hito."
+  ]
+}

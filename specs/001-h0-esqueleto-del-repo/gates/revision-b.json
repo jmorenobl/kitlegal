@@ -1,0 +1,67 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ejecución independiente de `make ci` sobre HEAD (5a8ab0d, toolchain go1.27.1) por este juez: fmt-check, lint (0 issues), test -race (coverage 90.0%), vuln (No vulnerabilities found), schema-check, secrets (no leaks found), mod-verify (raíz + 4 módulos de herramienta) y mod-tidy-check en verde, salida final `ci: todos los controles en verde`; `git status` sin cambios en ficheros versionados tras la orden. `go mod tidy -diff` limpio en tools/gitleaks, tools/golangci-lint, tools/govulncheck y tools/lefthook. Makefile:143 encadena los ocho controles de FR-007 y ninguno muta el árbol (Makefile:86 usa `fmt --diff`). Observación no bloqueante: gates/ci.log (mtime 2026-09-11 09:35 +0200, coverage 83.3%) es anterior al commit de T015 (9cfbf37, 10:05 +0200) y refleja go1.26.6; el fichero está en .gitignore:17 y no forma parte del repositorio, y el veredicto verde sobre HEAD queda confirmado por la ejecución de este juez."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main_test.go:11-75 tabla de cuatro casos con aserciones reales sobre código de salida, stdout y stderr (líneas 64-72), `t.Parallel` en el test y en cada subtest (12, 58), escritores en memoria (`bytes.Buffer`, 60); cubre el camino feliz y los tres caminos de error (sin verbo, verbo desconocido, argumento sobrante). main_test.go:80-87 fija los valores por defecto de FR-004. Sin `t.Skip`, sin `nolint`, sin `_ =` (grep sobre cmd/ vacío). Cobertura 90.0% con go1.27.1 (83.3% con go1.26.6 según gates/validacion-local.md:385), por encima del 70% de FR-040/SC-011 sin exclusiones en codecov.yml. Sin fixtures ni schemas en H0: `git log main...HEAD -- testdata schemas` vacío y los directorios no existen, coherente con tasks.md:17-18."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "cmd/kitlegal/main.go importa solo fmt, io y os (6-10); ninguna llamada a net/http ni escritura en disco (FR-037); `os.Exit` una sola vez en main.go:23, en el punto de entrada autorizado; `fmt.Fprint*` sobre los escritores recibidos, y forbidigo acotado a internal/** en .golangci.yml:704-707 y 723-727 (FR-014), con internal/ inexistente (FR-002). .golangci.yml:662-685 activa los 22 linters de FR-013 (errcheck, govet y staticcheck vía `default: standard`), gofumpt y goimports en 729-732 (FR-012), sin depguard (FR-014). Métodos HTTP no aplican: no hay cliente. Sin datos personales: grep de correos sobre specs/, docs/, README, CONTRIBUTING, CHANGELOG y .github solo devuelve la URL pública del remoto (verificacion-pr.md:4). Observaciones no bloqueantes: (1) `misspell` corre solo con `locale: US` (.golangci.yml:713) porque la herramienta no tiene diccionario español; research.md:405-410 lo documenta como límite de la herramienta frente a la literalidad «español e inglés» de FR-013; (2) `errcheck.exclude-functions` para fmt.Fprint/Fprintf/Fprintln (.golangci.yml:698-701) solo está justificado en el comentario del propio fichero (695-697, contrato de códigos 0 y 2) y no en research.md D9 (412-415); equivale a un `_, _ =` explícito y no oculta ningún fallo, pero es una exclusión global que convendría dejar registrada en research.md."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No aplica en H0 por decisión del spec: spec.md:204 (Assumptions) fija que `kitlegal version` emite texto plano y que el sobre {ok, fuente, url, fecha_consulta, hash, data} y las banderas globales son alcance de H1; tasks.md:159 lo recoge en la trazabilidad de la Definition of Done (§1.4 «No aplica»). main.go:37 imprime exactamente las tres líneas del contrato (contracts/cli-version.md) y ningún applet de fuente existe todavía."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "main.go:30-40: `run` devuelve int, 0 para `version` y 2 («args») para cualquier otra invocación, sin `panic` (grep `panic(` sobre cmd/ vacío) y sin errores ignorados. Comprobado sobre el binario construido por este juez: `./bin/kitlegal version` → exit 0 con versión, commit (coincide con `git rev-parse HEAD`) y fecha; `./bin/kitlegal` → `uso: kitlegal version` en stderr y exit 2. `make release` termina con exit 1 y mensaje que nombra H6 (Makefile:117-119, FR-011). Los códigos usados (0, 2) pertenecen a la tabla estable y no la contradicen (FR-039)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:12-60 con sección `## [Unreleased]` y la entrada de H0 (verbo version, controles, herramientas, ganchos, flujos, documentación) en formato Keep a Changelog, coherente con CONTRIBUTING.md:77-82. Cuatro ADR en docs/ADR/0001-multicall.md, 0002-sqlite-sin-cgo.md, 0003-no-cendoj-masivo.md y 0004-frontera-humana.md, cada uno con «Contexto y problema», «Opciones consideradas», «Decisión» y «Consecuencias» (MADR corto, FR-024, FR-033 a FR-036), registrando decisiones cerradas sin reabrirlas. README.md cubre qué es, prerrequisitos, build/install, `version` y controles (FR-031). CONTRIBUTING.md cubre ritual por hito (11-32), estructura de PR (34-48), Conventional Commits (50-68), semver (70-82), catálogo de controles (84-118), justificación de dependencias (120-149), órdenes con contenido en hitos posteriores (151-164), `make vuln` sin red (166-179), exclusión trazable de falsos positivos de gitleaks (181-221) y subida manual de toolchain (223-247), es decir, todo lo que tasks.md T010 declara. LICENSE es Apache-2.0 canónica (201 líneas, FR-030)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El código de H0 no realiza ninguna petición de red ni acción con identidad: main.go no importa net/http ni abre ficheros (FR-037). Los flujos .github/workflows/ci.yml, nightly.yml y codeql.yml solo preparan el entorno, ejecutan `make ci` o la acción oficial de CodeQL, y nightly.yml:573-577 declara explícitamente que no hay verificación contra fuentes reales ni `release` (FR-027). docs/ADR/0004-frontera-humana.md registra que toda acción con identidad termina en fichero listo para firmar y exit 6, y README.md:10-11 lo repite. Las PR desechables de verificacion-pr.md se cerraron sin integrar (249) y la fusión a main y el release siguen siendo humanos (CONTRIBUTING.md:27-28)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin `nolint`, `t.Skip` ni `_ =` en cmd/. .gitleaksignore:646-648 contiene dos huellas fichero:regla:línea con comentario, comprobadas por este juez sobre .agents/skills/golang-security/references/secrets.md:31 y :37 (ejemplos marcados `// DON'T`); ninguna regla desactivada ni ruta excluida, y el fichero no se ha retocado después de su creación (`git log main..HEAD -- .gitleaksignore .golangci.yml codecov.yml` solo muestra T001 y T002). codecov.yml:5-8 y 20-23 con `informational: false` y sin exclusiones. `ci.yml` con `fail_ci_if_error: true` (481) y sin controles fuera del Makefile. La discrepancia del fixture de forbidigo se resolvió corrigiendo el guion, no la configuración (verificacion-pr.md:200-245 y 251). El escenario 9 no transcribe el token generado (validacion-local.md:353-358). Herramientas con versión exacta en tools/*/go.mod y go.sum completos (tidy -diff limpio). Observación no bloqueante: las acciones de GitHub van fijadas por etiqueta mayor (checkout@v5, setup-go@v6, codecov-action@v5, codeql-action@v4) y no por SHA; el spec no exige SHA y Dependabot cubre github-actions (dependabot.yml:409-412)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Todos los artefactos de SC-008 existen y con contenido: go.mod (módulo github.com/jmorenobl/kitlegal, go 1.27.0, toolchain go1.27.1; FR-001 corregido por T015 y confirmado con `go version -m bin/kitlegal` → go1.27.1), cmd/kitlegal/main.go y main_test.go, Makefile con las doce órdenes de FR-006 más las auxiliares, .golangci.yml, lefthook.yml, los tres flujos, dependabot.yml con seis entradas (FR-028), codecov.yml, LICENSE, README, CONTRIBUTING, CHANGELOG, cuatro ADR, los cuatro módulos de herramienta y .gitleaksignore. No hay internal/, pkg/, schemas/, testdata/, skills/ ni .goreleaser.yaml; ninguna bandera global ni sobre. Lo que tasks.md declara hecho coincide con el diff (T001-T015). Cambios en el diff main...HEAD que no son producto ni figuran en el spec, señalados para el humano: (1) eliminación de la copia duplicada agent/ del paquete de skills (commit 00494e5), autorizada en gates/decision-humana-secretos.md:39-45; (2) commits previos a las tareas sobre el propio workflow de spec-kit (.specify/workflows/hito/workflow.yml 1.3.0→1.4.1, .specify/workflows/workflow-registry.json, scripts/paso.sh, docs/WORKFLOW.md) y .claude/settings.json que añade el permiso `Bash(rm:*)` (commit 033b9f7): son infraestructura del método, no código del producto, y no afectan a ningún requisito ni control del hito; se anotan como observación no bloqueante. Observación adicional: la verificación en plataforma (verificacion-pr.md, SC-005 y SC-006) se ejecutó sobre e308077 con go1.26.6; nada posterior a T014 está en el remoto (origin/h0-esqueleto-del-repo = e308077) y SC-006 no se ha vuelto a medir con go1.27.1, aunque el diseño del flujo no cambió y `make ci` está en verde con ese toolchain."
+    }
+  ],
+  "motivos": [
+    "Sin motivos de rechazo: los nueve criterios cumplen con evidencia verificada de forma independiente (make ci en verde sobre HEAD, binario construido con go1.27.1, huellas de .gitleaksignore comprobadas, tidy -diff limpio en los cuatro módulos de herramienta).",
+    "Observación no bloqueante: gates/ci.log es anterior a T015 (refleja go1.26.6 y 83.3% de cobertura); no está versionado (.gitignore:17) y este juez reprodujo el veredicto verde sobre HEAD (90.0% con go1.27.1).",
+    "Observación no bloqueante: la exclusión global de errcheck para fmt.Fprint/Fprintf/Fprintln (.golangci.yml:698-701) solo está justificada en el comentario del fichero; conviene dejarla registrada en research.md D9 junto al resto de ajustes.",
+    "Observación no bloqueante: el diff de la rama incluye cambios de infraestructura del workflow de spec-kit (.specify/workflows/hito/workflow.yml, scripts/paso.sh, docs/WORKFLOW.md, .claude/settings.json con `Bash(rm:*)`) anteriores a las tareas y ajenos al spec de H0; no afectan al producto ni a los controles, pero irán a main con el squash-merge del hito.",
+    "Observación no bloqueante: SC-005 y SC-006 se validaron en la plataforma sobre e308077 (go1.26.6); el remoto no tiene los commits de T015 y la medida de < 3 min no se ha repetido con go1.27.1."
+  ]
+}

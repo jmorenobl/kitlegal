@@ -105,6 +105,8 @@ specify workflow status                # runs y estado
 specify workflow status <run_id>
 scripts/hito.sh --resume <run_id>      # tras corregir a mano un artefacto
 scripts/hito.sh --resume <run_id> veredicto_plan=approve
+scripts/paso.sh juez_plan H0           # relanzar a mano un paso prompt (juez, corrector) con su modelo
+scripts/paso.sh corrector_plan H0 sonnet
 specify workflow resolve hito          # ver el workflow compuesto con overlays
 ```
 
@@ -143,8 +145,10 @@ Estado de cada run en `.specify/workflows/runs/<run_id>/` (`state.json`, `inputs
 - Los pasos `command` transmiten la salida al terminal y no la capturan; por eso los jueces escriben ficheros en `gates/` y `analyze` recibe la instrucción de guardar su informe.
 - Los pasos `prompt` y `shell` tienen `timeout` explícito (1800 s); `make ci` debe caber en ese margen.
 - Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación (`verificar`, `ci`, `ci_reintento`). Los `precheck_*`, `check_*`, `guardian_diff*` y `leer_*` fallan a propósito para parar.
-- En las rondas juez → corrector, la segunda corrección no vuelve a juzgarse: `check_gate_*` lee el último veredicto y, si sigue rechazado, para. Es el tope de dos rondas de la constitución.
-- El guardián de diff extrae rutas de la línea de la tarea (tokens con `/` o con extensión conocida, `Makefile`, `LICENSE`). Una tarea que toque muchos ficheros debe declarar directorios.
+- Rondas juez → corrector: hasta tres veredictos y dos correcciones (`gates/<fase>-rondas` cuenta; el corrector no actúa en la tercera ronda), de modo que toda corrección se vuelve a juzgar. Si el tercer veredicto sigue rechazado, `check_gate_*` para. Para una ronda extra a mano: `scripts/paso.sh juez_plan H0` y después `scripts/hito.sh --resume <run_id>`.
+- Los hooks de auto-commit de la extensión git son opcionales y en headless no se ejecutan; los commits los hacen pasos `shell` deterministas: `commit_artefactos_plan`, `commit_artefactos_tasks`, `commit_tarea` (uno por tarea, mensaje `feat(Hn): Tnnn`) y `commit_restante`.
+- El guardián de diff extrae rutas de la línea de la tarea: tokens con `/`, con extensión conocida, ficheros de raíz sin extensión que terminan en `ignore` (`.gitleaksignore`, `.gitignore`), `.editorconfig`, `Makefile` y `LICENSE`. Una tarea que toque muchos ficheros debe declarar directorios; un fichero de raíz con otro nombre extensionless no es declarable y hay que ampliar la expresión en el YAML.
+- **Cada run congela el workflow**: `specify workflow run` copia la definición a `.specify/workflows/runs/<run_id>/workflow.yml` y `resume` la lee de ahí, resolviendo el paso por índice. Editar `.specify/workflows/hito/workflow.yml` a mitad de un run no afecta a ese run. Para aplicar un cambio a un run parado, copia la definición nueva sobre el snapshot y comprueba que `current_step_index` sigue apuntando al paso correcto (`state.json`), porque insertar pasos desplaza los índices.
 - La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista. Si hace falta, añadir un objetivo `make check` más rápido y usarlo en `verificar`.
 - `inputs.hito` se interpola en un `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`.
 - Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow y la constitución no se tocan.

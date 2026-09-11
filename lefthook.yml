@@ -1,0 +1,34 @@
+# Ganchos de git de kitlegal (FR-022, research.md D16).
+#
+# El gancho invoca únicamente órdenes del `Makefile`: el `Makefile` es la única
+# superficie de invocación de los controles, de modo que lo que corrige el
+# gancho antes de confirmar y lo que verifica la integración continua son la
+# misma orden y no pueden divergir (SC-004).
+#
+# Se renuncia deliberadamente a acotar el formato y el lint a los ficheros
+# preparados: un segundo camino de invocación sería un segundo sitio donde la
+# configuración puede divergir, y con un repositorio de este tamaño esa
+# optimización no compensa el riesgo.
+#
+# El gancho NO es la autoridad final: la integración continua ejecuta `make ci`,
+# que incluye estos mismos controles en su modo no mutante.
+#
+# Instalación: `make hooks`.
+
+pre-commit:
+  jobs:
+    # `fmt` es el modo mutante del formato (FR-012): corrige el fichero y
+    # `stage_fixed` lo vuelve a preparar, de forma que se confirma lo formateado.
+    - name: fmt
+      glob: "*.go"
+      run: make fmt
+      stage_fixed: true
+
+    - name: lint-fast
+      run: make lint-fast
+
+    - name: secrets
+      run: make secrets
+
+    - name: mod-tidy-check
+      run: make mod-tidy-check
