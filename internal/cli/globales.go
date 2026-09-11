@@ -45,10 +45,10 @@ type Globales struct {
 	// ejecución. No viaja al applet, que nunca llega a verlo (FR-046, FR-049).
 	Describe bool `help:"Emite el esquema JSON de entrada y salida, sin ejecutar nada."`
 	// SinGrafo declara que la ejecución no altera el grafo. Se acepta y se
-	// propaga; el grafo llega en H12 (FR-023).
+	// propaga; el grafo llega en H17 (FR-023).
 	SinGrafo bool `name:"no-graph" help:"Declara que la ejecución no altera el grafo."`
 	// Asunto declara sobre qué asunto se trabaja. Se acepta y se propaga; abrir
-	// o crear un asunto es alcance de H14 (FR-024).
+	// o crear un asunto es alcance de H18 (FR-024).
 	Asunto string `help:"Asunto sobre el que se trabaja."`
 	// Verbose sube el detalle del registro de eventos, que va siempre a la
 	// salida de error. No altera la salida estándar en absoluto, y por eso

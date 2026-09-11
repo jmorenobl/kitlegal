@@ -13,10 +13,14 @@ parche concreto de Go—; el porqué está en el README.
 El trabajo avanza **hito a hito**, en el orden de [`docs/ROADMAP.md`](docs/ROADMAP.md). Un hito es una
 rama, una propuesta de cambio y un *squash-merge* con la integración continua en verde.
 
-1. **Rama** `hNN-nombre-corto` desde `main`. Se escribe primero el test de extremo a extremo
-   (`testscript`) que describe la entrega. En H0 todavía no existe el ejecutor de esos tests —lo aporta
-   H1—, así que el hito arranca por los tests unitarios del código que introduce.
-2. **Implementar de dentro afuera**: `core` → adaptador → applet → skill.
+1. **Rama** `hNN-nombre-corto` desde `main`. Se escriben primero las evals de la skill que el hito
+   entrega o mejora (desde H5, que aporta su formato) y el test de extremo a extremo (`testscript`) que
+   describe la entrega. En H0 todavía no existe el ejecutor de esos tests —lo aporta H1—, así que el
+   hito arranca por los tests unitarios del código que introduce.
+2. **Planificar de fuera adentro** (qué debe resolver la skill → qué herramientas necesita) e
+   **implementar de dentro afuera**: `core` → adaptador → applet → skill. Una herramienta que ninguna
+   skill usa no se construye, y nada se particulariza para un municipio (constitución, principios VIII
+   y IX).
 3. **`make ci` en verde en local** y propuesta de cambio con la estructura de la sección siguiente.
 4. **Revisión** de código y de seguridad sobre la propuesta. Si el hito toca una fuente externa,
    `docs/SOURCES.md` se actualiza en el mismo cambio.
@@ -124,8 +128,8 @@ quede saneado.
 
 Las dependencias permitidas están enumeradas en la constitución (§V): `alecthomas/kong`,
 `modernc.org/sqlite`, `stretchr/testify`, `rogpeppe/go-internal`, `golang.org/x/time/rate`,
-`temoto/robotstxt`, `gopkg.in/yaml.v3`, `invopop/jsonschema`, `santhosh-tekuri/jsonschema` y, en fase 4,
-`modelcontextprotocol/go-sdk`. **Cualquier otra** se justifica en dos sitios: en el `plan.md` del hito
+`temoto/robotstxt`, `gopkg.in/yaml.v3`, `invopop/jsonschema`, `santhosh-tekuri/jsonschema` y, en la fase de
+distribución, `modelcontextprotocol/go-sdk`. **Cualquier otra** se justifica en dos sitios: en el `plan.md` del hito
 (sección *Complexity Tracking*) y en el apartado **Decisiones** de la propuesta de cambio.
 
 La justificación responde a cuatro preguntas, y ninguna se responde con «es lo estándar»:
@@ -156,7 +160,7 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 |---|---|---|
 | `make test-integration` | Ejecuta ya el comando real (`go test -race -tags=integration ./...`), que hoy pasa sobre un conjunto vacío de tests | según vaya habiendo tests de integración |
 | `make test-e2e` | Anuncia que no hay tests de extremo a extremo todavía y termina con éxito | H1 (`testscript`) |
-| `make schema-check` | Anuncia que no hay `schemas/` todavía y termina con éxito; `ci` lo invoca y sigue en verde | H4 (borrador) y H11 (contrato) |
+| `make schema-check` | Anuncia que no hay `schemas/` todavía y termina con éxito; `ci` lo invoca y sigue en verde | H4 (borrador) y H10 (contrato) |
 | `make skills-sync` | Anuncia que no hay `skills/` ni `data/*.yaml` todavía y termina con éxito | H5 |
 | `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
 

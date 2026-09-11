@@ -28,7 +28,7 @@ const urlDelEsquemaGenerado = "https://ventanillalegal.es/schemas/describe.json"
 // rutaDeLaSalida es el puntero JSON de la parte del documento que describe el
 // sobre. Se compila por separado —y no extrayéndola a otro documento— porque sus
 // referencias apuntan a los `$defs` de la raíz: sacarla de ahí las rompería, y un
-// consumidor real (una tool MCP, H22) la usa igual, dentro del documento.
+// consumidor real (una tool MCP, H28) la usa igual, dentro del documento.
 const rutaDeLaSalida = "#/properties/salida"
 
 // borrador2020 es el del contrato, escrito aquí y no leído de la biblioteca que

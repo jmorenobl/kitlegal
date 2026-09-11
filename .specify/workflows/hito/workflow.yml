@@ -19,8 +19,8 @@ inputs:
   hito:
     type: string
     required: true
-    prompt: "Hito del roadmap a implementar (H0..H26)"
-    enum: ["H0","H1","H2","H3","H4","H5","H6","H7","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26"]
+    prompt: "Hito del roadmap a implementar (H0..H30)"
+    enum: ["H0","H1","H2","H3","H4","H5","H6","H7","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
   modo:
     type: string
     default: "desatendido"
@@ -304,7 +304,7 @@ steps:
         - Cada escenario de quickstart.md debe poder ejecutarse tal cual: órdenes, rutas, flags y datos de prueba reales, y sin efectos colaterales en el árbol de trabajo, el índice ni el historial de git más allá de lo que el escenario declara.
         - Stack y dependencias: solo las fijadas en la constitución (§V) y en docs/ROADMAP.md §3; cualquier otra va a Complexity Tracking con justificación o no se usa.
         - Estructura: la de docs/ROADMAP.md §2 y CLAUDE.md. Reglas de dependencia entre paquetes obligatorias.
-        - Rellena el Constitution Check con un ítem por principio (I-VII) y por regla de dependencia, indicando cómo lo cumple este hito. Si un gate falla sin justificación, detente con ERROR.
+        - Rellena el Constitution Check con un ítem por principio (I-IX) y por regla de dependencia, indicando cómo lo cumple este hito. Si un gate falla sin justificación, detente con ERROR.
         - Enumera en el plan los controles mecánicos que este hito añade o toca (objetivos de make, tests de contrato, fixtures) según la sección «Gates» de la constitución.
         - Aplica las skills golang-* instaladas (golang-how-to orquesta) al decidir layout, tests, lint y CLI.
         - Lo que no esté en el spec no entra en el plan.
