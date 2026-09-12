@@ -42,7 +42,7 @@ type Cliente struct { /* privado */ }
 
 func New(ctx context.Context, opciones ...Opcion) (*Cliente, error)
 
-type Opcion func(*configuracion) error
+type Opcion func(*ajustes) error // ajustes es privado; se llama así y no «configuracion» por misspell (D15)
 func ConDirectorio(dir string) Opcion
 func SoloLectura() Opcion
 func ConReloj(ahora func() time.Time) Opcion

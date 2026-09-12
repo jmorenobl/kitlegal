@@ -69,7 +69,9 @@ que llegó a abrirse se cierra antes de devolver el error).
 
 ## 3. Opciones (`cache.Opcion`)
 
-`func(*configuracion) error`, validadas en `New` en el orden en que se pasan; la última repetida gana.
+`func(*ajustes) error`, validadas en `New` en el orden en que se pasan; la última repetida gana. El tipo
+privado se llama `ajustes` y no `configuracion` porque `misspell` marca la segunda como errata inglesa
+(research D15); la superficie exportada no cambia.
 
 | Opción | Efecto | Valor inválido → clase |
 |---|---|---|

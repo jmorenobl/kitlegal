@@ -86,7 +86,7 @@ const VariableDirectorio = "KITLEGAL_CACHE_DIR"
 type Cliente struct{ /* privado */ }
 func New(ctx context.Context, opciones ...Opcion) (*Cliente, error)
 
-type Opcion func(*configuracion) error
+type Opcion func(*ajustes) error                 // el tipo privado se llama ajustes, no configuracion (D15)
 func ConDirectorio(dir string) Opcion            // FR-023: precedencia máxima
 func SoloLectura() Opcion                        // FR-015: el modo lo pone quien construye
 func ConReloj(ahora func() time.Time) Opcion     // FR-009
