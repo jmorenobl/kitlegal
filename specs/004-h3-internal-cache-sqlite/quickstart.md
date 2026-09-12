@@ -159,14 +159,16 @@ lectura, cliente sin base y `Get` → 4 con el fichero padre intacto (la regla �
 
 ```bash
 rtk proxy go test -race -count=1 -v \
-  -run '^(TestMigracionesEmbebidasBienFormadas|TestMigracionesIdempotentes|TestVersionMayorQueLaConocida|TestMigracionAtomica|TestSoloLecturaNoMigra|TestDosClientesMigranUnaVez|TestFicheroInutilizable|TestAbrirAplicaLosPragma|TestAbrirCreaDirectorioYFicheroConPermisosReservados)$' \
+  -run '^(TestMigracionesEmbebidasBienFormadas|TestMigracionesIdempotentes|TestVersionMayorQueLaConocida|TestMigracionAtomica|TestSoloLecturaNoMigra|TestDosClientesMigranUnaVez|TestContextoCanceladoDuranteLaMigracion|TestFicheroInutilizable|TestAbrirAplicaLosPragma|TestAbrirCreaDirectorioYFicheroConPermisosReservados)$' \
   ./internal/cache/ | grep -E '^--- (PASS|FAIL)'
 ```
 
-**Esperado**: nueve líneas `--- PASS`. Abrir dos veces deja `schema_version` en 1 sin error; una base
+**Esperado**: diez líneas `--- PASS`. Abrir dos veces deja `schema_version` en 1 sin error; una base
 con `version = 99` termina con código 1, el mensaje dice «esquema en la versión 99 y este binario
 conoce la 1» y el fichero es idéntico byte a byte; un fichero de texto termina con 1 y no se borra; la
-migración interrumpida (tabla `entradas` ajena preexistente) deja la base sin `schema_version`; la base
+migración interrumpida (tabla `entradas` ajena preexistente) deja la base sin `schema_version`; la
+migración cuyo contexto se cancela desde dentro —el reloj inyectado lo cancela dentro de la
+transacción— termina con código 4, no deja ninguna versión registrada y la apertura siguiente migra; la base
 creada responde `journal_mode = wal`, `synchronous = 2`, `busy_timeout = 100` (el tramo de cada
 intento; la espera total de 5 s la pone el cliente y la miden las pruebas de `espera_test.go`), y en solo lectura
 `query_only = 1`; el directorio nace con `0700` y `cache.db` con `0600`.
@@ -193,7 +195,8 @@ sino que comprueba qué nombres aparecen y que ninguno es `SKIP`—, entre ellas
 `TestIntegracionDosProcesos/escritor-padre-lector-solo-lectura-hijo`,
 `TestIntegracionDosProcesos/escritor-hijo-lector-padre`,
 `TestIntegracionDirectorioNoEscribible/solo-lectura-lee`,
-`TestIntegracionDirectorioNoEscribible/normal-argumentos`, `TestIntegracionDirectorioDenegado` y
+`TestIntegracionDirectorioNoEscribible/normal-argumentos`, `TestIntegracionDirectorioDenegado`,
+`TestIntegracionFicheroDenegado`, `TestIntegracionReaperturaInmutableFalla` y
 `TestIntegracionWALSinMemoriaCompartida`; el `find` imprime **`0`** (todo lo que los tests crearon bajo el
 directorio temporal se borró con ellos; en macOS `TMPDIR` es lo que `os.TempDir` honra); `make
 test-integration` termina en verde. El hijo de los dos procesos es el propio binario de test relanzado
@@ -216,7 +219,9 @@ de cada fila (el error tal como sale del paquete y envuelto con `%w`) viven dent
 **Esperado**: **`13`**, una subprueba por cada fila provocable sin permisos de la tabla de
 [`contracts/errores-y-codigos.md`](./contracts/errores-y-codigos.md) §3 (filas 1-11, 14 y 15), cada una
 comprobando `cli.Clasificar` y `cli.CodigoSalida` sobre el error real. Las filas 12 y 13 (permisos) las
-cubren `TestIntegracionDirectorioDenegado` y `TestIntegracionWALSinMemoriaCompartida` del escenario 7.
+cubren, del escenario 7, `TestIntegracionDirectorioDenegado`, `TestIntegracionFicheroDenegado` y
+`TestIntegracionReaperturaInmutableFalla` (la 12, una por forma) y `TestIntegracionWALSinMemoriaCompartida`
+(la 13).
 
 ---
 

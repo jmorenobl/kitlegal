@@ -250,7 +250,9 @@ dentro del proceso sin necesidad. *Dejar que SQLite cree el fichero*: `0644`, co
    que FR-016 convierte en «fuente no disponible» (código 4). Cualquier otro error de `Stat`
    (`ErrPermission` en un directorio `0000`, sonda 2 E; E/S) → «inesperado» (1), nunca una ausencia
    falsa. Las dos ramas cubren todo fallo posible de `Stat`: lo que no es inexistente es inesperado.
-2. Si existe: `sql.Open("sqlite", "file:<ruta>?mode=ro&_pragma=busy_timeout(5000)&_pragma=query_only(1)")`,
+2. Si existe: `sql.Open("sqlite", "file:<ruta>?mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)")`,
+   con `<ruta>` codificada para el camino del URI como en D4 (`rutaParaURI`) y el mismo tramo de 100 ms
+   por intento de la espera por tramos (D4, revisión final),
    `SetMaxOpenConns(1)`, y la **comprobación de esquema** (D7) en la propia construcción, que es la
    primera consulta real. Sin `immutable`: así la lectura ve lo que otra invocación ya confirmó en el WAL
    y respeta sus bloqueos (sonda 1 D, sonda 2 D; clarificación Q2, FR-015, FR-032).

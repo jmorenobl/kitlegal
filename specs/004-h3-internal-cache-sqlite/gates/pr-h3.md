@@ -28,13 +28,20 @@ visible del binario es exactamente la misma que al abrirlo. El primer applet que
 - **`internal/core`**, paquete nuevo con el sitio que `docs/ROADMAP.md` §2 reserva a los puertos:
   `doc.go` y `cache.go` con la interfaz `core.Cache`. `Get` usa el idioma «coma ok» y `Put` exige
   vigencia. Importa solo `context` y `time` y no tiene sentencias.
-- **`internal/cache`**, paquete nuevo (7 ficheros de producto, una migración embebida y 10 de test):
+- **`internal/cache`**, paquete nuevo (8 ficheros de producto, una migración embebida y 11 de test):
   - `cliente.go`: `New(ctx, opciones...)`, `Close` idempotente y cuatro opciones (`ConDirectorio`,
     `SoloLectura`, `ConReloj`, `ConRegistrador`). `ruta.go`: la precedencia opción >
     `KITLEGAL_CACHE_DIR` > `~/.cache/kitlegal`.
-  - `abrir.go`: directorio `0700` y fichero `0600`. En modo normal, `journal_mode=WAL`,
-    `synchronous=FULL`, `busy_timeout=5000` y `_txlock=immediate`. En solo lectura, `mode=ro` y
-    `query_only`, más la reapertura `immutable=1` como contingencia.
+  - `abrir.go`: directorio `0700` y fichero `0600`; la ruta entra en el DSN codificada para el camino
+    del URI (`%`, `?` y `#`). En modo normal, `journal_mode=WAL`, `synchronous=FULL`,
+    `busy_timeout=100` —el tramo de cada intento— y `_txlock=immediate`. En solo lectura, `mode=ro` y
+    `query_only`, más la reapertura `immutable=1` como contingencia. Los mensajes culpan a quien toca:
+    al fichero cuando es él el que no se deja abrir o leer, al directorio solo cuando lo es.
+  - `espera.go`: la espera ante bloqueo, hasta 5 s en total, hecha de reintentos por tramos de 100 ms
+    que miran el contexto entre tramo y tramo, porque la espera de `busy_timeout` vive dentro del motor
+    y no lo mira. Un plazo que vence durante la espera es «fuente no disponible» (4) en cuanto acaba el
+    tramo en curso; un bloqueo que agota la espera es «inesperado» (1) diciendo que la base está
+    bloqueada, nunca «inutilizable».
   - `migraciones.go` y `migraciones/0001_entradas.sql`: `embed` y `schema_version`. Cada migración va en
     una transacción inmediata. Una versión desconocida o un fichero inutilizable se rechazan sin
     modificar ni borrar nada.
@@ -118,6 +125,11 @@ Lo que hasta aquí era disciplina pasa a ser mecánico:
   permisos cubren las dos filas de la tabla de errores que dependen del sistema de ficheros:
   - `TestIntegracionDirectorioNoEscribible`: directorio `0500`, lee gracias a `immutable=1`.
   - `TestIntegracionDirectorioDenegado`: directorio `0000`; solo lectura → 1 y nunca una ausencia falsa.
+  - `TestIntegracionFicheroDenegado`: `cache.db` a `0000` en un directorio escribible → 1 en solo
+    lectura y 2 en normal, nombrando el fichero y el acceso denegado, nunca el directorio.
+  - `TestIntegracionReaperturaInmutableFalla`: `cache.db` legible y con las páginas estropeadas en un
+    directorio `0500` → la reapertura `immutable=1` vuelve a fallar → 1 nombrando el fichero, ningún
+    cliente y nada creado ni cambiado.
   - `TestIntegracionWALSinMemoriaCompartida`: `-wal` sin `-shm` → 1, nombrando los dos auxiliares.
 - **`TestSuperficieExportada`** recorre con `go/parser` todas las declaraciones exportadas. Falla si
   alguna nombra `sql` o `sqlite`, o si aparece una fuera de la lista del contrato. Que no se pueda

@@ -140,7 +140,8 @@ es `ERROR_PATH_NOT_FOUND` y la regla da el mismo resultado. No hay una tercera r
      `<ruta>-wal` → cerrar y reabrir con `immutable=1` (no hay WAL, nada que perder; nadie puede escribir
      donde no se pueden crear los auxiliares); si la reapertura o su primera consulta vuelven a fallar →
      «fuente no disponible» (4) si fue el contexto, y si no «inesperado» (1) nombrando la ruta y sin
-     atribuirlo a nada que no se haya comprobado (`no se puede leer "<ruta>" en solo lectura`). Si
+     atribuirlo a nada que no se haya comprobado (`no se puede leer "<ruta>" en solo lectura`;
+     `TestIntegracionReaperturaInmutableFalla`, con las páginas estropeadas y `SQLITE_CORRUPT`). Si
      **existe** → «inesperado» (1) nombrando la ruta, `-wal` y `-shm` (fila 13 del contrato de errores y
      su forma de mensaje en §6).
    - contexto terminado, también durante la espera ante bloqueo → «fuente no disponible» (4) (fila 15);
