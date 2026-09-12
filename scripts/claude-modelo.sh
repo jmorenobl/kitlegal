@@ -39,4 +39,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# Las sesiones headless se reconocen en sus transcripts por el entrypoint
+# (scripts/hito.sh «limite_api» y scripts/coste-run.sh). `claude -p` escribe
+# `sdk-cli` salvo que CLAUDE_CODE_ENTRYPOINT venga del entorno, y la extensión de
+# VS Code exporta `claude-vscode` a todo proceso hijo: un hito lanzado desde ella
+# dejaba sesiones que ninguno de los dos scripts reconocía. Se fija aquí para que
+# el transcript diga lo mismo se lance el hito desde donde se lance.
+export CLAUDE_CODE_ENTRYPOINT=sdk-cli
+
 exec "${KITLEGAL_CLAUDE_BIN:-claude}" ${args[@]+"${args[@]}"}

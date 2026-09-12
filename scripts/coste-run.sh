@@ -8,11 +8,15 @@
 # reconstruye desde los transcripts de Claude Code (~/.claude/projects/<ruta>):
 # cada sesión headless (entrypoint sdk-cli) se asigna al paso command/prompt
 # del log del run en cuyo intervalo empezó, y el rol sale del `model:` de ese
-# paso en la copia congelada del workflow del run.
+# paso en la copia congelada del workflow del run. Las sesiones headless que
+# empiezan después del run y fuera de todo paso son rondas a mano con
+# scripts/paso.sh y se agrupan en la fila «manual (paso.sh)».
 #
 # El coste es una estimación a precio de lista de la API (tabla PRECIOS); con
 # suscripción, léase como proporción entre pasos. Transcripts en otra ruta:
-# KITLEGAL_TRANSCRIPTS=<dir>.
+# KITLEGAL_TRANSCRIPTS=<dir>. Las sesiones headless se reconocen por el entrypoint
+# sdk-cli, que fija scripts/claude-modelo.sh; para runs grabados antes de esa
+# corrección desde la extensión de VS Code: KITLEGAL_ENTRYPOINTS_HEADLESS=sdk-cli,claude-vscode.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -98,6 +102,8 @@ ini_run = min(i[0] for i in intervalos)
 proyecto = os.path.abspath(".")
 tdir = os.environ.get("KITLEGAL_TRANSCRIPTS") or os.path.expanduser(
     "~/.claude/projects/" + re.sub(r"[^A-Za-z0-9]", "-", proyecto))
+entrypoints = set((os.environ.get("KITLEGAL_ENTRYPOINTS_HEADLESS") or "sdk-cli").split(","))
+rol_de["manual (paso.sh)"] = "manual"
 
 def consumo(ficheros):
     ultimo = {}
@@ -122,13 +128,17 @@ for f in glob.glob(os.path.join(tdir, "*.jsonl")):
             except ValueError:
                 continue
             if e.get("type") == "user" and e.get("timestamp"):
-                inicio, headless = ts(e["timestamp"]), e.get("entrypoint") == "sdk-cli"
+                # las sesiones interactivas llevan origin.kind = human; las headless no traen origin
+                inicio = ts(e["timestamp"])
+                headless = e.get("entrypoint") in entrypoints and (e.get("origin") or {}).get("kind") != "human"
                 break
     if not inicio or not headless or inicio < ini_run:
         continue
     candidatos = [n for a, b, n in intervalos if a <= inicio <= b]
+    # Sesión headless posterior al inicio del run y fuera de todo paso: una ronda
+    # a mano con scripts/paso.sh (juez o corrector tras una parada deliberada).
     if not candidatos:
-        continue
+        candidatos = ["manual (paso.sh)"]
     sesion = os.path.splitext(os.path.basename(f))[0]
     mensajes = consumo([f] + glob.glob(os.path.join(tdir, sesion, "**", "*.jsonl"), recursive=True))
     paso = candidatos[0]
@@ -175,5 +185,6 @@ for paso, f in sorted(filas.items(), key=lambda kv: -kv[1]["coste"]):
           f"{f['coste']:8.2f} {100 * f['coste'] / total:5.1f}{aviso}")
 print(f"\n{'rol':22} {'valor en el run':18} {'coste':>8} {'%':>5}")
 for rol, c in por_rol.most_common():
-    print(f"{rol:22} {str(inputs.get(rol, '?')):18} {c:8.2f} {100 * c / total:5.1f}")
+    valor = "scripts/paso.sh" if rol == "manual" else str(inputs.get(rol, "?"))
+    print(f"{rol:22} {valor:18} {c:8.2f} {100 * c / total:5.1f}")
 PYEOF
