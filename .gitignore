@@ -2,8 +2,8 @@
 /bin/
 /dist/
 *.test
-*.out
-coverage.*
+/*.out
+/coverage.*
 
 # kitlegal runtime
 .kitlegal/

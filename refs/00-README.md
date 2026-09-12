@@ -2,7 +2,7 @@
 
 Tres documentos de diseño para arrancar el proyecto. Léelos en este orden.
 
-**Enfoque (2026-09-11).** El producto son las skills; el binario Go es la capa de herramientas deterministas que usan. Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés; los demás territorios llegan después como datos. Ver la constitución (principios VIII y IX) y los ADR 0005 y 0006; ante conflicto, prevalecen sobre estos documentos.
+**Enfoque (2026-09-11).** El producto son las skills; el binario Go es la capa de herramientas deterministas que usan. Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés; los demás territorios llegan después como datos. Ver la constitución (principios VIII y IX) y los ADR 0008 y 0009; ante conflicto, prevalecen sobre estos documentos.
 
 1. `mapa-sistema-legal-skills.md` — Qué es el sistema legal español (jerarquía, competencias, jurisdicción, vía administrativa), dónde está cada tipo de información (fuentes con semáforo de automatizabilidad) y el catálogo de skills agénticas con sus comandos.
 2. `kitlegal-estructura-y-ecosistema.md` — Estructura del monorepo (skills, packs y datos; binario multicall `kitlegal` como capa de herramientas), buenas prácticas, packs por vertical y superficies de distribución.

@@ -9,17 +9,19 @@
 // os.Stderr: no hay forma de que un `package main` propague un código de salida
 // sin lo primero —retornar de main sale siempre con 0— ni de que inyecte los
 // descriptores sin nombrarlos. La excepción del lint se acota a este directorio
-// y no alcanza al paquete hermano de applets de ejemplo (research.md D18, D19).
+// y no alcanza al paquete padre de applets de ejemplo (research.md D18).
 //
-// Los comodines de Go no descienden a un directorio testdata, así que este
-// binario no se enlaza jamás en el artefacto distribuido, ni por descuido.
+// Es un `package main` bajo internal/app/ejemplo y no bajo cmd/: no es un
+// binario que se distribuya, y `go install ./cmd/...` o goreleaser no lo
+// alcanzan. Que el binario distribuido no lo enlace lo vigilan depguard y el
+// test de arquitectura (docs/ADR/0010-applets-de-ejemplo-fuera-de-testdata.md).
 package main
 
 import (
 	"os"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
-	"github.com/jmorenobl/kitlegal/internal/app/testdata/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/app/ejemplo"
 )
 
 // Datos de construcción. El e2e compila este paquete sin -ldflags, así que los

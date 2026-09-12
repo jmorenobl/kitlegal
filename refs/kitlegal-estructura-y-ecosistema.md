@@ -131,8 +131,9 @@ kitlegal/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── ADR/                      # decisiones (por qué no CENDOJ, por qué SQLite, por qué multicall)
-│   ├── SOURCES.md                # tabla de fuentes + semáforo + TOS + fecha de última verificación
-│   └── CONTRIBUTING.md
+│   └── SOURCES.md                # tabla de fuentes + semáforo + TOS + fecha de última verificación
+│
+├── CONTRIBUTING.md               # en la raíz, que es donde GitHub lo espera
 │
 └── scripts/                      # dev tooling, no runtime
     ├── skills-sync.sh            # regenera references/*.md desde data/*.yaml y symlinks

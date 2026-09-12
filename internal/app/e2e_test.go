@@ -26,7 +26,7 @@ const (
 	// real más el registro de los applets de ejemplo. Se construye de verdad, y
 	// no se simula, porque SC-003 exige un enlace simbólico a un ejecutable real
 	// (FR-009, research.md D20).
-	paqueteDelBinario = "./testdata/kitlegal-e2e"
+	paqueteDelBinario = "./ejemplo/kitlegal-e2e"
 
 	// directorioDeGuiones es donde viven los guiones que describen la entrega del
 	// hito, relativo al directorio de este paquete.

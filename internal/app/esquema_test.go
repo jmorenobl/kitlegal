@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/jmorenobl/kitlegal/internal/app/testdata/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/app/ejemplo"
 )
 
 // urlDelEsquemaEmitido identifica ante el compilador el documento que cada

@@ -6,11 +6,13 @@
 // contracts/registro-y-describe.md §3).
 //
 // Los dos son **ejemplos del patrón, no funcionalidad del binario que se
-// publica**: no
-// acceden a la red, no tocan disco y su `data` se deriva de sus argumentos. Por
-// eso viven bajo internal/app/testdata, donde los comodines de Go no descienden
-// y el binario que se publica no puede enlazarlos ni por descuido
-// (research.md D19).
+// publica**: no acceden a la red, no tocan disco y su `data` se deriva de sus
+// argumentos. Son un paquete normal del módulo —los comodines de Go lo
+// alcanzan, así que pasa por vet, lint, formato y cobertura sin enumerarlo en
+// ningún sitio— y lo que impide que el binario distribuido lo enlace, ni por
+// descuido, son dos comprobaciones: depguard prohíbe importarlo fuera de este árbol
+// y de los tests, e internal/arch_test.go comprueba que no aparece en el cierre
+// transitivo de cmd/kitlegal (docs/ADR/0010-applets-de-ejemplo-fuera-de-testdata.md).
 //
 // Ninguno de los dos declara una sola bandera, un solo código de salida ni una
 // sola forma de presentación, y los heredan todos del kernel: eso es lo que

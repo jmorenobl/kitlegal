@@ -1,4 +1,4 @@
-# 0006 · Genericidad territorial: sirve para cualquier municipio, se valida primero en uno
+# 0009 · Genericidad territorial: sirve para cualquier municipio, se valida primero en uno
 
 - **Estado**: aceptada
 - **Fecha**: 2026-09-11

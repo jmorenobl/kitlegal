@@ -1,4 +1,4 @@
-# 0005 · Skills primero: el producto son las skills y el binario es su herramienta
+# 0008 · Skills primero: el producto son las skills y el binario es su herramienta
 
 - **Estado**: aceptada
 - **Fecha**: 2026-09-11
@@ -49,7 +49,7 @@ skill `boe-fiscal` funcionando con el binario.
 
 - Cada hito deja algo que el agente sabe hacer, y se puede comprobar con evals.
 - YAGNI tiene un criterio objetivo: sin skill que la use, una herramienta no entra.
-- El orden del roadmap sigue al valor (primero lo que se usa en el municipio, ver ADR 0006), no a las
+- El orden del roadmap sigue al valor (primero lo que se usa en el municipio, ver ADR 0009), no a las
   capas técnicas.
 
 **En contra, y asumido**
@@ -67,7 +67,7 @@ skill `boe-fiscal` funcionando con el binario.
 |---|---|---|
 | H0-H6 | H0-H6 | Sin cambios (H5 añade el formato de evals y la comprobación mecánica de skills) |
 | H7 `ids` | H7, H8, H12… | Absorbido: cada tipo de id entra con el hito que lo usa |
-| — | H7 `territorio` + `legal-core` v0 | Nuevo (ADR 0006); recoge la verificación de leyes vertebrales de la antigua H10 |
+| — | H7 `territorio` + `legal-core` v0 | Nuevo (ADR 0009); recoge la verificación de leyes vertebrales de la antigua H10 |
 | H8 `cita` | H8 | |
 | H9 `plazos` | H9 | Festivos locales por territorio |
 | H10 `boe sumario/vigilar/eli` | H24 | |

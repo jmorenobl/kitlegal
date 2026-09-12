@@ -28,7 +28,6 @@ import (
 	"errors"
 	"maps"
 	"os/exec"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -116,6 +115,26 @@ var modulosDelBinario = []string{
 // plantillaDeModulos pide a `go list` el módulo de cada paquete del cierre; los
 // de la biblioteca estándar no tienen módulo y salen como línea vacía.
 const plantillaDeModulos = "{{if .Module}}{{.Module.Path}}{{end}}"
+
+// TestElBinarioNoEnlazaLosEjemplos comprueba que los applets de ejemplo no
+// llegan al binario distribuido: son la implementación de referencia, no
+// funcionalidad, y viven en un paquete normal del módulo para que todas las
+// comprobaciones los alcancen. Lo que impide enlazarlos es esta comprobación sobre
+// el cierre transitivo real de cmd/kitlegal, junto con la lista `ejemplo` de
+// depguard (docs/ADR/0010-applets-de-ejemplo-fuera-de-testdata.md).
+func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
+	t.Parallel()
+
+	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
+	require.NotEmpty(t, modulo)
+
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "./cmd/kitlegal"), "\n") {
+		paquete := strings.TrimSpace(linea)
+		assert.False(t, cuelgaDe(paquete, paqueteDeEjemplo(modulo)),
+			"el binario distribuido enlaza %s: los applets de ejemplo no son funcionalidad y solo los "+
+				"registra el binario de e2e (ADR 0010)", paquete)
+	}
+}
 
 // TestDependenciasDelBinario comprueba que el binario distribuido no enlaza
 // ningún módulo de terceros fuera de los declarados (FR-060, constitución §V).
@@ -287,22 +306,17 @@ var entradaYSalidaEstandar = []string{
 	"log", "log/slog", "os", "io", "net/http", "database/sql",
 }
 
-// grafoDelModulo construye el grafo pidiéndoselo a `go list -deps` sobre los
-// paquetes del módulo más los paquetes de ejemplo que viven bajo
-// internal/app/testdata, a los que ningún comodín de Go desciende.
+// grafoDelModulo construye el grafo pidiéndoselo a `go list -deps` sobre todos
+// los paquetes del módulo.
 func grafoDelModulo(t *testing.T) grafo {
 	t.Helper()
 
 	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
 	require.NotEmpty(t, modulo, "go list -m no devolvió la ruta del módulo")
 
-	ejemplos := paquetesDeEjemplo(t)
-
-	argumentos := append([]string{"list", "-deps", "-f", plantillaDeListado, "./..."}, ejemplos...)
-
 	g := grafo{modulo: modulo, importa: map[string][]string{}}
 
-	for linea := range strings.SplitSeq(ejecutaGo(t, argumentos...), "\n") {
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "-f", plantillaDeListado, "./..."), "\n") {
 		paquete, importaciones, _ := strings.Cut(linea, "\t")
 		if paquete == "" {
 			continue
@@ -316,41 +330,18 @@ func grafoDelModulo(t *testing.T) grafo {
 	// tres reglas podría quedar sin vigilar sin que nadie lo notara.
 	require.NotEmpty(t, g.paquetesBajo(modulo+"/internal/core"),
 		"el grafo no contiene ningún paquete del dominio: R1 quedaría sin nada que comprobar")
-
-	for _, ejemplo := range ejemplos {
-		paquete := modulo + strings.TrimPrefix(ejemplo, ".")
-		require.Contains(t, g.importa, paquete,
-			"el grafo no contiene el paquete de ejemplo %s, que es la implementación de referencia", paquete)
-	}
+	require.Contains(t, g.importa, paqueteDeEjemplo(modulo),
+		"el grafo no contiene el paquete de applets de ejemplo, que es la implementación de referencia")
 
 	return g
 }
 
-// paquetesDeEjemplo devuelve los paquetes bajo internal/app/testdata que
-// contienen ficheros Go, derivándolos con la misma convención que la variable
-// TESTDATA_PKGS del Makefile: los comodines de Go nunca descienden a un
-// directorio `testdata`, así que hay que nombrarlos, y derivarlos evita que
-// esta lista y la del Makefile se separen cuando aparezca un applet de ejemplo
-// más.
-func paquetesDeEjemplo(t *testing.T) []string {
-	t.Helper()
-
-	ficheros, err := filepath.Glob(filepath.Join(raizDelModulo, "internal", "app", "testdata", "*", "*.go"))
-	require.NoError(t, err, "no se pudo enumerar los paquetes de ejemplo")
-
-	var paquetes []string
-
-	for _, fichero := range ficheros {
-		paquete := "./internal/app/testdata/" + filepath.Base(filepath.Dir(fichero))
-		if !slices.Contains(paquetes, paquete) {
-			paquetes = append(paquetes, paquete)
-		}
-	}
-
-	require.NotEmpty(t, paquetes,
-		"no hay ningún paquete bajo internal/app/testdata: la implementación de referencia quedaría sin vigilar")
-
-	return paquetes
+// paqueteDeEjemplo es la ruta de importación del paquete de applets de ejemplo:
+// la implementación de referencia que copiará cada applet posterior, sujeta a
+// las mismas reglas que el resto del árbol y a una más, la de no enlazarse en
+// el binario distribuido.
+func paqueteDeEjemplo(modulo string) string {
+	return modulo + "/internal/app/ejemplo"
 }
 
 // ejecutaGo ejecuta el go command en la raíz del módulo y devuelve su salida

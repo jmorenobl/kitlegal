@@ -14,7 +14,7 @@ Las decisiones cerradas de `CLAUDE.md` y `refs/00-README.md` no se repiten: este
 - **Hito** = PR única, rama corta desde `main` (trunk-based), squash-merge con CI verde. Un hito no se cierra sin cumplir la *Definition of Done* (§1).
 - **Ahora / Siguiente / Después**: solo la fase en curso se planifica al detalle. Las fases lejanas son intencionadamente esquemáticas y se refinan al llegar.
 - Cada hito indica: objetivo, entrega usable, alcance, controles (tests y calidad) y criterio de aceptación. A partir de H5, el objetivo se formula como lo que una skill pasa a poder resolver.
-- La numeración de hitos se rehízo el 2026-09-11 (ADR 0005 y 0006); la correspondencia con la anterior está en `docs/ADR/0005-skills-primero.md`.
+- La numeración de hitos se rehízo el 2026-09-11 (ADR 0008 y 0009); la correspondencia con la anterior está en `docs/ADR/0008-skills-primero.md`.
 
 ---
 
@@ -143,7 +143,7 @@ Al terminar: la skill `boe-fiscal` responde en Claude Code con el binario Go y s
 #### H1 · Kernel CLI: multicall, flags globales, exit codes, sobre de salida
 - **Objetivo**: el patrón que todos los applets repetirán, escrito una vez.
 - **Entrega**: `kitlegal echo hola --json` devuelve el sobre `{ok, fuente, url, fecha_consulta, hash, data}`; `ln -s kitlegal echo && ./echo hola` funciona; `--describe` emite JSON Schema del applet.
-- **Alcance**: `internal/cli` (Kong, flags `--json --timeout --offline --dry-run --describe --no-graph --asunto --verbose`, `errors.go` con errores tipados → exit codes, `slog` a stderr), `internal/app` (registro de applets, dispatch por `os.Args[0]` o primer argumento), `internal/core/schema` (tipos del sobre, `hash` sha256 del `data` canónico), `internal/render` (json y tabla mínima). El applet `echo` es de ejemplo y vive solo en tests (`internal/app/testdata`).
+- **Alcance**: `internal/cli` (Kong, flags `--json --timeout --offline --dry-run --describe --no-graph --asunto --verbose`, `errors.go` con errores tipados → exit codes, `slog` a stderr), `internal/app` (registro de applets, dispatch por `os.Args[0]` o primer argumento), `internal/core/schema` (tipos del sobre, `hash` sha256 del `data` canónico), `internal/render` (json y tabla mínima). El applet `echo` es de ejemplo: vive en `internal/app/ejemplo`, que el binario distribuido no enlaza (ADR 0010).
 - **Controles**: unit (mapeo error→exit, sobre, dispatch, `--describe`); e2e testscript (`--help`, symlink, exit 2 con args malos, salida JSON parseable); test de arquitectura; `depguard` activo.
 - **Aceptación**: cobertura `internal/cli` ≥ 90 %; el e2e demuestra que stdout solo contiene JSON cuando `--json`.
 

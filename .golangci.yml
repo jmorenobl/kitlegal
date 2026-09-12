@@ -121,6 +121,23 @@ linters:
             - pkg: modernc.org/sqlite
               desc: "R3: el controlador de SQLite vive en internal/{cache,store,graph}; el resto del árbol los usa por su interfaz"
 
+        # Los applets de ejemplo son la implementación de referencia, no
+        # funcionalidad del binario distribuido. Viven en un paquete normal del
+        # módulo —para que vet, lint, formato y cobertura los alcancen sin
+        # enumerarlos— y esta lista es lo que impide enlazarlos por descuido:
+        # solo su propio árbol (el binario de e2e incluido) y los tests pueden
+        # importarlos. internal/arch_test.go comprueba lo mismo sobre el cierre
+        # transitivo de cmd/kitlegal (docs/ADR/0010).
+        ejemplo:
+          list-mode: original
+          files:
+            - "**"
+            - "!**/internal/app/ejemplo/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/jmorenobl/kitlegal/internal/app/ejemplo
+              desc: "los applets de ejemplo no se enlazan en el binario distribuido; solo los importan su binario de e2e y los tests (ADR 0010)"
+
     dupl:
       threshold: 100
     errcheck:
@@ -196,10 +213,9 @@ linters:
       # lleva otra marca y no tiene excepción ninguna (FR-052).
       #
       # Ni el kernel (internal/cli, aunque docs/ROADMAP.md §2 se lo permitiría)
-      # ni el paquete hermano de applets de ejemplo
-      # (internal/app/testdata/ejemplo) entran aquí: el plan elige la forma
-      # estricta —un único punto de salida por binario— y el control vigila esa,
-      # no la permisiva.
+      # ni el paquete padre de applets de ejemplo (internal/app/ejemplo) entran
+      # aquí: el plan elige la forma estricta —un único punto de salida por
+      # binario— y el control vigila esa, no la permisiva.
       - linters:
           - forbidigo
         path: ^cmd/
@@ -210,11 +226,11 @@ linters:
         text: "R5-descriptores:"
       - linters:
           - forbidigo
-        path: ^internal/app/testdata/kitlegal-e2e/
+        path: ^internal/app/ejemplo/kitlegal-e2e/
         text: "R4:"
       - linters:
           - forbidigo
-        path: ^internal/app/testdata/kitlegal-e2e/
+        path: ^internal/app/ejemplo/kitlegal-e2e/
         text: "R5-descriptores:"
 
 formatters:

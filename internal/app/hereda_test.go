@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
-	"github.com/jmorenobl/kitlegal/internal/app/testdata/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/app/ejemplo"
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
