@@ -1,9 +1,14 @@
 package cache
 
 import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -225,6 +230,108 @@ func TestNewPorOmisionUsaElDirectorioDeLaCuenta(t *testing.T) {
 		assert.Contains(t, auxiliares, nombre,
 			"en el directorio de la caché solo están la base y sus auxiliares")
 	}
+}
+
+// TestClienteDesdeVariasGoroutines fija lo que el comentario de Cliente promete
+// y el contrato del puerto y el cliente §7 declara: un mismo cliente se usa
+// desde varias goroutines a la vez sin carreras y sin que una llamada responda
+// por otra (D10). La conexión única serializa las sentencias y el cerrojo
+// protege el estado de cierre; que eso baste lo dice el detector de carreras con
+// el que make test ejecuta la suite, y no la lectura del código.
+//
+// Cada goroutine alterna Get y Put sobre sus propias claves: lee la que todavía
+// no está —ausencia—, la guarda y la vuelve a leer exigiendo exactamente lo que
+// acaba de guardar. Las claves son distintas a propósito: con una compartida no
+// se sabría qué respuesta es la correcta, y lo que aquí se mide es que ninguna
+// llamada se cruza con otra. Al terminar, todas siguen ahí y cada una con lo
+// suyo (SC-010).
+//
+// El registrador es de nivel debug y descarta lo que escribe: así cada lectura y
+// cada escritura pasan también por el camino que anota el resultado, que con el
+// registrador por omisión no se llega a ejecutar (D14).
+func TestClienteDesdeVariasGoroutines(t *testing.T) {
+	t.Parallel()
+
+	const (
+		goroutines  = 8
+		operaciones = 16
+	)
+
+	registrador := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	cliente := clienteAbierto(t, t.TempDir(), ConRegistrador(registrador))
+
+	resultados := make(chan error, goroutines)
+
+	var grupo sync.WaitGroup
+
+	for goroutine := range goroutines {
+		grupo.Go(func() { resultados <- alternaGetYPut(t.Context(), cliente, goroutine, operaciones) })
+	}
+
+	grupo.Wait()
+	close(resultados)
+
+	for err := range resultados {
+		require.NoError(t, err, "un cliente usado desde varias goroutines responde a cada una lo suyo (D10)")
+	}
+
+	for goroutine := range goroutines {
+		for operacion := range operaciones {
+			contenido, presente, err := cliente.Get(t.Context(), claveDeGoroutine(goroutine, operacion))
+			require.NoError(t, err)
+			require.True(t, presente, "lo que guardó cada goroutine sigue guardado")
+			assert.Equal(t, cuerpoDeGoroutine(goroutine, operacion), contenido,
+				"cada clave con lo suyo: ninguna responde por otra (SC-010)")
+		}
+	}
+}
+
+// alternaGetYPut es el trabajo de una goroutine de TestClienteDesdeVariasGoroutines:
+// para cada operación lee su clave, que todavía no está; la guarda; y la vuelve a
+// leer exigiendo exactamente lo guardado. Devuelve el primer desvío, porque desde
+// una goroutine que no es la de la prueba no se puede terminar la prueba.
+func alternaGetYPut(ctx context.Context, cliente *Cliente, goroutine, operaciones int) error {
+	for operacion := range operaciones {
+		clave := claveDeGoroutine(goroutine, operacion)
+		cuerpo := cuerpoDeGoroutine(goroutine, operacion)
+
+		_, presente, err := cliente.Get(ctx, clave)
+
+		switch {
+		case err != nil:
+			return fmt.Errorf("leer %q antes de guardarla: %w", clave, err)
+		case presente:
+			return fmt.Errorf("%q está presente antes de que nadie la guarde: otra llamada respondió por ella", clave)
+		}
+
+		if err := cliente.Put(ctx, clave, cuerpo, vigenciaDePrueba); err != nil {
+			return fmt.Errorf("guardar %q: %w", clave, err)
+		}
+
+		leido, presente, err := cliente.Get(ctx, clave)
+
+		switch {
+		case err != nil:
+			return fmt.Errorf("leer %q después de guardarla: %w", clave, err)
+		case !presente:
+			return fmt.Errorf("%q no está después de guardarla", clave)
+		case !bytes.Equal(cuerpo, leido):
+			return fmt.Errorf("%q no devuelve lo que se guardó: %q en vez de %q", clave, leido, cuerpo)
+		}
+	}
+
+	return nil
+}
+
+// claveDeGoroutine y cuerpoDeGoroutine son la clave y el contenido de una
+// operación de una goroutine: distintos para cada par, de modo que una respuesta
+// cruzada no pueda pasar por buena.
+func claveDeGoroutine(goroutine, operacion int) string {
+	return fmt.Sprintf("%s/goroutine-%d/%d", claveDePrueba, goroutine, operacion)
+}
+
+func cuerpoDeGoroutine(goroutine, operacion int) []byte {
+	return fmt.Appendf(nil, "<norma goroutine=%d operación=%d>", goroutine, operacion)
 }
 
 // contenidoDe enumera, ordenados, los nombres que hay en un directorio.
