@@ -4,7 +4,7 @@ Roadmap para implementar lo descrito en `refs/`. Enfoque lean: hitos de 0,5 a 3 
 
 Las decisiones cerradas de `CLAUDE.md` y `refs/00-README.md` no se repiten: este documento las asume.
 
-**Qué se construye y en qué orden.** El producto son las **skills**; el binario Go es la capa de herramientas deterministas que usan (constitución, principio VIII). La prioridad, tras la fundación, es **hacer cosas en tu municipio**: contratación, subvenciones, boletines, ordenanzas, plazos, escritos y su seguimiento. Todo es **genérico para cualquier municipio de España** y se valida primero en el territorio de referencia, la Comunidad de Madrid con Leganés (principio IX). Los demás territorios (BOCYL, BOP de comunidades multiprovinciales, régimen foral…) llegan después como datos y adaptadores, sin tocar las skills.
+**Qué se construye y en qué orden.** El producto son las **skills**; el binario Go es la capa de herramientas deterministas que usan (constitución, principio VIII). La prioridad, tras la fundación, es **hacer cosas en tu municipio**: contratación, subvenciones, boletines, ordenanzas, plazos, escritos y su seguimiento. Todo es **genérico para cualquier municipio de España** y se valida primero en el territorio de referencia, la Comunidad de Madrid con Leganés (principio IX). Los demás territorios (BOCYL, BOP de comunidades multiprovinciales, régimen foral…) llegan después como datos y adaptadores, sin tocar las skills. Las skills nacen **genéricas**: primero la base (consultar normativa, territorio, cita, plazos) y las **verticales** (fiscal, laboral, mercantil…) llegan después como especializaciones que reutilizan la base, sin tocar las herramientas (ADR 0012).
 
 ---
 
@@ -14,7 +14,7 @@ Las decisiones cerradas de `CLAUDE.md` y `refs/00-README.md` no se repiten: este
 - **Hito** = PR única, rama corta desde `main` (trunk-based), squash-merge con CI verde. Un hito no se cierra sin cumplir la *Definition of Done* (§1).
 - **Ahora / Siguiente / Después**: solo la fase en curso se planifica al detalle. Las fases lejanas son intencionadamente esquemáticas y se refinan al llegar.
 - Cada hito indica: objetivo, entrega usable, alcance, controles (tests y calidad) y criterio de aceptación. A partir de H5, el objetivo se formula como lo que una skill pasa a poder resolver.
-- La numeración de hitos se rehízo el 2026-09-11 (ADR 0008 y 0009); la correspondencia con la anterior está en `docs/ADR/0008-skills-primero.md`.
+- La numeración de hitos se rehízo el 2026-09-11 (ADR 0008 y 0009); la correspondencia con la anterior está en `docs/ADR/0008-skills-primero.md`. El 2026-09-12 la fase 0 pasó a entregar la skill genérica `boe-legislacion` en H5 y las verticales se agruparon en la fase 8 (ADR 0012); la numeración no cambió.
 
 ---
 
@@ -131,7 +131,7 @@ Dependencias fijadas (fuera de esta lista, justificar): `alecthomas/kong`, `mode
 
 ### Fase 0 — Fundación: la primera skill con su herramienta (Ahora)
 
-Al terminar: la skill `boe-fiscal` responde en Claude Code con el binario Go y sin Python, medida con evals; `kitlegal boe articulo BOE-A-2015-10565 a21` funciona con caché y hay un release v0.1.0 firmado.
+Al terminar: la skill `boe-legislacion` responde en Claude Code a consultas sobre cualquier norma consolidada del BOE con el binario Go, medida con evals; `kitlegal boe articulo BOE-A-2015-10565 a21` funciona con caché y hay un release v0.1.0 firmado. La skill `boe-fiscal` (Python, fuera de este repo) sigue funcionando como hasta ahora y se migra como primera vertical (fase 8) cuando se quiera, sin bloquear nada.
 
 #### H0 · Esqueleto del repo y gates de CI
 - **Objetivo**: un repo vacío pero blindado. Cualquier línea de Go que entre después pasa por los controles.
@@ -168,12 +168,12 @@ Al terminar: la skill `boe-fiscal` responde en Claude Code con el binario Go y s
 - **Controles**: fixtures grabados para cada verbo; golden files de la salida JSON; e2e testscript de los seis verbos en modo replay; `scripts/verify-sources.sh` con el caso `boe articulo` (nightly); fuzz ligero sobre el parser de ids de bloque (`a21`, `da3`, `dt1`).
 - **Aceptación**: diff entre la salida de `boe.py articulo` y `kitlegal boe articulo` (campo `data`) vacío para 5 artículos de 3 leyes; tiempo < 200 ms en caché.
 
-#### H5 · Skill `boe-fiscal` migrada + andamiaje de skills (`skills-sync`, evals)
-- **Objetivo**: usar `boe-fiscal` desde ya en Claude Code sin cambiar cómo razona, y dejar el andamiaje con el que se miden todas las skills siguientes.
-- **Entrega**: `skills/boe-fiscal/SKILL.md` idéntico salvo `scripts/boe.py` → `scripts/boe` (symlink al binario); `references/normas_fiscales.md` generado desde `data/normas.yaml` (`vertical: fiscal`); `make install` copia el binario a `$GOBIN` y enlaza `skills/*` en `~/.claude/skills/`; formato común de evals y `evals/boe-fiscal/` con 10 preguntas.
-- **Alcance**: `data/normas.yaml` (schema propio en `schemas/normas.yaml.json`), `scripts/skills-sync.sh`, cabecera "generado, no editar", formato de eval (pregunta, si debe activar la skill, comandos esperados, citas esperadas por identificador), comprobación mecánica de skills dentro de `make ci` (frontmatter, líneas, drift de `references/`).
+#### H5 · Skill `boe-legislacion` (genérica) + andamiaje de skills (`skills-sync`, evals)
+- **Objetivo**: que un agente en Claude Code sepa consultar y citar cualquier norma consolidada del BOE (administrativa, contratación, local, fiscal…), y dejar el andamiaje con el que se miden todas las skills siguientes. Es la primera skill del repo y la base de la que las verticales (fase 8) se especializan.
+- **Entrega**: `skills/boe-legislacion/` con `SKILL.md` (protocolo: identificar la norma, resolver `BOE-A-…`, leer índice y bloques con `scripts/boe`, citar por identificador y bloque, distinguir ley y reglamento, señalar variación autonómica), `scripts/boe` (symlink al binario) y `references/normas.md` generado desde `data/normas.yaml`; `make install` copia el binario a `$GOBIN` y enlaza `skills/*` en `~/.claude/skills/`; formato común de evals y `evals/boe-legislacion/` con 10 preguntas de materias distintas (LPAC, LCSP, LRBRL, LGT, TRLRHL…), al menos una de ellas reproduciendo una consulta que hoy resuelve `boe-fiscal`, para no perder comportamiento cuando se migre.
+- **Alcance**: `data/normas.yaml` con las leyes vertebrales que la skill referencia, sin campo de vertical (el campo entra con la primera vertical, fase 8) y con los ids `BOE-A-…` de las normas incluidas verificados con `boe buscar` (la tabla completa se cierra en H7); schema propio en `schemas/normas.yaml.json`; `scripts/skills-sync.sh`; cabecera "generado, no editar"; formato de eval (pregunta, si debe activar la skill, comandos esperados, citas esperadas por identificador); comprobación mecánica de skills dentro de `make ci` (frontmatter, líneas, drift de `references/`). El protocolo de `SKILL.md` parte del de `boe-fiscal` generalizado a cualquier materia.
 - **Controles**: CI comprueba que `references/` regenerado no difiere del commiteado (drift); validación del YAML contra su schema; eval de la skill en job manual/semanal; las citas esperadas se comparan por identificador (`BOE-A-…` + bloque).
-- **Aceptación**: en una sesión de Claude Code, la skill responde una consulta fiscal citando `BOE-A-…` y artículo, con el binario Go y sin Python instalado; las 10 evals pasan.
+- **Aceptación**: en una sesión de Claude Code, la skill responde una consulta sobre una norma no fiscal (p. ej. «¿qué dice el art. 21 de la Ley 39/2015?») y otra fiscal citando `BOE-A-…` y artículo, con el binario Go y sin Python instalado; las 10 evals pasan.
 
 #### H6 · Release v0.1.0
 - **Objetivo**: instalación reproducible y firmada; a partir de aquí cada hito puede publicar.
@@ -265,8 +265,8 @@ Al terminar: el uso alimenta el grafo, tus expedientes avisan de silencios y ven
 
 ### Fase 4 — Profundidad legal
 
-#### H24 · `boe sumario | vigilar | eli` + skill `boe-legislacion`
-- Sumario diario, detección de normas actualizadas por rango de fechas, construcción de ELI; `boe-fiscal` pasa a ser una especialización de `boe-legislacion`. `vigilar run` incorpora `boe vigilar`.
+#### H24 · `boe sumario | vigilar | eli` + skill `boe-legislacion` v1
+- Sumario diario, detección de normas actualizadas por rango de fechas, construcción de ELI; `boe-legislacion` v1 incorpora vigilancia y novedades. `vigilar run` incorpora `boe vigilar`.
 - Controles: fixtures, golden, `verify-sources` para sumario; evals.
 
 #### H25 · `boe analisis` → aristas ELI + `graph history`
@@ -296,11 +296,18 @@ Al terminar: el uso alimenta el grafo, tus expedientes avisan de silencios y ven
 
 ### Fase 6 — Más territorios (un hito por territorio, bajo demanda)
 
-Molde: fila en `docs/SOURCES.md` → configuración en `data/territorio/` y `data/boletines/` → adaptador solo si el motor genérico no basta → fixtures → la fila de la matriz territorial pasa a «cubierto» → evals de las skills afectadas. Las skills no se tocan. Candidatos, sin orden fijado: el boletín autonómico y los BOP de una comunidad multiprovincial (p. ej. BOCYL y BOP de Valladolid, que cubren Tordesillas), DOGC, BOJA…; festivos locales de cada comunidad; plataformas autonómicas de contratación que no lleguen agregadas a PLACSP; consejos autonómicos de transparencia; régimen foral (normativa y haciendas forales en `boe-fiscal`, catastros forales).
+Molde: fila en `docs/SOURCES.md` → configuración en `data/territorio/` y `data/boletines/` → adaptador solo si el motor genérico no basta → fixtures → la fila de la matriz territorial pasa a «cubierto» → evals de las skills afectadas. Las skills no se tocan. Candidatos, sin orden fijado: el boletín autonómico y los BOP de una comunidad multiprovincial (p. ej. BOCYL y BOP de Valladolid, que cubren Tordesillas), DOGC, BOJA…; festivos locales de cada comunidad; plataformas autonómicas de contratación que no lleguen agregadas a PLACSP; consejos autonómicos de transparencia; régimen foral (normativa foral en `boe-legislacion`, haciendas forales en la vertical fiscal, catastros forales).
 
 ### Fase 7 — Más fuentes (un hito por fuente, independientes, en el orden de `refs/mapa` §5)
 
 Cada uno sigue el molde de H12: spike de TOS → fixtures → adaptador → emisión al grafo → skill → verify-sources. Orden sugerido: `catastro` → `ine` + `datosgob` → `transparencia` → skill `boletines-autonomicos` (normas autonómicas, sobre el motor de H14) → `eurlex` → `congreso` → `ecli` → `tc` → `sede` (crawler de sedes municipales, solo donde el boletín no baste) → `dgt` y `teac` **solo tras revisar TOS** (pendiente de `refs/00-README.md`).
+
+### Fase 8 — Verticales (un hito por vertical, bajo demanda, en cualquier momento tras H5)
+
+Una vertical es una especialización de la base: no añade herramientas, añade criterio. Molde: normas de la vertical en `data/normas.yaml` con `vertical: <nombre>` (el campo entra con la primera) → skill `<fuente>-<vertical>` que reutiliza el protocolo de la skill base y añade sus `references/` generadas, su calendario y sus reglas propias → evals → `packs/<vertical>/pack.yaml` que extiende `legal`, cuando exista el mecanismo de packs (H22; antes, la skill sola). Si una vertical necesita una fuente propia (PETETE, DYCTEA, AEAT…), esa fuente entra por la fase 7 con sus TOS revisados. Como es `SKILL.md`, datos y evals sin código, un hito de vertical cabe entre dos hitos de cualquier fase.
+
+- **Primera: `boe-fiscal`**, migración de la skill Python existente sobre `boe-legislacion`: `references/normas_fiscales.md` generado, mismo comportamiento medido con evals que reproducen sus consultas actuales; las haciendas forales llegan cuando la fase 6 cubra el régimen foral.
+- Después, con el mismo molde: `laboral`, `mercantil`… en el orden en que se necesiten.
 
 ---
 
@@ -311,6 +318,7 @@ Cada uno sigue el molde de H12: spike de TOS → fixtures → adaptador → emis
 - Applets sin una skill que los use, o capacidades en Go que el modelo resuelve con una referencia generada.
 - Casos especiales, YAML o código para un municipio concreto; configuración municipal curada a mano.
 - Territorios distintos del de validación (BOCYL, BOP de otras provincias, régimen foral…) antes de la fase 6.
+- Skills verticales (fiscal, laboral, mercantil…) que no sean especialización de una skill base ya existente; ni campo `vertical` en `data/normas.yaml` ni packs por vertical antes de la primera vertical (fase 8).
 - Crawler de sedes municipales mientras el boletín baste.
 - MCP remoto con auth, cuotas o caché compartida.
 - Triple store, SPARQL local, embeddings, sincronización entre máquinas.
