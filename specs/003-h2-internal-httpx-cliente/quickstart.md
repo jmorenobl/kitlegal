@@ -293,13 +293,18 @@ make -C "$COPIA" lint 2>&1 | grep -E 'R2:|must not be called|response body must 
 ( cd "$COPIA" && go test -count=1 ./internal/ -run 'TestArquitectura/R2' 2>&1 | grep -E 'R2 · importación reservada|FAIL' )
 rm "$COPIA/internal/app/violacion.go"
 
-# 10.b — crear una petición sin contexto dentro de internal/httpx: lo detecta noctx
+# 10.b — crear una petición sin contexto dentro de internal/httpx: lo detecta noctx.
+# El cuerpo va en su propia línea a propósito: en una sola línea el intento muere antes, en
+# fmt-check, y al llegar a lint la deduplicación por línea de golangci-lint (--uniq-by-line,
+# activa por omisión) deja solo el hallazgo de `unused` y tapa el de noctx.
 cat > "$COPIA/internal/httpx/violacion.go" <<'EOF'
 package httpx
 
 import "net/http"
 
-func sinContexto() (*http.Request, error) { return http.NewRequest(http.MethodGet, "http://127.0.0.1:1/", nil) }
+func sinContexto() (*http.Request, error) {
+	return http.NewRequest(http.MethodGet, "http://127.0.0.1:1/", nil)
+}
 EOF
 make -C "$COPIA" lint 2>&1 | grep -F 'net/http.NewRequest must not be called' ; echo "noctx: $?"
 rm "$COPIA/internal/httpx/violacion.go"
@@ -333,9 +338,11 @@ rm -rf "$COPIA"
 git status --porcelain | grep -v '^??' ; test $? -eq 1 && echo "árbol de trabajo intacto"
 ```
 
-**Esperado**: en 10.a el lint imprime al menos una línea con `R2:` (depguard), una con `must not be
-called` (`noctx`) y una con `response body must be closed` (`bodyclose`), y el test de arquitectura falla
-nombrando «R2 · importación reservada»; en 10.b el lint nombra `net/http.NewRequest must not be called`;
+**Esperado**: en 10.a el lint imprime al menos una línea con `R2:` (depguard) y una con `response body
+must be closed` (`bodyclose`), y el test de arquitectura falla nombrando «R2 · importación reservada»
+—`noctx` también se dispara ahí, pero señala la misma posición que `bodyclose` y `--uniq-by-line` deja
+solo el primero: el intento se rechaza igual, y por tres reglas distintas—; en 10.b el lint nombra
+`net/http.NewRequest must not be called`;
 en 10.c `go vet` rechaza la llamada con `not enough arguments`; en 10.d el test de arquitectura falla
 porque el grafo no contiene `internal/httpx`; y al final «árbol de trabajo intacto».
 

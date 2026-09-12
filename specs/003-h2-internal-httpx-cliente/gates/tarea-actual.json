@@ -1,20 +1,15 @@
 {
-  "id": "T016",
-  "texto": "T016 [US5] Las reglas de arquitectura pasan a tener dueño y la superficie queda cerrada: `internal/arch_test.go` endurece la subprueba R2 para que **exija** que el grafo transitivo real contenga `internal/httpx` —no puede volver a pasar en vacío— y siga comprobando que ningún otro paquete importa `net/http`, y añade `TestElBinarioNoEnlazaHTTPX`, que comprueba con `go list -deps` que el binario distribuido no enlaza el paquete y deja anotado en su comentario que H4 lo retirará al enlazarlo; `internal/httpx/superficie_test.go` con `TestSuperficieExportada`, que recorre con `go/parser` y `go/ast` todas las declaraciones exportadas del paquete y falla si alguna nombra `*http.Client`, `http.RoundTripper`, `*http.Request` o `*http.Response`, de modo que la imposibilidad de esquivar las garantías sea **por construcción** y no solo por control mecánico; y `.golangci.yml` actualiza **solo los comentarios** de la lista `red` para dejar constancia de que la regla ya tiene dueño, sin cambiar ninguna regla, sin activar ningún linter y sin añadir ninguna exclusión ni `//nolint` (FR-002, FR-053 a FR-055, SC-010, SC-014, punto 3 de la Definition of Done, D18).",
+  "id": "T017",
+  "texto": "T017 [US5] Demostrar que los controles fallan ante cada intento de saltárselos, **sobre una copia desechable del árbol fuera del repositorio** y nunca sobre el árbol de trabajo: ejecutar el escenario 10 de `quickstart.md` en sus cuatro variantes —un `*http.Response` sin cerrar (`bodyclose`), un `http.NewRequest` sin contexto (`noctx`), una llamada a `Pedir` sin contexto (que no compila) y la importación de la biblioteca HTTP en un paquete del kernel, tal como la escribe el escenario 10.d del quickstart (que falla en `depguard` **y** en la subprueba R2)—, comprobando que cada una hace fallar `make ci` nombrando la regla incumplida, y dejar la salida literal de las cuatro como evidencia en `specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md`; la tarea no modifica ningún fichero del árbol (FR-061, SC-012, obligación 6 del plan).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T016.md y déjala sin marcar.",
-  "base": "8be59885e709fa7ad5be2cf823f082f214725663",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T017.md y déjala sin marcar.",
+  "base": "ced329afc3b0b8a07104402c82bc4b02563ce895",
   "rutas": [
-    ".golangci.yml",
-    "go/ast",
-    "go/parser",
-    "internal/arch_test.go",
-    "internal/httpx",
-    "internal/httpx/superficie_test.go",
-    "net/http"
+    "quickstart.md",
+    "specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md"
   ],
   "cierre": false
 }
