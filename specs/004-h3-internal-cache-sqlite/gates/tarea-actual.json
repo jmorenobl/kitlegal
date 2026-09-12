@@ -1,0 +1,16 @@
+{
+  "id": "T001",
+  "texto": "T001 [US6] El puerto de caché en el dominio, sin saber que hay una base de datos detrás: `internal/core/doc.go` con el comentario del paquete `core` («los puertos del dominio»; nace aquí el paquete raíz que el §2 del roadmap reserva a los puertos, que hasta hoy solo tenía el subpaquete `schema`) e `internal/core/cache.go` con la interfaz `Cache` —`Get(ctx context.Context, clave string) (contenido []byte, presente bool, err error)` con el idioma «coma ok» (ausencia, incluida la expirada, es `nil, false, nil`; el fallo declara su clase por `schema.ConClase`) y `Put(ctx context.Context, clave string, contenido []byte, vigencia time.Duration) error`, sin `Close` y con los comentarios que fijan esas garantías—, importando **solo** `context` y `time` y sin nombrar SQLite, `database/sql`, fichero alguno ni el paquete adaptador de la caché; ninguno de los dos ficheros contiene sentencias, y por eso su comprobación es la mecánica que ya existe y que desde este `make ci` pasa a cubrir el paquete nuevo: `compruebaDominioPuro` de `TestArquitectura` (regla R1, cuyo `paquetesBajo` incluye el propio prefijo del paquete vigilado) y la lista `core` de `depguard`, más la compilación; la cobertura del dominio no se altera porque no hay sentencias nuevas que cubrir (FR-001, FR-038, SC-013, US6 escenario 1, D1).",
+  "intento": 1,
+  "datos": false,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "52e930726cf4e3e2784ded1beb2de5b6225de950",
+  "rutas": [
+    "database/sql",
+    "internal/core/cache.go",
+    "internal/core/doc.go"
+  ],
+  "cierre": false
+}
