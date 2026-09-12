@@ -335,15 +335,23 @@ func TestReintentosAgotados(t *testing.T) {
 	t.Run("un fallo de transporte se repite igual que un error del servidor", func(t *testing.T) {
 		t.Parallel()
 
-		// Un servidor que se cierra antes de la petición es la forma
-		// determinista de que no haya respuesta ninguna: el intento termina en
-		// el transporte, que es la otra mitad de FR-025.
 		esperas := &esperasAnotadas{}
 		servidor, contador := servidorIdentificado(t, redireccionesDePrueba())
 		direccion := servidor.URL + "/norma"
-		servidor.Close()
-
 		cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond), conReloj(esperas.reloj))
+
+		// Una primera petición deja el robots.txt del sitio ya obtenido y
+		// cacheado, de modo que lo que el cierre tumbe después sea la petición
+		// del recurso y no la del permiso, que tiene otra clase (FR-015).
+		_, err := cliente.Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: direccion})
+		require.NoError(t, err, "el sitio todavía escucha")
+		require.Empty(t, esperas.pedidas(), "y no ha hecho falta reintentar nada")
+
+		// Un servidor que se cierra antes de la petición es la forma
+		// determinista de que no haya respuesta ninguna: el intento termina en
+		// el transporte, que es la otra mitad de FR-025.
+		servidor.Close()
 
 		respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{},
 			Peticion{Metodo: http.MethodGet, URL: direccion})
@@ -352,7 +360,8 @@ func TestReintentosAgotados(t *testing.T) {
 		assert.Equal(t, schema.ClaseFuenteNoDisponible, fallo.Clase(),
 			"el transporte que no llega a la fuente es clase 4 (FR-029)")
 		assert.Equal(t, Respuesta{}, respuesta)
-		assert.Zero(t, contador.total.Load(), "el sitio ya no escucha: ninguna petición llegó a atenderse")
+		assert.Equal(t, int64(1), contador.total.Load(),
+			"el sitio ya no escucha: ninguna petición posterior al cierre llegó a atenderse")
 		assert.Len(t, esperas.pedidas(), intentosPorOmision-1,
 			"y aun así se intentó tantas veces como un 5xx (FR-025)")
 	})

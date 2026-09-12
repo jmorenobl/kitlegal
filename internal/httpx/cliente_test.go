@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -219,7 +220,11 @@ func TestPedirRespetaElPlazo(t *testing.T) {
 
 	comienzo := time.Now()
 
-	_, err := clienteDePrueba(t).Pedir(ctx, schema.Contexto{},
+	// El ritmo se aparta del camino: con el intervalo por omisión, la petición
+	// del robots.txt del sitio ocuparía el turno recién nacido y la del recurso
+	// se quedaría sin él dentro del plazo, de modo que lo que cortaría la
+	// operación sería el limitador (FR-022) y no el plazo que este test mide.
+	_, err := clienteDePrueba(t, ConIntervalo(time.Millisecond)).Pedir(ctx, schema.Contexto{},
 		Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/lenta"})
 
 	fallo := falloDe(t, err)
@@ -368,6 +373,44 @@ func TestPedirCortaCadenasDeRedirecciones(t *testing.T) {
 
 		assert.Equal(t, int64(1), contador.total.Load())
 	})
+}
+
+// TestPedirDesdeVariasGoroutines es el control literal de FR-057 y de SC-011: el
+// mismo cliente, usado a la vez desde varias goroutines contra el mismo sitio,
+// no tiene ninguna carrera de datos —el test se ejecuta con el detector
+// activado— y sigue pidiendo el robots.txt de ese sitio **una sola vez**, porque
+// la exclusión del sitio se mantiene tomada mientras se obtiene: las demás
+// esperan a la primera en vez de repetirla (FR-021, SC-003, D7).
+func TestPedirDesdeVariasGoroutines(t *testing.T) {
+	t.Parallel()
+
+	const goroutines = 8
+
+	servidor, contador := servidorIdentificado(t, redireccionesDePrueba())
+	cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond))
+
+	var simultaneas sync.WaitGroup
+
+	simultaneas.Add(goroutines)
+
+	for consulta := range goroutines {
+		go func() {
+			defer simultaneas.Done()
+
+			respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{},
+				Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma?n=" + strconv.Itoa(consulta)})
+
+			assert.NoError(t, err, "cada goroutine recibe su respuesta")
+			assert.Equal(t, http.StatusOK, respuesta.Estado)
+		}()
+	}
+
+	simultaneas.Wait()
+
+	assert.Equal(t, int64(goroutines), contador.total.Load(), "ninguna petición se pierde ni se duplica")
+	assert.Equal(t, int64(1), contador.robots.Load(),
+		"y el robots.txt del sitio se pide una sola vez aunque se pida desde varias goroutines a la vez (SC-003)")
+	assert.Zero(t, contador.sinIdentificar.Load())
 }
 
 // clienteDePrueba construye el cliente contra la red que usan estas tablas. Un

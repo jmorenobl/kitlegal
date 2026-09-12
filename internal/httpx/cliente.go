@@ -167,14 +167,16 @@ func ConRegistrador(registrador *slog.Logger) Opcion {
 }
 
 // New construye el cliente contra la red, con sus garantías ya puestas sin
-// declarar ninguna opción: identificación en toda petición, reintentos de lo
-// que puede ser pasajero, ritmo por sitio, plazo del contexto y redirecciones
-// seguidas por él mismo. Las opciones se aplican en orden —la última
-// repetida gana— y la primera inválida termina la construcción con su clase
-// (FR-001, contrato §2 y §3).
+// declarar ninguna opción: identificación en toda petición, robots.txt del sitio
+// consultado antes de la primera petición, reintentos de lo que puede ser
+// pasajero, ritmo por sitio, plazo del contexto y redirecciones seguidas por él
+// mismo. Las opciones se aplican en orden —la última repetida gana— y la primera
+// inválida termina la construcción con su clase (FR-001, contrato §2 y §3).
 //
 // El orden de la cadena no es arbitrario: los reintentos van por encima del
-// ritmo para que cada uno espere su turno en el sitio (FR-021, D3).
+// ritmo para que cada uno espere su turno en el sitio, y el robots.txt por
+// encima de los dos para que su propia obtención se reintente y espere turno
+// igual que cualquier otra petición (FR-017, FR-021, D3).
 func New(opciones ...Opcion) (*Cliente, error) {
 	config := configuracionDelCliente{
 		intervalo:   intervaloPorOmision,
@@ -190,8 +192,17 @@ func New(opciones ...Opcion) (*Cliente, error) {
 	}
 
 	registro := nuevosSitios(config.intervalo)
-	cadena := conIdentificacion(
-		conReintentos(conRitmo(nuevoTransporte(), registro), config.intentos, config.reloj))
+
+	// La cadena se compone de dentro afuera, que es el orden en que cada
+	// escalón depende del anterior: el ritmo es lo último que una petición
+	// atraviesa antes del transporte, los reintentos van por encima para que
+	// cada intento espere su turno, el robots.txt por encima de ellos para que
+	// su propia obtención pase por los dos, y la identificación arriba del todo
+	// (FR-017, FR-021, D3).
+	cadena := conRitmo(nuevoTransporte(), registro)
+	cadena = conReintentos(cadena, config.intentos, config.reloj)
+	cadena = conRobots(cadena, registro)
+	cadena = conIdentificacion(cadena)
 
 	return &Cliente{
 		cliente:     nuevoClienteHTTP(cadena),

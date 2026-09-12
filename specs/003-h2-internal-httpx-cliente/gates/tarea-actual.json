@@ -1,22 +1,25 @@
 {
-  "id": "T008",
-  "texto": "T008 [US1] Reintentos con retardo creciente y aleatorio, interrumpibles: `internal/httpx/reintentos.go` con el decorador que reintenta **solo** los 5xx y los fallos de transporte —nunca un 4xx, 429 incluido—, hasta el número de intentos configurado, con espera base 500 ms, factor 2, techo 30 s y *equal jitter* cuya parte aleatoria sale de `crypto/rand.Read` sobre ocho bytes reducidos con `encoding/binary` (ningún fichero del paquete importa `math/rand`, `math/rand/v2` ni `math/big`, porque G404 marca los dos primeros; el resultado de `Read` no se comprueba porque la función no devuelve nunca error, y la conversión a `int64` lleva el `>> 1` que G115 reconoce, todo ello sin una sola supresión), con el reloj inyectable desde el propio paquete para que los tests no esperen de verdad, cierre y descarte del cuerpo de cada respuesta desechada y ningún intento posterior a la cancelación del contexto; `internal/httpx/cliente.go` añade la opción `ConIntentos(n int)` (3 por omisión, `n < 1` es clase 2) y coloca el decorador por encima del ritmo, de modo que cada reintento espere su turno; `internal/httpx/reintentos_test.go` con `TestReintentosDosErroresYUnAcierto` (tres peticiones contadas en el servidor —las tres con la cabecera de identificación exacta, contadas en cero sin ella—, esperas crecientes y distintas entre dos ejecuciones), `TestReintentosNoRepite4xx`, `TestReintentosCancelacionGana`, `TestReintentosCierraCuerposDescartados` y `TestReintentosAgotados`; y `internal/httpx/identificar_test.go` gana la subprueba `reintentos` de `TestIdentificacionEnTodaPeticion`, ahora que la cadena tiene ese escalón, sin tocar `internal/httpx/identificar.go` (FR-009, FR-023 a FR-029, SC-001, SC-005, D9, obligaciones 2 y 12 del plan).",
+  "id": "T009",
+  "texto": "T009 [US1] `robots.txt` antes de la primera petición a cada sitio, con su lista cerrada de casos: `internal/httpx/sitio.go` añade a la struct `sitio` el campo `reglas *reglasDelSitio` (`nil` hasta la primera evaluación, después inmutable), bajo la misma exclusión mutua que ya protege al sitio (data-model §4); `internal/httpx/robots.go` con el decorador que obtiene y evalúa el `robots.txt` del sitio para la ruta pedida y el agente `kitlegal`, **construyendo la petición de `robots.txt` con `nuevaPeticionIdentificada` de `identificar.go`** —la fabrica él, por debajo del decorador `identificar`, así que sin ese constructor saldría sin cabecera y rompería FR-009— antes de entregarla a su propio siguiente, honrando **solo** las reglas de permiso y denegación de rutas (ninguna otra directiva, `Crawl-delay` incluida), interpretándolo con `temoto/robotstxt`, cacheando el resultado por sitio en memoria y sin caducidad —una sola obtención por sitio y cliente, nunca en disco—, sin evaluarse a sí mismo ni a ningún salto de su propia cadena de redirecciones, y aplicando la lista cerrada de FR-015: 4xx distinta de 429 o cuerpo vacío permiten; 5xx o fallo de transporte agotados los intentos, 2xx ilegible y estado no previsto deniegan con clase 5; 429 deniega con clase 5 sin reintento y con `Retry-After`; la cadena de redirecciones propia se sigue con el mismo tope 10 y su exceso deniega con clase 5, no con la clase 4 del recurso; el vencimiento del contexto termina la operación con clase 4 sin evaluar ninguna regla; `internal/httpx/cliente.go` inserta el decorador en la cadena por encima de los reintentos, de modo que cada salto del recurso se someta al `robots.txt` y al ritmo de su sitio de destino y ningún destino herede el permiso del origen; `internal/httpx/robots_test.go` con `TestRobotsDeniegaLaRuta` (cero accesos a la ruta en el servidor), `TestRobotsSePideUnaVezPorSitio` (diez rutas, una sola obtención, y esa obtención llega al servidor con la cabecera de identificación exacta), `TestRobotsCasosDeObtencion` (la tabla completa de FR-015), `TestRobotsRedirigido` (con la cabecera comprobada en cada salto de la cadena del `robots.txt`), `TestRobotsNoSeEvaluaASiMismo` y `TestRobotsPorSitio`; `internal/httpx/identificar_test.go` gana la subprueba `robots.txt` de `TestIdentificacionEnTodaPeticion` —cerrando las cuatro procedencias que el control 6 del plan y el escenario 2 del quickstart dan por cubiertas— sin tocar `internal/httpx/identificar.go`; `internal/httpx/cliente_test.go` añade `TestPedirDesdeVariasGoroutines`, que usa el mismo cliente desde varias goroutines contra el mismo sitio bajo el detector de carreras y comprueba que el `robots.txt` se pidió una sola vez; `internal/httpx/ritmo_test.go` e `internal/httpx/reintentos_test.go` ajustan —**sin tocar `ritmo.go` ni `reintentos.go`**— las dos medidas que el escalón nuevo desplaza, porque la primera petición que el cliente hace a un sitio pasa a ser la de su `robots.txt`: la del cupo por sitio, cuyo turno recién nacido ocupa ya esa petición, y la del fallo de transporte contra un sitio cerrado, que sin una petición previa que caliente la caché deja de tumbar el recurso para tumbar el permiso y cambia de clase (FR-015 sobre FR-029); e incorpora `github.com/temoto/robotstxt` v1.1.2 al módulo con `go get`, comprobando de nuevo el supuesto S1 (FR-009, FR-013 a FR-018, FR-021, FR-030, FR-057, FR-058, SC-001, SC-003, SC-011, US1 escenarios 4 y 8, US2 escenario 4, D3, D7, obligación 12 del plan).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T008.md y déjala sin marcar.",
-  "base": "6ecf781d50801ee4ccce18cc8de92e2b64f8b1d4",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T009.md y déjala sin marcar.",
+  "base": "3f30cff8cb1037197a635b77793cf413ef79fc19",
   "rutas": [
-    "crypto/rand.Read",
-    "encoding/binary",
+    ".com/temoto/robotstxt",
+    "identificar.go",
+    "internal/httpx/cliente_test.go",
     "internal/httpx/cliente.go",
     "internal/httpx/identificar_test.go",
     "internal/httpx/identificar.go",
     "internal/httpx/reintentos_test.go",
-    "internal/httpx/reintentos.go",
-    "math/big",
-    "math/rand",
-    "math/rand/v2"
+    "internal/httpx/ritmo_test.go",
+    "internal/httpx/robots_test.go",
+    "internal/httpx/robots.go",
+    "internal/httpx/sitio.go",
+    "robots.txt",
+    "temoto/robotstxt"
   ]
 }

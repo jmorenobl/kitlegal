@@ -74,8 +74,8 @@ func TestRitmoNoRetrasaOtroSitio(t *testing.T) {
 	t.Parallel()
 
 	// Un intervalo muy por encima del margen: si los dos servidores
-	// compartieran cupo, la segunda petición tendría que esperarlo entero, y
-	// ninguna lentitud de la máquina puede confundirse con eso.
+	// compartieran cupo, la operación contra el segundo costaría un intervalo
+	// más, y ninguna lentitud de la máquina puede confundirse con eso.
 	const intervalo = 3 * time.Second
 
 	const margen = time.Second
@@ -95,7 +95,7 @@ func TestRitmoNoRetrasaOtroSitio(t *testing.T) {
 
 	_, err := cliente.Pedir(t.Context(), schema.Contexto{},
 		Peticion{Metodo: http.MethodGet, URL: uno.URL + "/norma"})
-	require.NoError(t, err, "la primera petición no espera: el cubo del sitio nace lleno")
+	require.NoError(t, err, "la operación contra el primer sitio deja su cupo agotado")
 
 	comienzo := time.Now()
 
@@ -103,7 +103,12 @@ func TestRitmoNoRetrasaOtroSitio(t *testing.T) {
 		Peticion{Metodo: http.MethodGet, URL: otro.URL + "/norma"})
 	require.NoError(t, err)
 
-	assert.Less(t, time.Since(comienzo), margen,
+	// Contra el otro sitio el cliente hace dos peticiones: la de su robots.txt,
+	// que ocupa el turno recién nacido de su cubo, y la del recurso, que espera
+	// un intervalo. Si los dos sitios compartieran cupo, ya la del robots.txt
+	// tendría que esperar el turno que el primero acaba de consumir, y la
+	// operación entera costaría el doble de lo que separa a dos peticiones.
+	assert.Less(t, time.Since(comienzo), intervalo+margen,
 		"el otro sitio tiene su propio cupo y no espera por el turno del primero (SC-004)")
 	assert.Equal(t, int64(1), contadorDelOtro.total.Load())
 }

@@ -17,10 +17,10 @@ const (
 	puertoHTTPS = "443"
 )
 
-// sitio es lo que el cliente recuerda de un sitio mientras vive: su identidad y
-// su ritmo. Le cuelgan además las reglas de su robots.txt cuando entra el
-// decorador que las usa, porque los dos tienen que compartir esta entrada y su
-// exclusión —no hay un mapa por decorador (data-model.md §4, D7, D14).
+// sitio es lo que el cliente recuerda de un sitio mientras vive: su identidad,
+// su ritmo y las reglas de su robots.txt. Los dos decoradores que necesitan
+// estado por sitio comparten esta entrada y su exclusión —no hay un mapa por
+// decorador (data-model.md §4, D7, D14).
 type sitio struct {
 	// clave es la que indexa el sitio en el mapa; la guarda también aquí para
 	// que un sitio se pueda nombrar sin volver a derivarla de una dirección.
@@ -33,6 +33,19 @@ type sitio struct {
 	// simultaneous use by multiple goroutines» (go doc golang.org/x/time/rate
 	// Limiter)—, así que no necesita la exclusión del mapa más allá de aquí.
 	limitador *rate.Limiter
+
+	// mu protege las reglas de este sitio y se mantiene tomada mientras se
+	// obtienen, que es lo que hace que varias goroutines que piden a la vez el
+	// mismo sitio produzcan **una** petición de robots.txt y no una cada una
+	// (SC-003, D7). Es la del sitio y no la del mapa: obtener el robots.txt de
+	// un sitio no puede dejar en espera a los demás, que tienen su propio cupo
+	// (FR-019).
+	mu sync.Mutex
+	// reglas es lo que se obtuvo del robots.txt del sitio —o el resultado de no
+	// haber podido obtenerlo—, nil hasta la primera evaluación e inmutable
+	// desde entonces: la decisión se cachea en memoria, sin caducidad y sin
+	// tocar el disco, así que dura lo que vive el cliente (FR-015, FR-018).
+	reglas *reglasDelSitio
 }
 
 // rafagaDelSitio es el tamaño del cubo de cada sitio: un solo token. Con una

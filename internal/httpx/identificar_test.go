@@ -33,8 +33,8 @@ const constructorDeLasPeticiones = "identificar.go"
 //
 // Nació con las dos procedencias que la cadena de T006 permitía —el recurso
 // pedido y cada salto de una redirección—, T008 le añadió la de los reintentos
-// al entrar ese escalón en la cadena, y T009 le añadirá la de «robots.txt», que
-// es la cuarta y última (plan.md, control 6).
+// al entrar ese escalón en la cadena, y T009 la de «robots.txt», que es la cuarta
+// y última (plan.md, control 6).
 func TestIdentificacionEnTodaPeticion(t *testing.T) {
 	t.Parallel()
 
@@ -81,6 +81,22 @@ func TestIdentificacionEnTodaPeticion(t *testing.T) {
 		assert.Equal(t, int64(3), contador.total.Load(), "cada reintento es una petición más")
 		assert.Zero(t, contador.sinIdentificar.Load(),
 			"cada reintento vuelve a bajar por el decorador y nace identificado (FR-009)")
+	})
+
+	t.Run("robots.txt", func(t *testing.T) {
+		t.Parallel()
+
+		servidor, contador := servidorIdentificado(t, redireccionesDePrueba())
+		cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond))
+
+		_, err := cliente.Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(1), contador.robots.Load(),
+			"antes del recurso, el sitio recibe la petición de su robots.txt (FR-013)")
+		assert.Zero(t, contador.sinIdentificar.Load(),
+			"que el paquete fabrica por debajo del decorador y aun así nace identificada (FR-009, D3)")
 	})
 }
 
@@ -166,8 +182,14 @@ func simboloDeHTTP(expresion ast.Expr) (string, bool) {
 // identificación exacta. La segunda tiene que ser siempre cero, y por eso se
 // cuenta lo que falta y no lo que está: una cabecera distinta —la de la
 // biblioteca, «Go-http-client/1.1»— suma igual que ninguna.
+//
+// Las peticiones del robots.txt del sitio se cuentan aparte de las del recurso:
+// la identificación se les exige igual —son la cuarta procedencia de SC-001—,
+// pero no son ninguna de las peticiones que cada tabla cuenta, que son las que
+// quien llama pidió.
 type contadorDeIdentificacion struct {
 	total          atomic.Int64
+	robots         atomic.Int64
 	sinIdentificar atomic.Int64
 }
 
@@ -175,10 +197,14 @@ type contadorDeIdentificacion struct {
 // petición antes de atenderla.
 func (c *contadorDeIdentificacion) vigila(manejador http.HandlerFunc) http.HandlerFunc {
 	return func(escritor http.ResponseWriter, peticion *http.Request) {
-		c.total.Add(1)
-
 		if peticion.Header.Get("User-Agent") != AgenteDeUsuario() {
 			c.sinIdentificar.Add(1)
+		}
+
+		if peticion.URL.Path == rutaDelRobots {
+			c.robots.Add(1)
+		} else {
+			c.total.Add(1)
 		}
 
 		manejador(escritor, peticion)
@@ -187,14 +213,46 @@ func (c *contadorDeIdentificacion) vigila(manejador http.HandlerFunc) http.Handl
 
 // servidorIdentificado levanta un servidor local —ningún test del hito conoce
 // una dirección externa— con su contador de identificación delante.
+//
+// El sitio publica además un robots.txt que no declara ninguna regla, porque
+// desde que el decorador entra en la cadena todo sitio recibe esa petición antes
+// que ninguna otra (FR-013): sin ella, cada tabla del paquete estaría
+// comprobando de paso qué hace su servidor con una ruta que no es la suya. Los
+// sitios cuyo robots.txt **es** lo que se prueba los levanta
+// servidorConRobots (robots_test.go).
 func servidorIdentificado(t *testing.T, manejador http.HandlerFunc) (*httptest.Server, *contadorDeIdentificacion) {
 	t.Helper()
 
 	contador := &contadorDeIdentificacion{}
-	servidor := httptest.NewServer(contador.vigila(manejador))
+
+	return servidorLocal(t, contador.vigila(robotsSinReglas(manejador))), contador
+}
+
+// robotsSinReglas responde al robots.txt del sitio con un cuerpo vacío —«sin
+// reglas», que permite toda ruta (FR-015)— y deja el resto al manejador que
+// envuelve, que así nunca ve una petición que no es la que el test le hizo.
+func robotsSinReglas(manejador http.HandlerFunc) http.HandlerFunc {
+	return func(escritor http.ResponseWriter, peticion *http.Request) {
+		if peticion.URL.Path == rutaDelRobots {
+			escritor.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+			return
+		}
+
+		manejador(escritor, peticion)
+	}
+}
+
+// servidorLocal levanta el servidor de prueba de una tabla y lo cierra al
+// terminar. Ningún test del hito conoce una dirección externa: todos se miden
+// contra un servidor de este.
+func servidorLocal(t *testing.T, manejador http.HandlerFunc) *httptest.Server {
+	t.Helper()
+
+	servidor := httptest.NewServer(manejador)
 	t.Cleanup(servidor.Close)
 
-	return servidor, contador
+	return servidor
 }
 
 // contenidoDePrueba es lo que entrega el servidor de las tablas de este paquete.
