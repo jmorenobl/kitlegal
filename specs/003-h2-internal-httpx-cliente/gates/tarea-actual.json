@@ -1,20 +1,14 @@
 {
-  "id": "T003",
-  "texto": "T003 [US1] El paquete y sus tipos de datos: `internal/httpx/doc.go` con el comentario de paquete que declara qué garantiza y por qué no se puede usar mal (única excepción declarada a «un fichero de test por fichero de código»: no tiene declaraciones); `internal/httpx/peticion.go` con `Peticion{Metodo, URL}`, `Respuesta{Peticion, URL, Estado, Cabeceras, Cuerpo, Ensayo}` —cuerpo **ya leído** en `[]byte`, nunca un `*http.Response`—, `Cabeceras map[string][]string` con `Get` que canonicaliza el nombre y devuelve `\"\"` si no está, y `Respuesta.Descripcion()` que produce `\"<Metodo> <URL>\"`; `internal/httpx/sitio.go` con la clave de sitio (esquema + host en minúsculas + puerto, con 80/443 por omisión del esquema, sin ruta ni consulta) y el mapa de sitios con exclusión mutua para el uso concurrente; y las tablas con `t.Parallel()` de `internal/httpx/peticion_test.go` (`TestCabecerasGet`, `TestRespuestaDescripcion`) y `internal/httpx/sitio_test.go` (`TestClaveDeSitio` con las ocho filas del plan, escritas **solo** contra `fuente.prueba`, `otra.prueba` y dos puertos de `127.0.0.1`); y comprobando al primer `make lint` el supuesto S2 (`misspell` sobre el español nuevo), para lo que declara también `.golangci.yml`, acotado a **una palabra nueva bajo `misspell.ignore-rules`** si el español dispara un falso positivo —ninguna regla, ningún linter, ninguna exclusión y nunca una supresión—, y sin tocarlo si no hace falta (FR-002, FR-013, FR-019, D2, D7, D14, obligaciones 3 y 11 del plan).",
+  "id": "T004",
+  "texto": "T004 [P] [US2] El único error que el paquete produce: `internal/httpx/errores.go` con `Error{Peticion, Estado, Espera, EsperaConocida, Causa}` más su clase privada, los constructores internos por clase, `Error() string` con mensaje en español que nombra sitio y ruta cuando hay petición implicada y la opción que falta o sobra cuando no la hay, `Unwrap()` que expone `Causa` y `Clase() schema.Clase` que lo hace `schema.ConClase`, sin `panic` en ninguna ruta; y `internal/httpx/errores_test.go` con `TestErrorEnvueltoConservaLaClase` (envolver con `fmt.Errorf(\"%w\")` no cambia lo que `cli.Clasificar` devuelve), `TestErrorRetryAfter` (`Espera` y `EsperaConocida` a partir de la cabecera, y su ausencia sin cambiar la clase) y `TestErrorMensajesEnEspanol` (FR-030, FR-031, FR-033, FR-034, FR-063, D4, D20).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
-  "base": "218591caf48107d62f91b928b796db7c6c876605",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
+  "base": "63318b43b264711a0d1c38f7cdc05741b7008b4e",
   "rutas": [
-    ".golangci.yml",
-    ".ignore",
-    "80/443",
-    "internal/httpx/doc.go",
-    "internal/httpx/peticion_test.go",
-    "internal/httpx/peticion.go",
-    "internal/httpx/sitio_test.go",
-    "internal/httpx/sitio.go"
+    "internal/httpx/errores_test.go",
+    "internal/httpx/errores.go"
   ]
 }
