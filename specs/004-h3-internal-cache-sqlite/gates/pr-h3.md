@@ -45,7 +45,10 @@ visible del binario es exactamente la misma que al abrirlo. El primer applet que
   - `migraciones.go` y `migraciones/0001_entradas.sql`: `embed` y `schema_version`. Cada migración va en
     una transacción inmediata. Una versión desconocida o un fichero inutilizable se rechazan sin
     modificar ni borrar nada.
-  - `entradas.go`: `Get` y `Put`, con `var _ core.Cache = (*Cliente)(nil)`.
+  - `entradas.go`: `Get` y `Put`, con `var _ core.Cache = (*Cliente)(nil)`. `Put` satura el instante de
+    expiración al intervalo que `expira_en` representa —del 21 de septiembre de 1677 al 11 de abril de
+    2262, donde `UnixNano` está definido—, de modo que una vigencia larga y válida vale hasta el último
+    instante representable en vez de leerse como caducada (revisión final).
   - `errores.go`: `cache.Error` implementa `schema.ConClase`. Tabla cerrada de **quince** situaciones →
     códigos `{1, 2, 4}`.
 - **Un solo fichero de reproducción**, escrito a mano contra el host ficticio `fuente.prueba`:
@@ -150,6 +153,11 @@ Lo que hasta aquí era disciplina pasa a ser mecánico:
   existe en `package cache_test`. Nueve subtests, entre ellos `segunda-consulta-sin-red`, su control
   negativo y seis `offline-*`. Estos comparan el SHA-256 de `cache.db` y el listado del directorio antes
   y después.
+- **`TestExpiracionFueraDelIntervaloRepresentable`** (revisión final): vigencias de 240 años y de
+  `time.Duration(math.MaxInt64)` guardan `math.MaxInt64` y la entrada se sirve, en modo normal y en solo
+  lectura, hasta el último instante representable; un reloj inyectado de 1000 guarda `math.MinInt64`; y
+  el control, 230 años, se guarda exacto. Sin la saturación de `Put`, tres de sus cuatro filas fallan
+  (medido sobre una copia desechable).
 - **`TestElBinarioNoEnlazaCache`** (temporal): `go list -deps` confirma que el binario no enlaza
   `internal/cache` ni `modernc.org/*`. Su retirada ya está anotada para H4.
 - **SC-013, demostrado, no afirmado.** El escenario 9 del quickstart se ejecutó en cuatro variantes
@@ -176,20 +184,21 @@ Lo que hasta aquí era disciplina pasa a ser mecánico:
 - `specs/004-h3-internal-cache-sqlite/gates/s1-dependencias.md`: los indirectos medidos frente a la
   predicción de S1.
 
-| Umbral | Exigido | T013, sobre 0b1bf84 (`go tool cover`) | HEAD final, sobre 6efec74 (`go tool cover`) |
+| Umbral | Exigido | T013, sobre 0b1bf84 (`go tool cover`) | HEAD final, sobre a432ea3 (`go tool cover`) |
 |---|---|---|---|
 | Global | ≥ 70 % | **92,9 %** | **93,4 %** |
 | `internal/core/**` | ≥ 85 % | **90,1 %** | **90,1 %** |
 | `internal/cli` | ≥ 90 % | **98,6 %** | **98,6 %** |
-| `internal/cache` | — | 87,8 % | 90,5 % con los unitarios · 96,1 % con `-tags=integration` |
+| `internal/cache` | — | 87,8 % | 90,6 % con los unitarios · 96,2 % con `-tags=integration` |
 
 Las dos columnas están fechadas por el commit sobre el que se midieron: 0b1bf84 es el último commit
-empujado a la plataforma, y 6efec74 el último del HEAD final que toca código (los posteriores solo tocan
+empujado a la plataforma, y a432ea3 el último del HEAD final que toca código (los posteriores solo tocan
 documentación). La segunda columna sale del `coverage.out` de `make ci` (`go tool cover -func`) y, para
 `internal/cache` con integración, de un perfil aparte con
-`go test -race -count=1 -tags=integration -coverprofile ./internal/cache/`. La subida la explica la
-corrección de la revisión final (bb2f5c9 y 6efec74): tests sobre la espera por tramos, la ruta codificada
-en el DSN y las tres ramas de clasificación que no tenían test.
+`go test -race -count=1 -tags=integration -coverprofile ./internal/cache/`. La subida la explican las
+correcciones de la revisión final: bb2f5c9 y 6efec74 (tests sobre la espera por tramos, la ruta codificada
+en el DSN y las tres ramas de clasificación que no tenían test) y a432ea3 (la saturación de la expiración
+y su test).
 
 Ninguno se rebajó: `codecov.yml` no aparece en el diff frente a `main`. Sin componente nuevo de Codecov
 (S4): rigen los umbrales generales. `internal/core` no gana sentencias.
@@ -243,6 +252,15 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
   nombrando la causa. En integración continua (`CI` no vacía), la misma precondición incumplida es
   `t.Fatalf`: un ejecutor `root` pone el trabajo `ci` en rojo en vez de pasar de largo. Es el único
   `t.Skip` del hito.
+- **`Put` satura el instante de expiración en vez de rechazar la vigencia (revisión final).**
+  `time.Time.UnixNano` solo está definido entre 1678 y 2262 y FR-010 admite cualquier vigencia mayor que
+  cero: con 240 años, o con `time.Duration(math.MaxInt64)`, `Put` guardaba un número cualquiera y la
+  entrada recién escrita se leía como ausencia, que bajo `--offline` es un 4 en vez de un 0.
+  `instanteDeExpiracion` guarda el extremo más cercano del intervalo cuando el instante no cabe, de modo
+  que para todo reloj dentro de él `Get` decide igual que con el instante exacto y no hay ninguna
+  situación de fallo nueva. Alternativa descartada: rechazar esas vigencias con «argumentos» (2), una fila
+  nueva en la tabla cerrada por una vigencia que FR-010 declara válida (plan, *Complexity Tracking*;
+  research D6 y D8; contrato de apertura §1).
 - **La contingencia de `misspell` se resolvió sin atajo (S2).** `versiones` es el plural que el mensaje de
   versión desconocida debe nombrar. `reproduccion` la fijan dos contratos: el tramo del directorio de
   grabaciones de H2 y el nombre del subtest `sin-cache-la-reproduccion-falla`. Como no podía reescribirse,
@@ -274,14 +292,17 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
   declara ningún estado `patch`: Codecov aplica su objetivo por omisión (`auto`, la cobertura de la
   base), que sube con `main` (83,33 % en H1, 89,52 % en H2). No lo pide la Definition of Done, y el spec
   dice que `internal/cache` no tiene umbral propio. Parte del hueco es código que solo ejercitan los
-  tests de integración, que por el plan no alimentan `coverage.out`: sobre el HEAD final,
-  `internal/cache` mide 90,5 % con los unitarios y 96,1 % con `-tags=integration`. Las ramas de
-  clasificación que en 0b1bf84 no tenían test —`falloAlOperar`, `falloAlAplicar`,
-  `falloAlLeerLoInmutable`— están al 100 % desde 6efec74 (`TestFalloDelControladorAlOperar`,
-  `TestContextoCanceladoDuranteLaMigracion`, `TestIntegracionReaperturaInmutableFalla`). Lo que queda
-  sin test, integración incluida, son 20 bloques de una sentencia cada uno (perfil de 6efec74 con
-  `-tags=integration`), todos defensivos y ninguno provocable de forma determinista sin sustituir el
-  sistema de ficheros o el controlador:
+  tests de integración, que por el plan no alimentan `coverage.out`: sobre el HEAD final (a432ea3),
+  `internal/cache` mide 90,6 % con los unitarios y 96,2 % con `-tags=integration`. De las tres ramas de
+  clasificación que en 0b1bf84 no tenían test, `falloAlOperar` y `falloAlAplicar` están al 100 % desde
+  6efec74 (`TestFalloDelControladorAlOperar`, `TestContextoCanceladoDuranteLaMigracion`); de
+  `falloAlLeerLoInmutable`, la rama que no tenía test —la del fichero ilegible, `abrir.go:397`— la cubre
+  desde 6efec74 `TestIntegracionReaperturaInmutableFalla`, y la rama del contexto (`abrir.go:393-394`)
+  sigue sin test: la función mide 66,7 % y ese bloque figura en la lista de abajo. Lo que queda sin
+  test, integración incluida, son 21 bloques a cero en el perfil de a432ea3 con `-tags=integration` —20
+  de una sentencia cada uno y uno sin sentencias, el brazo vacío del `select` de `espera.go:64`—, todos
+  defensivos y ninguno provocable de forma determinista sin sustituir el sistema de ficheros o el
+  controlador:
   - fallos de `sql.Open` con un DSN ya compuesto (`abrir.go:65`, `:175`, `:245` y `:278`): el
     controlador está registrado y el DSN es válido por construcción;
   - fallos de `Close` sobre un fichero o una conexión (`creaElFichero`, `compruebaQueSeDejaLeer`,
@@ -291,20 +312,21 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
     binario;
   - un `Stat` de `cache.db-wal` que falla con algo distinto de «inexistente» (`abrir.go:239`) en un
     directorio que ya se dejó listar;
-  - el contexto terminado justo en la reapertura inmutable (`abrir.go:394`), un camino que no pasa ni
-    por el reloj ni por el registrador;
+  - el contexto terminado justo en la reapertura inmutable (`abrir.go:394`, la rama del contexto de
+    `falloAlLeerLoInmutable`), un camino que no pasa ni por el reloj ni por el registrador;
   - `versionRegistrada` que falla dentro de la transacción ya abierta (`migraciones.go:190`) y un
     `Commit` que falla (`migraciones.go:209`);
   - el resto del tramo que el cliente espera cuando SQLite contesta `SQLITE_BUSY` sin haber dormido el
-    tramo entero, que hace cuando esperar podría interbloquear (`espera.go:60-64`); en las pruebas no
-    ocurre porque el motor agota el tramo antes de contestar.
+    tramo entero, que hace cuando esperar podría interbloquear (`espera.go:61-64`: los dos brazos del
+    `select` y su brazo vacío, tres bloques); en las pruebas no ocurre porque el motor agota el tramo
+    antes de contestar.
 
   Este hito no lo resuelve por su cuenta, porque es una decisión sobre qué estados son gate (H0,
   FR-029). Tampoco se rebaja nada. Opciones, con su coste en la evidencia:
   1. Declarar `patch` en `codecov.yml` con objetivo fijo o `informational`.
-  2. Empujar el HEAD final y dejar que la plataforma vuelva a medir el parche: las ramas que 6efec74
-     cubrió cuentan para el diff, y es lo que la parte `[plataforma]` del cierre hace al refrescar la
-     propuesta.
+  2. Empujar el HEAD final y dejar que la plataforma vuelva a medir el parche: las ramas que 6efec74 y
+     a432ea3 cubrieron cuentan para el diff, y es lo que la parte `[plataforma]` del cierre hace al
+     refrescar la propuesta.
   3. Cubrir los bloques defensivos de arriba sustituyendo el sistema de ficheros o el controlador en los
      tests (un `fs.FS` inyectable para las migraciones, un controlador que falle al abrir), lo que añade
      superficie al producto por una cobertura que no mide ningún comportamiento nuevo.
