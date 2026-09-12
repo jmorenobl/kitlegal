@@ -11,7 +11,7 @@ métodos, sin `Close` (D1).
 
 | Método | Firma | Semántica |
 |---|---|---|
-| `Get` | `(ctx context.Context, clave string) (contenido []byte, presente bool, err error)` | presente y vigente → `contenido, true, nil`; ausente o expirada → `nil, false, nil`; fallo → `nil, false, err` con `schema.ConClase` |
+| `Get` | `(ctx context.Context, clave string) (contenido []byte, presente bool, err error)` | presente y vigente → `contenido, true, nil`; ausente o expirada → `nil, false, nil`; fallo → `nil, false, err` con `schema.ConClase`. Una implementación construida para no ir a la fuente (solo lectura, `--offline`) informa la ausencia como fallo de clase `fuente-no-disponible`, que quien llama propaga tal cual (FR-016; contrato de errores §5); fuera de ese modo la ausencia nunca es un error |
 | `Put` | `(ctx context.Context, clave string, contenido []byte, vigencia time.Duration) error` | guarda o sustituye; `nil` si quedó guardada |
 
 **Invariantes**: `presente == true ⇒ err == nil`; `err != nil ⇒ presente == false`; quien llama no
@@ -25,7 +25,8 @@ Lo que devuelve `New(ctx, opciones...)`. Único objeto del módulo que abre la b
 
 | Campo (privado) | Tipo | Invariante |
 |---|---|---|
-| `ruta` | `string` | `<directorio>/cache.db`, saneada con `filepath.Clean`; fijada en `New` (FR-023) |
+| `ruta` | `string` | `<directorio>/cache.db`, saneada con `filepath.Clean`; fijada en `New` (FR-023). En los DSN va codificada para el camino de un URI de SQLite (`%` → `%25`, `?` → `%3F`, `#` → `%23`), de modo que la base esté en ese fichero y en ningún otro (FR-020; contrato de apertura §3) |
+| `esperaAnteBloqueo` | `time.Duration` | 5 s: el tiempo total que cada operación espera a que otra invocación suelte el bloqueo de escritura, por tramos de 100 ms que miran el contexto (FR-003, FR-031; contrato de apertura §4). Se mide con el reloj real, no con `reloj`; solo las pruebas del paquete la acortan |
 | `origen` | enum privado: `opcion`, `variable`, `omision` | De dónde salió el directorio; solo para los mensajes de error (FR-022, FR-035) |
 | `soloLectura` | `bool` | Fijado por `SoloLectura()`; nunca cambia después (FR-015) |
 | `reloj` | `func() time.Time` | Nunca `nil`: `time.Now` por omisión (FR-009) |

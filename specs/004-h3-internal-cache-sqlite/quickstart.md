@@ -167,7 +167,8 @@ rtk proxy go test -race -count=1 -v \
 con `version = 99` termina con código 1, el mensaje dice «esquema en la versión 99 y este binario
 conoce la 1» y el fichero es idéntico byte a byte; un fichero de texto termina con 1 y no se borra; la
 migración interrumpida (tabla `entradas` ajena preexistente) deja la base sin `schema_version`; la base
-creada responde `journal_mode = wal`, `synchronous = 2`, `busy_timeout = 5000`, y en solo lectura
+creada responde `journal_mode = wal`, `synchronous = 2`, `busy_timeout = 100` (el tramo de cada
+intento; la espera total de 5 s la pone el cliente y la miden las pruebas de `espera_test.go`), y en solo lectura
 `query_only = 1`; el directorio nace con `0700` y `cache.db` con `0600`.
 
 ---

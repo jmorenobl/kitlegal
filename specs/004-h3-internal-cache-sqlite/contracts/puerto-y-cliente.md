@@ -19,6 +19,9 @@ import (
 type Cache interface {
     // Get devuelve el contenido guardado bajo la clave si está vigente. Ausencia (incluida la entrada
     // expirada) es (nil, false, nil); un fallo es err != nil y declara su clase (schema.ConClase).
+    // Una implementación construida para no ir a la fuente (solo lectura, --offline) informa la
+    // ausencia como fallo de clase «fuente no disponible», que quien llama propaga tal cual (§8);
+    // fuera de ese modo la ausencia nunca es un error (FR-013, FR-016).
     Get(ctx context.Context, clave string) (contenido []byte, presente bool, err error)
     // Put guarda el contenido bajo la clave con la vigencia dada, sustituyendo por completo lo que hubiera.
     Put(ctx context.Context, clave string, contenido []byte, vigencia time.Duration) error
@@ -66,8 +69,8 @@ declaración exportada fuera de esta lista (FR-005).
 | Opciones | se validan en orden; la primera inválida → «argumentos» (2) | igual |
 | Ruta | opción > `KITLEGAL_CACHE_DIR` > `~/.cache/kitlegal`; `""` → 2; `Stat(dir)` **existe** y no es directorio → 2 | igual |
 | Directorio | `Stat(dir)` **inexistente** u otro error → `MkdirAll(dir, 0o700)`; fallo → 2 | no se crea; `Stat(dir)` **inexistente** → cliente **sin base**; **otro** error (`ErrPermission`, E/S) → 1 |
-| Fichero | `OpenFile(cache.db, O_RDWR\|O_CREATE, 0o600)` y cierre; fallo de permiso → 2 | `Stat(cache.db)`: **inexistente** → sin base; **otro** error (`ErrPermission`…) → 1 |
-| Apertura | `file:<ruta>?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate`; `SetMaxOpenConns(1)` | `file:<ruta>?mode=ro&_pragma=busy_timeout(5000)&_pragma=query_only(1)`; `SetMaxOpenConns(1)`; ante `SQLITE_READONLY_DIRECTORY` (1544) o `SQLITE_CANTOPEN` (14) en la primera consulta y sin `-wal`, reapertura con `&immutable=1`; con `-wal`, «inesperado» (1) |
+| Fichero | `OpenFile(cache.db, O_RDWR\|O_CREATE, 0o600)` y cierre; fallo → 2 nombrando el fichero si `cache.db` ya existía (son sus permisos) o el directorio si no (es él quien no deja crearlo) | `Stat(cache.db)`: **inexistente** → sin base; **otro** error (`ErrPermission`…) → 1 |
+| Apertura | `file:<ruta>?_pragma=busy_timeout(100)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate`; `SetMaxOpenConns(1)`; `<ruta>` codificada para el camino del URI (`%`, `?`, `#`; contrato de apertura §3) | `file:<ruta>?mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)`; `SetMaxOpenConns(1)`; ante `SQLITE_READONLY_DIRECTORY` (1544) o `SQLITE_CANTOPEN` (14) en la primera consulta: si `cache.db` no se deja leer (`os.Open`), «inesperado» (1) nombrando el fichero; si se deja leer y no hay `-wal`, reapertura con `&immutable=1`; con `-wal`, «inesperado» (1) |
 | Esquema | lee la versión; `> conocida` → 1; aplica las pendientes en transacciones inmediatas | lee la versión; `0` → sin esquema; `== conocida` → lee; otra → 1 |
 | Resultado | cliente abierto, base migrada | cliente abierto (o sin base) y `cache.db` idéntico byte a byte |
 
@@ -80,8 +83,11 @@ no como un fallo de lectura (1). Todo lo demás (`fs.ErrPermission`, E/S) es «o
 solo lectura. Se define una vez (`ruta.go`) y la usan los dos `Stat` de la tabla; el contrato de apertura §6
 y el de errores §3 (filas 8 y 12) dicen lo mismo. Es lo único para lo que `internal/cache` importa `syscall`.
 
-`New` respeta `ctx` en todas las operaciones de base de datos; si `ctx` vence, el fallo es
-«fuente no disponible» (4) y no queda nada abierto.
+`New` respeta `ctx` en todas las operaciones de base de datos, también mientras espera a que otra
+invocación suelte el bloqueo de escritura: esa espera va por tramos de 100 ms que miran el contexto,
+hasta 5 s en total (contrato de apertura §4). Si `ctx` vence, el fallo es «fuente no disponible» (4),
+en cuanto acaba el tramo en curso, y no queda nada abierto; si el bloqueo dura más que la espera, el
+fallo es «inesperado» (1) diciendo que la base está bloqueada.
 
 ## 4. `Get` y `Put`: garantías
 
@@ -95,7 +101,8 @@ y el de errores §3 (filas 8 y 12) dicen lo mismo. Es lo único para lo que `int
 | normal, expirada (`!reloj().Before(expira)`) | `nil, false, nil`; la fila se conserva | — |
 | normal, presente | `contenido, true, nil`; cero bytes → `[]byte{}` no nulo | upsert en una sentencia; `nil` → BLOB vacío |
 | error del driver o de E/S | 1 con la causa | 1 con la causa |
-| `ctx` cancelado o vencido | 4 | 4 |
+| base bloqueada por otra invocación | espera hasta 5 s por tramos que miran `ctx` (leer en WAL no suele esperar); si persiste, 1 nombrando la ruta, la clave y la espera | igual; el upsert es una sentencia y repetirla tras `SQLITE_BUSY` es seguro |
+| `ctx` cancelado o vencido, antes o durante la espera | 4 | 4 |
 | tipo de sentencia | `QueryRowContext(...).Scan` (una fila; nada que cerrar) | `ExecContext` (autocommit) |
 
 Lo guardado se devuelve byte a byte (FR-012). Dos claves distintas nunca se responden la una por la otra
@@ -116,7 +123,8 @@ un cliente de solo lectura no los retira.
 | Directorio por omisión | `~/.cache/kitlegal` | FR-019 |
 | Nombre del fichero | `cache.db` | FR-019 (constante privada) |
 | Permisos | directorio `0700`, fichero `0600`, auxiliares heredan `0600` | FR-021 |
-| `busy_timeout` | 5000 ms | D4 |
+| `busy_timeout` (tramo del motor por intento) | 100 ms | D4, contrato de apertura §4 |
+| Espera ante bloqueo (total, en el cliente) | 5 s | FR-031, `espera.go` |
 | `journal_mode` / `synchronous` | `WAL` / `FULL` | FR-030, FR-031, D4 |
 | Conexiones por cliente | 1 | D4 |
 | Reloj | `time.Now` | D2 |
@@ -127,7 +135,7 @@ un cliente de solo lectura no los retira.
 
 `*Cliente` es seguro para uso concurrente desde varias goroutines (la conexión única serializa; el estado
 de cierre va con mutex). Dos clientes —mismo proceso o dos procesos— sobre la misma base no fallan por
-bloqueo (espera de 5 s), no corrompen el fichero (WAL) y un lector ve una entrada completa o ninguna y
+bloqueo (espera total de 5 s, por tramos de 100 ms que miran el contexto), no corrompen el fichero (WAL) y un lector ve una entrada completa o ninguna y
 toda entrada confirmada antes de leer, también si el lector es de solo lectura (FR-032, SC-007).
 
 ## 8. Lo que un adaptador de fuente escribirá (patrón, H4)

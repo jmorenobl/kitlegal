@@ -205,7 +205,10 @@ sin dependencia nueva.
    los auxiliares `-wal`/`-shm` heredan `0600` (sonda 1 I). Sin este paso SQLite crea `cache.db` a
    `0644` (sonda 1 I), que incumple FR-021. Sin `O_EXCL`: dos procesos que arrancan a la vez comparten
    el fichero y se serializan en la migración (D7);
-3. `sql.Open("sqlite", "file:<ruta>?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate")`;
+3. `sql.Open("sqlite", "file:<ruta>?_pragma=busy_timeout(100)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate")`,
+   con `<ruta>` codificada para el camino del URI (`%` → `%25`, `?` → `%3F`, `#` → `%23`;
+   `rutaParaURI`): el driver entrega el DSN `file:` entero al motor con `SQLITE_OPEN_URI`, que
+   decodifica `%HH` y corta el camino en `?` y `#` (revisión final, motivo [b][e]);
 4. `db.SetMaxOpenConns(1)`;
 5. `migrar(ctx)` (D7).
 
@@ -215,7 +218,7 @@ sin dependencia nueva.
 |---|---|---|
 | `journal_mode` | `WAL` | Literal del hito; es lo que permite leer mientras otra invocación escribe (sonda 1 D y E). Es persistente en el fichero; se declara en cada apertura normal por idempotencia |
 | `synchronous` | `FULL` (2) | Es el valor por omisión de SQLite (sonda 1 A lo confirma) y el más conservador: cada confirmación se sincroniza con el disco. FR-031 prohíbe sacrificar integridad por velocidad; la caché escribe unos KB por consulta y el coste de la red domina |
-| `busy_timeout` | `5000` ms | Espera ante bloqueo (FR-031): una invocación simultánea espera hasta cinco segundos en vez de fallar de inmediato (sonda 1 E frente a sonda 2 G). Cinco segundos cubre cualquier transacción de la caché —una migración o un `Put`— con margen; un valor mayor solo alargaría un fallo real |
+| `busy_timeout` | `100` ms por intento; 5 s en total | Espera ante bloqueo (FR-031): una invocación simultánea espera hasta cinco segundos en vez de fallar de inmediato (sonda 1 E frente a sonda 2 G). Cinco segundos cubre cualquier transacción de la caché —una migración o un `Put`— con margen; un valor mayor solo alargaría un fallo real. **Revisión final**: la espera de `busy_timeout` vive dentro del motor y no mira el contexto —`sqlite3_interrupt`, que es lo que el driver hace al terminar el contexto, no la corta—, así que la planificación inicial (`5000` en el DSN) dejaba un `Put` o un `New` con plazo de 300 ms cinco segundos esperando, contra FR-003. Ahora el motor espera un **tramo** de 100 ms y el cliente repite la sentencia mientras reciba `SQLITE_BUSY`, mirando el contexto entre tramos, hasta un presupuesto de 5 s medido con el reloj real (`espera.go`, contrato de apertura §4). Se reintentan solo sentencias en autocommit y el comienzo de una transacción, donde `SQLITE_BUSY` garantiza que no se hizo nada |
 | `_txlock` | `immediate` | Toda transacción explícita (solo las de migración, D7) toma el bloqueo de escritura al empezar, no al primer `INSERT`, de modo que dos procesos que migran a la vez se serializan sin `SQLITE_BUSY` por escalada de bloqueo (sonda 4) |
 | `query_only` | solo en solo lectura (D5) | Refuerzo del modo `ro` dentro de la propia conexión |
 
@@ -252,7 +255,12 @@ dentro del proceso sin necesidad. *Dejar que SQLite cree el fichero*: `0644`, co
    primera consulta real. Sin `immutable`: así la lectura ve lo que otra invocación ya confirmó en el WAL
    y respeta sus bloqueos (sonda 1 D, sonda 2 D; clarificación Q2, FR-015, FR-032).
 3. Si esa primera consulta falla con `*sqlite.Error` de código `SQLITE_READONLY_DIRECTORY` (1544) **o**
-   `SQLITE_CANTOPEN` (14), el directorio no permite crear `-shm`: **cuál de los dos códigos llega depende
+   `SQLITE_CANTOPEN` (14), SQLite no pudo abrir lo que necesita para leer, y el código no dice si el
+   culpable es el fichero o el directorio. **Revisión final** (motivo [e][b]): antes de nada se comprueba
+   con `os.Open` + cierre —una lectura que no escribe nada— si `cache.db` se deja leer; si no, el fallo
+   es «inesperado» (1) nombrando el fichero y el acceso denegado (fila 12), sin culpar al directorio, y
+   va antes de mirar `-wal` porque con `-wal` presente el mensaje de la fila 13 también lo culparía. Si
+   el fichero se deja leer, el directorio no permite crear `-shm`: **cuál de los dos códigos llega depende
    de qué auxiliares existan** —sin `-wal`, o con `-shm` y sin `-wal`, es 1544 (sonda 3 B y D); con `-wal`
    presente y `-shm` ausente es 14 (sonda 3 E)—, así que la condición que se comprueba es la misma para
    los dos y es la presencia de `cache.db-wal`, no el código. Ningún escritor puede estar trabajando ahí,
@@ -463,8 +471,14 @@ acredita relanzando el binario de test (clarificación Q5), ver D11. La suite pa
 
 **Alternativas.** *Un mutex global del paquete para serializar clientes del mismo proceso*: no cubre dos
 procesos y esconde lo que SQLite ya resuelve; además impediría medir la pareja «lector de solo lectura
-frente a escritor» en el mismo proceso. *Reintentar ante `SQLITE_BUSY`*: `busy_timeout` ya espera
-dentro del motor; un bloqueo que dura más de cinco segundos es un fallo real y se declara (código 1).
+frente a escritor» en el mismo proceso. *Reintentar ante `SQLITE_BUSY`*: la planificación inicial lo
+descartó porque `busy_timeout` ya esperaba dentro del motor; la **revisión final** lo adoptó, porque esa
+espera no mira el contexto y dejaba fuera de FR-003 a toda operación bloqueada (motivo [e][f]): el
+motor espera un tramo de 100 ms y el cliente reintenta mirando el contexto hasta 5 s en total
+(`espera.go`, D4). Sigue sin haber goroutines propias —la pausa entre tramos es un temporizador del
+runtime— y un bloqueo que dura más que la espera sigue siendo un fallo real, declarado como «inesperado»
+(1) con un mensaje que dice que la base está bloqueada y nombra la espera, nunca como fichero
+inutilizable.
 
 ---
 
