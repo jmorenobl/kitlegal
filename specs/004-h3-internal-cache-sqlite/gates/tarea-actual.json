@@ -1,18 +1,19 @@
 {
-  "id": "T006",
-  "texto": "T006 [US5] Dos clientes a la vez y la superficie cerrada, sobre el código ya existente: `internal/cache/concurrencia_test.go` con `TestDosClientesEnElMismoProceso` (dos subtests de un solo nivel, sin anidar —el escenario 12 del quickstart cuenta sus líneas—, `normal-normal` y `normal-solo-lectura`: el escritor confirma N entradas y avisa por canal; el lector las encuentra **todas**, ninguna a medias, cero fallos por bloqueo y cero ausencias falsas) y `TestMismaClaveDosEscritores` (la última escritura completa gana y el contenido leído es uno de los dos, nunca una mezcla); `internal/cache/superficie_test.go` con `TestSuperficieExportada`, que recorre con `go/parser` y `go/ast` todas las declaraciones exportadas del paquete y falla si alguna nombra un selector de `sql` o de `sqlite` o si aparece una declaración exportada fuera de la lista del contrato (`VariableDirectorio`, `Cliente`, `New`, `Opcion`, las cuatro opciones, `Get`, `Put`, `Close`, `Error` y sus tres métodos), de modo que la imposibilidad de ejecutar SQL arbitrario desde fuera sea **por construcción** y no solo por control mecánico; y `TestClienteDesdeVariasGoroutines` en `internal/cache/cliente_test.go` (un solo cliente, N goroutines alternando `Get` y `Put`), todo bajo el detector de carreras que `make test` ya activa; la tarea **no añade producto**: comprueba el de T003 a T005 (FR-005, FR-007, FR-032, SC-007, SC-013, US5 escenario 4, US6 escenario 1, D2, D10).",
+  "id": "T007",
+  "texto": "T007 [P] [datos] [US1] La única grabación del hito, **escrita a mano** contra el host ficticio `http://fuente.prueba` —material de test, **no** una grabación de ninguna fuente real y nunca obtenida de la red (constitución, «Reglas del modo desatendido»; `KITLEGAL_RECORD` no se ejecuta en ninguna tarea)—, con el nombre que produce la regla del contrato de grabación de H2 §2 y el contenido de su §1: `internal/cache/testdata/reproduccion/prueba/GET_http_fuente.prueba_norma.json` con `\"formato\": 1`, `grabado_en` fijo `2026-09-12T00:00:00Z`, `peticion` `GET http://fuente.prueba/norma` con `cabeceras` que llevan **solo** la identificación `kitlegal/dev (+https://ventanillalegal.es/bot)`, respuesta `200` con `Content-Length: 24`, `Content-Type: text/plain; charset=utf-8` y una cabecera `Date` fija, y `cuerpo` `<norma>contenido</norma>`; ninguna otra ruta y ningún otro fichero —la lista es cerrada (plan.md §«Fixtures»)—, ningún fichero fuera de ese árbol de material de test del propio paquete, y ninguna tarea de H3 crea el árbol de fixtures por fuente de la raíz del repositorio ni toca el directorio de esquemas de la raíz (punto 2 de la Definition of Done, FR-046, obligación 4 del plan, D12).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T006.md y déjala sin marcar.",
-  "base": "29c15dc8f2e457cfd7c20275dfbd454e60a7824b",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T007.md y déjala sin marcar.",
+  "base": "23d0399887be82ba967a642a6d93b67680fd7448",
   "rutas": [
-    "go/ast",
-    "go/parser",
-    "internal/cache/cliente_test.go",
-    "internal/cache/concurrencia_test.go",
-    "internal/cache/superficie_test.go"
+    ".es/bot",
+    ".prueba/norma",
+    "internal/cache/testdata/reproduccion/prueba/GET_http_fuente.prueba_norma.json",
+    "kitlegal/dev",
+    "plan.md",
+    "text/plain"
   ],
   "cierre": false
 }
