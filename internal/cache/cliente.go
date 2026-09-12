@@ -2,6 +2,8 @@ package cache
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -121,6 +123,17 @@ type Cliente struct {
 	// registrador nunca es nulo: descarta por omisión (D14).
 	registrador *slog.Logger
 
+	// db es la conexión con la base de datos, y es nula en un solo caso: el
+	// cliente de solo lectura que no encontró cache.db, que se construye sin
+	// base porque este modo no crea ninguna y para el que toda lectura es una
+	// ausencia (FR-015). No se expone de ninguna forma: la imposibilidad de
+	// ejecutar SQL desde fuera del paquete es por construcción (FR-005).
+	db *sql.DB
+	// versionEsquema es la versión que la base tiene aplicada: la que este
+	// binario conoce cuando hay esquema, y 0 cuando no lo hay —en solo lectura,
+	// que no migra— (FR-024, FR-025).
+	versionEsquema int64
+
 	// mu protege el estado de cierre, que es lo único que cambia en la vida del
 	// cliente. Lo demás se fija al construir y solo se lee (D10).
 	mu      sync.Mutex
@@ -140,9 +153,11 @@ type Cliente struct {
 // vencido es «fuente no disponible» (4), la misma clase con la que el kernel
 // trata el plazo agotado.
 //
-// Todavía no abre ninguna base de datos: crear el directorio, abrir el fichero
-// y migrarlo llegan después, y hasta entonces construir un cliente no toca el
-// disco más que para mirar si el directorio efectivo está y es un directorio.
+// Construir la caché abre la base de datos, y en modo normal la crea y la
+// migra: el esquema se pone al día al abrir y no al operar, que es la razón por
+// la que el modo de solo lectura tiene que conocerse aquí y no en cada llamada
+// (FR-015, FR-024). Un fallo al abrir no deja ninguna conexión abierta y no
+// devuelve ningún cliente.
 func New(ctx context.Context, opciones ...Opcion) (*Cliente, error) {
 	declarados := ajustes{
 		reloj:       time.Now,
@@ -183,14 +198,21 @@ func New(ctx context.Context, opciones ...Opcion) (*Cliente, error) {
 		slog.String("origen", string(cliente.origen)),
 		slog.Bool("solo_lectura", cliente.soloLectura))
 
+	if err := cliente.abre(ctx); err != nil {
+		return nil, err
+	}
+
 	return cliente, nil
 }
 
-// Close cierra el cliente y es idempotente: la primera llamada lo deja cerrado
-// y las siguientes no hacen nada y devuelven nil (FR-004). Todavía no hay
-// ninguna conexión que cerrar; lo que ya vale es que el cliente recuerde que
-// está cerrado, que es lo que hace que cerrar dos veces —el defer de quien lo
-// construyó y el cierre explícito— no sea un fallo.
+// Close cierra la conexión con la base de datos y es idempotente: la primera
+// llamada la cierra y devuelve lo que dijera el cierre, y las siguientes no
+// hacen nada y devuelven nil (FR-004). Es lo que hace que el defer de quien
+// construyó el cliente y un cierre explícito antes de tiempo convivan sin que el
+// segundo parezca un error.
+//
+// Un cliente sin base —el de solo lectura que no encontró cache.db— no tiene
+// nada que cerrar, y cerrarlo tampoco falla.
 func (c *Cliente) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -200,6 +222,14 @@ func (c *Cliente) Close() error {
 	}
 
 	c.cerrado = true
+
+	if c.db == nil {
+		return nil
+	}
+
+	if err := c.db.Close(); err != nil {
+		return c.falloInesperadoEn("cerrar", fmt.Sprintf("no se pudo cerrar %q", c.ruta), err)
+	}
 
 	return nil
 }
