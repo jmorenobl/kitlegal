@@ -132,6 +132,62 @@ func TestCloseEsIdempotente(t *testing.T) {
 	}
 }
 
+// TestOperacionTrasCierre fija la otra mitad de FR-004 y de la fila 14 del
+// contrato de errores: después de Close ninguna operación lee ni escribe, las
+// dos son «inesperado» (1) y el disco queda como lo dejó el cierre, sin que
+// reaparezca ningún auxiliar ni cambie un byte.
+//
+// Las dos filas son las dos formas de cliente. En la que tiene base, la entrada
+// que se pide está guardada y vigente, de modo que servirla sería posible si el
+// cierre no se comprobara. En la que no tiene base —solo lectura sobre un
+// directorio vacío—, leer tras cerrar es 1 y no la ausencia (4) que el mismo
+// cliente devolvería abierto.
+func TestOperacionTrasCierre(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre     string
+		conEntrada bool
+		opciones   []Opcion
+	}{
+		{nombre: "con base de datos", conEntrada: true},
+		{nombre: "sin base de datos", opciones: []Opcion{SoloLectura()}},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			directorio := t.TempDir()
+			if caso.conEntrada {
+				siembra(t, directorio, claveDePrueba, []byte("<norma>contenido</norma>"))
+			}
+
+			cliente := clienteAbierto(t, directorio, caso.opciones...)
+			require.NoError(t, cliente.Close())
+
+			antes := arbolDe(t, directorio)
+
+			contenido, presente, err := cliente.Get(t.Context(), claveDePrueba)
+			require.Error(t, err)
+			assert.False(t, presente)
+			assert.Nil(t, contenido)
+			assert.Equal(t, schema.ClaseInesperado, cli.Clasificar(err))
+			assert.Equal(t, 1, cli.CodigoSalida(err))
+			assert.Contains(t, err.Error(), "cliente cerrado", "el mensaje dice por qué no se lee")
+			assert.Contains(t, err.Error(), claveDePrueba, "…y qué clave se pedía")
+
+			err = cliente.Put(t.Context(), claveDePrueba, []byte("<norma>otra</norma>"), vigenciaDePrueba)
+			require.Error(t, err)
+			assert.Equal(t, schema.ClaseInesperado, cli.Clasificar(err))
+			assert.Equal(t, 1, cli.CodigoSalida(err))
+			assert.Contains(t, err.Error(), claveDePrueba)
+
+			assert.Equal(t, antes, arbolDe(t, directorio), "después de cerrar no se toca el disco")
+		})
+	}
+}
+
 // TestNewPorOmisionUsaElDirectorioDeLaCuenta fija FR-019 y la última
 // precedencia de FR-023: sin opción y sin variable, la caché vive en
 // <cuenta>/.cache/kitlegal y en ningún otro sitio.

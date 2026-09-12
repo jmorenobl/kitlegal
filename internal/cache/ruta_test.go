@@ -314,6 +314,72 @@ func TestRutaInservible(t *testing.T) {
 	}
 }
 
+// TestDirectorioNoCreable fija la fila 6 del contrato de errores y la
+// cualificación por modo de FR-022 sobre un directorio que no se puede crear
+// porque su padre es un fichero. En modo normal, donde la caché tiene que crear
+// la base para servir de algo, es «argumentos» (2) nombrando de dónde salió la
+// ruta y cuál era. En solo lectura no es ningún fallo de ruta sino un directorio
+// de caché inexistente, y leer es «fuente no disponible» (4), nunca 2 (FR-015,
+// SC-011).
+//
+// Es el caso por el que la regla «inexistente» nombra aparte ENOTDIR: os.Stat no
+// devuelve fs.ErrNotExist, y sin esa segunda condición el subtest de solo
+// lectura terminaría en 1. En los dos modos el fichero que hace de padre queda
+// intacto y bajo el directorio temporal no aparece nada.
+//
+// Declara t.Parallel() porque la ruta llega por la opción, que no consulta el
+// entorno.
+func TestDirectorioNoCreable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+
+		padre, directorio := directorioBajoUnFichero(t)
+		antes := arbolDe(t, padre)
+
+		cliente, err := New(t.Context(), ConDirectorio(directorio))
+
+		require.Error(t, err)
+		assert.Nil(t, cliente)
+		assert.Equal(t, schema.ClaseArgumentos, cli.Clasificar(err))
+		assert.Equal(t, 2, cli.CodigoSalida(err))
+		assert.Contains(t, err.Error(), origenDeLaOpcion, "el mensaje nombra de dónde salió la ruta")
+		assert.Contains(t, err.Error(), directorio, "…y cuál era")
+		assert.Equal(t, antes, arbolDe(t, padre), "el fichero padre queda intacto y no se crea nada")
+	})
+
+	t.Run("solo-lectura", func(t *testing.T) {
+		t.Parallel()
+
+		padre, directorio := directorioBajoUnFichero(t)
+		antes := arbolDe(t, padre)
+
+		cliente, err := New(t.Context(), ConDirectorio(directorio), SoloLectura())
+		require.NoError(t, err, "en solo lectura un directorio inexistente no es un fallo de ruta (FR-015)")
+		t.Cleanup(func() { require.NoError(t, cliente.Close()) })
+		assert.Nil(t, cliente.db, "el cliente queda sin base")
+
+		contenido, presente, err := cliente.Get(t.Context(), claveDePrueba)
+		compruebaAusenciaEnSoloLectura(t, contenido, presente, err, claveDePrueba)
+
+		assert.Equal(t, antes, arbolDe(t, padre), "el fichero padre queda intacto y no se crea nada")
+	})
+}
+
+// directorioBajoUnFichero devuelve un directorio temporal con un fichero dentro
+// y una ruta de directorio que cuelga de ese fichero: no existe como directorio
+// y no se puede crear.
+func directorioBajoUnFichero(t *testing.T) (padre, directorio string) {
+	t.Helper()
+
+	padre = t.TempDir()
+	fichero := filepath.Join(padre, "fichero")
+	require.NoError(t, os.WriteFile(fichero, []byte("no soy un directorio"), 0o600))
+
+	return padre, filepath.Join(fichero, "sub")
+}
+
 // sinVariable deja KITLEGAL_CACHE_DIR sin declarar mientras dura la subprueba.
 // t.Setenv no sabe borrar una variable, así que se declara primero —que es lo
 // que registra la restauración de lo que hubiera en el entorno al terminar— y
