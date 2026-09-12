@@ -228,9 +228,15 @@ internal/
 │   ├── peticion.go              Peticion, Respuesta, Cabeceras, Descripcion()               (D2)
 │   ├── errores.go               Error: clase, petición, estado, Retry-After, Unwrap, Clase() (D4, D20)
 │   ├── agente.go                version (por -ldflags), AgenteDeUsuario()                    (D5)
-│   ├── sitio.go                 clave de sitio (esquema+host+puerto), mapa de sitios con exclusión (D7, D14)
-│   ├── identificar.go           decorador: User-Agent en toda petición                       (D3)
-│   ├── robots.go                decorador: obtención (con su cadena de redirecciones), casos FR-015,
+│   ├── sitio.go                 clave de sitio (esquema+host+puerto), mapa de sitios con exclusión;
+│   │                            la struct gana el limitador con ritmo.go y las reglas con robots.go,
+│   │                            cuando entra la dependencia de cada uno               (D7, D14)
+│   ├── identificar.go           decorador: User-Agent en toda petición que baja por la cadena, y
+│   │                            único constructor de peticiones del paquete
+│   │                            (nuevaPeticionIdentificada), del que salen ya identificadas las
+│   │                            que el propio paquete origina: robots.txt y cada salto  (D3, FR-009)
+│   ├── robots.go                decorador: obtención (con su cadena de redirecciones y la petición
+│   │                            construida ya identificada), casos FR-015,
 │   │                            caché por sitio, evaluación con temoto/robotstxt             (D7)
 │   ├── reintentos.go            decorador: 5xx/transporte, equal jitter, espera interrumpible, cierre
 │   │                            de cuerpos, reloj inyectable                                  (D9)
@@ -286,7 +292,7 @@ Según la sección «Gates» de la constitución. Cada fila dice qué orden lo e
 | 3 | **`bodyclose`** | activo desde H0; exige cerrar `res.Body` de todo `*http.Response` | `lint` | Sí | Un `*http.Response` sin cerrar → «response body must be closed» (quickstart 10.a) |
 | 4 | **Superficie sin `net/http`** | `TestSuperficieExportada`: `go/parser` + `go/ast` sobre las declaraciones exportadas del paquete | `test` | Sí | Exportar un método que devuelva `*http.Response` hace fallar el test (FR-002) |
 | 5 | **Contexto obligatorio por construcción** | el compilador: `Pedir(ctx, ejecucion, p)` es la única operación; el adaptador de prueba es `package httpx_test` | `test` (compilación) | Sí | Llamar a `Pedir` sin `ctx` no compila (quickstart 10.c; FR-061, SC-012) |
-| 6 | **Identificación en el 100 % de las peticiones** | `TestIdentificacionEnTodaPeticion`: el servidor cuenta peticiones sin la cabecera exacta (recurso, `robots.txt`, reintentos, saltos) | `test` | Sí | Quitar el decorador `identificar` de la cadena hace fallar el test con N > 0 (SC-001) |
+| 6 | **Identificación en el 100 % de las peticiones** | `TestIdentificacionEnTodaPeticion`: el servidor cuenta peticiones sin la cabecera exacta, con una subprueba por procedencia (recurso y saltos desde que existe la cadena; `reintentos` cuando entra `reintentos.go`; `robots.txt` cuando entra `robots.go`), más `TestSoloIdentificarConstruyePeticiones`, que recorre el paquete con `go/parser` y exige que solo `identificar.go` construya un `*http.Request` | `test` | Sí | Quitar el decorador `identificar` de la cadena hace fallar el test con N > 0 en recurso, saltos y reintentos; construir la petición de `robots.txt` con `http.NewRequestWithContext` en `robots.go` en vez de con `nuevaPeticionIdentificada` la deja sin cabecera y falla en la subprueba `robots.txt` **y** en `TestSoloIdentificarConstruyePeticiones` (SC-001, FR-009) |
 | 7 | **Versión coherente con `version`** | `TestAgenteDeUsuario` (forma exacta con una expresión regular construida sobre la **variable** `version`, no sobre el literal `dev`, con el sufijo ` (+https://ventanillalegal.es/bot)` pasado por `regexp.QuoteMeta` en vez de escapado a mano, y `t.Log` de la identificación, D5) + `TestVersionDeLaIdentificacion` en `cmd/kitlegal` + `LDFLAGS` del `Makefile` | `test` + `build` | Sí | Cambiar el valor por omisión de una de las dos variables hace fallar el test de `cmd/kitlegal`; con `-ldflags` el registro del test muestra la versión inyectada sin fallar, y quitar la `-X` de `LDFLAGS` se ve en quickstart 2 (FR-007) |
 | 8 | **`robots.txt`** | `TestRobotsDeniegaLaRuta`, `TestRobotsSePideUnaVezPorSitio`, `TestRobotsCasosDeObtencion` (tabla FR-015), `TestRobotsRedirigido`, `TestRobotsNoSeEvaluaASiMismo`, `TestRobotsPorSitio` | `test` | Sí | Sin la caché, diez rutas producen diez `GET /robots.txt`; sin la intercepción del 429, `FromStatusAndBytes` permitiría (SC-003) |
 | 9 | **Ritmo por sitio y clave de sitio** | `TestClaveDeSitio` (tabla sobre los hosts ficticios `fuente.prueba` y `otra.prueba`: esquema, host en minúsculas, puerto explícito o por omisión 80/443, `http://fuente.prueba` ≠ `https://fuente.prueba`, `fuente.prueba` ≠ `otra.prueba`, dos puertos de `127.0.0.1` distintos, ruta y consulta fuera de la clave), `TestRitmoSeparaPeticionesDelMismoSitio`, `TestRitmoNoRetrasaOtroSitio`, `TestRitmoRespetaElContexto` | `test` | Sí | Con ráfaga > 1 la segunda petición llega sin separación; con clave por host sin puerto, `TestClaveDeSitio` falla en la fila de los dos puertos y el segundo servidor espera en `TestRitmoNoRetrasaOtroSitio` (SC-004, FR-013, FR-015, FR-019) |
@@ -359,9 +365,9 @@ que usan `t.Setenv` (grabación), que `paralleltest` reconoce.
 | `errores_test.go` | `TestClasesDeError` (16 filas), `TestErrorEnvueltoConservaLaClase`, `TestErrorRetryAfter`, `TestErrorMensajesEnEspanol` | SC-006, SC-016, FR-031, FR-034, D20 |
 | `agente_test.go` | `TestAgenteDeUsuario`: expresión regular construida sobre la variable `version` y con el sufijo escapado en ejecución (`"^kitlegal/" + regexp.QuoteMeta(version) + regexp.QuoteMeta(" (+https://ventanillalegal.es/bot)") + "$"`), `version` no vacía, y `t.Log` de la identificación para que `-ldflags` sea observable (D5) | FR-006, FR-007 |
 | `sitio_test.go` | `TestClaveDeSitio` (tabla, solo hosts ficticios admitidos por el control 18): `http://fuente.prueba` → `http://fuente.prueba:80`; `https://fuente.prueba` → `https://fuente.prueba:443`; `http://fuente.prueba:8080` conserva el puerto; `http://Fuente.Prueba/ruta?q=1` → `http://fuente.prueba:80` (host en minúsculas, sin ruta ni consulta); `http://fuente.prueba` ≠ `https://fuente.prueba`; `http://fuente.prueba` ≠ `http://otra.prueba`; `http://127.0.0.1:53211` ≠ `http://127.0.0.1:53212`; `http://fuente.prueba` = `http://fuente.prueba:80` | FR-013, FR-015, FR-019, SC-004, D7 |
-| `identificar_test.go` | `TestIdentificacionEnTodaPeticion` | SC-001, FR-009 |
-| `robots_test.go` | `TestRobotsDeniegaLaRuta`, `TestRobotsSePideUnaVezPorSitio`, `TestRobotsCasosDeObtencion`, `TestRobotsRedirigido`, `TestRobotsNoSeEvaluaASiMismo`, `TestRobotsPorSitio` | SC-003, US1-4, US1-8, US2-4, FR-013 a FR-018 |
-| `reintentos_test.go` | `TestReintentosDosErroresYUnAcierto`, `TestReintentosNoRepite4xx`, `TestReintentosCancelacionGana`, `TestReintentosCierraCuerposDescartados`, `TestReintentosAgotados` | SC-005, FR-023 a FR-029 |
+| `identificar_test.go` | `TestIdentificacionEnTodaPeticion` (subpruebas `recurso` y `saltos` cuando nace el fichero; `reintentos` al entrar `reintentos.go`; `robots.txt` al entrar `robots.go`, contando también las peticiones de `robots.txt` de cada salto), `TestSoloIdentificarConstruyePeticiones` (`go/parser`: ningún otro fichero del paquete llama a `http.NewRequestWithContext`) | SC-001, FR-009 |
+| `robots_test.go` | `TestRobotsDeniegaLaRuta`, `TestRobotsSePideUnaVezPorSitio` (y la cabecera de identificación en la propia petición de `robots.txt`), `TestRobotsCasosDeObtencion`, `TestRobotsRedirigido` (la cabecera en cada salto), `TestRobotsNoSeEvaluaASiMismo`, `TestRobotsPorSitio` | SC-003, US1-4, US1-8, US2-4, FR-009, FR-013 a FR-018 |
+| `reintentos_test.go` | `TestReintentosDosErroresYUnAcierto` (y la cabecera de identificación en cada intento), `TestReintentosNoRepite4xx`, `TestReintentosCancelacionGana`, `TestReintentosCierraCuerposDescartados`, `TestReintentosAgotados` | SC-005, FR-009, FR-023 a FR-029 |
 | `ritmo_test.go` | `TestRitmoSeparaPeticionesDelMismoSitio`, `TestRitmoNoRetrasaOtroSitio`, `TestRitmoRespetaElContexto` | SC-004, FR-019 a FR-022 |
 | `grabar_test.go` | `TestGrabarEscribeElFichero`, `TestGrabarNoAlteraLaRespuesta`, `TestGrabarFormatoEstable`, `TestGrabarSinVariableNoEscribe`, `TestGrabarConfiguracionIncompleta`, `TestGrabarRaizInvalida`, `TestGrabarColision`, `TestGrabarValorDeVariableInvalido`, `TestGrabarCuerpoBinario` | SC-008, US4, FR-036 a FR-043, FR-064 |
 | `nombre_test.go` | `TestNombreDeGrabacion` (la tabla del contrato §2 más los diez pares petición → fichero de §«Fixtures», incluida la colisión `/a,b` y `/a_b`) | contrato de grabación §2 |
@@ -387,19 +393,27 @@ cerrar cada tarea (regla del modo desatendido).
 2. **Dominio** (`internal/core/schema`): `ConClase` y `Resultado.Ensayo`, con sus tests; cobertura
    ≥ 85 % mantenida.
 3. **Tipos del cliente** (`peticion.go`, `errores.go`, `agente.go`, `sitio.go`, `nombre.go`): sin red;
-   sus tests son puros. `TestClasesDeError` se escribe ya con las 16 filas y falla hasta que existan las
-   rutas; `TestClaveDeSitio` con la tabla de la clave de sitio; `TestNombreDeGrabacion` con la tabla del
-   contrato y los diez pares de §«Fixtures».
-4. **Transporte y `Pedir` mínimo** (`transporte.go`, `cliente.go`): validación, ensayo, bucle de
-   redirecciones y clasificación con una cadena de un solo escalón (`identificar → transporte`).
-   Tests: `cliente_test.go`, `ensayo_test.go`, `identificar_test.go`, `transporte_test.go`.
-5. **Ritmo** (`ritmo.go`) y **reintentos** (`reintentos.go`, jitter con `crypto/rand`, D9) con el reloj
-   inyectable; sus tests.
-6. **`robots.txt`** (`robots.go`): última en la cadena porque usa reintentos y ritmo por debajo; sus
-   tests, incluida la tabla de FR-015.
+   sus tests son puros —`TestErrorEnvueltoConservaLaClase`, `TestErrorRetryAfter`,
+   `TestErrorMensajesEnEspanol`, `TestClaveDeSitio` con la tabla de la clave de sitio y
+   `TestNombreDeGrabacion` con la tabla del contrato y los diez pares de §«Fixtures»—. La tabla cerrada
+   de las dieciséis situaciones (`TestClasesDeError`) **no** se escribe aquí: ninguna tarea puede dejar
+   un test en rojo esperando a otra, así que va en el paso 7, cuando existen sus dieciséis rutas.
+4. **Transporte y `Pedir` mínimo** (`transporte.go`, `cliente.go`, `identificar.go` con el decorador y
+   el constructor `nuevaPeticionIdentificada`): validación, ensayo, bucle de redirecciones y
+   clasificación con una cadena de un solo escalón (`identificar → transporte`).
+   Tests: `cliente_test.go`, `ensayo_test.go`, `identificar_test.go` (subpruebas `recurso` y `saltos`,
+   más `TestSoloIdentificarConstruyePeticiones`), `transporte_test.go`.
+5. **Ritmo** (`ritmo.go`, que añade el limitador a la struct `sitio`) y **reintentos**
+   (`reintentos.go`, jitter con `crypto/rand`, D9) con el reloj inyectable; sus tests, y la subprueba
+   `reintentos` de `TestIdentificacionEnTodaPeticion`.
+6. **`robots.txt`** (`robots.go`, que añade las reglas a la struct `sitio`): última en la cadena porque
+   usa reintentos y ritmo por debajo; sus tests, incluida la tabla de FR-015, la cabecera de
+   identificación en la propia petición de `robots.txt` y la subprueba `robots.txt` de
+   `TestIdentificacionEnTodaPeticion`.
 7. **Grabación** (`grabar.go`) y **reproducción** (`reproducir.go`) con `Replay`; los diez fixtures a
-   mano de §«Fixtures» (`[datos]`, rutas declaradas una a una); sus tests. `TestClasesDeError` pasa
-   entera aquí.
+   mano de §«Fixtures» (`[datos]`, rutas declaradas una a una); sus tests. Con las dieciséis rutas de
+   fallo ya existentes, aquí se escribe **entera** `TestClasesDeError`, sobre código de los pasos
+   anteriores (es uno de los dos casos en que test e implementación van en tareas distintas).
 8. **Kernel**: `cli.Clasificar` (+ casos en `TestClasificar`), `internal/app` (presentación de `Ensayo`,
    `TestDryRunPresentaElEnsayo`), `cmd/kitlegal/main_test.go` (`TestVersionDeLaIdentificacion`),
    `Makefile` (`LDFLAGS`).
@@ -439,7 +453,10 @@ Sin `CHANGELOG.md`: H2 no cambia ningún comportamiento visible (FR-062, SC-014;
    lleva el `>> 1` que G115 reconoce. No se escribe ninguna rama para un error que el lector no puede
    devolver. La tarea de `reintentos.go` lo declara y `make lint` lo confirma.
 3. **Comprobar S2** (`misspell`) al primer `make lint`; un falso positivo en español va a `ignore-rules`
-   como en H1, no a una supresión.
+   como en H1, no a una supresión. La tarea que lo comprueba **declara `.golangci.yml`** entre sus rutas,
+   acotado a `misspell.ignore-rules`: la contingencia edita ese fichero y el guardián de diff rechaza lo
+   que no esté declarado. El escenario 12 del quickstart, que exige que el diff de `.golangci.yml` frente
+   a `main` no añada ninguna regla ni exclusión, admite esas palabras y ninguna otra línea.
 4. **Etiquetar `[datos]`** toda tarea que cree o toque `internal/httpx/testdata/`, dejando claro en la
    tarea que es material de test escrito a mano y no una grabación real.
 5. **Declarar en cada tarea sus rutas** (guardián de diff): las de H1 que se tocan son exactamente
@@ -464,6 +481,12 @@ Sin `CHANGELOG.md`: H2 no cambia ningún comportamiento visible (FR-062, SC-014;
     tareas de `sitio_test.go`, `nombre_test.go`, `agente_test.go` y de los fixtures lo declaran, y la
     última tarea de tests ejecuta la orden **entera** de los prerrequisitos del quickstart contra el
     árbol y deja la confirmación «solo direcciones locales» como evidencia en la PR.
+12. **Ampliar `TestIdentificacionEnTodaPeticion` con cada escalón nuevo de la cadena**: el test nace con
+    una cadena de un solo escalón, pero el control 6 lo da por cubierto entero, así que la tarea de
+    `reintentos.go` y la de `robots.go` **declaran `internal/httpx/identificar_test.go`** y le suman su
+    subprueba (`reintentos`, `robots.txt`); además, sus propios servidores de prueba cuentan en cero las
+    peticiones sin la cabecera. La tarea de `robots.go` declara también `internal/httpx/sitio.go` (la
+    struct gana las reglas del sitio) y la de `ritmo.go` igual (el limitador).
 
 ## Comprobación contra la rúbrica del juez (`juez_plan`, criterios a-j)
 

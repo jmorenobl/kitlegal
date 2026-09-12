@@ -81,12 +81,18 @@ ningún directorio `testdata/<fuente>/` nuevo en la raíz (`test ! -d testdata &
 ## Escenario 2 — Identificación en toda petición y versión del binario (SC-001, FR-007)
 
 ```bash
-go test -race -count=1 -run '^(TestAgenteDeUsuario|TestIdentificacionEnTodaPeticion)$' ./internal/httpx/
+go test -race -count=1 -v \
+  -run '^(TestAgenteDeUsuario|TestIdentificacionEnTodaPeticion|TestSoloIdentificarConstruyePeticiones)$' \
+  ./internal/httpx/ 2>&1 | grep -E '^(=== RUN|--- (PASS|FAIL)|ok|FAIL)'
 ```
 
-**Esperado**: `ok`. `TestIdentificacionEnTodaPeticion` cuenta en el servidor local las peticiones sin
-la cabecera `User-Agent: kitlegal/<versión> (+https://ventanillalegal.es/bot)` —recurso, `robots.txt`,
-reintentos y saltos de redirección— y exige cero.
+**Esperado**: `ok`, con las cuatro subpruebas de `TestIdentificacionEnTodaPeticion` en `PASS`
+(`recurso`, `saltos`, `reintentos`, `robots.txt`): cada una cuenta en el servidor local las peticiones
+sin la cabecera `User-Agent: kitlegal/<versión> (+https://ventanillalegal.es/bot)` y exige cero,
+incluida la petición de `robots.txt` que el paquete fabrica por debajo del decorador.
+`TestSoloIdentificarConstruyePeticiones` recorre el paquete con `go/parser` y exige que solo
+`identificar.go` construya un `*http.Request`: es lo que hace que esa petición no pueda nacer sin
+identificación (research D3, FR-009).
 
 La versión llega por `-ldflags`, con la misma `VERSION` del `Makefile` que alimenta a `kitlegal version`:
 
@@ -115,9 +121,11 @@ go test -race -count=1 -v -run '^TestRobots' ./internal/httpx/ 2>&1 | grep -E '^
 ```
 
 **Esperado**: `PASS` en `TestRobotsDeniegaLaRuta` (cero accesos a la ruta en el servidor, clase 5),
-`TestRobotsSePideUnaVezPorSitio` (diez rutas → un `GET /robots.txt`), `TestRobotsCasosDeObtencion` (la
+`TestRobotsSePideUnaVezPorSitio` (diez rutas → un `GET /robots.txt`, y ese `GET` trae la cabecera de
+identificación exacta, FR-009), `TestRobotsCasosDeObtencion` (la
 tabla de FR-015: 404 → permite, vacío → permite, 5xx → 5, 429 → 5 sin reintento y cacheado, ilegible →
-5, plazo → 4), `TestRobotsRedirigido` (US1-8: cadena seguida y evaluada; cadena excedida → 5),
+5, plazo → 4), `TestRobotsRedirigido` (US1-8: cadena seguida y evaluada, con la cabecera de
+identificación en cada salto; cadena excedida → 5),
 `TestRobotsNoSeEvaluaASiMismo` y `TestRobotsPorSitio` (`http` y `https`, o dos puertos, tienen
 `robots.txt` distintos).
 
@@ -148,7 +156,8 @@ puerto no espera por el primero) y `TestRitmoRespetaElContexto` (contexto cancel
 go test -race -count=1 -v -run '^TestReintentos' ./internal/httpx/ 2>&1 | grep -E '^(--- (PASS|FAIL)|ok|FAIL|\s+reintentos_test)'
 ```
 
-**Esperado**: `PASS` en `TestReintentosDosErroresYUnAcierto` (tres peticiones exactas en el servidor;
+**Esperado**: `PASS` en `TestReintentosDosErroresYUnAcierto` (tres peticiones exactas en el servidor,
+las tres con la cabecera de identificación —el servidor cuenta cero sin ella, FR-009—;
 las dos esperas registradas por el reloj inyectado crecen y difieren entre dos ejecuciones),
 `TestReintentosNoRepite4xx` (404 y 429: una sola petición), `TestReintentosCancelacionGana` (contexto
 cancelado entre intentos → sin intento posterior, clase 4), `TestReintentosCierraCuerposDescartados` y
@@ -363,10 +372,17 @@ tests (el binario distribuido no enlaza `internal/httpx`, ni `x/time`, ni `robot
 make ci
 go tool cover -func=coverage.out | tail -1                                  # total ≥ 70 %
 go test -count=1 -cover ./internal/core/... ./internal/httpx/               # internal/core ≥ 85 % por paquete
-git diff main -- .golangci.yml | grep -E '^\+' | grep -v '^\+\s*#' | grep -v '^+++' ; test $? -eq 1 && echo "ninguna regla ni exclusión nueva"
+git diff main -- .golangci.yml | grep -E '^\+' | grep -v '^+++' | grep -vE '^\+\s*#' \
+  | grep -vE '^\+ +- [a-záéíóúñ]+$' ; test $? -eq 1 && echo "ninguna regla ni exclusión nueva"
+git diff main -- .golangci.yml | grep -E '^\+ +- [a-záéíóúñ]+$'   # si imprime algo: palabras de misspell
+git diff main -U20 -- .golangci.yml | grep -E '^[ +]\s*(ignore-rules|exclusions|linters|rules):'
 grep -rn 'nolint' internal/httpx/ ; test $? -eq 1 && echo "ningún nolint en internal/httpx"
 ```
 
 **Esperado**: «ci: todos los controles en verde»; `total: (statements) ≥ 70.0%`; una línea `ok …
-internal/core/schema … coverage: ≥ 85 %` (en `main` está en 90,1 %) y la de `internal/httpx`; el diff
-de `.golangci.yml` frente a `main` solo añade líneas de comentario; ningún `nolint` en el paquete nuevo.
+internal/core/schema … coverage: ≥ 85 %` (en `main` está en 90,1 %) y la de `internal/httpx`; y, en el
+diff de `.golangci.yml` frente a `main`, **solo** líneas de comentario y, como mucho, palabras nuevas
+bajo `misspell.ignore-rules` —la única supresión que el hito admite (S2, plan, obligación 3)—: la
+segunda orden las enumera y la tercera muestra el contexto, donde la única clave del diff debe ser
+`ignore-rules`; si aparece una regla, una exclusión o un linter, el escenario falla. Ningún `nolint` en
+el paquete nuevo.

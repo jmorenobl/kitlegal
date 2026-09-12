@@ -141,14 +141,29 @@ rechazada por lo que dice el propio spec. *Devolver `*http.Response`*: prohibido
 identificar → robots → reintentar → ritmo → (grabar → transporte | reproducir)
 ```
 
-- **`identificar`** pone `User-Agent` (D5) en **toda** petición que baja por la cadena, incluida la de
-  `robots.txt` y cada salto de redirección (FR-006, FR-009, SC-001). Va arriba del todo para que la
-  grabación, abajo, guarde la petición ya identificada (FR-037). Sin este decorador `net/http` enviaría
+- **`identificar`** pone `User-Agent` (D5) en **toda** petición que baja por la cadena, incluido cada
+  salto de redirección y cada reintento (FR-006, SC-001). Va arriba del todo para que la grabación,
+  abajo, guarde la petición ya identificada (FR-037). Sin este decorador `net/http` enviaría
   `Go-http-client/1.1` (`$GOROOT/src/net/http/request.go:550`, `defaultUserAgent`), que es lo que el
   principio I prohíbe.
+
+  Un decorador, sin embargo, **solo ve lo que baja desde arriba**: la petición de `robots.txt` la fabrica
+  `robots`, que está por debajo, y no volvería a pasar por él. Por eso `identificar.go` es además el
+  **único constructor de peticiones del paquete**: expone (dentro del paquete)
+  `nuevaPeticionIdentificada(ctx, metodo, url)`, que crea el `*http.Request` con
+  `http.NewRequestWithContext` y le fija la cabecera con `AgenteDeUsuario()` antes de devolverlo, y
+  `ponerIdentificacion(r)`, que es lo que el decorador aplica. Ningún otro fichero de `internal/httpx`
+  llama a `http.NewRequestWithContext`: el bucle de redirecciones de `cliente.go` y la obtención de
+  `robots.txt` de `robots.go` construyen sus peticiones por ahí, de modo que **la identificación tiene un
+  solo dueño** y ninguna petición que el paquete origine puede nacer sin ella (FR-009). Es una garantía
+  por construcción, no un recordatorio: `TestSoloIdentificarConstruyePeticiones` recorre el paquete con
+  `go/parser` y falla si otro fichero construye una petición, y
+  `TestIdentificacionEnTodaPeticion` la comprueba en ejecución sobre las cuatro procedencias (recurso,
+  saltos, reintentos y `robots.txt`).
 - **`robots`** decide, por sitio, si la ruta se puede pedir (FR-013, FR-014) y cachea la decisión (FR-015,
-  D7). Para obtener `robots.txt` llama a **su propio `siguiente`** —la cadena por debajo de él—, de modo
-  que esa petición pasa por reintentos y ritmo (FR-017) pero **no** por sí mismo (FR-016).
+  D7). Para obtener `robots.txt` construye la petición con `nuevaPeticionIdentificada` —ya identificada,
+  FR-009— y la entrega a **su propio `siguiente`** —la cadena por debajo de él—, de modo que pasa por
+  reintentos y ritmo (FR-017) pero **no** por sí mismo (FR-016).
 - **`reintentar`** repite los fallos transitorios (FR-023 a FR-028, D9). Está **por encima** de `ritmo`
   para que **cada intento** espere su turno: un reintento es una petición más al mismo sitio, y ponerlo
   por debajo del limitador dejaría los reintentos fuera del ritmo. El enunciado («UA → robots → ratelimit
@@ -185,6 +200,15 @@ recurso pedido de la cadena del propio `robots.txt`, que FR-015 y FR-016 tratan 
 *Reintentar por debajo del ritmo* (rechazada arriba). *Un único `RoundTripper` monolítico* (rechazada:
 contradice el patrón Decorator que `docs/ROADMAP.md` §2 fija para este paquete y mezclaría cinco
 responsabilidades).
+
+Para la identificación de la petición de `robots.txt`, dos alternativas más: *poner `identificar` abajo
+del todo, justo encima del transporte*, para que toda petición pase por él venga de donde venga
+(rechazada: la grabación quedaría **por encima** o **por debajo** del decorador —si queda por encima
+guarda una petición sin identificar y rompe FR-037 y el fixture #10; si queda por debajo, la cadena deja
+de ser legible de fuera adentro— y el orden del enunciado del roadmap cambiaría sin necesidad); y
+*repetir en `robots.go` la línea que fija la cabecera* con `AgenteDeUsuario()` (rechazada: la garantía
+tendría dos dueños y nada impediría que un tercer origen de peticiones la olvidara; el constructor único
+la hace imposible de olvidar y además comprobable con `go/ast`).
 
 ---
 
@@ -632,8 +656,9 @@ cabeceras y el cuerpo grabados.
   `KITLEGAL_RECORD=1` en el entorno («argumentos», FR-043) y las opciones sin sentido en reproducción
   (D1).
 - **Garantías vigentes** (FR-049, lista cerrada): contexto (la petición se crea con
-  `NewRequestWithContext` y `Pedir` comprueba `ctx.Err()` antes de cada salto), identificación
-  (`identificar` sigue en la cadena), método (validación de `Pedir`), redirecciones grabadas (el bucle
+  `nuevaPeticionIdentificada`, que llama a `NewRequestWithContext`, y `Pedir` comprueba `ctx.Err()` antes
+  de cada salto), identificación (`identificar` sigue en la cadena, y el constructor la fija aunque no
+  bajara por él), método (validación de `Pedir`), redirecciones grabadas (el bucle
   de `Pedir` es el mismo; cada salto se busca como una petición más) y clasificación por estado (la de
   `Pedir`). No vigentes: `robots.txt` (el decorador no está en la cadena; una grabación de `robots.txt`
   en el directorio queda sin usar y no es error), ritmo y reintentos (sus decoradores no están; un 5xx
@@ -767,8 +792,9 @@ pero no pausa»). Se anota en `plan.md` para que `tasks.md` lo herede.
   H2 es el primer hito en que tienen algo que ver, y lo que vigilan está verificado: `noctx` prohíbe
   `net/http.Get/Head/Post/PostForm`, `(*Client).Get/Head/Post/PostForm`, `http.NewRequest` y
   `httptest.NewRequest` (`noctx.go`, tabla `ngFuncMessages`); `bodyclose` exige cerrar `res.Body` de todo
-  `*http.Response` (README). Todo el código de `internal/httpx` usa `NewRequestWithContext` y
-  `(*Client).Do`, y cierra cada cuerpo.
+  `*http.Response` (README). Todo el código de `internal/httpx` usa `NewRequestWithContext` —en un solo
+  sitio, `identificar.go`, del que salen ya identificadas todas las peticiones que el paquete construye
+  (D3)— y `(*Client).Do`, y cierra cada cuerpo.
 - **`Makefile`**: `LDFLAGS` gana la inyección de `internal/httpx.version` (D5). Ningún objetivo nuevo:
   `test` ya ejecuta `-race` sobre `./...`, que alcanza `internal/httpx`.
 - **Fixtures**: los de D17. Ningún `testdata/<fuente>/` de raíz; ninguna grabación real (FR-044).
@@ -834,7 +860,12 @@ decisión está tomada en D9: `crypto/rand`.)
 - **S2 · `misspell` con `locale: US` no marca ningún identificador nuevo en español.** H1 tuvo que
   ignorar `argumentos` y `descripcion`. Si un identificador de H2 dispara un falso positivo (`peticion`,
   `respuesta`…), se añade a `ignore-rules` como hizo H1, que es configuración de un diccionario y no una
-  supresión de regla.
+  supresión de regla. La contingencia **edita `.golangci.yml`**, así que la tarea que la asume lo declara
+  entre sus rutas (plan, obligación 3): es la primera que pasa `make lint` sobre español nuevo del
+  paquete, la de los tipos (`peticion.go`, `sitio.go`). Una tarea posterior que tropezara con una palabra
+  nueva no edita un fichero que no declara: reescribe el término en español —que no es un atajo, porque
+  no toca ninguna regla ni suprime ningún hallazgo— y, si el término lo fija un contrato y no se puede
+  cambiar, se anota y se detiene.
 - **S3 · Codecov.** Como en H1, un componente nuevo mide desde la primera propuesta posterior. H2 no
   declara componente propio (SC-015: rigen los umbrales generales), así que nada que comprobar en la
   plataforma más allá de que el estado global (≥ 70 %) y el de `internal/core` (≥ 85 %) sigan en verde.

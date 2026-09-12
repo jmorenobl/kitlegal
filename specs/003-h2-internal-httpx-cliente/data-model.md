@@ -72,6 +72,11 @@ FR-019).
 | `mu` | `sync.Mutex` | Tomado durante la obtención de `robots.txt`; N goroutines ⇒ 1 petición (SC-003) |
 | `reglas` | `*reglasDelSitio` | `nil` hasta la primera evaluación; después inmutable (FR-015, FR-018) |
 
+La struct y su mapa viven en `sitio.go`; `limitador` y `reglas` se le **añaden ahí** cuando entra el
+decorador que los usa (`ritmo` trae `*rate.Limiter`, `robots` trae `*reglasDelSitio`), porque sus tipos
+llegan con la dependencia de cada uno. No hay un mapa por decorador: la clave de sitio es una y la
+exclusión mutua tiene que ser compartida (D7, D14).
+
 Dos direcciones son del mismo sitio si y solo si su clave coincide: `http://fuente.prueba` ≠
 `https://fuente.prueba`; `http://fuente.prueba` ≠ `http://otra.prueba`; `http://127.0.0.1:53211` ≠
 `http://127.0.0.1:53212` (SC-004); `http://fuente.prueba` = `http://fuente.prueba:80` y
@@ -196,7 +201,9 @@ Pedir(ctx, ejecucion, p)
        ├─ ctx.Err() != nil → clase 4
        ├─ petición por la cadena:
        │    identificar → [robots → reintentar → ritmo → grabar → transporte | reproducir]
-       │      robots:   sitio sin evaluar → obtener robots.txt por la cadena inferior (FR-016, FR-017)
+       │      robots:   sitio sin evaluar → obtener robots.txt por la cadena inferior, con la
+       │                petición construida por nuevaPeticionIdentificada (identificar.go), es
+       │                decir ya identificada aunque no pase por el decorador (FR-009, FR-016, FR-017)
        │                denegado → clase 5 (FR-014, FR-015, FR-030)
        │      reintentar: 5xx / transporte → esperar (jitter, interrumpible) y repetir ≤ intentos
        │      ritmo:    Wait(ctx) del sitio de destino
@@ -206,6 +213,11 @@ Pedir(ctx, ejecucion, p)
        ├─ 3xx sin Location → clase 4
        └─ resto → leer cuerpo entero, cerrar, Respuesta (FR-032)
 ```
+
+Ninguna petición del paquete se construye fuera de `identificar.go`: el bucle de redirecciones y la
+obtención de `robots.txt` usan su constructor `nuevaPeticionIdentificada`, de modo que la identificación
+la fija siempre el mismo dueño, baje la petición desde la cabecera de la cadena o nazca dentro de ella
+(FR-009, D3).
 
 En reproducción el bucle es idéntico; la cadena es `identificar → reproducir`, y un fichero ausente o
 ajeno produce clase 1 (FR-047).
