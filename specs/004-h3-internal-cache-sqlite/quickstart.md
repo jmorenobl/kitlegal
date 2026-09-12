@@ -228,10 +228,19 @@ COPIA=$(mktemp -d)
 tar --exclude=.git -cf - . | tar -xf - -C "$COPIA"
 ```
 
+**Cada violación ocupa sola su línea.** golangci-lint muestra un único hallazgo por línea
+(`issues.uniq-by-line`, activo por omisión): si otro linter marca la misma línea que la regla que se
+prueba, `make lint` —y con él `make ci`— falla igual, pero nombra al otro linter y el recuento de la regla
+sale `0`. Por eso las importaciones en blanco de a y b llevan el comentario que `revive`
+(`blank-imports`) pide a toda importación en blanco fuera de un `package main` o de test, b lleva además
+el comentario de paquete, y el `*sql.Rows` de c devuelve `rows.Err()` para que `rowserrcheck` no ocupe la
+línea que marca `sqlclosecheck`. Ninguna de esas precauciones toca un control: solo aíslan la regla que
+cada variante pone a prueba (T012; la salida con y sin ellas está en `gates/evidencia-sc013.md`).
+
 **a. `database/sql` fuera de `internal/{cache,store,graph}` (R3)** — lint **y** test de arquitectura:
 
 ```bash
-printf 'package app\n\nimport _ "database/sql"\n' > "$COPIA/internal/app/violacion_r3.go"
+printf 'package app\n\nimport _ "database/sql" // Violación deliberada de R3 (escenario 9 de quickstart.md).\n' > "$COPIA/internal/app/violacion_r3.go"
 ( cd "$COPIA" && make lint 2>&1 | grep -c 'R3: el acceso a base de datos vive en internal/{cache,store,graph}' )
 ( cd "$COPIA" && go test ./internal/ -run 'TestArquitectura/R3' 2>&1 | grep -c 'R3 · importación reservada' )
 rm "$COPIA/internal/app/violacion_r3.go"
@@ -245,7 +254,7 @@ compilador lo rechazaría antes de que ninguna regla se nombrara):
 
 ```bash
 mkdir -p "$COPIA/internal/core/violacion"
-printf 'package violacion\n\nimport _ "github.com/jmorenobl/kitlegal/internal/cache"\n' > "$COPIA/internal/core/violacion/violacion.go"
+printf '// Package violacion incumple R1 a propósito (escenario 9 de quickstart.md).\npackage violacion\n\nimport _ "github.com/jmorenobl/kitlegal/internal/cache" // Violación deliberada de R1.\n' > "$COPIA/internal/core/violacion/violacion.go"
 ( cd "$COPIA" && make lint 2>&1 | grep -c 'R1: el dominio no importa adaptadores; la caché se usa desde internal/source' )
 ( cd "$COPIA" && go test ./internal/ -run 'TestArquitectura/R1' 2>&1 | grep -c 'R1 · el dominio es puro' )
 rm -r "$COPIA/internal/core/violacion"
@@ -272,16 +281,17 @@ func filasSinCerrar(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	_ = rows
-	return nil
+
+	return rows.Err()
 }
 EOF
 ( cd "$COPIA" && make lint 2>&1 | grep -c 'sqlclosecheck' )
 rm "$COPIA/internal/cache/violacion_sqlclose_test.go"
 ```
 
-**Esperado**: `1` (o más; `unused` puede añadir el suyo sobre `filasSinCerrar`). Sin `run.build-tags`
-en `.golangci.yml`, el fichero quedaría fuera del análisis y el recuento sería `0`.
+**Esperado**: `2`: la línea del hallazgo (`Rows/Stmt/NamedStmt was not closed (sqlclosecheck)`) y la del
+resumen (`* sqlclosecheck: 1`); `unused` añade el suyo sobre `filasSinCerrar`, que no casa con el filtro.
+Sin `run.build-tags` en `.golangci.yml`, el fichero quedaría fuera del análisis y el recuento sería `0`.
 
 **d. `net/http` en un test de `internal/cache` (R2)**:
 
