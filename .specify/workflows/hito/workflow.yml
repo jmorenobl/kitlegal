@@ -2,10 +2,10 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.5.0"
+  version: "1.6.0"
   author: "kitlegal"
   integration: "claude"
-  description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff."
+  description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
 
 requires:
   speckit_version: ">=1.0.0"
@@ -121,6 +121,7 @@ steps:
         - El alcance del spec es EXACTAMENTE la sección del hito que sigue. Lo que no esté en ella, en CLAUDE.md, en refs/ o en .specify/memory/constitution.md va a una sección "## Fuera de alcance" (obligatoria, aunque quede vacía) y no se implementa.
         - Lee antes CLAUDE.md, docs/ROADMAP.md (§1 Definition of Done, §2 arquitectura, §3 controles, §6 ritual) y los refs/ que el hito cite.
         - Los criterios de aceptación del spec deben incluir literalmente los de "Aceptación" y "Controles" del hito.
+        - Antes de dar por terminado, comprueba spec.md y checklists/ contra la rúbrica (criterios a-g) del paso `juez_spec` de .specify/workflows/hito/workflow.yml y corrige lo que no cumpla: un juez independiente la aplicará después y cada rechazo cuesta una ronda entera.
 
         Sección del roadmap:
 
@@ -308,6 +309,7 @@ steps:
         - Enumera en el plan los controles mecánicos que este hito añade o toca (objetivos de make, tests de contrato, fixtures) según la sección «Gates» de la constitución.
         - Aplica las skills golang-* instaladas (golang-how-to orquesta) al decidir layout, tests, lint y CLI.
         - Lo que no esté en el spec no entra en el plan.
+        - Antes de dar por terminado, comprueba plan.md, research.md, quickstart.md y contracts/ contra la rúbrica (criterios a-j) del paso `juez_plan` de .specify/workflows/hito/workflow.yml y corrige lo que no cumpla: un juez independiente la aplicará después y cada rechazo cuesta una ronda entera.
 
   - id: precheck_plan
     type: shell
@@ -424,6 +426,8 @@ steps:
         - Ids T001, T002… únicos y correlativos; una tarea por línea.
         - Incluye tareas explícitas para cada punto de la Definition of Done (§1) que aplique al hito: CHANGELOG.md, ADR, docs/SOURCES.md, schemas, fixtures.
         - Ninguna tarea fuera del spec.
+        - Toda tarea que necesite la plataforma remota (empujar la rama, crear o leer la propuesta de cambio, estados de CI o de Codecov) lleva la etiqueta [plataforma], va la última y no mezcla otro trabajo. El ejecutor de esa tarea es el único autorizado a hacer `git push` de la rama del hito y `gh pr create`; fusionar nunca es del workflow.
+        - Antes de dar por terminado, comprueba tasks.md contra la rúbrica (criterios a-g) del paso `juez_tasks` de .specify/workflows/hito/workflow.yml y corrige lo que no cumpla: un juez independiente la aplicará después y cada rechazo cuesta una ronda entera.
 
   - id: analyze
     command: speckit.analyze
@@ -447,6 +451,8 @@ steps:
       [ -z "$sin_rutas" ] || { echo "tareas sin rutas declaradas (el guardián de diff las rechazaría):"; echo "$sin_rutas"; exit 1; }
       mixtas=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | grep -E '(^|[^A-Za-z0-9_])(testdata|schemas)/' | grep -v '\[datos\]' || true)
       [ -z "$mixtas" ] || { echo "tareas que tocan testdata/ o schemas/ sin etiqueta [datos]:"; echo "$mixtas"; exit 1; }
+      plat=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | grep -iE 'gh pr|gh run|pull request|propuesta de cambio' | grep -v '\[plataforma\]' || true)
+      [ -z "$plat" ] || { echo "tareas que necesitan la plataforma remota sin etiqueta [plataforma]:"; echo "$plat"; exit 1; }
       rm -f "$d/gates/tasks-rondas"
       echo "precheck_tasks ok: $(grep -cE '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md") tareas"
 
@@ -467,7 +473,7 @@ steps:
             b. trazabilidad: toda tarea traza a un requisito del spec y todo requisito tiene tareas;
             c. rebanadas_verdes: cada tarea incluye test e implementación y puede dejar `make ci` en verde por sí sola; el orden es ejecutable en secuencia;
             d. rutas_declaradas: cada tarea declara todas las rutas que tocará (ficheros o directorios), sin rutas genéricas tipo "internal/";
-            e. datos_separados: las tareas que tocan testdata/ o schemas/ llevan [datos] y no mezclan otro trabajo;
+            e. datos_separados: las tareas que tocan testdata/ o schemas/ llevan [datos] y no mezclan otro trabajo; las que necesitan la plataforma remota (push, propuesta de cambio, estados de CI o Codecov) llevan [plataforma], van al final y no mezclan otro trabajo;
             f. dod: existen tareas para cada punto aplicable de la Definition of Done (CHANGELOG, ADR, SOURCES.md, schemas, fixtures);
             g. checklist_veraz: cada marca [x] de checklists/ es cierta.
           Escribe <feature_dir>/gates/tasks.json con este formato exacto:
@@ -545,7 +551,7 @@ steps:
               mkdir -p "$d/gates"
               f="$d/gates/tareas-intentos.json"; [ -f "$f" ] || echo '{}' > "$f"
               linea=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | head -1 || true)
-              if [ -z "$linea" ]; then jq -n '{id:"", texto:"", intento:0, datos:false, base:"", rutas:[]}' | tee "$d/gates/tarea-actual.json"; exit 0; fi
+              if [ -z "$linea" ]; then jq -n '{id:"", texto:"", intento:0, datos:false, plataforma:false, plataforma_bloqueada:false, red:"", base:"", rutas:[]}' | tee "$d/gates/tarea-actual.json"; exit 0; fi
               id=$(printf '%s' "$linea" | grep -oE 'T[0-9]+' | head -1)
               texto=$(printf '%s' "$linea" | sed -E 's/^[[:space:]]*- \[ \] //')
               n=$(jq -r --arg id "$id" '.[$id] // 0' "$f"); n=$((n + 1))
@@ -555,15 +561,39 @@ steps:
                 exit 1
               fi
               datos=false; printf '%s' "$texto" | grep -q '\[datos\]' && datos=true
+              plataforma=false; printf '%s' "$texto" | grep -q '\[plataforma\]' && plataforma=true
+              rama=$(git branch --show-current)
+              # Sin permiso de push o sin `gh pr create` en .claude/settings.json, una tarea
+              # [plataforma] no puede cumplirse en headless: se pausa antes de gastar intentos.
+              bloqueada=false
+              if [ "$plataforma" = true ] && [ -f .claude/settings.json ]; then
+                jq -e '(.permissions.deny // []) | index("Bash(git push:*)")' .claude/settings.json >/dev/null && bloqueada=true
+                jq -e '(.permissions.allow // []) | index("Bash(gh pr create:*)")' .claude/settings.json >/dev/null || bloqueada=true
+              fi
+              if [ "$plataforma" = true ]; then
+                red="Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin $rama'. Si no existe propuesta de cambio hacia main ('gh pr view $rama'), créala con 'gh pr create --base main --head $rama --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks $rama --watch' y lee 'gh run list --branch $rama'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-$id.md y deja la tarea sin marcar."
+              else
+                red="Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-$id.md y déjala sin marcar."
+              fi
               base=$(git rev-parse HEAD)
               rutas=$(printf '%s' "$texto" | tr '`,;()' '     ' | grep -oE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|\.[A-Za-z0-9_-]*ignore|\.editorconfig|Makefile|LICENSE' | grep -vE '^https?:' | sort -u | jq -R . | jq -s .)
-              jq -n --arg id "$id" --arg texto "$texto" --argjson n "$n" --argjson datos "$datos" --arg base "$base" --argjson rutas "$rutas" \
-                '{id:$id, texto:$texto, intento:$n, datos:$datos, base:$base, rutas:$rutas}' | tee "$d/gates/tarea-actual.json"
+              jq -n --arg id "$id" --arg texto "$texto" --argjson n "$n" --argjson datos "$datos" --argjson plataforma "$plataforma" --argjson bloqueada "$bloqueada" --arg red "$red" --arg base "$base" --argjson rutas "$rutas" \
+                '{id:$id, texto:$texto, intento:$n, datos:$datos, plataforma:$plataforma, plataforma_bloqueada:$bloqueada, red:$red, base:$base, rutas:$rutas}' | tee "$d/gates/tarea-actual.json"
 
           - id: tarea
             type: if
             condition: "{{ steps.siguiente_tarea.output.data.id != '' }}"
             then:
+              - id: plataforma_sin_permiso
+                type: if
+                condition: "{{ steps.siguiente_tarea.output.data.plataforma_bloqueada }}"
+                then:
+                  - id: gate_plataforma
+                    type: gate
+                    message: "La tarea [plataforma] {{ steps.siguiente_tarea.output.data.id }} necesita `git push` de la rama del hito y `gh pr create`, pero .claude/settings.json los deniega o no los permite (ver docs/WORKFLOW.md «Permisos de Claude en modo headless»). Concede los permisos y reanuda con approve, o ejecuta la tarea a mano, márcala [X], commitea y reanuda."
+                    options: [approve, reject]
+                    on_reject: abort
+
               # Primer intento con modelo_implementacion; si la tarea vuelve sin
               # quedar [X], los reintentos pasan a modelo_escalada. Mismo prompt
               # (ancla YAML); solo cambian id y modelo.
@@ -580,7 +610,7 @@ steps:
                         MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
                         {{ steps.siguiente_tarea.output.data.texto }}
                         Si existe <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, léelo antes de empezar: documenta por qué no quedó en verde un intento anterior.
-                        Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni la red. Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
+                        Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni consultes fuentes por red. {{ steps.siguiente_tarea.output.data.red }} Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
                 else:
                   - <<: *implementar_tarea
                     id: implementar_tarea_escalada
@@ -708,13 +738,37 @@ steps:
                   git commit -q -m "feat({{ inputs.hito }}): $id" -m "$(jq -r .texto "$d/gates/tarea-actual.json")"
                   git log --oneline -1
 
+              # Capa 3 de la constitución: pausa humana ante «modificación de ficheros existentes en
+              # testdata/ y schemas/ y toda grabación de fixtures». Material de test nuevo fuera del
+              # territorio de fixtures (p. ej. código Go o guiones bajo internal/<pkg>/testdata/) no
+              # es verdad terreno de ninguna fuente: lo revisan los dos jueces finales.
+              - id: clasificar_datos
+                type: shell
+                output_format: json
+                timeout: 30
+                run: |
+                  set -eu
+                  d=$(jq -r .feature_directory .specify/feature.json)
+                  t="$d/gates/tarea-actual.json"
+                  base=$(jq -r .base "$t"); datos=$(jq -r .datos "$t")
+                  [ "$datos" = true ] || { jq -n '{pausa:false, motivos:""}'; exit 0; }
+                  printf '%s' "$base" | grep -qE '^[0-9a-f]{40}$' || { echo "base de la tarea inválida" >&2; exit 1; }
+                  motivos=""
+                  for f in $(git diff --name-only "$base" HEAD | grep -E '(^|/)testdata/|^schemas/' || true); do
+                    if git cat-file -e "$base:$f" 2>/dev/null; then motivos="$motivos $f(existente)"
+                    else case "$f" in testdata/*|internal/source/*|schemas/*) motivos="$motivos $f(fixture-o-esquema)";; esac
+                    fi
+                  done
+                  if [ -n "$motivos" ]; then jq -n --arg m "$motivos" '{pausa:true, motivos:$m}'
+                  else jq -n '{pausa:false, motivos:"material de test nuevo fuera del territorio de fixtures; lo revisan los jueces finales"}'; fi
+
               - id: revision_humana_datos
                 type: if
-                condition: "{{ steps.siguiente_tarea.output.data.datos }}"
+                condition: "{{ steps.clasificar_datos.output.data.pausa }}"
                 then:
                   - id: gate_humano_datos
                     type: gate
-                    message: "La tarea [datos] ha tocado testdata/ o schemas/. Revisa `git diff` de esos ficheros (verdad terreno de citas y contratos) antes de continuar. Esta pausa no depende de `modo`."
+                    message: "La tarea [datos] ha modificado material existente de testdata/ o schemas/, o ha añadido fixtures o esquemas ({{ steps.clasificar_datos.output.data.motivos }}). Revisa `git diff` de esos ficheros (verdad terreno de citas y contratos) antes de continuar. Esta pausa no depende de `modo`."
                     options: [approve, reject]
                     on_reject: abort
 
@@ -803,48 +857,61 @@ steps:
       git commit -q -m "feat({{ inputs.hito }}): tareas restantes tras converge"
       git log --oneline -1
 
-  # ================================================================ revisión final: dos jueces independientes → corrector (3 rondas)
+  # ================================================================ revisión final: dos jueces en paralelo → corrector sobre la unión (3 veredictos, 2 correcciones)
   - id: ronda_revision
     type: do-while
     max_iterations: 3
     condition: "{{ steps.leer_revision.output.data.estado == 'corregir' }}"
     steps:
-      - id: revision_juez_a
-        type: prompt
-        model: "{{ inputs.modelo_revisor }}"
-        timeout: 1800
-        prompt: |
-          Eres el JUEZ A de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica la Definition of Done de docs/ROADMAP.md §1 y las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
-          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, tasks.md, gates/ci.log y `git diff main...HEAD` completo (código y tests). Si existe, lee gates/revision-pendiente.md.
-          Rúbrica (cumple/no cumple con evidencia: fichero y línea):
-            a. dod_ci: `make ci` en verde (gates/ci.log) y árbol limpio;
-            b. dod_tests: tests offline para todo el código nuevo; fixtures en testdata/ solo si el hito lo pide;
-            c. dod_reglas: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados; reglas de dependencia respetadas;
-            d. dod_sobre: toda salida de applet pasa el sobre y el schema;
-            e. dod_errores: errores tipados → exit codes; ningún panic en rutas de usuario;
-            f. dod_docs: CHANGELOG (Unreleased), ADR si cambia una decisión, docs/SOURCES.md si toca una fuente;
-            g. frontera_humana: HTTP solo vía internal/httpx, solo GET/HEAD, sin secretos, sin NIF de persona, rate limit y User-Agent conforme a la constitución (lo que el linter no ve);
-            h. sin_atajos: ningún nolint sin justificación, test saltado, TODO diferido, error silenciado ni fixture ajustado para que pase un test;
-            i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas).
-          Escribe <feature_dir>/gates/revision-a.json con este formato exacto:
-            {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen. "corregible": false si algún motivo requiere decisión humana.
-          Revisión exhaustiva: evalúa cada criterio contra todo el diff y enumera en motivos TODOS los incumplimientos, no solo el primero de cada criterio. Si gates/revision-a.json ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
-          Escribe en español. No preguntes; no esperes respuesta.
+      # Los dos jueces corren a la vez (fan-out) sobre el mismo árbol y sin ver el
+      # veredicto del otro. El papel de cada uno sale de preparar_jueces; el resto del
+      # prompt (lecturas, rúbrica, formato) es común. Los modelos son inputs con enum;
+      # por eso pueden interpolarse en el shell.
+      - id: preparar_jueces
+        type: shell
+        output_format: json
+        timeout: 30
+        run: |
+          set -eu
+          papel_a=$(cat <<'EOF'
+          Eres el JUEZ A de la revisión final del hito {{ inputs.hito }} de kitlegal. Aplica la Definition of Done de docs/ROADMAP.md §1 y las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md. Partes sin hipótesis: comprueba cada criterio de la rúbrica con evidencia, ejecutando lo que haga falta para verlo con tus ojos y no dando por buena ninguna afirmación de tasks.md, del CHANGELOG ni de los contratos sin contrastarla con el código y con el binario.
+          EOF
+          )
+          papel_b=$(cat <<'EOF'
+          Eres el JUEZ B (adversarial) de la revisión final del hito {{ inputs.hito }} de kitlegal. Tu hipótesis de partida es que el hito NO cumple la Definition of Done de docs/ROADMAP.md §1 y tu trabajo es encontrar la evidencia. Busca activamente: tests que no prueban nada (sin aserciones, solo camino feliz, tautológicos), nolint o `t.Skip`, errores ignorados (`_ =`), fixtures o golden files retocados para que pase un test (compara con `git log -p -- testdata schemas`), cobertura fingida, dependencias no fijadas, código fuera del alcance del spec, violaciones de las reglas de dependencia entre paquetes, llamadas de red fuera de internal/httpx, métodos distintos de GET/HEAD, datos personales, promesas de los contratos o del CHANGELOG que el binario no cumple, y cualquier diferencia entre lo que tasks.md dice que se hizo y lo que hay en el diff. Muta el código en una copia desechable fuera del repositorio para comprobar que los tests detectan lo que dicen detectar. Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
+          EOF
+          )
+          jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_juez }}" --arg pa "$papel_a" --arg pb "$papel_b" \
+            '{jueces:[{id:"a", modelo:$ma, fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, fichero:"revision-b.json", papel:$pb}]}'
 
-      - id: revision_juez_b
-        type: prompt
-        model: "{{ inputs.modelo_juez }}"
-        timeout: 1800
-        prompt: |
-          Eres el JUEZ B (adversarial) de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio y sin acceso al veredicto del juez A. Tu hipótesis de partida es que el hito NO cumple la Definition of Done y tu trabajo es encontrar la evidencia. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto.
-          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, tasks.md, gates/ci.log y `git diff main...HEAD` completo. Busca activamente: tests que no prueban nada (sin aserciones, cubren el camino feliz solo), nolint o `t.Skip`, errores ignorados (`_ =`), fixtures o golden files retocados para que pase un test (compara con `git log -p -- testdata schemas`), cobertura fingida, dependencias no fijadas, código fuera del alcance del spec, violaciones de las reglas de dependencia entre paquetes, llamadas de red fuera de internal/httpx, métodos distintos de GET/HEAD, datos personales, y cualquier diferencia entre lo que tasks.md dice que se hizo y lo que hay en el diff.
-          Evalúa la misma rúbrica que el juez A (a. dod_ci, b. dod_tests, c. dod_reglas, d. dod_sobre, e. dod_errores, f. dod_docs, g. frontera_humana, h. sin_atajos, i. alcance), cada criterio cumple/no cumple con evidencia (fichero y línea). Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
-          Escribe <feature_dir>/gates/revision-b.json con este formato exacto:
-            {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
-          "aprobado" solo si TODOS cumplen.
-          Revisión exhaustiva: enumera en motivos TODOS los incumplimientos que encuentres, no solo el primero de cada criterio. Si gates/revision-b.json ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido.
-          Escribe en español. No preguntes; no esperes respuesta.
+      - id: revision_jueces
+        type: fan-out
+        items: "{{ steps.preparar_jueces.output.data.jueces }}"
+        max_concurrency: 2
+        step:
+          id: revision_juez
+          type: prompt
+          model: "{{ item.modelo }}"
+          timeout: 1800
+          prompt: |
+            {{ item.papel }}
+            Trabajas en un proceso nuevo con contexto limpio, en paralelo con el otro juez y sin acceso a su veredicto. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. No ejecutes `make ci` ni escribas nada en el árbol de trabajo, porque el otro juez corre a la vez sobre el mismo árbol: si quieres reproducir controles, compilar binarios, medir cobertura o mutar código, hazlo sobre copias en un directorio temporal fuera del repositorio.
+            Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, tasks.md, gates/ci.log y `git diff main...HEAD` completo (código y tests). Si existe, lee gates/revision-pendiente.md.
+            Rúbrica (cumple/no cumple con evidencia: fichero y línea):
+              a. dod_ci: `make ci` en verde (gates/ci.log, o reproducido en una copia) y árbol limpio;
+              b. dod_tests: tests offline para todo el código nuevo, que detectan la regresión que dicen detectar; fixtures en testdata/ solo si el hito lo pide;
+              c. dod_reglas: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados; reglas de dependencia respetadas;
+              d. dod_sobre: toda salida de applet pasa el sobre y el schema, y hay un test que valida la salida real contra el esquema que el binario emite;
+              e. dod_errores: errores tipados → exit codes; ningún panic en rutas de usuario; lo que el contrato promete sobre códigos de salida ocurre en el binario;
+              f. dod_docs: CHANGELOG (Unreleased), ADR si cambia una decisión, docs/SOURCES.md si toca una fuente; ninguna afirmación de la documentación que el producto no sostenga;
+              g. frontera_humana: HTTP solo vía internal/httpx, solo GET/HEAD, sin secretos, sin NIF de persona, rate limit y User-Agent conforme a la constitución (lo que el linter no ve);
+              h. sin_atajos: ningún nolint sin justificación, test saltado, TODO diferido, error silenciado ni fixture ajustado para que pase un test;
+              i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas).
+            Escribe <feature_dir>/gates/{{ item.fichero }} con este formato exacto:
+              {"veredicto":"aprobado"|"rechazado","corregible":true|false,"criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"]}
+            "aprobado" solo si TODOS cumplen. "corregible": false solo si algún motivo requiere una decisión humana (alcance del hito, frontera humana, privacidad, TOS, reglas de anomalías, decisión cerrada de CLAUDE.md); un motivo que un corrector puede aplicar sin decidir nada de eso es corregible por grave que sea. Cada motivo empieza por las letras de los criterios que incumple, p. ej. "[e][f] …", y dice qué cambiar y dónde.
+            Revisión exhaustiva: evalúa cada criterio contra todo el diff y enumera en motivos TODOS los incumplimientos, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y dos juicios más. Si gates/{{ item.fichero }} ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido; los motivos del otro juez en su gates/revision-*.json también fueron corregidos en esa ronda: comprueba que las correcciones no rompieron nada.
+            Escribe en español. No preguntes; no esperes respuesta.
 
       - id: leer_revision
         type: shell
@@ -861,9 +928,12 @@ steps:
           done
           va=$(jq -r .veredicto "$a"); vb=$(jq -r .veredicto "$b")
           ca=$(jq -r .corregible "$a"); cb=$(jq -r .corregible "$b")
+          # aprobado: los dos aprueban · humano: algún rechazo no corregible · corregir: el resto
+          # (uno o dos rechazos, todos corregibles). El desacuerdo entre jueces mide a los jueces,
+          # no al código: la unión de sus motivos es la lista de corrección (ADR 0007).
           if [ "$va" = aprobado ] && [ "$vb" = aprobado ]; then estado=aprobado
-          elif [ "$va" = rechazado ] && [ "$vb" = rechazado ] && [ "$ca" = true ] && [ "$cb" = true ]; then estado=corregir
-          else estado=humano; fi
+          elif { [ "$va" = rechazado ] && [ "$ca" != true ]; } || { [ "$vb" = rechazado ] && [ "$cb" != true ]; }; then estado=humano
+          else estado=corregir; fi
           c="$d/gates/revision-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
           jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" --argjson ronda "$n" \
             --slurpfile a "$a" --slurpfile b "$b" \
@@ -878,7 +948,7 @@ steps:
             model: "{{ inputs.modelo_escalada }}"
             timeout: 1800
             prompt: |
-              Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Dos jueces independientes han rechazado el hito; tú aplicas sus motivos, no los discutes.
+              Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-a.json y gates/revision-b.json (criterios con cumple=false y motivos), spec.md, plan.md, tasks.md y `git diff main...HEAD`.
               Para cada criterio incumplido corrige el código, los tests o la documentación con la mejor solución, sin atajos, aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Nunca modifiques testdata/ ni schemas/ (si un motivo lo exige, anótalo en gates/revision-pendiente.md para un humano). Ejecuta `make ci` hasta verde y deja todo commiteado en la rama del hito con Conventional Commits. No hagas push ni merge. Si un motivo requiere decisión humana, no lo resuelvas: anótalo en gates/revision-pendiente.md.
               No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
@@ -939,6 +1009,35 @@ steps:
         message: "El hito toca rutas que exigen revisión humana ({{ steps.rutas_sensibles.output.data.motivos }}): docs/SOURCES.md (responsabilidad sobre fuentes), reglas de anomalías o una fuente nueva. Revisa `git diff main...HEAD` de esas rutas antes de dar por listo el hito. Esta pausa no depende de `modo` ni se puede pre-aprobar por input."
         options: [approve, reject]
         on_reject: abort
+
+  # ================================================================ publicación: push de la rama del hito y propuesta de cambio (fusionar es humano)
+  # Va después del gate de rutas sensibles para que un cambio que exige ojos humanos no se
+  # publique antes de tenerlos. El título sale de docs/ROADMAP.md (contenido del repositorio),
+  # no de una salida de paso interpolada. scripts/lefthook/pre-push/guardia-push.sh (lefthook) rechaza main, --force,
+  # borrados y etiquetas aunque este paso cambiara.
+  - id: publicar_rama
+    type: shell
+    timeout: 300
+    run: |
+      set -eu
+      d=$(jq -r .feature_directory .specify/feature.json)
+      h="{{ inputs.hito }}"
+      rama=$(git branch --show-current)
+      [ "$rama" != main ] || { echo "publicar_rama: la rama actual es main; no se empuja" >&2; exit 1; }
+      test -z "$(git status --porcelain)" || { echo "publicar_rama: árbol sucio" >&2; git status --short; exit 1; }
+      git push -u origin "$rama"
+      if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
+        echo "gh no disponible o sin sesión: rama empujada; la propuesta queda por crear a mano"; exit 0
+      fi
+      if url=$(gh pr view "$rama" --json url --jq .url 2>/dev/null); then echo "propuesta existente: $url"; exit 0; fi
+      titulo=$(awk -v h="$h" '$0 ~ ("^#### " h " · "){print; exit}' docs/ROADMAP.md | sed -E 's/^#### [A-Z0-9]+ · //')
+      cuerpo="$d/gates/pr-$(printf '%s' "$h" | tr '[:upper:]' '[:lower:]').md"
+      if [ ! -f "$cuerpo" ]; then
+        cuerpo=$(mktemp)
+        printf 'Hito %s · %s\n\nArtefactos en `%s/`: spec.md, plan.md, tasks.md y los veredictos de la revisión final en `gates/revision-a.json` y `gates/revision-b.json`. Fusionar (squash-merge) es una acción humana.\n' "$h" "$titulo" "$d" > "$cuerpo"
+      fi
+      gh pr create --base main --head "$rama" --title "feat($h): $titulo" --body-file "$cuerpo"
+      echo "la fusión (squash-merge) sigue siendo una acción humana"
 
   - id: revision_humana_final
     type: if

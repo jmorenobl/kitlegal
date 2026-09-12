@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repositorio
 
-`kitlegal` es un conjunto de **skills agénticas** para consultar fuentes legales públicas españolas (BOE, PLACSP, BDNS, BORME, EUR-Lex…) y actuar en el propio municipio, apoyadas en un binario Go multicall que les da **herramientas deterministas**. El producto son las skills; el binario es su herramienta (constitución, principio VIII; ADR 0005). Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés (principio IX; ADR 0006). En `main` está H0 (esqueleto y gates de CI); el resto aún no existe.
+`kitlegal` es un conjunto de **skills agénticas** para consultar fuentes legales públicas españolas (BOE, PLACSP, BDNS, BORME, EUR-Lex…) y actuar en el propio municipio, apoyadas en un binario Go multicall que les da **herramientas deterministas**. El producto son las skills; el binario es su herramienta (constitución, principio VIII; ADR 0005). Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés (principio IX; ADR 0006). En `main` están H0 (esqueleto y gates de CI: `go.mod`, `Makefile`, CI, lint, `codecov.yml`) y H1 (kernel de la CLI: `internal/cli`, `internal/app`, `internal/core/schema`, `internal/render`; applets de ejemplo solo en tests). Todavía no hay ninguna fuente legal ni cliente HTTP: el siguiente hito es H2 (`internal/httpx`).
 
-**Método de trabajo: spec-kit por hito.** El proyecto se implementa hito a hito (`docs/ROADMAP.md`) con el workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`, documentado en `docs/WORKFLOW.md`). La constitución `.specify/memory/constitution.md` recoge principios, restricciones y el «Criterio de decisión autónoma» que rige `clarify` y los gates automáticos: siempre la mejor solución sin atajos; lo no especificado no se implementa; escalar (parar) ante alcance, frontera humana, privacidad, TOS o decisiones cerradas. Artefactos por hito en `specs/NNN-hN-slug/`. Lanzar con `scripts/hito.sh H<n>`.
+**Método de trabajo: spec-kit por hito.** El proyecto se implementa hito a hito (`docs/ROADMAP.md`) con el workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`, documentado en `docs/WORKFLOW.md`). La constitución `.specify/memory/constitution.md` recoge principios, restricciones y el «Criterio de decisión autónoma» que rige `clarify` y los gates automáticos: siempre la mejor solución sin atajos; lo no especificado no se implementa; escalar (parar) ante alcance, frontera humana, privacidad, TOS o decisiones cerradas. Artefactos por hito en `specs/NNN-hN-slug/`. Lanzar con `scripts/hito.sh H<n>`, que además supervisa el run: reanuda ante límites de uso o fallos transitorios y se detiene ante gates y paradas deliberadas. Las tareas que necesitan la plataforma remota llevan `[plataforma]`; el workflow empuja la rama del hito y abre la propuesta de cambio, y fusionar es siempre humano (gancho `pre-push`; ADR 0007).
 
 Skills de agente instaladas (no son parte del producto): el conjunto `samber/cc-skills-golang` vive en `.agents/skills/` (registro en `skills-lock.json`); `.claude/skills/` son symlinks a ese directorio. Al escribir Go, `golang-how-to` orquesta el resto (`golang-cli`, `golang-project-layout`, `golang-testing`, `golang-database`…).
 
@@ -18,13 +18,13 @@ Antes de escribir código, lee los documentos semilla de `refs/` en este orden:
 
 `refs/00-README.md` resume el estado, el primer hito y las decisiones cerradas. Ante conflicto, la constitución y `docs/ROADMAP.md` prevalecen sobre `refs/`.
 
-## Primer hito
+## Primer hito con fuente
 
-`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite, y la skill `boe-fiscal` (hoy Python `scripts/boe.py`, fuera de este repo) migrada para invocar el binario con el mismo comportamiento. Todo lo demás se construye encima. `boe.py` es el patrón a portar a `internal/source/boe`.
+`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite, y la skill `boe-fiscal` (hoy Python `scripts/boe.py`, fuera de este repo) migrada para invocar el binario con el mismo comportamiento. Antes hace falta H2 (`internal/httpx`). `boe.py` es el patrón a portar a `internal/source/boe`.
 
-## Comandos (planificados, aún no existen)
+## Comandos
 
-Cuando se cree el proyecto Go, el `Makefile` debe exponer `build`, `test`, `lint`, `skills-sync` y `release`. Tooling previsto:
+El `Makefile` es la única superficie de invocación; `make help` lista los objetivos (`build`, `test`, `lint`, `ci`, `hooks`, `skills-sync`, `release`…). Tooling:
 
 - Módulo `github.com/jmorenobl/kitlegal`, CLI con Kong (`github.com/alecthomas/kong`), SQLite sin cgo (`modernc.org/sqlite`), release con goreleaser.
 - Tests unitarios offline contra fixtures grabados en `testdata/<fuente>/`; grabar con `KITLEGAL_RECORD=1`. Solo `scripts/verify-sources.sh` (CI nightly) toca la red.
