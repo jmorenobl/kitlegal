@@ -1,19 +1,16 @@
 {
-  "id": "T018",
-  "texto": "T018 Cierre del hito: validación agregada y pendientes anotados: ejecutar los escenarios 1, 7, 11 y 12 de `quickstart.md` y dejar su resultado en `specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md` —`make ci` en verde con `-race` y sin ninguna supresión nueva (el diff del fichero de configuración del linter frente a `main` solo añade comentarios y, como mucho, las palabras que el supuesto S2 obligara a ignorar en `misspell`: ninguna regla, ningún linter y ninguna exclusión), umbrales de cobertura respetados (global ≥ 70 %, `internal/core/**` ≥ 85 %, `internal/cli` ≥ 90 %) sin rebajar ninguno, medida **diferencial** de `git status --porcelain` sobre los directorios de fixtures idéntica antes y después de la ejecución, conjunto de verbos del binario distribuido y del binario de comprobación de extremo a extremo idéntico al de H1, y la orden **entera** de los prerrequisitos del quickstart que extrae toda dirección `http(s)://` de los tests y del material de test del paquete y confirma «solo direcciones locales»—; y actualizar `docs/PENDIENTES.md` moviendo «Antes de H2 · Dónde viven los fixtures grabados» a «Antes de la primera tarea `[datos]` de H4» con la misma recomendación, y anotando para H4 la retirada de `TestElBinarioNoEnlazaHTTPX` con la ampliación justificada de `modulosDelBinario` y que el ritmo por fuente (`ConIntervalo`) saldrá de la tabla de fuentes que ese hito crea (plan, obligación 8; H2 no la toca); y, porque la validación agregada del intento 1 encontró un test inestable que deja `make ci` en rojo en ≈ 3 de cada 1000 ejecuciones y que el cierre no puede dar por verde (punto 1 de la Definition of Done), declara también `internal/httpx/reintentos_test.go`, acotado a **la aserción de orden de `TestReintentosAgotados`** —acotarla al tramo en que la base del retardo dobla, derivado con la misma ley literal que `exigeEsperaDelIntento`, y decir la ley completa en el mensaje de la banda—, sin tocar el decorador de reintentos, ninguna otra subprueba ni ningún otro fichero del paquete, con el rojo reproducido antes (`-count=1000` sobre la subprueba de ocho intentos) y el verde comprobado después con la misma orden (SC-005, D9) (SC-008, SC-010, SC-011, SC-014, SC-015, puntos 1, 2 y 9 de la Definition of Done, obligaciones 7, 8, 10 y 11 del plan).",
-  "intento": 3,
-  "datos": true,
-  "plataforma": false,
+  "id": "T019",
+  "texto": "T019 [plataforma] Publicar la rama del hito y abrir la propuesta de cambio: `git push -u origin h2-internal-httpx-cliente` y `gh pr create` con la plantilla del ritual (objetivo, alcance, controles añadidos, decisiones y pendientes), adjuntando como evidencia `specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md` y `specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md`, y leer después los estados de la integración continua y de Codecov con `gh pr checks`, dejando su resultado en `specs/003-h2-internal-httpx-cliente/gates/evidencia-plataforma.md`; **no** fusiona, **no** empuja a `main`, **no** fuerza y **no** crea etiquetas: la fusión (squash-merge) es siempre humana y el gancho `pre-push` la rechazaría igualmente (punto 1 de la Definition of Done, §6 del roadmap, ADR 0007).",
+  "intento": 1,
+  "datos": false,
+  "plataforma": true,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
-  "base": "6d98e9cefa9ba7b2979e61b351de4298944c1d0f",
+  "red": "Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin h2-internal-httpx-cliente'. Si no existe propuesta de cambio hacia main ('gh pr view h2-internal-httpx-cliente'), créala con 'gh pr create --base main --head h2-internal-httpx-cliente --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks h2-internal-httpx-cliente --watch' y lee 'gh run list --branch h2-internal-httpx-cliente'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-T019.md y deja la tarea sin marcar.",
+  "base": "f18cfc5a6f9170c3fc4eb2dbd94c3bf76622ffec",
   "rutas": [
-    "docs/PENDIENTES.md",
-    "internal/cli",
-    "internal/core/**",
-    "internal/httpx/reintentos_test.go",
-    "quickstart.md",
-    "specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md"
+    "specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md",
+    "specs/003-h2-internal-httpx-cliente/gates/evidencia-plataforma.md",
+    "specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md"
   ],
   "cierre": false
 }
