@@ -2,7 +2,7 @@
 
 Tres documentos de diseño para arrancar el proyecto. Léelos en este orden.
 
-**Enfoque (2026-09-11).** El producto son las skills; el binario Go es la capa de herramientas deterministas que usan. Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés; los demás territorios llegan después como datos. Ver la constitución (principios VIII y IX) y los ADR 0008 y 0009; ante conflicto, prevalecen sobre estos documentos.
+**Enfoque (2026-09-11).** El producto son las skills; el binario Go es la capa de herramientas deterministas que usan. Todo es genérico para cualquier municipio de España y se valida primero en la Comunidad de Madrid con Leganés; los demás territorios llegan después como datos. Ver la constitución (principios VIII y IX) y los ADR 0008 y 0009; ante conflicto, prevalecen sobre estos documentos. Las skills nacen genéricas y las verticales (fiscal, laboral, mercantil…) se especializan después sobre la base (ADR 0012): donde estos documentos ponen `boe-fiscal` como primera skill, léase `boe-legislacion`.
 
 1. `mapa-sistema-legal-skills.md` — Qué es el sistema legal español (jerarquía, competencias, jurisdicción, vía administrativa), dónde está cada tipo de información (fuentes con semáforo de automatizabilidad) y el catálogo de skills agénticas con sus comandos.
 2. `kitlegal-estructura-y-ecosistema.md` — Estructura del monorepo (skills, packs y datos; binario multicall `kitlegal` como capa de herramientas), buenas prácticas, packs por vertical y superficies de distribución.
@@ -11,12 +11,12 @@ Tres documentos de diseño para arrancar el proyecto. Léelos en este orden.
 ## Estado de partida
 
 - No existe código previo. Nada de lo descrito está implementado.
-- La única pieza existente es la skill `boe-fiscal` (Python, `scripts/boe.py` + `references/boe_api.md` + `references/normas_fiscales.md`), que sirve de patrón y se porta a Go como applet `boe`.
+- La única pieza existente es la skill `boe-fiscal` (Python, `scripts/boe.py` + `references/boe_api.md` + `references/normas_fiscales.md`), que sirve de patrón: `boe.py` se porta a Go como applet `boe` y su protocolo, generalizado a cualquier materia, es el de la skill base `boe-legislacion`. `boe-fiscal` se migra después como primera vertical (ADR 0012).
 - Nombre fijado: `kitlegal` para repo, módulo (`github.com/jmorenobl/kitlegal`), binario y directorios (`.kitlegal/`, `~/.cache/kitlegal/`).
 
 ## Primer hito
 
-`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite, y la skill `boe-fiscal` migrada para invocar el binario en lugar de `boe.py`, con el mismo comportamiento que hoy. Todo lo demás se construye encima.
+`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite, y la skill genérica `boe-legislacion` consultando y citando cualquier norma consolidada del BOE con el binario. Todo lo demás se construye encima; `boe-fiscal` se migra sobre esa base como primera vertical, cuando se quiera.
 
 ## Decisiones ya tomadas
 

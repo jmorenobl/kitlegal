@@ -43,6 +43,9 @@ No se reabre ninguna decisión cerrada: «skills sin código», el multicall y e
 igual. Cambia la prioridad y cómo se mide un hito. La fase 0 (H0-H6) no cambia: ya terminaba en la
 skill `boe-fiscal` funcionando con el binario.
 
+> Nota (2026-09-12): en este punto lo sustituye el ADR 0012. La skill que cierra la fase 0 (H5) es la
+> genérica `boe-legislacion`; `boe-fiscal` se migra después como primera vertical (fase 8).
+
 ## Consecuencias
 
 **A favor**
@@ -65,7 +68,7 @@ skill `boe-fiscal` funcionando con el binario.
 
 | Antes | Ahora | Nota |
 |---|---|---|
-| H0-H6 | H0-H6 | Sin cambios (H5 añade el formato de evals y la comprobación mecánica de skills) |
+| H0-H6 | H0-H6 | Sin cambios (H5 añade el formato de evals y la comprobación mecánica de skills; desde el ADR 0012 su skill es `boe-legislacion`, no `boe-fiscal`) |
 | H7 `ids` | H7, H8, H12… | Absorbido: cada tipo de id entra con el hito que lo usa |
 | — | H7 `territorio` + `legal-core` v0 | Nuevo (ADR 0009); recoge la verificación de leyes vertebrales de la antigua H10 |
 | H8 `cita` | H8 | |

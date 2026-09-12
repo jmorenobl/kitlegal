@@ -20,7 +20,7 @@ Antes de escribir código, lee los documentos semilla de `refs/` en este orden:
 
 ## Primer hito con fuente
 
-`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite, y la skill `boe-fiscal` (hoy Python `scripts/boe.py`, fuera de este repo) migrada para invocar el binario con el mismo comportamiento. H2 (`internal/httpx`) ya está en `main`; antes hace falta H3 (`internal/cache`). `boe.py` es el patrón a portar a `internal/source/boe`.
+`kitlegal boe articulo BOE-A-2015-10565 a21` funcionando en Go con caché SQLite (H4), y la skill genérica `boe-legislacion` (H5): consultar y citar cualquier norma consolidada del BOE con el binario. H2 (`internal/httpx`) ya está en `main`; antes hace falta H3 (`internal/cache`). La skill `boe-fiscal` (hoy Python `scripts/boe.py`, fuera de este repo) es el patrón: `boe.py` se porta a `internal/source/boe` y su protocolo, generalizado a cualquier materia, es el de `boe-legislacion`. La propia `boe-fiscal` se migra después como primera vertical, sobre la base (ADR 0012).
 
 ## Comandos
 
@@ -33,6 +33,7 @@ El `Makefile` es la única superficie de invocación; `make help` lista los obje
 ## Decisiones ya tomadas (no reabrir)
 
 - **Skills primero**: cada hito entrega o mejora una skill medible con evals, o protege las existentes. Solo va a Go lo que exige determinismo o verificabilidad (fuentes, parseo, caché, fechas y plazos, ids, hashes, grafo); una herramienta que ninguna skill usa no se construye. Se planifica de fuera adentro (skill → herramientas) y se implementa de dentro afuera.
+- **Base antes que vertical** (ADR 0012): las skills nacen genéricas (`boe-legislacion`, `legal-core`, `cita-verificada`…). Las verticales (fiscal, laboral, mercantil…) son especializaciones que reutilizan el protocolo de una skill base y añaden normas con `vertical:` en `data/normas.yaml`, `references/` propias y evals; no añaden herramientas. Llegan bajo demanda en la fase 8 del roadmap, en cualquier momento tras H5; `boe-fiscal` es la primera.
 - **Genericidad territorial**: ningún caso especial para un municipio en código, `data/` ni skills. Datos de municipio desde registros nacionales (INE, DIR3); lo territorial se configura por comunidad o boletín en `data/territorio/` y `data/boletines/`; el municipio del usuario va en `.kitlegal/config.yaml`. Territorio de validación: Comunidad de Madrid (Leganés); otros territorios (BOCYL, BOP multiprovinciales, forales…) en la fase 6. Fuera de cobertura, la salida la declara dentro de `data` y ninguna skill concluye «no existe» sin cobertura completa.
 - **Nombre único** `kitlegal` para repo, módulo, binario y directorios (`.kitlegal/` en cwd para el asunto, `~/.cache/kitlegal/` para caché y grafo del mundo).
 - **Multicall**: un solo ejecutable; `os.Args[0]` o el primer argumento elige el applet (`boe`, `placsp`, `bdns`, `cita`, `plazos`, `graph`…). Un symlink `boe -> kitlegal` permite que las skills sigan llamando `scripts/boe articulo …`.
