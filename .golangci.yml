@@ -117,8 +117,12 @@ linters:
               desc: "R2: la red se usa a través de internal/httpx, que concentra reintentos, límite por sitio, robots.txt y User-Agent identificable"
 
         # R3 · SQLite y database/sql son de los tres paquetes de almacenamiento y
-        # de nadie más. Ninguno de los tres existe todavía —los aportan H3, H12 y
-        # H16—, así que hoy la regla también está activa y vacía.
+        # de nadie más. Desde H3 la regla tiene dueño: internal/cache existe y es
+        # el único paquete del árbol que importa database/sql y el controlador de
+        # SQLite. internal/store e internal/graph llegan en H12 y H17 y ya figuran
+        # entre las excepciones. internal/arch_test.go comprueba lo mismo sobre el
+        # cierre transitivo real, aunque sin exigir dueño todavía: esa exigencia
+        # pide los tres paquetes en el grafo (H3 FR-036, FR-037).
         sql:
           list-mode: original
           files:
