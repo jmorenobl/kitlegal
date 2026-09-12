@@ -16,11 +16,18 @@ type Cache interface {
 	// Get devuelve el contenido guardado bajo la clave mientras siga vigente,
 	// con el idioma «coma ok» de Go. Presente y vigente es (contenido, true,
 	// nil). La ausencia es (nil, false, nil): el resultado normal que lleva a
-	// quien llama a pedirlo a la fuente, nunca un error, y también la forma en
-	// que se lee una entrada expirada, que a efectos de lectura no está. El
-	// fallo es (nil, false, err), y ese error declara su clase —implementa
-	// schema.ConClase—, de manera que quien llama nunca compara errores para
-	// saber si había entrada (FR-001, FR-013).
+	// quien llama a pedirlo a la fuente, y también la forma en que se lee una
+	// entrada expirada, que a efectos de lectura no está. El fallo es (nil,
+	// false, err), y ese error declara su clase —implementa schema.ConClase—,
+	// de manera que quien llama nunca compara errores para saber si había
+	// entrada (FR-001, FR-013).
+	//
+	// Una implementación construida para no ir a la fuente —la de solo
+	// lectura que impone --offline— no puede devolver la ausencia como
+	// ausencia, porque no hay a dónde ir a buscar lo que falta: la informa
+	// como un fallo de la clase «fuente no disponible», que quien llama
+	// propaga tal cual y el kernel traduce al código 4. Fuera de ese modo la
+	// ausencia nunca es un error (FR-013, FR-016).
 	Get(ctx context.Context, clave string) (contenido []byte, presente bool, err error)
 
 	// Put guarda el contenido bajo la clave con la vigencia dada, sustituyendo

@@ -31,6 +31,10 @@ type ajustes struct {
 	soloLectura bool
 	reloj       func() time.Time
 	registrador *slog.Logger
+	// esperaAnteBloqueo no tiene opción exportada: es la de espera.go para todo
+	// cliente, y solo las pruebas del paquete la acortan para provocar en
+	// milisegundos un bloqueo que dura más que la espera.
+	esperaAnteBloqueo time.Duration
 }
 
 // Opcion es lo que ajusta un cliente antes de construirlo. Devuelve error
@@ -122,6 +126,10 @@ type Cliente struct {
 	reloj func() time.Time
 	// registrador nunca es nulo: descarta por omisión (D14).
 	registrador *slog.Logger
+	// esperaAnteBloqueo es el tiempo total que cada operación espera a que otra
+	// invocación suelte el bloqueo de escritura antes de declarar el fallo
+	// (FR-031, espera.go).
+	esperaAnteBloqueo time.Duration
 
 	// db es la conexión con la base de datos, y es nula en un solo caso: el
 	// cliente de solo lectura que no encontró cache.db, que se construye sin
@@ -160,8 +168,9 @@ type Cliente struct {
 // devuelve ningún cliente.
 func New(ctx context.Context, opciones ...Opcion) (*Cliente, error) {
 	declarados := ajustes{
-		reloj:       time.Now,
-		registrador: slog.New(slog.DiscardHandler),
+		reloj:             time.Now,
+		registrador:       slog.New(slog.DiscardHandler),
+		esperaAnteBloqueo: esperaAnteBloqueo,
 	}
 
 	for _, opcion := range opciones {
@@ -185,12 +194,13 @@ func New(ctx context.Context, opciones ...Opcion) (*Cliente, error) {
 	}
 
 	cliente := &Cliente{
-		directorio:  directorio,
-		ruta:        filepath.Join(directorio, ficheroDeLaBase),
-		origen:      de,
-		soloLectura: declarados.soloLectura,
-		reloj:       declarados.reloj,
-		registrador: declarados.registrador,
+		directorio:        directorio,
+		ruta:              filepath.Join(directorio, ficheroDeLaBase),
+		origen:            de,
+		soloLectura:       declarados.soloLectura,
+		reloj:             declarados.reloj,
+		registrador:       declarados.registrador,
+		esperaAnteBloqueo: declarados.esperaAnteBloqueo,
 	}
 
 	cliente.registrador.DebugContext(ctx, "caché: ruta resuelta",

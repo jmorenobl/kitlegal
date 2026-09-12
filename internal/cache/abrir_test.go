@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,15 +74,22 @@ func TestAbrirCreaDirectorioYFicheroConPermisosReservados(t *testing.T) {
 // Cada uno protege algo distinto: el diario en WAL es lo que permite leer
 // mientras otra invocación escribe; la confirmación sincronizada con el disco
 // es la integridad que FR-031 prohíbe cambiar por velocidad; la espera ante
-// bloqueo es lo que hace que dos invocaciones simultáneas se turnen en vez de
-// fallar; y en solo lectura query_only refuerza dentro de la conexión lo que el
-// modo ya promete (FR-030, FR-031).
+// bloqueo dentro del motor es el tramo de cien milisegundos que el cliente
+// reintenta mirando el contexto hasta agotar los cinco segundos —la espera
+// entera la miden las pruebas de espera_test.go—; y en solo lectura query_only
+// refuerza dentro de la conexión lo que el modo ya promete (FR-003, FR-030,
+// FR-031).
 //
 // Los PRAGMA se consultan por la conexión del cliente y no abriendo otra: el
 // contrato prohíbe exponerla (FR-005), y una conexión nueva no sería la que New
 // configuró, que es justo lo que aquí se mide.
 func TestAbrirAplicaLosPragma(t *testing.T) {
 	t.Parallel()
+
+	const tramoEnMilisegundos = 100
+
+	require.Equal(t, int64(tramoEnMilisegundos), tramoDeEspera.Milliseconds(),
+		"el tramo que el motor espera en cada intento es el del contrato de apertura §4")
 
 	directorio := t.TempDir()
 
@@ -93,8 +101,8 @@ func TestAbrirAplicaLosPragma(t *testing.T) {
 		"el diario va en WAL: un lector no bloquea al escritor ni al revés")
 	assert.Equal(t, int64(2), pragmaEntero(t, normal, "PRAGMA synchronous"),
 		"cada confirmación se sincroniza con el disco (FULL)")
-	assert.Equal(t, int64(5000), pragmaEntero(t, normal, "PRAGMA busy_timeout"),
-		"ante un bloqueo se espera, no se falla de inmediato")
+	assert.Equal(t, int64(tramoEnMilisegundos), pragmaEntero(t, normal, "PRAGMA busy_timeout"),
+		"ante un bloqueo el motor espera un tramo, no falla de inmediato; el resto de la espera la pone el cliente")
 	assert.Equal(t, int64(0), pragmaEntero(t, normal, "PRAGMA query_only"),
 		"el modo normal escribe: query_only es de la otra apertura")
 
@@ -106,10 +114,98 @@ func TestAbrirAplicaLosPragma(t *testing.T) {
 
 	assert.Equal(t, int64(1), pragmaEntero(t, soloLectura, "PRAGMA query_only"),
 		"en solo lectura toda escritura falla en la conexión aunque el modo no bastara")
-	assert.Equal(t, int64(5000), pragmaEntero(t, soloLectura, "PRAGMA busy_timeout"),
-		"el lector también espera: no falla porque otra invocación esté escribiendo")
+	assert.Equal(t, int64(tramoEnMilisegundos), pragmaEntero(t, soloLectura, "PRAGMA busy_timeout"),
+		"el lector también espera por tramos: no falla porque otra invocación esté escribiendo")
 	assert.Equal(t, "wal", pragmaTexto(t, soloLectura, "PRAGMA journal_mode"),
 		"el diario es del fichero, y el lector lo ve tal como está")
+}
+
+// TestRutaParaURI fija cómo la ruta del fichero entra en el URI «file:» de los
+// dos DSN: SQLite decodifica en el camino toda secuencia %HH y lo corta en el
+// primer «?» o «#», así que esos tres caracteres se escapan y ningún otro se
+// toca, tampoco las barras. Es lo que impide que la base acabe en un fichero
+// distinto del que declara el directorio (FR-020).
+func TestRutaParaURI(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		ruta     string
+		esperado string
+	}{
+		{nombre: "sin nada que escapar", ruta: "/ruta/kitlegal/cache.db", esperado: "/ruta/kitlegal/cache.db"},
+		{nombre: "porcentaje", ruta: "/ruta/con%41pct/cache.db", esperado: "/ruta/con%2541pct/cache.db"},
+		{nombre: "interrogante", ruta: "/ruta/con?duda/cache.db", esperado: "/ruta/con%3Fduda/cache.db"},
+		{nombre: "almohadilla", ruta: "/ruta/con#fragmento/cache.db", esperado: "/ruta/con%23fragmento/cache.db"},
+		{nombre: "espacio y ampersand van tal cual", ruta: "/ruta/con espacio&mas/cache.db", esperado: "/ruta/con espacio&mas/cache.db"},
+		{nombre: "el porcentaje ya escapado se vuelve a escapar", ruta: "/ruta/%3F/cache.db", esperado: "/ruta/%253F/cache.db"},
+		{nombre: "la ruta se sanea antes", ruta: "/ruta//kitlegal/./cache.db", esperado: "/ruta/kitlegal/cache.db"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.esperado, rutaParaURI(caso.ruta))
+		})
+	}
+
+	assert.True(t, strings.HasPrefix(dsnNormal("/ruta/con?duda/cache.db"), "file:/ruta/con%3Fduda/cache.db?"),
+		"el DSN normal lleva la ruta escapada y la primera interrogación es la de los parámetros")
+	assert.True(t, strings.HasPrefix(dsnSoloLectura("/ruta/con#frag/cache.db", true), "file:/ruta/con%23frag/cache.db?mode=ro&immutable=1&"),
+		"el DSN de solo lectura, en sus dos formas, lleva la ruta escapada")
+}
+
+// TestDirectorioConCaracteresDeURI fija FR-020 y FR-021 sobre el disco con los
+// nombres de directorio que la sintaxis de URI de SQLite interpretaría: la base aparece
+// dentro del directorio declarado y en ningún otro sitio, con sus permisos, y un
+// lector de solo lectura sobre ese mismo directorio la encuentra.
+//
+// Sin escapar la ruta, «?» y «#» cortan el camino y la base se escribe en un
+// hermano del directorio declarado mientras cache.db queda a cero bytes, y
+// «%41» se decodifica como «A» y abre otro fichero. Se mide sobre el padre
+// entero: nada más que el directorio declarado y lo que SQLite deja dentro.
+func TestDirectorioConCaracteresDeURI(t *testing.T) {
+	t.Parallel()
+
+	nombres := []string{
+		"con%41pct",
+		"con?interrogante",
+		"con#almohadilla",
+		"con espacio",
+		"con&ampersand",
+	}
+
+	for _, nombre := range nombres {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			padre := t.TempDir()
+			directorio := filepath.Join(padre, nombre)
+			ruta := filepath.Join(directorio, ficheroDeLaBase)
+			contenido := []byte("<norma>contenido</norma>")
+
+			escritor := clienteAbierto(t, directorio)
+			require.NoError(t, escritor.Put(t.Context(), claveDePrueba, contenido, vigenciaDePrueba))
+			require.NoError(t, escritor.Close())
+
+			estado, err := os.Stat(ruta)
+			require.NoError(t, err, "la base está dentro del directorio declarado")
+			assert.Positive(t, estado.Size(), "y es ahí donde se escribió, no en otro fichero")
+			assert.Equal(t, fs.FileMode(0o600), estado.Mode().Perm(), "con los permisos de FR-021")
+
+			for _, entrada := range contenidoDe(t, padre) {
+				assert.Equal(t, nombre, entrada, "bajo el padre solo está el directorio declarado")
+			}
+
+			lector := clienteAbierto(t, directorio, SoloLectura())
+
+			leido, presente, err := lector.Get(t.Context(), claveDePrueba)
+			require.NoError(t, err)
+			assert.True(t, presente, "el lector de solo lectura abre la misma base")
+			assert.Equal(t, contenido, leido)
+		})
+	}
 }
 
 // TestFicheroInutilizable fija FR-028 y la fila 10 del contrato de errores: en

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -70,6 +71,38 @@ func TestErrorMensajes(t *testing.T) {
 			fallo:    errorDeDirectorioNoEscribible("construir", origenDeLaOpcion, directorioDePrueba, nil),
 			esperado: `caché: no se puede escribir en el directorio "/ruta" (opción ConDirectorio)`,
 			nombra:   []string{directorioDePrueba, origenDeLaOpcion},
+		},
+		{
+			nombre: "fichero no escribible por acceso denegado",
+			fallo:  errorDeFicheroNoEscribible("construir", origenDeLaOpcion, baseDePrueba, fs.ErrPermission),
+			esperado: `caché: no se puede abrir "/ruta/cache.db" para escribir (opción ConDirectorio): ` +
+				`acceso denegado`,
+			nombra: []string{baseDePrueba, origenDeLaOpcion, "acceso denegado"},
+		},
+		{
+			nombre:   "fichero no escribible por otra causa",
+			fallo:    errorDeFicheroNoEscribible("construir", origenDeLaVariable, baseDePrueba, errors.New("is a directory")),
+			esperado: `caché: no se puede abrir "/ruta/cache.db" para escribir (variable KITLEGAL_CACHE_DIR)`,
+			nombra:   []string{baseDePrueba, origenDeLaVariable},
+		},
+		{
+			nombre:   "fichero ilegible en solo lectura",
+			fallo:    errorDeFicheroIlegible(baseDePrueba, fs.ErrPermission),
+			esperado: `caché: no se puede leer "/ruta/cache.db" en solo lectura: acceso denegado`,
+			nombra:   []string{baseDePrueba, "solo lectura", "acceso denegado"},
+		},
+		{
+			nombre:   "bloqueo agotado al construir",
+			fallo:    errorDeBloqueo("construir", baseDePrueba, "", 5*time.Second, nil),
+			esperado: `caché: "/ruta/cache.db" está bloqueada por otra invocación y la espera de 5s se agotó`,
+			nombra:   []string{baseDePrueba, "5s"},
+		},
+		{
+			nombre: "bloqueo agotado al escribir",
+			fallo:  errorDeBloqueo("escribir", baseDePrueba, claveDePrueba, 5*time.Second, nil),
+			esperado: `caché: no se pudo escribir "prueba:http://fuente.prueba/norma": "/ruta/cache.db" ` +
+				`está bloqueada por otra invocación y la espera de 5s se agotó`,
+			nombra: []string{"escribir", claveDePrueba, baseDePrueba, "5s"},
 		},
 		{
 			nombre: "version ajena",
@@ -165,6 +198,12 @@ func TestErrorEnvueltoConservaLaClase(t *testing.T) {
 			codigo: 2,
 		},
 		{
+			nombre: "argumentos: el fichero no se puede abrir para escribir",
+			fallo:  errorDeFicheroNoEscribible("construir", origenDeLaOpcion, baseDePrueba, causa),
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+		},
+		{
 			nombre: "argumentos: la vigencia recibida no es válida",
 			fallo:  errorDeArgumentos("escribir", "la vigencia tiene que ser mayor que cero", nil),
 			clase:  schema.ClaseArgumentos,
@@ -197,6 +236,18 @@ func TestErrorEnvueltoConservaLaClase(t *testing.T) {
 		{
 			nombre: "inesperado: hay registro de escritura y no se puede crear la memoria compartida",
 			fallo:  errorDeWALSinMemoriaCompartida("leer", baseDePrueba, causa),
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+		},
+		{
+			nombre: "inesperado: el fichero no se deja leer en solo lectura",
+			fallo:  errorDeFicheroIlegible(baseDePrueba, causa),
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+		},
+		{
+			nombre: "inesperado: la base sigue bloqueada tras la espera",
+			fallo:  errorDeBloqueo("escribir", baseDePrueba, claveDePrueba, 5*time.Second, causa),
 			clase:  schema.ClaseInesperado,
 			codigo: 1,
 		},
@@ -701,11 +752,13 @@ func provocaEscrituraEnSoloLectura(t *testing.T) []provocado {
 	}
 }
 
-// provocaOperacionTrasCerrar es la mitad de la fila 14 que se puede provocar de
-// forma determinista: una operación después de Close, sobre un cliente con base y
-// sobre uno sin ella. La otra mitad —un fallo de entrada y salida o del
-// controlador que sobreviene— no se puede provocar sin permisos ni sin estropear
-// el disco, y su clase la fija el mismo constructor, errorInesperado.
+// provocaOperacionTrasCerrar es la fila 14 en las dos formas que se pueden
+// provocar de forma determinista: una operación después de Close —sobre un
+// cliente con base y sobre uno sin ella— y la base bloqueada por otra invocación
+// más tiempo que la espera, con la espera acortada a milisegundos, al construir
+// sobre una base sin migrar y al escribir. Un fallo de entrada y salida que
+// sobreviene no se puede provocar sin estropear el disco, y su clase la fija el
+// mismo constructor, errorInesperado.
 func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	t.Helper()
 
@@ -719,18 +772,36 @@ func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	alEscribir := conBase.Put(t.Context(), claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba)
 	_, _, alLeerSinBase := sinBase.Get(t.Context(), claveDePrueba)
 
+	sinMigrar := t.TempDir()
+	retieneElBloqueo(t, filepath.Join(sinMigrar, ficheroDeLaBase))
+
+	bloqueada := t.TempDir()
+	escritor := clienteAbierto(t, bloqueada, conEsperaAnteBloqueo(esperaCorta))
+	retieneElBloqueo(t, filepath.Join(bloqueada, ficheroDeLaBase))
+
 	return []provocado{
 		{como: "Get tras cerrar", err: alLeer},
 		{como: "Put tras cerrar", err: alEscribir},
 		{como: "Get tras cerrar un cliente sin base", err: alLeerSinBase},
+		{
+			como: "New con la base bloqueada más tiempo que la espera",
+			err:  construye(t, ConDirectorio(sinMigrar), conEsperaAnteBloqueo(esperaCorta)),
+		},
+		{
+			como: "Put con la base bloqueada más tiempo que la espera",
+			err:  escritor.Put(t.Context(), claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba),
+		},
 	}
 }
 
 // provocaContextoTerminado es la fila 15: New, Get y Put con el contexto
-// cancelado y con el contexto vencido. Get y Put operan sobre una base con la
-// entrada guardada y vigente, para que el 4 no se pueda confundir con ninguna
-// ausencia. Todo se prepara con el contexto de la prueba y solo la llamada al
-// paquete recibe el terminado.
+// cancelado y con el contexto vencido, y además New y Put con un contexto que
+// vence **durante** la espera ante el bloqueo que otra invocación retiene, que
+// es donde la espera del motor no mira el contexto y el cliente tiene que
+// mirarlo por él. Get y Put operan sobre una base con la entrada guardada y
+// vigente, para que el 4 no se pueda confundir con ninguna ausencia. Todo se
+// prepara con el contexto de la prueba y solo la llamada al paquete recibe el
+// terminado.
 func provocaContextoTerminado(t *testing.T) []provocado {
 	t.Helper()
 
@@ -753,7 +824,7 @@ func provocaContextoTerminado(t *testing.T) []provocado {
 		{nombre: "vencido", ctx: vencido},
 	}
 
-	provocados := make([]provocado, 0, 3*len(terminados))
+	provocados := make([]provocado, 0, 3*len(terminados)+2)
 
 	for _, terminado := range terminados {
 		nuevo, alConstruir := New(terminado.ctx, ConDirectorio(t.TempDir()))
@@ -769,5 +840,34 @@ func provocaContextoTerminado(t *testing.T) []provocado {
 		)
 	}
 
-	return provocados
+	return append(provocados, provocaVencimientoDuranteLaEspera(t)...)
+}
+
+// provocaVencimientoDuranteLaEspera es la forma de la fila 15 que vive en la
+// espera ante bloqueo: otra invocación retiene el bloqueo de escritura y el
+// plazo de quien llama vence mientras New —sobre una base sin migrar— y Put
+// esperan.
+func provocaVencimientoDuranteLaEspera(t *testing.T) []provocado {
+	t.Helper()
+
+	sinMigrar := t.TempDir()
+	retieneElBloqueo(t, filepath.Join(sinMigrar, ficheroDeLaBase))
+
+	bloqueada := t.TempDir()
+	escritor := clienteAbierto(t, bloqueada)
+	retieneElBloqueo(t, filepath.Join(bloqueada, ficheroDeLaBase))
+
+	ctx, cancela := context.WithTimeout(t.Context(), plazoCorto)
+	t.Cleanup(cancela)
+
+	nuevo, alConstruir := New(ctx, ConDirectorio(sinMigrar))
+	cierraAlTerminar(t, nuevo)
+
+	return []provocado{
+		{como: "New con el contexto vencido durante la espera ante bloqueo", err: alConstruir},
+		{
+			como: "Put con el contexto vencido durante la espera ante bloqueo",
+			err:  escritor.Put(ctx, claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba),
+		},
+	}
 }

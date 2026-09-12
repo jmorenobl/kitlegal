@@ -89,7 +89,13 @@ func (c *Cliente) Get(ctx context.Context, clave string) ([]byte, bool, error) {
 		expiraEn  int64
 	)
 
-	err := c.db.QueryRowContext(ctx, leeLaEntrada, clave).Scan(&contenido, &expiraEn)
+	// Leer con el diario en WAL no espera a ningún escritor, pero una base que
+	// todavía va en diario clásico, o que otra invocación está consolidando,
+	// puede contestar que está ocupada: se espera por tramos que miran el
+	// contexto, como en toda operación (FR-003, FR-031).
+	err := c.reintentaMientrasBloqueada(ctx, func() error {
+		return c.db.QueryRowContext(ctx, leeLaEntrada, clave).Scan(&contenido, &expiraEn)
+	})
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -150,7 +156,16 @@ func (c *Cliente) Put(ctx context.Context, clave string, contenido []byte, vigen
 
 	expiraEn := c.reloj().Add(vigencia).UnixNano()
 
-	if _, err := c.db.ExecContext(ctx, guardaLaEntrada, clave, contenido, expiraEn); err != nil {
+	// El upsert es una sentencia en autocommit: si otra invocación tiene el
+	// bloqueo de escritura, SQLITE_BUSY dice que no se escribió nada y se
+	// vuelve a intentar, por tramos que miran el contexto, hasta agotar la
+	// espera (FR-003, FR-031).
+	err := c.reintentaMientrasBloqueada(ctx, func() error {
+		_, err := c.db.ExecContext(ctx, guardaLaEntrada, clave, contenido, expiraEn)
+
+		return err
+	})
+	if err != nil {
 		return c.falloAlOperar(ctx, "escribir", clave, err)
 	}
 
@@ -196,18 +211,23 @@ func (c *Cliente) estaCerrado() bool {
 
 // falloAlOperar clasifica lo que sale mal al leer o escribir una entrada, sin
 // dejar ninguna forma de fallo sin clase (FR-033). Si el contexto de quien llama
-// terminó —antes de empezar, o mientras el controlador trabajaba y lo
-// interrumpió con su propio código—, es «fuente no disponible» (4), la clase con
-// la que el kernel trata el plazo agotado (fila 15). Cualquier otra cosa del
-// controlador o del sistema de ficheros es «inesperado» (1) con la causa
-// envuelta (fila 14). Los dos nombran la operación y la clave, y llevan la ruta.
+// terminó —antes de empezar, mientras el controlador trabajaba y lo interrumpió
+// con su propio código, o durante la espera ante un bloqueo—, es «fuente no
+// disponible» (4), la clase con la que el kernel trata el plazo agotado (fila
+// 15). La base bloqueada por otra invocación más tiempo que la espera es
+// «inesperado» (1) diciendo justo eso, y cualquier otra cosa del controlador o
+// del sistema de ficheros es «inesperado» (1) con la causa envuelta (fila 14).
+// Todos nombran la operación y la clave, y llevan la ruta.
 func (c *Cliente) falloAlOperar(ctx context.Context, operacion, clave string, causa error) *Error {
 	var fallo *Error
 
-	if esDelContexto(causa) || ctx.Err() != nil {
+	switch {
+	case terminoElContexto(ctx, causa):
 		fallo = errorDeFuenteNoDisponible(operacion, fmt.Sprintf(
-			"el contexto terminó antes de %s %q", operacion, clave), causa)
-	} else {
+			"el contexto terminó antes de %s %q", operacion, clave), conElErrorDelContexto(ctx, causa))
+	case esBloqueo(causa):
+		fallo = errorDeBloqueo(operacion, c.ruta, clave, c.esperaAnteBloqueo, causa)
+	default:
 		fallo = errorInesperado(operacion, fmt.Sprintf(
 			"no se pudo %s %q en %q", operacion, clave, c.ruta), causa)
 	}

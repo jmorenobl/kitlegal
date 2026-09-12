@@ -116,9 +116,9 @@ func (c *Cliente) migra(ctx context.Context, base *sql.DB) (int64, error) {
 
 	conocida := int64(len(nombres))
 
-	registrada, err := versionRegistrada(ctx, base)
+	registrada, err := c.leeLaVersion(ctx, base)
 	if err != nil {
-		return 0, c.falloAlLeerElEsquema("migrar", err)
+		return 0, c.falloAlAbrir(ctx, "migrar", err)
 	}
 
 	// Un esquema más nuevo que este binario no se toca ni se degrada: quien lo
@@ -160,10 +160,12 @@ func (c *Cliente) aplica(
 	// La transacción es inmediata por el _txlock del DSN: toma el bloqueo de
 	// escritura al empezar y no al primer INSERT, de modo que dos invocaciones
 	// que migran a la vez se turnen en vez de fallar por escalada de bloqueo
-	// (D4, sonda 4).
-	tx, err := base.BeginTx(ctx, nil)
+	// (D4, sonda 4). Empezarla es lo que espera a la otra invocación, y esa
+	// espera va por tramos que miran el contexto (FR-003, FR-031); un comienzo
+	// que falla con SQLITE_BUSY no dejó nada abierto, así que se puede repetir.
+	tx, err := c.empiezaLaTransaccion(ctx, base)
 	if err != nil {
-		return c.falloAlLeerElEsquema("migrar", err)
+		return c.falloAlAbrir(ctx, "migrar", err)
 	}
 
 	// Deshacer es lo que garantiza que no quede nada a medias, y vale para las
@@ -181,9 +183,11 @@ func (c *Cliente) aplica(
 	// Releer la versión **dentro** de la transacción es lo que hace que la
 	// migración se aplique una sola vez: la invocación que esperaba el bloqueo
 	// entra cuando la otra ya confirmó y encuentra el trabajo hecho (FR-029, D7).
+	// Dentro de la transacción ya se tiene el bloqueo de escritura: aquí no hay
+	// nada que esperar ni que reintentar.
 	registrada, err := versionRegistrada(ctx, tx)
 	if err != nil {
-		return c.falloAlLeerElEsquema("migrar", err)
+		return c.falloAlAbrir(ctx, "migrar", err)
 	}
 
 	if registrada >= version {
@@ -191,18 +195,18 @@ func (c *Cliente) aplica(
 	}
 
 	if _, err := tx.ExecContext(ctx, string(sentencias)); err != nil {
-		return c.falloAlAplicar(version, nombre, err)
+		return c.falloAlAplicar(ctx, version, nombre, err)
 	}
 
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO schema_version(version, aplicada_en) VALUES (?, ?)`,
 		version, c.reloj().UTC().Format(time.RFC3339),
 	); err != nil {
-		return c.falloAlAplicar(version, nombre, err)
+		return c.falloAlAplicar(ctx, version, nombre, err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return c.falloAlAplicar(version, nombre, err)
+		return c.falloAlAplicar(ctx, version, nombre, err)
 	}
 
 	c.registrador.DebugContext(ctx, "caché: migración aplicada",
@@ -213,14 +217,28 @@ func (c *Cliente) aplica(
 	return nil
 }
 
+// empiezaLaTransaccion abre la transacción inmediata de una migración esperando
+// el bloqueo de escritura por tramos que miran el contexto (FR-003, FR-031).
+func (c *Cliente) empiezaLaTransaccion(ctx context.Context, base *sql.DB) (*sql.Tx, error) {
+	var tx *sql.Tx
+
+	err := c.reintentaMientrasBloqueada(ctx, func() (err error) {
+		tx, err = base.BeginTx(ctx, nil)
+
+		return err
+	})
+
+	return tx, err
+}
+
 // falloAlAplicar es lo que sale mal mientras se aplica una migración: el
 // contexto que termina es «fuente no disponible» (4) y cualquier otra cosa —una
-// tabla que ya estaba con otra forma, el disco lleno, la espera agotada— es
-// «inesperado» (1). El mensaje nombra la migración y el fichero, que es lo que
-// sitúa el fallo (fila 14, FR-033).
-func (c *Cliente) falloAlAplicar(version int64, nombre string, causa error) error {
-	if esDelContexto(causa) {
-		return c.falloDelContexto("migrar", causa)
+// tabla que ya estaba con otra forma, el disco lleno— es «inesperado» (1). El
+// mensaje nombra la migración y el fichero, que es lo que sitúa el fallo (fila
+// 14, FR-033).
+func (c *Cliente) falloAlAplicar(ctx context.Context, version int64, nombre string, causa error) error {
+	if terminoElContexto(ctx, causa) {
+		return c.falloDelContexto(ctx, "migrar", causa)
 	}
 
 	return c.falloInesperadoEn("migrar", fmt.Sprintf(

@@ -15,7 +15,9 @@
 //     expirada— no es un fallo, sino el resultado normal que lleva a quien
 //     llama a pedir a la fuente (FR-013, FR-014).
 //   - Toda operación exige el contexto de quien llama y termina cuando ese
-//     contexto termina; el paquete no crea ninguno por su cuenta (FR-003).
+//     contexto termina, también mientras espera a que otra invocación suelte
+//     el bloqueo: esa espera se hace por tramos cortos y entre tramo y tramo se
+//     mira el contexto. El paquete no crea ninguno por su cuenta (FR-003).
 //   - Todo fallo declara su clase por schema.ConClase y ninguna ruta termina en
 //     panic (FR-033, FR-034).
 //

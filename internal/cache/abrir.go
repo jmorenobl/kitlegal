@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -85,9 +87,19 @@ func (c *Cliente) abreYMigra(ctx context.Context) error {
 //
 // Sin O_EXCL a propósito: dos invocaciones que arrancan a la vez comparten el
 // fichero y se turnan en la migración, que es lo que FR-029 pide.
+//
+// Si abrirlo falla, el mensaje culpa a quien toca: al fichero cuando ya existe
+// —sus permisos no dejan escribirlo, o lo que hay en la ruta no es un fichero—
+// y al directorio cuando el fichero no está y es el directorio el que no deja
+// crearlo. Los dos son «argumentos» (2), porque una caché que no puede escribir
+// no sirve y quien invoca puede declarar otro directorio (fila 6, FR-035).
 func (c *Cliente) creaElFichero() error {
 	fichero, err := os.OpenFile(filepath.Clean(c.ruta), os.O_RDWR|os.O_CREATE, permisosDelFichero)
 	if err != nil {
+		if _, existe := os.Stat(c.ruta); existe == nil {
+			return errorDeFicheroNoEscribible("construir", string(c.origen), c.ruta, err)
+		}
+
 		return errorDeDirectorioNoEscribible("construir", string(c.origen), c.directorio, err)
 	}
 
@@ -149,30 +161,60 @@ func (c *Cliente) abreParaLeer(ctx context.Context) error {
 
 // conexionDeLectura abre la base para leerla y devuelve la versión que su
 // esquema dice tener, que es lo que la primera consulta averigua. Aquí vive la
-// única rama del modo: el directorio que no admite crear la memoria compartida.
+// única rama del modo: SQLite no ha podido abrir lo que hace falta para leer.
+//
+// Cuando eso pasa hay dos culpables posibles y el código del controlador no los
+// distingue: el propio fichero, que no se deja leer, y el directorio, que no
+// admite crear la memoria compartida. Se pregunta primero por el fichero, que es
+// lo más concreto, y solo si se puede leer se sigue con el directorio (FR-035):
+// un cache.db sin permiso de lectura es «inesperado» (1) nombrando el fichero
+// (fila 12), nunca un mensaje que culpe a un directorio que no tiene la culpa.
 func (c *Cliente) conexionDeLectura(ctx context.Context) (*sql.DB, int64, error) {
 	base, err := c.abreLaConexion(dsnSoloLectura(c.ruta, false))
 	if err != nil {
 		return nil, 0, err
 	}
 
-	registrada, err := versionRegistrada(ctx, base)
+	registrada, err := c.leeLaVersion(ctx, base)
 	if err == nil {
 		return base, registrada, nil
 	}
 
 	if !esSinMemoriaCompartida(err) {
-		return nil, 0, errors.Join(c.falloAlLeerElEsquema("construir", err), c.cierraTrasElFallo(base))
+		return nil, 0, errors.Join(c.falloAlAbrir(ctx, "construir", err), c.cierraTrasElFallo(base))
+	}
+
+	if fallo := c.compruebaQueSeDejaLeer(err); fallo != nil {
+		return nil, 0, errors.Join(fallo, c.cierraTrasElFallo(base))
 	}
 
 	return c.reabreInmutable(ctx, base, err)
 }
 
-// reabreInmutable es la rama del directorio que no admite crear cache.db-shm.
-// Los dos códigos que produce ese caso —1544 cuando no hay registro de
-// escritura, 14 cuando el registro existe y falta la memoria compartida— llevan
-// a la misma pregunta, y esa pregunta no es cuál de los dos llegó, sino si hay
-// algo en el registro (research D5, sonda 3 B, D y E):
+// compruebaQueSeDejaLeer abre cache.db solo para leerlo y lo cierra: si ni eso se
+// puede, el fichero es la causa del fallo del controlador y se dice así, con la
+// ruta del fichero y el acceso denegado cuando lo es (fila 12, FR-035). Es una
+// lectura que no escribe nada, así que cabe en el modo de solo lectura.
+func (c *Cliente) compruebaQueSeDejaLeer(causa error) error {
+	fichero, err := os.Open(filepath.Clean(c.ruta))
+	if err != nil {
+		return errorDeFicheroIlegible(c.ruta, errors.Join(err, causa))
+	}
+
+	if err := fichero.Close(); err != nil {
+		return c.falloInesperadoEn("construir",
+			fmt.Sprintf("no se pudo cerrar %q después de comprobar que se deja leer", c.ruta), err)
+	}
+
+	return nil
+}
+
+// reabreInmutable es la rama del directorio que no admite crear cache.db-shm,
+// a la que se llega con el fichero ya comprobado como legible. Los dos códigos
+// que produce ese caso —1544 cuando no hay registro de escritura, 14 cuando el
+// registro existe y falta la memoria compartida— llevan a la misma pregunta, y
+// esa pregunta no es cuál de los dos llegó, sino si hay algo en el registro
+// (research D5, sonda 3 B, D y E):
 //
 //   - no hay registro: todo lo confirmado está en cache.db, y nadie puede estar
 //     escribiendo donde no se pueden crear los auxiliares, así que el fichero no
@@ -203,12 +245,29 @@ func (c *Cliente) reabreInmutable(ctx context.Context, base *sql.DB, causa error
 		return nil, 0, err
 	}
 
-	registrada, err := versionRegistrada(ctx, inmutable)
+	registrada, err := c.leeLaVersion(ctx, inmutable)
 	if err != nil {
-		return nil, 0, errors.Join(c.falloAlLeerLoInmutable(err), c.cierraTrasElFallo(inmutable))
+		return nil, 0, errors.Join(c.falloAlLeerLoInmutable(ctx, err), c.cierraTrasElFallo(inmutable))
 	}
 
 	return inmutable, registrada, nil
+}
+
+// leeLaVersion es la primera consulta de toda apertura —la versión que el
+// esquema dice tener— esperando el bloqueo por tramos que miran el contexto
+// (FR-003, FR-031): en un fichero que todavía va en diario clásico, o mientras
+// otra invocación consolida su registro, leer también puede encontrar la base
+// ocupada.
+func (c *Cliente) leeLaVersion(ctx context.Context, base consultante) (int64, error) {
+	var registrada int64
+
+	err := c.reintentaMientrasBloqueada(ctx, func() (err error) {
+		registrada, err = versionRegistrada(ctx, base)
+
+		return err
+	})
+
+	return registrada, err
 }
 
 // abreLaConexion abre el grupo de conexiones del cliente sobre un DSN ya
@@ -226,14 +285,15 @@ func (c *Cliente) abreLaConexion(dsn string) (*sql.DB, error) {
 }
 
 // dsnNormal es la cadena de conexión del modo normal (contrato de apertura §3):
-// espera ante bloqueo de cinco segundos, diario en WAL —lo que permite leer
-// mientras otra invocación escribe—, confirmación sincronizada con el disco y
-// transacciones que toman el bloqueo de escritura al empezar, de modo que dos
-// migraciones simultáneas se turnen en vez de fallar por escalada de bloqueo
-// (FR-030, FR-031, D4).
+// espera ante bloqueo por tramos —el motor espera un tramo y el cliente
+// reintenta mirando el contexto hasta agotar los cinco segundos (FR-003,
+// FR-031)—, diario en WAL —lo que permite leer mientras otra invocación
+// escribe—, confirmación sincronizada con el disco y transacciones que toman el
+// bloqueo de escritura al empezar, de modo que dos migraciones simultáneas se
+// turnen en vez de fallar por escalada de bloqueo (FR-030, D4).
 func dsnNormal(ruta string) string {
-	return "file:" + filepath.Clean(ruta) +
-		"?_pragma=busy_timeout(5000)" +
+	return "file:" + rutaParaURI(ruta) +
+		"?" + pragmaTramoDeEspera +
 		"&_pragma=journal_mode(WAL)" +
 		"&_pragma=synchronous(FULL)" +
 		"&_txlock=immediate"
@@ -249,13 +309,35 @@ func dsnNormal(ruta string) string {
 // admite los auxiliares y no hay registro que leer, que es el único caso en que
 // el fichero no puede cambiar mientras se lee (clarificación Q2, D5).
 func dsnSoloLectura(ruta string, inmutable bool) string {
-	dsn := "file:" + filepath.Clean(ruta) + "?mode=ro"
+	dsn := "file:" + rutaParaURI(ruta) + "?mode=ro"
 	if inmutable {
 		dsn += "&immutable=1"
 	}
 
-	return dsn + "&_pragma=busy_timeout(5000)&_pragma=query_only(1)"
+	return dsn + "&" + pragmaTramoDeEspera + "&_pragma=query_only(1)"
 }
+
+// pragmaTramoDeEspera es el busy_timeout de cada conexión, en milisegundos: el
+// tramo que SQLite espera por su cuenta en cada intento (espera.go). El
+// controlador lo aplica el primero de todos los PRAGMA al abrir cada conexión.
+var pragmaTramoDeEspera = "_pragma=busy_timeout(" + strconv.FormatInt(tramoDeEspera.Milliseconds(), 10) + ")"
+
+// rutaParaURI convierte la ruta del fichero en el tramo de camino de un URI
+// «file:» de SQLite, que es lo que el controlador entrega al motor con
+// SQLITE_OPEN_URI. El motor decodifica en ese camino toda secuencia %HH y lo
+// corta en el primer «?» o «#», así que esos tres caracteres son los únicos
+// que hay que proteger: sin protegerlos, un directorio con «?» o «#» en el
+// nombre abriría la base en otro sitio y uno con «%41» en otro nombre (FR-020,
+// FR-022). Las barras del sistema se convierten a «/», que es lo que el URI
+// espera; todo lo demás va tal cual.
+func rutaParaURI(ruta string) string {
+	return escapadorDeURI.Replace(filepath.ToSlash(filepath.Clean(ruta)))
+}
+
+// escapadorDeURI escapa lo que la sintaxis de URI de SQLite interpreta dentro
+// del camino: el «%» primero, para que los otros dos escapes no se vuelvan a
+// escapar.
+var escapadorDeURI = strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23")
 
 // cierraTrasElFallo retira la conexión que no llegó a servir para nada: una
 // apertura que falla no puede dejar nada abierto. Quien llama añade lo que
@@ -270,21 +352,30 @@ func (c *Cliente) cierraTrasElFallo(base *sql.DB) error {
 	return nil
 }
 
-// falloAlLeerElEsquema clasifica lo que el controlador devuelve al leer la
-// versión del esquema, y no deja ninguna forma de fallo sin clase (FR-033):
+// falloAlAbrir clasifica lo que el controlador devuelve al leer la versión del
+// esquema o al empezar la transacción de una migración, y no deja ninguna forma
+// de fallo sin clase (FR-033). El orden de las ramas es el orden de lo que
+// explica el fallo:
 //
 //   - el contexto terminado es «fuente no disponible» (4), la misma clase con
-//     la que el kernel trata el plazo agotado (fila 15);
+//     la que el kernel trata el plazo agotado (fila 15); también cuando venció
+//     durante una espera ante bloqueo, en cuyo caso la causa es el SQLITE_BUSY
+//     de la última espera y el contexto ya está terminado;
+//   - la base bloqueada por otra invocación más tiempo que el presupuesto es
+//     «inesperado» (1) diciendo justo eso (fila 14): un bloqueo no convierte el
+//     fichero en inutilizable;
 //   - que el directorio no admita el registro de escritura es «argumentos» (2),
 //     porque una caché que no puede escribir no sirve de nada y quien invoca
 //     puede declarar otro directorio (fila 6). En solo lectura este código no
 //     llega aquí: lo atiende antes la rama de la memoria compartida;
 //   - todo lo demás —SQLITE_NOTADB el primero— es un fichero que no sirve como
 //     base de datos, y no se borra ni se rehace (fila 10, FR-028).
-func (c *Cliente) falloAlLeerElEsquema(operacion string, causa error) error {
+func (c *Cliente) falloAlAbrir(ctx context.Context, operacion string, causa error) error {
 	switch {
-	case esDelContexto(causa):
-		return c.falloDelContexto(operacion, causa)
+	case terminoElContexto(ctx, causa):
+		return c.falloDelContexto(ctx, operacion, causa)
+	case esBloqueo(causa):
+		return errorDeBloqueo(operacion, c.ruta, "", c.esperaAnteBloqueo, causa)
 	case codigoDeSQLite(causa) == sqlite3.SQLITE_READONLY_DIRECTORY:
 		return errorDeDirectorioNoEscribible(operacion, string(c.origen), c.directorio, causa)
 	default:
@@ -293,20 +384,17 @@ func (c *Cliente) falloAlLeerElEsquema(operacion string, causa error) error {
 }
 
 // falloAlLeerLoInmutable clasifica el fallo de la reapertura inmutable, que es
-// el último intento de leer: si vuelve a ser el directorio, lo que queda es
-// decir que no se puede leer y nombrar el fichero (fila 12); si es otra cosa, el
-// fichero no sirve como base (fila 10). Ninguno degrada a una ausencia falsa.
-func (c *Cliente) falloAlLeerLoInmutable(causa error) error {
-	switch {
-	case esDelContexto(causa):
-		return c.falloDelContexto("construir", causa)
-	case esSinMemoriaCompartida(causa):
-		return c.falloInesperadoEn("construir", fmt.Sprintf(
-			"no se puede leer %q en solo lectura: el directorio no admite los ficheros "+
-				"auxiliares que SQLite necesita", c.ruta), causa)
-	default:
-		return errorDeFicheroInutilizable("construir", c.ruta, causa)
+// el último intento de leer y llega con el fichero ya comprobado como legible y
+// sin registro de escritura: si el contexto terminó, es su fila (15); si no, lo
+// único honrado que queda es decir que no se puede leer y nombrar el fichero,
+// sin atribuirlo a nada que no se haya comprobado (fila 12). Ninguno degrada a
+// una ausencia falsa.
+func (c *Cliente) falloAlLeerLoInmutable(ctx context.Context, causa error) error {
+	if terminoElContexto(ctx, causa) {
+		return c.falloDelContexto(ctx, "construir", causa)
 	}
+
+	return errorDeFicheroIlegible(c.ruta, causa)
 }
 
 // falloInesperadoEn es lo inesperado que ocurre sobre un fichero concreto. El
@@ -321,27 +409,25 @@ func (c *Cliente) falloInesperadoEn(operacion, motivo string, causa error) *Erro
 }
 
 // falloDelContexto es la fila 15 sobre esta base: el contexto de quien llama
-// terminó mientras se abría. Es «fuente no disponible» (4) y no «inesperado»,
-// porque el plazo agotado no es un fallo del fichero.
-func (c *Cliente) falloDelContexto(operacion string, causa error) *Error {
+// terminó mientras se construía o se migraba. Es «fuente no disponible» (4) y
+// no «inesperado», porque el plazo agotado no es un fallo del fichero. La causa
+// lleva el error del contexto además del que devolviera el controlador, para
+// que errors.Is alcance los dos.
+func (c *Cliente) falloDelContexto(ctx context.Context, operacion string, causa error) *Error {
 	fallo := errorDeFuenteNoDisponible(operacion, fmt.Sprintf(
-		"el contexto terminó antes de leer el esquema de %q", c.ruta), causa)
+		"el contexto terminó antes de %s la caché en %q", operacion, c.ruta),
+		conElErrorDelContexto(ctx, causa))
 	fallo.Ruta = c.ruta
 
 	return fallo
 }
 
-// esDelContexto dice si el fallo viene de que el contexto de quien llama
-// terminó, cancelado o vencido. Es lo que impide que un plazo agotado se
-// presente como un fichero estropeado.
-func esDelContexto(err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
-}
-
-// esSinMemoriaCompartida dice si el fallo es el del directorio que no admite
-// crear cache.db-shm. Son **dos** códigos y no uno, y cuál llega depende de qué
-// auxiliares existan, así que los dos disparan la misma comprobación: lo que
-// decide es la presencia del registro de escritura, no el código (D5).
+// esSinMemoriaCompartida dice si el fallo es uno de los dos códigos con los que
+// SQLite dice que no pudo abrir lo que necesita para leer: el fichero mismo, o
+// la memoria compartida en un directorio que no admite crearla. Son **dos**
+// códigos y no uno, y cuál llega depende de qué auxiliares existan, así que los
+// dos disparan la misma comprobación: primero si el fichero se deja leer y
+// después si hay registro de escritura; lo que decide es eso, no el código (D5).
 func esSinMemoriaCompartida(err error) bool {
 	codigo := codigoDeSQLite(err)
 

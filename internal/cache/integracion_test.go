@@ -279,6 +279,58 @@ func TestIntegracionDirectorioDenegado(t *testing.T) {
 	})
 }
 
+// TestIntegracionFicheroDenegado fija FR-035 sobre un cache.db al que no se puede
+// acceder (0000) dentro de un directorio que sí admite escribir: el culpable es
+// el fichero, y el mensaje lo nombra a él y al acceso denegado, nunca al
+// directorio. En solo lectura no se sabe qué contiene y declararlo ausente sería
+// mentir: «inesperado» (1), la fila 12. En modo normal la caché no puede
+// escribir donde tiene que hacerlo: «argumentos» (2), la fila 6, con el origen
+// de la ruta para saber dónde corregirlo.
+func TestIntegracionFicheroDenegado(t *testing.T) {
+	t.Parallel()
+
+	exigeQueLosPermisosSeHaganValer(t)
+
+	casos := []struct {
+		nombre   string
+		opciones []cache.Opcion
+		codigo   int
+		nombra   []string
+	}{
+		{
+			nombre:   "solo-lectura-inesperado",
+			opciones: []cache.Opcion{cache.SoloLectura()},
+			codigo:   1,
+			nombra:   []string{"solo lectura", "acceso denegado"},
+		},
+		{
+			nombre: "normal-argumentos",
+			codigo: 2,
+			nombra: []string{"opción ConDirectorio", "acceso denegado"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			directorio := baseConfirmadaYCerrada(t)
+			ruta := filepath.Join(directorio, ficheroDeLaBase)
+			restringe(t, ruta, permisosDenegados)
+
+			antes := nombresDe(t, directorio)
+
+			err := intentaAbrir(t, append([]cache.Opcion{cache.ConDirectorio(directorio)}, caso.opciones...)...)
+			compruebaCodigo(t, err, caso.codigo, append([]string{ruta}, caso.nombra...)...)
+			require.ErrorIs(t, err, fs.ErrPermission, "la causa es el acceso denegado al fichero")
+			assert.NotContains(t, err.Error(), "directorio",
+				"el directorio admite escribir: el mensaje no le echa la culpa (FR-035)")
+
+			assert.Equal(t, antes, nombresDe(t, directorio), "el intento no crea ningún fichero")
+		})
+	}
+}
+
 // TestIntegracionWALSinMemoriaCompartida fija la fila 13: una base cuyo registro
 // de escritura trae entradas confirmadas llega, sin su memoria compartida, a un
 // directorio en el que no se puede crear (0500). SQLite no puede leer ese
@@ -354,22 +406,40 @@ func exigeQueLosPermisosSeHaganValer(t *testing.T) {
 	t.Skip(causa)
 }
 
-// restringe deja el directorio con los permisos dados y registra la restauración
-// de los que tenía. Quien llama lo hace después de t.TempDir(), así que la
-// restauración corre antes que la limpieza del directorio temporal, que es un
-// RemoveAll y fallaría la prueba sin poder recorrerlo (obligación 6 del plan).
-func restringe(t *testing.T, directorio string, permisos fs.FileMode) {
+// restringe deja el directorio o el fichero con los permisos dados y registra la
+// restauración de los que tenía. Quien llama lo hace después de t.TempDir(), así
+// que la restauración corre antes que la limpieza del directorio temporal, que
+// es un RemoveAll y fallaría la prueba sin poder recorrerlo (obligación 6 del
+// plan).
+func restringe(t *testing.T, ruta string, permisos fs.FileMode) {
 	t.Helper()
 
-	info, err := os.Stat(directorio)
+	info, err := os.Stat(ruta)
 	require.NoError(t, err)
 
 	permisosDeAntes := info.Mode().Perm()
 
-	require.NoError(t, os.Chmod(directorio, permisos))
+	require.NoError(t, os.Chmod(ruta, permisos))
 	t.Cleanup(func() {
-		require.NoError(t, os.Chmod(directorio, permisosDeAntes), "se restauran los permisos de %s", directorio)
+		require.NoError(t, os.Chmod(ruta, permisosDeAntes), "se restauran los permisos de %s", ruta)
 	})
+}
+
+// nombresDe enumera, ordenados, los nombres que hay en un directorio: lo que se
+// compara cuando dentro hay un fichero que no se deja leer y las huellas no se
+// pueden tomar.
+func nombresDe(t *testing.T, directorio string) []string {
+	t.Helper()
+
+	entradas, err := os.ReadDir(directorio)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(entradas))
+	for _, entrada := range entradas {
+		nombres = append(nombres, entrada.Name())
+	}
+
+	return nombres
 }
 
 // binarioDeLaPrueba es la ruta del binario de test que se está ejecutando, tal

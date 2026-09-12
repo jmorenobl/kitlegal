@@ -1,7 +1,10 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
@@ -127,9 +130,9 @@ const (
 
 // errorDeArgumentos es la invocación mal formada, que quien llama puede
 // corregir: clave vacía, vigencia menor o igual que cero, opción inválida,
-// variable de entorno declarada y vacía, ruta inservible, directorio que en
-// modo normal no se puede crear ni escribir, y ruta por omisión indeterminable
-// (filas 1 a 7 de la tabla del contrato §3; código de salida 2).
+// variable de entorno declarada y vacía, ruta inservible, directorio o fichero
+// que en modo normal no se puede crear ni escribir, y ruta por omisión
+// indeterminable (filas 1 a 7 de la tabla del contrato §3; código de salida 2).
 func errorDeArgumentos(operacion, motivo string, causa error) *Error {
 	return &Error{
 		Operacion: operacion,
@@ -156,9 +159,9 @@ func errorDeFuenteNoDisponible(operacion, motivo string, causa error) *Error {
 // errorInesperado es lo que no debería haber pasado y no arregla quien invoca:
 // esquema de otra versión, fichero que no es una base utilizable, escritura
 // intentada en solo lectura, acceso denegado que impide saber siquiera si la
-// base está, registro de escritura sin memoria compartida, fallo sobrevenido
-// del sistema de ficheros o del controlador, y operación después de cerrar
-// (filas 9 a 14; código de salida 1).
+// base está o leerla, registro de escritura sin memoria compartida, bloqueo
+// que dura más que la espera, fallo sobrevenido del sistema de ficheros o del
+// controlador, y operación después de cerrar (filas 9 a 14; código de salida 1).
 func errorInesperado(operacion, motivo string, causa error) *Error {
 	return &Error{
 		Operacion: operacion,
@@ -181,10 +184,11 @@ func errorDeRutaInservible(operacion, origen, ruta string, causa error) *Error {
 	return fallo
 }
 
-// errorDeDirectorioNoEscribible es la fila 6: en modo normal el directorio no
-// se puede crear ni escribir, y sin escribir la caché no sirve de nada. En modo
-// de solo lectura esta situación no existe, porque allí no se crea ni se
-// escribe nada (FR-015, FR-022).
+// errorDeDirectorioNoEscribible es la fila 6 cuando el culpable es el
+// directorio: en modo normal no se puede crear, o existe y no deja crear la
+// base ni sus auxiliares, y sin escribir la caché no sirve de nada. En modo de
+// solo lectura esta situación no existe, porque allí no se crea ni se escribe
+// nada (FR-015, FR-022).
 func errorDeDirectorioNoEscribible(operacion, origen, ruta string, causa error) *Error {
 	fallo := errorDeArgumentos(operacion,
 		fmt.Sprintf("no se puede escribir en el directorio %q (%s)", ruta, origen), causa)
@@ -192,6 +196,64 @@ func errorDeDirectorioNoEscribible(operacion, origen, ruta string, causa error) 
 	fallo.Ruta = ruta
 
 	return fallo
+}
+
+// errorDeFicheroNoEscribible es la fila 6 cuando el culpable es el propio
+// fichero: cache.db ya existe en un directorio que sí admite escribir y es él
+// el que no se deja abrir para escribir —sus permisos, o que lo que hay en la
+// ruta no es un fichero—. La misma clase que la del directorio, porque quien
+// invoca lo arregla igual —los permisos, u otro directorio—, y un mensaje que
+// nombra al fichero y no a un directorio que no tiene la culpa (FR-022, FR-035).
+func errorDeFicheroNoEscribible(operacion, origen, ruta string, causa error) *Error {
+	fallo := errorDeArgumentos(operacion,
+		fmt.Sprintf("no se puede abrir %q para escribir (%s)%s", ruta, origen, detalleDelAcceso(causa)), causa)
+	fallo.Origen = origen
+	fallo.Ruta = ruta
+
+	return fallo
+}
+
+// errorDeFicheroIlegible es la fila 12 cuando el culpable es el propio fichero:
+// en solo lectura cache.db está pero no se deja leer. No se sabe qué contiene,
+// así que declararlo ausente sería mentir (FR-015); el mensaje nombra al
+// fichero, y el acceso denegado cuando lo es, sin culpar al directorio (FR-035).
+func errorDeFicheroIlegible(ruta string, causa error) *Error {
+	fallo := errorInesperado("construir",
+		fmt.Sprintf("no se puede leer %q en solo lectura%s", ruta, detalleDelAcceso(causa)), causa)
+	fallo.Ruta = ruta
+
+	return fallo
+}
+
+// errorDeBloqueo es la fila 14 cuando lo que sobreviene es que otra invocación
+// retiene el bloqueo de escritura más tiempo que la espera: la base no está
+// estropeada y el fichero no se toca, pero la operación no se pudo hacer. El
+// mensaje nombra la operación y la clave cuando la hay, la ruta y la espera que
+// se agotó, que es lo que distingue este fallo de un fichero inutilizable
+// (FR-031, FR-035).
+func errorDeBloqueo(operacion, ruta, clave string, espera time.Duration, causa error) *Error {
+	motivo := fmt.Sprintf("%q está bloqueada por otra invocación y la espera de %s se agotó", ruta, espera)
+	if clave != "" {
+		motivo = fmt.Sprintf("no se pudo %s %q: %s", operacion, clave, motivo)
+	}
+
+	fallo := errorInesperado(operacion, motivo, causa)
+	fallo.Ruta = ruta
+	fallo.Clave = clave
+
+	return fallo
+}
+
+// detalleDelAcceso es lo que el mensaje añade cuando el sistema de ficheros
+// denegó el acceso: es la causa más común de que un fichero no se deje abrir y
+// la que quien lee el fallo puede arreglar con sus permisos. Ante cualquier otra
+// causa no se añade nada, para no afirmar lo que no se sabe (FR-035).
+func detalleDelAcceso(causa error) string {
+	if errors.Is(causa, fs.ErrPermission) {
+		return ": acceso denegado"
+	}
+
+	return ""
 }
 
 // errorDeVersionAjena es la fila 9: el fichero trae un esquema que este binario
