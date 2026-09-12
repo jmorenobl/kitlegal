@@ -1,12 +1,12 @@
 {
   "id": "T018",
   "texto": "T018 Cierre del hito: validación agregada y pendientes anotados: ejecutar los escenarios 1, 7, 11 y 12 de `quickstart.md` y dejar su resultado en `specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md` —`make ci` en verde con `-race` y sin ninguna supresión nueva (el diff del fichero de configuración del linter frente a `main` solo añade comentarios y, como mucho, las palabras que el supuesto S2 obligara a ignorar en `misspell`: ninguna regla, ningún linter y ninguna exclusión), umbrales de cobertura respetados (global ≥ 70 %, `internal/core/**` ≥ 85 %, `internal/cli` ≥ 90 %) sin rebajar ninguno, medida **diferencial** de `git status --porcelain` sobre los directorios de fixtures idéntica antes y después de la ejecución, conjunto de verbos del binario distribuido y del binario de comprobación de extremo a extremo idéntico al de H1, y la orden **entera** de los prerrequisitos del quickstart que extrae toda dirección `http(s)://` de los tests y del material de test del paquete y confirma «solo direcciones locales»—; y actualizar `docs/PENDIENTES.md` moviendo «Antes de H2 · Dónde viven los fixtures grabados» a «Antes de la primera tarea `[datos]` de H4» con la misma recomendación, y anotando para H4 la retirada de `TestElBinarioNoEnlazaHTTPX` con la ampliación justificada de `modulosDelBinario` y que el ritmo por fuente (`ConIntervalo`) saldrá de la tabla de fuentes que ese hito crea (plan, obligación 8; H2 no la toca) (SC-008, SC-010, SC-011, SC-014, SC-015, puntos 1, 2 y 9 de la Definition of Done, obligaciones 7, 8, 10 y 11 del plan).",
-  "intento": 1,
+  "intento": 2,
   "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
   "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
-  "base": "a9a136620e3010fbb1ef39579cd7fe7bc833f238",
+  "base": "646228c2f26eec14cf6786274b6fba5b2ac602d7",
   "rutas": [
     "docs/PENDIENTES.md",
     "internal/cli",

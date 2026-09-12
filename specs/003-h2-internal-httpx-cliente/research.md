@@ -522,6 +522,17 @@ un fallo de entropía: leído en el **código** del toolchain fijado, no solo en
 la tabla de verificación, fila `crypto/rand`). `errcheck` y G104 sobre `rand.Read`, y G115 sobre
 `int64(uint64 >> 1)`: filas `errcheck`, `gosec` G104 y `gosec` G115 de la misma tabla.
 
+**Resultado (implementación, T018).** La propiedad «crecen» tal como la enuncia esta decisión —el mínimo
+del intento *n+1* es el máximo del intento *n*— es exacta **mientras la base dobla**, que con 500 ms,
+factor 2 y techo 30 s son las seis primeras esperas (bases de 500 ms a 16 s). En la séptima la base pide
+32 s y el techo la deja en 30 s, así que su banda `[15 s, 30 s)` se solapa con la sexta, `[8 s, 16 s)`, en
+`[15 s, 16 s)`: dos esperas correctas pueden salir en orden inverso. SC-005 mide tres intentos (dos
+esperas) y nunca llega ahí, y el producto aplica la ley tal cual; lo que no se sostenía era la aserción de
+orden estricto de `TestReintentosAgotados` sobre las siete esperas del caso de ocho intentos, que fallaba en
+≈ 3 de cada 1000 ejecuciones (`gates/tarea-T018.md`). El test la acota al tramo en que la base dobla,
+derivado con la misma ley literal que `exigeEsperaDelIntento`; la banda `[b/2, b)` sigue comprobándose en
+las siete. La decisión no cambia.
+
 ---
 
 ## D10 · Redirecciones: tope de 10 saltos, `Location` resuelta con `ResolveReference`, bucle detectado por dirección repetida

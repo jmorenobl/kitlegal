@@ -1,8 +1,14 @@
-# T018 · intento 1: por qué no queda en verde
+# T018 · intentos 1 y 2: por qué no queda en verde y cómo la cierra el intento 3
 
 **Estado**: T018 queda **sin marcar**. Todo su contenido está hecho y verificado (ver
 [`evidencia-cierre.md`](./evidencia-cierre.md)), pero `make ci` **no es verde de forma fiable**: la suite
-arrastra un test inestable que no es de esta tarea y que T018 no puede tocar sin salirse de sus rutas.
+arrastra un test inestable que no es de esta tarea y que T018 no podía tocar sin salirse de sus rutas.
+El **intento 1** (primera parte de este fichero) lo diagnosticó; el **intento 2** (sección final)
+redelimitó la tarea para que el intento 3 pueda aplicar el arreglo, y lo dejó comprobado sobre una copia.
+
+---
+
+# Intento 1
 
 ## El fallo
 
@@ -103,3 +109,180 @@ Todo lo demás de T018, con su evidencia en `evidencia-cierre.md`:
 
 El resto de `make ci` —formato, `golangci-lint` con 0 *issues*, `govulncheck`, `gitleaks`, `go mod
 verify`, `go mod tidy -diff`— pasa en todas las ejecuciones; lo único rojo es la subprueba de arriba.
+
+---
+
+# Intento 2 · redelimitar la tarea y dejar el arreglo comprobado
+
+**Estado al terminar**: T018 sigue **sin marcar**, a propósito. Este intento **no** ha tocado ningún fichero
+de producción ni de test: solo `tasks.md` (la línea de T018 y una nota en §Notas), `research.md` (D9,
+«Resultado (implementación)») y este fichero, todos dentro del directorio del feature. `make ci` se ha
+ejecutado igualmente al terminar (ver abajo).
+
+## Por qué no se cierra en este intento
+
+El diagnóstico del intento 1 se ha vuelto a comprobar sobre el código (`reintentos.go:190-202` y
+`reintentos_test.go:324-331`) y contra el spec: **SC-005 mide tres intentos**, es decir dos esperas, y
+**D9** enuncia «el mínimo del intento *n+1* es el máximo del intento *n*» a partir de la ley
+`b = min(500 ms · 2^(n−1), 30 s)`, que solo lo cumple mientras la base dobla. El producto aplica esa ley
+tal cual; la aserción `IsIncreasing` sobre las siete esperas del caso de ocho intentos pide lo que D9 no
+promete en el techo. **Es el test.**
+
+Las rutas de un intento las congela `siguiente_tarea` en `gates/tarea-actual.json` **antes** de lanzarlo,
+a partir de la línea de la tarea en `tasks.md` tal como estaba; `guardian_diff` lee ese JSON, no vuelve a
+leer `tasks.md`. Para este intento las rutas eran `docs/PENDIENTES.md`, `internal/cli`, `internal/core/**`,
+`quickstart.md` y `gates/evidencia-cierre.md`: `internal/httpx/reintentos_test.go` no está, y tocarlo
+pararía el run en el guardián. Las salidas, por orden:
+
+- **Reintentar y marcar si sale verde** (99,7 % de probabilidad): es cerrar el hito con un test inestable
+  dentro y dar por cierto el punto 1 de la Definition of Done sabiendo que no lo es. Descartado.
+- **Aplicar el arreglo y dejar que el guardián pare el run**: arregla la raíz pero convierte un hito
+  desatendido en una parada deliberada que alguien tiene que resolver a mano. Descartado mientras haya
+  una salida que no pare.
+- **Ampliar a mano las rutas de `gates/tarea-actual.json`**: el agente se ampliaría las rutas en el mismo
+  paso en que las usa; es relajar el gate (`gates/tarea-T010.md` ya lo descartó). Descartado.
+- **Redelimitar T018 en `tasks.md` y dejarla `[ ]`** para que el intento 3 la cierre con las rutas
+  ampliadas: es el procedimiento que T010 estableció para el falso positivo de `misspell` y que §Notas de
+  `tasks.md` recoge («se anota, se redelimita acotado y se deja sin marcar para que el siguiente intento
+  la cierre»). El guardián de este intento pasa (todo queda en el directorio del feature), `verificar`
+  pasa y el run sigue sin pausa. **Es la salida aplicada.**
+
+## Lo que ha cambiado en este intento
+
+1. **`tasks.md`, línea de T018**: declara ahora `internal/httpx/reintentos_test.go`, «acotado a **la
+   aserción de orden de `TestReintentosAgotados`** —acotarla al tramo en que la base del retardo dobla,
+   derivado con la misma ley literal que `exigeEsperaDelIntento`, y decir la ley completa en el mensaje de
+   la banda—, sin tocar el decorador de reintentos, ninguna otra subprueba ni ningún otro fichero del
+   paquete, con el rojo reproducido antes (`-count=1000` sobre la subprueba de ocho intentos) y el verde
+   comprobado después con la misma orden». El extractor de rutas del workflow, ejecutado sobre la línea
+   nueva con su propio filtro, devuelve exactamente: `docs/PENDIENTES.md`, `internal/cli`,
+   `internal/core/**`, `internal/httpx/reintentos_test.go`, `quickstart.md`,
+   `specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md`. La línea no nombra el fichero de
+   producto del decorador a propósito: el extractor declararía como ruta cualquier token con forma de
+   fichero, aunque estuviera precedido de «sin tocar».
+2. **`tasks.md` §Notas**: nota nueva sobre la redelimitación de T018, con la causa y por qué no es un
+   atajo.
+3. **`research.md`, D9**: párrafo «Resultado (implementación, T018)»: la propiedad «crecen» es exacta
+   mientras la base dobla (seis primeras esperas); la séptima topa el techo y su banda se solapa con la
+   sexta en `[15 s, 16 s)`; SC-005 nunca llega ahí; la decisión no cambia.
+
+## El arreglo, comprobado sobre una copia desechable fuera del repositorio
+
+Copia con `rsync -a --exclude=.git --exclude=bin --exclude=coverage.out` en el directorio temporal de la
+sesión; el árbol de trabajo no se ha tocado. Sobre la copia se aplicaron **exactamente** estas tres
+ediciones a `internal/httpx/reintentos_test.go`, y ninguna otra:
+
+**(a)** En `TestReintentosAgotados`, la aserción de orden (hoy `assert.IsIncreasing(t, pedidas, …)`, justo
+después del bucle que llama a `exigeEsperaDelIntento`):
+
+```go
+			for intento, pedida := range pedidas {
+				exigeEsperaDelIntento(t, intento+1, pedida)
+			}
+
+			// El orden estricto solo vale mientras la base dobla, que es cuando
+			// el suelo de cada banda es el techo de la anterior. Al topar el
+			// techo, la banda [15 s, 30 s) se solapa con la anterior,
+			// [8 s, 16 s), y esas dos esperas pueden salir en cualquier orden
+			// sin dejar de ser correctas: ese tramo lo cubre ya la banda que
+			// exigeEsperaDelIntento acaba de comprobar.
+			doblan := esperasMientrasLaBaseDobla(len(pedidas))
+			assert.IsIncreasing(t, pedidas[:doblan],
+				"mientras la base dobla, cada espera arranca donde termina la anterior (SC-005, D9)")
+```
+
+**(b)** En `exigeEsperaDelIntento`, el mensaje del `assert.Less` pasa a decir la ley completa:
+
+```go
+		"y no alcanza la base del intento %d, que es su techo y, mientras la base dobla, el suelo de la siguiente (SC-005, D9)",
+```
+
+**(c)** Inmediatamente antes del comentario de `esperasAnotadas`, el tramo derivado de la misma ley
+literal:
+
+```go
+// esperasMientrasLaBaseDobla cuenta, de una serie de esperas consecutivas,
+// las primeras cuya base no la ha cortado todavía el techo: en ese tramo la
+// base dobla de una espera a la siguiente, cada banda arranca donde termina
+// la anterior y el orden estricto es cierto. Se deriva de la misma ley
+// literal que exigeEsperaDelIntento —500 ms, factor 2, techo 30 s— y no de
+// las constantes del paquete, por la misma razón: ser contraste y no eco.
+func esperasMientrasLaBaseDobla(esperas int) int {
+	base := 500 * time.Millisecond
+	tramo := 0
+
+	for tramo < esperas && base <= 30*time.Second {
+		tramo++
+		base *= 2
+	}
+
+	return tramo
+}
+```
+
+Traza: con siete esperas devuelve **6** (bases 500 ms, 1, 2, 4, 8 y 16 s; la siguiente pediría 32 s y el
+techo la corta), con dos devuelve 2 y con cero, 0; `pedidas[:doblan]` nunca se sale del corte.
+
+**Aviso S2, ya resuelto en el texto de arriba**: la primera redacción del comentario de (a) decía «comparte
+suelo» y `misspell` lo marcó (`comparte` → `compare`). Se reescribió en español («se solapa»), que es lo
+que §Notas manda; el texto de arriba es el que pasa el lint. No usar «comparte» en ese comentario.
+
+### Medidas sobre la copia
+
+| Comprobación | Orden | Resultado |
+|---|---|---|
+| Lint del paquete con el arreglo | `make -C <copia> lint` | `0 issues.` |
+| Todos los tests de reintentos, con detector de carreras | `go test -race -count=1 -v -run '^TestReintentos' ./internal/httpx/` | 5 tests y 12 subpruebas en `PASS`, `ok` |
+| La subprueba que fallaba, mil veces | `go test -count=1000 -run '^TestReintentosAgotados$' ./internal/httpx/` | `ok`, 0 fallos |
+| **Rojo antes**, sobre el árbol **sin** arreglo | `go test -count=1000 -run '^TestReintentosAgotados$/^ocho' ./internal/httpx/` | **3** `is not less than` en 1000 (el intento 1 midió 3/1000 también) |
+| El test acotado **sigue teniendo dientes** (mutación en una segunda copia: `esperaDelIntento` devuelve *full jitter* `aleatoria % (mitad*2)`, es decir `[0, b)`) | la orden de mutación de abajo, 20 veces | `FAIL`: la subprueba de ocho intentos cae **19/20**, la de tres por omisión **16/20** y `TestReintentosDosErroresYUnAcierto` **18/20** (por la banda `[b/2, b)` y por el orden en el tramo que dobla) |
+
+Orden de la mutación (sobre la segunda copia, con `go test -C`):
+
+```bash
+go test -C <copia-mutada> -count=20 -run '^(TestReintentosAgotados|TestReintentosDosErroresYUnAcierto)$' ./internal/httpx/
+```
+
+La última fila es la que dice que acotar la aserción no ha aflojado nada: la fila 10 del inventario de
+tests del plan («con *full jitter*, no crecen») sigue siendo cierta con el test acotado.
+
+## Qué hace el intento 3, en orden
+
+1. Leer este fichero. Las rutas de la tarea incluyen ya `internal/httpx/reintentos_test.go`; **solo** ese
+   fichero cambia fuera del directorio del feature.
+2. **Rojo primero**: sobre el árbol sin tocar, `rtk proxy go test -count=1000 -run
+   '^TestReintentosAgotados$/^ocho' ./internal/httpx/` y contar las líneas `is not less than` (≈ 3; tarda
+   alrededor de un minuto). Si en una tirada salieran 0, la reproducción vale igual: está medida dos veces
+   (intento 1 e intento 2, 3/1000 cada una) y la causa es aritmética, no una carrera.
+3. Aplicar **(a)**, **(b)** y **(c)** tal cual, con la herramienta de edición (en esta sesión `python3`,
+   `tee` y `cd` combinado con escritura estaban denegados por permisos; `go test -C <dir>` sí funciona).
+4. Verde: la misma orden de 2 con `-count=1000` → `ok`; `rtk proxy make ci` → «ci: todos los controles en
+   verde».
+5. Repetir los escenarios **1, 7, 11 y 12** del quickstart y la orden **entera** de los prerrequisitos
+   —siempre con `rtk proxy` delante de `go test`, `git status` y `git diff`, por lo que explica el aviso
+   de método de `evidencia-cierre.md`— y **refrescar `evidencia-cierre.md`**: base nueva, el aviso del
+   punto 1 de la Definition of Done retirado, una sección con el arreglo y sus medidas (las de arriba,
+   repetidas sobre el árbol), el veredicto con todo en ✅ y `internal/httpx/reintentos_test.go` en la
+   lista de ficheros que toca T018.
+6. Marcar T018 `[X]`. Es el último intento: si algo no cuadra, anotarlo aquí y dejarla `[ ]`.
+
+## Observación sobre el workflow, sin efecto en esta tarea
+
+`siguiente_tarea` marca `datos: true` para T018 porque su texto contiene el literal `[datos]` (al hablar
+de «la primera tarea `[datos]` de H4»), no porque la tarea lleve la etiqueta. Aquí es inocuo —ningún
+intento toca `testdata/` ni `schemas/`—, pero significa que el guardián no habría rechazado un cambio bajo
+`testdata/` en T018. Si se quiere cerrar, la etiqueta debería reconocerse solo al principio de la línea
+(`- [ ] Tnnn [datos]`), igual que hace `precheck_tasks` con el formato. Queda anotado para el workflow,
+no para este hito.
+
+## `make ci` de este intento
+
+Ejecutado sobre el árbol de trabajo al terminar, con las ediciones de arriba (todas markdown):
+«ci: todos los controles en verde», `golangci-lint` con `0 issues.`, suite con `-race -shuffle=on` en
+`ok` en todos los paquetes (`internal/httpx` 94,8 %, `internal/cli` 98,6 %, `internal/core/schema`
+90,1 %, mismas cifras que el intento 1), `govulncheck` sin vulnerabilidades, `gitleaks` sin fugas, `go mod
+verify` y `go mod tidy -diff` limpios. Es el aprobado del 99,7 % que el intento 1 advirtió que no debía
+tomarse por el cierre: T018 queda `[ ]` por lo dicho en «Por qué no se cierra en este intento», y el
+intento 3 la cierra con el arreglo aplicado. `git status --porcelain` al terminar: solo `tasks.md`,
+`research.md`, este fichero y los dos JSON de estado del supervisor, todos en el directorio del feature;
+nada bajo `internal/`, `testdata/` ni `schemas/`.
