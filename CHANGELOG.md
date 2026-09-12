@@ -16,7 +16,8 @@ orden de llegada: **H0 — esqueleto del repositorio y sus controles**, un repos
 todavía, pero blindado, para que cualquier línea de Go que entre después atraviese los mismos gates; y
 **H1 — kernel de la línea de órdenes**, lo que un applet **no** tiene que declarar, de modo que cada
 fuente legal de los hitos siguientes herede la misma forma de invocarse, de fallar y de citar sin volver
-a escribirla.
+a escribirla. **H3 — caché local en SQLite** es un hito de fundación que no cambia nada en el binario,
+así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
 
 ### Añadido
 
@@ -128,6 +129,8 @@ a escribirla.
 
 ### Cambiado
 
+*De H1 — el kernel de la línea de órdenes:*
+
 - **El contrato observable del binario deja de ser el de H0.** De aquel se conservan las tres líneas de
   `version` y su código `0` —ahora escritas por el presentador, y un fallo al escribirlas se propaga en
   lugar de descartarse— y el código `2` de cualquier otra invocación; lo que cambia es el mensaje y lo
@@ -153,9 +156,22 @@ a escribirla.
 - **`make test-e2e` deja de anunciar el hito ausente** y ejecuta los guiones `testscript` que describen la
   entrega, contra el binario que el propio test construye.
 
-Cuatro órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
-`test-integration`, `schema-check` (H4 y H10), `skills-sync` (H5) y `release`, que falla con código
-distinto de `0` hasta H6 por ser la única con efectos externos. El binario que se publica **no registra
+*De H3 — la caché local en SQLite:*
+
+- **`make ci` ejecuta también los tests de integración.** La lista de prerrequisitos de `ci` gana
+  `test-integration` —`go test -race -tags=integration ./...`, la receta que H0 fijó y que no cambia—
+  entre `test` y `vuln`, de modo que un test etiquetado `integration` en rojo, o un fichero etiquetado que
+  no compile, hacen fallar el veredicto en local y en la integración continua por igual. Los primeros
+  tests con esa etiqueta son los de la caché: los que dependen del entorno —permisos del sistema de
+  ficheros y dos procesos— y trabajan solo dentro de directorios temporales. El análisis estático alcanza
+  también los ficheros etiquetados (`run.build-tags: [integration]` en `.golangci.yml`), de modo que
+  `sqlclosecheck` y `rowserrcheck` los vigilan. Con ello `make ci` encadena nueve controles: los ocho de
+  H0 y este. Nada más cambia a la vista: ningún applet, verbo ni bandera nueva, y el binario distribuido
+  no enlaza todavía la caché ni el controlador de SQLite.
+
+Tres órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
+`schema-check` (H4 y H10), `skills-sync` (H5) y `release`, que falla con código distinto de `0` hasta H6
+por ser la única con efectos externos. El binario que se publica **no registra
 todavía ningún applet** y su ayuda lo dice en lugar de enumerar una lista vacía: los de fuentes (`boe`,
 `placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`, y el primero es el de
 H4.
