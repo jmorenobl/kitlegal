@@ -1,15 +1,20 @@
 {
-  "id": "T015",
-  "texto": "T015 [US5] El adaptador de prueba, ejecutado con el kernel en proceso: `internal/httpx/adaptador_test.go`, en `package httpx_test` y por tanto **material de test: no se crea como adaptador de fuente en el árbol de producción —el hito no abre ese directorio, ver Notas— ni se registra como applet en ningún binario**, con el tipo `adaptadorDePrueba` (applet `prueba`) y `argumentosConsultar` (verbo `consultar`) que copian el patrón del contrato del cliente §6 —recibe el contexto de quien le llama, lo propaga a `Pedir` junto con el contexto de ejecución, no puede compilar de otra forma porque `Pedir` es la única operación y exige ambos—, y `TestAdaptadorDePruebaConElKernel` con las subpruebas `ensayo` (invocando `app.Main` en proceso sobre un registro de pruebas y con `--dry-run`: cero accesos al servidor local, ni al recurso ni a `robots.txt`, la descripción `GET http://…` en la salida de error, salida estándar sin cuerpo inventado y **código de salida 0**), `consulta` (la respuesta llega íntegra y sale identificada) y `plazo` (el vencimiento del contexto corta la operación y el kernel la traduce al código 4) (FR-059 a FR-062, SC-013, US5 escenario 1, US6, D16).",
+  "id": "T016",
+  "texto": "T016 [US5] Las reglas de arquitectura pasan a tener dueño y la superficie queda cerrada: `internal/arch_test.go` endurece la subprueba R2 para que **exija** que el grafo transitivo real contenga `internal/httpx` —no puede volver a pasar en vacío— y siga comprobando que ningún otro paquete importa `net/http`, y añade `TestElBinarioNoEnlazaHTTPX`, que comprueba con `go list -deps` que el binario distribuido no enlaza el paquete y deja anotado en su comentario que H4 lo retirará al enlazarlo; `internal/httpx/superficie_test.go` con `TestSuperficieExportada`, que recorre con `go/parser` y `go/ast` todas las declaraciones exportadas del paquete y falla si alguna nombra `*http.Client`, `http.RoundTripper`, `*http.Request` o `*http.Response`, de modo que la imposibilidad de esquivar las garantías sea **por construcción** y no solo por control mecánico; y `.golangci.yml` actualiza **solo los comentarios** de la lista `red` para dejar constancia de que la regla ya tiene dueño, sin cambiar ninguna regla, sin activar ningún linter y sin añadir ninguna exclusión ni `//nolint` (FR-002, FR-053 a FR-055, SC-010, SC-014, punto 3 de la Definition of Done, D18).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T015.md y déjala sin marcar.",
-  "base": "827c52ea6c64e507272756fb7ad521de4171cd12",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T016.md y déjala sin marcar.",
+  "base": "8be59885e709fa7ad5be2cf823f082f214725663",
   "rutas": [
-    "internal/httpx/adaptador_test.go",
-    "robots.txt"
+    ".golangci.yml",
+    "go/ast",
+    "go/parser",
+    "internal/arch_test.go",
+    "internal/httpx",
+    "internal/httpx/superficie_test.go",
+    "net/http"
   ],
   "cierre": false
 }

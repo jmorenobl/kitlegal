@@ -93,9 +93,14 @@ linters:
             - pkg: database/sql
               desc: "R1: el dominio no hace entrada ni salida; el almacenamiento vive en internal/{cache,store,graph} (R3)"
 
-        # R2 · la biblioteca HTTP es de internal/httpx y de nadie más. El paquete
-        # todavía no existe —lo aporta H2—, así que hoy la regla está activa y
-        # vacía: nadie puede importar net/http.
+        # R2 · la biblioteca HTTP es de internal/httpx y de nadie más. Desde H2
+        # la regla tiene dueño: ese paquete existe, es el único del árbol que
+        # importa net/http y es donde viven el contexto obligatorio, la
+        # identificación, robots.txt, el ritmo por sitio y los reintentos.
+        # internal/arch_test.go comprueba lo mismo sobre el cierre transitivo
+        # real y exige además que el dueño esté en el grafo y sea él quien
+        # importa la biblioteca, de modo que la subprueba R2 no pueda volver a
+        # pasar en vacío (H2 FR-053, research.md D18).
         red:
           list-mode: original
           files:
