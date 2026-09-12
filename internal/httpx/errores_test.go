@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -402,4 +406,585 @@ func TestErrorMensajesEnEspanol(t *testing.T) {
 
 		assert.Equal(t, schema.ClaseInesperado, cli.Clasificar(aCero))
 	})
+}
+
+// TestClasesDeError es el control de que **ninguna ruta de fallo del paquete
+// queda sin clase**, y lo comprueba donde de verdad importa: sobre el error tal
+// como sale del cliente, no sobre uno construido a mano para la ocasión. Las
+// tres tablas anteriores de este fichero miden el tipo Error; esta mide el
+// paquete entero, provocando cada situación con el servidor local, un directorio
+// temporal o un cliente de reproducción.
+//
+// Es la tabla **cerrada** del contrato de errores §3, fila por fila: las nueve
+// situaciones de red de SC-006 —5xx del recurso agotado, contexto vencido en
+// cualquier punto, cadena del recurso en bucle o excedida, 429 del recurso,
+// robots.txt que deniega, 5xx o transporte del robots.txt agotados, 429 del
+// robots.txt, cadena del robots.txt excedida y método no permitido— y las siete
+// restantes de SC-016 y de research D19: dirección inválida, configuración de
+// grabación incompleta o con un valor inválido, raíz o directorio inválidos,
+// grabación y reproducción a la vez u opción sin sentido, entrada y salida
+// sobrevenida al grabar, colisión de nombres y grabación ausente o ajena.
+//
+// De cada una se comprueban las dos mitades del mecanismo de D4: la clase que
+// cli.Clasificar devuelve —es el test quien importa internal/cli, nunca el
+// paquete (contrato §4)— y el código que cli.CodigoSalida produce, sobre el
+// error tal cual y también envuelto, que es como llega desde un applet (FR-031).
+// Y de las dieciséis juntas, las dos reglas que cierran la tabla: el cliente no
+// produce nunca «no encontrado» (3) —quien sabe si lo pedido existe es la
+// fuente— ni «requiere identidad humana» (6) —este paquete no hace nada que la
+// exija—, y ninguna termina en panic (FR-029 a FR-033, FR-063, SC-006, SC-016).
+//
+// Esta tabla no declara t.Parallel(), y no es un descuido: usa t.Setenv, que
+// «cannot be used in parallel tests» (go doc testing.T.Setenv), y partirla en
+// dos rompería justamente lo que la hace un control: que las dieciséis
+// situaciones se lean juntas y en el orden del contrato. Vale aquí lo que
+// grabar_test.go documenta para sus tablas.
+func TestClasesDeError(t *testing.T) {
+	// La grabación va apagada para toda la tabla, y se declara en vez de darse
+	// por supuesta: así ninguna fila depende de con qué variable se lanzara la
+	// suite, y las cinco que la necesitan encendida la declaran ellas.
+	t.Setenv(VariableGrabacion, "")
+
+	casos := []struct {
+		fila   int
+		nombre string
+		clase  schema.Clase
+		codigo int
+		// provocar devuelve un error por cada situación de la fila: las filas
+		// que el contrato enuncia con un «o» —una cadena en bucle o excedida,
+		// una grabación ausente o ajena— cubren todas las suyas, y todas tienen
+		// que salir con la misma clase y el mismo código.
+		provocar func(t *testing.T) []error
+	}{
+		{
+			fila:   1,
+			nombre: "5xx del recurso pedido agotados los intentos",
+			clase:  schema.ClaseFuenteNoDisponible,
+			codigo: 4,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				servidor, _ := servidorIdentificado(t, func(escritor http.ResponseWriter, _ *http.Request) {
+					escritor.WriteHeader(http.StatusServiceUnavailable)
+				})
+
+				_, agotados := clienteSinEsperas(t).Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+
+				return []error{agotados}
+			},
+		},
+		{
+			fila:   2,
+			nombre: "vencimiento del contexto en cualquier punto de la operación",
+			clase:  schema.ClaseFuenteNoDisponible,
+			codigo: 4,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				// Pidiendo el recurso, con el permiso del sitio ya concedido…
+				delRecurso, _ := servidorIdentificado(t, esperaAlContexto())
+
+				// …y obteniendo el robots.txt, que es el otro punto que la fila
+				// nombra: los dos son «la operación no llegó a la fuente» y no
+				// una denegación (FR-015, FR-029).
+				delRobots, _ := servidorConRobots(t, esperaAlContexto(), redireccionesDePrueba())
+
+				return []error{
+					pedirConPlazo(t, delRecurso.URL+"/lenta"),
+					pedirConPlazo(t, delRobots.URL+"/norma"),
+				}
+			},
+		},
+		{
+			fila:   3,
+			nombre: "cadena de redirecciones del recurso en bucle o por encima del tope",
+			clase:  schema.ClaseFuenteNoDisponible,
+			codigo: 4,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				enBucle, _ := servidorIdentificado(t, func(escritor http.ResponseWriter, peticion *http.Request) {
+					http.Redirect(escritor, peticion, "/bucle", http.StatusFound)
+				})
+
+				sinFin, _ := servidorIdentificado(t, cadenaSinFin("/salto/"))
+
+				cliente := clienteSinEsperas(t)
+
+				_, repetida := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: enBucle.URL + "/bucle"})
+
+				_, excedida := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: sinFin.URL + "/salto/0"})
+
+				return []error{repetida, excedida}
+			},
+		},
+		{
+			fila:   4,
+			nombre: "429 del recurso pedido",
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				servidor, _ := servidorIdentificado(t, func(escritor http.ResponseWriter, _ *http.Request) {
+					escritor.Header().Set("Retry-After", "120")
+					escritor.WriteHeader(http.StatusTooManyRequests)
+				})
+
+				_, limitado := clienteSinEsperas(t).Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/limitada"})
+
+				return []error{limitado}
+			},
+		},
+		{
+			fila:   5,
+			nombre: "el robots.txt del sitio deniega la ruta",
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				servidor, _ := servidorConRobots(t,
+					robotsQueDice("User-agent: *\nDisallow: /privado/\n"), redireccionesDePrueba())
+
+				_, denegada := clienteSinEsperas(t).Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/privado/norma"})
+
+				return []error{denegada}
+			},
+		},
+		{
+			fila:   6,
+			nombre: "5xx o fallo de transporte del robots.txt agotados los intentos",
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				caido, _ := servidorConRobots(t,
+					robotsConEstado(http.StatusServiceUnavailable), redireccionesDePrueba())
+
+				// Un sitio que ya no escucha: la obtención del robots.txt no
+				// llega a respuesta, y lo que falta entonces no es el recurso
+				// sino el permiso para pedirlo (FR-015, no FR-029).
+				apagado, _ := servidorIdentificado(t, redireccionesDePrueba())
+				direccionDelApagado := apagado.URL + "/norma"
+
+				apagado.Close()
+
+				cliente := clienteSinEsperas(t)
+
+				_, del5xx := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: caido.URL + "/norma"})
+
+				_, deTransporte := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: direccionDelApagado})
+
+				return []error{del5xx, deTransporte}
+			},
+		},
+		{
+			fila:   7,
+			nombre: "429 del robots.txt",
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				servidor, _ := servidorConRobots(t, robotsLimitado("120"), redireccionesDePrueba())
+
+				_, limitado := clienteSinEsperas(t).Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+
+				return []error{limitado}
+			},
+		},
+		{
+			fila:   8,
+			nombre: "cadena de redirecciones del robots.txt en bucle o por encima del tope",
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				// Los dos servidores redirigen **toda** ruta, la del robots.txt
+				// incluida, que es la primera que el cliente pide.
+				sinFin := servidorLocal(t, cadenaSinFin("/reglas/"))
+
+				enBucle := servidorLocal(t, func(escritor http.ResponseWriter, peticion *http.Request) {
+					http.Redirect(escritor, peticion, rutaDelRobots, http.StatusFound)
+				})
+
+				cliente := clienteSinEsperas(t)
+
+				_, excedida := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: sinFin.URL + "/norma"})
+
+				_, repetida := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: enBucle.URL + "/norma"})
+
+				return []error{excedida, repetida}
+			},
+		},
+		{
+			fila:   9,
+			nombre: "método distinto de GET o HEAD",
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				cliente := clienteSinEsperas(t)
+				rechazados := make([]error, 0, 3)
+
+				// Ninguna de las tres abre conexión, así que no hace falta
+				// ningún servidor: el rechazo es anterior (FR-010).
+				for _, metodo := range []string{http.MethodPost, http.MethodDelete, "get"} {
+					_, rechazado := cliente.Pedir(t.Context(), schema.Contexto{},
+						Peticion{Metodo: metodo, URL: peticionDePrueba.URL})
+
+					rechazados = append(rechazados, rechazado)
+				}
+
+				return rechazados
+			},
+		},
+		{
+			fila:   10,
+			nombre: "dirección no absoluta, de otro esquema o inanalizable",
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				cliente := clienteSinEsperas(t)
+				rechazadas := make([]error, 0, 4)
+
+				for _, direccion := range []string{
+					"", "/norma?id=1", "ftp://fuente.prueba/norma", "://fuente.prueba",
+				} {
+					_, rechazada := cliente.Pedir(t.Context(), schema.Contexto{},
+						Peticion{Metodo: http.MethodGet, URL: direccion})
+
+					rechazadas = append(rechazadas, rechazada)
+				}
+
+				return rechazadas
+			},
+		},
+		{
+			fila:   11,
+			nombre: "grabación activa sin fuente o sin raíz, o con un valor de variable inválido",
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				t.Setenv(VariableGrabacion, variableActiva)
+
+				raiz := t.TempDir()
+
+				_, sinFuente := New(ConRaizDeGrabacion(raiz))
+				_, sinRaiz := New(ConFuente(fuenteDePrueba))
+
+				t.Setenv(VariableGrabacion, "0")
+
+				_, valorInvalido := New(ConFuente(fuenteDePrueba), ConRaizDeGrabacion(raiz))
+
+				return []error{sinFuente, sinRaiz, valorInvalido}
+			},
+		},
+		{
+			fila:   12,
+			nombre: "raíz de grabación o directorio de reproducción inválidos",
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				t.Setenv(VariableGrabacion, variableActiva)
+
+				noEsDirectorio := filepath.Join(t.TempDir(), "raiz.txt")
+				require.NoError(t, os.WriteFile(noEsDirectorio, []byte("no soy un directorio"), permisoDeLaCopia))
+
+				_, raizAusente := New(ConFuente(fuenteDePrueba),
+					ConRaizDeGrabacion(filepath.Join(t.TempDir(), "ausente")))
+				_, raizQueNoLoEs := New(ConFuente(fuenteDePrueba), ConRaizDeGrabacion(noEsDirectorio))
+
+				// El directorio de Replay es la otra mitad de la fila, y la
+				// reproducción exige la grabación apagada (FR-043).
+				t.Setenv(VariableGrabacion, "")
+
+				_, directorioAusente := Replay(filepath.Join(t.TempDir(), "tampoco"))
+
+				return []error{raizAusente, raizQueNoLoEs, directorioAusente}
+			},
+		},
+		{
+			fila:   13,
+			nombre: "grabación y reproducción a la vez, u opción sin sentido en la reproducción",
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				directorio := grabacionesDePrueba(t)
+
+				t.Setenv(VariableGrabacion, variableActiva)
+
+				_, lasDosALaVez := Replay(directorio)
+
+				t.Setenv(VariableGrabacion, "")
+
+				_, conRaiz := Replay(directorio, ConRaizDeGrabacion(t.TempDir()))
+				_, conRitmo := Replay(directorio, ConIntervalo(time.Second))
+				_, conIntentos := Replay(directorio, ConIntentos(2))
+
+				return []error{lasDosALaVez, conRaiz, conRitmo, conIntentos}
+			},
+		},
+		{
+			fila:   14,
+			nombre: "entrada y salida sobrevenida al escribir la grabación",
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				t.Setenv(VariableGrabacion, variableActiva)
+
+				raiz := t.TempDir()
+				servidor, _ := servidorIdentificado(t, redireccionesDePrueba())
+				cliente := clienteQueGraba(t, raiz)
+
+				// La primera petición graba bien y deja decidido el robots.txt
+				// del sitio, de modo que lo que falle luego sea la grabación del
+				// recurso y no la obtención del permiso, que es la fila 6.
+				primera, err := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+				require.NoError(t, err, "la grabación de la primera petición sí se puede escribir")
+				require.Equal(t, http.StatusOK, primera.Estado)
+
+				// Y entonces el directorio que la construcción validó y creó
+				// desaparece: escribir la grabación siguiente ya no es una raíz
+				// mal declarada —eso es la fila 12— sino un tropiezo sobrevenido
+				// del mecanismo (FR-042).
+				require.NoError(t, os.RemoveAll(filepath.Join(raiz, fuenteDePrueba)))
+
+				_, alGrabar := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma?otra=1"})
+
+				return []error{alGrabar}
+			},
+		},
+		{
+			fila:   15,
+			nombre: "colisión: el fichero guarda otra petición",
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				t.Setenv(VariableGrabacion, variableActiva)
+
+				raiz := t.TempDir()
+				servidor, _ := servidorIdentificado(t, servidorQueNumera())
+
+				// «/a,b» y «/a_b» se sanean al mismo nombre: la grabación de la
+				// primera ocupa el fichero de la segunda (contrato §2).
+				ruta := rutaGrabada(raiz, nombreDelServidor(t, servidor, "GET", "_a_b"))
+				require.NoError(t, os.MkdirAll(filepath.Dir(ruta), permisoDelDirectorioDeGrabacion))
+				require.NoError(t, os.WriteFile(ruta,
+					[]byte(grabacionAMano(servidor.URL+"/a,b")), permisoDeLaCopia))
+
+				_, colision := clienteQueGraba(t, raiz).Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/a_b"})
+
+				return []error{colision}
+			},
+		},
+		{
+			fila:   16,
+			nombre: "reproducción: la grabación falta o es de otra petición",
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+			provocar: func(t *testing.T) []error {
+				t.Helper()
+
+				// La grabación ya va apagada para toda la tabla, que es lo que
+				// la reproducción exige (FR-043).
+				cliente := clienteDeReproduccion(t, grabacionesDePrueba(t))
+
+				_, ausente := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: sitioGrabado + "/inexistente"})
+
+				_, ajena := cliente.Pedir(t.Context(), schema.Contexto{},
+					Peticion{Metodo: http.MethodGet, URL: colisionBuscada})
+
+				return []error{ausente, ajena}
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(strconv.Itoa(caso.fila)+". "+caso.nombre, func(t *testing.T) {
+			// Cada fila declara también la grabación apagada, y no le basta la
+			// que declaró la tabla: así cualquiera de las dieciséis se puede
+			// lanzar sola con -run sin depender del entorno de quien la lance.
+			t.Setenv(VariableGrabacion, "")
+
+			var provocados []error
+
+			// Provocar la situación no puede terminar en panic: un fallo sin
+			// clase se vería en las comprobaciones de abajo, pero uno que tumba
+			// el proceso no llegaría siquiera a clasificarse (SC-016).
+			require.NotPanics(t, func() { provocados = caso.provocar(t) },
+				"la fila %d no puede terminar en panic", caso.fila)
+			require.NotEmpty(t, provocados, "cada fila provoca al menos una situación")
+
+			for _, err := range provocados {
+				exigeClaseYCodigo(t, caso.clase, caso.codigo, err)
+			}
+		})
+	}
+
+	t.Run("la tabla es la cerrada del contrato: dieciséis filas y cuatro clases", func(t *testing.T) {
+		filas := make(map[int]struct{}, len(casos))
+		porClase := make(map[schema.Clase]int, len(casos))
+
+		for _, caso := range casos {
+			filas[caso.fila] = struct{}{}
+			porClase[caso.clase]++
+		}
+
+		assert.Len(t, filas, 16, "una subprueba por fila del contrato §3, sin repetir ninguna")
+		assert.Equal(t, map[schema.Clase]int{
+			schema.ClaseFuenteNoDisponible: 3,
+			schema.ClaseLimiteOTos:         5,
+			schema.ClaseArgumentos:         5,
+			schema.ClaseInesperado:         3,
+		}, porClase,
+			"el cliente produce estas cuatro clases y ninguna más: ni «no encontrado» ni «identidad humana» (FR-063)")
+	})
+}
+
+// exigeClaseYCodigo comprueba las dos mitades del mecanismo de D4 sobre un error
+// que de verdad salió del paquete: que declara la clase que le toca y que el
+// kernel la traduce al código que le toca, tal cual y bajo las capas de contexto
+// que un applet le añade al devolverlo (FR-031, contrato §4).
+//
+// Comprueba además, de cada error, lo que la tabla cierra: que la clase no es
+// nunca «no encontrado» ni «requiere identidad humana», que el código no es
+// nunca el 3 ni el 6, que no es el del éxito, y que ni clasificar el fallo ni
+// leer su mensaje terminan en panic (FR-033, FR-063).
+func exigeClaseYCodigo(t *testing.T, clase schema.Clase, codigo int, err error) {
+	t.Helper()
+
+	require.Error(t, err, "la situación tiene que fallar")
+
+	fallo := falloDe(t, err)
+
+	var (
+		declarada   schema.Clase
+		clasificada schema.Clase
+		salida      int
+		mensaje     string
+	)
+
+	require.NotPanics(t, func() {
+		declarada = fallo.Clase()
+		clasificada = cli.Clasificar(err)
+		salida = cli.CodigoSalida(err)
+		mensaje = fallo.Error()
+	}, "clasificar el fallo y leer su mensaje no terminan nunca en panic (FR-033)")
+
+	assert.Equal(t, clase, declarada, "el error declara la clase de su fila")
+	assert.Equal(t, clase, clasificada, "y el kernel la reconoce con errors.As, sin que el paquete lo importe (D4)")
+	assert.Equal(t, codigo, salida, "que es el código de salida de la tabla del contrato §3")
+	assert.NotEmpty(t, mensaje, "ningún fallo llega sin mensaje que leer (FR-033)")
+
+	// Envuelto por un applet —una capa o dos—, la clase y el código no cambian.
+	unaCapa := fmt.Errorf("consultando la norma: %w", err)
+	assert.Equal(t, clase, cli.Clasificar(unaCapa))
+	assert.Equal(t, codigo, cli.CodigoSalida(unaCapa))
+
+	dosCapas := fmt.Errorf("el applet no ha podido terminar: %w", unaCapa)
+	assert.Equal(t, clase, cli.Clasificar(dosCapas))
+	assert.Equal(t, codigo, cli.CodigoSalida(dosCapas))
+
+	assert.NotEqual(t, schema.ClaseNoEncontrado, declarada,
+		"quien decide si lo pedido existe es la fuente, no el cliente (FR-063)")
+	assert.NotEqual(t, schema.ClaseIdentidadHumana, declarada,
+		"este paquete no hace nada que exija identidad humana (FR-063)")
+	assert.NotEqual(t, 3, salida, "el código 3 no lo produce ninguna ruta del cliente")
+	assert.NotEqual(t, 6, salida, "y el 6 tampoco")
+	assert.NotZero(t, salida, "un fallo no sale nunca con el código del éxito")
+}
+
+// clienteSinEsperas es el cliente contra la red de esta tabla, con las dos
+// esperas apartadas del camino: el turno del sitio, que con el intervalo por
+// omisión separaría un segundo la petición del robots.txt de la del recurso, y
+// el retardo entre reintentos, que en las filas que los agotan costaría
+// segundos. Lo que aquí se mide es la clase del fallo; las dos políticas las
+// fijan sus propias tablas sobre las duraciones pedidas (D8, D9).
+func clienteSinEsperas(t *testing.T) *Cliente {
+	t.Helper()
+
+	return clienteDePrueba(t, ConIntervalo(time.Millisecond), conReloj(sinEsperar))
+}
+
+// sinEsperar es el reloj de esta tabla: no espera el retardo entre dos intentos,
+// pero pasa por el mismo camino interrumpible que el de verdad, de modo que un
+// contexto terminado siga cortando donde cortaría (FR-026).
+func sinEsperar(ctx context.Context, _ time.Duration) error {
+	return dormirInterrumpible(ctx, 0)
+}
+
+// plazoDeLaTabla es lo que dura el contexto de las filas que comprueba su
+// vencimiento: lo justo para que la operación esté en marcha cuando venza.
+const plazoDeLaTabla = 50 * time.Millisecond
+
+// pedirConPlazo pide una dirección con un contexto que vence, y devuelve el
+// fallo con que la operación terminó. Comprueba de paso las dos cosas que hacen
+// del vencimiento lo que la fila 2 declara: que la causa del contexto llega
+// intacta hasta quien llama y que el corte es en ese instante y no más tarde
+// (FR-005, FR-029).
+func pedirConPlazo(t *testing.T, direccion string) error {
+	t.Helper()
+
+	ctx, cancelar := context.WithTimeout(t.Context(), plazoDeLaTabla)
+	defer cancelar()
+
+	comienzo := time.Now()
+
+	_, err := clienteSinEsperas(t).Pedir(ctx, schema.Contexto{},
+		Peticion{Metodo: http.MethodGet, URL: direccion})
+
+	require.ErrorIs(t, err, context.DeadlineExceeded, "la causa del contexto llega intacta hasta quien llama")
+	assert.Less(t, time.Since(comienzo), time.Second, "la operación termina con el contexto, no más tarde")
+
+	return err
+}
+
+// esperaAlContexto es el manejador que no responde nunca por su cuenta: quien
+// termina la operación es el contexto de quien la pidió.
+func esperaAlContexto() http.HandlerFunc {
+	return func(_ http.ResponseWriter, peticion *http.Request) {
+		<-peticion.Context().Done()
+	}
+}
+
+// cadenaSinFin es el servidor que redirige toda ruta a una nueva, distinta cada
+// vez: una cadena que no vuelve sobre sí misma y que por tanto solo la corta el
+// tope de saltos (D10).
+func cadenaSinFin(prefijo string) http.HandlerFunc {
+	var saltos atomic.Int64
+
+	return func(escritor http.ResponseWriter, peticion *http.Request) {
+		http.Redirect(escritor, peticion, prefijo+strconv.FormatInt(saltos.Add(1), 10), http.StatusFound)
+	}
 }

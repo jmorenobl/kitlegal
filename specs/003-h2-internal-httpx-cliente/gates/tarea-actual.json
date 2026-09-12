@@ -1,17 +1,15 @@
 {
-  "id": "T013",
-  "texto": "T013 [US3] Reproducir sin abrir una sola conexión y sin depender del reloj: `internal/httpx/reproducir.go` con el transporte de reproducción que localiza la grabación por el nombre derivado, comprueba que el método y la dirección guardados coinciden exactamente con los de la petición entrante —las cabeceras **no** participan en el emparejamiento—, rechaza un `formato` distinto de 1, y falla de forma ruidosa con clase 1 nombrando la petición ausente y, en la colisión, también la que encontró en su lugar y el fichero, sin devolver nunca una respuesta vacía ni caer a la red; `internal/httpx/cliente.go` añade `Replay(dir string, opciones ...Opcion) (*Cliente, error)`, que valida el directorio (vacío, inexistente o no directorio es clase 2 nombrando la ruta), rechaza con clase 2 la grabación y la reproducción a la vez y las opciones sin sentido en reproducción (`ConRaizDeGrabacion`, `ConIntervalo`, `ConIntentos`), y monta la cadena reducida a la **lista cerrada** de garantías vigentes —contexto obligatorio, identificación, método GET/HEAD, redirecciones grabadas con su tope resueltas dentro del directorio y clasificación por el estado grabado—, **sin** `robots.txt`, **sin** ritmo y **sin** reintentos; y `internal/httpx/reproducir_test.go` con `TestReplaySirveLasGrabaciones` (texto, HEAD y binario), `TestReplayEsDeterminista` (mismo resultado con `-count=2 -shuffle=on`), `TestReplayPeticionSinGrabacion`, `TestReplayGrabacionDeOtraPeticion`, `TestReplayGarantiasVigentes`, `TestReplaySinRobots` (subprueba `con-grabacion`, donde la grabación del `robots.txt` que lo deniega todo queda sin usar y no es un error, y subprueba `sin-grabacion`, que copia el directorio a un `t.TempDir()` sin ese fichero), `TestReplayRedirecciones` (seguida, destino ausente y bucle), `TestReplayEstadoDeErrorGrabado` (503 → clase 4 con una sola búsqueda y sin espera; 429 → clase 5 con `Espera` de 120 s) y `TestReplayRechazaOpciones`, todos sobre las diez grabaciones de T012 (FR-043, FR-045 a FR-049, SC-007, US3, D13).",
+  "id": "T014",
+  "texto": "T014 [US2] Ninguna ruta de fallo sin clase, comprobada sobre el error real: `internal/httpx/errores_test.go` añade `TestClasesDeError` con las **dieciséis** subpruebas de la tabla cerrada del contrato de errores §3 —una por fila, provocando cada situación con el servidor local, un directorio temporal o un cliente de reproducción y comprobando la clase que `cli.Clasificar` devuelve y el código que `cli.CodigoSalida` produce sobre el error tal como sale del paquete y también envuelto—, cubriendo las nueve situaciones de red (5xx del recurso agotado → 4, contexto vencido en cualquier punto → 4, cadena del recurso en bucle o excedida → 4, 429 del recurso → 5, `robots.txt` que deniega → 5, 5xx o transporte de `robots.txt` agotado → 5, 429 de `robots.txt` → 5, cadena de `robots.txt` excedida → 5, método no permitido → 2) y las siete restantes (dirección inválida → 2, configuración de grabación incompleta o valor inválido → 2, raíz o directorio inválidos → 2, grabación y reproducción a la vez u opción sin sentido → 2, E/S sobrevenida al grabar → 1, colisión de nombres → 1, grabación ausente o ajena → 1), y comprobando además que el cliente **no** produce nunca las clases «no encontrado» (3) ni «requiere identidad humana» (6) y que ninguna de las dieciséis termina en `panic`; el test cubre código ya existente de T004 a T013 y no añade producto (FR-029 a FR-033, FR-063, SC-006, SC-016, punto 5 de la Definition of Done).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T013.md y déjala sin marcar.",
-  "base": "834f72c46ae1cbd5900071c8eb0e632340c9d82a",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T014.md y déjala sin marcar.",
+  "base": "6617d504c77e3eab193dfdf78e8cd4faef88cc06",
   "rutas": [
-    "GET/HEAD",
-    "internal/httpx/cliente.go",
-    "internal/httpx/reproducir_test.go",
-    "internal/httpx/reproducir.go",
+    "E/S",
+    "internal/httpx/errores_test.go",
     "robots.txt"
   ],
   "cierre": false
