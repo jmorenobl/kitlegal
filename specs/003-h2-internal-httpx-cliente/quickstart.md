@@ -25,7 +25,7 @@ git status --porcelain | grep -v '^?? specs/' ; true   # vacío: nada versionado
 ```
 
 Los bloques se ejecutan con **`bash` o `zsh`**. Fuera de `go`, `git` y `make`, solo herramientas POSIX
-(`grep`, `diff`, `mktemp`, `tar`, `wc`, `test`). **Ninguna comprobación necesita red**, salvo la primera
+(`grep`, `sed`, `diff`, `mktemp`, `tar`, `wc`, `test`). **Ninguna comprobación necesita red**, salvo la primera
 ejecución de `make ci` con la caché fría (descarga de módulos y compilación de herramientas) y
 `make vuln`, que consulta la base de vulnerabilidades.
 
@@ -38,7 +38,8 @@ Los tests del hito **no conocen ninguna dirección fuera de la máquina**. Se co
 
 ```bash
 grep -rhoE 'https?://[^"'"'"'`) ]+' internal/httpx/*_test.go internal/httpx/testdata \
-  | grep -viE '^https?://(127\.0\.0\.1|localhost|fuente\.prueba|otra\.prueba)(:[0-9]+)?(/|$)' \
+  | sed -E 's/:+$//' \
+  | grep -viE '^https?://(127\.0\.0\.1|localhost|\[::1\]?|fuente\.prueba|otra\.prueba)?(:[0-9]+)?(/|$)' \
   | grep -vx 'https://ventanillalegal.es/bot' ; test $? -eq 1 && echo "solo direcciones locales"
 ```
 
@@ -46,7 +47,30 @@ grep -rhoE 'https?://[^"'"'"'`) ]+' internal/httpx/*_test.go internal/httpx/test
 en comillas dobles o simples, acento grave, paréntesis de cierre o espacio, de modo que una dirección
 dentro de una cadena en crudo de Go o del sufijo `(+https://…/bot)` sale limpia; la orden se ha
 reproducido con `/usr/bin/grep` de macOS sobre muestras de las tablas del plan, con y sin
-infracciones.) Los cuatro hosts admitidos son los
+infracciones.)
+
+El `sed` y las dos formas sueltas del filtro central recogen tres maneras en que un token extraído **no**
+es la dirección de ninguna máquina, y que la tabla de mensajes de `errores_test.go` y la de direcciones
+rechazadas de `cliente_test.go` producen:
+
+- **Dos puntos finales.** El mensaje de error nombra el sitio y sigue: `GET /norma en el sitio
+  http://fuente.prueba:80: la operación…`. El primer `grep` no corta en `:`, así que el token sale como
+  `http://fuente.prueba:80:` y el puerto deja de reconocerse. `sed -E 's/:+$//'` los quita; unos dos
+  puntos finales no llevan nunca información de host, de modo que recortarlos no admite nada nuevo.
+- **El literal de bucle local IPv6.** `TestErrorMensajesEnEspanol` usa `http://[::1` —sin corchete de
+  cierre— precisamente porque es una dirección **inanalizable**, que es la rama que ese caso ejercita;
+  `::1` es el bucle local y nunca se marca. De ahí `\[::1\]?` en la lista.
+- **Una dirección sin sitio.** `TestPedirRechazaDireccion` incluye `http:///norma`, el caso «un esquema
+  http sin sitio». Sin host no hay nada a lo que conectarse, así que el grupo del host lleva `?` y el
+  token se calla.
+
+Las tres son contraejemplos de dirección, no direcciones: el hito las escribe para que el cliente las
+rechace con clase 2. El control sobre el host **no se relaja** —el terminador `(/|$)` obliga a que el
+nombre admitido acabe ahí—, y por eso siguen delatándose `http://localhost.evil.com/robots.txt`,
+`http://fuente.prueba.evil.com/norma`, `http://[::1].evil.com/norma`, `http://127.0.0.1.evil.com/`,
+`https://otra.prueba@www.boe.es/norma`, `https://ventanillalegal.es.evil.com/bot`, `http://boe.es`,
+`http://x` y `https://www.boe.es:443:` (las once sondas con que se comprobó la orden al cerrar el hito,
+T018). Los cuatro hosts admitidos son los
 únicos con los que el plan escribe **todas** sus tablas (control 18 y obligación 11 de plan.md):
 `127.0.0.1` y `localhost` son los servidores de bucle local que levantan los tests; `fuente.prueba` y
 `otra.prueba` son los hosts ficticios de los fixtures de reproducción, de la tabla de la clave de sitio
@@ -59,7 +83,9 @@ expresión regular con `regexp.QuoteMeta` sobre el sufijo literal ` (+https://ve
 (research D5): el fuente del test contiene la dirección sin barras invertidas y el primer `grep` extrae
 de él exactamente ese token. Si alguna línea aparece —`http://x` en una tabla, un `https://www.boe.es`
 en un ejemplo, o `https://ventanillalegal\.es/bot\` por una expresión regular escapada a mano—, la
-confirmación no se imprime y hay que corregir el test, no el filtro.
+confirmación no se imprime y hay que corregir el test, no el filtro. La única enmienda que admite el
+filtro es la de las tres formas de arriba: un token que **no nombra ninguna máquina** (dos puntos del
+mensaje, bucle local, sin host). En cuanto el token nombre un host, la respuesta es siempre el test.
 
 ---
 
