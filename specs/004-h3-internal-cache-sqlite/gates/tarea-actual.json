@@ -1,16 +1,17 @@
 {
-  "id": "T013",
-  "texto": "T013 Cierre del hito: validación agregada, medidas diferenciales y umbrales: ejecutar los escenarios 1, 4, 7, 10, 11 y 12 de `quickstart.md` y dejar su resultado en `specs/004-h3-internal-cache-sqlite/gates/evidencia-cierre.md` —`make ci` en verde de principio a fin con `-race`, con `test-integration` dentro y **sin ninguna supresión nueva** (el diff de la configuración del lint frente a `main` añade `run.build-tags`, comentarios y, como mucho, las palabras que el supuesto S2 obligara a ignorar en `misspell`: ninguna regla, ningún linter y ninguna exclusión); umbrales de cobertura respetados sin rebajar ninguno (global ≥ 70 %, el del dominio ≥ 85 %, con los tests de integración fuera de `coverage.out`); medida **diferencial** de `ls -laR ~/.cache/kitlegal` idéntica antes y después de la suite y un `TMPDIR` desechable vacío al terminar los tests de integración, de modo que ningún fichero quede fuera de `t.TempDir()`; conjunto de verbos del binario distribuido idéntico al de H2 y `go list -deps` sobre el paquete `main` del binario sin el paquete de la caché ni ningún módulo del driver de SQLite; y la orden **entera** de los prerrequisitos del quickstart que extrae toda dirección `http(s)://` de los ficheros de test y del material de reproducción del paquete de la caché, confirmando «solo direcciones ficticias» (`fuente.prueba`, más la identificación que se envía y no se consulta)— (SC-003, SC-008, SC-009, SC-012, SC-014, puntos 1, 2 y 9 de la Definition of Done, obligaciones 9, 11 y 12 del plan).",
+  "id": "T014",
+  "texto": "T014 [plataforma] Publicar la rama del hito y abrir la propuesta de cambio: `git push -u origin h3-internal-cache-sqlite` y `gh pr create --base main --head h3-internal-cache-sqlite` con el cuerpo tomado de `specs/004-h3-internal-cache-sqlite/gates/pr-h3.md`, que la propia tarea escribe con la plantilla del ritual (objetivo, alcance, controles añadidos, decisiones, pendientes y la justificación de la dependencia nueva que exige la constitución §V), adjuntando como evidencia `specs/004-h3-internal-cache-sqlite/gates/evidencia-sc013.md` y `specs/004-h3-internal-cache-sqlite/gates/evidencia-cierre.md` y anotando la diferencia, si la hay, entre los indirectos que `go mod tidy` escribió y la predicción del supuesto S1; y leer después los estados de la integración continua y de Codecov con `gh pr checks`, comprobando el supuesto S3 —**el trabajo `ci` de la propuesta de cambio está en verde con `test-integration` dentro**, que es lo que `gh pr checks` y `gh run list` sí muestran: la precondición de permisos de T010 termina en `t.Fatalf` cuando el proceso corre en integración continua, de modo que un ejecutor privilegiado dejaría el trabajo en rojo y el verde es la comprobación; no se busca ningún `PASS` ni `SKIP` en el registro, porque la receta de `test-integration` es contrato de H0, corre sin `-v` y no los imprime— y el supuesto S5 (duración de `ci` de la propuesta de cambio, con `test-integration` dentro), y dejar su resultado en `specs/004-h3-internal-cache-sqlite/gates/evidencia-plataforma.md`; **no** fusiona, **no** empuja a `main`, **no** fuerza y **no** crea etiquetas: la fusión (squash-merge) es siempre humana y el gancho `pre-push` la rechazaría igualmente (punto 1 de la Definition of Done, §6 del roadmap, ADR 0007, obligación 13 del plan).",
   "intento": 1,
   "datos": false,
-  "plataforma": false,
+  "plataforma": true,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T013.md y déjala sin marcar.",
-  "base": "495c88a2eb38cc5ee86bff8eeb9f6d3e88675aad",
+  "red": "Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin h3-internal-cache-sqlite'. Si no existe propuesta de cambio hacia main ('gh pr view h3-internal-cache-sqlite'), créala con 'gh pr create --base main --head h3-internal-cache-sqlite --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks h3-internal-cache-sqlite --watch' y lee 'gh run list --branch h3-internal-cache-sqlite'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-T014.md y deja la tarea sin marcar.",
+  "base": "0b1bf84e40ed3256291ee12e7fd686569d3fdf76",
   "rutas": [
-    ".cache/kitlegal",
-    "quickstart.md",
-    "specs/004-h3-internal-cache-sqlite/gates/evidencia-cierre.md"
+    "specs/004-h3-internal-cache-sqlite/gates/evidencia-cierre.md",
+    "specs/004-h3-internal-cache-sqlite/gates/evidencia-plataforma.md",
+    "specs/004-h3-internal-cache-sqlite/gates/evidencia-sc013.md",
+    "specs/004-h3-internal-cache-sqlite/gates/pr-h3.md"
   ],
   "cierre": false
 }
