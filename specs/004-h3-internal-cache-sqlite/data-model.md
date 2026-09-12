@@ -46,8 +46,8 @@ Lo que devuelve `New(ctx, opciones...)`. Único objeto del módulo que abre la b
                 ▼                                 ├─ inexistente ──▶ [sin base]  Get→ausencia(→4)  Put→1
              [abierto]                            ├─ otro error ──▶ [fallido] (1)
         Get/Put/Close                             └─ existe: abre ro, comprueba esquema
-                │                                      ├─ 1544 y sin -wal → reabre immutable → [abierto ro]
-              Close                                    ├─ 1544 con -wal, 14, NOTADB, versión ajena → [fallido] (1)
+                │                                      ├─ 1544|14 y sin -wal → reabre immutable → [abierto ro]
+              Close                                    ├─ 1544|14 con -wal, NOTADB, versión ajena → [fallido] (1)
                 ▼                                      └─ ok → [abierto ro]  Get→valor|4  Put→1
              [cerrado]  Get/Put → 1 ; Close → nil               │
                                                               Close

@@ -67,7 +67,7 @@ declaración exportada fuera de esta lista (FR-005).
 | Ruta | opción > `KITLEGAL_CACHE_DIR` > `~/.cache/kitlegal`; `""` → 2; `Stat(dir)` **existe** y no es directorio → 2 | igual |
 | Directorio | `Stat(dir)` **inexistente** u otro error → `MkdirAll(dir, 0o700)`; fallo → 2 | no se crea; `Stat(dir)` **inexistente** → cliente **sin base**; **otro** error (`ErrPermission`, E/S) → 1 |
 | Fichero | `OpenFile(cache.db, O_RDWR\|O_CREATE, 0o600)` y cierre; fallo de permiso → 2 | `Stat(cache.db)`: **inexistente** → sin base; **otro** error (`ErrPermission`…) → 1 |
-| Apertura | `file:<ruta>?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate`; `SetMaxOpenConns(1)` | `file:<ruta>?mode=ro&_pragma=busy_timeout(5000)&_pragma=query_only(1)`; `SetMaxOpenConns(1)`; ante `SQLITE_READONLY_DIRECTORY` sin `-wal`, reapertura con `&immutable=1` |
+| Apertura | `file:<ruta>?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate`; `SetMaxOpenConns(1)` | `file:<ruta>?mode=ro&_pragma=busy_timeout(5000)&_pragma=query_only(1)`; `SetMaxOpenConns(1)`; ante `SQLITE_READONLY_DIRECTORY` (1544) o `SQLITE_CANTOPEN` (14) en la primera consulta y sin `-wal`, reapertura con `&immutable=1`; con `-wal`, «inesperado» (1) |
 | Esquema | lee la versión; `> conocida` → 1; aplica las pendientes en transacciones inmediatas | lee la versión; `0` → sin esquema; `== conocida` → lee; otra → 1 |
 | Resultado | cliente abierto, base migrada | cliente abierto (o sin base) y `cache.db` idéntico byte a byte |
 

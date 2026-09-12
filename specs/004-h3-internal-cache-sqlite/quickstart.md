@@ -72,10 +72,13 @@ versionado y ningún test escribe ahí).
 ```bash
 rtk proxy go test -race -count=1 -v \
   -run 'TestAdaptadorDePruebaConElKernel/(primera-consulta|segunda-consulta-sin-red|sin-cache-la-reproduccion-falla)$' \
-  ./internal/cache/ | grep -E '^\s*--- (PASS|FAIL)'
+  ./internal/cache/ | grep -E '^\s*--- (PASS|FAIL): TestAdaptadorDePruebaConElKernel/'
 ```
 
-**Esperado**: tres líneas `--- PASS`:
+El filtro exige la barra del subtest: con `-v`, `go test` imprime también la línea del test padre
+(`--- PASS: TestAdaptadorDePruebaConElKernel (…)`), que aquí no se cuenta.
+
+**Esperado**: tres líneas `--- PASS`, una por subtest:
 
 ```
     --- PASS: TestAdaptadorDePruebaConElKernel/primera-consulta (…)
@@ -108,8 +111,13 @@ exacto y después) moviendo el reloj inyectado; su duración es de milisegundos.
 
 ```bash
 rtk proxy go test -race -count=1 -v -run 'TestAdaptadorDePruebaConElKernel/offline-' ./internal/cache/ \
-  | grep -E '^\s*--- (PASS|FAIL)'
+  | grep -E '^\s*--- (PASS|FAIL): TestAdaptadorDePruebaConElKernel/offline-'
 ```
+
+El filtro repite el prefijo `offline-` tras la barra del subtest: con `-v`, `go test` imprime también la
+línea del test padre (`--- PASS: TestAdaptadorDePruebaConElKernel (…)`), que aquí no se cuenta. Los
+subtests cuyo nombre empieza por `offline-` son **exactamente seis** (inventario de tests de `plan.md` y
+research D12); ninguno más puede llamarse así sin cambiar este esperado.
 
 **Esperado**: seis líneas `--- PASS`, una por subtest:
 
@@ -177,7 +185,10 @@ make test-integration
 ```
 
 **Esperado**: la primera orden termina en `ok`; la segunda muestra solo líneas `--- PASS` (ninguna
-`SKIP`: en una máquina sin privilegios los permisos se hacen valer), entre ellas
+`SKIP`: en una máquina sin privilegios los permisos se hacen valer; este escenario se ejecuta en local, sin
+la variable `CI`, que es donde la precondición incumplida salta en vez de fallar) —aquí el filtro **sí** recoge las
+líneas de los tests padre además de las subpruebas sangradas, porque este escenario no cuenta líneas,
+sino que comprueba qué nombres aparecen y que ninguno es `SKIP`—, entre ellas
 `TestIntegracionDosProcesos/escritor-padre-lector-solo-lectura-hijo`,
 `TestIntegracionDosProcesos/escritor-hijo-lector-padre`,
 `TestIntegracionDirectorioNoEscribible/solo-lectura-lee`,
@@ -193,8 +204,13 @@ con `-test.run=^TestProcesoAuxiliar$` y el papel en el entorno.
 
 ```bash
 rtk proxy go test -race -count=1 -v -run '^TestClasesDeError$' ./internal/cache/ \
-  | grep -cE '^\s*--- PASS: TestClasesDeError/'
+  | grep -cE '^\s*--- PASS: TestClasesDeError/[^/ ]+ '
 ```
+
+El filtro cuenta solo las subpruebas de **primer nivel** (tras la barra, un nombre sin ninguna otra
+barra): la línea del test padre no la cuenta, y una subprueba anidada tampoco la contaría —`tasks.md`
+(T009) fija además que las trece filas son trece `t.Run` sin anidar, de modo que las dos comprobaciones
+de cada fila (el error tal como sale del paquete y envuelto con `%w`) viven dentro de su subprueba.
 
 **Esperado**: **`13`**, una subprueba por cada fila provocable sin permisos de la tabla de
 [`contracts/errores-y-codigos.md`](./contracts/errores-y-codigos.md) §3 (filas 1-11, 14 y 15), cada una
@@ -324,7 +340,9 @@ rtk proxy go test -race -count=1 -v \
   | grep -E '^\s*--- (PASS|FAIL)'
 ```
 
-**Esperado**: `--- PASS` para `TestSoloLecturaVeLoConfirmadoEnElWAL`,
-`TestDosClientesEnElMismoProceso/normal-normal` y `TestDosClientesEnElMismoProceso/normal-solo-lectura`.
-El escritor mantiene su cliente abierto (sin checkpoint) mientras el lector de solo lectura lee: toda
+**Esperado**: cuatro líneas `--- PASS` —las dos de los tests padre,
+`TestSoloLecturaVeLoConfirmadoEnElWAL` (sin subtests) y `TestDosClientesEnElMismoProceso`, que `-v`
+imprime sin sangrar, y las dos subpruebas sangradas
+`TestDosClientesEnElMismoProceso/normal-normal` y `TestDosClientesEnElMismoProceso/normal-solo-lectura`—
+y ninguna `--- FAIL`. El escritor mantiene su cliente abierto (sin checkpoint) mientras el lector de solo lectura lee: toda
 entrada confirmada se encuentra, ninguna a medias, y una escritura sin confirmar no se ve.

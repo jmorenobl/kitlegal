@@ -46,7 +46,7 @@ se decide en Go: vigente ⇔ `reloj().Before(time.Unix(0, expira_en))` (FR-008).
 |---|---|
 | normal | `file:<ruta>?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate` |
 | solo lectura | `file:<ruta>?mode=ro&_pragma=busy_timeout(5000)&_pragma=query_only(1)` |
-| solo lectura, directorio que no admite crear `-shm` y sin `-wal` | `file:<ruta>?mode=ro&immutable=1&_pragma=busy_timeout(5000)&_pragma=query_only(1)` |
+| solo lectura, directorio que no admite crear `-shm` (1544 o 14 en la primera consulta) y sin `-wal` | `file:<ruta>?mode=ro&immutable=1&_pragma=busy_timeout(5000)&_pragma=query_only(1)` |
 
 `<ruta>` es el resultado de `filepath.Clean`. Los `_pragma` se aplican en cada conexión nueva por el
 driver (`applyQueryParams`), en el orden `busy_timeout` primero y el resto alfabético. Cada cliente
@@ -99,10 +99,15 @@ es `ERROR_PATH_NOT_FOUND` y la regla da el mismo resultado. No hay una tercera r
    directorio `0000`, E/S) → «inesperado» (1), nunca una ausencia falsa.
 2. `sql.Open` con el DSN de solo lectura; `SetMaxOpenConns(1)`.
 3. Comprobación de esquema (§2) como primera consulta:
-   - `SQLITE_READONLY_DIRECTORY` (1544): el directorio no admite crear `-shm`. Si **no** existe
+   - `SQLITE_READONLY_DIRECTORY` (1544) **o** `SQLITE_CANTOPEN` (14): el directorio no admite crear
+     `-shm`; cuál de los dos códigos llega depende de qué auxiliares existan (1544 sin `-wal`; 14 con
+     `-wal` y sin `-shm`, research D5 y sonda 3 B, D y E), así que los dos disparan la **misma**
+     comprobación y lo que decide es la presencia de `<ruta>-wal`, no el código. Si **no** existe
      `<ruta>-wal` → cerrar y reabrir con `immutable=1` (no hay WAL, nada que perder; nadie puede escribir
-     donde no se pueden crear los auxiliares). Si existe → «inesperado» (1) nombrando `-wal` y `-shm`.
-   - `SQLITE_CANTOPEN` (14), `SQLITE_NOTADB` (26) u otro → «inesperado» (1).
+     donde no se pueden crear los auxiliares); si la reapertura o su primera consulta vuelven a fallar →
+     «inesperado» (1) nombrando la ruta. Si **existe** → «inesperado» (1) nombrando la ruta, `-wal` y
+     `-shm` (fila 13 del contrato de errores y su forma de mensaje en §6).
+   - `SQLITE_NOTADB` (26) o cualquier otro código → «inesperado» (1).
 4. Versión: `0` → sin esquema; `== conocida` → lectura; otra → 1.
 
 Garantía observable (SC-003): `cache.db` es idéntico byte a byte antes y después de cualquier

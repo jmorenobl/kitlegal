@@ -251,18 +251,22 @@ dentro del proceso sin necesidad. *Dejar que SQLite cree el fichero*: `0644`, co
    `SetMaxOpenConns(1)`, y la **comprobación de esquema** (D7) en la propia construcción, que es la
    primera consulta real. Sin `immutable`: así la lectura ve lo que otra invocación ya confirmó en el WAL
    y respeta sus bloqueos (sonda 1 D, sonda 2 D; clarificación Q2, FR-015, FR-032).
-3. Si esa primera consulta falla con `*sqlite.Error` de código `SQLITE_READONLY_DIRECTORY` (1544), el
-   directorio no permite crear `-shm` (sonda 3 B y D): ningún escritor puede estar trabajando ahí, porque
-   escribir exige crear `-wal` y `-shm` en ese mismo directorio (sonda 3 G). Entonces:
+3. Si esa primera consulta falla con `*sqlite.Error` de código `SQLITE_READONLY_DIRECTORY` (1544) **o**
+   `SQLITE_CANTOPEN` (14), el directorio no permite crear `-shm`: **cuál de los dos códigos llega depende
+   de qué auxiliares existan** —sin `-wal`, o con `-shm` y sin `-wal`, es 1544 (sonda 3 B y D); con `-wal`
+   presente y `-shm` ausente es 14 (sonda 3 E)—, así que la condición que se comprueba es la misma para
+   los dos y es la presencia de `cache.db-wal`, no el código. Ningún escritor puede estar trabajando ahí,
+   porque escribir exige crear `-wal` y `-shm` en ese mismo directorio (sonda 3 G). Entonces:
    - si **no existe** `cache.db-wal`, se cierra y se reabre con `mode=ro&immutable=1`, que lee sin crear
      nada (sonda 3 C). Todo lo confirmado está en `cache.db`, porque no hay WAL, así que no se pierde
-     ninguna entrada;
-   - si **existe** `cache.db-wal` (y falta `-shm`, que es el único caso que llega aquí con `-wal`), el
-     fallo es «inesperado» (1): SQLite no puede leer un WAL sin su memoria compartida en un directorio
-     donde no puede crearla (`SQLITE_CANTOPEN`, sonda 3 E), y abrirlo como inmutable ignoraría lo que hay
-     en el WAL. El mensaje nombra los dos ficheros.
+     ninguna entrada. Si la reapertura o su primera consulta vuelven a fallar (el fallo era otro, p. ej.
+     permisos del propio fichero), «inesperado» (1) nombrando la ruta, nunca una ausencia falsa;
+   - si **existe** `cache.db-wal` (y falta `-shm`, que es el único caso que llega aquí con `-wal`, y el que
+     llega con el código 14), el fallo es «inesperado» (1): SQLite no puede leer un WAL sin su memoria
+     compartida en un directorio donde no puede crearla (sonda 3 E), y abrirlo como inmutable ignoraría lo
+     que hay en el WAL. El mensaje nombra la ruta y los dos auxiliares (fila 13 del contrato de errores).
 4. Cualquier otro error de la primera consulta → «inesperado» (1) sin degradar a ausencia
-   (`SQLITE_NOTADB` para un fichero que no es una base, sonda 1 G).
+   (`SQLITE_NOTADB` (26) para un fichero que no es una base, sonda 1 G).
 
 Un directorio **no escribible** se lee, por tanto, «con normalidad» (FR-015) por una de dos vías, las
 dos verificadas: si otra invocación está escribiendo ahí (el caso «el disco era escribible cuando
@@ -278,6 +282,9 @@ migrar) se abre como base sin tablas (sonda 1 G): versión 0, sin migración, to
 *Detectar la escribibilidad del directorio antes de abrir (crear y borrar un fichero de prueba)*:
 escribiría en un modo que promete no escribir nada. *Tratar 1544 como «inesperado» sin más*: dejaría el
 caso más común del modo —el contenedor de solo lectura de US3— en código 1, contra el DEBE de FR-015.
+*Disparar la comprobación de `-wal` solo ante 1544*: el caso con `-wal` presente llega con el código 14
+(sonda 3 E), de modo que caería en «cualquier otro error» y su mensaje no nombraría los dos auxiliares
+que la fila 13 del contrato de errores exige y `TestIntegracionWALSinMemoriaCompartida` mide.
 
 ---
 
@@ -423,9 +430,12 @@ func (e *Error) Clase() schema.Clase  // implementa schema.ConClase
 `internal/cache` no importa `internal/cli`: la dependencia sigue yendo al dominio. Envolver con `%w`
 conserva la clase. La tabla cerrada situación → clase → código está en
 [`contracts/errores-y-codigos.md`](./contracts/errores-y-codigos.md) §3: las **ocho** situaciones de
-SC-011 y siete más que el diseño hace inevitables y que FR-033 exige clasificar (opción inválida, ruta
-por omisión indeterminable, acceso denegado, WAL sin `-shm` en directorio no escribible, fallo de E/S o
-del driver, operación tras el cierre, contexto cancelado o vencido). Ninguna produce 3, 5 ni 6.
+SC-011 —que corresponden a las **nueve** filas marcadas ★ (1, 2, 4, 5, 6, 8, 9, 10, 11), porque un bullet
+de SC-011 puede agrupar varias filas, como explica el §3 del contrato— y las **seis** restantes (3, 7, 12,
+13, 14, 15) que el diseño hace inevitables y que FR-033 exige clasificar: opción inválida, ruta por
+omisión indeterminable, acceso denegado, WAL sin `-shm` en directorio no escribible, la fila que reúne el
+fallo de E/S o del driver con la operación tras el cierre, y el contexto cancelado o vencido. Ninguna
+produce 3, 5 ni 6.
 
 **Contexto cancelado o vencido → «fuente no disponible» (4).** No está en la lista de FR-033. Se elige
 la clase que H1 define como «la fuente que no responde, y también el plazo agotado» y que H2 asignó a la
@@ -475,7 +485,10 @@ dentro del motor; un bloqueo que dura más de cinco segundos es un fallo real y 
   describe («integración: `//go:build integration`, SQLite en `t.TempDir()`»). Los tests unitarios
   cubren el resto y son los que alimentan `coverage.out`.
 - **CI ejecuta los etiquetados** (FR-041): el objetivo `ci` del `Makefile` gana `test-integration`
-  después de `test`. La receta de `test-integration` (`go test -race -tags=integration ./...`) es
+  inmediatamente después de `test` y antes de `vuln`, de modo que la línea queda
+  `ci: fmt-check lint test test-integration vuln schema-check secrets mod-verify mod-tidy-check`, que es
+  la que el escenario 11 del quickstart compara literalmente. La receta de `test-integration`
+  (`go test -race -tags=integration ./...`) es
   contrato de H0 y **no cambia**; el coste es repetir la suite unitaria una vez más (≈ 22 s hoy, medido),
   aceptable frente a la alternativa de un segundo objetivo o de acotar la receta a un paquete.
 - **El análisis estático alcanza los ficheros etiquetados** (FR-041, SC-009): `.golangci.yml` gana
@@ -498,10 +511,15 @@ dentro del motor; un bloqueo que dura más de cinco segundos es un fallo real y 
   restauración a `0700` **después** de `t.TempDir()`, porque la limpieza de `TempDir` es `RemoveAll` y
   falla el test si no puede borrar (`testing.go` 1616). Comprueban antes que el sistema de ficheros hace
   valer los permisos (crean un directorio `0000` y exigen que `os.Stat` dentro devuelva `ErrPermission`);
-  si no los hace valer (usuario `root`), se detienen con `t.Skip` **nombrando la causa**. Es la
-  precondición de entorno que SC-004 declara («se miden donde el sistema de ficheros los hace valer»), no
-  un test desactivado: en la integración continua el usuario del ejecutor no es privilegiado (supuesto
-  S3) y en cualquier entorno donde la aserción tenga sentido se ejecuta.
+  si no los hace valer (usuario `root`), el desenlace **depende de dónde corra el proceso**: con la
+  variable de entorno `CI` no vacía —que GitHub Actions exporta como `CI=true`— es `t.Fatalf`
+  **nombrando la causa**, y fuera de ella `t.Skip` nombrando la misma causa. Es la precondición de entorno
+  que SC-004 declara («se miden donde el sistema de ficheros los hace valer»), no un test desactivado: en
+  cualquier entorno donde la aserción tenga sentido se ejecuta, y donde el hito **exige** que la tenga —la
+  integración continua, supuesto S3— un ejecutor privilegiado pone el trabajo en rojo en vez de pasar de
+  largo. Es también lo que hace comprobable S3: la receta de `test-integration` es contrato de H0, corre
+  sin `-v` e imprime solo `ok <paquete>`, de modo que un `t.Skip` no dejaría ningún rastro que leer en el
+  registro de CI.
 - **Atomicidad y versión mayor** se prueban con la base manipulada desde el propio test (paquete
   `cache`, caja blanca, que puede importar `database/sql` porque R3 se lo permite a `internal/cache/**`,
   tests incluidos): pre-crear una tabla ajena; escribir `INSERT INTO schema_version VALUES (99, …)`.
@@ -556,8 +574,10 @@ nueva y el patrón del parámetro lo hace innecesario.
     FR-046): cualquier petición emitida termina con clase 1 nombrándola. Código 0, `origen: cache`, cuerpo
     idéntico byte a byte al de la primera (SC-001).
 - `TestAdaptadorDePruebaConElKernel` invoca `app.Main` sobre un registro construido en el test
-  (`invocarAlKernel`, como H2) con subtests: `primera-consulta` (reproducción con la grabación;
-  `origen: fuente`; `cache.db` aparece), `segunda-consulta-sin-red` (misma caché, reproducción estricta
+  (`invocarAlKernel`, como H2) con **nueve** subtests —seis de ellos, y ninguno más, con el prefijo
+  `offline-` que filtra el escenario 4 del quickstart—: `primera-consulta` (reproducción con la grabación;
+  `origen: fuente`; `cache.db` aparece; es también lo que acredita US3 escenario 5 y FR-014, porque parte
+  de una caché vacía y la ausencia no altera ni el curso ni el código), `segunda-consulta-sin-red` (misma caché, reproducción estricta
   vacía; 0, `origen: cache`, mismo cuerpo), `sin-cache-la-reproduccion-falla` (caché vacía y reproducción
   vacía: código 1 y el mensaje nombra `GET http://fuente.prueba/norma`, que es lo que demuestra que el
   subtest anterior pasa *porque* no se emitió ninguna petición, US1 escenario 3), `offline-presente` (0,
@@ -600,7 +620,8 @@ camino». *Un applet de ejemplo en `internal/app/ejemplo`*: se enlazaría en el 
 - **`.golangci.yml`**: `run.build-tags: [integration]` (D11) y comentarios de la lista `sql` («R3 tiene
   dueño desde H3»). Ninguna regla nueva, ninguna exclusión, ningún `//nolint` (SC-008). Contingencia de
   `misspell` (S2): igual que H2, con la tarea declarando el fichero.
-- **`Makefile`**: `ci` gana `test-integration` (D11). Ningún objetivo nuevo ni receta cambiada.
+- **`Makefile`**: `ci` gana `test-integration` entre `test` y `vuln` (D11). Ningún objetivo nuevo ni
+  receta cambiada.
 - **`go.mod` / `go.sum`**: `modernc.org/sqlite v1.58.0` y sus módulos indirectos (FR-043).
 - **`docs/PENDIENTES.md`**: entrada «En H4» ampliada: retirar `TestElBinarioNoEnlazaCache` y ampliar
   `modulosDelBinario` con **los módulos que `go list -deps ./cmd/kitlegal` muestre al enlazar
@@ -693,9 +714,13 @@ Todo lo anterior está comprobado en local. Quedan como **supuestos**, con su co
   cree ficheros de `internal/cache`, y la contingencia es la de H2: entrada en `misspell.ignore-rules`
   declarada por la tarea, o reescritura del término, nunca `//nolint`.
 - **S3 · El ejecutor de la integración continua no es `root`.** Los tests de permisos (D11) lo exigen
-  para medir algo; si no se cumple, se detienen nombrándolo y hay que corregir el entorno, no el test.
-  Comprobación: la tarea `[plataforma]` mira en los estados de CI que `TestIntegracionDirectorioNoEscribible`
-  y `TestIntegracionDirectorioDenegado` aparecen como `PASS` y no como `SKIP`.
+  para medir algo; si no se cumple, `TestIntegracionDirectorioNoEscribible`,
+  `TestIntegracionDirectorioDenegado` y `TestIntegracionWALSinMemoriaCompartida` terminan en `t.Fatalf`
+  nombrando la causa —allí no saltan— y hay que corregir el entorno, no el test.
+  Comprobación: la tarea `[plataforma]` ve el trabajo `ci` de la propuesta de cambio **en verde con
+  `test-integration` dentro** (`gh pr checks`, `gh run list`). No se busca ningún `PASS` ni `SKIP` en el
+  registro: la receta corre sin `-v` y no los imprime; el rojo sería la única señal de que el supuesto no
+  se cumple, y su ausencia es la comprobación.
 - **S4 · Codecov**: sin componente nuevo (SC-014: rigen los umbrales generales); el estado global y el de
   `internal/core` siguen en verde. `internal/core` (paquete `core`) no tiene sentencias, así que no
   altera la cobertura del componente.

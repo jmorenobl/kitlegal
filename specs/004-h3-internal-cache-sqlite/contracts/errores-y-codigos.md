@@ -37,9 +37,12 @@ lleva la causa técnica (va al registrador a nivel `debug` y a `Unwrap`), ni tra
 
 ## 3. Tabla cerrada situación → clase → código
 
-Las **ocho** situaciones de SC-011 (marcadas ★) y las siete que el diseño hace inevitables y FR-033
-obliga a clasificar. La caché no produce ninguna otra clase: nunca `no-encontrado` (3), `limite-o-tos`
-(5) ni `identidad-humana` (6).
+Las **ocho** situaciones de SC-011 —que corresponden a las **nueve** filas marcadas ★ (1, 2, 4, 5, 6, 8,
+9, 10, 11), porque un bullet de SC-011 puede agrupar varias filas: «ruta o variable inservibles» son las
+filas 4, 5 y 6, y «ausencia… en solo lectura» y «directorio inexistente… en solo lectura» se resuelven
+ambos en la fila 8— y las **seis** restantes (3, 7, 12, 13, 14, 15), que el diseño hace inevitables y
+FR-033 obliga a clasificar. La caché no produce ninguna otra clase: nunca `no-encontrado` (3),
+`limite-o-tos` (5) ni `identidad-humana` (6).
 
 | # | Situación | Clase | Código | Requisito / decisión | Mensaje nombra | Se mide en |
 |---|---|---|---|---|---|---|
@@ -54,8 +57,8 @@ obliga a clasificar. La caché no produce ninguna otra clase: nunca `no-encontra
 | 9 ★ | versión de esquema mayor que la conocida (normal); distinta de 0 y de la conocida (solo lectura); fichero intacto | `inesperado` | 1 | FR-027 | ruta, versión esperada y encontrada | `TestClasesDeError`, `TestVersionMayorQueLaConocida` |
 | 10 ★ | el fichero existe y no es una base utilizable (`SQLITE_NOTADB` u otro error al leer el esquema); no se borra | `inesperado` | 1 | FR-028 | ruta | `TestClasesDeError`, `TestFicheroInutilizable` |
 | 11 ★ | escritura en solo lectura (también sobre un cliente sin base); nada escrito | `inesperado` | 1 | FR-017 | la clave | `TestClasesDeError`; kernel: `offline-guardar` |
-| 12 | solo lectura: acceso denegado al comprobar el directorio o `cache.db` (`ErrPermission`), **cualquier otro fallo de `Stat` que no sea «inexistente»** según la regla de la fila 8 (E/S…), o error de apertura distinto de `SQLITE_READONLY_DIRECTORY` | `inesperado` | 1 | FR-015, FR-033 | ruta | `TestIntegracionDirectorioDenegado` |
-| 13 | solo lectura en directorio no escribible con `cache.db-wal` presente y `-shm` ausente (`SQLITE_CANTOPEN`) | `inesperado` | 1 | D5 | ruta y los dos auxiliares | `TestIntegracionWALSinMemoriaCompartida` |
+| 12 | solo lectura: acceso denegado al comprobar el directorio o `cache.db` (`ErrPermission`), **cualquier otro fallo de `Stat` que no sea «inexistente»** según la regla de la fila 8 (E/S…), o error de apertura que no dispara la comprobación de `-wal` del contrato de apertura §6 paso 3 (es decir, distinto de 1544 y de 14), o reapertura con `immutable=1` que vuelve a fallar | `inesperado` | 1 | FR-015, FR-033 | ruta | `TestIntegracionDirectorioDenegado` |
+| 13 | solo lectura en directorio no escribible con `cache.db-wal` presente y `-shm` ausente: la primera consulta falla con `SQLITE_CANTOPEN` (14) —y con 1544 si el driver lo reportara así: la comprobación de `-wal` se dispara ante los dos códigos— | `inesperado` | 1 | D5 | ruta y los dos auxiliares | `TestIntegracionWALSinMemoriaCompartida` |
 | 14 | fallo de E/S o del driver sobrevenido (`SQLITE_BUSY` tras la espera, disco lleno, error al cerrar); operación tras `Close` | `inesperado` | 1 | FR-033, FR-004 | operación, ruta y clave si la hay | `TestClasesDeError` (tras `Close`), `TestOperacionTrasCierre` |
 | 15 | contexto cancelado o vencido durante cualquier operación, `New` incluido | `fuente-no-disponible` | 4 | D9 (no enumerada en FR-033; coincide con H1 «plazo agotado» y H2 fila 2) | operación y clave si la hay | `TestClasesDeError`, `TestContextoCancelado` |
 
@@ -90,8 +93,14 @@ cuando el contexto venció: la fila 15 y el kernel dicen lo mismo (código 4).
 | directorio no escribible | `caché: no se puede escribir en el directorio "/ruta" (opción ConDirectorio)` |
 | versión ajena | `caché: "/ruta/cache.db" tiene el esquema en la versión 7 y este binario conoce la 1: no se modifica` |
 | fichero inutilizable | `caché: "/ruta/cache.db" no es una base de datos utilizable; no se borra` |
+| WAL sin memoria compartida (fila 13) | `caché: "/ruta/cache.db" tiene un registro de escritura "/ruta/cache.db-wal" y el directorio no permite crear "/ruta/cache.db-shm": no se puede leer en solo lectura` |
 | ausencia en solo lectura | `caché: no hay entrada vigente para "prueba:http://…" y la invocación es de solo lectura (--offline)` |
 | escritura en solo lectura | `caché: no se puede escribir "prueba:http://…" en una caché de solo lectura` |
 | tras cerrar | `caché: cliente cerrado; no se puede leer "…"` |
 
-La forma exacta la fija `TestErrorMensajes`; lo que este contrato exige es **qué nombra** cada uno.
+La forma exacta la fija `TestErrorMensajes`; lo que este contrato exige es **qué nombra** cada uno. Qué
+forma toma un error concreto lo decide el **constructor interno de su situación** (§2), no solo la clase
+ni los campos exportados: dos situaciones pueden compartir clase, operación y ruta —la versión ajena y el
+fichero inutilizable, o el fichero inutilizable y el WAL sin memoria compartida— y aun así decir cosas
+distintas, y los detalles que no caben en los campos exportados (las dos versiones, los dos auxiliares)
+viajan con ese constructor.
