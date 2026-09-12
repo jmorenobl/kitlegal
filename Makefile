@@ -29,7 +29,12 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.0.
 COMMIT  ?= $(shell git rev-parse HEAD 2>/dev/null || echo desconocido)
 FECHA   ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.fecha=$(FECHA)
+# La cuarta inyección lleva esa misma VERSION a la identificación con la que
+# kitlegal se presenta en la red, de modo que el User-Agent no pueda declarar
+# una versión distinta de la que imprime el verbo `version`
+# (FR-007 de H2, specs/003-h2-internal-httpx-cliente/research.md D5).
+LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.fecha=$(FECHA) \
+	-X github.com/jmorenobl/kitlegal/internal/httpx.version=$(VERSION)
 
 # Herramientas de los controles: un módulo Go por herramienta, sin instalación
 # manual previa y con la versión fijada en su propio go.mod (research.md D2).
