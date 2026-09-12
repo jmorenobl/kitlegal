@@ -1,20 +1,24 @@
 {
-  "id": "T005",
-  "texto": "T005 [P] [US1] La identificación y su versión, coherentes con el binario: `internal/httpx/agente.go` con la variable de paquete `version` (por omisión `dev`, inyectable por `-ldflags`) y `AgenteDeUsuario()` que devuelve exactamente `kitlegal/<versión> (+https://ventanillalegal.es/bot)`, sin literal de versión escrito a mano y sin forma de vaciarla desde fuera; `internal/httpx/agente_test.go` con `TestAgenteDeUsuario`, que construye la expresión regular **sobre la variable** `version` (no sobre el literal `dev`) y pasa el sufijo por `regexp.QuoteMeta`, exige `version` no vacía y registra la identificación con `t.Log` para que la inyección sea observable; `Makefile` añade a `LDFLAGS` la `-X <módulo>/internal/httpx.version=$(VERSION)` junto a las tres que ya existen, sin tocar ningún objetivo; y `cmd/kitlegal/main_test.go` añade `TestVersionDeLaIdentificacion`, que importa `internal/httpx` **solo en test** y comprueba que el valor por omisión de `main.version` y el de la identificación coinciden, de modo que no puedan divergir en silencio (FR-006, FR-007, FR-008, D5).",
+  "id": "T006",
+  "texto": "T006 [US1] La única operación de red, con identificación, plazo, ensayo y redirecciones: `internal/httpx/transporte.go` con el clon de `http.DefaultTransport` (verificación de certificados no desactivable, `Client.Timeout = 0` porque el plazo lo pone el contexto, `CheckRedirect` que impide las redirecciones automáticas de la biblioteca y sin almacén de cookies); `internal/httpx/identificar.go` con el decorador que pone la cabecera de identificación en **toda** petición que baja por la cadena y con el **único constructor de peticiones del paquete**, `nuevaPeticionIdentificada(ctx, metodo, url)`, que llama a `http.NewRequestWithContext` y fija la cabecera con `AgenteDeUsuario()` antes de devolver la petición, de modo que también nazcan identificadas las que el propio paquete origina por debajo del decorador —el bucle de redirecciones de `cliente.go` y, en T009, la de `robots.txt`— (FR-009, D3); `internal/httpx/cliente.go` con `Cliente` (campos privados), `New(opciones ...Opcion) (*Cliente, error)` que valida en la construcción, `Opcion` y las opciones `ConFuente` y `ConRegistrador` con sus reglas de validez, y `Pedir(ctx context.Context, ejecucion schema.Contexto, p Peticion) (Respuesta, error)` como **única** superficie de red —método restringido a GET/HEAD y dirección absoluta `http`/`https` comprobados antes de abrir nada (clase 2), salida temprana de ensayo, bucle propio de redirecciones con tope 10 y detección de bucle (clase 4), lectura íntegra del cuerpo y cierre del `*http.Response` dentro del paquete, y clasificación del resultado (5xx → clase 4, 429 con `Retry-After` → clase 5, todo lo demás entregado como `Respuesta`)—, con la cadena de un solo escalón `identificar → transporte` y registro de eventos únicamente por el `*slog.Logger` recibido, a nivel `debug` y nunca a la salida estándar; y los tests `internal/httpx/transporte_test.go` (`TestTransporteConfiguracion`), `internal/httpx/identificar_test.go` (`TestIdentificacionEnTodaPeticion` con las subpruebas que la cadena de esta tarea ya permite —`recurso` y `saltos`—, donde el servidor cuenta en cero las peticiones sin la cabecera exacta y que T008 y T009 amplían con las suyas; y `TestSoloIdentificarConstruyePeticiones`, que recorre los ficheros del paquete con `go/parser` y falla si alguno que no sea `identificar.go` llama a `http.NewRequestWithContext` o construye un `http.Request`), `internal/httpx/cliente_test.go` (`TestNewSinOpciones`, `TestOpcionesInvalidas`, `TestPedirRechazaMetodo`, `TestPedirRechazaDireccion`, `TestPedirRespetaElPlazo`, `TestPedirSigueRedirecciones`, `TestPedirCortaCadenasDeRedirecciones`) e `internal/httpx/ensayo_test.go` (`TestEnsayoNoAbreConexion`, `TestEnsayoDevuelveRespuestaDeclarada`, `TestEnsayoCompruebaArgumentos`: cero accesos al servidor, `Respuesta{Ensayo: true}` sin estado ni cuerpo y **sin error**, y método o configuración inválidos comprobados igualmente) (FR-001 a FR-006, FR-009 a FR-012, FR-029, FR-030, FR-032, FR-035, FR-050, FR-052, FR-065, SC-001, SC-002, SC-013, US6 escenarios 1-4, D1, D2, D3, D10, D11).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T005.md y déjala sin marcar.",
-  "base": "f4883cf44ae22542122ca152f83c398a668bacdf",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T006.md y déjala sin marcar.",
+  "base": "40258eb26a6ed3a4fae1d09664fadbaddd0a09d6",
   "rutas": [
-    ".es/bot",
-    "cmd/kitlegal/main_test.go",
-    "internal/httpx",
-    "internal/httpx.version",
-    "internal/httpx/agente_test.go",
-    "internal/httpx/agente.go",
-    "kitlegal/",
-    "Makefile"
+    "cliente.go",
+    "GET/HEAD",
+    "go/parser",
+    "identificar.go",
+    "internal/httpx/cliente_test.go",
+    "internal/httpx/cliente.go",
+    "internal/httpx/ensayo_test.go",
+    "internal/httpx/identificar_test.go",
+    "internal/httpx/identificar.go",
+    "internal/httpx/transporte_test.go",
+    "internal/httpx/transporte.go",
+    "robots.txt"
   ]
 }
