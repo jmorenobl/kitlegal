@@ -3,12 +3,16 @@
 Ejecución de los escenarios **1, 7, 11 y 12** de [`quickstart.md`](../quickstart.md) y de la orden
 **entera** de los prerrequisitos que comprueba que los tests no conocen ninguna dirección fuera de la
 máquina. Cubre SC-008, SC-010, SC-011, SC-014, SC-015, los puntos 1, 2 y 9 de la Definition of Done y
-las obligaciones 7, 8, 10 y 11 del plan.
+las obligaciones 7, 8, 10 y 11 del plan. Incluye además el arreglo del test inestable que el intento 1
+de T018 encontró y que el intento 2 redelimitó (SC-005, D9), con el rojo reproducido antes y el verde
+comprobado después.
 
 - **Rama**: `h2-internal-httpx-cliente`
-- **Base**: `a9a1366` (`feat(H2): T017`)
+- **Base**: `6d98e9c` (`feat(H2): T018`, el commit del intento 2)
 - **Fecha**: 2026-09-12
 - **Entorno**: `go version go1.27.1 darwin/arm64`, `git 2.50.1`, `GNU Make 3.81`
+- **Intento**: 3 de 3. Esta evidencia sustituye a la del intento 1; lo que aquí se mide se ha vuelto a
+  ejecutar entero sobre el árbol con el arreglo aplicado.
 
 ---
 
@@ -18,14 +22,14 @@ El quickstart ya advierte de que un envoltorio que resuma la salida de `go test`
 `grep` y manda ejecutar la orden con `rtk proxy`. Al cerrar el hito se comprobó que **el mismo envoltorio
 reescribe también `git status` y `git diff`**, y eso afecta a dos medidas de esta tarea:
 
-- `git status --porcelain -- …` devolvió la cadena literal `ok`. Una medida diferencial hecha sobre esa
-  salida compara `"ok"` con `"ok"`: **sale verde siempre**, haya o no grabaciones nuevas. La primera
-  pasada de los escenarios 1 y 7 se descartó por esto y se repitió entera con `rtk proxy git status`.
-- `git diff main -- .golangci.yml` devolvió un resumen con las líneas añadidas sangradas dos espacios,
-  de modo que `grep -E '^\+'` no casaba ninguna: el primer filtro del escenario 12 imprimía «ninguna
-  regla ni exclusión nueva» **sin haber mirado el diff**. Se repitió con `rtk proxy git diff`.
+- `git status --porcelain -- …` devuelve la cadena literal `ok`. Una medida diferencial hecha sobre esa
+  salida compara `"ok"` con `"ok"`: **sale verde siempre**, haya o no grabaciones nuevas.
+- `git diff main -- .golangci.yml` devuelve un resumen con las líneas añadidas sangradas dos espacios,
+  de modo que `grep -E '^\+'` no casa ninguna: el primer filtro del escenario 12 imprimiría «ninguna
+  regla ni exclusión nueva» **sin haber mirado el diff**.
 
-Todo lo que sigue está medido con `rtk proxy`. Dos comprobaciones de que las medidas no son vacuas:
+Todo lo que sigue está medido con `rtk proxy`. Dos comprobaciones de que las medidas no son vacuas,
+repetidas en este intento:
 
 ```
 $ rtk proxy git status --porcelain -- specs nonexistent-probe-dir
@@ -43,6 +47,9 @@ $ rtk proxy git status --porcelain -- specs
  M specs/003-h2-internal-httpx-cliente/gates/tareas-intentos.json
 ?? specs/003-h2-internal-httpx-cliente/.sonda-tmp
 $ rm -f specs/003-h2-internal-httpx-cliente/.sonda-tmp       # sonda retirada
+$ rtk proxy git status --porcelain -- specs
+ M specs/003-h2-internal-httpx-cliente/gates/tarea-actual.json
+ M specs/003-h2-internal-httpx-cliente/gates/tareas-intentos.json
 ```
 
 Un fichero nuevo sin versionar aparece como `??`: una grabación que apareciera bajo `testdata/` se vería.
@@ -55,55 +62,26 @@ cambia ni los ficheros recorridos ni el resultado; más abajo se demuestra con u
 
 ## Prerrequisitos · «solo direcciones locales» (SC-011, obligación 11)
 
-La orden tal como estaba escrita **no imprimía la confirmación**. Sacaba nueve líneas:
-
-```
-internal/httpx/cliente_test.go:186:http:///norma
-internal/httpx/errores_test.go:297:http://fuente.prueba:80:
-internal/httpx/errores_test.go:305:http://fuente.prueba:80:
-internal/httpx/errores_test.go:313:https://otra.prueba:443:
-internal/httpx/errores_test.go:320:http://fuente.prueba:80:
-internal/httpx/errores_test.go:341:http://[::1
-internal/httpx/errores_test.go:343:http://[::1:
-internal/httpx/errores_test.go:361:http://fuente.prueba:80:
-internal/httpx/errores_test.go:380:http://fuente.prueba:80:
-```
-
-**Ninguna es una dirección fuera de la máquina.** La lista entera de tokens que el primer `grep` extrae
-del paquete (36, sin repetir) son `127.0.0.1`, `fuente.prueba`, `otra.prueba` (en cualquier caja),
-`[::1`, una sin host y la dirección de la identificación. Lo que falla es el **troceado**, no el árbol:
-
-| Forma | Dónde | Por qué el filtro no la reconocía |
-|---|---|---|
-| `http://fuente.prueba:80:` | mensajes de `errores_test.go` | El mensaje sigue tras el sitio (`… en el sitio http://fuente.prueba:80: la operación…`) y el `grep` no corta en `:`, así que el puerto deja de reconocerse |
-| `https://otra.prueba:443:` | ídem | ídem |
-| `http://[::1`, `http://[::1:` | caso «dirección inanalizable» | Bucle local IPv6, con el corchete abierto **a propósito**: es la rama de dirección que no se puede interpretar |
-| `http:///norma` | caso «un esquema http sin sitio» de `TestPedirRechazaDireccion` | No tiene host: no hay nada a lo que conectarse |
-
-Las cuatro son **contraejemplos de dirección** que el hito escribe para que el cliente las rechace con
-clase 2. La obligación 11 sigue intacta en lo que dice —ningún test nombra una máquina ajena—, así que
-lo corregido es la orden, no el test. Enmienda aplicada a `quickstart.md`:
-
-```diff
- grep -rhoE 'https?://[^"'"'"'`) ]+' internal/httpx/*_test.go internal/httpx/testdata \
--  | grep -viE '^https?://(127\.0\.0\.1|localhost|fuente\.prueba|otra\.prueba)(:[0-9]+)?(/|$)' \
-+  | sed -E 's/:+$//' \
-+  | grep -viE '^https?://(127\.0\.0\.1|localhost|\[::1\]?|fuente\.prueba|otra\.prueba)?(:[0-9]+)?(/|$)' \
-   | grep -vx 'https://ventanillalegal.es/bot' ; test $? -eq 1 && echo "solo direcciones locales"
-```
-
-`sed` recorta unos dos puntos finales, que nunca llevan información de host; `\[::1\]?` admite el bucle
-local IPv6; el `?` del grupo del host admite la dirección sin sitio. **El control sobre el host no se
-relaja**: el terminador `(/|$)` obliga a que el nombre admitido acabe ahí.
+La orden tal como la escribió el plan no imprimía la confirmación: sacaba nueve tokens que **no nombran
+ninguna máquina** (dos puntos finales de los mensajes de `errores_test.go`, el bucle local IPv6
+`http://[::1` del caso «dirección inanalizable» y la dirección sin sitio `http:///norma` del caso «un
+esquema http sin sitio»). Lo que fallaba era el **troceado**, no el árbol: el intento 1 enmendó la
+orden en `quickstart.md` (un `sed -E 's/:+$//'`, `\[::1\]?` en la lista y `?` en el grupo del host) sin
+tocar ningún test y sin relajar el control sobre el host, que sigue obligado a acabar en `(/|$)`. La
+explicación completa está en el propio quickstart, bajo «Prerrequisitos».
 
 ### Que no se ha aflojado: once sondas
 
-Se ejecutó la orden **entera** sobre el árbol real más un fichero de infracciones deliberadas. Salen las
-once, incluidas las seis que intentan colar un host ajeno usando un nombre admitido como prefijo o como
-userinfo, y **no se imprime la confirmación**:
+Orden **entera** sobre el árbol real más un fichero de infracciones deliberadas, escrito **fuera del
+repositorio** (en el directorio temporal de la sesión) y pasado como operando adicional al primer `grep`.
+Salen las once, incluidas las seis que intentan colar un host ajeno usando un nombre admitido como
+prefijo o como userinfo, y **no se imprime la confirmación**:
 
 ```
-$ grep -rhoE … internal/httpx/*_test.go internal/httpx/testdata <sondas> | sed … | grep -viE … | grep -vx …
+$ grep -rhoE 'https?://[^"'"'"'`) ]+' internal/httpx/*_test.go internal/httpx/testdata <sondas_test.go> \
+    | sed -E 's/:+$//' \
+    | grep -viE '^https?://(127\.0\.0\.1|localhost|\[::1\]?|fuente\.prueba|otra\.prueba)?(:[0-9]+)?(/|$)' \
+    | grep -vx 'https://ventanillalegal.es/bot' ; test $? -eq 1 && echo "solo direcciones locales"
 https://www.boe.es/datosabiertos/api/legislacion-consolidada
 http://x
 https://www.boe.es:443
@@ -130,7 +108,114 @@ $ grep -rhoE 'https?://[^"'"'"'`) ]+' internal/httpx/*_test.go internal/httpx/te
 solo direcciones locales
 ```
 
-**SC-011 / obligación 11: verde.** Ninguna línea antes de la confirmación.
+**SC-011 / obligación 11: verde.** Ninguna línea antes de la confirmación. El arreglo de
+`reintentos_test.go` no introduce ninguna dirección: el fichero se recorre en esta orden.
+
+---
+
+## El test inestable: rojo reproducido, arreglo acotado, verde comprobado (SC-005, D9)
+
+El intento 1 encontró que `TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo`
+falla en ≈ 3 de cada 1000 ejecuciones con el producto correcto: `assert.IsIncreasing` exigía orden
+estricto sobre las siete esperas, y la ley `b = min(500 ms · 2^(n−1), 30 s)` solo lo garantiza
+**mientras la base dobla**. En la séptima espera la base pide 32 s y el techo la deja en 30 s, de modo que
+su banda `[15 s, 30 s)` se solapa con la sexta, `[8 s, 16 s)`, en `[15 s, 16 s)`. Diagnóstico completo en
+[`tarea-T018.md`](./tarea-T018.md); el intento 2 redelimitó la tarea para declarar el fichero.
+
+### Rojo antes, sobre el árbol sin tocar (base `6d98e9c`)
+
+```
+$ rtk proxy go test -count=1000 -run '^TestReintentosAgotados$/^ocho' ./internal/httpx/
+--- FAIL: TestReintentosAgotados (0.00s)
+    --- FAIL: TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo (0.01s)
+        assertion_order.go:40:
+            	Error Trace:	internal/httpx/reintentos_test.go:331
+            	Error:      	"15.724237191s" is not less than "15.575673471s"
+            	Messages:   	cada espera arranca donde termina la anterior (SC-005, D9)
+--- FAIL: TestReintentosAgotados (0.00s)
+    --- FAIL: TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo (0.01s)
+            	Error:      	"15.66550447s" is not less than "15.420038058s"
+--- FAIL: TestReintentosAgotados (0.00s)
+    --- FAIL: TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo (0.01s)
+            	Error:      	"15.08506848s" is not less than "15.007670607s"
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/httpx	9.296s
+```
+
+**3 fallos en 1000**, los tres con las dos esperas en `[15 s, 16 s)`: exactamente el solape previsto.
+Tercera medida consistente (intento 1: 3/1000; intento 2: 3/1000; intento 3: 3/1000).
+
+### El arreglo, en `internal/httpx/reintentos_test.go` y en nada más
+
+Tres ediciones, las mismas que el intento 2 dejó comprobadas sobre una copia:
+
+- **(a)** En `TestReintentosAgotados`, la aserción de orden pasa a
+  `assert.IsIncreasing(t, pedidas[:doblan], …)` con `doblan := esperasMientrasLaBaseDobla(len(pedidas))`,
+  precedida de un comentario que explica el solape; el mensaje dice ahora «mientras la base dobla, cada
+  espera arranca donde termina la anterior (SC-005, D9)».
+- **(b)** En `exigeEsperaDelIntento`, el mensaje del `assert.Less` dice la ley completa: «… que es su
+  techo y, mientras la base dobla, el suelo de la siguiente (SC-005, D9)».
+- **(c)** Función nueva `esperasMientrasLaBaseDobla(esperas int) int`, derivada de la **misma ley
+  literal** que `exigeEsperaDelIntento` —500 ms, factor 2, techo 30 s— y no de las constantes del paquete,
+  para ser contraste y no eco. Con siete esperas devuelve 6; con dos, 2; con cero, 0.
+
+`rtk proxy git diff -- internal/httpx/reintentos_test.go`: 3 tramos, +27 −2 líneas. **No cambia** el
+decorador de reintentos (`reintentos.go`), ninguna otra subprueba ni ningún otro fichero del paquete; la
+banda `[b/2, b)` sigue comprobándose en las siete esperas por `exigeEsperaDelIntento`, y las subpruebas
+de tres y de un intento no ven ningún cambio de comportamiento (con dos esperas, `doblan` es 2).
+
+### Verde después, con la misma orden
+
+```
+$ rtk proxy go test -count=1000 -run '^TestReintentosAgotados$/^ocho' ./internal/httpx/
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	9.306s
+$ rtk proxy go test -count=1000 -run '^TestReintentosAgotados$' ./internal/httpx/
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	9.223s
+$ rtk proxy go test -race -count=1 -v -run '^TestReintentos' ./internal/httpx/ | grep -E '^(--- |    --- |ok|FAIL)'
+--- PASS: TestReintentosCierraCuerposDescartados (0.00s)
+--- PASS: TestReintentosNoRepite4xx (0.00s)
+    --- PASS: TestReintentosNoRepite4xx/una_petición_mal_formada_no_mejora_por_repetirla (0.00s)
+    --- PASS: TestReintentosNoRepite4xx/el_«no_encontrado»_se_entrega_tal_cual_y_no_se_repite (0.00s)
+    --- PASS: TestReintentosNoRepite4xx/el_límite_de_peticiones_tiene_su_clase_y_tampoco_se_repite (0.00s)
+--- PASS: TestReintentosCancelacionGana (0.00s)
+    --- PASS: TestReintentosCancelacionGana/la_cancelación_con_la_petición_en_vuelo_no_se_reintenta (0.00s)
+    --- PASS: TestReintentosCancelacionGana/la_cancelación_durante_la_espera_no_deja_emitir_el_intento_siguiente (0.00s)
+--- PASS: TestReintentosAgotados (0.00s)
+    --- PASS: TestReintentosAgotados/un_solo_intento_es_la_forma_de_no_reintentar (0.00s)
+    --- PASS: TestReintentosAgotados/sin_declarar_nada_son_los_tres_intentos_por_omisión (0.00s)
+    --- PASS: TestReintentosAgotados/un_fallo_de_transporte_se_repite_igual_que_un_error_del_servidor (0.00s)
+    --- PASS: TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo (0.01s)
+--- PASS: TestReintentosDosErroresYUnAcierto (0.61s)
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	2.000s
+$ rtk proxy make lint
+0 issues.
+```
+
+**0 fallos en 1000** sobre la subprueba que fallaba, **0 en 1000** sobre toda la tabla, los cinco tests
+de reintentos con sus doce subpruebas en `PASS` con detector de carreras, y el lint limpio (sin ningún
+`nolint`; el comentario evita «comparte», que `misspell` marcaba, y dice «se solapa»).
+
+### Que acotar no ha aflojado: mutación sobre una copia desechable
+
+Copia del árbol con `rsync -a --exclude=.git --exclude=bin --exclude=coverage.out` en el directorio
+temporal de la sesión, con **una sola** mutación en `reintentos.go`: `esperaDelIntento` pasa de *equal
+jitter* (`mitad + aleatoria%mitad`, banda `[b/2, b)`) a *full jitter* (`aleatoria % (mitad*2)`, banda
+`[0, b)`). El árbol de trabajo no se ha tocado.
+
+```
+$ rtk proxy go test -C <copia-mutada> -count=20 -run '^(TestReintentosAgotados|TestReintentosDosErroresYUnAcierto)$' ./internal/httpx/
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/httpx	12.478s
+```
+
+| Subprueba | Cae con *full jitter* |
+|---|---|
+| `TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo` | **20/20** |
+| `TestReintentosAgotados/sin_declarar_nada_son_los_tres_intentos_por_omisión` | 16/20 |
+| `TestReintentosDosErroresYUnAcierto` | 17/20 |
+
+La fila 10 del inventario de tests del plan («con *full jitter*, no crecen») sigue siendo cierta con la
+aserción acotada: la banda `[b/2, b)` y el orden en el tramo que dobla la tumban.
 
 ---
 
@@ -139,15 +224,15 @@ solo direcciones locales
 ```
 $ rtk proxy git status --porcelain -- testdata internal/httpx/testdata internal/source   # ANTES: 0 bytes
 $ rtk proxy go test -race -count=1 ./...
-ok  	github.com/jmorenobl/kitlegal/cmd/kitlegal	1.265s
-ok  	github.com/jmorenobl/kitlegal/internal	1.636s
-ok  	github.com/jmorenobl/kitlegal/internal/app	2.483s
+ok  	github.com/jmorenobl/kitlegal/cmd/kitlegal	1.384s
+ok  	github.com/jmorenobl/kitlegal/internal	1.862s
+ok  	github.com/jmorenobl/kitlegal/internal/app	3.268s
 ?   	github.com/jmorenobl/kitlegal/internal/app/ejemplo	[no test files]
 ?   	github.com/jmorenobl/kitlegal/internal/app/ejemplo/kitlegal-e2e	[no test files]
-ok  	github.com/jmorenobl/kitlegal/internal/cli	1.654s
-ok  	github.com/jmorenobl/kitlegal/internal/core/schema	1.912s
-ok  	github.com/jmorenobl/kitlegal/internal/httpx	13.743s
-ok  	github.com/jmorenobl/kitlegal/internal/render	2.260s
+ok  	github.com/jmorenobl/kitlegal/internal/cli	2.007s
+ok  	github.com/jmorenobl/kitlegal/internal/core/schema	2.477s
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	15.768s
+ok  	github.com/jmorenobl/kitlegal/internal/render	2.735s
 $ rtk proxy git status --porcelain -- testdata internal/httpx/testdata internal/source   # DESPUES: 0 bytes
 $ diff antes despues && echo "SC-008: ninguna grabación nueva ni cambiada bajo testdata/"
 SC-008: ninguna grabación nueva ni cambiada bajo testdata/
@@ -156,20 +241,23 @@ sin testdata/ de raíz
 ```
 
 `ok` en todos los paquetes, `internal/httpx` incluido, sin salida a Internet y con detector de carreras.
-La medida **diferencial** de SC-008 es idéntica antes y después, y no hay `testdata/` en la raíz.
+La medida **diferencial** de SC-008 es idéntica antes y después (0 bytes en las dos capturas, `wc -c`),
+y no hay `testdata/` en la raíz.
 
-**Sobre «ningún fichero versionado modificado»**: esa línea no se imprime, y no es del hito. El árbol
-lleva modificados exactamente dos ficheros:
+**Sobre «ningún fichero versionado modificado»**: esa línea no se imprime, y es lo esperado en mitad de
+la tarea. El árbol lleva modificados exactamente tres ficheros:
 
 ```
 $ rtk proxy git status --porcelain
+ M internal/httpx/reintentos_test.go
  M specs/003-h2-internal-httpx-cliente/gates/tarea-actual.json
  M specs/003-h2-internal-httpx-cliente/gates/tareas-intentos.json
 ```
 
-Son el estado del propio workflow `hito`, que el supervisor escribe **antes** de lanzar la tarea: ya
-estaban así al empezar T018, ningún escenario los toca y ninguno es del producto. `bin/` y `coverage.out`
-no aparecen ni como `??`, porque están en `.gitignore` desde H0.
+El primero es el arreglo de esta tarea (ruta declarada). Los otros dos son el estado del propio workflow
+`hito`, que el supervisor escribe **antes** de lanzar la tarea: ya estaban así al empezar T018 y ningún
+escenario los toca. `bin/` y `coverage.out` no aparecen ni como `??`, porque están en `.gitignore`
+desde H0.
 
 ---
 
@@ -188,7 +276,7 @@ $ rtk proxy go test -race -count=1 -v -run '^(TestGrabar|TestNombreDeGrabacion)'
 --- PASS: TestGrabarValorDeVariableInvalido (0.00s)
 --- PASS: TestGrabarCuerpoBinario (0.00s)
 --- PASS: TestNombreDeGrabacion (0.00s)
-ok  	github.com/jmorenobl/kitlegal/internal/httpx	1.346s
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	1.345s
 $ rtk proxy git status --porcelain -- testdata internal/httpx/testdata internal/source   # DESPUES: 0 bytes
 $ diff antes despues && echo "sin cambios bajo testdata/"
 sin cambios bajo testdata/
@@ -204,13 +292,13 @@ solo existieron en el `t.TempDir()` de cada test. `KITLEGAL_RECORD` no se ha usa
 
 ```
 $ make build
-CGO_ENABLED=0 go build -trimpath -ldflags "-X main.version=a9a1366-dirty …" -o bin/kitlegal ./cmd/kitlegal
+CGO_ENABLED=0 go build -trimpath -ldflags "-X main.version=6d98e9c-dirty … -X github.com/jmorenobl/kitlegal/internal/httpx.version=6d98e9c-dirty" -o bin/kitlegal ./cmd/kitlegal
 $ bin/kitlegal echo hola ; echo "código: $?"
 argumentos inválidos: "echo" no es ningún applet de kitlegal; este binario no registra ningún applet
 código: 2
 
-$ go build -o bin/kitlegal-e2e ./internal/app/ejemplo/kitlegal-e2e
-$ bin/kitlegal-e2e ; echo "código: $?"
+$ go build -o <tmp>/kitlegal-e2e ./internal/app/ejemplo/kitlegal-e2e
+$ <tmp>/kitlegal-e2e ; echo "código: $?"
 argumentos inválidos: no se ha indicado ningún applet; applets disponibles: contar, echo
 código: 2
 ```
@@ -220,15 +308,15 @@ registro de producción sigue vacío y el de e2e sigue teniendo exactamente `con
 
 ```
 $ rtk proxy go test -count=1 -run '^(TestElBinarioNoEnlazaHTTPX|TestDependenciasDelBinario|TestElBinarioNoEnlazaLosEjemplos)$' ./internal/
-ok  	github.com/jmorenobl/kitlegal/internal	0.489s
+ok  	github.com/jmorenobl/kitlegal/internal	0.500s
 ```
 
 El binario distribuido no enlaza `internal/httpx`, ni `x/time`, ni `robotstxt`, ni los ejemplos.
 
-**Una orden del escenario no pudo ejecutarse en esta sesión**: `bin/kitlegal-e2e consultar
-http://127.0.0.1:1/` la rechaza el envoltorio del agente (no la rechaza el binario), y también sus
-variantes sin dirección. No es una limitación del producto y lo que demuestra está cubierto por otras
-tres medidas que sí se ejecutaron:
+**Una orden del escenario no pudo ejecutarse en esta sesión**, igual que en el intento 1:
+`<tmp>/kitlegal-e2e consultar http://127.0.0.1:1/` la rechaza el envoltorio del agente (no la rechaza el
+binario), y también la variante sin dirección. No es una limitación del producto y lo que demuestra está
+cubierto por otras tres medidas que sí se ejecutaron:
 
 1. el binario de e2e **enumera** sus applets al fallar —`contar, echo`—, de modo que `consultar` no está;
 2. el `grep` del escenario 9 confirma que ningún fichero de producción registra ese verbo:
@@ -252,13 +340,13 @@ go tool -modfile=tools/golangci-lint/go.mod golangci-lint fmt --diff ./...
 go tool -modfile=tools/golangci-lint/go.mod golangci-lint run ./...
 0 issues.
 go test -race -shuffle=on -coverprofile=coverage.out ./...
-ok  	github.com/jmorenobl/kitlegal/cmd/kitlegal	1.662s	coverage: 0.0% of statements
-ok  	github.com/jmorenobl/kitlegal/internal	1.588s	coverage: [no statements]
-ok  	github.com/jmorenobl/kitlegal/internal/app	3.363s	coverage: 92.8% of statements
-ok  	github.com/jmorenobl/kitlegal/internal/cli	2.613s	coverage: 98.6% of statements
-ok  	github.com/jmorenobl/kitlegal/internal/core/schema	2.211s	coverage: 90.1% of statements
-ok  	github.com/jmorenobl/kitlegal/internal/httpx	14.119s	coverage: 94.8% of statements
-ok  	github.com/jmorenobl/kitlegal/internal/render	2.997s	coverage: 95.8% of statements
+ok  	github.com/jmorenobl/kitlegal/cmd/kitlegal	1.332s	coverage: 0.0% of statements
+ok  	github.com/jmorenobl/kitlegal/internal	1.829s	coverage: [no statements]
+ok  	github.com/jmorenobl/kitlegal/internal/app	3.328s	coverage: 92.8% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/cli	2.249s	coverage: 98.6% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/core/schema	2.470s	coverage: 90.1% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	14.390s	coverage: 94.8% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/render	2.199s	coverage: 95.8% of statements
 go tool -modfile=tools/govulncheck/go.mod govulncheck ./...
 No vulnerabilities found.
 schema-check: no hay schemas/ todavía; los aportan H4 (borrador) y H10 (contrato)
@@ -269,30 +357,20 @@ go mod tidy -diff
 ci: todos los controles en verde
 ```
 
-`make ci` ejecuta la suite con `-race` y `-shuffle=on`.
-
-> ⚠️ **Punto 1 de la Definition of Done: NO verde de forma fiable.** Una ejecución posterior de `make ci`
-> —con los mismos ficheros, que en T018 son solo markdown— falló en
-> `TestReintentosAgotados/ocho_intentos_recorren_el_retardo_hasta_su_techo`:
-> `"15.107804241s" is not less than "15.049587612s"`. Es un test **inestable** que ya estaba en el árbol
-> (T008) y que falla en **3 de cada 1000** ejecuciones: al llegar al techo del retardo, la banda de la
-> sexta espera `[8 s, 16 s)` y la de la séptima `[15 s, 30 s)` se solapan, y `assert.IsIncreasing`
-> exige un orden que ahí ya no se cumple. El producto está bien; la aserción es la que no se sostiene.
-> Diagnóstico completo, arreglo propuesto y por qué T018 no puede aplicarlo (está fuera de sus rutas):
-> [`tarea-T018.md`](./tarea-T018.md). **T018 queda sin marcar por esto.**
->
-> El resto de `make ci` —formato, `golangci-lint` con 0 *issues*, `govulncheck`, `gitleaks`,
-> `go mod verify`, `go mod tidy -diff`— pasa en todas las ejecuciones, y las cifras de cobertura de más
-> abajo son las de una ejecución completa.
+`make ci` ejecuta la suite con `-race` y `-shuffle=on`. **Punto 1 de la Definition of Done: verde**, y
+esta vez de forma duradera: la única subprueba que lo dejaba en rojo en ≈ 3 de cada 1000 ejecuciones
+está arreglada de raíz y medida ×1000 (sección anterior). Una segunda ejecución de `make ci` al terminar
+la tarea, con todos los ficheros de esta evidencia ya escritos, se recoge al final.
 
 ### Umbrales (SC-015, obligación 10, punto 9 de la DoD)
 
 ```
 $ go tool cover -func=coverage.out | tail -1
 total:										(statements)			93.3%
-$ rtk proxy go test -count=1 -cover ./internal/core/... ./internal/httpx/
-ok  	github.com/jmorenobl/kitlegal/internal/core/schema	0.320s	coverage: 90.1% of statements
-ok  	github.com/jmorenobl/kitlegal/internal/httpx	14.728s	coverage: 94.8% of statements
+$ rtk proxy go test -count=1 -cover ./internal/core/... ./internal/httpx/ ./internal/cli/
+ok  	github.com/jmorenobl/kitlegal/internal/core/schema	0.303s	coverage: 90.1% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/httpx	14.126s	coverage: 94.8% of statements
+ok  	github.com/jmorenobl/kitlegal/internal/cli	0.653s	coverage: 98.6% of statements
 ```
 
 | Umbral | Exigido | Medido | |
@@ -301,9 +379,11 @@ ok  	github.com/jmorenobl/kitlegal/internal/httpx	14.728s	coverage: 94.8% of sta
 | `internal/core/**` | ≥ 85 % | **90,1 %** | ✅ |
 | `internal/cli` | ≥ 90 % | **98,6 %** | ✅ |
 
-**Ninguno se ha rebajado**: `codecov.yml` no aparece en el diff frente a `main` y conserva sus tres
-objetivos (`70%`, `85%`, `90%`). El único cambio del `Makefile` frente a `main` es la cuarta inyección de
-`-ldflags` que lleva `VERSION` a la identificación (FR-007), con su comentario; nada de cobertura.
+Las mismas cifras que en los intentos 1 y 2: el arreglo solo toca un fichero de test y no cambia la
+cobertura del paquete (94,8 %). **Ninguno se ha rebajado**: `codecov.yml` no aparece en el diff frente a
+`main` y conserva sus tres objetivos (`70%`, `85%`, `90%`). El único cambio del `Makefile` frente a
+`main` es la cuarta inyección de `-ldflags` que lleva `VERSION` a la identificación (FR-007), con su
+comentario; nada de cobertura.
 
 ### Sin supresiones nuevas (SC-010, obligación 3)
 
@@ -332,7 +412,8 @@ El diff de `.golangci.yml` frente a `main` (21 líneas añadidas, 3 quitadas) co
   (T016) — sin tocar la regla;
 - **cuatro palabras** bajo `misspell.ignore-rules`, cada una con su comentario: `controles`,
   `inventario`, `legislacion`, `resolucion`. Es exactamente la contingencia que el supuesto **S2**
-  autoriza, y la única supresión que el hito admite.
+  autoriza, y la única supresión que el hito admite. T018 no añade ninguna: el arreglo del test se
+  redactó en español para no necesitarla.
 
 Ninguna regla, ningún linter y ninguna exclusión nuevos: las tres claves (`ignore-rules`, `exclusions`,
 `rules`) aparecen en el diff **como contexto**, ninguna con `+`. Ningún `//nolint` en el paquete nuevo.
@@ -340,6 +421,8 @@ Ninguna regla, ningún linter y ninguna exclusión nuevos: las tres claves (`ign
 ---
 
 ## `docs/PENDIENTES.md` (obligación 8 del plan)
+
+Actualizado en el intento 1 y ya en la base de este intento; verificado de nuevo:
 
 - «Antes de H2 · Dónde viven los fixtures grabados» pasa a **«Antes de la primera tarea `[datos]` de
   H4»**, con la misma recomendación (junto al paquete). H2 cerró sin grabar nada contra una fuente real
@@ -356,21 +439,27 @@ Ninguna regla, ningún linter y ninguna exclusión nuevos: las tres claves (`ign
 
 | Criterio | Estado |
 |---|---|
+| SC-005 / D9 · la aserción de orden se sostiene: 0/1000 tras 3/1000, y el test sigue tumbando un *full jitter* | ✅ |
 | SC-008 · medida diferencial de `git status` idéntica (escenarios 1 y 7) | ✅ |
 | SC-010 · sin supresiones nuevas en `.golangci.yml` ni `nolint` | ✅ |
-| SC-011 · «solo direcciones locales» con la orden entera | ✅ (orden enmendada; ningún test cambia) |
+| SC-011 · «solo direcciones locales» con la orden entera, y once sondas delatadas | ✅ |
 | SC-014 · verbos de los dos binarios idénticos a H1 | ✅ |
 | SC-015 · umbrales respetados sin rebajar ninguno | ✅ |
-| **DoD 1 · `make ci` en verde** | ❌ **test inestable de T008, ≈ 0,3 %** → [`tarea-T018.md`](./tarea-T018.md) |
+| **DoD 1 · `make ci` en verde** | ✅ (y el único test inestable, arreglado de raíz) |
 | DoD 2 · tests offline, ningún fixture grabado contra una fuente real | ✅ |
 | DoD 9 · cobertura `internal/core/**` ≥ 85 % y global ≥ 70 % | ✅ |
 | Obligaciones 7, 8, 10 y 11 del plan | ✅ |
 
-**T018 queda sin marcar.** Su contenido está entero y verificado, pero el punto 1 de la Definition of
-Done no se cumple de forma duradera mientras `TestReintentosAgotados` siga como está. Un reintento de
-T018 saldrá verde el 99,7 % de las veces **sin que nadie haya arreglado nada**: no debe tomarse ese
-aprobado por el cierre del hito. Ver `tarea-T018.md`.
+**T018 queda marcada.** Todo su contenido está verificado sobre el árbol con el arreglo aplicado.
 
-**Ficheros que toca T018**: `specs/003-h2-internal-httpx-cliente/quickstart.md` (la orden de los
-prerrequisitos y su explicación), `docs/PENDIENTES.md`, este fichero y la marca de T018 en `tasks.md`.
-Ningún fichero de producción, ningún test y nada bajo `testdata/` ni `schemas/`.
+**Ficheros que toca T018** (en sus tres intentos): `internal/httpx/reintentos_test.go` (intento 3: la
+aserción de orden de `TestReintentosAgotados`, el mensaje de la banda y la función que deriva el tramo),
+`specs/003-h2-internal-httpx-cliente/quickstart.md` (intento 1: la orden de los prerrequisitos y su
+explicación), `docs/PENDIENTES.md` (intento 1), `research.md` D9 (intento 2: «Resultado
+(implementación, T018)»), `tasks.md` (intento 2: redelimitación; intento 3: la marca), este fichero y
+`tarea-T018.md`. Ningún fichero de producción y nada bajo `testdata/` ni `schemas/`.
+
+## `make ci` final del intento 3
+
+Se ejecuta al terminar, con todos los ficheros de arriba ya escritos; su resultado se anota en
+[`tarea-T018.md`](./tarea-T018.md), sección «Intento 3».

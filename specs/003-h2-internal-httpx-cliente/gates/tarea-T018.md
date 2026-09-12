@@ -1,10 +1,12 @@
-# T018 · intentos 1 y 2: por qué no queda en verde y cómo la cierra el intento 3
+# T018 · intentos 1, 2 y 3: por qué no quedó en verde y cómo se cerró
 
-**Estado**: T018 queda **sin marcar**. Todo su contenido está hecho y verificado (ver
-[`evidencia-cierre.md`](./evidencia-cierre.md)), pero `make ci` **no es verde de forma fiable**: la suite
-arrastra un test inestable que no es de esta tarea y que T018 no podía tocar sin salirse de sus rutas.
-El **intento 1** (primera parte de este fichero) lo diagnosticó; el **intento 2** (sección final)
-redelimitó la tarea para que el intento 3 pueda aplicar el arreglo, y lo dejó comprobado sobre una copia.
+**Estado**: T018 **cerrada y marcada en el intento 3** (sección final de este fichero). El **intento 1**
+(primera parte) diagnosticó un test inestable que dejaba `make ci` en rojo en ≈ 3 de cada 1000
+ejecuciones y que no podía tocar sin salirse de sus rutas; el **intento 2** redelimitó la tarea para
+declarar el fichero y dejó el arreglo comprobado sobre una copia; el **intento 3** reprodujo el rojo
+sobre el árbol, aplicó el arreglo, comprobó el verde con la misma orden y repitió la validación agregada
+entera (ver [`evidencia-cierre.md`](./evidencia-cierre.md)). Las dos primeras secciones se conservan tal
+como se escribieron, porque son el registro de por qué el hito no se cerró con el aprobado del azar.
 
 ---
 
@@ -286,3 +288,98 @@ tomarse por el cierre: T018 queda `[ ]` por lo dicho en «Por qué no se cierra 
 intento 3 la cierra con el arreglo aplicado. `git status --porcelain` al terminar: solo `tasks.md`,
 `research.md`, este fichero y los dos JSON de estado del supervisor, todos en el directorio del feature;
 nada bajo `internal/`, `testdata/` ni `schemas/`.
+
+---
+
+# Intento 3 · el arreglo aplicado, el rojo reproducido y el verde comprobado
+
+**Estado al terminar**: T018 **marcada `[X]`**. Se ha seguido, en orden, la lista «Qué hace el intento 3»
+del intento 2. Rutas congeladas por `siguiente_tarea` para este intento: `docs/PENDIENTES.md`,
+`internal/cli`, `internal/core/**`, `internal/httpx/reintentos_test.go`, `quickstart.md` y
+`gates/evidencia-cierre.md`; el único fichero que cambia fuera del directorio del feature es
+`internal/httpx/reintentos_test.go`.
+
+## 1. Rojo primero, sobre el árbol sin tocar (base `6d98e9c`)
+
+```
+$ rtk proxy go test -count=1000 -run '^TestReintentosAgotados$/^ocho' ./internal/httpx/ | grep -c 'is not less than'
+3
+```
+
+Las tres parejas: `15,724 s → 15,576 s`, `15,666 s → 15,420 s`, `15,085 s → 15,008 s`. Todas en
+`[15 s, 16 s)`, el solape de las bandas sexta y séptima. Tercera medida consistente: 3/1000 en cada uno
+de los tres intentos. La causa es aritmética, no una carrera.
+
+## 2. El arreglo: (a), (b) y (c) tal cual
+
+Aplicadas con la herramienta de edición las tres ediciones que el intento 2 dejó escritas y comprobadas
+sobre la copia, sin ningún cambio de texto. `rtk proxy git diff -- internal/httpx/reintentos_test.go`:
+3 tramos, +27 −2. `reintentos.go` no cambia; ninguna otra subprueba ni ningún otro fichero del paquete
+cambia.
+
+Traza de `esperasMientrasLaBaseDobla` sobre el árbol: con siete esperas (caso de ocho intentos) devuelve
+6 —bases 500 ms, 1, 2, 4, 8 y 16 s; la siguiente pediría 32 s y `base <= 30 s` la corta—; con dos (tres
+intentos) devuelve 2, así que esa subprueba y la de un intento no ven ningún cambio.
+
+## 3. Verde después, con la misma orden
+
+| Comprobación | Orden | Resultado |
+|---|---|---|
+| La subprueba que fallaba, mil veces | `rtk proxy go test -count=1000 -run '^TestReintentosAgotados$/^ocho' ./internal/httpx/` | `ok` (9,3 s), **0** `is not less than` |
+| Toda la tabla, mil veces | `rtk proxy go test -count=1000 -run '^TestReintentosAgotados$' ./internal/httpx/` | `ok` (9,2 s) |
+| Todos los tests de reintentos, con detector de carreras | `rtk proxy go test -race -count=1 -v -run '^TestReintentos' ./internal/httpx/` | 5 tests y 12 subpruebas en `PASS`, `ok` |
+| Lint del árbol | `rtk proxy make lint` | `0 issues.` |
+| **Mutación** en una copia desechable (`rsync` al temporal de la sesión; `esperaDelIntento` devuelve *full jitter* `aleatoria % (mitad*2)`) | `rtk proxy go test -C <copia> -count=20 -run '^(TestReintentosAgotados\|TestReintentosDosErroresYUnAcierto)$' ./internal/httpx/` | `FAIL`: ocho intentos **20/20**, tres por omisión 16/20, `TestReintentosDosErroresYUnAcierto` 17/20 |
+
+La última fila repite sobre el árbol arreglado la prueba del intento 2 de que acotar la aserción no la
+ha dejado sin dientes. El árbol de trabajo no se ha tocado para la mutación: solo la copia.
+
+## 4. Validación agregada repetida entera
+
+Escenarios **1, 7, 11 y 12** y la orden **entera** de los prerrequisitos, todos con `rtk proxy` delante
+de `go test`, `git status` y `git diff`, más las sondas de método (pathspec inexistente, fichero `??`,
+once direcciones prohibidas contra la orden de prerrequisitos desde un fichero fuera del árbol). Todo en
+verde; salida literal y veredicto en [`evidencia-cierre.md`](./evidencia-cierre.md), reescrito sobre la
+base nueva y con el aviso del punto 1 de la Definition of Done retirado. Cifras de cobertura idénticas
+a los intentos 1 y 2 (global 93,3 %, `internal/core/schema` 90,1 %, `internal/cli` 98,6 %,
+`internal/httpx` 94,8 %). La orden `kitlegal-e2e consultar …` del escenario 11 vuelve a rechazarla el
+envoltorio del agente, no el binario; se cubre con las mismas tres medidas que en el intento 1.
+
+`docs/PENDIENTES.md` ya estaba actualizado desde el intento 1 (en la base de este intento); verificado
+de nuevo, sin cambios.
+
+## 5. Lo que cambia en este intento
+
+- `internal/httpx/reintentos_test.go`: el arreglo (a), (b), (c).
+- `gates/evidencia-cierre.md`: reescrito entero.
+- `tasks.md`: T018 pasa a `[X]`. Ninguna otra tarea se toca.
+- Este fichero: cabecera y esta sección.
+
+Nada bajo `testdata/` ni `schemas/`; `.golangci.yml` no se toca (el comentario nuevo del test evita
+«comparte», que `misspell` marcaría, y dice «se solapa»).
+
+## 6. `make ci` final
+
+Ejecutado sobre el árbol de trabajo al terminar, con el arreglo y todos los ficheros de arriba ya
+escritos: «ci: todos los controles en verde». `golangci-lint` con `0 issues.`; suite con `-race
+-shuffle=on` en `ok` en todos los paquetes (`internal/httpx` 94,8 %, `internal/cli` 98,6 %,
+`internal/core/schema` 90,1 %, `internal/app` 92,8 %, `internal/render` 95,8 %); `govulncheck` sin
+vulnerabilidades; `gitleaks` sin fugas; `go mod verify` y `go mod tidy -diff` limpios. Es la segunda
+ejecución completa de `make ci` en este intento (la primera es la del escenario 12), y va acompañada de
+las dos tiradas de mil sobre la subprueba y la tabla que antes fallaban: esta vez el verde no es el del
+azar.
+
+`rtk proxy git status --porcelain` al terminar:
+
+```
+ M internal/httpx/reintentos_test.go
+ M specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md
+ M specs/003-h2-internal-httpx-cliente/gates/tarea-T018.md
+ M specs/003-h2-internal-httpx-cliente/gates/tarea-actual.json
+ M specs/003-h2-internal-httpx-cliente/gates/tareas-intentos.json
+ M specs/003-h2-internal-httpx-cliente/tasks.md
+```
+
+Un fichero de test en una ruta declarada, cuatro ficheros del directorio del feature y los dos JSON de
+estado del supervisor, que ya estaban modificados al empezar. Nada bajo `testdata/` ni `schemas/`
+(`git status --porcelain` restringido a esas rutas: vacío).

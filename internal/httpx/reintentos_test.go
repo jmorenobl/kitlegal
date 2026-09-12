@@ -328,7 +328,15 @@ func TestReintentosAgotados(t *testing.T) {
 				exigeEsperaDelIntento(t, intento+1, pedida)
 			}
 
-			assert.IsIncreasing(t, pedidas, "cada espera arranca donde termina la anterior (SC-005, D9)")
+			// El orden estricto solo vale mientras la base dobla, que es cuando
+			// el suelo de cada banda es el techo de la anterior. Al topar el
+			// techo, la banda [15 s, 30 s) se solapa con la anterior,
+			// [8 s, 16 s), y esas dos esperas pueden salir en cualquier orden
+			// sin dejar de ser correctas: ese tramo lo cubre ya la banda que
+			// exigeEsperaDelIntento acaba de comprobar.
+			doblan := esperasMientrasLaBaseDobla(len(pedidas))
+			assert.IsIncreasing(t, pedidas[:doblan],
+				"mientras la base dobla, cada espera arranca donde termina la anterior (SC-005, D9)")
 		})
 	}
 
@@ -384,8 +392,26 @@ func exigeEsperaDelIntento(t *testing.T, intento int, pedida time.Duration) {
 		"la espera del intento %d no baja de la mitad de su base: el equal jitter solo aleatoriza la otra mitad (D9)",
 		intento)
 	assert.Less(t, pedida, base,
-		"y no alcanza la base del intento %d, que es a la vez su techo y el suelo de la siguiente (SC-005, D9)",
+		"y no alcanza la base del intento %d, que es su techo y, mientras la base dobla, el suelo de la siguiente (SC-005, D9)",
 		intento)
+}
+
+// esperasMientrasLaBaseDobla cuenta, de una serie de esperas consecutivas,
+// las primeras cuya base no la ha cortado todavía el techo: en ese tramo la
+// base dobla de una espera a la siguiente, cada banda arranca donde termina
+// la anterior y el orden estricto es cierto. Se deriva de la misma ley
+// literal que exigeEsperaDelIntento —500 ms, factor 2, techo 30 s— y no de
+// las constantes del paquete, por la misma razón: ser contraste y no eco.
+func esperasMientrasLaBaseDobla(esperas int) int {
+	base := 500 * time.Millisecond
+	tramo := 0
+
+	for tramo < esperas && base <= 30*time.Second {
+		tramo++
+		base *= 2
+	}
+
+	return tramo
 }
 
 // esperasAnotadas es el reloj de estos tests: anota lo que el decorador pide
