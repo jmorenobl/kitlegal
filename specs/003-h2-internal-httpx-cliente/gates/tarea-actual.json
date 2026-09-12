@@ -1,16 +1,12 @@
 {
-  "id": "T019",
-  "texto": "T019 [plataforma] Publicar la rama del hito y abrir la propuesta de cambio: `git push -u origin h2-internal-httpx-cliente` y `gh pr create` con la plantilla del ritual (objetivo, alcance, controles añadidos, decisiones y pendientes), adjuntando como evidencia `specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md` y `specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md`, y leer después los estados de la integración continua y de Codecov con `gh pr checks`, dejando su resultado en `specs/003-h2-internal-httpx-cliente/gates/evidencia-plataforma.md`; **no** fusiona, **no** empuja a `main`, **no** fuerza y **no** crea etiquetas: la fusión (squash-merge) es siempre humana y el gancho `pre-push` la rechazaría igualmente (punto 1 de la Definition of Done, §6 del roadmap, ADR 0007).",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
-  "plataforma": true,
+  "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin h2-internal-httpx-cliente'. Si no existe propuesta de cambio hacia main ('gh pr view h2-internal-httpx-cliente'), créala con 'gh pr create --base main --head h2-internal-httpx-cliente --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks h2-internal-httpx-cliente --watch' y lee 'gh run list --branch h2-internal-httpx-cliente'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-T019.md y deja la tarea sin marcar.",
-  "base": "f18cfc5a6f9170c3fc4eb2dbd94c3bf76622ffec",
-  "rutas": [
-    "specs/003-h2-internal-httpx-cliente/gates/evidencia-cierre.md",
-    "specs/003-h2-internal-httpx-cliente/gates/evidencia-plataforma.md",
-    "specs/003-h2-internal-httpx-cliente/gates/evidencia-sc012.md"
-  ],
+  "red": "",
+  "base": "",
+  "rutas": [],
   "cierre": false
 }
