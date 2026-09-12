@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core"
@@ -39,6 +40,15 @@ const (
 	resultadoAcierto  = "acierto"
 	resultadoAusencia = "ausencia"
 	resultadoExpirada = "expirada"
+)
+
+// Los dos extremos del intervalo que expira_en puede representar: la columna
+// guarda nanosegundos Unix en un entero de 64 bits, y time.Time.UnixNano solo
+// está definido entre ellos (del 21 de septiembre de 1677 al 11 de abril de
+// 2262). Fuera de ese intervalo, la conversión da un número cualquiera.
+var (
+	primerInstanteRepresentable = time.Unix(0, math.MinInt64)
+	ultimoInstanteRepresentable = time.Unix(0, math.MaxInt64)
 )
 
 // Get devuelve el contenido guardado bajo la clave mientras siga vigente, con el
@@ -123,6 +133,12 @@ func (c *Cliente) Get(ctx context.Context, clave string) ([]byte, bool, error) {
 // guarda como uno de cero bytes, que es lo que la columna admite y lo que Get
 // devolverá (FR-012).
 //
+// Toda vigencia mayor que cero se acepta, por larga que sea (FR-010). Si lleva
+// la expiración más allá del último instante que expira_en puede representar
+// —el 11 de abril de 2262—, se guarda ese último instante, y la entrada es
+// vigente hasta él: para cualquier reloj anterior, Get decide igual que si el
+// instante calculado se hubiera podido guardar (instanteDeExpiracion).
+//
 // Antes de tocar el disco, y en este orden (D8): la clave vacía y la vigencia
 // menor o igual que cero son «argumentos» (2), porque «no guardar esto» se
 // expresa no escribiendo (FR-010, FR-011); escribir en una caché de solo lectura
@@ -154,7 +170,7 @@ func (c *Cliente) Put(ctx context.Context, clave string, contenido []byte, vigen
 		contenido = []byte{}
 	}
 
-	expiraEn := c.reloj().Add(vigencia).UnixNano()
+	expiraEn := instanteDeExpiracion(c.reloj(), vigencia)
 
 	// El upsert es una sentencia en autocommit: si otra invocación tiene el
 	// bloqueo de escritura, SQLITE_BUSY dice que no se escribió nada y se
@@ -174,6 +190,35 @@ func (c *Cliente) Put(ctx context.Context, clave string, contenido []byte, vigen
 		slog.String("clave", clave))
 
 	return nil
+}
+
+// instanteDeExpiracion es lo que Put escribe en expira_en: el instante en que
+// la entrada caduca, ahora más la vigencia, en nanosegundos Unix (FR-006).
+//
+// La suma es un time.Time y no desborda, pero UnixNano solo está definido
+// dentro del intervalo representable: una vigencia larga y válida —FR-010 solo
+// rechaza la menor o igual que cero— puede llevar la expiración más allá de
+// 2262, y convertirla sin más daría un número cualquiera, con el que Get leería
+// la entrada recién guardada como caducada, o como vigente para siempre. Por eso
+// un instante fuera del intervalo se satura al extremo más cercano: posterior
+// al último representable, se guarda el último; anterior al primero —solo
+// alcanzable con un reloj inyectado que viva antes de 1678—, el primero. Para
+// cualquier reloj dentro del intervalo la comparación de Get da lo mismo que
+// daría con el instante exacto: sigue vigente hasta el último instante lo que
+// caducaría después de él, y ya ha caducado lo que caducó antes del primero
+// (FR-008). No es una situación de fallo y no añade ninguna fila a la tabla
+// cerrada del contrato de errores.
+func instanteDeExpiracion(ahora time.Time, vigencia time.Duration) int64 {
+	expira := ahora.Add(vigencia)
+
+	switch {
+	case !expira.Before(ultimoInstanteRepresentable):
+		return math.MaxInt64
+	case !expira.After(primerInstanteRepresentable):
+		return math.MinInt64
+	}
+
+	return expira.UnixNano()
 }
 
 // ausente es el final de toda lectura que no encuentra una entrada vigente, y el

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -377,6 +378,126 @@ func TestExpiracionConRelojInyectado(t *testing.T) {
 			filas, expiraEn := entradaGuardada(t, filepath.Join(directorio, ficheroDeLaBase), claveDePrueba)
 			assert.Equal(t, int64(1), filas, "leer lo caducado no borra la fila (D6)")
 			assert.Equal(t, instanteDePrueba.Add(vigenciaDePrueba).UnixNano(), expiraEn)
+		})
+	}
+}
+
+// TestExpiracionFueraDelIntervaloRepresentable fija que toda vigencia mayor que
+// cero se acepta (FR-010) y que la entrada se sirve mientras el reloj es
+// anterior al instante de expiración también cuando ese instante no cabe en
+// expira_en (FR-006, FR-008). UnixNano solo está definido entre 1678 y 2262: una
+// vigencia de 240 años desde 2026, o la mayor que admite time.Duration, lleva la
+// expiración más allá del último instante representable, y sin saturar la
+// conversión Put guardaría un número cualquiera con el que la entrada recién
+// escrita se leería como caducada —bajo --offline, «fuente no disponible» (4)
+// en vez de servirse con 0—.
+//
+// Cada fila mira por debajo del cliente qué instante quedó en la fila, lee en
+// modo normal y en solo lectura con el reloj en un instante en que la entrada
+// está vigente, y después con el reloj en uno en que ya no lo está. La primera
+// fila es el control: una vigencia larga que sí cabe se guarda exacta y caduca
+// donde el reloj dice, de modo que la saturación solo actúa fuera del
+// intervalo. La última cubre el otro extremo, que solo alcanza un reloj
+// inyectado anterior a 1678.
+func TestExpiracionFueraDelIntervaloRepresentable(t *testing.T) {
+	t.Parallel()
+
+	const anio = 365 * 24 * time.Hour
+
+	contenido := []byte("<norma>contenido</norma>")
+	anterioridad := time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	casos := []struct {
+		nombre   string
+		ahora    time.Time
+		vigencia time.Duration
+		// expiraEn es lo que la fila guarda.
+		expiraEn int64
+		// vigenteEn es un reloj con el que la entrada se sirve; caducadaEn, uno
+		// con el que ya no: en las tres primeras filas, el primero.
+		vigenteEn  time.Time
+		caducadaEn time.Time
+	}{
+		{
+			nombre:     "230 años, dentro del intervalo: exacta",
+			ahora:      instanteDePrueba,
+			vigencia:   230 * anio,
+			expiraEn:   instanteDePrueba.Add(230 * anio).UnixNano(),
+			vigenteEn:  instanteDePrueba.Add(230*anio - time.Nanosecond),
+			caducadaEn: instanteDePrueba.Add(230 * anio),
+		},
+		{
+			nombre:     "240 años, más allá del último instante representable",
+			ahora:      instanteDePrueba,
+			vigencia:   240 * anio,
+			expiraEn:   math.MaxInt64,
+			vigenteEn:  ultimoInstanteRepresentable.Add(-time.Nanosecond),
+			caducadaEn: ultimoInstanteRepresentable,
+		},
+		{
+			nombre:     "la vigencia máxima de time.Duration",
+			ahora:      instanteDePrueba,
+			vigencia:   time.Duration(math.MaxInt64),
+			expiraEn:   math.MaxInt64,
+			vigenteEn:  ultimoInstanteRepresentable.Add(-time.Nanosecond),
+			caducadaEn: ultimoInstanteRepresentable,
+		},
+		{
+			nombre:     "reloj anterior al primer instante representable",
+			ahora:      anterioridad,
+			vigencia:   vigenciaDePrueba,
+			expiraEn:   math.MinInt64,
+			vigenteEn:  anterioridad,
+			caducadaEn: instanteDePrueba,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			reloj := relojEn(caso.ahora)
+			directorio := t.TempDir()
+			ruta := filepath.Join(directorio, ficheroDeLaBase)
+			escritor := clienteAbierto(t, directorio, ConReloj(reloj.Ahora))
+
+			require.NoError(t, escritor.Put(t.Context(), claveDePrueba, contenido, caso.vigencia),
+				"toda vigencia mayor que cero se acepta (FR-010)")
+
+			filas, expiraEn := entradaGuardada(t, ruta, claveDePrueba)
+			require.Equal(t, int64(1), filas)
+			assert.Equal(t, caso.expiraEn, expiraEn,
+				"expira_en es el instante calculado, saturado al intervalo representable (FR-006)")
+
+			reloj.Pon(caso.vigenteEn)
+
+			leido, presente, err := escritor.Get(t.Context(), claveDePrueba)
+			require.NoError(t, err)
+			require.True(t, presente, "lo recién guardado se sirve mientras el reloj es anterior a la expiración (FR-008)")
+			assert.Equal(t, contenido, leido)
+
+			reloj.Pon(caso.caducadaEn)
+
+			leido, presente, err = escritor.Get(t.Context(), claveDePrueba)
+			require.NoError(t, err)
+			assert.False(t, presente, "y deja de servirse en el instante que quedó guardado")
+			assert.Nil(t, leido)
+
+			// Cerrar el escritor consolida el registro de escritura en cache.db
+			// antes de que la miren los lectores de solo lectura.
+			require.NoError(t, escritor.Close())
+
+			lector := clienteAbierto(t, directorio, SoloLectura(), ConReloj(relojEn(caso.vigenteEn).Ahora))
+
+			leido, presente, err = lector.Get(t.Context(), claveDePrueba)
+			require.NoError(t, err, "en solo lectura la entrada vigente se sirve y no es «fuente no disponible» (4)")
+			assert.True(t, presente)
+			assert.Equal(t, contenido, leido)
+
+			tardio := clienteAbierto(t, directorio, SoloLectura(), ConReloj(relojEn(caso.caducadaEn).Ahora))
+
+			leido, presente, err = tardio.Get(t.Context(), claveDePrueba)
+			compruebaAusenciaEnSoloLectura(t, leido, presente, err, claveDePrueba)
 		})
 	}
 }

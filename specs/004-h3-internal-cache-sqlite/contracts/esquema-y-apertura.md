@@ -22,6 +22,16 @@ CREATE TABLE entradas (
 Sin índices adicionales (D6). `expira_en` son nanosegundos Unix (`time.Time.UnixNano()`); la vigencia
 se decide en Go: vigente ⇔ `reloj().Before(time.Unix(0, expira_en))` (FR-008).
 
+**Intervalo representable.** `expira_en` es un entero de 64 bits y `UnixNano` solo está definido entre
+`time.Unix(0, math.MinInt64)` (21 de septiembre de 1677) y `time.Unix(0, math.MaxInt64)` (11 de abril de
+2262). `Put` calcula `reloj().Add(vigencia)` como `time.Time`, que no desborda, y satura al extremo más
+cercano el instante que caiga fuera (`instanteDeExpiracion`, `entradas.go`): una vigencia mayor que cero
+—la única que FR-010 admite, por larga que sea— cuya expiración pase de 2262 guarda `math.MaxInt64`, y la
+entrada es vigente hasta ese instante y ausencia en él y después; un reloj inyectado anterior a 1678
+guarda `math.MinInt64`. Para todo reloj dentro del intervalo la comparación de arriba decide igual que con
+el instante exacto, ninguna vigencia positiva se rechaza y no hay ninguna situación de fallo nueva
+(`TestExpiracionFueraDelIntervaloRepresentable`).
+
 ## 2. Migraciones embebidas
 
 - `//go:embed migraciones/*.sql` en un `embed.FS`; ficheros `NNNN_<nombre>.sql`, numeración contigua

@@ -100,7 +100,7 @@ Lo que se guarda bajo una clave (Key Entities «Entrada de caché»). Esquema v1
 |---|---|---|---|
 | `clave` | `TEXT PRIMARY KEY NOT NULL` | `Put(clave)` | Opaca, no vacía (FR-011); una fila por clave (FR-007) |
 | `contenido` | `BLOB NOT NULL` | `Put(contenido)` | Opaco, byte a byte (FR-006, FR-012); cero bytes es un valor válido; un `nil` se guarda como BLOB vacío |
-| `expira_en` | `INTEGER NOT NULL` | `reloj().Add(vigencia).UnixNano()` en `Put` | Nanosegundos Unix; vigente mientras `reloj().Before(time.Unix(0, expira_en))` (FR-008) |
+| `expira_en` | `INTEGER NOT NULL` | `reloj().Add(vigencia)` en `Put`, en nanosegundos Unix y saturado al intervalo representable (`instanteDeExpiracion`) | Nanosegundos Unix entre `math.MinInt64` (1677) y `math.MaxInt64` (2262), donde `UnixNano` está definido; vigente mientras `reloj().Before(time.Unix(0, expira_en))` (FR-008); una expiración posterior a 2262 se guarda como `math.MaxInt64` y la entrada vale hasta ese instante |
 
 **Transiciones**: `Put` inserta o sustituye (upsert); `Get` no modifica nada; una entrada caducada sigue
 en la tabla hasta que un `Put` de la misma clave la sustituya (D6). No hay borrado.
@@ -111,6 +111,11 @@ en la tabla hasta que un `Put` de la misma clave la sustituya (D6). No hay borra
   por omisión: cada fuente traerá el suyo (H4).
 - **Reloj** (`func() time.Time`): única fuente de «ahora» para escribir `expira_en` y para decidir en
   `Get`; se inyecta con `ConReloj` (FR-009). El borde es exacto: `ahora == expira_en` es ausencia.
+- **Intervalo representable**: `expira_en` solo representa instantes entre el 21 de septiembre de 1677 y
+  el 11 de abril de 2262. `Put` satura al extremo más cercano lo que caiga fuera: ninguna vigencia mayor
+  que cero se rechaza por larga (FR-010), una expiración posterior a 2262 vale hasta el último instante
+  representable y, para cualquier reloj dentro del intervalo, `Get` decide igual que con el instante
+  exacto (contrato de apertura §1).
 
 ## 7. Versión de esquema (tabla `schema_version`)
 

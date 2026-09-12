@@ -95,6 +95,7 @@ fallo es «inesperado» (1) diciendo que la base está bloqueada.
 |---|---|---|
 | `clave == ""` | 2 | 2 |
 | `vigencia <= 0` | — | 2, sin escribir |
+| vigencia mayor que cero que lleva la expiración más allá del 11 de abril de 2262 | — | se guarda el último instante representable y la entrada es vigente hasta él; nunca 2 (contrato de apertura §1) |
 | cerrado | 1 | 1 |
 | solo lectura | ausencia (sin base, sin esquema, sin fila o expirada) → **4** nombrando la clave; presente → valor | **1** nombrando la clave, sin escribir |
 | normal, ausente | `nil, false, nil` | — |

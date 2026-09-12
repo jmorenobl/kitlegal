@@ -323,6 +323,17 @@ CREATE TABLE entradas (
   —`ahora.Before(time.Unix(0, expiraEn))`— y no en SQL, para que el borde de FR-008 (vigente mientras el
   reloj es *anterior*; en el instante exacto, ausencia) no dependa de la resolución ni del formato de
   fecha del motor, y para que el reloj inyectado sea la única fuente de «ahora».
+- **`expira_en` tiene un intervalo representable, y `Put` satura a él** (revisión final): `UnixNano`
+  solo está definido entre el 21 de septiembre de 1677 y el 11 de abril de 2262 (`go doc
+  time.Time.UnixNano`), y FR-010 admite cualquier vigencia mayor que cero. Con 240 años desde 2026, o con
+  `time.Duration(math.MaxInt64)`, la conversión daba un número cualquiera y `Get` leía la entrada recién
+  guardada como ausencia —bajo `--offline`, 4 en vez de 0—. `instanteDeExpiracion` (`entradas.go`)
+  calcula `reloj().Add(vigencia)` como `time.Time`, que no desborda, y guarda `math.MaxInt64` cuando la
+  suma no es anterior al último instante representable y `math.MinInt64` cuando no es posterior al primero
+  (solo alcanzable con un reloj inyectado). Para todo reloj dentro del intervalo la comparación decide
+  igual que con el instante exacto: vigente hasta el último instante lo que caducaría después, caducado lo
+  que caducó antes del primero. No es una situación de fallo y no toca la tabla cerrada de D9
+  (`TestExpiracionFueraDelIntervaloRepresentable`).
 - `STRICT` (SQLite ≥ 3.37; aquí 3.53.4, sonda 1 C) hace que un valor de tipo equivocado sea un error y
   no una conversión silenciosa.
 - **Sin índice sobre `expira_en`**: H3 no borra ni desaloja lo caducado (*Fuera de alcance*); `Get` va
@@ -335,7 +346,11 @@ CREATE TABLE entradas (
 cliente `sqlite3`, pero introduce formato, zona horaria y redondeo de subsegundos en la comparación del
 borde. *Guardar `creada_en` o metadatos de la respuesta*: contenido opaco por FR-006; nada los usa.
 *Una tabla por fuente*: la clave ya distingue lo que deba distinguir (FR-011) y el esquema de claves
-llega con H4.
+llega con H4. *Rechazar con «argumentos» (2) la vigencia cuya expiración no cabe en `expira_en`*: FR-010
+la declara válida, sería una fila nueva en la tabla cerrada de D9 y un adaptador que declarase «para
+siempre» fallaría, cuando la saturación da el mismo resultado observable para todo reloj del intervalo.
+*Guardar `expira_en` como texto o con más bits*: cambia el esquema por un caso que la saturación resuelve
+sin tocarlo.
 
 ---
 
@@ -387,7 +402,9 @@ hito nombra la tabla. *Dividir el fichero por `;`*: innecesario, el driver ejecu
 2. En solo lectura (o sin base) → «inesperado» (1) nombrando la clave, sin escribir (FR-017); la
    comprobación es anterior a cualquier acceso, así que también vale para el cliente sin base.
 3. Cerrado → «inesperado» (1).
-4. `expiraEn := reloj().Add(vigencia).UnixNano()`; una sentencia:
+4. `expiraEn := instanteDeExpiracion(reloj(), vigencia)`, que es `reloj().Add(vigencia).UnixNano()`
+   saturado a `math.MaxInt64` cuando la suma no es anterior al último instante representable (11 de abril
+   de 2262) y a `math.MinInt64` cuando no es posterior al primero (D6; revisión final); una sentencia:
    `INSERT INTO entradas(clave, contenido, expira_en) VALUES (?, ?, ?) ON CONFLICT(clave) DO UPDATE SET contenido = excluded.contenido, expira_en = excluded.expira_en`
    (sonda 1 C), en autocommit. Un `contenido` nulo se guarda como BLOB vacío (`NOT NULL`).
 5. Un error del driver → «inesperado» (1) con la causa envuelta; `ctx.Err()` → «fuente no disponible»
