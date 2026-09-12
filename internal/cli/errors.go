@@ -12,6 +12,7 @@ package cli
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
@@ -23,7 +24,7 @@ import (
 //
 // No hay sentinela para la clase inesperada, y no es un olvido: lo inesperado
 // es precisamente lo que nadie declaró, así que se reconoce por no casar con
-// ninguno de estos cinco (FR-031).
+// ninguno de estos cinco ni traer clase propia (FR-031, FR-063).
 var (
 	// ErrArgumentos es la invocación mal formada: bandera desconocida, valor
 	// con formato inválido, argumento obligatorio ausente o applet no
@@ -57,16 +58,30 @@ const (
 	codigoIdentidadHumana    = 6
 )
 
-// Clasificar decide la clase de un error comparándolo con los cinco sentinelas,
-// en el orden en que están declarados. Usa errors.Is, de modo que un applet
-// puede envolver el sentinela con todo el contexto que necesite sin que la
-// clase —ni el código de salida que sale de ella— cambie (FR-032).
+// Clasificar decide la clase de un error por dos vías, en este orden. Primero
+// lo compara con los cinco sentinelas, en el orden en que están declarados y
+// con errors.Is, de modo que un applet puede envolver el sentinela con todo el
+// contexto que necesite sin que la clase —ni el código de salida que sale de
+// ella— cambie (FR-032). Después pregunta al propio error: quien implementa
+// schema.ConClase declara su clase sin importar este paquete, y errors.As la
+// encuentra aunque vaya envuelta, que es como un adaptador —el cliente HTTP—
+// dice a qué código de salida corresponde su fallo sin conocer ninguno
+// (FR-063, research.md D4).
 //
-// Un error que no casa con ninguno es inesperado, y ahí está el motivo de que
-// la rama por defecto viva aquí y no en el switch de codigoDeClase: así ese
-// switch puede cubrir las seis clases sin rama `default`, y el linter
-// exhaustive falla si alguien añade una clase nueva y se olvida de darle código
-// (FR-030).
+// Los sentinelas van primero a propósito: ningún adaptador los envuelve —no
+// importan este paquete—, así que en la práctica las dos vías no compiten, y
+// este orden conserva intacto lo que H1 clasificaba.
+//
+// Una clase declarada que no está en el vocabulario no se da por buena: el
+// sobre de fallo la llevaría a una clave que el esquema de --describe restringe
+// a las seis, así que lo que se inventa su clase acaba donde acaba todo lo que
+// nadie previó, en la clase inesperada.
+//
+// Un error que no casa con ninguna de las dos vías es inesperado, y ahí está el
+// motivo de que la rama por defecto viva aquí y no en el switch de
+// codigoDeClase: así ese switch puede cubrir las seis clases sin rama
+// `default`, y el linter exhaustive falla si alguien añade una clase nueva y se
+// olvida de darle código (FR-030).
 //
 // Un error nulo no tiene clase: la ausencia de fallo no es una de las seis. Por
 // eso quien tenga un error que puede ser nulo llama a CodigoSalida, que sí
@@ -84,9 +99,16 @@ func Clasificar(err error) schema.Clase {
 		return schema.ClaseLimiteOTos
 	case errors.Is(err, ErrIdentidadHumana):
 		return schema.ClaseIdentidadHumana
-	default:
-		return schema.ClaseInesperado
 	}
+
+	var conClase schema.ConClase
+	if errors.As(err, &conClase) {
+		if clase := conClase.Clase(); slices.Contains(schema.Clases(), clase) {
+			return clase
+		}
+	}
+
+	return schema.ClaseInesperado
 }
 
 // CodigoSalida es el único sitio del proyecto donde un error se convierte en un

@@ -1,0 +1,18 @@
+{
+  "id": "T001",
+  "texto": "T001 [US2] Clase de error declarada por el propio error y reconocida por el kernel: `internal/core/schema/error.go` gana la interfaz `ConClase` (`error` embebido más `Clase() Clase`), sin importar nada nuevo y sin tocar `Clase`, sus seis constantes ni `DatosError`; `internal/cli/errors.go` amplía `Clasificar` con una comprobación `errors.As` sobre `schema.ConClase` **después** de los cinco sentinelas de H1 y antes de la salida «inesperado», dejando intacta la tabla `codigoDeClase` y su `switch` sin rama `default`, de modo que una clase declarada fuera del vocabulario caiga en «inesperado» (código 1) y que envolver con `%w` siga sin cambiar la clase; y los casos nuevos en `internal/core/schema/error_test.go` y en `TestClasificar` de `internal/cli/errors_test.go` con un tipo local de test que implementa `ConClase` para las seis clases, para una clase desconocida y para el error envuelto, manteniendo `internal/cli` ≥ 90 % y `internal/core` ≥ 85 % (FR-031, FR-063, D4).",
+  "intento": 1,
+  "datos": false,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "193ff3a10fa7af75b7b25c478f3c30032a57295f",
+  "rutas": [
+    "internal/cli",
+    "internal/cli/errors_test.go",
+    "internal/cli/errors.go",
+    "internal/core",
+    "internal/core/schema/error_test.go",
+    "internal/core/schema/error.go"
+  ]
+}

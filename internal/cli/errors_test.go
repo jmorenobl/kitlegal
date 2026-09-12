@@ -16,6 +16,36 @@ import (
 // confundir ni con un éxito ni con un fallo clasificado.
 var errorDeOtroPaquete = errors.New("el índice 7 queda fuera del segmento")
 
+// errorConClase es un error de test que declara él mismo su clase, como hará el
+// error tipado del cliente HTTP: implementa schema.ConClase sin conocer los
+// sentinelas del kernel ni sus códigos de salida (FR-063, research.md D4).
+type errorConClase struct {
+	clase   schema.Clase
+	mensaje string
+}
+
+func (e errorConClase) Error() string {
+	return e.mensaje
+}
+
+func (e errorConClase) Clase() schema.Clase {
+	return e.clase
+}
+
+// errorConClaseSobreSentinela declara una clase **y** envuelve un sentinela del
+// kernel. No es lo que hará ningún adaptador —ninguno importa internal/cli—,
+// pero fija el orden que Clasificar promete: los cinco sentinelas se comprueban
+// antes que la clase declarada, de modo que lo que H1 clasificaba de una manera
+// se sigue clasificando igual.
+type errorConClaseSobreSentinela struct {
+	errorConClase
+	causa error
+}
+
+func (e errorConClaseSobreSentinela) Unwrap() error {
+	return e.causa
+}
+
 // casoDeClase es una fila de la tabla: un error, la clase que le corresponde y
 // el código de salida en el que acaba.
 type casoDeClase struct {
@@ -29,6 +59,10 @@ type casoDeClase struct {
 // la produce y, para la inesperada, el error que no casa con ninguno—, el error
 // desconocido de otro paquete y el error envuelto en uno y en dos niveles
 // (FR-029 … FR-032).
+//
+// Cubre además las mismas seis clases declaradas por el propio error, que es
+// como las nombra un adaptador que no importa el kernel: la clase de fuera del
+// vocabulario, la envuelta y la que compite con un sentinela (FR-063, D4).
 func casosDeClase() []casoDeClase {
 	return []casoDeClase{
 		{
@@ -104,6 +138,109 @@ func casosDeClase() []casoDeClase {
 			clase:  schema.ClaseInesperado,
 			codigo: 1,
 		},
+		{
+			nombre: "declarada: argumentos",
+			err: errorConClase{
+				clase:   schema.ClaseArgumentos,
+				mensaje: "el método PUT no está permitido: solo GET y HEAD",
+			},
+			clase:  schema.ClaseArgumentos,
+			codigo: 2,
+		},
+		{
+			nombre: "declarada: no-encontrado",
+			err: errorConClase{
+				clase:   schema.ClaseNoEncontrado,
+				mensaje: "el sitio fuente.prueba no tiene la ruta /a21",
+			},
+			clase:  schema.ClaseNoEncontrado,
+			codigo: 3,
+		},
+		{
+			nombre: "declarada: fuente-no-disponible",
+			err: errorConClase{
+				clase:   schema.ClaseFuenteNoDisponible,
+				mensaje: "el sitio fuente.prueba no responde",
+			},
+			clase:  schema.ClaseFuenteNoDisponible,
+			codigo: 4,
+		},
+		{
+			nombre: "declarada: limite-o-tos",
+			err: errorConClase{
+				clase:   schema.ClaseLimiteOTos,
+				mensaje: "el sitio fuente.prueba limita las peticiones",
+			},
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+		},
+		{
+			nombre: "declarada: identidad-humana",
+			err: errorConClase{
+				clase:   schema.ClaseIdentidadHumana,
+				mensaje: "la sede exige identidad humana",
+			},
+			clase:  schema.ClaseIdentidadHumana,
+			codigo: 6,
+		},
+		{
+			nombre: "declarada: inesperado",
+			err: errorConClase{
+				clase:   schema.ClaseInesperado,
+				mensaje: "el cliente no debería haber llegado aquí",
+			},
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+		},
+		{
+			nombre: "declarada: una clase ajena al vocabulario es inesperada",
+			err: errorConClase{
+				clase:   schema.Clase("una-clase-que-nadie-ha-declarado"),
+				mensaje: "un fallo que se inventa su clase",
+			},
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+		},
+		{
+			nombre: "declarada: una clase vacía es inesperada",
+			err: errorConClase{
+				clase:   schema.Clase(""),
+				mensaje: "un fallo que se dejó la clase sin poner",
+			},
+			clase:  schema.ClaseInesperado,
+			codigo: 1,
+		},
+		{
+			nombre: "declarada: envuelta en un nivel conserva la clase",
+			err: fmt.Errorf("consultando el artículo: %w", errorConClase{
+				clase:   schema.ClaseLimiteOTos,
+				mensaje: "el sitio fuente.prueba limita las peticiones",
+			}),
+			clase:  schema.ClaseLimiteOTos,
+			codigo: 5,
+		},
+		{
+			nombre: "declarada: envuelta en dos niveles conserva la clase",
+			err: fmt.Errorf("consultando el artículo: %w",
+				fmt.Errorf("el sitio fuente.prueba: %w", errorConClase{
+					clase:   schema.ClaseFuenteNoDisponible,
+					mensaje: "plazo agotado",
+				})),
+			clase:  schema.ClaseFuenteNoDisponible,
+			codigo: 4,
+		},
+		{
+			nombre: "declarada: el sentinela se comprueba antes que la clase declarada",
+			err: errorConClaseSobreSentinela{
+				errorConClase: errorConClase{
+					clase:   schema.ClaseArgumentos,
+					mensaje: "el sitio fuente.prueba no tiene la ruta /a21",
+				},
+				causa: ErrNoEncontrado,
+			},
+			clase:  schema.ClaseNoEncontrado,
+			codigo: 3,
+		},
 	}
 }
 
@@ -111,6 +248,11 @@ func casosDeClase() []casoDeClase {
 // sobre los cinco sentinelas, que envolver con %w no la cambia y que lo que no
 // casa con ninguno es inesperado y no un éxito disfrazado (FR-029, FR-031,
 // FR-032).
+//
+// Comprueba también la segunda vía, la de FR-063: un error que declara su clase
+// con schema.ConClase la ve reconocida aunque vaya envuelto, sin que el kernel
+// conozca su tipo ni el adaptador conozca los sentinelas; y que lo que declara
+// una clase de fuera del vocabulario no se cuela en el sobre (research.md D4).
 func TestClasificar(t *testing.T) {
 	t.Parallel()
 
@@ -148,6 +290,18 @@ func TestClasificar(t *testing.T) {
 
 		for _, caso := range casosDeClase() {
 			assert.NotEmpty(t, caso.err.Error())
+		}
+	})
+
+	t.Run("la clase que sale de Clasificar es siempre una de las seis", func(t *testing.T) {
+		t.Parallel()
+
+		// La clase que devuelve Clasificar es la que va al sobre de fallo, donde
+		// el esquema de --describe la restringe al vocabulario: una clase de
+		// fuera —declarada por un error que se la invente— haría que el sobre
+		// dejara de validar contra su propio esquema.
+		for _, caso := range casosDeClase() {
+			assert.Contains(t, schema.Clases(), Clasificar(caso.err), "caso %q", caso.nombre)
 		}
 	})
 
