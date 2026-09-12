@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -28,6 +29,13 @@ const (
 	esquemaHTTPS = "https"
 )
 
+// intervaloPorOmision es la separación mínima entre dos peticiones a un mismo
+// sitio cuando no se declara otra: un segundo, más lento que lo que cualquier
+// fuente pública del proyecto tolera. Ser conservador por omisión es lo que hace
+// que un adaptador nuevo no pueda maltratar un sitio por descuido; el ritmo que
+// cada fuente admite llegará con la fuente (FR-020, D8).
+const intervaloPorOmision = time.Second
+
 // Cliente es el único objeto del módulo capaz de emitir una petición HTTP, y
 // Pedir su única operación: no hay ninguna otra forma de salir a la red desde
 // este paquete, ni forma alguna de construir uno al que le falte una de sus
@@ -39,6 +47,11 @@ type Cliente struct {
 	// cliente ejecuta la cadena de decoradores, que se compone una vez en New y
 	// no cambia después (D3).
 	cliente *http.Client
+	// sitios es el registro de sitios de este cliente: uno solo, del que sale el
+	// ritmo de cada sitio y del que saldrán sus reglas de robots.txt, porque la
+	// clave de sitio es una y su exclusión tiene que ser compartida
+	// (data-model.md §4, D14).
+	sitios *sitios
 	// fuente es el nombre lógico de la fuente que usa este cliente, el que
 	// nombrará el directorio de las grabaciones (FR-039).
 	fuente string
@@ -52,6 +65,7 @@ type Cliente struct {
 // estructura que escriben.
 type configuracionDelCliente struct {
 	fuente      string
+	intervalo   time.Duration
 	registrador *slog.Logger
 }
 
@@ -82,6 +96,28 @@ func ConFuente(nombre string) Opcion {
 	}
 }
 
+// ConIntervalo declara la separación mínima entre dos peticiones a un mismo
+// sitio. Vale para todos los sitios de ese cliente: el ámbito del limitador es
+// el sitio —dos sitios distintos no compiten entre sí (FR-019)—, pero su valor
+// es uno solo por cliente, y el que cada fuente tolera se fijará donde se declare
+// la fuente (FR-020).
+//
+// Un intervalo nulo o negativo es un error de argumentos: un ritmo sin espera es
+// lo contrario de lo que este cliente garantiza, y no hay ninguna opción para
+// desactivarlo (D8).
+func ConIntervalo(d time.Duration) Opcion {
+	return func(config *configuracionDelCliente) error {
+		if d <= 0 {
+			return errorDeArgumentos(Peticion{}, nil,
+				"el intervalo entre peticiones a un mismo sitio tiene que ser mayor que cero (ConIntervalo): "+d.String())
+		}
+
+		config.intervalo = d
+
+		return nil
+	}
+}
+
 // ConRegistrador declara el destino de los eventos del cliente, que es el mismo
 // registrador que el kernel entrega al applet. Sin esta opción los eventos se
 // descartan; nunca se emiten por el registrador global ni por la salida estándar
@@ -100,12 +136,16 @@ func ConRegistrador(registrador *slog.Logger) Opcion {
 }
 
 // New construye el cliente contra la red, con sus garantías ya puestas sin
-// declarar ninguna opción: identificación en toda petición, plazo del contexto
-// y redirecciones seguidas por él mismo. Las opciones se aplican en orden —la última
+// declarar ninguna opción: identificación en toda petición, ritmo por sitio,
+// plazo del contexto y redirecciones seguidas por él mismo. Las opciones se
+// aplican en orden —la última
 // repetida gana— y la primera inválida termina la construcción con su clase
 // (FR-001, contrato §2 y §3).
 func New(opciones ...Opcion) (*Cliente, error) {
-	config := configuracionDelCliente{registrador: slog.New(slog.DiscardHandler)}
+	config := configuracionDelCliente{
+		intervalo:   intervaloPorOmision,
+		registrador: slog.New(slog.DiscardHandler),
+	}
 
 	for _, opcion := range opciones {
 		if err := opcion(&config); err != nil {
@@ -113,10 +153,12 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		}
 	}
 
-	cadena := conIdentificacion(nuevoTransporte())
+	registro := nuevosSitios(config.intervalo)
+	cadena := conIdentificacion(conRitmo(nuevoTransporte(), registro))
 
 	return &Cliente{
 		cliente:     nuevoClienteHTTP(cadena),
+		sitios:      registro,
 		fuente:      config.fuente,
 		registrador: config.registrador,
 	}, nil
@@ -263,12 +305,22 @@ func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (rec
 	}, nil
 }
 
-// falloAlEmitir distingue las dos formas en que una petición puede no llegar a
-// respuesta. Las dos son de la misma clase —la fuente no sabe entregar el
-// recurso—, pero no son lo mismo para quien lee el mensaje: el contexto que
-// vence o se cancela corta la operación en ese instante (FR-005, FR-029) y el
-// fallo del transporte es el sitio que no responde.
+// falloAlEmitir distingue las formas en que una petición puede no llegar a
+// respuesta. Todas son de la misma clase —la fuente no sabe entregar el
+// recurso—, pero no son lo mismo para quien lee el mensaje.
+//
+// Un escalón de la cadena que ya declaró su clase y su motivo se entrega tal
+// cual: nadie desde fuera sabe mejor que él qué ocurrió, y volver a envolverlo
+// cambiaría un motivo cierto —hoy el del ritmo, que se queda sin turno sin haber
+// emitido nada (FR-022)— por la conjetura de un transporte que no llegó a
+// intentarse. El contexto que vence o se cancela corta la operación en ese
+// instante (FR-005, FR-029), y lo que queda es el sitio que no responde.
 func falloAlEmitir(ctx context.Context, p Peticion, causa error) error {
+	var declarado *Error
+	if errors.As(causa, &declarado) {
+		return declarado
+	}
+
 	if ctx.Err() != nil {
 		return errorDeFuenteNoDisponible(p, 0, causa,
 			"la operación ha terminado antes de recibir la respuesta")

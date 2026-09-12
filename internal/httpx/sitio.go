@@ -4,6 +4,9 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // Puertos que el esquema implica cuando la dirección no declara ninguno. Son
@@ -14,16 +17,29 @@ const (
 	puertoHTTPS = "443"
 )
 
-// sitio es lo que el cliente recuerda de un sitio mientras vive: hoy solo su
-// identidad. Le cuelgan el limitador de ritmo y las reglas de su robots.txt
-// cuando entra el decorador que usa cada uno, porque los dos tienen que
-// compartir esta entrada y su exclusión —no hay un mapa por decorador
-// (data-model.md §4, D7, D14).
+// sitio es lo que el cliente recuerda de un sitio mientras vive: su identidad y
+// su ritmo. Le cuelgan además las reglas de su robots.txt cuando entra el
+// decorador que las usa, porque los dos tienen que compartir esta entrada y su
+// exclusión —no hay un mapa por decorador (data-model.md §4, D7, D14).
 type sitio struct {
 	// clave es la que indexa el sitio en el mapa; la guarda también aquí para
 	// que un sitio se pueda nombrar sin volver a derivarla de una dirección.
 	clave string
+	// limitador es el ritmo de este sitio y solo de este sitio: un cubo de un
+	// token que se rellena cada intervalo, de modo que dos peticiones seguidas
+	// al mismo sitio salgan separadas al menos ese intervalo y las de otro
+	// sitio no compitan por él (FR-019, D8). Nace con el sitio y no cambia
+	// después; es seguro para varias goroutines —«a Limiter is safe for
+	// simultaneous use by multiple goroutines» (go doc golang.org/x/time/rate
+	// Limiter)—, así que no necesita la exclusión del mapa más allá de aquí.
+	limitador *rate.Limiter
 }
+
+// rafagaDelSitio es el tamaño del cubo de cada sitio: un solo token. Con una
+// ráfaga mayor, las primeras peticiones saldrían todas a la vez y el ritmo solo
+// empezaría a notarse después, que es ir más deprisa de lo que la fuente tolera
+// justo al arrancar, que es cuando peor sienta (D8).
+const rafagaDelSitio = 1
 
 // sitios es el mapa de sitios de un cliente: una entrada por clave de sitio,
 // creada la primera vez que se ve una dirección de ese sitio y viva lo que vive
@@ -33,11 +49,17 @@ type sitio struct {
 type sitios struct {
 	mu       sync.Mutex
 	porClave map[string]*sitio
+	// intervalo es la separación mínima entre dos peticiones a un mismo sitio.
+	// Vive aquí, y no en cada entrada, porque es uno solo para todos los sitios
+	// de un cliente: el ámbito del limitador es el sitio, pero su valor no se
+	// negocia sitio a sitio (FR-019, FR-020).
+	intervalo time.Duration
 }
 
-// nuevosSitios construye el mapa vacío de sitios de un cliente.
-func nuevosSitios() *sitios {
-	return &sitios{porClave: make(map[string]*sitio)}
+// nuevosSitios construye el mapa vacío de sitios de un cliente, con el intervalo
+// con el que nacerá el limitador de cada uno.
+func nuevosSitios(intervalo time.Duration) *sitios {
+	return &sitios{porClave: make(map[string]*sitio), intervalo: intervalo}
 }
 
 // de devuelve el sitio de una dirección, creándolo la primera vez que se ve.
@@ -53,7 +75,10 @@ func (s *sitios) de(direccion *url.URL) *sitio {
 		return existente
 	}
 
-	nuevo := &sitio{clave: clave}
+	nuevo := &sitio{
+		clave:     clave,
+		limitador: rate.NewLimiter(rate.Every(s.intervalo), rafagaDelSitio),
+	}
 	s.porClave[clave] = nuevo
 
 	return nuevo

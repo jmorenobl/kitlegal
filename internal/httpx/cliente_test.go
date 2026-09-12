@@ -34,6 +34,12 @@ func TestNewSinOpciones(t *testing.T) {
 
 	require.NotNil(t, cliente.cliente)
 	assert.Zero(t, cliente.cliente.Timeout, "el plazo es el del contexto (FR-004)")
+
+	require.NotNil(t, cliente.sitios, "el cliente tiene un solo registro de sitios (data-model.md §4, D14)")
+	assert.Equal(t, time.Second, intervaloPorOmision,
+		"el ritmo por omisión es conservador: una petición por segundo y sitio (FR-020, D8)")
+	assert.Equal(t, intervaloPorOmision, cliente.sitios.intervalo,
+		"sin ConIntervalo los sitios de este cliente nacen con el ritmo por omisión")
 }
 
 // TestOpcionesInvalidas fija la regla de validez de cada opción y dónde se
@@ -70,6 +76,16 @@ func TestOpcionesInvalidas(t *testing.T) {
 			mencion: "ConFuente",
 		},
 		{
+			nombre:  "el intervalo entre peticiones no puede ser nulo",
+			opcion:  ConIntervalo(0),
+			mencion: "ConIntervalo",
+		},
+		{
+			nombre:  "el intervalo entre peticiones no puede ser negativo",
+			opcion:  ConIntervalo(-time.Second),
+			mencion: "ConIntervalo",
+		},
+		{
 			nombre:  "el registrador no puede ser nulo",
 			opcion:  ConRegistrador(nil),
 			mencion: "ConRegistrador",
@@ -97,11 +113,14 @@ func TestOpcionesInvalidas(t *testing.T) {
 
 		registrador := slog.New(slog.DiscardHandler)
 
-		cliente, err := New(ConFuente("placsp"), ConFuente("boe"), ConRegistrador(registrador))
+		cliente, err := New(ConFuente("placsp"), ConFuente("boe"), ConRegistrador(registrador),
+			ConIntervalo(time.Minute), ConIntervalo(2*time.Second))
 		require.NoError(t, err)
 
 		assert.Equal(t, "boe", cliente.fuente)
 		assert.Same(t, registrador, cliente.registrador)
+		assert.Equal(t, 2*time.Second, cliente.sitios.intervalo,
+			"el intervalo declarado es el que llevan los sitios de ese cliente (FR-020)")
 	})
 }
 
