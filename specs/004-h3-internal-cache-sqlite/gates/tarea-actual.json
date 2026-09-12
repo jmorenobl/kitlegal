@@ -1,18 +1,18 @@
 {
-  "id": "T002",
-  "texto": "T002 [P] [US6] El paquete y el único error que produce, con su clase y sus mensajes: `internal/cache/doc.go` con el comentario de paquete que declara qué garantiza y qué **no** hace (no lee ninguna bandera —el modo lo pone quien construye, a partir de `schema.Contexto.Offline`—, no borra la base por su cuenta, no cifra, no interpreta ni la clave ni el contenido, no fija ninguna vigencia por omisión); `internal/cache/errores.go` con `Error{Operacion, Ruta, Origen, Clave, Causa}` más su clase privada y los constructores internos por clase, `Error() string` con mensaje en español que nombra lo que la tabla del contrato de errores §3 exige en cada situación (ruta y origen —opción `ConDirectorio` o variable `KITLEGAL_CACHE_DIR`—, versión esperada y encontrada, la clave y que la invocación es de solo lectura, la operación tras cerrar, y la ruta con `cache.db-wal` y `cache.db-shm` en el fallo de la fila 13, cuyo constructor interno nace aquí y usa T004), `Unwrap()` que expone `Causa` y `Clase() schema.Clase` que lo hace `schema.ConClase`, sin `panic` en ninguna ruta y sin decidir ningún código de salida por su cuenta; e `internal/cache/errores_test.go` con `TestErrorMensajes` (una fila por forma de mensaje del contrato de errores **§6**, la fila 13 incluida: el fallo de WAL sin memoria compartida nombra la ruta, `cache.db-wal` y `cache.db-shm`), `TestErrorEnvueltoConservaLaClase` (envolver con `fmt.Errorf(\"%w\")` no cambia lo que `cli.Clasificar` devuelve) y `TestErrorNuloOCero` (`Error()` no vacío y `Clase()` «inesperado» sobre el valor cero); comprobando además al primer `make lint` el supuesto S2, para lo que declara también `.golangci.yml` **acotado a las palabras nuevas bajo `misspell.ignore-rules`** que el español dispare como falso positivo —ninguna regla, ningún linter, ninguna exclusión y nunca una supresión—, y sin tocarlo si no hace falta (FR-033, FR-034, FR-035, obligaciones 3 y 14 del plan, D9, D15).",
+  "id": "T003",
+  "texto": "T003 [US4] Dónde vive la base de datos y con qué opciones se construye el cliente, antes de abrir nada: `internal/cache/ruta.go` con la resolución de la ruta efectiva en el orden opción > `KITLEGAL_CACHE_DIR` > `~/.cache/kitlegal` (la variable se lee **una sola vez**, al construir), el origen de la ruta para los mensajes, la validación del valor de la ruta que vale en **cualquier** modo (cadena vacía → «argumentos» 2; ruta que existe y no es un directorio → 2, nombrando origen y ruta; nunca una caída silenciosa a la ruta por omisión) y la **regla «inexistente»** —`esInexistente(err)` es verdadero si y solo si `errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)`, definida una vez aquí y única razón por la que el paquete importa `syscall`—; `internal/cache/cliente.go` con `const VariableDirectorio = \"KITLEGAL_CACHE_DIR\"`, el tipo `Cliente`, `type Opcion func(*configuracion) error` y las cuatro opciones `ConDirectorio`, `SoloLectura`, `ConReloj` y `ConRegistrador` (reloj por omisión `time.Now`, registrador por omisión que descarta), `New(ctx context.Context, opciones ...Opcion) (*Cliente, error)` que valida las opciones en orden —la primera inválida es «argumentos» (2)—, resuelve y valida la ruta, respeta `ctx` (cancelado o vencido → «fuente no disponible», 4) y **todavía no abre ninguna base de datos**, y `Close()` idempotente sobre ese cliente; e `internal/cache/ruta_test.go` con `TestEsInexistente` (tabla del predicado sobre errores reales de `os.Stat` en `t.TempDir()`: `fs.ErrNotExist` → true, `syscall.ENOTDIR` → true, `fs.ErrPermission` → false, `nil` → false, error ajeno → false), `TestRutaEfectivaPrecedencia` (`t.Setenv`: opción > variable > omisión, y la variable leída una sola vez) y `TestRutaInservible` (tabla × modo: vacía por opción, vacía por variable y fichero como directorio, los tres → 2 nombrando origen y ruta, igual en modo normal y en solo lectura), más `TestNewRechazaOpcionesInvalidas` en `internal/cache/cliente_test.go` (`ConDirectorio(\"\")`, `ConReloj(nil)`, `ConRegistrador(nil)` → 2 nombrando la opción) (FR-003, FR-004, FR-009, FR-015, FR-019, FR-020, FR-022, FR-023, US4 escenarios 3 y 4, D2, D3).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
-  "base": "e9955c4a30cfe3030052f30d5484fc933b8bb9bc",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
+  "base": "a2667a3bc724a4fabc1f5577579dfbd4a16f6bc1",
   "rutas": [
-    ".golangci.yml",
-    ".ignore",
-    "internal/cache/doc.go",
-    "internal/cache/errores_test.go",
-    "internal/cache/errores.go"
+    ".cache/kitlegal",
+    "internal/cache/cliente_test.go",
+    "internal/cache/cliente.go",
+    "internal/cache/ruta_test.go",
+    "internal/cache/ruta.go"
   ],
   "cierre": false
 }
