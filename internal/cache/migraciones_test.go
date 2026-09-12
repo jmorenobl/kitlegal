@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -175,6 +177,67 @@ func TestMigracionAtomica(t *testing.T) {
 	assert.Equal(t, tablaAjena, consultaTexto(t, ruta,
 		`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'entradas'`),
 		"lo que había en el fichero sigue como estaba")
+}
+
+// TestContextoCanceladoDuranteLaMigracion fija FR-003 y la fila 15 del contrato
+// de errores dentro de la migración, que es la única operación de New que
+// escribe: el contexto de quien llama se cancela cuando la transacción de la
+// migración ya está abierta —el reloj inyectado, al que la migración pide el
+// instante de aplicación desde dentro de ella, es quien lo cancela— y New
+// termina con «fuente no disponible» (4), con la causa del contexto alcanzable,
+// sin devolver ningún cliente y sin registrar ninguna versión: la transacción se
+// deshace entera (FR-026) y la base queda como estaba, lista para que la
+// siguiente invocación la migre.
+//
+// Sin la rama del contexto en la clasificación de ese fallo, la misma situación
+// saldría como una migración que no se pudo aplicar (1), que es un fichero al
+// que culpar de un plazo que no era suyo.
+func TestContextoCanceladoDuranteLaMigracion(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	ruta := filepath.Join(directorio, ficheroDeLaBase)
+
+	conocida, err := versionConocida()
+	require.NoError(t, err)
+
+	ctx, cancela := context.WithCancel(t.Context())
+	t.Cleanup(cancela)
+
+	cliente, err := New(ctx, ConDirectorio(directorio), ConReloj(relojQueCancela(cancela)))
+
+	require.Error(t, err)
+	assert.Nil(t, cliente, "un fallo al construir no devuelve ningún cliente")
+	assert.Equal(t, schema.ClaseFuenteNoDisponible, cli.Clasificar(err))
+	assert.Equal(t, 4, cli.CodigoSalida(err),
+		"el contexto terminado es la fila 15, no una migración que no se pudo aplicar: %v", err)
+	require.ErrorIs(t, err, context.Canceled, "la causa del contexto sigue alcanzable")
+	assert.Contains(t, err.Error(), ruta, "el mensaje nombra el fichero")
+
+	assert.Equal(t, int64(0), consultaEntero(t, ruta, tablasDeLaVersion),
+		"la transacción se deshizo entera: no queda ninguna versión registrada (FR-026)")
+
+	migrado, err := New(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err, "la base quedó como estaba y la siguiente invocación la migra")
+	assert.Equal(t, conocida, migrado.versionEsquema)
+	require.NoError(t, migrado.Close())
+
+	assert.Equal(t, conocida, consultaEntero(t, ruta, filasDeLaVersion),
+		"una fila por migración aplicada: la cancelada no dejó ninguna")
+}
+
+// relojQueCancela es el reloj inyectado con el que se termina el contexto desde
+// dentro de una operación: cada vez que la caché pregunta la hora, cancela y
+// devuelve la de la máquina. Es lo que permite que el contexto termine en un
+// punto interior conocido —dentro de la transacción de la migración, que le
+// pide el instante de aplicación— sin esperar tiempo real ni depender de que el
+// motor mire el contexto. Cancelar dos veces no hace nada.
+func relojQueCancela(cancela context.CancelFunc) func() time.Time {
+	return func() time.Time {
+		cancela()
+
+		return time.Now()
+	}
 }
 
 // TestSoloLecturaNoMigra fija la mitad de FR-015 que se decide al abrir: una

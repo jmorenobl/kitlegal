@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -329,6 +330,50 @@ func TestIntegracionFicheroDenegado(t *testing.T) {
 			assert.Equal(t, antes, nombresDe(t, directorio), "el intento no crea ningún fichero")
 		})
 	}
+}
+
+// TestIntegracionReaperturaInmutableFalla fija la última forma de la fila 12: en
+// un directorio en el que no se puede escribir (0500) hay un cache.db que se
+// deja leer, en diario WAL y sin registro de escritura, pero con todas sus
+// páginas estropeadas menos la primera. La primera consulta falla porque el
+// directorio no admite crear la memoria compartida, el fichero se deja abrir,
+// no hay -wal, y la reapertura como inmutable —el último intento de leer—
+// vuelve a fallar, esta vez en el propio contenido. Es «inesperado» (1)
+// nombrando el fichero, sin culpar al directorio ni afirmar un acceso denegado
+// que no hubo, sin devolver ningún cliente y sin crear ni cambiar nada.
+//
+// La alternativa —un cliente sin base que contestara «no hay entrada»— sería
+// la ausencia falsa que FR-015 prohíbe: no se sabe qué contiene el fichero, y
+// declararlo ausente sería mentir.
+func TestIntegracionReaperturaInmutableFalla(t *testing.T) {
+	t.Parallel()
+
+	exigeQueLosPermisosSeHaganValer(t)
+
+	directorio := baseConfirmadaYCerrada(t)
+	ruta := filepath.Join(directorio, ficheroDeLaBase)
+	estropeaTodoMenosLaPrimeraPagina(t, ruta)
+	restringe(t, directorio, permisosDeSoloLectura)
+
+	antes := huellasDe(t, directorio)
+
+	cliente, err := cache.New(t.Context(), cache.ConDirectorio(directorio), cache.SoloLectura())
+
+	require.Error(t, err)
+	assert.Nil(t, cliente, "un fallo al construir no devuelve ningún cliente: no hay base que declarar ausente (FR-015)")
+	compruebaCodigo(t, err, 1, ruta, "solo lectura")
+	assert.NotContains(t, err.Error(), "directorio",
+		"el directorio no tiene la culpa y el mensaje no se la echa (FR-035)")
+	assert.NotContains(t, err.Error(), "acceso denegado",
+		"no hubo ningún acceso denegado y el mensaje no afirma lo que no se comprobó")
+
+	var delControlador *sqlite.Error
+
+	require.ErrorAs(t, err, &delControlador, "la causa es la del controlador")
+	assert.Equal(t, sqlite3.SQLITE_CORRUPT, delControlador.Code()&0xff,
+		"que no pudo leer las páginas estropeadas al reabrir como inmutable")
+
+	assert.Equal(t, antes, huellasDe(t, directorio), "el intento no crea ni cambia ningún fichero")
 }
 
 // TestIntegracionWALSinMemoriaCompartida fija la fila 13: una base cuyo registro
@@ -675,6 +720,27 @@ func existe(t *testing.T, ruta string) bool {
 	require.NoError(t, err)
 
 	return true
+}
+
+// estropeaTodoMenosLaPrimeraPagina deja cache.db con la primera página intacta
+// —la cabecera, que es lo que dice que el fichero es una base de datos en diario
+// WAL, y sqlite_master— y todas las demás a 0xFF. El tamaño de página se lee de
+// la propia cabecera (bytes 16 y 17, en big-endian), de modo que la prueba no
+// dependa del que el controlador ponga por omisión. Lo que resulta se deja leer
+// y no se puede usar: es lo que hace fallar la reapertura como inmutable.
+func estropeaTodoMenosLaPrimeraPagina(t *testing.T, ruta string) {
+	t.Helper()
+
+	const posicionDelTamano = 16
+
+	contenido := leeElFichero(t, ruta)
+	bytesPorPagina := int(binary.BigEndian.Uint16(contenido[posicionDelTamano : posicionDelTamano+2]))
+	require.Greater(t, len(contenido), bytesPorPagina, "la base tiene más de una página")
+
+	estropeado := bytes.Repeat([]byte{0xFF}, len(contenido))
+	copy(estropeado, contenido[:bytesPorPagina])
+
+	require.NoError(t, os.WriteFile(filepath.Clean(ruta), estropeado, 0o600))
 }
 
 // copiaElFichero copia un fichero de la prueba con acceso reservado a la cuenta.

@@ -499,12 +499,21 @@ func pragmaEntero(t *testing.T, cliente *Cliente, consulta string) int64 {
 func huella(t *testing.T, ruta string) string {
 	t.Helper()
 
+	suma := sha256.Sum256(leeLaBase(t, ruta))
+
+	return hex.EncodeToString(suma[:])
+}
+
+// leeLaBase devuelve cache.db entero, tal como está en el disco: es lo que
+// comparan las huellas y lo que las pruebas que estropean páginas toman como
+// punto de partida.
+func leeLaBase(t *testing.T, ruta string) []byte {
+	t.Helper()
+
 	contenido, err := os.ReadFile(filepath.Clean(ruta))
 	require.NoError(t, err)
 
-	suma := sha256.Sum256(contenido)
-
-	return hex.EncodeToString(suma[:])
+	return contenido
 }
 
 // arbolDe describe todo lo que hay bajo una raíz —cada directorio por su ruta

@@ -3,7 +3,9 @@ package cache
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -12,6 +14,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
@@ -635,6 +639,82 @@ func TestSoloLecturaPutFalla(t *testing.T) {
 	assert.Equal(t, antes, huella(t, ruta), "una escritura en solo lectura no cambia ni un byte (SC-003)")
 }
 
+// TestFalloDelControladorAlOperar fija la fila 14 del contrato de errores en su
+// forma sobrevenida: la base se abre y se migra sin fallo, pero las páginas de
+// la tabla de entradas están estropeadas, y leer o escribir una clave falla en
+// el controlador con SQLITE_CORRUPT. Es «inesperado» (1) nombrando la
+// operación, la clave y la ruta —nunca «fuente no disponible», porque no hay
+// plazo ni ausencia, ni un bloqueo, porque nadie retiene nada—, la causa del
+// controlador sigue alcanzable con errors.As, y el fichero no se borra ni se
+// rehace (FR-028, FR-033, FR-035).
+//
+// Se estropea desde la tercera página: las dos primeras —sqlite_master y
+// schema_version— siguen enteras, así que New abre y comprueba la versión sin
+// tropezar, y es la operación la que encuentra lo que hay más allá. Un fallo
+// del controlador que sobreviene no exige estropear ningún disco: basta un
+// cache.db sobrescrito en su t.TempDir(), como el de TestFicheroInutilizable.
+func TestFalloDelControladorAlOperar(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	ruta := filepath.Join(directorio, ficheroDeLaBase)
+	siembra(t, directorio, claveDePrueba, []byte("<norma>contenido</norma>"))
+	corrompeDesdeLaPagina(t, ruta, primeraPaginaDeEntradas)
+
+	antes := huella(t, ruta)
+	cliente := clienteAbierto(t, directorio)
+
+	operaciones := []struct {
+		nombre string
+		opera  func() error
+	}{
+		{
+			nombre: "leer",
+			opera: func() error {
+				leido, presente, err := cliente.Get(t.Context(), claveDePrueba)
+				assert.False(t, presente, "una lectura que falla no presenta nada")
+				assert.Nil(t, leido)
+
+				return err
+			},
+		},
+		{
+			nombre: "escribir",
+			opera: func() error {
+				return cliente.Put(t.Context(), claveDePrueba, []byte("<norma>otra</norma>"), vigenciaDePrueba)
+			},
+		},
+	}
+
+	for _, operacion := range operaciones {
+		err := operacion.opera()
+
+		require.Error(t, err, "%s sobre páginas estropeadas falla", operacion.nombre)
+		assert.Equal(t, schema.ClaseInesperado, cli.Clasificar(err), "%s: la clase", operacion.nombre)
+		assert.Equal(t, 1, cli.CodigoSalida(err), "%s: un fallo del controlador es la fila 14: %v", operacion.nombre, err)
+		assert.NotContains(t, err.Error(), "bloqueada", "%s: nadie retiene ningún bloqueo", operacion.nombre)
+
+		for _, dato := range []string{operacion.nombre, claveDePrueba, ruta} {
+			assert.Contains(t, err.Error(), dato, "%s: el mensaje nombra la operación, la clave y la ruta", operacion.nombre)
+		}
+
+		var delControlador *sqlite.Error
+
+		require.ErrorAs(t, err, &delControlador, "%s: la causa es la del controlador", operacion.nombre)
+		assert.Equal(t, sqlite3.SQLITE_CORRUPT, delControlador.Code()&0xff, "%s: que no pudo leer las páginas", operacion.nombre)
+
+		var fallo *Error
+
+		require.ErrorAs(t, err, &fallo)
+		assert.Equal(t, claveDePrueba, fallo.Clave, "%s: la clave viaja también en el campo", operacion.nombre)
+		assert.Equal(t, ruta, fallo.Ruta, "%s: y la ruta", operacion.nombre)
+	}
+
+	require.NoError(t, cliente.Close())
+	require.FileExists(t, ruta)
+	assert.Equal(t, antes, huella(t, ruta), "un fichero estropeado no se borra ni se rehace (FR-028)")
+}
+
 // compruebaAusenciaEnSoloLectura es lo que toda ausencia en solo lectura tiene
 // que cumplir, venga de donde venga —sin fila, caducada, sin esquema o sin
 // base—: ni contenido ni presencia, «fuente no disponible» (4) y nunca el 2 de
@@ -682,6 +762,45 @@ func siembra(t *testing.T, directorio, clave string, contenido []byte, opciones 
 	escritor := clienteAbierto(t, directorio, opciones...)
 	require.NoError(t, escritor.Put(t.Context(), clave, contenido, vigenciaDePrueba))
 	require.NoError(t, escritor.Close())
+}
+
+// primeraPaginaDeEntradas es la primera página de cache.db que no pertenece ni
+// a sqlite_master ni a schema_version: la migración v1 crea schema_version
+// antes que entradas, así que sqlite_master ocupa la primera página, la
+// versión la segunda, y la tabla de entradas y el índice de su clave primaria
+// vienen después. Estropear desde ella deja la apertura y la comprobación de la
+// versión intactas y hace fallar solo las operaciones.
+const primeraPaginaDeEntradas = 3
+
+// corrompeDesdeLaPagina sobrescribe con 0xFF todo cache.db desde la página dada
+// hasta el final, con el tamaño de página que declara la propia cabecera del
+// fichero —los bytes 16 y 17, en big-endian—, de modo que la prueba no dependa
+// del tamaño por omisión del controlador. Lo anterior sigue intacto, cabecera
+// incluida: el fichero se sigue reconociendo como una base de datos y se deja
+// leer; lo que no se puede es usar lo que hay en esas páginas.
+func corrompeDesdeLaPagina(t *testing.T, ruta string, pagina int) {
+	t.Helper()
+
+	const (
+		cabecera            = 100
+		posicionDelTamano   = 16
+		bytesDelTamano      = 2
+		primeraPaginaValida = 1
+		relleno             = 0xFF
+	)
+
+	contenido := leeLaBase(t, ruta)
+	require.Greater(t, len(contenido), cabecera, "la cabecera de SQLite ocupa cien bytes")
+	require.GreaterOrEqual(t, pagina, primeraPaginaValida)
+
+	bytesPorPagina := int(binary.BigEndian.Uint16(contenido[posicionDelTamano : posicionDelTamano+bytesDelTamano]))
+	desde := (pagina - 1) * bytesPorPagina
+	require.Less(t, desde, len(contenido), "la página %d existe en el fichero", pagina)
+
+	estropeado := bytes.Repeat([]byte{relleno}, len(contenido))
+	copy(estropeado, contenido[:desde])
+
+	require.NoError(t, os.WriteFile(filepath.Clean(ruta), estropeado, permisosDelFichero))
 }
 
 // entradaGuardada mira la fila de una clave por debajo del cliente: cuántas hay

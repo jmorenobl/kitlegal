@@ -334,8 +334,9 @@ func TestErrorNuloOCero(t *testing.T) {
 // filasProvocables son las filas de la tabla cerrada del contrato de errores §3
 // que se pueden provocar sin que el sistema de ficheros haga valer ningún
 // permiso: todas menos la 12 y la 13, que miden con las mismas dos funciones
-// del kernel TestIntegracionDirectorioDenegado y
-// TestIntegracionWALSinMemoriaCompartida.
+// del kernel los tests de integración: la 12, TestIntegracionDirectorioDenegado,
+// TestIntegracionFicheroDenegado y TestIntegracionReaperturaInmutableFalla; la
+// 13, TestIntegracionWALSinMemoriaCompartida.
 var filasProvocables = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15}
 
 // clasesQueLaCacheNoProduce y codigosQueLaCacheNoProduce son las tres clases del
@@ -436,8 +437,8 @@ func TestClasesDeError(t *testing.T) {
 			clase: schema.ClaseInesperado, codigo: 1, provoca: provocaEscrituraEnSoloLectura,
 		},
 		{
-			fila: 14, situacion: "operacion-tras-cerrar",
-			clase: schema.ClaseInesperado, codigo: 1, provoca: provocaOperacionTrasCerrar,
+			fila: 14, situacion: "fallo-sobrevenido",
+			clase: schema.ClaseInesperado, codigo: 1, provoca: provocaFalloSobrevenido,
 		},
 		{
 			fila: 15, situacion: "contexto-terminado",
@@ -752,13 +753,23 @@ func provocaEscrituraEnSoloLectura(t *testing.T) []provocado {
 	}
 }
 
-// provocaOperacionTrasCerrar es la fila 14 en las dos formas que se pueden
-// provocar de forma determinista: una operación después de Close —sobre un
-// cliente con base y sobre uno sin ella— y la base bloqueada por otra invocación
-// más tiempo que la espera, con la espera acortada a milisegundos, al construir
-// sobre una base sin migrar y al escribir. Un fallo de entrada y salida que
-// sobreviene no se puede provocar sin estropear el disco, y su clase la fija el
-// mismo constructor, errorInesperado.
+// provocaFalloSobrevenido es la fila 14 en sus tres formas, todas deterministas
+// y todas sobre una base en su t.TempDir(): una operación después de Close, la
+// base bloqueada por otra invocación más tiempo que la espera, y el fallo del
+// controlador que sobreviene al leer o escribir sobre una base con las páginas
+// de entradas estropeadas. Las tres comparten constructor, errorInesperado, y
+// aquí se comprueba que ninguna se cuela por otra rama de la clasificación.
+func provocaFalloSobrevenido(t *testing.T) []provocado {
+	t.Helper()
+
+	provocados := provocaOperacionTrasCerrar(t)
+	provocados = append(provocados, provocaBloqueoAgotado(t)...)
+
+	return append(provocados, provocaFalloDelControlador(t)...)
+}
+
+// provocaOperacionTrasCerrar es la mitad de la fila 14 que fija FR-004: una
+// operación después de Close, sobre un cliente con base y sobre uno sin ella.
 func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	t.Helper()
 
@@ -772,6 +783,20 @@ func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	alEscribir := conBase.Put(t.Context(), claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba)
 	_, _, alLeerSinBase := sinBase.Get(t.Context(), claveDePrueba)
 
+	return []provocado{
+		{como: "Get tras cerrar", err: alLeer},
+		{como: "Put tras cerrar", err: alEscribir},
+		{como: "Get tras cerrar un cliente sin base", err: alLeerSinBase},
+	}
+}
+
+// provocaBloqueoAgotado es la forma de la fila 14 que fija FR-031: otra
+// invocación retiene el bloqueo de escritura más tiempo que la espera, acortada
+// a milisegundos con la opción de las pruebas, al construir sobre una base sin
+// migrar y al escribir.
+func provocaBloqueoAgotado(t *testing.T) []provocado {
+	t.Helper()
+
 	sinMigrar := t.TempDir()
 	retieneElBloqueo(t, filepath.Join(sinMigrar, ficheroDeLaBase))
 
@@ -780,9 +805,6 @@ func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	retieneElBloqueo(t, filepath.Join(bloqueada, ficheroDeLaBase))
 
 	return []provocado{
-		{como: "Get tras cerrar", err: alLeer},
-		{como: "Put tras cerrar", err: alEscribir},
-		{como: "Get tras cerrar un cliente sin base", err: alLeerSinBase},
 		{
 			como: "New con la base bloqueada más tiempo que la espera",
 			err:  construye(t, ConDirectorio(sinMigrar), conEsperaAnteBloqueo(esperaCorta)),
@@ -794,14 +816,40 @@ func provocaOperacionTrasCerrar(t *testing.T) []provocado {
 	}
 }
 
+// provocaFalloDelControlador es la forma sobrevenida de la fila 14: la base se
+// abre y se migra bien, pero las páginas de la tabla de entradas están
+// estropeadas y el controlador falla con SQLITE_CORRUPT al leer y al escribir.
+// No hace falta estropear ningún disco: basta sobrescribir cache.db en su
+// t.TempDir(), como hace TestFalloDelControladorAlOperar, que mide además el
+// mensaje, la causa y que el fichero no se toca.
+func provocaFalloDelControlador(t *testing.T) []provocado {
+	t.Helper()
+
+	contenido := []byte("<norma>contenido</norma>")
+	estropeada := t.TempDir()
+	siembra(t, estropeada, claveDePrueba, contenido)
+	corrompeDesdeLaPagina(t, filepath.Join(estropeada, ficheroDeLaBase), primeraPaginaDeEntradas)
+
+	cliente := clienteAbierto(t, estropeada)
+
+	_, _, alLeer := cliente.Get(t.Context(), claveDePrueba)
+	alEscribir := cliente.Put(t.Context(), claveDePrueba, contenido, vigenciaDePrueba)
+
+	return []provocado{
+		{como: "Get sobre una base con las páginas de entradas estropeadas", err: alLeer},
+		{como: "Put sobre una base con las páginas de entradas estropeadas", err: alEscribir},
+	}
+}
+
 // provocaContextoTerminado es la fila 15: New, Get y Put con el contexto
-// cancelado y con el contexto vencido, y además New y Put con un contexto que
-// vence **durante** la espera ante el bloqueo que otra invocación retiene, que
-// es donde la espera del motor no mira el contexto y el cliente tiene que
-// mirarlo por él. Get y Put operan sobre una base con la entrada guardada y
-// vigente, para que el 4 no se pueda confundir con ninguna ausencia. Todo se
-// prepara con el contexto de la prueba y solo la llamada al paquete recibe el
-// terminado.
+// cancelado y con el contexto vencido; New y Put con un contexto que vence
+// **durante** la espera ante el bloqueo que otra invocación retiene, que es
+// donde la espera del motor no mira el contexto y el cliente tiene que mirarlo
+// por él; y New con el contexto cancelado **durante** la migración, que es la
+// única operación de New que escribe. Get y Put operan sobre una base con la
+// entrada guardada y vigente, para que el 4 no se pueda confundir con ninguna
+// ausencia. Todo se prepara con el contexto de la prueba y solo la llamada al
+// paquete recibe el terminado.
 func provocaContextoTerminado(t *testing.T) []provocado {
 	t.Helper()
 
@@ -824,7 +872,7 @@ func provocaContextoTerminado(t *testing.T) []provocado {
 		{nombre: "vencido", ctx: vencido},
 	}
 
-	provocados := make([]provocado, 0, 3*len(terminados)+2)
+	provocados := make([]provocado, 0, 3*len(terminados)+3)
 
 	for _, terminado := range terminados {
 		nuevo, alConstruir := New(terminado.ctx, ConDirectorio(t.TempDir()))
@@ -840,13 +888,22 @@ func provocaContextoTerminado(t *testing.T) []provocado {
 		)
 	}
 
-	return append(provocados, provocaVencimientoDuranteLaEspera(t)...)
+	provocados = append(provocados, provocaVencimientoDuranteLaEspera(t)...)
+
+	return append(provocados, provocaCancelacionDuranteLaMigracion(t)...)
 }
 
 // provocaVencimientoDuranteLaEspera es la forma de la fila 15 que vive en la
 // espera ante bloqueo: otra invocación retiene el bloqueo de escritura y el
 // plazo de quien llama vence mientras New —sobre una base sin migrar— y Put
 // esperan.
+//
+// Cada llamada recibe su propio plazo, recién abierto, y ninguna reutiliza el
+// de la otra: New devuelve cuando el suyo ya ha vencido, y un Put con ese mismo
+// contexto lo rechazaría en su comprobación previa sin llegar a esperar nada,
+// que es la forma «Put con el contexto vencido» que ya está medida arriba y no
+// esta. Que las dos llamadas de verdad esperaron se ve en la causa: el plazo
+// vencido, que solo puede haber vencido mientras se esperaba.
 func provocaVencimientoDuranteLaEspera(t *testing.T) []provocado {
 	t.Helper()
 
@@ -857,17 +914,42 @@ func provocaVencimientoDuranteLaEspera(t *testing.T) []provocado {
 	escritor := clienteAbierto(t, bloqueada)
 	retieneElBloqueo(t, filepath.Join(bloqueada, ficheroDeLaBase))
 
-	ctx, cancela := context.WithTimeout(t.Context(), plazoCorto)
-	t.Cleanup(cancela)
+	paraConstruir, sueltaElDeConstruir := context.WithTimeout(t.Context(), plazoCorto)
+	t.Cleanup(sueltaElDeConstruir)
 
-	nuevo, alConstruir := New(ctx, ConDirectorio(sinMigrar))
+	nuevo, alConstruir := New(paraConstruir, ConDirectorio(sinMigrar))
 	cierraAlTerminar(t, nuevo)
+	require.ErrorIs(t, alConstruir, context.DeadlineExceeded, "New esperó hasta que venció su plazo")
+
+	paraEscribir, sueltaElDeEscribir := context.WithTimeout(t.Context(), plazoCorto)
+	t.Cleanup(sueltaElDeEscribir)
+
+	alEscribir := escritor.Put(paraEscribir, claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba)
+	require.ErrorIs(t, alEscribir, context.DeadlineExceeded, "Put esperó hasta que venció su plazo")
 
 	return []provocado{
 		{como: "New con el contexto vencido durante la espera ante bloqueo", err: alConstruir},
-		{
-			como: "Put con el contexto vencido durante la espera ante bloqueo",
-			err:  escritor.Put(ctx, claveDePrueba, []byte("<norma>contenido</norma>"), vigenciaDePrueba),
-		},
+		{como: "Put con el contexto vencido durante la espera ante bloqueo", err: alEscribir},
+	}
+}
+
+// provocaCancelacionDuranteLaMigracion es la forma de la fila 15 que vive
+// dentro de la migración: el reloj inyectado cancela el contexto cuando la
+// transacción de la migración ya está abierta y le pide el instante de
+// aplicación, de modo que es la propia migración la que encuentra el contexto
+// terminado. TestContextoCanceladoDuranteLaMigracion mide además que no queda
+// ninguna versión registrada y que la base sigue siendo migrable.
+func provocaCancelacionDuranteLaMigracion(t *testing.T) []provocado {
+	t.Helper()
+
+	ctx, cancela := context.WithCancel(t.Context())
+	t.Cleanup(cancela)
+
+	nuevo, alConstruir := New(ctx, ConDirectorio(t.TempDir()), ConReloj(relojQueCancela(cancela)))
+	cierraAlTerminar(t, nuevo)
+	require.ErrorIs(t, alConstruir, context.Canceled, "la causa del contexto sigue alcanzable")
+
+	return []provocado{
+		{como: "New con el contexto cancelado durante la migración", err: alConstruir},
 	}
 }
