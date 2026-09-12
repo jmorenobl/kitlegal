@@ -713,6 +713,14 @@ Todo lo anterior está comprobado en local. Quedan como **supuestos**, con su co
   cualquier otra palabra que aparezca al escribir se comprueba con `make lint` en la primera tarea que
   cree ficheros de `internal/cache`, y la contingencia es la de H2: entrada en `misspell.ignore-rules`
   declarada por la tarea, o reescritura del término, nunca `//nolint`.
+  **Resultado (implementación, T008 intento 1)**: el supuesto se quedó corto en un término que ningún
+  identificador nuevo trae y que dos contratos fijan: `reproduccion`, en el nombre del subtest
+  `sin-cache-la-reproduccion-falla` (inventario de tests del plan, escenario 2 del quickstart) y en el
+  tramo del directorio de grabaciones de H2 que el adaptador de prueba reproduce. `misspell` separa las
+  palabras por cualquier carácter fuera de `[a-zA-Z0-9']`, así que el guion no la protege. Salida: la línea
+  de T008 declara `.golangci.yml` acotado a esa palabra en `misspell.ignore-rules` y la tarea queda sin
+  marcar para el intento siguiente. La entrada es durable: cada adaptador de fuente de H4 en adelante
+  volverá a escribir ese directorio en sus tests.
 - **S3 · El ejecutor de la integración continua no es `root`.** Los tests de permisos (D11) lo exigen
   para medir algo; si no se cumple, `TestIntegracionDirectorioNoEscribible`,
   `TestIntegracionDirectorioDenegado` y `TestIntegracionWALSinMemoriaCompartida` terminan en `t.Fatalf`
