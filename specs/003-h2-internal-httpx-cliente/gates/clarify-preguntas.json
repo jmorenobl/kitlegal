@@ -1,0 +1,125 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Constraints & Tradeoffs",
+      "pregunta": "¿Con qué grado debe hacerse imposible emitir una petición sin contexto o sin identificación: por construcción (el paquete no expone ningún tipo capaz de hacerlo) o por controles mecánicos que hagan fallar `make ci`? (FR-002)",
+      "por_que_importa": "Fija la superficie pública de `internal/httpx` y qué demuestra el criterio de aceptación del hito (FR-061): determina si `New` devuelve un tipo propio cerrado o un `*http.Client`/`RoundTripper` utilizable por terceros, y si el test que acredita la garantía es de compilación o de lint/arquitectura.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Por construcción total: el paquete no exporta ni transporte ni cliente crudo; la única superficie de red es una operación que exige `context.Context` como primer parámetro y pone la identificación internamente. Los controles mecánicos (`noctx`, R2, test de arquitectura) quedan como red secundaria."
+        },
+        {
+          "id": "B",
+          "texto": "Por controles mecánicos: el paquete puede exportar tipos con los que sería posible emitir una petición sin contexto o sin identificación, y son `noctx`, la regla R2 y el test de arquitectura los que lo detectan y hacen fallar `make ci`."
+        },
+        {
+          "id": "C",
+          "texto": "Por construcción, pero exportando el transporte ya decorado (que lleva las garantías incorporadas) para quien necesite componer su propio `*http.Client`; la imposibilidad se apoya en que ese transporte es el único disponible, no en que no exista superficie de transporte."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Edge Cases & Failure Handling",
+      "pregunta": "Cuando el `robots.txt` de un sitio no se puede obtener o no se puede interpretar (404, 5xx, plazo agotado, contenido no interpretable), ¿se permite la consulta, se deniega, o depende del caso? (FR-015)",
+      "por_que_importa": "Decide si una fuente sin `robots.txt` accesible queda consultable o bloqueada, lo que afecta directamente a los términos de uso que el principio I impone y a si un adaptador de H4 en adelante puede o no operar ante un fallo pasajero del servidor de la fuente.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Denegar siempre (fail-closed): cualquier `robots.txt` que no se obtenga e interprete con éxito impide la consulta, y quien llama recibe un fallo de la clase «límite de peticiones o términos de uso» (código 5)."
+        },
+        {
+          "id": "B",
+          "texto": "Permitir siempre (fail-open): si el `robots.txt` no se obtiene o no se interpreta, se considera que no hay reglas y la consulta se emite."
+        },
+        {
+          "id": "C",
+          "texto": "Distinguir por caso: 404 o cuerpo vacío se tratan como «sin reglas» y permiten la consulta; 5xx, plazo agotado y contenido no interpretable la deniegan con fallo de clase «límite de peticiones o términos de uso»."
+        },
+        {
+          "id": "D",
+          "texto": "Distinguir por caso al revés de C: 404, cuerpo vacío y contenido no interpretable permiten la consulta; solo 5xx y plazo agotado la deniegan, por ser fallos del servidor que podrían ocultar reglas existentes."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Domain & Data Model",
+      "pregunta": "¿Cuánto tiempo vale la copia en memoria del `robots.txt` de un sitio: lo que viva el cliente, o caduca por tiempo? (FR-015)",
+      "por_que_importa": "Determina si el cliente tiene que volver a pedir `robots.txt` dentro de una misma invocación y, por tanto, qué cuenta exactamente SC-003 («consultar diez rutas del mismo sitio produce una sola petición de robots.txt»), además de si aparece una opción de caducidad en el constructor y un reloj inyectable en los tests.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Dura lo que viva el cliente: sin caducidad por tiempo; dentro de una invocación, un sitio se pide como mucho una vez."
+        },
+        {
+          "id": "B",
+          "texto": "Caduca por tiempo con un plazo fijo escrito en el paquete: superado ese plazo se vuelve a pedir, aun dentro de la misma invocación."
+        },
+        {
+          "id": "C",
+          "texto": "Caduca por tiempo con un plazo ajustable por opción del constructor y un valor por omisión; en ningún caso la copia sobrevive al cliente."
+        },
+        {
+          "id": "D",
+          "texto": "Caduca según lo que declare la propia respuesta del `robots.txt` (cabeceras de caché), con un tope máximo del paquete cuando no declare nada o declare un plazo excesivo."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Integration & External Dependencies",
+      "pregunta": "¿De dónde salen `<fuente>` y `<nombre>` en la ruta `testdata/<fuente>/<nombre>.json` de una grabación? (FR-039)",
+      "por_que_importa": "Define qué información debe viajar hasta el cliente en cada petición y, con ello, la forma de la API de grabación: si basta una opción del constructor, si hace falta un parámetro o valor de contexto por petición, o si el nombre se calcula solo. También fija cómo se detecta la colisión de dos peticiones distintas en un mismo fichero.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "`<fuente>` es una opción del constructor del cliente y `<nombre>` se deriva de forma determinista de la propia petición (por ejemplo, un resumen legible o una huella de método y dirección)."
+        },
+        {
+          "id": "B",
+          "texto": "Ambos los aporta quien llama en cada petición, como dato que la acompaña (parámetro o valor en el contexto); el cliente no inventa ninguno de los dos."
+        },
+        {
+          "id": "C",
+          "texto": "Ambos se derivan de forma determinista de la propia petición, sin que nadie los declare: `<fuente>` a partir del sitio y `<nombre>` a partir de método, ruta y parámetros."
+        },
+        {
+          "id": "D",
+          "texto": "`<fuente>` es una opción del constructor y `<nombre>` lo aporta quien llama en cada petición, de modo que el fichero tenga un nombre elegido por quien escribe el test."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Domain & Data Model",
+      "pregunta": "¿Con qué clave empareja la reproducción una petición entrante con su grabación? (FR-039, FR-047)",
+      "por_que_importa": "Determina cuándo `httpx.Replay(dir)` considera que falta una grabación y falla de forma ruidosa, y cuánto puede variar una petición (parámetros, cabeceras, método) sin dejar de encontrar su fixture; condiciona la estabilidad de los tests de todos los adaptadores desde H4.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La dirección completa, incluidos los parámetros de consulta; el método no participa en el emparejamiento."
+        },
+        {
+          "id": "B",
+          "texto": "Método más dirección completa, incluidos los parámetros de consulta."
+        },
+        {
+          "id": "C",
+          "texto": "Método, dirección completa y las cabeceras significativas de la petición (la identificación entre ellas): una cabecera distinta es una petición distinta."
+        },
+        {
+          "id": "D",
+          "texto": "La ruta `<fuente>/<nombre>` del fichero, calculada al reproducir igual que al grabar; no se compara ningún otro campo de la petición."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
