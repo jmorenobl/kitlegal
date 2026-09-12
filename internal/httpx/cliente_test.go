@@ -40,6 +40,8 @@ func TestNewSinOpciones(t *testing.T) {
 		"el ritmo por omisión es conservador: una petición por segundo y sitio (FR-020, D8)")
 	assert.Equal(t, intervaloPorOmision, cliente.sitios.intervalo,
 		"sin ConIntervalo los sitios de este cliente nacen con el ritmo por omisión")
+	assert.Equal(t, 3, intentosPorOmision,
+		"sin ConIntentos son tres: una petición y dos reintentos (FR-024, D9)")
 }
 
 // TestOpcionesInvalidas fija la regla de validez de cada opción y dónde se
@@ -84,6 +86,16 @@ func TestOpcionesInvalidas(t *testing.T) {
 			nombre:  "el intervalo entre peticiones no puede ser negativo",
 			opcion:  ConIntervalo(-time.Second),
 			mencion: "ConIntervalo",
+		},
+		{
+			nombre:  "no se puede pedir menos de un intento",
+			opcion:  ConIntentos(0),
+			mencion: "ConIntentos",
+		},
+		{
+			nombre:  "ni un número negativo de intentos",
+			opcion:  ConIntentos(-1),
+			mencion: "ConIntentos",
 		},
 		{
 			nombre:  "el registrador no puede ser nulo",

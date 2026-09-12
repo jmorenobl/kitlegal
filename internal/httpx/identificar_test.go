@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,10 +31,10 @@ const constructorDeLasPeticiones = "identificar.go"
 // proyecto, y ese contador tiene que quedarse en cero por cada procedencia
 // posible de una petición.
 //
-// Nace con las dos procedencias que la cadena de esta tarea ya permite —el
-// recurso pedido y cada salto de una redirección—; T008 le añade la subprueba
-// «reintentos» y T009 la de «robots.txt», que son las otras dos (plan.md,
-// control 6).
+// Nació con las dos procedencias que la cadena de T006 permitía —el recurso
+// pedido y cada salto de una redirección—, T008 le añadió la de los reintentos
+// al entrar ese escalón en la cadena, y T009 le añadirá la de «robots.txt», que
+// es la cuarta y última (plan.md, control 6).
 func TestIdentificacionEnTodaPeticion(t *testing.T) {
 	t.Parallel()
 
@@ -64,6 +65,22 @@ func TestIdentificacionEnTodaPeticion(t *testing.T) {
 		assert.Equal(t, int64(2), contador.total.Load(), "el salto es una petición más")
 		assert.Zero(t, contador.sinIdentificar.Load(),
 			"cada salto de la cadena baja por el decorador y nace identificado (FR-009)")
+	})
+
+	t.Run("reintentos", func(t *testing.T) {
+		t.Parallel()
+
+		esperas := &esperasAnotadas{}
+		servidor, contador := servidorIdentificado(t, servidorQueFalla(2, http.StatusServiceUnavailable))
+		cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond), conReloj(esperas.reloj))
+
+		_, err := cliente.Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(3), contador.total.Load(), "cada reintento es una petición más")
+		assert.Zero(t, contador.sinIdentificar.Load(),
+			"cada reintento vuelve a bajar por el decorador y nace identificado (FR-009)")
 	})
 }
 

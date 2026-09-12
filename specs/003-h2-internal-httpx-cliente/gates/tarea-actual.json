@@ -1,18 +1,22 @@
 {
-  "id": "T007",
-  "texto": "T007 [US1] Ritmo por sitio, y solo por sitio: `internal/httpx/sitio.go` añade a la struct `sitio` el campo `limitador *rate.Limiter`, creado al crear el sitio (data-model §4: un solo mapa y una sola exclusión mutua por clave de sitio, nunca un mapa por decorador); `internal/httpx/ritmo.go` con el decorador que usa ese limitador por clave de sitio —un token cada intervalo, ráfaga 1, sin paralelismo propio— y espera turno con `Wait(ctx)`, de modo que el vencimiento del contexto mientras se espera impida emitir la petición y produzca clase 4; `internal/httpx/cliente.go` añade la opción `ConIntervalo(d time.Duration)` (1 s por omisión, `d <= 0` es clase 2, un solo valor para todos los sitios de un cliente) e inserta el decorador en la cadena por debajo de la identificación; `internal/httpx/ritmo_test.go` con `TestRitmoSeparaPeticionesDelMismoSitio`, `TestRitmoNoRetrasaOtroSitio` (dos servidores locales que solo difieren en el puerto y por tanto son dos sitios) y `TestRitmoRespetaElContexto`; e incorpora `golang.org/x/time` v0.16.0 al módulo con `go get`, comprobando el supuesto S1 —`go mod tidy -diff` limpio, `go mod graph` sin módulos nuevos más allá del añadido y `TestDependenciasDelBinario` en verde **sin tocar su lista**, porque ningún paquete de producción importa `internal/httpx` (FR-019 a FR-022, FR-058, SC-004, D8, obligación 1 del plan).",
+  "id": "T008",
+  "texto": "T008 [US1] Reintentos con retardo creciente y aleatorio, interrumpibles: `internal/httpx/reintentos.go` con el decorador que reintenta **solo** los 5xx y los fallos de transporte —nunca un 4xx, 429 incluido—, hasta el número de intentos configurado, con espera base 500 ms, factor 2, techo 30 s y *equal jitter* cuya parte aleatoria sale de `crypto/rand.Read` sobre ocho bytes reducidos con `encoding/binary` (ningún fichero del paquete importa `math/rand`, `math/rand/v2` ni `math/big`, porque G404 marca los dos primeros; el resultado de `Read` no se comprueba porque la función no devuelve nunca error, y la conversión a `int64` lleva el `>> 1` que G115 reconoce, todo ello sin una sola supresión), con el reloj inyectable desde el propio paquete para que los tests no esperen de verdad, cierre y descarte del cuerpo de cada respuesta desechada y ningún intento posterior a la cancelación del contexto; `internal/httpx/cliente.go` añade la opción `ConIntentos(n int)` (3 por omisión, `n < 1` es clase 2) y coloca el decorador por encima del ritmo, de modo que cada reintento espere su turno; `internal/httpx/reintentos_test.go` con `TestReintentosDosErroresYUnAcierto` (tres peticiones contadas en el servidor —las tres con la cabecera de identificación exacta, contadas en cero sin ella—, esperas crecientes y distintas entre dos ejecuciones), `TestReintentosNoRepite4xx`, `TestReintentosCancelacionGana`, `TestReintentosCierraCuerposDescartados` y `TestReintentosAgotados`; y `internal/httpx/identificar_test.go` gana la subprueba `reintentos` de `TestIdentificacionEnTodaPeticion`, ahora que la cadena tiene ese escalón, sin tocar `internal/httpx/identificar.go` (FR-009, FR-023 a FR-029, SC-001, SC-005, D9, obligaciones 2 y 12 del plan).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T007.md y déjala sin marcar.",
-  "base": "0325285962f17cff64065e17be4256c44d64ea70",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T008.md y déjala sin marcar.",
+  "base": "6ecf781d50801ee4ccce18cc8de92e2b64f8b1d4",
   "rutas": [
-    ".org/x/time",
-    "internal/httpx",
+    "crypto/rand.Read",
+    "encoding/binary",
     "internal/httpx/cliente.go",
-    "internal/httpx/ritmo_test.go",
-    "internal/httpx/ritmo.go",
-    "internal/httpx/sitio.go"
+    "internal/httpx/identificar_test.go",
+    "internal/httpx/identificar.go",
+    "internal/httpx/reintentos_test.go",
+    "internal/httpx/reintentos.go",
+    "math/big",
+    "math/rand",
+    "math/rand/v2"
   ]
 }

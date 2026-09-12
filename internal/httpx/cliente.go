@@ -36,6 +36,12 @@ const (
 // cada fuente admite llegará con la fuente (FR-020, D8).
 const intervaloPorOmision = time.Second
 
+// intentosPorOmision son los intentos que se hacen con cada petición cuando no
+// se declara otra cosa: una petición y dos reintentos. Tres es lo que absorbe
+// el tropiezo pasajero de una fuente pública sin insistirle a una que está
+// caída, y el número no se deduce del ritmo ni de nada más (FR-024, D9).
+const intentosPorOmision = 3
+
 // Cliente es el único objeto del módulo capaz de emitir una petición HTTP, y
 // Pedir su única operación: no hay ninguna otra forma de salir a la red desde
 // este paquete, ni forma alguna de construir uno al que le falte una de sus
@@ -66,6 +72,8 @@ type Cliente struct {
 type configuracionDelCliente struct {
 	fuente      string
 	intervalo   time.Duration
+	intentos    int
+	reloj       relojDeEspera
 	registrador *slog.Logger
 }
 
@@ -118,6 +126,29 @@ func ConIntervalo(d time.Duration) Opcion {
 	}
 }
 
+// ConIntentos declara cuántas veces se pide como mucho cada petición, la
+// primera incluida: tres por omisión, es decir una petición y dos reintentos
+// (FR-024). Lo que se repite y lo que se espera entre un intento y el siguiente
+// no se negocia —es la lista cerrada de FR-025 y la ley de D9—; lo único que se
+// declara aquí es cuántas veces.
+//
+// Menos de un intento es un error de argumentos: cero peticiones no es una
+// política de reintentos sino una petición que no se emite. No hay ninguna
+// opción para desactivarlos; declarar un solo intento es la forma de no
+// reintentar (FR-002).
+func ConIntentos(n int) Opcion {
+	return func(config *configuracionDelCliente) error {
+		if n < 1 {
+			return errorDeArgumentos(Peticion{}, nil,
+				"el número de intentos por petición tiene que ser al menos uno (ConIntentos): "+strconv.Itoa(n))
+		}
+
+		config.intentos = n
+
+		return nil
+	}
+}
+
 // ConRegistrador declara el destino de los eventos del cliente, que es el mismo
 // registrador que el kernel entrega al applet. Sin esta opción los eventos se
 // descartan; nunca se emiten por el registrador global ni por la salida estándar
@@ -136,14 +167,19 @@ func ConRegistrador(registrador *slog.Logger) Opcion {
 }
 
 // New construye el cliente contra la red, con sus garantías ya puestas sin
-// declarar ninguna opción: identificación en toda petición, ritmo por sitio,
-// plazo del contexto y redirecciones seguidas por él mismo. Las opciones se
-// aplican en orden —la última
+// declarar ninguna opción: identificación en toda petición, reintentos de lo
+// que puede ser pasajero, ritmo por sitio, plazo del contexto y redirecciones
+// seguidas por él mismo. Las opciones se aplican en orden —la última
 // repetida gana— y la primera inválida termina la construcción con su clase
 // (FR-001, contrato §2 y §3).
+//
+// El orden de la cadena no es arbitrario: los reintentos van por encima del
+// ritmo para que cada uno espere su turno en el sitio (FR-021, D3).
 func New(opciones ...Opcion) (*Cliente, error) {
 	config := configuracionDelCliente{
 		intervalo:   intervaloPorOmision,
+		intentos:    intentosPorOmision,
+		reloj:       dormirInterrumpible,
 		registrador: slog.New(slog.DiscardHandler),
 	}
 
@@ -154,7 +190,8 @@ func New(opciones ...Opcion) (*Cliente, error) {
 	}
 
 	registro := nuevosSitios(config.intervalo)
-	cadena := conIdentificacion(conRitmo(nuevoTransporte(), registro))
+	cadena := conIdentificacion(
+		conReintentos(conRitmo(nuevoTransporte(), registro), config.intentos, config.reloj))
 
 	return &Cliente{
 		cliente:     nuevoClienteHTTP(cadena),
