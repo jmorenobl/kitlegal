@@ -1,0 +1,28 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-12T00:00:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "http://fuente.prueba/a,b",
+    "cabeceras": {
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Content-Length": [
+        "3"
+      ],
+      "Content-Type": [
+        "text/plain; charset=utf-8"
+      ],
+      "Date": [
+        "Sat, 12 Sep 2026 00:00:00 GMT"
+      ]
+    },
+    "cuerpo": "a,b"
+  }
+}

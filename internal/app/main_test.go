@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"testing"
@@ -298,6 +299,80 @@ func TestDryRun(t *testing.T) {
 				"la descripción lleva los argumentos que se habrían ejecutado")
 		})
 	}
+}
+
+// TestDryRunPresentaElEnsayo comprueba lo que H2 añade a la bandera: que las
+// líneas que el applet deja en schema.Resultado.Ensayo —lo que cada capa con
+// efectos habría hecho en lugar de hacerlo— llegan a la salida de error detrás
+// de la descripción de H1, que la salida estándar sigue vacía y que el código
+// sigue siendo 0, porque estar en ensayo no es un fallo (FR-051, FR-065,
+// ADR 0011). Y la otra mitad del contrato de errores §5.3: si el applet
+// describió y después falló, se presenta igual lo que alcanzó a dejar en Ensayo
+// y manda el fallo, con su código.
+//
+// El nivel del registro de eventos se fija al máximo a propósito, por la misma
+// razón que en TestDryRun: un requisito de visibilidad incondicional no se
+// implementa sobre un canal que se filtra, así que estas líneas tienen que
+// seguir estando con el registro apagado (research.md D6). Y por eso mismo no es
+// paralelo: el nivel es estado del proceso entero.
+func TestDryRunPresentaElEnsayo(t *testing.T) {
+	t.Setenv(cli.VariableNivel, "error")
+
+	// Dos líneas y no una: lo que el campo promete es «una por operación», así
+	// que el orden en que el applet las dejó también es observable.
+	ensayo := []string{
+		"GET https://fuente.prueba/norma",
+		"GET https://fuente.prueba/norma/a21",
+	}
+
+	t.Run("el applet describe y termina bien", func(t *testing.T) {
+		t.Setenv(cli.VariableNivel, "error")
+
+		registro := registroDeCodigos(t, func(_ context.Context) (schema.Resultado, error) {
+			return schema.Resultado{Procedencia: procedenciaDePrueba, Ensayo: ensayo}, nil
+		})
+
+		res := invocar(t, registro, "kitlegal", "prueba", "hola", "--dry-run")
+
+		assert.Equal(t, 0, res.codigo, "el ensayo no es un fallo: --dry-run sigue terminando con 0")
+		assert.Empty(t, res.salida,
+			"la salida estándar no lleva la descripción del ensayo: una operación no realizada no cita nada")
+
+		require.Contains(t, res.errores,
+			"--dry-run: se habría pedido "+ensayo[0]+"\n--dry-run: se habría pedido "+ensayo[1],
+			"cada línea del ensayo sale por la salida de error, y en el orden en que el applet las dejó")
+
+		assert.Less(t,
+			strings.Index(res.errores, "no se ha ejecutado nada"),
+			strings.Index(res.errores, "se habría pedido"),
+			"la descripción de H1 sigue encabezando lo que el ensayo añade")
+	})
+
+	t.Run("el applet describe y después falla: se presenta el ensayo y manda el fallo", func(t *testing.T) {
+		t.Setenv(cli.VariableNivel, "error")
+
+		// Un applet que alcanzó a describir una operación antes de fallar con
+		// una clase conocida —la fuente que no responde, código 4—, como haría
+		// un adaptador cuya segunda petición no se pudiera ni describir.
+		registro := registroDeCodigos(t, func(_ context.Context) (schema.Resultado, error) {
+			return schema.Resultado{Procedencia: procedenciaDePrueba, Ensayo: ensayo[:1]},
+				fmt.Errorf("la fuente no ha respondido: %w", cli.ErrFuenteNoDisponible)
+		})
+
+		res := invocar(t, registro, "kitlegal", "prueba", "hola", "--dry-run")
+
+		assert.Equal(t, 4, res.codigo,
+			"manda el fallo del applet, con su clase, y no el 0 del ensayo (contrato de errores §5.3)")
+		assert.Empty(t, res.salida,
+			"sin --json un fallo no lleva sobre, y el ensayo tampoco escribe en la salida estándar")
+		assert.Contains(t, res.errores, "--dry-run: se habría pedido "+ensayo[0],
+			"lo que el applet alcanzó a dejar en Ensayo se presenta aunque haya fallado")
+		assert.Contains(t, res.errores, "la fuente no ha respondido", "y el mensaje del fallo sale igualmente")
+		assert.Less(t,
+			strings.Index(res.errores, "se habría pedido"),
+			strings.Index(res.errores, "la fuente no ha respondido"),
+			"la descripción del ensayo va antes que el fallo, que es lo último que la persona lee")
+	})
 }
 
 // TestPlazoAgotado comprueba la mitad de FR-020 que ninguna otra tabla verifica:

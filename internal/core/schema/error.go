@@ -44,6 +44,25 @@ func Clases() []Clase {
 	}
 }
 
+// ConClase lo implementa un error que declara él mismo la clase con la que hay
+// que traducirlo a código de salida. Es el puerto por el que un adaptador —el
+// cliente HTTP, mañana una fuente— nombra su clase sin importar el kernel: la
+// interfaz vive en el dominio y es el kernel quien la reconoce, de modo que la
+// dependencia sigue yendo hacia dentro y no entre adaptadores (research.md D4).
+//
+// Embebe error, así que quien la implementa es un error y se devuelve como tal.
+// Y como el kernel la busca con errors.As, que sigue la cadena de Unwrap,
+// envolver con %w el error que declara la clase no cambia la clase (FR-031).
+//
+// Clase debe devolver una de las de Clases(). Quien clasifica no se fía: una
+// clase de fuera del vocabulario no podría ir en el sobre —el esquema de
+// --describe la restringe a las seis—, así que la trata como lo que es, un
+// fallo no previsto (FR-063).
+type ConClase interface {
+	error
+	Clase() Clase
+}
+
 // DatosError es lo que ocupa data cuando ok es falso: dos claves y ninguna más
 // —ni traza, ni código numérico, ni error envuelto—, porque el detalle técnico
 // va al registro de eventos y no al sobre (FR-045, research.md D7).

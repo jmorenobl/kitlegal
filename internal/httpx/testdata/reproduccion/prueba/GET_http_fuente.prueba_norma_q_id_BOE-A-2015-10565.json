@@ -1,0 +1,28 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-12T00:00:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "http://fuente.prueba/norma?id=BOE-A-2015-10565",
+    "cabeceras": {
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Content-Length": [
+        "271"
+      ],
+      "Content-Type": [
+        "application/xml; charset=utf-8"
+      ],
+      "Date": [
+        "Sat, 12 Sep 2026 00:00:00 GMT"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><norma id=\"BOE-A-2015-10565\"><titulo>Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas</titulo><nota>plazos de los artículos 21 &amp; 30, en días &lt;hábiles&gt;</nota></norma>"
+  }
+}

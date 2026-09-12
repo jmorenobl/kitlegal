@@ -1,0 +1,28 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-12T00:00:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "http://fuente.prueba/documento.pdf",
+    "cabeceras": {
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Content-Length": [
+        "57"
+      ],
+      "Content-Type": [
+        "application/pdf"
+      ],
+      "Date": [
+        "Sat, 12 Sep 2026 00:00:00 GMT"
+      ]
+    },
+    "cuerpo_base64": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKJSVFT0YK"
+  }
+}

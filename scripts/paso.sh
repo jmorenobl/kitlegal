@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Ejecuta a mano un paso `prompt` del workflow hito (juez, corrector, revisor)
-# con el mismo texto y el mismo modelo que usaría el workflow.
+# Ejecuta a mano un paso `prompt` (juez, corrector, revisor) o `shell` (guardián,
+# verificación, commit) del workflow hito con el mismo texto y el mismo modelo
+# que usaría el workflow.
 #
 #   scripts/paso.sh juez_plan H2             # vuelve a juzgar el plan
 #   scripts/paso.sh corrector_plan H2        # aplica los motivos del último veredicto
 #   scripts/paso.sh revision_juez_a H2       # juez A de la revisión final (item "a" del fan-out)
 #   scripts/paso.sh revision_juez_b H2 opus@xhigh   # juez B con otro modelo y esfuerzo
+#   scripts/paso.sh guardian_diff H2         # guardián de diff de la tarea de gates/tarea-actual.json
+#   scripts/paso.sh verificar H2             # make ci con el log en gates/ci.log
+#   scripts/paso.sh commit_tarea H2          # commit feat(H2): Tnnn de la tarea actual
 #
 # Útil cuando un run se ha parado en check_gate_* o ci_final y quieres una ronda
-# más antes de reanudar con scripts/hito.sh --resume <run_id>.
+# más antes de reanudar con scripts/hito.sh --resume <run_id>, o cuando se ha
+# parado dentro del bucle de tareas y quieres cerrar la tarea a mano (aunque
+# desde 1.6.1 el propio bucle cierra una tarea marcada [X] y sin commitear).
+# Los pasos shell que interpolan salidas de otros pasos no se pueden lanzar sueltos.
 #
 # Los jueces de la revisión final viven en un fan-out (`revision_jueces`) con una
 # única plantilla `revision_juez`; `revision_juez_<id>` selecciona el item con ese
@@ -91,18 +98,25 @@ if found is None:
             salir(f"el fan-out {fo['id']} no tiene un item con id {m.group(2)!r}")
         found = plantilla
         break
-if not found or found.get('type') != 'prompt':
-    salir(f'no existe un paso prompt con id {paso}')
+if not found or found.get('type') not in ('prompt', 'shell'):
+    salir(f'no existe un paso prompt ni shell con id {paso}')
 
-prompt = render(found['prompt'], item)
-if '{{' in prompt:
+tipo = found['type']
+texto = render(found['prompt'] if tipo == 'prompt' else found['run'], item)
+if '{{' in texto:
     salir(f'el paso {paso} interpola salidas de otros pasos; no se puede lanzar suelto')
 if not modelo:
     modelo = render(str(found.get('model', '')), item) or 'opus'
-print(f"PROMPT={shlex.quote(prompt)}")
+print(f"TIPO={shlex.quote(tipo)}")
+print(f"TEXTO={shlex.quote(texto)}")
 print(f"MODELO={shlex.quote(modelo)}")
 PYEOF
 )"
 
+if [ "$TIPO" = shell ]; then
+  # Igual que el motor: subprocess.run(shell=True) → /bin/sh -c, en la raíz del repo.
+  echo "→ paso $paso (shell) · hito $hito" >&2
+  exec sh -c "$TEXTO"
+fi
 echo "→ paso $paso · hito $hito · modelo $MODELO" >&2
-exec scripts/claude-modelo.sh -p "$PROMPT" --model "$MODELO" --permission-mode acceptEdits ${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:-}
+exec scripts/claude-modelo.sh -p "$TEXTO" --model "$MODELO" --permission-mode acceptEdits ${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:-}

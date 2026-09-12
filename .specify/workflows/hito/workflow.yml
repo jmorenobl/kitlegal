@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.6.0"
+  version: "1.6.1"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -550,8 +550,25 @@ steps:
               d=$(jq -r .feature_directory .specify/feature.json)
               mkdir -p "$d/gates"
               f="$d/gates/tareas-intentos.json"; [ -f "$f" ] || echo '{}' > "$f"
+              # Reanudación dentro del bucle: el motor no retoma el paso interno que falló
+              # sino que reejecuta el paso padre entero, es decir, arranca una iteración
+              # nueva (engine.py: «resume will re-run the parent step and its nested
+              # body»). Si la tarea anterior quedó marcada [X] con su trabajo sin
+              # commitear (reparada a mano tras verificar_reparacion o guardian_diff),
+              # esta iteración la cierra —guardián, verificación y commit con su base
+              # original, sin implementar nada— en vez de atribuir su diff a la siguiente.
+              t="$d/gates/tarea-actual.json"
+              if [ -f "$t" ]; then
+                prev=$(jq -r '.id // ""' "$t")
+                if [ -n "$prev" ] && grep -qE "^[[:space:]]*- \[[Xx]\] $prev " "$d/tasks.md" \
+                   && [ -n "$(git status --porcelain | grep -v "$d/" || true)" ]; then
+                  echo "la tarea $prev está marcada [X] con cambios sin commitear: esta iteración la cierra antes de elegir otra" >&2
+                  jq '. + {cierre: true}' "$t" > "$t.tmp" && mv "$t.tmp" "$t"
+                  cat "$t"; exit 0
+                fi
+              fi
               linea=$(grep -E '^[[:space:]]*- \[ \] T[0-9]+' "$d/tasks.md" | head -1 || true)
-              if [ -z "$linea" ]; then jq -n '{id:"", texto:"", intento:0, datos:false, plataforma:false, plataforma_bloqueada:false, red:"", base:"", rutas:[]}' | tee "$d/gates/tarea-actual.json"; exit 0; fi
+              if [ -z "$linea" ]; then jq -n '{id:"", texto:"", intento:0, datos:false, plataforma:false, plataforma_bloqueada:false, red:"", base:"", rutas:[], cierre:false}' | tee "$d/gates/tarea-actual.json"; exit 0; fi
               id=$(printf '%s' "$linea" | grep -oE 'T[0-9]+' | head -1)
               texto=$(printf '%s' "$linea" | sed -E 's/^[[:space:]]*- \[ \] //')
               n=$(jq -r --arg id "$id" '.[$id] // 0' "$f"); n=$((n + 1))
@@ -578,7 +595,7 @@ steps:
               base=$(git rev-parse HEAD)
               rutas=$(printf '%s' "$texto" | tr '`,;()' '     ' | grep -oE '(\.?[A-Za-z0-9_-]+/)+[A-Za-z0-9_.*-]*|[A-Za-z0-9_.-]+\.(go|md|yml|yaml|json|sh|txt|mod|sum|toml|txtar)|\.[A-Za-z0-9_-]*ignore|\.editorconfig|Makefile|LICENSE' | grep -vE '^https?:' | sort -u | jq -R . | jq -s .)
               jq -n --arg id "$id" --arg texto "$texto" --argjson n "$n" --argjson datos "$datos" --argjson plataforma "$plataforma" --argjson bloqueada "$bloqueada" --arg red "$red" --arg base "$base" --argjson rutas "$rutas" \
-                '{id:$id, texto:$texto, intento:$n, datos:$datos, plataforma:$plataforma, plataforma_bloqueada:$bloqueada, red:$red, base:$base, rutas:$rutas}' | tee "$d/gates/tarea-actual.json"
+                '{id:$id, texto:$texto, intento:$n, datos:$datos, plataforma:$plataforma, plataforma_bloqueada:$bloqueada, red:$red, base:$base, rutas:$rutas, cierre:false}' | tee "$d/gates/tarea-actual.json"
 
           - id: tarea
             type: if
@@ -596,25 +613,31 @@ steps:
 
               # Primer intento con modelo_implementacion; si la tarea vuelve sin
               # quedar [X], los reintentos pasan a modelo_escalada. Mismo prompt
-              # (ancla YAML); solo cambian id y modelo.
+              # (ancla YAML); solo cambian id y modelo. Una iteración de cierre
+              # (tarea ya marcada [X] y sin commitear) no implementa nada: va
+              # directa al guardián, la verificación y el commit.
               - id: implementar
                 type: if
-                condition: "{{ steps.siguiente_tarea.output.data.intento < 2 }}"
+                condition: "{{ not steps.siguiente_tarea.output.data.cierre }}"
                 then:
-                  - &implementar_tarea
-                    id: implementar_tarea
-                    command: speckit.implement
-                    model: "{{ inputs.modelo_implementacion }}"
-                    input:
-                      args: |
-                        MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
-                        {{ steps.siguiente_tarea.output.data.texto }}
-                        Si existe <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, léelo antes de empezar: documenta por qué no quedó en verde un intento anterior.
-                        Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni consultes fuentes por red. {{ steps.siguiente_tarea.output.data.red }} Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
-                else:
-                  - <<: *implementar_tarea
-                    id: implementar_tarea_escalada
-                    model: "{{ inputs.modelo_escalada }}"
+                  - id: implementar_modelo
+                    type: if
+                    condition: "{{ steps.siguiente_tarea.output.data.intento < 2 }}"
+                    then:
+                      - &implementar_tarea
+                        id: implementar_tarea
+                        command: speckit.implement
+                        model: "{{ inputs.modelo_implementacion }}"
+                        input:
+                          args: |
+                            MODO DESATENDIDO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3):
+                            {{ steps.siguiente_tarea.output.data.texto }}
+                            Si existe <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, léelo antes de empezar: documenta por qué no quedó en verde un intento anterior.
+                            Reglas: el test primero, dentro de la tarea (rojo → verde); sin atajos (nada de nolint sin justificar, tests saltados, TODO diferidos ni errores silenciados); aplica las skills golang-*; no toques ni marques otras tareas. Un guardián de diff rechazará cualquier fichero fuera de las rutas declaradas en la tarea (go.mod, go.sum, CHANGELOG.md, el directorio del feature y x_test.go de un x.go declarado siempre están permitidos) y cualquier cambio en testdata/ o schemas/ si la tarea no lleva [datos]. Nunca uses KITLEGAL_RECORD ni consultes fuentes por red. {{ steps.siguiente_tarea.output.data.red }} Al terminar ejecuta la verificación determinista (`make ci`; si aún no existe el Makefile, `go build ./... && go vet ./... && go test -race ./...`) y marca la tarea [X] SOLO si está en verde. Si ya estaba hecha y en verde, limítate a marcarla. Si no consigues verde, déjala [ ] y escribe la causa en <feature_dir>/gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md. Las checklists ya fueron verificadas; no preguntes ni esperes respuesta.
+                    else:
+                      - <<: *implementar_tarea
+                        id: implementar_tarea_escalada
+                        model: "{{ inputs.modelo_escalada }}"
 
               - id: guardian_diff
                 type: shell

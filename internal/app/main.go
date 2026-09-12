@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,6 +30,12 @@ const formatoDeVersion = "kitlegal %s\ncommit: %s\nfecha:  %s\n"
 // D17). Cuando aparezca un segundo, esta comparación se convierte en un switch
 // y el registro seguirá siendo la única lista.
 const verboVersion = "version"
+
+// prefijoDeEnsayo encabeza todas las líneas que --dry-run deja en la salida de
+// error —la del kernel y una por cada operación que una capa con efectos
+// describió—, de modo que quien las lea sepa desde el primer carácter de cada
+// una que no se ejecutó nada.
+const prefijoDeEnsayo = "--dry-run: "
 
 // prefijoDeCampo nombra los campos de la gramática que se construye al vuelo. El
 // nombre no se deriva del verbo a propósito: el campo de un struct tiene que ser
@@ -303,9 +310,11 @@ func ejecutarVerbo(
 
 	if ejecucion.DryRun {
 		// --dry-run no ha cortado antes del applet: la bandera viajó en el
-		// contexto de ejecución, y como en H1 ninguna capa tiene efectos, la
-		// descripción la escribe el kernel (FR-022, research.md D10).
-		fin.err = conDescripcion(p, despacho, analisis.Verbo, err)
+		// contexto de ejecución, y es cada capa con efectos la que la honra
+		// describiendo en lugar de ejecutar. Lo que describan llega aquí en
+		// Resultado.Ensayo y lo presenta el kernel, que es quien tiene el
+		// presentador (FR-022, FR-051, research.md D10, D6).
+		fin.err = conDescripcion(p, despacho, analisis.Verbo, resultado.Ensayo, err)
 
 		return fin, analisis.Verbo
 	}
@@ -321,12 +330,19 @@ func ejecutarVerbo(
 // mandando sobre el código de salida.
 //
 // La descripción se escribe siempre, también cuando el applet ha fallado: es un
-// mensaje dirigido a la persona y no la consecuencia de un éxito. El fallo del
-// applet, si lo hubo, es el que se cuenta —el de la escritura del aviso no lo
-// sustituye—, con el mismo criterio por el que el montador no reintenta un
-// descriptor que acaba de fallar.
-func conDescripcion(p cli.Presentador, despacho Despacho, verbo string, err error) error {
-	errAviso := p.Aviso(descripcionDeLaOperacion(despacho, verbo))
+// mensaje dirigido a la persona y no la consecuencia de un éxito. Por eso se
+// presenta igualmente lo que el applet alcanzara a dejar en Ensayo antes de
+// fallar. El fallo del applet, si lo hubo, es el que se cuenta —el de la
+// escritura del aviso no lo sustituye—, con el mismo criterio por el que el
+// montador no reintenta un descriptor que acaba de fallar.
+func conDescripcion(
+	p cli.Presentador,
+	despacho Despacho,
+	verbo string,
+	ensayo []string,
+	err error,
+) error {
+	errAviso := p.Aviso(descripcionDeLaOperacion(despacho, verbo, ensayo))
 	if err != nil {
 		return err
 	}
@@ -335,14 +351,27 @@ func conDescripcion(p cli.Presentador, despacho Despacho, verbo string, err erro
 }
 
 // descripcionDeLaOperacion es lo que --dry-run deja en la salida de error: qué
-// applet, qué verbo y con qué argumentos se habría ejecutado. Va por el
-// presentador y no por el registro de eventos, que es lo que la hace visible con
-// cualquier nivel (FR-022, research.md D10).
-func descripcionDeLaOperacion(despacho Despacho, verbo string) string {
-	return fmt.Sprintf(
-		"--dry-run: no se ha ejecutado nada; se habría ejecutado el applet %q,"+
+// applet, qué verbo y con qué argumentos se habría ejecutado, y a continuación
+// una línea por cada operación que una capa con efectos describió en lugar de
+// ejecutar. Va por el presentador y no por el registro de eventos, que es lo que
+// la hace visible con cualquier nivel (FR-022, FR-051, research.md D10, D6).
+//
+// Sale como un único texto y no como un aviso por línea porque es un solo
+// mensaje: así ninguna escritura puede fallar a medias y dejar en la salida de
+// error una descripción incompleta sin que nadie lo note.
+func descripcionDeLaOperacion(despacho Despacho, verbo string, ensayo []string) string {
+	lineas := make([]string, 0, 1+len(ensayo))
+
+	lineas = append(lineas, fmt.Sprintf(
+		prefijoDeEnsayo+"no se ha ejecutado nada; se habría ejecutado el applet %q,"+
 			" el verbo %q, con los argumentos %q",
-		despacho.Applet.Nombre(), verbo, despacho.Args)
+		despacho.Applet.Nombre(), verbo, despacho.Args))
+
+	for _, operacion := range ensayo {
+		lineas = append(lineas, prefijoDeEnsayo+"se habría pedido "+operacion)
+	}
+
+	return strings.Join(lineas, "\n")
 }
 
 // conPlazoAgotado convierte el plazo vencido en el error tipado de fuente no

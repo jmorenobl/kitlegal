@@ -8,6 +8,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/httpx"
 )
 
 // registroVacio es la lista de applets que escribe el kernel cuando no hay
@@ -132,4 +133,24 @@ func TestValoresPorDefecto(t *testing.T) {
 		t.Errorf("valores por defecto = %q, %q, %q; se esperaban %q, %q, %q",
 			version, commit, fecha, "dev", "none", "unknown")
 	}
+}
+
+// TestVersionDeLaIdentificacion ata la versión con la que kitlegal se presenta
+// en la red a la que imprime su verbo version: son dos variables de paquete
+// distintas —main.version y la de internal/httpx—, y el Makefile inyecta en
+// las dos la misma VERSION, así que lo único que podría separarlas es que sus
+// valores por omisión divergieran. Este caso lo impide: sin -ldflags los dos
+// valen «dev», y cambiar uno solo deja make ci en rojo (FR-007, research.md D5).
+//
+// La importación de internal/httpx vive **solo aquí**, en un fichero de test:
+// `go list -deps ./cmd/kitlegal` no incluye las importaciones de test, de modo
+// que el binario distribuido sigue sin enlazar el paquete de red ni lo que este
+// arrastre, y TestDependenciasDelBinario ve la misma lista de módulos (SC-014).
+func TestVersionDeLaIdentificacion(t *testing.T) {
+	t.Parallel()
+
+	// El espacio final acota la versión: sin él, «kitlegal/dev» también casaría
+	// dentro de «kitlegal/dev-2», y la divergencia pasaría inadvertida.
+	assert.Contains(t, httpx.AgenteDeUsuario(), "kitlegal/"+version+" ",
+		"la identificación lleva la misma versión que el verbo version de este binario (FR-007)")
 }

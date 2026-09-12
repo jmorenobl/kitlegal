@@ -1,0 +1,28 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-12T00:00:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "http://fuente.prueba/antigua",
+    "cabeceras": {
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 302,
+    "cabeceras": {
+      "Content-Length": [
+        "0"
+      ],
+      "Date": [
+        "Sat, 12 Sep 2026 00:00:00 GMT"
+      ],
+      "Location": [
+        "/norma?id=BOE-A-2015-10565"
+      ]
+    },
+    "cuerpo": ""
+  }
+}

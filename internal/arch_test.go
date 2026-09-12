@@ -70,8 +70,9 @@ func TestArquitectura(t *testing.T) {
 			razon: "la biblioteca HTTP se usa a través de internal/httpx, que es lo que concentra " +
 				"los reintentos, el límite de peticiones por sitio, robots.txt y el User-Agent " +
 				"identificable (contracts/reglas-de-arquitectura.md R2)",
-			duenos:    []string{grafo.modulo + "/internal/httpx"},
-			denegados: []string{"net/http"},
+			duenos:           []string{grafo.modulo + "/internal/httpx"},
+			denegados:        []string{"net/http"},
+			duenoObligatorio: true,
 		})
 	})
 
@@ -83,6 +84,11 @@ func TestArquitectura(t *testing.T) {
 			razon: "el acceso a SQLite vive en los tres paquetes de almacenamiento —caché, almacén " +
 				"y grafo—; el resto del árbol los usa a través de su interfaz " +
 				"(contracts/reglas-de-arquitectura.md R3)",
+			// Sin duenoObligatorio, y no por descuido: los tres dueños de R3
+			// llegan en H3, H12 y H16, así que hasta entonces la regla está
+			// activa y vacía a propósito. Exigir aquí un dueño convertiría en
+			// rojo el estado normal del árbol, que es justo lo contrario de lo
+			// que la bandera sirve.
 			duenos: []string{
 				grafo.modulo + "/internal/cache",
 				grafo.modulo + "/internal/store",
@@ -125,14 +131,39 @@ const plantillaDeModulos = "{{if .Module}}{{.Module.Path}}{{end}}"
 func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 	t.Parallel()
 
-	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
-	require.NotEmpty(t, modulo)
+	modulo := rutaDelModulo(t)
 
-	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "./cmd/kitlegal"), "\n") {
-		paquete := strings.TrimSpace(linea)
+	for _, paquete := range paquetesDelBinario(t, modulo) {
 		assert.False(t, cuelgaDe(paquete, paqueteDeEjemplo(modulo)),
 			"el binario distribuido enlaza %s: los applets de ejemplo no son funcionalidad y solo los "+
 				"registra el binario de e2e (ADR 0010)", paquete)
+	}
+}
+
+// TestElBinarioNoEnlazaHTTPX comprueba que el binario distribuido tampoco
+// enlaza el cliente HTTP. En H2 el paquete existe y está entero, pero no lo usa
+// ningún applet —el adaptador que lo ejercita es material de test y no se
+// registra en ningún binario (FR-060, FR-062)—, de modo que la superficie
+// visible del binario es exactamente la que dejó H1 y ningún guion de extremo a
+// extremo necesita cambiar (SC-014).
+//
+// **H4 retira este test.** El primer adaptador de fuente enlazará
+// internal/httpx a propósito, y ese hito lo sustituye por lo que sí seguirá
+// siendo cierto: la ampliación justificada de modulosDelBinario con
+// golang.org/x/time y github.com/temoto/robotstxt, que entran con él
+// (research.md D18, docs/PENDIENTES.md).
+func TestElBinarioNoEnlazaHTTPX(t *testing.T) {
+	t.Parallel()
+
+	modulo := rutaDelModulo(t)
+	cliente := modulo + "/internal/httpx"
+
+	for _, paquete := range paquetesDelBinario(t, modulo) {
+		assert.False(t, cuelgaDe(paquete, cliente),
+			"el binario distribuido enlaza %s: en H2 el cliente HTTP no lo usa ningún applet, y el "+
+				"conjunto de verbos que atiende el binario es el mismo que al cerrar H1 (SC-014). "+
+				"Cuando H4 lo enlace de verdad, este test se retira junto con la ampliación "+
+				"justificada de modulosDelBinario", paquete)
 	}
 }
 
@@ -144,9 +175,7 @@ func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 func TestDependenciasDelBinario(t *testing.T) {
 	t.Parallel()
 
-	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
-	require.NotEmpty(t, modulo)
-
+	modulo := rutaDelModulo(t)
 	enlazados := map[string]bool{}
 
 	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "-f", plantillaDeModulos, "./cmd/kitlegal"), "\n") {
@@ -215,6 +244,13 @@ type reglaExclusiva struct {
 
 	// denegados son las importaciones que la regla reserva a esos paquetes.
 	denegados []string
+
+	// duenoObligatorio exige que la regla tenga dueño de verdad: que sus
+	// paquetes estén en el grafo y que alguno importe lo que les reserva. Una
+	// regla exclusiva se cumple también cuando no hay nada que vigilar —así
+	// estuvo R2 hasta que H2 trajo internal/httpx, «activa y vacía»—, y esa
+	// forma de pasar no distingue «nadie la incumple» de «ya no vigila nada».
+	duenoObligatorio bool
 }
 
 // compruebaDominioPuro hace cumplir R1: ningún paquete de internal/core puede
@@ -277,6 +313,10 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 func compruebaImportacionExclusiva(t *testing.T, g grafo, regla reglaExclusiva) {
 	t.Helper()
 
+	if regla.duenoObligatorio {
+		exigeDueno(t, g, regla)
+	}
+
 	for _, paquete := range g.paquetesBajo(g.modulo) {
 		if _, esDueno := primerPrefijo(paquete, regla.duenos); esDueno {
 			continue
@@ -290,6 +330,45 @@ func compruebaImportacionExclusiva(t *testing.T, g grafo, regla reglaExclusiva) 
 			}
 		}
 	}
+}
+
+// exigeDueno comprueba que la regla vigila algo: sus dueños están en el grafo y
+// alguno importa de verdad lo que les reserva. Sin esto, la subprueba pasaría
+// igual el día que el dueño desapareciera del árbol o dejara de concentrar lo
+// que concentra, que es precisamente cuando la regla deja de proteger nada
+// (FR-053, research.md D18).
+//
+// Es el mismo cuidado que grafoDelModulo tiene con el dominio y con el paquete
+// de applets de ejemplo, aplicado al otro extremo de la regla: allí se exige
+// que haya a quién vigilar, aquí que haya quién sea el dueño.
+func exigeDueno(t *testing.T, g grafo, regla reglaExclusiva) {
+	t.Helper()
+
+	reservado := strings.Join(regla.denegados, ", ")
+	importaLoReservado := false
+
+	for _, dueno := range regla.duenos {
+		paquetes := g.paquetesBajo(dueno)
+
+		require.NotEmpty(t, paquetes,
+			"%s · el grafo no contiene %s, que es quien tiene que concentrar %s: la regla quedaría "+
+				"activa y vacía, cumpliéndose porque no hay nada que vigilar",
+			regla.nombre, dueno, reservado)
+
+		for _, paquete := range paquetes {
+			for _, importacion := range g.importa[paquete] {
+				if _, hay := primerPrefijo(importacion, regla.denegados); hay {
+					importaLoReservado = true
+				}
+			}
+		}
+	}
+
+	assert.True(t, importaLoReservado,
+		"%s · ningún paquete de %s importa %s: la regla ya no tiene dueño y volvería a pasar en vacío. "+
+			"Si la concentración se ha mudado, la regla se muda con ella; si ha desaparecido, se retira "+
+			"del contrato antes que de aquí.",
+		regla.nombre, strings.Join(regla.duenos, ", "), reservado)
 }
 
 // paquetesInternos son los ocho paquetes de internal/ que el dominio no puede
@@ -311,9 +390,7 @@ var entradaYSalidaEstandar = []string{
 func grafoDelModulo(t *testing.T) grafo {
 	t.Helper()
 
-	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
-	require.NotEmpty(t, modulo, "go list -m no devolvió la ruta del módulo")
-
+	modulo := rutaDelModulo(t)
 	g := grafo{modulo: modulo, importa: map[string][]string{}}
 
 	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "-f", plantillaDeListado, "./..."), "\n") {
@@ -342,6 +419,40 @@ func grafoDelModulo(t *testing.T) grafo {
 // el binario distribuido.
 func paqueteDeEjemplo(modulo string) string {
 	return modulo + "/internal/app/ejemplo"
+}
+
+// paquetesDelBinario devuelve el cierre transitivo real del binario
+// distribuido, que es lo que acaba enlazado en el ejecutable. Comprueba de paso
+// que la lista trae su propio punto de entrada: sin eso, las dos comprobaciones
+// que parten de ella pasarían en vacío el día que `go list` dejara de devolver
+// lo que se le pide.
+func paquetesDelBinario(t *testing.T, modulo string) []string {
+	t.Helper()
+
+	var paquetes []string
+
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "./cmd/kitlegal"), "\n") {
+		if paquete := strings.TrimSpace(linea); paquete != "" {
+			paquetes = append(paquetes, paquete)
+		}
+	}
+
+	require.Contains(t, paquetes, modulo+"/cmd/kitlegal",
+		"el cierre del binario no contiene ni siquiera su propio punto de entrada")
+
+	return paquetes
+}
+
+// rutaDelModulo lee la ruta del módulo de go.mod en lugar de escribirla a mano,
+// para que renombrarlo no deje ningún control comprobando un prefijo que ya no
+// existe.
+func rutaDelModulo(t *testing.T) string {
+	t.Helper()
+
+	modulo := strings.TrimSpace(ejecutaGo(t, "list", "-m"))
+	require.NotEmpty(t, modulo, "go list -m no devolvió la ruta del módulo")
+
+	return modulo
 }
 
 // ejecutaGo ejecuta el go command en la raíz del módulo y devuelve su salida

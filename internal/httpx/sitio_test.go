@@ -1,0 +1,218 @@
+package httpx
+
+import (
+	"net/url"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
+)
+
+// intervaloDePrueba es el ritmo con que este fichero construye los registros de
+// sitios: ninguna de sus tablas espera turno —no hay red— y solo comprueban que
+// el limitador nace con el valor que se le declaró.
+const intervaloDePrueba = 250 * time.Millisecond
+
+// TestClaveDeSitio fija la identidad de un sitio, que es la base común de la
+// caché de robots.txt (FR-013, FR-015) y del limitador de ritmo (FR-019): dos
+// direcciones son del mismo sitio si y solo si su clave coincide. Las cuatro
+// primeras filas fijan la forma de la clave; las cuatro restantes, qué dos
+// direcciones la comparten (plan.md «Inventario de tests», data-model.md §4).
+//
+// Toda dirección de la tabla es de un host ficticio o local, que es lo único
+// que admite la comprobación «solo direcciones locales» del quickstart.
+func TestClaveDeSitio(t *testing.T) {
+	t.Parallel()
+
+	formas := []struct {
+		nombre    string
+		direccion string
+		clave     string
+	}{
+		{
+			nombre:    "sin puerto, http toma el 80 de su esquema",
+			direccion: "http://fuente.prueba",
+			clave:     "http://fuente.prueba:80",
+		},
+		{
+			nombre:    "sin puerto, https toma el 443 de su esquema",
+			direccion: "https://fuente.prueba",
+			clave:     "https://fuente.prueba:443",
+		},
+		{
+			nombre:    "el puerto explícito se conserva",
+			direccion: "http://fuente.prueba:8080",
+			clave:     "http://fuente.prueba:8080",
+		},
+		{
+			nombre:    "host en minúsculas, y ni la ruta ni la consulta entran en la clave",
+			direccion: "http://Fuente.Prueba/ruta?q=1",
+			clave:     "http://fuente.prueba:80",
+		},
+	}
+
+	for _, caso := range formas {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.clave, claveDeSitio(direccionDePrueba(t, caso.direccion)))
+		})
+	}
+
+	parejas := []struct {
+		nombre     string
+		una        string
+		otra       string
+		mismoSitio bool
+	}{
+		{
+			nombre:     "el esquema distingue el sitio",
+			una:        "http://fuente.prueba",
+			otra:       "https://fuente.prueba",
+			mismoSitio: false,
+		},
+		{
+			nombre:     "el host distingue el sitio",
+			una:        "http://fuente.prueba",
+			otra:       "http://otra.prueba",
+			mismoSitio: false,
+		},
+		{
+			nombre:     "el puerto distingue el sitio, aunque el host sea el mismo",
+			una:        "http://127.0.0.1:53211",
+			otra:       "http://127.0.0.1:53212",
+			mismoSitio: false,
+		},
+		{
+			nombre:     "el puerto por omisión y el mismo puerto explícito son un solo sitio",
+			una:        "http://fuente.prueba",
+			otra:       "http://fuente.prueba:80",
+			mismoSitio: true,
+		},
+	}
+
+	for _, caso := range parejas {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			una := claveDeSitio(direccionDePrueba(t, caso.una))
+			otra := claveDeSitio(direccionDePrueba(t, caso.otra))
+
+			if caso.mismoSitio {
+				assert.Equal(t, una, otra)
+
+				return
+			}
+
+			assert.NotEqual(t, una, otra)
+		})
+	}
+}
+
+// TestMapaDeSitios comprueba lo que el mapa garantiza: una sola entrada por
+// clave de sitio, creada —con su limitador de ritmo— la primera vez que se ve la
+// dirección, compartida por todo el que la pida después y también cuando varias
+// goroutines la piden a la vez. Es lo que permite que el ritmo y el robots.txt
+// de un sitio sean uno solo por cliente y no uno por petición (FR-021, SC-011,
+// D14).
+func TestMapaDeSitios(t *testing.T) {
+	t.Parallel()
+
+	t.Run("dos direcciones del mismo sitio comparten entrada", func(t *testing.T) {
+		t.Parallel()
+
+		sitios := nuevosSitios(intervaloDePrueba)
+
+		primero := sitios.de(direccionDePrueba(t, "http://fuente.prueba/norma?id=1"))
+		segundo := sitios.de(direccionDePrueba(t, "http://fuente.prueba:80/otra"))
+
+		assert.Same(t, primero, segundo)
+		assert.Equal(t, "http://fuente.prueba:80", primero.clave)
+
+		require.NotNil(t, primero.limitador, "el sitio nace con su limitador de ritmo (data-model.md §4)")
+		exigeIntervalo(t, primero, intervaloDePrueba)
+
+		// El literal, y no la constante del paquete: comparar la ráfaga con la
+		// propia constante que la fija seguiría en verde con cualquier valor y
+		// no diría nada. Lo que D8 decide es «un token», y eso es lo que se exige.
+		assert.Equal(t, 1, primero.limitador.Burst(),
+			"y con ráfaga 1, para que ninguna petición se adelante a su turno (D8)")
+	})
+
+	t.Run("dos sitios distintos tienen entradas distintas", func(t *testing.T) {
+		t.Parallel()
+
+		sitios := nuevosSitios(intervaloDePrueba)
+
+		uno := sitios.de(direccionDePrueba(t, "http://fuente.prueba"))
+		otro := sitios.de(direccionDePrueba(t, "http://otra.prueba"))
+
+		assert.NotSame(t, uno, otro)
+		assert.Equal(t, "http://otra.prueba:80", otro.clave)
+		assert.NotSame(t, uno.limitador, otro.limitador,
+			"cada sitio tiene su propio cupo y no compite con el de otro (FR-019)")
+
+		// Y aun así los dos declaran el mismo intervalo: el ámbito del
+		// limitador es el sitio, pero su valor es uno por cliente (FR-020).
+		exigeIntervalo(t, uno, intervaloDePrueba)
+		exigeIntervalo(t, otro, intervaloDePrueba)
+	})
+
+	t.Run("varias goroutines a la vez obtienen la misma entrada", func(t *testing.T) {
+		t.Parallel()
+
+		const goroutines = 16
+
+		sitios := nuevosSitios(intervaloDePrueba)
+		// La dirección se interpreta aquí, en la goroutine del test: dentro de
+		// las otras no se puede fallar el test.
+		direccion := direccionDePrueba(t, "http://fuente.prueba/ruta")
+		obtenidos := make([]*sitio, goroutines)
+
+		var grupo sync.WaitGroup
+
+		for i := range goroutines {
+			grupo.Go(func() {
+				obtenidos[i] = sitios.de(direccion)
+			})
+		}
+
+		grupo.Wait()
+
+		for _, obtenido := range obtenidos {
+			assert.Same(t, obtenidos[0], obtenido)
+		}
+
+		assert.Equal(t, "http://fuente.prueba:80", obtenidos[0].clave)
+	})
+}
+
+// exigeIntervalo comprueba que el limitador de un sitio se creó con el intervalo
+// que se le declaró.
+//
+// La comparación es entre lo que rate.Every devuelve para el intervalo esperado
+// y lo que el limitador declara —la misma conversión sobre el mismo valor—, y va
+// aquí, en un solo sitio, porque un límite de ritmo son peticiones por segundo:
+// un número en coma flotante, que se compara con la tolerancia de los números en
+// coma flotante y no con la igualdad de los enteros. La tolerancia es cero
+// porque los dos lados salen de la misma función.
+func exigeIntervalo(t *testing.T, delSitio *sitio, intervalo time.Duration) {
+	t.Helper()
+
+	assert.InDelta(t, float64(rate.Every(intervalo)), float64(delSitio.limitador.Limit()), 0,
+		"el sitio %s declara un ritmo de una petición cada %s (FR-019, FR-020)", delSitio.clave, intervalo)
+}
+
+// direccionDePrueba interpreta una dirección de las tablas de este fichero. Un
+// fallo aquí es un error de la tabla, no del código bajo prueba.
+func direccionDePrueba(t *testing.T, direccion string) *url.URL {
+	t.Helper()
+
+	interpretada, err := url.Parse(direccion)
+	require.NoError(t, err, "la dirección de la tabla debe ser interpretable")
+
+	return interpretada
+}

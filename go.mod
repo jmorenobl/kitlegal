@@ -10,6 +10,8 @@ require (
 	github.com/rogpeppe/go-internal v1.16.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/stretchr/testify v1.12.1
+	github.com/temoto/robotstxt v1.1.2
+	golang.org/x/time v0.16.0
 )
 
 require (

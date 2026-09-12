@@ -2,11 +2,36 @@ package schema
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// errSinClase es un error corriente, de los que no declaran clase: la mayoría.
+var errSinClase = errors.New("el índice 7 queda fuera del segmento")
+
+// errorDeclarado es un error de test que declara su propia clase, como hará el
+// error tipado del cliente HTTP: implementa ConClase sin conocer el kernel, sus
+// sentinelas ni sus códigos de salida (research.md D4).
+type errorDeclarado struct {
+	clase Clase
+}
+
+func (e errorDeclarado) Error() string {
+	return "el sitio fuente.prueba no respondió a tiempo"
+}
+
+func (e errorDeclarado) Clase() Clase {
+	return e.clase
+}
+
+// La comprobación en tiempo de compilación de que un tipo así satisface la
+// interfaz: si ConClase dejara de embeber error, o si cambiara la firma de
+// Clase, esto no compilaría.
+var _ ConClase = errorDeclarado{}
 
 // TestClase comprueba el vocabulario de clases de error que aparece en el sobre
 // y en el esquema que emite --describe: las seis clases, con el valor exacto que
@@ -86,5 +111,50 @@ func TestClase(t *testing.T) {
 			emitidas = append(emitidas, clave)
 		}
 		assert.ElementsMatch(t, []string{"clase", "mensaje"}, emitidas)
+	})
+}
+
+// TestConClase comprueba el puerto por el que un error declara la clase con la
+// que debe traducirse a código de salida: que es un error —se devuelve como tal
+// y se envuelve con %w—, que quien lo recibe lo encuentra en la cadena con
+// errors.As aunque vaya envuelto, y que la clase que declara no la altera la
+// envoltura (FR-031, FR-063, research.md D4).
+//
+// Aquí acaba lo que el dominio puede decir: quién traduce esa clase a un código
+// de salida —y qué hace con una clase ajena al vocabulario— es cosa del kernel,
+// y se comprueba en internal/cli.
+func TestConClase(t *testing.T) {
+	t.Parallel()
+
+	for _, clase := range Clases() {
+		t.Run("declara la clase "+string(clase), func(t *testing.T) {
+			t.Parallel()
+
+			// Se guarda en un error, que es lo que un adaptador devuelve: la
+			// interfaz embebe error, así que no hace falta conversión ninguna.
+			var declarado error = errorDeclarado{clase: clase}
+
+			var conClase ConClase
+			require.ErrorAs(t, declarado, &conClase)
+			assert.Equal(t, clase, conClase.Clase())
+		})
+
+		t.Run("envuelta, la clase "+string(clase)+" sigue siendo la misma", func(t *testing.T) {
+			t.Parallel()
+
+			envuelto := fmt.Errorf("consultando el artículo a21: %w",
+				fmt.Errorf("el sitio fuente.prueba: %w", errorDeclarado{clase: clase}))
+
+			var conClase ConClase
+			require.ErrorAs(t, envuelto, &conClase)
+			assert.Equal(t, clase, conClase.Clase())
+		})
+	}
+
+	t.Run("un error sin clase declarada no está en la cadena", func(t *testing.T) {
+		t.Parallel()
+
+		var conClase ConClase
+		assert.NotErrorAs(t, fmt.Errorf("al montar la gramática: %w", errSinClase), &conClase)
 	})
 }
