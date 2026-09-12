@@ -201,6 +201,13 @@ linters:
         # «Inventario de tests», la sección de plan.md que cada tabla cita;
         # misspell lo lee como «Inventor».
         - inventario
+        # «Legislacion consolidada», el servicio del BOE cuyo nombre imita la ruta
+        # larga de la tabla del contrato de grabación §2 de H2 que
+        # TestNombreDeGrabacion copia tal cual; misspell lo lee como «legislation».
+        - legislacion
+        # «Resolucion de adjudicacion», parte de la otra ruta larga de la misma
+        # tabla, la que se recorta; misspell lo lee como «resolution».
+        - resolucion
     nolintlint:
       require-explanation: true
       require-specific: true

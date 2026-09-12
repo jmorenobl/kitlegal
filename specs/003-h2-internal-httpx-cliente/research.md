@@ -866,6 +866,16 @@ decisión está tomada en D9: `crypto/rand`.)
   nueva no edita un fichero que no declara: reescribe el término en español —que no es un atajo, porque
   no toca ninguna regla ni suprime ningún hallazgo— y, si el término lo fija un contrato y no se puede
   cambiar, se anota y se detiene.
+  **Resultado (implementación)**: el supuesto se cumplió a medias. T003 añadió `controles` e
+  `inventario` sobre los tipos. T010 volvió a dispararlo con `legislacion` y `resolucion`, no en
+  identificadores sino en dos nombres de fichero que la tabla del contrato de grabación §2 fija y que
+  `TestNombreDeGrabacion` copia tal cual: las direcciones de la primera columna no se marcan porque
+  `misspell` descarta las URL antes de buscar, y el nombre derivado ya no es una URL. Como el término no
+  podía reescribirse, se anotó, se detuvo y se redelimitó T010 declarando `.golangci.yml` con la misma
+  acotación que T003 (dos palabras bajo `misspell.ignore-rules`), en lugar de un `//nolint` o de cambiar
+  el ejemplo del contrato para contentar a un diccionario inglés (`tasks.md` §Notas,
+  `gates/tarea-T010.md`). Para H4: `legislacion-consolidada` es el nombre real del servicio del BOE y
+  volverá a aparecer en nombres de fixtures citados desde tests, así que la entrada es durable.
 - **S3 · Codecov.** Como en H1, un componente nuevo mide desde la primera propuesta posterior. H2 no
   declara componente propio (SC-015: rigen los umbrales generales), así que nada que comprobar en la
   plataforma más allá de que el estado global (≥ 70 %) y el de `internal/core` (≥ 85 %) sigan en verde.
