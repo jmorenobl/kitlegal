@@ -300,6 +300,48 @@ func TestDryRun(t *testing.T) {
 	}
 }
 
+// TestDryRunPresentaElEnsayo comprueba lo que H2 añade a la bandera: que las
+// líneas que el applet deja en schema.Resultado.Ensayo —lo que cada capa con
+// efectos habría hecho en lugar de hacerlo— llegan a la salida de error detrás
+// de la descripción de H1, que la salida estándar sigue vacía y que el código
+// sigue siendo 0, porque estar en ensayo no es un fallo (FR-051, FR-065,
+// ADR 0011).
+//
+// El nivel del registro de eventos se fija al máximo a propósito, por la misma
+// razón que en TestDryRun: un requisito de visibilidad incondicional no se
+// implementa sobre un canal que se filtra, así que estas líneas tienen que
+// seguir estando con el registro apagado (research.md D6). Y por eso mismo no es
+// paralelo: el nivel es estado del proceso entero.
+func TestDryRunPresentaElEnsayo(t *testing.T) {
+	t.Setenv(cli.VariableNivel, "error")
+
+	// Dos líneas y no una: lo que el campo promete es «una por operación», así
+	// que el orden en que el applet las dejó también es observable.
+	ensayo := []string{
+		"GET https://fuente.prueba/norma",
+		"GET https://fuente.prueba/norma/a21",
+	}
+
+	registro := registroDeCodigos(t, func(_ context.Context) (schema.Resultado, error) {
+		return schema.Resultado{Procedencia: procedenciaDePrueba, Ensayo: ensayo}, nil
+	})
+
+	res := invocar(t, registro, "kitlegal", "prueba", "hola", "--dry-run")
+
+	assert.Equal(t, 0, res.codigo, "el ensayo no es un fallo: --dry-run sigue terminando con 0")
+	assert.Empty(t, res.salida,
+		"la salida estándar no lleva la descripción del ensayo: una operación no realizada no cita nada")
+
+	require.Contains(t, res.errores,
+		"--dry-run: se habría pedido "+ensayo[0]+"\n--dry-run: se habría pedido "+ensayo[1],
+		"cada línea del ensayo sale por la salida de error, y en el orden en que el applet las dejó")
+
+	assert.Less(t,
+		strings.Index(res.errores, "no se ha ejecutado nada"),
+		strings.Index(res.errores, "se habría pedido"),
+		"la descripción de H1 sigue encabezando lo que el ensayo añade")
+}
+
 // TestPlazoAgotado comprueba la mitad de FR-020 que ninguna otra tabla verifica:
 // que vencer --timeout produce el código 4 **sin depender de que el applet
 // devuelva el error tipado**.

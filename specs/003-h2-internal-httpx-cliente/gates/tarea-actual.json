@@ -1,18 +1,17 @@
 {
-  "id": "T001",
-  "texto": "T001 [US2] Clase de error declarada por el propio error y reconocida por el kernel: `internal/core/schema/error.go` gana la interfaz `ConClase` (`error` embebido más `Clase() Clase`), sin importar nada nuevo y sin tocar `Clase`, sus seis constantes ni `DatosError`; `internal/cli/errors.go` amplía `Clasificar` con una comprobación `errors.As` sobre `schema.ConClase` **después** de los cinco sentinelas de H1 y antes de la salida «inesperado», dejando intacta la tabla `codigoDeClase` y su `switch` sin rama `default`, de modo que una clase declarada fuera del vocabulario caiga en «inesperado» (código 1) y que envolver con `%w` siga sin cambiar la clase; y los casos nuevos en `internal/core/schema/error_test.go` y en `TestClasificar` de `internal/cli/errors_test.go` con un tipo local de test que implementa `ConClase` para las seis clases, para una clase desconocida y para el error envuelto, manteniendo `internal/cli` ≥ 90 % y `internal/core` ≥ 85 % (FR-031, FR-063, D4).",
+  "id": "T002",
+  "texto": "T002 [P] [US6] La descripción del ensayo viaja por el dominio y la presenta el kernel: `internal/core/schema/sobre.go` añade a `Resultado` el campo `Ensayo []string` —sin I/O, sin importaciones nuevas y sin alterar el `Sobre` ni sus seis claves—; `internal/app/main.go` presenta esas líneas por el presentador hacia la salida de error, **siempre visibles** y sin pasar por el registro de eventos, conservando el código de salida 0 que H1 fijó para `--dry-run`; `internal/app/main_test.go` añade `TestDryRunPresentaElEnsayo` con un applet de test que devuelve un `Resultado` con `Ensayo`, comprobando que la línea aparece en la salida de error, que la salida estándar no la lleva y que el código es 0; y `docs/ADR/0011-ensayo-por-capas.md` registra en formato MADR corto la decisión y sus alternativas rechazadas (`slog` filtrable, un `io.Writer` en el cliente, cambiar la firma de `Ejecutar`), porque cambia el contrato del applet de ADR 0005 (FR-051, FR-065, punto 7 de la Definition of Done, D6).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
-  "base": "193ff3a10fa7af75b7b25c478f3c30032a57295f",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
+  "base": "bcbddb5d9ac0747027edcc640b5a150b1272eba3",
   "rutas": [
-    "internal/cli",
-    "internal/cli/errors_test.go",
-    "internal/cli/errors.go",
-    "internal/core",
-    "internal/core/schema/error_test.go",
-    "internal/core/schema/error.go"
+    "docs/ADR/0011-ensayo-por-capas.md",
+    "I/O",
+    "internal/app/main_test.go",
+    "internal/app/main.go",
+    "internal/core/schema/sobre.go"
   ]
 }

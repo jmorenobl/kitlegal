@@ -175,14 +175,19 @@ func TestSobre(t *testing.T) {
 		})
 	}
 
-	t.Run("el resultado lleva procedencia y datos, y nada más", func(t *testing.T) {
+	t.Run("el resultado lleva procedencia, datos y ensayo, y nada más", func(t *testing.T) {
 		t.Parallel()
 
 		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella,
 		// la fecha de consulta ni un código de salida: todo eso lo pone el
 		// kernel, y la forma de garantizarlo es que el tipo no tenga más campos
 		// (FR-015, FR-044, contracts/registro-y-describe.md §1).
-		assert.Equal(t, []string{"Procedencia", "Datos"}, camposDe(reflect.TypeFor[Resultado]()))
+		//
+		// Ensayo es el tercero y el único que H2 añade: la descripción de lo que
+		// una capa con efectos no llegó a hacer bajo --dry-run, que el kernel
+		// presenta y que no entra en el sobre (docs/ADR/0011).
+		assert.Equal(t, []string{"Procedencia", "Datos", "Ensayo"},
+			camposDe(reflect.TypeFor[Resultado]()))
 		assert.Equal(t, []string{"Fuente", "URL"}, camposDe(reflect.TypeFor[Procedencia]()))
 	})
 

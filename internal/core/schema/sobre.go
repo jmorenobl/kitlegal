@@ -70,13 +70,24 @@ func (p Procedencia) Validar() error {
 	return nil
 }
 
-// Resultado es lo que devuelve un applet: de dónde viene el contenido y el
-// contenido. Ni Ok, ni Hash, ni FechaConsulta, ni forma de presentación, ni
-// código de salida; de todo eso se ocupa el kernel, que es quien monta el sobre
-// (FR-015, FR-044).
+// Resultado es lo que devuelve un applet: de dónde viene el contenido, el
+// contenido y —solo en ensayo— lo que no llegó a hacerse. Ni Ok, ni Hash, ni
+// FechaConsulta, ni forma de presentación, ni código de salida; de todo eso se
+// ocupa el kernel, que es quien monta el sobre (FR-015, FR-044).
 type Resultado struct {
 	Procedencia Procedencia
 	Datos       any
+	// Ensayo describe, una línea por operación, lo que cada capa con efectos
+	// habría hecho en lugar de hacerlo. Solo se rellena bajo --dry-run, y solo
+	// lo rellena quien tiene el efecto: el dominio no sabe presentarlo ni
+	// escribirlo.
+	//
+	// Es el único camino por el que esa descripción llega a la salida de error
+	// siempre visible, sin depender del nivel del registro de eventos: el
+	// kernel la presenta por el presentador, y el applet no tiene ningún otro
+	// modo de alcanzarlo. No entra en el sobre ni en la huella, porque no es
+	// contenido citable (FR-051, FR-065, docs/ADR/0011).
+	Ensayo []string
 }
 
 // errorDeValidacion expresa un error del dominio como constante: el paquete no
