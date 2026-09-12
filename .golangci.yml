@@ -192,9 +192,15 @@ linters:
       ignore-rules:
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # Plural español de «control» —los controles mecánicos del hito, palabra
+        # de todos los documentos del proyecto—; misspell lo lee como «controls».
+        - controles
         # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
         # fija el contrato del applet; misspell lo lee como «Description».
         - descripcion
+        # «Inventario de tests», la sección de plan.md que cada tabla cita;
+        # misspell lo lee como «Inventor».
+        - inventario
     nolintlint:
       require-explanation: true
       require-specific: true
