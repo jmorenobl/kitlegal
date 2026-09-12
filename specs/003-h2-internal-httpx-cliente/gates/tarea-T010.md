@@ -113,3 +113,15 @@ estar en verde antes de reanudar**, y el guardián de este intento ya pasó: la 
 completos); `tasks.md` (línea de T010 y §Notas), `research.md` (S2) y este fichero modificados, todos
 dentro del directorio del feature. T010 sigue `[ ]`. `make ci` sigue en rojo únicamente por las dos líneas
 de `misspell` de arriba.
+
+## Posdata (cierre, tras reanudar)
+
+Los pasos 1 a 3 de «Qué falta» se aplicaron tal cual y `make ci` quedó en verde. El paso 4 no fue como se
+esperaba: `--resume` **no** reejecuta el paso anidado por índice, sino el paso de nivel superior que lo
+contiene (`engine.py`: «resume will re-run the parent step and its nested body»), así que el bucle arrancó
+una iteración nueva, `siguiente_tarea` eligió T011 y el guardián de T011 encontró `nombre.go`,
+`nombre_test.go` y `.golangci.yml` fuera de sus rutas. Salida: T010 se commiteó a mano con exactamente
+sus ficheros (`a27311a`, mismo mensaje que `commit_tarea`), y la causa se arregló en el workflow 1.6.1:
+`siguiente_tarea` detecta una tarea marcada `[X]` con trabajo sin commitear y la cierra —guardián con su
+base original, verificación y commit— antes de elegir otra (`docs/WORKFLOW.md`, «Limitaciones
+conocidas»).
