@@ -1,16 +1,18 @@
 {
-  "id": "T001",
-  "texto": "T001 [US6] El puerto de caché en el dominio, sin saber que hay una base de datos detrás: `internal/core/doc.go` con el comentario del paquete `core` («los puertos del dominio»; nace aquí el paquete raíz que el §2 del roadmap reserva a los puertos, que hasta hoy solo tenía el subpaquete `schema`) e `internal/core/cache.go` con la interfaz `Cache` —`Get(ctx context.Context, clave string) (contenido []byte, presente bool, err error)` con el idioma «coma ok» (ausencia, incluida la expirada, es `nil, false, nil`; el fallo declara su clase por `schema.ConClase`) y `Put(ctx context.Context, clave string, contenido []byte, vigencia time.Duration) error`, sin `Close` y con los comentarios que fijan esas garantías—, importando **solo** `context` y `time` y sin nombrar SQLite, `database/sql`, fichero alguno ni el paquete adaptador de la caché; ninguno de los dos ficheros contiene sentencias, y por eso su comprobación es la mecánica que ya existe y que desde este `make ci` pasa a cubrir el paquete nuevo: `compruebaDominioPuro` de `TestArquitectura` (regla R1, cuyo `paquetesBajo` incluye el propio prefijo del paquete vigilado) y la lista `core` de `depguard`, más la compilación; la cobertura del dominio no se altera porque no hay sentencias nuevas que cubrir (FR-001, FR-038, SC-013, US6 escenario 1, D1).",
+  "id": "T002",
+  "texto": "T002 [P] [US6] El paquete y el único error que produce, con su clase y sus mensajes: `internal/cache/doc.go` con el comentario de paquete que declara qué garantiza y qué **no** hace (no lee ninguna bandera —el modo lo pone quien construye, a partir de `schema.Contexto.Offline`—, no borra la base por su cuenta, no cifra, no interpreta ni la clave ni el contenido, no fija ninguna vigencia por omisión); `internal/cache/errores.go` con `Error{Operacion, Ruta, Origen, Clave, Causa}` más su clase privada y los constructores internos por clase, `Error() string` con mensaje en español que nombra lo que la tabla del contrato de errores §3 exige en cada situación (ruta y origen —opción `ConDirectorio` o variable `KITLEGAL_CACHE_DIR`—, versión esperada y encontrada, la clave y que la invocación es de solo lectura, la operación tras cerrar, y la ruta con `cache.db-wal` y `cache.db-shm` en el fallo de la fila 13, cuyo constructor interno nace aquí y usa T004), `Unwrap()` que expone `Causa` y `Clase() schema.Clase` que lo hace `schema.ConClase`, sin `panic` en ninguna ruta y sin decidir ningún código de salida por su cuenta; e `internal/cache/errores_test.go` con `TestErrorMensajes` (una fila por forma de mensaje del contrato de errores **§6**, la fila 13 incluida: el fallo de WAL sin memoria compartida nombra la ruta, `cache.db-wal` y `cache.db-shm`), `TestErrorEnvueltoConservaLaClase` (envolver con `fmt.Errorf(\"%w\")` no cambia lo que `cli.Clasificar` devuelve) y `TestErrorNuloOCero` (`Error()` no vacío y `Clase()` «inesperado» sobre el valor cero); comprobando además al primer `make lint` el supuesto S2, para lo que declara también `.golangci.yml` **acotado a las palabras nuevas bajo `misspell.ignore-rules`** que el español dispare como falso positivo —ninguna regla, ningún linter, ninguna exclusión y nunca una supresión—, y sin tocarlo si no hace falta (FR-033, FR-034, FR-035, obligaciones 3 y 14 del plan, D9, D15).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
-  "base": "52e930726cf4e3e2784ded1beb2de5b6225de950",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
+  "base": "e9955c4a30cfe3030052f30d5484fc933b8bb9bc",
   "rutas": [
-    "database/sql",
-    "internal/core/cache.go",
-    "internal/core/doc.go"
+    ".golangci.yml",
+    ".ignore",
+    "internal/cache/doc.go",
+    "internal/cache/errores_test.go",
+    "internal/cache/errores.go"
   ],
   "cierre": false
 }

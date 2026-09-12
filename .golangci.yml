@@ -213,6 +213,11 @@ linters:
         # «Resolucion de adjudicacion», parte de la otra ruta larga de la misma
         # tabla, la que se recorta; misspell lo lee como «resolution».
         - resolucion
+        # Plural español de «versión» —las del esquema de la caché: la que el
+        # fichero trae y la que el binario conoce, que el contrato de errores de
+        # H3 §3 obliga a nombrar en el mensaje—; misspell lo lee como
+        # «versions». El singular lleva tilde y no casa (H3 S2, D15).
+        - versiones
     nolintlint:
       require-explanation: true
       require-specific: true
