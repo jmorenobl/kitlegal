@@ -658,8 +658,11 @@ camino». *Un applet de ejemplo en `internal/app/ejemplo`*: se enlazaría en el 
   sonda, no en el binario**, y con la instrucción de sustituirla por la medida real en H4.
 - **Fixtures**: uno, escrito a mano (D12): `internal/cache/testdata/reproduccion/prueba/GET_http_fuente.prueba_norma.json`,
   en una tarea `[datos]`. Ningún `testdata/` en la raíz; ninguna grabación real. **Tests de contrato**:
-  los cuatro contratos de `contracts/` tienen comprobación mecánica (tabla del plan). **`CHANGELOG.md`**,
-  **ADR**, **`docs/SOURCES.md`**, `schemas/`: sin cambio (spec, *Fuera de alcance*).
+  los cuatro contratos de `contracts/` tienen comprobación mecánica (tabla del plan). **ADR**,
+  **`docs/SOURCES.md`**, `schemas/`: sin cambio (spec, *Fuera de alcance*). **`CHANGELOG.md`**: una
+  entrada bajo *Cambiado*, porque `make ci` gana `test-integration` (D11) y ese cambio es visible para
+  quien ejecuta los controles, como H1 registró el de `make test-e2e`; `README.md` y `CONTRIBUTING.md`
+  lo reflejan en sus tablas (revisión final).
 
 ---
 
@@ -689,8 +692,8 @@ contingencia S2.
 Lo que el spec deja en *Fuera de alcance* queda fuera del plan sin excepción: ningún adaptador real, ni
 puerto `Source`/`Fetcher`, ni esquema de claves, ni revalidación condicional, ni `store`/`graph`, ni
 verbos de mantenimiento, ni desalojo, ni cifrado, ni métricas, ni cambio en `internal/httpx`, ni
-`os.UserCacheDir`, ni semántica de `--dry-run` en la caché, ni e2e nuevo, ni `CHANGELOG.md`, ni ADR, ni
-umbral propio de cobertura. Un test de superficie (`TestSuperficieExportada`) fija que el paquete no
+`os.UserCacheDir`, ni semántica de `--dry-run` en la caché, ni e2e nuevo, ni ADR, ni umbral propio de
+cobertura; en `CHANGELOG.md`, solo la entrada que el cambio de `make ci` exige (D13, revisión final). Un test de superficie (`TestSuperficieExportada`) fija que el paquete no
 exporta más de lo que D2 enumera.
 
 ---

@@ -58,16 +58,25 @@ visible del binario es exactamente la misma que al abrirlo. El primer applet que
     españolas bajo `misspell.ignore-rules`.
   - `internal/arch_test.go`: comentario de R3 y `TestElBinarioNoEnlazaCache`.
   - `docs/PENDIENTES.md`, `go.mod` y `go.sum`.
+  - `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md` (revisión final): la documentación de los controles
+    decía que `test-integration` no estaba en `ci` cuando el `Makefile` de este mismo cambio lo mete.
+    Ahora las dos tablas marcan «sí», el README cuenta nueve controles y el changelog registra el cambio
+    bajo *Cambiado*, como H1 registró el de `make test-e2e`. De la tabla de `CONTRIBUTING.md` de órdenes
+    que reciben su contenido en un hito posterior salen `test-integration` y también `test-e2e`, que H1
+    llenó y anotó en el changelog sin retirar de esa tabla.
   - No se tocan `internal/core/schema`, `internal/cli`, `internal/app`, `internal/httpx`,
     `internal/render` ni `cmd/`.
 - **Artefactos del hito**: `specs/004-h3-internal-cache-sqlite/` completo (spec, plan, research con sus
   apartados D1 a D18, data-model, cuatro contratos, quickstart, tasks y `gates/`).
 
-**Fuera de alcance, y por qué no aplican seis puntos de la Definition of Done**:
+**Fuera de alcance, y qué pasa con seis puntos de la Definition of Done** (cinco no aplican; el 6 aplica
+en parte):
 
 - Punto 4: no hay applet ni salida de applet, y `schemas/` no se toca.
-- Punto 6: ningún comportamiento visible cambia, así que no hay guion e2e ni `CHANGELOG.md`. Lo que gana
-  `--offline` se comprueba con el kernel **en proceso**.
+- Punto 6: ningún comportamiento visible del binario cambia (SC-012, `TestElBinarioNoEnlazaCache`), así
+  que no hay guion e2e: `testscript` solo observa binarios, y lo que gana `--offline` se comprueba con el
+  kernel **en proceso**. La composición de `make ci` sí cambia —gana `test-integration`— y queda
+  registrada en `CHANGELOG.md` bajo *Cambiado*, como H1 registró el cambio de `make test-e2e`.
 - Punto 7: no hay ADR nuevo. SQLite sin cgo ya es ADR 0002, y el patrón *Repository* está en el roadmap
   §2.
 - Punto 8: no se consulta ninguna fuente real.
@@ -167,12 +176,20 @@ Lo que hasta aquí era disciplina pasa a ser mecánico:
 - `specs/004-h3-internal-cache-sqlite/gates/s1-dependencias.md`: los indirectos medidos frente a la
   predicción de S1.
 
-| Umbral | Exigido | Medido (local, `go tool cover`) |
-|---|---|---|
-| Global | ≥ 70 % | **92,9 %** |
-| `internal/core/**` | ≥ 85 % | **90,1 %** |
-| `internal/cli` | ≥ 90 % | **98,6 %** |
-| `internal/cache` | — | 87,8 % |
+| Umbral | Exigido | T013, sobre 0b1bf84 (`go tool cover`) | HEAD final, sobre 6efec74 (`go tool cover`) |
+|---|---|---|---|
+| Global | ≥ 70 % | **92,9 %** | **93,4 %** |
+| `internal/core/**` | ≥ 85 % | **90,1 %** | **90,1 %** |
+| `internal/cli` | ≥ 90 % | **98,6 %** | **98,6 %** |
+| `internal/cache` | — | 87,8 % | 90,5 % con los unitarios · 96,1 % con `-tags=integration` |
+
+Las dos columnas están fechadas por el commit sobre el que se midieron: 0b1bf84 es el último commit
+empujado a la plataforma, y 6efec74 el último del HEAD final que toca código (los posteriores solo tocan
+documentación). La segunda columna sale del `coverage.out` de `make ci` (`go tool cover -func`) y, para
+`internal/cache` con integración, de un perfil aparte con
+`go test -race -count=1 -tags=integration -coverprofile ./internal/cache/`. La subida la explica la
+corrección de la revisión final (bb2f5c9 y 6efec74): tests sobre la espera por tramos, la ruta codificada
+en el DSN y las tres ramas de clasificación que no tenían test.
 
 Ninguno se rebajó: `codecov.yml` no aparece en el diff frente a `main`. Sin componente nuevo de Codecov
 (S4): rigen los umbrales generales. `internal/core` no gana sentencias.
@@ -242,8 +259,9 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
   `issues.uniq-by-line: false` en `.golangci.yml`, para que el primer `make ci` nombre todas las reglas
   incumplidas de una línea aunque otro linter la marque también. Hoy `TestArquitectura` nombra R3 y R1
   en cualquier caso.
-- **Estados de esta propuesta**, leídos tras abrirla (detalle en
-  `specs/004-h3-internal-cache-sqlite/gates/evidencia-plataforma.md`):
+- **Estados de esta propuesta**, leídos tras abrirla sobre 0b1bf84, el último commit empujado (detalle
+  en `specs/004-h3-internal-cache-sqlite/gates/evidencia-plataforma.md`); el HEAD final va por delante y
+  la plataforma no lo ha medido todavía:
   - **S3 se cumple**: el trabajo `ci` está en verde con `test-integration` dentro (run `34718912959`). La
     precondición de permisos es `t.Fatalf` bajo `CI`, así que el ejecutor no es privilegiado.
   - **S5, anotado**: 6 m 19 s **en frío**. `go.sum` cambia, así que la caché de `setup-go` tiene otra
@@ -252,17 +270,45 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
   - **Cobertura de la Definition of Done, medida y en verde**: `codecov/project` 90,99 % (≥ 70 %),
     `internal/core` 90,36 % (≥ 85 %) e `internal/cli` 98,07 % (≥ 90 %). Ningún verde vacío.
 - **Decisión humana antes de fusionar: `codecov/patch` está en rojo**, con `85.64% of diff hit (target
-  92.47%)`. `codecov.yml` no declara ningún estado `patch`: Codecov aplica su objetivo por omisión
-  (`auto`, la cobertura de la base), que sube con `main` (83,33 % en H1, 89,52 % en H2). No lo pide la
-  Definition of Done, y el spec dice que `internal/cache` no tiene umbral propio. Parte del hueco es
-  código que solo ejercitan los tests de integración, que por el plan no alimentan `coverage.out`: con
-  ellos, `internal/cache` pasa de 87,8 % a 91,7 %. El resto son ramas defensivas sin test. Este hito no
-  lo resuelve por su cuenta, porque es una decisión sobre qué estados son gate (H0, FR-029). Tampoco se
-  rebaja nada. Opciones, con su coste en la evidencia:
+  92.47%)`, **medido por la plataforma sobre 0b1bf84**, el último commit empujado. `codecov.yml` no
+  declara ningún estado `patch`: Codecov aplica su objetivo por omisión (`auto`, la cobertura de la
+  base), que sube con `main` (83,33 % en H1, 89,52 % en H2). No lo pide la Definition of Done, y el spec
+  dice que `internal/cache` no tiene umbral propio. Parte del hueco es código que solo ejercitan los
+  tests de integración, que por el plan no alimentan `coverage.out`: sobre el HEAD final,
+  `internal/cache` mide 90,5 % con los unitarios y 96,1 % con `-tags=integration`. Las ramas de
+  clasificación que en 0b1bf84 no tenían test —`falloAlOperar`, `falloAlAplicar`,
+  `falloAlLeerLoInmutable`— están al 100 % desde 6efec74 (`TestFalloDelControladorAlOperar`,
+  `TestContextoCanceladoDuranteLaMigracion`, `TestIntegracionReaperturaInmutableFalla`). Lo que queda
+  sin test, integración incluida, son 20 bloques de una sentencia cada uno (perfil de 6efec74 con
+  `-tags=integration`), todos defensivos y ninguno provocable de forma determinista sin sustituir el
+  sistema de ficheros o el controlador:
+  - fallos de `sql.Open` con un DSN ya compuesto (`abrir.go:65`, `:175`, `:245` y `:278`): el
+    controlador está registrado y el DSN es válido por construcción;
+  - fallos de `Close` sobre un fichero o una conexión (`creaElFichero`, `compruebaQueSeDejaLeer`,
+    `cierraTrasElFallo`, `Cliente.Close` y el cierre previo de `reabreInmutable`);
+  - lectura del sistema de ficheros embebido (`migracionesEmbebidas`, `versionConocida`, `aplica` al
+    leer el `.sql`, y sus llamadas desde `migra` y `abreParaLeer`): el contenido va compilado en el
+    binario;
+  - un `Stat` de `cache.db-wal` que falla con algo distinto de «inexistente» (`abrir.go:239`) en un
+    directorio que ya se dejó listar;
+  - el contexto terminado justo en la reapertura inmutable (`abrir.go:394`), un camino que no pasa ni
+    por el reloj ni por el registrador;
+  - `versionRegistrada` que falla dentro de la transacción ya abierta (`migraciones.go:190`) y un
+    `Commit` que falla (`migraciones.go:209`);
+  - el resto del tramo que el cliente espera cuando SQLite contesta `SQLITE_BUSY` sin haber dormido el
+    tramo entero, que hace cuando esperar podría interbloquear (`espera.go:60-64`); en las pruebas no
+    ocurre porque el motor agota el tramo antes de contestar.
+
+  Este hito no lo resuelve por su cuenta, porque es una decisión sobre qué estados son gate (H0,
+  FR-029). Tampoco se rebaja nada. Opciones, con su coste en la evidencia:
   1. Declarar `patch` en `codecov.yml` con objetivo fijo o `informational`.
-  2. Tests unitarios para las ramas defensivas de `abrir.go` y `migraciones.go`, en una tarea nueva de
-     H3.
-  3. Subir también la cobertura de integración, lo que cambia un contrato de H0.
+  2. Empujar el HEAD final y dejar que la plataforma vuelva a medir el parche: las ramas que 6efec74
+     cubrió cuentan para el diff, y es lo que la parte `[plataforma]` del cierre hace al refrescar la
+     propuesta.
+  3. Cubrir los bloques defensivos de arriba sustituyendo el sistema de ficheros o el controlador en los
+     tests (un `fs.FS` inyectable para las migraciones, un controlador que falle al abrir), lo que añade
+     superficie al producto por una cobertura que no mide ningún comportamiento nuevo.
+  4. Subir también la cobertura de integración, lo que cambia un contrato de H0.
 - **Revisión pendiente del ritual** (§6 del roadmap, punto 4): `/code-review` y `/security-review` sobre
   esta propuesta. No toca `docs/SOURCES.md` porque no hay fuente.
 - **La fusión es humana.** Squash-merge. El gancho `pre-push` rechaza `main`, los push forzados, los

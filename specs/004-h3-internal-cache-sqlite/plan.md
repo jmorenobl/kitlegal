@@ -48,8 +48,9 @@ Cinco decisiones sostienen el diseño:
 
 Todo el código nuevo vive en `internal/core` (el puerto) e `internal/cache` (producto, tests y el único
 fixture), más el test de arquitectura, una línea del `Makefile`, dos líneas de `.golangci.yml`,
-`go.mod`/`go.sum` y una nota en `docs/PENDIENTES.md`. El binario distribuido no cambia y no enlaza el
-paquete ni el driver (SC-012).
+`go.mod`/`go.sum` y una nota en `docs/PENDIENTES.md`; la revisión final añade la documentación de los
+controles (`README.md`, `CONTRIBUTING.md`) y la entrada de `CHANGELOG.md` que registran que `make ci`
+gana `test-integration`. El binario distribuido no cambia y no enlaza el paquete ni el driver (SC-012).
 
 ## Technical Context
 
@@ -116,7 +117,9 @@ fichero versionado.
 **Scale/Scope**: dos paquetes nuevos (`internal/core`, 2 ficheros sin sentencias; `internal/cache`, 8
 ficheros de producto más un `.sql` embebido, del orden de 600-900 líneas de Go de producto y bastantes
 más de test), un fixture, un fichero de H1 tocado (`internal/arch_test.go`), `Makefile` (una línea),
-`.golangci.yml` (dos líneas y comentarios), `go.mod`/`go.sum`, `docs/PENDIENTES.md`.
+`.golangci.yml` (dos líneas y comentarios), `go.mod`/`go.sum`, `docs/PENDIENTES.md`; y, tras la revisión
+final, `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`, para que la documentación de los controles diga
+que `test-integration` está dentro de `make ci`.
 
 ## Constitution Check
 
@@ -130,7 +133,7 @@ más de test), un fixture, un fichero de H1 tocado (`internal/arch_test.go`), `M
 | **II** | Nada sin cita ni fuente | La caché guarda contenido **opaco** (FR-006): lo que el sobre necesita para citar —dirección final, estado, fecha de consulta— lo serializa dentro del contenido quien llama (H4). Y **lo caducado no se sirve, tampoco sin red** (FR-008, FR-018): una cita se sostiene sobre texto vigente; el borde de la vigencia es exacto y se prueba en las tres posiciones (SC-002). No se genera ni interpreta contenido legal. | ✅ Cumple |
 | **III** | Tests primero y offline | Todos los tests del hito son offline por construcción: base real en `t.TempDir()`, reproducción de H2 sobre un fixture escrito a mano y sobre un directorio vacío; ningún test conoce una dirección real (quickstart, prerrequisitos) ni toca `~/.cache/kitlegal`. El control literal del hito («unit de expiración de TTL con reloj inyectado») y el criterio de aceptación («`Replay` en modo estricto») tienen test nombrado (§Inventario). Sin e2e nuevo, por la razón que el spec fija (no hay comportamiento visible que describir); el orden «test primero» se concreta por fichero (§Orden de implementación). Cobertura: rigen los umbrales generales (SC-014); `internal/core` (paquete `core`) no tiene sentencias y no altera el componente. | ✅ Cumple |
 | **IV** | Arquitectura hexagonal con reglas ejecutables | El puerto `Cache` está en el dominio (`internal/core`) y la implementación en el adaptador `internal/cache` (patrón *Repository* de `docs/ROADMAP.md` §2): el dominio no sabe que hay SQLite. R3 pasa de «activa y vacía» a **activa con dueño**, vigilada en las dos capas (`depguard` lista `sql` + subprueba R3); R1 sigue vigilada sobre el nuevo paquete `core`. Errores tipados que mapean a códigos estables: `cache.Error` + `schema.ConClase` + `cli.Clasificar` (sin cambios en el kernel), tabla cerrada de 15 situaciones → {1, 2, 4} (contrato de errores §3); nunca 3, 5 ni 6. Ningún `panic`. Composición manual con opciones funcionales. `log/slog` por el registrador recibido; `internal/cache` no escribe en stdout (R5) ni llama a `os.Exit` (R4). | ✅ Cumple |
-| **V** | Simplicidad y dependencias fijadas (YAGNI) | Una dependencia nueva, de la lista de §V y nombrada por el hito (FR-043); sus indirectos se declaran (S1). Sin DI, sin ORM, sin herramienta de migraciones (D7 rechaza la sugerencia de la skill `golang-database` por esto). Todo lo del spec en *Fuera de alcance* queda fuera del plan: sin `Source`, sin esquema de claves, sin revalidación, sin `store`/`graph`, sin verbos de mantenimiento, sin desalojo, sin índice de expiración, sin cifrado, sin métricas, sin `os.UserCacheDir`, sin cambios en `httpx`, sin e2e, sin `CHANGELOG.md`, sin ADR. Las divergencias de forma están en *Complexity Tracking*; ninguna añade una capacidad. | ✅ Cumple |
+| **V** | Simplicidad y dependencias fijadas (YAGNI) | Una dependencia nueva, de la lista de §V y nombrada por el hito (FR-043); sus indirectos se declaran (S1). Sin DI, sin ORM, sin herramienta de migraciones (D7 rechaza la sugerencia de la skill `golang-database` por esto). Todo lo del spec en *Fuera de alcance* queda fuera del plan: sin `Source`, sin esquema de claves, sin revalidación, sin `store`/`graph`, sin verbos de mantenimiento, sin desalojo, sin índice de expiración, sin cifrado, sin métricas, sin `os.UserCacheDir`, sin cambios en `httpx`, sin e2e, sin ADR; en `CHANGELOG.md` solo la entrada que registra que `make ci` gana `test-integration` (revisión final). Las divergencias de forma están en *Complexity Tracking*; ninguna añade una capacidad. | ✅ Cumple |
 | **VI** | Un binario, convenciones de agente | El binario distribuido **no cambia** (FR-044, SC-012): mismo registro vacío, mismos verbos, ningún applet ni bandera nueva, y no enlaza `internal/cache` ni `modernc.org/*` (`TestElBinarioNoEnlazaCache`, `TestDependenciasDelBinario` con la lista intacta). `--offline` adquiere el significado que el hito le da —solo lectura y código 4 si falta— en el único sitio donde H3 lo convierte en modo: el applet de prueba, que lee `schema.Contexto.Offline` (FR-047). `--timeout` llega como plazo del contexto a `New`, `Get` y `Put`. `--dry-run`, `--no-graph` y `--asunto` siguen solo propagados. | ✅ Cumple |
 | **VII** | Grafo y privacidad | Sin grafo (H17) y sin `Emit`. Privacidad: la caché guarda respuestas de fuentes públicas en un directorio y un fichero con acceso reservado a la cuenta (`0700`/`0600`, FR-021); los eventos van a nivel `debug` y los mensajes de error nombran rutas, variables y claves, nunca datos de personas; ningún dato sale del disco de la persona usuaria. | ✅ Cumple |
 | **VIII** | Skills primero; el binario es la herramienta | H3 es un hito de **fundación** de los que §VIII admite: no entrega skill, pero protege a todas las que vendrán, porque cada adaptador de fuente de cada skill (H4 `boe`, H12 `placsp`, H13 `bdns`…) usará esta caché para no volver a pedir lo que ya tiene y para funcionar con `--offline`. La caché es una de las capacidades que §VIII reserva al binario («caché»). No se construye ninguna herramienta que ninguna skill vaya a usar: el único adaptador del hito es de prueba y vive en material de test (FR-045). | ✅ Cumple |
@@ -200,7 +203,10 @@ no añade ninguna capacidad sobre lo evaluado. Lo que apareció al bajar a dise�
   *Complexity Tracking*.
 - **`make ci` gana `test-integration`** (§III, «todo lo que entra se queda como gate de CI»): la receta es
   contrato de H0 y no cambia; solo cambia la lista de prerrequisitos de `ci`, donde `test-integration`
-  entra entre `test` y `vuln`. Coste: repetir la suite unitaria (≈ 22 s hoy).
+  entra entre `test` y `vuln`. Coste: repetir la suite unitaria (≈ 22 s hoy). Es un cambio visible de la
+  única superficie de invocación del repositorio, y queda registrado donde el repositorio describe sus
+  controles —`README.md`, `CONTRIBUTING.md`— y en `CHANGELOG.md` bajo *Cambiado*, como H1 registró el
+  cambio de `make test-e2e` (revisión final).
 
 **Veredicto tras el diseño: PASA**, sin ninguna violación.
 
@@ -269,6 +275,9 @@ Makefile                         ← ci: fmt-check lint test test-integration vu
 .golangci.yml                    ← run.build-tags: [integration]; comentarios de la lista sql                  (D11, D13)
 go.mod, go.sum                   ← + modernc.org/sqlite v1.58.0 y sus indirectos                               (S1)
 docs/PENDIENTES.md               ← «En H4»: retirar TestElBinarioNoEnlazaCache y ampliar modulosDelBinario     (D13)
+README.md, CONTRIBUTING.md       ← test-integration con «sí» en «¿En ci?»; nueve controles (revisión final)    (D11)
+CHANGELOG.md                     ← Unreleased › Cambiado: make ci ejecuta también los tests de integración
+                                   (revisión final)                                                             (D11)
 ```
 
 **Structure Decision**: la de `docs/ROADMAP.md` §2 sin desviaciones: `internal/cache` es el adaptador
@@ -388,8 +397,10 @@ modo desatendido).
    comentarios de `.golangci.yml`, `docs/PENDIENTES.md`. Validación de SC-013 **en copia desechable**
    (quickstart 9). `make ci` en verde de principio a fin.
 
-Sin `CHANGELOG.md` ni ADR: H3 no cambia ningún comportamiento visible ni se aparta de ADR 0002 (spec,
-*Fuera de alcance*).
+Sin guion e2e ni ADR: H3 no cambia la superficie del binario (SC-012, `TestElBinarioNoEnlazaCache`) ni
+se aparta de ADR 0002 (spec, *Fuera de alcance*). `CHANGELOG.md` sí recibe una entrada bajo *Cambiado*,
+porque la composición de `make ci` cambia —gana `test-integration`— y ese cambio es visible para quien
+ejecuta los controles; `README.md` y `CONTRIBUTING.md` lo dicen también en sus tablas (revisión final).
 
 ## Complexity Tracking
 
@@ -437,7 +448,9 @@ Sin `CHANGELOG.md` ni ADR: H3 no cambia ningún comportamiento visible ni se apa
 5. **Declarar en cada tarea sus rutas** (guardián de diff): las de H0/H1 que se tocan son exactamente
    `internal/arch_test.go`, `Makefile`, `.golangci.yml`, `docs/PENDIENTES.md`, más `go.mod` y `go.sum`.
    Ninguna tarea toca `internal/core/schema`, `internal/cli`, `internal/app`, `internal/httpx`,
-   `internal/render` ni `cmd/`.
+   `internal/render` ni `cmd/`. Fuera de las tareas, la revisión final tocó además `README.md`,
+   `CONTRIBUTING.md` y `CHANGELOG.md` para que la documentación de los controles diga lo que el
+   `Makefile` hace.
 6. **Restaurar permisos en `t.Cleanup`** en toda prueba que ponga un directorio a `0500` o `0000`,
    registrando la restauración **después** de `t.TempDir()` (la limpieza de `TempDir` es `RemoveAll` y
    falla el test si no puede borrar); y comprobar la precondición de permisos antes de la aserción (D11).
