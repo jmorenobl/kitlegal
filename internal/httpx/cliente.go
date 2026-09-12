@@ -57,7 +57,9 @@ type Cliente struct {
 	// sitios es el registro de sitios de este cliente: uno solo, del que sale el
 	// ritmo de cada sitio y del que saldrán sus reglas de robots.txt, porque la
 	// clave de sitio es una y su exclusión tiene que ser compartida
-	// (data-model.md §4, D14).
+	// (data-model.md §4, D14). Es nulo en un cliente de reproducción, cuya
+	// cadena no lleva ni ritmo ni robots.txt y que por tanto no tiene nada que
+	// guardar por sitio (FR-049).
 	sitios *sitios
 	// fuente es el nombre lógico de la fuente que usa este cliente, el que
 	// nombrará el directorio de las grabaciones (FR-039).
@@ -205,18 +207,12 @@ func ConRegistrador(registrador *slog.Logger) Opcion {
 // encima de los dos para que su propia obtención se reintente y espere turno
 // igual que cualquier otra petición (FR-017, FR-021, D3).
 func New(opciones ...Opcion) (*Cliente, error) {
-	config := configuracionDelCliente{
-		intervalo:   intervaloPorOmision,
-		intentos:    intentosPorOmision,
-		reloj:       dormirInterrumpible,
-		registrador: slog.New(slog.DiscardHandler),
+	config, err := configuracionDe(opciones)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, opcion := range opciones {
-		if err := opcion(&config); err != nil {
-			return nil, err
-		}
-	}
+	config.completar()
 
 	// La variable de entorno se lee una sola vez y aquí, y no en la raíz de
 	// composición como la del registro de eventos: el cliente lo construye el
@@ -261,6 +257,146 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		fuente:      config.fuente,
 		registrador: config.registrador,
 	}, nil
+}
+
+// Replay construye el cliente que responde exclusivamente desde las grabaciones
+// de un directorio y que no abre ninguna conexión bajo ninguna circunstancia, ni
+// siquiera para el robots.txt: en su cadena no hay transporte de red que pudiera
+// abrirla (FR-045, FR-046, D13).
+//
+// El directorio es el de grabaciones de una fuente —el <raíz>/<fuente> que deja
+// la grabación—, y lo declara quien llama: este paquete no lo deduce de ninguna
+// parte, exactamente igual que no deduce la raíz de grabación (FR-064).
+//
+// La cadena se reduce a la lista cerrada de garantías vigentes de FR-049:
+// contexto, identificación, método, redirecciones grabadas con su tope
+// —resueltas dentro del propio directorio, donde cada salto es una búsqueda
+// más— y clasificación por el estado grabado. No lleva robots.txt —una grabación
+// suya en el directorio queda sin usar y no es un error—, ni ritmo, ni
+// reintentos: los tres carecen de sentido sin fuente real y romperían el
+// determinismo de FR-048.
+func Replay(dir string, opciones ...Opcion) (*Cliente, error) {
+	config, err := configuracionDe(opciones)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := comprobarReproduccion(dir, config); err != nil {
+		return nil, err
+	}
+
+	// De los valores por omisión, esta cadena solo usa el registrador: ni el
+	// ritmo ni los intentos tienen escalón que los lea, y por eso declararlos es
+	// un error y no una preferencia que no se cumple.
+	config.completar()
+
+	return &Cliente{
+		cliente:     nuevoClienteHTTP(conIdentificacion(nuevoTransporteDeReproduccion(dir))),
+		fuente:      config.fuente,
+		registrador: config.registrador,
+	}, nil
+}
+
+// configuracionDe aplica las opciones en orden sobre una configuración a cero
+// —la última repetida gana— y devuelve el primer fallo, que es el de la opción
+// inválida con su clase (contrato §2).
+//
+// Lo que ninguna opción escribe se queda a cero, y eso es lo que distingue «no
+// declarada» de «declarada con el valor por omisión»: sin esa distinción, Replay
+// no podría rechazar las opciones que no tienen sentido en reproducción
+// (contrato §3).
+func configuracionDe(opciones []Opcion) (configuracionDelCliente, error) {
+	var config configuracionDelCliente
+
+	for _, opcion := range opciones {
+		if err := opcion(&config); err != nil {
+			return configuracionDelCliente{}, err
+		}
+	}
+
+	return config, nil
+}
+
+// completar rellena con los valores por omisión del contrato §2 lo que ninguna
+// opción declaró. Se aplica después de las opciones y nunca antes, que es lo que
+// deja el cero de cada campo disponible para decidir quién la declaró.
+func (config *configuracionDelCliente) completar() {
+	if config.intervalo == 0 {
+		config.intervalo = intervaloPorOmision
+	}
+
+	if config.intentos == 0 {
+		config.intentos = intentosPorOmision
+	}
+
+	if config.reloj == nil {
+		config.reloj = dormirInterrumpible
+	}
+
+	if config.registrador == nil {
+		config.registrador = slog.New(slog.DiscardHandler)
+	}
+}
+
+// comprobarReproduccion aplica la tabla de construcción de Replay del contrato
+// §3, y la aplica entera antes de que exista ningún cliente: el directorio tiene
+// que existir y ser un directorio —se declara para leer de algo que ya está—, la
+// grabación y la reproducción no pueden estar activas a la vez (FR-043) y las
+// opciones que solo tienen sentido contra una fuente real se rechazan en vez de
+// aceptarse y no hacer nada. Todo es de la clase «argumentos», que quien llama
+// corrige (FR-063).
+func comprobarReproduccion(dir string, config configuracionDelCliente) error {
+	if dir == "" {
+		return errorDeArgumentos(Peticion{}, nil,
+			"el directorio de reproducción no puede ir vacío (Replay)")
+	}
+
+	delDirectorio, err := os.Stat(dir)
+	if err != nil {
+		return errorDeArgumentos(Peticion{}, err,
+			"el directorio de reproducción no existe o no se puede consultar: "+dir)
+	}
+
+	if !delDirectorio.IsDir() {
+		return errorDeArgumentos(Peticion{}, nil,
+			"el directorio de reproducción no es un directorio: "+dir)
+	}
+
+	// Cualquier valor no vacío de la variable se rechaza, y no solo el que
+	// enciende la grabación: reproduciendo no hay nada que grabar, así que una
+	// variable puesta —aunque traiga un valor que New también rechazaría— solo
+	// puede ser un descuido, y resolverlo por azar es lo que FR-043 prohíbe.
+	if valor, declarada := os.LookupEnv(VariableGrabacion); declarada && valor != "" {
+		return errorDeArgumentos(Peticion{}, nil,
+			"la grabación y la reproducción no pueden estar activas a la vez: "+
+				VariableGrabacion+"="+valor+" con la reproducción de "+dir)
+	}
+
+	return comprobarOpcionesDeReproduccion(config)
+}
+
+// comprobarOpcionesDeReproduccion rechaza las tres opciones que solo tienen
+// sentido contra una fuente real: la raíz de grabación —que además sería grabar
+// y reproducir a la vez (FR-043)— y el ritmo y los intentos, cuyos escalones no
+// están en esta cadena. Rechazarlas es lo que impide que quien las declare crea
+// que hacen algo (contrato §3, D1).
+func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
+	switch {
+	case config.raizDeGrabacion != "":
+		return errorDeArgumentos(Peticion{}, nil,
+			"ConRaizDeGrabacion no tiene sentido en reproducción: un cliente de reproducción no graba nada")
+
+	case config.intervalo != 0:
+		return errorDeArgumentos(Peticion{}, nil,
+			"ConIntervalo no tiene sentido en reproducción: la reproducción no espera nunca (FR-048)")
+
+	case config.intentos != 0:
+		return errorDeArgumentos(Peticion{}, nil,
+			"ConIntentos no tiene sentido en reproducción: un estado grabado no se vuelve a buscar")
+
+	default:
+		return nil
+	}
 }
 
 // Pedir es la única operación de red del módulo. Exige el contexto de
@@ -323,6 +459,15 @@ func (c *Cliente) seguirLaCadena(ctx context.Context, p Peticion, destino *url.U
 	visitadas := make(map[string]struct{}, topeDeRedirecciones+1)
 
 	for salto := 0; salto <= topeDeRedirecciones; salto++ {
+		// El contexto se comprueba antes de cada salto y no solo dentro del
+		// transporte: lo que corta la operación es el plazo de quien la pidió, y
+		// tiene que cortarla igual cuando abajo no hay ninguna conexión que
+		// esperar sino una grabación que leer (FR-005, FR-049 a, D13).
+		if err := ctx.Err(); err != nil {
+			return Respuesta{}, errorDeFuenteNoDisponible(p, 0, err,
+				"la operación ha terminado antes de pedir "+destino.String())
+		}
+
 		if _, repetida := visitadas[destino.String()]; repetida {
 			return Respuesta{}, errorDeFuenteNoDisponible(p, 0, nil,
 				"la cadena de redirecciones vuelve sobre una dirección ya visitada: "+destino.String())
