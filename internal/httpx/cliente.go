@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -70,11 +71,12 @@ type Cliente struct {
 // construya el cliente. No se exporta: lo que se declara son las opciones, no la
 // estructura que escriben.
 type configuracionDelCliente struct {
-	fuente      string
-	intervalo   time.Duration
-	intentos    int
-	reloj       relojDeEspera
-	registrador *slog.Logger
+	fuente          string
+	raizDeGrabacion string
+	intervalo       time.Duration
+	intentos        int
+	reloj           relojDeEspera
+	registrador     *slog.Logger
 }
 
 // Opcion declara una variación del cliente. Devuelve el error de la opción
@@ -99,6 +101,31 @@ func ConFuente(nombre string) Opcion {
 		}
 
 		config.fuente = nombre
+
+		return nil
+	}
+}
+
+// ConRaizDeGrabacion declara el directorio bajo el que la grabación escribe
+// <fuente>/<nombre>.json. No tiene valor por omisión y el cliente no lo deduce
+// de ninguna parte —ni del directorio de trabajo del proceso, ni de la raíz del
+// módulo, ni de ninguna ruta relativa escrita en el código—: dónde viven los
+// fixtures lo sabe quien llama, y este paquete es deliberadamente agnóstico a
+// esa decisión. Es la simetría exacta de Replay(dir), que también recibe el suyo
+// (FR-064).
+//
+// Solo se usa cuando la grabación está activa; declararla sin la variable de
+// entorno no la enciende (FR-041). Un directorio vacío es un error de
+// argumentos: no declarar la raíz y declararla vacía son lo mismo, y lo que
+// FR-064 prohíbe es justamente que el paquete rellene ese hueco por su cuenta.
+func ConRaizDeGrabacion(dir string) Opcion {
+	return func(config *configuracionDelCliente) error {
+		if dir == "" {
+			return errorDeArgumentos(Peticion{}, nil,
+				"la raíz de grabación no puede ir vacía (ConRaizDeGrabacion)")
+		}
+
+		config.raizDeGrabacion = dir
 
 		return nil
 	}
@@ -191,15 +218,39 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		}
 	}
 
+	// La variable de entorno se lee una sola vez y aquí, y no en la raíz de
+	// composición como la del registro de eventos: el cliente lo construye el
+	// adaptador y no el kernel, y una opción para inyectar el entorno sería una
+	// forma de encender la grabación desde el código, que es lo que FR-041
+	// prohíbe. Todo lo que la grabación necesita se valida en este punto, antes
+	// de que exista ningún cliente que pudiera escribir nada (FR-042, D12).
+	valor, declarada := os.LookupEnv(VariableGrabacion)
+
+	directorio, err := directorioDeGrabacion(valor, declarada, config)
+	if err != nil {
+		return nil, err
+	}
+
 	registro := nuevosSitios(config.intervalo)
 
 	// La cadena se compone de dentro afuera, que es el orden en que cada
-	// escalón depende del anterior: el ritmo es lo último que una petición
-	// atraviesa antes del transporte, los reintentos van por encima para que
-	// cada intento espere su turno, el robots.txt por encima de ellos para que
-	// su propia obtención pase por los dos, y la identificación arriba del todo
+	// escalón depende del anterior: la grabación es lo que envuelve al
+	// transporte —graba la petición tal como salió y la respuesta tal como
+	// llegó—, el ritmo va por encima porque es lo último que una petición
+	// atraviesa antes de emitirse, los reintentos por encima para que cada
+	// intento espere su turno, el robots.txt por encima de ellos para que su
+	// propia obtención pase por los dos, y la identificación arriba del todo
 	// (FR-017, FR-021, D3).
-	cadena := conRitmo(nuevoTransporte(), registro)
+	//
+	// Sin grabación no hay escalón que grabe: apagarla no es una bandera que el
+	// decorador consulte, sino una cadena en la que no está (FR-041).
+	var cadena http.RoundTripper = nuevoTransporte()
+
+	if directorio != "" {
+		cadena = conGrabacion(cadena, directorio)
+	}
+
+	cadena = conRitmo(cadena, registro)
 	cadena = conReintentos(cadena, config.intentos, config.reloj)
 	cadena = conRobots(cadena, registro)
 	cadena = conIdentificacion(cadena)
