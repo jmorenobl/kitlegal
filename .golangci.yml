@@ -8,6 +8,12 @@ version: "2"
 run:
   # Los tests son código del proyecto y se lintan igual que el resto.
   tests: true
+  # También los que llevan la etiqueta de compilación integration, que make ci
+  # ejecuta con test-integration: sin ella ningún linter —sqlclosecheck y
+  # rowserrcheck incluidos— cargaría esos ficheros, y uno que ni compila pasaría
+  # el lint en verde (H3 FR-041, research.md D11).
+  build-tags:
+    - integration
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.

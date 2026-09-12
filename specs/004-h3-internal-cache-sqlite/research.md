@@ -507,6 +507,14 @@ dentro del motor; un bloqueo que dura más de cinco segundos es un fallo real y 
   `TestHelperProcess` de la biblioteca estándar; no es un `t.Skip`), y con ella actúa y termina con 0 o
   con un mensaje en la salida estándar que el padre incorpora al fallo. Bajo `-race` el hijo hereda la
   instrumentación porque es el mismo binario.
+  **Resultado (implementación, T010 intento 1)**: la versión fijada de `gosec` (v2.28.0) trae además
+  G702, un análisis de propagación que trata `os.Args` y `os.Getenv` como datos no confiables y
+  `exec.CommandContext` como destino, y marcó la llamada aunque el ejecutable llegara como parámetro. La
+  ruta del binario sale por eso de `os.Executable()` —la que da el sistema operativo, que quien lanza el
+  proceso no fija, y la que usa `internal/testenv.Executable` de la biblioteca estándar para relanzar sus
+  binarios de test—; el lanzador la sigue recibiendo como parámetro, con el literal como único argumento
+  y sin ninguna supresión. El hijo deja además en un fichero de informe cuántas entradas confirmó o
+  encontró, porque un hijo que no llegara a ejecutar `TestProcesoAuxiliar` también terminaría con 0.
 - **Permisos**: los tests que ponen un directorio a `0500`/`0000` registran con `t.Cleanup` la
   restauración a `0700` **después** de `t.TempDir()`, porque la limpieza de `TempDir` es `RemoveAll` y
   falla el test si no puede borrar (`testing.go` 1616). Comprueban antes que el sistema de ficheros hace
