@@ -100,13 +100,39 @@ func TestIdentificacionEnTodaPeticion(t *testing.T) {
 	})
 }
 
+// TestCadenaEmpiezaPorLaIdentificacion fija la forma de las dos cadenas que el
+// paquete compone: la de New y la de Replay llevan el decorador de
+// identificación arriba del todo, que es el escalón «UA» que docs/ROADMAP.md §2
+// asigna a este paquete (D3). Es un test de forma y no de medida porque ninguna
+// medida lo delataría: toda petición nace ya identificada del constructor único
+// y el decorador solo lo reafirma, así que quitarlo de la cadena no cambia lo
+// que ningún servidor recibe. Lo que sí cambia es la cadena que el roadmap fija,
+// y eso es lo que aquí se exige (research D3, enmienda tras la revisión final).
+func TestCadenaEmpiezaPorLaIdentificacion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("New", func(t *testing.T) {
+		t.Parallel()
+
+		assert.IsType(t, &decoradorDeIdentificacion{}, clienteDePrueba(t).cliente.Transport,
+			"la cadena contra la red empieza por la identificación (D3)")
+	})
+
+	t.Run("Replay", func(t *testing.T) {
+		t.Parallel()
+
+		assert.IsType(t, &decoradorDeIdentificacion{}, clienteDeReproduccion(t, grabacionesDePrueba(t)).cliente.Transport,
+			"la cadena de reproducción también, que es la garantía b de FR-049")
+	})
+}
+
 // TestSoloIdentificarConstruyePeticiones es la otra mitad de la garantía, y la
 // que no depende de que alguien se acuerde de ampliar el test anterior: un
 // decorador solo ve lo que baja desde arriba, así que una petición fabricada por
-// debajo de él —el bucle de redirecciones de cliente.go, la de robots.txt en
-// T009— saldría sin cabecera si la construyera por su cuenta. Recorrer el
-// paquete y exigir que solo identificar.go construya un *http.Request convierte
-// esa disciplina en un control mecánico (FR-009, D3, plan.md control 6).
+// debajo de él —la de robots.txt, que fabrica robots.go— saldría sin cabecera si
+// la construyera por su cuenta. Recorrer el paquete y exigir que solo
+// identificar.go construya un *http.Request convierte esa disciplina en un
+// control mecánico (FR-009, D3, plan.md control 6).
 func TestSoloIdentificarConstruyePeticiones(t *testing.T) {
 	t.Parallel()
 

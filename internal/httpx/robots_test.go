@@ -21,24 +21,43 @@ import (
 // «límite de peticiones o términos de uso». Lo que lo demuestra es el contador de
 // rutas del servidor, que se queda en cero: la diferencia entre «no se emitió» y
 // «se emitió y se descartó» (FR-014, SC-011).
+//
+// Cada fila pide después una ruta que las mismas reglas sí autorizan, cuando la
+// hay: es lo que fija que la denegación es de la ruta y no del sitio, y lo que
+// permite comprobar que lo evaluado es la ruta **con su consulta** —RequestURI(),
+// que es lo que RFC 9309 §2.2.2 compara—, porque la última fila solo desautoriza
+// la consulta y la misma ruta sin ella tiene que pedirse.
 func TestRobotsDeniegaLaRuta(t *testing.T) {
 	t.Parallel()
 
 	casos := []struct {
-		nombre string
-		robots string
+		nombre        string
+		robots        string
+		desautorizada string
+		autorizada    string
 	}{
 		{
-			nombre: "el grupo del comodín desautoriza la ruta",
-			robots: "User-agent: *\nDisallow: /privado/\n",
+			nombre:        "el grupo del comodín desautoriza la ruta",
+			robots:        "User-agent: *\nDisallow: /privado/\n",
+			desautorizada: "/privado/norma",
+			autorizada:    "/norma",
 		},
 		{
-			nombre: "el grupo del agente del proyecto gana al del comodín",
-			robots: "User-agent: *\nAllow: /\n\nUser-agent: kitlegal\nDisallow: /privado/\n",
+			nombre:        "el grupo del agente del proyecto gana al del comodín",
+			robots:        "User-agent: *\nAllow: /\n\nUser-agent: kitlegal\nDisallow: /privado/\n",
+			desautorizada: "/privado/norma",
+			autorizada:    "/norma",
 		},
 		{
-			nombre: "un sitio que lo desautoriza todo no deja pedir nada",
-			robots: "User-agent: *\nDisallow: /\n",
+			nombre:        "un sitio que lo desautoriza todo no deja pedir nada",
+			robots:        "User-agent: *\nDisallow: /\n",
+			desautorizada: "/privado/norma",
+		},
+		{
+			nombre:        "la consulta forma parte de la ruta que se evalúa",
+			robots:        "User-agent: *\nDisallow: /norma?id=\n",
+			desautorizada: "/norma?id=BOE-A-2015-10565",
+			autorizada:    "/norma",
 		},
 	}
 
@@ -47,9 +66,10 @@ func TestRobotsDeniegaLaRuta(t *testing.T) {
 			t.Parallel()
 
 			servidor, contador := servidorConRobots(t, robotsQueDice(caso.robots), redireccionesDePrueba())
+			cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond))
 
-			respuesta, err := clienteDePrueba(t).Pedir(t.Context(), schema.Contexto{},
-				Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/privado/norma"})
+			respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{},
+				Peticion{Metodo: http.MethodGet, URL: servidor.URL + caso.desautorizada})
 
 			fallo := falloDe(t, err)
 			assert.Equal(t, schema.ClaseLimiteOTos, fallo.Clase(),
@@ -59,6 +79,18 @@ func TestRobotsDeniegaLaRuta(t *testing.T) {
 			assert.Zero(t, contador.total.Load(), "la ruta desautorizada no llega a pedirse (FR-014)")
 			assert.Equal(t, int64(1), contador.robots.Load(), "y el permiso se consultó una vez (FR-013)")
 			assert.Zero(t, contador.sinIdentificar.Load(), "también la del robots.txt llega identificada (FR-009)")
+
+			if caso.autorizada == "" {
+				return
+			}
+
+			respuesta, err = cliente.Pedir(t.Context(), schema.Contexto{},
+				Peticion{Metodo: http.MethodGet, URL: servidor.URL + caso.autorizada})
+			require.NoError(t, err,
+				"las mismas reglas autorizan esta otra ruta: lo denegado es la ruta, no el sitio (FR-014)")
+			assert.Equal(t, http.StatusOK, respuesta.Estado)
+			assert.Equal(t, int64(1), contador.total.Load(), "la ruta autorizada sí se pide")
+			assert.Equal(t, int64(1), contador.robots.Load(), "con las reglas que ya estaban cacheadas (FR-015)")
 		})
 	}
 }
@@ -196,18 +228,30 @@ func TestRobotsCasosDeObtencion(t *testing.T) {
 
 		const plazo = 50 * time.Millisecond
 
-		servidor, contador := servidorConRobots(t, func(_ http.ResponseWriter, peticion *http.Request) {
-			// El robots.txt no llega nunca: quien termina la operación es el
-			// contexto de quien la pidió.
-			<-peticion.Context().Done()
+		var obtenciones atomic.Int64
+
+		servidor, contador := servidorConRobots(t, func(escritor http.ResponseWriter, peticion *http.Request) {
+			// La primera vez el robots.txt no llega nunca: quien termina la
+			// operación es el contexto de quien la pidió. Las siguientes el sitio
+			// sí responde, que es lo que deja ver si el cliente vuelve a preguntar
+			// o dio el sitio por denegado.
+			if obtenciones.Add(1) == 1 {
+				<-peticion.Context().Done()
+
+				return
+			}
+
+			robotsQueDice("User-agent: *\nAllow: /\n")(escritor, peticion)
 		}, redireccionesDePrueba())
+
+		cliente := clienteDePrueba(t, ConIntervalo(time.Millisecond))
+		norma := Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"}
 
 		ctx, cancelar := context.WithTimeout(t.Context(), plazo)
 		defer cancelar()
 
 		comienzo := time.Now()
-		respuesta, err := clienteDePrueba(t).Pedir(ctx, schema.Contexto{},
-			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+		respuesta, err := cliente.Pedir(ctx, schema.Contexto{}, norma)
 
 		fallo := falloDe(t, err)
 		assert.Equal(t, schema.ClaseFuenteNoDisponible, fallo.Clase(),
@@ -216,6 +260,17 @@ func TestRobotsCasosDeObtencion(t *testing.T) {
 		assert.Equal(t, Respuesta{}, respuesta)
 		assert.Zero(t, contador.total.Load(), "no se llega a pedir el recurso")
 		assert.Less(t, time.Since(comienzo), time.Second, "la operación termina con el contexto, no más tarde")
+
+		// Y es el único caso que no deja nada en la caché: con el contexto vivo,
+		// la petición siguiente vuelve a pedir el robots.txt en vez de dar el
+		// sitio por denegado mientras viva el cliente (contrato de errores §3,
+		// data-model.md §5).
+		respuesta, err = cliente.Pedir(t.Context(), schema.Contexto{}, norma)
+		require.NoError(t, err, "un plazo agotado obteniendo el robots.txt no deja el sitio denegado (FR-015)")
+		assert.Equal(t, http.StatusOK, respuesta.Estado)
+		assert.Equal(t, int64(2), contador.robots.Load(),
+			"el robots.txt se vuelve a pedir: el vencimiento del contexto no se cachea")
+		assert.Equal(t, int64(1), contador.total.Load(), "y esta vez el recurso sí se pide")
 	})
 }
 

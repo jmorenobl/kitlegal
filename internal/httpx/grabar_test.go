@@ -21,11 +21,13 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-// Ninguna tabla de este fichero declara t.Parallel(), y no es un descuido: todas
-// usan t.Setenv, que «cannot be used in parallel tests» (go doc testing.T.Setenv).
-// No hay carrera con el resto del paquete porque las tablas paralelas de los
-// demás ficheros no arrancan hasta que las secuenciales han terminado, de modo
-// que ninguna construye su cliente con la variable puesta aquí (D12).
+// Las tablas de este fichero que construyen un cliente no declaran t.Parallel(),
+// y no es un descuido: todas usan t.Setenv, que «cannot be used in parallel
+// tests» (go doc testing.T.Setenv). No hay carrera con el resto del paquete
+// porque las tablas paralelas —las de los demás ficheros y la única de este que
+// no toca el entorno, TestGrabarRetiraElTemporal— no arrancan hasta que las
+// secuenciales han terminado, de modo que ninguna construye su cliente con la
+// variable puesta aquí (D12).
 
 // fuenteDePrueba es el nombre lógico de la fuente de estas tablas: el que nombra
 // el directorio que cuelga de la raíz de grabación.
@@ -295,6 +297,77 @@ func TestGrabarRaizInvalida(t *testing.T) {
 			assert.Contains(t, fallo.Error(), caso.raiz, "el mensaje nombra la ruta")
 		})
 	}
+}
+
+// TestGrabarFalloSobrevenido es FR-042 por su otra mitad, la tardía: lo que
+// falla después de que la construcción validara y creara el directorio no es un
+// valor de opción sino un tropiezo del mecanismo, y sale con la clase
+// «inesperado» nombrando el fichero que no se pudo escribir, sin entregar
+// respuesta y sin dejar nada escrito. El tropiezo es el directorio que
+// desaparece entre una petición y la siguiente: es el que se puede provocar en
+// cualquier máquina sin depender de permisos, que a quien ejecute la suite como
+// administrador no se le negarían.
+func TestGrabarFalloSobrevenido(t *testing.T) {
+	t.Setenv(VariableGrabacion, variableActiva)
+
+	raiz := t.TempDir()
+	servidor, _ := servidorIdentificado(t, redireccionesDePrueba())
+	cliente := clienteQueGraba(t, raiz)
+
+	// La primera petición graba bien y deja decidido el robots.txt del sitio,
+	// de modo que lo que falle después sea la grabación del recurso y no la
+	// obtención del permiso.
+	primera, err := cliente.Pedir(t.Context(), schema.Contexto{},
+		Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
+	require.NoError(t, err, "la grabación de la primera petición sí se puede escribir")
+	require.Equal(t, http.StatusOK, primera.Estado)
+
+	require.NoError(t, os.RemoveAll(filepath.Join(raiz, fuenteDePrueba)),
+		"el directorio que la construcción validó y creó desaparece")
+
+	direccion := servidor.URL + "/norma?otra=1"
+
+	respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{}, Peticion{Metodo: http.MethodGet, URL: direccion})
+
+	assert.Equal(t, Respuesta{}, respuesta, "una grabación que no se puede escribir no entrega ninguna respuesta")
+
+	fallo := falloDe(t, err)
+	assert.Equal(t, schema.ClaseInesperado, fallo.Clase(),
+		"un tropiezo sobrevenido del mecanismo es «inesperado», ni de la fuente ni de los argumentos (FR-042)")
+	assert.Contains(t, fallo.Error(), rutaGrabada(raiz, nombreDelServidor(t, servidor, "GET", "_norma_q_otra_1")),
+		"el mensaje nombra el fichero que no se pudo escribir")
+	assert.Equal(t, Peticion{Metodo: http.MethodGet, URL: direccion}, fallo.Peticion,
+		"y la petición implicada es la que se iba a grabar")
+	assert.Empty(t, entradasDe(t, raiz), "no queda nada escrito: ni grabación ni temporal (contrato §1)")
+}
+
+// TestGrabarRetiraElTemporal es la promesa de escritura del contrato §1 —«nunca
+// queda una grabación a medias»— por la mitad que ninguna tabla contra un
+// servidor puede provocar: la escritura que falla **después** de crear el
+// temporal. Se prueba sobre la propia escritura en firme, con un destino que un
+// rename de fichero no puede sustituir —un directorio—, y lo que se exige es que
+// el temporal desaparezca y que el directorio quede como estaba. El otro fallo
+// posible tras crearlo, el de volcar el contenido, retira el temporal por el
+// mismo camino.
+func TestGrabarRetiraElTemporal(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	destino := filepath.Join(directorio, "GET_http_fuente.prueba_norma.json")
+	require.NoError(t, os.Mkdir(destino, permisoDelDirectorioDeGrabacion),
+		"el destino lo ocupa un directorio, que el rename del temporal no puede sustituir")
+
+	err := escribirEnFirme(destino, &grabacion{Formato: formatoDeGrabacion, GrabadoEn: "2026-09-12T00:00:00Z"})
+	require.Error(t, err, "la escritura en firme falla al poner el temporal en su sitio")
+
+	entradas := entradasDe(t, directorio)
+	require.Len(t, entradas, 1, "en el directorio queda solo lo que ya estaba: ni temporal ni grabación")
+	assert.Equal(t, filepath.Base(destino), entradas[0].Name())
+	assert.True(t, entradas[0].IsDir(), "el destino sigue siendo el directorio que ya estaba")
+
+	parciales, err := filepath.Glob(filepath.Join(directorio, patronDelTemporal))
+	require.NoError(t, err)
+	assert.Empty(t, parciales, "el temporal de una escritura fallida se retira (contrato §1)")
 }
 
 // TestGrabarColision es FR-039 por su mitad de escritura: el nombre no es único

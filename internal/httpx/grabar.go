@@ -257,8 +257,10 @@ func comprobarQueEsLaMisma(ruta string, implicada Peticion) error {
 // el destino de una vez. Así un corte a media escritura no deja nunca una
 // grabación truncada que la reproducción tomaría por buena (D12).
 //
-// El temporal se retira en cuanto algo falla: lo que no llegó a ser una
-// grabación no se queda en el directorio.
+// El temporal se retira en cuanto algo falla después de crearlo —volcar el
+// contenido o ponerlo en su sitio—, y por el mismo camino en los dos casos: lo
+// que no llegó a ser una grabación no se queda en el directorio
+// (TestGrabarRetiraElTemporal).
 func escribirEnFirme(ruta string, contenido *grabacion) error {
 	// El destino pasa por filepath.Clean por lo mismo que la lectura de
 	// comprobarQueEsLaMisma: es lo que el control de rutas reconoce como saneo
@@ -270,25 +272,35 @@ func escribirEnFirme(ruta string, contenido *grabacion) error {
 		return err
 	}
 
-	if err := serializar(temporal, contenido); err != nil {
-		retirar(temporal)
-
-		return err
-	}
-
-	if err := temporal.Close(); err != nil {
-		retirarPorNombre(temporal.Name())
+	if err := volcarYCerrar(temporal, contenido); err != nil {
+		retirar(temporal.Name())
 
 		return err
 	}
 
 	if err := os.Rename(filepath.Clean(temporal.Name()), destino); err != nil {
-		retirarPorNombre(temporal.Name())
+		retirar(temporal.Name())
 
 		return err
 	}
 
 	return nil
+}
+
+// volcarYCerrar serializa la grabación en el temporal y lo cierra. El cierre se
+// hace pase lo que pase con la escritura, y el error que gana es el de la
+// escritura, que es el que dice qué falló; el del cierre solo cuenta cuando la
+// escritura fue bien.
+func volcarYCerrar(temporal *os.File, contenido *grabacion) error {
+	errAlEscribir := serializar(temporal, contenido)
+
+	errAlCerrar := temporal.Close()
+
+	if errAlEscribir != nil {
+		return errAlEscribir
+	}
+
+	return errAlCerrar
 }
 
 // serializar escribe el objeto del contrato §1 con la forma que fija FR-040: dos
@@ -306,19 +318,12 @@ func serializar(destino io.Writer, contenido *grabacion) error {
 	return codificador.Encode(contenido)
 }
 
-// retirar cierra y borra el temporal de una escritura que no ha salido bien.
-func retirar(temporal *os.File) {
-	_ = temporal.Close()
-
-	retirarPorNombre(temporal.Name())
-}
-
-// retirarPorNombre borra el temporal que quedó a medias. El resultado no se
+// retirar borra el temporal que quedó a medias, ya cerrado. El resultado no se
 // comprueba, y no es un error silenciado: lo que se va a devolver es el fallo
 // que trajo hasta aquí, que es el que explica qué pasó, y sustituirlo por el de
 // no haber podido borrar un fichero que ya no se va a usar cambiaría un motivo
 // cierto por uno accesorio.
-func retirarPorNombre(nombre string) {
+func retirar(nombre string) {
 	aBorrar := filepath.Clean(nombre)
 
 	_ = os.Remove(aBorrar)

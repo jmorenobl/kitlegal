@@ -210,6 +210,20 @@ de ser legible de fuera adentro— y el orden del enunciado del roadmap cambiar�
 tendría dos dueños y nada impediría que un tercer origen de peticiones la olvidara; el constructor único
 la hace imposible de olvidar y además comprobable con `go/ast`).
 
+**Enmienda tras la revisión final (ronda 1).** La revisión comprobó por mutación que quitar el decorador
+`identificar` de la cadena no hace fallar ningún test: toda petición que baja por ella nace ya
+identificada del constructor único, así que el decorador vuelve a poner una cabecera que ya está puesta.
+Lo que los tests detectan es vaciar la cabecera en `ponerIdentificacion` —que constructor y decorador
+comparten— y construir la petición de `robots.txt` sin el constructor. Se consideró **retirar el
+decorador** y dejar el constructor como único mecanismo (rechazada: la cadena `UA → robots → ratelimit →
+retry → record/replay` es la decisión de arquitectura registrada en `docs/ROADMAP.md` §2, que prevalece
+sobre este documento; apartarse de ella exige un ADR y una decisión humana, no una corrección de revisión).
+Se mantiene, por tanto, con su papel dicho con exactitud: **el dueño de la identificación es el
+constructor**; el decorador es el escalón `UA` del roadmap, redundante a propósito, que reafirma en la
+propia cadena que nada de lo que la atraviesa sale sin identificar. Su sitio en las dos cadenas lo fija un
+test de forma, `TestCadenaEmpiezaPorLaIdentificacion`, porque ninguna medida podría hacerlo; el control 6
+del plan describe lo que cada test detecta de verdad.
+
 ---
 
 ## D4 · Errores tipados: `httpx.Error` declara su clase; el kernel la reconoce con `errors.As` sin que el adaptador importe `internal/cli`

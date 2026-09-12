@@ -134,7 +134,11 @@ func TestMapaDeSitios(t *testing.T) {
 
 		require.NotNil(t, primero.limitador, "el sitio nace con su limitador de ritmo (data-model.md §4)")
 		exigeIntervalo(t, primero, intervaloDePrueba)
-		assert.Equal(t, rafagaDelSitio, primero.limitador.Burst(),
+
+		// El literal, y no la constante del paquete: comparar la ráfaga con la
+		// propia constante que la fija seguiría en verde con cualquier valor y
+		// no diría nada. Lo que D8 decide es «un token», y eso es lo que se exige.
+		assert.Equal(t, 1, primero.limitador.Burst(),
 			"y con ráfaga 1, para que ninguna petición se adelante a su turno (D8)")
 	})
 

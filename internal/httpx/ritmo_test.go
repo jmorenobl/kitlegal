@@ -20,6 +20,14 @@ import (
 // Se mide donde el criterio lo dice —en las llegadas al servidor, no en lo que
 // tarda quien llama— y sin que el cliente emita nada por su cuenta (FR-019,
 // FR-021).
+//
+// La medida empieza en la primera petición que el cliente hace al sitio, la de
+// su robots.txt, que ocupa el primer turno del cubo. Si el cubo admitiera más de
+// un token sería justo el primer par —robots.txt y recurso— el que saldría sin
+// separación, y medir solo a partir del segundo lo dejaría pasar: por eso se
+// anota también esa llegada y se exige la separación de **todos** los pares
+// consecutivos, y por eso la operación entera tiene que ocupar el intervalo
+// tantas veces como peticiones se hacen (D8).
 func TestRitmoSeparaPeticionesDelMismoSitio(t *testing.T) {
 	t.Parallel()
 
@@ -28,7 +36,11 @@ func TestRitmoSeparaPeticionesDelMismoSitio(t *testing.T) {
 	const peticiones = 3
 
 	anotador := &llegadas{}
-	servidor, contador := servidorIdentificado(t, anotador.anota(redireccionesDePrueba()))
+	contador := &contadorDeIdentificacion{}
+
+	// El anotador envuelve también el robots.txt del sitio, no solo el recurso:
+	// la llegada del robots.txt es la primera que el ritmo espacia.
+	servidor := servidorLocal(t, contador.vigila(anotador.anota(robotsSinReglas(redireccionesDePrueba()))))
 	cliente := clienteDePrueba(t, ConIntervalo(intervalo))
 
 	comienzo := time.Now()
@@ -41,28 +53,33 @@ func TestRitmoSeparaPeticionesDelMismoSitio(t *testing.T) {
 	}
 
 	assert.Equal(t, int64(peticiones), contador.total.Load(), "el ritmo separa las peticiones, no las descarta")
-	assert.GreaterOrEqual(t, time.Since(comienzo), (peticiones-1)*intervalo,
-		"tres peticiones al mismo sitio ocupan al menos el doble del intervalo que las separa (FR-019)")
+	assert.Equal(t, int64(1), contador.robots.Load(), "y el robots.txt del sitio es la primera de todas (FR-013)")
+
+	// Con un solo token en el cubo, el robots.txt lo consume al instante y cada
+	// una de las tres peticiones espera el suyo: la operación entera ocupa al
+	// menos tres veces el intervalo. Con ráfaga 2, la primera petición saldría
+	// con el token sobrante y la operación ocuparía una vez menos, así que esta
+	// cota no tiene holgura: es exacta y la fija el limitador, no el reloj de la
+	// máquina.
+	assert.GreaterOrEqual(t, time.Since(comienzo), peticiones*intervalo,
+		"tres peticiones tras el robots.txt ocupan al menos tres veces el intervalo: el cubo es de un solo token (FR-019, D8)")
 
 	anotadas := anotador.instantes()
-	require.Len(t, anotadas, peticiones)
+	require.Len(t, anotadas, peticiones+1, "el robots.txt y las tres peticiones")
 
-	// La comparación es entre la segunda llegada y la tercera: la primera
-	// petición paga además la apertura de la conexión, que las siguientes
-	// reutilizan, y ese coste se restaría de la separación medida sin ser
-	// ritmo. El intervalo que ocupan las tres, ya comprobado más arriba con
-	// exactitud, cubre el par que aquí queda fuera.
-	//
 	// Lo que el limitador espacia con exactitud es el turno; la llegada añade a
-	// cada turno lo que tarde en despacharse el manejador del servidor, y esa
-	// diferencia —décimas de milisegundo— no es ritmo. De ahí la holgura, dos
-	// órdenes de magnitud por debajo del intervalo: sin limitador, o con un cupo
-	// compartido entre sitios, la separación no sería «un intervalo menos una
-	// holgura» sino prácticamente cero.
-	const holgura = 10 * time.Millisecond
+	// cada turno lo que tarde en despacharse el manejador, y la primera —la del
+	// robots.txt— paga además la apertura de la conexión, que las siguientes
+	// reutilizan y que se resta de la separación del primer par sin ser ritmo.
+	// De ahí la holgura, muy por debajo del intervalo: sin limitador, con un
+	// cupo compartido entre sitios o con ráfaga 2, la separación de algún par no
+	// sería «un intervalo menos una holgura» sino prácticamente cero.
+	const holgura = 25 * time.Millisecond
 
-	assert.GreaterOrEqual(t, anotadas[2].Sub(anotadas[1]), intervalo-holgura,
-		"dos peticiones seguidas al mismo sitio llegan separadas al menos el intervalo (SC-004)")
+	for i := 1; i < len(anotadas); i++ {
+		assert.GreaterOrEqual(t, anotadas[i].Sub(anotadas[i-1]), intervalo-holgura,
+			"las llegadas %d y %d al mismo sitio van separadas al menos el intervalo (SC-004)", i-1, i)
+	}
 }
 
 // TestRitmoNoRetrasaOtroSitio es la otra mitad de SC-004: el cupo es de cada
