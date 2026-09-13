@@ -1,16 +1,18 @@
 {
-  "id": "T021",
-  "texto": "T021 [US3] `buscar`: `internal/source/boe/buscar.go`, con su caso en `Fetch` de `internal/source/boe/fuente.go`, une el texto con un espacio, valida (cero palabras sin operadores → 2 sin abrir la caché), construye la dirección con `busqueda.go`, sirve la entrada vigente, pide con JSON, lee los resultados en el orden de la fuente (objeto suelto → lista) con la dirección pública de cada uno, y escribe la entrada con 300 s también cuando no hay resultados; `url` del sobre = la de la búsqueda; con `TestBuscar` (`con-resultados`, `sin-resultados-guardada`, `texto-vacio`) (FR-030, FR-031, FR-032, FR-070, US3).",
-  "intento": 1,
+  "id": "T022",
+  "texto": "T022 [US5] `analisis`: `internal/source/boe/analisis.go`, con su caso en `Fetch` de `internal/source/boe/fuente.go`, valida la norma, sirve la entrada vigente, pide con JSON, lee materias, notas, referencias anteriores (con el texto completo, sin recorte) y posteriores con sus envoltorios y la normalización a lista (`data` vacío → 3 sin guardar) y escribe la entrada con 604 800 s; `url` del sobre = la del análisis; con `TestAnalisis` (`lpac`, `inexistente`, `texto-completo`); y, porque `analisis`, `metadatos` e `indice` comparten el mismo esqueleto de verbo (validar la norma antes de abrir nada, `invocar`, resolver con la caché de la invocación y componer el resultado con la dirección del recurso) y `dupl` lo marca en cuanto existe el tercero, `internal/source/boe/fuente.go` añade `resolverRecursoDeLaNorma`, que lo recoge, y los tres verbos lo usan: `internal/source/boe/analisis.go` con `analisisDeLaNorma`, `internal/source/boe/metadatos.go` con el `metadatosDeLaNorma` que ya tiene e `internal/source/boe/indice.go` con un `indiceDeLaNorma` nuevo, sin cambiar ningún comportamiento ni ningún test de esos dos verbos (FR-060, FR-061, FR-070, US5 escenario 2; redelimitada en el intento 1, ver gates/tarea-T022.md).",
+  "intento": 2,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T021.md y déjala sin marcar.",
-  "base": "cdee9c78b7f722ffd283588a5a640e1e185afee3",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T022.md y déjala sin marcar.",
+  "base": "9aca3dd93bf26b65476e2ecaf9f94a4137ac6dde",
   "rutas": [
-    "busqueda.go",
-    "internal/source/boe/buscar.go",
-    "internal/source/boe/fuente.go"
+    "gates/tarea-T022.md",
+    "internal/source/boe/analisis.go",
+    "internal/source/boe/fuente.go",
+    "internal/source/boe/indice.go",
+    "internal/source/boe/metadatos.go"
   ],
   "cierre": false
 }

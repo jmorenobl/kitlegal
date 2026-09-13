@@ -13,31 +13,20 @@ const (
 	claveDelTituloDelBloque = "titulo"
 )
 
-// indice resuelve indice <norma> (contrato verbos-y-salidas §2): valida la norma
-// antes de abrir nada —fuera de su gramática, «argumentos» sin procedencia, que
-// firma y fecha el kernel (contrato errores-y-codigos, fila 2)— y, dentro de
-// invocar, resuelve el índice con consultar sobre su entrada y con la vigencia de
-// indice, siete días (FR-091): servido de la entrada vigente, o pedido en JSON,
-// leído con leerIndice y escrito. Su 404 y su data vacío son «no encontrado»
-// (FR-041). El resultado lleva la dirección del índice en éxito, en ensayo y en
-// fallo (FR-002, FR-101), y en éxito, la fecha de la consulta que lo sostiene
-// (FR-096).
+// indice resuelve indice <norma> (contrato verbos-y-salidas §2) con
+// resolverRecursoDeLaNorma: la norma se valida antes de abrir nada y el índice
+// se resuelve con indiceDeLaNorma; el resultado lleva la dirección del índice.
 func (f *Fuente) indice(ctx context.Context, ec schema.Contexto, consulta ConsultaIndice) (schema.Resultado, error) {
-	if err := ValidarNorma(consulta.Norma); err != nil {
-		return schema.Resultado{}, err
-	}
+	return resolverRecursoDeLaNorma(ctx, f, ec, consulta.Norma, direccionDelIndice, indiceDeLaNorma)
+}
 
-	direccion := direccionDelIndice(consulta.Norma)
-
-	return f.invocar(ctx, ec, direccion, func(ctx context.Context, en *invocacion) (schema.Resultado, error) {
-		resuelto, err := consultar(ctx, en, claveDelIndice(consulta.Norma), pedidoDelIndice(consulta.Norma), vigenciaLarga,
-			func(datos any) (Indice, error) { return leerIndice(consulta.Norma, datos) })
-		if err != nil {
-			return resultadoDelError(err), err
-		}
-
-		return resultadoDeLaConsulta(direccion, resuelto), nil
-	})
+// indiceDeLaNorma es el índice de una norma ya validada, resuelto con consultar
+// sobre su entrada y con la vigencia de indice, siete días (FR-091): servido de
+// la entrada vigente, o pedido en JSON, leído con leerIndice y escrito. Su 404 y
+// su data vacío son «no encontrado» (FR-041).
+func indiceDeLaNorma(ctx context.Context, en *invocacion, norma string) (consultaResuelta[Indice], error) {
+	return consultar(ctx, en, claveDelIndice(norma), pedidoDelIndice(norma), vigenciaLarga,
+		func(datos any) (Indice, error) { return leerIndice(norma, datos) })
 }
 
 // leerIndice compone el data de indice de la norma con el data de su respuesta,

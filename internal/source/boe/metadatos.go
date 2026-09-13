@@ -23,28 +23,12 @@ const (
 	subclaveDelTexto = "texto"
 )
 
-// metadatos resuelve metadatos <norma> (contrato verbos-y-salidas §5): valida la
-// norma antes de abrir nada —fuera de su gramática, «argumentos» sin
-// procedencia, que firma y fecha el kernel (contrato errores-y-codigos, fila 2)—
-// y, dentro de invocar, resuelve los metadatos con la caché de la invocación. El
-// resultado lleva la dirección de los metadatos en éxito, en ensayo y en fallo
-// (FR-002, FR-101), y en éxito, la fecha de la consulta que los sostiene
-// (FR-096).
+// metadatos resuelve metadatos <norma> (contrato verbos-y-salidas §5) con
+// resolverRecursoDeLaNorma: la norma se valida antes de abrir nada y los
+// metadatos se resuelven con metadatosDeLaNorma; el resultado lleva la
+// dirección de los metadatos.
 func (f *Fuente) metadatos(ctx context.Context, ec schema.Contexto, consulta ConsultaMetadatos) (schema.Resultado, error) {
-	if err := ValidarNorma(consulta.Norma); err != nil {
-		return schema.Resultado{}, err
-	}
-
-	direccion := direccionDeLosMetadatos(consulta.Norma)
-
-	return f.invocar(ctx, ec, direccion, func(ctx context.Context, en *invocacion) (schema.Resultado, error) {
-		resuelta, err := metadatosDeLaNorma(ctx, en, consulta.Norma)
-		if err != nil {
-			return resultadoDelError(err), err
-		}
-
-		return resultadoDeLaConsulta(direccion, resuelta), nil
-	})
+	return resolverRecursoDeLaNorma(ctx, f, ec, consulta.Norma, direccionDeLosMetadatos, metadatosDeLaNorma)
 }
 
 // metadatosDeLaNorma son los metadatos de una norma ya validada, resueltos con

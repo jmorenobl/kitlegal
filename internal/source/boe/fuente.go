@@ -237,10 +237,10 @@ func (*Fuente) Terms() core.Terminos {
 // Fetch resuelve la consulta (core.Source). Cada verbo resuelve la suya en su
 // propio fichero, con un caso en Fetch que valida la consulta antes de abrir
 // nada y la resuelve dentro de invocar (research.md D2 y D5): metadatos, en
-// metadatos.go; articulo y articulos, en articulo.go; indice, en indice.go; y
-// buscar, en buscar.go.
-// Una consulta sin caso —de un tipo que la fuente no declara, nula o de un verbo
-// que la fuente todavía no resuelve— es un defecto de quien la compone:
+// metadatos.go; articulo y articulos, en articulo.go; indice, en indice.go;
+// buscar, en buscar.go; y analisis, en analisis.go.
+// Una consulta sin caso —de un tipo que la fuente no declara, o nula— es un
+// defecto de quien la compone:
 // «inesperado», sin procedencia, porque no se ha consultado nada, y sin abrir la
 // caché ni construir el cliente, también con --offline y con --dry-run (contrato
 // errores-y-codigos, fila 22).
@@ -256,6 +256,8 @@ func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Co
 		return f.indice(ctx, ec, consulta)
 	case ConsultaBuscar:
 		return f.buscar(ctx, ec, consulta)
+	case ConsultaAnalisis:
+		return f.analisis(ctx, ec, consulta)
 	default:
 		return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
 	}
@@ -635,6 +637,34 @@ func resultadoDeLaConsulta[T any](direccion string, resuelta consultaResuelta[T]
 	procedencia.FechaConsulta = resuelta.fechaConsulta
 
 	return schema.Resultado{Procedencia: procedencia, Datos: resuelta.datos}
+}
+
+// resolverRecursoDeLaNorma resuelve un verbo que consulta un recurso de una
+// norma —metadatos, indice y analisis—: valida la norma antes de abrir nada
+// —fuera de su gramática, «argumentos» sin procedencia, que firma y fecha el
+// kernel (contrato errores-y-codigos, fila 2)— y, dentro de invocar, resuelve el
+// recurso con resolver y la caché de la invocación. El resultado lleva la
+// dirección del recurso, la que da direccionDe, en éxito, en ensayo y en fallo
+// (FR-002, FR-101), y en éxito, la fecha de la consulta que lo sostiene
+// (FR-096).
+func resolverRecursoDeLaNorma[T any](ctx context.Context, f *Fuente, ec schema.Contexto, norma string,
+	direccionDe func(norma string) string,
+	resolver func(ctx context.Context, en *invocacion, norma string) (consultaResuelta[T], error),
+) (schema.Resultado, error) {
+	if err := ValidarNorma(norma); err != nil {
+		return schema.Resultado{}, err
+	}
+
+	direccion := direccionDe(norma)
+
+	return f.invocar(ctx, ec, direccion, func(ctx context.Context, en *invocacion) (schema.Resultado, error) {
+		resuelta, err := resolver(ctx, en, norma)
+		if err != nil {
+			return resultadoDelError(err), err
+		}
+
+		return resultadoDeLaConsulta(direccion, resuelta), nil
+	})
 }
 
 // defectoAlComponer es el fallo de quien compone la fuente: «inesperado», sin
