@@ -567,3 +567,160 @@ func documentoConURL(t *testing.T, url string) map[string]any {
 
 	return objeto
 }
+
+// TestMontadorFechaDeConsulta comprueba con qué instante fecha el montador el
+// sobre ahora que la procedencia puede declarar la fecha de consulta: con esa
+// fecha cuando la procedencia es válida y la declara, en éxito y en fallo por
+// el mismo camino; con su reloj cuando no la declara; y con su reloj y la firma
+// del kernel cuando la procedencia no sostiene una cita, aunque traiga fecha.
+// La huella no depende de la fecha en ningún caso (FR-096, ADR 0006,
+// contracts/puerto-y-applet.md §2).
+//
+// Es el test que invoca el escenario 4 de quickstart.md por su nombre.
+func TestMontadorFechaDeConsulta(t *testing.T) {
+	t.Parallel()
+
+	// La consulta lleva otro desplazamiento horario que el reloj del montador:
+	// un sobre que tomara el del reloj, o que normalizara el instante a otra
+	// zona, no pasaría por coincidencia.
+	consultada := time.Date(2026, time.September, 4, 8, 45, 30, 250_000_000,
+		time.FixedZone("CET", 60*60))
+
+	conFecha := procedenciaDelApplet
+	conFecha.FechaConsulta = consultada
+
+	noEncontrado := fmt.Errorf("el bloque a99 de BOE-A-2015-10565: %w", ErrNoEncontrado)
+
+	casos := []struct {
+		nombre      string
+		recibida    schema.Procedencia
+		err         error
+		codigo      int
+		procedencia schema.Procedencia
+		fecha       time.Time
+	}{
+		{
+			nombre:      "con fecha, en éxito: la de la consulta",
+			recibida:    conFecha,
+			codigo:      0,
+			procedencia: procedenciaDelApplet,
+			fecha:       consultada,
+		},
+		{
+			nombre:      "con fecha, en fallo: la de la consulta",
+			recibida:    conFecha,
+			err:         noEncontrado,
+			codigo:      3,
+			procedencia: procedenciaDelApplet,
+			fecha:       consultada,
+		},
+		{
+			nombre:      "sin fecha, en éxito: el reloj del montador",
+			recibida:    procedenciaDelApplet,
+			codigo:      0,
+			procedencia: procedenciaDelApplet,
+			fecha:       instanteDePrueba,
+		},
+		{
+			nombre:      "sin fecha, en fallo: el reloj del montador",
+			recibida:    procedenciaDelApplet,
+			err:         noEncontrado,
+			codigo:      3,
+			procedencia: procedenciaDelApplet,
+			fecha:       instanteDePrueba,
+		},
+		{
+			nombre: "inválida con fecha, en fallo: el kernel y su reloj",
+			recibida: schema.Procedencia{
+				Fuente:        procedenciaDelApplet.Fuente,
+				URL:           "www.boe.es/buscar/act.php?id=BOE-A-2015-10565",
+				FechaConsulta: consultada,
+			},
+			err:         noEncontrado,
+			codigo:      3,
+			procedencia: ProcedenciaKernel(),
+			fecha:       instanteDePrueba,
+		},
+		{
+			// El montaje del éxito rechaza la procedencia y el fallo que eso
+			// provoca es del applet: sale por el sobre de fallo, con el kernel.
+			nombre: "inválida con fecha, en éxito: el kernel y su reloj",
+			recibida: schema.Procedencia{
+				Fuente:        procedenciaDelApplet.Fuente,
+				URL:           "www.boe.es/buscar/act.php?id=BOE-A-2015-10565",
+				FechaConsulta: consultada,
+			},
+			codigo:      1,
+			procedencia: ProcedenciaKernel(),
+			fecha:       instanteDePrueba,
+		},
+		{
+			nombre:      "solo con fecha, en fallo: el kernel y su reloj",
+			recibida:    schema.Procedencia{FechaConsulta: consultada},
+			err:         noEncontrado,
+			codigo:      3,
+			procedencia: ProcedenciaKernel(),
+			fecha:       instanteDePrueba,
+		},
+		{
+			// La de un fallo anterior a cualquier petición: el applet no llegó
+			// a construir ninguna y devuelve la procedencia cero.
+			nombre:      "cero, en fallo: el kernel y su reloj",
+			recibida:    schema.Procedencia{},
+			err:         noEncontrado,
+			codigo:      3,
+			procedencia: ProcedenciaKernel(),
+			fecha:       instanteDePrueba,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			res := resultadoDePrueba()
+			res.Procedencia = caso.recibida
+
+			doble := &presentadorConJSON{}
+			codigo := emitirDePrueba(doble, true, res, caso.err)
+
+			require.Equal(t, caso.codigo, codigo)
+			require.Len(t, doble.sobres, 1, "se emite un único sobre")
+			assert.Equal(t, caso.fecha, doble.sobres[0].FechaConsulta)
+
+			documento := unicoDocumento(t, doble.salida.String())
+			exigirContrato(t, documento)
+			assert.Equal(t, caso.procedencia.Fuente, documento["fuente"])
+			assert.Equal(t, caso.procedencia.URL, documento["url"])
+			assert.Equal(t, caso.fecha.Format(time.RFC3339Nano), documento["fecha_consulta"],
+				"fecha_consulta sale en RFC 3339 con el desplazamiento del instante elegido")
+		})
+	}
+
+	t.Run("la huella no depende de la fecha", func(t *testing.T) {
+		t.Parallel()
+
+		montador := montadorDePrueba()
+
+		exitoConFecha, err := montador.Exito(
+			schema.Resultado{Procedencia: conFecha, Datos: resultadoDePrueba().Datos})
+		require.NoError(t, err)
+		exitoSinFecha, err := montador.Exito(resultadoDePrueba())
+		require.NoError(t, err)
+
+		assert.Equal(t, consultada, exitoConFecha.FechaConsulta)
+		assert.Equal(t, instanteDePrueba, exitoSinFecha.FechaConsulta)
+		assert.Equal(t, exitoSinFecha.Hash, exitoConFecha.Hash,
+			"el mismo data con dos fechas distintas tiene la misma huella")
+
+		falloConFecha, err := montador.Fallo(conFecha, noEncontrado)
+		require.NoError(t, err)
+		falloSinFecha, err := montador.Fallo(procedenciaDelApplet, noEncontrado)
+		require.NoError(t, err)
+
+		assert.Equal(t, consultada, falloConFecha.FechaConsulta)
+		assert.Equal(t, instanteDePrueba, falloSinFecha.FechaConsulta)
+		assert.Equal(t, falloSinFecha.Hash, falloConFecha.Hash,
+			"en el sobre de fallo la huella se calcula igual que en el de éxito")
+	})
+}

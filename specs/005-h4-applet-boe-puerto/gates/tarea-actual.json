@@ -1,0 +1,18 @@
+{
+  "id": "T001",
+  "texto": "T001 El dominio declara el puerto de fuente y la fecha de consulta, y el kernel la usa: `internal/core/schema/sobre.go` añade `Procedencia.FechaConsulta time.Time` (el valor cero significa «no la declara quien consulta»; `Validar` no cambia) con `TestProcedenciaFechaDeConsultaOpcional` en su fichero de test; `internal/cli/sobre.go` hace que `Montador` feche el sobre con `FechaConsulta` cuando la procedencia es válida y la fecha no es cero, en éxito y en fallo, y con su reloj en otro caso (procedencia inválida o cero → `kitlegal.cli` y `kitlegal:cli` con el reloj del montador), sin que la huella dependa de la fecha, con `TestMontadorFechaDeConsulta` (con fecha → esa, en éxito y en fallo; sin fecha → reloj; procedencia inválida → kernel y reloj) en su fichero de test; `internal/core/source.go` con `Source` (`Name`, `Fetch(ctx, ec, consulta)`, `TTL(consulta)`, `Terms`), `Consulta` (`Verbo()`) y `Terminos{URL, Revisados}`, importando solo `context`, `time` y el paquete `schema` y sin sentencias; `internal/core/doc.go` con «Source nace con H4»; y `docs/ADR/0015-puerto-source-y-fecha-de-consulta.md` con el contexto de FR-096, la firma del puerto, la ampliación retrocompatible de `Procedencia` sin tocar `Applet` ni `Resultado` y las alternativas descartadas de research D2 y D3 (FR-096, FR-121, contrato puerto-y-applet §1 y §2, punto 7 de la Definition of Done).",
+  "intento": 1,
+  "datos": false,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "3758bf87adf08d9ca021f0251cfc1815d4f8ef66",
+  "rutas": [
+    "docs/ADR/0015-puerto-source-y-fecha-de-consulta.md",
+    "internal/cli/sobre.go",
+    "internal/core/doc.go",
+    "internal/core/schema/sobre.go",
+    "internal/core/source.go"
+  ],
+  "cierre": false
+}

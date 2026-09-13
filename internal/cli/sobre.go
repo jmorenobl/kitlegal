@@ -48,10 +48,12 @@ type Reloj func() time.Time
 // sobre es idéntica para todos los applets y también para los fallos anteriores
 // a la ejecución de cualquiera de ellos (FR-015, FR-045).
 type Montador struct {
-	// Ahora es el reloj con el que se fecha la consulta. Nulo significa el
-	// reloj del sistema, de modo que el valor cero del tipo es el montador de
-	// producción y solo un test necesita fijarlo: con el instante bajo control
-	// se puede comprobar que la huella no depende de él (FR-013, SC-005).
+	// Ahora es el reloj con el que se fecha el sobre cuando la procedencia no
+	// declara la fecha de consulta: la de un applet calculado, la del kernel o
+	// la de una fuente que no la conoce (FR-096). Nulo significa el reloj del
+	// sistema, de modo que el valor cero del tipo es el montador de producción
+	// y solo un test necesita fijarlo: con el instante bajo control se puede
+	// comprobar que la huella no depende de él (FR-013, SC-005).
 	Ahora Reloj
 }
 
@@ -166,8 +168,8 @@ func (m Montador) Fallo(proc schema.Procedencia, err error) (schema.Sobre, error
 }
 
 // montar es el único sitio donde se escribe la forma del sobre, y por eso el
-// de éxito y el de fallo no pueden divergir: misma fecha del mismo reloj y
-// misma huella sobre la misma forma canónica.
+// de éxito y el de fallo no pueden divergir: la fecha sale de la misma regla y
+// la huella, de la misma forma canónica (ADR 0006: «se calculan igual»).
 //
 // Recibe el código de salida y no un booleano porque la invariante de FR-014 no
 // es que `ok` acompañe al desenlace sino que valga exactamente `código == 0`;
@@ -183,10 +185,27 @@ func (m Montador) montar(codigo int, proc schema.Procedencia, datos any) (schema
 		Ok:            codigo == codigoCorrecto,
 		Fuente:        proc.Fuente,
 		URL:           proc.URL,
-		FechaConsulta: m.instante(),
+		FechaConsulta: m.fechaDeConsulta(proc),
 		Hash:          huella,
 		Data:          datos,
 	}, nil
+}
+
+// fechaDeConsulta es el instante con el que se fecha el sobre: el que declara
+// la procedencia cuando quien consultó lo conoce, y el del reloj del montador
+// cuando no (FR-096, docs/ADR/0015). Recibe la procedencia ya resuelta —la
+// validada del éxito o la conocida del fallo—, así que una procedencia que no
+// sostiene una cita llega aquí sustituida por la del kernel, que no trae fecha,
+// y el sobre queda fechado con el reloj aunque la rechazada trajera una.
+//
+// La huella no pasa por aquí: se calcula sobre data, que no lleva la fecha, y
+// por eso sigue detectando que el contenido cambió (ADR 0006).
+func (m Montador) fechaDeConsulta(proc schema.Procedencia) time.Time {
+	if proc.FechaConsulta.IsZero() {
+		return m.instante()
+	}
+
+	return proc.FechaConsulta
 }
 
 // procedenciaConocida devuelve la de la fuente que se estaba consultando cuando
