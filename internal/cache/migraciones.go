@@ -219,11 +219,26 @@ func (c *Cliente) aplica(
 
 // empiezaLaTransaccion abre la transacción inmediata de una migración esperando
 // el bloqueo de escritura por tramos que miran el contexto (FR-003, FR-031).
+//
+// La transacción nace con el contexto sin su cancelación, a propósito: si
+// llevara la de quien llama, database/sql la desharía él mismo en cuanto el
+// contexto terminase, desde su propia goroutine (Tx.awaitDone), y New podría
+// volver con esa conexión todavía abierta —el bloqueo de escritura y los
+// auxiliares del registro de escritura se soltarían después de haber contestado,
+// que es lo que el contrato de apertura prohíbe (§5: ningún fallo deja conexión
+// abierta)—. Sin esa cancelación, deshacerla es cosa de aplica y ocurre antes de
+// volver. El contexto de quien llama sigue gobernando cada sentencia de dentro,
+// que es donde una cancelación se atiende (FR-003); empezar la transacción la
+// atiende entre tramo y tramo, como cualquier otra espera ante bloqueo, y
+// confirmarla ya no la mira: una migración cuya última sentencia entró se
+// confirma entera, que es lo que la siguiente invocación quiere encontrar.
 func (c *Cliente) empiezaLaTransaccion(ctx context.Context, base *sql.DB) (*sql.Tx, error) {
 	var tx *sql.Tx
 
+	sinCancelacion := context.WithoutCancel(ctx)
+
 	err := c.reintentaMientrasBloqueada(ctx, func() (err error) {
-		tx, err = base.BeginTx(ctx, nil)
+		tx, err = base.BeginTx(sinCancelacion, nil)
 
 		return err
 	})

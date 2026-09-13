@@ -215,3 +215,31 @@ SQLITE_BUSY; con el arreglo, 0 y 0.**
 - Hueco del workflow, para después de H4: si `verificar_reparacion` sale en verde con la tarea redelimitada
   (`[ ]`), `cerrar_tarea` la commitea igual, porque `redelimitada_reparacion` solo se calcula en rojo y
   `redelimitada` se calculó antes de `reparar`.
+
+# T003 · intento 3 · en verde y marcada
+
+El trabajo de `httpx` del intento 2 estaba entero y commiteado como `feat(H4): T003` (c5f7f3d, base de este intento;
+`internal/` sin diferencias frente a ella). El intento 3 aplica solo la parte de la caché, exactamente como la dejó
+verificada el intento 2 y nada más:
+
+- `internal/cache/migraciones_test.go`: importa `io/fs` y, en `TestContextoCanceladoDuranteLaMigracion`, entre la
+  aserción que exige la ruta en el mensaje y la primera lectura directa, exige con `require.ErrorIs(…, fs.ErrNotExist)`
+  que no existan `-wal` ni `-shm` (`sufijoRegistroDeEscritura`, `sufijoMemoriaCompartida`). La lectura directa sigue
+  como estaba: sin `busy_timeout` ni reintentos.
+- `internal/cache/migraciones.go`: solo `empiezaLaTransaccion` (comentario y cuerpo). `BeginTx` recibe
+  `context.WithoutCancel(ctx)`; `reintentaMientrasBloqueada` sigue mirando el contexto de quien llama entre tramos, y
+  cada sentencia de `aplica` sigue con ese contexto.
+
+## Evidencia
+
+- Rojo antes del arreglo, en el repositorio: `go test -race -count=5 -run '^TestContextoCanceladoDuranteLaMigracion$'
+  ./internal/cache/` → 5 de 5 fallos en `migraciones_test.go` 220 («al volver no queda ninguna conexión…»): el `-wal`
+  sigue vivo al volver `New`.
+- Verde tras el arreglo: el mismo test con `-count=20` → ok; `go test -race -count=3 -shuffle=on ./internal/cache/`
+  → ok; `go test -race -tags=integration ./internal/cache/` → ok; `TestNewConLaBaseBloqueadaRespetaElContexto` con
+  `-count=3` → ok (el plazo entre tramos sigue respetándose).
+- `golangci-lint run ./internal/cache/...` (el fijado por el repo) → 0 issues; `golangci-lint fmt --diff` sin
+  diferencias.
+- `go clean -testcache && make ci` → código 0, «ci: todos los controles en verde» (`internal/cache` 90,7 % en el perfil
+  unitario y 96,2 % en el de integración; `internal/httpx` 97,2 % en los dos). `TestContextoCanceladoDuranteLaMigracion`
+  no ha fallado en ninguna ejecución de este intento.
