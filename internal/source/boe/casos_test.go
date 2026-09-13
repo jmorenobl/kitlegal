@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 )
@@ -83,6 +84,51 @@ const (
 	referenciasDelDiff = 6
 	normasDelDiff      = 4
 )
+
+// Los golden de data (contrato esquemas-fixtures-y-controles §2; FR-112): los
+// escribe TestGolden con su bandera en la tarea [datos] de los golden, los
+// revisa una persona en su pausa y desde entonces TestGolden los compara byte a
+// byte con lo que da cada caso.
+const (
+	// carpetaDeLosGolden es la de los golden, un fichero por caso.
+	carpetaDeLosGolden = "testdata/golden"
+	// extensionDeLosGolden es la del fichero de cada caso, <caso>.json.
+	extensionDeLosGolden = ".json"
+)
+
+// casoDeGolden es un caso de la lista cerrada de golden: el nombre de su fichero,
+// sin la extensión, y la consulta cuyo data y url fija.
+type casoDeGolden struct {
+	nombre   string
+	consulta core.Consulta
+}
+
+// casosDeGolden son los trece casos del contrato §2, en su orden: los seis
+// verbos, cada consulta sobre recursos del manifiesto, con los seis artículos del
+// diff de aceptación entre ellos (FR-112, SC-005). Cada consulta va con los
+// argumentos tal como los recibe el verbo, de modo que la búsqueda son las tres
+// palabras que la persona escribe.
+var casosDeGolden = []casoDeGolden{
+	{
+		nombre:   "buscar-procedimiento-administrativo-comun",
+		consulta: ConsultaBuscar{Texto: []string{"procedimiento", "administrativo", "común"}},
+	},
+	{nombre: "buscar-sin-resultados", consulta: ConsultaBuscar{Texto: []string{"zzqxkwvjh"}}},
+	{nombre: "indice-BOE-A-2015-10565", consulta: ConsultaIndice{Norma: "BOE-A-2015-10565"}},
+	{nombre: "articulo-BOE-A-2015-10565-a21", consulta: ConsultaArticulo{Norma: "BOE-A-2015-10565", Bloque: "a21"}},
+	{nombre: "articulo-BOE-A-2015-10565-a1", consulta: ConsultaArticulo{Norma: "BOE-A-2015-10565", Bloque: "a1"}},
+	{nombre: "articulo-BOE-A-1985-5392-a22", consulta: ConsultaArticulo{Norma: "BOE-A-1985-5392", Bloque: "a22"}},
+	{nombre: "articulo-BOE-A-2017-12902-a1-30", consulta: ConsultaArticulo{Norma: "BOE-A-2017-12902", Bloque: "a1-30"}},
+	{nombre: "articulo-BOE-A-2017-12902-da-3", consulta: ConsultaArticulo{Norma: "BOE-A-2017-12902", Bloque: "da-3"}},
+	{nombre: "articulo-BOE-A-1992-26318-a42", consulta: ConsultaArticulo{Norma: "BOE-A-1992-26318", Bloque: "a42"}},
+	{
+		nombre:   "articulos-BOE-A-2015-10565-a21-a22-a23",
+		consulta: ConsultaArticulos{Norma: "BOE-A-2015-10565", Bloques: []string{"a21", "a22", "a23"}},
+	},
+	{nombre: "metadatos-BOE-A-2015-10565", consulta: ConsultaMetadatos{Norma: "BOE-A-2015-10565"}},
+	{nombre: "metadatos-BOE-A-1992-26318", consulta: ConsultaMetadatos{Norma: "BOE-A-1992-26318"}},
+	{nombre: "analisis-BOE-A-2015-10565", consulta: ConsultaAnalisis{Norma: "BOE-A-2015-10565"}},
+}
 
 // manifiestoDeLasGrabaciones es grabaciones.json: la fuente y la lista cerrada de
 // sus recursos, sin dirección ni Accept, que construye el código (contrato §3.1).

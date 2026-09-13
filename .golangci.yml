@@ -229,6 +229,12 @@ linters:
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles
+        # «Dependencias», las del contrato del applet boe de H4 —DependenciasDeBoe
+        # y DependenciasDeRed— y las que Nueva, en internal/source/boe/fuente.go,
+        # exige al componer la fuente: sus comentarios y sus mensajes nombran las
+        # dependencias ausentes (FR-121, research.md D18); misspell lo lee como
+        # «dependencies».
+        - dependencias
         # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
         # fija el contrato del applet; misspell lo lee como «Description».
         - descripcion
