@@ -13,6 +13,13 @@ run:
   # rowserrcheck incluidos— cargaría esos ficheros, y uno que ni compila pasaría
   # el lint en verde (H3 FR-041, research.md D11).
   #
+  # Y los que llevan fuentes: la verificación contra la fuente real
+  # (internal/app/fuentes_red_test.go) solo la compila scripts/verify-sources.sh,
+  # que toca la red y que ejecutan make verify-sources y el flujo nocturno, nunca
+  # make ci ni ninguna tarea; sin la etiqueta aquí, ese fichero quedaría fuera de
+  # todo control y uno que ni compila pasaría el lint en verde (H4 FR-115,
+  # research.md D13).
+  #
   # Y los que llevan grabacion: el arnés que graba las respuestas reales de una
   # fuente (internal/source/boe/grabacion_test.go) solo lo compila
   # scripts/grabar-fixtures.sh, que toca la red y que ni make ci ni ninguna tarea
@@ -20,6 +27,7 @@ run:
   # uno que ni compila pasaría el lint en verde (H4 research.md D13).
   build-tags:
     - integration
+    - fuentes
     - grabacion
 
 linters:
