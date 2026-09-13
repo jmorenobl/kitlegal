@@ -1,14 +1,15 @@
 {
-  "id": "T012",
-  "texto": "T012 [US1] Lectura del bloque XML con el recorrido de `ElementTree`: `internal/source/boe/bloque.go` con las reglas X1-X8 de data-model §3.2 —UTF-8 válido; declaración de codificación ignorada; raíz única; el primer descendiente `bloque` que no es la raíz; atributos `titulo` y `tipo` del bloque y `fecha_publicacion`, `fecha_vigencia` e `id_norma` de la última `version` de primer nivel (fecha `original` si falta o sin versiones; vacíos los demás); texto con `CharData`, `CDATA` y `tail`, sin que comentarios ni instrucciones de proceso lo corten; normalización de líneas— y cualquier cuerpo ilegible o sin bloque → «fuente no disponible», nunca el cuerpo ni un recorte, con `TestLeerBloque` de tabla (con versiones, sin versiones, última sin fecha, fecha vacía presente, `tail`, CRLF, CDATA, comentario, entidades, atributos con saltos, bloque anidado, raíz `bloque`, ilegible, no UTF-8, declaración ISO-8859-1 con UTF-8, dos raíces) (FR-010, FR-011, FR-014, FR-016, research D6).",
+  "id": "T013",
+  "texto": "T013 [US5] Tipos de `data` y avisos de vigencia: `internal/source/boe/datos.go` con `Articulo`, `Aviso`, `ResultadoDeBusqueda`, `Indice`, `EntradaDeIndice`, `Metadatos`, `EstadoDeConsolidacion`, `Analisis`, `Materia`, `Referencias`, `ReferenciaAnterior` y `ReferenciaPosterior` con las claves de data-model §2 (todas obligatorias; vacío y lista vacía en lugar de ausente), etiquetas `json` y `jsonschema` (`codigo` enumerado con exactamente `consolidacion-no-finalizada`, `derogada` y `vigencia-agotada`; `tipo` de `EntradaDeIndice` con los valores de `TiposDeBloque`; `hash_texto` con su patrón), `TiposDeBloque()` y la huella `sha256:` del texto, con `TestEnumeradosDeLosDatos` (los enumerados del esquema que genera la biblioteca de esquemas ya fijada son exactamente `CodigosDeAviso()` y `TiposDeBloque()`, y todo tipo que da `TipoDesdeID` está entre ellos) y `TestHashTexto` (cambia si y solo si cambia el texto); e `internal/source/boe/avisos.go` con `CodigosDeAviso()` y los avisos derivados de los metadatos con las tres condiciones de `_check_vigencia`, su orden y sus frases literales (data-model §2.2), con `TestAvisosDe` (las ocho combinaciones; código numérico → sin aviso) y `TestCodigosDeAviso` (FR-012, FR-015, FR-050, SC-013, research D11).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
-  "base": "94f58f12537180a10293ab9888ff15b79639d1fd",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T013.md y déjala sin marcar.",
+  "base": "9272f6111805f7be75d0725d723a7c60b89efeb0",
   "rutas": [
-    "internal/source/boe/bloque.go"
+    "internal/source/boe/avisos.go",
+    "internal/source/boe/datos.go"
   ],
   "cierre": false
 }
