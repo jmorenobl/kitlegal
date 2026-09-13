@@ -5,12 +5,14 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
@@ -21,6 +23,11 @@ import (
 // net/http.Client)— y queda por encima de los cinco que RFC 9309 §2.3.1.2 pide
 // como mínimo para el robots.txt, que reutiliza este tope (D10).
 const topeDeRedirecciones = 10
+
+// cabeceraDelFormato es la cabecera por la que una fuente sabe en qué formato se
+// le pide el recurso (RFC 9110 §12.5.1), y la única que quien pide elige: la
+// rellena Peticion.Acepta (research D4 de H4).
+const cabeceraDelFormato = "Accept"
 
 // esquemasDeRed son los dos únicos esquemas que una dirección puede traer. Lo
 // que no es uno de ellos no es una fuente caída sino una invocación que quien
@@ -406,9 +413,9 @@ func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 // olvidarlo (FR-050, D1).
 //
 // Fuera de la cadena de decoradores viven las tres cosas que necesitan decidir
-// antes o después de ella: la comprobación del método y de la dirección, que
-// ocurre antes de abrir nada; el ensayo, que devuelve sin bajar por la cadena; y
-// el bucle de redirecciones con la clasificación del resultado (D3).
+// antes o después de ella: la comprobación del método, de la dirección y del
+// formato, que ocurre antes de abrir nada; el ensayo, que devuelve sin bajar por
+// la cadena; y el bucle de redirecciones con la clasificación del resultado (D3).
 func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Peticion) (Respuesta, error) {
 	direccion, err := comprobarPeticion(p)
 	if err != nil {
@@ -425,9 +432,10 @@ func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Petici
 	return c.seguirLaCadena(ctx, p, direccion)
 }
 
-// comprobarPeticion aplica las dos comprobaciones que no necesitan red y que por
-// eso rigen también en ensayo: el método es GET o HEAD (FR-010) y la dirección
-// es absoluta, de esquema de red y con sitio (research D19). Las dos son de la
+// comprobarPeticion aplica las tres comprobaciones que no necesitan red y que por
+// eso rigen también en ensayo: el método es GET o HEAD (FR-010), la dirección es
+// absoluta, de esquema de red y con sitio (research D19), y el formato, si se
+// pide, se puede poner en una cabecera (research D4 de H4). Las tres son de la
 // clase «argumentos» y ninguna llega a abrir una conexión.
 func comprobarPeticion(p Peticion) (*url.URL, error) {
 	if p.Metodo != http.MethodGet && p.Metodo != http.MethodHead {
@@ -447,7 +455,42 @@ func comprobarPeticion(p Peticion) (*url.URL, error) {
 		return nil, errorDeArgumentos(p, nil, "la dirección no nombra ningún sitio")
 	}
 
+	if err := comprobarFormato(p); err != nil {
+		return nil, err
+	}
+
 	return direccion, nil
+}
+
+// comprobarFormato valida Peticion.Acepta antes de que llegue a la cabecera
+// Accept. Vacío no pide ningún formato. Lo demás tiene que ser un tipo de
+// contenido que mime.ParseMediaType acepte y no llevar ningún carácter de
+// control, y las dos condiciones hacen falta: el analizador recorta los espacios
+// que rodean el tipo —un «\r\n» final incluido— y admite tabuladores entre
+// parámetros y casi cualquier byte dentro de un valor entrecomillado, de modo que
+// por sí solo dejaría pasar un valor que partiría la cabecera o que la biblioteca
+// rechazaría ya en la red (contrato httpx-acepta-e-instante §1 de H4).
+//
+// El valor se cita entrecomillado con strconv.Quote, para que un carácter de
+// control no llegue crudo al mensaje ni a quien lo registre.
+func comprobarFormato(p Peticion) error {
+	if p.Acepta == "" {
+		return nil
+	}
+
+	if strings.ContainsFunc(p.Acepta, unicode.IsControl) {
+		return errorDeArgumentos(p, nil,
+			"el formato pedido en la cabecera "+cabeceraDelFormato+" lleva un carácter de control: "+
+				strconv.Quote(p.Acepta))
+	}
+
+	if _, _, err := mime.ParseMediaType(p.Acepta); err != nil {
+		return errorDeArgumentos(p, err,
+			"el formato pedido en la cabecera "+cabeceraDelFormato+" no es un tipo de contenido: "+
+				strconv.Quote(p.Acepta))
+	}
+
+	return nil
 }
 
 // seguirLaCadena es el bucle de redirecciones: cada salto es una petición
@@ -513,10 +556,19 @@ type recibida struct {
 // La petición la construye nuevaPeticionIdentificada, que es el único
 // constructor del paquete: así nace identificada aunque la origine el bucle y no
 // quien llama (FR-009, D3).
+//
+// El formato lo pone aquí, en cada salto, porque es de la petición pedida y no de
+// la cadena: cada salto es una petición completa que no hereda nada del anterior
+// (D10), y la del robots.txt, que fabrica su propio escalón, no lo lleva
+// (research D4 de H4).
 func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (recibida, error) {
 	peticion, err := nuevaPeticionIdentificada(ctx, p.Metodo, destino.String())
 	if err != nil {
 		return recibida{}, errorDeArgumentos(p, err, "la dirección no se puede pedir")
+	}
+
+	if p.Acepta != "" {
+		peticion.Header.Set(cabeceraDelFormato, p.Acepta)
 	}
 
 	comienzo := time.Now()

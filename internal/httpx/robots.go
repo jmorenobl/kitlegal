@@ -181,6 +181,13 @@ func (r *decoradorDeRobots) obtener(ctx context.Context, delSitio *url.URL) (*re
 // La petición la construye nuevaPeticionIdentificada, el único constructor del
 // paquete: la fabrica este escalón, por debajo del que pone la cabecera, así que
 // es la única forma de que nazca identificada (FR-009, D3).
+//
+// Nace de cero, y no copiada de la petición que ha provocado la consulta, y por
+// eso no lleva más cabecera que la identificación: tampoco el formato que quien
+// llama pidió para su recurso. Un robots.txt es texto plano (RFC 9309 §2.3), y
+// pedirlo en XML o en JSON invitaría a un sitio que negocia el contenido a
+// responder con otra cosa; clonar aquí la petición entrante rompería esa garantía,
+// y TestPedirConAcepta lo detectaría (contrato httpx-acepta-e-instante §1 de H4).
 func pedirElRobots(ctx context.Context, siguiente http.RoundTripper, destino *url.URL) (recibida, error) {
 	peticion, err := nuevaPeticionIdentificada(ctx, http.MethodGet, destino.String())
 	if err != nil {

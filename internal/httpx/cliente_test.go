@@ -4,6 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -198,6 +201,148 @@ func TestPedirRechazaDireccion(t *testing.T) {
 				Peticion{Metodo: http.MethodGet, URL: caso.direccion})
 		})
 	}
+}
+
+// TestPedirConAcepta fija la única cabecera que elige quien pide: el formato del
+// recurso, que boe.py pide por Accept —XML para el texto de un bloque y JSON para
+// lo demás (FR-003 de H4)—. Va en la petición y en cada salto de su cadena de
+// redirecciones, se graba con las demás cabeceras de la petición y no la lleva
+// nunca la del robots.txt, que el paquete pide por su cuenta. Vacía, la petición
+// sale como en H2; mal formada, es de argumentos y no abre nada, tampoco en
+// ensayo. Y la reproducción sigue emparejando solo por método y dirección
+// (contrato httpx-acepta-e-instante §1, research D4 de H4).
+//
+// Ninguna subprueba declara t.Parallel(), y no es un descuido: todas usan
+// t.Setenv, que «cannot be used in parallel tests» (go doc testing.T.Setenv). La
+// de la grabación la enciende; las demás la declaran apagada, porque New y Replay
+// leen la variable y lo que cada una comprueba no puede depender del entorno de
+// quien ejecuta los tests —Replay, además, rechaza cualquier valor no vacío
+// (FR-043)—. Es la regla de las tablas de grabar_test.go y reproducir_test.go, y
+// no hay carrera con el resto del paquete porque las tablas paralelas no arrancan
+// hasta que las secuenciales han terminado.
+func TestPedirConAcepta(t *testing.T) {
+	const formato = "application/xml"
+
+	t.Run("la cabecera va en la petición y en cada salto, y no en la del robots.txt", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, "")
+
+		servidor, formatos := servidorQueAnotaFormatos(t)
+
+		respuesta, err := clienteDePrueba(t, ConIntervalo(time.Millisecond)).Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/antigua", Acepta: formato})
+		require.NoError(t, err)
+		require.Equal(t, servidor.URL+"/norma", respuesta.URL, "la cadena de la tabla tiene un salto")
+
+		assert.Equal(t, []string{formato}, formatos.de(t, "/antigua"), "la petición pedida lleva el formato tal cual")
+		assert.Equal(t, []string{formato}, formatos.de(t, "/norma"),
+			"y el salto también: cada uno es una petición completa que no hereda nada del anterior (D10)")
+		assert.Nil(t, formatos.de(t, rutaDelRobots),
+			"la del robots.txt no: la fabrica el paquete y no es ninguno de los recursos pedidos")
+	})
+
+	t.Run("la grabación la guarda en cada salto, y no en la del robots.txt", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, variableActiva)
+
+		raiz := t.TempDir()
+		servidor, _ := servidorIdentificado(t, redireccionesDePrueba())
+
+		_, err := clienteQueGraba(t, raiz).Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/antigua", Acepta: formato})
+		require.NoError(t, err, "grabar no cambia el resultado de la petición")
+
+		for _, salto := range []string{"_antigua", "_norma"} {
+			grabada := grabacionLeida(t, rutaGrabada(raiz, nombreDelServidor(t, servidor, "GET", salto)))
+			assert.Equal(t, []string{formato}, grabada.Peticion.Cabeceras["Accept"],
+				"la grabación guarda las cabeceras de la petición tal como salió, el formato incluido (FR-037)")
+		}
+
+		delRobots := grabacionLeida(t, rutaGrabada(raiz, nombreDelServidor(t, servidor, "GET", "_robots.txt")))
+		assert.Contains(t, delRobots.Peticion.Cabeceras, "User-Agent", "la del robots.txt se graba con sus cabeceras")
+		assert.NotContains(t, delRobots.Peticion.Cabeceras, "Accept", "y entre ellas no está el formato del recurso")
+	})
+
+	t.Run("sin formato la petición no lleva Accept", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, "")
+
+		servidor, formatos := servidorQueAnotaFormatos(t)
+
+		_, err := clienteDePrueba(t, ConIntervalo(time.Millisecond)).Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/antigua"})
+		require.NoError(t, err)
+
+		assert.Nil(t, formatos.de(t, "/antigua"), "vacío, la petición sale como en H2")
+		assert.Nil(t, formatos.de(t, "/norma"), "y sus saltos también")
+	})
+
+	formatosMalFormados := []struct {
+		nombre string
+		acepta string
+	}{
+		{nombre: "un tipo sin subtipo", acepta: "application/"},
+		{nombre: "una lista de tipos", acepta: formato + ", application/json"},
+		{nombre: "solo espacios", acepta: "   "},
+		// Los tres siguientes los acepta mime.ParseMediaType, que recorta los
+		// espacios que rodean el tipo —un «\r\n» final incluido—, admite
+		// tabuladores entre parámetros y cualquier byte salvo el retorno de carro y
+		// el salto de línea dentro de un valor entrecomillado: son los que
+		// demuestran que la comprobación de los caracteres de control no sobra.
+		{nombre: "un fin de línea tras el tipo", acepta: formato + "\r\n"},
+		{nombre: "un tabulador entre parámetros", acepta: formato + ";\tcharset=utf-8"},
+		{nombre: "un carácter de control entrecomillado", acepta: formato + `; charset="utf` + "\x01" + `-8"`},
+	}
+
+	for _, caso := range formatosMalFormados {
+		t.Run("un formato mal formado es de argumentos y no abre nada: "+caso.nombre, func(t *testing.T) {
+			t.Setenv(VariableGrabacion, "")
+
+			servidor, contador := servidorIdentificado(t, redireccionesDePrueba())
+			cliente := clienteDePrueba(t)
+
+			for _, ejecucion := range []schema.Contexto{{}, {DryRun: true}} {
+				respuesta, err := cliente.Pedir(t.Context(), ejecucion,
+					Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma", Acepta: caso.acepta})
+
+				exigeClaseYCodigo(t, schema.ClaseArgumentos, 2, err)
+				assert.Equal(t, Respuesta{}, respuesta, "un rechazo no entrega ninguna respuesta, tampoco la del ensayo")
+				require.ErrorContains(t, err, "Accept", "el mensaje nombra la cabecera que no se puede pedir (FR-034)")
+			}
+
+			assert.Zero(t, contador.total.Load(), "un formato rechazado no abre ninguna conexión, tampoco en ensayo")
+			assert.Zero(t, contador.robots.Load(), "ni siquiera la del robots.txt del sitio")
+		})
+	}
+
+	t.Run("un formato válido no cambia la descripción del ensayo", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, "")
+
+		pedida := Peticion{Metodo: peticionDeEnsayo.Metodo, URL: peticionDeEnsayo.URL, Acepta: formato}
+
+		respuesta, err := clienteDePrueba(t).Pedir(t.Context(), schema.Contexto{DryRun: true}, pedida)
+		require.NoError(t, err)
+
+		assert.Equal(t, pedida, respuesta.Peticion, "la petición devuelta es la que se pidió, con su formato")
+		assert.Equal(t, "GET http://fuente.prueba/norma?id=BOE-A-2015-10565", respuesta.Descripcion(),
+			"la descripción sigue siendo «<Metodo> <URL>»: el formato no la cambia")
+	})
+
+	t.Run("la reproducción empareja solo por método y dirección", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, "")
+
+		directorio := grabacionesDePrueba(t)
+		grabada := grabacionLeida(t, filepath.Join(directorio, ficheroDeLaNorma))
+		require.NotContains(t, grabada.Peticion.Cabeceras, "Accept", "la grabación de la tabla no declara ningún formato")
+		require.NotNil(t, grabada.Respuesta.Cuerpo)
+
+		cliente := clienteDeReproduccion(t, directorio)
+
+		for _, acepta := range []string{"", formato, "application/json"} {
+			respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{},
+				Peticion{Metodo: http.MethodGet, URL: normaGrabada, Acepta: acepta})
+			require.NoError(t, err,
+				"el formato %q no participa en el emparejamiento (contrato de grabación de H2 §4)", acepta)
+			assert.Equal(t, *grabada.Respuesta.Cuerpo, string(respuesta.Cuerpo), "y se sirve la misma grabación")
+		}
+	})
 }
 
 // TestPedirRespetaElPlazo comprueba SC-002: el plazo de la operación es el del
@@ -470,4 +615,51 @@ func exigeFuenteNoDisponible(t *testing.T, direccion string, menciones ...string
 	for _, mencion := range menciones {
 		assert.Contains(t, fallo.Error(), mencion, "el mensaje nombra lo que ha fallado (FR-034)")
 	}
+}
+
+// formatosPedidos anota, por ruta, los valores de la cabecera Accept con que
+// llegó la petición a esa ruta. Guarda nil cuando llegó sin ella, que es lo que
+// distingue «pedida sin formato» de «pedida con un formato vacío»; que la ruta no
+// llegara a pedirse es un fallo de la tabla, y no una cabecera ausente.
+type formatosPedidos struct {
+	mu      sync.Mutex
+	porRuta map[string][]string
+}
+
+// servidorQueAnotaFormatos levanta el servidor de las redirecciones de prueba,
+// con un robots.txt sin reglas, y anota el formato de toda petición que recibe,
+// la del robots.txt incluida.
+func servidorQueAnotaFormatos(t *testing.T) (*httptest.Server, *formatosPedidos) {
+	t.Helper()
+
+	formatos := &formatosPedidos{porRuta: make(map[string][]string)}
+	servidor, _ := servidorConRobots(t, formatos.anota(robotsQueDice("")), formatos.anota(redireccionesDePrueba()))
+
+	return servidor, formatos
+}
+
+// anota envuelve un manejador para guardar el formato de cada petición antes de
+// atenderla.
+func (f *formatosPedidos) anota(manejador http.HandlerFunc) http.HandlerFunc {
+	return func(escritor http.ResponseWriter, peticion *http.Request) {
+		f.mu.Lock()
+		f.porRuta[peticion.URL.Path] = slices.Clone(peticion.Header.Values("Accept"))
+		f.mu.Unlock()
+
+		manejador(escritor, peticion)
+	}
+}
+
+// de devuelve los valores de Accept con que llegó la petición a la ruta, y exige
+// que llegara.
+func (f *formatosPedidos) de(t *testing.T, ruta string) []string {
+	t.Helper()
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	valores, pedida := f.porRuta[ruta]
+	require.True(t, pedida, "el servidor no ha recibido ninguna petición a %s", ruta)
+
+	return valores
 }
