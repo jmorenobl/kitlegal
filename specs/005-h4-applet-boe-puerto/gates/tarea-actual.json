@@ -1,25 +1,18 @@
 {
-  "id": "T003",
-  "texto": "T003 `httpx` dice cuándo emitió cada petición: `internal/httpx/instante.go` (nuevo) con la marca de emisión en el contexto, de clave sin exportar, y `conMarcaDeEmision`, que escribe la hora justo antes de entregar la petición al transporte y que cada intento sobrescribe; `internal/httpx/peticion.go` añade `Respuesta.Instante` (cero en ensayo); `internal/httpx/errores.go` añade `Error.Instante`; `internal/httpx/cliente.go` añade `ConHora(ahora func() time.Time)` (nula → «argumentos» al construir; vale para `New` y para `Replay`), coloca la marca en las dos cadenas en el orden del contrato §4, la reinicia antes de cada salto y la copia al volver en `Respuesta.Instante` o `Error.Instante` (vacía → la hora al volver); `internal/httpx/robots.go` obtiene su fichero con un contexto que oculta la marca; con `TestConHoraRechazaNula` en `internal/httpx/cliente_test.go` y `TestInstanteDeEmision` en `internal/httpx/instante_test.go`, con los nueve subtests `acierto`, `acierto-tras-reintentos`, `fallo-tras-reintentos`, `denegada-por-robots`, `sin-turno`, `redireccion`, `reproduccion`, `ensayo` y `argumentos`, sobre servidores de prueba de la biblioteca estándar (solo dentro de este paquete, regla R2) y un reloj que da un instante distinto en cada llamada; y, porque el contrato §4 pone la marca entre la identificación y la reproducción y el instante sale de la hora del cliente, `internal/httpx/reproducir_test.go` ajusta el subtest «identifica la petición» de `TestReplayGarantiasVigentes` (bajo la identificación, la marca de emisión, y bajo ella la reproducción y nada más) y `TestReplayEsDeterminista` (los dos clientes con la misma `ConHora` fija), e `internal/httpx/grabar.go` corrige solo el comentario de `decoradorDeGrabacion`, que deja de ser el escalón de más abajo; y, porque su verificación (`make ci`) se puso en rojo dos veces por `TestContextoCanceladoDuranteLaMigracion` del paquete de la caché, un fallo intermitente de H3 ajeno a `httpx` (SQLITE_BUSY en la lectura directa que sigue al fallo de `New`, con la conexión de la migración todavía abierta porque el paquete `sql` de la biblioteca estándar deshace en su propia goroutine, `Tx.awaitDone`, la transacción cuyo contexto termina): `internal/cache/migraciones.go` hace que `empiezaLaTransaccion` abra la transacción de la migración con `context.WithoutCancel(ctx)`, de modo que deshacerla sea cosa de `aplica` y ocurra antes de volver, manteniendo el contexto de quien llama en cada sentencia y en la espera por tramos; e `internal/cache/migraciones_test.go` exige en `TestContextoCanceladoDuranteLaMigracion`, justo después del fallo de `New`, que no existan `-wal` ni `-shm` (rojo sin el arreglo, verde con él); ninguna otra línea de la caché (FR-095, FR-096, SC-008, contrato httpx-acepta-e-instante §2-§4, research D4; contrato de H3 esquema-y-apertura §5, «ninguno deja conexión abierta»; redelimitada en los intentos 1 y 2, ver gates/tarea-T003.md).",
-  "intento": 3,
+  "id": "T004",
+  "texto": "T004 [P] El porte anotado antes de portar: `internal/source/boe/doc.go` crea el paquete `boe` con el comentario del paquete y su sección de comportamientos no obvios de la copia congelada `boe.py`, con las 32 entradas de FR-120 una por línea de lista, cada una con su número, sus líneas, el comportamiento, el destino (se porta · se adapta y por qué · no se porta y por qué) y el requisito o *Fuera de alcance*, en la forma del contrato esquemas-fixtures-y-controles §9; con `TestDocAnotaElPorte` en `internal/source/boe/doc_test.go` (analiza `doc.go` con el analizador sintáctico de la biblioteca estándar y exige las entradas 1 a 32, una vez cada una, con líneas, destino y requisito); y `.golangci.yml`, solo `misspell.ignore-rules`, con `materias` y `regulares`, cada una con su comentario (FR-120, SC-010, research D18).",
+  "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
-  "base": "c5f7f3db231683344f2b12dbf48050bc668b4407",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
+  "base": "55a4ae5a8bd6a241e9aa987467a9faf6354cc9bd",
   "rutas": [
-    "gates/tarea-T003.md",
-    "internal/cache/migraciones_test.go",
-    "internal/cache/migraciones.go",
-    "internal/httpx/cliente_test.go",
-    "internal/httpx/cliente.go",
-    "internal/httpx/errores.go",
-    "internal/httpx/grabar.go",
-    "internal/httpx/instante_test.go",
-    "internal/httpx/instante.go",
-    "internal/httpx/peticion.go",
-    "internal/httpx/reproducir_test.go",
-    "internal/httpx/robots.go"
+    ".golangci.yml",
+    ".ignore",
+    "doc.go",
+    "internal/source/boe/doc_test.go",
+    "internal/source/boe/doc.go"
   ],
   "cierre": false
 }
