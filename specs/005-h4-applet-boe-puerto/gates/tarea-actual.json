@@ -1,14 +1,14 @@
 {
-  "id": "T010",
-  "texto": "T010 [datos] [US1] Sintéticos, antes del código de lectura: `internal/source/boe/testdata/sintetico/` con los siete escenarios del contrato esquemas-fixtures-y-controles §4 (`bloque-ilegible`, `bloque-sin-elemento`, `metadatos-caidos`, `metadatos-ilegibles`, `fuente-caida`, `limite` y `avisos`), cada uno en la subcarpeta con el nombre de la fuente, copiados de la grabación de origen que nombra la tabla (bloque `a21`, metadatos o índice de `BOE-A-2015-10565`) con el cambio mínimo que fija el contrato y sin cambiar la petición grabada (método y dirección), para que la reproducción la empareje; ningún otro fichero (FR-013, FR-014, FR-100, SC-008, SC-012, research D12).",
+  "id": "T011",
+  "texto": "T011 [US5] Lectura de las respuestas JSON: `internal/source/boe/lectura.go` con las reglas J1-J9 de data-model §3.1 —raíz objeto; `data` ausente o nula como vacía; objeto suelto → lista de un elemento donde FR-070 lo pide, también dentro de los envoltorios; primer elemento de `data` en metadatos y análisis; índice anidado o plano; envoltorios `materia`, `nota`, `anterior` y `posterior`; elementos que no son objeto, saltados; texto: cadena, ausente o nulo → vacío, cualquier otro tipo → «fuente no disponible» nombrando el campo, nunca el marcador `?`—, con `TestLeerEnvoltorio`, `TestComoLista` y `TestTextoDe` de tabla, sin ficheros de datos (FR-016, FR-040, FR-070, research D7).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
-  "base": "a332fb7ed835fa001580a83f3bdcc375ef2d44b5",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
+  "base": "5b75c8e6dd6143d7c9ad1c846480dc92c624e295",
   "rutas": [
-    "internal/source/boe/testdata/sintetico/"
+    "internal/source/boe/lectura.go"
   ],
   "cierre": false
 }
