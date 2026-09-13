@@ -26,7 +26,7 @@
 #                error sin ser límite de uso → reanuda una vez; el mismo paso no
 #                se reanuda dos veces.
 #   deliberado   precheck_*, check_*, leer_*, guardian_*, siguiente_tarea
-#                (intentos agotados), verificar_reparacion, ci_final,
+#                (intentos agotados), redelimitada_reparacion, ci_final,
 #                publicar_rama… fallan a propósito → se detiene y dice por qué.
 #   gate         pausa humana ([datos] con material existente o fixtures, rutas
 #                sensibles, modo supervisado) → se detiene.
@@ -163,6 +163,11 @@ clasificar() {
 supervisar() {
   local run="$1"; shift
   local n=0 clase paso detalle fam nuevo reanudados=" " extra
+  # macOS: el run de H3 perdió 103 min con el Mac dormido a mitad de `plan`
+  # («Connection lost while your computer was asleep»). caffeinate -i impide el
+  # reposo por inactividad mientras viva este proceso (-w lo liga a este PID);
+  # la pantalla sí puede apagarse.
+  if command -v caffeinate >/dev/null 2>&1; then caffeinate -i -w $$ & fi
   while :; do
     set +e
     if [ -z "$run" ]; then
