@@ -117,7 +117,8 @@ func TestArquitectura(t *testing.T) {
 // gates/pr-h1.md; los que entran en H4, cuando el applet boe enlaza
 // internal/httpx e internal/cache, en gates/pr-h4.md (FR-060, FR-124;
 // research.md D14 de H4). Lo que importa cada uno lo mide `go list -deps` sobre
-// el binario.
+// el binario de cada una de plataformasDeDistribucion; el que no llega a todas
+// lo dice en su línea.
 //
 // Es una lista escrita a mano a propósito. Cuando un hito, o una actualización
 // de módulos, enlace uno nuevo, este test falla y obliga a hacer lo que la
@@ -133,13 +134,13 @@ var modulosDelBinario = []string{
 	// H4: lo importa modernc.org/libc, el entorno de C traducido a Go sobre el
 	// que corre el controlador de SQLite de internal/cache.
 	"github.com/dustin/go-humanize",
-	// H4: lo importa modernc.org/libc.
+	// H4: lo importa modernc.org/libc en darwin y linux; no llega a windows.
 	"github.com/google/uuid",
 	// §V, H1: el esquema de entrada y salida de --describe, en internal/cli.
 	"github.com/invopop/jsonschema",
-	// H4: lo importa modernc.org/libc.
+	// H4: lo importa modernc.org/libc en darwin y windows; no llega a linux.
 	"github.com/mattn/go-isatty",
-	// H4: lo importa modernc.org/libc.
+	// H4: lo importa modernc.org/libc en darwin y windows; no llega a linux.
 	"github.com/ncruces/go-strftime",
 	// H1: lo importa github.com/invopop/jsonschema para las propiedades en orden.
 	"github.com/pb33f/ordered-map/v2",
@@ -187,28 +188,58 @@ func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 	}
 }
 
-// TestDependenciasDelBinario comprueba que el binario distribuido no enlaza
-// ningún módulo de terceros fuera de los declarados (FR-060, constitución §V).
-// Mira el cierre transitivo real de `go list -deps` sobre el punto de entrada,
-// que es lo mismo que acaba en `go version -m` del ejecutable: ni los módulos
-// que solo usan los tests ni los de las herramientas cuentan aquí.
+// plataformasDeDistribucion son las plataformas para las que se entrega el
+// binario, sin cgo: darwin, linux y windows sobre amd64 y arm64 (ADR 0002;
+// docs/ROADMAP.md, entrega). Los módulos que enlaza dependen de la plataforma,
+// porque modernc.org/libc elige sus ficheros por sistema: en linux no llegan
+// github.com/mattn/go-isatty ni github.com/ncruces/go-strftime, y en windows no
+// llega github.com/google/uuid. Por eso se mide en todas y no solo en la del
+// ordenador que ejecuta el test, que haría depender el veredicto de dónde corre.
+var plataformasDeDistribucion = []struct{ sistema, arquitectura string }{
+	{"darwin", "amd64"},
+	{"darwin", "arm64"},
+	{"linux", "amd64"},
+	{"linux", "arm64"},
+	{"windows", "amd64"},
+	{"windows", "arm64"},
+}
+
+// TestDependenciasDelBinario comprueba que el binario distribuido no enlaza, en
+// ninguna de sus plataformas, ningún módulo de terceros fuera de los declarados
+// (FR-060, constitución §V), y que no se declara ninguno que no enlace en
+// ninguna. Mira el cierre transitivo real de `go list -deps` sobre el punto de
+// entrada con GOOS, GOARCH y CGO_ENABLED=0 de cada plataforma, que es lo mismo
+// que acaba en `go version -m` de su ejecutable: ni los módulos que solo usan
+// los tests ni los de las herramientas cuentan aquí.
 func TestDependenciasDelBinario(t *testing.T) {
 	t.Parallel()
 
 	modulo := rutaDelModulo(t)
-	enlazados := map[string]bool{}
+	// Cada módulo con las plataformas cuyo binario lo enlaza.
+	enlazados := map[string][]string{}
 
-	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "-f", plantillaDeModulos, "./cmd/kitlegal"), "\n") {
-		if linea = strings.TrimSpace(linea); linea != "" && linea != modulo {
-			enlazados[linea] = true
+	for _, plataforma := range plataformasDeDistribucion {
+		nombre := plataforma.sistema + "/" + plataforma.arquitectura
+		entorno := []string{"GOOS=" + plataforma.sistema, "GOARCH=" + plataforma.arquitectura, "CGO_ENABLED=0"}
+		deEsta := map[string]bool{}
+
+		for linea := range strings.SplitSeq(ejecutaGoCon(t, entorno, "list", "-deps", "-f", plantillaDeModulos, "./cmd/kitlegal"), "\n") {
+			if linea = strings.TrimSpace(linea); linea != "" && linea != modulo {
+				deEsta[linea] = true
+			}
+		}
+
+		require.NotEmpty(t, deEsta, "en %s el binario enlaza al menos el analizador de la línea de órdenes", nombre)
+
+		for enlazado := range deEsta {
+			enlazados[enlazado] = append(enlazados[enlazado], nombre)
 		}
 	}
 
-	require.NotEmpty(t, enlazados, "el binario enlaza al menos el analizador de la línea de órdenes")
-
 	assert.ElementsMatch(t, modulosDelBinario, slices.Sorted(maps.Keys(enlazados)),
-		"el binario distribuido enlaza un módulo que no está declarado y justificado "+
-			"(FR-060, constitución §V): justifícalo en plan.md y en la propuesta de cambio antes de añadirlo")
+		"el binario distribuido enlaza en alguna plataforma un módulo que no está declarado y justificado, o se "+
+			"declara uno que no enlaza en ninguna (FR-060, constitución §V): justifícalo en plan.md y en la propuesta "+
+			"de cambio antes de añadirlo; plataformas que enlazan cada módulo: %v", enlazados)
 }
 
 // prefijosReservados son los del espacio de nombres con el que firma lo que no
@@ -619,19 +650,30 @@ func rutaDelModulo(t *testing.T) string {
 	return modulo
 }
 
-// ejecutaGo ejecuta el go command en la raíz del módulo y devuelve su salida
-// estándar. No toca la red: `go list` solo consulta el módulo y la caché.
+// ejecutaGo ejecuta el go command en la raíz del módulo, con el entorno del
+// proceso, y devuelve su salida estándar. No toca la red: `go list` solo
+// consulta el módulo y la caché.
 func ejecutaGo(t *testing.T, argumentos ...string) string {
 	t.Helper()
 
-	// El ejecutable es constante y los argumentos no vienen de fuera: son
-	// literales de este fichero más las rutas de paquete que sale de enumerar
-	// internal/app/testdata en el propio árbol. No hay entrada de usuario, red ni
-	// variable de entorno en la orden, de modo que G204 no tiene aquí nada que
-	// prevenir.
+	return ejecutaGoCon(t, nil, argumentos...)
+}
+
+// ejecutaGoCon es ejecutaGo con variables de entorno añadidas a las del
+// proceso, que ganan a las heredadas: con GOOS y GOARCH, `go list`
+// describe el cierre de otra plataforma sin compilar nada para ella.
+func ejecutaGoCon(t *testing.T, entorno []string, argumentos ...string) string {
+	t.Helper()
+
+	// El ejecutable es constante y ni los argumentos ni las variables añadidas
+	// vienen de fuera: son literales de este fichero, las rutas de paquete que
+	// sale de enumerar internal/app/testdata en el propio árbol y las plataformas
+	// de plataformasDeDistribucion. No hay entrada de usuario ni red en la orden,
+	// de modo que G204 no tiene aquí nada que prevenir.
 	//nolint:gosec // los argumentos son literales de este fichero y rutas del propio árbol; no hay entrada externa.
 	orden := exec.CommandContext(t.Context(), "go", argumentos...)
 	orden.Dir = raizDelModulo
+	orden.Env = append(os.Environ(), entorno...)
 
 	salida, err := orden.Output()
 	if err != nil {

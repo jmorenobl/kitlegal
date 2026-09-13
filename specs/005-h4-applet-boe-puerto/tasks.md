@@ -53,7 +53,7 @@ todas las rutas** que va a crear o modificar, y **solo** esas (plan, obligación
   ejecuta con `rtk proxy` (plan, obligación 12).
 
 **Rebanadas verticales y excepciones declaradas.** Son rebanadas completas —test antes que código, `make ci` en verde
-por sí solas— T001-T007, T011-T022, T026, T029 y T034. Las demás, cada una por su razón, tampoco dejan nada a medias:
+por sí solas— T001-T007, T011-T022, T026, T029, T034 y T038. Las demás, cada una por su razón, tampoco dejan nada a medias:
 **T008, T010, T025, T028, T030 y T032** son `[datos]` y solo pueden tocar `testdata/` o `schemas/` (en T008 y T010 los
 ficheros que añaden no los lee ningún test hasta la tarea siguiente; T025, T028, T030 y T032 los validan tests ya
 existentes); **T009, T023, T024, T031 y T033** son tests sobre código o datos ya existentes, el único caso en que test e
@@ -212,6 +212,8 @@ fichero y un byte distinto en `data` hace fallar su golden.
 
 - [X] T036 Cierre del hito con la medida hecha, sin tocar el árbol: ejecutar los escenarios 1 a 16 de `quickstart.md` salvo el 15.b (el único con red), con cada orden tal cual la escribe el quickstart y sin sustituirla por otra a criterio del ejecutor (sus formas son las que la sesión desatendida ejecuta sin pedir aprobación: `rtk proxy` delante de lo que la lista de permitidos no cubre y de lo que ejecuta, crea, borra o edita en la carpeta temporal, el código de salida impreso dentro de `rtk proxy sh -c`, las variables con `rtk proxy env` y nada redirigido a ficheros; las sondas de sus prerrequisitos las vuelven a comprobar, y si una orden pide aprobación o una sonda no da lo esperado la tarea se detiene y lo anota en la evidencia en vez de improvisar), y los negativos solo sobre el clon desechable que el quickstart crea en su carpeta temporal, que sus prerrequisitos dejan vacía (borran lo que dejara un intento anterior) y su limpieza borra al final; si la tarea se reintenta o se reanuda, la guía vuelve a empezar por los prerrequisitos y no por el escenario en que se quedó, y las comprobaciones de `git status` con el filtro del quickstart, que descarta el directorio del feature en cualquier estado porque el workflow reescribe allí sus ficheros de estado antes de esta tarea (un ` M` de esos ficheros no es un fallo; cualquier línea fuera del directorio del feature sí); y escribir en `specs/005-h4-applet-boe-puerto/gates/pr-h4.md`, fechado por commit y con la plantilla del ritual (objetivo, alcance, controles añadidos, decisiones, pendientes), la salida de `boe-cache-rapida`, la cobertura global (≥ 70 %) y la del dominio (≥ 85 %) sin rebajar ningún umbral, la lista de módulos del binario con su justificación y la constancia de que no entra ninguna dependencia nueva, el resultado de los escenarios negativos, y los supuestos S8 (incidencia nocturna) y S9 (duración en integración continua) como pendientes de la primera ejecución; la tarea no modifica ningún fichero fuera del directorio del feature (FR-124, FR-125, SC-002, SC-014, puntos 1 y 9 de la Definition of Done, obligaciones 9-11 del plan).
 
+- [X] T038 `TestDependenciasDelBinario` mide la superficie del binario en todas sus plataformas de distribución y no solo en la del ordenador que lo ejecuta: el `ci` de la propuesta de cambio (intento 1 de T037, run 34781187264) falló en el ejecutor linux porque allí `go list -deps` sin GOOS ni GOARCH devuelve dieciséis módulos y la lista declarada tiene los dieciocho de darwin (en linux no llegan go-isatty ni go-strftime; en windows no llega uuid; la lista declarada ya es la unión y no cambia); test primero: el rojo se reproduce en local ejecutando el test actual con `-exec 'env GOOS=linux GOARCH=amd64 CGO_ENABLED=0'`, que falla con los mismos dos módulos que el run; el verde, con `internal/arch_test.go` declarando `plataformasDeDistribucion` (darwin, linux y windows sobre amd64 y arm64, sin cgo; ADR 0002), midiendo el cierre de cada una con GOOS, GOARCH y CGO_ENABLED=0 en el entorno de `go list` (un auxiliar `ejecutaGoCon` con entorno añadido, del que `ejecutaGo` es el caso sin entorno, sin mover la supresión de G204 que ya existe ni añadir ninguna), comparando la unión con `modulosDelBinario` (falla un módulo sin declarar en cualquier plataforma y uno declarado que no enlaza ninguna, con las plataformas de cada módulo en el mensaje) y con los comentarios de uuid, go-isatty y go-strftime diciendo a qué plataformas llegan; el test en verde también con el `-exec` de linux y con el de windows, y las dos sondas negativas sobre una copia desechable, fuera del repositorio; en los comentarios, ni `distribuye` ni `prevalecen` (misspell); el diseño, comprobado sobre un clon con `make ci` en verde, y su diff están en la nota de T037 (FR-124, punto 1 de la Definition of Done, constitución §V).
+
 - [ ] T037 [plataforma] Publicar la rama del hito y abrir la propuesta de cambio: `git push -u origin h4-applet-boe-puerto`; consultar primero `gh pr view h4-applet-boe-puerto` y, solo si no existe propuesta de cambio (para que un reintento de la tarea no falle), `gh pr create --base main --head h4-applet-boe-puerto --title "feat(H4): applet boe, puerto de boe.py" --body-file specs/005-h4-applet-boe-puerto/gates/pr-h4.md` (sin terminal, `gh pr create` exige `--title` además del cuerpo); esperar y leer `gh pr checks h4-applet-boe-puerto --watch` y `gh run list --branch h4-applet-boe-puerto`, y dejar el estado de la integración continua y de Codecov en `specs/005-h4-applet-boe-puerto/gates/evidencia-plataforma.md`; no fusiona, no empuja a `main`, no fuerza y no crea etiquetas: la fusión es siempre humana (punto 1 de la Definition of Done, §6 del roadmap, ADR 0007).
 
 ---
@@ -220,7 +222,7 @@ fichero y un byte distinto en `data` hace fallar su golden.
 
 | # | Punto | Dónde se cumple |
 |---|---|---|
-| 1 | `make ci` en verde (`fmt`, `lint`, `test` con `-race`, `test-integration`, `vuln`, `schema-check`) | Todas las tareas; T029 hace real `schema-check`; T036 lo mide sobre el árbol terminado; T037 lo lee en la integración continua |
+| 1 | `make ci` en verde (`fmt`, `lint`, `test` con `-race`, `test-integration`, `vuln`, `schema-check`) | Todas las tareas; T029 hace real `schema-check`; T036 lo mide sobre el árbol terminado; T037 lo lee en la integración continua; T038 hace que `TestDependenciasDelBinario` dé en el ejecutor linux el mismo veredicto que en local |
 | 2 | Tests unitarios offline; fixtures grabados en `testdata/<fuente>/` | Cada tarea de código con su test; manifiesto y grabación en T008 (la graba una persona en su pausa), comprobación en T009, sintéticos en T010; fixtures en `internal/source/boe/testdata/boe.legislacion-consolidada/` (research D12) |
 | 3 | Sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | `depguard` y `forbidigo` sin cambios en cada `make ci`; T026 (`Arrancar` devuelve el código, `os.Exit` solo en las dos raíces; arquitectura y superficie del binario) y T027 |
 | 4 | Salida de applet validada contra `schemas/*.json`; `make schema-check` vigila | T029 (comparador y receta), T032 (`[datos]` esquemas), T033 (validación y cobertura) |
@@ -271,7 +273,7 @@ fichero y un byte distinto en `data` hace fallar su golden.
 | FR-121 (`Source` con `Terms`) | T001, T007, T016 |
 | FR-122 (ritmo desde `docs/SOURCES.md`; `robust_request` no se porta) | T007, T009, T026 |
 | FR-123 (fila de la fuente; parada si los términos lo prohíben) | T007, T008 |
-| FR-124 (superficie del binario ampliada y justificada) | T026, T036 |
+| FR-124 (superficie del binario ampliada y justificada) | T026, T036, T038 |
 | FR-125 (sin dependencias nuevas) | Todas (batería); T036 lo deja constatado |
 | FR-126 (`CHANGELOG.md`) | T035 |
 | FR-127 (reglas de dependencia del adaptador) | T016 y siguientes con `depguard` y `forbidigo`; T026 |
@@ -331,6 +333,10 @@ El orden es estrictamente secuencial: **ninguna tarea depende de una posterior**
   comparador de golden existe desde T016) → cobertura de golden → esquemas `[datos]` → contratos.
 - **T034** necesita `bloque.json` (T032) y el sintético ilegible (T010). **T035 → T036 → T037**: documentación, medida
   y, al final, la única tarea que habla con la plataforma.
+- **T038 → T037**: T038 se añadió tras el intento 1 de T037, cuyo `ci` falló en el ejecutor linux porque
+  `TestDependenciasDelBinario` solo medía la plataforma local (`gates/tarea-T037.md`). Va delante de T037 en el fichero
+  aunque su número sea mayor: el workflow elige la primera tarea sin marcar, y T037 tiene que publicar el arreglo ya
+  commiteado.
 
 ## Oportunidades de paralelismo
 
@@ -370,7 +376,8 @@ Tarea: "T004 doc.go con las 32 entradas de FR-120"
   (T002, T003), `internal/httpx/errores.go` (T003); `internal/cache/migraciones.go`, `internal/cache/migraciones_test.go`
   (T003, solo el arreglo del fallo intermitente de la verificación, ver gates/tarea-T003.md); `internal/app/registro.go`, `internal/app/main.go`,
   `internal/app/registro_test.go`, `internal/app/main_test.go`, `internal/app/ayuda_test.go`,
-  `internal/app/despacho_test.go`, `cmd/kitlegal/main.go`, `cmd/kitlegal/main_test.go`, `internal/arch_test.go` (T026);
+  `internal/app/despacho_test.go`, `cmd/kitlegal/main.go`, `cmd/kitlegal/main_test.go`, `internal/arch_test.go` (T026; T038, que lo hace medir todas las
+  plataformas de distribución);
   `internal/app/ejemplo/kitlegal-e2e/main.go`, `internal/app/e2e_test.go` (T027);
   `internal/app/testdata/script/argumentos.txtar` (T025 y T028, solo `[datos]`); `Makefile` (T029, T034);
   `.golangci.yml` (T004, T005, T006, T007, T016, T034); `.github/workflows/nightly.yml` (T034); `docs/PENDIENTES.md`,

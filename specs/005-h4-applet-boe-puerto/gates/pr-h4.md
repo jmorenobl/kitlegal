@@ -83,15 +83,26 @@ módulos de terceros que hasta H3 solo usaban esos paquetes y sus tests. Por eso
 ni la caché, y `modulosDelBinario` (`internal/arch_test.go`) pasa de seis a dieciocho módulos, cada uno justificado en
 su línea; `TestDependenciasDelBinario` falla ante cualquier otro (FR-124, research.md D14, `docs/PENDIENTES.md`).
 
+**Los módulos enlazados dependen de la plataforma.** `modernc.org/libc` elige sus ficheros por sistema, así que el
+binario de cada plataforma de distribución (darwin, linux y windows sobre amd64 y arm64, sin cgo; ADR 0002) enlaza una
+parte de los dieciocho: todos en darwin; dieciséis en linux, sin `github.com/mattn/go-isatty` (lo importa `libc.go`,
+con `//go:build !linux || mips64le`) ni `github.com/ncruces/go-strftime` (lo importan `libc_unix.go`, que excluye
+linux, y `libc_windows.go`); y diecisiete en windows, sin `github.com/google/uuid` (lo importan los ficheros de darwin,
+de linux y del resto de unix). La lista declarada es la unión de las seis. La primera ejecución de `ci` de esta
+propuesta lo destapó: `TestDependenciasDelBinario` medía solo la plataforma del ordenador que lo ejecuta y falló en el
+ejecutor linux de la integración continua (ver *Pendientes*).
+
 Medida sin red (`go list` consulta el módulo y la caché de módulos):
 
 ```sh
 go list -deps -f '{{if .Module}}{{.Module.Path}}{{end}}' ./cmd/kitlegal | sort -u
 go list -deps -f '{{.ImportPath}}|{{if .Module}}{{.Module.Path}}{{end}}|{{join .Imports ","}}' ./cmd/kitlegal
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go list -deps -f '{{if .Module}}{{.Module.Path}}{{end}}' ./cmd/kitlegal | sort -u
 ```
 
-La primera da la lista; la segunda, para cada módulo, qué paquete de otro módulo lo importa, que es la columna «Lo
-importa» de la tabla. Coinciden con lo que research.md D14 anticipó (S10): ni uno más ni uno menos.
+La primera da la lista de la plataforma en que se ejecuta; la segunda, para cada módulo, qué paquete de otro módulo lo
+importa, que es la columna «Lo importa» de la tabla; la tercera, la de otra plataforma (aquí linux/amd64). La unión
+sobre las seis coincide con lo que research.md D14 anticipó (S10): ni uno más ni uno menos.
 
 | Módulo | Versión | Lo importa | Justificación |
 |---|---|---|---|
@@ -103,16 +114,16 @@ importa» de la tabla. Coinciden con lo que research.md D14 anticipó (S10): ni 
 | `modernc.org/memory` | v1.12.1 | `modernc.org/libc` | Entra con `modernc.org/libc` |
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | `modernc.org/mathutil` | Entra con `modernc.org/mathutil` |
 | `github.com/dustin/go-humanize` | v1.0.1 | `modernc.org/libc` | Entra con `modernc.org/libc` |
-| `github.com/google/uuid` | v1.6.0 | `modernc.org/libc` | Entra con `modernc.org/libc` |
-| `github.com/mattn/go-isatty` | v0.0.24 | `modernc.org/libc` | Entra con `modernc.org/libc` |
-| `github.com/ncruces/go-strftime` | v1.0.0 | `modernc.org/libc` | Entra con `modernc.org/libc` |
+| `github.com/google/uuid` | v1.6.0 | `modernc.org/libc` en darwin y linux | Entra con `modernc.org/libc`; no llega a windows |
+| `github.com/mattn/go-isatty` | v0.0.24 | `modernc.org/libc` en darwin y windows | Entra con `modernc.org/libc`; no llega a linux |
+| `github.com/ncruces/go-strftime` | v1.0.0 | `modernc.org/libc` en darwin y windows | Entra con `modernc.org/libc`; no llega a linux |
 | `golang.org/x/sys` | v0.47.0 | `modernc.org/sqlite`, `modernc.org/libc`, `modernc.org/memory`, `github.com/mattn/go-isatty` | Entra con el controlador y con lo que este arrastra, para las llamadas al sistema |
 
 Los nueve que llegan con el controlador son exactamente los indirectos que H3 midió y justificó al fijar
 `modernc.org/sqlite` (`specs/004-h3-internal-cache-sqlite/gates/pr-h3.md`, «Dependencias»); H4 no cambia ninguna
 versión. Los seis de H1 (`alecthomas/kong`, `invopop/jsonschema` y lo que el segundo arrastra) siguen igual.
 
-**Constatado al cierre (T036, sobre 55cc107).** La primera orden de arriba, ejecutada hoy, da diecinueve líneas: el
+**Constatado al cierre (T036, sobre 55cc107).** La primera orden de arriba, ejecutada hoy en darwin/arm64, da diecinueve líneas: el
 propio módulo y los dieciocho de terceros de la lista —los doce de la tabla y los seis de H1 (`alecthomas/kong`,
 `invopop/jsonschema`, `bahlo/generic-list-go`, `buger/jsonparser`, `pb33f/ordered-map/v2`, `go.yaml.in/yaml/v4`)—.
 `TestDependenciasDelBinario` pasa (escenario 13.a). `git diff --stat main...HEAD -- go.mod go.sum codecov.yml` está
@@ -340,11 +351,21 @@ quickstart escribe cada orden.
     verificación.
   - **S9, duración en integración continua**: que las diez invocaciones con caché caliente bajen de 200 ms en el
     ejecutor de la plataforma con la suite en paralelo y `-race` en el resto de paquetes (aquí, 0,41 s el guion entero).
-    Lo mide el primer `make ci` de la propuesta de cambio (T037). Si falla allí y no aquí, es una medida de máquina:
-    se documenta antes de tocar nada, y nunca se rebaja el máximo del guion sin decisión humana.
+    **Primera medida, a favor**: en el run `34781187264` de esta propuesta, `make test` dejó `internal/app` en `ok`
+    (5,098 s, con `-race` y `-shuffle=on`). Ese paquete ejecuta `TestEntregaDelHito` con `boe-cache-rapida`, que no
+    tiene condición de salto, aunque el registro, sin `-v`, no nombra el subtest. La ejecución en verde de T037 la
+    repite. Si fallara allí y no aquí, sería una medida de máquina: se documenta antes de tocar nada, y nunca se rebaja
+    el máximo del guion sin decisión humana.
+- **El primer `ci` de esta propuesta salió en rojo, y el arreglo es T038.** `TestDependenciasDelBinario` medía la
+  superficie del binario solo en la plataforma del ordenador que ejecuta el test. En darwin, donde se ejecutaron todos
+  los `make ci` del hito, el binario enlaza los dieciocho módulos; en el ejecutor linux, dieciséis, y el test falló
+  (ver «Dependencias»). Codecov no emitió ningún estado, porque la subida del perfil no se ejecuta tras un fallo. La
+  lista declarada no cambia: T038 hace que el test mida las seis plataformas de distribución y compare la unión. El
+  diseño está comprobado sobre un clon, con `make ci` en verde (`gates/tarea-T037.md`, `gates/evidencia-plataforma.md`).
 - **T037 `[plataforma]`**, la última tarea: empujar la rama, abrir la propuesta de cambio con este fichero como cuerpo,
   esperar `ci` y los estados de Codecov (`project` ≥ 70 %, `internal_core` ≥ 85 %, `internal_cli` ≥ 90 %, `patch`
-  con objetivo `auto`). `internal_core` e `internal_cli` ya tienen base en `main`, así que miden de verdad. Al final,
+  con objetivo `auto`). `internal_core` e `internal_cli` ya tienen base en `main`, así que miden de verdad. En el
+  intento 1 quedaron publicadas la rama y esta propuesta; el intento 2 publica T038 y lee los estados. Al final,
   pausa humana del workflow por `docs/SOURCES.md` y por el directorio nuevo `internal/source/boe` (rutas sensibles).
 - **`refs/__pycache__/boe.cpython-311.pyc` no debe fusionarse.** Es el fichero compilado que CPython dejó al importar
   `refs/boe.py` desde el guion de un solo uso de la pausa de T009, y el commit `[datos]` `17fca5b` lo arrastró
