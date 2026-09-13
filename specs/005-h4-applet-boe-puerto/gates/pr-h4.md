@@ -65,11 +65,9 @@ y artefactos) y los artefactos de T037, sin ningún fichero de producto nuevo. P
     `fuentes`), `scripts/grabar-fixtures.sh` y `scripts/verify-sources.sh` (nuevos), `docs/ADR/0015-puerto-source-y-fecha-de-consulta.md`
     (nuevo), `docs/SOURCES.md` (la fila de la fuente, revisada el 2026-09-13), `docs/PENDIENTES.md` (se borran las dos
     entradas de H4), `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`.
-- **Fuera del producto, tocados en la rama**: `.specify/workflows/hito/workflow.yml` y `docs/WORKFLOW.md` (commit
-  `5a631b5`, workflow 1.9.0: el commit de cada tarea se decide con el estado de la iteración; lo motivó T003 en este
-  mismo run), `CLAUDE.md` y `refs/00-README.md` (la enmienda sobre la única ejecución de `refs/boe.py`, en la pausa
-  `[datos]`), y `refs/__pycache__/boe.cpython-311.pyc`, un artefacto que llegó con el commit `[datos]` `17fca5b` y que
-  no debe fusionarse (ver *Pendientes*).
+- **Fuera del producto, tocados en la rama**: `CLAUDE.md` y `refs/00-README.md` (la enmienda sobre la única ejecución
+  de `refs/boe.py`, en la pausa `[datos]`) y `.gitignore` (`__pycache__/`, para que esa ejecución no deje rastro
+  versionado: el bytecode que dejó CPython llegó con el commit `[datos]` `17fca5b` y la revisión final lo retiró).
 - **Artefactos del hito**: `specs/005-h4-applet-boe-puerto/` completo (spec con cinco clarificaciones, plan, research
   D1-D20, data-model, cinco contratos, quickstart, tasks y `gates/`, con las notas de las tareas T003, T005, T009, T022,
   T023, T024, T036 y T037, y `evidencia-plataforma.md`, lo que dijeron la integración continua y Codecov).
@@ -372,8 +370,10 @@ arregló T038 (*Pendientes*).
   al principio de línea pedían aprobación y no se ejecutaban; se movió el salto de línea, la tabla de formas ganó la
   fila y una sonda de los prerrequisitos comprueba la forma en cada ejecución. El intento 1 se detuvo sin sustituir la
   orden, como manda la tarea.
-- **Workflow 1.9.0 en la misma rama** (`5a631b5`): el commit de cada tarea se decide con el estado de la iteración,
-  porque el motor conservaba una salida rancia y T003 dio 145 vueltas sin commit.
+- **El workflow 1.9.0 viaja solo en su propia propuesta, la #23**, no en esta: el commit de cada tarea se decide con
+  el estado de la iteración, porque el motor conservaba una salida rancia y T003 dio 145 vueltas sin commit. Este run
+  lo usa desde su copia congelada, pero es proceso y no H4, así que la rama deja `.specify/workflows/hito/workflow.yml`
+  y `docs/WORKFLOW.md` como están en `main`; el orden de fusión de las dos propuestas no cambia el resultado.
 
 ## Pendientes
 
@@ -400,11 +400,6 @@ arregló T038 (*Pendientes*).
   estados de Codecov están en verde con medida real (ver *Evidencia*, «Plataforma»). Lo que queda es humano: la pausa
   del workflow por `docs/SOURCES.md` y por el directorio nuevo `internal/source/boe` (rutas sensibles), la revisión y la
   fusión (ADR 0007). Ninguna tarea del hito fusiona, empuja a `main`, fuerza ni etiqueta.
-- **`refs/__pycache__/boe.cpython-311.pyc` no debe fusionarse.** Es el fichero compilado que CPython dejó al importar
-  `refs/boe.py` desde el guion de un solo uso de la pausa de T009, y el commit `[datos]` `17fca5b` lo arrastró
-  (43 205 bytes, binario). `.gitignore` no excluye `__pycache__/`. Está fuera de las rutas de T036 y de cualquier tarea
-  restante, así que queda para la revisión humana antes de fusionar: retirarlo del índice y añadir `__pycache__/` a
-  `.gitignore`, de modo que la única ejecución autorizada de `refs/boe.py` no vuelva a dejar rastro versionado.
 - **Para H5**, ya anotado en `docs/PENDIENTES.md`: los tres directorios llamados `skills`, el peso de las skills
   vendorizadas y cómo llama cada skill al binario (el enlace `boe -> kitlegal` ya funciona: escenario 10).
 - **Para H7** (ADR 0014): `boe` observa ids naturales (`BOE-A-…`, ELI, id de bloque, `hash_texto`) y los conserva en

@@ -113,8 +113,9 @@ que todo está, sin poder cambiarlo.
 
 - [X] T010 [datos] [US1] Sintéticos, antes del código de lectura: `internal/source/boe/testdata/sintetico/` con los siete escenarios del contrato esquemas-fixtures-y-controles §4 (`bloque-ilegible`, `bloque-sin-elemento`, `metadatos-caidos`, `metadatos-ilegibles`, `fuente-caida`, `limite` y `avisos`), cada uno en la subcarpeta con el nombre de la fuente, copiados de la grabación de origen que nombra la tabla (bloque `a21`, metadatos o índice de `BOE-A-2015-10565`) con el cambio mínimo que fija el contrato y sin cambiar la petición grabada (método y dirección), para que la reproducción la empareje; ningún otro fichero (FR-013, FR-014, FR-100, SC-008, SC-012, research D12).
 
-**Checkpoint**: la fuente tiene fila revisada, constantes atadas a ella, grabaciones reales, sintéticos y las cinco
-referencias escritas por una persona, y un test que falla si algo de ello falta.
+**Checkpoint**: la fuente tiene fila revisada, constantes atadas a ella, grabaciones reales, sintéticos y las seis
+referencias de cuatro normas, generadas con `boe.py` sobre las grabaciones y revisadas por una persona, y un test que
+falla si algo de ello falta.
 
 ---
 
@@ -162,7 +163,7 @@ tiene forma fija. Ningún verbo existe todavía.
 - [X] T024 [US6] Ninguna ruta de fallo sin clase, sobre el error real: `internal/source/boe/errores_test.go` añade `TestClasesDeErrorDeBoe`, con una subprueba por cada fila 2-4, 6-10 y 16-22 del contrato errores-y-codigos, provocando cada situación con el código ya existente (validadores, `Pedidor` de prueba, grabaciones y sintéticos, entrada de caché ilegible, `AperturaDeCache` de prueba, `Nueva` sin dependencias) y comprobando la clase de `cli.Clasificar` y el código de `cli.CodigoSalida`, que ninguna da 6 y que ninguna entra en pánico; la subprueba de la fila 21 usa `metadatos` de `BOE-A-2015-10565` sobre las grabaciones con una `AperturaDeCache` de prueba cuyo error implementa `schema.ConClase` y declara una de las tres clases que produce `cache.Error` («argumentos», «fuente no disponible» e «inesperado», cada una en al menos un caso), y cubre cuatro casos: la apertura falla (ninguna petición); `Get` falla fuera de solo lectura (ninguna petición); `Put` falla después de obtener la respuesta (una petición y ninguna entrada escrita); y `Close` falla, tras una invocación correcta (clase del cierre) y tras una fallida (clase del fallo de la invocación, con los dos errores unidos); en cada caso exige además que el error de la caché siga alcanzable con `errors.Is`, `fuente` `boe.legislacion-consolidada`, la `url` de los metadatos y la fecha de consulta sin declarar, para que la ponga el montaje; la tarea no añade producto (FR-090, FR-100, SC-008, punto 5 de la Definition of Done).
 
 **Checkpoint**: la fuente responde los seis verbos contra las grabaciones con caché, `--offline`, ensayo y códigos
-estables, y `articulo` coincide con las cinco referencias escritas a mano desde `boe.py`.
+estables, y `articulo` coincide con las seis referencias de cuatro normas generadas con `boe.py`.
 
 ---
 
@@ -356,7 +357,7 @@ Tarea: "T004 doc.go con las 32 entradas de FR-120"
 
 1. Fases 1-3: fundación, porte anotado, fila revisada, grabaciones, referencias y sintéticos.
 2. Fase 4 y T016-T018: lecturas, fuente, `metadatos` y `articulo`.
-3. **Validar**: `TestArticuloCoincideConBoePy` en verde para las cinco referencias (SC-001) y la caché de `articulo`
+3. **Validar**: `TestArticuloCoincideConBoePy` en verde para las seis referencias de cuatro normas (SC-001) y la caché de `articulo`
    con reloj controlado (US2).
 4. T023, T026-T028: caché de los seis verbos, binario distribuido, binario de e2e y guiones; `boe-cache-rapida` mide los
    200 ms (SC-002).
