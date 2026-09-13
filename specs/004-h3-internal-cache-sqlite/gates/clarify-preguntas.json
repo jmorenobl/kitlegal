@@ -1,0 +1,113 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Superficie del puerto y modo de operación",
+      "pregunta": "¿Cómo recibe la caché el modo de solo lectura que impone `--offline` y qué forma tiene entonces la escritura: una misma superficie que falla al escribir en tiempo de ejecución, o una superficie que hace la escritura imposible? (FR-015, FR-017, SC-011)",
+      "por_que_importa": "Fija la forma del puerto `Cache` que el dominio publica y que usarán todos los adaptadores de fuente desde H4, dónde se compone el modo (constructor, contexto o `internal/app`) y si la séptima situación de SC-011 —«escritura en modo de solo lectura → código 1»— es un fallo provocable por un test de ejecución o deja de existir como camino de ejecución.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Indicador en el constructor del adaptador: un único tipo de cliente con modo normal o solo lectura; la escritura sigue existiendo en la superficie y en modo de solo lectura devuelve un fallo de clase «inesperado» (código 1) que un test provoca llamándola."
+        },
+        {
+          "id": "B",
+          "texto": "Dos constructores y dos tipos distintos: el de solo lectura devuelve un cliente que no ofrece operación de escritura, de modo que intentar escribir no compila; la situación de SC-011 se acredita con una comprobación de compilación fallida en lugar de con un código de salida en ejecución."
+        },
+        {
+          "id": "C",
+          "texto": "El modo viaja en el contexto de ejecución de cada operación (valor del `context.Context`) y el mismo cliente decide operación a operación; construir el cliente no depende del modo y la escritura bajo ese contexto falla con clase «inesperado» (código 1)."
+        },
+        {
+          "id": "D",
+          "texto": "El dominio parte el puerto en dos interfaces (lectura y escritura); el adaptador implementa ambas y la composición en `internal/app` entrega solo la de lectura cuando hay `--offline`, de modo que quien llama no tiene con qué escribir aunque el adaptador sepa hacerlo."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Casos límite · «el directorio queda idéntico» y apertura en solo lectura",
+      "pregunta": "En modo de solo lectura, ¿qué cuenta como que «el directorio de caché queda exactamente como estaba» respecto de los ficheros auxiliares que SQLite necesita para leer una base en WAL (`cache.db-wal`, `cache.db-shm`), y cómo debe abrirse la base para respetarlo? (FR-015, FR-030, SC-003)",
+      "por_que_importa": "FR-015 exige que el fichero quede como estaba y SC-003 lo mide sobre el directorio, pero leer una base en WAL puede requerir crear o tocar el fichero de memoria compartida. La respuesta decide si `--offline` funciona sobre un disco de solo lectura, con qué parámetros se abre la conexión, si aparecen ficheros nuevos en el directorio y qué mide exactamente SC-003.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Idéntico significa el directorio entero: en modo de solo lectura no puede aparecer ni modificarse ningún fichero, auxiliares incluidos; la apertura debe usar el modo que no crea memoria compartida (base tratada como inmutable) y, si aun así no se puede leer, el resultado es el fallo de clase «fuente no disponible» (código 4)."
+        },
+        {
+          "id": "B",
+          "texto": "Idéntico se refiere al contenido de la base de datos: los ficheros auxiliares de SQLite pueden aparecer y desaparecer durante la invocación mientras `cache.db` no cambie ni una entrada, ni una vigencia, ni la versión de esquema; SC-003 excluye explícitamente `-wal` y `-shm` de la comparación."
+        },
+        {
+          "id": "C",
+          "texto": "La base se abre en modo de solo lectura sin desactivar WAL y, si el entorno no permite crear los auxiliares, la invocación falla de forma explícita con clase «inesperado» (código 1) en lugar de degradarse a ausencia."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Modelo de dominio · cómo se expresa la ausencia",
+      "pregunta": "¿Cómo distingue el puerto del dominio los tres resultados de una lectura —presente y vigente, ausente (incluida la expirada) y fallo— sin convertir la ausencia en un error? (FR-001, FR-013)",
+      "por_que_importa": "Es el contrato que usará cada adaptador de fuente desde H4 y el que decide si un llamante puede confundir «no hay nada» con «algo falló». Determina la firma de la operación de lectura, si hay un error centinela que comparar o un tipo propio del dominio, y cómo se escriben las comprobaciones de ausencia en todos los tests posteriores.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La lectura devuelve el contenido, un indicador booleano de presencia y un error: ausencia es indicador falso con error nulo; el llamante nunca compara errores para saber si había entrada."
+        },
+        {
+          "id": "B",
+          "texto": "La lectura devuelve el contenido y un error, con un error centinela del dominio para la ausencia que el llamante compara explícitamente; la ausencia es un valor de error, no un fallo de la invocación."
+        },
+        {
+          "id": "C",
+          "texto": "La lectura devuelve un tipo propio del dominio que representa «entrada encontrada» o «nada», más un error reservado a los fallos; el llamante consulta ese tipo y no interpreta ni booleanos ni errores centinela."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Alcance del material de prueba",
+      "pregunta": "¿Dónde vive el adaptador de prueba que demuestra el criterio de aceptación, junto con el applet que el kernel invoca en proceso para el camino de `--offline`, y queda disponible para que H4 lo reutilice? (FR-044, FR-045, FR-047)",
+      "por_que_importa": "FR-045 lo confina a material de test y le prohíbe `internal/source/`, y FR-044 exige que ningún binario lo registre; pero FR-047 necesita un applet registrable para invocar el kernel en proceso. La ubicación decide qué paquetes se crean en este hito, si el material es compartible entre paquetes de test, y si H4 lo hereda o lo rehace.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Todo dentro del paquete de tests del propio `internal/cache` (ficheros `_test.go`): nada queda disponible fuera de ese paquete y H4 escribirá el suyo cuando lo necesite."
+        },
+        {
+          "id": "B",
+          "texto": "Junto al applet de ejemplo que H1 dejó en `internal/app/testdata`, reutilizando el registro de applets solo de test que ya existe allí, y el adaptador de prueba se apoya en ese material."
+        },
+        {
+          "id": "C",
+          "texto": "En un paquete interno nuevo de apoyo a tests (por ejemplo `internal/testsupport` o equivalente), importable desde cualquier paquete de test del módulo y pensado desde ya para que H4 lo reutilice, con los controles que garanticen que ningún binario lo enlaza."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Concurrencia · cómo se acredita el escenario de dos procesos",
+      "pregunta": "¿Cómo se acredita el escenario de dos procesos distintos trabajando a la vez sobre la misma base de datos, dado que este hito no añade ningún binario ni registra el adaptador de prueba en ninguno? (FR-032, FR-044, SC-007)",
+      "por_que_importa": "SC-007 exige explícitamente «en el mismo proceso y en dos procesos», y de la respuesta dependen las tareas del hito, el tiempo de la suite de integración, si hace falta material ejecutable nuevo y si el criterio de éxito se puede medir tal como está escrito o hay que reformularlo.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El propio binario de test se relanza a sí mismo como segundo proceso (patrón habitual de Go: subproceso del ejecutable de test con una variable de entorno que selecciona el papel de escritor o lector), sin añadir ningún programa nuevo al repositorio."
+        },
+        {
+          "id": "B",
+          "texto": "Se añade un programa auxiliar mínimo bajo material de test (compilado al vuelo por el test de integración) que abre la caché y escribe o lee, y que ningún binario distribuido incluye."
+        },
+        {
+          "id": "C",
+          "texto": "Se acredita con dos clientes de caché independientes dentro del mismo proceso, cada uno con su propia conexión a la base, y SC-007 se entiende cumplido con eso; el escenario entre procesos distintos se declara fuera del alcance comprobable de H3."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}

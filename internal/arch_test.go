@@ -84,11 +84,14 @@ func TestArquitectura(t *testing.T) {
 			razon: "el acceso a SQLite vive en los tres paquetes de almacenamiento —caché, almacén " +
 				"y grafo—; el resto del árbol los usa a través de su interfaz " +
 				"(contracts/reglas-de-arquitectura.md R3)",
-			// Sin duenoObligatorio, y no por descuido: los tres dueños de R3
-			// llegan en H3, H12 y H16, así que hasta entonces la regla está
-			// activa y vacía a propósito. Exigir aquí un dueño convertiría en
-			// rojo el estado normal del árbol, que es justo lo contrario de lo
-			// que la bandera sirve.
+			// Sin duenoObligatorio, y no por descuido. Desde H3 la regla tiene
+			// su primer dueño real: internal/cache importa database/sql y el
+			// controlador de SQLite, y ningún otro paquete del árbol lo hace.
+			// Pero la exigencia pide los tres dueños —cada uno tiene que estar
+			// en el grafo—, e internal/store e internal/graph no llegan hasta
+			// H12 y H17. Activarla hoy convertiría en rojo el estado normal del
+			// árbol, que es justo lo contrario de lo que la bandera sirve; se
+			// activa cuando exista el último de los tres (H3 FR-037).
 			duenos: []string{
 				grafo.modulo + "/internal/cache",
 				grafo.modulo + "/internal/store",
@@ -164,6 +167,39 @@ func TestElBinarioNoEnlazaHTTPX(t *testing.T) {
 				"conjunto de verbos que atiende el binario es el mismo que al cerrar H1 (SC-014). "+
 				"Cuando H4 lo enlace de verdad, este test se retira junto con la ampliación "+
 				"justificada de modulosDelBinario", paquete)
+	}
+}
+
+// TestElBinarioNoEnlazaCache comprueba que el binario distribuido no enlaza la
+// caché ni el controlador de SQLite. En H3 el paquete existe y está entero, pero
+// no lo usa ningún applet —el adaptador que lo ejercita es material de test y no
+// se registra en ningún binario (H3 FR-044, FR-045)—, de modo que la superficie
+// visible del binario y modulosDelBinario siguen siendo los que dejó H2
+// (SC-012).
+//
+// El controlador se reconoce por el prefijo modernc.org, donde viven el propio
+// driver y los módulos que lo sostienen (libc, mathutil, memory). Los demás
+// módulos que arrastra no se enumeran aquí: si el driver no está en el cierre,
+// ninguno puede haber entrado con él, y uno que entrara por otro camino lo
+// denunciaría TestDependenciasDelBinario, porque no está en su lista.
+//
+// **H4 retira este test.** El primer adaptador de fuente enlazará
+// internal/cache a propósito, y ese hito lo sustituye por lo que sí seguirá
+// siendo cierto: la ampliación de modulosDelBinario con los módulos que
+// `go list -deps` muestre entonces, justificados uno a uno (docs/PENDIENTES.md).
+func TestElBinarioNoEnlazaCache(t *testing.T) {
+	t.Parallel()
+
+	modulo := rutaDelModulo(t)
+	vigilados := []string{modulo + "/internal/cache", "modernc.org"}
+
+	for _, paquete := range paquetesDelBinario(t, modulo) {
+		vigilado, enlazado := primerPrefijo(paquete, vigilados)
+		assert.False(t, enlazado,
+			"el binario distribuido enlaza %s (cuelga de %s): en H3 la caché no la usa ningún applet, y "+
+				"ni el paquete ni el controlador de SQLite llegan al binario (FR-044, SC-012). Cuando H4 "+
+				"la enlace de verdad, este test se retira junto con la ampliación justificada de "+
+				"modulosDelBinario", paquete, vigilado)
 	}
 }
 

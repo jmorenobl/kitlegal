@@ -61,6 +61,6 @@ jobs:
       - name: Publicar el perfil de cobertura
         uses: codecov/codecov-action@v7
         with:
-          files: ./coverage.out
+          files: ./coverage.out,./coverage-integration.out
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}

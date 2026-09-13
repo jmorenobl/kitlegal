@@ -110,7 +110,7 @@ $ echo $?
 
 ## Ejecutar los controles
 
-`make ci` es **el veredicto del repositorio**: encadena los ocho controles, falla nombrando el que
+`make ci` es **el veredicto del repositorio**: encadena los nueve controles, falla nombrando el que
 falla y no modifica ningún fichero versionado del árbol de trabajo.
 
 ```bash
@@ -125,6 +125,7 @@ propuesta de cambio. Cada control se puede invocar por separado mientras se depu
 | `make fmt-check` | Comprueba el formato sin tocar ningún fichero | sí |
 | `make lint` | Análisis estático completo, `gosec` incluido | sí |
 | `make test` | Tests unitarios con detector de carreras; deja `coverage.out` | sí |
+| `make test-integration` | Tests con la etiqueta de compilación `integration`, con detector de carreras: los que dependen del entorno (permisos del sistema de ficheros, dos procesos), siempre dentro de directorios temporales | sí |
 | `make vuln` | Vulnerabilidades conocidas (consulta la base de datos de Go: requiere red) | sí |
 | `make schema-check` | Validación de salidas contra esquemas (los aportan H4 y H10) | sí |
 | `make secrets` | Detección de secretos en todo el árbol | sí |
@@ -132,7 +133,6 @@ propuesta de cambio. Cada control se puede invocar por separado mientras se depu
 | `make mod-tidy-check` | Comprueba que `go.mod` y `go.sum` están saneados | sí |
 | `make fmt` | **Corrige** el formato; por eso no forma parte de `ci` | no |
 | `make lint-fast` | Análisis estático rápido, el del gancho de pre-commit | no |
-| `make test-integration` | Tests con la etiqueta de compilación `integration` | no |
 | `make test-e2e` | Tests de extremo a extremo con `testscript`, contra un binario que registra los applets de ejemplo | no |
 
 `make help` —el objetivo por defecto— enumera todas las órdenes, incluidas las que existen pero

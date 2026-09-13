@@ -98,7 +98,7 @@ porque la integración continua ejecuta esa misma orden y no aplica ningún cont
 | Análisis estático (`golangci-lint`, `gosec` y `govet` incluidos) | `make lint` | sí |
 | Análisis estático rápido | `make lint-fast` | no — es el del gancho de pre-commit |
 | Tests unitarios con detector de carreras y perfil de cobertura | `make test` | sí |
-| Tests con la etiqueta `integration` | `make test-integration` | no |
+| Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos) | `make test-integration` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Validación contra esquemas | `make schema-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
@@ -158,14 +158,16 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 
 | Orden | Qué hace hoy | Hito |
 |---|---|---|
-| `make test-integration` | Ejecuta ya el comando real (`go test -race -tags=integration ./...`), que hoy pasa sobre un conjunto vacío de tests | según vaya habiendo tests de integración |
-| `make test-e2e` | Anuncia que no hay tests de extremo a extremo todavía y termina con éxito | H1 (`testscript`) |
 | `make schema-check` | Anuncia que no hay `schemas/` todavía y termina con éxito; `ci` lo invoca y sigue en verde | H4 (borrador) y H10 (contrato) |
 | `make skills-sync` | Anuncia que no hay `skills/` ni `data/*.yaml` todavía y termina con éxito | H5 |
 | `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
 
 `release` es la excepción porque es una acción con efectos externos: no puede simular éxito. No forma
 parte de `ci` ni del flujo nocturno.
+
+`make test-e2e` y `make test-integration` ya no están en esta tabla: desde H1 la primera ejecuta los
+guiones `testscript` contra el binario que el propio test construye, y desde H3 la segunda ejecuta los
+tests etiquetados `integration` —los de la caché, que dependen del entorno— y forma parte de `make ci`.
 
 ## `make vuln` necesita red
 
