@@ -24,4 +24,4 @@ y la dirección de los términos y el día de la revisión son los que declara s
 
 | Fuente | Applet | Base | Licencia | Términos de uso | robots.txt | Ritmo | Formato | Revisado |
 |---|---|---|---|---|---|---|---|---|
-| `boe.legislacion-consolidada` | `boe` | <https://www.boe.es/datosabiertos/api/legislacion-consolidada> | por revisar | <https://www.boe.es/informacion/aviso_legal/index.php> | por revisar | `1s` | XML (bloque) y JSON; sin autenticación | pendiente |
+| `boe.legislacion-consolidada` | `boe` | <https://www.boe.es/datosabiertos/api/legislacion-consolidada> | Ley 37/2007 (reutilización comercial y no comercial permitida; citar «Fuente de los datos: Agencia Estatal Boletín Oficial del Estado», no desnaturalizar el sentido de la información y mencionar la fecha de la última actualización) | <https://www.boe.es/informacion/aviso_legal/index.php> | `User-agent: *` sin `Crawl-delay`; no restringe `/datosabiertos/` (sus `Disallow` son búsquedas dinámicas, PDFs duplicados, edictos judiciales y documentos concretos) | `1s` | XML (bloque) y JSON; sin autenticación | 2026-09-13 |

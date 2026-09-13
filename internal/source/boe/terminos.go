@@ -28,5 +28,5 @@ const IntervaloEntrePeticiones = time.Second
 // grabar (contrato esquemas-fixtures-y-controles §3.2 y §8).
 var terminosDeUso = core.Terminos{
 	URL:       "https://www.boe.es/informacion/aviso_legal/index.php",
-	Revisados: time.Time{},
+	Revisados: time.Date(2026, time.September, 13, 0, 0, 0, 0, time.UTC),
 }
