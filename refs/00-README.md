@@ -12,6 +12,7 @@ Tres documentos de diseño para arrancar el proyecto. Léelos en este orden.
 
 - No existe código previo. Nada de lo descrito está implementado.
 - La única pieza existente es la skill `boe-fiscal` (Python, `scripts/boe.py` + `references/boe_api.md` + `references/normas_fiscales.md`), que sirve de patrón: `boe.py` se porta a Go como applet `boe` y su protocolo, generalizado a cualquier materia, es el de la skill base `boe-legislacion`. `boe-fiscal` se migra después como primera vertical (ADR 0012).
+- `boe.py` está aquí como cuarto documento semilla: **`refs/boe.py`**, copia congelada del 2026-05-14 (la versión viva de la skill, con los TTL de caché afinados a 7 días para `indice`, `articulo` y `analisis`). Es material de lectura, no código del producto: no se ejecuta, no se mantiene y no entra en ningún gate. Su dependencia `network_utils.robust_request` **no se porta**: reintentos, ritmo y `robots.txt` los cubre `internal/httpx` (H2).
 - Nombre fijado: `kitlegal` para repo, módulo (`github.com/jmorenobl/kitlegal`), binario y directorios (`.kitlegal/`, `~/.cache/kitlegal/`).
 
 ## Primer hito
