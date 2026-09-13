@@ -205,6 +205,13 @@ linters:
       # falso positivo a falso positivo en ignore-rules (research.md D9).
       locale: US
       ignore-rules:
+        # «Procedimiento administrativo común», la búsqueda de la lista cerrada de
+        # grabación cuya dirección fija byte a byte el contrato verbos-y-salidas §1
+        # de H4 y que TestConsultaDeBusqueda, en
+        # internal/source/boe/busqueda_test.go, copia tal cual con su consulta
+        # titulo:administrativo (FR-030, research.md D8 y D18); misspell lo lee
+        # como «administration».
+        - administrativo
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
         # «Capitulo», el tipo que TipoDesdeID, en internal/source/boe/ids.go,
