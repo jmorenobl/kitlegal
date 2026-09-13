@@ -68,7 +68,7 @@ test: check-tools
 
 ## test-integration: tests con la etiqueta de compilación integration
 test-integration: check-tools
-	go test -race -tags=integration ./...
+	go test -race -tags=integration -coverprofile=coverage-integration.out ./...
 
 ## test-e2e: tests de extremo a extremo con testscript, contra el binario que construye el propio test
 test-e2e: check-tools

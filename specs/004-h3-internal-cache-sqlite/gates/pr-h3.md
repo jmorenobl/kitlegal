@@ -287,8 +287,15 @@ del paquete, o se apartan de la letra del roadmap (*Complexity Tracking* del pla
     siguiente push de la rama.
   - **Cobertura de la Definition of Done, medida y en verde**: `codecov/project` 90,99 % (≥ 70 %),
     `internal/core` 90,36 % (≥ 85 %) e `internal/cli` 98,07 % (≥ 90 %). Ningún verde vacío.
-- **Decisión humana antes de fusionar: `codecov/patch` está en rojo**, con `85.64% of diff hit (target
-  92.47%)`, **medido por la plataforma sobre 0b1bf84**, el último commit empujado. `codecov.yml` no
+- **`codecov/patch`, decidido al cierre (2026-09-13)**. Sobre el HEAD final de la revisión (fc6df68)
+  la plataforma dio `88.43% of diff hit (target 92.47%)` con el perfil unitario solo. La causa es de
+  medida, no de umbral: CI ejecuta los tests de integración pero no publicaba su perfil, y las ramas que
+  solo ellos ejercitan (permisos, dos procesos) contaban como código sin test. Cambios: `make
+  test-integration` escribe `coverage-integration.out`; `ci.yml` publica los dos perfiles y Codecov los
+  une; `codecov.yml` declara el estado `patch` (`target: auto`, bloqueante), que hasta ahora regía sin
+  declarar, como la regla «no retroceder» aplicada al código nuevo. Ningún umbral baja y ningún estado
+  se silencia. Lo que sigue es el análisis previo a la decisión, medido sobre 0b1bf84: `codecov/patch`
+  estaba en rojo con `85.64% of diff hit (target 92.47%)`, el último commit empujado entonces. `codecov.yml` no
   declara ningún estado `patch`: Codecov aplica su objetivo por omisión (`auto`, la cobertura de la
   base), que sube con `main` (83,33 % en H1, 89,52 % en H2). No lo pide la Definition of Done, y el spec
   dice que `internal/cache` no tiene umbral propio. Parte del hueco es código que solo ejercitan los

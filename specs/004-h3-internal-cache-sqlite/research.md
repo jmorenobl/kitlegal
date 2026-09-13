@@ -521,8 +521,10 @@ inutilizable.
   inmediatamente después de `test` y antes de `vuln`, de modo que la línea queda
   `ci: fmt-check lint test test-integration vuln schema-check secrets mod-verify mod-tidy-check`, que es
   la que el escenario 11 del quickstart compara literalmente. La receta de `test-integration`
-  (`go test -race -tags=integration ./...`) es
-  contrato de H0 y **no cambia**; el coste es repetir la suite unitaria una vez más (≈ 22 s hoy, medido),
+  (`go test -race -tags=integration ./...`) es contrato de H0 y durante el hito **no cambió**; al cierre,
+  con la revisión final aprobada, ganó `-coverprofile=coverage-integration.out` para que CI publique ese
+  perfil junto al unitario y Codecov mida lo que solo ejercitan los tests etiquetados (`codecov/patch`
+  daba 88,43 % con el perfil unitario solo; gates/pr-h3.md §Pendientes). El coste es repetir la suite unitaria una vez más (≈ 22 s hoy, medido),
   aceptable frente a la alternativa de un segundo objetivo o de acotar la receta a un paquete.
 - **El análisis estático alcanza los ficheros etiquetados** (FR-041, SC-009): `.golangci.yml` gana
   `run.build-tags: [integration]` (clave verificada en `pkg/config/run.go` 22; se aplica como `-tags` al

@@ -85,7 +85,7 @@ versionado en `schema_version` (v1: tabla `entradas(clave, contenido, expira_en)
 temporales durante los tests. Ningún otro fichero; ningún `world.db` (H17).
 
 **Testing**: `go test -race -shuffle=on -coverprofile=coverage.out ./...` (`make test`, sin cambios) más
-`go test -race -tags=integration ./...` (`make test-integration`, receta de H0 sin cambios) que **entra
+`go test -race -tags=integration -coverprofile=coverage-integration.out ./...` (`make test-integration`, la receta de H0 más el perfil, añadido al cierre del hito: gates/pr-h3.md §Pendientes) que **entra
 en `make ci`**. Todos los tests trabajan sobre una base real en `t.TempDir()`; los etiquetados
 `integration` son los que dependen del entorno (permisos, dos procesos). Un solo fixture, escrito a
 mano (`internal/cache/testdata/reproduccion/prueba/GET_http_fuente.prueba_norma.json`), para que la
@@ -299,7 +299,7 @@ Según la sección «Gates» de la constitución. Cada fila dice qué orden lo e
 | 2 | **R1 sobre el paquete `core` nuevo** | `compruebaDominioPuro` + `depguard` lista `core` | `test`, `lint` | Sí | Un `import ".../internal/cache"` en `internal/core/cache.go` falla en los dos (quickstart 9.b) |
 | 3 | **`sqlclosecheck` / `rowserrcheck`** | activos desde H0; alcanzan también `integracion_test.go` por `run.build-tags` | `lint` | Sí | Un `*sql.Rows` sin `Close` en el fichero etiquetado → «Rows/Stmt/NamedStmt was not closed» (quickstart 9.c) |
 | 4 | **R2 en `internal/cache`** | `depguard` lista `red` (por prefijo, tests incluidos) | `lint` | Sí | Un `import "net/http"` en un `_test.go` de `internal/cache` → «R2: …» (quickstart 9.d) |
-| 5 | **Tests de integración en CI** | `make ci` incluye `test-integration` (`go test -race -tags=integration ./...`) | `test-integration` | Sí | Quitar `test-integration` de `ci` deja `TestIntegracion*` sin ejecutar; quickstart 11 comprueba la línea `ci:` |
+| 5 | **Tests de integración en CI** | `make ci` incluye `test-integration` (`go test -race -tags=integration -coverprofile=coverage-integration.out ./...`; CI publica también ese perfil) | `test-integration` | Sí | Quitar `test-integration` de `ci` deja `TestIntegracion*` sin ejecutar; quickstart 11 comprueba la línea `ci:` |
 | 6 | **Superficie exportada** | `TestSuperficieExportada`: `go/parser` + `go/ast` sobre las declaraciones exportadas; falla ante `sql.*`, `sqlite.*` o una declaración fuera del contrato | `test` | Sí | Exportar un método que devuelva `*sql.DB` hace fallar el test (FR-005) |
 | 7 | **Puerto implementado** | `var _ core.Cache = (*Cliente)(nil)` | compilación | Sí | Cambiar la firma de `Get` no compila (FR-001, FR-002) |
 | 8 | **Criterio de aceptación** | `TestAdaptadorDePruebaConElKernel/{primera-consulta,segunda-consulta-sin-red,sin-cache-la-reproduccion-falla}` con `httpx.Replay` estricto sobre un directorio vacío | `test` | Sí | Sin `Put` tras la primera consulta, la segunda termina con clase 1 nombrando `GET http://fuente.prueba/norma` (SC-001) |
@@ -470,8 +470,9 @@ ejecuta los controles; `README.md` y `CONTRIBUTING.md` lo dicen también en sus 
     la salida de la sonda 6 marcada como «medida en un módulo de sonda, sustituir por la medida real».
     La clave de caché por fuente y su TTL salen de la fuente (`Source.TTL()`).
 11. **Mantener los umbrales**: `internal/core` ≥ 85 % (sin sentencias nuevas), global ≥ 70 % con los
-    tests unitarios de `internal/cache` (los de integración no alimentan `coverage.out`). Nunca se rebaja
-    un umbral para que pase un estado.
+    tests unitarios de `internal/cache` (durante el hito los de integración no alimentaron `coverage.out`;
+    al cierre escriben `coverage-integration.out` y CI lo publica también: gates/pr-h3.md §Pendientes).
+    Nunca se rebaja un umbral para que pase un estado.
 12. **Solo el host ficticio `fuente.prueba` en tests y fixture** (control 18): la última tarea de tests
     ejecuta la orden entera de los prerrequisitos del quickstart contra el árbol y deja «solo direcciones
     ficticias» como evidencia en la PR.

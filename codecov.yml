@@ -1,10 +1,22 @@
 # Umbrales de cobertura de la Definition of Done (docs/ROADMAP.md §1.9, spec FR-029).
-# Los tres estados son bloqueantes: informational: false. Sin exclusiones ni excepciones.
+# Los cuatro estados son bloqueantes: informational: false. Sin exclusiones ni excepciones.
+# CI publica dos perfiles (ci.yml): el unitario (`make test`) y el de los tests con la
+# etiqueta integration (`make test-integration`, desde H3); Codecov los une, así que
+# mide lo que CI ejecuta de verdad.
 coverage:
   status:
     project:
       default:
         target: 70%
+        informational: false
+    # El diff de cada propuesta de cambio. `auto` compara con la cobertura de la base:
+    # es la regla «no retroceder» del roadmap (§5: el umbral existe para no perseguirlo)
+    # aplicada al código nuevo, y H1 comprobó que para código sin tests (sonda #11 de
+    # pr-h1.md, 0 % del diff). Hasta H3 era el valor por omisión de Codecov sin declarar;
+    # se declara para que sea una decisión y no un defecto.
+    patch:
+      default:
+        target: auto
         informational: false
 
 # Los componentes declaran el umbral del árbol que nombran. Un umbral se puede

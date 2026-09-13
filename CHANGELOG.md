@@ -159,7 +159,7 @@ así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
 *De H3 — la caché local en SQLite:*
 
 - **`make ci` ejecuta también los tests de integración.** La lista de prerrequisitos de `ci` gana
-  `test-integration` —`go test -race -tags=integration ./...`, la receta que H0 fijó y que no cambia—
+  `test-integration` —`go test -race -tags=integration -coverprofile=coverage-integration.out ./...`, la receta de H0 más el perfil de cobertura—
   entre `test` y `vuln`, de modo que un test etiquetado `integration` en rojo, o un fichero etiquetado que
   no compile, hacen fallar el veredicto en local y en la integración continua por igual. Los primeros
   tests con esa etiqueta son los de la caché: los que dependen del entorno —permisos del sistema de
@@ -168,6 +168,11 @@ así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
   `sqlclosecheck` y `rowserrcheck` los vigilan. Con ello `make ci` encadena nueve controles: los ocho de
   H0 y este. Nada más cambia a la vista: ningún applet, verbo ni bandera nueva, y el binario distribuido
   no enlaza todavía la caché ni el controlador de SQLite.
+- **La cobertura que publica CI incluye los tests de integración.** `ci.yml` sube los dos perfiles
+  (`coverage.out` y `coverage-integration.out`) y Codecov los une, de modo que las ramas que solo
+  ejercitan los tests etiquetados —permisos del sistema de ficheros, dos procesos— cuentan como lo que
+  son: código con test. `codecov.yml` declara además el estado `patch` (`target: auto`, bloqueante), que
+  hasta ahora regía sin declarar: la regla «no retroceder» aplicada al código nuevo de cada propuesta.
 
 Tres órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
 `schema-check` (H4 y H10), `skills-sync` (H5) y `release`, que falla con código distinto de `0` hasta H6
