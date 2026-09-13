@@ -1,12 +1,12 @@
 {
   "id": "T005",
   "texto": "T005 Errores con clase e identificadores de entrada: `internal/source/boe/errores.go` con `Error{URL, Instante, Causa}`, `Error()`, `Unwrap()` y `Clase()` (implementa `schema.ConClase`) y sus constructores sin exportar por clase («argumentos», «no encontrado», «fuente no disponible», «límite o TOS», «inesperado»), con `TestErrorDeBoeMensajes` en su fichero de test (cada forma de mensaje del contrato errores-y-codigos §2, y la clase y el código que `cli.Clasificar` y `cli.CodigoSalida` dan a cada constructor, también envuelto con `%w`); `internal/source/boe/ids.go` con `ValidarNorma` y `ValidarBloque` (gramáticas de data-model §5; fuera de ellas, «argumentos» nombrando el valor y la forma esperada) y `TipoDesdeID` con las diez reglas en su orden (data-model §4); con `TestValidarNorma`, `TestValidarBloque` (vacío, separadores de ruta, `?`, `#`, `%`, espacios, controles, 65 caracteres), `TestTipoDesdeID` (`a21`, `da3`, `dt1`, `ti`, `cv3`, `preambulo`, uno sin regla) y `FuzzIDDeBloque` (semillas `a21`, `da3` y `dt1`; nunca entra en pánico, todo id aceptado es seguro como segmento de la petición y el tipo inferido es determinista) en `internal/source/boe/ids_test.go`; y `.golangci.yml`, solo `misspell.ignore-rules`, con `capitulo` y `disposicion`, cada una con su comentario (FR-040, FR-080, FR-081, FR-082, FR-100, SC-007, research D9, D10 y D18).",
-  "intento": 1,
+  "intento": 2,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
   "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T005.md y déjala sin marcar.",
-  "base": "5a631b57e19ecf297c3f239401a07cb0d0f9b3d4",
+  "base": "c1cbd3df651c3cfd429bd336c54a774680a9c767",
   "rutas": [
     ".golangci.yml",
     ".ignore",
