@@ -1,15 +1,12 @@
 {
-  "id": "T037",
-  "texto": "T037 [plataforma] Publicar la rama del hito y abrir la propuesta de cambio: `git push -u origin h4-applet-boe-puerto`; consultar primero `gh pr view h4-applet-boe-puerto` y, solo si no existe propuesta de cambio (para que un reintento de la tarea no falle), `gh pr create --base main --head h4-applet-boe-puerto --title \"feat(H4): applet boe, puerto de boe.py\" --body-file specs/005-h4-applet-boe-puerto/gates/pr-h4.md` (sin terminal, `gh pr create` exige `--title` además del cuerpo); esperar y leer `gh pr checks h4-applet-boe-puerto --watch` y `gh run list --branch h4-applet-boe-puerto`, y dejar el estado de la integración continua y de Codecov en `specs/005-h4-applet-boe-puerto/gates/evidencia-plataforma.md`; no fusiona, no empuja a `main`, no fuerza y no crea etiquetas: la fusión es siempre humana (punto 1 de la Definition of Done, §6 del roadmap, ADR 0007).",
-  "intento": 2,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
-  "plataforma": true,
+  "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin h4-applet-boe-puerto'. Si no existe propuesta de cambio hacia main ('gh pr view h4-applet-boe-puerto'), créala con 'gh pr create --base main --head h4-applet-boe-puerto --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks h4-applet-boe-puerto --watch' y lee 'gh run list --branch h4-applet-boe-puerto'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-T037.md y deja la tarea sin marcar.",
-  "base": "d45f0ea6c99da4a5cc3476a98242e5babbefe7ad",
-  "rutas": [
-    "specs/005-h4-applet-boe-puerto/gates/evidencia-plataforma.md",
-    "specs/005-h4-applet-boe-puerto/gates/pr-h4.md"
-  ],
+  "red": "",
+  "base": "",
+  "rutas": [],
   "cierre": false
 }
