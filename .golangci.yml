@@ -12,8 +12,15 @@ run:
   # ejecuta con test-integration: sin ella ningún linter —sqlclosecheck y
   # rowserrcheck incluidos— cargaría esos ficheros, y uno que ni compila pasaría
   # el lint en verde (H3 FR-041, research.md D11).
+  #
+  # Y los que llevan grabacion: el arnés que graba las respuestas reales de una
+  # fuente (internal/source/boe/grabacion_test.go) solo lo compila
+  # scripts/grabar-fixtures.sh, que toca la red y que ni make ci ni ninguna tarea
+  # ejecutan; sin la etiqueta aquí, ese fichero quedaría fuera de todo control y
+  # uno que ni compila pasaría el lint en verde (H4 research.md D13).
   build-tags:
     - integration
+    - grabacion
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
