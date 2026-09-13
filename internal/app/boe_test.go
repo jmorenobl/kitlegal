@@ -8,16 +8,19 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -267,7 +270,8 @@ func argvDeBoe(argumentos ...string) []string {
 
 // verboDelContrato es lo que el contrato puerto-y-applet §4 fija de un verbo, y
 // una invocación suya sobre las grabaciones con la consulta que tiene que
-// construir y la dirección que cita su sobre (contrato verbos-y-salidas).
+// construir y la dirección que cita su sobre (contrato verbos-y-salidas), más
+// las invocaciones con las que falla y la que devuelve avisos.
 type verboDelContrato struct {
 	nombre    string
 	campos    []campoDelContrato
@@ -275,7 +279,28 @@ type verboDelContrato struct {
 	argumento []string
 	consulta  core.Consulta
 	url       string
+	// fueraDeGramatica es una invocación que termina con código 2 sin pedir
+	// nada: un argumento fuera de su gramática (contrato errores-y-codigos,
+	// filas 2-4).
+	fueraDeGramatica []string
+	// inexistente es una invocación sobre las grabaciones que termina con
+	// código 3: un recurso que la fuente no tiene (filas 6 y 7). buscar no
+	// tiene ninguna: una búsqueda sin resultados da una lista vacía, y un 404
+	// en buscar es el código 4 (fila 9).
+	inexistente []string
+	// conAvisos es, en los verbos que devuelven avisos (FR-012), una
+	// invocación sobre el sintético avisos cuyo data lleva los tres.
+	conAvisos []string
 }
+
+// normaInexistente es la norma grabada que la fuente no tiene, y
+// normaFueraDeGramatica un identificador que no llega a pedirse (contrato
+// esquemas-fixtures-y-controles §3.1, filas 19, 20 y 22; contrato
+// errores-y-codigos, fila 2).
+const (
+	normaInexistente      = "BOE-A-2099-99999"
+	normaFueraDeGramatica = "BOE-A-2015"
+)
 
 // campoDelContrato es un argumento del verbo, de los que van por su posición: el
 // campo, su tipo y el nombre con el que Kong lo presenta.
@@ -295,52 +320,66 @@ func verbosDelContrato() []verboDelContrato {
 
 	return []verboDelContrato{
 		{
-			nombre:    "buscar",
-			campos:    []campoDelContrato{{campo: "Texto", nombre: "texto", tipo: textos}},
-			salida:    []boe.ResultadoDeBusqueda(nil),
-			argumento: []string{"buscar", "procedimiento", "administrativo", "común"},
-			consulta:  boe.ConsultaBuscar{Texto: []string{"procedimiento", "administrativo", "común"}},
-			url:       direccionDeLaBusqueda,
+			nombre:           "buscar",
+			campos:           []campoDelContrato{{campo: "Texto", nombre: "texto", tipo: textos}},
+			salida:           []boe.ResultadoDeBusqueda(nil),
+			argumento:        []string{"buscar", "procedimiento", "administrativo", "común"},
+			consulta:         boe.ConsultaBuscar{Texto: []string{"procedimiento", "administrativo", "común"}},
+			url:              direccionDeLaBusqueda,
+			fueraDeGramatica: []string{"buscar", ""},
 		},
 		{
-			nombre:    "indice",
-			campos:    []campoDelContrato{norma},
-			salida:    boe.Indice{},
-			argumento: []string{"indice", normaDeBoe},
-			consulta:  boe.ConsultaIndice{Norma: normaDeBoe},
-			url:       direccionDelIndice,
+			nombre:           "indice",
+			campos:           []campoDelContrato{norma},
+			salida:           boe.Indice{},
+			argumento:        []string{"indice", normaDeBoe},
+			consulta:         boe.ConsultaIndice{Norma: normaDeBoe},
+			url:              direccionDelIndice,
+			fueraDeGramatica: []string{"indice", normaFueraDeGramatica},
+			inexistente:      []string{"indice", normaInexistente},
 		},
 		{
-			nombre:    "articulo",
-			campos:    []campoDelContrato{norma, {campo: "Bloque", nombre: "bloque", tipo: texto}},
-			salida:    boe.Articulo{},
-			argumento: []string{"articulo", normaDeBoe, "a21"},
-			consulta:  boe.ConsultaArticulo{Norma: normaDeBoe, Bloque: "a21"},
-			url:       direccionDelBloqueA21,
+			nombre:           "articulo",
+			campos:           []campoDelContrato{norma, {campo: "Bloque", nombre: "bloque", tipo: texto}},
+			salida:           boe.Articulo{},
+			argumento:        []string{"articulo", normaDeBoe, "a21"},
+			consulta:         boe.ConsultaArticulo{Norma: normaDeBoe, Bloque: "a21"},
+			url:              direccionDelBloqueA21,
+			fueraDeGramatica: []string{"articulo", normaDeBoe, "../a21"},
+			inexistente:      []string{"articulo", normaDeBoe, "a9999"},
+			conAvisos:        []string{"articulo", normaDeBoe, "a21"},
 		},
 		{
-			nombre:    "articulos",
-			campos:    []campoDelContrato{norma, {campo: "Bloques", nombre: "bloques", tipo: textos}},
-			salida:    []boe.Articulo(nil),
-			argumento: []string{"articulos", normaDeBoe, "a21", "a22"},
-			consulta:  boe.ConsultaArticulos{Norma: normaDeBoe, Bloques: []string{"a21", "a22"}},
-			url:       direccionDeLaNorma,
+			nombre:           "articulos",
+			campos:           []campoDelContrato{norma, {campo: "Bloques", nombre: "bloques", tipo: textos}},
+			salida:           []boe.Articulo(nil),
+			argumento:        []string{"articulos", normaDeBoe, "a21", "a22"},
+			consulta:         boe.ConsultaArticulos{Norma: normaDeBoe, Bloques: []string{"a21", "a22"}},
+			url:              direccionDeLaNorma,
+			fueraDeGramatica: []string{"articulos", normaDeBoe, "a21", "../a22"},
+			inexistente:      []string{"articulos", normaDeBoe, "a9999"},
+			conAvisos:        []string{"articulos", normaDeBoe, "a21"},
 		},
 		{
-			nombre:    "metadatos",
-			campos:    []campoDelContrato{norma},
-			salida:    boe.Metadatos{},
-			argumento: []string{"metadatos", normaDeBoe},
-			consulta:  boe.ConsultaMetadatos{Norma: normaDeBoe},
-			url:       direccionDeLosMetadatos,
+			nombre:           "metadatos",
+			campos:           []campoDelContrato{norma},
+			salida:           boe.Metadatos{},
+			argumento:        []string{"metadatos", normaDeBoe},
+			consulta:         boe.ConsultaMetadatos{Norma: normaDeBoe},
+			url:              direccionDeLosMetadatos,
+			fueraDeGramatica: []string{"metadatos", normaFueraDeGramatica},
+			inexistente:      []string{"metadatos", normaInexistente},
+			conAvisos:        []string{"metadatos", normaDeBoe},
 		},
 		{
-			nombre:    "analisis",
-			campos:    []campoDelContrato{norma},
-			salida:    boe.Analisis{},
-			argumento: []string{"analisis", normaDeBoe},
-			consulta:  boe.ConsultaAnalisis{Norma: normaDeBoe},
-			url:       direccionDelAnalisis,
+			nombre:           "analisis",
+			campos:           []campoDelContrato{norma},
+			salida:           boe.Analisis{},
+			argumento:        []string{"analisis", normaDeBoe},
+			consulta:         boe.ConsultaAnalisis{Norma: normaDeBoe},
+			url:              direccionDelAnalisis,
+			fueraDeGramatica: []string{"analisis", normaFueraDeGramatica},
+			inexistente:      []string{"analisis", normaInexistente},
 		},
 	}
 }
@@ -810,4 +849,254 @@ func TestSinGrafoNiAsuntoNoCambianLaSalida(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestSalidaDeBoeContraSchemas es el punto 4 de la Definition of Done sobre el
+// applet boe (FR-111, SC-006, US6 escenarios 1 y 2): el sobre real que emite el
+// kernel con --json para cada uno de los seis verbos —el de éxito y los de fallo
+// con código 2, 3 y 4— valida contra la parte de su verbo leída de
+// schemas/norma.json o de schemas/bloque.json, y no contra lo que emite
+// --describe mientras se ejecuta el test. La validación restringe: el mismo
+// sobre con una clave de más o de menos en su data no valida.
+//
+// En los tres verbos que devuelven avisos (FR-012), la parte publicada enumera
+// Aviso.codigo con exactamente sus tres valores, y un sobre real con los tres
+// avisos deja de validar si cualquiera de ellos lleva otro código.
+func TestSalidaDeBoeContraSchemas(t *testing.T) {
+	t.Parallel()
+
+	for _, contrato := range verbosDelContrato() {
+		t.Run(contrato.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			publicado, id := ficheroPublicadoDelVerbo(t, contrato.nombre)
+			esquema := salidaPublicada(t, publicado, id, contrato.nombre)
+
+			if contrato.conAvisos != nil {
+				t.Run("Aviso.codigo", func(t *testing.T) {
+					t.Parallel()
+
+					assert.ElementsMatch(t, []any{"consolidacion-no-finalizada", "derogada", "vigencia-agotada"},
+						valorDelEsquema(t, publicado, "$defs", contrato.nombre, "$defs", "boe.Aviso", "properties", "codigo", "enum"),
+						"exactamente los tres valores de FR-012, sin ningún otro")
+				})
+			}
+
+			for _, caso := range salidasDeBoe(contrato) {
+				t.Run(caso.nombre, func(t *testing.T) {
+					t.Parallel()
+
+					banco := nuevoBancoDeBoe(t, caso.reproduccion)
+					res := banco.invocar(t, argvDeBoe(slices.Concat(caso.argumentos, []string{"--json"})...)...)
+
+					require.Equal(t, caso.codigo, res.codigo, res.errores)
+					assert.Equal(t, caso.codigo == 0, sobreDelJSON(t, res.salida)["ok"],
+						"ok decide la rama del esquema contra la que se valida data")
+
+					exigirSalidaPublicada(t, esquema, res.salida)
+
+					if caso.conAvisos {
+						exigirAvisosEnumerados(t, esquema, res.salida)
+					}
+				})
+			}
+		})
+	}
+}
+
+// salidaDeBoe es una invocación de TestSalidaDeBoeContraSchemas: la carpeta que
+// sirve el cliente, los argumentos sin --json, el código con el que termina y si
+// su data lleva los tres avisos.
+type salidaDeBoe struct {
+	nombre       string
+	reproduccion string
+	argumentos   []string
+	codigo       int
+	conAvisos    bool
+}
+
+// salidasDeBoe son las invocaciones del verbo cuyo sobre se valida: la de éxito
+// sobre las grabaciones; las de fallo con código 2, con 3 si el verbo lo tiene y
+// con 4, esta con --offline y la caché vacía (contrato errores-y-codigos, fila
+// 5); y, si el verbo devuelve avisos, la de éxito con los tres.
+func salidasDeBoe(contrato verboDelContrato) []salidaDeBoe {
+	salidas := []salidaDeBoe{
+		{nombre: "exito", reproduccion: grabacionesDeBoe, argumentos: contrato.argumento},
+		{
+			nombre: "fallo-2-fuera-de-la-gramatica", reproduccion: grabacionesDeBoe,
+			argumentos: contrato.fueraDeGramatica, codigo: 2,
+		},
+		{
+			nombre: "fallo-4-offline-sin-entrada", reproduccion: grabacionesDeBoe,
+			argumentos: slices.Concat(contrato.argumento, []string{"--offline"}), codigo: 4,
+		},
+	}
+
+	if contrato.inexistente != nil {
+		salidas = append(salidas, salidaDeBoe{
+			nombre: "fallo-3-inexistente", reproduccion: grabacionesDeBoe,
+			argumentos: contrato.inexistente, codigo: 3,
+		})
+	}
+
+	if contrato.conAvisos != nil {
+		salidas = append(salidas, salidaDeBoe{
+			nombre: "exito-con-tres-avisos", reproduccion: sintetico("avisos"),
+			argumentos: contrato.conAvisos, conAvisos: true,
+		})
+	}
+
+	return salidas
+}
+
+// ficheroPublicadoDelVerbo lee de schemas/ el fichero que publica la parte del
+// verbo, norma.json o bloque.json (contrato esquemas-fixtures-y-controles §1), en
+// la representación que consume el validador, y devuelve con él su $id, que
+// tiene que ser el del contrato.
+func ficheroPublicadoDelVerbo(t *testing.T, verbo string) (any, string) {
+	t.Helper()
+
+	i := slices.IndexFunc(ficherosDeEsquemas, func(fichero ficheroDeEsquemas) bool {
+		return slices.Contains(fichero.verbos, verbo)
+	})
+	require.NotEqual(t, -1, i, "el verbo %q tiene su parte en un fichero publicado", verbo)
+
+	fichero := ficherosDeEsquemas[i]
+
+	contenido, err := leerEsquema(filepath.Join(carpetaDeLosEsquemas, fichero.nombre))
+	require.NoError(t, err, "la salida se valida contra el fichero publicado (FR-111)")
+
+	documento, err := jsonschema.UnmarshalJSON(bytes.NewReader(contenido))
+	require.NoError(t, err, "schemas/%s es un único documento JSON", fichero.nombre)
+
+	id, esTexto := valorDelEsquema(t, documento, "$id").(string)
+	require.True(t, esTexto, "el $id de schemas/%s es un texto", fichero.nombre)
+	require.Equal(t, raizDeLosEsquemas+fichero.nombre, id, "el $id del contrato")
+
+	return documento, id
+}
+
+// salidaPublicada compila la salida del verbo desde el fichero publicado: el
+// documento entra en el compilador con su $id y la parte se compila por ese $id,
+// con el puntero del contrato esquemas-fixtures-y-controles §1; sus referencias
+// internas resuelven contra el $id de la parte, que es un recurso embebido. Las
+// aserciones de formato van activadas: sin ellas, en el borrador 2020-12, format
+// es una anotación y una url o una fecha_consulta mal formadas validarían.
+func salidaPublicada(t *testing.T, documento any, id, verbo string) *jsonschema.Schema {
+	t.Helper()
+
+	compilador := jsonschema.NewCompiler()
+	compilador.AssertFormat()
+	require.NoError(t, compilador.AddResource(id, documento))
+
+	esquema, err := compilador.Compile(id + "#/$defs/" + verbo + "/properties/salida")
+	require.NoError(t, err, "la parte de %q en %s compila", verbo, id)
+
+	return esquema
+}
+
+// exigirSalidaPublicada exige que el sobre real valide contra la salida
+// publicada y que la validación restrinja data: el mismo sobre con una clave de
+// más, o sin cualquiera de las suyas, en el objeto de data no valida.
+func exigirSalidaPublicada(t *testing.T, esquema *jsonschema.Schema, salida string) {
+	t.Helper()
+
+	require.NoError(t, esquema.Validate(sobreValidable(t, salida)), "el sobre real valida contra su parte de schemas/")
+
+	conClaveDeMas := sobreValidable(t, salida)
+	objetoDeData(t, conClaveDeMas)["ajena"] = "no declarada"
+	require.Error(t, esquema.Validate(conClaveDeMas), "data con una clave de más no valida")
+
+	claves := slices.Sorted(maps.Keys(objetoDeData(t, sobreValidable(t, salida))))
+	require.NotEmpty(t, claves, "un data sin claves no permitiría comprobar que el esquema las exige")
+
+	for _, clave := range claves {
+		sinLaClave := sobreValidable(t, salida)
+		delete(objetoDeData(t, sinLaClave), clave)
+		assert.Errorf(t, esquema.Validate(sinLaClave), "data sin la clave %q no valida", clave)
+	}
+}
+
+// exigirAvisosEnumerados exige que el data del sobre real lleve los tres avisos
+// y que el mismo sobre, con otro código en cualquiera de ellos, no valide: el
+// enumerado de Aviso.codigo se aplica a lo que se emite (FR-012).
+func exigirAvisosEnumerados(t *testing.T, esquema *jsonschema.Schema, salida string) {
+	t.Helper()
+
+	require.Len(t, avisosDelSobre(t, sobreValidable(t, salida)), 3, "el sintético avisos cumple las tres condiciones")
+
+	for posicion := range 3 {
+		conOtroCodigo := sobreValidable(t, salida)
+
+		aviso, esObjeto := avisosDelSobre(t, conOtroCodigo)[posicion].(map[string]any)
+		require.True(t, esObjeto, "cada aviso es un objeto")
+
+		aviso["codigo"] = "otro-codigo"
+		assert.Errorf(t, esquema.Validate(conOtroCodigo), "el aviso %d con un código fuera de los tres no valida", posicion)
+	}
+}
+
+// avisosDelSobre es la lista de avisos del objeto de data.
+func avisosDelSobre(t *testing.T, sobre map[string]any) []any {
+	t.Helper()
+
+	avisos, esLista := objetoDeData(t, sobre)["avisos"].([]any)
+	require.True(t, esLista, "los avisos son una lista")
+
+	return avisos
+}
+
+// objetoDeData es el objeto que describe data en el sobre: data mismo o, si es
+// una lista —en buscar y articulos—, su primer elemento, que tiene que existir.
+// Pertenece al sobre, así que cambiarlo cambia el sobre.
+func objetoDeData(t *testing.T, sobre map[string]any) map[string]any {
+	t.Helper()
+
+	data := sobre["data"]
+
+	if lista, esLista := data.([]any); esLista {
+		require.NotEmpty(t, lista, "una lista vacía no permitiría comprobar que el esquema restringe sus elementos")
+
+		data = lista[0]
+	}
+
+	objeto, esObjeto := data.(map[string]any)
+	require.True(t, esObjeto, "data, o su primer elemento, es un objeto")
+
+	return objeto
+}
+
+// sobreValidable lee la salida estándar en la representación que consume el
+// validador, con las cifras como literales. Cada llamada da una copia nueva, que
+// se puede alterar sin tocar las demás.
+func sobreValidable(t *testing.T, salida string) map[string]any {
+	t.Helper()
+
+	documento, err := jsonschema.UnmarshalJSON(strings.NewReader(salida))
+	require.NoError(t, err, "con --json la salida estándar es un único documento JSON")
+
+	sobre, esObjeto := documento.(map[string]any)
+	require.True(t, esObjeto, "el sobre es un objeto JSON")
+
+	return sobre
+}
+
+// valorDelEsquema es el valor al que llevan las claves, una tras otra, dentro
+// del documento; cada paso tiene que existir.
+func valorDelEsquema(t *testing.T, documento any, claves ...string) any {
+	t.Helper()
+
+	valor := documento
+
+	for i, clave := range claves {
+		objeto, esObjeto := valor.(map[string]any)
+		require.True(t, esObjeto, "/%s es un objeto", strings.Join(claves[:i], "/"))
+
+		siguiente, existe := objeto[clave]
+		require.True(t, existe, "el esquema tiene /%s", strings.Join(claves[:i+1], "/"))
+
+		valor = siguiente
+	}
+
+	return valor
 }

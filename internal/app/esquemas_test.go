@@ -269,17 +269,203 @@ func compruebaElComparadorDeEsquemas(t *testing.T, emitidas map[string]map[strin
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			carpeta := t.TempDir()
-
-			for _, fichero := range ficherosDeEsquemas {
-				if contenido, publicado := caso.publicados[fichero.nombre]; publicado {
-					escribeEsquema(t, carpeta, fichero, contenido)
-				}
-			}
+			carpeta := publicaEnUnaCarpeta(t, caso.publicados)
 
 			assert.Equal(t, caso.fallos, fallosDe(comprobarEsquemas(carpeta, ficherosDeEsquemas, emitidas)))
 		})
 	}
+}
+
+// TestEsquemasCubrenTodosLosVerbos completa lo que vigila TestEsquemasPublicados,
+// que no compara un fichero que no existe (FR-110, FR-111, SC-006; contrato
+// esquemas-fixtures-y-controles §1): los dos ficheros publicados existen y cada
+// verbo del registro de producción tiene su parte en exactamente uno de ellos.
+// Sin esto, borrar un fichero o registrar un verbo sin publicar su parte dejaría
+// su salida sin el contrato contra el que la valida TestSalidaDeBoeContraSchemas.
+//
+// El primer subtest lo comprueba sobre schemas/; el resto demuestra sobre
+// carpetas temporales, con las partes reales, que la comprobación no pasa en
+// vacío.
+func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
+	t.Parallel()
+
+	registrados := verbosDeProduccion(t)
+	require.NotEmpty(t, registrados, "sin verbos registrados no habría nada que cubrir")
+
+	t.Run("schemas", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, comprobarCobertura(carpetaDeLosEsquemas, ficherosDeEsquemas, registrados))
+	})
+
+	emitidas := partesDeProduccion(t)
+	norma, bloque := ficherosDeEsquemas[0], ficherosDeEsquemas[1]
+	normaRegenerada := esquemaCanonico(t, norma, emitidas[norma.nombre])
+	bloqueRegenerado := esquemaCanonico(t, bloque, emitidas[bloque.nombre])
+
+	sinArticulos := maps.Clone(emitidas[bloque.nombre])
+	delete(sinArticulos, "articulos")
+
+	normaConArticulo := maps.Clone(emitidas[norma.nombre])
+	normaConArticulo["articulo"] = emitidas[bloque.nombre]["articulo"]
+
+	casos := []struct {
+		nombre      string
+		publicados  map[string][]byte
+		registrados []string
+		fallos      []string
+	}{
+		{
+			nombre:      "regenerados-cubren-los-registrados",
+			publicados:  map[string][]byte{norma.nombre: normaRegenerada, bloque.nombre: bloqueRegenerado},
+			registrados: registrados,
+		},
+		{
+			nombre:      "falta-un-fichero",
+			publicados:  map[string][]byte{norma.nombre: normaRegenerada},
+			registrados: registrados,
+			fallos: []string{
+				"schemas/bloque.json: el fichero no está publicado",
+				"«boe articulo» no tiene su parte en ningún fichero de schemas/",
+				"«boe articulos» no tiene su parte en ningún fichero de schemas/",
+			},
+		},
+		{
+			nombre: "verbo-sin-parte",
+			publicados: map[string][]byte{
+				norma.nombre:  normaRegenerada,
+				bloque.nombre: esquemaCanonico(t, bloque, sinArticulos),
+			},
+			registrados: registrados,
+			fallos:      []string{"«boe articulos» no tiene su parte en ningún fichero de schemas/"},
+		},
+		{
+			nombre: "verbo-en-dos-ficheros",
+			publicados: map[string][]byte{
+				norma.nombre:  esquemaCanonico(t, norma, normaConArticulo),
+				bloque.nombre: bloqueRegenerado,
+			},
+			registrados: registrados,
+			fallos:      []string{"«boe articulo» tiene su parte en más de un fichero de schemas/: norma.json, bloque.json"},
+		},
+		{
+			nombre:      "verbo-registrado-sin-publicar",
+			publicados:  map[string][]byte{norma.nombre: normaRegenerada, bloque.nombre: bloqueRegenerado},
+			registrados: append(slices.Clone(registrados), "boe nuevo"),
+			fallos:      []string{"«boe nuevo» no tiene su parte en ningún fichero de schemas/"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			carpeta := publicaEnUnaCarpeta(t, caso.publicados)
+
+			assert.Equal(t, caso.fallos, fallosDe(comprobarCobertura(carpeta, ficherosDeEsquemas, caso.registrados)))
+		})
+	}
+}
+
+// verbosDeProduccion son los verbos del registro de producción como se nombran
+// detrás del binario, «<applet> <verbo>», en el orden de los applets y de sus
+// verbos.
+func verbosDeProduccion(t *testing.T) []string {
+	t.Helper()
+
+	registro, err := RegistroDeProduccion()
+	require.NoError(t, err)
+
+	var verbos []string
+
+	for _, nombre := range registro.Nombres() {
+		applet, registrado := registro.Buscar(nombre)
+		require.True(t, registrado, "%q está en el registro", nombre)
+
+		for _, verbo := range applet.Verbos() {
+			verbos = append(verbos, nombre+" "+verbo.Nombre)
+		}
+	}
+
+	return verbos
+}
+
+// comprobarCobertura exige que cada fichero de la lista exista en la carpeta y
+// que cada verbo registrado, «<applet> <verbo>», tenga su parte en exactamente
+// uno de ellos, y reúne todos los fallos. Una parte es una clave del $defs de la
+// raíz, y las de los dos ficheros son verbos del applet boe (contrato
+// esquemas-fixtures-y-controles §1).
+func comprobarCobertura(carpeta string, ficheros []ficheroDeEsquemas, registrados []string) error {
+	var fallos []error
+
+	publicadaEn := make(map[string][]string)
+
+	for _, fichero := range ficheros {
+		partes, err := partesPublicadas(filepath.Join(carpeta, fichero.nombre))
+		if err != nil {
+			fallos = append(fallos, fmt.Errorf("schemas/%s: %w", fichero.nombre, err))
+
+			continue
+		}
+
+		for verbo := range partes {
+			publicadaEn["boe "+verbo] = append(publicadaEn["boe "+verbo], fichero.nombre)
+		}
+	}
+
+	for _, verbo := range registrados {
+		switch donde := publicadaEn[verbo]; {
+		case len(donde) == 0:
+			fallos = append(fallos, fmt.Errorf("«%s» no tiene su parte en ningún fichero de schemas/", verbo))
+		case len(donde) > 1:
+			fallos = append(fallos, fmt.Errorf("«%s» tiene su parte en más de un fichero de schemas/: %s",
+				verbo, strings.Join(donde, ", ")))
+		}
+	}
+
+	return errors.Join(fallos...)
+}
+
+// partesPublicadas son las partes del fichero publicado en la ruta, por verbo.
+// Un fichero que no existe, que no es un objeto JSON o cuyo $defs no es un
+// objeto no publica ninguna, y es un fallo.
+func partesPublicadas(ruta string) (map[string]any, error) {
+	contenido, err := leerEsquema(ruta)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, errors.New("el fichero no está publicado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	documento, err := objetoJSON(contenido)
+	if err != nil {
+		return nil, err
+	}
+
+	partes, esObjeto := documento["$defs"].(map[string]any)
+	if !esObjeto {
+		return nil, errors.New("el $defs de la raíz no es un objeto")
+	}
+
+	return partes, nil
+}
+
+// publicaEnUnaCarpeta escribe en una carpeta temporal los ficheros publicados,
+// por nombre, y la devuelve: los que no están en el mapa no existen en ella.
+func publicaEnUnaCarpeta(t *testing.T, publicados map[string][]byte) string {
+	t.Helper()
+
+	carpeta := t.TempDir()
+
+	for _, fichero := range ficherosDeEsquemas {
+		if contenido, publicado := publicados[fichero.nombre]; publicado {
+			escribeEsquema(t, carpeta, fichero, contenido)
+		}
+	}
+
+	return carpeta
 }
 
 // partesDeProduccion regenera en memoria las partes de los dos ficheros: pide
