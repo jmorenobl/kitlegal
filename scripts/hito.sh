@@ -247,7 +247,7 @@ fi
 # docs/WORKFLOW.md «Modelo por paso»). Ejemplo:
 #   KITLEGAL_MODELO_IMPLEMENTACION=opus@max scripts/hito.sh H2
 modelos=()
-for rol in DECISION JUEZ REVISOR REDACCION IMPLEMENTACION ESCALADA ANALISIS; do
+for rol in DECISION JUEZ REVISOR ADVERSARIO REDACCION IMPLEMENTACION ESCALADA ANALISIS; do
   var="KITLEGAL_MODELO_$rol"
   if [ -n "${!var:-}" ]; then
     modelos+=(--input "modelo_$(printf '%s' "$rol" | tr '[:upper:]' '[:lower:]')=${!var}")

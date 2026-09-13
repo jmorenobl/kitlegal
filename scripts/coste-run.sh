@@ -52,8 +52,11 @@ def ts(s):
     return datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 # Plantillas de fan-out: el modelo es "{{ item.modelo }}" y el rol depende del item.
-# Orden de los items tal y como los genera preparar_jueces en el workflow.
-FAN_OUT_ROLES = {"revision_juez": ["modelo_revisor", "modelo_juez"]}
+# Los roles salen del paso shell que genera los items (preparar_jueces), en el orden
+# en que su `run` interpola inputs.modelo_<rol>, leído de la copia congelada del
+# workflow del run: cada run se atribuye con los roles que tenía entonces (hasta
+# 1.7.0 el juez B era modelo_juez; desde 1.8.0, modelo_adversario).
+FAN_OUT_ROLES = {}
 
 
 def nombre(step_id):
@@ -64,9 +67,10 @@ def nombre(step_id):
     return [p for p in partes if not p.isdigit()][-1]
 
 # ---- rol de cada paso según la copia congelada del workflow del run
-rol_de = {}
+rol_de, pasos = {}, {}
 def walk(steps):
     for s in steps:
+        pasos[s.get("id")] = s
         m = re.search(r"inputs\.(modelo_\w+)", str(s.get("model", "")))
         if m:
             rol_de[s["id"]] = m.group(1)
@@ -76,9 +80,17 @@ def walk(steps):
         if isinstance(s.get("step"), dict):
             walk([s["step"]])
 walk(yaml.safe_load(open(os.path.join(run_dir, "workflow.yml")))["steps"])
-for base, roles in FAN_OUT_ROLES.items():
+for s in pasos.values():
+    if s.get("type") != "fan-out" or not isinstance(s.get("step"), dict):
+        continue
+    ref = re.search(r"steps\.(\w+)\.output", str(s.get("items", "")))
+    generador = pasos.get(ref.group(1)) if ref else None
+    if not generador:
+        continue
+    roles = re.findall(r"inputs\.(modelo_\w+)", str(generador.get("run", "")))
+    FAN_OUT_ROLES[s["step"]["id"]] = roles
     for i, rol in enumerate(roles):
-        rol_de[f"{base}:{i}"] = rol
+        rol_de[f"{s['step']['id']}:{i}"] = rol
 inputs = json.load(open(os.path.join(run_dir, "inputs.json"))).get("inputs", {})
 
 # ---- intervalos de los pasos que invocan a Claude
