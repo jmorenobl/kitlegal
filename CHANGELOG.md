@@ -4,7 +4,7 @@ Todo cambio de comportamiento visible de `kitlegal` se registra aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto se adhiere al
 [versionado semántico](https://semver.org/lang/es/). Mientras el mayor sea `0` —lo será hasta la primera
-release, que es H6 (`v0.1.0`)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a
+release, que es H19 (`v0.1.0`, ADR 0013)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a
 mano** hasta ese hito: cada propuesta de cambio añade su entrada bajo *Unreleased* en el mismo cambio que
 introduce el comportamiento, y al publicar una versión esa sección se cierra bajo su número y su fecha y
 se abre una nueva vacía.

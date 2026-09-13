@@ -4,6 +4,10 @@
 - **Fecha**: 2026-09-11
 - **Hito**: H1
 
+> Nota (2026-09-13): el ADR 0014 añade a `schema.Resultado` las operaciones de grafo que el applet
+> observa, aplicadas por el kernel con la `Procedencia` del propio resultado como `source`. `Applet`,
+> `Verbo` y `Argumentos` no cambian; lo que crece es el valor de dominio que el applet ya devolvía.
+
 ## Contexto y problema
 
 `docs/ROADMAP.md` prevé más de veinte applets: uno por fuente legal (`boe`, `borme`, `placsp`, `bdns`,

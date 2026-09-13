@@ -45,6 +45,10 @@ skill `boe-fiscal` funcionando con el binario.
 
 > Nota (2026-09-12): en este punto lo sustituye el ADR 0012. La skill que cierra la fase 0 (H5) es la
 > genérica `boe-legislacion`; `boe-fiscal` se migra después como primera vertical (fase 8).
+>
+> Nota (2026-09-13): la numeración de la tabla siguiente queda sustituida por la del ADR 0013 (reordena
+> por tiempo hasta el uso desde H6) y el grafo llega en H7 como memoria, no en H17 (ADR 0014). El
+> principio no cambia.
 
 ## Consecuencias
 

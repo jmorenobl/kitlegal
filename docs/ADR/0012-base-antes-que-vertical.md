@@ -4,6 +4,11 @@
 - **Fecha**: 2026-09-12
 - **Hito**: transversal (cambia el alcance de H5 y H24 y añade la fase 8; la numeración no cambia)
 
+> Nota (2026-09-13): desde el ADR 0013 las verticales viven en el backlog sin número (grupo
+> «verticales»), no en una «fase 8»; H24 pasa al backlog («profundidad») y el mecanismo de packs va con la
+> distribución, no con H22. El principio —base antes que vertical, verticales sin código y en cualquier
+> momento tras H5— no cambia.
+
 ## Contexto y problema
 
 El roadmap heredó de los documentos semilla que la única skill existente, `boe-fiscal` (Python, fuera de
