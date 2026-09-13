@@ -1,14 +1,14 @@
 {
-  "id": "T023",
-  "texto": "T023 [US2] La caché de los seis verbos, sobre el código ya existente: `internal/source/boe/fuente_test.go` añade `TestCacheDeLosSeisVerbos` (la segunda consulta idéntica contra `httpx.Replay` sobre una carpeta vacía: cero peticiones y el mismo `data`, `url` y `fecha_consulta` con el reloj adelantado dentro de la vigencia; pasada la vigencia de su verbo, se vuelve a pedir; `articulo` con los metadatos en caché emite una petición y `metadatos` tras un `articulo`, ninguna), `TestOfflineDeLosSeisVerbos` (entrada vigente → 0 con la fecha guardada; ausente o caducada → 4, cero peticiones y la caché intacta), `TestEnsayoDeLosSeisVerbos` (cero peticiones, nada escrito y una línea por cada petición que se habría emitido, sin repetir ninguna) y `TestFallosNoSeGuardan` (bloque inexistente, fuente caída, bloque ilegible y metadatos caídos: repetir la consulta vuelve a pedir); la tarea no añade producto (FR-090-FR-096, SC-003, SC-004, SC-012, US2 escenarios 1 y 3-8).",
+  "id": "T024",
+  "texto": "T024 [US6] Ninguna ruta de fallo sin clase, sobre el error real: `internal/source/boe/errores_test.go` añade `TestClasesDeErrorDeBoe`, con una subprueba por cada fila 2-4, 6-10 y 16-22 del contrato errores-y-codigos, provocando cada situación con el código ya existente (validadores, `Pedidor` de prueba, grabaciones y sintéticos, entrada de caché ilegible, `AperturaDeCache` de prueba, `Nueva` sin dependencias) y comprobando la clase de `cli.Clasificar` y el código de `cli.CodigoSalida`, que ninguna da 6 y que ninguna entra en pánico; la subprueba de la fila 21 usa `metadatos` de `BOE-A-2015-10565` sobre las grabaciones con una `AperturaDeCache` de prueba cuyo error implementa `schema.ConClase` y declara una de las tres clases que produce `cache.Error` («argumentos», «fuente no disponible» e «inesperado», cada una en al menos un caso), y cubre cuatro casos: la apertura falla (ninguna petición); `Get` falla fuera de solo lectura (ninguna petición); `Put` falla después de obtener la respuesta (una petición y ninguna entrada escrita); y `Close` falla, tras una invocación correcta (clase del cierre) y tras una fallida (clase del fallo de la invocación, con los dos errores unidos); en cada caso exige además que el error de la caché siga alcanzable con `errors.Is`, `fuente` `boe.legislacion-consolidada`, la `url` de los metadatos y la fecha de consulta sin declarar, para que la ponga el montaje; la tarea no añade producto (FR-090, FR-100, SC-008, punto 5 de la Definition of Done).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T023.md y déjala sin marcar.",
-  "base": "33abb7188a66b2db19b29396ae5423c7f22dc1a3",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T024.md y déjala sin marcar.",
+  "base": "ede3895e4ce19691db23e0b869b58c015094aa14",
   "rutas": [
-    "internal/source/boe/fuente_test.go"
+    "internal/source/boe/errores_test.go"
   ],
   "cierre": false
 }
