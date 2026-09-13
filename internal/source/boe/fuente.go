@@ -237,17 +237,19 @@ func (*Fuente) Terms() core.Terminos {
 // Fetch resuelve la consulta (core.Source). Cada verbo resuelve la suya en su
 // propio fichero, con un caso en Fetch que valida la consulta antes de abrir
 // nada y la resuelve dentro de invocar (research.md D2 y D5): metadatos, en
-// metadatos.go, y articulo, en articulo.go. Una consulta sin caso —de un tipo que
-// la fuente no declara, nula o de un verbo que la fuente todavía no resuelve— es
-// un defecto de quien la compone: «inesperado», sin procedencia, porque no se ha
-// consultado nada, y sin abrir la caché ni construir el cliente, también con
-// --offline y con --dry-run (contrato errores-y-codigos, fila 22).
+// metadatos.go, y articulo y articulos, en articulo.go. Una consulta sin caso
+// —de un tipo que la fuente no declara, nula o de un verbo que la fuente todavía
+// no resuelve— es un defecto de quien la compone: «inesperado», sin procedencia,
+// porque no se ha consultado nada, y sin abrir la caché ni construir el cliente,
+// también con --offline y con --dry-run (contrato errores-y-codigos, fila 22).
 func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Consulta) (schema.Resultado, error) {
 	switch consulta := consulta.(type) {
 	case ConsultaMetadatos:
 		return f.metadatos(ctx, ec, consulta)
 	case ConsultaArticulo:
 		return f.articulo(ctx, ec, consulta)
+	case ConsultaArticulos:
+		return f.articulos(ctx, ec, consulta)
 	default:
 		return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
 	}
@@ -430,12 +432,14 @@ func abreEnSoloLectura(ec schema.Contexto) bool {
 }
 
 // consultaResuelta es lo que da la consulta de un recurso con la caché de la
-// invocación: sus datos y la fecha de la consulta que los sostiene —la guardada
-// si salen de su entrada, el instante de la petición si se piden y, si se apoyan
-// en varias consultas, la más antigua (FR-096)—, o, bajo --dry-run, las líneas de
-// las peticiones que se habrían emitido, una por petición y en su orden, sin
-// datos ni fecha (FR-094, ADR 0011).
-type consultaResuelta[T datosDeEntrada] struct {
+// invocación, o la de varios, como los bloques de articulos: sus datos y la fecha
+// de la consulta que los sostiene —la guardada si salen de su entrada, el
+// instante de la petición si se piden y, si se apoyan en varias consultas, la
+// más antigua (FR-096)—, o, bajo --dry-run, las líneas de las peticiones que se
+// habrían emitido, una por petición y en su orden, sin datos ni fecha (FR-094,
+// ADR 0011). Sus datos no tienen por qué tener entrada propia: los de articulos
+// no la tienen (FR-020).
+type consultaResuelta[T any] struct {
 	datos         T
 	fechaConsulta time.Time
 	ensayo        []string
@@ -614,8 +618,8 @@ func guardar[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveD
 // resuelta: la procedencia de la fuente con la dirección que cita el verbo y la
 // fecha de la consulta, y sus datos; o, bajo --dry-run, la procedencia sin fecha
 // y las líneas de las peticiones que se habrían emitido, sin datos
-// (data-model.md §7.1 y §7.3; ADR 0011).
-func resultadoDeLaConsulta[T datosDeEntrada](direccion string, resuelta consultaResuelta[T]) schema.Resultado {
+// (data-model.md §7.1 a §7.3; ADR 0011).
+func resultadoDeLaConsulta[T any](direccion string, resuelta consultaResuelta[T]) schema.Resultado {
 	procedencia := schema.Procedencia{Fuente: NombreDeLaFuente, URL: direccion}
 
 	if len(resuelta.ensayo) > 0 {

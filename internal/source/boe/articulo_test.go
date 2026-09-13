@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 )
@@ -28,12 +29,22 @@ const (
 	bloqueDelArticulo21 = "a21"
 	bloqueDelArticulo42 = "a42"
 	bloqueInexistente   = "a9999"
+	// bloqueDelArticulo22 y bloqueDelArticulo23 son los artículos 22 y 23 de la
+	// Ley 39/2015, que con el 21 lee articulos (US4, escenarios 2 y 3).
+	bloqueDelArticulo22 = "a22"
+	bloqueDelArticulo23 = "a23"
 	// direccionDelArticulo21, direccionDelArticulo42 y
-	// direccionDelBloqueInexistente son las direcciones de sus bloques en la API.
+	// direccionDelBloqueInexistente son las direcciones de sus bloques en la API,
+	// y direccionDelArticulo22 y direccionDelArticulo23, las de los de articulos.
 	direccionDelArticulo21        = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21"
 	direccionDelArticulo42        = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1992-26318/texto/bloque/a42"
 	direccionDelBloqueInexistente = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565" +
 		"/texto/bloque/a9999"
+	direccionDelArticulo22 = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a22"
+	direccionDelArticulo23 = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a23"
+	// direccionDeLaNormaVigente es el recurso de la Ley 39/2015 en la API, la url
+	// del sobre de articulos (contrato verbos-y-salidas §4).
+	direccionDeLaNormaVigente = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565"
 	// Los sintéticos del bloque a21 y de los metadatos de la Ley 39/2015 que solo
 	// usa articulo (contrato esquemas-fixtures-y-controles §4); los de los avisos
 	// y de los metadatos ilegibles son los de metadatos_test.go.
@@ -379,25 +390,320 @@ func TestArticulo(t *testing.T) {
 	}
 
 	for _, caso := range malFormadas {
-		for sufijo, ec := range map[string]schema.Contexto{"": {}, "-offline": {Offline: true}, "-en-ensayo": {DryRun: true}} {
+		for sufijo, ec := range ejecucionesDeLosArgumentos() {
 			t.Run(caso.nombre+sufijo, func(t *testing.T) {
 				t.Parallel()
 
-				dependencias := &dependenciasDePrueba{cacheAbierta: &cacheDePrueba{}}
-				fuente := fuenteDePrueba(t, dependencias)
+				compruebaArgumentosSinAbrirNada(t, ec, caso.consulta, caso.mensaje)
+			})
+		}
+	}
+}
 
-				resultado, err := fuente.Fetch(t.Context(), ec, caso.consulta)
+// TestArticulos fija el verbo articulos (contrato verbos-y-salidas §4 y §7;
+// data-model.md §2.1 y §7.2; FR-020, FR-021, FR-096 y FR-101; US4, escenarios 2
+// y 3) sobre el mismo banco que TestArticulo, contando las peticiones que la
+// fuente entrega al cliente:
+//
+//   - la norma, que haya algún bloque y cada bloque se validan antes de abrir la
+//     caché o construir el cliente;
+//   - cada id distinto se resuelve una vez, en el orden de su primera aparición,
+//     y data lleva en el orden pedido y con sus repeticiones el mismo artículo
+//     que daría articulo para cada bloque;
+//   - los bloques guardados se sirven sin pedir nada, y los que faltan se piden
+//     en secuencia, con los metadatos de la norma como mucho una vez por
+//     invocación, también bajo --dry-run, que los describe una sola vez;
+//   - el primer fallo detiene la invocación sin pedir los bloques siguientes, con
+//     su clase, la dirección y el instante de la petición que falló y un mensaje
+//     que nombra el bloque y su posición, y los bloques resueltos antes quedan
+//     escritos (contrato errores-y-codigos, fila 19);
+//   - y el sobre lleva la dirección de la norma y la más antigua de las fechas de
+//     consulta de sus elementos.
+func TestArticulos(t *testing.T) {
+	t.Parallel()
 
-				assert.Zero(t, resultado, "el sobre de los argumentos lo firma y lo fecha el kernel")
+	tresBloques := []string{bloqueDelArticulo21, bloqueDelArticulo22, bloqueDelArticulo23}
 
-				var fallo *Error
-				require.ErrorAs(t, err, &fallo)
-				assert.Empty(t, fallo.URL)
-				assert.Zero(t, fallo.Instante)
-				assert.Equal(t, schema.ClaseArgumentos, cli.Clasificar(err))
-				assert.Equal(t, 2, cli.CodigoSalida(err))
-				assert.Equal(t, caso.mensaje, err.Error())
-				dependencias.compruebaSinUso(t)
+	t.Run("tres-bloques", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+		consulta := ConsultaArticulos{Norma: normaVigente, Bloques: tresBloques}
+		datos := articulosComoArticulo(t, tresBloques...)
+		esperado := resultadoResuelto(direccionDeLaNormaVigente, banco.reloj.ahora(), datos)
+		pedidas := []httpx.Peticion{
+			peticionDelBloque(direccionDelArticulo21),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelArticulo22),
+			peticionDelBloque(direccionDelArticulo23),
+		}
+
+		require.Len(t, datos, len(tresBloques))
+		assert.Equal(t, articuloDelArticulo21(t), datos[0])
+
+		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
+
+		compruebaResuelta(t, resultado, err, esperado)
+		banco.compruebaPeticiones(t, pedidas...)
+
+		// Cada bloque quedó en la entrada de articulo con su fecha, y la misma
+		// consulta ya no pide nada, tampoco con --offline ni con --dry-run.
+		for indice, direccion := range []string{direccionDelArticulo21, direccionDelArticulo22, direccionDelArticulo23} {
+			resultado, err := banco.resuelve(t, schema.Contexto{Offline: true},
+				ConsultaArticulo{Norma: normaVigente, Bloque: tresBloques[indice]})
+
+			compruebaResuelta(t, resultado, err, resultadoResuelto(direccion, banco.reloj.ahora(), datos[indice]))
+		}
+
+		banco.reloj.adelanta(vigenciaDeLosArticulos - time.Nanosecond)
+
+		for _, ec := range []schema.Contexto{{}, {Offline: true}, {DryRun: true}} {
+			resultado, err := banco.resuelve(t, ec, consulta)
+
+			require.NoError(t, err, "con %+v", ec)
+			assert.Equal(t, esperado, resultado, "con %+v", ec)
+		}
+
+		banco.compruebaPeticiones(t, pedidas...)
+	})
+
+	t.Run("id-repetido", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+		bloques := []string{bloqueDelArticulo21, bloqueDelArticulo21, bloqueDelArticulo21}
+		esperado := resultadoResuelto(direccionDeLaNormaVigente, banco.reloj.ahora(), articulosComoArticulo(t, bloques...))
+
+		resultado, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulos{Norma: normaVigente, Bloques: bloques})
+
+		compruebaResuelta(t, resultado, err, esperado)
+		banco.compruebaPeticiones(t, peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente))
+	})
+
+	t.Run("segundo-inexistente", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+		consulta := ConsultaArticulos{
+			Norma:   normaVigente,
+			Bloques: []string{bloqueDelArticulo21, bloqueInexistente, bloqueDelArticulo23},
+		}
+		t0 := banco.reloj.ahora()
+		esperado := falloDeLaConsulta{
+			direccion: direccionDelBloqueInexistente,
+			instante:  t0,
+			clase:     schema.ClaseNoEncontrado,
+			codigo:    3,
+			mensaje: "no se ha podido resolver el bloque a9999, en la posición 2 de 3: " +
+				"la norma BOE-A-2015-10565 no tiene el bloque a9999 (" + direccionDelBloqueInexistente + ")",
+		}
+
+		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
+
+		compruebaFalloDeLaConsulta(t, resultado, err, esperado)
+		banco.compruebaPeticiones(t,
+			peticionDelBloque(direccionDelArticulo21),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelBloqueInexistente),
+		)
+
+		// El primero, resuelto antes del fallo, quedó escrito con su fecha; el
+		// tercero ni se pidió ni se escribió.
+		resultado, err = banco.resuelve(t, schema.Contexto{Offline: true},
+			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
+
+		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t)))
+
+		resultado, err = banco.resuelve(t, schema.Contexto{Offline: true},
+			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo23})
+
+		compruebaFalloDeLaConsulta(t, resultado, err, falloSinEntradaDelArticulo(direccionDelArticulo23))
+
+		// Una segunda invocación no vuelve a pedir el primero: solo el que falla.
+		banco.reloj.adelanta(time.Second)
+		esperado.instante = banco.reloj.ahora()
+
+		resultado, err = banco.resuelve(t, schema.Contexto{}, consulta)
+
+		compruebaFalloDeLaConsulta(t, resultado, err, esperado)
+		banco.compruebaPeticiones(t,
+			peticionDelBloque(direccionDelArticulo21),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelBloqueInexistente),
+			peticionDelBloque(direccionDelBloqueInexistente),
+		)
+	})
+
+	t.Run("mezcla-de-cache", func(t *testing.T) {
+		t.Parallel()
+
+		// Cada petición adelanta el reloj un segundo, de modo que no hay dos
+		// peticiones con el mismo instante.
+		banco := nuevoBanco(t, reproduceYAdelanta(carpetaDeLasGrabaciones, time.Second))
+		t0 := banco.reloj.ahora()
+
+		// articulo guarda a22 con t0, la hora de su bloque, y los metadatos con
+		// t0 + 1 s, que caducan antes de articulos.
+		_, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo22})
+		require.NoError(t, err)
+
+		banco.reloj.adelanta(vigenciaDeLosMetadatos)
+		t1 := banco.reloj.ahora()
+		datos := articulosComoArticulo(t, tresBloques...)
+
+		resultado, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulos{Norma: normaVigente, Bloques: tresBloques})
+
+		// La del bloque guardado es la más antigua, aunque no sea ni la del
+		// primero ni la del último.
+		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDeLaNormaVigente, t0, datos))
+		banco.compruebaPeticiones(t,
+			peticionDelBloque(direccionDelArticulo22),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelArticulo21),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelArticulo23),
+		)
+
+		// Cada bloque pedido guardó la más antigua de su petición y de la de los
+		// metadatos de esta invocación: a21 se pidió en t1, antes que ellos, y
+		// a23 en t1 + 2 s, después de ellos, en t1 + 1 s; a22 sigue con t0.
+		guardados := []struct {
+			direccion     string
+			fechaConsulta time.Time
+		}{
+			{direccion: direccionDelArticulo21, fechaConsulta: t1},
+			{direccion: direccionDelArticulo22, fechaConsulta: t0},
+			{direccion: direccionDelArticulo23, fechaConsulta: t1.Add(time.Second)},
+		}
+
+		for indice, guardado := range guardados {
+			resultado, err := banco.resuelve(t, schema.Contexto{Offline: true},
+				ConsultaArticulo{Norma: normaVigente, Bloque: tresBloques[indice]})
+
+			compruebaResuelta(t, resultado, err, resultadoResuelto(guardado.direccion, guardado.fechaConsulta, datos[indice]))
+		}
+	})
+
+	t.Run("metadatos-caidos", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(sinteticoDeLosMetadatosCaidos))
+		consulta := ConsultaArticulos{Norma: normaVigente, Bloques: []string{bloqueDelArticulo21, bloqueDelArticulo22}}
+		esperado := falloDeLaConsulta{
+			direccion: metadatosVigente,
+			instante:  banco.reloj.ahora(),
+			clase:     schema.ClaseFuenteNoDisponible,
+			codigo:    4,
+			mensaje: "no se ha podido resolver el bloque a21, en la posición 1 de 2: " +
+				"el bloque a21 se obtuvo, pero no se pudo comprobar su vigencia: " +
+				"ha fallado la petición de los metadatos de la norma BOE-A-2015-10565 (" + metadatosVigente + ")",
+		}
+
+		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
+
+		var deHTTPX *httpx.Error
+		require.ErrorAs(t, err, &deHTTPX)
+
+		esperado.mensaje += ": " + deHTTPX.Error()
+
+		compruebaFalloDeLaConsulta(t, resultado, err, esperado)
+		banco.compruebaPeticiones(t, peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente))
+
+		// Nada de lo que falló quedó escrito.
+		resultado, err = banco.resuelve(t, schema.Contexto{Offline: true},
+			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
+
+		compruebaFalloDeLaConsulta(t, resultado, err, falloSinEntradaDelArticulo(direccionDelArticulo21))
+	})
+
+	t.Run("ensayo-sin-entradas", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(t.TempDir()))
+		consulta := ConsultaArticulos{
+			Norma:   normaVigente,
+			Bloques: []string{bloqueDelArticulo21, bloqueDelArticulo22, bloqueDelArticulo21},
+		}
+
+		resultado, err := banco.resuelve(t, schema.Contexto{DryRun: true}, consulta)
+
+		require.NoError(t, err)
+		compruebaDireccionDeLaFuente(t, resultado.Procedencia.URL)
+		assert.Equal(t, schema.Resultado{
+			Procedencia: schema.Procedencia{Fuente: NombreDeLaFuente, URL: direccionDeLaNormaVigente},
+			Ensayo:      []string{"GET " + direccionDelArticulo21, "GET " + metadatosVigente, "GET " + direccionDelArticulo22},
+		}, resultado)
+		banco.compruebaPeticiones(t,
+			peticionDelBloque(direccionDelArticulo21),
+			peticionDeLosMetadatos(metadatosVigente),
+			peticionDelBloque(direccionDelArticulo22),
+		)
+
+		for indice, respuesta := range banco.pedidor.respuestas {
+			assert.True(t, respuesta.Ensayo, "bajo --dry-run no se emite la petición %d", indice+1)
+		}
+
+		banco.compruebaCacheSinCrear(t)
+	})
+
+	t.Run("offline-con-un-bloque-guardado", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+
+		_, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
+		require.NoError(t, err)
+
+		sinEntrada := falloSinEntradaDelArticulo(direccionDelArticulo22)
+		sinEntrada.mensaje = "no se ha podido resolver el bloque a22, en la posición 2 de 2: " + sinEntrada.mensaje
+
+		resultado, err := banco.resuelve(t, schema.Contexto{Offline: true},
+			ConsultaArticulos{Norma: normaVigente, Bloques: []string{bloqueDelArticulo21, bloqueDelArticulo22}})
+
+		compruebaFalloDeLaConsulta(t, resultado, err, sinEntrada)
+		banco.compruebaPeticiones(t, peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente))
+		assert.Equal(t, 1, banco.construcciones, "con --offline no se construye ningún cliente")
+	})
+
+	malFormadas := []struct {
+		nombre   string
+		consulta ConsultaArticulos
+		mensaje  string
+	}{
+		{
+			nombre:   "norma-invalida",
+			consulta: ConsultaArticulos{Norma: "BOE-A-2015-1056a", Bloques: tresBloques},
+			mensaje: `la norma "BOE-A-2015-1056a" no tiene la forma BOE-A-<año>-<número>, ` +
+				"con cuatro dígitos en el año y de uno a nueve en el número",
+		},
+		{
+			// Todos los bloques se validan antes de nada, también el último.
+			nombre:   "ultimo-bloque-invalido",
+			consulta: ConsultaArticulos{Norma: normaVigente, Bloques: []string{bloqueDelArticulo21, bloqueDelArticulo22, "a2 3"}},
+			mensaje: `el bloque "a2 3" no tiene la forma de un id de bloque: de 1 a 64 caracteres, ` +
+				"el primero letra o dígito ASCII y los demás letras, dígitos, guiones o puntos, " +
+				"como a21, da3, preambulo, a1-30 o a85bis.",
+		},
+		{
+			// La norma se valida antes que los bloques.
+			nombre:   "norma-y-bloque-invalidos",
+			consulta: ConsultaArticulos{Norma: "BOE-A-2015", Bloques: []string{"../a21"}},
+			mensaje: `la norma "BOE-A-2015" no tiene la forma BOE-A-<año>-<número>, ` +
+				"con cuatro dígitos en el año y de uno a nueve en el número",
+		},
+		{
+			nombre:   "sin-bloques",
+			consulta: ConsultaArticulos{Norma: normaVigente},
+			mensaje:  "articulos necesita al menos un id de bloque de la norma BOE-A-2015-10565, como a21 o da3",
+		},
+	}
+
+	for _, caso := range malFormadas {
+		for sufijo, ec := range ejecucionesDeLosArgumentos() {
+			t.Run(caso.nombre+sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				compruebaArgumentosSinAbrirNada(t, ec, caso.consulta, caso.mensaje)
 			})
 		}
 	}
@@ -819,6 +1125,66 @@ func falloSinVigenciaDelArticulo21(deLosMetadatos falloDeLaConsulta) falloDeLaCo
 	deLosMetadatos.mensaje = "el bloque a21 se obtuvo, pero no se pudo comprobar su vigencia: " + deLosMetadatos.mensaje
 
 	return deLosMetadatos
+}
+
+// articulosComoArticulo es el data que articulos tiene que dar para esos bloques
+// de la Ley 39/2015: en el orden pedido y con sus repeticiones, el data que da
+// articulo para cada uno, resuelto con su propia fuente sobre las grabaciones y
+// con la caché vacía (FR-020; US4, escenario 2).
+func articulosComoArticulo(t *testing.T, bloques ...string) []Articulo {
+	t.Helper()
+
+	porBloque := make(map[string]Articulo, len(bloques))
+	articulos := make([]Articulo, 0, len(bloques))
+
+	for _, bloque := range bloques {
+		if _, resuelto := porBloque[bloque]; !resuelto {
+			banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+
+			resultado, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulo{Norma: normaVigente, Bloque: bloque})
+			require.NoError(t, err)
+
+			datos, esArticulo := resultado.Datos.(Articulo)
+			require.Truef(t, esArticulo, "el data de articulo es de tipo %T", resultado.Datos)
+
+			porBloque[bloque] = datos
+		}
+
+		articulos = append(articulos, porBloque[bloque])
+	}
+
+	return articulos
+}
+
+// ejecucionesDeLosArgumentos son los tres modos en los que una consulta mal
+// formada conserva su fallo, cada uno con el sufijo de su subtest: el normal,
+// --offline y --dry-run (contrato errores-y-codigos, nota de la tabla).
+func ejecucionesDeLosArgumentos() map[string]schema.Contexto {
+	return map[string]schema.Contexto{"": {}, "-offline": {Offline: true}, "-en-ensayo": {DryRun: true}}
+}
+
+// compruebaArgumentosSinAbrirNada exige que la fuente rechace la consulta con
+// «argumentos», código 2, con ese mensaje y sin dirección ni instante —el sobre
+// lo firma y lo fecha el kernel—, sin abrir la caché ni construir el cliente
+// (contrato errores-y-codigos, filas 2 y 3; data-model.md §5).
+func compruebaArgumentosSinAbrirNada(t *testing.T, ec schema.Contexto, consulta core.Consulta, mensaje string) {
+	t.Helper()
+
+	dependencias := &dependenciasDePrueba{cacheAbierta: &cacheDePrueba{}}
+	fuente := fuenteDePrueba(t, dependencias)
+
+	resultado, err := fuente.Fetch(t.Context(), ec, consulta)
+
+	assert.Zero(t, resultado, "el sobre de los argumentos lo firma y lo fecha el kernel")
+
+	var fallo *Error
+	require.ErrorAs(t, err, &fallo)
+	assert.Empty(t, fallo.URL)
+	assert.Zero(t, fallo.Instante)
+	assert.Equal(t, schema.ClaseArgumentos, cli.Clasificar(err))
+	assert.Equal(t, 2, cli.CodigoSalida(err))
+	assert.Equal(t, mensaje, err.Error())
+	dependencias.compruebaSinUso(t)
 }
 
 // peticionDelBloque y peticionDeLosMetadatos son las peticiones con las que la
