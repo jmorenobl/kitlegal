@@ -1,8 +1,8 @@
 // Command kitlegal es el punto de entrada del binario del proyecto. No decide
-// nada y no escribe nada: inyecta en la raíz de composición del kernel los
-// descriptores del sistema, el registro de producción y los datos de
-// construcción, y termina el proceso con el código que esta devuelve (FR-035,
-// FR-040, research.md D16 y D27).
+// nada y no escribe nada: inyecta en la raíz de arranque del kernel los
+// descriptores del sistema, la construcción del registro de producción y los
+// datos de construcción, y termina el proceso con el código que esta devuelve
+// (FR-035, FR-040, research.md D16 y D27; contrato puerto-y-applet §5 de H4).
 //
 // El contrato observable ya no es el de H0
 // (specs/001-h0-esqueleto-del-repo/contracts/cli-version.md): de aquel se
@@ -24,12 +24,13 @@ var (
 	fecha   = "unknown"
 )
 
-// main es el único sitio del binario que llama a os.Exit: app.Main devuelve el
-// código de salida y nunca termina el proceso, que es lo que permite ejercer el
+// main es el único sitio del binario que llama a os.Exit: app.Arrancar construye
+// el registro de producción, atiende la invocación y devuelve el código de
+// salida sin terminar nunca el proceso, que es lo que permite ejercer el
 // contrato entero con escritores en memoria
 // (contracts/reglas-de-arquitectura.md §2, R4).
 func main() {
-	os.Exit(app.Main(
-		os.Args, app.RegistroDeProduccion(), os.Stdout, os.Stderr, version, commit, fecha,
+	os.Exit(app.Arrancar(
+		os.Args, app.RegistroDeProduccion, os.Stdout, os.Stderr, version, commit, fecha,
 	))
 }

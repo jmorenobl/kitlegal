@@ -26,9 +26,16 @@ package internal_test
 
 import (
 	"errors"
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"maps"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -103,22 +110,59 @@ func TestArquitectura(t *testing.T) {
 }
 
 // modulosDelBinario son los módulos de terceros que el binario distribuido
-// enlaza, y ninguno más: los dos de la lista cerrada de la constitución §V que
-// van en producción y los cuatro que el segundo arrastra consigo. Cada uno de
-// los cuatro está justificado en plan.md (Complexity Tracking) y en
-// gates/pr-h1.md: entran por `invopop/jsonschema`, que sí está en la lista, y
-// no hay versión de esa biblioteca que no los traiga (FR-060).
+// enlaza, y ninguno más, cada uno con su justificación en su línea: los de la
+// lista cerrada de la constitución §V que van en producción y los que cada uno de
+// ellos arrastra consigo, que no se pueden quitar sin renunciar al que los trae.
+// Los que entraron en H1 están justificados en plan.md (Complexity Tracking) y en
+// gates/pr-h1.md; los que entran en H4, cuando el applet boe enlaza
+// internal/httpx e internal/cache, en gates/pr-h4.md (FR-060, FR-124;
+// research.md D14 de H4). Lo que importa cada uno lo mide `go list -deps` sobre
+// el binario.
 //
 // Es una lista escrita a mano a propósito. Cuando un hito, o una actualización
 // de módulos, enlace uno nuevo, este test falla y obliga a hacer lo que la
 // constitución exige: justificarlo por escrito antes de añadirlo aquí.
 var modulosDelBinario = []string{
+	// §V, H1: el analizador de la línea de órdenes de internal/cli.
 	"github.com/alecthomas/kong",
+	// H1: lo importa github.com/pb33f/ordered-map/v2, que llega con
+	// github.com/invopop/jsonschema.
 	"github.com/bahlo/generic-list-go",
+	// H1: lo importa github.com/pb33f/ordered-map/v2.
 	"github.com/buger/jsonparser",
+	// H4: lo importa modernc.org/libc, el entorno de C traducido a Go sobre el
+	// que corre el controlador de SQLite de internal/cache.
+	"github.com/dustin/go-humanize",
+	// H4: lo importa modernc.org/libc.
+	"github.com/google/uuid",
+	// §V, H1: el esquema de entrada y salida de --describe, en internal/cli.
 	"github.com/invopop/jsonschema",
+	// H4: lo importa modernc.org/libc.
+	"github.com/mattn/go-isatty",
+	// H4: lo importa modernc.org/libc.
+	"github.com/ncruces/go-strftime",
+	// H1: lo importa github.com/invopop/jsonschema para las propiedades en orden.
 	"github.com/pb33f/ordered-map/v2",
+	// H4: lo importa modernc.org/mathutil, que llega con modernc.org/libc.
+	"github.com/remyoudompheng/bigfft",
+	// §V, H4: internal/httpx interpreta con él el robots.txt de cada sitio antes
+	// de pedirle nada.
+	"github.com/temoto/robotstxt",
+	// H1: lo importa github.com/pb33f/ordered-map/v2.
 	"go.yaml.in/yaml/v4",
+	// H4: lo importan modernc.org/sqlite, modernc.org/libc, modernc.org/memory y
+	// github.com/mattn/go-isatty, para las llamadas al sistema.
+	"golang.org/x/sys",
+	// §V, H4: golang.org/x/time/rate, el ritmo por sitio de internal/httpx.
+	"golang.org/x/time",
+	// H4: lo importa modernc.org/sqlite.
+	"modernc.org/libc",
+	// H4: lo importa modernc.org/libc.
+	"modernc.org/mathutil",
+	// H4: lo importa modernc.org/libc.
+	"modernc.org/memory",
+	// §V, H4: el controlador de SQLite sin cgo de internal/cache (ADR 0002).
+	"modernc.org/sqlite",
 }
 
 // plantillaDeModulos pide a `go list` el módulo de cada paquete del cierre; los
@@ -140,66 +184,6 @@ func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 		assert.False(t, cuelgaDe(paquete, paqueteDeEjemplo(modulo)),
 			"el binario distribuido enlaza %s: los applets de ejemplo no son funcionalidad y solo los "+
 				"registra el binario de e2e (ADR 0010)", paquete)
-	}
-}
-
-// TestElBinarioNoEnlazaHTTPX comprueba que el binario distribuido tampoco
-// enlaza el cliente HTTP. En H2 el paquete existe y está entero, pero no lo usa
-// ningún applet —el adaptador que lo ejercita es material de test y no se
-// registra en ningún binario (FR-060, FR-062)—, de modo que la superficie
-// visible del binario es exactamente la que dejó H1 y ningún guion de extremo a
-// extremo necesita cambiar (SC-014).
-//
-// **H4 retira este test.** El primer adaptador de fuente enlazará
-// internal/httpx a propósito, y ese hito lo sustituye por lo que sí seguirá
-// siendo cierto: la ampliación justificada de modulosDelBinario con
-// golang.org/x/time y github.com/temoto/robotstxt, que entran con él
-// (research.md D18, docs/PENDIENTES.md).
-func TestElBinarioNoEnlazaHTTPX(t *testing.T) {
-	t.Parallel()
-
-	modulo := rutaDelModulo(t)
-	cliente := modulo + "/internal/httpx"
-
-	for _, paquete := range paquetesDelBinario(t, modulo) {
-		assert.False(t, cuelgaDe(paquete, cliente),
-			"el binario distribuido enlaza %s: en H2 el cliente HTTP no lo usa ningún applet, y el "+
-				"conjunto de verbos que atiende el binario es el mismo que al cerrar H1 (SC-014). "+
-				"Cuando H4 lo enlace de verdad, este test se retira junto con la ampliación "+
-				"justificada de modulosDelBinario", paquete)
-	}
-}
-
-// TestElBinarioNoEnlazaCache comprueba que el binario distribuido no enlaza la
-// caché ni el controlador de SQLite. En H3 el paquete existe y está entero, pero
-// no lo usa ningún applet —el adaptador que lo ejercita es material de test y no
-// se registra en ningún binario (H3 FR-044, FR-045)—, de modo que la superficie
-// visible del binario y modulosDelBinario siguen siendo los que dejó H2
-// (SC-012).
-//
-// El controlador se reconoce por el prefijo modernc.org, donde viven el propio
-// driver y los módulos que lo sostienen (libc, mathutil, memory). Los demás
-// módulos que arrastra no se enumeran aquí: si el driver no está en el cierre,
-// ninguno puede haber entrado con él, y uno que entrara por otro camino lo
-// denunciaría TestDependenciasDelBinario, porque no está en su lista.
-//
-// **H4 retira este test.** El primer adaptador de fuente enlazará
-// internal/cache a propósito, y ese hito lo sustituye por lo que sí seguirá
-// siendo cierto: la ampliación de modulosDelBinario con los módulos que
-// `go list -deps` muestre entonces, justificados uno a uno (docs/PENDIENTES.md).
-func TestElBinarioNoEnlazaCache(t *testing.T) {
-	t.Parallel()
-
-	modulo := rutaDelModulo(t)
-	vigilados := []string{modulo + "/internal/cache", "modernc.org"}
-
-	for _, paquete := range paquetesDelBinario(t, modulo) {
-		vigilado, enlazado := primerPrefijo(paquete, vigilados)
-		assert.False(t, enlazado,
-			"el binario distribuido enlaza %s (cuelga de %s): en H3 la caché no la usa ningún applet, y "+
-				"ni el paquete ni el controlador de SQLite llegan al binario (FR-044, SC-012). Cuando H4 "+
-				"la enlace de verdad, este test se retira junto con la ampliación justificada de "+
-				"modulosDelBinario", paquete, vigilado)
 	}
 }
 
@@ -225,6 +209,150 @@ func TestDependenciasDelBinario(t *testing.T) {
 	assert.ElementsMatch(t, modulosDelBinario, slices.Sorted(maps.Keys(enlazados)),
 		"el binario distribuido enlaza un módulo que no está declarado y justificado "+
 			"(FR-060, constitución §V): justifícalo en plan.md y en la propuesta de cambio antes de añadirlo")
+}
+
+// prefijosReservados son los del espacio de nombres con el que firma lo que no
+// consulta ninguna fuente pública —el kernel y los applets calculados—:
+// «kitlegal.» en la fuente y «kitlegal:» en la url. Ningún adaptador de fuente
+// puede usarlos (ADR 0006, «prohibición que nace en H4»; FR-002, SC-011).
+var prefijosReservados = []string{"kitlegal.", "kitlegal:"}
+
+// TestLasFuentesNoFirmanComoKitlegal comprueba que ningún adaptador de fuente
+// lleva en su código de producción un literal de texto que empiece por un prefijo
+// reservado, que es como podría firmar un sobre en el espacio del kernel. Lee
+// con el analizador sintáctico de la biblioteca estándar los ficheros .go que no
+// son de test de cada paquete bajo internal/source, que enumera `go list`, y
+// nombra el fichero y la línea de cada literal (FR-002, SC-011; research.md D14
+// de H4).
+//
+// No lo puede vigilar forbidigo, que mira identificadores y no literales, ni
+// depguard, que mira importaciones. La comprobación en ejecución —la fuente y la
+// url de los sobres de los seis verbos— la hacen los tests de cada verbo; esta
+// alcanza también a un adaptador que no tuviera ninguno.
+func TestLasFuentesNoFirmanComoKitlegal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ningún paquete de fuentes lleva un literal del espacio reservado", func(t *testing.T) {
+		t.Parallel()
+
+		carpetas := carpetasDeFuentes(t)
+		require.NotEmpty(t, carpetas,
+			"go list no enumera ningún paquete bajo internal/source: la comprobación pasaría en vacío")
+
+		for _, carpeta := range carpetas {
+			hallazgos, err := literalesReservados(carpeta)
+			require.NoError(t, err)
+
+			for _, hallazgo := range hallazgos {
+				t.Errorf("%s: un adaptador de fuente firma en el espacio reservado (%s), que es del kernel y de "+
+					"los applets calculados; la fuente y la url de un sobre de fuente son las de la fuente pública "+
+					"que se consulta (ADR 0006, FR-002)", hallazgo, strings.Join(prefijosReservados, " y "))
+			}
+		}
+	})
+
+	t.Run("control: cada literal reservado se nombra con su fichero y su línea", func(t *testing.T) {
+		t.Parallel()
+
+		carpeta := t.TempDir()
+		ficheroDeProduccion := filepath.Join(carpeta, "fuente.go")
+
+		require.NoError(t, os.WriteFile(ficheroDeProduccion, []byte(fuenteQueFirmaComoKitlegal), 0o600))
+		require.NoError(t, os.WriteFile(filepath.Join(carpeta, "fuente_test.go"),
+			[]byte(testQueFirmaComoKitlegal), 0o600))
+
+		hallazgos, err := literalesReservados(carpeta)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{
+			ficheroDeProduccion + `:5: "kitlegal.fuente"`,
+			ficheroDeProduccion + ":6: `kitlegal:fuente/prueba`",
+		}, hallazgos, "los dos literales de producción, y ni el comentario, ni el texto que solo los contiene, "+
+			"ni el fichero de test")
+	})
+}
+
+// fuenteQueFirmaComoKitlegal y testQueFirmaComoKitlegal son los ficheros del
+// control de TestLasFuentesNoFirmanComoKitlegal: uno de producción con los dos
+// prefijos, en un literal interpretado y en uno crudo, más un comentario y un
+// texto que solo los contienen; y uno de test, que la comprobación no mira.
+const (
+	fuenteQueFirmaComoKitlegal = "package fuente\n" +
+		"\n" +
+		"// Firma como «kitlegal.fuente», que un comentario sí puede decir.\n" +
+		"const (\n" +
+		"\tnombre = \"kitlegal.fuente\"\n" +
+		"\turl    = `kitlegal:fuente/prueba`\n" +
+		"\ttexto  = \"no empieza por kitlegal.fuente\"\n" +
+		")\n"
+	testQueFirmaComoKitlegal = "package fuente\n\nconst deTest = \"kitlegal.fuente\"\n"
+)
+
+// carpetasDeFuentes son las carpetas de los paquetes que `go list` enumera bajo
+// internal/source.
+func carpetasDeFuentes(t *testing.T) []string {
+	t.Helper()
+
+	var carpetas []string
+
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-f", "{{.Dir}}", "./internal/source/..."), "\n") {
+		if carpeta := strings.TrimSpace(linea); carpeta != "" {
+			carpetas = append(carpetas, carpeta)
+		}
+	}
+
+	return carpetas
+}
+
+// literalesReservados devuelve cada literal de texto de los ficheros de
+// producción de la carpeta que empieza por un prefijo reservado, como
+// «fichero:línea: literal» y en el orden de los ficheros y de sus líneas. Los
+// ficheros de test no cuentan: los de un adaptador pueden nombrar el espacio
+// reservado para comprobar que no lo usa.
+func literalesReservados(carpeta string) ([]string, error) {
+	entradas, err := os.ReadDir(carpeta)
+	if err != nil {
+		return nil, err
+	}
+
+	ficheros := token.NewFileSet()
+
+	var hallazgos []string
+
+	for _, entrada := range entradas {
+		nombre := entrada.Name()
+		if entrada.IsDir() || filepath.Ext(nombre) != ".go" || strings.HasSuffix(nombre, "_test.go") {
+			continue
+		}
+
+		arbol, err := parser.ParseFile(ficheros, filepath.Join(carpeta, nombre), nil, parser.SkipObjectResolution)
+		if err != nil {
+			return nil, err
+		}
+
+		for nodo := range ast.Preorder(arbol) {
+			literal, esLiteral := nodo.(*ast.BasicLit)
+			if !esLiteral || literal.Kind != token.STRING {
+				continue
+			}
+
+			posicion := ficheros.Position(literal.Pos())
+
+			valor, err := strconv.Unquote(literal.Value)
+			if err != nil {
+				return nil, fmt.Errorf("%s: el literal %s no se puede leer: %w", posicion, literal.Value, err)
+			}
+
+			reservado := slices.ContainsFunc(prefijosReservados, func(prefijo string) bool {
+				return strings.HasPrefix(valor, prefijo)
+			})
+			if reservado {
+				hallazgos = append(hallazgos, fmt.Sprintf("%s:%d: %s", posicion.Filename, posicion.Line, literal.Value))
+			}
+		}
+	}
+
+	return hallazgos, nil
 }
 
 // grafo es el grafo de importación que devuelve `go list -deps`: el cierre

@@ -224,19 +224,25 @@ func TestRegistroRechaza(t *testing.T) {
 	}
 }
 
-// TestRegistroDeProduccion comprueba lo que el binario distribuido registra en
-// H1: nada. El primer applet de producción llega en H4 y el de ejemplo no se
-// registra nunca, así que `kitlegal echo hola` sobre el binario que se publica
-// termina como cualquier otro nombre desconocido (FR-009,
-// contracts/registro-y-describe.md §3).
+// TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
+// H4: boe, y nada más. Los applets de ejemplo no se registran nunca aquí, así que
+// `kitlegal echo hola` sobre el binario que se publica termina como cualquier otro
+// nombre desconocido (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
+// Construirlo no pide nada ni abre nada: el cliente y la caché de boe se componen
+// en cada invocación (contrato puerto-y-applet §4 y §5 de H4).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
-	registro := RegistroDeProduccion()
-
+	registro, err := RegistroDeProduccion()
+	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
-	assert.Empty(t, registro.Nombres(), "el registro de producción está vacío en H1")
 
-	_, existe := registro.Buscar("echo")
+	assert.Equal(t, []string{"boe"}, registro.Nombres(), "el binario distribuido registra exactamente boe")
+
+	applet, existe := registro.Buscar("boe")
+	require.True(t, existe)
+	assert.Len(t, applet.Verbos(), 6, "con sus seis verbos (FR-001)")
+
+	_, existe = registro.Buscar("echo")
 	assert.False(t, existe, "el applet de ejemplo no se registra en el binario distribuido")
 }

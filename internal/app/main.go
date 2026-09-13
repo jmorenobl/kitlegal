@@ -43,11 +43,15 @@ const prefijoDeEnsayo = "--dry-run: "
 // este viaja en la etiqueta `name`, que es de donde Kong lo toma.
 const prefijoDeCampo = "Verbo"
 
-// Los tres fallos que esta raíz puede encontrar y que **no** son de quien
+// Los cuatro fallos que esta raíz puede encontrar y que **no** son de quien
 // invoca sino de quien escribió el applet o de una ampliación del kernel que se
 // dejó a medias. Ninguno lleva los sentinelas de internal/cli, así que salen con
 // el código de lo que nadie previó y nunca con uno reservado (FR-031).
 var (
+	// errRegistroImposible es el registro del binario que no se ha podido
+	// construir: un applet o una composición mal escritos, que Arrancar atiende
+	// antes de que exista ninguna invocación (research.md D16 de H4).
+	errRegistroImposible = errors.New("app: el registro del binario no se ha podido construir")
 	// errGramaticaImposible es el verbo cuya fábrica de argumentos falta o no
 	// devuelve lo que el contrato promete.
 	errGramaticaImposible = errors.New("app: la gramática del applet no se pudo construir")
@@ -60,6 +64,51 @@ var (
 	// rama.
 	errSinAtender = errors.New("app: la invocación no se pudo atender")
 )
+
+// Arrancar es la raíz de arranque de un binario: construye su registro con
+// construir y, si se construye, atiende la invocación con Main. Es lo que llama
+// el punto de entrada de cada binario, el distribuido con RegistroDeProduccion y
+// el de e2e con el suyo (contrato puerto-y-applet §5; research.md D16 de H4).
+//
+// Un registro que no se construye no es un fallo de quien invoca, sino un
+// defecto de composición: sale por el mismo montador que cualquier otro fallo,
+// con la forma que pida --json en el pre-escaneo —el sobre del kernel de clase
+// inesperada—, con el mensaje en la salida de error y con el código 1, y nunca
+// como un pánico. Como Main, nunca llama a os.Exit.
+func Arrancar(
+	argv []string,
+	construir func() (*Registro, error),
+	stdout, stderr io.Writer,
+	version, commit, fecha string,
+) int {
+	registro, err := construir()
+	if err != nil {
+		return fallarAlArrancar(argv, stdout, stderr, err)
+	}
+
+	return Main(argv, registro, stdout, stderr, version, commit, fecha)
+}
+
+// fallarAlArrancar emite el fallo del registro que no se construyó y devuelve su
+// código, con la tubería cerrada desarmada igual que en Main.
+//
+// El error del registro se incorpora como texto y **no** con %w a propósito,
+// por la misma razón que en conPlazoAgotado: quien construye un registro puede
+// devolver un error que declare una clase —un sentinela del kernel o un
+// schema.ConClase de un adaptador—, y la clasificación lo traduciría a un código
+// que culparía a quien invoca. Lo que clasifica aquí es el registro imposible,
+// que es inesperado, y el mensaje no se pierde.
+func fallarAlArrancar(argv []string, stdout, stderr io.Writer, err error) int {
+	desarmarTuberiaCerrada()
+
+	presentador := render.Nuevo(stdout, stderr)
+	previo := cli.PreEscanear(argumentosDe(argv))
+
+	var montador cli.Montador
+
+	return montador.Emitir(presentador, previo.JSON, schema.Resultado{},
+		fmt.Errorf("%w: %s", errRegistroImposible, err.Error()))
+}
 
 // Main es la raíz de composición del kernel: monta el presentador con los dos
 // descriptores que recibe, lo inyecta en todo lo que escribe, resuelve la
