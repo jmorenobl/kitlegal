@@ -1,15 +1,15 @@
 {
-  "id": "T019",
-  "texto": "T019 [US4] `articulos`: `internal/source/boe/articulo.go` añade el verbo, con su caso en `Fetch` de `internal/source/boe/fuente.go`, siguiendo el flujo de data-model §7.2: valida la norma y todos los bloques antes de nada; recorre los ids distintos en el orden de su primera aparición; sirve los guardados; pide en secuencia los que faltan y los metadatos como mucho una vez por invocación (también en ensayo, descritos una sola vez); se detiene en el primer fallo con su clase y la `url` de la petición que falló, dejando escritos los bloques anteriores; `data` en el orden pedido y con repeticiones, `url` del sobre = la de la norma y `fecha_consulta` = la más antigua de sus elementos; con `TestArticulos` (`tres-bloques` con cuatro peticiones, `id-repetido` con dos, `segundo-inexistente` con tres y el primero en caché, `mezcla-de-cache` con la fecha más antigua) (FR-020, FR-021, FR-096, FR-101, SC-003, SC-008, US4 escenarios 2 y 3).",
+  "id": "T020",
+  "texto": "T020 [US4] `indice`: `internal/source/boe/indice.go`, con su caso en `Fetch` de `internal/source/boe/fuente.go`, valida la norma, sirve la entrada vigente, pide con JSON, lee el índice anidado o plano con el tipo de `TipoDesdeID` para cada bloque en el orden de la fuente (`data` vacío → 3 sin guardar) y escribe la entrada con 604 800 s; `url` del sobre = la del índice; con `TestIndice` (`lpac`, `inexistente`, `fuente-caida`) (FR-040, FR-041, FR-070, FR-091, US4 escenarios 1 y 4).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T019.md y déjala sin marcar.",
-  "base": "71fd08924fd1f7d5f4d152acd5b797ccc1e600c3",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T020.md y déjala sin marcar.",
+  "base": "401c088fcf19c344c599392ed18f93132cf1740a",
   "rutas": [
-    "internal/source/boe/articulo.go",
-    "internal/source/boe/fuente.go"
+    "internal/source/boe/fuente.go",
+    "internal/source/boe/indice.go"
   ],
   "cierre": false
 }

@@ -237,11 +237,12 @@ func (*Fuente) Terms() core.Terminos {
 // Fetch resuelve la consulta (core.Source). Cada verbo resuelve la suya en su
 // propio fichero, con un caso en Fetch que valida la consulta antes de abrir
 // nada y la resuelve dentro de invocar (research.md D2 y D5): metadatos, en
-// metadatos.go, y articulo y articulos, en articulo.go. Una consulta sin caso
-// —de un tipo que la fuente no declara, nula o de un verbo que la fuente todavía
-// no resuelve— es un defecto de quien la compone: «inesperado», sin procedencia,
-// porque no se ha consultado nada, y sin abrir la caché ni construir el cliente,
-// también con --offline y con --dry-run (contrato errores-y-codigos, fila 22).
+// metadatos.go; articulo y articulos, en articulo.go; e indice, en indice.go.
+// Una consulta sin caso —de un tipo que la fuente no declara, nula o de un verbo
+// que la fuente todavía no resuelve— es un defecto de quien la compone:
+// «inesperado», sin procedencia, porque no se ha consultado nada, y sin abrir la
+// caché ni construir el cliente, también con --offline y con --dry-run (contrato
+// errores-y-codigos, fila 22).
 func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Consulta) (schema.Resultado, error) {
 	switch consulta := consulta.(type) {
 	case ConsultaMetadatos:
@@ -250,6 +251,8 @@ func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Co
 		return f.articulo(ctx, ec, consulta)
 	case ConsultaArticulos:
 		return f.articulos(ctx, ec, consulta)
+	case ConsultaIndice:
+		return f.indice(ctx, ec, consulta)
 	default:
 		return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
 	}
