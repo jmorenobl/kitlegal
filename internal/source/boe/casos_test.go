@@ -167,9 +167,9 @@ func TestGrabacionesCompletas(t *testing.T) {
 	}
 }
 
-// TestReferenciasCompletas exige las cinco referencias del diff de aceptación tal
+// TestReferenciasCompletas exige las seis referencias del diff de aceptación tal
 // como las deja una persona en la pausa del manifiesto (FR-116, SC-001, SC-005;
-// contrato esquemas-fixtures-y-controles §5): de tres normas, una de ellas
+// contrato esquemas-fixtures-y-controles §5): de cuatro normas, una de ellas
 // BOE-A-2015-10565-a21, de la lista cerrada o con sus suplentes, sin claves
 // desconocidas, con los ocho campos y la línea de refs/boe.py de cada uno, y con
 // grabaciones que existen. No compara ningún valor: eso lo hace
@@ -427,9 +427,9 @@ func (articulo articuloDelDiff) fichero() string {
 }
 
 // comprobarReferencias exige en la carpeta de las referencias exactamente las del
-// diff de aceptación: cinco ficheros de artículos de la lista cerrada y nada más,
-// los tres fijos entre ellos, de tres normas; y que cada uno tenga la forma del
-// contrato y nombre grabaciones de la carpeta de las grabaciones.
+// diff de aceptación: seis ficheros de artículos de la lista cerrada y nada más,
+// los cuatro fijos entre ellos, de cuatro normas; y que cada uno tenga la forma
+// del contrato y nombre grabaciones de la carpeta de las grabaciones.
 func comprobarReferencias(referencias, grabaciones string) error {
 	articulos, err := articulosDeLasReferencias(referencias)
 	if err != nil {
@@ -483,8 +483,8 @@ func articulosDeLasReferencias(carpeta string) ([]articuloDelDiff, error) {
 	return articulos, nil
 }
 
-// comprobarArticulosDelDiff exige que los artículos sean cinco, con los tres fijos
-// entre ellos, y de tres normas.
+// comprobarArticulosDelDiff exige que los artículos sean seis, con los cuatro
+// fijos entre ellos, y de cuatro normas.
 func comprobarArticulosDelDiff(articulos []articuloDelDiff) error {
 	var fallos []error
 

@@ -126,3 +126,47 @@ las ajusta (FR-116, research D12). Qué artículos llevan depende de los bloqueo
   - si cambian los artículos del diff, actualizar la lista cerrada de `casos_test.go`;
   - dejar `TestGramaticaCubreLosIndicesGrabados` y `TestReferenciasCompletas` en verde sin tocar los datos;
   - `make ci` en primer plano y marcar `[X]` en el mismo turno.
+
+## Intento 2 (2026-09-13)
+
+**En verde y marcada `[X]`.** Los tres bloqueos del intento 1 los resolvió la persona en el commit `17fca5b`
+(`[datos]`): la gramática del id de bloque admite `-` y `.` (FR-080, data-model §5, `ids.go` e `ids_test.go`), el diff
+pasa a seis artículos de cuatro leyes (`a1-30` y `da-3` en vez de `a118` y `da3`; `BOE-A-1992-26318 a42` como cuarto
+fijo, el único con avisos reales), las seis referencias están escritas, y la fila de `SOURCES.md` y `terminos.go` dicen
+`2026-09-13`. Ese commit arrastró además los tres ficheros de test del intento 1 y la redelimitación de
+`grabacion_test.go`, así que este intento encontró la tarea casi hecha y no ha tocado la fila, `terminos.go`, el
+manifiesto, las grabaciones ni las referencias, ni ha usado la red o `KITLEGAL_RECORD`.
+
+### Comprobado sobre el árbol, sin cambiar datos
+
+| Comprobación | Resultado |
+|---|---|
+| Fila de la fuente y `terminos.go` | ✓ `2026-09-13` en los dos; `pendiente` ya no se admite (`pendiente-con-cero` y `pendiente-con-fecha` son errores de tabla) |
+| Una grabación por entrada del manifiesto | ✓ 22 de 22 servidas por `httpx.Replay` con la petición de `recursoDelManifiesto.peticion()` |
+| S2: lo inexistente responde 404 | ✓ estado `404` grabado en el bloque `a9999` y en metadatos, índice y análisis de `BOE-A-2099-99999` |
+| Referencias | ✓ seis ficheros de cuatro normas, entre ellos `BOE-A-2015-10565-a21.json`; ocho campos y `boe_py` no vacío en cada uno; sus grabaciones existen |
+| Gramática frente a los índices | ✓ los tres índices grabados (LPAC, LRBRL, LCSP) casan enteros con `ValidarBloque` |
+| Arnés de grabación | ✓ `go vet -tags grabacion` en verde; `grabacion_test.go` usa `leerManifiesto` y `peticion()` de `casos_test.go` |
+
+### Lo único que cambia este intento
+
+- `internal/source/boe/casos_test.go`: tres comentarios que seguían diciendo «cinco referencias», «tres fijos» y «tres
+  normas» cuando las constantes ya decían 6, 4 y 4 (los de `TestReferenciasCompletas`, `comprobarReferencias` y
+  `comprobarArticulosDelDiff`). Ningún cambio de código.
+
+### Verificación
+
+- `go test -count=1 ./internal/source/boe/`: ok. Sondas positivas con `-v`: `TestGrabacionesCompletas` 22 subtests,
+  `TestReferenciasCompletas` 19 (la real y 18 sobre carpetas temporales), `TestGramaticaCubreLosIndicesGrabados` 3 y
+  `TestFuenteCoincideConSources` 16 (la real y 15 en memoria), todos `PASS`.
+- `golangci-lint` fijado por el repo sobre el paquete: 0 hallazgos (incluido `dupl`, el rojo del intento 1).
+- `make ci` en primer plano: exit 0, «todos los controles en verde» (`gates/ci.log`; el paquete `boe` corre sin caché en
+  la primera pasada, con cobertura 100 %).
+
+### Observaciones para la persona (fuera de las rutas de esta tarea; no se tocan)
+
+- El commit `17fca5b` versionó `refs/__pycache__/boe.cpython-311.pyc` (binario que dejó el guion de un solo uso de las
+  referencias al importar `refs/boe.py`), y `.gitignore` no excluye `__pycache__/`. Conviene retirarlo del índice y añadir
+  el patrón en un commit propio.
+- El checkpoint de la fase 3 de `tasks.md` (tras T010) sigue diciendo «las cinco referencias»; el texto de T009 ya dice
+  seis. No es una tarea, así que este intento no lo toca.
