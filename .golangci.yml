@@ -207,12 +207,24 @@ linters:
       ignore-rules:
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Capitulo», el tipo que TipoDesdeID, en internal/source/boe/ids.go,
+        # infiere de ids como ci1 o cv3, y valor del enumerado tipo de las
+        # entradas del índice que fija el modelo de datos de H4 (FR-040,
+        # research.md D9 y D18); misspell lo lee como «capitol».
+        - capitulo
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles
         # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
         # fija el contrato del applet; misspell lo lee como «Description».
         - descripcion
+        # «Disposicion», el tramo que comparten disposicion_adicional,
+        # disposicion_transitoria, disposicion_derogatoria y disposicion_final,
+        # los tipos que TipoDesdeID infiere de ids como da3 o dt1, y la clave
+        # fecha_disposicion de los metadatos, que fija el modelo de datos de H4
+        # (FR-040, FR-050, research.md D9 y D18); misspell lo lee como
+        # «disposition».
+        - disposicion
         # «Inventario de tests», la sección de plan.md que cada tabla cita;
         # misspell lo lee como «Inventor».
         - inventario
