@@ -1,23 +1,15 @@
 {
-  "id": "T007",
-  "texto": "T007 [US6] Arnés de grabación y fila de la fuente como propuesta (el ejecutor no graba ni escribe ninguna fecha de revisión): `internal/source/boe/grabacion_test.go` con `//go:build grabacion` y `TestGrabarFixtures`, que exige `KITLEGAL_RECORD=1` (si no, `t.Fatal`), lee el manifiesto `grabaciones.json` del paquete (recursos `busqueda`, `indice`, `metadatos`, `analisis` y `bloque`) y pide cada recurso con `httpx.New` (`ConFuente(NombreDeLaFuente)`, `ConRaizDeGrabacion` sobre la carpeta de datos de prueba del paquete, `ConIntervalo(IntervaloEntrePeticiones)`), con la dirección y el `Accept` que construyen `direcciones.go` y `busqueda.go` y sin ninguna lectura de respuestas; `scripts/grabar-fixtures.sh`, que ejecuta exactamente esa prueba con la etiqueta `grabacion` y `KITLEGAL_RECORD=1` como fija el contrato esquemas-fixtures-y-controles §3.2, y que ninguna tarea ejecuta; `docs/SOURCES.md` con la tabla del contrato §8 y la fila **propuesta** `boe.legislacion-consolidada` (applet `boe`, base de la API, licencia y `robots.txt` por revisar, URL de términos propuesta, ritmo `1s`, XML y JSON sin autenticación, «Revisado» `pendiente`); `internal/source/boe/terminos.go` con `IntervaloEntrePeticiones = time.Second` y `terminosDeUso` iguales a la propuesta, con `Revisados` cero; `internal/source/boe/terminos_test.go`, interno, con `TestFuenteCoincideConSources` (localiza la fila por su primera celda y exige ritmo igual a `IntervaloEntrePeticiones`, URL de términos igual a `terminosDeUso.URL` y «Revisado» igual a `terminosDeUso.Revisados` como fecha `AAAA-MM-DD` no cero, admitiendo **exactamente** la pareja `pendiente` con cero); y `.golangci.yml` con `grabacion` en `run.build-tags` (FR-113, FR-121, FR-122, FR-123, punto 8 de la Definition of Done, research D12, D13 y D15).",
+  "id": "T008",
+  "texto": "T008 [datos] [US6] Manifiesto de grabación, la lista cerrada que una persona grabará: `internal/source/boe/testdata/grabaciones.json` con `fuente` `boe.legislacion-consolidada` y los 22 recursos de la tabla del contrato esquemas-fixtures-y-controles §3.1, cada uno con su `para`, sin dirección ni `Accept` (los construye el código); ningún otro fichero. En la pausa humana que provoca, una persona sigue el procedimiento del contrato §3.2 en su orden —revisión de los términos de uso y del `robots.txt` (si prohíben el acceso automatizado, rechaza y el hito se detiene: FR-123), fila definitiva con la fecha real de la revisión, constantes de la fuente alineadas con ella y comprobadas con `TestFuenteCoincideConSources`, grabación con el ritmo revisado, comprobación de S1, S2, S4 y S7 con los suplentes si hacen falta, y las cinco referencias escritas a mano desde `boe.py` y revisadas— y lo confirma en la rama; el ejecutor no hace nada de ello (FR-113, FR-116, FR-123, SC-001, SC-005, research D12 y D15).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T007.md y déjala sin marcar.",
-  "base": "33c470276ddc218002e9c00199b027d147294aae",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T008.md y déjala sin marcar.",
+  "base": "4ce38bf9de4ded64de6e3928fd10fb1b1be3d67a",
   "rutas": [
-    ".golangci.yml",
-    "busqueda.go",
-    "direcciones.go",
-    "docs/SOURCES.md",
-    "grabaciones.json",
-    "internal/source/boe/grabacion_test.go",
-    "internal/source/boe/terminos_test.go",
-    "internal/source/boe/terminos.go",
-    "robots.txt",
-    "scripts/grabar-fixtures.sh"
+    "internal/source/boe/testdata/grabaciones.json",
+    "robots.txt"
   ],
   "cierre": false
 }

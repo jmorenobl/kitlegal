@@ -1,0 +1,27 @@
+{
+  "fuente": "boe.legislacion-consolidada",
+  "recursos": [
+    {"recurso": "busqueda", "texto": "procedimiento administrativo común", "para": "buscar con resultados; golden; e2e"},
+    {"recurso": "busqueda", "texto": "zzqxkwvjh", "para": "buscar sin resultados, que también se guarda (FR-032)"},
+    {"recurso": "indice", "norma": "BOE-A-2015-10565", "para": "indice; golden; e2e; gramática de los ids de bloque"},
+    {"recurso": "indice", "norma": "BOE-A-1985-5392", "para": "gramática de los ids de bloque contra índices grabados"},
+    {"recurso": "indice", "norma": "BOE-A-2017-12902", "para": "gramática de los ids de bloque contra índices grabados"},
+    {"recurso": "bloque", "norma": "BOE-A-2015-10565", "bloque": "a21", "para": "aceptación contra boe.py (FR-116); US1; e2e; menos de 200 ms en caché"},
+    {"recurso": "bloque", "norma": "BOE-A-2015-10565", "bloque": "a1", "para": "aceptación contra boe.py (candidato «sin modificaciones», S7)"},
+    {"recurso": "bloque", "norma": "BOE-A-2015-10565", "bloque": "a22", "para": "articulos (US4-2)"},
+    {"recurso": "bloque", "norma": "BOE-A-2015-10565", "bloque": "a23", "para": "articulos (US4-2, US4-3)"},
+    {"recurso": "bloque", "norma": "BOE-A-2015-10565", "bloque": "a9999", "para": "bloque inexistente → 3 (S2)"},
+    {"recurso": "bloque", "norma": "BOE-A-1985-5392", "bloque": "a22", "para": "aceptación contra boe.py (candidato «varias versiones», S7)"},
+    {"recurso": "bloque", "norma": "BOE-A-2017-12902", "bloque": "a118", "para": "aceptación contra boe.py (candidato «varias versiones», S7)"},
+    {"recurso": "bloque", "norma": "BOE-A-2017-12902", "bloque": "da3", "para": "aceptación contra boe.py (disposición)"},
+    {"recurso": "bloque", "norma": "BOE-A-1992-26318", "bloque": "a42", "para": "avisos reales de norma derogada (US1-3)"},
+    {"recurso": "metadatos", "norma": "BOE-A-2015-10565", "para": "avisos de los recursos 6 a 10; metadatos; golden"},
+    {"recurso": "metadatos", "norma": "BOE-A-1985-5392", "para": "avisos del recurso 11"},
+    {"recurso": "metadatos", "norma": "BOE-A-2017-12902", "para": "avisos de los recursos 12 y 13"},
+    {"recurso": "metadatos", "norma": "BOE-A-1992-26318", "para": "norma derogada (US5-1); avisos del recurso 14"},
+    {"recurso": "metadatos", "norma": "BOE-A-2099-99999", "para": "norma inexistente → 3 (S2)"},
+    {"recurso": "indice", "norma": "BOE-A-2099-99999", "para": "índice inexistente → 3"},
+    {"recurso": "analisis", "norma": "BOE-A-2015-10565", "para": "analisis; golden"},
+    {"recurso": "analisis", "norma": "BOE-A-2099-99999", "para": "análisis inexistente → 3"}
+  ]
+}
