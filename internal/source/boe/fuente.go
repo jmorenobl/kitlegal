@@ -237,15 +237,17 @@ func (*Fuente) Terms() core.Terminos {
 // Fetch resuelve la consulta (core.Source). Cada verbo resuelve la suya en su
 // propio fichero, con un caso en Fetch que valida la consulta antes de abrir
 // nada y la resuelve dentro de invocar (research.md D2 y D5): metadatos, en
-// metadatos.go. Una consulta sin caso —de un tipo que la fuente no declara, nula
-// o de un verbo que la fuente todavía no resuelve— es un defecto de quien la
-// compone: «inesperado», sin procedencia, porque no se ha consultado nada, y sin
-// abrir la caché ni construir el cliente, también con --offline y con --dry-run
-// (contrato errores-y-codigos, fila 22).
+// metadatos.go, y articulo, en articulo.go. Una consulta sin caso —de un tipo que
+// la fuente no declara, nula o de un verbo que la fuente todavía no resuelve— es
+// un defecto de quien la compone: «inesperado», sin procedencia, porque no se ha
+// consultado nada, y sin abrir la caché ni construir el cliente, también con
+// --offline y con --dry-run (contrato errores-y-codigos, fila 22).
 func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Consulta) (schema.Resultado, error) {
 	switch consulta := consulta.(type) {
 	case ConsultaMetadatos:
 		return f.metadatos(ctx, ec, consulta)
+	case ConsultaArticulo:
+		return f.articulo(ctx, ec, consulta)
 	default:
 		return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
 	}
@@ -298,6 +300,18 @@ func (en *invocacion) pedidor() (Pedidor, error) {
 	en.cliente = cliente
 
 	return cliente, nil
+}
+
+// pedirRecurso pide el recurso con el Pedidor de la invocación, que se construye
+// la primera vez que hace falta (research.md D5), y clasifica lo que responde con
+// pedir.
+func (en *invocacion) pedirRecurso(ctx context.Context, recurso pedido) (obtenido, error) {
+	pedidor, err := en.pedidor()
+	if err != nil {
+		return obtenido{}, err
+	}
+
+	return pedir(ctx, pedidor, en.ec, recurso)
 }
 
 // invocar abre la caché de la invocación, resuelve con ella y la cierra antes de
@@ -417,13 +431,14 @@ func abreEnSoloLectura(ec schema.Contexto) bool {
 
 // consultaResuelta es lo que da la consulta de un recurso con la caché de la
 // invocación: sus datos y la fecha de la consulta que los sostiene —la guardada
-// si salen de su entrada, el instante de la petición si se piden (FR-096)—, o,
-// bajo --dry-run, la línea de la petición que se habría emitido, sin datos ni
-// fecha (FR-094, ADR 0011).
+// si salen de su entrada, el instante de la petición si se piden y, si se apoyan
+// en varias consultas, la más antigua (FR-096)—, o, bajo --dry-run, las líneas de
+// las peticiones que se habrían emitido, una por petición y en su orden, sin
+// datos ni fecha (FR-094, ADR 0011).
 type consultaResuelta[T datosDeEntrada] struct {
 	datos         T
 	fechaConsulta time.Time
-	ensayo        string
+	ensayo        []string
 }
 
 // consultar resuelve con la caché de la invocación la consulta de un recurso que
@@ -444,29 +459,17 @@ type consultaResuelta[T datosDeEntrada] struct {
 func consultar[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T], recurso pedido,
 	vigencia time.Duration, leer func(datos any) (T, error),
 ) (consultaResuelta[T], error) {
-	guardada, presente, err := leerGuardada(ctx, en, clave)
-
-	switch {
-	case err != nil:
-		return consultaResuelta[T]{}, err
-	case presente:
-		return consultaResuelta[T]{datos: guardada.Datos, fechaConsulta: guardada.FechaConsulta}, nil
-	case en.ec.Offline:
-		return consultaResuelta[T]{}, clave.ausenteConOffline()
+	if guardada, resuelta, err := resolverSinPedir(ctx, en, clave); resuelta {
+		return guardada, err
 	}
 
-	pedidor, err := en.pedidor()
-	if err != nil {
-		return consultaResuelta[T]{}, err
-	}
-
-	respuesta, err := pedir(ctx, pedidor, en.ec, recurso)
+	respuesta, err := en.pedirRecurso(ctx, recurso)
 
 	switch {
 	case err != nil:
 		return consultaResuelta[T]{}, err
 	case respuesta.ensayo != "":
-		return consultaResuelta[T]{ensayo: respuesta.ensayo}, nil
+		return consultaResuelta[T]{ensayo: []string{respuesta.ensayo}}, nil
 	}
 
 	datos, err := interpretar(respuesta, recurso, leer)
@@ -479,6 +482,28 @@ func consultar[T datosDeEntrada](ctx context.Context, en *invocacion, clave clav
 	}
 
 	return consultaResuelta[T]{datos: datos, fechaConsulta: respuesta.instante}, nil
+}
+
+// resolverSinPedir resuelve con la caché de la invocación lo que la consulta de
+// la clave puede resolver sin pedir nada ni construir el cliente: la entrada
+// vigente se sirve con su fecha (FR-090, FR-096) y, sin ella, con --offline, el
+// fallo «fuente no disponible» (FR-092). Dice si la consulta queda resuelta, con
+// los datos o con un fallo —también el de la entrada que no se puede leer—; si
+// no, hay que pedir el recurso.
+func resolverSinPedir[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T],
+) (consultaResuelta[T], bool, error) {
+	guardada, presente, err := leerGuardada(ctx, en, clave)
+
+	switch {
+	case err != nil:
+		return consultaResuelta[T]{}, true, err
+	case presente:
+		return consultaResuelta[T]{datos: guardada.Datos, fechaConsulta: guardada.FechaConsulta}, true, nil
+	case en.ec.Offline:
+		return consultaResuelta[T]{}, true, clave.ausenteConOffline()
+	default:
+		return consultaResuelta[T]{}, false, nil
+	}
 }
 
 // leerGuardada lee la entrada vigente de la clave y dice si la había. La
@@ -585,16 +610,16 @@ func guardar[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveD
 	return nil
 }
 
-// resultadoDeLaConsulta es el Resultado del verbo que se apoya en una sola
-// consulta: la procedencia de la fuente con la dirección del recurso y la fecha
-// de la consulta, y sus datos; o, bajo --dry-run, la procedencia sin fecha y la
-// línea de la petición que se habría emitido, sin datos (data-model.md §7.3;
-// ADR 0011).
+// resultadoDeLaConsulta es el Resultado del verbo con lo que dio su consulta
+// resuelta: la procedencia de la fuente con la dirección que cita el verbo y la
+// fecha de la consulta, y sus datos; o, bajo --dry-run, la procedencia sin fecha
+// y las líneas de las peticiones que se habrían emitido, sin datos
+// (data-model.md §7.1 y §7.3; ADR 0011).
 func resultadoDeLaConsulta[T datosDeEntrada](direccion string, resuelta consultaResuelta[T]) schema.Resultado {
 	procedencia := schema.Procedencia{Fuente: NombreDeLaFuente, URL: direccion}
 
-	if resuelta.ensayo != "" {
-		return schema.Resultado{Procedencia: procedencia, Ensayo: []string{resuelta.ensayo}}
+	if len(resuelta.ensayo) > 0 {
+		return schema.Resultado{Procedencia: procedencia, Ensayo: resuelta.ensayo}
 	}
 
 	procedencia.FechaConsulta = resuelta.fechaConsulta
