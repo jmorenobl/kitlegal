@@ -1,15 +1,19 @@
 {
-  "id": "T027",
-  "texto": "T027 [US6] El binario de e2e responde con `boe` sin red: `internal/app/ejemplo/kitlegal-e2e/main.go` deja el `panic` y termina con `os.Exit(app.Arrancar(…))` sobre un registro de `echo`, `contar` y `boe`, cuyo cliente es `httpx.Replay` sobre la carpeta relativa de reproducción con el nombre de la fuente (`ConFuente(boe.NombreDeLaFuente)`, registrador), sin leer ninguna variable de entorno; `internal/app/e2e_test.go` gana en `TestEntregaDelHito` un `Setup` que copia con `os.CopyFS` las grabaciones de la fuente a la carpeta de reproducción del `$WORK` del guion y fija `KITLEGAL_CACHE_DIR` dentro de `$WORK`, y la orden `cronometra <máximo> <programa> <argumentos…>` (con `TestScript.Exec`; falla si el código no es 0 o si la duración alcanza el máximo), con todos los guiones existentes en verde, `argumentos` incluido gracias a T025 (FR-114, FR-117, research D13 y D16).",
+  "id": "T028",
+  "texto": "T028 [datos] [US6] Los guiones e2e de la entrega, en la primera tarea que puede dejarlos en verde: `internal/app/testdata/script/boe-verbos.txtar`, `internal/app/testdata/script/boe-multicall.txtar`, `internal/app/testdata/script/boe-offline.txtar`, `internal/app/testdata/script/boe-codigos.txtar` e `internal/app/testdata/script/boe-cache-rapida.txtar` con lo que fija la tabla del contrato esquemas-fixtures-y-controles §6 (los seis verbos con `--json` sobre la reproducción, `--describe` de los seis y la ayuda; el enlace `boe` con la misma salida; `--offline` con y sin entrada; los códigos 2, 3 y 4 con su clase y su `url`; diez invocaciones de `cronometra 200ms` con la reproducción vaciada), e `internal/app/testdata/script/argumentos.txtar`, líneas 24 y 30, ajustadas a `stderr 'applets disponibles: boe, contar, echo'`; ningún otro fichero (FR-001, FR-092, FR-100, FR-101, FR-114, FR-117, SC-002, SC-004, SC-005, US1 escenario 4, US2 escenarios 2 y 3, US6 escenario 4).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T027.md y déjala sin marcar.",
-  "base": "a943c7e3e1de168bf25769f77eb546728fe5f7ba",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T028.md y déjala sin marcar.",
+  "base": "6f0f9b2fd232a05336be6677e7449aacd6146ee5",
   "rutas": [
-    "internal/app/e2e_test.go",
-    "internal/app/ejemplo/kitlegal-e2e/main.go"
+    "internal/app/testdata/script/argumentos.txtar",
+    "internal/app/testdata/script/boe-cache-rapida.txtar",
+    "internal/app/testdata/script/boe-codigos.txtar",
+    "internal/app/testdata/script/boe-multicall.txtar",
+    "internal/app/testdata/script/boe-offline.txtar",
+    "internal/app/testdata/script/boe-verbos.txtar"
   ],
   "cierre": false
 }

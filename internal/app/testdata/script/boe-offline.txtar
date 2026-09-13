@@ -1,0 +1,28 @@
+# Con --offline, boe responde solo desde la caché: con la entrada vigente, la
+# misma salida que la consulta que la guardó —misma url y misma fecha_consulta—
+# y código 0, haya o no reproducción de la que pedir; sin entrada, código 4 sin
+# pedir nada (FR-092, FR-096, FR-101, SC-004, US2 escenarios 2 y 3).
+
+# Siembra: metadatos de la Ley 39/2015 pedidos a la reproducción.
+exec $KITLEGAL_BIN boe metadatos BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/metadatos","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565",.*\}\}\n\z'
+! stderr .
+cp stdout sembrada.json
+
+exec $KITLEGAL_BIN boe metadatos BOE-A-2015-10565 --offline --json
+! stderr .
+cmp stdout sembrada.json
+
+# Sin entrada, código 4 aunque la grabación del índice esté en la reproducción:
+# si --offline pidiera algo, esta invocación terminaría bien. El sobre de fallo
+# es de la fuente y cita el recurso cuya entrada falta (FR-101).
+exec sh -c 'kitlegal boe indice BOE-A-1985-5392 --offline --json; test $? -eq 4'
+stdout '\A\{"ok":false,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-5392/texto/indice","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"fuente-no-disponible","mensaje":".+"\}\}\n\z'
+stderr '--offline'
+
+# Y lo guardado se sigue sirviendo sin ninguna reproducción de la que pedir.
+rm reproduccion
+
+exec $KITLEGAL_BIN boe metadatos BOE-A-2015-10565 --offline --json
+! stderr .
+cmp stdout sembrada.json

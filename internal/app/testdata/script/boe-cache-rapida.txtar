@@ -1,0 +1,57 @@
+# Con la entrada vigente en caché, cada una de diez invocaciones consecutivas de
+# `kitlegal boe articulo BOE-A-2015-10565 a21` sobre el binario compilado termina
+# con código 0 en menos de 200 ms y sin pedir nada (FR-117, SC-002, US2
+# escenario 2).
+#
+# cronometra mide la invocación entera, arranque del proceso incluido. La
+# reproducción queda vacía antes de medir: una invocación que pidiera algo no
+# encontraría ninguna grabación y fallaría, y cada una tiene que dar la misma
+# salida, fecha_consulta incluida, que la consulta que sembró la caché.
+
+exec $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloque":"a21",.*\}\}\n\z'
+! stderr .
+cp stdout sembrada.json
+
+rm reproduccion
+mkdir reproduccion/boe.legislacion-consolidada
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sembrada.json
+! stderr .

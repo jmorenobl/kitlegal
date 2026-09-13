@@ -1,0 +1,32 @@
+# Un binario, muchos nombres, también para boe: por el enlace `boe -> kitlegal`
+# la invocación da, byte a byte, la misma salida que `kitlegal boe …` (FR-001,
+# US1 escenario 4; contrato verbos-y-salidas §0).
+#
+# La salida de un artículo lleva fecha_consulta, así que dos consultas a la
+# fuente no se pueden comparar byte a byte. La segunda invocación sale de la
+# caché que dejó la primera, con la misma url y la misma fecha_consulta
+# (FR-096), y entre las dos la reproducción se vacía: si la segunda pidiera algo,
+# fallaría en lugar de coincidir.
+
+symlink boe -> $KITLEGAL_BIN
+
+exec ./boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloque":"a21",.*\}\}\n\z'
+! stderr .
+cp stdout por-enlace.json
+
+rm reproduccion
+mkdir reproduccion/boe.legislacion-consolidada
+
+exec $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+! stderr .
+cmp stdout por-enlace.json
+
+# Y la ayuda de boe no depende del nombre con el que se invocó el binario.
+exec ./boe --help
+! stderr .
+cp stdout ayuda-por-enlace.txt
+
+exec $KITLEGAL_BIN boe --help
+! stderr .
+cmp stdout ayuda-por-enlace.txt

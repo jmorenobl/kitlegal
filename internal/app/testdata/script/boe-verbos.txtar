@@ -1,0 +1,96 @@
+# Los seis verbos de boe, sobre el binario compilado y sin red: cada uno responde
+# desde la copia de las grabaciones que el e2e deja en la reproducción, termina
+# con código 0 y emite un único sobre citable de la fuente del BOE con la
+# dirección de la API que fija su verbo (FR-001, FR-002, FR-114, SC-005, US6
+# escenario 4; contrato esquemas-fixtures-y-controles §6).
+#
+# Cada sobre se comprueba anclado a los dos extremos de la salida estándar
+# (\A … \z) y con la dirección exacta, no con un prefijo: una dirección de otro
+# recurso o una segunda línea hacen fallar el guion. De `data` basta un fragmento
+# que solo pueda salir de la grabación de su verbo; lo que dice byte a byte lo
+# fijan los golden. Lo único que no se fija es fecha_consulta, que es el instante
+# de la consulta.
+
+# Describirse no ejecuta nada: --describe de los seis emite el esquema de su
+# verbo, con los argumentos que ese verbo exige, y no abre la caché (FR-001).
+exec $KITLEGAL_BIN boe buscar procedimiento --describe
+stdout '\A\{\n'
+stdout '"\$schema": "https://json-schema\.org/draft/2020-12/schema"'
+stdout '"title": "boe buscar"'
+! stdout 'sha256:[0-9a-f]{64}'
+! stderr .
+
+exec $KITLEGAL_BIN boe indice BOE-A-2015-10565 --describe
+stdout '"title": "boe indice"'
+! stderr .
+
+exec $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --describe
+stdout '"title": "boe articulo"'
+! stderr .
+
+exec $KITLEGAL_BIN boe articulos BOE-A-2015-10565 a21 a22 --describe
+stdout '"title": "boe articulos"'
+! stderr .
+
+exec $KITLEGAL_BIN boe metadatos BOE-A-2015-10565 --describe
+stdout '"title": "boe metadatos"'
+! stderr .
+
+exec $KITLEGAL_BIN boe analisis BOE-A-2015-10565 --describe
+stdout '"title": "boe analisis"'
+! stderr .
+
+# La ayuda del binario lista boe junto a los applets de ejemplo, y la de boe sus
+# seis verbos en el orden del contrato, ninguno por omisión y ninguno más
+# (FR-001; contrato puerto-y-applet §4).
+exec $KITLEGAL_BIN --help
+stdout '^applets:$'
+stdout '^  boe +Consulta la legislación consolidada del BOE y la devuelve lista para citar\.$'
+! stderr .
+
+exec $KITLEGAL_BIN boe --help
+stdout '\Auso: boe <verbo> \[banderas\]\n'
+stdout '^verbos:\n  buscar +.+\n  indice +.+\n  articulo +.+\n  articulos +.+\n  metadatos +.+\n  analisis +.+\n\nLas banderas de cada verbo, en «boe <verbo> --help»\.\n\z'
+! stdout 'por omisión'
+! stderr .
+
+# Ni la autodescripción ni la ayuda han abierto la caché.
+! exists cache
+
+# buscar: la dirección lleva la consulta construida como boe.py, y entre los
+# resultados está la Ley 39/2015 con su página pública (FR-030, FR-031).
+exec $KITLEGAL_BIN boe buscar procedimiento administrativo común --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada\?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Aprocedimiento%20AND%20titulo%3Aadministrativo%20AND%20titulo%3Acom%5Cu00fan%22%7D%7D%7D","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{.*\}\]\}\n\z'
+stdout '"identificador":"BOE-A-2015-10565","titulo":"Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas\."'
+! stderr .
+
+# indice: los bloques de la norma en el orden de la fuente, con su tipo. El
+# título del bloque es el de la fuente tal cual, con el espacio de no separación
+# (U+00A0) que el índice pone entre «Artículo» y el número.
+exec $KITLEGAL_BIN boe indice BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/indice","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","url":"https://www\.boe\.es/buscar/act\.php\?id=BOE-A-2015-10565","bloques":\[\{"id":"preambulo","titulo":"","tipo":"preambulo"\},.*\]\}\}\n\z'
+stdout '\{"id":"a21","titulo":"Artículo\x{00A0}21","tipo":"articulo"\}'
+! stderr .
+
+# articulo: el texto vigente del bloque, sin avisos, con su página pública. El
+# título es el atributo del bloque, con el mismo U+00A0 que el índice.
+exec $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloque":"a21","titulo":"Artículo\x{00A0}21","tipo":"precepto","fecha_version":"20151002","fecha_vigencia":"20161002","norma_modificadora":"BOE-A-2015-10565","texto":"Artículo\x{00A0}21\. Obligación de resolver\.\\n1\. La Administración está obligada a dictar resolución expresa.*","hash_texto":"sha256:[0-9a-f]{64}","avisos":\[\],"url":"https://www\.boe\.es/buscar/act\.php\?id=BOE-A-2015-10565#a21","url_eli":"[^"]+"\}\}\n\z'
+! stderr .
+
+# articulos: los bloques en el orden pedido, con la dirección de la norma.
+exec $KITLEGAL_BIN boe articulos BOE-A-2015-10565 a21 a22 a23 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"norma":"BOE-A-2015-10565","bloque":"a21",.*\},\{"norma":"BOE-A-2015-10565","bloque":"a22",.*\},\{"norma":"BOE-A-2015-10565","bloque":"a23",.*\}\]\}\n\z'
+! stderr .
+
+# metadatos: los datos de la norma y su estado de consolidación.
+exec $KITLEGAL_BIN boe metadatos BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/metadatos","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","titulo":"Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas\.","rango":"Ley",.*\}\}\n\z'
+stdout '"estado_consolidacion":\{"codigo":"3","texto":"Finalizado"\}'
+! stderr .
+
+# analisis: materias, notas y referencias de la norma.
+exec $KITLEGAL_BIN boe analisis BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/analisis","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","materias":\[.*\],"notas":\[.*\],"referencias":\{"anteriores":\[.*\],"posteriores":\[.*\]\}\}\}\n\z'
+stdout '\{"relacion":"DEROGA","norma":"BOE-A-2011-4117","texto":"los arts\. 4 a 7 de la Ley 2/2011, de 4 de marzo"\}'
+! stderr .

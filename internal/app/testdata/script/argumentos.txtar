@@ -21,13 +21,13 @@ stderr 'argumentos inválidos'
 exec sh -c 'kitlegal noexiste; test $? -eq 2'
 ! stdout .
 stderr 'argumentos inválidos: "noexiste" no es ningún applet de kitlegal'
-stderr 'applets disponibles: (boe, )?contar, echo'
+stderr 'applets disponibles: boe, contar, echo'
 
 # Sin ningún applet que resolver, la misma lista y el mismo código.
 exec sh -c 'kitlegal; test $? -eq 2'
 ! stdout .
 stderr 'no se ha indicado ningún applet'
-stderr 'applets disponibles: (boe, )?contar, echo'
+stderr 'applets disponibles: boe, contar, echo'
 
 # Valor con formato inválido. Sin --json, un fallo no lleva sobre: la salida
 # estándar queda **vacía** y el mensaje va solo a la de error.
