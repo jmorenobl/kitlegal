@@ -36,9 +36,15 @@ sondas del final de los prerrequisitos la vuelven a comprobar en cada ejecución
 | Pasar una variable de entorno | `rtk proxy env VARIABLE=valor …` | `VARIABLE=valor orden` y `env` sin `rtk proxy` |
 | Comprobar que algo no existe | `rtk proxy test ! -e … && echo "…"` | `test` sin `rtk proxy` |
 | Comparar dos estados | `… 2>&1 \| rtk proxy shasum`, dos huellas en pantalla | `shasum` sin `rtk proxy`, `> fichero` fuera del repositorio |
+| Partir una orden larga en varias líneas | `\` al final de línea solo dentro de una etapa, con el `\|` en la misma línea que el final de la etapa anterior: `… \` y, en la línea siguiente, `  ./internal/app/ \| rtk proxy grep …` | Una línea que termina en `\` seguida de otra que empieza por `\|` |
 
 `go`, `git`, `make` y `echo` con texto literal están permitidos tal cual, también con rutas de la carpeta temporal
 (`go build -o`, `git clone`, `make -C`, `go -C`).
+
+La forma de las tuberías partidas se fijó en el primer intento de la tarea de cierre (`gates/tarea-T036.md`). La orden del
+escenario 2, con el `|` al principio de su segunda línea, pidió aprobación y no se ejecutó, y una sonda inocua con esa
+misma forma también la pidió. Las siete órdenes que la usaban están corregidas, y una sonda de los prerrequisitos comprueba
+la forma en cada ejecución.
 
 ## Prerrequisitos
 
@@ -67,6 +73,8 @@ confirmación en un terminal por los objetos de git de solo lectura del clon, y 
 ```bash
 rtk proxy sh -c 'sh -c "exit 3"; echo "código $?"'
 rtk proxy env KITLEGAL_SONDA=valor printenv KITLEGAL_SONDA
+rtk proxy env KITLEGAL_SONDA=valor \
+  printenv KITLEGAL_SONDA 2>&1 | rtk proxy grep -c valor ; echo "fin de la tubería partida"
 rtk proxy ls -laR /tmp/kitlegal-quickstart-h4 2>&1 | rtk proxy shasum
 rtk proxy mkdir /tmp/kitlegal-quickstart-h4/sonda
 rtk proxy ls -laR /tmp/kitlegal-quickstart-h4 2>&1 | rtk proxy shasum
@@ -79,9 +87,11 @@ rtk proxy ls -A /tmp/kitlegal-quickstart-h4 ; echo "fin de las sondas"
 
 1. `código 3`: el código de salida llega entero, no solo cero o distinto de cero.
 2. `valor`: `env` entrega la variable.
-3. Dos huellas **distintas**: la comparación de estados delata un cambio. Con el mismo estado, las huellas son iguales
+3. `1` y «fin de la tubería partida»: una orden partida en dos líneas, con el `|` en la misma línea que el final de la
+   etapa, se ejecuta sin pedir aprobación y conserva la redirección y el `;`.
+4. Dos huellas **distintas**: la comparación de estados delata un cambio. Con el mismo estado, las huellas son iguales
    (escenario 1).
-4. Ninguna línea entre la segunda huella y «fin de las sondas»: la comprobación de ausencia no da verde cuando el
+5. Ninguna línea entre la segunda huella y «fin de las sondas»: la comprobación de ausencia no da verde cuando el
    directorio existe, y la carpeta vuelve a quedar vacía.
 
 Si una orden de la guía pide aprobación o no da lo esperado en una sonda, la guía no se puede ejecutar tal cual. La
@@ -110,7 +120,7 @@ rtk proxy git status --porcelain -- internal/source/boe/testdata schemas interna
 
 **Esperado**:
 
-- Las dos huellas de `shasum` son iguales: la caché de la cuenta no se ha tocado. La sonda 3 de los prerrequisitos
+- Las dos huellas de `shasum` son iguales: la caché de la cuenta no se ha tocado. La sonda 4 de los prerrequisitos
   demuestra que la comparación delata un cambio. Si `~/.cache/kitlegal` no existe, el listado es el error de `ls` y la
   medida detecta igualmente que aparezca.
 - `make test` termina sin `FAIL` ni `WARNING: DATA RACE`, con `ok` en `internal/source/boe`, `internal/app`,
@@ -122,8 +132,8 @@ rtk proxy git status --porcelain -- internal/source/boe/testdata schemas interna
 ## Escenario 2 — Aceptación: el `data` de `articulo` coincide con `boe.py` en 6 artículos de 4 leyes (SC-001, FR-116)
 
 ```bash
-rtk proxy go test -count=1 -v -run '^TestArticuloCoincideConBoePy$' ./internal/source/boe/ \
-  | rtk proxy grep -E '^\s*--- (PASS|FAIL): TestArticuloCoincideConBoePy/'
+rtk proxy go test -count=1 -v -run '^TestArticuloCoincideConBoePy$' \
+  ./internal/source/boe/ | rtk proxy grep -E '^\s*--- (PASS|FAIL): TestArticuloCoincideConBoePy/'
 ```
 
 **Esperado**: seis líneas `--- PASS`, una por referencia (`BOE-A-2015-10565-a21`, `BOE-A-2015-10565-a1`,
@@ -176,8 +186,8 @@ rtk proxy go test -count=1 -v -run '^TestInstanteDeEmision$' ./internal/httpx/ |
 ## Escenario 5 — e2e: los seis verbos sobre el binario compilado, el enlace `boe`, `--offline` y los códigos (SC-005, FR-114)
 
 ```bash
-rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^boe-' ./internal/app/ \
-  | rtk proxy grep -E '^\s*--- (PASS|FAIL): TestEntregaDelHito/boe-'
+rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^boe-' \
+  ./internal/app/ | rtk proxy grep -E '^\s*--- (PASS|FAIL): TestEntregaDelHito/boe-'
 ```
 
 **Esperado**: cinco líneas `--- PASS`: `TestEntregaDelHito/boe-verbos`, `boe-multicall`, `boe-offline`, `boe-codigos` y
@@ -189,8 +199,8 @@ rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^boe-' ./internal/app/ 
 ## Escenario 6 — Menos de 200 ms con la entrada en caché (SC-002, FR-117)
 
 ```bash
-rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^boe-cache-rapida$' ./internal/app/ \
-  | rtk proxy grep -E 'cronometra|--- (PASS|FAIL): TestEntregaDelHito/boe-cache-rapida'
+rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^boe-cache-rapida$' \
+  ./internal/app/ | rtk proxy grep -E 'cronometra|--- (PASS|FAIL): TestEntregaDelHito/boe-cache-rapida'
 ```
 
 **Esperado**: `--- PASS: TestEntregaDelHito/boe-cache-rapida`. Con `-v`, el registro del guion muestra las diez
@@ -237,8 +247,8 @@ prerrequisitos han dejado vacía la carpeta temporal.
 ```bash
 rtk proxy perl -0pi -e 's/"texto": "/"texto": "X/' /tmp/kitlegal-quickstart-h4/copia/internal/source/boe/testdata/golden/articulo-BOE-A-2015-10565-a21.json
 rtk proxy git -C /tmp/kitlegal-quickstart-h4/copia diff --stat
-rtk proxy go -C /tmp/kitlegal-quickstart-h4/copia test -count=1 -run '^TestGolden$' ./internal/source/boe/ 2>&1 \
-  | rtk proxy grep -E 'articulo-BOE-A-2015-10565-a21|FAIL' ; echo "fin de la comprobación"
+rtk proxy go -C /tmp/kitlegal-quickstart-h4/copia test -count=1 -run '^TestGolden$' \
+  ./internal/source/boe/ 2>&1 | rtk proxy grep -E 'articulo-BOE-A-2015-10565-a21|FAIL' ; echo "fin de la comprobación"
 ```
 
 **Esperado** (requiere el clon del escenario 7.b):
@@ -332,8 +342,8 @@ rtk proxy go test -count=1 -v -run '^TestDirecciones$' ./internal/source/boe/ | 
 ### 13.a En el árbol
 
 ```bash
-rtk proxy go test -count=1 -v -run '^(TestArquitectura|TestDependenciasDelBinario|TestElBinarioNoEnlazaLosEjemplos|TestLasFuentesNoFirmanComoKitlegal)$' ./internal/ \
-  | rtk proxy grep -E '^--- (PASS|FAIL): '
+rtk proxy go test -count=1 -v -run '^(TestArquitectura|TestDependenciasDelBinario|TestElBinarioNoEnlazaLosEjemplos|TestLasFuentesNoFirmanComoKitlegal)$' \
+  ./internal/ | rtk proxy grep -E '^--- (PASS|FAIL): '
 make lint
 ```
 
@@ -345,8 +355,8 @@ make lint
 ```bash
 rtk proxy perl -0pi -e 's/\z/\nvar _ = "kitlegal:applet\/boe"\n/' /tmp/kitlegal-quickstart-h4/copia/internal/source/boe/direcciones.go
 rtk proxy tail -1 /tmp/kitlegal-quickstart-h4/copia/internal/source/boe/direcciones.go
-rtk proxy go -C /tmp/kitlegal-quickstart-h4/copia test -count=1 -run '^TestLasFuentesNoFirmanComoKitlegal$' ./internal/ 2>&1 \
-  | rtk proxy grep -E 'internal/source/boe/direcciones\.go|FAIL' ; echo "fin de la comprobación"
+rtk proxy go -C /tmp/kitlegal-quickstart-h4/copia test -count=1 -run '^TestLasFuentesNoFirmanComoKitlegal$' \
+  ./internal/ 2>&1 | rtk proxy grep -E 'internal/source/boe/direcciones\.go|FAIL' ; echo "fin de la comprobación"
 ```
 
 **Esperado** (requiere el clon del escenario 7.b):
@@ -361,8 +371,8 @@ rtk proxy go -C /tmp/kitlegal-quickstart-h4/copia test -count=1 -run '^TestLasFu
 ## Escenario 14 — El porte documentado y la fuente atada a `docs/SOURCES.md` (SC-010, FR-120-FR-123)
 
 ```bash
-rtk proxy go test -count=1 -v -run '^(TestDocAnotaElPorte|TestFuenteCoincideConSources|TestFuenteNombreVigenciasYTerminos|TestGrabacionesCompletas|TestReferenciasCompletas)$' ./internal/source/boe/ \
-  | rtk proxy grep -E '^--- (PASS|FAIL): '
+rtk proxy go test -count=1 -v -run '^(TestDocAnotaElPorte|TestFuenteCoincideConSources|TestFuenteNombreVigenciasYTerminos|TestGrabacionesCompletas|TestReferenciasCompletas)$' \
+  ./internal/source/boe/ | rtk proxy grep -E '^--- (PASS|FAIL): '
 rtk proxy grep -F '| `boe.legislacion-consolidada` |' docs/SOURCES.md
 rtk proxy grep -F '| `boe.legislacion-consolidada` |' docs/SOURCES.md | rtk proxy grep -c -E '\| [0-9]{4}-[0-9]{2}-[0-9]{2} \|$'
 ```
