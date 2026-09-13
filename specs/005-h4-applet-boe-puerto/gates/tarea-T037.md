@@ -1,6 +1,12 @@
 # T037 · intento 1 de 3: `ci` en rojo en el ejecutor linux por un test que solo mide la plataforma local
 
-**Estado**: T037 **sin marcar**. Rama publicada en `40efb06` y propuesta de cambio
+> **Intento 2 de 3 (2026-09-13): en verde.** T038 quedó commiteada en `d45f0ea`; el intento 2 la publicó en avance
+> rápido, encontró la #24 y no creó otra, y `ci` (run `34782609287`) y los cuatro estados de Codecov salieron en verde
+> con medida real (`project` 94,73 %, `internal/core` 90,36 %, `internal/cli` 98,09 %, `patch` 97,49 % del diff sobre
+> un objetivo de 92,95 %). La lectura completa está en [`evidencia-plataforma.md`](./evidencia-plataforma.md). Lo que
+> sigue es el análisis del intento 1, sin cambios.
+
+**Estado tras el intento 1**: T037 **sin marcar**. Rama publicada en `40efb06` y propuesta de cambio
 [#24](https://github.com/jmorenobl/kitlegal/pull/24) abierta, pero `ci` en rojo (run `34781187264`) y ningún estado de
 Codecov emitido. Base del intento: `40efb06` (`feat(H4): T036`). La evidencia completa, con las salidas literales, está en
 [`evidencia-plataforma.md`](./evidencia-plataforma.md).

@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H4. La sección «Dependencias» la escribió la tarea que enlaza boe en el binario distribuido (T026); el resto lo escribe la tarea de cierre (T036) con la medida hecha sobre 55cc107. -->
+<!-- Propuesta de cambio de H4. La sección «Dependencias» la escribió la tarea que enlaza boe en el binario distribuido (T026); el resto lo escribió la tarea de cierre (T036) con la medida hecha sobre 55cc107, y la tarea de plataforma (T037) añadió lo que dijeron la integración continua y Codecov sobre d45f0ea. -->
 
 ## Objetivo
 
@@ -29,7 +29,9 @@ Hito de **fundación** (principio VIII): no entrega ni cambia ninguna skill. Es 
 
 ## Alcance
 
-Frente a `main`: 189 ficheros, 30 579 líneas añadidas y 311 retiradas, en 42 commits. Por árboles:
+Frente a `main`, en `d45f0ea` (el commit publicado): 192 ficheros, 31 688 líneas añadidas y 321 retiradas, en 44 commits.
+T036 midió 189, 30 579, 311 y 42 sobre `55cc107`; lo que llegó después es su propio cierre, T038 (`internal/arch_test.go`
+y artefactos) y los artefactos de T037, sin ningún fichero de producto nuevo. Por árboles:
 
 - **`internal/source/boe`, paquete nuevo** (19 ficheros de producto, 21 de test): `fuente.go` (`Nueva`, `Fetch`, `TTL`,
   `Terms`, el esqueleto `resolverRecursoDeLaNorma[T]`), los seis verbos en su fichero (`buscar.go`, `indice.go`,
@@ -54,7 +56,10 @@ Frente a `main`: 189 ficheros, 30 579 líneas añadidas y 311 retiradas, en 42 c
     contexto que termina durante la migración no deje la conexión abierta desde otra goroutine. Es el arreglo de un
     fallo intermitente de un test de H3 que apareció en el `make ci` de T003; su test lo acompaña.
   - `internal/arch_test.go`: `TestLasFuentesNoFirmanComoKitlegal` y la lista `modulosDelBinario` ampliada; se retiran
-    `TestElBinarioNoEnlazaHTTPX` y `TestElBinarioNoEnlazaCache`.
+    `TestElBinarioNoEnlazaHTTPX` y `TestElBinarioNoEnlazaCache`. Y, tras el primer `ci` de esta propuesta (T038),
+    `TestDependenciasDelBinario` mide el cierre del binario en las seis plataformas de distribución
+    (`plataformasDeDistribucion`, con `GOOS`, `GOARCH` y `CGO_ENABLED=0` en `ejecutaGoCon`) y compara la unión con la
+    lista, en vez de medir solo la plataforma del ordenador que lo ejecuta.
   - `Makefile` (`schema-check` real, `verify-sources` nuevo), `.golangci.yml` (`run.build-tags` con `fuentes` y
     `grabacion`; seis palabras españolas en `misspell.ignore-rules`), `.github/workflows/nightly.yml` (trabajo
     `fuentes`), `scripts/grabar-fixtures.sh` y `scripts/verify-sources.sh` (nuevos), `docs/ADR/0015-puerto-source-y-fecha-de-consulta.md`
@@ -67,7 +72,7 @@ Frente a `main`: 189 ficheros, 30 579 líneas añadidas y 311 retiradas, en 42 c
   no debe fusionarse (ver *Pendientes*).
 - **Artefactos del hito**: `specs/005-h4-applet-boe-puerto/` completo (spec con cinco clarificaciones, plan, research
   D1-D20, data-model, cinco contratos, quickstart, tasks y `gates/`, con las notas de las tareas T003, T005, T009, T022,
-  T023, T024 y T036).
+  T023, T024, T036 y T037, y `evidencia-plataforma.md`, lo que dijeron la integración continua y Codecov).
 
 **Fuera de alcance** (spec, *Fuera de alcance*): ninguna skill, ni `data/normas.yaml`, ni los verbos `sumario`,
 `vigilar`, `eli`, `buscar-materia` o `materias`, ni versiones históricas, paginación, revalidación o mantenimiento de
@@ -165,8 +170,10 @@ que lo demuestra:
   términos y fecha; `pendiente` ya no se admite) (escenario 14).
 - **Espacio reservado** (`TestLasFuentesNoFirmanComoKitlegal`, AST de `internal/source/**`, no pasa en vacío): un
   literal `kitlegal:applet/boe` en una fuente falla nombrando fichero y línea (escenario 13.b).
-- **Superficie del binario** (`TestDependenciasDelBinario` con la lista ampliada y justificada) y **arquitectura**
-  (`TestArquitectura`, `TestElBinarioNoEnlazaLosEjemplos`) (escenario 13.a).
+- **Superficie del binario** (`TestDependenciasDelBinario` con la lista ampliada y justificada, medida en las seis
+  plataformas de distribución desde T038: un módulo sin declarar en cualquiera de ellas, o uno declarado que no enlace
+  en ninguna, lo hace fallar nombrando las plataformas de cada módulo) y **arquitectura** (`TestArquitectura`,
+  `TestElBinarioNoEnlazaLosEjemplos`) (escenario 13.a).
 - **`httpx` pide el formato de cada recurso** (`TestPedirConAcepta`, `TestConHoraRechazaNula`, `TestDirecciones`)
   (escenario 12).
 - **Registro y arranque** (`TestRegistroDeProduccion`, `TestAppletBoe`, `TestArrancar`) y **`--no-graph` y `--asunto`
@@ -267,7 +274,8 @@ de trabajo no cambia y la limpieza lo borra):
 
 `internal/core` no gana sentencias: sus 81 son las de `internal/core/schema` (`error.go`, `huella.go`, `sobre.go`);
 `doc.go` y `source.go` no tienen ninguna. **Ningún umbral se rebaja**: `codecov.yml` no aparece en el diff frente a
-`main`. `codecov/patch` (`target: auto`, la cobertura de la base) lo lee T037 en la plataforma.
+`main`. `codecov/patch` (`target: auto`, la cobertura de la base) lo leyó T037 en la plataforma: 97,49 % del diff sobre
+un objetivo de 92,95 % (ver *Plataforma*, abajo).
 
 **Sin ninguna supresión nueva**: `0` líneas `//nolint` y `0` `t.Skip` añadidas en ficheros `.go` frente a `main` (las
 nueve apariciones de `//nolint` en el diff son prosa de `specs/` que dice que no hay ninguno). `gosec` se resuelve sin
@@ -280,6 +288,31 @@ persona en la pausa `[datos]` de T009 (commit `17fca5b`), como exige la obligaci
 **Aviso de método.** El envoltorio de terminal de esta máquina reescribe la salida de `go test`, `git status
 --porcelain` y `git diff`. Todo lo de arriba está medido con el paso directo (`rtk proxy`), que es la forma en que el
 quickstart escribe cada orden.
+
+**Plataforma** (T037, sobre `d45f0ea`, 2026-09-13; la lectura literal está en `gates/evidencia-plataforma.md`). La rama
+se publicó en avance rápido, sin forzar, y la propuesta es esta #24. El trabajo `ci` (run `34782609287`, ejecutor
+`ubuntu-latest`, Go 1.27.1) terminó en `success` en 3 m 11 s: `0 issues.`, los diez paquetes en `ok` en los dos
+perfiles (`-race -shuffle=on` y `-race -tags=integration`), `govulncheck` sin vulnerabilidades, `schema-check`,
+`gitleaks` «no leaks found», `go mod verify` en la raíz y los cuatro módulos de herramienta, `tidy -diff` y
+`ci: todos los controles en verde`. Los dos perfiles se subieron a Codecov («Found 2 coverage files to report»), y los
+cuatro estados llegaron con medida real, comparando la base `2c889c4` con el head sobre 62 ficheros y 2 831 líneas:
+
+| Estado | Umbral | Medido |
+|---|---|---|
+| `ci` | verde | ✅ `success`, 3 m 11 s |
+| `codecov/project` | ≥ 70 % | ✅ 94,73 % (la base, 92,95 %; +1,78) |
+| `codecov/project/internal/core` | ≥ 85 % | ✅ 90,36 % |
+| `codecov/project/internal/cli` | ≥ 90 % | ✅ 98,09 % |
+| `codecov/patch` | `auto` (92,95 %, la cobertura de la base) | ✅ 97,49 % del diff; 22 líneas sin cubrir, nombradas |
+
+Ninguno es un verde vacío: `main` ya contiene `internal/core/**` e `internal/cli/**`, y los títulos traen porcentaje y
+objetivo. Las cifras remotas y las locales de arriba no son la misma unidad (Codecov cuenta líneas; `go tool cover`,
+sentencias), y cada umbral queda holgado en las dos. Las 22 líneas del diff sin cubrir son las dos `main` (13 en
+`internal/app/ejemplo/kitlegal-e2e/main.go` y 2 en `cmd/kitlegal/main.go`, que se ejecutan como procesos y no bajo el
+perfil) y siete repartidas entre `internal/source/boe/fuente.go` (3), `internal/source/boe/articulo.go` (2),
+`internal/app/boe.go` (1) e `internal/app/registro.go` (1); no se añade ninguna exclusión. El primer `ci` de esta
+propuesta (run `34781187264`, sobre `40efb06`) salió en rojo por `TestDependenciasDelBinario` en el ejecutor linux, y lo
+arregló T038 (*Pendientes*).
 
 ## Decisiones
 
@@ -351,22 +384,22 @@ quickstart escribe cada orden.
     verificación.
   - **S9, duración en integración continua**: que las diez invocaciones con caché caliente bajen de 200 ms en el
     ejecutor de la plataforma con la suite en paralelo y `-race` en el resto de paquetes (aquí, 0,41 s el guion entero).
-    **Primera medida, a favor**: en el run `34781187264` de esta propuesta, `make test` dejó `internal/app` en `ok`
-    (5,098 s, con `-race` y `-shuffle=on`). Ese paquete ejecuta `TestEntregaDelHito` con `boe-cache-rapida`, que no
-    tiene condición de salto, aunque el registro, sin `-v`, no nombra el subtest. La ejecución en verde de T037 la
-    repite. Si fallara allí y no aquí, sería una medida de máquina: se documenta antes de tocar nada, y nunca se rebaja
-    el máximo del guion sin decisión humana.
-- **El primer `ci` de esta propuesta salió en rojo, y el arreglo es T038.** `TestDependenciasDelBinario` medía la
+    **Tres medidas a favor en el ejecutor**: `internal/app` en `ok` en el run `34781187264` (5,098 s, con `-race` y
+    `-shuffle=on`) y en el run `34782609287`, el verde, en los dos perfiles (5,623 s con `-race -shuffle=on` y 5,308 s
+    con `-race -tags=integration`). Ese paquete ejecuta `TestEntregaDelHito` con `boe-cache-rapida`, que no tiene
+    condición de salto, aunque el registro, sin `-v`, no nombra el subtest. Si algún día fallara allí y no aquí, sería
+    una medida de máquina: se documenta antes de tocar nada, y nunca se rebaja el máximo del guion sin decisión humana.
+- **El primer `ci` de esta propuesta salió en rojo, y T038 lo cerró.** `TestDependenciasDelBinario` medía la
   superficie del binario solo en la plataforma del ordenador que ejecuta el test. En darwin, donde se ejecutaron todos
   los `make ci` del hito, el binario enlaza los dieciocho módulos; en el ejecutor linux, dieciséis, y el test falló
-  (ver «Dependencias»). Codecov no emitió ningún estado, porque la subida del perfil no se ejecuta tras un fallo. La
-  lista declarada no cambia: T038 hace que el test mida las seis plataformas de distribución y compare la unión. El
-  diseño está comprobado sobre un clon, con `make ci` en verde (`gates/tarea-T037.md`, `gates/evidencia-plataforma.md`).
-- **T037 `[plataforma]`**, la última tarea: empujar la rama, abrir la propuesta de cambio con este fichero como cuerpo,
-  esperar `ci` y los estados de Codecov (`project` ≥ 70 %, `internal_core` ≥ 85 %, `internal_cli` ≥ 90 %, `patch`
-  con objetivo `auto`). `internal_core` e `internal_cli` ya tienen base en `main`, así que miden de verdad. En el
-  intento 1 quedaron publicadas la rama y esta propuesta; el intento 2 publica T038 y lee los estados. Al final,
-  pausa humana del workflow por `docs/SOURCES.md` y por el directorio nuevo `internal/source/boe` (rutas sensibles).
+  (run `34781187264`; ver «Dependencias»). Codecov no emitió ningún estado, porque la subida del perfil no se ejecuta
+  tras un fallo. La lista declarada no cambió: T038 (`d45f0ea`) hace que el test mida las seis plataformas de
+  distribución y compare la unión, y el segundo `ci` (run `34782609287`) pasó con `internal` en `ok`
+  (`gates/tarea-T037.md`, `gates/evidencia-plataforma.md`).
+- **T037 `[plataforma]`, hecha**: la rama está publicada en `d45f0ea`, esta propuesta es la #24, y `ci` y los cuatro
+  estados de Codecov están en verde con medida real (ver *Evidencia*, «Plataforma»). Lo que queda es humano: la pausa
+  del workflow por `docs/SOURCES.md` y por el directorio nuevo `internal/source/boe` (rutas sensibles), la revisión y la
+  fusión (ADR 0007). Ninguna tarea del hito fusiona, empuja a `main`, fuerza ni etiqueta.
 - **`refs/__pycache__/boe.cpython-311.pyc` no debe fusionarse.** Es el fichero compilado que CPython dejó al importar
   `refs/boe.py` desde el guion de un solo uso de la pausa de T009, y el commit `[datos]` `17fca5b` lo arrastró
   (43 205 bytes, binario). `.gitignore` no excluye `__pycache__/`. Está fuera de las rutas de T036 y de cualquier tarea
