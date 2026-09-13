@@ -22,8 +22,8 @@ rama, una propuesta de cambio y un *squash-merge* con la integración continua e
    skill usa no se construye, y nada se particulariza para un municipio (constitución, principios VIII
    y IX).
 3. **`make ci` en verde en local** y propuesta de cambio con la estructura de la sección siguiente.
-4. **Revisión** de código y de seguridad sobre la propuesta. Si el hito toca una fuente externa,
-   `docs/SOURCES.md` se actualiza en el mismo cambio.
+4. **Revisión** de código y de seguridad sobre la propuesta. Si el hito toca una fuente externa, su fila
+   de [`docs/SOURCES.md`](docs/SOURCES.md) y su caso de `make verify-sources` entran en el mismo cambio.
 5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release.
 6. **Actualizar el roadmap solo si cambia el orden o el alcance**; el detalle vive en las propuestas de
    cambio y en los ADR.
@@ -100,11 +100,12 @@ porque la integración continua ejecuta esa misma orden y no aplica ningún cont
 | Tests unitarios con detector de carreras y perfil de cobertura | `make test` | sí |
 | Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos) | `make test-integration` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
-| Validación contra esquemas | `make schema-check` | sí |
+| Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
 | Integridad de los módulos (`go mod verify`, raíz y herramientas) | `make mod-verify` | sí |
 | Dependencias saneadas (`go mod tidy -diff`) | `make mod-tidy-check` | sí |
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
+| Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
 | Análisis de seguridad semanal (CodeQL) | — (flujo `.github/workflows/codeql.yml`) | no |
 | Actualización semanal de dependencias | — (Dependabot, `.github/dependabot.yml`) | no |
@@ -158,16 +159,38 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 
 | Orden | Qué hace hoy | Hito |
 |---|---|---|
-| `make schema-check` | Anuncia que no hay `schemas/` todavía y termina con éxito; `ci` lo invoca y sigue en verde | H4 (borrador) y H10 (contrato) |
 | `make skills-sync` | Anuncia que no hay `skills/` ni `data/*.yaml` todavía y termina con éxito | H5 |
 | `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
 
 `release` es la excepción porque es una acción con efectos externos: no puede simular éxito. No forma
 parte de `ci` ni del flujo nocturno.
 
-`make test-e2e` y `make test-integration` ya no están en esta tabla: desde H1 la primera ejecuta los
-guiones `testscript` contra el binario que el propio test construye, y desde H3 la segunda ejecuta los
-tests etiquetados `integration` —los de la caché, que dependen del entorno— y forma parte de `make ci`.
+`make test-e2e`, `make test-integration` y `make schema-check` ya no están en esta tabla: desde H1 la
+primera ejecuta los guiones `testscript` contra el binario que el propio test construye; desde H3 la
+segunda ejecuta los tests etiquetados `integration` —los de la caché, que dependen del entorno— y forma
+parte de `make ci`; y desde H4 la tercera compara `schemas/` con lo que emite `--describe` (sección
+siguiente).
+
+## `make schema-check` y `make verify-sources`
+
+`make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
+distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`— y los
+compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
+de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
+regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
+
+```bash
+go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/ -args -actualizar-esquemas
+```
+
+`make verify-sources` es el **único control que pide algo a una fuente real**: ejecuta
+`scripts/verify-sources.sh`, que comprueba que las respuestas de cada fuente se siguen interpretando —hoy,
+`boe articulo BOE-A-2015-10565 a21` contra la API del BOE: código `0`, sobre válido contra su esquema y
+texto no vacío—. Por eso **necesita red y no está en `make ci`**, cuyos tests corren siempre sin red,
+contra respuestas grabadas. Lo ejecuta cada noche el trabajo `fuentes` del flujo `nightly`, que, si falla,
+comenta la incidencia abierta con el título del caso o la abre. Un hito que añade una fuente añade su caso
+a esta verificación (*Definition of Done*, punto 8). Ningún control ni flujo graba respuestas: las
+grabaciones contra las que corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
 
 ## `make vuln` necesita red
 
@@ -257,6 +280,8 @@ su propuesta se revisa igual que cualquier otra y este procedimiento queda como 
 - [`README.md`](README.md) — qué es kitlegal, cómo construirlo y cómo ejecutar los controles.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — los hitos, su orden y la *Definition of Done*.
 - [`docs/ADR/`](docs/ADR/) — las decisiones de arquitectura, con contexto y consecuencias.
+- [`docs/SOURCES.md`](docs/SOURCES.md) — las fuentes externas: licencia, términos de uso, `robots.txt`,
+  ritmo y fecha de la revisión humana.
 - [`CLAUDE.md`](CLAUDE.md) — convenciones del repositorio, incluida la de idioma: documentación, verbos de
   applet y claves JSON en español; identificadores Go según la convención del lenguaje.
 - [`.specify/memory/constitution.md`](.specify/memory/constitution.md) — principios, restricciones y el

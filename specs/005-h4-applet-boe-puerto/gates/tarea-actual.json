@@ -1,20 +1,19 @@
 {
-  "id": "T034",
-  "texto": "T034 [US7] Enterarse de que la fuente cambió: `internal/app/fuentes_test.go` con `verificarArticulo` (invoca `boe articulo BOE-A-2015-10565 a21 --json` por `app.Main`; exige código 0, sobre válido contra la parte `articulo` de `bloque.json` y `data.texto` no vacío; su error empieza por «caso «boe articulo»:») y `TestVerificacionDeFuentesDetectaCambios` (con la reproducción de las grabaciones → sin error; con el sintético `bloque-ilegible` → error que nombra el caso); `internal/app/fuentes_red_test.go` con `//go:build fuentes` y `TestVerificarFuentes` (`AppletBoe(DependenciasDeRed())` y la caché en `t.TempDir()`); `scripts/verify-sources.sh`, que ejecuta solo ese test con la etiqueta `fuentes`; `Makefile` con el objetivo `verify-sources` (prerrequisito `check-tools`) que llama al script y queda fuera de `ci`; `.github/workflows/nightly.yml` con el trabajo `fuentes` del contrato esquemas-fixtures-y-controles §7 (`contents: read`, `issues: write`, `make verify-sources` y, si falla, comentar la incidencia abierta «verify-sources: boe articulo» o crearla); y `.golangci.yml` con `fuentes` en `run.build-tags`; ni el script ni `make verify-sources` se ejecutan en ninguna tarea, porque tocan la red (FR-115, SC-009, punto 8 de la Definition of Done, research D13 y D15, US7).",
+  "id": "T035",
+  "texto": "T035 Documentación alineada con los objetivos de `make` y registro de cambios: `CHANGELOG.md` › *Unreleased* › *Añadido* (applet `boe` con sus seis verbos, esquemas publicados `norma.json` y `bloque.json`, `make verify-sources` y la verificación nocturna) y › *Cambiado* (`make schema-check` activo; `fecha_consulta` declarada por la fuente, también en lo servido desde la caché; `app.Arrancar`); `README.md` y `CONTRIBUTING.md` con las filas de `make schema-check` (activo) y `make verify-sources` (con red, solo en el flujo nocturno); y `docs/PENDIENTES.md` sin las dos entradas de H4 que el hito resuelve (dónde viven los fixtures grabados; lo que el primer adaptador retira y amplía) (FR-126, punto 6 de la Definition of Done, research D17, obligación 8 del plan).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T034.md y déjala sin marcar.",
-  "base": "92846ae50e10beb727156cc59562c24ac1c91a7d",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T035.md y déjala sin marcar.",
+  "base": "4a278606bda5708ea6eb08775d7e958a38b4959a",
   "rutas": [
-    ".github/workflows/nightly.yml",
-    ".golangci.yml",
     "bloque.json",
-    "internal/app/fuentes_red_test.go",
-    "internal/app/fuentes_test.go",
-    "Makefile",
-    "scripts/verify-sources.sh"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "docs/PENDIENTES.md",
+    "norma.json",
+    "README.md"
   ],
   "cierre": false
 }

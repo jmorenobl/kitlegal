@@ -17,7 +17,9 @@ todavía, pero blindado, para que cualquier línea de Go que entre después atra
 **H1 — kernel de la línea de órdenes**, lo que un applet **no** tiene que declarar, de modo que cada
 fuente legal de los hitos siguientes herede la misma forma de invocarse, de fallar y de citar sin volver
 a escribirla. **H3 — caché local en SQLite** es un hito de fundación que no cambia nada en el binario,
-así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
+así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`. **H4 — applet `boe`** trae la
+primera fuente legal: la legislación consolidada del BOE, consultable y citable desde el binario
+distribuido, con caché, contratos de salida publicados y una verificación nocturna contra la fuente real.
 
 ### Añadido
 
@@ -127,6 +129,64 @@ así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
   applet y en un verbo. La ayuda del verbo, que escribe el analizador, la anunciaba ya como `-h, --help`;
   ahora el kernel la reconoce también donde todavía no hay gramática que la lea.
 
+*De H4 — el applet `boe`:*
+
+- **Applet `boe`, el primero con fuente**, registrado en el binario distribuido: consulta la API de
+  Legislación Consolidada del BOE (`https://www.boe.es/datosabiertos/api/legislacion-consolidada`) y firma
+  cada sobre con `fuente` `boe.legislacion-consolidada` y la `url` de la API consultada. `kitlegal boe …` y
+  el enlace `boe -> kitlegal` dan la misma salida byte a byte. Tiene **seis verbos**, ninguno por omisión
+  —sin verbo termina con `2`— y ninguna bandera propia:
+  - `buscar <texto>…` une las palabras y busca por título (`titulo:<p1> AND titulo:<p2> …`), o pasa la
+    consulta tal cual si lleva operadores (` AND `, ` OR `, ` NOT `, `titulo:`, `materia:` o comillas); como
+    mucho diez resultados, en el orden de la fuente, y `[]` si no hay ninguno.
+  - `indice <norma>` devuelve los bloques de la norma en el orden de la fuente, con el tipo de cada uno.
+  - `articulo <norma> <bloque>` devuelve el texto vigente del bloque, su `hash_texto`, su dirección pública
+    y la `url_eli` de la norma, con los avisos de su vigencia (`codigo`, de un enumerado cerrado de tres
+    valores, y `texto`), y nunca emite un texto cuya vigencia no ha podido comprobar. Es el porte de
+    `refs/boe.py`: su `data` coincide con lo que calcula `boe.py` en los ocho campos del diff de aceptación,
+    para seis artículos de cuatro normas.
+  - `articulos <norma> <bloque>…` hace lo mismo con varios bloques, en el orden pedido y con repeticiones,
+    pidiendo cada bloque distinto una sola vez y los metadatos como mucho una vez por invocación.
+  - `metadatos <norma>` devuelve los datos de la norma y los avisos de su vigencia.
+  - `analisis <norma>` devuelve sus materias, sus notas y sus referencias anteriores y posteriores, con el
+    texto completo.
+
+  Los identificadores se validan antes de abrir nada (`BOE-A-AAAA-N` para la norma; letras, dígitos, `.` y
+  `-` para el bloque) y los fallos salen con los códigos estables: `2` argumentos inválidos; `3` lo que la
+  fuente no tiene —un bloque o una norma inexistentes, o una respuesta vacía—; `4` la fuente caída tras los
+  reintentos, un estado HTTP no previsto o una respuesta que ya no se sabe interpretar; y `5` el límite de
+  peticiones o un `robots.txt` que deniega la ruta. Ninguno termina con `6`. El sobre de un fallo de la
+  fuente lleva la `url` de la petición que falló.
+- **Caché de las consultas y semántica de `--offline` y `--dry-run`.** `boe` guarda cada respuesta correcta
+  en la caché local de H3 (`~/.cache/kitlegal/cache.db`, u otra carpeta con `KITLEGAL_CACHE_DIR`) con una
+  vigencia por verbo —300 s para `buscar` y `metadatos`, 7 días para `indice`, `articulo`, `articulos` y
+  `analisis`—; los metadatos con los que se comprueba la vigencia se comparten entre `articulo`, `articulos`
+  y `metadatos`, y **ningún fallo se guarda**. Una consulta idéntica dentro de la vigencia no emite ninguna
+  petición. `--offline` abre la caché en solo lectura y responde con lo vigente, o termina con `4` sin pedir
+  nada; `--dry-run` tampoco pide nada ni crea la caché, y describe en la salida de error, una línea por
+  petición y sin repetir ninguna, cada `GET` que habría emitido. `--no-graph` y `--asunto` siguen sin
+  cambiar la salida.
+- **Fila de la fuente en `docs/SOURCES.md`**, que nace con ella: licencia, términos de uso, resultado de la
+  revisión del `robots.txt`, ritmo (`1s` entre dos peticiones al mismo sitio), formato y fecha de la revisión
+  humana. El adaptador pide con ese ritmo y declara esos términos, y un test falla si la fila y sus
+  constantes divergen.
+- **Esquemas publicados `schemas/norma.json` y `schemas/bloque.json`**, los primeros contratos de salida
+  versionados: `norma.json` describe `buscar`, `indice`, `metadatos` y `analisis`, y `bloque.json`,
+  `articulo` y `articulos`, cada verbo bajo `$defs.<verbo>` con su `$id`
+  (`https://ventanillalegal.es/schemas/<fichero>/<verbo>`) y la entrada y la salida que emite su
+  `--describe`. Los tests validan contra el fichero —no contra lo que emite el binario en ese instante— el
+  sobre real de éxito y los de fallo con códigos `2`, `3` y `4` de los seis verbos.
+- **`make verify-sources` y la verificación nocturna contra la fuente real.** `make verify-sources` ejecuta
+  `scripts/verify-sources.sh`, que pide a la API del BOE `boe articulo BOE-A-2015-10565 a21 --json` y exige
+  código `0`, un sobre válido contra la parte `articulo` de `schemas/bloque.json` y un texto no vacío: forma
+  y no contenido, porque el texto de un artículo cambia legítimamente con cada reforma. Es el único control
+  que pide algo a una fuente real, así que **necesita red y no forma parte de `make ci`**; la misma
+  comprobación, sin red, la ejerce `make test` sobre las grabaciones y sobre una respuesta que ya no se
+  interpreta. El flujo `nightly` gana el trabajo `fuentes`, independiente del de `make ci` y con permiso para
+  escribir incidencias: ejecuta `make verify-sources` y, si falla, comenta la incidencia abierta
+  «verify-sources: boe articulo» o la abre. Ningún flujo graba respuestas: las grabaciones contra las que
+  corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
+
 ### Cambiado
 
 *De H1 — el kernel de la línea de órdenes:*
@@ -174,9 +234,44 @@ así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`.
   son: código con test. `codecov.yml` declara además el estado `patch` (`target: auto`, bloqueante), que
   hasta ahora regía sin declarar: la regla «no retroceder» aplicada al código nuevo de cada propuesta.
 
-Tres órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
-`schema-check` (H4 y H10), `skills-sync` (H5) y `release`, que falla con código distinto de `0` hasta H6
-por ser la única con efectos externos. El binario que se publica **no registra
-todavía ningún applet** y su ayuda lo dice en lugar de enumerar una lista vacía: los de fuentes (`boe`,
-`placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`, y el primero es el de
-H4.
+*De H4 — el applet `boe`:*
+
+- **`make schema-check` deja de ser un aviso.** Ejecuta `TestEsquemasPublicados`
+  (`go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/`), que regenera en memoria, desde
+  `--describe` de los verbos registrados en el binario distribuido, la forma canónica de
+  `schemas/norma.json` y de `schemas/bloque.json` y la compara con los ficheros versionados, sin escribir
+  nada; falla nombrando el fichero y el verbo que difieren, o el fichero que no es la serialización canónica
+  de sus partes. Sigue dentro de `make ci`, que encadena los mismos nueve controles. Los ficheros solo se
+  regeneran a propósito, con la bandera `-actualizar-esquemas` del mismo test.
+- **`fecha_consulta` la declara la fuente, también en lo servido desde la caché** (ADR 0015). Hasta H3 el
+  kernel fechaba todo sobre con su reloj al montarlo, lo que habría hecho pasar por recién consultado un
+  artículo guardado hace seis días. `schema.Procedencia` gana `FechaConsulta`, y el montador fecha el sobre
+  con ella cuando la procedencia es válida y la fecha no es cero, en éxito y en fallo; con el valor cero, o
+  con una procedencia inválida, lo fecha con su reloj como antes, así que un applet que no declara fecha no
+  cambia. `boe` declara el instante en que `internal/httpx` emitió la petición —el de su último intento— o,
+  si lo que responde sale de la caché, el instante guardado en la entrada; si `data` se sostiene sobre varias
+  consultas, el más antiguo, y en un fallo, el de la petición que falló. La huella no cambia: se sigue
+  calculando sobre `data`, que no lleva la fecha.
+- **`app.Arrancar` es la raíz de arranque de los dos binarios.** Construye el registro y, si se construye,
+  atiende la invocación con `Main`; un registro que no se construye es un defecto de composición y sale como
+  sobre del kernel de clase «inesperado», con el mensaje en la salida de error y código `1`, nunca como un
+  pánico. El binario distribuido termina con `os.Exit(app.Arrancar(os.Args, app.RegistroDeProduccion, …))`:
+  su ayuda enumera `boe` y el fallo de un applet desconocido termina en `applets disponibles: boe`, en lugar
+  de decir que el binario no registra ninguno. El binario de extremo a extremo deja su `panic` y arranca por
+  el mismo camino con `echo`, `contar` y `boe` —este, sobre la reproducción de sus grabaciones y sin red—, y
+  `make test-e2e` recorre con él los seis verbos, el enlace, `--offline`, los códigos y la respuesta servida
+  desde la caché por debajo de 200 ms.
+- **El binario distribuido enlaza la red y la caché.** `go.mod` no gana ninguna entrada, pero al registrar
+  `boe` el binario enlaza `internal/httpx` e `internal/cache` y, con ellos, doce módulos de terceros:
+  `github.com/temoto/robotstxt` y `golang.org/x/time` —de la lista cerrada de la constitución, por la red—,
+  `modernc.org/sqlite` —ídem, por la caché— y los nueve que ese controlador arrastra (`modernc.org/libc`,
+  `modernc.org/mathutil`, `modernc.org/memory`, `github.com/remyoudompheng/bigfft`,
+  `github.com/dustin/go-humanize`, `github.com/google/uuid`, `github.com/mattn/go-isatty`,
+  `github.com/ncruces/go-strftime` y `golang.org/x/sys`). `TestDependenciasDelBinario` fija la lista de
+  dieciocho, cada uno justificado en su línea, y se retiran los tests que exigían que el binario no enlazara
+  la red ni la caché, ciertos solo mientras ningún applet las usaba.
+
+Dos órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
+`skills-sync` (H5) y `release`, que falla con código distinto de `0` hasta H6 por ser la única con efectos
+externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,
+`bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.
