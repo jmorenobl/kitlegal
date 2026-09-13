@@ -1,14 +1,14 @@
 {
-  "id": "T011",
-  "texto": "T011 [US5] Lectura de las respuestas JSON: `internal/source/boe/lectura.go` con las reglas J1-J9 de data-model §3.1 —raíz objeto; `data` ausente o nula como vacía; objeto suelto → lista de un elemento donde FR-070 lo pide, también dentro de los envoltorios; primer elemento de `data` en metadatos y análisis; índice anidado o plano; envoltorios `materia`, `nota`, `anterior` y `posterior`; elementos que no son objeto, saltados; texto: cadena, ausente o nulo → vacío, cualquier otro tipo → «fuente no disponible» nombrando el campo, nunca el marcador `?`—, con `TestLeerEnvoltorio`, `TestComoLista` y `TestTextoDe` de tabla, sin ficheros de datos (FR-016, FR-040, FR-070, research D7).",
+  "id": "T012",
+  "texto": "T012 [US1] Lectura del bloque XML con el recorrido de `ElementTree`: `internal/source/boe/bloque.go` con las reglas X1-X8 de data-model §3.2 —UTF-8 válido; declaración de codificación ignorada; raíz única; el primer descendiente `bloque` que no es la raíz; atributos `titulo` y `tipo` del bloque y `fecha_publicacion`, `fecha_vigencia` e `id_norma` de la última `version` de primer nivel (fecha `original` si falta o sin versiones; vacíos los demás); texto con `CharData`, `CDATA` y `tail`, sin que comentarios ni instrucciones de proceso lo corten; normalización de líneas— y cualquier cuerpo ilegible o sin bloque → «fuente no disponible», nunca el cuerpo ni un recorte, con `TestLeerBloque` de tabla (con versiones, sin versiones, última sin fecha, fecha vacía presente, `tail`, CRLF, CDATA, comentario, entidades, atributos con saltos, bloque anidado, raíz `bloque`, ilegible, no UTF-8, declaración ISO-8859-1 con UTF-8, dos raíces) (FR-010, FR-011, FR-014, FR-016, research D6).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
-  "base": "5b75c8e6dd6143d7c9ad1c846480dc92c624e295",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
+  "base": "94f58f12537180a10293ab9888ff15b79639d1fd",
   "rutas": [
-    "internal/source/boe/lectura.go"
+    "internal/source/boe/bloque.go"
   ],
   "cierre": false
 }
