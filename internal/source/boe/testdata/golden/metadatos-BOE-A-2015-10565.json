@@ -1,0 +1,20 @@
+{
+  "data": {
+    "avisos": [],
+    "estado_consolidacion": {
+      "codigo": "3",
+      "texto": "Finalizado"
+    },
+    "estatus_derogacion": "N",
+    "fecha_disposicion": "20151001",
+    "fecha_publicacion": "20151002",
+    "fecha_vigencia": "20161002",
+    "norma": "BOE-A-2015-10565",
+    "numero_oficial": "39/2015",
+    "rango": "Ley",
+    "titulo": "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.",
+    "url_eli": "https://www.boe.es/eli/es/l/2015/10/01/39",
+    "vigencia_agotada": "N"
+  },
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/metadatos"
+}

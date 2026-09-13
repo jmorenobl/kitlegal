@@ -1,17 +1,14 @@
 {
-  "id": "T029",
-  "texto": "T029 [US6] El comparador de esquemas y `make schema-check` real: `internal/app/esquemas_test.go` con `TestEsquemasPublicados`, que regenera en memoria `norma.json` (`analisis`, `buscar`, `indice`, `metadatos`) y `bloque.json` (`articulo`, `articulos`) desde `--describe` de los verbos registrados en producción, en la forma canónica del contrato esquemas-fixtures-y-controles §1 con el `$id` de cada verbo, compara por verbo y entero cada fichero publicado que exista, con los dos mensajes del contrato que nombran fichero y verbo, no compara nada si no existe ninguno, y con la bandera `-actualizar-esquemas` los escribe con `0o600` desde un auxiliar distinto del que lee; y `Makefile`, cuyo objetivo `schema-check` deja de ser un aviso y ejecuta solo ese test en el paquete del applet, con `check-tools` como prerrequisito, y sigue en `ci` (FR-110, SC-006, research D11).",
+  "id": "T030",
+  "texto": "T030 [datos] [US6] Golden de `data`: `internal/source/boe/testdata/golden/` con los trece ficheros de los casos del contrato esquemas-fixtures-y-controles §2, generados con `TestGolden` y su bandera `-actualizar-golden` mediante la orden de esa sección (no se copia aquí) y revisados en la pausa; ningún otro fichero (FR-112, SC-005, US6 escenario 3).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T029.md y déjala sin marcar.",
-  "base": "d973d539623f2b060abaaed9ecb3cc22fd7e9519",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T030.md y déjala sin marcar.",
+  "base": "59baa2469397b5f1dead91ce54b38a62fb28448c",
   "rutas": [
-    "bloque.json",
-    "internal/app/esquemas_test.go",
-    "Makefile",
-    "norma.json"
+    "internal/source/boe/testdata/golden/"
   ],
   "cierre": false
 }

@@ -1,0 +1,4 @@
+{
+  "data": [],
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Azzqxkwvjh%22%7D%7D%7D"
+}
