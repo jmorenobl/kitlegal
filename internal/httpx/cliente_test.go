@@ -140,6 +140,38 @@ func TestOpcionesInvalidas(t *testing.T) {
 	})
 }
 
+// TestConHoraRechazaNula fija la regla de validez de ConHora en los dos
+// constructores, porque vale para los dos: el cliente de reproducción también
+// declara cuándo sirvió cada grabación. Sin hora de la que sacar el instante de
+// emisión no hay cliente, y el fallo es de argumentos, se entrega en la
+// construcción y nombra la opción; con una hora declarada, los dos se construyen
+// (contrato httpx-acepta-e-instante §3 de H4).
+func TestConHoraRechazaNula(t *testing.T) {
+	t.Parallel()
+
+	t.Run("New", func(t *testing.T) {
+		t.Parallel()
+
+		cliente, err := New(ConHora(nil))
+		exigeHoraNulaRechazada(t, cliente, err)
+
+		_, err = New(ConHora(time.Now))
+		require.NoError(t, err, "una hora declarada se acepta")
+	})
+
+	t.Run("Replay", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := grabacionesDePrueba(t)
+
+		cliente, err := Replay(directorio, ConHora(nil))
+		exigeHoraNulaRechazada(t, cliente, err)
+
+		_, err = Replay(directorio, ConHora(time.Now))
+		require.NoError(t, err, "una hora declarada se acepta también en reproducción, que no la rechaza como al ritmo")
+	})
+}
+
 // TestPedirRechazaMetodo comprueba la restricción de la constitución §I: no
 // existe en el módulo ninguna llamada HTTP con método distinto de GET o HEAD.
 // El rechazo es de argumentos y llega **sin abrir ninguna conexión**, que es lo
@@ -596,6 +628,20 @@ func exigeArgumentosSinConexion(
 	assert.Equal(t, schema.ClaseArgumentos, fallo.Clase(), "lo que quien llama puede corregir es «argumentos»")
 	assert.Equal(t, Respuesta{}, respuesta, "un rechazo no entrega ninguna respuesta")
 	assert.Zero(t, contador.total.Load(), "una petición rechazada no abre ninguna conexión")
+}
+
+// exigeHoraNulaRechazada comprueba el rechazo de ConHora(nil): sin cliente a medio
+// construir, con la clase y el código de los argumentos, sin petición implicada y
+// con la opción nombrada en el mensaje (FR-034).
+func exigeHoraNulaRechazada(t *testing.T, cliente *Cliente, err error) {
+	t.Helper()
+
+	assert.Nil(t, cliente, "una hora nula no produce cliente a medio construir")
+	exigeClaseYCodigo(t, schema.ClaseArgumentos, 2, err)
+
+	fallo := falloDe(t, err)
+	assert.Empty(t, fallo.Peticion.URL, "un fallo de configuración no tiene petición implicada (FR-034)")
+	assert.Contains(t, fallo.Error(), "ConHora", "el mensaje nombra la opción que falla (FR-034)")
 }
 
 // exigeFuenteNoDisponible pide la dirección con el cliente por omisión y exige

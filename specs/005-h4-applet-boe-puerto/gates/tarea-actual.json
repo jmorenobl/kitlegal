@@ -1,18 +1,23 @@
 {
-  "id": "T002",
-  "texto": "T002 [P] `httpx` pide el formato de cada recurso: `internal/httpx/peticion.go` añade `Peticion.Acepta` (vacío → la petición no lleva `Accept`); `internal/httpx/cliente.go` lo valida con `mime.ParseMediaType` y sin caracteres de control (inválido → «argumentos», código 2, sin abrir nada, también en ensayo) y pone `Accept` en la petición y en cada salto de redirección; `internal/httpx/robots.go` garantiza que la obtención del `robots.txt` no lo lleva; con `TestPedirConAcepta` en `internal/httpx/cliente_test.go` (cabecera enviada y grabada; vacía → sin cabecera; inválida → 2 sin petición; ausente en la petición del `robots.txt`; la reproducción sigue emparejando solo por método y dirección) (FR-003, contrato httpx-acepta-e-instante §1, research D4).",
-  "intento": 1,
+  "id": "T003",
+  "texto": "T003 `httpx` dice cuándo emitió cada petición: `internal/httpx/instante.go` (nuevo) con la marca de emisión en el contexto, de clave sin exportar, y `conMarcaDeEmision`, que escribe la hora justo antes de entregar la petición al transporte y que cada intento sobrescribe; `internal/httpx/peticion.go` añade `Respuesta.Instante` (cero en ensayo); `internal/httpx/errores.go` añade `Error.Instante`; `internal/httpx/cliente.go` añade `ConHora(ahora func() time.Time)` (nula → «argumentos» al construir; vale para `New` y para `Replay`), coloca la marca en las dos cadenas en el orden del contrato §4, la reinicia antes de cada salto y la copia al volver en `Respuesta.Instante` o `Error.Instante` (vacía → la hora al volver); `internal/httpx/robots.go` obtiene su fichero con un contexto que oculta la marca; con `TestConHoraRechazaNula` en `internal/httpx/cliente_test.go` y `TestInstanteDeEmision` en `internal/httpx/instante_test.go`, con los nueve subtests `acierto`, `acierto-tras-reintentos`, `fallo-tras-reintentos`, `denegada-por-robots`, `sin-turno`, `redireccion`, `reproduccion`, `ensayo` y `argumentos`, sobre servidores de prueba de la biblioteca estándar (solo dentro de este paquete, regla R2) y un reloj que da un instante distinto en cada llamada; y, porque el contrato §4 pone la marca entre la identificación y la reproducción y el instante sale de la hora del cliente, `internal/httpx/reproducir_test.go` ajusta el subtest «identifica la petición» de `TestReplayGarantiasVigentes` (bajo la identificación, la marca de emisión, y bajo ella la reproducción y nada más) y `TestReplayEsDeterminista` (los dos clientes con la misma `ConHora` fija), e `internal/httpx/grabar.go` corrige solo el comentario de `decoradorDeGrabacion`, que deja de ser el escalón de más abajo (FR-095, FR-096, SC-008, contrato httpx-acepta-e-instante §2-§4, research D4; redelimitada en el intento 1, ver gates/tarea-T003.md).",
+  "intento": 2,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
-  "base": "8c17995f494ded53187c7dd1900f113226c463ab",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
+  "base": "d19470061ba68e7428e3d7a00f29d1f423ae697e",
   "rutas": [
+    "gates/tarea-T003.md",
     "internal/httpx/cliente_test.go",
     "internal/httpx/cliente.go",
+    "internal/httpx/errores.go",
+    "internal/httpx/grabar.go",
+    "internal/httpx/instante_test.go",
+    "internal/httpx/instante.go",
     "internal/httpx/peticion.go",
-    "internal/httpx/robots.go",
-    "robots.txt"
+    "internal/httpx/reproducir_test.go",
+    "internal/httpx/robots.go"
   ],
-  "cierre": false
+  "cierre": true
 }

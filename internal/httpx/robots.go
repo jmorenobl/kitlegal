@@ -123,7 +123,10 @@ func (r *decoradorDeRobots) reglasDe(peticion *http.Request) (*reglasDelSitio, e
 		return delSitio.reglas, nil
 	}
 
-	reglas, err := r.obtener(peticion.Context(), peticion.URL)
+	// La obtención se emite con la marca de emisión oculta: sus peticiones no son
+	// la pedida, y la consulta no puede declarar como suyo el instante de otra
+	// petición (contrato httpx-acepta-e-instante §2 y §4 de H4).
+	reglas, err := r.obtener(contextoSinMarca(peticion.Context()), peticion.URL)
 	if err != nil {
 		return nil, err
 	}

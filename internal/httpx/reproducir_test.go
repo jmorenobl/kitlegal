@@ -141,13 +141,20 @@ func TestReplaySirveLasGrabaciones(t *testing.T) {
 // ni el reloj ni el orden. `make test` lo ejecuta además con `-shuffle=on` y el
 // quickstart con `-count=2`, que es lo que comprueba que tampoco queda estado de
 // una ejecución para la siguiente.
+//
+// Lo único que la grabación no guarda es el instante de emisión, que sale de la
+// hora del cliente al servirla (contrato httpx-acepta-e-instante §2 de H4): uno
+// y otro cliente declaran la misma hora fija, y así la comparación de la
+// respuesta entera exige que todo lo demás —lo que sí está grabado— salga
+// idéntico.
 func TestReplayEsDeterminista(t *testing.T) {
 	t.Parallel()
 
 	directorio := grabacionesDePrueba(t)
 	peticion := Peticion{Metodo: http.MethodGet, URL: normaGrabada}
+	horaFija := ConHora(func() time.Time { return instanteDePrueba })
 
-	cliente := clienteDeReproduccion(t, directorio)
+	cliente := clienteDeReproduccion(t, directorio, horaFija)
 
 	primera, err := cliente.Pedir(t.Context(), schema.Contexto{}, peticion)
 	require.NoError(t, err)
@@ -156,7 +163,7 @@ func TestReplayEsDeterminista(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, primera, repetida, "el mismo cliente devuelve dos veces exactamente lo mismo")
 
-	deOtroCliente, err := clienteDeReproduccion(t, directorio).Pedir(t.Context(), schema.Contexto{}, peticion)
+	deOtroCliente, err := clienteDeReproduccion(t, directorio, horaFija).Pedir(t.Context(), schema.Contexto{}, peticion)
 	require.NoError(t, err)
 	assert.Equal(t, primera, deOtroCliente, "y otro cliente sobre el mismo directorio, también")
 
@@ -305,9 +312,16 @@ func TestReplayGarantiasVigentes(t *testing.T) {
 
 		cliente, espia := clienteEspiado(t, grabacionesDePrueba(t))
 
-		_, esDeReproduccion := espia.siguiente.(*transporteDeReproduccion)
+		// Bajo la identificación va la marca de emisión, que no es una garantía
+		// sino una medida —no abre nada ni espera nada—, y bajo ella la
+		// reproducción y nada más (contrato httpx-acepta-e-instante §4 de H4).
+		escalonDeLaMarca, esLaMarca := espia.siguiente.(*decoradorDeMarcaDeEmision)
+		require.True(t, esLaMarca,
+			"bajo la identificación está la marca de emisión, que anota la hora al servir cada grabación")
+
+		_, esDeReproduccion := escalonDeLaMarca.siguiente.(*transporteDeReproduccion)
 		assert.True(t, esDeReproduccion,
-			"bajo la identificación está la reproducción y nada más: ni robots.txt, ni ritmo, ni "+
+			"y bajo la marca está la reproducción y nada más: ni robots.txt, ni ritmo, ni "+
 				"reintentos, ni transporte alguno que pudiera abrir una conexión (FR-046, FR-049)")
 
 		_, err := cliente.Pedir(t.Context(), schema.Contexto{},

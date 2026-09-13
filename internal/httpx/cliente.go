@@ -74,6 +74,10 @@ type Cliente struct {
 	// registrador es el destino de los eventos. Nunca es nulo: sin la opción,
 	// descarta lo que se le entregue (FR-035, D15).
 	registrador *slog.Logger
+	// hora es de donde sale el instante de emisión que Pedir entrega. Nunca es
+	// nula: sin la opción, es time.Now (contrato httpx-acepta-e-instante §3 de
+	// H4).
+	hora func() time.Time
 }
 
 // configuracionDelCliente es lo que las opciones rellenan antes de que New
@@ -86,6 +90,7 @@ type configuracionDelCliente struct {
 	intentos        int
 	reloj           relojDeEspera
 	registrador     *slog.Logger
+	hora            func() time.Time
 }
 
 // Opcion declara una variación del cliente. Devuelve el error de la opción
@@ -202,6 +207,27 @@ func ConRegistrador(registrador *slog.Logger) Opcion {
 	}
 }
 
+// ConHora declara de dónde sale el instante de emisión que Pedir entrega en
+// Respuesta.Instante y en Error.Instante: time.Now por omisión. Vale para New y
+// para Replay, porque el cliente de reproducción también declara cuándo sirvió
+// cada grabación, y sustituirla es lo que permite fijar ese instante sin depender
+// del reloj del sistema (contrato httpx-acepta-e-instante §3 de H4).
+//
+// Una hora nula es un error de argumentos: no declararla ya da la del sistema, y
+// declararla nula solo puede ser un descuido que dejaría a Pedir sin instante.
+func ConHora(ahora func() time.Time) Opcion {
+	return func(config *configuracionDelCliente) error {
+		if ahora == nil {
+			return errorDeArgumentos(Peticion{}, nil,
+				"la hora de la que sale el instante de emisión no puede ser nula (ConHora)")
+		}
+
+		config.hora = ahora
+
+		return nil
+	}
+}
+
 // New construye el cliente contra la red, con sus garantías ya puestas sin
 // declarar ninguna opción: identificación en toda petición, robots.txt del sitio
 // consultado antes de la primera petición, reintentos de lo que puede ser
@@ -237,17 +263,19 @@ func New(opciones ...Opcion) (*Cliente, error) {
 	registro := nuevosSitios(config.intervalo)
 
 	// La cadena se compone de dentro afuera, que es el orden en que cada
-	// escalón depende del anterior: la grabación es lo que envuelve al
-	// transporte —graba la petición tal como salió y la respuesta tal como
-	// llegó—, el ritmo va por encima porque es lo último que una petición
-	// atraviesa antes de emitirse, los reintentos por encima para que cada
-	// intento espere su turno, el robots.txt por encima de ellos para que su
-	// propia obtención pase por los dos, y la identificación arriba del todo
+	// escalón depende del anterior: la marca de emisión es lo que envuelve al
+	// transporte —anota la hora justo antes de entregarle cada intento, ya con
+	// su turno esperado (contrato httpx-acepta-e-instante §4 de H4)—, la
+	// grabación va por encima —graba la petición tal como salió y la respuesta
+	// tal como llegó—, el ritmo por encima porque es la última espera que una
+	// petición atraviesa antes de emitirse, los reintentos por encima para que
+	// cada intento espere su turno, el robots.txt por encima de ellos para que
+	// su propia obtención pase por los dos, y la identificación arriba del todo
 	// (FR-017, FR-021, D3).
 	//
 	// Sin grabación no hay escalón que grabe: apagarla no es una bandera que el
 	// decorador consulte, sino una cadena en la que no está (FR-041).
-	var cadena http.RoundTripper = nuevoTransporte()
+	cadena := conMarcaDeEmision(nuevoTransporte(), config.hora)
 
 	if directorio != "" {
 		cadena = conGrabacion(cadena, directorio)
@@ -263,6 +291,7 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		sitios:      registro,
 		fuente:      config.fuente,
 		registrador: config.registrador,
+		hora:        config.hora,
 	}, nil
 }
 
@@ -282,6 +311,11 @@ func New(opciones ...Opcion) (*Cliente, error) {
 // suya en el directorio queda sin usar y no es un error—, ni ritmo, ni
 // reintentos: los tres carecen de sentido sin fuente real y romperían el
 // determinismo de FR-048.
+//
+// Entre la identificación y la reproducción va la marca de emisión, que no es
+// una garantía sino una medida: no abre nada ni espera nada, y anota la hora del
+// cliente al servir cada grabación, que es el instante que declara la respuesta
+// reproducida (contrato httpx-acepta-e-instante §4 de H4).
 func Replay(dir string, opciones ...Opcion) (*Cliente, error) {
 	config, err := configuracionDe(opciones)
 	if err != nil {
@@ -292,15 +326,18 @@ func Replay(dir string, opciones ...Opcion) (*Cliente, error) {
 		return nil, err
 	}
 
-	// De los valores por omisión, esta cadena solo usa el registrador: ni el
-	// ritmo ni los intentos tienen escalón que los lea, y por eso declararlos es
-	// un error y no una preferencia que no se cumple.
+	// De los valores por omisión, esta cadena solo usa el registrador y la hora:
+	// ni el ritmo ni los intentos tienen escalón que los lea, y por eso
+	// declararlos es un error y no una preferencia que no se cumple.
 	config.completar()
 
+	cadena := conIdentificacion(conMarcaDeEmision(nuevoTransporteDeReproduccion(dir), config.hora))
+
 	return &Cliente{
-		cliente:     nuevoClienteHTTP(conIdentificacion(nuevoTransporteDeReproduccion(dir))),
+		cliente:     nuevoClienteHTTP(cadena),
 		fuente:      config.fuente,
 		registrador: config.registrador,
+		hora:        config.hora,
 	}, nil
 }
 
@@ -342,6 +379,10 @@ func (config *configuracionDelCliente) completar() {
 
 	if config.registrador == nil {
 		config.registrador = slog.New(slog.DiscardHandler)
+	}
+
+	if config.hora == nil {
+		config.hora = time.Now
 	}
 }
 
@@ -416,10 +457,19 @@ func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 // antes o después de ella: la comprobación del método, de la dirección y del
 // formato, que ocurre antes de abrir nada; el ensayo, que devuelve sin bajar por
 // la cadena; y el bucle de redirecciones con la clasificación del resultado (D3).
+//
+// Lo que entrega, respuesta o fallo, lleva el instante de emisión de la última
+// petición que salió hacia la fuente —el último intento del último salto—, que
+// es la fecha de consulta que la fuente declarará (FR-096, SC-008). Solo se
+// conoce dentro de la cadena, así que lo recoge una marca que Pedir pone en el
+// contexto y lee al volver. Vacía porque en el último salto no salió ninguna
+// petición —el robots.txt la deniega, no hay turno, el plazo terminó antes—, el
+// instante es el del abandono, y el de un fallo de argumentos también; en ensayo
+// no hay ninguno (contrato httpx-acepta-e-instante §2 y §4 de H4).
 func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Peticion) (Respuesta, error) {
-	direccion, err := comprobarPeticion(p)
-	if err != nil {
-		return Respuesta{}, err
+	direccion, fallo := comprobarPeticion(p)
+	if fallo != nil {
+		return Respuesta{}, fallo.fechado(c.hora())
 	}
 
 	if ejecucion.DryRun {
@@ -429,7 +479,19 @@ func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Petici
 		return Respuesta{Peticion: p, URL: p.URL, Ensayo: true}, nil
 	}
 
-	return c.seguirLaCadena(ctx, p, direccion)
+	marca := &marcaDeEmision{}
+
+	respuesta, fallo := c.seguirLaCadena(contextoConMarca(ctx, marca), p, direccion, marca)
+
+	instante := marca.instanteO(c.hora)
+
+	if fallo != nil {
+		return Respuesta{}, fallo.fechado(instante)
+	}
+
+	respuesta.Instante = instante
+
+	return respuesta, nil
 }
 
 // comprobarPeticion aplica las tres comprobaciones que no necesitan red y que por
@@ -437,7 +499,7 @@ func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Petici
 // absoluta, de esquema de red y con sitio (research D19), y el formato, si se
 // pide, se puede poner en una cabecera (research D4 de H4). Las tres son de la
 // clase «argumentos» y ninguna llega a abrir una conexión.
-func comprobarPeticion(p Peticion) (*url.URL, error) {
+func comprobarPeticion(p Peticion) (*url.URL, *Error) {
 	if p.Metodo != http.MethodGet && p.Metodo != http.MethodHead {
 		return nil, errorDeArgumentos(p, nil, "el método de una petición solo puede ser GET o HEAD")
 	}
@@ -455,8 +517,8 @@ func comprobarPeticion(p Peticion) (*url.URL, error) {
 		return nil, errorDeArgumentos(p, nil, "la dirección no nombra ningún sitio")
 	}
 
-	if err := comprobarFormato(p); err != nil {
-		return nil, err
+	if fallo := comprobarFormato(p); fallo != nil {
+		return nil, fallo
 	}
 
 	return direccion, nil
@@ -473,7 +535,7 @@ func comprobarPeticion(p Peticion) (*url.URL, error) {
 //
 // El valor se cita entrecomillado con strconv.Quote, para que un carácter de
 // control no llegue crudo al mensaje ni a quien lo registre.
-func comprobarFormato(p Peticion) error {
+func comprobarFormato(p Peticion) *Error {
 	if p.Acepta == "" {
 		return nil
 	}
@@ -498,10 +560,22 @@ func comprobarFormato(p Peticion) error {
 // del origen (FR-011, D10). Termina cuando la respuesta ya no es una redirección
 // seguible, cuando una dirección se repite o cuando se agota el tope; en los dos
 // últimos casos, con la clase de quien no sabe entregar el recurso.
-func (c *Cliente) seguirLaCadena(ctx context.Context, p Peticion, destino *url.URL) (Respuesta, error) {
+//
+// Recibe, además del contexto que la lleva, la marca de emisión, para vaciarla
+// antes de cada salto. Devuelve el *Error del paquete y no un error cualquiera,
+// como las funciones de las que depende, porque Pedir fecha todo fallo antes de
+// entregarlo y así ninguno puede llegarle sin fechar.
+func (c *Cliente) seguirLaCadena(
+	ctx context.Context, p Peticion, destino *url.URL, marca *marcaDeEmision,
+) (Respuesta, *Error) {
 	visitadas := make(map[string]struct{}, topeDeRedirecciones+1)
 
 	for salto := 0; salto <= topeDeRedirecciones; salto++ {
+		// Cada salto es una petición completa, y el que no llega a emitirse no
+		// puede quedarse con el instante del anterior (contrato
+		// httpx-acepta-e-instante §4 de H4).
+		marca.reiniciar()
+
 		// El contexto se comprueba antes de cada salto y no solo dentro del
 		// transporte: lo que corta la operación es el plazo de quien la pidió, y
 		// tiene que cortarla igual cuando abajo no hay ninguna conexión que
@@ -518,18 +592,18 @@ func (c *Cliente) seguirLaCadena(ctx context.Context, p Peticion, destino *url.U
 
 		visitadas[destino.String()] = struct{}{}
 
-		recibida, err := c.emitir(ctx, p, destino)
-		if err != nil {
-			return Respuesta{}, err
+		recibida, fallo := c.emitir(ctx, p, destino)
+		if fallo != nil {
+			return Respuesta{}, fallo
 		}
 
 		if !esRedireccionSeguible(recibida.estado) {
 			return entregar(p, destino, recibida)
 		}
 
-		siguiente, err := siguienteDestino(p, destino, recibida)
-		if err != nil {
-			return Respuesta{}, err
+		siguiente, fallo := siguienteDestino(p, destino, recibida)
+		if fallo != nil {
+			return Respuesta{}, fallo
 		}
 
 		c.registrador.DebugContext(ctx, "redirección seguida",
@@ -561,7 +635,7 @@ type recibida struct {
 // la cadena: cada salto es una petición completa que no hereda nada del anterior
 // (D10), y la del robots.txt, que fabrica su propio escalón, no lo lleva
 // (research D4 de H4).
-func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (recibida, error) {
+func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (recibida, *Error) {
 	peticion, err := nuevaPeticionIdentificada(ctx, p.Metodo, destino.String())
 	if err != nil {
 		return recibida{}, errorDeArgumentos(p, err, "la dirección no se puede pedir")
@@ -611,7 +685,7 @@ func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (rec
 // emitido nada (FR-022)— por la conjetura de un transporte que no llegó a
 // intentarse. El contexto que vence o se cancela corta la operación en ese
 // instante (FR-005, FR-029), y lo que queda es el sitio que no responde.
-func falloAlEmitir(ctx context.Context, p Peticion, causa error) error {
+func falloAlEmitir(ctx context.Context, p Peticion, causa error) *Error {
 	var declarado *Error
 	if errors.As(causa, &declarado) {
 		return declarado
@@ -644,7 +718,7 @@ func esRedireccionSeguible(estado int) bool {
 // redirección que no dice a dónde ir, o que lo dice con una dirección
 // ininterpretable, no se puede seguir: es la fuente la que no sabe entregar el
 // recurso (FR-011, D10).
-func siguienteDestino(p Peticion, actual *url.URL, recibida recibida) (*url.URL, error) {
+func siguienteDestino(p Peticion, actual *url.URL, recibida recibida) (*url.URL, *Error) {
 	destino := recibida.cabeceras.Get("Location")
 	if destino == "" {
 		return nil, errorDeFuenteNoDisponible(p, recibida.estado, nil,
@@ -664,7 +738,7 @@ func siguienteDestino(p Peticion, actual *url.URL, recibida recibida) (*url.URL,
 // clase, un 3xx que no se ha podido seguir no es entregable, y todo lo demás
 // —el «no encontrado» incluido— se entrega a quien llama, que es quien sabe qué
 // significa en su fuente (FR-029, FR-030, FR-032; tabla del contrato §3).
-func entregar(p Peticion, direccion *url.URL, recibida recibida) (Respuesta, error) {
+func entregar(p Peticion, direccion *url.URL, recibida recibida) (Respuesta, *Error) {
 	switch {
 	case recibida.estado == http.StatusTooManyRequests:
 		return Respuesta{}, errorDe429(p, recibida.cabeceras, time.Now(),

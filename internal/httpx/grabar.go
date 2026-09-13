@@ -80,21 +80,24 @@ type respuestaGrabada struct {
 	CuerpoBase64 *string   `json:"cuerpo_base64,omitempty"`
 }
 
-// decoradorDeGrabacion es el escalón de más abajo de la cadena, el único por
-// debajo del transporte: graba lo que la fuente respondió y entrega la respuesta
-// intacta a quien la pidió (FR-036, FR-038, D3).
+// decoradorDeGrabacion es el escalón que va justo encima de la marca de emisión
+// y, por tanto, del transporte: graba lo que la fuente respondió y entrega la
+// respuesta intacta a quien la pidió (FR-036, FR-038, D3; contrato
+// httpx-acepta-e-instante §4 de H4).
 //
 // Va ahí y no más arriba porque lo que se graba tiene que ser la petición tal
 // como salió —ya identificada, ya con su turno esperado y ya en el intento que
 // de verdad se emitió— y la respuesta tal como llegó, sin que ningún escalón de
-// encima la haya interpretado todavía.
+// encima la haya interpretado todavía. La marca, que solo anota la hora, no
+// cambia nada de lo que se graba.
 type decoradorDeGrabacion struct {
 	// directorio es <raíz>/<fuente>, ya validado y creado en la construcción:
 	// aquí no se deduce ninguna ruta ni se comprueba ninguna, porque lo que
 	// llega a este punto es una escritura que ya se decidió que se podía hacer
 	// (FR-042, FR-064).
 	directorio string
-	// siguiente es el transporte, el escalón que de verdad abre la conexión.
+	// siguiente es la marca de emisión y, bajo ella, el transporte, el escalón
+	// que de verdad abre la conexión.
 	siguiente http.RoundTripper
 }
 

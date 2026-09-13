@@ -1,6 +1,9 @@
 package httpx
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // Peticion es lo que un adaptador de fuente pide: un método, una dirección y el
 // formato en que quiere el recurso, y nada más. No lleva un juego de cabeceras
@@ -44,6 +47,12 @@ type Respuesta struct {
 	// Ensayo es verdadero solo bajo --dry-run, y entonces la petición no se ha
 	// emitido: Estado es 0 y Cuerpo es nil (FR-065).
 	Ensayo bool
+	// Instante es el de emisión de la petición que entregó esta respuesta —la
+	// del último intento del último salto—, con la hora del cliente tomada justo
+	// antes de entregarla al transporte; en reproducción, al servir la grabación.
+	// Es la fecha de consulta que la fuente declara (FR-096). Cero en ensayo,
+	// donde no se emitió nada (contrato httpx-acepta-e-instante §2 de H4).
+	Instante time.Time
 }
 
 // Descripcion es la línea «<Metodo> <URL>» de la petición pedida: la que un
