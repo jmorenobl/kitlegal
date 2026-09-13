@@ -1,14 +1,15 @@
 {
-  "id": "T031",
-  "texto": "T031 [US6] Cobertura de golden: `internal/source/boe/fuente_test.go` añade `TestGoldenCubreTodosLosCasos` (existen los trece golden de la lista cerrada y cubren los seis verbos; uno de más o de menos falla nombrándolo) (FR-112, SC-005).",
+  "id": "T032",
+  "texto": "T032 [datos] [US6] Esquemas publicados: `schemas/norma.json` y `schemas/bloque.json` generados con `TestEsquemasPublicados` y su bandera `-actualizar-esquemas` mediante la orden de la sección §1 del contrato esquemas-fixtures-y-controles (no se copia aquí) y revisados en la pausa, incluido el enumerado de `codigo` con exactamente sus tres valores en `articulo`, `articulos` y `metadatos`; ningún otro fichero (FR-012, FR-110, SC-006, US6 escenario 1).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T031.md y déjala sin marcar.",
-  "base": "a3a06cf9b60464780d22a87e194261777cf8e46c",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T032.md y déjala sin marcar.",
+  "base": "e82fa0a96d528f88758afab49ec817374f44c7cc",
   "rutas": [
-    "internal/source/boe/fuente_test.go"
+    "schemas/bloque.json",
+    "schemas/norma.json"
   ],
   "cierre": false
 }

@@ -1,0 +1,438 @@
+{
+  "$defs": {
+    "articulo": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.Articulo": {
+          "additionalProperties": false,
+          "properties": {
+            "avisos": {
+              "items": {
+                "$ref": "#/$defs/boe.Aviso"
+              },
+              "type": "array"
+            },
+            "bloque": {
+              "type": "string"
+            },
+            "fecha_version": {
+              "type": "string"
+            },
+            "fecha_vigencia": {
+              "type": "string"
+            },
+            "hash_texto": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "norma_modificadora": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            },
+            "tipo": {
+              "type": "string"
+            },
+            "titulo": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "url_eli": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "norma",
+            "bloque",
+            "titulo",
+            "tipo",
+            "fecha_version",
+            "fecha_vigencia",
+            "norma_modificadora",
+            "texto",
+            "hash_texto",
+            "avisos",
+            "url",
+            "url_eli"
+          ],
+          "type": "object"
+        },
+        "boe.Aviso": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "enum": [
+                "consolidacion-no-finalizada",
+                "derogada",
+                "vigencia-agotada"
+              ],
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "texto"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/bloque.json/articulo",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "bloque": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "norma",
+            "bloque"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/boe.Articulo"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe articulo"
+    },
+    "articulos": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.Articulo": {
+          "additionalProperties": false,
+          "properties": {
+            "avisos": {
+              "items": {
+                "$ref": "#/$defs/boe.Aviso"
+              },
+              "type": "array"
+            },
+            "bloque": {
+              "type": "string"
+            },
+            "fecha_version": {
+              "type": "string"
+            },
+            "fecha_vigencia": {
+              "type": "string"
+            },
+            "hash_texto": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "norma_modificadora": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            },
+            "tipo": {
+              "type": "string"
+            },
+            "titulo": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "url_eli": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "norma",
+            "bloque",
+            "titulo",
+            "tipo",
+            "fecha_version",
+            "fecha_vigencia",
+            "norma_modificadora",
+            "texto",
+            "hash_texto",
+            "avisos",
+            "url",
+            "url_eli"
+          ],
+          "type": "object"
+        },
+        "boe.Aviso": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "enum": [
+                "consolidacion-no-finalizada",
+                "derogada",
+                "vigencia-agotada"
+              ],
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "texto"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/bloque.json/articulos",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve el texto vigente de varios bloques de una norma, en el orden pedido.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "bloques": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "norma",
+            "bloques"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "items": {
+                  "$ref": "#/$defs/boe.Articulo"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe articulos"
+    }
+  },
+  "$id": "https://ventanillalegal.es/schemas/bloque.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salidas de los verbos articulo y articulos del applet boe. Generado desde --describe con make schema-check; no editar.",
+  "title": "boe · bloque"
+}
