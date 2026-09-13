@@ -148,7 +148,8 @@ type recursoDelManifiesto struct {
 }
 
 // articuloDelDiff es un artículo del diff de aceptación: la norma y el bloque de
-// cuya lectura hay una referencia escrita a mano.
+// cuya lectura hay una referencia generada con refs/boe.py sobre las grabaciones
+// y revisada por una persona.
 type articuloDelDiff struct {
 	norma  string
 	bloque string
