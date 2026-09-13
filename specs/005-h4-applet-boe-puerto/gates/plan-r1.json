@@ -1,0 +1,76 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": false,
+      "evidencia": "Completo: una fila por principio (I-IX) y por regla de dependencia (las seis de docs/ROADMAP.md §2, la de ejemplos del ADR 0010 y la del espacio reservado del ADR 0006), con capas de gate y reevaluación tras el diseño. Comprobado veraz en casi todo: R4 con las dos únicas excepciones de .golangci.yml (^cmd/ y ^internal/app/ejemplo/kitlegal-e2e/), R2 sin fuga de tipos HTTP (internal/httpx/superficie_test.go no se rompe con Acepta, Instante ni ConHora), R3 con internal/app importando internal/cache y no el controlador, y las dos pruebas que se retiran existen (internal/arch_test.go 158 y 190). No es veraz la fila III: dice que el e2e de la entrega va «en la primera tarea que puede dejarlo en verde (tras registrar boe en el binario de e2e), como exige el workflow», pero el «Orden de implementación» pone los guiones en el paso 16, detrás de «[datos] Esquemas» (14) y «Contratos» (15), que no hacen falta para que pasen."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: go.mod ya requiere las ocho de la constitución §V que se usan. He medido `go list -deps -f '{{if .Module}}{{.Module.Path}}{{end}}' ./internal/cache ./internal/httpx ./cmd/kitlegal`: devuelve exactamente los seis módulos actuales de modulosDelBinario más los doce de research.md D14 (x/time, robotstxt, sqlite, libc, mathutil, memory, x/sys, go-humanize, uuid, go-isatty, go-strftime, bigfft). Complexity Tracking («Ampliación de modulosDelBinario») y la obligación 6 exigen justificarlos uno a uno en el comentario y en gates/pr-h4.md."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "internal/core/source.go solo importa context, time y core/schema, y ni depguard (lista core) ni compruebaDominioPuro los prohíben. internal/source/boe usa el puerto core.Cache y los tipos de httpx, sin net/http ni SQLite, y sus tests usan httpx.Replay, no httptest. mime vive en httpx y SQLite solo en internal/cache. os.Exit solo en cmd/kitlegal y en el main del binario de e2e, vía app.Arrancar, que devuelve el código. Nadie escribe en stdout: el applet devuelve Resultado y el kernel lo presenta con render. Además, ejemplo.Registro() devuelve un *app.Registro con Registrar exportado, así que el binario de e2e puede añadir boe sin tocar internal/app/ejemplo."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/errores-y-codigos.md trae una tabla cerrada de 23 filas: boe.Error, httpx.Error y cache.Error implementan schema.ConClase, y cli.Clasificar las traduce (internal/cli/errors.go, rama errors.As). Contrastado con el código: `entregar` de internal/httpx/cliente.go clasifica 429→5, 5xx→4 y 3xx no seguible→4 y entrega el resto, 404 incluido. `sinPermiso` de internal/httpx/robots.go da clase límite (5) a un robots.txt que no se puede obtener o interpretar, y 4 si vence el contexto (fila 15 correcta). cache.Get en solo lectura devuelve la ausencia con clase 4 (`errorDeAusenciaEnSoloLectura`). `conPlazoAgotado` de internal/app/main.go convierte el plazo en 4. Ninguna fila produce 6."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": false,
+      "evidencia": "El plan nombra el inventario completo de tests por fichero, 22 controles mecánicos con su demostración, los fixtures en lista cerrada (22 grabaciones, 7 sintéticos, 5 referencias, 13 golden, 5 guiones) y las referencias escritas antes del código. Dos fallos. (1) Los guiones e2e no van en la primera tarea que puede dejarlos en verde, como exige .specify/workflows/hito/workflow.yml 432: van en el paso 16, cuando solo dependen del paso 13. (2) La pausa del manifiesto rompe el control 14: el paso 4 ata IntervaloEntrePeticiones y Terms() a unos valores propuestos de docs/SOURCES.md con TestFuenteCoincideConSources. La revisión humana del paso 5 cambiará al menos «Revisado», y nada dice quién alinea las constantes. Consecuencias: `make ci` en rojo al empezar el paso 6, y una grabación con un intervalo sin revisar."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "Nada del *Fuera de alcance* del spec entra en el plan (ni sumario, vigilar, eli, grafo, --asunto, versiones históricas, paginación, skill ni data/normas.yaml), y las piezas que el spec no enumera están en Complexity Tracking. Pero el plan se aparta sin registrarlo de un MUST: FR-116 (y Q2 de Clarifications) exige que las referencias las revise una persona «en la tarea [datos] que graba los fixtures». El plan las escribe y revisa en otra tarea [datos] (paso 7), posterior a la pausa de grabación (paso 5) y a una tarea de código (paso 6)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": false,
+      "evidencia": "No prevé ningún //nolint, t.Skip, TODO ni error silenciado (obligación 5). TestGrabarFixtures falla sin KITLEGAL_RECORD en lugar de saltarse. Los comparadores de golden y de esquemas que no comparan nada entre dos pasos están declarados y los cierran los pasos 11 y 15. El problema está en la fila del inventario «internal/app/{ayuda,despacho}_test.go, cmd/kitlegal/main_test.go»: pasa los casos de registro vacío a &app.Registro{} también en cmd/kitlegal/main_test.go. Ese TestPuntoDeEntrada existe para ejercer «la misma composición que main()» (comentario en cmd/kitlegal/main_test.go) con app.RegistroDeProduccion(). Con un registro vacío, el caso «echo no es del binario distribuido» pasaría aunque producción registrara echo: se debilita un control existente."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1-D19 registran decisión, alternativas rechazadas y motivo, y las comprobadas se sostienen. D4: Acepta en Peticion en lugar de cabeceras libres, que dejarían tocar la identificación. D5: --dry-run abre la caché en solo lectura; internal/cache/abrir.go `abreParaLeer` no crea nada y compruebaRuta acepta un directorio inexistente. D13: la reproducción va en el binario de e2e y no en una variable del distribuido, que permitiría falsificar citas; `comprobarReproduccion` exige que el directorio exista, compatible con el cliente perezoso. D16: Arrancar en lugar del panic que hoy hace internal/app/ejemplo/kitlegal-e2e/main.go. D8: la dirección de búsqueda se construye byte a byte como boe.py 270-271 (`?limit={limit}&query={quote(json.dumps(...))}`)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": false,
+      "evidencia": "Comprobado en local que casi todo lo citado se sostiene. CPython 3.9: itertext 406-423; `_serialize_text` añade el tail del elemento, 979-983; `prepare_descendant` excluye el propio elemento con `e is not elem`, 182-209; ensure_ascii con escape hexadecimal en minúsculas y separadores de coma y dos puntos seguidos de espacio; quote en mayúsculas con safe='/'. encoding/xml 147, 188-193, 860-868 y 1130-1136. kong build.go 338-339; invopop reflect.go 772-801 (enum); santhosh compiler.go (AssertFormat), roots.go 104-124 ($id → recurso) y root.go (resolveFragmentIn). gosec v2.28.0: os.Getenv como fuente en commandinjection.go y pathtraversal.go. testscript.go 150, 159, 495 y 1211. misspell words.go 6998, 21070, 22765, 20323, 7830 y 25592. os.CopyFS usa MkdirAll. En httpx: grabar.go guarda las cabeceras de la petición y reproducir.go empareja por método y URL. Fallan cuatro cosas. (1) La lista de erratas de misspell omite `dependencias` (words.go 3330) y `regulares` (19592), que el diseño usará. (2) «gh issue create --label falla si la etiqueta no existe» no aparece en `gh issue create --help`, que es lo que se cita. (3) Varias afirmaciones sobre la biblioteca estándar no tienen cita. (4) Que ElementTree descarta los comentarios depende del acelerador C, cuya fuente no está en local, y no figura en S5."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Recorrido escenario a escenario. `--help` escribe «applets:» y cada applet como «  <nombre>  …», así que `^  boe ` casa. `--describe` es JSON sangrado con minLength 1 en DatosError.mensaje, y con claves ordenadas la primera aparición en schemas/bloque.json está en la parte de «articulo» (7.b). SoloLectura sobre un directorio inexistente no crea nada y cache.Get da clase 4 (10.4); bajo --dry-run, app.Main no monta sobre, devuelve 0 y antepone «--dry-run: se habría pedido » a Respuesta.Descripcion(), que es «GET <URL>» (10.5). Con -v, testscript no recorta el registro (testscript.go 564) y cronometra puede usar Exec (1211). Setup puede crear $WORK/reproduccion con os.CopyFS (MkdirAll). Los patrones -run y grep dan los recuentos esperados. Todo lo negativo o con efectos va sobre un clon desechable en /tmp (fuzz incluido) y solo quedan coverage.*, ignorados. La red solo aparece donde se declara (vuln y 15.b)."
+    }
+  ],
+  "motivos": [
+    "Orden de implementación (plan.md, pasos 13-16; «Obligaciones» 1): mover la tarea «[datos] Guiones e2e» (los cinco boe-*.txtar y el ajuste final de argumentos.txtar a `boe, contar, echo`) justo detrás del paso 13 «Applet y registro», antes de «[datos] Esquemas» y «Contratos». Los guiones solo necesitan boe registrado en el binario de e2e, Setup con la reproducción y KITLEGAL_CACHE_DIR, y la orden cronometra, todo del paso 13; no dependen de schemas/. Hoy el orden contradice workflow.yml 432 («el test e2e testscript que describe la entrega del hito va en la primera tarea que pueda dejarlo en verde»), la constitución §III y la fila III del propio Constitution Check. Alinear también cualquier mención del orden en research.md D12/D13.",
+    "docs/SOURCES.md y la pausa del manifiesto (plan.md pasos 4-5 y obligación 2; research.md D15; contracts/esquemas-fixtures-y-controles.md §3.2 y §8): el paso 4 escribe la fila con valores propuestos y fija IntervaloEntrePeticiones y Terms() iguales a ella con TestFuenteCoincideConSources. La revisión humana del paso 5 cambiará al menos la fecha «Revisado», y quizá el ritmo o la URL de términos. Nada dice quién alinea las constantes de internal/source/boe/fuente.go ni cuándo. Consecuencias: `make ci` en rojo al empezar el paso 6, un ejecutor tentado de tocar la fila o las constantes, y una grabación con el intervalo sin revisar (TestGrabarFixtures usa boe.IntervaloEntrePeticiones). Además, una fecha «Revisado» escrita por el ejecutor afirma una revisión que no ha ocurrido. Hay que fijar el procedimiento: en la pausa, y antes de ejecutar scripts/grabar-fixtures.sh, la persona deja la fila definitiva con la fecha real, alinea las dos constantes, comprueba `go test -count=1 -run '^TestFuenteCoincideConSources$' ./internal/source/boe/` y lo confirma con las grabaciones. Ninguna tarea posterior toca esa fila ni esas constantes.",
+    "Divergencia no registrada con FR-116 (y Q2 de Clarifications de spec.md): el spec exige que una persona revise las referencias del diff de aceptación «en la tarea [datos] que graba los fixtures», y el plan las escribe y revisa en otra tarea [datos] (paso 7), tras la pausa de grabación y una tarea de código. Dos salidas: registrarlo en Complexity Tracking con su motivo (las grabaciones solo existen tras la pausa del manifiesto; una tarea [datos] propia sigue siendo anterior al código de articulo y tiene revisión humana) y alinear la redacción de FR-116 y Q2; o ajustar el plan para cumplir la letra del spec.",
+    "Inventario de tests, fila «internal/app/{ayuda,despacho}_test.go, cmd/kitlegal/main_test.go» (plan.md): no pasar a &app.Registro{} los casos de cmd/kitlegal/main_test.go. TestPuntoDeEntrada existe para ejercer «la misma composición que main()», y con un registro vacío el caso «echo no es del binario distribuido» pasaría aunque producción registrara echo. Allí debe invocarse app.Arrancar(argv, app.RegistroDeProduccion, …) igual que main(), sustituyendo la constante registroVacio por la lista de applets con boe, y añadir el caso «boe sin verbo → 2». &app.Registro{} solo en TestDespachoConRegistroVacio (despacho_test.go) y en la subprueba «un registro vacío lo dice en lugar de enumerar la nada» (ayuda_test.go), cuyo sujeto sí es el registro vacío, actualizando sus comentarios de H1.",
+    "misspell (research.md, fila golangci-lint de la tabla de verificación; D18; plan.md Technical Context «tres palabras» y obligación 4): la lista de erratas omite dos palabras que el diseño usará sueltas. `regulares` (words.go 19592, «regulars»): la entrada 7 de FR-120, que doc.go debe llevar, dice «expresiones regulares». `dependencias` (words.go 3330, «dependencies»): comentarios y mensajes de DependenciasDeBoe y DependenciasDeRed. Añadirlas a lo que se incorpora a misspell.ignore-rules, en la tarea que las introduzca (paso 3 para doc.go), o fijar una redacción que las evite sin perder contenido. Y anotar las demás erratas españolas comprobadas que no deben escribirse sueltas sin tilde: verificacion (5524), declaracion (6735), justificacion (1887), documentacion (1540), produccion (15012) y decisiones (11920).",
+    "research.md D15: la afirmación «gh issue create --label falla si la etiqueta no existe en el repositorio», que sostiene el rechazo de una alternativa, cita `gh issue create --help`, y esa ayuda no lo dice (solo «-l, --label name  Add labels by name»). Citar dónde se ha comprobado o pasarla a D20 como supuesto no verificado.",
+    "Afirmaciones sobre la biblioteca estándar sin cita en «Verificado en». D8: que encoding/json escapa <, > y & (citar `go doc encoding/json.Marshal`, HTMLEscape); que url.QueryEscape codifica el espacio como + y que url.PathEscape deja :, @, & y = sin codificar (`go doc` no lo dice: citar shouldEscape y escape de net/url/url.go del GOROOT con líneas). D9: «en Go \\d es solo ASCII» (citar `go doc regexp/syntax`: «\\d digits (== [0-9])»). D6, punto 3: que encoding/xml no exige un único elemento raíz al leer por fichas (Decoder.Token solo garantiza el anidamiento: citar el código de xml.go que lo muestra).",
+    "research.md D6, punto 7, y data-model.md X7: «los comentarios y las instrucciones de proceso no aportan texto (el analizador de ElementTree los descarta)» figura como hecho sin cita. En el TreeBuilder de Python puro se comprueba en xml/etree/ElementTree.py 1415 (insert_comments=False, insert_pis=False) y 1503-1511 (`_handle_single` ni inserta ni vacía el texto acumulado, así que el texto a ambos lados se concatena). Pero ET.fromstring usa el acelerador C _elementtree, cuya fuente no está en local. Citar esas líneas y añadir a S5 como supuesto que el acelerador se comporta igual, como ya se hace con (c) y (d)."
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "La tabla está completa: una fila por principio (I-IX) y una por regla de dependencia. Son las cinco de §IV, la del grafo (roadmap §2), la de los ejemplos (ADR 0010) y la del espacio reservado (ADR 0006). Además trae gates por capa, las reglas del modo desatendido y la reevaluación tras el diseño. Desde el veredicto anterior (07:44) solo han cambiado plan.md, research.md, contracts/esquemas-fixtures-y-controles.md y contracts/puerto-y-applet.md. Los cambios afectan a la regla de rutas de las líneas de tarea y no a la tabla. La viñeta «TestFuenteCoincideConSources en dos pasos» (plan.md 170-180) ya describe bien el extractor: toma cada ruta del texto entero de la línea, también las de las órdenes, y el guardián admite la ruta y todo lo que cuelga de ella. La fila III sigue casando con el orden: los guiones e2e van en el paso 12, justo detrás del registro del 11."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "No entra ninguna dependencia nueva (plan.md, Technical Context y Complexity Tracking). Las que se usan son de §V, y research.md (tabla, fila «Dependencias del hito») da las versiones de go.mod. Lo que el binario pasa a enlazar está justificado en tres sitios: Complexity Tracking (ampliación de modulosDelBinario), la obligación 6 (lista medida al enlazar) y D14 módulo a módulo. S10 declara orientativa la medida de hoy."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Las importaciones de internal/core/source.go se limitan a context, time y core/schema (puerto-y-applet §1). internal/source/boe usa Pedidor y CacheAbierta sobre core.Cache y los tipos de httpx, sin net/http ni SQLite (§3.1). internal/app abre la caché por internal/cache, no por el controlador (plan.md, tabla de reglas). os.Exit solo aparece en cmd/kitlegal/main.go y en el main del binario de e2e, vía app.Arrancar (§5). stdout solo lo escribe el presentador del kernel. Los cambios de esta ronda no tocan la estructura de paquetes."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/errores-y-codigos.md no ha cambiado desde la ronda anterior y trae la tabla cerrada de 23 filas. boe.Error{URL, Instante, Causa} implementa schema.ConClase (puerto-y-applet §3.3). httpx.Error y cache.Error ya tienen clase, y cli.Clasificar las traduce. Los códigos posibles son 0, 1, 2, 3, 4 y 5, nunca 6. Los prueban TestClasesDeErrorDeBoe, TestPedirClasificaEstados y TestCodigosDeSalidaDeBoe."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "El inventario da los tests por fichero y los 22 controles mecánicos llevan demostración. Los fixtures están en lista cerrada: 22 recursos y el robots.txt, 7 sintéticos, 5 referencias, 13 golden, 2 esquemas y 5 guiones. El e2e va en el paso 12, la primera tarea que puede dejarlo en verde. Las referencias de FR-116 las escribe una persona en la pausa del manifiesto, antes de todo código de lectura. Las admisiones temporales se retiran en los pasos 6, 14 y 16: la de «pendiente» en TestFuenteCoincideConSources y los comparadores de golden y esquemas."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "No entra nada de *Fuera de alcance*: ni sumario, vigilar, eli, buscar-materia, grafo, --asunto, versiones históricas, paginación, revalidación, mantenimiento de caché ni skill (plan.md, fila V). Las piezas que el spec no enumera tienen su motivo y su alternativa rechazada en Complexity Tracking. Las reglas nuevas de esta ronda restringen cómo se redactan las líneas de tasks.md y no añaden funcionalidad."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No hay ningún //nolint, t.Skip, TODO diferido ni error silenciado previsto (obligación 5). TestGrabarFixtures falla con t.Fatal sin KITLEGAL_RECORD=1. El binario de e2e deja de usar panic (D16). Los tipos inesperados fallan con 4. El error de cerrar la caché se une con errors.Join. G304 y G306 se cumplen, y la escritura va en un auxiliar distinto por G703. La protección de lo que fija la persona ya no descansa en una premisa falsa: la sostienen una regla explícita (3.2) y una comprobación mecánica sobre tasks.md (3.3)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1-D19 registran decisión, alternativas rechazadas y motivo. En D15, por ejemplo, se rechazan leer SOURCES.md en ejecución, el ritmo por omisión, la fecha puesta por el ejecutor, alinear constantes después de la pausa, atar la fila solo tras la pausa, las constantes en fuente.go y las etiquetas de incidencia. D12 y D13 rechazan grabar desde el binario, un job de Actions, golden a mano, referencias del ejecutor, KITLEGAL_REPLAY en el binario distribuido y un segundo binario de e2e."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda anterior está corregido en todos los sitios que pedía. En plan.md: la introducción de la obligación 3 dice que el extractor lee el texto entero de la línea (516-528); la 3.2 añade que, desde el paso 6, ninguna línea contiene esas rutas, ninguna ruta bajo ellas ni un directorio que las contenga, tampoco dentro de una orden (543-570); la 3.3 aplica la comprobación a toda ruta extraída, recortada como en 696 (571-578). También están reescritos el paso 5 (413-430) y la viñeta de la reevaluación (170-180). En research.md, D15 está reescrito (677-693) y «Verificado en» ya incluye la prueba con rutas en prosa y en órdenes (721-737). En los contratos: esquemas-fixtures-y-controles §3.2 (143-157), el párrafo bajo la tabla de §8 (298-306) y las notas de regeneración de §1 y §2; puerto-y-applet §3.1 (70-75). No queda ninguna afirmación del tipo «ninguna tarea declara → protegido» (búsqueda en todos los artefactos). He comprobado las citas del workflow: 583 (texto), 606 (extractor), 695-698 (bucle y case), 699 (x_test.go), 704 ([datos]), 705 (fuera), 882-900 (clasificar_datos), 1134 (rutas_sensibles, paso en 1126) y docs/WORKFLOW.md 71 y 201. commit_tarea (866-876) va antes de clasificar_datos y del gate (906-910), así que lo que la persona confirma en la pausa es la base de la tarea siguiente (D12). Lo reproduje en local con la tubería de 606 y los case de 696-699 sobre cinco líneas: (1) nombres sin directorio (SOURCES.md, terminos.go, grabaciones.json) más las rutas completas de casos_test.go, ids_test.go y terminos_test.go: rechaza docs/SOURCES.md, terminos.go, el manifiesto, una grabación y una referencia; (2) línea [datos] con internal/source/boe/testdata/golden/ y un enlace ./contracts/…: rechaza todo lo fijado; (3) línea con ./internal/source/boe/: extrae internal/source/boe/ e internal/source/boe/testdata/boe.legislacion-consolidada (sin barra) y admite todo lo fijado; (4) internal/httpx/{peticion,errores}.go da internal/httpx/, e internal/source/boe/*_test.go admite el paquete entero; (5) boe-{multicall,offline}.txtar se queda en el prefijo …/script/boe-, que no admite ningún guion. Además, internal/source/** da internal/source tras el recorte de 696, y la 3.3 lo cubre (prefijo de directorio tras recortar). Siguen vigentes las verificaciones de la ronda anterior (barrido de misspell y citas de D18, gosec, testscript, CPython), y D18 conserva sus citas. Observación, no incumplimiento: el texto del paso 19 del plan nombra docs/SOURCES.md e internal/source/boe al describir la pausa final. La regla 3.2 («desde el paso 6, ninguna línea…») y la comprobación mecánica 3.3 obligan a que la línea [plataforma] de tasks.md no lo copie."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "quickstart.md no ha cambiado desde la ronda anterior (06:47) y ningún cambio de esta ronda afecta a sus órdenes, rutas ni tests. He repetido dos comprobaciones. (1) En 7.b existe `\"minLength\": 1` que sustituir: el sobre lo declara en fuente y url (internal/core/schema/sobre.go 32 y 34) y DatosError en mensaje (error.go 79). Con claves ordenadas, $defs.articulo precede a articulos, así que la primera aparición cae en la parte de articulo. (2) En 10.2, consolidacion-no-finalizada solo figura en el enumerado de Aviso.codigo (data-model.md 50), así que `grep -c` da 1 tanto con JSON sangrado como compacto. Lo negativo va sobre el clon de /tmp, fuzz incluido. La caché real se compara por huella. En el árbol solo quedan coverage.*, ignorados. La red solo aparece donde se declara (make vuln y 15.b)."
+    }
+  ],
+  "motivos": []
+}
