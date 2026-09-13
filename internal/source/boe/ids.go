@@ -19,9 +19,10 @@ const (
 	// la norma: ^BOE-A-[0-9]{4}-[0-9]{1,9}$.
 	digitosDelAnio           = 4
 	maximoDeDigitosDelNumero = 9
-	// maximoDeCaracteresDelBloque acota el id de bloque, ^[A-Za-z0-9]{1,64}$: 64
-	// cubre con holgura los ids del BOE (a21, da3, preambulo, a108bis) y deja
-	// fuera la longitud desmedida (FR-080, research.md D9).
+	// maximoDeCaracteresDelBloque acota el id de bloque,
+	// ^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$: 64 cubre con holgura los ids del BOE
+	// (a21, da3, preambulo, a108bis, a1-30, da-3, a85bis.) y deja fuera la
+	// longitud desmedida (FR-080, research.md D9).
 	maximoDeCaracteresDelBloque = 64
 )
 
@@ -45,25 +46,51 @@ func ValidarNorma(norma string) error {
 	return nil
 }
 
-// ValidarBloque comprueba que el id de bloque tenga de 1 a 64 caracteres, todos
-// letras o dígitos ASCII: la forma de los ids del índice de la fuente, y nada de
-// lo que podría alterar la petición en la que va como segmento —separadores de
-// ruta, ?, #, %, espacios, controles—. Fuera de esa gramática devuelve un *Error
-// de clase «argumentos» que nombra el valor recibido y la forma esperada, sin
-// dirección ni instante, antes de abrir la caché y de construir ninguna
-// petición (FR-080, data-model.md §5).
+// ValidarBloque comprueba que el id de bloque tenga de 1 a 64 caracteres, el
+// primero letra o dígito ASCII y los demás letras, dígitos, guiones o puntos: la
+// forma de los ids del índice de la fuente, y nada de lo que podría alterar la
+// petición en la que va como segmento —separadores de ruta, ?, #, %, espacios,
+// controles—. Fuera de esa gramática devuelve un *Error de clase «argumentos»
+// que nombra el valor recibido y la forma esperada, sin dirección ni instante,
+// antes de abrir la caché y de construir ninguna petición (FR-080,
+// data-model.md §5).
+//
+// El guion y el punto entran porque son los que usa la fuente y son caracteres
+// no reservados del RFC 3986 §2.3: url.PathEscape no los escapa y no pueden
+// alterar la ruta, la consulta ni el fragmento. Sin ellos quedarían fuera de
+// articulo y articulos 523 de los 557 bloques de la LCSP (a1-30 es su artículo
+// 118 y da-3 su disposición adicional tercera), 38 de los 231 de la LRBRL
+// (a85bis.) y 23 de los 195 de la LPAC (ci-2). Exigir letra o dígito al
+// principio deja fuera los segmentos «.» y «..», que sí cambiarían la ruta.
 //
 // Se aparta de refs/boe.py, que concatena el id en la ruta sin comprobarlo
 // (entrada 28 del porte anotado en doc.go).
 func ValidarBloque(bloque string) error {
-	if bloque == "" || len(bloque) > maximoDeCaracteresDelBloque || !sonLetrasODigitosASCII(bloque) {
+	if !esBloqueValido(bloque) {
 		return errorDeArgumentos("", time.Time{}, nil, fmt.Sprintf(
 			"el bloque %q no tiene la forma de un id de bloque: "+
-				"de 1 a %d caracteres, todos letras o dígitos ASCII, como a21, da3 o preambulo",
+				"de 1 a %d caracteres, el primero letra o dígito ASCII y los demás letras, "+
+				"dígitos, guiones o puntos, como a21, da3, preambulo, a1-30 o a85bis.",
 			bloque, maximoDeCaracteresDelBloque))
 	}
 
 	return nil
+}
+
+// esBloqueValido aplica ^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$ sobre los bytes del
+// texto.
+func esBloqueValido(bloque string) bool {
+	if bloque == "" || len(bloque) > maximoDeCaracteresDelBloque || !esLetraODigitoASCII(bloque[0]) {
+		return false
+	}
+
+	for indice := 1; indice < len(bloque); indice++ {
+		if !esLetraDigitoGuionOPuntoASCII(bloque[indice]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Los tipos que TipoDesdeID infiere, con los nombres de refs/boe.py y en el
@@ -157,22 +184,17 @@ func sonDigitosASCII(texto string) bool {
 	return true
 }
 
-// sonLetrasODigitosASCII dice si todos los bytes del texto son letras o dígitos
-// ASCII. Un byte de una letra con tilde o de UTF-8 inválido no lo es.
-func sonLetrasODigitosASCII(texto string) bool {
-	for indice := range len(texto) {
-		if !esLetraODigitoASCII(texto[indice]) {
-			return false
-		}
-	}
-
-	return true
-}
-
 // esLetraODigitoASCII dice si el byte es una letra ASCII, mayúscula o
 // minúscula, o un dígito del 0 al 9.
 func esLetraODigitoASCII(caracter byte) bool {
 	return esDigitoASCII(caracter) || ('a' <= caracter && caracter <= 'z') || ('A' <= caracter && caracter <= 'Z')
+}
+
+// esLetraDigitoGuionOPuntoASCII dice si el byte es letra o dígito ASCII, un
+// guion o un punto. Los dos últimos son caracteres no reservados del RFC 3986
+// §2.3, que no se escapan al ir como segmento de la ruta.
+func esLetraDigitoGuionOPuntoASCII(caracter byte) bool {
+	return esLetraODigitoASCII(caracter) || caracter == '-' || caracter == '.'
 }
 
 // esDigitoASCII dice si el byte es un dígito del 0 al 9.

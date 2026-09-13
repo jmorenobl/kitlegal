@@ -9,9 +9,13 @@ de `docs/SOURCES.md`— **no se deciden aquí**: se verifican por una persona an
 constitución capa 3) y, si prohíben el acceso, el hito se detiene ([D15](#d15--la-fuente-docssourcesmd-ritmo-términos-robotstxt-y-verificación-nocturna)).
 
 **Verificación.** Toda afirmación sobre una herramienta, una dependencia o la biblioteca estándar se ha
-comprobado en local contra su código o su documentación, y cada decisión cita dónde. `refs/boe.py` no se
-ejecuta: su comportamiento se lee en su fuente, y el de las piezas de CPython en las que se apoya se lee
-en la fuente de CPython 3.9 que trae instalada esta máquina (Command Line Tools), **sin ejecutar Python**.
+comprobado en local contra su código o su documentación, y cada decisión cita dónde. Para escribir este
+documento `refs/boe.py` no se ejecuta: su comportamiento se lee en su fuente, y el de las piezas de CPython
+en las que se apoya se lee en la fuente de CPython 3.9 que trae instalada esta máquina (Command Line Tools),
+**sin ejecutar Python**. Ninguna afirmación de aquí depende de haberlo ejecutado. Sí se ejecutó una vez,
+después y fuera del repositorio, en la pausa humana de T009, para generar las referencias del diff de
+aceptación sobre las grabaciones ([D12](#d12--fixtures-dónde-viven-cómo-se-graban-sintéticos-referencias-y-golden));
+el producto, los tests y los gates siguen sin necesitar Python.
 Lo que no se ha podido verificar sin red o sin ejecutar Python está en
 [D20 · Supuestos no verificados](#d20--supuestos-no-verificados), declarado como supuesto y no como hecho.
 
@@ -384,34 +388,54 @@ fuente, otra consulta. *Dejar el texto sin recortar con una palabra*: FR-030 lo 
 **Decisión.**
 
 - **Norma** (FR-081): `^BOE-A-[0-9]{4}-[0-9]{1,9}$`, sensible a mayúsculas. Otra forma → 2 antes de nada.
-- **Bloque** (FR-080): `^[A-Za-z0-9]{1,64}$`. Letras y dígitos ASCII, de 1 a 64. Todo lo demás —vacío, `/`,
+- **Bloque** (FR-080): `^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$`. Empieza por letra o dígito ASCII y sigue con
+  letras, dígitos, `-` o `.`, de 1 a 64 en total. Todo lo demás —vacío, empezar por `-` o `.`, `_`, `/`,
   `?`, `#`, `%`, espacios, controles, no ASCII, más de 64— → 2 antes de nada. **Atada a los índices grabados**:
   `TestGramaticaCubreLosIndicesGrabados` recorre los `id` de los tres índices grabados y exige que la
   gramática los acepte todos; si una grabación trae un id fuera de ella, el test falla y la gramática se
   revisa **dentro** de FR-080 (si hiciera falta un carácter que FR-080 no admite, es un conflicto con el
   spec y se escala).
+  - **Esa escalada ocurrió, y así se resolvió.** Con los tres índices ya grabados, la gramática de letras y
+    dígitos (`^[A-Za-z0-9]{1,64}$`) dejaba fuera 523 de los 557 ids de la LCSP (`BOE-A-2017-12902`), 38 de
+    los 231 de la LRBRL y 23 de los 195 de la LPAC, todos por `-` o `.`: el artículo 118 de la LCSP es el
+    bloque `a1-30`, su disposición adicional tercera es `da-3`, la LRBRL usa `a85bis.` y la LPAC, `ci-2` y
+    `s1-2`. La parada de la tarea `[datos]` que graba lo elevó como conflicto con el spec y la decisión
+    humana enmendó FR-080 para admitir `-` y `.`, nunca al principio.
+  - **Por qué esos dos caracteres son seguros.** `-` y `.` son caracteres **no reservados** del RFC 3986
+    §2.3: no se escapan y no pueden alterar la ruta, la consulta ni el fragmento. Exigir letra o dígito al
+    principio excluye además los segmentos `.` y `..`, de modo que las propiedades de `FuzzIDDeBloque`
+    (`url.PathEscape(id) == id`, ninguno de `/ ? # %`, ≤ 64 bytes, la ruta termina en `/<id>`) siguen
+    valiendo.
 - **Tipo inferido** (`TipoDesdeID`, FR-040), porte literal de `_tipo_from_id` (155-176) en el mismo orden:
   minúsculas Unicode (`strings.ToLower`, «all Unicode letters»), índices por runa, «dígito» = `unicode.IsDigit` («a
   decimal digit») para `^a\d` y para el
   segundo carácter de `s`; devuelve `articulo`, `titulo`, `capitulo`, `seccion`, `preambulo`,
   `disposicion_adicional`, `disposicion_transitoria`, `disposicion_derogatoria`, `disposicion_final` o vacío.
   Se aplica a los `id` que entrega la fuente en `indice`, que no pasan por la gramática.
-- **Fuzz** (FR-082): `FuzzIDDeBloque` con semillas `a21`, `da3`, `dt1`: nunca entra en pánico; si
+- **Fuzz** (FR-082): `FuzzIDDeBloque` con semillas `a21`, `da3`, `dt1`, `a1-30` y `a85bis.` —las tres del
+  control literal del hito, más una con guion y otra con punto, las dos formas que la fuente usa y que la
+  gramática enmendada admite—: nunca entra en pánico; si
   `ValidarBloque` acepta, `url.PathEscape(id) == id`, no contiene `/?#%`, mide ≤ 64 y la dirección del bloque
   construida y analizada con `url.Parse` termina exactamente en `/<id>`; `TipoDesdeID` devuelve lo mismo dos
   veces. En `make test` corren las semillas; el fuzz ligero se lanza a mano (quickstart).
 
 **Por qué.** FR-080 deja la gramática exacta al plan «contra los índices grabados»; como el plan se escribe
-antes de grabar, la atadura es un test sobre las grabaciones y no una afirmación. 64 cubre con holgura los
-ids del BOE (`a21`, `da3`, `preambulo`, `a108bis`) y acota «longitud desmedida».
+antes de grabar, la atadura es un test sobre las grabaciones y no una afirmación; el test hizo su trabajo y la
+gramática se enmendó con lo que enseñaron las grabaciones. 64 cubre con holgura los ids del BOE (`a21`, `da3`,
+`preambulo`, `a108bis`, `a1-30`, `da-3`, `a85bis.`) y acota «longitud desmedida».
 
-**Alternativas rechazadas.** *Admitir `-` y `_`*: FR-080 dice letras y dígitos. *Solo minúsculas*: rechazaría
-un id legítimo si la fuente usara mayúsculas, sin ganar seguridad. *`regexp` con `\d`*: en Go `\d` es solo
+**Alternativas rechazadas.** *Mantener la gramática anterior (`^[A-Za-z0-9]{1,64}$`)*: deja fuera de `articulo`
+y `articulos` la mayor parte de la LCSP (523 de sus 557 ids) y parte de la LPAC y de la LRBRL, contra el propio
+criterio de FR-080 («se aceptan los ids formados como los del índice de la fuente»). *Admitir también `_`*:
+ningún id de los índices grabados lo usa, y lo que FR-080, enmendado, admite son letras, dígitos, `-` y `.`.
+*Solo minúsculas*: rechazaría un id legítimo si la fuente usara mayúsculas, sin ganar seguridad. *`regexp` con `\d`*: en Go `\d` es solo
 ASCII (`go doc regexp/syntax`: «Perl character classes (all ASCII-only): \d digits (== [0-9])») y `_tipo_from_id`
 usa `\d` e `isdigit()` de Python, que son Unicode (S5 (b)).
 
 **Verificado en.** `refs/boe.py` 155-176, 186, 355, 406, 452, 511; `go help testflag` 77-90; `go doc regexp/syntax`;
-`go doc unicode.IsDigit`; `go doc strings.ToLower`.
+`go doc unicode.IsDigit`; `go doc strings.ToLower`; RFC 3986 §2.3 (`unreserved = ALPHA / DIGIT / "-" / "." / "_" /
+"~"`); los `id` de los tres índices grabados (`BOE-A-2015-10565`, `BOE-A-1985-5392`, `BOE-A-2017-12902`), contados
+con `TestGramaticaCubreLosIndicesGrabados`.
 
 ---
 
@@ -510,26 +534,44 @@ de compilación con `AssertFormat`); `invopop/jsonschema` `reflect.go` 772-801; 
   manifiesto y, por este orden: deja la fila definitiva de `docs/SOURCES.md` con la fecha real de la revisión y
   alinea con ella `IntervaloEntrePeticiones` y `terminosDeUso` en `terminos.go` ([D15](#d15--la-fuente-docssourcesmd-ritmo-términos-robotstxt-y-verificación-nocturna));
   comprueba `TestFuenteCoincideConSources`; graba con `scripts/grabar-fixtures.sh`, que así usa el intervalo revisado;
-  revisa lo grabado (S1, S2, S4, S7); escribe y revisa las cinco referencias (abajo); lo confirma todo en la rama y
+  revisa lo grabado (S1, S2, S4, S7); genera y revisa las seis referencias (abajo); lo confirma todo en la rama y
   aprueba. La tarea siguiente parte de ese commit. El arnés, que una tarea de código anterior deja
   escrito, es `internal/source/boe/grabacion_test.go` con `//go:build grabacion` (`TestGrabarFixtures`): exige
   `KITLEGAL_RECORD=1` (si no, `t.Fatal`), lee el manifiesto y pide cada recurso con `httpx.New(ConFuente,
   ConRaizDeGrabacion("testdata"), ConIntervalo(boe.IntervaloEntrePeticiones))`, construyendo la dirección y el
   `Accept` con `direcciones.go` y `busqueda.go`. No usa la lógica de lectura de `boe`, que todavía no existe.
   `TestGrabacionesCompletas`, en la tarea de código que sigue a la pausa, exige una grabación por entrada del
-  manifiesto, y `TestReferenciasCompletas`, las cinco referencias con la forma del contrato.
+  manifiesto, y `TestReferenciasCompletas`, las seis referencias con la forma del contrato.
 - **Sintéticos** (lista cerrada, §4 del mismo contrato): los que la fuente no da a voluntad —ilegible, sin bloque,
   503, 429, metadatos caídos, los tres avisos— copiados de una grabación real y alterados en el mínimo, en
   directorios separados para no pisar la grabación de la misma dirección.
 - **Casos de lectura** que no necesitan el kernel (sin versiones, última sin fecha, `tail`, CRLF, objeto suelto,
   índice anidado o plano, envoltorios) se prueban con **tablas en `_test.go`**, sin fixture.
-- **Referencias** (FR-116, Q2): cinco ficheros que **una persona** deriva a mano de las grabaciones con la lógica de
-  `refs/boe.py`, con la línea que justifica cada campo, y revisa **en la pausa de la tarea `[datos]` que graba**, tras
+- **Referencias** (FR-116, Q2): seis ficheros que **una persona** obtiene de las grabaciones ejecutando la lógica del
+  propio `refs/boe.py` (cómo, más abajo), con la línea que justifica cada campo, y revisa campo a campo **en la pausa
+  de la tarea `[datos]` que graba**, tras
   grabar y antes de confirmar. Es la letra de FR-116 y Q2 («revisado por una persona en la tarea `[datos]` que graba
   los fixtures») y lo único posible en esa tarea, cuya parte automática —el manifiesto— es anterior a que exista
   ninguna grabación. Quedan confirmadas **antes** de todo código de lectura y de `articulo`; el ejecutor nunca las
   crea, las completa ni las ajusta. `TestReferenciasCompletas` comprueba su forma; `TestArticuloCoincideConBoePy`, su
   contenido.
+  - **Cómo se obtuvieron de verdad** (pausa de T009): las generó un guion de un solo uso que **importa `refs/boe.py`
+    sin modificarlo** y sustituye su única puerta a la red (`network_utils.robust_request`) por la lectura de las
+    mismas grabaciones de `internal/source/boe/testdata/boe.legislacion-consolidada/`; si `boe.py` pidiera una
+    dirección que no está grabada, el guion **falla** en vez de inventar, de modo que la referencia solo puede salir
+    de los mismos bytes que ven los tests de Go. El guion apartó además la caché de disco de `boe.py` a un directorio
+    temporal, para que una ejecución anterior no la contaminara. Después, una persona revisó las seis referencias
+    campo a campo contra el XML grabado. El guion no se versiona, no se mantiene y vive fuera del repositorio.
+  - **Por qué ejecutar la lógica original y no transcribirla a mano.** Derivarla a mano habría puesto la misma
+    lectura de `boe.py` en la referencia y, después, en el porte que se compara con ella: un error de interpretación
+    (el `tail`, la exclusión de la raíz) aparecería en los dos lados y el diff lo daría por bueno. Ejecutar la lógica
+    original sobre los mismos bytes hace la referencia independiente de esa lectura, que es lo que un test de
+    aceptación necesita, y además reproducible: mismos fixtures, misma salida.
+  - **Qué no cambia.** La referencia sigue siendo un fichero esperado por artículo, versionado junto a los fixtures y
+    protegido igual que ellos, generado y revisado antes de que exista el código de `articulo`, y el ejecutor nunca la
+    ajusta al código. **Ni el producto, ni los tests, ni `make ci`, ni la integración continua necesitan Python**: se
+    usó una vez, fuera del repositorio, en una pausa humana, y el criterio de H5 («sin Python instalado») queda
+    intacto.
 - **Golden** (FR-112) y **esquemas** (FR-110): los produce el código con una bandera de test y los revisa una
   persona. Como una tarea `[datos]` solo toca `testdata/` y `schemas/`, la secuencia es de tres pasos:
   1. tarea de código: el comparador (`TestGolden`, `TestEsquemasPublicados`) compara **cada fichero que exista**
@@ -539,8 +581,14 @@ de compilación con `AssertFormat`); `invopop/jsonschema` `reflect.go` 772-801; 
      **todos** (lista cerrada, seis de seis verbos) y `make schema-check` pasa a apoyarse en ellos.
 - **Artículos del diff** (SC-001, S7): `BOE-A-2015-10565 a21` (LPAC; obligatorio), `BOE-A-2015-10565 a1` (LPAC;
   candidato «sin modificaciones»), `BOE-A-1985-5392 a22` (LRBRL; candidato «varias versiones»),
-  `BOE-A-2017-12902 a118` (LCSP; candidato «varias versiones»), `BOE-A-2017-12902 da3` (LCSP; disposición). Si
-  al grabar no hay al menos uno con una sola `version` y otro con dos o más, se sustituye un candidato por
+  `BOE-A-2017-12902 a1-30` (LCSP, el artículo 118; candidato «varias versiones»), `BOE-A-2017-12902 da-3`
+  (LCSP, la disposición adicional tercera) y `BOE-A-1992-26318 a42` (Ley 30/1992; norma derogada). Seis
+  artículos de cuatro leyes: el criterio de SC-001 y del roadmap (cinco de tres) se cumple con holgura
+  (6 ≥ 5, 4 ≥ 3). El sexto está para que la lista de avisos —el campo con más lógica de `boe.py` y donde el
+  porte cambia la forma a `{codigo, texto}`— se compare alguna vez con contenido real: los otros cinco la dan
+  vacía, y el artículo 42 de la Ley 30/1992 trae sobre la grabación dos avisos comprobados, «⚠ NORMA DEROGADA:
+  esta norma ha sido derogada.» y «⚠ VIGENCIA AGOTADA: esta norma ya no está en vigor.». Si al grabar no hay
+  al menos uno con una sola `version` y otro con dos o más, se sustituye un candidato por
   `BOE-A-2015-10565 a5` o `BOE-A-1985-5392 a1` (suplentes declarados) en la misma tarea `[datos]`.
 
 **Por qué.** Junto al paquete: los tests abren `testdata/…` sin `../../..`, el go command ignora `testdata`, el
@@ -557,7 +605,9 @@ las referencias. *Generar golden y esquemas en la misma tarea que el test*: una 
 deriva el ejecutor en una tarea `[datos]` posterior a la grabación y revisa una persona en su pausa*: se aparta de FR-116
 y Q2, que fijan la revisión en la tarea que graba, y pone la misma mano en la referencia y en el código que se compara
 con ella, de modo que una misma lectura equivocada de `boe.py` (el `tail`, la exclusión de la raíz) podría aparecer en
-los dos y dejar el diff vacío. *Referencias escritas antes de grabar*: no hay fixtures de los que derivarlas. *Dejar las
+los dos y dejar el diff vacío. *Transcribir a mano la lógica de `boe.py` para escribir las referencias*: mismo sesgo de
+lectura común a los dos lados del diff, esta vez dentro de la propia pausa, y sin reproducibilidad; por eso se ejecuta
+el `boe.py` original, sin tocarlo, contra las grabaciones. *Referencias escritas antes de grabar*: no hay fixtures de los que derivarlas. *Dejar las
 grabaciones sin confirmar para que una tarea `[datos]` posterior las añada con las referencias*: dependería de ficheros
 sin confirmar entre tareas.
 
@@ -885,10 +935,10 @@ omisión).
 | S2 | Norma o bloque inexistente → **HTTP 404** | Requiere red | Grabaciones de `BOE-A-2099-99999` y `a9999`; `TestArticulo/bloque-inexistente` y `TestMetadatos/inexistente` fallan si no. Si la fuente respondiera 200 sin bloque, FR-014 (4) y US1-5 (3) chocarían: se escala |
 | S3 | Forma JSON `{status, data}` y formas de `materias`, `notas` y `referencias` (directas o con envoltorio) | Requiere red | Grabaciones; data-model §3 cubre las dos formas de cada una |
 | S4 | XML con raíz distinta de `bloque`, sin espacio de nombres, en UTF-8 | Requiere red | Grabaciones; `TestArticuloCoincideConBoePy` |
-| S5 | (a) `str.split()`/`str.strip()` de Python tratan U+001C–U+001F como espacio además de `White_Space`; (b) `isdigit()`/`\d` de Python y `unicode.IsDigit` difieren solo en dígitos no decimales (fuera del alfabeto de ids); (c) `XMLParser.feed(str)` de `_elementtree` ignora la codificación declarada; (d) expat normaliza el valor de los atributos (XML 1.0 §3.3.3); (e) el acelerador C `_elementtree`, que `ET.fromstring` usa cuando existe (`ElementTree.py` 2085-2086), trata comentarios e instrucciones de proceso como el `TreeBuilder` de Python puro: no los inserta y deja unido el texto de sus dos lados (1413-1415, 1486-1511); (f) expat rechaza un documento con más de un elemento raíz o con texto que no sea espacio en blanco fuera de él (XML 1.0 §2.1, `document ::= prolog element Misc*`) | Exigen ejecutar Python o leer la fuente C, que no está en local | Documentado en `doc.go`; los tests fijan el comportamiento portado; si una grabación trae comentarios, las referencias que escribe una persona (FR-116) lo contrastan |
+| S5 | (a) `str.split()`/`str.strip()` de Python tratan U+001C–U+001F como espacio además de `White_Space`; (b) `isdigit()`/`\d` de Python y `unicode.IsDigit` difieren solo en dígitos no decimales (fuera del alfabeto de ids); (c) `XMLParser.feed(str)` de `_elementtree` ignora la codificación declarada; (d) expat normaliza el valor de los atributos (XML 1.0 §3.3.3); (e) el acelerador C `_elementtree`, que `ET.fromstring` usa cuando existe (`ElementTree.py` 2085-2086), trata comentarios e instrucciones de proceso como el `TreeBuilder` de Python puro: no los inserta y deja unido el texto de sus dos lados (1413-1415, 1486-1511); (f) expat rechaza un documento con más de un elemento raíz o con texto que no sea espacio en blanco fuera de él (XML 1.0 §2.1, `document ::= prolog element Misc*`) | Exigen ejecutar Python o leer la fuente C, que no está en local | Documentado en `doc.go`; los tests fijan el comportamiento portado; si una grabación trae comentarios, las referencias lo contrastan, porque salen del propio `boe.py` ejecutado sobre esa grabación y revisado por una persona (FR-116, D12) |
 | S12 | `gh issue create --label` con una etiqueta que no existe en el repositorio falla | La ayuda local no lo dice y comprobarlo exige crear una incidencia en el repositorio remoto | No se comprueba: el trabajo nocturno no usa etiquetas y ninguna decisión se apoya en ello (D15) |
 | S6 | Los términos de uso y el `robots.txt` del BOE admiten el acceso automatizado a la API; un ritmo de `1s` es aceptable; URL de términos | Requiere red y es responsabilidad legal (capa 3) | Revisión humana en la pausa previa a grabar; `docs/SOURCES.md`; si lo prohíben, parada (FR-123) |
-| S7 | Entre los cinco artículos hay uno con varias versiones y otro sin modificaciones | Requiere red | Tarea `[datos]` de grabación, con suplentes (D12) |
+| S7 | Entre los seis artículos hay uno con varias versiones y otro sin modificaciones | Requiere red | Tarea `[datos]` de grabación, con suplentes (D12) |
 | S8 | `permissions: issues: write` y `GH_TOKEN: ${{ github.token }}` bastan para `gh issue list/comment/create` en Actions | Plataforma remota | Primera ejecución nocturna tras fusionar |
 | S9 | Diez invocaciones con caché caliente bajan de 200 ms en el ejecutor de CI con la suite en paralelo | Depende de la máquina | `boe-cache-rapida.txtar` en `make ci` de la PR |
 | S10 | Los módulos enlazados tras H4 son los medidos hoy para `internal/cache` + `internal/httpx` | El enlace no existe todavía | `TestDependenciasDelBinario` al implementar |

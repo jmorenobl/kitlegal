@@ -170,7 +170,7 @@ produce ninguna regla. `a21` → `articulo`, `da3` → `disposicion_adicional`, 
 | Entrada | Gramática | Fuera de la gramática |
 |---|---|---|
 | Norma | `^BOE-A-[0-9]{4}-[0-9]{1,9}$` | «argumentos» (2) antes de abrir la caché y de pedir |
-| Bloque | `^[A-Za-z0-9]{1,64}$`, atada a los índices grabados (`TestGramaticaCubreLosIndicesGrabados`) | «argumentos» (2) antes de abrir la caché y de pedir |
+| Bloque | `^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$`, atada a los índices grabados (`TestGramaticaCubreLosIndicesGrabados`): admite el guion y el punto que la fuente usa (`a1-30`, `da-3`, `a85bis.`, `ci-2`), caracteres no reservados del RFC 3986 §2.3 que `url.PathEscape` no escapa, y exige letra o dígito inicial, que deja fuera los segmentos `.` y `..` | «argumentos» (2) antes de abrir la caché y de pedir |
 | Texto de búsqueda | argumentos unidos por espacio; sin operadores, al menos una palabra | cero palabras → «argumentos» (2) antes de abrir la caché y de pedir |
 | Bloques de `articulos` | al menos uno (Kong); cada uno con la gramática de bloque | ninguno → 2 (kernel); uno inválido → 2 sin pedir ninguno |
 

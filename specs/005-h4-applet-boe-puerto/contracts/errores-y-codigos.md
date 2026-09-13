@@ -10,7 +10,7 @@ reloj del kernel al montar el sobre. Ninguna fila produce el código 6 (FR-100).
 |---|---|---|---|---|---|---|---|
 | 1 | Sin verbo, verbo desconocido, falta un argumento obligatorio, bandera desconocida | `argumentos` | 2 | `kitlegal.cli` / `kitlegal:cli` | montaje | no | no se abre |
 | 2 | Norma fuera de `^BOE-A-[0-9]{4}-[0-9]{1,9}$` | `argumentos` | 2 | `kitlegal.cli` / `kitlegal:cli` | montaje | no | no se abre |
-| 3 | Bloque fuera de `^[A-Za-z0-9]{1,64}$` (en `articulo` o en cualquiera de `articulos`) | `argumentos` | 2 | `kitlegal.cli` / `kitlegal:cli` | montaje | no | no se abre |
+| 3 | Bloque fuera de `^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$` (en `articulo` o en cualquiera de `articulos`) | `argumentos` | 2 | `kitlegal.cli` / `kitlegal:cli` | montaje | no | no se abre |
 | 4 | Texto de búsqueda sin ninguna palabra (vacío o solo espacio en blanco, sin operadores) | `argumentos` | 2 | `kitlegal.cli` / `kitlegal:cli` | montaje | no | no se abre |
 | 5 | `--offline` y entrada ausente o caducada | `fuente-no-disponible` | 4 | `boe.legislacion-consolidada` / recurso que falta (bloque en `articulo` y `articulos`) | montaje | no | solo lectura, intacta |
 | 6 | HTTP 404 al pedir un bloque | `no-encontrado` | 3 | boe / dirección del bloque | instante | sí (en `articulo`, **no** los metadatos) | nada escrito (en `articulos`, los anteriores sí) |

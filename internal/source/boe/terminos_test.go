@@ -27,9 +27,10 @@ const (
 	columnaRitmo    = "Ritmo"
 	columnaTerminos = "Términos de uso"
 	columnaRevisado = "Revisado"
-	// revisionPendiente es la celda «Revisado» de una fila que ninguna persona ha
-	// revisado todavía: la propuesta que la tarea del arnés de grabación deja
-	// escrita y que la pausa del manifiesto sustituye por la fecha real.
+	// revisionPendiente es la celda «Revisado» de la fila propuesta que dejó la
+	// tarea del arnés de grabación. Desde que una persona revisó la fila en la
+	// pausa del manifiesto ya no se admite: solo vale la fecha real de la
+	// revisión.
 	revisionPendiente = "pendiente"
 )
 
@@ -51,9 +52,10 @@ var direccionEntreAngulos = regexp.MustCompile(`<([^<>\s]+)>`)
 // docs/SOURCES.md a las constantes de terminos.go (FR-121, FR-122; research.md
 // D15): el ritmo de la fila es IntervaloEntrePeticiones, la dirección de sus
 // términos de uso es terminosDeUso.URL y su «Revisado» es terminosDeUso.Revisados
-// como fecha AAAA-MM-DD, que no es cero. Hasta la pausa del manifiesto admite
-// exactamente una forma más, la fila propuesta: «Revisado» pendiente con
-// Revisados cero.
+// como fecha AAAA-MM-DD, que no es cero. La fila propuesta, «Revisado» pendiente
+// con Revisados cero, dejó de admitirse en la tarea que sigue a la pausa del
+// manifiesto, en la que una persona revisó la fila (contrato
+// esquemas-fixtures-y-controles §8).
 //
 // El primer subtest compara la tabla real; el resto demuestra sobre tablas en
 // memoria que la comparación no pasa en vacío.
@@ -71,9 +73,10 @@ func TestFuenteCoincideConSources(t *testing.T) {
 	})
 
 	const (
-		terminos = "https://www.boe.es/terminos"
-		fuente   = "`boe.legislacion-consolidada`"
-		base     = "<https://www.boe.es/datosabiertos/api/legislacion-consolidada>"
+		terminos        = "https://www.boe.es/terminos"
+		fuente          = "`boe.legislacion-consolidada`"
+		base            = "<https://www.boe.es/datosabiertos/api/legislacion-consolidada>"
+		fechaDeRevision = "2026-09-14"
 	)
 
 	revisados := time.Date(2026, time.September, 14, 0, 0, 0, 0, time.UTC)
@@ -94,12 +97,8 @@ func TestFuenteCoincideConSources(t *testing.T) {
 		mensaje string
 	}{
 		{
-			nombre: "propuesta-pendiente-con-cero",
-			filas:  []string{fila("`1s`", "<"+terminos+">", revisionPendiente)},
-		},
-		{
 			nombre:    "revisada-con-su-fecha",
-			filas:     []string{fila("`1s`", "<"+terminos+">", "2026-09-14")},
+			filas:     []string{fila("`1s`", "<"+terminos+">", fechaDeRevision)},
 			revisados: revisados,
 		},
 		{
@@ -114,10 +113,11 @@ func TestFuenteCoincideConSources(t *testing.T) {
 		{
 			nombre: "fila-repetida",
 			filas: []string{
-				fila("`1s`", "<"+terminos+">", revisionPendiente),
-				fila("`1s`", "<"+terminos+">", revisionPendiente),
+				fila("`1s`", "<"+terminos+">", fechaDeRevision),
+				fila("`1s`", "<"+terminos+">", fechaDeRevision),
 			},
-			mensaje: "2 filas",
+			revisados: revisados,
+			mensaje:   "2 filas",
 		},
 		{
 			nombre:  "celdas-de-menos",
@@ -125,35 +125,45 @@ func TestFuenteCoincideConSources(t *testing.T) {
 			mensaje: "2 celdas",
 		},
 		{
-			nombre:  "ritmo-distinto",
-			filas:   []string{fila("`2s`", "<"+terminos+">", revisionPendiente)},
-			mensaje: "«Ritmo» es 2s",
+			nombre:    "ritmo-distinto",
+			filas:     []string{fila("`2s`", "<"+terminos+">", fechaDeRevision)},
+			revisados: revisados,
+			mensaje:   "«Ritmo» es 2s",
 		},
 		{
-			nombre:  "ritmo-ilegible",
-			filas:   []string{fila("un segundo", "<"+terminos+">", revisionPendiente)},
-			mensaje: "«Ritmo» no es una duración",
+			nombre:    "ritmo-ilegible",
+			filas:     []string{fila("un segundo", "<"+terminos+">", fechaDeRevision)},
+			revisados: revisados,
+			mensaje:   "«Ritmo» no es una duración",
 		},
 		{
-			nombre:  "terminos-distintos",
-			filas:   []string{fila("`1s`", "<https://www.boe.es/otros>", revisionPendiente)},
-			mensaje: "«Términos de uso» es https://www.boe.es/otros",
+			nombre:    "terminos-distintos",
+			filas:     []string{fila("`1s`", "<https://www.boe.es/otros>", fechaDeRevision)},
+			revisados: revisados,
+			mensaje:   "«Términos de uso» es https://www.boe.es/otros",
 		},
 		{
-			nombre:  "terminos-sin-direccion",
-			filas:   []string{fila("`1s`", terminos, revisionPendiente)},
-			mensaje: "«Términos de uso» lleva 0 direcciones",
+			nombre:    "terminos-sin-direccion",
+			filas:     []string{fila("`1s`", terminos, fechaDeRevision)},
+			revisados: revisados,
+			mensaje:   "«Términos de uso» lleva 0 direcciones",
+		},
+		{
+			// La fila propuesta, que se admitía hasta la pausa del manifiesto.
+			nombre:  "pendiente-con-cero",
+			filas:   []string{fila("`1s`", "<"+terminos+">", revisionPendiente)},
+			mensaje: "«Revisado» no es una fecha AAAA-MM-DD",
 		},
 		{
 			nombre:    "pendiente-con-fecha",
 			filas:     []string{fila("`1s`", "<"+terminos+">", revisionPendiente)},
 			revisados: revisados,
-			mensaje:   "«Revisado» es pendiente",
+			mensaje:   "«Revisado» no es una fecha AAAA-MM-DD",
 		},
 		{
 			nombre:  "fecha-con-cero",
-			filas:   []string{fila("`1s`", "<"+terminos+">", "2026-09-14")},
-			mensaje: "«Revisado» es 2026-09-14",
+			filas:   []string{fila("`1s`", "<"+terminos+">", fechaDeRevision)},
+			mensaje: "«Revisado» es 2026-09-14 y terminosDeUso.Revisados, cero",
 		},
 		{
 			nombre:    "fecha-distinta",
@@ -317,21 +327,12 @@ func comprobarTerminos(celda, direccion string) error {
 }
 
 // comprobarRevision exige que la celda «Revisado» sea una fecha AAAA-MM-DD que no
-// es cero, igual a la fecha de revisión de los términos, o la pareja de la fila
-// propuesta: pendiente con la fecha de revisión cero.
+// es cero e igual a la fecha de revisión de los términos. Cualquier otra celda,
+// también pendiente, la de la fila propuesta, es un error.
 func comprobarRevision(celda string, revisados time.Time) error {
-	if celda == revisionPendiente {
-		if !revisados.IsZero() {
-			return fmt.Errorf("la celda «%s» es %s y terminosDeUso.Revisados no es cero: %s",
-				columnaRevisado, revisionPendiente, revisados.Format(time.DateOnly))
-		}
-
-		return nil
-	}
-
 	fecha, err := time.Parse(time.DateOnly, celda)
 	if err != nil {
-		return fmt.Errorf("la celda «%s» no es una fecha AAAA-MM-DD ni %s: %w", columnaRevisado, revisionPendiente, err)
+		return fmt.Errorf("la celda «%s» no es una fecha AAAA-MM-DD: %w", columnaRevisado, err)
 	}
 
 	if fecha.IsZero() {

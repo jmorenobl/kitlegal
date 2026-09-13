@@ -1,0 +1,40 @@
+{
+  "norma": "BOE-A-2017-12902",
+  "bloque": "a1-30",
+  "grabacion_bloque": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2017-12902_texto_bloque_a1-30.json",
+  "grabacion_metadatos": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2017-12902_metadatos.json",
+  "campos": {
+    "titulo": {
+      "valor": "Artículo 118",
+      "boe_py": "línea 106 (atributo titulo del <bloque>), impreso en la 419"
+    },
+    "tipo": {
+      "valor": "precepto",
+      "boe_py": "línea 107 (atributo tipo del <bloque>)"
+    },
+    "fecha_version": {
+      "valor": "20200205",
+      "boe_py": "líneas 115-116 (fecha_publicacion de la última <version>; «original» si falta), impresa en la 420"
+    },
+    "fecha_vigencia": {
+      "valor": "20200206",
+      "boe_py": "línea 117 (fecha_vigencia de la última <version>), impresa en las 424-425"
+    },
+    "norma_modificadora": {
+      "valor": "BOE-A-2020-1651",
+      "boe_py": "línea 118 (id_norma de la última <version>), impresa en las 422-423"
+    },
+    "texto": {
+      "valor": "Artículo 118. Expediente de contratación en contratos menores.\n1. Se consideran contratos menores los contratos de valor estimado inferior a 40.000 euros, cuando se trate de contratos de obras, o a 15.000 euros, cuando se trate de contratos de suministro o de servicios, sin perjuicio de lo dispuesto en el artículo 229 en relación con las obras, servicios y suministros centralizados en el ámbito estatal.\n2. En los contratos menores la tramitación del expediente exigirá la emisión de un informe del órgano de contratación justificando de manera motivada la necesidad del contrato y que no se está alterando su objeto con el fin de evitar la aplicación de los umbrales descritos en el apartado anterior.\n3. Asimismo se requerirá la aprobación del gasto y la incorporación al mismo de la factura correspondiente, que deberá reunir los requisitos que las normas de desarrollo de esta Ley establezcan.\n4. En el contrato menor de obras, deberá añadirse, además, el presupuesto de las obras, sin perjuicio de que deba existir el correspondiente proyecto cuando sea requerido por las disposiciones vigentes. Deberá igualmente solicitarse el informe de las oficinas o unidades de supervisión a que se refiere el artículo 235 cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra.\n5. Lo dispuesto en el apartado 2.º de este artículo no será de aplicación en aquellos contratos cuyo pago se verifique a través del sistema de anticipos de caja fija u otro similar para realizar pagos menores, siempre y cuando el valor estimado del contrato no exceda de 5.000 euros.\n6. Los contratos menores se publicarán en la forma prevista en el artículo 63.4.\nSe modifica por la disposición final 1.1 del Real Decreto-ley 3/2020, de 4 de febrero. Ref. BOE-A-2020-1651#df",
+      "boe_py": "líneas 120 y 132-136 (_elem_all_text de la última <version>: texto recursivo, líneas recortadas y sin vacías), impreso en la 428"
+    },
+    "avisos": {
+      "valor": [],
+      "boe_py": "líneas 186-212 (_check_vigencia sobre los metadatos: estado_consolidacion 4, estatus_derogacion S y vigencia_agotada S), impresos en las 414-415"
+    },
+    "url": {
+      "valor": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-12902#a1-30",
+      "boe_py": "línea 430 (https://www.boe.es/buscar/act.php?id=<norma>#<bloque>)"
+    }
+  }
+}

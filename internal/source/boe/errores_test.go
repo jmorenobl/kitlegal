@@ -84,8 +84,9 @@ func TestErrorDeBoeMensajes(t *testing.T) {
 			nombre: "filas 2 y 3: el bloque, con el valor recibido y la forma esperada",
 			fallo:  ValidarBloque("a21/x"),
 			mensaje: `el bloque "a21/x" no tiene la forma de un id de bloque: ` +
-				`de 1 a 64 caracteres, todos letras o dígitos ASCII, como a21, da3 o preambulo`,
-			nombra: []string{`"a21/x"`, "de 1 a 64 caracteres, todos letras o dígitos ASCII"},
+				`de 1 a 64 caracteres, el primero letra o dígito ASCII y los demás letras, ` +
+				`dígitos, guiones o puntos, como a21, da3, preambulo, a1-30 o a85bis.`,
+			nombra: []string{`"a21/x"`, "el primero letra o dígito ASCII"},
 			clase:  schema.ClaseArgumentos,
 		},
 		{

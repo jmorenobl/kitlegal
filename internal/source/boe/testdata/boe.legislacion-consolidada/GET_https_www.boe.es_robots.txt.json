@@ -1,6 +1,6 @@
 {
   "formato": 1,
-  "grabado_en": "2026-09-13T11:54:20Z",
+  "grabado_en": "2026-09-13T12:36:49Z",
   "peticion": {
     "metodo": "GET",
     "url": "https://www.boe.es/robots.txt",
@@ -17,7 +17,7 @@
         "bytes"
       ],
       "Age": [
-        "18"
+        "38"
       ],
       "Content-Length": [
         "490546"
@@ -29,7 +29,7 @@
         "text/plain; charset=utf-8"
       ],
       "Date": [
-        "Sun, 13 Sep 2026 11:54:01 GMT"
+        "Sun, 13 Sep 2026 12:36:11 GMT"
       ],
       "Etag": [
         "\"6a9e9cdf-77c32\""

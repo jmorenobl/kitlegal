@@ -1,9 +1,12 @@
 package boe_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -12,6 +15,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
+	"github.com/jmorenobl/kitlegal/internal/httpx"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
@@ -20,7 +24,8 @@ import (
 // 2 y 3).
 const (
 	formaDeLaNorma = "BOE-A-<año>-<número>"
-	formaDelBloque = "de 1 a 64 caracteres, todos letras o dígitos ASCII"
+	formaDelBloque = "de 1 a 64 caracteres, el primero letra o dígito ASCII y los demás letras, " +
+		"dígitos, guiones o puntos"
 )
 
 // TestValidarNorma fija la gramática de la norma, ^BOE-A-[0-9]{4}-[0-9]{1,9}$,
@@ -77,11 +82,15 @@ func TestValidarNorma(t *testing.T) {
 	}
 }
 
-// TestValidarBloque fija la gramática del id de bloque, ^[A-Za-z0-9]{1,64}$:
-// letras y dígitos ASCII, de uno a sesenta y cuatro. Todo lo que podría alterar
-// la petición en la que el id va como segmento —vacío, separadores de ruta, ?,
-// #, %, espacios, controles, longitud desmedida— y todo lo que no son letras o
-// dígitos ASCII es «argumentos» (FR-080, D9).
+// TestValidarBloque fija la gramática del id de bloque,
+// ^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$: el primer carácter letra o dígito ASCII y
+// los demás letras, dígitos, guiones o puntos, de uno a sesenta y cuatro. El
+// guion y el punto entran porque son los que usa la fuente (a1-30 es el artículo
+// 118 de la LCSP, a85bis. el 85 bis de la LRBRL) y son caracteres no reservados
+// del RFC 3986 §2.3. Todo lo que podría alterar la petición en la que el id va
+// como segmento —vacío, separadores de ruta, ?, #, %, espacios, controles,
+// longitud desmedida, y el punto o los dos puntos al principio— es «argumentos»
+// (FR-080, D9; la escalada del bloqueo 2 de gates/tarea-T009.md).
 func TestValidarBloque(t *testing.T) {
 	t.Parallel()
 
@@ -98,8 +107,17 @@ func TestValidarBloque(t *testing.T) {
 		{nombre: "mayúsculas", bloque: "A21", valido: true},
 		{nombre: "un dígito", bloque: "1", valido: true},
 		{nombre: "sesenta y cuatro caracteres", bloque: strings.Repeat("a", 64), valido: true},
+		{nombre: "artículo de la LCSP con guion", bloque: "a1-30", valido: true},
+		{nombre: "disposición adicional con guion", bloque: "da-3", valido: true},
+		{nombre: "capítulo con guion", bloque: "ci-2", valido: true},
+		{nombre: "sección con guion", bloque: "s1-2", valido: true},
+		{nombre: "artículo bis con punto final", bloque: "a85bis.", valido: true},
+		{nombre: "ordinal con guion", bloque: "primera-2", valido: true},
 		{nombre: "vacío", bloque: ""},
 		{nombre: "subida de ruta", bloque: "../a21"},
+		{nombre: "dos puntos al principio", bloque: ".."},
+		{nombre: "punto al principio", bloque: ".a21"},
+		{nombre: "guion al principio", bloque: "-a21"},
 		{nombre: "barra", bloque: "a21/x"},
 		{nombre: "barra invertida", bloque: `a21\x`},
 		{nombre: "punto", bloque: "."},
@@ -115,7 +133,7 @@ func TestValidarBloque(t *testing.T) {
 		{nombre: "tabulador", bloque: "\ta21"},
 		{nombre: "carácter nulo", bloque: "a21\x00"},
 		{nombre: "carácter de borrado", bloque: "a21\x7f"},
-		{nombre: "guion", bloque: "a-21"},
+		{nombre: "guion", bloque: "a-21", valido: true},
 		{nombre: "guion bajo", bloque: "da_3"},
 		{nombre: "letra que no es ASCII", bloque: "añadido"},
 		{nombre: "dígitos de ancho completo", bloque: "a２１"},
@@ -199,7 +217,7 @@ func TestTipoDesdeID(t *testing.T) {
 // cuatro bytes, y la dirección del bloque, analizada, termina exactamente en
 // /<id> sin consulta ni fragmento (D9).
 func FuzzIDDeBloque(f *testing.F) {
-	for _, semilla := range []string{"a21", "da3", "dt1"} {
+	for _, semilla := range []string{"a21", "da3", "dt1", "a1-30", "a85bis."} {
 		f.Add(semilla)
 	}
 
@@ -208,7 +226,7 @@ func FuzzIDDeBloque(f *testing.F) {
 		rutaHastaElBloque = "/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/"
 	)
 
-	gramatica := regexp.MustCompile(`^[A-Za-z0-9]{1,64}$`)
+	gramatica := regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$`)
 	tipos := []string{
 		"articulo", "titulo", "capitulo", "seccion", "preambulo", "disposicion_adicional",
 		"disposicion_transitoria", "disposicion_derogatoria", "disposicion_final", "",
@@ -262,4 +280,109 @@ func compruebaArgumentosInvalidos(t *testing.T, err error, valor, forma string) 
 	assert.Empty(t, fallo.URL)
 	assert.True(t, fallo.Instante.IsZero())
 	require.NoError(t, fallo.Causa)
+}
+
+// Las grabaciones de índice a las que se ata la gramática del id de bloque: las
+// de los recursos 3 a 5 del manifiesto (contrato esquemas-fixtures-y-controles
+// §3.1), reproducidas desde la carpeta de grabaciones de la fuente. La dirección
+// de cada índice es la que TestDirecciones fija byte a byte para
+// direccionDelIndice.
+const (
+	carpetaDeGrabacionesDeLaFuente = "testdata/" + boe.NombreDeLaFuente
+	direccionDeUnIndice            = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/%s/texto/indice"
+	estadoDeUnIndiceGrabado        = 200
+	claveDelIDDeBloque             = "id"
+)
+
+// TestGramaticaCubreLosIndicesGrabados ata la gramática de ValidarBloque a los ids
+// de bloque que usa la fuente (FR-080; research.md D9; data-model.md §5): lee con
+// el decodificador JSON genérico, sin el código de lectura de la fuente, el cuerpo
+// de las tres grabaciones de índice que sirve httpx.Replay y exige que todo id de
+// bloque que traen case con la gramática, nombrando los que no. Si alguno no casa,
+// la gramática se revisa dentro de FR-080; si hiciera falta un carácter que FR-080
+// no admite, es un conflicto con el spec y se escala.
+func TestGramaticaCubreLosIndicesGrabados(t *testing.T) {
+	t.Parallel()
+
+	cliente, err := httpx.Replay(carpetaDeGrabacionesDeLaFuente, httpx.ConFuente(boe.NombreDeLaFuente))
+	require.NoError(t, err)
+
+	for _, norma := range []string{"BOE-A-2015-10565", "BOE-A-1985-5392", "BOE-A-2017-12902"} {
+		t.Run(norma, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{}, httpx.Peticion{
+				Metodo: "GET",
+				URL:    fmt.Sprintf(direccionDeUnIndice, norma),
+				Acepta: "application/json",
+			})
+			require.NoError(t, err)
+			require.Equal(t, estadoDeUnIndiceGrabado, respuesta.Estado)
+
+			var cuerpo any
+			require.NoError(t, json.Unmarshal(respuesta.Cuerpo, &cuerpo))
+
+			raiz, esObjeto := cuerpo.(map[string]any)
+			require.Truef(t, esObjeto, "el cuerpo del índice grabado de %s no es un objeto JSON", norma)
+
+			ids, err := idsDeBloque(raiz["data"])
+			require.NoError(t, err)
+			require.NotEmptyf(t, ids, "el índice grabado de %s no trae ningún id de bloque", norma)
+
+			var fuera []string
+
+			for _, id := range ids {
+				if boe.ValidarBloque(id) != nil {
+					fuera = append(fuera, id)
+				}
+			}
+
+			assert.Emptyf(t, fuera, "%d de los %d ids de bloque del índice grabado de %s no casan con la gramática "+
+				"de ValidarBloque: %s", len(fuera), len(ids), norma, strings.Join(fuera, " "))
+		})
+	}
+}
+
+// idsDeBloque devuelve, en su orden y con las claves de cada objeto en orden
+// alfabético, el valor de cada clave id que hay a cualquier profundidad bajo data
+// en la respuesta de un índice, donde todo id es el de un bloque, venga el índice
+// anidado o plano (contrato verbos-y-salidas §2; data-model.md §3.1, J6). Un id
+// que no es una cadena es un error que lo nombra.
+func idsDeBloque(valor any) ([]string, error) {
+	var ids []string
+
+	switch nodo := valor.(type) {
+	case []any:
+		for _, elemento := range nodo {
+			delElemento, err := idsDeBloque(elemento)
+			if err != nil {
+				return nil, err
+			}
+
+			ids = append(ids, delElemento...)
+		}
+
+	case map[string]any:
+		for _, clave := range slices.Sorted(maps.Keys(nodo)) {
+			if clave != claveDelIDDeBloque {
+				delValor, err := idsDeBloque(nodo[clave])
+				if err != nil {
+					return nil, err
+				}
+
+				ids = append(ids, delValor...)
+
+				continue
+			}
+
+			id, esCadena := nodo[clave].(string)
+			if !esCadena {
+				return nil, fmt.Errorf("un id de bloque del índice no es una cadena: %v", nodo[clave])
+			}
+
+			ids = append(ids, id)
+		}
+	}
+
+	return ids, nil
 }

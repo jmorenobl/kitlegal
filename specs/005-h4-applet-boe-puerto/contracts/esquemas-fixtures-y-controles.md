@@ -64,8 +64,8 @@ Forma (claves ordenadas; dos espacios; sin escape HTML; salto final):
 | `articulo-BOE-A-2015-10565-a21` | `articulo BOE-A-2015-10565 a21` |
 | `articulo-BOE-A-2015-10565-a1` | `articulo BOE-A-2015-10565 a1` |
 | `articulo-BOE-A-1985-5392-a22` | `articulo BOE-A-1985-5392 a22` |
-| `articulo-BOE-A-2017-12902-a118` | `articulo BOE-A-2017-12902 a118` |
-| `articulo-BOE-A-2017-12902-da3` | `articulo BOE-A-2017-12902 da3` |
+| `articulo-BOE-A-2017-12902-a1-30` | `articulo BOE-A-2017-12902 a1-30` (artículo 118) |
+| `articulo-BOE-A-2017-12902-da-3` | `articulo BOE-A-2017-12902 da-3` (disposición adicional tercera) |
 | `articulo-BOE-A-1992-26318-a42` | `articulo BOE-A-1992-26318 a42` (norma derogada: avisos reales) |
 | `articulos-BOE-A-2015-10565-a21-a22-a23` | `articulos BOE-A-2015-10565 a21 a22 a23` |
 | `metadatos-BOE-A-2015-10565` | `metadatos BOE-A-2015-10565` |
@@ -102,9 +102,9 @@ La dirección y el `Accept` los construye el código (`direcciones.go`, `busqued
 | 9 | bloque | `BOE-A-2015-10565` `a23` | XML | `articulos` (US4-2, US4-3) |
 | 10 | bloque | `BOE-A-2015-10565` `a9999` | XML | bloque inexistente → 3 (S2) |
 | 11 | bloque | `BOE-A-1985-5392` `a22` | XML | aceptación (candidato «varias versiones») |
-| 12 | bloque | `BOE-A-2017-12902` `a118` | XML | aceptación (candidato «varias versiones») |
-| 13 | bloque | `BOE-A-2017-12902` `da3` | XML | aceptación (disposición) |
-| 14 | bloque | `BOE-A-1992-26318` `a42` | XML | avisos reales de norma derogada (US1-3) |
+| 12 | bloque | `BOE-A-2017-12902` `a1-30` | XML | aceptación (el artículo 118; candidato «varias versiones») |
+| 13 | bloque | `BOE-A-2017-12902` `da-3` | XML | aceptación (la disposición adicional tercera) |
+| 14 | bloque | `BOE-A-1992-26318` `a42` | XML | aceptación (avisos reales); avisos de norma derogada (US1-3) |
 | 15 | metadatos | `BOE-A-2015-10565` | JSON | avisos de 6-10; `metadatos`; golden |
 | 16 | metadatos | `BOE-A-1985-5392` | JSON | avisos de 11 |
 | 17 | metadatos | `BOE-A-2017-12902` | JSON | avisos de 12-13 |
@@ -137,7 +137,8 @@ scripts/grabar-fixtures.sh
   4. comprueba `go test -count=1 -run '^TestFuenteCoincideConSources$' ./internal/source/boe/` en verde;
   5. graba con `scripts/grabar-fixtures.sh`, que ya pide con el intervalo revisado;
   6. comprueba S1, S2, S4 y S7 sobre lo grabado (suplentes en el manifiesto si hace falta);
-  7. escribe a mano y revisa las cinco referencias (§5);
+  7. genera las seis referencias con un guion de un solo uso que ejecuta `refs/boe.py` sin modificarlo sobre las
+     grabaciones, y las revisa campo a campo (§5);
   8. confirma en la rama la fila, `terminos.go`, las grabaciones, las referencias y, si cambió, el manifiesto, y aprueba.
 
   Que ninguna tarea posterior cambie lo confirmado aquí depende de una regla sobre el texto entero de las líneas de tarea
@@ -180,8 +181,11 @@ con saltos, objeto suelto, índice anidado o plano, envoltorios, tipos inesperad
 
 ## 5. Referencias del diff de aceptación (FR-116)
 
-- Ruta: `internal/source/boe/testdata/referencias/<norma>-<bloque>.json`, cinco ficheros: `BOE-A-2015-10565-a21`,
-  `BOE-A-2015-10565-a1`, `BOE-A-1985-5392-a22`, `BOE-A-2017-12902-a118`, `BOE-A-2017-12902-da3`.
+- Ruta: `internal/source/boe/testdata/referencias/<norma>-<bloque>.json`, seis ficheros: `BOE-A-2015-10565-a21`,
+  `BOE-A-2015-10565-a1`, `BOE-A-1985-5392-a22`, `BOE-A-2017-12902-a1-30`, `BOE-A-2017-12902-da-3` y
+  `BOE-A-1992-26318-a42`. Seis artículos de cuatro normas: el criterio de SC-001 (cinco de tres) se cumple con
+  holgura (6 ≥ 5, 4 ≥ 3). El último está para que el campo `avisos` se compare alguna vez con contenido real:
+  los otros cinco lo dan vacío y el artículo 42 de la Ley 30/1992 trae dos avisos sobre la grabación.
 - Forma:
 
 ```json
@@ -203,16 +207,24 @@ con saltos, objeto suelto, índice anidado o plano, envoltorios, tipos inesperad
 }
 ```
 
-- Las deriva **a mano una persona** de las grabaciones con la lógica de `xml_bloque_to_text`, `_elem_all_text`,
+- Las obtiene **una persona** de las grabaciones con la lógica de `xml_bloque_to_text`, `_elem_all_text`,
   `_check_vigencia` y `cmd_articulo`, y las revisa, en la pausa de la tarea `[datos]` del manifiesto —la que graba los
   fixtures—, tras grabar y antes de confirmar (FR-116, Q2; §3.2, punto 7). Quedan confirmadas antes de todo código de
   lectura y de `articulo`. El ejecutor nunca las crea, las completa ni las ajusta al código.
-- `TestReferenciasCompletas` (`casos_test.go`, tarea de código que sigue a la pausa): exige exactamente cinco ficheros en
-  `testdata/referencias/`, de tres normas distintas, uno de ellos `BOE-A-2015-10565-a21`, cada uno de la lista anterior o
+- **Cómo se generan** (research.md D12): con un guion de un solo uso, fuera del repositorio, que **importa
+  `refs/boe.py` sin modificarlo** y sustituye su única puerta a la red (`network_utils.robust_request`) por la lectura
+  de `internal/source/boe/testdata/boe.legislacion-consolidada/`; si `boe.py` pidiera una dirección que no está
+  grabada, el guion falla en vez de inventar, así que la referencia sale de los mismos bytes que ven los tests de Go.
+  El guion aparta la caché de disco de `boe.py` a un directorio temporal, para que una ejecución anterior no la
+  contamine. La persona revisa después las seis referencias campo a campo contra el XML grabado y anota en `boe_py` la
+  línea que justifica cada campo. El guion no se versiona ni se mantiene: ni el producto, ni los tests, ni `make ci`,
+  ni la integración continua ejecutan Python.
+- `TestReferenciasCompletas` (`casos_test.go`, tarea de código que sigue a la pausa): exige exactamente seis ficheros en
+  `testdata/referencias/`, de cuatro normas distintas, uno de ellos `BOE-A-2015-10565-a21`, cada uno de la lista anterior o
   con los suplentes de §3.1 aplicados; que cada uno se lea con la forma de arriba sin claves desconocidas, con los ocho
   campos y un `boe_py` no vacío en cada uno; y que `grabacion_bloque` y `grabacion_metadatos` nombren ficheros de
   `testdata/boe.legislacion-consolidada/`. No compara contenido: eso lo hace `TestArticuloCoincideConBoePy`.
-- `TestArticuloCoincideConBoePy` (subtests `BOE-A-2015-10565-a21` … `BOE-A-2017-12902-da3`): proyecta `data` sobre esos
+- `TestArticuloCoincideConBoePy` (subtests `BOE-A-2015-10565-a21` … `BOE-A-1992-26318-a42`): proyecta `data` sobre esos
   ocho campos (los avisos como la lista ordenada de sus `texto`) y exige igualdad campo a campo, nombrando el campo
   distinto.
 

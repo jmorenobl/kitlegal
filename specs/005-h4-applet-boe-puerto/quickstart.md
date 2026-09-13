@@ -119,18 +119,21 @@ rtk proxy git status --porcelain -- internal/source/boe/testdata schemas interna
 
 ---
 
-## Escenario 2 — Aceptación: el `data` de `articulo` coincide con `boe.py` en 5 artículos de 3 leyes (SC-001, FR-116)
+## Escenario 2 — Aceptación: el `data` de `articulo` coincide con `boe.py` en 6 artículos de 4 leyes (SC-001, FR-116)
 
 ```bash
 rtk proxy go test -count=1 -v -run '^TestArticuloCoincideConBoePy$' ./internal/source/boe/ \
   | rtk proxy grep -E '^\s*--- (PASS|FAIL): TestArticuloCoincideConBoePy/'
 ```
 
-**Esperado**: cinco líneas `--- PASS`, una por referencia (`BOE-A-2015-10565-a21`, `BOE-A-2015-10565-a1`,
-`BOE-A-1985-5392-a22`, `BOE-A-2017-12902-a118`, `BOE-A-2017-12902-da3`), y ninguna `--- FAIL`. Cada subtest compara, campo a
+**Esperado**: seis líneas `--- PASS`, una por referencia (`BOE-A-2015-10565-a21`, `BOE-A-2015-10565-a1`,
+`BOE-A-1985-5392-a22`, `BOE-A-2017-12902-a1-30`, `BOE-A-2017-12902-da-3`, `BOE-A-1992-26318-a42`), y ninguna `--- FAIL`.
+Seis artículos de cuatro leyes: el criterio de SC-001 (cinco de tres) se cumple con holgura (6 ≥ 5, 4 ≥ 3), y el último
+es el único que compara avisos con contenido real. Cada subtest compara, campo a
 campo, título, tipo, fecha de la versión, fecha de vigencia, norma modificadora, texto, avisos (lista de textos) y dirección
-pública con la referencia que una persona escribió a mano desde `refs/boe.py` sobre la grabación, en la misma pausa en
-que grabó.
+pública con la referencia que salió de ejecutar `refs/boe.py` —sin modificarlo y sin red, contra la misma grabación— y
+que una persona revisó campo a campo, en la misma pausa en que grabó. Ejecutar este escenario no necesita Python: las
+referencias están versionadas como dato.
 
 ---
 
@@ -258,7 +261,8 @@ rtk proxy go test -count=1 -v -run '^(TestTipoDesdeID|TestValidarBloque|TestGram
 - El fuzz termina con `PASS` y sin `Failing input`. Se ejecuta sobre el clon, así que cualquier corpus que escribiera se
   queda allí y no en el árbol.
 - Después, tres líneas `--- PASS`. Entre lo que comprueban: `a21`, `da3` y `dt1` se clasifican como artículo,
-  disposición adicional y disposición transitoria, y se aceptan todos los ids de los índices grabados.
+  disposición adicional y disposición transitoria; `a1-30` y `a85bis.` (las dos semillas con guion y con punto), como
+  artículo; y se aceptan todos los ids de los índices grabados.
 
 ---
 

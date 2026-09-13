@@ -8,8 +8,10 @@ package boe
 //
 // Las funciones de este fichero reciben la norma y el bloque ya validados con
 // ValidarNorma y ValidarBloque, cuyas gramáticas solo admiten letras y dígitos
-// ASCII y, en la norma, guiones: van tal cual como segmentos de la ruta, sin nada
-// que escapar, igual que los concatena refs/boe.py.
+// ASCII y, en la norma, guiones, y en el bloque, guiones y puntos que nunca van
+// al principio: unos y otros son caracteres no reservados del RFC 3986 §2.3, así
+// que van tal cual como segmentos de la ruta, sin nada que escapar, igual que
+// los concatena refs/boe.py.
 const (
 	// baseDeLaAPI es la base de la API de Legislación Consolidada, la constante
 	// BOE de refs/boe.py 72: toda petición de la fuente empieza por ella.
