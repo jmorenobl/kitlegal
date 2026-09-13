@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.6.1"
+  version: "1.7.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -255,6 +255,7 @@ steps:
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
           c="$d/gates/spec-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          cp "$g" "$d/gates/spec-r$n.json" # el juez sobrescribe spec.json en cada ronda; la copia conserva el historial
           jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_spec
@@ -365,6 +366,7 @@ steps:
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
           c="$d/gates/plan-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          cp "$g" "$d/gates/plan-r$n.json"
           jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_plan
@@ -494,6 +496,7 @@ steps:
           jq -e 'has("veredicto") and has("corregible") and (.criterios | type == "array" and length > 0)' "$g" >/dev/null || { echo "formato inválido en $g" >&2; exit 1; }
           [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$g")" = "true" ] || { echo "veredicto incoherente con los criterios en $g" >&2; exit 1; }
           c="$d/gates/tasks-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          cp "$g" "$d/gates/tasks-r$n.json"
           jq --argjson ronda "$n" '{veredicto, corregible, motivos, ronda: $ronda}' "$g"
 
       - id: corregir_tasks
@@ -651,9 +654,35 @@ steps:
                   cambiados=$( { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u )
                   [ -n "$cambiados" ] || { echo "guardián: la tarea $id no cambió ningún fichero"; exit 0; }
                   rutas=$(jq -r '.rutas[]' "$t")
+                  # .golangci.yml se admite sin declararlo solo si el diff se limita a AÑADIR entradas a
+                  # misspell.ignore-rules (palabras españolas que el diccionario inglés toma por erratas;
+                  # en H3, T008 paró el run por una que no podía declarar). Se compara el fichero sin
+                  # comentarios, líneas vacías ni ítems de ignore-rules: cualquier otra diferencia, o una
+                  # entrada retirada, sigue exigiendo que la tarea declare .golangci.yml.
+                  esqueleto() { awk '
+                    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+                    { match($0, /^[[:space:]]*/); ind = RLENGTH }
+                    en && ind <= ind_ir { en = 0 }
+                    en && $0 ~ /^[[:space:]]*- / { next }
+                    $0 ~ /^[[:space:]]*ignore-rules:[[:space:]]*$/ { en = 1; ind_ir = ind }
+                    { print }'; }
+                  entradas() { awk '
+                    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+                    { match($0, /^[[:space:]]*/); ind = RLENGTH }
+                    en && ind <= ind_ir { en = 0 }
+                    en && $0 ~ /^[[:space:]]*- / { sub(/^[[:space:]]*- /, ""); print; next }
+                    $0 ~ /^[[:space:]]*ignore-rules:[[:space:]]*$/ { en = 1; ind_ir = ind }'; }
+                  solo_ignore_rules() {
+                    viejo=$(git show "$1:.golangci.yml" 2>/dev/null) || return 1
+                    nuevo=$(cat .golangci.yml 2>/dev/null) || return 1
+                    [ "$(printf '%s\n' "$viejo" | esqueleto)" = "$(printf '%s\n' "$nuevo" | esqueleto)" ] || return 1
+                    nuevas=$(printf '%s\n' "$nuevo" | entradas)
+                    for e in $(printf '%s\n' "$viejo" | entradas); do printf '%s\n' "$nuevas" | grep -qxF -- "$e" || return 1; done
+                  }
                   fuera=""; protegidos=""
                   for f in $cambiados; do
                     case "$f" in go.mod|go.sum|CHANGELOG.md|"$d"/*) continue;; esac
+                    if [ "$f" = .golangci.yml ] && solo_ignore_rules "$base"; then echo "guardián: .golangci.yml solo añade entradas a misspell.ignore-rules; permitido"; continue; fi
                     case "$f" in testdata/*|*/testdata/*|schemas/*) protegidos="$protegidos $f";; esac
                     ok=0
                     for r in $rutas; do
@@ -687,79 +716,157 @@ steps:
                   tail -80 "$log"
                   exit "$rc"
 
-              - id: reparar_tarea
+              # Verificación en rojo. Dos salidas, ninguna es una parada del run:
+              #   · tarea REDELIMITADA: el ejecutor (o `reparar`) la deja `[ ]`, escribe
+              #     gates/tarea-Tnnn.md en este intento y, si hace falta, amplía la línea de
+              #     tasks.md. Sin reparación ni commit: el intento siguiente relee la línea con
+              #     sus rutas y hereda el árbol. En H3, T008 paró el run y gastó una reparación
+              #     por una entrada de misspell que no podía declarar (gates/tarea-T008.md).
+              #   · cualquier otro rojo: `reparar` → guardián → verificación; si sigue en rojo y
+              #     tampoco quedó redelimitada, `redelimitada_reparacion` para el run (humano).
+              - id: tras_verificar
                 type: if
                 condition: "{{ steps.verificar.output.exit_code != 0 }}"
                 then:
-                  - id: reparar
-                    type: prompt
-                    model: "{{ inputs.modelo_escalada }}"
-                    timeout: 1800
-                    prompt: |
-                      La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
-
-                      {{ steps.verificar.output.stdout }}
-
-                      Arregla la causa raíz aplicando la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md: nada de desactivar linters, tests o controles; nada de nolint sin justificación en el propio código; nada de silenciar errores; nunca modifiques ficheros de testdata/ o schemas/ (el guardián de diff lo rechazará) ni ficheros fuera de las rutas declaradas por la tarea. Si el fallo es un test que legítimamente sigue en rojo porque su implementación pertenece a una tarea posterior, NO lo arregles: la tarea está mal delimitada; anótalo en gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, deja la tarea como [ ] y termina. En cualquier otro caso repite la verificación hasta verde y deja la tarea marcada [X]. No preguntes ni esperes respuesta.
-
-                  - id: guardian_diff_reparacion
+                  - id: redelimitada
                     type: shell
-                    timeout: 60
+                    output_format: json
+                    timeout: 30
                     run: |
                       set -eu
                       d=$(jq -r .feature_directory .specify/feature.json)
-                      t="$d/gates/tarea-actual.json"
-                      id=$(jq -r .id "$t"); base=$(jq -r .base "$t"); datos=$(jq -r .datos "$t")
-                      printf '%s' "$base" | grep -qE '^[0-9a-f]{40}$' || { echo "base de la tarea inválida" >&2; exit 1; }
-                      cambiados=$( { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u )
-                      [ -n "$cambiados" ] || { echo "guardián: sin cambios"; exit 0; }
-                      rutas=$(jq -r '.rutas[]' "$t")
-                      fuera=""; protegidos=""
-                      for f in $cambiados; do
-                        case "$f" in go.mod|go.sum|CHANGELOG.md|"$d"/*) continue;; esac
-                        case "$f" in testdata/*|*/testdata/*|schemas/*) protegidos="$protegidos $f";; esac
-                        ok=0
-                        for r in $rutas; do
-                          r=${r%%\**}; r=${r%/}
-                          [ -n "$r" ] || continue
-                          case "$f" in "$r"|"$r"/*) ok=1; break;; esac
-                          case "$r" in *.go) case "$f" in "${r%.go}_test.go") ok=1; break;; esac;; esac
-                        done
-                        [ "$ok" -eq 1 ] || fuera="$fuera $f"
-                      done
-                      rc=0
-                      if [ -n "$protegidos" ] && [ "$datos" != "true" ]; then echo "guardián (reparación): la tarea $id modificó fixtures/schemas sin etiqueta [datos]:$protegidos"; rc=1; fi
-                      if [ -n "$fuera" ]; then echo "guardián (reparación): ficheros fuera de las rutas declaradas:$fuera"; rc=1; fi
-                      [ "$rc" -eq 0 ] && echo "guardián de diff ok tras reparación"
-                      exit "$rc"
+                      t="$d/gates/tarea-actual.json"; id=$(jq -r .id "$t"); base=$(jq -r .base "$t")
+                      nota="$d/gates/tarea-$id.md"; r=false
+                      if grep -qE "^[[:space:]]*- \[ \] $id " "$d/tasks.md" && [ -f "$nota" ] \
+                         && { ! git cat-file -e "$base:$nota" 2>/dev/null || ! git diff --quiet "$base" -- "$nota"; }; then r=true; fi
+                      [ "$r" = true ] && echo "la tarea $id queda [ ] con $nota escrito en este intento: sin reparación ni commit; el bucle la reintenta con la línea actual de tasks.md" >&2
+                      jq -n --argjson r "$r" '{redelimitada: $r}'
 
-                  - id: verificar_reparacion
+                  - id: reparar_tarea
+                    type: if
+                    condition: "{{ not steps.redelimitada.output.data.redelimitada }}"
+                    then:
+                      - id: reparar
+                        type: prompt
+                        model: "{{ inputs.modelo_escalada }}"
+                        timeout: 1800
+                        prompt: |
+                          La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
+
+                          {{ steps.verificar.output.stdout }}
+
+                          Arregla la causa raíz aplicando la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md: nada de desactivar linters, tests o controles; nada de nolint sin justificación en el propio código; nada de silenciar errores; nunca modifiques ficheros de testdata/ o schemas/ (el guardián de diff lo rechazará) ni ficheros fuera de las rutas declaradas por la tarea. Si el fallo es un test que legítimamente sigue en rojo porque su implementación pertenece a una tarea posterior, o exige tocar un fichero que la tarea no declara, NO lo arregles: la tarea está mal delimitada; redelimita su línea en tasks.md si procede, anótalo en gates/tarea-{{ steps.siguiente_tarea.output.data.id }}.md, deja la tarea como [ ] y termina: el bucle la reintentará con la línea nueva. En cualquier otro caso repite la verificación hasta verde y deja la tarea marcada [X]. No preguntes ni esperes respuesta.
+
+                      - id: guardian_diff_reparacion
+                        type: shell
+                        timeout: 60
+                        run: |
+                          set -eu
+                          d=$(jq -r .feature_directory .specify/feature.json)
+                          t="$d/gates/tarea-actual.json"
+                          id=$(jq -r .id "$t"); base=$(jq -r .base "$t"); datos=$(jq -r .datos "$t")
+                          printf '%s' "$base" | grep -qE '^[0-9a-f]{40}$' || { echo "base de la tarea inválida" >&2; exit 1; }
+                          cambiados=$( { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u )
+                          [ -n "$cambiados" ] || { echo "guardián: sin cambios"; exit 0; }
+                          rutas=$(jq -r '.rutas[]' "$t")
+                          # Misma regla que guardian_diff: .golangci.yml solo si añade entradas a misspell.ignore-rules.
+                          esqueleto() { awk '
+                            /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+                            { match($0, /^[[:space:]]*/); ind = RLENGTH }
+                            en && ind <= ind_ir { en = 0 }
+                            en && $0 ~ /^[[:space:]]*- / { next }
+                            $0 ~ /^[[:space:]]*ignore-rules:[[:space:]]*$/ { en = 1; ind_ir = ind }
+                            { print }'; }
+                          entradas() { awk '
+                            /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+                            { match($0, /^[[:space:]]*/); ind = RLENGTH }
+                            en && ind <= ind_ir { en = 0 }
+                            en && $0 ~ /^[[:space:]]*- / { sub(/^[[:space:]]*- /, ""); print; next }
+                            $0 ~ /^[[:space:]]*ignore-rules:[[:space:]]*$/ { en = 1; ind_ir = ind }'; }
+                          solo_ignore_rules() {
+                            viejo=$(git show "$1:.golangci.yml" 2>/dev/null) || return 1
+                            nuevo=$(cat .golangci.yml 2>/dev/null) || return 1
+                            [ "$(printf '%s\n' "$viejo" | esqueleto)" = "$(printf '%s\n' "$nuevo" | esqueleto)" ] || return 1
+                            nuevas=$(printf '%s\n' "$nuevo" | entradas)
+                            for e in $(printf '%s\n' "$viejo" | entradas); do printf '%s\n' "$nuevas" | grep -qxF -- "$e" || return 1; done
+                          }
+                          fuera=""; protegidos=""
+                          for f in $cambiados; do
+                            case "$f" in go.mod|go.sum|CHANGELOG.md|"$d"/*) continue;; esac
+                            if [ "$f" = .golangci.yml ] && solo_ignore_rules "$base"; then continue; fi
+                            case "$f" in testdata/*|*/testdata/*|schemas/*) protegidos="$protegidos $f";; esac
+                            ok=0
+                            for r in $rutas; do
+                              r=${r%%\**}; r=${r%/}
+                              [ -n "$r" ] || continue
+                              case "$f" in "$r"|"$r"/*) ok=1; break;; esac
+                              case "$r" in *.go) case "$f" in "${r%.go}_test.go") ok=1; break;; esac;; esac
+                            done
+                            [ "$ok" -eq 1 ] || fuera="$fuera $f"
+                          done
+                          rc=0
+                          if [ -n "$protegidos" ] && [ "$datos" != "true" ]; then echo "guardián (reparación): la tarea $id modificó fixtures/schemas sin etiqueta [datos]:$protegidos"; rc=1; fi
+                          if [ -n "$fuera" ]; then echo "guardián (reparación): ficheros fuera de las rutas declaradas:$fuera"; rc=1; fi
+                          [ "$rc" -eq 0 ] && echo "guardián de diff ok tras reparación"
+                          exit "$rc"
+
+                      - id: verificar_reparacion
+                        type: shell
+                        continue_on_error: true
+                        timeout: 1800
+                        run: |
+                          set -u
+                          d=$(jq -r .feature_directory .specify/feature.json)
+                          log="$d/gates/ci.log"
+                          if [ -f Makefile ] && grep -qE '^ci:' Makefile; then cmd="make ci"
+                          elif [ -f go.mod ]; then cmd="go build ./... && go vet ./... && go test -race ./..."
+                          else exit 0; fi
+                          sh -c "$cmd" > "$log" 2>&1; rc=$?
+                          if [ "$rc" -eq 0 ]; then echo "reparación verificada: $cmd"; exit 0; fi
+                          echo "la reparación no deja la verificación en verde ($cmd, exit $rc). Últimas 80 líneas:"
+                          tail -80 "$log"
+                          exit "$rc"
+
+                      - id: reparacion_roja
+                        type: if
+                        condition: "{{ steps.verificar_reparacion.output.exit_code != 0 }}"
+                        then:
+                          # Sigue en rojo: solo continúa si `reparar` redelimitó la tarea (queda [ ] con su
+                          # nota escrita en este intento). Si no, es la parada deliberada de siempre.
+                          - id: redelimitada_reparacion
+                            type: shell
+                            output_format: json
+                            timeout: 30
+                            run: |
+                              set -eu
+                              d=$(jq -r .feature_directory .specify/feature.json)
+                              t="$d/gates/tarea-actual.json"; id=$(jq -r .id "$t"); base=$(jq -r .base "$t")
+                              nota="$d/gates/tarea-$id.md"
+                              if grep -qE "^[[:space:]]*- \[ \] $id " "$d/tasks.md" && [ -f "$nota" ] \
+                                 && { ! git cat-file -e "$base:$nota" 2>/dev/null || ! git diff --quiet "$base" -- "$nota"; }; then
+                                echo "la reparación deja la tarea $id [ ] con $nota: sin commit; el bucle la reintenta con la línea actual de tasks.md" >&2
+                                jq -n '{redelimitada: true}'; exit 0
+                              fi
+                              echo "la reparación no deja la verificación en verde y la tarea $id no quedó redelimitada; se detiene para revisión humana (ver $d/gates/ci.log)" >&2
+                              exit 1
+
+              # Solo se commitea una tarea en verde. Una tarea redelimitada deja su trabajo en el
+              # árbol para el intento siguiente (misma base git: siguiente_tarea la vuelve a elegir).
+              - id: cerrar_tarea
+                type: if
+                condition: "{{ not steps.redelimitada.output.data.redelimitada and not steps.redelimitada_reparacion.output.data.redelimitada }}"
+                then:
+                  - id: commit_tarea
                     type: shell
-                    timeout: 1800
+                    timeout: 120
                     run: |
-                      set -u
+                      set -eu
                       d=$(jq -r .feature_directory .specify/feature.json)
-                      log="$d/gates/ci.log"
-                      if [ -f Makefile ] && grep -qE '^ci:' Makefile; then cmd="make ci"
-                      elif [ -f go.mod ]; then cmd="go build ./... && go vet ./... && go test -race ./..."
-                      else exit 0; fi
-                      sh -c "$cmd" > "$log" 2>&1; rc=$?
-                      if [ "$rc" -eq 0 ]; then echo "reparación verificada: $cmd"; exit 0; fi
-                      echo "la reparación no deja la verificación en verde; se detiene para revisión humana. Últimas 80 líneas:"
-                      tail -80 "$log"
-                      exit "$rc"
-
-              - id: commit_tarea
-                type: shell
-                timeout: 120
-                run: |
-                  set -eu
-                  d=$(jq -r .feature_directory .specify/feature.json)
-                  id=$(jq -r .id "$d/gates/tarea-actual.json")
-                  git add -A
-                  git diff --cached --quiet && { echo "tarea $id: nada que commitear"; exit 0; }
-                  git commit -q -m "feat({{ inputs.hito }}): $id" -m "$(jq -r .texto "$d/gates/tarea-actual.json")"
-                  git log --oneline -1
+                      id=$(jq -r .id "$d/gates/tarea-actual.json")
+                      git add -A
+                      git diff --cached --quiet && { echo "tarea $id: nada que commitear"; exit 0; }
+                      git commit -q -m "feat({{ inputs.hito }}): $id" -m "$(jq -r .texto "$d/gates/tarea-actual.json")"
+                      git log --oneline -1
 
               # Capa 3 de la constitución: pausa humana ante «modificación de ficheros existentes en
               # testdata/ y schemas/ y toda grabación de fixtures». Material de test nuevo fuera del
@@ -861,7 +968,7 @@ steps:
     model: "{{ inputs.modelo_analisis }}"
     input:
       args: |
-        MODO DESATENDIDO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md, con el formato "- [ ] Tnnn … rutas" (ids correlativos, [datos] si toca testdata/ o schemas/), solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec.
+        MODO DESATENDIDO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md, con el formato "- [ ] Tnnn … rutas" (ids correlativos, [datos] si toca testdata/ o schemas/), solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec. Es un paso de lectura: no ejecutes `make ci` (el paso anterior acaba de hacerlo y su salida está en <feature_dir>/gates/ci.log), no uses `gh` ni `git push`, no lances subagentes ni esperas programadas; lee el código y los artefactos y escribe las tareas que falten.
 
   - id: implement_restante
     command: speckit.implement
@@ -958,6 +1065,7 @@ steps:
           elif { [ "$va" = rechazado ] && [ "$ca" != true ]; } || { [ "$vb" = rechazado ] && [ "$cb" != true ]; }; then estado=humano
           else estado=corregir; fi
           c="$d/gates/revision-rondas"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$c"
+          cp "$a" "$d/gates/revision-a-r$n.json"; cp "$b" "$d/gates/revision-b-r$n.json" # historial de rondas; ci_final los commitea
           jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" --argjson ronda "$n" \
             --slurpfile a "$a" --slurpfile b "$b" \
             '{estado:$estado, juez_a:$va, juez_b:$vb, ronda:$ronda, motivos:(($a[0].motivos // []) + ($b[0].motivos // []))}'
@@ -987,8 +1095,8 @@ steps:
       # vuelve a ejecutar este paso. Solo esos ficheros: cualquier otro cambio
       # pendiente sigue haciendo fallar la comprobación de árbol limpio.
       veredictos=""
-      for f in revision-a.json revision-b.json revision-rondas; do
-        [ -f "$d/gates/$f" ] && veredictos="$veredictos $d/gates/$f"
+      for f in "$d"/gates/revision-*.json "$d/gates/revision-rondas"; do
+        [ -f "$f" ] && veredictos="$veredictos $f"
       done
       if [ -n "$veredictos" ]; then
         git add -- $veredictos
