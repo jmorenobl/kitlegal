@@ -19,3 +19,7 @@ specs/*/gates/ci.log
 # Caché regenerable de spec-kit y worktrees de agente (nunca se versionan)
 .specify/integrations/.cache/
 .claude/worktrees/
+
+# Bytecode de CPython: la única ejecución autorizada de refs/boe.py, fuera de todo gate,
+# no deja rastro versionado
+__pycache__/
