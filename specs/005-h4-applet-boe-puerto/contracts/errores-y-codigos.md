@@ -55,11 +55,21 @@ Los de `httpx` y `cache` conservan su texto y se envuelven con el contexto del v
 
 ## 3. Tests que lo fijan
 
-- `internal/source/boe/errores_test.go`: `TestClasesDeErrorDeBoe` (una subprueba por fila 2-4, 6-10, 16-20, 22
-  sobre el error real, con `cli.Clasificar` y `cli.CodigoSalida`), `TestErrorDeBoeMensajes`.
-- `internal/source/boe/peticiones_test.go`: `TestPedirClasificaEstados` (filas 6-10 con un `Pedidor` de prueba).
+- `internal/source/boe/errores_test.go`: `TestClasesDeErrorDeBoe` (una subprueba por fila 2-4, 6-10 y 16-22
+  sobre el error real, con `cli.Clasificar` y `cli.CodigoSalida`), `TestErrorDeBoeMensajes`. La subprueba de la fila 21
+  usa una `AperturaDeCache` de prueba cuyo error implementa `schema.ConClase` con cada una de las tres clases de
+  `cache.Error`, en cuatro casos: la apertura falla; `Get` falla fuera de solo lectura; `Put` falla después de obtener
+  la respuesta, sin escribir nada; y `Close` falla, tras una invocación correcta (clase del cierre) y tras una fallida
+  (clase de la invocación, con los dos errores unidos por `errors.Join`). En cada caso, la clase y el código, el error
+  de la caché alcanzable con `errors.Is`, `fuente` de la fuente, `url` del recurso consultado y fecha sin declarar.
+- `internal/source/boe/peticiones_test.go`: `TestPedirClasificaEstados` (filas 6-10 con un `Pedidor` de prueba, y el
+  error de `httpx` de las filas 11-15 entregado con su clase, su dirección y su instante).
+- `internal/source/boe/fuente_test.go`: `TestOfflineDeLosSeisVerbos` (fila 5), `TestEnsayoDeLosSeisVerbos` (fila 23).
 - `internal/source/boe/{articulo,metadatos,indice,analisis,buscar}_test.go`: filas 5-8, 14, 16-19 sobre
   grabaciones y sintéticos.
-- `internal/app/boe_test.go`: `TestCodigosDeSalidaDeBoe` (filas 1-6, 11, 14, 18 y 19 por el kernel en proceso:
-  código, clase, `fuente`, `url` y `fecha_consulta`, con reloj controlado en `httpx.ConHora`).
+- `internal/app/boe_test.go`: `TestCodigosDeSalidaDeBoe` (filas 1-6, 11, 14, 18, 19 y 21 por el kernel en proceso:
+  código, clase, `fuente`, `url` y `fecha_consulta`, con reloj controlado en `httpx.ConHora`; la 21, con
+  `cache.ConDirectorio` sobre un fichero regular, que hace fallar la apertura con «argumentos»).
 - `internal/httpx/instante_test.go`: los instantes de las filas 11-15.
+
+Toda fila de la tabla tiene al menos un test que la fija.

@@ -362,7 +362,7 @@ el orden del árbol (`golang-testing`); `t.Parallel()` en todos salvo los que us
 | `…/avisos_test.go` | `TestAvisosDe` (las 8 combinaciones; código numérico → sin aviso), `TestCodigosDeAviso` | FR-012, FR-050 |
 | `…/datos_test.go` | `TestEnumeradosDeLosDatos`, `TestHashTexto` | FR-012, FR-015, SC-013 |
 | `…/entradas_test.go` | `TestClaveDeEntrada`, `TestEntradaIdaYVuelta` (fecha y url byte a byte), `TestEntradaIlegibleEsInesperado` | FR-090, FR-096, D5 |
-| `…/errores_test.go` | `TestClasesDeErrorDeBoe`, `TestErrorDeBoeMensajes` | FR-100, SC-008 |
+| `…/errores_test.go` | `TestClasesDeErrorDeBoe` (una subprueba por fila 2-4, 6-10 y 16-22 de [errores-y-codigos](./contracts/errores-y-codigos.md); la 21 con una `AperturaDeCache` de prueba: apertura, `Get`, `Put` tras obtener la respuesta y `Close` tras una invocación correcta y tras una fallida), `TestErrorDeBoeMensajes` | FR-100, SC-008 |
 | `…/buscar_test.go` | `TestBuscar` (`con-resultados`, `sin-resultados-guardada`, `texto-vacio`) | US3, FR-030-FR-032 |
 | `…/indice_test.go` | `TestIndice` (`lpac`, `inexistente`, `fuente-caida`) | US4-1, US4-4, FR-040, FR-041 |
 | `…/articulo_test.go` | `TestArticulo` (`bloque-vigente`, `derogada`, `bloque-inexistente`, `metadatos-en-cache`, `metadatos-caidos`, `metadatos-ilegibles`, `bloque-ilegible`, `bloque-sin-elemento`, `tres-avisos`), `TestArticuloCoincideConBoePy` (5), `TestArticulos` (`tres-bloques`, `id-repetido`, `segundo-inexistente`, `mezcla-de-cache`), `TestFechaDeConsultaDeArticulo` | US1, US4-2, US4-3, FR-010-FR-021, FR-096, FR-116, SC-001, SC-003, SC-012 |
@@ -370,7 +370,7 @@ el orden del árbol (`golang-testing`); `t.Parallel()` en todos salvo los que us
 | `…/analisis_test.go` | `TestAnalisis` (`lpac`, `inexistente`, `texto-completo`) | US5, FR-060, FR-061, FR-070 |
 | `…/casos_test.go` | casos cerrados de golden, manifiesto y ayudas; `TestGrabacionesCompletas`, `TestReferenciasCompletas` | FR-113, FR-116 |
 | `…/grabacion_test.go` (`//go:build grabacion`) | `TestGrabarFixtures` (exige `KITLEGAL_RECORD=1`) | FR-113 |
-| `internal/app/boe_test.go` | `TestAppletBoe`, `TestDependenciasDeRed` (sin red), `TestSalidaDeBoeContraSchemas`, `TestCodigosDeSalidaDeBoe`, `TestSinGrafoNiAsuntoNoCambianLaSalida` | FR-001, FR-101, FR-111, FR-128, SC-006, SC-008, SC-013 |
+| `internal/app/boe_test.go` | `TestAppletBoe`, `TestDependenciasDeRed` (sin red), `TestSalidaDeBoeContraSchemas`, `TestCodigosDeSalidaDeBoe` (filas 1-6, 11, 14, 18, 19 y 21; la 21 con `cache.ConDirectorio` sobre un fichero regular), `TestSinGrafoNiAsuntoNoCambianLaSalida` | FR-001, FR-101, FR-111, FR-128, SC-006, SC-008, SC-013 |
 | `internal/app/registro_test.go` | `TestRegistroDeProduccion` (← exactamente `boe`) | FR-001 |
 | `internal/app/main_test.go` | `TestArrancar` (`registro-valido`, `registro-invalido`) | D16 |
 | `internal/app/esquemas_test.go` | `TestEsquemasPublicados` (bandera `-actualizar-esquemas`), `TestEsquemasCubrenTodosLosVerbos` | FR-110, SC-006 |
@@ -469,9 +469,17 @@ en verde al cerrar cada una y las pausas humanas donde la constitución las pone
 17. **Verificación nocturna** (código): `fuentes_test.go`, `fuentes_red_test.go`, `scripts/verify-sources.sh`,
     `Makefile` (`verify-sources`), `.github/workflows/nightly.yml`, `.golangci.yml` (`fuentes`).
 18. **Documentación**: `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `docs/PENDIENTES.md`; validación del quickstart,
-    que la línea cita por su nombre sin copiar sus órdenes (llevan `./internal/source/boe/` y `./internal/app/`).
-19. **`[plataforma]`**: empujar la rama, abrir la propuesta de cambio con el cuerpo de `gates/pr-h4.md` (módulos del binario
-    justificados, supuestos pendientes S8-S9), esperar CI y Codecov. Al final, pausa del workflow por `docs/SOURCES.md` y
+    que la línea cita por su nombre sin copiar sus órdenes (llevan `./internal/source/boe/` y `./internal/app/`); la guía
+    parte de una carpeta temporal vacía, de modo que un reintento o una reanudación empieza de nuevo por los prerrequisitos
+    sin que `git clone` encuentre el clon del intento anterior. Cada orden de la guía está escrita en una forma que la
+    sesión desatendida (`claude -p --permission-mode acceptEdits`, lista de permitidos de `.claude/settings.json`) ejecuta
+    sin pedir aprobación, y la tarea la ejecuta tal cual, sin sustituciones. Las formas son estas: `rtk proxy` delante de
+    lo que la lista no cubre (`sh`, `env`, `test`, `perl`, `shasum`) y de lo que ejecuta, crea, borra o edita en la
+    carpeta temporal; el código de salida impreso dentro de `rtk proxy sh -c '…; echo "código $?"'`; y nada redirigido a
+    ficheros. Las sondas positivas de los prerrequisitos las comprueban en cada ejecución.
+19. **`[plataforma]`**: empujar la rama y, si `gh pr view` no encuentra propuesta de cambio (la tarea puede reintentarse),
+    abrirla con título explícito (`--title`, obligatorio sin terminal) y el cuerpo de `gates/pr-h4.md` (módulos del binario
+    justificados, supuestos pendientes S8-S9); esperar CI y Codecov. Al final, pausa del workflow por `docs/SOURCES.md` y
     por el directorio nuevo `internal/source/boe`.
 
 ## Complexity Tracking
@@ -607,7 +615,9 @@ en verde al cerrar cada una y las pausas humanas donde la constitución las pone
 11. **La tarea `[plataforma]` va la última**; los supuestos S8 (incidencia nocturna) y S9 (tiempo en CI) quedan anotados como
     pendientes de la primera ejecución.
 12. **`rtk`**: toda orden cuya salida se filtre o compare (`go test -v | grep`, `git status --porcelain`, `git diff`) se
-    ejecuta con `rtk proxy` en este entorno.
+    ejecuta con `rtk proxy` en este entorno, cada etapa de la tubería incluida. También va con `rtk proxy` toda orden del
+    quickstart que la lista de permitidos de `.claude/settings.json` no cubre, o que ejecuta, crea, borra o edita en la
+    carpeta temporal. Esas formas están en la tabla de `quickstart.md` y se ejecutan tal cual.
 
 ## Comprobación contra la rúbrica del juez (`juez_plan`, criterios a-j)
 
@@ -622,4 +632,4 @@ en verde al cerrar cada una y las pausas humanas donde la constitución las pone
 | g. sin_atajos | Ningún `nolint`, `t.Skip`, TODO ni error silenciado previstos; `panic` eliminado del e2e; tipos inesperados fallan en vez de ocultarse; `TestPuntoDeEntrada` sigue ejerciendo la composición de `main()` con el registro de producción, y `&Registro{}` solo donde el sujeto es el registro vacío |
 | h. mejor_alternativa | Cada decisión de research.md (D1-D19) con alternativas rechazadas y motivo |
 | i. afirmaciones_verificadas | Tabla de verificación de research.md con fichero y línea (Go y su biblioteca estándar, CPython, módulos, `gh`; `golangci-lint` y `misspell`, con el comportamiento citado a su código en D18 y un barrido del diccionario con método repetible; el guardián y el extractor de rutas del workflow en D15, comprobados sobre líneas con rutas en prosa y en órdenes), sin nada citado a la memoria del proyecto; lo que depende del acelerador C de `ElementTree`, de expat o de `gh` contra el repositorio remoto, como supuesto en D20 (S1-S12) |
-| j. quickstart_ejecutable | Escenarios con órdenes, rutas y tests reales; negativos solo sobre un clon desechable en `/tmp`; binario en `/tmp`; ningún escenario escribe en el árbol, el índice o el historial |
+| j. quickstart_ejecutable | Escenarios con órdenes, rutas y tests reales; negativos solo sobre un clon desechable en `/tmp`, en una carpeta que los prerrequisitos dejan vacía para que un reintento no falle; binario en `/tmp`; ningún escenario escribe en el árbol, el índice o el historial; cada orden en una forma que la sesión desatendida ejecuta sin aprobación (sondeada el 2026-09-13), sin redirecciones a ficheros y con sondas positivas de esas formas en los prerrequisitos |
