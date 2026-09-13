@@ -1,15 +1,14 @@
 {
-  "id": "T013",
-  "texto": "T013 [US5] Tipos de `data` y avisos de vigencia: `internal/source/boe/datos.go` con `Articulo`, `Aviso`, `ResultadoDeBusqueda`, `Indice`, `EntradaDeIndice`, `Metadatos`, `EstadoDeConsolidacion`, `Analisis`, `Materia`, `Referencias`, `ReferenciaAnterior` y `ReferenciaPosterior` con las claves de data-model §2 (todas obligatorias; vacío y lista vacía en lugar de ausente), etiquetas `json` y `jsonschema` (`codigo` enumerado con exactamente `consolidacion-no-finalizada`, `derogada` y `vigencia-agotada`; `tipo` de `EntradaDeIndice` con los valores de `TiposDeBloque`; `hash_texto` con su patrón), `TiposDeBloque()` y la huella `sha256:` del texto, con `TestEnumeradosDeLosDatos` (los enumerados del esquema que genera la biblioteca de esquemas ya fijada son exactamente `CodigosDeAviso()` y `TiposDeBloque()`, y todo tipo que da `TipoDesdeID` está entre ellos) y `TestHashTexto` (cambia si y solo si cambia el texto); e `internal/source/boe/avisos.go` con `CodigosDeAviso()` y los avisos derivados de los metadatos con las tres condiciones de `_check_vigencia`, su orden y sus frases literales (data-model §2.2), con `TestAvisosDe` (las ocho combinaciones; código numérico → sin aviso) y `TestCodigosDeAviso` (FR-012, FR-015, FR-050, SC-013, research D11).",
+  "id": "T014",
+  "texto": "T014 [US2] La consulta guardada: `internal/source/boe/entradas.go` con la clave `boe.legislacion-consolidada|1|<verbo>|<dirección>` y el contenido `fecha_consulta`, `url` y `datos`, con la fecha en RFC 3339 con nanosegundos y desplazamiento, leído sin admitir claves desconocidas (ilegible → «inesperado» nombrando la clave), con `TestClaveDeEntrada` (dos consultas distintas nunca comparten clave; la de metadatos es la misma para `metadatos`, `articulo` y `articulos`), `TestEntradaIdaYVuelta` (fecha y url byte a byte) y `TestEntradaIlegibleEsInesperado` (FR-090, FR-096, data-model §6, research D5).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T013.md y déjala sin marcar.",
-  "base": "9272f6111805f7be75d0725d723a7c60b89efeb0",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T014.md y déjala sin marcar.",
+  "base": "f802372b0f333fa2269201076664f5ffbc338b20",
   "rutas": [
-    "internal/source/boe/avisos.go",
-    "internal/source/boe/datos.go"
+    "internal/source/boe/entradas.go"
   ],
   "cierre": false
 }
