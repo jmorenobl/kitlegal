@@ -1,18 +1,14 @@
 {
-  "id": "T022",
-  "texto": "T022 [US5] `analisis`: `internal/source/boe/analisis.go`, con su caso en `Fetch` de `internal/source/boe/fuente.go`, valida la norma, sirve la entrada vigente, pide con JSON, lee materias, notas, referencias anteriores (con el texto completo, sin recorte) y posteriores con sus envoltorios y la normalización a lista (`data` vacío → 3 sin guardar) y escribe la entrada con 604 800 s; `url` del sobre = la del análisis; con `TestAnalisis` (`lpac`, `inexistente`, `texto-completo`); y, porque `analisis`, `metadatos` e `indice` comparten el mismo esqueleto de verbo (validar la norma antes de abrir nada, `invocar`, resolver con la caché de la invocación y componer el resultado con la dirección del recurso) y `dupl` lo marca en cuanto existe el tercero, `internal/source/boe/fuente.go` añade `resolverRecursoDeLaNorma`, que lo recoge, y los tres verbos lo usan: `internal/source/boe/analisis.go` con `analisisDeLaNorma`, `internal/source/boe/metadatos.go` con el `metadatosDeLaNorma` que ya tiene e `internal/source/boe/indice.go` con un `indiceDeLaNorma` nuevo, sin cambiar ningún comportamiento ni ningún test de esos dos verbos (FR-060, FR-061, FR-070, US5 escenario 2; redelimitada en el intento 1, ver gates/tarea-T022.md).",
-  "intento": 2,
+  "id": "T023",
+  "texto": "T023 [US2] La caché de los seis verbos, sobre el código ya existente: `internal/source/boe/fuente_test.go` añade `TestCacheDeLosSeisVerbos` (la segunda consulta idéntica contra `httpx.Replay` sobre una carpeta vacía: cero peticiones y el mismo `data`, `url` y `fecha_consulta` con el reloj adelantado dentro de la vigencia; pasada la vigencia de su verbo, se vuelve a pedir; `articulo` con los metadatos en caché emite una petición y `metadatos` tras un `articulo`, ninguna), `TestOfflineDeLosSeisVerbos` (entrada vigente → 0 con la fecha guardada; ausente o caducada → 4, cero peticiones y la caché intacta), `TestEnsayoDeLosSeisVerbos` (cero peticiones, nada escrito y una línea por cada petición que se habría emitido, sin repetir ninguna) y `TestFallosNoSeGuardan` (bloque inexistente, fuente caída, bloque ilegible y metadatos caídos: repetir la consulta vuelve a pedir); la tarea no añade producto (FR-090-FR-096, SC-003, SC-004, SC-012, US2 escenarios 1 y 3-8).",
+  "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T022.md y déjala sin marcar.",
-  "base": "9aca3dd93bf26b65476e2ecaf9f94a4137ac6dde",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T023.md y déjala sin marcar.",
+  "base": "33abb7188a66b2db19b29396ae5423c7f22dc1a3",
   "rutas": [
-    "gates/tarea-T022.md",
-    "internal/source/boe/analisis.go",
-    "internal/source/boe/fuente.go",
-    "internal/source/boe/indice.go",
-    "internal/source/boe/metadatos.go"
+    "internal/source/boe/fuente_test.go"
   ],
   "cierre": false
 }

@@ -617,6 +617,511 @@ func TestInvocarFallosDeLaCache(t *testing.T) {
 	})
 }
 
+// TestCacheDeLosSeisVerbos fija la caché de los seis verbos (FR-090, FR-091,
+// FR-096; SC-003; US2, escenarios 1, 6, 7 y 8) sobre la fuente compuesta con el
+// cliente real de httpx en reproducción y la caché real en una carpeta temporal,
+// las dos gobernadas por el mismo reloj de prueba:
+//
+//   - la segunda consulta idéntica, con el reloj adelantado hasta el último
+//     nanosegundo de la vigencia de su verbo, la resuelve otra invocación sobre la
+//     misma caché cuyo cliente reproduce una carpeta vacía, de modo que cualquier
+//     petición emitida fallaría: no construye ningún cliente ni entrega ninguna
+//     petición, y da el mismo data, la misma url y la misma fecha de consulta que
+//     la primera;
+//   - al cumplirse la vigencia, una tercera invocación sobre las grabaciones
+//     vuelve a pedir las mismas peticiones, en su orden, y lleva la fecha de su
+//     propia consulta;
+//   - la búsqueda sin resultados es un resultado y se sirve igual (FR-032);
+//   - articulo con la entrada de metadatos de su norma vigente pide solo el
+//     bloque, y lleva la fecha de los metadatos, que es la más antigua;
+//   - y metadatos tras un articulo no pide nada.
+func TestCacheDeLosSeisVerbos(t *testing.T) {
+	t.Parallel()
+
+	for _, verbo := range consultasDeLosSeisVerbos() {
+		t.Run(verbo.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			guardado, sinGrabaciones := verbo.trasGuardar(t, verbo.vigencia-time.Nanosecond)
+
+			servido, err := sinGrabaciones.resuelve(t, schema.Contexto{}, verbo.consulta)
+
+			require.NoError(t, err)
+			assert.Equal(t, guardado, servido, "la segunda consulta da el mismo data, la misma url y la misma fecha")
+			sinGrabaciones.compruebaSinPedirNada(t)
+
+			sinGrabaciones.reloj.adelanta(time.Nanosecond)
+
+			pedido := verbo.resuelvePidiendo(t, sinGrabaciones.otroSobreLaMismaCache(t, reproduce(carpetaDeLasGrabaciones)))
+
+			assert.Equal(t, guardado.Datos, pedido.Datos)
+		})
+	}
+
+	t.Run("articulo-con-los-metadatos-en-cache", func(t *testing.T) {
+		t.Parallel()
+
+		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+		t0 := banco.reloj.ahora()
+
+		_, err := banco.resuelve(t, schema.Contexto{}, ConsultaMetadatos{Norma: normaVigente})
+		require.NoError(t, err)
+
+		banco.reloj.adelanta(vigenciaDeLosMetadatos - time.Nanosecond)
+
+		delArticulo := banco.otroSobreLaMismaCache(t, reproduce(carpetaDeLasGrabaciones))
+
+		resultado, err := delArticulo.resuelve(t, schema.Contexto{},
+			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
+
+		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t)))
+		delArticulo.compruebaPeticiones(t, peticionDelBloque(direccionDelArticulo21))
+	})
+
+	t.Run("metadatos-tras-un-articulo", func(t *testing.T) {
+		t.Parallel()
+
+		articulo := consultaDeUnVerbo{
+			consulta:  ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+			direccion: direccionDelArticulo21,
+			pedidas:   []httpx.Peticion{peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente)},
+		}
+
+		guardado, sinGrabaciones := articulo.trasGuardar(t, vigenciaDeLosMetadatos-time.Nanosecond)
+
+		resultado, err := sinGrabaciones.resuelve(t, schema.Contexto{}, ConsultaMetadatos{Norma: normaVigente})
+
+		compruebaResuelta(t, resultado, err, resultadoResuelto(metadatosVigente, guardado.Procedencia.FechaConsulta,
+			metadatosDeLaNormaVigente()))
+		sinGrabaciones.compruebaSinPedirNada(t)
+	})
+}
+
+// TestOfflineDeLosSeisVerbos fija --offline en los seis verbos (FR-092, FR-096;
+// SC-004; US2, escenarios 3 y 4; contrato errores-y-codigos, fila 5), también
+// junto con --dry-run, que conserva lo que da --offline, con cada consulta
+// resuelta por una invocación cuyo cliente reproduce una carpeta vacía:
+//
+//   - con la entrada vigente, código 0 con el data, la url y la fecha de consulta
+//     de la invocación que la guardó, aunque el reloj haya avanzado;
+//   - con la entrada ausente —sin ninguna caché— o caducada, código 4 con la
+//     dirección del recurso que falta —la del primer bloque en articulos— y sin
+//     instante, porque el sobre lo fecha el montaje;
+//   - y en todos los casos, sin construir ningún cliente ni entregar ninguna
+//     petición, y con la caché intacta: la carpeta sin crear si no la había, y
+//     la base con los mismos bytes si la había.
+func TestOfflineDeLosSeisVerbos(t *testing.T) {
+	t.Parallel()
+
+	ejecuciones := map[string]schema.Contexto{
+		"offline":          {Offline: true},
+		"offline-y-ensayo": {Offline: true, DryRun: true},
+	}
+
+	for _, verbo := range consultasDeLosSeisVerbos() {
+		t.Run(verbo.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			for modo, ec := range ejecuciones {
+				t.Run(modo+"-vigente", func(t *testing.T) {
+					t.Parallel()
+
+					compruebaOfflineConLaEntradaGuardada(t, verbo, ec, verbo.vigencia-time.Nanosecond)
+				})
+
+				t.Run(modo+"-caducada", func(t *testing.T) {
+					t.Parallel()
+
+					compruebaOfflineConLaEntradaGuardada(t, verbo, ec, verbo.vigencia)
+				})
+
+				t.Run(modo+"-ausente", func(t *testing.T) {
+					t.Parallel()
+
+					banco := nuevoBanco(t, reproduce(t.TempDir()))
+
+					resultado, err := banco.resuelve(t, ec, verbo.consulta)
+
+					compruebaFalloDeLaConsulta(t, resultado, err, verbo.sinEntrada)
+					banco.compruebaSinPedirNada(t)
+					banco.compruebaCacheSinCrear(t)
+				})
+			}
+		})
+	}
+}
+
+// compruebaOfflineConLaEntradaGuardada guarda la consulta del verbo, adelanta el
+// reloj el tramo y la resuelve con la ejecución, que lleva --offline, en otra
+// invocación sobre la misma caché: dentro de la vigencia, lo guardado tal cual;
+// al cumplirse, el fallo del verbo sin entrada vigente. En los dos casos, sin
+// pedir nada y con la caché intacta (FR-092).
+func compruebaOfflineConLaEntradaGuardada(t *testing.T, verbo consultaDeUnVerbo, ec schema.Contexto, tramo time.Duration) {
+	t.Helper()
+
+	guardado, sinRed := verbo.trasGuardar(t, tramo)
+	antes := sinRed.baseDeLaCache(t)
+
+	resultado, err := sinRed.resuelve(t, ec, verbo.consulta)
+
+	if tramo < verbo.vigencia {
+		require.NoError(t, err)
+		assert.Equal(t, guardado, resultado, "con la entrada vigente se sirve lo guardado, con su url y su fecha")
+	} else {
+		compruebaFalloDeLaConsulta(t, resultado, err, verbo.sinEntrada)
+	}
+
+	sinRed.compruebaSinPedirNada(t)
+	assert.Equal(t, antes, sinRed.baseDeLaCache(t), "la caché queda intacta")
+}
+
+// TestEnsayoDeLosSeisVerbos fija --dry-run en los seis verbos (FR-094; ADR 0011;
+// contrato errores-y-codigos, fila 23), sin caché y con la entrada caducada, con
+// cada consulta resuelta por una invocación cuyo cliente reproduce una carpeta
+// vacía: código 0; la procedencia con la url del verbo y sin fecha, sin datos; una
+// línea por cada petición que se habría emitido, en su orden y sin repetir
+// ninguna —la de los metadatos, una sola vez para todos los bloques de articulos,
+// y la del bloque repetido, ninguna vez más—; el cliente las recibe todas en
+// ensayo y no emite ninguna; y nada queda escrito: sin caché, la carpeta sigue
+// sin crear, y con la entrada caducada, la base conserva sus bytes y la entrada
+// sigue sin servirse con --offline.
+func TestEnsayoDeLosSeisVerbos(t *testing.T) {
+	t.Parallel()
+
+	for _, verbo := range consultasDeLosSeisVerbos() {
+		t.Run(verbo.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("sin-cache", func(t *testing.T) {
+				t.Parallel()
+
+				banco := nuevoBanco(t, reproduce(t.TempDir()))
+
+				verbo.compruebaEnsayo(t, banco)
+				banco.compruebaCacheSinCrear(t)
+			})
+
+			t.Run("con-la-entrada-caducada", func(t *testing.T) {
+				t.Parallel()
+
+				_, sinRed := verbo.trasGuardar(t, verbo.vigencia)
+				antes := sinRed.baseDeLaCache(t)
+
+				verbo.compruebaEnsayo(t, sinRed)
+				assert.Equal(t, antes, sinRed.baseDeLaCache(t), "el ensayo no escribe nada")
+
+				resultado, err := sinRed.resuelve(t, schema.Contexto{Offline: true}, verbo.consulta)
+
+				compruebaFalloDeLaConsulta(t, resultado, err, verbo.sinEntrada)
+			})
+		})
+	}
+}
+
+// TestFallosNoSeGuardan fija que ningún fallo queda en la caché (FR-093; SC-012;
+// US2, escenario 5): el bloque inexistente, la fuente caída, el bloque ilegible y
+// los metadatos caídos de un bloque obtenido fallan con su clase, con la
+// dirección y el instante de la petición que falla y sin ningún dato —tampoco el
+// texto del bloque obtenido—, y repetir la consulta vuelve a entregar al cliente
+// las mismas peticiones, en su orden, y falla igual con el instante de la nueva
+// petición: nada de lo que falló se escribió, ni la consulta ni los metadatos de
+// los que dependía, y con --offline no hay ninguna entrada que servir.
+func TestFallosNoSeGuardan(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		pedidor  func(*testing.T, *relojDePrueba) *pedidorDePrueba
+		consulta core.Consulta
+		// pedidas son las peticiones que la consulta entrega al cliente hasta
+		// fallar, en su orden.
+		pedidas []httpx.Peticion
+		// direccion es la de la petición que falla, y clase, la de su fallo.
+		direccion string
+		clase     schema.Clase
+		// sinEntrada es el fallo de la consulta con --offline.
+		sinEntrada falloDeLaConsulta
+	}{
+		{
+			nombre:     "bloque-inexistente",
+			pedidor:    reproduce(carpetaDeLasGrabaciones),
+			consulta:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueInexistente},
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelBloqueInexistente)},
+			direccion:  direccionDelBloqueInexistente,
+			clase:      schema.ClaseNoEncontrado,
+			sinEntrada: falloSinEntradaDelArticulo(direccionDelBloqueInexistente),
+		},
+		{
+			nombre:     "fuente-caida",
+			pedidor:    reproduce(sinteticoDeLaFuenteCaida),
+			consulta:   ConsultaIndice{Norma: normaVigente},
+			pedidas:    []httpx.Peticion{{Metodo: "GET", URL: indiceVigente, Acepta: aceptaDelResto}},
+			direccion:  indiceVigente,
+			clase:      schema.ClaseFuenteNoDisponible,
+			sinEntrada: falloSinIndiceConOffline(indiceVigente),
+		},
+		{
+			nombre:     "bloque-ilegible",
+			pedidor:    reproduce(sinteticoDelBloqueIlegible),
+			consulta:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21)},
+			direccion:  direccionDelArticulo21,
+			clase:      schema.ClaseFuenteNoDisponible,
+			sinEntrada: falloSinEntradaDelArticulo(direccionDelArticulo21),
+		},
+		{
+			nombre:     "metadatos-caidos",
+			pedidor:    reproduce(sinteticoDeLosMetadatosCaidos),
+			consulta:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente)},
+			direccion:  metadatosVigente,
+			clase:      schema.ClaseFuenteNoDisponible,
+			sinEntrada: falloSinEntradaDelArticulo(direccionDelArticulo21),
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			banco := nuevoBanco(t, caso.pedidor)
+			pedidas := make([]httpx.Peticion, 0, 2*len(caso.pedidas))
+
+			for vez := 1; vez <= 2; vez++ {
+				resultado, err := banco.resuelve(t, schema.Contexto{}, caso.consulta)
+
+				require.Error(t, err, "la consulta %d", vez)
+				assert.Equal(t, caso.clase, cli.Clasificar(err), "la consulta %d", vez)
+				assert.Equal(t, schema.Resultado{Procedencia: schema.Procedencia{
+					Fuente:        NombreDeLaFuente,
+					URL:           caso.direccion,
+					FechaConsulta: banco.reloj.ahora(),
+				}}, resultado, "la consulta %d falla sin datos y con el instante de su propia petición", vez)
+
+				pedidas = append(pedidas, caso.pedidas...)
+				banco.compruebaPeticiones(t, pedidas...)
+
+				resultado, err = banco.resuelve(t, schema.Contexto{Offline: true}, caso.consulta)
+
+				compruebaFalloDeLaConsulta(t, resultado, err, caso.sinEntrada)
+
+				banco.reloj.adelanta(time.Second)
+			}
+		})
+	}
+}
+
+// consultaDeUnVerbo es la consulta de uno de los seis verbos con la que se fijan
+// la caché, --offline y el ensayo, con lo que da sobre las grabaciones.
+type consultaDeUnVerbo struct {
+	nombre   string
+	consulta core.Consulta
+	// direccion es la url del sobre del verbo, y vigencia, la de su entrada.
+	direccion string
+	vigencia  time.Duration
+	// pedidas son las peticiones que la consulta entrega al cliente sin nada en
+	// la caché, en su orden y sin repetir ninguna.
+	pedidas []httpx.Peticion
+	// sinEntrada es su fallo con --offline sin ninguna entrada vigente.
+	sinEntrada falloDeLaConsulta
+}
+
+// consultasDeLosSeisVerbos son las consultas de los seis verbos: la búsqueda de
+// «procedimiento administrativo común» y, de la Ley 39/2015, el índice, el
+// artículo 21, varios artículos, los metadatos y el análisis; y además la
+// búsqueda sin resultados, que se guarda y se sirve como cualquier otro resultado
+// (FR-032). La de articulos repite un bloque, que se pide una sola vez, y sus
+// tres bloques distintos comparten una sola petición de metadatos (FR-020).
+func consultasDeLosSeisVerbos() []consultaDeUnVerbo {
+	enJSON := func(direccion string) httpx.Peticion {
+		return httpx.Peticion{Metodo: "GET", URL: direccion, Acepta: aceptaDelResto}
+	}
+
+	sinEntradaDeArticulos := falloSinEntradaDelArticulo(direccionDelArticulo21)
+	sinEntradaDeArticulos.mensaje = "no se ha podido resolver el bloque a21, en la posición 1 de 4: " +
+		sinEntradaDeArticulos.mensaje
+
+	return []consultaDeUnVerbo{
+		{
+			nombre:     "buscar",
+			consulta:   ConsultaBuscar{Texto: []string{"procedimiento", "administrativo", "común"}},
+			direccion:  busquedaConResultados,
+			vigencia:   vigenciaDeLaBusqueda,
+			pedidas:    []httpx.Peticion{enJSON(busquedaConResultados)},
+			sinEntrada: falloSinBusquedaConOffline(busquedaConResultados),
+		},
+		{
+			nombre:     "buscar-sin-resultados",
+			consulta:   ConsultaBuscar{Texto: []string{"zzqxkwvjh"}},
+			direccion:  busquedaSinResultados,
+			vigencia:   vigenciaDeLaBusqueda,
+			pedidas:    []httpx.Peticion{enJSON(busquedaSinResultados)},
+			sinEntrada: falloSinBusquedaConOffline(busquedaSinResultados),
+		},
+		{
+			nombre:     "indice",
+			consulta:   ConsultaIndice{Norma: normaVigente},
+			direccion:  indiceVigente,
+			vigencia:   vigenciaDelIndice,
+			pedidas:    []httpx.Peticion{enJSON(indiceVigente)},
+			sinEntrada: falloSinIndiceConOffline(indiceVigente),
+		},
+		{
+			nombre:     "articulo",
+			consulta:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+			direccion:  direccionDelArticulo21,
+			vigencia:   vigenciaDeLosArticulos,
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21), enJSON(metadatosVigente)},
+			sinEntrada: falloSinEntradaDelArticulo(direccionDelArticulo21),
+		},
+		{
+			nombre: "articulos",
+			consulta: ConsultaArticulos{
+				Norma:   normaVigente,
+				Bloques: []string{bloqueDelArticulo21, bloqueDelArticulo22, bloqueDelArticulo21, bloqueDelArticulo23},
+			},
+			direccion: direccionDeLaNormaVigente,
+			vigencia:  vigenciaDeLosArticulos,
+			pedidas: []httpx.Peticion{
+				peticionDelBloque(direccionDelArticulo21),
+				enJSON(metadatosVigente),
+				peticionDelBloque(direccionDelArticulo22),
+				peticionDelBloque(direccionDelArticulo23),
+			},
+			sinEntrada: sinEntradaDeArticulos,
+		},
+		{
+			nombre:     "metadatos",
+			consulta:   ConsultaMetadatos{Norma: normaVigente},
+			direccion:  metadatosVigente,
+			vigencia:   vigenciaDeLosMetadatos,
+			pedidas:    []httpx.Peticion{enJSON(metadatosVigente)},
+			sinEntrada: falloSinEntradaConOffline(metadatosVigente),
+		},
+		{
+			nombre:     "analisis",
+			consulta:   ConsultaAnalisis{Norma: normaVigente},
+			direccion:  analisisVigente,
+			vigencia:   vigenciaDelAnalisis,
+			pedidas:    []httpx.Peticion{enJSON(analisisVigente)},
+			sinEntrada: falloSinAnalisisConOffline(analisisVigente),
+		},
+	}
+}
+
+// resuelvePidiendo resuelve la consulta del verbo con el banco, sin nada vigente
+// en su caché, y exige que la resuelva entregando al cliente exactamente sus
+// peticiones, en su orden, con la url del verbo, la fecha del reloj —que no se
+// mueve mientras se resuelve— y datos; devuelve lo resuelto.
+func (v consultaDeUnVerbo) resuelvePidiendo(t *testing.T, banco *bancoDeLaFuente) schema.Resultado {
+	t.Helper()
+
+	resultado, err := banco.resuelve(t, schema.Contexto{}, v.consulta)
+
+	require.NoError(t, err)
+	compruebaDireccionDeLaFuente(t, resultado.Procedencia.URL)
+	assert.Equal(t, schema.Procedencia{Fuente: NombreDeLaFuente, URL: v.direccion, FechaConsulta: banco.reloj.ahora()},
+		resultado.Procedencia)
+	assert.NotNil(t, resultado.Datos)
+	assert.Empty(t, resultado.Ensayo)
+	banco.compruebaPeticiones(t, v.pedidas...)
+
+	return resultado
+}
+
+// trasGuardar resuelve la consulta del verbo con resuelvePidiendo en un banco
+// nuevo sobre las grabaciones, adelanta el reloj el tramo y devuelve lo resuelto
+// y otra invocación sobre la misma caché y el mismo reloj cuyo cliente reproduce
+// una carpeta vacía, de modo que cualquier petición que emitiera fallaría.
+func (v consultaDeUnVerbo) trasGuardar(t *testing.T, tramo time.Duration) (schema.Resultado, *bancoDeLaFuente) {
+	t.Helper()
+
+	banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+	guardado := v.resuelvePidiendo(t, banco)
+
+	banco.reloj.adelanta(tramo)
+
+	return guardado, banco.otroSobreLaMismaCache(t, reproduce(t.TempDir()))
+}
+
+// compruebaEnsayo resuelve la consulta del verbo con --dry-run y exige el código
+// 0 y el resultado del ensayo —la procedencia con la url del verbo y sin fecha,
+// sin datos, y la línea de cada petición del verbo, en su orden y sin repetir
+// ninguna—, con cada petición entregada al cliente en ensayo, sin emitirla.
+func (v consultaDeUnVerbo) compruebaEnsayo(t *testing.T, banco *bancoDeLaFuente) {
+	t.Helper()
+
+	lineas := make([]string, 0, len(v.pedidas))
+	for _, pedida := range v.pedidas {
+		lineas = append(lineas, pedida.Metodo+" "+pedida.URL)
+	}
+
+	resultado, err := banco.resuelve(t, schema.Contexto{DryRun: true}, v.consulta)
+
+	require.NoError(t, err)
+	assert.Equal(t, schema.Resultado{
+		Procedencia: schema.Procedencia{Fuente: NombreDeLaFuente, URL: v.direccion},
+		Ensayo:      lineas,
+	}, resultado)
+	assert.Len(t, slices.Compact(slices.Sorted(slices.Values(resultado.Ensayo))), len(resultado.Ensayo),
+		"ninguna línea del ensayo se repite: %v", resultado.Ensayo)
+	banco.compruebaPeticiones(t, v.pedidas...)
+
+	for indice, respuesta := range banco.pedidor.respuestas {
+		assert.True(t, respuesta.Ensayo, "bajo --dry-run no se emite la petición %d", indice+1)
+	}
+}
+
+// otroSobreLaMismaCache es otro banco con la misma caché y el mismo reloj que
+// este, y con el Pedidor que construye pedidor: la fuente de otra invocación, que
+// encuentra lo que dejaron escrito las anteriores.
+func (b *bancoDeLaFuente) otroSobreLaMismaCache(t *testing.T,
+	pedidor func(*testing.T, *relojDePrueba) *pedidorDePrueba,
+) *bancoDeLaFuente {
+	t.Helper()
+
+	otro := &bancoDeLaFuente{pedidor: pedidor(t, b.reloj), reloj: b.reloj, carpetaDeLaCache: b.carpetaDeLaCache}
+
+	fuente, err := Nueva(
+		ConCliente(otro.construir),
+		ConCache(abrirCacheEn(otro.carpetaDeLaCache, cache.ConReloj(otro.reloj.ahora))),
+	)
+	require.NoError(t, err)
+
+	otro.fuente = fuente
+
+	return otro
+}
+
+// compruebaSinPedirNada exige que la fuente del banco no haya construido ningún
+// cliente ni entregado ninguna petición.
+func (b *bancoDeLaFuente) compruebaSinPedirNada(t *testing.T) {
+	t.Helper()
+
+	assert.Zero(t, b.construcciones, "no se construye ningún cliente")
+	assert.Empty(t, b.pedidor.peticiones, "no se entrega ninguna petición")
+}
+
+// ficheroDeLaBase es el fichero de la base en la carpeta de la caché. Una
+// invocación de solo lectura lo deja idéntico byte a byte, y los auxiliares
+// cache.db-wal y cache.db-shm, que SQLite crea también al leer en un directorio
+// escribible y que solo retira el cierre de un cliente normal, no cuentan
+// (contrato de H3 esquema-y-apertura §6, garantía de SC-003, y §7).
+const ficheroDeLaBase = "cache.db"
+
+// baseDeLaCache son los bytes de la base de la caché del banco, que una
+// invocación que no escribe nada deja iguales. Exige que la base exista y no esté
+// vacía: sin base no hay nada que comparar.
+func (b *bancoDeLaFuente) baseDeLaCache(t *testing.T) []byte {
+	t.Helper()
+
+	contenido, err := os.ReadFile(filepath.Clean(filepath.Join(b.carpetaDeLaCache, ficheroDeLaBase)))
+	require.NoError(t, err)
+	require.NotEmpty(t, contenido, "la base de la caché está vacía")
+
+	return contenido
+}
+
 // TestGolden compara byte a byte cada golden de testdata/golden con lo que da su
 // caso de la lista cerrada (FR-112; contrato esquemas-fixtures-y-controles §2): la
 // fuente sobre la reproducción de las grabaciones, con una caché vacía para cada
