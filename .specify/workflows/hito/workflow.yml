@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.7.0"
+  version: "1.8.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -45,9 +45,11 @@ inputs:
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
   # por scripts/hito.sh) traduce "@<esfuerzo>" a `--effort`; sin el wrapper,
   # `claude` rechaza el valor. Criterio de asignación en docs/WORKFLOW.md.
+  # Fable 5.1 solo donde la estructura lo pide: el juez adversarial de la revisión
+  # final (otra familia que el juez A) y lo que ya falló con Opus (escalada).
   modelo_decision:
     type: string
-    default: "fable@high"
+    default: "opus@xhigh"
     enum: &modelos [
       "fable", "fable@low", "fable@medium", "fable@high", "fable@xhigh", "fable@max",
       "opus", "opus@low", "opus@medium", "opus@high", "opus@xhigh", "opus@max",
@@ -61,14 +63,19 @@ inputs:
     prompt: "Decisiones con más consecuencias aguas abajo: resolver clarificaciones, plan y corrector del plan"
   modelo_juez:
     type: string
-    default: "fable@xhigh"
+    default: "opus@xhigh"
     enum: *modelos
-    prompt: "Jueces de spec, plan y tasks y juez B (adversarial) de la revisión final"
+    prompt: "Jueces de spec, plan y tasks"
   modelo_revisor:
     type: string
     default: "opus@xhigh"
     enum: *modelos
-    prompt: "Juez A de la revisión final (rúbrica DoD); distinto de modelo_juez para que los dos votos no fallen a la vez"
+    prompt: "Juez A de la revisión final (rúbrica DoD)"
+  modelo_adversario:
+    type: string
+    default: "fable@xhigh"
+    enum: *modelos
+    prompt: "Juez B (adversarial) de la revisión final; otra familia que modelo_revisor para que los dos votos no fallen a la vez"
   modelo_redaccion:
     type: string
     default: "opus@high"
@@ -83,7 +90,7 @@ inputs:
     type: string
     default: "fable@xhigh"
     enum: *modelos
-    prompt: "Lo que ya falló con modelo_implementacion: reintentos de tarea, reparaciones de CI y corrector de la revisión final"
+    prompt: "Lo que ya falló con modelo_implementacion: reintentos de tarea y reparaciones de CI"
   modelo_analisis:
     type: string
     default: "sonnet@high"
@@ -1011,7 +1018,7 @@ steps:
           Eres el JUEZ B (adversarial) de la revisión final del hito {{ inputs.hito }} de kitlegal. Tu hipótesis de partida es que el hito NO cumple la Definition of Done de docs/ROADMAP.md §1 y tu trabajo es encontrar la evidencia. Busca activamente: tests que no prueban nada (sin aserciones, solo camino feliz, tautológicos), nolint o `t.Skip`, errores ignorados (`_ =`), fixtures o golden files retocados para que pase un test (compara con `git log -p -- testdata schemas`), cobertura fingida, dependencias no fijadas, código fuera del alcance del spec, violaciones de las reglas de dependencia entre paquetes, llamadas de red fuera de internal/httpx, métodos distintos de GET/HEAD, datos personales, promesas de los contratos o del CHANGELOG que el binario no cumple, y cualquier diferencia entre lo que tasks.md dice que se hizo y lo que hay en el diff. Muta el código en una copia desechable fuera del repositorio para comprobar que los tests detectan lo que dicen detectar. Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
           EOF
           )
-          jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_juez }}" --arg pa "$papel_a" --arg pb "$papel_b" \
+          jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_adversario }}" --arg pa "$papel_a" --arg pb "$papel_b" \
             '{jueces:[{id:"a", modelo:$ma, fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, fichero:"revision-b.json", papel:$pb}]}'
 
       - id: revision_jueces
@@ -1076,7 +1083,7 @@ steps:
         then:
           - id: corrector_revision
             type: prompt
-            model: "{{ inputs.modelo_escalada }}"
+            model: "{{ inputs.modelo_implementacion }}"
             timeout: 1800
             prompt: |
               Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
