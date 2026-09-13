@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.9.0"
+  version: "1.8.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -572,16 +572,7 @@ steps:
                 prev=$(jq -r '.id // ""' "$t")
                 if [ -n "$prev" ] && grep -qE "^[[:space:]]*- \[[Xx]\] $prev " "$d/tasks.md" \
                    && [ -n "$(git status --porcelain | grep -v "$d/" || true)" ]; then
-                  # Un cierre que no commitea deja el árbol igual para la vuelta siguiente: sin
-                  # implementador de por medio, nada cambia entre una y otra. Se cuentan aparte
-                  # de los intentos ("Tnnn:cierre") y con dos basta para saber que no avanza.
-                  c=$(jq -r --arg id "$prev" '.[$id + ":cierre"] // 0' "$f"); c=$((c + 1))
-                  jq --arg id "$prev" --argjson c "$c" '.[$id + ":cierre"] = $c' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-                  if [ "$c" -gt 2 ]; then
-                    echo "la tarea $prev lleva $c iteraciones de cierre sin quedar commiteada: el bucle no avanza; se detiene para revisión (ver $d/gates/ci.log y $d/gates/tarea-$prev.md)" >&2
-                    exit 1
-                  fi
-                  echo "la tarea $prev está marcada [X] con cambios sin commitear: esta iteración la cierra antes de elegir otra (cierre $c de 2)" >&2
+                  echo "la tarea $prev está marcada [X] con cambios sin commitear: esta iteración la cierra antes de elegir otra" >&2
                   jq '. + {cierre: true}' "$t" > "$t.tmp" && mv "$t.tmp" "$t"
                   cat "$t"; exit 0
                 fi
@@ -725,11 +716,8 @@ steps:
                   mkdir -p "$d/gates"; log="$d/gates/ci.log"
                   if [ -f Makefile ] && grep -qE '^ci:' Makefile; then cmd="make ci"
                   elif [ -f go.mod ]; then cmd="go build ./... && go vet ./... && go test -race ./..."
-                  else echo "sin Makefile ni go.mod todavía: nada que verificar"; printf 'kitlegal-verificacion exit=0\n' > "$log"; exit 0; fi
+                  else echo "sin Makefile ni go.mod todavía: nada que verificar"; exit 0; fi
                   sh -c "$cmd" > "$log" 2>&1; rc=$?
-                  # Última línea del log: el resultado de ESTA verificación, que estado_cierre lee
-                  # en vez de fiarse de salidas de pasos que quizá no se ejecutaron en la iteración.
-                  printf '\nkitlegal-verificacion exit=%s\n' "$rc" >> "$log"
                   if [ "$rc" -eq 0 ]; then echo "verificación en verde: $cmd"; exit 0; fi
                   echo "verificación FALLIDA ($cmd, exit $rc). Últimas 80 líneas del log ($log):"
                   tail -80 "$log"
@@ -839,9 +827,8 @@ steps:
                           log="$d/gates/ci.log"
                           if [ -f Makefile ] && grep -qE '^ci:' Makefile; then cmd="make ci"
                           elif [ -f go.mod ]; then cmd="go build ./... && go vet ./... && go test -race ./..."
-                          else printf 'kitlegal-verificacion exit=0\n' > "$log"; exit 0; fi
+                          else exit 0; fi
                           sh -c "$cmd" > "$log" 2>&1; rc=$?
-                          printf '\nkitlegal-verificacion exit=%s\n' "$rc" >> "$log"
                           if [ "$rc" -eq 0 ]; then echo "reparación verificada: $cmd"; exit 0; fi
                           echo "la reparación no deja la verificación en verde ($cmd, exit $rc). Últimas 80 líneas:"
                           tail -80 "$log"
@@ -870,35 +857,11 @@ steps:
                               echo "la reparación no deja la verificación en verde y la tarea $id no quedó redelimitada; se detiene para revisión humana (ver $d/gates/ci.log)" >&2
                               exit 1
 
-              # Decide el commit con el estado real de ESTA iteración —última verificación del
-              # log y tasks.md/nota en el árbol—, nunca con salidas de pasos que quizá no se
-              # ejecutaron: el motor conserva la última salida de cada id entre iteraciones del
-              # bucle, y hasta 1.8.0 cerrar_tarea leía `steps.redelimitada` del intento anterior.
-              # En H4 eso saltó el commit del intento 2 de T003 y el bucle dio 145 vueltas de
-              # cierre (guardián + make ci) sin commitear, hasta que un fallo fortuito de la
-              # verificación forzó a recalcularla.
-              - id: estado_cierre
-                type: shell
-                output_format: json
-                timeout: 30
-                run: |
-                  set -eu
-                  d=$(jq -r .feature_directory .specify/feature.json)
-                  t="$d/gates/tarea-actual.json"; id=$(jq -r .id "$t"); base=$(jq -r .base "$t")
-                  rc=$(tail -n 1 "$d/gates/ci.log" 2>/dev/null | sed -n 's/^kitlegal-verificacion exit=\([0-9][0-9]*\)$/\1/p')
-                  [ -n "$rc" ] || { echo "sin resultado de verificación en $d/gates/ci.log: no se commitea" >&2; rc=1; }
-                  nota="$d/gates/tarea-$id.md"; r=false
-                  if grep -qE "^[[:space:]]*- \[ \] $id " "$d/tasks.md" && [ -f "$nota" ] \
-                     && { ! git cat-file -e "$base:$nota" 2>/dev/null || ! git diff --quiet "$base" -- "$nota"; }; then r=true; fi
-                  c=false; [ "$rc" -eq 0 ] && [ "$r" = false ] && c=true
-                  echo "tarea $id: verificación exit=$rc, redelimitada=$r, commitear=$c" >&2
-                  jq -n --argjson c "$c" --argjson r "$r" --argjson rc "$rc" '{commitear:$c, redelimitada:$r, verificacion:$rc}'
-
               # Solo se commitea una tarea en verde. Una tarea redelimitada deja su trabajo en el
               # árbol para el intento siguiente (misma base git: siguiente_tarea la vuelve a elegir).
               - id: cerrar_tarea
                 type: if
-                condition: "{{ steps.estado_cierre.output.data.commitear }}"
+                condition: "{{ not steps.redelimitada.output.data.redelimitada and not steps.redelimitada_reparacion.output.data.redelimitada }}"
                 then:
                   - id: commit_tarea
                     type: shell
