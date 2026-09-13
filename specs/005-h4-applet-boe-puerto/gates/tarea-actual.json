@@ -1,14 +1,14 @@
 {
-  "id": "T024",
-  "texto": "T024 [US6] Ninguna ruta de fallo sin clase, sobre el error real: `internal/source/boe/errores_test.go` añade `TestClasesDeErrorDeBoe`, con una subprueba por cada fila 2-4, 6-10 y 16-22 del contrato errores-y-codigos, provocando cada situación con el código ya existente (validadores, `Pedidor` de prueba, grabaciones y sintéticos, entrada de caché ilegible, `AperturaDeCache` de prueba, `Nueva` sin dependencias) y comprobando la clase de `cli.Clasificar` y el código de `cli.CodigoSalida`, que ninguna da 6 y que ninguna entra en pánico; la subprueba de la fila 21 usa `metadatos` de `BOE-A-2015-10565` sobre las grabaciones con una `AperturaDeCache` de prueba cuyo error implementa `schema.ConClase` y declara una de las tres clases que produce `cache.Error` («argumentos», «fuente no disponible» e «inesperado», cada una en al menos un caso), y cubre cuatro casos: la apertura falla (ninguna petición); `Get` falla fuera de solo lectura (ninguna petición); `Put` falla después de obtener la respuesta (una petición y ninguna entrada escrita); y `Close` falla, tras una invocación correcta (clase del cierre) y tras una fallida (clase del fallo de la invocación, con los dos errores unidos); en cada caso exige además que el error de la caché siga alcanzable con `errors.Is`, `fuente` `boe.legislacion-consolidada`, la `url` de los metadatos y la fecha de consulta sin declarar, para que la ponga el montaje; la tarea no añade producto (FR-090, FR-100, SC-008, punto 5 de la Definition of Done).",
+  "id": "T025",
+  "texto": "T025 [datos] [US6] Guion de argumentos tolerante, antes de registrar `boe` en el binario de e2e: `internal/app/testdata/script/argumentos.txtar`, líneas 24 y 30, pasan de `stderr 'applets disponibles: contar, echo'` a `stderr 'applets disponibles: (boe, )?contar, echo'`, que vale antes y después del registro; ningún otro cambio ni fichero (FR-001, FR-114, research D13).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T024.md y déjala sin marcar.",
-  "base": "ede3895e4ce19691db23e0b869b58c015094aa14",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T025.md y déjala sin marcar.",
+  "base": "dfe96fed8711cb57567acf905ea76de3d2717cd0",
   "rutas": [
-    "internal/source/boe/errores_test.go"
+    "internal/app/testdata/script/argumentos.txtar"
   ],
   "cierre": false
 }
