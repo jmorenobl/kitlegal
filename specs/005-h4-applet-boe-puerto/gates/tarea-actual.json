@@ -1,14 +1,14 @@
 {
-  "id": "T030",
-  "texto": "T030 [datos] [US6] Golden de `data`: `internal/source/boe/testdata/golden/` con los trece ficheros de los casos del contrato esquemas-fixtures-y-controles §2, generados con `TestGolden` y su bandera `-actualizar-golden` mediante la orden de esa sección (no se copia aquí) y revisados en la pausa; ningún otro fichero (FR-112, SC-005, US6 escenario 3).",
+  "id": "T031",
+  "texto": "T031 [US6] Cobertura de golden: `internal/source/boe/fuente_test.go` añade `TestGoldenCubreTodosLosCasos` (existen los trece golden de la lista cerrada y cubren los seis verbos; uno de más o de menos falla nombrándolo) (FR-112, SC-005).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T030.md y déjala sin marcar.",
-  "base": "59baa2469397b5f1dead91ce54b38a62fb28448c",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T031.md y déjala sin marcar.",
+  "base": "a3a06cf9b60464780d22a87e194261777cf8e46c",
   "rutas": [
-    "internal/source/boe/testdata/golden/"
+    "internal/source/boe/fuente_test.go"
   ],
   "cierre": false
 }

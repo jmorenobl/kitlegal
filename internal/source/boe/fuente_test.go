@@ -1122,6 +1122,10 @@ func (b *bancoDeLaFuente) baseDeLaCache(t *testing.T) []byte {
 	return contenido
 }
 
+// verbosDeLaFuente son los seis verbos de la fuente, los que la lista cerrada de
+// golden tiene que cubrir (FR-112, SC-005).
+var verbosDeLaFuente = []string{verboBuscar, verboIndice, verboArticulo, verboArticulos, verboMetadatos, verboAnalisis}
+
 // TestGolden compara byte a byte cada golden de testdata/golden con lo que da su
 // caso de la lista cerrada (FR-112; contrato esquemas-fixtures-y-controles §2): la
 // fuente sobre la reproducción de las grabaciones, con una caché vacía para cada
@@ -1173,9 +1177,7 @@ func TestGolden(t *testing.T) {
 			verbos[verbo] = true
 		}
 
-		assert.ElementsMatch(t,
-			[]string{verboBuscar, verboIndice, verboArticulo, verboArticulos, verboMetadatos, verboAnalisis},
-			slices.Collect(maps.Keys(verbos)))
+		assert.ElementsMatch(t, verbosDeLaFuente, slices.Collect(maps.Keys(verbos)))
 	})
 
 	t.Run("forma-canonica", func(t *testing.T) {
@@ -1362,6 +1364,166 @@ func compruebaElComparador(t *testing.T) {
 	}
 }
 
+// TestGoldenCubreTodosLosCasos exige en testdata/golden exactamente los trece
+// golden de la lista cerrada, que entre todos cubren los seis verbos (FR-112,
+// SC-005; contrato esquemas-fixtures-y-controles §2): el golden que falta, lo que
+// no es el golden de ningún caso y el verbo que ningún golden cubre hacen fallar
+// la prueba nombrándolos. No compara ningún contenido: eso lo hace TestGolden, que
+// sin esta prueba pasaría con la carpeta vacía.
+//
+// El primer subtest comprueba los golden reales; el resto demuestra sobre
+// carpetas temporales que la comprobación no pasa en vacío.
+func TestGoldenCubreTodosLosCasos(t *testing.T) {
+	t.Parallel()
+
+	t.Run("testdata-golden", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, comprobarGoldenCompletos(carpetaDeLosGolden, casosDeGolden, verbosDeLaFuente))
+	})
+
+	const (
+		analisis  = "analisis-BOE-A-2015-10565"
+		indice    = "indice-BOE-A-2015-10565"
+		metadatos = "metadatos-BOE-A-1992-26318"
+		falta     = "falta el golden "
+		sinCubrir = "ningún golden cubre el verbo "
+		ajeno     = " no es el golden de ningún caso"
+	)
+
+	todos := make([]string, 0, len(casosDeGolden))
+	for _, caso := range casosDeGolden {
+		todos = append(todos, caso.nombre)
+	}
+
+	sinElAnalisis := slices.DeleteFunc(slices.Clone(casosDeGolden), func(caso casoDeGolden) bool {
+		return caso.consulta.Verbo() == verboAnalisis
+	})
+
+	casos := []struct {
+		nombre string
+		// lista es la de los casos contra la que se comprueba; nula, la cerrada.
+		lista []casoDeGolden
+		// sinCarpeta no crea la carpeta de los golden, y comoFichero deja un
+		// fichero en su lugar.
+		sinCarpeta, comoFichero bool
+		// sinGolden son los casos de la lista cuyo golden no se escribe; ajenos,
+		// los ficheros que se dejan además en la carpeta, y carpetas, las carpetas.
+		sinGolden, ajenos, carpetas []string
+		// mensajes son fragmentos del error esperado, y ausentes, fragmentos que no
+		// puede llevar; sin mensajes, los golden valen.
+		mensajes, ausentes []string
+	}{
+		{nombre: "los-trece"},
+		{nombre: "sin-carpeta", sinCarpeta: true, mensajes: []string{"la carpeta de los golden no se puede leer"}},
+		{nombre: "carpeta-que-es-un-fichero", comoFichero: true, mensajes: []string{"la carpeta de los golden no se puede leer"}},
+		{
+			nombre:    "carpeta-vacia",
+			sinGolden: todos,
+			mensajes: []string{
+				falta + "buscar-procedimiento-administrativo-comun.json", falta + analisis + ".json",
+				sinCubrir + verboBuscar, sinCubrir + verboAnalisis,
+			},
+		},
+		{
+			nombre:    "uno-de-menos",
+			sinGolden: []string{metadatos},
+			mensajes:  []string{falta + metadatos + ".json"},
+			ausentes:  []string{sinCubrir, ajeno},
+		},
+		{
+			nombre:    "uno-de-menos-que-deja-su-verbo-sin-cubrir",
+			sinGolden: []string{analisis},
+			mensajes:  []string{falta + analisis + ".json", sinCubrir + verboAnalisis},
+			ausentes:  []string{ajeno},
+		},
+		{
+			nombre:   "uno-de-mas",
+			ajenos:   []string{"articulo-BOE-A-2015-10565-a5.json"},
+			mensajes: []string{"articulo-BOE-A-2015-10565-a5.json" + ajeno},
+			ausentes: []string{falta, sinCubrir},
+		},
+		{
+			nombre:   "fichero-que-no-es-un-golden",
+			ajenos:   []string{"LEEME.md"},
+			mensajes: []string{"LEEME.md" + ajeno},
+			ausentes: []string{falta, sinCubrir},
+		},
+		{
+			nombre:    "carpeta-con-el-nombre-de-un-golden",
+			sinGolden: []string{indice},
+			carpetas:  []string{indice + ".json"},
+			mensajes:  []string{indice + ".json" + ajeno, falta + indice + ".json", sinCubrir + verboIndice},
+		},
+		{
+			nombre:   "lista-que-no-cubre-un-verbo",
+			lista:    sinElAnalisis,
+			mensajes: []string{sinCubrir + verboAnalisis},
+			ausentes: []string{falta, ajeno},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			lista := caso.lista
+			if lista == nil {
+				lista = casosDeGolden
+			}
+
+			carpeta := filepath.Join(t.TempDir(), "golden")
+
+			switch {
+			case caso.comoFichero:
+				escribeDatoDePrueba(t, carpeta, []byte("{}\n"))
+			case !caso.sinCarpeta:
+				escribeCarpetaDeGoldenDePrueba(t, carpeta, lista, caso.sinGolden, caso.ajenos, caso.carpetas)
+			}
+
+			err := comprobarGoldenCompletos(carpeta, lista, verbosDeLaFuente)
+			if len(caso.mensajes) == 0 {
+				require.NoError(t, err)
+
+				return
+			}
+
+			for _, mensaje := range caso.mensajes {
+				require.ErrorContains(t, err, mensaje)
+			}
+
+			for _, ausente := range caso.ausentes {
+				assert.NotContains(t, err.Error(), ausente)
+			}
+		})
+	}
+}
+
+// escribeCarpetaDeGoldenDePrueba crea la carpeta de los golden con el golden de
+// prueba de cada caso de la lista salvo los de sinGolden, un fichero por cada
+// nombre de ajenos y una carpeta por cada nombre de carpetas.
+func escribeCarpetaDeGoldenDePrueba(t *testing.T, carpeta string, lista []casoDeGolden,
+	sinGolden, ajenos, carpetas []string,
+) {
+	t.Helper()
+
+	require.NoError(t, os.MkdirAll(carpeta, 0o750))
+
+	for _, caso := range lista {
+		if !slices.Contains(sinGolden, caso.nombre) {
+			escribeGolden(t, carpeta, caso, goldenDePrueba(caso))
+		}
+	}
+
+	for _, nombre := range ajenos {
+		escribeDatoDePrueba(t, filepath.Join(carpeta, nombre), []byte("{}\n"))
+	}
+
+	for _, nombre := range carpetas {
+		require.NoError(t, os.Mkdir(filepath.Join(carpeta, nombre), 0o750))
+	}
+}
+
 // contenidoDelGolden es lo que fija el golden de un caso: el data y la url del
 // resultado, sin la fecha de consulta (contrato §2).
 type contenidoDelGolden struct {
@@ -1428,31 +1590,82 @@ func formaCanonica(valor any) ([]byte, error) {
 // [datos] de los golden (research.md D12). Lo que hay en la carpeta y no es el
 // golden de ningún caso es un error que lo nombra.
 func comprobarGolden(carpeta string, casos []casoDeGolden, generar func(casoDeGolden) ([]byte, error)) error {
-	entradas, err := os.ReadDir(filepath.Clean(carpeta))
+	conGolden, fallos, err := goldenDeLaCarpeta(carpeta, casos)
 
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return nil
 	case err != nil:
-		return fmt.Errorf("la carpeta de los golden no se puede leer: %w", err)
+		return err
 	}
 
-	fallos := make([]error, 0, len(entradas))
+	for _, caso := range conGolden {
+		fallos = append(fallos, comprobarUnGolden(ficheroDelGolden(carpeta, caso), caso, generar))
+	}
+
+	return errors.Join(fallos...)
+}
+
+// comprobarGoldenCompletos exige en la carpeta de los golden exactamente el de
+// cada caso y nada más, y que entre todos cubran los verbos: el golden que falta,
+// lo que no es el golden de ningún caso y el verbo que ningún golden cubre son
+// errores que los nombran, y una carpeta que no se puede leer, también la que no
+// existe, no vale. No compara ningún contenido: eso lo hace comprobarGolden.
+func comprobarGoldenCompletos(carpeta string, casos []casoDeGolden, verbos []string) error {
+	conGolden, fallos, err := goldenDeLaCarpeta(carpeta, casos)
+	if err != nil {
+		return err
+	}
+
+	cubiertos := make(map[string]bool, len(verbos))
+	for _, caso := range conGolden {
+		cubiertos[caso.consulta.Verbo()] = true
+	}
+
+	for _, caso := range casos {
+		if !slices.ContainsFunc(conGolden, func(enLaCarpeta casoDeGolden) bool { return enLaCarpeta.nombre == caso.nombre }) {
+			fallos = append(fallos, fmt.Errorf("%s: falta el golden %s", carpeta, caso.nombre+extensionDeLosGolden))
+		}
+	}
+
+	for _, verbo := range verbos {
+		if !cubiertos[verbo] {
+			fallos = append(fallos, fmt.Errorf("%s: ningún golden cubre el verbo %s", carpeta, verbo))
+		}
+	}
+
+	return errors.Join(fallos...)
+}
+
+// goldenDeLaCarpeta lee la carpeta de los golden y devuelve, en el orden de la
+// carpeta, los casos cuyo golden está en ella y un error por cada entrada que no
+// es el golden de ningún caso, que la nombra: un fichero sin caso, o una carpeta
+// aunque lleve el nombre de un golden. Si la carpeta no se puede leer, el error
+// lleva la causa, alcanzable con errors.Is.
+func goldenDeLaCarpeta(carpeta string, casos []casoDeGolden) ([]casoDeGolden, []error, error) {
+	entradas, err := os.ReadDir(filepath.Clean(carpeta))
+	if err != nil {
+		return nil, nil, fmt.Errorf("la carpeta de los golden no se puede leer: %w", err)
+	}
+
+	conGolden := make([]casoDeGolden, 0, len(entradas))
+
+	var ajenos []error
 
 	for _, entrada := range entradas {
 		indice := slices.IndexFunc(casos, func(caso casoDeGolden) bool {
 			return caso.nombre+extensionDeLosGolden == entrada.Name()
 		})
 		if indice < 0 || !entrada.Type().IsRegular() {
-			fallos = append(fallos, fmt.Errorf("%s: %s no es el golden de ningún caso", carpeta, entrada.Name()))
+			ajenos = append(ajenos, fmt.Errorf("%s: %s no es el golden de ningún caso", carpeta, entrada.Name()))
 
 			continue
 		}
 
-		fallos = append(fallos, comprobarUnGolden(ficheroDelGolden(carpeta, casos[indice]), casos[indice], generar))
+		conGolden = append(conGolden, casos[indice])
 	}
 
-	return errors.Join(fallos...)
+	return conGolden, ajenos, nil
 }
 
 // comprobarUnGolden compara el golden de la ruta con lo que genera su caso y,

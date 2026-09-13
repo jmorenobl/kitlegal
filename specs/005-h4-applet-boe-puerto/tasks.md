@@ -193,7 +193,7 @@ desactivado y `make ci` siga en verde en cada tarea.
 
 - [X] T030 [datos] [US6] Golden de `data`: `internal/source/boe/testdata/golden/` con los trece ficheros de los casos del contrato esquemas-fixtures-y-controles §2, generados con `TestGolden` y su bandera `-actualizar-golden` mediante la orden de esa sección (no se copia aquí) y revisados en la pausa; ningún otro fichero (FR-112, SC-005, US6 escenario 3).
 
-- [ ] T031 [US6] Cobertura de golden: `internal/source/boe/fuente_test.go` añade `TestGoldenCubreTodosLosCasos` (existen los trece golden de la lista cerrada y cubren los seis verbos; uno de más o de menos falla nombrándolo) (FR-112, SC-005).
+- [X] T031 [US6] Cobertura de golden: `internal/source/boe/fuente_test.go` añade `TestGoldenCubreTodosLosCasos` (existen los trece golden de la lista cerrada y cubren los seis verbos; uno de más o de menos falla nombrándolo) (FR-112, SC-005).
 
 - [ ] T032 [datos] [US6] Esquemas publicados: `schemas/norma.json` y `schemas/bloque.json` generados con `TestEsquemasPublicados` y su bandera `-actualizar-esquemas` mediante la orden de la sección §1 del contrato esquemas-fixtures-y-controles (no se copia aquí) y revisados en la pausa, incluido el enumerado de `codigo` con exactamente sus tres valores en `articulo`, `articulos` y `metadatos`; ningún otro fichero (FR-012, FR-110, SC-006, US6 escenario 1).
 
