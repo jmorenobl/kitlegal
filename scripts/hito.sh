@@ -48,6 +48,10 @@ max_reanudaciones="${KITLEGAL_MAX_REANUDACIONES:-8}"
 fallback="${KITLEGAL_MODELO_FALLBACK:-fable=opus,opus=sonnet}"
 espera_limite="${KITLEGAL_ESPERA_LIMITE:-60}"
 transcripts="${KITLEGAL_TRANSCRIPTS:-$HOME/.claude/projects/$(printf '%s' "$PWD" | sed -E 's/[^A-Za-z0-9]/-/g')}"
+# Entrypoints con los que se reconoce una sesión headless en los transcripts.
+# scripts/claude-modelo.sh fija sdk-cli; para runs grabados antes de esa
+# corrección desde la extensión de VS Code: KITLEGAL_ENTRYPOINTS_HEADLESS=sdk-cli,claude-vscode.
+entrypoints_headless="${KITLEGAL_ENTRYPOINTS_HEADLESS:-sdk-cli}"
 
 log() { printf 'hito.sh: %s\n' "$*" >&2; }
 avisar() { # notificación de escritorio si existe; nunca falla
@@ -72,11 +76,11 @@ nombre_paso() { printf '%s' "$1" | tr ':' '\n' | grep -vE '^[0-9]+$' | tail -1; 
 # conserva la salida de `claude -p`.
 limite_api() {
   [ -n "$1" ] && [ -d "$transcripts" ] || return 1
-  python3 - "$transcripts" "$1" <<'PYEOF'
+  python3 - "$transcripts" "$1" "$entrypoints_headless" <<'PYEOF'
 import datetime, glob, json, os, re, sys
-tdir, desde = sys.argv[1:3]
+tdir, desde, entrypoints = sys.argv[1:4]
 t0 = datetime.datetime.fromisoformat(desde.replace("Z", "+00:00")).timestamp()
-patron = re.compile(r"rate_limit|spend limit|usage limit|rate limit|overloaded|api_error|internal server error|\b(529|503|500)\b", re.I)
+patron = re.compile(r"rate_limit|spend limit|usage limit|rate limit|overloaded|api_error|internal server error|API Error:? ?\d{3}\b", re.I)
 for f in glob.glob(os.path.join(tdir, "*.jsonl")):
     if os.path.getmtime(f) < t0:
         continue
@@ -84,7 +88,11 @@ for f in glob.glob(os.path.join(tdir, "*.jsonl")):
     # la sesión headless se reconoce por el entrypoint del primer mensaje de usuario
     # (las primeras líneas pueden ser operaciones de cola)
     cabeza = "".join(lineas[:10]).replace(" ", "")
-    if '"entrypoint":"sdk-cli"' not in cabeza:
+    # Una sesión interactiva de Claude Code lleva origin.kind = human en su primer
+    # mensaje; las headless no traen origin. Importa cuando el entrypoint admitido
+    # es el de la extensión de VS Code, que comparten unas y otras.
+    if not any('"entrypoint":"%s"' % ep in cabeza for ep in entrypoints.split(",")) \
+            or '"origin":{"kind":"human"}' in cabeza:
         continue
     cola = lineas[-40:]
     for l in cola:
