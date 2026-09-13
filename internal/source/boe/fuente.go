@@ -32,7 +32,7 @@ const (
 )
 
 // Los mensajes de los fallos que produce este fichero (contrato
-// errores-y-codigos, filas 21 y 22).
+// errores-y-codigos, filas 5, 17, 21 y 22).
 const (
 	// motivoDelDefectoAlComponer es el de la fuente a la que le falta o se le da
 	// mal una dependencia, que es un defecto de quien la compone.
@@ -41,10 +41,21 @@ const (
 	// la fuente no resuelve.
 	motivoDeLaConsultaDeOtroTipo = "la fuente del BOE no resuelve consultas de tipo %T"
 	motivoSinConsulta            = "la fuente del BOE no ha recibido ninguna consulta"
-	// motivoAlAbrirLaCache y motivoAlCerrarLaCache son los de la caché que no se
-	// deja abrir o cerrar; la dirección y el texto de la caché van detrás.
-	motivoAlAbrirLaCache  = "no se ha podido abrir la caché"
-	motivoAlCerrarLaCache = "no se ha podido cerrar la caché"
+	// motivoAlAbrirLaCache, motivoAlLeerLaCache, motivoAlEscribirEnLaCache y
+	// motivoAlCerrarLaCache son los de la caché que no se deja abrir, leer,
+	// escribir o cerrar; la dirección y el texto de la caché van detrás.
+	motivoAlAbrirLaCache      = "no se ha podido abrir la caché"
+	motivoAlLeerLaCache       = "no se ha podido leer la caché"
+	motivoAlEscribirEnLaCache = "no se ha podido escribir en la caché"
+	motivoAlCerrarLaCache     = "no se ha podido cerrar la caché"
+	// motivoSinEntradaConOffline es el de la entrada ausente o caducada con
+	// --offline, que nombra el verbo de la entrada y su clave (fila 5).
+	motivoSinEntradaConOffline = "con --offline no se pide nada a la fuente y no hay ninguna entrada vigente de %s " +
+		"con la clave %q"
+	// motivoDeLaRespuestaIlegible es el de la respuesta que no se puede
+	// interpretar, que nombra lo pedido; lo que no se pudo interpretar va detrás
+	// (fila 17).
+	motivoDeLaRespuestaIlegible = "no se puede interpretar la respuesta a la petición %s"
 )
 
 // CacheAbierta es la caché de una invocación: el puerto del dominio y el cierre.
@@ -225,14 +236,19 @@ func (*Fuente) Terms() core.Terminos {
 
 // Fetch resuelve la consulta (core.Source). Cada verbo resuelve la suya en su
 // propio fichero, con un caso en Fetch que valida la consulta antes de abrir
-// nada y la resuelve dentro de invocar (research.md D2 y D5). Una consulta sin
-// caso —de un tipo que la fuente no declara, nula o de un verbo que la fuente
-// todavía no resuelve— es un defecto de quien la compone: «inesperado», sin
-// procedencia, porque no se ha consultado nada, y sin abrir la caché ni
-// construir el cliente, también con --offline y con --dry-run (contrato
-// errores-y-codigos, fila 22).
-func (*Fuente) Fetch(_ context.Context, _ schema.Contexto, consulta core.Consulta) (schema.Resultado, error) {
-	return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
+// nada y la resuelve dentro de invocar (research.md D2 y D5): metadatos, en
+// metadatos.go. Una consulta sin caso —de un tipo que la fuente no declara, nula
+// o de un verbo que la fuente todavía no resuelve— es un defecto de quien la
+// compone: «inesperado», sin procedencia, porque no se ha consultado nada, y sin
+// abrir la caché ni construir el cliente, también con --offline y con --dry-run
+// (contrato errores-y-codigos, fila 22).
+func (f *Fuente) Fetch(ctx context.Context, ec schema.Contexto, consulta core.Consulta) (schema.Resultado, error) {
+	switch consulta := consulta.(type) {
+	case ConsultaMetadatos:
+		return f.metadatos(ctx, ec, consulta)
+	default:
+		return schema.Resultado{}, errorDeConsultaSinCaso(consulta)
+	}
 }
 
 // errorDeConsultaSinCaso es el fallo de la consulta que la fuente no resuelve,
@@ -311,7 +327,7 @@ func (f *Fuente) invocar(ctx context.Context, ec schema.Contexto, direccion stri
 		return schema.Resultado{}, defectoAlComponer(nil, "la fuente no se ha construido con Nueva")
 	}
 
-	abierta, err := f.abrirCache(ctx, ec.Offline || ec.DryRun)
+	abierta, err := f.abrirCache(ctx, abreEnSoloLectura(ec))
 
 	switch {
 	case err != nil:
@@ -377,6 +393,213 @@ func resultadoDelFallo(fallo *Error) schema.Resultado {
 		URL:           fallo.URL,
 		FechaConsulta: fallo.Instante,
 	}}
+}
+
+// resultadoDelError es el Resultado con el que un verbo acompaña su fallo: el de
+// resultadoDelFallo si el fallo es un *Error con dirección, y ninguno si no la
+// lleva —un defecto al componer—, de modo que ese sobre lo firma y lo fecha el
+// kernel (contrato errores-y-codigos, fila 22).
+func resultadoDelError(err error) schema.Resultado {
+	var fallo *Error
+	if !errors.As(err, &fallo) || fallo.URL == "" {
+		return schema.Resultado{}
+	}
+
+	return resultadoDelFallo(fallo)
+}
+
+// abreEnSoloLectura dice si la invocación abre la caché en solo lectura, que es
+// con --offline o con --dry-run: los dos prometen no crear ni cambiar nada
+// (FR-092, FR-094; research.md D5).
+func abreEnSoloLectura(ec schema.Contexto) bool {
+	return ec.Offline || ec.DryRun
+}
+
+// consultaResuelta es lo que da la consulta de un recurso con la caché de la
+// invocación: sus datos y la fecha de la consulta que los sostiene —la guardada
+// si salen de su entrada, el instante de la petición si se piden (FR-096)—, o,
+// bajo --dry-run, la línea de la petición que se habría emitido, sin datos ni
+// fecha (FR-094, ADR 0011).
+type consultaResuelta[T datosDeEntrada] struct {
+	datos         T
+	fechaConsulta time.Time
+	ensayo        string
+}
+
+// consultar resuelve con la caché de la invocación la consulta de un recurso que
+// se pide en JSON, en el orden de data-model.md §7.3. Es lo que comparten
+// buscar, indice, metadatos y analisis, y los metadatos que leen articulo y
+// articulos (FR-090):
+//
+//  1. la entrada vigente de la clave se sirve con su fecha, sin pedir nada ni
+//     construir el cliente (FR-090, FR-096);
+//  2. sin ella, con --offline, «fuente no disponible» sin pedir nada (FR-092);
+//  3. si no, se pide el recurso y se clasifica lo que responde con pedir; bajo
+//     --dry-run, la línea de la petición, que no se emitió, sin leer ni escribir
+//     nada (FR-094);
+//  4. la respuesta se interpreta con interpretar y leer, y lo que no se obtiene o
+//     no se interpreta no se escribe (FR-093);
+//  5. y lo leído se escribe en la entrada con la vigencia y el instante de la
+//     petición, que es su fecha de consulta (FR-091, FR-096).
+func consultar[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T], recurso pedido,
+	vigencia time.Duration, leer func(datos any) (T, error),
+) (consultaResuelta[T], error) {
+	guardada, presente, err := leerGuardada(ctx, en, clave)
+
+	switch {
+	case err != nil:
+		return consultaResuelta[T]{}, err
+	case presente:
+		return consultaResuelta[T]{datos: guardada.Datos, fechaConsulta: guardada.FechaConsulta}, nil
+	case en.ec.Offline:
+		return consultaResuelta[T]{}, clave.ausenteConOffline()
+	}
+
+	pedidor, err := en.pedidor()
+	if err != nil {
+		return consultaResuelta[T]{}, err
+	}
+
+	respuesta, err := pedir(ctx, pedidor, en.ec, recurso)
+
+	switch {
+	case err != nil:
+		return consultaResuelta[T]{}, err
+	case respuesta.ensayo != "":
+		return consultaResuelta[T]{ensayo: respuesta.ensayo}, nil
+	}
+
+	datos, err := interpretar(respuesta, recurso, leer)
+	if err != nil {
+		return consultaResuelta[T]{}, err
+	}
+
+	if err := guardar(ctx, en, clave, respuesta.instante, datos, vigencia); err != nil {
+		return consultaResuelta[T]{}, err
+	}
+
+	return consultaResuelta[T]{datos: datos, fechaConsulta: respuesta.instante}, nil
+}
+
+// leerGuardada lee la entrada vigente de la clave y dice si la había. La
+// ausencia no es un fallo, tampoco la que la caché de solo lectura informa como
+// fallo (esAusenciaEnSoloLectura); cualquier otro fallo de la caché lleva la
+// dirección de la clave (contrato errores-y-codigos, fila 21), y la entrada que
+// no se puede leer es «inesperado» (fila 20).
+func leerGuardada[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T],
+) (entrada[T], bool, error) {
+	contenido, presente, err := en.cache.Get(ctx, clave.String())
+	if en.esAusenciaEnSoloLectura(ctx, err) {
+		return entrada[T]{}, false, nil
+	}
+
+	switch {
+	case err != nil:
+		return entrada[T]{}, false, falloDeLaCache(clave.direccion, motivoAlLeerLaCache, err)
+	case !presente:
+		return entrada[T]{}, false, nil
+	}
+
+	guardada, err := leerEntrada(clave, contenido)
+	if err != nil {
+		return entrada[T]{}, false, err
+	}
+
+	return guardada, true, nil
+}
+
+// esAusenciaEnSoloLectura dice si el fallo de una lectura de la caché es la
+// ausencia de la entrada. La caché de solo lectura que abren --offline y
+// --dry-run no puede devolver la ausencia como ausencia, porque no hay a dónde ir
+// a buscar lo que falta, y la informa como fallo de la clase «fuente no
+// disponible»; en ese modo, esa clase solo sale de la ausencia o del contexto
+// terminado, que sí es un fallo y se propaga (core.Cache; research.md D5).
+func (en *invocacion) esAusenciaEnSoloLectura(ctx context.Context, err error) bool {
+	return err != nil && abreEnSoloLectura(en.ec) && ctx.Err() == nil &&
+		claseDelFalloDeLaCache(err) == schema.ClaseFuenteNoDisponible
+}
+
+// ausenteConOffline es el fallo de la entrada de esta clave ausente o caducada
+// con --offline: «fuente no disponible», código 4, con la dirección del recurso
+// y sin instante, porque no se pide nada y el sobre lo fecha el montaje, y con un
+// mensaje que nombra --offline, el verbo de la entrada y su clave (contrato
+// errores-y-codigos, fila 5; FR-092). No lleva como causa el fallo con el que la
+// caché de solo lectura informa de la ausencia, que no dice nada más.
+func (c claveDeEntrada[T]) ausenteConOffline() *Error {
+	return errorDeFuenteNoDisponible(c.direccion, time.Time{}, nil,
+		fmt.Sprintf(motivoSinEntradaConOffline, c.verbo, c.String()))
+}
+
+// interpretar lee la respuesta JSON de un recurso: su envoltorio con
+// leerEnvoltorio y su data con leer (data-model.md §3.1). data vacío es «no
+// encontrado» en el recurso que puede no existir, con el mismo motivo que su 404
+// (J3; contrato errores-y-codigos, fila 8), y en la búsqueda, cuyo data vacío es
+// la lista vacía, va a leer como cualquier otro; lo que no se puede interpretar
+// es respuestaIlegible (fila 17). Los dos fallos llevan la dirección y el
+// instante de la petición.
+func interpretar[T datosDeEntrada](respuesta obtenido, recurso pedido, leer func(datos any) (T, error)) (T, error) {
+	var ninguno T
+
+	datos, err := leerEnvoltorio(respuesta.cuerpo)
+	if err != nil {
+		return ninguno, recurso.respuestaIlegible(respuesta.instante, err)
+	}
+
+	if recurso.inexistente != "" && esVacio(datos) {
+		return ninguno, errorDeNoEncontrado(recurso.direccion, respuesta.instante, nil, recurso.inexistente)
+	}
+
+	leidos, err := leer(datos)
+	if err != nil {
+		return ninguno, recurso.respuestaIlegible(respuesta.instante, err)
+	}
+
+	return leidos, nil
+}
+
+// respuestaIlegible es el fallo de la respuesta a este pedido que no se puede
+// interpretar: «fuente no disponible», código 4, con la dirección del pedido, el
+// instante de la respuesta y, detrás, lo que no se pudo interpretar, que dice la
+// causa (contrato errores-y-codigos, fila 17).
+func (p pedido) respuestaIlegible(instante time.Time, causa error) *Error {
+	return errorDeFuenteNoDisponible(p.direccion, instante, causa, fmt.Sprintf(motivoDeLaRespuestaIlegible, p.deQue))
+}
+
+// guardar escribe en la entrada de la clave los datos con su fecha de consulta y
+// la vigencia (FR-091, FR-096). Lo que no se puede componer es el fallo
+// «inesperado» de contenidoDeEntrada, y lo que la caché no deja escribir, su
+// fallo con la dirección de la clave y sin instante (contrato errores-y-codigos,
+// fila 21).
+func guardar[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T], fechaConsulta time.Time,
+	datos T, vigencia time.Duration,
+) error {
+	contenido, err := contenidoDeEntrada(clave, fechaConsulta, datos)
+	if err != nil {
+		return err
+	}
+
+	if err := en.cache.Put(ctx, clave.String(), contenido, vigencia); err != nil {
+		return falloDeLaCache(clave.direccion, motivoAlEscribirEnLaCache, err)
+	}
+
+	return nil
+}
+
+// resultadoDeLaConsulta es el Resultado del verbo que se apoya en una sola
+// consulta: la procedencia de la fuente con la dirección del recurso y la fecha
+// de la consulta, y sus datos; o, bajo --dry-run, la procedencia sin fecha y la
+// línea de la petición que se habría emitido, sin datos (data-model.md §7.3;
+// ADR 0011).
+func resultadoDeLaConsulta[T datosDeEntrada](direccion string, resuelta consultaResuelta[T]) schema.Resultado {
+	procedencia := schema.Procedencia{Fuente: NombreDeLaFuente, URL: direccion}
+
+	if resuelta.ensayo != "" {
+		return schema.Resultado{Procedencia: procedencia, Ensayo: []string{resuelta.ensayo}}
+	}
+
+	procedencia.FechaConsulta = resuelta.fechaConsulta
+
+	return schema.Resultado{Procedencia: procedencia, Datos: resuelta.datos}
 }
 
 // defectoAlComponer es el fallo de quien compone la fuente: «inesperado», sin

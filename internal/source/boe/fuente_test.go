@@ -1044,11 +1044,12 @@ func construirReproduccion(carpeta string) func() (Pedidor, error) {
 	}
 }
 
-// abrirCacheEn es la AperturaDeCache de la caché real en la carpeta, en solo
-// lectura cuando la fuente lo pide.
-func abrirCacheEn(carpeta string) AperturaDeCache {
+// abrirCacheEn es la AperturaDeCache de la caché real en la carpeta, con las
+// opciones que se le den —el reloj de la prueba, por ejemplo— y en solo lectura
+// cuando la fuente lo pide.
+func abrirCacheEn(carpeta string, adicionales ...cache.Opcion) AperturaDeCache {
 	return func(ctx context.Context, soloLectura bool) (CacheAbierta, error) {
-		opciones := []cache.Opcion{cache.ConDirectorio(carpeta)}
+		opciones := slices.Concat([]cache.Opcion{cache.ConDirectorio(carpeta)}, adicionales)
 		if soloLectura {
 			opciones = append(opciones, cache.SoloLectura())
 		}
