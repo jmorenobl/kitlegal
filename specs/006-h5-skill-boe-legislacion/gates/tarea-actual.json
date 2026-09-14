@@ -1,15 +1,26 @@
 {
-  "id": "T001",
-  "texto": "T001 [datos] [US4] Esquema del formato común de eval: `schemas/eval.yaml.json` (JSON Schema 2020-12, `$id` `https://ventanillalegal.es/schemas/eval.yaml.json`) exactamente como fija el contrato evals-y-grabaciones §1 —raíz con `additionalProperties: false` y `required: [pregunta, activa]`; `pregunta` no vacía; `activa` booleana; `reproduce` con su patrón; `if activa then required [comandos, citas] else not anyOf [required comandos, required citas]`; `comandos` con `minItems: 1` y `oneOf` de las tres formas de data-model §6.1 (bloque; consulta de norma con `verbo` en `indice`, `metadatos`, `analisis`; búsqueda con `verbo` `buscar` y `terminos`), cada una cerrada; `citas` con `minItems: 1` y `{norma, bloque}` cerrado; patrones de `applet`, `norma` y `bloque` del contrato—; ningún otro fichero (FR-060, FR-061, US4 escenario 4, research D10).",
+  "id": "T002",
+  "texto": "T002 [US4] Lector YAML común y lectura de una eval: `internal/skills/doc.go` (paquete de herramienta de desarrollo que el binario no enlaza); `internal/skills/esquemas.go` con el lector común de data-model («Lectura de documentos YAML»: `yaml.Node` con líneas, recorrido que rechaza toda clave repetida nombrando la ruta, la clave y sus dos líneas, `(*yaml.Node).Decode`, normalización a tipos JSON con `jsonschema.UnmarshalJSON` y validación con `santhosh-tekuri/jsonschema/v6` y `AssertFormat`, errores con la ruta dentro del documento y su línea); `internal/skills/esquemas_test.go` con `TestValidarDocumentoYAML` (esquema en línea: válido, clave desconocida, tipo, patrón; clave repetida en la raíz y en un mapa anidado rechazada antes de validar aunque el esquema aceptara cualquiera de los dos valores; mapa con una clave que no es texto); `internal/evals/doc.go`; `internal/evals/formato.go` con `Eval` (con `Fichero`), `ComandoEsperado`, `CitaEsperada` y `LeerEval(nombre, contenido)` sobre el lector común y el esquema `eval.yaml.json` leído del repositorio, con todo error empezando por el nombre del fichero, y en `internal/evals/formato_test.go` `TestLeerEval` (los casos válidos e inválidos del contrato evals-y-grabaciones §1, clave repetida incluida: `activa` dos veces en la raíz y `bloque` dos veces en una cita), `TestEsquemaDeEval` (compila) y `TestGramaticasCoincidenConBoe` en su parte de evals (los patrones de `norma` y `bloque` del esquema aceptan y rechazan lo mismo que `boe.ValidarNorma` y `boe.ValidarBloque`, p. ej. `a85bis.` aceptado y `BOE-A-15-1` y `.a1` rechazados); `go.mod` con `go.yaml.in/yaml/v3` como dependencia directa; y `.golangci.yml`, solo `misspell.ignore-rules`, con exactamente `comando`, `comandos`, `defectos`, `legislativo` y `patrones`, cada una con el comentario de su motivo de la tabla de research D20 (FR-060, FR-061, FR-044, US4 escenario 4, research D8, D10 y D20, plan obligación 4).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
-  "base": "de4e35bdaa02059afb1abd21f937f9f790bea2e1",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
+  "base": "0c24e157dfdf88984951a771f1282718e8b456c8",
   "rutas": [
-    ".es/schemas/eval.yaml.json",
-    "schemas/eval.yaml.json"
+    ".golangci.yml",
+    ".ignore",
+    ".in/yaml/v3",
+    "eval.yaml.json",
+    "go.mod",
+    "go.yaml",
+    "internal/evals/doc.go",
+    "internal/evals/formato_test.go",
+    "internal/evals/formato.go",
+    "internal/skills/doc.go",
+    "internal/skills/esquemas_test.go",
+    "internal/skills/esquemas.go",
+    "santhosh-tekuri/jsonschema/v6"
   ],
   "cierre": false
 }
