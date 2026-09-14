@@ -1,27 +1,18 @@
 {
-  "id": "T012",
-  "texto": "T012 [US4] Las doce evals de `boe-legislacion` y su comprobación: `evals/boe-legislacion/01-lpac-articulo-21.yaml`, `evals/boe-legislacion/02-lcsp-contrato-menor.yaml`, `evals/boe-legislacion/03-lrbrl-atribuciones-del-pleno.yaml`, `evals/boe-legislacion/04-lgt-prescripcion.yaml`, `evals/boe-legislacion/05-trlrhl-impuestos-municipales.yaml`, `evals/boe-legislacion/06-irpf-rendimientos-del-trabajo.yaml`, `evals/boe-legislacion/07-lrjsp-principio-de-legalidad.yaml`, `evals/boe-legislacion/08-ltaibg-plazo-de-resolucion.yaml`, `evals/boe-legislacion/09-constitucion-articulo-140.yaml`, `evals/boe-legislacion/10-et-vacaciones.yaml`, `evals/boe-legislacion/11-no-activa-programacion.yaml` y `evals/boe-legislacion/12-no-activa-acuerdo-entre-amigos.yaml`, con la pregunta, `activa`, los comandos esperados y las citas esperadas de la tabla del contrato evals-y-grabaciones §2 (la 06 con `reproduce: boe-fiscal`; las 11 y 12 sin comandos ni citas), con cada identificador copiado de la tabla de normas de T011 y cada bloque de lo confirmado en la pausa de grabación, y sin ningún caso especial de un municipio; e `internal/evals/conjunto_test.go` añade `TestEvalsDelRepositorio` con sus subtests `formato` (`LeerConjunto` sin error y sin mal formados, nombrando cada uno si los hay), `conjunto` (`ComprobarConjuntoDeBoeLegislacion` con el mapa construido con `skills.LeerNormas`: ningún defecto salvo los de `normas conocidas`), `normas-conocidas` (ninguno de esa regla) y `grabado` (`Preparar` + `ComprobarSinRed` sobre las evals y las dos grabaciones: ninguna falta), leyendo el directorio sin escribir en ningún test el nombre de un fichero de eval; si un comando o una cita no tiene su respuesta grabada, la tarea se detiene y lo anota en `gates/tarea-T012.md`, porque ampliar lo grabado es otra tarea de datos con pausa humana (FR-060, FR-062, FR-063, FR-064, FR-065, FR-066, FR-074, FR-075, SC-003, SC-010, US2 escenario 2, US4 escenarios 1 y 6).",
+  "id": "T013",
+  "texto": "T013 [US5] Skills y frontmatter: `internal/skills/skill.go` con `Skill`, `Listar`, `Cargar` y `ContarLineas` (todo directorio del directorio de skills del repositorio es una skill; sin `SKILL.md` es un defecto; sin directorio de skills, cero skills), con `TestContarLineas` (vacío = 0; `a` = 1; `a\\n` = 1; `a\\nb` = 2) y `TestListarYCargar` en `internal/skills/skill_test.go`; e `internal/skills/frontmatter.go` con `Frontmatter`, `DeclaracionDeKitlegal` (`metadata.kitlegal-applets` y `metadata.kitlegal-referencias`) y su validación según data-model §1.1 y §1.3 (`name` presente, igual al directorio, solo minúsculas, cifras y guiones sin `--` ni guion inicial o final, hasta 64; `description` presente, no vacía, hasta 1024 y sin `<` ni `>`; claves admitidas; applets declarados que existen; cada referencia declarada con su YAML de datos del mismo nombre), con `TestLeerFrontmatter` (sin delimitadores, sin cierre, YAML inválido, `metadata` con valor no cadena, `name` dos veces y `kitlegal-applets` dos veces nombrando la clave y sus dos líneas, con el lector común) y `TestValidarFrontmatter` (cada regla con sus límites exactos válidos, 64 y 1024) en `internal/skills/frontmatter_test.go` (FR-001, FR-002, FR-035, FR-040, FR-041, SC-005, research D3 y D4, contrato sincronizacion-y-comprobacion §4).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
-  "base": "193ddc4cdfe73aa8d34fa84ada6eedb695969cdb",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T013.md y déjala sin marcar.",
+  "base": "57e0af2a372003c1cc81e3da6eaae288e7834aba",
   "rutas": [
-    "evals/boe-legislacion/01-lpac-articulo-21.yaml",
-    "evals/boe-legislacion/02-lcsp-contrato-menor.yaml",
-    "evals/boe-legislacion/03-lrbrl-atribuciones-del-pleno.yaml",
-    "evals/boe-legislacion/04-lgt-prescripcion.yaml",
-    "evals/boe-legislacion/05-trlrhl-impuestos-municipales.yaml",
-    "evals/boe-legislacion/06-irpf-rendimientos-del-trabajo.yaml",
-    "evals/boe-legislacion/07-lrjsp-principio-de-legalidad.yaml",
-    "evals/boe-legislacion/08-ltaibg-plazo-de-resolucion.yaml",
-    "evals/boe-legislacion/09-constitucion-articulo-140.yaml",
-    "evals/boe-legislacion/10-et-vacaciones.yaml",
-    "evals/boe-legislacion/11-no-activa-programacion.yaml",
-    "evals/boe-legislacion/12-no-activa-acuerdo-entre-amigos.yaml",
-    "gates/tarea-T012.md",
-    "internal/evals/conjunto_test.go"
+    "internal/skills/frontmatter_test.go",
+    "internal/skills/frontmatter.go",
+    "internal/skills/skill_test.go",
+    "internal/skills/skill.go",
+    "SKILL.md"
   ],
   "cierre": false
 }
