@@ -1,0 +1,4 @@
+execve("/home/runner/.claude/skills/boe-legislacion/scripts/boe", ["/home/runner/.claude/skills/boe-legislacion/scripts/boe", "articulo", "BOE-A-2015-10565", "a9998", "--json"], 0x7ffe4f1a9c58 /* 25 vars */) = 0
+clone(child_stack=0x4000080000, flags=CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM) = 2001
+--- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=1000, si_uid=1001} ---
++++ killed by SIGTERM +++

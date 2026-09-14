@@ -1,0 +1,4 @@
+execve("/bin/bash", ["/bin/bash", "-c", "/home/runner/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json || true"], 0x7ffc9e3a1b70 /* 24 vars */) = 0
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f8e1d4c3a10) = 2000
+--- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2000, si_uid=1001, si_status=5, si_utime=0, si_stime=1 /* 0.01 s */} ---
++++ exited with 0 +++
