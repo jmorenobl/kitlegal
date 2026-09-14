@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:59:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Atransparencia%20AND%20titulo%3Aacceso%20AND%20titulo%3Ainformaci%5Cu00f3n%20AND%20titulo%3Ap%5Cu00fablica%20AND%20titulo%3Abuen%20AND%20titulo%3Agobierno%22%7D%7D%7D",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "46"
+      ],
+      "Content-Length": [
+        "5116"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:58:13 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260713T104834Z\",\n            \"identificador\": \"BOE-A-2015-470\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8070\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de Catalu\\u00f1a\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20141229\",\n            \"numero_oficial\": \"19\\/2014\",\n            \"titulo\": \"Ley 19\\/2014, de 29 de diciembre, de transparencia, acceso a la informaci\\u00f3n p\\u00fablica y buen gobierno.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20150121\",\n            \"diario_numero\": \"18\",\n            \"fecha_vigencia\": \"20150630\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"4\",\n                \"texto\": \"Desactualizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-ct\\/l\\/2014\\/12\\/29\\/19\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2015-470\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260427T112053Z\",\n            \"identificador\": \"BOE-A-2018-7642\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8170\",\n                \"texto\": \"Comunidad Foral de Navarra\"\n            },\n            \"rango\": {\n                \"codigo\": \"1450\",\n                \"texto\": \"Ley Foral\"\n            },\n            \"fecha_disposicion\": \"20180517\",\n            \"numero_oficial\": \"5\\/2018\",\n            \"titulo\": \"Ley Foral 5\\/2018, de 17 de mayo, de Transparencia, acceso a la informaci\\u00f3n p\\u00fablica y buen gobierno.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20180608\",\n            \"diario_numero\": \"139\",\n            \"fecha_vigencia\": \"20180823\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-nc\\/lf\\/2018\\/05\\/17\\/5\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2018-7642\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260416T122714Z\",\n            \"identificador\": \"BOE-A-2022-11392\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20220708\",\n            \"numero_oficial\": \"14\\/2022\",\n            \"titulo\": \"Ley 14\\/2022, de 8 de julio, de modificaci\\u00f3n de la Ley 19\\/2013, de 9 de diciembre, de transparencia, acceso a la informaci\\u00f3n p\\u00fablica y buen gobierno, con el fin de regular las estad\\u00edsticas de las microempresas, peque\\u00f1as y medianas empresas (PYME) en la contrataci\\u00f3n p\\u00fablica.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20220709\",\n            \"diario_numero\": \"164\",\n            \"fecha_vigencia\": \"20220729\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2022\\/07\\/08\\/14\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2022-11392\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260102T105216Z\",\n            \"identificador\": \"BOE-A-2013-12887\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20131209\",\n            \"numero_oficial\": \"19\\/2013\",\n            \"titulo\": \"Ley 19\\/2013, de 9 de diciembre, de transparencia, acceso a la informaci\\u00f3n p\\u00fablica y buen gobierno.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20131210\",\n            \"diario_numero\": \"295\",\n            \"fecha_vigencia\": \"20141210\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2013\\/12\\/09\\/19\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2013-12887\"\n        }\n    ]\n}"
+  }
+}

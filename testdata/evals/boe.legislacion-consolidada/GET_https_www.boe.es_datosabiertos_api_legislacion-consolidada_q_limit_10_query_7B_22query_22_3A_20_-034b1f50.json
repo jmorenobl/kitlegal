@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:53Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Ar%5Cu00e9gimen%20AND%20titulo%3Ajur%5Cu00eddico%20AND%20titulo%3Adel%20AND%20titulo%3Asector%20AND%20titulo%3Ap%5Cu00fablico%22%7D%7D%7D",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "42"
+      ],
+      "Content-Length": [
+        "7778"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:58:11 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260909T080739Z\",\n            \"identificador\": \"BOE-A-2015-10566\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20151001\",\n            \"numero_oficial\": \"40\\/2015\",\n            \"titulo\": \"Ley 40\\/2015, de 1 de octubre, de R\\u00e9gimen Jur\\u00eddico del Sector P\\u00fablico.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20151002\",\n            \"diario_numero\": \"236\",\n            \"fecha_vigencia\": \"20161002\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2015\\/10\\/01\\/40\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2015-10566\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260811T111945Z\",\n            \"identificador\": \"BOE-A-2018-17138\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8040\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de Cantabria\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20181122\",\n            \"numero_oficial\": \"5\\/2018\",\n            \"titulo\": \"Ley 5\\/2018, de 22 de noviembre, de R\\u00e9gimen Jur\\u00eddico del Gobierno, de la Administraci\\u00f3n y del Sector P\\u00fablico Institucional de la Comunidad Aut\\u00f3noma de Cantabria.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20181215\",\n            \"diario_numero\": \"302\",\n            \"fecha_vigencia\": \"20190103\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-cb\\/l\\/2018\\/11\\/22\\/5\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2018-17138\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260708T185846Z\",\n            \"identificador\": \"BOE-A-2026-12711\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"9585\",\n                \"texto\": \"Ministerio de la Presidencia, Justicia y Relaciones con las Cortes\"\n            },\n            \"rango\": {\n                \"codigo\": \"1340\",\n                \"texto\": \"Real Decreto\"\n            },\n            \"fecha_disposicion\": \"20260610\",\n            \"numero_oficial\": \"466\\/2026\",\n            \"titulo\": \"Real Decreto 466\\/2026, de 10 de junio, de adaptaci\\u00f3n de organismos p\\u00fablicos existentes en el \\u00e1mbito estatal a la Ley 40\\/2015, de 1 de octubre, de R\\u00e9gimen Jur\\u00eddico del Sector P\\u00fablico.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20260612\",\n            \"diario_numero\": \"143\",\n            \"fecha_vigencia\": \"20260613\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rd\\/2026\\/06\\/10\\/466\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2026-12711\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251220T143953Z\",\n            \"identificador\": \"BOE-A-2021-12701\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8020\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de Arag\\u00f3n\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20210629\",\n            \"numero_oficial\": \"5\\/2021\",\n            \"titulo\": \"Ley 5\\/2021, de 29 de junio, de Organizaci\\u00f3n y R\\u00e9gimen Jur\\u00eddico del Sector P\\u00fablico Auton\\u00f3mico de Arag\\u00f3n.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20210729\",\n            \"diario_numero\": \"180\",\n            \"fecha_vigencia\": \"20211002\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-ar\\/l\\/2021\\/06\\/29\\/5\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2021-12701\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251219T194354Z\",\n            \"identificador\": \"BOE-A-2017-5192\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"9279\",\n                \"texto\": \"Ministerio de Hacienda y Funci\\u00f3n P\\u00fablica\"\n            },\n            \"rango\": {\n                \"codigo\": \"1340\",\n                \"texto\": \"Real Decreto\"\n            },\n            \"fecha_disposicion\": \"20170428\",\n            \"numero_oficial\": \"424\\/2017\",\n            \"titulo\": \"Real Decreto 424\\/2017, de 28 de abril, por el que se regula el r\\u00e9gimen jur\\u00eddico del control interno en las entidades del Sector P\\u00fablico Local.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20170512\",\n            \"diario_numero\": \"113\",\n            \"fecha_vigencia\": \"20180701\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rd\\/2017\\/04\\/28\\/424\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2017-5192\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251219T130536Z\",\n            \"identificador\": \"BOE-A-2011-4885\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8121\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de las Illes Balears\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20110224\",\n            \"numero_oficial\": \"1\\/2011\",\n            \"titulo\": \"Ley 1\\/2011, de 24 de febrero, de transformaci\\u00f3n de fundaciones del sector p\\u00fablico sanitario de las Illes Balears y de determinaci\\u00f3n del r\\u00e9gimen jur\\u00eddico de las fundaciones p\\u00fablicas sanitarias.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20110317\",\n            \"diario_numero\": \"65\",\n            \"fecha_vigencia\": \"20110301\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-ib\\/l\\/2011\\/02\\/24\\/1\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2011-4885\"\n        }\n    ]\n}"
+  }
+}

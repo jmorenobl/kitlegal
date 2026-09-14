@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:45Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Areguladora%20AND%20titulo%3Ade%20AND%20titulo%3Alas%20AND%20titulo%3Ahaciendas%20AND%20titulo%3Alocales%22%7D%7D%7D",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "39"
+      ],
+      "Content-Length": [
+        "4102"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:58:06 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260908T100317Z\",\n            \"identificador\": \"BOE-A-2004-4214\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"5140\",\n                \"texto\": \"Ministerio de Hacienda\"\n            },\n            \"rango\": {\n                \"codigo\": \"1310\",\n                \"texto\": \"Real Decreto Legislativo\"\n            },\n            \"fecha_disposicion\": \"20040305\",\n            \"numero_oficial\": \"2\\/2004\",\n            \"titulo\": \"Real Decreto Legislativo 2\\/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20040309\",\n            \"diario_numero\": \"59\",\n            \"fecha_vigencia\": \"20040310\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rdlg\\/2004\\/03\\/05\\/2\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2004-4214\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260327T105642Z\",\n            \"identificador\": \"BOE-A-1990-9664\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"5130\",\n                \"texto\": \"Ministerio de Econom\\u00eda y Hacienda\"\n            },\n            \"rango\": {\n                \"codigo\": \"1340\",\n                \"texto\": \"Real Decreto\"\n            },\n            \"fecha_disposicion\": \"19900420\",\n            \"numero_oficial\": \"500\\/1990\",\n            \"titulo\": \"Real Decreto 500\\/1990, de 20 de abril, por el que se desarrolla el cap\\u00edtulo primero del t\\u00edtulo sexto de la Ley 39\\/1988, de 28 de diciembre, Reguladora de las Haciendas Locales, en materia de presupuestos.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19900427\",\n            \"diario_numero\": \"101\",\n            \"fecha_vigencia\": \"19900428\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rd\\/1990\\/04\\/20\\/500\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1990-9664\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251220T144027Z\",\n            \"identificador\": \"BOE-A-2021-18276\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1320\",\n                \"texto\": \"Real Decreto-ley\"\n            },\n            \"fecha_disposicion\": \"20211108\",\n            \"numero_oficial\": \"26\\/2021\",\n            \"titulo\": \"Real Decreto-ley 26\\/2021, de 8 de noviembre, por el que se adapta el texto refundido de la Ley Reguladora de las Haciendas Locales, aprobado por el Real Decreto Legislativo 2\\/2004, de 5 de marzo, a la reciente jurisprudencia del Tribunal Constitucional respecto del Impuesto sobre el Incremento de Valor de los Terrenos de Naturaleza Urbana.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20211109\",\n            \"diario_numero\": \"268\",\n            \"fecha_vigencia\": \"20211110\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rdl\\/2021\\/11\\/08\\/26\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2021-18276\"\n        }\n    ]\n}"
+  }
+}
