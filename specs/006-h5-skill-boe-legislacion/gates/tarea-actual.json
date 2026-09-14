@@ -1,22 +1,17 @@
 {
-  "id": "T017",
-  "texto": "T017 [US1] La skill y su comprobación en `make ci`: `internal/app/skills_test.go` con `TestSkillsDelRepositorio` según el flujo del contrato sincronizacion-y-comprobacion §2 (`app.RegistroDeProduccion`, `describir` de cada verbo de cada applet declarado sobre `render.Nuevo` y búferes, `cli.Describir` para las banderas globales, `skills.Regenerar`; con la bandera `-regenerar-skills`, `skills.Escribir` antes de comparar; `skills.Comparar`; todo defecto o deriva falla nombrando skill y fichero o enlace) y sus subtests `skills` (el árbol real sin defectos ni derivas, exigiendo que exista `boe-legislacion`), `referencia-editada`, `datos-sin-regenerar`, `describe-cambiado`, `trescientas-lineas` (300 → `SKILL.md tiene 300 líneas (máximo 299)`; 299 sin defecto), `frontmatter` (una fila por defecto de la tabla del contrato y los límites válidos), `enlaces`, `region`, `regenerar-dos-veces` (tiempos de modificación incluidos), `normas-nombradas` (cada «Ley N/AAAA», «Ley Orgánica N/AAAA», «Real Decreto N/AAAA», «Real Decreto-ley N/AAAA» o «Real Decreto Legislativo N/AAAA» de `SKILL.md` empieza el título de una norma de la tabla de normas) y `sin-instrucciones-de-evals` (contrato skill-boe-legislacion §2.5), sobre copias temporales hechas con un auxiliar que recrea los enlaces simbólicos con su destino literal, y `TestTablaDeComandosCoincideConLaGramatica` (cada sintaxis generada, convertida en invocación con `--describe`, termina en 0 sobre el registro de producción); `scripts/skills-sync.sh` con modo `100755` y el contenido exacto del contrato §1.1; `Makefile` con `skills-sync` (`check-tools` y el guion, sin anunciar ya que las skills llegan en H5), `skills-check` (una sola invocación de `go test` de los cuatro tests del repositorio en sus tres paquetes, receta del contrato §1.1) y `ci` con `skills-check` tras `schema-check`; `skills/boe-legislacion/SKILL.md` escrito según el contrato skill-boe-legislacion §2 y §3 —frontmatter `name: boe-legislacion`, `description` para la activación de cualquier materia y `metadata` con `kitlegal-applets: boe` y `kitlegal-referencias: normas`; secciones en el orden de §2.2; los cinco pasos numerados del protocolo de §2.3 (identificar la norma en la referencia de normas de la skill, resolver `BOE-A-…` o buscarlo con `boe buscar` por el enlace `boe` de la skill, leer índice y bloques por ese enlace, evaluar si falta contexto, responder citando, distinguiendo ley y reglamento y señalando variación autonómica), con órdenes `--json` y ejemplos no fiscales ni de `buscar-materia`, `materias` o `sumario`; el formato de cita `[BOE-A-2015-10565, bloque a21]` de §3; las marcas de la región de comandos de data-model §2; las cinco reglas numeradas de §2.4; sin casos de un municipio o comunidad y sin ninguna mención a evals, al job, a un modelo, a `KITLEGAL_CACHE_DIR` ni a usar siempre `--offline`; menos de 300 líneas—; y, ejecutando `make skills-sync` (nunca a mano), la región generada de `SKILL.md`, `skills/boe-legislacion/references/normas.md` y el enlace `skills/boe-legislacion/scripts/boe` → `../../../bin/instalado/kitlegal`, con un segundo `make skills-sync` que no cambia nada (FR-001-FR-015, FR-020, FR-022, FR-030-FR-036, FR-040-FR-044, FR-077, SC-004, SC-005, SC-007, SC-012 en su parte estática, US1, US2 escenarios 1 y 3, US5 escenarios 1-5, research D2, D5, D6 y D7, plan obligaciones 7 y 12).",
+  "id": "T018",
+  "texto": "T018 [P] [datos] [US3] Guiones e2e de la instalación, antes del código: `internal/skills/testdata/script/instalar.txtar`, `internal/skills/testdata/script/instalar-de-nuevo.txtar`, `internal/skills/testdata/script/instalar-con-conflicto.txtar` e `internal/skills/testdata/script/instalar-sin-gobin.txtar`, con lo que fija la tabla del contrato instalacion §4 (instalación en limpio con el binario en el `GOBIN` temporal, el enlace de la skill a la raíz física del árbol copiado, el enlace del binario instalado y `boe articulo BOE-A-2015-10565 a21 --describe`, lanzado a través del enlace `boe` de la skill instalada, con `\"title\": \"boe articulo\"`; dos instalaciones seguidas con el mismo estado y solo `boe-legislacion`; conflicto con un directorio con un fichero y, en otra ronda, con un enlace ajeno, terminando distinto de 0 con `conflicto: .*boe-legislacion` y la entrada intacta; sin `GOBIN`, el binario en el `GOPATH` temporal); ningún otro fichero (FR-050-FR-055, SC-006, US3 escenarios 1-3).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T017.md y déjala sin marcar.",
-  "base": "fbb0b0feee59669b7c409f7ac3f42df07962be42",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
+  "base": "db6c46ac3de5290cba571a55572f1b920efa843e",
   "rutas": [
-    "bin/instalado/kitlegal",
-    "internal/app/skills_test.go",
-    "Makefile",
-    "N/AAAA",
-    "scripts/skills-sync.sh",
-    "SKILL.md",
-    "skills/boe-legislacion/references/normas.md",
-    "skills/boe-legislacion/scripts/boe",
-    "skills/boe-legislacion/SKILL.md"
+    "internal/skills/testdata/script/instalar-con-conflicto.txtar",
+    "internal/skills/testdata/script/instalar-de-nuevo.txtar",
+    "internal/skills/testdata/script/instalar-sin-gobin.txtar",
+    "internal/skills/testdata/script/instalar.txtar"
   ],
   "cierre": false
 }

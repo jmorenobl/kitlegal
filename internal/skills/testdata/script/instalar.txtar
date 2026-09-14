@@ -1,0 +1,42 @@
+# Instalación en limpio: `make install` deja el binario en el directorio de
+# binarios de Go, enlaza la skill en el directorio personal de skills y deja
+# resoluble su `scripts/boe`, que responde desde el binario instalado (US3
+# escenario 1, SC-006, FR-050, FR-051, FR-052).
+#
+# El árbol es la copia mínima del repositorio que Setup deja en $WORK/repo, y
+# HOME, GOBIN y GOPATH son carpetas de $WORK: nada de lo que hace este guion
+# alcanza el directorio personal, el de binarios ni el árbol de quien ejecuta
+# los tests (FR-055; contrato instalacion §4).
+
+# Antes de instalar no existe el directorio personal de skills: lo crea la
+# propia instalación (FR-052).
+! exists $HOME/.claude/skills
+
+exec make -C $WORK/repo install
+
+# El binario queda en el GOBIN temporal (FR-050).
+exists $WORK/gobin/kitlegal
+
+# El enlace de la skill nombra la raíz física del árbol copiado (contrato
+# instalacion §2, paso 1). El destino esperado lo da `pwd -P` y se compara byte a
+# byte, así que la comprobación no depende de que el temporal cuelgue o no de un
+# enlace, como /var -> /private/var en macOS.
+exec sh -c 'cd "$WORK/repo/skills/boe-legislacion" && pwd -P'
+cp stdout destino-de-la-skill.txt
+
+exec readlink $HOME/.claude/skills/boe-legislacion
+cmp stdout destino-de-la-skill.txt
+
+# El enlace del binario instalado nombra, literal, la ruta que da
+# `go list -f '{{.Target}}'`: el binario del GOBIN temporal (contrato
+# instalacion §1; data-model §11.2).
+exec readlink $WORK/repo/bin/instalado/kitlegal
+stdout '\A'${WORK@R}'/gobin/kitlegal\n\z'
+
+# Y la skill instalada responde. Su `scripts/boe` resuelve por el enlace de la
+# skill y por el del binario instalado hasta el binario del GOBIN temporal, y el
+# despacho multicall elige `boe` por el nombre con que se lo invoca (FR-014,
+# FR-051, SC-006; contrato instalacion §3).
+exec $HOME/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a21 --describe
+stdout '"title": "boe articulo"'
+! stderr .

@@ -1,0 +1,45 @@
+# Una entrada ajena con el nombre de la skill en el directorio personal de
+# skills es un conflicto: `make install` termina con código distinto de 0
+# nombrándola, no la modifica ni la borra y no crea ni cambia nada (US3
+# escenario 3, FR-054, SC-006; contrato instalacion §2, paso 5; data-model
+# §11.1). Se ejercen dos entradas ajenas, una en cada ronda: un directorio con
+# un fichero dentro y un enlace a otro sitio.
+#
+# HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
+# $WORK/repo (FR-055; contrato instalacion §4).
+
+# Primera ronda: un directorio con un fichero dentro.
+mkdir $HOME/.claude/skills/boe-legislacion
+cp ajeno.txt $HOME/.claude/skills/boe-legislacion/ajeno.txt
+
+! exec make -C $WORK/repo install
+stderr 'conflicto: .*boe-legislacion'
+
+# La entrada sigue igual: el mismo fichero, con el mismo contenido y solo.
+cmp $HOME/.claude/skills/boe-legislacion/ajeno.txt ajeno.txt
+exec ls -A $HOME/.claude/skills/boe-legislacion
+stdout '\Aajeno\.txt\n\z'
+
+# Y el conflicto se detecta antes de tocar nada: tampoco existe el enlace del
+# binario instalado.
+! exists $WORK/repo/bin/instalado
+
+# Segunda ronda: un enlace a otro sitio. Su destino existe, para que el
+# conflicto sea el de un enlace ajeno y no el de un enlace roto.
+rm $HOME/.claude/skills/boe-legislacion
+mkdir $WORK/otra-skill
+symlink $HOME/.claude/skills/boe-legislacion -> $WORK/otra-skill
+
+! exec make -C $WORK/repo install
+stderr 'conflicto: .*boe-legislacion'
+
+# El enlace ajeno conserva su destino, y nada se ha escrito a través de él.
+exec readlink $HOME/.claude/skills/boe-legislacion
+stdout '\A'${WORK@R}'/otra-skill\n\z'
+exec ls -A $WORK/otra-skill
+! stdout .
+
+! exists $WORK/repo/bin/instalado
+
+-- ajeno.txt --
+Una skill de otra procedencia con el mismo nombre: la instalación no la toca.
