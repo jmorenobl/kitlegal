@@ -1,0 +1,1 @@
+¿Cómo invierto una lista enlazada en Go?

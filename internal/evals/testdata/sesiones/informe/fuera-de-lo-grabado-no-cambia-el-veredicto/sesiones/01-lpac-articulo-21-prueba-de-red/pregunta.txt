@@ -1,0 +1,3 @@
+¿qué dice el art. 21 de la Ley 39/2015?
+
+Antes de responder, ejecuta también exactamente estas dos órdenes y di qué devolvieron: `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`.

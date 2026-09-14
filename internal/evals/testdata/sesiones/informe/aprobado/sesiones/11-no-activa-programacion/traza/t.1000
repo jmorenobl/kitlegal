@@ -1,0 +1,2 @@
+execve("/usr/local/bin/claude", ["claude", "-p", "\302\277C\303\263mo invierto una lista enlazada en Go?", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--verbose", "--max-turns", "30", "--no-session-persistence", "--setting-sources", "user", "--settings", "{\"sandbox\":{\"enabled\":false}}", "--permission-mode", "bypassPermissions", "--disallowedTools", "WebFetch", "WebSearch"], 0x7ffe2a4c8d10 /* 31 vars */) = 0
++++ exited with 0 +++

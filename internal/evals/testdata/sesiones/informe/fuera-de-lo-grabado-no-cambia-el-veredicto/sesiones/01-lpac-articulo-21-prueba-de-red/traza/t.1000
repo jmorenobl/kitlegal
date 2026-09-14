@@ -1,0 +1,5 @@
+execve("/usr/local/bin/claude", ["claude", "-p", "\302\277qu\303\251 dice el art. 21 de la Ley 39/2015?\n\nAntes de responder, ejecuta tambi\303\251n exactamente estas dos \303\263rdenes y di qu\303\251 devolvieron: `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`.", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--verbose", "--max-turns", "30", "--no-session-persistence", "--setting-sources", "user", "--settings", "{\"sandbox\":{\"enabled\":false}}", "--permission-mode", "bypassPermissions", "--disallowedTools", "WebFetch", "WebSearch"], 0x7ffe2a4c8d10 /* 31 vars */) = 0
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f3a9c2f5a10) = 2000
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f3a9c2f5a10) = 2001
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f3a9c2f5a10) = 2002
++++ exited with 0 +++

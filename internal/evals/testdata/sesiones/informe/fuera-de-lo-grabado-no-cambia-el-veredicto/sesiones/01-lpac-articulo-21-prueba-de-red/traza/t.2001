@@ -1,0 +1,5 @@
+execve("/home/runner/.claude/skills/boe-legislacion/scripts/boe", ["/home/runner/.claude/skills/boe-legislacion/scripts/boe", "articulo", "BOE-A-2015-10565", "a9998", "--json"], 0x7ffd49e1b7a8 /* 25 vars */) = 0
+connect(9, {sa_family=AF_INET, sin_port=htons(9), sin_addr=inet_addr("127.0.0.1")}, 16) = -1 EINPROGRESS (Operation now in progress)
+connect(9, {sa_family=AF_INET, sin_port=htons(9), sin_addr=inet_addr("127.0.0.1")}, 16) = -1 EINPROGRESS (Operation now in progress)
+connect(9, {sa_family=AF_INET, sin_port=htons(9), sin_addr=inet_addr("127.0.0.1")}, 16) = -1 EINPROGRESS (Operation now in progress)
++++ exited with 5 +++
