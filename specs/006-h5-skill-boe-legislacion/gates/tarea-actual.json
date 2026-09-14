@@ -1,0 +1,15 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US4] Esquema del formato común de eval: `schemas/eval.yaml.json` (JSON Schema 2020-12, `$id` `https://ventanillalegal.es/schemas/eval.yaml.json`) exactamente como fija el contrato evals-y-grabaciones §1 —raíz con `additionalProperties: false` y `required: [pregunta, activa]`; `pregunta` no vacía; `activa` booleana; `reproduce` con su patrón; `if activa then required [comandos, citas] else not anyOf [required comandos, required citas]`; `comandos` con `minItems: 1` y `oneOf` de las tres formas de data-model §6.1 (bloque; consulta de norma con `verbo` en `indice`, `metadatos`, `analisis`; búsqueda con `verbo` `buscar` y `terminos`), cada una cerrada; `citas` con `minItems: 1` y `{norma, bloque}` cerrado; patrones de `applet`, `norma` y `bloque` del contrato—; ningún otro fichero (FR-060, FR-061, US4 escenario 4, research D10).",
+  "intento": 1,
+  "datos": true,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "de4e35bdaa02059afb1abd21f937f9f790bea2e1",
+  "rutas": [
+    ".es/schemas/eval.yaml.json",
+    "schemas/eval.yaml.json"
+  ],
+  "cierre": false
+}

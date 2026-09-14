@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ventanillalegal.es/schemas/eval.yaml.json",
+  "title": "evals/<skill>/<nn>-<descripción>.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pregunta", "activa"],
+  "properties": {
+    "pregunta": { "type": "string", "minLength": 1 },
+    "activa": { "type": "boolean" },
+    "reproduce": { "type": "string", "maxLength": 64, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "comandos": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/comando-bloque" },
+          { "$ref": "#/$defs/comando-consulta-de-norma" },
+          { "$ref": "#/$defs/comando-busqueda" }
+        ]
+      }
+    },
+    "citas": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/cita" }
+    }
+  },
+  "if": { "required": ["activa"], "properties": { "activa": { "const": true } } },
+  "then": { "required": ["comandos", "citas"] },
+  "else": { "not": { "anyOf": [{ "required": ["comandos"] }, { "required": ["citas"] }] } },
+  "$defs": {
+    "applet": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "norma": { "type": "string", "pattern": "^BOE-A-[0-9]{4}-[0-9]{1,9}$" },
+    "bloque": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$" },
+    "comando-bloque": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "norma", "bloque"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "norma": { "$ref": "#/$defs/norma" },
+        "bloque": { "$ref": "#/$defs/bloque" }
+      }
+    },
+    "comando-consulta-de-norma": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo", "norma"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "enum": ["indice", "metadatos", "analisis"] },
+        "norma": { "$ref": "#/$defs/norma" }
+      }
+    },
+    "comando-busqueda": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo", "terminos"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "const": "buscar" },
+        "terminos": {
+          "type": "array", "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "cita": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["norma", "bloque"],
+      "properties": {
+        "norma": { "$ref": "#/$defs/norma" },
+        "bloque": { "$ref": "#/$defs/bloque" }
+      }
+    }
+  }
+}
