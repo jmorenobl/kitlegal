@@ -1,0 +1,14 @@
+# Eval positiva y consulta fiscal (FR-063): la pregunta no nombra el artículo, así que el protocolo lee antes el
+# índice (FR-007). El bloque a59 es el artículo 59 del TRLRHL.
+pregunta: "¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales?"
+activa: true
+comandos:
+  - applet: boe
+    verbo: indice
+    norma: BOE-A-2004-4214
+  - applet: boe
+    norma: BOE-A-2004-4214
+    bloque: a59
+citas:
+  - norma: BOE-A-2004-4214
+    bloque: a59

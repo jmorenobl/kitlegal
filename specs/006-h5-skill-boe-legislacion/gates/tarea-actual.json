@@ -1,17 +1,27 @@
 {
-  "id": "T011",
-  "texto": "T011 [US6] `data/normas.yaml` con los identificadores comprobados sin red: `data/normas.yaml` con la cabecera de comentario y la forma indexada por identificador del contrato normas-y-referencias §1 y las diez normas de su §4 (LPAC, LCSP, LRBRL, LGT, TRLRHL, LIRPF, LRJSP, LTAIBG, CE, ET) con su abreviatura y sus materias, y cada identificador, título oficial y rango copiados de la búsqueda grabada y del registro de la grabación (los de `BOE-A-2015-10565`, `BOE-A-2017-12902` y `BOE-A-1985-5392` también de los metadatos grabados en H4), sin campo `vertical`; `internal/skills/normas_test.go` añade `TestNormasDelRepositorio` (el `data/normas.yaml` real es válido); e `internal/evals/grabaciones_test.go` añade `TestIdentificadoresDeLasNormas` según el contrato normas-y-referencias §6 (lee el manifiesto con `LeerManifiesto`; reproduce `boe buscar` de cada entrada con `app.Main` sobre `httpx.Replay` de la unión H4 + H5; resuelve cada entrada como el único resultado cuyo título empieza por su prefijo; cada norma de `data/normas.yaml` resuelta por exactamente una entrada con el mismo identificador y título; exige al menos las diez normas) con los subtests negativos `identificador-cambiado`, `titulo-cambiado`, `norma-sin-entrada` y `norma-en-la-busqueda-de-otra-entrada` sobre copias temporales; si un identificador, un título o un rango no está en lo grabado, la tarea se detiene y lo anota en `gates/tarea-T011.md` (FR-020, FR-021, FR-022, FR-023, FR-024, FR-043, SC-005, SC-008, US6 escenarios 1 y 4, plan obligaciones 2 y 12).",
+  "id": "T012",
+  "texto": "T012 [US4] Las doce evals de `boe-legislacion` y su comprobación: `evals/boe-legislacion/01-lpac-articulo-21.yaml`, `evals/boe-legislacion/02-lcsp-contrato-menor.yaml`, `evals/boe-legislacion/03-lrbrl-atribuciones-del-pleno.yaml`, `evals/boe-legislacion/04-lgt-prescripcion.yaml`, `evals/boe-legislacion/05-trlrhl-impuestos-municipales.yaml`, `evals/boe-legislacion/06-irpf-rendimientos-del-trabajo.yaml`, `evals/boe-legislacion/07-lrjsp-principio-de-legalidad.yaml`, `evals/boe-legislacion/08-ltaibg-plazo-de-resolucion.yaml`, `evals/boe-legislacion/09-constitucion-articulo-140.yaml`, `evals/boe-legislacion/10-et-vacaciones.yaml`, `evals/boe-legislacion/11-no-activa-programacion.yaml` y `evals/boe-legislacion/12-no-activa-acuerdo-entre-amigos.yaml`, con la pregunta, `activa`, los comandos esperados y las citas esperadas de la tabla del contrato evals-y-grabaciones §2 (la 06 con `reproduce: boe-fiscal`; las 11 y 12 sin comandos ni citas), con cada identificador copiado de la tabla de normas de T011 y cada bloque de lo confirmado en la pausa de grabación, y sin ningún caso especial de un municipio; e `internal/evals/conjunto_test.go` añade `TestEvalsDelRepositorio` con sus subtests `formato` (`LeerConjunto` sin error y sin mal formados, nombrando cada uno si los hay), `conjunto` (`ComprobarConjuntoDeBoeLegislacion` con el mapa construido con `skills.LeerNormas`: ningún defecto salvo los de `normas conocidas`), `normas-conocidas` (ninguno de esa regla) y `grabado` (`Preparar` + `ComprobarSinRed` sobre las evals y las dos grabaciones: ninguna falta), leyendo el directorio sin escribir en ningún test el nombre de un fichero de eval; si un comando o una cita no tiene su respuesta grabada, la tarea se detiene y lo anota en `gates/tarea-T012.md`, porque ampliar lo grabado es otra tarea de datos con pausa humana (FR-060, FR-062, FR-063, FR-064, FR-065, FR-066, FR-074, FR-075, SC-003, SC-010, US2 escenario 2, US4 escenarios 1 y 6).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
-  "base": "a84944cb14d0739614267227d58c8f145d77a930",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
+  "base": "193ddc4cdfe73aa8d34fa84ada6eedb695969cdb",
   "rutas": [
-    "data/normas.yaml",
-    "gates/tarea-T011.md",
-    "internal/evals/grabaciones_test.go",
-    "internal/skills/normas_test.go"
+    "evals/boe-legislacion/01-lpac-articulo-21.yaml",
+    "evals/boe-legislacion/02-lcsp-contrato-menor.yaml",
+    "evals/boe-legislacion/03-lrbrl-atribuciones-del-pleno.yaml",
+    "evals/boe-legislacion/04-lgt-prescripcion.yaml",
+    "evals/boe-legislacion/05-trlrhl-impuestos-municipales.yaml",
+    "evals/boe-legislacion/06-irpf-rendimientos-del-trabajo.yaml",
+    "evals/boe-legislacion/07-lrjsp-principio-de-legalidad.yaml",
+    "evals/boe-legislacion/08-ltaibg-plazo-de-resolucion.yaml",
+    "evals/boe-legislacion/09-constitucion-articulo-140.yaml",
+    "evals/boe-legislacion/10-et-vacaciones.yaml",
+    "evals/boe-legislacion/11-no-activa-programacion.yaml",
+    "evals/boe-legislacion/12-no-activa-acuerdo-entre-amigos.yaml",
+    "gates/tarea-T012.md",
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false
 }

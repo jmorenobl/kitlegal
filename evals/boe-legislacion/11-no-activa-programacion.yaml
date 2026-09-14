@@ -1,0 +1,3 @@
+# Eval de no activación: pregunta ajena a la normativa del BOE, sin comandos ni citas esperados (FR-061, FR-062).
+pregunta: "¿Cómo invierto una lista enlazada en Go?"
+activa: false

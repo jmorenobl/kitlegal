@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // Contenidos de las evals sintéticas de TestLeerConjunto. La del art. 21 se
@@ -540,4 +542,133 @@ func ficherosDelConjunto(conjunto conjuntoSintetico) []string {
 	}
 
 	return ficheros
+}
+
+// Lo que TestEvalsDelRepositorio lee del repositorio y lo que le exige (contrato
+// evals-y-grabaciones §2).
+const (
+	// evalsDelRepositorio es evals/boe-legislacion/, relativo al directorio de
+	// este paquete, que es donde go test ejecuta sus tests (research.md V46).
+	evalsDelRepositorio = "../../evals/boe-legislacion"
+
+	// evalsMinimasDelRepositorio son las doce del contrato de evals §2, diez
+	// positivas y dos de no activación: con menos, el subtest grabado podría
+	// pasar sin comprobar lo que necesita alguna de ellas (plan.md, obligación
+	// 12).
+	evalsMinimasDelRepositorio = 12
+
+	// reglaDeNormasConocidas es la regla de data-model §6.3 cuyos defectos
+	// presenta su propio subtest, normas-conocidas, y no el subtest conjunto.
+	reglaDeNormasConocidas = "normas conocidas"
+)
+
+// TestEvalsDelRepositorio comprueba sin red las evals de evals/boe-legislacion/
+// contra data/normas.yaml y las grabaciones de H4 y de H5 (contrato
+// evals-y-grabaciones §2 y §5.2; FR-062 a FR-066, FR-074, FR-075, SC-010): cada
+// fichero del directorio se lee como eval, el conjunto cumple las reglas de
+// data-model §6.3, toda norma que esperan está en la tabla de normas y lo grabado
+// basta para servir sin red cada consulta que necesitan. Lee el directorio
+// entero, así que ningún fichero de eval se nombra aquí.
+func TestEvalsDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	conjunto, errDeLaLectura := LeerConjunto(evalsDelRepositorio)
+
+	normas, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	require.NoError(t, err, "la tabla de normas %s", tablaDeNormasDelRepositorio)
+
+	// Una sola llamada: conjunto y normas-conocidas presentan cada uno una parte
+	// de sus defectos.
+	defectos := ComprobarConjuntoDeBoeLegislacion(conjunto.Evals, normasConocidasDe(normas))
+	esDeNormasConocidas := func(defecto DefectoDelConjunto) bool { return defecto.Regla == reglaDeNormasConocidas }
+
+	t.Run("formato", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, errDeLaLectura)
+
+		motivos := make([]string, 0, len(conjunto.MalFormados))
+		for _, malFormado := range conjunto.MalFormados {
+			motivos = append(motivos, malFormado.Error.Error())
+		}
+
+		assert.Empty(t, motivos, "ficheros mal formados en %s:\n%s", evalsDelRepositorio, strings.Join(motivos, "\n"))
+		assert.GreaterOrEqual(t, len(conjunto.Evals), evalsMinimasDelRepositorio,
+			"%s tiene al menos las doce evals bien formadas del contrato", evalsDelRepositorio)
+	})
+
+	t.Run("conjunto", func(t *testing.T) {
+		t.Parallel()
+
+		deOtrasReglas := slices.DeleteFunc(slices.Clone(defectos), esDeNormasConocidas)
+		assert.Empty(t, deOtrasReglas, "defectos del conjunto de %s:\n%s",
+			evalsDelRepositorio, presentarDefectos(deOtrasReglas))
+	})
+
+	t.Run("normas-conocidas", func(t *testing.T) {
+		t.Parallel()
+
+		// Con la regla nombrada de otra forma, este subtest no vería sus defectos
+		// y pasaría en vacío.
+		require.True(t, slices.ContainsFunc(reglasDelConjunto, func(regla reglaDelConjunto) bool {
+			return regla.nombre == reglaDeNormasConocidas
+		}), "la regla %q es una de las del conjunto", reglaDeNormasConocidas)
+
+		desconocidas := slices.DeleteFunc(slices.Clone(defectos), func(defecto DefectoDelConjunto) bool {
+			return !esDeNormasConocidas(defecto)
+		})
+		assert.Empty(t, desconocidas, "normas de las evals de %s que no están en %s:\n%s",
+			evalsDelRepositorio, tablaDeNormasDelRepositorio, presentarDefectos(desconocidas))
+	})
+
+	t.Run("grabado", func(t *testing.T) {
+		t.Parallel()
+
+		consultas := ConsultasNecesarias(conjunto.Evals)
+		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDelRepositorio)
+
+		dirCache := t.TempDir()
+
+		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		require.NoError(t, err)
+		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
+			evalsDelRepositorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+
+		comprobadas, err := ComprobarSinRed(dirCache, consultas)
+		require.NoError(t, err)
+		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
+			evalsDelRepositorio, presentarFaltas(comprobadas))
+	})
+}
+
+// normasConocidasDe es, por identificador, lo que las reglas del conjunto
+// necesitan de cada norma de la tabla.
+func normasConocidasDe(normas []skills.Norma) map[string]NormaConocida {
+	conocidas := make(map[string]NormaConocida, len(normas))
+	for _, norma := range normas {
+		conocidas[norma.Identificador] = NormaConocida{Abreviatura: norma.Abreviatura, Materias: norma.Materias}
+	}
+
+	return conocidas
+}
+
+// presentarDefectos escribe cada defecto del conjunto en su línea, con su regla
+// delante.
+func presentarDefectos(defectos []DefectoDelConjunto) string {
+	lineas := make([]string, 0, len(defectos))
+	for _, defecto := range defectos {
+		lineas = append(lineas, defecto.Regla+": "+defecto.Mensaje)
+	}
+
+	return strings.Join(lineas, "\n")
+}
+
+// presentarFaltas escribe cada falta en sus líneas, una por origen.
+func presentarFaltas(faltas []Falta) string {
+	textos := make([]string, 0, len(faltas))
+	for _, falta := range faltas {
+		textos = append(textos, falta.String())
+	}
+
+	return strings.Join(textos, "\n")
 }
