@@ -1,16 +1,15 @@
 {
-  "id": "T008",
-  "texto": "T008 [datos] [US6] Manifiesto de grabación, la lista cerrada que una persona grabará: `testdata/evals/grabaciones.json` con `fuente` `boe.legislacion-consolidada` y las diez entradas de la tabla del contrato evals-y-grabaciones §3.1 (búsqueda, `titulo_empieza_por` y `bloques` de partida, y en cada una su `para` con la eval y el requisito que la necesitan), válido para `LeerManifiesto`; ningún otro fichero. En la pausa humana que provoca (fichero nuevo en la carpeta de datos de prueba de la raíz, research V36), una persona sigue el procedimiento del contrato §3.3 —graba con el guion de grabación que deja T007, `grabar-evals.sh`, corrige búsqueda, prefijo o bloque en el manifiesto si hace falta y vuelve a grabar; revisa en el registro cada identificador y título resueltos y en el diff que ninguna grabación nueva lleva el nombre de una de H4 salvo el `robots.txt`; confirma las grabaciones y el manifiesto en la rama— y aprueba; el ejecutor no graba ni hace nada de ello (FR-023, FR-074, SC-008, SC-010, research D11).",
+  "id": "T009",
+  "texto": "T009 [datos] [US6] Esquema de la tabla de normas: `schemas/normas.yaml.json` con la forma exacta del contrato normas-y-referencias §2 (`$id` `https://ventanillalegal.es/schemas/normas.yaml.json`; `normas` como objeto con `minProperties: 1`, `propertyNames` con el patrón `^BOE-A-[0-9]{4}-[0-9]{1,9}$` y cada norma cerrada con `titulo`, `rango` y `materias` obligatorios y `abreviatura` opcional; `materias` con `minItems: 1` y `uniqueItems`) y el `enum` de `rango` igual al conjunto exacto de valores de `rango` que dan los resultados de las búsquedas grabadas de H4 y de H5, escritos tal cual y leídos de esas respuestas, nunca de memoria; ningún otro fichero (FR-021, FR-025, US6 escenarios 2 y 3, research D8).",
   "intento": 1,
   "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T008.md y déjala sin marcar.",
-  "base": "dd3504d66f434d7d8f3bece0747d4e1648f2ed6a",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T009.md y déjala sin marcar.",
+  "base": "1f4feea1b560d0511535272d2fcb4d464e59d24c",
   "rutas": [
-    "grabar-evals.sh",
-    "robots.txt",
-    "testdata/evals/grabaciones.json"
+    ".es/schemas/normas.yaml.json",
+    "schemas/normas.yaml.json"
   ],
   "cierre": false
 }

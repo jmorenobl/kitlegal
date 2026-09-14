@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ventanillalegal.es/schemas/normas.yaml.json",
+  "title": "data/normas.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["normas"],
+  "properties": {
+    "normas": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^BOE-A-[0-9]{4}-[0-9]{1,9}$" },
+      "additionalProperties": { "$ref": "#/$defs/norma" }
+    }
+  },
+  "$defs": {
+    "norma": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["titulo", "rango", "materias"],
+      "properties": {
+        "titulo": { "type": "string", "minLength": 1 },
+        "rango": {
+          "enum": [
+            "Constitución",
+            "Decreto Foral Legislativo",
+            "Ley",
+            "Ley Foral",
+            "Orden",
+            "Real Decreto",
+            "Real Decreto Legislativo",
+            "Real Decreto-ley",
+            "Resolución"
+          ]
+        },
+        "abreviatura": { "type": "string", "minLength": 1 },
+        "materias": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
