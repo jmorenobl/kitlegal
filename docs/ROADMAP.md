@@ -276,7 +276,7 @@ Candidatos agrupados por tema. Ninguno tiene número hasta que entra en la fase 
 - Candidatos: el boletín autonómico y los BOP de una comunidad multiprovincial (p. ej. BOCYL y BOP de Valladolid, que cubren Tordesillas), DOGC, BOJA…; festivos locales de cada comunidad; plataformas autonómicas de contratación que no lleguen agregadas a PLACSP; consejos autonómicos de transparencia; régimen foral (normativa foral en `boe-legislacion`, haciendas forales en la vertical fiscal, catastros forales).
 
 **Fuentes** (un hito por fuente, independientes; molde de H13: spike de TOS → fixtures → adaptador → emisión al grafo → skill → `verify-sources`)
-- Orden sugerido (`refs/mapa` §5): `catastro` → `ine` + `datosgob` → `transparencia` → skill `boletines-autonomicos` (normas autonómicas, sobre el motor de H15) → `eurlex` → `congreso` → `ecli` → `tc` → `sede` (crawler de sedes municipales, solo donde el boletín no baste) → `dgt` y `teac` **solo tras revisar TOS** (pendiente de `refs/00-README.md`).
+- Orden sugerido (`refs/mapa` §5): `catastro` → `ine` + `datosgob` → `transparencia` → skill `boletines-autonomicos` (normas autonómicas, sobre el motor de H15) → `eurlex` → `congreso` → `ecli` → `tc` (vías verificadas y hito propuesto en `docs/JURISPRUDENCIA.md`: el TC se resuelve por ECLI contra el sumario del BOE; el TS no tiene vía sin el buscador del CENDOJ) → `sede` (crawler de sedes municipales, solo donde el boletín no baste) → `dgt` y `teac` **solo tras revisar TOS** (pendiente de `refs/00-README.md`).
 
 **Profundidad del BOE y de los escritos**
 - `boe sumario | vigilar | eli` + `boe-legislacion` v1: sumario diario, detección de normas actualizadas por rango de fechas, construcción de ELI. Fixtures, golden, `verify-sources` para sumario; evals.
