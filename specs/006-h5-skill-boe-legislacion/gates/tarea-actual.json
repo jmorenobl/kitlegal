@@ -1,15 +1,16 @@
 {
-  "id": "T004",
-  "texto": "T004 [US4] Consultas necesarias de un conjunto: `internal/evals/consultas.go` con `Consulta` y `ConsultasNecesarias(conjunto)` según data-model §7.1 (cada comando esperado; siempre el índice y los metadatos de cada norma de una cita o de un comando con identificador; el bloque de cada cita; sin repetidos y con el origen de cada consulta: eval y punto), con `TestConsultasNecesarias` en `internal/evals/consultas_test.go` (una eval con las tres formas de comando, citas repetidas y dos normas) (FR-074, FR-075, contrato evals-y-grabaciones §4).",
+  "id": "T005",
+  "texto": "T005 [US4] Lector del manifiesto de grabación y conjuntos de grabaciones: `internal/evals/grabaciones.go` con `Manifiesto`, `EntradaDelManifiesto` y `LeerManifiesto(contenido)` —único lector del manifiesto, con `encoding/json/v2` y `json.RejectUnknownMembers(true)` y las comprobaciones 1-5 del contrato evals-y-grabaciones §3.1 en su orden (documento; fuente igual a `boe.NombreDeLaFuente`; al menos una norma; entrada con `busqueda`, `titulo_empieza_por` y `para` no vacíos y bloques válidos para `boe.ValidarBloque` sin repetir; norma repetida por prefijo igual o prefijo de otro), con errores que nombran la entrada por posición y prefijo— y los conjuntos de grabaciones de data-model §7.3 con su unión; con `TestManifiestoDeGrabaciones` en `internal/evals/grabaciones_test.go` y solo sus subtests sintéticos escritos como constantes (`valido`, `clave-desconocida`, `clave-repetida`, `datos-tras-el-valor`, `otra-fuente`, `sin-normas`, `busqueda-vacia`, `prefijo-vacio`, `para-vacio`, `bloque-mal-formado`, `bloque-repetido`, `prefijo-repetido`, `prefijo-de-otro-prefijo`), sin `repositorio`, que llega en T010 (FR-023, FR-024, research D11 y V55).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
-  "base": "c46ef193d25af530d0e77817759f4b1ecdd2b26c",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T005.md y déjala sin marcar.",
+  "base": "c5e994b6cd21a5502e19aed30f6b1c8a55278c7a",
   "rutas": [
-    "internal/evals/consultas_test.go",
-    "internal/evals/consultas.go"
+    "encoding/json/v2",
+    "internal/evals/grabaciones_test.go",
+    "internal/evals/grabaciones.go"
   ],
   "cierre": false
 }
