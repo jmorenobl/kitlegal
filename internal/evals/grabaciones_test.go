@@ -1,11 +1,31 @@
 package evals
 
 import (
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+// Lo que estos tests leen del repositorio (contrato evals-y-grabaciones §3.1 y
+// §3.4).
+const (
+	// nombreDelManifiestoDelRepositorio es el nombre del manifiesto de
+	// grabación real, en el directorio que contiene GrabacionesDeH5.
+	nombreDelManifiestoDelRepositorio = "grabaciones.json"
+
+	// entradasMinimasDelManifiesto son las diez normas de H5: el manifiesto real
+	// tiene al menos una entrada por cada una (plan.md, obligación 12).
+	entradasMinimasDelManifiesto = 10
+
+	// grabacionDeRobots es el único nombre de fichero que comparten los
+	// conjuntos de grabaciones de H4 y de H5: la grabación de robots.txt, que la
+	// reproducción no usa (data-model §7.3).
+	grabacionDeRobots = "GET_https_www.boe.es_robots.txt.json"
 )
 
 // Trozos de los manifiestos sintéticos de TestManifiestoDeGrabaciones: el
@@ -30,8 +50,9 @@ const documentoNoValido = "manifiesto de grabación: no es un documento válido:
 // entradas en orden, y cada defecto da, con un Manifiesto vacío, un error que
 // dice que es del manifiesto y nombra lo que falla —el miembro, la fuente, la
 // entrada por su posición y su prefijo, el campo o el bloque, o las dos entradas
-// de una norma repetida—. Los contenidos son sintéticos; el manifiesto del
-// repositorio lo lee el subtest repositorio, que llega cuando existe.
+// de una norma repetida—. Los contenidos son sintéticos salvo el del subtest
+// repositorio, que lee el manifiesto real y le exige, además de leerse sin
+// error, al menos una entrada por cada norma de H5.
 func TestManifiestoDeGrabaciones(t *testing.T) {
 	t.Parallel()
 
@@ -184,4 +205,59 @@ func TestManifiestoDeGrabaciones(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("repositorio", func(t *testing.T) {
+		t.Parallel()
+
+		ruta := filepath.Join(filepath.Dir(GrabacionesDeH5), nombreDelManifiestoDelRepositorio)
+
+		contenido, err := os.ReadFile(filepath.Clean(ruta))
+		require.NoError(t, err, "el manifiesto de grabación del repositorio no se puede leer")
+
+		leido, err := LeerManifiesto(contenido)
+		require.NoError(t, err, "el manifiesto de grabación del repositorio, %s", ruta)
+		assert.GreaterOrEqual(t, len(leido.Normas), entradasMinimasDelManifiesto,
+			"el manifiesto de grabación del repositorio, %s, tiene una entrada por cada norma de H5", ruta)
+	})
+}
+
+// TestGrabacionesSinSolape comprueba que los conjuntos de grabaciones de H4 y de
+// H5 solo comparten el nombre de la grabación de robots.txt (contrato
+// evals-y-grabaciones §3.4; data-model §7.3). Cualquier otro nombre común haría
+// que, en la unión que copia Preparar, la grabación de H5 sustituyera sin avisar
+// a la de H4, que es de H4 y que H5 solo lee.
+func TestGrabacionesSinSolape(t *testing.T) {
+	t.Parallel()
+
+	deH4 := nombresDeLasGrabaciones(t, GrabacionesDeH4)
+	deH5 := nombresDeLasGrabaciones(t, GrabacionesDeH5)
+
+	var comunes []string
+
+	for _, nombre := range deH5 {
+		if slices.Contains(deH4, nombre) {
+			comunes = append(comunes, nombre)
+		}
+	}
+
+	assert.Equal(t, []string{grabacionDeRobots}, comunes,
+		"los conjuntos de grabaciones %s y %s solo coinciden en %s", GrabacionesDeH4, GrabacionesDeH5, grabacionDeRobots)
+}
+
+// nombresDeLasGrabaciones son los nombres de las entradas del directorio de un
+// conjunto de grabaciones, que tiene que poder listarse y no estar vacío: un
+// conjunto que no se lee no puede dar un solape vacío.
+func nombresDeLasGrabaciones(t *testing.T, conjunto string) []string {
+	t.Helper()
+
+	entradas, err := os.ReadDir(conjunto)
+	require.NoError(t, err, "el conjunto de grabaciones %s no se puede listar", conjunto)
+	require.NotEmpty(t, entradas, "el conjunto de grabaciones %s está vacío", conjunto)
+
+	nombres := make([]string, 0, len(entradas))
+	for _, entrada := range entradas {
+		nombres = append(nombres, entrada.Name())
+	}
+
+	return nombres
 }

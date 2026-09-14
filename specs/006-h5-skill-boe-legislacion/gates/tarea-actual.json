@@ -1,15 +1,21 @@
 {
-  "id": "T009",
-  "texto": "T009 [datos] [US6] Esquema de la tabla de normas: `schemas/normas.yaml.json` con la forma exacta del contrato normas-y-referencias §2 (`$id` `https://ventanillalegal.es/schemas/normas.yaml.json`; `normas` como objeto con `minProperties: 1`, `propertyNames` con el patrón `^BOE-A-[0-9]{4}-[0-9]{1,9}$` y cada norma cerrada con `titulo`, `rango` y `materias` obligatorios y `abreviatura` opcional; `materias` con `minItems: 1` y `uniqueItems`) y el `enum` de `rango` igual al conjunto exacto de valores de `rango` que dan los resultados de las búsquedas grabadas de H4 y de H5, escritos tal cual y leídos de esas respuestas, nunca de memoria; ningún otro fichero (FR-021, FR-025, US6 escenarios 2 y 3, research D8).",
+  "id": "T010",
+  "texto": "T010 [US6] Lector de normas y controles de las grabaciones: `internal/skills/normas.go` con `Norma` y `LeerNormas(contenido)` según el contrato normas-y-referencias §3 (lector común de T002, identificador repetido bajo `normas` como defecto `repetido en las líneas N y M`, validación contra `normas.yaml.json`, cada error nombrando la norma y el defecto: `campo no declarado: vertical`, `falta titulo`, `materias vacía`, `identificador con otra forma`), con `TestLeerNormas` (un caso por defecto de US6 escenarios 2 y 3, identificador repetido con títulos distintos incluido; un documento válido devuelve las normas en orden) y `TestEsquemaDeNormas` (`compila`; `rangos-grabados`: el `enum` de `rango` es exactamente el conjunto de rangos de las búsquedas grabadas de H4 y H5) en `internal/skills/normas_test.go`; `internal/evals/grabaciones_test.go` añade `TestGrabacionesSinSolape` (los nombres de fichero de los conjuntos H4 y H5 solo coinciden en `GET_https_www.boe.es_robots.txt.json`) y el subtest `repositorio` de `TestManifiestoDeGrabaciones` (el manifiesto real, `grabaciones.json`, sin error y con al menos diez entradas); e `internal/evals/formato_test.go` añade a `TestGramaticasCoincidenConBoe` la parte de normas (el patrón de `propertyNames` de `normas.yaml.json` acepta y rechaza lo mismo que `boe.ValidarNorma`); si falta una grabación o el manifiesto no se lee, la tarea se detiene y lo anota en `gates/tarea-T010.md` (FR-021, FR-024, FR-025, FR-043, SC-005, contrato evals-y-grabaciones §3.1 y §3.4).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T009.md y déjala sin marcar.",
-  "base": "1f4feea1b560d0511535272d2fcb4d464e59d24c",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
+  "base": "59539774fbfa42735a332731b9dcd60c62ce26d2",
   "rutas": [
-    ".es/schemas/normas.yaml.json",
-    "schemas/normas.yaml.json"
+    "gates/tarea-T010.md",
+    "GET_https_www.boe.es_robots.txt.json",
+    "grabaciones.json",
+    "internal/evals/formato_test.go",
+    "internal/evals/grabaciones_test.go",
+    "internal/skills/normas_test.go",
+    "internal/skills/normas.go",
+    "normas.yaml.json"
   ],
   "cierre": false
 }

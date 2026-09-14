@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/skills"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
@@ -278,7 +279,11 @@ func evalPositiva(comando, cita map[string]any) map[string]any {
 // (cabecera; control 10 del plan). En eval.yaml.json lo comprueba en cada sitio
 // del formato donde va el valor —el comando de bloque, el de consulta de norma y
 // la cita—, con una eval que solo puede fallar por ese valor: la misma eval con
-// un valor válido se lee sin error.
+// un valor válido se lee sin error. En normas.yaml.json lo comprueba en el único
+// sitio donde va una norma, el nombre de cada entrada de normas, con una tabla
+// que solo puede fallar por ese nombre, y exige que cada rechazo sea el defecto
+// «identificador con otra forma» de esa entrada: el del patrón de
+// propertyNames, y no otro.
 func TestGramaticasCoincidenConBoe(t *testing.T) {
 	t.Parallel()
 
@@ -363,6 +368,60 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("normas.yaml.json", func(t *testing.T) {
+		t.Parallel()
+
+		const normaValida = "BOE-A-2015-10565"
+
+		require.NoError(t, leerNormasConIdentificador(t, normaValida),
+			"con %q la tabla de normas es válida: sin eso, un rechazo no diría nada del patrón", normaValida)
+
+		for _, caso := range casosDeNorma {
+			t.Run(caso.nombre, func(t *testing.T) {
+				t.Parallel()
+
+				aceptaBoe := boe.ValidarNorma(caso.valor) == nil
+				require.Equal(t, caso.valido, aceptaBoe, "la tabla dice de %q lo mismo que boe", caso.valor)
+
+				err := leerNormasConIdentificador(t, caso.valor)
+				if aceptaBoe {
+					require.NoError(t, err, "el patrón de propertyNames de normas.yaml.json acepta %q, como boe", caso.valor)
+
+					return
+				}
+
+				var defecto *skills.DefectoDeNorma
+				require.ErrorAs(t, err, &defecto,
+					"el patrón de propertyNames de normas.yaml.json rechaza %q, como boe", caso.valor)
+				assert.Equal(t, &skills.DefectoDeNorma{Norma: caso.valor, Defecto: "identificador con otra forma"}, defecto,
+					"el rechazo de %q es el del patrón de propertyNames", caso.valor)
+			})
+		}
+	})
+}
+
+// leerNormasConIdentificador lee con skills.LeerNormas una tabla de normas,
+// escrita en JSON, que es YAML válido y conserva cada texto tal cual, con una
+// sola norma cuyo nombre es el identificador y que es válida en todo lo demás, y
+// devuelve su error.
+func leerNormasConIdentificador(t *testing.T, identificador string) error {
+	t.Helper()
+
+	contenido, err := json.Marshal(map[string]any{
+		"normas": map[string]any{
+			identificador: map[string]any{
+				"titulo":   "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.",
+				"rango":    "Ley",
+				"materias": []any{"procedimiento administrativo"},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = skills.LeerNormas(contenido)
+
+	return err
 }
 
 // aceptaLaEval dice si LeerEval acepta el documento, escrito en JSON, que es
