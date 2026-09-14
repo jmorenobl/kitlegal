@@ -1,6 +1,10 @@
 package evals
 
 import (
+	"bytes"
+	"encoding/json/v2"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -9,6 +13,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/skills"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // Lo que estos tests leen del repositorio (contrato evals-y-grabaciones §3.1 y
@@ -209,7 +218,7 @@ func TestManifiestoDeGrabaciones(t *testing.T) {
 	t.Run("repositorio", func(t *testing.T) {
 		t.Parallel()
 
-		ruta := filepath.Join(filepath.Dir(GrabacionesDeH5), nombreDelManifiestoDelRepositorio)
+		ruta := rutaDelManifiestoDelRepositorio()
 
 		contenido, err := os.ReadFile(filepath.Clean(ruta))
 		require.NoError(t, err, "el manifiesto de grabación del repositorio no se puede leer")
@@ -242,6 +251,417 @@ func TestGrabacionesSinSolape(t *testing.T) {
 
 	assert.Equal(t, []string{grabacionDeRobots}, comunes,
 		"los conjuntos de grabaciones %s y %s solo coinciden en %s", GrabacionesDeH4, GrabacionesDeH5, grabacionDeRobots)
+}
+
+// rutaDelManifiestoDelRepositorio es la del manifiesto de grabación real, junto
+// al conjunto de grabaciones de H5 que llena.
+func rutaDelManifiestoDelRepositorio() string {
+	return filepath.Join(filepath.Dir(GrabacionesDeH5), nombreDelManifiestoDelRepositorio)
+}
+
+// Lo que TestIdentificadoresDeLasNormas lee del repositorio y escribe en sus
+// copias (contrato normas-y-referencias §6).
+const (
+	// tablaDeNormasDelRepositorio es data/normas.yaml, relativo al directorio de
+	// este paquete, que es donde go test ejecuta sus tests (research.md V46).
+	tablaDeNormasDelRepositorio = "../../data/normas.yaml"
+
+	// normasMinimasDeLaTabla son las diez normas de H5: la verificación no pasa
+	// con una tabla que tenga menos (plan.md, obligación 12).
+	normasMinimasDeLaTabla = 10
+
+	// nombreDeLaCopiaDeLaTabla es el nombre de la copia temporal de la tabla de
+	// normas que escriben los subtests; la del manifiesto lleva el suyo.
+	nombreDeLaCopiaDeLaTabla = "normas.yaml"
+)
+
+// Las normas con las que los subtests de TestIdentificadoresDeLasNormas rompen
+// sus copias.
+const (
+	// identificadorDeLaLPAC es el de la norma cuyo identificador o título se
+	// cambia, o cuya entrada se retira: la Ley 39/2015, la que fija el hito.
+	identificadorDeLaLPAC = "BOE-A-2015-10565"
+
+	// identificadorSinBusqueda es el que toma la LPAC en identificador-cambiado:
+	// tiene la forma de un identificador y no es el resultado de ninguna
+	// búsqueda grabada, porque ninguna norma es del año 2099.
+	identificadorSinBusqueda = "BOE-A-2099-99999"
+)
+
+// TestIdentificadoresDeLasNormas repite sin red la verificación con boe buscar
+// de los identificadores de data/normas.yaml (contrato normas-y-referencias §6;
+// FR-023, FR-024, FR-043, SC-008; US6, escenario 4): sobre la reproducción de las
+// grabaciones de H4 y de H5, cada norma de la tabla la resuelve exactamente una
+// entrada del manifiesto de grabación, con su mismo identificador y su mismo
+// título, y la tabla tiene al menos las diez normas de H5. Los subtests rompen
+// copias temporales de la tabla y del manifiesto y exigen que la verificación
+// falle nombrando la norma: con su identificador cambiado, con su título
+// cambiado, sin la entrada que la resuelve y con una norma que da la búsqueda de
+// otra entrada sin ser la que esa entrada resuelve.
+func TestIdentificadoresDeLasNormas(t *testing.T) {
+	t.Parallel()
+
+	reproduccion := copiaDeLaUnionDeGrabaciones(t)
+	rutaDelManifiesto := rutaDelManifiestoDelRepositorio()
+
+	normas, err := verificarIdentificadores(t, reproduccion, rutaDelManifiesto, tablaDeNormasDelRepositorio)
+	require.NoError(t, err, "los identificadores de %s contra las búsquedas grabadas del manifiesto %s",
+		tablaDeNormasDelRepositorio, rutaDelManifiesto)
+	require.GreaterOrEqual(t, len(normas), normasMinimasDeLaTabla,
+		"%s tiene al menos las diez normas de H5", tablaDeNormasDelRepositorio)
+
+	tabla := string(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	contenidoDelManifiesto := string(contenidoDelFichero(t, rutaDelManifiesto))
+
+	manifiesto, err := LeerManifiesto([]byte(contenidoDelManifiesto))
+	require.NoError(t, err)
+
+	lpac := normaDeLaTabla(t, normas, identificadorDeLaLPAC)
+	entradaDeLaLPAC := entradaConPrefijoDe(t, manifiesto, lpac.Titulo)
+	otra := otraNormaDeLaBusqueda(t, reproduccion, manifiesto.Normas[entradaDeLaLPAC], normas)
+
+	tituloCambiado := strings.TrimSuffix(lpac.Titulo, ".")
+	require.NotEqual(t, lpac.Titulo, tituloCambiado, "el título de la LPAC termina en punto: sin él, cambia")
+
+	casos := []struct {
+		nombre     string
+		tabla      string
+		manifiesto string
+		error      string
+	}{
+		{
+			nombre:     "identificador-cambiado",
+			tabla:      sustituida(t, tabla, "  "+identificadorDeLaLPAC+":\n", "  "+identificadorSinBusqueda+":\n"),
+			manifiesto: contenidoDelManifiesto,
+			error:      identificadorSinBusqueda + ": ninguna entrada del manifiesto lo resuelve",
+		},
+		{
+			nombre:     "titulo-cambiado",
+			tabla:      sustituida(t, tabla, lpac.Titulo, tituloCambiado),
+			manifiesto: contenidoDelManifiesto,
+			error:      identificadorDeLaLPAC + ": el título no coincide con la búsqueda grabada: " + lpac.Titulo,
+		},
+		{
+			nombre:     "norma-sin-entrada",
+			tabla:      tabla,
+			manifiesto: manifiestoSinEntrada(t, manifiesto, entradaDeLaLPAC),
+			error:      identificadorDeLaLPAC + ": ninguna entrada del manifiesto lo resuelve",
+		},
+		{
+			// La búsqueda grabada de la entrada de la LPAC da también esta norma,
+			// pero la entrada resuelve la LPAC: no cuenta (data-model §7.2).
+			nombre:     "norma-en-la-busqueda-de-otra-entrada",
+			tabla:      tabla + normaEscrita(t, otra, lpac.Materias),
+			manifiesto: contenidoDelManifiesto,
+			error:      otra.Identificador + ": ninguna entrada del manifiesto lo resuelve",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copias := t.TempDir()
+			copiaDeLaTabla := filepath.Join(copias, nombreDeLaCopiaDeLaTabla)
+			copiaDelManifiesto := filepath.Join(copias, nombreDelManifiestoDelRepositorio)
+
+			require.NoError(t, escribirFichero(copiaDeLaTabla, []byte(caso.tabla)))
+			require.NoError(t, escribirFichero(copiaDelManifiesto, []byte(caso.manifiesto)))
+
+			_, err := verificarIdentificadores(t, reproduccion, copiaDelManifiesto, copiaDeLaTabla)
+			require.EqualError(t, err, caso.error)
+		})
+	}
+}
+
+// normaResuelta es la norma que resuelve una entrada del manifiesto: el único
+// resultado de su búsqueda grabada cuyo título empieza por su prefijo.
+type normaResuelta struct {
+	// entrada nombra la entrada que la resuelve, como nombrarEntrada.
+	entrada string
+
+	// resultado es ese resultado, con el identificador y el título grabados.
+	resultado boe.ResultadoDeBusqueda
+}
+
+// verificarIdentificadores comprueba sin red la tabla de normas de rutaDeLaTabla
+// contra las búsquedas grabadas del manifiesto de rutaDelManifiesto,
+// reproducidas desde el directorio reproduccion (contrato normas-y-referencias
+// §6), y devuelve las normas de la tabla y los defectos unidos:
+//
+//  1. lee el manifiesto con LeerManifiesto y devuelve su error tal cual, antes
+//     de reproducir ninguna búsqueda; después lee la tabla con skills.LeerNormas,
+//     con su error igual;
+//  2. resuelve cada entrada del manifiesto con resolverEntrada, que da un defecto
+//     por cada entrada que no se resuelve;
+//  3. exige a cada norma de la tabla exactamente una entrada que la resuelva, con
+//     su identificador y su título, con comprobarNorma.
+//
+// Lo que impide verificar, un fichero que no se lee o el registro que no se
+// monta, hace fallar el test.
+func verificarIdentificadores(
+	t *testing.T, reproduccion, rutaDelManifiesto, rutaDeLaTabla string,
+) ([]skills.Norma, error) {
+	t.Helper()
+
+	manifiesto, err := LeerManifiesto(contenidoDelFichero(t, rutaDelManifiesto))
+	if err != nil {
+		return nil, err
+	}
+
+	normas, err := skills.LeerNormas(contenidoDelFichero(t, rutaDeLaTabla))
+	if err != nil {
+		return nil, err
+	}
+
+	registro := registroDeLaReproduccion(t, reproduccion)
+	resueltas := make(map[string][]normaResuelta, len(manifiesto.Normas))
+
+	var defectos []error
+
+	for indice, entrada := range manifiesto.Normas {
+		resuelta, err := resolverEntrada(registro, indice, entrada)
+		if err != nil {
+			defectos = append(defectos, err)
+
+			continue
+		}
+
+		identificador := resuelta.resultado.Identificador
+		resueltas[identificador] = append(resueltas[identificador], resuelta)
+	}
+
+	for _, norma := range normas {
+		if err := comprobarNorma(norma, resueltas[norma.Identificador]); err != nil {
+			defectos = append(defectos, err)
+		}
+	}
+
+	return normas, errors.Join(defectos...)
+}
+
+// resolverEntrada reproduce boe buscar con la búsqueda de la entrada y devuelve
+// la norma que resuelve: el único resultado cuyo título empieza por su prefijo,
+// comparado byte a byte con strings.HasPrefix, como en TestGrabarEvals (contrato
+// evals-y-grabaciones §3.2). La búsqueda que termina con un código distinto de
+// 0, o cuya salida no se lee, es un defecto que nombra la entrada y la orden, y
+// nunca cuenta como una búsqueda sin resultados; ninguno o más de un resultado
+// con el prefijo, un defecto que nombra la entrada y los títulos.
+func resolverEntrada(registro *app.Registro, indice int, entrada EntradaDelManifiesto) (normaResuelta, error) {
+	nombre := nombrarEntrada(indice, entrada)
+	busqueda := busquedaDe(entrada)
+
+	resultados, err := reproducirBusqueda(registro, busqueda)
+	if err != nil {
+		return normaResuelta{}, fmt.Errorf("%s: %w", nombre, err)
+	}
+
+	elegidos := slices.DeleteFunc(slices.Clone(resultados), func(resultado boe.ResultadoDeBusqueda) bool {
+		return !strings.HasPrefix(resultado.Titulo, entrada.TituloEmpiezaPor)
+	})
+	if len(elegidos) != 1 {
+		titulos := make([]string, 0, len(resultados))
+		for _, resultado := range resultados {
+			titulos = append(titulos, resultado.Titulo)
+		}
+
+		return normaResuelta{}, fmt.Errorf("%s: %d resultados de «%s» tienen un título que empieza por el prefijo, "+
+			"y tiene que ser uno solo; títulos: %q", nombre, len(elegidos), ordenDe(busqueda), titulos)
+	}
+
+	return normaResuelta{entrada: nombre, resultado: elegidos[0]}, nil
+}
+
+// reproducirBusqueda ejecuta la búsqueda con app.Main y --json sobre el registro
+// y devuelve sus resultados. Un código distinto de 0 es un error con la orden, su
+// código y su mensaje, como los presenta Falta.
+func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.ResultadoDeBusqueda, error) {
+	var salida, errores bytes.Buffer
+
+	argv := slices.Concat([]string{programaDeLasConsultas, busqueda.Applet, busqueda.Verbo}, busqueda.Argumentos,
+		[]string{"--json"})
+	if codigo := app.Main(argv, registro, &salida, &errores,
+		sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion); codigo != 0 {
+		falta := Falta{Consulta: busqueda, Codigo: codigo, Mensaje: strings.TrimSuffix(errores.String(), "\n")}
+
+		return nil, errors.New(falta.String())
+	}
+
+	var sobre struct {
+		Data []boe.ResultadoDeBusqueda `json:"data"`
+	}
+	if err := json.Unmarshal(salida.Bytes(), &sobre); err != nil {
+		return nil, fmt.Errorf("la salida de «%s» no es un sobre con los resultados de la búsqueda: %w",
+			ordenDe(busqueda), err)
+	}
+
+	return sobre.Data, nil
+}
+
+// comprobarNorma exige que exactamente una de las entradas que resuelven el
+// identificador de la norma la resuelva, y con su mismo título. Que la norma
+// esté entre los resultados de la búsqueda de otra entrada sin ser el que esa
+// entrada resuelve no cuenta: no está en resueltas (data-model §7.2). Dos
+// entradas solo pueden resolver el mismo identificador si sus búsquedas lo dan
+// con títulos distintos, porque LeerManifiesto rechaza dos prefijos de un mismo
+// título.
+func comprobarNorma(norma skills.Norma, resueltas []normaResuelta) error {
+	switch len(resueltas) {
+	case 0:
+		return fmt.Errorf("%s: ninguna entrada del manifiesto lo resuelve", norma.Identificador)
+	case 1:
+		if grabado := resueltas[0].resultado.Titulo; grabado != norma.Titulo {
+			return fmt.Errorf("%s: el título no coincide con la búsqueda grabada: %s", norma.Identificador, grabado)
+		}
+
+		return nil
+	default:
+		entradas := make([]string, 0, len(resueltas))
+		for _, resuelta := range resueltas {
+			entradas = append(entradas, resuelta.entrada)
+		}
+
+		return fmt.Errorf("%s: lo resuelven %d entradas del manifiesto, y tiene que ser una sola: %s",
+			norma.Identificador, len(resueltas), strings.Join(entradas, ", "))
+	}
+}
+
+// busquedaDe es la invocación de boe buscar con la búsqueda de la entrada.
+func busquedaDe(entrada EntradaDelManifiesto) Consulta {
+	return Consulta{Applet: appletDeLasNormas, Verbo: verboBuscar, Argumentos: []string{entrada.Busqueda}}
+}
+
+// copiaDeLaUnionDeGrabaciones copia en un directorio temporal del test los
+// conjuntos de UnionDeGrabaciones, cada uno encima del anterior, como Preparar,
+// y devuelve su ruta: la reproducción de la unión de H4 y H5 (contrato
+// evals-y-grabaciones §5.1).
+func copiaDeLaUnionDeGrabaciones(t *testing.T) string {
+	t.Helper()
+
+	copia := t.TempDir()
+	for _, conjunto := range UnionDeGrabaciones() {
+		require.NoError(t, copiarGrabaciones(conjunto, copia))
+	}
+
+	return copia
+}
+
+// registroDeLaReproduccion es el registro con el que se reproducen las
+// búsquedas: el applet boe sobre httpx.Replay del directorio reproduccion, que no
+// abre ninguna conexión, con la caché en un directorio temporal del test
+// (contrato evals-y-grabaciones §5.1).
+func registroDeLaReproduccion(t *testing.T, reproduccion string) *app.Registro {
+	t.Helper()
+
+	registro, err := registroDeBoe(reproduccion, cache.ConDirectorio(t.TempDir()))
+	require.NoError(t, err)
+
+	return registro
+}
+
+// contenidoDelFichero es el contenido entero del fichero de la ruta, que tiene
+// que poder leerse.
+func contenidoDelFichero(t *testing.T, ruta string) []byte {
+	t.Helper()
+
+	contenido, err := leerFichero(ruta)
+	require.NoError(t, err, "el fichero %s no se puede leer", ruta)
+
+	return contenido
+}
+
+// normaDeLaTabla es la norma del identificador, que tiene que estar entre las
+// normas.
+func normaDeLaTabla(t *testing.T, normas []skills.Norma, identificador string) skills.Norma {
+	t.Helper()
+
+	posicion := slices.IndexFunc(normas, func(norma skills.Norma) bool { return norma.Identificador == identificador })
+	require.GreaterOrEqual(t, posicion, 0, "la tabla de normas tiene la norma %s", identificador)
+
+	return normas[posicion]
+}
+
+// entradaConPrefijoDe es el índice de la única entrada del manifiesto cuyo
+// prefijo lo es del título: la que resuelve la norma de ese título si su
+// búsqueda la da.
+func entradaConPrefijoDe(t *testing.T, manifiesto Manifiesto, titulo string) int {
+	t.Helper()
+
+	var indices []int
+
+	for indice, entrada := range manifiesto.Normas {
+		if strings.HasPrefix(titulo, entrada.TituloEmpiezaPor) {
+			indices = append(indices, indice)
+		}
+	}
+
+	require.Len(t, indices, 1, "una sola entrada del manifiesto tiene un prefijo del título %q", titulo)
+
+	return indices[0]
+}
+
+// otraNormaDeLaBusqueda es el primer resultado de la búsqueda grabada de la
+// entrada que no es ninguna de las normas: la búsqueda lo da, pero la entrada
+// resuelve otra norma. Una búsqueda que no dé ninguno así es un fallo del test,
+// que si no pasaría en vacío.
+func otraNormaDeLaBusqueda(
+	t *testing.T, reproduccion string, entrada EntradaDelManifiesto, normas []skills.Norma,
+) boe.ResultadoDeBusqueda {
+	t.Helper()
+
+	resultados, err := reproducirBusqueda(registroDeLaReproduccion(t, reproduccion), busquedaDe(entrada))
+	require.NoError(t, err)
+
+	posicion := slices.IndexFunc(resultados, func(resultado boe.ResultadoDeBusqueda) bool {
+		return !slices.ContainsFunc(normas, func(norma skills.Norma) bool {
+			return norma.Identificador == resultado.Identificador
+		})
+	})
+	require.GreaterOrEqual(t, posicion, 0,
+		"la búsqueda grabada %q da alguna norma que no está en la tabla de normas", entrada.Busqueda)
+
+	return resultados[posicion]
+}
+
+// normaEscrita es la línea de la tabla de normas con el identificador, el
+// título y el rango del resultado y las materias, con el valor escrito en JSON,
+// que es YAML válido y conserva cada texto tal cual.
+func normaEscrita(t *testing.T, resultado boe.ResultadoDeBusqueda, materias []string) string {
+	t.Helper()
+
+	valor, err := json.Marshal(struct {
+		Titulo   string   `json:"titulo"`
+		Rango    string   `json:"rango"`
+		Materias []string `json:"materias"`
+	}{Titulo: resultado.Titulo, Rango: resultado.Rango, Materias: materias})
+	require.NoError(t, err)
+
+	return "  " + resultado.Identificador + ": " + string(valor) + "\n"
+}
+
+// manifiestoSinEntrada es el manifiesto escrito en JSON sin la entrada del
+// índice.
+func manifiestoSinEntrada(t *testing.T, manifiesto Manifiesto, indice int) string {
+	t.Helper()
+
+	contenido, err := json.Marshal(Manifiesto{
+		Fuente: manifiesto.Fuente,
+		Normas: slices.Delete(slices.Clone(manifiesto.Normas), indice, indice+1),
+	})
+	require.NoError(t, err)
+
+	return string(contenido)
+}
+
+// sustituida es el texto con viejo, que tiene que aparecer en él exactamente una
+// vez, sustituido por nuevo: un subtest que no cambiara nada, o que cambiara
+// algo más, no rompería solo lo que dice.
+func sustituida(t *testing.T, texto, viejo, nuevo string) string {
+	t.Helper()
+
+	require.Equal(t, 1, strings.Count(texto, viejo), "%q aparece una sola vez en el texto que se cambia", viejo)
+
+	return strings.Replace(texto, viejo, nuevo, 1)
 }
 
 // nombresDeLasGrabaciones son los nombres de las entradas del directorio de un

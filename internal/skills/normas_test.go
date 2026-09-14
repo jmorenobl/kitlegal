@@ -28,7 +28,7 @@ const (
 	tituloDeLaLCSP = "Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen " +
 		"al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE " +
 		"y 2014/24/UE, de 26 de febrero de 2014."
-	tituloDeLaLRBRL = "Ley 7/1985, de 2 de abril, reguladora de las Bases del Régimen Local."
+	tituloDeLaLRBRL = "Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local"
 )
 
 // Trozos de las tablas sintéticas de TestLeerNormas, cada uno con sus líneas
@@ -306,6 +306,25 @@ func cambiada(t *testing.T, texto, viejo, nuevo string) string {
 	require.Contains(t, texto, viejo)
 
 	return strings.Replace(texto, viejo, nuevo, 1)
+}
+
+// tablaDeNormasDelRepositorio es data/normas.yaml, relativo al directorio de
+// este paquete, que es donde go test ejecuta sus tests (research.md V46).
+const tablaDeNormasDelRepositorio = "../../data/normas.yaml"
+
+// TestNormasDelRepositorio comprueba que la tabla de normas del repositorio es
+// válida (US6, escenario 1; FR-021, FR-043): LeerNormas la lee sin ningún
+// defecto, sin campo vertical ni ningún otro que el esquema no declare, y con
+// alguna norma.
+func TestNormasDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	contenido, err := os.ReadFile(tablaDeNormasDelRepositorio)
+	require.NoError(t, err, "la tabla de normas del repositorio no se puede leer")
+
+	normas, err := skills.LeerNormas(contenido)
+	require.NoError(t, err, "la tabla de normas del repositorio, %s", tablaDeNormasDelRepositorio)
+	assert.NotEmpty(t, normas, "la tabla de normas del repositorio, %s, tiene normas", tablaDeNormasDelRepositorio)
 }
 
 // esquemaPublicadoDeNormas es el esquema de data/normas.yaml, relativo al
