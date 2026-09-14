@@ -1,0 +1,984 @@
+{
+  "data": {
+    "bloques": [
+      {
+        "id": "preambulo",
+        "tipo": "preambulo",
+        "titulo": ""
+      },
+      {
+        "id": "tpreliminar",
+        "tipo": "titulo",
+        "titulo": "TÍTULO PRELIMINAR"
+      },
+      {
+        "id": "a1",
+        "tipo": "articulo",
+        "titulo": "Artículo 1"
+      },
+      {
+        "id": "a2",
+        "tipo": "articulo",
+        "titulo": "Artículo 2"
+      },
+      {
+        "id": "ti",
+        "tipo": "titulo",
+        "titulo": "TÍTULO I"
+      },
+      {
+        "id": "ci",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO I"
+      },
+      {
+        "id": "a3",
+        "tipo": "articulo",
+        "titulo": "Artículo 3"
+      },
+      {
+        "id": "a4",
+        "tipo": "articulo",
+        "titulo": "Artículo 4"
+      },
+      {
+        "id": "a5",
+        "tipo": "articulo",
+        "titulo": "Artículo 5"
+      },
+      {
+        "id": "a6",
+        "tipo": "articulo",
+        "titulo": "Artículo 6"
+      },
+      {
+        "id": "a7",
+        "tipo": "articulo",
+        "titulo": "Artículo 7"
+      },
+      {
+        "id": "a8",
+        "tipo": "articulo",
+        "titulo": "Artículo 8"
+      },
+      {
+        "id": "cii",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO II"
+      },
+      {
+        "id": "a9",
+        "tipo": "articulo",
+        "titulo": "Artículo 9"
+      },
+      {
+        "id": "a10",
+        "tipo": "articulo",
+        "titulo": "Artículo 10"
+      },
+      {
+        "id": "a11",
+        "tipo": "articulo",
+        "titulo": "Artículo 11"
+      },
+      {
+        "id": "a12",
+        "tipo": "articulo",
+        "titulo": "Artículo 12"
+      },
+      {
+        "id": "tii",
+        "tipo": "titulo",
+        "titulo": "TÍTULO II"
+      },
+      {
+        "id": "ci-2",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO I"
+      },
+      {
+        "id": "a13",
+        "tipo": "articulo",
+        "titulo": "Artículo 13"
+      },
+      {
+        "id": "a14",
+        "tipo": "articulo",
+        "titulo": "Artículo 14"
+      },
+      {
+        "id": "a15",
+        "tipo": "articulo",
+        "titulo": "Artículo 15"
+      },
+      {
+        "id": "a16",
+        "tipo": "articulo",
+        "titulo": "Artículo 16"
+      },
+      {
+        "id": "a17",
+        "tipo": "articulo",
+        "titulo": "Artículo 17"
+      },
+      {
+        "id": "a18",
+        "tipo": "articulo",
+        "titulo": "Artículo 18"
+      },
+      {
+        "id": "a19",
+        "tipo": "articulo",
+        "titulo": "Artículo 19"
+      },
+      {
+        "id": "a20",
+        "tipo": "articulo",
+        "titulo": "Artículo 20"
+      },
+      {
+        "id": "a21",
+        "tipo": "articulo",
+        "titulo": "Artículo 21"
+      },
+      {
+        "id": "a22",
+        "tipo": "articulo",
+        "titulo": "Artículo 22"
+      },
+      {
+        "id": "a23",
+        "tipo": "articulo",
+        "titulo": "Artículo 23"
+      },
+      {
+        "id": "a24",
+        "tipo": "articulo",
+        "titulo": "Artículo 24"
+      },
+      {
+        "id": "a25",
+        "tipo": "articulo",
+        "titulo": "Artículo 25"
+      },
+      {
+        "id": "a26",
+        "tipo": "articulo",
+        "titulo": "Artículo 26"
+      },
+      {
+        "id": "a27",
+        "tipo": "articulo",
+        "titulo": "Artículo 27"
+      },
+      {
+        "id": "a28",
+        "tipo": "articulo",
+        "titulo": "Artículo 28"
+      },
+      {
+        "id": "cii-2",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO II"
+      },
+      {
+        "id": "a29",
+        "tipo": "articulo",
+        "titulo": "Artículo 29"
+      },
+      {
+        "id": "a30",
+        "tipo": "articulo",
+        "titulo": "Artículo 30"
+      },
+      {
+        "id": "a31",
+        "tipo": "articulo",
+        "titulo": "Artículo 31"
+      },
+      {
+        "id": "a32",
+        "tipo": "articulo",
+        "titulo": "Artículo 32"
+      },
+      {
+        "id": "a33",
+        "tipo": "articulo",
+        "titulo": "Artículo 33"
+      },
+      {
+        "id": "tiii",
+        "tipo": "titulo",
+        "titulo": "TÍTULO III"
+      },
+      {
+        "id": "ci-3",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO I"
+      },
+      {
+        "id": "a34",
+        "tipo": "articulo",
+        "titulo": "Artículo 34"
+      },
+      {
+        "id": "a35",
+        "tipo": "articulo",
+        "titulo": "Artículo 35"
+      },
+      {
+        "id": "a36",
+        "tipo": "articulo",
+        "titulo": "Artículo 36"
+      },
+      {
+        "id": "cii-3",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO II"
+      },
+      {
+        "id": "a37",
+        "tipo": "articulo",
+        "titulo": "Artículo 37"
+      },
+      {
+        "id": "a38",
+        "tipo": "articulo",
+        "titulo": "Artículo 38"
+      },
+      {
+        "id": "a39",
+        "tipo": "articulo",
+        "titulo": "Artículo 39"
+      },
+      {
+        "id": "a40",
+        "tipo": "articulo",
+        "titulo": "Artículo 40"
+      },
+      {
+        "id": "a41",
+        "tipo": "articulo",
+        "titulo": "Artículo 41"
+      },
+      {
+        "id": "a42",
+        "tipo": "articulo",
+        "titulo": "Artículo 42"
+      },
+      {
+        "id": "a43",
+        "tipo": "articulo",
+        "titulo": "Artículo 43"
+      },
+      {
+        "id": "a44",
+        "tipo": "articulo",
+        "titulo": "Artículo 44"
+      },
+      {
+        "id": "a45",
+        "tipo": "articulo",
+        "titulo": "Artículo 45"
+      },
+      {
+        "id": "a46",
+        "tipo": "articulo",
+        "titulo": "Artículo 46"
+      },
+      {
+        "id": "ciii",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO III"
+      },
+      {
+        "id": "a47",
+        "tipo": "articulo",
+        "titulo": "Artículo 47"
+      },
+      {
+        "id": "a48",
+        "tipo": "articulo",
+        "titulo": "Artículo 48"
+      },
+      {
+        "id": "a49",
+        "tipo": "articulo",
+        "titulo": "Artículo 49"
+      },
+      {
+        "id": "a50",
+        "tipo": "articulo",
+        "titulo": "Artículo 50"
+      },
+      {
+        "id": "a51",
+        "tipo": "articulo",
+        "titulo": "Artículo 51"
+      },
+      {
+        "id": "a52",
+        "tipo": "articulo",
+        "titulo": "Artículo 52"
+      },
+      {
+        "id": "tiv",
+        "tipo": "titulo",
+        "titulo": "TÍTULO IV"
+      },
+      {
+        "id": "ci-4",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO I"
+      },
+      {
+        "id": "a53",
+        "tipo": "articulo",
+        "titulo": "Artículo 53"
+      },
+      {
+        "id": "cii-4",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO II"
+      },
+      {
+        "id": "s1",
+        "tipo": "seccion",
+        "titulo": "Sección 1"
+      },
+      {
+        "id": "a54",
+        "tipo": "articulo",
+        "titulo": "Artículo 54"
+      },
+      {
+        "id": "a55",
+        "tipo": "articulo",
+        "titulo": "Artículo 55"
+      },
+      {
+        "id": "a56",
+        "tipo": "articulo",
+        "titulo": "Artículo 56"
+      },
+      {
+        "id": "a57",
+        "tipo": "articulo",
+        "titulo": "Artículo 57"
+      },
+      {
+        "id": "s2",
+        "tipo": "seccion",
+        "titulo": "Sección 2"
+      },
+      {
+        "id": "a58",
+        "tipo": "articulo",
+        "titulo": "Artículo 58"
+      },
+      {
+        "id": "a59",
+        "tipo": "articulo",
+        "titulo": "Artículo 59"
+      },
+      {
+        "id": "a60",
+        "tipo": "articulo",
+        "titulo": "Artículo 60"
+      },
+      {
+        "id": "a61",
+        "tipo": "articulo",
+        "titulo": "Artículo 61"
+      },
+      {
+        "id": "a62",
+        "tipo": "articulo",
+        "titulo": "Artículo 62"
+      },
+      {
+        "id": "a63",
+        "tipo": "articulo",
+        "titulo": "Artículo 63"
+      },
+      {
+        "id": "a64",
+        "tipo": "articulo",
+        "titulo": "Artículo 64"
+      },
+      {
+        "id": "a65",
+        "tipo": "articulo",
+        "titulo": "Artículo 65"
+      },
+      {
+        "id": "s3",
+        "tipo": "seccion",
+        "titulo": "Sección 3"
+      },
+      {
+        "id": "a66",
+        "tipo": "articulo",
+        "titulo": "Artículo 66"
+      },
+      {
+        "id": "a67",
+        "tipo": "articulo",
+        "titulo": "Artículo 67"
+      },
+      {
+        "id": "a68",
+        "tipo": "articulo",
+        "titulo": "Artículo 68"
+      },
+      {
+        "id": "a69",
+        "tipo": "articulo",
+        "titulo": "Artículo 69"
+      },
+      {
+        "id": "ciii-2",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO III"
+      },
+      {
+        "id": "a70",
+        "tipo": "articulo",
+        "titulo": "Artículo 70"
+      },
+      {
+        "id": "a71",
+        "tipo": "articulo",
+        "titulo": "Artículo 71"
+      },
+      {
+        "id": "a72",
+        "tipo": "articulo",
+        "titulo": "Artículo 72"
+      },
+      {
+        "id": "a73",
+        "tipo": "articulo",
+        "titulo": "Artículo 73"
+      },
+      {
+        "id": "a74",
+        "tipo": "articulo",
+        "titulo": "Artículo 74"
+      },
+      {
+        "id": "civ",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO IV"
+      },
+      {
+        "id": "s1-2",
+        "tipo": "seccion",
+        "titulo": "Sección 1"
+      },
+      {
+        "id": "a75",
+        "tipo": "articulo",
+        "titulo": "Artículo 75"
+      },
+      {
+        "id": "a76",
+        "tipo": "articulo",
+        "titulo": "Artículo 76"
+      },
+      {
+        "id": "s2-2",
+        "tipo": "seccion",
+        "titulo": "Sección 2"
+      },
+      {
+        "id": "a77",
+        "tipo": "articulo",
+        "titulo": "Artículo 77"
+      },
+      {
+        "id": "a78",
+        "tipo": "articulo",
+        "titulo": "Artículo 78"
+      },
+      {
+        "id": "s3-2",
+        "tipo": "seccion",
+        "titulo": "Sección 3"
+      },
+      {
+        "id": "a79",
+        "tipo": "articulo",
+        "titulo": "Artículo 79"
+      },
+      {
+        "id": "a80",
+        "tipo": "articulo",
+        "titulo": "Artículo 80"
+      },
+      {
+        "id": "a81",
+        "tipo": "articulo",
+        "titulo": "Artículo 81"
+      },
+      {
+        "id": "s4",
+        "tipo": "seccion",
+        "titulo": "Sección 4"
+      },
+      {
+        "id": "a82",
+        "tipo": "articulo",
+        "titulo": "Artículo 82"
+      },
+      {
+        "id": "a83",
+        "tipo": "articulo",
+        "titulo": "Artículo 83"
+      },
+      {
+        "id": "cv",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO V"
+      },
+      {
+        "id": "s1-3",
+        "tipo": "seccion",
+        "titulo": "Sección 1"
+      },
+      {
+        "id": "a84",
+        "tipo": "articulo",
+        "titulo": "Artículo 84"
+      },
+      {
+        "id": "a85",
+        "tipo": "articulo",
+        "titulo": "Artículo 85"
+      },
+      {
+        "id": "a86",
+        "tipo": "articulo",
+        "titulo": "Artículo 86"
+      },
+      {
+        "id": "s2-3",
+        "tipo": "seccion",
+        "titulo": "Sección 2"
+      },
+      {
+        "id": "a87",
+        "tipo": "articulo",
+        "titulo": "Artículo 87"
+      },
+      {
+        "id": "a88",
+        "tipo": "articulo",
+        "titulo": "Artículo 88"
+      },
+      {
+        "id": "a89",
+        "tipo": "articulo",
+        "titulo": "Artículo 89"
+      },
+      {
+        "id": "a90",
+        "tipo": "articulo",
+        "titulo": "Artículo 90"
+      },
+      {
+        "id": "a91",
+        "tipo": "articulo",
+        "titulo": "Artículo 91"
+      },
+      {
+        "id": "a92",
+        "tipo": "articulo",
+        "titulo": "Artículo 92"
+      },
+      {
+        "id": "s3-3",
+        "tipo": "seccion",
+        "titulo": "Sección 3"
+      },
+      {
+        "id": "a93",
+        "tipo": "articulo",
+        "titulo": "Artículo 93"
+      },
+      {
+        "id": "a94",
+        "tipo": "articulo",
+        "titulo": "Artículo 94"
+      },
+      {
+        "id": "s4-2",
+        "tipo": "seccion",
+        "titulo": "Sección 4"
+      },
+      {
+        "id": "a95",
+        "tipo": "articulo",
+        "titulo": "Artículo 95"
+      },
+      {
+        "id": "cvi",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO VI"
+      },
+      {
+        "id": "a96",
+        "tipo": "articulo",
+        "titulo": "Artículo 96"
+      },
+      {
+        "id": "cvii",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO VII"
+      },
+      {
+        "id": "a97",
+        "tipo": "articulo",
+        "titulo": "Artículo 97"
+      },
+      {
+        "id": "a98",
+        "tipo": "articulo",
+        "titulo": "Artículo 98"
+      },
+      {
+        "id": "a99",
+        "tipo": "articulo",
+        "titulo": "Artículo 99"
+      },
+      {
+        "id": "a100",
+        "tipo": "articulo",
+        "titulo": "Artículo 100"
+      },
+      {
+        "id": "a101",
+        "tipo": "articulo",
+        "titulo": "Artículo 101"
+      },
+      {
+        "id": "a102",
+        "tipo": "articulo",
+        "titulo": "Artículo 102"
+      },
+      {
+        "id": "a103",
+        "tipo": "articulo",
+        "titulo": "Artículo 103"
+      },
+      {
+        "id": "a104",
+        "tipo": "articulo",
+        "titulo": "Artículo 104"
+      },
+      {
+        "id": "a105",
+        "tipo": "articulo",
+        "titulo": "Artículo 105"
+      },
+      {
+        "id": "tv",
+        "tipo": "titulo",
+        "titulo": "TÍTULO V"
+      },
+      {
+        "id": "ci-5",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO I"
+      },
+      {
+        "id": "a106",
+        "tipo": "articulo",
+        "titulo": "Artículo 106"
+      },
+      {
+        "id": "a107",
+        "tipo": "articulo",
+        "titulo": "Artículo 107"
+      },
+      {
+        "id": "a108",
+        "tipo": "articulo",
+        "titulo": "Artículo 108"
+      },
+      {
+        "id": "a109",
+        "tipo": "articulo",
+        "titulo": "Artículo 109"
+      },
+      {
+        "id": "a110",
+        "tipo": "articulo",
+        "titulo": "Artículo 110"
+      },
+      {
+        "id": "a111",
+        "tipo": "articulo",
+        "titulo": "Artículo 111"
+      },
+      {
+        "id": "cii-5",
+        "tipo": "capitulo",
+        "titulo": "CAPÍTULO II"
+      },
+      {
+        "id": "s1-4",
+        "tipo": "seccion",
+        "titulo": "Sección 1"
+      },
+      {
+        "id": "a112",
+        "tipo": "articulo",
+        "titulo": "Artículo 112"
+      },
+      {
+        "id": "a113",
+        "tipo": "articulo",
+        "titulo": "Artículo 113"
+      },
+      {
+        "id": "a114",
+        "tipo": "articulo",
+        "titulo": "Artículo 114"
+      },
+      {
+        "id": "a115",
+        "tipo": "articulo",
+        "titulo": "Artículo 115"
+      },
+      {
+        "id": "a116",
+        "tipo": "articulo",
+        "titulo": "Artículo 116"
+      },
+      {
+        "id": "a117",
+        "tipo": "articulo",
+        "titulo": "Artículo 117"
+      },
+      {
+        "id": "a118",
+        "tipo": "articulo",
+        "titulo": "Artículo 118"
+      },
+      {
+        "id": "a119",
+        "tipo": "articulo",
+        "titulo": "Artículo 119"
+      },
+      {
+        "id": "a120",
+        "tipo": "articulo",
+        "titulo": "Artículo 120"
+      },
+      {
+        "id": "s2-4",
+        "tipo": "seccion",
+        "titulo": "Sección 2"
+      },
+      {
+        "id": "a121",
+        "tipo": "articulo",
+        "titulo": "Artículo 121"
+      },
+      {
+        "id": "a122",
+        "tipo": "articulo",
+        "titulo": "Artículo 122"
+      },
+      {
+        "id": "s3-4",
+        "tipo": "seccion",
+        "titulo": "Sección 3"
+      },
+      {
+        "id": "a123",
+        "tipo": "articulo",
+        "titulo": "Artículo 123"
+      },
+      {
+        "id": "a124",
+        "tipo": "articulo",
+        "titulo": "Artículo 124"
+      },
+      {
+        "id": "s4-3",
+        "tipo": "seccion",
+        "titulo": "Sección 4"
+      },
+      {
+        "id": "a125",
+        "tipo": "articulo",
+        "titulo": "Artículo 125"
+      },
+      {
+        "id": "a126",
+        "tipo": "articulo",
+        "titulo": "Artículo 126"
+      },
+      {
+        "id": "tvi",
+        "tipo": "titulo",
+        "titulo": "TÍTULO VI"
+      },
+      {
+        "id": "a127",
+        "tipo": "articulo",
+        "titulo": "Artículo 127"
+      },
+      {
+        "id": "a128",
+        "tipo": "articulo",
+        "titulo": "Artículo 128"
+      },
+      {
+        "id": "a129",
+        "tipo": "articulo",
+        "titulo": "Artículo 129"
+      },
+      {
+        "id": "a130",
+        "tipo": "articulo",
+        "titulo": "Artículo 130"
+      },
+      {
+        "id": "a131",
+        "tipo": "articulo",
+        "titulo": "Artículo 131"
+      },
+      {
+        "id": "a132",
+        "tipo": "articulo",
+        "titulo": "Artículo 132"
+      },
+      {
+        "id": "a133",
+        "tipo": "articulo",
+        "titulo": "Artículo 133"
+      },
+      {
+        "id": "daprimera",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional primera"
+      },
+      {
+        "id": "dasegunda",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional segunda"
+      },
+      {
+        "id": "datercera",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional tercera"
+      },
+      {
+        "id": "dacuaa",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional cuarta"
+      },
+      {
+        "id": "daquinta",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional quinta"
+      },
+      {
+        "id": "da",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional sexta"
+      },
+      {
+        "id": "da-2",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional séptima"
+      },
+      {
+        "id": "da-3",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional octava"
+      },
+      {
+        "id": "da-4",
+        "tipo": "disposicion_adicional",
+        "titulo": "Disposición adicional novena"
+      },
+      {
+        "id": "dtprimera",
+        "tipo": "disposicion_transitoria",
+        "titulo": "Disposición transitoria primera"
+      },
+      {
+        "id": "dtsegunda",
+        "tipo": "disposicion_transitoria",
+        "titulo": "Disposición transitoria segunda"
+      },
+      {
+        "id": "dttercera",
+        "tipo": "disposicion_transitoria",
+        "titulo": "Disposición transitoria tercera"
+      },
+      {
+        "id": "dtcuaa",
+        "tipo": "disposicion_transitoria",
+        "titulo": "Disposición transitoria cuarta"
+      },
+      {
+        "id": "dtquinta",
+        "tipo": "disposicion_transitoria",
+        "titulo": "Disposición transitoria quinta"
+      },
+      {
+        "id": "ddunica",
+        "tipo": "disposicion_derogatoria",
+        "titulo": "Disposición derogatoria única"
+      },
+      {
+        "id": "dfprimera",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final primera"
+      },
+      {
+        "id": "dfsegunda",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final segunda"
+      },
+      {
+        "id": "dftercera",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final tercera"
+      },
+      {
+        "id": "dfcuaa",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final cuarta"
+      },
+      {
+        "id": "dfquinta",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final quinta"
+      },
+      {
+        "id": "dfsexta",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final sexta"
+      },
+      {
+        "id": "dfseptima",
+        "tipo": "disposicion_final",
+        "titulo": "Disposición final séptima"
+      },
+      {
+        "id": "firma",
+        "tipo": "",
+        "titulo": ""
+      }
+    ],
+    "norma": "BOE-A-2015-10565",
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565"
+  },
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/indice"
+}

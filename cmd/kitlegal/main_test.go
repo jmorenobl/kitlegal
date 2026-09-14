@@ -11,25 +11,27 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 )
 
-// registroVacio es la lista de applets que escribe el kernel cuando no hay
-// ninguno registrado: la evidencia observable de que el binario que se publica
-// no registra ningún applet en H1 —el primer applet de kitlegal llega en H4—
-// (contracts/registro-y-describe.md §3).
-const registroVacio = "este binario no registra ningún applet"
+// appletsDelBinario es la lista de applets que enumera el kernel ante una
+// invocación que no resuelve ninguno: la evidencia observable de que el binario
+// que se publica registra boe, y solo boe, desde H4 (FR-001,
+// contracts/registro-y-describe.md §3 de H1).
+const appletsDelBinario = "applets disponibles: boe"
 
 // TestPuntoDeEntrada ejerce el contrato observable del binario distribuido con la
-// **misma composición que main()** —el registro de producción y los datos de
-// construcción de este paquete— y dos escritores en memoria en lugar de los
-// descriptores del sistema, que es lo que hace comprobable el contrato entero sin
-// lanzar ningún subproceso (FR-035).
+// **misma composición que main()** —app.Arrancar con el registro de producción y
+// los datos de construcción de este paquete— y dos escritores en memoria en lugar
+// de los descriptores del sistema, que es lo que hace comprobable el contrato
+// entero sin lanzar ningún subproceso (FR-035; contrato puerto-y-applet §5 de H4).
 //
 // De contracts/cli-version.md de H0 se conservan las tres líneas de version, la
 // salida de error vacía y el código 0 (D16), y también el código 2 de cualquier
 // otra invocación: lo que cambia es el mensaje. Un nombre que no es ningún
 // applet lo resuelve el despacho, que **nombra lo desconocido** y enumera lo
-// disponible —nada, en este binario— (FR-006, contracts/registro-y-describe.md
-// §2 y §3); y lo que sobra tras «version», que no admite argumentos ni
-// banderas, se nombra en el mensaje en lugar de descartarse (FR-027).
+// disponible —boe, en este binario— (FR-006, contracts/registro-y-describe.md
+// §2 y §3); lo que sobra tras «version», que no admite argumentos ni banderas,
+// se nombra en el mensaje en lugar de descartarse (FR-027); y boe sin verbo se
+// corrige igual, porque no declara ninguno por omisión (FR-001). Ningún caso
+// ejecuta un verbo, así que nada de esta tabla pide nada ni abre la caché.
 //
 // No es paralelo, y no es un descuido: fija KITLEGAL_LOG —en el test y en cada
 // subcaso, que es lo que lo deja hermético por separado— para que el nivel del
@@ -78,13 +80,13 @@ func TestPuntoDeEntrada(t *testing.T) {
 		{
 			nombre:  "sin applet, el fallo enumera lo que hay y termina con 2",
 			argv:    []string{"kitlegal"},
-			errores: []string{"no se ha indicado ningún applet", registroVacio},
+			errores: []string{"no se ha indicado ningún applet", appletsDelBinario},
 			codigo:  2,
 		},
 		{
 			nombre:  "un applet que no existe se nombra en el fallo y termina con 2",
 			argv:    []string{"kitlegal", "inventado"},
-			errores: []string{`"inventado"`, registroVacio},
+			errores: []string{`"inventado"`, appletsDelBinario},
 			codigo:  2,
 		},
 		{
@@ -94,7 +96,16 @@ func TestPuntoDeEntrada(t *testing.T) {
 			// (contracts/registro-y-describe.md §3).
 			nombre:  "echo no es del binario distribuido, sino del binario del e2e",
 			argv:    []string{"kitlegal", "echo", "hola"},
-			errores: []string{`"echo"`, registroVacio},
+			errores: []string{`"echo"`, appletsDelBinario},
+			codigo:  2,
+		},
+		{
+			// boe no declara ningún verbo por omisión, así que nombrarlo es
+			// obligatorio: sin él la invocación se corrige —código 2— con un
+			// mensaje que nombra el applet y enumera sus seis verbos (FR-001).
+			nombre:  "boe sin verbo termina con 2 y enumera sus verbos",
+			argv:    []string{"kitlegal", "boe"},
+			errores: []string{`"boe"`, "verbos de boe: buscar, indice, articulo, articulos, metadatos, analisis"},
 			codigo:  2,
 		},
 	}
@@ -105,7 +116,7 @@ func TestPuntoDeEntrada(t *testing.T) {
 
 			var salida, errores bytes.Buffer
 
-			codigo := app.Main(caso.argv, app.RegistroDeProduccion(),
+			codigo := app.Arrancar(caso.argv, app.RegistroDeProduccion,
 				&salida, &errores, version, commit, fecha)
 
 			assert.Equal(t, caso.codigo, codigo, "código de salida")
@@ -142,10 +153,10 @@ func TestValoresPorDefecto(t *testing.T) {
 // valores por omisión divergieran. Este caso lo impide: sin -ldflags los dos
 // valen «dev», y cambiar uno solo deja make ci en rojo (FR-007, research.md D5).
 //
-// La importación de internal/httpx vive **solo aquí**, en un fichero de test:
-// `go list -deps ./cmd/kitlegal` no incluye las importaciones de test, de modo
-// que el binario distribuido sigue sin enlazar el paquete de red ni lo que este
-// arrastre, y TestDependenciasDelBinario ve la misma lista de módulos (SC-014).
+// Desde H4 el binario distribuido enlaza internal/httpx a través del applet boe,
+// y la identificación que aquí se comprueba es la que acompaña a cada petición
+// que ese binario emite. Qué módulos arrastra consigo lo fija
+// TestDependenciasDelBinario (FR-124).
 func TestVersionDeLaIdentificacion(t *testing.T) {
 	t.Parallel()
 

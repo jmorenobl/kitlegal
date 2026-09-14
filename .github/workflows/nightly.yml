@@ -1,10 +1,12 @@
-# Flujo nocturno (FR-027, research.md D1 y D12).
+# Flujo nocturno (FR-027 y research.md D1 y D12 de H0; FR-115 y research.md D15
+# de H4).
 #
-# Ejecuta a diario la misma orden agregada que la propuesta de cambio, sobre la
-# rama principal. No añade ningún control: `make ci` es idéntica aquí, en
-# `ci.yml`, en el gancho de pre-commit y en local.
+# Dos trabajos independientes, cada uno con su pregunta.
 #
-# Existe por dos razones, ambas de segundo orden respecto de `ci.yml`:
+# `nightly` ejecuta a diario la misma orden agregada que la propuesta de cambio,
+# sobre la rama principal. No añade ningún control: `make ci` es idéntica aquí,
+# en `ci.yml`, en el gancho de pre-commit y en local. Existe por dos razones,
+# ambas de segundo orden respecto de `ci.yml`:
 #
 #   1. Hace visible sin esperar a la siguiente propuesta de cambio un hallazgo
 #      que aparece por el paso del tiempo y no por un cambio en el árbol: el
@@ -17,11 +19,22 @@
 #      de una rama nueva ya arranca en caliente y SC-006 se mide en caliente
 #      (research.md D12).
 #
-# Lo que este flujo NO hace, por FR-027: ninguna verificación contra fuentes
-# reales —H0 no toca ninguna red y `KITLEGAL_RECORD` no aparece en ningún
-# flujo—, ninguna invocación de `release` —que no entra ni en `ci` ni en
-# `nightly` y falla a propósito hasta H6— y ninguna publicación del perfil de
-# cobertura, que FR-029 encomienda únicamente al flujo `ci`.
+# `fuentes` pregunta si una fuente real ha cambiado sin avisar (US7 y SC-009 de
+# H4). Ejecuta `make verify-sources`, que pide a la API del BOE
+# `boe articulo BOE-A-2015-10565 a21 --json` y exige que la respuesta se siga
+# interpretando, que el sobre valide contra la parte `articulo` de
+# `schemas/bloque.json` y que traiga texto: forma y no contenido, porque el texto
+# de un artículo cambia legítimamente con cada reforma. Si la verificación
+# falla, el trabajo falla y comenta la incidencia abierta «verify-sources: boe
+# articulo», o la abre, para que quien mantiene el proyecto se entere sin esperar
+# a que falle una consulta real. Es el único control que pide algo a una fuente
+# real, y por eso vive aquí y no en `make ci`.
+#
+# Lo que este flujo NO hace: grabar respuestas —`KITLEGAL_RECORD` no aparece en
+# ningún flujo; las grabaciones las hace una persona—, ninguna invocación de
+# `release` —que no entra ni en `ci` ni en `nightly` y falla a propósito hasta
+# H6— y ninguna publicación del perfil de cobertura, que FR-029 encomienda
+# únicamente al flujo `ci`.
 name: nightly
 
 on:
@@ -70,3 +83,49 @@ jobs:
 
       - name: Ejecutar los controles
         run: make ci
+
+  # La verificación contra la fuente real (contrato esquemas-fixtures-y-controles
+  # §7 de H4). Va en un trabajo propio y no como un paso más de `nightly`: una
+  # fuente caída no oculta lo que diga `make ci`, ni al revés, y solo este
+  # trabajo necesita escribir incidencias.
+  fuentes:
+    runs-on: ubuntu-latest
+    # Leer el árbol y, solo para avisar del fallo, escribir incidencias.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7
+
+      # La misma preparación que en el trabajo `nightly`, por las mismas razones.
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      - name: Verificar las fuentes
+        id: verificar
+        run: make verify-sources
+
+      # Solo cuando lo que ha fallado es la verificación: una incidencia con el
+      # título del caso abierta porque no se pudo obtener el código o instalar Go
+      # culparía a la fuente de un fallo de la plataforma, que ya hace fallar el
+      # trabajo por sí solo. `failure()` es necesario: sin una función de estado,
+      # la condición llevaría un `success()` implícito y el paso no se ejecutaría
+      # nunca tras un fallo. La incidencia se busca por su título entre las
+      # abiertas, de modo que las noches seguidas de fallo se acumulan como
+      # comentarios de una sola.
+      - name: Abrir o actualizar la incidencia
+        if: failure() && steps.verificar.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITULO: "verify-sources: boe articulo"
+          CUERPO: "La verificación nocturna contra la fuente real ha fallado: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: |
+          numero=$(gh issue list --state open --search "\"$TITULO\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$numero" ]; then gh issue comment "$numero" --body "$CUERPO"; else gh issue create --title "$TITULO" --body "$CUERPO"; fi

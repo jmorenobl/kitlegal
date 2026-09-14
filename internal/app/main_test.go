@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -189,6 +190,81 @@ func TestContextoDeEjecucion(t *testing.T) {
 			}
 		})
 	}
+}
+
+// arrancar ejecuta la raíz de arranque entera, con el registro que construya
+// construir, contra dos buffers.
+func arrancar(t *testing.T, construir func() (*Registro, error), argv ...string) invocacionDePrueba {
+	t.Helper()
+
+	var salida, errores bytes.Buffer
+
+	codigo := Arrancar(argv, construir, &salida, &errores, versionDePrueba, commitDePrueba, fechaDePrueba)
+
+	return invocacionDePrueba{codigo: codigo, salida: salida.String(), errores: errores.String()}
+}
+
+// TestArrancar fija la raíz de arranque de los binarios (contrato puerto-y-applet
+// §5 de H4; research.md D16): construye el registro una vez por arranque y, si se
+// construye, la invocación es exactamente la de Main; si no, el fallo es un
+// defecto de composición y nunca de quien invoca —el sobre del kernel de clase
+// inesperada si se pidió --json, el mensaje en la salida de error y el código 1,
+// también cuando el error del registro declara otra clase—, sin ningún pánico.
+func TestArrancar(t *testing.T) {
+	t.Parallel()
+
+	t.Run("registro-valido", func(t *testing.T) {
+		t.Parallel()
+
+		construcciones := 0
+		construir := func() (*Registro, error) {
+			construcciones++
+
+			return registroDeCodigos(t, resultadoCorrecto), nil
+		}
+
+		version := arrancar(t, construir, "kitlegal", "version")
+		assert.Equal(t, invocar(t, registroDeCodigos(t, resultadoCorrecto), "kitlegal", "version"), version,
+			"con el registro construido, la invocación es la de Main")
+
+		res := arrancar(t, construir, "kitlegal", "prueba", "hola", "--json")
+		assert.Equal(t, 0, res.codigo, res.errores)
+
+		sobre := sobreDelJSON(t, res.salida)
+		assert.Equal(t, true, sobre["ok"])
+		assert.Equal(t, procedenciaDePrueba.Fuente, sobre["fuente"])
+
+		assert.Equal(t, 2, construcciones, "cada arranque construye su registro una sola vez")
+	})
+
+	t.Run("registro-invalido", func(t *testing.T) {
+		t.Parallel()
+
+		var registro Registro
+
+		errDelRegistro := registro.Registrar(appletConVerbos("version", verboDePrueba("mostrar", true)))
+		require.ErrorIs(t, errDelRegistro, ErrNombreReservado)
+
+		fallos := []error{
+			errDelRegistro,
+			// Un error que declara otra clase sigue siendo un registro que no se
+			// construyó: no lo corrige quien invoca.
+			fmt.Errorf("registro a medias: %w", cli.ErrArgumentos),
+		}
+
+		for _, fallo := range fallos {
+			construir := func() (*Registro, error) { return nil, fallo }
+
+			enJSON := arrancar(t, construir, "kitlegal", "prueba", "hola", "--json")
+			exigirSobreDeFallo(t, enJSON, schema.ClaseInesperado, 1, cli.ProcedenciaKernel())
+			assert.Contains(t, enJSON.errores, fallo.Error(), "el mensaje nombra el error del registro")
+
+			sinJSON := arrancar(t, construir, "kitlegal", "prueba", "hola")
+			assert.Equal(t, 1, sinJSON.codigo)
+			assert.Empty(t, sinJSON.salida, "sin --json un fallo deja la salida estándar vacía")
+			assert.Contains(t, sinJSON.errores, fallo.Error(), "el mensaje nombra el error del registro")
+		}
+	})
 }
 
 // errTuberiaCerrada es el fallo del descriptor que ya no admite nada.

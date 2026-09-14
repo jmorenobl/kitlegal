@@ -1,0 +1,809 @@
+{
+  "$defs": {
+    "analisis": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.Analisis": {
+          "additionalProperties": false,
+          "properties": {
+            "materias": {
+              "items": {
+                "$ref": "#/$defs/boe.Materia"
+              },
+              "type": "array"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "notas": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "referencias": {
+              "$ref": "#/$defs/boe.Referencias"
+            }
+          },
+          "required": [
+            "norma",
+            "materias",
+            "notas",
+            "referencias"
+          ],
+          "type": "object"
+        },
+        "boe.Materia": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "texto"
+          ],
+          "type": "object"
+        },
+        "boe.ReferenciaAnterior": {
+          "additionalProperties": false,
+          "properties": {
+            "norma": {
+              "type": "string"
+            },
+            "relacion": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "relacion",
+            "norma",
+            "texto"
+          ],
+          "type": "object"
+        },
+        "boe.ReferenciaPosterior": {
+          "additionalProperties": false,
+          "properties": {
+            "norma": {
+              "type": "string"
+            },
+            "relacion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "relacion",
+            "norma"
+          ],
+          "type": "object"
+        },
+        "boe.Referencias": {
+          "additionalProperties": false,
+          "properties": {
+            "anteriores": {
+              "items": {
+                "$ref": "#/$defs/boe.ReferenciaAnterior"
+              },
+              "type": "array"
+            },
+            "posteriores": {
+              "items": {
+                "$ref": "#/$defs/boe.ReferenciaPosterior"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "anteriores",
+            "posteriores"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/norma.json/analisis",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve las materias, las notas y las referencias de una norma.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "norma"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/boe.Analisis"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe analisis"
+    },
+    "buscar": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.ResultadoDeBusqueda": {
+          "additionalProperties": false,
+          "properties": {
+            "estado_consolidacion": {
+              "type": "string"
+            },
+            "identificador": {
+              "type": "string"
+            },
+            "rango": {
+              "type": "string"
+            },
+            "titulo": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "vigencia_agotada": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "identificador",
+            "titulo",
+            "rango",
+            "vigencia_agotada",
+            "estado_consolidacion",
+            "url"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/norma.json/buscar",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Busca normas consolidadas por las palabras de su título o con una consulta de la fuente.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "texto": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "texto"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "items": {
+                  "$ref": "#/$defs/boe.ResultadoDeBusqueda"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe buscar"
+    },
+    "indice": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.EntradaDeIndice": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "tipo": {
+              "enum": [
+                "articulo",
+                "titulo",
+                "capitulo",
+                "seccion",
+                "preambulo",
+                "disposicion_adicional",
+                "disposicion_transitoria",
+                "disposicion_derogatoria",
+                "disposicion_final",
+                ""
+              ],
+              "type": "string"
+            },
+            "titulo": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "titulo",
+            "tipo"
+          ],
+          "type": "object"
+        },
+        "boe.Indice": {
+          "additionalProperties": false,
+          "properties": {
+            "bloques": {
+              "items": {
+                "$ref": "#/$defs/boe.EntradaDeIndice"
+              },
+              "type": "array"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "norma",
+            "url",
+            "bloques"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/norma.json/indice",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve los bloques de una norma consolidada, en el orden de la fuente.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "norma"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/boe.Indice"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe indice"
+    },
+    "metadatos": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "boe.Aviso": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "enum": [
+                "consolidacion-no-finalizada",
+                "derogada",
+                "vigencia-agotada"
+              ],
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "texto"
+          ],
+          "type": "object"
+        },
+        "boe.EstadoDeConsolidacion": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "texto"
+          ],
+          "type": "object"
+        },
+        "boe.Metadatos": {
+          "additionalProperties": false,
+          "properties": {
+            "avisos": {
+              "items": {
+                "$ref": "#/$defs/boe.Aviso"
+              },
+              "type": "array"
+            },
+            "estado_consolidacion": {
+              "$ref": "#/$defs/boe.EstadoDeConsolidacion"
+            },
+            "estatus_derogacion": {
+              "type": "string"
+            },
+            "fecha_disposicion": {
+              "type": "string"
+            },
+            "fecha_publicacion": {
+              "type": "string"
+            },
+            "fecha_vigencia": {
+              "type": "string"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "numero_oficial": {
+              "type": "string"
+            },
+            "rango": {
+              "type": "string"
+            },
+            "titulo": {
+              "type": "string"
+            },
+            "url_eli": {
+              "type": "string"
+            },
+            "vigencia_agotada": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "norma",
+            "titulo",
+            "rango",
+            "numero_oficial",
+            "fecha_disposicion",
+            "fecha_publicacion",
+            "fecha_vigencia",
+            "estatus_derogacion",
+            "vigencia_agotada",
+            "estado_consolidacion",
+            "url_eli",
+            "avisos"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/norma.json/metadatos",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve los datos de una norma y los avisos de su vigencia.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "norma"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/boe.Metadatos"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "boe metadatos"
+    }
+  },
+  "$id": "https://ventanillalegal.es/schemas/norma.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salidas de los verbos analisis, buscar, indice y metadatos del applet boe. Generado desde --describe con make schema-check; no editar.",
+  "title": "boe · norma"
+}

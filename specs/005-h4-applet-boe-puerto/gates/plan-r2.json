@@ -1,0 +1,71 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "Completo: una fila por principio (I-IX) y una por regla de dependencia (las cinco de §IV, la del grafo del roadmap §2, la de ejemplos del ADR 0010 y la del espacio reservado del ADR 0006), con capas de gate, reglas del modo desatendido y reevaluación tras el diseño. El motivo 1 de la ronda anterior está corregido: la fila III pone los guiones e2e en el paso 12, justo detrás del registro (paso 11), y coinciden el «Orden de implementación», la obligación 1, D13 y contracts/esquemas-fixtures-y-controles.md §6. Contrastado con el código: internal/core/doc.go anuncia que Source nacerá en core. La subprueba R3 de internal/arch_test.go (líneas 83-100) solo mira quién importa database/sql o modernc.org/sqlite dentro del cierre, así que internal/app puede importar internal/cache. Las listas red, sql y ejemplo de .golangci.yml y la excepción de os.Exit en las dos raíces de composición son como dice la tabla."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: go.mod ya fija las ocho de §V que se usan. He ejecutado hoy `go list -deps -f '{{if .Module}}{{.Module.Path}}{{end}}' ./internal/cache ./internal/httpx ./cmd/kitlegal`: devuelve los seis módulos de modulosDelBinario (internal/arch_test.go 117-124) y los doce de research.md D14, ni uno más ni uno menos. Complexity Tracking («Ampliación de modulosDelBinario») y la obligación 6 exigen justificarlos uno a uno en el comentario y en gates/pr-h4.md."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "internal/core/source.go solo importa context, time y core/schema. internal/source/boe usa core.Cache y los tipos de httpx, sin net/http, y sus tests usan httpx.Replay. SQLite solo entra por internal/cache. cmd/kitlegal/main.go y el main del binario de e2e terminan el proceso con el código que devuelve app.Arrancar, y son las dos únicas excepciones de lint. boe no escribe nada: lo que deja en Resultado.Ensayo lo presenta el kernel, que antepone «se habría pedido » a cada línea (internal/app/main.go 366-371). Comprobado también que ejemplo.Registro() devuelve un *app.Registro (ejemplo.go 44-54), así que el binario de e2e puede registrar boe sin tocar el paquete de ejemplos."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/errores-y-codigos.md trae una tabla cerrada de 23 filas. boe.Error, httpx.Error y cache.Error implementan schema.ConClase: cache.Error lo declara en internal/cache/errores.go 103-113, y cli.Clasificar las traduce con errors.As (internal/cli/errors.go 90-112). Contrastado con el código: entregar (internal/httpx/cliente.go 615-638) da clase 5 al 429 y 4 al 5xx y al 3xx que no se puede seguir, y entrega el resto, 404 incluido, para que lo clasifique la fuente (D10). En solo lectura, cache.Get devuelve la ausencia con clase 4 (entradas.go 77-128). conPlazoAgotado (internal/app/main.go 386-397) convierte el plazo agotado en 4. Ninguna fila produce 6."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "El plan trae el inventario de tests por fichero, 22 controles mecánicos con su demostración y los fixtures en lista cerrada. El e2e de la entrega (TestEntregaDelHito/boe-*) va en el paso 12, la primera tarea que puede dejarlo en verde (workflow.yml 432). El motivo 2 de la ronda anterior está corregido. El paso 4 escribe la fila como propuesta, con «Revisado» pendiente, y TestFuenteCoincideConSources solo admite la pareja pendiente con Revisados a cero. En la pausa del manifiesto la persona, por este orden, fija la fila y terminos.go, comprueba ese test, graba con el intervalo ya revisado y escribe las referencias. El paso 6 retira la admisión. Comprobado en el workflow que la pausa llega después del commit de la tarea (workflow.yml 862-910), así que lo que la persona confirma es la base de la tarea siguiente. Comprobado también que, de los guiones de H1, solo argumentos.txtar 24 y 30 enumeran applets; ayuda.txtar 16 sigue casando porque «contar» sigue siendo el nombre más largo."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Nada del *Fuera de alcance* del spec entra en el plan, y las piezas que el spec no enumera están en Complexity Tracking con su motivo. El motivo 3 de la ronda anterior está corregido: las cinco referencias las escribe a mano y las revisa una persona en la pausa de la tarea [datos] que graba los fixtures (plan, paso 5.7; D12; contracts §3.2 y §5). Es la letra de FR-116 y de Q2, y quedan confirmadas antes de todo código de lectura y de articulo."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "El plan no prevé ningún //nolint, t.Skip, TODO ni error silenciado. Fetch une con errors.Join el error del cierre de la caché, y TestGrabarFixtures falla sin KITLEGAL_RECORD en lugar de saltarse. El motivo 4 de la ronda anterior está corregido: TestPuntoDeEntrada llamará a app.Arrancar con app.RegistroDeProduccion, igual que main() (inventario; contracts/puerto-y-applet.md §5), y &Registro{} solo aparece donde el sujeto es el registro vacío. He buscado en todo el árbol y no hay más usos de RegistroDeProduccion que los que el plan declara: cmd/kitlegal/main.go 33, cmd/kitlegal/main_test.go 108, internal/app/ayuda_test.go 44, despacho_test.go 335 (TestDespachoConRegistroVacio) y registro_test.go 235. La admisión temporal de «pendiente» tiene su motivo en Complexity Tracking y su retirada fijada en el paso 6."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1-D19 registran decisión, alternativas rechazadas y motivo. Las nuevas se sostienen. D15 explica por qué las dos constantes viven solas en terminos.go: en fuente.go, las tareas posteriores tendrían que declarar el fichero. Explica también por qué no se alinean en una tarea de código tras la pausa: la grabación pediría con un intervalo sin revisar. D12 explica por qué el ejecutor no deriva las referencias: la misma mano en la referencia y en el código que se compara con ella."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": false,
+      "evidencia": "Los motivos 5 a 8 de la ronda anterior están corregidos en lo que pedían. Comprobado en local: S12 recoge lo de --label, y `gh issue create --help` solo dice «Add labels by name». `gh help formatting` dice que no hace falta tener jq instalado. GOROOT: encode.go 797-803 y 998-1064 (escapes cortos de retroceso, avance de página, salto, retorno y tabulador; <, > y & como escape HTML; U+2028 y U+2029); url.go 186-227 (espacio → + en 200 y 225-226); gen_encoding_table.go 179, 190-193 y 202-204; xml.go 147, 188-193, 275-290 (286-287), 644-656, 699-715, 860-868 y 1130-1136, sin ninguna comprobación de raíz única. `go doc regexp/syntax` («all ASCII-only»). CPython 3.9: ElementTree.py 406-423, 979-983, 1334-1347, 1373, 1413-1415, 1439-1449, 1486-1511, 1556-1559 y 2085-2086; ElementPath.py 200 y 209; json/encoder.py 31, 48-66 y 102-103; json/__init__.py 183; urllib/parse.py 790, 815 y 890. Módulos: testscript.go 150, 159, 495, 1211 y 1239; santhosh compiler.go 53, 121 y 178, roots.go 104-124 y root.go 34; invopop reflect.go 772-801; kong build.go 339; gosec commandinjection.go 34 y pathtraversal.go 35. En words.go, las líneas de las seis palabras que van a ignore-rules y las de las 16 palabras marcadas. Fallan tres cosas. (1) El barrido de misspell que research.md da por completo deja fuera 23 erratas sin tilde. (2) Lo que D18 afirma de cómo misspell busca las palabras se cita a la memoria del proyecto, no al código de la herramienta. (3) Plan, D15 y contracts afirman que el guardián de diff protege la fila de docs/SOURCES.md, terminos.go y las referencias, pero eso solo es cierto si ninguna tarea posterior declara un directorio que los contenga (docs/WORKFLOW.md 71; workflow.yml 695-698)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Recorrido escenario a escenario. make schema-check solo depende de check-tools, que en el clon pasa, y el mensaje previsto nombra schemas/bloque.json (7.b). Sobre y DatosError llevan minLength 1 y la parte de «articulo» va primera en orden de claves. describe.go no toma descripciones de los comentarios, así que `grep -c consolidacion-no-finalizada` da 1. El kernel escribe «--dry-run: no se ha ejecutado nada; …» y «--dry-run: se habría pedido » delante de Respuesta.Descripcion() (internal/app/main.go 366-371), y en solo lectura no se crea nada (internal/cache/cliente.go 62-72), así que 10.5 y 10.6 se cumplen. Los patrones -run y los recuentos de PASS casan con el inventario; TestArquitectura y TestElBinarioNoEnlazaLosEjemplos existen (arch_test.go 54 y 134). Todo lo negativo o con efectos va sobre el clon desechable de /tmp, fuzz incluido, y en el árbol solo quedan coverage.*, que está ignorado. La red solo aparece donde se declara (make vuln y 15.b)."
+    }
+  ],
+  "motivos": [
+    "research.md (tabla de verificación, fila de golangci-lint: «barrido de todas las palabras sin tilde … más las formas sin tilde de las que llevan tilde en esos documentos»), D18 («Nunca sueltas sin tilde») y plan.md, obligación 4: el barrido no está completo. Lo he repetido así: a spec, plan, research, data-model, contratos y quickstart les quité las tildes, pasé todo a minúsculas y busqué cada palabra resultante en misspell v0.8.0 words.go como primera columna de una pareja. Además de las siete que ya se listan, la herramienta marca 23 formas sin tilde de palabras que esos documentos escriben con ella: identificacion (710), implementacion (717), configuracion (1328), transcripcion (2398), constitucion (3124), construccion (3133), distribucion (3497), presentacion (4791), regeneracion (4951), compilacion (6333), composicion (6364), orientacion (8560), prohibicion (9050), adaptacion (10405), conjuncion (11560), convencion (11739), correccion (11795), corrupcion (11815), evaluacion (12580), historicas (13109), parametros (14506), proposito (19432) y omision (26355). Varias son de riesgo real en nombres de caso o mensajes en kebab-case: «defecto de composición», «bandera de regeneración», «por omisión», la identificación de httpx. Añadirlas con su línea a la tabla de verificación, a la lista «Nunca sueltas sin tilde» de D18 y a la obligación 4 del plan, y dejar descrito en la tabla el método del barrido para que se pueda repetir.",
+    "research.md D18: lo que se afirma del comportamiento de misspell («revisa el fichero entero y casa palabras sueltas, delimitadas por espacios, comillas, /, -, _ o ., no dentro de un identificador en camelCase») se cita a la «memoria del proyecto de H2 y H3», que no es ni el código ni la documentación de la herramienta. Hay que citar lo comprobado en local. (a) golangci-lint v2.13.2, pkg/golinters/misspell/misspell.go 89-102: solo con mode restricted se usa ReplaceGo, que se limita a los comentarios; sin mode, que es lo que tiene .golangci.yml, se usa Replace sobre el contenido entero del fichero. (b) misspell v0.8.0, replace.go 19: una palabra es `[a-zA-Z0-9']+`, así que el apóstrofo forma parte de la palabra y no la delimita; corregir «comillas» en consecuencia. (c) replace.go 220-236: las palabras en camelCase se descartan (CaseStyle). (d) notwords.go 103-106: antes de buscar se blanquean URL, correos, nombres de sitio y rutas.",
+    "Protección de lo que fija la persona en la pausa del manifiesto (plan.md, paso 5, párrafo final, y obligación 3; research.md D15, «Ninguna tarea posterior declara docs/SOURCES.md ni terminos.go, así que el guardián rechaza cualquier cambio en ellos»; contracts/esquemas-fixtures-y-controles.md §3.2 y la tabla de §8). Tal como está escrito no es cierto sin una condición. El guardián admite todo lo que cuelga de una ruta declarada que sea un directorio (docs/WORKFLOW.md 71; workflow.yml 695-698: `case \"$f\" in \"$r\"|\"$r\"/*`). Una tarea de código posterior que declare internal/source/boe/ o docs/ podría cambiar terminos.go o la fila de docs/SOURCES.md. Una tarea [datos] posterior que declare internal/source/boe/testdata/, la de sintéticos o la de golden, podría cambiar las referencias: la regla de protegidos (workflow.yml 704) no la frena porque lleva [datos]. Añadir a la obligación 3 que, desde el paso 6, ninguna tarea declara como directorio docs/, internal/source/, internal/source/boe/ ni internal/source/boe/testdata/. Cada fichero del paquete se declara por su nombre, y cada subdirectorio de testdata por su ruta completa (testdata/sintetico/, testdata/golden/). Reescribir las frases de D15 y de contracts §3.2 y §8 para que digan que la protección depende de esa regla."
+  ]
+}

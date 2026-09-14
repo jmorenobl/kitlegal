@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-13T12:36:50Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902/texto/bloque/a1-30",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 13 Sep 2026 12:36:50 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a1-30\" tipo=\"precepto\" titulo=\"Artículo 118\">\n      <version id_norma=\"BOE-A-2017-12902\" fecha_publicacion=\"20171109\" fecha_vigencia=\"20180309\">\n        <p class=\"articulo\">Artículo 118. Expediente de contratación en contratos menores.</p>\n        <p class=\"parrafo\">1. Se consideran contratos menores los contratos de valor estimado inferior a 40.000 euros, cuando se trate de contratos de obras, o a 15.000 euros, cuando se trate de contratos de suministro o de servicios, sin perjuicio de lo dispuesto en el artículo 229 en relación con las obras, servicios y suministros centralizados en el ámbito estatal.</p>\n        <p class=\"parrafo\">En los contratos menores la tramitación del expediente exigirá el informe del órgano de contratación motivando la necesidad del contrato. Asimismo se requerirá la aprobación del gasto y la incorporación al mismo de la factura correspondiente, que deberá reunir los requisitos que las normas de desarrollo de esta Ley establezcan.</p>\n        <p class=\"parrafo\">2. En el contrato menor de obras, deberá añadirse, además, el presupuesto de las obras, sin perjuicio de que deba existir el correspondiente proyecto cuando normas específicas así lo requieran. Deberá igualmente solicitarse el informe de las oficinas o unidades de supervisión a que se refiere el artículo 235 cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra.</p>\n        <p class=\"parrafo\">3. En el expediente se justificará que no se está alterando el objeto del contrato para evitar la aplicación de las reglas generales de contratación, y que el contratista no ha suscrito más contratos menores que individual o conjuntamente superen la cifra que consta en el apartado primero de este artículo. El órgano de contratación comprobará el cumplimiento de dicha regla. Quedan excluidos los supuestos encuadrados en el artículo 168.a).2.º</p>\n        <p class=\"parrafo\">4. Los contratos menores se publicarán en la forma prevista en el artículo 63.4.</p>\n      </version>\n      <version id_norma=\"BOE-A-2020-1651\" fecha_publicacion=\"20200205\" fecha_vigencia=\"20200206\">\n        <p class=\"articulo\">Artículo 118. Expediente de contratación en contratos menores.</p>\n        <p class=\"parrafo\">1. Se consideran contratos menores los contratos de valor estimado inferior a 40.000 euros, cuando se trate de contratos de obras, o a 15.000 euros, cuando se trate de contratos de suministro o de servicios, sin perjuicio de lo dispuesto en el artículo 229 en relación con las obras, servicios y suministros centralizados en el ámbito estatal.</p>\n        <p class=\"parrafo\">2. En los contratos menores la tramitación del expediente exigirá la emisión de un informe del órgano de contratación justificando de manera motivada la necesidad del contrato y que no se está alterando su objeto con el fin de evitar la aplicación de los umbrales descritos en el apartado anterior.</p>\n        <p class=\"parrafo\">3. Asimismo se requerirá la aprobación del gasto y la incorporación al mismo de la factura correspondiente, que deberá reunir los requisitos que las normas de desarrollo de esta Ley establezcan.</p>\n        <p class=\"parrafo\">4. En el contrato menor de obras, deberá añadirse, además, el presupuesto de las obras, sin perjuicio de que deba existir el correspondiente proyecto cuando sea requerido por las disposiciones vigentes. Deberá igualmente solicitarse el informe de las oficinas o unidades de supervisión a que se refiere el artículo 235 cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra.</p>\n        <p class=\"parrafo\">5. Lo dispuesto en el apartado 2.º de este artículo no será de aplicación en aquellos contratos cuyo pago se verifique a través del sistema de anticipos de caja fija u otro similar para realizar pagos menores, siempre y cuando el valor estimado del contrato no exceda de 5.000 euros.</p>\n        <p class=\"parrafo\">6. Los contratos menores se publicarán en la forma prevista en el artículo 63.4.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica por la disposición final 1.1 del Real Decreto-ley 3/2020, de 4 de febrero. <a class=\"refPost\">Ref. BOE-A-2020-1651#df</a></p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

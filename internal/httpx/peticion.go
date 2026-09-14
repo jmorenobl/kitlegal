@@ -1,18 +1,27 @@
 package httpx
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
-// Peticion es lo que un adaptador de fuente pide: un método y una dirección, y
-// nada más. No lleva cabeceras porque la que importa no es suya —la
-// identificación la pone el paquete en toda petición (FR-009)— ni cuerpo
-// porque los únicos métodos admitidos son GET y HEAD. Los dos campos se validan
-// antes de abrir nada, y un valor inválido es un fallo de la clase «argumentos»
-// (data-model.md §2).
+// Peticion es lo que un adaptador de fuente pide: un método, una dirección y el
+// formato en que quiere el recurso, y nada más. No lleva un juego de cabeceras
+// porque la que no se negocia no es suya —la identificación la pone el paquete en
+// toda petición (FR-009)— y la única que una fuente necesita elegir es la del
+// formato (research D4 de H4); ni cuerpo, porque los únicos métodos admitidos son
+// GET y HEAD. Los tres campos se validan antes de abrir nada, y un valor inválido
+// es un fallo de la clase «argumentos» (data-model.md §2).
 type Peticion struct {
 	// Metodo es «GET» o «HEAD» (FR-010).
 	Metodo string
 	// URL es la dirección absoluta, de esquema http o https (D19).
 	URL string
+	// Acepta es el tipo de contenido que se pide en la cabecera Accept
+	// —«application/xml», «application/json»—, en la petición y en cada salto de
+	// su cadena de redirecciones. Vacío, la petición no lleva Accept (contrato
+	// httpx-acepta-e-instante §1 de H4).
+	Acepta string
 }
 
 // Respuesta es lo que el paquete devuelve cuando la petición no falla. Es un
@@ -38,6 +47,12 @@ type Respuesta struct {
 	// Ensayo es verdadero solo bajo --dry-run, y entonces la petición no se ha
 	// emitido: Estado es 0 y Cuerpo es nil (FR-065).
 	Ensayo bool
+	// Instante es el de emisión de la petición que entregó esta respuesta —la
+	// del último intento del último salto—, con la hora del cliente tomada justo
+	// antes de entregarla al transporte; en reproducción, al servir la grabación.
+	// Es la fecha de consulta que la fuente declara (FR-096). Cero en ensayo,
+	// donde no se emitió nada (contrato httpx-acepta-e-instante §2 de H4).
+	Instante time.Time
 }
 
 // Descripcion es la línea «<Metodo> <URL>» de la petición pedida: la que un

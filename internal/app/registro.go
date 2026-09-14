@@ -148,16 +148,25 @@ func validarVerbos(applet string, verbos []Verbo) error {
 	return nil
 }
 
-// RegistroDeProduccion es el registro del binario que se publica. En H1 está
-// **vacío**: el primer applet de producción llega en H4 y el de ejemplo no
-// se registra nunca aquí, sino en el binario que compila el test e2e, que usa
-// exactamente este mismo mecanismo (FR-009,
-// contracts/registro-y-describe.md §3).
+// RegistroDeProduccion es el registro del binario que se publica: el applet boe
+// con las dependencias de la red (DependenciasDeRed). Los applets de ejemplo no
+// se registran nunca aquí, sino en el binario que compila el test e2e, que usa
+// exactamente este mismo mecanismo (FR-001, FR-009,
+// contracts/registro-y-describe.md §3 de H1).
 //
-// Esta función es la raíz de composición del registro distribuido: cuando
-// registre applets, será aquí donde un registro inválido se convierta en un
-// fallo de arranque —un defecto de compilación que revienta antes de atender
-// ninguna invocación— y nunca en un código de salida de usuario (FR-008).
-func RegistroDeProduccion() *Registro {
-	return &Registro{}
+// Esta función es la raíz de composición del registro distribuido, y devuelve
+// el error del registro en lugar de ocultarlo: un registro inválido es un
+// defecto de quien escribió el applet, que TestRegistroDeProduccion impide
+// publicar, y si llegara al binario, Arrancar lo convierte en el fallo
+// inesperado antes de atender ninguna invocación, nunca en un código de salida
+// de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
+// nada ni abre nada.
+func RegistroDeProduccion() (*Registro, error) {
+	var registro Registro
+
+	if err := registro.Registrar(AppletBoe(DependenciasDeRed())); err != nil {
+		return nil, err
+	}
+
+	return &registro, nil
 }

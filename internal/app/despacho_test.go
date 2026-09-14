@@ -324,15 +324,15 @@ func TestDespachoNoAltera(t *testing.T) {
 	assert.Equal(t, primero.Args, segundo.Args)
 }
 
-// TestDespachoConRegistroVacio comprueba lo que hace en H1 el binario que se
-// publica, cuyo registro no tiene ningún applet: «kitlegal echo hola» termina
-// como cualquier otro nombre desconocido, y el mensaje dice que no hay ninguno
-// en lugar de enumerar una lista vacía (FR-009,
-// contracts/registro-y-describe.md §3).
+// TestDespachoConRegistroVacio comprueba el despacho sobre un registro sin ningún
+// applet, que es su sujeto y por eso se construye vacío tal cual: «kitlegal echo
+// hola» termina como cualquier otro nombre desconocido, y el mensaje dice que no
+// hay ninguno en lugar de enumerar una lista vacía (FR-009,
+// contracts/registro-y-describe.md §3 de H1).
 func TestDespachoConRegistroVacio(t *testing.T) {
 	t.Parallel()
 
-	_, err := Despachar(RegistroDeProduccion(),
+	_, err := Despachar(&Registro{},
 		[]string{"kitlegal", "echo", "hola"}, cli.Preliminar{})
 
 	require.ErrorIs(t, err, cli.ErrArgumentos)

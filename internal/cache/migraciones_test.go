@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"database/sql"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -213,6 +214,12 @@ func TestContextoCanceladoDuranteLaMigracion(t *testing.T) {
 		"el contexto terminado es la fila 15, no una migración que no se pudo aplicar: %v", err)
 	require.ErrorIs(t, err, context.Canceled, "la causa del contexto sigue alcanzable")
 	assert.Contains(t, err.Error(), ruta, "el mensaje nombra el fichero")
+
+	for _, sufijo := range []string{sufijoRegistroDeEscritura, sufijoMemoriaCompartida} {
+		_, err := os.Stat(ruta + sufijo)
+		require.ErrorIs(t, err, fs.ErrNotExist,
+			"al volver no queda ninguna conexión: la transacción se deshizo antes de contestar, no en otra goroutine")
+	}
 
 	assert.Equal(t, int64(0), consultaEntero(t, ruta, tablasDeLaVersion),
 		"la transacción se deshizo entera: no queda ninguna versión registrada (FR-026)")

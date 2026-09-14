@@ -1,0 +1,85 @@
+{
+  "data": [
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-1992-26318",
+      "rango": "Ley",
+      "titulo": "Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-26318",
+      "vigencia_agotada": "S"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-2015-10565",
+      "rango": "Ley",
+      "titulo": "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-2018-12131",
+      "rango": "Real Decreto-ley",
+      "titulo": "Real Decreto-ley 11/2018, de 31 de agosto, de transposición de directivas en materia de protección de los compromisos por pensiones con los trabajadores, prevención del blanqueo de capitales y requisitos de entrada y residencia de nacionales de países terceros y por el que se modifica la Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-12131",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-2010-3034",
+      "rango": "Real Decreto",
+      "titulo": "Real Decreto 137/2010, de 12 de febrero, por el que se establecen criterios para la emisión de la comunicación a los interesados prevista en el artículo 42.4 de la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-3034",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-2002-10229",
+      "rango": "Ley",
+      "titulo": "Ley 1/2002, de 20 de marzo, de Adecuación de los Procedimientos de la Administración Regional de Murcia a la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-10229",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-2001-14560",
+      "rango": "Ley",
+      "titulo": "Ley 6/2001, de 29 de junio, de adecuación de la normativa de la Comunidad Autónoma de Galicia a la Ley 4/1999, de 13 de enero, de modificación de la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2001-14560",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-1999-847",
+      "rango": "Ley",
+      "titulo": "Ley 4/1999, de 13 de enero, de modificación de la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1999-847",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-1994-19267",
+      "rango": "Real Decreto",
+      "titulo": "Real Decreto 1810/1994, de 5 de agosto, por el que se adecuan los procedimientos de Mutualismo Judicial y Fondo Especial de la Mutualidad General Judicial a la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1994-19267",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-1994-19268",
+      "rango": "Real Decreto",
+      "titulo": "Real Decreto 1772/1994, de 5 de agosto, por el que se adecuan determinados procedimientos administrativos en materia de transportes y carreteras a la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1994-19268",
+      "vigencia_agotada": "N"
+    },
+    {
+      "estado_consolidacion": "Finalizado",
+      "identificador": "BOE-A-1994-19269",
+      "rango": "Real Decreto",
+      "titulo": "Real Decreto 1773/1994, de 5 de agosto, por el que se adecuan determinados procedimientos administrativos en materia de telecomunicaciones a la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1994-19269",
+      "vigencia_agotada": "S"
+    }
+  ],
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Aprocedimiento%20AND%20titulo%3Aadministrativo%20AND%20titulo%3Acom%5Cu00fan%22%7D%7D%7D"
+}

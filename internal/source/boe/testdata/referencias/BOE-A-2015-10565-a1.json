@@ -1,0 +1,40 @@
+{
+  "norma": "BOE-A-2015-10565",
+  "bloque": "a1",
+  "grabacion_bloque": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a1.json",
+  "grabacion_metadatos": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json",
+  "campos": {
+    "titulo": {
+      "valor": "Artículo 1",
+      "boe_py": "línea 106 (atributo titulo del <bloque>), impreso en la 419"
+    },
+    "tipo": {
+      "valor": "precepto",
+      "boe_py": "línea 107 (atributo tipo del <bloque>)"
+    },
+    "fecha_version": {
+      "valor": "20151002",
+      "boe_py": "líneas 115-116 (fecha_publicacion de la última <version>; «original» si falta), impresa en la 420"
+    },
+    "fecha_vigencia": {
+      "valor": "20161002",
+      "boe_py": "línea 117 (fecha_vigencia de la última <version>), impresa en las 424-425"
+    },
+    "norma_modificadora": {
+      "valor": "BOE-A-2015-10565",
+      "boe_py": "línea 118 (id_norma de la última <version>), impresa en las 422-423"
+    },
+    "texto": {
+      "valor": "Artículo 1. Objeto de la Ley.\n1. La presente Ley tiene por objeto regular los requisitos de validez y eficacia de los actos administrativos, el procedimiento administrativo común a todas las Administraciones Públicas, incluyendo el sancionador y el de reclamación de responsabilidad de las Administraciones Públicas, así como los principios a los que se ha de ajustar el ejercicio de la iniciativa legislativa y la potestad reglamentaria.\n2. Solo mediante ley, cuando resulte eficaz, proporcionado y necesario para la consecución de los fines propios del procedimiento, y de manera motivada, podrán incluirse trámites adicionales o distintos a los contemplados en esta Ley. Reglamentariamente podrán establecerse especialidades del procedimiento referidas a los órganos competentes, plazos propios del concreto procedimiento por razón de la materia, formas de iniciación y terminación, publicación e informes a recabar.",
+      "boe_py": "líneas 120 y 132-136 (_elem_all_text de la última <version>: texto recursivo, líneas recortadas y sin vacías), impreso en la 428"
+    },
+    "avisos": {
+      "valor": [],
+      "boe_py": "líneas 186-212 (_check_vigencia sobre los metadatos: estado_consolidacion 4, estatus_derogacion S y vigencia_agotada S), impresos en las 414-415"
+    },
+    "url": {
+      "valor": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565#a1",
+      "boe_py": "línea 430 (https://www.boe.es/buscar/act.php?id=<norma>#<bloque>)"
+    }
+  }
+}

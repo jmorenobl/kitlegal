@@ -44,19 +44,29 @@ type Sobre struct {
 	Data any `json:"data"`
 }
 
-// Procedencia es el par que hace citable a un sobre: de dónde sale el contenido
-// y dónde puede comprobarse. Un applet que no consulta ninguna fuente externa
-// usa el espacio de nombres reservado kitlegal. / kitlegal:, que señala un
-// resultado calculado y no una cita de fuente pública (FR-016).
+// Procedencia es lo que hace citable a un sobre: de dónde sale el contenido,
+// dónde puede comprobarse y, cuando quien consultó lo sabe, cuándo se
+// consultó. Un applet que no consulta ninguna fuente externa usa el espacio de
+// nombres reservado kitlegal. / kitlegal:, que señala un resultado calculado y
+// no una cita de fuente pública (FR-016).
 type Procedencia struct {
 	Fuente string
 	URL    string
+	// FechaConsulta es el instante de la consulta que sostiene el contenido.
+	// El valor cero significa «no la declara quien consulta», y entonces el
+	// kernel fecha el sobre con su reloj al montarlo, como antes de que este
+	// campo existiera. Lo servido desde una caché la declara, para que el sobre
+	// no aparente más frescura que la consulta que lo obtuvo (FR-096,
+	// docs/ADR/0015).
+	FechaConsulta time.Time
 }
 
 // Validar rechaza las procedencias que no podrían sostener una cita: fuente
 // vacía, url vacía y url que no sea un URI absoluto. Es el mismo criterio que
 // aplica la descripción formal del sobre, que declara `format: uri` sobre esa
-// clave (contracts/sobre-de-salida.md §6, FR-017).
+// clave (contracts/sobre-de-salida.md §6, FR-017). La fecha de consulta no
+// interviene: es opcional, y su ausencia no impide la cita porque la pone el
+// kernel.
 func (p Procedencia) Validar() error {
 	switch {
 	case p.Fuente == "":
@@ -70,10 +80,12 @@ func (p Procedencia) Validar() error {
 	return nil
 }
 
-// Resultado es lo que devuelve un applet: de dónde viene el contenido, el
-// contenido y —solo en ensayo— lo que no llegó a hacerse. Ni Ok, ni Hash, ni
-// FechaConsulta, ni forma de presentación, ni código de salida; de todo eso se
-// ocupa el kernel, que es quien monta el sobre (FR-015, FR-044).
+// Resultado es lo que devuelve un applet: de dónde —y, si lo sabe, cuándo—
+// viene el contenido, el contenido y —solo en ensayo— lo que no llegó a
+// hacerse. Ni Ok, ni Hash, ni forma de presentación, ni código de salida; de
+// todo eso se ocupa el kernel, que es quien monta el sobre y quien lo fecha
+// cuando la procedencia no declara la fecha de consulta (FR-015, FR-044,
+// FR-096).
 type Resultado struct {
 	Procedencia Procedencia
 	Datos       any

@@ -1,0 +1,17 @@
+{
+  "data": {
+    "avisos": [],
+    "bloque": "a1",
+    "fecha_version": "20151002",
+    "fecha_vigencia": "20161002",
+    "hash_texto": "sha256:df591755f604770a5b34afbc5769eed6fdf6d0b6fb67414eec95d9ab526e8958",
+    "norma": "BOE-A-2015-10565",
+    "norma_modificadora": "BOE-A-2015-10565",
+    "texto": "Artículo 1. Objeto de la Ley.\n1. La presente Ley tiene por objeto regular los requisitos de validez y eficacia de los actos administrativos, el procedimiento administrativo común a todas las Administraciones Públicas, incluyendo el sancionador y el de reclamación de responsabilidad de las Administraciones Públicas, así como los principios a los que se ha de ajustar el ejercicio de la iniciativa legislativa y la potestad reglamentaria.\n2. Solo mediante ley, cuando resulte eficaz, proporcionado y necesario para la consecución de los fines propios del procedimiento, y de manera motivada, podrán incluirse trámites adicionales o distintos a los contemplados en esta Ley. Reglamentariamente podrán establecerse especialidades del procedimiento referidas a los órganos competentes, plazos propios del concreto procedimiento por razón de la materia, formas de iniciación y terminación, publicación e informes a recabar.",
+    "tipo": "precepto",
+    "titulo": "Artículo 1",
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565#a1",
+    "url_eli": "https://www.boe.es/eli/es/l/2015/10/01/39"
+  },
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a1"
+}

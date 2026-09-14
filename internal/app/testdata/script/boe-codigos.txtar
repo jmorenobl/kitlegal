@@ -1,0 +1,52 @@
+# Los fallos de boe terminan con su código estable y un sobre de fallo con su
+# clase y la url que fija FR-101: sin dirección que falló, la del kernel; con
+# ella, la del recurso de la fuente que no se encontró o no se pudo servir
+# (FR-100, FR-101; contrato errores-y-codigos §1).
+#
+# Como en argumentos.txtar, testscript solo distingue el éxito del fallo, así que
+# el código exacto lo comprueba el intérprete de órdenes. Dentro de las comillas
+# simples no hay expansión de variables: el binario se nombra por el PATH, donde
+# el e2e antepone el que acaba de construir.
+
+# Código 2: la invocación no llega a construir ninguna petición, así que el sobre
+# lleva la procedencia del kernel (filas 1-4).
+exec sh -c 'kitlegal boe --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'verbos de boe: buscar, indice, articulo, articulos, metadatos, analisis'
+
+exec sh -c 'kitlegal boe articulo --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'argumentos inválidos'
+
+exec sh -c 'kitlegal boe articulo BOE-A-2015 a21 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'la norma "BOE-A-2015" no tiene la forma BOE-A-<año>-<número>'
+
+exec sh -c 'kitlegal boe articulo BOE-A-2015-10565 ../a21 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'el bloque "\.\./a21" no tiene la forma de un id de bloque'
+
+exec sh -c 'kitlegal boe buscar "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cli","url":"kitlegal:cli","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+stderr 'la búsqueda no tiene ninguna palabra'
+
+# Código 4: --offline sin entrada. El sobre es de la fuente y cita el bloque que
+# falta (fila 5).
+exec sh -c 'kitlegal boe articulo BOE-A-2015-10565 a21 --offline --json; test $? -eq 4'
+stdout '\A\{"ok":false,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"fuente-no-disponible","mensaje":".+"\}\}\n\z'
+stderr '--offline'
+
+# Ninguno de los anteriores ha creado la caché: los de código 2 no la abren y
+# --offline la abre en solo lectura.
+! exists cache
+
+# Código 3: la fuente responde que el recurso no existe, y el sobre cita la
+# petición que lo dijo: el bloque, sin pedir los metadatos, y los metadatos de
+# una norma que no existe (filas 6 y 7).
+exec sh -c 'kitlegal boe articulo BOE-A-2015-10565 a9999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a9999","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"no-encontrado","mensaje":".+"\}\}\n\z'
+stderr 'a9999'
+
+exec sh -c 'kitlegal boe metadatos BOE-A-2099-99999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2099-99999/metadatos","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"no-encontrado","mensaje":".+"\}\}\n\z'
+stderr 'BOE-A-2099-99999'

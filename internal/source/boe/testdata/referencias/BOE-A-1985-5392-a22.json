@@ -1,0 +1,40 @@
+{
+  "norma": "BOE-A-1985-5392",
+  "bloque": "a22",
+  "grabacion_bloque": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-1985-5392_texto_bloque_a22.json",
+  "grabacion_metadatos": "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-1985-5392_metadatos.json",
+  "campos": {
+    "titulo": {
+      "valor": "Artículo 22",
+      "boe_py": "línea 106 (atributo titulo del <bloque>), impreso en la 419"
+    },
+    "tipo": {
+      "valor": "precepto",
+      "boe_py": "línea 107 (atributo tipo del <bloque>)"
+    },
+    "fecha_version": {
+      "valor": "20151031",
+      "boe_py": "líneas 115-116 (fecha_publicacion de la última <version>; «original» si falta), impresa en la 420"
+    },
+    "fecha_vigencia": {
+      "valor": "20151031",
+      "boe_py": "línea 117 (fecha_vigencia de la última <version>), impresa en las 424-425"
+    },
+    "norma_modificadora": {
+      "valor": "BOE-A-2015-11723",
+      "boe_py": "línea 118 (id_norma de la última <version>), impresa en las 422-423"
+    },
+    "texto": {
+      "valor": "Artículo 22.\n1. El Pleno, integrado por todos los Concejales, es presidido por el Alcalde.\n2. Corresponden, en todo caso, al Pleno municipal en los Ayuntamientos, y a la Asamblea vecinal en el régimen de Concejo Abierto, las siguientes atribuciones:\na) El control y la fiscalización de los órganos de gobierno.\nb) Los acuerdos relativos a la participación en organizaciones supramunicipales; alteración del término municipal; creación o supresión de municipios y de las entidades a que se refiere el artículo 45; creación de órganos desconcentrados; alteración de la capitalidad del municipio y el cambio de nombre de éste o de aquellas entidades y la adopción o modificación de su bandera, enseña o escudo.\nc) La aprobación inicial del planeamiento general y la aprobación que ponga fin a la tramitación municipal de los planes y demás instrumentos de ordenación previstos en la legislación urbanística, así como los convenios que tengan por objeto la alteración de cualesquiera de dichos instrumentos.\nd) La aprobación del reglamento orgánico y de las ordenanzas.\ne) La determinación de los recursos propios de carácter tributario; la aprobación y modificación de los presupuestos, y la disposición de gastos en materia de su competencia y la aprobación de las cuentas; todo ello de acuerdo con lo dispuesto en la Ley Reguladora de las Haciendas Locales.\nf) La aprobación de las formas de gestión de los servicios y de los expedientes de municipalización.\ng) La aceptación de la delegación de competencias hecha por otras Administraciones públicas.\nh) El planteamiento de conflictos de competencias a otras entidades locales y demás Administraciones públicas.\ni) La aprobación de la plantilla de personal y de la relación de puestos de trabajo, la fijación de la cuantía de las retribuciones complementarias fijas y periódicas de los funcionarios y el número y régimen del personal eventual.\nj) El ejercicio de acciones judiciales y administrativas y la defensa de la corporación en materias de competencia plenaria.\nk) La declaración de lesividad de los actos del Ayuntamiento.\nl) La alteración de la calificación jurídica de los bienes de dominio público.\nm) La concertación de las operaciones de crédito cuya cuantía acumulada, dentro de cada ejercicio económico, exceda del 10 por ciento de los recursos ordinarios del Presupuesto -salvo las de tesorería, que le corresponderán cuando el importe acumulado de las operaciones vivas en cada momento supere el 15 por ciento de los ingresos corrientes liquidados en el ejercicio anterior- todo ello de conformidad con lo dispuesto en la Ley Reguladora de las Haciendas Locales.\nn) (Derogada)\nñ) La aprobación de los proyectos de obras y servicios cuando sea competente para su contratación o concesión, y cuando aún no estén previstos en los presupuestos.\no) (Derogada)\np) Aquellas otras que deban corresponder al Pleno por exigir su aprobación una mayoría especial.\nq) Las demás que expresamente le confieran las leyes.\n3. Corresponde, igualmente, al Pleno la votación sobre la moción de censura al Alcalde y sobre la cuestión de confianza planteada por el mismo, que serán públicas y se realizarán mediante llamamiento nominal en todo caso, y se rigen por lo dispuesto en la legislación electoral general.\n4. El Pleno puede delegar el ejercicio de sus atribuciones en el Alcalde y en la Junta de Gobierno Local, salvo las enunciadas en el apartado 2, párrafos a), b), c), d), e), f), g), h), i), l) y p), y en el apartado 3 de este artículo.\nSe modifica el apartado 2 por la disposición adicional 9.1 de la Ley del Suelo y Rehabilitación Urbana, texto refundido aprobado por Real Decreto Legislativo 7/2015, de 30 de octubre. Ref. BOE-A-2015-11723#danovena.\nSe modifica el apartado 2 por la disposición adicional 9.1 del Real Decreto Legislativo 2/2008, de 20 de junio. Ref. BOE-A-2008-10792\nSe deroga el apartado 1.n) y .o) por la disposición derogatoria única.b) de la Ley 30/2007, de 30 de octubre. Ref. BOE-A-2007-18874\nSe modifica el párrafo primero y las letras c) y o) del apartado 2 por la disposición adicional 9.1 de la Ley 8/2007, de 28 de mayo. Ref. BOE-A-2007-10701\nSe modifica por el art. 1.1 de la Ley 57/2003, de 16 de diciembre. Ref. BOE-A-2003-23103\nSe modifica por el art. 1.4 de la Ley 11/1999, de 21 de abril. Ref. BOE-A-1999-8932\nSe modifica el apartado 2.c) por el art. 4.3 de la Ley 7/1997, de 14 de abril. Ref. BOE-A-1997-7879\nSe modifica el apartado 2.c) por el art. 4.3 del Real Decreto-Ley 5/1996, de 7 de junio. Ref. BOE-A-1996-13000\nRedactado conforme a la corrección de errores publicada en BOE núm. 147, de 18 de junio de 1996. Ref. BOE-A-1996-13887",
+      "boe_py": "líneas 120 y 132-136 (_elem_all_text de la última <version>: texto recursivo, líneas recortadas y sin vacías), impreso en la 428"
+    },
+    "avisos": {
+      "valor": [],
+      "boe_py": "líneas 186-212 (_check_vigencia sobre los metadatos: estado_consolidacion 4, estatus_derogacion S y vigencia_agotada S), impresos en las 414-415"
+    },
+    "url": {
+      "valor": "https://www.boe.es/buscar/act.php?id=BOE-A-1985-5392#a22",
+      "boe_py": "línea 430 (https://www.boe.es/buscar/act.php?id=<norma>#<bloque>)"
+    }
+  }
+}

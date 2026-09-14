@@ -43,6 +43,11 @@ type Error struct {
 	// alcance. No entra en el mensaje: el detalle técnico va al registro de
 	// eventos, no al sobre (FR-045).
 	Causa error
+	// Instante es el de emisión del último intento del último salto si llegó a
+	// emitirse y, si no, el instante en que Pedir abandonó la petición; los dos
+	// con la hora del cliente. Va a cero en los fallos de configuración, que no
+	// tienen petición (contrato httpx-acepta-e-instante §2 de H4).
+	Instante time.Time
 
 	// clase es la que el error declara al kernel, y es privada porque no se
 	// negocia desde fuera: la fija el constructor de cada situación y Clase() la
@@ -126,6 +131,19 @@ func (e *Error) Clase() schema.Clase {
 // Error implementa el puerto del dominio, y que lo siga implementando no depende
 // de que alguien lo recuerde.
 var _ schema.ConClase = (*Error)(nil)
+
+// fechado devuelve una copia del error con el instante que se le declara. Es una
+// copia, y no el mismo error, porque el que Pedir recibe de la cadena puede estar
+// compartido: la denegación del robots.txt de un sitio se guarda y se entrega a
+// toda petición a ese sitio, también desde otras goroutines, y fecharla en su
+// sitio sería una carrera de datos que además cambiaría el instante de las demás
+// (FR-015, FR-057).
+func (e *Error) fechado(instante time.Time) *Error {
+	copia := *e
+	copia.Instante = instante
+
+	return &copia
+}
 
 // motivoSinDeclarar es el mensaje de un *Error que no lo produjo ningún
 // constructor de este paquete —uno nulo, o uno construido a cero desde fuera—,

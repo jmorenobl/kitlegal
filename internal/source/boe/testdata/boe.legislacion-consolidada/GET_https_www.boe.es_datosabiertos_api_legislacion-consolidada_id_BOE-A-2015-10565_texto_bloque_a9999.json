@@ -1,0 +1,34 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-13T11:54:30Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a9999",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 404,
+    "cabeceras": {
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 13 Sep 2026 11:54:30 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>404</code>\n    <text>La información solicitada no existe</text>\n  </status>\n  <data/>\n</response>\n"
+  }
+}

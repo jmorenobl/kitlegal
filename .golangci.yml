@@ -12,8 +12,23 @@ run:
   # ejecuta con test-integration: sin ella ningún linter —sqlclosecheck y
   # rowserrcheck incluidos— cargaría esos ficheros, y uno que ni compila pasaría
   # el lint en verde (H3 FR-041, research.md D11).
+  #
+  # Y los que llevan fuentes: la verificación contra la fuente real
+  # (internal/app/fuentes_red_test.go) solo la compila scripts/verify-sources.sh,
+  # que toca la red y que ejecutan make verify-sources y el flujo nocturno, nunca
+  # make ci ni ninguna tarea; sin la etiqueta aquí, ese fichero quedaría fuera de
+  # todo control y uno que ni compila pasaría el lint en verde (H4 FR-115,
+  # research.md D13).
+  #
+  # Y los que llevan grabacion: el arnés que graba las respuestas reales de una
+  # fuente (internal/source/boe/grabacion_test.go) solo lo compila
+  # scripts/grabar-fixtures.sh, que toca la red y que ni make ci ni ninguna tarea
+  # ejecutan; sin la etiqueta aquí, ese fichero quedaría fuera de todo control y
+  # uno que ni compila pasaría el lint en verde (H4 research.md D13).
   build-tags:
     - integration
+    - fuentes
+    - grabacion
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
@@ -205,14 +220,39 @@ linters:
       # falso positivo a falso positivo en ignore-rules (research.md D9).
       locale: US
       ignore-rules:
+        # «Procedimiento administrativo común», la búsqueda de la lista cerrada de
+        # grabación cuya dirección fija byte a byte el contrato verbos-y-salidas §1
+        # de H4 y que TestConsultaDeBusqueda, en
+        # internal/source/boe/busqueda_test.go, copia tal cual con su consulta
+        # titulo:administrativo (FR-030, research.md D8 y D18); misspell lo lee
+        # como «administration».
+        - administrativo
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Capitulo», el tipo que TipoDesdeID, en internal/source/boe/ids.go,
+        # infiere de ids como ci1 o cv3, y valor del enumerado tipo de las
+        # entradas del índice que fija el modelo de datos de H4 (FR-040,
+        # research.md D9 y D18); misspell lo lee como «capitol».
+        - capitulo
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles
+        # «Dependencias», las del contrato del applet boe de H4 —DependenciasDeBoe
+        # y DependenciasDeRed— y las que Nueva, en internal/source/boe/fuente.go,
+        # exige al componer la fuente: sus comentarios y sus mensajes nombran las
+        # dependencias ausentes (FR-121, research.md D18); misspell lo lee como
+        # «dependencies».
+        - dependencias
         # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
         # fija el contrato del applet; misspell lo lee como «Description».
         - descripcion
+        # «Disposicion», el tramo que comparten disposicion_adicional,
+        # disposicion_transitoria, disposicion_derogatoria y disposicion_final,
+        # los tipos que TipoDesdeID infiere de ids como da3 o dt1, y la clave
+        # fecha_disposicion de los metadatos, que fija el modelo de datos de H4
+        # (FR-040, FR-050, research.md D9 y D18); misspell lo lee como
+        # «disposition».
+        - disposicion
         # «Inventario de tests», la sección de plan.md que cada tabla cita;
         # misspell lo lee como «Inventor».
         - inventario
@@ -220,6 +260,15 @@ linters:
         # larga de la tabla del contrato de grabación §2 de H2 que
         # TestNombreDeGrabacion copia tal cual; misspell lo lee como «legislation».
         - legislacion
+        # «Materias», el verbo de refs/boe.py que la entrada 32 del porte anotado
+        # en internal/source/boe/doc.go deja fuera de alcance, y la clave de data
+        # del verbo analisis, que fija el modelo de datos de H4 (FR-120,
+        # research.md D18); misspell lo lee como «materials».
+        - materias
+        # «Expresiones regulares», el análisis de emergencia de _fallback_parse
+        # que la entrada 7 del porte anotado en internal/source/boe/doc.go no porta
+        # (H4 FR-120, research.md D18); misspell lo lee como «regulars».
+        - regulares
         # «Reproduccion», el tramo del directorio de grabaciones que fija el
         # contrato de grabación de H2 (testdata/reproduccion/<fuente>) y que nombra
         # el subtest sin-cache-la-reproduccion-falla del inventario de tests de H3;

@@ -178,17 +178,22 @@ func TestSobre(t *testing.T) {
 	t.Run("el resultado lleva procedencia, datos y ensayo, y nada más", func(t *testing.T) {
 		t.Parallel()
 
-		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella,
-		// la fecha de consulta ni un código de salida: todo eso lo pone el
-		// kernel, y la forma de garantizarlo es que el tipo no tenga más campos
-		// (FR-015, FR-044, contracts/registro-y-describe.md §1).
+		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella
+		// ni un código de salida: todo eso lo pone el kernel, y la forma de
+		// garantizarlo es que el tipo no tenga más campos (FR-015, FR-044,
+		// contracts/registro-y-describe.md §1).
 		//
 		// Ensayo es el tercero y el único que H2 añade: la descripción de lo que
 		// una capa con efectos no llegó a hacer bajo --dry-run, que el kernel
 		// presenta y que no entra en el sobre (docs/ADR/0011).
+		//
+		// La fecha de consulta no es un campo del resultado sino de su
+		// procedencia, y H4 la añade como tercero: quien consultó la declara si
+		// la conoce, y el kernel sigue fechando cuando no (docs/ADR/0015).
 		assert.Equal(t, []string{"Procedencia", "Datos", "Ensayo"},
 			camposDe(reflect.TypeFor[Resultado]()))
-		assert.Equal(t, []string{"Fuente", "URL"}, camposDe(reflect.TypeFor[Procedencia]()))
+		assert.Equal(t, []string{"Fuente", "URL", "FechaConsulta"},
+			camposDe(reflect.TypeFor[Procedencia]()))
 	})
 
 	t.Run("las restricciones del contrato viajan en las etiquetas del sobre", func(t *testing.T) {
@@ -218,6 +223,93 @@ func TestSobre(t *testing.T) {
 		require.NoError(t, err)
 		assert.Regexp(t, PatronHuella, huella,
 			"el patrón que declara la etiqueta es el que cumplen las huellas que produce el dominio")
+	})
+}
+
+// TestProcedenciaFechaDeConsultaOpcional fija que la fecha de consulta es un
+// dato opcional de la procedencia: quien consulta la declara cuando la conoce,
+// su valor cero significa «no la declara quien consulta» y Validar ni la exige
+// ni la tiene en cuenta. Así la ampliación es retrocompatible: una procedencia
+// escrita antes de H4, sin fecha, valida igual que antes, y una fecha no hace
+// citable una procedencia que no lo era (FR-096, research.md D3,
+// contracts/puerto-y-applet.md §2).
+func TestProcedenciaFechaDeConsultaOpcional(t *testing.T) {
+	t.Parallel()
+
+	// Un instante con desplazamiento distinto del de TestSobre, para que
+	// ningún caso pase por coincidir con otro instante del paquete.
+	consultada := time.Date(2026, time.September, 4, 8, 45, 30, 250_000_000, time.FixedZone("CET", 60*60))
+
+	casos := []struct {
+		nombre      string
+		procedencia Procedencia
+		esperado    error
+	}{
+		{
+			nombre: "fuente pública",
+			procedencia: Procedencia{
+				Fuente: "boe.legislacion-consolidada",
+				URL:    "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565",
+			},
+		},
+		{
+			nombre:      "applet calculado",
+			procedencia: Procedencia{Fuente: "kitlegal.echo", URL: "kitlegal:applet/echo"},
+		},
+		{
+			nombre:      "fuente vacía",
+			procedencia: Procedencia{URL: "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565"},
+			esperado:    ErrFuenteVacia,
+		},
+		{
+			nombre:      "url vacía",
+			procedencia: Procedencia{Fuente: "boe.legislacion-consolidada"},
+			esperado:    ErrURLVacia,
+		},
+		{
+			nombre:      "url que no es un uri absoluto",
+			procedencia: Procedencia{Fuente: "boe.legislacion-consolidada", URL: "www.boe.es/buscar"},
+			esperado:    ErrURLNoAbsoluta,
+		},
+		{
+			nombre:   "valor cero",
+			esperado: ErrFuenteVacia,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.True(t, caso.procedencia.FechaConsulta.IsZero(),
+				"una procedencia que no nombra la fecha no la declara")
+
+			conFecha := caso.procedencia
+			conFecha.FechaConsulta = consultada
+
+			for _, variante := range []Procedencia{caso.procedencia, conFecha} {
+				err := variante.Validar()
+				if caso.esperado == nil {
+					require.NoError(t, err,
+						"la fecha no es obligatoria: con ella o sin ella la procedencia valida (%+v)", variante)
+
+					continue
+				}
+				require.ErrorIs(t, err, caso.esperado,
+					"la fecha no hace citable lo que no lo es (%+v)", variante)
+			}
+		})
+	}
+
+	t.Run("la fecha es un instante con su zona, no un texto", func(t *testing.T) {
+		t.Parallel()
+
+		// Un time.Time conserva el desplazamiento con el que se consultó y el
+		// kernel lo serializa en RFC 3339 como el resto de fecha_consulta; un
+		// texto obligaría a quien consulta a elegir el formato del sobre.
+		campo, existe := reflect.TypeFor[Procedencia]().FieldByName("FechaConsulta")
+		require.True(t, existe, "la procedencia declara el campo FechaConsulta")
+		assert.Equal(t, reflect.TypeFor[time.Time](), campo.Type)
 	})
 }
 

@@ -51,7 +51,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-sync secrets mod-verify mod-tidy-check release \
+	vuln schema-check verify-sources skills-sync secrets mod-verify mod-tidy-check release \
 	check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
@@ -94,9 +94,13 @@ fmt-check: check-tools
 vuln: check-tools
 	$(GOVULNCHECK) ./...
 
-## schema-check: validación de salidas contra esquemas (los aportan H4 y H10)
-schema-check:
-	@echo "schema-check: no hay schemas/ todavía; los aportan H4 (borrador) y H10 (contrato)"
+## schema-check: comprueba que schemas/ coincide con lo que emite --describe de cada verbo, sin escribir nada
+schema-check: check-tools
+	go test -count=1 -run '^TestEsquemasPublicados$$' ./internal/app/
+
+## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
+verify-sources: check-tools
+	scripts/verify-sources.sh
 
 ## skills-sync: regeneración de las referencias de las skills (las aporta H5)
 skills-sync:

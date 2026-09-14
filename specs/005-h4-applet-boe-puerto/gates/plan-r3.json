@@ -1,0 +1,69 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "Está completo: una fila por principio (I-IX) y una por regla de dependencia (las cinco de §IV, la del grafo del roadmap §2, la de ejemplos del ADR 0010 y la del espacio reservado del ADR 0006). Además trae gates por capa, las reglas del modo desatendido y la reevaluación tras el diseño. Es veraz contra el código. Las listas de depguard de .golangci.yml son las que dice la tabla: 66-100 `core` deniega internal/cli, internal/source, log/slog, os, io y net/http; 110-117 `red`; 126-137 `sql`; 146-154 `ejemplo`. forbidigo, en 182-200, vigila os.Exit, fmt.Print*, os.Stdout y os.Stderr. En internal/arch_test.go, R3 va sin dueño obligatorio (79-101), modulosDelBinario está en 115-122 y los dos tests que se retiran están en 158 y 190. La fila III coincide con el orden: guiones e2e en el paso 12, justo detrás del registro."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "No entra ninguna dependencia nueva. Las que se usan son de §V y go.mod ya las fija. La ampliación de modulosDelBinario, que TestDependenciasDelBinario mide con `go list -deps` sobre ./cmd/kitlegal (arch_test.go 211-225), está justificada en Complexity Tracking, en la obligación 6 y en D14, módulo a módulo, y S10 la declara orientativa hasta el enlace."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "internal/core/source.go importa solo context, time y core/schema. internal/source/boe usa core.Cache y los tipos de httpx, sin net/http ni SQLite. Ninguna lista de depguard restringe a internal/source importar internal/cli, así que TestClasesDeErrorDeBoe puede usar cli.Clasificar (errors.go 90) y cli.CodigoSalida (117). La reproducción del binario de e2e casa con el contrato de H2: Replay recibe el directorio `<raíz>/<fuente>` (httpx/cliente.go 267-269, 278-298) y el plan le pasa reproduccion/boe.legislacion-consolidada. Validación de Acepta, ConHora y marca de emisión caen en ficheros que la obligación 3.1 ya declara: configuracionDe y comprobarReproduccion están en cliente.go (308, 348). os.Exit solo en las dos raíces vía Arrancar. Lo presenta el kernel (internal/app/main.go 362-374)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/errores-y-codigos.md trae una tabla cerrada de 23 filas. boe.Error, httpx.Error y cache.Error declaran su clase, y las clases existen con esos valores (internal/core/schema/error.go 15-28). En solo lectura, un cliente sin cache.db se construye sin base (internal/cache/cliente.go 134-139) y Get devuelve la ausencia como clase 4 (entradas.go 64-68, 93-94). Así, --offline sale con 4 y --dry-run, con el contexto vivo, la trata como ausencia. httpx.Pedir en ensayo vuelve antes de la cadena (cliente.go 418-423). conPlazoAgotado convierte el plazo agotado en 4 (main.go 385-397). Ninguna fila da 6."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "El plan trae inventario de tests por fichero, 22 controles mecánicos con su demostración y fixtures en lista cerrada (22 recursos y el robots.txt, 7 sintéticos, 5 referencias, 13 golden, 2 esquemas, 5 guiones). El e2e de la entrega va en el paso 12, la primera tarea que puede dejarlo en verde (workflow.yml 432). Las referencias de FR-116 las escribe una persona en la pausa del manifiesto, antes de todo código de lectura. Las admisiones temporales (fila «pendiente», comparadores sobre lo que exista) se retiran en los pasos 6, 14 y 16."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "No entra nada de *Fuera de alcance* (spec.md 377-399): ni sumario, vigilar, eli ni buscar-materia; ni grafo, versiones históricas, paginación, revalidación, mantenimiento de caché ni skill. Las piezas que el spec no enumera están en Complexity Tracking con su motivo, y las tres obligaciones heredadas (FR-002, FR-122, FR-124) las recoge el propio spec (Assumptions)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No hay ningún //nolint, t.Skip ni TODO diferido previsto. Sin KITLEGAL_RECORD=1, TestGrabarFixtures falla con t.Fatal. El binario de e2e deja de usar panic (D16). Los tipos inesperados fallan con 4 en vez de ocultarse. El error de cerrar la caché se une con errors.Join. Las lecturas y escrituras de testdata siguen G304 y G306, y la escritura va en un auxiliar distinto por G703. Las admisiones temporales van justificadas en Complexity Tracking y tienen tarea que las retira."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1-D19 registran cada decisión con las alternativas rechazadas y su motivo. Ejemplos: puerto y firma de Source (D2), fecha en Procedencia (D3), marca de emisión en el contexto (D4), clave con versión y dirección de la API (D5), recorrido de ElementTree (D6), codificación a mano de json.dumps+quote (D8), reproducción solo en el binario de e2e (D13) y constantes en terminos.go (D15)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": false,
+      "evidencia": "Los dos motivos de misspell de la ronda anterior están corregidos, y lo he comprobado. (1) He repetido el barrido. A los diez documentos les quité tildes y diéresis, los pasé a minúsculas y busqué cada palabra española como primera columna de una pareja en misspell v0.8.0. El resultado son exactamente las 60 palabras de los cuatro grupos de research, en las líneas citadas: administrativo 527, identificacion 710, configuracion 1328, capitulo 21070, omision 26355, recorre 26678… El recuento de parejas coincide (28096 y 1618). Ninguna palabra que D18 propone en su lugar está en words.go ni en words_us.go: adaptar…verificar, defecto, bandera, omite, identifica, carpeta, visita, recorrido, instante, choca, publica, resolver, obtener, accesibles. La sonda positiva (`capitulo`) sí aparece. (2) Las citas de D18 son exactas: golangci-lint misspell.go 31-32, 53-54, 66-68, 77-80 y 89-102; misspell replace.go 19, 49-64, 85-112, 143-168 y 218-258 (220, 222, 232-236, 238, 254); notwords.go 17, 76-84 y 103-106; case.go 19-44; stringreplacer.go 186, 210 y 234; .golangci.yml 203-235. También he muestreado otras citas y son exactas: gosec commandinjection.go 34, pathtraversal.go 35, rulelist.go 92/94 y fileperms.go 80-81; testscript.go 145-159, 495, 1211 y 1239; xml.go 286-287; ElementPath.py 200 y 209; ElementTree.py 1486-1511. (3) La regla de no declarar directorios que contengan lo fijado ya está en la obligación 3, en D15 y en los contratos §3.2 y §8. Pero la afirmación que la acompaña sobre el workflow no es cierta: «con ella, el guardián rechaza cualquier cambio en lo fijado». El extractor de rutas (workflow.yml 606) aplica `grep -oE` al texto entero de la línea de la tarea. Lo comprobé en local con esa misma expresión sobre una línea de ejemplo: «… TestFuenteCoincideConSources en internal/source/boe/terminos_test.go (lee docs/SOURCES.md; no toca internal/source/boe/terminos.go) y TestGrabacionesCompletas sobre internal/source/boe/testdata/grabaciones.json y internal/source/boe/testdata/referencias/ …». Devuelve como rutas declaradas docs/SOURCES.md, internal/source/boe/terminos.go, internal/source/boe/testdata/grabaciones.json e internal/source/boe/testdata/referencias/, y el guardián (698) admite entonces cambios en todas ellas."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Lo he recorrido escenario a escenario contra el código. Hoy schema-check es un aviso sin prerrequisitos (Makefile 98-100), y el plan lo cambia. check-tools (131-146) solo pide go, git y el toolchain, así que funciona en el clon. El binario de e2e se construye con `go install` sin -race (e2e_test.go 116). La ayuda enumera `^  contar  Cuenta ` (ayuda.txtar 16), así que `^  boe ` casa. Los valores de clase son «argumentos» y «fuente-no-disponible» (schema/error.go 15, 20). La ruta por omisión es ~/.cache/kitlegal (cache/ruta.go 62), la del escenario 1. En solo lectura no se crea la base (cliente.go 62-72, 134-139), así que 10.4 da 4, 10.5 da 0 y 10.6 se cumple. Las líneas de ensayo son las de main.go 366-371. Con -v, testscript imprime el registro del guion (testscript.go 596). Lo negativo va sobre el clon de /tmp, fuzz incluido, y en el árbol solo quedan coverage.* (.gitignore 6). La red solo aparece donde se declara (make vuln y 15.b)."
+    }
+  ],
+  "motivos": [
+    "Protección de lo que fija la persona en la pausa del manifiesto: falta la mitad de la regla. El extractor de rutas del workflow (.specify/workflows/hito/workflow.yml 606: `printf '%s' \"$texto\" | tr … | grep -oE …`) no se limita a una lista de rutas, sino que toma como declarada **toda ruta completa que aparezca en cualquier parte del texto de la línea**. Eso incluye los ficheros que la tarea solo lee, compara o dice no tocar («lee docs/SOURCES.md», «contra internal/source/boe/testdata/referencias/», «no toca internal/source/boe/terminos.go»). Comprobado en local: con esa misma expresión, una línea así declara docs/SOURCES.md, internal/source/boe/terminos.go, internal/source/boe/testdata/grabaciones.json e internal/source/boe/testdata/referencias/, y el guardián (698) admite cambios en ellas. El riesgo es real en la tarea del paso 6, cuyo cometido natural es describir que TestFuenteCoincideConSources lee la fila de SOURCES.md y que TestGrabacionesCompletas y TestReferenciasCompletas leen el manifiesto y las referencias. En una tarea de código, SOURCES.md y terminos.go están fuera de testdata/, así que no los frena la regla de [datos] (704) ni los pausa clasificar_datos (882-900); solo quedaría la pausa final, donde SOURCES.md aparece entero como fichero nuevo del hito. Qué cambiar: (a) plan.md, obligación 3: en la introducción, decir que el extractor toma cada ruta del texto completo de la línea; en 3.2, añadir que, desde el paso 6, ninguna línea de tarea contiene en ninguna parte de su texto la ruta completa de docs/SOURCES.md, internal/source/boe/terminos.go o internal/source/boe/testdata/grabaciones.json, ni de internal/source/boe/testdata/boe.legislacion-consolidada/ o internal/source/boe/testdata/referencias/ (ni ninguna ruta bajo ellos), ni un directorio que los contenga; que para referirse a ellos se usa el nombre sin directorio (`SOURCES.md`, `terminos.go`, `grabaciones.json`) o el nombre del test, que el guardián no puede casar con la ruta completa (698: `\"$r\"|\"$r\"/*`); en 3.3, que la comprobación de tasks.md se aplica a toda ruta que aparezca en el texto de cada línea, no solo a las que la tarea pretende declarar. (b) Reescribir con la regla completa, en lugar de «ninguna tarea declara», los otros sitios que afirman la protección: plan.md, paso 5 (párrafo final), y la viñeta «TestFuenteCoincideConSources en dos pasos» de la reevaluación tras el diseño; research.md, D15 («Que ninguna tarea posterior cambie la fila ni terminos.go depende de una regla de declaración…»), añadiendo a «Verificado en» de 606 la comprobación con una línea que menciona rutas en la prosa; contracts/esquemas-fixtures-y-controles.md §3.2 («Que ninguna tarea posterior cambie lo confirmado aquí…») y el párrafo bajo la tabla de §8; y el comentario de terminos.go en contracts/puerto-y-applet.md §3.1 («Desde la tarea siguiente, ninguna declara este fichero ni una ruta que lo contenga»)."
+  ]
+}

@@ -17,7 +17,7 @@ Antes de escribir código, lee los documentos semilla de `refs/` en este orden:
 1. `refs/mapa-sistema-legal-skills.md` — sistema legal español, fuentes con semáforo de automatizabilidad (🟢 API / 🟡 scraping / 🔴 requiere identidad humana) y catálogo de skills.
 2. `refs/kitlegal-estructura-y-ecosistema.md` — estructura del monorepo, convenciones del multicall, packs por vertical, distribución (skills, plugin, MCP, librería Go).
 3. `refs/kitlegal-grafo.md` — grafo legal sobre ELI en SQLite (mundo público + asunto privado), alimentación por uso, `graph check` y reglas de anomalías.
-4. `refs/boe.py` — solo para H4: copia congelada (2026-05-14) de la skill `boe-fiscal` en Python, el fuente que se porta a `internal/source/boe`. Material de lectura, no código del producto: no se ejecuta, no se mantiene y no entra en ningún gate.
+4. `refs/boe.py` — solo para H4: copia congelada (2026-05-14) de la skill `boe-fiscal` en Python, el fuente que se porta a `internal/source/boe`. Material de lectura, no código del producto: no se mantiene y no entra en ningún gate. Tampoco se ejecuta dentro del repositorio: la única excepción es la pausa `[datos]` que deriva las referencias del diff de aceptación, donde un guion de un solo uso, fuera del repositorio y sin versionar, importa este fichero sin modificarlo y le sustituye la red por las grabaciones. Ni el producto, ni los tests, ni `make ci` necesitan Python.
 
 `refs/00-README.md` resume el estado, el primer hito y las decisiones cerradas. Ante conflicto, la constitución y `docs/ROADMAP.md` prevalecen sobre `refs/`.
 

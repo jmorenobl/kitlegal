@@ -1,0 +1,64 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:52 «ci: todos los controles en verde» (golangci-lint 0 issues, test -race -shuffle=on, test-integration, govulncheck sin vulnerabilidades, schema-check real, gitleaks sin hallazgos, go mod verify y tidy -diff). Reproducido en un clon desechable de HEAD c25f6e3 en /tmp/kitlegal-juezb: `make ci` exit=0. `git status --porcelain` vacío en el árbol y en el clon. Cobertura total 95,2 % en el coverage.out del clon; gates/evidencia-plataforma.md:27-28 codecov/project 94,73 % e internal/core 90,36 % (umbrales 70 % y 85 % sin tocar; go.mod, go.sum y codecov.yml no cambian)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo test corre sin red sobre httpx.Replay y sintéticos; los fixtures (internal/source/boe/testdata/{boe.legislacion-consolidada,sintetico,golden,referencias}, internal/app/testdata/script/boe-*.txtar) son los que piden FR-112, FR-113, FR-114 y FR-116. 24 mutaciones en el clon, todas detectadas por los tests que lo prometen: afirmativo «S»→«X» y orden de avisos en avisos.go (TestAvisosDe, TestArticuloCoincideConBoePy, TestMetadatos, TestGolden); vigenciaCorta 300→600 s (TestFuenteNombreVigenciasYTerminos, TestCacheDeLosSeisVerbos); primera versión en vez de la última y líneas vacías no descartadas en bloque.go (TestLeerBloque, TestArticuloCoincideConBoePy, TestGolden); laMasAntigua devolviendo la más nueva (TestFechaDeConsultaDeArticulo, TestArticulos, TestCacheDeLosSeisVerbos); articulos sin detenerse en el primer fallo (TestArticulos, TestClasesDeErrorDeBoe); consultar sin guardar (TestCacheDeLosSeisVerbos, TestOfflineDeLosSeisVerbos, TestBuscar); «%» admitido en la gramática (TestValidarBloque); enum sin vigencia-agotada (TestEnumeradosDeLosDatos, TestEsquemasPublicados); montador con su reloj en éxito y solo en fallo (TestMontadorFechaDeConsulta, TestCodigosDeSalidaDeBoe, TestEntregaDelHito); golden con un byte cambiado y golden sin caso (TestGolden, TestGoldenCubreTodosLosCasos); 404 de búsqueda como no-encontrado (TestPedirClasificaEstados, TestClasesDeErrorDeBoe); metadatos pedidos tras fallar el bloque (TestArticulo, TestFallosNoSeGuardan); --dry-run sin solo lectura (TestEnsayoDeLosSeisVerbos); applet sin cache.SoloLectura (TestAppletBoe, TestCodigosDeSalidaDeBoe y TestEntregaDelHito: «cache.db» creado); --offline que pide (TestOfflineDeLosSeisVerbos, TestCodigosDeSalidaDeBoe, TestEntregaDelHito); schemas/bloque.json editado a mano (TestEsquemasPublicados: «schemas/bloque.json: la parte de «articulo» no coincide…»); doc.go sin la entrada [10] (TestDocAnotaElPorte); IntervaloEntrePeticiones 2s (TestFuenteCoincideConSources). articulo_test.go:791-823 compara los ocho campos de FR-116 con las referencias derivadas de refs/boe.py y :830-871 demuestra que la proyección no compara en vacío."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": ".golangci.yml:125-151 depguard `red` (todo salvo internal/httpx: net/http) y `sql` (todo salvo cache/store/graph: database/sql y modernc.org/sqlite) cubren internal/source/boe e internal/app; forbidigo (:183-214) vigila os.Exit, os.Stdout/Stderr y fmt.Print* en todo el árbol; sin exclusiones nuevas (solo seis palabras en misspell.ignore-rules, cada una comentada). `os.Exit` solo en cmd/kitlegal/main.go:33 e internal/app/ejemplo/kitlegal-e2e/main.go:56, y el panic de H1 de este último se retira (diff). internal/arch_test.go:66-93 R1-R3 en verde; internal/core/source.go:3-7 importa solo context, time y schema; internal/source/boe importa core, core/schema y httpx (peticiones.go:9-10), nunca cache, net/http ni SQLite; el applet (internal/app/boe.go:7-11) es quien compone caché y cliente."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "internal/app/boe_test.go:865-905 TestSalidaDeBoeContraSchemas valida el sobre real de éxito y de fallo (códigos 2, 3 y 4) de los seis verbos, obtenido por app.Main sobre las grabaciones, con jsonschema/v6 y AssertFormat contra la parte del verbo leída de schemas/norma.json o schemas/bloque.json por su $id (bloque.json:112,324; norma.json:135,294,482,705) y exige que Aviso.codigo enumere exactamente tres valores (bloque.json:93-97). internal/app/esquemas_test.go:70-85 TestEsquemasPublicados compara los dos ficheros con lo que emite --describe y es lo que ejecuta `make schema-check` (Makefile:97-99), dentro de `ci`. Mutaciones M9 (enum del tipo) y M24 (fichero editado) detectadas; toda salida de éxito lleva fuente boe.legislacion-consolidada y url https de www.boe.es (direcciones.go:18-21; e2e boe-verbos.txtar)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "internal/source/boe/errores.go:24-108 *Error implementa schema.ConClase con cinco constructores por clase y nunca la de identidad humana (peticiones.go:215-227 y fuente.go:399-412 reducen cualquier otra a «inesperado»). La tabla cerrada de contracts/errores-y-codigos.md la fijan TestClasesDeErrorDeBoe (errores_test.go), TestPedirClasificaEstados (peticiones_test.go:331,354, límite/TOS incluido) y, por el kernel en proceso, TestCodigosDeSalidaDeBoe (boe_test.go:753 código 5, filas 1-6, 11, 14, 18, 19 y 21); el e2e boe-codigos.txtar fuerza 2, 3 y 4 con su clase y la url de FR-101. Ningún `panic(` en código de producción; internal/app/main.go:78-93 Arrancar convierte un registro imposible en sobre «inesperado» y código 1. Mutaciones M5, M10, M12, M21 y M22 detectadas."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased, Añadido «De H4» y Cambiado «De H4» (diff +120-176 y +191-231): applet y seis verbos, caché y --offline/--dry-run, fila de SOURCES.md, esquemas publicados, make verify-sources y nocturno, schema-check activo, fecha_consulta declarada por la fuente (ADR 0015), app.Arrancar y la superficie del binario; cada afirmación la sostiene un test o un guion (main_test.go «applets disponibles: boe»; boe-*.txtar; TestDependenciasDelBinario con dieciocho módulos). docs/ADR/0015-puerto-source-y-fecha-de-consulta.md nuevo para la firma de Source y Procedencia.FechaConsulta. docs/SOURCES.md:508 fila con licencia, términos, robots.txt, ritmo 1s, formato y revisado 2026-09-13, atada a terminos.go por TestFuenteCoincideConSources (M26). README.md y CONTRIBUTING.md con las filas de schema-check y verify-sources y su sección; docs/PENDIENTES.md sin las dos entradas de H4; internal/source/boe/doc.go con las 32 entradas de FR-120 (TestDocAnotaElPorte, M25)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Todo pasa por internal/httpx: Pedidor de producción es *httpx.Cliente (peticiones.go:19-25) y solo GET (peticiones.go:32; httpx.comprobarPeticion rechaza lo demás). Las 33 grabaciones llevan «metodo»: «GET» y User-Agent «kitlegal/dev (+https://ventanillalegal.es/bot)», sin ninguna cabecera de autenticación. Ritmo ConIntervalo(boe.IntervaloEntrePeticiones)=1s igual a la fila de SOURCES.md (internal/app/boe.go:45-49, terminos.go:20); robots.txt grabado (GET_https_www.boe.es_robots.txt.json) y respetado por la cadena de httpx; reproducción sin ritmo en el e2e porque no abre conexión. Términos revisados por una persona con fecha (terminos.go:29-32; commit 7dff6de). gitleaks sin hallazgos; sin NIF/DNI en testdata; fuentes públicas únicamente y ningún POST."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": false,
+      "evidencia": "Sin `//nolint` nuevos (el de internal/arch_test.go:673 ya estaba en main:504 con su justificación), sin t.Skip ni TODO en los ficheros del hito, sin errores descartados (bloque.go:302-303 descartan un booleano de presencia, no un error). Las grabaciones y las referencias preceden al código (commits [datos] 7dff6de y 17fca5b, humanos) y el cambio de a118/da3 a a1-30/da-3 responde a que esos ids no existen en la fuente (gates/tarea-T009.md:85-98), no a ajustar un fixture al código; golden y esquemas se generaron en tareas [datos] revisadas (a3a06cf, c25c924). Pero refs/__pycache__/boe.cpython-311.pyc, artefacto que el propio ejecutor identificó en gates/tarea-T009.md:168-170 y que gates/pr-h4.md:403-407 deja «para la revisión humana antes de fusionar», sigue en HEAD sin retirar ni excluir en .gitignore: un pendiente diferido que un corrector puede cerrar."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "El diff cubre el alcance del spec (seis verbos, esquemas, controles, ADR, SOURCES, verify-sources, nocturno) y lo heredado (FR-002, FR-122, FR-124); nada de Fuera de alcance (sumario, materias, grafo, skills). internal/cache/migraciones.go:222-241 es el arreglo mínimo del test intermitente de H3, documentado en T003 y necesario para el punto 1 de la DoD; CLAUDE.md:20 y refs/00-README.md:15 los enmendó una persona en la pausa [datos] 17fca5b (spec, Clarifications Q2); .specify/workflows/hito/workflow.yml 1.9.0 y docs/WORKFLOW.md (5a631b5) son proceso, están declarados en gates/pr-h4.md:68-70 y :375 y duplican la PR #23 abierta (el orden de fusión es decisión humana; no debe revertirse en la rama porque dejaría main en 1.8.0 al fusionar detrás de #23). Excede el alcance: refs/__pycache__/boe.cpython-311.pyc (binario de 43 205 bytes en el commit 17fca5b, sin tarea que lo declare ni patrón en .gitignore). Además, tasks.md:116-117 y :165 siguen diciendo «las cinco referencias» y plan.md:369 «TestArticuloCoincideConBoePy (5)» cuando el diff, FR-116 y el contrato §5 tienen seis referencias de cuatro normas."
+    }
+  ],
+  "motivos": [
+    "[i][h] refs/__pycache__/boe.cpython-311.pyc (43 205 bytes, binario) entró con el commit [datos] 17fca5b y sigue en HEAD: es el bytecode que dejó CPython al importar refs/boe.py desde el guion de un solo uso de la pausa de T009, no forma parte del hito, ninguna tarea lo declara y gates/tarea-T009.md:168-170 y gates/pr-h4.md:403-407 lo dejan diferido a la revisión humana. Cambiar: retirarlo del índice y del árbol (`git rm -r refs/__pycache__`), añadir `__pycache__/` a .gitignore con su comentario (la única ejecución autorizada de refs/boe.py no debe dejar rastro versionado), comprobar que `make ci` sigue en verde, y actualizar gates/pr-h4.md («Fuera del producto, tocados en la rama» y «Pendientes») para que deje de listarlo como pendiente.",
+    "[i] Los artefactos del hito describen un diff distinto del real en el número de referencias: tasks.md:116-117 (checkpoint de la fase 3, «las cinco referencias escritas por una persona») y tasks.md:165 (checkpoint de la fase 5, «coincide con las cinco referencias escritas a mano desde boe.py») y plan.md:369 (inventario de tests, «TestArticuloCoincideConBoePy (5)») frente a las seis referencias de cuatro normas de FR-116, del contrato esquemas-fixtures-y-controles §5, de internal/source/boe/testdata/referencias/ y de TestArticuloCoincideConBoePy (gates/tarea-T009.md:171-172 ya lo señalaba). Cambiar esas tres menciones a «seis referencias de cuatro normas» / «(6)», sin tocar nada más."
+  ]
+}

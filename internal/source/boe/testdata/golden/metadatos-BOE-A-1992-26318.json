@@ -1,0 +1,29 @@
+{
+  "data": {
+    "avisos": [
+      {
+        "codigo": "derogada",
+        "texto": "⚠ NORMA DEROGADA: esta norma ha sido derogada."
+      },
+      {
+        "codigo": "vigencia-agotada",
+        "texto": "⚠ VIGENCIA AGOTADA: esta norma ya no está en vigor."
+      }
+    ],
+    "estado_consolidacion": {
+      "codigo": "3",
+      "texto": "Finalizado"
+    },
+    "estatus_derogacion": "S",
+    "fecha_disposicion": "19921126",
+    "fecha_publicacion": "19921127",
+    "fecha_vigencia": "19930227",
+    "norma": "BOE-A-1992-26318",
+    "numero_oficial": "30/1992",
+    "rango": "Ley",
+    "titulo": "Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.",
+    "url_eli": "https://www.boe.es/eli/es/l/1992/11/26/30",
+    "vigencia_agotada": "S"
+  },
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1992-26318/metadatos"
+}

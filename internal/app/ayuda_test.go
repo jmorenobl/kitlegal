@@ -38,14 +38,18 @@ func TestAyudaDelBinario(t *testing.T) {
 			"un nombre de enlace desconocido se usa tal cual y no se corrige")
 	})
 
+	// El sujeto de esta subprueba es el registro vacío, y por eso lo construye tal
+	// cual en lugar de tomar el de un binario: la ayuda de un registro sin applets
+	// lo dice en lugar de emitir una lista vacía que nadie sabría interpretar
+	// (contracts/registro-y-describe.md §3 de H1).
 	t.Run("un registro vacío lo dice en lugar de enumerar la nada", func(t *testing.T) {
 		t.Parallel()
 
-		ayuda := AyudaDelBinario("kitlegal", RegistroDeProduccion())
+		ayuda := AyudaDelBinario("kitlegal", &Registro{})
 
 		assert.Contains(t, ayuda, "uso: kitlegal")
 		assert.Contains(t, ayuda, "ningún applet",
-			"el binario distribuido no registra ninguno en H1 y la ayuda no lo esconde")
+			"un registro sin applets no lo esconde")
 	})
 
 	t.Run("la misma ayuda dos veces es la misma ayuda", func(t *testing.T) {
