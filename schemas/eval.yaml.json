@@ -8,7 +8,7 @@
   "properties": {
     "pregunta": { "type": "string", "minLength": 1 },
     "activa": { "type": "boolean" },
-    "reproduce": { "type": "string", "maxLength": 64, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "reproduce": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
     "comandos": {
       "type": "array", "minItems": 1,
       "items": {
