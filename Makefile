@@ -51,7 +51,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check verify-sources skills-sync secrets mod-verify mod-tidy-check release \
+	vuln schema-check skills-check verify-sources skills-sync secrets mod-verify mod-tidy-check release \
 	check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
@@ -98,13 +98,17 @@ vuln: check-tools
 schema-check: check-tools
 	go test -count=1 -run '^TestEsquemasPublicados$$' ./internal/app/
 
+## skills-check: comprueba skills, datos y evals sin red, sin modelo y sin escribir nada
+skills-check: check-tools
+	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
+
 ## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
 verify-sources: check-tools
 	scripts/verify-sources.sh
 
-## skills-sync: regeneración de las referencias de las skills (las aporta H5)
-skills-sync:
-	@echo "skills-sync: no hay skills/ ni data/*.yaml todavía; los aporta H5"
+## skills-sync: regenera references/, la tabla de comandos de SKILL.md y los enlaces de scripts/ de cada skill
+skills-sync: check-tools
+	scripts/skills-sync.sh
 
 ## secrets: detección de secretos en todo el árbol
 secrets: check-tools
@@ -149,7 +153,7 @@ check-tools:
 	fi
 
 ## ci: el veredicto del repositorio; no modifica ningún fichero versionado
-ci: fmt-check lint test test-integration vuln schema-check secrets mod-verify mod-tidy-check
+ci: fmt-check lint test test-integration vuln schema-check skills-check secrets mod-verify mod-tidy-check
 	@echo "ci: todos los controles en verde"
 
 ## help: enumera las órdenes disponibles
