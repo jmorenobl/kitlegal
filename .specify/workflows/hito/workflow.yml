@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.9.0"
+  version: "1.9.1"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -227,7 +227,7 @@ steps:
   - id: ronda_spec
     type: do-while
     max_iterations: 3
-    condition: "{{ steps.leer_gate_spec.output.data.veredicto != 'aprobado' and steps.leer_gate_spec.output.data.corregible }}"
+    condition: "{{ steps.leer_gate_spec.output.data.veredicto != 'aprobado' and steps.leer_gate_spec.output.data.corregible and steps.leer_gate_spec.output.data.ronda < 3 }}"
     steps:
       - id: juez_spec
         type: prompt
@@ -335,7 +335,7 @@ steps:
   - id: ronda_plan
     type: do-while
     max_iterations: 3
-    condition: "{{ steps.leer_gate_plan.output.data.veredicto != 'aprobado' and steps.leer_gate_plan.output.data.corregible }}"
+    condition: "{{ steps.leer_gate_plan.output.data.veredicto != 'aprobado' and steps.leer_gate_plan.output.data.corregible and steps.leer_gate_plan.output.data.ronda < 3 }}"
     steps:
       - id: juez_plan
         type: prompt
@@ -468,7 +468,7 @@ steps:
   - id: ronda_tasks
     type: do-while
     max_iterations: 3
-    condition: "{{ steps.leer_gate_tasks.output.data.veredicto != 'aprobado' and steps.leer_gate_tasks.output.data.corregible }}"
+    condition: "{{ steps.leer_gate_tasks.output.data.veredicto != 'aprobado' and steps.leer_gate_tasks.output.data.corregible and steps.leer_gate_tasks.output.data.ronda < 3 }}"
     steps:
       - id: juez_tasks
         type: prompt
