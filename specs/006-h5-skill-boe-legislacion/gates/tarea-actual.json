@@ -1,15 +1,15 @@
 {
-  "id": "T014",
-  "texto": "T014 [P] [US5] Referencia generada de normas: `internal/skills/referencias.go` con `RenderizarNormas(normas)` que da la salida exacta del contrato normas-y-referencias §5 (cabecera «generado, no editar» que nombra el YAML de datos de origen, tabla con norma, abreviatura, identificador, rango y materias; orden numérico por año y número; materias separadas por `, `; abreviatura ausente → celda vacía; `|` como `\\|` y salto de línea como espacio; `\\n` y salto final), con `TestRenderizarNormas` en `internal/skills/referencias_test.go` (bytes exactos de un caso con las tres variantes de escape y el orden numérico; dos llamadas dan lo mismo) (FR-022, FR-030, FR-031, FR-034, research D7).",
+  "id": "T015",
+  "texto": "T015 [P] [US5] Tabla de comandos desde `--describe`: `internal/skills/comandos.go` con `DescripcionDeVerbo` (argumentos sin las banderas globales, obligatoriedad, varios valores, claves de `data` de objeto y de lista en el orden de su `$defs`, sin `$ref`), `RenderizarTabla` (una sección `###` por applet en el orden declarado, filas en el orden del registro, `|` escrito `\\|`, la línea del sobre y las banderas comunes, bytes exactos del contrato sincronizacion-y-comprobacion §3) y `SustituirRegion` (sustituye solo entre las marcas de data-model §2; defectos sin marcas, con dos inicios o con el fin antes del inicio), con `TestDescripcionDeVerbo`, `TestRenderizarTabla` (documentos de `--describe` de prueba: objeto, lista, sin `$ref`, argumento de varios valores, opcional, ayuda con `|`) y `TestSustituirRegion` en `internal/skills/comandos_test.go` (FR-032, FR-034, SC-005, research D6).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T014.md y déjala sin marcar.",
-  "base": "dbd802a82d4b0dd38f0ead7d5f17bec203a128f6",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T015.md y déjala sin marcar.",
+  "base": "56b0a57ca485797e866ae1414343d2ef73d8212b",
   "rutas": [
-    "internal/skills/referencias_test.go",
-    "internal/skills/referencias.go"
+    "internal/skills/comandos_test.go",
+    "internal/skills/comandos.go"
   ],
   "cierre": false
 }
