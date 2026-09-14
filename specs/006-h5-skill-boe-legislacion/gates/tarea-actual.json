@@ -1,17 +1,20 @@
 {
-  "id": "T018",
-  "texto": "T018 [P] [datos] [US3] Guiones e2e de la instalación, antes del código: `internal/skills/testdata/script/instalar.txtar`, `internal/skills/testdata/script/instalar-de-nuevo.txtar`, `internal/skills/testdata/script/instalar-con-conflicto.txtar` e `internal/skills/testdata/script/instalar-sin-gobin.txtar`, con lo que fija la tabla del contrato instalacion §4 (instalación en limpio con el binario en el `GOBIN` temporal, el enlace de la skill a la raíz física del árbol copiado, el enlace del binario instalado y `boe articulo BOE-A-2015-10565 a21 --describe`, lanzado a través del enlace `boe` de la skill instalada, con `\"title\": \"boe articulo\"`; dos instalaciones seguidas con el mismo estado y solo `boe-legislacion`; conflicto con un directorio con un fichero y, en otra ronda, con un enlace ajeno, terminando distinto de 0 con `conflicto: .*boe-legislacion` y la entrada intacta; sin `GOBIN`, el binario en el `GOPATH` temporal); ningún otro fichero (FR-050-FR-055, SC-006, US3 escenarios 1-3).",
+  "id": "T019",
+  "texto": "T019 [US3] `make install`: `scripts/instalar-skills.sh` con modo `100755` y los pasos 1-8 del contrato instalacion §2 (raíz física; argumento ejecutable; `HOME` no vacío; clasificación de cada entrada del directorio personal de skills según data-model §11.1; ante cualquier conflicto, una línea `instalar-skills: conflicto: <ruta> ya existe y no es un enlace a <destino>; no se modifica` por cada uno y código 1 sin crear ni cambiar nada; `bin/instalado/kitlegal` rehecho con `ln -sfn`; enlaces que faltan con `ln -s`; una línea por skill y otra para el binario; `readlink` sin `-f`; sin Python); `Makefile` con `install` según la receta del contrato §1 (el `go install` de H0 sin cambios seguido del guion con el destino que da `go list -f '{{.Target}}'` del paquete principal del binario); e `internal/skills/instalacion_test.go` con `//go:build integration` y `TestInstalacion` sobre `testscript` con los cuatro guiones de T018, cuyo `Setup` copia en `$WORK/repo` el árbol mínimo del contrato §4 (`Makefile`, `go.mod`, `go.sum`, el guion de instalación, el directorio de skills con sus enlaces tal cual y los ficheros `.go` y embebidos de cada paquete del que depende el paquete principal del binario según `go list -deps`) y fija `HOME`, `GOBIN`, `GOPATH`, `GOMODCACHE`, `GOCACHE`, `GOPROXY=off`, `GOENV=off` y `GOFLAGS=-mod=readonly` de la tabla del contrato, sin escribir nunca en el directorio personal ni en el de binarios reales ni en el árbol de quien ejecuta los tests (FR-014, FR-050-FR-055, SC-006, SC-007, US3, research D5 y D15).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
-  "base": "db6c46ac3de5290cba571a55572f1b920efa843e",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T019.md y déjala sin marcar.",
+  "base": "ae925e15a192322a3cbd764bec2dc97240e8a5e4",
   "rutas": [
-    "internal/skills/testdata/script/instalar-con-conflicto.txtar",
-    "internal/skills/testdata/script/instalar-de-nuevo.txtar",
-    "internal/skills/testdata/script/instalar-sin-gobin.txtar",
-    "internal/skills/testdata/script/instalar.txtar"
+    "bin/instalado/kitlegal",
+    "go.mod",
+    "go.sum",
+    "internal/skills/instalacion_test.go",
+    "Makefile",
+    "scripts/instalar-skills.sh",
+    "WORK/repo"
   ],
   "cierre": false
 }

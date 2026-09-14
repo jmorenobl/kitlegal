@@ -58,9 +58,10 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 build: check-tools
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/kitlegal ./cmd/kitlegal
 
-## install: instala kitlegal en el directorio de binarios de Go, con los mismos datos de versión
+## install: instala kitlegal en el directorio de binarios de Go y enlaza las skills en ~/.claude/skills
 install: check-tools
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
+	scripts/instalar-skills.sh "$$(go list -f '{{.Target}}' ./cmd/kitlegal)"
 
 ## test: tests unitarios con detector de carreras y perfil de cobertura
 test: check-tools

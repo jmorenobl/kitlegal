@@ -1,0 +1,299 @@
+//go:build integration
+
+// Las pruebas de este fichero ejecutan `make install` de verdad —la receta del
+// Makefile, el go install y scripts/instalar-skills.sh— y comprueban lo que deja:
+// el binario en el directorio de binarios de Go, cada skill enlazada en el
+// directorio personal de skills y su scripts/boe respondiendo desde el binario
+// instalado (FR-014, FR-050 a FR-055, SC-006, SC-007; contrato instalacion §4).
+//
+// Llevan la etiqueta integration porque ejecutan make y compilan el binario: no
+// son tests unitarios rápidos, y por eso make ci las ejecuta con
+// test-integration y el lint las alcanza con run.build-tags (research.md D21).
+//
+// Nunca se ejecutan sobre el repositorio real: cada guion instala una copia
+// mínima del árbol, con el directorio personal y los de binarios de Go dentro de
+// su propio directorio de trabajo, que testscript borra al terminar (FR-055,
+// research.md D15).
+package skills_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"testing"
+
+	"github.com/rogpeppe/go-internal/testscript"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	// raizDelRepositorio es la del árbol de quien ejecuta los tests, relativa al
+	// directorio de este paquete. Solo se lee de ella: ningún guion escribe en
+	// ese árbol, tampoco su bin/instalado/kitlegal (research.md D15).
+	raizDelRepositorio = "../.."
+
+	// paqueteDelBinario es el paquete principal del binario que instala la
+	// receta, relativo a la raíz del repositorio.
+	paqueteDelBinario = "./cmd/kitlegal"
+
+	// directorioDeGuiones es donde viven los guiones de la instalación, relativo
+	// al directorio de este paquete.
+	directorioDeGuiones = "testdata/script"
+
+	// Las carpetas del directorio de trabajo de cada guion que hacen de
+	// repositorio, de directorio personal, de directorio de binarios de Go y de
+	// GOPATH (contrato instalacion §4). Los guiones las nombran igual.
+	carpetaDelRepositorio = "repo"
+	carpetaPersonal       = "home"
+	carpetaDeBinarios     = "gobin"
+	carpetaDeGo           = "gopath"
+
+	// permisosDelPropietario son los bits de permiso que la copia conserva de
+	// cada fichero: los de su propietario, que dejan ejecutable el guion de
+	// instalación y cualquier otro fichero en 0o600.
+	permisosDelPropietario fs.FileMode = 0o700
+)
+
+// rutasDeLaInstalacion es lo que la receta lee del repositorio además del código
+// del binario: ficheros sueltos y, en el caso de skills/, la carpeta entera con
+// sus enlaces tal cual (contrato instalacion §4).
+var rutasDeLaInstalacion = []string{"Makefile", "go.mod", "go.sum", "scripts/instalar-skills.sh", "skills"}
+
+// cachesDeGo son las cachés de módulos y de construcción del proceso de test,
+// que cada guion reutiliza para no descargar nada y no recompilar lo que el
+// propio `go test` ya compiló (contrato instalacion §4).
+type cachesDeGo struct {
+	Modulos    string `json:"GOMODCACHE"`
+	Compilados string `json:"GOCACHE"`
+}
+
+// paqueteListado es lo que se lee de cada paquete de `go list -deps -json`.
+type paqueteListado struct {
+	ImportPath string
+	Dir        string
+	GoFiles    []string
+	EmbedFiles []string
+	Module     *struct{ Main bool }
+}
+
+// TestInstalacion ejecuta los guiones de la instalación —en limpio, repetida,
+// contra una entrada en conflicto y sin GOBIN— sobre una copia mínima del
+// repositorio en $WORK/repo (US3 escenarios 1-3, FR-050 a FR-055, SC-006).
+//
+// Setup deja en cada directorio de trabajo el árbol que basta para make install
+// y el entorno de la tabla del contrato: HOME, GOBIN y GOPATH son carpetas de
+// $WORK, las cachés son las del proceso de test, GOPROXY=off hace fallar el guion
+// antes que tocar la red, GOENV=off no lee la configuración de Go de ninguna
+// cuenta y GOFLAGS=-mod=readonly no reescribe go.mod ni go.sum de la copia.
+// RequireExplicitExec obliga a escribir con `exec` cada orden externa, de modo
+// que una línea mal escrita no ejecute un programa creyendo que es una orden
+// integrada.
+func TestInstalacion(t *testing.T) {
+	t.Parallel()
+
+	rutas := slices.Concat(rutasDeLaInstalacion, ficherosDelBinario(t))
+	caches := leerCachesDeGo(t)
+
+	testscript.Run(t, testscript.Params{
+		Dir:                 directorioDeGuiones,
+		RequireExplicitExec: true,
+		Setup: func(env *testscript.Env) error {
+			return prepararInstalacion(env, rutas, caches)
+		},
+	})
+}
+
+// prepararInstalacion deja en el directorio de trabajo de un guion la copia
+// mínima del repositorio y un directorio personal vacío, y fija el entorno de la
+// instalación (contrato instalacion §4).
+func prepararInstalacion(env *testscript.Env, rutas []string, caches cachesDeGo) error {
+	personal := filepath.Join(env.WorkDir, carpetaPersonal)
+
+	env.Setenv("HOME", personal)
+	env.Setenv("GOBIN", filepath.Join(env.WorkDir, carpetaDeBinarios))
+	env.Setenv("GOPATH", filepath.Join(env.WorkDir, carpetaDeGo))
+	env.Setenv("GOMODCACHE", caches.Modulos)
+	env.Setenv("GOCACHE", caches.Compilados)
+	env.Setenv("GOPROXY", "off")
+	env.Setenv("GOENV", "off")
+	env.Setenv("GOFLAGS", "-mod=readonly")
+
+	return errors.Join(
+		os.Mkdir(personal, 0o750),
+		copiarArbol(raizDelRepositorio, filepath.Join(env.WorkDir, carpetaDelRepositorio), rutas),
+	)
+}
+
+// ficherosDelBinario son los ficheros .go y embebidos de cada paquete del módulo
+// del que depende el paquete principal del binario, por su ruta dentro del
+// repositorio y con barras (contrato instalacion §4).
+//
+// Los enumera `go list -deps` con CGO_ENABLED=0, como compila la receta, de modo
+// que la copia lleve exactamente los ficheros que esa compilación elige. Exige
+// que la lista traiga el propio punto de entrada: sin eso, una copia vacía de
+// código haría fallar los guiones por una razón que no es la instalación.
+func ficherosDelBinario(t *testing.T) []string {
+	t.Helper()
+
+	raiz, err := filepath.Abs(raizDelRepositorio)
+	require.NoError(t, err)
+
+	orden := exec.CommandContext(t.Context(), "go", "list", "-deps", "-json=ImportPath,Dir,GoFiles,EmbedFiles,Module",
+		paqueteDelBinario)
+	orden.Dir = raiz
+	orden.Env = append(os.Environ(), "CGO_ENABLED=0")
+
+	var (
+		ficheros     []string
+		carpetas     []string
+		decodificado = json.NewDecoder(bytes.NewReader(salidaDeGo(t, orden)))
+	)
+
+	for {
+		var paquete paqueteListado
+
+		err := decodificado.Decode(&paquete)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		if paquete.Module == nil || !paquete.Module.Main {
+			continue
+		}
+
+		carpeta, err := filepath.Rel(raiz, paquete.Dir)
+		require.NoError(t, err)
+		require.Truef(t, filepath.IsLocal(carpeta), "el paquete %s del módulo está fuera del repositorio: %s",
+			paquete.ImportPath, paquete.Dir)
+
+		carpetas = append(carpetas, filepath.ToSlash(carpeta))
+
+		for _, fichero := range slices.Concat(paquete.GoFiles, paquete.EmbedFiles) {
+			ficheros = append(ficheros, filepath.ToSlash(filepath.Join(carpeta, fichero)))
+		}
+	}
+
+	require.Contains(t, carpetas, paqueteDelBinario[len("./"):],
+		"go list -deps no devolvió el propio paquete principal del binario")
+
+	return ficheros
+}
+
+// leerCachesDeGo son las cachés de módulos y de construcción que da `go env`
+// en el proceso de test.
+func leerCachesDeGo(t *testing.T) cachesDeGo {
+	t.Helper()
+
+	orden := exec.CommandContext(t.Context(), "go", "env", "-json", "GOMODCACHE", "GOCACHE")
+	orden.Dir = raizDelRepositorio
+
+	var caches cachesDeGo
+
+	require.NoError(t, json.Unmarshal(salidaDeGo(t, orden), &caches))
+	require.NotEmpty(t, caches.Modulos, "go env no devolvió GOMODCACHE")
+	require.NotEmpty(t, caches.Compilados, "go env no devolvió GOCACHE")
+
+	return caches
+}
+
+// salidaDeGo ejecuta una orden del go command y devuelve su salida estándar, o
+// hace fallar el test con su salida de error.
+func salidaDeGo(t *testing.T, orden *exec.Cmd) []byte {
+	t.Helper()
+
+	salida, err := orden.Output()
+	if err != nil {
+		var fallo *exec.ExitError
+		if errors.As(err, &fallo) {
+			t.Fatalf("%s falló: %v\n%s", orden, err, fallo.Stderr)
+		}
+
+		t.Fatalf("%s falló: %v", orden, err)
+	}
+
+	return salida
+}
+
+// copiarArbol copia del árbol de origen al de destino cada ruta —un fichero o
+// una carpeta entera—, creando lo que falte de las carpetas que la contienen.
+// Los dos árboles se abren como os.Root, que no deja salir de ellos por un
+// enlace mientras se copia.
+func copiarArbol(origen, destino string, rutas []string) (err error) {
+	if err := os.MkdirAll(destino, 0o750); err != nil {
+		return fmt.Errorf("instalación: no se pudo crear la copia %s: %w", destino, err)
+	}
+
+	desde, err := os.OpenRoot(origen)
+	if err != nil {
+		return fmt.Errorf("instalación: no se pudo abrir el repositorio %s: %w", origen, err)
+	}
+
+	defer func() { err = errors.Join(err, desde.Close()) }()
+
+	hacia, err := os.OpenRoot(destino)
+	if err != nil {
+		return fmt.Errorf("instalación: no se pudo abrir la copia %s: %w", destino, err)
+	}
+
+	defer func() { err = errors.Join(err, hacia.Close()) }()
+
+	for _, ruta := range rutas {
+		err := fs.WalkDir(desde.FS(), ruta, func(visitada string, entrada fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			return copiarEntrada(desde, hacia, filepath.FromSlash(visitada), entrada)
+		})
+		if err != nil {
+			return fmt.Errorf("instalación: no se pudo copiar %s de %s en %s: %w", ruta, origen, destino, err)
+		}
+	}
+
+	return nil
+}
+
+// copiarEntrada copia una entrada del árbol de origen en la misma ruta del de
+// destino. Un enlace se recrea con su destino literal, sin seguirlo —el de
+// scripts/ de cada skill no resuelve hasta que se instala—, y un fichero conserva
+// los permisos de su propietario.
+func copiarEntrada(desde, hacia *os.Root, ruta string, entrada fs.DirEntry) error {
+	estado, err := entrada.Info()
+	if err != nil {
+		return err
+	}
+
+	if err := hacia.MkdirAll(filepath.Dir(ruta), 0o750); err != nil {
+		return err
+	}
+
+	switch modo := estado.Mode(); {
+	case modo.IsDir():
+		return hacia.MkdirAll(ruta, 0o750)
+	case modo&fs.ModeSymlink != 0:
+		enlazado, err := desde.Readlink(ruta)
+		if err != nil {
+			return err
+		}
+
+		return hacia.Symlink(enlazado, ruta)
+	case modo.IsRegular():
+		contenido, err := desde.ReadFile(ruta)
+		if err != nil {
+			return err
+		}
+
+		return hacia.WriteFile(ruta, contenido, modo.Perm()&permisosDelPropietario)
+	default:
+		return fmt.Errorf("%s no es un directorio, un fichero regular ni un enlace simbólico", ruta)
+	}
+}
