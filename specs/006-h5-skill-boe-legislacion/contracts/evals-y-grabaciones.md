@@ -319,7 +319,10 @@ normas.
 
 ### 5.1 Preparación
 
-`internal/evals.Preparar(ctx, dirCache string, grabaciones []string, consultas []Consulta) ([]Falta, error)`:
+`internal/evals.Preparar(dirCache string, grabaciones []string, consultas []Consulta) ([]Falta, error)`, sin contexto:
+cada consulta es una invocación entera de `app.Main`, la raíz de composición del binario, que abre el suyo con el plazo
+de `--timeout` y no admite el de quien llama; un contexto que no llegara a las invocaciones sería una cancelación a
+medias, que es lo que `contextcheck` rechaza en `make ci` (research.md D14 y V59):
 
 1. copia en un temporal los conjuntos de `grabaciones` en ese orden (H4, `internal/source/boe/testdata/boe.legislacion-consolidada/`,
    y después H5, `testdata/evals/boe.legislacion-consolidada/`);
@@ -342,8 +345,9 @@ No modifica `internal/source/boe` ni el kernel: compone lo que ya exportan (spec
 
 ### 5.2 Comprobación sin red
 
-`internal/evals.ComprobarSinRed(ctx, dirCache string, consultas []Consulta, opciones ...cache.Opcion) ([]Falta, error)`
-(las opciones solo las usa el test para adelantar el reloj de la caché): registro montado como en §5.1, con `boe` sobre
+`internal/evals.ComprobarSinRed(dirCache string, consultas []Consulta, opciones ...cache.Opcion) ([]Falta, error)`
+(sin contexto, por lo mismo que `Preparar`; las opciones solo las usa el test para adelantar el reloj de la caché):
+registro montado como en §5.1, con `boe` sobre
 `httpx.Replay` de un **directorio vacío** (cualquier petición que se escapara fallaría en lugar de salir a la red) y la
 misma caché más `opciones`; cada consulta con
 `app.Main([]string{"kitlegal", "boe", <verbo>, <args…>, "--offline", "--json"}, &registro, …)`; código distinto de 0 →

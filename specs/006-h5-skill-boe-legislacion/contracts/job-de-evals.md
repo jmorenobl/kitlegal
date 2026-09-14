@@ -336,7 +336,8 @@ ignora: la eval se juzga con lo que haya en el transcript y en la traza, y **no 
 el motivo en el informe. Así una eval de no activación cuya sesión murió por el tope, por un error de la API o sin
 mensaje `result` no pasa en vacío por no haber activado nada.
 
-`internal/evals.PrepararSesion(ctx context.Context, s SesionAPreparar) ([]Falta, error)` (`internal/evals/preparar.go`):
+`internal/evals.PrepararSesion(s SesionAPreparar) ([]Falta, error)` (`internal/evals/preparar.go`; sin contexto, como
+`Preparar`: contrato de evals §5.1 y research.md V59):
 
 ```go
 type SesionAPreparar struct {
@@ -353,7 +354,7 @@ type SesionAPreparar struct {
    sin preparar ni escribir nada.
 2. Si `s.Fichero` no es el `Fichero` de ninguna de las `Evals`, devuelve un `error` que lo nombra, sin preparar ni
    escribir nada.
-3. Ejecuta `Preparar(ctx, <s.Directorio>/cache, s.Grabaciones, ConsultasNecesarias(<todas las Evals>))`; si devuelve
+3. Ejecuta `Preparar(<s.Directorio>/cache, s.Grabaciones, ConsultasNecesarias(<todas las Evals>))`; si devuelve
    faltas o un error, los devuelve tal cual y no escribe `eval.txt` ni `pregunta.txt`.
 4. Escribe `<s.Directorio>/eval.txt` con `s.Fichero` y un salto de línea, y `<s.Directorio>/pregunta.txt` con la
    `pregunta` de esa eval y un salto de línea o, con `s.PruebaDeRed`, con la pregunta, una línea en blanco, el texto
