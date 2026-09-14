@@ -53,8 +53,6 @@ const (
 // del manifiesto (contrato §3.3): sin la variable, o con un manifiesto que
 // LeerManifiesto rechaza, falla antes de pedir nada.
 func TestGrabarEvals(t *testing.T) {
-	t.Parallel()
-
 	if valor := os.Getenv(httpx.VariableGrabacion); valor != valorQueGraba {
 		t.Fatalf("TestGrabarEvals pide a la fuente real y graba lo que responde: solo se ejecuta con %s=%s, "+
 			"desde scripts/grabar-evals.sh (la variable vale %q)", httpx.VariableGrabacion, valorQueGraba, valor)
@@ -82,6 +80,16 @@ func TestGrabarEvals(t *testing.T) {
 		httpx.ConIntervalo(boe.IntervaloEntrePeticiones),
 	)
 	require.NoError(t, err)
+
+	// httpx.New lee la variable de grabación una sola vez, al construir el
+	// cliente, y la grabación queda fija en su cadena. httpx.Replay, en cambio,
+	// rechaza construirse con la variable encendida (FR-043), y Preparar lo
+	// construye para cada consulta: con ella encendida, ninguna consulta se
+	// sembraría desde las grabaciones de H4, todas se pedirían a la fuente y lo
+	// que H4 ya grabó se volvería a grabar en H5 con el mismo nombre (contrato
+	// §3.2, paso 1, y §3.4). Por eso, ya construido el cliente que graba, se
+	// apaga para el resto del test; t.Setenv exige que el test no sea paralelo.
+	t.Setenv(httpx.VariableGrabacion, "")
 
 	grabacion := nuevaGrabacionDeEvals(t, cliente)
 
