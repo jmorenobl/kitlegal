@@ -452,10 +452,17 @@ documentación → plataforma` (D1). Cada tarea escribe el test antes del códig
    cualquier parte de la línea, también la de una orden (`./internal/evals/` declara el paquete entero, `testdata/`
    incluido). Por eso:
    1. cada fichero que la tarea cambia va por su ruta completa, sin llaves ni comodines; los doce ficheros de evals y los
-      cuatro guiones, cada uno por la suya;
+      cuatro guiones, cada uno por la suya; también cada fichero de test que crea o amplía (`internal/skills/skill_test.go`,
+      no «en su fichero de test» ni solo el nombre del test), aunque el guardián lo admitiría por la regla de `x_test.go`
+      de un `x.go` declarado;
    2. lo que solo se lee, se compara o se ejecuta se nombra sin directorio (`grabaciones.json`, «las grabaciones de H4»,
       «las grabaciones de H5», `normas.yaml.json`) o por su test o su objetivo de `make` (`TestEvalsDelRepositorio`,
-      `make skills-check`), nunca con la ruta de un paquete;
+      `make skills-check`), nunca con la ruta de un paquete. Vale también, y sobre todo, para las tareas `[datos]`: la
+      tubería solo extrae de su línea los ficheros que la tarea crea bajo `schemas/` o `testdata/` y tokens que no casan
+      con ningún fichero (`robots.txt`, `traza/`, el dominio del `$id`); el guion que la persona ejecuta en la pausa se
+      nombra sin carpeta (`grabar-evals.sh`) y la orden que un guion e2e lanza por el enlace de la skill, sin `scripts/`
+      delante (`boe articulo … --describe` por el enlace `boe` de la skill instalada), porque el guardián admitiría cambiar
+      en la tarea de datos el guion ya creado o crear un `scripts/boe` en la raíz;
    3. desde la tarea que sigue al manifiesto (paso 5), ninguna ruta que la tubería de `workflow.yml` 615 extraiga de una
       línea es la del manifiesto (`testdata/evals/grabaciones.json`), la del directorio de grabaciones de H5
       (`testdata/evals/boe.legislacion-consolidada/`) o la del de H4
@@ -494,6 +501,14 @@ documentación → plataforma` (D1). Cada tarea escribe el test antes del códig
 7. **La skill**: `SKILL.md` cumple el contrato de la skill; su región de comandos solo la escribe `make skills-sync`;
    ninguna mención a evals, al job, a `KITLEGAL_CACHE_DIR` ni a usar siempre `--offline` (FR-077).
 8. **Documentación alineada con el `Makefile`** en la misma rama (D19) y `docs/PENDIENTES.md` sin las tres entradas «En H5».
+   Alineada quiere decir con el `Makefile` que dejan T017, T019 y T027, no solo con los nombres de las órdenes: `make ci`
+   pasa de nueve a diez prerrequisitos (`skills-check` tras `schema-check`), así que `README.md` dice «diez controles» y
+   su tabla con «¿En `ci`?» y la tabla «Los controles» de `CONTRIBUTING.md` llevan `make skills-check` (sí),
+   `make skills-sync` (no: escribe en el árbol) y `make evals` (no: sesiones con modelo que lanza el job de evals); la fila
+   de `make test-integration` nombra la instalación de las skills; el comentario de `make install` dice que enlaza las
+   skills; el párrafo de `CONTRIBUTING.md` sobre las órdenes que salieron de la tabla de contenido posterior incluye
+   `make skills-sync` desde H5; y la introducción de *Unreleased* de `CHANGELOG.md` añade H5 a los hitos cerrados.
+   Quickstart §11 lo sondea.
 9. **Evidencias** fechadas por commit en `gates/pr-h5.md` (salida de quickstart §11, supuesto S8 pendiente, dependencias
    del Complexity Tracking), `gates/prueba-de-red.md`, `gates/evals-cierre.md` y `gates/aceptacion.md`.
 10. **Umbrales**: global ≥ 70 % e `internal/core` ≥ 85 %; nunca se rebaja un umbral.

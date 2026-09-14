@@ -284,11 +284,36 @@ rtk proxy git diff --stat main...HEAD -- .claude/skills skills-lock.json .agents
 rtk proxy grep -c '^## En H5' docs/PENDIENTES.md ; echo "fin del recuento"
 rtk proxy grep -nE '`skills/`|`\.agents/skills/`|`\.claude/skills/`' README.md
 rtk proxy grep -nE 'make install|make skills-sync|make skills-check|make evals' README.md CONTRIBUTING.md CHANGELOG.md
+rtk proxy grep -c 'formato común de eval' README.md CONTRIBUTING.md CHANGELOG.md ; echo "fin del formato"
+rtk proxy grep -c 'job de evals' README.md CONTRIBUTING.md CHANGELOG.md ; echo "fin del job"
+rtk proxy grep -c 'encadena los diez controles' README.md ; echo "fin de diez"
+rtk proxy grep -c 'nueve controles' README.md ; echo "fin de nueve"
+rtk proxy grep -c '^| `make skills-check` |.*| sí |' README.md ; echo "fin de skills-check en README"
+rtk proxy grep -c '^| `make skills-sync` |.*| no |' README.md ; echo "fin de skills-sync en README"
+rtk proxy grep -c '^| `make evals` |.*| no |' README.md ; echo "fin de evals en README"
+rtk proxy grep -c '^| `make test-integration` |.*instalación' README.md ; echo "fin de test-integration en README"
+rtk proxy grep -c '^make install .*enlaza las skills' README.md ; echo "fin de install en README"
+rtk proxy grep -c '(`skills-sync`, `release`)' README.md ; echo "fin de make help en README"
+rtk proxy grep -c '| `make skills-check` | sí |' CONTRIBUTING.md ; echo "fin de skills-check en CONTRIBUTING"
+rtk proxy grep -c '| `make skills-sync` | no — ' CONTRIBUTING.md ; echo "fin de skills-sync en CONTRIBUTING"
+rtk proxy grep -c '| `make evals` | no — ' CONTRIBUTING.md ; echo "fin de evals en CONTRIBUTING"
+rtk proxy grep -c '^| Tests con la etiqueta `integration`.*instalación' CONTRIBUTING.md ; echo "fin de integration en CONTRIBUTING"
+rtk proxy grep -c '| `make skills-sync` | Anuncia' CONTRIBUTING.md ; echo "fin de la tabla posterior"
+rtk proxy grep -c 'desde H5, `make skills-sync`' CONTRIBUTING.md ; echo "fin del párrafo de CONTRIBUTING"
+rtk proxy grep -c '\*\*H5 — skill `boe-legislacion`\*\*' CHANGELOG.md ; echo "fin de la introducción del CHANGELOG"
 ```
 
 Esperado: `set` para los dos atributos en `.agents/skills/golang-how-to/SKILL.md` y `unspecified` en los otros dos; el
 diff solo `fin del diff`; el recuento `0`; el `README.md` explica los tres directorios; las cuatro órdenes aparecen en los
-tres documentos. Que GitHub saque `.agents/skills/` de las estadísticas y lo pliegue en los diffs es el supuesto S8 de
+tres documentos; en las búsquedas del formato y del job, `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md` con un recuento
+de 1 o más cada uno (un `:0` en cualquiera de los tres es un fallo de FR-083 y SC-011), seguido de su línea de fin; y en
+las quince búsquedas siguientes, que miden «las comprobaciones de skills en `make ci`» con la documentación alineada con
+el `Makefile`, `1` en la de «diez controles», `0` en la de «nueve controles», `1` en cada fila de `README.md` (`skills-check`
+con «sí», `skills-sync` y `evals` con «no», `test-integration` con la instalación), `1` en el comentario de
+`make install`, `0` en la frase de `make help` con `skills-sync`, `1` en cada fila de la tabla «Los controles» de
+`CONTRIBUTING.md` (`skills-check` con «sí», `skills-sync` y `evals` con «no —» y su motivo, la de los tests `integration`
+con la instalación), `0` en la fila de `make skills-sync` de la tabla de órdenes con contenido posterior, `1` en su
+párrafo y `1` en la entrada de H5 de la introducción de *Unreleased*, cada recuento seguido de su línea de fin. Que GitHub saque `.agents/skills/` de las estadísticas y lo pliegue en los diffs es el supuesto S8 de
 research.md; la tarea `[plataforma]` registra lo comprobable (esta salida) en `gates/pr-h5.md`.
 
 ## 12. Plataforma: prueba de red y ejecución de cierre (FR-070 a FR-082, SC-001 a SC-003, SC-012)

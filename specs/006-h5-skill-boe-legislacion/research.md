@@ -602,15 +602,33 @@ descarta.
 ## D19 · Documentación
 
 **Decisión.** `README.md`: sección de skills con los tres directorios, `make install`, `make skills-sync`,
-`make skills-check` y las evals; «Qué entrega este hito» pasa a H5; y la línea 188, que dice que `make help` enumera
+`make skills-check`, `make evals`, el formato común de eval (dónde viven las evals de cada skill, sus campos `pregunta`,
+`activa`, `comandos`, `citas` y `reproduce`, y su validación con `eval.yaml.json` en `make ci`) y el job de evals
+(manual, semanal y por etiqueta sobre la rama de un hito, lanzado con `make evals`); «Qué entrega este hito» pasa a H5; y la línea 188, que dice que `make help` enumera
 también las órdenes que «reciben su contenido en un hito posterior (`skills-sync`, `release`)», pasa a nombrar solo
-`release`, porque desde H5 `skills-sync` tiene contenido. `CONTRIBUTING.md`: filas de las órdenes, formato de eval y job,
-y se retira la fila `make skills-sync` de la tabla de «Órdenes que existen pero reciben su contenido en un hito
-posterior» (líneas 156-163), que queda solo con `make release`.
-`CHANGELOG.md` (*Unreleased*): *Añadido* skill, `data/normas.yaml`, esquemas, evals, job, órdenes; *Cambiado*
-`make install` y `make ci`.
+`release`, porque desde H5 `skills-sync` tiene contenido. En «Ejecutar los controles», «encadena los nueve controles»
+(línea 156) pasa a «encadena los diez controles», porque T017 añade `skills-check` a los nueve prerrequisitos de `ci`; la
+tabla de órdenes con la columna «¿En `ci`?» (líneas 166-180) recibe las filas de `make skills-check` (sí: frontmatter y
+límite de líneas, derivas de las referencias, de la tabla de comandos y de los enlaces, tabla de normas contra su
+esquema y sus identificadores, formato y conjunto de evals y lo grabado), `make skills-sync` (no: escribe en el árbol) y
+`make evals` (no: sesiones con modelo que lanza el job de evals), y la de `make test-integration` nombra también la
+instalación de las skills en un directorio personal temporal (T019). En «Construir e instalar» (línea 114), el
+comentario de `make install` dice que, además de instalar el binario, enlaza las skills en el directorio personal de
+skills de Claude Code. `CONTRIBUTING.md`: formato común de eval y job de evals; en la tabla «Los controles» (líneas
+94-112), las filas de `make skills-check` (sí), `make skills-sync` (no — escribe en el árbol) y `make evals` (no — sesiones
+con modelo y credencial, fuera de `make ci`; las lanza el job de evals), y la fila de los tests con la etiqueta
+`integration` nombra la instalación de las skills; se retira la fila `make skills-sync` de la tabla de «Órdenes que existen
+pero reciben su contenido en un hito posterior» (líneas 156-163), que queda solo con `make release`; y el párrafo que
+enumera las órdenes que salieron de esa tabla (líneas 168-172) añade «desde H5, `make skills-sync`» regenera las
+referencias y la región de comandos de las skills. `CHANGELOG.md` (*Unreleased*): el párrafo de introducción, que
+enumera los hitos cerrados hasta H4, añade **H5 — skill `boe-legislacion`**; *Añadido* skill, `data/normas.yaml`,
+esquemas, formato común de eval, evals, job de evals, órdenes; *Cambiado* `make install` y `make ci` (diez controles, con
+`skills-check`). Los tres documentos escriben literalmente «formato común de eval» y «job de evals», y quickstart §11
+busca esas expresiones, la cifra, las filas y sus valores de «¿En `ci`?», el comentario de `make install`, el párrafo de
+`CONTRIBUTING.md` y la entrada de H5 en la introducción del `CHANGELOG.md`.
 
-**Por qué.** FR-083; y la documentación debe coincidir con el `Makefile` en la misma rama.
+**Por qué.** FR-083; y la documentación debe coincidir con el `Makefile` en la misma rama: no basta con nombrar las
+órdenes; un README que diga «nueve controles» u omita `skills-check` de su tabla contradice el `ci:` que deja T017.
 
 ## D20 · Lint
 
