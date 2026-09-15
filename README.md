@@ -12,9 +12,30 @@ de consulta y hash no hay cita, y sin cita no hay respuesta.
 Solo se automatizan fuentes públicas. Cualquier acción que exija identidad —presentar un escrito,
 recoger una notificación— termina en un fichero listo para firmar, nunca en un envío a una sede.
 
-## Qué entrega este hito (H4)
+## Qué entrega este hito (H5)
 
-H4 trae el **primer applet con fuente**: `boe`, que consulta la API de Legislación Consolidada del BOE
+H5 trae la **primera skill del producto**: `boe-legislacion`, que consulta y cita cualquier norma consolidada del
+BOE —procedimiento administrativo, contratación pública, régimen local, tributos, relaciones laborales…— con el
+applet `boe` del binario, y el andamiaje que comparten todas las skills: los datos como única fuente de verdad, lo
+generado comprobado en `make ci`, la instalación con una orden y unas evals comparables entre ejecuciones.
+
+- **Skill `boe-legislacion`**: un protocolo de cinco pasos —identificar la norma, resolver su identificador
+  `BOE-A-…`, leer el índice y los bloques con el binario, evaluar si falta contexto y responder citando— y una forma
+  de cita fija, `[BOE-A-2015-10565, bloque a21]`. Lo que dice de una norma sale del texto que el binario devuelve en
+  la misma conversación, distinguiendo ley y reglamento y señalando la variación autonómica.
+- **Tabla de normas** `data/normas.yaml`: diez normas de materias distintas, validada contra
+  `schemas/normas.yaml.json` y con cada identificador comprobado contra la búsqueda grabada del BOE. De ella se
+  generan las referencias de la skill.
+- **`make install`** instala el binario y enlaza la skill en el directorio personal de skills de Claude Code;
+  **`make skills-sync`** regenera lo que se deriva de los datos y del binario; **`make skills-check`**, dentro de
+  `make ci`, falla si algo diverge; y **`make evals`** mide la skill con Claude Code desde el job de evals.
+- **El formato común de eval** (`schemas/eval.yaml.json`) y doce evals de `boe-legislacion`: diez preguntas de
+  materias distintas que deben activar la skill, hacer las consultas esperadas y citar lo esperado, y dos que no
+  deben activarla.
+
+El detalle está en [Skills](#skills).
+
+H4 trajo el **primer applet con fuente**: `boe`, que consulta la API de Legislación Consolidada del BOE
 —cualquier norma consolidada, estatal o autonómica, por su identificador `BOE-A-…`— y devuelve cada
 respuesta lista para citar, con `fuente` `boe.legislacion-consolidada`, la `url` de la API consultada y
 la `fecha_consulta` en que se obtuvo lo que `data` contiene.
@@ -111,11 +132,101 @@ make check-tools     # comprueba go, git y que el toolchain fijado es obtenible
 
 ```bash
 make build       # deja el ejecutable en bin/kitlegal
-make install     # lo instala en el directorio de binarios de Go ($GOBIN, o $HOME/go/bin)
+make install     # instala el binario en el directorio de binarios de Go ($GOBIN, o $HOME/go/bin) y enlaza las skills en el directorio personal de skills de Claude Code (~/.claude/skills)
 ```
 
 Las dos inyectan los mismos datos de construcción —versión, commit y fecha— y compilan sin cgo y con
-`-trimpath`.
+`-trimpath`. Qué enlaza `make install`, y cómo, está en la sección siguiente.
+
+## Skills
+
+Las skills son el producto y el binario, su herramienta. Una skill es un directorio sin código: un `SKILL.md` con
+el protocolo de razonamiento, la tabla de comandos y las reglas; `references/`, generadas desde `data/*.yaml`; y
+`scripts/`, con un enlace por applet que llega al binario instalado. Hoy hay una, `boe-legislacion`.
+
+### Tres directorios llamados `skills`
+
+| Directorio | Qué es | ¿Es kitlegal? |
+|---|---|---|
+| `skills/` | **El producto que se distribuye**: las skills de kitlegal, hoy `boe-legislacion` | sí |
+| `.agents/skills/` | Skills de agente vendorizadas para trabajar en este repositorio —las de Go de `samber/cc-skills-golang`—, registradas con su origen y su huella en el registro de bloqueo `skills-lock.json`. Se versionan tal cual y no se editan; `.agents/.gitattributes` las marca como vendorizadas y generadas, para que no cuenten en las estadísticas de lenguaje del repositorio ni se desplieguen en los diffs de las propuestas de cambio | no |
+| `.claude/skills/` | Lo que carga Claude Code al trabajar en el repositorio: un enlace a cada skill de `.agents/skills/` más las skills de spec-kit, con las que se prepara cada hito | no |
+
+### Instalar la skill
+
+`make install` —la orden de [Construir e instalar](#construir-e-instalar)— enlaza cada skill de `skills/` en
+`~/.claude/skills/`, el directorio personal de skills de Claude Code, y deja `bin/instalado/kitlegal` apuntando al
+binario recién instalado. Es lo que alcanza el enlace `scripts/boe` de la skill, y como se invoca con el nombre
+`boe`, el despacho multicall ejecuta el applet `boe`. Repetir la instalación deja el mismo estado. Si en
+`~/.claude/skills/` ya hay una entrada con el nombre de una skill que no es el enlace que crearía —un directorio, un
+fichero u otro enlace—, la nombra, falla y no crea ni cambia nada.
+
+Con la skill enlazada basta preguntar a Claude Code por una norma —«¿qué dice el art. 21 de la Ley 39/2015?»—: la
+skill se activa, consulta el BOE con `scripts/boe … --json` y responde citando `[BOE-A-2015-10565, bloque a21]`.
+
+### Lo generado: `make skills-sync` y `make skills-check`
+
+`data/*.yaml` es la única fuente de verdad: hoy `data/normas.yaml`, la tabla de normas, validada contra
+`schemas/normas.yaml.json`. De los datos y de `--describe` del binario se derivan tres cosas de cada skill, que no
+se editan a mano: `references/*.md`, con la cabecera `<!-- generado desde data/normas.yaml, no editar -->`; la tabla
+de comandos de `SKILL.md`, entre sus marcas de inicio y de fin; y los enlaces de `scripts/`.
+
+- **`make skills-sync`** las regenera y escribe en el árbol; dos ejecuciones seguidas no cambian nada. Se ejecuta
+  tras cambiar `data/` o un verbo, y lo que regenera va en el mismo cambio, porque sin ello `make ci` falla.
+- **`make skills-check`** las regenera en memoria y las compara con el árbol sin escribir nada; comprueba además el
+  frontmatter de cada `SKILL.md` y que tenga menos de 300 líneas, la tabla de normas contra su esquema y sus
+  identificadores contra la búsqueda grabada del BOE, y el formato y el conjunto de las evals y lo grabado que
+  necesitan. Está dentro de `make ci`: una referencia editada a mano, un dato sin regenerar o un `--describe` que
+  ha cambiado lo hacen fallar nombrando la skill y el fichero o el enlace.
+
+### Formato común de eval
+
+Una eval es una pregunta y lo que se espera de la sesión que la responde. Las evals de cada skill viven en un
+directorio propio, `evals/<skill>/`, con un fichero YAML por eval llamado `<nn>-<descripción>.yaml`, y todas siguen
+el formato común de eval:
+
+```yaml
+pregunta: "¿qué dice el art. 21 de la Ley 39/2015?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21
+```
+
+| Campo | Qué fija |
+|---|---|
+| `pregunta` | La pregunta con la que se abre la sesión |
+| `activa` | Si la pregunta debe activar la skill. Una eval de no activación (`false`) no lleva `comandos` ni `citas` |
+| `comandos` | Obligatorio si `activa` es `true`: las consultas que la sesión debe hacer con éxito, en una de tres formas —un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` `indice`, `metadatos` o `analisis`, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`)— |
+| `citas` | Obligatorio si `activa` es `true`: cada `norma` y `bloque` que la respuesta debe citar |
+| `reproduce` | Opcional: la skill cuyo uso documentado reproduce la eval, p. ej. `boe-fiscal` |
+
+Cada fichero se valida contra el esquema `schemas/eval.yaml.json` dentro de `make ci` (`make skills-check`): una
+clave desconocida o repetida, un identificador mal escrito o una eval positiva sin citas fallan nombrando el
+fichero. `evals/boe-legislacion/` tiene doce: diez preguntas de materias distintas que deben activar la skill y dos
+ajenas que no deben activarla.
+
+### Job de evals
+
+`make evals SKILL=<skill>` ejecuta las evals de una skill con Claude Code: una sesión por eval, con la skill
+instalada por `make install`, y un informe que juzga cada sesión sin modelo —si activó la skill, si hizo con éxito
+las consultas esperadas y si citó lo esperado— y da un veredicto global. Las sesiones no piden nada a las fuentes:
+el binario responde desde una caché preparada con lo grabado, la red solo alcanza el modelo y el veredicto falla si
+una petición llega a la red. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de
+Claude Code; cuesta y no es determinista, así que no forma parte de `make ci`. Lo lanza el job de evals, el flujo
+`evals` de la plataforma, con un único modelo fijado en su definición:
+
+- **a mano**, sobre la rama que se elija;
+- **cada semana**, sobre la rama principal;
+- **por etiqueta**, sobre la rama de un hito: poner la etiqueta `evals` en su propuesta de cambio lanza las evals
+  antes de fusionar, y `evals-prueba-de-red` añade además la sesión de la prueba de red.
+
+El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## `kitlegal version`
 
@@ -153,7 +264,7 @@ $ echo $?
 
 ## Ejecutar los controles
 
-`make ci` es **el veredicto del repositorio**: encadena los nueve controles, falla nombrando el que
+`make ci` es **el veredicto del repositorio**: encadena los diez controles, falla nombrando el que
 falla y no modifica ningún fichero versionado del árbol de trabajo.
 
 ```bash
@@ -168,24 +279,28 @@ propuesta de cambio. Cada control se puede invocar por separado mientras se depu
 | `make fmt-check` | Comprueba el formato sin tocar ningún fichero | sí |
 | `make lint` | Análisis estático completo, `gosec` incluido | sí |
 | `make test` | Tests unitarios con detector de carreras; deja `coverage.out` | sí |
-| `make test-integration` | Tests con la etiqueta de compilación `integration`, con detector de carreras: los que dependen del entorno (permisos del sistema de ficheros, dos procesos), siempre dentro de directorios temporales | sí |
+| `make test-integration` | Tests con la etiqueta de compilación `integration`, con detector de carreras: los que dependen del entorno (permisos del sistema de ficheros, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal), siempre dentro de directorios temporales | sí |
 | `make vuln` | Vulnerabilidades conocidas (consulta la base de datos de Go: requiere red) | sí |
 | `make schema-check` | Comprueba que los esquemas publicados en `schemas/` (`norma.json` y `bloque.json`) coinciden con lo que emite `--describe` de cada verbo, sin escribir nada | sí |
+| `make skills-check` | Comprueba sin red, sin modelo y sin escribir nada el frontmatter y el límite de líneas de cada `SKILL.md`; las derivas de las referencias, de la tabla de comandos y de los enlaces de `scripts/`; la tabla de normas contra su esquema y sus identificadores; y el formato y el conjunto de las evals y lo grabado que necesitan | sí |
 | `make secrets` | Detección de secretos en todo el árbol | sí |
 | `make mod-verify` | Integridad del módulo raíz y de cada módulo de herramienta | sí |
 | `make mod-tidy-check` | Comprueba que `go.mod` y `go.sum` están saneados | sí |
 | `make fmt` | **Corrige** el formato; por eso no forma parte de `ci` | no |
+| `make skills-sync` | **Regenera** las referencias, la tabla de comandos de `SKILL.md` y los enlaces de `scripts/` de cada skill: escribe en el árbol, y por eso no forma parte de `ci` | no |
 | `make lint-fast` | Análisis estático rápido, el del gancho de pre-commit | no |
 | `make test-e2e` | Tests de extremo a extremo con `testscript`, contra un binario que registra los applets de ejemplo y `boe`, que responde desde sus grabaciones sin red | no |
 | `make verify-sources` | Comprueba contra la fuente real que sus respuestas se siguen interpretando —hoy, `boe articulo` contra la API del BOE—: **requiere red** y lo ejecuta el flujo nocturno | no |
+| `make evals` | Ejecuta las evals de una skill (`SKILL=<skill>`) en sesiones con modelo de Claude Code; lo lanza el job de evals | no |
 
 `make verify-sources` es el único control que pide algo a una fuente real, y por eso no está en `ci`:
 todos los tests de `make ci` corren sin red, contra respuestas grabadas. Cada noche lo ejecuta el
 trabajo `fuentes` del flujo `nightly`, que abre o comenta una incidencia si falla; el detalle está en
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+[`CONTRIBUTING.md`](CONTRIBUTING.md). `make evals` tampoco está en `ci`, aunque no pide nada a ninguna
+fuente: sus sesiones usan un modelo, que cuesta y no es determinista ([Job de evals](#job-de-evals)).
 
-`make help` —el objetivo por defecto— enumera todas las órdenes, incluidas las que existen pero
-reciben su contenido en un hito posterior (`skills-sync`, `release`).
+`make help` —el objetivo por defecto— enumera todas las órdenes, incluida la que existe pero recibe su
+contenido en un hito posterior (`release`).
 
 ### Ganchos de pre-commit
 

@@ -98,14 +98,17 @@ porque la integración continua ejecuta esa misma orden y no aplica ningún cont
 | Análisis estático (`golangci-lint`, `gosec` y `govet` incluidos) | `make lint` | sí |
 | Análisis estático rápido | `make lint-fast` | no — es el del gancho de pre-commit |
 | Tests unitarios con detector de carreras y perfil de cobertura | `make test` | sí |
-| Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos) | `make test-integration` | sí |
+| Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal) | `make test-integration` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; derivas de las referencias, de la tabla de comandos y de los enlaces de `scripts/`; tabla de normas contra su esquema y sus identificadores; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
+| Regeneración de lo que se deriva de cada skill (referencias, tabla de comandos de `SKILL.md`, enlaces de `scripts/`) | `make skills-sync` | no — escribe en el árbol |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
 | Integridad de los módulos (`go mod verify`, raíz y herramientas) | `make mod-verify` | sí |
 | Dependencias saneadas (`go mod tidy -diff`) | `make mod-tidy-check` | sí |
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
+| Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
 | Análisis de seguridad semanal (CodeQL) | — (flujo `.github/workflows/codeql.yml`) | no |
 | Actualización semanal de dependencias | — (Dependabot, `.github/dependabot.yml`) | no |
@@ -159,17 +162,18 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 
 | Orden | Qué hace hoy | Hito |
 |---|---|---|
-| `make skills-sync` | Anuncia que no hay `skills/` ni `data/*.yaml` todavía y termina con éxito | H5 |
 | `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
 
-`release` es la excepción porque es una acción con efectos externos: no puede simular éxito. No forma
-parte de `ci` ni del flujo nocturno.
+`release` falla en lugar de anunciar lo que le falta y terminar con éxito porque es una acción con
+efectos externos: no puede simular éxito. No forma parte de `ci` ni del flujo nocturno.
 
-`make test-e2e`, `make test-integration` y `make schema-check` ya no están en esta tabla: desde H1 la
-primera ejecuta los guiones `testscript` contra el binario que el propio test construye; desde H3 la
-segunda ejecuta los tests etiquetados `integration` —los de la caché, que dependen del entorno— y forma
-parte de `make ci`; y desde H4 la tercera compara `schemas/` con lo que emite `--describe` (sección
-siguiente).
+`make test-e2e`, `make test-integration`, `make schema-check` y `make skills-sync` ya no están en esta
+tabla: desde H1 la primera ejecuta los guiones `testscript` contra el binario que el propio test
+construye; desde H3 la segunda ejecuta los tests etiquetados `integration` —los que dependen del entorno:
+los de la caché y, a partir de H5, el de la instalación de las skills— y forma parte de `make ci`; desde
+H4 la tercera compara `schemas/` con lo que emite `--describe` (sección siguiente); y desde H5, `make skills-sync`
+regenera, desde `data/*.yaml` y desde `--describe` del binario, las referencias, la tabla de comandos de
+`SKILL.md` y los enlaces de `scripts/` de cada skill (sección [«Skills y evals»](#skills-y-evals)).
 
 ## `make schema-check` y `make verify-sources`
 
@@ -191,6 +195,77 @@ contra respuestas grabadas. Lo ejecuta cada noche el trabajo `fuentes` del flujo
 comenta la incidencia abierta con el título del caso o la abre. Un hito que añade una fuente añade su caso
 a esta verificación (*Definition of Done*, punto 8). Ningún control ni flujo graba respuestas: las
 grabaciones contra las que corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
+
+## Skills y evals
+
+Una skill es un directorio sin código bajo `skills/`: `SKILL.md`, `references/` y `scripts/`. Qué son los tres
+directorios llamados `skills`, qué hace `make install` y qué se genera está en el [`README.md`](README.md#skills);
+esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
+
+**Lo generado no se edita.** `references/*.md`, la tabla de comandos de `SKILL.md` —entre sus marcas— y los enlaces
+de `scripts/` se derivan de `data/*.yaml` y de `--describe` del binario. Tras cambiar `data/`, añadir un verbo o
+cambiar su entrada o su salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio:
+`make skills-check`, dentro de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero o el enlace
+que difieren. Comprueba además el frontmatter de cada `SKILL.md` y que tenga menos de 300 líneas, la tabla de normas
+contra `schemas/normas.yaml.json`, que cada identificador está en la búsqueda grabada del BOE, y el formato y el
+conjunto de las evals y que lo que necesitan está grabado. Una norma nueva, o una eval que consulta algo que no está
+grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh`: ningún control ni flujo graba
+respuestas.
+
+### Formato común de eval
+
+Las evals de una skill se escriben **antes** que la skill o que el cambio que la mejora (ritual, paso 1), en su propio
+directorio, `evals/<skill>/`, con un fichero YAML por eval llamado `<nn>-<descripción>.yaml` —dos cifras y una
+descripción en minúsculas con guiones—. Todas siguen el formato común de eval:
+
+| Campo | ¿Obligatorio? | Qué fija |
+|---|---|---|
+| `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
+| `activa` | sí | Si la pregunta debe activar la skill |
+| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de tres formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`) |
+| `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
+
+Cada fichero se valida contra `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un
+fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
+eval positiva sin citas o una de no activación con comandos fallan nombrando el fichero; ninguna se salta. Para
+`boe-legislacion`, `make ci` exige además las reglas de su conjunto: diez positivas de materias distintas y dos de no
+activación, entre otras.
+
+Una eval pasa si la sesión activa la skill cuando debe y no la activa cuando no debe, termina, hace con éxito cada
+consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas`. Lo juzga el informe sin modelo, con lo
+que deja la sesión: su transcript y su traza.
+
+### Job de evals
+
+`make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
+necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
+ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval está mal formada, que lo que
+necesitan está grabado y que la skill está instalada, y termina con `1` si algo falla. Después abre una sesión de
+Claude Code por eval, bajo `strace` y con la red cerrada salvo la del modelo, y escribe el informe con un veredicto
+global que falla si una eval no pasa, una sesión es ilegible, un fichero está mal formado, una eval se queda sin
+sesión o una petición llega a la red.
+
+Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un único modelo fijado por su
+identificador completo en la definición —cambiar de modelo es un cambio de ese fichero— y el secreto de repositorio
+`CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token` (el proyecto no usa una
+clave de API de pago por uso). Se lanza de tres formas:
+
+| Lanzamiento | Sobre qué rama | Cómo |
+|---|---|---|
+| Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
+| Semanal | La principal | Lo programa el propio flujo |
+| Por etiqueta | La de un hito, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
+
+Una etiqueta que ya está puesta no lanza nada: para repetir la ejecución se quita y se vuelve a poner. El informe se
+imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y `--- fin de informe.md ---`
+(y las mismas de `informe.json`). La *Definition of Done* (punto 10) pide las evals de la skill en verde: se lanzan
+por etiqueta después del último cambio de la rama fuera del directorio del hito en `specs/`, porque un cambio
+posterior obliga a repetirlas.
+
+La **prueba de red** añade a las sesiones de las evals una con la pregunta de la primera eval y dos consultas a un
+bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
+con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado.
 
 ## `make vuln` necesita red
 
