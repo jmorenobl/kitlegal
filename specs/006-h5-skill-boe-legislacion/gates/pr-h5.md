@@ -541,8 +541,21 @@ esta propuesta, y las tomadas durante la implementación.
   de solo lectura (lo que D16 rechaza del sandbox) y depende de espacios de nombres de usuario que AppArmor puede
   restringir en Ubuntu 24.04; `processWrapper` y el descriptor del token, sin documentar; el sandbox de Bash, por D16.
   La misma comprobación encontró que `strace -s 4096` corta el argv de la instantánea de shell que Claude Code crea
-  antes de la primera orden de Bash, lo que dejaría ilegible toda sesión que ejecute Bash con cualquier valor de la
-  variable: lo arregla T037 (`-s 131072`), antes de T030.
+  antes de la primera orden de Bash, lo que dejaba ilegible toda sesión que ejecute Bash con cualquier valor de la
+  variable: lo arregla T037 (siguiente punto), antes de T030.
+- **Trazas enteras: `strace -s 131072`** (T037; research V61 y V62; contrato del job §3.2; data-model §9, regla 5): la
+  orden de la sesión pasa de `-s 4096` a `-s 131072`, el tamaño máximo de un argumento de `execve` en Linux con páginas
+  de 4 KiB (`MAX_ARG_STRLEN`, con el nulo final), y la lectura de la traza no cambia: un argumento cortado sigue
+  haciéndola ilegible, porque el argv de una invocación cortada no se puede comparar. Comprobado en contenedores de
+  `ubuntu:24.04` con `strace` 6.8 y `--network none`: un argumento de 131 071 octetos sale entero y `LeerTrazas` lo lee
+  (con `-s 4096`, cortado e ilegible), y uno de 131 072 da `E2BIG`; con Claude Code 2.1.270 en las condiciones del caso
+  4 de T036 (V61), el bloque de la sesión de `scripts/evals.sh` deja la instantánea de shell entera (6 987 octetos) y
+  una traza legible con las dos invocaciones de `a9998` (código 5 con tres `connect` locales y código 4 sin
+  conexiones), cuando el bloque anterior la dejaba ilegible en esa línea. Queda un límite: `strace` corta con `...]` una
+  lista de más de 131 072 argumentos, que el núcleo admite, y esa sesión saldría ilegible, sin ocultar la invocación
+  (S4). Alternativas rechazadas: admitir en `LeerTrazas` cadenas cortadas, que compararía argv incompletos con los
+  comandos esperados; y `-v`, que tampoco corta la lista pero escribe el entorno de cada `execve` con sus valores, y con
+  él `CLAUDE_CODE_OAUTH_TOKEN` desde la `execve` de `claude`.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
@@ -580,12 +593,14 @@ esta propuesta, y las tomadas durante la implementación.
   además fuerza el modo de permisos a `default` (`gates/prueba-de-red.md`, `gates/tarea-T030.md`). T036 lo comprobó en
   contenedores y lo resolvió con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`, porque el aislamiento con `bwrap` deja la traza
   sin atribuir (*Decisiones*); la comprobación encontró además el corte del argv de la instantánea de shell, que
-  arregla T037. T030 sigue sin marcar; su intento 3, tras T036 y T037, repite la prueba de red.
+  arregló T037 (`strace -s 131072`; *Decisiones*). T030 sigue sin marcar; su intento 3, tras T036 y T037, repite la
+  prueba de red.
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
   intento 2 ya dejó: S12 se cumple en (1), (2), (3), (5) y (6); S2 y S7 se cumplen en todo lo ejercido (con T036, el
   job no instala `bubblewrap` y S2 no supone nada de los espacios de nombres de usuario del runner); S10 se cumple en
   la propagación del código de `claude`; S1, en que el job de la rama corre con el secreto; S5 y S6 se reescriben con
-  T036 (research V61, caso 4); S4, S9 y S11, sin evidencia todavía. Los supuestos: S1
+  T036 (research V61, caso 4); S4, S9 y S11, sin evidencia de plataforma todavía (de S4, T037 comprobó en un
+  contenedor que la traza de una sesión que ejecuta Bash sale entera con `-s 131072`, research V62). Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de

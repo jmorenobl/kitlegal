@@ -112,10 +112,12 @@ sesion() {
 
 	# Sesión: la caché preparada, un proxy que rechaza toda petición salvo la del modelo, sin tráfico no esencial, con el
 	# tope de 240 s y bajo strace, en un directorio de trabajo vacío fuera del repositorio y solo con la configuración y
-	# las skills de la cuenta (tabla del §3.2; research.md D12, D13 y D16). Sin el aislamiento de subprocesos de Claude
-	# Code, que en Linux ejecuta cada orden dentro de bwrap, con un espacio de nombres de PID que deja la traza sin atribuir
-	# y el disco de solo lectura; Claude Code sigue sin pasar la credencial del modelo al entorno de las órdenes
-	# (research.md V12, V61 y D13).
+	# las skills de la cuenta (tabla del §3.2; research.md D12, D13 y D16). La traza lleva entera cada cadena de un execve:
+	# -s 131072 es el tamaño máximo de un argumento en Linux, y con -s 4096 la instantánea de shell que Claude Code crea
+	# antes de la primera orden de Bash sale cortada y deja ilegible la traza (research.md V61 y V62). Sin el aislamiento
+	# de subprocesos de Claude Code, que en Linux ejecuta cada orden dentro de bwrap, con un espacio de nombres de PID que
+	# deja la traza sin atribuir y el disco de solo lectura; Claude Code sigue sin pasar la credencial del modelo al entorno
+	# de las órdenes (research.md V12, V61 y D13).
 	local codigo=0
 	(
 		cd "$d/trabajo"
@@ -127,7 +129,7 @@ sesion() {
 			CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
 			CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 \
 			timeout --kill-after=10s 240s \
-			strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 4096 -o "$d/traza/t" -- \
+			strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 131072 -o "$d/traza/t" -- \
 			claude -p "$(cat "$d/pregunta.txt")" \
 			--model "$MODELO_DE_EVALS" \
 			--output-format stream-json --verbose \
