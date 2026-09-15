@@ -329,14 +329,18 @@ de salida (que el guion escribe siempre en `codigo-de-la-sesion`) y del último 
 `strace -ff` de la sesión entera. Una eval cuya sesión no terminó no pasa, y el informe da el motivo (tope de 240 s,
 error de la API, turnos agotados, sin `result`). Comparación mecánica de data-model §6.1, §6.2 y §9: applet por
 el nombre de invocación, banderas globales retiradas (con valor en `--timeout` y `--asunto`, según el tipo que declara
-`cli.Globales`), `--describe` y `--dry-run` sin consulta, bloques por `articulo`/`articulos`, términos de `buscar` como
-palabras.
+`cli.Globales`), la ayuda y `--describe` o `--dry-run` verdaderos sin consulta, bloques por `articulo`/`articulos`,
+términos de `buscar` como palabras.
 
 **Por qué.** La herramienta Bash no informa del código de salida de cada invocación y una orden puede encadenar varias
 (V9); los ganchos tampoco lo dan (V13). La traza del sistema registra lo que se ejecutó de verdad, sin tocar la skill ni
 el binario (FR-077). `--describe` y `--dry-run` no consultan (V24; y `descripcionDeLaOperacion`, en `internal/app/main.go`, que con
 `--dry-run` escribe «no se ha ejecutado nada»): con FR-072 «consultó lo mismo» y la
-clarificación («consultar es obtener el texto»), no pueden satisfacer un comando esperado.
+clarificación («consultar es obtener el texto»), no pueden satisfacer un comando esperado. Tampoco la ayuda (`--help`,
+`-h`), que el binario imprime antes de terminar con 0 sin leer nada. Lo que decide es el valor de cada bandera tal
+como lo analiza Kong, por eso se analizan con la gramática de `cli.Globales` y su ayuda integrada: con
+`--describe=false` o `--dry-run=false` el binario consulta, y con `--help=false` imprime igualmente la ayuda, porque
+Kong la atiende en cuanto aparece la bandera (revisión final de H5; `TestPreescaneoFormasNoSoportadas` de H1).
 
 **Alternativas rechazadas.** *Resultado de Bash en el transcript*: sin código por invocación. *Ganchos `PostToolUse`*:
 igual, y `--bare` los desactiva. *Un envoltorio del binario que registre*: cambia lo que ejecuta la skill instalada.

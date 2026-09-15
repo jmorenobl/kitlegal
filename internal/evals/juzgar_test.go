@@ -2,6 +2,7 @@ package evals
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,13 +35,14 @@ type juicio struct {
 // TestJuzgar fija la comparación mecánica de una sesión con su eval de
 // data-model §10.2: pasa solo si la sesión terminó, la activación coincide y
 // están todos los comandos y todas las citas esperados; un comando esperado lo
-// satisface solo una invocación con consulta y código 0 del mismo applet, con
-// articulo o articulos para un bloque, el mismo verbo y la misma norma para una
-// consulta de norma y los términos como palabras para buscar; una cita cuenta
-// solo con la misma norma y el mismo bloque; y las invocaciones fuera de lo
-// grabado, las otras fallidas y las llegadas a la red se informan sin cambiar si
-// pasa (contrato evals-y-grabaciones §6; FR-072, FR-076, SC-009; US4, escenarios
-// 2, 3, 5, 7 y 8).
+// satisface solo una invocación con consulta —ni la ayuda ni --describe o
+// --dry-run verdaderos— y código 0 del mismo applet: articulo o articulos de esa
+// norma con ese bloque entre los pedidos para un bloque, el mismo verbo y la
+// misma norma para una consulta de norma, y buscar con cada término como palabra
+// para una búsqueda; una cita cuenta solo con la misma norma y el mismo bloque; y
+// las invocaciones fuera de lo grabado, las otras fallidas y las llegadas a la red
+// se informan sin cambiar si pasa (contrato evals-y-grabaciones §6; FR-072,
+// FR-076, SC-009; US4, escenarios 2, 3, 5, 7 y 8).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -193,7 +195,28 @@ func TestJuzgar(t *testing.T) {
 			juicios: []juicio{metadatosNoSatisfaceIndice(t)},
 		},
 		{
-			nombre:  "buscar-terminos-como-palabras",
+			// Leer con código 0 otros bloques de la misma norma, con articulo y con
+			// articulos, no satisface el bloque esperado aunque la respuesta lo
+			// cite (FR-072: «ese identificador y ese bloque»).
+			nombre: "otro-bloque-no-satisface",
+			juicios: []juicio{sinElBloque21(t,
+				"articulo BOE-A-2015-10565 a22 --json", "articulos BOE-A-2015-10565 a20 a22 --json")},
+		},
+		{
+			// Otro verbo con la norma y el bloque entre sus argumentos, como una
+			// búsqueda de esos dos términos, no lee el bloque.
+			nombre:  "otro-verbo-con-el-bloque-no-satisface",
+			juicios: []juicio{sinElBloque21(t, "buscar BOE-A-2015-10565 a21 --json")},
+		},
+		{
+			// Con --help o -h el binario imprime la ayuda y termina con 0 sin leer
+			// nada: la invocación no tiene consulta (data-model §9).
+			nombre: "ayuda-no-satisface",
+			juicios: []juicio{sinElBloque21(t,
+				"articulo BOE-A-2015-10565 a21 --help", "articulo BOE-A-2015-10565 a21 -h")},
+		},
+		{
+			nombre:  "buscar-verbo-y-terminos-como-palabras",
 			juicios: []juicio{terminosComoPalabras(t)},
 		},
 		{
@@ -246,6 +269,12 @@ func TestJuzgar(t *testing.T) {
 					r.Pasa = false
 				}),
 			}},
+		},
+		{
+			// Con --describe=false o --dry-run=false el binario sí consulta
+			// (data-model §9).
+			nombre:  "describe-y-dry-run-falsos-consultan",
+			juicios: []juicio{describeYDryRunFalsos(t)},
 		},
 		{
 			nombre: "otra-fallida",
@@ -333,13 +362,16 @@ func metadatosNoSatisfaceIndice(t *testing.T) juicio {
 	}
 }
 
-// terminosComoPalabras es el juicio de una eval con dos búsquedas esperadas. La
-// primera la satisface la invocación cuyos argumentos, en minúsculas, contienen
-// cada término como palabra, aunque el término y los argumentos no coincidan en
-// mayúsculas, uno de ellos esté dentro de un argumento con espacios y otro lleve
-// una barra. La segunda no la satisface la invocación que solo contiene su
-// término dentro de otras palabras, detrás y delante de una letra (data-model
-// §6.1).
+// terminosComoPalabras es el juicio de una eval con cuatro búsquedas esperadas
+// (data-model §6.1). La primera la satisface la invocación cuyos argumentos, en
+// minúsculas, contienen cada término como palabra, aunque el término y los
+// argumentos no coincidan en mayúsculas, uno de ellos esté dentro de un argumento
+// con espacios y otro lleve una barra. Las otras tres no las satisface ninguna: la
+// segunda, porque la búsqueda que la busca solo contiene su término dentro de
+// otras palabras, detrás y delante de una letra; la tercera, porque a la búsqueda
+// que contiene sus dos primeros términos le falta el último; y la cuarta, un
+// identificador, porque la única invocación que lo contiene como palabra es
+// metadatos y no buscar.
 func terminosComoPalabras(t *testing.T) juicio {
 	t.Helper()
 
@@ -350,6 +382,8 @@ func terminosComoPalabras(t *testing.T) juicio {
 		Comandos: []ComandoEsperado{
 			{Applet: "boe", Verbo: "buscar", Terminos: []string{"Régimen", "local", "7/1985"}},
 			{Applet: "boe", Verbo: "buscar", Terminos: []string{"común"}},
+			{Applet: "boe", Verbo: "buscar", Terminos: []string{"régimen", "local", "municipal"}},
+			{Applet: "boe", Verbo: "buscar", Terminos: []string{normaDeLaLRBRL}},
 		},
 		Citas: []CitaEsperada{{Norma: normaDeLaLRBRL, Bloque: "a1"}},
 	}
@@ -360,23 +394,31 @@ func terminosComoPalabras(t *testing.T) juicio {
 		eval: eval,
 		sesion: sesionTerminada(true, respuesta,
 			invocada(t, codigoDeSalida(0), deLaSkill("buscar", "bases del RÉGIMEN local", "7/1985", "--json")),
-			invocada(t, codigoDeSalida(0), deLaSkill("buscar", "procedimiento", "comúnmente", "intercomún", "--json"))),
+			invocada(t, codigoDeSalida(0), deLaSkill("buscar", "procedimiento", "comúnmente", "intercomún", "--json")),
+			invocada(t, codigoDeSalida(0), deLaSkill("metadatos", normaDeLaLRBRL, "--json"))),
 		esperado: ResultadoDeEval{
 			Eval:               eval.Fichero,
 			Activa:             true,
 			Activada:           true,
 			ComandosEjecutados: []string{"boe buscar Régimen local 7/1985"},
-			ComandosAusentes:   []string{"boe buscar común"},
-			CitasEncontradas:   []string{"BOE-A-1985-5392 a1"},
+			ComandosAusentes: []string{
+				"boe buscar común", "boe buscar régimen local municipal", "boe buscar BOE-A-1985-5392",
+			},
+			CitasEncontradas: []string{"BOE-A-1985-5392 a1"},
 			Invocaciones: []InvocacionInformada{
 				{Orden: "boe buscar bases del RÉGIMEN local 7/1985 --json", Codigo: codigoDeSalida(0)},
 				{Orden: "boe buscar procedimiento comúnmente intercomún --json", Codigo: codigoDeSalida(0)},
+				{Orden: "boe metadatos BOE-A-1985-5392 --json", Codigo: codigoDeSalida(0)},
 			},
 			Respuesta:        respuesta,
 			CodigoDeLaSesion: codigoDeSalida(0),
 			FinDeLaSesion:    "result success",
 			SesionTerminada:  true,
-			Motivos:          []string{"comando ausente: boe buscar común"},
+			Motivos: []string{
+				"comando ausente: boe buscar común",
+				"comando ausente: boe buscar régimen local municipal",
+				"comando ausente: boe buscar BOE-A-1985-5392",
+			},
 		},
 	}
 }
@@ -583,4 +625,60 @@ func cambiada(sesion Sesion, cambiar func(*Sesion)) Sesion {
 	cambiar(&sesion)
 
 	return sesion
+}
+
+// sinElBloque21 es el juicio de la eval 01 con una sesión activada, con la cita
+// esperada en la respuesta y con una invocación de la skill por cada orden dada
+// sin el applet, todas con código 0 y ninguna de las cuales satisface el bloque
+// esperado: el comando queda ausente, la eval no pasa y ninguna invocación va a
+// fuera de lo grabado ni a las otras fallidas.
+func sinElBloque21(t *testing.T, ordenes ...string) juicio {
+	t.Helper()
+
+	invocaciones := make([]Invocacion, 0, len(ordenes))
+	informadas := make([]InvocacionInformada, 0, len(ordenes))
+
+	for _, orden := range ordenes {
+		invocaciones = append(invocaciones, invocada(t, codigoDeSalida(0), deLaSkill(strings.Fields(orden)...)))
+		informadas = append(informadas, InvocacionInformada{Orden: "boe " + orden, Codigo: codigoDeSalida(0)})
+	}
+
+	return juicio{
+		eval:   evalDelArticulo21(),
+		sesion: sesionTerminada(true, respuestaConCita, invocaciones...),
+		esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+			r.ComandosEjecutados = nil
+			r.ComandosAusentes = []string{textoDelComando21}
+			r.Invocaciones = informadas
+			r.Motivos = []string{"comando ausente: " + textoDelComando21}
+			r.Pasa = false
+		}),
+	}
+}
+
+// describeYDryRunFalsos es el juicio de la eval 01 con una sesión cuyas dos
+// invocaciones llevan --dry-run=false o --describe=false, con las que el binario
+// consulta: la de a9998 con --offline, que termina con código 4, va a fuera de lo
+// grabado, y la del bloque, con código 0, satisface el comando esperado.
+func describeYDryRunFalsos(t *testing.T) juicio {
+	t.Helper()
+
+	const (
+		fuera   = "articulo BOE-A-2015-10565 a9998 --dry-run=false --offline --json"
+		lectura = "articulo BOE-A-2015-10565 a21 --describe=false --json"
+	)
+
+	return juicio{
+		eval: evalDelArticulo21(),
+		sesion: sesionTerminada(true, respuestaConCita,
+			invocada(t, codigoDeSalida(4), deLaSkill(strings.Fields(fuera)...)),
+			invocada(t, codigoDeSalida(0), deLaSkill(strings.Fields(lectura)...))),
+		esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+			r.Invocaciones = []InvocacionInformada{
+				{Orden: "boe " + fuera, Codigo: codigoDeSalida(4)},
+				{Orden: "boe " + lectura, Codigo: codigoDeSalida(0)},
+			}
+			r.FueraDeLoGrabado = []InvocacionFallida{{Orden: "boe " + fuera, Codigo: 4}}
+		}),
+	}
 }

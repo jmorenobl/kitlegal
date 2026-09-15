@@ -47,7 +47,8 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
 - **`internal/skills`, paquete nuevo de herramienta** (9 ficheros de producto, 9 de test, 4 guiones `testscript`):
   `skill.go`, `frontmatter.go`, `esquemas.go` (el lector común de YAML, que rechaza claves repetidas), `normas.go`,
   `referencias.go`, `comandos.go`, `enlaces.go`, `sincronia.go`, `doc.go`; `instalacion_test.go` con `TestInstalacion`
-  (etiqueta `integration`) sobre `testdata/script/instalar*.txtar`.
+  (etiqueta `integration`) sobre `testdata/script/instalar*.txtar` y el guion del enlace roto, que escribe el propio
+  test.
 - **`internal/evals`, paquete nuevo de herramienta** (11 ficheros de producto, 12 de test): `formato.go`,
   `conjunto.go`, `consultas.go`, `grabaciones.go`, `preparar.go`, `trazas.go`, `sesion.go`, `citas.go`, `juzgar.go`,
   `informe.go`, `doc.go`; los arneses `grabacion_test.go` (etiqueta `grabacion`) y `job_test.go` (etiqueta `evals`);
@@ -131,8 +132,9 @@ del quickstart que lo demuestra:
   `go test` con `TestSkillsDelRepositorio`, `TestNormasDelRepositorio`, `TestEvalsDelRepositorio` y
   `TestIdentificadoresDeLasNormas` sobre `internal/app`, `internal/skills` e `internal/evals` (escenario 1).
 - **Frontmatter del estándar Agent Skills** (`/frontmatter`, `TestValidarFrontmatter`) y **`SKILL.md` < 300 líneas**
-  (`/trescientas-lineas`, `TestContarLineas`): un `name` con mayúscula falla nombrando el defecto y el directorio; 300
-  líneas fallan con «tiene 300 líneas (máximo 299)» (escenario 4).
+  (`/trescientas-lineas`, `TestContarLineas`, `TestRegenerarYComparar`): un `name` con mayúscula falla nombrando el
+  defecto y el directorio; 300 líneas fallan con «tiene 300 líneas (máximo 299)», también cuando es la tabla
+  regenerada la que lleva a 300 un `SKILL.md` que en el árbol tiene menos (escenario 4).
 - **Deriva de `references/`, de la tabla de comandos y de los enlaces de `scripts/`** (`/skills`,
   `/referencia-editada`, `/datos-sin-regenerar`, `/describe-cambiado`, `/enlaces`; `TestRegenerarYComparar`,
   `TestRenderizarTabla`, `TestSustituirRegion`, `TestEnlacesEsperados`): una línea a mano en `normas.md`, un título
@@ -148,8 +150,9 @@ del quickstart que lo demuestra:
   → «el título no coincide con la búsqueda grabada: …» (escenario 3, SC-008). **Gramáticas iguales a las de `boe`**
   (`TestGramaticasCoincidenConBoe`).
 - **Formato y conjunto de evals** (`TestLeerEval`, `TestEsquemaDeEval`, `TestLeerConjunto`, `TestConjuntoDeEvals`,
-  `TestEvalsDelRepositorio/formato`, `/conjunto`, `/normas-conocidas`): sin `pregunta` → «missing property
-  'pregunta'» nombrando el fichero, y el conjunto deja de tener diez positivas y la del art. 21 (escenario 6).
+  `TestEvalsDelRepositorio/formato`, `/conjunto`, `/normas-conocidas`, `TestFormatoDeLasEvalsDeCadaSkill`): sin
+  `pregunta` → «missing property 'pregunta'» nombrando el fichero, en cualquier `evals/<skill>/`, y el conjunto deja de
+  tener diez positivas y la del art. 21 (escenario 6).
 - **Lo grabado basta para cada eval y cada sesión se prepara con las consultas de todas** (FR-074, FR-075;
   `TestEvalsDelRepositorio/grabado`, `TestPrepararYComprobar`, `TestPrepararDirectorioDeSesion`): retirar los
   metadatos de la LPAC → falla nombrando la eval y el comando `boe articulo BOE-A-2015-10565 a21`, primero al preparar
@@ -157,18 +160,22 @@ del quickstart que lo demuestra:
 - **Manifiesto bien formado y grabaciones sin solape con H4** (`TestManifiestoDeGrabaciones`,
   `TestGrabacionesSinSolape`): dos entradas con el mismo `titulo_empieza_por` → «entrada 1 … y entrada 2 …: la misma
   norma repetida, con el mismo prefijo», también desde `TestIdentificadoresDeLasNormas` (escenario 6).
-- **Comparación mecánica** (`TestInterpretarInvocacion`, `TestExtraerCitas`, `TestJuzgar` con 18 subtests): una cita
-  de otro bloque o de otra norma no satisface (`sc-009-otro-bloque`, `sc-009-otra-norma`); un bloque leído con código
-  4 o sin código no cuenta; `--describe` y `--dry-run` no satisfacen; una sesión sin terminar no pasa ni en las de no
-  activación (escenario 7, SC-009).
+- **Comparación mecánica** (`TestInterpretarInvocacion` con 18 subtests, `TestExtraerCitas`, `TestJuzgar` con 22): una
+  cita de otro bloque o de otra norma no satisface (`sc-009-otro-bloque`, `sc-009-otra-norma`); no cuentan un bloque
+  leído con código 4 o sin código, otro bloque de la misma norma ni otro verbo con la norma y el bloque; un `buscar`
+  esperado exige el verbo y cada término; la ayuda y `--describe` y `--dry-run` verdaderos no satisfacen, y con
+  `--describe=false` o `--dry-run=false` hay consulta; una sesión sin terminar no pasa ni en las de no activación
+  (escenario 7, SC-009).
 - **Lectura de sesión, trazas e informe** (`TestLeerSesion` 15, `TestLeerTrazas` 21, `TestLeerTrazasSinFicheros` 2,
-  `TestInforme` 13, `TestEscribirInformeSinSusEntradas` 6): hilos por `clone`, `clone3` y de un hilo, ficheros sin
-  origen, líneas de señal, sesiones cortadas por el tope con y sin llamada interrumpida, conexiones públicas en curso
+  `TestInforme` 13, `TestEscribirInformeSinSusEntradas` 6): hilos por `clone`, `clone3` y de un hilo, el `connect` de
+  un hilo creado antes de la `execve` del applet, que no es de la invocación
+  (`TestLeerTrazasHiloCreadoAntesDeLaEjecucion`), ficheros sin origen, líneas de señal, sesiones cortadas por el tope con y sin llamada interrumpida, conexiones públicas en curso
   en IPv4 e IPv6, códigos 124 y 137, transcripts sin `result` o con `is_error`, cabecera del informe byte a byte,
   motivos de la raíz en su orden, y ningún informe escrito si una entrada no se puede leer (escenario 7).
-- **`make install`** (`TestInstalacion`, etiqueta `integration`, cuatro guiones `testscript`; `make test-integration`
+- **`make install`** (`TestInstalacion`, etiqueta `integration`, cinco guiones `testscript`; `make test-integration`
   la nombra): instala el binario, crea `bin/instalado/kitlegal` y enlaza la skill; repetirlo no cambia nada; una
-  entrada ajena en conflicto termina en 2 y no se toca (escenario 8, SC-006).
+  entrada ajena en conflicto —un directorio, un enlace a otro sitio o un enlace roto— termina en 2, no se toca y no se
+  instala nada, tampoco el binario (escenario 8, SC-006).
 - **Sin instrucciones de evals en la skill** (`/sin-instrucciones-de-evals`; escenario 9, FR-077) y **normas
   nombradas en `SKILL.md`** con entrada en datos (`/normas-nombradas`, FR-020).
 - **Lint de los ficheros etiquetados**: `run.build-tags: [integration, fuentes, grabacion, evals]`.
@@ -447,9 +454,15 @@ esta propuesta, y las tomadas durante la implementación.
   lo que `go list -f '{{.Target}}'` da, para que la skill ejecute el binario **instalado** y no la última construcción
   (`bin/kitlegal`).
 - **Normas indexadas por identificador, con el lector común que rechaza claves repetidas** (D8): `data/normas.yaml`, las
-  evals y el frontmatter pasan por `esquemas.go` sobre `yaml.Node`; un alias o una clave de fusión que repitan una clave
-  también fallan (`TestLeerNormas/clave-de-fusion`, `/identificador-repetido-por-un-alias`). El `enum` de `rango` es el
-  conjunto exacto de `rango.texto` de las doce búsquedas grabadas (nueve valores; `gates/tarea-T009.md`).
+  evals y el frontmatter pasan por `esquemas.go` sobre `yaml.Node`. En los tres, una clave escrita dos veces en el mismo
+  mapa falla con sus dos líneas, y una que repite otra a través de un alias también falla
+  (`TestLeerNormas/identificador-repetido-por-un-alias`). La clave de fusión `<<` no se trata igual en los tres: en
+  `data/normas.yaml` falla como clave del mapa de normas (`TestLeerNormas/clave-de-fusion`), pero dentro de una norma se
+  admite, con el valor escrito por encima del fusionado; en el frontmatter es una clave más, que `ValidarFrontmatter`
+  rechaza por no ser del estándar; y en una eval se admite con la semántica de YAML, también cuando repite una clave
+  del mapa fusionado, cuyo valor escrito prevalece sin error (`{<<: *c, bloque: a22}` da el bloque `a22`). El `enum`
+  de `rango` es el conjunto exacto de `rango.texto` de las doce búsquedas grabadas (nueve valores;
+  `gates/tarea-T009.md`).
 - **Verificación offline de identificadores con el propio applet** (D9): `TestIdentificadoresDeLasNormas` reproduce en
   proceso cada búsqueda del manifiesto sobre `httpx.Replay` y exige identificador y título; también falla si una norma no
   tiene entrada en el manifiesto o sale en la búsqueda de otra entrada.
@@ -725,11 +738,31 @@ esta propuesta, y las tomadas durante la implementación.
   el apartado, la sigla, el nombre completo con paréntesis; la 09 sola en su línea tras el texto del artículo) y solo
   la 03 con la forma fija; la extracción contó las once y ninguna eval falló por `cita ausente`; con la expresión
   anterior habrían fallado diez (`gates/prueba-de-red.md` §3.3 y §4).
+- **Correcciones de la ronda 1 de la revisión final** (`gates/revision-a-r1.json`, `gates/revision-b-r1.json`):
+  (a) `make install` busca los conflictos con `scripts/instalar-skills.sh --comprobar` antes de `go install`, así que
+  con uno no se instala tampoco el binario, como ya decían README, CHANGELOG y data-model §11.1; alternativa
+  rechazada: corregir esos textos y dejar el binario instalado ante un conflicto, una instalación a medias. (b) La
+  comparación mecánica analiza las banderas globales y la ayuda de cada invocación con la gramática de `cli.Globales`
+  y la ayuda integrada de Kong, como el binario: sin consulta con la ayuda (`--help`, también `--help=false`, y `-h`)
+  y con `--describe` o `--dry-run` verdaderos, y con consulta con `--describe=false` o `--dry-run=false`; alternativa
+  rechazada: `cli.PreEscanear`, que no reconoce `--help=false` (`TestPreescaneoFormasNoSoportadas`) aunque el binario
+  imprima la ayuda y termine con 0. (c) `TestEvalsDelRepositorio/formato` valida cada `evals/<skill>/` y no solo
+  `evals/boe-legislacion/`, porque el formato común es el de cualquier skill (FR-060) y README y CONTRIBUTING lo
+  prometían; alternativa rechazada: restringir esos dos textos a `boe-legislacion`. (d) Tests que fijan reglas que
+  sobrevivían a mutantes: `TestJuzgar/otro-bloque-no-satisface`, `/otro-verbo-con-el-bloque-no-satisface` y la
+  búsqueda ampliada `/buscar-verbo-y-terminos-como-palabras`; `TestLeerTrazasHiloCreadoAntesDeLaEjecucion`;
+  `TestRegenerarYComparar/…/trescientas-lineas-al-regenerar`, con el límite sobre el `SKILL.md` regenerado; y el
+  guion del enlace roto de `TestInstalacion`. La revisión no añade ni cambia nada bajo `testdata/` ni `schemas/`: la
+  traza y el guion nuevos los escribe cada test desde constantes en un `t.TempDir()`, como `TestLeerTrazasSinTerminar`.
+  (e) El README presenta la forma de cita de `SKILL.md` (la forma legible y los corchetes que terminan en
+  `<identificador>, bloque <id>]`) y esta decisión D8 dice lo que hace cada lector con los alias y `<<`.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
 ## Pendientes
 
+- **Cuerpo de #27**: tras la ronda 1 de la revisión final este fichero cambió (D8, controles y correcciones de la
+  revisión); el cuerpo de la propuesta de cambio se sincroniza con él en la plataforma (`gates/revision-pendiente.md`).
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los

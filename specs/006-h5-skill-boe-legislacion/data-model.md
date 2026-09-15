@@ -65,7 +65,8 @@ Cualquier otra clave de primer nivel es un defecto que nombra la clave.
 
 ### 1.2 Líneas
 
-Número de líneas de `SKILL.md`: número de saltos de línea, más uno si el fichero no está vacío y no termina en salto.
+Número de líneas de `SKILL.md` regenerado, con la tabla de comandos que genera la sincronía y no la del árbol: número
+de saltos de línea, más uno si el fichero no está vacío y no termina en salto.
 Válido si es **≤ 299** (FR-041: «300 líneas o más» falla).
 
 ### 1.3 Declaración de kitlegal (en `metadata`; tipo Go `DeclaracionDeKitlegal`)
@@ -205,9 +206,11 @@ directorio que no se puede listar (contrato de evals §1).
 | **consulta de norma** | `applet`, `verbo` ∈ {`indice`, `metadatos`, `analisis`}, `norma` | una invocación con consulta (§9) y código 0 del mismo applet, verbo y norma |
 | **búsqueda** | `applet`, `verbo: buscar`, `terminos` (≥ 1 cadenas no vacías) | una invocación con consulta (§9) y código 0 del mismo applet y verbo cuyos argumentos, en minúsculas, contienen cada término como palabra |
 
-Una invocación con `--describe` o `--dry-run` no tiene consulta (§9): no satisface ninguna forma aunque termine con 0,
-porque no leyó nada (FR-072, «consultó lo mismo»; FR-008; research.md D12), y no va a `fuera_de_lo_grabado` ni a
-`otras_fallidas` (§10.2; `TestJuzgar/describe-y-dry-run-no-satisfacen`).
+Una invocación sin consulta (§9) —la que pide la ayuda, `--help` o `-h`, o lleva `--describe` o `--dry-run` con valor
+verdadero— no satisface ninguna forma aunque termine con 0, porque no leyó nada (FR-072, «consultó lo mismo»; FR-008;
+research.md D12), y no va a `fuera_de_lo_grabado` ni a `otras_fallidas` (§10.2;
+`TestJuzgar/describe-y-dry-run-no-satisfacen`, `/ayuda-no-satisface`). Con `--describe=false` o `--dry-run=false` sí
+hay consulta (`TestJuzgar/describe-y-dry-run-falsos-consultan`).
 
 ### 6.2 Cita esperada
 
@@ -317,8 +320,8 @@ número de su proceso.
 |---|---|
 | `argv` | el de la última `execve` con resultado 0 del proceso (si `bash` se reemplaza por el applet en el mismo proceso, cuenta la del applet) |
 | `applet` | `base(argv[0])` si es un applet registrado; si es `kitlegal`, `argv[1]` si es un applet registrado; si no, no es una invocación de applet y se ignora |
-| `verbo`, `argumentos` | los tokens que quedan, quitando las banderas globales (con su valor en `--timeout` y `--asunto`, sea `--x v` o `--x=v`; research.md D12) |
-| `consulta` | la del verbo y sus argumentos; **ninguna** si lleva `--describe` o `--dry-run`, que no consultan |
+| `verbo`, `argumentos` | los tokens que quedan, quitando las banderas globales (con su valor en `--timeout` y `--asunto`, sea `--x v` o `--x=v`; research.md D12) y la ayuda (`--help`, con o sin valor, y `-h`) |
+| `consulta` | la del verbo y sus argumentos, tal como la ejecuta el binario: las banderas globales y la ayuda se analizan con la gramática de `cli.Globales` y la ayuda integrada de Kong, como en el binario. **Ninguna** si pide la ayuda —`--help`, también con un valor falso, porque Kong la imprime en cuanto aparece la bandera, o `-h`—, con la que el binario imprime la ayuda y termina con 0 sin leer nada; y ninguna si `--describe` o `--dry-run` valen verdadero —sin valor o con un valor verdadero, como `--describe=true`—, que no consultan. Con `--describe=false` o `--dry-run=false` hay consulta, y también si esas banderas no se pueden analizar (`--describe=quizá`): el binario termina entonces con un error de argumentos, y la invocación es una consulta que falló |
 | `codigo` | el de la línea final del fichero del hilo principal del proceso: `+++ exited with N +++` da N; `+++ killed by … +++`, distinto de 0. En una sesión cortada, si ese fichero no tiene línea final (regla 6), la invocación queda **sin código**: no es 0 ni ningún otro número, no satisface ningún comando esperado (§6.1), no va a `fuera_de_lo_grabado` ni a `otras_fallidas` (§10.2) y el informe la presenta con `codigo` `null` |
 | `conexiones[]` | las llamadas `connect` atribuidas a la invocación (abajo), cada una con familia, dirección y puerto (o ruta en `AF_UNIX`) y resultado —o sin resultado: la que interrumpió el corte (regla 6) o la que el fin del proceso dejó sin terminar (regla 5), con `?`, `? <unavailable>` o, sin cerrar, nada como texto del resultado—, en orden de fichero, por su número, y de línea |
 

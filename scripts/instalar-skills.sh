@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
 # Enlaza cada skill de skills/ en el directorio personal de skills de Claude Code y deja bin/instalado/kitlegal
 # apuntando al binario instalado que recibe, que es lo que resuelve el scripts/ de cada skill enlazada. Ante una
-# entrada ajena con el nombre de una skill no crea ni cambia nada. Lo ejecuta make install tras go install, con la
-# ruta que da go list -f '{{.Target}}' (contracts/instalacion.md §2 de H5).
+# entrada ajena con el nombre de una skill no crea ni cambia nada. make install lo ejecuta dos veces: con --comprobar
+# antes de go install, para que con un conflicto tampoco se instale el binario, y tras go install con la ruta que da
+# go list -f '{{.Target}}' (contracts/instalacion.md §1 y §2 de H5).
 set -euo pipefail
 
 # 1. La raíz física del repositorio, que es el destino de los enlaces de las skills.
 raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
 
-# 2. El binario instalado.
+# 2. El modo: --comprobar solo busca los conflictos; cualquier otro argumento es el binario instalado.
 if [[ $# -ne 1 ]]; then
-	echo "instalar-skills: uso: scripts/instalar-skills.sh <binario instalado>" >&2
+	echo "instalar-skills: uso: scripts/instalar-skills.sh --comprobar | <binario instalado>" >&2
 	exit 1
 fi
 
-binario="$1"
+comprobar=false
+binario=""
 
-if [[ ! -f "$binario" || ! -x "$binario" ]]; then
-	echo "instalar-skills: $binario no existe o no es ejecutable" >&2
-	exit 1
+if [[ "$1" == "--comprobar" ]]; then
+	comprobar=true
+else
+	binario="$1"
+
+	if [[ ! -f "$binario" || ! -x "$binario" ]]; then
+		echo "instalar-skills: $binario no existe o no es ejecutable" >&2
+		exit 1
+	fi
 fi
 
 # 3. El directorio personal.
@@ -56,6 +64,11 @@ done
 # 5. Con un solo conflicto, nada se crea ni se cambia.
 if [[ $conflictos -gt 0 ]]; then
 	exit 1
+fi
+
+# Con --comprobar no queda nada más: make install instala el binario y vuelve a ejecutar el guion con su ruta.
+if [[ "$comprobar" == true ]]; then
+	exit 0
 fi
 
 # 6. El enlace del binario instalado, que el scripts/ de cada skill alcanza por ../../../bin/instalado/kitlegal: se

@@ -83,9 +83,40 @@ type paqueteListado struct {
 	Module     *struct{ Main bool }
 }
 
+// guionDelEnlaceRoto es el guion de la instalación contra un enlace roto con el
+// nombre de la skill, que TestInstalacion escribe en un directorio temporal y
+// ejecuta como los de directorioDeGuiones (contrato instalacion §4).
+const guionDelEnlaceRoto = `# Un enlace roto con el nombre de la skill en el directorio personal de skills
+# también es un conflicto (data-model §11.1): make install termina con código
+# distinto de 0 nombrándolo, no lo modifica y no crea ni cambia nada, tampoco el
+# binario del directorio de binarios de Go, porque la receta comprueba cada
+# conflicto antes de go install (US3 escenario 3, FR-054, SC-006; contrato instalacion §1 y
+# §2, paso 5).
+#
+# HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
+# $WORK/repo (FR-055; contrato instalacion §4).
+
+mkdir $HOME/.claude/skills
+symlink $HOME/.claude/skills/boe-legislacion -> $WORK/sin-destino
+
+! exec make -C $WORK/repo install
+stderr 'conflicto: .*boe-legislacion'
+
+# El enlace conserva su destino, que sigue sin existir.
+exec readlink $HOME/.claude/skills/boe-legislacion
+stdout '\A'${WORK@R}'/sin-destino\n\z'
+! exists $WORK/sin-destino
+
+# Y nada se ha instalado: ni el binario ni el enlace del binario instalado.
+! exists $WORK/gobin/kitlegal
+! exists $WORK/repo/bin/instalado
+`
+
 // TestInstalacion ejecuta los guiones de la instalación —en limpio, repetida,
-// contra una entrada en conflicto y sin GOBIN— sobre una copia mínima del
-// repositorio en $WORK/repo (US3 escenarios 1-3, FR-050 a FR-055, SC-006).
+// contra una entrada en conflicto, sin GOBIN y contra un enlace roto— sobre una
+// copia mínima del repositorio en $WORK/repo (US3 escenarios 1-3, FR-050 a
+// FR-055, SC-006). Los cuatro primeros son los de directorioDeGuiones; el del
+// enlace roto, guionDelEnlaceRoto, lo escribe el test en un directorio temporal.
 //
 // Setup deja en cada directorio de trabajo el árbol que basta para make install
 // y el entorno de la tabla del contrato: HOME, GOBIN y GOPATH son carpetas de
@@ -101,13 +132,19 @@ func TestInstalacion(t *testing.T) {
 	rutas := slices.Concat(rutasDeLaInstalacion, ficherosDelBinario(t))
 	caches := leerCachesDeGo(t)
 
-	testscript.Run(t, testscript.Params{
-		Dir:                 directorioDeGuiones,
-		RequireExplicitExec: true,
-		Setup: func(env *testscript.Env) error {
-			return prepararInstalacion(env, rutas, caches)
-		},
-	})
+	temporales := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(temporales, "instalar-con-enlace-roto.txtar"),
+		[]byte(guionDelEnlaceRoto), 0o600))
+
+	for _, guiones := range []string{directorioDeGuiones, temporales} {
+		testscript.Run(t, testscript.Params{
+			Dir:                 guiones,
+			RequireExplicitExec: true,
+			Setup: func(env *testscript.Env) error {
+				return prepararInstalacion(env, rutas, caches)
+			},
+		})
+	}
 }
 
 // prepararInstalacion deja en el directorio de trabajo de un guion la copia

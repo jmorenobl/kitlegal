@@ -60,6 +60,7 @@ build: check-tools
 
 ## install: instala kitlegal en el directorio de binarios de Go y enlaza las skills en ~/.claude/skills
 install: check-tools
+	scripts/instalar-skills.sh --comprobar
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
 	scripts/instalar-skills.sh "$$(go list -f '{{.Target}}' ./cmd/kitlegal)"
 

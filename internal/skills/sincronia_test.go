@@ -469,6 +469,20 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{"alfa: SKILL.md tiene 300 líneas (máximo 299)"},
 		},
 		{
+			// El límite es el del SKILL.md regenerado: con la región de la tabla
+			// vacía, el del árbol tiene menos de 300 líneas, tantas menos como la
+			// tabla, y la tabla que se regenera lo lleva a 300.
+			nombre: "trescientas-lineas-al-regenerar",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				ruta := rutaDeSkill(raiz, "alfa", "SKILL.md")
+				cambiarFicheroDePrueba(t, ruta, regionDeAlfa, "")
+				alargarSkillMd(t, ruta, 300-strings.Count(regionDeAlfa, "\n"))
+			},
+			defectos: []string{"alfa: SKILL.md tiene 300 líneas (máximo 299)"},
+		},
+		{
 			nombre: "region-sin-marcas",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()

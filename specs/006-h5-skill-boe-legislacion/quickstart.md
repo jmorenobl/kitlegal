@@ -256,8 +256,8 @@ Esperado: `código 0`; el enlace de la skill da la ruta física del clon, que te
 `/tmp/kitlegal-quickstart-h5/gobin/kitlegal`; `"title": "boe articulo"` desde el binario instalado a través de
 `scripts/boe`; la segunda instalación `código 0` y en `~/.claude/skills` temporal solo `boe-legislacion`; con la entrada
 ajena, `código 2` y una línea `instalar-skills: conflicto: …/boe-legislacion …; no se modifica`, y la entrada sigue siendo
-un directorio; los cuatro guiones de `TestInstalacion` en `PASS` (`instalar`, `instalar-de-nuevo`,
-`instalar-con-conflicto`, `instalar-sin-gobin`).
+un directorio; los cinco guiones de `TestInstalacion` en `PASS` (`instalar`, `instalar-de-nuevo`,
+`instalar-con-conflicto`, `instalar-sin-gobin`, `instalar-con-enlace-roto`).
 
 ## 9. Skill: protocolo, cita y reglas (FR-001 a FR-015, FR-077, SC-004, SC-012 en su parte estática)
 

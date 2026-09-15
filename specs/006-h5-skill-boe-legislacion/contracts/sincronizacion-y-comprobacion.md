@@ -125,7 +125,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 | `TestSustituirRegion` | `comandos.go` | sustituye solo entre marcas; defectos de marcas |
 | `TestRenderizarTabla` | `comandos.go` | §3 |
 | `TestEnlacesEsperados` | `enlaces.go` | un enlace por applet, destino literal |
-| `TestRegenerarYComparar` | `sincronia.go` | cada clase de deriva de data-model §5 sobre árboles temporales |
+| `TestRegenerarYComparar` | `sincronia.go` | cada clase de deriva de data-model §5 sobre árboles temporales; y los defectos, entre ellos el límite de líneas sobre el `SKILL.md` regenerado y no sobre el del árbol (`trescientas-lineas-al-regenerar`: con la región de la tabla vacía y 300 menos las líneas de la tabla en el árbol, la tabla regenerada lo lleva a 300 y es el defecto `SKILL.md tiene 300 líneas (máximo 299)`) |
 | `TestValidarDocumentoYAML` | `esquemas.go` | lector común de data-model («Lectura de documentos YAML») y validación contra un esquema en línea: válido, clave desconocida, tipo, patrón; clave repetida en la raíz y en un mapa anidado, rechazada con la ruta, la clave y sus dos líneas antes de validar, aunque el esquema aceptara cualquiera de los dos valores; mapa con una clave que no es texto; errores con la ruta dentro del documento y su línea |
 | `TestLeerNormas`, `TestEsquemaDeNormas`, `TestNormasDelRepositorio` | `normas.go` | contrato de normas y referencias §2-§4 |
 | `TestRenderizarNormas` | `referencias.go` | contrato de normas y referencias §5 |

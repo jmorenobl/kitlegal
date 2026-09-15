@@ -7,26 +7,30 @@ FR-050 a FR-055, US3, SC-006. Decisiones: research.md D5 (destino del enlace) y 
 ```make
 ## install: instala kitlegal en el directorio de binarios de Go y enlaza las skills en ~/.claude/skills
 install: check-tools
+	scripts/instalar-skills.sh --comprobar
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
 	scripts/instalar-skills.sh "$$(go list -f '{{.Target}}' ./cmd/kitlegal)"
 ```
 
-- La primera línea es la de H0 sin cambios: el binario va a `$GOBIN` o, si no está definido, a `$GOPATH/bin` o
+- La primera línea busca los conflictos (§2, pasos 1 a 5) antes de instalar nada: con uno, `make install` falla sin
+  crear ni cambiar nada, tampoco el binario del directorio de binarios de Go (data-model §11.1). Sin ella, el
+  `go install` habría instalado o sobrescrito el binario antes de que el guion fallara.
+- La segunda es la de H0 sin cambios: el binario va a `$GOBIN` o, si no está definido, a `$GOPATH/bin` o
   `$HOME/go/bin`, con los mismos datos de versión que `make build` (FR-050; `go help install`).
 - `go list -f '{{.Target}}'` da la ruta de instalación que acaba de usar `go install` («Target string // install path»,
   `go help list`), así que el guion nunca calcula por su cuenta dónde quedó el binario.
 
-## 2. `scripts/instalar-skills.sh <binario>`
+## 2. `scripts/instalar-skills.sh --comprobar | <binario>`
 
 Bash con `set -euo pipefail`, como el resto de `scripts/`. Sin Python ni ningún otro intérprete.
 
 | Paso | Qué hace | Fallo |
 |---|---|---|
 | 1 | raíz = directorio padre del del guion, físico (`cd "$(dirname "$0")/.." && pwd -P`) | — |
-| 2 | exige un argumento, un fichero ejecutable | `instalar-skills: uso: scripts/instalar-skills.sh <binario instalado>` o `instalar-skills: <ruta> no existe o no es ejecutable`, código 1 |
+| 2 | exige un argumento: `--comprobar` o un fichero ejecutable | `instalar-skills: uso: scripts/instalar-skills.sh --comprobar \| <binario instalado>` o `instalar-skills: <ruta> no existe o no es ejecutable`, código 1 |
 | 3 | exige `HOME` no vacío | `instalar-skills: HOME no está definido`, código 1 |
 | 4 | por cada directorio `skills/<nombre>/`, clasifica `$HOME/.claude/skills/<nombre>` (data-model §11.1) | — |
-| 5 | si hay algún conflicto, escribe una línea por cada uno en la salida de error y termina **sin crear ni cambiar nada** | `instalar-skills: conflicto: <ruta> ya existe y no es un enlace a <destino>; no se modifica`, código 1 |
+| 5 | si hay algún conflicto, escribe una línea por cada uno en la salida de error y termina **sin crear ni cambiar nada**; si no, con `--comprobar` termina aquí con 0 | `instalar-skills: conflicto: <ruta> ya existe y no es un enlace a <destino>; no se modifica`, código 1 |
 | 6 | `mkdir -p <raíz>/bin/instalado` y `ln -sfn <binario> <raíz>/bin/instalado/kitlegal` | error de la orden, código distinto de 0 |
 | 7 | `mkdir -p "$HOME/.claude/skills"`; crea con `ln -s` los enlaces que faltan | error de la orden |
 | 8 | una línea por skill en la salida estándar: `instalar-skills: <nombre> → <raíz>/skills/<nombre>`, y otra para el binario | — |
@@ -48,8 +52,9 @@ equivalentes (research.md D5).
 
 `TestInstalacion` (`internal/skills/instalacion_test.go`, `//go:build integration`, así que lo ejecuta
 `make test-integration`, que está en `make ci`), con `testscript` sobre los cuatro guiones de
-`internal/skills/testdata/script/`. Lleva la etiqueta porque ejecuta `make` y compila el binario: la skill
-`golang-testing` pide separar con etiqueta lo que no es un test unitario rápido (research.md D21).
+`internal/skills/testdata/script/` y sobre `instalar-con-enlace-roto`, que el propio test escribe desde la constante
+`guionDelEnlaceRoto` en un `t.TempDir()` y ejecuta igual. Lleva la etiqueta porque ejecuta `make` y compila el binario:
+la skill `golang-testing` pide separar con etiqueta lo que no es un test unitario rápido (research.md D21).
 
 **Nunca sobre el repositorio real.** `Setup` copia en `$WORK/repo` un árbol mínimo que basta para `make install`:
 `Makefile`, `go.mod`, `go.sum`, `scripts/instalar-skills.sh`, el directorio `skills/` entero con sus enlaces tal cual, y
@@ -77,6 +82,9 @@ da `$WORK/gobin/kitlegal`; `$HOME/.claude/skills/boe-legislacion/scripts/boe art
 | `instalar-de-nuevo.txtar` | dos instalaciones seguidas terminan en 0; mismo `readlink`; `ls $HOME/.claude/skills` da solo `boe-legislacion` (US3-2, FR-053) |
 | `instalar-con-conflicto.txtar` | con un directorio con un fichero dentro, y en otra ronda con un enlace a otro sitio, en `$HOME/.claude/skills/boe-legislacion`: `make install` termina distinto de 0, la salida de error casa `conflicto: .*boe-legislacion`, y la entrada sigue igual (el fichero existe; el enlace ajeno conserva su destino) (US3-3, FR-054) |
 | `instalar-sin-gobin.txtar` | sin `GOBIN`: el binario queda en `$WORK/gopath/bin/kitlegal`, `readlink $WORK/repo/bin/instalado/kitlegal` lo nombra y `scripts/boe … --describe` responde (FR-050, caso límite del spec) |
+| `instalar-con-enlace-roto` (`guionDelEnlaceRoto`) | con un enlace a una ruta inexistente en `$HOME/.claude/skills/boe-legislacion`: `make install` termina distinto de 0, la salida de error casa `conflicto: .*boe-legislacion`, el enlace conserva su destino, y no existen ni `$WORK/gobin/kitlegal` ni `$WORK/repo/bin/instalado`, porque la receta busca los conflictos antes de `go install` (US3-3, FR-054; data-model §11.1) |
 
-Los guiones son ficheros nuevos bajo `testdata/`: van en una tarea `[datos]` (no provocan pausa por no estar bajo
-`testdata/` de raíz, `internal/source/*` ni `schemas/`; `workflow.yml`, `clasificar_datos`).
+Los cuatro primeros guiones son ficheros nuevos bajo `testdata/`: van en una tarea `[datos]` (no provocan pausa por no
+estar bajo `testdata/` de raíz, `internal/source/*` ni `schemas/`; `workflow.yml`, `clasificar_datos`). El del enlace
+roto llegó con la revisión final, que no añade ficheros bajo `testdata/`, y por eso lo escribe el test, como las trazas
+de `TestLeerTrazasSinTerminar`.

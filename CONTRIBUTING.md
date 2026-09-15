@@ -226,7 +226,8 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 | `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
-Cada fichero se valida contra `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un
+Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
+dentro de `make ci`. Una entrada del directorio que no es un
 fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
 eval positiva sin citas o una de no activación con comandos fallan nombrando el fichero; ninguna se salta. Para
 `boe-legislacion`, `make ci` exige además las reglas de su conjunto: diez positivas de materias distintas y dos de no

@@ -307,9 +307,12 @@ func TestLeerTrazasSinFicheros(t *testing.T) {
 
 // TestInterpretarInvocacion fija cómo se lee un argv como invocación de un applet
 // (contrato evals-y-grabaciones §6; data-model §9; US4, escenario 7): el applet
-// por el nombre de invocación multicall, el verbo y los argumentos sin las
-// banderas globales, con su valor en --timeout y --asunto, y sin consulta con
-// --describe o --dry-run; lo que no invoca un applet registrado se ignora.
+// por el nombre de invocación multicall; el verbo y los argumentos sin las
+// banderas globales ni la ayuda, con su valor en --timeout y --asunto; sin
+// consulta con la ayuda, --help o -h, también con un valor falso, y con
+// --describe o --dry-run verdaderos, sin valor o con él, y con consulta si valen
+// falso o su valor no se puede analizar; y lo que no invoca un applet registrado
+// se ignora.
 func TestInterpretarInvocacion(t *testing.T) {
 	t.Parallel()
 
@@ -371,6 +374,47 @@ func TestInterpretarInvocacion(t *testing.T) {
 		{
 			nombre:     "dry-run-sin-consulta",
 			argv:       []string{"/ruta/kitlegal", "boe", "articulo", normaDeLasTrazas, "a21", "--dry-run", "--json"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21},
+		},
+		{
+			nombre:     "describe-verdadero-sin-consulta",
+			argv:       []string{"scripts/boe", "articulo", normaDeLasTrazas, "a21", "--describe=true"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21},
+		},
+		{
+			// Con un valor falso, el binario no describe ni ensaya: consulta.
+			nombre:     "describe-y-dry-run-falsos-con-consulta",
+			argv:       []string{"scripts/boe", "articulo", normaDeLasTrazas, "a21", "--describe=false", "--dry-run=0"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21, Consulta: true},
+		},
+		{
+			// Un valor que el analizador rechaza es un error de argumentos: el
+			// binario no describe nada y la invocación cuenta como consulta.
+			nombre:     "describe-con-valor-invalido-con-consulta",
+			argv:       []string{"scripts/boe", "articulo", normaDeLasTrazas, "a21", "--describe=quizá"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21, Consulta: true},
+		},
+		{
+			nombre:     "ayuda-sin-consulta",
+			argv:       []string{"scripts/boe", "articulo", normaDeLasTrazas, "a21", "--help"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21},
+		},
+		{
+			nombre:     "ayuda-corta-sin-consulta",
+			argv:       []string{"/ruta/kitlegal", "boe", "-h", "articulo", normaDeLasTrazas, "a21"},
+			deApplet:   true,
+			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21},
+		},
+		{
+			// El analizador imprime la ayuda en cuanto aparece la bandera, también
+			// con un valor falso.
+			nombre:     "ayuda-con-valor-falso-sin-consulta",
+			argv:       []string{"scripts/boe", "articulo", normaDeLasTrazas, "a21", "--help=false"},
 			deApplet:   true,
 			invocacion: Invocacion{Applet: "boe", Verbo: "articulo", Argumentos: a21},
 		},
@@ -911,6 +955,31 @@ func TestLeerTrazasSinTerminar(t *testing.T) {
 			comprobarLectura(t, escribirTraza(t, caso.hilos, nil), false, caso.invocaciones, caso.defecto)
 		})
 	}
+}
+
+// TestLeerTrazasHiloCreadoAntesDeLaEjecucion fija, sobre una traza que el propio
+// test escribe en t.TempDir(), la regla 3 de data-model §9 con dos hilos del
+// mismo proceso que conectan: bash crea el primero antes de reemplazarse por el
+// applet con execve, y el applet crea el segundo después. Solo el connect del
+// segundo es de la invocación: el primer hilo es del proceso, pero no lo creó
+// ninguna línea posterior a la execve del applet (FR-076).
+func TestLeerTrazasHiloCreadoAntesDeLaEjecucion(t *testing.T) {
+	t.Parallel()
+
+	const connectDelHiloDeBash = `connect(9, {sa_family=AF_INET, sin_port=htons(443), ` +
+		`sin_addr=inet_addr("203.0.113.8")}, 16) = -1 EINPROGRESS (Operation now in progress)` + "\n"
+
+	hilos := map[string]string{
+		"t.2000": lineaDeExecveDeBash + lineaDeCloneDeGo("0xc000100000", 2001) + lineaDeExecveDeBoe +
+			lineaDeCloneDeGo("0xc000104000", 2002) + lineaFinalConCero,
+		"t.2001": connectDelHiloDeBash + lineaFinalConCero,
+		"t.2002": lineaDeConnectPublicoAceptado + lineaFinalConCero,
+	}
+
+	comprobarLectura(t, escribirTraza(t, hilos, nil), false, []Invocacion{
+		invocacionDeBoe(2000, codigoDeSalida(0), "articulo", []string{normaDeLasTrazas, "a21"}, []string{"--json"},
+			conexionInet(destinoPublico, "0", ConexionRed)),
+	}, nil)
 }
 
 // lineaDeCloneDeGo es la línea con la que un hilo de Go de arm64 crea el hilo de

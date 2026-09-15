@@ -67,14 +67,6 @@ const codigoDeSalidaMayor = 255
 // su primer argumento (data-model §9, campo applet).
 const binarioMulticall = "kitlegal"
 
-// Las dos banderas globales con las que una invocación no consulta: --describe
-// emite el esquema sin ejecutar nada y --dry-run describe la operación sin
-// realizarla (research.md D12; data-model §6.1).
-const (
-	banderaDescribe = "describe"
-	banderaDryRun   = "dry-run"
-)
-
 // Llamadas de la traza, por su nombre en strace.
 const (
 	llamadaExecve  = "execve"
@@ -225,15 +217,16 @@ type Invocacion struct {
 	Applet string
 
 	// Verbo es el primer token que queda tras el applet sin las banderas
-	// globales.
+	// globales ni la ayuda.
 	Verbo string
 
 	// Argumentos son los tokens que siguen al verbo sin las banderas globales, con
-	// el valor de --timeout y de --asunto.
+	// el valor de --timeout y de --asunto, ni la ayuda.
 	Argumentos []string
 
 	// Consulta dice si la invocación consulta el verbo con sus argumentos: falso
-	// si lleva --describe o --dry-run, que no consultan, con o sin valor.
+	// si pide la ayuda o si --describe o --dry-run valen verdadero, que no
+	// consultan.
 	Consulta bool
 
 	// Codigo es el de la línea final del hilo principal del proceso: N en
@@ -291,13 +284,14 @@ func LeerTrazas(dir string, cortada bool) ([]Invocacion, error) {
 // publica (data-model §9; contrato evals-y-grabaciones §6): el applet es
 // base(argv[0]) si es un applet registrado o, si es kitlegal, argv[1] si lo es;
 // el verbo y los argumentos, los tokens que quedan sin las banderas globales, con
-// su valor en las que lo llevan (--x v o --x=v); y no hay consulta si lleva
-// --describe o --dry-run. Devuelve falso si argv no invoca ningún applet
-// registrado, como kitlegal version.
+// su valor en las que lo llevan (--x v o --x=v); y no hay consulta si pide la
+// ayuda o si --describe o --dry-run valen verdadero. Devuelve falso si argv no
+// invoca ningún applet registrado, como kitlegal version.
 //
-// Las banderas globales y si llevan valor salen de cli.Globales tal como las
-// entiende el analizador del binario, y los applets, de app.RegistroDeProduccion:
-// ninguna lista paralela. El error queda para lo que impide leerlos.
+// Las banderas globales —si llevan valor y lo que valen— y la ayuda salen de
+// cli.Globales y de la ayuda integrada tal como las entiende el analizador del
+// binario, y los applets, de app.RegistroDeProduccion: ninguna lista paralela.
+// El error queda para lo que impide leerlos.
 func InterpretarInvocacion(argv []string) (Invocacion, bool, error) {
 	interprete, err := nuevoInterprete()
 	if err != nil {
@@ -309,44 +303,72 @@ func InterpretarInvocacion(argv []string) (Invocacion, bool, error) {
 	return invocacion, deApplet, nil
 }
 
-// interprete lee argv como invocación con el registro y las banderas globales del
-// binario que se publica.
+// gramaticaDeGlobales es la gramática que solo embebe cli.Globales, con la que el
+// intérprete lee las banderas globales.
+type gramaticaDeGlobales struct{ cli.Globales }
+
+// interprete lee argv como invocación con el registro, las banderas globales y la
+// ayuda del binario que se publica.
 type interprete struct {
 	registro *app.Registro
 
-	// conValor da, por el nombre largo de cada bandera global, si lleva valor.
+	// conValor da, por el nombre largo de cada bandera global y de la ayuda, si
+	// lleva valor; y cortas, por cada forma corta, como -h, el nombre largo.
 	conValor map[string]bool
+	cortas   map[string]string
+
+	// analizador analiza las banderas globales y la ayuda de una invocación, y
+	// deja lo que valen las banderas en globales y si pidió la ayuda en ayuda.
+	// Cada análisis devuelve antes las banderas a su valor por omisión, así que el
+	// mismo analizador sirve para cada invocación.
+	analizador *kong.Kong
+	globales   *gramaticaDeGlobales
+	ayuda      *bool
 }
 
-// nuevoInterprete monta el registro de producción y lee las banderas globales del
-// modelo de Kong de una gramática que solo embebe cli.Globales, sin la ayuda
-// integrada, que no es una bandera global. No analiza ninguna invocación: los
-// escritores y la terminación se sustituyen para que ningún camino de la
-// biblioteca pueda escribir en los descriptores ni terminar el proceso, como en
-// el analizador del kernel.
+// nuevoInterprete monta el registro de producción y el analizador de una
+// gramática que solo embebe cli.Globales, con la ayuda integrada, como el del
+// binario, y lee de su modelo las banderas y sus formas cortas. El analizador solo
+// recibe las banderas globales y la ayuda de cada invocación, y sus escritores y
+// su terminación se sustituyen como en el analizador del kernel: la ayuda no se
+// escribe en ningún descriptor, y la terminación que Kong pide tras escribirla no
+// termina el proceso, sino que anota que la invocación la pidió.
 func nuevoInterprete() (interprete, error) {
 	registro, err := app.RegistroDeProduccion()
 	if err != nil {
 		return interprete{}, fmt.Errorf("el registro de applets del binario no se puede construir: %w", err)
 	}
 
-	var gramatica struct{ cli.Globales }
+	gramatica := &gramaticaDeGlobales{}
+	ayuda := new(bool)
 
-	analizador, err := kong.New(&gramatica,
-		kong.NoDefaultHelp(),
+	analizador, err := kong.New(gramatica,
 		kong.Writers(io.Discard, io.Discard),
-		kong.Exit(func(int) {}),
+		kong.Exit(func(int) { *ayuda = true }),
 	)
 	if err != nil {
 		return interprete{}, fmt.Errorf("las banderas globales de cli.Globales no se pueden leer: %w", err)
 	}
 
 	conValor := make(map[string]bool, len(analizador.Model.Flags))
+	cortas := map[string]string{}
+
 	for _, bandera := range analizador.Model.Flags {
 		conValor[bandera.Name] = !bandera.IsBool()
+
+		if bandera.Short != 0 {
+			cortas["-"+string(bandera.Short)] = bandera.Name
+		}
 	}
 
-	return interprete{registro: registro, conValor: conValor}, nil
+	return interprete{
+		registro:   registro,
+		conValor:   conValor,
+		cortas:     cortas,
+		analizador: analizador,
+		globales:   gramatica,
+		ayuda:      ayuda,
+	}, nil
 }
 
 // interpretar aplica las reglas de InterpretarInvocacion.
@@ -356,19 +378,22 @@ func (i interprete) interpretar(argv []string) (Invocacion, bool) {
 		return Invocacion{}, false
 	}
 
-	invocacion := Invocacion{Argv: slices.Clone(argv), Applet: applet, Consulta: true}
+	invocacion := Invocacion{Argv: slices.Clone(argv), Applet: applet}
 	conVerbo := false
+
+	// banderas son las banderas globales y la ayuda de la invocación en su orden,
+	// con el valor de las que lo llevan separado.
+	var banderas []string
 
 	for posicion := 0; posicion < len(resto); posicion++ {
 		token := resto[posicion]
 
 		if nombre, conIgual, global := i.banderaGlobal(token); global {
-			if i.conValor[nombre] && !conIgual {
-				posicion++
-			}
+			banderas = append(banderas, token)
 
-			if nombre == banderaDescribe || nombre == banderaDryRun {
-				invocacion.Consulta = false
+			if i.conValor[nombre] && !conIgual && posicion+1 < len(resto) {
+				posicion++
+				banderas = append(banderas, resto[posicion])
 			}
 
 			continue
@@ -383,7 +408,34 @@ func (i interprete) interpretar(argv []string) (Invocacion, bool) {
 		invocacion.Argumentos = append(invocacion.Argumentos, token)
 	}
 
+	invocacion.Consulta = i.consulta(banderas)
+
 	return invocacion, true
+}
+
+// consulta dice si la invocación con esas banderas globales y esa ayuda consulta
+// su verbo tal como la ejecuta el binario (data-model §9, campo consulta), con lo
+// que el analizador deja de ellas. No consulta si pide la ayuda, con la que el
+// binario la imprime y termina sin leer nada: --help, también con un valor falso,
+// porque Kong la atiende en cuanto aparece la bandera, o -h. Tampoco si
+// --describe o --dry-run valen verdadero, sin valor o con un valor verdadero, como
+// --describe=true; con --describe=false, sí. Y si las banderas no se pueden
+// analizar, como con --describe=quizá, el binario termina con un error de
+// argumentos sin describir ni ensayar nada, y la invocación cuenta como una
+// consulta que falló.
+func (i interprete) consulta(banderas []string) bool {
+	*i.ayuda = false
+
+	_, err := i.analizador.Parse(banderas)
+
+	switch {
+	case *i.ayuda:
+		return false
+	case err != nil:
+		return true
+	default:
+		return !i.globales.Describe && !i.globales.DryRun
+	}
 }
 
 // appletDe es el applet registrado que invoca argv y los tokens que le siguen:
@@ -409,9 +461,13 @@ func (i interprete) registrado(nombre string) bool {
 	return registrado
 }
 
-// banderaGlobal dice si el token es una bandera global, --x o --x=v, con su
-// nombre y si lleva el valor pegado.
+// banderaGlobal dice si el token es una bandera global o la ayuda —--x, --x=v o
+// su forma corta, como -h—, con su nombre largo y si lleva el valor pegado.
 func (i interprete) banderaGlobal(token string) (nombre string, conIgual, global bool) {
+	if nombreLargo, corta := i.cortas[token]; corta {
+		return nombreLargo, false, true
+	}
+
 	larga, esLarga := strings.CutPrefix(token, "--")
 	if !esLarga {
 		return "", false, false

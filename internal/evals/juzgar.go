@@ -240,8 +240,8 @@ func (r *ResultadoDeEval) repartirCitas(esperadas []CitaEsperada, citas []Cita) 
 // informar añade la invocación a las del resultado con sus parejas de destino y
 // clase, una llegada a la red por cada destino de clase red y, si consultó y
 // terminó con un código distinto de 0, la lleva a fuera de lo grabado con 4 o 5
-// y a las otras fallidas con cualquier otro. La que no consultó (--describe o
-// --dry-run) o quedó sin código no va a ninguna de las dos.
+// y a las otras fallidas con cualquier otro. La que no consultó (la ayuda,
+// --describe o --dry-run) o quedó sin código no va a ninguna de las dos.
 func (r *ResultadoDeEval) informar(invocacion Invocacion) {
 	informada := InvocacionInformada{Orden: ordenDeLaInvocacion(invocacion), Codigo: copiaDelCodigo(invocacion.Codigo)}
 

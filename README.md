@@ -21,8 +21,10 @@ generado comprobado en `make ci`, la instalación con una orden y unas evals com
 
 - **Skill `boe-legislacion`**: un protocolo de cinco pasos —identificar la norma, resolver su identificador
   `BOE-A-…`, leer el índice y los bloques con el binario, evaluar si falta contexto y responder citando— y una forma
-  de cita fija, `[BOE-A-2015-10565, bloque a21]`. Lo que dice de una norma sale del texto que el binario devuelve en
-  la misma conversación, distinguiendo ley y reglamento y señalando la variación autonómica.
+  de cita de la que se extraen mecánicamente la norma y el bloque: la forma legible seguida de corchetes que terminan
+  en el identificador y el id del bloque, como `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, con la
+  forma legible delante del corchete o, dentro, delante del identificador. Lo que dice de una norma sale del texto que
+  el binario devuelve en la misma conversación, distinguiendo ley y reglamento y señalando la variación autonómica.
 - **Tabla de normas** `data/normas.yaml`: diez normas de materias distintas, validada contra
   `schemas/normas.yaml.json` y con cada identificador comprobado contra la búsqueda grabada del BOE. De ella se
   generan las referencias de la skill.
@@ -159,10 +161,12 @@ el protocolo de razonamiento, la tabla de comandos y las reglas; `references/`, 
 binario recién instalado. Es lo que alcanza el enlace `scripts/boe` de la skill, y como se invoca con el nombre
 `boe`, el despacho multicall ejecuta el applet `boe`. Repetir la instalación deja el mismo estado. Si en
 `~/.claude/skills/` ya hay una entrada con el nombre de una skill que no es el enlace que crearía —un directorio, un
-fichero u otro enlace—, la nombra, falla y no crea ni cambia nada.
+fichero, un enlace a otro sitio o un enlace roto—, la nombra, falla y no crea ni cambia nada: los conflictos se buscan
+antes de `go install`, así que tampoco se instala el binario.
 
 Con la skill enlazada basta preguntar a Claude Code por una norma —«¿qué dice el art. 21 de la Ley 39/2015?»—: la
-skill se activa, consulta el BOE con `scripts/boe … --json` y responde citando `[BOE-A-2015-10565, bloque a21]`.
+skill se activa, consulta el BOE con `scripts/boe … --json` y responde citando
+`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`.
 
 ### Lo generado: `make skills-sync` y `make skills-check`
 
@@ -205,7 +209,8 @@ citas:
 | `citas` | Obligatorio si `activa` es `true`: cada `norma` y `bloque` que la respuesta debe citar |
 | `reproduce` | Opcional: la skill cuyo uso documentado reproduce la eval, p. ej. `boe-fiscal` |
 
-Cada fichero se valida contra el esquema `schemas/eval.yaml.json` dentro de `make ci` (`make skills-check`): una
+Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra el esquema
+`schemas/eval.yaml.json` dentro de `make ci` (`make skills-check`): una
 clave desconocida o repetida, un identificador mal escrito o una eval positiva sin citas fallan nombrando el
 fichero. `evals/boe-legislacion/` tiene doce: diez preguntas de materias distintas que deben activar la skill y dos
 ajenas que no deben activarla.

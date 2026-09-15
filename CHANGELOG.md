@@ -329,10 +329,11 @@ común de eval con su job de evals. El binario distribuido no cambia.
 - **`make install` enlaza las skills.** Tras el `go install` de H0, sin cambios, `scripts/instalar-skills.sh` enlaza
   cada skill de `skills/` en `~/.claude/skills/`, el directorio personal de skills de Claude Code, y deja
   `bin/instalado/kitlegal` apuntando al binario instalado, que es lo que alcanza `scripts/boe` de la skill. Repetirla
-  deja el mismo estado. Ante una entrada del directorio personal con el nombre de una skill que no es su enlace —un
-  directorio, un fichero u otro enlace— escribe una línea de conflicto por cada una y falla sin crear ni cambiar
-  nada. `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol, con el directorio
-  personal, el de binarios y el `GOPATH` temporales y sin red.
+  deja el mismo estado. Antes del `go install`, el mismo guion con `--comprobar` busca las entradas del directorio
+  personal con el nombre de una skill que no son su enlace —un directorio, un fichero, un enlace a otro sitio o un
+  enlace roto—: escribe una línea de conflicto por cada una y falla sin crear ni cambiar nada, tampoco el binario.
+  `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol, con el directorio personal,
+  el de binarios y el `GOPATH` temporales y sin red.
 - **`make ci` encadena diez controles**: `skills-check` entra tras `schema-check`, de modo que una skill con una
   deriva o un defecto, una tabla de normas inválida o una eval mal formada hacen fallar el veredicto en local y en la
   integración continua por igual. El análisis estático alcanza también los ficheros con la etiqueta de compilación

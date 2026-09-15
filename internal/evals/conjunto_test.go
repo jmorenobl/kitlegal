@@ -560,15 +560,19 @@ const (
 	// reglaDeNormasConocidas es la regla de data-model §6.3 cuyos defectos
 	// presenta su propio subtest, normas-conocidas, y no el subtest conjunto.
 	reglaDeNormasConocidas = "normas conocidas"
+
+	// directorioDeEvals es evals/, relativo al directorio de este paquete: en
+	// cada una de sus carpetas están las evals de una skill (FR-060).
+	directorioDeEvals = "../../evals"
 )
 
-// TestEvalsDelRepositorio comprueba sin red las evals de evals/boe-legislacion/
-// contra data/normas.yaml y las grabaciones de H4 y de H5 (contrato
-// evals-y-grabaciones §2 y §5.2; FR-062 a FR-066, FR-074, FR-075, SC-010): cada
-// fichero del directorio se lee como eval, el conjunto cumple las reglas de
-// data-model §6.3, toda norma que esperan está en la tabla de normas y lo grabado
-// basta para servir sin red cada consulta que necesitan. Lee el directorio
-// entero, así que ningún fichero de eval se nombra aquí.
+// TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
+// evals-y-grabaciones §2 y §5.2; FR-060, FR-062 a FR-066, FR-074, FR-075,
+// SC-010): cada fichero de cada directorio evals/<skill>/ se lee como eval, y las
+// de evals/boe-legislacion/ cumplen las reglas del conjunto de data-model §6.3,
+// esperan solo normas de data/normas.yaml y tienen en las grabaciones de H4 y de
+// H5 lo que necesitan para servir sin red cada consulta. Lee las carpetas
+// enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -586,15 +590,16 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		t.Parallel()
 
 		require.NoError(t, errDeLaLectura)
-
-		motivos := make([]string, 0, len(conjunto.MalFormados))
-		for _, malFormado := range conjunto.MalFormados {
-			motivos = append(motivos, malFormado.Error.Error())
-		}
-
-		assert.Empty(t, motivos, "ficheros mal formados en %s:\n%s", evalsDelRepositorio, strings.Join(motivos, "\n"))
 		assert.GreaterOrEqual(t, len(conjunto.Evals), evalsMinimasDelRepositorio,
 			"%s tiene al menos las doce evals bien formadas del contrato", evalsDelRepositorio)
+
+		// El formato común es el de las evals de cualquier skill (FR-060): se leen
+		// todas las carpetas de evals/, la de boe-legislacion entre ellas.
+		carpetas, malFormados := malFormadosDeCadaSkill(t, directorioDeEvals)
+
+		require.Contains(t, carpetas, evalsDelRepositorio)
+		assert.Empty(t, malFormados, "ficheros mal formados en %s:\n%s",
+			directorioDeEvals, strings.Join(malFormados, "\n"))
 	})
 
 	t.Run("conjunto", func(t *testing.T) {
@@ -639,6 +644,61 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
 			evalsDelRepositorio, presentarFaltas(comprobadas))
 	})
+}
+
+// malFormadosDeCadaSkill lee como conjunto de evals cada carpeta de raiz, una por
+// skill, y devuelve las carpetas, en orden de nombre, y cada fichero mal formado
+// de cualquiera de ellas con la carpeta delante de su error. Lo que en raiz no es
+// una carpeta no son las evals de ninguna skill y no se lee.
+func malFormadosDeCadaSkill(t *testing.T, raiz string) (carpetas, malFormados []string) {
+	t.Helper()
+
+	entradas, err := os.ReadDir(raiz)
+	require.NoError(t, err, "el directorio de evals %s", raiz)
+
+	for _, entrada := range entradas {
+		if !entrada.IsDir() {
+			continue
+		}
+
+		dir := filepath.Join(raiz, entrada.Name())
+		carpetas = append(carpetas, dir)
+
+		leido, err := LeerConjunto(dir)
+		require.NoError(t, err)
+
+		for _, malFormado := range leido.MalFormados {
+			malFormados = append(malFormados, dir+": "+malFormado.Error.Error())
+		}
+	}
+
+	return carpetas, malFormados
+}
+
+// TestFormatoDeLasEvalsDeCadaSkill fija, sobre un evals/ que el propio test
+// escribe en t.TempDir(), que el subtest formato de TestEvalsDelRepositorio lee
+// las evals de cada skill y no solo las de boe-legislacion (FR-060): con una eval
+// bien formada en alfa/, otra sin pregunta en beta/ y un fichero suelto en la
+// raíz, lee alfa y beta y da solo el fichero de beta, con su directorio y su
+// error.
+func TestFormatoDeLasEvalsDeCadaSkill(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	alfa, beta := filepath.Join(raiz, "alfa"), filepath.Join(raiz, "beta")
+
+	require.NoError(t, os.Mkdir(alfa, 0o700))
+	require.NoError(t, os.Mkdir(beta, 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(alfa, nombreDeEval), []byte(contenidoDelArticulo21), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(beta, "01-sin-pregunta.yaml"), []byte(contenidoSinPregunta), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(raiz, "notas.txt"), []byte(contenidoSinPregunta), 0o600))
+
+	carpetas, malFormados := malFormadosDeCadaSkill(t, raiz)
+
+	assert.Equal(t, []string{alfa, beta}, carpetas)
+	require.Len(t, malFormados, 1)
+	assert.True(t, strings.HasPrefix(malFormados[0], beta+": 01-sin-pregunta.yaml: "), malFormados[0])
+	assert.Contains(t, malFormados[0], "missing property 'pregunta'")
 }
 
 // normasConocidasDe es, por identificador, lo que las reglas del conjunto
