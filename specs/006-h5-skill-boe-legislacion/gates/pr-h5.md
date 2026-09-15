@@ -451,9 +451,9 @@ esta propuesta, y las tomadas durante la implementación.
   grabado no hace fallar la eval por sí sola (FR-076), pero una petición llegada a la red de una fuente hace fallar el
   veredicto global (SC-012).
 - **Garantía de red del job** (D16): proxy del entorno hacia `127.0.0.1:9`, cerrado y comprobado, más la traza como
-  observación independiente; y **sin Python** (D17): purga de paquetes, búsqueda como root en todo el sistema de
-  ficheros salvo `/proc` y `/sys`, retirada de lo encontrado y la misma búsqueda antes de la primera sesión, registrada en
-  `sin-python.txt` y copiada byte a byte al informe.
+  observación independiente; y **sin Python** (D17): búsqueda como root en todo el sistema de ficheros salvo `/proc` y
+  `/sys`, retirada de lo encontrado y la misma búsqueda antes de la primera sesión, registrada en `sin-python.txt` y
+  copiada byte a byte al informe, sin consultar ni purgar paquetes (T033, más abajo).
 - **Prueba de red por etiqueta o entrada `prueba_de_red`**, no como eval: añadir una eval rompería las diez positivas de
   FR-062. **La ejecución se identifica por el último evento `labeled` y `workflowName`**, nunca como «la última de la
   lista» (quickstart §12; supuesto S12).
@@ -483,21 +483,55 @@ esta propuesta, y las tomadas durante la implementación.
   correcta con despacho tardío de las cuatro incorrectas. Como las rutas congeladas de T029 no admitían el arreglo y su
   propia línea prohíbe tocar ficheros fuera del directorio del feature, T029 volvió a `[ ]` y este intento 3 repitió la
   guía entera sobre el commit de T032.
+- **La retirada de Python no consulta ni purga paquetes** (T033; research D17 y V60): la prueba de red del intento 1 de
+  T030 (ejecución 34922606273, `gates/prueba-de-red.md`) se detuvo en «Retirar Python del runner» con código 100. En
+  `ubuntu-24.04` el filtro del paso elegía 110 paquetes de Python, entre ellos `python3`, `python3-minimal`,
+  `python3-apt`, `python3-debconf` y `python3-netplan`, de los que dependen paquetes del sistema, y `apt-get purge -y
+  --auto-remove` terminaba con «pkgProblemResolver::Resolve generated breaks» (`shim-signed`, `grub-efi-amd64-signed`,
+  `grub2-common`) antes de buscar nada; V57 había comprobado la purga en un contenedor en el que ningún paquete del
+  sistema dependía de Python. El paso ya no usa `dpkg-query` ni `apt-get`: la garantía de FR-073 y FR-081 es la que ya
+  daba la búsqueda —como root en todo el sistema de ficheros, retirada de cada ruta con la regla del prefijo y de lo
+  usado, y la búsqueda final—, sin cambiar la orden de búsqueda, esa regla, lo usado, las marcas, `set -euo pipefail` ni
+  la comprobación 3 de `scripts/evals.sh`. Comprobado en contenedores desechables de `ubuntu:24.04` sin red, con el paso
+  extraído del contrato: con un paquete falso esencial que depende de dos de Python, el paso anterior termina con 100 y
+  el mismo mensaje sin buscar, y el nuevo con 0, retira el intérprete y su biblioteca y deja la comprobación 3 en
+  `resultado: ninguno`; los casos de V56 dan con el paso nuevo lo que anota V60. Los paquetes siguen registrados en dpkg
+  y pierden lo que la búsqueda encuentra, también sus ficheros del registro con esos nombres; ningún paso posterior usa
+  dpkg ni apt. Alternativas rechazadas: forzar `apt` (se llevaría lo que depende de Python, hasta la cadena de arranque);
+  `dpkg --purge --force-depends` (el `prerm` de `python3` ejecuta `py3clean`, que necesita el intérprete: retirado este
+  antes, falla con 127 y deja `python3` a medias, así que el resultado depende del orden); y retirar los ficheros de las
+  listas de dpkg (no retira ningún intérprete que la búsqueda no encuentre y añade como supuestos el formato de esas
+  listas y sus desvíos).
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
 ## Pendientes
 
-- **Supuesto S8 (research D22), pendiente de T030 y de la fusión**: que GitHub excluya de las estadísticas de lenguaje
+- **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los
-  dos atributos solo bajo `.agents/skills/`). Lo demás lo registra T030 en este fichero al abrir la propuesta de cambio
-  (si la propuesta despliega o pliega `.agents/skills/` en sus diffs: en esta no hay ningún cambio ahí, así que solo se
-  verá en la primera que lo toque) y se comprueba tras la fusión en las estadísticas del repositorio.
+  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intento 1,
+  2026-09-15, #27, cabeza `6d68c21`): la API de ficheros de la propuesta
+  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360 ficheros
+  y, bajo `.agents/`, solo `.agents/.gitattributes`; ningún fichero de `.agents/skills/` está en el diff, así que el
+  plegado no se puede observar aquí (y `gh pr diff 27 --name-only` tampoco sirve: la plataforma lo rechaza con
+  `HTTP 406 … the diff exceeded the maximum number of files (300)`); se verá en la primera propuesta que toque
+  `.agents/skills/`. Las estadísticas de la rama principal antes de fusionar (`gh api repos/jmorenobl/kitlegal/languages`)
+  son `{"Go":1579928,"Shell":138689,"Python":65011,"PowerShell":35337,"Makefile":9505}`, y los ficheros versionados de
+  `.agents/skills/` suman 13 666 bytes de `.go` y 0 de `.py`, `.ps1` y `.sh` (`git ls-files -z ".agents/skills/*.<ext>"`
+  con `xargs -0 cat` y `wc -c`): tras la fusión, S8 se cumple si la cifra de `Go` deja de contar esos bytes, lo que se
+  compara con la suma de los `.go` versionados con y sin `.agents/skills/` en el commit de fusión.
+- **Plataforma, intento 1 de T030 (2026-09-15)**: `ci` en verde (ejecución 34922178932, 4 m 35 s) y `codecov/project`
+  (94,22 %), `internal/core` (90,36 %) e `internal/cli` (98,09 %) en verde; **`codecov/patch` en rojo**, 93,54 % del diff
+  frente al objetivo `auto` de 94,70 % (`gates/evidencia-plataforma.md`), que arreglan T034 y T035 con tests de las ramas
+  sin cubrir, sin tocar ningún umbral; y la **prueba de red** (ejecución 34922606273) se detuvo en «Retirar Python del
+  runner» con código 100: `apt-get purge` no puede retirar los 110 paquetes de Python de `ubuntu-24.04` porque de ellos
+  dependen paquetes del sistema (`gates/prueba-de-red.md`; S2 y S7 difieren), que arregla T033. T030 sigue sin marcar
+  (`gates/tarea-T030.md`).
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
-  que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils, coreutils, dpkg y apt; la línea
-  `paquetes a purgar:`), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de
+  que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
+  `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de
   clase `local` de la invocación `a9998` y ninguna sesión no cortada con traza ilegible), S5 (Claude Code en `-p` carga
   `~/.claude/skills`, hereda el proxy y `KITLEGAL_CACHE_DIR`, y `--settings` desactiva el sandbox), S6
   (`CLAUDE_CODE_OAUTH_TOKEN` autentica y acepta el modelo; `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` retira el token de las

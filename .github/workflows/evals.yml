@@ -68,11 +68,14 @@ jobs:
         shell: bash
         run: |
           # Las opciones las fija el propio paso, sin depender de con cuáles lo invoque la plataforma: una orden que falla
-          # fuera de una condición —la consulta, la purga, la búsqueda o un borrado— lo detiene con su código, y una variable
-          # sin valor, también (research.md D17 y V56).
+          # fuera de una condición —la búsqueda o un borrado— lo detiene con su código, y una variable sin valor, también
+          # (research.md D17, V56 y V60).
           set -euo pipefail
           # Sin Python accesible para la sesión (FR-073, FR-081; research.md D17). Ninguna orden descarta su salida de error.
           # scripts/evals.sh repite la búsqueda antes de la primera sesión (contrato del job §3.1).
+          # No consulta ni purga paquetes: en ubuntu-24.04 los de Python son dependencias de paquetes del sistema y la purga
+          # termina con 100 sin retirar nada; la búsqueda encuentra el intérprete y sus bibliotecas, y lo que un paquete
+          # deja en disco sin ellos no se ejecuta (research.md D17 y V60).
           # Las marcas se componen al ejecutar: el texto del paso, si el registro lo reproduce, no las contiene.
           marca="retirada de Python"
           echo "--- inicio de la $marca ---"
@@ -94,25 +97,7 @@ jobs:
             return 1
           }
 
-          # 1. Paquetes. Se lista sin patrón y se filtra aquí: con patrones, dpkg-query da también los paquetes que solo conoce
-          # por las relaciones de otros (estado un) y termina con 1 si alguno no casa con nada, así que separar ese caso de un
-          # fallo real obligaría a interpretar su salida de error (research.md V57). Se purga todo paquete con ficheros en
-          # disco, instalado o a medias: solo se salta el que no está (n) o solo conserva su configuración (c). Uno a medias
-          # que no se purgara, apt lo configuraría al purgar los demás, con sus guiones de instalación.
-          instalados=$(dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n')
-          paquetes=()
-          while read -r estado paquete; do
-            case "$estado" in ?[nc]*) continue ;; esac
-            case "$paquete" in python*|libpython*|pypy*|libpypy*) paquetes+=("$paquete") ;; esac
-          done <<< "$instalados"
-          if [ "${#paquetes[@]}" -gt 0 ]; then
-            echo "paquetes a purgar: ${paquetes[*]}"
-            sudo apt-get purge -y --auto-remove "${paquetes[@]}"
-          else
-            echo "paquetes a purgar: ninguno"
-          fi
-
-          # 2. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
+          # 1. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
           # libpython* y libpypy*. Se retira cada uno; si está en <prefijo>/bin y <prefijo>/lib tiene un python* o un pypy*,
           # se retira la instalación entera, salvo que contenga algo de lo que el job usa.
           busqueda=(find / '(' -path /proc -o -path /sys ')' -prune -o '(' '(' -type f -perm /111 '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' -type l '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' '(' -type f -o -type l ')' '(' -iname 'libpython*' -o -iname 'libpypy*' ')' ')' ')' -print)
@@ -135,7 +120,7 @@ jobs:
             sudo rm -rf -- "$objetivo"
           done <<< "$encontrado"
 
-          # 3. No queda nada, y la retirada no se ha llevado nada de lo que el job usa.
+          # 2. No queda nada, y la retirada no se ha llevado nada de lo que el job usa.
           queda=$(sudo "${busqueda[@]}")
           if [ -n "$queda" ]; then
             while IFS= read -r ruta; do echo "queda Python: $ruta" >&2; done <<< "$queda"

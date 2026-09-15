@@ -382,17 +382,19 @@ La quinta solo lee el registro de una ejecución terminada: comprueba que están
 tope de líneas; si la ejecución aún no ha terminado o falta cualquiera de las marcas, falla sin imprimir nada
 (research.md V48). Las líneas salen tal como las da `gh run view --log`, con lo que esa orden ponga delante de cada una.
 La sexta lee del mismo registro, con la misma forma y de marca a marca, la salida del paso «Retirar Python del runner»
-(contrato del job §1): la línea `paquetes a purgar: <paquetes>` (los que eligió el filtro, o `ninguno`) seguida, si purgó
-alguno, de la salida de `apt-get`; la línea `búsqueda: find / ( -path /proc -o -path /sys ) …`, una línea
-`retirado: <ruta>` por cada fichero o instalación retirados y `búsqueda tras retirar: ninguno`. Las marcas las compone el paso al ejecutarse, así
-que la orden no casa con el texto del paso aunque el registro lo reproduzca (research.md V56). Si la quinta o la sexta fallan
+(contrato del job §1), que no consulta ni purga paquetes: la línea `búsqueda: find / ( -path /proc -o -path /sys ) …`,
+una línea `retirado: <ruta>` por cada fichero o instalación retirados y `búsqueda tras retirar: ninguno`. Las marcas las
+compone el paso al ejecutarse, así que la orden no casa con el texto del paso aunque el registro lo reproduzca
+(research.md V56 y V60). Si la quinta o la sexta fallan
 sobre una ejecución terminada porque falta una marca, el job se detuvo antes del informe: la tarea registra lo que
 imprime la orden de `--log-failed` que va tras el bloque, se detiene y lo anota con la ruta y el mensaje (`queda Python:
 <ruta>`, `evals: hay Python accesible: <ruta>`, el error de `rm` o de `find`), y el arreglo va en una tarea nueva antes
 de la ejecución de cierre (plan.md, obligación 1). La salida de la sexta y el `sin_python` del informe —`búsqueda: find /
 ( -path /proc -o -path /sys ) …`, `usuario: root` y `resultado: ninguno`— se registran en `gates/prueba-de-red.md` como
-evidencia de los supuestos S2 (la línea `paquetes a purgar:`, con lo que el filtro de research.md V57 eligió de los
-paquetes del runner) y S7 (research.md D22), junto a lo que las sesiones ejecutaron con `claude` y con el binario.
+evidencia de los supuestos S2 (que `sudo` y la búsqueda de GNU findutils terminaron en el runner: la línea `búsqueda:`
+seguida de las `retirado:` y de `búsqueda tras retirar: ninguno`) y S7 (research.md D22: qué intérpretes, bibliotecas e
+instalaciones traía la imagen, cada uno por su línea `retirado:`), junto a lo que las sesiones ejecutaron con `claude` y
+con el binario.
 Esperado en el informe: en «fuera de lo grabado», dos filas con sesión `01-lpac-articulo-21-prueba-de-red` y eval
 `01-lpac-articulo-21.yaml`, las dos invocaciones de `a9998`, con código 5 la que va sin `--offline` y 4 la que lo lleva
 (research.md V41); ninguna entre los comandos ejecutados de esa sesión; en la sección de esa sesión, la invocación de

@@ -77,11 +77,14 @@ jobs:
         shell: bash
         run: |
           # Las opciones las fija el propio paso, sin depender de con cuáles lo invoque la plataforma: una orden que falla
-          # fuera de una condición —la consulta, la purga, la búsqueda o un borrado— lo detiene con su código, y una variable
-          # sin valor, también (research.md D17 y V56).
+          # fuera de una condición —la búsqueda o un borrado— lo detiene con su código, y una variable sin valor, también
+          # (research.md D17, V56 y V60).
           set -euo pipefail
           # Sin Python accesible para la sesión (FR-073, FR-081; research.md D17). Ninguna orden descarta su salida de error.
           # scripts/evals.sh repite la búsqueda antes de la primera sesión (contrato del job §3.1).
+          # No consulta ni purga paquetes: en ubuntu-24.04 los de Python son dependencias de paquetes del sistema y la purga
+          # termina con 100 sin retirar nada; la búsqueda encuentra el intérprete y sus bibliotecas, y lo que un paquete
+          # deja en disco sin ellos no se ejecuta (research.md D17 y V60).
           # Las marcas se componen al ejecutar: el texto del paso, si el registro lo reproduce, no las contiene.
           marca="retirada de Python"
           echo "--- inicio de la $marca ---"
@@ -103,25 +106,7 @@ jobs:
             return 1
           }
 
-          # 1. Paquetes. Se lista sin patrón y se filtra aquí: con patrones, dpkg-query da también los paquetes que solo conoce
-          # por las relaciones de otros (estado un) y termina con 1 si alguno no casa con nada, así que separar ese caso de un
-          # fallo real obligaría a interpretar su salida de error (research.md V57). Se purga todo paquete con ficheros en
-          # disco, instalado o a medias: solo se salta el que no está (n) o solo conserva su configuración (c). Uno a medias
-          # que no se purgara, apt lo configuraría al purgar los demás, con sus guiones de instalación.
-          instalados=$(dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n')
-          paquetes=()
-          while read -r estado paquete; do
-            case "$estado" in ?[nc]*) continue ;; esac
-            case "$paquete" in python*|libpython*|pypy*|libpypy*) paquetes+=("$paquete") ;; esac
-          done <<< "$instalados"
-          if [ "${#paquetes[@]}" -gt 0 ]; then
-            echo "paquetes a purgar: ${paquetes[*]}"
-            sudo apt-get purge -y --auto-remove "${paquetes[@]}"
-          else
-            echo "paquetes a purgar: ninguno"
-          fi
-
-          # 2. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
+          # 1. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
           # libpython* y libpypy*. Se retira cada uno; si está en <prefijo>/bin y <prefijo>/lib tiene un python* o un pypy*,
           # se retira la instalación entera, salvo que contenga algo de lo que el job usa.
           busqueda=(find / '(' -path /proc -o -path /sys ')' -prune -o '(' '(' -type f -perm /111 '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' -type l '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' '(' -type f -o -type l ')' '(' -iname 'libpython*' -o -iname 'libpypy*' ')' ')' ')' -print)
@@ -144,7 +129,7 @@ jobs:
             sudo rm -rf -- "$objetivo"
           done <<< "$encontrado"
 
-          # 3. No queda nada, y la retirada no se ha llevado nada de lo que el job usa.
+          # 2. No queda nada, y la retirada no se ha llevado nada de lo que el job usa.
           queda=$(sudo "${busqueda[@]}")
           if [ -n "$queda" ]; then
             while IFS= read -r ruta; do echo "queda Python: $ruta" >&2; done <<< "$queda"
@@ -170,23 +155,17 @@ jobs:
   del runner», fijan sus opciones con `set -euo pipefail` como primera orden: una orden que falla fuera de una condición
   detiene el paso con su código, y una variable sin valor, también. De `shell: bash` el paso solo depende para
   ejecutarse con bash; las opciones que la plataforma añada no cambian nada, porque las fija el propio paso. Comprobado
-  con el paso de retirada literal (research.md V56 (7)): la purga que
-  falla por un paquete retenido lo detiene con 100 antes de buscar; la búsqueda que termina con error, con 1 y sin
-  retirar nada; `GITHUB_WORKSPACE` sin valor, con 1; ejecutado con `sh` (`dash`), con 2 en la propia línea `set` y sin
-  hacer nada; y el mismo paso sin esa línea, con la purga o la búsqueda fallidas, sigue y termina con 0, que es lo que
-  la línea evita.
-- «Retirar Python del runner» no tira la salida de error de ninguna orden ni consulta `dpkg-query` por patrón: lista sin
-  patrón y filtra por estado y por nombre. El formato (`-W` sin patrón, `${db:Status-Abbrev}`, `${binary:Package}`, con
-  la arquitectura en los paquetes `Multi-Arch: same`), los estados que lista, sus códigos con y sin patrón y la purga con
-  `apt-get` de lo que el filtro elige están comprobados en research.md V57 con el dpkg 1.22.6 y el apt 2.8.3 de
-  `ubuntu:24.04`; que el runner trae esas mismas versiones es parte del supuesto S2, cuya evidencia es la línea
-  `paquetes a purgar:` del registro.
-- **Qué purga** (research.md D17 y V57): los paquetes cuyo nombre empieza por `python`, `libpython`, `pypy` o
-  `libpypy` —con `:<arquitectura>` detrás si son `Multi-Arch: same`— en cualquier estado con ficheros en disco,
-  instalados o a medias; no los que no están ni los que solo conservan su configuración (`rc`), que no tienen ningún
-  ejecutable. `apt-get purge -y --auto-remove` retira además las dependencias instaladas automáticamente que ya nada
-  necesita. Un paquete retenido hace terminar `apt-get` con 100, y el paso con él. Lo que no sale de un paquete, o sale
-  de uno con otro nombre, lo encuentra la búsqueda.
+  con el paso de retirada literal (research.md V60 (5)): la búsqueda que termina con error lo detiene con 1 tras la línea
+  `búsqueda:` y sin retirar nada; `GITHUB_WORKSPACE` sin valor, con 1; ejecutado con `sh` (`dash`), con 2 en la propia
+  línea `set` y sin hacer nada; y el mismo paso sin esa línea, con la búsqueda fallida, sigue, retira lo que encontró y
+  termina con 0, que es lo que la línea evita.
+- «Retirar Python del runner» no tira la salida de error de ninguna orden y **no consulta ni purga paquetes**: ni
+  `dpkg-query` ni `apt-get` (research.md D17). En `ubuntu-24.04` los paquetes de Python son dependencias de paquetes del
+  sistema, y en la prueba de red del intento 1 de T030 (ejecución 34922606273, `gates/prueba-de-red.md`) la purga de los
+  110 que elegía el filtro del paso anterior terminó con 100 («pkgProblemResolver::Resolve generated breaks», con
+  `shim-signed`, `grub-efi-amd64-signed` y `grub2-common` entre las dependencias rotas) antes de buscar nada; V60 (1) lo
+  reproduce con un paquete esencial que depende de uno de Python. Sin purga, qué queda lo decide solo la búsqueda: el
+  estado de los paquetes no la cambia, y uno retenido no detiene el paso (V60 (5)).
 - **Dónde busca** (research.md D17 y V56): como root, en **todo** el sistema de ficheros salvo `/proc` y `/sys`, en los
   que el núcleo no deja crear ficheros y cuyas entradas cambian mientras se recorren; `/dev` se recorre, porque
   `/dev/shm` admite ejecutables. No hay lista de sitios: un intérprete bajo `/opt`, `/usr/share`, `/home`, en un punto
@@ -200,13 +179,18 @@ jobs:
   entero, salvo que contenga algo de lo que el job usa después del paso: el espacio de trabajo, `~/.claude`, el binario
   al que apunta `bin/instalado/kitlegal` y `bash`, `sudo`, `find`, `rm`, `timeout`, `strace`, `claude`, `node`, `go`,
   `make` y `git`, cada una por su ruta y por su destino. Así `/usr`, `/usr/local` o la instalación que contiene `claude`
-  pierden solo el fichero, y el `bin/` de una herramienta que no es de Python con un `python3` suelto, también.
+  pierden solo el fichero, y el `bin/` de una herramienta que no es de Python con un `python3` suelto, también. Los
+  paquetes siguen registrados en dpkg con el estado que tenían y pierden lo que la búsqueda encuentra, también los
+  ficheros de su registro con esos nombres —las listas y sumas de los `libpython*`
+  (`/var/lib/dpkg/info/libpython3.12t64:<arquitectura>.list` y `.md5sums`) y los guiones de mantenimiento ejecutables de
+  los `python*` (`python3.12-minimal.postinst`)—, así que ese registro queda incompleto; ningún paso posterior usa dpkg
+  ni apt. Lo que un paquete deja en disco y la búsqueda no encuentra (la biblioteca estándar bajo `/usr/lib/python3.12`,
+  `dist-packages`, guiones con `#!/usr/bin/python3`) no se ejecuta sin el intérprete (research.md V60 (1) y (2)).
 - **Qué comprueba al final**: repite la búsqueda y termina con 1 si queda alguna ruta (`queda Python: <ruta>`, una línea
   por ruta) o si alguna de las usadas ya no existe (`la retirada se llevó algo que el job usa: <ruta>`); si un borrado
-  falla —en un sistema de ficheros de solo lectura, como el de un snap—, el paso termina con el error de `rm` (V56). La
-  comprobación 3 de §3.1 repite la misma búsqueda antes de la primera sesión.
+  falla —en un sistema de ficheros de solo lectura, como el de un snap—, el paso termina con el error de `rm` (V60 (4)).
+  La comprobación 3 de §3.1 repite la misma búsqueda antes de la primera sesión.
 - **Qué deja en el registro**: entre `--- inicio de la retirada de Python ---` y `--- fin de la retirada de Python ---`,
-  `paquetes a purgar: <paquetes>` (o `paquetes a purgar: ninguno`) seguida, si purgó alguno, de la salida de `apt-get`,
   la búsqueda (`búsqueda: find / ( -path /proc -o -path /sys ) …`), una línea `retirado: <ruta>` por cada fichero o
   instalación retirados y `búsqueda tras retirar: ninguno`. Las marcas se componen al ejecutar, así que no están
   literalmente en el texto del paso, que el registro de la ejecución puede reproducir: la sexta orden de quickstart
