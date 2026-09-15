@@ -807,23 +807,18 @@ esta propuesta, y las tomadas durante la implementación.
 
 ## Pendientes
 
-- **Cuerpo de #27**: tras las rondas 1 a 3 de la revisión final este fichero cambió (D8, «Alcance», controles,
-  correcciones de la revisión y estos pendientes); el cuerpo de la propuesta de cambio se sincroniza con él en la
-  plataforma tras empujar la rama (`gates/revision-pendiente.md`).
-- **Repetir la ejecución de cierre (T031) sobre la cabeza empujada, como última acción de plataforma** (FR-082,
-  SC-003, punto 10 de la Definition of Done). El intento 1 de T031 (ejecución 35002104338, 2026-09-15, sobre
-  `5c6c552`) dio veredicto `aprobado`, con 10 de 10 positivas y 2 de 2 de no activación, las doce sesiones terminadas,
-  ninguna petición a la red de una fuente y la lista de ficheros cambiados vacía (`gates/evals-cierre.md`,
-  `gates/aceptacion.md`). Después, `ede21ba` (ronda 1) y las rondas 2 y 3 cambian doce ficheros fuera del directorio
-  del hito: `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
-  `internal/evals/conjunto_test.go`, `internal/evals/juzgar_test.go`, `internal/evals/trazas_test.go`,
-  `internal/skills/instalacion_test.go`, `internal/skills/sincronia_test.go`, `README.md`, `CONTRIBUTING.md` y
-  `CHANGELOG.md`. Hasta repetirla, FR-082 no se cumple. Se repite quickstart §12.3 tal cual: quitar y poner la
-  etiqueta `evals`; exigir `aprobado` con 10 de 10 y 2 de 2, todas las sesiones terminadas, ninguna petición a la red
-  de una fuente y `sin_python` con sus tres líneas; y comprobar que la lista de ficheros cambiados entre el commit
-  evaluado y la cabeza solo tiene ficheros del directorio del hito. Va después de que la revisión final quede en
-  verde, de empujar la rama y de sincronizar este cuerpo, porque cualquier corrección posterior fuera del directorio
-  la invalidaría otra vez.
+- **Ejecución de cierre (T031) sobre la cabeza final: hecha y en verde** (FR-082, SC-003, punto 10 de la Definition
+  of Done). El intento 1 (ejecución 35002104338, sobre `5c6c552`) dejó de cubrir la cabeza cuando la revisión final
+  cambió doce ficheros fuera del directorio del hito (`Makefile`, `scripts/instalar-skills.sh`, `internal/evals`,
+  `internal/skills`, `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`). El intento 2, ejecución
+  [35023013878](https://github.com/jmorenobl/kitlegal/actions/runs/35023013878) del 2026-09-15 sobre `a73574e`
+  (`docs(H5): veredictos de la revisión final`), con el cuerpo de esta propuesta ya sincronizado, repitió quickstart
+  §12.3 tal cual (quitar y poner la etiqueta `evals`) y dio veredicto `aprobado`, 10 de 10 positivas y 2 de 2 de no
+  activación, las doce sesiones terminadas con código 0, modelo `claude-haiku-4-5-20251001`, ninguna petición a la red
+  de una fuente, `sin_python` con sus tres líneas y la lista de ficheros cambiados entre el commit evaluado y la cabeza
+  vacía (`gates/evals-cierre.md`, `gates/aceptacion.md`, `gates/revision-pendiente.md`). `ci` y los cuatro estados de
+  Codecov, en verde sobre `a73574e`. Desde entonces solo cambian ficheros del directorio del hito; cualquier cambio
+  fuera de él obligaría a repetirla.
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los
@@ -988,11 +983,12 @@ esta propuesta, y las tomadas durante la implementación.
   (`CLAUDE_CODE_OAUTH_TOKEN` autentica y acepta el modelo), S7 (la retirada de Python: qué trae la imagen, que se puede buscar y retirar como root y que no
   rompe el job), S10 (`timeout --kill-after=10s 240s` y los códigos 124 y 137; el `codigo_de_la_sesion` 0 de las
   terminadas), S11 (Claude Code solo necesita `api.anthropic.com`) y S12 (identificar la ejecución por el último evento
-  `labeled`, el formato de los instantes y `workflowName`). **Pendientes de T031 (ejecución de cierre,
-  `gates/evals-cierre.md` y `gates/aceptacion.md`)**: S9 (una sesión de Haiku con ≤ 30 turnos cabe en 240 s; cada sesión
-  con código 124 o 137 se anota como evidencia en contra), el veredicto `aprobado` con 10 de 10 positivas y las dos de
-  no activación, ninguna petición llegada a la red de una fuente, las tres líneas de `sin_python` y la lista de ficheros
-  cambiados entre el commit evaluado y la cabeza solo bajo el directorio del hito (SC-001 a SC-003, FR-080 a FR-082).
+  `labeled`, el formato de los instantes y `workflowName`). **Comprobados por T031 (ejecución de cierre, intentos 1 y
+  2, `gates/evals-cierre.md` y `gates/aceptacion.md`)**: S9 (una sesión de Haiku con ≤ 30 turnos cabe en 240 s: las
+  doce sesiones de cada intento terminaron por sí mismas, ninguna con 124 ni 137), el veredicto `aprobado` con 10 de 10
+  positivas y las dos de no activación, ninguna petición llegada a la red de una fuente, las tres líneas de
+  `sin_python` y la lista de ficheros cambiados entre el commit evaluado y la cabeza vacía (SC-001 a SC-003, FR-080 a
+  FR-082); el intento 2, sobre la cabeza final `a73574e`, es el que vale.
   S3 (cada búsqueda del manifiesto devuelve su norma y existen los bloques) ya lo comprobó la persona en la pausa de
   T008 y lo vigila `make ci` desde entonces.
 - **T030 `[plataforma]`, marcada en el séptimo intento**: los siete publicaron la rama, abrieron esta propuesta con
@@ -1005,9 +1001,9 @@ esta propuesta, y las tomadas durante la implementación.
   la cita sola tras una transcripción, T042, y las otras seis evals por materia, T043; la llamada que el fin del
   proceso deja sin resultado, T044 y T045, y la forma legible dentro de los corchetes, T046), y la séptima (ejecución
   34999845098, sobre la cabeza con T044, T045 y T046) terminó con veredicto `aprobado` y cumplió SC-012 entera sin
-  ningún defecto (`gates/prueba-de-red.md`, `gates/tarea-T030.md`). **T031 `[plataforma]`, la última**: la ejecución
-  de cierre y la aceptación. Si la plataforma descubre un defecto, el arreglo va en una tarea nueva antes de T031
-  (plan, obligación 1). Ninguna tarea fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
+  ningún defecto (`gates/prueba-de-red.md`, `gates/tarea-T030.md`). **T031 `[plataforma]`, la última, marcada**: la
+  ejecución de cierre y la aceptación, repetidas sobre la cabeza final tras la revisión (intento 2, ejecución
+  35023013878, `aprobado`). Ninguna tarea fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
 - **Lo humano que queda**: el secreto `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
   `evals` y `evals-prueba-de-red` ya están dados de alta (comprobados por T030); la pausa del workflow por las rutas sensibles (`schemas/`, `testdata/`); la revisión
   (`/code-review`, `/security-review`) y la fusión. Las decisiones sobre las evals que dejaron los intentos 4, 5 y 6 de
