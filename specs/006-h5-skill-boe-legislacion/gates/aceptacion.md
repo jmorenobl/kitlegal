@@ -1,5 +1,10 @@
 # Aceptación de H5 (FR-080, FR-081, SC-001, SC-002)
 
+**Nota de la ronda 2 de la revisión final (2026-09-15):** esta es la aceptación de la ejecución 35002104338 sobre
+`5c6c552`, que dejó de cubrir la cabeza desde `ede21ba`, entre otros cambios con el `Makefile` de `make install`
+(`gates/evals-cierre.md`). La repetición de T031 sobre la cabeza que se empuje tras la revisión final la registra de
+nuevo desde su propia ejecución (contrato del job §7). Lo que sigue es lo del intento 1, tal cual.
+
 De la ejecución de cierre de T031 (intento 1, 2026-09-15; `gates/evals-cierre.md`): ejecución
 [35002104338](https://github.com/jmorenobl/kitlegal/actions/runs/35002104338) del job `evals` sobre la propuesta de
 cambio [#27](https://github.com/jmorenobl/kitlegal/pull/27), commit evaluado

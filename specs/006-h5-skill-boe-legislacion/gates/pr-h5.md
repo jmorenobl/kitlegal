@@ -11,7 +11,7 @@ job de evals con Claude Code que no deja llegar ninguna petición a la red de un
 
 Tres compromisos, y los tres se comprueban sin red, sin modelo y sin Python:
 
-1. **La skill es el protocolo de `boe-fiscal` generalizado a cualquier materia.** `SKILL.md` (159 líneas) identifica
+1. **La skill es el protocolo de `boe-fiscal` generalizado a cualquier materia.** `SKILL.md` (181 líneas) identifica
    la norma, resuelve `BOE-A-…`, lee índice y bloques con `scripts/boe`, responde citando `[BOE-A-…, bloque …]`,
    distingue ley y reglamento y señala la variación autonómica; sus reglas prohíben concluir «no existe», inventar
    contenido legal, presentar como vigente lo derogado y actuar en nombre de nadie (FR-001 a FR-015, SC-004).
@@ -31,9 +31,15 @@ especializan desde el backlog. El binario distribuido no cambia.
 
 ## Alcance
 
-Frente a `main`, en `536359c` (`feat(H5): T032`, la cabeza de la rama y el último commit que toca código, datos o
-documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 commits. Fuera de `specs/`: 307 ficheros,
-20 295 añadidas y 77 retiradas. Por árboles:
+Frente a `main`, en la cabeza con las correcciones de la ronda 2 de la revisión final: fuera de `specs/`, 322 ficheros,
+22 537 líneas añadidas y 78 retiradas, cifras que ya no cambian con lo que se registre después en el directorio del
+hito; en `specs/006-h5-skill-boe-legislacion/`, 62 ficheros versionados, más los veredictos que registra el cierre de
+la revisión final. La medida de *Evidencia* es la de T029 sobre `536359c` (`feat(H5): T032`). Después de ese commit
+llegaron tres grupos de cambios. T033 a T046 son los arreglos que descubrió la prueba de red de T030, en
+`.github/workflows/evals.yml`, `scripts/evals.sh`, `internal/evals`, `internal/skills`,
+`skills/boe-legislacion/SKILL.md`, ocho evals, `docs/USO.md` y trece ficheros de trazas sintéticas. T030 y T031 solo
+escriben en el directorio del hito. Y las rondas 1 y 2 de la revisión final traen sus correcciones (*Decisiones*). Por
+árboles:
 
 - **`skills/boe-legislacion/`, la skill** (3 ficheros): `SKILL.md` (frontmatter con `name`, `description` y
   `metadata.kitlegal-applets: boe` y `metadata.kitlegal-referencias: normas`; protocolo en cinco pasos; cómo se cita;
@@ -44,7 +50,7 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
   `schemas/normas.yaml.json` (con el `enum` de `rango` copiado de las búsquedas grabadas) y `schemas/eval.yaml.json`.
 - **`evals/boe-legislacion/`** (12 ficheros): `01-lpac-articulo-21` … `10-et-vacaciones` (positivas) y
   `11-no-activa-programacion`, `12-no-activa-acuerdo-entre-amigos`; la 06 lleva `reproduce: boe-fiscal`.
-- **`internal/skills`, paquete nuevo de herramienta** (9 ficheros de producto, 9 de test, 4 guiones `testscript`):
+- **`internal/skills`, paquete nuevo de herramienta** (9 ficheros de producto, 10 de test, 4 guiones `testscript`):
   `skill.go`, `frontmatter.go`, `esquemas.go` (el lector común de YAML, que rechaza claves repetidas), `normas.go`,
   `referencias.go`, `comandos.go`, `enlaces.go`, `sincronia.go`, `doc.go`; `instalacion_test.go` con `TestInstalacion`
   (etiqueta `integration`) sobre `testdata/script/instalar*.txtar` y el guion del enlace roto, que escribe el propio
@@ -52,8 +58,8 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
 - **`internal/evals`, paquete nuevo de herramienta** (11 ficheros de producto, 12 de test): `formato.go`,
   `conjunto.go`, `consultas.go`, `grabaciones.go`, `preparar.go`, `trazas.go`, `sesion.go`, `citas.go`, `juzgar.go`,
   `informe.go`, `doc.go`; los arneses `grabacion_test.go` (etiqueta `grabacion`) y `job_test.go` (etiqueta `evals`);
-  y **195 ficheros de sesiones, trazas e informes sintéticos** en `testdata/sesiones/` (`leer-sesion`, `leer-trazas`,
-  `informe`), fijados en tres tareas `[datos]`.
+  y **208 ficheros de sesiones, trazas e informes sintéticos** en `testdata/sesiones/` (55 casos: 15 en `leer-sesion`,
+  27 en `leer-trazas` y 13 en `informe`), fijados en cinco tareas `[datos]` (T020, T021, T022, T038 y T044).
 - **`internal/app/skills_test.go`**: `TestSkillsDelRepositorio` y `TestTablaDeComandosCoincideConLaGramatica`, el
   único fichero nuevo en el paquete del applet (usa `describir` sin exportar nada del kernel).
 - **Datos grabados de H5** bajo `testdata/evals/`: el manifiesto `grabaciones.json` y 32 respuestas de la API de
@@ -64,18 +70,21 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
   `prueba_de_red`, semanal sobre la rama principal y por las etiquetas `evals` y `evals-prueba-de-red`;
   `ubuntu-24.04`; Claude Code 2.1.270 y `strace`; el paso «Retirar Python del runner»; modelo
   `claude-haiku-4-5-20251001`; `CLAUDE_CODE_OAUTH_TOKEN`; la sesión, con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`).
-- **Ficheros de H0-H4 tocados**, y ninguno más (nueve): `Makefile` (`install` enlaza las skills; `skills-sync` real;
+- **Ficheros de H0-H4 tocados**, y ninguno más (diez): `Makefile` (`install` busca los conflictos con
+  `scripts/instalar-skills.sh --comprobar` antes de `go install` y enlaza las skills; `skills-sync` real;
   `skills-check` nuevo, en `ci`, que pasa de nueve a diez controles; `evals` nuevo, fuera de `ci`); `.golangci.yml`
   (la etiqueta `evals` en `run.build-tags` y `comando`, `comandos`, `defectos`, `legislativo` y `patrones` en
   `misspell.ignore-rules`, cada una con su motivo); `go.mod` (solo `go.yaml.in/yaml/v3` pasa de indirecta a directa);
-  `docs/PENDIENTES.md` (se retiran las tres entradas «En H5»); `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`; y,
+  `docs/PENDIENTES.md` (se retiran las tres entradas «En H5»); `docs/USO.md` (su primera entrada, de T041 y T043: la
+  herramienta que encontraría un artículo por su materia dentro de una norma); `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`; y,
   por T032, `internal/httpx/reintentos_test.go` e `internal/httpx/ritmo_test.go` (41 líneas añadidas y 27 retiradas,
   solo en la medida de las llegadas y sus comentarios: ni el decorador de ritmo, ni el de reintentos, ni el cubo, ni la
   cadena del cliente, ni otro test).
 - **Nuevo fuera de esos árboles**: `.agents/.gitattributes` (una línea).
-- **Artefactos del hito**: `specs/006-h5-skill-boe-legislacion/` (53 ficheros: spec con sus clarificaciones, plan,
-  research D1-D23 y V1-V64, data-model, seis contratos, quickstart, tasks, checklist y `gates/` con las notas de
-  T009, T011, T012, T029 y T032).
+- **Artefactos del hito**: `specs/006-h5-skill-boe-legislacion/` (spec con sus clarificaciones, plan, research
+  D1-D23 y V1-V65, data-model, seis contratos, quickstart, tasks, checklist y `gates/`, con las notas de T009, T011,
+  T012, T029, T030, T032, T034, T035 y T045, la evidencia de plataforma, la prueba de red, la ejecución de cierre, la
+  aceptación y lo pendiente de la revisión final).
 
 **Sin cambios**, como exige el spec: `internal/core`, `internal/cli`, `internal/cache`, `internal/source/boe` y sus
 esquemas, `docs/SOURCES.md`, el código de producto de `internal/httpx` (T032 solo toca dos de sus tests),
@@ -166,10 +175,11 @@ del quickstart que lo demuestra:
   esperado exige el verbo y cada término; la ayuda y `--describe` y `--dry-run` verdaderos no satisfacen, y con
   `--describe=false` o `--dry-run=false` hay consulta; una sesión sin terminar no pasa ni en las de no activación
   (escenario 7, SC-009).
-- **Lectura de sesión, trazas e informe** (`TestLeerSesion` 15, `TestLeerTrazas` 21, `TestLeerTrazasSinFicheros` 2,
+- **Lectura de sesión, trazas e informe** (`TestLeerSesion` 15, `TestLeerTrazas` 27, `TestLeerTrazasSinFicheros` 2,
   `TestInforme` 13, `TestEscribirInformeSinSusEntradas` 6): hilos por `clone`, `clone3` y de un hilo, el `connect` de
   un hilo creado antes de la `execve` del applet, que no es de la invocación
-  (`TestLeerTrazasHiloCreadoAntesDeLaEjecucion`), ficheros sin origen, líneas de señal, sesiones cortadas por el tope con y sin llamada interrumpida, conexiones públicas en curso
+  (`TestLeerTrazasHiloCreadoAntesDeLaEjecucion`), la ayuda de una invocación, que no deja sin consulta a la siguiente
+  de la misma traza (`TestLeerTrazasAyudaSeguidaDeConsulta`), ficheros sin origen, líneas de señal, sesiones cortadas por el tope con y sin llamada interrumpida, conexiones públicas en curso
   en IPv4 e IPv6, códigos 124 y 137, transcripts sin `result` o con `is_error`, cabecera del informe byte a byte,
   motivos de la raíz en su orden, y ningún informe escrito si una entrada no se puede leer (escenario 7).
 - **`make install`** (`TestInstalacion`, etiqueta `integration`, cinco guiones `testscript`; `make test-integration`
@@ -427,9 +437,11 @@ con T045 y T046 en `internal/evals/trazas.go` y `internal/evals/citas.go`): **98
 y argumentos de `exec` como constantes).
 
 **Sin red y sin tocar lo protegido**: ninguna tarea ejecutó `KITLEGAL_RECORD`, `scripts/grabar-evals.sh`,
-`make evals`, `scripts/evals.sh` ni `make verify-sources`; el manifiesto, las grabaciones de H5, los dos esquemas, los
-guiones `testscript` y las 195 sesiones sintéticas los fijó una persona en las pausas `[datos]` (T001, T008, T009, T018,
-T020, T021, T022), como exige la obligación 2 del plan; las grabaciones de H4 no cambian.
+`make evals`, `scripts/evals.sh` ni `make verify-sources`. El manifiesto, las grabaciones de H5 y los dos esquemas los
+fijó una persona en las pausas `[datos]` (T001, T008, T009). Los guiones `testscript` y las 208 sesiones sintéticas
+llegaron en tareas `[datos]` sin pausa (T018; T020, T021, T022, T038 y T044), porque son ficheros nuevos bajo el
+`testdata/` de su paquete (research V36). Todo ello como exige la obligación 2 del plan; las grabaciones de H4 no
+cambian.
 
 **Aviso de método.** El envoltorio de terminal de esta máquina reescribe la salida de `go test`, `git status
 --porcelain` y `git diff`. Todo lo de arriba está medido con el paso directo (`rtk proxy`), que es la forma en que el
@@ -756,13 +768,42 @@ esta propuesta, y las tomadas durante la implementación.
   traza y el guion nuevos los escribe cada test desde constantes en un `t.TempDir()`, como `TestLeerTrazasSinTerminar`.
   (e) El README presenta la forma de cita de `SKILL.md` (la forma legible y los corchetes que terminan en
   `<identificador>, bloque <id>]`) y esta decisión D8 dice lo que hace cada lector con los alias y `<<`.
+- **Correcciones de la ronda 2 de la revisión final** (`gates/revision-a-r2.json`, `gates/revision-b-r2.json`):
+  (a) `TestLeerTrazasAyudaSeguidaDeConsulta` fija que la ayuda de una invocación no deja sin consulta a la siguiente
+  de la misma traza. `LeerTrazas` lee todas las invocaciones de una sesión con un solo intérprete, y la ayuda no es
+  una bandera que el análisis reponga: la anota el gancho de terminación de Kong. Si no se retira antes de cada
+  análisis, una sesión que pidiera la ayuda antes de leer el bloque vería su comando esperado ausente (FR-072). Sin
+  esa retirada cae este test y solo este entre los de lectura de trazas, comparación e informe. La traza la escribe el
+  test desde constantes en un `t.TempDir()`, como `TestLeerTrazasHiloCreadoAntesDeLaEjecucion`, y el contrato del job
+  §9 y el control 16 del plan lo registran. Alternativa rechazada: un intérprete por invocación, que montaría el
+  registro de producción y el analizador una vez por proceso de la traza sin cambiar lo que se lee. (b) Las cifras
+  que el árbol no sostenía: «Alcance» se mide sobre la cabeza y enumera lo que llegó después de `536359c`, y
+  «Controles añadidos» da `TestLeerTrazas` 27. (c) La ejecución de cierre de T031 (35002104338, sobre `5c6c552`) ya
+  no cubre la cabeza, porque `ede21ba` y esta ronda cambian doce ficheros fuera del directorio del hito: por FR-082 se
+  repite como última acción de plataforma (*Pendientes*), y `gates/evals-cierre.md` y `gates/aceptacion.md` lo dicen
+  en su cabecera.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
 ## Pendientes
 
-- **Cuerpo de #27**: tras la ronda 1 de la revisión final este fichero cambió (D8, controles y correcciones de la
-  revisión); el cuerpo de la propuesta de cambio se sincroniza con él en la plataforma (`gates/revision-pendiente.md`).
+- **Cuerpo de #27**: tras las rondas 1 y 2 de la revisión final este fichero cambió (D8, «Alcance», controles,
+  correcciones de la revisión y estos pendientes); el cuerpo de la propuesta de cambio se sincroniza con él en la
+  plataforma tras empujar la rama (`gates/revision-pendiente.md`).
+- **Repetir la ejecución de cierre (T031) sobre la cabeza empujada, como última acción de plataforma** (FR-082,
+  SC-003, punto 10 de la Definition of Done). El intento 1 de T031 (ejecución 35002104338, 2026-09-15, sobre
+  `5c6c552`) dio veredicto `aprobado`, con 10 de 10 positivas y 2 de 2 de no activación, las doce sesiones terminadas,
+  ninguna petición a la red de una fuente y la lista de ficheros cambiados vacía (`gates/evals-cierre.md`,
+  `gates/aceptacion.md`). Después, `ede21ba` (ronda 1) y la ronda 2 cambian doce ficheros fuera del directorio del
+  hito: `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
+  `internal/evals/conjunto_test.go`, `internal/evals/juzgar_test.go`, `internal/evals/trazas_test.go`,
+  `internal/skills/instalacion_test.go`, `internal/skills/sincronia_test.go`, `README.md`, `CONTRIBUTING.md` y
+  `CHANGELOG.md`. Hasta repetirla, FR-082 no se cumple. Se repite quickstart §12.3 tal cual: quitar y poner la
+  etiqueta `evals`; exigir `aprobado` con 10 de 10 y 2 de 2, todas las sesiones terminadas, ninguna petición a la red
+  de una fuente y `sin_python` con sus tres líneas; y comprobar que la lista de ficheros cambiados entre el commit
+  evaluado y la cabeza solo tiene ficheros del directorio del hito. Va después de que la revisión final quede en
+  verde, de empujar la rama y de sincronizar este cuerpo, porque cualquier corrección posterior fuera del directorio
+  la invalidaría otra vez.
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los

@@ -1,5 +1,16 @@
 # Ejecución de cierre de H5 (quickstart §12.3, FR-082, SC-003)
 
+**Nota de la ronda 2 de la revisión final (2026-09-15): esta ejecución ya no cubre la cabeza.** La ejecución
+35002104338 corrió sobre `5c6c552`. Después, el commit `ede21ba` (correcciones de la ronda 1) y la corrección de la
+ronda 2 cambian doce ficheros fuera del directorio del hito: `Makefile`, `scripts/instalar-skills.sh`,
+`internal/evals/trazas.go` e `internal/evals/juzgar.go` —el código con el que el job juzga las sesiones—,
+`internal/evals/conjunto_test.go`, `internal/evals/juzgar_test.go`, `internal/evals/trazas_test.go`,
+`internal/skills/instalacion_test.go`, `internal/skills/sincronia_test.go`, `README.md`, `CONTRIBUTING.md` y
+`CHANGELOG.md`. FR-082 obliga a repetirla, y hasta entonces no se cumple. T031 se repite sobre la cabeza que se empuje
+cuando la revisión final quede en verde, como la última acción de plataforma (`gates/revision-pendiente.md`), y la
+repetición registra aquí su enlace, el nuevo `headSha`, su informe y la salida entera de la última orden de §12.3. Lo
+que sigue es la evidencia del intento 1, tal cual.
+
 Intento 1 de T031, 2026-09-15, propuesta de cambio [#27](https://github.com/jmorenobl/kitlegal/pull/27), cabeza
 `5c6c552d20419d9ab01769533e01ff181297e3b2` (`feat(H5): T030`), publicada por avance rápido (`091facd..5c6c552`) con
 `git push -u origin h5-skill-boe-legislacion` (el gancho `pre-push` la deja pasar). Esa cabeza solo difiere de la de la

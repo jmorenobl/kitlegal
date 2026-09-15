@@ -424,6 +424,9 @@ func (i interprete) interpretar(argv []string) (Invocacion, bool) {
 // argumentos sin describir ni ensayar nada, y la invocación cuenta como una
 // consulta que falló.
 func (i interprete) consulta(banderas []string) bool {
+	// El análisis repone las banderas, pero no la ayuda, que anota el gancho de
+	// terminación: sin retirarla, la ayuda de una invocación dejaría sin consulta
+	// a las siguientes de la misma traza.
 	*i.ayuda = false
 
 	_, err := i.analizador.Parse(banderas)

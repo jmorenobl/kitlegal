@@ -982,6 +982,46 @@ func TestLeerTrazasHiloCreadoAntesDeLaEjecucion(t *testing.T) {
 	}, nil)
 }
 
+// TestLeerTrazasAyudaSeguidaDeConsulta fija, sobre una traza que el propio test
+// escribe en t.TempDir(), que el intérprete con el que LeerTrazas lee todas las
+// invocaciones de una sesión decide la consulta de cada una solo con sus propias
+// banderas (data-model §9, campo consulta; FR-072): claude crea con vfork el
+// proceso 2000, que pide la ayuda, y después el 3000, que consulta el mismo
+// bloque. La ayuda del primero no deja sin consulta al segundo, que es el que
+// lee el bloque esperado.
+func TestLeerTrazasAyudaSeguidaDeConsulta(t *testing.T) {
+	t.Parallel()
+
+	const (
+		lineaDeExecveDeClaude = `execve("/usr/local/bin/claude", ["claude", "-p", "art. 21 de la Ley 39/2015"], ` +
+			`0x7ffe2a4c8d10 /* 31 vars */) = 0` + "\n"
+		lineaDeExecveDeBoeConAyuda = `execve("` + boeDeLaSkillInstalada + `", ["` + boeDeLaSkillInstalada + `", ` +
+			`"articulo", "BOE-A-2015-10565", "a21", "--help"], 0x7ffc3e7a1b88 /* 25 vars */) = 0` + "\n"
+	)
+
+	// vforkDeClaude es la línea del runner con el número de proceso dado: el
+	// igual sigue en la columna 41.
+	vforkDeClaude := func(proceso int) string {
+		return strings.TrimSuffix(lineaDeVforkDelRunner, "11494") + strconv.Itoa(proceso) + "\n"
+	}
+
+	hilos := map[string]string{
+		"t.1000": lineaDeExecveDeClaude + vforkDeClaude(2000) + vforkDeClaude(3000) + lineaFinalConCero,
+		"t.2000": lineaDeExecveDeBoeConAyuda + lineaFinalConCero,
+		"t.3000": lineaDeExecveDeBoe + lineaFinalConCero,
+	}
+
+	a21 := []string{normaDeLasTrazas, "a21"}
+
+	ayuda := invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, []string{"--help"})
+	ayuda.Consulta = false
+
+	comprobarLectura(t, escribirTraza(t, hilos, nil), false, []Invocacion{
+		ayuda,
+		invocacionDeBoe(3000, codigoDeSalida(0), "articulo", a21, []string{"--json"}),
+	}, nil)
+}
+
 // lineaDeCloneDeGo es la línea con la que un hilo de Go de arm64 crea el hilo de
 // ese número (research.md V53), con la pila dada y su salto de línea.
 func lineaDeCloneDeGo(pila string, hilo int) string {
