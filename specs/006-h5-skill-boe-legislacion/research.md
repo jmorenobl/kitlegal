@@ -771,9 +771,10 @@ todos salen del índice, sin ningún ejemplo de `articulos` con ids seguidos; (3
 con código 4 o 5, se pide cada bloque por separado con `scripts/boe articulo` antes de dar ninguno por no consultado, y
 la regla 2 dice qué no se pudo consultar solo después de haberlo hecho; y (4) en «Cómo se cita», dentro de los
 corchetes no va nada más que el identificador y el id —ni «art. 21», ni «artículo 21», ni el nombre, el número o el
-rango de la norma, que van delante—, con `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` como forma que no vale. No
-cambian la expresión con la que se extraen las citas, lo grabado, la comparación ni el modelo de las sesiones, y
-`SKILL.md` sigue sin nombrar evals, el job ni modelos (contrato de la skill §2.5).
+rango de la norma, que van delante—, con `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` como forma que no vale; T042
+refuerza el cuarto para la cita sola en su línea (abajo, «La cita sola en su línea»). No cambian la expresión con la
+que se extraen las citas, lo grabado, la comparación ni el modelo de las sesiones, y `SKILL.md` sigue sin nombrar
+evals, el job ni modelos (contrato de la skill §2.5).
 
 **Por qué.** La prueba de red del intento 4 de T030 (ejecución 34941499481, `gates/prueba-de-red.md` §3.3 y §4) leyó
 las trece trazas y dio `fallo` por seis positivas sin ningún defecto del job. Tres causas son desvíos del protocolo, y
@@ -811,6 +812,33 @@ sí resuelve*: cambia el contrato del verbo de H4, en el que el primer bloque qu
 (`internal/source/boe/articulo.go` 121-129), fuera del alcance de H5, y el modelo tendría que pedir aparte lo que falta
 igualmente. *Una herramienta que encuentre un artículo por su materia dentro de una norma*: es lo que necesitarían la 05
 y la 07, pero es una herramienta nueva que H5 no especifica (backlog; abajo, «Las evals 05 y 07»).
+
+**La cita sola en su línea (T042).** La prueba de red del intento 5 de T030 (ejecución 34956596912,
+`gates/prueba-de-red.md` §3.3 y §4, `gates/tarea-T030.md`) comprobó el cuarto punto en la 05 y la 10, que pusieron el
+nombre entero de la norma delante de los corchetes, y lo vio romperse en la 09: leyó `a140` con 0, transcribió el
+artículo como cita textual en bloque y, debajo, sola en su línea, citó `[Constitución Española, BOE-A-1978-31229,
+bloque a140]`, que la expresión de extracción no admite (contrato de la skill §3, FR-008, SC-009); la 09 del intento 4
+había citado bien. La regla se sigue cuando la cita acompaña a una frase y se rompe cuando va sola tras una
+transcripción, donde no hay frase delante para la forma legible y el nombre de la norma entra en los corchetes como
+etiqueta; y el paso 5 solo remitía a «Cómo se cita», dos secciones más abajo. `SKILL.md` conserva los cinco pasos, las
+cinco reglas y la forma de la cita, y refuerza dos sitios: el paso 5 escribe la forma mecánica en el propio paso —la
+forma legible delante y, en la misma línea, `[<identificador>, bloque <id>]`, con el corchete de apertura seguido
+inmediatamente del identificador `BOE-A-…`— y pide comprobar antes de responder que cada corchete de apertura de una
+cita va seguido de `BOE-`, una comprobación que no depende de dónde vaya la cita; y «Cómo se cita» dice que la regla
+vale igual cuando la cita va sola en una línea o debajo de una cita textual en bloque, con
+`art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`, y muestra
+`[Constitución Española, BOE-A-1978-31229, bloque a140]` como segunda forma que no vale, junto a la de la Ley 39/2015.
+Un arnés temporal sobre `ExtraerCitas`, borrado antes de `make ci`, comprobó en local que cada ejemplo válido de
+`SKILL.md` da una cita y las dos formas que no valen ninguna, y que la línea de la 09 tras la cita textual no da
+ninguna y la forma válida da `BOE-A-1978-31229` `a140`. No hay comprobación local con un modelo (FR-044): la evidencia
+de que la 09 cita en la forma fija es el intento siguiente de T030 y la ejecución de cierre de T031.
+
+*Alternativas rechazadas.* *Admitir texto delante del identificador dentro de los corchetes en la extracción*:
+rechazada ya arriba, porque cambia la forma fija de FR-008 para tolerar un desvío que SC-009 quiere detectar. *Exigir
+una línea final de fuente en toda respuesta*: añade una regla que el contrato de la skill §2.4 no tiene, y no evita que
+dentro de esa línea la forma sea la inválida, que es justo la posición en la que falló la 09. *Mover «Cómo se cita»
+delante del protocolo*: el orden de las secciones lo fija el contrato de la skill §2.2 (FR-002); escribir la forma
+mecánica en el paso 5 la pone donde se responde sin mover la sección.
 
 **Las evals 05 y 07 (T041).** Decisión de la persona (Jorge, 2026-09-15; `gates/tarea-T030.md`, «Lo que decide la
 persona», opción (ii)): las preguntas de la 05 y la 07 nombran el artículo —«¿Qué impuestos pueden exigir los

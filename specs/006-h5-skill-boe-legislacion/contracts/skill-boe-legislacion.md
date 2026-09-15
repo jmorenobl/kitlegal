@@ -59,7 +59,7 @@ Cada paso es un encabezado o elemento numerado explícito, de modo que SC-004 se
 | 2. **Resolver `BOE-A-…`** | si está en la referencia, tomar de ahí el identificador; si no, `scripts/boe buscar` y elegir por título y rango, diciendo cuál y, si hay varias plausibles, cuáles y por qué; igual para una norma autonómica consolidada en el BOE | FR-005 |
 | 3. **Leer índice y bloques con `scripts/boe`** | `scripts/boe indice` si no se conoce el id de bloque; el id se copia de la entrada del índice cuyo `titulo` es el artículo («Artículo 118» de la Ley 9/2017 → `a1-30`) y nunca se compone del número, porque los ids de muchas normas no son `a<número>`; cada bloque con `scripts/boe articulo` o `scripts/boe articulos`: de uno en uno con `articulo`, y `articulos` solo cuando hacen falta varios bloques a la vez y todos salen del índice; si una orden con varios bloques termina con código 4 o 5, cada bloque por separado con `articulo` antes de dar ninguno por no consultado, porque el fallo de un bloque no impide leer los demás; seguir las remisiones necesarias leyendo el bloque remitido; `scripts/boe metadatos` y `scripts/boe analisis` cuando la pregunta dependa de la vigencia o de las modificaciones; nunca un id de bloque que no salga del índice o de la pregunta; ante un código 3, volver al índice (research D23, V64) | FR-007 |
 | 4. **Evaluar si falta contexto** | remisiones, vigencia, modificaciones | FR-003 |
-| 5. **Responder citando** | cada afirmación sobre el contenido con su cita (§3), del texto devuelto en la sesión; el rango de cada norma cuando se citan normas de rango distinto y que la ley prevalece sobre el reglamento que la desarrolla (**distinguir ley y reglamento**); **señalar variación autonómica** cuando lo preguntado puede variar por normativa autonómica (competencias compartidas o cedidas, desarrollo autonómico, régimen foral) y cuándo corresponde a normas locales que no están en la fuente | FR-008, FR-009, FR-012 |
+| 5. **Responder citando** | cada afirmación sobre el contenido con su cita (§3), del texto devuelto en la sesión, con la forma mecánica escrita en el propio paso y no solo por remisión a §3: la forma legible delante y, en la misma línea, `[<identificador>, bloque <id>]`, con el corchete de apertura seguido inmediatamente del identificador `BOE-A-…`; antes de responder, comprobar que cada corchete de apertura de una cita va seguido de `BOE-` (research D23, «La cita sola en su línea»); el rango de cada norma cuando se citan normas de rango distinto y que la ley prevalece sobre el reglamento que la desarrolla (**distinguir ley y reglamento**); **señalar variación autonómica** cuando lo preguntado puede variar por normativa autonómica (competencias compartidas o cedidas, desarrollo autonómico, régimen foral) y cuándo corresponde a normas locales que no están en la fuente | FR-008, FR-009, FR-012 |
 
 Las órdenes del protocolo se escriben con `--json`, que es lo que da `fuente`, `url`, `fecha_consulta` y `hash` en la
 salida. Los ejemplos del protocolo no dependen de que la materia sea fiscal y no nombran `buscar-materia`, `materias` ni
@@ -98,12 +98,17 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
   `[<identificador>, bloque <id de bloque>]`, con el identificador y el id tal como los da la fuente.
 - Expresión con la que se extrae: `\[(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`. El
   corchete de cierre delimita el id, que puede terminar en punto (`a85bis.`, `ids.go`).
-- Dentro de los corchetes no va nada más que el identificador y el id: ni «art. 21», ni «artículo 21», ni el nombre, el
-  número o el rango de la norma, que van delante; tampoco el identificador sin el id.
+- Dentro de los corchetes no va nada más que el identificador y el id, y el corchete de apertura va seguido
+  inmediatamente del identificador: ni «art. 21», ni «artículo 21», ni el nombre, el número o el rango de la norma, que
+  van delante; tampoco el identificador sin el id.
+- La regla vale igual cuando la cita va sola en una línea o debajo de una cita textual en bloque: la forma legible va
+  delante en esa misma línea (`art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`).
 - Una cita por bloque. Un bloque remitido se cita por separado.
 - `SKILL.md` muestra este formato con la Ley 39/2015 (que está en `data/normas.yaml`), dice que no se admite otra
-  forma para la parte entre corchetes y muestra `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` como forma que no vale,
-  con la que sí (research D23).
+  forma para la parte entre corchetes y muestra dos formas que no valen, cada una con la que sí:
+  `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` y `[Constitución Española, BOE-A-1978-31229, bloque a140]`; dice
+  también que la regla vale con la cita sola en su línea, y el paso 5 escribe la parte mecánica y pide comprobar antes
+  de responder que cada corchete de apertura de una cita va seguido de `BOE-` (§2.3; research D23).
 
 ## 4. `references/normas.md`
 
