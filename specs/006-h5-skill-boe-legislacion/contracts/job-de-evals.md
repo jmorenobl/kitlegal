@@ -458,13 +458,21 @@ faltan o no se pueden leer no se ignoran —el guion escribe siempre los tres fi
 no hubo salida de error—, y un `codigo-de-la-sesion` ausente o que no es un entero no se toma por 0: la eval queda con el
 motivo `sesión ilegible: <fichero>: <error>` y no pasa.
 
-**Lectura de la traza** (`LeerTrazas`; reglas completas en data-model §9; formatos comprobados en research.md V53 y
-V54, y en el runner, supuesto S4):
+**Lectura de la traza** (`LeerTrazas`; reglas completas en data-model §9; formatos comprobados en research.md V53,
+V54 y V63, y en el runner, supuesto S4):
 
 - Un hilo creado por una llamada `clone` o `clone3` cuyas banderas incluyen `CLONE_THREAD` pertenece al proceso del hilo
   que lo creó, y la atribución es **transitiva**: el runtime de Go crea sus hilos con `clone`, no con `clone3`, y a menudo
   desde un hilo que no es el principal (research.md V51 y V53). Las conexiones de cualquier hilo del proceso de una
-  invocación, posteriores a su `execve`, son de esa invocación.
+  invocación, posteriores a su `execve`, son de esa invocación. Un hilo creado sin `CLONE_THREAD`, o con `fork` o
+  `vfork`, es el hilo principal de un proceso nuevo: Claude Code 2.1.270 de x86_64 crea con `vfork` los procesos de sus
+  órdenes.
+- `strace` alinea el resultado en su columna 40 (`-a 40`, su valor por defecto): entre el paréntesis de cierre y `= `
+  escribe un espacio y, si la llamada es más corta, el relleno de espacios hasta esa columna. `LeerTrazas` admite uno o
+  más espacios ahí y nada más: la línea `vfork()` del runner lleva 33 (data-model §9, regla 5; research.md V63). En las
+  sondas de V53, V54, V61 y V62 toda llamada del filtro pasaba de 40 columnas y ninguna línea llevaba relleno; una
+  llamada con argumentos también puede quedarse corta, como `clone(child_stack=NULL, flags=SIGCHLD)`, de 38 columnas y
+  con dos espacios (V63), y se lee igual.
 - Un `connect` de un fichero no atribuido a ninguna invocación de applet —el de `claude` a la API del modelo, que es
   pública, o el de `bash`— se ignora.
 - Las líneas de señal (`--- SIGNOMBRE {…} ---`) se admiten y no cuentan. La traza se toma sin `-e signal=none` para que

@@ -50,7 +50,8 @@ type defectoEsperado struct {
 
 // TestLeerTrazas fija la lectura de la traza de una sesión de data-model §9: la
 // atribución de hilos y procesos por clone y clone3, también desde un hilo que no
-// es el principal; el argv decodificado; el código de salida, la muerte por señal
+// es el principal, y la del proceso que crea vfork con el relleno de alineación de
+// strace, como en el runner de x86_64; el argv decodificado; el código de salida, la muerte por señal
 // y la invocación sin código que deja el corte; las clases de conexión; las
 // líneas de señal, que no cuentan; y la traza ilegible, con el fichero, la línea
 // y su texto, en lugar de ignorar lo que no se entiende (contrato job-de-evals
@@ -101,6 +102,10 @@ func TestLeerTrazas(t *testing.T) {
 		},
 		{
 			nombre:       "connect-fuera-de-la-invocacion",
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, json)},
+		},
+		{
+			nombre:       "proceso-por-vfork",
 			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, json)},
 		},
 		{
@@ -679,6 +684,66 @@ func TestLeerTrazasSinInvocaciones(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Empty(t, invocaciones)
+}
+
+// lineaDeVforkDelRunner es la línea con la que Claude Code 2.1.270 de x86_64 crea
+// los procesos de sus órdenes, tal como la escribió strace 6.8 en el runner en la
+// prueba de red del intento 3 de T030 (ejecución 34936425178): vfork(), el espacio
+// tras el paréntesis de cierre, el relleno hasta la columna de alineación, la 40
+// (-a 40, el valor por defecto), y el igual con el resultado desde la columna 41.
+const lineaDeVforkDelRunner = "vfork()                                 = 11494"
+
+// TestLeerLlamadaConRelleno fija, sobre líneas literales, que entre el paréntesis
+// de cierre de una llamada y el igual caben el espacio y el relleno de alineación
+// de strace (data-model §9, regla 5): la línea real del runner y la misma llamada
+// con un solo espacio se leen igual, como una vfork con su resultado que crea el
+// proceso de ese número (regla 2). El relleno no abre la forma a nada más: sin
+// resultado, sin el espacio o con otro blanco, la línea sigue siendo ilegible.
+func TestLeerLlamadaConRelleno(t *testing.T) {
+	t.Parallel()
+
+	require.Len(t, lineaDeVforkDelRunner, 47)
+	require.Equal(t, strings.Repeat(" ", 33),
+		strings.TrimSuffix(strings.TrimPrefix(lineaDeVforkDelRunner, "vfork()"), "= 11494"),
+		"entre vfork() y el igual y su resultado van el espacio y el relleno: 33 espacios")
+	require.Equal(t, 41, strings.Index(lineaDeVforkDelRunner, "=")+1, "el igual va en la columna 41")
+
+	legibles := []struct{ nombre, texto string }{
+		{nombre: "relleno-del-runner", texto: lineaDeVforkDelRunner},
+		{nombre: "un-espacio", texto: "vfork() = 11494"},
+	}
+
+	for _, legible := range legibles {
+		t.Run(legible.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leida, err := leerLlamada(legible.texto)
+
+			require.NoError(t, err)
+			assert.Equal(t, "vfork", leida.nombre)
+			assert.Equal(t, "11494", leida.resultado)
+			assert.False(t, leida.sinResultado)
+			assert.Equal(t, 11494, leida.valor)
+			assert.True(t, leida.creaHilo(), "una vfork con resultado crea el proceso de ese número")
+		})
+	}
+
+	ilegibles := []struct{ nombre, texto string }{
+		{nombre: "relleno-sin-igual", texto: strings.TrimSuffix(lineaDeVforkDelRunner, "= 11494")},
+		{nombre: "relleno-sin-resultado", texto: strings.TrimSuffix(lineaDeVforkDelRunner, "11494")},
+		{nombre: "sin-espacio", texto: "vfork()= 11494"},
+		{nombre: "tabulador", texto: "vfork()\t= 11494"},
+	}
+
+	for _, ilegible := range ilegibles {
+		t.Run(ilegible.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := leerLlamada(ilegible.texto)
+
+			require.ErrorContains(t, err, "no es ninguna de las formas de línea de la traza")
+		})
+	}
 }
 
 // TestDecodificarCadena fija cómo se decodifica una cadena tal como strace la

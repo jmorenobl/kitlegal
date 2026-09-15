@@ -556,6 +556,28 @@ esta propuesta, y las tomadas durante la implementación.
   (S4). Alternativas rechazadas: admitir en `LeerTrazas` cadenas cortadas, que compararía argv incompletos con los
   comandos esperados; y `-v`, que tampoco corta la lista pero escribe el entorno de cada `execve` con sus valores, y con
   él `CLAUDE_CODE_OAUTH_TOKEN` desde la `execve` de `claude`.
+- **`LeerTrazas` admite el relleno de alineación de `strace`** (T038 y T039; research V53, V63 y S4; data-model §9,
+  regla 5; contrato del job §4): la prueba de red del intento 3 de T030 (ejecución 34936425178) dejó ilegibles las
+  trece sesiones en la línea `vfork()` + 33 espacios + `= <pid>` con la que Claude Code 2.1.270 de x86_64 crea los
+  procesos de sus órdenes: tras el paréntesis de cierre, `strace` escribe un espacio y, si la llamada no llega a la
+  columna 40 (`-a 40`, su valor por defecto), el relleno hasta ella, y `formaDeLlamada` exigía un solo espacio. Ahora
+  admite ahí uno o más espacios y nada más: el resultado sigue siendo obligatorio, `? ERRNO` solo vale en una sesión
+  cortada y cualquier otra línea hace ilegible la traza. Lo fijan el caso `proceso-por-vfork` de `TestLeerTrazas`, con
+  la línea real en las trazas sintéticas (T038), y `TestLeerLlamadaConRelleno` sobre literales: la línea del runner
+  (47 octetos, con el `=` en la columna 41) y la misma con un solo espacio se leen como una `vfork` con resultado 11494
+  que crea ese proceso, y sin `=`, sin resultado, sin espacio o con un tabulador la línea sigue siendo ilegible; los
+  dos, en rojo con el lector anterior (el caso, con el motivo del runner) y en verde con el nuevo. Sobre una copia
+  desechable del árbol, cada variante de la expresión cae en un subtest: la de un solo espacio, en `proceso-por-vfork`
+  y `relleno-del-runner`; la de cero o más espacios, en `sin-espacio`; y la de cualquier blanco, en `tabulador`. Comprobado en un
+  contenedor de `ubuntu:24.04` con `strace` 6.8 y sin red (V63): `getppid()`, añadida solo al filtro de la sonda, sale
+  con 31 espacios y el `=` en la columna 41, como la línea del runner, y `LeerTrazas` rechaza esa traza porque
+  `getppid` no es del filtro; con el filtro de la sesión, `clone(child_stack=NULL, flags=SIGCHLD)` (38 columnas) sale
+  con dos espacios, y `LeerTrazas` lee la traza con la invocación del proceso que crea, código 5 y tres `connect`
+  locales. Alternativas rechazadas: `strace -a 1` en la orden de la sesión, que quitaría el relleno pero cambia el
+  contrato del job §3.2, obliga a repetir en contenedores V61 y V62 y deja el lector dependiendo de una opción para leer
+  el formato por defecto de `strace`, el que reproducen las trazas sintéticas, sin añadir ninguna garantía, porque el
+  relleno no pierde información; admitir cualquier blanco (`\s+`), una forma que `strace` no escribe; e ignorar las
+  líneas que no casan, que dejaría hilos sin atribuir y `red` vacío en falso (FR-076).
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
@@ -609,9 +631,11 @@ esta propuesta, y las tomadas durante la implementación.
   espacio antes de `= ` y ninguna sonda de research (todas en arm64, donde `vfork` no existe como llamada) vio el
   relleno (`gates/prueba-de-red.md` §4, `gates/tarea-T030.md`). Ninguna invocación se leyó, así que el informe no
   dice qué consultaron las sesiones 05, 06 y 10, cuyas respuestas dicen que la fuente devolvió código 5 (una consulta
-  fuera de lo grabado): lo dirá el intento siguiente. Arreglo en **T038** (de datos: el caso `proceso-por-vfork` de las
-  trazas sintéticas con la línea real) y **T039** (`LeerTrazas` admite el relleno; data-model §9, contrato §4,
-  research V53, una fila nueva y S4), antes de T030. T030 sigue sin marcar, con sus tres intentos agotados.
+  fuera de lo grabado): lo dirá el intento siguiente. Arreglado en **T038** (de datos: el caso `proceso-por-vfork` de
+  las trazas sintéticas con la línea real) y **T039** (`LeerTrazas` admite el relleno; data-model §9, contrato §4,
+  research V53, V63 y S4; *Decisiones*), antes de T030: la forma está comprobada con la línea del runner en los tests
+  y con `strace` 6.8 en contenedores (V63), y que las trece trazas reales se lean con ella lo dirá el intento siguiente
+  de T030. T030 sigue sin marcar, con sus tres intentos agotados.
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
   intento 3 dejó (`gates/prueba-de-red.md` §5): S12 se cumple en (1), (2), (3), (5) y (6), con (4) sin ejercer; S2 y
   S7 se cumplen en todo lo ejercido (el job no instala `bubblewrap` ni `socat`); S9 se cumple en las trece sesiones
@@ -619,8 +643,8 @@ esta propuesta, y las tomadas durante la implementación.
   ejercido (el job de la rama corre con el secreto, las sesiones se autentican y aceptan el modelo, la skill se activa
   donde debe, Bash ejecuta el binario y el modelo llega a la API con el proxy que rechaza para todo lo demás);
   **S4 difiere**: la línea con la que Claude Code de x86_64 crea los procesos de sus órdenes es `vfork()` con el
-  relleno de alineación de `strace`, que arreglan T038 y T039, y `connect` y la atribución por invocación siguen sin
-  evidencia hasta el intento siguiente. Los supuestos: S1
+  relleno de alineación de `strace`, que desde T038 y T039 `LeerTrazas` admite (V63), y `connect` y la atribución por
+  invocación siguen sin evidencia hasta el intento siguiente. Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de

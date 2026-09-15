@@ -81,16 +81,21 @@ const (
 )
 
 // Formas de las líneas y de los argumentos que escribe strace -ff con las
-// opciones del contrato job-de-evals §3.2, comprobadas en research.md V53 y, las
-// de señal y las que deja un corte, en V54. Lo que no casa con ellas no se
-// ignora: hace la traza ilegible (data-model §9, regla 5).
+// opciones del contrato job-de-evals §3.2, comprobadas en research.md V53, las
+// de señal y las que deja un corte en V54, y el relleno de alineación en V63 y en
+// el runner. Lo que no casa con ellas no se ignora: hace la traza ilegible
+// (data-model §9, regla 5).
 var (
 	// formaDelNombreDeHilo es la del fichero que strace deja por hilo: t.<n>.
 	formaDelNombreDeHilo = regexp.MustCompile(`^t\.([0-9]+)$`)
 
 	// formaDeLlamada es la de una llamada con su resultado: 0 o un número, -1
-	// ERRNO (descripción) o, sin resultado, ? ERRNO (descripción).
-	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect)\((.*)\) = ` +
+	// ERRNO (descripción) o, sin resultado, ? ERRNO (descripción). Entre el
+	// paréntesis de cierre y el igual, strace escribe un espacio y, si la llamada
+	// no llega a la columna de alineación (-a 40, su valor por defecto), el
+	// relleno de espacios hasta ella: vfork(), la llamada con la que Claude Code
+	// de x86_64 crea sus procesos, sale con 33.
+	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect)\((.*)\) += ` +
 		`(([0-9]+)|-1 ([A-Z][A-Z0-9_]*) \([^()]*\)|\? [A-Z][A-Z0-9_]* \([^()]*\))$`)
 
 	// formaDeSenal es la de una señal entregada, que se admite y no cuenta.
@@ -392,7 +397,7 @@ type llamada struct {
 	// nombre es el de la llamada en strace.
 	nombre string
 
-	// resultado es el texto tras « = »; sinResultado, si es el de una llamada
+	// resultado es el texto tras «= »; sinResultado, si es el de una llamada
 	// interrumpida (? ERRNO (descripción)).
 	resultado    string
 	sinResultado bool

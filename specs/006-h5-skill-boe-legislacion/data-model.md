@@ -343,7 +343,11 @@ número de su proceso.
 5. **Líneas.** Cada línea es `execve`, `clone`, `clone3`, `fork`, `vfork` o `connect` con su resultado (`0`, `N` o
    `-1 ERRNO (descripción)`), una línea de señal (`--- SIGNOMBRE {…} ---`, que se admite y no cuenta) o una línea final
    (`+++ exited with N +++`, con N de 0 a 255, el estado de salida del proceso, o `+++ killed by … +++`), y cada
-   fichero termina en su línea final. La traza se toma sin
+   fichero termina en su línea final. En una llamada, el resultado va tras `= `, y entre el paréntesis de cierre y el
+   `=` hay el espacio y, en las llamadas más cortas que la columna de alineación de `strace` (`-a 40`, su valor por
+   defecto), el relleno de espacios hasta ella, con el `=` en la columna 41: `vfork()` seguida de 33 espacios y `= N`
+   es la línea con la que Claude Code 2.1.270 de x86_64 crea los procesos de sus órdenes en el runner (research.md V63;
+   supuesto S4). Ahí solo caben espacios, uno o más, y el resultado sigue siendo obligatorio. La traza se toma sin
    `-e signal=none`, que suprimiría `+++ killed by … +++` de todo proceso que muere por una señal (research.md V54).
    Cualquier otra línea, una cortada sin su resultado o un fichero sin línea final hacen la traza
    ilegible, con un error que nombra el fichero, el número de línea y su texto; también un `connect` atribuido a una
