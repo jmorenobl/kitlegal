@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:7 da «0 issues.» y :68 «ci: todos los controles en verde», pero es de d89ffa8. La cabeza es ba3b3e0: 1c949c4 (ronda 4) y ba3b3e0 (ronda 5) solo cambian specs/006-h5-skill-boe-legislacion/plan.md y research.md (`git show --stat`). Lo reproduje sobre ba3b3e0 en un clon fuera del repositorio, lanzado por la ruta con enlace /tmp/juezA-h5-r6 (física /private/tmp/…). `make ci` salió con exit=0 y «ci: todos los controles en verde»: fmt-check; lint con 0 issues; test con -race -shuffle=on y test-integration, con los doce paquetes en ok en los dos perfiles y sin caché en integration (internal/evals 99,0 %, internal/skills 98,5 %, internal/app 93,7 %); govulncheck «No vulnerabilities found»; schema-check; skills-check con los cuatro tests en sus tres paquetes; gitleaks «no leaks found» (10:55PM); mod-verify de la raíz y de las cuatro herramientas; y `go mod tidy -diff` sin salida. Tras `make ci`, `scripts/skills-sync.sh` y la compilación del binario, `git status --porcelain --untracked-files=all` del clon queda vacío. En el repositorio, ese mismo `git status` solo lista, sin versionar, los veredictos de la revisión (gates/revision-a*.json, revision-b*.json y revision-rondas)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Desde d89ffa8 no cambia ningún fichero de código, test ni datos: las rondas 4 y 5 solo tocan plan.md y research.md. `git diff --stat 5c6c552 HEAD -- . ':(exclude)specs'` da los mismos doce ficheros que la ronda anterior, y ninguno es de testdata/ ni de schemas/. Siguen valiendo los mutantes de la ronda 5 sobre trazas.go:670, :1132 y :1301: cada uno cae en sus casos de TestLeerTrazas y TestLeerTrazasSinTerminar. También los del juez B en la ronda 4 (ficherosDelBinario, instalar-skills.sh, Makefile, juzgar, citas, frontmatter, normas…). En la reproducción de esta cabeza, todos esos tests pasan en los dos perfiles, TestInstalacion y TestFicherosDelBinario incluidos, lanzados desde la ruta con enlace. Las 32 grabaciones de testdata/evals/boe.legislacion-consolidada/ las pide el spec (FR-075, pausa [datos] de T008) y no se han vuelto a tocar desde 1f4feea."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de todo `git diff main...HEAD`, fuera de specs/ y de testdata, busqué net/http, os.Exit, fmt.Print, os.Stdout, os.Stderr, nolint, t.Skip, TODO, FIXME, XXX, panic(, recover(, MethodPost, \"POST\", ANTHROPIC_API_KEY y pull_request_target. Solo aparecen los cuatro `_ =` justificados del criterio h. `git diff main...HEAD --stat` no da nada sobre internal/core, internal/cli, internal/cache, internal/source, internal/render, cmd, schemas/norma.json, schemas/bloque.json, docs/SOURCES.md, docs/ADR, .claude, skills-lock.json y .agents/skills. depguard y forbidigo dan 0 issues en el make ci reproducido, y TestArquitectura y TestDependenciasDelBinario están en verde."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "H5 no añade ni cambia applets ni esquemas de salida. Los dos esquemas nuevos, schemas/normas.yaml.json y schemas/eval.yaml.json, son de datos. En la reproducción están en verde TestEsquemasPublicados (schema-check) y TestSkillsDelRepositorio (skills-check), que compara la tabla de SKILL.md:146-163 con --describe; `scripts/skills-sync.sh` en el clon termina con 0 sin cambiar nada. Con el binario compilado de la cabeza e invocado por el enlace skills/boe-legislacion/scripts/boe, el despacho por nombre elige el applet boe. `indice BOE-A-2017-12902 --json --offline` con caché vacía devuelve el sobre completo (ok falso, fuente, url, fecha_consulta, hash y data con clase y mensaje), como declara SKILL.md:159."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El binario no cambia en el hito, y lo que SKILL.md:143-144 y la regla 2 prometen de los códigos ocurre por el enlace de la skill. `scripts/boe indice BOE-A-2017-12902 --json --offline` sin caché termina con 4 y clase fuente-no-disponible. `scripts/boe articulo BOE-A-2017-12902 --json`, sin bloque, termina con 2 y clase argumentos. `scripts/boe --help` termina con 0 con los seis verbos de la tabla. No hay panic( en las líneas añadidas. scripts/instalar-skills.sh termina con 1 y nombra la causa (:13-16, :26-29, :33-36 y :60-67), y la receta install del Makefile ejecuta `--comprobar` antes de `go install`; TestInstalacion lo cubre y pasa en la reproducción. scripts/evals.sh termina con 1 en cada comprobación previa (:25-93), como dicen CONTRIBUTING y el contrato del job."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Mi único motivo de la ronda 5 está corregido: research.md:5 dice ahora «(V1-V65)», y la tabla llega a V65 (research.md:77). `grep -rnoE 'V1-V[0-9]+'` sobre los .md del directorio del hito solo da V1-V65 (pr-h5.md:85, research.md:5, plan.md:9, :164 y :541) y V1-V13, que es un subconjunto (contracts/job-de-evals.md:43, research.md:427). La corrección no cambia nada más. Las cifras de pr-h5.md siguen valiendo: fuera de specs/, 322 ficheros, 22 610 líneas añadidas y 78 retiradas; 62 ficheros en el directorio del hito. Las rondas 4 y 5 no añaden ficheros ni tocan nada fuera de specs/, así que la lista de doce ficheros de FR-082 (revision-pendiente.md §2, evals-cierre.md:3-12 y aceptacion.md:3-6) no cambia, y la repetición de T031 sigue siendo la última acción de plataforma.\n\nContrasté también con el producto afirmaciones de SKILL.md, README, CONTRIBUTING y CHANGELOG:\n- El ejemplo de SKILL.md:63-64 lo sostiene el índice grabado de la LCSP (internal/source/boe/testdata/…BOE-A-2017-12902_texto_indice.json): la entrada \"a1-30\" tiene el título «Artículo 118» y no hay ningún id a118.\n- `scripts/boe -> ../../../bin/instalado/kitlegal` resuelve al binario.\n- make ci encadena diez objetivos (Makefile:162).\n- skills-sync es idempotente.\n- Coinciden con evals.yml:5-19 y :33-35 los tres lanzamientos del job, el modelo claude-haiku-4-5-20251001 y Claude Code 2.1.270.\n- Coinciden con scripts/evals.sh:25-93 las comprobaciones previas: Linux con strace, root o sudo, sin Python, puerto 127.0.0.1:9 cerrado, evals, lo grabado y la skill instalada.\n- Con instalar-skills.sh coinciden el conflicto y el enlace roto.\n\nNo hace falta ADR (no cambia ninguna decisión) ni tocar docs/SOURCES.md (no hay fuente nueva).\n\nObservación, sin motivo: CHANGELOG.md:343 reescribe la frase de release y conserva «hasta H6», que ya estaba en main igual que Makefile:135-137 y CONTRIBUTING.md:76, :86 y :165. docs/ROADMAP.md sitúa el release en H19 desde ADR 0013. Es una deuda anterior, y alinearla toca la orden release, fuera del alcance de H5; el producto y esas líneas no se contradicen entre sí."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Desde la ronda anterior no cambia nada fuera de specs/, y sigue valiendo lo comprobado:\n- Toda la red de la herramienta pasa por internal/httpx: httpx.Replay en la preparación y en la comprobación sin red, y httpx.New con robots.txt e intervalo de la fuente solo en el arnés `grabacion`, con KITLEGAL_RECORD=1 (scripts/grabar-evals.sh:9).\n- Las 32 grabaciones de testdata/evals son GET, con el User-Agent «kitlegal/dev (+https://ventanillalegal.es/bot)».\n- .github/workflows/evals.yml se dispara con `pull_request: types: [labeled]` y no con pull_request_target, lleva `permissions: contents: read` (:29-30), y CLAUDE_CODE_OAUTH_TOKEN solo entra en el paso «Ejecutar las evals» (:135-138). No usa ANTHROPIC_API_KEY.\n- En scripts/evals.sh:124-128 las sesiones van con un proxy a 127.0.0.1:9, y :79 comprueba antes que ese puerto está cerrado.\n- gitleaks da «no leaks found» en la reproducción. No hay NIF, DNI ni datos personales.\n- En SKILL.md:177-181, las reglas 4 y 5: no presentar, notificar, firmar ni tramitar en nombre de nadie, y ningún caso especial de municipio o comunidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Las líneas añadidas del diff completo no traen //nolint, t.Skip, TODO, FIXME, XXX ni `_, _ =`. Los únicos `_ =` están justificados: frontmatter.go:233, :235 y :241, donde l.cadena ya anota el defecto, y referencias.go:99, el tercer valor de strings.Cut sobre un identificador que el esquema ya validó. .golangci.yml solo añade la etiqueta evals a run.build-tags y cinco palabras a misspell.ignore-rules, cada una con su motivo; no hay exclusiones. No se retoca ningún fixture ni esquema para que pase un test: nada cambia en testdata/ ni en schemas/ desde 5c6c552. tasks.md tiene 46 tareas marcadas y ninguna abierta. ba3b3e0 solo corrige una cifra de documentación."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "ba3b3e0 se ciñe a mi único motivo de la ronda 5 (el juez B aprobó sin motivos): una línea de research.md. El resto del diff frente a main sigue dentro de FR-001..FR-085 y de la Complexity Tracking del plan:\n- la skill, data/normas.yaml, dos esquemas de datos y doce evals;\n- internal/skills, internal/evals e internal/app/skills_test.go;\n- cuatro guiones, evals.yml, Makefile, .golangci.yml, go.mod (yaml/v3 directa) y .agents/.gitattributes;\n- docs/PENDIENTES.md, docs/USO.md y la documentación.\nLos dos tests de internal/httpx son la T032. gates/tarea-actual.json está vacío, y no hay cambios en el kernel, la fuente, .claude/skills/, skills-lock.json ni .agents/skills/."
+    }
+  ],
+  "motivos": []
+}

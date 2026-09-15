@@ -1,0 +1,63 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:7 da «0 issues.» y :68 «ci: todos los controles en verde». Es de d89ffa8 (gitleaks a las 10:28PM). La cabeza es 1c949c4, que solo cambia specs/006-h5-skill-boe-legislacion/plan.md (`git show --stat 1c949c4`: 1 fichero, 14 líneas añadidas y 11 retiradas). Lo reproduje sobre esa cabeza en un clon fuera del repositorio, lanzado por la ruta con enlace (/tmp/juezA-h5-r5, física /private/tmp/…). `make ci` terminó con exit=0 y sin resultados en caché: fmt-check, lint con 0 issues, test con -race -shuffle=on y test-integration con los doce paquetes en ok en los dos perfiles (internal/evals 99,0 %, internal/skills 98,5 %, internal/app 93,7 %), govulncheck «No vulnerabilities found», schema-check, skills-check con los cuatro tests en sus tres paquetes, gitleaks «no leaks found» (10:47PM), mod-verify de la raíz y de las cuatro herramientas y `go mod tidy -diff` sin salida. Tras los mutantes del criterio b, `git status --porcelain` del clon queda vacío. En el repositorio, `git status --porcelain` solo lista, sin versionar, los veredictos de la revisión (gates/revision-a*.json, revision-b*.json y revision-rondas)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Desde la ronda 4 no cambia ningún fichero de código, test ni datos. Contrasté con mutantes, en el clon desechable, lo que el control 16 corregido (plan.md:272) dice que detectan los casos de T044 y T045. Sin mutar, `go test -run '^(TestLeerTrazas|TestLeerTrazasSinTerminar|TestLeerLlamadaSinTerminar|TestLeerTrazasConDefectos|TestInforme)$' ./internal/evals/` da ok.\n- M1, rechazar la llamada sin terminar en una sesión sin corte (trazas.go:670, sin `!leida.sinTerminar`): caen TestLeerTrazas/clone-sin-terminar, /hilo-de-clone-sin-terminar, /connect-sin-terminar y /clone-sin-terminar-seguido-de-otra-llamada, y diez subtests de TestLeerTrazasSinTerminar.\n- M2, admitir el fichero huérfano sin ninguna creación sin terminar (trazas.go:1132, `&& false`): cae TestLeerTrazas/huerfano-sin-clone-sin-terminar, y en TestLeerTrazasSinTerminar /huerfano-solo-con-connect-sin-terminar y /huerfano-solo-con-llamada-desconocida.\n- M3, no clasificar como red el connect público sin terminar (trazas.go:1301, `!conectada.sinTerminar && (…)`): caen TestLeerTrazas/connect-sin-terminar y TestLeerTrazasSinTerminar/connect-publico-sin-terminar.\nCada mutante se restauró con `git checkout`. El árbol de sesiones sintéticas tiene 55 casos (15, 27 y 13) y 208 ficheros versionados (42, 45 y 121). El reparto de t.1000, t.2001 y t.2002 por caso de leer-trazas coincide con plan.md, paso 13 (b), y con contracts/job-de-evals.md:762-781. Los 13 ficheros de los seis casos nuevos son los de b086c8b (T038, 2) y 208547b (T044, 11). Nada cambia en testdata/ ni en schemas/ desde 5c6c552: `git diff --stat 5c6c552 HEAD -- . ':(exclude)specs'` da 12 ficheros y ninguno es de datos."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Busqué en las líneas añadidas de `git diff main...HEAD`, fuera de specs/ y de testdata: net/http, os.Exit, fmt.Print, os.Stdout, os.Stderr, nolint, t.Skip, TODO, FIXME, panic(, recover(, «POST» y MethodPost. No hay ninguno. `git diff --stat main...HEAD` sobre internal/core, internal/cli, internal/cache, internal/source, internal/render, cmd, internal/app, internal/httpx, schemas/norma.json, schemas/bloque.json, docs/SOURCES.md, docs/adr, .claude, skills-lock.json y .agents/skills solo lista internal/app/skills_test.go e internal/httpx/reintentos_test.go y ritmo_test.go (los tests de T032). depguard y forbidigo dan 0 issues en el make ci reproducido, con TestArquitectura y TestDependenciasDelBinario (internal/arch_test.go:61 y :214) en verde."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "H5 no añade ni cambia applets ni esquemas de salida: schemas/norma.json, schemas/bloque.json e internal/source no tienen diff. En la reproducción están en verde TestEsquemasPublicados (schema-check), TestTablaDeComandosCoincideConLaGramatica y TestSkillsDelRepositorio, este con la tabla de SKILL.md generada desde --describe. La preparación de la caché y la comprobación sin red consultan con app.Main y --json, es decir, con el sobre. La ronda 4 no toca código."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El binario y sus códigos no cambian en el hito, y desde la ronda 4 no cambia código. No hay panic( en las líneas añadidas. scripts/instalar-skills.sh termina con 1 nombrando la causa (uso, binario, HOME o conflicto, enlace roto incluido), y `make install` ejecuta `--comprobar` antes de `go install`. TestInstalacion y TestFicherosDelBinario están en verde en test-integration, lanzados desde la ruta con enlace. Los errores de internal/evals nombran fichero, línea y motivo: los mutantes del criterio b fallan con el defecto esperado (`defectoEsperado`: ficheros, línea y motivo, trazas_test.go:215-226)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Mi motivo de la ronda 4 está corregido en plan.md y lo contrasté con el árbol:\n- :87 da 55 casos y 208 ficheros, igual que el árbol y que contracts/job-de-evals.md:718-719.\n- :336 nombra los 27 subtests de TestLeerTrazas, que son los 27 directorios de leer-trazas/. Nombra también TestLeerTrazasConDefectos, TestLeerTrazasSinInvocaciones, TestLeerTrazasSinTerminar, TestLeerLlamadaConRelleno, TestLeerLlamadaSinTerminar y TestDecodificarCadena, que existen en trazas_test.go:536, :762, :828, :1044, :1100 y :1209.\n- El control 16 (:272) recoge esos tests, con lo que detectan confirmado con mutantes (criterio b).\n- El paso 13 (b) da 27 subtests y 45 ficheros, 13 de ellos de T038 y T044.\n- :9, :164 y :541 dicen V1-V65.\nSigue siendo cierto:\n- En pr-h5.md, 322 ficheros, 22 610 líneas añadidas y 78 retiradas fuera de specs/ (`git diff --shortstat main...HEAD -- . ':(exclude)specs'`) y 62 ficheros en el directorio del hito (`git ls-tree -r HEAD`).\n- La lista de doce ficheros de FR-082 (revision-pendiente.md §2) coincide con `git diff --stat 5c6c552 HEAD -- . ':(exclude)specs'`.\n- No hace falta ADR ni cambio en docs/SOURCES.md.\nRevisé también, y no cuentan como motivo:\n- tasks.md:200 y :204 (21 casos y 32 ficheros; 49 casos y 195 ficheros): son la tarea T021 y el punto de control de su fase, anteriores a T038 y T044, que declaran sus propios ficheros.\n- quickstart §7 (:189-211) enumera con «entre ellos», así que no pretende ser exhaustivo.\n- Los doce tests de cobertura de T034 y T035 que no están en el inventario (p. ej. TestLeerSesionConMensajesSinSuForma, TestRegenerarSinPoderListar): el inventario fija «nombres para que tasks.md y quickstart.md los usen» y ningún contrato los registra.\nLo que no cumple: research.md:5 dice que toda afirmación «remite a la tabla de verificación (V1-V64)», pero la tabla llega a V65 (research.md:77). V65 la citan plan.md:9, :164 y :541, gates/pr-h5.md:85 y contracts/job-de-evals.md:489 y :723. `grep -rnoE 'V1-V[0-9]+'` sobre el directorio del hito muestra que es la única referencia desfasada al rango: las de V1-V13 en job-de-evals.md:43 y research.md:427 se refieren a un subconjunto."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Desde la ronda 4 no cambia nada fuera de specs/, y desde 5c6c552 no cambia ningún fichero de datos. Sigue valiendo lo comprobado:\n- .github/workflows/evals.yml se dispara con `pull_request: types: [labeled]` (no pull_request_target), con `permissions: contents: read`, y CLAUDE_CODE_OAUTH_TOKEN solo entra en el paso «Ejecutar las evals».\n- scripts/evals.sh pone el proxy en 127.0.0.1:9 y comprueba antes que ese puerto esté cerrado.\n- Las 32 grabaciones de testdata/evals llevan GET y el User-Agent «kitlegal/dev (+https://ventanillalegal.es/bot)».\n- Solo graba el arnés `grabacion`, con KITLEGAL_RECORD=1.\n- La reproducción da gitleaks «no leaks found».\n- No hay NIF ni datos personales.\n- SKILL.md, reglas 4 y 5: no actuar en nombre de nadie y ningún caso especial de territorio."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Las líneas añadidas no traen //nolint, t.Skip, TODO, FIXME ni errores silenciados. Los `_ =` están justificados: en frontmatter.go:233, :235 y :241, l.cadena ya anota el defecto; en referencias.go:99 se descarta el tercer valor de strings.Cut. .golangci.yml no añade exclusiones, solo la etiqueta evals y cinco palabras de misspell con su motivo. No se retoca ningún fixture ni esquema para que pase un test. Los tests de la llamada sin terminar no pasan en vacío: cada mutante del criterio b cae en su caso. 1c949c4 solo corrige documentación."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "1c949c4 se ciñe a mi único motivo de la ronda 4 (el juez B no dejó ninguno): solo plan.md. El resto del diff frente a main sigue dentro de FR-001..FR-085 y de la Complexity Tracking del plan; los tests de internal/httpx son la T032 y no tocan código de producto. tasks.md tiene 46 tareas marcadas y ninguna abierta, gates/tarea-actual.json está vacío y no hay cambios en el kernel, la fuente, .claude/skills/, skills-lock.json ni .agents/skills/."
+    }
+  ],
+  "motivos": [
+    "[f] research.md:5 dice «Toda afirmación sobre una herramienta o dependencia externa remite a la tabla de verificación (V1-V64)», pero la tabla que empieza en research.md:9 llega a V65 (research.md:77). V65 la citan plan.md:9, :164 y :541 (corregidos en la ronda 4 a «V1-V65»), gates/pr-h5.md:85 y contracts/job-de-evals.md:489 y :723. Es el mismo desfase del punto (3) de mi motivo de la ronda 4, que se corrigió en plan.md pero no en la cabecera de research.md. Qué cambiar: en research.md:5, «(V1-V64)» por «(V1-V65)». Es la única referencia desfasada al rango: `grep -rnoE 'V1-V[0-9]+' specs/006-h5-skill-boe-legislacion` solo da además V1-V13 (subconjunto, en contracts/job-de-evals.md:43 y research.md:427) y los veredictos de los jueces. La corrección solo toca specs/006-h5-skill-boe-legislacion/ y no requiere decisión humana: no cambia la lista de doce ficheros de FR-082 (gates/revision-pendiente.md §2), y la repetición de T031 sigue siendo la última acción de plataforma."
+  ]
+}
