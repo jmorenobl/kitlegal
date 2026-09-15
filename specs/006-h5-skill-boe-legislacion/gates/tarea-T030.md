@@ -1,3 +1,56 @@
+# T030 · intento 7 (el tercero que cuenta el workflow, 2026-09-15): en verde y marcada
+
+Cabeza `091facd82d3744dffcfb3b17115c5ea25452d7d5` (`feat(H5): T046`), publicada por avance rápido
+(`a99295f..091facd`) sobre la propuesta de cambio [#27](https://github.com/jmorenobl/kitlegal/pull/27), la misma de
+los intentos 1 a 6 (no se creó ninguna). Es el séptimo intento de la tarea y el tercero que cuenta
+`gates/tareas-intentos.json` tras la cuarta ampliación del tope (abajo). **Todo en verde**: `ci` (ejecución
+34999203695, 4 m 50 s) y los cuatro check-runs de Codecov (`codecov/patch` 98,48 % del diff frente a 94,70 %;
+`codecov/project` 96,33 %; `internal/core` 90,36 %; `internal/cli` 98,09 %), leídos por la API con `gh pr checks
+--watch`, `gh run list` y los estados del commit (`gates/evidencia-plataforma.md`); el secreto y las dos etiquetas de
+§12.1 presentes; y la **prueba de red** (§12.2, ejecución 34999845098, 7 m 46 s, `código 0` en la cuarta orden) con
+veredicto **`aprobado`** por primera vez: las trece sesiones terminadas con 0, las trece trazas legibles (T044 y
+T045), las diez positivas y las dos de no activación en verde, las dos filas de `a9998` con 5 y 4, la conexión
+`127.0.0.1:9` de clase `local` atribuida a la invocación sin `--offline`, ninguna petición a la red de una fuente y las
+citas de diez de las once sesiones con la skill activada extraídas con la forma legible dentro de los corchetes (T046;
+con la expresión anterior habrían fallado diez). El paso «Retirar Python del runner» terminó con 0 (las mismas 921
+rutas, 1 m 45 s) y `sin_python` da `resultado: ninguno`. Todo en `gates/prueba-de-red.md`, con la evidencia de S2,
+S4, S7, S9 y S12 (§5); S8, lo comprobable con la propuesta abierta sobre la cabeza nueva, en `gates/pr-h5.md`
+(*Pendientes*): 381 ficheros en la propuesta, bajo `.agents/` solo `.agents/.gitattributes`, la misma lectura de
+lenguajes. La etiqueta `evals-prueba-de-red` quedó quitada (séptima orden) y el cuerpo de #27 sincronizado con
+`gates/pr-h5.md`. `make ci` local sobre la cabeza, en primer plano, en verde (abajo, «Verificación local del
+intento 7»). No se fusionó, no se empujó a `main` (sigue en `b7eda6e`), no se forzó, no se borró ninguna rama ni se
+creó ninguna etiqueta de git ni release. La tarea queda `[X]`; lo que sigue es T031 (ejecución de cierre, §12.3).
+
+Lo nuevo que muestra la ejecución, sin ser un defecto (`gates/prueba-de-red.md` §3.3 y §4): la sesión 05 empezó por
+`boe buscar` con términos propios, no grabados; el proxy rechazó la petición (código 5, conexión `local`), la
+invocación quedó en «fuera de lo grabado» con su eval y la sesión siguió por `references/normas.md`, leyó el índice y
+`a59` con 0 y pasó: FR-076 (1) sobre un paso legítimo del protocolo, ejercido en la plataforma por primera vez. La
+ejecución de cierre puede mostrar filas así sin que cambie su veredicto.
+
+## Verificación local del intento 7
+
+`make ci` sobre el árbol de la cabeza `091facd` (este intento solo escribe en `gates/` y en `tasks.md`, y borró antes
+los ficheros temporales que usó para copiar el informe, la retirada de Python, el registro y la lista de ficheros de
+la propuesta), en primer plano de la sesión, con la salida en `gates/ci.log` (ignorado): **código 0**,
+`ci: todos los controles en verde`, `0 issues.`, `No vulnerabilities found.`, ningún `FAIL` y `go mod tidy -diff` sin
+cambios.
+
+## Historial completo
+
+| Intento | Cabeza | Lo que descubrió la plataforma | Arreglo |
+|---|---|---|---|
+| 1 | `6d68c21` | `codecov/patch` en rojo; la purga de paquetes de Python rompía `apt` (100) | T034, T035; T033 |
+| 2 | `417635e` | `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` exigía `bubblewrap` y forzaba el modo de permisos; `strace -s 4096` cortaba el argv | T036; T037 |
+| 3 | `857ec46` | `vfork()` con relleno de alineación en x86_64 dejaba ilegibles las trece trazas | T038, T039 |
+| 4 | `537e5d6` | las trazas se leen; seis positivas no pasan por el protocolo frente a lo grabado (a, b, d) y por el artículo elegido (c) | T040; T041 (decisión de la persona) |
+| 5 | `a40d16a` | T040 y T041 funcionan (02, 05, 07 y 10 pasan); cuatro positivas no pasan: 03, 06 y 08 por el artículo elegido (c'), 09 por la cita sola tras una transcripción (d') | T042; T043 (misma decisión, extendida) |
+| 6 | `a99295f` | T042 y T043 funcionan (las diez leen el bloque nombrado; la 09 cita en la forma fija); la 09 es ilegible por `clone(… <unfinished ...>) = ?` (e); la 08 cita con la forma legible dentro de los corchetes (f) | T044, T045; T046 (decisión B de la persona) |
+| 7 | `091facd` | T044, T045 y T046 funcionan: trece trazas legibles, once citas extraídas (diez con la forma legible dentro), veredicto `aprobado`; la 05 busca con términos propios y el proxy la rechaza sin hacerla fallar (FR-076 (1)) | ninguno: la tarea se marca |
+
+Lo que sigue es la nota del intento 6, tal como quedó, con las ampliaciones del tope que la siguieron.
+
+---
+
 # T030 · intento 6 (el tercero que cuenta el workflow, 2026-09-15): sin marcar
 
 Cabeza `a99295f50716010b560c1998ac4e71e62cd24da4` (`feat(H5): T043`), propuesta de cambio
@@ -266,3 +319,11 @@ corchete y deja de prohibirla dentro). La supervisión detuvo el run antes de im
 descontó el intento que se contó sin trabajo y marcó el run como `failed` (el motor había quedado en `running` sin
 proceso tras la parada), para poder reanudarlo. Jorge planteó además revisar si Haiku es el modelo adecuado para las
 evals: queda como cuestión abierta fuera de este intento.
+
+## Cuarta ampliación del tope (supervisión del run, 2026-09-15)
+
+Tras T044, T045 y T046 el workflow volvió a detenerse por el tope de intentos de T030. La supervisión restauró el contador
+a 2 para un intento más (el séptimo de la tarea), con el mismo criterio: el intento 6 cumplió la prueba de red en doce
+de trece sesiones, no repitió ningún fallo anterior y sus dos motivos —la llamada que el fin del proceso deja sin
+resultado (del job) y la forma legible dentro de los corchetes (decisión B de la persona)— quedan arreglados en T044,
+T045 y T046. No se ha tocado ningún veredicto, umbral ni control.
