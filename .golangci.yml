@@ -25,10 +25,17 @@ run:
   # scripts/grabar-fixtures.sh, que toca la red y que ni make ci ni ninguna tarea
   # ejecutan; sin la etiqueta aquí, ese fichero quedaría fuera de todo control y
   # uno que ni compila pasaría el lint en verde (H4 research.md D13).
+  #
+  # Y los que llevan evals: los arneses del job de evals
+  # (internal/evals/job_test.go) solo los compila scripts/evals.sh, que abre
+  # sesiones con modelo y que ni make ci ni ninguna tarea ejecutan; sin la
+  # etiqueta aquí, ese fichero quedaría fuera de todo control y uno que ni
+  # compila pasaría el lint en verde (H5 research.md D20 y V38).
   build-tags:
     - integration
     - fuentes
     - grabacion
+    - evals
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
