@@ -183,3 +183,10 @@ sesión, con la salida en `gates/ci.log` (ignorado): **código 0**, `ci: todos l
 `go mod tidy -diff` sin cambios. La tarea queda `[ ]`, como manda su línea cuando la prueba de red descubre un defecto;
 el árbol deja los cuatro ficheros de `gates/` de este intento y `tasks.md` con T042 y T043 (y su trazabilidad), y ningún
 fichero temporal. La etiqueta `evals-prueba-de-red` está quitada y el cuerpo de #27 sincronizado con `gates/pr-h5.md`.
+
+## Decisión de la persona sobre el alcance de T043 (supervisión del run, 2026-09-15)
+
+Jorge eligió **las seis** positivas que preguntan por materia (02, 03, 04, 06, 08 y 10), como está escrita T043: las
+evals miden el protocolo (índice → id → bloque → cita) sin depender de la memoria del modelo, con la misma razón que
+T041; la 02 sigue exigiendo el índice (artículo 118 → `a1-30`), y la búsqueda de un artículo por su materia queda en el
+backlog (`docs/USO.md`).

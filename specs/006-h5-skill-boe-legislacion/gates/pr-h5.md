@@ -597,19 +597,20 @@ esta propuesta, y las tomadas durante la implementación.
   (FR-072, FR-076); cambiar el modelo de las sesiones (clarificación del spec, D13); y que `articulos` devuelva los
   bloques que resuelve (contrato del verbo de H4). Las evals 05 y 07, que fallan por el artículo elegido y no por el
   protocolo, las resuelve la decisión siguiente (T041).
-- **Las evals 05 y 07 nombran el artículo** (T041; decisión de la persona; research D23, «Las evals 05 y 07»; contrato
-  de evals §2): en la prueba de red del intento 4 de T030 (ejecución 34941499481), la 05 y la 07 leyeron el índice con
-  0 y pidieron otro artículo (`a2` del TRLRHL; `a140` a `a145` de la LRJSP), fuera de lo grabado, porque preguntaban
-  por materia y el índice del BOE solo da «Artículo N» sin rúbrica: medían si el modelo de las sesiones sabe de memoria
-  el número del artículo, y no el protocolo. Jorge eligió que sus preguntas nombren el artículo («¿Qué impuestos pueden
-  exigir los ayuntamientos según el artículo 59 del texto refundido de la Ley reguladora de las Haciendas Locales?» y
-  «¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?») y que,
-  como la 01 y la 09, esperen solo el bloque, sin el `indice`, con el mismo bloque y la misma cita (`BOE-A-2004-4214`
-  `a59` y `BOE-A-2015-10566` `a25`). Ninguna regla de data-model §6.3 ni ningún test mira el verbo de un comando
-  esperado, y lo grabado no cambia: el índice y los metadatos de cada norma siguen entre las consultas necesarias
-  (data-model §7.1), así que `make skills-check` pasa con las mismas grabaciones, y un índice leído sin que se espere
-  no cambia `pasa`. Las otras seis positivas que preguntan por materia (02, 03, 04, 06, 08 y 10) no cambian: en ese
-  intento el modelo eligió en todas el artículo esperado. Alternativas rechazadas: dejarlas como estaban y repetir la
+- **Las evals 05 y 07 nombran el artículo** (T041; decisión de la persona; research D23, «Las positivas nombran el
+  artículo»; contrato de evals §2): en la prueba de red del intento 4 de T030 (ejecución 34941499481), la 05 y la 07
+  leyeron el índice con 0 y pidieron otro artículo (`a2` del TRLRHL; `a140` a `a145` de la LRJSP), fuera de lo
+  grabado, porque preguntaban por materia y el índice del BOE solo da «Artículo N» sin rúbrica: medían si el modelo de
+  las sesiones sabe de memoria el número del artículo, y no el protocolo. Jorge eligió que sus preguntas nombren el
+  artículo («¿Qué impuestos pueden exigir los ayuntamientos según el artículo 59 del texto refundido de la Ley
+  reguladora de las Haciendas Locales?» y «¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad
+  en la potestad sancionadora?») y que, como la 01 y la 09, esperen solo el bloque, sin el `indice`, con el mismo
+  bloque y la misma cita (`BOE-A-2004-4214` `a59` y `BOE-A-2015-10566` `a25`). Ninguna regla de data-model §6.3 ni
+  ningún test mira el verbo de un comando esperado, y lo grabado no cambia: el índice y los metadatos de cada norma
+  siguen entre las consultas necesarias (data-model §7.1), así que `make skills-check` pasa con las mismas grabaciones,
+  y un índice leído sin que se espere no cambia `pasa`. Las otras seis positivas que preguntan por materia (02, 03, 04,
+  06, 08 y 10) no cambiaron entonces, porque en ese intento el modelo eligió en todas el artículo esperado, una
+  condición que el intento 5 de T030 desmintió (T043, abajo). Alternativas rechazadas: dejarlas como estaban y repetir la
   prueba de red (con el modelo fijado, el cierre de 10 de 10 no sería fiable); y cambiar el modelo de las sesiones
   (reabre la clarificación del spec, D13). La herramienta que encontraría un artículo por su materia dentro de una
   norma queda en la bitácora de uso, `docs/USO.md`, para la repriorización del roadmap.
@@ -631,6 +632,28 @@ esta propuesta, y las tomadas durante la implementación.
   rechazadas: admitir texto delante del identificador en la extracción (D23); exigir una línea final de fuente en toda
   respuesta (una regla que el contrato §2.4 no tiene y que no evita la forma inválida dentro de esa línea); y mover
   «Cómo se cita» delante del protocolo (orden de secciones del contrato §2.2, FR-002).
+- **Las diez positivas nombran el artículo** (T043; la decisión de la persona para la 05 y la 07, extendida; research
+  D23, «Las positivas nombran el artículo»; contrato de evals §2): en la prueba de red del intento 5 de T030 (ejecución
+  34956596912), la 05 y la 07, con el artículo en la pregunta, leyeron el índice y su bloque a la primera y pasaron, y
+  la 03, la 06 y la 08, que en el intento 4 habían pedido el bloque esperado, leyeron el índice con 0 y pidieron otro
+  artículo (`a21` en vez de `a22` de la LRBRL; `a21` en vez de `a17` de la LIRPF; `a12`, dos veces, en vez de `a20` de
+  la LTAIBG), obtuvieron 5 (y 4 con `--offline`, y 2 con `--timeout 10000`) y dijeron que no pudieron consultar la
+  fuente, sin texto ni cita (regla 2, cumplida). El número del artículo que el modelo de las sesiones recuerda cambia
+  de una sesión a otra, el índice no tiene rúbricas y no hay redacción del protocolo que supla lo que el modelo no sabe:
+  la condición con la que las seis positivas por materia se quedaron como estaban ya no se cumple en tres, y en la 02,
+  la 04 y la 10 dos aciertos en dos intentos son la misma dependencia con mejor suerte. Las seis preguntas nombran
+  ahora el artículo (el 118 de la LCSP, el 22 de la LRBRL, el 66 de la LGT, el 17 de la LIRPF, el 20 de la LTAIBG y el
+  38 del ET) y, como en la 01, la 05, la 07 y la 09, sus comandos esperados quedan en el bloque solo, con los mismos
+  bloques, citas e identificadores; la 02 sigue esperando `a1-30`, que solo sale del índice, y la 06 conserva
+  `reproduce: boe-fiscal` (FR-064). Las reglas de data-model §6.3 se cumplen igual y lo grabado no cambia (el índice y
+  los metadatos de toda norma de las evals siguen entre las consultas necesarias, data-model §7.1), así que
+  `make skills-check` pasa con las mismas grabaciones; un arnés temporal, borrado antes de `make ci`, comprobó que las
+  diez positivas nombran su artículo, esperan solo su bloque y necesitan las mismas treinta consultas que antes. No
+  hay comprobación local con un modelo (FR-044): la evidencia es el intento siguiente de T030. Alternativas
+  rechazadas: cambiar solo la 03, la 06 y la 08 (deja el cierre de 10 de 10 y el job semanal al albur de la sesión en
+  la 02, la 04 y la 10); dejarlas como estaban y repetir la prueba de red (D23); y cambiar el modelo de las sesiones
+  (reabre la clarificación del spec, D13). La herramienta que encuentra un artículo por su materia dentro de una norma
+  sigue en la bitácora de uso, `docs/USO.md`, con la evidencia de las dos ejecuciones.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 

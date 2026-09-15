@@ -1,11 +1,8 @@
-# Eval positiva: la pregunta no nombra el artículo, así que el protocolo lee antes el índice (FR-007). El bloque
+# Eval positiva: la pregunta nombra el artículo, así que se espera solo la lectura de su bloque y su cita. El bloque
 # a22 es el artículo 22 de la LRBRL.
-pregunta: "¿Qué atribuciones tiene el Pleno del ayuntamiento según la Ley reguladora de las Bases del Régimen Local?"
+pregunta: "¿Qué atribuciones tiene el Pleno del ayuntamiento según el artículo 22 de la Ley reguladora de las Bases del Régimen Local?"
 activa: true
 comandos:
-  - applet: boe
-    verbo: indice
-    norma: BOE-A-1985-5392
   - applet: boe
     norma: BOE-A-1985-5392
     bloque: a22

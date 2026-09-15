@@ -799,7 +799,7 @@ FR-008, FR-010) y no en las herramientas ni en la comparación. No hay comprobac
 evidencia de que el protocolo reforzado da las positivas 02, 03, 08 y 10 es el intento siguiente de T030 y la ejecución
 de cierre de T031. Lo que no arregla: la 05 y la 07 eligieron otro artículo, y el `titulo` de cada artículo del índice
 es «Artículo N» sin rúbrica (V64 (1)), así que encontrar un artículo por su materia depende de lo que sabe el modelo;
-esa decisión la tomó la persona (abajo, «Las evals 05 y 07»).
+esa decisión la tomó la persona, y T043 la extendió a las diez positivas (abajo, «Las positivas nombran el artículo»).
 
 **Alternativas rechazadas.** *Grabar los bloques vecinos que pidió el modelo*: persigue cada sesión —otra ejecución
 pide otros vecinos— y deja lo grabado sin regla; FR-074 lo acota a lo que necesitan los comandos esperados. *Admitir
@@ -810,8 +810,9 @@ comando esperado solo cuenta con una invocación que terminó con 0. *Cambiar el
 clarificación del spec lo fija en la gama económica (D13), decisión cerrada. *Que `articulos` devuelva los bloques que
 sí resuelve*: cambia el contrato del verbo de H4, en el que el primer bloque que falla detiene la invocación
 (`internal/source/boe/articulo.go` 121-129), fuera del alcance de H5, y el modelo tendría que pedir aparte lo que falta
-igualmente. *Una herramienta que encuentre un artículo por su materia dentro de una norma*: es lo que necesitarían la 05
-y la 07, pero es una herramienta nueva que H5 no especifica (backlog; abajo, «Las evals 05 y 07»).
+igualmente. *Una herramienta que encuentre un artículo por su materia dentro de una norma*: es lo que necesitarían las
+positivas que preguntaban por materia, pero es una herramienta nueva que H5 no especifica (backlog; abajo, «Las positivas
+nombran el artículo»).
 
 **La cita sola en su línea (T042).** La prueba de red del intento 5 de T030 (ejecución 34956596912,
 `gates/prueba-de-red.md` §3.3 y §4, `gates/tarea-T030.md`) comprobó el cuarto punto en la 05 y la 10, que pusieron el
@@ -840,26 +841,59 @@ dentro de esa línea la forma sea la inválida, que es justo la posición en la 
 delante del protocolo*: el orden de las secciones lo fija el contrato de la skill §2.2 (FR-002); escribir la forma
 mecánica en el paso 5 la pone donde se responde sin mover la sección.
 
-**Las evals 05 y 07 (T041).** Decisión de la persona (Jorge, 2026-09-15; `gates/tarea-T030.md`, «Lo que decide la
-persona», opción (ii)): las preguntas de la 05 y la 07 nombran el artículo —«¿Qué impuestos pueden exigir los
-ayuntamientos según el artículo 59 del texto refundido de la Ley reguladora de las Haciendas Locales?» y «¿Qué dice el
-artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?»— y, como en la 01 y la 09,
-sus comandos esperados quedan en el bloque solo, sin el `indice`; el bloque y la cita no cambian (`BOE-A-2004-4214`
-`a59` y `BOE-A-2015-10566` `a25`; contrato de evals §2). Preguntadas por materia, con un índice cuyos títulos son
-«Artículo N» sin rúbrica (V64 (1)) y un job en el que solo responden los bloques grabados, las dos medían si el modelo
-de las sesiones sabe de memoria el número del artículo, y no el protocolo: en la prueba de red del intento 4 de T030
-(ejecución 34941499481) leyeron el índice con 0 y pidieron `a2` y `a140` a `a145`, fuera de lo grabado. Nombrando el
-artículo miden lo que el job puede medir sin depender de esa memoria: identificar la norma, llegar al bloque del
-artículo y citarlo. Las otras seis positivas que preguntan por materia (02, 03, 04, 06, 08 y 10) no cambian, porque en
-ese intento el modelo eligió en todas el artículo esperado (la 02, con el id mal compuesto que arregla la primera parte
-de esta decisión). Ni las reglas de data-model §6.3 ni ningún test miran el verbo de un comando esperado, y lo grabado
-no cambia: el índice y los metadatos de cada norma de una eval siguen entre sus consultas necesarias (data-model §7.1,
-punto 2), y un índice leído sin que se espere no cambia `pasa` (data-model §10.2).
+**Las positivas nombran el artículo (T041 y T043).** Decisión de la persona (Jorge, 2026-09-15; `gates/tarea-T030.md`,
+«Lo que decide la persona», opción (ii)), tomada para la 05 y la 07 y extendida después a las otras seis positivas que
+preguntaban por materia: la pregunta nombra el artículo y los comandos esperados quedan en el bloque solo, sin el
+`indice`, como en la 01 y la 09; bloques, citas e identificadores no cambian (contrato de evals §2).
 
-*Alternativas rechazadas.* *Dejarlas como estaban y repetir la prueba de red tras T040*: pasarían solo si el modelo
-acierta el número del artículo, que con el modelo fijado no acertó, así que la ejecución de cierre con 10 de 10
-positivas (FR-082, SC-003) no sería alcanzable de forma fiable y su aprobado dependería de la sesión y no del
-protocolo. *Cambiar el modelo de las sesiones*: reabre la clarificación del spec, que lo fija en la gama económica
-(D13). La raíz, *una herramienta que encuentre un artículo por su materia dentro de una norma*, sigue fuera de H5: queda
-en la bitácora de uso (`docs/USO.md`), con la evidencia de las evals 05 y 07 de la ejecución 34941499481, para la
-repriorización del roadmap.
+*La 05 y la 07 (T041).* Sus preguntas pasan a «¿Qué impuestos pueden exigir los ayuntamientos según el artículo 59 del
+texto refundido de la Ley reguladora de las Haciendas Locales?» y «¿Qué dice el artículo 25 de la Ley 40/2015 sobre el
+principio de legalidad en la potestad sancionadora?», con el bloque y la cita de antes (`BOE-A-2004-4214` `a59` y
+`BOE-A-2015-10566` `a25`). Preguntadas por materia, con un índice cuyos títulos son «Artículo N» sin rúbrica (V64 (1)) y
+un job en el que solo responden los bloques grabados, las dos medían si el modelo de las sesiones sabe de memoria el
+número del artículo, y no el protocolo: en la prueba de red del intento 4 de T030 (ejecución 34941499481) leyeron el
+índice con 0 y pidieron `a2` y `a140` a `a145`, fuera de lo grabado. Nombrando el artículo miden lo que el job puede
+medir sin depender de esa memoria: identificar la norma, llegar al bloque del artículo y citarlo. Las otras seis
+positivas que preguntaban por materia (02, 03, 04, 06, 08 y 10) no cambiaron entonces, con una condición explícita: en
+ese intento el modelo eligió en todas el artículo esperado (la 02, con el id mal compuesto que arregla la primera parte
+de esta decisión).
+
+*Las otras seis (T043).* La prueba de red del intento 5 de T030 (ejecución 34956596912, `gates/prueba-de-red.md` §3.3 y
+§4, `gates/tarea-T030.md`) comprobó que la 05 y la 07, con el artículo en la pregunta, leen el índice y su bloque a la
+primera y pasan, y desmintió la condición en tres de las seis: la 03, la 06 y la 08, que en el intento 4 habían pedido
+el bloque esperado, leyeron el índice con 0 y pidieron esta vez otro artículo —`a21` (atribuciones del Alcalde) en vez
+de `a22`; `a21` (rendimientos del capital) en vez de `a17`; `a12` (derecho de acceso), dos veces, en vez de `a20`—,
+obtuvieron 5 en cada intento (y 4 con `--offline`, y 2 con `--timeout 10000`) y dijeron que no pudieron consultar la
+fuente, sin texto ni cita (regla 2, cumplida). El número del artículo que el modelo de las sesiones recuerda cambia de
+una sesión a otra, y no hay redacción del protocolo que supla lo que el modelo no sabe (arriba, *Por qué*); en la 02, la
+04 y la 10, dos aciertos en dos intentos no son una garantía, sino la misma dependencia con mejor suerte. Por eso la
+decisión se aplica a las seis, cuyas preguntas pasan a «¿Qué debe incluir el expediente de un contrato menor según el
+artículo 118 de la Ley de Contratos del Sector Público?», «¿Qué atribuciones tiene el Pleno del ayuntamiento según el
+artículo 22 de la Ley reguladora de las Bases del Régimen Local?», «¿En cuántos años prescribe el derecho de la
+Administración a liquidar una deuda tributaria según el artículo 66 de la Ley General Tributaria?», «¿Qué rendimientos
+se consideran rendimientos íntegros del trabajo según el artículo 17 de la ley del IRPF?», «¿En qué plazo hay que
+resolver una solicitud de acceso a la información pública según el artículo 20 de la Ley 19/2013?» y «¿Cuántos días de
+vacaciones anuales reconoce el artículo 38 del Estatuto de los Trabajadores?». La 02 sigue esperando `a1-30`, que solo
+sale del índice (V64 (2)): con el artículo en la pregunta, ejercita en lo más estricto la regla del paso 3 de copiar el
+id de la entrada del índice y no componerlo del número. La 06 sigue reproduciendo la consulta documentada de la
+herramienta de `boe-fiscal`, el artículo 17 de la LIRPF (`a17`), y conserva `reproduce: boe-fiscal` (FR-064).
+
+*Lo que no cambia.* Ni las reglas de data-model §6.3 (materias distintas, normas del hito, art. 21, fiscal,
+`boe-fiscal`, normas conocidas) ni ningún test miran el verbo de un comando esperado ni si la pregunta nombra el
+artículo, y lo grabado no cambia: el índice y los metadatos de cada norma de una eval siguen entre sus consultas
+necesarias (data-model §7.1, punto 2), y un índice leído sin que se espere no cambia `pasa` (data-model §10.2). Un arnés
+temporal sobre `LeerConjunto` y `ConsultasNecesarias`, borrado antes de `make ci`, dio rojo antes del cambio solo en las
+seis (la pregunta y el `indice` esperado) y verde después: las diez positivas nombran su artículo, esperan solo su
+bloque, conservan citas y `reproduce`, y necesitan las mismas treinta consultas que antes (el bloque, el índice y los
+metadatos de cada norma). No hay comprobación local con un modelo (FR-044): la evidencia es el intento siguiente de T030
+y la ejecución de cierre de T031.
+
+*Alternativas rechazadas.* *Dejarlas como estaban y repetir la prueba de red*: pasarían solo si el modelo acierta el
+número del artículo, que con el modelo fijado cambia de una sesión a otra (la 05 y la 07 fallaron en el intento 4; la
+03, la 06 y la 08, en el 5), así que la ejecución de cierre con 10 de 10 positivas (FR-082, SC-003) no sería alcanzable
+de forma fiable y su aprobado dependería de la sesión y no del protocolo. *Cambiar solo la 03, la 06 y la 08*: deja el
+cierre de 10 de 10 y el job semanal al albur de la sesión en la 02, la 04 y la 10, que es lo que la decisión quiso
+evitar. *Cambiar el modelo de las sesiones*: reabre la clarificación del spec, que lo fija en la gama económica (D13).
+La raíz, *una herramienta que encuentre un artículo por su materia dentro de una norma*, sigue fuera de H5: queda en la
+bitácora de uso (`docs/USO.md`), con la evidencia de la 05 y la 07 de la ejecución 34941499481 y la de la 03, la 06 y
+la 08 de la ejecución 34956596912, para la repriorización del roadmap.

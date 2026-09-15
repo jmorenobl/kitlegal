@@ -1,12 +1,10 @@
 # Eval positiva que reproduce una consulta que hoy resuelve boe-fiscal (FR-064), de los usos documentados de su
-# herramienta en refs/boe.py: indice BOE-A-2006-20764 y articulo BOE-A-2006-20764 a17, el artículo 17 de la LIRPF.
-pregunta: "¿Qué rendimientos se consideran rendimientos íntegros del trabajo en la ley del IRPF?"
+# herramienta en refs/boe.py: articulo BOE-A-2006-20764 a17, el artículo 17 de la LIRPF. La pregunta nombra el
+# artículo, así que se espera solo la lectura de su bloque y su cita.
+pregunta: "¿Qué rendimientos se consideran rendimientos íntegros del trabajo según el artículo 17 de la ley del IRPF?"
 activa: true
 reproduce: boe-fiscal
 comandos:
-  - applet: boe
-    verbo: indice
-    norma: BOE-A-2006-20764
   - applet: boe
     norma: BOE-A-2006-20764
     bloque: a17

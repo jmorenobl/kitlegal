@@ -1,11 +1,8 @@
-# Eval positiva: la pregunta no nombra el artículo, así que el protocolo lee antes el índice (FR-007). El bloque
-# a1-30 es el artículo 118 de la LCSP.
-pregunta: "¿Qué debe incluir el expediente de un contrato menor según la Ley de Contratos del Sector Público?"
+# Eval positiva: la pregunta nombra el artículo, así que se espera solo la lectura de su bloque y su cita. El bloque
+# a1-30 es el artículo 118 de la LCSP: su id no sigue el número del artículo y solo sale del índice.
+pregunta: "¿Qué debe incluir el expediente de un contrato menor según el artículo 118 de la Ley de Contratos del Sector Público?"
 activa: true
 comandos:
-  - applet: boe
-    verbo: indice
-    norma: BOE-A-2017-12902
   - applet: boe
     norma: BOE-A-2017-12902
     bloque: a1-30
