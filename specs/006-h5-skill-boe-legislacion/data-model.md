@@ -319,16 +319,23 @@ número de su proceso.
 | `verbo`, `argumentos` | los tokens que quedan, quitando las banderas globales (con su valor en `--timeout` y `--asunto`, sea `--x v` o `--x=v`; research.md D12) |
 | `consulta` | la del verbo y sus argumentos; **ninguna** si lleva `--describe` o `--dry-run`, que no consultan |
 | `codigo` | el de la línea final del fichero del hilo principal del proceso: `+++ exited with N +++` da N; `+++ killed by … +++`, distinto de 0. En una sesión cortada, si ese fichero no tiene línea final (regla 6), la invocación queda **sin código**: no es 0 ni ningún otro número, no satisface ningún comando esperado (§6.1), no va a `fuera_de_lo_grabado` ni a `otras_fallidas` (§10.2) y el informe la presenta con `codigo` `null` |
-| `conexiones[]` | las llamadas `connect` atribuidas a la invocación (abajo), cada una con familia, dirección y puerto (o ruta en `AF_UNIX`) y resultado —o sin resultado, la que interrumpió el corte (regla 6)—, en orden de fichero, por su número, y de línea |
+| `conexiones[]` | las llamadas `connect` atribuidas a la invocación (abajo), cada una con familia, dirección y puerto (o ruta en `AF_UNIX`) y resultado —o sin resultado: la que interrumpió el corte (regla 6) o la que el fin del proceso dejó sin terminar (regla 5), con `?`, `? <unavailable>` o, sin cerrar, nada como texto del resultado—, en orden de fichero, por su número, y de línea |
 
 **Atribución de hilos y conexiones** (la aplica `LeerTrazas`; contrato del job §4):
 
-1. **Origen.** Todo fichero, salvo exactamente uno —el del proceso que arrancó `strace`—, lo crea una línea `clone`,
-   `clone3`, `fork` o `vfork` de otro fichero cuyo resultado es su número. Si no hay exactamente un fichero sin esa
-   línea —ninguno, en un `traza/` vacío, o más de uno—, la traza es ilegible, con un error que nombra el directorio si no
-   hay ninguno y todos los que no la tienen si hay más de uno: una línea de creación que no se reconociera no puede dejar
-   hilos sin atribuir en silencio, ni una traza vacía dejar `red` vacío. Un directorio que no existe o no se puede
-   listar es un error que lo nombra (`TestLeerTrazasSinFicheros`, contrato del job §9).
+1. **Origen.** Todo fichero, salvo el raíz —el del proceso que arrancó `strace`, el único sin la línea que lo crea que
+   tiene alguna llamada—, lo crea una línea `clone`, `clone3`, `fork` o `vfork` de otro fichero cuyo resultado es su
+   número. La única otra excepción es el **fichero huérfano**: un fichero sin esa línea y sin ninguna llamada —solo su
+   línea final, o vacío en una sesión cortada— se admite si alguna `clone`, `clone3`, `fork` o `vfork` de la traza es
+   una llamada que el fin del proceso dejó sin terminar (regla 5, formas A, B o C): es el hilo que esa llamada pudo
+   crear y que el núcleo mató con el proceso antes de ninguna llamada trazada, cuya creación `strace` no vio porque la
+   llamada no tiene resultado (research.md V65: 8 de 1000 trazas, siempre con una `clone` de forma A o B). No
+   pertenece a ningún proceso, no es una invocación y no tiene conexiones que atribuir. Si ningún fichero sin la línea
+   que lo crea tiene llamadas —ninguno, en un `traza/` vacío—, si hay más de uno con llamadas, o si uno sin esa línea y
+   sin llamadas no tiene ninguna creación sin terminar que lo explique, la traza es ilegible, con un error que nombra el
+   directorio en el primer caso y los ficheros en los otros dos: una línea de creación que no se reconociera no puede
+   dejar hilos sin atribuir en silencio, ni una traza vacía dejar `red` vacío. Un directorio que no existe o no se
+   puede listar es un error que lo nombra (`TestLeerTrazasSinFicheros`, contrato del job §9).
 2. **Proceso.** Un hilo creado por una llamada cuyas banderas incluyen `CLONE_THREAD` —en cualquier orden y con
    cualquier otro argumento— pertenece al proceso del hilo que lo creó, y la atribución es **transitiva**: vale para
    `clone` y para `clone3`, y para el hilo creado por otro hilo que no es el principal. El runtime de Go crea sus hilos con
@@ -347,16 +354,37 @@ número de su proceso.
    `=` hay el espacio y, en las llamadas más cortas que la columna de alineación de `strace` (`-a 40`, su valor por
    defecto), el relleno de espacios hasta ella, con el `=` en la columna 41: `vfork()` seguida de 33 espacios y `= N`
    es la línea con la que Claude Code 2.1.270 de x86_64 crea los procesos de sus órdenes en el runner (research.md V63;
-   supuesto S4). Ahí solo caben espacios, uno o más, y el resultado sigue siendo obligatorio. La traza se toma sin
-   `-e signal=none`, que suprimiría `+++ killed by … +++` de todo proceso que muere por una señal (research.md V54).
-   Cualquier otra línea, una cortada sin su resultado o un fichero sin línea final hacen la traza
-   ilegible, con un error que nombra el fichero, el número de línea y su texto; también un `connect` atribuido a una
-   invocación con una familia distinta de `AF_INET`, `AF_INET6` y `AF_UNIX`. Así, un formato de la traza distinto del
-   comprobado (research.md S4) hace que la sesión no pase y lo dice, en lugar de dejar `red` vacío. Los ficheros se leen
-   en orden de número, cada uno línea a línea hasta su final, y el primer defecto de una línea o del final de un fichero
-   es el error; el de origen (regla 1) se comprueba después, sobre todos. La única excepción es
-   la de la regla 6, y solo en una sesión cortada: sin corte, `strace` escribe la línea final de cada fichero
-   (research.md V53 y V54).
+   supuesto S4). Ahí solo caben espacios, uno o más, y el resultado sigue siendo obligatorio, salvo en la llamada que
+   **el fin del proceso deja sin terminar**, que se admite en cualquier sesión, cortada o no, porque no la produce el
+   corte sino que el proceso salga con `exit_group` desde otro hilo mientras uno está dentro de una llamada: el
+   binario de Go sale en cuanto escribe su respuesta, mientras su runtime crea un hilo o mientras otro hilo espera en
+   un `connect` (research.md V65; en el runner, `t.14465` de la sesión 09 de la prueba de red del intento 6 de T030,
+   terminada con código 0). `strace` la escribe de cuatro formas, los estados `unfinished` y `unavailable` de su
+   opción `-e status=`: **(A)** `<llamada>(<argumentos>) = ?`, el hilo que llegó a su parada de fin dentro de la
+   llamada, con ` <unfinished ...>` delante del paréntesis de cierre solo si al decodificador de la llamada le quedaba
+   algo por escribir a la salida —la `clone` de amd64, que escribe `tls=0x…` a la salida, la lleva; la de arm64 y
+   todo `connect`, que escribe su dirección a la entrada, salen sin ella—; **(B)** `<llamada>(<argumentos>) = ?
+   <unavailable>`, la que llegó a su parada de salida sin que `strace` pudiera leer el resultado del hilo, que ya
+   moría; **(C)** `<llamada>(<argumentos> <unfinished ...>`, la línea de entrada que la línea final del hilo deja sin
+   cerrar, sin paréntesis de cierre ni resultado; y **(D)** `???( <unfinished ...>`, sin argumentos, la de un hilo
+   recién creado que murió en la parada de entrada de una llamada que `strace` no llegó a identificar y que no se
+   ejecutó. Y ninguna otra: la marca con cualquier otro resultado (`= N`, `= -1 ERRNO (…)`, `= ? ERRNO (…)` o
+   `= ? <unavailable>`) o dentro de los argumentos, `???(` con argumentos o con resultado y la forma sin cerrar de una
+   llamada que no es del filtro siguen siendo ilegibles. Es una llamada sin resultado, a la que en su fichero solo
+   pueden seguir líneas de señal y la línea final, como la de la regla 6: no crea ningún hilo (el fichero del que pudo
+   crear lo admite la regla 1), una `execve` así no es una `execve` con resultado 0, un `connect` así se clasifica solo
+   por su dirección (tabla de abajo: `red` fuera del bucle local, porque nada muestra que no llegara, FR-076), su
+   `resultado` es el texto tras `= ` (`?` o `? <unavailable>`; vacío en la forma C) y `???` no es ninguna llamada
+   del filtro ni tiene conexión que atribuir. El relleno de alineación cabe igual delante de `= ?`. La traza se toma
+   sin `-e signal=none`, que suprimiría `+++ killed by … +++` de todo proceso que muere por una señal (research.md
+   V54). Cualquier otra línea, una cortada sin su resultado que no sea ninguna de esas cuatro formas o un fichero sin
+   línea final hacen la traza ilegible, con un error que nombra el fichero, el número de línea y su texto; también un
+   `connect` atribuido a una invocación con una familia distinta de `AF_INET`, `AF_INET6` y `AF_UNIX`. Así, un formato
+   de la traza distinto del comprobado (research.md S4) hace que la sesión no pase y lo dice, en lugar de dejar `red`
+   vacío. Los ficheros se leen en orden de número, cada uno línea a línea hasta su final, y el primer defecto de una
+   línea o del final de un fichero es el error; el de origen (regla 1) se comprueba después, sobre todos. La única
+   otra excepción es la de la regla 6, y solo en una sesión cortada: sin corte, `strace` escribe la línea final de
+   cada fichero, también tras una llamada sin terminar (research.md V53, V54 y V65).
 6. **Sesión cortada por el tope.** Con `cortada` (`codigo-de-la-sesion` 124 o 137, §10.1), `LeerTrazas` admite lo que
    puede dejar el corte y nada más. Al agotarse el tope, la señal llega a los procesos de la sesión: una llamada
    bloqueante que interrumpe queda con el resultado `? ERRNO (descripción)`, como
@@ -368,7 +396,9 @@ número de su proceso.
    línea final: es una llamada sin resultado, así que una `execve` sin resultado no es una `execve` con resultado 0, una
    `clone`, `clone3`, `fork` o `vfork` sin resultado no crea ningún hilo, y un `connect` sin resultado se clasifica solo
    por su dirección (tabla de abajo). Ese resultado seguido de otra llamada, o en una sesión sin corte, sigue siendo un
-   defecto de la regla 5. Las reglas 1 a 4, y la 5 en todo lo demás, se aplican igual; la
+   defecto de la regla 5: `? ERRNO (descripción)` lo deja solo la señal del tope, y es distinto de la llamada que el
+   fin del proceso deja sin terminar (`?`, `? <unavailable>`, sin cerrar o `???(`), que la regla 5 admite en cualquier
+   sesión y no necesita `cortada`. Las reglas 1 a 4, y la 5 en todo lo demás, se aplican igual; la
    invocación cuyo fichero de hilo principal no tiene línea final queda sin código (campo `codigo`). Así una sesión
    cortada lleva el motivo del tope y no `sesión ilegible` (§10.1), y sus conexiones y sus invocaciones se informan
    (§10.2).
@@ -377,7 +407,7 @@ número de su proceso.
 |---|---|
 | `local` | `AF_UNIX`, o dirección de bucle local (`127.0.0.0/8`, `::1`) |
 | `bloqueada` | a otra dirección, con resultado de error distinto de `EINPROGRESS` |
-| `red` | a otra dirección, con resultado `0` o `EINPROGRESS` (se toma como llegada a la red), o sin resultado porque el corte interrumpió la llamada (regla 6): nada muestra que no llegara, y FR-076 no deja sin detectar una llegada a la red |
+| `red` | a otra dirección, con resultado `0` o `EINPROGRESS` (se toma como llegada a la red), o sin resultado porque el corte interrumpió la llamada (regla 6) o el fin del proceso la dejó sin terminar (regla 5): nada muestra que no llegara, y FR-076 no deja sin detectar una llegada a la red |
 
 `destino` de una conexión, como lo presenta el informe (§10.2): `<dirección>:<puerto>` en `AF_INET` (`127.0.0.1:9`),
 `[<dirección>]:<puerto>` en `AF_INET6` (`[2001:db8::7]:443`) y `unix:<ruta>` en `AF_UNIX`

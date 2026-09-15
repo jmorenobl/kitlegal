@@ -2,10 +2,12 @@ package evals
 
 import (
 	"fmt"
+	"maps"
 	"net/netip"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -29,7 +31,9 @@ const (
 	destinoDeBucle   = "127.0.0.1:9"
 )
 
-// Resultados de connect tal como los escribe strace (research.md V53 y V54).
+// Resultados de connect tal como los escribe strace (research.md V53 y V54); el
+// de la llamada que el fin del proceso deja sin terminar, ?, es
+// resultadoSinTerminar, del propio paquete (V65).
 const (
 	resultadoEnCurso      = "-1 EINPROGRESS (Operation now in progress)"
 	resultadoRechazada    = "-1 ECONNREFUSED (Connection refused)"
@@ -53,7 +57,9 @@ type defectoEsperado struct {
 // es el principal, y la del proceso que crea vfork con el relleno de alineación de
 // strace, como en el runner de x86_64; el argv decodificado; el código de salida, la muerte por señal
 // y la invocación sin código que deja el corte; las clases de conexión; las
-// líneas de señal, que no cuentan; y la traza ilegible, con el fichero, la línea
+// líneas de señal, que no cuentan; la llamada que el fin del proceso deja sin
+// terminar, con la línea real del runner, en cualquier sesión, y el fichero del
+// hilo que una clone así pudo crear; y la traza ilegible, con el fichero, la línea
 // y su texto, en lugar de ignorar lo que no se entiende (contrato job-de-evals
 // §9; FR-072, FR-076).
 func TestLeerTrazas(t *testing.T) {
@@ -61,6 +67,7 @@ func TestLeerTrazas(t *testing.T) {
 
 	a21 := []string{normaDeLasTrazas, "a21"}
 	a9998 := []string{normaDeLasTrazas, "a9998"}
+	a140 := []string{"BOE-A-1978-31229", "a140"}
 	json := []string{"--json"}
 
 	casos := []struct {
@@ -189,41 +196,77 @@ func TestLeerTrazas(t *testing.T) {
 				ajenos:   []string{"línea 3"},
 			},
 		},
+		{
+			// La línea real del runner: una clone que el fin del proceso dejó sin
+			// terminar, en una sesión sin corte, no crea ningún hilo.
+			nombre:       "clone-sin-terminar",
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a140, json)},
+		},
+		{
+			// El fichero del hilo que esa clone pudo crear, sin la línea que lo
+			// crea y sin ninguna llamada, no es un defecto ni una invocación.
+			nombre:       "hilo-de-clone-sin-terminar",
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a140, json)},
+		},
+		{
+			// La marca delante del paréntesis de cierre también es opcional en
+			// connect, aunque strace no la escriba en esa llamada (V65): la conexión
+			// queda sin resultado y, fuera del bucle local, es de clase red.
+			nombre: "connect-sin-terminar",
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a9998, json,
+				conexionInet(destinoPublico, resultadoSinTerminar, ConexionRed))},
+		},
+		{
+			nombre:  "huerfano-sin-clone-sin-terminar",
+			defecto: &defectoEsperado{ficheros: []string{"t.2002"}, motivo: "quedó sin terminar"},
+		},
+		{
+			nombre:  "clone-sin-terminar-seguido-de-otra-llamada",
+			defecto: &defectoEsperado{ficheros: []string{"t.2001"}, linea: 1, motivo: "solo pueden seguirla"},
+		},
 	}
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			dir := filepath.Join(casosDeLeerTrazas, caso.nombre)
-
-			invocaciones, err := LeerTrazas(dir, caso.cortada)
-
-			if caso.defecto == nil {
-				require.NoError(t, err)
-				assert.Equal(t, caso.invocaciones, invocaciones)
-
-				return
-			}
-
-			require.Error(t, err)
-			assert.Nil(t, invocaciones, "una traza ilegible no devuelve ninguna invocación")
-
-			for _, fichero := range caso.defecto.ficheros {
-				require.ErrorContains(t, err, filepath.Join(dir, fichero))
-			}
-
-			if caso.defecto.linea > 0 {
-				require.ErrorContains(t, err, fmt.Sprintf("línea %d", caso.defecto.linea))
-				require.ErrorContains(t, err, lineaDeLaTraza(t, filepath.Join(dir, caso.defecto.ficheros[0]), caso.defecto.linea))
-			}
-
-			require.ErrorContains(t, err, caso.defecto.motivo)
-
-			for _, ajeno := range caso.defecto.ajenos {
-				assert.NotContains(t, err.Error(), ajeno)
-			}
+			comprobarLectura(t, filepath.Join(casosDeLeerTrazas, caso.nombre), caso.cortada, caso.invocaciones, caso.defecto)
 		})
+	}
+}
+
+// comprobarLectura lee la traza de dir y comprueba lo que el caso espera: sin
+// defecto, exactamente esas invocaciones; con defecto, un error que nombra sus
+// ficheros, la línea y su texto si el defecto es de una línea, y el motivo, y
+// que no nombra lo ajeno.
+func comprobarLectura(t *testing.T, dir string, cortada bool, invocaciones []Invocacion, defecto *defectoEsperado) {
+	t.Helper()
+
+	leidas, err := LeerTrazas(dir, cortada)
+
+	if defecto == nil {
+		require.NoError(t, err)
+		assert.Equal(t, invocaciones, leidas)
+
+		return
+	}
+
+	require.Error(t, err)
+	assert.Nil(t, leidas, "una traza ilegible no devuelve ninguna invocación")
+
+	for _, fichero := range defecto.ficheros {
+		require.ErrorContains(t, err, filepath.Join(dir, fichero))
+	}
+
+	if defecto.linea > 0 {
+		require.ErrorContains(t, err, fmt.Sprintf("línea %d", defecto.linea))
+		require.ErrorContains(t, err, lineaDeLaTraza(t, filepath.Join(dir, defecto.ficheros[0]), defecto.linea))
+	}
+
+	require.ErrorContains(t, err, defecto.motivo)
+
+	for _, ajeno := range defecto.ajenos {
+		assert.NotContains(t, err.Error(), ajeno)
 	}
 }
 
@@ -387,7 +430,8 @@ func invocacionDeBoe(proceso int, codigo *int, verbo string, argumentos, bandera
 
 // conexionInet es la conexión AF_INET o AF_INET6, según la dirección, con el
 // resultado de strace y la clase que el caso espera; sin resultado si el
-// resultado es el de una llamada que el corte interrumpió.
+// resultado es el de una llamada que el corte interrumpió (? ERRNO (…)) o que el
+// fin del proceso dejó sin terminar (?, ? <unavailable> o, sin cerrar, vacío).
 func conexionInet(destino, resultado string, clase ClaseDeConexion) Conexion {
 	direccion := netip.MustParseAddrPort(destino)
 
@@ -400,7 +444,7 @@ func conexionInet(destino, resultado string, clase ClaseDeConexion) Conexion {
 		Familia:      familia,
 		Direccion:    direccion,
 		Resultado:    resultado,
-		SinResultado: strings.HasPrefix(resultado, "? "),
+		SinResultado: resultado == "" || strings.HasPrefix(resultado, "?"),
 		Clase:        clase,
 	}
 }
@@ -686,6 +730,195 @@ func TestLeerTrazasSinInvocaciones(t *testing.T) {
 	assert.Empty(t, invocaciones)
 }
 
+// banderasDeHiloDeGo son las banderas con las que el runtime de Go crea sus hilos
+// en arm64 (research.md V51 y V53); en amd64 añade CLONE_SETTLS.
+const banderasDeHiloDeGo = "CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM"
+
+// Líneas reales de la llamada que el fin del proceso deja sin terminar, tal como
+// las escribió strace 6.8, con sus direcciones y sus números reales (data-model
+// §9, regla 5; research.md V65): la del runner de x86_64, línea 1 de t.14465 de
+// la sesión 09 de la prueba de red del intento 6 de T030 (ejecución 34961757559,
+// gates/prueba-de-red.md §4), la forma A con la marca; y las de la sonda de V65
+// en un contenedor de ubuntu:24.04 en arm64 (gates/tarea-T045.md): la clone de
+// forma A sin la marca (t.4030), la de forma B (t.20425), la de forma C (t.15079),
+// la forma D, la de un hilo que murió en la parada de entrada de una llamada que
+// strace no llegó a identificar (t.258), y el connect en curso (t.14).
+const (
+	lineaDeCloneSinTerminarDelRunner = "clone(child_stack=0x2a559d472000, flags=" + banderasDeHiloDeGo +
+		"|CLONE_SETTLS <unfinished ...>) = ?"
+	lineaDeCloneSinTerminarSinMarca = "clone(child_stack=0x2bb2e2418000, flags=" + banderasDeHiloDeGo + ") = ?"
+	lineaDeCloneNoDisponible        = "clone(child_stack=0x203cb5a94000, flags=" + banderasDeHiloDeGo + ") = ? <unavailable>"
+	lineaDeCloneSinCerrar           = "clone(child_stack=0x666394d64000, flags=" + banderasDeHiloDeGo + " <unfinished ...>"
+	lineaDeLlamadaDesconocida       = "???( <unfinished ...>"
+	lineaDeConnectSinTerminar       = `connect(9, {sa_family=AF_INET, sin_port=htons(60929), ` +
+		`sin_addr=inet_addr("127.0.0.1")}, 16) = ?`
+)
+
+// Líneas de las trazas que escribe TestLeerTrazasSinTerminar: la execve con la
+// que empieza el fichero raíz de cada traza de la sonda de V65 (la de t.254), que
+// no es ningún applet; el connect de una invocación a una dirección pública que
+// el fin del proceso deja sin terminar, con la forma real de V65 y la dirección
+// de las trazas sintéticas; y el mismo connect con resultado 0.
+const (
+	lineaDeExecveDeLaSonda           = `execve("/sonda/sonda", ["/sonda/sonda"], 0xffffcbba8c90 /* 4 vars */) = 0` + "\n"
+	lineaDeConnectPublicoSinTerminar = `connect(9, {sa_family=AF_INET, sin_port=htons(443), ` +
+		`sin_addr=inet_addr("203.0.113.7")}, 16) = ?` + "\n"
+	lineaDeConnectPublicoAceptado = `connect(9, {sa_family=AF_INET, sin_port=htons(443), ` +
+		`sin_addr=inet_addr("203.0.113.7")}, 16) = 0` + "\n"
+)
+
+// TestLeerTrazasSinTerminar fija, sobre trazas que el propio test escribe en
+// t.TempDir() con las líneas reales de V65, la lectura de la llamada que el fin
+// del proceso deja sin terminar y del fichero del hilo que una creación así pudo
+// crear (data-model §9, reglas 1 y 5; FR-076): las trazas enteras de la sonda de
+// V65 —la de la clone de forma A con su fichero huérfano y la de forma B con el
+// suyo, la de forma C y la de la llamada desconocida—, legibles y sin ninguna
+// invocación, porque la sonda no es un applet; el connect en curso de un hilo de
+// una invocación, atribuido a ella y de clase red a una dirección pública y local
+// al bucle local; y, ilegibles con un error que nombra el fichero, un fichero
+// huérfano cuando las únicas llamadas sin terminar de la traza son la desconocida
+// o un connect, que no crean ningún hilo, un fichero sin línea de creación con
+// alguna llamada junto a un huérfano, y una línea de forma C seguida de otra
+// llamada. Las líneas literales de la nota van tal cual, con sus números de hilo;
+// las líneas de creación que la nota solo describe llevan las pilas del test.
+func TestLeerTrazasSinTerminar(t *testing.T) {
+	t.Parallel()
+
+	final := lineaFinalConCero
+
+	// Traza 32269785: la clone de forma A en t.4030, que crea el raíz t.4028 en
+	// su línea 3, y el huérfano t.4032, con solo su línea final.
+	cloneSinTerminar := map[string]string{
+		"t.4028": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x2bb2e2410000", 4029) +
+			lineaDeCloneDeGo("0x2bb2e2414000", 4030) + lineaDeCloneDeGo("0x2bb2e241c000", 4031) + final,
+		"t.4029": final,
+		"t.4030": lineaDeCloneSinTerminarSinMarca + "\n" + final,
+		"t.4031": final,
+		"t.4032": final,
+	}
+
+	// Traza 3f18ff32: la clone de forma B en t.20425, línea 2, tras la que crea
+	// 20427; el raíz crea 20424, 20425 y 20426, t.20427 crea 20429, y t.20428 es
+	// el huérfano.
+	cloneNoDisponible := map[string]string{
+		"t.20423": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x203cb5a80000", 20424) +
+			lineaDeCloneDeGo("0x203cb5a84000", 20425) + lineaDeCloneDeGo("0x203cb5a88000", 20426) + final,
+		"t.20424": final,
+		"t.20425": lineaDeCloneDeGo("0x203cb5a98000", 20427) + lineaDeCloneNoDisponible + "\n" + final,
+		"t.20426": final,
+		"t.20427": lineaDeCloneDeGo("0x203cb5a9c000", 20429) + final,
+		"t.20428": final,
+		"t.20429": final,
+	}
+
+	// Traza adb8222a: la clone de forma C en t.15079, línea 2, tras la que crea
+	// 15081, y en t.15082, que crea el raíz, como línea 1, con la misma pila; sin
+	// huérfano. El número del raíz no está en la nota.
+	cloneSinCerrar := map[string]string{
+		"t.15077": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x666394d80000", 15078) +
+			lineaDeCloneDeGo("0x666394d84000", 15079) + lineaDeCloneDeGo("0x666394d88000", 15082) + final,
+		"t.15078": final,
+		"t.15079": lineaDeCloneDeGo("0x666394d98000", 15081) + lineaDeCloneSinCerrar + "\n" + final,
+		"t.15081": final,
+		"t.15082": lineaDeCloneSinCerrar + "\n" + final,
+	}
+
+	// Traza de la primera pasada, repetición 22: la llamada desconocida en
+	// t.258, que crea t.256 en su línea 1; el raíz t.254 empieza por la execve de
+	// la sonda; sin huérfano.
+	llamadaDesconocida := map[string]string{
+		"t.254": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0xc413c510000", 255) +
+			lineaDeCloneDeGo("0xc413c514000", 256) + lineaDeCloneDeGo("0xc413c51c000", 257) + final,
+		"t.255": final,
+		"t.256": lineaDeCloneDeGo("0xc413c518000", 258) + final,
+		"t.257": final,
+		"t.258": lineaDeLlamadaDesconocida + "\n" + final,
+	}
+
+	// Una invocación de la skill instalada cuyo hilo 2001 deja un connect sin
+	// terminar.
+	invocacionConConnect := func(conexion string) map[string]string {
+		return map[string]string{
+			"t.2000": lineaDeExecveDeBoe + lineaDeCloneDeGo("0xc000100000", 2001) + final,
+			"t.2001": conexion + final,
+		}
+	}
+
+	huerfanoConLlamadaDesconocida := maps.Clone(llamadaDesconocida)
+	huerfanoConLlamadaDesconocida["t.259"] = final
+
+	huerfanoConConnect := invocacionConConnect(lineaDeConnectPublicoSinTerminar)
+	huerfanoConConnect["t.2002"] = final
+
+	sinOrigenJuntoAlHuerfano := maps.Clone(cloneSinTerminar)
+	sinOrigenJuntoAlHuerfano["t.4033"] = lineaDeConnectPublicoAceptado + final
+
+	sinCerrarSeguidaDeOtraLlamada := maps.Clone(cloneSinCerrar)
+	sinCerrarSeguidaDeOtraLlamada["t.15079"] = lineaDeCloneDeGo("0x666394d98000", 15081) + lineaDeCloneSinCerrar + "\n" +
+		lineaDeConnectPublicoAceptado + final
+
+	a21 := []string{normaDeLasTrazas, "a21"}
+	json := []string{"--json"}
+
+	casos := []struct {
+		nombre       string
+		hilos        map[string]string
+		invocaciones []Invocacion
+		defecto      *defectoEsperado
+	}{
+		{nombre: "clone-sin-terminar-con-huerfano", hilos: cloneSinTerminar},
+		{nombre: "clone-no-disponible-con-huerfano", hilos: cloneNoDisponible},
+		{nombre: "clone-sin-cerrar", hilos: cloneSinCerrar},
+		{nombre: "llamada-desconocida", hilos: llamadaDesconocida},
+		{
+			nombre: "connect-publico-sin-terminar",
+			hilos:  invocacionConConnect(lineaDeConnectPublicoSinTerminar),
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, json,
+				conexionInet(destinoPublico, resultadoSinTerminar, ConexionRed))},
+		},
+		{
+			nombre: "connect-local-sin-terminar",
+			hilos:  invocacionConConnect(lineaDeConnectSinTerminar + "\n"),
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, json,
+				conexionInet("127.0.0.1:60929", resultadoSinTerminar, ConexionLocal))},
+		},
+		{
+			nombre:  "huerfano-solo-con-llamada-desconocida",
+			hilos:   huerfanoConLlamadaDesconocida,
+			defecto: &defectoEsperado{ficheros: []string{"t.259"}, motivo: "quedó sin terminar", ajenos: []string{"t.258"}},
+		},
+		{
+			nombre:  "huerfano-solo-con-connect-sin-terminar",
+			hilos:   huerfanoConConnect,
+			defecto: &defectoEsperado{ficheros: []string{"t.2002"}, motivo: "quedó sin terminar", ajenos: []string{"t.2001"}},
+		},
+		{
+			nombre:  "fichero-con-llamadas-sin-origen-junto-a-un-huerfano",
+			hilos:   sinOrigenJuntoAlHuerfano,
+			defecto: &defectoEsperado{ficheros: []string{"t.4033"}, motivo: "solo puede faltarle a uno", ajenos: []string{"t.4032"}},
+		},
+		{
+			nombre:  "sin-cerrar-seguida-de-otra-llamada",
+			hilos:   sinCerrarSeguidaDeOtraLlamada,
+			defecto: &defectoEsperado{ficheros: []string{"t.15079"}, linea: 2, motivo: "solo pueden seguirla"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comprobarLectura(t, escribirTraza(t, caso.hilos, nil), false, caso.invocaciones, caso.defecto)
+		})
+	}
+}
+
+// lineaDeCloneDeGo es la línea con la que un hilo de Go de arm64 crea el hilo de
+// ese número (research.md V53), con la pila dada y su salto de línea.
+func lineaDeCloneDeGo(pila string, hilo int) string {
+	return "clone(child_stack=" + pila + ", flags=" + banderasDeHiloDeGo + ") = " + strconv.Itoa(hilo) + "\n"
+}
+
 // lineaDeVforkDelRunner es la línea con la que Claude Code 2.1.270 de x86_64 crea
 // los procesos de sus órdenes, tal como la escribió strace 6.8 en el runner en la
 // prueba de red del intento 3 de T030 (ejecución 34936425178): vfork(), el espacio
@@ -742,6 +975,118 @@ func TestLeerLlamadaConRelleno(t *testing.T) {
 			_, err := leerLlamada(ilegible.texto)
 
 			require.ErrorContains(t, err, "no es ninguna de las formas de línea de la traza")
+		})
+	}
+}
+
+// TestLeerLlamadaSinTerminar fija, sobre líneas literales, las cuatro formas de la
+// llamada que el fin del proceso deja sin terminar (data-model §9, regla 5;
+// research.md V65): la línea del runner y cada línea real de la sonda se leen
+// como una llamada sin terminar de su nombre, sin resultado —con el texto tras
+// «= » como resultado, vacío en la forma sin cerrar—, que no crea ningún hilo, y
+// con su dirección en el connect. Las formas no se abren a nada más: la marca con
+// cualquier otro resultado, la marca dentro de los argumentos, la llamada
+// desconocida con argumentos o con resultado y la forma sin cerrar de una llamada
+// que no es del filtro siguen siendo ilegibles.
+func TestLeerLlamadaSinTerminar(t *testing.T) {
+	t.Parallel()
+
+	legibles := []struct {
+		nombre, texto string
+
+		// llamada es el nombre de la llamada; resultado, el texto tras «= »; y
+		// destino, la dirección y el puerto del connect.
+		llamada, resultado, destino string
+	}{
+		{nombre: "clone-del-runner-con-la-marca", texto: lineaDeCloneSinTerminarDelRunner, llamada: "clone", resultado: "?"},
+		{nombre: "clone-sin-la-marca", texto: lineaDeCloneSinTerminarSinMarca, llamada: "clone", resultado: "?"},
+		{nombre: "clone-no-disponible", texto: lineaDeCloneNoDisponible, llamada: "clone", resultado: "? <unavailable>"},
+		{nombre: "clone-sin-cerrar", texto: lineaDeCloneSinCerrar, llamada: "clone"},
+		{nombre: "llamada-desconocida", texto: lineaDeLlamadaDesconocida, llamada: "???"},
+		{
+			nombre:    "connect",
+			texto:     lineaDeConnectSinTerminar,
+			llamada:   "connect",
+			resultado: "?",
+			destino:   "127.0.0.1:60929",
+		},
+	}
+
+	for _, legible := range legibles {
+		t.Run(legible.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leida, err := leerLlamada(legible.texto)
+
+			require.NoError(t, err)
+			assert.Equal(t, legible.llamada, leida.nombre)
+			assert.Equal(t, legible.resultado, leida.resultado)
+			assert.True(t, leida.sinResultado, "la llamada queda sin resultado")
+			assert.True(t, leida.sinTerminar, "el fin del proceso la dejó sin terminar")
+			assert.False(t, leida.conValor, "no tiene resultado numérico")
+			assert.False(t, leida.creaHilo(), "una creación sin terminar no crea ningún hilo con número")
+			assert.Nil(t, leida.argv, "no es una execve con argv")
+
+			if legible.destino == "" {
+				return
+			}
+
+			assert.Equal(t, "AF_INET", leida.conexion.Familia)
+			assert.Equal(t, legible.destino, leida.conexion.Direccion.String())
+			assert.Equal(t, legible.resultado, leida.conexion.Resultado)
+			assert.True(t, leida.conexion.SinResultado, "la conexión queda sin resultado")
+		})
+	}
+
+	conMarca := strings.TrimSuffix(lineaDeCloneSinTerminarDelRunner, ") = ?")
+	otraForma := "no es ninguna de las formas de línea de la traza"
+
+	ilegibles := []struct{ nombre, texto, motivo string }{
+		{nombre: "marca-con-resultado", texto: conMarca + ") = 2001", motivo: "solo cabe con el resultado ?"},
+		{
+			nombre: "marca-con-error",
+			texto:  conMarca + ") = -1 EAGAIN (Resource temporarily unavailable)",
+			motivo: "solo cabe con el resultado ?",
+		},
+		{
+			nombre: "marca-con-llamada-interrumpida",
+			texto:  conMarca + ") = " + resultadoInterrumpida,
+			motivo: "solo cabe con el resultado ?",
+		},
+		{nombre: "marca-con-no-disponible", texto: conMarca + ") = ? <unavailable>", motivo: "solo cabe con el resultado ?"},
+		{
+			nombre: "marca-dentro-de-los-argumentos",
+			texto:  "clone(child_stack=0x2bb2e2418000 <unfinished ...>, flags=" + banderasDeHiloDeGo + ") = ?",
+			motivo: "solo va delante del paréntesis de cierre",
+		},
+		{
+			nombre: "desconocida-con-argumentos",
+			texto:  "???(child_stack=0x2bb2e2418000 <unfinished ...>",
+			motivo: "no lleva argumentos",
+		},
+		{nombre: "desconocida-con-resultado", texto: "???() = ?", motivo: otraForma},
+		{
+			nombre: "sin-cerrar-fuera-del-filtro",
+			texto:  "futex(0xc000100148, FUTEX_WAIT_PRIVATE, 0, NULL <unfinished ...>",
+			motivo: otraForma,
+		},
+		{
+			// Los argumentos de la forma sin cerrar se leen igual que los de una
+			// llamada con resultado: strace escribe así la dirección que no pudo
+			// leer de la memoria del proceso.
+			nombre: "sin-cerrar-con-direccion-sin-leer",
+			texto:  "connect(9, 0x7ffc3e7a1b90, 16 <unfinished ...>",
+			motivo: "los argumentos de connect no tienen la forma de la traza",
+		},
+	}
+
+	for _, ilegible := range ilegibles {
+		t.Run(ilegible.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := leerLlamada(ilegible.texto)
+
+			require.ErrorContains(t, err, ilegible.motivo)
 		})
 	}
 }

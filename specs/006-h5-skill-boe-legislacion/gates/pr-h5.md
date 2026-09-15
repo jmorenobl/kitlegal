@@ -578,6 +578,40 @@ esta propuesta, y las tomadas durante la implementación.
   el formato por defecto de `strace`, el que reproducen las trazas sintéticas, sin añadir ninguna garantía, porque el
   relleno no pierde información; admitir cualquier blanco (`\s+`), una forma que `strace` no escribe; e ignorar las
   líneas que no casan, que dejaría hilos sin atribuir y `red` vacío en falso (FR-076).
+- **`LeerTrazas` admite la llamada que el fin del proceso deja sin terminar** (T044 y T045; research V53, V54, V65 y
+  S4; data-model §9, reglas 1, 5 y 6; contrato del job §4 y §9): la prueba de red del intento 6 de T030 (ejecución
+  34961757559) dejó ilegible la sesión 09, terminada con código 0 y no cortada, por la línea
+  `clone(child_stack=0x2a559d472000, flags=…|CLONE_SETTLS <unfinished ...>) = ?` de un hilo de su invocación: el
+  binario de Go sale con `exit_group` en cuanto escribe su respuesta, mientras su runtime crea un hilo. La sonda V65,
+  en un contenedor de `ubuntu:24.04` con `strace` 6.8 y un programa que sale mientras crea hilos (1000 repeticiones) o
+  mientras otros hilos esperan en un `connect` (5 de 5), mostró que no es una forma sino cuatro, los estados
+  `unfinished` y `unavailable` de `-e status=`: (A) `) = ?`, con la marca delante del paréntesis solo si al
+  decodificador le quedaba algo por escribir a la salida (la `clone` de amd64; la de arm64 y todo `connect` en curso
+  salen sin ella, 5 de 5); (B) `) = ? <unavailable>`; (C) la línea de entrada sin cerrar, `<argumentos> <unfinished
+  ...>`; y (D) `???( <unfinished ...>`, la más frecuente (53 de 1000); y que 8 de 1000 trazas dejan además un fichero
+  huérfano, sin línea de creación y con solo su línea final, siempre con una `clone` de forma A o B. Por eso el intento
+  1 de T045, cuya línea solo preveía la forma del runner y mandaba detenerse ante otra, se detuvo sin marcar y
+  redelimitó la tarea (`gates/tarea-T045.md`). Ahora `LeerTrazas` lee las cuatro, en cualquier sesión, cortada o no,
+  como una llamada sin resultado a la que solo pueden seguir líneas de señal y la línea final (el mismo mecanismo que
+  `? ERRNO (…)`, que sigue siendo solo del corte): no crea ningún hilo, una `execve` así no es una `execve` con 0, un
+  `connect` así se clasifica por su dirección (`red` fuera del bucle local, FR-076), con el texto tras `= ` como
+  resultado, y `???` no es ninguna llamada del filtro; y la regla 1 admite el fichero huérfano si alguna `clone`,
+  `clone3`, `fork` o `vfork` de la traza quedó sin terminar, sin proceso ni conexiones. Lo fijan los cinco casos de
+  T044 en `TestLeerTrazas` (`connect-sin-terminar`, con la marca que `strace` no escribe en `connect`, fija que la
+  marca es opcional), `TestLeerLlamadaSinTerminar` sobre las líneas literales del runner y de V65 y los ilegibles (la
+  marca con otro resultado o dentro de los argumentos, `???(` con argumentos o con resultado, la forma sin cerrar
+  fuera del filtro) y `TestLeerTrazasSinTerminar` sobre las trazas enteras de V65 en `t.TempDir()`, el `connect` en
+  curso de una invocación, público y local, y los huérfanos que no valen; todo en rojo con el lector anterior (los
+  casos legibles, con el motivo exacto del runner) y en verde con el nuevo, con la cobertura del paquete de 98,96 % a
+  98,98 %. Alternativas rechazadas: ignorar las líneas que no casan (hilos y conexiones sin atribuir en silencio, `red`
+  vacío en falso); admitir las formas solo con la sesión cortada (no las produce el corte: la 09 terminó con 0);
+  admitir solo la forma del runner, la de T045 tal como estaba escrita (deja fuera el `connect` en curso, FR-076, y
+  las otras tres formas, que salen del mismo mecanismo); `-e status=` en la orden de la sesión para no escribir las
+  llamadas `unfinished` y `unavailable` (ocultaría el `connect` en curso de una invocación y cambia el contrato del
+  job §3.2); tratar `???(` como una conexión de destino desconocido (no tiene destino y no se ejecutó: cada sesión con
+  esa línea fallaría sin llegar a la red); publicar las trazas como artefacto del job (no arregla la lectura); y
+  rehacer `connect-sin-terminar` con la forma real (modifica un fichero de datos existente sin necesidad y pararía el
+  run en la revisión de `clasificar_datos`).
 - **Protocolo de lectura de bloques y forma de la cita frente a lo grabado** (T040; research D23 y V64; contrato de la
   skill §2.3, §2.4 y §3): la prueba de red del intento 4 de T030 (ejecución 34941499481) leyó las trece trazas y dio
   `fallo` por seis positivas, sin ningún defecto del job. Tres causas eran del protocolo: `scripts/boe articulos` falla
@@ -774,10 +808,11 @@ esta propuesta, y las tomadas durante la implementación.
   veces `[art. 20.1 de la LTAIBG, BOE-A-2013-12887, bloque a20]`, con la forma legible dentro de los corchetes, la
   tercera sesión distinta en tres intentos que la pone dentro pese a T040 y T042 (`gates/prueba-de-red.md` §3.3 y §4,
   `gates/tarea-T030.md`). Arreglado en **T044** (de datos: cinco casos de trazas sintéticas con la línea real, el
-  fichero del hilo que la `clone` sin terminar pudo crear y los negativos) y **T045** (`LeerTrazas` admite
-  `<unfinished ...>) = ?` en cualquier sesión como llamada sin resultado a la que solo siguen señales y la línea final,
-  y el fichero sin línea de creación y sin llamadas cuando alguna creación quedó sin terminar; con una sonda nueva de
-  research, V65, en un contenedor), y en **T046** (la parte mecánica de la cita admite la forma legible dentro de los
+  fichero del hilo que la `clone` sin terminar pudo crear y los negativos) y **T045** (`LeerTrazas` admite las cuatro
+  formas de la llamada que el fin del proceso deja sin terminar, en cualquier sesión, como llamada sin resultado a la
+  que solo siguen señales y la línea final, y el fichero huérfano cuando alguna creación quedó sin terminar; la sonda
+  V65, en un contenedor, mostró que la forma del runner es una de cuatro y que el `connect` en curso sale sin la marca,
+  por lo que el intento 1 se detuvo y redelimitó la tarea, `gates/tarea-T045.md`; *Decisiones*), y en **T046** (la parte mecánica de la cita admite la forma legible dentro de los
   corchetes: `formaDeCita` extrae `<identificador>, bloque <id>]` al final de los corchetes, `SKILL.md` conserva la forma
   recomendada y deja de prohibir la otra; revierte lo que D23 rechazó dos veces, con la evidencia de tres intentos y por
   la misma razón que T041 y T043; la persona lo revisa antes del intento siguiente, `gates/tarea-T030.md`), antes de
@@ -793,8 +828,10 @@ esta propuesta, y las tomadas durante la implementación.
   Code), la conexión `local` de `a9998` se atribuye a su invocación y las invocaciones del binario (26 en el intento 4,
   33 en el 5, 22 en el 6) tienen código y conexiones coherentes, pero la sesión 09 del intento 6, terminada con código
   0, es ilegible por una línea `clone(… <unfinished ...>) = ?`, la llamada que el fin del proceso deja sin resultado,
-  que V53 y V54 daban por ausente en una sesión sin corte: la línea entra en las trazas sintéticas (T044) y `LeerTrazas`
-  la admite (T045), como manda la columna del supuesto. Los supuestos: S1
+  que V53 y V54 daban por ausente en una sesión sin corte: la línea entró en las trazas sintéticas (T044) y `LeerTrazas`
+  la admite (T045), con las otras tres formas y el fichero huérfano que mostró la sonda V65, como manda la columna del
+  supuesto; la forma A con la marca queda comprobada en el runner, y B, C, D y el huérfano, comprobados en el
+  contenedor y sin evidencia en el runner. Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de

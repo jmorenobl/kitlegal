@@ -35,8 +35,9 @@ const (
 	ConexionBloqueada ClaseDeConexion = "bloqueada"
 
 	// ConexionRed es la conexión a otra dirección con resultado 0 o EINPROGRESS,
-	// o sin resultado porque el corte interrumpió la llamada: nada muestra que no
-	// llegara, y se toma como llegada a la red (FR-076).
+	// o sin resultado porque el corte interrumpió la llamada o el fin del proceso
+	// la dejó sin terminar: nada muestra que no llegara, y se toma como llegada a
+	// la red (FR-076).
 	ConexionRed ClaseDeConexion = "red"
 )
 
@@ -78,25 +79,52 @@ const (
 const (
 	llamadaExecve  = "execve"
 	llamadaConnect = "connect"
+
+	// llamadaDesconocida es el nombre que strace escribe cuando el hilo murió en
+	// la parada de entrada de una llamada que no llegó a identificar y que no se
+	// ejecutó (data-model §9, regla 5, forma D): no es ninguna llamada del filtro
+	// y no lleva argumentos.
+	llamadaDesconocida = "???"
+)
+
+// Lo que strace escribe de la llamada que el fin del proceso deja sin terminar
+// (data-model §9, regla 5; research.md V65): la marca, delante del paréntesis de
+// cierre solo si al decodificador le quedaba algo por escribir a la salida, o al
+// final de la línea de entrada que la línea final del hilo deja sin cerrar; y los
+// dos resultados, el de la llamada que no llegó a su parada de salida y el de la
+// que llegó sin que strace pudiera leer su resultado.
+const (
+	marcaSinTerminar      = " <unfinished ...>"
+	resultadoSinTerminar  = "?"
+	resultadoNoDisponible = "? <unavailable>"
 )
 
 // Formas de las líneas y de los argumentos que escribe strace -ff con las
 // opciones del contrato job-de-evals §3.2, comprobadas en research.md V53, las
-// de señal y las que deja un corte en V54, y el relleno de alineación en V63 y en
-// el runner. Lo que no casa con ellas no se ignora: hace la traza ilegible
+// de señal y las que deja un corte en V54, el relleno de alineación en V63 y en
+// el runner, y las de la llamada que el fin del proceso deja sin terminar en V65
+// y en el runner. Lo que no casa con ellas no se ignora: hace la traza ilegible
 // (data-model §9, regla 5).
 var (
 	// formaDelNombreDeHilo es la del fichero que strace deja por hilo: t.<n>.
 	formaDelNombreDeHilo = regexp.MustCompile(`^t\.([0-9]+)$`)
 
 	// formaDeLlamada es la de una llamada con su resultado: 0 o un número, -1
-	// ERRNO (descripción) o, sin resultado, ? ERRNO (descripción). Entre el
-	// paréntesis de cierre y el igual, strace escribe un espacio y, si la llamada
-	// no llega a la columna de alineación (-a 40, su valor por defecto), el
-	// relleno de espacios hasta ella: vfork(), la llamada con la que Claude Code
-	// de x86_64 crea sus procesos, sale con 33.
+	// ERRNO (descripción) o, sin resultado, ? ERRNO (descripción), la que
+	// interrumpió el corte, y ? o ? <unavailable>, la que el fin del proceso dejó
+	// sin terminar (formas A y B de la regla 5). Entre el paréntesis de cierre y
+	// el igual, strace escribe un espacio y, si la llamada no llega a la columna
+	// de alineación (-a 40, su valor por defecto), el relleno de espacios hasta
+	// ella: vfork(), la llamada con la que Claude Code de x86_64 crea sus
+	// procesos, sale con 33.
 	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect)\((.*)\) += ` +
-		`(([0-9]+)|-1 ([A-Z][A-Z0-9_]*) \([^()]*\)|\? [A-Z][A-Z0-9_]* \([^()]*\))$`)
+		`(([0-9]+)|-1 ([A-Z][A-Z0-9_]*) \([^()]*\)|\? [A-Z][A-Z0-9_]* \([^()]*\)|\?|\? <unavailable>)$`)
+
+	// formaDeLlamadaSinCerrar es la de la línea de entrada de una llamada que la
+	// línea final del hilo deja sin cerrar, sin paréntesis de cierre ni resultado
+	// (formas C y D de la regla 5): la llamada, sus argumentos si los escribió y
+	// la marca.
+	formaDeLlamadaSinCerrar = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?)\((.*) <unfinished \.\.\.>$`)
 
 	// formaDeSenal es la de una señal entregada, que se admite y no cuenta.
 	formaDeSenal = regexp.MustCompile(`^--- SIG[A-Z0-9_]+ \{.*\} ---$`)
@@ -157,12 +185,15 @@ type Conexion struct {
 	Ruta string
 
 	// Resultado es el de la llamada tal como lo escribe strace: 0,
-	// -1 EINPROGRESS (Operation now in progress) o, en la que interrumpió el
-	// corte, ? ERESTARTSYS (To be restarted if SA_RESTART is set).
+	// -1 EINPROGRESS (Operation now in progress); en la que interrumpió el
+	// corte, ? ERESTARTSYS (To be restarted if SA_RESTART is set); y en la que el
+	// fin del proceso dejó sin terminar, ?, ? <unavailable> o, en la línea que
+	// quedó sin cerrar, vacío.
 	Resultado string
 
-	// SinResultado dice si el corte interrumpió la llamada antes de que tuviera
-	// resultado (data-model §9, regla 6).
+	// SinResultado dice si la llamada quedó sin resultado: el corte la
+	// interrumpió (data-model §9, regla 6) o el fin del proceso la dejó sin
+	// terminar (regla 5).
 	SinResultado bool
 
 	// Clase es local, bloqueada o red.
@@ -212,7 +243,7 @@ type Invocacion struct {
 	Codigo *int
 
 	// Conexiones son las llamadas connect atribuidas a la invocación, en orden
-	// de fichero, por su número, y de línea.
+	// de fichero, por su número, y de línea, también la que quedó sin resultado.
 	Conexiones []Conexion
 }
 
@@ -223,15 +254,20 @@ type Invocacion struct {
 //
 // cortada dice si el tope cortó la sesión (Sesion.Cortada, que LeerSesion lee de
 // codigo-de-la-sesion): solo entonces admite lo que deja el corte, ficheros sin
-// línea final o vacíos y una llamada sin resultado a la que solo siguen líneas
-// de señal y la línea final (regla 6).
+// línea final o vacíos y una llamada interrumpida, con el resultado
+// ? ERRNO (descripción), a la que solo siguen líneas de señal y la línea final
+// (regla 6). La llamada que el fin del proceso deja sin terminar, que no la
+// produce el corte, se admite en cualquier sesión con la misma condición, y con
+// ella el fichero del hilo que una clone, clone3, fork o vfork así pudo crear,
+// sin la línea que lo crea y sin ninguna llamada (reglas 1 y 5).
 //
 // Lo que no entiende no lo ignora, porque un hilo o una conexión sin atribuir
 // dejarían en falso la red sin llegadas (FR-076). El error nombra el directorio
-// que no se puede leer o en el que no hay exactamente un fichero sin la línea que
-// lo crea; los ficheros sin esa línea; o el fichero, el número de línea y su texto
-// del primer defecto de una línea, que se buscan fichero a fichero en orden de
-// número y línea a línea, antes de comprobar el origen de cada uno.
+// que no se puede leer o en el que ningún fichero sin la línea que lo crea tiene
+// llamadas; los ficheros sin esa línea que no pueden quedar sin ella; o el
+// fichero, el número de línea y su texto del primer defecto de una línea, que se
+// buscan fichero a fichero en orden de número y línea a línea, antes de comprobar
+// el origen de cada uno.
 func LeerTrazas(dir string, cortada bool) ([]Invocacion, error) {
 	interprete, err := nuevoInterprete()
 	if err != nil {
@@ -394,13 +430,16 @@ type llamada struct {
 	linea int
 	texto string
 
-	// nombre es el de la llamada en strace.
+	// nombre es el de la llamada en strace; ??? en la que no llegó a identificar.
 	nombre string
 
-	// resultado es el texto tras «= »; sinResultado, si es el de una llamada
-	// interrumpida (? ERRNO (descripción)).
+	// resultado es el texto tras «= », vacío en la línea que quedó sin cerrar;
+	// sinResultado, si la llamada quedó sin él, porque el corte la interrumpió
+	// (? ERRNO (descripción)) o porque el fin del proceso la dejó sin terminar;
+	// y sinTerminar, si fue por lo segundo (?, ? <unavailable> o sin cerrar).
 	resultado    string
 	sinResultado bool
+	sinTerminar  bool
 
 	// valor es el resultado numérico, si conValor: 0 en la execve o el connect
 	// que terminan bien y el número del hilo creado en clone, clone3, fork y vfork.
@@ -421,14 +460,22 @@ type llamada struct {
 	conexion Conexion
 }
 
-// creaHilo dice si la llamada crea un hilo o un proceso con número.
-func (l llamada) creaHilo() bool {
+// creacion dice si la llamada es de las que crean un hilo o un proceso: clone,
+// clone3, fork o vfork.
+func (l llamada) creacion() bool {
 	switch l.nombre {
 	case "clone", "clone3", "fork", "vfork":
-		return l.conValor
+		return true
 	default:
 		return false
 	}
+}
+
+// creaHilo dice si la llamada crea un hilo o un proceso con número: una creación
+// con resultado. La que el fin del proceso dejó sin terminar no crea ninguno que
+// la traza pueda atribuir.
+func (l llamada) creaHilo() bool {
+	return l.creacion() && l.conValor
 }
 
 // hilo es lo leído del fichero t.<n> de un hilo.
@@ -484,7 +531,9 @@ func leerHilos(dir string, cortada bool) ([]hilo, error) {
 
 // leerHilo lee el fichero de un hilo línea a línea hasta su final, y devuelve el
 // primer defecto de una línea o del final del fichero (data-model §9, reglas 5 y
-// 6).
+// 6). Un fichero sin ninguna llamada —solo su línea final, o vacío en una sesión
+// cortada— no es un defecto de línea: si además no tiene la línea que lo crea,
+// lo juzga la regla 1.
 func leerHilo(h *hilo, cortada bool) error {
 	contenido, err := leerFichero(h.ruta)
 	if err != nil {
@@ -515,9 +564,10 @@ type lectorDeHilo struct {
 	hilo    *hilo
 	cortada bool
 
-	// interrumpida es la llamada sin resultado ya leída, a la que solo pueden
+	// sinResultado es la llamada sin resultado ya leída —la que interrumpió el
+	// corte o la que el fin del proceso dejó sin terminar—, a la que solo pueden
 	// seguir líneas de señal y la línea final.
-	interrumpida *llamada
+	sinResultado *llamada
 }
 
 // leerLinea lee una línea con su salto de línea: una señal, la línea final o una
@@ -545,9 +595,9 @@ func (l *lectorDeHilo) leerLinea(numero int, linea string) error {
 		return nil
 	}
 
-	if l.interrumpida != nil {
-		return defectoDeLinea(l.hilo.ruta, l.interrumpida.linea,
-			"a la llamada sin resultado solo pueden seguirla líneas de señal y la línea final", l.interrumpida.texto)
+	if l.sinResultado != nil {
+		return defectoDeLinea(l.hilo.ruta, l.sinResultado.linea,
+			"a la llamada sin resultado solo pueden seguirla líneas de señal y la línea final", l.sinResultado.texto)
 	}
 
 	leida, err := leerLlamada(texto)
@@ -558,11 +608,12 @@ func (l *lectorDeHilo) leerLinea(numero int, linea string) error {
 	leida.linea = numero
 
 	if leida.sinResultado {
-		if !l.cortada {
-			return defectoDeLinea(l.hilo.ruta, numero, "llamada sin resultado en una sesión que el tope no cortó", texto)
+		if !leida.sinTerminar && !l.cortada {
+			return defectoDeLinea(l.hilo.ruta, numero, "llamada interrumpida sin resultado en una sesión que el tope "+
+				"no cortó: ? ERRNO (descripción) solo lo deja el corte", texto)
 		}
 
-		l.interrumpida = &leida
+		l.sinResultado = &leida
 	}
 
 	l.hilo.llamadas = append(l.hilo.llamadas, leida)
@@ -601,20 +652,32 @@ func leerLineaFinal(texto string) (codigo int, final bool, err error) {
 	return codigo, true, nil
 }
 
-// leerLlamada lee una llamada con su resultado y, según la llamada, su argv, si
-// crea un hilo del mismo proceso o su dirección.
+// leerLlamada lee una llamada con su resultado —o sin él, si el corte la
+// interrumpió o el fin del proceso la dejó sin terminar— y, según la llamada, su
+// argv, si crea un hilo del mismo proceso o su dirección.
 func leerLlamada(texto string) (llamada, error) {
+	if partes := formaDeLlamadaSinCerrar.FindStringSubmatch(texto); partes != nil {
+		return leerLlamadaSinCerrar(texto, partes[1], partes[2])
+	}
+
 	partes := formaDeLlamada.FindStringSubmatch(texto)
 	if partes == nil {
 		return llamada{}, errors.New("no es ninguna de las formas de línea de la traza: execve, clone, clone3, " +
-			"fork, vfork o connect con su resultado, una señal o la línea final")
+			"fork, vfork o connect con su resultado o sin terminar, ???( <unfinished ...>, una señal o la línea final")
+	}
+
+	argumentos, conMarca := strings.CutSuffix(partes[2], marcaSinTerminar)
+	if conMarca && partes[3] != resultadoSinTerminar {
+		return llamada{}, fmt.Errorf("la marca%s delante del paréntesis de cierre solo cabe con el resultado %s, "+
+			"el de la llamada que el fin del proceso deja sin terminar", marcaSinTerminar, resultadoSinTerminar)
 	}
 
 	leida := llamada{
 		texto:        texto,
 		nombre:       partes[1],
 		resultado:    partes[3],
-		sinResultado: strings.HasPrefix(partes[3], "?"),
+		sinResultado: strings.HasPrefix(partes[3], resultadoSinTerminar),
+		sinTerminar:  partes[3] == resultadoSinTerminar || partes[3] == resultadoNoDisponible,
 		errno:        partes[5],
 	}
 
@@ -627,23 +690,58 @@ func leerLlamada(texto string) (llamada, error) {
 		leida.valor, leida.conValor = valor, true
 	}
 
-	var err error
-
-	switch leida.nombre {
-	case llamadaExecve:
-		leida.argv, err = leerArgv(partes[2])
-	case "clone", "clone3":
-		leida.enHilo = conBanderaDeHilo(partes[2])
-	case llamadaConnect:
-		leida.conexion, err = leerConexion(partes[2])
-		leida.conexion.Resultado, leida.conexion.SinResultado = leida.resultado, leida.sinResultado
-	}
-
-	if err != nil {
+	if err := leida.leerArgumentos(argumentos); err != nil {
 		return llamada{}, err
 	}
 
 	return leida, nil
+}
+
+// leerLlamadaSinCerrar lee la línea de entrada que la línea final del hilo dejó
+// sin cerrar: una llamada del filtro sin resultado (forma C) o ???, la que
+// strace no llegó a identificar y que no se ejecutó, sin argumentos (forma D).
+func leerLlamadaSinCerrar(texto, nombre, argumentos string) (llamada, error) {
+	leida := llamada{texto: texto, nombre: nombre, sinResultado: true, sinTerminar: true}
+
+	if nombre == llamadaDesconocida {
+		if argumentos != "" {
+			return llamada{}, fmt.Errorf("%s es la llamada que strace no llegó a identificar, y no lleva argumentos",
+				llamadaDesconocida)
+		}
+
+		return leida, nil
+	}
+
+	if err := leida.leerArgumentos(argumentos); err != nil {
+		return llamada{}, err
+	}
+
+	return leida, nil
+}
+
+// leerArgumentos lee de los argumentos lo que la llamada necesita: el argv de
+// execve, si clone y clone3 crean un hilo del mismo proceso y la dirección de
+// connect, con el resultado de la llamada. La marca de la llamada sin terminar no
+// cabe dentro de ellos.
+func (l *llamada) leerArgumentos(argumentos string) error {
+	if strings.Contains(argumentos, marcaSinTerminar) {
+		return fmt.Errorf("la marca%s solo va delante del paréntesis de cierre o al final de la línea sin cerrar",
+			marcaSinTerminar)
+	}
+
+	var err error
+
+	switch l.nombre {
+	case llamadaExecve:
+		l.argv, err = leerArgv(argumentos)
+	case "clone", "clone3":
+		l.enHilo = conBanderaDeHilo(argumentos)
+	case llamadaConnect:
+		l.conexion, err = leerConexion(argumentos)
+		l.conexion.Resultado, l.conexion.SinResultado = l.resultado, l.sinResultado
+	}
+
+	return err
 }
 
 // leerArgv lee el argv de los argumentos de una execve, decodificado.
@@ -854,15 +952,28 @@ type traza struct {
 	// procesos da, por el número de cada hilo, el del hilo principal de su
 	// proceso.
 	procesos map[int]int
+
+	// huerfanos son los ficheros sin la línea que los crea y sin ninguna llamada
+	// que admite la regla 1: los hilos que una creación sin terminar pudo crear y
+	// que el núcleo mató con el proceso antes de ninguna llamada trazada. No
+	// pertenecen a ningún proceso.
+	huerfanos map[int]bool
 }
 
-// atribuir aplica las reglas 1 y 2 de data-model §9: exactamente un fichero, el
-// del proceso que arrancó strace, sin la línea clone, clone3, fork o vfork que lo
-// crea; y cada hilo creado con CLONE_THREAD, del proceso del hilo que lo creó, de
-// forma transitiva. Un número que crean dos líneas, o un fichero que no desciende
-// del raíz, harían la atribución ambigua o incompleta, y la traza es ilegible.
+// atribuir aplica las reglas 1 y 2 de data-model §9: un fichero raíz, el del
+// proceso que arrancó strace, sin la línea clone, clone3, fork o vfork que lo
+// crea; los ficheros huérfanos que esa regla admite; y cada hilo creado con
+// CLONE_THREAD, del proceso del hilo que lo creó, de forma transitiva. Un número
+// que crean dos líneas, o un fichero que no desciende del raíz, harían la
+// atribución ambigua o incompleta, y la traza es ilegible.
 func atribuir(dir string, hilos []hilo) (traza, error) {
-	atribuida := traza{dir: dir, hilos: hilos, creaciones: map[int]creacion{}, procesos: map[int]int{}}
+	atribuida := traza{
+		dir:        dir,
+		hilos:      hilos,
+		creaciones: map[int]creacion{},
+		procesos:   map[int]int{},
+		huerfanos:  map[int]bool{},
+	}
 
 	if err := atribuida.anotarCreaciones(); err != nil {
 		return traza{}, err
@@ -894,7 +1005,7 @@ func atribuir(dir string, hilos []hilo) (traza, error) {
 	var sueltos []string
 
 	for _, h := range hilos {
-		if _, atribuido := atribuida.procesos[h.numero]; !atribuido {
+		if _, atribuido := atribuida.procesos[h.numero]; !atribuido && !atribuida.huerfanos[h.numero] {
 			sueltos = append(sueltos, h.ruta)
 		}
 	}
@@ -937,31 +1048,70 @@ func (t *traza) anotarCreaciones() error {
 	return nil
 }
 
-// raiz es el número del único fichero sin la línea que lo crea (regla 1).
+// raiz es el número del fichero raíz, el único sin la línea que lo crea que tiene
+// alguna llamada, y anota los huérfanos (regla 1): los demás ficheros sin esa
+// línea, que la regla admite si no tienen ninguna llamada y alguna clone, clone3,
+// fork o vfork de la traza quedó sin terminar, porque son los hilos que esa
+// llamada pudo crear, cuya creación strace no vio. Sin una creación así, o con
+// alguna llamada, siguen siendo ilegibles con un error que los nombra.
 func (t *traza) raiz() (int, error) {
-	var raices []hilo
+	var raices, huerfanos []hilo
 
 	for _, h := range t.hilos {
-		if _, creado := t.creaciones[h.numero]; !creado {
+		if _, creado := t.creaciones[h.numero]; creado {
+			continue
+		}
+
+		if len(h.llamadas) > 0 {
 			raices = append(raices, h)
+		} else {
+			huerfanos = append(huerfanos, h)
 		}
 	}
 
-	switch len(raices) {
-	case 1:
-		return raices[0].numero, nil
-	case 0:
+	switch {
+	case len(huerfanos) > 0 && !t.conCreacionSinTerminar():
+		return 0, fmt.Errorf("traza ilegible: %s: %s no tienen la línea clone, clone3, fork o vfork que los crea ni "+
+			"ninguna llamada, y ninguna clone, clone3, fork o vfork de la traza quedó sin terminar: solo el hilo que "+
+			"una creación sin terminar pudo crear puede quedar sin esa línea", t.dir, rutasDe(huerfanos))
+	case len(raices) == 0:
 		return 0, fmt.Errorf("traza ilegible: %s: no hay ningún fichero sin la línea clone, clone3, fork o vfork "+
-			"que lo crea, y tiene que haber uno, el del proceso que arrancó strace", t.dir)
-	default:
-		rutas := make([]string, 0, len(raices))
-		for _, h := range raices {
-			rutas = append(rutas, h.ruta)
-		}
-
+			"que lo crea y con alguna llamada, y tiene que haber uno, el del proceso que arrancó strace", t.dir)
+	case len(raices) > 1:
 		return 0, fmt.Errorf("traza ilegible: %s: %s no tienen la línea clone, clone3, fork o vfork que los crea, "+
-			"y solo puede faltarle a uno, el del proceso que arrancó strace", t.dir, strings.Join(rutas, ", "))
+			"y solo puede faltarle a uno con llamadas, el del proceso que arrancó strace", t.dir, rutasDe(raices))
 	}
+
+	for _, h := range huerfanos {
+		t.huerfanos[h.numero] = true
+	}
+
+	return raices[0].numero, nil
+}
+
+// conCreacionSinTerminar dice si alguna clone, clone3, fork o vfork de la traza
+// es una llamada que el fin del proceso dejó sin terminar: pudo crear un hilo del
+// que strace no vio la creación.
+func (t *traza) conCreacionSinTerminar() bool {
+	for _, h := range t.hilos {
+		for _, creadora := range h.llamadas {
+			if creadora.creacion() && creadora.sinTerminar {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// rutasDe son las rutas de los ficheros de los hilos, separadas por comas.
+func rutasDe(hilos []hilo) string {
+	rutas := make([]string, 0, len(hilos))
+	for _, h := range hilos {
+		rutas = append(rutas, h.ruta)
+	}
+
+	return strings.Join(rutas, ", ")
 }
 
 // invocaciones aplica las reglas 3 y 4 de data-model §9: cada proceso cuya última
