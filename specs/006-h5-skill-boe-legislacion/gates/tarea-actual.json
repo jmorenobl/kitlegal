@@ -1,15 +1,12 @@
 {
-  "id": "T031",
-  "texto": "T031 [plataforma] Ejecución de cierre y aceptación, la última: ejecutar tal cual quickstart §12.3 sobre la propuesta de cambio de la rama `h5-skill-boe-legislacion` (quitar la etiqueta `evals` si está puesta, ponerla, identificar la ejecución por el último evento de etiqueta y `workflowName` con `gh run list`, esperarla con `gh run watch`, imprimir su informe entre marcas y la comprobación de ficheros cambiados entre el commit evaluado y la cabeza), exigir veredicto `aprobado` con 10 de 10 positivas y las dos de no activación en verde, todas las sesiones terminadas, modelo `claude-haiku-4-5-20251001`, ninguna petición llegada a la red de una fuente y la comprobación sin Python con sus tres líneas, y registrar en `specs/006-h5-skill-boe-legislacion/gates/evals-cierre.md` el enlace, el `headSha` evaluado, el modelo, el veredicto, el informe copiado del registro y la salida entera de la última orden de §12.3, y en `specs/006-h5-skill-boe-legislacion/gates/aceptacion.md` la respuesta y las invocaciones de las sesiones `01-lpac-articulo-21` y `06-irpf-rendimientos-del-trabajo` y el `sin_python` del informe como constancia de cómo se comprobó que no había Python; si una sesión fue cortada por el tope, o el job se detuvo antes del informe, o algún fichero cambió fuera del directorio del hito, la ejecución no vale: la tarea lo anota, se detiene sin marcarse y, si hace falta un arreglo, va en una tarea nueva antes de esta; después de esta tarea solo cambian ficheros del directorio del hito; no fusiona, no empuja a `main`, no fuerza y no crea etiquetas de git ni releases (FR-070, FR-071, FR-080, FR-081, FR-082, SC-001, SC-002, SC-003, SC-007, punto 10 de la Definition of Done, plan obligación 1).",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
-  "plataforma": true,
+  "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea lleva [plataforma] y es la única en la que puedes usar la plataforma remota. Empuja la rama del hito con 'git push -u origin h5-skill-boe-legislacion'. Si no existe propuesta de cambio hacia main ('gh pr view h5-skill-boe-legislacion'), créala con 'gh pr create --base main --head h5-skill-boe-legislacion --title <feat(hito): título> --body-file <fichero>'; el cuerpo, con la justificación de dependencias que exige la constitución §V, sale de un fichero del directorio del feature que la tarea nombra. Espera los checks con 'gh pr checks h5-skill-boe-legislacion --watch' y lee 'gh run list --branch h5-skill-boe-legislacion'. Prohibido: merge, push a main, --force, borrar ramas, etiquetas y releases. Si un estado de la plataforma no aparece o sale en verde sobre cero ficheros, la causa es la configuración, nunca el umbral: documéntalo en gates/tarea-T031.md y deja la tarea sin marcar.",
-  "base": "5c6c552d20419d9ab01769533e01ff181297e3b2",
-  "rutas": [
-    "specs/006-h5-skill-boe-legislacion/gates/aceptacion.md",
-    "specs/006-h5-skill-boe-legislacion/gates/evals-cierre.md"
-  ],
+  "red": "",
+  "base": "",
+  "rutas": [],
   "cierre": false
 }
