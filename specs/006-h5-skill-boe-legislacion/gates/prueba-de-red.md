@@ -1,16 +1,23 @@
 # Prueba de red de H5 (quickstart §12.2, SC-012)
 
-Intento 3 de T030, 2026-09-15, propuesta de cambio [#27](https://github.com/jmorenobl/kitlegal/pull/27), cabeza
-`857ec465074a273bd0d7c0c175185f830d3112ea` (`feat(H5): T037`). **Resultado: el job llega al informe, las trece sesiones
-arrancan, terminan con código 0 y responden —los dos motivos del intento 2 están resueltos—, y el veredicto es `fallo`
-porque las trece salen con `sesión ilegible`**: en el runner de x86_64, Claude Code crea los procesos de sus órdenes con
-`vfork`, y `strace` escribe esa llamada, más corta que su columna de alineación, con relleno de espacios antes del
-resultado (`vfork()` + 33 espacios + `= <pid>`), una forma que `LeerTrazas` no admite. La prueba de red descubre un
-defecto y T030 se detiene sin marcarse (`gates/tarea-T030.md`; arreglo en T038, de datos, y T039). El paso «Retirar
-Python del runner» terminó con 0. Los intentos 1 y 2 (ejecuciones 34922606273 y 34930222593) están en las versiones
-anteriores de este fichero (commits `c4c7613` y `857ec46`).
+Intento 4 de T030 (el tercero que cuenta el workflow, `gates/tareas-intentos.json` `T030: 3`, concedido por la
+supervisión del run tras T038 y T039), 2026-09-15, propuesta de cambio [#27](https://github.com/jmorenobl/kitlegal/pull/27),
+cabeza `537e5d6f7ed5ff48f17f343323f0cef026cb9e33` (`feat(H5): T039`). **Resultado: la prueba de red cumple todo lo que
+SC-012 y quickstart §12.2 esperan de ella** —las dos filas de `a9998` en «fuera de lo grabado», con código 5 la que va
+sin `--offline` y 4 la que lo lleva; la invocación sin `--offline` con una sola conexión, `127.0.0.1:9` de clase
+`local`, y la que lleva `--offline` sin ninguna; ninguna de las dos entre los comandos ejecutados; ninguna sesión con
+`sesión ilegible` (las trece trazas se leyeron enteras, con la línea `vfork()` con relleno que T038 y T039 admiten);
+«ninguna petición llegó a la red de una fuente»; y la sesión de prueba de red con el mismo resultado que la 01 (las dos
+pasan)—, **pero el veredicto es `fallo`**: seis de las diez positivas no pasan por `comando ausente` y `cita ausente`,
+todas por lo que el modelo hizo frente a lo grabado (pedir con `scripts/boe articulos` el bloque esperado junto a un
+vecino no grabado, componer ids que no existen en el índice de la LCSP, elegir otro artículo, o poner el nombre de la
+norma dentro de los corchetes de la cita) y ninguna por el job, el lector de trazas ni el informe. La línea de T030
+detiene la tarea sin marcarla: diagnóstico en §4 y en `gates/tarea-T030.md`; arreglo en la tarea nueva **T040** (el
+protocolo de la skill) y una decisión para la persona (las evals 05 y 07). El paso «Retirar Python del runner» terminó
+con 0. Los intentos 1 a 3 (ejecuciones 34922606273, 34930222593 y 34936425178) están en las versiones anteriores de
+este fichero (historial de git del fichero).
 
-Enlace a la ejecución: <https://github.com/jmorenobl/kitlegal/actions/runs/34936425178> (`databaseId` 34936425178).
+Enlace a la ejecución: <https://github.com/jmorenobl/kitlegal/actions/runs/34941499481> (`databaseId` 34941499481).
 
 ## 1. Prerrequisitos (§12.1)
 
@@ -31,40 +38,40 @@ evals-prueba-de-red	Ejecuta el job de evals con la prueba de red (SC-012 de H5)	
 `gh pr view --json number,headRefOid,labels`:
 
 ```json
-{"headRefOid":"857ec465074a273bd0d7c0c175185f830d3112ea","labels":[],"number":27}
+{"headRefOid":"537e5d6f7ed5ff48f17f343323f0cef026cb9e33","labels":[],"number":27}
 ```
 
 Todo presente: el secreto y las dos etiquetas.
 
 ## 2. Órdenes de §12.2
 
-**Primera** (la etiqueta no estaba puesta, porque el intento 2 la quitó al terminar, así que no se quitó nada):
+**Primera** (la etiqueta no estaba puesta, porque el intento 3 la quitó al terminar, así que no se quitó nada):
 
 ```text
 la etiqueta evals-prueba-de-red no está puesta
 ```
 
-**Segunda**, `gh pr edit --add-label evals-prueba-de-red`: la orden va sin `rtk proxy` en el quickstart, y el
-envoltorio de la terminal reescribió su salida como `ok edited #evals-prueba-de-red` (la orden imprime
-`https://github.com/jmorenobl/kitlegal/pull/27`, como en los intentos 1 y 2); el evento `labeled` que creó está en la
-tercera orden.
+**Segunda**, `gh pr edit --add-label evals-prueba-de-red`: la orden va sin `rtk proxy` en el quickstart y el envoltorio
+de la terminal reescribió su salida como `ok edited #evals-prueba-de-red` (la orden imprime
+`https://github.com/jmorenobl/kitlegal/pull/27`, como en los intentos anteriores); el evento `labeled` que creó está en
+la tercera orden.
 
 **Tercera**, a la primera ya con la ejecución:
 
 ```text
-etiqueta puesta: 2026-09-15T06:19:28Z
-{"evals":{"conclusion":"","createdAt":"2026-09-15T06:19:30Z","databaseId":34936425178,"headSha":"857ec465074a273bd0d7c0c175185f830d3112ea","status":"in_progress","url":"https://github.com/jmorenobl/kitlegal/actions/runs/34936425178","workflowName":"evals"},"posteriores_a_la_etiqueta":[{"createdAt":"2026-09-15T06:19:30Z","databaseId":34936425178,"workflowName":"evals"}]}
+etiqueta puesta: 2026-09-15T07:23:53Z
+{"evals":{"conclusion":"","createdAt":"2026-09-15T07:23:55Z","databaseId":34941499481,"headSha":"537e5d6f7ed5ff48f17f343323f0cef026cb9e33","status":"in_progress","url":"https://github.com/jmorenobl/kitlegal/actions/runs/34941499481","workflowName":"evals"},"posteriores_a_la_etiqueta":[{"createdAt":"2026-09-15T07:23:55Z","databaseId":34941499481,"workflowName":"evals"}]}
 ```
 
-**Cuarta**, `gh run watch 34936425178 --exit-status`: la herramienta la pasó a segundo plano a los 600 s y la orden
-siguió corriendo hasta el final (no hubo que repetirla); terminó con `código 1`. Sus últimas líneas:
+**Cuarta**, `gh run watch 34941499481 --exit-status`: terminó dentro del tope de la herramienta (la ejecución duró
+10 m 8 s) con `código 1`. Sus últimas líneas:
 
 ```text
-X h5-skill-boe-legislacion evals jmorenobl/kitlegal#27 · 34936425178
+X h5-skill-boe-legislacion evals jmorenobl/kitlegal#27 · 34941499481
 Triggered via pull_request about 10 minutes ago
 
 JOBS
-X evals in 10m23s (ID 104275219354)
+X evals in 10m8s (ID 104290999526)
   ✓ Set up job
   ✓ Obtener el código del commit evaluado
   ✓ Instalar Go y restaurar la caché
@@ -78,27 +85,29 @@ X evals in 10m23s (ID 104275219354)
 
 ANNOTATIONS
 X Process completed with exit code 2.
-evals: .github#1006
+evals: .github#1360
 
 código 1
 ```
 
 (El código 2 de la anotación es el de GNU `make` cuando una receta falla; la receta, `scripts/evals.sh`, terminó con 1,
-como dice el registro: `make: *** [Makefile:112: evals] Error 1`. No hay ninguna anotación del *problem matcher* de
-`actions/setup-go` como en el intento 2, porque el informe ya no copia trazas de pila de Claude Code.)
+como dice el registro: `make: *** [Makefile:112: evals] Error 1`.)
 
-**Quinta** (informe entre marcas): **código 0**; imprime `informe.md` (625 líneas del registro) e `informe.json` (321)
+**Quinta** (informe entre marcas): **código 0**; imprime `informe.md` (601 líneas del registro) e `informe.json` (701)
 enteros, cada uno de su marca de inicio a su marca de fin. Salida completa, tal cual la da `gh run view --log`, en el
 **anexo A**. Para conservarla entera, la orden se ejecutó tal cual dentro de `rtk proxy sh -c` con su salida redirigida
 a un fichero temporal del directorio del hito (borrado tras copiarla aquí) y con una línea final
-`código de la quinta orden: $?` añadida por un `echo` dentro del mismo `sh -c`.
+`código de la quinta orden: $?` añadida por un `echo` dentro del mismo `sh -c`. La línea
+`make: *** [Makefile:112: evals] Error 1` que aparece dentro de la tabla «Invocaciones fuera de lo grabado» del anexo
+es la salida de error de `make`, que el registro del paso intercala entre las líneas del informe; no está en el fichero
+`informe.md` (el informe JSON, que va después, no la contiene).
 
 **Sexta** (salida de la retirada de Python entre marcas): **código 0**; 925 líneas del registro, de
 `--- inicio de la retirada de Python ---` a `--- fin de la retirada de Python ---`. Salida completa en el **anexo B**,
 obtenida de la misma forma.
 
-La orden de `--log-failed` que va tras el bloque no procede (las dos anteriores no fallan); se ejecutó de todos modos
-para leer el paso «Ejecutar las evals», y su parte fuera del informe es lo que resume §3.3.
+La orden de `--log-failed` que va tras el bloque no procede (las dos anteriores no fallan); el registro completo
+(`gh run view 34941499481 --log`) se leyó aparte para §3.3.
 
 **Séptima orden** (quitar la etiqueta, al terminar):
 
@@ -111,58 +120,57 @@ la etiqueta evals-prueba-de-red no está puesta
 
 ### 3.1 Pasos y tiempos
 
-`gh run view 34936425178 --json jobs` (`createdAt` 06:19:30Z, `event` `pull_request`, `headSha` `857ec46…`,
-`workflowName` `evals`, job 104275219354):
+`gh run view 34941499481 --json jobs` (`createdAt` 07:23:55Z, `event` `pull_request`, `headSha` `537e5d6…`,
+`workflowName` `evals`, job 104290999526, de 07:23:57 a 07:34:05):
 
 | Paso | Resultado | Inicio | Fin | Duración |
 |---|---|---|---|---|
-| Obtener el código del commit evaluado | success | 06:19:35 | 06:19:37 | 2 s |
-| Instalar Go y restaurar la caché | success | 06:19:37 | 06:20:04 | 27 s |
-| Instalar strace y Claude Code | success | 06:20:04 | 06:20:18 | 14 s |
-| Instalar kitlegal y las skills como las deja make install | success | 06:20:18 | 06:20:58 | 40 s |
-| Retirar Python del runner | success | 06:20:58 | 06:24:05 | 3 m 7 s |
-| Ejecutar las evals | **failure** | 06:24:05 | 06:29:54 | 5 m 49 s |
+| Obtener el código del commit evaluado | success | 07:24:00 | 07:24:03 | 3 s |
+| Instalar Go y restaurar la caché | success | 07:24:03 | 07:24:48 | 45 s |
+| Instalar strace y Claude Code | success | 07:24:48 | 07:25:04 | 16 s |
+| Instalar kitlegal y las skills como las deja make install | success | 07:25:04 | 07:25:36 | 32 s |
+| Retirar Python del runner | success | 07:25:36 | 07:28:31 | 2 m 55 s |
+| Ejecutar las evals | **failure** | 07:28:31 | 07:34:01 | 5 m 30 s |
 
-Del paso de instalación: `strace is already the newest version (6.8-0ubuntu2).`, `added 2 packages in 5s` y
+Del paso de instalación: `strace is already the newest version (6.8-0ubuntu2).`, `added 2 packages in 3s` y
 `claude --version` → `2.1.270 (Claude Code)`; el paso no instala `bubblewrap` ni `socat` (T036). De `make install`:
-`CGO_ENABLED=0 go install -trimpath -ldflags "-X main.version=857ec46 …" ./cmd/kitlegal`,
+`CGO_ENABLED=0 go install -trimpath -ldflags "-X main.version=537e5d6 …" ./cmd/kitlegal`,
 `instalar-skills: boe-legislacion → /home/runner/work/kitlegal/kitlegal/skills/boe-legislacion` e
 `instalar-skills: kitlegal → /home/runner/go/bin/kitlegal`. El entorno del paso de evals lista
-`CLAUDE_CODE_OAUTH_TOKEN: ***` (el secreto llega al paso, enmascarado), `COMMIT_EVALUADO: 857ec46…` y
-`PRUEBA_DE_RED: true`.
+`MODELO_DE_EVALS: claude-haiku-4-5-20251001`, `COMMIT_EVALUADO: 537e5d6…`, `PRUEBA_DE_RED: true` y
+`CLAUDE_CODE_OAUTH_TOKEN: ***` (el secreto llega al paso, enmascarado).
 
 ### 3.2 Retirada de Python (anexo B)
 
 - `búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print`
-  a las 06:20:58,56; la primera línea `retirado:` a las 06:23:35,48: **la búsqueda como root en toda la imagen tarda
-  2 m 37 s** (1 m 23 s en el intento 2: la caché de disco del runner varía) y termina con 0 (con `set -euo pipefail`,
-  un `find` con error habría detenido el paso ahí).
-- **921 líneas `retirado:`**, las mismas rutas que en el intento 2 (misma imagen), entre las 06:23:35 y las 06:24:00
-  (25 s), ninguna seguida de un error de `rm`: nada estaba en un sistema de ficheros de solo lectura. Por árbol: 341
-  bajo `/opt/hostedtoolcache`, 315 bajo `/var/lib`, 143 bajo `/usr/share`, 54 bajo `/usr/local`, 21 bajo `/opt/az`, 19
-  bajo `/usr/lib`, 19 bajo `/opt/pipx`, 5 en `/usr/bin` (`python3.12-config`, `python3-config`, `python3.12`,
-  `python3`, `python`) y 4 en `/usr/sbin` (las herramientas `python*-bpfcc`); el detalle de cada árbol es el de §3.2 del
-  intento 2.
-- Instalaciones retiradas enteras por la regla del prefijo (`<prefijo>/bin/python*` con `<prefijo>/lib/python*`), las
-  mismas catorce del intento 2: `/opt/az`; `/opt/hostedtoolcache/PyPy/3.9.19/x64`,
-  `/opt/hostedtoolcache/PyPy/3.10.16/x64`, `/opt/hostedtoolcache/PyPy/3.11.15/x64`,
-  `/opt/hostedtoolcache/Python/3.10.21/x64`, `/opt/hostedtoolcache/Python/3.11.16/x64`,
-  `/opt/hostedtoolcache/Python/3.12.14/x64`, `/opt/hostedtoolcache/Python/3.13.15/x64`,
-  `/opt/hostedtoolcache/Python/3.14.7/x64`; `/opt/pipx/shared`, `/opt/pipx/venvs/ansible-core`,
-  `/opt/pipx/venvs/yamllint`; `/usr/lib/google-cloud-sdk/platform/bundledpythonunix`; y `/usr/share/miniconda`.
-- `búsqueda tras retirar: ninguno` a las 06:24:05,61 (la segunda búsqueda, 5 s), la comprobación de lo usado sin
+  a las 07:25:36,09; la primera línea `retirado:` a las 07:28:07,87: **la búsqueda como root en toda la imagen tarda
+  2 m 32 s** (2 m 37 s en el intento 3, 1 m 23 s en el 2) y termina con 0 (con `set -euo pipefail`, un `find` con error
+  habría detenido el paso ahí).
+- **921 líneas `retirado:`**, exactamente las mismas rutas que en el intento 3 (comparadas una a una con el anexo B de la
+  versión anterior de este fichero: misma imagen), entre las 07:28:07 y las 07:28:27 (20 s), ninguna seguida de un
+  error de `rm`: nada estaba en un sistema de ficheros de solo lectura. Por árbol: 341 bajo `/opt/hostedtoolcache`, 315
+  bajo `/var/lib`, 143 bajo `/usr/share`, 54 bajo `/usr/local`, 21 bajo `/opt/az`, 19 bajo `/usr/lib`, 19 bajo
+  `/opt/pipx`, 5 en `/usr/bin` (`python3.12-config`, `python3-config`, `python3.12`, `python3`, `python`) y 4 en
+  `/usr/sbin` (las herramientas `python*-bpfcc`).
+- Instalaciones retiradas enteras por la regla del prefijo, las mismas catorce del intento 3: `/opt/az`;
+  `/opt/hostedtoolcache/PyPy/3.9.19/x64`, `/opt/hostedtoolcache/PyPy/3.10.16/x64`,
+  `/opt/hostedtoolcache/PyPy/3.11.15/x64`, `/opt/hostedtoolcache/Python/3.10.21/x64`,
+  `/opt/hostedtoolcache/Python/3.11.16/x64`, `/opt/hostedtoolcache/Python/3.12.14/x64`,
+  `/opt/hostedtoolcache/Python/3.13.15/x64`, `/opt/hostedtoolcache/Python/3.14.7/x64`; `/opt/pipx/shared`,
+  `/opt/pipx/venvs/ansible-core`, `/opt/pipx/venvs/yamllint`; `/usr/lib/google-cloud-sdk/platform/bundledpythonunix`; y
+  `/usr/share/miniconda`.
+- `búsqueda tras retirar: ninguno` a las 07:28:31,03 (la segunda búsqueda, 4 s), la comprobación de lo usado sin
   ningún `la retirada se llevó algo que el job usa`, y la marca de fin. Código 0.
 
 ### 3.3 Ejecutar las evals (anexo A y registro del paso)
 
 Fuera del informe, el registro del paso muestra: `scripts/evals.sh "boe-legislacion"`; la comprobación 5
-(`TestEvalsDelRepositorio` y `TestIdentificadoresDeLasNormas`) en `ok` a las 06:24:22; trece preparaciones de sesión
-(`TestPrepararSesion`) en `ok`, **cada una seguida de su sesión, que esta vez sí corrió**: las trece terminaron por sí
-mismas, entre 7 y 40 s cada una (medido por el instante del `ok` de la preparación siguiente: 01 ≈ 20 s, 02 ≈ 28 s,
-03 ≈ 33 s, 04 ≈ 21 s, 05 ≈ 36 s, 06 ≈ 33 s, 07 ≈ 40 s, 08 ≈ 29 s, 09 ≈ 19 s, 10 ≈ 28 s, 11 ≈ 8 s, 12 ≈ 7 s y
-`01-lpac-articulo-21-prueba-de-red`, la última, ≈ 28 s), de las 06:24:24 a las 06:29:54; `TestInformeDelJob` en `FAIL`
-con `expected: "aprobado"`, `actual: "fallo"` y los trece motivos; las marcas y los dos ficheros; y
-`make: *** [Makefile:112: evals] Error 1`.
+(`TestEvalsDelRepositorio` y `TestIdentificadoresDeLasNormas`) en `ok` a las 07:28:44; trece preparaciones de sesión
+(`TestPrepararSesion`) en `ok`, cada una seguida de su sesión, que terminó por sí misma: medido por el instante del `ok`
+de la preparación siguiente, 01 ≈ 22 s, 02 ≈ 31 s, 03 ≈ 33 s, 04 ≈ 18 s, 05 ≈ 38 s, 06 ≈ 33 s, 07 ≈ 38 s, 08 ≈ 22 s,
+09 ≈ 15 s, 10 ≈ 19 s, 11 ≈ 6 s, 12 ≈ 7 s y `01-lpac-articulo-21-prueba-de-red`, la última, ≈ 32 s, de las 07:28:45 a
+las 07:34:01; `TestInformeDelJob` en `FAIL` con `expected: "aprobado"`, `actual: "fallo"` y los once motivos; las
+marcas y los dos ficheros; y `make: *** [Makefile:112: evals] Error 1`.
 
 `sin_python` del informe (comprobación 3 del guion, repetida como root antes de la primera sesión):
 
@@ -172,65 +180,164 @@ usuario: root
 resultado: ninguno
 ```
 
-Cabecera del informe: `Modelo del job: claude-haiku-4-5-20251001`, **`Modelos de las sesiones:
-claude-haiku-4-5-20251001`**, **`Versiones de Claude Code: 2.1.270`** (en el intento 2, `ninguno` y `ninguna`),
-`Commit: 857ec465074a273bd0d7c0c175185f830d3112ea`. Ficheros mal formados: ninguno. Invocaciones fuera de lo grabado:
-ninguna, y peticiones llegadas a la red: «ninguna petición llegó a la red de una fuente», **las dos por la misma razón**:
-ninguna traza se pudo leer, así que ninguna invocación se atribuyó (`invocaciones`, `fuera_de_lo_grabado` y `red`
-vacíos en el JSON; «Invocaciones: sin leer» en cada sesión de `informe.md`).
+Cabecera del informe: `Modelo del job: claude-haiku-4-5-20251001`, `Modelos de las sesiones:
+claude-haiku-4-5-20251001`, `Versiones de Claude Code: 2.1.270`, `Commit: 537e5d6f7ed5ff48f17f343323f0cef026cb9e33`.
+Ficheros mal formados: ninguno. Peticiones llegadas a la red: «ninguna petición llegó a la red de una fuente» (`red`
+vacío en la raíz del JSON y `llegadas_a_la_red` vacío en las trece sesiones). **Esta vez las trece trazas se leyeron
+enteras**: `invocaciones` con su orden, su código y sus conexiones en las once sesiones que invocaron el binario (las dos
+de no activación, sin ninguna invocación, como esperan sus evals). El informe no imprime «Salida de error» ni «Motivos
+de la sesión» en una sesión terminada y legible (`internal/evals/informe.go`), así que, a diferencia del intento 3, esas
+líneas no aparecen en ninguna de las trece.
 
-Sesiones (de `informe.json`):
+**Invocaciones fuera de lo grabado** (doce, todas con código 5 salvo la de `--offline`, con 4; ninguna con conexión de
+clase `red`, todas las de código 5 con la conexión `127.0.0.1:9` de clase `local` del proxy que rechaza):
 
-| Sesión | Activa | Activada | `codigo_de_la_sesion` | `fin_de_la_sesion` | Invocaciones | Motivos | Pasa |
-|---|---|---|---|---|---|---|---|
-| `01-lpac-articulo-21` … `10-et-vacaciones` (diez positivas) | sí | **sí** | **0** | `result success` | sin leer | solo `sesión ilegible: traza: traza ilegible: …/traza/t.<n>, línea 5 (7 en la 01): no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = <pid>»` | no |
-| `01-lpac-articulo-21-prueba-de-red` | sí | sí | 0 | `result success` | sin leer | el mismo (`t.15051`, línea 5, `vfork()` … `= 15057`) | no |
-| `11-no-activa-programacion`, `12-no-activa-acuerdo-entre-amigos` | no | no | 0 | `result success` | sin leer | el mismo (`t.14910` y `t.14983`, línea 5) | no |
+| Sesión | Orden | Código |
+|---|---|---|
+| `01-lpac-articulo-21-prueba-de-red` | `boe articulo BOE-A-2015-10565 a9998 --json` | 5 |
+| `01-lpac-articulo-21-prueba-de-red` | `boe articulo BOE-A-2015-10565 a9998 --offline --json` | 4 |
+| `02-lcsp-contrato-menor` | `boe articulos BOE-A-2017-12902 a117 a118 --json` | 5 |
+| `02-lcsp-contrato-menor` | `boe articulo BOE-A-2017-12902 a118 --json` | 5 |
+| `03-lrbrl-atribuciones-del-pleno` | `boe articulos BOE-A-1985-5392 a21 a22 --json` | 5 |
+| `03-lrbrl-atribuciones-del-pleno` | `boe articulo BOE-A-1985-5392 a21 --json` | 5 |
+| `05-trlrhl-impuestos-municipales` | `boe articulo BOE-A-2004-4214 a2 --json` (dos veces) | 5 |
+| `06-irpf-rendimientos-del-trabajo` | `boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json` | 5 |
+| `07-lrjsp-principio-de-legalidad` | `boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json` | 5 |
+| `07-lrjsp-principio-de-legalidad` | `boe articulo BOE-A-2015-10566 a140 --json` | 5 |
+| `08-ltaibg-plazo-de-resolucion` | `boe articulos BOE-A-2013-12887 a19 a20 --json` | 5 |
 
-**Salida de error vacía en las trece** (`Salida de error: vacía`): ninguna línea de `bubblewrap`, `socat`, `Sandbox is
-required` ni `Permission mode forced`, lo que el intento 2 dejó por comprobar. Las diez positivas activaron la skill y
-las dos de no activación no; el modelo respondió en todas: en la 01 y en la de prueba de red, con el texto del artículo
-21 y la cita `[…, BOE-A-2015-10565, bloque a21]` (la respuesta de la prueba de red no dice qué devolvieron las dos
-órdenes de `a9998` que su pregunta pide, y sin traza no se sabe si las ejecutó); en la 02, 03, 04, 07, 08 y 09, con
-texto y citas de sus normas; **en la 05, la 06 y la 10, el modelo dice que no pudo consultar la norma porque la fuente
-devolvió «error de límite de ritmo (código 5)»** —el código con que el binario termina cuando el proxy que rechaza
-recibe una petición, es decir, una consulta fuera de lo grabado— y responde sin cita; en la 11, con código Go, y en la
-12, con texto. Como toda invocación queda sin leer, el informe no dice qué consulta hicieron esas tres sesiones: lo dirá
-el intento siguiente en `fuera_de_lo_grabado` (`gates/tarea-T030.md`).
+Una invocación en `otras_fallidas`: `boe articulo BOE-A-2006-20764 a17 --json --timeout 5000` de la sesión 06, código 2
+(`--timeout` exige una duración; la sesión la repitió con `--timeout 5s` y obtuvo el bloque con 0).
 
-Los ficheros se leen en orden de número y el primer defecto detiene la lectura: en cada sesión, el fichero del hilo
-principal de `claude` (el primero) se leyó hasta la línea del `vfork()`, y sus cuatro líneas anteriores (seis en la 01)
-—la `execve` de `claude` y las líneas con que Claude Code de amd64 crea sus primeros hilos— tienen formas que
-`LeerTrazas` admite; los demás ficheros no llegaron a leerse.
+Sesiones (de `informe.json`; las trece con `codigo_de_la_sesion` 0 y `fin_de_la_sesion` `result success`; en las diez
+positivas y en la de prueba de red la skill se activó, y en las dos de no activación no):
 
-## 4. El defecto y su arreglo
+| Sesión | Invocaciones (orden → código) | Comandos ausentes | Citas ausentes | Pasa |
+|---|---|---|---|---|
+| `01-lpac-articulo-21` | `articulo … a21` → 0 | ninguno | ninguna | **sí** |
+| `01-lpac-articulo-21-prueba-de-red` | `articulo … a9998` → 5 (`127.0.0.1:9`, `local`); `articulo … a9998 --offline` → 4 (sin conexiones); `articulo … a21` → 0 | ninguno | ninguna | **sí** |
+| `02-lcsp-contrato-menor` | `indice` → 0; `articulos … a117 a118` → 5; `articulo … a118` → 5 | `bloque boe BOE-A-2017-12902 a1-30` | `BOE-A-2017-12902 a1-30` | no |
+| `03-lrbrl-atribuciones-del-pleno` | `indice` → 0; `articulos … a21 a22` → 5; `articulo … a21` → 5 | `bloque boe BOE-A-1985-5392 a22` | `BOE-A-1985-5392 a22` | no |
+| `04-lgt-prescripcion` | `indice` → 0; `articulo … a66` → 0 | ninguno | ninguna | **sí** |
+| `05-trlrhl-impuestos-municipales` | `indice` → 0; `articulo … a2` → 5; `articulo … a2` → 5 | `bloque boe BOE-A-2004-4214 a59` | `BOE-A-2004-4214 a59` | no |
+| `06-irpf-rendimientos-del-trabajo` | `indice` → 0; `articulos … a17 a18 a19 a20` → 5; `articulo … a17 --timeout 5000` → 2; `articulo … a17 --timeout 5s` → 0 | ninguno | ninguna | **sí** |
+| `07-lrjsp-principio-de-legalidad` | `indice` → 0; `articulos … a140 a141 a142 a143 a144 a145` → 5; `articulo … a140` → 5 | `bloque boe BOE-A-2015-10566 a25` | `BOE-A-2015-10566 a25` | no |
+| `08-ltaibg-plazo-de-resolucion` | `indice` → 0; `articulos … a19 a20` → 5 | `bloque boe BOE-A-2013-12887 a20` | `BOE-A-2013-12887 a20` | no |
+| `09-constitucion-articulo-140` | `articulo … a140` → 0 | ninguno | ninguna | **sí** |
+| `10-et-vacaciones` | `indice` → 0; `articulo … a38` → 0 | ninguno | `BOE-A-2015-11430 a38` | no |
+| `11-no-activa-programacion` | ninguna | ninguno | ninguna | **sí** |
+| `12-no-activa-acuerdo-entre-amigos` | ninguna | ninguno | ninguna | **sí** |
 
-`strace` alinea el resultado de cada llamada en la columna 40 (`-a`, su valor por defecto): tras el paréntesis de cierre
-escribe un espacio, rellena con espacios hasta esa columna si el texto de la llamada es más corto, y después `= ` y el
-resultado. `vfork()` + 33 espacios + `= 11494` son 47 octetos, con el `=` en la columna 41. Todas las llamadas del
-filtro de la sesión con argumentos (`execve`, `connect`, `clone`, `clone3`) pasan de 40 columnas, y por eso ninguna
-sonda de research (V53, V54, V61, V62, todas en arm64) vio el relleno: `vfork()`, sin argumentos, es la única del filtro
-que cabe en menos, y es con la que el binario de Claude Code para Linux x86_64 crea los procesos de sus órdenes (en
-arm64 no existe la llamada `vfork`: la biblioteca de C la hace con `clone`, y así salió en los contenedores de T036 y
-T037). `formaDeLlamada` exige `) = ` con un solo espacio, así que la línea no casa con ninguna forma y la traza es
-ilegible (data-model §9, regla 5), como debe ser ante un formato no comprobado (S4): la sesión no pasa y lo dice, con
-el fichero, la línea y su texto. Arreglo en **T038** (de datos: el caso `proceso-por-vfork` de las trazas sintéticas
-con la línea real) y **T039** (`LeerTrazas` admite el relleno; data-model, contrato, research y S4), antes de T030. Lo
-que la ejecución sí confirma del job, y lo que solo dirá el intento siguiente, está en `gates/tarea-T030.md`.
+Las respuestas (anexo A): la 01 y la de prueba de red exponen el artículo 21 con la cita `[BOE-A-2015-10565, bloque
+a21]` (la de prueba de red no dice qué devolvieron las dos órdenes de `a9998` que su pregunta pide, pero la traza muestra
+que las ejecutó, con 5 y 4); la 04, la 06 y la 09, el texto de su artículo con la cita en la forma fija; la 02, la 03, la
+05, la 07 y la 08 dicen que no pudieron consultar la fuente («límites de ritmo», «código 5») y no suplen el texto
+(regla 2 del protocolo: se cumple), y la 02, la 03 y la 08 nombran de memoria el artículo que habrían leído (118, 21-24,
+19); la 10 expone el artículo 38 con la cita `[Real Decreto Legislativo 2/2015, BOE-A-2015-11430, bloque a38]`; la 11
+responde con código Go y la 12 con texto.
+
+## 4. Los defectos y su arreglo
+
+Ninguno del job: el paso de retirada, la preparación de cada sesión, las trece sesiones, `strace`, `LeerTrazas`, la
+atribución de conexiones y el informe hicieron lo que el contrato dice. Lo que la prueba descubre es cómo se comporta el
+protocolo de la skill, con el modelo del job, frente a una caché que solo tiene lo que los comandos esperados necesitan
+(FR-074) y un proxy que responde 5 a todo lo demás (D16). Cuatro causas, con su evidencia:
+
+**(a) `scripts/boe articulos` es todo o nada, y la regla 2 hace que el modelo se rinda** (03, 08; también 06, que se
+recuperó sola). El modelo leyó el índice, eligió el bloque esperado y lo pidió con `articulos` junto a un vecino que no
+está grabado (`a21 a22`, `a19 a20`, `a17 a18 a19 a20`): el verbo resuelve los bloques en el orden pedido y falla en el
+primero que no tiene, así que la invocación entera terminó con 5 aunque el bloque esperado estuviera en la caché.
+Comprobado en local sin red, con la caché que `TestPrepararSesion` prepara para una sesión y el binario construido de la
+cabeza: `boe articulos BOE-A-1985-5392 a21 a22 --json --offline` termina con 4 y `no se ha podido resolver el bloque
+a21, en la posición 1 de 2`; con `a22 a21`, con 4 y `… en la posición 2 de 2` (el bloque grabado no se devuelve); y
+`boe articulo BOE-A-1985-5392 a22 --json --offline` termina con 0. Ante el 5, la regla 2 («di qué no se pudo consultar
+y no suplas el texto») se cumplió al pie de la letra: la 08 respondió sin volver a pedir nada, y la 03 repitió solo el
+bloque vecino (`a21`), no el esperado. La 06 sí pidió después `a17` por separado (con un `--timeout 5000` que el binario
+rechaza con 2 y luego con `5s`) y pasó. En uso real, con red, `articulos a21 a22` habría funcionado: la caché de la
+sesión es más estricta que la fuente, a propósito (FR-074, FR-076), y el protocolo tiene que ser robusto ante un fallo de
+un bloque sin dar los demás por perdidos.
+
+**(b) Ids compuestos del número del artículo, que en la LCSP no existen** (02). El índice de la Ley 9/2017 no tiene
+`a117` ni `a118`: sus ids son `a1`…`a9`, `a1-2`, `a1-3`, …, `a2-11`, … y el artículo 118 es `a1-30`
+(`boe articulo BOE-A-2017-12902 a1-30 --json --offline` → `"titulo":"Artículo 118"`). El modelo, que sabía que el
+expediente del contrato menor está en el artículo 118, compuso `a118` en lugar de copiar el id de la entrada del índice
+cuyo `titulo` es «Artículo 118», contra el paso 3 del protocolo («no pidas nunca un id de bloque que no salga del
+índice»). Y en el job un id inexistente no devuelve 3 (no encontrado) sino 5, porque la petición no llega a la fuente
+(`boe articulo BOE-A-2017-12902 a118 --json --offline` → 4 en local; 5 con el proxy), así que la vuelta al índice que el
+protocolo manda «ante un código 3» nunca se activa: el protocolo tiene que hacer que el id salga del índice *antes* de
+pedirlo.
+
+**(c) El artículo elegido no es el esperado** (05, 07). La 05 pidió `a2` (artículo 2 del TRLRHL, «Enumeración de los
+recursos de las entidades locales») en lugar de `a59` («Enumeración de impuestos»), y la 07 pidió `a140` a `a145`
+(Título III de la Ley 40/2015, relaciones interadministrativas) en lugar de `a25` (principio de legalidad, en el
+capítulo III del título preliminar), diciendo en su respuesta que los principios de la potestad sancionadora están en el
+«Título III». Los dos ids existen en el índice; el error es de conocimiento del modelo: **los títulos del índice de la
+fuente son solo «Artículo N», «TÍTULO I», «CAPÍTULO III», «SECCIÓN 2», sin rúbrica** (es lo que devuelve la API de
+legislación consolidada en `texto/indice`; comprobado en las diez normas de las evals), así que el índice sirve para
+pasar de un número de artículo a su id, no para encontrar un artículo por su materia. Con red, el modelo podría leer
+bloques hasta dar con él; en el job todo bloque no grabado responde 5, y no hay ninguna redacción del protocolo que
+supla lo que el modelo no sabe. La 05 falló igual en el intento 3 (su respuesta decía entonces «código 5» sin que la
+traza dijera qué pidió); la 07 respondió en el intento 3 con texto y citas, así que probablemente acertó `a25` entonces.
+No es un defecto del job ni de la skill que T030 pueda arreglar: es una decisión (§«Lo que decide la persona» de
+`gates/tarea-T030.md`).
+
+**(d) El nombre de la norma dentro de los corchetes de la cita** (10). La sesión leyó `a38` con 0 y citó
+`[Real Decreto Legislativo 2/2015, BOE-A-2015-11430, bloque a38]`; la forma fija (contrato de la skill §3, FR-008) es
+`[<identificador>, bloque <id>]` y la expresión que extrae las citas (`formaDeCita`, `internal/evals/citas.go`) exige
+el identificador justo tras el corchete, como debe (SC-009: la comparación distingue identificadores, y una cita con otra
+cosa dentro de los corchetes no es la forma que la skill fija). El SKILL.md dice que no se admite «art. 21» ni «artículo
+21» dentro de los corchetes; no dice nada del nombre ni del rango de la norma, que es lo que el modelo metió.
+
+**Medidas que sostienen (b) y (c)**, tomadas en local sobre la caché preparada de una sesión, con el binario de la
+cabeza y `--offline` (`indice --json` de cada norma de las evals: octetos de la salida, bloques y posición del bloque
+esperado en la salida; todas en una sola línea de JSON compacto):
+
+| Norma | Octetos | Bloques | Bloque esperado | Posición |
+|---|---|---|---|---|
+| BOE-A-2017-12902 (LCSP) | 34 720 | 557 | `a1-30` | 9 376 |
+| BOE-A-2003-23186 (LGT) | 26 984 | 448 | `a66` | 5 568 |
+| BOE-A-2004-4214 (TRLRHL) | 22 657 | 368 | `a59` | 6 325 |
+| BOE-A-2006-20764 (LIRPF) | 20 552 | 274 | `a17` | 1 888 |
+| BOE-A-2015-10566 (LRJSP) | 17 338 | 267 | `a25` | 2 342 |
+| BOE-A-1985-5392 (LRBRL) | 13 906 | 231 | `a22` | 1 822 |
+| BOE-A-1978-31229 (CE) | 12 324 | 210 | `a140` | 9 316 |
+| BOE-A-2015-10565 (LPAC) | 11 974 | 195 | `a21` | 1 876 |
+| BOE-A-2015-11430 (ET) | 11 881 | 178 | `a38` | 3 377 |
+| BOE-A-2013-12887 (LTAIBG) | 4 764 | 70 | `a20` | 1 925 |
+
+Un supuesto que ninguna evidencia del job puede confirmar, porque el job no conserva los transcripts de las sesiones: que
+la herramienta Bash de Claude Code entregó al modelo la salida del índice de la LCSP entera o, si la recorta (la
+documentación pública de Claude Code describe un tope de caracteres con recorte por el medio, `BASH_MAX_OUTPUT_LENGTH`,
+que la lectura del binario 2.1.270 de este intento no encontró como cadena), que el recorte no alcanzó la entrada de
+`a1-30`, que está en el primer tercio de la salida. Las otras nueve salidas están por debajo de cualquier tope
+razonable.
+
+**Arreglo**: la tarea nueva **T040**, antes de T030, refuerza el protocolo de `skills/boe-legislacion/SKILL.md` sin
+cambiar sus cinco pasos ni sus cinco reglas: el id de un bloque se copia de la entrada del índice cuyo `titulo` es el
+artículo y nunca se compone del número (con el ejemplo `a1-30`); los bloques se leen de uno en uno con `articulo`, y
+`articulos` solo cuando hacen falta varios a la vez y todos salen del índice; si una orden con varios bloques termina
+con 4 o 5, se pide cada bloque por separado antes de dar ninguno por no consultado; y dentro de los corchetes de la cita
+no va nada más que el identificador y el id. Con ello 02, 03 y 08 (y la 06 sin rodeo) tienen un camino que la caché
+preparada sirve; 10, la forma que el extractor exige. Para 05 y 07 no hay arreglo en el protocolo: la decisión está en
+`gates/tarea-T030.md`. Alternativas rechazadas: grabar los bloques vecinos que pidió el modelo (persigue cada sesión y
+deja lo grabado sin regla; FR-074 lo acota a lo que los comandos esperados necesitan); admitir texto delante del
+identificador dentro de los corchetes en `formaDeCita` (cambia la forma fija de FR-008 y el contrato §3 para tolerar un
+desvío del protocolo, que es justo lo que SC-009 quiere detectar); que `Juzgar` cuente un bloque leído con 4 o 5 (FR-072
+y FR-076 lo prohíben); y cambiar el modelo de las sesiones (la clarificación del spec lo fija en la gama económica).
 
 ## 5. Supuestos de research D22
 
 | Supuesto | Qué muestra esta ejecución | Estado |
 |---|---|---|
-| **S12** (identificar la ejecución) | (1) La API de eventos devuelve, tal cual y en este orden, cinco eventos de la etiqueta antes de la séptima orden: `2026-09-15T02:48:51Z	labeled`, `2026-09-15T02:58:51Z	unlabeled`, `2026-09-15T04:48:02Z	labeled`, `2026-09-15T05:08:29Z	unlabeled` y `2026-09-15T06:19:28Z	labeled` (todos de `evals-prueba-de-red`, actor `jmorenobl`; `gh api --paginate 'repos/{owner}/{repo}/issues/27/events?per_page=100' --jq '.[] \| select(.event == "labeled" or .event == "unlabeled") \| "\(.created_at)\t\(.event)\t\(.label.name)\t\(.actor.login)"'`), y un sexto, `2026-09-15T06:41:11Z	unlabeled`, tras ella; las órdenes ordenan los instantes y eligen `2026-09-15T06:19:28Z`. (2) `created_at` (`…T06:19:28Z`) y `createdAt` (`…T06:19:30Z`) con el mismo formato ISO 8601 UTC con `Z`. (3) La ejecución se creó 2 s después del evento. (5) **Ejercido**: la rama ya tenía dos ejecuciones de `evals` anteriores (34922606273 y 34930222593, de los intentos 1 y 2), y la orden no eligió ninguna: `posteriores_a_la_etiqueta` lista solo 34936425178. (6) `workflowName` `evals` en `posteriores_a_la_etiqueta`, aunque `evals.yml` solo está en la rama de la propuesta. (4) Sin ejercer: la etiqueta no estaba puesta al empezar (la quitó el intento 2) y al final `gh pr view` la listaba, así que se quitó estando puesta | **se cumple** en (1), (2), (3), (5) y (6); (4), sin ejercer |
-| **S2** (lo que trae `ubuntu-24.04`) | `sudo` sin contraseña en el paso de retirada y `sudo -n` en la comprobación 3 (`usuario: root`). `strace` 6.8 ya en la imagen (`strace is already the newest version (6.8-0ubuntu2).`). `npm install -g @anthropic-ai/claude-code@2.1.270`: `added 2 packages in 5s`, `claude --version` → `2.1.270 (Claude Code)`. `timeout`: ejercido en las trece sesiones (devolvió el 0 de `claude`). GNU findutils y coreutils: la línea `búsqueda:` seguida de 921 `retirado:` y de `búsqueda tras retirar: ninguno` (`find` con `-perm /111`, `-iname`, `-prune`, y `-H … -quit` en la regla del prefijo; `readlink -e` en lo usado; `rm -rf` sin ningún error). Sin `bubblewrap` ni `socat`, que el job ya no necesita (T036) | **se cumple** en todo lo ejercido |
-| **S7** (retirada de Python) | (1) **Lo que trae**: las mismas 921 rutas del intento 2 (§3.2). (2) **Buscar como root**: `find` recorrió toda la imagen salvo `/proc` y `/sys` en 2 m 37 s y terminó con 0. (3) **Retirar**: 921 borrados sin ningún error; nada en solo lectura. (4) **No romper el job**: la comprobación de lo usado pasó, y después del paso corrieron `bash`, `sudo`, `find` (comprobación 3), `go` (los tests del guion), `make`, `git`, `timeout`, `strace`, `claude` (trece sesiones enteras, con el modelo) y el binario (las respuestas de las sesiones citan lo que devolvió, y las de la 05, 06 y 10, su código 5) | **se cumple** en (1)-(4) |
-| **S4** (formato de `strace -ff` en el runner) | **Difiere**: la línea con la que Claude Code de x86_64 crea los procesos de sus órdenes es `vfork()` con el relleno de alineación de `strace` (`vfork()                                 = 11494`, 47 octetos), una forma que ni V53 ni V54 vieron y que `LeerTrazas` no admite; las trece sesiones, ninguna cortada (código 0), son ilegibles por ella (fichero `t.<n>` del hilo principal de `claude`, línea 5, o 7 en la 01, y su texto: §3.3 y anexo A). Ninguna conexión ni invocación leída: la lectura se detiene en esa línea, antes de la `execve` de `bash` y de las del binario. **Parcial a favor**: las líneas anteriores de cada fichero principal (la `execve` de `claude` y las de creación de sus primeros hilos en amd64) tienen formas admitidas, y las trece trazas se leyeron con `cortada` falso hasta el defecto | **difiere** en la línea de creación de procesos (arreglo: T038 y T039); sin evidencia de `connect` ni de la atribución por invocación |
-| **S9** (una sesión cabe en 240 s) | Las trece terminaron por sí mismas, entre 7 y 40 s cada una (§3.3), con hasta 30 turnos disponibles; ninguna con código 124 ni 137 | **se cumple** en las trece |
-| **S10** (códigos de la sesión) | Las trece con `codigo_de_la_sesion` 0: `timeout --kill-after=10s 240s strace -ff …` devolvió el 0 de `claude` cuando este terminó bien, y el guion lo escribió en `codigo-de-la-sesion` (en el intento 2, el 1) | **se cumple** en el 0 y en la propagación; 124 y 137 no se provocan |
-| S1 (fuera de la lista de esta tarea) | `pull_request` con `types: [labeled]` ejecutó el `evals.yml` de la rama (`COMMIT_EVALUADO: 857ec46…`, `PRUEBA_DE_RED: true`) y el secreto llegó al paso y a la sesión: las trece se autenticaron | se cumple en lo ejercido |
-| S5, S6 (Claude Code en `-p`: skills, proxy, credencial, modelo) | S5: las diez positivas activaron la skill (`activada` sí) y las dos de no activación no; Bash ejecutó el binario (las respuestas citan lo que devolvió, y tres de ellas su código 5 ante el proxy), sin sandbox; qué vio cada orden del entorno no se puede leer sin traza. S6: `CLAUDE_CODE_OAUTH_TOKEN` autenticó las trece sesiones y `--model claude-haiku-4-5-20251001` se aceptó (`Modelos de las sesiones: claude-haiku-4-5-20251001`) | se cumplen en lo ejercido |
-| S11 (solo `api.anthropic.com`) | Con `NO_PROXY=api.anthropic.com` y el proxy que rechaza para todo lo demás, las trece sesiones llegaron al modelo y terminaron con `result success` | se cumple en lo ejercido |
+| **S12** (identificar la ejecución) | (1) La API de eventos devuelve, tal cual y en este orden, siete eventos de la etiqueta antes de la séptima orden: `2026-09-15T02:48:51Z	labeled`, `2026-09-15T02:58:51Z	unlabeled`, `2026-09-15T04:48:02Z	labeled`, `2026-09-15T05:08:29Z	unlabeled`, `2026-09-15T06:19:28Z	labeled`, `2026-09-15T06:41:11Z	unlabeled` y `2026-09-15T07:23:53Z	labeled` (todos de `evals-prueba-de-red`, actor `jmorenobl`; `gh api --paginate 'repos/{owner}/{repo}/issues/27/events?per_page=100' --jq '.[] \| select(.event == "labeled" or .event == "unlabeled") \| "\(.created_at)\t\(.event)\t\(.label.name)\t\(.actor.login)"'`), y un octavo, `2026-09-15T07:48:54Z	unlabeled`, tras ella; las órdenes ordenan los instantes y eligen `2026-09-15T07:23:53Z`. (2) `created_at` (`…T07:23:53Z`) y `createdAt` (`…T07:23:55Z`) con el mismo formato ISO 8601 UTC con `Z`. (3) La ejecución se creó 2 s después del evento. (5) **Ejercido**: la rama ya tenía tres ejecuciones de `evals` anteriores (34922606273, 34930222593 y 34936425178), y la orden no eligió ninguna: `posteriores_a_la_etiqueta` lista solo 34941499481. (6) `workflowName` `evals` en `posteriores_a_la_etiqueta`, aunque `evals.yml` solo está en la rama de la propuesta. (4) Sin ejercer: la etiqueta no estaba puesta al empezar (la quitó el intento 3) y al final `gh pr view` la listaba, así que se quitó estando puesta | **se cumple** en (1), (2), (3), (5) y (6); (4), sin ejercer |
+| **S2** (lo que trae `ubuntu-24.04`) | `sudo` sin contraseña en el paso de retirada y `sudo -n` en la comprobación 3 (`usuario: root`). `strace` 6.8 ya en la imagen (`strace is already the newest version (6.8-0ubuntu2).`). `npm install -g @anthropic-ai/claude-code@2.1.270`: `added 2 packages in 3s`, `claude --version` → `2.1.270 (Claude Code)`. `timeout`: ejercido en las trece sesiones (devolvió el 0 de `claude`). GNU findutils y coreutils: la línea `búsqueda:` seguida de 921 `retirado:` y de `búsqueda tras retirar: ninguno` (`find` con `-perm /111`, `-iname`, `-prune`, y `-H … -quit` en la regla del prefijo; `readlink -e` en lo usado; `rm -rf` sin ningún error). Sin `bubblewrap` ni `socat`, que el job no necesita (T036) | **se cumple** en todo lo ejercido |
+| **S7** (retirada de Python) | (1) **Lo que trae**: las mismas 921 rutas del intento 3 (§3.2). (2) **Buscar como root**: `find` recorrió toda la imagen salvo `/proc` y `/sys` en 2 m 32 s y terminó con 0. (3) **Retirar**: 921 borrados sin ningún error; nada en solo lectura. (4) **No romper el job**: la comprobación de lo usado pasó, y después del paso corrieron `bash`, `sudo`, `find` (comprobación 3), `go` (los tests del guion), `make`, `git`, `timeout`, `strace`, `claude` (trece sesiones enteras, con el modelo) y el binario (26 invocaciones leídas de las trazas, con sus códigos 0, 2, 4 y 5 y el texto que las respuestas citan) | **se cumple** en (1)-(4) |
+| **S4** (formato de `strace -ff` en el runner) | **Se cumple**: las trece sesiones, ninguna cortada (código 0), se leyeron enteras, con la línea `vfork()` con relleno de alineación en el fichero principal de `claude` de cada una (la forma de T038 y T039, V63), las `execve` de `bash` y del binario con su argv entero (`-s 131072`, V62), las líneas de creación de hilos de Go (`clone` con `CLONE_THREAD`) y de Claude Code (`clone3`), y sus líneas finales; ninguna `sesión ilegible`. La invocación `boe articulo BOE-A-2015-10565 a9998 --json` de `01-lpac-articulo-21-prueba-de-red` tiene una sola conexión, `127.0.0.1:9` de clase `local` (la del proxy que rechaza; la pareja destino y clase presentada una vez), atribuida a ella y no a la que lleva `--offline`, que no conectó; las otras once invocaciones con código 5 de las sesiones 02, 03, 05, 06, 07 y 08 tienen la misma conexión `local`, y las quince con código 0 no tienen ninguna. Ninguna conexión de clase `red` | **se cumple**: las líneas `connect`, las de creación de hilos y procesos, las de señal y la atribución por hilos funcionan con las trazas reales del runner |
+| **S9** (una sesión cabe en 240 s) | Las trece terminaron por sí mismas, entre 6 y 38 s cada una (§3.3), con hasta 30 turnos disponibles; ninguna con código 124 ni 137 | **se cumple** en las trece |
+| **S10** (códigos de la sesión) | Las trece con `codigo_de_la_sesion` 0: `timeout --kill-after=10s 240s strace -ff …` devolvió el 0 de `claude` cuando este terminó bien, y el guion lo escribió en `codigo-de-la-sesion` | **se cumple** en el 0 y en la propagación; 124 y 137 no se provocan |
+| S1 (fuera de la lista de esta tarea) | `pull_request` con `types: [labeled]` ejecutó el `evals.yml` de la rama (`COMMIT_EVALUADO: 537e5d6…`, `PRUEBA_DE_RED: true`) y el secreto llegó al paso y a la sesión: las trece se autenticaron | se cumple en lo ejercido |
+| S5, S6 (Claude Code en `-p`: skills, proxy, credencial, modelo) | S5: las diez positivas y la de prueba de red activaron la skill y las dos de no activación no; Bash ejecutó el binario por el enlace de la skill (las 26 invocaciones de las trazas, con `KITLEGAL_CACHE_DIR` y el proxy heredados: las de código 0 leyeron la caché sin conectar, y las de código 5 conectaron solo a `127.0.0.1:9`), sin sandbox. S6: `CLAUDE_CODE_OAUTH_TOKEN` autenticó las trece sesiones y `--model claude-haiku-4-5-20251001` se aceptó (`Modelos de las sesiones: claude-haiku-4-5-20251001`) | se cumplen en lo ejercido |
+| S11 (solo `api.anthropic.com`) | Con `NO_PROXY=api.anthropic.com` y el proxy que rechaza para todo lo demás, las trece sesiones llegaron al modelo y terminaron con `result success`; ninguna invocación del binario conectó fuera del bucle local | se cumple en lo ejercido |
 
 ## Anexos
 
@@ -241,1882 +348,2238 @@ el código de cada orden. Van entre vallas de cinco acentos graves porque el inf
 ## Anexo A · Quinta orden de §12.2: informe entre marcas, tal cual
 
 `````text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1135350Z --- inicio de informe.md ---
-evals	Ejecutar las evals	2026-09-15T06:29:54.1149052Z # Informe de evals de boe-legislacion
-evals	Ejecutar las evals	2026-09-15T06:29:54.1149581Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1149919Z ## Veredicto
-evals	Ejecutar las evals	2026-09-15T06:29:54.1150284Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1150595Z Veredicto: fallo
-evals	Ejecutar las evals	2026-09-15T06:29:54.1150963Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1151260Z Motivos:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1151651Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1154693Z - 01-lpac-articulo-21: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21/traza/t.11488, línea 7: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11494»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1160322Z - 01-lpac-articulo-21-prueba-de-red: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21-prueba-de-red/traza/t.15051, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 15057»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1165401Z - 02-lcsp-contrato-menor: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/02-lcsp-contrato-menor/traza/t.11818, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11824»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1170779Z - 03-lrbrl-atribuciones-del-pleno: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/03-lrbrl-atribuciones-del-pleno/traza/t.12178, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12185»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1175961Z - 04-lgt-prescripcion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/04-lgt-prescripcion/traza/t.12527, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12533»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1180899Z - 05-trlrhl-impuestos-municipales: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/05-trlrhl-impuestos-municipales/traza/t.12868, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12874»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1186211Z - 06-irpf-rendimientos-del-trabajo: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/06-irpf-rendimientos-del-trabajo/traza/t.13209, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13215»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1191163Z - 07-lrjsp-principio-de-legalidad: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/07-lrjsp-principio-de-legalidad/traza/t.13550, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13556»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1194104Z make: *** [Makefile:112: evals] Error 1
-evals	Ejecutar las evals	2026-09-15T06:29:54.1196900Z - 08-ltaibg-plazo-de-resolucion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/08-ltaibg-plazo-de-resolucion/traza/t.13898, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13904»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1200898Z - 09-constitucion-articulo-140: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/09-constitucion-articulo-140/traza/t.14234, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14240»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1204609Z - 10-et-vacaciones: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/10-et-vacaciones/traza/t.14568, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14574»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1209469Z - 11-no-activa-programacion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/11-no-activa-programacion/traza/t.14910, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14916»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1214209Z - 12-no-activa-acuerdo-entre-amigos: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/12-no-activa-acuerdo-entre-amigos/traza/t.14983, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14989»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217186Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217343Z ## Cabecera
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217473Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217619Z Modelo del job: claude-haiku-4-5-20251001
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217840Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1217997Z Modelos de las sesiones: claude-haiku-4-5-20251001
-evals	Ejecutar las evals	2026-09-15T06:29:54.1218232Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1218357Z Versiones de Claude Code: 2.1.270
-evals	Ejecutar las evals	2026-09-15T06:29:54.1218535Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1218686Z Commit: 857ec465074a273bd0d7c0c175185f830d3112ea
-evals	Ejecutar las evals	2026-09-15T06:29:54.1218902Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1219090Z ## Comprobación sin Python
-evals	Ejecutar las evals	2026-09-15T06:29:54.1219265Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1219362Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1220382Z búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
-evals	Ejecutar las evals	2026-09-15T06:29:54.1221255Z usuario: root
-evals	Ejecutar las evals	2026-09-15T06:29:54.1221498Z resultado: ninguno
-evals	Ejecutar las evals	2026-09-15T06:29:54.1221723Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1221839Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1221946Z ## Ficheros mal formados
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222109Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222205Z ninguno
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222493Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222617Z ## Invocaciones fuera de lo grabado
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222807Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1222897Z ninguna
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223008Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223130Z ## Peticiones llegadas a la red
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223302Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223505Z ninguna petición llegó a la red de una fuente
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223728Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223820Z ## Sesiones
-evals	Ejecutar las evals	2026-09-15T06:29:54.1223943Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1224355Z | Sesión | Eval | Activa | Activada | Sesión terminada | Comandos ausentes | Citas ausentes | Resultado |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1225296Z | --- | --- | --- | --- | --- | --- | --- | --- |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1226308Z | 01-lpac-articulo-21 | 01-lpac-articulo-21.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1227227Z | 01-lpac-articulo-21-prueba-de-red | 01-lpac-articulo-21.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1228140Z | 02-lcsp-contrato-menor | 02-lcsp-contrato-menor.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1229080Z | 03-lrbrl-atribuciones-del-pleno | 03-lrbrl-atribuciones-del-pleno.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1229965Z | 04-lgt-prescripcion | 04-lgt-prescripcion.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1230880Z | 05-trlrhl-impuestos-municipales | 05-trlrhl-impuestos-municipales.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1231904Z | 06-irpf-rendimientos-del-trabajo | 06-irpf-rendimientos-del-trabajo.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1232940Z | 07-lrjsp-principio-de-legalidad | 07-lrjsp-principio-de-legalidad.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1234086Z | 08-ltaibg-plazo-de-resolucion | 08-ltaibg-plazo-de-resolucion.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1235343Z | 09-constitucion-articulo-140 | 09-constitucion-articulo-140.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1236317Z | 10-et-vacaciones | 10-et-vacaciones.yaml | sí | sí | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1237145Z | 11-no-activa-programacion | 11-no-activa-programacion.yaml | no | no | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1238121Z | 12-no-activa-acuerdo-entre-amigos | 12-no-activa-acuerdo-entre-amigos.yaml | no | no | sí (código 0) | ninguno | ninguna | no pasa |
-evals	Ejecutar las evals	2026-09-15T06:29:54.1238620Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1238786Z ## Sesión 01-lpac-articulo-21
-evals	Ejecutar las evals	2026-09-15T06:29:54.1238989Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239117Z Eval: 01-lpac-articulo-21.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239303Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239411Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239537Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239629Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1239914Z ¿qué dice el art. 21 de la Ley 39/2015?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240202Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240318Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240427Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240581Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240681Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240803Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1240898Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1241543Z El **artículo 21 de la Ley 39/2015** regula la obligación de resolver en los procedimientos administrativos. Sus puntos principales son:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1242035Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1242234Z **1. Obligación de dictar resolución expresa**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1244410Z La Administración debe dictar resolución expresa y notificarla en todos los procedimientos, independientemente de cómo se inicien. En casos especiales (prescripción, renuncia, caducidad, desistimiento o desaparición del objeto del procedimiento), la resolución consistirá en declarar la circunstancia que corresponda. Se exceptúan los procedimientos terminados por pacto/convenio y los relativos a derechos sometidos únicamente a declaración responsable o comunicación.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1246364Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1246543Z **2. Plazo máximo de resolución**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1247399Z - El plazo será el fijado por la norma reguladora del procedimiento, **sin exceder seis meses** (salvo que una ley establezca un plazo mayor o lo prevea el Derecho de la UE).
-evals	Ejecutar las evals	2026-09-15T06:29:54.1248215Z - Si la norma no fija plazo, será **tres meses**.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1249130Z - Estos plazos se cuentan desde el acuerdo de iniciación (procedimientos de oficio) o desde la entrada de la solicitud en el registro (procedimientos iniciados a solicitud).
-evals	Ejecutar las evals	2026-09-15T06:29:54.1249728Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1249900Z **3. Información a los interesados**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1250868Z Las Administraciones deben publicar los plazos máximos en su portal web y **informar a los interesados** del plazo, los efectos del silencio administrativo y la fecha de recepción de la solicitud.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1251769Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1251935Z **4. Ampliación de medios**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1252573Z Si el volumen de solicitudes podría incumplir el plazo, pueden habilitarse medios personales y materiales adicionales.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1253027Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1253137Z **5. Responsabilidad**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1253930Z El personal administrativo y los órganos responsables son responsables del cumplimiento de esta obligación, pudiendo incurrir en responsabilidad disciplinaria.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1254522Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1254683Z [art. 21 de la Ley 39/2015, BOE-A-2015-10565, bloque a21]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1255192Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1255310Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1255449Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1255601Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1256936Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21/traza/t.11488, línea 7: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11494»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1258217Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1258361Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1258507Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1258695Z ## Sesión 01-lpac-articulo-21-prueba-de-red
-evals	Ejecutar las evals	2026-09-15T06:29:54.1258914Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259034Z Eval: 01-lpac-articulo-21.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259212Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259313Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259432Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259530Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1259806Z ¿qué dice el art. 21 de la Ley 39/2015?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1260002Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1261106Z Antes de responder, ejecuta también exactamente estas dos órdenes y di qué devolvieron: `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262145Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262258Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262370Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262514Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262616Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262740Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1262831Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1263363Z ## El artículo 21 de la Ley 39/2015 regula la **obligación de resolver** en los procedimientos administrativos:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1263766Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1265659Z **Obligación básica**: La Administración está obligada a dictar resolución expresa y a notificarla en todos los procedimientos, sea cual sea su forma de iniciación. En casos de prescripción, renuncia del derecho, caducidad, desistimiento o desaparición del objeto, la resolución debe consistir en la declaración de la circunstancia que concurra [art. 21.1, Ley 39/2015, BOE-A-2015-10565, bloque a21].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1267016Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1268005Z **Excepciones**: No existe esta obligación en procedimientos terminados por pacto o convenio, ni en los relativos al ejercicio de derechos sometidos únicamente a declaración responsable o comunicación a la Administración [art. 21.1, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1268865Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1269035Z **Plazos máximos de resolución**:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1269984Z - El plazo lo fija la norma que regula cada procedimiento, pero no puede exceder de **seis meses** salvo que una ley establezca uno mayor o lo prevea el Derecho de la Unión Europea [art. 21.2, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1270929Z - Si no hay plazo fijado, será de **tres meses** [art. 21.3, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1271941Z - El plazo se cuenta desde el acuerdo de iniciación (si es de oficio) o desde que la solicitud tenga entrada en el registro electrónico (si es a solicitud del interesado) [art. 21.3.a-b, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1272593Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1273543Z **Obligación de información**: Las Administraciones deben informar a los interesados del plazo máximo y de los efectos del silencio administrativo, dentro de los diez días siguientes a la recepción de la solicitud [art. 21.4, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1274607Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1275771Z **Responsabilidad**: El personal y los titulares de órganos competentes son directamente responsables del cumplimiento de la obligación de resolver en plazo, y su incumplimiento da lugar a responsabilidad disciplinaria [art. 21.6, ibídem].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1276725Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1276866Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1277004Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1277159Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1278570Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21-prueba-de-red/traza/t.15051, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 15057»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1279766Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1279904Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280072Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280235Z ## Sesión 02-lcsp-contrato-menor
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280546Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280677Z Eval: 02-lcsp-contrato-menor.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280866Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1280962Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1281088Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1281186Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1281689Z ¿Qué debe incluir el expediente de un contrato menor según la Ley de Contratos del Sector Público?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282151Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282264Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282374Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282520Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282628Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282755Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1282846Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1283419Z Según la Ley de Contratos del Sector Público, el expediente de un contrato menor debe incluir los siguientes documentos:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1283861Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1283981Z ## Documentos obligatorios
-evals	Ejecutar las evals	2026-09-15T06:29:54.1284153Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1284411Z 1. **Informe motivado del órgano de contratación** que justifique:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1285076Z    - La necesidad del contrato
-evals	Ejecutar las evals	2026-09-15T06:29:54.1285688Z    - Que no se está alterando el objeto con fin de evitar los umbrales de contratación
-evals	Ejecutar las evals	2026-09-15T06:29:54.1286017Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1286165Z 2. **Aprobación del gasto**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1286335Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1286706Z 3. **Factura correspondiente** que reúna los requisitos establecidos en las normas de desarrollo
-evals	Ejecutar las evals	2026-09-15T06:29:54.1287069Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1287255Z [art. 118.2-3 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1287502Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1287730Z ## Documentación adicional para contratos menores de obras
-evals	Ejecutar las evals	2026-09-15T06:29:54.1287985Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1288151Z Además de lo anterior, deben incluir:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1288345Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1288469Z - **Presupuesto de las obras**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1288851Z - **Proyecto** (cuando sea requerido por las disposiciones vigentes)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1289574Z - **Informe de supervisión técnica** cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290021Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290195Z [art. 118.4 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290443Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290543Z ## Excepciones
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290687Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1290847Z No es necesario incluir el informe motivado cuando:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1291463Z - El pago se realice a través de **anticipos de caja fija** u otro sistema similar para pagos menores
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292020Z - El valor estimado del contrato **no exceda de 5.000 euros**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292271Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292446Z [art. 118.5 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292679Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292777Z ## Publicidad
-evals	Ejecutar las evals	2026-09-15T06:29:54.1292908Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1293510Z Los contratos menores también deben publicarse según lo previsto en el artículo 63.4 de la LCSP [art. 118.6 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1294322Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1294438Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1294577Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1294728Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1296312Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/02-lcsp-contrato-menor/traza/t.11818, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11824»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1297419Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1297559Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1297711Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1297892Z ## Sesión 03-lrbrl-atribuciones-del-pleno
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298100Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298246Z Eval: 03-lrbrl-atribuciones-del-pleno.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298455Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298551Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298673Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1298770Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1299298Z ¿Qué atribuciones tiene el Pleno del ayuntamiento según la Ley reguladora de las Bases del Régimen Local?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1299950Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300065Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300181Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300333Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300435Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300556Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1300649Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1301658Z No puedo consultar el contenido de la LRBRL en este momento debido a problemas de acceso a la API del Boletín Oficial del Estado. La fuente reporta que no puede obtener el archivo de robots.txt necesario para autorizar las peticiones.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1302437Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1303436Z Según el protocolo de la skill, no debo suplir el contenido de la norma con conocimiento propio cuando `scripts/boe` no está disponible, ya que los textos consolidados del BOE tienen carácter informativo y deben citarse con precisión desde la fuente oficial.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1304296Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1304412Z **Lo que puedo decir es que:**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1304588Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1305374Z - La norma aplicable es la **Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local** [BOE-A-1985-5392] — abreviada como LRBRL
-evals	Ejecutar las evals	2026-09-15T06:29:54.1306518Z - Las atribuciones del Pleno del ayuntamiento están reguladas en esta ley, típicamente en los artículos que conforman el Título III, dedicado a la organización municipal
-evals	Ejecutar las evals	2026-09-15T06:29:54.1307118Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1307293Z Si necesitas consultar el texto vigente, te recomiendo:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1307838Z 1. Acceder directamente a [boe.es](https://www.boe.es) y buscar la LRBRL (BOE-A-1985-5392)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1308483Z 2. Contactar con un asesor jurídico especializado en derecho municipal
-evals	Ejecutar las evals	2026-09-15T06:29:54.1309071Z 3. Intentar la consulta nuevamente en unos momentos para ver si el servicio de API se recupera
-evals	Ejecutar las evals	2026-09-15T06:29:54.1309430Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1309799Z ¿Hay algo específico sobre las atribuciones del Pleno en lo que pueda ayudarte de otra forma?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1310248Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1310378Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1310514Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1310669Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1312063Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/03-lrbrl-atribuciones-del-pleno/traza/t.12178, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12185»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313213Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313354Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313498Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313655Z ## Sesión 04-lgt-prescripcion
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313831Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1313950Z Eval: 04-lgt-prescripcion.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1314124Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1314224Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1314343Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1314440Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1315262Z ¿En cuántos años prescribe el derecho de la Administración a liquidar una deuda tributaria según la Ley General Tributaria?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316066Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316178Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316303Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316456Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316555Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316682Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1316789Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1317390Z Según la Ley General Tributaria, el derecho de la Administración a liquidar una deuda tributaria prescribe en **4 años**.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1317847Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1318866Z Esto está regulado en el art. 66 de la Ley 58/2003 [BOE-A-2003-23186, bloque a66], que señala que "Prescribirán a los cuatro años los siguientes derechos: a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación".
-evals	Ejecutar las evals	2026-09-15T06:29:54.1319795Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1319910Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1320043Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1320195Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1321512Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/04-lgt-prescripcion/traza/t.12527, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12533»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1322782Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1322916Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323068Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323248Z ## Sesión 05-trlrhl-impuestos-municipales
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323456Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323599Z Eval: 05-trlrhl-impuestos-municipales.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323811Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1323906Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1324026Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1324122Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1324708Z ¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1325471Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1325589Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1325699Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1325849Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1325951Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1326075Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1326182Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1327729Z Lo siento, no puedo completar la consulta en este momento. Aunque he identificado correctamente que se trata del Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales [BOE-A-2004-4214], **la fuente del BOE no está disponible** en este momento (error de conectividad con el servidor).
-evals	Ejecutar las evals	2026-09-15T06:29:54.1328917Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1329300Z Normalmente, la respuesta se encontraría en los artículos iniciales del TRLRHL, particularmente:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1329922Z - **Artículo 2**, que clasifica los ingresos de los municipios
-evals	Ejecutar las evals	2026-09-15T06:29:54.1330384Z - **Artículos 3-5**, que desglosan esa clasificación 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1330967Z - **Título I (artículos 6-55)**, que desarrolla específicamente cada tipo de impuesto municipal
-evals	Ejecutar las evals	2026-09-15T06:29:54.1331321Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1331819Z Para obtener la información actualizada sobre qué impuestos pueden exigir los ayuntamientos según el TRLRHL, te recomiendo:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1332294Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1332588Z 1. **Consultar directamente el BOE** en https://www.boe.es/buscar/act.php?id=BOE-A-2004-4214
-evals	Ejecutar las evals	2026-09-15T06:29:54.1333346Z 2. **Contactar con profesionales especializados** en derecho tributario municipal o hacienda pública
-evals	Ejecutar las evals	2026-09-15T06:29:54.1333834Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1333943Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1334080Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1334229Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1335705Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/05-trlrhl-impuestos-municipales/traza/t.12868, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12874»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1336882Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1337024Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1337180Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1337356Z ## Sesión 06-irpf-rendimientos-del-trabajo
-evals	Ejecutar las evals	2026-09-15T06:29:54.1337749Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1337893Z Eval: 06-irpf-rendimientos-del-trabajo.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1338114Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1338214Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1338336Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1338426Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1338874Z ¿Qué rendimientos se consideran rendimientos íntegros del trabajo en la ley del IRPF?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339302Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339416Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339518Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339669Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339766Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339882Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1339973Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1341195Z No he podido consultar la norma en este momento. El servicio de legislación consolidada del BOE está respondiendo con un error de límite de ritmo (código 5), lo que impide acceder al texto vigente de los artículos de la Ley 35/2006 del IRPF que regulan los rendimientos íntegros del trabajo.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1342118Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1342223Z Te recomiendo que:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1342363Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1343370Z 1. **Consultes directamente el BOE**: Puedes acceder al texto consolidado de la Ley 35/2006, de 28 de noviembre (LIRPF) en https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764, donde encontrarás los artículos sobre rendimientos del trabajo, especialmente:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1344543Z    - **Artículo 17**: Clasificación de rentas
-evals	Ejecutar las evals	2026-09-15T06:29:54.1345502Z    - **Artículo 21**: Rendimientos netos del trabajo personal (que define qué se considera rendimiento del trabajo y cómo se calcula el íntegro)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1346011Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1346324Z 2. **Esperes unos minutos** para que vuelva a estar disponible el servicio y reintentes la consulta.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1346699Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1347025Z ¿Quieres que lo intente de nuevo en un momento, o prefieres que te ayude de otra forma?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1347443Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1347555Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1347686Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1347836Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1349195Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/06-irpf-rendimientos-del-trabajo/traza/t.13209, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13215»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1350347Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1350480Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1350626Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1350804Z ## Sesión 07-lrjsp-principio-de-legalidad
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351011Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351152Z Eval: 07-lrjsp-principio-de-legalidad.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351359Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351453Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351572Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1351667Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352085Z ¿Qué dice la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352487Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352604Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352713Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352868Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1352967Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1353088Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1353184Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1353963Z Basándome en la consulta realizada a la legislación consolidada del BOE, te presento lo que dice la **Ley 40/2015** sobre el principio de legalidad en la potestad sancionadora:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1354553Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1354721Z ## Artículo 25. Principio de legalidad
-evals	Ejecutar las evals	2026-09-15T06:29:54.1355018Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1355539Z La ley establece que la potestad sancionadora en las Administraciones Públicas se rige por los siguientes requisitos fundamentales:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1356035Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1356200Z **1. Exigencia de habilitación legal**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1356384Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1357414Z La potestad sancionadora **debe estar expresamente reconocida por una norma con rango de Ley**. Esto significa que no puede ejercerse de forma implícita ni por disposiciones de rango inferior (reglamentos). [art. 25.1 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1358456Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1358574Z **2. Procedimiento legal**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1358741Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1359841Z El ejercicio debe realizarse **conforme al procedimiento previsto** en la Ley 40/2015 y en la Ley 39/2015 de Procedimiento Administrativo Común. Para las Entidades Locales, además rige lo dispuesto en el Título XI de la Ley 7/1985. [art. 25.1 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1360752Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1360915Z **3. Atribución a órganos competentes**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1361113Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1362040Z El ejercicio corresponde **exclusivamente a órganos administrativos que tengan expresamente atribuida** esa potestad, bien por disposición de rango legal o reglamentario. [art. 25.2 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1362831Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1363008Z **4. Extensión a la potestad disciplinaria**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1363222Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1364145Z Las disposiciones sobre potestad sancionadora se aplican también al ejercicio de la **potestad disciplinaria** respecto del personal al servicio de las Administraciones Públicas. [art. 25.3 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1365205Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1365308Z **5. Excepciones**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1365448Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1366171Z Estas normas **no aplican** a relaciones reguladas por legislación de contratos del sector público ni por legislación patrimonial. [art. 25.4 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1366815Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1367783Z En síntesis, el principio de legalidad en la potestad sancionadora exige que toda sanción tenga una **base legal previa**, sea ejercida por un **órgano competente**, siga un **procedimiento regulado**, y respete las **garantías que establece la ley**.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1368695Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1368811Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1368946Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1369093Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1370455Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/07-lrjsp-principio-de-legalidad/traza/t.13550, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13556»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1371634Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1371775Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1371919Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372087Z ## Sesión 08-ltaibg-plazo-de-resolucion
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372296Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372428Z Eval: 08-ltaibg-plazo-de-resolucion.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372631Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372730Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372844Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1372940Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1373439Z ¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1373905Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374011Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374120Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374278Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374372Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374500Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1374597Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1375311Z Perfecto, ya tengo la información. Según la Ley 19/2013, el plazo para resolver una solicitud de acceso a la información pública es:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1375782Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1375897Z **Plazo ordinario: un mes**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1376064Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1376995Z El órgano competente para resolver debe notificar al solicitante la resolución que conceda o deniegue el acceso **en el plazo máximo de un mes desde la recepción de la solicitud** [art. 20.1 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1377771Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1377925Z **Ampliación: hasta un mes más**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1378103Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1379056Z Este plazo puede ampliarse por **otro mes adicional en casos de volumen o complejidad de la información** solicitada, siempre que se notifique previamente esta ampliación al solicitante [art. 20.1 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1380073Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1380228Z **Desestimación tácita**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1380392Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1381050Z Si transcurren estos plazos sin que se dicte y notifique resolución expresa, la solicitud se entiende desestimada [art. 20.4 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1381645Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1381775Z **Consecuencias del incumplimiento**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1381968Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1382634Z El incumplimiento reiterado de la obligación de resolver en plazo constituye una infracción grave para quien lo causa [art. 20.6 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].
-evals	Ejecutar las evals	2026-09-15T06:29:54.1383319Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1383428Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1383561Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1383709Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1385164Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/08-ltaibg-plazo-de-resolucion/traza/t.13898, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13904»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1386444Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1386587Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1386734Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1386908Z ## Sesión 09-constitucion-articulo-140
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387108Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387238Z Eval: 09-constitucion-articulo-140.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387442Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387541Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387661Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1387750Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388039Z ¿Qué dice el artículo 140 de la Constitución?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388336Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388443Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388550Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388695Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388789Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1388911Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1389004Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1389357Z El artículo 140 de la Constitución Española dice lo siguiente:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1389632Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1391768Z > La Constitución garantiza la autonomía de los municipios. Estos gozarán de personalidad jurídica plena. Su gobierno y administración corresponde a sus respectivos Ayuntamientos, integrados por los Alcaldes y los Concejales. Los Concejales serán elegidos por los vecinos del municipio mediante sufragio universal, igual, libre, directo y secreto, en la forma establecida por la ley. Los Alcaldes serán elegidos por los Concejales o por los vecinos. La ley regulará las condiciones en las que proceda el régimen del concejo abierto.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1393557Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1393826Z [art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1394108Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1395939Z Este artículo forma parte del **Título VIII** (De la Organización Territorial del Estado), **Capítulo Segundo** (De la Administración Local), y establece los principios fundamentales de la autonomía municipal, reconociendo la personalidad jurídica plena de los municipios, sus órganos de gobierno (Ayuntamiento, Alcaldes y Concejales) y el procedimiento electoral para la elección de los Concejales (sufragio universal) y Alcaldes.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1397466Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1397582Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1397718Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1397864Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1399207Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/09-constitucion-articulo-140/traza/t.14234, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14240»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1400316Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1400455Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1400598Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1400738Z ## Sesión 10-et-vacaciones
-evals	Ejecutar las evals	2026-09-15T06:29:54.1400899Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1401009Z Eval: 10-et-vacaciones.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1401174Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1401419Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1401535Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1401630Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402044Z ¿Cuántos días de vacaciones anuales reconoce el Estatuto de los Trabajadores?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402453Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402561Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402670Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402816Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1402910Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1403031Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1403128Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1404161Z No puedo completar la consulta en este momento: la fuente de datos del BOE (`boe.legislacion-consolidada`) está retornando un error de límite de ritmo (código 5) que impide acceder al articulado consolidado del Estatuto de los Trabajadores.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1405075Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1405753Z Según el protocolo de esta skill, no puedo suplar el contenido legal consultando fuentes de conocimiento propio, ya que eso podría llevar a inexactitudes en materia normativa.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1406364Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1406502Z **Qué podría hacer:**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1406655Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1406910Z 1. **Reintentar en unos minutos** cuando la fuente esté disponible.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1408103Z 2. **Consultar directamente** el [Estatuto de los Trabajadores consolidado en el BOE](https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430), donde el artículo 30 regula las vacaciones anuales retribuidas.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1408790Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1408999Z ¿Prefieres que reintente la consulta más adelante?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1409314Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1409423Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1409557Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1409697Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1410978Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/10-et-vacaciones/traza/t.14568, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14574»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412049Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412194Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412341Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412510Z ## Sesión 11-no-activa-programacion
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412691Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1412821Z Eval: 11-no-activa-programacion.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413015Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413108Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413226Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413320Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413593Z ¿Cómo invierto una lista enlazada en Go?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413873Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1413982Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1414087Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1414228Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1414326Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1414446Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1414536Z ````text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1415333Z Aquí te muestro cómo invertir una lista enlazada en Go. La forma más común es usar iteración con tres punteros: el anterior, el actual y el siguiente.
-evals	Ejecutar las evals	2026-09-15T06:29:54.1415850Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1415950Z ```go
-evals	Ejecutar las evals	2026-09-15T06:29:54.1416167Z type Node struct {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1416411Z     Val  int
-evals	Ejecutar las evals	2026-09-15T06:29:54.1416653Z     Next *Node
-evals	Ejecutar las evals	2026-09-15T06:29:54.1416873Z }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1416984Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1417107Z func reverse(head *Node) *Node {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1417392Z     var prev *Node
-evals	Ejecutar las evals	2026-09-15T06:29:54.1417635Z     current := head
-evals	Ejecutar las evals	2026-09-15T06:29:54.1417851Z     
-evals	Ejecutar las evals	2026-09-15T06:29:54.1418099Z     for current != nil {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1418524Z         // Guardar el siguiente nodo antes de cambiar el puntero
-evals	Ejecutar las evals	2026-09-15T06:29:54.1418920Z         next := current.Next
-evals	Ejecutar las evals	2026-09-15T06:29:54.1419237Z         // Invertir el puntero
-evals	Ejecutar las evals	2026-09-15T06:29:54.1419545Z         current.Next = prev
-evals	Ejecutar las evals	2026-09-15T06:29:54.1419819Z         // Avanzar
-evals	Ejecutar las evals	2026-09-15T06:29:54.1420084Z         prev = current
-evals	Ejecutar las evals	2026-09-15T06:29:54.1420354Z         current = next
-evals	Ejecutar las evals	2026-09-15T06:29:54.1420574Z     }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1420768Z     
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421020Z     return prev // Nueva cabeza
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421272Z }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421463Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421576Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421859Z **Cómo funciona:**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1421992Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1422157Z 1. `prev` comienza en `nil` (nuevo final de la lista)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1422513Z 2. `current` comienza en la cabeza original
-evals	Ejecutar las evals	2026-09-15T06:29:54.1422851Z 3. En cada iteración:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1423127Z    - Guardamos el siguiente nodo
-evals	Ejecutar las evals	2026-09-15T06:29:54.1423494Z    - Hacemos que `current.Next` apunte al nodo anterior
-evals	Ejecutar las evals	2026-09-15T06:29:54.1423893Z    - Movemos `prev` y `current` un paso adelante
-evals	Ejecutar las evals	2026-09-15T06:29:54.1424238Z 4. Retornamos `prev` como la nueva cabeza
-evals	Ejecutar las evals	2026-09-15T06:29:54.1424435Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1424542Z **Ejemplo de uso:**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1424761Z ```go
-evals	Ejecutar las evals	2026-09-15T06:29:54.1425092Z // Crear: 1 -> 2 -> 3 -> nil
-evals	Ejecutar las evals	2026-09-15T06:29:54.1425429Z head := &Node{Val: 1, Next: &Node{Val: 2, Next: &Node{Val: 3}}}
-evals	Ejecutar las evals	2026-09-15T06:29:54.1425680Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1425772Z // Invertir
-evals	Ejecutar las evals	2026-09-15T06:29:54.1425995Z head = reverse(head)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1426236Z // Ahora: 3 -> 2 -> 1 -> nil
-evals	Ejecutar las evals	2026-09-15T06:29:54.1426486Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1426598Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1426704Z **Complejidad:**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1427076Z - Tiempo: O(n)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1427377Z - Espacio: O(1) (solo usa punteros, no crea nuevos nodos)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1427621Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1427955Z Si prefieres una solución recursiva, es más concisa pero usa más espacio en el stack:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1428300Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1428390Z ```go
-evals	Ejecutar las evals	2026-09-15T06:29:54.1428662Z func reverseRecursive(head *Node) *Node {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1429012Z     if head == nil || head.Next == nil {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1429331Z         return head
-evals	Ejecutar las evals	2026-09-15T06:29:54.1429547Z     }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1429741Z     
-evals	Ejecutar las evals	2026-09-15T06:29:54.1430014Z     newHead := reverseRecursive(head.Next)
-evals	Ejecutar las evals	2026-09-15T06:29:54.1430336Z     head.Next.Next = head
-evals	Ejecutar las evals	2026-09-15T06:29:54.1430600Z     head.Next = nil
-evals	Ejecutar las evals	2026-09-15T06:29:54.1430812Z     
-evals	Ejecutar las evals	2026-09-15T06:29:54.1431033Z     return newHead
-evals	Ejecutar las evals	2026-09-15T06:29:54.1431246Z }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1431436Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1431562Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1431804Z ¿Necesitas ver cómo pruebas esto o una variación específica?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1432158Z ````
-evals	Ejecutar las evals	2026-09-15T06:29:54.1432268Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1432398Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1432547Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1433887Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/11-no-activa-programacion/traza/t.14910, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14916»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435120Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435252Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435404Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435583Z ## Sesión 12-no-activa-acuerdo-entre-amigos
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435788Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1435936Z Eval: 12-no-activa-acuerdo-entre-amigos.yaml
-evals	Ejecutar las evals	2026-09-15T06:29:54.1436151Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1436246Z Pregunta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1436367Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1436475Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1437222Z Reescribe en un tono más cercano esta frase de un acuerdo entre amigos para compartir coche: «Las partes se turnarán el uso del vehículo en fines de semana alternos».
-evals	Ejecutar las evals	2026-09-15T06:29:54.1437892Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438003Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438110Z Invocaciones: sin leer
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438250Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438350Z Respuesta:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438468Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438561Z ```text
-evals	Ejecutar las evals	2026-09-15T06:29:54.1438906Z Aquí te dejo algunas alternativas más cercanas y naturales:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1439155Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1439298Z **Opción 1 (más directa):**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1439610Z "Nos turnaremos el coche los fines de semana alternos"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1439844Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1439992Z **Opción 2 (más amistosa):**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1440368Z "Cada fin de semana se lo lleva uno, así nos vamos turnando"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1440617Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1440749Z **Opción 3 (más casual):**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1441297Z "Nos repartimos el coche: un fin de semana tú, el siguiente yo"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1441564Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1441715Z **Opción 4 (la más cercana):**
-evals	Ejecutar las evals	2026-09-15T06:29:54.1442050Z "Uno se lleva el coche un fin de semana, el otro el siguiente"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1442305Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1443052Z La **opción 2 o 3** son probablemente las que mejor equilibran ser menos formales mientras mantienen la claridad del acuerdo. ¿Alguna de estas te parece que encaja mejor con el tono que buscas?
-evals	Ejecutar las evals	2026-09-15T06:29:54.1443784Z ```
-evals	Ejecutar las evals	2026-09-15T06:29:54.1443897Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1444029Z Motivos de la sesión:
-evals	Ejecutar las evals	2026-09-15T06:29:54.1444175Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1445654Z - sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/12-no-activa-acuerdo-entre-amigos/traza/t.14983, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14989»
-evals	Ejecutar las evals	2026-09-15T06:29:54.1446814Z 
-evals	Ejecutar las evals	2026-09-15T06:29:54.1446950Z Salida de error: vacía
-evals	Ejecutar las evals	2026-09-15T06:29:54.1447332Z --- fin de informe.md ---
-evals	Ejecutar las evals	2026-09-15T06:29:54.1447607Z --- inicio de informe.json ---
-evals	Ejecutar las evals	2026-09-15T06:29:54.1447861Z {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1448093Z   "skill": "boe-legislacion",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1448400Z   "modelo": "claude-haiku-4-5-20251001",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1448711Z   "modelos_de_sesion": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1448994Z     "claude-haiku-4-5-20251001"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1449249Z   ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1449479Z   "versiones_de_claude_code": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1449742Z     "2.1.270"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1449942Z   ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1450227Z   "commit": "857ec465074a273bd0d7c0c175185f830d3112ea",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1451667Z   "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1452720Z   "ficheros_mal_formados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1453004Z   "veredicto": "fallo",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1453248Z   "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1455192Z     "01-lpac-articulo-21: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21/traza/t.11488, línea 7: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11494»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1458276Z     "01-lpac-articulo-21-prueba-de-red: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21-prueba-de-red/traza/t.15051, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 15057»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1461309Z     "02-lcsp-contrato-menor: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/02-lcsp-contrato-menor/traza/t.11818, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11824»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1464325Z     "03-lrbrl-atribuciones-del-pleno: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/03-lrbrl-atribuciones-del-pleno/traza/t.12178, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12185»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1467398Z     "04-lgt-prescripcion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/04-lgt-prescripcion/traza/t.12527, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12533»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1470520Z     "05-trlrhl-impuestos-municipales: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/05-trlrhl-impuestos-municipales/traza/t.12868, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12874»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1473535Z     "06-irpf-rendimientos-del-trabajo: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/06-irpf-rendimientos-del-trabajo/traza/t.13209, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13215»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1476708Z     "07-lrjsp-principio-de-legalidad: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/07-lrjsp-principio-de-legalidad/traza/t.13550, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13556»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1479903Z     "08-ltaibg-plazo-de-resolucion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/08-ltaibg-plazo-de-resolucion/traza/t.13898, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13904»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1482940Z     "09-constitucion-articulo-140: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/09-constitucion-articulo-140/traza/t.14234, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14240»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1485899Z     "10-et-vacaciones: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/10-et-vacaciones/traza/t.14568, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14574»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1488763Z     "11-no-activa-programacion: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/11-no-activa-programacion/traza/t.14910, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14916»",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1491763Z     "12-no-activa-acuerdo-entre-amigos: sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/12-no-activa-acuerdo-entre-amigos/traza/t.14983, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14989»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1493157Z   ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1493395Z   "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1493661Z   "red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1493881Z   "evals": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1494088Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1494369Z       "sesion": "01-lpac-articulo-21",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1494737Z       "eval": "01-lpac-articulo-21.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1495155Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1495423Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1495714Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1496067Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1496562Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1496854Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1497152Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1497452Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1497751Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1498037Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1507514Z       "respuesta": "El **artículo 21 de la Ley 39/2015** regula la obligación de resolver en los procedimientos administrativos. Sus puntos principales son:\n\n**1. Obligación de dictar resolución expresa**\nLa Administración debe dictar resolución expresa y notificarla en todos los procedimientos, independientemente de cómo se inicien. En casos especiales (prescripción, renuncia, caducidad, desistimiento o desaparición del objeto del procedimiento), la resolución consistirá en declarar la circunstancia que corresponda. Se exceptúan los procedimientos terminados por pacto/convenio y los relativos a derechos sometidos únicamente a declaración responsable o comunicación.\n\n**2. Plazo máximo de resolución**\n- El plazo será el fijado por la norma reguladora del procedimiento, **sin exceder seis meses** (salvo que una ley establezca un plazo mayor o lo prevea el Derecho de la UE).\n- Si la norma no fija plazo, será **tres meses**.\n- Estos plazos se cuentan desde el acuerdo de iniciación (procedimientos de oficio) o desde la entrada de la solicitud en el registro (procedimientos iniciados a solicitud).\n\n**3. Información a los interesados**\nLas Administraciones deben publicar los plazos máximos en su portal web y **informar a los interesados** del plazo, los efectos del silencio administrativo y la fecha de recepción de la solicitud.\n\n**4. Ampliación de medios**\nSi el volumen de solicitudes podría incumplir el plazo, pueden habilitarse medios personales y materiales adicionales.\n\n**5. Responsabilidad**\nEl personal administrativo y los órganos responsables son responsables del cumplimiento de esta obligación, pudiendo incurrir en responsabilidad disciplinaria.\n\n[art. 21 de la Ley 39/2015, BOE-A-2015-10565, bloque a21]",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1513624Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1513974Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1514324Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1514607Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1517047Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21/traza/t.11488, línea 7: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11494»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1518302Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1518542Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1518780Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1518976Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1519313Z       "sesion": "01-lpac-articulo-21-prueba-de-red",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1519714Z       "eval": "01-lpac-articulo-21.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1520046Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1520323Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1520643Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1520963Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1521272Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1521576Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1521864Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1522160Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1522464Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1522749Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1532162Z       "respuesta": "## El artículo 21 de la Ley 39/2015 regula la **obligación de resolver** en los procedimientos administrativos:\n\n**Obligación básica**: La Administración está obligada a dictar resolución expresa y a notificarla en todos los procedimientos, sea cual sea su forma de iniciación. En casos de prescripción, renuncia del derecho, caducidad, desistimiento o desaparición del objeto, la resolución debe consistir en la declaración de la circunstancia que concurra [art. 21.1, Ley 39/2015, BOE-A-2015-10565, bloque a21].\n\n**Excepciones**: No existe esta obligación en procedimientos terminados por pacto o convenio, ni en los relativos al ejercicio de derechos sometidos únicamente a declaración responsable o comunicación a la Administración [art. 21.1, ibídem].\n\n**Plazos máximos de resolución**:\n- El plazo lo fija la norma que regula cada procedimiento, pero no puede exceder de **seis meses** salvo que una ley establezca uno mayor o lo prevea el Derecho de la Unión Europea [art. 21.2, ibídem].\n- Si no hay plazo fijado, será de **tres meses** [art. 21.3, ibídem].\n- El plazo se cuenta desde el acuerdo de iniciación (si es de oficio) o desde que la solicitud tenga entrada en el registro electrónico (si es a solicitud del interesado) [art. 21.3.a-b, ibídem].\n\n**Obligación de información**: Las Administraciones deben informar a los interesados del plazo máximo y de los efectos del silencio administrativo, dentro de los diez días siguientes a la recepción de la solicitud [art. 21.4, ibídem].\n\n**Responsabilidad**: El personal y los titulares de órganos competentes son directamente responsables del cumplimiento de la obligación de resolver en plazo, y su incumplimiento da lugar a responsabilidad disciplinaria [art. 21.6, ibídem].",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1538449Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1538797Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1539152Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1539430Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1541598Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/01-lpac-articulo-21-prueba-de-red/traza/t.15051, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 15057»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1542884Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1543120Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1543655Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1558329Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1558797Z       "sesion": "02-lcsp-contrato-menor",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1559227Z       "eval": "02-lcsp-contrato-menor.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1559572Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1559855Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1560155Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1560477Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1560791Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1561098Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1561388Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1561684Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1561993Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1562286Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1570027Z       "respuesta": "Según la Ley de Contratos del Sector Público, el expediente de un contrato menor debe incluir los siguientes documentos:\n\n## Documentos obligatorios\n\n1. **Informe motivado del órgano de contratación** que justifique:\n   - La necesidad del contrato\n   - Que no se está alterando el objeto con fin de evitar los umbrales de contratación\n\n2. **Aprobación del gasto**\n\n3. **Factura correspondiente** que reúna los requisitos establecidos en las normas de desarrollo\n\n[art. 118.2-3 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]\n\n## Documentación adicional para contratos menores de obras\n\nAdemás de lo anterior, deben incluir:\n\n- **Presupuesto de las obras**\n- **Proyecto** (cuando sea requerido por las disposiciones vigentes)\n- **Informe de supervisión técnica** cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra\n\n[art. 118.4 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]\n\n## Excepciones\n\nNo es necesario incluir el informe motivado cuando:\n- El pago se realice a través de **anticipos de caja fija** u otro sistema similar para pagos menores\n- El valor estimado del contrato **no exceda de 5.000 euros**\n\n[art. 118.5 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]\n\n## Publicidad\n\nLos contratos menores también deben publicarse según lo previsto en el artículo 63.4 de la LCSP [art. 118.6 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]]",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1575113Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1575468Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1575818Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1576106Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1578197Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/02-lcsp-contrato-menor/traza/t.11818, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 11824»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1579419Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1579659Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1579886Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1580079Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1580414Z       "sesion": "03-lrbrl-atribuciones-del-pleno",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1581015Z       "eval": "03-lrbrl-atribuciones-del-pleno.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1581365Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1581623Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1581923Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1582241Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1582544Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1582835Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1583115Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1583406Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1583698Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1583979Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1591075Z       "respuesta": "No puedo consultar el contenido de la LRBRL en este momento debido a problemas de acceso a la API del Boletín Oficial del Estado. La fuente reporta que no puede obtener el archivo de robots.txt necesario para autorizar las peticiones.\n\nSegún el protocolo de la skill, no debo suplir el contenido de la norma con conocimiento propio cuando `scripts/boe` no está disponible, ya que los textos consolidados del BOE tienen carácter informativo y deben citarse con precisión desde la fuente oficial.\n\n**Lo que puedo decir es que:**\n\n- La norma aplicable es la **Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local** [BOE-A-1985-5392] — abreviada como LRBRL\n- Las atribuciones del Pleno del ayuntamiento están reguladas en esta ley, típicamente en los artículos que conforman el Título III, dedicado a la organización municipal\n\nSi necesitas consultar el texto vigente, te recomiendo:\n1. Acceder directamente a [boe.es](https://www.boe.es) y buscar la LRBRL (BOE-A-1985-5392)\n2. Contactar con un asesor jurídico especializado en derecho municipal\n3. Intentar la consulta nuevamente en unos momentos para ver si el servicio de API se recupera\n\n¿Hay algo específico sobre las atribuciones del Pleno en lo que pueda ayudarte de otra forma?",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1595537Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1595917Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1596272Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1596548Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1598705Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/03-lrbrl-atribuciones-del-pleno/traza/t.12178, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12185»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1599987Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1600219Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1600452Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1600646Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1600920Z       "sesion": "04-lgt-prescripcion",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1601285Z       "eval": "04-lgt-prescripcion.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1601604Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1601867Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1602333Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1602653Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1602956Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1603243Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1603536Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1603830Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1604123Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1604421Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1606784Z       "respuesta": "Según la Ley General Tributaria, el derecho de la Administración a liquidar una deuda tributaria prescribe en **4 años**.\n\nEsto está regulado en el art. 66 de la Ley 58/2003 [BOE-A-2003-23186, bloque a66], que señala que \"Prescribirán a los cuatro años los siguientes derechos: a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación\".",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1608212Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1608558Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1608912Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1609332Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1611380Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/04-lgt-prescripcion/traza/t.12527, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12533»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1612575Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1612808Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1613043Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1613240Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1613563Z       "sesion": "05-trlrhl-impuestos-municipales",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1614017Z       "eval": "05-trlrhl-impuestos-municipales.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1614369Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1614629Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1615041Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1615367Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1615673Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1615973Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1616268Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1616562Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1616860Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1617151Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1622661Z       "respuesta": "Lo siento, no puedo completar la consulta en este momento. Aunque he identificado correctamente que se trata del Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales [BOE-A-2004-4214], **la fuente del BOE no está disponible** en este momento (error de conectividad con el servidor).\n\nNormalmente, la respuesta se encontraría en los artículos iniciales del TRLRHL, particularmente:\n- **Artículo 2**, que clasifica los ingresos de los municipios\n- **Artículos 3-5**, que desglosan esa clasificación \n- **Título I (artículos 6-55)**, que desarrolla específicamente cada tipo de impuesto municipal\n\nPara obtener la información actualizada sobre qué impuestos pueden exigir los ayuntamientos según el TRLRHL, te recomiendo:\n\n1. **Consultar directamente el BOE** en https://www.boe.es/buscar/act.php?id=BOE-A-2004-4214\n2. **Contactar con profesionales especializados** en derecho tributario municipal o hacienda pública",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1626537Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1626890Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1627247Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1627525Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1629665Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/05-trlrhl-impuestos-municipales/traza/t.12868, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 12874»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1631088Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1631331Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1631558Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1631755Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1632073Z       "sesion": "06-irpf-rendimientos-del-trabajo",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1632525Z       "eval": "06-irpf-rendimientos-del-trabajo.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1632878Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1633141Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1633438Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1633750Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1634058Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1634353Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1634651Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1635102Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1635419Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1635717Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1640873Z       "respuesta": "No he podido consultar la norma en este momento. El servicio de legislación consolidada del BOE está respondiendo con un error de límite de ritmo (código 5), lo que impide acceder al texto vigente de los artículos de la Ley 35/2006 del IRPF que regulan los rendimientos íntegros del trabajo.\n\nTe recomiendo que:\n\n1. **Consultes directamente el BOE**: Puedes acceder al texto consolidado de la Ley 35/2006, de 28 de noviembre (LIRPF) en https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764, donde encontrarás los artículos sobre rendimientos del trabajo, especialmente:\n   - **Artículo 17**: Clasificación de rentas\n   - **Artículo 21**: Rendimientos netos del trabajo personal (que define qué se considera rendimiento del trabajo y cómo se calcula el íntegro)\n\n2. **Esperes unos minutos** para que vuelva a estar disponible el servicio y reintentes la consulta.\n\n¿Quieres que lo intente de nuevo en un momento, o prefieres que te ayude de otra forma?",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1644222Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1644562Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1645020Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1645304Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1647432Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/06-irpf-rendimientos-del-trabajo/traza/t.13209, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13215»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1648673Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1648908Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1649134Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1649340Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1649662Z       "sesion": "07-lrjsp-principio-de-legalidad",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1650109Z       "eval": "07-lrjsp-principio-de-legalidad.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1650457Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1650718Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1651015Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1651347Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1651651Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1651951Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1652247Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1652541Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1652837Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1653128Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1663821Z       "respuesta": "Basándome en la consulta realizada a la legislación consolidada del BOE, te presento lo que dice la **Ley 40/2015** sobre el principio de legalidad en la potestad sancionadora:\n\n## Artículo 25. Principio de legalidad\n\nLa ley establece que la potestad sancionadora en las Administraciones Públicas se rige por los siguientes requisitos fundamentales:\n\n**1. Exigencia de habilitación legal**\n\nLa potestad sancionadora **debe estar expresamente reconocida por una norma con rango de Ley**. Esto significa que no puede ejercerse de forma implícita ni por disposiciones de rango inferior (reglamentos). [art. 25.1 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]\n\n**2. Procedimiento legal**\n\nEl ejercicio debe realizarse **conforme al procedimiento previsto** en la Ley 40/2015 y en la Ley 39/2015 de Procedimiento Administrativo Común. Para las Entidades Locales, además rige lo dispuesto en el Título XI de la Ley 7/1985. [art. 25.1 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]\n\n**3. Atribución a órganos competentes**\n\nEl ejercicio corresponde **exclusivamente a órganos administrativos que tengan expresamente atribuida** esa potestad, bien por disposición de rango legal o reglamentario. [art. 25.2 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]\n\n**4. Extensión a la potestad disciplinaria**\n\nLas disposiciones sobre potestad sancionadora se aplican también al ejercicio de la **potestad disciplinaria** respecto del personal al servicio de las Administraciones Públicas. [art. 25.3 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]\n\n**5. Excepciones**\n\nEstas normas **no aplican** a relaciones reguladas por legislación de contratos del sector público ni por legislación patrimonial. [art. 25.4 de la Ley 40/2015, BOE-A-2015-10566, bloque a25]\n\nEn síntesis, el principio de legalidad en la potestad sancionadora exige que toda sanción tenga una **base legal previa**, sea ejercida por un **órgano competente**, siga un **procedimiento regulado**, y respete las **garantías que establece la ley**.",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1671066Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1671419Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1671766Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1672048Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1674197Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/07-lrjsp-principio-de-legalidad/traza/t.13550, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13556»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1675992Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1676258Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1676491Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1676687Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1676997Z       "sesion": "08-ltaibg-plazo-de-resolucion",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1677433Z       "eval": "08-ltaibg-plazo-de-resolucion.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1677781Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1678050Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1678343Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1678667Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1678973Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1679261Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1679553Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1679848Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1680145Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1680442Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1686635Z       "respuesta": "Perfecto, ya tengo la información. Según la Ley 19/2013, el plazo para resolver una solicitud de acceso a la información pública es:\n\n**Plazo ordinario: un mes**\n\nEl órgano competente para resolver debe notificar al solicitante la resolución que conceda o deniegue el acceso **en el plazo máximo de un mes desde la recepción de la solicitud** [art. 20.1 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].\n\n**Ampliación: hasta un mes más**\n\nEste plazo puede ampliarse por **otro mes adicional en casos de volumen o complejidad de la información** solicitada, siempre que se notifique previamente esta ampliación al solicitante [art. 20.1 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].\n\n**Desestimación tácita**\n\nSi transcurren estos plazos sin que se dicte y notifique resolución expresa, la solicitud se entiende desestimada [art. 20.4 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].\n\n**Consecuencias del incumplimiento**\n\nEl incumplimiento reiterado de la obligación de resolver en plazo constituye una infracción grave para quien lo causa [art. 20.6 de la Ley 19/2013, BOE-A-2013-12887, bloque a20].",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1690725Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1691076Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1691432Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1691719Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1693841Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/08-ltaibg-plazo-de-resolucion/traza/t.13898, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 13904»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1695176Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1695413Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1695641Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1695871Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1696179Z       "sesion": "09-constitucion-articulo-140",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1696599Z       "eval": "09-constitucion-articulo-140.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1696946Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1697209Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1697655Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1697971Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1698272Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1698569Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1698857Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1699149Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1699446Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1699746Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1705991Z       "respuesta": "El artículo 140 de la Constitución Española dice lo siguiente:\n\n> La Constitución garantiza la autonomía de los municipios. Estos gozarán de personalidad jurídica plena. Su gobierno y administración corresponde a sus respectivos Ayuntamientos, integrados por los Alcaldes y los Concejales. Los Concejales serán elegidos por los vecinos del municipio mediante sufragio universal, igual, libre, directo y secreto, en la forma establecida por la ley. Los Alcaldes serán elegidos por los Concejales o por los vecinos. La ley regulará las condiciones en las que proceda el régimen del concejo abierto.\n\n[art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]]\n\nEste artículo forma parte del **Título VIII** (De la Organización Territorial del Estado), **Capítulo Segundo** (De la Administración Local), y establece los principios fundamentales de la autonomía municipal, reconociendo la personalidad jurídica plena de los municipios, sus órganos de gobierno (Ayuntamiento, Alcaldes y Concejales) y el procedimiento electoral para la elección de los Concejales (sufragio universal) y Alcaldes.",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1710041Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1710392Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1710736Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1711014Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1713145Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/09-constitucion-articulo-140/traza/t.14234, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14240»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1714397Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1714630Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1714967Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1715166Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1715434Z       "sesion": "10-et-vacaciones",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1715781Z       "eval": "10-et-vacaciones.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1716094Z       "activa": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1716360Z       "activada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1716656Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1716982Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1717282Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1717570Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1717858Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1718148Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1718599Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1719010Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1723376Z       "respuesta": "No puedo completar la consulta en este momento: la fuente de datos del BOE (`boe.legislacion-consolidada`) está retornando un error de límite de ritmo (código 5) que impide acceder al articulado consolidado del Estatuto de los Trabajadores.\n\nSegún el protocolo de esta skill, no puedo suplar el contenido legal consultando fuentes de conocimiento propio, ya que eso podría llevar a inexactitudes en materia normativa.\n\n**Qué podría hacer:**\n\n1. **Reintentar en unos minutos** cuando la fuente esté disponible.\n2. **Consultar directamente** el [Estatuto de los Trabajadores consolidado en el BOE](https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430), donde el artículo 30 regula las vacaciones anuales retribuidas.\n\n¿Prefieres que reintente la consulta más adelante?",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1726171Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1726533Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1726885Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1727162Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1729207Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/10-et-vacaciones/traza/t.14568, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14574»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1730410Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1730653Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1730878Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1731072Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1731368Z       "sesion": "11-no-activa-programacion",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1731773Z       "eval": "11-no-activa-programacion.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1732110Z       "activa": false,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1732379Z       "activada": false,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1732683Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1733009Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1733321Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1733615Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1733902Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1734198Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1734492Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1734783Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1743026Z       "respuesta": "Aquí te muestro cómo invertir una lista enlazada en Go. La forma más común es usar iteración con tres punteros: el anterior, el actual y el siguiente.\n\n```go\ntype Node struct {\n    Val  int\n    Next *Node\n}\n\nfunc reverse(head *Node) *Node {\n    var prev *Node\n    current := head\n    \n    for current != nil {\n        // Guardar el siguiente nodo antes de cambiar el puntero\n        next := current.Next\n        // Invertir el puntero\n        current.Next = prev\n        // Avanzar\n        prev = current\n        current = next\n    }\n    \n    return prev // Nueva cabeza\n}\n```\n\n**Cómo funciona:**\n\n1. `prev` comienza en `nil` (nuevo final de la lista)\n2. `current` comienza en la cabeza original\n3. En cada iteración:\n   - Guardamos el siguiente nodo\n   - Hacemos que `current.Next` apunte al nodo anterior\n   - Movemos `prev` y `current` un paso adelante\n4. Retornamos `prev` como la nueva cabeza\n\n**Ejemplo de uso:**\n```go\n// Crear: 1 -> 2 -> 3 -> nil\nhead := &Node{Val: 1, Next: &Node{Val: 2, Next: &Node{Val: 3}}}\n\n// Invertir\nhead = reverse(head)\n// Ahora: 3 -> 2 -> 1 -> nil\n```\n\n**Complejidad:**\n- Tiempo: O(n)\n- Espacio: O(1) (solo usa punteros, no crea nuevos nodos)\n\nSi prefieres una solución recursiva, es más concisa pero usa más espacio en el stack:\n\n```go\nfunc reverseRecursive(head *Node) *Node {\n    if head == nil || head.Next == nil {\n        return head\n    }\n    \n    newHead := reverseRecursive(head.Next)\n    head.Next.Next = head\n    head.Next = nil\n    \n    return newHead\n}\n```\n\n¿Necesitas ver cómo pruebas esto o una variación específica?",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1748392Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1748736Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1749079Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1749362Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1751465Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/11-no-activa-programacion/traza/t.14910, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14916»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1752726Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1752962Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1753186Z     },
-evals	Ejecutar las evals	2026-09-15T06:29:54.1753382Z     {
-evals	Ejecutar las evals	2026-09-15T06:29:54.1753709Z       "sesion": "12-no-activa-acuerdo-entre-amigos",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1754163Z       "eval": "12-no-activa-acuerdo-entre-amigos.yaml",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1754536Z       "activa": false,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1754899Z       "activada": false,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1755223Z       "comandos_ejecutados": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1755542Z       "comandos_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1755846Z       "citas_encontradas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1756143Z       "citas_ausentes": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1756428Z       "invocaciones": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1756722Z       "fuera_de_lo_grabado": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1757020Z       "otras_fallidas": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1757331Z       "llegadas_a_la_red": [],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1760778Z       "respuesta": "Aquí te dejo algunas alternativas más cercanas y naturales:\n\n**Opción 1 (más directa):**\n\"Nos turnaremos el coche los fines de semana alternos\"\n\n**Opción 2 (más amistosa):**\n\"Cada fin de semana se lo lleva uno, así nos vamos turnando\"\n\n**Opción 3 (más casual):**\n\"Nos repartimos el coche: un fin de semana tú, el siguiente yo\"\n\n**Opción 4 (la más cercana):**\n\"Uno se lleva el coche un fin de semana, el otro el siguiente\"\n\nLa **opción 2 o 3** son probablemente las que mejor equilibran ser menos formales mientras mantienen la claridad del acuerdo. ¿Alguna de estas te parece que encaja mejor con el tono que buscas?",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1762896Z       "codigo_de_la_sesion": 0,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1763238Z       "fin_de_la_sesion": "result success",
-evals	Ejecutar las evals	2026-09-15T06:29:54.1763582Z       "sesion_terminada": true,
-evals	Ejecutar las evals	2026-09-15T06:29:54.1763874Z       "motivos": [
-evals	Ejecutar las evals	2026-09-15T06:29:54.1766105Z         "sesión ilegible: traza: traza ilegible: /home/runner/work/_temp/kitlegal-evals-boe-legislacion/sesiones/12-no-activa-acuerdo-entre-amigos/traza/t.14983, línea 5: no es ninguna de las formas de línea de la traza: execve, clone, clone3, fork, vfork o connect con su resultado, una señal o la línea final: «vfork()                                 = 14989»"
-evals	Ejecutar las evals	2026-09-15T06:29:54.1767358Z       ],
-evals	Ejecutar las evals	2026-09-15T06:29:54.1767592Z       "pasa": false
-evals	Ejecutar las evals	2026-09-15T06:29:54.1767815Z     }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1768012Z   ]
-evals	Ejecutar las evals	2026-09-15T06:29:54.1768364Z }
-evals	Ejecutar las evals	2026-09-15T06:29:54.1768589Z --- fin de informe.json ---
+evals	Ejecutar las evals	2026-09-15T07:34:01.6885737Z --- inicio de informe.md ---
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897264Z # Informe de evals de boe-legislacion
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897484Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897563Z ## Veredicto
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897668Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897754Z Veredicto: fallo
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897859Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6897933Z Motivos:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6898022Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6898215Z - 02-lcsp-contrato-menor: comando ausente: bloque boe BOE-A-2017-12902 a1-30
+evals	Ejecutar las evals	2026-09-15T07:34:01.6898617Z - 02-lcsp-contrato-menor: cita ausente: BOE-A-2017-12902 a1-30
+evals	Ejecutar las evals	2026-09-15T07:34:01.6899226Z - 03-lrbrl-atribuciones-del-pleno: comando ausente: bloque boe BOE-A-1985-5392 a22
+evals	Ejecutar las evals	2026-09-15T07:34:01.6899674Z - 03-lrbrl-atribuciones-del-pleno: cita ausente: BOE-A-1985-5392 a22
+evals	Ejecutar las evals	2026-09-15T07:34:01.6900108Z - 05-trlrhl-impuestos-municipales: comando ausente: bloque boe BOE-A-2004-4214 a59
+evals	Ejecutar las evals	2026-09-15T07:34:01.6900757Z - 05-trlrhl-impuestos-municipales: cita ausente: BOE-A-2004-4214 a59
+evals	Ejecutar las evals	2026-09-15T07:34:01.6901477Z - 07-lrjsp-principio-de-legalidad: comando ausente: bloque boe BOE-A-2015-10566 a25
+evals	Ejecutar las evals	2026-09-15T07:34:01.6902161Z - 07-lrjsp-principio-de-legalidad: cita ausente: BOE-A-2015-10566 a25
+evals	Ejecutar las evals	2026-09-15T07:34:01.6902829Z - 08-ltaibg-plazo-de-resolucion: comando ausente: bloque boe BOE-A-2013-12887 a20
+evals	Ejecutar las evals	2026-09-15T07:34:01.6903703Z - 08-ltaibg-plazo-de-resolucion: cita ausente: BOE-A-2013-12887 a20
+evals	Ejecutar las evals	2026-09-15T07:34:01.6904364Z - 10-et-vacaciones: cita ausente: BOE-A-2015-11430 a38
+evals	Ejecutar las evals	2026-09-15T07:34:01.6904638Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6904748Z ## Cabecera
+evals	Ejecutar las evals	2026-09-15T07:34:01.6904900Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6905046Z Modelo del job: claude-haiku-4-5-20251001
+evals	Ejecutar las evals	2026-09-15T07:34:01.6905297Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6905470Z Modelos de las sesiones: claude-haiku-4-5-20251001
+evals	Ejecutar las evals	2026-09-15T07:34:01.6905728Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6905865Z Versiones de Claude Code: 2.1.270
+evals	Ejecutar las evals	2026-09-15T07:34:01.6906086Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6906251Z Commit: 537e5d6f7ed5ff48f17f343323f0cef026cb9e33
+evals	Ejecutar las evals	2026-09-15T07:34:01.6906681Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6907091Z ## Comprobación sin Python
+evals	Ejecutar las evals	2026-09-15T07:34:01.6910902Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6911141Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6912562Z búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
+evals	Ejecutar las evals	2026-09-15T07:34:01.6913779Z usuario: root
+evals	Ejecutar las evals	2026-09-15T07:34:01.6914131Z resultado: ninguno
+evals	Ejecutar las evals	2026-09-15T07:34:01.6914475Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6914680Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6914886Z ## Ficheros mal formados
+evals	Ejecutar las evals	2026-09-15T07:34:01.6915192Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6915374Z ninguno
+evals	Ejecutar las evals	2026-09-15T07:34:01.6915580Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6915799Z ## Invocaciones fuera de lo grabado
+evals	Ejecutar las evals	2026-09-15T07:34:01.6916122Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6916463Z | Sesión | Eval | Orden | Código |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6917189Z | --- | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6918039Z | 01-lpac-articulo-21-prueba-de-red | 01-lpac-articulo-21.yaml | boe articulo BOE-A-2015-10565 a9998 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6919105Z | 01-lpac-articulo-21-prueba-de-red | 01-lpac-articulo-21.yaml | boe articulo BOE-A-2015-10565 a9998 --offline --json | 4 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6920221Z | 02-lcsp-contrato-menor | 02-lcsp-contrato-menor.yaml | boe articulos BOE-A-2017-12902 a117 a118 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6921414Z | 02-lcsp-contrato-menor | 02-lcsp-contrato-menor.yaml | boe articulo BOE-A-2017-12902 a118 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6922636Z | 03-lrbrl-atribuciones-del-pleno | 03-lrbrl-atribuciones-del-pleno.yaml | boe articulos BOE-A-1985-5392 a21 a22 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6924079Z | 03-lrbrl-atribuciones-del-pleno | 03-lrbrl-atribuciones-del-pleno.yaml | boe articulo BOE-A-1985-5392 a21 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6925276Z | 05-trlrhl-impuestos-municipales | 05-trlrhl-impuestos-municipales.yaml | boe articulo BOE-A-2004-4214 a2 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6926434Z | 05-trlrhl-impuestos-municipales | 05-trlrhl-impuestos-municipales.yaml | boe articulo BOE-A-2004-4214 a2 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6927722Z | 06-irpf-rendimientos-del-trabajo | 06-irpf-rendimientos-del-trabajo.yaml | boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6929092Z | 07-lrjsp-principio-de-legalidad | 07-lrjsp-principio-de-legalidad.yaml | boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6930441Z | 07-lrjsp-principio-de-legalidad | 07-lrjsp-principio-de-legalidad.yaml | boe articulo BOE-A-2015-10566 a140 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6933290Z | 08-ltaibg-plazo-de-resolucion | 08-ltaibg-plazo-de-resolucion.yaml | boe articulos BOE-A-2013-12887 a19 a20 --json | 5 |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6934258Z make: *** [Makefile:112: evals] Error 1
+evals	Ejecutar las evals	2026-09-15T07:34:01.6934632Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6934844Z ## Peticiones llegadas a la red
+evals	Ejecutar las evals	2026-09-15T07:34:01.6937241Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6938478Z ninguna petición llegó a la red de una fuente
+evals	Ejecutar las evals	2026-09-15T07:34:01.6938813Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6938934Z ## Sesiones
+evals	Ejecutar las evals	2026-09-15T07:34:01.6939071Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6939601Z | Sesión | Eval | Activa | Activada | Sesión terminada | Comandos ausentes | Citas ausentes | Resultado |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6940284Z | --- | --- | --- | --- | --- | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6941755Z | 01-lpac-articulo-21 | 01-lpac-articulo-21.yaml | sí | sí | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6942847Z | 01-lpac-articulo-21-prueba-de-red | 01-lpac-articulo-21.yaml | sí | sí | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6944128Z | 02-lcsp-contrato-menor | 02-lcsp-contrato-menor.yaml | sí | sí | sí (código 0) | bloque boe BOE-A-2017-12902 a1-30 | BOE-A-2017-12902 a1-30 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6945592Z | 03-lrbrl-atribuciones-del-pleno | 03-lrbrl-atribuciones-del-pleno.yaml | sí | sí | sí (código 0) | bloque boe BOE-A-1985-5392 a22 | BOE-A-1985-5392 a22 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6946481Z | 04-lgt-prescripcion | 04-lgt-prescripcion.yaml | sí | sí | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6947381Z | 05-trlrhl-impuestos-municipales | 05-trlrhl-impuestos-municipales.yaml | sí | sí | sí (código 0) | bloque boe BOE-A-2004-4214 a59 | BOE-A-2004-4214 a59 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6948233Z | 06-irpf-rendimientos-del-trabajo | 06-irpf-rendimientos-del-trabajo.yaml | sí | sí | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6949094Z | 07-lrjsp-principio-de-legalidad | 07-lrjsp-principio-de-legalidad.yaml | sí | sí | sí (código 0) | bloque boe BOE-A-2015-10566 a25 | BOE-A-2015-10566 a25 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6950003Z | 08-ltaibg-plazo-de-resolucion | 08-ltaibg-plazo-de-resolucion.yaml | sí | sí | sí (código 0) | bloque boe BOE-A-2013-12887 a20 | BOE-A-2013-12887 a20 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6951103Z | 09-constitucion-articulo-140 | 09-constitucion-articulo-140.yaml | sí | sí | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6951761Z | 10-et-vacaciones | 10-et-vacaciones.yaml | sí | sí | sí (código 0) | ninguno | BOE-A-2015-11430 a38 | no pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6952389Z | 11-no-activa-programacion | 11-no-activa-programacion.yaml | no | no | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953109Z | 12-no-activa-acuerdo-entre-amigos | 12-no-activa-acuerdo-entre-amigos.yaml | no | no | sí (código 0) | ninguno | ninguna | pasa |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953468Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953602Z ## Sesión 01-lpac-articulo-21
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953743Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953832Z Eval: 01-lpac-articulo-21.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.6953965Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954041Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954299Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954371Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954584Z ¿qué dice el art. 21 de la Ley 39/2015?
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954807Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954894Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6954974Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955075Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955190Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955399Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955650Z | boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955856Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6955940Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6956037Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6956114Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6956632Z El **artículo 21 de la Ley 39/2015** [BOE-A-2015-10565, bloque a21] regula la **obligación de resolver** y contiene estos elementos principales:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6957010Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6957154Z **1. Obligación de dictar resolución expresa**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6958493Z La Administración está obligada a dictar resolución expresa y a notificarla en todos los procedimientos, cualquiera que sea su forma de iniciación. En casos de prescripción, renuncia del derecho, caducidad, desistimiento o desaparición del objeto del procedimiento, la resolución consistirá en la declaración de la circunstancia con indicación de los hechos y normas aplicables.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6959611Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6960160Z Se exceptúan los procedimientos terminados por pacto o convenio, y aquellos relativos a derechos sometidos solo a declaración responsable o comunicación a la Administración.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6960828Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6960953Z **2. Plazo máximo de resolución**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6961614Z El plazo será el fijado por la norma reguladora del procedimiento, con un máximo de **6 meses** salvo que una ley establezca otro mayor o lo prevea el Derecho de la Unión Europea.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6962072Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6962154Z **3. Plazo supletorio**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6962528Z Cuando las normas reguladoras no fijen plazo, este será de **3 meses**, contados desde:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6963001Z - En procedimientos de oficio: desde el acuerdo de iniciación
+evals	Ejecutar las evals	2026-09-15T07:34:01.6963511Z - En procedimientos iniciados a solicitud: desde que la solicitud tenga entrada en el registro electrónico
+evals	Ejecutar las evals	2026-09-15T07:34:01.6963835Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6963965Z **4. Información al interesado**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6964768Z La Administración debe informar del plazo máximo y los efectos del silencio administrativo en la notificación del acuerdo de iniciación o, en procedimientos a solicitud, dentro de los 10 días siguientes a la recepción.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6965347Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6965467Z **5. Habilitación de medios**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6965919Z Si el número de solicitudes pudiera impedir cumplir el plazo, se pueden habilitar medios personales y materiales.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6966240Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6966321Z **6. Responsabilidad**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6966939Z El personal a cargo del despacho de asuntos es directamente responsable del cumplimiento de la obligación legal; su incumplimiento genera responsabilidad disciplinaria.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6967472Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6967562Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6967701Z ## Sesión 01-lpac-articulo-21-prueba-de-red
+evals	Ejecutar las evals	2026-09-15T07:34:01.6967866Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6967958Z Eval: 01-lpac-articulo-21.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968088Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968161Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968254Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968320Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968530Z ¿qué dice el art. 21 de la Ley 39/2015?
+evals	Ejecutar las evals	2026-09-15T07:34:01.6968679Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6969526Z Antes de responder, ejecuta también exactamente estas dos órdenes y di qué devolvieron: `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6970287Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6970450Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6970863Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6970990Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6971117Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6971502Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6971761Z | boe articulo BOE-A-2015-10565 a9998 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972150Z | boe articulo BOE-A-2015-10565 a9998 --offline --json | 4 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972515Z | boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972712Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972784Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972881Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6972951Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6973223Z ## Artículo 21 de la Ley 39/2015 (LPAC): Obligación de resolver
+evals	Ejecutar las evals	2026-09-15T07:34:01.6973418Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6973855Z El artículo 21 regula la obligación de la Administración de dictar resolución expresa en los procedimientos administrativos. Los puntos clave son:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6974256Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6974384Z **1. Obligación general y excepciones**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6974532Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6975986Z La Administración está obligada a dictar resolución expresa y notificarla en todos los procedimientos. En casos de prescripción, renuncia, caducidad, desistimiento o desaparición del objeto del procedimiento, la resolución consistirá en declarar esa circunstancia. Se exceptúan los procedimientos terminados por pacto o convenio, y aquellos relativos a ejercicio de derechos sometidos solo a declaración responsable o comunicación. [BOE-A-2015-10565, bloque a21]
+evals	Ejecutar las evals	2026-09-15T07:34:01.6977333Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6977448Z **2. Plazos de resolución**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6977572Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6978806Z El plazo máximo se fija en la norma reguladora de cada procedimiento, con un límite de seis meses (salvo que una ley establezca plazo mayor o lo prevea el Derecho de la UE). Cuando la norma no fije plazo, este es de **tres meses**, que se computa desde la fecha del acuerdo de iniciación (si es de oficio) o desde la entrada de la solicitud en el registro electrónico (si es a solicitud del interesado). [BOE-A-2015-10565, bloque a21]
+evals	Ejecutar las evals	2026-09-15T07:34:01.6979808Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6979953Z **3. Información a interesados y publicidad**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6980127Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6981602Z Las Administraciones deben publicar en su portal web las relaciones de procedimientos con sus plazos máximos y efectos del silencio administrativo. Además, deben informar a los interesados del plazo máximo, incluyendo esa mención en la notificación del acuerdo de iniciación o en comunicación dirigida dentro de los diez días siguientes a la recepción de la solicitud. [BOE-A-2015-10565, bloque a21]
+evals	Ejecutar las evals	2026-09-15T07:34:01.6982634Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6982724Z **4. Responsabilidad**
+evals	Ejecutar las evals	2026-09-15T07:34:01.6982839Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6983556Z El personal de las Administraciones y los titulares de órganos competentes son directamente responsables del cumplimiento de esta obligación. El incumplimiento genera responsabilidad disciplinaria. [BOE-A-2015-10565, bloque a21]
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984233Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984322Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984445Z ## Sesión 02-lcsp-contrato-menor
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984582Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984699Z Eval: 02-lcsp-contrato-menor.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984839Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6984912Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6985015Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6985083Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6985465Z ¿Qué debe incluir el expediente de un contrato menor según la Ley de Contratos del Sector Público?
+evals	Ejecutar las evals	2026-09-15T07:34:01.6985841Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6985923Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6986002Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6986104Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6986214Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6986424Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6986662Z | boe indice BOE-A-2017-12902 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987016Z | boe articulos BOE-A-2017-12902 a117 a118 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987388Z | boe articulo BOE-A-2017-12902 a118 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987588Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987664Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987757Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6987823Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6988418Z No puedo acceder en este momento a la fuente consolidada del BOE debido a límites de ritmo de la consulta. Sin embargo, puedo indicarte dónde encontrar esta información:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6988987Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6989539Z **Según la Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público (LCSP)**, los requisitos del expediente administrativo para contratos menores se regulan en el **artículo 118**.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6990017Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6990101Z Te recomiendo:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6990200Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6991098Z 1. **Consultar directamente el BOE**: Accede a https://www.boe.es y busca la LCSP (BOE-A-2017-12902) para leer el artículo 118 sobre el expediente administrativo de contratos menores.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6991727Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6992133Z 2. **Revisar también el artículo 117** que regula los contratos menores en general, ya que suele contener disposiciones relacionadas.
+evals	Ejecutar las evals	2026-09-15T07:34:01.6992497Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6992935Z Si prefieres que reintente la consulta en unos minutos cuando se normalice el acceso a la fuente, puedo hacerlo. ¿Deseas que lo intente nuevamente?
+evals	Ejecutar las evals	2026-09-15T07:34:01.6993526Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6993614Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6993752Z ## Sesión 03-lrbrl-atribuciones-del-pleno
+evals	Ejecutar las evals	2026-09-15T07:34:01.6993909Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994019Z Eval: 03-lrbrl-atribuciones-del-pleno.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994178Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994246Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994335Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994406Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6994809Z ¿Qué atribuciones tiene el Pleno del ayuntamiento según la Ley reguladora de las Bases del Régimen Local?
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995175Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995259Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995333Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995428Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995542Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995746Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6995978Z | boe indice BOE-A-1985-5392 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6996327Z | boe articulos BOE-A-1985-5392 a21 a22 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6996700Z | boe articulo BOE-A-1985-5392 a21 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.6996902Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6996972Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6997069Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6997139Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.6998472Z La fuente del BOE está experimentando problemas de conectividad en este momento y no puedo consultar los artículos específicos de la LRBRL. Sin embargo, puedo decirte que según la estructura de la **Ley Reguladora de las Bases del Régimen Local (LRBRL, BOE-A-1985-5392)**, las atribuciones del Pleno del ayuntamiento se regulan principalmente en el **Capítulo II del Título II** (artículos 21-24 aproximadamente).
+evals	Ejecutar las evals	2026-09-15T07:34:01.6999490Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.6999632Z Cuando la fuente esté disponible, podrías:
+evals	Ejecutar las evals	2026-09-15T07:34:01.6999788Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7000123Z 1. **Consultar directamente** el artículo 21 de la LRBRL en https://www.boe.es/buscar/act.php?id=BOE-A-1985-5392
+evals	Ejecutar las evals	2026-09-15T07:34:01.7000993Z 2. **Buscar información consolidada** en el portal de legislación consolidada del BOE (boe.es)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7001907Z 3. **Contactar con servicios legales** si necesitas asesoramiento aplicable a tu municipio específico
+evals	Ejecutar las evals	2026-09-15T07:34:01.7002374Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7003926Z Las atribuciones del Pleno incluyen, en líneas generales, funciones como la aprobación de ordenanzas, presupuestos, la elección de órganos unipersonales, y la adopción de decisiones sobre asuntos de interés general, pero te recomiendo verificar el texto actual consolidado cuando la fuente esté disponible.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7004765Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7004938Z ¿Prefieres que vuelva a intentarlo en unos momentos?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005186Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005273Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005386Z ## Sesión 04-lgt-prescripcion
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005521Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005616Z Eval: 04-lgt-prescripcion.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005746Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005821Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7005958Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7006225Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7006962Z ¿En cuántos años prescribe el derecho de la Administración a liquidar una deuda tributaria según la Ley General Tributaria?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7007449Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7007535Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7007607Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7007708Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7007825Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008027Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008257Z | boe indice BOE-A-2003-23186 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008589Z | boe articulo BOE-A-2003-23186 a66 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008783Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008864Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7008957Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7009023Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7009471Z Según la Ley General Tributaria, **el derecho de la Administración a liquidar una deuda tributaria prescribe a los 4 años**.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7009809Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7010059Z Así lo establece el art. 66 de la Ley 58/2003 [BOE-A-2003-23186, bloque a66], que dispone: 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7010417Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7011131Z > «Prescribirán a los cuatro años los siguientes derechos: a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación.»
+evals	Ejecutar las evals	2026-09-15T07:34:01.7011577Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7012433Z Este plazo de cuatro años se cuenta desde el día siguiente a aquel en que nace el derecho de la Administración a liquidar, según las reglas generales de prescripción tributaria. Transcurrido ese periodo, la Administración pierde la facultad de determinar y liquidar la deuda tributaria.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013214Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013296Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013434Z ## Sesión 05-trlrhl-impuestos-municipales
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013593Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013695Z Eval: 05-trlrhl-impuestos-municipales.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013855Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7013927Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7014011Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7014083Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7014518Z ¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7014935Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015015Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015092Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015193Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015305Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015511Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7015739Z | boe indice BOE-A-2004-4214 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016066Z | boe articulo BOE-A-2004-4214 a2 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016414Z | boe articulo BOE-A-2004-4214 a2 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016607Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016680Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016774Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7016840Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7017597Z No he podido consultar el contenido específico de la norma **Real Decreto Legislativo 2/2004** (TRLRHL) [BOE-A-2004-4214] en este momento, ya que la fuente del Boletín Oficial del Estado presenta limitaciones de acceso.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7018151Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7018554Z Según el protocolo de consulta, no puedo suplar el contenido legal con información de otra fuente. Lo que sí puedo confirmarte es que:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7018920Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7019427Z - La norma que regula los impuestos locales es el **Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales (TRLRHL)** [BOE-A-2004-4214]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7020224Z - Los impuestos municipales están regulados principalmente en el **Título I** de esta norma
+evals	Ejecutar las evals	2026-09-15T07:34:01.7020993Z - El artículo 2 es donde se enumeran los tributos locales que pueden exigir los ayuntamientos
+evals	Ejecutar las evals	2026-09-15T07:34:01.7021268Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7021347Z Te recomiendo:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7021643Z 1. Consultar directamente en https://www.boe.es/buscar/act.php?id=BOE-A-2004-4214
+evals	Ejecutar las evals	2026-09-15T07:34:01.7022101Z 2. Intentar esta consulta de nuevo en unos minutos, cuando la fuente vuelva a estar disponible
+evals	Ejecutar las evals	2026-09-15T07:34:01.7022508Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7022994Z ¿Hay algún aspecto específico sobre tributos municipales que necesites conocer? Puedo intentar consultar nuevamente los artículos concretos en un momento.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7023484Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7023567Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7023701Z ## Sesión 06-irpf-rendimientos-del-trabajo
+evals	Ejecutar las evals	2026-09-15T07:34:01.7023858Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7023967Z Eval: 06-irpf-rendimientos-del-trabajo.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7024123Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7024197Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7024287Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7024353Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7024689Z ¿Qué rendimientos se consideran rendimientos íntegros del trabajo en la ley del IRPF?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025008Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025090Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025160Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025259Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025372Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025576Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7025806Z | boe indice BOE-A-2006-20764 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7026293Z | boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7026704Z | boe articulo BOE-A-2006-20764 a17 --json --timeout 5000 | 2 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027098Z | boe articulo BOE-A-2006-20764 a17 --json --timeout 5s | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027323Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027399Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027489Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027559Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7027947Z Perfecto. Tengo la información completa del artículo 17 de la Ley del IRPF. Aquí está la respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7028236Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7028392Z ## Rendimientos íntegros del trabajo según el IRPF
+evals	Ejecutar las evals	2026-09-15T07:34:01.7028561Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7029775Z Según el art. 17 de la Ley 35/2006 [BOE-A-2006-20764, bloque a17], **se consideran rendimientos íntegros del trabajo todas las contraprestaciones o utilidades, cualquiera que sea su denominación o naturaleza, dinerarias o en especie, que deriven, directa o indirectamente, del trabajo personal o de la relación laboral o estatutaria y no tengan el carácter de rendimientos de actividades económicas**.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7030964Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7031093Z ### Ejemplos específicos incluidos:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7031236Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7031536Z El artículo enumera, en particular, los siguientes conceptos como rendimientos íntegros del trabajo:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7031829Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7031908Z 1. **Sueldos y salarios**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7032127Z 2. **Prestaciones por desempleo**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7032413Z 3. **Remuneraciones por gastos de representación**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7033002Z 4. **Dietas y asignaciones para gastos de viaje** (excepto locomoción y gastos normales de manutención y estancia con límites reglamentarios)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7033545Z 5. **Aportaciones a planes de pensiones** realizadas por el empresario
+evals	Ejecutar las evals	2026-09-15T07:34:01.7034189Z 6. **Prestaciones de la Seguridad Social**: pensiones, haberes pasivos, prestaciones por incapacidad, jubilación, accidente, enfermedad, viudedad
+evals	Ejecutar las evals	2026-09-15T07:34:01.7034696Z 7. **Prestaciones de planes de pensiones**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7035108Z 8. **Retribuciones de cargos públicos**: diputados europeos, senadores, concejales, etc.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7035545Z 9. **Rendimientos de actividades docentes**: cursos, conferencias, seminarios
+evals	Ejecutar las evals	2026-09-15T07:34:01.7036056Z 10. **Derechos de obras literarias, artísticas o científicas** (cediendo derechos de explotación)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7036455Z 11. **Retribuciones de administradores y consejeros**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7036763Z 12. **Pensiones compensatorias** y anualidades por alimentos
+evals	Ejecutar las evals	2026-09-15T07:34:01.7037018Z 13. **Becas**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7037223Z 14. **Otras retribuciones laborales especiales**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7037384Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7037489Z ### Límite importante:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7037603Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7038612Z Estos rendimientos **no incluyen aquellos que tengan carácter de rendimientos de actividades económicas**, incluso si derivan de actividades que aparecen en la lista (como cursos o elaboración de obras), cuando supongan la ordenación por cuenta propia de medios de producción o recursos humanos [art. 17.3, BOE-A-2006-20764, bloque a17].
+evals	Ejecutar las evals	2026-09-15T07:34:01.7039650Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7039735Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7039873Z ## Sesión 07-lrjsp-principio-de-legalidad
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040030Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040132Z Eval: 07-lrjsp-principio-de-legalidad.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040293Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040366Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040450Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7040719Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041044Z ¿Qué dice la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041353Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041431Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041507Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041606Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041716Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7041921Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7042149Z | boe indice BOE-A-2015-10566 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7042657Z | boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7043071Z | boe articulo BOE-A-2015-10566 a140 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7043270Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7043346Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7043437Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7043502Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7044200Z No he podido consultar la Ley 40/2015 de forma confiable en este momento. La fuente del Boletín Oficial del Estado presenta un problema de acceso (código 5 — límite de ritmo o indisponibilidad temporal). 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7044707Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7045442Z De acuerdo con el protocolo de consulta normativa, **no puedo suministrar información sobre lo que dice la LRJSP a partir de mi conocimiento previo** cuando la fuente no está disponible — los textos consolidados requieren citación directa del BOE.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7046072Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7046147Z **Opciones:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7046239Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7046441Z 1. **Reintentar en unos minutos**: El acceso a la fuente del BOE puede recuperarse.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7047566Z 2. **Consultar directamente en boe.es**: Puedes acceder a la Ley 40/2015 (identificador BOE-A-2015-10566) en https://www.boe.es/buscar/act.php?id=BOE-A-2015-10566 y buscar el **Título III** (Capítulos III y IV), donde se regulan los **principios de la potestad sancionadora**, incluyendo el de legalidad.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7048292Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7048633Z ¿Quieres que reintente la consulta en unos momentos, o prefieres que explore otra fuente o aspecto de la normativa?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049024Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049109Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049235Z ## Sesión 08-ltaibg-plazo-de-resolucion
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049387Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049490Z Eval: 08-ltaibg-plazo-de-resolucion.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049646Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049714Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049804Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7049874Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7050246Z ¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7050746Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7050833Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7050903Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7051003Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7051118Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7051322Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7051545Z | boe indice BOE-A-2013-12887 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7051901Z | boe articulos BOE-A-2013-12887 a19 a20 --json | 5 | 127.0.0.1:9 (local) |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7052114Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7052188Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7052281Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7052347Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7053058Z No he podido consultar la Ley 19/2013 en este momento debido a un límite de ritmo en la fuente del BOE. Según las reglas de la skill, no puedo suplir el contenido legal con conocimiento propio cuando la consulta falla.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7053607Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7054466Z **Recomendación:** Intenta de nuevo en unos momentos, o consulta directamente la [Ley 19/2013 en el BOE](https://www.boe.es/buscar/act.php?id=BOE-A-2013-12887). El artículo 19 de la Ley 19/2013 es donde típicamente se regula el plazo de resolución de solicitudes de acceso a información pública.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7055385Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7055467Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7055603Z ## Sesión 09-constitucion-articulo-140
+evals	Ejecutar las evals	2026-09-15T07:34:01.7055754Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7055851Z Eval: 09-constitucion-articulo-140.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056003Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056076Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056161Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056233Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056452Z ¿Qué dice el artículo 140 de la Constitución?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056675Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056755Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056831Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7056926Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057035Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057244Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057489Z | boe articulo BOE-A-1978-31229 a140 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057801Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057870Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7057963Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7058032Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7058277Z El artículo 140 de la Constitución Española establece:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7058459Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7060151Z > La Constitución garantiza la autonomía de los municipios. Estos gozarán de personalidad jurídica plena. Su gobierno y administración corresponde a sus respectivos Ayuntamientos, integrados por los Alcaldes y los Concejales. Los Concejales serán elegidos por los vecinos del municipio mediante sufragio universal, igual, libre, directo y secreto, en la forma establecida por la ley. Los Alcaldes serán elegidos por los Concejales o por los vecinos. La ley regulará las condiciones en las que proceda el régimen del concejo abierto.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7061720Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7061805Z [BOE-A-1978-31229, bloque a140]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7061938Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7062062Z En síntesis, este artículo reconoce:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7062390Z - **Autonomía municipal**: garantizada constitucionalmente
+evals	Ejecutar las evals	2026-09-15T07:34:01.7062808Z - **Personalidad jurídica plena**: los municipios actúan como personas jurídicas
+evals	Ejecutar las evals	2026-09-15T07:34:01.7063225Z - **Estructura de gobierno**: Ayuntamiento integrado por Alcaldes y Concejales
+evals	Ejecutar las evals	2026-09-15T07:34:01.7063685Z - **Elección de Concejales**: sufragio universal, igual, libre, directo y secreto
+evals	Ejecutar las evals	2026-09-15T07:34:01.7064185Z - **Elección de Alcaldes**: pueden ser elegidos por los Concejales o directamente por los vecinos
+evals	Ejecutar las evals	2026-09-15T07:34:01.7064644Z - **Régimen de concejo abierto**: su regulación se remite a la ley
+evals	Ejecutar las evals	2026-09-15T07:34:01.7064908Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7064989Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065101Z ## Sesión 10-et-vacaciones
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065222Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065304Z Eval: 10-et-vacaciones.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065431Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065506Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065594Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065671Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7065976Z ¿Cuántos días de vacaciones anuales reconoce el Estatuto de los Trabajadores?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066284Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066364Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066440Z Invocaciones:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066539Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066648Z | Orden | Código | Conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7066851Z | --- | --- | --- |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067083Z | boe indice BOE-A-2015-11430 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067407Z | boe articulo BOE-A-2015-11430 a38 --json | 0 | sin conexiones |
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067601Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067676Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067763Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7067832Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7068262Z Según el Estatuto de los Trabajadores, **el mínimo reconocido es de 30 días naturales** de vacaciones anuales retribuidas.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7068592Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7068715Z Concretamente, el art. 38.1 de la Ley establece que:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7068886Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7069553Z > El periodo de vacaciones anuales retribuidas, no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. **En ningún caso la duración será inferior a treinta días naturales.**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7070325Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7070604Z [Real Decreto Legislativo 2/2015, BOE-A-2015-11430, bloque a38]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7070855Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7070936Z **Aclaraciones:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7071339Z - Este es el **mínimo legal**: pueden pactarse más días mediante convenio colectivo o contrato individual.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7072035Z - Las vacaciones son **retribuidas** y **no sustituibles por compensación económica**, excepto en casos de extinción de la relación laboral.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7072778Z - El periodo se fija de común acuerdo entre empresa y trabajador, conforme a lo previsto en los convenios colectivos aplicables.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073190Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073280Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073401Z ## Sesión 11-no-activa-programacion
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073543Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073642Z Eval: 11-no-activa-programacion.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073915Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7073988Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074079Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074149Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074361Z ¿Cómo invierto una lista enlazada en Go?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074570Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074654Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074743Z Invocaciones: ninguna
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074853Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7074927Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075017Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075086Z ````text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075394Z Aquí están los enfoques más comunes para invertir una lista enlazada en Go:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075617Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075712Z ## Enfoque iterativo (recomendado)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075851Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7075914Z ```go
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076079Z type Node struct {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076254Z 	Value int
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076414Z 	Next  *Node
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076577Z }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076663Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076765Z func ReverseIterative(head *Node) *Node {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7076999Z 	var prev *Node
+evals	Ejecutar las evals	2026-09-15T07:34:01.7077187Z 	current := head
+evals	Ejecutar las evals	2026-09-15T07:34:01.7077352Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7077511Z 	for current != nil {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7077735Z 		next := current.Next      // Guardar siguiente
+evals	Ejecutar las evals	2026-09-15T07:34:01.7078021Z 		current.Next = prev       // Invertir el puntero
+evals	Ejecutar las evals	2026-09-15T07:34:01.7078301Z 		prev = current            // Avanzar prev
+evals	Ejecutar las evals	2026-09-15T07:34:01.7078560Z 		current = next            // Avanzar current
+evals	Ejecutar las evals	2026-09-15T07:34:01.7078776Z 	}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7078925Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079077Z 	return prev
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079230Z }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079375Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079456Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079540Z ## Enfoque recursivo
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079648Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079711Z ```go
+evals	Ejecutar las evals	2026-09-15T07:34:01.7079888Z func ReverseRecursive(head *Node) *Node {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7080158Z 	if head == nil || head.Next == nil {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7080375Z 		return head
+evals	Ejecutar las evals	2026-09-15T07:34:01.7080702Z 	}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7080853Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7081036Z 	newHead := ReverseRecursive(head.Next)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7081310Z 	head.Next.Next = head    // Invertir el puntero
+evals	Ejecutar las evals	2026-09-15T07:34:01.7081581Z 	head.Next = nil          // Prevenir ciclos
+evals	Ejecutar las evals	2026-09-15T07:34:01.7081794Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7081944Z 	return newHead
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082103Z }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082247Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082326Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082415Z ## Ejemplo de uso completo
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082541Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082603Z ```go
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082762Z package main
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082853Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7082928Z import "fmt"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083023Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083094Z func main() {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083281Z 	// Crear lista: 1 -> 2 -> 3 -> nil
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083501Z 	head := &Node{Value: 1}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083704Z 	head.Next = &Node{Value: 2}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7083917Z 	head.Next.Next = &Node{Value: 3}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7084116Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7084264Z 	// Invertir
+evals	Ejecutar las evals	2026-09-15T07:34:01.7084444Z 	head = ReverseIterative(head)
+evals	Ejecutar las evals	2026-09-15T07:34:01.7084756Z 	
+evals	Ejecutar las evals	2026-09-15T07:34:01.7084920Z 	// Imprimir: 3 -> 2 -> 1
+evals	Ejecutar las evals	2026-09-15T07:34:01.7085149Z 	for node := head; node != nil; node = node.Next {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7085413Z 		fmt.Print(node.Value, " -> ")
+evals	Ejecutar las evals	2026-09-15T07:34:01.7085603Z 	}
+evals	Ejecutar las evals	2026-09-15T07:34:01.7085762Z 	fmt.Println("nil")
+evals	Ejecutar las evals	2026-09-15T07:34:01.7085926Z }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7086068Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7086147Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7086534Z **Recomendación:** usa el iterativo. Es más eficiente (O(1) espacio vs O(n) con recursión) y modificas los punteros in-place.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7086872Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087093Z ¿Necesitas una solución para un caso específico o con métodos adicionales?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087389Z ````
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087471Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087611Z ## Sesión 12-no-activa-acuerdo-entre-amigos
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087771Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7087877Z Eval: 12-no-activa-acuerdo-entre-amigos.yaml
+evals	Ejecutar las evals	2026-09-15T07:34:01.7088039Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7088114Z Pregunta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7088307Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7088380Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7088958Z Reescribe en un tono más cercano esta frase de un acuerdo entre amigos para compartir coche: «Las partes se turnarán el uso del vehículo en fines de semana alternos».
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089457Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089536Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089618Z Invocaciones: ninguna
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089732Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089801Z Respuesta:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089894Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7089965Z ```text
+evals	Ejecutar las evals	2026-09-15T07:34:01.7090207Z Aquí hay algunas opciones más cercanas y informales:
+evals	Ejecutar las evals	2026-09-15T07:34:01.7090387Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7090578Z 1. **Más directa y simple:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7090874Z    "Nos turnamos el coche los fines de semana, uno cada semana"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7091067Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7091171Z 2. **Más coloquial:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7091677Z    "Cada fin de semana es para uno de nosotros. Un fin de semana lo uso yo, el siguiente lo usas tú, y así nos vamos turnando"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7092015Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7092104Z 3. **Con toque desenfadado:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7092508Z    "El coche es de quien lo coja primero... bromas aparte, nos lo pasamos los fines de semana alternos"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7092791Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7092889Z 4. **Equilibrio entre formal e informal:**
+evals	Ejecutar las evals	2026-09-15T07:34:01.7093342Z    "Nos pasamos el coche los fines de semana — un fin de semana para uno, otro para el otro"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7093599Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7094182Z **Mi recomendación:** La opción 1 o 4 son las más prácticas. Mantienen claridad jurídica (importante en un acuerdo) pero suenan mucho más entre amigos. La opción 2 es si queréis ser muy explícitos.
+evals	Ejecutar las evals	2026-09-15T07:34:01.7094672Z 
+evals	Ejecutar las evals	2026-09-15T07:34:01.7094824Z ¿Necesitáis ayuda con otras cláusulas del acuerdo?
+evals	Ejecutar las evals	2026-09-15T07:34:01.7095057Z ```
+evals	Ejecutar las evals	2026-09-15T07:34:01.7095219Z --- fin de informe.md ---
+evals	Ejecutar las evals	2026-09-15T07:34:01.7095429Z --- inicio de informe.json ---
+evals	Ejecutar las evals	2026-09-15T07:34:01.7095618Z {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7095791Z   "skill": "boe-legislacion",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7096040Z   "modelo": "claude-haiku-4-5-20251001",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7096278Z   "modelos_de_sesion": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7096493Z     "claude-haiku-4-5-20251001"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7096679Z   ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7096855Z   "versiones_de_claude_code": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7097056Z     "2.1.270"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7097207Z   ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7097422Z   "commit": "537e5d6f7ed5ff48f17f343323f0cef026cb9e33",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7098523Z   "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7099307Z   "ficheros_mal_formados": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7099526Z   "veredicto": "fallo",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7099711Z   "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7100048Z     "02-lcsp-contrato-menor: comando ausente: bloque boe BOE-A-2017-12902 a1-30",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7100706Z     "02-lcsp-contrato-menor: cita ausente: BOE-A-2017-12902 a1-30",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7101176Z     "03-lrbrl-atribuciones-del-pleno: comando ausente: bloque boe BOE-A-1985-5392 a22",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7101649Z     "03-lrbrl-atribuciones-del-pleno: cita ausente: BOE-A-1985-5392 a22",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7102127Z     "05-trlrhl-impuestos-municipales: comando ausente: bloque boe BOE-A-2004-4214 a59",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7102608Z     "05-trlrhl-impuestos-municipales: cita ausente: BOE-A-2004-4214 a59",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7103079Z     "07-lrjsp-principio-de-legalidad: comando ausente: bloque boe BOE-A-2015-10566 a25",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7103544Z     "07-lrjsp-principio-de-legalidad: cita ausente: BOE-A-2015-10566 a25",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7104018Z     "08-ltaibg-plazo-de-resolucion: comando ausente: bloque boe BOE-A-2013-12887 a20",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7104467Z     "08-ltaibg-plazo-de-resolucion: cita ausente: BOE-A-2013-12887 a20",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7104948Z     "10-et-vacaciones: cita ausente: BOE-A-2015-11430 a38"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7105196Z   ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7105369Z   "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7105549Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7105803Z       "sesion": "01-lpac-articulo-21-prueba-de-red",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7106101Z       "eval": "01-lpac-articulo-21.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7106428Z       "orden": "boe articulo BOE-A-2015-10565 a9998 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7106698Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7106871Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7107020Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7107264Z       "sesion": "01-lpac-articulo-21-prueba-de-red",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7107562Z       "eval": "01-lpac-articulo-21.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7107909Z       "orden": "boe articulo BOE-A-2015-10565 a9998 --offline --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7108190Z       "codigo": 4
+evals	Ejecutar las evals	2026-09-15T07:34:01.7108359Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7108504Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7108711Z       "sesion": "02-lcsp-contrato-menor",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7109001Z       "eval": "02-lcsp-contrato-menor.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7109342Z       "orden": "boe articulos BOE-A-2017-12902 a117 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7109612Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7109775Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7109921Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7110125Z       "sesion": "02-lcsp-contrato-menor",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7110397Z       "eval": "02-lcsp-contrato-menor.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7110830Z       "orden": "boe articulo BOE-A-2017-12902 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7111099Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7111266Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7111411Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7111659Z       "sesion": "03-lrbrl-atribuciones-del-pleno",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7111997Z       "eval": "03-lrbrl-atribuciones-del-pleno.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7112349Z       "orden": "boe articulos BOE-A-1985-5392 a21 a22 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7112617Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7112782Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7112927Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7113169Z       "sesion": "03-lrbrl-atribuciones-del-pleno",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7113502Z       "eval": "03-lrbrl-atribuciones-del-pleno.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7113834Z       "orden": "boe articulo BOE-A-1985-5392 a21 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7114089Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7114249Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7114395Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7114634Z       "sesion": "05-trlrhl-impuestos-municipales",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7114976Z       "eval": "05-trlrhl-impuestos-municipales.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7115311Z       "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7115563Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7115737Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7115886Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7116201Z       "sesion": "05-trlrhl-impuestos-municipales",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7125194Z       "eval": "05-trlrhl-impuestos-municipales.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7125632Z       "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7125913Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7126085Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7126406Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7126661Z       "sesion": "06-irpf-rendimientos-del-trabajo",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7127011Z       "eval": "06-irpf-rendimientos-del-trabajo.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7127388Z       "orden": "boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7127679Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7127846Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7127989Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7128229Z       "sesion": "07-lrjsp-principio-de-legalidad",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7128551Z       "eval": "07-lrjsp-principio-de-legalidad.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7128951Z       "orden": "boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7129266Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7129426Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7129564Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7129787Z       "sesion": "07-lrjsp-principio-de-legalidad",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7130099Z       "eval": "07-lrjsp-principio-de-legalidad.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7130423Z       "orden": "boe articulo BOE-A-2015-10566 a140 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7130896Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7131056Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7131193Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7131412Z       "sesion": "08-ltaibg-plazo-de-resolucion",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7131730Z       "eval": "08-ltaibg-plazo-de-resolucion.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132074Z       "orden": "boe articulos BOE-A-2013-12887 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132332Z       "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132489Z     }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132627Z   ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132784Z   "red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7132943Z   "evals": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7133091Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7133293Z       "sesion": "01-lpac-articulo-21",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7133559Z       "eval": "01-lpac-articulo-21.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7133795Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7133992Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7134210Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7134466Z         "bloque boe BOE-A-2015-10565 a21"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7134689Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7134881Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7135100Z       "citas_encontradas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7135331Z         "BOE-A-2015-10565 a21"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7135514Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7135697Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7135909Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7136092Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7136380Z           "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7136659Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7136879Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7137066Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7137231Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7137422Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7137649Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7137870Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7145570Z       "respuesta": "El **artículo 21 de la Ley 39/2015** [BOE-A-2015-10565, bloque a21] regula la **obligación de resolver** y contiene estos elementos principales:\n\n**1. Obligación de dictar resolución expresa**\nLa Administración está obligada a dictar resolución expresa y a notificarla en todos los procedimientos, cualquiera que sea su forma de iniciación. En casos de prescripción, renuncia del derecho, caducidad, desistimiento o desaparición del objeto del procedimiento, la resolución consistirá en la declaración de la circunstancia con indicación de los hechos y normas aplicables.\n\nSe exceptúan los procedimientos terminados por pacto o convenio, y aquellos relativos a derechos sometidos solo a declaración responsable o comunicación a la Administración.\n\n**2. Plazo máximo de resolución**\nEl plazo será el fijado por la norma reguladora del procedimiento, con un máximo de **6 meses** salvo que una ley establezca otro mayor o lo prevea el Derecho de la Unión Europea.\n\n**3. Plazo supletorio**\nCuando las normas reguladoras no fijen plazo, este será de **3 meses**, contados desde:\n- En procedimientos de oficio: desde el acuerdo de iniciación\n- En procedimientos iniciados a solicitud: desde que la solicitud tenga entrada en el registro electrónico\n\n**4. Información al interesado**\nLa Administración debe informar del plazo máximo y los efectos del silencio administrativo en la notificación del acuerdo de iniciación o, en procedimientos a solicitud, dentro de los 10 días siguientes a la recepción.\n\n**5. Habilitación de medios**\nSi el número de solicitudes pudiera impedir cumplir el plazo, se pueden habilitar medios personales y materiales.\n\n**6. Responsabilidad**\nEl personal a cargo del despacho de asuntos es directamente responsable del cumplimiento de la obligación legal; su incumplimiento genera responsabilidad disciplinaria.",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7150639Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7150905Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7151163Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7151372Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7151559Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7151846Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7151989Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7152232Z       "sesion": "01-lpac-articulo-21-prueba-de-red",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7152535Z       "eval": "01-lpac-articulo-21.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7152770Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7152971Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7153188Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7153444Z         "bloque boe BOE-A-2015-10565 a21"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7153650Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7153834Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7154058Z       "citas_encontradas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7154279Z         "BOE-A-2015-10565 a21"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7154458Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7154636Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7154842Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7155017Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7155311Z           "orden": "boe articulo BOE-A-2015-10565 a9998 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7155589Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7155805Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7155999Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7156243Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7156503Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7156692Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7156854Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7157007Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7157155Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7157488Z           "orden": "boe articulo BOE-A-2015-10565 a9998 --offline --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7157790Z           "codigo": 4,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7158004Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7158189Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7158346Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7158620Z           "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7158897Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7159108Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7159286Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7159431Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7159613Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7159803Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7160096Z           "orden": "boe articulo BOE-A-2015-10565 a9998 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7160362Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7160750Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7160920Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7161251Z           "orden": "boe articulo BOE-A-2015-10565 a9998 --offline --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7161549Z           "codigo": 4
+evals	Ejecutar las evals	2026-09-15T07:34:01.7161725Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7161871Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7162059Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7162285Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7170046Z       "respuesta": "## Artículo 21 de la Ley 39/2015 (LPAC): Obligación de resolver\n\nEl artículo 21 regula la obligación de la Administración de dictar resolución expresa en los procedimientos administrativos. Los puntos clave son:\n\n**1. Obligación general y excepciones**\n\nLa Administración está obligada a dictar resolución expresa y notificarla en todos los procedimientos. En casos de prescripción, renuncia, caducidad, desistimiento o desaparición del objeto del procedimiento, la resolución consistirá en declarar esa circunstancia. Se exceptúan los procedimientos terminados por pacto o convenio, y aquellos relativos a ejercicio de derechos sometidos solo a declaración responsable o comunicación. [BOE-A-2015-10565, bloque a21]\n\n**2. Plazos de resolución**\n\nEl plazo máximo se fija en la norma reguladora de cada procedimiento, con un límite de seis meses (salvo que una ley establezca plazo mayor o lo prevea el Derecho de la UE). Cuando la norma no fije plazo, este es de **tres meses**, que se computa desde la fecha del acuerdo de iniciación (si es de oficio) o desde la entrada de la solicitud en el registro electrónico (si es a solicitud del interesado). [BOE-A-2015-10565, bloque a21]\n\n**3. Información a interesados y publicidad**\n\nLas Administraciones deben publicar en su portal web las relaciones de procedimientos con sus plazos máximos y efectos del silencio administrativo. Además, deben informar a los interesados del plazo máximo, incluyendo esa mención en la notificación del acuerdo de iniciación o en comunicación dirigida dentro de los diez días siguientes a la recepción de la solicitud. [BOE-A-2015-10565, bloque a21]\n\n**4. Responsabilidad**\n\nEl personal de las Administraciones y los titulares de órganos competentes son directamente responsables del cumplimiento de esta obligación. El incumplimiento genera responsabilidad disciplinaria. [BOE-A-2015-10565, bloque a21]",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7175244Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7175508Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7175769Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7175981Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7176170Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7176339Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7176480Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7176692Z       "sesion": "02-lcsp-contrato-menor",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7176975Z       "eval": "02-lcsp-contrato-menor.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7177223Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7177428Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7177641Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7177886Z         "boe indice BOE-A-2017-12902"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7178098Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7178281Z       "comandos_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7178536Z         "bloque boe BOE-A-2017-12902 a1-30"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7178743Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7178930Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7179143Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7179369Z         "BOE-A-2017-12902 a1-30"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7179562Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7179732Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7179910Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7180198Z           "orden": "boe indice BOE-A-2017-12902 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7180563Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7180782Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7180970Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7181126Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7181441Z           "orden": "boe articulos BOE-A-2017-12902 a117 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7181736Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7181946Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7182139Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7182379Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7182643Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7182846Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7183005Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7183156Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7183311Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7183599Z           "orden": "boe articulo BOE-A-2017-12902 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7183868Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7184073Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7184259Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7184487Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7184746Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7184937Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7185090Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7185243Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7185519Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7185698Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7185886Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7186193Z           "orden": "boe articulos BOE-A-2017-12902 a117 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7186476Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7186647Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7186796Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7187078Z           "orden": "boe articulo BOE-A-2017-12902 a118 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7187341Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7187508Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7187651Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7187826Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7188037Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7191697Z       "respuesta": "No puedo acceder en este momento a la fuente consolidada del BOE debido a límites de ritmo de la consulta. Sin embargo, puedo indicarte dónde encontrar esta información:\n\n**Según la Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público (LCSP)**, los requisitos del expediente administrativo para contratos menores se regulan en el **artículo 118**.\n\nTe recomiendo:\n\n1. **Consultar directamente el BOE**: Accede a https://www.boe.es y busca la LCSP (BOE-A-2017-12902) para leer el artículo 118 sobre el expediente administrativo de contratos menores.\n\n2. **Revisar también el artículo 117** que regula los contratos menores en general, ya que suele contener disposiciones relacionadas.\n\nSi prefieres que reintente la consulta en unos minutos cuando se normalice el acceso a la fuente, puedo hacerlo. ¿Deseas que lo intente nuevamente?",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7194008Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7194265Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7194522Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7194726Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7195022Z         "comando ausente: bloque boe BOE-A-2017-12902 a1-30",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7195341Z         "cita ausente: BOE-A-2017-12902 a1-30"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7195561Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7195740Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7195901Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7196040Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7196274Z       "sesion": "03-lrbrl-atribuciones-del-pleno",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7196598Z       "eval": "03-lrbrl-atribuciones-del-pleno.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7196850Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7197037Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7197249Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7197491Z         "boe indice BOE-A-1985-5392"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7197689Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7197872Z       "comandos_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7198116Z         "bloque boe BOE-A-1985-5392 a22"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7198316Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7198495Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7198703Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7198915Z         "BOE-A-1985-5392 a22"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7199094Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7199261Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7199433Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7199700Z           "orden": "boe indice BOE-A-1985-5392 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7199958Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7200167Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7200347Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7200679Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7201039Z           "orden": "boe articulos BOE-A-1985-5392 a21 a22 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7201320Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7201521Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7201708Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7201944Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7202199Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7202389Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7202541Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7202692Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7202838Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7203108Z           "orden": "boe articulo BOE-A-1985-5392 a21 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7203371Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7203571Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7203753Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7204125Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7204382Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7204575Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7204727Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7204876Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7205017Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7205200Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7205388Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7205680Z           "orden": "boe articulos BOE-A-1985-5392 a21 a22 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7205950Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7206118Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7206262Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7206531Z           "orden": "boe articulo BOE-A-1985-5392 a21 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7206787Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7206951Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7207093Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7207270Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7207488Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7212388Z       "respuesta": "La fuente del BOE está experimentando problemas de conectividad en este momento y no puedo consultar los artículos específicos de la LRBRL. Sin embargo, puedo decirte que según la estructura de la **Ley Reguladora de las Bases del Régimen Local (LRBRL, BOE-A-1985-5392)**, las atribuciones del Pleno del ayuntamiento se regulan principalmente en el **Capítulo II del Título II** (artículos 21-24 aproximadamente).\n\nCuando la fuente esté disponible, podrías:\n\n1. **Consultar directamente** el artículo 21 de la LRBRL en https://www.boe.es/buscar/act.php?id=BOE-A-1985-5392\n2. **Buscar información consolidada** en el portal de legislación consolidada del BOE (boe.es)\n3. **Contactar con servicios legales** si necesitas asesoramiento aplicable a tu municipio específico\n\nLas atribuciones del Pleno incluyen, en líneas generales, funciones como la aprobación de ordenanzas, presupuestos, la elección de órganos unipersonales, y la adopción de decisiones sobre asuntos de interés general, pero te recomiendo verificar el texto actual consolidado cuando la fuente esté disponible.\n\n¿Prefieres que vuelva a intentarlo en unos momentos?",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7215627Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7215886Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7216140Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7216344Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7216627Z         "comando ausente: bloque boe BOE-A-1985-5392 a22",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7216928Z         "cita ausente: BOE-A-1985-5392 a22"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7217133Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7217329Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7217489Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7217625Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7217826Z       "sesion": "04-lgt-prescripcion",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7218092Z       "eval": "04-lgt-prescripcion.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7218323Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7218513Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7218724Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7218968Z         "boe indice BOE-A-2003-23186",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7219243Z         "bloque boe BOE-A-2003-23186 a66"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7219452Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7219642Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7219870Z       "citas_encontradas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7220103Z         "BOE-A-2003-23186 a66"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7220304Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7220562Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7220773Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7220952Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7221220Z           "orden": "boe indice BOE-A-2003-23186 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7221488Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7221697Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7221876Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7222023Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7222296Z           "orden": "boe articulo BOE-A-2003-23186 a66 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7222565Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7222768Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7222943Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7223209Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7223401Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7223629Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7223843Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7226737Z       "respuesta": "Según la Ley General Tributaria, **el derecho de la Administración a liquidar una deuda tributaria prescribe a los 4 años**.\n\nAsí lo establece el art. 66 de la Ley 58/2003 [BOE-A-2003-23186, bloque a66], que dispone: \n\n> «Prescribirán a los cuatro años los siguientes derechos: a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación.»\n\nEste plazo de cuatro años se cuenta desde el día siguiente a aquel en que nace el derecho de la Administración a liquidar, según las reglas generales de prescripción tributaria. Transcurrido ese periodo, la Administración pierde la facultad de determinar y liquidar la deuda tributaria.",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7228510Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7228759Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7229120Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7229325Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7229511Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7229674Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7229811Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7230041Z       "sesion": "05-trlrhl-impuestos-municipales",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7230366Z       "eval": "05-trlrhl-impuestos-municipales.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7230704Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7230891Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7231103Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7231345Z         "boe indice BOE-A-2004-4214"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7231544Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7231723Z       "comandos_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7231967Z         "bloque boe BOE-A-2004-4214 a59"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7232168Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7232347Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7232554Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7232767Z         "BOE-A-2004-4214 a59"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7232953Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7233120Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7233292Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7233550Z           "orden": "boe indice BOE-A-2004-4214 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7233806Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7234011Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7234189Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7234338Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7234611Z           "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7234873Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7235072Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7235255Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7235498Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7235759Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7235955Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7236117Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7236270Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7236421Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7236697Z           "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7236961Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7237164Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7237351Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7237584Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7237836Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238025Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238187Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238336Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238485Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238675Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7238868Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7239147Z           "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7239416Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7239590Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7239742Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7240011Z           "orden": "boe articulo BOE-A-2004-4214 a2 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7240275Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7240442Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7240798Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7240984Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7241321Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7245970Z       "respuesta": "No he podido consultar el contenido específico de la norma **Real Decreto Legislativo 2/2004** (TRLRHL) [BOE-A-2004-4214] en este momento, ya que la fuente del Boletín Oficial del Estado presenta limitaciones de acceso.\n\nSegún el protocolo de consulta, no puedo suplar el contenido legal con información de otra fuente. Lo que sí puedo confirmarte es que:\n\n- La norma que regula los impuestos locales es el **Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales (TRLRHL)** [BOE-A-2004-4214]\n- Los impuestos municipales están regulados principalmente en el **Título I** de esta norma\n- El artículo 2 es donde se enumeran los tributos locales que pueden exigir los ayuntamientos\n\nTe recomiendo:\n1. Consultar directamente en https://www.boe.es/buscar/act.php?id=BOE-A-2004-4214\n2. Intentar esta consulta de nuevo en unos minutos, cuando la fuente vuelva a estar disponible\n\n¿Hay algún aspecto específico sobre tributos municipales que necesites conocer? Puedo intentar consultar nuevamente los artículos concretos en un momento.",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7249029Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7249289Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7249543Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7249759Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7250047Z         "comando ausente: bloque boe BOE-A-2004-4214 a59",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7250352Z         "cita ausente: BOE-A-2004-4214 a59"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7250651Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7250818Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7250988Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7251129Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7251363Z       "sesion": "06-irpf-rendimientos-del-trabajo",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7251697Z       "eval": "06-irpf-rendimientos-del-trabajo.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7251952Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7252158Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7252373Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7252621Z         "boe indice BOE-A-2006-20764",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7252891Z         "bloque boe BOE-A-2006-20764 a17"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7253098Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7253286Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7253509Z       "citas_encontradas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7253735Z         "BOE-A-2006-20764 a17"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7253919Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7254096Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7254303Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7254486Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7254762Z           "orden": "boe indice BOE-A-2006-20764 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7255021Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7255240Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7255426Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7255577Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7255908Z           "orden": "boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7256227Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7256438Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7256630Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7256870Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7257137Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7257328Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7257503Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7257664Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7257814Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7258162Z           "orden": "boe articulo BOE-A-2006-20764 a17 --json --timeout 5000",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7258469Z           "codigo": 2,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7258679Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7258860Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7259010Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7259348Z           "orden": "boe articulo BOE-A-2006-20764 a17 --json --timeout 5s",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7259641Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7259846Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7260026Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7260174Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7260595Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7260787Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7261119Z           "orden": "boe articulos BOE-A-2006-20764 a17 a18 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7261407Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7261580Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7261729Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7261904Z       "otras_fallidas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7262083Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7262425Z           "orden": "boe articulo BOE-A-2006-20764 a17 --json --timeout 5000",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7262721Z           "codigo": 2
+evals	Ejecutar las evals	2026-09-15T07:34:01.7262885Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7263030Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7263213Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7271672Z       "respuesta": "Perfecto. Tengo la información completa del artículo 17 de la Ley del IRPF. Aquí está la respuesta:\n\n## Rendimientos íntegros del trabajo según el IRPF\n\nSegún el art. 17 de la Ley 35/2006 [BOE-A-2006-20764, bloque a17], **se consideran rendimientos íntegros del trabajo todas las contraprestaciones o utilidades, cualquiera que sea su denominación o naturaleza, dinerarias o en especie, que deriven, directa o indirectamente, del trabajo personal o de la relación laboral o estatutaria y no tengan el carácter de rendimientos de actividades económicas**.\n\n### Ejemplos específicos incluidos:\n\nEl artículo enumera, en particular, los siguientes conceptos como rendimientos íntegros del trabajo:\n\n1. **Sueldos y salarios**\n2. **Prestaciones por desempleo**\n3. **Remuneraciones por gastos de representación**\n4. **Dietas y asignaciones para gastos de viaje** (excepto locomoción y gastos normales de manutención y estancia con límites reglamentarios)\n5. **Aportaciones a planes de pensiones** realizadas por el empresario\n6. **Prestaciones de la Seguridad Social**: pensiones, haberes pasivos, prestaciones por incapacidad, jubilación, accidente, enfermedad, viudedad\n7. **Prestaciones de planes de pensiones**\n8. **Retribuciones de cargos públicos**: diputados europeos, senadores, concejales, etc.\n9. **Rendimientos de actividades docentes**: cursos, conferencias, seminarios\n10. **Derechos de obras literarias, artísticas o científicas** (cediendo derechos de explotación)\n11. **Retribuciones de administradores y consejeros**\n12. **Pensiones compensatorias** y anualidades por alimentos\n13. **Becas**\n14. **Otras retribuciones laborales especiales**\n\n### Límite importante:\n\nEstos rendimientos **no incluyen aquellos que tengan carácter de rendimientos de actividades económicas**, incluso si derivan de actividades que aparecen en la lista (como cursos o elaboración de obras), cuando supongan la ordenación por cuenta propia de medios de producción o recursos humanos [art. 17.3, BOE-A-2006-20764, bloque a17].",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7277069Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7277326Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7277586Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7277797Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7278003Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7278167Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7278311Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7278543Z       "sesion": "07-lrjsp-principio-de-legalidad",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7278868Z       "eval": "07-lrjsp-principio-de-legalidad.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7279127Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7279319Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7279528Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7279773Z         "boe indice BOE-A-2015-10566"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7279983Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7280164Z       "comandos_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7280414Z         "bloque boe BOE-A-2015-10566 a25"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7280858Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7281045Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7281263Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7281484Z         "BOE-A-2015-10566 a25"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7281662Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7281833Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7282006Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7282406Z           "orden": "boe indice BOE-A-2015-10566 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7282678Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7282896Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7283086Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7283236Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7283619Z           "orden": "boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7283949Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7284159Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7284346Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7284587Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7284861Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7285055Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7285213Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7285370Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7285520Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7285809Z           "orden": "boe articulo BOE-A-2015-10566 a140 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7286090Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7286307Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7286612Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7286855Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287125Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287325Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287487Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287638Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287790Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7287978Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7288164Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7288554Z           "orden": "boe articulos BOE-A-2015-10566 a140 a141 a142 a143 a144 a145 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7288886Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7289058Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7289212Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7289497Z           "orden": "boe articulo BOE-A-2015-10566 a140 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7289769Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7289937Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7290087Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7290267Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7290587Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7294727Z       "respuesta": "No he podido consultar la Ley 40/2015 de forma confiable en este momento. La fuente del Boletín Oficial del Estado presenta un problema de acceso (código 5 — límite de ritmo o indisponibilidad temporal). \n\nDe acuerdo con el protocolo de consulta normativa, **no puedo suministrar información sobre lo que dice la LRJSP a partir de mi conocimiento previo** cuando la fuente no está disponible — los textos consolidados requieren citación directa del BOE.\n\n**Opciones:**\n\n1. **Reintentar en unos minutos**: El acceso a la fuente del BOE puede recuperarse.\n2. **Consultar directamente en boe.es**: Puedes acceder a la Ley 40/2015 (identificador BOE-A-2015-10566) en https://www.boe.es/buscar/act.php?id=BOE-A-2015-10566 y buscar el **Título III** (Capítulos III y IV), donde se regulan los **principios de la potestad sancionadora**, incluyendo el de legalidad.\n\n¿Quieres que reintente la consulta en unos momentos, o prefieres que explore otra fuente o aspecto de la normativa?",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7297243Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7297503Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7297757Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7297967Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7298255Z         "comando ausente: bloque boe BOE-A-2015-10566 a25",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7298569Z         "cita ausente: BOE-A-2015-10566 a25"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7298784Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7298958Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7299123Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7299269Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7299509Z       "sesion": "08-ltaibg-plazo-de-resolucion",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7299820Z       "eval": "08-ltaibg-plazo-de-resolucion.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7300074Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7300268Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7300563Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7300817Z         "boe indice BOE-A-2013-12887"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7301023Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7301211Z       "comandos_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7301582Z         "bloque boe BOE-A-2013-12887 a20"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7301793Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7301982Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7302200Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7302418Z         "BOE-A-2013-12887 a20"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7302599Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7302776Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7302953Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7303230Z           "orden": "boe indice BOE-A-2013-12887 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7303498Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7303713Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7303898Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7304052Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7304361Z           "orden": "boe articulos BOE-A-2013-12887 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7304648Z           "codigo": 5,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7304858Z           "conexiones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7305051Z             {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7305292Z               "destino": "127.0.0.1:9",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7305660Z               "clase": "local"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7305860Z             }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306020Z           ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306173Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306323Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306511Z       "fuera_de_lo_grabado": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306698Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7306997Z           "orden": "boe articulos BOE-A-2013-12887 a19 a20 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7307280Z           "codigo": 5
+evals	Ejecutar las evals	2026-09-15T07:34:01.7307449Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7307594Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7307773Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7307993Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7310241Z       "respuesta": "No he podido consultar la Ley 19/2013 en este momento debido a un límite de ritmo en la fuente del BOE. Según las reglas de la skill, no puedo suplir el contenido legal con conocimiento propio cuando la consulta falla.\n\n**Recomendación:** Intenta de nuevo en unos momentos, o consulta directamente la [Ley 19/2013 en el BOE](https://www.boe.es/buscar/act.php?id=BOE-A-2013-12887). El artículo 19 de la Ley 19/2013 es donde típicamente se regula el plazo de resolución de solicitudes de acceso a información pública.",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7311881Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312144Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312405Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312498Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312695Z         "comando ausente: bloque boe BOE-A-2013-12887 a20",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312839Z         "cita ausente: BOE-A-2013-12887 a20"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7312916Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313008Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313074Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313139Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313293Z       "sesion": "09-constitucion-articulo-140",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313448Z       "eval": "09-constitucion-articulo-140.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313544Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313645Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313768Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313910Z         "bloque boe BOE-A-1978-31229 a140"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7313984Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314090Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314199Z       "citas_encontradas": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314316Z         "BOE-A-1978-31229 a140"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314386Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314491Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314590Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314664Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314884Z           "orden": "boe articulo BOE-A-1978-31229 a140 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7314990Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315103Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315177Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315250Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315361Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315467Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7315573Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7320371Z       "respuesta": "El artículo 140 de la Constitución Española establece:\n\n> La Constitución garantiza la autonomía de los municipios. Estos gozarán de personalidad jurídica plena. Su gobierno y administración corresponde a sus respectivos Ayuntamientos, integrados por los Alcaldes y los Concejales. Los Concejales serán elegidos por los vecinos del municipio mediante sufragio universal, igual, libre, directo y secreto, en la forma establecida por la ley. Los Alcaldes serán elegidos por los Concejales o por los vecinos. La ley regulará las condiciones en las que proceda el régimen del concejo abierto.\n\n[BOE-A-1978-31229, bloque a140]\n\nEn síntesis, este artículo reconoce:\n- **Autonomía municipal**: garantizada constitucionalmente\n- **Personalidad jurídica plena**: los municipios actúan como personas jurídicas\n- **Estructura de gobierno**: Ayuntamiento integrado por Alcaldes y Concejales\n- **Elección de Concejales**: sufragio universal, igual, libre, directo y secreto\n- **Elección de Alcaldes**: pueden ser elegidos por los Concejales o directamente por los vecinos\n- **Régimen de concejo abierto**: su regulación se remite a la ley",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7320694Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7320832Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7320945Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321036Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321125Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321195Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321256Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321377Z       "sesion": "10-et-vacaciones",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321504Z       "eval": "10-et-vacaciones.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321593Z       "activa": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321690Z       "activada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321802Z       "comandos_ejecutados": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7321929Z         "boe indice BOE-A-2015-11430",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322067Z         "bloque boe BOE-A-2015-11430 a38"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322141Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322248Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322367Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322469Z       "citas_ausentes": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322576Z         "BOE-A-2015-11430 a38"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322651Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322751Z       "invocaciones": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7322824Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323024Z           "orden": "boe indice BOE-A-2015-11430 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323131Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323242Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323321Z         },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323396Z         {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323603Z           "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323706Z           "codigo": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323819Z           "conexiones": []
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323891Z         }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7323962Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7324075Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7324177Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7324283Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7327822Z       "respuesta": "Según el Estatuto de los Trabajadores, **el mínimo reconocido es de 30 días naturales** de vacaciones anuales retribuidas.\n\nConcretamente, el art. 38.1 de la Ley establece que:\n\n> El periodo de vacaciones anuales retribuidas, no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. **En ningún caso la duración será inferior a treinta días naturales.**\n\n[Real Decreto Legislativo 2/2015, BOE-A-2015-11430, bloque a38]\n\n**Aclaraciones:**\n- Este es el **mínimo legal**: pueden pactarse más días mediante convenio colectivo o contrato individual.\n- Las vacaciones son **retribuidas** y **no sustituibles por compensación económica**, excepto en casos de extinción de la relación laboral.\n- El periodo se fija de común acuerdo entre empresa y trabajador, conforme a lo previsto en los convenios colectivos aplicables.",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7327944Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328187Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328300Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328391Z       "motivos": [
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328534Z         "cita ausente: BOE-A-2015-11430 a38"
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328611Z       ],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328703Z       "pasa": false
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328770Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328834Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7328973Z       "sesion": "11-no-activa-programacion",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329121Z       "eval": "11-no-activa-programacion.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329217Z       "activa": false,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329317Z       "activada": false,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329427Z       "comandos_ejecutados": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329538Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329647Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329746Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329849Z       "invocaciones": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7329959Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7330144Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7330249Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7335932Z       "respuesta": "Aquí están los enfoques más comunes para invertir una lista enlazada en Go:\n\n## Enfoque iterativo (recomendado)\n\n```go\ntype Node struct {\n\tValue int\n\tNext  *Node\n}\n\nfunc ReverseIterative(head *Node) *Node {\n\tvar prev *Node\n\tcurrent := head\n\t\n\tfor current != nil {\n\t\tnext := current.Next      // Guardar siguiente\n\t\tcurrent.Next = prev       // Invertir el puntero\n\t\tprev = current            // Avanzar prev\n\t\tcurrent = next            // Avanzar current\n\t}\n\t\n\treturn prev\n}\n```\n\n## Enfoque recursivo\n\n```go\nfunc ReverseRecursive(head *Node) *Node {\n\tif head == nil || head.Next == nil {\n\t\treturn head\n\t}\n\t\n\tnewHead := ReverseRecursive(head.Next)\n\thead.Next.Next = head    // Invertir el puntero\n\thead.Next = nil          // Prevenir ciclos\n\t\n\treturn newHead\n}\n```\n\n## Ejemplo de uso completo\n\n```go\npackage main\n\nimport \"fmt\"\n\nfunc main() {\n\t// Crear lista: 1 -> 2 -> 3 -> nil\n\thead := &Node{Value: 1}\n\thead.Next = &Node{Value: 2}\n\thead.Next.Next = &Node{Value: 3}\n\t\n\t// Invertir\n\thead = ReverseIterative(head)\n\t\n\t// Imprimir: 3 -> 2 -> 1\n\tfor node := head; node != nil; node = node.Next {\n\t\tfmt.Print(node.Value, \" -> \")\n\t}\n\tfmt.Println(\"nil\")\n}\n```\n\n**Recomendación:** usa el iterativo. Es más eficiente (O(1) espacio vs O(n) con recursión) y modificas los punteros in-place.\n\n¿Necesitas una solución para un caso específico o con métodos adicionales?",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336068Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336203Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336310Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336405Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336494Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336561Z     },
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336626Z     {
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336794Z       "sesion": "12-no-activa-acuerdo-entre-amigos",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7336975Z       "eval": "12-no-activa-acuerdo-entre-amigos.yaml",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337070Z       "activa": false,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337167Z       "activada": false,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337277Z       "comandos_ejecutados": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337388Z       "comandos_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337496Z       "citas_encontradas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337594Z       "citas_ausentes": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337694Z       "invocaciones": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337804Z       "fuera_de_lo_grabado": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7337901Z       "otras_fallidas": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7338008Z       "llegadas_a_la_red": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7341373Z       "respuesta": "Aquí hay algunas opciones más cercanas y informales:\n\n1. **Más directa y simple:**\n   \"Nos turnamos el coche los fines de semana, uno cada semana\"\n\n2. **Más coloquial:**\n   \"Cada fin de semana es para uno de nosotros. Un fin de semana lo uso yo, el siguiente lo usas tú, y así nos vamos turnando\"\n\n3. **Con toque desenfadado:**\n   \"El coche es de quien lo coja primero... bromas aparte, nos lo pasamos los fines de semana alternos\"\n\n4. **Equilibrio entre formal e informal:**\n   \"Nos pasamos el coche los fines de semana — un fin de semana para uno, otro para el otro\"\n\n**Mi recomendación:** La opción 1 o 4 son las más prácticas. Mantienen claridad jurídica (importante en un acuerdo) pero suenan mucho más entre amigos. La opción 2 es si queréis ser muy explícitos.\n\n¿Necesitáis ayuda con otras cláusulas del acuerdo?",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7341599Z       "codigo_de_la_sesion": 0,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7341728Z       "fin_de_la_sesion": "result success",
+evals	Ejecutar las evals	2026-09-15T07:34:01.7341838Z       "sesion_terminada": true,
+evals	Ejecutar las evals	2026-09-15T07:34:01.7341929Z       "motivos": [],
+evals	Ejecutar las evals	2026-09-15T07:34:01.7342015Z       "pasa": true
+evals	Ejecutar las evals	2026-09-15T07:34:01.7342081Z     }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7342143Z   ]
+evals	Ejecutar las evals	2026-09-15T07:34:01.7342204Z }
+evals	Ejecutar las evals	2026-09-15T07:34:01.7342290Z --- fin de informe.json ---
 código de la quinta orden: 0
 `````
 
 ## Anexo B · Sexta orden de §12.2: retirada de Python entre marcas, tal cual
 
 `````text
-evals	Retirar Python del runner	2026-09-15T06:20:58.5296225Z --- inicio de la retirada de Python ---
-evals	Retirar Python del runner	2026-09-15T06:20:58.5552434Z búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
-evals	Retirar Python del runner	2026-09-15T06:23:35.4774190Z retirado: /opt/pipx/shared/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.4961144Z retirado: /opt/pipx/shared/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.5317204Z retirado: /opt/pipx/shared
-evals	Retirar Python del runner	2026-09-15T06:23:35.6232928Z retirado: /opt/pipx/venvs/yamllint
-evals	Retirar Python del runner	2026-09-15T06:23:35.6780325Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_util/target/injector/__pycache__/python.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.6963133Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_util/target/injector/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.7145537Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/__pycache__/python_requirements.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.7325752Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/classification/__pycache__/python.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.7512433Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/classification/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.7697773Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/python_requirements.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.7888936Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/okd/molecule/default/roles/openshift_adm_groups/tasks/python-ldap-not-installed.yml
-evals	Retirar Python del runner	2026-09-15T06:23:35.8090599Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/general/plugins/modules/__pycache__/python_requirements_info.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.8289180Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/general/plugins/modules/python_requirements_info.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.8488113Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/__pycache__/python_literal_eval.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.8681150Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/python_literal_eval.yml
-evals	Retirar Python del runner	2026-09-15T06:23:35.8869572Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/python_literal_eval.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.9057551Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/module_utils/facts/system/__pycache__/python.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:35.9242300Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/module_utils/facts/system/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:35.9589257Z retirado: /opt/pipx/venvs/ansible-core
-evals	Retirar Python del runner	2026-09-15T06:23:37.0202674Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy39.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:37.0382377Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.0558804Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.0737531Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/hpy/devel/include/hpy/forbid_python_h/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.0917881Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/pyrepl/python_reader.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.1093427Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:37.1269699Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:37.1446845Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:37.1624410Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:37.1800589Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:37.1981455Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:37.2158339Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:37.2336868Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:37.2520891Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:37.2700197Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:37.2878023Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:37.3054505Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:37.3240972Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:37.3430675Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:37.3607890Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.3794090Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/PYPY_PORTABLE_DEPS.txt
-evals	Retirar Python del runner	2026-09-15T06:23:37.3972983Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.4152426Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.4332368Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_macros.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.4512423Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_marshal_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.4693512Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.4916594Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_structmember_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.5102525Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/PYPY_VERSION
-evals	Retirar Python del runner	2026-09-15T06:23:37.5467545Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64
-evals	Retirar Python del runner	2026-09-15T06:23:37.8158255Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/PYPY_PORTABLE_DEPS.txt
-evals	Retirar Python del runner	2026-09-15T06:23:37.8346106Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy311.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:37.8530009Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.8716562Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
-evals	Retirar Python del runner	2026-09-15T06:23:37.8897389Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/hpy/devel/include/hpy/forbid_python_h/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:37.9084107Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:37.9269957Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:37.9455712Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:37.9636684Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:37.9825685Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:38.0024204Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:38.0216330Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:38.0400072Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:38.0584068Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:38.0768467Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:38.0950969Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:38.1136143Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:38.1317812Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:38.1503498Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:38.1687709Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python-raw.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:38.1871648Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:38.2057573Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:38.2238823Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:38.2426626Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:38.2615123Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:38.2799819Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:38.2990847Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:38.3184392Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:38.3371234Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:38.3557506Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:38.3746829Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:38.3935800Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:38.4120107Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:38.4312208Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:38.4498380Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.4686392Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.4877669Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_macros.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.5063748Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_marshal_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.5250942Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.5433485Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_structmember_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.5618178Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/PYPY_VERSION
-evals	Retirar Python del runner	2026-09-15T06:23:38.5975570Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64
-evals	Retirar Python del runner	2026-09-15T06:23:38.8894745Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/PYPY_PORTABLE_DEPS.txt
-evals	Retirar Python del runner	2026-09-15T06:23:38.9083398Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy310.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:38.9271384Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:38.9457897Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
-evals	Retirar Python del runner	2026-09-15T06:23:38.9643810Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/hpy/devel/include/hpy/forbid_python_h/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:38.9833009Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:39.0020071Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:39.0207956Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:39.0401143Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:39.0587230Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:39.0774546Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:39.0961450Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:39.1156782Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:39.1339575Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:39.1528028Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:39.1716922Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:39.1903993Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:39.2089628Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:39.2273506Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:39.2459121Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:39.2649246Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.2844645Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.3031722Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_macros.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.3217450Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_marshal_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.3401651Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.3589978Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_structmember_decl.h
-evals	Retirar Python del runner	2026-09-15T06:23:39.3769937Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/PYPY_VERSION
-evals	Retirar Python del runner	2026-09-15T06:23:39.4122376Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64
-evals	Retirar Python del runner	2026-09-15T06:23:39.7709042Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/Open-Source-Notices/python3.txt
-evals	Retirar Python del runner	2026-09-15T06:23:39.7969360Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/experimental/semmle/python/libraries/PythonJose.qll
-evals	Retirar Python del runner	2026-09-15T06:23:39.8250958Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/experimental/semmle/python/libraries/Python_JWT.qll
-evals	Retirar Python del runner	2026-09-15T06:23:39.8529506Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/.codeql/libraries/codeql/python-all/7.2.4/python.qll
-evals	Retirar Python del runner	2026-09-15T06:23:39.8842674Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-quality-extended.qls
-evals	Retirar Python del runner	2026-09-15T06:23:39.9143176Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-experimental.qls
-evals	Retirar Python del runner	2026-09-15T06:23:39.9427441Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-scanning.qls
-evals	Retirar Python del runner	2026-09-15T06:23:39.9705711Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-lgtm.qls
-evals	Retirar Python del runner	2026-09-15T06:23:39.9986353Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-extended.qls
-evals	Retirar Python del runner	2026-09-15T06:23:40.0271260Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-lgtm-full.qls
-evals	Retirar Python del runner	2026-09-15T06:23:40.0531536Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-and-quality.qls
-evals	Retirar Python del runner	2026-09-15T06:23:40.0726934Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-quality.qls
-evals	Retirar Python del runner	2026-09-15T06:23:40.0922064Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-examples/0.0.0/.codeql/libraries/codeql/python-all/7.2.4/python.qll
-evals	Retirar Python del runner	2026-09-15T06:23:40.1110623Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/composite-actions/python_mypy.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.1306467Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/composite-actions/python-poetry_poetry.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.1492043Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/reusable-workflows/python_cpython.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.1674133Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-all/7.2.4/python.qll
-evals	Retirar Python del runner	2026-09-15T06:23:40.1856883Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/composite-actions/python_mypy.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.2041988Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/composite-actions/python-poetry_poetry.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.2225795Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/reusable-workflows/python_cpython.model.yml
-evals	Retirar Python del runner	2026-09-15T06:23:40.2405898Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python3src.zip
-evals	Retirar Python del runner	2026-09-15T06:23:40.2588744Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_setup.cmd
-evals	Retirar Python del runner	2026-09-15T06:23:40.2775747Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_setup.sh
-evals	Retirar Python del runner	2026-09-15T06:23:40.2967165Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_tracer.py
-evals	Retirar Python del runner	2026-09-15T06:23:40.3151823Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:40.3338931Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python-3.14-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:40.3526961Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:40.3786227Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:40.3966804Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python-3.14.pc
-evals	Retirar Python del runner	2026-09-15T06:23:40.4151613Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:40.4340982Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:40.4524746Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/libpython3.14.a
-evals	Retirar Python del runner	2026-09-15T06:23:40.4707559Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:40.4896241Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:40.5079868Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:40.5263539Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:40.5449873Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.opt-2.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:40.5636643Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.opt-1.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:40.5820032Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:40.6006320Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:40.6190556Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:40.6385693Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:40.6581879Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:40.6771455Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:40.6959834Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:40.7141616Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:40.7325330Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:40.7506471Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:40.7689803Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:40.7873635Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:40.8058974Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:40.8241427Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:40.8431555Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:40.8616676Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:40.8799416Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:40.8982162Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:40.9171878Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:40.9356959Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.14.so
-evals	Retirar Python del runner	2026-09-15T06:23:40.9546573Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.14.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:40.9736118Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:40.9925287Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:41.0106560Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:41.0286129Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:41.0461602Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/share/man/man1/python3.14.1
-evals	Retirar Python del runner	2026-09-15T06:23:41.0826302Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64
-evals	Retirar Python del runner	2026-09-15T06:23:41.4269718Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:41.4452091Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:41.4629969Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python-3.13.pc
-evals	Retirar Python del runner	2026-09-15T06:23:41.4813332Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:41.4992462Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python-3.13-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:41.5173920Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-313.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:41.5356555Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:41.5537224Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:41.5718973Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.opt-2.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:41.5897345Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:41.6077340Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.opt-1.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:41.6258769Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:41.6438244Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:41.6619711Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:41.6805588Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:41.6987300Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:41.7168463Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:41.7347376Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:41.7528243Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:41.7711768Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:41.7898074Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:41.8079773Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:41.8263871Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:41.8446995Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:41.8629571Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:41.8812794Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:41.8993139Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:41.9177965Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:41.9362273Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:41.9545218Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:41.9729554Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/libpython3.13.a
-evals	Retirar Python del runner	2026-09-15T06:23:41.9940213Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:42.0127617Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:42.0313686Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.13.so
-evals	Retirar Python del runner	2026-09-15T06:23:42.0500378Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.13.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:42.0683148Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:42.0861626Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:42.1043833Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:42.1228902Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:42.1413376Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/share/man/man1/python3.13.1
-evals	Retirar Python del runner	2026-09-15T06:23:42.1768730Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64
-evals	Retirar Python del runner	2026-09-15T06:23:42.5262275Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:42.5451494Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-310.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:42.5635829Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:42.5819635Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.a
-evals	Retirar Python del runner	2026-09-15T06:23:42.6009462Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:42.6195511Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:42.6378342Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:42.6559979Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:42.6743568Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.opt-2.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:42.6928290Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.opt-1.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:42.7113666Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:42.7296730Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:42.7479236Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:42.7660729Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:42.7846940Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:42.8031545Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:42.8215965Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:42.8396689Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:42.8583052Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:42.8771235Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:42.8956482Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:42.9138631Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:42.9320148Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:42.9506234Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:42.9696375Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:42.9888334Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.0073531Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python-3.10.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.0259618Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python-3.10-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.0441791Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.10.so
-evals	Retirar Python del runner	2026-09-15T06:23:43.0627396Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.10.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:43.0809397Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:43.0992419Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:43.1176804Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:43.1358615Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/share/man/man1/python3.10.1
-evals	Retirar Python del runner	2026-09-15T06:23:43.1620712Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:43.1971988Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64
-evals	Retirar Python del runner	2026-09-15T06:23:43.5612000Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:43.5801208Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python-3.12.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.6069243Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.6255905Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python-3.12-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.6528587Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:43.6711190Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.12.so
-evals	Retirar Python del runner	2026-09-15T06:23:43.6903139Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:43.7098144Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:43.7295944Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:43.7484524Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.opt-2.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:43.7667894Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.opt-1.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:43.7850803Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:43.8033628Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:43.8217449Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:43.8401681Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:43.8589180Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:43.8773563Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:43.8959440Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:43.9146292Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:43.9332034Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:43.9514412Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:43.9698700Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:43.9883078Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:44.0069206Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:44.0252517Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:44.0436537Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python-raw.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:44.0620820Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:44.0806686Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:44.0988904Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:44.1171894Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:44.1353741Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:44.1539898Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:44.1722772Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:44.1905731Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:44.2089886Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:44.2272612Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:44.2456202Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:44.2638509Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:44.2820745Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:44.3001818Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:44.3191520Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.a
-evals	Retirar Python del runner	2026-09-15T06:23:44.3376569Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:44.3556640Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:44.3743012Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.12.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:44.3926016Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:44.4113763Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:44.4297525Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:44.4481592Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:44.4667359Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/share/man/man1/python3.12.1
-evals	Retirar Python del runner	2026-09-15T06:23:44.5033305Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64
-evals	Retirar Python del runner	2026-09-15T06:23:44.8550804Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:44.8734214Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:44.8925862Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:44.9112725Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python-3.11-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:44.9297484Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python-3.11.pc
-evals	Retirar Python del runner	2026-09-15T06:23:44.9483646Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-311.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:44.9670077Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:44.9861628Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.a
-evals	Retirar Python del runner	2026-09-15T06:23:45.0046305Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:45.0226645Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:45.0412435Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:45.0594396Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:45.0779914Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.opt-1.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:45.0962208Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.opt-2.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:45.1143088Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:45.1327865Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:45.1512969Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:45.1697908Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:45.1883665Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:45.2069239Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:45.2250187Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:45.2433718Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:45.2615227Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:45.2796910Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:45.2981631Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:45.3167539Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:45.3351457Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:45.3534146Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python-raw.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:45.3716697Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.jpg
-evals	Retirar Python del runner	2026-09-15T06:23:45.3903657Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.sgi
-evals	Retirar Python del runner	2026-09-15T06:23:45.4092208Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.tiff
-evals	Retirar Python del runner	2026-09-15T06:23:45.4276792Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.bmp
-evals	Retirar Python del runner	2026-09-15T06:23:45.4459693Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:45.4640584Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.webp
-evals	Retirar Python del runner	2026-09-15T06:23:45.4829684Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.png
-evals	Retirar Python del runner	2026-09-15T06:23:45.5016335Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.ppm
-evals	Retirar Python del runner	2026-09-15T06:23:45.5202289Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.pgm
-evals	Retirar Python del runner	2026-09-15T06:23:45.5383748Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.exr
-evals	Retirar Python del runner	2026-09-15T06:23:45.5591120Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.xbm
-evals	Retirar Python del runner	2026-09-15T06:23:45.5776287Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.pbm
-evals	Retirar Python del runner	2026-09-15T06:23:45.5956125Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.ras
-evals	Retirar Python del runner	2026-09-15T06:23:45.6137220Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/pythoninfo.py
-evals	Retirar Python del runner	2026-09-15T06:23:45.6317985Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so
-evals	Retirar Python del runner	2026-09-15T06:23:45.6512451Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:45.6694475Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:45.6872097Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:45.7050093Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:45.7231831Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:45.7416015Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/share/man/man1/python3.11.1
-evals	Retirar Python del runner	2026-09-15T06:23:45.7774069Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64
-evals	Retirar Python del runner	2026-09-15T06:23:46.1395812Z retirado: /opt/az/lib/pkgconfig/python-3.14-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:46.1579300Z retirado: /opt/az/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:46.1850289Z retirado: /opt/az/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:46.2040145Z retirado: /opt/az/lib/pkgconfig/python-3.14.pc
-evals	Retirar Python del runner	2026-09-15T06:23:46.2220986Z retirado: /opt/az/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:46.2412673Z retirado: /opt/az/lib/python3.14/site-packages/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:46.2606596Z retirado: /opt/az/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:46.2793276Z retirado: /opt/az/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:46.2978964Z retirado: /opt/az/lib/python3.14/site-packages/argcomplete/scripts/__pycache__/python_argcomplete_check_easy_install_script.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:46.3162830Z retirado: /opt/az/lib/python3.14/site-packages/argcomplete/scripts/python_argcomplete_check_easy_install_script.py
-evals	Retirar Python del runner	2026-09-15T06:23:46.3347934Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/libpython3.14.a
-evals	Retirar Python del runner	2026-09-15T06:23:46.3533660Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:46.3715671Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:46.3901811Z retirado: /opt/az/lib/python3.14/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:46.4084597Z retirado: /opt/az/lib/libpython3.14.a
-evals	Retirar Python del runner	2026-09-15T06:23:46.4266836Z retirado: /opt/az/include/python3.14/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:46.4449414Z retirado: /opt/az/include/python3.14/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:46.4631560Z retirado: /opt/az/include/python3.14/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:46.4813929Z retirado: /opt/az/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:46.5004259Z retirado: /opt/az/share/man/man1/python3.14.1
-evals	Retirar Python del runner	2026-09-15T06:23:46.5357224Z retirado: /opt/az
-evals	Retirar Python del runner	2026-09-15T06:23:47.9597306Z retirado: /var/lib/dpkg/info/python3-jinja2.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:47.9857631Z retirado: /var/lib/dpkg/info/python3-packaging.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.0087820Z retirado: /var/lib/dpkg/info/python3-launchpadlib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.0271698Z retirado: /var/lib/dpkg/info/python3-magic.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.0453315Z retirado: /var/lib/dpkg/info/python3-jsonschema.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.0636077Z retirado: /var/lib/dpkg/info/python3-jsonpatch.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.0814078Z retirado: /var/lib/dpkg/info/python3-parted.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.0998289Z retirado: /var/lib/dpkg/info/python3-chardet.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.1178447Z retirado: /var/lib/dpkg/info/python3-parted.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.1355813Z retirado: /var/lib/dpkg/info/python3-constantly.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.1538656Z retirado: /var/lib/dpkg/info/python3-gi.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.1719256Z retirado: /var/lib/dpkg/info/python3-s3transfer.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.1906102Z retirado: /var/lib/dpkg/info/python3-bcrypt.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.2091619Z retirado: /var/lib/dpkg/info/python3-netaddr.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.2279369Z retirado: /var/lib/dpkg/info/python3-zope.interface.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.2467778Z retirado: /var/lib/dpkg/info/python3-cryptography.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.2649911Z retirado: /var/lib/dpkg/info/python3-distro-info.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.2834080Z retirado: /var/lib/dpkg/info/python3-configobj.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.3019495Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:48.3204153Z retirado: /var/lib/dpkg/info/python3-lazr.restfulclient.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.3389400Z retirado: /var/lib/dpkg/info/python3-jsonschema.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.3573564Z retirado: /var/lib/dpkg/info/python3-six.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.3753441Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.3938744Z retirado: /var/lib/dpkg/info/python3-idna.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.4120790Z retirado: /var/lib/dpkg/info/python3-jsonpatch.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.4309463Z retirado: /var/lib/dpkg/info/python3-cryptography.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.4490661Z retirado: /var/lib/dpkg/info/python3-babel.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.4675787Z retirado: /var/lib/dpkg/info/python3-distupgrade.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.4875838Z retirado: /var/lib/dpkg/info/python3-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.5071710Z retirado: /var/lib/dpkg/info/python3-mdurl.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.5259346Z retirado: /var/lib/dpkg/info/python3-pkg-resources.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.5441863Z retirado: /var/lib/dpkg/info/python3-launchpadlib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.5622383Z retirado: /var/lib/dpkg/info/python3-debian.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.5807547Z retirado: /var/lib/dpkg/info/python3-wheel.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.5994291Z retirado: /var/lib/dpkg/info/python3.12-minimal.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.6178805Z retirado: /var/lib/dpkg/info/python3-certifi.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.6366363Z retirado: /var/lib/dpkg/info/python3-twisted.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.6556407Z retirado: /var/lib/dpkg/info/python3-systemd.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.6742342Z retirado: /var/lib/dpkg/info/python3-botocore.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.6927587Z retirado: /var/lib/dpkg/info/python3.12-venv.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.7107889Z retirado: /var/lib/dpkg/info/python3-openssl.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.7293490Z retirado: /var/lib/dpkg/info/python3-launchpadlib.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:48.7477139Z retirado: /var/lib/dpkg/info/python3-json-pointer.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.7661448Z retirado: /var/lib/dpkg/info/python3-requests.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.7846026Z retirado: /var/lib/dpkg/info/python3-pyasn1.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.8027605Z retirado: /var/lib/dpkg/info/python3-openssl.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.8210962Z retirado: /var/lib/dpkg/info/python3-attr.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.8393379Z retirado: /var/lib/dpkg/info/python3.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.8581822Z retirado: /var/lib/dpkg/info/python3-apt.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:48.8768142Z retirado: /var/lib/dpkg/info/python3-pyasn1-modules.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.8951503Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:48.9134572Z retirado: /var/lib/dpkg/info/python3-newt:amd64.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.9322550Z retirado: /var/lib/dpkg/info/libpython3-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:48.9510738Z retirado: /var/lib/dpkg/info/python3-commandnotfound.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:48.9691813Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.symbols
-evals	Retirar Python del runner	2026-09-15T06:23:48.9878987Z retirado: /var/lib/dpkg/info/python3-pyrsistent:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.0059806Z retirado: /var/lib/dpkg/info/python3-yaml.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.0246149Z retirado: /var/lib/dpkg/info/python3-debconf.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.0435827Z retirado: /var/lib/dpkg/info/python3-boto3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.0634293Z retirado: /var/lib/dpkg/info/python3-passlib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.0838356Z retirado: /var/lib/dpkg/info/python3.12.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.1044016Z retirado: /var/lib/dpkg/info/python3-idna.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.1254013Z retirado: /var/lib/dpkg/info/python3-problem-report.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.1445766Z retirado: /var/lib/dpkg/info/python3.12-venv.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.1644095Z retirado: /var/lib/dpkg/info/python3-apport.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.1847403Z retirado: /var/lib/dpkg/info/python3-newt:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.2037807Z retirado: /var/lib/dpkg/info/python3-distro-info.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.2221262Z retirado: /var/lib/dpkg/info/python3.12.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.2405758Z retirado: /var/lib/dpkg/info/python3-pip.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.2591802Z retirado: /var/lib/dpkg/info/python3.12-minimal.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.2773128Z retirado: /var/lib/dpkg/info/python3-urllib3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.2957828Z retirado: /var/lib/dpkg/info/python3-bpfcc.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.3140846Z retirado: /var/lib/dpkg/info/python3-wadllib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.3321901Z retirado: /var/lib/dpkg/info/python3-jwt.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.3507463Z retirado: /var/lib/dpkg/info/python3-distupgrade.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.3702421Z retirado: /var/lib/dpkg/info/python3-problem-report.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.3882846Z retirado: /var/lib/dpkg/info/python3-pexpect.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.4069373Z retirado: /var/lib/dpkg/info/python3-zstandard.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.4249252Z retirado: /var/lib/dpkg/info/python3-gi.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.4433804Z retirado: /var/lib/dpkg/info/python3-update-manager.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.4622331Z retirado: /var/lib/dpkg/info/python3-httplib2.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.4804208Z retirado: /var/lib/dpkg/info/python3-pyasn1.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.4989132Z retirado: /var/lib/dpkg/info/python3-pkg-resources.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.5180372Z retirado: /var/lib/dpkg/info/python3-markupsafe.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.5381465Z retirado: /var/lib/dpkg/info/python3-boto3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.5572841Z retirado: /var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:49.5762722Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:49.5948630Z retirado: /var/lib/dpkg/info/python3-markdown-it.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.6131111Z retirado: /var/lib/dpkg/info/python3-distro.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.6312363Z retirado: /var/lib/dpkg/info/python3-requests.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.6503554Z retirado: /var/lib/dpkg/info/python3-hyperlink.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.6696652Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:49.6883654Z retirado: /var/lib/dpkg/info/python3-hyperlink.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.7069540Z retirado: /var/lib/dpkg/info/python3-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.7250605Z retirado: /var/lib/dpkg/info/python3-jwt.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.7433284Z retirado: /var/lib/dpkg/info/python3-pyasn1-modules.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.7614770Z retirado: /var/lib/dpkg/info/python3-lazr.uri.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.7797373Z retirado: /var/lib/dpkg/info/python3-jsonpatch.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:49.7979547Z retirado: /var/lib/dpkg/info/python3-pygments.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.8165505Z retirado: /var/lib/dpkg/info/python3-json-pointer.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:49.8349381Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.8531547Z retirado: /var/lib/dpkg/info/python3-rich.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.8716344Z retirado: /var/lib/dpkg/info/python3-jsonschema.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.8897646Z retirado: /var/lib/dpkg/info/python3-mdurl.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.9083764Z retirado: /var/lib/dpkg/info/python3-software-properties.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.9262885Z retirado: /var/lib/dpkg/info/python3-pyparsing.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.9446195Z retirado: /var/lib/dpkg/info/python3-pip.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.9628050Z retirado: /var/lib/dpkg/info/python3-distro.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:49.9809614Z retirado: /var/lib/dpkg/info/python3-hamcrest.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:49.9989506Z retirado: /var/lib/dpkg/info/python3-urllib3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.0175566Z retirado: /var/lib/dpkg/info/python3-wadllib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.0357335Z retirado: /var/lib/dpkg/info/python3-markupsafe.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.0538154Z retirado: /var/lib/dpkg/info/python3-httplib2.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.0723879Z retirado: /var/lib/dpkg/info/python3-certifi.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.0908764Z retirado: /var/lib/dpkg/info/python3-click.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.1091244Z retirado: /var/lib/dpkg/info/python3-constantly.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.1274354Z retirado: /var/lib/dpkg/info/libpython3-dev:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:50.1452630Z retirado: /var/lib/dpkg/info/python3.12-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.1634677Z retirado: /var/lib/dpkg/info/python3-s3transfer.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.1816367Z retirado: /var/lib/dpkg/info/python3-zstandard.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.1999586Z retirado: /var/lib/dpkg/info/python3-json-pointer.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.2178240Z retirado: /var/lib/dpkg/info/python3-service-identity.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.2358399Z retirado: /var/lib/dpkg/info/python3-serial.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.2540475Z retirado: /var/lib/dpkg/info/python3-hamcrest.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.2722467Z retirado: /var/lib/dpkg/info/python3-incremental.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.2905798Z retirado: /var/lib/dpkg/info/python3-netplan.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.3086457Z retirado: /var/lib/dpkg/info/python3-netaddr.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.3264104Z retirado: /var/lib/dpkg/info/python3-dateutil.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.3445748Z retirado: /var/lib/dpkg/info/python3-apt.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.3626739Z retirado: /var/lib/dpkg/info/python3-dbus.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.3808932Z retirado: /var/lib/dpkg/info/python3-jmespath.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.3990531Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.4172674Z retirado: /var/lib/dpkg/info/python3-commandnotfound.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.4357043Z retirado: /var/lib/dpkg/info/python3-blinker.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.4540611Z retirado: /var/lib/dpkg/info/python3-ptyprocess.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.4725180Z retirado: /var/lib/dpkg/info/python3-colorama.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.4911584Z retirado: /var/lib/dpkg/info/python3-wheel.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.5101776Z retirado: /var/lib/dpkg/info/python3-oauthlib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.5285306Z retirado: /var/lib/dpkg/info/python3-pygments.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.5467456Z retirado: /var/lib/dpkg/info/python3-tz.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.5651349Z retirado: /var/lib/dpkg/info/python3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.5831702Z retirado: /var/lib/dpkg/info/python3-update-manager.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.6015297Z retirado: /var/lib/dpkg/info/python3-pexpect.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.6201421Z retirado: /var/lib/dpkg/info/python3-serial.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.6381969Z retirado: /var/lib/dpkg/info/python3-netplan.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.6566913Z retirado: /var/lib/dpkg/info/python3-incremental.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.6765144Z retirado: /var/lib/dpkg/info/python3-typing-extensions.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.6946099Z retirado: /var/lib/dpkg/info/python3-jinja2.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.7127479Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:50.7308938Z retirado: /var/lib/dpkg/info/python3-pyparsing.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.7493628Z retirado: /var/lib/dpkg/info/python3-automat.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.7676897Z retirado: /var/lib/dpkg/info/python3-attr.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.7866353Z retirado: /var/lib/dpkg/info/python3-pyrsistent:amd64.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.8054614Z retirado: /var/lib/dpkg/info/python3-passlib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.8244019Z retirado: /var/lib/dpkg/info/python3-twisted.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.8430605Z retirado: /var/lib/dpkg/info/python3-configobj.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.8617629Z retirado: /var/lib/dpkg/info/python3-markdown-it.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.8803525Z retirado: /var/lib/dpkg/info/python3-ptyprocess.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.8989751Z retirado: /var/lib/dpkg/info/libpython3-dev:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:50.9173898Z retirado: /var/lib/dpkg/info/python3-software-properties.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.9359408Z retirado: /var/lib/dpkg/info/python3-dbus.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:50.9542229Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.9722667Z retirado: /var/lib/dpkg/info/python3-setuptools.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:50.9912866Z retirado: /var/lib/dpkg/info/python3.12-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.0103085Z retirado: /var/lib/dpkg/info/python3-botocore.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.0296161Z retirado: /var/lib/dpkg/info/python3-setuptools.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.0489562Z retirado: /var/lib/dpkg/info/python3-dateutil.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.0681375Z retirado: /var/lib/dpkg/info/python3.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:51.0868591Z retirado: /var/lib/dpkg/info/python3-yaml.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.1052386Z retirado: /var/lib/dpkg/info/libpython3.12-dev:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:51.1240594Z retirado: /var/lib/dpkg/info/python3-lazr.restfulclient.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.1428715Z retirado: /var/lib/dpkg/info/python3-click.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.1613977Z retirado: /var/lib/dpkg/info/python3-tz.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.1796127Z retirado: /var/lib/dpkg/info/python3-debconf.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.1979141Z retirado: /var/lib/dpkg/info/libpython3.12-dev:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:51.2162897Z retirado: /var/lib/dpkg/info/python3-automat.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.2343530Z retirado: /var/lib/dpkg/info/python3-systemd.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.2529531Z retirado: /var/lib/dpkg/info/python3-typing-extensions.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.2716038Z retirado: /var/lib/dpkg/info/python3-chardet.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.2899164Z retirado: /var/lib/dpkg/info/python3-packaging.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.3085635Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.triggers
-evals	Retirar Python del runner	2026-09-15T06:23:51.3269764Z retirado: /var/lib/dpkg/info/python3-blinker.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.3452453Z retirado: /var/lib/dpkg/info/python3.12-venv.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.3634499Z retirado: /var/lib/dpkg/info/python3-lazr.uri.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.3817076Z retirado: /var/lib/dpkg/info/python3-six.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.4001066Z retirado: /var/lib/dpkg/info/python3-twisted.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.4181566Z retirado: /var/lib/dpkg/info/python3-bcrypt.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.4366732Z retirado: /var/lib/dpkg/info/python3-magic.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.4550631Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:51.4736136Z retirado: /var/lib/dpkg/info/python3-service-identity.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.4917780Z retirado: /var/lib/dpkg/info/python3-colorama.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.5108229Z retirado: /var/lib/dpkg/info/python3-jmespath.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.5293202Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.shlibs
-evals	Retirar Python del runner	2026-09-15T06:23:51.5476197Z retirado: /var/lib/dpkg/info/python3-oauthlib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.5662594Z retirado: /var/lib/dpkg/info/python3-rich.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.5851108Z retirado: /var/lib/dpkg/info/python3-babel.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.6037183Z retirado: /var/lib/dpkg/info/python3-apport.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.6220866Z retirado: /var/lib/dpkg/info/python3-bpfcc.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.6405156Z retirado: /var/lib/dpkg/info/python3-zope.interface.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.6591693Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.conffiles
-evals	Retirar Python del runner	2026-09-15T06:23:51.6774297Z retirado: /var/lib/dpkg/info/python3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.6959510Z retirado: /var/lib/dpkg/info/python3-debian.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.7146745Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.7330289Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-cryptography.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.7520019Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-configobj.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.7704775Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:51.7887873Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.restfulclient.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.8069073Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-six.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.8254158Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:51.8432238Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-cryptography.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.8615046Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.8796869Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pkg-resources.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.8977970Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:51.9158970Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:51.9337462Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:51.9516295Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.9696275Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-tzlocal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:51.9876454Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:52.0059345Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:52.0244338Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.symbols
-evals	Retirar Python del runner	2026-09-15T06:23:52.0423080Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-yaml.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.0600133Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.0781551Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.0962482Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.1145511Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-merge3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.1327872Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-urllib3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.1510355Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-wadllib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.1687498Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-jwt.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.1867804Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-fastbencode.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.2045557Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-httplib2.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.2225226Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pkg-resources.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.2408325Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:52.2590854Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:52.2771196Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-distro.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.2956514Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:52.3137068Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.3316571Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-jwt.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.3498184Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.uri.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.3680379Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-tzlocal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.3864410Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.4049685Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pyparsing.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.4233899Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-distro.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.4417459Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-urllib3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.4607337Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-wadllib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.4793120Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-httplib2.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.4989251Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.5183493Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-patiencediff.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.5380461Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.5581365Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-blinker.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.5775453Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-oauthlib.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.5967761Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.6153289Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:52.6339469Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pyparsing.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.6526054Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-breezy.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.6717104Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-dulwich.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.6903380Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-configobj.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.7093555Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.7279282Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.7464738Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-dulwich.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.7651881Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:52.7841382Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-yaml.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.8031062Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.restfulclient.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.8216998Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-patiencediff.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.8399650Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-merge3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.8588964Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.triggers
-evals	Retirar Python del runner	2026-09-15T06:23:52.8774441Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-blinker.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.8960907Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.uri.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.9145190Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-six.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:52.9330851Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-fastbencode.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:52.9511065Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:52.9693838Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.shlibs
-evals	Retirar Python del runner	2026-09-15T06:23:52.9890958Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-breezy.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.0082819Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-oauthlib.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.0278629Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.conffiles
-evals	Retirar Python del runner	2026-09-15T06:23:53.0476757Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.0661557Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/x86_64-linux-gnu/libpython3.12.so.1
-evals	Retirar Python del runner	2026-09-15T06:23:53.0849093Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:53.1112611Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so
-evals	Retirar Python del runner	2026-09-15T06:23:53.1292409Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/pixmaps/python3.xpm
-evals	Retirar Python del runner	2026-09-15T06:23:53.1474564Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/libpython3.12t64
-evals	Retirar Python del runner	2026-09-15T06:23:53.1730088Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/python3.12/python-policy.txt.gz
-evals	Retirar Python del runner	2026-09-15T06:23:53.1912080Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/libpython3.12-stdlib
-evals	Retirar Python del runner	2026-09-15T06:23:53.2098969Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12t64
-evals	Retirar Python del runner	2026-09-15T06:23:53.2283387Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12-minimal
-evals	Retirar Python del runner	2026-09-15T06:23:53.2468260Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12-stdlib
-evals	Retirar Python del runner	2026-09-15T06:23:53.2822084Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr
-evals	Retirar Python del runner	2026-09-15T06:23:53.6176950Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.6417130Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.6596636Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3-minimal.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.6776063Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:53.6955369Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.7137670Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:53.7320816Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.7502767Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:53.7684393Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:53.7865313Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.8050214Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:53.8232784Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.8413877Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.list
-evals	Retirar Python del runner	2026-09-15T06:23:53.8594641Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.8775837Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:53.8957101Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.9143114Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.prerm
-evals	Retirar Python del runner	2026-09-15T06:23:53.9329240Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:53.9516823Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.md5sums
-evals	Retirar Python del runner	2026-09-15T06:23:53.9702939Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.postrm
-evals	Retirar Python del runner	2026-09-15T06:23:53.9888958Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.conffiles
-evals	Retirar Python del runner	2026-09-15T06:23:54.0071179Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.preinst
-evals	Retirar Python del runner	2026-09-15T06:23:54.0256743Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.postinst
-evals	Retirar Python del runner	2026-09-15T06:23:54.0440059Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/pixmaps/python3.xpm
-evals	Retirar Python del runner	2026-09-15T06:23:54.0626448Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/doc/libpython3.10-stdlib
-evals	Retirar Python del runner	2026-09-15T06:23:54.0884988Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/doc/python3.10/python-policy.txt.gz
-evals	Retirar Python del runner	2026-09-15T06:23:54.1068006Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/lintian/overrides/libpython3.10-stdlib
-evals	Retirar Python del runner	2026-09-15T06:23:54.1251144Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/lintian/overrides/libpython3.10-minimal
-evals	Retirar Python del runner	2026-09-15T06:23:54.1610127Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr
-evals	Retirar Python del runner	2026-09-15T06:23:54.5151681Z retirado: /usr/lib/x86_64-linux-gnu/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:54.5339157Z retirado: /usr/lib/x86_64-linux-gnu/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:54.5524386Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so.1
-evals	Retirar Python del runner	2026-09-15T06:23:54.5783030Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so
-evals	Retirar Python del runner	2026-09-15T06:23:54.5969033Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.a
-evals	Retirar Python del runner	2026-09-15T06:23:54.6147416Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:54.6405397Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so
-evals	Retirar Python del runner	2026-09-15T06:23:54.6588028Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.a
-evals	Retirar Python del runner	2026-09-15T06:23:54.6770809Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:54.6951207Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12-pic.a
-evals	Retirar Python del runner	2026-09-15T06:23:54.7139357Z retirado: /usr/lib/google-cloud-sdk/lib/googlecloudsdk/command_lib/orchestration_pipelines/tools/python_environment_unpack.sh
-evals	Retirar Python del runner	2026-09-15T06:23:54.7323439Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:54.7507864Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:54.7688752Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:54.7870703Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:54.8054149Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.14.so
-evals	Retirar Python del runner	2026-09-15T06:23:54.8242551Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.14.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:54.8591477Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix
-evals	Retirar Python del runner	2026-09-15T06:23:55.1062797Z retirado: /usr/lib/rpm/pythondistdeps.py
-evals	Retirar Python del runner	2026-09-15T06:23:55.1240738Z retirado: /usr/local/aws-cli/v2/2.36.40/dist/libpython3.14.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:55.1430115Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.1660262Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.1841839Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.2021506Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.2202414Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.2388564Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:55.2571593Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.2752146Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:55.2933712Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.3118414Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.3299618Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.3481019Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:55.3672602Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
-evals	Retirar Python del runner	2026-09-15T06:23:55.4035706Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3
-evals	Retirar Python del runner	2026-09-15T06:23:55.4813386Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.5000214Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.5183389Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.5366961Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.5550513Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.5733941Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:55.5913484Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.6098536Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:55.6279360Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.6462074Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.6648986Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.6835402Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:55.7017469Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
-evals	Retirar Python del runner	2026-09-15T06:23:55.7371414Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3
-evals	Retirar Python del runner	2026-09-15T06:23:55.8182337Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.8370614Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.8613501Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.8812965Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.9015713Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
-evals	Retirar Python del runner	2026-09-15T06:23:55.9213330Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:55.9405808Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
-evals	Retirar Python del runner	2026-09-15T06:23:55.9594036Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:55.9776414Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:55.9963365Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:56.0157758Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:56.0357910Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:56.0543814Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
-evals	Retirar Python del runner	2026-09-15T06:23:56.0905424Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3
-evals	Retirar Python del runner	2026-09-15T06:23:56.1697585Z retirado: /usr/local/aws-sam-cli/1.166.1/dist/_internal/libpython3.11.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:56.1883416Z retirado: /usr/local/share/vcpkg/ports/libudis86/python3.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.2071793Z retirado: /usr/local/share/vcpkg/ports/omniorb/python-fixes.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.2254598Z retirado: /usr/local/share/vcpkg/ports/openxr-loader/python3_8_compatibility.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.2440470Z retirado: /usr/local/share/vcpkg/ports/libxslt/python3.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.2629597Z retirado: /usr/local/share/vcpkg/ports/openscap/python-win32.diff
-evals	Retirar Python del runner	2026-09-15T06:23:56.2813422Z retirado: /usr/local/share/vcpkg/ports/python3/python_vcpkg.props.in
-evals	Retirar Python del runner	2026-09-15T06:23:56.2995444Z retirado: /usr/local/share/vcpkg/ports/vtk/pythonwrapper.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.3179372Z retirado: /usr/local/share/vcpkg/scripts/test_ports/vcpkg-ci-blender/python.patch
-evals	Retirar Python del runner	2026-09-15T06:23:56.3365911Z retirado: /usr/local/share/vcpkg/versions/p-/python2.json
-evals	Retirar Python del runner	2026-09-15T06:23:56.3552709Z retirado: /usr/local/share/vcpkg/versions/p-/python3.json
-evals	Retirar Python del runner	2026-09-15T06:23:56.3738798Z retirado: /usr/share/perl5/NeedRestart/Interp/Python.pm
-evals	Retirar Python del runner	2026-09-15T06:23:56.3929274Z retirado: /usr/share/doc-base/python3.python-policy
-evals	Retirar Python del runner	2026-09-15T06:23:56.4124234Z retirado: /usr/share/az_15.6.1/Az.Functions/4.3.2/Functions.Autorest/custom/FunctionsStackFlexData/EastAsia/python.json
-evals	Retirar Python del runner	2026-09-15T06:23:56.4315708Z retirado: /usr/share/bash-completion/completions/python3.9
-evals	Retirar Python del runner	2026-09-15T06:23:56.4509836Z retirado: /usr/share/bash-completion/completions/python3.7
-evals	Retirar Python del runner	2026-09-15T06:23:56.4696357Z retirado: /usr/share/bash-completion/completions/python3.3
-evals	Retirar Python del runner	2026-09-15T06:23:56.4885747Z retirado: /usr/share/bash-completion/completions/python3.6
-evals	Retirar Python del runner	2026-09-15T06:23:56.5067715Z retirado: /usr/share/bash-completion/completions/python2.7
-evals	Retirar Python del runner	2026-09-15T06:23:56.5251473Z retirado: /usr/share/bash-completion/completions/python3.4
-evals	Retirar Python del runner	2026-09-15T06:23:56.5432435Z retirado: /usr/share/bash-completion/completions/pypy3
-evals	Retirar Python del runner	2026-09-15T06:23:56.5618695Z retirado: /usr/share/bash-completion/completions/python2
-evals	Retirar Python del runner	2026-09-15T06:23:56.5804538Z retirado: /usr/share/bash-completion/completions/pypy
-evals	Retirar Python del runner	2026-09-15T06:23:56.5989587Z retirado: /usr/share/bash-completion/completions/python3.8
-evals	Retirar Python del runner	2026-09-15T06:23:56.6171286Z retirado: /usr/share/bash-completion/completions/python3.5
-evals	Retirar Python del runner	2026-09-15T06:23:56.6356019Z retirado: /usr/share/bash-completion/completions/python3
-evals	Retirar Python del runner	2026-09-15T06:23:56.6536665Z retirado: /usr/share/bash-completion/completions/python
-evals	Retirar Python del runner	2026-09-15T06:23:56.6720885Z retirado: /usr/share/bash-completion/helpers/python
-evals	Retirar Python del runner	2026-09-15T06:23:56.6903934Z retirado: /usr/share/man/man8/pythoncalls-bpfcc.8.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.7090070Z retirado: /usr/share/man/man8/pythonstat-bpfcc.8.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.7273469Z retirado: /usr/share/man/man8/pythonflow-bpfcc.8.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.7457080Z retirado: /usr/share/man/man8/pythongc-bpfcc.8.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.7637105Z retirado: /usr/share/man/man1/python3.12.1.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.7893785Z retirado: /usr/share/man/man1/python.1.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.8077359Z retirado: /usr/share/man/man1/python3.12-config.1.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.8339040Z retirado: /usr/share/man/man1/python3.1.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.8600733Z retirado: /usr/share/man/man1/python3-config.1.gz
-evals	Retirar Python del runner	2026-09-15T06:23:56.8781318Z retirado: /usr/share/pixmaps/python3.xpm
-evals	Retirar Python del runner	2026-09-15T06:23:56.8959623Z retirado: /usr/share/pixmaps/python3.12.xpm
-evals	Retirar Python del runner	2026-09-15T06:23:56.9143839Z retirado: /usr/share/binfmts/python3.12
-evals	Retirar Python del runner	2026-09-15T06:23:56.9322691Z retirado: /usr/share/vim/vim91/syntax/python2.vim
-evals	Retirar Python del runner	2026-09-15T06:23:56.9504083Z retirado: /usr/share/vim/vim91/syntax/python.vim
-evals	Retirar Python del runner	2026-09-15T06:23:56.9690621Z retirado: /usr/share/vim/vim91/autoload/pythoncomplete.vim
-evals	Retirar Python del runner	2026-09-15T06:23:56.9872296Z retirado: /usr/share/vim/vim91/autoload/python3complete.vim
-evals	Retirar Python del runner	2026-09-15T06:23:57.0055681Z retirado: /usr/share/vim/vim91/autoload/python.vim
-evals	Retirar Python del runner	2026-09-15T06:23:57.0237182Z retirado: /usr/share/vim/vim91/ftplugin/python.vim
-evals	Retirar Python del runner	2026-09-15T06:23:57.0419589Z retirado: /usr/share/vim/vim91/indent/python.vim
-evals	Retirar Python del runner	2026-09-15T06:23:57.0599087Z retirado: /usr/share/swig4.0/python/pythonkw.swg
-evals	Retirar Python del runner	2026-09-15T06:23:57.0779793Z retirado: /usr/share/swig4.0/python/python.swg
-evals	Retirar Python del runner	2026-09-15T06:23:57.0962391Z retirado: /usr/share/applications/python3.12.desktop
-evals	Retirar Python del runner	2026-09-15T06:23:57.1145439Z retirado: /usr/share/doc/python3.12-venv
-evals	Retirar Python del runner	2026-09-15T06:23:57.1326612Z retirado: /usr/share/doc/libpython3.12t64
-evals	Retirar Python del runner	2026-09-15T06:23:57.1506684Z retirado: /usr/share/doc/python3-setuptools/python 2 sunset.rst
-evals	Retirar Python del runner	2026-09-15T06:23:57.1690482Z retirado: /usr/share/doc/libpython3.12-dev
-evals	Retirar Python del runner	2026-09-15T06:23:57.1873159Z retirado: /usr/share/doc/mercurial-common/examples/python-hook-examples.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.2051953Z retirado: /usr/share/doc/python3.12-dev
-evals	Retirar Python del runner	2026-09-15T06:23:57.2233591Z retirado: /usr/share/doc/python3-pip/html/topics/python-option.md
-evals	Retirar Python del runner	2026-09-15T06:23:57.2418372Z retirado: /usr/share/doc/python3-venv
-evals	Retirar Python del runner	2026-09-15T06:23:57.2599010Z retirado: /usr/share/doc/python3.12/python-policy.txt.gz
-evals	Retirar Python del runner	2026-09-15T06:23:57.2781303Z retirado: /usr/share/doc/libpython3.12-stdlib
-evals	Retirar Python del runner	2026-09-15T06:23:57.2969257Z retirado: /usr/share/doc/python3-dev
-evals	Retirar Python del runner	2026-09-15T06:23:57.3157212Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythonstat_example.txt
-evals	Retirar Python del runner	2026-09-15T06:23:57.3340960Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythonflow_example.txt
-evals	Retirar Python del runner	2026-09-15T06:23:57.3525654Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythoncalls_example.txt
-evals	Retirar Python del runner	2026-09-15T06:23:57.3707528Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythongc_example.txt
-evals	Retirar Python del runner	2026-09-15T06:23:57.3890530Z retirado: /usr/share/doc/python3-debconf
-evals	Retirar Python del runner	2026-09-15T06:23:57.4072566Z retirado: /usr/share/doc/python3/python-policy.txt.gz
-evals	Retirar Python del runner	2026-09-15T06:23:57.4260694Z retirado: /usr/share/doc/python3/python-policy.html
-evals	Retirar Python del runner	2026-09-15T06:23:57.4443196Z retirado: /usr/share/aclocal-1.16/python.m4
-evals	Retirar Python del runner	2026-09-15T06:23:57.4625344Z retirado: /usr/share/miniconda/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:57.4816468Z retirado: /usr/share/miniconda/lib/pkgconfig/python-3.14-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:57.4988085Z retirado: /usr/share/miniconda/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:57.5247344Z retirado: /usr/share/miniconda/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:57.5435968Z retirado: /usr/share/miniconda/lib/pkgconfig/python-3.14.pc
-evals	Retirar Python del runner	2026-09-15T06:23:57.5621905Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda/common/path/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:57.5804609Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda/common/path/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.5988083Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:57.6170392Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.6350848Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:57.6534694Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.6720210Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda_pypi/__pycache__/python_paths.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:57.6903532Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda_pypi/python_paths.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.7088582Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/__pycache__/python-config.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:57.7271869Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:57.7452664Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:57.7633404Z retirado: /usr/share/miniconda/lib/python3.14/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:57.7819597Z retirado: /usr/share/miniconda/lib/libpython3.14.so
-evals	Retirar Python del runner	2026-09-15T06:23:57.8000004Z retirado: /usr/share/miniconda/lib/libpython3.14.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:57.8177964Z retirado: /usr/share/miniconda/include/python3.14/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:57.8362914Z retirado: /usr/share/miniconda/include/python3.14/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:57.8546361Z retirado: /usr/share/miniconda/include/python3.14/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:57.8730000Z retirado: /usr/share/miniconda/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:57.8913519Z retirado: /usr/share/miniconda/share/man/man1/python3.14.1
-evals	Retirar Python del runner	2026-09-15T06:23:57.9098397Z retirado: /usr/share/miniconda/conda-meta/python_abi-3.14-4_cp314.json
-evals	Retirar Python del runner	2026-09-15T06:23:57.9282105Z retirado: /usr/share/miniconda/conda-meta/python-installer-1.0.1-py314h06a4308_0.json
-evals	Retirar Python del runner	2026-09-15T06:23:57.9464601Z retirado: /usr/share/miniconda/conda-meta/python-build-1.5.1-py314h06a4308_0.json
-evals	Retirar Python del runner	2026-09-15T06:23:57.9652516Z retirado: /usr/share/miniconda/conda-meta/python-3.14.7-h2bd7c14_101_cp314.json
-evals	Retirar Python del runner	2026-09-15T06:23:57.9836136Z retirado: /usr/share/miniconda/conda-meta/python-dotenv-1.2.2-py314h06a4308_0.json
-evals	Retirar Python del runner	2026-09-15T06:23:58.0021044Z retirado: /usr/share/miniconda/pkgs/python-build-1.5.1-py314h06a4308_0.conda
-evals	Retirar Python del runner	2026-09-15T06:23:58.0378632Z retirado: /usr/share/miniconda/pkgs/python-build-1.5.1-py314h06a4308_0
-evals	Retirar Python del runner	2026-09-15T06:23:58.0600038Z retirado: /usr/share/miniconda/pkgs/conda-26.7.1-py314h06a4308_0/lib/python3.14/site-packages/conda/common/path/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:58.0782710Z retirado: /usr/share/miniconda/pkgs/conda-26.7.1-py314h06a4308_0/lib/python3.14/site-packages/conda/common/path/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.0966384Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314.conda
-evals	Retirar Python del runner	2026-09-15T06:23:58.1154061Z retirado: /usr/share/miniconda/pkgs/python-dotenv-1.2.2-py314h06a4308_0.conda
-evals	Retirar Python del runner	2026-09-15T06:23:58.1335958Z retirado: /usr/share/miniconda/pkgs/libxcb-1.17.0-h9b100fa_0/info/recipe/python3.patch
-evals	Retirar Python del runner	2026-09-15T06:23:58.1522446Z retirado: /usr/share/miniconda/pkgs/pip-26.2.1-pyh0d26453_0/site-packages/pip/_vendor/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.1709285Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.so
-evals	Retirar Python del runner	2026-09-15T06:23:58.1896667Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python-3.14-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:58.2083311Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python3.pc
-evals	Retirar Python del runner	2026-09-15T06:23:58.2348994Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python3-embed.pc
-evals	Retirar Python del runner	2026-09-15T06:23:58.2536887Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python-3.14.pc
-evals	Retirar Python del runner	2026-09-15T06:23:58.2720251Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/__pycache__/python-config.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:58.2904330Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.3089036Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
-evals	Retirar Python del runner	2026-09-15T06:23:58.3272570Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/idlelib/Icons/python.gif
-evals	Retirar Python del runner	2026-09-15T06:23:58.3458095Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.14.so
-evals	Retirar Python del runner	2026-09-15T06:23:58.3640924Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.14.so.1.0
-evals	Retirar Python del runner	2026-09-15T06:23:58.3826780Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/cpython/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:58.4008982Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/Python.h
-evals	Retirar Python del runner	2026-09-15T06:23:58.4192714Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/pythonrun.h
-evals	Retirar Python del runner	2026-09-15T06:23:58.4375308Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/share/man/man1/python3.1
-evals	Retirar Python del runner	2026-09-15T06:23:58.4560063Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/share/man/man1/python3.14.1
-evals	Retirar Python del runner	2026-09-15T06:23:58.4914753Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314
-evals	Retirar Python del runner	2026-09-15T06:23:58.6197317Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:58.6380031Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/lib/python3.14/site-packages/pygments/lexers/python.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.6565160Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/support/python_lexer.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.6747467Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/examplefiles/make/python25-bsd.mak.output
-evals	Retirar Python del runner	2026-09-15T06:23:58.6929259Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/examplefiles/make/python25-bsd.mak
-evals	Retirar Python del runner	2026-09-15T06:23:58.7110340Z retirado: /usr/share/miniconda/pkgs/conda-pypi-0.11.0-py314h06a4308_0/lib/python3.14/site-packages/conda_pypi/__pycache__/python_paths.cpython-314.pyc
-evals	Retirar Python del runner	2026-09-15T06:23:58.7290803Z retirado: /usr/share/miniconda/pkgs/conda-pypi-0.11.0-py314h06a4308_0/lib/python3.14/site-packages/conda_pypi/python_paths.py
-evals	Retirar Python del runner	2026-09-15T06:23:58.7475912Z retirado: /usr/share/miniconda/pkgs/python-installer-1.0.1-py314h06a4308_0.conda
-evals	Retirar Python del runner	2026-09-15T06:23:58.7660010Z retirado: /usr/share/miniconda/pkgs/python_abi-3.14-4_cp314.conda
-evals	Retirar Python del runner	2026-09-15T06:23:58.8018616Z retirado: /usr/share/miniconda
-evals	Retirar Python del runner	2026-09-15T06:23:59.9513445Z retirado: /usr/share/nano/python.nanorc
-evals	Retirar Python del runner	2026-09-15T06:23:59.9699191Z retirado: /usr/share/lintian/overrides/python3-debian
-evals	Retirar Python del runner	2026-09-15T06:23:59.9883495Z retirado: /usr/share/lintian/overrides/python3.12-venv
-evals	Retirar Python del runner	2026-09-15T06:24:00.0063704Z retirado: /usr/share/lintian/overrides/python3-dbus
-evals	Retirar Python del runner	2026-09-15T06:24:00.0252594Z retirado: /usr/share/lintian/overrides/libpython3.12t64
-evals	Retirar Python del runner	2026-09-15T06:24:00.0432766Z retirado: /usr/share/lintian/overrides/libpython3.12-dev
-evals	Retirar Python del runner	2026-09-15T06:24:00.0617688Z retirado: /usr/share/lintian/overrides/python3-pip
-evals	Retirar Python del runner	2026-09-15T06:24:00.0801250Z retirado: /usr/share/lintian/overrides/libpython3.12-minimal
-evals	Retirar Python del runner	2026-09-15T06:24:00.0988505Z retirado: /usr/share/lintian/overrides/python3.12-minimal
-evals	Retirar Python del runner	2026-09-15T06:24:00.1178915Z retirado: /usr/share/lintian/overrides/python3.12
-evals	Retirar Python del runner	2026-09-15T06:24:00.1364639Z retirado: /usr/share/lintian/overrides/libpython3.12-stdlib
-evals	Retirar Python del runner	2026-09-15T06:24:00.1547537Z retirado: /usr/share/lintian/overrides/python3-netaddr
-evals	Retirar Python del runner	2026-09-15T06:24:00.1729173Z retirado: /usr/share/lintian/overrides/python3
-evals	Retirar Python del runner	2026-09-15T06:24:00.1912005Z retirado: /usr/share/lintian/overrides/python3-apt
-evals	Retirar Python del runner	2026-09-15T06:24:00.2093851Z retirado: /usr/share/automake-1.16/am/python.am
-evals	Retirar Python del runner	2026-09-15T06:24:00.2273144Z retirado: /usr/share/python3/bcep/python3-jinja2
-evals	Retirar Python del runner	2026-09-15T06:24:00.2452387Z retirado: /usr/share/python3/dist/python3-cryptography
-evals	Retirar Python del runner	2026-09-15T06:24:00.2635382Z retirado: /usr/share/python3/dist/python3-zope.interface
-evals	Retirar Python del runner	2026-09-15T06:24:00.2817146Z retirado: /usr/share/python3/dist/python3-six
-evals	Retirar Python del runner	2026-09-15T06:24:00.2996630Z retirado: /usr/share/python3/dist/python3-pyasn1
-evals	Retirar Python del runner	2026-09-15T06:24:00.3176663Z retirado: /usr/share/python3/python.mk
-evals	Retirar Python del runner	2026-09-15T06:24:00.3355206Z retirado: /usr/sbin/pythongc-bpfcc
-evals	Retirar Python del runner	2026-09-15T06:24:00.3535658Z retirado: /usr/sbin/pythoncalls-bpfcc
-evals	Retirar Python del runner	2026-09-15T06:24:00.3713757Z retirado: /usr/sbin/pythonstat-bpfcc
-evals	Retirar Python del runner	2026-09-15T06:24:00.3894268Z retirado: /usr/sbin/pythonflow-bpfcc
-evals	Retirar Python del runner	2026-09-15T06:24:00.4249880Z retirado: /usr/bin/python3.12-config
-evals	Retirar Python del runner	2026-09-15T06:24:00.4684989Z retirado: /usr/bin/python3-config
-evals	Retirar Python del runner	2026-09-15T06:24:00.5042300Z retirado: /usr/bin/python3.12
-evals	Retirar Python del runner	2026-09-15T06:24:00.5472332Z retirado: /usr/bin/python3
-evals	Retirar Python del runner	2026-09-15T06:24:00.5910824Z retirado: /usr/bin/python
-evals	Retirar Python del runner	2026-09-15T06:24:05.6053184Z búsqueda tras retirar: ninguno
-evals	Retirar Python del runner	2026-09-15T06:24:05.6053711Z --- fin de la retirada de Python ---
+evals	Retirar Python del runner	2026-09-15T07:25:36.0779148Z --- inicio de la retirada de Python ---
+evals	Retirar Python del runner	2026-09-15T07:25:36.0945745Z búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
+evals	Retirar Python del runner	2026-09-15T07:28:07.8710642Z retirado: /opt/pipx/shared/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:07.8857846Z retirado: /opt/pipx/shared/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:07.9125492Z retirado: /opt/pipx/shared
+evals	Retirar Python del runner	2026-09-15T07:28:07.9835373Z retirado: /opt/pipx/venvs/yamllint
+evals	Retirar Python del runner	2026-09-15T07:28:08.0254011Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_util/target/injector/__pycache__/python.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.0394399Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_util/target/injector/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.0532826Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/__pycache__/python_requirements.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.0672284Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/classification/__pycache__/python.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.0812856Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/classification/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.0951454Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_test/_internal/python_requirements.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.1093160Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/okd/molecule/default/roles/openshift_adm_groups/tasks/python-ldap-not-installed.yml
+evals	Retirar Python del runner	2026-09-15T07:28:08.1235352Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/general/plugins/modules/__pycache__/python_requirements_info.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.1375489Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible_collections/community/general/plugins/modules/python_requirements_info.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.1512282Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/__pycache__/python_literal_eval.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.1649536Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/python_literal_eval.yml
+evals	Retirar Python del runner	2026-09-15T07:28:08.1787673Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/_internal/ansible_collections/ansible/_protomatter/plugins/filter/python_literal_eval.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.1925756Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/module_utils/facts/system/__pycache__/python.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:08.2064748Z retirado: /opt/pipx/venvs/ansible-core/lib/python3.12/site-packages/ansible/module_utils/facts/system/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:08.2333027Z retirado: /opt/pipx/venvs/ansible-core
+evals	Retirar Python del runner	2026-09-15T07:28:09.0824308Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy39.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:09.0966370Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.1105434Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.1244858Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/hpy/devel/include/hpy/forbid_python_h/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.1384985Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/pyrepl/python_reader.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.1523774Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:09.1662223Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:09.1802497Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:09.1941658Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:09.2082746Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:09.2223874Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:09.2362899Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:09.2501687Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:09.2642025Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:09.2804273Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:09.2941429Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:09.3079440Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:09.3213437Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:09.3351231Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:09.3485238Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/pypy3.9/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.3622630Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/lib/PYPY_PORTABLE_DEPS.txt
+evals	Retirar Python del runner	2026-09-15T07:28:09.3759263Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.3896853Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.4032877Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_macros.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.4171761Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_marshal_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.4307154Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.4443441Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/include/pypy3.9/pypy_structmember_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.4579218Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64/PYPY_VERSION
+evals	Retirar Python del runner	2026-09-15T07:28:09.4845313Z retirado: /opt/hostedtoolcache/PyPy/3.9.19/x64
+evals	Retirar Python del runner	2026-09-15T07:28:09.8366501Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/PYPY_PORTABLE_DEPS.txt
+evals	Retirar Python del runner	2026-09-15T07:28:09.8517697Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy311.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:09.8670742Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.8819965Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
+evals	Retirar Python del runner	2026-09-15T07:28:09.8968866Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/hpy/devel/include/hpy/forbid_python_h/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:09.9120237Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:09.9275180Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:09.9429030Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:09.9583538Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:09.9739408Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:09.9893603Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:10.0047920Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:10.0202952Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:10.0356811Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:10.0511327Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:10.0667016Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:10.0819484Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.0971542Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.1123169Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:10.1276324Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/imghdrdata/python-raw.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:10.1431217Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:10.1584159Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:10.1734974Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:10.1889164Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:10.2043009Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:10.2195202Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:10.2348641Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:10.2502704Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:10.2657555Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:10.2813422Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:10.2965912Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.3120839Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.3272573Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/test_email/data/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:10.3424186Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/lib/pypy3.11/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:10.3579467Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.3733362Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.3887255Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_macros.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.4039852Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_marshal_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.4189128Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.4344189Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/include/pypy3.11/pypy_structmember_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.4496619Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64/PYPY_VERSION
+evals	Retirar Python del runner	2026-09-15T07:28:10.4795779Z retirado: /opt/hostedtoolcache/PyPy/3.11.15/x64
+evals	Retirar Python del runner	2026-09-15T07:28:10.7221374Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/PYPY_PORTABLE_DEPS.txt
+evals	Retirar Python del runner	2026-09-15T07:28:10.7374654Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.pypy310.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:10.7526227Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:10.7680712Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/_cffi_ssl/_cffi_src/openssl/pypy_win32_extra.py
+evals	Retirar Python del runner	2026-09-15T07:28:10.7837991Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/hpy/devel/include/hpy/forbid_python_h/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:10.7983784Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:10.8125661Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:10.8266687Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:10.8403706Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:10.8540177Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:10.8676886Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:10.8810625Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:10.8951160Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:10.9086396Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:10.9224331Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:10.9362457Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:10.9502263Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.9641504Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:10.9783648Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:10.9924824Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/lib/pypy3.10/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:11.0065516Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0206928Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0346724Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_macros.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0486216Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_marshal_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0626574Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0769355Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/include/pypy3.10/pypy_structmember_decl.h
+evals	Retirar Python del runner	2026-09-15T07:28:11.0909489Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64/PYPY_VERSION
+evals	Retirar Python del runner	2026-09-15T07:28:11.1179975Z retirado: /opt/hostedtoolcache/PyPy/3.10.16/x64
+evals	Retirar Python del runner	2026-09-15T07:28:11.3309162Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/Open-Source-Notices/python3.txt
+evals	Retirar Python del runner	2026-09-15T07:28:11.3450258Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/experimental/semmle/python/libraries/PythonJose.qll
+evals	Retirar Python del runner	2026-09-15T07:28:11.3592479Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/experimental/semmle/python/libraries/Python_JWT.qll
+evals	Retirar Python del runner	2026-09-15T07:28:11.3731747Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/.codeql/libraries/codeql/python-all/7.2.4/python.qll
+evals	Retirar Python del runner	2026-09-15T07:28:11.3872437Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-quality-extended.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4011439Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-experimental.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4150258Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-scanning.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4287657Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-lgtm.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4426082Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-extended.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4567189Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-lgtm-full.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4707309Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-security-and-quality.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4846641Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-queries/1.8.9/codeql-suites/python-code-quality.qls
+evals	Retirar Python del runner	2026-09-15T07:28:11.4991035Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-examples/0.0.0/.codeql/libraries/codeql/python-all/7.2.4/python.qll
+evals	Retirar Python del runner	2026-09-15T07:28:11.5134921Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/composite-actions/python_mypy.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.5279483Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/composite-actions/python-poetry_poetry.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.5417796Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-all/0.6.0/ext/generated/reusable-workflows/python_cpython.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.5555049Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/python-all/7.2.4/python.qll
+evals	Retirar Python del runner	2026-09-15T07:28:11.5696529Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/composite-actions/python_mypy.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.5839382Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/composite-actions/python-poetry_poetry.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.5989285Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/qlpacks/codeql/actions-queries/0.6.34/.codeql/libraries/codeql/actions-all/0.6.0/ext/generated/reusable-workflows/python_cpython.model.yml
+evals	Retirar Python del runner	2026-09-15T07:28:11.6130765Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python3src.zip
+evals	Retirar Python del runner	2026-09-15T07:28:11.6267735Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_setup.cmd
+evals	Retirar Python del runner	2026-09-15T07:28:11.6406810Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_setup.sh
+evals	Retirar Python del runner	2026-09-15T07:28:11.6548081Z retirado: /opt/hostedtoolcache/CodeQL/2.26.4/x64/codeql/python/tools/python_tracer.py
+evals	Retirar Python del runner	2026-09-15T07:28:11.6697219Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:11.6861523Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python-3.14-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:11.7001338Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:11.7200293Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:11.7338346Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig/python-3.14.pc
+evals	Retirar Python del runner	2026-09-15T07:28:11.7489520Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:11.7628373Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:11.7769456Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/libpython3.14.a
+evals	Retirar Python del runner	2026-09-15T07:28:11.7911209Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:11.8048556Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:11.8188728Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:11.8329108Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:11.8468772Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.opt-2.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:11.8608051Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/__pycache__/pythoninfo.cpython-314.opt-1.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:11.8749404Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:11.8910995Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:11.9049223Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:11.9187124Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:11.9323219Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/tkinterdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:11.9463812Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:11.9601540Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:11.9738086Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:11.9875089Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:12.0012563Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:12.0151961Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:12.0303550Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:12.0443751Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:12.0581721Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:12.0718022Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:12.0855772Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:12.0991238Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:12.1128945Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/test_email/data/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:12.1266765Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/python3.14/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:12.1407862Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.14.so
+evals	Retirar Python del runner	2026-09-15T07:28:12.1550374Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/lib/libpython3.14.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:12.1699963Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:12.1838991Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:12.1980322Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/include/python3.14/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:12.2121393Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:12.2261351Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64/share/man/man1/python3.14.1
+evals	Retirar Python del runner	2026-09-15T07:28:12.2537265Z retirado: /opt/hostedtoolcache/Python/3.14.7/x64
+evals	Retirar Python del runner	2026-09-15T07:28:12.5518935Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:12.5659747Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:12.5801906Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python-3.13.pc
+evals	Retirar Python del runner	2026-09-15T07:28:12.5944059Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:12.6085214Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig/python-3.13-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:12.6224840Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-313.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:12.6365126Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:12.6504977Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:12.6646504Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.opt-2.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:12.6788521Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:12.6928023Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/__pycache__/pythoninfo.cpython-313.opt-1.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:12.7067852Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:12.7207757Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:12.7348729Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:12.7488298Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:12.7627593Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/tkinterdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:12.7771635Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:12.7915425Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:12.8055453Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:12.8199014Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:12.8338406Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:12.8479149Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:12.8619423Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:12.8761594Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:12.8904741Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:12.9046836Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:12.9188371Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:12.9329244Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:12.9469028Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/test_email/data/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:12.9628247Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:12.9802851Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/libpython3.13.a
+evals	Retirar Python del runner	2026-09-15T07:28:12.9957601Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:13.0096327Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13/config-3.13-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:13.0235250Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.13.so
+evals	Retirar Python del runner	2026-09-15T07:28:13.0374040Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/lib/libpython3.13.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:13.0513073Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.0652376Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.0789558Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/include/python3.13/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.0926576Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:13.1064521Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64/share/man/man1/python3.13.1
+evals	Retirar Python del runner	2026-09-15T07:28:13.1330117Z retirado: /opt/hostedtoolcache/Python/3.13.15/x64
+evals	Retirar Python del runner	2026-09-15T07:28:13.3915374Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:13.4054450Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-310.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:13.4194390Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:13.4331861Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.a
+evals	Retirar Python del runner	2026-09-15T07:28:13.4466958Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:13.4604860Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/config-3.10-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:13.4743843Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:13.4881481Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:13.5019689Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.opt-2.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:13.5157634Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/__pycache__/pythoninfo.cpython-310.opt-1.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:13.5299257Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:13.5436501Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:13.5574261Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:13.5712950Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:13.5853776Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:13.5991294Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:13.6127197Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:13.6264788Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:13.6401623Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:13.6538974Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:13.6675748Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:13.6814146Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:13.6948889Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:13.7088908Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:13.7226322Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:13.7363480Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:13.7502647Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python-3.10.pc
+evals	Retirar Python del runner	2026-09-15T07:28:13.7641849Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig/python-3.10-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:13.7785042Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.10.so
+evals	Retirar Python del runner	2026-09-15T07:28:13.7922338Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/lib/libpython3.10.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:13.8057834Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.8196088Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.8335630Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/include/python3.10/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:13.8473910Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/share/man/man1/python3.10.1
+evals	Retirar Python del runner	2026-09-15T07:28:13.8670385Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:13.8935460Z retirado: /opt/hostedtoolcache/Python/3.10.21/x64
+evals	Retirar Python del runner	2026-09-15T07:28:14.1556472Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:14.1694038Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python-3.12.pc
+evals	Retirar Python del runner	2026-09-15T07:28:14.1885914Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:14.2023260Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python-3.12-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:14.2218051Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:14.2354000Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.12.so
+evals	Retirar Python del runner	2026-09-15T07:28:14.2492209Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:14.2630790Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:14.2791315Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:14.2928054Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.opt-2.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:14.3070315Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.opt-1.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:14.3213254Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/__pycache__/pythoninfo.cpython-312.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:14.3356789Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:14.3500915Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:14.3639551Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:14.3782655Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:14.3922217Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:14.4061079Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:14.4199405Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:14.4338433Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:14.4477015Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:14.4614870Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:14.4752634Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:14.4888929Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:14.5026920Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:14.5163893Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/imghdrdata/python-raw.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:14.5303892Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:14.5443879Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:14.5581960Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:14.5718476Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:14.5856969Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:14.5996451Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:14.6133342Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:14.6270330Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:14.6407505Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:14.6547567Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:14.6690217Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:14.6832055Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:14.6974855Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/test_email/data/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:14.7115207Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:14.7255448Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.a
+evals	Retirar Python del runner	2026-09-15T07:28:14.7395824Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:14.7538343Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/config-3.12-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:14.7681523Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/lib/libpython3.12.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:14.7827678Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:14.7969616Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:14.8112071Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/include/python3.12/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:14.8254848Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:14.8396333Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64/share/man/man1/python3.12.1
+evals	Retirar Python del runner	2026-09-15T07:28:14.8669682Z retirado: /opt/hostedtoolcache/Python/3.12.14/x64
+evals	Retirar Python del runner	2026-09-15T07:28:15.1325614Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:15.1464620Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:15.1605148Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:15.1746190Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python-3.11-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:15.1885837Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig/python-3.11.pc
+evals	Retirar Python del runner	2026-09-15T07:28:15.2026417Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-311.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:15.2169002Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:15.2311759Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.a
+evals	Retirar Python del runner	2026-09-15T07:28:15.2452051Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:15.2592780Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/config-3.11-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:15.2735863Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:15.2880438Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:15.3020264Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.opt-1.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:15.3162788Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/__pycache__/pythoninfo.cpython-311.opt-2.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:15.3303502Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:15.3443296Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:15.3585585Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:15.3725600Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:15.3866833Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:15.4009039Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:15.4147902Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:15.4289634Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:15.4431869Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:15.4569635Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:15.4709713Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:15.4851467Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:15.4993160Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:15.5134470Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/imghdrdata/python-raw.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:15.5272418Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.jpg
+evals	Retirar Python del runner	2026-09-15T07:28:15.5413967Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.sgi
+evals	Retirar Python del runner	2026-09-15T07:28:15.5556518Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.tiff
+evals	Retirar Python del runner	2026-09-15T07:28:15.5699813Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.bmp
+evals	Retirar Python del runner	2026-09-15T07:28:15.5839044Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:15.5980023Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.webp
+evals	Retirar Python del runner	2026-09-15T07:28:15.6121683Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.png
+evals	Retirar Python del runner	2026-09-15T07:28:15.6263631Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.ppm
+evals	Retirar Python del runner	2026-09-15T07:28:15.6404274Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.pgm
+evals	Retirar Python del runner	2026-09-15T07:28:15.6546456Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.exr
+evals	Retirar Python del runner	2026-09-15T07:28:15.6687630Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.xbm
+evals	Retirar Python del runner	2026-09-15T07:28:15.6829508Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.pbm
+evals	Retirar Python del runner	2026-09-15T07:28:15.6970928Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/test_email/data/python.ras
+evals	Retirar Python del runner	2026-09-15T07:28:15.7112021Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/test/pythoninfo.py
+evals	Retirar Python del runner	2026-09-15T07:28:15.7254046Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so
+evals	Retirar Python del runner	2026-09-15T07:28:15.7394917Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:15.7534548Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:15.7676426Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:15.7819290Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/include/python3.11/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:15.7959240Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:15.8100720Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64/share/man/man1/python3.11.1
+evals	Retirar Python del runner	2026-09-15T07:28:15.8377316Z retirado: /opt/hostedtoolcache/Python/3.11.16/x64
+evals	Retirar Python del runner	2026-09-15T07:28:16.1182593Z retirado: /opt/az/lib/pkgconfig/python-3.14-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:16.1320959Z retirado: /opt/az/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:16.1518830Z retirado: /opt/az/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:16.1656456Z retirado: /opt/az/lib/pkgconfig/python-3.14.pc
+evals	Retirar Python del runner	2026-09-15T07:28:16.1794648Z retirado: /opt/az/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:16.1930424Z retirado: /opt/az/lib/python3.14/site-packages/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:16.2067889Z retirado: /opt/az/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:16.2211351Z retirado: /opt/az/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:16.2353771Z retirado: /opt/az/lib/python3.14/site-packages/argcomplete/scripts/__pycache__/python_argcomplete_check_easy_install_script.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:16.2494024Z retirado: /opt/az/lib/python3.14/site-packages/argcomplete/scripts/python_argcomplete_check_easy_install_script.py
+evals	Retirar Python del runner	2026-09-15T07:28:16.2635948Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/libpython3.14.a
+evals	Retirar Python del runner	2026-09-15T07:28:16.2781030Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:16.2919027Z retirado: /opt/az/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:16.3060021Z retirado: /opt/az/lib/python3.14/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:16.3201812Z retirado: /opt/az/lib/libpython3.14.a
+evals	Retirar Python del runner	2026-09-15T07:28:16.3340268Z retirado: /opt/az/include/python3.14/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:16.3481496Z retirado: /opt/az/include/python3.14/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:16.3621432Z retirado: /opt/az/include/python3.14/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:16.3763552Z retirado: /opt/az/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:16.3906376Z retirado: /opt/az/share/man/man1/python3.14.1
+evals	Retirar Python del runner	2026-09-15T07:28:16.4179435Z retirado: /opt/az
+evals	Retirar Python del runner	2026-09-15T07:28:17.2681944Z retirado: /var/lib/dpkg/info/python3-jinja2.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.2836636Z retirado: /var/lib/dpkg/info/python3-packaging.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.2987302Z retirado: /var/lib/dpkg/info/python3-launchpadlib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.3142160Z retirado: /var/lib/dpkg/info/python3-magic.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.3295741Z retirado: /var/lib/dpkg/info/python3-jsonschema.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.3445198Z retirado: /var/lib/dpkg/info/python3-jsonpatch.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.3601407Z retirado: /var/lib/dpkg/info/python3-parted.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.3757112Z retirado: /var/lib/dpkg/info/python3-chardet.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.3907790Z retirado: /var/lib/dpkg/info/python3-parted.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.4062590Z retirado: /var/lib/dpkg/info/python3-constantly.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.4215237Z retirado: /var/lib/dpkg/info/python3-gi.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.4368031Z retirado: /var/lib/dpkg/info/python3-s3transfer.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.4523583Z retirado: /var/lib/dpkg/info/python3-bcrypt.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.4677460Z retirado: /var/lib/dpkg/info/python3-netaddr.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.4831450Z retirado: /var/lib/dpkg/info/python3-zope.interface.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.4983669Z retirado: /var/lib/dpkg/info/python3-cryptography.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.5136732Z retirado: /var/lib/dpkg/info/python3-distro-info.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.5290835Z retirado: /var/lib/dpkg/info/python3-configobj.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.5447347Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:17.5601922Z retirado: /var/lib/dpkg/info/python3-lazr.restfulclient.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.5756065Z retirado: /var/lib/dpkg/info/python3-jsonschema.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.5909221Z retirado: /var/lib/dpkg/info/python3-six.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.6061180Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.6219970Z retirado: /var/lib/dpkg/info/python3-idna.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.6375867Z retirado: /var/lib/dpkg/info/python3-jsonpatch.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.6526982Z retirado: /var/lib/dpkg/info/python3-cryptography.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.6679731Z retirado: /var/lib/dpkg/info/python3-babel.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.6834451Z retirado: /var/lib/dpkg/info/python3-distupgrade.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.6990351Z retirado: /var/lib/dpkg/info/python3-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.7142475Z retirado: /var/lib/dpkg/info/python3-mdurl.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.7294793Z retirado: /var/lib/dpkg/info/python3-pkg-resources.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.7446753Z retirado: /var/lib/dpkg/info/python3-launchpadlib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.7600110Z retirado: /var/lib/dpkg/info/python3-debian.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.7754626Z retirado: /var/lib/dpkg/info/python3-wheel.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.7907770Z retirado: /var/lib/dpkg/info/python3.12-minimal.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.8059566Z retirado: /var/lib/dpkg/info/python3-certifi.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.8213217Z retirado: /var/lib/dpkg/info/python3-twisted.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.8366749Z retirado: /var/lib/dpkg/info/python3-systemd.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.8518149Z retirado: /var/lib/dpkg/info/python3-botocore.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.8671060Z retirado: /var/lib/dpkg/info/python3.12-venv.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.8824443Z retirado: /var/lib/dpkg/info/python3-openssl.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.8977504Z retirado: /var/lib/dpkg/info/python3-launchpadlib.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:17.9130843Z retirado: /var/lib/dpkg/info/python3-json-pointer.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.9287909Z retirado: /var/lib/dpkg/info/python3-requests.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.9440048Z retirado: /var/lib/dpkg/info/python3-pyasn1.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.9593047Z retirado: /var/lib/dpkg/info/python3-openssl.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:17.9744449Z retirado: /var/lib/dpkg/info/python3-attr.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:17.9895306Z retirado: /var/lib/dpkg/info/python3.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.0048793Z retirado: /var/lib/dpkg/info/python3-apt.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.0204206Z retirado: /var/lib/dpkg/info/python3-pyasn1-modules.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.0354749Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:18.0509004Z retirado: /var/lib/dpkg/info/python3-newt:amd64.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.0662302Z retirado: /var/lib/dpkg/info/libpython3-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:18.0814195Z retirado: /var/lib/dpkg/info/python3-commandnotfound.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.0968071Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.symbols
+evals	Retirar Python del runner	2026-09-15T07:28:18.1122450Z retirado: /var/lib/dpkg/info/python3-pyrsistent:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.1275441Z retirado: /var/lib/dpkg/info/python3-yaml.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.1429367Z retirado: /var/lib/dpkg/info/python3-debconf.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.1582780Z retirado: /var/lib/dpkg/info/python3-boto3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.1737204Z retirado: /var/lib/dpkg/info/python3-passlib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.1890143Z retirado: /var/lib/dpkg/info/python3.12.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.2047424Z retirado: /var/lib/dpkg/info/python3-idna.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.2201019Z retirado: /var/lib/dpkg/info/python3-problem-report.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.2352272Z retirado: /var/lib/dpkg/info/python3.12-venv.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.2505969Z retirado: /var/lib/dpkg/info/python3-apport.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.2657111Z retirado: /var/lib/dpkg/info/python3-newt:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.2811367Z retirado: /var/lib/dpkg/info/python3-distro-info.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.2967206Z retirado: /var/lib/dpkg/info/python3.12.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.3121314Z retirado: /var/lib/dpkg/info/python3-pip.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.3276891Z retirado: /var/lib/dpkg/info/python3.12-minimal.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.3433535Z retirado: /var/lib/dpkg/info/python3-urllib3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.3588933Z retirado: /var/lib/dpkg/info/python3-bpfcc.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.3742322Z retirado: /var/lib/dpkg/info/python3-wadllib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.3898997Z retirado: /var/lib/dpkg/info/python3-jwt.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4048452Z retirado: /var/lib/dpkg/info/python3-distupgrade.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.4202415Z retirado: /var/lib/dpkg/info/python3-problem-report.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4354735Z retirado: /var/lib/dpkg/info/python3-pexpect.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4509879Z retirado: /var/lib/dpkg/info/python3-zstandard.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4662702Z retirado: /var/lib/dpkg/info/python3-gi.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4815352Z retirado: /var/lib/dpkg/info/python3-update-manager.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.4968025Z retirado: /var/lib/dpkg/info/python3-httplib2.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.5121277Z retirado: /var/lib/dpkg/info/python3-pyasn1.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.5274133Z retirado: /var/lib/dpkg/info/python3-pkg-resources.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.5430102Z retirado: /var/lib/dpkg/info/python3-markupsafe.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.5586757Z retirado: /var/lib/dpkg/info/python3-boto3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.5740355Z retirado: /var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:18.5891677Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:18.6041800Z retirado: /var/lib/dpkg/info/python3-markdown-it.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.6196748Z retirado: /var/lib/dpkg/info/python3-distro.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.6352031Z retirado: /var/lib/dpkg/info/python3-requests.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.6502597Z retirado: /var/lib/dpkg/info/python3-hyperlink.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.6657993Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:18.6809105Z retirado: /var/lib/dpkg/info/python3-hyperlink.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.6963671Z retirado: /var/lib/dpkg/info/python3-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.7121334Z retirado: /var/lib/dpkg/info/python3-jwt.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.7271183Z retirado: /var/lib/dpkg/info/python3-pyasn1-modules.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.7421088Z retirado: /var/lib/dpkg/info/python3-lazr.uri.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.7571490Z retirado: /var/lib/dpkg/info/python3-jsonpatch.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:18.7719377Z retirado: /var/lib/dpkg/info/python3-pygments.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.7864630Z retirado: /var/lib/dpkg/info/python3-json-pointer.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:18.8001424Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.8139431Z retirado: /var/lib/dpkg/info/python3-rich.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.8275013Z retirado: /var/lib/dpkg/info/python3-jsonschema.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.8412948Z retirado: /var/lib/dpkg/info/python3-mdurl.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.8570135Z retirado: /var/lib/dpkg/info/python3-software-properties.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.8713924Z retirado: /var/lib/dpkg/info/python3-pyparsing.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.8857801Z retirado: /var/lib/dpkg/info/python3-pip.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.8996672Z retirado: /var/lib/dpkg/info/python3-distro.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.9142877Z retirado: /var/lib/dpkg/info/python3-hamcrest.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.9282991Z retirado: /var/lib/dpkg/info/python3-urllib3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.9423266Z retirado: /var/lib/dpkg/info/python3-wadllib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.9565218Z retirado: /var/lib/dpkg/info/python3-markupsafe.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.9704432Z retirado: /var/lib/dpkg/info/python3-httplib2.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:18.9848038Z retirado: /var/lib/dpkg/info/python3-certifi.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:18.9985158Z retirado: /var/lib/dpkg/info/python3-click.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.0124744Z retirado: /var/lib/dpkg/info/python3-constantly.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.0264512Z retirado: /var/lib/dpkg/info/libpython3-dev:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:19.0404127Z retirado: /var/lib/dpkg/info/python3.12-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.0550854Z retirado: /var/lib/dpkg/info/python3-s3transfer.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.0689695Z retirado: /var/lib/dpkg/info/python3-zstandard.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.0831929Z retirado: /var/lib/dpkg/info/python3-json-pointer.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.0971427Z retirado: /var/lib/dpkg/info/python3-service-identity.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.1112056Z retirado: /var/lib/dpkg/info/python3-serial.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.1254315Z retirado: /var/lib/dpkg/info/python3-hamcrest.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.1395768Z retirado: /var/lib/dpkg/info/python3-incremental.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.1537080Z retirado: /var/lib/dpkg/info/python3-netplan.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.1679313Z retirado: /var/lib/dpkg/info/python3-netaddr.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.1819591Z retirado: /var/lib/dpkg/info/python3-dateutil.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.1960347Z retirado: /var/lib/dpkg/info/python3-apt.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.2102168Z retirado: /var/lib/dpkg/info/python3-dbus.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.2242168Z retirado: /var/lib/dpkg/info/python3-jmespath.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.2382304Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.2521237Z retirado: /var/lib/dpkg/info/python3-commandnotfound.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.2661520Z retirado: /var/lib/dpkg/info/python3-blinker.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.2803042Z retirado: /var/lib/dpkg/info/python3-ptyprocess.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.2944304Z retirado: /var/lib/dpkg/info/python3-colorama.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.3084424Z retirado: /var/lib/dpkg/info/python3-wheel.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.3222850Z retirado: /var/lib/dpkg/info/python3-oauthlib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.3361531Z retirado: /var/lib/dpkg/info/python3-pygments.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.3509354Z retirado: /var/lib/dpkg/info/python3-tz.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.3650402Z retirado: /var/lib/dpkg/info/python3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.3790909Z retirado: /var/lib/dpkg/info/python3-update-manager.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.3930739Z retirado: /var/lib/dpkg/info/python3-pexpect.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.4070453Z retirado: /var/lib/dpkg/info/python3-serial.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.4211475Z retirado: /var/lib/dpkg/info/python3-netplan.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.4353350Z retirado: /var/lib/dpkg/info/python3-incremental.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.4492560Z retirado: /var/lib/dpkg/info/python3-typing-extensions.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.4635291Z retirado: /var/lib/dpkg/info/python3-jinja2.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.4768655Z retirado: /var/lib/dpkg/info/libpython3.12-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:19.4903439Z retirado: /var/lib/dpkg/info/python3-pyparsing.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.5039032Z retirado: /var/lib/dpkg/info/python3-automat.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.5176261Z retirado: /var/lib/dpkg/info/python3-attr.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.5313068Z retirado: /var/lib/dpkg/info/python3-pyrsistent:amd64.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.5452219Z retirado: /var/lib/dpkg/info/python3-passlib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.5587904Z retirado: /var/lib/dpkg/info/python3-twisted.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.5723382Z retirado: /var/lib/dpkg/info/python3-configobj.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.5863704Z retirado: /var/lib/dpkg/info/python3-markdown-it.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.5998809Z retirado: /var/lib/dpkg/info/python3-ptyprocess.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.6136783Z retirado: /var/lib/dpkg/info/libpython3-dev:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:19.6271515Z retirado: /var/lib/dpkg/info/python3-software-properties.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.6408045Z retirado: /var/lib/dpkg/info/python3-dbus.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.6543986Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.6679403Z retirado: /var/lib/dpkg/info/python3-setuptools.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.6813900Z retirado: /var/lib/dpkg/info/python3.12-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.6951286Z retirado: /var/lib/dpkg/info/python3-botocore.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.7087680Z retirado: /var/lib/dpkg/info/python3-setuptools.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.7222880Z retirado: /var/lib/dpkg/info/python3-dateutil.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.7357538Z retirado: /var/lib/dpkg/info/python3.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:19.7491229Z retirado: /var/lib/dpkg/info/python3-yaml.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.7627123Z retirado: /var/lib/dpkg/info/libpython3.12-dev:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:19.7762408Z retirado: /var/lib/dpkg/info/python3-lazr.restfulclient.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.7901188Z retirado: /var/lib/dpkg/info/python3-click.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8038660Z retirado: /var/lib/dpkg/info/python3-tz.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8173607Z retirado: /var/lib/dpkg/info/python3-debconf.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8308239Z retirado: /var/lib/dpkg/info/libpython3.12-dev:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:19.8441734Z retirado: /var/lib/dpkg/info/python3-automat.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8576659Z retirado: /var/lib/dpkg/info/python3-systemd.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8712880Z retirado: /var/lib/dpkg/info/python3-typing-extensions.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8848190Z retirado: /var/lib/dpkg/info/python3-chardet.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.8984765Z retirado: /var/lib/dpkg/info/python3-packaging.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.9136506Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.triggers
+evals	Retirar Python del runner	2026-09-15T07:28:19.9271584Z retirado: /var/lib/dpkg/info/python3-blinker.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.9404231Z retirado: /var/lib/dpkg/info/python3.12-venv.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:19.9540091Z retirado: /var/lib/dpkg/info/python3-lazr.uri.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.9676618Z retirado: /var/lib/dpkg/info/python3-six.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.9811587Z retirado: /var/lib/dpkg/info/python3-twisted.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:19.9944884Z retirado: /var/lib/dpkg/info/python3-bcrypt.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.0079074Z retirado: /var/lib/dpkg/info/python3-magic.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.0216823Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:20.0351577Z retirado: /var/lib/dpkg/info/python3-service-identity.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.0487097Z retirado: /var/lib/dpkg/info/python3-colorama.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.0622746Z retirado: /var/lib/dpkg/info/python3-jmespath.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.0757891Z retirado: /var/lib/dpkg/info/libpython3.12t64:amd64.shlibs
+evals	Retirar Python del runner	2026-09-15T07:28:20.0892684Z retirado: /var/lib/dpkg/info/python3-oauthlib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.1031874Z retirado: /var/lib/dpkg/info/python3-rich.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.1167010Z retirado: /var/lib/dpkg/info/python3-babel.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.1303156Z retirado: /var/lib/dpkg/info/python3-apport.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.1439177Z retirado: /var/lib/dpkg/info/python3-bpfcc.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.1574601Z retirado: /var/lib/dpkg/info/python3-zope.interface.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.1712685Z retirado: /var/lib/dpkg/info/libpython3.12-minimal:amd64.conffiles
+evals	Retirar Python del runner	2026-09-15T07:28:20.1848972Z retirado: /var/lib/dpkg/info/python3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.1986701Z retirado: /var/lib/dpkg/info/python3-debian.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.2122475Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.2262472Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-cryptography.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.2397219Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-configobj.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.2534022Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:20.2669212Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.restfulclient.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.2808862Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-six.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.2947925Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3083544Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-cryptography.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3218231Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3354953Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pkg-resources.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.3492261Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3629579Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3767296Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-launchpadlib.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:20.3906723Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.4041562Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-tzlocal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.4178994Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:20.4317268Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:20.4454471Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.symbols
+evals	Retirar Python del runner	2026-09-15T07:28:20.4592232Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-yaml.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.4731121Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.4867598Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5004191Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5141319Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-merge3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5278429Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-urllib3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5418833Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-wadllib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5554443Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-jwt.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.5692244Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-fastbencode.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.5831132Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-httplib2.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.5968471Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pkg-resources.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.6104515Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:20.6242331Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:20.6379566Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-distro.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.6517289Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:20.6652793Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.6789975Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-jwt.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.6926747Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.uri.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.7063519Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-tzlocal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.7201435Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.7339335Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pyparsing.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.7477466Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-distro.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.7615035Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-urllib3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.7754175Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-wadllib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.7894105Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-httplib2.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.8031757Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.8167904Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-patiencediff.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.8303522Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.8441444Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-blinker.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.8581099Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-oauthlib.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.8715806Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.8853969Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:20.8988822Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-pyparsing.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.9125679Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-breezy.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.9263571Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-dulwich.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.9399371Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-configobj.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.9538910Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:20.9676389Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.12-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.9811377Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-dulwich.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:20.9949992Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:21.0087441Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-yaml.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.0228186Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.restfulclient.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.0367503Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-patiencediff.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.0507478Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-merge3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.0649674Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.triggers
+evals	Retirar Python del runner	2026-09-15T07:28:21.0789687Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-blinker.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.0929207Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-lazr.uri.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.1071027Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-six.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.1212164Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-fastbencode.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.1352712Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:21.1495590Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12t64:amd64.shlibs
+evals	Retirar Python del runner	2026-09-15T07:28:21.1636583Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-breezy.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.1776858Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3-oauthlib.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.1915211Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/libpython3.12-minimal:amd64.conffiles
+evals	Retirar Python del runner	2026-09-15T07:28:21.2058121Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/var/lib/dpkg/info/python3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.2197563Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/x86_64-linux-gnu/libpython3.12.so.1
+evals	Retirar Python del runner	2026-09-15T07:28:21.2341612Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:21.2541649Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so
+evals	Retirar Python del runner	2026-09-15T07:28:21.2683835Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/pixmaps/python3.xpm
+evals	Retirar Python del runner	2026-09-15T07:28:21.2828530Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/libpython3.12t64
+evals	Retirar Python del runner	2026-09-15T07:28:21.3029140Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/python3.12/python-policy.txt.gz
+evals	Retirar Python del runner	2026-09-15T07:28:21.3167900Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/doc/libpython3.12-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:21.3306081Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12t64
+evals	Retirar Python del runner	2026-09-15T07:28:21.3481691Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12-minimal
+evals	Retirar Python del runner	2026-09-15T07:28:21.3621323Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr/share/lintian/overrides/libpython3.12-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:21.3902294Z retirado: /var/lib/docker/overlay2/a9853d7ac0752db045c472a9505e498ad787cec8cb7eab1bd6d6d65f685ef414/diff/usr
+evals	Retirar Python del runner	2026-09-15T07:28:21.6680100Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.6862122Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.7000926Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3-minimal.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.7143016Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:21.7284510Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.7425287Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:21.7565317Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.7708174Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:21.7851503Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:21.7991487Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.8134759Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:21.8275340Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.8412401Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.list
+evals	Retirar Python del runner	2026-09-15T07:28:21.8553985Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.8695106Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.8837233Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.8979878Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.prerm
+evals	Retirar Python del runner	2026-09-15T07:28:21.9125161Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:21.9267383Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-stdlib:amd64.md5sums
+evals	Retirar Python del runner	2026-09-15T07:28:21.9410079Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.postrm
+evals	Retirar Python del runner	2026-09-15T07:28:21.9553605Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/libpython3.10-minimal:amd64.conffiles
+evals	Retirar Python del runner	2026-09-15T07:28:21.9694769Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.10-minimal.preinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.9836273Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/var/lib/dpkg/info/python3.postinst
+evals	Retirar Python del runner	2026-09-15T07:28:21.9978203Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/pixmaps/python3.xpm
+evals	Retirar Python del runner	2026-09-15T07:28:22.0119541Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/doc/libpython3.10-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:22.0318217Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/doc/python3.10/python-policy.txt.gz
+evals	Retirar Python del runner	2026-09-15T07:28:22.0459506Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/lintian/overrides/libpython3.10-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:22.0600121Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr/share/lintian/overrides/libpython3.10-minimal
+evals	Retirar Python del runner	2026-09-15T07:28:22.0873351Z retirado: /var/lib/docker/overlay2/80c613159e0ff38a882acb63fd4cf342723381c4f07d119df138a79409f5e793/diff/usr
+evals	Retirar Python del runner	2026-09-15T07:28:22.3788338Z retirado: /usr/lib/x86_64-linux-gnu/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.3926619Z retirado: /usr/lib/x86_64-linux-gnu/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.4071140Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so.1
+evals	Retirar Python del runner	2026-09-15T07:28:22.4267122Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.4406326Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.a
+evals	Retirar Python del runner	2026-09-15T07:28:22.4544051Z retirado: /usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:22.4746098Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.4887171Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.a
+evals	Retirar Python del runner	2026-09-15T07:28:22.5028372Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:22.5167330Z retirado: /usr/lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12-pic.a
+evals	Retirar Python del runner	2026-09-15T07:28:22.5308526Z retirado: /usr/lib/google-cloud-sdk/lib/googlecloudsdk/command_lib/orchestration_pipelines/tools/python_environment_unpack.sh
+evals	Retirar Python del runner	2026-09-15T07:28:22.5449789Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.5589072Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.5730306Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.5869610Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:22.6009806Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.14.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.6148470Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix/lib/libpython3.14.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:22.6421900Z retirado: /usr/lib/google-cloud-sdk/platform/bundledpythonunix
+evals	Retirar Python del runner	2026-09-15T07:28:22.8350309Z retirado: /usr/lib/rpm/pythondistdeps.py
+evals	Retirar Python del runner	2026-09-15T07:28:22.8491017Z retirado: /usr/local/aws-cli/v2/2.36.40/dist/libpython3.14.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:22.8634658Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.8807117Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.8949169Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.9089958Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.9229802Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
+evals	Retirar Python del runner	2026-09-15T07:28:22.9367637Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:22.9506901Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
+evals	Retirar Python del runner	2026-09-15T07:28:22.9643636Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:22.9783173Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:22.9922844Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.0059479Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.0201064Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.0341659Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.0616372Z retirado: /usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/python3
+evals	Retirar Python del runner	2026-09-15T07:28:23.1226969Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:23.1370653Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.1510391Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.1652212Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.1793287Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.1933440Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:23.2074716Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
+evals	Retirar Python del runner	2026-09-15T07:28:23.2212386Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:23.2356713Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.2498580Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.2640082Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.2782356Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.2925574Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.3207236Z retirado: /usr/local/lib/android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/python3
+evals	Retirar Python del runner	2026-09-15T07:28:23.3811735Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:23.3952945Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.4129558Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.4270036Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.4408661Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/pkgconfig/python-3.11.pc
+evals	Retirar Python del runner	2026-09-15T07:28:23.4549974Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/python3.11/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:23.4691539Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so
+evals	Retirar Python del runner	2026-09-15T07:28:23.4833074Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/lib/libpython3.11.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:23.4976465Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.5117569Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.5257245Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/include/python3.11/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:23.5400370Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.5542292Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3/share/man/man1/python3.11.1
+evals	Retirar Python del runner	2026-09-15T07:28:23.5813944Z retirado: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/python3
+evals	Retirar Python del runner	2026-09-15T07:28:23.6398092Z retirado: /usr/local/aws-sam-cli/1.166.1/dist/_internal/libpython3.11.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:23.6559660Z retirado: /usr/local/share/vcpkg/ports/libudis86/python3.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.6733770Z retirado: /usr/local/share/vcpkg/ports/omniorb/python-fixes.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.6869879Z retirado: /usr/local/share/vcpkg/ports/openxr-loader/python3_8_compatibility.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.7008883Z retirado: /usr/local/share/vcpkg/ports/libxslt/python3.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.7144038Z retirado: /usr/local/share/vcpkg/ports/openscap/python-win32.diff
+evals	Retirar Python del runner	2026-09-15T07:28:23.7283981Z retirado: /usr/local/share/vcpkg/ports/python3/python_vcpkg.props.in
+evals	Retirar Python del runner	2026-09-15T07:28:23.7420926Z retirado: /usr/local/share/vcpkg/ports/vtk/pythonwrapper.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.7559876Z retirado: /usr/local/share/vcpkg/scripts/test_ports/vcpkg-ci-blender/python.patch
+evals	Retirar Python del runner	2026-09-15T07:28:23.7697584Z retirado: /usr/local/share/vcpkg/versions/p-/python2.json
+evals	Retirar Python del runner	2026-09-15T07:28:23.7839146Z retirado: /usr/local/share/vcpkg/versions/p-/python3.json
+evals	Retirar Python del runner	2026-09-15T07:28:23.7977233Z retirado: /usr/share/perl5/NeedRestart/Interp/Python.pm
+evals	Retirar Python del runner	2026-09-15T07:28:23.8114164Z retirado: /usr/share/doc-base/python3.python-policy
+evals	Retirar Python del runner	2026-09-15T07:28:23.8253268Z retirado: /usr/share/az_15.6.1/Az.Functions/4.3.2/Functions.Autorest/custom/FunctionsStackFlexData/EastAsia/python.json
+evals	Retirar Python del runner	2026-09-15T07:28:23.8389786Z retirado: /usr/share/bash-completion/completions/python3.9
+evals	Retirar Python del runner	2026-09-15T07:28:23.8524521Z retirado: /usr/share/bash-completion/completions/python3.7
+evals	Retirar Python del runner	2026-09-15T07:28:23.8661383Z retirado: /usr/share/bash-completion/completions/python3.3
+evals	Retirar Python del runner	2026-09-15T07:28:23.8797915Z retirado: /usr/share/bash-completion/completions/python3.6
+evals	Retirar Python del runner	2026-09-15T07:28:23.8936433Z retirado: /usr/share/bash-completion/completions/python2.7
+evals	Retirar Python del runner	2026-09-15T07:28:23.9073771Z retirado: /usr/share/bash-completion/completions/python3.4
+evals	Retirar Python del runner	2026-09-15T07:28:23.9212793Z retirado: /usr/share/bash-completion/completions/pypy3
+evals	Retirar Python del runner	2026-09-15T07:28:23.9348296Z retirado: /usr/share/bash-completion/completions/python2
+evals	Retirar Python del runner	2026-09-15T07:28:23.9488465Z retirado: /usr/share/bash-completion/completions/pypy
+evals	Retirar Python del runner	2026-09-15T07:28:23.9623948Z retirado: /usr/share/bash-completion/completions/python3.8
+evals	Retirar Python del runner	2026-09-15T07:28:23.9761539Z retirado: /usr/share/bash-completion/completions/python3.5
+evals	Retirar Python del runner	2026-09-15T07:28:23.9897502Z retirado: /usr/share/bash-completion/completions/python3
+evals	Retirar Python del runner	2026-09-15T07:28:24.0037361Z retirado: /usr/share/bash-completion/completions/python
+evals	Retirar Python del runner	2026-09-15T07:28:24.0174771Z retirado: /usr/share/bash-completion/helpers/python
+evals	Retirar Python del runner	2026-09-15T07:28:24.0312683Z retirado: /usr/share/man/man8/pythoncalls-bpfcc.8.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.0456125Z retirado: /usr/share/man/man8/pythonstat-bpfcc.8.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.0595456Z retirado: /usr/share/man/man8/pythonflow-bpfcc.8.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.0733648Z retirado: /usr/share/man/man8/pythongc-bpfcc.8.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.0873115Z retirado: /usr/share/man/man1/python3.12.1.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.1067506Z retirado: /usr/share/man/man1/python.1.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.1208365Z retirado: /usr/share/man/man1/python3.12-config.1.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.1404420Z retirado: /usr/share/man/man1/python3.1.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.1604509Z retirado: /usr/share/man/man1/python3-config.1.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.1746448Z retirado: /usr/share/pixmaps/python3.xpm
+evals	Retirar Python del runner	2026-09-15T07:28:24.1887347Z retirado: /usr/share/pixmaps/python3.12.xpm
+evals	Retirar Python del runner	2026-09-15T07:28:24.2026421Z retirado: /usr/share/binfmts/python3.12
+evals	Retirar Python del runner	2026-09-15T07:28:24.2168824Z retirado: /usr/share/vim/vim91/syntax/python2.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.2310672Z retirado: /usr/share/vim/vim91/syntax/python.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.2451731Z retirado: /usr/share/vim/vim91/autoload/pythoncomplete.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.2592102Z retirado: /usr/share/vim/vim91/autoload/python3complete.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.2736271Z retirado: /usr/share/vim/vim91/autoload/python.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.2876640Z retirado: /usr/share/vim/vim91/ftplugin/python.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.3019919Z retirado: /usr/share/vim/vim91/indent/python.vim
+evals	Retirar Python del runner	2026-09-15T07:28:24.3162259Z retirado: /usr/share/swig4.0/python/pythonkw.swg
+evals	Retirar Python del runner	2026-09-15T07:28:24.3305317Z retirado: /usr/share/swig4.0/python/python.swg
+evals	Retirar Python del runner	2026-09-15T07:28:24.3446078Z retirado: /usr/share/applications/python3.12.desktop
+evals	Retirar Python del runner	2026-09-15T07:28:24.3587560Z retirado: /usr/share/doc/python3.12-venv
+evals	Retirar Python del runner	2026-09-15T07:28:24.3728919Z retirado: /usr/share/doc/libpython3.12t64
+evals	Retirar Python del runner	2026-09-15T07:28:24.3872613Z retirado: /usr/share/doc/python3-setuptools/python 2 sunset.rst
+evals	Retirar Python del runner	2026-09-15T07:28:24.4011784Z retirado: /usr/share/doc/libpython3.12-dev
+evals	Retirar Python del runner	2026-09-15T07:28:24.4154729Z retirado: /usr/share/doc/mercurial-common/examples/python-hook-examples.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.4298215Z retirado: /usr/share/doc/python3.12-dev
+evals	Retirar Python del runner	2026-09-15T07:28:24.4437593Z retirado: /usr/share/doc/python3-pip/html/topics/python-option.md
+evals	Retirar Python del runner	2026-09-15T07:28:24.4578627Z retirado: /usr/share/doc/python3-venv
+evals	Retirar Python del runner	2026-09-15T07:28:24.4719347Z retirado: /usr/share/doc/python3.12/python-policy.txt.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.4860717Z retirado: /usr/share/doc/libpython3.12-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:24.5002820Z retirado: /usr/share/doc/python3-dev
+evals	Retirar Python del runner	2026-09-15T07:28:24.5144259Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythonstat_example.txt
+evals	Retirar Python del runner	2026-09-15T07:28:24.5284903Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythonflow_example.txt
+evals	Retirar Python del runner	2026-09-15T07:28:24.5425785Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythoncalls_example.txt
+evals	Retirar Python del runner	2026-09-15T07:28:24.5566881Z retirado: /usr/share/doc/bpfcc-tools/examples/doc/pythongc_example.txt
+evals	Retirar Python del runner	2026-09-15T07:28:24.5707603Z retirado: /usr/share/doc/python3-debconf
+evals	Retirar Python del runner	2026-09-15T07:28:24.5852593Z retirado: /usr/share/doc/python3/python-policy.txt.gz
+evals	Retirar Python del runner	2026-09-15T07:28:24.5994195Z retirado: /usr/share/doc/python3/python-policy.html
+evals	Retirar Python del runner	2026-09-15T07:28:24.6135960Z retirado: /usr/share/aclocal-1.16/python.m4
+evals	Retirar Python del runner	2026-09-15T07:28:24.6276498Z retirado: /usr/share/miniconda/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:24.6417049Z retirado: /usr/share/miniconda/lib/pkgconfig/python-3.14-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:24.6558054Z retirado: /usr/share/miniconda/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:24.6760806Z retirado: /usr/share/miniconda/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:24.6899489Z retirado: /usr/share/miniconda/lib/pkgconfig/python-3.14.pc
+evals	Retirar Python del runner	2026-09-15T07:28:24.7038811Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda/common/path/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:24.7178661Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda/common/path/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.7317474Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:24.7458588Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.7599346Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:24.7739210Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.7877973Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda_pypi/__pycache__/python_paths.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:24.8014878Z retirado: /usr/share/miniconda/lib/python3.14/site-packages/conda_pypi/python_paths.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.8152449Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/__pycache__/python-config.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:24.8293711Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:24.8434424Z retirado: /usr/share/miniconda/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:24.8575276Z retirado: /usr/share/miniconda/lib/python3.14/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:24.8714962Z retirado: /usr/share/miniconda/lib/libpython3.14.so
+evals	Retirar Python del runner	2026-09-15T07:28:24.8856082Z retirado: /usr/share/miniconda/lib/libpython3.14.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:24.8998080Z retirado: /usr/share/miniconda/include/python3.14/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:24.9141096Z retirado: /usr/share/miniconda/include/python3.14/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:24.9281251Z retirado: /usr/share/miniconda/include/python3.14/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:24.9419936Z retirado: /usr/share/miniconda/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:24.9559664Z retirado: /usr/share/miniconda/share/man/man1/python3.14.1
+evals	Retirar Python del runner	2026-09-15T07:28:24.9699385Z retirado: /usr/share/miniconda/conda-meta/python_abi-3.14-4_cp314.json
+evals	Retirar Python del runner	2026-09-15T07:28:24.9838901Z retirado: /usr/share/miniconda/conda-meta/python-installer-1.0.1-py314h06a4308_0.json
+evals	Retirar Python del runner	2026-09-15T07:28:24.9981703Z retirado: /usr/share/miniconda/conda-meta/python-build-1.5.1-py314h06a4308_0.json
+evals	Retirar Python del runner	2026-09-15T07:28:25.0123800Z retirado: /usr/share/miniconda/conda-meta/python-3.14.7-h2bd7c14_101_cp314.json
+evals	Retirar Python del runner	2026-09-15T07:28:25.0262897Z retirado: /usr/share/miniconda/conda-meta/python-dotenv-1.2.2-py314h06a4308_0.json
+evals	Retirar Python del runner	2026-09-15T07:28:25.0401406Z retirado: /usr/share/miniconda/pkgs/python-build-1.5.1-py314h06a4308_0.conda
+evals	Retirar Python del runner	2026-09-15T07:28:25.0677765Z retirado: /usr/share/miniconda/pkgs/python-build-1.5.1-py314h06a4308_0
+evals	Retirar Python del runner	2026-09-15T07:28:25.0875179Z retirado: /usr/share/miniconda/pkgs/conda-26.7.1-py314h06a4308_0/lib/python3.14/site-packages/conda/common/path/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:25.1019706Z retirado: /usr/share/miniconda/pkgs/conda-26.7.1-py314h06a4308_0/lib/python3.14/site-packages/conda/common/path/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.1160777Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314.conda
+evals	Retirar Python del runner	2026-09-15T07:28:25.1303900Z retirado: /usr/share/miniconda/pkgs/python-dotenv-1.2.2-py314h06a4308_0.conda
+evals	Retirar Python del runner	2026-09-15T07:28:25.1442853Z retirado: /usr/share/miniconda/pkgs/libxcb-1.17.0-h9b100fa_0/info/recipe/python3.patch
+evals	Retirar Python del runner	2026-09-15T07:28:25.1582354Z retirado: /usr/share/miniconda/pkgs/pip-26.2.1-pyh0d26453_0/site-packages/pip/_vendor/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.1723636Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.so
+evals	Retirar Python del runner	2026-09-15T07:28:25.1862677Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python-3.14-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:25.2001897Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python3.pc
+evals	Retirar Python del runner	2026-09-15T07:28:25.2199434Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python3-embed.pc
+evals	Retirar Python del runner	2026-09-15T07:28:25.2341616Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/pkgconfig/python-3.14.pc
+evals	Retirar Python del runner	2026-09-15T07:28:25.2484434Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/__pycache__/python-config.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:25.2623670Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/python-config.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.2764895Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/config-3.14-x86_64-linux-gnu/python.o
+evals	Retirar Python del runner	2026-09-15T07:28:25.2907909Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/python3.14/idlelib/Icons/python.gif
+evals	Retirar Python del runner	2026-09-15T07:28:25.3047213Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.14.so
+evals	Retirar Python del runner	2026-09-15T07:28:25.3188647Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/lib/libpython3.14.so.1.0
+evals	Retirar Python del runner	2026-09-15T07:28:25.3330917Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/cpython/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:25.3472758Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/Python.h
+evals	Retirar Python del runner	2026-09-15T07:28:25.3617543Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/include/python3.14/pythonrun.h
+evals	Retirar Python del runner	2026-09-15T07:28:25.3762076Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/share/man/man1/python3.1
+evals	Retirar Python del runner	2026-09-15T07:28:25.3902505Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314/share/man/man1/python3.14.1
+evals	Retirar Python del runner	2026-09-15T07:28:25.4179620Z retirado: /usr/share/miniconda/pkgs/python-3.14.7-h2bd7c14_101_cp314
+evals	Retirar Python del runner	2026-09-15T07:28:25.5303304Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/lib/python3.14/site-packages/pygments/lexers/__pycache__/python.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:25.5445188Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/lib/python3.14/site-packages/pygments/lexers/python.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.5587503Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/support/python_lexer.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.5732039Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/examplefiles/make/python25-bsd.mak.output
+evals	Retirar Python del runner	2026-09-15T07:28:25.5871318Z retirado: /usr/share/miniconda/pkgs/pygments-2.20.0-py314h06a4308_0/info/test/tests/examplefiles/make/python25-bsd.mak
+evals	Retirar Python del runner	2026-09-15T07:28:25.6015736Z retirado: /usr/share/miniconda/pkgs/conda-pypi-0.11.0-py314h06a4308_0/lib/python3.14/site-packages/conda_pypi/__pycache__/python_paths.cpython-314.pyc
+evals	Retirar Python del runner	2026-09-15T07:28:25.6156437Z retirado: /usr/share/miniconda/pkgs/conda-pypi-0.11.0-py314h06a4308_0/lib/python3.14/site-packages/conda_pypi/python_paths.py
+evals	Retirar Python del runner	2026-09-15T07:28:25.6296978Z retirado: /usr/share/miniconda/pkgs/python-installer-1.0.1-py314h06a4308_0.conda
+evals	Retirar Python del runner	2026-09-15T07:28:25.6439187Z retirado: /usr/share/miniconda/pkgs/python_abi-3.14-4_cp314.conda
+evals	Retirar Python del runner	2026-09-15T07:28:25.6714417Z retirado: /usr/share/miniconda
+evals	Retirar Python del runner	2026-09-15T07:28:26.8259810Z retirado: /usr/share/nano/python.nanorc
+evals	Retirar Python del runner	2026-09-15T07:28:26.8417468Z retirado: /usr/share/lintian/overrides/python3-debian
+evals	Retirar Python del runner	2026-09-15T07:28:26.8573835Z retirado: /usr/share/lintian/overrides/python3.12-venv
+evals	Retirar Python del runner	2026-09-15T07:28:26.8728013Z retirado: /usr/share/lintian/overrides/python3-dbus
+evals	Retirar Python del runner	2026-09-15T07:28:26.8881238Z retirado: /usr/share/lintian/overrides/libpython3.12t64
+evals	Retirar Python del runner	2026-09-15T07:28:26.9034356Z retirado: /usr/share/lintian/overrides/libpython3.12-dev
+evals	Retirar Python del runner	2026-09-15T07:28:26.9191170Z retirado: /usr/share/lintian/overrides/python3-pip
+evals	Retirar Python del runner	2026-09-15T07:28:26.9348480Z retirado: /usr/share/lintian/overrides/libpython3.12-minimal
+evals	Retirar Python del runner	2026-09-15T07:28:26.9502875Z retirado: /usr/share/lintian/overrides/python3.12-minimal
+evals	Retirar Python del runner	2026-09-15T07:28:26.9654536Z retirado: /usr/share/lintian/overrides/python3.12
+evals	Retirar Python del runner	2026-09-15T07:28:26.9809454Z retirado: /usr/share/lintian/overrides/libpython3.12-stdlib
+evals	Retirar Python del runner	2026-09-15T07:28:26.9962507Z retirado: /usr/share/lintian/overrides/python3-netaddr
+evals	Retirar Python del runner	2026-09-15T07:28:27.0116863Z retirado: /usr/share/lintian/overrides/python3
+evals	Retirar Python del runner	2026-09-15T07:28:27.0272411Z retirado: /usr/share/lintian/overrides/python3-apt
+evals	Retirar Python del runner	2026-09-15T07:28:27.0426873Z retirado: /usr/share/automake-1.16/am/python.am
+evals	Retirar Python del runner	2026-09-15T07:28:27.0578862Z retirado: /usr/share/python3/bcep/python3-jinja2
+evals	Retirar Python del runner	2026-09-15T07:28:27.0733414Z retirado: /usr/share/python3/dist/python3-cryptography
+evals	Retirar Python del runner	2026-09-15T07:28:27.0886761Z retirado: /usr/share/python3/dist/python3-zope.interface
+evals	Retirar Python del runner	2026-09-15T07:28:27.1039972Z retirado: /usr/share/python3/dist/python3-six
+evals	Retirar Python del runner	2026-09-15T07:28:27.1193790Z retirado: /usr/share/python3/dist/python3-pyasn1
+evals	Retirar Python del runner	2026-09-15T07:28:27.1344016Z retirado: /usr/share/python3/python.mk
+evals	Retirar Python del runner	2026-09-15T07:28:27.1489428Z retirado: /usr/sbin/pythongc-bpfcc
+evals	Retirar Python del runner	2026-09-15T07:28:27.1629799Z retirado: /usr/sbin/pythoncalls-bpfcc
+evals	Retirar Python del runner	2026-09-15T07:28:27.1769050Z retirado: /usr/sbin/pythonstat-bpfcc
+evals	Retirar Python del runner	2026-09-15T07:28:27.1909608Z retirado: /usr/sbin/pythonflow-bpfcc
+evals	Retirar Python del runner	2026-09-15T07:28:27.2189398Z retirado: /usr/bin/python3.12-config
+evals	Retirar Python del runner	2026-09-15T07:28:27.2523818Z retirado: /usr/bin/python3-config
+evals	Retirar Python del runner	2026-09-15T07:28:27.2801025Z retirado: /usr/bin/python3.12
+evals	Retirar Python del runner	2026-09-15T07:28:27.3173700Z retirado: /usr/bin/python3
+evals	Retirar Python del runner	2026-09-15T07:28:27.3524224Z retirado: /usr/bin/python
+evals	Retirar Python del runner	2026-09-15T07:28:31.0327814Z búsqueda tras retirar: ninguno
+evals	Retirar Python del runner	2026-09-15T07:28:31.0328539Z --- fin de la retirada de Python ---
 código de la sexta orden: 0
 `````

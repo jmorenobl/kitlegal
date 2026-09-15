@@ -57,7 +57,7 @@ Cada paso es un encabezado o elemento numerado explícito, de modo que SC-004 se
 |---|---|---|
 | 1. **Identificar la norma** | antes de consultar nada, leer `references/normas.md` y localizar la norma por nombre, número y año o abreviatura | FR-004 |
 | 2. **Resolver `BOE-A-…`** | si está en la referencia, tomar de ahí el identificador; si no, `scripts/boe buscar` y elegir por título y rango, diciendo cuál y, si hay varias plausibles, cuáles y por qué; igual para una norma autonómica consolidada en el BOE | FR-005 |
-| 3. **Leer índice y bloques con `scripts/boe`** | `scripts/boe indice` si no se conoce el id de bloque; cada bloque con `scripts/boe articulo` o `scripts/boe articulos`; seguir las remisiones necesarias leyendo el bloque remitido; `scripts/boe metadatos` y `scripts/boe analisis` cuando la pregunta dependa de la vigencia o de las modificaciones; nunca un id de bloque que no salga del índice o de la pregunta; ante un código 3, volver al índice | FR-007 |
+| 3. **Leer índice y bloques con `scripts/boe`** | `scripts/boe indice` si no se conoce el id de bloque; el id se copia de la entrada del índice cuyo `titulo` es el artículo («Artículo 118» de la Ley 9/2017 → `a1-30`) y nunca se compone del número, porque los ids de muchas normas no son `a<número>`; cada bloque con `scripts/boe articulo` o `scripts/boe articulos`: de uno en uno con `articulo`, y `articulos` solo cuando hacen falta varios bloques a la vez y todos salen del índice; si una orden con varios bloques termina con código 4 o 5, cada bloque por separado con `articulo` antes de dar ninguno por no consultado, porque el fallo de un bloque no impide leer los demás; seguir las remisiones necesarias leyendo el bloque remitido; `scripts/boe metadatos` y `scripts/boe analisis` cuando la pregunta dependa de la vigencia o de las modificaciones; nunca un id de bloque que no salga del índice o de la pregunta; ante un código 3, volver al índice (research D23, V64) | FR-007 |
 | 4. **Evaluar si falta contexto** | remisiones, vigencia, modificaciones | FR-003 |
 | 5. **Responder citando** | cada afirmación sobre el contenido con su cita (§3), del texto devuelto en la sesión; el rango de cada norma cuando se citan normas de rango distinto y que la ley prevalece sobre el reglamento que la desarrolla (**distinguir ley y reglamento**); **señalar variación autonómica** cuando lo preguntado puede variar por normativa autonómica (competencias compartidas o cedidas, desarrollo autonómico, régimen foral) y cuándo corresponde a normas locales que no están en la fuente | FR-008, FR-009, FR-012 |
 
@@ -70,7 +70,7 @@ salida. Los ejemplos del protocolo no dependen de que la materia sea fiscal y no
 | Regla | FR |
 |---|---|
 | No concluir que una norma o una regulación no existe por una búsqueda vacía o por su ausencia en `references/normas.md`: decir «no encontrada con esta búsqueda» y proponer reformular | FR-006 |
-| Nunca inventar contenido legal: si `scripts/boe` falla (código 3, 4 o 5, o sin caché con `--offline`) o no está disponible, decir qué no se pudo consultar y no suplir el texto con conocimiento propio | FR-010 |
+| Nunca inventar contenido legal: si `scripts/boe` falla (código 3, 4 o 5, o sin caché con `--offline`) o no está disponible, decir qué no se pudo consultar y no suplir el texto con conocimiento propio; si la orden que falló pedía varios bloques, decirlo solo después de haber pedido cada bloque por separado con `scripts/boe articulo` (paso 3; research D23) | FR-010 |
 | Trasladar los avisos de vigencia del binario (derogada, vigencia agotada, consolidación no finalizada); no presentar como vigente el texto de una norma derogada; recordar que los textos consolidados del BOE tienen carácter informativo y no son asesoramiento | FR-011 |
 | Nunca presentar, notificar, firmar ni tramitar nada en nombre de nadie, ni simularlo; si la pregunta lo pide, decir que es una acción que hace la persona y citar, si procede, la norma aplicable | FR-015 |
 | Ningún caso especial para un municipio o una comunidad concretos; si se pregunta por un municipio, responder con la normativa estatal o autonómica consolidada y señalar que ordenanzas y normas locales no están en esta fuente | FR-012 |
@@ -98,9 +98,12 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
   `[<identificador>, bloque <id de bloque>]`, con el identificador y el id tal como los da la fuente.
 - Expresión con la que se extrae: `\[(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`. El
   corchete de cierre delimita el id, que puede terminar en punto (`a85bis.`, `ids.go`).
+- Dentro de los corchetes no va nada más que el identificador y el id: ni «art. 21», ni «artículo 21», ni el nombre, el
+  número o el rango de la norma, que van delante; tampoco el identificador sin el id.
 - Una cita por bloque. Un bloque remitido se cita por separado.
-- `SKILL.md` muestra este formato con la Ley 39/2015 (que está en `data/normas.yaml`) y dice que no se admite otra
-  forma para la parte entre corchetes.
+- `SKILL.md` muestra este formato con la Ley 39/2015 (que está en `data/normas.yaml`), dice que no se admite otra
+  forma para la parte entre corchetes y muestra `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` como forma que no vale,
+  con la que sí (research D23).
 
 ## 4. `references/normas.md`
 

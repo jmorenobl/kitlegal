@@ -198,8 +198,11 @@ común de eval con su job de evals. El binario distribuido no cambia.
   régimen local, tributos, relaciones laborales…— con el applet `boe`. Su `SKILL.md`, de menos de 300 líneas, fija
   un protocolo de cinco pasos (identificar la norma en su referencia de normas, resolver `BOE-A-…` o buscarlo con
   `boe buscar`, leer el índice y los bloques, evaluar si falta contexto y responder citando), la forma de cita
-  `[BOE-A-2015-10565, bloque a21]` y sus reglas: ningún contenido legal que no salga del texto consultado, ley y
-  reglamento distinguidos y la variación autonómica señalada. Llama al binario por `scripts/boe`, un enlace al
+  `[BOE-A-2015-10565, bloque a21]`, sin nada más dentro de los corchetes, y sus reglas: ningún contenido legal que
+  no salga del texto consultado, ley y reglamento distinguidos y la variación autonómica señalada. El id de cada
+  bloque se copia de la entrada del índice, nunca se compone del número del artículo, y los bloques se leen de uno
+  en uno; si una consulta de varios bloques falla, cada bloque se pide por separado antes de decir qué no se pudo
+  consultar. Llama al binario por `scripts/boe`, un enlace al
   binario instalado, y no tiene ningún caso especial de un municipio ni de una comunidad.
 - **Tabla de normas `data/normas.yaml`**, única fuente de verdad de las normas que referencian las skills: diez
   normas, cada una con su identificador `BOE-A-…`, su título, su rango, sus materias y, si la tiene, su

@@ -161,7 +161,7 @@ ninguna afecta a alcance, frontera humana, privacidad, términos de uso ni a una
 ```text
 specs/006-h5-skill-boe-legislacion/
 ├── plan.md              # Este fichero
-├── research.md          # Fase 0: V1-V58, D1-D22 (decisiones, alternativas, supuestos S1-S12)
+├── research.md          # Fase 0: V1-V64, D1-D23 (decisiones, alternativas, supuestos S1-S12)
 ├── data-model.md        # Fase 1: skill, frontmatter, tabla, enlaces, normas, deriva, eval, consultas, caché, trazas, informe
 ├── quickstart.md        # Fase 1: guía de validación ejecutable
 ├── contracts/

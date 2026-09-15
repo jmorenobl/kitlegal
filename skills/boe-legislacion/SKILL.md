@@ -53,19 +53,26 @@ menudo; no es exhaustiva.
 
 ### 3. Leer índice y bloques con `scripts/boe`
 
-- Si no conoces el id del bloque, lee el índice de la norma y toma el id de ahí:
+- Si no conoces el id del bloque —saber el número del artículo no basta—, lee el índice de la norma:
 
   ```bash
   scripts/boe indice BOE-A-2015-10565 --json
   ```
 
-- Lee cada bloque que necesites con `scripts/boe articulo`, o varios de una vez, en el orden pedido, con
-  `scripts/boe articulos`:
+- Copia el id de la entrada del índice cuyo `titulo` es el artículo que buscas; nunca lo compongas a partir del número
+  del artículo, porque en muchas normas los ids no son `a<número>`. En la Ley 9/2017, la entrada con `titulo`
+  «Artículo 118» tiene el id `a1-30`, y `a118` no está en su índice.
+- Lee los bloques de uno en uno con `scripts/boe articulo`:
 
   ```bash
   scripts/boe articulo BOE-A-2015-10565 a21 --json
-  scripts/boe articulos BOE-A-1985-5392 a21 a22 --json
   ```
+
+  Usa `scripts/boe articulos`, que los devuelve en el orden pedido, solo cuando necesites varios bloques a la vez y
+  todos salgan del índice.
+- Una orden de `scripts/boe articulos` falla entera en cuanto falla uno de sus bloques. Si una orden con varios bloques
+  termina con el código 4 o 5, pide cada bloque por separado con `scripts/boe articulo` antes de dar ninguno por no
+  consultado: el fallo de un bloque no impide leer los demás.
 
 - Sigue las remisiones que hagan falta para responder: si el bloque remite a otro artículo, de la misma norma o de
   otra, lee también el bloque remitido, resolviendo antes la otra norma con los pasos 1 y 2.
@@ -113,7 +120,10 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
 ```
 
 - La parte entre corchetes es exactamente `[<identificador>, bloque <id de bloque>]`. No se admite otra forma para esa
-  parte: ni «art. 21» ni «artículo 21» dentro de los corchetes, ni el identificador sin el id del bloque.
+  parte: dentro de los corchetes no va nada más que el identificador y el id. Ni «art. 21», ni «artículo 21», ni el
+  nombre, el número o el rango de la norma, que van delante, fuera de los corchetes; ni el identificador sin el id del
+  bloque. `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` no vale: se escribe
+  `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`.
 - El identificador y el id van tal como los devuelve `scripts/boe`, también cuando el id termina en punto: el corchete
   de cierre lo delimita.
 - Una cita por bloque. Un bloque remitido se cita por separado, con su norma y su id.
@@ -148,7 +158,9 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    que la norma o la regulación no existan: di «no encontrada con esta búsqueda» y propón reformular la búsqueda.
 2. **Nunca inventar contenido legal.** Si `scripts/boe` falla —código 3 (no encontrado), 4 (fuente no disponible) o 5
    (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué no se pudo consultar y no suplas el
-   texto con conocimiento propio. Si `scripts/boe` no resuelve a un binario, di que falta instalar kitlegal.
+   texto con conocimiento propio. Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada
+   bloque por separado con `scripts/boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si `scripts/boe` no
+   resuelve a un binario, di que falta instalar kitlegal.
 3. **Trasladar la vigencia.** Traslada los avisos de vigencia que devuelve el binario (derogada, vigencia agotada,
    consolidación no finalizada) y no presentes como vigente el texto de una norma derogada. Recuerda que los textos
    consolidados del BOE tienen carácter informativo y no son asesoramiento.

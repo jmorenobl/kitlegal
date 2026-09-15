@@ -73,7 +73,7 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
   cadena del cliente, ni otro test).
 - **Nuevo fuera de esos árboles**: `.agents/.gitattributes` (una línea).
 - **Artefactos del hito**: `specs/006-h5-skill-boe-legislacion/` (53 ficheros: spec con sus clarificaciones, plan,
-  research D1-D22 y V1-V58, data-model, seis contratos, quickstart, tasks, checklist y `gates/` con las notas de
+  research D1-D23 y V1-V64, data-model, seis contratos, quickstart, tasks, checklist y `gates/` con las notas de
   T009, T011, T012, T029 y T032).
 
 **Sin cambios**, como exige el spec: `internal/core`, `internal/cli`, `internal/cache`, `internal/source/boe` y sus
@@ -428,7 +428,7 @@ herramienta guarda; nada se redirigió a ficheros.
 
 ## Decisiones
 
-Las de diseño están en research.md (D1-D22) con alternativas y motivo; aquí, las que un revisor necesita para leer
+Las de diseño están en research.md (D1-D23) con alternativas y motivo; aquí, las que un revisor necesita para leer
 esta propuesta, y las tomadas durante la implementación.
 
 - **Herramientas como tests, no como binarios** (D2, D7): `internal/skills` e `internal/evals` no los enlaza el
@@ -578,6 +578,25 @@ esta propuesta, y las tomadas durante la implementación.
   el formato por defecto de `strace`, el que reproducen las trazas sintéticas, sin añadir ninguna garantía, porque el
   relleno no pierde información; admitir cualquier blanco (`\s+`), una forma que `strace` no escribe; e ignorar las
   líneas que no casan, que dejaría hilos sin atribuir y `red` vacío en falso (FR-076).
+- **Protocolo de lectura de bloques y forma de la cita frente a lo grabado** (T040; research D23 y V64; contrato de la
+  skill §2.3, §2.4 y §3): la prueba de red del intento 4 de T030 (ejecución 34941499481) leyó las trece trazas y dio
+  `fallo` por seis positivas, sin ningún defecto del job. Tres causas eran del protocolo: `scripts/boe articulos` falla
+  entero en cuanto falla un bloque, y en 03 y 08 el modelo pidió el bloque esperado con un vecino no grabado y, con la
+  regla 2, se rindió sin pedirlo por separado (la 03 ejecutó tal cual el ejemplo de `articulos` del paso 3); en 02
+  compuso `a118` del número del artículo, y en la Ley 9/2017 el artículo 118 es `a1-30`; y en 10 citó con el nombre de
+  la norma dentro de los corchetes. `SKILL.md` conserva sus cinco pasos y sus cinco reglas y ahora dice que el id se
+  copia de la entrada del índice y nunca se compone del número; que los bloques se leen de uno en uno con `articulo`, y
+  `articulos` solo cuando hacen falta varios a la vez y todos salen del índice (sin ejemplo con ids seguidos); que,
+  ante un 4 o un 5 de una orden con varios bloques, se pide cada uno por separado antes de decir qué no se pudo
+  consultar (también en la regla 2); y que dentro de los corchetes no va nada más que el identificador y el id, con
+  `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` como forma que no vale. No nombra evals, job ni modelos, la región
+  generada no cambia y la skill queda en 171 líneas. No hay comprobación local con un modelo (FR-044): la evidencia es
+  el intento siguiente de T030 y la ejecución de cierre de T031. Alternativas rechazadas: grabar los vecinos que pidió
+  el modelo (persigue cada sesión y deja lo grabado sin regla; FR-074); admitir texto delante del identificador en la
+  extracción de citas (cambia la forma fija de FR-008 para tolerar un desvío); contar un bloque leído con 4 o 5
+  (FR-072, FR-076); cambiar el modelo de las sesiones (clarificación del spec, D13); y que `articulos` devuelva los
+  bloques que resuelve (contrato del verbo de H4). Las evals 05 y 07, que fallan por el artículo elegido y no por el
+  protocolo, siguen pendientes de la decisión de la persona (*Pendientes*).
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
@@ -586,14 +605,14 @@ esta propuesta, y las tomadas durante la implementación.
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los
-  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intentos 1 a 3,
-  2026-09-15, #27, cabezas `6d68c21`, `417635e` y `857ec46`): la API de ficheros de la propuesta
-  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360, 366 y
-  366 ficheros respectivamente y, bajo `.agents/`, solo `.agents/.gitattributes` en los tres casos; ningún fichero de `.agents/skills/` está en el diff, así que el
+  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intentos 1 a 4,
+  2026-09-15, #27, cabezas `6d68c21`, `417635e`, `857ec46` y `537e5d6`): la API de ficheros de la propuesta
+  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360, 366,
+  366 y 368 ficheros respectivamente y, bajo `.agents/`, solo `.agents/.gitattributes` en los cuatro casos; ningún fichero de `.agents/skills/` está en el diff, así que el
   plegado no se puede observar aquí (y `gh pr diff 27 --name-only` tampoco sirve: la plataforma lo rechaza con
   `HTTP 406 … the diff exceeded the maximum number of files (300)`); se verá en la primera propuesta que toque
   `.agents/skills/`. Las estadísticas de la rama principal antes de fusionar (`gh api repos/jmorenobl/kitlegal/languages`)
-  son `{"Go":1579928,"Shell":138689,"Python":65011,"PowerShell":35337,"Makefile":9505}` (la misma lectura en los tres
+  son `{"Go":1579928,"Shell":138689,"Python":65011,"PowerShell":35337,"Makefile":9505}` (la misma lectura en los cuatro
   intentos), y los ficheros versionados de
   `.agents/skills/` suman 13 666 bytes de `.go` y 0 de `.py`, `.ps1` y `.sh` (`git ls-files -z ".agents/skills/*.<ext>"`
   con `xargs -0 cat` y `wc -c`): tras la fusión, S8 se cumple si la cifra de `Go` deja de contar esos bytes, lo que se
@@ -636,15 +655,36 @@ esta propuesta, y las tomadas durante la implementación.
   research V53, V63 y S4; *Decisiones*), antes de T030: la forma está comprobada con la línea del runner en los tests
   y con `strace` 6.8 en contenedores (V63), y que las trece trazas reales se lean con ella lo dirá el intento siguiente
   de T030. T030 sigue sin marcar, con sus tres intentos agotados.
+- **Plataforma, intento 4 de T030 (2026-09-15, cabeza `537e5d6`, el tercero que cuenta el workflow tras la ampliación
+  de la supervisión)**: `ci` en verde (ejecución 34941036417, 4 m 44 s) y los cuatro estados de Codecov en verde con las
+  mismas cifras de los intentos 2 y 3 (T039 no añade ninguna línea sin cubrir; `gates/evidencia-plataforma.md`). La
+  **prueba de red** (ejecución 34941499481) pasa el paso «Retirar Python del runner» (las mismas 921 rutas, 2 m 55 s,
+  `búsqueda tras retirar: ninguno`), llega al informe y, con T038 y T039, **las trece trazas se leen enteras**: la prueba
+  de red cumple todo lo que SC-012 espera (las dos filas de `a9998` con 5 y 4, la conexión `127.0.0.1:9` de clase
+  `local` atribuida a la invocación sin `--offline`, ninguna sesión ilegible ni cortada, ninguna petición a la red de una
+  fuente, la sesión de prueba de red igual que la 01), pero el veredicto es `fallo` porque **seis positivas no pasan**
+  (02, 03, 05, 07 y 08 por `comando ausente` y `cita ausente`; 10 solo por `cita ausente`), todas por lo que el modelo
+  hizo frente a lo grabado y ninguna por el job: en 03 y 08 pidió con `articulos` el bloque esperado junto a un vecino
+  no grabado, el verbo (todo o nada) terminó con 5 y el modelo se rindió sin pedir el bloque por separado; en 02 compuso
+  `a118` del número del artículo, y en la Ley 9/2017 el artículo 118 es `a1-30`; en 05 y 07 eligió otro artículo (`a2`,
+  `a140`), porque el índice de la fuente solo da «Artículo N» sin rúbrica y encontrar un artículo por su materia depende
+  de lo que el modelo sabe; y en 10 citó con el nombre de la norma dentro de los corchetes (`gates/prueba-de-red.md` §3.3
+  y §4, `gates/tarea-T030.md`). Arreglado en **T040** (el protocolo de la skill: el id se copia de la entrada del índice
+  y nunca se compone del número; los bloques de uno en uno, y cada uno por separado si una orden con varios termina con
+  4 o 5; nada más que identificador e id dentro de los corchetes; *Decisiones*, research D23 y V64), antes de T030: las
+  medidas de la caché preparada están comprobadas en local (V64), y que el protocolo reforzado dé las positivas 02, 03,
+  08 y 10 lo dirán el intento siguiente de T030 y la ejecución de cierre de T031, porque ningún control local ejecuta un
+  modelo (FR-044). Para 05 y 07 no hay arreglo en el protocolo, y la decisión queda para la persona (abajo, *Lo humano
+  que queda*). T030 sigue sin marcar.
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
-  intento 3 dejó (`gates/prueba-de-red.md` §5): S12 se cumple en (1), (2), (3), (5) y (6), con (4) sin ejercer; S2 y
+  intento 4 dejó (`gates/prueba-de-red.md` §5): S12 se cumple en (1), (2), (3), (5) y (6), con (4) sin ejercer; S2 y
   S7 se cumplen en todo lo ejercido (el job no instala `bubblewrap` ni `socat`); S9 se cumple en las trece sesiones
-  (entre 7 y 40 s, ninguna cortada); S10 se cumple en el 0 y en su propagación; S1, S5, S6 y S11 se cumplen en lo
+  (entre 6 y 38 s, ninguna cortada); S10 se cumple en el 0 y en su propagación; S1, S5, S6 y S11 se cumplen en lo
   ejercido (el job de la rama corre con el secreto, las sesiones se autentican y aceptan el modelo, la skill se activa
   donde debe, Bash ejecuta el binario y el modelo llega a la API con el proxy que rechaza para todo lo demás);
-  **S4 difiere**: la línea con la que Claude Code de x86_64 crea los procesos de sus órdenes es `vfork()` con el
-  relleno de alineación de `strace`, que desde T038 y T039 `LeerTrazas` admite (V63), y `connect` y la atribución por
-  invocación siguen sin evidencia hasta el intento siguiente. Los supuestos: S1
+  **S4 se cumple**: las trece trazas del runner se leen enteras (la `vfork()` con relleno de V63, las `execve` enteras
+  de V62, los hilos de Go y de Claude Code), la conexión `local` de `a9998` se atribuye a su invocación y las 26
+  invocaciones del binario tienen código y conexiones coherentes. Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de
@@ -660,19 +700,29 @@ esta propuesta, y las tomadas durante la implementación.
   cambiados entre el commit evaluado y la cabeza solo bajo el directorio del hito (SC-001 a SC-003, FR-080 a FR-082).
   S3 (cada búsqueda del manifiesto devuelve su norma y existen los bloques) ya lo comprobó la persona en la pausa de
   T008 y lo vigila `make ci` desde entonces.
-- **T030 `[plataforma]`, tres intentos sin marcar**: los tres publicaron la rama, abrieron esta propuesta con este
+- **T030 `[plataforma]`, cuatro intentos sin marcar**: los cuatro publicaron la rama, abrieron esta propuesta con este
   fichero como cuerpo, leyeron `ci` y los cuatro estados de Codecov (`codecov/project`, `internal/core`,
-  `internal/cli` y `codecov/patch` con objetivo `auto`, todos en verde sobre `417635e` y sobre `857ec46`) en
+  `internal/cli` y `codecov/patch` con objetivo `auto`, todos en verde sobre `417635e`, `857ec46` y `537e5d6`) en
   `gates/evidencia-plataforma.md` y comprobaron el secreto y las dos etiquetas; cada prueba de red descubrió un
   defecto que solo la plataforma podía mostrar (la purga de paquetes, T033; `bubblewrap` y el modo de permisos, T036,
-  y el argv cortado, T037; el relleno de `vfork()`, T038 y T039). Queda repetir la prueba de red sobre la cabeza con
-  T038 y T039, en un intento que concede una persona, porque los tres de la tarea se agotaron. **T031 `[plataforma]`,
+  y el argv cortado, T037; el relleno de `vfork()`, T038 y T039; el protocolo de lectura de bloques y la forma de la
+  cita frente a lo grabado, T040). Con el intento 4 el job queda comprobado de punta a punta (S4 se cumple); queda
+  repetir la prueba de red sobre la cabeza con T040 (y con lo que la persona decida de las evals 05 y 07), en un
+  intento que concede una persona, porque el contador de la tarea vuelve a estar agotado. **T031 `[plataforma]`,
   la última**: la ejecución de cierre y la aceptación. Si la
   plataforma descubre un defecto, el arreglo va en una tarea nueva antes de T031 (plan, obligación 1). Ninguna tarea
   fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
 - **Lo humano que queda**: el secreto `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
   `evals` y `evals-prueba-de-red` ya están dados de alta (comprobados por T030); la pausa del workflow por las rutas sensibles (`schemas/`, `testdata/`); la revisión
-  (`/code-review`, `/security-review`) y la fusión.
+  (`/code-review`, `/security-review`) y la fusión. **Y una decisión antes del intento siguiente de T030** (detalle en
+  `gates/tarea-T030.md`, «Lo que decide la persona»): las evals 05 (artículo 59 del TRLRHL) y 07 (artículo 25 de la
+  LRJSP) dependen de que el modelo sepa el número del artículo, porque el índice de la fuente no tiene rúbricas y en el
+  job no se puede explorar (todo bloque no grabado responde 5); con el modelo de gama económica que fija la
+  clarificación del spec, la 05 falló en los intentos 3 y 4 y la 07 en el 4, y T040 no las arregla. Opciones: dejarlas y
+  repetir; que sus preguntas nombren el artículo, como la 01 y la 09 (tarea nueva sobre las dos evals y la tabla del
+  contrato de evals §2; la recomendada, porque mide lo que el job puede medir); cambiar el modelo de las sesiones
+  (reabre la clarificación del spec y D13); o una herramienta que encuentre artículos por materia dentro de una norma
+  (la raíz, para el backlog: `docs/USO.md`).
 - **`docs/PENDIENTES.md`** queda con sus dos entradas ajenas a H5 (absorber `refs/` cuando existan
   `docs/ARCHITECTURE.md` y `docs/SOURCES.md`; plegar `specs/*/gates/` cuando molesten). Las tres de H5 se retiraron
   como resueltas (FR-083, FR-084, FR-085).
