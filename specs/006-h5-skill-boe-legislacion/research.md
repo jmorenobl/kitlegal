@@ -2,7 +2,7 @@
 
 **Modo**: desatendido. Cada decisión se tomó con el «Criterio de decisión autónoma» de
 `.specify/memory/constitution.md` y queda aquí con la alternativa rechazada y el motivo. Toda afirmación sobre una
-herramienta o dependencia externa remite a la tabla de verificación (V1-V64), que dice dónde se comprobó en local; lo
+herramienta o dependencia externa remite a la tabla de verificación (V1-V65), que dice dónde se comprobó en local; lo
 que no se puede comprobar sin red o sin la plataforma está en D22 como **supuesto**, no como hecho. Ninguna afirmación se
 apoya en la memoria de sesiones anteriores.
 
