@@ -51,7 +51,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources skills-sync secrets mod-verify mod-tidy-check release \
+	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check release \
 	check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
@@ -106,6 +106,10 @@ skills-check: check-tools
 ## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
 verify-sources: check-tools
 	scripts/verify-sources.sh
+
+## evals: ejecuta las evals de una skill con Claude Code (Linux con strace, como root o con sudo; red solo del modelo; fuera de ci)
+evals: check-tools
+	scripts/evals.sh "$(SKILL)"
 
 ## skills-sync: regenera references/, la tabla de comandos de SKILL.md y los enlaces de scripts/ de cada skill
 skills-sync: check-tools

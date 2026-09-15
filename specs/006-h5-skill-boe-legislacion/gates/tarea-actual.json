@@ -1,21 +1,17 @@
 {
-  "id": "T026",
-  "texto": "T026 [US4] Informe y arneses del job: `internal/evals/informe.go` con `Informe`, `InformeAEscribir` y `EscribirInforme` según el contrato job-de-evals §3.3 y §5 y data-model §10.3 (lee `SinPython`, el conjunto de `Evals` con `LeerConjunto` y cada sesión de `Sesiones` con su `eval.txt`, `pregunta.txt`, `LeerSesion` y `LeerTrazas`; juzga con `Juzgar`; cabecera con `skill`, `modelo` y `commit` recibidos, `modelos_de_sesion` y `versiones_de_claude_code` de los transcripts y `sin_python` byte a byte; motivos de la raíz en su orden —mal formados, sesiones que no pasan o ilegibles, evals sin ninguna sesión, ninguna eval bien formada, peticiones llegadas a la red—; veredicto; `informe.json` e `informe.md` con sus secciones y salto final, escritos con `0o600`; si no puede leer sus entradas o escribir en `Destino`, error que nombra la ruta y ningún informe escrito), con `TestInforme` (un subtest por caso de `informe`: `aprobado`, `fuera-de-lo-grabado-no-cambia-el-veredicto`, `fichero-mal-formado`, `eval-que-no-pasa`, `sesion-sin-terminar`, `sesion-ilegible`, `llegada-a-la-red`, `sesion-cortada-con-invocaciones`, `eval-sin-sesion`, `sin-eval-txt`, `eval-desconocida`, `sin-pregunta-txt`, `traza-ilegible`, con `Modelo` `claude-haiku-4-5-20251001` y `Commit` `0123456789abcdef0123456789abcdef01234567` como constantes y lo que exige cada caso en la fila `TestInforme` del contrato §9) y `TestEscribirInformeSinSusEntradas` (`sin-python-inexistente`, `sesiones-inexistente`, `evals-inexistente`, `destino-es-un-fichero`, `evals-y-sesiones-vacios`, sobre temporales) en `internal/evals/informe_test.go`; `internal/evals/job_test.go` con `//go:build evals`, `TestPrepararSesion` y `TestInformeDelJob`, que solo leen sus banderas y llaman a `PrepararSesion` y `EscribirInforme`; y `.golangci.yml` con `evals` en `run.build-tags` (FR-070, FR-071, FR-073, FR-076, SC-003, SC-012, US4 escenario 1, research D13 y D20).",
+  "id": "T027",
+  "texto": "T027 [US4] El job de evals, que ninguna tarea ejecuta: `scripts/evals.sh` con modo `100755` según el contrato job-de-evals §3 (comprobaciones previas de §3.1 antes de la primera sesión, entre ellas lo grabado con `ComprobarSinRed` y la búsqueda de Python como root en todo el sistema de ficheros salvo `/proc` y `/sys`, que escribe `sin-python.txt`; una sesión por eval y, con la prueba de red, la sesión `01-lpac-articulo-21-prueba-de-red`, cada una con `TestPrepararSesion`, la skill instalada con `make install`, `claude -p` con tope de 240 s bajo `strace` y el proxy que rechaza, credencial fuera de las órdenes de la sesión; informe con `TestInformeDelJob` impreso entre las marcas `--- inicio de … ---` y `--- fin de … ---`; sin Python); `Makefile` con el objetivo `evals` (`scripts/evals.sh \"$(SKILL)\"`, fuera de `ci`) del contrato §2; y `.github/workflows/evals.yml` según el contrato §1 (`name: evals`; lanzamiento manual con la entrada `prueba_de_red`, semanal sobre la rama principal y por las etiquetas `evals` y `evals-prueba-de-red` sobre la rama de un hito; `ubuntu-24.04`; Claude Code 2.1.270 y `strace`; el paso «Retirar Python del runner» con sus propias opciones de shell y sus marcas; modelo único `claude-haiku-4-5-20251001` fijado en la definición; secreto `CLAUDE_CODE_OAUTH_TOKEN` y `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`; `make evals SKILL=boe-legislacion`); la comprobación en esta tarea es `make ci` en verde, `rtk proxy bash -n scripts/evals.sh` y el escenario 10 de quickstart ejecutado tal cual lo escribe quickstart, sobre los ficheros nuevos; ni `make evals` ni el guion se ejecutan (FR-070, FR-071, FR-073, FR-074, FR-075, FR-076, FR-077, SC-007, SC-012, research D13, D16 y D17).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T026.md y déjala sin marcar.",
-  "base": "9aaf3077025b245c0ed20f4ec164da7e2afec178",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T027.md y déjala sin marcar.",
+  "base": "c98aafcb72e861625a2833f7456b9ec400e4e848",
   "rutas": [
-    ".golangci.yml",
-    "eval.txt",
-    "informe.json",
-    "informe.md",
-    "internal/evals/informe_test.go",
-    "internal/evals/informe.go",
-    "internal/evals/job_test.go",
-    "pregunta.txt"
+    ".github/workflows/evals.yml",
+    "Makefile",
+    "scripts/evals.sh",
+    "sin-python.txt"
   ],
   "cierre": false
 }
