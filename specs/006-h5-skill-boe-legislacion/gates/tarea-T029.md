@@ -328,3 +328,42 @@ intento 2 (`quickstart.md`, `gates/`, `tasks.md`).
 - Reescribe `gates/pr-h5.md` fechado por el commit nuevo, con la cobertura medida otra vez, y nombra T032 en «controles
   añadidos» o «decisiones»: la medida del ritmo pasa a la cota exacta del limitador, sin holgura.
 - Es el tercer y último intento (`n > 3` detiene el run).
+
+# T029 · intento 3 · en verde
+
+Sobre `536359c` (`feat(H5): T032`), el 2026-09-15 entre las 04:28 y las 04:35 (hora de Madrid), con el árbol limpio
+fuera del directorio del feature (dentro, solo los ficheros de estado del workflow). La guía se ejecutó entera desde
+los prerrequisitos: `make ci`, los prerrequisitos, los escenarios 1 a 11 y la limpieza, cada orden tal cual la escribe
+el `quickstart.md` ya confirmado (el que corrigió el intento 1). **Ninguna orden pidió aprobación** y ninguna sonda dio
+algo distinto de lo esperado: la sonda de `rtk proxy wc -l` de los prerrequisitos dio `1` seguido de la ruta, y la
+segunda orden del escenario 4 dio `300`. Como en el intento 2, cada bloque de un escenario se lanzó en una sola
+invocación; los escenarios 1, 2, 7, 9, 10 y 11 a la vez y después 3, 4, 5, 6 y 8 en orden sobre el clon, con una sonda
+de `git status --porcelain` del clon antes de cada uno, que dio siempre vacío. Una única orden auxiliar ajena a la guía,
+de solo lectura: `rtk proxy test ! -e /tmp/kitlegal-quickstart-h5` tras la limpieza, para dejar constancia de que la
+carpeta desapareció.
+
+Todo lo esperado se cumplió; los resultados, los negativos, la salida literal del escenario 11 y la cobertura están en
+`gates/pr-h5.md`, reescrito entero por este intento y fechado por `536359c`, con T032 en «Controles añadidos» y en
+«Decisiones» y con la cabecera «SUPERADO» retirada. Las cifras de cobertura coinciden con las del intento 2 (T032 no
+cambia ninguna sentencia de producto): global 95,3 % (`-func`, perfil unitario) y 95,8 % (perfil de integración),
+`internal/core` 90,1 % (73/81), `internal/cli` 98,6 % (348/353), `internal/httpx` 97,2 % (792/815). Frente a `main`, el
+diff pasa a 360 ficheros (307 fuera de `specs/`, 20 295 líneas añadidas y 77 retiradas) y 34 commits; los dos ficheros
+de test de `internal/httpx` son los únicos de H0-H4 tocados que el intento 2 no listaba. Cuando la salida de un
+escenario negativo superó el tamaño que la herramienta muestra, el veredicto (`código`, mensajes de fallo y líneas
+`PASS`) se leyó con `rtk proxy grep` sobre la copia que la herramienta guarda; nada se redirigió a ficheros.
+
+Lo que este intento no puede comprobar, y por qué: la pausa `[datos]` y la plataforma no intervienen (la tarea no lleva
+ninguna de las dos etiquetas); `gh` y `git push` no se usaron. Los supuestos S8 y los de plataforma de research D22
+quedan en `pr-h5.md` como pendientes de T030 y T031.
+
+## Verificación al cerrar el intento
+
+`make ci` en primer plano tras escribir `gates/pr-h5.md` y esta nota (terminado a las 04:39): `0 issues.`, los doce
+paquetes en `ok` en los dos perfiles (`internal/httpx` 97,2 %, con los tests de T032), `govulncheck` sin
+vulnerabilidades, `schema-check` y `skills-check` en `ok`, `gitleaks` «no leaks found», `go mod verify` en la raíz y
+los cuatro módulos de herramienta, `tidy -diff`, `ci: todos los controles en verde` y `código 0`. Cambios en
+`git status --porcelain`, todos dentro del directorio del feature: `gates/pr-h5.md` (reescrito), esta nota, `tasks.md`
+(T029 marcada) y `gates/tarea-actual.json` y `gates/tareas-intentos.json`, del workflow. Ningún fichero fuera del
+directorio del feature cambió (FR-013, FR-044, FR-083, FR-085 y la tarea); la carpeta temporal no existe.
+
+La tarea queda `[X]`.

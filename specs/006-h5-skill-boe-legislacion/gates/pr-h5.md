@@ -1,5 +1,4 @@
-<!-- SUPERADO (2026-09-15): tras escribirse, la verificación del workflow cayó en un test intermitente de internal/httpx (85,39 ms frente a 90 ms; diagnóstico y arreglo en gates/tarea-T029.md). El arreglo va en la tarea T032, antes de T029, y el intento 3 de T029 repite la guía entera y reescribe este fichero fechado por el commit de T032. Lo que sigue es la medida del intento 2 sobre be901f7 y no vale como evidencia del cierre. -->
-<!-- Propuesta de cambio de H5. La escribió la tarea de cierre (T029, intento 2) con la medida hecha sobre be901f7 el 2026-09-15; las tareas de plataforma (T030 y T031) añaden lo que digan la integración continua, Codecov, la prueba de red y la ejecución de cierre, y lo comprobable del supuesto S8. -->
+<!-- Propuesta de cambio de H5. La escribió la tarea de cierre (T029, intento 3) con la medida hecha sobre 536359c (`feat(H5): T032`) el 2026-09-15; las tareas de plataforma (T030 y T031) añaden lo que digan la integración continua, Codecov, la prueba de red y la ejecución de cierre, y lo comprobable del supuesto S8. Sustituye a la medida del intento 2 sobre be901f7, cuya verificación cayó en un test intermitente de internal/httpx que T032 arregló (gates/tarea-T029.md, gates/tarea-T032.md). -->
 
 ## Objetivo
 
@@ -32,9 +31,9 @@ especializan desde el backlog. El binario distribuido no cambia.
 
 ## Alcance
 
-Frente a `main`, en `be901f7` (`feat(H5): T028`, la cabeza de la rama y el último commit que toca código, datos o
-documentación): 355 ficheros, 25 610 líneas añadidas y 50 retiradas, en 33 commits. Fuera de `specs/`: 305 ficheros,
-20 254 añadidas y 50 retiradas. Por árboles:
+Frente a `main`, en `536359c` (`feat(H5): T032`, la cabeza de la rama y el último commit que toca código, datos o
+documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 commits. Fuera de `specs/`: 307 ficheros,
+20 295 añadidas y 77 retiradas. Por árboles:
 
 - **`skills/boe-legislacion/`, la skill** (3 ficheros): `SKILL.md` (frontmatter con `name`, `description` y
   `metadata.kitlegal-applets: boe` y `metadata.kitlegal-referencias: normas`; protocolo en cinco pasos; cómo se cita;
@@ -64,20 +63,24 @@ documentación): 355 ficheros, 25 610 líneas añadidas y 50 retiradas, en 33 co
   `prueba_de_red`, semanal sobre la rama principal y por las etiquetas `evals` y `evals-prueba-de-red`;
   `ubuntu-24.04`; Claude Code 2.1.270 y `strace`; el paso «Retirar Python del runner»; modelo
   `claude-haiku-4-5-20251001`; `CLAUDE_CODE_OAUTH_TOKEN` y `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
-- **Ficheros de H0-H4 tocados**, y ninguno más: `Makefile` (`install` enlaza las skills; `skills-sync` real;
+- **Ficheros de H0-H4 tocados**, y ninguno más (nueve): `Makefile` (`install` enlaza las skills; `skills-sync` real;
   `skills-check` nuevo, en `ci`, que pasa de nueve a diez controles; `evals` nuevo, fuera de `ci`); `.golangci.yml`
   (la etiqueta `evals` en `run.build-tags` y `comando`, `comandos`, `defectos`, `legislativo` y `patrones` en
   `misspell.ignore-rules`, cada una con su motivo); `go.mod` (solo `go.yaml.in/yaml/v3` pasa de indirecta a directa);
-  `.agents/.gitattributes` (nuevo, una línea); `docs/PENDIENTES.md` (se retiran las tres entradas «En H5»);
-  `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`.
-- **Artefactos del hito**: `specs/006-h5-skill-boe-legislacion/` (50 ficheros: spec con sus clarificaciones, plan,
+  `docs/PENDIENTES.md` (se retiran las tres entradas «En H5»); `README.md`, `CONTRIBUTING.md` y `CHANGELOG.md`; y,
+  por T032, `internal/httpx/reintentos_test.go` e `internal/httpx/ritmo_test.go` (41 líneas añadidas y 27 retiradas,
+  solo en la medida de las llegadas y sus comentarios: ni el decorador de ritmo, ni el de reintentos, ni el cubo, ni la
+  cadena del cliente, ni otro test).
+- **Nuevo fuera de esos árboles**: `.agents/.gitattributes` (una línea).
+- **Artefactos del hito**: `specs/006-h5-skill-boe-legislacion/` (53 ficheros: spec con sus clarificaciones, plan,
   research D1-D22 y V1-V58, data-model, seis contratos, quickstart, tasks, checklist y `gates/` con las notas de
-  T009, T011, T012 y T029).
+  T009, T011, T012, T029 y T032).
 
-**Sin cambios**, como exige el spec: `internal/core`, `internal/cli`, `internal/httpx`, `internal/cache`,
-`internal/source/boe` y sus esquemas, `docs/SOURCES.md`, `internal/app` salvo el test nuevo, `.claude/skills/`,
-`skills-lock.json` y el contenido de `.agents/skills/` (escenario 11: `git diff --stat main...HEAD` sobre esos tres
-últimos está vacío). `go.sum` y `codecov.yml` no aparecen en el diff.
+**Sin cambios**, como exige el spec: `internal/core`, `internal/cli`, `internal/cache`, `internal/source/boe` y sus
+esquemas, `docs/SOURCES.md`, el código de producto de `internal/httpx` (T032 solo toca dos de sus tests),
+`internal/app` salvo el test nuevo, `.claude/skills/`, `skills-lock.json` y el contenido de `.agents/skills/`
+(escenario 11: `git diff --stat main...HEAD` sobre esos tres últimos está vacío). `go.sum` y `codecov.yml` no aparecen
+en el diff.
 
 **Fuera de alcance** (spec, *Fuera de alcance*): el campo `vertical`, `boe-fiscal` y su migración (backlog
 «Verticales»); la tabla completa de leyes vertebrales, `legal-core` y `territorio` (H6); `graph check` (H7); el applet
@@ -174,6 +177,17 @@ del quickstart que lo demuestra:
   evidencia registran T030 y T031.
 - **`.agents/.gitattributes`**: `skills/** linguist-vendored linguist-generated`, que git aplica exactamente a
   `.agents/skills/` y a nada más (escenario 11, `git check-attr`).
+- **La medida del ritmo de `internal/httpx` con la cota exacta del limitador** (T032;
+  `internal/httpx/reintentos_test.go`, `internal/httpx/ritmo_test.go`): cada llegada al servidor se mide contra un
+  instante tomado antes de la primera petición de la operación y no puede adelantarse a su turno —la llegada k, k
+  intervalos tras el comienzo, con el permiso del sitio en el turno cero; el intento n de los reintentos, n
+  intervalos—, sin holgura. Sustituye a la comparación de cada par de llegadas consecutivas con «un intervalo menos
+  una holgura» (10 ms y 25 ms), que exigía más que el contrato del limitador —fija turnos, no llegadas— y cayó de forma
+  intermitente en la verificación del intento 2 de T029 (85,39 ms frente a 90 ms). Comprobado sobre una copia
+  desechable con mutantes (`gates/tarea-T032.md`): el despacho tardío (una implementación correcta) hacía caer la
+  aserción antigua 10 de 10 y pasa con la nueva; los reintentos por debajo del ritmo, la ráfaga de dos tokens y la
+  ausencia de espera caen con la nueva. Es el único cambio de H5 fuera de lo que enumera el spec, y no toca código de
+  producto.
 - Los de H0-H4 (R1-R5, formato, `-race`, `govulncheck`, `gosec`, `gitleaks`, `go mod verify`, `tidy -diff`, CodeQL,
   `schema-check`, `TestDependenciasDelBinario`, `TestArquitectura`) siguen sin exclusiones nuevas.
 - **Evals con modelo** (`.github/workflows/evals.yml` → `make evals SKILL=boe-legislacion`): fuera de `make ci`; la
@@ -181,23 +195,26 @@ del quickstart que lo demuestra:
 
 ## Evidencia
 
-Medida por T029 el 2026-09-15 (entre las 03:48 y las 03:53, hora de Madrid) sobre **be901f7** (`feat(H5): T028`, la
-cabeza de la rama), ejecutando `make ci` y después `quickstart.md` entero salvo §12 (plataforma), con cada orden tal
-cual, desde los prerrequisitos hasta la limpieza, en una sesión desatendida. El árbol de trabajo llevaba además, sin
-confirmar y dentro del directorio del feature, el `quickstart.md` corregido en el intento 1 de la misma tarea
-(`gates/tarea-T029.md`: `wc` sobre un fichero de la carpeta temporal está bloqueado por Claude Code fuera del
-directorio de trabajo, también como orden sola; pasa a `rtk proxy wc -l`, con una sonda nueva en los prerrequisitos;
-ningún test, patrón ni filtro cambió). Ninguna orden pidió aprobación y las tres sondas de los prerrequisitos dieron lo
-esperado (`código 0`, `sin HOME temporal todavía`, `1 /tmp/kitlegal-quickstart-h5/repo/.agents/.gitattributes`).
+Medida por T029 (intento 3) el 2026-09-15 (entre las 04:28 y las 04:35, hora de Madrid) sobre **536359c**
+(`feat(H5): T032`, la cabeza de la rama), ejecutando `make ci` y después `quickstart.md` entero salvo §12
+(plataforma), con cada orden tal cual, desde los prerrequisitos hasta la limpieza, en una sesión desatendida. El
+`quickstart.md` es el que corrigió el intento 1 de la misma tarea (`gates/tarea-T029.md`: `wc` sobre un fichero de la
+carpeta temporal está bloqueado por Claude Code fuera del directorio de trabajo, también como orden sola; pasa a
+`rtk proxy wc -l`, con una sonda nueva en los prerrequisitos; ningún test, patrón ni filtro cambió), ya confirmado en
+el árbol. **Ninguna orden pidió aprobación** y las tres sondas de los prerrequisitos dieron lo esperado (`código 0`,
+`sin HOME temporal todavía`, `1 /tmp/kitlegal-quickstart-h5/repo/.agents/.gitattributes`). Los escenarios 1, 2, 7, 9,
+10 y 11 se lanzaron a la vez (no comparten ficheros: el 2 trabaja en el clon y los demás solo leen el árbol) y después
+3, 4, 5, 6 y 8 en orden sobre el clon, con una sonda de `git status --porcelain` del clon antes de cada uno, que dio
+siempre vacío.
 
 | Escenario | Resultado |
 |---|---|
-| `make ci` | `0 issues.`; los doce paquetes en `ok` en los dos perfiles (`-race -shuffle=on` y `-race -tags=integration`); `govulncheck` «No vulnerabilities found»; `schema-check` y `skills-check` en `ok`; `gitleaks` «no leaks found»; `go mod verify` en la raíz y los cuatro módulos de herramienta; `tidy -diff`; `ci: todos los controles en verde`; `código 0` |
+| `make ci` | `0 issues.`; los doce paquetes en `ok` en los dos perfiles (`-race -shuffle=on` y `-race -tags=integration`), `internal/httpx` incluido (97,2 %); `govulncheck` «No vulnerabilities found»; `schema-check` y `skills-check` en `ok`; `gitleaks` «no leaks found»; `go mod verify` en la raíz y los cuatro módulos de herramienta; `tidy -diff`; `ci: todos los controles en verde`; `código 0` |
 | Prerrequisitos | `go1.27.1 darwin/arm64`, git 2.50.1, GNU Make 3.81, rama `h5-skill-boe-legislacion`, ninguna línea de `git status` fuera del directorio del feature, clon creado sin mensajes, tres sondas en lo esperado |
 | 1 · skill y controles | `make skills-check` en `ok` para `internal/app`, `internal/skills` e `internal/evals`; **159** líneas; el enlace da `../../../bin/instalado/kitlegal`; solo `SKILL.md`, `references/normas.md` y `scripts/boe`; la cabecera «generado desde data/normas.yaml, no editar», `1` vez |
-| 2 · `skills-sync` idempotente | Las dos regeneraciones en 0 (`ok internal/app`); los dos `git status` del clon, solo `fin del estado`; en el `Makefile`, `skills-sync` solo en la lista de objetivos y en su regla, sin ningún anuncio de H5 |
+| 2 · `skills-sync` idempotente | Las dos regeneraciones en 0 (`ok internal/app`); los dos `git status` del clon, solo `fin del estado`; en el `Makefile`, `skills-sync` solo en la lista de objetivos (línea 54) y en su regla (114-116), sin ningún anuncio de H5 |
 | 3 · deriva de lo generado | Ver abajo (tres `código 2`) |
-| 4 · defectos de la skill | Ver abajo (cinco `código 2`); en el árbol real, los once subtests de `TestSkillsDelRepositorio` en `PASS` (`skills`, `describe-cambiado`, `normas-nombradas`, `datos-sin-regenerar`, `referencia-editada`, `sin-instrucciones-de-evals`, `trescientas-lineas`, `enlaces`, `regenerar-dos-veces`, `frontmatter`, `region`) |
+| 4 · defectos de la skill | Ver abajo (cinco `código 2`); en el árbol real, los once subtests de `TestSkillsDelRepositorio` en `PASS` (`skills`, `datos-sin-regenerar`, `referencia-editada`, `describe-cambiado`, `trescientas-lineas`, `normas-nombradas`, `sin-instrucciones-de-evals`, `regenerar-dos-veces`, `frontmatter`, `enlaces`, `region`), 35 líneas `PASS` con los anidados y ninguna `FAIL` |
 | 5 · normas y esquema | Ver abajo (dos `código 2`); `TestLeerNormas` (25 subtests, entre ellos `sin-titulo`, `sin-rango`, `sin-materias`, `identificador-repetido-con-titulos-distintos`, `identificador-repetido-por-un-alias`, `con-vertical`, `identificador-con-otra-forma`, `clave-de-fusion`), `TestEsquemaDeNormas` (`compila`, `rangos-grabados`) y `TestRenderizarNormas` (4) en `PASS` |
 | 6 · evals y lo grabado | Los doce ficheros de `contracts/evals-y-grabaciones.md` §2, en orden; `06-irpf-rendimientos-del-trabajo.yaml` listado con `reproduce: boe-fiscal`; ver abajo (tres `código 2`); los ocho tests en `PASS` con todos sus subtests, entre ellos `TestManifiestoDeGrabaciones/clave-repetida`, `/prefijo-repetido`, `/prefijo-de-otro-prefijo`, `/repositorio`, `TestPrepararYComprobar/sin-metadatos-de-un-bloque-esperado`, `/sin-indice-de-una-norma`, `TestLeerConjunto/con-mal-formadas`, `/entradas-que-no-son-evals`, `TestEvalsDelRepositorio/conjunto`, `/normas-conocidas`, `TestPrepararDirectorioDeSesion/eval-normal`, `/prueba-de-red`, `/eval-inexistente`, `/eval-mal-formada`, `/con-faltas` |
 | 7 · comparación mecánica | Todo en `PASS`, ningún `FAIL`, con cada subtest que nombra la guía; por test: `TestJuzgar` 18, `TestLeerSesion` 15, `TestLeerTrazas` 21, `TestInforme` 13, `TestInterpretarInvocacion` 12, `TestExtraerCitas` 5, `TestLeerTrazasSinFicheros` 2, `TestEscribirInformeSinSusEntradas` 6 (este último incluye `informe-json-no-se-puede-escribir`) |
@@ -205,7 +222,7 @@ esperado (`código 0`, `sin HOME temporal todavía`, `1 /tmp/kitlegal-quickstart
 | 9 · protocolo, cita y reglas | Las cinco claves del frontmatter (`name`, `description`, `metadata`, `kitlegal-applets`, `kitlegal-referencias`); los seis elementos del protocolo, cada uno en su paso o regla (líneas 30, 36, 54, 95, 99 y 101, más la `description` en la 10); la cita de ejemplo `[BOE-A-2015-10565, bloque a21]` en la línea 112; la búsqueda de `KITLEGAL_CACHE_DIR`, evals, job, GitHub Actions y nombres de modelo, solo `fin de la búsqueda`. SC-004, leyendo `## Reglas`: la 1 es FR-006 (no concluir que algo no existe), la 2 FR-010 (nunca inventar contenido legal), la 3 FR-011 (trasladar la vigencia y el carácter informativo) y la 4 FR-015 (nunca actuar en nombre de nadie): 4 de 4; la 5 es FR-012 (ningún caso especial para un territorio) |
 | 10 · sin Python | Solo `fin de la búsqueda` sobre `skills`, `data`, `evals`, los dos esquemas, los cuatro guiones, el `Makefile` y `evals.yml` |
 | 11 · directorios, atributos y pendientes | Ver la salida completa abajo: todo lo esperado |
-| Limpieza | La carpeta desaparece y el estado del árbol da solo `fin del estado` |
+| Limpieza | La carpeta desaparece (`test ! -e`) y el estado del árbol da solo `fin del estado` |
 
 **Escenarios negativos, sobre el clon desechable** (`git clone --quiet --branch h5-skill-boe-legislacion .
 /tmp/kitlegal-quickstart-h5/repo`; cada caso rompe el clon, ejecuta `make -C … skills-check` y lo restaura con
@@ -247,13 +264,13 @@ esperado (`código 0`, `sin HOME temporal todavía`, `1 /tmp/kitlegal-quickstart
   39/2015,"): la misma norma repetida, con el mismo prefijo».
 - **8** `make -C … install` con `HOME`, `GOBIN`, `GOENV=off` y `GOPROXY=off` temporales: `código 0`, con
   «`instalar-skills: boe-legislacion → /private/tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion`» y
-  «`instalar-skills: kitlegal → /tmp/kitlegal-quickstart-h5/gobin/kitlegal`»; los dos `readlink` dan esas rutas;
-  `scripts/boe articulo BOE-A-2015-10565 a21 --describe` por el enlace de la skill instalada da `"title": "boe articulo"`;
-  la segunda instalación `código 0` y en `~/.claude/skills` temporal solo `boe-legislacion`; con un directorio ajeno
-  `boe-legislacion` en otro `HOME`, `código 2` con «`instalar-skills: conflicto:
-  /tmp/kitlegal-quickstart-h5/otro-home/.claude/skills/boe-legislacion ya existe y no es un enlace a
-  /private/tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion; no se modifica`», y «la entrada en conflicto sigue
-  siendo un directorio» (SC-006).
+  «`instalar-skills: kitlegal → /tmp/kitlegal-quickstart-h5/gobin/kitlegal`» (el binario compilado con
+  `-X main.commit=536359ce…`); los dos `readlink` dan esas rutas; `scripts/boe articulo BOE-A-2015-10565 a21 --describe`
+  por el enlace de la skill instalada da `"title": "boe articulo"`; la segunda instalación `código 0` y en
+  `~/.claude/skills` temporal solo `boe-legislacion`; con un directorio ajeno `boe-legislacion` en otro `HOME`,
+  `código 2` con «`instalar-skills: conflicto: /tmp/kitlegal-quickstart-h5/otro-home/.claude/skills/boe-legislacion ya
+  existe y no es un enlace a /private/tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion; no se modifica`», y «la
+  entrada en conflicto sigue siendo un directorio» (SC-006).
 
 Los subtests de `TestSkillsDelRepositorio` que copian el árbol (`datos-sin-regenerar`, `describe-cambiado`,
 `referencia-editada`, `regenerar-dos-veces`, `enlaces`, `region`, `frontmatter`, `trescientas-lineas`) fallan también
@@ -361,7 +378,8 @@ H5 en la introducción del `CHANGELOG.md`, `1`. Que GitHub excluya `.agents/skil
 los diffs es el supuesto S8 (*Pendientes*).
 
 **Cobertura**, sobre el `coverage.out` y el `coverage-integration.out` que dejó el `make ci` de arriba (`go tool cover
--func` para el total; para cada árbol, la suma de sentencias del perfil, que es lo que Codecov mide):
+-func` para el total; para cada árbol, la suma de sentencias del perfil, que es lo que Codecov mide, contando cada
+bloque una vez):
 
 | Umbral | Exigido | Perfil unitario (`make test`) | Unión de los dos perfiles (lo que Codecov une) |
 |---|---|---|---|
@@ -370,14 +388,16 @@ los diffs es el supuesto S8 (*Pendientes*).
 | `internal/cli/**` (componente `internal_cli`) | ≥ 90 % | **98,6 %** (348/353) | **98,6 %** |
 | `internal/skills` (nuevo) | — | 95,8 % (1134/1184) | 95,8 % |
 | `internal/evals` (nuevo) | — | 94,8 % (1365/1440) | 94,8 % |
-| `internal/app` (con sus ejemplos de e2e, sin sentencias cubiertas) | — | 87,8 % (445/507; 93,7 % el paquete solo) | 87,8 % |
+| `internal/app` (con sus ejemplos de e2e, 0/32 sentencias cubiertas) | — | 87,8 % (445/507; 93,7 % el paquete solo) | 87,8 % |
 | `internal/source/boe` | — | 99,4 % (875/880) | 99,4 % |
 | `internal/cache` | — | 90,7 % (478/527) | 96,2 % (507/527) con `-tags=integration` |
-| `internal/httpx` · `internal/render` | — | 97,2 % · 95,8 % | igual |
+| `internal/httpx` (T032 solo cambia tests) | — | 97,2 % (792/815) | igual |
+| `internal/render` | — | 95,8 % (69/72) | igual |
 
 `internal/core` no gana ni pierde sentencias: sus 81 siguen siendo las de `internal/core/schema` (`error.go`,
-`huella.go`, `sobre.go`), y `internal/app` conserva las 507 de H4: H5 no toca el dominio ni el applet. **Ningún umbral
-se rebaja**: `codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo lee T030 en la
+`huella.go`, `sobre.go`), y `internal/app` conserva las 507 de H4: H5 no toca el dominio ni el applet. Las cifras son
+las mismas que midió el intento 2 sobre `be901f7`: T032 no cambia ninguna sentencia de producto. **Ningún umbral se
+rebaja**: `codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo lee T030 en la
 plataforma.
 
 **Sin ninguna supresión nueva**: `0` líneas `//nolint` y `0` `t.Skip` añadidas en ficheros `.go` frente a `main`.
@@ -391,7 +411,9 @@ T020, T021, T022), como exige la obligación 2 del plan; las grabaciones de H4 n
 
 **Aviso de método.** El envoltorio de terminal de esta máquina reescribe la salida de `go test`, `git status
 --porcelain` y `git diff`. Todo lo de arriba está medido con el paso directo (`rtk proxy`), que es la forma en que el
-quickstart escribe cada orden.
+quickstart escribe cada orden. Cuando la salida de un escenario negativo superó el tamaño que la herramienta muestra,
+el veredicto (`código`, mensajes de fallo y líneas `PASS`) se leyó con `rtk proxy grep` sobre la copia que la
+herramienta guarda; nada se redirigió a ficheros.
 
 ## Decisiones
 
@@ -448,6 +470,19 @@ esta propuesta, y las tomadas durante la implementación.
   fuera del directorio de trabajo, también como orden sola; la guía pasa a `rtk proxy wc -l`, la tabla de formas gana la
   fila y una sonda de los prerrequisitos comprueba la forma en cada ejecución. No se sustituyó la orden por otra a
   criterio del ejecutor, como manda la tarea (`gates/tarea-T029.md`).
+- **Un test intermitente no se reintenta hasta el verde: se arregla de raíz en una tarea nueva antes del cierre**
+  (T032, procedimiento de H3/T018 y H4/T037): la verificación del intento 2 de T029 cayó una vez en
+  `internal/httpx` › `TestReintentosDosErroresYUnAcierto` (85,39 ms frente a 90 ms), un fichero de H2 que H5 no había
+  tocado. La causa es de la medida, no del ritmo: el limitador (`x/time/rate`, cubo de un token) fija los **turnos**
+  anclados al primero, y la llegada al servidor añade a cada turno un despacho que no es igual en todas (un despertar
+  tardío bajo `-race` con todos los paquetes en paralelo, la conexión que la primera abre y las demás reutilizan), así
+  que dos llegadas consecutivas pueden acercarse por debajo de «intervalo menos holgura» sin que el ritmo haya fallado.
+  T032 cambia las dos aserciones (reintentos y ritmo) a la cota que el limitador sí garantiza —cada llegada, medida
+  desde antes de la primera petición, no se adelanta a su turno— y retira las dos holguras; el decorador, el cubo y la
+  cadena no cambian, y los mutantes de `gates/tarea-T032.md` demuestran que la cota nueva distingue una implementación
+  correcta con despacho tardío de las cuatro incorrectas. Como las rutas congeladas de T029 no admitían el arreglo y su
+  propia línea prohíbe tocar ficheros fuera del directorio del feature, T029 volvió a `[ ]` y este intento 3 repitió la
+  guía entera sobre el commit de T032.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
