@@ -29,10 +29,11 @@ estado antes de cada tarea, así que `git status` descarta `specs/006-h5-skill-b
 | Comprobar que algo existe o no | `rtk proxy test …  && echo "…"` | `test` sin `rtk proxy` |
 | Leer un enlace | `rtk proxy readlink …` | `readlink` sin `rtk proxy` |
 | Filtrar la salida de `go test -v`, `git status` o `git diff` | `rtk proxy go test …`, `rtk proxy git …`, con cada etapa de la tubería con `rtk proxy` | sin `rtk proxy`, que reescribe esas salidas |
+| Contar las líneas de un fichero de la carpeta temporal | `rtk proxy wc -l /tmp/kitlegal-quickstart-h5/…` | `wc` sin `rtk proxy`, que Claude Code bloquea fuera del directorio de trabajo, también como orden sola |
 | Una orden larga | en una sola línea | una línea que termina en `\` seguida de otra que empieza por `\|` |
 
-`go`, `git`, `make`, `wc` y `echo` con texto literal están permitidos tal cual, también con rutas de la carpeta temporal
-(`git clone`, `make -C`, `git -C`).
+`go`, `git`, `make` y `echo` con texto literal están permitidos tal cual, también con rutas de la carpeta temporal
+(`git clone`, `make -C`, `git -C`); `wc`, solo con ficheros del repositorio.
 
 ## Prerrequisitos
 
@@ -49,10 +50,13 @@ rtk proxy mkdir /tmp/kitlegal-quickstart-h5
 git clone --quiet --branch h5-skill-boe-legislacion . /tmp/kitlegal-quickstart-h5/repo
 rtk proxy sh -c 'true; echo "código $?"'
 rtk proxy test ! -e /tmp/kitlegal-quickstart-h5/home && echo "sin HOME temporal todavía"
+rtk proxy wc -l /tmp/kitlegal-quickstart-h5/repo/.agents/.gitattributes
 ```
 
 Esperado: `go version go1.27.1 …`; la rama `h5-skill-boe-legislacion`; el estado muestra solo `fin del estado`; el
-clon se crea sin mensajes; las dos sondas imprimen `código 0` y `sin HOME temporal todavía`.
+clon se crea sin mensajes; las tres sondas imprimen `código 0`, `sin HOME temporal todavía` y `1` seguido de la ruta
+del `.gitattributes` del clon, que tiene una sola línea (research.md D18): es la forma con la que el escenario 4 cuenta
+las líneas de un fichero del clon.
 
 ## 1. La skill y sus controles en verde (FR-040 a FR-043, FR-075, SC-005 en limpio, SC-008, SC-010)
 
@@ -106,7 +110,7 @@ un fallo que nombra `boe-legislacion` y `SKILL.md`.
 
 ```bash
 rtk proxy perl -0pi -e '$n = () = /\n/g; $_ .= "\n" x (300 - $n)' /tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion/SKILL.md
-wc -l /tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion/SKILL.md
+rtk proxy wc -l /tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion/SKILL.md
 rtk proxy sh -c 'make -C /tmp/kitlegal-quickstart-h5/repo skills-check; echo "código $?"'
 git -C /tmp/kitlegal-quickstart-h5/repo checkout -- skills/boe-legislacion/SKILL.md
 rtk proxy perl -0pi -e 's/^name: boe-legislacion$/name: Boe-Legislacion/m' /tmp/kitlegal-quickstart-h5/repo/skills/boe-legislacion/SKILL.md

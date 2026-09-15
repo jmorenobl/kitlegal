@@ -21,13 +21,16 @@ import (
 // tarda quien llama— y sin que el cliente emita nada por su cuenta (FR-019,
 // FR-021).
 //
-// La medida empieza en la primera petición que el cliente hace al sitio, la de
-// su robots.txt, que ocupa el primer turno del cubo. Si el cubo admitiera más de
-// un token sería justo el primer par —robots.txt y recurso— el que saldría sin
-// separación, y medir solo a partir del segundo lo dejaría pasar: por eso se
-// anota también esa llegada y se exige la separación de **todos** los pares
-// consecutivos, y por eso la operación entera tiene que ocupar el intervalo
-// tantas veces como peticiones se hacen (D8).
+// El limitador separa los turnos, anclados al primero, que ocupa la primera
+// petición que el cliente hace al sitio, la de su robots.txt: la petición i
+// no sale antes de i veces el intervalo tras ese turno cero. Por eso la medida
+// empieza antes del robots.txt y cada llegada se compara con su turno contado
+// desde ahí. Si el cubo admitiera más de un token sería justo la primera
+// petición tras el robots.txt la que saldría sin esperar, y medir solo a partir
+// de la segunda lo dejaría pasar: por eso se anota también la llegada del
+// robots.txt y se exige que **ninguna** se adelante a su turno, y por eso la
+// operación entera tiene que ocupar el intervalo tantas veces como peticiones
+// se hacen (D8).
 func TestRitmoSeparaPeticionesDelMismoSitio(t *testing.T) {
 	t.Parallel()
 
@@ -68,17 +71,18 @@ func TestRitmoSeparaPeticionesDelMismoSitio(t *testing.T) {
 	require.Len(t, anotadas, peticiones+1, "el robots.txt y las tres peticiones")
 
 	// Lo que el limitador espacia con exactitud es el turno; la llegada añade a
-	// cada turno lo que tarde en despacharse el manejador, y la primera —la del
-	// robots.txt— paga además la apertura de la conexión, que las siguientes
-	// reutilizan y que se resta de la separación del primer par sin ser ritmo.
-	// De ahí la holgura, muy por debajo del intervalo: sin limitador, con un
-	// cupo compartido entre sitios o con ráfaga 2, la separación de algún par no
-	// sería «un intervalo menos una holgura» sino prácticamente cero.
-	const holgura = 25 * time.Millisecond
-
-	for i := 1; i < len(anotadas); i++ {
-		assert.GreaterOrEqual(t, anotadas[i].Sub(anotadas[i-1]), intervalo-holgura,
-			"las llegadas %d y %d al mismo sitio van separadas al menos el intervalo (SC-004)", i-1, i)
+	// cada turno lo que tarde en despacharse, y ese añadido no es igual en
+	// todas: la primera —la del robots.txt— paga además la apertura de la
+	// conexión, que las siguientes reutilizan, y cualquiera puede pagar un
+	// despertar tardío de la máquina. Dos llegadas consecutivas pueden por eso
+	// acercarse por debajo del intervalo sin que el ritmo haya fallado. Lo que
+	// sí es exacto es que la llegada i no se adelanta a su turno, que va i
+	// veces el intervalo por detrás del comienzo: la cota la fija el limitador,
+	// no el reloj de la máquina, y no lleva holgura. Sin limitador o con ráfaga
+	// 2, alguna llegada se adelantaría a su turno.
+	for i, llegada := range anotadas {
+		assert.GreaterOrEqual(t, llegada.Sub(comienzo), time.Duration(i)*intervalo,
+			"la llegada %d al sitio no se adelanta a su turno, a %d × intervalo del comienzo (SC-004)", i, i)
 	}
 }
 

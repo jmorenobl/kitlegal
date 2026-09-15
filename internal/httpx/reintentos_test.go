@@ -47,19 +47,17 @@ func TestReintentosDosErroresYUnAcierto(t *testing.T) {
 func dosErroresYUnAcierto(t *testing.T) []time.Duration {
 	t.Helper()
 
-	// El intervalo es el que separa las llegadas. La holgura es la del test del
-	// ritmo, dos órdenes de magnitud por debajo: lo que el limitador espacia con
-	// exactitud es el turno, y la llegada le añade lo que tarde en despacharse
-	// el manejador.
+	// El intervalo es el que separa los turnos del sitio, que se cuentan desde
+	// el comienzo de la operación, tomado antes de su primera petición.
 	const intervalo = 100 * time.Millisecond
-
-	const holgura = 10 * time.Millisecond
 
 	anotador := &llegadas{}
 	esperas := &esperasAnotadas{}
 	servidor, contador := servidorIdentificado(t,
 		anotador.anota(servidorQueFalla(2, http.StatusServiceUnavailable)))
 	cliente := clienteDePrueba(t, ConIntervalo(intervalo), conReloj(esperas.reloj))
+
+	comienzo := time.Now()
 
 	respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{},
 		Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"})
@@ -75,9 +73,21 @@ func dosErroresYUnAcierto(t *testing.T) []time.Duration {
 	anotadas := anotador.instantes()
 	require.Len(t, anotadas, 3)
 
-	for intento := 1; intento < len(anotadas); intento++ {
-		assert.GreaterOrEqual(t, anotadas[intento].Sub(anotadas[intento-1]), intervalo-holgura,
-			"cada reintento espera su turno en el sitio: el decorador va por encima del ritmo (FR-021)")
+	// Lo que el limitador fija con exactitud es el turno, anclado al primero:
+	// el robots.txt del sitio ocupa el turno cero, así que el intento n no
+	// puede salir antes de n veces el intervalo tras el comienzo. La llegada al
+	// servidor añade a su turno lo que tarde en despacharse, y ese añadido no
+	// es igual en todas —un despertar tardío de la máquina, la conexión que la
+	// primera abre y las demás reutilizan—: dos llegadas consecutivas pueden
+	// acercarse por debajo del intervalo sin que el ritmo haya fallado. Por eso
+	// cada llegada se mide contra el comienzo y no contra la anterior, y por
+	// eso la cota no lleva holgura: la fija el limitador, no el reloj de la
+	// máquina. Si los reintentos no pasaran por el limitador, el segundo y el
+	// tercero llegarían con el primero, a un solo intervalo del comienzo.
+	for intento, llegada := range anotadas {
+		assert.GreaterOrEqual(t, llegada.Sub(comienzo), time.Duration(intento+1)*intervalo,
+			"el intento %d no se adelanta a su turno, a %d × intervalo del comienzo: "+
+				"el decorador va por encima del ritmo (FR-021)", intento+1, intento+1)
 	}
 
 	pedidas := esperas.pedidas()
