@@ -58,6 +58,10 @@ const errnoEnCurso = "EINPROGRESS"
 // 0, así que la invocación no satisface ningún comando esperado.
 const codigoDeMuertePorSenal = -1
 
+// codigoDeSalidaMayor es el mayor N de +++ exited with N +++: strace escribe el
+// estado de salida del proceso, que va de 0 a 255.
+const codigoDeSalidaMayor = 255
+
 // binarioMulticall es el nombre de invocación del binario, que toma el applet de
 // su primer argumento (data-model §9, campo applet).
 const binarioMulticall = "kitlegal"
@@ -92,8 +96,10 @@ var (
 	// formaDeSenal es la de una señal entregada, que se admite y no cuenta.
 	formaDeSenal = regexp.MustCompile(`^--- SIG[A-Z0-9_]+ \{.*\} ---$`)
 
-	// formaDeSalida y formaDeMuerte son las dos líneas finales de un fichero.
-	formaDeSalida = regexp.MustCompile(`^\+\+\+ exited with ([0-9]{1,3}) \+\+\+$`)
+	// formaDeSalida y formaDeMuerte son las dos líneas finales de un fichero. El
+	// código de la salida se toma con todas sus cifras, para que uno que no es
+	// de 0 a 255 sea un defecto que lo nombra y no otra forma de línea.
+	formaDeSalida = regexp.MustCompile(`^\+\+\+ exited with ([0-9]+) \+\+\+$`)
 	formaDeMuerte = regexp.MustCompile(`^\+\+\+ killed by SIG[A-Z0-9_]+ \+\+\+$`)
 
 	// formaDeExecve es la de los argumentos de execve: la ruta, argv y el
@@ -566,7 +572,7 @@ func defectoDeLinea(ruta string, numero int, motivo, texto string) error {
 }
 
 // leerLineaFinal dice si el texto es una línea final y el código que da: el de
-// +++ exited with N +++ o el de la muerte por señal.
+// +++ exited with N +++, de 0 a 255, o el de la muerte por señal.
 func leerLineaFinal(texto string) (codigo int, final bool, err error) {
 	if formaDeMuerte.MatchString(texto) {
 		return codigoDeMuertePorSenal, true, nil
@@ -580,6 +586,11 @@ func leerLineaFinal(texto string) (codigo int, final bool, err error) {
 	codigo, err = strconv.Atoi(partes[1])
 	if err != nil {
 		return 0, false, fmt.Errorf("el código de la línea final no es un entero: %w", err)
+	}
+
+	if codigo > codigoDeSalidaMayor {
+		return 0, false, fmt.Errorf("el código de la línea final, %d, no es un código de salida de 0 a %d",
+			codigo, codigoDeSalidaMayor)
 	}
 
 	return codigo, true, nil

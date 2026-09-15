@@ -2,6 +2,8 @@ package evals
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -205,6 +207,50 @@ func TestEsquemaDeEval(t *testing.T) {
 	esquema, err := esquemaDeEval()
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
+}
+
+// TestCompilarEsquemaDeEvalQueNoSirve fija los dos errores con los que no se
+// obtiene el esquema del formato de eval, sobre la ruta de un directorio temporal
+// del test: una carpeta donde se espera el fichero del esquema y un fichero JSON
+// que no es un JSON Schema válido. Los dos nombran la ruta.
+func TestCompilarEsquemaDeEvalQueNoSirve(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// contenido es el del fichero del esquema; vacío, en su lugar hay una
+		// carpeta.
+		contenido string
+
+		motivo string
+	}{
+		{nombre: "carpeta", motivo: "no se puede leer el esquema del formato de eval"},
+		{
+			nombre:    "tipo-que-no-es-de-json-schema",
+			contenido: `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "entero"}`,
+			motivo:    "el esquema no compila",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			ruta := filepath.Join(t.TempDir(), "eval.yaml.json")
+			if caso.contenido == "" {
+				require.NoError(t, os.Mkdir(ruta, 0o750))
+			} else {
+				require.NoError(t, os.WriteFile(ruta, []byte(caso.contenido), 0o600))
+			}
+
+			esquema, err := compilarEsquemaDeEval(ruta)
+
+			require.ErrorContains(t, err, ruta)
+			require.ErrorContains(t, err, caso.motivo)
+			assert.Nil(t, esquema)
+		})
+	}
 }
 
 // casoDeGramatica es un valor límite de una gramática de identificador y si

@@ -2,7 +2,6 @@ package evals
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -79,18 +78,25 @@ type CitaEsperada struct {
 // esquemaDeEval compila una sola vez el esquema publicado del formato común de
 // eval, que no cambia mientras se ejecutan los tests.
 var esquemaDeEval = sync.OnceValues(func() (*jsonschema.Schema, error) {
-	contenido, err := os.ReadFile(rutaDelEsquemaDeEval)
+	return compilarEsquemaDeEval(rutaDelEsquemaDeEval)
+})
+
+// compilarEsquemaDeEval lee el esquema del formato común de eval de la ruta y lo
+// compila con skills.CompilarEsquema. El error nombra la ruta: la del fichero que
+// no se puede leer o la del esquema que no compila.
+func compilarEsquemaDeEval(ruta string) (*jsonschema.Schema, error) {
+	contenido, err := leerFichero(ruta)
 	if err != nil {
 		return nil, fmt.Errorf("no se puede leer el esquema del formato de eval: %w", err)
 	}
 
 	esquema, err := skills.CompilarEsquema(contenido)
 	if err != nil {
-		return nil, fmt.Errorf("el esquema del formato de eval %s: %w", rutaDelEsquemaDeEval, err)
+		return nil, fmt.Errorf("el esquema del formato de eval %s: %w", ruta, err)
 	}
 
 	return esquema, nil
-})
+}
 
 // LeerEval lee el contenido de un fichero de eval con el lector común de
 // documentos YAML de internal/skills —una clave repetida es un defecto con sus

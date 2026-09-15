@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -292,6 +293,194 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestFaltaSinOrigenesODeOtroPunto fija los dos textos de Falta.String que no
+// dan las consultas de ConsultasNecesarias: el de una consulta sin orígenes, que
+// es solo la invocación, su código y el mensaje, y el de un origen cuyo punto no
+// es ninguno de los tres de data-model §7.1, que nombra la consulta y el punto.
+func TestFaltaSinOrigenesODeOtroPunto(t *testing.T) {
+	t.Parallel()
+
+	const causa = "«boe articulo BOE-A-2015-10565 a9998» terminó con código 4: " +
+		"la petición GET https://www.boe.es/… no está grabada"
+
+	casos := []struct {
+		nombre   string
+		origenes []Origen
+		texto    string
+	}{
+		{nombre: "sin-origenes", texto: causa},
+		{
+			nombre:   "de-otro-punto",
+			origenes: []Origen{{Eval: nombreDeEval, Punto: "comando de la respuesta"}},
+			texto: nombreDeEval + `: la consulta boe articulo BOE-A-2015-10565 a9998 del punto "comando de la respuesta": ` +
+				causa,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			falta := Falta{
+				Consulta: Consulta{
+					Applet:     "boe",
+					Verbo:      "articulo",
+					Argumentos: []string{"BOE-A-2015-10565", "a9998"},
+					Origenes:   caso.origenes,
+				},
+				Codigo:  4,
+				Mensaje: "la petición GET https://www.boe.es/… no está grabada",
+			}
+
+			assert.Equal(t, caso.texto, falta.String())
+		})
+	}
+}
+
+// TestPrepararConConjuntosQueNoSeCopian fija el error de Preparar con un conjunto
+// de grabaciones que no se puede copiar por la estructura de un directorio
+// temporal del test (contrato evals-y-grabaciones §5.1): un fichero donde se
+// espera el directorio del conjunto y una carpeta donde se espera un fichero de
+// grabación. Es el error, que nombra la caché y el conjunto, y nunca una lista de
+// faltas.
+func TestPrepararConConjuntosQueNoSeCopian(t *testing.T) {
+	t.Parallel()
+
+	t.Run("conjunto-que-es-un-fichero", func(t *testing.T) {
+		t.Parallel()
+
+		conjunto := filepath.Join(t.TempDir(), "boe")
+		require.NoError(t, os.WriteFile(conjunto, nil, 0o600))
+
+		faltas, err := exigeErrorAlPreparar(t, conjunto)
+
+		require.ErrorIs(t, err, syscall.ENOTDIR)
+		assert.Nil(t, faltas)
+	})
+
+	t.Run("grabacion-que-es-una-carpeta", func(t *testing.T) {
+		t.Parallel()
+
+		conjunto := t.TempDir()
+		require.NoError(t, os.Mkdir(filepath.Join(conjunto, "respuestas"), 0o750))
+
+		faltas, err := exigeErrorAlPreparar(t, conjunto)
+
+		require.ErrorContains(t, err, "respuestas no es un fichero regular")
+		assert.Nil(t, faltas)
+	})
+}
+
+// TestPrepararSesionSinPoderLeerOEscribir fija los errores de PrepararSesion que
+// provoca la estructura de un directorio temporal del test (contrato job-de-evals
+// §3.2): un fichero donde se espera el directorio de evals, que termina sin
+// preparar nada; y una carpeta donde va eval.txt o pregunta.txt, que termina,
+// después de preparar la caché, con el error que nombra la sesión y el fichero, y
+// sin faltas.
+func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// evalsEnUnFichero pasa como directorio de evals el fichero de la eval.
+		evalsEnUnFichero bool
+
+		// carpeta es el fichero de la sesión que se crea antes como carpeta.
+		carpeta string
+	}{
+		{nombre: "evals-que-son-un-fichero", evalsEnUnFichero: true},
+		{nombre: "eval-txt-que-es-una-carpeta", carpeta: "eval.txt"},
+		{nombre: "pregunta-txt-que-es-una-carpeta", carpeta: "pregunta.txt"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			evals := crearConjunto(t, []entradaDeConjunto{{nombre: nombreDeEval, contenido: contenidoDelArticulo21}})
+			if caso.evalsEnUnFichero {
+				evals = filepath.Join(evals, nombreDeEval)
+			}
+
+			sesion := t.TempDir()
+			dirCache := filepath.Join(sesion, "cache")
+			require.NoError(t, os.Mkdir(dirCache, 0o750))
+
+			if caso.carpeta != "" {
+				require.NoError(t, os.Mkdir(filepath.Join(sesion, caso.carpeta), 0o750))
+			}
+
+			faltas, err := PrepararSesion(SesionAPreparar{
+				Evals:       evals,
+				Grabaciones: []string{GrabacionesDeH4},
+				Fichero:     nombreDeEval,
+				Directorio:  sesion,
+			})
+
+			require.Error(t, err)
+			assert.Nil(t, faltas)
+
+			if caso.evalsEnUnFichero {
+				require.ErrorContains(t, err, "el directorio de evals "+evals+" no se puede listar")
+
+				preparado, err := os.ReadDir(dirCache)
+				require.NoError(t, err)
+				assert.Empty(t, preparado, "sin preparar nada")
+
+				return
+			}
+
+			require.ErrorContains(t, err, "la sesión "+sesion+": ")
+			require.ErrorContains(t, err, filepath.Join(sesion, caso.carpeta))
+		})
+	}
+}
+
+// TestPrepararYComprobarSinDirectorioTemporal fija el error de Preparar y de
+// ComprobarSinRed cuando no pueden crear su directorio temporal, con TMPDIR en un
+// fichero de un directorio temporal del test (contrato evals-y-grabaciones §5): el
+// error nombra la caché y el directorio que no se crea, y no hay faltas. No es
+// paralelo, porque t.Setenv cambia el entorno de todo el proceso.
+func TestPrepararYComprobarSinDirectorioTemporal(t *testing.T) {
+	dirCache := t.TempDir()
+
+	noEsUnDirectorio := filepath.Join(t.TempDir(), "tmp")
+	require.NoError(t, os.WriteFile(noEsUnDirectorio, nil, 0o600))
+
+	t.Setenv("TMPDIR", noEsUnDirectorio)
+
+	preparadas, err := Preparar(dirCache, nil, nil)
+
+	require.ErrorIs(t, err, syscall.ENOTDIR)
+	require.ErrorContains(t, err,
+		"preparar la caché "+dirCache+": el directorio temporal de las grabaciones no se puede crear")
+	assert.Nil(t, preparadas)
+
+	comprobadas, err := ComprobarSinRed(dirCache, nil)
+
+	require.ErrorIs(t, err, syscall.ENOTDIR)
+	require.ErrorContains(t, err,
+		"comprobar sin red la caché "+dirCache+": el directorio vacío de reproducción no se puede crear")
+	assert.Nil(t, comprobadas)
+}
+
+// exigeErrorAlPreparar prepara una caché nueva con el conjunto de grabaciones y
+// sin consultas, exige el error que nombra la caché y el conjunto que no se puede
+// copiar, y devuelve lo que Preparar devolvió.
+func exigeErrorAlPreparar(t *testing.T, conjunto string) ([]Falta, error) {
+	t.Helper()
+
+	dirCache := t.TempDir()
+
+	faltas, err := Preparar(dirCache, []string{conjunto}, nil)
+
+	require.ErrorContains(t, err,
+		"preparar la caché "+dirCache+": el conjunto de grabaciones "+conjunto+" no se puede copiar")
+
+	return faltas, err
 }
 
 // copiaDeLasGrabacionesDeH4 copia en un directorio temporal del test las

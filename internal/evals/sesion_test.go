@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -222,6 +223,164 @@ func TestLeerSesion(t *testing.T) {
 			}
 		})
 	}
+}
+
+// mensajeInit es el system/init de los transcripts que escriben los tests sobre
+// t.TempDir(), con la forma de research.md V7 y su salto de línea.
+const mensajeInit = `{"type":"system","subtype":"init","model":"` + modeloDeLasSesiones +
+	`","claude_code_version":"` + versionDeLasSesiones + `"}` + "\n"
+
+// TestLeerSesionConMensajesSinSuForma fija, sobre transcripts que el propio test
+// escribe en t.TempDir() con mensajes literales, cada mensaje de stream-json del
+// que LeerSesion no puede leer lo que necesita y que ningún caso de §9.1 tiene
+// (data-model §10.1; contrato job-de-evals §4; FR-072): sin type; system/init sin
+// model o sin claude_code_version, o con un campo de otro tipo; assistant sin la
+// lista message.content o con otra cosa en ella; el tool_use de Skill sin entrada
+// o sin input.skill; y result sin subtype o sin is_error, con un campo de otro
+// tipo o, con subtype success e is_error falso, sin result. La sesión es ilegible
+// y el error empieza por sesion.jsonl y nombra su ruta y la línea del mensaje.
+func TestLeerSesionConMensajesSinSuForma(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre     string
+		transcript string
+		linea      int
+		motivo     string
+	}{
+		{
+			nombre:     "sin-type",
+			transcript: `{"subtype":"init","model":"` + modeloDeLasSesiones + `"}` + "\n",
+			linea:      1,
+			motivo:     "el mensaje no tiene type",
+		},
+		{
+			nombre:     "init-con-model-que-no-es-una-cadena",
+			transcript: `{"type":"system","subtype":"init","model":45,"claude_code_version":"` + versionDeLasSesiones + `"}` + "\n",
+			linea:      1,
+			motivo:     "el mensaje system no tiene la forma de stream-json",
+		},
+		{
+			nombre:     "init-sin-model",
+			transcript: `{"type":"system","subtype":"init","claude_code_version":"` + versionDeLasSesiones + `"}` + "\n",
+			linea:      1,
+			motivo:     "el mensaje system/init no tiene model y claude_code_version",
+		},
+		{
+			nombre:     "init-sin-claude-code-version",
+			transcript: `{"type":"system","subtype":"init","model":"` + modeloDeLasSesiones + `"}` + "\n",
+			linea:      1,
+			motivo:     "el mensaje system/init no tiene model y claude_code_version",
+		},
+		{
+			nombre:     "assistant-con-content-que-no-es-una-lista",
+			transcript: mensajeInit + `{"type":"assistant","message":{"role":"assistant","content":"Consulto el BOE."}}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje assistant no tiene la forma de stream-json",
+		},
+		{
+			nombre:     "assistant-sin-content",
+			transcript: mensajeInit + `{"type":"assistant","message":{"role":"assistant"}}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje assistant no tiene la lista message.content",
+		},
+		{
+			nombre: "skill-sin-entrada",
+			transcript: mensajeInit +
+				`{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_01","name":"Skill"}]}}` + "\n",
+			linea:  2,
+			motivo: "el bloque tool_use de Skill no tiene la entrada {skill, args?}",
+		},
+		{
+			nombre: "skill-sin-input-skill",
+			transcript: mensajeInit + `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_01",` +
+				`"name":"Skill","input":{"args":"art. 21 de la Ley 39/2015"}}]}}` + "\n",
+			linea:  2,
+			motivo: "el bloque tool_use de Skill no nombra ninguna skill en input.skill",
+		},
+		{
+			nombre:     "result-con-is-error-que-no-es-booleano",
+			transcript: mensajeInit + `{"type":"result","subtype":"success","is_error":"false","result":"Hecho."}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje result no tiene la forma de stream-json",
+		},
+		{
+			nombre:     "result-sin-subtype",
+			transcript: mensajeInit + `{"type":"result","is_error":false,"result":"Hecho."}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje result no tiene subtype e is_error",
+		},
+		{
+			nombre:     "result-sin-is-error",
+			transcript: mensajeInit + `{"type":"result","subtype":"success","result":"Hecho."}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje result no tiene subtype e is_error",
+		},
+		{
+			nombre:     "result-success-sin-result",
+			transcript: mensajeInit + `{"type":"result","subtype":"success","is_error":false}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje result con subtype success e is_error falso no tiene result",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			dir := escribirSesion(t, caso.transcript)
+
+			sesion, err := LeerSesion(dir)
+
+			require.Error(t, err)
+			assert.Zero(t, sesion, "una sesión ilegible no devuelve ningún dato, tampoco el código 0")
+			assert.True(t, strings.HasPrefix(err.Error(), "sesion.jsonl: "),
+				"el error %q empieza por el fichero de la sesión, que da el motivo «sesión ilegible: <fichero>: …»", err)
+			require.ErrorContains(t, err,
+				fmt.Sprintf("%s, línea %d: %s", filepath.Join(dir, "sesion.jsonl"), caso.linea, caso.motivo))
+		})
+	}
+}
+
+// TestLeerSesionConVariosMensajesSystem fija, sobre un transcript que escribe el
+// propio test, que de los mensajes system solo se lee el primer init: un system
+// con otro subtype no aporta nada y un segundo init no cambia el modelo ni la
+// versión de Claude Code de la sesión (data-model §10.1).
+func TestLeerSesionConVariosMensajesSystem(t *testing.T) {
+	t.Parallel()
+
+	const respuesta = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver."
+
+	dir := escribirSesion(t, mensajeInit+
+		`{"type":"system","subtype":"compact_boundary"}`+"\n"+
+		`{"type":"system","subtype":"init","model":"claude-sonnet-5","claude_code_version":"2.2.0"}`+"\n"+
+		`{"type":"result","subtype":"success","is_error":false,"result":"`+respuesta+`"}`+"\n")
+
+	sesion, err := LeerSesion(dir)
+
+	require.NoError(t, err)
+	assert.Equal(t, Sesion{
+		Modelo:              modeloDeLasSesiones,
+		VersionDeClaudeCode: versionDeLasSesiones,
+		Respuesta:           respuesta,
+		Fin:                 "result success",
+		Terminada:           true,
+	}, sesion)
+}
+
+// escribirSesion crea en un directorio temporal del test los tres ficheros que el
+// guion escribe siempre en el de una sesión: el transcript dado, el código 0 y la
+// salida de error vacía. Devuelve su ruta.
+func escribirSesion(t *testing.T, transcript string) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "sesion.jsonl"), []byte(transcript), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "codigo-de-la-sesion"), []byte("0\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "sesion.err"), nil, 0o600))
+
+	return dir
 }
 
 // directoriosDeLosCasos son los nombres de los subdirectorios de dir, en orden.
