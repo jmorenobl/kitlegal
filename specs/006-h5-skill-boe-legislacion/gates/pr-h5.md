@@ -407,9 +407,9 @@ cifras. En los seis ficheros de cada paquete que `codecov/patch` midió en rojo 
 `internal/evals`, de una línea cada uno (antes 82 líneas), y 18 en `internal/skills`, de una sentencia cada uno (antes
 53 líneas), cada uno con su motivo en `gates/tarea-T034.md` y en `gates/tarea-T035.md`. **Ningún umbral se rebaja**:
 `codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo leyó T030 en la plataforma
-(intento 2, 2026-09-15, cabeza `417635e`): **98,42 % del diff frente al objetivo de 94,70 %, en verde**, con 33 líneas
-sin cubrir, las justificadas en `gates/tarea-T034.md` y `gates/tarea-T035.md`; `codecov/project` 96,30 %
-(`gates/evidencia-plataforma.md`).
+(intentos 2 y 3, 2026-09-15, cabezas `417635e` y `857ec46`, con las mismas cifras porque T036 y T037 no tocan ningún
+fichero Go): **98,42 % del diff frente al objetivo de 94,70 %, en verde**, con 33 líneas sin cubrir, las justificadas
+en `gates/tarea-T034.md` y `gates/tarea-T035.md`; `codecov/project` 96,30 % (`gates/evidencia-plataforma.md`).
 
 **Sin ninguna supresión nueva**: `0` líneas `//nolint` y `0` `t.Skip` añadidas en ficheros `.go` frente a `main`.
 `gosec` se resuelve sin supresiones (`filepath.Clean`, `0o600`, lectura y escritura por auxiliares distintos, programas
@@ -564,14 +564,15 @@ esta propuesta, y las tomadas durante la implementación.
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los
-  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intentos 1 y 2,
-  2026-09-15, #27, cabezas `6d68c21` y `417635e`): la API de ficheros de la propuesta
-  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360 y 366
-  ficheros respectivamente y, bajo `.agents/`, solo `.agents/.gitattributes` en los dos casos; ningún fichero de `.agents/skills/` está en el diff, así que el
+  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intentos 1 a 3,
+  2026-09-15, #27, cabezas `6d68c21`, `417635e` y `857ec46`): la API de ficheros de la propuesta
+  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360, 366 y
+  366 ficheros respectivamente y, bajo `.agents/`, solo `.agents/.gitattributes` en los tres casos; ningún fichero de `.agents/skills/` está en el diff, así que el
   plegado no se puede observar aquí (y `gh pr diff 27 --name-only` tampoco sirve: la plataforma lo rechaza con
   `HTTP 406 … the diff exceeded the maximum number of files (300)`); se verá en la primera propuesta que toque
   `.agents/skills/`. Las estadísticas de la rama principal antes de fusionar (`gh api repos/jmorenobl/kitlegal/languages`)
-  son `{"Go":1579928,"Shell":138689,"Python":65011,"PowerShell":35337,"Makefile":9505}`, y los ficheros versionados de
+  son `{"Go":1579928,"Shell":138689,"Python":65011,"PowerShell":35337,"Makefile":9505}` (la misma lectura en los tres
+  intentos), y los ficheros versionados de
   `.agents/skills/` suman 13 666 bytes de `.go` y 0 de `.py`, `.ps1` y `.sh` (`git ls-files -z ".agents/skills/*.<ext>"`
   con `xargs -0 cat` y `wc -c`): tras la fusión, S8 se cumple si la cifra de `Go` deja de contar esos bytes, lo que se
   compara con la suma de los `.go` versionados con y sin `.agents/skills/` en el commit de fusión.
@@ -593,14 +594,33 @@ esta propuesta, y las tomadas durante la implementación.
   además fuerza el modo de permisos a `default` (`gates/prueba-de-red.md`, `gates/tarea-T030.md`). T036 lo comprobó en
   contenedores y lo resolvió con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`, porque el aislamiento con `bwrap` deja la traza
   sin atribuir (*Decisiones*); la comprobación encontró además el corte del argv de la instantánea de shell, que
-  arregló T037 (`strace -s 131072`; *Decisiones*). T030 sigue sin marcar; su intento 3, tras T036 y T037, repite la
+  arregló T037 (`strace -s 131072`; *Decisiones*). T030 siguió sin marcar; su intento 3, tras T036 y T037, repitió la
   prueba de red.
+- **Plataforma, intento 3 de T030 (2026-09-15, cabeza `857ec46`)**: `ci` en verde (ejecución 34935998623, 4 m 30 s) y
+  los cuatro estados de Codecov en verde con las mismas cifras del intento 2 (T036 y T037 no tocan ningún fichero Go;
+  `gates/evidencia-plataforma.md`). La **prueba de red** (ejecución 34936425178) pasa el paso «Retirar Python del
+  runner» (921 rutas, 3 m 7 s, `búsqueda tras retirar: ninguno`) y llega al informe, y esta vez **las trece sesiones
+  arrancan, se autentican, terminan con código 0 entre 7 y 40 s y responden** (`Modelos de las sesiones:
+  claude-haiku-4-5-20251001`, `Versiones de Claude Code: 2.1.270`, salida de error vacía en las trece, las diez
+  positivas con la skill activada y las dos de no activación sin ella): los dos motivos del intento 2 están resueltos.
+  Pero las trece salen con `sesión ilegible` por la misma línea del fichero del hilo principal de `claude`: en x86_64,
+  Claude Code crea los procesos de sus órdenes con `vfork`, y `strace` escribe esa llamada, más corta que su columna
+  de alineación, como `vfork()` + 33 espacios + `= <pid>`, una forma que `LeerTrazas` no admite porque exige un solo
+  espacio antes de `= ` y ninguna sonda de research (todas en arm64, donde `vfork` no existe como llamada) vio el
+  relleno (`gates/prueba-de-red.md` §4, `gates/tarea-T030.md`). Ninguna invocación se leyó, así que el informe no
+  dice qué consultaron las sesiones 05, 06 y 10, cuyas respuestas dicen que la fuente devolvió código 5 (una consulta
+  fuera de lo grabado): lo dirá el intento siguiente. Arreglo en **T038** (de datos: el caso `proceso-por-vfork` de las
+  trazas sintéticas con la línea real) y **T039** (`LeerTrazas` admite el relleno; data-model §9, contrato §4,
+  research V53, una fila nueva y S4), antes de T030. T030 sigue sin marcar, con sus tres intentos agotados.
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
-  intento 2 ya dejó: S12 se cumple en (1), (2), (3), (5) y (6); S2 y S7 se cumplen en todo lo ejercido (con T036, el
-  job no instala `bubblewrap` y S2 no supone nada de los espacios de nombres de usuario del runner); S10 se cumple en
-  la propagación del código de `claude`; S1, en que el job de la rama corre con el secreto; S5 y S6 se reescriben con
-  T036 (research V61, caso 4); S4, S9 y S11, sin evidencia de plataforma todavía (de S4, T037 comprobó en un
-  contenedor que la traza de una sesión que ejecuta Bash sale entera con `-s 131072`, research V62). Los supuestos: S1
+  intento 3 dejó (`gates/prueba-de-red.md` §5): S12 se cumple en (1), (2), (3), (5) y (6), con (4) sin ejercer; S2 y
+  S7 se cumplen en todo lo ejercido (el job no instala `bubblewrap` ni `socat`); S9 se cumple en las trece sesiones
+  (entre 7 y 40 s, ninguna cortada); S10 se cumple en el 0 y en su propagación; S1, S5, S6 y S11 se cumplen en lo
+  ejercido (el job de la rama corre con el secreto, las sesiones se autentican y aceptan el modelo, la skill se activa
+  donde debe, Bash ejecuta el binario y el modelo llega a la API con el proxy que rechaza para todo lo demás);
+  **S4 difiere**: la línea con la que Claude Code de x86_64 crea los procesos de sus órdenes es `vfork()` con el
+  relleno de alineación de `strace`, que arreglan T038 y T039, y `connect` y la atribución por invocación siguen sin
+  evidencia hasta el intento siguiente. Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de
@@ -616,11 +636,14 @@ esta propuesta, y las tomadas durante la implementación.
   cambiados entre el commit evaluado y la cabeza solo bajo el directorio del hito (SC-001 a SC-003, FR-080 a FR-082).
   S3 (cada búsqueda del manifiesto devuelve su norma y existen los bloques) ya lo comprobó la persona en la pausa de
   T008 y lo vigila `make ci` desde entonces.
-- **T030 `[plataforma]`, intento 3 por hacer**: los intentos 1 y 2 publicaron la rama, abrieron esta propuesta con
-  este fichero como cuerpo, leyeron `ci` y los cuatro estados de Codecov (`codecov/project`, `internal/core`,
-  `internal/cli` y `codecov/patch` con objetivo `auto`, todos en verde sobre `417635e`) en
-  `gates/evidencia-plataforma.md` y comprobaron el secreto y las dos etiquetas; queda repetir la prueba de red sobre
-  la cabeza con T036 y T037. **T031 `[plataforma]`, la última**: la ejecución de cierre y la aceptación. Si la
+- **T030 `[plataforma]`, tres intentos sin marcar**: los tres publicaron la rama, abrieron esta propuesta con este
+  fichero como cuerpo, leyeron `ci` y los cuatro estados de Codecov (`codecov/project`, `internal/core`,
+  `internal/cli` y `codecov/patch` con objetivo `auto`, todos en verde sobre `417635e` y sobre `857ec46`) en
+  `gates/evidencia-plataforma.md` y comprobaron el secreto y las dos etiquetas; cada prueba de red descubrió un
+  defecto que solo la plataforma podía mostrar (la purga de paquetes, T033; `bubblewrap` y el modo de permisos, T036,
+  y el argv cortado, T037; el relleno de `vfork()`, T038 y T039). Queda repetir la prueba de red sobre la cabeza con
+  T038 y T039, en un intento que concede una persona, porque los tres de la tarea se agotaron. **T031 `[plataforma]`,
+  la última**: la ejecución de cierre y la aceptación. Si la
   plataforma descubre un defecto, el arreglo va en una tarea nueva antes de T031 (plan, obligación 1). Ninguna tarea
   fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
 - **Lo humano que queda**: el secreto `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
