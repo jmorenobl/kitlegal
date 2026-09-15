@@ -198,8 +198,9 @@ común de eval con su job de evals. El binario distribuido no cambia.
   régimen local, tributos, relaciones laborales…— con el applet `boe`. Su `SKILL.md`, de menos de 300 líneas, fija
   un protocolo de cinco pasos (identificar la norma en su referencia de normas, resolver `BOE-A-…` o buscarlo con
   `boe buscar`, leer el índice y los bloques, evaluar si falta contexto y responder citando), la forma de cita
-  `[BOE-A-2015-10565, bloque a21]`, sin nada más dentro de los corchetes y con el nombre de la norma delante, en la
-  misma línea, también cuando la cita va sola, y sus reglas: ningún contenido legal que
+  `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, en la que lo que hace cita es que los corchetes terminen
+  en el identificador y el bloque —con la forma legible delante del corchete o, dentro, delante del identificador—,
+  también cuando la cita va sola, y sus reglas: ningún contenido legal que
   no salga del texto consultado, ley y reglamento distinguidos y la variación autonómica señalada. El id de cada
   bloque se copia de la entrada del índice, nunca se compone del número del artículo, y los bloques se leen de uno
   en uno; si una consulta de varios bloques falla, cada bloque se pide por separado antes de decir qué no se pudo

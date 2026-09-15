@@ -629,7 +629,7 @@ esta propuesta, y las tomadas durante la implementación.
   el modelo (persigue cada sesión y deja lo grabado sin regla; FR-074); admitir texto delante del identificador en la
   extracción de citas (cambia la forma fija de FR-008 para tolerar un desvío); contar un bloque leído con 4 o 5
   (FR-072, FR-076); cambiar el modelo de las sesiones (clarificación del spec, D13); y que `articulos` devuelva los
-  bloques que resuelve (contrato del verbo de H4). Las evals 05 y 07, que fallan por el artículo elegido y no por el
+  bloques que resuelve (contrato del verbo de H4). La segunda la revirtió después T046 (abajo). Las evals 05 y 07, que fallan por el artículo elegido y no por el
   protocolo, las resuelve la decisión siguiente (T041).
 - **Las evals 05 y 07 nombran el artículo** (T041; decisión de la persona; research D23, «Las positivas nombran el
   artículo»; contrato de evals §2): en la prueba de red del intento 4 de T030 (ejecución 34941499481), la 05 y la 07
@@ -663,7 +663,8 @@ esta propuesta, y las tomadas durante la implementación.
   cambia y la skill queda en 182 líneas; un arnés temporal sobre `ExtraerCitas`, borrado antes de `make ci`, comprobó
   que cada ejemplo válido de `SKILL.md` da una cita y las dos formas que no valen ninguna. No hay comprobación local
   con un modelo (FR-044): la evidencia es el intento siguiente de T030 y la ejecución de cierre de T031. Alternativas
-  rechazadas: admitir texto delante del identificador en la extracción (D23); exigir una línea final de fuente en toda
+  rechazadas: admitir texto delante del identificador en la extracción (D23; revertida después en T046, abajo); exigir
+  una línea final de fuente en toda
   respuesta (una regla que el contrato §2.4 no tiene y que no evita la forma inválida dentro de esa línea); y mover
   «Cómo se cita» delante del protocolo (orden de secciones del contrato §2.2, FR-002).
 - **Las diez positivas nombran el artículo** (T043; la decisión de la persona para la 05 y la 07, extendida; research
@@ -688,6 +689,32 @@ esta propuesta, y las tomadas durante la implementación.
   la 02, la 04 y la 10); dejarlas como estaban y repetir la prueba de red (D23); y cambiar el modelo de las sesiones
   (reabre la clarificación del spec, D13). La herramienta que encuentra un artículo por su materia dentro de una norma
   sigue en la bitácora de uso, `docs/USO.md`, con la evidencia de las dos ejecuciones.
+- **La forma legible dentro de los corchetes** (T046; decisión de la persona; research D23, «La forma legible dentro de
+  los corchetes»; contrato de la skill §2.3 y §3, contrato de evals §6, data-model §6.2): en la prueba de red del
+  intento 6 de T030 (ejecución 34961757559), la 08 leyó `a20` con 0 y citó tres veces con la forma legible dentro de
+  los corchetes, delante del identificador (`[art. 20.1 de la LTAIBG, BOE-A-2013-12887, bloque a20]`), la tercera
+  sesión distinta en tres intentos que lo hace —la 10 del intento 4 con el nombre de la norma, la 09 del intento 5 con
+  el nombre solo tras una transcripción—, después de que T040 lo prohibiera con dos ejemplos y T042 escribiera la forma
+  mecánica en el paso 5 y pidiera comprobar cada corchete; la 02 de la misma ejecución puso la etiqueta en un corchete
+  exterior, que la extracción lee por el interior. Con el modelo de las sesiones fijado (D13), la ejecución de cierre
+  con 10 de 10 no es alcanzable de forma fiable mientras la extracción rechace citas que llevan todo lo que FR-008
+  exige y que SC-009 compara por identificador y no por redacción. Jorge eligió la opción (B) de
+  `gates/tarea-T030.md`: `formaDeCita` extrae, de cada pareja de corchetes abiertos y cerrados en la misma línea, el
+  `<identificador>, bloque <id>` con el que terminan, con cualquier texto sin corchetes delante del identificador que
+  no acabe en letra ni en cifra; la comparación sigue siendo la igualdad exacta de la pareja y ninguna cita esperada
+  cambia. `SKILL.md` conserva los cinco pasos, las cinco reglas y la forma recomendada (la forma legible delante del
+  corchete), y en el paso 5 y en «Cómo se cita» sustituye la prohibición, las dos formas que no valían y la
+  comprobación de `BOE-` tras el corchete por la regla nueva, con la forma de la 08 como admitida; no nombra evals, job
+  ni modelos, la región generada no cambia y la skill queda en 181 líneas. `TestExtraerCitas` pasa de 5 a 13
+  subtests: las tres citas reales, en rojo con la expresión anterior y en verde con la nueva; la anidada, una sola
+  cita; y la forma legible sin `bloque <id>`, sin sus corchetes en la misma línea, con texto detrás del id y con el
+  identificador pegado, que no cuentan; tres mutantes de la expresión, deshechos antes de `make ci`, dejan en rojo cada
+  exclusión. Revierte lo que D23 rechazó dos veces, con la evidencia de tres intentos y por la misma razón que T041 y
+  T043. No hay comprobación local con un modelo (FR-044): la evidencia es el intento siguiente de T030 y la ejecución
+  de cierre de T031. Alternativas rechazadas: reforzar `SKILL.md` por cuarta vez (no elimina lo que dos refuerzos no
+  eliminaron y cuesta un intento de plataforma por variante); exigir la forma en la extracción y repetir la prueba de
+  red (D23); cambiar el modelo de las sesiones (D13); y admitir texto también detrás del id o en otra línea (la pareja
+  dejaría de estar delimitada).
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 

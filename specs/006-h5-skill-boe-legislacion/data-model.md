@@ -216,8 +216,9 @@ porque no leyó nada (FR-072, «consultó lo mismo»; FR-008; research.md D12), 
 | `norma` | `NORMA` |
 | `bloque` | `BLOQUE` |
 
-Se compara con las citas extraídas de la respuesta por su forma fija (`[<norma>, bloque <bloque>]`, contrato de la
-skill §3): igualdad exacta de la pareja.
+Se compara con las citas extraídas de la respuesta por su forma fija (los corchetes que terminan en
+`<norma>, bloque <bloque>]`, con la forma legible delante del identificador dentro de ellos o sin ella; contrato de la
+skill §3, research D23): igualdad exacta de la pareja.
 
 ### 6.3 Conjunto de evals de `boe-legislacion` (FR-062 a FR-064)
 

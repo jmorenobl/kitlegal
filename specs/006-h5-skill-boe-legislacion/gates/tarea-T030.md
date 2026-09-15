@@ -257,3 +257,12 @@ vulnerabilities found.`, ningún `FAIL` y `go mod tidy -diff` sin cambios. La ta
 queda `[ ]`, como manda su línea cuando la prueba de red descubre un defecto; el árbol deja los cuatro ficheros de
 `gates/` de este intento y `tasks.md` con T044, T045 y T046 (y su trazabilidad), y ningún fichero temporal. La etiqueta
 `evals-prueba-de-red` está quitada y el cuerpo de #27 sincronizado con `gates/pr-h5.md`.
+
+## Decisión de la persona sobre T046 (supervisión del run, 2026-09-15)
+
+Jorge eligió la opción **(B)**: T046 tal como está escrita (la extracción toma el par `<identificador>, bloque <id>`
+con el que terminan los corchetes, con cualquier texto delante; `SKILL.md` recomienda la forma legible delante del
+corchete y deja de prohibirla dentro). La supervisión detuvo el run antes de implementar T046 para esperar la decisión,
+descontó el intento que se contó sin trabajo y marcó el run como `failed` (el motor había quedado en `running` sin
+proceso tras la parada), para poder reanudarlo. Jorge planteó además revisar si Haiku es el modelo adecuado para las
+evals: queda como cuestión abierta fuera de este intento.

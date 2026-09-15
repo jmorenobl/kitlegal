@@ -103,38 +103,37 @@ Si falta algo que no puedes leer con `scripts/boe`, dilo en la respuesta en luga
 
 - Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `scripts/boe`
   en esta conversación. La cita es la forma legible de la norma y del bloque seguida, en la misma línea, de
-  `[<identificador>, bloque <id>]`, con el corchete de apertura seguido inmediatamente del identificador `BOE-A-…`: el
-  nombre de la norma va delante del corchete, nunca dentro (más en «Cómo se cita»).
+  `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
+  `<identificador>, bloque <id>]`, con el identificador `BOE-A-…` y el id tal como los da la fuente (más en «Cómo se
+  cita»).
 - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
   compartidas o cedidas, desarrollo autonómico, régimen foral), dilo; y cuando corresponda a ordenanzas u otras normas
   locales, di que no están en esta fuente.
 - Traslada los avisos de vigencia del sobre y recuerda que los textos consolidados del BOE tienen carácter informativo.
-- Antes de responder, repasa cada cita: su corchete de apertura va seguido de `BOE-`. Si dentro de los corchetes hay
-  algo delante del identificador —el nombre de la norma, «art.», «artículo»—, sácalo delante del corchete, en la misma
-  línea.
+- Antes de responder, repasa cada cita: sus corchetes se abren y se cierran en la misma línea y terminan en
+  `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
+  corchetes va además la forma legible, va delante del identificador.
 
 ## Cómo se cita
 
-Cada cita lleva primero la forma legible de la norma y del bloque y, detrás, entre corchetes, el identificador de la
-norma y el id del bloque tal como los da la fuente:
+Cada cita lleva la forma legible de la norma y del bloque y, entre corchetes, el identificador de la norma y el id del
+bloque tal como los da la fuente. La forma recomendada pone la forma legible delante del corchete:
 
 ```text
 art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
 ```
 
-- La parte entre corchetes es exactamente `[<identificador>, bloque <id de bloque>]`, con el corchete de apertura
-  seguido inmediatamente del identificador. No se admite otra forma para esa parte: dentro de los corchetes no va nada
-  más que el identificador y el id. Ni «art. 21», ni «artículo 21», ni el nombre, el número o el rango de la norma, que
-  van delante, fuera de los corchetes; ni el identificador sin el id del bloque. No valen
-  `[Ley 39/2015, BOE-A-2015-10565, bloque a21]` ni `[Constitución Española, BOE-A-1978-31229, bloque a140]`: se
-  escriben `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]` y
-  `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`.
+- Lo que hace cita es que los corchetes terminen en `<identificador>, bloque <id de bloque>]`: el identificador
+  `BOE-A-…`, una coma, la palabra `bloque` y el id, sin nada entre el id y el corchete de cierre, y los dos corchetes en
+  la misma línea.
+- Si dentro de los corchetes va además la forma legible, va delante del identificador y separada de él por una coma:
+  `[art. 20.1 de la LTAIBG, BOE-A-2013-12887, bloque a20]` también es una cita. Detrás del id no va nada:
+  `[BOE-A-2015-10565, bloque a21, art. 21]` no es una cita, y tampoco lo son el identificador sin el id del bloque ni
+  el identificador y el id sin corchetes.
 - La regla vale igual cuando la cita va sola en una línea o debajo de una cita textual en bloque, como tras transcribir
-  el artículo: también entonces la forma legible va delante, en la misma línea,
-  `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`, y el nombre de la norma no pasa dentro de
-  los corchetes.
+  el artículo: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`.
 - El identificador y el id van tal como los devuelve `scripts/boe`, también cuando el id termina en punto: el corchete
   de cierre lo delimita.
 - Una cita por bloque. Un bloque remitido se cita por separado, con su norma y su id.

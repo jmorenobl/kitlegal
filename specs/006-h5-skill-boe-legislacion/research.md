@@ -808,7 +808,8 @@ esa decisión la tomó la persona, y T043 la extendió a las diez positivas (aba
 pide otros vecinos— y deja lo grabado sin regla; FR-074 lo acota a lo que necesitan los comandos esperados. *Admitir
 texto delante del identificador dentro de los corchetes en la extracción de citas* (`formaDeCita`): cambia la forma
 fija de FR-008 y el contrato de la skill §3 para tolerar un desvío del protocolo, que es lo que la comparación mecánica
-tiene que detectar. *Contar en la comparación un bloque leído con 4 o 5*: FR-072 y FR-076 lo prohíben, porque un
+tiene que detectar (revertida en T046, con la evidencia de tres intentos: abajo, «La forma legible dentro de los
+corchetes»). *Contar en la comparación un bloque leído con 4 o 5*: FR-072 y FR-076 lo prohíben, porque un
 comando esperado solo cuenta con una invocación que terminó con 0. *Cambiar el modelo de las sesiones*: la
 clarificación del spec lo fija en la gama económica (D13), decisión cerrada. *Que `articulos` devuelva los bloques que
 sí resuelve*: cambia el contrato del verbo de H4, en el que el primer bloque que falla detiene la invocación
@@ -838,7 +839,8 @@ ninguna y la forma válida da `BOE-A-1978-31229` `a140`. No hay comprobación lo
 de que la 09 cita en la forma fija es el intento siguiente de T030 y la ejecución de cierre de T031.
 
 *Alternativas rechazadas.* *Admitir texto delante del identificador dentro de los corchetes en la extracción*:
-rechazada ya arriba, porque cambia la forma fija de FR-008 para tolerar un desvío que SC-009 quiere detectar. *Exigir
+rechazada ya arriba, porque cambia la forma fija de FR-008 para tolerar un desvío que SC-009 quiere detectar (revertida
+en T046: abajo, «La forma legible dentro de los corchetes»). *Exigir
 una línea final de fuente en toda respuesta*: añade una regla que el contrato de la skill §2.4 no tiene, y no evita que
 dentro de esa línea la forma sea la inválida, que es justo la posición en la que falló la 09. *Mover «Cómo se cita»
 delante del protocolo*: el orden de las secciones lo fija el contrato de la skill §2.2 (FR-002); escribir la forma
@@ -900,3 +902,64 @@ evitar. *Cambiar el modelo de las sesiones*: reabre la clarificación del spec, 
 La raíz, *una herramienta que encuentre un artículo por su materia dentro de una norma*, sigue fuera de H5: queda en la
 bitácora de uso (`docs/USO.md`), con la evidencia de la 05 y la 07 de la ejecución 34941499481 y la de la 03, la 06 y
 la 08 de la ejecución 34956596912, para la repriorización del roadmap.
+
+**La forma legible dentro de los corchetes (T046).** La prueba de red del intento 6 de T030 (ejecución 34961757559,
+`gates/prueba-de-red.md` §3.3 y §4, `gates/tarea-T030.md`) comprobó T042 en la 09, que citó sola en su línea tras la
+transcripción en la forma que T042 escribió, y vio la forma legible dentro de los corchetes por tercera vez, en otra
+sesión: la 08 leyó `a20` con 0 y citó tres veces con el artículo, el apartado y la sigla de la norma delante del
+identificador (`[art. 20.1 de la LTAIBG, BOE-A-2013-12887, bloque a20]`, dos veces, y
+`[art. 20.4 de la LTAIBG, BOE-A-2013-12887, bloque a20]`). Es la tercera sesión distinta en tres intentos —la 10 del
+intento 4 con el nombre de la norma (`[Real Decreto Legislativo 2/2015, BOE-A-2015-11430, bloque a38]`), la 09 del
+intento 5 con el nombre solo, tras una transcripción (`[Constitución Española, BOE-A-1978-31229, bloque a140]`), y la
+08 del intento 6—, cada una con una etiqueta distinta y cada una después de un refuerzo: T040 prohibió cualquier texto
+dentro de los corchetes con dos ejemplos, y T042 escribió la forma mecánica en el propio paso 5 y pidió comprobar cada
+corchete antes de responder. En la misma ejecución la 02 puso la etiqueta en un corchete exterior
+(`[art. 118.2, LCSP [BOE-A-2017-12902, bloque a1-30]]`), que la extracción ya leía por el interior. El modelo de las
+sesiones, fijado por la clarificación del spec (D13), quiere una etiqueta legible pegada a la cita y, con el protocolo
+reforzado dos veces, sigue metiéndola dentro en una sesión de cada diez: con esa tasa, diez positivas seguidas pasan
+poco más de una vez de cada tres, y la ejecución de cierre con 10 de 10 (FR-082, SC-003) no es alcanzable de forma
+fiable mientras la extracción rechace esas citas.
+
+*Decisión* (de la persona, que eligió esta opción frente a un cuarto refuerzo: `gates/tarea-T030.md`, «Decisión de la
+persona sobre T046»). La parte mecánica de la cita son los corchetes que terminan en `<identificador>, bloque <id>]`:
+`formaDeCita` extrae, de cada pareja de corchetes abiertos y cerrados en la misma línea, el identificador y el id con
+los que terminan, con cualquier texto sin corchetes delante del identificador que no acabe en letra ni en cifra
+(contrato de la skill §3). La comparación sigue siendo la igualdad exacta de la pareja (data-model §6.2) y ninguna cita
+esperada cambia. `SKILL.md` conserva sus cinco pasos, sus cinco reglas y la forma recomendada, con la forma legible
+delante del corchete (`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`); en el paso 5 y en «Cómo se cita»
+sustituye la prohibición de texto dentro de los corchetes, las dos formas que no valían y la comprobación de `BOE-` tras
+el corchete por la regla nueva —lo que hace cita es que los corchetes terminen en `<identificador>, bloque <id>]` y, si
+dentro va además la forma legible, va delante del identificador—, y muestra la forma de la 08 como admitida y
+`[BOE-A-2015-10565, bloque a21, art. 21]` como forma que no es cita, sin nombrar evals, el job ni modelos (contrato de
+la skill §2.5), con la región generada intacta y en 181 líneas.
+
+*Por qué se revierte lo rechazado antes.* Arriba se rechazó dos veces admitir texto delante del identificador dentro de
+los corchetes, porque cambiaba la forma fija de FR-008 «para tolerar un desvío del protocolo, que es lo que la
+comparación mecánica tiene que detectar». Lo que la comparación tiene que detectar, según el spec, es otra cosa: SC-009
+(otro bloque u otra norma fallan; la comparación distingue identificadores, no redacciones), FR-072 (el comando esperado
+con código 0 y la cita esperada) y FR-076 (ninguna petición a la red). Esas citas llevan todo lo que FR-008 exige —la
+norma en forma legible, su identificador `BOE-A-…` y el id del bloque tal como los da la fuente, extraíbles
+mecánicamente, y el contenido del texto que devolvió `scripts/boe`—, y lo único que las dejaba fuera era dónde va la
+etiqueta legible respecto al corchete: una convención de escritura que solo servía a la expresión y que el modelo no
+sigue de forma fiable. Es la misma razón por la que la persona decidió que las positivas nombren el artículo (T041 y
+T043, arriba): que las evals midan lo que el job puede medir sin depender de lo que el modelo hace de forma no fiable.
+La extracción sigue siendo mecánica e inequívoca: la pareja tiene que cerrar los corchetes, en la misma línea, con la
+palabra `bloque` y sin nada detrás del id; el identificador no puede ir pegado a una letra ni a una cifra, que lo
+harían parte de otra palabra; y un texto que abre otro corchete deja la cita en el interior.
+
+`TestExtraerCitas` fija las tres citas reales, cada una con su pareja, y la anidada de la 02 como una sola cita, y, como
+formas que siguen sin contar, la forma legible dentro sin `bloque <id>`, la forma sin sus corchetes en la misma línea
+(también tras otros corchetes ya cerrados), texto detrás del id y el identificador pegado a una letra o una cifra; las
+tres reales dan rojo con la expresión anterior y verde con la nueva. Tres mutantes de la expresión, deshechos antes de
+`make ci`, dejan en rojo cada exclusión: sin excluir el salto de línea, `sin-corchete` y `forma-legible-sin-corchetes`;
+sin exigir que el texto de delante acabe en algo que no es letra ni cifra, `identificador-pegado`; y admitiendo el
+corchete de cierre en ese texto, `forma-legible-sin-corchetes`. No hay comprobación local con un modelo (FR-044): la
+evidencia es el intento siguiente de T030 y la ejecución de cierre de T031.
+
+*Alternativas rechazadas.* *Reforzar `SKILL.md` por cuarta vez*, con el apartado y la sigla como ejemplos de lo que va
+delante del corchete: no elimina lo que dos refuerzos no eliminaron —cada sesión que falló puso una etiqueta distinta—,
+cuesta un intento de plataforma por cada variante nueva y deja el cierre de 10 de 10 al albur de la sesión. *Exigir la
+forma en la extracción y repetir la prueba de red*: es lo que D23 decidió dos veces, y la evidencia de tres intentos
+dice que el resultado depende de la sesión. *Cambiar el modelo de las sesiones*: reabre la clarificación del spec (D13).
+*Admitir cualquier texto entre los corchetes, también detrás del id o en otra línea*: la pareja dejaría de estar
+delimitada y la extracción de ser inequívoca, sin que ninguna sesión lo haya necesitado.
