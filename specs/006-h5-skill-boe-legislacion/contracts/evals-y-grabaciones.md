@@ -97,18 +97,23 @@ grabación, la tabla lo escribe como «‹id de …›»; la tarea que escribe l
 | `02-lcsp-contrato-menor.yaml` | ¿Qué debe incluir el expediente de un contrato menor según la Ley de Contratos del Sector Público? | `indice` `BOE-A-2017-12902`; bloque `BOE-A-2017-12902` `a1-30` | `BOE-A-2017-12902` `a1-30` |
 | `03-lrbrl-atribuciones-del-pleno.yaml` | ¿Qué atribuciones tiene el Pleno del ayuntamiento según la Ley reguladora de las Bases del Régimen Local? | `indice` `BOE-A-1985-5392`; bloque `BOE-A-1985-5392` `a22` | `BOE-A-1985-5392` `a22` |
 | `04-lgt-prescripcion.yaml` | ¿En cuántos años prescribe el derecho de la Administración a liquidar una deuda tributaria según la Ley General Tributaria? | `indice` ‹id de la Ley 58/2003›; bloque ‹id› `a66` | ‹id› `a66` |
-| `05-trlrhl-impuestos-municipales.yaml` | ¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales? | `indice` ‹id del RDLeg 2/2004›; bloque ‹id› `a59` | ‹id› `a59` |
+| `05-trlrhl-impuestos-municipales.yaml` | ¿Qué impuestos pueden exigir los ayuntamientos según el artículo 59 del texto refundido de la Ley reguladora de las Haciendas Locales? | bloque ‹id del RDLeg 2/2004› `a59` | ‹id› `a59` |
 | `06-irpf-rendimientos-del-trabajo.yaml` (`reproduce: boe-fiscal`) | ¿Qué rendimientos se consideran rendimientos íntegros del trabajo en la ley del IRPF? | `indice` ‹id de la Ley 35/2006›; bloque ‹id› `a17` | ‹id› `a17` |
-| `07-lrjsp-principio-de-legalidad.yaml` | ¿Qué dice la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora? | `indice` ‹id de la Ley 40/2015›; bloque ‹id› `a25` | ‹id› `a25` |
+| `07-lrjsp-principio-de-legalidad.yaml` | ¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora? | bloque ‹id de la Ley 40/2015› `a25` | ‹id› `a25` |
 | `08-ltaibg-plazo-de-resolucion.yaml` | ¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013? | `indice` ‹id de la Ley 19/2013›; bloque ‹id› `a20` | ‹id› `a20` |
 | `09-constitucion-articulo-140.yaml` | ¿Qué dice el artículo 140 de la Constitución? | bloque ‹id de la Constitución› `a140` | ‹id› `a140` |
 | `10-et-vacaciones.yaml` | ¿Cuántos días de vacaciones anuales reconoce el Estatuto de los Trabajadores? | `indice` ‹id del RDLeg 2/2015›; bloque ‹id› `a38` | ‹id› `a38` |
 | `11-no-activa-programacion.yaml` | ¿Cómo invierto una lista enlazada en Go? | — (`activa: false`) | — |
 | `12-no-activa-acuerdo-entre-amigos.yaml` | Reescribe en un tono más cercano esta frase de un acuerdo entre amigos para compartir coche: «Las partes se turnarán el uso del vehículo en fines de semana alternos». | — (`activa: false`) | — |
 
-- **Comandos esperados según el protocolo.** Si la pregunta nombra el artículo (01, 09), el id de bloque es evidente y
-  basta el bloque; si no, el protocolo exige el índice antes (FR-007), y se espera `indice`. Ninguna espera `buscar`,
-  porque todas las normas están en `references/normas.md` y el protocolo toma de ahí el identificador (US1-2).
+- **Comandos esperados según el protocolo.** Si la pregunta nombra el artículo (01, 05, 07 y 09), se espera solo su
+  bloque: en esas cuatro normas el artículo N tiene el id `aN` (research.md V64 (2)), y el índice que el paso 3 de la
+  skill lee para copiar el id (D23) está entre las consultas necesarias (data-model §7.1) pero no se espera, porque
+  una invocación que no es un comando esperado no cambia `pasa` (data-model §10.2). Si no lo nombra, el protocolo
+  exige el índice antes (FR-007), y se espera `indice`. La 05 y la 07 nombran el artículo desde T041 (research.md D23,
+  «Las evals 05 y 07»): preguntadas por materia, con un índice sin rúbricas, medían si el modelo de las sesiones sabe
+  de memoria el número del artículo y no el protocolo. Ninguna espera `buscar`, porque todas las normas están en
+  `references/normas.md` y el protocolo toma de ahí el identificador (US1-2).
 - **Bloques candidatos.** `a21`, `a1-30` (artículo 118 de la LCSP) y `a22` están en índices grabados en H4. `a66`,
   `a59`, `a17`, `a25`, `a20`, `a140` y `a38` son los ids que la gramática del BOE da a esos artículos y los confirma el
   índice grabado en la pausa; si uno no está, la persona corrige el bloque en el manifiesto y en esta tabla antes de

@@ -596,7 +596,23 @@ esta propuesta, y las tomadas durante la implementación.
   extracción de citas (cambia la forma fija de FR-008 para tolerar un desvío); contar un bloque leído con 4 o 5
   (FR-072, FR-076); cambiar el modelo de las sesiones (clarificación del spec, D13); y que `articulos` devuelva los
   bloques que resuelve (contrato del verbo de H4). Las evals 05 y 07, que fallan por el artículo elegido y no por el
-  protocolo, siguen pendientes de la decisión de la persona (*Pendientes*).
+  protocolo, las resuelve la decisión siguiente (T041).
+- **Las evals 05 y 07 nombran el artículo** (T041; decisión de la persona; research D23, «Las evals 05 y 07»; contrato
+  de evals §2): en la prueba de red del intento 4 de T030 (ejecución 34941499481), la 05 y la 07 leyeron el índice con
+  0 y pidieron otro artículo (`a2` del TRLRHL; `a140` a `a145` de la LRJSP), fuera de lo grabado, porque preguntaban
+  por materia y el índice del BOE solo da «Artículo N» sin rúbrica: medían si el modelo de las sesiones sabe de memoria
+  el número del artículo, y no el protocolo. Jorge eligió que sus preguntas nombren el artículo («¿Qué impuestos pueden
+  exigir los ayuntamientos según el artículo 59 del texto refundido de la Ley reguladora de las Haciendas Locales?» y
+  «¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?») y que,
+  como la 01 y la 09, esperen solo el bloque, sin el `indice`, con el mismo bloque y la misma cita (`BOE-A-2004-4214`
+  `a59` y `BOE-A-2015-10566` `a25`). Ninguna regla de data-model §6.3 ni ningún test mira el verbo de un comando
+  esperado, y lo grabado no cambia: el índice y los metadatos de cada norma siguen entre las consultas necesarias
+  (data-model §7.1), así que `make skills-check` pasa con las mismas grabaciones, y un índice leído sin que se espere
+  no cambia `pasa`. Las otras seis positivas que preguntan por materia (02, 03, 04, 06, 08 y 10) no cambian: en ese
+  intento el modelo eligió en todas el artículo esperado. Alternativas rechazadas: dejarlas como estaban y repetir la
+  prueba de red (con el modelo fijado, el cierre de 10 de 10 no sería fiable); y cambiar el modelo de las sesiones
+  (reabre la clarificación del spec, D13). La herramienta que encontraría un artículo por su materia dentro de una
+  norma queda en la bitácora de uso, `docs/USO.md`, para la repriorización del roadmap.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
@@ -674,8 +690,8 @@ esta propuesta, y las tomadas durante la implementación.
   4 o 5; nada más que identificador e id dentro de los corchetes; *Decisiones*, research D23 y V64), antes de T030: las
   medidas de la caché preparada están comprobadas en local (V64), y que el protocolo reforzado dé las positivas 02, 03,
   08 y 10 lo dirán el intento siguiente de T030 y la ejecución de cierre de T031, porque ningún control local ejecuta un
-  modelo (FR-044). Para 05 y 07 no hay arreglo en el protocolo, y la decisión queda para la persona (abajo, *Lo humano
-  que queda*). T030 sigue sin marcar.
+  modelo (FR-044). Para 05 y 07 no hay arreglo en el protocolo: la persona decidió que sus preguntas nombren el
+  artículo (**T041**, *Decisiones*). T030 sigue sin marcar.
 - **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
   intento 4 dejó (`gates/prueba-de-red.md` §5): S12 se cumple en (1), (2), (3), (5) y (6), con (4) sin ejercer; S2 y
   S7 se cumplen en todo lo ejercido (el job no instala `bubblewrap` ni `socat`); S9 se cumple en las trece sesiones
@@ -707,22 +723,15 @@ esta propuesta, y las tomadas durante la implementación.
   defecto que solo la plataforma podía mostrar (la purga de paquetes, T033; `bubblewrap` y el modo de permisos, T036,
   y el argv cortado, T037; el relleno de `vfork()`, T038 y T039; el protocolo de lectura de bloques y la forma de la
   cita frente a lo grabado, T040). Con el intento 4 el job queda comprobado de punta a punta (S4 se cumple); queda
-  repetir la prueba de red sobre la cabeza con T040 (y con lo que la persona decida de las evals 05 y 07), en un
-  intento que concede una persona, porque el contador de la tarea vuelve a estar agotado. **T031 `[plataforma]`,
+  repetir la prueba de red sobre la cabeza con T040 y T041, en el intento que concedió la supervisión del run, porque el
+  contador de la tarea había vuelto a agotarse (`gates/tarea-T030.md`). **T031 `[plataforma]`,
   la última**: la ejecución de cierre y la aceptación. Si la
   plataforma descubre un defecto, el arreglo va en una tarea nueva antes de T031 (plan, obligación 1). Ninguna tarea
   fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
 - **Lo humano que queda**: el secreto `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
   `evals` y `evals-prueba-de-red` ya están dados de alta (comprobados por T030); la pausa del workflow por las rutas sensibles (`schemas/`, `testdata/`); la revisión
-  (`/code-review`, `/security-review`) y la fusión. **Y una decisión antes del intento siguiente de T030** (detalle en
-  `gates/tarea-T030.md`, «Lo que decide la persona»): las evals 05 (artículo 59 del TRLRHL) y 07 (artículo 25 de la
-  LRJSP) dependen de que el modelo sepa el número del artículo, porque el índice de la fuente no tiene rúbricas y en el
-  job no se puede explorar (todo bloque no grabado responde 5); con el modelo de gama económica que fija la
-  clarificación del spec, la 05 falló en los intentos 3 y 4 y la 07 en el 4, y T040 no las arregla. Opciones: dejarlas y
-  repetir; que sus preguntas nombren el artículo, como la 01 y la 09 (tarea nueva sobre las dos evals y la tabla del
-  contrato de evals §2; la recomendada, porque mide lo que el job puede medir); cambiar el modelo de las sesiones
-  (reabre la clarificación del spec y D13); o una herramienta que encuentre artículos por materia dentro de una norma
-  (la raíz, para el backlog: `docs/USO.md`).
+  (`/code-review`, `/security-review`) y la fusión. La decisión sobre las evals 05 y 07 que dejó el intento 4 de T030
+  ya está tomada: sus preguntas nombran el artículo (T041, *Decisiones*).
 - **`docs/PENDIENTES.md`** queda con sus dos entradas ajenas a H5 (absorber `refs/` cuando existan
   `docs/ARCHITECTURE.md` y `docs/SOURCES.md`; plegar `specs/*/gates/` cuando molesten). Las tres de H5 se retiraron
   como resueltas (FR-083, FR-084, FR-085).

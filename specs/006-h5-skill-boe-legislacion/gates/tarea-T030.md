@@ -166,3 +166,12 @@ los ficheros temporales que usó para leer el registro y medir los índices), en
 en `gates/ci.log` (ignorado): **código 0**, `ci: todos los controles en verde`, ningún `FAIL` y `go mod tidy -diff`
 sin cambios. La tarea queda `[ ]`, como manda su línea cuando la prueba de red descubre un defecto; el árbol deja los
 cuatro ficheros de `gates/` de este intento y `tasks.md` con T040, y ningún fichero temporal.
+
+## Decisión de la persona y segunda ampliación del tope (supervisión del run, 2026-09-15)
+
+Jorge eligió la opción (ii) de «Lo que decide la persona»: las evals 05 y 07 nombran el artículo, y la herramienta que
+encuentra un artículo por su materia dentro de una norma va al backlog (`docs/USO.md`). Se aplica en la tarea nueva
+**T041**, antes de T030. Tras T040 el workflow volvió a detenerse por el tope de intentos; la supervisión restauró el
+contador de T030 a 2 para un intento más (el quinto de la tarea), con el mismo criterio que la primera ampliación: el
+intento 4 no repitió ningún fallo anterior, cumplió la prueba de red (SC-012) y el motivo que dejó —el protocolo de la
+skill y las evals 05 y 07— queda arreglado en T040 y T041. No se ha tocado ningún veredicto, umbral ni control.

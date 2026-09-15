@@ -1,11 +1,8 @@
-# Eval positiva: la pregunta no nombra el artículo, así que el protocolo lee antes el índice (FR-007). El bloque
+# Eval positiva: la pregunta nombra el artículo, así que se espera solo la lectura de su bloque y su cita. El bloque
 # a25 es el artículo 25 de la LRJSP.
-pregunta: "¿Qué dice la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?"
+pregunta: "¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?"
 activa: true
 comandos:
-  - applet: boe
-    verbo: indice
-    norma: BOE-A-2015-10566
   - applet: boe
     norma: BOE-A-2015-10566
     bloque: a25
