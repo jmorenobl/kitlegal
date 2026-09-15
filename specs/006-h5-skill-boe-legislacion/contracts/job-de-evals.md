@@ -283,7 +283,7 @@ codigo=0
     http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 \
     NO_PROXY=api.anthropic.com no_proxy=api.anthropic.com \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
-    CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 \
+    CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 \
     timeout --kill-after=10s 240s \
     strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 4096 -o "$d/traza/t" -- \
     claude -p "$(cat "$d/pregunta.txt")" \
@@ -306,12 +306,12 @@ printf '%s\n' "$codigo" > "$d/codigo-de-la-sesion"
 | `HTTP(S)_PROXY` a `127.0.0.1:9` | toda petición del binario va al proxy del entorno (`http.DefaultTransport`, que `httpx` clona), que no existe: la conexión se rechaza en el propio equipo y la invocación termina sin texto y con código distinto de 0, lleve o no `--offline` (FR-074, FR-076; research.md D16) |
 | `NO_PROXY=api.anthropic.com` | el cliente de la API de Claude Code respeta `HTTPS_PROXY` y `NO_PROXY` (V10): su única red es la del proveedor del modelo |
 | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` | sin tráfico de telemetría ni actualizaciones, que el proxy bloquearía |
-| `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` | que las órdenes de la sesión no hereden la credencial del modelo |
+| `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` | sin el aislamiento de subprocesos de Claude Code, que es incompatible con la traza y con el contexto de la skill (research.md V12, V61 y D13). Con `1`, el binario 2.1.270 de Linux exige `bwrap` al arrancar y `socat` en la primera orden, fuerza el modo de permisos `default` (ignora `--permission-mode`) y ejecuta cada orden de Bash dentro de `bwrap` con `--unshare-pid`, `--unshare-user` y `--ro-bind / /`: los `clone` de dentro devuelven los números del espacio de nombres de PID nuevo y no los de los ficheros `t.<n>`, así que la traza no se puede atribuir (§4), y el disco queda de solo lectura salvo `/home`, `/root`, `/tmp`, `/var`, `/opt`, `/run` y `/mnt`, como con el sandbox que D16 rechaza. Con `0`, Claude Code tampoco pasa `CLAUDE_CODE_OAUTH_TOKEN` al entorno de las órdenes ni al de los ganchos, pero la variable sigue en el entorno inicial de `claude` y de los procesos que lo lanzan, legible para una orden del mismo usuario en `/proc/<pid>/environ`: el riesgo que asume plan.md §VII. El valor va explícito para que ningún valor por defecto del binario active el aislamiento |
 | `strace -ff …` | registro de cada `execve` (argv y código de salida) y de cada `connect`, de la sesión y de sus descendientes, en un fichero por hilo (research.md D12). Sin `-e signal=none`: con ella `strace` no escribe `+++ killed by SIG… +++`, y el fichero de todo proceso que muere por una señal se quedaría sin línea final, con tope o sin él; sin ella añade una línea `--- SIGNOMBRE {…} ---` por señal entregada, que `LeerTrazas` admite y no cuenta (research.md V54; data-model §9, regla 5) |
 | `timeout 240s` | por debajo de la vigencia de 300 s de `buscar` y `metadatos` en la caché (data-model §8) |
 | `--setting-sources user`, `trabajo/` vacío fuera del repositorio | ni `CLAUDE.md` ni las skills del repositorio entran en la sesión: solo lo que dejó `make install` en `~/.claude/skills` |
 | `--settings '{"sandbox":{"enabled":false}}'` | el sandbox no reescribe el proxy de las órdenes (research.md D16) |
-| `--permission-mode bypassPermissions` | la sesión sin terminal no puede aprobar órdenes; el runner es desechable y el job solo lee el repositorio |
+| `--permission-mode bypassPermissions` | la sesión sin terminal no puede aprobar órdenes; el runner es desechable y el job solo lee el repositorio. El binario la respeta porque `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` es `0`: con `1` la sustituye por `default` y deniega toda orden de Bash que no se declare con `--allowedTools` (research.md V12 y V61) |
 | `--disallowedTools WebFetch WebSearch` | ninguna herramienta de la sesión consulta la web por su cuenta |
 | `codigo=0` … `\|\| codigo=$?` y `codigo-de-la-sesion` | el código de salida de la sesión se escribe **siempre**, también 0: `timeout` da 124 al agotar los 240 s y 137 si, pasados los 10 s de `--kill-after`, tuvo que enviar `KILL`; si la sesión termina antes, da el de `strace`, que es el de `claude` (research.md V52 y V53, comprobados con las versiones de Ubuntu 24.04; en el runner, supuesto S10). Lo lee `LeerSesion` (§4) y decide si la sesión terminó y si la cortó el tope; si el fichero falta, la sesión es ilegible y no pasa, en lugar de tomarse por 0. Con 137, `strace` muere por `KILL` y deja sin línea final los ficheros de los procesos que seguían vivos (research.md V54), lo que `LeerTrazas` admite solo en una sesión cortada (§4) |
 

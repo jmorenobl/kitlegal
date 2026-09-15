@@ -62,7 +62,7 @@ documentación): 360 ficheros, 26 551 líneas añadidas y 77 retiradas, en 34 co
   y `scripts/evals.sh`. **Flujo**: `.github/workflows/evals.yml` (`name: evals`; manual con la entrada
   `prueba_de_red`, semanal sobre la rama principal y por las etiquetas `evals` y `evals-prueba-de-red`;
   `ubuntu-24.04`; Claude Code 2.1.270 y `strace`; el paso «Retirar Python del runner»; modelo
-  `claude-haiku-4-5-20251001`; `CLAUDE_CODE_OAUTH_TOKEN` y `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
+  `claude-haiku-4-5-20251001`; `CLAUDE_CODE_OAUTH_TOKEN`; la sesión, con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`).
 - **Ficheros de H0-H4 tocados**, y ninguno más (nueve): `Makefile` (`install` enlaza las skills; `skills-sync` real;
   `skills-check` nuevo, en `ci`, que pasa de nueve a diez controles; `evals` nuevo, fuera de `ci`); `.golangci.yml`
   (la etiqueta `evals` en `run.build-tags` y `comando`, `comandos`, `defectos`, `legislativo` y `patrones` en
@@ -406,7 +406,10 @@ lectura del esquema de normas por su ruta, el identificador de una norma como te
 cifras. En los seis ficheros de cada paquete que `codecov/patch` midió en rojo quedan 16 bloques sin cubrir en
 `internal/evals`, de una línea cada uno (antes 82 líneas), y 18 en `internal/skills`, de una sentencia cada uno (antes
 53 líneas), cada uno con su motivo en `gates/tarea-T034.md` y en `gates/tarea-T035.md`. **Ningún umbral se rebaja**:
-`codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo lee T030 en la plataforma.
+`codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo leyó T030 en la plataforma
+(intento 2, 2026-09-15, cabeza `417635e`): **98,42 % del diff frente al objetivo de 94,70 %, en verde**, con 33 líneas
+sin cubrir, las justificadas en `gates/tarea-T034.md` y `gates/tarea-T035.md`; `codecov/project` 96,30 %
+(`gates/evidencia-plataforma.md`).
 
 **Sin ninguna supresión nueva**: `0` líneas `//nolint` y `0` `t.Skip` añadidas en ficheros `.go` frente a `main`.
 `gosec` se resuelve sin supresiones (`filepath.Clean`, `0o600`, lectura y escritura por auxiliares distintos, programas
@@ -521,6 +524,25 @@ esta propuesta, y las tomadas durante la implementación.
   y seis lecturas, escrituras o retiradas de lo que la propia función acaba de listar o crear (solo fallan por permisos
   o carreras). Alternativa rechazada: pasar el registro y la gramática como parámetros para que un test inyecte uno que
   falla, que fuerza la rama con un doble y deja las propagaciones igual.
+- **La sesión sin el aislamiento de subprocesos de Claude Code** (T036; research V12, V61 y D13; plan §VII): la prueba
+  de red del intento 2 de T030 (ejecución 34930222593) mostró que, con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, Claude Code
+  2.1.270 de Linux no arranca sin `bubblewrap`, y el binario fuerza además con esa variable el modo de permisos
+  `default`. T036 comprobó en contenedores de `ubuntu:24.04`, con un token inválido y un servidor local en lugar de la
+  API —sin modelo y sin red salvo para instalar paquetes—, lo que haría falta para mantenerla: con `bubblewrap` y
+  `--allowedTools Skill Bash` las sesiones arrancan, pero la primera orden de Bash exige `socat` y, con él, corre dentro
+  de `bwrap` con un espacio de nombres de PID propio, cuyos `clone` devuelven números que no son los de los ficheros de
+  la traza (`LeerTrazas`: «dos líneas crean t.50»), y con el disco de solo lectura salvo `/home`, `/tmp` y otros cinco
+  directorios. Es la incompatibilidad con la traza que preveía la línea de T036, así que la sesión fija
+  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` y conserva `--permission-mode bypassPermissions`, sin instalar nada más en el
+  runner. Claude Code sigue sin pasar el token al entorno de las órdenes y de los ganchos, y se asume que una orden del
+  mismo usuario podría leerlo en `/proc`, del entorno de `claude` (runner desechable, `contents: read`, disparo solo
+  desde el repositorio, token revocable). Alternativas rechazadas: `bwrap` con la traza adaptada (`strace
+  --decode-pids=pidns`), que cambia las formas de data-model §9 antes del último intento, ejecuta la skill con el disco
+  de solo lectura (lo que D16 rechaza del sandbox) y depende de espacios de nombres de usuario que AppArmor puede
+  restringir en Ubuntu 24.04; `processWrapper` y el descriptor del token, sin documentar; el sandbox de Bash, por D16.
+  La misma comprobación encontró que `strace -s 4096` corta el argv de la instantánea de shell que Claude Code crea
+  antes de la primera orden de Bash, lo que dejaría ilegible toda sesión que ejecute Bash con cualquier valor de la
+  variable: lo arregla T037 (`-s 131072`), antes de T030.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
@@ -529,10 +551,10 @@ esta propuesta, y las tomadas durante la implementación.
 - **Supuesto S8 (research D22), pendiente de la fusión**: que GitHub excluya de las estadísticas de lenguaje
   los ficheros con `linguist-vendored` y pliegue en los diffs los que llevan `linguist-generated`, también desde un
   `.gitattributes` anidado. Lo comprobable sin plataforma está arriba (escenario 11: `git check-attr` da `set` para los
-  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intento 1,
-  2026-09-15, #27, cabeza `6d68c21`): la API de ficheros de la propuesta
-  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360 ficheros
-  y, bajo `.agents/`, solo `.agents/.gitattributes`; ningún fichero de `.agents/skills/` está en el diff, así que el
+  dos atributos solo bajo `.agents/skills/`). **Lo comprobable con la propuesta de cambio abierta** (T030, intentos 1 y 2,
+  2026-09-15, #27, cabezas `6d68c21` y `417635e`): la API de ficheros de la propuesta
+  (`gh api --paginate 'repos/jmorenobl/kitlegal/pulls/27/files?per_page=100' --jq '.[].filename'`) lista 360 y 366
+  ficheros respectivamente y, bajo `.agents/`, solo `.agents/.gitattributes` en los dos casos; ningún fichero de `.agents/skills/` está en el diff, así que el
   plegado no se puede observar aquí (y `gh pr diff 27 --name-only` tampoco sirve: la plataforma lo rechaza con
   `HTTP 406 … the diff exceeded the maximum number of files (300)`); se verá en la primera propuesta que toque
   `.agents/skills/`. Las estadísticas de la rama principal antes de fusionar (`gh api repos/jmorenobl/kitlegal/languages`)
@@ -547,16 +569,29 @@ esta propuesta, y las tomadas durante la implementación.
   `internal/evals` y 18 de una sentencia en `internal/skills`, justificados en `gates/tarea-T034.md` y
   `gates/tarea-T035.md`); y la **prueba de red** (ejecución 34922606273) se detuvo en «Retirar Python del
   runner» con código 100: `apt-get purge` no puede retirar los 110 paquetes de Python de `ubuntu-24.04` porque de ellos
-  dependen paquetes del sistema (`gates/prueba-de-red.md`; S2 y S7 difieren), que arregla T033. T030 sigue sin marcar
-  (`gates/tarea-T030.md`).
-- **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**: S1
+  dependen paquetes del sistema, que arregló T033. Los detalles de ese intento están en las versiones de
+  `gates/evidencia-plataforma.md`, `gates/prueba-de-red.md` y `gates/tarea-T030.md` del commit `c4c7613`.
+- **Plataforma, intento 2 de T030 (2026-09-15, cabeza `417635e`)**: `ci` en verde (ejecución 34929854868, 4 m 49 s) y
+  los cuatro estados de Codecov en verde, `codecov/patch` incluido (98,42 % frente a 94,70 %; `codecov/project`
+  96,30 %, `internal/core` 90,36 %, `internal/cli` 98,09 %; `gates/evidencia-plataforma.md`). La **prueba de red**
+  (ejecución 34930222593) pasa el paso «Retirar Python del runner» (921 rutas, 1 m 47 s, `búsqueda tras retirar:
+  ninguno`) y llega al informe, pero las trece sesiones terminan con código 1 al arrancar Claude Code: con
+  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, el binario 2.1.270 de Linux exige `bubblewrap`, que la imagen no trae, y
+  además fuerza el modo de permisos a `default` (`gates/prueba-de-red.md`, `gates/tarea-T030.md`). T036 lo comprobó en
+  contenedores y lo resolvió con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`, porque el aislamiento con `bwrap` deja la traza
+  sin atribuir (*Decisiones*); la comprobación encontró además el corte del argv de la instantánea de shell, que
+  arregla T037. T030 sigue sin marcar; su intento 3, tras T036 y T037, repite la prueba de red.
+- **Supuestos de plataforma (research D22), pendientes de T030 (prueba de red, `gates/prueba-de-red.md`)**. Lo que el
+  intento 2 ya dejó: S12 se cumple en (1), (2), (3), (5) y (6); S2 y S7 se cumplen en todo lo ejercido (con T036, el
+  job no instala `bubblewrap` y S2 no supone nada de los espacios de nombres de usuario del runner); S10 se cumple en
+  la propagación del código de `claude`; S1, en que el job de la rama corre con el secreto; S5 y S6 se reescriben con
+  T036 (research V61, caso 4); S4, S9 y S11, sin evidencia todavía. Los supuestos: S1
   (`pull_request` con `types: [labeled]` ejecuta el fichero del job de la rama con los secretos del repositorio), S2 (lo
   que trae `ubuntu-24.04`: `sudo -n`, `strace`, `node`, `npm`, `timeout`, findutils y coreutils; la línea
   `búsqueda:` de la retirada), S4 (formato de `strace -ff` en el runner x86_64 con Claude Code: la conexión `127.0.0.1:9` de
   clase `local` de la invocación `a9998` y ninguna sesión no cortada con traza ilegible), S5 (Claude Code en `-p` carga
-  `~/.claude/skills`, hereda el proxy y `KITLEGAL_CACHE_DIR`, y `--settings` desactiva el sandbox), S6
-  (`CLAUDE_CODE_OAUTH_TOKEN` autentica y acepta el modelo; `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` retira el token de las
-  órdenes de la sesión), S7 (la retirada de Python: qué trae la imagen, que se puede buscar y retirar como root y que no
+  `~/.claude/skills`, y Bash hereda el proxy y `KITLEGAL_CACHE_DIR` y corre sin sandbox), S6
+  (`CLAUDE_CODE_OAUTH_TOKEN` autentica y acepta el modelo), S7 (la retirada de Python: qué trae la imagen, que se puede buscar y retirar como root y que no
   rompe el job), S10 (`timeout --kill-after=10s 240s` y los códigos 124 y 137; el `codigo_de_la_sesion` 0 de las
   terminadas), S11 (Claude Code solo necesita `api.anthropic.com`) y S12 (identificar la ejecución por el último evento
   `labeled`, el formato de los instantes y `workflowName`). **Pendientes de T031 (ejecución de cierre,
@@ -566,14 +601,15 @@ esta propuesta, y las tomadas durante la implementación.
   cambiados entre el commit evaluado y la cabeza solo bajo el directorio del hito (SC-001 a SC-003, FR-080 a FR-082).
   S3 (cada búsqueda del manifiesto devuelve su norma y existen los bloques) ya lo comprobó la persona en la pausa de
   T008 y lo vigila `make ci` desde entonces.
-- **T030 `[plataforma]`, por hacer**: publicar la rama, abrir esta propuesta con este fichero como cuerpo, leer `ci` y
-  los cuatro estados de Codecov (`codecov/project`, `internal/core`, `internal/cli` y `codecov/patch` con objetivo
-  `auto`) en `gates/evidencia-plataforma.md`, comprobar el secreto y las dos etiquetas (los da de alta una persona) y
-  ejecutar la prueba de red. **T031 `[plataforma]`, la última**: la ejecución de cierre y la aceptación. Si la
+- **T030 `[plataforma]`, intento 3 por hacer**: los intentos 1 y 2 publicaron la rama, abrieron esta propuesta con
+  este fichero como cuerpo, leyeron `ci` y los cuatro estados de Codecov (`codecov/project`, `internal/core`,
+  `internal/cli` y `codecov/patch` con objetivo `auto`, todos en verde sobre `417635e`) en
+  `gates/evidencia-plataforma.md` y comprobaron el secreto y las dos etiquetas; queda repetir la prueba de red sobre
+  la cabeza con T036 y T037. **T031 `[plataforma]`, la última**: la ejecución de cierre y la aceptación. Si la
   plataforma descubre un defecto, el arreglo va en una tarea nueva antes de T031 (plan, obligación 1). Ninguna tarea
   fusiona, empuja a `main`, fuerza ni etiqueta (ADR 0007).
-- **Lo humano que queda**: dar de alta `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
-  `evals` y `evals-prueba-de-red`; la pausa del workflow por las rutas sensibles (`schemas/`, `testdata/`); la revisión
+- **Lo humano que queda**: el secreto `CLAUDE_CODE_OAUTH_TOKEN` (token de `claude setup-token`) y las etiquetas
+  `evals` y `evals-prueba-de-red` ya están dados de alta (comprobados por T030); la pausa del workflow por las rutas sensibles (`schemas/`, `testdata/`); la revisión
   (`/code-review`, `/security-review`) y la fusión.
 - **`docs/PENDIENTES.md`** queda con sus dos entradas ajenas a H5 (absorber `refs/` cuando existan
   `docs/ARCHITECTURE.md` y `docs/SOURCES.md`; plegar `specs/*/gates/` cuando molesten). Las tres de H5 se retiraron

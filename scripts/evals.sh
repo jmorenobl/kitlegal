@@ -110,10 +110,12 @@ sesion() {
 		exit 1
 	fi
 
-	# Sesión: la caché preparada, un proxy que rechaza toda petición salvo la del modelo, sin tráfico no esencial, sin la
-	# credencial del modelo en las órdenes de la sesión, con el tope de 240 s y bajo strace, en un directorio de trabajo
-	# vacío fuera del repositorio y solo con la configuración y las skills de la cuenta (tabla del §3.2; research.md D12,
-	# D13 y D16).
+	# Sesión: la caché preparada, un proxy que rechaza toda petición salvo la del modelo, sin tráfico no esencial, con el
+	# tope de 240 s y bajo strace, en un directorio de trabajo vacío fuera del repositorio y solo con la configuración y
+	# las skills de la cuenta (tabla del §3.2; research.md D12, D13 y D16). Sin el aislamiento de subprocesos de Claude
+	# Code, que en Linux ejecuta cada orden dentro de bwrap, con un espacio de nombres de PID que deja la traza sin atribuir
+	# y el disco de solo lectura; Claude Code sigue sin pasar la credencial del modelo al entorno de las órdenes
+	# (research.md V12, V61 y D13).
 	local codigo=0
 	(
 		cd "$d/trabajo"
@@ -123,7 +125,7 @@ sesion() {
 			http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 \
 			NO_PROXY=api.anthropic.com no_proxy=api.anthropic.com \
 			CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
-			CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 \
+			CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 \
 			timeout --kill-after=10s 240s \
 			strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 4096 -o "$d/traza/t" -- \
 			claude -p "$(cat "$d/pregunta.txt")" \
