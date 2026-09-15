@@ -468,30 +468,32 @@ type arreglo struct {
 	retirar bool
 }
 
-// aplicar deshace la deriva del arreglo en el árbol.
+// aplicar deshace la deriva del arreglo en el árbol: retira lo sobrante y lo que
+// hay que retirar y, salvo en lo sobrante, crea lo que falte del directorio que
+// lo contiene y deja en la ruta el enlace o el fichero.
 func (a arreglo) aplicar() error {
-	if a.retirar || a.deriva.Clase == DerivaFicheroSobrante || a.deriva.Clase == DerivaEnlaceSobrante {
+	sobrante := a.deriva.Clase == DerivaFicheroSobrante || a.deriva.Clase == DerivaEnlaceSobrante
+
+	if a.retirar || sobrante {
 		if err := os.Remove(a.ruta); err != nil {
 			return fmt.Errorf("%s: %s no se puede retirar: %w", a.deriva.Skill, a.deriva.Ruta, err)
 		}
 	}
 
-	switch a.deriva.Clase {
-	case DerivaFicheroSobrante, DerivaEnlaceSobrante:
+	if sobrante {
 		return nil
-	case DerivaEnlaceAusente, DerivaEnlaceConOtroDestino:
-		if err := crearDirectorio(filepath.Dir(a.ruta)); err != nil {
-			return fmt.Errorf("%s: %s: %w", a.deriva.Skill, a.deriva.Ruta, err)
-		}
+	}
 
+	if err := crearDirectorio(filepath.Dir(a.ruta)); err != nil {
+		return fmt.Errorf("%s: %s: %w", a.deriva.Skill, a.deriva.Ruta, err)
+	}
+
+	switch a.deriva.Clase {
+	case DerivaEnlaceAusente, DerivaEnlaceConOtroDestino:
 		if err := os.Symlink(a.destino, a.ruta); err != nil {
 			return fmt.Errorf("%s: %s no se puede enlazar: %w", a.deriva.Skill, a.deriva.Ruta, err)
 		}
 	default:
-		if err := crearDirectorio(filepath.Dir(a.ruta)); err != nil {
-			return fmt.Errorf("%s: %s: %w", a.deriva.Skill, a.deriva.Ruta, err)
-		}
-
 		if err := os.WriteFile(a.ruta, a.contenido, permisosDeFichero); err != nil {
 			return fmt.Errorf("%s: %s no se puede escribir: %w", a.deriva.Skill, a.deriva.Ruta, err)
 		}

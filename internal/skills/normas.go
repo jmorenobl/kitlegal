@@ -3,7 +3,6 @@ package skills
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,18 +85,25 @@ func presentarNorma(norma string) string {
 // esquemaDeNormas compila una sola vez el esquema publicado de data/normas.yaml,
 // que no cambia mientras se ejecutan los tests.
 var esquemaDeNormas = sync.OnceValues(func() (*jsonschema.Schema, error) {
-	contenido, err := os.ReadFile(rutaDelEsquemaDeNormas)
+	return compilarEsquemaDeNormas(rutaDelEsquemaDeNormas)
+})
+
+// compilarEsquemaDeNormas lee el esquema de data/normas.yaml de la ruta y lo
+// compila con CompilarEsquema. El error nombra la ruta: la del fichero que no se
+// puede leer o la del esquema que no compila.
+func compilarEsquemaDeNormas(ruta string) (*jsonschema.Schema, error) {
+	contenido, err := leerFichero(ruta)
 	if err != nil {
 		return nil, fmt.Errorf("no se puede leer el esquema de data/normas.yaml: %w", err)
 	}
 
 	esquema, err := CompilarEsquema(contenido)
 	if err != nil {
-		return nil, fmt.Errorf("el esquema de data/normas.yaml %s: %w", rutaDelEsquemaDeNormas, err)
+		return nil, fmt.Errorf("el esquema de data/normas.yaml %s: %w", ruta, err)
 	}
 
 	return esquema, nil
-})
+}
 
 // LeerNormas lee el contenido de data/normas.yaml y devuelve sus normas en el
 // orden del documento (contrato normas-y-referencias §3; FR-025, FR-043):
@@ -171,10 +177,10 @@ func (n *normasEnOrden) UnmarshalYAML(nodo *yaml.Node) error {
 			}
 		}
 
-		var norma Norma
-		if err := clave.Decode(&norma.Identificador); err != nil {
-			return fmt.Errorf("%s, línea %d: el identificador no se puede leer: %w", claveDeLasNormas, clave.Line, err)
-		}
+		// El lector común ya convirtió la tabla a un mapa con claves de texto, así
+		// que cada clave es un escalar de texto, o un alias de uno, y el
+		// identificador es su texto, como en las claves del frontmatter.
+		norma := Norma{Identificador: sinEnvoltorio(clave).Value}
 
 		if primera, repetido := lineas[norma.Identificador]; repetido {
 			return &DefectoDeNorma{Norma: norma.Identificador, Defecto: repetidoEnLasLineas(primera, clave.Line)}

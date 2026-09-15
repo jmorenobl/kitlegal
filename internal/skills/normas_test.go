@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -186,6 +187,17 @@ func TestLeerNormas(t *testing.T) {
 			error: "BOE-A-2015-10565: titulo repetido en las líneas 3 y 4",
 		},
 		{
+			// El recorrido del lector común no ve la repetición, porque el alias no
+			// se escribe como titulo, y el esquema valida el documento convertido,
+			// con el segundo título; la norma, al leerla, tiene titulo dos veces.
+			nombre: "campo-repetido-en-una-norma-por-un-alias",
+			documento: inicioDeLasNormas + cambiada(t,
+				cambiada(t, normaDeLaLPAC, tituloEscritoLPAC, "    &titulo "+strings.TrimLeft(tituloEscritoLPAC, " ")),
+				materiaDeLaLPAC, materiaDeLaLPAC+"    *titulo : \"Ley 39/2015\"\n"),
+			error: "el documento YAML no se puede leer como skills.tablaDeNormas: BOE-A-2015-10565: " +
+				"la norma no se puede leer: yaml: unmarshal errors:\n  line 8: field titulo already set in type skills.Norma",
+		},
+		{
 			nombre:    "titulo-sin-texto",
 			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, tituloEscritoLPAC, "    titulo: \"\"\n"),
 			error:     "BOE-A-2015-10565: titulo sin texto",
@@ -242,6 +254,15 @@ func TestLeerNormas(t *testing.T) {
 			nombre:    "clave-que-no-es-texto",
 			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, claveDeLaLPAC, "  1:\n"),
 			error:     "línea 2: normas: mapa con claves que no son texto",
+		},
+		{
+			// La etiqueta de texto no hace texto de una lista: la conversión a un mapa
+			// de texto falla antes de leer ninguna norma, así que a cada norma solo
+			// llega una clave que es un escalar de texto, o un alias de uno.
+			nombre:    "clave-de-texto-que-es-una-lista",
+			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, claveDeLaLPAC, "  ? !!str [BOE-A-2015-10565]\n  :\n"),
+			error: "el documento YAML no se puede leer: yaml: unmarshal errors:\n" +
+				"  line 2: cannot unmarshal !!str `` into string",
 		},
 		{
 			// Una fusión trae normas sin escribir su identificador en la tabla: el
@@ -357,6 +378,36 @@ func TestEsquemaDeNormas(t *testing.T) {
 		assert.Equal(t, rangosDeLasBusquedasGrabadas(t, evals.UnionDeGrabaciones()), rangosDelEsquema(t, contenido),
 			"el enum de rango de %s es el conjunto de rangos de las búsquedas grabadas", esquemaPublicadoDeNormas)
 	})
+}
+
+// TestCompilarEsquemaDeNormasDesdeUnaRuta fija la lectura y la compilación del
+// esquema de data/normas.yaml desde su ruta: la del esquema publicado da el
+// esquema; una carpeta en su lugar es un error de lectura, y un JSON que no es un
+// JSON Schema válido, uno de compilación que nombra la ruta.
+func TestCompilarEsquemaDeNormasDesdeUnaRuta(t *testing.T) {
+	t.Parallel()
+
+	esquema, err := skills.CompilarEsquemaDeNormas(esquemaPublicadoDeNormas)
+	require.NoError(t, err)
+	assert.NotNil(t, esquema)
+
+	directorio := t.TempDir()
+
+	carpeta := filepath.Join(directorio, "carpeta.json")
+	require.NoError(t, os.Mkdir(carpeta, 0o750))
+
+	esquema, err = skills.CompilarEsquemaDeNormas(carpeta)
+	require.ErrorIs(t, err, syscall.EISDIR)
+	require.ErrorContains(t, err, "no se puede leer el esquema de data/normas.yaml: ")
+	assert.Nil(t, esquema)
+
+	sinCompilar := filepath.Join(directorio, "rango-sin-tipo.json")
+	escribirFicheroDePrueba(t, sinCompilar,
+		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"rango": {"type": "texto"}}}`)
+
+	esquema, err = skills.CompilarEsquemaDeNormas(sinCompilar)
+	require.ErrorContains(t, err, "el esquema de data/normas.yaml "+sinCompilar+": el esquema no compila: ")
+	assert.Nil(t, esquema)
 }
 
 // rangosDelEsquema son los valores del enum de rango del esquema de normas,

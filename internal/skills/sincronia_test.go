@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -414,9 +415,10 @@ func probarDefectos(t *testing.T) {
 	t.Helper()
 
 	casos := []struct {
-		nombre   string
-		alterar  func(t *testing.T, raiz string)
-		defectos []string
+		nombre               string
+		alterar              func(t *testing.T, raiz string)
+		cambiarDescripciones func(descripciones []skills.DescripcionDeVerbo)
+		defectos             []string
 	}{
 		{
 			nombre: "frontmatter",
@@ -487,6 +489,15 @@ func probarDefectos(t *testing.T) {
 			},
 		},
 		{
+			// La tabla afirma que las banderas son las de todas sus órdenes: la
+			// primera es la de dos listar, el primer applet que declara alfa.
+			nombre: "tabla-con-banderas-distintas",
+			cambiarDescripciones: func(descripciones []skills.DescripcionDeVerbo) {
+				descripciones[0].Banderas = []skills.Bandera{{Nombre: "json"}}
+			},
+			defectos: []string{"alfa: SKILL.md: uno leer no declara las mismas banderas globales que dos listar"},
+		},
+		{
 			nombre: "norma-con-vertical",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
@@ -540,7 +551,9 @@ func probarDefectos(t *testing.T) {
 			t.Parallel()
 
 			raiz := arbolSincronizado(t)
-			caso.alterar(t, raiz)
+			if caso.alterar != nil {
+				caso.alterar(t, raiz)
+			}
 
 			// beta no tiene defectos y sí una deriva, que Comparar sigue viendo y que
 			// Escribir tampoco deshace.
@@ -548,7 +561,12 @@ func probarDefectos(t *testing.T) {
 			envejecer(t, raiz)
 			antes := fotografiar(t, raiz)
 
-			regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+			descripciones := descripcionesDeSincronia()
+			if caso.cambiarDescripciones != nil {
+				caso.cambiarDescripciones(descripciones)
+			}
+
+			regenerado := regenerar(t, raiz, descripciones)
 			assert.Equal(t, caso.defectos, presentarDefectos(regenerado.Defectos()))
 
 			derivas, err := skills.Comparar(raiz, regenerado)
@@ -568,6 +586,212 @@ func probarDefectos(t *testing.T) {
 			assert.Equal(t, antes, fotografiar(t, raiz), "con defectos, Escribir no escribe nada")
 		})
 	}
+}
+
+// TestRegenerarSinPoderListar fija los errores con los que Regenerar no regenera
+// nada, sobre la estructura de un repositorio temporal con las fuentes de la
+// sincronía: un fichero donde va el directorio de skills y un fichero donde va el
+// directorio de datos, que se lista porque alfa declara una referencia. Cada
+// error nombra el directorio.
+func TestRegenerarSinPoderListar(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre     string
+		directorio string
+		prefijo    string
+	}{
+		{nombre: "directorio-de-skills-que-es-un-fichero", directorio: "skills", prefijo: "el directorio de skills "},
+		{nombre: "directorio-de-datos-que-es-un-fichero", directorio: "data", prefijo: "alfa: el directorio de datos "},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolDeFuentes(t)
+			ruta := filepath.Join(raiz, caso.directorio)
+			sustituirPorUnFichero(t, ruta)
+
+			regenerado, err := skills.Regenerar(raiz, descripcionesDeSincronia())
+			require.ErrorIs(t, err, syscall.ENOTDIR)
+			require.ErrorContains(t, err, caso.prefijo+ruta+" no se puede listar: ")
+			assert.Zero(t, regenerado)
+		})
+	}
+}
+
+// TestCompararYEscribirSinBuscarLasDerivas fija los errores que impiden buscar
+// las derivas de una skill (data-model §5), sobre la estructura de un repositorio
+// temporal sincronizado: un fichero donde va references/ o scripts/ de alfa, y un
+// fichero donde va el propio directorio de alfa. Comparar y Escribir reciben lo
+// regenerado como un dato y miran el árbol tal como está cuando se las llama, así
+// que en el último caso lo regenerado es de antes del cambio: con el fichero,
+// Regenerar ya no listaría alfa. Las dos dan el mismo error, que nombra la skill y
+// la carpeta, y Escribir no escribe nada.
+func TestCompararYEscribirSinBuscarLasDerivas(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// partes es la ruta del fichero dentro del directorio de alfa; vacía, es el
+		// propio directorio.
+		partes []string
+
+		// error es el error entero o, con causa, su principio.
+		error string
+		causa error
+	}{
+		{nombre: "references-que-es-un-fichero", partes: []string{"references"}, error: "alfa: references no es un directorio"},
+		{nombre: "scripts-que-es-un-fichero", partes: []string{"scripts"}, error: "alfa: scripts no es un directorio"},
+		{nombre: "skill-que-es-un-fichero", error: "alfa: references no se puede consultar: ", causa: syscall.ENOTDIR},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolSincronizado(t)
+			regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+
+			sustituirPorUnFichero(t, rutaDeSkill(raiz, "alfa", caso.partes...))
+			envejecer(t, raiz)
+			antes := fotografiar(t, raiz)
+
+			derivas, errDeComparar := skills.Comparar(raiz, regenerado)
+			assert.Nil(t, derivas)
+
+			for _, err := range []error{errDeComparar, skills.Escribir(raiz, regenerado)} {
+				if caso.causa == nil {
+					require.EqualError(t, err, caso.error)
+
+					continue
+				}
+
+				require.ErrorIs(t, err, caso.causa)
+				require.ErrorContains(t, err, caso.error)
+			}
+
+			assert.Equal(t, antes, fotografiar(t, raiz), "sin poder buscar las derivas, Escribir no escribe nada")
+		})
+	}
+}
+
+// skillMdDeBetaConElAppletUno es el SKILL.md de beta cuando declara el applet
+// uno, como alfa, con la región de su tabla vacía.
+const skillMdDeBetaConElAppletUno = "---\n" +
+	"name: beta\n" +
+	"description: Skill de prueba con uno de los applets de alfa.\n" +
+	"metadata:\n" +
+	"  kitlegal-applets: uno\n" +
+	"---\n" +
+	"# Beta\n" +
+	"\n" +
+	inicioDeLaTabla + "\n" +
+	finDeLaTabla + "\n"
+
+// TestEscribirSinAplicarUnArreglo fija los errores de Escribir al deshacer una
+// deriva, cada uno sobre la estructura de un repositorio temporal y con la skill,
+// la ruta y lo que no se puede hacer:
+//
+//   - retirar: references/normas.md es un directorio con un fichero dentro;
+//   - crear el directorio: el directorio de alfa es ahora un enlace colgante, así
+//     que ninguna de sus rutas existe y el directorio no se puede crear donde
+//     está el enlace;
+//   - enlazar: alfa y beta declaran el applet uno, y el directorio de beta es
+//     ahora un enlace al de alfa; Escribir busca las derivas de las dos antes de
+//     deshacer ninguna, y cuando llega a las de beta, alfa ya ha creado
+//     scripts/uno.
+//
+// En los dos últimos, lo regenerado es de antes del cambio: Regenerar no lista un
+// enlace como skill.
+func TestEscribirSinAplicarUnArreglo(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// preparar deja el repositorio de raíz listo para Escribir y devuelve lo
+		// regenerado que se le da.
+		preparar func(t *testing.T, raiz string) skills.Regenerado
+
+		prefijo string
+		causa   error
+	}{
+		{
+			nombre: "retirar-un-directorio-con-contenido",
+			preparar: func(t *testing.T, raiz string) skills.Regenerado {
+				t.Helper()
+
+				require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
+
+				ruta := rutaDeSkill(raiz, "alfa", "references", "normas.md")
+				retirarDePrueba(t, ruta)
+				escribirFicheroDePrueba(t, filepath.Join(ruta, "nota.md"), "# Nota\n")
+
+				return regenerar(t, raiz, descripcionesDeSincronia())
+			},
+			prefijo: "alfa: references/normas.md no se puede retirar: ",
+			causa:   syscall.ENOTEMPTY,
+		},
+		{
+			nombre: "crear-el-directorio-de-un-enlace-colgante",
+			preparar: func(t *testing.T, raiz string) skills.Regenerado {
+				t.Helper()
+
+				regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+
+				ruta := rutaDeSkill(raiz, "alfa")
+				require.NoError(t, os.RemoveAll(ruta))
+				crearEnlaceDePrueba(t, "no-existe", ruta)
+
+				return regenerado
+			},
+			prefijo: "alfa: SKILL.md: el directorio ",
+			causa:   fs.ErrExist,
+		},
+		{
+			nombre: "enlazar-lo-que-otra-skill-ya-enlazo",
+			preparar: func(t *testing.T, raiz string) skills.Regenerado {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "SKILL.md"), skillMdDeBetaConElAppletUno)
+				regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+
+				ruta := rutaDeSkill(raiz, "beta")
+				require.NoError(t, os.RemoveAll(ruta))
+				crearEnlaceDePrueba(t, "alfa", ruta)
+
+				return regenerado
+			},
+			prefijo: "beta: scripts/uno no se puede enlazar: ",
+			causa:   fs.ErrExist,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolDeFuentes(t)
+			regenerado := caso.preparar(t, raiz)
+			require.Empty(t, presentarDefectos(regenerado.Defectos()))
+
+			err := skills.Escribir(raiz, regenerado)
+			require.ErrorIs(t, err, caso.causa)
+			assert.True(t, strings.HasPrefix(err.Error(), caso.prefijo), "error: %v", err)
+		})
+	}
+}
+
+// sustituirPorUnFichero retira lo que haya en la ruta, con lo que tenga dentro, y
+// escribe en su lugar un fichero.
+func sustituirPorUnFichero(t *testing.T, ruta string) {
+	t.Helper()
+
+	require.NoError(t, os.RemoveAll(ruta))
+	escribirFicheroDePrueba(t, ruta, "no es un directorio\n")
 }
 
 // arbolDeFuentes es un repositorio temporal con las fuentes de la sincronía y sin

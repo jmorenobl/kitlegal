@@ -377,18 +377,18 @@ controles» `0`; las cuatro filas de `README.md` y el comentario de `make instal
 H5 en la introducción del `CHANGELOG.md`, `1`. Que GitHub excluya `.agents/skills/` de las estadísticas y lo pliegue en
 los diffs es el supuesto S8 (*Pendientes*).
 
-**Cobertura**, remedida por T034 el 2026-09-15 (hacia las 05:55, hora de Madrid) con `go clean -testcache` y
-`make ci` (código 0, `ci: todos los controles en verde`) sobre el árbol del commit `feat(H5): T034`, cuya base es
-`c4c7613` (`feat(H5): T033`, que no cambia ningún `.go` desde `536359c`), con el `coverage.out` y el
+**Cobertura**, remedida por T035 el 2026-09-15 (hacia las 06:35, hora de Madrid) con `go clean -testcache` y
+`make ci` (código 0, `ci: todos los controles en verde`) sobre el árbol del commit `feat(H5): T035`, cuya base es
+`234c6f0` (`feat(H5): T034`), con el `coverage.out` y el
 `coverage-integration.out` que deja ese `make ci` (`go tool cover -func` para el total; para cada árbol, la suma de
 sentencias del perfil, que es lo que Codecov mide, contando cada bloque una vez):
 
 | Umbral | Exigido | Perfil unitario (`make test`) | Unión de los dos perfiles (lo que Codecov une) |
 |---|---|---|---|
-| Global (`codecov/project`) | ≥ 70 % | **96,3 %** (`-func`; 5642/5863 sentencias, 96,2 %) | **96,8 %** (`-func` del perfil de integración; 5671/5863, 96,7 %) |
+| Global (`codecov/project`) | ≥ 70 % | **96,8 %** (`-func`; 5677/5866 sentencias, 96,8 %) | **97,3 %** (`-func` del perfil de integración; 5706/5866, 97,3 %) |
 | `internal/core/**` (componente `internal_core`) | ≥ 85 % | **90,1 %** (73/81) | **90,1 %** |
 | `internal/cli/**` (componente `internal_cli`) | ≥ 90 % | **98,6 %** (348/353) | **98,6 %** |
-| `internal/skills` (nuevo; sus ramas sin cubrir, T035) | — | 95,8 % (1134/1184) | 95,8 % |
+| `internal/skills` (nuevo; T035) | — | 98,5 % (1169/1187) | 98,5 % |
 | `internal/evals` (nuevo; T034) | — | 99,0 % (1428/1443) | 99,0 % |
 | `internal/app` (con sus ejemplos de e2e, 0/32 sentencias cubiertas) | — | 87,8 % (445/507; 93,7 % el paquete solo) | 87,8 % |
 | `internal/source/boe` | — | 99,4 % (875/880) | 99,4 % |
@@ -398,12 +398,15 @@ sentencias del perfil, que es lo que Codecov mide, contando cada bloque una vez)
 
 `internal/core` no gana ni pierde sentencias: sus 81 siguen siendo las de `internal/core/schema` (`error.go`,
 `huella.go`, `sobre.go`), y `internal/app` conserva las 507 de H4: H5 no toca el dominio ni el applet. Frente a la
-medida de T029 sobre `536359c` solo cambia `internal/evals`: de 94,8 % (1365/1440) a 99,0 % (1428/1443), con tres
-sentencias más (el rango del código final de la traza y la lectura del esquema de eval por su ruta) y los tests de
-T034; los demás árboles dan las mismas cifras. En los seis ficheros de `internal/evals` que `codecov/patch` midió en
-rojo quedan 16 bloques sin cubrir, de una línea cada uno (antes 82 líneas), cada uno con su motivo en
-`gates/tarea-T034.md`; los 53 de `internal/skills` son de T035. **Ningún umbral se rebaja**: `codecov.yml` no aparece
-en el diff frente a `main`. `codecov/patch` (`target: auto`) lo lee T030 en la plataforma.
+medida de T029 sobre `536359c` cambian dos árboles: `internal/evals`, con T034, de 94,8 % (1365/1440) a 99,0 %
+(1428/1443), con tres sentencias más (el rango del código final de la traza y la lectura del esquema de eval por su
+ruta); e `internal/skills`, con T035, de 95,8 % (1134/1184) a 98,5 % (1169/1187), con tres sentencias más en total (la
+lectura del esquema de normas por su ruta, el identificador de una norma como texto de su clave, el cierre de
+`properties` leído como un token más y un único directorio creado por arreglo). Los demás árboles dan las mismas
+cifras. En los seis ficheros de cada paquete que `codecov/patch` midió en rojo quedan 16 bloques sin cubrir en
+`internal/evals`, de una línea cada uno (antes 82 líneas), y 18 en `internal/skills`, de una sentencia cada uno (antes
+53 líneas), cada uno con su motivo en `gates/tarea-T034.md` y en `gates/tarea-T035.md`. **Ningún umbral se rebaja**:
+`codecov.yml` no aparece en el diff frente a `main`. `codecov/patch` (`target: auto`) lo lee T030 en la plataforma.
 
 **Sin ninguna supresión nueva**: `0` líneas `//nolint` y `0` `t.Skip` añadidas en ficheros `.go` frente a `main`.
 `gosec` se resuelve sin supresiones (`filepath.Clean`, `0o600`, lectura y escritura por auxiliares distintos, programas
@@ -539,9 +542,10 @@ esta propuesta, y las tomadas durante la implementación.
   compara con la suma de los `.go` versionados con y sin `.agents/skills/` en el commit de fusión.
 - **Plataforma, intento 1 de T030 (2026-09-15)**: `ci` en verde (ejecución 34922178932, 4 m 35 s) y `codecov/project`
   (94,22 %), `internal/core` (90,36 %) e `internal/cli` (98,09 %) en verde; **`codecov/patch` en rojo**, 93,54 % del diff
-  frente al objetivo `auto` de 94,70 % (`gates/evidencia-plataforma.md`), que arreglan T034 (hecha: en sus seis ficheros
-  quedan 16 bloques de una línea, justificados en `gates/tarea-T034.md`) y T035 con tests de las ramas sin cubrir, sin
-  tocar ningún umbral; y la **prueba de red** (ejecución 34922606273) se detuvo en «Retirar Python del
+  frente al objetivo `auto` de 94,70 % (`gates/evidencia-plataforma.md`), que arreglan T034 y T035 con tests de las
+  ramas sin cubrir, sin tocar ningún umbral (hechas: en sus seis ficheros quedan 16 bloques de una línea en
+  `internal/evals` y 18 de una sentencia en `internal/skills`, justificados en `gates/tarea-T034.md` y
+  `gates/tarea-T035.md`); y la **prueba de red** (ejecución 34922606273) se detuvo en «Retirar Python del
   runner» con código 100: `apt-get purge` no puede retirar los 110 paquetes de Python de `ubuntu-24.04` porque de ellos
   dependen paquetes del sistema (`gates/prueba-de-red.md`; S2 y S7 difieren), que arregla T033. T030 sigue sin marcar
   (`gates/tarea-T030.md`).

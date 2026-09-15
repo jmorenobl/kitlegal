@@ -3,6 +3,7 @@ package skills_test
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -98,6 +99,20 @@ func TestListarYCargar(t *testing.T) {
 			assert.Zero(t, skill, "una skill con defectos no se entrega a medias")
 		})
 	}
+
+	t.Run("nombre-de-un-fichero", func(t *testing.T) {
+		t.Parallel()
+
+		// notas.md no es una skill: la ruta de su SKILL.md pasa por un fichero, y
+		// eso no es que falte, sino que no se puede consultar.
+		skill, err := skills.Cargar(raiz, "notas.md")
+		require.ErrorIs(t, err, syscall.ENOTDIR)
+		require.ErrorContains(t, err, "notas.md: SKILL.md no se puede consultar: ")
+
+		var defecto *skills.DefectoDeSkill
+		assert.NotErrorAs(t, err, &defecto)
+		assert.Zero(t, skill)
+	})
 
 	t.Run("sin-directorio-de-skills", func(t *testing.T) {
 		t.Parallel()

@@ -401,8 +401,10 @@ type propiedad struct {
 // que es el que presenta la tabla y el que un mapa perdería.
 type propiedadesEnOrden []propiedad
 
-// UnmarshalJSONFrom lee los miembros de un objeto en su orden. El decodificador
-// rechaza un nombre repetido.
+// UnmarshalJSONFrom lee los miembros de un objeto en su orden: en cada vuelta, el
+// nombre de un miembro, con su esquema detrás, o el cierre del objeto. El
+// decodificador rechaza un nombre repetido y todo lo que no es ni un nombre ni el
+// cierre.
 func (p *propiedadesEnOrden) UnmarshalJSONFrom(decodificador *jsontext.Decoder) error {
 	apertura, err := decodificador.ReadToken()
 	if err != nil {
@@ -415,10 +417,14 @@ func (p *propiedadesEnOrden) UnmarshalJSONFrom(decodificador *jsontext.Decoder) 
 
 	var propiedades propiedadesEnOrden
 
-	for decodificador.PeekKind() != jsontext.KindEndObject {
+	for {
 		nombre, err := decodificador.ReadToken()
 		if err != nil {
 			return err
+		}
+
+		if nombre.Kind() == jsontext.KindEndObject {
+			break
 		}
 
 		// El nombre deja de ser válido en la lectura siguiente: se copia antes.
@@ -428,10 +434,6 @@ func (p *propiedadesEnOrden) UnmarshalJSONFrom(decodificador *jsontext.Decoder) 
 		}
 
 		propiedades = append(propiedades, leida)
-	}
-
-	if _, err := decodificador.ReadToken(); err != nil {
-		return err
 	}
 
 	*p = propiedades

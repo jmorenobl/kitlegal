@@ -1,6 +1,7 @@
 package skills_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
@@ -10,11 +11,43 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
+// TestCompilarEsquema fija los dos errores con los que CompilarEsquema no da
+// ningún esquema: un contenido que no es un documento JSON y un documento JSON
+// que no es un JSON Schema válido.
+func TestCompilarEsquema(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre    string
+		contenido string
+		prefijo   string
+	}{
+		{nombre: "no-es-json", contenido: `{"type": "object"`, prefijo: "el esquema no es un documento JSON: "},
+		{
+			nombre:    "no-compila",
+			contenido: `{"$schema": "https://json-schema.org/draft/2020-12/schema", "minLength": "tres"}`,
+			prefijo:   "el esquema no compila: ",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			esquema, err := skills.CompilarEsquema([]byte(caso.contenido))
+			require.Error(t, err)
+			assert.True(t, strings.HasPrefix(err.Error(), caso.prefijo), "error: %v", err)
+			assert.Nil(t, esquema)
+		})
+	}
+}
+
 // esquemaDePrueba es el esquema en línea de TestValidarDocumentoYAML: un objeto
 // cerrado con un texto obligatorio con patrón, un entero, dos mapas cuyas claves
 // tienen patrón —etiquetas, con valores de texto o enteros, y marcas— y una
-// lista de mapas de enteros. Acepta cualquiera de los dos valores de cada clave
-// repetida de los casos, para que solo el recorrido del lector pueda rechazarlas.
+// lista de mapas de enteros cuyas claves también tienen patrón. Acepta cualquiera
+// de los dos valores de cada clave repetida de los casos, para que solo el
+// recorrido del lector pueda rechazarlas.
 const esquemaDePrueba = `{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -31,7 +64,11 @@ const esquemaDePrueba = `{
     "marcas": { "type": "object", "propertyNames": { "pattern": "^[a-z]+$" } },
     "piezas": {
       "type": "array",
-      "items": { "type": "object", "additionalProperties": { "type": "integer" } }
+      "items": {
+        "type": "object",
+        "propertyNames": { "pattern": "^[a-z]+$" },
+        "additionalProperties": { "type": "integer" }
+      }
     }
   }
 }`
@@ -144,6 +181,33 @@ func TestValidarDocumentoYAML(t *testing.T) {
 			},
 		},
 		{
+			// El validador da la ruta con el índice de la lista; el mapa se busca en
+			// el documento a esa profundidad, y el primero de la lista no tiene la
+			// clave.
+			nombre:    "patron-de-clave-en-un-mapa-de-una-lista",
+			documento: "nombre: ana\npiezas:\n  - ancho: 3\n  - Alto: 4\n",
+			error:     "piezas/1, línea 4: invalid propertyName 'Alto': 'Alto' does not match pattern '^[a-z]+$'",
+			defecto: &skills.DefectoEnElDocumento{
+				Ruta:   []string{"piezas", "1"},
+				Linea:  4,
+				Motivo: "invalid propertyName 'Alto': 'Alto' does not match pattern '^[a-z]+$'",
+				Tipo:   &kind.PropertyNames{Property: "Alto"},
+			},
+		},
+		{
+			// ancho llega a la pieza por la fusión: no está escrito en ella, y la
+			// línea es la de la pieza, el último nodo de la ruta que sí lo está.
+			nombre:    "valor-que-llega-por-una-fusion",
+			documento: "nombre: ana\netiquetas: &etiquetas\n  ancho: tres\npiezas:\n  - <<: *etiquetas\n",
+			error:     "piezas/0/ancho, línea 5: got string, want integer",
+			defecto: &skills.DefectoEnElDocumento{
+				Ruta:   []string{"piezas", "0", "ancho"},
+				Linea:  5,
+				Motivo: "got string, want integer",
+				Tipo:   &kind.Type{Got: "string", Want: []string{"integer"}},
+			},
+		},
+		{
 			nombre:    "varios-incumplimientos-en-orden-de-linea",
 			documento: "edad: treinta\nnombre: Ana\n",
 			error: "edad, línea 1: got string, want integer\n" +
@@ -200,9 +264,35 @@ func TestValidarDocumentoYAML(t *testing.T) {
 			},
 		},
 		{
+			// Un alias no se escribe como la clave a la que apunta: el recorrido no
+			// ve la repetición y, al convertir, el mapa del alias sustituye al
+			// escalar. El paso talla de la ruta es la clave escrita, cuyo valor no
+			// tiene hijos, y la línea es la de ese último nodo escrito.
+			nombre:    "valor-que-json-no-representa-tras-una-clave-repetida-por-un-alias",
+			documento: "nombre: ana\netiquetas:\n  &talla talla: 3\n  *talla : {medida: .inf}\n",
+			error:     "etiquetas/talla/medida, línea 3: número que JSON no puede representar",
+			defecto: &skills.DefectoEnElDocumento{
+				Ruta:   []string{"etiquetas", "talla", "medida"},
+				Linea:  3,
+				Motivo: "número que JSON no puede representar",
+			},
+		},
+		{
 			nombre:    "yaml-mal-formado",
 			documento: "nombre: ana\n  edad: 30\n",
 			error:     "no es YAML válido: yaml: line 2: mapping values are not allowed in this context",
+		},
+		{
+			nombre:    "segundo-documento-mal-formado",
+			documento: "nombre: ana\n---\nnombre: [\n",
+			error:     "no es YAML válido: yaml: line 3: did not find expected node content",
+		},
+		{
+			// El análisis a yaml.Node conserva la etiqueta sin resolverla; es la
+			// conversión la que no puede leer el texto como un entero.
+			nombre:    "valor-que-no-se-decodifica-con-su-etiqueta",
+			documento: "nombre: ana\nedad: !!int treinta\n",
+			error:     "el documento YAML no se puede leer: yaml: cannot decode !!str `treinta` as a !!int",
 		},
 		{
 			nombre:    "varios-documentos",

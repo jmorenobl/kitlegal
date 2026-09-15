@@ -628,6 +628,13 @@ func probarDefectosDeLaDescripcion(t *testing.T) {
 			causa:     nil,
 		},
 		{
+			nombre:    "propiedades-cerradas-como-una-lista",
+			documento: []byte(`{"title": "boe articulo", "properties": {"entrada": {}]}`),
+			globales:  globales,
+			prefijo:   "documento de --describe: no se puede leer: ",
+			causa:     nil,
+		},
+		{
 			nombre:    "banderas-que-no-son-json",
 			documento: articulo,
 			globales:  []byte(`[`),

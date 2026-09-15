@@ -101,6 +101,12 @@ func TestLeerFrontmatter(t *testing.T) {
 			}(),
 		},
 		{
+			// La lectura no la rechaza: la rechaza ValidarFrontmatter.
+			nombre:      "clave-que-no-es-del-estandar",
+			contenido:   delimitador + nameYDescription + "user-invocable: true\n" + delimitador,
+			frontmatter: frontmatterLeido("user-invocable"),
+		},
+		{
 			nombre:    "sin-delimitadores",
 			contenido: nameYDescription,
 			error:     "sin frontmatter: la primera línea no es ---",
