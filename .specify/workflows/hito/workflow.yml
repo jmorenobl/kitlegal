@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD con gates automáticos)"
-  version: "1.9.1"
+  version: "1.9.2"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md. Gates en tres capas: mecánicos (shell, antes de cualquier juez), jueces LLM con rúbrica cerrada que no corrigen (corrector aparte, dos rondas), y humanos forzados para rutas sensibles. Implementación tarea a tarea con guardián de diff. Revisión final con dos jueces en paralelo y corrector sobre la unión de sus motivos; tareas [plataforma] que empujan la rama y abren la propuesta de cambio (fusionar sigue siendo humano); pausa humana solo ante material existente de testdata/ o schemas/ o fixtures grabados."
@@ -154,7 +154,7 @@ steps:
   - id: resolver_clarify
     type: prompt
     model: "{{ inputs.modelo_decision }}"
-    timeout: 1800
+    timeout: 3600
     prompt: |
       Eres un proceso independiente con contexto limpio: no has visto la sesión que formuló las preguntas, no debes buscar su razonamiento y decides únicamente con documentos.
       1. Lee .specify/feature.json para localizar <feature_dir>. Lee <feature_dir>/gates/clarify-preguntas.json y <feature_dir>/spec.md; la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md; la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md; CLAUDE.md; y los refs/ que el hito cite.
@@ -232,7 +232,7 @@ steps:
       - id: juez_spec
         type: prompt
         model: "{{ inputs.modelo_juez }}"
-        timeout: 1800
+        timeout: 3600
         prompt: |
           Eres el JUEZ del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica la sección «Criterio de decisión autónoma» y la sección «Gates» de .specify/memory/constitution.md.
           Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, checklists/, gates/clarify-*.json y, si existe, gates/spec-pendiente.md; la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md; CLAUDE.md y la constitución.
@@ -272,7 +272,7 @@ steps:
           - id: corrector_spec
             type: prompt
             model: "{{ inputs.modelo_redaccion }}"
-            timeout: 1800
+            timeout: 3600
             prompt: |
               Eres el CORRECTOR del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el spec; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/spec.json (criterios con cumple=false y motivos), spec.md, checklists/, la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md, CLAUDE.md y .specify/memory/constitution.md.
@@ -340,7 +340,7 @@ steps:
       - id: juez_plan
         type: prompt
         model: "{{ inputs.modelo_juez }}"
-        timeout: 1800
+        timeout: 3600
         prompt: |
           Eres el JUEZ del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
           Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md (los que existan) y, si existe, gates/plan-pendiente.md; la constitución; CLAUDE.md; docs/ROADMAP.md §2-§3.
@@ -383,7 +383,7 @@ steps:
           - id: corrector_plan
             type: prompt
             model: "{{ inputs.modelo_decision }}"
-            timeout: 1800
+            timeout: 3600
             prompt: |
               Eres el CORRECTOR del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el plan; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/plan.json (criterios con cumple=false y motivos), plan.md, research.md, data-model.md, contracts/, quickstart.md, spec.md, .specify/memory/constitution.md, CLAUDE.md y docs/ROADMAP.md §2-§3.
@@ -473,7 +473,7 @@ steps:
       - id: juez_tasks
         type: prompt
         model: "{{ inputs.modelo_juez }}"
-        timeout: 1800
+        timeout: 3600
         prompt: |
           Eres el JUEZ de consistencia (spec ↔ plan ↔ tasks) del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
           Lee .specify/feature.json para localizar <feature_dir>; lee gates/analyze.md, spec.md, plan.md, tasks.md, quickstart.md, checklists/ y, si existe, gates/tasks-pendiente.md.
@@ -513,7 +513,7 @@ steps:
           - id: corrector_tasks
             type: prompt
             model: "{{ inputs.modelo_redaccion }}"
-            timeout: 1800
+            timeout: 3600
             prompt: |
               Eres el CORRECTOR de artefactos del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado la consistencia spec/plan/tasks; tú aplicas sus motivos, no los discutes.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/tasks.json (criterios con cumple=false y motivos), gates/analyze.md, spec.md, plan.md, tasks.md, quickstart.md y checklists/.
@@ -768,7 +768,7 @@ steps:
                       - id: reparar
                         type: prompt
                         model: "{{ inputs.modelo_escalada }}"
-                        timeout: 1800
+                        timeout: 3600
                         prompt: |
                           La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
 
@@ -983,7 +983,7 @@ steps:
           - id: reparar_hito
             type: prompt
             model: "{{ inputs.modelo_escalada }}"
-            timeout: 1800
+            timeout: 3600
             prompt: |
               `make ci` falla en el hito {{ inputs.hito }} de kitlegal. Salida (final del log; completo en <feature_dir>/gates/ci.log):
 
@@ -1066,7 +1066,7 @@ steps:
           id: revision_juez
           type: prompt
           model: "{{ item.modelo }}"
-          timeout: 1800
+          timeout: 3600
           prompt: |
             {{ item.papel }}
             Trabajas en un proceso nuevo con contexto limpio, en paralelo con el otro juez y sin acceso a su veredicto. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. No ejecutes `make ci` ni escribas nada en el árbol de trabajo, porque el otro juez corre a la vez sobre el mismo árbol: si quieres reproducir controles, compilar binarios, medir cobertura o mutar código, hazlo sobre copias en un directorio temporal fuera del repositorio.
@@ -1121,7 +1121,7 @@ steps:
           - id: corrector_revision
             type: prompt
             model: "{{ inputs.modelo_implementacion }}"
-            timeout: 1800
+            timeout: 3600
             prompt: |
               Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
               Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-a.json y gates/revision-b.json (criterios con cumple=false y motivos), spec.md, plan.md, tasks.md y `git diff main...HEAD`.
