@@ -62,6 +62,19 @@ los ficheros `.go` y embebidos de cada paquete del módulo del que depende `./cm
 `Dir`, `GoFiles` y `EmbedFiles`). Así ni `bin/instalado/` ni ningún otro fichero se escribe en el árbol de quien ejecuta
 los tests.
 
+**El código de la copia, por ruta física.** Cada fichero entra en la copia por su ruta dentro del repositorio, la del
+`Dir` de su paquete relativa a la raíz, y un paquete del módulo fuera de la raíz hace fallar el test. La raíz y cada
+`Dir` se comparan tras resolver sus enlaces simbólicos (`filepath.EvalSymlinks`), porque un mismo árbol se alcanza por
+más de una ruta —en macOS, un clon bajo `/tmp` o bajo el temporal de `mktemp` cuelga de `/private`— y cada lado la
+escribe a su manera: la raíz, por la del directorio de trabajo del test, que `go test` escribe por la ruta desde la que
+se lanzó; `go list`, por la de su `PWD` si nombra su directorio de trabajo y por la física si no. Sin resolverlos,
+`make ci` desde una ruta con un enlace fallaba con «el paquete … del módulo está fuera del repositorio» (revisión final,
+ronda 3). `TestFicherosDelBinario`, en el mismo fichero y con la misma etiqueta, lo fija con un enlace de `t.TempDir()`
+al repositorio: el enlace como raíz, con `go list` sin `PWD`, que da cada `Dir` por la ruta física
+(`raiz-por-un-enlace`); y la raíz física con `PWD` en el enlace, que da cada `Dir` por el enlace (`dir-por-un-enlace`).
+En los dos casos exige la misma lista que desde la ruta física con `go list` sin `PWD`: sin resolver los enlaces de la
+raíz cae el primero, y sin resolver los de cada `Dir`, el segundo.
+
 Entorno de cada guion:
 
 | Variable | Valor | Por qué |

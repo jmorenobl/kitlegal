@@ -5,9 +5,11 @@
 // el binario en el directorio de binarios de Go, cada skill enlazada en el
 // directorio personal de skills y su scripts/boe respondiendo desde el binario
 // instalado (FR-014, FR-050 a FR-055, SC-006, SC-007; contrato instalacion §4).
+// También fijan qué código lleva la copia del árbol en la que se instala, que
+// enumera go list.
 //
-// Llevan la etiqueta integration porque ejecutan make y compilan el binario: no
-// son tests unitarios rápidos, y por eso make ci las ejecuta con
+// Llevan la etiqueta integration porque ejecutan make y el go command y compilan
+// el binario: no son tests unitarios rápidos, y por eso make ci las ejecuta con
 // test-integration y el lint las alcanza con run.build-tags (research.md D21).
 //
 // Nunca se ejecutan sobre el repositorio real: cada guion instala una copia
@@ -27,6 +29,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
@@ -129,7 +132,7 @@ stdout '\A'${WORK@R}'/sin-destino\n\z'
 func TestInstalacion(t *testing.T) {
 	t.Parallel()
 
-	rutas := slices.Concat(rutasDeLaInstalacion, ficherosDelBinario(t))
+	rutas := slices.Concat(rutasDeLaInstalacion, ficherosDelBinario(t, raizDelRepositorio, os.Environ()))
 	caches := leerCachesDeGo(t)
 
 	temporales := t.TempDir()
@@ -168,24 +171,80 @@ func prepararInstalacion(env *testscript.Env, rutas []string, caches cachesDeGo)
 	)
 }
 
+// TestFicherosDelBinario fija que ficherosDelBinario da los mismos ficheros
+// cuando el repositorio se alcanza por una ruta con un enlace simbólico, sea la
+// de la raíz o la de los Dir que devuelve go list (contrato instalacion §4). En
+// macOS basta con clonar bajo /tmp o bajo el temporal de mktemp, que cuelgan de
+// /private. Los dos casos usan un enlace de t.TempDir() al repositorio:
+//
+//   - raiz-por-un-enlace: la raíz es el enlace y go list corre sin PWD, así que
+//     da cada Dir por la ruta física;
+//   - dir-por-un-enlace: la raíz es la ruta física y PWD nombra el enlace, que
+//     go list toma porque es su directorio de trabajo, así que da cada Dir por el
+//     enlace.
+//
+// La referencia es la lista desde la ruta física con go list sin PWD, en la que
+// la raíz y cada Dir ya se escriben igual.
+func TestFicherosDelBinario(t *testing.T) {
+	t.Parallel()
+
+	fisica := rutaFisica(t, raizDelRepositorio)
+	enlace := filepath.Join(t.TempDir(), "repositorio")
+	require.NoError(t, os.Symlink(fisica, enlace))
+
+	sinPWD := slices.DeleteFunc(os.Environ(), func(variable string) bool {
+		return strings.HasPrefix(variable, prefijoDePWD)
+	})
+	referencia := ficherosDelBinario(t, fisica, sinPWD)
+
+	casos := []struct {
+		nombre  string
+		raiz    string
+		entorno []string
+	}{
+		{nombre: "raiz-por-un-enlace", raiz: enlace, entorno: sinPWD},
+		{nombre: "dir-por-un-enlace", raiz: fisica, entorno: slices.Concat(sinPWD, []string{prefijoDePWD + enlace})},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, referencia, ficherosDelBinario(t, caso.raiz, caso.entorno))
+		})
+	}
+}
+
+// prefijoDePWD es el de la variable de entorno con la que un proceso hereda la
+// ruta de su directorio de trabajo, que puede llevar enlaces simbólicos.
+const prefijoDePWD = "PWD="
+
 // ficherosDelBinario son los ficheros .go y embebidos de cada paquete del módulo
 // del que depende el paquete principal del binario, por su ruta dentro del
 // repositorio y con barras (contrato instalacion §4).
 //
-// Los enumera `go list -deps` con CGO_ENABLED=0, como compila la receta, de modo
-// que la copia lleve exactamente los ficheros que esa compilación elige. Exige
-// que la lista traiga el propio punto de entrada: sin eso, una copia vacía de
-// código haría fallar los guiones por una razón que no es la instalación.
-func ficherosDelBinario(t *testing.T) []string {
+// Los enumera `go list -deps` desde la raíz, con el entorno que recibe y
+// CGO_ENABLED=0, como compila la receta, de modo que la copia lleve exactamente
+// los ficheros que esa compilación elige. Exige que la lista traiga el propio
+// punto de entrada: sin eso, una copia vacía de código haría fallar los guiones
+// por una razón que no es la instalación.
+//
+// La raíz y el Dir de cada paquete se comparan por su ruta física. Cuando el
+// repositorio se alcanza por una ruta con un enlace simbólico, cada lado la
+// escribe a su manera: la raíz relativa se resuelve contra el directorio de
+// trabajo del test, que go test escribe por el enlace, y go list escribe cada Dir
+// por la ruta de su PWD si nombra su directorio de trabajo y por la física si no.
+// Sin resolver los enlaces de los dos, un paquete del repositorio parecería fuera
+// de él.
+func ficherosDelBinario(t *testing.T, raiz string, entorno []string) []string {
 	t.Helper()
 
-	raiz, err := filepath.Abs(raizDelRepositorio)
-	require.NoError(t, err)
+	fisica := rutaFisica(t, raiz)
 
 	orden := exec.CommandContext(t.Context(), "go", "list", "-deps", "-json=ImportPath,Dir,GoFiles,EmbedFiles,Module",
 		paqueteDelBinario)
 	orden.Dir = raiz
-	orden.Env = append(os.Environ(), "CGO_ENABLED=0")
+	orden.Env = slices.Concat(entorno, []string{"CGO_ENABLED=0"})
 
 	var (
 		ficheros     []string
@@ -207,10 +266,10 @@ func ficherosDelBinario(t *testing.T) []string {
 			continue
 		}
 
-		carpeta, err := filepath.Rel(raiz, paquete.Dir)
+		carpeta, err := filepath.Rel(fisica, rutaFisica(t, paquete.Dir))
 		require.NoError(t, err)
-		require.Truef(t, filepath.IsLocal(carpeta), "el paquete %s del módulo está fuera del repositorio: %s",
-			paquete.ImportPath, paquete.Dir)
+		require.Truef(t, filepath.IsLocal(carpeta), "el paquete %s del módulo está fuera del repositorio %s: %s",
+			paquete.ImportPath, fisica, paquete.Dir)
 
 		carpetas = append(carpetas, filepath.ToSlash(carpeta))
 
@@ -223,6 +282,20 @@ func ficherosDelBinario(t *testing.T) []string {
 		"go list -deps no devolvió el propio paquete principal del binario")
 
 	return ficheros
+}
+
+// rutaFisica es la ruta absoluta de un directorio que existe, sin ningún enlace
+// simbólico.
+func rutaFisica(t *testing.T, ruta string) string {
+	t.Helper()
+
+	absoluta, err := filepath.Abs(ruta)
+	require.NoError(t, err)
+
+	fisica, err := filepath.EvalSymlinks(absoluta)
+	require.NoError(t, err)
+
+	return fisica
 }
 
 // leerCachesDeGo son las cachés de módulos y de construcción que da `go env`

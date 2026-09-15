@@ -1,17 +1,20 @@
 # Revisión final de H5: pendiente de una persona
 
-Todos los motivos de las rondas 1 y 2 se han corregido en la rama. Quedan dos acciones en la plataforma que el corrector
-no hace (no empuja ni publica), en este orden, y la segunda es la última del hito antes de la fusión humana.
+Todos los motivos de las rondas 1, 2 y 3 se han corregido en la rama. Quedan dos acciones en la plataforma que el
+corrector no hace (no empuja ni publica), en este orden, y la segunda es la última del hito antes de la fusión humana.
 
 ## 1. Sincronizar el cuerpo de la propuesta de cambio #27 con `gates/pr-h5.md`
 
-Ronda 1, motivo [f] del juez A sobre D8; ronda 2, motivo [f] del juez B sobre las cifras. El fichero ya está corregido.
+Ronda 1, motivo [f] del juez A sobre D8; ronda 2, motivo [f] del juez B sobre las cifras; y ronda 3, que cambia el
+control de `make install` y las cifras al corregir el motivo [b] del juez B. El fichero ya está corregido.
 En la ronda 1 cambiaron la decisión D8, que dice qué hace cada lector con los alias y con la clave de fusión `<<`, los
 controles de la comparación mecánica, de la lectura de trazas, de `SKILL.md` < 300 líneas y de `make install`, y las
 correcciones de la revisión en «Decisiones» y «Pendientes». En la ronda 2 cambian «Alcance», con las cifras sobre la
 cabeza y lo que llegó después de `536359c`, las cifras de «Controles añadidos» (`TestLeerTrazas` 27 y el test nuevo
 `TestLeerTrazasAyudaSeguidaDeConsulta`), las sesiones sintéticas de «Evidencia», las correcciones de la ronda 2 y
-«Pendientes». El paso `publicar_rama` del workflow solo crea la propuesta si no existe. Tras empujar la rama:
+«Pendientes». En la ronda 3 cambian «Alcance», con sus cifras y el test nuevo `TestFicherosDelBinario`, el control de
+`make install` en «Controles añadidos», las correcciones de la ronda 3 y «Pendientes». El paso `publicar_rama` del
+workflow solo crea la propuesta si no existe. Tras empujar la rama:
 `gh pr edit 27 --body-file specs/006-h5-skill-boe-legislacion/gates/pr-h5.md`.
 
 ## 2. Repetir T031, la ejecución de cierre y la aceptación, sobre la cabeza empujada
@@ -19,8 +22,8 @@ cabeza y lo que llegó después de `536359c`, las cifras de «Controles añadido
 Ronda 2, motivo [f] del juez B: FR-082, SC-003 y el punto 10 de la Definition of Done.
 
 - **Por qué.** La ejecución de cierre registrada (35002104338, `gates/evals-cierre.md`) corrió sobre `5c6c552`.
-  Después, `ede21ba` (ronda 1) y la corrección de la ronda 2 cambian doce ficheros fuera del directorio del hito:
-  `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
+  Después, `ede21ba` (ronda 1) y las correcciones de las rondas 2 y 3 cambian doce ficheros fuera del directorio del
+  hito: `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
   `internal/evals/conjunto_test.go`, `internal/evals/juzgar_test.go`, `internal/evals/trazas_test.go`,
   `internal/skills/instalacion_test.go`, `internal/skills/sincronia_test.go`, `README.md`, `CONTRIBUTING.md` y
   `CHANGELOG.md`. Entre ellos está el código con el que el job juzga las sesiones y la receta de `make install`. FR-082

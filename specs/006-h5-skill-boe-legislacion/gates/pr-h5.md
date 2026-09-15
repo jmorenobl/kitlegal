@@ -31,14 +31,14 @@ especializan desde el backlog. El binario distribuido no cambia.
 
 ## Alcance
 
-Frente a `main`, en la cabeza con las correcciones de la ronda 2 de la revisión final: fuera de `specs/`, 322 ficheros,
-22 537 líneas añadidas y 78 retiradas, cifras que ya no cambian con lo que se registre después en el directorio del
+Frente a `main`, en la cabeza con las correcciones de la ronda 3 de la revisión final: fuera de `specs/`, 322 ficheros,
+22 610 líneas añadidas y 78 retiradas, cifras que ya no cambian con lo que se registre después en el directorio del
 hito; en `specs/006-h5-skill-boe-legislacion/`, 62 ficheros versionados, más los veredictos que registra el cierre de
 la revisión final. La medida de *Evidencia* es la de T029 sobre `536359c` (`feat(H5): T032`). Después de ese commit
 llegaron tres grupos de cambios. T033 a T046 son los arreglos que descubrió la prueba de red de T030, en
 `.github/workflows/evals.yml`, `scripts/evals.sh`, `internal/evals`, `internal/skills`,
 `skills/boe-legislacion/SKILL.md`, ocho evals, `docs/USO.md` y trece ficheros de trazas sintéticas. T030 y T031 solo
-escriben en el directorio del hito. Y las rondas 1 y 2 de la revisión final traen sus correcciones (*Decisiones*). Por
+escriben en el directorio del hito. Y las rondas 1 a 3 de la revisión final traen sus correcciones (*Decisiones*). Por
 árboles:
 
 - **`skills/boe-legislacion/`, la skill** (3 ficheros): `SKILL.md` (frontmatter con `name`, `description` y
@@ -54,7 +54,7 @@ escriben en el directorio del hito. Y las rondas 1 y 2 de la revisión final tra
   `skill.go`, `frontmatter.go`, `esquemas.go` (el lector común de YAML, que rechaza claves repetidas), `normas.go`,
   `referencias.go`, `comandos.go`, `enlaces.go`, `sincronia.go`, `doc.go`; `instalacion_test.go` con `TestInstalacion`
   (etiqueta `integration`) sobre `testdata/script/instalar*.txtar` y el guion del enlace roto, que escribe el propio
-  test.
+  test, y `TestFicherosDelBinario`, que fija qué código lleva la copia del árbol aunque se llegue a él por un enlace.
 - **`internal/evals`, paquete nuevo de herramienta** (11 ficheros de producto, 12 de test): `formato.go`,
   `conjunto.go`, `consultas.go`, `grabaciones.go`, `preparar.go`, `trazas.go`, `sesion.go`, `citas.go`, `juzgar.go`,
   `informe.go`, `doc.go`; los arneses `grabacion_test.go` (etiqueta `grabacion`) y `job_test.go` (etiqueta `evals`);
@@ -185,7 +185,10 @@ del quickstart que lo demuestra:
 - **`make install`** (`TestInstalacion`, etiqueta `integration`, cinco guiones `testscript`; `make test-integration`
   la nombra): instala el binario, crea `bin/instalado/kitlegal` y enlaza la skill; repetirlo no cambia nada; una
   entrada ajena en conflicto —un directorio, un enlace a otro sitio o un enlace roto— termina en 2, no se toca y no se
-  instala nada, tampoco el binario (escenario 8, SC-006).
+  instala nada, tampoco el binario (escenario 8, SC-006). La copia del árbol en la que se instala toma el código que
+  enumera `go list` comparando la raíz y cada `Dir` por su ruta física, así que un repositorio alcanzado por una ruta
+  con un enlace simbólico no deja ningún paquete suyo fuera (`TestFicherosDelBinario`: `raiz-por-un-enlace`,
+  `dir-por-un-enlace`).
 - **Sin instrucciones de evals en la skill** (`/sin-instrucciones-de-evals`; escenario 9, FR-077) y **normas
   nombradas en `SKILL.md`** con entrada en datos (`/normas-nombradas`, FR-020).
 - **Lint de los ficheros etiquetados**: `run.build-tags: [integration, fuentes, grabacion, evals]`.
@@ -782,20 +785,37 @@ esta propuesta, y las tomadas durante la implementación.
   no cubre la cabeza, porque `ede21ba` y esta ronda cambian doce ficheros fuera del directorio del hito: por FR-082 se
   repite como última acción de plataforma (*Pendientes*), y `gates/evals-cierre.md` y `gates/aceptacion.md` lo dicen
   en su cabecera.
+- **Correcciones de la ronda 3 de la revisión final** (`gates/revision-a-r3.json`, `gates/revision-b-r3.json`):
+  `TestInstalacion` rechazaba un clon válido alcanzado por una ruta con un enlace simbólico —en macOS, uno bajo `/tmp`
+  o bajo el temporal de `mktemp`, que cuelgan de `/private`— con «el paquete … del módulo está fuera del repositorio»,
+  y `make ci` terminaba con 2 en `test-integration`. `ficherosDelBinario` comparaba la raíz, escrita por la ruta desde
+  la que se lanzó `go test`, con el `Dir` de cada paquete de `go list`, escrito por la ruta física porque el `PWD` que
+  hereda no nombra su directorio de trabajo. Ahora recibe la raíz y el entorno de `go list` y compara los dos lados tras
+  resolver sus enlaces (`filepath.EvalSymlinks`). `TestFicherosDelBinario` lo fija con un enlace de `t.TempDir()` al
+  repositorio y exige la misma lista que desde la ruta física: con el enlace como raíz y `go list` sin `PWD`, que da
+  cada `Dir` por la ruta física (`raiz-por-un-enlace`), y con la raíz física y `PWD` en el enlace, que lo da por el
+  enlace (`dir-por-un-enlace`). Con los mutantes, sin resolver la raíz cae el primero, sin resolver cada `Dir` el
+  segundo, y sin ninguno de los dos, como antes, caen los dos. `make ci` pasa también desde la ruta con enlace. El
+  contrato de instalación §4, el control 17 y el inventario del plan, la tabla de tests del contrato de sincronización
+  y el escenario 8 del quickstart lo registran. Alternativas rechazadas: fijar en el entorno de `go list` un `PWD` igual
+  a la raíz, que depende de que el go command tome su directorio de trabajo de `PWD`, algo que `os.Getwd` no promete
+  («may return any one of them»); y resolver solo la raíz, que hoy basta con el entorno que hereda el test pero deja
+  «fuera del repositorio» los paquetes en cuanto `go list` escribe cada `Dir` por el enlace. `instalacion_test.go` ya
+  estaba entre los doce ficheros que obligan a repetir T031, así que esa lista no cambia.
 - **Ningún ADR nuevo**: el plan no se aparta de ninguna decisión existente (skills sin código, `data/` como fuente de
   verdad, `scripts/` como symlinks al binario, ADR 0012).
 
 ## Pendientes
 
-- **Cuerpo de #27**: tras las rondas 1 y 2 de la revisión final este fichero cambió (D8, «Alcance», controles,
+- **Cuerpo de #27**: tras las rondas 1 a 3 de la revisión final este fichero cambió (D8, «Alcance», controles,
   correcciones de la revisión y estos pendientes); el cuerpo de la propuesta de cambio se sincroniza con él en la
   plataforma tras empujar la rama (`gates/revision-pendiente.md`).
 - **Repetir la ejecución de cierre (T031) sobre la cabeza empujada, como última acción de plataforma** (FR-082,
   SC-003, punto 10 de la Definition of Done). El intento 1 de T031 (ejecución 35002104338, 2026-09-15, sobre
   `5c6c552`) dio veredicto `aprobado`, con 10 de 10 positivas y 2 de 2 de no activación, las doce sesiones terminadas,
   ninguna petición a la red de una fuente y la lista de ficheros cambiados vacía (`gates/evals-cierre.md`,
-  `gates/aceptacion.md`). Después, `ede21ba` (ronda 1) y la ronda 2 cambian doce ficheros fuera del directorio del
-  hito: `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
+  `gates/aceptacion.md`). Después, `ede21ba` (ronda 1) y las rondas 2 y 3 cambian doce ficheros fuera del directorio
+  del hito: `Makefile`, `scripts/instalar-skills.sh`, `internal/evals/trazas.go`, `internal/evals/juzgar.go`,
   `internal/evals/conjunto_test.go`, `internal/evals/juzgar_test.go`, `internal/evals/trazas_test.go`,
   `internal/skills/instalacion_test.go`, `internal/skills/sincronia_test.go`, `README.md`, `CONTRIBUTING.md` y
   `CHANGELOG.md`. Hasta repetirla, FR-082 no se cumple. Se repite quickstart §12.3 tal cual: quitar y poner la

@@ -129,4 +129,4 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 | `TestValidarDocumentoYAML` | `esquemas.go` | lector común de data-model («Lectura de documentos YAML») y validación contra un esquema en línea: válido, clave desconocida, tipo, patrón; clave repetida en la raíz y en un mapa anidado, rechazada con la ruta, la clave y sus dos líneas antes de validar, aunque el esquema aceptara cualquiera de los dos valores; mapa con una clave que no es texto; errores con la ruta dentro del documento y su línea |
 | `TestLeerNormas`, `TestEsquemaDeNormas`, `TestNormasDelRepositorio` | `normas.go` | contrato de normas y referencias §2-§4 |
 | `TestRenderizarNormas` | `referencias.go` | contrato de normas y referencias §5 |
-| `TestInstalacion` | `instalacion_test.go` | contrato de instalación §4 |
+| `TestInstalacion`, `TestFicherosDelBinario` | `instalacion_test.go` | contrato de instalación §4 |
