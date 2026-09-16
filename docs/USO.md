@@ -10,6 +10,41 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-16 · Evals de skills: con qué modelo deciden y cada cuánto se ejecutan
+
+- **Qué se pidió.** Cerrar H5 con las evals de `boe-legislacion` en verde. El job las ejecuta con
+  `claude-haiku-4-5-20251001`, fijado por la clarificación Q5 del spec de H5 («un único modelo de gama
+  económica») que viene de la tabla de controles del roadmap (`docs/ROADMAP.md` §4: «job semanal con modelo
+  barato»). Al revisar las pausas del hito, Jorge preguntó si Haiku es el modelo adecuado para esto y para
+  qué sirve la ejecución semanal.
+- **Qué falló.** Nada del job ni de la skill, pero tres tareas de H5 existen solo para acomodar lo que el
+  modelo hace de forma no fiable: T041 y T043 (las diez preguntas positivas nombran el artículo, porque el
+  modelo no acierta el artículo por materia; entrada de abajo), T046 (la extracción de la cita admite la
+  forma legible dentro de los corchetes, porque tras dos refuerzos del protocolo el modelo seguía metiéndola
+  ahí en una sesión de cada diez). Las dos ejecuciones de cierre (35002104338 y 35023013878) dieron 10 de 10,
+  pero «10 de 10 en una sola ejecución» es frágil con cualquier LLM. Y la ejecución semanal sobre `main`, con
+  modelo, versión de Claude Code y respuestas del BOE fijados, mide sobre todo el azar del modelo: no hay
+  cambios que comprobar, gasta suscripción y asume cada semana el riesgo del token en `/proc/<pid>/environ`
+  (research D13 de H5).
+- **Qué faltó.** Que el job decida con el modelo del uso real de la skill, que la medida no dependa de una
+  sola tirada y que se ejecute cuando hay algo que medir.
+- **Qué se hizo.** Decisión de Jorge (2026-09-15), pieza aparte tras fusionar H5 (#27), como ADR con enmienda
+  de Q5, FR-070, SC-003 y research D13, y del roadmap:
+  1. **Decide Sonnet 5** (`claude-sonnet-5`): si funciona con Sonnet funciona con Opus, y gasta menos
+     suscripción que Opus. La elección es de calidad, no de coste por token (la suscripción no se factura por
+     llamada).
+  2. **Haiku 4.5 queda informativo**: se ejecuta y se publica en el informe como límite inferior, pero no
+     hace fallar el job.
+  3. **Cada eval se repite** N veces (p. ej. 3) con umbral (≥ 2 de 3) y la tasa en el informe, en lugar de
+     exigir 10 de 10 en una sola ejecución.
+  4. **Vuelven las preguntas por materia**, sin nombrar el artículo, junto a las que lo nombran. La
+     herramienta que las haría posibles sigue en el backlog (entrada de abajo).
+  5. **La extracción tolerante de la cita (T046) se queda**: compara por identificador, que es lo que SC-009
+     quiere medir.
+  6. **Disparador por cambios en vez de semanal**: quitar el `schedule` (`cron '41 4 * * 1'`) de
+     `.github/workflows/evals.yml` y lanzar el job en las propuestas de cambio que toquen `skills/`,
+     `evals/`, `data/`, el applet `boe` o el propio job, además del lanzamiento manual y del de etiqueta.
+
 ### 2026-09-15 · `boe-legislacion`: encontrar un artículo por su materia dentro de una norma
 
 - **Qué se pidió.** Preguntas por materia, sin el número del artículo, en las pruebas de red de las evals
