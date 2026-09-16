@@ -10,7 +10,27 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
-### 2026-09-16 · Evals de skills: con qué modelo deciden y cada cuánto se ejecutan
+### 2026-09-16 · Ninguna eval comprueba qué hace la skill ante una norma derogada
+
+- **Qué se pidió.** Nada en concreto: la duda salió al explicar por qué el job de evals corre sin red. Si las
+  respuestas del BOE están grabadas y la caché congelada, ¿cómo sabe uno que la ley que cita sigue viva?
+- **Qué falló.** Nada. El binario hace lo que hay que hacer: `internal/source/boe/avisos.go` deriva de los metadatos
+  los avisos `derogada` («⚠ NORMA DEROGADA: esta norma ha sido derogada.»), `vigencia-agotada` y
+  `consolidacion-no-finalizada`, y `articulo.go` no emite ningún artículo con la vigencia sin comprobar: si los
+  metadatos fallan, la invocación falla con «el bloque X se obtuvo, pero no se pudo comprobar su vigencia». En uso
+  real, los metadatos caducan a los 300 s, precisamente porque son lo que dice si la norma sigue en vigor.
+- **Qué faltó.** Que alguna eval lo mida. Las 17 de `boe-legislacion` leen artículos de normas vivas, así que ninguna
+  comprueba que la skill **traslade el aviso a su respuesta**. `SKILL.md` dice que hay que señalarlo (FR-011, SC-004
+  lo cuenta como regla presente en el texto), pero nadie comprueba que ocurra en una sesión real. Y el formato de eval
+  tampoco lo permitiría hoy: solo sabe exigir comandos ejecutados y citas encontradas, no que la respuesta lleve un
+  aviso.
+- **Qué se hizo.** Anotarlo. Arreglarlo son tres piezas: un campo nuevo en el formato de eval (los avisos esperados),
+  su comparación mecánica en `Juzgar` como la de las citas, y una eval que las use. La norma candidata ya está medio
+  grabada: **`BOE-A-1992-26318`, la Ley 30/1992**, que H4 grabó para sus propios tests y cuyos metadatos dan
+  `estatus_derogacion: "S"` y `vigencia_agotada: "S"` —o sea, dos avisos, `derogada` y `vigencia-agotada`—, con su
+  bloque `a42` ya grabado. Falta grabar su `indice` (FR-074 lo exige de toda norma de una eval) y su `buscar`, si la
+  norma entra en `data/normas.yaml`, que la regla «normas conocidas» obliga. Eso es la única pausa humana:
+  `scripts/grabar-evals.sh`. No es un hito: cabe en una sesión.
 
 - **Qué se pidió.** Cerrar H5 con las evals de `boe-legislacion` en verde. El job las ejecuta con
   `claude-haiku-4-5-20251001`, fijado por la clarificación Q5 del spec de H5 («un único modelo de gama
