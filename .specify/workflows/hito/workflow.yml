@@ -19,8 +19,13 @@ inputs:
   hito:
     type: string
     required: true
-    prompt: "Hito del roadmap a implementar (H0..H30)"
-    enum: ["H0","H1","H2","H3","H4","H5","H6","H7","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
+    prompt: "Hito del roadmap a implementar (H0..H30, o un seguimiento H<n>.<m>)"
+    # Los H<n>.<m> son seguimientos que endurecen un hito ya entregado sin ocupar
+    # el número del siguiente: renumerar H6..H19 reescribiría registros de
+    # decisiones ya tomadas (ADR 0013, ADR 0014), que es lo que el proyecto evita.
+    # Siguen siendo una lista cerrada, que es lo que protege la interpolación en
+    # los pasos shell: ninguno lleva un metacarácter.
+    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
   modo:
     type: string
     default: "desatendido"
@@ -106,11 +111,15 @@ steps:
     run: |
       set -eu
       h="{{ inputs.hito }}"
-      sec=$(awk -v h="$h" 'BEGIN{p=0} $0 ~ ("^#### " h " · "){p=1; print; next} p && /^(#{2,4} |---)/{exit} p{print}' docs/ROADMAP.md)
+      # El punto de un seguimiento H<n>.<m> es literal en el patrón: sin escapar,
+      # casaría con cualquier carácter y podría extraer otro hito.
+      h_re=$(printf '%s' "$h" | sed 's/\./\\./g')
+      sec=$(awk -v h="$h_re" 'BEGIN{p=0} $0 ~ ("^#### " h " · "){p=1; print; next} p && /^(#{2,4} |---)/{exit} p{print}' docs/ROADMAP.md)
       [ -n "$sec" ] || { echo "hito $h no encontrado en docs/ROADMAP.md" >&2; exit 1; }
-      titulo=$(printf '%s\n' "$sec" | head -1 | sed -E 's/^#### [A-Z0-9]+ · //')
+      titulo=$(printf '%s\n' "$sec" | head -1 | sed -E 's/^#### [A-Z0-9.]+ · //')
       palabras=$(printf '%s' "$titulo" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT 2>/dev/null | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -d- -f1-3)
-      slug="$(printf '%s' "$h" | tr '[:upper:]' '[:lower:]')-$palabras"
+      # El punto no llega al nombre de la rama ni al del directorio: h5.1 → h5-1.
+      slug="$(printf '%s' "$h" | tr '[:upper:]' '[:lower:]' | tr . -)-$palabras"
       jq -n --arg hito "$h" --arg titulo "$titulo" --arg slug "$slug" --arg texto "$sec" \
         '{hito:$hito, titulo:$titulo, slug:$slug, texto:$texto}'
 
