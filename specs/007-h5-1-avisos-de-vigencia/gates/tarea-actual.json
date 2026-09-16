@@ -1,17 +1,15 @@
 {
-  "id": "T006",
-  "texto": "T006 [US3] Avisos en el informe: `internal/evals/informe.go` con `encabezadosDeSesiones` ganando «Avisos encontrados» y «Avisos ausentes» detrás de «Citas ausentes» y `filasDeSesiones` con `unidosOVacio(resultado.AvisosEncontrados, ningunoEnElInforme)` y `unidosOVacio(resultado.AvisosAusentes, ningunoEnElInforme)` detrás de la celda de citas ausentes, con su comentario, y nada más (contrato de formato, juicio e informe §5); `internal/evals/informe_test.go` con `TestInformeConAvisos` escrito primero —copia con `os.CopyFS` a un `t.TempDir()` el caso `aprobado` de las ejecuciones sintéticas del informe, añade en la copia `avisos` `derogada` y `vigencia-agotada` a la eval 01 y antepone `⚠ NORMA DEROGADA: esta norma ha sido derogada. ` a la respuesta de la sesión 01 exigiendo exactamente dos sustituciones, y llama a `EscribirInforme` sobre la copia; subtests `uno-encontrado-y-otro-ausente` y `aviso-detras-de-la-cita` con todo lo que fija el contrato §6 (claves en `informe.json` en crudo, motivos de la sesión y de la raíz, la sesión 11 con `[]` y `[]`, cabecera de la tabla de sesiones con las once celdas, filas de la 01 y de la 11, respuesta publicada)— y `TestInforme/aprobado` ampliado con `\"avisos_encontrados\": []` y `\"avisos_ausentes\": []` en cada sesión (`informeCrudo` con los dos campos como `jsontext.Value`); ningún material nuevo ni modificado en ninguna carpeta de datos de prueba (FR-040, FR-041, FR-042, FR-043, US3 escenarios 1, 2 y 3, SC-004, research D9 y D10, V19 y V20).",
+  "id": "T007",
+  "texto": "T007 [P] [US5] Arnés con la unión de grabaciones y premisa de la verificación de identificadores, antes del manifiesto: `internal/evals/grabacion_test.go` (etiqueta `grabacion`), donde el método `pedir` de `grabacionDeEvals` siembra la consulta desde `UnionDeGrabaciones()` en lugar de solo desde las grabaciones de H4, su mensaje de error dice «desde las grabaciones de H4 y de H5» y el comentario de `TestGrabarEvals`, punto 1, dice que solo se pide a la fuente lo que no está grabado en ninguno de los dos conjuntos, sin ningún otro cambio en el arnés ni en el guion de grabación; e `internal/evals/grabaciones_test.go`, donde `otraNormaDeLaBusqueda` recibe el manifiesto y la posición de la entrada y elige el primer resultado de su búsqueda grabada que no está en la tabla de normas y cuyo título no empieza por el `titulo_empieza_por` de ninguna entrada del manifiesto, con su comentario, y `TestIdentificadoresDeLasNormas` la llama con esos argumentos (contrato de la eval y la grabación §1); verde porque la premisa sigue eligiendo `BOE-A-1992-26318` mientras el manifiesto no tenga la entrada nueva (research V14) y el arnés, que ninguna tarea ejecuta, compila y pasa el lint con su etiqueta; son cambios planificados de la premisa y del arnés, no correcciones de un rojo (FR-054, FR-055, FR-056, research D11 y D12).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T006.md y déjala sin marcar.",
-  "base": "e673574cd457af1b8932179df701d723f9dea6c5",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T007.md y déjala sin marcar.",
+  "base": "b0314af2e99ebd346c30ff6b4561dcf6774bcd6e",
   "rutas": [
-    "informe.json",
-    "internal/evals/informe_test.go",
-    "internal/evals/informe.go",
-    "TestInforme/aprobado"
+    "internal/evals/grabacion_test.go",
+    "internal/evals/grabaciones_test.go"
   ],
   "cierre": false
 }

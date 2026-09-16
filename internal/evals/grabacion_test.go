@@ -39,8 +39,9 @@ const (
 // evals-y-grabaciones §3.2; FR-023, FR-074; research.md D11):
 //
 //  1. cada consulta se sirve primero, en una caché temporal, desde las
-//     grabaciones de H4 con Preparar, y solo lo que da una falta se pide a la
-//     fuente y se graba: lo que H4 ya grabó no se vuelve a pedir ni a grabar;
+//     grabaciones de H4 y de H5 con Preparar, y solo lo que da una falta se
+//     graba: solo se pide a la fuente lo que no está grabado en ninguno de los
+//     dos conjuntos;
 //  2. por cada entrada del manifiesto, boe buscar con su búsqueda y la elección
 //     del único resultado cuyo título empieza por su prefijo; después, de esa
 //     norma, boe metadatos, boe indice y boe articulo por cada bloque, todas con
@@ -114,8 +115,8 @@ func TestGrabarEvals(t *testing.T) {
 }
 
 // grabacionDeEvals es lo que comparten las invocaciones de TestGrabarEvals: la
-// caché temporal, que Preparar siembra desde las grabaciones de H4, y el registro
-// con el applet boe sobre el cliente que graba y esa misma caché.
+// caché temporal, que Preparar siembra desde las grabaciones de H4 y de H5, y
+// el registro con el applet boe sobre el cliente que graba y esa misma caché.
 type grabacionDeEvals struct {
 	dirCache string
 	registro *app.Registro
@@ -175,12 +176,13 @@ func (g grabacionDeEvals) resolver(t *testing.T, nombre string, entrada EntradaD
 	return elegidos[0]
 }
 
-// pedir siembra la consulta en la caché desde las grabaciones de H4 con Preparar
-// y después la ejecuta con app.Main y --json sobre el cliente que graba, y
-// devuelve su salida estándar. Lo que Preparar sirve ya está en la caché y no
-// llega a la fuente; lo que da como falta es una consulta que H4 no grabó, que
-// la invocación pide a la fuente y graba, o que falla con su código. Por eso las
-// faltas no se miran, y el error de Preparar, que es lo que impide preparar, sí.
+// pedir siembra la consulta en la caché desde las grabaciones de H4 y de H5
+// con Preparar y después la ejecuta con app.Main y --json sobre el cliente que
+// graba, y devuelve su salida estándar. Lo que Preparar sirve ya está en la
+// caché y no llega a la fuente; lo que da como falta es una consulta que no está
+// grabada en ninguno de los dos conjuntos, que la invocación pide a la fuente y
+// graba, o que falla con su código. Por eso las faltas no se miran, y el error
+// de Preparar, que es lo que impide preparar, sí.
 //
 // Se siembra consulta a consulta, justo antes de invocarla, para que no venza la
 // vigencia de lo sembrado mientras se piden otras a la fuente: pedirlo de nuevo
@@ -189,8 +191,9 @@ func (g grabacionDeEvals) resolver(t *testing.T, nombre string, entrada EntradaD
 func (g grabacionDeEvals) pedir(t *testing.T, nombre string, consulta Consulta) []byte {
 	t.Helper()
 
-	_, err := Preparar(g.dirCache, []string{GrabacionesDeH4}, []Consulta{consulta})
-	require.NoErrorf(t, err, "%s: «%s» no se puede servir desde las grabaciones de H4", nombre, ordenDe(consulta))
+	_, err := Preparar(g.dirCache, UnionDeGrabaciones(), []Consulta{consulta})
+	require.NoErrorf(t, err, "%s: «%s» no se puede servir desde las grabaciones de H4 y de H5", nombre,
+		ordenDe(consulta))
 
 	argv := slices.Concat([]string{programaDeLasConsultas, consulta.Applet, consulta.Verbo}, consulta.Argumentos,
 		[]string{"--json"})
