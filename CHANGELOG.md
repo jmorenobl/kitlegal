@@ -373,6 +373,18 @@ común de eval con su job de evals. El binario distribuido no cambia.
   integración continua por igual. El análisis estático alcanza también los ficheros con la etiqueta de compilación
   `evals` (`run.build-tags` de `.golangci.yml`), los arneses que usa el job de evals.
 
+### Corregido
+
+*De H5.1 — los avisos de vigencia en las evals:*
+
+- **La traza de una sesión con la llamada desconocida cerrada se lee entera.** Un hilo que muere en la parada de
+  entrada de una llamada que strace no llega a identificar deja `???( <unfinished ...>`, que la lectura de la traza ya
+  admitía, o la misma llamada cerrada con el resultado de la llamada sin terminar y el relleno de alineación,
+  `???()` seguido de espacios y `= ?`, que declaraba la sesión ilegible y hacía fallar el veredicto del job aunque
+  todas las series pasaran. Así ocurrió con una sesión del modelo informativo en la ejecución `35156339496`. La
+  segunda forma se lee ahora como la primera; con argumentos, con otro resultado o con la marca dentro sigue siendo
+  ilegible.
+
 Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
 con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,
 `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.

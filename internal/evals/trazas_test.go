@@ -786,8 +786,14 @@ const banderasDeHiloDeGo = "CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_TH
 // en un contenedor de ubuntu:24.04 en arm64 (gates/tarea-T045.md): la clone de
 // forma A sin la marca (t.4030), la de forma B (t.20425), la de forma C (t.15079),
 // la forma D, la de un hilo que murió en la parada de entrada de una llamada que
-// strace no llegó a identificar (t.258), y el connect en curso (t.14).
+// strace no llegó a identificar (t.258), y el connect en curso (t.14). La llamada
+// desconocida cerrada con el resultado de la llamada sin terminar y el relleno de
+// alineación es la línea 1 de t.19547 de una sesión de la eval 04 en el runner
+// (ejecución 35156339496 de H5.1, gates/tarea-T015.md de su hito): 43 caracteres,
+// con el igual en la columna 41.
 const (
+	lineaDeLlamadaDesconocidaCerradaDelRunner = "???()                                   = ?"
+
 	lineaDeCloneSinTerminarDelRunner = "clone(child_stack=0x2a559d472000, flags=" + banderasDeHiloDeGo +
 		"|CLONE_SETTLS <unfinished ...>) = ?"
 	lineaDeCloneSinTerminarSinMarca = "clone(child_stack=0x2bb2e2418000, flags=" + banderasDeHiloDeGo + ") = ?"
@@ -879,6 +885,11 @@ func TestLeerTrazasSinTerminar(t *testing.T) {
 		"t.258": lineaDeLlamadaDesconocida + "\n" + final,
 	}
 
+	// La misma traza con la llamada desconocida cerrada, como la escribió el
+	// runner.
+	llamadaDesconocidaCerrada := maps.Clone(llamadaDesconocida)
+	llamadaDesconocidaCerrada["t.258"] = lineaDeLlamadaDesconocidaCerradaDelRunner + "\n" + final
+
 	// Una invocación de la skill instalada cuyo hilo 2001 deja un connect sin
 	// terminar.
 	invocacionConConnect := func(conexion string) map[string]string {
@@ -914,6 +925,7 @@ func TestLeerTrazasSinTerminar(t *testing.T) {
 		{nombre: "clone-no-disponible-con-huerfano", hilos: cloneNoDisponible},
 		{nombre: "clone-sin-cerrar", hilos: cloneSinCerrar},
 		{nombre: "llamada-desconocida", hilos: llamadaDesconocida},
+		{nombre: "llamada-desconocida-cerrada", hilos: llamadaDesconocidaCerrada},
 		{
 			nombre: "connect-publico-sin-terminar",
 			hilos:  invocacionConConnect(lineaDeConnectPublicoSinTerminar),
@@ -1113,6 +1125,13 @@ func TestLeerLlamadaSinTerminar(t *testing.T) {
 		{nombre: "clone-sin-cerrar", texto: lineaDeCloneSinCerrar, llamada: "clone"},
 		{nombre: "llamada-desconocida", texto: lineaDeLlamadaDesconocida, llamada: "???"},
 		{
+			nombre:    "llamada-desconocida-cerrada-del-runner",
+			texto:     lineaDeLlamadaDesconocidaCerradaDelRunner,
+			llamada:   "???",
+			resultado: "?",
+		},
+		{nombre: "llamada-desconocida-cerrada-con-un-espacio", texto: "???() = ?", llamada: "???", resultado: "?"},
+		{
 			nombre:    "connect",
 			texto:     lineaDeConnectSinTerminar,
 			llamada:   "connect",
@@ -1173,7 +1192,20 @@ func TestLeerLlamadaSinTerminar(t *testing.T) {
 			texto:  "???(child_stack=0x2bb2e2418000 <unfinished ...>",
 			motivo: "no lleva argumentos",
 		},
-		{nombre: "desconocida-con-resultado", texto: "???() = ?", motivo: otraForma},
+		{nombre: "desconocida-con-resultado-numerico", texto: "???() = 0", motivo: "solo lleva el resultado ?"},
+		{
+			nombre: "desconocida-con-error",
+			texto:  "???() = -1 ENOSYS (Function not implemented)",
+			motivo: "solo lleva el resultado ?",
+		},
+		{nombre: "desconocida-no-disponible", texto: "???() = ? <unavailable>", motivo: "solo lleva el resultado ?"},
+		{nombre: "desconocida-cerrada-con-argumentos", texto: "???(0x1) = ?", motivo: "no lleva argumentos"},
+		{
+			nombre: "desconocida-cerrada-con-la-marca",
+			texto:  "???( <unfinished ...>) = ?",
+			motivo: "no lleva argumentos",
+		},
+		{nombre: "desconocida-cerrada-sin-espacio", texto: "???()= ?", motivo: otraForma},
 		{
 			nombre: "sin-cerrar-fuera-del-filtro",
 			texto:  "futex(0xc000100148, FUTEX_WAIT_PRIVATE, 0, NULL <unfinished ...>",
