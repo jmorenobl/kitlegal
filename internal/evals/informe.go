@@ -29,9 +29,10 @@ const (
 type Veredicto string
 
 const (
-	// VeredictoAprobado es el de una ejecución sin ficheros de eval mal formados,
-	// con cada eval bien formada juzgada por alguna sesión, todas las evals
-	// pasando y ninguna petición llegada a la red.
+	// VeredictoAprobado es el de una ejecución sin ningún motivo: sin ficheros de
+	// eval mal formados, con todas las sesiones que el plan pide y legibles, con
+	// cada serie que decide llegando al umbral y sin ninguna petición llegada a la
+	// red (ADR 0016).
 	VeredictoAprobado Veredicto = "aprobado"
 
 	// VeredictoFallo es el de cualquier otra ejecución.

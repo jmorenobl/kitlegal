@@ -93,10 +93,13 @@ type invocacionCruda struct {
 // y el commit recibidos, los modelos y las versiones de los transcripts y la
 // comprobación sin Python byte a byte; cada sesión juzgada con la eval que nombra
 // su eval.txt, o sin pasar con un motivo por cada fichero que falta o no se puede
-// leer; los motivos de la raíz en su orden; y el veredicto, que falla con un
-// fichero mal formado, una eval que no pasa, una eval sin ninguna sesión o una
-// petición llegada a la red, y no con una invocación fuera de lo grabado (FR-071,
-// FR-073, FR-076, SC-003, SC-012).
+// leer; el reparto en series con su tasa y su umbral; los motivos de la raíz en
+// su orden, que son exactamente las causas del fallo; y el veredicto, que falla
+// con un fichero mal formado, con una serie que decide y no llega al umbral o a la
+// que le faltan sesiones, con una sesión ilegible o con una petición llegada a la
+// red, y no con una invocación fuera de lo grabado, con una serie informativa que
+// no pasa ni con una sesión que no pasa de una serie que sí llega al umbral
+// (FR-071, FR-073, FR-076, SC-003, SC-012; ADR 0016).
 func TestInforme(t *testing.T) {
 	t.Parallel()
 
@@ -517,8 +520,8 @@ func comprobarSesionCortada(t *testing.T, leido informeLeido) {
 }
 
 // comprobarEvalSinSesion exige un único resultado, que pasa, y el veredicto fallo
-// porque la serie de la eval bien formada que ningún eval.txt nombra no tiene
-// ninguna sesión.
+// porque a la serie de la eval bien formada que ningún eval.txt nombra le faltan
+// todas sus sesiones.
 func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -530,8 +533,8 @@ func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
-// comprobarSinEvalTxt exige la sesión sin eval.txt ilegible, con la eval vacía, y
-// la eval 01 sin ninguna sesión que la juzgue.
+// comprobarSinEvalTxt exige la sesión sin eval.txt ilegible, con la eval vacía:
+// sin la eval no cae en la serie que el plan pide, que queda sin sesiones.
 func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -542,8 +545,8 @@ func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
 }
 
 // comprobarEvalDesconocida exige la sesión cuyo eval.txt no nombra ninguna eval
-// ilegible, con la eval que nombra en el resultado y en el motivo, y la eval 01 sin
-// ninguna sesión que la juzgue.
+// ilegible, con la eval que nombra en el resultado y en el motivo, y la serie que
+// el plan pide sin ninguna sesión.
 func comprobarEvalDesconocida(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -556,8 +559,9 @@ func comprobarEvalDesconocida(t *testing.T, leido informeLeido) {
 	assert.Equal(t, desconocida, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Eval)
 }
 
-// comprobarSinPreguntaTxt exige la sesión sin pregunta.txt ilegible y ningún
-// motivo de eval sin sesión, porque su eval.txt nombra la eval 01.
+// comprobarSinPreguntaTxt exige la sesión sin pregunta.txt ilegible y, aun así,
+// dentro de la serie que el plan pide: sin la pregunta no se sabe si lleva algo
+// más que la de su eval, y se toma como la de su eval.
 func comprobarSinPreguntaTxt(t *testing.T, leido informeLeido) {
 	t.Helper()
 
