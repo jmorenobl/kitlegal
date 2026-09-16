@@ -414,6 +414,17 @@ informe da en el motivo.
 
 ### 12.3 Ejecución de cierre y aceptación (FR-080 a FR-082, SC-001 a SC-003)
 
+> **Enmienda del 2026-09-16 (ADR 0016).** Las órdenes no cambian: la ejecución se sigue identificando por el último
+> evento `labeled` de `evals` y se sigue leyendo el informe entre sus marcas. Lo que cambia es lo esperado. El modelo del
+> informe es `claude-sonnet-5`, el que decide, y `claude-haiku-4-5-20251001` aparece en `modelos_informativos`. «Las diez
+> positivas y las dos de no activación en verde» se lee ahora en la sección `## Tasas por eval`: las doce series del
+> modelo que decide sobre evals que no son informativas tienen que llegar al umbral (2 de 3). Las cinco series
+> informativas (evals 13 a 17) y las doce del modelo informativo se publican con su tasa y **no** hacen fallar la
+> ejecución: que las informativas estén en rojo es el estado esperado hasta que llegue del backlog la herramienta que
+> busca dentro de una norma el artículo que trata una materia. Sigue exigiéndose «ninguna petición llegó a la red de una
+> fuente». Se anota además el tiempo del paso «Ejecutar las evals», que es la medida del presupuesto del contrato del
+> job §1.
+
 La ejecución se identifica igual que en §12.2, con la etiqueta `evals`. Si está puesta (p. ej. porque un intento
 anterior la dejó), se quita antes de ponerla: sin evento `labeled` nuevo no arranca ninguna ejecución, y las órdenes que
 siguen no encontrarían ninguna posterior a la etiqueta en lugar de leer la vieja.

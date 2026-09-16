@@ -1,0 +1,14 @@
+# Eval informativa (ADR 0016): la pregunta no nombra el artículo, así que encontrarlo dentro de la norma depende hoy
+# de lo que el modelo recuerde. La herramienta que buscaría el artículo por su materia sigue en el backlog, así que
+# la eval se ejecuta y su tasa se publica, pero no decide el veredicto. Redacción literal de la bitácora
+# (docs/USO.md, 2026-09-15), para poder comparar con lo que allí se midió.
+pregunta: "¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales?"
+activa: true
+informativa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2004-4214
+    bloque: a59
+citas:
+  - norma: BOE-A-2004-4214
+    bloque: a59

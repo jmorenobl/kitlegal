@@ -161,6 +161,7 @@ var reglasDelConjunto = []reglaDelConjunto{
 	{nombre: "tamaño", incumplimiento: incumplimientoDelTamanio},
 	{nombre: "positivas", incumplimiento: incumplimientoDePositivas},
 	{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
+	{nombre: "informativas", incumplimiento: incumplimientoDeInformativas},
 	{nombre: "materias distintas", incumplimiento: incumplimientoDeMateriasDistintas},
 	{nombre: "normas del hito", incumplimiento: incumplimientoDeNormasDelHito},
 	{nombre: "art. 21", incumplimiento: incumplimientoDelArticulo21},
@@ -195,14 +196,23 @@ type conjuntoAComprobar struct {
 	evals  []Eval
 	normas map[string]NormaConocida
 
-	// positivas son las posiciones de las evals con activa: true.
+	// positivas son las posiciones de las evals con activa: true que deciden el
+	// veredicto, es decir, las que no son informativas. Las reglas que cuentan
+	// materias miran solo estas: una eval informativa mide algo que la skill
+	// todavía no puede hacer y repite la norma de la positiva de la que sale
+	// (ADR 0016).
 	positivas []int
+
+	// informativas son las posiciones de las evals con informativa: true, y
+	// informativasSinActivar, las de esas que además no son positivas.
+	informativas           []int
+	informativasSinActivar []int
 
 	// citadaPor da, por norma, las posiciones de las positivas que la citan.
 	citadaPor map[string][]int
 
-	// delArticulo21 son las posiciones de las evals con la pregunta y la cita del
-	// art. 21.
+	// delArticulo21 son las posiciones de las evals que deciden con la pregunta y
+	// la cita del art. 21.
 	delArticulo21 []int
 }
 
@@ -212,6 +222,18 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 	conjunto := &conjuntoAComprobar{evals: evals, normas: normas, citadaPor: map[string][]int{}}
 
 	for posicion, eval := range evals {
+		if eval.Informativa {
+			conjunto.informativas = append(conjunto.informativas, posicion)
+
+			if !eval.Activa {
+				conjunto.informativasSinActivar = append(conjunto.informativasSinActivar, posicion)
+			}
+		}
+
+		if eval.Informativa {
+			continue
+		}
+
 		if eval.Pregunta == preguntaDelArticulo21Eval && citaElBloque(eval, normaDelArticulo21, bloqueDelArticulo21) {
 			conjunto.delArticulo21 = append(conjunto.delArticulo21, posicion)
 		}
@@ -240,27 +262,46 @@ func incumplimientoDelTamanio(conjunto *conjuntoAComprobar) string {
 		len(conjunto.evals), minimoDeEvals, maximoDeEvals, conjunto.todosLosFicheros())
 }
 
-// incumplimientoDePositivas: exactamente 10 con activa: true.
+// incumplimientoDePositivas: exactamente 10 con activa: true que deciden, es
+// decir, sin contar las informativas.
 func incumplimientoDePositivas(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.positivas) == positivasDelConjunto {
 		return ""
 	}
 
-	return fmt.Sprintf("hay %d evals positivas (activa: true) y el conjunto lleva exactamente %d: %s",
+	return fmt.Sprintf("hay %d evals positivas (activa: true) que deciden y el conjunto lleva exactamente %d: %s",
 		len(conjunto.positivas), positivasDelConjunto, conjunto.ficheros(conjunto.positivas))
 }
 
 // incumplimientoDeNoActivacion: al menos una con activa: false.
 func incumplimientoDeNoActivacion(conjunto *conjuntoAComprobar) string {
-	if len(conjunto.positivas) < len(conjunto.evals) {
+	if slices.ContainsFunc(conjunto.evals, func(eval Eval) bool { return !eval.Activa }) {
 		return ""
 	}
 
 	return "ninguna eval es de no activación (activa: false): " + conjunto.todosLosFicheros()
 }
 
-// incumplimientoDeMateriasDistintas: cada positiva cita al menos una norma que no
-// es cita esperada de ninguna otra positiva. Nombra las positivas que no la
+// incumplimientoDeInformativas: al menos una con informativa: true, y todas las
+// informativas son positivas. Son las preguntas por materia, que vuelven al
+// conjunto sin decidir el veredicto porque la herramienta que las haría posibles
+// sigue en el backlog (ADR 0016); si midieran una no activación, no medirían
+// nada.
+func incumplimientoDeInformativas(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.informativasSinActivar) > 0 {
+		return "evals informativas que no son positivas (activa: true): " +
+			conjunto.ficheros(conjunto.informativasSinActivar)
+	}
+
+	if len(conjunto.informativas) > 0 {
+		return ""
+	}
+
+	return "ninguna eval es informativa (informativa: true): " + conjunto.todosLosFicheros()
+}
+
+// incumplimientoDeMateriasDistintas: cada positiva que decide cita al menos una
+// norma que no es cita esperada de ninguna otra de ellas. Nombra las positivas que no la
 // tienen y, de cada norma que citan, las positivas que la citan.
 func incumplimientoDeMateriasDistintas(conjunto *conjuntoAComprobar) string {
 	var sinNormaPropia []int

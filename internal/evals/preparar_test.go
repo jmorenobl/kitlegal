@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"cmp"
 	"os"
 	"path/filepath"
 	"slices"
@@ -51,6 +52,10 @@ const (
 		"    bloque: a9998\n"
 	contenidoDelArticulo21SinPregunta = "activa: true\n" + comandoDelArticulo21 + citaDelArticulo21
 )
+
+// modeloDeLaSesion es el id de modelo que los tests de PrepararSesion piden para
+// la sesión cuando el caso no pide otro.
+const modeloDeLaSesion = "claude-haiku-4-5-20251001"
 
 // preguntaDeLaPruebaDeRed es el pregunta.txt entero de la sesión de prueba de
 // red: la pregunta de la eval 01, una línea en blanco, el texto literal del
@@ -183,6 +188,9 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 		fichero     string
 		pruebaDeRed bool
 
+		// modelo es el que se pide para la sesión; vacío, el de modeloDeLaSesion.
+		modelo string
+
 		// pregunta es el contenido de pregunta.txt; vacía, ni pregunta.txt ni
 		// eval.txt.
 		pregunta string
@@ -239,6 +247,16 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 			fichero: nombreDeEval,
 			falta:   []string{deArticulo9998, "boe articulo BOE-A-2015-10565 a9998"},
 		},
+		{
+			// Sin la forma de un id de modelo, modelo.txt dejaría la sesión en una
+			// serie que el plan no pide (data-model §10.4).
+			nombre:      "modelo-con-otra-forma",
+			entradas:    []entradaDeConjunto{articulo21, articulo22},
+			fichero:     nombreDeEval,
+			modelo:      "Claude Haiku 4.5",
+			errores:     []string{"Claude Haiku 4.5", "id de modelo"},
+			sinPreparar: true,
+		},
 	}
 
 	for _, caso := range casos {
@@ -254,6 +272,7 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 				Evals:       evals,
 				Grabaciones: []string{GrabacionesDeH4},
 				Fichero:     caso.fichero,
+				Modelo:      cmp.Or(caso.modelo, modeloDeLaSesion),
 				Directorio:  sesion,
 				PruebaDeRed: caso.pruebaDeRed,
 			})
@@ -277,9 +296,11 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 			if caso.pregunta == "" {
 				assert.NoFileExists(t, filepath.Join(sesion, "pregunta.txt"))
 				assert.NoFileExists(t, filepath.Join(sesion, "eval.txt"))
+				assert.NoFileExists(t, filepath.Join(sesion, "modelo.txt"))
 			} else {
 				assert.Equal(t, caso.pregunta, contenidoDeLaSesion(t, sesion, "pregunta.txt"))
 				assert.Equal(t, caso.fichero+"\n", contenidoDeLaSesion(t, sesion, "eval.txt"))
+				assert.Equal(t, modeloDeLaSesion+"\n", contenidoDeLaSesion(t, sesion, "modelo.txt"))
 			}
 
 			if caso.sinPreparar {
@@ -394,6 +415,7 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 		{nombre: "evals-que-son-un-fichero", evalsEnUnFichero: true},
 		{nombre: "eval-txt-que-es-una-carpeta", carpeta: "eval.txt"},
 		{nombre: "pregunta-txt-que-es-una-carpeta", carpeta: "pregunta.txt"},
+		{nombre: "modelo-txt-que-es-una-carpeta", carpeta: "modelo.txt"},
 	}
 
 	for _, caso := range casos {
@@ -417,6 +439,7 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 				Evals:       evals,
 				Grabaciones: []string{GrabacionesDeH4},
 				Fichero:     nombreDeEval,
+				Modelo:      modeloDeLaSesion,
 				Directorio:  sesion,
 			})
 

@@ -269,6 +269,14 @@ func conjuntoQueCumple(t *testing.T) conjuntoSintetico {
 	conjunto.evals = append(conjunto.evals,
 		Eval{Fichero: "11-no-activa-programacion.yaml", Pregunta: "¿Cómo invierto una lista enlazada en Go?"},
 		Eval{Fichero: "12-no-activa-acuerdo-entre-amigos.yaml", Pregunta: "Reescribe en un tono cercano esta frase."},
+		// La informativa por materia: no cuenta entre las positivas ni en la regla
+		// de materias, así que repite la norma de la 03 (ADR 0016).
+		Eval{
+			Fichero: "13-lrbrl-atribuciones-por-materia.yaml", Pregunta: "¿Qué atribuciones tiene el Pleno?",
+			Activa: true, Informativa: true,
+			Comandos: []ComandoEsperado{{Applet: "boe", Norma: normaLRBRL, Bloque: "a22"}},
+			Citas:    []CitaEsperada{{Norma: normaLRBRL, Bloque: "a22"}},
+		},
 	)
 
 	evalDe(t, conjunto.evals, "06-irpf-rendimientos-del-trabajo.yaml").Reproduce = "boe-fiscal"
@@ -327,12 +335,14 @@ func TestConjuntoDeEvals(t *testing.T) {
 		"07-lrjsp-principio-de-legalidad.yaml", "08-ltaibg-plazo-de-resolucion.yaml",
 		"09-constitucion-articulo-140.yaml", "10-et-vacaciones.yaml",
 		"11-no-activa-programacion.yaml", "12-no-activa-acuerdo-entre-amigos.yaml",
+		"13-lrbrl-atribuciones-por-materia.yaml",
 	}
 	positivas := todos[:10]
+	informativa := todos[12]
 	deMas := []string{
-		"13-no-activa-13.yaml", "14-no-activa-14.yaml", "15-no-activa-15.yaml", "16-no-activa-16.yaml",
+		"14-no-activa-14.yaml", "15-no-activa-15.yaml", "16-no-activa-16.yaml",
 		"17-no-activa-17.yaml", "18-no-activa-18.yaml", "19-no-activa-19.yaml", "20-no-activa-20.yaml",
-		"21-no-activa-21.yaml",
+		"21-no-activa-21.yaml", "22-no-activa-22.yaml",
 	}
 
 	t.Run("cumple-todas", func(t *testing.T) {
@@ -378,6 +388,27 @@ func TestConjuntoDeEvals(t *testing.T) {
 			},
 			regla:    "no activación",
 			ficheros: positivas,
+		},
+		{
+			// Sin ninguna informativa, las preguntas por materia habrían
+			// desaparecido del conjunto sin que nada lo dijera (ADR 0016).
+			nombre: "informativas",
+			modificar: func(t *testing.T, conjunto *conjuntoSintetico) {
+				t.Helper()
+				sinEvals(t, conjunto, informativa)
+			},
+			regla:    "informativas",
+			ficheros: slices.Concat(positivas, todos[10:12]),
+		},
+		{
+			nombre: "informativas-sin-activar",
+			modificar: func(t *testing.T, conjunto *conjuntoSintetico) {
+				t.Helper()
+				eval := evalDe(t, conjunto.evals, informativa)
+				eval.Activa, eval.Comandos, eval.Citas = false, nil, nil
+			},
+			regla:    "informativas",
+			ficheros: []string{informativa},
 		},
 		{
 			nombre: "materias-distintas",
@@ -528,7 +559,7 @@ func TestConjuntoDeEvals(t *testing.T) {
 		}
 
 		assert.Equal(t, []string{
-			"tamaño", "positivas", "no activación", "materias distintas", "normas del hito",
+			"tamaño", "positivas", "no activación", "informativas", "materias distintas", "normas del hito",
 			"art. 21", "fiscal", "boe-fiscal", "normas conocidas",
 		}, reglas)
 	})

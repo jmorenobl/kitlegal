@@ -3,9 +3,11 @@ package evals
 import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -22,13 +24,22 @@ const casosDeInforme = "testdata/sesiones/informe"
 // Lo que TestInforme y TestEscribirInformeSinSusEntradas pasan a EscribirInforme
 // y lo que buscan en lo que escribe (contrato job-de-evals §9).
 const (
-	// modeloDelJob y commitEvaluado son el modelo fijado en el job y el commit
+	// modeloQueDecide y commitEvaluado son el modelo que el job pide y el commit
 	// evaluado. El modelo es a propósito distinto del que declaran los
-	// transcripts sintéticos, modeloDeLosTranscripts: así no pasan ni el modelo
-	// tomado de las sesiones ni los modelos de las sesiones tomados del job.
-	modeloDelJob           = "claude-haiku-4-5-20251001"
+	// transcripts sintéticos, modeloDeLosTranscripts, del que es prefijo: así no
+	// pasan ni el modelo tomado de las sesiones ni los modelos de las sesiones
+	// tomados del job, y el alias que el proveedor resuelve a una versión con
+	// fecha sigue siendo el modelo que se pidió (contrato job-de-evals §4).
+	modeloQueDecide        = "claude-haiku"
 	commitEvaluado         = "0123456789abcdef0123456789abcdef01234567"
 	modeloDeLosTranscripts = "claude-haiku-4-5"
+
+	// modeloInformativoDelCaso es el de los modelos informativos de los casos que
+	// los llevan, y el que se pide en el caso del modelo distinto.
+	modeloInformativoDelCaso = "claude-opus-5"
+
+	// ficheroDeLaEvalInformativa es la eval informativa del caso que la lleva.
+	ficheroDeLaEvalInformativa = "13-por-materia.yaml"
 
 	// ficheroSinPython es el de la comprobación sin Python de todos los casos.
 	ficheroSinPython = "sin-python.txt"
@@ -89,8 +100,18 @@ type invocacionCruda struct {
 func TestInforme(t *testing.T) {
 	t.Parallel()
 
+	// tresRepeticiones y conModeloInformativo son los ajustes de los casos que no
+	// se miden con una sola sesión por serie.
+	tresRepeticiones := func(entradas *InformeAEscribir) { entradas.Repeticiones, entradas.Umbral = 3, 2 }
+	conModeloInformativo := func(entradas *InformeAEscribir) {
+		entradas.ModelosInformativos = []string{modeloInformativoDelCaso}
+	}
+
 	casos := []struct {
-		nombre    string
+		nombre string
+
+		// ajustar cambia las entradas del caso; nil deja las de entradasDelCaso.
+		ajustar   func(entradas *InformeAEscribir)
 		comprobar func(t *testing.T, leido informeLeido)
 	}{
 		{nombre: casoAprobado, comprobar: comprobarAprobado},
@@ -105,7 +126,26 @@ func TestInforme(t *testing.T) {
 		{nombre: "sin-eval-txt", comprobar: comprobarSinEvalTxt},
 		{nombre: "eval-desconocida", comprobar: comprobarEvalDesconocida},
 		{nombre: "sin-pregunta-txt", comprobar: comprobarSinPreguntaTxt},
+		{nombre: "sin-modelo-txt", comprobar: comprobarSinModeloTxt},
 		{nombre: "traza-ilegible", comprobar: comprobarTrazaIlegible},
+		{nombre: "umbral-alcanzado", ajustar: tresRepeticiones, comprobar: comprobarUmbralAlcanzado},
+		{nombre: "umbral-no-alcanzado", ajustar: tresRepeticiones, comprobar: comprobarUmbralNoAlcanzado},
+		{nombre: "eval-informativa-no-decide", comprobar: comprobarEvalInformativa},
+		{
+			nombre:    "modelos-informativos-no-deciden",
+			ajustar:   conModeloInformativo,
+			comprobar: comprobarModeloInformativo,
+		},
+		{
+			nombre:    "faltan-sesiones",
+			ajustar:   func(entradas *InformeAEscribir) { entradas.Repeticiones = 2 },
+			comprobar: comprobarFaltanSesiones,
+		},
+		{
+			nombre:    "otro-modelo-en-la-sesion",
+			ajustar:   func(entradas *InformeAEscribir) { entradas.ModeloQueDecide = modeloInformativoDelCaso },
+			comprobar: comprobarOtroModelo,
+		},
 	}
 
 	nombres := make([]string, 0, len(casos))
@@ -121,6 +161,9 @@ func TestInforme(t *testing.T) {
 			t.Parallel()
 
 			entradas := entradasDelCaso(caso.nombre, t.TempDir())
+			if caso.ajustar != nil {
+				caso.ajustar(&entradas)
+			}
 
 			informe, err := EscribirInforme(entradas)
 			require.NoError(t, err)
@@ -360,7 +403,9 @@ func comprobarEvalQueNoPasa(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	assert.False(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Pasa)
-	exigirMotivosDeLaRaiz(t, leido, sesionDelArticulo21+": cita ausente: "+textoDeLaCita21)
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+		sesionDelArticulo21+": cita ausente: "+textoDeLaCita21)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
@@ -377,7 +422,9 @@ func comprobarSesionSinTerminar(t *testing.T, leido informeLeido) {
 	assert.False(t, resultado.Pasa)
 	assert.Empty(t, resultado.Respuesta)
 	assert.Equal(t, "system", resultado.FinDeLaSesion)
-	exigirMotivosDeLaRaiz(t, leido, sesionDeNoActivacion+": "+motivo)
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeNoActivacion, modeloQueDecide, 0, 1, 1),
+		sesionDeNoActivacion+": "+motivo)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 
 	seccion := seccionDelInforme(t, leido.md, "Sesión "+sesionDeNoActivacion)
@@ -390,7 +437,10 @@ func comprobarSesionSinTerminar(t *testing.T, leido informeLeido) {
 func comprobarSesionIlegible(t *testing.T, leido informeLeido) {
 	t.Helper()
 
-	exigirSesionIlegible(t, leido, "codigo-de-la-sesion")
+	motivo := exigirSesionIlegible(t, leido, "codigo-de-la-sesion")
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+		sesionDelArticulo21+": "+motivo)
 	assert.Empty(t, leido.informe.ModelosDeSesion)
 	assert.Empty(t, leido.informe.VersionesDeClaudeCode)
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
@@ -452,17 +502,31 @@ func comprobarSesionCortada(t *testing.T, leido informeLeido) {
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, ordenDeA9998Offline, "4"))
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Peticiones llegadas a la red"),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, ordenDeA9998, destinoPublico))
+
+	motivosDeLaSesion := make([]string, 0, len(resultado.Motivos))
+	for _, motivo := range resultado.Motivos {
+		motivosDeLaSesion = append(motivosDeLaSesion, sesionDelArticulo21+": "+motivo)
+	}
+
+	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1)},
+		motivosDeLaSesion,
+		[]string{sesionDelArticulo21 + ": petición llegada a la red: " + ordenDeA9998 + " → " + destinoPublico},
+	)...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
 // comprobarEvalSinSesion exige un único resultado, que pasa, y el veredicto fallo
-// por la eval bien formada que ningún eval.txt nombra.
+// porque la serie de la eval bien formada que ningún eval.txt nombra no tiene
+// ninguna sesión.
 func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	require.Len(t, leido.informe.Evals, 1)
 	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Pasa)
-	exigirMotivosDeLaRaiz(t, leido, ficheroDeNoActivacion+": sin ninguna sesión")
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLasSesionesQueFaltan(ficheroDeNoActivacion, modeloQueDecide, 0, 1),
+		motivoDeLaTasa(ficheroDeNoActivacion, modeloQueDecide, 0, 0, 1))
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
@@ -471,7 +535,9 @@ func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
 func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
 	t.Helper()
 
-	exigirSesionIlegible(t, leido, "eval.txt", ficheroDeLaEval01+": sin ninguna sesión")
+	motivo := exigirSesionIlegible(t, leido, "eval.txt")
+	exigirMotivosDeLaRaiz(t, leido,
+		slices.Concat(motivosDeLaSerieSinSesiones(), []string{sesionDelArticulo21 + ": " + motivo})...)
 	assert.Empty(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Eval)
 }
 
@@ -483,7 +549,9 @@ func comprobarEvalDesconocida(t *testing.T, leido informeLeido) {
 
 	const desconocida = "03-inexistente.yaml"
 
-	motivo := exigirSesionIlegible(t, leido, "eval.txt", ficheroDeLaEval01+": sin ninguna sesión")
+	motivo := exigirSesionIlegible(t, leido, "eval.txt")
+	exigirMotivosDeLaRaiz(t, leido,
+		slices.Concat(motivosDeLaSerieSinSesiones(), []string{sesionDelArticulo21 + ": " + motivo})...)
 	assert.Contains(t, motivo, desconocida)
 	assert.Equal(t, desconocida, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Eval)
 }
@@ -493,7 +561,10 @@ func comprobarEvalDesconocida(t *testing.T, leido informeLeido) {
 func comprobarSinPreguntaTxt(t *testing.T, leido informeLeido) {
 	t.Helper()
 
-	exigirSesionIlegible(t, leido, "pregunta.txt")
+	motivo := exigirSesionIlegible(t, leido, "pregunta.txt")
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+		sesionDelArticulo21+": "+motivo)
 }
 
 // comprobarTrazaIlegible exige la sesión con la línea execve cortada ilegible por
@@ -507,13 +578,17 @@ func comprobarTrazaIlegible(t *testing.T, leido informeLeido) {
 	assert.Contains(t, motivo, traza)
 	assert.Contains(t, motivo, "línea 1")
 	assert.Contains(t, motivo, lineaDeLaTraza(t, traza, 1))
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+		sesionDelArticulo21+": "+motivo)
 }
 
 // exigirSesionIlegible exige que la sesión del art. 21 no pase con un único
-// motivo, el de sesión ilegible por el fichero; que la raíz lleve ese motivo,
-// precedido de la sesión, seguido de los otros; y el veredicto fallo. Devuelve el
-// motivo.
-func exigirSesionIlegible(t *testing.T, leido informeLeido, fichero string, otros ...string) string {
+// motivo, el de sesión ilegible por el fichero, y el veredicto fallo. Los motivos
+// de la raíz los exige cada caso, porque dependen de en qué serie cae la sesión:
+// la que pierde su eval o su modelo deja además la serie planificada sin
+// sesiones. Devuelve el motivo.
+func exigirSesionIlegible(t *testing.T, leido informeLeido, fichero string) string {
 	t.Helper()
 
 	resultado := resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21)
@@ -524,10 +599,141 @@ func exigirSesionIlegible(t *testing.T, leido informeLeido, fichero string, otro
 	assert.True(t, strings.HasPrefix(motivo, "sesión ilegible: "+fichero+": "),
 		"el motivo %q es el de sesión ilegible por %s", motivo, fichero)
 
-	exigirMotivosDeLaRaiz(t, leido, slices.Concat([]string{sesionDelArticulo21 + ": " + motivo}, otros)...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 
 	return motivo
+}
+
+// motivosDeLaSerieSinSesiones son los dos motivos de la serie del art. 21 con el
+// modelo que decide cuando ninguna sesión cae en ella, con una repetición y umbral
+// 1.
+func motivosDeLaSerieSinSesiones() []string {
+	return []string{
+		motivoDeLasSesionesQueFaltan(ficheroDeLaEval01, modeloQueDecide, 0, 1),
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 0, 1),
+	}
+}
+
+// comprobarSinModeloTxt exige la sesión sin modelo.txt ilegible: sin el modelo no
+// cae en la serie que el plan pide, que queda sin sesiones.
+func comprobarSinModeloTxt(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	motivo := exigirSesionIlegible(t, leido, "modelo.txt")
+	assert.Empty(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Modelo)
+	exigirMotivosDeLaRaiz(t, leido,
+		slices.Concat(motivosDeLaSerieSinSesiones(), []string{sesionDelArticulo21 + ": " + motivo})...)
+}
+
+// comprobarUmbralAlcanzado exige que la serie del art. 21 con tres sesiones, dos
+// de las cuales pasan, llegue al umbral de 2 y que el veredicto sea aprobado sin
+// ningún motivo, aunque una sesión no pase: eso es lo que el umbral absorbe
+// (ADR 0016).
+func comprobarUmbralAlcanzado(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	tasa := tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide)
+	assert.Equal(t, TasaDelInforme{
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Sesiones: 3, Pasan: 2, Pasa: true,
+	}, tasa)
+
+	assert.False(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21+"-claude-haiku-03").Pasa,
+		"la tercera sesión no pasa y aun así la serie llega al umbral")
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "2 de 3", "llega al umbral"))
+}
+
+// comprobarUmbralNoAlcanzado exige que la serie con solo una sesión que pasa de
+// tres no llegue al umbral, con su tasa y los motivos de sus dos sesiones que no
+// pasan, y el veredicto fallo.
+func comprobarUmbralNoAlcanzado(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	tasa := tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide)
+	assert.Equal(t, 1, tasa.Pasan)
+	assert.False(t, tasa.Pasa)
+
+	motivoDeLaCita := "cita ausente: " + textoDeLaCita21
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 1, 3, 2),
+		sesionDelArticulo21+"-claude-haiku-02: "+motivoDeLaCita,
+		sesionDelArticulo21+"-claude-haiku-03: "+motivoDeLaCita)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// comprobarEvalInformativa exige que la serie de una eval informativa no decida,
+// que su tasa se publique igual y que el veredicto sea aprobado aunque su sesión
+// no pase (ADR 0016).
+func comprobarEvalInformativa(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	assert.Equal(t, TasaDelInforme{
+		Eval: ficheroDeLaEvalInformativa, Modelo: modeloQueDecide, Planificada: true,
+		Sesiones: 1, Pasan: 0,
+	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEvalInformativa, modeloQueDecide))
+
+	assert.True(t, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide).Decide)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+}
+
+// comprobarModeloInformativo exige que la serie de uno de los modelos
+// informativos no decida, que su tasa se publique y que el veredicto sea aprobado aunque su sesión
+// no pase (ADR 0016).
+func comprobarModeloInformativo(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	assert.Equal(t, TasaDelInforme{
+		Eval: ficheroDeLaEval01, Modelo: modeloInformativoDelCaso, Planificada: true,
+		Sesiones: 1, Pasan: 0,
+	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloInformativoDelCaso))
+
+	assert.Equal(t, []string{modeloInformativoDelCaso}, leido.informe.ModelosInformativos)
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
+		"Modelos informativos: "+modeloInformativoDelCaso)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+}
+
+// comprobarFaltanSesiones exige que una serie con menos sesiones de las que pide
+// el plan haga fallar el veredicto, aunque las que hay pasen: si no, una sesión
+// que el guion no llegó a abrir se perdería en silencio.
+func comprobarFaltanSesiones(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	tasa := tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide)
+	assert.Equal(t, 1, tasa.Sesiones)
+	assert.True(t, tasa.Pasa, "la sesión que hay pasa y llega al umbral")
+
+	exigirMotivosDeLaRaiz(t, leido, motivoDeLasSesionesQueFaltan(ficheroDeLaEval01, modeloQueDecide, 1, 2))
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// comprobarOtroModelo exige que una sesión que declara un modelo que no es el que
+// se le pidió no pase, con su motivo, y que el informe publique los dos ids.
+func comprobarOtroModelo(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	sesion := sesionDelArticulo21 + "-claude-opus-5-01"
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sesion)
+	assert.False(t, resultado.Pasa)
+	assert.Equal(t, modeloInformativoDelCaso, resultado.Modelo)
+	assert.Equal(t, modeloDeLosTranscripts, resultado.ModeloDeLaSesion)
+
+	motivo := "la sesión no declara el modelo que se le pidió: " + modeloDeLosTranscripts +
+		", y se pidió " + modeloInformativoDelCaso
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLaTasa(ficheroDeLaEval01, modeloInformativoDelCaso, 0, 1, 1),
+		sesion+": "+motivo)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesion),
+		"Modelo pedido: "+modeloInformativoDelCaso, "Modelo de la sesión: "+modeloDeLosTranscripts)
 }
 
 // ejecucionesDeInforme son los nombres de los casos de casosDeInforme, cada uno
@@ -555,17 +761,43 @@ func ejecucionesDeInforme(t *testing.T) []string {
 }
 
 // entradasDelCaso son las entradas de EscribirInforme de una ejecución de
-// casosDeInforme, con el destino dado.
+// casosDeInforme, con el destino dado: una repetición por serie y umbral 1, que
+// es lo que tiene la mayoría de los casos; los que miden el umbral, las
+// repeticiones o los modelos informativos las cambian con su propio ajustar.
 func entradasDelCaso(caso, destino string) InformeAEscribir {
 	return InformeAEscribir{
-		Skill:     skillDeLasSesiones,
-		Evals:     filepath.Join(casosDeInforme, caso, "evals"),
-		Sesiones:  filepath.Join(casosDeInforme, caso, "sesiones"),
-		Destino:   destino,
-		Modelo:    modeloDelJob,
-		Commit:    commitEvaluado,
-		SinPython: filepath.Join(casosDeInforme, ficheroSinPython),
+		Skill:           skillDeLasSesiones,
+		Evals:           filepath.Join(casosDeInforme, caso, "evals"),
+		Sesiones:        filepath.Join(casosDeInforme, caso, "sesiones"),
+		Destino:         destino,
+		ModeloQueDecide: modeloQueDecide,
+		Repeticiones:    1,
+		Umbral:          1,
+		Commit:          commitEvaluado,
+		SinPython:       filepath.Join(casosDeInforme, ficheroSinPython),
 	}
+}
+
+// motivoDeLasSesionesQueFaltan y motivoDeLaTasa son los dos motivos de la raíz que
+// da una serie (data-model §10.3).
+func motivoDeLasSesionesQueFaltan(eval, modelo string, hay, pide int) string {
+	return fmt.Sprintf("%s con %s: hay %d sesiones y el plan pide %d", eval, modelo, hay, pide)
+}
+
+func motivoDeLaTasa(eval, modelo string, pasan, sesiones, umbral int) string {
+	return fmt.Sprintf("%s con %s: pasan %d de %d, y el umbral es %d", eval, modelo, pasan, sesiones, umbral)
+}
+
+// tasaDeLaSerie es la tasa de la serie de esa eval con ese modelo en el informe.
+func tasaDeLaSerie(t *testing.T, informe Informe, eval, modelo string) TasaDelInforme {
+	t.Helper()
+
+	posicion := slices.IndexFunc(informe.Tasas, func(tasa TasaDelInforme) bool {
+		return tasa.Eval == eval && tasa.Modelo == modelo && !tasa.PreguntaAmpliada
+	})
+	require.GreaterOrEqual(t, posicion, 0, "el informe tiene la tasa de %s con %s", eval, modelo)
+
+	return informe.Tasas[posicion]
 }
 
 // leerInformeEscrito lee informe.json e informe.md del destino y exige lo que
@@ -590,14 +822,17 @@ func leerInformeEscrito(t *testing.T, destino string, devuelto Informe) informeL
 	sinPython := contenidoDeLaSesion(t, casosDeInforme, ficheroSinPython)
 
 	assert.Equal(t, skillDeLasSesiones, leido.informe.Skill)
-	assert.Equal(t, modeloDelJob, leido.informe.Modelo)
 	assert.Equal(t, commitEvaluado, leido.informe.Commit)
 	assert.Equal(t, sinPython, leido.informe.SinPython, "sin_python es sin-python.txt byte a byte")
 
 	titulo, _, _ := strings.Cut(leido.md, "\n")
 	assert.Equal(t, "# Informe de evals de "+skillDeLasSesiones, titulo)
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Veredicto"), "Veredicto: "+string(leido.informe.Veredicto))
-	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"), "Modelo del job: "+modeloDelJob, "Commit: "+commitEvaluado)
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
+		"Modelo que decide: "+leido.informe.ModeloQueDecide,
+		"Repeticiones por eval: "+strconv.Itoa(leido.informe.Repeticiones),
+		"Umbral: "+strconv.Itoa(leido.informe.Umbral),
+		"Commit: "+commitEvaluado)
 	assert.Equal(t, "```text\n"+sinPython+"```", seccionDelInforme(t, leido.md, "Comprobación sin Python"))
 
 	return leido

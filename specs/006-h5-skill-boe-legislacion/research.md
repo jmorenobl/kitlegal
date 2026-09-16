@@ -420,6 +420,20 @@ más allá de los 240 s (V54 (4)), de modo que la sesión dejaría de estar acot
 Code 2.1.270; una sesión por eval en un directorio de trabajo vacío, `--setting-sources user`, `--max-turns 30`, tope de
 240 s, sin `WebFetch` ni `WebSearch` (contrato del job).
 
+**Enmienda del 2026-09-16 (ADR 0016).** De esta decisión cambian los disparadores y el modelo, y nada más. Los
+disparadores pasan a `workflow_dispatch`, `pull_request` con los tipos `opened`, `reopened` y `labeled`, y un job previo
+que mira por la API los ficheros de la propuesta de cambio: el job de evals arranca si toca `skills/`, `evals/`,
+`data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `schemas/eval.yaml.json`, el
+`Makefile` o el propio fichero del job, o si se pone la etiqueta `evals` o `evals-prueba-de-red`, que sigue arrancando
+sobre cualquier propuesta. Se quita el `schedule`: sobre la rama principal, con el modelo, la versión de Claude Code y
+las respuestas del BOE fijados, la ejecución semanal solo medía el azar del modelo, gastaba suscripción y asumía cada
+semana el riesgo del token de este mismo apartado. No se usa un filtro `paths:` del evento porque se aplicaría también a
+la actividad `labeled`. El modelo que decide pasa a ser `claude-sonnet-5`, el del uso real de la skill, y
+`claude-haiku-4-5-20251001` se sigue ejecutando como límite inferior publicado en el informe sin decidir el veredicto; y
+de cada eval y cada modelo se abren tres sesiones, con umbral de dos. Lo demás de D13 —el runner, la versión de Claude
+Code, el directorio de trabajo, las banderas de la sesión, el tope de 240 s y el riesgo del token en
+`/proc/<pid>/environ`— sigue igual.
+
 **Por qué.** FR-070 pide ejecución semanal, manual y sobre la rama del hito antes de fusionar. `schedule` corre en la
 rama principal; para una rama cuyo fichero aún no está en la principal, el evento de etiqueta de la propuesta de cambio
 usa el fichero de esa rama (supuesto S1, que prueba la tarea `[plataforma]`); `gh workflow run --ref` no documenta ese
