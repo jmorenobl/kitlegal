@@ -1,16 +1,19 @@
 {
-  "id": "T004",
-  "texto": "T004 [US2] Campo `Avisos` de `Eval` y comprobación del esquema publicado: `internal/evals/formato.go` con `Avisos []string` y etiqueta `yaml:\"avisos\"` detrás de `Citas`, con el comentario literal del contrato de formato, juicio e informe §2 (`LeerEval` no cambia: valida el esquema); `internal/evals/formato_test.go` con los casos nuevos de `TestLeerEval`, escritos primero sobre documentos en constantes (`avisos` con `Avisos` en el orden del fichero, `aviso-desconocido`, `no-activa-con-avisos`, `avisos-vacio` y `citas-vacio` con el mismo `minItems: got 0, want 1` en su ruta, `aviso-repetido` y `cita-repetida` leídas con el repetido en su lista, `informativa-con-avisos`), cada error con el texto exacto del contrato §6 y la línea que fija su documento; `internal/evals/conjunto_test.go` con el subtest `avisos-del-esquema` de `TestEvalsDelRepositorio` (`ComprobarCodigosDeAviso(esquemaDeEval())` sobre el esquema publicado → nil); las 17 evals existentes siguen válidas sin cambios (FR-013, FR-020, FR-021, FR-022, FR-023, US2 escenarios 1, 2, 9 y 10, US4 escenario 2, SC-002, SC-005, research D4, D5 y D6).",
+  "id": "T005",
+  "texto": "T005 [US2] Reparto de avisos en `Juzgar`: `internal/evals/juzgar.go` con la constante `motivoDeAvisoAusente = \"aviso ausente: \"` junto a las de los motivos, `AvisosEncontrados` y `AvisosAusentes` (`json:\"avisos_encontrados\"` y `json:\"avisos_ausentes\"`) detrás de `CitasAusentes` en `ResultadoDeEval` con el comentario del contrato de formato, juicio e informe §4, `repartirAvisos(eval.Avisos, ExtraerAvisos(sesion.Respuesta))` justo después de `repartirCitas` y con su misma forma, `Pasa` que exige además `len(AvisosAusentes) == 0`, el orden de motivos del contrato §4 (cada aviso ausente detrás de cada cita ausente y antes del del modelo) y los comentarios de `Juzgar`, `Motivos` y `Pasa` nombrando los avisos sin escribir ninguna etiqueta; `internal/evals/juzgar_test.go` con los casos nuevos de `TestJuzgar`, escritos primero sobre la eval 01 con `avisos` y la sesión que pasa cambiando solo la respuesta (`aviso-con-su-forma-fija`, `aviso-con-variantes-toleradas` con un juicio por variante, `aviso-ausente`, `aviso-con-otra-redaccion`, `aviso-negado` con el comando y la cita presentes, `forma-fija-y-lo-contrario`, `aviso-no-esperado`, `avisos-en-el-orden-de-la-eval`, `aviso-repetido`, `cita-y-aviso-ausentes`) y los casos existentes, sin `avisos`, con las dos listas nulas y el mismo resultado; y `.golangci.yml`, solo para añadir a `misspell.ignore-rules` la palabra `variantes` con el comentario de su motivo (el nombre del subtest `aviso-con-variantes-toleradas`, fijado por el inventario de tests de plan.md y quickstart.md §5, que `misspell` v0.8.0 lee como «variants»), sin ningún otro cambio en ese fichero; `TestInforme` sigue en verde porque las listas nulas se escriben como `[]` (research V8) (FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, US2 escenarios 3 a 8, SC-003, research D3).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
-  "base": "0a880e74944fc5c3d4c850bbfeecfd386619cf0f",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T005.md y déjala sin marcar.",
+  "base": "e59668fb1749f54306449518eda614b970cfb91c",
   "rutas": [
-    "internal/evals/conjunto_test.go",
-    "internal/evals/formato_test.go",
-    "internal/evals/formato.go"
+    ".golangci.yml",
+    ".ignore",
+    "internal/evals/juzgar_test.go",
+    "internal/evals/juzgar.go",
+    "plan.md",
+    "quickstart.md"
   ],
   "cierre": false
 }
