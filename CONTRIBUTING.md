@@ -225,44 +225,56 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 | `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de tres formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`) |
 | `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
+| `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
 dentro de `make ci`. Una entrada del directorio que no es un
 fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
 eval positiva sin citas o una de no activación con comandos fallan nombrando el fichero; ninguna se salta. Para
-`boe-legislacion`, `make ci` exige además las reglas de su conjunto: diez positivas de materias distintas y dos de no
-activación, entre otras.
+`boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que deciden, de
+materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no activación,
+entre otras.
 
-Una eval pasa si la sesión activa la skill cuando debe y no la activa cuando no debe, termina, hace con éxito cada
-consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas` y lleva la forma fija de cada aviso de
-`avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su traza.
+Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
+termina, hace con éxito cada consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas` y lleva la
+forma fija de cada aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
+traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
+([Job de evals](#job-de-evals)).
 
 ### Job de evals
 
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
 ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval está mal formada, que lo que
-necesitan está grabado y que la skill está instalada, y termina con `1` si algo falla. Después abre una sesión de
-Claude Code por eval, bajo `strace` y con la red cerrada salvo la del modelo, y escribe el informe con un veredicto
-global que falla si una eval no pasa, una sesión es ilegible, un fichero está mal formado, una eval se queda sin
-sesión o una petición llega a la red.
+necesitan está grabado y que la skill está instalada, y termina con `1` si algo falla. Después abre las sesiones de
+Claude Code del plan, cada una bajo `strace` y con la red cerrada salvo la del modelo: cada eval, tantas veces como
+repeticiones, con el modelo que decide y, si no es informativa, otras tantas con cada modelo informativo. Juzga cada
+sesión y agrupa las de cada eval con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan. El informe
+publica la tasa de cada serie y da un veredicto global que falla si una serie que decide —la de una eval que no es
+informativa con el modelo que decide— no llega al umbral, una serie no tiene exactamente las sesiones que pide el
+plan, una sesión es ilegible, un fichero está mal formado, no hay ninguna eval bien formada que juzgar o una petición
+llega a la red (ADR 0016).
 
-Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un único modelo fijado por su
-identificador completo en la definición —cambiar de modelo es un cambio de ese fichero— y el secreto de repositorio
-`CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token` (el proyecto no usa una
-clave de API de pago por uso). Se lanza de tres formas:
+Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), que fija en su definición, cada uno en
+su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
+(`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
+repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
+(`UMBRAL_DE_EVALS`). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero. Usa
+el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token`
+(el proyecto no usa una clave de API de pago por uso). Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
 | Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Semanal | La principal | Lo programa el propio flujo |
-| Por etiqueta | La de un hito, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 Una etiqueta que ya está puesta no lanza nada: para repetir la ejecución se quita y se vuelve a poner. El informe se
 imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y `--- fin de informe.md ---`
-(y las mismas de `informe.json`). La *Definition of Done* (punto 10) pide las evals de la skill en verde: se lanzan
-por etiqueta después del último cambio de la rama fuera del directorio del hito en `specs/`, porque un cambio
+(y las mismas de `informe.json`). La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
+del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
+cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
 posterior obliga a repetirlas.
 
 La **prueba de red** añade a las sesiones de las evals una con la pregunta de la primera eval y dos consultas a un

@@ -230,7 +230,8 @@ común de eval con su job de evals. El binario distribuido no cambia.
   propio job, y al poner la etiqueta `evals` o `evals-prueba-de-red` en cualquiera, con Claude Code
   `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. Decide con
   `claude-sonnet-5`, el modelo del uso real de la skill, y ejecuta además `claude-haiku-4-5-20251001` como límite
-  inferior que se publica sin decidir; cada eval se abre tres veces con cada modelo y pasa con dos (ADR 0016). El
+  inferior que se publica sin decidir; cada eval se abre tres veces con `claude-sonnet-5` y, si no es informativa,
+  otras tres con `claude-haiku-4-5-20251001`, y cada una de esas series pasa con dos (ADR 0016). El
   informe, con el veredicto global, la tasa de cada eval y lo que se comprobó de cada sesión, se imprime en el registro
   entre marcas.
 - **`make skills-sync` real**: deja de anunciar que las skills llegan en H5 y regenera, desde `data/*.yaml` y desde

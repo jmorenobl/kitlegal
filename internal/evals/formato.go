@@ -33,7 +33,8 @@ type Eval struct {
 
 	// Informativa dice que la eval se ejecuta y se publica, pero no decide el
 	// veredicto: mide algo que la skill todavía no puede hacer con las
-	// herramientas que hay (ADR 0016). Solo la ejecuta el modelo que decide.
+	// herramientas que hay (ADR 0016), o algo que todavía no hay datos para
+	// exigir (H5.1). Solo la ejecuta el modelo que decide.
 	Informativa bool `yaml:"informativa"`
 
 	// Comandos son los comandos esperados de una eval que activa la skill, en el

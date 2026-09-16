@@ -198,9 +198,9 @@ type conjuntoAComprobar struct {
 
 	// positivas son las posiciones de las evals con activa: true que deciden el
 	// veredicto, es decir, las que no son informativas. Las reglas que cuentan
-	// materias miran solo estas: una eval informativa mide algo que la skill
-	// todavía no puede hacer y repite la norma de la positiva de la que sale
-	// (ADR 0016).
+	// materias miran solo estas: una eval informativa no decide el veredicto, y
+	// una pregunta por materia repite además la norma de la positiva de la que
+	// sale (ADR 0016).
 	positivas []int
 
 	// informativas son las posiciones de las evals con informativa: true, y
@@ -283,10 +283,12 @@ func incumplimientoDeNoActivacion(conjunto *conjuntoAComprobar) string {
 }
 
 // incumplimientoDeInformativas: al menos una con informativa: true, y todas las
-// informativas son positivas. Son las preguntas por materia, que vuelven al
-// conjunto sin decidir el veredicto porque la herramienta que las haría posibles
-// sigue en el backlog (ADR 0016); si midieran una no activación, no medirían
-// nada.
+// informativas son positivas. Una eval informativa se mide y se publica sin
+// decidir el veredicto (ADR 0016), y hoy lo es por una de dos razones: las
+// preguntas por materia, porque la herramienta que las haría posibles sigue en el
+// backlog; y la de la norma derogada, porque promoverla a decisoria se decide con
+// los datos de varias ejecuciones (H5.1). Si midieran una no activación, no
+// medirían nada.
 func incumplimientoDeInformativas(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.informativasSinActivar) > 0 {
 		return "evals informativas que no son positivas (activa: true): " +
