@@ -1,5 +1,9 @@
 # Revisión final de H5.1: pendiente para una persona
 
+> **Resuelto** (2026-09-17). La repetición por etiqueta se hizo: la primera, sobre `064308f`, dio `fallo` por una traza
+> ilegible que arregló T015 (`73fe6d2`); la segunda, sobre `73fe6d2`, dio `aprobado` (`gates/evals-aceptacion.md`,
+> sección vigente). Lo que sigue es la nota tal como la dejó la corrección de la ronda 1.
+
 Anotado por la corrección de la ronda 1 (2026-09-16). Ningún motivo de los jueces exigió tocar `testdata/` ni
 `schemas/`, ni pidió una decisión humana: los cuatro motivos del juez A (criterio f) están corregidos en `7ae7a05`
 (documentación y comentarios) y en el commit de `specs/` que lo registra. Queda una acción de plataforma que el

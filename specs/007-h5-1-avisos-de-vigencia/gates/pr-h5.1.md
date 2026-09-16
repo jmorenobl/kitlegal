@@ -237,17 +237,15 @@ que miden los escenarios 1 a 9 no cambia; `make ci` vuelve a ejecutar todos sus 
 
 ## Pendientes
 
-- **Repetir la ejecución de aceptación por etiqueta** (FR-070, SC-007; contrato de la ejecución de aceptación §6). La
-  registrada en `gates/evals-aceptacion.md` —la de apertura, `35148840549`, sobre `8272bc8`— **ya no cubre la
-  cabeza**: la corrección de la revisión final (`7ae7a05`) cambia fuera de `specs/007-h5-1-avisos-de-vigencia/`
-  `CHANGELOG.md`, `CONTRIBUTING.md`, `README.md`, `internal/evals/conjunto.go` e `internal/evals/formato.go`. Tras la
-  revisión en verde y el push de la rama (el push no lanza el job: no hay `synchronize`), se actualiza el cuerpo de
-  #34 con este fichero (`gh pr edit 007-h5-1-avisos-de-vigencia --body-file
-  specs/007-h5-1-avisos-de-vigencia/gates/pr-h5.1.md`), se quita la etiqueta `evals` si está puesta, se pone, y se
-  identifica, espera, lee y comprueba la ejecución nueva con quickstart §11.6 y después la tercera orden de §11.3, §11.4
-  y §11.5, con las mismas condiciones; su evidencia se añade como sección nueva y vigente de
-  `gates/evals-aceptacion.md`. Si otra corrección posterior cambia algo fuera del directorio del hito, la repetición va
-  detrás de la última. Anotado también en `gates/revision-pendiente.md`.
+- **Aceptación repetida y vigente** (FR-070, SC-007; contrato de la ejecución de aceptación §6). La de apertura
+  (`35148840549`, sobre `8272bc8`) dejó de cubrir la cabeza con la corrección de la revisión final (`7ae7a05`). Su
+  primera repetición por etiqueta (`35156339496`, sobre `064308f`) dio `fallo` solo por una sesión del modelo
+  informativo con la traza ilegible —la llamada desconocida cerrada, `???()` con el relleno y `= ?`—; **T015** la
+  arregló en `internal/evals/trazas.go` (`73fe6d2`, `gates/tarea-T015.md`), fuera del alcance escrito del hito y sin
+  pasar por los jueces del workflow: conviene revisar ese commit antes de fusionar. La repetición sobre `73fe6d2`
+  ([35160101237](https://github.com/jmorenobl/kitlegal/actions/runs/35160101237)) dio `aprobado`, `red` vacío, las
+  30 series en 3 de 3 y la eval 18 con sus dos avisos en las tres sesiones (`gates/evals-aceptacion.md`, sección
+  vigente). Si otro commit cambia algo fuera de `specs/007-h5-1-avisos-de-vigencia/`, se repite otra vez por etiqueta.
 - **`govulncheck` y un módulo requerido**: el mismo `make ci` informa, sin fallar, de una vulnerabilidad en un módulo
   que el código no llama, `GO-2026-5970` («Infinite loop on invalid input in golang.org/x/text»; encontrada en
   `golang.org/x/text@v0.14.0`, corregida en v0.39.0), según `govulncheck -show verbose` sobre `85a2cf4`. H5.1 no toca
