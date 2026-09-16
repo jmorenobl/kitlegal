@@ -204,7 +204,11 @@ README.md, CONTRIBUTING.md, CHANGELOG.md    ← avisos en el formato común de e
 **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`, sin paquetes nuevos: la forma fija vive en
 `internal/evals` junto a la cita (`citas.go`), la etiqueta en el adaptador que la emite (`internal/source/boe`), y los
 datos, las evals, los esquemas y la skill en sus directorios de la raíz. No se tocan `internal/core`, `internal/app`,
-`internal/cli`, `internal/httpx`, `internal/cache`, `cmd/`, `scripts/`, `.github/`, el `Makefile` ni `.golangci.yml`.
+`internal/cli`, `internal/httpx`, `internal/cache`, `cmd/`, `scripts/`, `.github/`, el `Makefile` ni `.golangci.yml`, salvo
+una entrada nueva en `misspell.ignore-rules`: `variantes`, que el nombre del subtest `aviso-con-variantes-toleradas` del
+inventario de tests hace saltar (`misspell` v0.8.0 la lee como «variants»; comprobado al generar las tareas con la
+réplica del reemplazador de golangci-lint). Es el mecanismo del repositorio para palabras españolas, no una exclusión de
+lint, y va en la tarea del paso 5 con el comentario de su motivo.
 
 ## Controles mecánicos que este hito añade o toca
 
@@ -287,7 +291,7 @@ V15, V33). Las rutas de cada paso son las que su tarea declara.
 | 2 | Forma fija y comprobaciones, sobre entradas sintéticas | `internal/evals/avisos.go` (+ test) | Funciones nuevas con sus tests; nada las usa todavía |
 | 3 | `[datos]` `avisos` en el esquema (pausa) | `schemas/eval.yaml.json` | Ninguna eval lleva `avisos` y `Decode` ignora la clave (V5) |
 | 4 | `Eval.Avisos`, casos de formato y `avisos-del-esquema` | `internal/evals/formato.go` (+ test), `internal/evals/conjunto_test.go` | El esquema ya admite `avisos` |
-| 5 | Reparto de avisos en `Juzgar` | `internal/evals/juzgar.go` (+ test) | Evals sin `avisos` dan el mismo resultado (FR-034) |
+| 5 | Reparto de avisos en `Juzgar` | `internal/evals/juzgar.go` (+ test), `.golangci.yml` (solo `variantes` en `misspell.ignore-rules`) | Evals sin `avisos` dan el mismo resultado (FR-034) |
 | 6 | Avisos en el informe | `internal/evals/informe.go` (+ test) | `TestInforme` no compara filas de la tabla de sesiones (V19) |
 | 7 | Arnés con la unión de grabaciones y premisa de identificadores | `internal/evals/grabacion_test.go`, `internal/evals/grabaciones_test.go` | La premisa elige la misma norma sin la entrada nueva (V14); el arnés solo compila |
 | 8 | `[datos]` entrada del manifiesto (pausa; la persona graba el índice) | `testdata/evals/grabaciones.json` | Con la premisa del paso 7, la entrada sola no rompe nada (V14) |

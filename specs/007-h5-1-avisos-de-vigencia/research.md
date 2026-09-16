@@ -444,7 +444,8 @@ páginas que no tratan de `avisos` no se tocan: no las pide el spec.
 - **golang-testing** y **golang-stretchr-testify**: tablas con subtests con nombre, `t.Parallel()`, `require` para las
   precondiciones y `assert` para las comparaciones; material nuevo en `t.TempDir()`; mutaciones del quickstart para
   demostrar que las comprobaciones no pasan en vacío.
-- **golang-lint**: ningún `//nolint`, ninguna exclusión nueva en `.golangci.yml`; prototipo en verde con el linter
+- **golang-lint**: ningún `//nolint`, ninguna exclusión nueva en `.golangci.yml` (solo la palabra `variantes` en
+  `misspell.ignore-rules`, que exige el nombre del subtest `aviso-con-variantes-toleradas`); prototipo en verde con el linter
   fijado (V10).
 - **golang-safety**: el mapa de `EtiquetasDeAviso` y la lista de `ExtraerAvisos` son nuevos en cada llamada, sin
   aliasing con el estado del paquete.
