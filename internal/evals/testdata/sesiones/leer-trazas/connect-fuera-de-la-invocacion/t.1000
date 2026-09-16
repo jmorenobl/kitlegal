@@ -1,0 +1,4 @@
+execve("/usr/local/bin/claude", ["claude", "-p", "\302\277Qu\303\251 dice el art\303\255culo 21 de la Ley 39/2015?", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--verbose", "--max-turns", "30", "--no-session-persistence", "--setting-sources", "user", "--settings", "{\"sandbox\":{\"enabled\":false}}", "--permission-mode", "bypassPermissions", "--disallowedTools", "WebFetch", "WebSearch"], 0x7ffe2a4c8d10 /* 31 vars */) = 0
+connect(23, {sa_family=AF_INET, sin_port=htons(443), sin_addr=inet_addr("203.0.113.7")}, 16) = -1 EINPROGRESS (Operation now in progress)
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f3a9c2f5a10) = 2000
++++ exited with 0 +++

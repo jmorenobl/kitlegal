@@ -1,0 +1,64 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:68 «ci: todos los controles en verde» (fmt, lint 0 issues, test -race -shuffle, test-integration, vuln, schema-check, skills-check, secrets, mod-verify, mod-tidy-check). Reproducido en una copia fuera del repositorio (git clone en /tmp/kitlegal-juezb-h5, cabeza e55d94d): `make ci` termina con 0 y la copia queda sin cambios versionados; `make skills-sync` sobre el árbol commiteado tampoco cambia nada (FR-034). `git status --porcelain` del repositorio vacío. Entre el commit evaluado por la ejecución de cierre (5c6c552, gates/evals-cierre.md:21) y HEAD solo cambian ficheros bajo specs/006-h5-skill-boe-legislacion/ (git diff --stat 5c6c552 HEAD: 5 ficheros, todos en gates/ y tasks.md), como exige FR-082."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "Todo el código nuevo (internal/skills, internal/evals, internal/app/skills_test.go, guiones) tiene tests offline (cobertura 98,5 % y 99,0 %; ci.log:18,21). De 22 mutantes aplicados en la copia (citas.go, juzgar.go ×4, trazas.go ×3, informe.go ×2, sesion.go ×2, consultas.go, conjunto.go, normas.go, sincronia.go, frontmatter.go ×2, comandos.go, data/normas.yaml, evals/01, scripts/instalar-skills.sh, retirada de una grabación de índice), 20 caen en el test que dice detectarlos. Dos sobreviven con TestJuzgar, TestInforme y TestLeerTrazas en verde: (1) internal/evals/juzgar.go:306-309, `leeElBloque` sin `slices.Contains(invocacion.Argumentos[1:], bloque)`: leer OTRO bloque de la misma norma pasaría a satisfacer el bloque esperado (FR-072) y ningún caso de internal/evals/juzgar_test.go:44-276 lo fija (hay cita-de-otro-bloque y bloque-leido-con-codigo-4, no bloque-leido-distinto); (2) internal/evals/trazas.go:1202-1213, `creadoTrasLaEjecucion` devolviendo siempre true: las conexiones de un hilo del proceso creado ANTES de la execve del applet se atribuirían a la invocación (data-model.md §9 regla 3) y ningún caso de internal/evals/testdata/sesiones/leer-trazas/ ni de internal/evals/trazas_test.go:65-120 lo cubre. Una sonda temporal en la copia (borrada después) confirma que el código actual hace lo correcto en los dos escenarios y que solo falta el test. Fixtures: testdata/ y schemas/ solo cambian en los commits de las tareas [datos] T001, T008 y T009 (git log main..HEAD -- testdata schemas); las grabaciones de H4 no se tocan."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "golangci-lint (depguard listas core/red/sql/ejemplo, forbidigo os.Exit y fmt.Print*) con 0 issues en ci.log:7 y en la copia. grep de las líneas añadidas del diff: ningún `net/http`, `os.Exit`, `fmt.Print`, `os.Stdout/Stderr`, `panic(`, `http.Post` ni método distinto de GET. internal/evals usa `net/netip` y compone `httpx.Replay`/`httpx.New` (preparar.go:262, grabacion_test.go:77); internal/skills no toca la red. Ningún `package main` nuevo; las herramientas son tests (`make skills-check`, `scripts/skills-sync.sh`, `scripts/evals.sh`). TestDependenciasDelBinario y TestArquitectura sin cambios y en verde: el binario no enlaza internal/skills ni internal/evals ni go.yaml.in/yaml/v3."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "H5 no añade ni cambia ningún applet (internal/source, internal/app salvo skills_test.go, schemas/norma.json y bloque.json sin diff). `make schema-check` en verde (ci.log:48-49). La tabla de comandos de SKILL.md sale de la misma función que atiende --describe (internal/app/skills_test.go:811-839) y TestTablaDeComandosCoincideConLaGramatica (skills_test.go:144-190) invoca cada sintaxis generada contra la gramática real exigiendo código 0 y `title` del verbo; el mutante que presenta un argumento obligatorio como opcional (comandos.go:578) lo hace caer. Las salidas de las consultas necesarias se ejecutan por app.Main con --json (preparar.go:282-287), es decir, con el sobre."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún panic en el diff. Errores tipados que nombran el objeto: DefectoDeSkill (skill.go:39), Deriva (sincronia.go:120), DefectoDeNorma (normas.go:56), ClaveRepetida y DefectoEnElDocumento (esquemas.go:55,83), FicheroMalFormado (conjunto.go:34), Falta (preparar.go:51). Guiones con `set -euo pipefail` y salida 1 nombrando la causa (instalar-skills.sh:13-21,52-57; evals.sh:25-93) y `exit \"$codigo_del_informe\"` (evals.sh:191). Los códigos del binario no cambian; SKILL.md:143-144 los documenta igual que CLAUDE.md, y la prueba de red muestra 5 sin --offline y 4 con él (gates/prueba-de-red.md:331-332), como prometen CONTRIBUTING.md y el contrato del job. TestInstalacion (4 guiones testscript) fija los códigos de make install, conflicto incluido, y el mutante del guion lo hace caer."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased con H5 en la introducción, en Añadido (skill, tabla de normas, esquemas, formato de eval, evals, job, skills-sync, skills-check, evals) y en Cambiado (make install, diez controles). README.md: «Qué entrega este hito (H5)», sección Skills con los tres directorios llamados skills, instalación, generado, formato de eval y job; tabla de órdenes con skills-check (sí), skills-sync y evals (no); «diez controles». CONTRIBUTING.md: filas nuevas y sección «Skills y evals». docs/PENDIENTES.md sin las tres entradas «En H5 ·». docs/USO.md con la entrada del 2026-09-15. Sin ADR porque no cambia ninguna decisión cerrada (scripts/boe sigue siendo un enlace al binario; data/ única fuente de verdad); docs/SOURCES.md intacto porque no se toca ninguna fuente. Las afirmaciones comprobadas (idempotencia de skills-sync, conflicto de make install, derivas nombradas, 5/4 en la prueba de red, .gitattributes solo bajo .agents/skills/ con `git check-attr`) las sostiene el producto; S8 queda declarado como pendiente de la fusión en gates/pr-h5.md:733-750 con el método para comprobarlo."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Toda red va por internal/httpx: los tests y la preparación de la caché usan httpx.Replay (preparar.go:262,172) sobre directorios de grabaciones; la única grabación con red la hace una persona con scripts/grabar-evals.sh → TestGrabarEvals, que exige KITLEGAL_RECORD=1 y construye el cliente con httpx.New, ConFuente e IntervaloEntrePeticiones de boe (grabacion_test.go:56-82: identificación, robots.txt y ritmo del kernel). Solo GET: los 32 ficheros de testdata/evals/boe.legislacion-consolidada/ son GET_*. gitleaks sin hallazgos (ci.log:56); ningún NIF ni dato personal en skills/, data/, evals/ ni testdata/. El job no deja llegar ninguna petición a la fuente (proxy 127.0.0.1:9, NO_PROXY solo api.anthropic.com, strace con veredicto fallo ante clase red; informe.go:463) y la ejecución de cierre lo registra («ninguna petición llegó a la red», evals-cierre.md:25). Riesgo residual documentado y justificado, no un incumplimiento: CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 en evals.sh:130 deja la credencial del modelo legible desde /proc por las órdenes de la sesión (plan.md §VII, pr-h5.md:532-540), en un runner desechable con contents: read y red solo al proveedor del modelo."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`, `t.Skip`, TODO/FIXME ni exclusión nueva de lint en el diff (.golangci.yml solo añade la etiqueta evals y cinco palabras de misspell justificadas una a una). Los cuatro `_ =` son los únicos: frontmatter.go:233,235,241 descartan el bool de `l.cadena`, cuyo defecto ya queda anotado en la propia función, y referencias.go:99 el tercer valor de strings.Cut, documentado. Ninguna grabación ni esquema retocado fuera de las tareas [datos] (T001, T008, T009). Los cambios de T041/T043 (las preguntas nombran el artículo), T046 (la forma legible dentro de los corchetes) y T032 (cota del ritmo) no son ajustes ocultos: están decididos con la persona y documentados en tasks.md, research D23, docs/USO.md y gates/pr-h5.md, con la herramienta que falta en el backlog. Los tests de H5 no pasan en vacío (TestSkillsDelRepositorio exige la skill del hito; TestIdentificadoresDeLasNormas, diez normas; TestEvalsDelRepositorio, doce evals)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff se ciñe al spec y al plan: skills/boe-legislacion/, data/normas.yaml, schemas/normas.yaml.json y eval.yaml.json, evals/boe-legislacion/, internal/skills, internal/evals, internal/app/skills_test.go, cuatro guiones, evals.yml, Makefile (install, skills-sync, skills-check, evals, ci), .agents/.gitattributes, documentación y testdata. Sin cambios en internal/core, internal/cli, internal/cache, internal/source, internal/render, cmd, .claude/skills/, skills-lock.json ni el contenido de .agents/skills/ (git diff --stat vacío en todos). El único fichero fuera de la lista del plan es internal/httpx/{reintentos,ritmo}_test.go (T032): solo tests, sustituye una aserción intermitente por la cota que el limitador sí garantiza sin debilitar la detección (mutantes sin limitador, ráfaga 2 o intervalo menor caen), exigido por el punto 1 de la Definition of Done y registrado en tasks.md y gates/tarea-T032.md; no es una mejora no pedida."
+    }
+  ],
+  "motivos": [
+    "[b] internal/evals/juzgar.go:306-309 (`leeElBloque`): ningún test fija que leer OTRO bloque de la misma norma no satisface el bloque esperado (FR-072: «ese identificador y ese bloque»). Mutante comprobado en una copia: sin `&& slices.Contains(invocacion.Argumentos[1:], bloque)`, TestJuzgar y TestInforme siguen en verde; una sonda con la eval del art. 21 y una sesión que solo ejecuta `boe articulo BOE-A-2015-10565 a22 --json` con código 0 (y la cita a21 en la respuesta) muestra que el código actual devuelve `comandos_ausentes` [bloque boe BOE-A-2015-10565 a21] y `pasa` falso, pero nada lo vigila. Corrección: añadir a la tabla de TestJuzgar en internal/evals/juzgar_test.go un caso `otro-bloque-no-satisface` (invocaciones `articulo … a22` y `articulos … a20 a22`, código 0, cita esperada presente) que exija ComandosAusentes con el texto del bloque esperado, Motivos «comando ausente: …» y Pasa falso; y anotarlo en contracts/evals-y-grabaciones.md §6 (fila TestJuzgar) y en el control 15 de plan.md.",
+    "[b] internal/evals/trazas.go:1202-1213 (`creadoTrasLaEjecucion`): ningún caso de TestLeerTrazas tiene un hilo del proceso creado ANTES de la execve del applet, que data-model.md §9 regla 3 excluye de la invocación («los hilos del proceso creados … desde una línea posterior a ella»). Mutante comprobado en una copia: con `return true`, TestLeerTrazas, TestJuzgar y TestInforme siguen en verde; una sonda (t.2000: `execve` de bash = 0, `clone` con CLONE_THREAD = 2001, `execve` de scripts/boe = 0, línea final; t.2001: `connect` a 203.0.113.7:443 = 0, línea final) muestra que el código actual no atribuye esa conexión, sin test que lo fije. Corrección: crear el caso `hilo-creado-antes-de-la-execve` bajo internal/evals/testdata/sesiones/leer-trazas/ con esos dos ficheros (tarea [datos], sin pausa, como T038 y T044), añadir su fila a la tabla de internal/evals/trazas_test.go (una invocación del proceso 2000 con `boe articulo BOE-A-2015-10565 a21 --json`, código 0 y sin conexiones), y actualizar contracts/job-de-evals.md §9 y §9.1 (casos y cifras del árbol) y el control 16 de plan.md."
+  ]
+}

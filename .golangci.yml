@@ -25,10 +25,17 @@ run:
   # scripts/grabar-fixtures.sh, que toca la red y que ni make ci ni ninguna tarea
   # ejecutan; sin la etiqueta aquí, ese fichero quedaría fuera de todo control y
   # uno que ni compila pasaría el lint en verde (H4 research.md D13).
+  #
+  # Y los que llevan evals: los arneses del job de evals
+  # (internal/evals/job_test.go) solo los compila scripts/evals.sh, que abre
+  # sesiones con modelo y que ni make ci ni ninguna tarea ejecutan; sin la
+  # etiqueta aquí, ese fichero quedaría fuera de todo control y uno que ni
+  # compila pasaría el lint en verde (H5 research.md D20 y V38).
   build-tags:
     - integration
     - fuentes
     - grabacion
+    - evals
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
@@ -234,9 +241,23 @@ linters:
         # entradas del índice que fija el modelo de datos de H4 (FR-040,
         # research.md D9 y D18); misspell lo lee como «capitol».
         - capitulo
+        # «Comando», el singular del formato de eval de H5: «comando esperado» y
+        # «comando ausente» en los comentarios y en los motivos de Juzgar y del
+        # informe (data-model §6.1 y §10.2 de H5, research.md D20); misspell lo
+        # lee como «commando».
+        - comando
+        # «Comandos», la clave comandos del formato de eval de H5 (FR-060,
+        # contrato de evals §1) en la etiqueta YAML del campo Comandos de Eval, y
+        # las claves comandos_ejecutados y comandos_ausentes del informe (contrato
+        # del job §5, research.md D20); misspell lo lee como «commandos».
+        - comandos
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles
+        # «Defectos de la skill», lo que Regenerar devuelve junto a las derivas y
+        # lo que make skills-check presenta (data-model §5 de H5, contrato de
+        # sincronización §2, research.md D20); misspell lo lee como «defects».
+        - defectos
         # «Dependencias», las del contrato del applet boe de H4 —DependenciasDeBoe
         # y DependenciasDeRed— y las que Nueva, en internal/source/boe/fuente.go,
         # exige al componer la fuente: sus comentarios y sus mensajes nombran las
@@ -260,11 +281,22 @@ linters:
         # larga de la tabla del contrato de grabación §2 de H2 que
         # TestNombreDeGrabacion copia tal cual; misspell lo lee como «legislation».
         - legislacion
+        # «Real Decreto Legislativo», el rango que la expresión de
+        # normas-nombradas tiene que casar tal cual en SKILL.md (contrato de
+        # sincronización §2 de H5, research.md D20); misspell lo lee como
+        # «legislation».
+        - legislativo
         # «Materias», el verbo de refs/boe.py que la entrada 32 del porte anotado
         # en internal/source/boe/doc.go deja fuera de alcance, y la clave de data
         # del verbo analisis, que fija el modelo de datos de H4 (FR-120,
         # research.md D18); misspell lo lee como «materials».
         - materias
+        # «Patrones», los pattern de NORMA y BLOQUE de schemas/normas.yaml.json y
+        # schemas/eval.yaml.json, que TestGramaticasCoincidenConBoe compara con
+        # boe.ValidarNorma y boe.ValidarBloque y que sus mensajes nombran
+        # (data-model de H5, cabecera; control 10 del plan de H5; research.md
+        # D20); misspell lo lee como «patrons».
+        - patrones
         # «Expresiones regulares», el análisis de emergencia de _fallback_parse
         # que la entrada 7 del porte anotado en internal/source/boe/doc.go no porta
         # (H4 FR-120, research.md D18); misspell lo lee como «regulars».

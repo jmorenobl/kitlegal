@@ -1,0 +1,11 @@
+# Eval positiva: la pregunta nombra el artículo, así que se espera solo la lectura de su bloque y su cita. El bloque
+# a38 es el artículo 38 del ET.
+pregunta: "¿Cuántos días de vacaciones anuales reconoce el artículo 38 del Estatuto de los Trabajadores?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-11430
+    bloque: a38
+citas:
+  - norma: BOE-A-2015-11430
+    bloque: a38

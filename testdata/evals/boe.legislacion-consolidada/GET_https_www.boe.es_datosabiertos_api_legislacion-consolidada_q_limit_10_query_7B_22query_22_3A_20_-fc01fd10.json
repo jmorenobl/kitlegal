@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:40Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Abases%20AND%20titulo%3Adel%20AND%20titulo%3Ar%5Cu00e9gimen%20AND%20titulo%3Alocal%22%7D%7D%7D",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "70"
+      ],
+      "Content-Length": [
+        "8564"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:57:30 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260827T062148Z\",\n            \"identificador\": \"BOE-A-1985-5392\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"19850402\",\n            \"numero_oficial\": \"7\\/1985\",\n            \"titulo\": \"Ley 7\\/1985, de 2 de abril, Reguladora de las Bases del R\\u00e9gimen Local\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19850403\",\n            \"diario_numero\": \"80\",\n            \"fecha_vigencia\": \"19850423\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/1985\\/04\\/02\\/7\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1985-5392\"\n        },\n        {\n            \"fecha_actualizacion\": \"20260716T103307Z\",\n            \"identificador\": \"BOE-A-1991-7736\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"19910322\",\n            \"numero_oficial\": \"9\\/1991\",\n            \"titulo\": \"Ley 9\\/1991 por la que se modifican determinados art\\u00edculos de la Ley 25\\/1983, de 26 de diciembre, de Incompatibilidades de Altos Cargos; de la Ley 7\\/1985, de 2 de abril, Reguladora de las Bases del R\\u00e9gimen Local; de la Ley de Contratos del Estado y de la Ley 24\\/1988, de 28 de julio, del Mercado de Valores.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19910327\",\n            \"diario_numero\": \"74\",\n            \"fecha_vigencia\": \"19910328\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/1991\\/03\\/22\\/9\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1991-7736\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251220T112019Z\",\n            \"identificador\": \"BOE-A-2019-2714\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8030\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de Canarias\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20190130\",\n            \"numero_oficial\": \"2\\/2019\",\n            \"titulo\": \"Ley 2\\/2019, de 30 de enero, para la aplicaci\\u00f3n del R\\u00e9gimen Especial de Organizaci\\u00f3n de los Cabildos Insulares Canarios previsto en la disposici\\u00f3n adicional decimocuarta de la Ley 7\\/1985, de 2 de abril, Reguladora de las Bases del R\\u00e9gimen Local, al Cabildo Insular de Fuerteventura.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20190227\",\n            \"diario_numero\": \"50\",\n            \"fecha_vigencia\": \"20190209\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-cn\\/l\\/2019\\/01\\/30\\/2\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2019-2714\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251218T210417Z\",\n            \"identificador\": \"BOE-A-2005-1083\",\n            \"ambito\": {\n                \"codigo\": \"2\",\n                \"texto\": \"Auton\\u00f3mico\"\n            },\n            \"departamento\": {\n                \"codigo\": \"8080\",\n                \"texto\": \"Comunidad Aut\\u00f3noma de Extremadura\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20041223\",\n            \"numero_oficial\": \"8\\/2004\",\n            \"titulo\": \"Ley 8\\/2004, de 23 de diciembre, para la aplicaci\\u00f3n al municipio de M\\u00e9rida, capital de Extremadura, del r\\u00e9gimen de organizaci\\u00f3n de los municipios de gran poblaci\\u00f3n contemplado en el t\\u00edtulo X de la Ley 7\\/1985, de 2 de abril, Reguladora de las Bases de R\\u00e9gimen Local, modificada por la Ley 57\\/2003, de 16 de diciembre, de Medidas para la Modernizaci\\u00f3n del Gobierno Local.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20050121\",\n            \"diario_numero\": \"18\",\n            \"fecha_vigencia\": \"20041231\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es-ex\\/l\\/2004\\/12\\/23\\/8\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2005-1083\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251218T180346Z\",\n            \"identificador\": \"BOE-A-1999-8932\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"19990421\",\n            \"numero_oficial\": \"11\\/1999\",\n            \"titulo\": \"Ley 11\\/1999, de 21 de abril, de modificaci\\u00f3n de la Ley 7\\/1985, de 2 de abril, Reguladora de las Bases del R\\u00e9gimen Local, y otras medidas para el desarrollo del Gobierno Local, en materia de tr\\u00e1fico, circulaci\\u00f3n de veh\\u00edculos a motor y seguridad vial y en materia de aguas.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19990422\",\n            \"diario_numero\": \"96\",\n            \"fecha_vigencia\": \"19990512\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/1999\\/04\\/21\\/11\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1999-8932\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251217T154156Z\",\n            \"identificador\": \"BOE-A-1987-2162\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7230\",\n                \"texto\": \"Ministerio para las Administraciones P\\u00fablicas\"\n            },\n            \"rango\": {\n                \"codigo\": \"1370\",\n                \"texto\": \"Resoluci\\u00f3n\"\n            },\n            \"fecha_disposicion\": \"19870127\",\n            \"titulo\": \"Resoluci\\u00f3n de 27 de enero de 1987, de la Direcci\\u00f3n General de Administraci\\u00f3n Local, sobre posici\\u00f3n ordinamental del Real Decreto 2568\\/1986, de 28 de noviembre, por el que se aprueba el Reglamento de Organizaci\\u00f3n, Funcionamiento y R\\u00e9gimen Jur\\u00eddico de las Entidades Locales y aplicabilidad del mismo en las Entidades que, de acuerdo con lo dispuesto en la Ley 7\\/1985, de 2 de abril, reguladora de las Bases del R\\u00e9gimen Local, dispongan de Reglamento Org\\u00e1nico propio de la Entidad.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19870128\",\n            \"diario_numero\": \"24\",\n            \"fecha_vigencia\": \"19870128\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/res\\/1987\\/01\\/27\\/(1)\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1987-2162\"\n        }\n    ]\n}"
+  }
+}

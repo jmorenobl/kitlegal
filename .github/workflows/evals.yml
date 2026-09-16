@@ -1,0 +1,138 @@
+# Evals de skills con Claude Code (FR-070). No forma parte de make ci: las evals con modelo cuestan y no son
+# deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md.
+name: evals
+
+on:
+  # A mano, sobre la rama que se elija.
+  workflow_dispatch:
+    inputs:
+      prueba_de_red:
+        description: "Añade la sesión de prueba de red de la eval 01 (SC-012)"
+        type: boolean
+        default: false
+  # Una vez por semana, sobre la rama principal (research.md D22, S1).
+  schedule:
+    - cron: '41 4 * * 1'
+  # Sobre la rama de un hito antes de fusionar: al poner la etiqueta evals o evals-prueba-de-red en su propuesta de
+  # cambio, con el fichero del job de esa rama (FR-070, FR-082; research.md D22, S1).
+  pull_request:
+    types: [labeled]
+
+jobs:
+  evals:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.label.name == 'evals' ||
+      github.event.label.name == 'evals-prueba-de-red'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      # Un único modelo de gama económica, fijado aquí por su id completo; cambiarlo es un cambio de este fichero (FR-070).
+      MODELO_DE_EVALS: claude-haiku-4-5-20251001
+      # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
+      VERSION_DE_CLAUDE_CODE: 2.1.270
+      SKILL_EVALUADA: boe-legislacion
+      COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
+      PRUEBA_DE_RED: ${{ github.event.label.name == 'evals-prueba-de-red' || inputs.prueba_de_red == true }}
+    steps:
+      - name: Obtener el código del commit evaluado
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      - name: Instalar strace y Claude Code
+        shell: bash
+        run: |
+          # Las opciones las fija el propio paso, como las del paso de retirada de Python (research.md V56).
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y strace
+          npm install -g "@anthropic-ai/claude-code@${VERSION_DE_CLAUDE_CODE}"
+          claude --version
+
+      - name: Instalar kitlegal y las skills como las deja make install
+        run: make install
+
+      - name: Retirar Python del runner
+        shell: bash
+        run: |
+          # Las opciones las fija el propio paso, sin depender de con cuáles lo invoque la plataforma: una orden que falla
+          # fuera de una condición —la búsqueda o un borrado— lo detiene con su código, y una variable sin valor, también
+          # (research.md D17, V56 y V60).
+          set -euo pipefail
+          # Sin Python accesible para la sesión (FR-073, FR-081; research.md D17). Ninguna orden descarta su salida de error.
+          # scripts/evals.sh repite la búsqueda antes de la primera sesión (contrato del job §3.1).
+          # No consulta ni purga paquetes: en ubuntu-24.04 los de Python son dependencias de paquetes del sistema y la purga
+          # termina con 100 sin retirar nada; la búsqueda encuentra el intérprete y sus bibliotecas, y lo que un paquete
+          # deja en disco sin ellos no se ejecuta (research.md D17 y V60).
+          # Las marcas se componen al ejecutar: el texto del paso, si el registro lo reproduce, no las contiene.
+          marca="retirada de Python"
+          echo "--- inicio de la $marca ---"
+
+          # Lo que el job usa después de este paso: la retirada no puede llevárselo (research.md D22, S7).
+          usados=("$GITHUB_WORKSPACE" "$HOME/.claude")
+          kitlegal=$(readlink -e "$GITHUB_WORKSPACE/bin/instalado/kitlegal")
+          usados+=("$kitlegal")
+          for orden in bash sudo find rm timeout strace claude node go make git; do
+            if ! ruta=$(command -v "$orden"); then echo "falta $orden" >&2; exit 1; fi
+            real=$(readlink -e "$ruta")
+            usados+=("$ruta" "$real")
+          done
+          contiene_algo_usado() {
+            local u
+            for u in "${usados[@]}"; do
+              case "$u" in "$1" | "${1%/}"/*) return 0 ;; esac
+            done
+            return 1
+          }
+
+          # 1. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
+          # libpython* y libpypy*. Se retira cada uno; si está en <prefijo>/bin y <prefijo>/lib tiene un python* o un pypy*,
+          # se retira la instalación entera, salvo que contenga algo de lo que el job usa.
+          busqueda=(find / '(' -path /proc -o -path /sys ')' -prune -o '(' '(' -type f -perm /111 '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' -type l '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' '(' -type f -o -type l ')' '(' -iname 'libpython*' -o -iname 'libpypy*' ')' ')' ')' -print)
+          echo "búsqueda: ${busqueda[*]}"
+          encontrado=$(sudo "${busqueda[@]}")
+          while IFS= read -r ruta; do
+            if [ -z "$ruta" ]; then continue; fi
+            if ! sudo test -e "$ruta" && ! sudo test -L "$ruta"; then continue; fi
+            objetivo=$ruta
+            directorio=$(dirname "$ruta")
+            if [ "$(basename "$directorio")" = bin ]; then
+              prefijo=$(dirname "$directorio")
+              lib=""
+              if sudo test -d "$prefijo/lib"; then
+                lib=$(sudo find -H "$prefijo/lib" -mindepth 1 -maxdepth 1 '(' -iname 'python*' -o -iname 'pypy*' ')' -print -quit)
+              fi
+              if [ -n "$lib" ] && ! contiene_algo_usado "$prefijo"; then objetivo=$prefijo; fi
+            fi
+            echo "retirado: $objetivo"
+            sudo rm -rf -- "$objetivo"
+          done <<< "$encontrado"
+
+          # 2. No queda nada, y la retirada no se ha llevado nada de lo que el job usa.
+          queda=$(sudo "${busqueda[@]}")
+          if [ -n "$queda" ]; then
+            while IFS= read -r ruta; do echo "queda Python: $ruta" >&2; done <<< "$queda"
+            exit 1
+          fi
+          for u in "${usados[@]}"; do
+            if ! sudo test -e "$u"; then echo "la retirada se llevó algo que el job usa: $u" >&2; exit 1; fi
+          done
+          echo "búsqueda tras retirar: ninguno"
+          echo "--- fin de la $marca ---"
+
+      - name: Ejecutar las evals
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: make evals SKILL="$SKILL_EVALUADA"

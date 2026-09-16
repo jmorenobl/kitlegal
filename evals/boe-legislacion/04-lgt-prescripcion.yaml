@@ -1,0 +1,11 @@
+# Eval positiva y consulta fiscal (FR-063): la pregunta nombra el artículo, así que se espera solo la lectura de su
+# bloque y su cita. El bloque a66 es el artículo 66 de la LGT.
+pregunta: "¿En cuántos años prescribe el derecho de la Administración a liquidar una deuda tributaria según el artículo 66 de la Ley General Tributaria?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2003-23186
+    bloque: a66
+citas:
+  - norma: BOE-A-2003-23186
+    bloque: a66

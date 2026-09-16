@@ -1,0 +1,9 @@
+# Eval positiva: debe activar la skill, leer el bloque y citarlo.
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21

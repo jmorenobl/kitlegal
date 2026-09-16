@@ -1,0 +1,2 @@
+execve("/home/runner/.claude/skills/boe-legislacion/scripts/boe", ["/home/runner/.claude/skills/boe-legislacion/scripts/boe", "buscar", "c\303\263digo", "notificaci\xc3\xb3n", "--json"], 0x7ffd3a61c2e8 /* 25 vars */) = 0
++++ exited with 0 +++

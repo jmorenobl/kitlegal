@@ -1,0 +1,3 @@
+execve("/bin/bash", ["/bin/bash", "-c", "/home/runner/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a21 --json"], 0x7ffe9d4b2c70 /* 24 vars */) = 0
+execve("/home/runner/.claude/skills/boe-legislacion/scripts/boe", ["/home/runner/.claude/skills/boe-legislacion/scripts/boe", "articulo", "BOE-A-2015-10565", "a21", "--json"], 0x7ffd5e0b3c28 /* 25 vars */)
++++ exited with 0 +++

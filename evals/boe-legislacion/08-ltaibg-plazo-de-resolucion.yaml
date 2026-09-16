@@ -1,0 +1,11 @@
+# Eval positiva: la pregunta nombra el artículo, así que se espera solo la lectura de su bloque y su cita. El bloque
+# a20 es el artículo 20 de la LTAIBG.
+pregunta: "¿En qué plazo hay que resolver una solicitud de acceso a la información pública según el artículo 20 de la Ley 19/2013?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2013-12887
+    bloque: a20
+citas:
+  - norma: BOE-A-2013-12887
+    bloque: a20

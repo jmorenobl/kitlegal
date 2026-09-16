@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:49Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2004-4214/texto/bloque/a59",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:58:49 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a59\" tipo=\"precepto\" titulo=\"Artículo 59\">\n      <version id_norma=\"BOE-A-2004-4214\" fecha_publicacion=\"20040309\" fecha_vigencia=\"20040310\">\n        <p class=\"articulo\">Artículo 59. Enumeración de impuestos.</p>\n        <p class=\"parrafo\">1. Los ayuntamientos exigirán, de acuerdo con esta ley y las disposiciones que la desarrollan, los siguientes impuestos:</p>\n        <p class=\"parrafo_2\">a) Impuesto sobre Bienes Inmuebles.</p>\n        <p class=\"parrafo\">b) Impuesto sobre Actividades Económicas.</p>\n        <p class=\"parrafo\">c) Impuesto sobre Vehículos de Tracción Mecánica.</p>\n        <p class=\"parrafo_2\">2. Asimismo, los ayuntamientos podrán establecer y exigir el Impuesto sobre Construcciones, Instalaciones y Obras y el Impuesto sobre el Incremento de Valor de los Terrenos de Naturaleza Urbana, de acuerdo con esta ley, las disposiciones que la desarrollen y las respectivas ordenanzas fiscales.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

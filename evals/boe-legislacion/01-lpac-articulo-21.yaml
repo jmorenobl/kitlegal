@@ -1,0 +1,10 @@
+# Eval positiva: la pregunta nombra el artículo, así que basta leer su bloque y citarlo (FR-063).
+pregunta: "¿qué dice el art. 21 de la Ley 39/2015?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21

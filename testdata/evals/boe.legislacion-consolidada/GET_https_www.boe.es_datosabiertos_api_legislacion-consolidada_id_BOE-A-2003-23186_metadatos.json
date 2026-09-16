@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:42Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/metadatos",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "70"
+      ],
+      "Content-Length": [
+        "1303"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:57:32 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260626T111543Z\",\n            \"identificador\": \"BOE-A-2003-23186\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20031217\",\n            \"numero_oficial\": \"58\\/2003\",\n            \"titulo\": \"Ley 58\\/2003, de 17 de diciembre, General Tributaria.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20031218\",\n            \"diario_numero\": \"302\",\n            \"fecha_vigencia\": \"20040701\",\n            \"estatus_derogacion\": \"N\",\n            \"estatus_anulacion\": \"N\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2003\\/12\\/17\\/58\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2003-23186\"\n        }\n    ]\n}"
+  }
+}

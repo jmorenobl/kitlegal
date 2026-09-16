@@ -1,0 +1,10 @@
+# Eval positiva: la pregunta nombra el artículo, así que basta leer su bloque y citarlo.
+pregunta: "¿Qué dice el artículo 140 de la Constitución?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-1978-31229
+    bloque: a140
+citas:
+  - norma: BOE-A-1978-31229
+    bloque: a140

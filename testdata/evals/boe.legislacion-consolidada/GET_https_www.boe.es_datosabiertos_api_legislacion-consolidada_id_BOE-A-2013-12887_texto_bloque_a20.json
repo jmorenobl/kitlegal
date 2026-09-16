@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:59:03Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2013-12887/texto/bloque/a20",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "2302"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:59:03 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a20\" tipo=\"precepto\" titulo=\"Artículo 20\">\n      <version id_norma=\"BOE-A-2013-12887\" fecha_publicacion=\"20131210\" fecha_vigencia=\"20141210\">\n        <p class=\"articulo\">Artículo 20. Resolución.</p>\n        <p class=\"parrafo\">1. La resolución en la que se conceda o deniegue el acceso deberá notificarse al solicitante y a los terceros afectados que así lo hayan solicitado en el plazo máximo de un mes desde la recepción de la solicitud por el órgano competente para resolver.</p>\n        <p class=\"parrafo\">Este plazo podrá ampliarse por otro mes en el caso de que el volumen o la complejidad de la información que se solicita así lo hagan necesario y previa notificación al solicitante.</p>\n        <p class=\"parrafo\">2. Serán motivadas las resoluciones que denieguen el acceso, las que concedan el acceso parcial o a través de una modalidad distinta a la solicitada y las que permitan el acceso cuando haya habido oposición de un tercero. En este último supuesto, se indicará expresamente al interesado que el acceso sólo tendrá lugar cuando haya transcurrido el plazo del artículo 22.2.</p>\n        <p class=\"parrafo\">3. Cuando la mera indicación de la existencia o no de la información supusiera la vulneración de alguno de los límites al acceso se indicará esta circunstancia al desestimarse la solicitud.</p>\n        <p class=\"parrafo\">4. Transcurrido el plazo máximo para resolver sin que se haya dictado y notificado resolución expresa se entenderá que la solicitud ha sido desestimada.</p>\n        <p class=\"parrafo\">5. Las resoluciones dictadas en materia de acceso a la información pública son recurribles directamente ante la Jurisdicción Contencioso-administrativa, sin perjuicio de la posibilidad de interposición de la reclamación potestativa prevista en el artículo 24.</p>\n        <p class=\"parrafo\">6. El incumplimiento reiterado de la obligación de resolver en plazo tendrá la consideración de infracción grave a los efectos de la aplicación a sus responsables del régimen disciplinario previsto en la correspondiente normativa reguladora.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

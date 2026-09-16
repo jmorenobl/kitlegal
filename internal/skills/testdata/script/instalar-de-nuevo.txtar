@@ -1,0 +1,32 @@
+# Repetir la instalación termina con 0 y deja el mismo estado: los enlaces de
+# la skill y del binario instalado nombran lo mismo que tras la primera, ninguno
+# se duplica ni se rompe, y en el directorio personal de skills no aparece nada
+# más que `boe-legislacion` (US3 escenario 2, FR-053, SC-006).
+#
+# HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
+# $WORK/repo (FR-055; contrato instalacion §4).
+
+exec make -C $WORK/repo install
+
+exec readlink $HOME/.claude/skills/boe-legislacion
+stdout '/repo/skills/boe-legislacion\n\z'
+cp stdout destino-de-la-skill.txt
+
+exec readlink $WORK/repo/bin/instalado/kitlegal
+stdout '\A'${WORK@R}'/gobin/kitlegal\n\z'
+cp stdout destino-del-binario.txt
+
+exec make -C $WORK/repo install
+
+exec readlink $HOME/.claude/skills/boe-legislacion
+cmp stdout destino-de-la-skill.txt
+
+exec readlink $WORK/repo/bin/instalado/kitlegal
+cmp stdout destino-del-binario.txt
+
+# Un enlace creado otra vez sobre el que ya existe acabaría **dentro** del
+# directorio al que apunta: la segunda instalación no deja ninguno ahí.
+! exists $WORK/repo/skills/boe-legislacion/boe-legislacion
+
+exec ls -A $HOME/.claude/skills
+stdout '\Aboe-legislacion\n\z'

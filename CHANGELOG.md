@@ -20,6 +20,10 @@ a escribirla. **H3 — caché local en SQLite** es un hito de fundación que no 
 así que su única entrada, en *Cambiado*, es lo que cambia en `make ci`. **H4 — applet `boe`** trae la
 primera fuente legal: la legislación consolidada del BOE, consultable y citable desde el binario
 distribuido, con caché, contratos de salida publicados y una verificación nocturna contra la fuente real.
+**H5 — skill `boe-legislacion`** trae la primera skill del producto, que consulta y cita cualquier norma
+consolidada del BOE con ese binario, y el andamiaje que comparten todas las skills: una tabla de normas como
+única fuente de verdad, lo generado comprobado en `make ci`, la instalación con `make install` y el formato
+común de eval con su job de evals. El binario distribuido no cambia.
 
 ### Añadido
 
@@ -187,6 +191,55 @@ distribuido, con caché, contratos de salida publicados y una verificación noct
   «verify-sources: boe articulo» o la abre. Ningún flujo graba respuestas: las grabaciones contra las que
   corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
 
+*De H5 — la skill `boe-legislacion` y el andamiaje de skills:*
+
+- **Skill `boe-legislacion`** (`skills/boe-legislacion/`), la primera del producto y genérica para cualquier
+  materia: consulta y cita la normativa consolidada del BOE —procedimiento administrativo, contratación pública,
+  régimen local, tributos, relaciones laborales…— con el applet `boe`. Su `SKILL.md`, de menos de 300 líneas, fija
+  un protocolo de cinco pasos (identificar la norma en su referencia de normas, resolver `BOE-A-…` o buscarlo con
+  `boe buscar`, leer el índice y los bloques, evaluar si falta contexto y responder citando), la forma de cita
+  `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, en la que lo que hace cita es que los corchetes terminen
+  en el identificador y el bloque —con la forma legible delante del corchete o, dentro, delante del identificador—,
+  también cuando la cita va sola, y sus reglas: ningún contenido legal que
+  no salga del texto consultado, ley y reglamento distinguidos y la variación autonómica señalada. El id de cada
+  bloque se copia de la entrada del índice, nunca se compone del número del artículo, y los bloques se leen de uno
+  en uno; si una consulta de varios bloques falla, cada bloque se pide por separado antes de decir qué no se pudo
+  consultar. Llama al binario por `scripts/boe`, un enlace al
+  binario instalado, y no tiene ningún caso especial de un municipio ni de una comunidad.
+- **Tabla de normas `data/normas.yaml`**, única fuente de verdad de las normas que referencian las skills: diez
+  normas, cada una con su identificador `BOE-A-…`, su título, su rango, sus materias y, si la tiene, su
+  abreviatura. De ella se genera `references/normas.md` de la skill, con la cabecera que prohíbe editarlo.
+- **Esquemas de datos `schemas/normas.yaml.json` y `schemas/eval.yaml.json`** (JSON Schema 2020-12), contra los
+  que se validan la tabla de normas y cada eval; no son contratos de salida de ningún applet. Los lee un lector
+  YAML común que rechaza una clave escrita dos veces en el mismo mapa nombrando sus dos líneas, en lugar de
+  quedarse en silencio con el último valor. Para ello entra `go.yaml.in/yaml/v3` como dependencia directa, que
+  solo usan las herramientas de desarrollo y que el binario no enlaza.
+- **Formato común de eval**: las evals de cada skill en su propio directorio, `evals/<skill>/`, con un fichero
+  YAML por eval (`<nn>-<descripción>.yaml`) y los campos `pregunta`, `activa`, `comandos` y `citas` —estos dos,
+  obligatorios en una eval que debe activar la skill y prohibidos en una que no— y el opcional `reproduce`.
+- **Evals de `boe-legislacion`** (`evals/boe-legislacion/`), doce, escritas en el formato común de eval y antes que
+  la skill: diez preguntas de materias distintas que deben activarla, hacer las consultas esperadas y citar el
+  bloque esperado —la del IRPF reproduce un uso documentado de `boe-fiscal` y lo declara con
+  `reproduce: boe-fiscal`— y dos preguntas ajenas que no deben activarla. Las respuestas del BOE que necesitan las
+  graba una persona con `scripts/grabar-evals.sh`.
+- **Job de evals**: el flujo `evals` (`.github/workflows/evals.yml`) ejecuta `make evals SKILL=boe-legislacion` a
+  mano, cada semana sobre la rama principal y al poner la etiqueta `evals` o `evals-prueba-de-red` en la propuesta
+  de cambio de un hito, con un único modelo fijado en su definición (`claude-haiku-4-5-20251001`), Claude Code
+  `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. El informe, con el
+  veredicto global y lo que se comprobó de cada eval, se imprime en el registro entre marcas.
+- **`make skills-sync` real**: deja de anunciar que las skills llegan en H5 y regenera, desde `data/*.yaml` y desde
+  `--describe` del binario, `references/`, la tabla de comandos de `SKILL.md` y los enlaces de `scripts/` de cada
+  skill; dos ejecuciones seguidas no cambian nada.
+- **`make skills-check`**, dentro de `make ci`: regenera todo eso en memoria y lo compara con el árbol sin escribir
+  nada, y comprueba el frontmatter y el límite de líneas de cada `SKILL.md`, la tabla de normas contra su esquema y
+  cada identificador contra la búsqueda grabada del BOE, y el formato y el conjunto de las evals y que lo que
+  necesitan está grabado. Falla nombrando la skill y el fichero o el enlace, sin red y sin modelo.
+- **`make evals`** (`scripts/evals.sh <skill>`), fuera de `make ci`: una sesión de Claude Code por eval, bajo
+  `strace` y con la red cerrada salvo la del modelo, con la skill instalada por `make install` y el binario
+  respondiendo desde una caché preparada con lo grabado; juzga cada sesión sin modelo y escribe el informe. Necesita
+  Linux con `strace`, root o `sudo` y ningún Python accesible, y falla antes de la primera sesión si falta algo o si
+  una eval está mal formada.
+
 ### Cambiado
 
 *De H1 — el kernel de la línea de órdenes:*
@@ -271,7 +324,21 @@ distribuido, con caché, contratos de salida publicados y una verificación noct
   dieciocho, cada uno justificado en su línea, y se retiran los tests que exigían que el binario no enlazara
   la red ni la caché, ciertos solo mientras ningún applet las usaba.
 
-Dos órdenes existen ya pero reciben su contenido en un hito posterior y ninguna miente sobre ello:
-`skills-sync` (H5) y `release`, que falla con código distinto de `0` hasta H6 por ser la única con efectos
-externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,
+*De H5 — la skill `boe-legislacion` y el andamiaje de skills:*
+
+- **`make install` enlaza las skills.** Tras el `go install` de H0, sin cambios, `scripts/instalar-skills.sh` enlaza
+  cada skill de `skills/` en `~/.claude/skills/`, el directorio personal de skills de Claude Code, y deja
+  `bin/instalado/kitlegal` apuntando al binario instalado, que es lo que alcanza `scripts/boe` de la skill. Repetirla
+  deja el mismo estado. Antes del `go install`, el mismo guion con `--comprobar` busca las entradas del directorio
+  personal con el nombre de una skill que no son su enlace —un directorio, un fichero, un enlace a otro sitio o un
+  enlace roto—: escribe una línea de conflicto por cada una y falla sin crear ni cambiar nada, tampoco el binario.
+  `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol, con el directorio personal,
+  el de binarios y el `GOPATH` temporales y sin red.
+- **`make ci` encadena diez controles**: `skills-check` entra tras `schema-check`, de modo que una skill con una
+  deriva o un defecto, una tabla de normas inválida o una eval mal formada hacen fallar el veredicto en local y en la
+  integración continua por igual. El análisis estático alcanza también los ficheros con la etiqueta de compilación
+  `evals` (`run.build-tags` de `.golangci.yml`), los arneses que usa el job de evals.
+
+Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
+con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,
 `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.

@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-14T19:58:55Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10566/metadatos",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1335"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Mon, 14 Sep 2026 19:58:55 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260909T080739Z\",\n            \"identificador\": \"BOE-A-2015-10566\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20151001\",\n            \"numero_oficial\": \"40\\/2015\",\n            \"titulo\": \"Ley 40\\/2015, de 1 de octubre, de R\\u00e9gimen Jur\\u00eddico del Sector P\\u00fablico.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20151002\",\n            \"diario_numero\": \"236\",\n            \"fecha_vigencia\": \"20161002\",\n            \"estatus_derogacion\": \"N\",\n            \"estatus_anulacion\": \"N\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2015\\/10\\/01\\/40\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2015-10566\"\n        }\n    ]\n}"
+  }
+}
