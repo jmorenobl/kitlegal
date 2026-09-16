@@ -602,8 +602,10 @@ const (
 // SC-010): cada fichero de cada directorio evals/<skill>/ se lee como eval, y las
 // de evals/boe-legislacion/ cumplen las reglas del conjunto de data-model §6.3,
 // esperan solo normas de data/normas.yaml y tienen en las grabaciones de H4 y de
-// H5 lo que necesitan para servir sin red cada consulta. Lee las carpetas
-// enteras, así que ningún fichero de eval se nombra aquí.
+// H5 lo que necesitan para servir sin red cada consulta; y el esquema publicado
+// del formato admite en avisos exactamente los códigos de aviso del binario
+// (FR-013 de H5.1). Lee las carpetas enteras, así que ningún fichero de eval se
+// nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -674,6 +676,16 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
 			evalsDelRepositorio, presentarFaltas(comprobadas))
+	})
+
+	t.Run("avisos-del-esquema", func(t *testing.T) {
+		t.Parallel()
+
+		esquema, err := esquemaDeEval()
+		require.NoError(t, err)
+
+		assert.NoError(t, ComprobarCodigosDeAviso(esquema),
+			"el esquema publicado %s admite en avisos exactamente los códigos de aviso del binario", rutaDelEsquemaDeEval)
 	})
 }
 

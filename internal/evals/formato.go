@@ -43,6 +43,11 @@ type Eval struct {
 	// Citas son las citas esperadas de una eval que activa la skill, en el orden
 	// del fichero; vacío en una de no activación (FR-061).
 	Citas []CitaEsperada `yaml:"citas"`
+
+	// Avisos son los códigos de aviso de vigencia cuya forma fija tiene que llevar la respuesta, en el orden del
+	// fichero; vacío si la eval no los espera. Solo los admite una eval que activa la skill, y sus valores son los de
+	// boe.CodigosDeAviso (FR-020 a FR-022 de H5.1).
+	Avisos []string `yaml:"avisos"`
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las

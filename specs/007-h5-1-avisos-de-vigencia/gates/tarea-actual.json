@@ -1,14 +1,16 @@
 {
-  "id": "T003",
-  "texto": "T003 [datos] [US2] Esquema del formato común de eval: `schemas/eval.yaml.json` con exactamente los tres cambios del contrato de formato, juicio e informe §1 y ninguno más —propiedad `avisos` detrás de `citas`, `type: array`, `minItems: 1` e `items` con `$ref` a la definición `codigo-de-aviso`; `{ \"required\": [\"avisos\"] }` como tercera alternativa del `anyOf` de la rama `else`; y la definición `codigo-de-aviso` como primera entrada de `$defs`, con el enumerado `consolidacion-no-finalizada`, `derogada`, `vigencia-agotada` en una sola línea y en el orden de `CodigosDeAviso()`—; ningún otro fichero; `make ci` sigue en verde porque ninguna eval lleva `avisos` (research V5). Provoca la pausa humana de revisión (esquema existente modificado) (FR-020, FR-021, FR-022, FR-055, SC-002, SC-009, research D4).",
+  "id": "T004",
+  "texto": "T004 [US2] Campo `Avisos` de `Eval` y comprobación del esquema publicado: `internal/evals/formato.go` con `Avisos []string` y etiqueta `yaml:\"avisos\"` detrás de `Citas`, con el comentario literal del contrato de formato, juicio e informe §2 (`LeerEval` no cambia: valida el esquema); `internal/evals/formato_test.go` con los casos nuevos de `TestLeerEval`, escritos primero sobre documentos en constantes (`avisos` con `Avisos` en el orden del fichero, `aviso-desconocido`, `no-activa-con-avisos`, `avisos-vacio` y `citas-vacio` con el mismo `minItems: got 0, want 1` en su ruta, `aviso-repetido` y `cita-repetida` leídas con el repetido en su lista, `informativa-con-avisos`), cada error con el texto exacto del contrato §6 y la línea que fija su documento; `internal/evals/conjunto_test.go` con el subtest `avisos-del-esquema` de `TestEvalsDelRepositorio` (`ComprobarCodigosDeAviso(esquemaDeEval())` sobre el esquema publicado → nil); las 17 evals existentes siguen válidas sin cambios (FR-013, FR-020, FR-021, FR-022, FR-023, US2 escenarios 1, 2, 9 y 10, US4 escenario 2, SC-002, SC-005, research D4, D5 y D6).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
-  "base": "1bcdab4f01b841872e106728e4dc50b55281b8bc",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
+  "base": "0a880e74944fc5c3d4c850bbfeecfd386619cf0f",
   "rutas": [
-    "schemas/eval.yaml.json"
+    "internal/evals/conjunto_test.go",
+    "internal/evals/formato_test.go",
+    "internal/evals/formato.go"
   ],
   "cierre": false
 }
