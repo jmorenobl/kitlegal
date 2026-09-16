@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-68 termina en «ci: todos los controles en verde» con «0 issues.» (línea 7), once paquetes en ok en los dos perfiles y «no leaks found» (55). Reproducido en una copia limpia fuera del repositorio (clon en /tmp sobre b094663, la cabeza): `make ci` con código 0, «0 issues.», «no leaks found», internal/evals 99,0 % e internal/source/boe 99,4 %. Árbol de trabajo limpio en la cabeza (`git status --porcelain` vacío)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene test offline: internal/evals/avisos_test.go (TestExtraerAvisos con 30 subtests literales del contrato §4, TestComprobarFormasDeAviso:85-142, TestComprobarCodigosDeAviso:151-320, TestEtiquetasSoloDesdeBoe:329-351), juzgar_test.go:322-416 (diez casos nuevos de TestJuzgar), formato_test.go:184-253 (ocho casos de TestLeerEval), informe_test.go:347-441 (TestInformeConAvisos sobre una copia en t.TempDir()) y :522-531 (`[]` en TestInforme/aprobado), internal/source/boe/avisos_test.go:181-225 (TestEtiquetasDeAviso), conjunto_test.go:686-703 (avisos-del-esquema, avisos-de-la-skill). En la copia: 104 subtests PASS, 0 SKIP. Veintiséis mutaciones sobre la copia, todas detectadas por el test que dice detectarlas: Pasa sin AvisosAusentes, sin (?i), \\p{Zs}→\\s (salto dentro), selector suprimido, marca opcional, dos puntos opcionales, orden de códigos invertido, columnas del informe suprimidas, listas nulas como null (json.FormatNilSliceAsNull), motivo de aviso antes que el de cita, texto del motivo, reparto siempre encontrado, enumerado no leído, etiqueta yaml cambiada, etiqueta del binario alterada (la detectan TestEtiquetasDeAviso, TestMetadatos y TestGolden), mapa compartido, SKILL.md sin la marca de derogada en la lista y el ejemplo («falta la forma fija del aviso derogada: ⚠ NORMA DEROGADA:»), SKILL.md sin los dos puntos de vigencia-agotada, esquema sin derogada y con «otro», rama else sin avisos, eval 18 sin informativa («hay 11 evals positivas … exactamente 10»), índice grabado borrado («la norma BOE-A-1992-26318 sin indice»). Único fixture nuevo: el índice de BOE-A-1992-26318, que FR-054 exige, grabado por una persona en la pausa de T008 (commit cc1362d, Jorge MB, 2026-09-16 22:22 +0200, solo ese fichero), con formato 1 de httpx, GET y `grabado_en` 2026-09-16T20:21:16Z; lleva a42 («Artículo 42»); robots.txt grabado sin cambios."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "internal/evals/avisos.go:3-14 importa errors, fmt, regexp, slices, strings, sync, jsonschema/v6 e internal/source/boe (boe ya lo importaba internal/evals/grabaciones.go en main; ninguna dirección de dependencia nueva). Ningún net/http, os.Exit, os.Stdout ni fmt.Print* en el diff de código; depguard y forbidigo en «0 issues.» (ci.log:7 y copia); TestArquitectura y TestDependenciasDelBinario en verde en `make test`; internal/core, internal/app, internal/cli, internal/httpx e internal/cache sin cambios (git diff --stat main...HEAD)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "La salida del applet no cambia: git diff main...HEAD no toca internal/source/boe/testdata, internal/app/testdata, schemas/norma.json ni schemas/bloque.json; las frases se componen con las etiquetas (internal/source/boe/avisos.go:26-31) y TestAvisosDe, TestMetadatos y TestGolden siguen comparando los literales (mutar «NORMA DEROGADA» en avisos.go:17 los hace fallar). `make schema-check` con TestEsquemasPublicados en ok (ci.log:48-49); el esquema que cambia es el de entrada de las evals (schemas/eval.yaml.json:27-30, 36, 38), no un esquema de salida, y TestEvalsDelRepositorio/avisos-del-esquema lo contrasta con CodigosDeAviso()."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida cambia (SKILL.md:160-161 y internal/cli sin tocar). Las comprobaciones devuelven errores que nombran el código, unidos con errors.Join (internal/evals/avisos.go:95-142), y los tests exigen el mensaje exacto. regexp.MustCompile solo con piezas fijas y palabras pasadas por regexp.QuoteMeta (avisos.go:47-63), en un paquete que el binario no enlaza; ExtraerAvisos devuelve nil sin pánico con texto vacío (subtest vacio). Los mensajes del contrato de aceptación se cumplen: el índice ausente termina con código 1 al preparar y 4 con --offline, como el contrato de la eval §7 promete."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:250-273, bloque *De H5.1* dentro de «## [Unreleased]» (12) / «### Añadido» (28), con la forma fija, el campo avisos, el reparto en el informe y la eval 18; cada afirmación se sostiene (rechazo del esquema en formato_test.go:196-215; skills-check nombrando el código, mutaciones de SKILL.md y del esquema; columnas en informe.go:68-70,887-888; `[]` en informe_test.go:522-531). README.md:210 y CONTRIBUTING.md:227 y 237-239 con la fila avisos y la frase de cuándo pasa una eval. Sin ADR (el mecanismo lo fija docs/ROADMAP.md §4 H5.1 y ninguna decisión de arquitectura cambia) ni docs/SOURCES.md (ninguna fuente ni forma de consulta nueva). gates/pr-h5.1.md con cifras comprobadas (24 ficheros, 1323/65 líneas fuera de specs/, 199 líneas de SKILL.md, 18 evals con 10 que deciden). gates/evals-aceptacion.md contrastado con GitHub: PR #34 abierta hacia main con headRefOid 8272bc8, ejecución 35148840549 (evals, pull_request) en success; eval 18 con 3/3 sesiones y los dos avisos encontrados en cada una, veredicto aprobado y red vacío; los commits posteriores a25b9d9 y b094663 solo tocan specs/007-h5-1-avisos-de-vigencia/."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna llamada de red en el código: internal/httpx sin cambios y ningún import de net/http fuera de él. La única petición nueva a la fuente es el GET https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1992-26318/texto/indice grabado por una persona con el arnés de httpx en la pausa de T008 (formato 1, User-Agent `kitlegal/dev (+https://ventanillalegal.es/bot)`, el mismo de las 33 grabaciones de H5), sin POST ni identidad. internal/evals/grabacion_test.go:194 siembra desde UnionDeGrabaciones() para no repetir treinta peticiones ya grabadas. gitleaks «no leaks found»; sin NIF ni datos personales en la eval 18, data/normas.yaml:69-75, testdata/evals/grabaciones.json:14 ni el informe."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En el diff de ficheros .go: 0 //nolint, 0 t.Skip, 0 TODO/FIXME, 0 `_ =`. .golangci.yml:312-316 añade solo `variantes` a misspell.ignore-rules con su motivo, el mecanismo del repositorio para palabras españolas previsto en plan.md (Structure Decision) y tasks.md T005. git log main..HEAD -- testdata schemas: solo T003 (esquema), T008 (manifiesto) y el índice nuevo, ninguno retocado para poner un test en verde. El cambio de premisa de otraNormaDeLaBusqueda (internal/evals/grabaciones_test.go:603-636) es el planificado en research D12 y mantiene a los cuatro subtests negativos fallando donde deben (lo comprueba TestIdentificadoresDeLasNormas en verde y el contrato §1). El ejecutor no grabó ni usó la red: la grabación es del commit humano cc1362d."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Fuera de specs/ cambian exactamente los 24 ficheros que enumeran plan.md («Source Code») y tasks.md («Ficheros existentes que se tocan»). SKILL.md tiene tres hunks (114-116, 143-156, 191-194) idénticos al contrato de la forma fija §3, 199 líneas, región generada intacta (163-180) y sin nombrar evals, job ni modelos. La eval 18 y la entrada de data/normas.yaml son byte a byte las de los contratos §5 y §6, sin marca de derogación. Sin cambios en internal/core, kernel, cmd/, scripts/, .github/, Makefile, go.mod, go.sum, docs/SOURCES.md ni docs/USO.md. El subtest extra referencia-circular y la guarda de ciclos de enumeradoDeAvisos (internal/evals/avisos.go:146-159) forman parte de «cada $ref» del contrato §3, no son funcionalidad añadida. Commit de la eval (0a03a11, 22:30) anterior al primero que cambia SKILL.md (394e138, 22:33), como exige FR-052."
+    }
+  ],
+  "motivos": []
+}
