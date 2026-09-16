@@ -25,9 +25,12 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   tampoco lo permitiría hoy: solo sabe exigir comandos ejecutados y citas encontradas, no que la respuesta lleve un
   aviso.
 - **Qué se hizo.** Anotarlo. Arreglarlo son tres piezas: un campo nuevo en el formato de eval (los avisos esperados),
-  su comparación mecánica en `Juzgar` como la de las citas, y una grabación `[datos]` de una norma derogada, que la
-  hace una persona con `scripts/grabar-evals.sh`. Candidata evidente: la Ley 30/1992, derogada por la Ley 39/2015, que
-  ya está en las evals. No es un hito: cabe en una sesión, con su pausa humana para grabar.
+  su comparación mecánica en `Juzgar` como la de las citas, y una eval que las use. La norma candidata ya está medio
+  grabada: **`BOE-A-1992-26318`, la Ley 30/1992**, que H4 grabó para sus propios tests y cuyos metadatos dan
+  `estatus_derogacion: "S"` y `vigencia_agotada: "S"` —o sea, dos avisos, `derogada` y `vigencia-agotada`—, con su
+  bloque `a42` ya grabado. Falta grabar su `indice` (FR-074 lo exige de toda norma de una eval) y su `buscar`, si la
+  norma entra en `data/normas.yaml`, que la regla «normas conocidas» obliga. Eso es la única pausa humana:
+  `scripts/grabar-evals.sh`. No es un hito: cabe en una sesión.
 
 - **Qué se pidió.** Cerrar H5 con las evals de `boe-legislacion` en verde. El job las ejecuta con
   `claude-haiku-4-5-20251001`, fijado por la clarificación Q5 del spec de H5 («un único modelo de gama
