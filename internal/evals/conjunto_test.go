@@ -595,6 +595,10 @@ const (
 	// directorioDeEvals es evals/, relativo al directorio de este paquete: en
 	// cada una de sus carpetas están las evals de una skill (FR-060).
 	directorioDeEvals = "../../evals"
+
+	// skillDelRepositorio es el SKILL.md de boe-legislacion, relativo al
+	// directorio de este paquete: la skill cuyas respuestas juzgan sus evals.
+	skillDelRepositorio = "../../skills/boe-legislacion/SKILL.md"
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -602,10 +606,11 @@ const (
 // SC-010): cada fichero de cada directorio evals/<skill>/ se lee como eval, y las
 // de evals/boe-legislacion/ cumplen las reglas del conjunto de data-model §6.3,
 // esperan solo normas de data/normas.yaml y tienen en las grabaciones de H4 y de
-// H5 lo que necesitan para servir sin red cada consulta; y el esquema publicado
+// H5 lo que necesitan para servir sin red cada consulta; el esquema publicado
 // del formato admite en avisos exactamente los códigos de aviso del binario
-// (FR-013 de H5.1). Lee las carpetas enteras, así que ningún fichero de eval se
-// nombra aquí.
+// (FR-013 de H5.1); y el SKILL.md de boe-legislacion lleva la forma fija de cada
+// uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
+// H5.1). Lee las carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -686,6 +691,15 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		assert.NoError(t, ComprobarCodigosDeAviso(esquema),
 			"el esquema publicado %s admite en avisos exactamente los códigos de aviso del binario", rutaDelEsquemaDeEval)
+	})
+
+	t.Run("avisos-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		skill := contenidoDelFichero(t, skillDelRepositorio)
+
+		assert.NoError(t, ComprobarFormasDeAviso(string(skill)),
+			"%s enseña la forma fija de cada código de aviso del binario", skillDelRepositorio)
 	})
 }
 

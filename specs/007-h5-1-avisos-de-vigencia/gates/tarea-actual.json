@@ -1,16 +1,16 @@
 {
-  "id": "T010",
-  "texto": "T010 [US5] Eval de la norma derogada, antes que la skill: `evals/boe-legislacion/18-lrjpac-norma-derogada.yaml` con el contenido literal del contrato de la eval y la grabación §6 (comentario, pregunta «¿Qué dice el artículo 42 de la Ley 30/1992 sobre la obligación de resolver?», `activa: true`, `informativa: true`, comando esperado bloque `boe` `BOE-A-1992-26318` `a42`, cita esperada `BOE-A-1992-26318` `a42` y `avisos` `derogada` y `vigencia-agotada`, en ese orden); es el test de extremo a extremo de la entrega y queda en verde sin tocar código ni tests con `TestEvalsDelRepositorio` (`formato` con 18 evals, `conjunto` con exactamente 10 positivas que deciden y la 18 informativa, «materias distintas», «informativas» y «tamaño» sin defectos, `normas-conocidas`, `grabado` preparando y sirviendo con `--offline` su bloque, su índice y sus metadatos con código 0); se confirma en su propio commit, anterior al primero que cambia la skill (T011); si `grabado` falla porque falta el índice grabado en la pausa de T008, se detiene sin marcarse, no graba y lo anota en `gates/tarea-T010.md` (FR-050, FR-051, FR-052, FR-053, FR-057, US5 escenarios 1, 2, 3 y 5, SC-006, SC-009, research D14 y D16, V15 y V21).",
+  "id": "T011",
+  "texto": "T011 [US1] Forma fija de los avisos en la skill y su comprobación: `skills/boe-legislacion/SKILL.md` con exactamente los tres cambios literales del contrato de la forma fija §3 y ninguno más —el último punto de «### 5. Responder citando»; detrás del último punto de «## Cómo se cita», el párrafo de la forma fija, la lista con `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` y `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:` con su código, el bloque de ejemplo `⚠ NORMA DEROGADA: esta norma ha sido derogada.` y la regla de la etiqueta entera en la misma línea; y la regla 3 de «## Reglas»—, con la región generada intacta, 199 líneas y ninguna añadida de más de 120 caracteres; `internal/evals/conjunto_test.go` con el subtest `avisos-de-la-skill` de `TestEvalsDelRepositorio` (`ComprobarFormasDeAviso` sobre el `SKILL.md` de `boe-legislacion` leído del repositorio → nil); verde con `TestSkillsDelRepositorio` (frontmatter, menos de 300 líneas, tabla de comandos sin deriva, sin nombrar evals, job, modelos ni normas); el commit de esta tarea es el primero de la rama que cambia `SKILL.md` (FR-001, FR-002, FR-003, FR-004, FR-005, FR-014, US1 escenarios 1 a 4, US4 escenario 3, SC-001, SC-005, SC-009, research D6, D7 y D15, V29 y V33).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
-  "base": "6b1dd2624812fdff765d4e48822cfa331a3ade5d",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
+  "base": "0a03a116e4d44a363deb361d6bcb043ab2bc534c",
   "rutas": [
-    "30/1992",
-    "evals/boe-legislacion/18-lrjpac-norma-derogada.yaml",
-    "gates/tarea-T010.md"
+    "internal/evals/conjunto_test.go",
+    "SKILL.md",
+    "skills/boe-legislacion/SKILL.md"
   ],
   "cierre": false
 }
