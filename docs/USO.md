@@ -10,7 +10,24 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
-### 2026-09-16 · Evals de skills: con qué modelo deciden y cada cuánto se ejecutan
+### 2026-09-16 · Ninguna eval comprueba qué hace la skill ante una norma derogada
+
+- **Qué se pidió.** Nada en concreto: la duda salió al explicar por qué el job de evals corre sin red. Si las
+  respuestas del BOE están grabadas y la caché congelada, ¿cómo sabe uno que la ley que cita sigue viva?
+- **Qué falló.** Nada. El binario hace lo que hay que hacer: `internal/source/boe/avisos.go` deriva de los metadatos
+  los avisos `derogada` («⚠ NORMA DEROGADA: esta norma ha sido derogada.»), `vigencia-agotada` y
+  `consolidacion-no-finalizada`, y `articulo.go` no emite ningún artículo con la vigencia sin comprobar: si los
+  metadatos fallan, la invocación falla con «el bloque X se obtuvo, pero no se pudo comprobar su vigencia». En uso
+  real, los metadatos caducan a los 300 s, precisamente porque son lo que dice si la norma sigue en vigor.
+- **Qué faltó.** Que alguna eval lo mida. Las 17 de `boe-legislacion` leen artículos de normas vivas, así que ninguna
+  comprueba que la skill **traslade el aviso a su respuesta**. `SKILL.md` dice que hay que señalarlo (FR-011, SC-004
+  lo cuenta como regla presente en el texto), pero nadie comprueba que ocurra en una sesión real. Y el formato de eval
+  tampoco lo permitiría hoy: solo sabe exigir comandos ejecutados y citas encontradas, no que la respuesta lleve un
+  aviso.
+- **Qué se hizo.** Anotarlo. Arreglarlo son tres piezas: un campo nuevo en el formato de eval (los avisos esperados),
+  su comparación mecánica en `Juzgar` como la de las citas, y una grabación `[datos]` de una norma derogada, que la
+  hace una persona con `scripts/grabar-evals.sh`. Candidata evidente: la Ley 30/1992, derogada por la Ley 39/2015, que
+  ya está en las evals. No es un hito: cabe en una sesión, con su pausa humana para grabar.
 
 - **Qué se pidió.** Cerrar H5 con las evals de `boe-legislacion` en verde. El job las ejecuta con
   `claude-haiku-4-5-20251001`, fijado por la clarificación Q5 del spec de H5 («un único modelo de gama
