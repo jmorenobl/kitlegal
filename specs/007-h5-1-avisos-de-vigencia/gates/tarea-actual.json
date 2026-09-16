@@ -1,0 +1,15 @@
+{
+  "id": "T001",
+  "texto": "T001 [US4] Etiquetas de aviso exportadas por el binario, sin cambiar un byte de su salida: `internal/source/boe/avisos.go` con las tres constantes no exportadas de etiqueta (`TEXTO POSIBLEMENTE DESACTUALIZADO`, `NORMA DEROGADA`, `VIGENCIA AGOTADA`, en el orden de las condiciones), las tres frases compuestas con ellas (`\"⚠ \" + etiqueta + \": …\"`, idénticas byte a byte a las actuales) y `EtiquetasDeAviso() map[string]string`, un mapa nuevo en cada llamada con la etiqueta de cada código de `CodigosDeAviso()` y el comentario del contrato de la forma fija §2; `internal/source/boe/avisos_test.go` con `TestEtiquetasDeAviso` escrito primero (`exactamente-tres`: igual al literal de los tres códigos con sus etiquetas y claves iguales a `CodigosDeAviso()`; `frases-con-su-forma`: con las tres condiciones, cada `Aviso.Texto` de `avisosDe` empieza por `\"⚠ \" + etiqueta + \":\"` de su código; `cada-llamada-su-mapa`); `TestAvisosDe`, `TestCodigosDeAviso`, los golden de la fuente, los esquemas publicados de norma y bloque y los guiones e2e sin cambios y en verde; nada más cambia en el paquete (FR-010, FR-011, FR-012, US4 escenarios 1 y 4, SC-005, research D1 y V9).",
+  "intento": 1,
+  "datos": false,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "971b5196447b8016524ba908a0eb1e23bd183062",
+  "rutas": [
+    "internal/source/boe/avisos_test.go",
+    "internal/source/boe/avisos.go"
+  ],
+  "cierre": false
+}
