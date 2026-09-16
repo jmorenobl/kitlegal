@@ -29,9 +29,10 @@ const (
 type Veredicto string
 
 const (
-	// VeredictoAprobado es el de una ejecución sin ficheros de eval mal formados,
-	// con cada eval bien formada juzgada por alguna sesión, todas las evals
-	// pasando y ninguna petición llegada a la red.
+	// VeredictoAprobado es el de una ejecución sin ningún motivo: sin ficheros de
+	// eval mal formados, con todas las sesiones que el plan pide y legibles, con
+	// cada serie que decide llegando al umbral y sin ninguna petición llegada a la
+	// red (ADR 0016).
 	VeredictoAprobado Veredicto = "aprobado"
 
 	// VeredictoFallo es el de cualquier otra ejecución.
@@ -43,7 +44,6 @@ const (
 // error; los de la raíz, detrás del fichero o de la sesión de los que hablan.
 const (
 	motivoDeSesionIlegible    = "sesión ilegible: "
-	motivoSinNingunaSesion    = ": sin ninguna sesión"
 	motivoSinEvalsQueJuzgar   = "ninguna eval bien formada que juzgar"
 	motivoDeFicheroMalFormado = ": mal formado: "
 	motivoDeLlegadaALaRed     = ": petición llegada a la red: "
@@ -65,9 +65,11 @@ var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
-		"Sesión", "Eval", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes", "Resultado",
+		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes",
+		"Resultado",
 	}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
+	encabezadosDeTasas        = []string{"Eval", "Modelo", "Decide", "Planificada", "Tasa", "Resultado"}
 )
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
@@ -96,8 +98,16 @@ type InformeAEscribir struct {
 	// Destino es el directorio en el que escribe informe.md e informe.json.
 	Destino string
 
-	// Modelo es el modelo fijado en el job.
-	Modelo string
+	// ModeloQueDecide es el modelo del job cuyas sesiones deciden el veredicto, y
+	// ModelosInformativos, los que se ejecutan y se publican sin decidirlo
+	// (ADR 0016).
+	ModeloQueDecide     string
+	ModelosInformativos []string
+
+	// Repeticiones son las sesiones que el plan abre de cada eval con cada
+	// modelo, y Umbral, cuántas de ellas tienen que pasar para que la serie pase.
+	Repeticiones int
+	Umbral       int
 
 	// Commit es el commit evaluado.
 	Commit string
@@ -111,10 +121,19 @@ type InformeAEscribir struct {
 // contrato job-de-evals §5). Sus claves JSON, en el orden de sus campos, son las
 // de informe.json.
 type Informe struct {
-	// Skill, Modelo y Commit son los recibidos, tal cual: el modelo es el fijado
-	// en el job, no el de las sesiones.
-	Skill  string `json:"skill"`
-	Modelo string `json:"modelo"`
+	// Skill, los modelos, las repeticiones, el umbral y Commit son los recibidos,
+	// tal cual: los modelos son los fijados en el job, no los de las sesiones.
+	Skill string `json:"skill"`
+
+	// ModeloQueDecide es el modelo cuyas series deciden el veredicto, y
+	// ModelosInformativos, los que se publican como límite inferior (ADR 0016).
+	ModeloQueDecide     string   `json:"modelo_que_decide"`
+	ModelosInformativos []string `json:"modelos_informativos"`
+
+	// Repeticiones y Umbral son las sesiones que el plan abre de cada eval con
+	// cada modelo y cuántas de ellas tienen que pasar.
+	Repeticiones int `json:"repeticiones"`
+	Umbral       int `json:"umbral"`
 
 	// ModelosDeSesion y VersionesDeClaudeCode son el modelo y la versión de
 	// Claude Code que declara cada sesión que LeerSesion leyó, sin repetir y en
@@ -136,8 +155,13 @@ type Informe struct {
 	Veredicto Veredicto `json:"veredicto"`
 
 	// Motivos son las causas del veredicto fallo, en el orden de data-model
-	// §10.3; vacío con el veredicto aprobado.
+	// §10.3; vacío con el veredicto aprobado, que es justo cuando no hay ninguna.
 	Motivos []string `json:"motivos"`
+
+	// Tasas son las series —las sesiones de una eval con un modelo— con cuántas
+	// de sus sesiones pasan: primero las que el plan pide, en su orden, y después
+	// las observadas que el plan no pide (data-model §10.4).
+	Tasas []TasaDelInforme `json:"tasas"`
 
 	// FueraDeLoGrabado son las invocaciones fuera de lo grabado de todas las
 	// sesiones, y Red, sus llegadas a la red, cada una con su sesión y su eval.
@@ -153,6 +177,33 @@ type Informe struct {
 type FicheroMalFormadoDelInforme struct {
 	Fichero string `json:"fichero"`
 	Error   string `json:"error"`
+}
+
+// TasaDelInforme es una serie —las sesiones de una eval con un modelo— con
+// cuántas de ellas pasan (data-model §10.4). Con el umbral, es lo que sustituye
+// a «10 de 10 en una sola tirada» (ADR 0016).
+type TasaDelInforme struct {
+	// Eval es el fichero de la eval con la que se juzgan sus sesiones, y Modelo,
+	// el id del modelo con el que se abrieron.
+	Eval   string `json:"eval"`
+	Modelo string `json:"modelo"`
+
+	// PreguntaAmpliada dice que la pregunta de sus sesiones no es la de la eval
+	// sino la de la eval con algo más: la sesión de la prueba de red (contrato
+	// job-de-evals §6). Nunca la tiene una serie planificada.
+	PreguntaAmpliada bool `json:"pregunta_ampliada"`
+
+	// Planificada dice si la serie es una de las que pide el plan, y Decide, si
+	// su resultado decide el veredicto: solo la del modelo que decide sobre una
+	// eval que no es informativa.
+	Planificada bool `json:"planificada"`
+	Decide      bool `json:"decide"`
+
+	// Sesiones son las que se leyeron de la serie, y Pasan, cuántas de ellas
+	// pasan. Pasa dice si Pasan llega al umbral.
+	Sesiones int  `json:"sesiones"`
+	Pasan    int  `json:"pasan"`
+	Pasa     bool `json:"pasa"`
 }
 
 // FueraDeLoGrabadoDelInforme es una invocación fuera de lo grabado con la sesión
@@ -181,29 +232,46 @@ type RedDelInforme struct {
 //     van al informe y las sesiones se juzgan con las bien formadas, sin las
 //     reglas del conjunto, que aplica antes el guion;
 //  2. por cada entrada de e.Sesiones, en orden de nombre, lee siempre eval.txt,
-//     pregunta.txt y la sesión con LeerSesion y, si LeerSesion la leyó, su traza
-//     con LeerTrazas y el corte de la sesión. Solo si todo se leyó y eval.txt
-//     nombra una eval bien formada, la juzga con Juzgar; si no, la sesión no
-//     pasa, con un motivo «sesión ilegible: <fichero>: <error>» por cada fichero
-//     que falta o no se puede leer, o por el eval.txt que no nombra ninguna eval,
-//     en el orden eval.txt, pregunta.txt, sesión y traza. Una entrada que no es
-//     un directorio no se salta: sus ficheros no se pueden leer. Lo que sí se
-//     leyó de una sesión sin juzgar —la eval que nombra, lo observado de la
-//     sesión y lo que hicieron sus invocaciones— se informa igual, para que
-//     ninguna llegada a la red quede sin detectar (FR-076);
-//  3. los motivos de la raíz van en el orden de data-model §10.3: los de cada
-//     eval que no pasa, precedidos de su sesión; cada eval bien formada que
-//     ningún eval.txt nombra; ninguna eval bien formada que juzgar; cada fichero
-//     mal formado; y cada petición llegada a la red. El veredicto es fallo por
-//     cualquiera de esas causas y aprobado sin ninguna.
+//     modelo.txt, pregunta.txt y la sesión con LeerSesion y, si LeerSesion la
+//     leyó, su traza con LeerTrazas y el corte de la sesión. Solo si todo se leyó
+//     y eval.txt nombra una eval bien formada, la juzga con Juzgar; si no, la
+//     sesión no pasa, con un motivo «sesión ilegible: <fichero>: <error>» por
+//     cada fichero que falta o no se puede leer, o por el eval.txt que no nombra
+//     ninguna eval, en el orden eval.txt, modelo.txt, pregunta.txt, sesión y
+//     traza. Una entrada que no es un directorio no se salta: sus ficheros no se
+//     pueden leer. Lo que sí se leyó de una sesión sin juzgar —la eval que
+//     nombra, lo observado de la sesión y lo que hicieron sus invocaciones— se
+//     informa igual, para que ninguna llegada a la red quede sin detectar
+//     (FR-076);
+//  3. reparte las sesiones en series —eval, modelo y si la pregunta es la de la
+//     eval— y las compara con las que pide el plan (PlanDeEvals): cada serie
+//     lleva su tasa, y una serie que decide pasa si llegan al umbral
+//     (data-model §10.4; ADR 0016);
+//  4. los motivos de la raíz van en el orden de data-model §10.3: por serie
+//     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
+//     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
+//     sesión ilegible que no se hayan escrito ya; ninguna eval bien formada que
+//     juzgar; cada fichero mal formado; y cada petición llegada a la red. El
+//     veredicto es fallo si hay algún motivo y aprobado si no hay ninguno, de
+//     modo que los motivos son exactamente las causas del fallo.
 //
-// El error es solo para lo que impide escribir el informe —sin-python.txt, las
-// evals o las sesiones que no se pueden leer, o un destino en el que no se puede
-// escribir— y nombra el fichero o el directorio. Todo se lee antes de escribir
-// nada y, con cualquiera de esos errores, en el destino no queda ni informe.md ni
-// informe.json, de modo que un sin_python vacío o a medias no llega nunca a un
-// informe (FR-081).
+// El error es solo para lo que impide escribir el informe —un plan sin sentido,
+// o sin-python.txt, las evals o las sesiones que no se pueden leer, o un destino
+// en el que no se puede escribir— y nombra el fichero o el directorio. Todo se lee
+// antes de escribir nada y, con cualquiera de esos errores, en el destino no queda
+// ni informe.md ni informe.json, de modo que un sin_python vacío o a medias no
+// llega nunca a un informe (FR-081).
 func EscribirInforme(e InformeAEscribir) (Informe, error) {
+	if err := e.plan(nil).Comprobar(); err != nil {
+		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
+	}
+
+	if e.Umbral < 1 || e.Umbral > e.Repeticiones {
+		return Informe{}, fmt.Errorf(
+			"el informe no se puede escribir: el umbral es %d y tiene que estar entre 1 y las %d repeticiones",
+			e.Umbral, e.Repeticiones)
+	}
+
 	sinPython, err := leerFichero(e.SinPython)
 	if err != nil {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: la comprobación sin Python %s no se puede leer: %w",
@@ -255,6 +323,40 @@ type sesionJuzgada struct {
 	// pregunta es el contenido de pregunta.txt, y preguntaLeida dice si se leyó.
 	pregunta      string
 	preguntaLeida bool
+
+	// clave es la serie a la que pertenece la sesión (data-model §10.4). Una
+	// sesión de la que no se pudo leer la eval, el modelo o la pregunta queda en
+	// una serie que el plan no pide, de modo que a la serie que sí pide le falta
+	// una sesión y el informe lo dice.
+	clave claveDeSerie
+}
+
+// claveDeSerie identifica la serie de una sesión: la eval con la que se juzga, el
+// modelo con el que se abrió y si su pregunta es la de la eval o la de la eval
+// con algo más (data-model §10.4).
+type claveDeSerie struct {
+	eval             string
+	modelo           string
+	preguntaAmpliada bool
+}
+
+// serieJuzgada es una serie con su tasa y las posiciones de sus sesiones en el
+// orden en que se leyeron.
+type serieJuzgada struct {
+	tasa     TasaDelInforme
+	sesiones []int
+}
+
+// plan es el plan de sesiones que el informe exige que se haya ejecutado, con las
+// evals bien formadas. Sin prueba de red: esa sesión no forma serie planificada,
+// porque no pregunta lo que pregunta la eval (contrato job-de-evals §6).
+func (e InformeAEscribir) plan(evals []Eval) PlanDeEvals {
+	return PlanDeEvals{
+		Evals:               evals,
+		ModeloQueDecide:     e.ModeloQueDecide,
+		ModelosInformativos: e.ModelosInformativos,
+		Repeticiones:        e.Repeticiones,
+	}
 }
 
 // juzgarSesiones juzga cada entrada del directorio de sesiones, en orden de
@@ -287,6 +389,15 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 	nombreDeEval, eval, errDeEval := leerEvalDeLaSesion(dir, e.Evals, evals)
 	if errDeEval != nil {
 		motivos = append(motivos, motivoDeSesionIlegible+errDeEval.Error())
+	} else {
+		juzgada.clave.eval = nombreDeEval
+	}
+
+	modelo, err := leerFicheroDeSesion(dir, ficheroDelModelo)
+	if err != nil {
+		motivos = append(motivos, motivoDeSesionIlegible+err.Error())
+	} else {
+		juzgada.clave.modelo = strings.TrimSuffix(string(modelo), "\n")
 	}
 
 	pregunta, err := leerFicheroDeSesion(dir, ficheroDeLaPregunta)
@@ -294,6 +405,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		motivos = append(motivos, motivoDeSesionIlegible+err.Error())
 	} else {
 		juzgada.pregunta, juzgada.preguntaLeida = string(pregunta), true
+		juzgada.clave.preguntaAmpliada = errDeEval == nil && juzgada.pregunta != eval.Pregunta+"\n"
 	}
 
 	juzgada.sesion, err = LeerSesion(dir)
@@ -315,12 +427,18 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 	if len(motivos) == 0 {
 		juzgada.resultado = Juzgar(eval, juzgada.sesion, e.Skill)
 		juzgada.resultado.Sesion = nombre
+		juzgada.resultado.Modelo = juzgada.clave.modelo
+		juzgada.resultado.ModeloDeLaSesion = juzgada.sesion.Modelo
+		juzgada.resultado.exigirElModeloPedido()
 
 		return juzgada
 	}
 
 	juzgada.ilegible = true
-	juzgada.resultado = ResultadoDeEval{Sesion: nombre, Eval: nombreDeEval, Motivos: motivos}
+	juzgada.resultado = ResultadoDeEval{
+		Sesion: nombre, Eval: nombreDeEval, Modelo: juzgada.clave.modelo,
+		ModeloDeLaSesion: juzgada.sesion.Modelo, Motivos: motivos,
+	}
 
 	if errDeEval == nil {
 		juzgada.resultado.Activa = eval.Activa
@@ -365,13 +483,31 @@ func leerEvalDeLaSesion(dir, directorioDeEvals string, evals []Eval) (string, Ev
 }
 
 // componerInforme reúne en el informe lo recibido, lo leído y los resultados de
-// las sesiones, y decide sus motivos y su veredicto.
+// las sesiones, reparte las sesiones en series y decide sus motivos y su
+// veredicto.
 func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada) Informe {
-	informe := Informe{Skill: e.Skill, Modelo: e.Modelo, Commit: e.Commit, SinPython: sinPython}
+	informe := Informe{
+		Skill:               e.Skill,
+		ModeloQueDecide:     e.ModeloQueDecide,
+		ModelosInformativos: e.ModelosInformativos,
+		Repeticiones:        e.Repeticiones,
+		Umbral:              e.Umbral,
+		Commit:              e.Commit,
+		SinPython:           sinPython,
+	}
 
 	for _, malFormado := range conjunto.MalFormados {
 		informe.FicherosMalFormados = append(informe.FicherosMalFormados,
 			FicheroMalFormadoDelInforme{Fichero: malFormado.Fichero, Error: malFormado.Error.Error()})
+	}
+
+	series := repartirEnSeries(e, conjunto.Evals, sesiones)
+	for _, serie := range series {
+		informe.Tasas = append(informe.Tasas, serie.tasa)
+
+		for _, posicion := range serie.sesiones {
+			sesiones[posicion].resultado.Decide = serie.tasa.Decide
+		}
 	}
 
 	for _, juzgada := range sesiones {
@@ -397,10 +533,53 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 		}
 	}
 
-	informe.Motivos = motivosDelInforme(informe, conjunto.Evals)
-	informe.Veredicto = veredictoDelInforme(informe, conjunto.Evals)
+	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series)
+	informe.Veredicto = veredictoDelInforme(informe)
 
 	return informe
+}
+
+// repartirEnSeries reparte las sesiones en series (data-model §10.4): primero las
+// que pide el plan, en su orden y aunque no tengan ninguna sesión, y después las
+// observadas que el plan no pide —la de la prueba de red y la de cualquier sesión
+// de la que no se pudieran leer la eval, el modelo o la pregunta—, en el orden en
+// que aparecen. Una serie pasa si sus sesiones que pasan llegan al umbral.
+func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada) []serieJuzgada {
+	var series []serieJuzgada
+
+	posiciones := map[claveDeSerie]int{}
+
+	for _, planificada := range e.plan(evals).Series() {
+		clave := claveDeSerie{eval: planificada.Eval, modelo: planificada.Modelo}
+		posiciones[clave] = len(series)
+		series = append(series, serieJuzgada{tasa: TasaDelInforme{
+			Eval: clave.eval, Modelo: clave.modelo, Planificada: true, Decide: planificada.Decide,
+		}})
+	}
+
+	for posicion, juzgada := range sesiones {
+		enSeries, esta := posiciones[juzgada.clave]
+		if !esta {
+			enSeries = len(series)
+			posiciones[juzgada.clave] = enSeries
+			series = append(series, serieJuzgada{tasa: TasaDelInforme{
+				Eval: juzgada.clave.eval, Modelo: juzgada.clave.modelo, PreguntaAmpliada: juzgada.clave.preguntaAmpliada,
+			}})
+		}
+
+		series[enSeries].sesiones = append(series[enSeries].sesiones, posicion)
+		series[enSeries].tasa.Sesiones++
+
+		if juzgada.resultado.Pasa {
+			series[enSeries].tasa.Pasan++
+		}
+	}
+
+	for posicion := range series {
+		series[posicion].tasa.Pasa = series[posicion].tasa.Pasan >= e.Umbral
+	}
+
+	return series
 }
 
 // agregarSinRepetir añade el valor a la lista si no está ya. Un valor vacío no se
@@ -414,23 +593,41 @@ func agregarSinRepetir(lista []string, valor string) []string {
 }
 
 // motivosDelInforme son los motivos de la raíz del informe en el orden de
-// data-model §10.3.
-func motivosDelInforme(informe Informe, evals []Eval) []string {
+// data-model §10.3, y son exactamente las causas del veredicto fallo: por serie
+// planificada, las sesiones que faltan o sobran y, si decide y no llega al umbral,
+// su tasa con los motivos de sus sesiones que no pasan; los de cada sesión
+// ilegible que no se hayan escrito ya; que no haya ninguna eval que juzgar; cada
+// fichero mal formado; y cada petición llegada a la red. Una sesión que no pasa de
+// una serie que sí llega al umbral no da ningún motivo: eso es lo que el umbral
+// absorbe (ADR 0016).
+func motivosDelInforme(
+	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
+) []string {
 	var motivos []string
 
-	for _, resultado := range informe.Evals {
-		if resultado.Pasa {
+	escritas := map[string]bool{}
+
+	for _, serie := range series {
+		if serie.tasa.Planificada && serie.tasa.Sesiones != e.Repeticiones {
+			motivos = append(motivos, fmt.Sprintf("%s con %s: hay %d sesiones y el plan pide %d",
+				serie.tasa.Eval, serie.tasa.Modelo, serie.tasa.Sesiones, e.Repeticiones))
+		}
+
+		if !serie.tasa.Decide || serie.tasa.Pasa {
 			continue
 		}
 
-		for _, motivo := range resultado.Motivos {
-			motivos = append(motivos, resultado.Sesion+": "+motivo)
+		motivos = append(motivos, fmt.Sprintf("%s con %s: pasan %d de %d, y el umbral es %d",
+			serie.tasa.Eval, serie.tasa.Modelo, serie.tasa.Pasan, serie.tasa.Sesiones, e.Umbral))
+
+		for _, posicion := range serie.sesiones {
+			motivos = append(motivos, motivosDeLaSesion(sesiones[posicion], escritas)...)
 		}
 	}
 
-	for _, eval := range evals {
-		if !nombradaPorAlgunaSesion(informe.Evals, eval.Fichero) {
-			motivos = append(motivos, eval.Fichero+motivoSinNingunaSesion)
+	for _, juzgada := range sesiones {
+		if juzgada.ilegible {
+			motivos = append(motivos, motivosDeLaSesion(juzgada, escritas)...)
 		}
 	}
 
@@ -449,28 +646,34 @@ func motivosDelInforme(informe Informe, evals []Eval) []string {
 	return motivos
 }
 
-// veredictoDelInforme es fallo si hay ficheros mal formados, si alguna eval no
-// pasa —también por una sesión sin terminar o ilegible—, si alguna eval bien
-// formada no tiene ninguna sesión que la juzgue, si no hay ninguna eval bien
-// formada o si alguna petición llegó a la red; aprobado en otro caso. Así no
-// aprueba un informe que no evaluó todas las evals (data-model §10.3).
-func veredictoDelInforme(informe Informe, evals []Eval) Veredicto {
-	algunaNoPasa := slices.ContainsFunc(informe.Evals, func(resultado ResultadoDeEval) bool { return !resultado.Pasa })
-	algunaSinSesion := slices.ContainsFunc(evals, func(eval Eval) bool {
-		return !nombradaPorAlgunaSesion(informe.Evals, eval.Fichero)
-	})
+// motivosDeLaSesion son los motivos de una sesión que no pasa, precedidos de su
+// nombre, y ninguno si pasa o si ya se escribieron: escritas anota las sesiones
+// cuyos motivos ya están en la raíz, para que ninguno salga dos veces.
+func motivosDeLaSesion(juzgada sesionJuzgada, escritas map[string]bool) []string {
+	nombre := juzgada.resultado.Sesion
+	if juzgada.resultado.Pasa || escritas[nombre] {
+		return nil
+	}
 
-	if len(informe.FicherosMalFormados) > 0 || algunaNoPasa || algunaSinSesion || len(evals) == 0 || len(informe.Red) > 0 {
+	escritas[nombre] = true
+
+	motivos := make([]string, 0, len(juzgada.resultado.Motivos))
+	for _, motivo := range juzgada.resultado.Motivos {
+		motivos = append(motivos, nombre+": "+motivo)
+	}
+
+	return motivos
+}
+
+// veredictoDelInforme es fallo si hay algún motivo y aprobado si no hay ninguno:
+// los motivos son las causas del fallo, así que el veredicto es su presencia
+// (data-model §10.3).
+func veredictoDelInforme(informe Informe) Veredicto {
+	if len(informe.Motivos) > 0 {
 		return VeredictoFallo
 	}
 
 	return VeredictoAprobado
-}
-
-// nombradaPorAlgunaSesion dice si el eval.txt de alguna sesión nombra la eval,
-// aunque la sesión no se pudiera leer entera.
-func nombradaPorAlgunaSesion(resultados []ResultadoDeEval, fichero string) bool {
-	return slices.ContainsFunc(resultados, func(resultado ResultadoDeEval) bool { return resultado.Eval == fichero })
 }
 
 // escribirElInforme escribe informe.md y después informe.json en el destino. Si
@@ -514,7 +717,10 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.listaConEtiqueta("Motivos", informe.Motivos)
 
 	md.parrafo("## Cabecera")
-	md.parrafo("Modelo del job: " + informe.Modelo)
+	md.parrafo("Modelo que decide: " + informe.ModeloQueDecide)
+	md.parrafo("Modelos informativos: " + unidosOVacio(informe.ModelosInformativos, ningunoEnElInforme))
+	md.parrafo("Repeticiones por eval: " + strconv.Itoa(informe.Repeticiones))
+	md.parrafo("Umbral: " + strconv.Itoa(informe.Umbral))
 	md.parrafo("Modelos de las sesiones: " + unidosOVacio(informe.ModelosDeSesion, ningunoEnElInforme))
 	md.parrafo("Versiones de Claude Code: " + unidosOVacio(informe.VersionesDeClaudeCode, ningunaEnElInforme))
 	md.parrafo("Commit: " + informe.Commit)
@@ -541,6 +747,9 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("## Peticiones llegadas a la red")
 	md.tablaOVacia(encabezadosDeRed, filasDeRed(informe.Red), sinLlegadasALaRed)
 
+	md.parrafo("## Tasas por eval")
+	md.tablaOVacia(encabezadosDeTasas, filasDeTasas(informe.Tasas), ningunaEnElInforme)
+
 	md.parrafo("## Sesiones")
 	md.tablaOVacia(encabezadosDeSesiones, filasDeSesiones(informe.Evals), ningunaEnElInforme)
 
@@ -559,6 +768,8 @@ func (d *documento) sesion(juzgada sesionJuzgada) {
 
 	d.parrafo("## Sesión " + resultado.Sesion)
 	d.parrafo("Eval: " + cmp.Or(resultado.Eval, ningunaEnElInforme))
+	d.parrafo("Modelo pedido: " + cmp.Or(resultado.Modelo, sinLeer))
+	d.parrafo("Modelo de la sesión: " + cmp.Or(resultado.ModeloDeLaSesion, sinLeer))
 	d.textoLeido("Pregunta", juzgada.pregunta, juzgada.preguntaLeida)
 
 	switch {
@@ -610,9 +821,44 @@ func filasDeRed(red []RedDelInforme) [][]string {
 	return filas
 }
 
-// filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, activa,
-// activada, sesión terminada con su código, comandos ausentes, citas ausentes y
-// resultado.
+// filasDeTasas son las filas de la tabla de las series: eval, modelo, si decide,
+// si el plan la pide, la tasa «<pasan> de <sesiones>» y si llega al umbral. La
+// eval de una serie con la pregunta ampliada lleva detrás con qué se amplió, que
+// es la prueba de red.
+func filasDeTasas(tasas []TasaDelInforme) [][]string {
+	filas := make([][]string, 0, len(tasas))
+
+	for _, tasa := range tasas {
+		eval := tasa.Eval
+		if tasa.PreguntaAmpliada {
+			eval += " (pregunta ampliada)"
+		}
+
+		filas = append(filas, []string{
+			eval,
+			tasa.Modelo,
+			siONo(tasa.Decide),
+			siONo(tasa.Planificada),
+			strconv.Itoa(tasa.Pasan) + " de " + strconv.Itoa(tasa.Sesiones),
+			resultadoDelUmbral(tasa.Pasa),
+		})
+	}
+
+	return filas
+}
+
+// resultadoDelUmbral dice si una serie llega al umbral.
+func resultadoDelUmbral(pasa bool) string {
+	if pasa {
+		return "llega al umbral"
+	}
+
+	return "no llega al umbral"
+}
+
+// filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
+// activa, activada, sesión terminada con su código, comandos ausentes, citas
+// ausentes y resultado.
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -630,6 +876,7 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 		filas = append(filas, []string{
 			resultado.Sesion,
 			resultado.Eval,
+			resultado.Modelo,
 			siONo(resultado.Activa),
 			siONo(resultado.Activada),
 			siONo(resultado.SesionTerminada) + " (" + codigo + ")",

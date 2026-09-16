@@ -1,0 +1,11 @@
+# Eval informativa: se ejecuta y se publica, pero no decide el veredicto (ADR 0016).
+pregunta: "¿qué dice el art. 21 de la Ley 39/2015?"
+activa: true
+informativa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21

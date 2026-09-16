@@ -10,27 +10,75 @@ on:
         description: "Añade la sesión de prueba de red de la eval 01 (SC-012)"
         type: boolean
         default: false
-  # Una vez por semana, sobre la rama principal (research.md D22, S1).
-  schedule:
-    - cron: '41 4 * * 1'
-  # Sobre la rama de un hito antes de fusionar: al poner la etiqueta evals o evals-prueba-de-red en su propuesta de
-  # cambio, con el fichero del job de esa rama (FR-070, FR-082; research.md D22, S1).
+  # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
+  # evals-prueba-de-red en cualquiera, también la que no toca nada de eso (FR-070, FR-082; ADR 0016). Sin schedule: la
+  # ejecución semanal sobre main, con el modelo, la versión de Claude Code y las respuestas del BOE fijados, no medía
+  # ningún cambio. Sin synchronize: cada ejecución abre decenas de sesiones con modelo, y un hito empuja muchas veces;
+  # la etiqueta es el botón de «vuelve a medir», y es lo que usa la ejecución de cierre.
   pull_request:
-    types: [labeled]
+    types: [opened, reopened, labeled]
 
 jobs:
+  # Qué toca la propuesta de cambio. Va en un job aparte, y no en un filtro paths: del evento, porque paths: se aplica
+  # también a la actividad labeled y dejaría sin arrancar la etiqueta sobre una propuesta que no toca estas rutas, que
+  # es justo el lanzamiento que FR-070 conserva.
+  cambios:
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      coincide: ${{ steps.mirar.outputs.coincide }}
+    steps:
+      - name: Mirar los ficheros de la propuesta de cambio
+        id: mirar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMERO: ${{ github.event.pull_request.number }}
+        run: |
+          # Las opciones las fija el propio paso (research.md V56).
+          set -euo pipefail
+          # Lo que las evals miden: la skill y sus datos, las propias evals, el applet boe y el kernel que lo invoca, el
+          # arnés del job y el fichero del job. Una ruta que no se puede leer detiene el paso, y no lo deja en «no».
+          cambiados=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMERO}/files" --jq '.[].filename')
+          echo "ficheros cambiados:"
+          printf '%s\n' "$cambiados"
+          coincide=no
+          while IFS= read -r fichero; do
+            case "$fichero" in
+              skills/* | evals/* | data/* | internal/source/boe/* | internal/cli/* | internal/evals/* | \
+              scripts/evals.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
+                echo "toca lo que las evals miden: $fichero"
+                coincide=si
+                ;;
+            esac
+          done <<< "$cambiados"
+          echo "coincide=$coincide" >> "$GITHUB_OUTPUT"
+
   evals:
+    needs: [cambios]
     if: >-
-      github.event_name != 'pull_request' ||
-      github.event.label.name == 'evals' ||
-      github.event.label.name == 'evals-prueba-de-red'
+      !cancelled() && needs.cambios.result != 'failure' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.label.name == 'evals' ||
+        github.event.label.name == 'evals-prueba-de-red' ||
+        needs.cambios.outputs.coincide == 'si'
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
     env:
-      # Un único modelo de gama económica, fijado aquí por su id completo; cambiarlo es un cambio de este fichero (FR-070).
-      MODELO_DE_EVALS: claude-haiku-4-5-20251001
+      # El modelo que decide el veredicto: el del uso real de la skill, fijado aquí por su id; cambiarlo es un cambio de
+      # este fichero (FR-070, ADR 0016).
+      MODELO_DE_EVALS: claude-sonnet-5
+      # Los modelos que se ejecutan y se publican como límite inferior, sin decidir el veredicto, separados por comas.
+      MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
+      # Cada eval se repite con cada modelo y pasa con el umbral, en lugar de exigir una sola tirada perfecta (ADR 0016).
+      REPETICIONES_DE_EVALS: 3
+      UMBRAL_DE_EVALS: 2
       # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
       VERSION_DE_CLAUDE_CODE: 2.1.270
       SKILL_EVALUADA: boe-legislacion

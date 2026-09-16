@@ -32,6 +32,7 @@ const (
 	motivoDeSesionSinTerminar = "la sesión no terminó: "
 	motivoDeComandoAusente    = "comando ausente: "
 	motivoDeCitaAusente       = "cita ausente: "
+	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
 )
 
 // ResultadoDeEval es el juicio de una sesión con su eval (data-model §10.2): lo
@@ -45,6 +46,16 @@ type ResultadoDeEval struct {
 
 	// Eval es el nombre del fichero de la eval con la que se juzga la sesión.
 	Eval string `json:"eval"`
+
+	// Modelo es el id del modelo con el que se pidió abrir la sesión, el de su
+	// modelo.txt, y ModeloDeLaSesion, el que la propia sesión declara en su
+	// transcript. Los dos los pone EscribirInforme: Juzgar no los conoce.
+	Modelo           string `json:"modelo"`
+	ModeloDeLaSesion string `json:"modelo_de_la_sesion"`
+
+	// Decide dice si la sesión pertenece a una serie que decide el veredicto; lo
+	// pone EscribirInforme al repartir las sesiones en series (data-model §10.4).
+	Decide bool `json:"decide"`
 
 	// Activa dice si la eval espera que la skill se active, y Activada, si la
 	// sesión la activó: la activación coincide si son iguales.
@@ -191,6 +202,23 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 		len(resultado.ComandosAusentes) == 0 && len(resultado.CitasAusentes) == 0
 
 	return resultado
+}
+
+// exigirElModeloPedido deja de pasar, con su motivo, la sesión que declara un
+// modelo que no es el que se le pidió: si no, el informe publicaría como medida
+// de un modelo lo que hizo otro (contrato job-de-evals §4; ADR 0016). El motivo va
+// detrás de los de Juzgar, porque no es un defecto de la skill sino de la
+// ejecución. El id declarado puede llevar detrás la fecha de la versión, porque el
+// proveedor resuelve el alias que se pidió, así que basta con que empiece por el
+// pedido; una sesión que no llegó a declarar ninguno no tiene modelo que comparar
+// y ya no terminó.
+func (r *ResultadoDeEval) exigirElModeloPedido() {
+	if r.ModeloDeLaSesion == "" || strings.HasPrefix(r.ModeloDeLaSesion, r.Modelo) {
+		return
+	}
+
+	r.Motivos = append(r.Motivos, motivoDeOtroModelo+r.ModeloDeLaSesion+", y se pidió "+r.Modelo)
+	r.Pasa = false
 }
 
 // motivoDeActivacion es el motivo de una activación que no coincide con la que la

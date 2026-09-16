@@ -26,6 +26,9 @@ const (
 
 	// ficheroDeLaPregunta lleva lo que se pregunta en la sesión.
 	ficheroDeLaPregunta = "pregunta.txt"
+
+	// ficheroDelModelo lleva el id del modelo con el que se abre la sesión.
+	ficheroDelModelo = "modelo.txt"
 )
 
 // textoDeLaPruebaDeRed es el texto literal que la sesión de prueba de red añade
@@ -192,6 +195,11 @@ type SesionAPreparar struct {
 	// sesión.
 	Fichero string
 
+	// Modelo es el id del modelo con el que se abre la sesión, que queda escrito
+	// en modelo.txt: de él sale la serie a la que la sesión pertenece en el
+	// informe (data-model §10.4).
+	Modelo string
+
 	// Directorio es el de la sesión; su cache/ ya existe y está vacío.
 	Directorio string
 
@@ -204,15 +212,20 @@ type SesionAPreparar struct {
 //
 //  1. lee las evals con LeerConjunto; su error, o cualquier fichero mal
 //     formado, que nombra con su error, termina sin preparar ni escribir nada;
-//  2. si Fichero no es ninguna de las evals, termina con un error que lo nombra,
-//     sin preparar ni escribir nada;
+//  2. si Fichero no es ninguna de las evals, o si Modelo no tiene la forma de un
+//     id de modelo, termina con un error que lo nombra, sin preparar ni escribir
+//     nada;
 //  3. prepara cache/ con Preparar y las consultas necesarias de todas las evals,
 //     no solo las de Fichero, para que ninguna eval dependa del orden; sus faltas
 //     o su error se devuelven tal cual, sin escribir nada más;
-//  4. escribe eval.txt con Fichero y pregunta.txt con la pregunta de esa eval o,
-//     con PruebaDeRed, con la pregunta, una línea en blanco y el texto de la
-//     prueba de red, cada uno con un salto de línea final.
+//  4. escribe eval.txt con Fichero, modelo.txt con Modelo y pregunta.txt con la
+//     pregunta de esa eval o, con PruebaDeRed, con la pregunta, una línea en
+//     blanco y el texto de la prueba de red, cada uno con un salto de línea final.
 func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
+	if !formaDelModelo.MatchString(s.Modelo) {
+		return nil, fmt.Errorf("el modelo %q de la sesión %s no tiene la forma de un id de modelo", s.Modelo, s.Directorio)
+	}
+
 	conjunto, err := LeerConjunto(s.Evals)
 	if err != nil {
 		return nil, err
@@ -243,12 +256,15 @@ func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
 		pregunta += "\n\n" + textoDeLaPruebaDeRed
 	}
 
-	if err := escribirFichero(filepath.Join(s.Directorio, ficheroDeLaEval), []byte(s.Fichero+"\n")); err != nil {
-		return nil, fmt.Errorf("la sesión %s: %w", s.Directorio, err)
+	escritos := []struct{ fichero, contenido string }{
+		{ficheroDeLaEval, s.Fichero},
+		{ficheroDelModelo, s.Modelo},
+		{ficheroDeLaPregunta, pregunta},
 	}
-
-	if err := escribirFichero(filepath.Join(s.Directorio, ficheroDeLaPregunta), []byte(pregunta+"\n")); err != nil {
-		return nil, fmt.Errorf("la sesión %s: %w", s.Directorio, err)
+	for _, escrito := range escritos {
+		if err := escribirFichero(filepath.Join(s.Directorio, escrito.fichero), []byte(escrito.contenido+"\n")); err != nil {
+			return nil, fmt.Errorf("la sesión %s: %w", s.Directorio, err)
+		}
 	}
 
 	return nil, nil

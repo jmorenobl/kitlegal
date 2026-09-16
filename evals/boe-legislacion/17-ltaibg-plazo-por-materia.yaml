@@ -1,0 +1,14 @@
+# Eval informativa (ADR 0016): la pregunta no nombra el artículo, así que encontrarlo dentro de la norma depende hoy
+# de lo que el modelo recuerde. La herramienta que buscaría el artículo por su materia sigue en el backlog, así que
+# la eval se ejecuta y su tasa se publica, pero no decide el veredicto. Redacción literal de la bitácora
+# (docs/USO.md, 2026-09-15), para poder comparar con lo que allí se midió.
+pregunta: "¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013?"
+activa: true
+informativa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2013-12887
+    bloque: a20
+citas:
+  - norma: BOE-A-2013-12887
+    bloque: a20

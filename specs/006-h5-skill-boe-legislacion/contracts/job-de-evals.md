@@ -19,27 +19,75 @@ on:
         description: "Añade la sesión de prueba de red de la eval 01 (SC-012)"
         type: boolean
         default: false
-  # Una vez por semana, sobre la rama principal (research.md D22, S1).
-  schedule:
-    - cron: '41 4 * * 1'
-  # Sobre la rama de un hito antes de fusionar: al poner la etiqueta evals o evals-prueba-de-red en su propuesta de
-  # cambio, con el fichero del job de esa rama (FR-070, FR-082; research.md D22, S1).
+  # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
+  # evals-prueba-de-red en cualquiera, también la que no toca nada de eso (FR-070, FR-082; ADR 0016). Sin schedule: la
+  # ejecución semanal sobre main, con el modelo, la versión de Claude Code y las respuestas del BOE fijados, no medía
+  # ningún cambio. Sin synchronize: cada ejecución abre decenas de sesiones con modelo, y un hito empuja muchas veces;
+  # la etiqueta es el botón de «vuelve a medir», y es lo que usa la ejecución de cierre.
   pull_request:
-    types: [labeled]
+    types: [opened, reopened, labeled]
 
 jobs:
+  # Qué toca la propuesta de cambio. Va en un job aparte, y no en un filtro paths: del evento, porque paths: se aplica
+  # también a la actividad labeled y dejaría sin arrancar la etiqueta sobre una propuesta que no toca estas rutas, que
+  # es justo el lanzamiento que FR-070 conserva.
+  cambios:
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      coincide: ${{ steps.mirar.outputs.coincide }}
+    steps:
+      - name: Mirar los ficheros de la propuesta de cambio
+        id: mirar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMERO: ${{ github.event.pull_request.number }}
+        run: |
+          # Las opciones las fija el propio paso (research.md V56).
+          set -euo pipefail
+          # Lo que las evals miden: la skill y sus datos, las propias evals, el applet boe y el kernel que lo invoca, el
+          # arnés del job y el fichero del job. Una ruta que no se puede leer detiene el paso, y no lo deja en «no».
+          cambiados=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMERO}/files" --jq '.[].filename')
+          echo "ficheros cambiados:"
+          printf '%s\n' "$cambiados"
+          coincide=no
+          while IFS= read -r fichero; do
+            case "$fichero" in
+              skills/* | evals/* | data/* | internal/source/boe/* | internal/cli/* | internal/evals/* | \
+              scripts/evals.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
+                echo "toca lo que las evals miden: $fichero"
+                coincide=si
+                ;;
+            esac
+          done <<< "$cambiados"
+          echo "coincide=$coincide" >> "$GITHUB_OUTPUT"
+
   evals:
+    needs: [cambios]
     if: >-
-      github.event_name != 'pull_request' ||
-      github.event.label.name == 'evals' ||
-      github.event.label.name == 'evals-prueba-de-red'
+      !cancelled() && needs.cambios.result != 'failure' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.label.name == 'evals' ||
+        github.event.label.name == 'evals-prueba-de-red' ||
+        needs.cambios.outputs.coincide == 'si'
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
     env:
-      # Un único modelo de gama económica, fijado aquí por su id completo; cambiarlo es un cambio de este fichero (FR-070).
-      MODELO_DE_EVALS: claude-haiku-4-5-20251001
+      # El modelo que decide el veredicto: el del uso real de la skill, fijado aquí por su id; cambiarlo es un cambio de
+      # este fichero (FR-070, ADR 0016).
+      MODELO_DE_EVALS: claude-sonnet-5
+      # Los modelos que se ejecutan y se publican como límite inferior, sin decidir el veredicto, separados por comas.
+      MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
+      # Cada eval se repite con cada modelo y pasa con el umbral, en lugar de exigir una sola tirada perfecta (ADR 0016).
+      REPETICIONES_DE_EVALS: 3
+      UMBRAL_DE_EVALS: 2
       # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
       VERSION_DE_CLAUDE_CODE: 2.1.270
       SKILL_EVALUADA: boe-legislacion
@@ -147,7 +195,30 @@ jobs:
         run: make evals SKILL="$SKILL_EVALUADA"
 ```
 
-- Permisos mínimos (`contents: read`); ninguna acción de terceros aplica un control por su cuenta: la evaluación entera
+- **Enmienda del 2026-09-16 (ADR 0016).** El fichero de arriba es el vigente; de la versión de H5 cambian tres cosas.
+  (1) **Disparadores**: se quita el `schedule` semanal, `pull_request` pasa a los tipos `opened`, `reopened` y
+  `labeled`, y un job previo, `cambios`, decide si la propuesta de cambio toca lo que las evals miden. Va en un job
+  aparte, y no en un filtro `paths:` del evento, porque `paths:` se aplica también a la actividad `labeled` y dejaría
+  sin arrancar la etiqueta sobre una propuesta que no toca esas rutas, que es justo el lanzamiento que FR-070 conserva.
+  El `if:` del job `evals` lleva `!cancelled()` porque `cambios` se salta en los eventos de etiqueta y de
+  `workflow_dispatch`, y `needs.cambios.result != 'failure'` para que un fallo del filtro no deje pasar la ejecución sin
+  haber mirado nada. `cambios` necesita `pull-requests: read` para leer los ficheros por la API; `evals` sigue con
+  `contents: read` a secas. No se ejecuta en `synchronize`: cada ejecución abre decenas de sesiones con modelo y un hito
+  empuja muchas veces, y la etiqueta es el lanzamiento explícito de «vuelve a medir» y el de la ejecución de cierre
+  (§7). (2) **Modelos**: `MODELO_DE_EVALS` es el que decide el veredicto (`claude-sonnet-5`, el del uso real de la
+  skill) y `MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, los que se ejecutan y se publican como límite inferior
+  sin decidirlo (`claude-haiku-4-5-20251001`). (3) **Repeticiones**: `REPETICIONES_DE_EVALS` (3) y `UMBRAL_DE_EVALS`
+  (2). Las cuatro variables siguen fijadas en el fichero, y cambiarlas sigue siendo un cambio versionado del job.
+- **Presupuesto de tiempo** (ADR 0016). Con las 17 evals de `boe-legislacion`, 3 repeticiones y un modelo informativo, el
+  plan abre 87 sesiones: 36 del que decide sobre las 12 que deciden, 15 del que decide sobre las 5 informativas y 36 del
+  informativo sobre las 12 que deciden. Medido en la ejecución 35002104338 de H5: la preparación del runner tarda unos
+  5 min (193 s solo «Retirar Python del runner») y 12 sesiones de Haiku, con su preparación y el informe, tardaron 260 s
+  (~21 s por sesión). Dentro de `timeout-minutes: 120` quedan unos 6 900 s para sesiones, así que la media por sesión
+  tiene que quedar por debajo de ~79 s. El tope de 240 s por sesión no se puede bajar: está atado a la vigencia de 300 s
+  de `buscar` y `metadatos` en la caché (§3.2). Si no cabe, se sube `timeout-minutes` o se bajan las repeticiones, y se
+  anota; nunca se vuelve a un modelo que mida peor.
+- Permisos mínimos (`contents: read` en `evals`; `contents: read` y `pull-requests: read` en `cambios`); ninguna acción
+  de terceros aplica un control por su cuenta: la evaluación entera
   es `make evals`, igual que `nightly.yml` llama a `make verify-sources`.
 - `KITLEGAL_RECORD` no aparece en el fichero (FR-074, constitución, «Reglas del modo desatendido»).
 - Las versiones de `actions/checkout` y `actions/setup-go` son las de `ci.yml` y `nightly.yml`.
@@ -213,6 +284,12 @@ Bash con `set -euo pipefail`. Variables que lee: `MODELO_DE_EVALS`, `COMMIT_EVAL
 `PRUEBA_DE_RED` (`true` o cualquier otra cosa), `CLAUDE_CODE_OAUTH_TOKEN` (la usa Claude Code), `RUNNER_TEMP` o `TMPDIR`
 para la carpeta de salida `…/kitlegal-evals-<skill>`, que se vacía al empezar.
 
+**Enmienda del 2026-09-16 (ADR 0016).** Las variables obligatorias pasan a ser cinco: `MODELO_DE_EVALS` (el que decide),
+`MODELOS_INFORMATIVOS_DE_EVALS` (los informativos, separados por comas), `REPETICIONES_DE_EVALS`, `UMBRAL_DE_EVALS` y
+`COMMIT_EVALUADO`. Las dos últimas tienen que ser enteros, con al menos una repetición y un umbral entre 1 y las
+repeticiones: un umbral mayor no lo alcanzaría ninguna serie y uno menor lo alcanzarían todas. Mensaje:
+`evals: el umbral <u> tiene que ser un entero entre 1 y las repeticiones <r>`.
+
 ### 3.1 Comprobaciones previas (todas antes de la primera sesión; cualquier fallo termina con código 1)
 
 | Orden | Qué comprueba | Mensaje |
@@ -259,8 +336,56 @@ guion termina con 1 antes de la primera sesión, así que ese contenido no llega
 
 ### 3.2 Una sesión por eval
 
-Para cada fichero de `evals/<skill>/` en orden, y además, si `PRUEBA_DE_RED` es `true`, una sesión
-`01-…-prueba-de-red` de la primera eval (§6):
+**Enmienda del 2026-09-16 (ADR 0016).** Ya no es una sesión por eval sino las que pide el **plan**, que calcula Go y el
+guion solo ejecuta:
+
+```bash
+go test -tags evals -count=1 -run '^TestPlanDeSesiones$' ./internal/evals/ -args \
+  -skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
+  -repeticiones "$REPETICIONES_DE_EVALS" -prueba-de-red="${PRUEBA_DE_RED:-false}" -plan "$salida/plan.tsv"
+```
+
+`TestPlanDeSesiones` lee las evals con `LeerConjunto`, falla si alguna está mal formada —el guion ya lo comprobó en §3.1,
+y planificar sobre un conjunto incompleto abriría menos sesiones sin decirlo— y escribe en `-plan` una línea por sesión
+con cuatro campos separados por tabuladores: nombre, fichero de eval, modelo y `sí`/`no` para la prueba de red. Ni el
+nombre de una eval ni un id de modelo pueden llevar un tabulador, así que la tabla no necesita ningún escape. El guion
+recorre el fichero con `while IFS=$'\t' read -r … <&3 … done 3< "$salida/plan.tsv"`: la lectura va por un descriptor
+propio porque `claude` hereda la entrada estándar y se comería el resto del plan.
+
+`internal/evals.PlanDeEvals` (`internal/evals/plan.go`) es quien decide el plan, y lo usan las dos puntas:
+
+```go
+type PlanDeEvals struct {
+	Evals               []Eval   // las bien formadas, en su orden
+	ModeloQueDecide     string   // el del uso real de la skill
+	ModelosInformativos []string // se ejecutan y se publican, sin decidir; en orden y sin repetir
+	Repeticiones        int      // sesiones de cada eval con cada modelo
+	PruebaDeRed         bool     // añade la sesión de §6
+}
+
+func (p PlanDeEvals) Comprobar() error            // los ids tienen forma de id de modelo, ninguno informativo es el que decide ni está repetido, y Repeticiones >= 1
+func (p PlanDeEvals) Series() []SerieDeSesiones   // {Eval, Modelo, Decide}
+func (p PlanDeEvals) Sesiones() []SesionPlanificada // {Nombre, Fichero, Modelo, PruebaDeRed}
+```
+
+**Series** (data-model §10.4): por cada eval, la del modelo que decide —que `Decide` solo si la eval no es informativa—
+y, si la eval no es informativa, una por cada modelo informativo. A las evals informativas no las abre ningún modelo
+informativo: lo que miden es lo que el modelo del uso real hace con ellas, y el límite inferior es el de las evals que
+deciden. **Sesiones**: las `Repeticiones` de cada serie, en orden de serie y numeradas desde 1, con el nombre
+`<eval sin .yaml>-<modelo>-<nn>`, de dos cifras para que el orden de nombre sea el de la repetición; y al final, con
+`PruebaDeRed`, `<eval 01 sin .yaml>-prueba-de-red-<modelo que decide>-01`, **una sola**, que no se repite ni forma
+serie porque no mide la calidad de la skill sino la garantía de red (§6).
+
+`EscribirInforme` (§3.3) vuelve a componer las mismas series del mismo plan y exige que cada una tenga exactamente
+`Repeticiones` sesiones, así que el plan no se escribe dos veces y el informe comprueba que se ejecutó lo planificado.
+
+La preparación pasa a recibir además el modelo (`-modelo`), que `PrepararSesion` escribe en `d/modelo.txt`, y la sesión
+se abre con `--model "$modelo"` en lugar de con `--model "$MODELO_DE_EVALS"`. Todo lo demás de este apartado sigue igual.
+
+---
+
+Lo que decía la versión de H5, para cada fichero de `evals/<skill>/` en orden, y además, si `PRUEBA_DE_RED` es `true`,
+una sesión `01-…-prueba-de-red` de la primera eval (§6):
 
 1. `d=<salida>/sesiones/<nombre>`, con `trabajo/`, `cache/` y `traza/` vacíos.
 2. **Preparación** (research.md D14): `go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/
@@ -330,6 +455,7 @@ type SesionAPreparar struct {
 	Fichero     string   // nombre, dentro de Evals, de la eval con la que se juzga la sesión
 	Directorio  string   // directorio de la sesión; cache/ ya existe y está vacío
 	PruebaDeRed bool     // la pregunta lleva además el texto de la prueba de red (§6)
+	Modelo      string   // [enmienda 2026-09-16, ADR 0016] id del modelo con el que se abre la sesión; va a modelo.txt
 }
 ```
 
@@ -342,12 +468,34 @@ type SesionAPreparar struct {
    faltas o un error, los devuelve tal cual y no escribe `eval.txt` ni `pregunta.txt`.
 4. Escribe `<s.Directorio>/eval.txt` con `s.Fichero` y un salto de línea, y `<s.Directorio>/pregunta.txt` con la
    `pregunta` de esa eval y un salto de línea o, con `s.PruebaDeRed`, con la pregunta, una línea en blanco, el texto
-   literal de §6 y un salto de línea.
+   literal de §6 y un salto de línea. [enmienda 2026-09-16, ADR 0016: escribe además `<s.Directorio>/modelo.txt` con
+   `s.Modelo` y un salto de línea, y, antes de nada, devuelve un error que lo nombra si `s.Modelo` no tiene la forma de
+   un id de modelo (`^[a-z0-9]+(-[a-z0-9]+)*$`), sin preparar ni escribir nada: sin modelo, la sesión caería en una
+   serie que el plan no pide y el informe daría por perdida la que sí pide]
 
 La fija `TestPrepararDirectorioDeSesion` (§9), sin etiqueta y en `make ci`; `TestPrepararSesion` solo la conecta con el
 guion.
 
 ### 3.3 Informe
+
+**Enmienda del 2026-09-16 (ADR 0016).** El arnés recibe ahora los modelos, las repeticiones y el umbral en lugar del
+modelo único:
+
+```bash
+go test -tags evals -count=1 -run '^TestInformeDelJob$' ./internal/evals/ -args \
+  -skill "$skill" -sesiones "$salida/sesiones" -informe "$salida" \
+  -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
+  -repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" \
+  -commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt"
+```
+
+y `InformeAEscribir` cambia `Modelo string` por `ModeloQueDecide string`, `ModelosInformativos []string`,
+`Repeticiones int` y `Umbral int`. `-modelos-informativos` se separa por comas, y el valor vacío no es ningún modelo (y
+no uno con el nombre vacío). Antes de leer nada, `EscribirInforme` comprueba el plan con `PlanDeEvals.Comprobar` y que
+el umbral esté entre 1 y las repeticiones; cualquiera de los dos errores impide escribir el informe, como los de leer
+las entradas. Al paso 2 se le añade `modelo.txt`, que se lee siempre y cuya falta deja la sesión ilegible, en el orden
+`eval.txt`, `modelo.txt`, `pregunta.txt`, sesión y traza; y aparecen los pasos 3 y 4 del reparto en series y de los
+motivos, que están en el cuerpo de `EscribirInforme` y en data-model §10.3 y §10.4. Lo que sigue es la versión de H5.
 
 ```bash
 go test -tags evals -count=1 -run '^TestInformeDelJob$' ./internal/evals/ -args \
@@ -428,6 +576,15 @@ ejecución conserva el informe entero entre marcas, y la tarea `[plataforma]` lo
 líneas, y fallan sin imprimir nada si falta cualquiera de las cuatro (research.md V48).
 
 ## 4. Qué se registra de la sesión (research.md D12)
+
+**Enmienda del 2026-09-16 (ADR 0016).** Se añade una comprobación: el modelo que declara la sesión en su mensaje
+`system`/`init` tiene que empezar por el que se le pidió en `modelo.txt`; si no, la sesión **no pasa**, con el motivo
+`la sesión no declara el modelo que se le pidió: <declarado>, y se pidió <pedido>` detrás de los de `Juzgar`, porque no
+es un defecto de la skill sino de la ejecución. Basta con que empiece por él porque el proveedor puede resolver un alias
+a una versión con fecha (`claude-sonnet-5` → `claude-sonnet-5-<fecha>`); una sesión que no llegó a declarar ninguno no
+tiene modelo que comparar y ya no terminó. Sin esta comprobación, el informe podría publicar como medida de un modelo lo
+que hizo otro. El motivo es de la sesión, no de la raíz: si es sistemático, la serie entera no llega al umbral y el
+veredicto es `fallo`.
 
 | Dato | Fuente | Por qué no otra |
 |---|---|---|
@@ -511,6 +668,33 @@ V54, V63 y V65, y en el runner, supuesto S4):
 ## 5. Informe (FR-071)
 
 `informe.json` (clave → contenido; data-model §10):
+
+**Enmienda del 2026-09-16 (ADR 0016).** El informe de abajo es el de H5; el vigente cambia la cabecera y gana las tasas.
+En la raíz, `modelo` se sustituye por `modelo_que_decide` y `modelos_informativos`, y se añaden `repeticiones` y
+`umbral`; aparece `tasas`, con una entrada por serie (data-model §10.4):
+
+```json
+  "modelo_que_decide": "claude-sonnet-5",
+  "modelos_informativos": ["claude-haiku-4-5-20251001"],
+  "repeticiones": 3,
+  "umbral": 2,
+  "tasas": [
+    {"eval": "01-lpac-articulo-21.yaml", "modelo": "claude-sonnet-5", "pregunta_ampliada": false, "planificada": true, "decide": true, "sesiones": 3, "pasan": 3, "pasa": true},
+    {"eval": "01-lpac-articulo-21.yaml", "modelo": "claude-haiku-4-5-20251001", "pregunta_ampliada": false, "planificada": true, "decide": false, "sesiones": 3, "pasan": 2, "pasa": true},
+    {"eval": "13-lrbrl-atribuciones-por-materia.yaml", "modelo": "claude-sonnet-5", "pregunta_ampliada": false, "planificada": true, "decide": false, "sesiones": 3, "pasan": 1, "pasa": false}
+  ]
+```
+
+Primero van las series que pide el plan, en su orden, también las que se quedaron sin ninguna sesión; después, las
+observadas que el plan no pide, en el orden en que aparecen: la de la prueba de red, cuya `pregunta_ampliada` es
+verdadera porque su `pregunta.txt` no es la `pregunta` de su eval, y la de cualquier sesión de la que no se pudieran leer
+la eval, el modelo o la pregunta. En cada resultado de `evals` se añaden `modelo` (el de su `modelo.txt`),
+`modelo_de_la_sesion` (el que declara su transcript) y `decide` (si su serie decide). El veredicto pasa a ser `fallo` si
+hay algún motivo y `aprobado` si no hay ninguno, y los motivos son exactamente las causas del fallo (data-model §10.3):
+una sesión que no pasa de una serie que llega al umbral ya no da ninguno. En `informe.md`, la cabecera lleva `Modelo que
+decide`, `Modelos informativos`, `Repeticiones por eval` y `Umbral` en lugar de `Modelo del job`; hay una sección
+`## Tasas por eval` con la tabla eval · modelo · decide · planificada · tasa · resultado; la tabla de sesiones gana la
+columna `Modelo`; y la sección de cada sesión, las líneas `Modelo pedido` y `Modelo de la sesión`.
 
 ```json
 {
@@ -625,6 +809,13 @@ invocaciones fuera de lo grabado se informan y no cambian ni la eval ni el vered
 
 ## 6. Prueba de red (SC-012)
 
+**Enmienda del 2026-09-16 (ADR 0016).** La sesión se llama ahora
+`01-lpac-articulo-21-prueba-de-red-<modelo que decide>-01`, se abre con el modelo que decide y **no se repite**: no mide
+la calidad de la skill sino la garantía de red. Forma su propia serie —el informe la reconoce porque su `pregunta.txt`
+no es la `pregunta` de su eval— que el plan no pide y que no decide el veredicto; lo que sí sigue decidiéndolo, como
+siempre, es que `red` esté vacío, que es lo que la prueba comprueba. Su `pasa` se publica y se compara con el de la
+serie de la eval 01, pero ya no vuelca por sí solo la ejecución.
+
 Con la etiqueta `evals-prueba-de-red` (o `prueba_de_red` en `workflow_dispatch`), el guion prepara, además de una sesión
 por eval, la sesión `01-lpac-articulo-21-prueba-de-red` con `-eval 01-lpac-articulo-21.yaml -prueba-de-red`, y
 `PrepararSesion` (§3.2) escribe en su `eval.txt` `01-lpac-articulo-21.yaml` y en su `pregunta.txt` la pregunta de la eval
@@ -653,6 +844,14 @@ evidencia del supuesto S9 y no del S4: su traza puede quedar sin las líneas fin
 llamada interrumpida (research.md V54), y no dice nada del formato de una traza completa. El texto de la prueba lo pone el job, no `SKILL.md` (FR-077).
 
 ## 7. Ejecución de cierre y aceptación
+
+**Enmienda del 2026-09-16 (ADR 0016).** El cierre sigue siendo una ejecución etiquetada `evals` sobre la propuesta de
+cambio del hito, después del último cambio fuera de su directorio de `specs/`, y sigue exigiendo veredicto `aprobado` y
+`red` vacío. Lo que cambia es qué significa «en verde»: las 12 evals que deciden —las 10 positivas y las 2 de no
+activación— tienen que llegar al umbral con el modelo que decide, no dar 10 de 10 en una sola tirada; las evals
+informativas y las series de los modelos informativos se registran con su tasa y no hacen fallar la ejecución. En
+`gates/` se anota, además del informe entero, la tabla de tasas y el tiempo del paso «Ejecutar las evals», que es la
+medida del presupuesto de §1.
 
 - **Cierre (FR-082, SC-003).** Con la etiqueta `evals` sobre la propuesta de cambio del hito, después del último cambio
   fuera de `specs/006-h5-skill-boe-legislacion/`. Se registra en `specs/006-h5-skill-boe-legislacion/gates/evals-cierre.md`:
@@ -691,6 +890,31 @@ La tarea `[plataforma]` los comprueba (`gh secret list`, `gh label list`) y, si 
 
 ## 9. Tests que lo fijan
 
+**Enmienda del 2026-09-16 (ADR 0016).** La tabla de abajo es la de H5. Lo que cambia:
+
+- **`TestPlan` y `TestPlanComprobar`** (`internal/evals/plan_test.go`, sin etiqueta) fijan `PlanDeEvals` (§3.2) sobre un
+  plan sintético de tres evals —una que decide, una de no activación y una informativa—, un modelo informativo y dos
+  repeticiones: las series que salen y cuál decide, que ningún modelo informativo abre la eval informativa, los nombres
+  y el orden de las sesiones, que la prueba de red añade una sola sesión al final y no añade ninguna serie, que sin
+  evals no hay ninguna sesión, y lo que `Comprobar` no admite (un id sin la forma de un id de modelo, un informativo que
+  es el que decide o que está repetido, y menos de una repetición), cada uno con el error que lo nombra.
+- **`TestInforme`** gana seis casos: `umbral-alcanzado` (tres sesiones, dos pasan, umbral 2: la serie llega al umbral,
+  ninguna causa y veredicto `aprobado` aunque una sesión no pase), `umbral-no-alcanzado` (una de tres: la tasa y los
+  motivos de las dos que no pasan, veredicto `fallo`), `eval-informativa-no-decide` (la serie de una eval
+  `informativa: true` que no pasa: su tasa se publica, `decide` falso, veredicto `aprobado`),
+  `modelos-informativos-no-deciden` (lo mismo con la serie de un modelo informativo), `faltan-sesiones` (una serie
+  planificada con menos sesiones de las que pide el plan: veredicto `fallo` aunque la que hay pase) y
+  `otro-modelo-en-la-sesion` (la sesión declara un modelo que no es el de su `modelo.txt`: no pasa, con su motivo, y el
+  informe publica los dos ids). Se añade además `sin-modelo-txt` a los casos de sesión ilegible. Las entradas de cada
+  caso son las de `entradasDelCaso` —una repetición, umbral 1, sin modelos informativos— y los casos que miden otra cosa
+  las ajustan.
+- **`TestPrepararDirectorioDeSesion`** gana `modelo-con-otra-forma` (error que lo nombra, sin preparar ni escribir nada)
+  y exige `modelo.txt`; `TestPrepararSesionSinPoderLeerOEscribir`, el caso `modelo-txt-que-es-una-carpeta`.
+- **`TestConjuntoDeEvals`** gana la regla `informativas`, con los casos `informativas` (ninguna eval informativa) e
+  `informativas-sin-activar` (una informativa que no es positiva), y su conjunto sintético incluye ahora una eval
+  informativa; el orden de la tabla de reglas la lleva entre «no activación» y «materias distintas».
+- **`TestPlanDeSesiones`** (etiqueta `evals`) solo lee banderas, llama a `PlanDeEvals` y escribe `plan.tsv`.
+
 | Test | Qué fija |
 |---|---|
 | `TestLeerSesion` | un subtest por directorio de `internal/evals/testdata/sesiones/leer-sesion/` (§9.1), con su nombre; el directorio del caso **es** el de una sesión y se pasa tal cual a `LeerSesion`: `activada` (`init` con modelo y versión, `tool_use` `Skill` de la skill, `codigo-de-la-sesion` con 0 y último mensaje `result` con `subtype: success` e `is_error: false`: activada, respuesta, código 0 leído, terminada y no cortada); `no-activada`; `otra-skill-activada` (la activación de otra skill no cuenta); `codigo-distinto-de-cero` (código 1 y `result` `success`: sin terminar y no cortada, motivo `código 1`); `tope-agotado` (código 124 y transcript con solo el mensaje `init`: cortada, motivo `tope de 240 s agotado (código 124)`, que va antes que `sin mensaje result`); `senal-tras-el-tope` (código 137 y transcript con solo el mensaje `init`: cortada, motivo `terminada por señal tras el tope (código 137)`); `sin-result` (código 0 y transcript que termina en un mensaje `assistant`: `sin mensaje result`, respuesta vacía); `error-max-turns` (código 0 y `result` con `subtype: error_max_turns`: `result con subtype error_max_turns`, respuesta vacía); `result-con-is-error` (código 0 y `result` `success` con `is_error: true`: `result con is_error`, respuesta vacía); `sin-fichero-de-codigo` y `codigo-no-entero` (`codigo-de-la-sesion` ausente, o con un texto que no es un entero: error que nombra el fichero, nunca código 0; la eval queda como sesión ilegible y no pasa, `TestInforme/sesion-ilegible`); `sin-transcript` (sin `sesion.jsonl`: error que nombra el fichero); `sin-salida-de-error` (sin `sesion.err`, con transcript y código correctos: error que nombra el fichero); `linea-ilegible` (una línea que no es JSON: error que nombra el fichero y la línea); `sin-mensajes` (`sesion.jsonl` vacío, `codigo-de-la-sesion` con 124 y `sesion.err`: sin error, cortada, respuesta vacía, `Fin` `sin mensajes` y motivo `tope de 240 s agotado (código 124)`: una sesión que el tope corta antes de emitir `init` no es ilegible). En cada subtest que lee el transcript, `Fin` con el texto fijo de data-model §10.1: `result success` en `activada`, `no-activada`, `otra-skill-activada` y `codigo-distinto-de-cero`; `result error_max_turns` en `error-max-turns`; `result success con is_error` en `result-con-is-error`; `assistant` en `sin-result`; `system` en `tope-agotado` y `senal-tras-el-tope`; `sin mensajes` en `sin-mensajes` |
@@ -706,6 +930,16 @@ La tarea `[plataforma]` los comprueba (`gh secret list`, `gh label list`) y, si 
 | `TestPrepararSesion`, `TestInformeDelJob` | etiqueta `evals`; solo leen banderas y llaman a `PrepararSesion` y `EscribirInforme`, que fijan `TestPrepararDirectorioDeSesion` y `TestInforme` |
 
 ### 9.1 Árbol de `internal/evals/testdata/sesiones/`
+
+**Enmienda del 2026-09-16 (ADR 0016).** Cada directorio de sesión de `informe/` lleva además `modelo.txt`, con
+`claude-haiku` y un salto de línea, salvo el de `sin-modelo-txt`, que no lo lleva, y los de
+`modelos-informativos-no-deciden` y `otro-modelo-en-la-sesion`, que llevan `claude-opus-5`. El modelo que
+`TestInforme` pide, `claude-haiku`, es **prefijo** del que declaran los transcripts, `claude-haiku-4-5`: así siguen sin
+pasar ni el modelo tomado de las sesiones ni los modelos de las sesiones tomados del job, y además se comprueba que un
+alias resuelto a una versión con fecha sigue siendo el modelo que se pidió (§4). En `otro-modelo-en-la-sesion` se pide
+`claude-opus-5` y el transcript declara `claude-haiku-4-5`, que no empieza por él. Los seis casos nuevos salen de copiar
+la sesión que pasa de `aprobado` y la que no pasa de `eval-que-no-pasa`, cuyo único cambio es que su `result` cita
+`[BOE-A-2015-10565, bloque a22]` en lugar de `a21`.
 
 Un subdirectorio por test, porque cada función lee un nivel distinto: `LeerSesion`, el directorio de una sesión;
 `LeerTrazas`, el `traza/` de una sesión; `EscribirInforme`, una ejecución entera con sus evals y sus sesiones. Son

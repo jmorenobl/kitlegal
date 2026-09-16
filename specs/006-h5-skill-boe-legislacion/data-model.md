@@ -189,6 +189,7 @@ una clave repetida es un defecto que nombra el fichero, la clave y sus dos líne
 | `pregunta` | sí | cadena no vacía |
 | `activa` | sí | booleano: si la skill debe activarse |
 | `reproduce` | no | nombre de skill (`NOMBRE_DE_SKILL`); declara que la eval reproduce una consulta de esa skill (FR-064) |
+| `informativa` | no | booleano, falso por omisión [enmienda 2026-09-16, ADR 0016]: la eval se ejecuta y su tasa se publica, pero **no decide el veredicto**, y ningún modelo informativo la abre. Es lo que mide algo que la skill todavía no puede hacer con las herramientas que hay: las preguntas por materia, sin el número del artículo, mientras la herramienta que busca dentro de una norma el artículo que trata una materia sigue en el backlog |
 | `comandos` | si `activa` | lista de ≥ 1 comandos esperados (§6.1); prohibida si `activa: false` (FR-061) |
 | `citas` | si `activa` | lista de ≥ 1 citas esperadas (§6.2); prohibida si `activa: false` |
 
@@ -230,14 +231,22 @@ Las aplica `ComprobarConjuntoDeBoeLegislacion` (contrato de evals §2) sobre las
 `data/normas.yaml`, con un defecto por incumplimiento que lleva el nombre de la regla de esta tabla; la de revisión no es
 suya.
 
+[enmienda 2026-09-16, ADR 0016: donde esta tabla dice «positiva» se entiende **positiva que decide**, es decir, con
+`activa: true` y sin `informativa: true`; y se añade la regla `informativas`, entre «no activación» y «materias
+distintas». Motivo: una eval informativa repite la norma de la positiva de la que sale —es la misma pregunta sin el
+número del artículo—, así que contarla en «positivas», «materias distintas», «normas del hito» o «fiscal» rompería esas
+reglas sin que nada estuviera mal. La regla `informativas` existe para que las preguntas por materia no vuelvan a
+desaparecer del conjunto sin dejar rastro, como pasó en T041 y T043.]
+
 | Regla | Comprobación |
 |---|---|
 | tamaño | entre 10 y 20 ficheros |
-| positivas | exactamente 10 con `activa: true` |
+| positivas | exactamente 10 con `activa: true` [que deciden] |
 | no activación | ≥ 1 con `activa: false` |
+| informativas | [enmienda 2026-09-16] ≥ 1 con `informativa: true`, y toda eval informativa tiene `activa: true`: una informativa de no activación no mediría nada |
 | materias distintas | cada positiva cita al menos una norma que no es cita esperada de ninguna otra positiva |
 | normas del hito | para cada abreviatura LPAC, LCSP, LRBRL, LGT y TRLRHL, la norma con esa `abreviatura` en `data/normas.yaml` es cita esperada de alguna positiva |
-| art. 21 | una eval con `pregunta` exactamente «¿qué dice el art. 21 de la Ley 39/2015?» y cita `BOE-A-2015-10565` + `a21` |
+| art. 21 | una eval con `pregunta` exactamente «¿qué dice el art. 21 de la Ley 39/2015?» y cita `BOE-A-2015-10565` + `a21` [que decide] |
 | fiscal | otra positiva cita una norma cuyas `materias` incluyen `tributos` |
 | `boe-fiscal` | ≥ 1 con `reproduce: boe-fiscal` |
 | normas conocidas | toda norma de una cita o de un comando esperado está en `data/normas.yaml` (FR-020) |
@@ -452,6 +461,7 @@ como la de cualquier sesión.
 |---|---|
 | `sesion` | nombre del directorio de la sesión (contrato del job §3.2); lo pone `EscribirInforme` |
 | `eval` | nombre del fichero de eval con el que se juzga la sesión, leído de su `eval.txt` sin el salto de línea final, o vacío si `eval.txt` falta; dos sesiones pueden compartirlo (la de la prueba de red se juzga con la eval 01, contrato del job §6). La sesión solo se juzga si nombra una eval bien formada del directorio (contrato del job §3.3, paso 2) |
+| `modelo`, `modelo_de_la_sesion`, `decide` | [enmienda 2026-09-16, ADR 0016] el id del modelo con el que se pidió abrir la sesión, el de su `modelo.txt`; el que la propia sesión declara en su transcript (§10.1); y si su serie decide el veredicto (§10.4). Los tres los pone `EscribirInforme`: `Juzgar` no los conoce. Si el declarado no empieza por el pedido, la sesión no pasa, con el motivo `la sesión no declara el modelo que se le pidió: <declarado>, y se pidió <pedido>` detrás de los demás |
 | `activa`, `activada` | lo esperado y lo observado; la activación coincide si son iguales |
 | `codigo_de_la_sesion`, `sesion_terminada` | `codigo` y `terminada` de la sesión (§10.1) |
 | `respuesta` | la `respuesta` de la sesión (§10.1), vacía si no la hay o si la sesión no se pudo leer. La sección de la sesión en `informe.md` lleva la pregunta de su `pregunta.txt` y esta respuesta (contrato del job §5): de ahí sale la aceptación (FR-080, SC-001, SC-002) |
@@ -470,6 +480,20 @@ condiciones: sin una sesión terminada no hay activación ni respuesta observada
 
 ### 10.3 Informe y veredicto global
 
+[enmienda 2026-09-16, ADR 0016: `modelo` se sustituye por `modelo_que_decide` y `modelos_informativos`, y se añaden
+`repeticiones`, `umbral` y `tasas` (§10.4). Los `motivos` pasan a ser **exactamente** las causas del veredicto `fallo`, y
+el `veredicto` es `fallo` si hay algún motivo y `aprobado` si no hay ninguno. Los motivos, en este orden: por cada serie
+planificada, en el orden del plan, `<eval> con <modelo>: hay <n> sesiones y el plan pide <r>` si le faltan o le sobran
+sesiones, y, si la serie decide y no llega al umbral, `<eval> con <modelo>: pasan <p> de <n>, y el umbral es <u>`
+seguido de los motivos de cada una de sus sesiones que no pasa, precedidos del nombre de la sesión; después, los de cada
+sesión **ilegible** que no se hayan escrito ya, para que ninguno salga dos veces; después,
+`ninguna eval bien formada que juzgar`, los ficheros mal formados y las peticiones llegadas a la red, como antes.
+Desaparece `<fichero>: sin ninguna sesión`: lo dice ahora, con más detalle, el motivo de las sesiones que faltan. Una
+sesión que no pasa de una serie que sí llega al umbral **no da ningún motivo**: eso es justo lo que el umbral absorbe, y
+se ve en su tasa y en la tabla de sesiones. Que las sesiones que faltan hagan fallar el veredicto también en una serie
+que no decide es deliberado: «informativa» quiere decir que su resultado no decide, no que pueda dejar de ejecutarse en
+silencio. Motivo de todo esto: «10 de 10 en una sola tirada» es frágil con cualquier LLM.]
+
 | Campo | Regla |
 |---|---|
 | `skill` | `InformeAEscribir.Skill`, tal cual |
@@ -485,6 +509,28 @@ condiciones: sin una sesión terminada no hay activación ni respuesta observada
 | `fuera_de_lo_grabado` | todas las de los resultados, cada una con `sesion` y `eval` de su resultado, `orden` y `codigo` (en `informe.md`, tabla sesión · eval · orden · código), o «ninguna» |
 | `red` | todas las `llegadas_a_la_red`, cada una con `sesion` y `eval` de su resultado, `orden` y `destino` (en `informe.md`, tabla sesión · eval · orden · destino), o «ninguna petición llegó a la red de una fuente» |
 | `veredicto` | `fallo` si hay ficheros mal formados, si alguna eval no pasa (también por una sesión sin terminar o ilegible), si alguna eval bien formada no tiene ninguna sesión que la juzgue (ningún `eval.txt` la nombra), si no hay ninguna eval bien formada o si alguna petición llegó a la red; `aprobado` en otro caso. Así no aprueba un informe que no evaluó todas las evals: sin la sesión de una eval, con el directorio de sesiones vacío o sin ninguna eval que juzgar |
+
+### 10.4 Serie y tasa (2026-09-16, ADR 0016)
+
+Una **serie** son las sesiones de una eval con un modelo: lo que el umbral juzga a la vez. La identifican tres cosas: el
+fichero de la eval, el id del modelo y si la pregunta de sus sesiones es la de la eval o la de la eval con algo más. Una
+sesión cae en la serie que dicen su `eval.txt`, su `modelo.txt` y su `pregunta.txt`; la que pierde cualquiera de los tres
+cae en una serie que el plan no pide, de modo que a la que sí pide le falta una sesión y el informe lo dice, en lugar de
+que la falta pase inadvertida.
+
+| Campo de `tasas[]` | Regla |
+|---|---|
+| `eval`, `modelo` | los de la serie |
+| `pregunta_ampliada` | la `pregunta.txt` de sus sesiones no es la `pregunta` de la eval sino esa pregunta con algo más: la sesión de la prueba de red (contrato del job §6). Ninguna serie planificada la tiene |
+| `planificada` | la serie es una de las que pide `PlanDeEvals.Series()` (contrato del job §3.2) |
+| `decide` | su resultado decide el veredicto: solo la del modelo que decide sobre una eval que no es informativa |
+| `sesiones`, `pasan` | cuántas sesiones cayeron en la serie y cuántas de ellas pasan (§10.2) |
+| `pasa` | `pasan >= umbral` |
+
+En `tasas[]` van primero las series planificadas, en el orden del plan y aunque no tengan ninguna sesión, y después las
+observadas que el plan no pide, en el orden en que aparecen recorriendo las sesiones por nombre. Se publican todas,
+también las que pasan: una serie que baja de 3 de 3 a 2 de 3 avisa antes de volverse roja, que es justo lo que «10 de 10
+en una sola tirada» no decía.
 
 ---
 

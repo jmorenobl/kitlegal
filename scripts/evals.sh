@@ -2,8 +2,9 @@
 # Ejecuta las evals de una skill con Claude Code y escribe su informe (FR-070, FR-071; contracts/job-de-evals.md §3 de
 # H5). Antes de la primera sesión comprueba todo lo que la evaluación necesita: Linux con strace, claude y timeout; que
 # no hay Python accesible; que el proxy de las sesiones rechaza; que los ficheros de eval están bien formados y que lo
-# grabado sirve sin red cada consulta que necesitan; y que la skill está instalada. Después abre una sesión por eval,
-# con la skill tal como la deja make install, sin red de ninguna fuente y bajo strace, y juzga todas en el informe.
+# grabado sirve sin red cada consulta que necesitan; y que la skill está instalada. Después abre las sesiones que pide
+# el plan —cada eval con el modelo que decide y con cada modelo informativo, repetida REPETICIONES_DE_EVALS veces—, con
+# la skill tal como la deja make install, sin red de ninguna fuente y bajo strace, y las juzga todas en el informe.
 #
 #   make evals SKILL=<skill>
 #
@@ -11,9 +12,12 @@
 # (.github/workflows/evals.yml); ni make ci, ni los ganchos, ni ninguna tarea del workflow. Necesita root o sudo sin
 # contraseña para buscar Python en todo el sistema de ficheros.
 #
-# Variables: MODELO_DE_EVALS y COMMIT_EVALUADO, obligatorias; PRUEBA_DE_RED, que con el valor true añade la sesión de
-# prueba de red de la primera eval (§6); CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde
-# vive la carpeta de salida kitlegal-evals-<skill>.
+# Variables obligatorias, todas fijadas en la definición del job: MODELO_DE_EVALS, el modelo que decide el veredicto;
+# MODELOS_INFORMATIVOS_DE_EVALS, separados por comas, que se ejecutan y se publican como límite inferior sin decidir;
+# REPETICIONES_DE_EVALS y UMBRAL_DE_EVALS, las sesiones que se abren de cada eval con cada modelo y cuántas tienen que
+# pasar (ADR 0016); y COMMIT_EVALUADO. Opcionales: PRUEBA_DE_RED, que con el valor true añade la sesión de prueba de red
+# de la primera eval (§6); CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde vive la carpeta
+# de salida kitlegal-evals-<skill>.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -29,12 +33,21 @@ fi
 
 skill="$1"
 
-for variable in MODELO_DE_EVALS COMMIT_EVALUADO; do
+for variable in MODELO_DE_EVALS MODELOS_INFORMATIVOS_DE_EVALS REPETICIONES_DE_EVALS UMBRAL_DE_EVALS COMMIT_EVALUADO; do
 	if [[ -z "${!variable:-}" ]]; then
 		echo "evals: falta $variable" >&2
 		exit 1
 	fi
 done
+
+# Las repeticiones y el umbral son enteros, con al menos una repetición y un umbral que cabe en ellas: un umbral mayor
+# que las repeticiones no lo alcanzaría nunca ninguna serie, y uno menor que 1 lo alcanzarían todas (ADR 0016).
+forma_de_entero='^[1-9][0-9]*$'
+if [[ ! "$REPETICIONES_DE_EVALS" =~ $forma_de_entero ]] || [[ ! "$UMBRAL_DE_EVALS" =~ $forma_de_entero ]] ||
+	[[ "$UMBRAL_DE_EVALS" -gt "$REPETICIONES_DE_EVALS" ]]; then
+	echo "evals: el umbral $UMBRAL_DE_EVALS tiene que ser un entero entre 1 y las repeticiones $REPETICIONES_DE_EVALS" >&2
+	exit 1
+fi
 
 # La carpeta de salida se vacía al empezar, de modo que ningún fichero de una ejecución anterior —un sin-python.txt, un
 # informe— pase por uno de esta. Su ruta es absoluta: los tests la reciben por bandera y go test los ejecuta en el
@@ -92,20 +105,21 @@ if [[ ! -f "$HOME/.claude/skills/$skill/SKILL.md" ]]; then
 	exit 1
 fi
 
-# Sesiones (§3.2). sesion <nombre> <fichero de eval> [-prueba-de-red] prepara el directorio de la sesión y la ejecuta.
+# Sesiones (§3.2). sesion <nombre> <fichero de eval> <modelo> [-prueba-de-red] prepara el directorio de la sesión y la
+# ejecuta.
 # La preparación y la sesión no se reintentan. Una falta en la preparación termina el guion con código 1; un código de la
 # sesión distinto de 0 no lo detiene, pero se escribe siempre, también 0, y el informe no deja pasar la sesión que no
 # terminó (§4).
 sesion() {
-	local nombre="$1" fichero="$2"
-	shift 2
+	local nombre="$1" fichero="$2" modelo="$3"
+	shift 3
 
 	local d="$salida/sesiones/$nombre"
 	mkdir -p "$d/trabajo" "$d/cache" "$d/traza"
 
 	# Preparación (research.md D14): llena cache/ con las consultas necesarias de todas las evals de la skill, justo
-	# antes de la sesión porque buscar y metadatos caducan a los 300 s, y escribe pregunta.txt y eval.txt.
-	if ! go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args -skill "$skill" -eval "$fichero" -sesion "$d" "$@"; then
+	# antes de la sesión porque buscar y metadatos caducan a los 300 s, y escribe pregunta.txt, eval.txt y modelo.txt.
+	if ! go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args -skill "$skill" -eval "$fichero" -modelo "$modelo" -sesion "$d" "$@"; then
 		echo "evals: no se pudo preparar la sesión $nombre" >&2
 		exit 1
 	fi
@@ -131,7 +145,7 @@ sesion() {
 			timeout --kill-after=10s 240s \
 			strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 131072 -o "$d/traza/t" -- \
 			claude -p "$(cat "$d/pregunta.txt")" \
-			--model "$MODELO_DE_EVALS" \
+			--model "$modelo" \
 			--output-format stream-json --verbose \
 			--max-turns 30 \
 			--no-session-persistence \
@@ -144,27 +158,33 @@ sesion() {
 	printf '%s\n' "$codigo" > "$d/codigo-de-la-sesion"
 }
 
-# Una sesión por fichero de evals/<skill>/, en orden, con el nombre del fichero sin .yaml; y, con la prueba de red, la de
-# la primera eval con el sufijo -prueba-de-red, que se juzga con esa misma eval (§6; SC-012).
-shopt -s nullglob
-ficheros=()
-for ruta in evals/"$skill"/*; do
-	ficheros+=("$(basename "$ruta")")
-done
-
-for fichero in "${ficheros[@]}"; do
-	sesion "${fichero%.yaml}" "$fichero"
-done
-
-if [[ "${PRUEBA_DE_RED:-}" == true && ${#ficheros[@]} -gt 0 ]]; then
-	sesion "${ficheros[0]%.yaml}-prueba-de-red" "${ficheros[0]}" -prueba-de-red
+# El plan de sesiones lo calcula Go y lo escribe en plan.tsv: una línea por sesión con su nombre, su fichero de eval, su
+# modelo y si lleva el texto de la prueba de red, separados por tabuladores (§3.2). El guion solo lo ejecuta; el informe
+# vuelve a calcular las mismas series y exige que estén todas, así que el plan no se escribe dos veces (ADR 0016).
+if ! go test -tags evals -count=1 -run '^TestPlanDeSesiones$' ./internal/evals/ -args \
+	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
+	-repeticiones "$REPETICIONES_DE_EVALS" -prueba-de-red="${PRUEBA_DE_RED:-false}" -plan "$salida/plan.tsv"; then
+	echo "evals: no se pudo planificar las sesiones" >&2
+	exit 1
 fi
+
+# Una sesión por línea del plan, en su orden. La lectura va por un descriptor propio: la sesión lee su pregunta de un
+# fichero, pero claude hereda la entrada estándar y se comería el resto del plan.
+while IFS=$'\t' read -r nombre fichero modelo prueba_de_red <&3; do
+	if [[ "$prueba_de_red" == sí ]]; then
+		sesion "$nombre" "$fichero" "$modelo" -prueba-de-red
+	else
+		sesion "$nombre" "$fichero" "$modelo"
+	fi
+done 3< "$salida/plan.tsv"
 
 # Informe (§3.3): TestInformeDelJob juzga cada sesión y escribe informe.md e informe.json; falla con el veredicto fallo.
 codigo_del_informe=0
 go test -tags evals -count=1 -run '^TestInformeDelJob$' ./internal/evals/ -args \
 	-skill "$skill" -sesiones "$salida/sesiones" -informe "$salida" \
-	-modelo "$MODELO_DE_EVALS" -commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt" ||
+	-modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
+	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" \
+	-commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt" ||
 	codigo_del_informe=$?
 
 # La carpeta se vació al empezar: un informe que falta es que el test no lo escribió en esta ejecución.

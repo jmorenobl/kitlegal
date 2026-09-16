@@ -216,17 +216,23 @@ común de eval con su job de evals. El binario distribuido no cambia.
   solo usan las herramientas de desarrollo y que el binario no enlaza.
 - **Formato común de eval**: las evals de cada skill en su propio directorio, `evals/<skill>/`, con un fichero
   YAML por eval (`<nn>-<descripción>.yaml`) y los campos `pregunta`, `activa`, `comandos` y `citas` —estos dos,
-  obligatorios en una eval que debe activar la skill y prohibidos en una que no— y el opcional `reproduce`.
-- **Evals de `boe-legislacion`** (`evals/boe-legislacion/`), doce, escritas en el formato común de eval y antes que
-  la skill: diez preguntas de materias distintas que deben activarla, hacer las consultas esperadas y citar el
+  obligatorios en una eval que debe activar la skill y prohibidos en una que no— y los opcionales `reproduce` e
+  `informativa`, que marca la eval que se mide y se publica sin decidir el veredicto.
+- **Evals de `boe-legislacion`** (`evals/boe-legislacion/`), diecisiete, escritas en el formato común de eval y antes
+  que la skill: diez preguntas de materias distintas que deben activarla, hacer las consultas esperadas y citar el
   bloque esperado —la del IRPF reproduce un uso documentado de `boe-fiscal` y lo declara con
-  `reproduce: boe-fiscal`— y dos preguntas ajenas que no deben activarla. Las respuestas del BOE que necesitan las
-  graba una persona con `scripts/grabar-evals.sh`.
+  `reproduce: boe-fiscal`—, dos preguntas ajenas que no deben activarla y cinco preguntas por materia, sin el número
+  del artículo, marcadas `informativa: true`: se ejecutan y su tasa se publica, pero no deciden el veredicto mientras
+  siga en el backlog la herramienta que busca dentro de una norma el artículo que trata una materia (ADR 0016). Las
+  respuestas del BOE que necesitan las graba una persona con `scripts/grabar-evals.sh`.
 - **Job de evals**: el flujo `evals` (`.github/workflows/evals.yml`) ejecuta `make evals SKILL=boe-legislacion` a
-  mano, cada semana sobre la rama principal y al poner la etiqueta `evals` o `evals-prueba-de-red` en la propuesta
-  de cambio de un hito, con un único modelo fijado en su definición (`claude-haiku-4-5-20251001`), Claude Code
-  `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. El informe, con el
-  veredicto global y lo que se comprobó de cada eval, se imprime en el registro entre marcas.
+  mano, al abrirse o reabrirse una propuesta de cambio que toque la skill, sus datos, sus evals, el applet `boe` o el
+  propio job, y al poner la etiqueta `evals` o `evals-prueba-de-red` en cualquiera, con Claude Code
+  `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. Decide con
+  `claude-sonnet-5`, el modelo del uso real de la skill, y ejecuta además `claude-haiku-4-5-20251001` como límite
+  inferior que se publica sin decidir; cada eval se abre tres veces con cada modelo y pasa con dos (ADR 0016). El
+  informe, con el veredicto global, la tasa de cada eval y lo que se comprobó de cada sesión, se imprime en el registro
+  entre marcas.
 - **`make skills-sync` real**: deja de anunciar que las skills llegan en H5 y regenera, desde `data/*.yaml` y desde
   `--describe` del binario, `references/`, la tabla de comandos de `SKILL.md` y los enlaces de `scripts/` de cada
   skill; dos ejecuciones seguidas no cambian nada.
@@ -234,11 +240,12 @@ común de eval con su job de evals. El binario distribuido no cambia.
   nada, y comprueba el frontmatter y el límite de líneas de cada `SKILL.md`, la tabla de normas contra su esquema y
   cada identificador contra la búsqueda grabada del BOE, y el formato y el conjunto de las evals y que lo que
   necesitan está grabado. Falla nombrando la skill y el fichero o el enlace, sin red y sin modelo.
-- **`make evals`** (`scripts/evals.sh <skill>`), fuera de `make ci`: una sesión de Claude Code por eval, bajo
-  `strace` y con la red cerrada salvo la del modelo, con la skill instalada por `make install` y el binario
-  respondiendo desde una caché preparada con lo grabado; juzga cada sesión sin modelo y escribe el informe. Necesita
-  Linux con `strace`, root o `sudo` y ningún Python accesible, y falla antes de la primera sesión si falta algo o si
-  una eval está mal formada.
+- **`make evals`** (`scripts/evals.sh <skill>`), fuera de `make ci`: una sesión de Claude Code por cada eval, cada
+  modelo y cada repetición que pide el plan, bajo `strace` y con la red cerrada salvo la del modelo, con la skill
+  instalada por `make install` y el binario respondiendo desde una caché preparada con lo grabado; juzga cada sesión sin
+  modelo, agrupa las de cada eval y cada modelo en una serie con su tasa y escribe el informe. Necesita Linux con
+  `strace`, root o `sudo` y ningún Python accesible, y falla antes de la primera sesión si falta algo o si una eval está
+  mal formada.
 
 ### Cambiado
 
