@@ -66,3 +66,10 @@ normas:
     abreviatura: ET
     materias:
       - relaciones laborales
+  BOE-A-1992-26318:
+    titulo: "Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común."
+    rango: Ley
+    abreviatura: LRJPAC
+    materias:
+      - régimen jurídico de las administraciones públicas
+      - procedimiento administrativo
