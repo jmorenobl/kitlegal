@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H5.1. La escribió la tarea de cierre (T013, intento 1) con la medida hecha sobre 85a2cf4 (`feat(H5.1): T012`) el 2026-09-16; la tarea de plataforma (T014) registra la ejecución de aceptación en gates/evals-aceptacion.md. -->
+<!-- Propuesta de cambio de H5.1. La escribió la tarea de cierre (T013, intento 1) con la medida hecha sobre 85a2cf4 (`feat(H5.1): T012`) el 2026-09-16; la tarea de plataforma (T014) registra la ejecución de aceptación en gates/evals-aceptacion.md. La corrección de la revisión final (ronda 1) cambió la documentación y dos comentarios de internal/evals en 7ae7a05 y volvió a medir sobre ese commit el alcance, make ci y la cobertura (Evidencia, «Tras la revisión final»). -->
 
 ## Objetivo
 
@@ -26,19 +26,23 @@ cita por su identificador**, sin leer la redacción libre de la respuesta y sin 
 
 ## Alcance
 
-Frente a `main` (`2d2efb8`), en la cabeza medida `85a2cf4`: fuera de `specs/`, **24 ficheros, 1 323 líneas añadidas y
-65 retiradas**; en `specs/007-h5-1-avisos-de-vigencia/`, los artefactos del hito, que siguen cambiando con lo que
-registran el cierre y la plataforma. Por árboles:
+Frente a `main` (`2d2efb8`), en la cabeza `7ae7a05` (la corrección de la revisión final): fuera de `specs/`,
+**25 ficheros, 1 393 líneas añadidas y 108 retiradas**. En la cabeza que midió T013, `85a2cf4`, eran 24 ficheros, 1 323
+líneas añadidas y 65 retiradas; la corrección añade `internal/evals/conjunto.go` (solo comentarios) y vuelve sobre la
+documentación y un comentario de `formato.go`. En `specs/007-h5-1-avisos-de-vigencia/`, los artefactos del hito, que
+siguen cambiando con lo que registran el cierre, la plataforma y la revisión. Por árboles, en `7ae7a05`:
 
 - **`internal/source/boe`** (2): `avisos.go` compone cada frase con su etiqueta y exporta `EtiquetasDeAviso()`, un mapa
   nuevo en cada llamada de código a etiqueta; `avisos_test.go` gana `TestEtiquetasDeAviso`. Ningún otro fichero del
   paquete, ningún golden ni esquema de salida cambia.
-- **`internal/evals`** (13): nuevo `avisos.go` (`ExtraerAvisos`, `ComprobarFormasDeAviso`, `ComprobarCodigosDeAviso`) y
-  su test; `formato.go` (`Eval.Avisos`), `juzgar.go` (`AvisosEncontrados`, `AvisosAusentes`, el motivo
-  `aviso ausente: <código>` y `Pasa`) e `informe.go` (dos celdas en la tabla de sesiones), con sus tests;
-  `conjunto_test.go` (subtests `avisos-del-esquema` y `avisos-de-la-skill` de `TestEvalsDelRepositorio`);
-  `grabaciones_test.go` (premisa de `otraNormaDeLaBusqueda`) y `grabacion_test.go` (etiqueta `grabacion`: el arnés
-  siembra desde la unión de las grabaciones de H4 y de H5).
+- **`internal/evals`** (12; 11 en `85a2cf4`): nuevo `avisos.go` (`ExtraerAvisos`, `ComprobarFormasDeAviso`,
+  `ComprobarCodigosDeAviso`) y su test; `formato.go` (`Eval.Avisos`), `juzgar.go` (`AvisosEncontrados`,
+  `AvisosAusentes`, el motivo `aviso ausente: <código>` y `Pasa`) e `informe.go` (dos celdas en la tabla de sesiones),
+  con sus tests; `conjunto_test.go` (subtests `avisos-del-esquema` y `avisos-de-la-skill` de
+  `TestEvalsDelRepositorio`); `grabaciones_test.go` (premisa de `otraNormaDeLaBusqueda`) y `grabacion_test.go`
+  (etiqueta `grabacion`: el arnés siembra desde la unión de las grabaciones de H4 y de H5). Desde la revisión final,
+  `conjunto.go` y el comentario de `Eval.Informativa` en `formato.go` describen las dos clases de evals informativas
+  —las preguntas por materia y la de la norma derogada— sin cambiar ninguna regla.
 - **`skills/boe-legislacion/`** (2): `SKILL.md` con exactamente los tres cambios del contrato de la forma fija §3 (el
   último punto del paso 5, el párrafo y la lista de formas de «Cómo se cita» y la regla 3), región generada intacta; y
   `references/normas.md`, regenerado con `make skills-sync`.
@@ -51,7 +55,12 @@ registran el cierre y la plataforma. Por árboles:
   pausa de T008 y confirmó en su propio commit (`cc1362d`).
 - **Documentación** (3): `CHANGELOG.md` (bloque *De H5.1* en «Añadido» de *Unreleased*), `README.md` y
   `CONTRIBUTING.md` (fila `avisos` de la tabla del formato común de eval y, en `CONTRIBUTING.md`, la frase de cuándo
-  pasa una eval).
+  pasa una eval). La revisión final alinea además con el conjunto y con el job lo que ADR 0016 y este hito habían dejado
+  atrás en esas subsecciones: once normas y dieciocho evals —doce que deciden y seis informativas— en `README.md`; qué
+  juzga el informe de cada sesión, avisos incluidos; las sesiones del plan, con el modelo que decide, los informativos,
+  las repeticiones y el umbral, en lugar de una sesión por eval con un único modelo; el lanzamiento al abrir o reabrir
+  la propuesta de cambio en lugar del semanal; la fila `informativa` del formato; y, en `CHANGELOG.md`, que las evals
+  informativas solo se abren con el modelo que decide.
 - **`.golangci.yml`** (1): solo la palabra `variantes` en `misspell.ignore-rules`, con su motivo (el subtest
   `aviso-con-variantes-toleradas`, cuyo nombre fija el plan).
 
@@ -144,9 +153,9 @@ las formas `rtk proxy` de su tabla. Ningún resultado distinto del esperado.
 | Limpieza | La carpeta desaparece y el estado del árbol da solo `fin del estado` |
 
 **La skill y el conjunto de evals**, contados sobre `85a2cf4`: **199 líneas de `SKILL.md`** (`wc -l`; 181 en `main`,
-por debajo de 300); **18 evals con 10 que deciden** en `evals/boe-legislacion/`: las 10 positivas que deciden, 6
-informativas (13 a 18) y 2 de no activación; `TestEvalsDelRepositorio/conjunto` en verde. Con la eval 18,
-el job pasa de 87 a 90 sesiones (research V21).
+por debajo de 300); **18 evals, 12 de ellas deciden** en `evals/boe-legislacion/`: las 10 positivas que deciden y las 2
+de no activación, que también deciden, y 6 informativas (13 a 18); `TestEvalsDelRepositorio/conjunto` en verde. Con la
+eval 18, el job pasa de 87 a 90 sesiones (research V21).
 
 **Cobertura**, con `go tool cover -func` sobre el `coverage.out` y el `coverage-integration.out` que dejó ese
 `make ci` sobre `85a2cf4` (y, por árbol, la suma de sentencias del perfil contando cada bloque una vez):
@@ -170,6 +179,25 @@ aparece en el diff.
 **Sin red en las tareas**: ninguna ejecutó `KITLEGAL_RECORD`, `scripts/grabar-evals.sh`, `make evals` ni
 `make verify-sources`. El esquema y el manifiesto los revisó una persona en las pausas de T003 y T008, y el índice lo
 grabó una persona en la de T008.
+
+### Tras la revisión final
+
+Medido por la corrección de la revisión final (ronda 1) el **2026-09-16, sobre `7ae7a05`** (`docs(H5.1): alinear la
+documentación de las evals con el conjunto y el job`, la cabeza fuera de `specs/`), con `go clean -testcache` antes y
+`make ci` en primer plano. Lo que cambia frente a `85a2cf4` son documentación y comentarios, así que el comportamiento
+que miden los escenarios 1 a 9 no cambia; `make ci` vuelve a ejecutar todos sus tests.
+
+| Medida | Resultado sobre `7ae7a05` |
+|---|---|
+| `make ci` | **`código 0`**: `0 issues.`; los once paquetes con tests en `ok` en los dos perfiles, ninguno de la caché; `govulncheck` «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; `schema-check` y `skills-check` en `ok` (`internal/app`, `internal/skills` e `internal/evals`); `gitleaks` «no leaks found»; `all modules verified` en la raíz y en los cuatro módulos de herramientas; `go mod tidy -diff` sin salida; `ci: todos los controles en verde` (`gates/ci.log`, 68 líneas) |
+| Alcance fuera de `specs/` | 25 ficheros, 1 393 líneas añadidas y 108 retiradas; `internal/evals`, 12 ficheros |
+| 10 · documentación | La fila `avisos` en `README.md:210` y `CONTRIBUTING.md:227`; la frase de cuándo pasa una sesión de una eval con los avisos en `CONTRIBUTING.md:239-243`; `*De H5.1 — los avisos de vigencia en las evals:*` en `CHANGELOG.md:251`. Ninguna de las afirmaciones retiradas («diez normas», «doce evals», «tiene doce», «una sesión por eval», «único modelo», «cada semana», «Semanal») queda en `README.md` ni en `CONTRIBUTING.md`; solo las líneas semanales de CodeQL y Dependabot |
+| `SKILL.md` y evals | 199 líneas; 18 evals, 12 de ellas deciden |
+
+**Cobertura** sobre `7ae7a05`, con el mismo método que arriba: idéntica a la de `85a2cf4` en los dos perfiles —global
+**96,9 %** (6003/6194) y **97,4 %** (6032/6194); `internal/core/**` **90,1 %** (73/81); `internal/cli/**` **98,6 %**
+(348/353); `internal/evals` 99,0 % (1753/1770); `internal/source/boe` 99,4 % (876/881)—, con `internal/evals/avisos.go`
+67/67, `juzgar.go` 139/139 e `internal/source/boe/avisos.go` 20/20. `conjunto.go` (199/200) solo cambia en comentarios.
 
 ## Decisiones
 
@@ -209,18 +237,17 @@ grabó una persona en la de T008.
 
 ## Pendientes
 
-- **La ejecución de aceptación** (T014): publicar la rama y abrir esta propuesta de cambio, esperar la ejecución de
-  apertura del job `evals`, leer su informe y comprobar con quickstart §11.5 el veredicto `aprobado`, `red` vacío, la
-  tasa de la eval 18 con el modelo que decide sobre 3 sesiones y el reparto de sus dos avisos en cada sesión; la
-  evidencia va a `gates/evals-aceptacion.md`. Con ella se comprueban los supuestos de plataforma S1 a S4 (research §S):
-  la ejecución de apertura y su job, el `headSha` igual al `commit` del informe, el formato del registro y que las 90
-  sesiones caben en el tope del job.
-- **Regla de repetición de la aceptación** (contrato de la ejecución de aceptación §6): si después de la ejecución de
-  aceptación entra en la rama un commit que cambia cualquier fichero fuera de `specs/007-h5-1-avisos-de-vigencia/` —por
-  ejemplo, una corrección de la revisión final—, la aceptación ya no cubre la cabeza y **se repite**: se quita la
-  etiqueta `evals` si está puesta, se pone, y se identifica, espera, lee y comprueba la ejecución nueva por el último
-  evento `labeled` (quickstart §11.6), con las mismas condiciones; su evidencia se añade como sección nueva y vigente de
-  `gates/evals-aceptacion.md`. Quien cambie algo fuera del directorio del hito tras la aceptación lo deja anotado aquí.
+- **Repetir la ejecución de aceptación por etiqueta** (FR-070, SC-007; contrato de la ejecución de aceptación §6). La
+  registrada en `gates/evals-aceptacion.md` —la de apertura, `35148840549`, sobre `8272bc8`— **ya no cubre la
+  cabeza**: la corrección de la revisión final (`7ae7a05`) cambia fuera de `specs/007-h5-1-avisos-de-vigencia/`
+  `CHANGELOG.md`, `CONTRIBUTING.md`, `README.md`, `internal/evals/conjunto.go` e `internal/evals/formato.go`. Tras la
+  revisión en verde y el push de la rama (el push no lanza el job: no hay `synchronize`), se actualiza el cuerpo de
+  #34 con este fichero (`gh pr edit 007-h5-1-avisos-de-vigencia --body-file
+  specs/007-h5-1-avisos-de-vigencia/gates/pr-h5.1.md`), se quita la etiqueta `evals` si está puesta, se pone, y se
+  identifica, espera, lee y comprueba la ejecución nueva con quickstart §11.6 y después la tercera orden de §11.3, §11.4
+  y §11.5, con las mismas condiciones; su evidencia se añade como sección nueva y vigente de
+  `gates/evals-aceptacion.md`. Si otra corrección posterior cambia algo fuera del directorio del hito, la repetición va
+  detrás de la última. Anotado también en `gates/revision-pendiente.md`.
 - **`govulncheck` y un módulo requerido**: el mismo `make ci` informa, sin fallar, de una vulnerabilidad en un módulo
   que el código no llama, `GO-2026-5970` («Infinite loop on invalid input in golang.org/x/text»; encontrada en
   `golang.org/x/text@v0.14.0`, corregida en v0.39.0), según `govulncheck -show verbose` sobre `85a2cf4`. H5.1 no toca

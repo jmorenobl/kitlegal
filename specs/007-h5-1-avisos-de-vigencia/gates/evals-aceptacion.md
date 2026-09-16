@@ -4,7 +4,14 @@ Registro de la tarea T014 (quickstart §11; contrato de la ejecución de aceptac
 2026-09-16 sobre la propuesta de cambio [#34](https://github.com/jmorenobl/kitlegal/pull/34), abierta hacia `main` con
 el título `feat(H5.1): Avisos de vigencia en las evals` y el cuerpo de `gates/pr-h5.1.md`.
 
-## Ejecución de apertura (vigente)
+> **Repetición pendiente** (anotado por la corrección de la revisión final, ronda 1, 2026-09-16). La ejecución de
+> apertura de abajo es la última registrada, pero **ya no cubre la cabeza**: `7ae7a05` cambia `CHANGELOG.md`,
+> `CONTRIBUTING.md`, `README.md`, `internal/evals/conjunto.go` e `internal/evals/formato.go`, fuera de
+> `specs/007-h5-1-avisos-de-vigencia/`. Por el contrato de la ejecución de aceptación §6 se repite por etiqueta
+> (quickstart §11.6) tras la revisión aprobada y el push, y su evidencia se añade aquí como sección nueva y vigente
+> (`gates/revision-pendiente.md`).
+
+## Ejecución de apertura (vigente hasta `7ae7a05`)
 
 | Dato | Valor |
 |---|---|
@@ -100,8 +107,9 @@ todos bajo specs/007-h5-1-avisos-de-vigencia/
 
 ### Repetición por etiqueta (quickstart §11.6)
 
-No aplica: ningún commit posterior a la ejecución cambió nada fuera de `specs/007-h5-1-avisos-de-vigencia/` (la lista
-de ficheros cambiados entre el commit evaluado y la cabeza está vacía). La etiqueta `evals` no se puso.
+No aplicaba al registrarla T014: ningún commit posterior a la ejecución cambiaba nada fuera de
+`specs/007-h5-1-avisos-de-vigencia/` (la lista de ficheros cambiados entre el commit evaluado y la cabeza estaba vacía).
+La etiqueta `evals` no se puso. Aplica desde `7ae7a05` (aviso del principio).
 
 ### Estados de la propuesta de cambio
 
