@@ -247,6 +247,32 @@ común de eval con su job de evals. El binario distribuido no cambia.
   `strace`, root o `sudo` y ningún Python accesible, y falla antes de la primera sesión si falta algo o si una eval está
   mal formada.
 
+*De H5.1 — los avisos de vigencia en las evals:*
+
+- **Forma fija de los avisos de vigencia en `boe-legislacion`**: su `SKILL.md` fija cómo traslada la respuesta cada
+  aviso del sobre, con `⚠`, la etiqueta del aviso tal como la da el binario y dos puntos, seguidos de la frase del
+  binario o de una explicación —`⚠ NORMA DEROGADA:` para `derogada`, `⚠ VIGENCIA AGOTADA:` para `vigencia-agotada` y
+  `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:` para `consolidacion-no-finalizada`—, con la etiqueta entera y en la misma
+  línea; decir con otras palabras que la norma está derogada no traslada el aviso. La etiqueta de cada código tiene una
+  sola fuente de verdad, el applet `boe`, cuya salida no cambia en un byte, y `make skills-check` falla nombrando el
+  código si el `SKILL.md` pierde la forma fija de alguno.
+- **Campo `avisos` en el formato común de eval**: opcional y solo en una eval que activa la skill, lista los códigos
+  de aviso de vigencia del binario —`consolidacion-no-finalizada`, `derogada` o `vigencia-agotada`— cuya forma fija
+  tiene que llevar la respuesta. `schemas/eval.yaml.json` rechaza un código desconocido, una lista vacía y `avisos` en
+  una eval de no activación, y `make skills-check` comprueba que el esquema admite exactamente los códigos del binario.
+  Una eval con `avisos` solo pasa si la respuesta lleva la forma fija de cada uno: se juzga sin modelo, con el selector
+  de variante tras `⚠`, el énfasis de Markdown, otros blancos y las minúsculas tolerados, y otra redacción o la negación
+  dejan el aviso ausente. Las evals sin `avisos` se juzgan igual que antes.
+- **Reparto de avisos en el informe**: cada sesión publica en `informe.json` `avisos_encontrados` y `avisos_ausentes`,
+  en el orden de la eval —`[]` si no espera ninguno—, y cada aviso ausente da el motivo `aviso ausente: <código>`,
+  detrás de los de las citas ausentes; la tabla de sesiones de `informe.md` gana las columnas «Avisos encontrados» y
+  «Avisos ausentes». Un rojo por un aviso ausente se distingue así de uno por una cita ausente.
+- **Eval informativa de una norma derogada** (`evals/boe-legislacion/18-lrjpac-norma-derogada.yaml`): pregunta por el
+  artículo 42 de la Ley 30/1992 sin decir nada de su vigencia y exige consultar y citar su bloque `a42` y trasladar los
+  avisos `derogada` y `vigencia-agotada` con su forma fija. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa
+  se publica sin decidir el veredicto. La Ley 30/1992 entra en `data/normas.yaml`, sin ninguna marca de derogación, y
+  su índice lo graba una persona con `scripts/grabar-evals.sh`.
+
 ### Cambiado
 
 *De H1 — el kernel de la línea de órdenes:*

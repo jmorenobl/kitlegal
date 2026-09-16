@@ -207,6 +207,7 @@ citas:
 | `activa` | Si la pregunta debe activar la skill. Una eval de no activación (`false`) no lleva `comandos` ni `citas` |
 | `comandos` | Obligatorio si `activa` es `true`: las consultas que la sesión debe hacer con éxito, en una de tres formas —un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` `indice`, `metadatos` o `analisis`, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`)— |
 | `citas` | Obligatorio si `activa` es `true`: cada `norma` y `bloque` que la respuesta debe citar |
+| `avisos` | Opcional, solo si `activa` es `true`: los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
 | `reproduce` | Opcional: la skill cuyo uso documentado reproduce la eval, p. ej. `boe-fiscal` |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra el esquema

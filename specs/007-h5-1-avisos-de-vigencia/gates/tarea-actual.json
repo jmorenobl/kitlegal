@@ -1,16 +1,16 @@
 {
-  "id": "T011",
-  "texto": "T011 [US1] Forma fija de los avisos en la skill y su comprobación: `skills/boe-legislacion/SKILL.md` con exactamente los tres cambios literales del contrato de la forma fija §3 y ninguno más —el último punto de «### 5. Responder citando»; detrás del último punto de «## Cómo se cita», el párrafo de la forma fija, la lista con `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` y `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:` con su código, el bloque de ejemplo `⚠ NORMA DEROGADA: esta norma ha sido derogada.` y la regla de la etiqueta entera en la misma línea; y la regla 3 de «## Reglas»—, con la región generada intacta, 199 líneas y ninguna añadida de más de 120 caracteres; `internal/evals/conjunto_test.go` con el subtest `avisos-de-la-skill` de `TestEvalsDelRepositorio` (`ComprobarFormasDeAviso` sobre el `SKILL.md` de `boe-legislacion` leído del repositorio → nil); verde con `TestSkillsDelRepositorio` (frontmatter, menos de 300 líneas, tabla de comandos sin deriva, sin nombrar evals, job, modelos ni normas); el commit de esta tarea es el primero de la rama que cambia `SKILL.md` (FR-001, FR-002, FR-003, FR-004, FR-005, FR-014, US1 escenarios 1 a 4, US4 escenario 3, SC-001, SC-005, SC-009, research D6, D7 y D15, V29 y V33).",
+  "id": "T012",
+  "texto": "T012 [P] Documentación del hito: `CHANGELOG.md` con un bloque *De H5.1* en «Añadido» de *Unreleased* (la forma fija de los avisos en la skill, el campo `avisos` del formato común de eval, el reparto de avisos en el informe y la eval informativa de la norma derogada); `README.md` y `CONTRIBUTING.md` con la fila `avisos` en su tabla del formato común de eval (opcional, solo con `activa: true`, códigos de aviso del binario) y, en `CONTRIBUTING.md`, «y lleva la forma fija de cada aviso de `avisos`» en la frase que dice cuándo pasa una eval; ninguna otra cifra ni sección, ni ADR, ni tabla de fuentes, ni bitácora de uso (FR-061, SC-008, Definition of Done §1.6, research D18).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
-  "base": "0a03a116e4d44a363deb361d6bcb043ab2bc534c",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
+  "base": "394e13880aec5ca9ce76cdd61d9449c28bb68fa1",
   "rutas": [
-    "internal/evals/conjunto_test.go",
-    "SKILL.md",
-    "skills/boe-legislacion/SKILL.md"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "README.md"
   ],
   "cierre": false
 }

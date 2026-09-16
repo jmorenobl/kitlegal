@@ -224,6 +224,7 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 | `activa` | sí | Si la pregunta debe activar la skill |
 | `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de tres formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`) |
 | `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
@@ -234,8 +235,8 @@ eval positiva sin citas o una de no activación con comandos fallan nombrando el
 activación, entre otras.
 
 Una eval pasa si la sesión activa la skill cuando debe y no la activa cuando no debe, termina, hace con éxito cada
-consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas`. Lo juzga el informe sin modelo, con lo
-que deja la sesión: su transcript y su traza.
+consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas` y lleva la forma fija de cada aviso de
+`avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su traza.
 
 ### Job de evals
 
