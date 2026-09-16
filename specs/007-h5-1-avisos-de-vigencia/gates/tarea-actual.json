@@ -1,16 +1,16 @@
 {
-  "id": "T009",
-  "texto": "T009 [US5] Norma y referencia: `data/normas.yaml` gana, al final de `normas`, exactamente la entrada del contrato de la eval y la grabación §5 (`BOE-A-1992-26318` con el título y el rango copiados de la búsqueda grabada `procedimiento administrativo común`, `abreviatura: LRJPAC` y sus dos materias, sin ninguna marca de derogación), y `skills/boe-legislacion/references/normas.md` se regenera solo con `make skills-sync`, nunca a mano; verde sin cambiar ningún test: `TestNormasDelRepositorio` (la tabla contra su esquema), `TestSkillsDelRepositorio` (referencia sin deriva) y `TestIdentificadoresDeLasNormas` (la entrada nueva de T008 resuelve la norma con su título y los cuatro subtests negativos siguen fallando donde deben); si el título o el rango grabados no coinciden con el contrato, se detiene sin marcarse y lo anota en `gates/tarea-T009.md` (FR-056, US5 escenario 4, SC-006, research D13, V14 a V16).",
+  "id": "T010",
+  "texto": "T010 [US5] Eval de la norma derogada, antes que la skill: `evals/boe-legislacion/18-lrjpac-norma-derogada.yaml` con el contenido literal del contrato de la eval y la grabación §6 (comentario, pregunta «¿Qué dice el artículo 42 de la Ley 30/1992 sobre la obligación de resolver?», `activa: true`, `informativa: true`, comando esperado bloque `boe` `BOE-A-1992-26318` `a42`, cita esperada `BOE-A-1992-26318` `a42` y `avisos` `derogada` y `vigencia-agotada`, en ese orden); es el test de extremo a extremo de la entrega y queda en verde sin tocar código ni tests con `TestEvalsDelRepositorio` (`formato` con 18 evals, `conjunto` con exactamente 10 positivas que deciden y la 18 informativa, «materias distintas», «informativas» y «tamaño» sin defectos, `normas-conocidas`, `grabado` preparando y sirviendo con `--offline` su bloque, su índice y sus metadatos con código 0); se confirma en su propio commit, anterior al primero que cambia la skill (T011); si `grabado` falla porque falta el índice grabado en la pausa de T008, se detiene sin marcarse, no graba y lo anota en `gates/tarea-T010.md` (FR-050, FR-051, FR-052, FR-053, FR-057, US5 escenarios 1, 2, 3 y 5, SC-006, SC-009, research D14 y D16, V15 y V21).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T009.md y déjala sin marcar.",
-  "base": "cc1362db067e3ac0a5cc1291e96e8845fe9ea131",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
+  "base": "6b1dd2624812fdff765d4e48822cfa331a3ade5d",
   "rutas": [
-    "data/normas.yaml",
-    "gates/tarea-T009.md",
-    "skills/boe-legislacion/references/normas.md"
+    "30/1992",
+    "evals/boe-legislacion/18-lrjpac-norma-derogada.yaml",
+    "gates/tarea-T010.md"
   ],
   "cierre": false
 }

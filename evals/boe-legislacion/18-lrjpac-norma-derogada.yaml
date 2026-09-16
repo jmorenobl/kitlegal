@@ -1,0 +1,16 @@
+# Eval informativa (ADR 0016): norma derogada y con la vigencia agotada. La pregunta nombra la norma y el artículo y no
+# dice nada de su vigencia: la respuesta tiene que citar el bloque y trasladar los dos avisos que emite el binario, cada
+# uno con su forma fija. Nace informativa: promoverla a decisoria se decide con los datos de varias ejecuciones.
+pregunta: "¿Qué dice el artículo 42 de la Ley 30/1992 sobre la obligación de resolver?"
+activa: true
+informativa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-1992-26318
+    bloque: a42
+citas:
+  - norma: BOE-A-1992-26318
+    bloque: a42
+avisos:
+  - derogada
+  - vigencia-agotada
