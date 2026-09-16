@@ -1,15 +1,16 @@
 {
-  "id": "T001",
-  "texto": "T001 [US4] Etiquetas de aviso exportadas por el binario, sin cambiar un byte de su salida: `internal/source/boe/avisos.go` con las tres constantes no exportadas de etiqueta (`TEXTO POSIBLEMENTE DESACTUALIZADO`, `NORMA DEROGADA`, `VIGENCIA AGOTADA`, en el orden de las condiciones), las tres frases compuestas con ellas (`\"⚠ \" + etiqueta + \": …\"`, idénticas byte a byte a las actuales) y `EtiquetasDeAviso() map[string]string`, un mapa nuevo en cada llamada con la etiqueta de cada código de `CodigosDeAviso()` y el comentario del contrato de la forma fija §2; `internal/source/boe/avisos_test.go` con `TestEtiquetasDeAviso` escrito primero (`exactamente-tres`: igual al literal de los tres códigos con sus etiquetas y claves iguales a `CodigosDeAviso()`; `frases-con-su-forma`: con las tres condiciones, cada `Aviso.Texto` de `avisosDe` empieza por `\"⚠ \" + etiqueta + \":\"` de su código; `cada-llamada-su-mapa`); `TestAvisosDe`, `TestCodigosDeAviso`, los golden de la fuente, los esquemas publicados de norma y bloque y los guiones e2e sin cambios y en verde; nada más cambia en el paquete (FR-010, FR-011, FR-012, US4 escenarios 1 y 4, SC-005, research D1 y V9).",
+  "id": "T002",
+  "texto": "T002 [US2] Forma fija y comprobaciones mecánicas sobre entradas sintéticas: `internal/evals/avisos.go` (nuevo) con `ExtraerAvisos(texto string) []string` —una expresión por código compilada una sola vez con `sync.OnceValue` desde `boe.EtiquetasDeAviso()` con la gramática y las piezas exactas del contrato de la forma fija §1 (marca U+26A0 con selector U+FE0E o U+FE0F opcional, separador de blancos horizontales de categoría Zs, tabulador, `*` y `_`, al menos un blanco entre palabras, cada palabra de `strings.Fields` de la etiqueta con `regexp.QuoteMeta` sin distinguir mayúsculas, y `:` final, todo en una línea); devuelve los códigos en el orden de `CodigosDeAviso()`, sin repetir, o nil—, `ComprobarFormasDeAviso(texto string) error` y `ComprobarCodigosDeAviso(esquema *jsonschema.Schema) error` (códigos del `Enum` al que llegan la propiedad `avisos`, sus `items` y cada `$ref`), las dos con `errors.Join` de un error por código y los mensajes y el orden exactos de data-model §6, sin escribir ninguna etiqueta en el fichero; `internal/evals/avisos_test.go` escrito primero con `TestExtraerAvisos` (cada subtest del contrato de la forma fija §4, con su texto literal y sus códigos esperados), `TestComprobarFormasDeAviso` (`completo`, `falta-la-etiqueta`, `falta-la-marca`, `faltan-los-dos-puntos`, `ninguna`, con el error exacto `falta la forma fija del aviso derogada: ⚠ NORMA DEROGADA:`), `TestComprobarCodigosDeAviso` (`exacto` con el enumerado detrás de un `$ref`, `falta-un-codigo`, `sobra-un-codigo`, `sin-enumerado`, `sin-avisos`, sobre esquemas sintéticos en constantes compilados con `skills.CompilarEsquema`, mensajes exactos del contrato de formato, juicio e informe §3) y `TestEtiquetasSoloDesdeBoe` (ningún `*.go` del paquete que no termine en `_test.go` contiene una etiqueta de `boe.EtiquetasDeAviso()`, y al menos uno leído); nada del paquete usa todavía las funciones nuevas (FR-011, FR-013, FR-014, FR-032, FR-033, US2 escenarios 3 a 6, US4 escenarios 2, 3 y 5, SC-003, SC-005, research D2, D3, D5, D7 y D8).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
-  "base": "971b5196447b8016524ba908a0eb1e23bd183062",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
+  "base": "be8a1447dad9989b1a4a0abc9667f857fc03e459",
   "rutas": [
-    "internal/source/boe/avisos_test.go",
-    "internal/source/boe/avisos.go"
+    "_test.go",
+    "internal/evals/avisos_test.go",
+    "internal/evals/avisos.go"
   ],
   "cierre": false
 }
