@@ -31,9 +31,10 @@ generado comprobado en `make ci`, la instalación con una orden y unas evals com
 - **`make install`** instala el binario y enlaza la skill en el directorio personal de skills de Claude Code;
   **`make skills-sync`** regenera lo que se deriva de los datos y del binario; **`make skills-check`**, dentro de
   `make ci`, falla si algo diverge; y **`make evals`** mide la skill con Claude Code desde el job de evals.
-- **El formato común de eval** (`schemas/eval.yaml.json`) y doce evals de `boe-legislacion`: diez preguntas de
-  materias distintas que deben activar la skill, hacer las consultas esperadas y citar lo esperado, y dos que no
-  deben activarla.
+- **El formato común de eval** (`schemas/eval.yaml.json`) y diecisiete evals de `boe-legislacion`: diez preguntas
+  de materias distintas que deben activar la skill, hacer las consultas esperadas y citar lo esperado, dos que no
+  deben activarla y cinco preguntas por materia, sin el número del artículo, que se miden sin decidir el veredicto
+  (ADR 0016).
 
 El detalle está en [Skills](#skills).
 
@@ -208,27 +209,40 @@ citas:
 | `comandos` | Obligatorio si `activa` es `true`: las consultas que la sesión debe hacer con éxito, en una de tres formas —un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` `indice`, `metadatos` o `analisis`, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`)— |
 | `citas` | Obligatorio si `activa` es `true`: cada `norma` y `bloque` que la respuesta debe citar |
 | `reproduce` | Opcional: la skill cuyo uso documentado reproduce la eval, p. ej. `boe-fiscal` |
+| `informativa` | Opcional: con `true`, la eval se ejecuta y su tasa se publica, pero no decide el veredicto del job de evals |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra el esquema
 `schemas/eval.yaml.json` dentro de `make ci` (`make skills-check`): una
 clave desconocida o repetida, un identificador mal escrito o una eval positiva sin citas fallan nombrando el
-fichero. `evals/boe-legislacion/` tiene doce: diez preguntas de materias distintas que deben activar la skill y dos
-ajenas que no deben activarla.
+fichero. `evals/boe-legislacion/` tiene diecisiete: diez preguntas de materias distintas que deben activar la skill,
+dos ajenas que no deben activarla y cinco preguntas por materia, sin el número del artículo, marcadas
+`informativa: true` mientras siga en el backlog la herramienta que busca dentro de una norma el artículo que trata
+una materia (ADR 0016).
 
 ### Job de evals
 
-`make evals SKILL=<skill>` ejecuta las evals de una skill con Claude Code: una sesión por eval, con la skill
-instalada por `make install`, y un informe que juzga cada sesión sin modelo —si activó la skill, si hizo con éxito
-las consultas esperadas y si citó lo esperado— y da un veredicto global. Las sesiones no piden nada a las fuentes:
-el binario responde desde una caché preparada con lo grabado, la red solo alcanza el modelo y el veredicto falla si
-una petición llega a la red. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de
-Claude Code; cuesta y no es determinista, así que no forma parte de `make ci`. Lo lanza el job de evals, el flujo
-`evals` de la plataforma, con un único modelo fijado en su definición:
+`make evals SKILL=<skill>` ejecuta las evals de una skill con Claude Code, con la skill instalada por
+`make install`, y escribe un informe que juzga cada sesión sin modelo —si activó la skill, si hizo con éxito las
+consultas esperadas y si citó lo esperado— y da un veredicto global. Las sesiones no piden nada a las fuentes: el
+binario responde desde una caché preparada con lo grabado, la red solo alcanza el modelo y el veredicto falla si una
+petición llega a la red. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de
+Claude Code; cuesta y no es determinista, así que no forma parte de `make ci`.
 
-- **a mano**, sobre la rama que se elija;
-- **cada semana**, sobre la rama principal;
-- **por etiqueta**, sobre la rama de un hito: poner la etiqueta `evals` en su propuesta de cambio lanza las evals
-  antes de fusionar, y `evals-prueba-de-red` añade además la sesión de la prueba de red.
+Lo lanza el job de evals, el flujo `evals` de la plataforma (`.github/workflows/evals.yml`), que fija en su
+definición con qué modelos y cuántas veces (ADR 0016):
+
+- **decide `claude-sonnet-5`** (`MODELO_DE_EVALS`), el modelo del uso real de la skill;
+  **`claude-haiku-4-5-20251001`** (`MODELOS_INFORMATIVOS_DE_EVALS`) se ejecuta como límite inferior y su resultado
+  se publica sin decidir el veredicto;
+- **cada eval se abre tres veces** con cada modelo (`REPETICIONES_DE_EVALS`) y su serie pasa si pasan al menos dos
+  sesiones (`UMBRAL_DE_EVALS`); el informe publica la tasa de cada serie, también la de las que pasan. Las evals
+  informativas solo las abre el modelo que decide.
+
+Se lanza **a mano**, sobre la rama que se elija; **al abrir o reabrir una propuesta de cambio** que toque lo que las
+evals miden —la skill, sus datos, sus evals, el applet `boe`, el kernel, el arnés de las evals, el `Makefile` o el
+propio flujo—; y **por etiqueta** en cualquier propuesta de cambio: `evals` lanza las evals y `evals-prueba-de-red`
+añade además la sesión de la prueba de red. No hay ejecución programada, y un empujón a una propuesta ya abierta no la
+relanza.
 
 El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
 [`CONTRIBUTING.md`](CONTRIBUTING.md).

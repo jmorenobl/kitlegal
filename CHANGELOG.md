@@ -226,13 +226,14 @@ común de eval con su job de evals. El binario distribuido no cambia.
   siga en el backlog la herramienta que busca dentro de una norma el artículo que trata una materia (ADR 0016). Las
   respuestas del BOE que necesitan las graba una persona con `scripts/grabar-evals.sh`.
 - **Job de evals**: el flujo `evals` (`.github/workflows/evals.yml`) ejecuta `make evals SKILL=boe-legislacion` a
-  mano, al abrirse o reabrirse una propuesta de cambio que toque la skill, sus datos, sus evals, el applet `boe` o el
-  propio job, y al poner la etiqueta `evals` o `evals-prueba-de-red` en cualquiera, con Claude Code
+  mano, al abrirse o reabrirse una propuesta de cambio que toque la skill, sus datos, sus evals, el applet `boe`, el
+  kernel, el arnés de las evals, el `Makefile` o el propio job, y al poner la etiqueta `evals` o `evals-prueba-de-red`
+  en cualquiera —sin ejecución programada y sin relanzarse al empujar a una propuesta abierta—, con Claude Code
   `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. Decide con
   `claude-sonnet-5`, el modelo del uso real de la skill, y ejecuta además `claude-haiku-4-5-20251001` como límite
-  inferior que se publica sin decidir; cada eval se abre tres veces con cada modelo y pasa con dos (ADR 0016). El
-  informe, con el veredicto global, la tasa de cada eval y lo que se comprobó de cada sesión, se imprime en el registro
-  entre marcas.
+  inferior que se publica sin decidir; cada eval se abre tres veces con cada modelo —las informativas, solo con el que
+  decide— y su serie pasa con dos (ADR 0016). El informe, con el veredicto global, la tasa de cada serie y lo que se
+  comprobó de cada sesión, se imprime en el registro entre marcas.
 - **`make skills-sync` real**: deja de anunciar que las skills llegan en H5 y regenera, desde `data/*.yaml` y desde
   `--describe` del binario, `references/`, la tabla de comandos de `SKILL.md` y los enlaces de `scripts/` de cada
   skill; dos ejecuciones seguidas no cambian nada.
