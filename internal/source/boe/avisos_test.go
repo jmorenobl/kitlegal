@@ -2,6 +2,9 @@ package boe
 
 import (
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -166,6 +169,58 @@ func TestCodigosDeAviso(t *testing.T) {
 		codigos[0] = "otro"
 
 		assert.Equal(t, "consolidacion-no-finalizada", CodigosDeAviso()[0])
+	})
+}
+
+// TestEtiquetasDeAviso fija la etiqueta de cada código de aviso, la única fuente
+// de verdad de la forma fija con la que se traslada (FR-010, FR-011, SC-005):
+// exactamente las tres etiquetas, una por código de CodigosDeAviso; cada frase
+// que emite avisosDe empieza por la marca, la etiqueta de su código y los dos
+// puntos; y cada llamada devuelve su propio mapa. Las etiquetas se escriben aquí
+// a mano, no desde avisos.go, para que un cambio de una sola letra se vea.
+func TestEtiquetasDeAviso(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exactamente-tres", func(t *testing.T) {
+		t.Parallel()
+
+		etiquetas := EtiquetasDeAviso()
+
+		assert.Equal(t, map[string]string{
+			"consolidacion-no-finalizada": "TEXTO POSIBLEMENTE DESACTUALIZADO",
+			"derogada":                    "NORMA DEROGADA",
+			"vigencia-agotada":            "VIGENCIA AGOTADA",
+		}, etiquetas)
+		assert.ElementsMatch(t, CodigosDeAviso(), slices.Collect(maps.Keys(etiquetas)))
+	})
+
+	t.Run("frases-con-su-forma", func(t *testing.T) {
+		t.Parallel()
+
+		etiquetas := EtiquetasDeAviso()
+		avisos := avisosDe(objetoJSON(t, metadatosDePrueba("4", "S", "S")))
+
+		require.Len(t, avisos, len(CodigosDeAviso()), "con las tres condiciones, un aviso por código")
+
+		for _, aviso := range avisos {
+			require.Contains(t, etiquetas, aviso.Codigo)
+
+			forma := "⚠ " + etiquetas[aviso.Codigo] + ":"
+			assert.True(t, strings.HasPrefix(aviso.Texto, forma), "la frase %q no empieza por %q", aviso.Texto, forma)
+		}
+	})
+
+	t.Run("cada-llamada-su-mapa", func(t *testing.T) {
+		t.Parallel()
+
+		etiquetas := EtiquetasDeAviso()
+		etiquetas["derogada"] = "otra"
+		delete(etiquetas, "vigencia-agotada")
+
+		otras := EtiquetasDeAviso()
+
+		assert.Equal(t, "NORMA DEROGADA", otras["derogada"])
+		assert.Len(t, otras, len(CodigosDeAviso()))
 	})
 }
 

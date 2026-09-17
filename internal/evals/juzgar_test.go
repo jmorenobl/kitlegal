@@ -23,6 +23,11 @@ const (
 	ordenDelArticulo21 = "boe articulo BOE-A-2015-10565 a21 --json"
 	textoDelComando21  = "bloque boe BOE-A-2015-10565 a21"
 	textoDeLaCita21    = "BOE-A-2015-10565 a21"
+
+	// avisoDeDerogada y avisoDeVigenciaAgotada son las frases del binario para
+	// esos dos códigos, con su forma fija, como las traslada una respuesta.
+	avisoDeDerogada        = "⚠ NORMA DEROGADA: esta norma ha sido derogada."
+	avisoDeVigenciaAgotada = "⚠ VIGENCIA AGOTADA: esta norma ya no está en vigor."
 )
 
 // juicio es una llamada a Juzgar y el resultado que el caso exige de ella.
@@ -43,8 +48,20 @@ type juicio struct {
 // las invocaciones fuera de lo grabado, las otras fallidas y las llegadas a la red
 // se informan sin cambiar si pasa (contrato evals-y-grabaciones §6; FR-072,
 // FR-076, SC-009; US4, escenarios 2, 3, 5, 7 y 8).
+//
+// Desde H5.1, los avisos esperados de la eval 01 se reparten, en el orden de la
+// eval y con sus repeticiones, entre los que la respuesta lleva con su forma fija
+// —también con las tolerancias de la gramática— y los ausentes, cada uno con su
+// motivo detrás de los de las citas; un aviso ausente impide pasar aunque estén el
+// comando y la cita, la otra redacción y la negación no llevan la forma, lo que
+// sigue a la forma no se lee y la forma de un aviso no esperado no cambia nada. Las
+// evals sin avisos dejan las dos listas nulas y el mismo resultado que en H5
+// (contrato de formato, juicio e informe §4 y §6 de H5.1; FR-030 a FR-035, SC-003;
+// US2, escenarios 3 a 8; research D3).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
+
+	derogada := []string{"derogada"}
 
 	casos := []struct {
 		nombre  string
@@ -302,6 +319,101 @@ func TestJuzgar(t *testing.T) {
 			nombre:  "sc-009-otra-norma",
 			juicios: mismaSesionConOtraCita(t, CitaEsperada{Norma: normaDeLaLCSP, Bloque: "a21"}, "BOE-A-2017-12902 a21"),
 		},
+		{
+			nombre: "aviso-con-su-forma-fija",
+			juicios: []juicio{conAvisos(t, derogada, avisoDeDerogada+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+				r.AvisosEncontrados = derogada
+			})},
+		},
+		{
+			// Un juicio por cada forma tolerada: con el selector de presentación
+			// U+FE0F, con el énfasis envolviendo la forma, con el énfasis en la
+			// etiqueta, con espacios de más y U+00A0 entre las palabras, y en
+			// minúsculas.
+			nombre: "aviso-con-variantes-toleradas",
+			juicios: formasToleradas(t,
+				"⚠️ NORMA DEROGADA: esta norma ha sido derogada.",
+				"**⚠ NORMA DEROGADA:** esta norma ha sido derogada.",
+				"⚠ **NORMA DEROGADA**: esta norma ha sido derogada.",
+				"⚠  NORMA DEROGADA : esta norma ha sido derogada.",
+				"⚠ norma derogada: esta norma ha sido derogada."),
+		},
+		{
+			nombre: "aviso-ausente",
+			juicios: []juicio{conAvisos(t, []string{"derogada", "vigencia-agotada"}, respuestaConCita,
+				func(r *ResultadoDeEval) {
+					r.AvisosAusentes = []string{"derogada", "vigencia-agotada"}
+					r.Motivos = []string{"aviso ausente: derogada", "aviso ausente: vigencia-agotada"}
+					r.Pasa = false
+				})},
+		},
+		{
+			nombre:  "aviso-con-otra-redaccion",
+			juicios: []juicio{derogadaAusente(t, "Esta ley fue derogada.\n\n"+respuestaConCita)},
+		},
+		{
+			// El comando y la cita están: solo falta el aviso.
+			nombre:  "aviso-negado",
+			juicios: []juicio{derogadaAusente(t, "La Ley 30/1992 sigue en vigor.\n\n"+respuestaConCita)},
+		},
+		{
+			// La limitación declarada: lo que sigue a la forma no se lee.
+			nombre: "forma-fija-y-lo-contrario",
+			juicios: []juicio{conAvisos(t, derogada, "⚠ NORMA DEROGADA: pero sigue en vigor.\n\n"+respuestaConCita,
+				func(r *ResultadoDeEval) {
+					r.AvisosEncontrados = derogada
+				})},
+		},
+		{
+			// Con y sin la forma de vigencia-agotada, que la eval no espera, el
+			// resultado es el mismo salvo la respuesta.
+			nombre: "aviso-no-esperado",
+			juicios: []juicio{
+				conAvisos(t, derogada, avisoDeDerogada+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+					r.AvisosEncontrados = derogada
+				}),
+				conAvisos(t, derogada, avisoDeDerogada+"\n"+avisoDeVigenciaAgotada+"\n\n"+respuestaConCita,
+					func(r *ResultadoDeEval) {
+						r.AvisosEncontrados = derogada
+					}),
+			},
+		},
+		{
+			// La eval los espera en el orden contrario al de la respuesta y al de
+			// boe.CodigosDeAviso.
+			nombre: "avisos-en-el-orden-de-la-eval",
+			juicios: []juicio{conAvisos(t, []string{"vigencia-agotada", "derogada"},
+				avisoDeDerogada+"\n"+avisoDeVigenciaAgotada+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+					r.AvisosEncontrados = []string{"vigencia-agotada", "derogada"}
+				})},
+		},
+		{
+			// Repetido en la eval, se reparte repetido: dos veces encontrado con la
+			// forma y dos veces ausente, con dos motivos, sin ella.
+			nombre: "aviso-repetido",
+			juicios: []juicio{
+				conAvisos(t, []string{"derogada", "derogada"}, avisoDeDerogada+"\n\n"+respuestaConCita,
+					func(r *ResultadoDeEval) {
+						r.AvisosEncontrados = []string{"derogada", "derogada"}
+					}),
+				conAvisos(t, []string{"derogada", "derogada"}, respuestaConCita, func(r *ResultadoDeEval) {
+					r.AvisosAusentes = []string{"derogada", "derogada"}
+					r.Motivos = []string{"aviso ausente: derogada", "aviso ausente: derogada"}
+					r.Pasa = false
+				}),
+			},
+		},
+		{
+			nombre: "cita-y-aviso-ausentes",
+			juicios: []juicio{conAvisos(t, derogada, "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.",
+				func(r *ResultadoDeEval) {
+					r.CitasEncontradas = nil
+					r.CitasAusentes = []string{textoDeLaCita21}
+					r.AvisosAusentes = derogada
+					r.Motivos = []string{"cita ausente: " + textoDeLaCita21, "aviso ausente: derogada"}
+					r.Pasa = false
+				})},
+		},
 	}
 
 	for _, caso := range casos {
@@ -516,6 +628,57 @@ func mismaSesionConOtraCita(t *testing.T, otra CitaEsperada, texto string) []jui
 			}),
 		},
 	}
+}
+
+// conAvisos es el juicio de la eval 01 con los avisos esperados dados y la sesión
+// que pasa con la respuesta dada en lugar de la suya: su resultado esperado es el
+// de la sesión que pasa, con esa respuesta y los cambios aplicados.
+func conAvisos(t *testing.T, avisos []string, respuesta string, cambiar func(*ResultadoDeEval)) juicio {
+	t.Helper()
+
+	eval := evalDelArticulo21()
+	eval.Avisos = avisos
+
+	return juicio{
+		eval:   eval,
+		sesion: cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta }),
+		esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+			r.Respuesta = respuesta
+			cambiar(r)
+		}),
+	}
+}
+
+// formasToleradas son los juicios de la eval 01 que espera derogada con la sesión
+// que pasa y, delante de su respuesta, cada aviso dado: en todos, derogada queda
+// encontrado y la eval pasa (US2, escenario 4).
+func formasToleradas(t *testing.T, avisos ...string) []juicio {
+	t.Helper()
+
+	juicios := make([]juicio, 0, len(avisos))
+
+	for _, aviso := range avisos {
+		juicios = append(juicios, conAvisos(t, []string{"derogada"}, aviso+"\n\n"+respuestaConCita,
+			func(r *ResultadoDeEval) {
+				r.AvisosEncontrados = []string{"derogada"}
+			}))
+	}
+
+	return juicios
+}
+
+// derogadaAusente es el juicio de la eval 01 que espera derogada con la sesión que
+// pasa y la respuesta dada, que no lleva su forma fija: con el comando ejecutado y
+// la cita encontrada, derogada queda ausente con su motivo y la eval no pasa (US2,
+// escenarios 5 y 6).
+func derogadaAusente(t *testing.T, respuesta string) juicio {
+	t.Helper()
+
+	return conAvisos(t, []string{"derogada"}, respuesta, func(r *ResultadoDeEval) {
+		r.AvisosAusentes = []string{"derogada"}
+		r.Motivos = []string{"aviso ausente: derogada"}
+		r.Pasa = false
+	})
 }
 
 // evalDelArticulo21 es la eval 01 del contrato evals-y-grabaciones §1: bloque y

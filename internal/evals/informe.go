@@ -66,7 +66,7 @@ var (
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
 		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes",
-		"Resultado",
+		"Avisos encontrados", "Avisos ausentes", "Resultado",
 	}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
 	encabezadosDeTasas        = []string{"Eval", "Modelo", "Decide", "Planificada", "Tasa", "Resultado"}
@@ -858,7 +858,9 @@ func resultadoDelUmbral(pasa bool) string {
 
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
 // activa, activada, sesión terminada con su código, comandos ausentes, citas
-// ausentes y resultado.
+// ausentes, avisos encontrados, avisos ausentes y resultado. Los avisos van junto a
+// las citas, cada uno con su código (contrato de formato, juicio e informe §5 de
+// H5.1).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -882,6 +884,8 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			siONo(resultado.SesionTerminada) + " (" + codigo + ")",
 			unidosOVacio(resultado.ComandosAusentes, ningunoEnElInforme),
 			unidosOVacio(resultado.CitasAusentes, ningunaEnElInforme),
+			unidosOVacio(resultado.AvisosEncontrados, ningunoEnElInforme),
+			unidosOVacio(resultado.AvisosAusentes, ningunoEnElInforme),
 			pasa,
 		})
 	}

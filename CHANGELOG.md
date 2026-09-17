@@ -230,7 +230,8 @@ común de eval con su job de evals. El binario distribuido no cambia.
   propio job, y al poner la etiqueta `evals` o `evals-prueba-de-red` en cualquiera, con Claude Code
   `2.1.270`, el secreto `CLAUDE_CODE_OAUTH_TOKEN` y un runner del que antes retira todo Python. Decide con
   `claude-sonnet-5`, el modelo del uso real de la skill, y ejecuta además `claude-haiku-4-5-20251001` como límite
-  inferior que se publica sin decidir; cada eval se abre tres veces con cada modelo y pasa con dos (ADR 0016). El
+  inferior que se publica sin decidir; cada eval se abre tres veces con `claude-sonnet-5` y, si no es informativa,
+  otras tres con `claude-haiku-4-5-20251001`, y cada una de esas series pasa con dos (ADR 0016). El
   informe, con el veredicto global, la tasa de cada eval y lo que se comprobó de cada sesión, se imprime en el registro
   entre marcas.
 - **`make skills-sync` real**: deja de anunciar que las skills llegan en H5 y regenera, desde `data/*.yaml` y desde
@@ -246,6 +247,32 @@ común de eval con su job de evals. El binario distribuido no cambia.
   modelo, agrupa las de cada eval y cada modelo en una serie con su tasa y escribe el informe. Necesita Linux con
   `strace`, root o `sudo` y ningún Python accesible, y falla antes de la primera sesión si falta algo o si una eval está
   mal formada.
+
+*De H5.1 — los avisos de vigencia en las evals:*
+
+- **Forma fija de los avisos de vigencia en `boe-legislacion`**: su `SKILL.md` fija cómo traslada la respuesta cada
+  aviso del sobre, con `⚠`, la etiqueta del aviso tal como la da el binario y dos puntos, seguidos de la frase del
+  binario o de una explicación —`⚠ NORMA DEROGADA:` para `derogada`, `⚠ VIGENCIA AGOTADA:` para `vigencia-agotada` y
+  `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:` para `consolidacion-no-finalizada`—, con la etiqueta entera y en la misma
+  línea; decir con otras palabras que la norma está derogada no traslada el aviso. La etiqueta de cada código tiene una
+  sola fuente de verdad, el applet `boe`, cuya salida no cambia en un byte, y `make skills-check` falla nombrando el
+  código si el `SKILL.md` pierde la forma fija de alguno.
+- **Campo `avisos` en el formato común de eval**: opcional y solo en una eval que activa la skill, lista los códigos
+  de aviso de vigencia del binario —`consolidacion-no-finalizada`, `derogada` o `vigencia-agotada`— cuya forma fija
+  tiene que llevar la respuesta. `schemas/eval.yaml.json` rechaza un código desconocido, una lista vacía y `avisos` en
+  una eval de no activación, y `make skills-check` comprueba que el esquema admite exactamente los códigos del binario.
+  Una eval con `avisos` solo pasa si la respuesta lleva la forma fija de cada uno: se juzga sin modelo, con el selector
+  de variante tras `⚠`, el énfasis de Markdown, otros blancos y las minúsculas tolerados, y otra redacción o la negación
+  dejan el aviso ausente. Las evals sin `avisos` se juzgan igual que antes.
+- **Reparto de avisos en el informe**: cada sesión publica en `informe.json` `avisos_encontrados` y `avisos_ausentes`,
+  en el orden de la eval —`[]` si no espera ninguno—, y cada aviso ausente da el motivo `aviso ausente: <código>`,
+  detrás de los de las citas ausentes; la tabla de sesiones de `informe.md` gana las columnas «Avisos encontrados» y
+  «Avisos ausentes». Un rojo por un aviso ausente se distingue así de uno por una cita ausente.
+- **Eval informativa de una norma derogada** (`evals/boe-legislacion/18-lrjpac-norma-derogada.yaml`): pregunta por el
+  artículo 42 de la Ley 30/1992 sin decir nada de su vigencia y exige consultar y citar su bloque `a42` y trasladar los
+  avisos `derogada` y `vigencia-agotada` con su forma fija. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa
+  se publica sin decidir el veredicto. La Ley 30/1992 entra en `data/normas.yaml`, sin ninguna marca de derogación, y
+  su índice lo graba una persona con `scripts/grabar-evals.sh`.
 
 ### Cambiado
 
@@ -345,6 +372,18 @@ común de eval con su job de evals. El binario distribuido no cambia.
   deriva o un defecto, una tabla de normas inválida o una eval mal formada hacen fallar el veredicto en local y en la
   integración continua por igual. El análisis estático alcanza también los ficheros con la etiqueta de compilación
   `evals` (`run.build-tags` de `.golangci.yml`), los arneses que usa el job de evals.
+
+### Corregido
+
+*De H5.1 — los avisos de vigencia en las evals:*
+
+- **La traza de una sesión con la llamada desconocida cerrada se lee entera.** Un hilo que muere en la parada de
+  entrada de una llamada que strace no llega a identificar deja `???( <unfinished ...>`, que la lectura de la traza ya
+  admitía, o la misma llamada cerrada con el resultado de la llamada sin terminar y el relleno de alineación,
+  `???()` seguido de espacios y `= ?`, que declaraba la sesión ilegible y hacía fallar el veredicto del job aunque
+  todas las series pasaran. Así ocurrió con una sesión del modelo informativo en la ejecución `35156339496`. La
+  segunda forma se lee ahora como la primera; con argumentos, con otro resultado o con la marca dentro sigue siendo
+  ilegible.
 
 Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
 con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,

@@ -1,0 +1,49 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md: Critical Issues Count 0 y High Issues Count 0. Solo hay U1 (LOW), una ambigüedad en el nombre del subtest `aviso-ausente`: contracts/formato-juicio-e-informe.md §6 fija ese caso como «eval con derogada y vigencia-agotada y respuesta sin forma → los dos ausentes en ese orden», que es exactamente US2-7. N1 es una nota ya verificada. La única discrepancia que surgió al generar las tareas (`variantes` en misspell) quedó resuelta de forma coherente en plan.md (Structure Decision y paso 5), en research.md D19 y en T005, que declara `.golangci.yml`. Lo he comprobado: `variantes` es entrada de misspell v0.8.0 (words.go:20300) y no está en ignore-rules. No existe gates/tasks.json anterior ni gates/tasks-pendiente.md."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Cada línea de T001 a T014 cita en su texto los FR/SC que cumple, y T007 traza a FR-054, FR-055 y FR-056. La tabla «Trazabilidad» de tasks.md cubre de FR-001 a FR-073 y de SC-001 a SC-009; lo he contrastado contra spec.md: FR-001..005→T011; FR-010→T001; FR-011→T001, T002 y T005; FR-012→T001 (+T013 §3); FR-013→T002 y T004; FR-014→T002 y T011; FR-020..023→T003 y T004; FR-030..035→T002 y T005; FR-040..043→T006; FR-050..053 y FR-057→T010, con T008 para FR-057; FR-054..056→T007, T008 y T009; FR-060→todas + T013; FR-061→T012; FR-070..073→T013 y T014. Cada escenario tiene su caso con nombre en la tarea o en el contrato que esta cita: US2-1/2/9/10 con los casos de TestLeerEval de T004; US2-3..8 con los de TestJuzgar de T005; US3-1..3 con TestInformeConAvisos y TestInforme/aprobado de T006; US4-2/3/5 con los tests de T002; US5-5 con T010 antes que T011. Ninguna tarea queda fuera del spec: las tareas 1 a 14 corresponden una a una a los pasos del «Orden de implementación» de plan.md."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "T001, T002, T004, T005, T006 y T011 escriben el test antes que el código. Las excepciones van declaradas con su razón: tareas [datos], premisa y arnés, datos del repositorio leídos por tests existentes, documentación, cierre y plataforma. He comprobado en el repositorio que el orden deja todo en verde: ningún fichero de código de internal/evals contiene hoy las etiquetas, así que TestEtiquetasSoloDesdeBoe nace verde en T002; nadie fija la cabecera «Citas ausentes» de la tabla de sesiones (V19), y TestInforme compara los directorios de caso, que T006 no añade porque copia `aprobado` a t.TempDir(); no hay symlinks y la cita aparece dos veces en sesion.jsonl, como exigen las dos sustituciones. verificarIdentificadores solo exige norma→entrada, y otraNormaDeLaBusqueda elige hoy el primer resultado ausente de la tabla (grabaciones_test.go:607): de ahí que T007 vaya antes que T008 (V14). T009 no depende del índice, porque la entrada resuelve con la búsqueda grabada en H4. Los metadatos y el bloque a42 de BOE-A-1992-26318 ya están grabados en H4, así que `grabado` en T010 solo necesita el índice de la pausa de T008. La regla «informativas» solo exige activa: true (conjunto.go:285-300) y ningún test fija el número de evals. La pausa de T008 llega después del commit de la tarea (clasificar_datos sobre base..HEAD), así que la grabación humana es la base de T009 y no pasa por ningún guardián. He recalculado los números de línea que T011 fija sobre SKILL.md (hoy 181 líneas; «### 5» en la 102, «## Cómo se cita» en la 119, «## Comandos» en la 141, regla 3 en la 174): dan 199 líneas y los tres bloques de quickstart §2. `/coverage.*` está en .gitignore, así que los prerrequisitos de T013 ven el árbol limpio."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "He pasado a cada línea el extractor de rutas de workflow.yml (línea 624). Rutas: T001 internal/source/boe/avisos.go y avisos_test.go; T002 internal/evals/avisos.go y avisos_test.go; T003 schemas/eval.yaml.json; T004 internal/evals/formato.go, formato_test.go y conjunto_test.go; T005 internal/evals/juzgar.go, juzgar_test.go y .golangci.yml; T006 internal/evals/informe.go e informe_test.go; T007 internal/evals/grabacion_test.go y grabaciones_test.go; T008 testdata/evals/grabaciones.json; T009 data/normas.yaml y skills/boe-legislacion/references/normas.md; T010 evals/boe-legislacion/18-lrjpac-norma-derogada.yaml; T011 skills/boe-legislacion/SKILL.md e internal/evals/conjunto_test.go; T012 CHANGELOG.md, README.md y CONTRIBUTING.md; T013 specs/007-h5-1-avisos-de-vigencia/gates/pr-h5.1.md; T014 specs/007-h5-1-avisos-de-vigencia/gates/evals-aceptacion.md. No sale ninguna ruta genérica: los restos del extractor (`30/1992`, `TestInforme/aprobado`, `.ignore`, `_test.go`, `plan.md` suelto) no casan con ningún fichero existente. El precheck sin_rutas pasa. Lo que una tarea solo lee va sin carpeta o nombrado por su test, como piden la obligación 2 del plan y la protección del guardián."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Solo tres líneas de tarea llevan etiqueta (grep): T003 [datos], que toca solo schemas/eval.yaml.json; T008 [datos], que toca solo testdata/evals/grabaciones.json, y el ejecutor no graba; y T014 [plataforma], la última y sola, que publica, lee y registra evidencia en el directorio del hito. Los dos filtros del precheck (`mixtas` y `plat`) salen vacíos. T003 y T008 modifican ficheros existentes, así que clasificar_datos pausa y FR-055 se cumple. Ninguna tarea de código nombra testdata/ ni schemas/: TestInformeConAvisos trabaja sobre una copia en t.TempDir(). T013 solo escribe el cuerpo de la PR y no usa la plataforma. .claude/settings.json no deniega `Bash(git push:*)` y permite `gh pr create`, así que T014 no quedará bloqueada."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "La tabla «Definition of Done» de tasks.md recorre los 12 puntos de docs/ROADMAP.md §1. Aplicables: §1 (cada tarea + T013), §2 (tests; grabación del índice en la pausa de T008), §3–§5 (sin cambios, vigilados por la batería), §6 con CHANGELOG.md en T012 (y README/CONTRIBUTING por FR-061), §9 con la cobertura en T013, y §10 con la eval antes de la skill (T010→T011), 199 líneas y references regenerado (T009). Esquema en T003 y fixture en T008. No aplicables, con su razón en spec «Fuera de alcance»: ADR, docs/SOURCES.md (H5 grabó sus evals sin tocarlo, según git log de docs/SOURCES.md), testscript, dimensión territorial y grafo."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md no tiene cambios desde el commit que aprobó el gate del spec (gates/spec.json, checklist_veraz y sin_implementacion en cumple), y ninguna tarea lo modifica. He comprobado que las marcas siguen siendo ciertas: spec.md no tiene ningún marcador NEEDS CLARIFICATION (grep: 0); están las secciones obligatorias (US1–US5, Edge Cases, FR-001–FR-073, Key Entities, SC-001–SC-009, Fuera de alcance, Assumptions); el mapeo FR→escenario/SC de la nota «Requirements are testable» coincide con spec.md; y los nombres técnicos del spec son los que transcribe literalmente el hito del roadmap, como justifica la nota. El precheck de checklists no encuentra ningún ítem sin marcar."
+    }
+  ],
+  "motivos": []
+}

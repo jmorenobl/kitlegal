@@ -318,7 +318,7 @@ func TestIdentificadoresDeLasNormas(t *testing.T) {
 
 	lpac := normaDeLaTabla(t, normas, identificadorDeLaLPAC)
 	entradaDeLaLPAC := entradaConPrefijoDe(t, manifiesto, lpac.Titulo)
-	otra := otraNormaDeLaBusqueda(t, reproduccion, manifiesto.Normas[entradaDeLaLPAC], normas)
+	otra := otraNormaDeLaBusqueda(t, reproduccion, manifiesto, entradaDeLaLPAC, normas)
 
 	tituloCambiado := strings.TrimSuffix(lpac.Titulo, ".")
 	require.NotEqual(t, lpac.Titulo, tituloCambiado, "el título de la LPAC termina en punto: sin él, cambia")
@@ -601,24 +601,36 @@ func entradaConPrefijoDe(t *testing.T, manifiesto Manifiesto, titulo string) int
 }
 
 // otraNormaDeLaBusqueda es el primer resultado de la búsqueda grabada de la
-// entrada que no es ninguna de las normas: la búsqueda lo da, pero la entrada
-// resuelve otra norma. Una búsqueda que no dé ninguno así es un fallo del test,
-// que si no pasaría en vacío.
+// entrada del manifiesto en la posición indice que no es ninguna de las normas y
+// cuyo título no empieza por el prefijo de ninguna entrada del manifiesto: la
+// búsqueda lo da, pero la entrada resuelve otra norma y ninguna entrada lo
+// resuelve a él. Sin la condición del prefijo, la entrada de una norma que
+// todavía no está en la tabla lo resolvería, y el subtest que lo añade a la
+// tabla fallaría por su premisa y no por lo que prueba (contrato de la eval y la
+// grabación §1 de H5.1; research D12). Una búsqueda que no dé ninguno así es un
+// fallo del test, que si no pasaría en vacío.
 func otraNormaDeLaBusqueda(
-	t *testing.T, reproduccion string, entrada EntradaDelManifiesto, normas []skills.Norma,
+	t *testing.T, reproduccion string, manifiesto Manifiesto, indice int, normas []skills.Norma,
 ) boe.ResultadoDeBusqueda {
 	t.Helper()
+
+	entrada := manifiesto.Normas[indice]
 
 	resultados, err := reproducirBusqueda(registroDeLaReproduccion(t, reproduccion), busquedaDe(entrada))
 	require.NoError(t, err)
 
 	posicion := slices.IndexFunc(resultados, func(resultado boe.ResultadoDeBusqueda) bool {
-		return !slices.ContainsFunc(normas, func(norma skills.Norma) bool {
+		enLaTabla := slices.ContainsFunc(normas, func(norma skills.Norma) bool {
 			return norma.Identificador == resultado.Identificador
 		})
+		conPrefijo := slices.ContainsFunc(manifiesto.Normas, func(otra EntradaDelManifiesto) bool {
+			return strings.HasPrefix(resultado.Titulo, otra.TituloEmpiezaPor)
+		})
+
+		return !enLaTabla && !conPrefijo
 	})
-	require.GreaterOrEqual(t, posicion, 0,
-		"la búsqueda grabada %q da alguna norma que no está en la tabla de normas", entrada.Busqueda)
+	require.GreaterOrEqual(t, posicion, 0, "la búsqueda grabada %q da alguna norma que no está en la tabla de normas "+
+		"y cuyo título no empieza por el prefijo de ninguna entrada del manifiesto", entrada.Busqueda)
 
 	return resultados[posicion]
 }

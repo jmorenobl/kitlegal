@@ -33,7 +33,8 @@ type Eval struct {
 
 	// Informativa dice que la eval se ejecuta y se publica, pero no decide el
 	// veredicto: mide algo que la skill todavía no puede hacer con las
-	// herramientas que hay (ADR 0016). Solo la ejecuta el modelo que decide.
+	// herramientas que hay (ADR 0016), o algo que todavía no hay datos para
+	// exigir (H5.1). Solo la ejecuta el modelo que decide.
 	Informativa bool `yaml:"informativa"`
 
 	// Comandos son los comandos esperados de una eval que activa la skill, en el
@@ -43,6 +44,11 @@ type Eval struct {
 	// Citas son las citas esperadas de una eval que activa la skill, en el orden
 	// del fichero; vacío en una de no activación (FR-061).
 	Citas []CitaEsperada `yaml:"citas"`
+
+	// Avisos son los códigos de aviso de vigencia cuya forma fija tiene que llevar la respuesta, en el orden del
+	// fichero; vacío si la eval no los espera. Solo los admite una eval que activa la skill, y sus valores son los de
+	// boe.CodigosDeAviso (FR-020 a FR-022 de H5.1).
+	Avisos []string `yaml:"avisos"`
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las
