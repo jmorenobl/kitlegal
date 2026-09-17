@@ -262,7 +262,18 @@ su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skil
 repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
 (`UMBRAL_DE_EVALS`). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero. Usa
 el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token`
-(el proyecto no usa una clave de API de pago por uso). Se lanza de tres formas:
+(el proyecto no usa una clave de API de pago por uso). Hoy fija:
+
+| Variable | Valor |
+|---|---|
+| `MODELO_DE_EVALS` | `claude-sonnet-5` |
+| `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
+| `REPETICIONES_DE_EVALS` | `3` |
+| `UMBRAL_DE_EVALS` | `2` |
+
+Con las dieciocho evals de `boe-legislacion`, una ejecución abre 90 sesiones: 36 de `claude-sonnet-5` sobre las doce
+que deciden, 18 sobre las seis informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
+del tope de 120 minutos del job (`timeout-minutes`). Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
@@ -270,16 +281,36 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
 | Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
-Una etiqueta que ya está puesta no lanza nada: para repetir la ejecución se quita y se vuelve a poner. El informe se
-imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y `--- fin de informe.md ---`
-(y las mismas de `informe.json`). La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
+No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del
+BOE fijados, no medía ningún cambio. Tampoco reacciona a cada empujón (`synchronize`): cada ejecución abre decenas de
+sesiones con modelo y un hito empuja muchas veces, así que cada informe mide el commit que había cuando se abrió o se
+reabrió la propuesta, o cuando se puso la etiqueta. **Para volver a medir, la etiqueta**: una que ya está puesta no
+lanza nada, así que se quita y se vuelve a poner. Una propuesta que solo toca documentación no arranca el job, y es lo
+esperado. El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
+`--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
 del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
 cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
 posterior obliga a repetirlas.
 
-La **prueba de red** añade a las sesiones de las evals una con la pregunta de la primera eval y dos consultas a un
-bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
-con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado.
+Cómo se lee el informe:
+
+- **El veredicto** es `aprobado` o `fallo`, y los motivos son exactamente las causas del fallo: una serie que decide y
+  no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
+  que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
+  fichero de eval mal formado o una petición llegada a la red.
+- **La tabla «Tasas por eval»** tiene una fila por serie, con si decide, si la pide el plan, la tasa
+  (`<pasan> de <sesiones>`) y si llega al umbral. Se publica también la de las series que pasan: un `2 de 3` es verde,
+  pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado no se ve en el veredicto; se
+  ve aquí y en la tabla de sesiones.
+- **Una serie informativa** —la de un modelo informativo, o la de una eval `informativa: true` con el modelo que
+  decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
+  tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
+  ilegible o una petición llegada a la red hacen fallar el veredicto igual.
+
+La **prueba de red** añade, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
+un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
+con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
+su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`.
 
 ## `make vuln` necesita red
 

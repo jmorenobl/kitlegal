@@ -62,7 +62,9 @@ skill `boe-fiscal` funcionando con el binario.
 **En contra, y asumido**
 
 - Las evals con modelo cuestan dinero y no son deterministas; por eso las citas se comparan por
-  identificador y el job con modelo es semanal o manual, no parte de `make ci`.
+  identificador y el job con modelo es ~~semanal o manual~~ manual, por etiqueta y por los cambios que las evals
+  miden [enmienda 2026-09-16, ADR 0016: se quita la programación semanal, que sobre la rama principal no medía ningún
+  cambio], no parte de `make ci`.
 - Los applets anteriores al grafo (`territorio`, `placsp`, `bdns`) incorporan `Emit` en H17, cuando el
   grafo existe, en lugar de emitir desde el primer día.
 - La numeración de hitos cambia a partir de H7. Los artefactos que citen números antiguos deben

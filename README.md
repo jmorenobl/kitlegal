@@ -234,7 +234,9 @@ Las sesiones no piden nada a las fuentes: el binario responde desde una caché p
 alcanza el modelo. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de Claude Code;
 cuesta y no es determinista, así que no forma parte de `make ci`. Lo lanza el job de evals, el flujo `evals` de la
 plataforma, que fija en su definición el modelo que decide, los informativos, las repeticiones de cada eval con cada
-modelo y el umbral (ADR 0016):
+modelo y el umbral (ADR 0016): decide `claude-sonnet-5`, el modelo del uso real de la skill;
+`claude-haiku-4-5-20251001` se ejecuta como límite inferior sin decidir; y cada eval se abre tres veces con cada uno
+—las informativas, solo con el que decide— y su serie pasa si pasan al menos dos sesiones. Se lanza:
 
 - **a mano**, sobre la rama que se elija;
 - **al abrir o reabrir una propuesta de cambio** que toque lo que las evals miden —la skill y sus datos, las evals y
@@ -242,7 +244,7 @@ modelo y el umbral (ADR 0016):
 - **por etiqueta**, sobre la rama de cualquier propuesta de cambio: poner la etiqueta `evals` lanza las evals antes
   de fusionar, y `evals-prueba-de-red` añade además la sesión de la prueba de red.
 
-El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
+No hay ejecución programada, y un empujón a una propuesta ya abierta no la relanza. El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## `kitlegal version`
