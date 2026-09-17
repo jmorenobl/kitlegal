@@ -151,7 +151,7 @@ el protocolo de razonamiento, la tabla de comandos y las reglas; `references/`, 
 | Directorio | Qué es | ¿Es kitlegal? |
 |---|---|---|
 | `skills/` | **El producto que se distribuye**: las skills de kitlegal, hoy `boe-legislacion` | sí |
-| `.agents/skills/` | Skills de agente vendorizadas para trabajar en este repositorio —las de Go de `samber/cc-skills-golang`—, registradas con su origen y su huella en el registro de bloqueo `skills-lock.json`. Se versionan tal cual y no se editan; `.agents/.gitattributes` las marca como vendorizadas y generadas, para que no cuenten en las estadísticas de lenguaje del repositorio ni se desplieguen en los diffs de las propuestas de cambio | no |
+| `.agents/skills/` | Skills de agente vendorizadas para trabajar en este repositorio: las de Go de `samber/cc-skills-golang`, registradas con su origen y su huella en el registro de bloqueo `skills-lock.json`, y las `speckit-*` que genera la integración `agy` de spec-kit para Antigravity (registradas en `.specify/integrations/agy.manifest.json`). Se versionan tal cual y no se editan; `.agents/.gitattributes` las marca como vendorizadas y generadas, para que no cuenten en las estadísticas de lenguaje del repositorio ni se desplieguen en los diffs de las propuestas de cambio | no |
 | `.claude/skills/` | Lo que carga Claude Code al trabajar en el repositorio: un enlace a cada skill de `.agents/skills/` más las skills de spec-kit, con las que se prepara cada hito | no |
 
 ### Instalar la skill
