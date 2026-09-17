@@ -25,16 +25,15 @@ generado comprobado en `make ci`, la instalación con una orden y unas evals com
   en el identificador y el id del bloque, como `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, con la
   forma legible delante del corchete o, dentro, delante del identificador. Lo que dice de una norma sale del texto que
   el binario devuelve en la misma conversación, distinguiendo ley y reglamento y señalando la variación autonómica.
-- **Tabla de normas** `data/normas.yaml`: diez normas de materias distintas, validada contra
-  `schemas/normas.yaml.json` y con cada identificador comprobado contra la búsqueda grabada del BOE. De ella se
-  generan las referencias de la skill.
+- **Tabla de normas** `data/normas.yaml`: once normas —las diez de materias distintas que citan las evals que deciden
+  y, desde H5.1, la Ley 30/1992, derogada—, validada contra `schemas/normas.yaml.json` y con cada identificador
+  comprobado contra la búsqueda grabada del BOE. De ella se generan las referencias de la skill.
 - **`make install`** instala el binario y enlaza la skill en el directorio personal de skills de Claude Code;
   **`make skills-sync`** regenera lo que se deriva de los datos y del binario; **`make skills-check`**, dentro de
   `make ci`, falla si algo diverge; y **`make evals`** mide la skill con Claude Code desde el job de evals.
-- **El formato común de eval** (`schemas/eval.yaml.json`) y diecisiete evals de `boe-legislacion`: diez preguntas
-  de materias distintas que deben activar la skill, hacer las consultas esperadas y citar lo esperado, dos que no
-  deben activarla y cinco preguntas por materia, sin el número del artículo, que se miden sin decidir el veredicto
-  (ADR 0016).
+- **El formato común de eval** (`schemas/eval.yaml.json`) y dieciocho evals de `boe-legislacion`: diez preguntas de
+  materias distintas que deben activar la skill, hacer las consultas esperadas y citar lo esperado, dos que no
+  deben activarla y seis informativas, que se miden sin decidir el veredicto (ADR 0016).
 
 El detalle está en [Skills](#skills).
 
@@ -208,43 +207,44 @@ citas:
 | `activa` | Si la pregunta debe activar la skill. Una eval de no activación (`false`) no lleva `comandos` ni `citas` |
 | `comandos` | Obligatorio si `activa` es `true`: las consultas que la sesión debe hacer con éxito, en una de tres formas —un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` `indice`, `metadatos` o `analisis`, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`)— |
 | `citas` | Obligatorio si `activa` es `true`: cada `norma` y `bloque` que la respuesta debe citar |
+| `avisos` | Opcional, solo si `activa` es `true`: los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
+| `informativa` | Opcional: con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016) |
 | `reproduce` | Opcional: la skill cuyo uso documentado reproduce la eval, p. ej. `boe-fiscal` |
-| `informativa` | Opcional: con `true`, la eval se ejecuta y su tasa se publica, pero no decide el veredicto del job de evals |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra el esquema
 `schemas/eval.yaml.json` dentro de `make ci` (`make skills-check`): una
 clave desconocida o repetida, un identificador mal escrito o una eval positiva sin citas fallan nombrando el
-fichero. `evals/boe-legislacion/` tiene diecisiete: diez preguntas de materias distintas que deben activar la skill,
-dos ajenas que no deben activarla y cinco preguntas por materia, sin el número del artículo, marcadas
-`informativa: true` mientras siga en el backlog la herramienta que busca dentro de una norma el artículo que trata
-una materia (ADR 0016).
+fichero. `evals/boe-legislacion/` tiene dieciocho. Deciden el veredicto doce: diez preguntas de materias distintas que
+deben activar la skill y dos ajenas que no deben activarla. Las otras seis activan la skill y son informativas: cinco
+preguntas por materia, que no nombran el artículo y esperan a la herramienta del backlog que lo busca dentro de la
+norma, y una sobre la Ley 30/1992, derogada, que exige trasladar sus dos avisos de vigencia y cuya promoción a
+decisoria se decidirá con los datos de varias ejecuciones.
 
 ### Job de evals
 
-`make evals SKILL=<skill>` ejecuta las evals de una skill con Claude Code, con la skill instalada por
-`make install`, y escribe un informe que juzga cada sesión sin modelo —si activó la skill, si hizo con éxito las
-consultas esperadas y si citó lo esperado— y da un veredicto global. Las sesiones no piden nada a las fuentes: el
-binario responde desde una caché preparada con lo grabado, la red solo alcanza el modelo y el veredicto falla si una
-petición llega a la red. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de
-Claude Code; cuesta y no es determinista, así que no forma parte de `make ci`.
+`make evals SKILL=<skill>` ejecuta las evals de una skill con Claude Code, con la skill instalada por `make install`.
+Abre cada eval varias veces con el modelo que decide y, si no es informativa, otras tantas con cada modelo
+informativo, y escribe un informe que juzga cada sesión sin modelo —si la abrió el modelo pedido, si terminó, si activó
+la skill, si hizo con éxito las consultas esperadas, si citó lo esperado y si la respuesta lleva la forma fija de cada
+aviso de `avisos`— y publica la tasa de cada eval con cada modelo: cuántas de sus sesiones pasan. El veredicto global
+falla si una eval que decide no llega al umbral de sesiones que pasan con el modelo que decide, si una eval no tiene
+exactamente las sesiones que pide el plan, si una sesión es ilegible, si un fichero de eval está mal formado o si una
+petición llega a la red; la tasa de las evals informativas y la de los modelos informativos se publican sin decidirlo.
+Las sesiones no piden nada a las fuentes: el binario responde desde una caché preparada con lo grabado y la red solo
+alcanza el modelo. Necesita Linux con `strace`, root o `sudo`, ningún Python accesible y la credencial de Claude Code;
+cuesta y no es determinista, así que no forma parte de `make ci`. Lo lanza el job de evals, el flujo `evals` de la
+plataforma, que fija en su definición el modelo que decide, los informativos, las repeticiones de cada eval con cada
+modelo y el umbral (ADR 0016): decide `claude-sonnet-5`, el modelo del uso real de la skill;
+`claude-haiku-4-5-20251001` se ejecuta como límite inferior sin decidir; y cada eval se abre tres veces con cada uno
+—las informativas, solo con el que decide— y su serie pasa si pasan al menos dos sesiones. Se lanza:
 
-Lo lanza el job de evals, el flujo `evals` de la plataforma (`.github/workflows/evals.yml`), que fija en su
-definición con qué modelos y cuántas veces (ADR 0016):
+- **a mano**, sobre la rama que se elija;
+- **al abrir o reabrir una propuesta de cambio** que toque lo que las evals miden —la skill y sus datos, las evals y
+  su esquema, el applet `boe`, el kernel que lo invoca, el arnés del job, el `Makefile` o el propio job—;
+- **por etiqueta**, sobre la rama de cualquier propuesta de cambio: poner la etiqueta `evals` lanza las evals antes
+  de fusionar, y `evals-prueba-de-red` añade además la sesión de la prueba de red.
 
-- **decide `claude-sonnet-5`** (`MODELO_DE_EVALS`), el modelo del uso real de la skill;
-  **`claude-haiku-4-5-20251001`** (`MODELOS_INFORMATIVOS_DE_EVALS`) se ejecuta como límite inferior y su resultado
-  se publica sin decidir el veredicto;
-- **cada eval se abre tres veces** con cada modelo (`REPETICIONES_DE_EVALS`) y su serie pasa si pasan al menos dos
-  sesiones (`UMBRAL_DE_EVALS`); el informe publica la tasa de cada serie, también la de las que pasan. Las evals
-  informativas solo las abre el modelo que decide.
-
-Se lanza **a mano**, sobre la rama que se elija; **al abrir o reabrir una propuesta de cambio** que toque lo que las
-evals miden —la skill, sus datos, sus evals, el applet `boe`, el kernel, el arnés de las evals, el `Makefile` o el
-propio flujo—; y **por etiqueta** en cualquier propuesta de cambio: `evals` lanza las evals y `evals-prueba-de-red`
-añade además la sesión de la prueba de red. No hay ejecución programada, y un empujón a una propuesta ya abierta no la
-relanza.
-
-El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
+No hay ejecución programada, y un empujón a una propuesta ya abierta no la relanza. El informe se imprime en el registro de la ejecución. Cómo se lanza en un hito y qué hay que ver en él, en
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## `kitlegal version`

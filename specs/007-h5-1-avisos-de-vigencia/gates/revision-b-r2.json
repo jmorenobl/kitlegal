@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ronda 2 sobre la cabeza 3a8863d. gates/ci.log (mtime 2026-09-16 23:56:58, posterior a la corrección 7ae7a05 de las 23:53:28) termina en «ci: todos los controles en verde» (línea 68) con «0 issues.» (7), los once paquetes con tests en ok en los dos perfiles (9-22, 24-37), govulncheck sin vulnerabilidades alcanzables (38-47), schema-check y skills-check en ok (48-53) y «no leaks found» (56). Reproducido en un clon fuera del repositorio (/tmp/juezb-repo sobre 3a8863d): `make ci` con código 0 en 59,7 s, «0 issues.», «no leaks found», internal/evals 99,0 % e internal/source/boe 99,4 % en los dos perfiles. Árbol de trabajo limpio salvo los gates/revision-*.json y revision-rondas de la propia revisión, que ci_final confirma después; ci.log está ignorado."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El código no cambia desde la ronda 1 salvo dos comentarios (internal/evals/conjunto.go:198-204 y 285-291; formato.go:34-37). Tests offline para todo el código nuevo: internal/evals/avisos_test.go (TestExtraerAvisos, 30 subtests literales del contrato de la forma fija §4 más las-tres-etiquetas; TestComprobarFormasDeAviso:85-142; TestComprobarCodigosDeAviso:151-320 con referencia-circular; TestEtiquetasSoloDesdeBoe:329-351), juzgar_test.go:322-416 (diez casos nuevos de TestJuzgar), formato_test.go:184-253 (ocho casos de TestLeerEval), informe_test.go:347-441 (TestInformeConAvisos sobre una copia en t.TempDir()) y :522-531 (`[]` en TestInforme/aprobado), internal/source/boe/avisos_test.go:181-225 (TestEtiquetasDeAviso) y conjunto_test.go:686-703 (avisos-del-esquema, avisos-de-la-skill). Nueve mutantes sobre el clon, todos muertos por el test que dice detectarlos: Pasa sin AvisosAusentes (juzgar.go:217-219) → TestJuzgar/aviso-ausente, aviso-negado, aviso-con-otra-redaccion, aviso-repetido; separadores con \\s (avisos.go:27,31) → TestExtraerAvisos/salto-dentro y blancos-de-unicode; celdas de avisos intercambiadas (informe.go:887-888) → TestInformeConAvisos, los dos subtests; enumerado del esquema sin derogada y con otro → avisos-del-esquema («no enumera el código de aviso derogada» y «enumera en avisos el código otro») y formato; SKILL.md:148 sin los dos puntos → avisos-de-la-skill («falta la forma fija del aviso vigencia-agotada: ⚠ VIGENCIA AGOTADA:»); eval 18 sin informativa → conjunto («hay 11 evals positivas (activa: true) que deciden y el conjunto lleva exactamente 10»); etiqueta de vigencia-agotada alterada en boe/avisos.go:18 → TestEtiquetasDeAviso/exactamente-tres, TestAvisosDe (cuatro combinaciones), TestMetadatos/tres-avisos y derogada, TestGolden; una etiqueta en un comentario de juzgar.go → TestEtiquetasSoloDesdeBoe («juzgar.go:285: la etiqueta del aviso derogada»). Único fixture nuevo: el índice de BOE-A-1992-26318 que FR-054 exige, en su propio commit humano cc1362d (Jorge MB, 22:22:33, solo ese fichero); git log main..HEAD -- testdata schemas da solo 0a880e7 (T003), 442f023 (T008) y cc1362d."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "internal/evals/avisos.go:3-14 importa errors, fmt, regexp, slices, strings, sync, jsonschema/v6 e internal/source/boe (dirección que internal/evals ya tenía en main); boe/avisos.go no gana importaciones. En el diff de ficheros .go no hay ninguna línea añadida con \"net/http\", os.Exit ni fmt.Print (grep vacío); depguard y forbidigo en «0 issues.» (ci.log:7 y reproducción); TestArquitectura y TestDependenciasDelBinario dentro del make test en verde; git diff --stat main...HEAD no toca internal/core, internal/app, internal/cli, internal/httpx, internal/cache, cmd/, scripts/, .github/, Makefile, go.mod ni go.sum."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "La salida del applet no cambia: las frases se componen con las etiquetas (internal/source/boe/avisos.go:26-31) y son byte a byte las de main; el diff no toca internal/source/boe/testdata, internal/app/testdata, schemas/norma.json ni schemas/bloque.json; TestAvisosDe, TestMetadatos y TestGolden comparan los literales y el mutante de la etiqueta los hace fallar. `make schema-check` con TestEsquemasPublicados en ok (ci.log:48-49) y los tests de internal/app que validan la salida real contra el esquema emitido siguen en verde. El único esquema que cambia es el de entrada de las evals (schemas/eval.yaml.json:27-30, 34, 36), y TestEvalsDelRepositorio/avisos-del-esquema lo contrasta con CodigosDeAviso()."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni error tipado del binario cambia (internal/cli sin tocar; SKILL.md:160-161 igual). Las comprobaciones nuevas devuelven errores que nombran el código, unidos con errors.Join (internal/evals/avisos.go:90-136) y con los mensajes exactos de data-model §6 exigidos por los tests. regexp.MustCompile solo con piezas fijas y palabras pasadas por regexp.QuoteMeta (avisos.go:48-64), en un paquete que el binario no enlaza; ExtraerAvisos devuelve nil sin pánico con texto vacío (subtest vacio); enumeradoDeAvisos corta los $ref cíclicos (avisos.go:142-159, subtest referencia-circular). Lo que el contrato de la eval promete sobre códigos ocurre: TestEvalsDelRepositorio/grabado sirve con --offline el bloque a42, el índice y los metadatos de BOE-A-1992-26318 con código 0."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los cuatro motivos del juez A (ronda 1) están corregidos en 7ae7a05 y 3a8863d: README.md:28-30 (once normas; data/normas.yaml tiene 11 entradas BOE-A-), :34-36 y :216-221 (dieciocho evals, doce que deciden y seis informativas: evals/boe-legislacion/ tiene 18 ficheros, las 13-17 dicen «la pregunta no nombra el artículo» y la 18 es la de la norma derogada) y :225-232 (el informe juzga también si la abrió el modelo pedido, si terminó y si lleva la forma fija de cada aviso; juzgar.go:217-219 y 232-239); conjunto.go:285-291 y formato.go:34-37 describen las dos clases de informativas sin cambiar la regla; «una sesión por eval», «único modelo», «cada semana» y «Semanal» no quedan en README.md ni CONTRIBUTING.md (grep) y lo que los sustituye lo sostiene el producto: .github/workflows/evals.yml:12-19 (opened, reopened, labeled; sin schedule), :44-54 (las rutas que la fila «Apertura» de CONTRIBUTING.md:264 enumera), :76-80 (MODELO_DE_EVALS, MODELOS_INFORMATIVOS_DE_EVALS, REPETICIONES_DE_EVALS 3, UMBRAL_DE_EVALS 2), internal/evals/plan.go:112-125 (las informativas solo con el modelo que decide, CHANGELOG.md:233-234), informe.go:596-640 (motivos: sesiones distintas de las del plan, serie que decide bajo el umbral, sesión ilegible, ninguna eval que juzgar, fichero mal formado, red) y conjunto.go:136-137, 265-273, 285-300 (exactamente diez positivas que deciden, al menos una de no activación y una informativa, ninguna informativa sin activar); pr-h5.1.md:29-36 (25 ficheros, 1 393/108 líneas, internal/evals 12: coincide con git diff --shortstat main...7ae7a05 -- . ':!specs' y con git diff --name-only ... -- internal/evals), :183-199 (medidas sobre 7ae7a05) y :238-250, evals-aceptacion.md:7-14 y revision-pendiente.md anotan la repetición de la aceptación por etiqueta (contrato de la ejecución de aceptación §6), acción de plataforma que el corrector no puede hacer y que queda para después de la revisión y el push. CHANGELOG.md:251-275 (bloque De H5.1 en Añadido de Unreleased) coincide con el código; sin ADR ni docs/SOURCES.md, como fija el spec (Fuera de alcance). Comprobado además que el resto de la documentación no arrastra cifras falsas: «diecisiete» en CHANGELOG.md:221 describe lo que entregó H5, y docs/USO.md es bitácora fechada que el spec deja sin tocar."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna llamada de red en el código: internal/httpx sin cambios y ningún import de net/http en el diff. La única petición nueva a la fuente es el GET https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1992-26318/texto/indice del fixture (formato 1 de httpx, cabeceras Accept y User-Agent `kitlegal/dev (+https://ventanillalegal.es/bot)`, sin cookies ni autorización), grabado por una persona en la pausa de T008 y confirmado en cc1362d con ese único fichero; el robots.txt grabado no aparece en el diff (restaurado). internal/evals/grabacion_test.go:194 siembra desde UnionDeGrabaciones() para no repetir a la fuente lo ya grabado. gitleaks «no leaks found»; sin NIF ni datos personales en la eval 18, data/normas.yaml:69-75, testdata/evals/grabaciones.json:14 ni en el informe."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas del diff de .go y .golangci.yml: 0 nolint, 0 t.Skip, 0 TODO/FIXME, 0 panic(, 0 `_ =`, 0 exclusiones (grep vacío). .golangci.yml:312-316 añade solo `variantes` a misspell.ignore-rules con su motivo, previsto en plan.md (Structure Decision) y tasks.md T005. Ningún fixture retocado para poner un test en verde: git log main..HEAD -- testdata schemas da solo el esquema (T003, literal del contrato §1), la entrada del manifiesto (T008, literal del contrato §2) y el índice humano. El cambio de premisa de otraNormaDeLaBusqueda (internal/evals/grabaciones_test.go:603-636) es el planificado en research D12 y los cuatro subtests negativos siguen exigiendo su error exacto. La corrección 7ae7a05 solo toca documentación y comentarios y pasa misspell y lll («0 issues.» reproducido)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Fuera de specs/ cambian 25 ficheros: los 24 que enumeran plan.md («Source Code») y tasks.md («Ficheros existentes que se tocan») más internal/evals/conjunto.go, que la corrección de la ronda 1 toca solo en comentarios por el motivo del juez A. SKILL.md tiene tres hunks (114-116, 143-156, 191-194) idénticos al contrato de la forma fija §3, 199 líneas, región generada (163-180) intacta, sin nombrar evals, job ni modelos, y ninguna línea añadida de más de 119 caracteres (las más largas, 144 y 155, dan 119 con wc -m). La eval 18 y la entrada de data/normas.yaml son byte a byte las de los contratos §5 y §6, sin marca de derogación; la eval se confirma en 0a03a11 (22:30:23), anterior al primer commit que cambia SKILL.md, 394e138 (22:33:56), como exige FR-052. Sin cambios en el kernel, cmd/, scripts/, .github/, Makefile, docs/SOURCES.md ni docs/USO.md. La reescritura de las subsecciones del job en README.md y CONTRIBUTING.md excede FR-061 pero la exigió el motivo [f] del juez A en la ronda 1 y no añade funcionalidad. Aceptación comprobada con gh: PR #34 abierta hacia main con headRefOid 8272bc8 y la única ejecución evals de la rama (35148840549, pull_request, success) sobre ese commit, con veredicto aprobado, red vacío y 3/3 sesiones de la eval 18 con los dos avisos; la repetición por etiqueta que 7ae7a05 obliga está anotada como pendiente de plataforma."
+    }
+  ],
+  "motivos": []
+}

@@ -224,23 +224,23 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 | `activa` | sí | Si la pregunta debe activar la skill |
 | `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de tres formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`) |
 | `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
+| `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
-| `informativa` | no | Con `true`, la eval se ejecuta y su tasa se publica, pero no decide el veredicto del job de evals |
 
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
 dentro de `make ci`. Una entrada del directorio que no es un
 fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
 eval positiva sin citas o una de no activación con comandos fallan nombrando el fichero; ninguna se salta. Para
-`boe-legislacion`, `make ci` exige además las reglas de su conjunto, entre otras: exactamente diez positivas que
-deciden, de materias distintas; al menos una de no activación; y al menos una informativa, todas positivas, para que
-las preguntas por materia no puedan salir del conjunto en silencio (ADR 0016).
+`boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que deciden, de
+materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no activación,
+entre otras.
 
-Una **sesión** pasa si activa la skill cuando debe y no la activa cuando no debe, termina, hace con éxito cada
-consulta de `comandos`, responde citando cada `norma` y `bloque` de `citas` y declara el modelo que se le pidió. Lo
-juzga el informe sin modelo, con lo que deja la sesión: su transcript y su traza. Una eval no se juzga por una sesión
-sino por su **serie** con cada modelo, las sesiones repetidas de esa eval con ese modelo, que pasa si las que pasan
-llegan al umbral; y solo deciden el veredicto las series del modelo que decide sobre evals que no son informativas.
-Cómo se lee todo eso en el informe, en la sección siguiente.
+Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
+termina, hace con éxito cada consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas` y lleva la
+forma fija de cada aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
+traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
+([Job de evals](#job-de-evals)).
 
 ### Job de evals
 
@@ -248,42 +248,51 @@ Cómo se lee todo eso en el informe, en la sección siguiente.
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
 ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval está mal formada, que lo que
 necesitan está grabado y que la skill está instalada, y termina con `1` si algo falla. Después abre las sesiones de
-Claude Code que pide el plan —cada eval con cada modelo, tantas veces como repeticiones—, bajo `strace` y con la red
-cerrada salvo la del modelo, y escribe el informe.
+Claude Code del plan, cada una bajo `strace` y con la red cerrada salvo la del modelo: cada eval, tantas veces como
+repeticiones, con el modelo que decide y, si no es informativa, otras tantas con cada modelo informativo. Juzga cada
+sesión y agrupa las de cada eval con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan. El informe
+publica la tasa de cada serie y da un veredicto global que falla si una serie que decide —la de una eval que no es
+informativa con el modelo que decide— no llega al umbral, una serie no tiene exactamente las sesiones que pide el
+plan, una sesión es ilegible, un fichero está mal formado, no hay ninguna eval bien formada que juzgar o una petición
+llega a la red (ADR 0016).
 
-Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con el secreto de repositorio
-`CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token` (el proyecto no usa una
-clave de API de pago por uso). La definición del flujo fija los modelos, por su identificador completo, las
-repeticiones y el umbral; cambiar cualquiera de ellos es un cambio de ese fichero (ADR 0016):
+Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), que fija en su definición, cada uno en
+su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
+(`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
+repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
+(`UMBRAL_DE_EVALS`). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero. Usa
+el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token`
+(el proyecto no usa una clave de API de pago por uso). Hoy fija:
 
-| Variable | Valor | Qué fija |
+| Variable | Valor |
+|---|---|
+| `MODELO_DE_EVALS` | `claude-sonnet-5` |
+| `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
+| `REPETICIONES_DE_EVALS` | `3` |
+| `UMBRAL_DE_EVALS` | `2` |
+
+Con las dieciocho evals de `boe-legislacion`, una ejecución abre 90 sesiones: 36 de `claude-sonnet-5` sobre las doce
+que deciden, 18 sobre las seis informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
+del tope de 120 minutos del job (`timeout-minutes`). Se lanza de tres formas:
+
+| Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
-| `MODELO_DE_EVALS` | `claude-sonnet-5` | El modelo que decide el veredicto: el del uso real de la skill |
-| `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` | Los modelos, separados por comas, que se ejecutan como límite inferior y se publican sin decidir. No abren las evals informativas |
-| `REPETICIONES_DE_EVALS` | `3` | Las sesiones que se abren de cada eval con cada modelo |
-| `UMBRAL_DE_EVALS` | `2` | Cuántas sesiones de una serie tienen que pasar para que la serie pase |
-
-Con las diecisiete evals de `boe-legislacion`, una ejecución abre 87 sesiones: 36 de `claude-sonnet-5` sobre las doce
-que deciden, 15 sobre las cinco informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden. El job
-tiene un tope de 120 minutos (`timeout-minutes`). Se lanza de tres formas:
-
-| Lanzamiento | Sobre qué | Cómo |
-|---|---|---|
-| Manual | La rama que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Al abrir la propuesta de cambio | La propuesta que se abre o se reabre, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `schemas/eval.yaml.json`, el `Makefile` o `.github/workflows/evals.yml` | Automático; un trabajo previo, `cambios`, mira los ficheros de la propuesta |
-| Por etiqueta | Cualquier propuesta de cambio, toque lo que toque | Poniendo la etiqueta `evals`; `evals-prueba-de-red` añade la prueba de red |
+| Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del
 BOE fijados, no medía ningún cambio. Tampoco reacciona a cada empujón (`synchronize`): cada ejecución abre decenas de
 sesiones con modelo y un hito empuja muchas veces, así que cada informe mide el commit que había cuando se abrió o se
 reabrió la propuesta, o cuando se puso la etiqueta. **Para volver a medir, la etiqueta**: una que ya está puesta no
-lanza nada, así que se quita y se vuelve a poner. La *Definition of Done* (punto 10) pide las evals de la skill en
-verde: se lanzan por etiqueta después del último cambio de la rama fuera del directorio del hito en `specs/`, porque
-un cambio posterior obliga a repetirlas. Una propuesta que solo toca documentación no arranca el job, y es lo
-esperado.
+lanza nada, así que se quita y se vuelve a poner. Una propuesta que solo toca documentación no arranca el job, y es lo
+esperado. El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
+`--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
+del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
+cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
+posterior obliga a repetirlas.
 
-El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
-`--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la ejecución. Cómo se lee:
+Cómo se lee el informe:
 
 - **El veredicto** es `aprobado` o `fallo`, y los motivos son exactamente las causas del fallo: una serie que decide y
   no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
@@ -291,13 +300,12 @@ El informe se imprime en el registro de la ejecución, entre las marcas `--- ini
   fichero de eval mal formado o una petición llegada a la red.
 - **La tabla «Tasas por eval»** tiene una fila por serie, con si decide, si la pide el plan, la tasa
   (`<pasan> de <sesiones>`) y si llega al umbral. Se publica también la de las series que pasan: un `2 de 3` es verde,
-  pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado ya no se ve en el veredicto;
-  se ve aquí y en la tabla de sesiones.
+  pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado no se ve en el veredicto; se
+  ve aquí y en la tabla de sesiones.
 - **Una serie informativa** —la de un modelo informativo, o la de una eval `informativa: true` con el modelo que
-  decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo. Las
-  preguntas por materia (13 a 17 de `evals/boe-legislacion/`) son informativas mientras no llegue la herramienta que
-  busca un artículo por su materia: su tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier
-  serie: una sesión que falta, una ilegible o una petición llegada a la red hacen fallar el veredicto igual.
+  decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
+  tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
+  ilegible o una petición llegada a la red hacen fallar el veredicto igual.
 
 La **prueba de red** añade, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y

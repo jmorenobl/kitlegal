@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -19,8 +20,8 @@ import (
 const nombreDeEval = "01-lpac-articulo-21.yaml"
 
 // Trozos de las evals sintéticas de TestLeerEval, cada uno con sus líneas
-// completas: la pregunta del contrato evals-y-grabaciones §1 y el comando y la
-// cita del artículo 21 de la LPAC.
+// completas: la pregunta del contrato evals-y-grabaciones §1, el comando y la
+// cita del artículo 21 de la LPAC y los dos avisos de una norma derogada.
 const (
 	preguntaDelArticulo21 = "pregunta: \"¿qué dice el art. 21 de la Ley 39/2015?\"\n"
 	comandoDelArticulo21  = "comandos:\n" +
@@ -30,16 +31,28 @@ const (
 	citaDelArticulo21 = "citas:\n" +
 		"  - norma: BOE-A-2015-10565\n" +
 		"    bloque: a21\n"
+	avisosDeNormaDerogada = "avisos:\n" +
+		"  - derogada\n" +
+		"  - vigencia-agotada\n"
 )
 
-// TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1:
-// las tres formas de comando, con y sin reproduce, y la de no activación se leen
-// enteras y con su Fichero; cada fichero inválido, con una clave repetida
-// incluida, da un error que empieza por su nombre y dice qué falla y dónde.
+// TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1 y
+// de sus avisos (contrato de formato, juicio e informe §6): las tres formas de
+// comando, con y sin reproduce, la que espera avisos, informativa o no, y la de no
+// activación se leen enteras y con su Fichero; avisos vacío o con un código
+// repetido se acepta o se rechaza igual que citas; cada fichero inválido, con una
+// clave repetida incluida, da un error que empieza por su nombre y dice qué falla
+// y dónde.
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
 	citaDeLaLRBRL := []CitaEsperada{{Norma: "BOE-A-1985-5392", Bloque: "a85bis."}}
+
+	// La positiva del art. 21, sin avisos, y lo que se lee de su comando y de su
+	// cita: los casos de avisos le añaden líneas al final.
+	positivaDelArticulo21 := preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + citaDelArticulo21
+	comandoDelArticulo21Leido := []ComandoEsperado{{Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a21"}}
+	citaDelArticulo21Leida := []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a21"}}
 
 	casos := []struct {
 		nombre     string
@@ -167,6 +180,76 @@ func TestLeerEval(t *testing.T) {
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 +
 				"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n    bloque: a22\n",
 			error: nombreDeEval + ": citas/0: bloque repetido en las líneas 9 y 10",
+		},
+		{
+			nombre:    "avisos",
+			documento: positivaDelArticulo21 + avisosDeNormaDerogada,
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:   true,
+				Comandos: comandoDelArticulo21Leido,
+				Citas:    citaDelArticulo21Leida,
+				Avisos:   []string{"derogada", "vigencia-agotada"},
+			},
+		},
+		{
+			nombre:    "aviso-desconocido",
+			documento: positivaDelArticulo21 + "avisos:\n  - otro\n",
+			error: nombreDeEval + ": avisos/0, línea 11: " +
+				"value must be one of 'consolidacion-no-finalizada', 'derogada', 'vigencia-agotada'",
+		},
+		{
+			nombre:    "no-activa-con-avisos",
+			documento: preguntaDelArticulo21 + "activa: false\n" + avisosDeNormaDerogada,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "avisos-vacio",
+			documento: positivaDelArticulo21 + "avisos: []\n",
+			error:     nombreDeEval + ": avisos, línea 10: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "citas-vacio",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + "citas: []\n",
+			error:     nombreDeEval + ": citas, línea 7: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "aviso-repetido",
+			documento: positivaDelArticulo21 + "avisos:\n  - derogada\n  - derogada\n",
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:   true,
+				Comandos: comandoDelArticulo21Leido,
+				Citas:    citaDelArticulo21Leida,
+				Avisos:   []string{"derogada", "derogada"},
+			},
+		},
+		{
+			nombre:    "cita-repetida",
+			documento: positivaDelArticulo21 + "  - norma: BOE-A-2015-10565\n    bloque: a21\n",
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:   true,
+				Comandos: comandoDelArticulo21Leido,
+				Citas:    slices.Concat(citaDelArticulo21Leida, citaDelArticulo21Leida),
+			},
+		},
+		{
+			nombre: "informativa-con-avisos",
+			documento: preguntaDelArticulo21 + "activa: true\ninformativa: true\n" +
+				comandoDelArticulo21 + citaDelArticulo21 + avisosDeNormaDerogada,
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:      true,
+				Informativa: true,
+				Comandos:    comandoDelArticulo21Leido,
+				Citas:       citaDelArticulo21Leida,
+				Avisos:      []string{"derogada", "vigencia-agotada"},
+			},
 		},
 	}
 

@@ -75,7 +75,11 @@ const (
 	// llamadaDesconocida es el nombre que strace escribe cuando el hilo murió en
 	// la parada de entrada de una llamada que no llegó a identificar y que no se
 	// ejecutó (data-model §9, regla 5, forma D): no es ninguna llamada del filtro
-	// y no lleva argumentos.
+	// y no lleva argumentos. strace la deja sin cerrar, ???( <unfinished ...>, o
+	// la cierra con el resultado de la llamada sin terminar, ???() = ?, con el
+	// relleno de alineación: así la escribió el runner en una sesión de la eval
+	// 04 de la ejecución 35156339496 de H5.1
+	// (specs/007-h5-1-avisos-de-vigencia/gates/tarea-T015.md).
 	llamadaDesconocida = "???"
 )
 
@@ -108,8 +112,9 @@ var (
 	// el igual, strace escribe un espacio y, si la llamada no llega a la columna
 	// de alineación (-a 40, su valor por defecto), el relleno de espacios hasta
 	// ella: vfork(), la llamada con la que Claude Code de x86_64 crea sus
-	// procesos, sale con 33.
-	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect)\((.*)\) += ` +
+	// procesos, sale con 33. ??? entra en la forma solo para que leerLlamada
+	// admita de ella ???() = ? y nada más.
+	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?)\((.*)\) += ` +
 		`(([0-9]+)|-1 ([A-Z][A-Z0-9_]*) \([^()]*\)|\? [A-Z][A-Z0-9_]* \([^()]*\)|\?|\? <unavailable>)$`)
 
 	// formaDeLlamadaSinCerrar es la de la línea de entrada de una llamada que la
@@ -722,7 +727,13 @@ func leerLlamada(texto string) (llamada, error) {
 	partes := formaDeLlamada.FindStringSubmatch(texto)
 	if partes == nil {
 		return llamada{}, errors.New("no es ninguna de las formas de línea de la traza: execve, clone, clone3, " +
-			"fork, vfork o connect con su resultado o sin terminar, ???( <unfinished ...>, una señal o la línea final")
+			"fork, vfork o connect con su resultado o sin terminar, ???( <unfinished ...>, ???() = ?, una señal o " +
+			"la línea final")
+	}
+
+	if partes[1] == llamadaDesconocida && (partes[2] != "" || partes[3] != resultadoSinTerminar) {
+		return llamada{}, fmt.Errorf("%s es la llamada que strace no llegó a identificar: no lleva argumentos y, "+
+			"cerrada, solo lleva el resultado %s", llamadaDesconocida, resultadoSinTerminar)
 	}
 
 	argumentos, conMarca := strings.CutSuffix(partes[2], marcaSinTerminar)

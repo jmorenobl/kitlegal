@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | Constitución Española. | CE | `BOE-A-1978-31229` | Constitución | organización territorial, autonomía local |
 | Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local | LRBRL | `BOE-A-1985-5392` | Ley | régimen local |
+| Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común. | LRJPAC | `BOE-A-1992-26318` | Ley | régimen jurídico de las administraciones públicas, procedimiento administrativo |
 | Ley 58/2003, de 17 de diciembre, General Tributaria. | LGT | `BOE-A-2003-23186` | Ley | tributos |
 | Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales. | TRLRHL | `BOE-A-2004-4214` | Real Decreto Legislativo | tributos, haciendas locales |
 | Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio. | LIRPF | `BOE-A-2006-20764` | Ley | tributos, impuesto sobre la renta de las personas físicas |

@@ -111,7 +111,9 @@ Si falta algo que no puedes leer con `scripts/boe`, dilo en la respuesta en luga
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
   compartidas o cedidas, desarrollo autonómico, régimen foral), dilo; y cuando corresponda a ordenanzas u otras normas
   locales, di que no están en esta fuente.
-- Traslada los avisos de vigencia del sobre y recuerda que los textos consolidados del BOE tienen carácter informativo.
+- Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la etiqueta del aviso tal como la da el binario y
+  dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). Recuerda que los textos
+  consolidados del BOE tienen carácter informativo.
 - Antes de responder, repasa cada cita: sus corchetes se abren y se cierran en la misma línea y terminan en
   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
   corchetes va además la forma legible, va delante del identificador.
@@ -137,6 +139,21 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
 - El identificador y el id van tal como los devuelve `scripts/boe`, también cuando el id termina en punto: el corchete
   de cierre lo delimita.
 - Una cita por bloque. Un bloque remitido se cita por separado, con su norma y su id.
+
+Los avisos de vigencia también tienen forma fija. Cada aviso del sobre va en la respuesta con `⚠`, la etiqueta del
+aviso tal como la da el binario —lo que su `texto` lleva entre `⚠` y los dos puntos— y dos puntos, seguidos de la frase
+del binario o de una explicación:
+
+- `⚠ NORMA DEROGADA:` para el aviso `derogada`.
+- `⚠ VIGENCIA AGOTADA:` para el aviso `vigencia-agotada`.
+- `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:` para el aviso `consolidacion-no-finalizada`.
+
+```text
+⚠ NORMA DEROGADA: esta norma ha sido derogada.
+```
+
+- La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
+  Decir con otras palabras que la norma está derogada no traslada el aviso.
 
 ## Comandos
 
@@ -171,9 +188,10 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    texto con conocimiento propio. Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada
    bloque por separado con `scripts/boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si `scripts/boe` no
    resuelve a un binario, di que falta instalar kitlegal.
-3. **Trasladar la vigencia.** Traslada los avisos de vigencia que devuelve el binario (derogada, vigencia agotada,
-   consolidación no finalizada) y no presentes como vigente el texto de una norma derogada. Recuerda que los textos
-   consolidados del BOE tienen carácter informativo y no son asesoramiento.
+3. **Trasladar la vigencia.** Traslada cada aviso de vigencia que devuelve el binario (derogada, vigencia agotada,
+   consolidación no finalizada) con su forma fija —`⚠`, la etiqueta del aviso tal como la da el binario y dos puntos,
+   con la frase del binario o una explicación detrás— y no presentes como vigente el texto de una norma derogada.
+   Recuerda que los textos consolidados del BOE tienen carácter informativo y no son asesoramiento.
 4. **Nunca actuar en nombre de nadie.** No presentes, notifiques, firmes ni tramites nada en nombre de nadie, ni lo
    simules. Si la pregunta lo pide, di que es una acción que hace la persona y cita, si procede, la norma aplicable.
 5. **Ningún caso especial para un territorio.** No hay reglas propias de un municipio o de una comunidad concretos. Si

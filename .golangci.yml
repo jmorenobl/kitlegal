@@ -309,6 +309,11 @@ linters:
         # «Resolucion de adjudicacion», parte de la otra ruta larga de la misma
         # tabla, la que se recorta; misspell lo lee como «resolution».
         - resolucion
+        # «Variantes toleradas», el subtest aviso-con-variantes-toleradas de
+        # TestJuzgar, en internal/evals/juzgar_test.go, cuyo nombre fijan el
+        # inventario de tests del plan y la guía de validación de H5.1 (FR-035,
+        # research.md D19); misspell lo lee como «variants».
+        - variantes
         # Plural español de «versión» —las del esquema de la caché: la que el
         # fichero trae y la que el binario conoce, que el contrato de errores de
         # H3 §3 obliga a nombrar en el mensaje—; misspell lo lee como

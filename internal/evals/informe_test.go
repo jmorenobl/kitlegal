@@ -58,6 +58,21 @@ const (
 	ordenDeA9998Offline = "boe articulo BOE-A-2015-10565 a9998 --offline --json"
 )
 
+// Lo que TestInformeConAvisos cambia en su copia del caso aprobado (contrato de
+// formato, juicio e informe §6 de H5.1; research D10).
+const (
+	// avisosDeLaEval01 es lo que se añade al final de la eval del art. 21: los dos
+	// avisos que espera, en ese orden.
+	avisosDeLaEval01 = "avisos:\n  - derogada\n  - vigencia-agotada\n"
+
+	// prefijoDeDerogada es lo que se antepone a la respuesta de su sesión: la
+	// frase del binario para derogada, con su forma fija, y un espacio.
+	prefijoDeDerogada = avisoDeDerogada + " "
+
+	// citaDeLaRespuesta es la cita del art. 21 tal como la escribe esa respuesta.
+	citaDeLaRespuesta = "[BOE-A-2015-10565, bloque a21]"
+)
+
 // informeLeido es lo que EscribirInforme dejó en su destino: informe.json leído
 // como Informe y, en crudo, lo que se compara tal como está escrito, e
 // informe.md. caso es el directorio del caso, vacío si las entradas no son las de
@@ -71,13 +86,20 @@ type informeLeido struct {
 
 // informeCrudo es lo que se lee de informe.json sin convertirlo a un tipo de Go,
 // para distinguir null de una lista vacía: los motivos de la raíz y, de cada
-// invocación de cada sesión, su código y sus conexiones.
+// sesión, sus avisos encontrados y ausentes y, de cada una de sus invocaciones, su
+// código y sus conexiones.
 type informeCrudo struct {
-	Motivos jsontext.Value `json:"motivos"`
-	Evals   []struct {
-		Sesion       string            `json:"sesion"`
-		Invocaciones []invocacionCruda `json:"invocaciones"`
-	} `json:"evals"`
+	Motivos jsontext.Value   `json:"motivos"`
+	Evals   []resultadoCrudo `json:"evals"`
+}
+
+// resultadoCrudo es el resultado de una sesión de informe.json con sus avisos y
+// sus invocaciones tal como están escritos.
+type resultadoCrudo struct {
+	Sesion            string            `json:"sesion"`
+	AvisosEncontrados jsontext.Value    `json:"avisos_encontrados"`
+	AvisosAusentes    jsontext.Value    `json:"avisos_ausentes"`
+	Invocaciones      []invocacionCruda `json:"invocaciones"`
 }
 
 // invocacionCruda es una invocación de informe.json con su código y sus
@@ -313,6 +335,160 @@ func TestEscribirInformeSinSusEntradas(t *testing.T) {
 	}
 }
 
+// TestInformeConAvisos fija lo que EscribirInforme publica de los avisos de cada
+// sesión (contrato de formato, juicio e informe §5 y §6 de H5.1; research D9 y
+// D10): sobre una copia del caso aprobado en la que la eval del art. 21 espera
+// derogada y vigencia-agotada y la respuesta de su sesión solo lleva la forma fija
+// de derogada, informe.json reparte los dos avisos en el orden de la eval, con el
+// motivo del ausente detrás del de la cita ausente en la sesión y en la raíz, y
+// con listas vacías en la sesión de la eval que no espera avisos; e informe.md
+// los pone en la tabla de las sesiones, junto a las citas, y sigue publicando la
+// respuesta (FR-040 a FR-043, SC-004). Nada se escribe bajo testdata/.
+func TestInformeConAvisos(t *testing.T) {
+	t.Parallel()
+
+	const motivoDeVigenciaAgotada = "aviso ausente: vigencia-agotada"
+
+	casos := []struct {
+		nombre string
+
+		// sinLaCita dice si la copia quita además la cita de la respuesta.
+		sinLaCita bool
+
+		// respuesta es la de la sesión del art. 21 en la copia; citasAusentes, la
+		// celda de su fila en la tabla de las sesiones; y motivos, los de su
+		// resultado, en su orden.
+		respuesta     string
+		citasAusentes string
+		motivos       []string
+	}{
+		{
+			nombre:        "uno-encontrado-y-otro-ausente",
+			respuesta:     prefijoDeDerogada + respuestaConCita,
+			citasAusentes: "ninguna",
+			motivos:       []string{motivoDeVigenciaAgotada},
+		},
+		{
+			nombre:        "aviso-detras-de-la-cita",
+			sinLaCita:     true,
+			respuesta:     prefijoDeDerogada + strings.TrimSuffix(respuestaConCita, citaDeLaRespuesta),
+			citasAusentes: textoDeLaCita21,
+			motivos:       []string{"cita ausente: " + textoDeLaCita21, motivoDeVigenciaAgotada},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copia := copiaDelCasoAprobadoConAvisos(t, caso.sinLaCita)
+
+			entradas := entradasDelCaso(casoAprobado, t.TempDir())
+			entradas.Evals = filepath.Join(copia, "evals")
+			entradas.Sesiones = filepath.Join(copia, "sesiones")
+
+			informe, err := EscribirInforme(entradas)
+			require.NoError(t, err)
+
+			leido := leerInformeEscrito(t, entradas.Destino, informe)
+			leido.caso = copia
+
+			resultado := resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21)
+			assert.Equal(t, caso.respuesta, resultado.Respuesta)
+			assert.Equal(t, caso.motivos, resultado.Motivos)
+			assert.False(t, resultado.Pasa)
+
+			delArticulo21 := resultadoEscrito(t, leido, sesionDelArticulo21)
+			assert.Equal(t, `["derogada"]`, compacto(t, delArticulo21.AvisosEncontrados))
+			assert.Equal(t, `["vigencia-agotada"]`, compacto(t, delArticulo21.AvisosAusentes))
+
+			deNoActivacion := resultadoEscrito(t, leido, sesionDeNoActivacion)
+			assert.Equal(t, "[]", string(deNoActivacion.AvisosEncontrados))
+			assert.Equal(t, "[]", string(deNoActivacion.AvisosAusentes))
+			assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDeNoActivacion).Pasa)
+
+			motivosDeLaRaiz := []string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1)}
+			for _, motivo := range caso.motivos {
+				motivosDeLaRaiz = append(motivosDeLaRaiz, sesionDelArticulo21+": "+motivo)
+			}
+
+			exigirMotivosDeLaRaiz(t, leido, motivosDeLaRaiz...)
+			assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
+				filaDeTabla("Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
+					"Citas ausentes", "Avisos encontrados", "Avisos ausentes", "Resultado"),
+				filaDeTabla(slices.Repeat([]string{"---"}, 11)...),
+				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+					"ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "no pasa"),
+				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+					"ninguno", "ninguna", "ninguno", "ninguno", "pasa"))
+
+			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
+				"la sección de la sesión publica la respuesta con la forma fija")
+		})
+	}
+}
+
+// copiaDelCasoAprobadoConAvisos copia el caso aprobado de TestInforme en un
+// directorio temporal del test y devuelve su ruta. En la copia, la eval del art. 21
+// espera derogada y vigencia-agotada, y a la respuesta de su sesión se le antepone
+// la forma fija de derogada y, con sinLaCita, se le quita la cita. La respuesta
+// está dos veces en el transcript, en el mensaje del asistente y en el result, y
+// cada cambio exige exactamente esas dos sustituciones (research V20).
+func copiaDelCasoAprobadoConAvisos(t *testing.T, sinLaCita bool) string {
+	t.Helper()
+
+	copia := t.TempDir()
+	require.NoError(t, os.CopyFS(copia, os.DirFS(filepath.Join(casosDeInforme, casoAprobado))))
+
+	evals := filepath.Join(copia, "evals")
+	eval := contenidoDeLaSesion(t, evals, ficheroDeLaEval01)
+	require.True(t, strings.HasSuffix(eval, "\n"), "la eval %s termina en un salto de línea", ficheroDeLaEval01)
+	escribirEnLaCopia(t, evals, ficheroDeLaEval01, eval+avisosDeLaEval01)
+
+	sesion := filepath.Join(copia, "sesiones", sesionDelArticulo21)
+	transcript := sustituirDosVeces(t, contenidoDeLaSesion(t, sesion, "sesion.jsonl"),
+		cadenaJSON(t, respuestaConCita), cadenaJSON(t, prefijoDeDerogada+respuestaConCita))
+
+	if sinLaCita {
+		transcript = sustituirDosVeces(t, transcript, citaDeLaRespuesta, "")
+	}
+
+	escribirEnLaCopia(t, sesion, "sesion.jsonl", transcript)
+
+	return copia
+}
+
+// escribirEnLaCopia reescribe un fichero de la copia de un caso con el contenido
+// dado.
+func escribirEnLaCopia(t *testing.T, dir, fichero, contenido string) {
+	t.Helper()
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, fichero), []byte(contenido), 0o600))
+}
+
+// cadenaJSON es el texto codificado como cadena JSON, comillas incluidas, tal como
+// lo escribe un transcript.
+func cadenaJSON(t *testing.T, texto string) string {
+	t.Helper()
+
+	codificado, err := json.Marshal(texto)
+	require.NoError(t, err)
+
+	return string(codificado)
+}
+
+// sustituirDosVeces sustituye en el texto cada aparición de viejo por nuevo y
+// exige que sean exactamente dos.
+func sustituirDosVeces(t *testing.T, texto, viejo, nuevo string) string {
+	t.Helper()
+
+	require.Equal(t, 2, strings.Count(texto, viejo), "%s está exactamente dos veces en el transcript", viejo)
+
+	return strings.ReplaceAll(texto, viejo, nuevo)
+}
+
 // comprobarAprobado exige el veredicto aprobado sin motivos ni nada que informar,
 // la cabecera con los modelos y las versiones de los transcripts, cada uno una
 // vez y en el orden de las sesiones, y la respuesta y el fin de la sesión del
@@ -342,6 +518,17 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	seccion := seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21)
 	assert.Contains(t, seccion, contenidoDeLaSesion(t, directorioDeSesion(leido, sesionDelArticulo21), "pregunta.txt"))
 	assert.Contains(t, seccion, respuestaConCita)
+
+	// Ninguna de las dos evals del caso espera avisos: cada sesión los escribe
+	// como listas vacías, no como null (FR-040).
+	require.Len(t, leido.crudo.Evals, 2, "informe.json tiene las dos sesiones del caso")
+
+	for _, resultado := range leido.crudo.Evals {
+		assert.Equal(t, "[]", string(resultado.AvisosEncontrados),
+			"avisos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.AvisosAusentes),
+			"avisos_ausentes de %s es una lista vacía, no null", resultado.Sesion)
+	}
 }
 
 // comprobarFueraDeLoGrabado exige las dos invocaciones de a9998 de la sesión de
@@ -921,6 +1108,28 @@ func invocacionEscrita(t *testing.T, leido informeLeido, sesion, orden string) i
 	require.FailNow(t, "informe.json no tiene la invocación", "sesión %s, orden %s", sesion, orden)
 
 	return invocacionCruda{}
+}
+
+// resultadoEscrito es, tal como está escrito en informe.json, el resultado de la
+// sesión.
+func resultadoEscrito(t *testing.T, leido informeLeido, sesion string) resultadoCrudo {
+	t.Helper()
+
+	posicion := slices.IndexFunc(leido.crudo.Evals, func(resultado resultadoCrudo) bool { return resultado.Sesion == sesion })
+	require.GreaterOrEqual(t, posicion, 0, "informe.json tiene el resultado de la sesión %s", sesion)
+
+	return leido.crudo.Evals[posicion]
+}
+
+// compacto es el valor escrito sin blancos, para compararlo con su forma en una
+// línea; un valor que falta no se puede compactar y es un fallo del test.
+func compacto(t *testing.T, valor jsontext.Value) string {
+	t.Helper()
+
+	copia := slices.Clone(valor)
+	require.NoError(t, copia.Compact())
+
+	return string(copia)
 }
 
 // directorioDeSesion es el directorio de la sesión en el caso leído.

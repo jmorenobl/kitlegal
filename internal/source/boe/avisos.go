@@ -8,16 +8,26 @@ const (
 	codigoDeVigenciaAgotada           = "vigencia-agotada"
 )
 
-// Las frases de los avisos, carácter a carácter las de _check_vigencia
-// (refs/boe.py 202-211), con su prefijo. No son las de cmd_metadatos
-// (485-498), que redacta a su manera: cada código tiene una sola frase en
-// articulo, articulos y metadatos (FR-050; entrada 17 del porte anotado en
-// doc.go).
+// Las etiquetas de los avisos, una por código y en el orden de las condiciones:
+// lo que cada frase lleva entre la marca y los dos puntos (FR-010). Las frases
+// se componen con ellas, así que la etiqueta no está escrita dos veces y no
+// puede divergir de lo que el applet emite.
 const (
-	fraseDeConsolidacionNoFinalizada = "⚠ TEXTO POSIBLEMENTE DESACTUALIZADO: la consolidación de esta norma " +
+	etiquetaDeConsolidacionNoFinalizada = "TEXTO POSIBLEMENTE DESACTUALIZADO"
+	etiquetaDeNormaDerogada             = "NORMA DEROGADA"
+	etiquetaDeVigenciaAgotada           = "VIGENCIA AGOTADA"
+)
+
+// Las frases de los avisos, carácter a carácter las de _check_vigencia
+// (refs/boe.py 202-211), con su prefijo: la marca, la etiqueta y los dos
+// puntos. No son las de cmd_metadatos (485-498), que redacta a su manera: cada
+// código tiene una sola frase en articulo, articulos y metadatos (FR-050;
+// entrada 17 del porte anotado en doc.go).
+const (
+	fraseDeConsolidacionNoFinalizada = "⚠ " + etiquetaDeConsolidacionNoFinalizada + ": la consolidación de esta norma " +
 		"no está finalizada. Puede haber modificaciones recientes aún no integradas."
-	fraseDeNormaDerogada   = "⚠ NORMA DEROGADA: esta norma ha sido derogada."
-	fraseDeVigenciaAgotada = "⚠ VIGENCIA AGOTADA: esta norma ya no está en vigor."
+	fraseDeNormaDerogada   = "⚠ " + etiquetaDeNormaDerogada + ": esta norma ha sido derogada."
+	fraseDeVigenciaAgotada = "⚠ " + etiquetaDeVigenciaAgotada + ": esta norma ya no está en vigor."
 )
 
 // Lo que miran las condiciones en el objeto de metadatos (refs/boe.py 199-211).
@@ -42,6 +52,19 @@ const (
 // cambiar sin cambiar la de nadie más.
 func CodigosDeAviso() []string {
 	return []string{codigoDeConsolidacionNoFinalizada, codigoDeNormaDerogada, codigoDeVigenciaAgotada}
+}
+
+// EtiquetasDeAviso es la etiqueta de cada código de CodigosDeAviso: lo que su
+// frase lleva entre la marca y los dos puntos, y la única fuente de verdad de la
+// forma fija con la que se traslada un aviso (FR-010, FR-011). Cada llamada
+// devuelve un mapa nuevo, que quien lo recibe puede cambiar sin cambiar el de
+// nadie más.
+func EtiquetasDeAviso() map[string]string {
+	return map[string]string{
+		codigoDeConsolidacionNoFinalizada: etiquetaDeConsolidacionNoFinalizada,
+		codigoDeNormaDerogada:             etiquetaDeNormaDerogada,
+		codigoDeVigenciaAgotada:           etiquetaDeVigenciaAgotada,
+	}
 }
 
 // avisosDe son los avisos de vigencia que se derivan del objeto de metadatos de

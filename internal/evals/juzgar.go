@@ -25,20 +25,23 @@ const (
 const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
-// la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando o
-// una cita ausentes van seguidos de su texto, el mismo con el que los presenta el
-// informe.
+// la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
+// una cita o un aviso ausentes van seguidos de su texto, el mismo con el que los
+// presenta el informe, que en un aviso es su código (contrato de formato, juicio e
+// informe §4 de H5.1).
 const (
 	motivoDeSesionSinTerminar = "la sesión no terminó: "
 	motivoDeComandoAusente    = "comando ausente: "
 	motivoDeCitaAusente       = "cita ausente: "
+	motivoDeAvisoAusente      = "aviso ausente: "
 	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
 )
 
 // ResultadoDeEval es el juicio de una sesión con su eval (data-model §10.2): lo
-// esperado y lo observado, el reparto de los comandos y las citas esperados, lo
-// que hicieron las invocaciones de la sesión, por qué no pasa y si pasa. Sus
-// claves JSON son las de cada eval de informe.json (contrato job-de-evals §5).
+// esperado y lo observado, el reparto de los comandos, las citas y los avisos
+// esperados, lo que hicieron las invocaciones de la sesión, por qué no pasa y si
+// pasa. Sus claves JSON son las de cada eval de informe.json (contrato
+// job-de-evals §5).
 type ResultadoDeEval struct {
 	// Sesion es el nombre del directorio de la sesión. Juzgar no lo conoce: lo
 	// pone EscribirInforme.
@@ -75,6 +78,12 @@ type ResultadoDeEval struct {
 	CitasEncontradas []string `json:"citas_encontradas"`
 	CitasAusentes    []string `json:"citas_ausentes"`
 
+	// AvisosEncontrados y AvisosAusentes reparten los avisos esperados, en el orden de la eval y con sus
+	// repeticiones, entre los que la respuesta lleva con su forma fija y los que no (ExtraerAvisos), cada uno con su
+	// código.
+	AvisosEncontrados []string `json:"avisos_encontrados"`
+	AvisosAusentes    []string `json:"avisos_ausentes"`
+
 	// Invocaciones son todas las invocaciones de applet de la sesión, en su
 	// orden.
 	Invocaciones []InvocacionInformada `json:"invocaciones"`
@@ -109,13 +118,15 @@ type ResultadoDeEval struct {
 
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
-	// activación que no coincide; cada comando ausente; y cada cita ausente.
-	// Vacío si pasa.
+	// activación que no coincide; cada comando ausente; cada cita ausente; cada
+	// aviso ausente; y el modelo que la sesión declara sin ser el pedido, que pone
+	// EscribirInforme. Vacío si pasa.
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide y no falta ningún
-	// comando ni ninguna cita esperados. No lo cambian FueraDeLoGrabado,
-	// OtrasFallidas ni LlegadasALaRed (FR-076).
+	// comando, ninguna cita ni ningún aviso esperados. No lo cambian
+	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
+	// de un aviso que la eval no espera.
 	Pasa bool `json:"pasa"`
 }
 
@@ -163,13 +174,17 @@ type LlegadaALaRed struct {
 // Juzgar compara una sesión con su eval sin ningún modelo (data-model §10.2;
 // contrato evals-y-grabaciones §6; FR-072): si la sesión terminó, si la
 // activación de la skill coincide con la esperada, qué comandos esperados
-// satisfacen sus invocaciones (data-model §6.1) y qué citas esperadas están en su
-// respuesta (data-model §6.2). Informa además de todas sus invocaciones, de las
+// satisfacen sus invocaciones (data-model §6.1), qué citas esperadas están en su
+// respuesta (data-model §6.2) y qué avisos esperados lleva su respuesta con su
+// forma fija, la marca, la etiqueta y los dos puntos que reconoce ExtraerAvisos
+// (FR-030 a FR-033 de H5.1). Informa además de todas sus invocaciones, de las
 // que quedaron fuera de lo grabado, de las otras fallidas y de las que llegaron a
 // la red, sin que nada de eso cambie si la eval pasa (FR-076).
 //
 // Una sesión sin terminar no pasa aunque todo lo demás coincida: sin ella, una
-// eval de no activación cuya sesión murió sin activar nada pasaría en vacío.
+// eval de no activación cuya sesión murió sin activar nada pasaría en vacío. Una
+// eval sin avisos deja vacíos los encontrados y los ausentes, y su juicio es el de
+// antes de H5.1 (FR-034).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -193,13 +208,15 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 
 	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
+	resultado.repartirAvisos(eval.Avisos, ExtraerAvisos(sesion.Respuesta))
 
 	for _, invocacion := range sesion.Invocaciones {
 		resultado.informar(invocacion)
 	}
 
 	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
-		len(resultado.ComandosAusentes) == 0 && len(resultado.CitasAusentes) == 0
+		len(resultado.ComandosAusentes) == 0 && len(resultado.CitasAusentes) == 0 &&
+		len(resultado.AvisosAusentes) == 0
 
 	return resultado
 }
@@ -262,6 +279,21 @@ func (r *ResultadoDeEval) repartirCitas(esperadas []CitaEsperada, citas []Cita) 
 
 		r.CitasAusentes = append(r.CitasAusentes, texto)
 		r.Motivos = append(r.Motivos, motivoDeCitaAusente+texto)
+	}
+}
+
+// repartirAvisos reparte los avisos esperados entre encontrados y ausentes según
+// los avisos cuya forma fija lleva la respuesta, con un motivo por cada ausente.
+func (r *ResultadoDeEval) repartirAvisos(esperados, avisos []string) {
+	for _, esperado := range esperados {
+		if slices.Contains(avisos, esperado) {
+			r.AvisosEncontrados = append(r.AvisosEncontrados, esperado)
+
+			continue
+		}
+
+		r.AvisosAusentes = append(r.AvisosAusentes, esperado)
+		r.Motivos = append(r.Motivos, motivoDeAvisoAusente+esperado)
 	}
 }
 
