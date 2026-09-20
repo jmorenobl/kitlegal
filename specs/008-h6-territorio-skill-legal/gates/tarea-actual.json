@@ -1,19 +1,18 @@
 {
-  "id": "T002",
-  "texto": "T002 [datos] [US1] Configuración por comunidad y boletín estatal: `schemas/territorio-comunidad.yaml.json` y `schemas/territorio-estado.yaml.json` (nuevos, con la forma de data-model §3.3 y §3.4 y `additionalProperties: false`: `fecha` y `source` en la raíz; en la comunidad, `codigo` de dos cifras, `nombre`, `regimen` obligatorio en el enumerado `comun`\\|`foral`, `provincias` con al menos una entrada y `boletines` **opcional** con `autonomico` y `provincial`, cada uno con `codigo`, `nombre`, `url` y `motivo`), `data/territorio/estado.yaml` con el boletín estatal y `data/territorio/comunidades/` con los 19 ficheros de comunidad y ciudad autónoma, cada uno con el código que da nombre a su fichero y con su régimen, y **solo el de la Comunidad de Madrid con `boletines`**, donde el BOCM figura a la vez como autonómico y como provincial con el motivo de la equivalencia escrito en el propio fichero; ninguna otra comunidad trae boletines, ninguna comunidad uniprovincial distinta deduce nada, y añadir un territorio será rellenar su fichero; **nada se escribe de memoria y esta tarea no descarga nada**: el código de cada comunidad y las provincias que declara se copian de las columnas `comunidad` y `provincia` de `municipios.yaml`, que T001 dejó congelado, y el nombre y el régimen de cada comunidad, y el código, el nombre, la dirección y el motivo del BOCM, los aporta y los revisa una persona en la pausa, que comprueba además que las provincias de los 19 ficheros cubren, sin repetirse, todas las que aparecen en la relación, porque es lo que `Cargar` exigirá en T006 (data-model §2.1); si ese material no está disponible, la tarea se detiene sin marcarse y lo anota en `gates/tarea-T002.md`; no toca código y `make ci` sigue en verde (FR-044, FR-045, FR-050, FR-051, FR-052, FR-053, FR-055, FR-086, US1 escenario 2, US3, SC-003, SC-005, data-model §3.3 y §3.4).",
+  "id": "T003",
+  "texto": "T003 [datos] [US7] Correspondencia verificada INE→DIR3, su fuente y el registro de la muestra: `schemas/territorio-dir3.yaml.json` (`fecha`, `source`, mapa `correspondencia` con `propertyNames.pattern` `^[0-9]{5}$` y valor `^L01[0-9]{6}$`, `additionalProperties: false`), `data/territorio/dir3.yaml` con **solo las filas verificadas** —entra todo municipio con fila en el REL cuyo número de inscripción es coherente con su código INE y su dígito de control oficial; lo que no, queda fuera— con `fecha` la del volcado del REL y `source` `mpt.rel`, la fila `mpt.rel` de `docs/SOURCES.md` con esa fecha —**sin añadir ningún caso a** `verify-sources.sh`, porque estas fuentes no se piden en red— y `specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md` con una fila por municipio de la muestra (municipio, código INE, DIR3 derivado, DIR3 real, de dónde salió el real y si coincide) que incluye al menos un municipio fusionado o renombrado, uno de régimen foral y uno con entidades locales menores, y con la conclusión de si la derivación queda como regla o pasa a tabla; todo lo escribe y lo decide una persona en la pausa, el ejecutor no descarga, no deriva y no inventa ningún código, y `make ci` sigue en verde (FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-048, FR-049, FR-086, US7 escenarios 1, 2 y 3, SC-007, SC-008, SC-014, contrato de datos §4 y §5).",
   "intento": 1,
   "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T002.md y déjala sin marcar.",
-  "base": "51fb4ed6ba45c95f3c81623806a90809123d2928",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
+  "base": "cb89e6e9e19a91f5312fb42a2c39d9f78342b9cd",
   "rutas": [
-    "data/territorio/comunidades/",
-    "data/territorio/estado.yaml",
-    "gates/tarea-T002.md",
-    "municipios.yaml",
-    "schemas/territorio-comunidad.yaml.json",
-    "schemas/territorio-estado.yaml.json"
+    "data/territorio/dir3.yaml",
+    "docs/SOURCES.md",
+    "schemas/territorio-dir3.yaml.json",
+    "specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md",
+    "verify-sources.sh"
   ],
   "cierre": false
 }
