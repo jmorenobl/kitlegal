@@ -1,0 +1,73 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md §Constitution Check trae un ítem por principio (I-IX) con «cómo lo cumple», «qué lo vigila» y veredicto, y una tabla aparte con las cinco reglas de dependencia de la constitución §IV más la del grafo, la de los ejemplos (ADR 0010), la del espacio reservado (ADR 0006) y la de módulos del binario (FR-124), con gates por capa, reglas del modo desatendido y re-evaluación tras la fase 1. Reejecutadas sus afirmaciones clave: TestElBinarioNoEnlazaLosEjemplos y TestLasFuentesNoFirmanComoKitlegal existen (internal/arch_test.go:179, :263); modulosDelBinario lista go.yaml.in/yaml/v4 y no v3 (internal/arch_test.go:120-167); scripts/verify-sources.sh no tiene ningún caso de territorio (grep -c → 0, exit 1); docs/SOURCES.md:65-66 trae ya las filas ine.municipios (8.132 municipios) y mpt.rel, ninguna consultable en ejecución. La única grieta no está en esta tabla sino entre ella y el inventario: la fila de R1 afirma con razón que depguard «alcanza también a los _test.go» y el inventario de tests la incumple (criterio c)."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: go.mod no cambia y golang.org/x/text sigue indirecta, rechazada por escrito en research.md D10. La única divergencia del perfil del binario —go.yaml.in/yaml/v3 pasa a enlazarse— está en Complexity Tracking con su alternativa rechazada (v4, que el binario sí enlaza hoy: internal/arch_test.go:120-167 la lista y no lista la v3) y con la obligación de añadirla a modulosDelBinario con su motivo (V11). santhosh-tekuri/jsonschema sigue fuera del binario porque internal/skills no se enlaza."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": false,
+      "evidencia": "La estructura de producción respeta las reglas: el dominio recibe bytes para no importar io/fs (D3), sin net/http, sin SQLite, sin package main nuevo, sin os.Exit y sin escritura en stdout (el applet devuelve Resultado); el paquete data solo embebe. Pero el inventario de tests coloca en el dominio un test que hace entrada y salida: plan.md:352-353 y :371 fijan `internal/core/territorio/corpus_test.go` con TestPliegueCubreElCorpus, TestNombresAlcanzables y TestNingunNombreEsSoloCifras «sobre los ficheros reales, leídos por ruta relativa como hace internal/skills». Comprobado en local que eso no se puede escribir: la lista `core` de depguard se aplica a `**/internal/core/**` (.golangci.yml:93) y deniega `os` (:115) e `io` (:117), y `run.tests: true` (.golangci.yml:10) la extiende a los _test.go —lo dice el propio plan en V7 y lo aplica bien en el contrato de identificadores §5 para el fuzz—; ningún _test.go de internal/core importa hoy `os`. Leer un fichero en Go exige `os` (o `io/…`, que cuelga de `io` por V6), y //go:embed no puede subir de directorio (V2), así que el fichero tal como está declarado no es implementable sin un //nolint, que la obligación 5 prohíbe."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Errores tipados con schema.ConClase → `argumentos` (2) y `no-encontrado` (3), traducidos en el único punto de traducción del kernel (internal/cli/errors.go, V18); tabla de códigos por entrada en data-model.md §2.6, contrato del applet §4 con la clase de cada sobre de fallo, control 13 que exige que 4, 5 y 6 no ocurran nunca (FR-016) y fuzz que exige ausencia de panic con comprobación de clase (el código numérico se comprueba en internal/app y en el e2e, porque el dominio no puede importar internal/cli). El fallo de composición se declara error inesperado (contrato del applet §7), no código de usuario."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": false,
+      "evidencia": "El inventario nombra el e2e (territorio-matriz.txtar), los unitarios por fichero, los fixtures con su tarea y su pausa y 28 controles mecánicos con demostración, y pone las evals antes de SKILL.md; los nombres de test que reutiliza existen (TestEntregaDelHito, TestSkillsDelRepositorio, TestEvalsDelRepositorio, TestRegenerarYComparar, TestIdentificadoresDeLasNormas, TestEsquemasPublicados…) y las nueve correcciones de la ronda anterior están hechas (internal/app/skills_test.go ya figura en el árbol, el inventario, Complexity Tracking y el paso 20; ComprobarDigito es método en los tres artefactos; el fuzz vive en ine_test.go y dir3_test.go en los tres; la columna `comunidad` y su control de coherencia están unificados). Quedan tres huecos. (1) El paso 16 dice regenerar «las dos referencias», pero las dos de legal-core no existen hasta el paso 21: la que se regenera de verdad al añadir las siete normas es `skills/boe-legislacion/references/normas.md`, que no aparece ni en Project Structure ni en el inventario —solo en prosa, en §Constraints y en la obligación 6—, contra la regla que el propio plan fija en :262-264 («ninguna tarea toca un fichero que no aparezca en uno de ellos»). (2) El paso 17 es `[datos]` y «no toca código» (obligación 1), pero cambiar el `then` de schemas/eval.yaml.json de `required: [comandos, citas]` a `required: [comandos]` + `anyOf` rompe por sí solo un test existente: TestLeerEval/positiva-sin-citas exige el mensaje literal «línea 1: missing property 'citas'» (internal/evals/formato_test.go:131-133) y el esquema se compila del fichero real (V28; schemas/eval.yaml.json:32); el arreglo está en el paso 18, así que el paso 17 termina con make ci en rojo. (3) El inventario mete TestEvalsDelRepositorio/conjunto-legal-core en internal/evals/conjunto_test.go sin decir en qué tarea entra: en el paso 18 quedaría rojo hasta el paso 19, y en el paso 19 hay que declarar esa ruta, que el texto del paso no nombra."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Nada de la sección *Fuera de alcance* del spec aparece en el diseño: ni grafo ni operaciones, ni festivos, ni .kitlegal/config.yaml, ni verbos distintos de resolver, ni otros territorios configurados, ni data/boletines/, ni data/organos.yaml, ni internal/core/competencia, ni identificadores distintos de INE y DIR3, ni formato de eval propio, ni lectura de data/territorio/ del sistema de ficheros, ni ADR nuevo, ni cambios en el protocolo o las evals de boe-legislacion más allá de regenerar normas.md. Lo que el diseño añade sin que el spec lo enumere está en Complexity Tracking (paquete data, tabla de esquemas parametrizada, casos negativos por skill, tabla de generadores, ComprobarConjunto parametrizado, matriz del job, dos lectores en internal/skills)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Obligación 5: ningún //nolint, ningún test saltado, ningún TODO diferido, ningún error silenciado y ninguna exclusión de lint nueva (.golangci.yml no se toca, D24; comprobado que misspell.ignore-rules tiene hoy 20 entradas, como dice V39). Ningún control se relaja: la alternativa de relajar TestEsquemasCubrenTodosLosVerbos se rechaza por escrito (D16) y los umbrales de cobertura se mantienen (obligación 10, codecov.yml:8-11). Se prevén las trampas de lint en lugar de esquivarlas (dupl con los dos analizadores en ficheros distintos, revive con los doc.go). Nada está *planificado* como atajo; el riesgo de que la implementación necesite uno viene del defecto del criterio c, no de una decisión del plan."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md D1-D26, cada decisión con su alternativa rechazada y su motivo: D2 (dónde vive el embebido, con las tres alternativas), D4 (YAML indexado frente a CSV/JSON/lista en bloque), D6 (fecha del fichero más antiguo frente al reloj o a la fecha de compilación), D9 (dígito como dato frente a algoritmo escrito de memoria), D10 (pliegue propio frente a promover golang.org/x/text), D15 (yaml v3 frente a v4), D16 (orden de la publicación del esquema), D20, D21, D22, D23, D25 (schemas/municipio.json frente a territorio.json y a territorio-municipio.json, con la regla «un fichero por entidad» comprobada en internal/app/esquemas_test.go:125-133) y D26 (parametrizar frente a copiar o a retirar el control). Comprobado que la regla de nombrado que D25 invoca es la real: ficherosDeEsquemas lleva nombre/entidad/verbos y el título es «boe · »+entidad."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "La tabla V1-V41 cita la orden o el fichero:línea de cada comprobación y, al reejecutarlas, salen como las declara: V5-V7 (internal/arch_test.go:460-498; .golangci.yml:10, :93, :115, :117), V8 y el patrón de nombrado (internal/app/esquemas_test.go:117-133, :290-320), V9 (clasificar_datos en .specify/workflows/hito/workflow.yml:928-946: un fichero nuevo bajo internal/app/testdata/ o internal/core/ids/testdata/ no casa `testdata/*|internal/source/*|schemas/*` y no pausa; uno existente sí), V10 (precheck_tasks, :468-471), V11 (modulosDelBinario sin v3), V19 (codecov.yml), V20 (`ls *.go` vacío), V24 (las descripciones salen del registro en proceso, no de lanzar el binario: internal/app/skills_test.go:760-811, así que el posicional obligatorio de `resolver` no rompe la tabla de comandos), V26/V27 (internal/evals/conjunto_test.go:627-641; conjunto.go:178), V29 (juzgar.go:345-355), V31 (el `case` de .github/workflows/evals.yml:44-56 tiene data/* y no internal/core/*), V32, V33, V35 (cronometra en internal/app/e2e_test.go:195-246), V37, V38, V39 (20 entradas) y V41 (las dos sondas positivas imprimen solo su rótulo). También comprobado lo que sostiene data-model §4.1 sin estar marcado como supuesto: data/normas.yaml tiene 11 normas, de las que 8 están en la tabla de refs/mapa-sistema-legal-skills.md §1.4, que trae 15; faltan exactamente las siete de S7. Lo que depende de la red, de la plataforma o del fichero que genera la tarea [datos] está en S1-S9 como supuesto."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Los tres motivos de la ronda anterior están corregidos y reejecutados: §8 invoca `--describe` con su argumento y deja la invocación sin posicional como demostración explícita del exit 2 (V40); §Prerrequisitos, §11 y §12 usan la sonda positiva `… ; echo \"fin del …\"` con rtk proxy en cada etapa —comprobado en este repositorio: `rtk proxy git diff --stat main -- evals/boe-legislacion ; echo \"fin del diff\"` imprime solo `fin del diff`, igual que la de `git status --porcelain`—; y §Prerrequisitos dice ya que la de plataforma es la §14 y que las 1 a 13 son locales. Lo demás se sostiene: `.properties.entrada.required` existe en lo que emite --describe (probado con `boe indice BOE-A-2015-10565 --describe` → `norma`), el subtest `^TestEntregaDelHito$/^territorio-matriz$` es la forma en que testscript nombra un guion, make ci tiene los diez prerrequisitos (Makefile:162), `grep -c territorio scripts/verify-sources.sh` da 0 con código 1 como dice §13, y los defectos se provocan solo sobre clones desechables bajo /tmp/kitlegal-quickstart-h6/, uno por defecto, sin tocar el árbol, el índice ni el historial."
+    }
+  ],
+  "motivos": [
+    "plan.md:352-353 y :371 — `internal/core/territorio/corpus_test.go` no se puede escribir como está declarado: leer data/territorio/ «por ruta relativa» exige `os`, que depguard deniega a `**/internal/core/**` (.golangci.yml:93, :115, :117) también en los _test.go (`run.tests: true`, .golangci.yml:10), como el propio plan verifica en V7 y aplica en contracts/identificadores-ine-y-dir3.md §5; //go:embed tampoco alcanza (V2) y ningún _test.go de internal/core importa hoy `os`. Dar a TestPliegueCubreElCorpus, TestNombresAlcanzables y TestNingunNombreEsSoloCifras un sitio desde el que sí se puedan leer los ficheros reales —internal/skills, que ya los lee por ruta y ya importa el dominio, o internal/app, que ya tiene los bytes embebidos— y actualizar en consecuencia el inventario, el árbol, el control 5, los tests de contrato y contracts/datos-de-territorio.md §6; si en su lugar se decide pasarle al test los bytes del paquete `data`, dejarlo escrito, porque D3 y la fila R1 del Constitution Check dicen hoy que el dominio no importa `data`.",
+    "plan.md:429-431 (paso 16) — «las dos referencias regeneradas» no puede referirse a las de legal-core, que no existen hasta el paso 21: la que la tarea regenera de verdad al añadir las siete normas es `skills/boe-legislacion/references/normas.md`, y ese fichero no aparece ni en Project Structure ni en el «Inventario de tests», solo en prosa (§Constraints y obligación 6), contra la regla que el plan fija en :262-264. Añadirlo al árbol con «←» y su motivo (regeneración por FR-074), y reescribir el paso 16 para que diga qué referencia se regenera ahí y cuáles en el 21.",
+    "plan.md:432-433 (paso 17) — la tarea `[datos]` del esquema de eval deja `make ci` en rojo, contra «cada tarea deja make ci en verde al terminar» (:395) y contra la obligación 1, que solo admite el paso 10 como tarea `[datos]` que toca código. Cambiar el `then` de schemas/eval.yaml.json (schemas/eval.yaml.json:32) a `required: [comandos]` + `anyOf` hace que TestLeerEval/positiva-sin-citas deje de ver el mensaje literal que exige, «línea 1: missing property 'citas'» (internal/evals/formato_test.go:131-133), porque el esquema se compila del fichero real (V28). Declarar esta tarea como la segunda excepción razonada del tipo D16 —esquema + el cambio de internal/evals/formato.go y formato_test.go que su forma impone, en la misma tarea y con su pausa— o reordenar los pasos 17 y 18 de modo que ninguno quede en rojo, y dejarlo escrito en Complexity Tracking, en el orden de implementación y en la obligación 1.",
+    "plan.md:385 y :434-436 — el inventario mete `TestEvalsDelRepositorio/conjunto-legal-core` en `internal/evals/conjunto_test.go` sin decir en qué tarea entra: si entra en el paso 18, falla hasta que el 19 crea las tres evals (obligación 12 exige que no pase en vacío); si entra en el paso 19, ese paso tiene que declarar la ruta `internal/evals/conjunto_test.go`, que su texto no nombra. Fijar cuál de las dos cosas es, como se hace en D16 y en D26 para los casos análogos.",
+    "Menor, plan.md:533 — la fila «h. mejor_alternativa» de la comprobación contra la rúbrica dice «D1-D24» cuando research.md llega a D26 (y D25 y D26 son justamente dos de las decisiones con alternativa que la ronda anterior pidió). Corregir el rango."
+  ]
+}

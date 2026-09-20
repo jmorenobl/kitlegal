@@ -1,0 +1,117 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Dominio y modelo de datos — alcance del fichero INE→DIR3 (FR-048)",
+      "pregunta": "¿Qué municipios entran en el fichero de correspondencia INE→DIR3 de `data/territorio/`: solo los de la muestra comprobada uno a uno contra DIR3 real, o todos aquellos a los que la regla de derivación comprobada en la muestra se aplica sin discrepancia (por ejemplo, los que tienen fila en el REL con número de inscripción coherente con su código INE)?",
+      "por_que_importa": "Decide cuántos municipios salen con DIR3 y cuántos salen sin él y declarados en `cobertura`: entre una lectura y otra van de unos pocos municipios a varios miles, y con ello el contenido del fichero versionado, lo que el e2e puede afirmar y qué significa «verificado» en la salida.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Solo entran los municipios de la muestra comprobada individualmente contra un DIR3 real: el fichero tiene tantas filas como municipios comprobados a mano, y todos los demás salen sin DIR3 con `cobertura` declarándolo no verificado."
+        },
+        {
+          "id": "B",
+          "texto": "Entra todo municipio al que la regla de derivación se aplica sin discrepancia (fila en el REL con número de inscripción coherente con su código INE), tras haberse comprobado la regla contra DIR3 real en la muestra: el fichero cubre a la mayoría de municipios y quedan fuera los que incumplen la condición de coherencia."
+        },
+        {
+          "id": "C",
+          "texto": "Entran los municipios de la opción B, pero el fichero distingue por fila el origen de cada código (comprobado individualmente contra DIR3 real frente a derivado por la regla) y `cobertura` traslada esa distinción a la salida."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Dominio y modelo de datos — fuente en `data/` de las referencias generadas (FR-067)",
+      "pregunta": "¿De qué parte de `data/` salen las dos referencias generadas de `legal-core`: cómo se distingue qué normas de `data/normas.yaml` son «vertebrales», y qué fichero de datos sostiene el contenido de `jerarquia_normativa.md`?",
+      "por_que_importa": "`references/` tiene que regenerarse desde `data/` sin drift y `data/*.yaml` es la única fuente de verdad; de esta respuesta dependen el esquema de `data/normas.yaml`, si nace un fichero de datos nuevo con su esquema, y qué comprueba `make skills-sync` y el control de drift de `make ci`.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Un campo nuevo en `data/normas.yaml` marca qué normas son vertebrales, y la jerarquía normativa sale también de `data/normas.yaml` (por ejemplo, del rango y el nivel de cada norma): no se crea ningún fichero de datos nuevo y el esquema existente gana campos."
+        },
+        {
+          "id": "B",
+          "texto": "Un campo nuevo en `data/normas.yaml` marca las vertebrales, y la jerarquía normativa vive en un fichero de datos nuevo en `data/` con su propio esquema en `schemas/`, con los niveles, sus boletines y las reglas de interpretación."
+        },
+        {
+          "id": "C",
+          "texto": "Toda norma de `data/normas.yaml` se considera vertebral, sin marca ni campo nuevo, y la jerarquía normativa vive en un fichero de datos nuevo con su propio esquema."
+        },
+        {
+          "id": "D",
+          "texto": "Las dos referencias salen de un fichero de datos nuevo dedicado a `legal-core` (leyes vertebrales por referencia a su identificador más la jerarquía), y `data/normas.yaml` queda sin cambios."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Criterios de validación — formato y juicio de las evals de `legal-core` (FR-084)",
+      "pregunta": "¿Cómo se expresan y se juzgan mecánicamente las evals de `legal-core`, si el formato común que dejaron H5 y H5.1 solo conoce comandos y citas de norma y bloque del BOE y exige `citas` a toda eval que activa la skill?",
+      "por_que_importa": "Las evals se escriben antes que el código de la skill, así que su formato condiciona el orden de las tareas y qué puede medirse; además determina si `schemas/eval.yaml.json`, `internal/evals` y las reglas del conjunto cambian en este hito y si las evals de `boe-legislacion` se ven afectadas.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El formato común se extiende en H6: gana un esperado propio de territorio (comando de `territorio resolver` con su municipio y los datos territoriales que la respuesta debe llevar) y la regla de `citas` obligatorias se relaja para las evals que no son de norma; `internal/evals` y el esquema de eval cambian en este hito."
+        },
+        {
+          "id": "B",
+          "texto": "El formato común no se toca: las evals de `legal-core` se expresan con lo que ya existe, exigiendo el comando de `territorio` y usando como `citas` los identificadores de las leyes vertebrales que la respuesta debe citar."
+        },
+        {
+          "id": "C",
+          "texto": "Las evals de `legal-core` usan un formato y un juicio propios, separados del común, y el conjunto de `boe-legislacion` y sus reglas quedan intactos."
+        },
+        {
+          "id": "D",
+          "texto": "Las evals de `legal-core` se expresan comparando una forma fija en la respuesta, como los avisos de vigencia de H5.1 (una marca fija que la skill escribe con el territorio identificado), en lugar de un esperado estructurado de territorio."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Restricciones técnicas y modos de fallo — cómo llega `data/territorio/` a la ejecución",
+      "pregunta": "¿Cómo obtiene el binario los ficheros de `data/territorio/` cuando se ejecuta `territorio resolver`: empaquetados dentro del propio binario al compilar, leídos del sistema de ficheros en tiempo de ejecución, o una mezcla de las dos?",
+      "por_que_importa": "Es la primera vez que el binario necesita datos de `data/` en ejecución, y de la respuesta depende si existe un modo de fallo nuevo —datos ausentes o ilegibles— con su código de salida; FR-016 afirma hoy que el applet no devuelve nunca exit 4, lo que solo se sostiene si el dato no puede faltar. También condiciona el tamaño del binario con los 8.132 municipios, cómo se refrescan los datos y qué comprueban el e2e y la release.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Los ficheros se empaquetan dentro del binario al compilar: la respuesta no depende del directorio de trabajo, un fichero ausente es un fallo de compilación y no aparece ningún modo de fallo en ejecución; el binario crece con el registro completo y refrescar los datos exige recompilar."
+        },
+        {
+          "id": "B",
+          "texto": "El binario lee los ficheros del sistema de ficheros en ejecución (ruta del repositorio o ruta configurable): el binario no crece y los datos se refrescan sin recompilar; aparece un modo de fallo nuevo cuando los datos faltan o no se pueden leer, al que hay que asignar código de salida y revisar FR-016."
+        },
+        {
+          "id": "C",
+          "texto": "Mezcla: un fichero se empaqueta y el otro se lee en ejecución (por ejemplo, el registro de municipios dentro del binario y la configuración por comunidad desde el sistema de ficheros, o al revés), declarando cuál es cuál y qué ocurre cuando falta el que se lee."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Alcance funcional y frontera entre skills — `legal-core` frente a `boe-legislacion`",
+      "pregunta": "Cuando una pregunta que `legal-core` atiende exige el texto concreto de una norma, ¿qué hace la skill, y qué applets figuran en su tabla de comandos generada desde `--describe`?",
+      "por_que_importa": "Define qué escribe `SKILL.md`, qué comandos lleva su tabla y qué pueden exigir sus evals; también determina si las dos skills pueden activarse ante la misma pregunta y si la regla invariante de citar por identificador se cumple con las referencias generadas o exige consultar el BOE en la conversación.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "`legal-core` v0 resuelve territorio y razona con sus dos referencias; cuando hace falta el texto de una norma remite a `boe-legislacion`, y su tabla de comandos lleva únicamente los verbos de `territorio`."
+        },
+        {
+          "id": "B",
+          "texto": "`legal-core` v0 invoca también el applet `boe` dentro de su propio protocolo; su tabla de comandos lleva los verbos de `territorio` y los de `boe`, y sus evals pueden exigir citas de norma y bloque del BOE."
+        },
+        {
+          "id": "C",
+          "texto": "`legal-core` v0 no fija nada al respecto: no se declara delegación ni frontera de activación con `boe-legislacion`, y cada skill se activa por su propia descripción; queda para un hito posterior."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
