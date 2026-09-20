@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ventanillalegal.es/schemas/territorio-municipios.yaml.json",
+  "title": "data/territorio/municipios.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fecha", "source", "municipios"],
+  "properties": {
+    "fecha": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "source": { "type": "string", "minLength": 1 },
+    "municipios": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[0-9]{5}$" },
+      "additionalProperties": { "$ref": "#/$defs/municipio" }
+    }
+  },
+  "$defs": {
+    "municipio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dc", "nombre", "provincia", "comunidad"],
+      "properties": {
+        "dc": { "type": "string", "pattern": "^[0-9]$" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "provincia": { "type": "string", "pattern": "^[0-9]{2}$" },
+        "comunidad": { "type": "string", "pattern": "^[0-9]{2}$" }
+      }
+    }
+  }
+}

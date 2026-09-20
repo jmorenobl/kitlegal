@@ -1,0 +1,16 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US7] Relación congelada de municipios y su esquema: `schemas/territorio-municipios.yaml.json` (nuevo, JSON Schema 2020-12 con `additionalProperties: false`, raíz con `fecha` en `AAAA-MM-DD` y `source`, y mapa `municipios` con `propertyNames.pattern` `^[0-9]{5}$` y cada fila con sus cinco columnas obligatorias: `dc` de una cifra, `nombre` no vacío, `provincia` y `comunidad` de dos cifras) y `data/territorio/municipios.yaml` (una línea por municipio, `fecha` la de referencia del fichero del INE y `source` `ine.municipios`), escritos por una persona en la pausa a partir de la relación oficial del INE descargada **fuera del repositorio**; el ejecutor desatendido no descarga nada y no escribe ningún código INE ni dígito de memoria —si el material no está disponible se detiene sin marcarse y lo anota en `gates/tarea-T001.md`—; no toca código y `make ci` sigue en verde porque todavía ningún lector mira el fichero (FR-040, FR-041, FR-044, FR-045, FR-086, US7 escenario 1, SC-007, data-model §3.1, contrato de datos §1 y §4).",
+  "intento": 2,
+  "datos": true,
+  "plataforma": false,
+  "plataforma_bloqueada": false,
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T001.md y déjala sin marcar.",
+  "base": "33519fc01c374bdaa537680630ddf33739cbbd13",
+  "rutas": [
+    "data/territorio/municipios.yaml",
+    "gates/tarea-T001.md",
+    "schemas/territorio-municipios.yaml.json"
+  ],
+  "cierre": false
+}
