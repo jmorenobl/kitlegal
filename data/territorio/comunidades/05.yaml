@@ -1,0 +1,8 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "05"
+nombre: "Canarias"
+regimen: comun
+provincias:
+  "35": "Las Palmas"
+  "38": "Santa Cruz de Tenerife"

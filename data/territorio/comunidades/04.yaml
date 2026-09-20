@@ -1,0 +1,7 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "04"
+nombre: "Illes Balears"
+regimen: comun
+provincias:
+  "07": "Illes Balears"

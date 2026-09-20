@@ -191,3 +191,38 @@ quedan resueltos»): **13** es la Comunidad de Madrid —la única que lleva `bo
 - Sigue en pie la mejora de proceso anotada en T001, que afecta igual a T003 y T015: la línea de una tarea `[datos]`
   cuya entrega completa una persona debería decir la secuencia explícita en lugar de la cláusula «se detiene sin
   marcarse».
+
+## Resuelto en la pausa (2026-09-20)
+
+Los 19 ficheros de `data/territorio/comunidades/` **escritos**. Nada de memoria: cada campo sale de una de estas tres
+procedencias, y las tres son comprobables.
+
+| Campo | De dónde sale |
+|---|---|
+| `codigo`, `provincias` (claves) | Derivados de `data/territorio/municipios.yaml`, contando sus 8.132 filas. Coinciden **exactamente** con la tabla del manifiesto de arriba, comunidad a comunidad y provincia a provincia, incluidos los recuentos de municipios |
+| `nombre` (comunidad y provincia) | Tablas de códigos del INE: `cod_ccaa.htm` (SHA-256 `843977236254a0ae…e927`) y `cod_provincia.htm` (SHA-256 `f26be07b88d4004c…3fde`), bajo `/daco/`, que el `robots.txt` del INE permite y que ya cubre la fila `ine.municipios` de `docs/SOURCES.md` |
+| `regimen` | **SC-003 del spec**, que lo fija sin ambigüedad: foral en Navarra (15) y País Vasco (16); común en las demás y en las dos ciudades autónomas |
+| `boletines` de `13.yaml` | `data-model.md` §3.4, que da el código, el nombre y el motivo literales; la dirección <https://www.bocm.es/> comprobada (200) |
+
+**Forma de los nombres: natural, no la invertida del INE.** El INE publica el literal invertido para ordenar
+alfabéticamente («Madrid, Comunidad de», «Balears, Illes», «Coruña, A»). Se guarda la forma natural («Comunidad de
+Madrid», «Illes Balears», «A Coruña»), que es la que fija el ejemplo de `data-model` §3.4 y la que lee bien en la
+respuesta al usuario. La transformación es una regla mecánica y reversible —partir por la primera `, ` e intercambiar
+las dos mitades; los nombres sin coma no se tocan— y afecta a 4 comunidades y 4 provincias. Decisión de Jorge en esta
+pausa.
+
+### Comprobado antes de aprobar
+
+Con el lector real (`skills.CompilarEsquema` + `skills.ValidarDocumentoYAML`) en un `_test.go` temporal borrado antes
+de `make ci`, sobre los 19 ficheros: los 4 puntos de «Comprobaciones antes de aprobar la pausa» pasan —los 19 existen
+con el `codigo` que da nombre al fichero, cada uno declara exactamente las provincias de su fila con su nombre, los 19
+traen `regimen` y solo `13.yaml` trae `boletines`, y los 19 validan contra `schemas/territorio-comunidad.yaml.json`—.
+Además: **las 52 provincias aparecen una sola vez**, `01` a `52` sin huecos, que es la integridad que `Cargar` exigirá
+en T006. `make ci` en verde con los 19 dentro.
+
+### Pendiente, no bloqueante
+
+`docs/SOURCES.md` tiene fila para la relación de municipios (`ine.municipios`) pero **no** para las dos tablas de
+códigos del INE de las que salen los nombres. Misma publicadora, misma licencia CC BY 4.0 y misma ruta permitida por
+`robots.txt`, así que no cambia nada de lo ya revisado; pero la tabla debería ganar su fila. No se añade aquí para no
+meter `docs/SOURCES.md` en el commit de esta pausa: entra en la tarea que ya declara esa ruta (T003).

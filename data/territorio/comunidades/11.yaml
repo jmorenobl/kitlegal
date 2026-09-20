@@ -1,0 +1,8 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "11"
+nombre: "Extremadura"
+regimen: comun
+provincias:
+  "06": "Badajoz"
+  "10": "Cáceres"

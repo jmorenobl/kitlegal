@@ -1,0 +1,9 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "10"
+nombre: "Comunitat Valenciana"
+regimen: comun
+provincias:
+  "03": "Alicante/Alacant"
+  "12": "Castellón/Castelló"
+  "46": "Valencia/València"

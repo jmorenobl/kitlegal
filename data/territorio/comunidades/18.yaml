@@ -1,0 +1,7 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "18"
+nombre: "Ceuta"
+regimen: comun
+provincias:
+  "51": "Ceuta"

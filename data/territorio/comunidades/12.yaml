@@ -1,0 +1,10 @@
+fecha: "2026-09-20"
+source: ine.municipios
+codigo: "12"
+nombre: "Galicia"
+regimen: comun
+provincias:
+  "15": "A Coruña"
+  "27": "Lugo"
+  "32": "Ourense"
+  "36": "Pontevedra"
