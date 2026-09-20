@@ -103,3 +103,43 @@ verbos publicados y `skills-check` solo `data/normas.yaml`).
   completa una persona en la pausa debería decirlo en su línea con la secuencia explícita —«el ejecutor marca la tarea
   con el esquema; la persona añade el fichero en la pausa y lo confirma en la rama»— en lugar de la cláusula «se detiene
   sin marcarse», que en T001 produce el bloqueo descrito arriba. Afecta igual a T002, T003 y T015 de este hito.
+
+## Resuelto en la pausa (2026-09-20)
+
+`data/territorio/municipios.yaml` **escrito**, desde la fuente declarada y sin nada de memoria.
+
+- Origen: <https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx>, la dirección de la fila `ine.municipios` de
+  `docs/SOURCES.md`. SHA-256 del fichero descargado:
+  `07f8e8d64eba73fe9d425196fe82f4e09a9886a287abd650e88ca8d98dd49052` (306.819 bytes; `Last-Modified` 2026-03-13).
+- Lectura: la hoja se abrió con la biblioteca estándar (`zipfile` + `ElementTree`, un `.xlsx` es un zip de XML),
+  fuera del repositorio y sin versionar. Ni el producto ni `make ci` necesitan nada nuevo.
+- `fecha: "2026-02-04"` y `source: ine.municipios`, como fija esta nota; las claves ordenadas por código INE.
+
+### S1 y S5 quedan resueltos
+
+La hoja trae **exactamente** las cinco columnas que S1 suponía: `CODAUTO`, `CPRO`, `CMUN`, `DC`, `NOMBRE`
+(cabecera en la fila 2; 8.134 filas − 2 de cabecera = **8.132 municipios**, la cifra que declara `docs/SOURCES.md`).
+Comprobado además, sobre el fichero generado y con el lector real (`skills.CompilarEsquema` +
+`skills.ValidarDocumentoYAML`, en un `_test.go` temporal borrado antes de `make ci`): valida contra
+`schemas/territorio-municipios.yaml.json`; la `provincia` de cada fila son las dos primeras cifras de su clave;
+**52 provincias, cada una con una sola comunidad** (el control de coherencia de data-model §2.1 punto 6 pasa); y
+**19 comunidades**, las que exige `TestTerritorioDelRepositorio`. S5 también se confirma: 13 Madrid, 15 Navarra,
+16 País Vasco, 18 Ceuta, 19 Melilla. `make ci` en verde con el fichero dentro.
+
+### Aviso para T002 y T003: el dígito de control de Leganés es **5**, no 8
+
+La fila real del INE es `13 | 28 | 074 | 5 | Leganés`. Los artefactos del hito traen `8` en cinco sitios, escrito de
+memoria antes de tener la hoja, y el juez del plan ya avisó de que un ejemplo incoherente puede «acabar copiado en un
+fixture». **Ninguno de estos valores se copia a `data/`, a `testdata/` ni a un test**; hay que corregirlos en la tarea
+que toque cada fichero:
+
+| Sitio | Dice | Es |
+|---|---|---|
+| `research.md:128`, `data-model.md:226` (ejemplo de `municipios.yaml`) | `dc: "8"` | `dc: "5"` |
+| `research.md:295` (D11, `digito_de_control`) | `"8"` | `"5"` |
+| `research.md:298`, `data-model.md:241` (DIR3 de Leganés) | `L01280748` | lo que verifique T003 |
+| `contracts/identificadores-ine-y-dir3.md:88` (casos de forma) | `L01280748` | solo ilustra la **forma**, no el municipio |
+
+El DIR3 correcto **no se deduce aquí**: S2 supone que es `L` + el número de inscripción del REL y esa derivación es
+justo lo que verifica la pausa de T003. Si el dígito del REL coincide con el del INE, Leganés sería `L01280745`; el
+valor que entre en `dir3.yaml` sale del volcado del REL, no de este cálculo.
