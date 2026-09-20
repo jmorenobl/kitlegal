@@ -246,8 +246,10 @@ implementa ningún algoritmo de cálculo del dígito.
 **Motivo.** El dígito de control del INE es un dato publicado, no una función que este proyecto pueda derivar y
 verificar sin red; escribir un algoritmo de memoria sería exactamente lo que ADR 0017 prohíbe con el DIR3. Con el
 dígito como dato, la comprobación es correcta por construcción para los 8.132 municipios y no hace falta ninguna
-hipótesis. El orden de los fallos queda: código bien formado pero de un municipio que no está en la relación → 3
-(FR-011); código de un municipio que sí está, con dígito distinto del oficial → 2 (FR-012).
+hipótesis. El orden de los fallos queda: código **bien formado** —provincia `01`-`52` y municipio `001`-`999`— pero de
+un municipio que no está en la relación → 3 (FR-011); entrada de solo cifras que no cumple esa gramática (provincia `00`
+o mayor que `52`, municipio `000`, longitud imposible) → 2, porque no llega a ser un código; código de un municipio que
+sí está, con dígito distinto del oficial → 2 (FR-012).
 
 **Alternativas.** *Implementar el algoritmo del dígito y verificarlo contra la relación*: daría validación sin
 consultar la tabla, pero el algoritmo sería una hipótesis escrita de memoria, y la tabla está embebida de todos modos.

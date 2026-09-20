@@ -129,7 +129,7 @@ Quien escribe un nombre que comparten varios municipios recibe la lista de candi
 1. **Given** un nombre que la relación del INE da a más de un municipio, **When** se resuelve, **Then** exit es 2 y el mensaje del sobre de fallo lista todos los candidatos con su código INE y su provincia.
 2. **Given** un nombre que no corresponde a ningún municipio, **When** se resuelve, **Then** exit es 3.
 3. **Given** un código INE con dígito de control incorrecto o con un formato imposible, **When** se resuelve, **Then** exit es 2 y el mensaje dice qué tiene de malo.
-4. **Given** un código INE bien formado que no está en la relación, **When** se resuelve, **Then** exit es 3.
+4. **Given** un código INE bien formado —cinco cifras con provincia entre `01` y `52` y municipio distinto de `000`— que no está en la relación, **When** se resuelve, **Then** exit es 3. (Un código con provincia fuera de ese rango no está bien formado: es entrada mal formada, exit 2.)
 
 ---
 
@@ -215,8 +215,8 @@ Quien prepara los datos ejecuta una tarea `[datos]`, fuera del bucle de implemen
 #### Entrada, ambigüedad y códigos de salida
 
 - **FR-010**: Una consulta resuelta DEBE terminar con exit 0.
-- **FR-011**: Un municipio que no está en la relación DEBE terminar con exit 3 («no encontrado»).
-- **FR-012**: Una entrada mal formada —código con dígito de control incorrecto, con un número de cifras imposible o vacía— DEBE terminar con exit 2, con un mensaje que diga qué tiene de malo.
+- **FR-011**: Un municipio que no está en la relación DEBE terminar con exit 3 («no encontrado»). Por código, esto solo alcanza a los **bien formados** según FR-012: cinco cifras (o seis con su dígito) con provincia entre `01` y `52` y municipio distinto de `000`.
+- **FR-012**: Una entrada mal formada —código con dígito de control incorrecto, con un número de cifras imposible, con la provincia fuera del rango `01`-`52`, con el municipio `000` o vacía— DEBE terminar con exit 2, con un mensaje que diga qué tiene de malo. Una entrada de solo cifras que no cumple la gramática **no llega a ser un código**, y por tanto nunca termina en 3.
 - **FR-013**: Un nombre que corresponde a más de un municipio DEBE terminar con exit 2 y NO DEBE elegir uno por su cuenta.
 - **FR-014**: En ese caso, el mensaje del sobre de fallo DEBE listar todos los candidatos con su código INE y su provincia, en orden de código INE. (El sobre de fallo conserva las seis claves de FR-003; lo que es exactamente `{clase, mensaje}` por ADR 0006 es su `data`, así que la lista viaja en el mensaje.)
 - **FR-015**: La coincidencia por nombre DEBE ser insensible a mayúsculas y a los signos diacríticos, y DEBE reconocer el nombre tal como lo escribe la relación del INE, su forma con el artículo antepuesto y, en los nombres bilingües, cada una de sus formas; dos municipios distintos nunca pueden colapsar en uno por efecto de esa normalización.

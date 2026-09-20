@@ -183,8 +183,8 @@ entrada → ¿solo cifras? ── sí ──→ código INE (5 o 6 cifras)
 | Código de cinco cifras de un municipio de la relación | 0 | El territorio |
 | Código de seis cifras con el dígito oficial | 0 | El mismo `data` y la misma huella que por cinco cifras y que por nombre (SC-001) |
 | Código de seis cifras con dígito distinto del oficial | 2 | Mensaje que dice el dígito recibido y el oficial |
-| Solo cifras que no forman un código (vacío, 4 cifras, 7 cifras, provincia 00 o 53…) | 2 | Mensaje que dice qué tiene de malo |
-| Código bien formado que no está en la relación | 3 | — |
+| Solo cifras que no forman un código (vacío, 4 cifras, 7 cifras, provincia 00 o 53…, municipio 000) | 2 | Mensaje que dice qué tiene de malo |
+| Código **bien formado** —provincia `01`-`52` y municipio `001`-`999`— que no está en la relación | 3 | — |
 | Nombre que corresponde a un municipio | 0 | El territorio |
 | Nombre que corresponde a varios | 2 | Mensaje con **todos** los candidatos, ordenados por código INE |
 | Nombre que no corresponde a ninguno | 3 | — |

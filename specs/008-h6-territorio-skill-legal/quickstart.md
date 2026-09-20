@@ -124,19 +124,27 @@ de las cinco columnas que FR-040 exige (data-model §3.1).
 
 ## 6. Ambigüedad, inexistencia y código mal formado (US4, FR-010 a FR-014, SC-004)
 
+El código ausente de la relación tampoco se escribe a mano: se compone de una provincia que trae el propio fichero
+congelado y de un número de municipio que ese fichero no tiene, comprobado antes de invocar (misma técnica que §5 y §9).
+Un código con provincia fuera de `01`-`52` **no está bien formado** y no llega a ser un código: es exit 2, no 3
+(data-model §2.6, contrato de identificadores §2).
+
 ```bash
 rtk proxy sh -c './bin/kitlegal territorio resolver "Villanueva" --json; echo "código: $?"'
 rtk proxy ./bin/kitlegal territorio resolver "Villanueva" --json | rtk proxy jq -r '.data.clase, .data.mensaje'
 rtk proxy sh -c './bin/kitlegal territorio resolver "Municipio Que No Existe" --json; echo "código: $?"'
+rtk proxy sh -c 'set -e; p=$(sed -n "s/^  \"\([0-9][0-9]\)[0-9]\{3\}\":.*/\1/p" data/territorio/municipios.yaml | head -1); n=999; while grep -q "^  \"$p$n\":" data/territorio/municipios.yaml; do n=$((n - 1)); done; echo "bien formado y ausente de la relación: $p$n"; set +e; ./bin/kitlegal territorio resolver "$p$n" --json; echo "código: $?"'
 rtk proxy sh -c './bin/kitlegal territorio resolver 99999 --json; echo "código: $?"'
 rtk proxy sh -c './bin/kitlegal territorio resolver 2807 --json; echo "código: $?"'
 rtk proxy sh -c 'set -e; c=$(./bin/kitlegal territorio resolver Leganés --json | jq -r .data.codigo_ine.codigo); d=$(./bin/kitlegal territorio resolver Leganés --json | jq -r .data.codigo_ine.digito_de_control); otro=$(( (d + 1) % 10 )); set +e; ./bin/kitlegal territorio resolver "$c$otro" --json; echo "código: $?"'
 ```
 
 Espera, en este orden: **2** con clase `argumentos` y un mensaje que lista todos los candidatos con su código INE y su
-provincia, ordenados por código; **3**; **3** (código bien formado que no está en la relación); **2** (cuatro cifras
-no son un código); **2** (dígito de control distinto del oficial —se toma el de Leganés y se le suma uno— y el mensaje
-dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6.
+provincia, ordenados por código; **3** (el nombre no corresponde a ningún municipio); la línea `bien formado y ausente
+de la relación: <PPMMM>` y después **3**, con clase `no-encontrado`; **2** para `99999`, con clase `argumentos` y un
+mensaje que dice qué tiene de malo —la provincia `99` está fuera de `01`-`52`, así que la entrada no llega a ser un
+código y **nunca** puede dar 3—; **2** (cuatro cifras no son un código); **2** (dígito de control distinto del oficial
+—se toma el de Leganés y se le suma uno— y el mensaje dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6.
 
 Si el nombre `Villanueva` resultara no ser ambiguo en la relación congelada, el caso ambiguo se toma del propio
 registro:

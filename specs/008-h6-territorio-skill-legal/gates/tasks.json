@@ -1,0 +1,52 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md §Métricas: «Incidencias CRÍTICAS: 0 · ALTAS: 0 · MEDIAS: 2 · BAJAS: 3», confirmado en §Siguientes acciones. Las cinco incidencias están hoy recogidas en los artefactos, no solo en el informe (analyze.md:56-70): C1 (MEDIA) en tasks.md:104, donde T002 declara el origen de cada dato —código y provincias copiados de `municipios.yaml`, y nombre, régimen y BOCM aportados por la persona— y la parada con anotación en `gates/tarea-T002.md`; C5 (BAJA) en tasks.md:52-56, que atribuye las descargas a las pausas de T001, T003 y T015 y dice expresamente que en la de T002 no se descarga nada; C2 (MEDIA) partiendo el antiguo T016 en T016 (lector de la jerarquía, su control y `Makefile`, tasks.md:184) y T017 (normas, marcas y tabla de generadores, tasks.md:186), con el paso 16 declarado divisible en plan.md:489-493; C4 (BAJA) resuelta con el umbral de 200 ms ya establecido; y C3 (BAJA) comprobada infundada contra el repositorio: `malFormadosDeCadaSkill` (internal/evals/conjunto_test.go:710-733) recorre cada carpeta de `evals/` y solo exige que sus ficheros se lean, el subtest `grabado` opera solo sobre el conjunto de `boe-legislacion` (:667-684) y `avisos-de-la-skill` lee solo `skills/boe-legislacion/SKILL.md` (:601, :696-703), así que T020 puede crear `evals/legal-core/` antes que la skill."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Los 79 FR que declara spec.md §Requirements (001-016, 020-024, 030-035, 040-049, 050-056, 060-069, 070-074, 080-086, 090-102, recuento hecho sobre spec.md:205-316) y los 15 SC (spec.md:334-348) aparecen todos en la tabla «Trazabilidad: requisito → tarea» de tasks.md:266-325, cada uno con al menos una tarea, sin huecos tras la renumeración. El reparto es además correcto, no solo presente: FR-085 (material existente bajo `schemas/`/`testdata/`) va a T013, T015 y T018, y FR-086 (material nuevo) a T001, T002, T003, T005, T010, T012, T014 y T015, que es justo lo que distinguen spec.md:296-297. En sentido inverso, las 26 tareas citan en su propia línea los requisitos que cumplen (T001 → FR-040/041/044/045/086; T016 → FR-044/066/067; T017 → FR-065 a FR-074; T020 → FR-080 a FR-083; T026 → FR-100/101, SC-013, SC-015) y ninguna introduce trabajo fuera del spec: lo excluido está enumerado en tasks.md:407-413 y coincide con spec.md §Fuera de alcance."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "El bloqueante de la ronda anterior está resuelto **como clase de error** en los siete artefactos donde se ejercía el caso «código bien formado que no está en la relación»: quickstart.md:127-147 (§6 deriva el código ausente del propio fichero congelado —provincia leída con `sed`, municipio comprobado con `grep` antes de invocar— y deja `99999` como caso explícito de exit 2 con su expectativa corregida), tasks.md:149 (T009, «por un código **bien formado**: provincia dentro de `01`-`52`») y :165 (T012, que además exige el caso de provincia fuera de rango con exit 2), plan.md:310 (control 6) y :406 (`TestResolver/codigo-inexistente`), spec.md:132 (US4 escenario 4), :218-219 (FR-011 y FR-012), data-model.md:186-187 y contracts/applet-territorio.md:61, más research.md:250. Comprobado que la orden nueva de §6 es ejecutable tal cual sobre el formato que fija data-model.md:220-233 (`  \"28074\": {dc: …}`), con `set -e`/`set +e` en el sitio correcto. Las excepciones a «test + implementación» siguen declaradas una a una (tasks.md:77-86) y el orden secuencial, justificado tarea a tarea (tasks.md:344-371). Verificadas contra el repositorio las tres piezas donde el verde entre tareas era dudoso: T013 no rompe nada porque `TestEsquemaDeNormas` solo compila el esquema y compara el `enum` de rango (internal/skills/normas_test.go:361-380), sin control de propiedades contra la estructura Go; T015 puede traer manifiesto y grabaciones antes que las normas porque `verificarIdentificadores` (internal/evals/grabaciones_test.go:402-441) recorre las normas de la tabla y una entrada del manifiesto sin norma no es defecto, y las grabaciones nuevas caben en el directorio existente `GrabacionesDeH5 = ../../testdata/evals/boe` (internal/evals/grabaciones.go:16-24), de modo que no hace falta tocar código; y T023 es autosuficiente porque `make evals` ya toma `SKILL` (Makefile:111-113) y el filtro de rutas del job ya cubre `data/*` (.github/workflows/evals.yml, job `cambios`). También es cierto el motivo del módulo nuevo de T009: `modulosDelBinario` (internal/arch_test.go:126-168) lleva `go.yaml.in/yaml/v4` pero no `go.yaml.in/yaml/v3`, que es el que usa el árbol que el applet arrastra (internal/skills/esquemas.go:18; go.mod:14)."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Aplicado a las 26 líneas el extractor literal del guardián (.specify/workflows/hito/workflow.yml:624), ninguna deja extraer una carpeta genérica: no aparece `internal/`, `internal/app/`, `internal/skills/`, `internal/evals/`, `data/`, `schemas/`, `testdata/`, `evals/` ni `skills/`. Las únicas carpetas declaradas son las del material propio de la tarea que lo crea: `data/territorio/comunidades/` (T002), `internal/core/ids/testdata/fuzz/FuzzCodigoINE/` y `…/FuzzCodigoDIR3/` (T005), `testdata/evals/` (T015, cuyos nombres de grabación fija la persona) y el directorio del hito (T026, exento por la regla `\"$d\"/*` del propio guardián). Las dos tareas nuevas de la división declaran lo suyo y nada más: T016 `internal/skills/jerarquia.go` + `Makefile`, T017 `data/normas.yaml`, `internal/skills/{normas,referencias,sincronia,frontmatter}.go` y `skills/boe-legislacion/references/normas.md`; sus ficheros de test los cubre la regla `x.go → x_test.go` del guardián (workflow.yml:717). Lo que solo se lee o se ejecuta va sin carpeta (`municipios.yaml`, `jerarquia.yaml`, `SOURCES.md`, `verify-sources.sh`, `mapa-sistema-legal-skills.md`, `norma.json`, `bloque.json`) y el extractor, aunque lo capture como cadena suelta, nunca casa con la ruta real del fichero. Los ficheros compartidos se declaran en las dos tareas y están listados en tasks.md:432-435."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Las diez líneas que nombran material bajo `schemas/` o un `testdata/` son exactamente las diez marcadas `[datos]` (T001, T002, T003, T005, T010, T012, T013, T014, T015, T018) y ninguna otra tarea los nombra —comprobado con el extractor sobre las 26 líneas—; coincide con la obligación 1 de plan.md:544-549. Solo T010 y T018 declaran código, en los dos casos porque un control existente lo hace inseparable del fichero protegido (`TestEsquemasCubrenTodosLosVerbos` exige la parte publicada en cuanto el verbo está registrado; el `then` nuevo del esquema de eval cambia el mensaje que compara `internal/evals/formato_test.go`), razonado en plan.md *Complexity Tracking* D16 y D28. La división de C2 no alteró el reparto: ni T016 ni T017 tocan `schemas/` ni `testdata/`. T026 es la única `[plataforma]`, va la última, solo empuja, abre la propuesta, lee la ejecución y registra la evidencia, y nunca fusiona (tasks.md:245)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md:251-264 recorre los doce puntos de `docs/ROADMAP.md` §1 con su tarea, ya renumerados: `CHANGELOG.md` en T024; esquemas en T001, T002, T003, T010, T013, T014 y T018; fixtures en T005, T012 y T015; `docs/SOURCES.md` en T003, sin caso nuevo en `scripts/verify-sources.sh` —coherente con el repositorio, donde ese guion no menciona territorio y las filas `ine.municipios` y `mpt.rel` ya existen—; e2e en T012; evals antes que la skill, T020 antes de T022; cobertura medida en T025; matriz territorial en T012, T006, T007 y T020. Los dos no aplicables llevan su razón escrita: ADR (ninguna decisión de arquitectura cambia; ADR 0017 y ADR 0006 ya decidieron) y grafo (H6 es anterior a H7, ADR 0014)."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "`checklists/requirements.md` es la única checklist y está enteramente marcada; sus marcas son ciertas sobre el spec: 0 apariciones de «NEEDS CLARIFICATION» en spec.md, plan.md, tasks.md, quickstart.md, data-model.md y research.md; las cinco entradas de *Clarifications · Session 2026-09-20* (spec.md:26-30) llevan el prefijo «(auto: criterio …; fuente: …)» que exige la constitución; están todas las secciones obligatorias (*Resumen*, *Criterios del hito*, *User Scenarios & Testing* con US1-US7 y *Edge Cases*, *Requirements* con FR-001 a FR-102 y *Key Entities*, *Success Criteria* SC-001 a SC-015, *Fuera de alcance* y *Assumptions*); y la nota de validación es exacta también en los detalles comprobados por muestreo —*Fuera de alcance* enumera «sortear un WAF, un CAPTCHA, un certificado o la Red SARA» (spec.md:361) y *Assumptions* recoge las nueve hipótesis que la nota atribuye—. Ninguna tarea modifica la checklist."
+    }
+  ],
+  "motivos": [
+    "Observación no bloqueante — tasks.md:236 (T025) y quickstart.md:340-352. T025 ejecuta «los prerrequisitos y los escenarios 1 a 13» y T026 solo el §14, así que la sección *Limpieza* del quickstart no la ejecuta nadie: al terminar el hito quedan en `/tmp/kitlegal-quickstart-h6/` los tres clones desechables y los cuatro ficheros de §3, y `bin/`. No afecta al árbol del repositorio ni a `make ci` —esa carpeta está fuera y los prerrequisitos la recrean vacía en cualquier reejecución—, pero contradice la promesa de «sin efectos colaterales» de quickstart.md:8-13. Añadir la limpieza al final de T025 (o decir en T025 que no se ejecuta y por qué).",
+    "Observación no bloqueante — tasks.md:88-92. «T012, la primera tarea que puede dejarlo en verde» es una razón más débil de la que hay: en verde también lo dejaría T011, que va después de T010. La razón que de verdad obliga a una tarea propia es la de la etiqueta: un guion nuevo bajo `internal/app/testdata/` es material protegido, exige `[datos]` y no puede mezclarse con el trabajo de código de T011 (FR-086; plan.md:360). Afinar la frase con ese motivo."
+  ]
+}

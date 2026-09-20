@@ -58,7 +58,7 @@ La tabla completa de entradas está en [data-model.md](../data-model.md) §2.6. 
 |---|---|---|
 | 0 | Municipio resuelto | — |
 | 2 | Entrada mal formada, o nombre que corresponde a más de un municipio | `argumentos` |
-| 3 | Municipio que no está en la relación (por nombre o por código bien formado) | `no-encontrado` |
+| 3 | Municipio que no está en la relación (por nombre, o por código **bien formado**: provincia `01`-`52` y municipio `001`-`999`) | `no-encontrado` |
 | 4, 5, 6 | **Nunca** (FR-016) | — |
 
 El mensaje del error del applet llega literal al `mensaje` del sobre de fallo y a la salida de error
