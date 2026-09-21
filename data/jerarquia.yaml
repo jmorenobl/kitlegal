@@ -1,0 +1,57 @@
+# Jerarquía normativa de kitlegal: los niveles territoriales, la clase de boletín que publica las normas de cada uno y
+# sus tipos de norma de mayor a menor rango, y las reglas de interpretación. Única fuente de verdad de
+# references/jerarquia_normativa.md.
+# Sin identificadores ni texto de ninguna norma: dice qué nivel regula y dónde se publica, no qué dice una norma. El
+# boletín concreto de cada comunidad y de cada provincia no va aquí: lo da `territorio resolver` desde data/territorio/.
+niveles:
+  - nivel: ue
+    nombre: "Unión Europea"
+    boletin: "Diario Oficial de la Unión Europea (DOUE)"
+    normas:
+      - "Reglamento"
+      - "Directiva"
+      - "Decisión"
+  - nivel: estado
+    nombre: "Estado"
+    boletin: "Boletín Oficial del Estado (BOE)"
+    normas:
+      - "Constitución"
+      - "Tratado internacional"
+      - "Ley Orgánica"
+      - "Ley"
+      - "Real Decreto-ley"
+      - "Real Decreto Legislativo"
+      - "Real Decreto"
+      - "Orden"
+      - "Resolución"
+      - "Instrucción"
+  - nivel: comunidad-autonoma
+    nombre: "Comunidad autónoma"
+    boletin: "Boletín oficial de la comunidad autónoma"
+    normas:
+      - "Estatuto de Autonomía"
+      - "Ley"
+      - "Decreto"
+      - "Orden"
+  - nivel: provincia
+    nombre: "Provincia"
+    boletin: "Boletín Oficial de la Provincia (BOP)"
+    normas:
+      - "Reglamento orgánico"
+      - "Ordenanza"
+  - nivel: municipio
+    nombre: "Municipio"
+    boletin: "Boletín Oficial de la Provincia (BOP)"
+    normas:
+      - "Reglamento orgánico"
+      - "Ordenanza"
+      - "Bando"
+reglas:
+  - regla: competencia-antes-que-jerarquia
+    enunciado: "Entre normas de niveles distintos se comprueba primero qué nivel tiene la competencia sobre la materia —entre el Estado y las comunidades autónomas, el reparto de los arts. 148 y 149 CE— y solo después se atiende al rango."
+  - regla: ley-posterior
+    enunciado: "Entre normas del mismo nivel y del mismo rango, la posterior deroga a la anterior en lo que se le oponga."
+  - regla: ley-especial
+    enunciado: "Entre normas del mismo nivel y del mismo rango, la que regula un supuesto de forma especial prevalece sobre la que lo regula con carácter general."
+  - regla: reglamento-nunca-contra-ley
+    enunciado: "Un reglamento nunca puede contradecir una ley: la disposición que contradice otra de rango superior carece de validez (jerarquía normativa, art. 9.3 CE y art. 1 CC)."

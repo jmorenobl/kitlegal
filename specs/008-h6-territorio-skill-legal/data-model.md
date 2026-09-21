@@ -306,8 +306,13 @@ reglas:
 ```
 
 `nivel` es un enumerado de cinco valores en orden; `regla`, un enumerado de las cuatro reglas de interpretación
-(competencia antes que jerarquía, ley posterior, ley especial, reglamento nunca contra ley). De aquí sale
-`references/jerarquia_normativa.md` (FR-066).
+(competencia antes que jerarquía, ley posterior, ley especial, reglamento nunca contra ley). El esquema fija además,
+con `prefixItems` e `items: false`, que `niveles` trae los cinco niveles y `reglas` las cuatro reglas, cada uno una
+vez y en el orden de su enumerado: un nivel que falta, sobra, se repite o cambia de sitio es un defecto en la línea del
+elemento, y el orden del documento es ya el del enumerado. `boletin` es la clase de boletín del nivel, no un boletín
+concreto: el de cada comunidad y provincia lo da `territorio resolver` desde `data/territorio/` (FR-051). `normas`
+son los tipos de norma del nivel de mayor a menor rango, sin repetir. El contenido sale de
+`refs/mapa-sistema-legal-skills.md` §1.1 y §1.2. De aquí sale `references/jerarquia_normativa.md` (FR-066).
 
 ## 5. Skill `legal-core`
 
