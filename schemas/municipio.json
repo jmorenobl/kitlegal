@@ -1,0 +1,378 @@
+{
+  "$defs": {
+    "resolver": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "territorio.Boletin": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "motivo": {
+              "type": "string"
+            },
+            "nivel": {
+              "enum": [
+                "estatal",
+                "autonomico",
+                "provincial"
+              ],
+              "type": "string"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "nivel",
+            "codigo",
+            "nombre",
+            "url",
+            "motivo",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Cobertura": {
+          "additionalProperties": false,
+          "properties": {
+            "boletin_autonomico": {
+              "enum": [
+                "configurado",
+                "no-configurado"
+              ],
+              "type": "string"
+            },
+            "boletin_provincial": {
+              "enum": [
+                "configurado",
+                "no-configurado"
+              ],
+              "type": "string"
+            },
+            "dir3": {
+              "enum": [
+                "verificado",
+                "no-verificado"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "boletin_autonomico",
+            "boletin_provincial",
+            "dir3"
+          ],
+          "type": "object"
+        },
+        "territorio.CodigoINE": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "pattern": "^[0-9]{5}$",
+              "type": "string"
+            },
+            "digito_de_control": {
+              "pattern": "^[0-9]$",
+              "type": "string"
+            },
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "digito_de_control",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Comunidad": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "pattern": "^[0-9]{2}$",
+              "type": "string"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "nombre",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.DIR3": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "pattern": "^(L01[0-9]{6})?$",
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Municipio": {
+          "additionalProperties": false,
+          "properties": {
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "nombre",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Provincia": {
+          "additionalProperties": false,
+          "properties": {
+            "codigo": {
+              "pattern": "^[0-9]{2}$",
+              "type": "string"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "codigo",
+            "nombre",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Regimen": {
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "valor": {
+              "enum": [
+                "comun",
+                "foral"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "valor",
+            "source"
+          ],
+          "type": "object"
+        },
+        "territorio.Territorio": {
+          "additionalProperties": false,
+          "properties": {
+            "boletines": {
+              "items": {
+                "$ref": "#/$defs/territorio.Boletin"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "cobertura": {
+              "$ref": "#/$defs/territorio.Cobertura"
+            },
+            "codigo_ine": {
+              "$ref": "#/$defs/territorio.CodigoINE"
+            },
+            "comunidad": {
+              "$ref": "#/$defs/territorio.Comunidad"
+            },
+            "dir3": {
+              "$ref": "#/$defs/territorio.DIR3"
+            },
+            "municipio": {
+              "$ref": "#/$defs/territorio.Municipio"
+            },
+            "provincia": {
+              "$ref": "#/$defs/territorio.Provincia"
+            },
+            "regimen": {
+              "$ref": "#/$defs/territorio.Regimen"
+            }
+          },
+          "required": [
+            "municipio",
+            "codigo_ine",
+            "provincia",
+            "comunidad",
+            "dir3",
+            "regimen",
+            "boletines",
+            "cobertura"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/municipio.json/resolver",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "consulta": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "consulta"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/territorio.Territorio"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "territorio resolver"
+    }
+  },
+  "$id": "https://ventanillalegal.es/schemas/municipio.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salida del verbo resolver del applet territorio. Generado desde --describe con make schema-check; no editar.",
+  "title": "territorio · municipio"
+}

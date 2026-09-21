@@ -1,18 +1,21 @@
 {
-  "id": "T009",
-  "texto": "T009 [US1] El applet `territorio` con su verbo `resolver`, probado sobre un registro local del test y **sin registrarlo todavía** en producción: `internal/app/territorio.go` con `AppletTerritorio(fuentes territorio.Fuentes) Applet` —único argumento posicional obligatorio `Consulta`, ninguna bandera propia (hereda las ocho globales), análisis del registro una sola vez con `sync.OnceValues` capturado en el valor del applet, de modo que `--help` y `--describe` no lo analicen, procedencia del espacio reservado (`kitlegal.territorio` y `kitlegal:applet/territorio`) con la fecha más antigua de los ficheros que sostienen la respuesta, y unas fuentes que no analizan tratadas como defecto de composición, nunca como código de usuario—, con `TestResolverDevuelveElTerritorio` (las ocho claves de `data`, ni una más ni una menos, sin `omitempty`, el `source` de cada dato, los boletines del municipio cubierto y los del no cubierto, `cobertura` con sus tres claves y la invariante del DIR3 no verificado) y `TestCodigosDeTerritorio` (`ambiguo`, cuyo mensaje lleva **todos** los candidatos en la forma `<código INE> <nombre> (<provincia>)` separados por `; ` y ordenados por código INE, `no-encontrado` —por nombre y por un código **bien formado**: provincia dentro de `01`-`52` y municipio ausente del registro del test—, `codigo-mal-formado` —cifras que no forman código, provincia `00` o mayor que `52` y municipio `000`, todos con clase `argumentos` y **nunca** con 3—, `digito-incorrecto`, `sin-argumento`, y que **ninguna** invocación devuelve 4, 5 ni 6) escritos antes que el código; y en la misma tarea `internal/arch_test.go`, donde la lista `modulosDelBinario` gana `go.yaml.in/yaml/v3` **con su motivo**, porque el cierre de dependencias del binario recorre el paquete de composición entero y el módulo queda enlazado por la mera existencia de este fichero, esté o no registrado el applet (FR-001 a FR-006, FR-008 a FR-016, FR-021, FR-022, FR-023, FR-096, US1 a US4, SC-001 a SC-004, contrato del applet §1 a §5 y §7).",
+  "id": "T010",
+  "texto": "T010 [datos] [US1] Contrato publicado del applet y su activación, indivisibles: `schemas/municipio.json` generado con la receta existente (`TestEsquemasPublicados` con `-actualizar-esquemas`; **no se escribe a mano**) con su `$id` y su parte `$defs.resolver` en la forma canónica, la fila nueva de la tabla de `internal/app/esquemas_test.go` (entidad `municipio`, verbo `resolver`), el registro del applet en `internal/app/registro.go` y en `internal/app/ejemplo/kitlegal-e2e/main.go` —los dos con las fuentes embebidas, que no dependen del entorno— y los cuatro sitios que fijan la lista de applets: `internal/app/registro_test.go`, `cmd/kitlegal/main_test.go`, `internal/app/testdata/script/argumentos.txtar` e `internal/app/testdata/script/ayuda.txtar`; nada más, y el código que toca es exactamente el que un control existente hace inseparable del fichero protegido, porque en cuanto el verbo está en el registro `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada y el esquema se genera **desde** el applet ya registrado: separarlos dejaría `make ci` en rojo entre dos tareas; la pausa revisa juntos el contrato publicado y los dos guiones existentes (FR-007, FR-086, FR-092, SC-012, contrato del applet §6, plan *Complexity Tracking* D16).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T009.md y déjala sin marcar.",
-  "base": "204d35745b2ceb47c7fe28ba6df0bcb856817180",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
+  "base": "1df1e6238c503f54f71acdfe78832b258162c720",
   "rutas": [
-    ".in/yaml/v3",
-    "applet/territorio",
-    "go.yaml",
-    "internal/app/territorio.go",
-    "internal/arch_test.go"
+    "cmd/kitlegal/main_test.go",
+    "internal/app/ejemplo/kitlegal-e2e/main.go",
+    "internal/app/esquemas_test.go",
+    "internal/app/registro.go",
+    "internal/app/registro_test.go",
+    "internal/app/testdata/script/argumentos.txtar",
+    "internal/app/testdata/script/ayuda.txtar",
+    "schemas/municipio.json"
   ],
   "cierre": false
 }

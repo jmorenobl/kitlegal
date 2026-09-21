@@ -7,6 +7,9 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+
+	"github.com/jmorenobl/kitlegal/data"
+	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
 // Los cinco motivos por los que el registro rechaza un applet, uno por cada
@@ -149,9 +152,10 @@ func validarVerbos(applet string, verbos []Verbo) error {
 }
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
-// con las dependencias de la red (DependenciasDeRed). Los applets de ejemplo no
-// se registran nunca aquí, sino en el binario que compila el test e2e, que usa
-// exactamente este mismo mecanismo (FR-001, FR-009,
+// con las dependencias de la red (DependenciasDeRed) y el applet territorio con
+// los ficheros que viajan en el binario (FuentesEmbebidas). Los applets de
+// ejemplo no se registran nunca aquí, sino en el binario que compila el test e2e,
+// que usa exactamente este mismo mecanismo (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
@@ -162,11 +166,39 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
 // nada ni abre nada.
 func RegistroDeProduccion() (*Registro, error) {
-	var registro Registro
-
-	if err := registro.Registrar(AppletBoe(DependenciasDeRed())); err != nil {
+	fuentes, err := FuentesEmbebidas()
+	if err != nil {
 		return nil, err
 	}
 
+	var registro Registro
+
+	for _, applet := range []Applet{AppletBoe(DependenciasDeRed()), AppletTerritorio(fuentes)} {
+		if err := registro.Registrar(applet); err != nil {
+			return nil, err
+		}
+	}
+
 	return &registro, nil
+}
+
+// FuentesEmbebidas son los cuatro ficheros de data/territorio/ que viajan en el
+// binario, tal como están escritos, en la forma en que los recibe
+// AppletTerritorio. Son las que componen la raíz de producción y el binario de
+// e2e: no dependen del entorno ni del directorio de trabajo (FR-056, contrato del
+// applet territorio §7). Leerlas no analiza nada —eso lo hace el applet la
+// primera vez que se ejecuta su verbo—, y un subárbol de comunidades que no se
+// puede leer es un defecto de composición, que el error nombra.
+func FuentesEmbebidas() (territorio.Fuentes, error) {
+	comunidades, err := data.Comunidades()
+	if err != nil {
+		return territorio.Fuentes{}, fmt.Errorf("app: los ficheros de territorio del binario no se pueden leer: %w", err)
+	}
+
+	return territorio.Fuentes{
+		Municipios:  data.Municipios,
+		DIR3:        data.DIR3,
+		Estado:      data.Estado,
+		Comunidades: comunidades,
+	}, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
+	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
 // appletDePrueba es lo que declara un applet y nada más: nombre, descripción y
@@ -225,11 +226,13 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H4: boe, y nada más. Los applets de ejemplo no se registran nunca aquí, así que
-// `kitlegal echo hola` sobre el binario que se publica termina como cualquier otro
-// nombre desconocido (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
-// Construirlo no pide nada ni abre nada: el cliente y la caché de boe se componen
-// en cada invocación (contrato puerto-y-applet §4 y §5 de H4).
+// H6: boe y territorio, y nada más. Los applets de ejemplo no se registran nunca
+// aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
+// cualquier otro nombre desconocido (FR-001, FR-009, contracts/registro-y-describe.md
+// §3 de H1). Construirlo no pide nada ni abre nada: el cliente y la caché de boe se
+// componen en cada invocación (contrato puerto-y-applet §4 y §5 de H4), y
+// territorio recibe los ficheros que viajan en el binario (contrato del applet
+// territorio §7).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
@@ -237,12 +240,60 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe"}, registro.Nombres(), "el binario distribuido registra exactamente boe")
+	assert.Equal(t, []string{"boe", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe y territorio")
 
 	applet, existe := registro.Buscar("boe")
 	require.True(t, existe)
 	assert.Len(t, applet.Verbos(), 6, "con sus seis verbos (FR-001)")
 
+	applet, existe = registro.Buscar("territorio")
+	require.True(t, existe)
+	require.Len(t, applet.Verbos(), 1, "con su único verbo (contrato del applet territorio §1)")
+	assert.Equal(t, "resolver", applet.Verbos()[0].Nombre)
+
 	_, existe = registro.Buscar("echo")
 	assert.False(t, existe, "el applet de ejemplo no se registra en el binario distribuido")
+
+	t.Run("territorio-sobre-los-ficheros-embebidos", func(t *testing.T) {
+		t.Parallel()
+
+		// Una entrada que no llega a ser un código solo la rechaza el applet
+		// después de analizar sus fuentes: si las de producción no cargaran, el
+		// fallo sería el defecto de composición, código 1 y firmado por el
+		// kernel, y no el 2 firmado por territorio (contrato del applet §2 y §7).
+		// La consulta no nombra ningún municipio real a propósito (FR-024).
+		res := invocar(t, registro, "kitlegal", "territorio", "resolver", "00000", "--json")
+
+		require.Equal(t, 2, res.codigo, res.errores)
+
+		sobre := sobreDelJSON(t, res.salida)
+		assert.Equal(t, "kitlegal.territorio", sobre["fuente"], "el fallo lo decide el applet, no el kernel")
+
+		data, esObjeto := sobre["data"].(map[string]any)
+		require.True(t, esObjeto, "el data del sobre de fallo es un objeto")
+		assert.Equal(t, "argumentos", data["clase"])
+		assert.Contains(t, data["mensaje"], "00000", "el mensaje nombra la entrada")
+	})
+}
+
+// TestFuentesEmbebidas comprueba lo que la raíz de producción y el binario de
+// e2e pasan a territorio: los cuatro ficheros de data/territorio/ que viajan en
+// el binario, con las 19 comunidades y ciudades autónomas indexadas por el código
+// que da nombre a cada fichero, y que cargan con toda su integridad —incluida la
+// de que ese nombre es el código que el fichero declara dentro— (FR-056,
+// contrato de datos §3, data-model §2.1).
+func TestFuentesEmbebidas(t *testing.T) {
+	t.Parallel()
+
+	fuentes, err := FuentesEmbebidas()
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, fuentes.Municipios, "la relación de municipios viaja en el binario")
+	assert.NotEmpty(t, fuentes.DIR3, "la correspondencia DIR3 viaja en el binario")
+	assert.NotEmpty(t, fuentes.Estado, "el boletín estatal viaja en el binario")
+	assert.Len(t, fuentes.Comunidades, 19, "las 17 comunidades y las 2 ciudades autónomas")
+
+	_, err = territorio.Cargar(fuentes)
+	require.NoError(t, err, "los ficheros embebidos cargan con toda su integridad")
 }

@@ -21,12 +21,12 @@ import (
 )
 
 // actualizarEsquemas es la bandera con la que TestEsquemasPublicados escribe,
-// antes de compararlos, los dos ficheros publicados desde lo que emite
+// antes de compararlos, los ficheros publicados de la tabla desde lo que emite
 // --describe. Solo la usa la tarea [datos] de los esquemas, con la orden del
 // contrato esquemas-fixtures-y-controles §1, y lo escrito lo revisa una persona;
 // make schema-check nunca la pasa (FR-110).
 var actualizarEsquemas = flag.Bool("actualizar-esquemas", false,
-	"escribe en schemas/ norma.json y bloque.json desde --describe de sus verbos antes de compararlos")
+	"escribe en schemas/ los ficheros de la tabla desde --describe de sus verbos antes de compararlos")
 
 const (
 	// carpetaDeLosEsquemas es schemas/, relativa al directorio de este paquete.
@@ -53,21 +53,23 @@ type ficheroDeEsquemas struct {
 }
 
 // ficherosDeEsquemas son los ficheros publicados, con su applet y sus verbos
-// (FR-110).
+// (FR-110). El de territorio se llama como su entidad, igual que los de boe, y
+// no como el applet (contrato del applet territorio §6; research.md D25).
 var ficherosDeEsquemas = []ficheroDeEsquemas{
 	{applet: "boe", nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
 	{applet: "boe", nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
+	{applet: "territorio", nombre: "municipio.json", entidad: "municipio", verbos: []string{"resolver"}},
 }
 
 // TestEsquemasPublicados es lo que vigila make schema-check (FR-110, SC-006;
 // contrato esquemas-fixtures-y-controles §1; research.md D11): regenera en
-// memoria norma.json y bloque.json desde lo que emite --describe cada verbo del
+// memoria los ficheros de la tabla desde lo que emite --describe cada verbo del
 // registro de producción, cada parte en su forma canónica con su $id, y compara
 // cada fichero publicado que exista, parte a parte y entero. Una parte distinta
 // falla nombrando el fichero y el verbo; un fichero que no es la serialización
 // canónica de sus partes —la raíz, una parte de más, el orden, el sangrado o el
 // salto final— falla nombrando el fichero. Mientras no hay ninguno publicado no
-// se compara nada. Con -actualizar-esquemas escribe antes los dos.
+// se compara nada. Con -actualizar-esquemas escribe antes todos.
 //
 // El primer subtest compara los ficheros publicados; el resto fija la forma
 // canónica y la del contrato, y demuestra sobre carpetas temporales, con las
@@ -124,6 +126,8 @@ func TestEsquemasPublicados(t *testing.T) {
 				" Generado desde --describe con make schema-check; no editar.",
 			"bloque.json": "Salidas de los verbos articulo y articulos del applet boe." +
 				" Generado desde --describe con make schema-check; no editar.",
+			"municipio.json": "Salida del verbo resolver del applet territorio." +
+				" Generado desde --describe con make schema-check; no editar.",
 		}
 
 		for _, fichero := range ficherosDeEsquemas {
@@ -175,6 +179,12 @@ func TestEsquemasPublicados(t *testing.T) {
 		assert.Equal(t, "otro · cosa", documento["title"])
 		assert.Equal(t, "Salidas de los verbos deshacer y hacer del applet otro."+
 			" Generado desde --describe con make schema-check; no editar.", documento["description"])
+
+		// Con un solo verbo, la descripción lo nombra en singular.
+		sola := ficheroDeEsquemas{applet: "otro", nombre: "sola.json", entidad: "sola", verbos: []string{"hacer"}}
+		assert.Equal(t, "Salida del verbo hacer del applet otro."+
+			" Generado desde --describe con make schema-check; no editar.",
+			documentoDeEsquemas(sola, map[string]any{"hacer": partes["hacer"]})["description"])
 
 		carpeta := t.TempDir()
 		escribeEsquema(t, carpeta, otra, esquemaCanonico(t, otra, partes))
@@ -597,7 +607,18 @@ func partesDeProduccion(t *testing.T) map[string]map[string]any {
 // invocación que usan sus pruebas: de ahí salen los argumentos con los que cada
 // verbo de la tabla se describe.
 var contratosDeLosApplets = map[string]func() []verboDelContrato{
-	"boe": verbosDelContrato,
+	"boe":        verbosDelContrato,
+	"territorio": verbosDelContratoDeTerritorio,
+}
+
+// verbosDelContratoDeTerritorio es el único verbo de territorio con la
+// invocación con que se describe: su consulta es obligatoria y el análisis de la
+// invocación va antes que la descripción, así que sin ella --describe termina en
+// 2 (contrato del applet territorio §1). Describir no resuelve nada, de modo que
+// la consulta es la del municipio cubierto del registro local de sus pruebas, que
+// no es ningún municipio real.
+func verbosDelContratoDeTerritorio() []verboDelContrato {
+	return []verboDelContrato{{nombre: "resolver", argumento: []string{"resolver", "Villaconfigurada"}}}
 }
 
 // argumentoDelContrato es la invocación del verbo del applet que usan sus
@@ -638,10 +659,21 @@ func documentoDeEsquemas(fichero ficheroDeEsquemas, partes map[string]any) map[s
 		"$defs":   partes,
 		"$id":     raizDeLosEsquemas + fichero.nombre,
 		"$schema": borradorDeLosEsquemas,
-		"description": "Salidas de los verbos " + enumeracion(fichero.verbos) + " del applet " + fichero.applet + "." +
+		"description": salidasDe(fichero.verbos) + " del applet " + fichero.applet + "." +
 			" Generado desde --describe con make schema-check; no editar.",
 		"title": fichero.applet + " · " + fichero.entidad,
 	}
+}
+
+// salidasDe nombra lo que publica un fichero como lo dice su descripción: la
+// salida de su verbo, en singular, si publica uno, y si publica varios, las de
+// todos enumerados.
+func salidasDe(verbos []string) string {
+	if len(verbos) == 1 {
+		return "Salida del verbo " + verbos[0]
+	}
+
+	return "Salidas de los verbos " + enumeracion(verbos)
 }
 
 // enumeracion escribe los verbos como se enumeran en una frase: separados por
