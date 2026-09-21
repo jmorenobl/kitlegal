@@ -1,18 +1,18 @@
 {
-  "id": "T003",
-  "texto": "T003 [datos] [US7] Correspondencia verificada INE→DIR3, su fuente y el registro de la muestra: `schemas/territorio-dir3.yaml.json` (`fecha`, `source`, mapa `correspondencia` con `propertyNames.pattern` `^[0-9]{5}$` y valor `^L01[0-9]{6}$`, `additionalProperties: false`), `data/territorio/dir3.yaml` con **solo las filas verificadas** —entra todo municipio con fila en el REL cuyo número de inscripción es coherente con su código INE y su dígito de control oficial; lo que no, queda fuera— con `fecha` la del volcado del REL y `source` `mpt.rel`, la fila `mpt.rel` de `docs/SOURCES.md` con esa fecha —**sin añadir ningún caso a** `verify-sources.sh`, porque estas fuentes no se piden en red— y `specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md` con una fila por municipio de la muestra (municipio, código INE, DIR3 derivado, DIR3 real, de dónde salió el real y si coincide) que incluye al menos un municipio fusionado o renombrado, uno de régimen foral y uno con entidades locales menores, y con la conclusión de si la derivación queda como regla o pasa a tabla; todo lo escribe y lo decide una persona en la pausa, el ejecutor no descarga, no deriva y no inventa ningún código, y `make ci` sigue en verde (FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-048, FR-049, FR-086, US7 escenarios 1, 2 y 3, SC-007, SC-008, SC-014, contrato de datos §4 y §5).",
+  "id": "T004",
+  "texto": "T004 [US4] Código INE y DIR3 en el dominio, con sus tests primero: `internal/core/ids/doc.go` (comentario de paquete, que `revive` exige), `internal/core/ids/ine.go` (`CodigoINE` inmutable que solo se construye analizando, `AnalizarCodigoINE`, `AnalizarCodigoINEConDigito`, `String()` de cinco cifras con sus ceros, `Provincia()` y el **método** `ComprobarDigito(declarado, oficial byte) error`, que compara y nombra los dos dígitos; cifras comprobadas byte a byte sin `regexp`, provincia `01`-`52` y municipio `001`-`999`), `internal/core/ids/dir3.go` (`DIR3` con la forma `L01PPMMMD`, `AnalizarDIR3` que acepta la letra en mayúscula y en minúscula y la normaliza a mayúscula, `DIR3DeAyuntamiento`, `String()`, `CodigoINE()` y `Digito()`) e `internal/core/ids/errores.go` (tipo de error propio con `Clase()` igual a `schema.ClaseArgumentos`, que nombra la entrada con `%q` y dice qué tiene de malo, nunca `panic` ni valor por omisión), con `TestAnalizarCodigoINE`, `TestComprobarDigito`, `TestIdaYVuelta`, `TestAnalizarDIR3`, `TestDIR3DeAyuntamiento`, `TestClaseDeLosErrores`, `TestSuperficieDeIds` (lo exportado es exactamente la lista del contrato §1: ni ELI, ni ECLI, ni CELEX, ni NIF) y los objetivos `FuzzCodigoINE` y `FuzzCodigoDIR3`, cada uno en el fichero de test de su analizador y con las semillas `F.Add` del contrato §6, escritos antes que el código; dominio puro y sin entrada ni salida ni siquiera en los `_test.go`, y los dos analizadores en ficheros distintos compartiendo la comprobación de cifras para no disparar `dupl` (FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-096, FR-097, US4 escenario 3, SC-006, contrato de identificadores §1 a §5).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T003.md y déjala sin marcar.",
-  "base": "cb89e6e9e19a91f5312fb42a2c39d9f78342b9cd",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T004.md y déjala sin marcar.",
+  "base": "c1fa16677132ced4ae8ccbf619ded88d4d1e56a1",
   "rutas": [
-    "data/territorio/dir3.yaml",
-    "docs/SOURCES.md",
-    "schemas/territorio-dir3.yaml.json",
-    "specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md",
-    "verify-sources.sh"
+    "_test.go",
+    "internal/core/ids/dir3.go",
+    "internal/core/ids/doc.go",
+    "internal/core/ids/errores.go",
+    "internal/core/ids/ine.go"
   ],
   "cierre": false
 }
