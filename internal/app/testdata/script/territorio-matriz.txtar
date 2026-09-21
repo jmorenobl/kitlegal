@@ -1,0 +1,206 @@
+# La matriz territorial de la entrega de H6, de extremo a extremo sobre el
+# binario compilado: el municipio del territorio configurado (Leganés), uno de
+# una comunidad sin configurar (Tordesillas), dos de régimen foral (Navarra y
+# País Vasco), un nombre ambiguo, un nombre y un código bien formado que no están
+# en la relación y un código que no llega a serlo, cada uno con su código de
+# salida exacto y el contenido de su sobre; la igualdad byte a byte por nombre,
+# por código y con --offline; la misma salida desde otro directorio de trabajo;
+# --describe con su argumento; y el tiempo de respuesta (FR-009, FR-056, FR-090,
+# FR-091, US1 a US4, SC-001 a SC-004, contrato del applet §8).
+#
+# Nada de lo que se espera está escrito de memoria: cada nombre, código, dígito
+# de control, DIR3, provincia, comunidad, régimen y boletín se ha leído de los
+# ficheros congelados de data/territorio/, que el binario lleva dentro. La
+# fecha_consulta de toda respuesta del applet es la «fecha» de municipios.yaml,
+# 2026-02-04, la más antigua de los cuatro ficheros, y no la del reloj
+# (contrato del applet §2).
+#
+# Como en boe-codigos.txtar, testscript solo distingue el éxito del fallo, así
+# que los códigos distintos de cero los comprueba el intérprete de órdenes;
+# dentro de las comillas simples no hay expansión de variables y el binario se
+# nombra por el PATH, donde el e2e antepone el que acaba de construir.
+
+# territorio no pide nada a ninguna fuente: sin reproducción de la que servir,
+# cualquier petición fallaría, y todo lo que sigue termina bien (FR-043).
+rm reproduccion
+
+# --- Leganés, el municipio del territorio configurado (US1, SC-001) ---
+#
+# Código 0 y el sobre entero, anclado a los dos extremos: las ocho claves de
+# `data` en su orden, ni una más ni una menos.
+exec $KITLEGAL_BIN territorio resolver Leganés --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"municipio":\{[^{}]*\},"codigo_ine":\{[^{}]*\},"provincia":\{[^{}]*\},"comunidad":\{[^{}]*\},"dir3":\{[^{}]*\},"regimen":\{[^{}]*\},"boletines":\[[^\[\]]*\],"cobertura":\{[^{}]*\}\}\}\n\z'
+! stderr .
+
+# Cada dato con su source (FR-005).
+stdout '"municipio":\{"nombre":"Leganés","source":"ine\.municipios"\}'
+stdout '"codigo_ine":\{"codigo":"28074","digito_de_control":"5","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"28","nombre":"Madrid","source":"ine\.municipios"\}'
+stdout '"comunidad":\{"codigo":"13","nombre":"Comunidad de Madrid","source":"ine\.municipios"\}'
+stdout '"dir3":\{"codigo":"L01280745","source":"mpt\.rel"\}'
+stdout '"regimen":\{"valor":"comun","source":"data/territorio/comunidades/13\.yaml"\}'
+
+# El estatal y los dos niveles configurados, con el mismo boletín en los dos y
+# el motivo de la equivalencia en el provincial; y la cobertura configurada.
+stdout '"boletines":\[\{"nivel":"estatal","codigo":"BOE","nombre":"Boletín Oficial del Estado","url":"https://www\.boe\.es/","motivo":"","source":"data/territorio/estado\.yaml"\},\{"nivel":"autonomico","codigo":"BOCM","nombre":"Boletín Oficial de la Comunidad de Madrid","url":"https://www\.bocm\.es/","motivo":"","source":"data/territorio/comunidades/13\.yaml"\},\{"nivel":"provincial","codigo":"BOCM","nombre":"Boletín Oficial de la Comunidad de Madrid","url":"https://www\.bocm\.es/","motivo":"Comunidad uniprovincial: el BOCM hace también de boletín provincial\.","source":"data/territorio/comunidades/13\.yaml"\}\]'
+stdout '"cobertura":\{"boletin_autonomico":"configurado","boletin_provincial":"configurado","dir3":"verificado"\}'
+cp stdout nombre.json
+
+# Por nombre, por código, por código con su dígito de control, con --offline y
+# con el nombre sin tilde ni mayúsculas: byte a byte la misma salida, huella y
+# fecha_consulta incluidas (FR-009, FR-015, US1 escenarios 3 y 4, SC-001).
+exec $KITLEGAL_BIN territorio resolver 28074 --json
+! stderr .
+cmp stdout nombre.json
+
+exec $KITLEGAL_BIN territorio resolver 280745 --json
+! stderr .
+cmp stdout nombre.json
+
+exec $KITLEGAL_BIN territorio resolver Leganés --offline --json
+! stderr .
+cmp stdout nombre.json
+
+exec $KITLEGAL_BIN territorio resolver leganes --json
+! stderr .
+cmp stdout nombre.json
+
+# Y lo mismo se ejecute desde donde se ejecute: en un directorio de trabajo sin
+# nada dentro la respuesta no cambia, porque los datos viajan en el binario
+# (FR-056).
+mkdir otro/directorio
+cd otro/directorio
+exec $KITLEGAL_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/nombre.json
+cd $WORK
+
+# --- Tordesillas, fuera del territorio configurado (US2, SC-002) ---
+#
+# Código 0, las ocho claves y los datos nacionales completos.
+exec $KITLEGAL_BIN territorio resolver Tordesillas --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"municipio":\{[^{}]*\},"codigo_ine":\{[^{}]*\},"provincia":\{[^{}]*\},"comunidad":\{[^{}]*\},"dir3":\{[^{}]*\},"regimen":\{[^{}]*\},"boletines":\[[^\[\]]*\],"cobertura":\{[^{}]*\}\}\}\n\z'
+! stderr .
+stdout '"municipio":\{"nombre":"Tordesillas","source":"ine\.municipios"\}'
+stdout '"codigo_ine":\{"codigo":"47165","digito_de_control":"9","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"47","nombre":"Valladolid","source":"ine\.municipios"\}'
+stdout '"comunidad":\{"codigo":"07","nombre":"Castilla y León","source":"ine\.municipios"\}'
+stdout '"dir3":\{"codigo":"L01471659","source":"mpt\.rel"\}'
+stdout '"regimen":\{"valor":"comun","source":"data/territorio/comunidades/07\.yaml"\}'
+
+# Los dos boletines declarados no cubiertos, con un vocabulario que no permite
+# concluir que no existan (FR-020, FR-022)...
+stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
+
+# ... y ningún boletín inventado: solo el estatal, ningún nivel autonómico ni
+# provincial, nada del único otro boletín que los datos conocen —el de la
+# Comunidad de Madrid— y ninguna forma del código ni del nombre de los de
+# Castilla y León ni de la provincia (FR-008, FR-021, SC-002).
+stdout '"boletines":\[\{"nivel":"estatal","codigo":"BOE","nombre":"Boletín Oficial del Estado","url":"https://www\.boe\.es/","motivo":"","source":"data/territorio/estado\.yaml"\}\]'
+! stdout '"nivel":"(autonomico|provincial)"'
+! stdout 'BOCM|bocm\.es|Comunidad de Madrid'
+! stdout '(?i)bocyl|boletín oficial de castilla|boletín oficial de la provincia|\bbop\b'
+cp stdout tordesillas.json
+
+# --- Régimen foral, con la comunidad sin configurar (US3, SC-003) ---
+#
+# Navarra: el régimen consta aunque su comunidad no tenga boletines.
+exec $KITLEGAL_BIN territorio resolver Abáigar --json
+! stderr .
+stdout '"codigo_ine":\{"codigo":"31001","digito_de_control":"8","source":"ine\.municipios"\}'
+stdout '"comunidad":\{"codigo":"15","nombre":"Comunidad Foral de Navarra","source":"ine\.municipios"\}'
+stdout '"regimen":\{"valor":"foral","source":"data/territorio/comunidades/15\.yaml"\}'
+stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
+
+# País Vasco, igual.
+exec $KITLEGAL_BIN territorio resolver Amurrio --json
+! stderr .
+stdout '"codigo_ine":\{"codigo":"01002","digito_de_control":"9","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"01","nombre":"Araba/Álava","source":"ine\.municipios"\}'
+stdout '"comunidad":\{"codigo":"16","nombre":"País Vasco","source":"ine\.municipios"\}'
+stdout '"regimen":\{"valor":"foral","source":"data/territorio/comunidades/16\.yaml"\}'
+stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
+cp stdout amurrio.json
+
+# --- Nombre ambiguo, inexistente y código mal formado (US4, SC-004) ---
+#
+# Un nombre que es el de dos municipios: código 2, clase argumentos y los dos
+# candidatos —todos los que tiene— con su código INE y su provincia, ordenados
+# por código, en el sobre y en la salida de error (FR-013, FR-014).
+exec sh -c 'kitlegal territorio resolver Arroyomolinos --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"el nombre \\"Arroyomolinos\\" es el de 2 municipios de la relación; consulta uno por su código INE: 10023 Arroyomolinos \(Cáceres\); 28015 Arroyomolinos \(Madrid\)"\}\}\n\z'
+stderr '10023 Arroyomolinos \(Cáceres\); 28015 Arroyomolinos \(Madrid\)$'
+
+# Un nombre que no es el de ningún municipio: código 3 (FR-011).
+exec sh -c 'kitlegal territorio resolver "Municipio Que No Existe" --json; test $? -eq 3'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"no-encontrado","mensaje":"ningún municipio de la relación se llama \\"Municipio Que No Existe\\""\}\}\n\z'
+stderr 'ningún municipio de la relación se llama "Municipio Que No Existe"$'
+
+# Un código bien formado que no está en la relación: código 3. La provincia 01
+# es de las que trae la relación —Amurrio, 01002, se acaba de resolver por su
+# nombre, y por su código da lo mismo— y el municipio 999 no lo tiene: la
+# relación congelada acaba la provincia 01 en 01902 (FR-011).
+exec $KITLEGAL_BIN territorio resolver 01002 --json
+! stderr .
+cmp stdout amurrio.json
+
+exec sh -c 'kitlegal territorio resolver 01999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"no-encontrado","mensaje":"ningún municipio de la relación tiene el código INE \\"01999\\""\}\}\n\z'
+stderr 'ningún municipio de la relación tiene el código INE "01999"$'
+
+# Una provincia fuera de 01-52 no forma un código: la entrada no llega a
+# buscarse, así que es código 2 con clase argumentos, y nunca 3, en los dos
+# bordes del intervalo (FR-011, FR-012, contrato de identificadores §2).
+exec sh -c 'kitlegal territorio resolver 53001 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"el código INE \\"53001\\" no es válido: la provincia \\"53\\" no está entre 01 y 52"\}\}\n\z'
+stderr 'el código INE "53001" no es válido: la provincia "53" no está entre 01 y 52$'
+
+exec sh -c 'kitlegal territorio resolver 00001 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"el código INE \\"00001\\" no es válido: la provincia \\"00\\" no está entre 01 y 52"\}\}\n\z'
+stderr 'el código INE "00001" no es válido: la provincia "00" no está entre 01 y 52$'
+
+# Y el código de Leganés con un dígito de control que no es el oficial: código
+# 2, y el mensaje dice cuál se esperaba (FR-012).
+exec sh -c 'kitlegal territorio resolver 280746 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"el código INE con dígito de control \\"280746\\" no es válido: el dígito de control recibido es \\"6\\" y el oficial es \\"5\\""\}\}\n\z'
+stderr 'el código INE con dígito de control "280746" no es válido: el dígito de control recibido es "6" y el oficial es "5"$'
+
+# --- --describe (FR-007, contrato del applet §1) ---
+#
+# Con su argumento, el esquema de entrada y salida del verbo, con la consulta
+# entre lo exigido, y sin ejecutar nada: ni un sobre ni ningún dato del
+# municipio.
+exec $KITLEGAL_BIN territorio resolver Leganés --describe
+stdout '\A\{\n'
+stdout '"title": "territorio resolver"'
+stdout '"required": \[\n\s+"consulta"\n\s+\]'
+stdout '"salida":'
+! stdout 'sha256:[0-9a-f]{64}'
+! stdout 'Legan'
+! stderr .
+
+# Sin él, el análisis de la invocación, que corre antes de describir, termina
+# en 2 y no describe nada.
+exec sh -c 'kitlegal territorio resolver --describe; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos: expected "<consulta>"'
+
+# --- Tiempo de respuesta (plan, Performance Goals; research.md S3) ---
+#
+# cronometra mide la invocación entera, arranque del proceso y análisis de los
+# ficheros embebidos incluidos, y cada respuesta sigue siendo la misma.
+cronometra 200ms $KITLEGAL_BIN territorio resolver Leganés --json
+cmp stdout nombre.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN territorio resolver 280745 --json
+cmp stdout nombre.json
+! stderr .
+
+cronometra 200ms $KITLEGAL_BIN territorio resolver 47165 --json
+cmp stdout tordesillas.json
+! stderr .
+
+# Ninguna invocación ha abierto la caché: territorio no la toca en ningún camino
+# (contrato del applet §1).
+! exists cache

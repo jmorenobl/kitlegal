@@ -1,15 +1,14 @@
 {
-  "id": "T011",
-  "texto": "T011 [US2] La salida real contra el contrato ya publicado: `internal/app/territorio_test.go` gana `TestSalidaDeTerritorioContraSchemas` (la salida del verbo, para un municipio cubierto y para uno no cubierto, valida contra el contrato publicado `municipio.json` compilado del fichero real) y `TestSalidaSinBoletinesNoConfigurados` (en la salida del municipio no cubierto no aparece el código, ni el nombre, ni la dirección de ningún boletín no configurado, `boletines` trae solo el estatal y `cobertura` declara `no-configurado` el autonómico y el provincial, sin ningún valor que permita concluir que no existan); no toca ningún otro fichero (FR-020, FR-021, FR-022, FR-092, US2 escenarios 2, 3 y 4, SC-002, Definition of Done §1.4).",
+  "id": "T012",
+  "texto": "T012 [datos] [US1] Matriz territorial en el e2e, el guion que describe la entrega: `internal/app/testdata/script/territorio-matriz.txtar` con Leganés (cubierto: exit 0, las ocho claves y la cobertura configurada), Tordesillas (datos nacionales completos, los dos boletines declarados no cubiertos y **ninguna** aparición del código ni del nombre de un boletín no configurado), un municipio de Navarra o del País Vasco (régimen foral marcado aunque su comunidad no esté configurada), un nombre ambiguo (exit 2 con todos sus candidatos), un código **bien formado** que no está en la relación (exit 3) —provincia de las que trae el fichero congelado y municipio que ese fichero no tiene, tomado de él y comprobado contra él, nunca escrito de memoria— y un código con la provincia fuera de `01`-`52`, que **no** llega a ser un código y da exit 2 con clase `argumentos`, nunca 3; la igualdad byte a byte entre la consulta por nombre, por código y con `--offline` (`cmp`), la misma salida ejecutando el binario **desde otro directorio de trabajo**, `--describe` **con su argumento posicional** —sin él la invocación termina en 2— y la orden `cronometra` por debajo de 200 ms; no toca código y `make ci` lo ejecuta dentro de `test` (FR-009, FR-056, FR-086, FR-090, FR-091, US1 a US4, SC-001 a SC-004, contrato del applet §8).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
-  "base": "038564f8fbefe9dcb0569b628492cc665c33cc5a",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T012.md y déjala sin marcar.",
+  "base": "4b1656263dff632e7e6001492e7749bbcfb6d6e1",
   "rutas": [
-    "internal/app/territorio_test.go",
-    "municipio.json"
+    "internal/app/testdata/script/territorio-matriz.txtar"
   ],
   "cierre": false
 }
