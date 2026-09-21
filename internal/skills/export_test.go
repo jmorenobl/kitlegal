@@ -5,3 +5,8 @@ package skills
 // se obtiene el esquema de data/normas.yaml, que la ruta constante del paquete no
 // da nunca.
 var CompilarEsquemaDeNormas = compilarEsquemaDeNormas
+
+// CompilarEsquemaDelTerritorio es compilarEsquemaDelTerritorio para los tests
+// del paquete externo, por la misma razón: las rutas constantes de los esquemas
+// de data/territorio/ no dan nunca sus errores.
+var CompilarEsquemaDelTerritorio = compilarEsquemaDelTerritorio

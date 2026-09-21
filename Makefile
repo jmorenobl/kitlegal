@@ -102,7 +102,7 @@ schema-check: check-tools
 
 ## skills-check: comprueba skills, datos y evals sin red, sin modelo y sin escribir nada
 skills-check: check-tools
-	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
+	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
 
 ## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
 verify-sources: check-tools

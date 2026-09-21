@@ -100,3 +100,14 @@ El prototipo verificado está en `/tmp/kitlegal-t007` (puede no existir ya; es o
   `make test-integration` no compila.
 - Los ficheros reales se leen por ruta relativa (`../../data/territorio/…`), sin importar el paquete `data`, y la
   exigencia de los cuatro ficheros y las 19 comunidades va en la preparación común, antes de ningún subtest.
+
+## Intento 2 — cerrada en verde
+
+Sobre la base `f84f73e` (T027 ya en la rama, con los patrones iguales a las gramáticas), los cinco ficheros del
+prototipo entraron tal cual —`data/datos.go`, `internal/skills/territorio.go`, `internal/skills/territorio_test.go`,
+`internal/skills/export_test.go` y la línea de `skills-check` del `Makefile`—, en el orden rojo → verde: primero los dos
+`_test.go` (el paquete no compila: `undefined: compilarEsquemaDelTerritorio`), después el código. Ningún esquema ni
+dato cambia. `make ci` → código 0 con `ci: todos los controles en verde`; `TestTerritorioDelRepositorio` con sus nueve
+subtests en PASS y los 76 casos hoja de `gramaticas` también, sin ningún SKIP. La sonda de «no pasar en vacío» no se
+repitió en este intento: mover un fichero de `data/` pide aprobación en headless, y el test es el mismo que la superó
+en el intento 1 (sección «Verificación del arreglo»).
