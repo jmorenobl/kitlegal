@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
@@ -766,5 +767,283 @@ func compruebaAnalisisPorApplet(t *testing.T) {
 		res := invocar(t, paso.registro, argvDeResolver("Villaconfigurada", "--json")...)
 
 		assert.Equal(t, paso.codigo, res.codigo, res.errores)
+	}
+}
+
+// TestSalidaDeTerritorioContraSchemas es el punto 4 de la Definition of Done
+// sobre el applet territorio (FR-092, SC-002, contrato del applet §6 y §8): el
+// sobre real que emite el kernel con --json, sobre el registro local, valida
+// contra la parte de resolver leída de schemas/municipio.json, y no contra lo
+// que emite --describe mientras se ejecuta el test. Lo hacen el del municipio
+// cubierto, el del no cubierto y el de cada consulta que el applet decide no
+// resolver —ambigua, no encontrada, mal formada o con otro dígito—, porque toda
+// salida del applet pasa por el contrato. La validación restringe: el mismo
+// sobre con una clave de más o de menos en su data no valida.
+func TestSalidaDeTerritorioContraSchemas(t *testing.T) {
+	t.Parallel()
+
+	publicado, id := ficheroPublicadoDelVerbo(t, "resolver")
+	esquema := salidaPublicada(t, publicado, id, "resolver")
+
+	for _, caso := range salidasDeTerritorio() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()), argvDeResolver(caso.consulta, "--json")...)
+
+			require.Equal(t, caso.codigo, res.codigo, res.errores)
+			assert.Equal(t, caso.codigo == 0, sobreDelJSON(t, res.salida)["ok"],
+				"ok decide la rama del esquema contra la que se valida data")
+
+			exigirSalidaPublicada(t, esquema, res.salida)
+		})
+	}
+}
+
+// salidaDeTerritorio es una invocación de TestSalidaDeTerritorioContraSchemas:
+// la consulta, que se pasa con --json, y el código con el que termina.
+type salidaDeTerritorio struct {
+	nombre   string
+	consulta string
+	codigo   int
+}
+
+// salidasDeTerritorio son las invocaciones de resolver cuyo sobre se valida: la
+// de éxito de cada municipio resuelto y la de fallo de cada caso que decide el
+// applet en TestCodigosDeTerritorio, con su código. Los que decide el kernel
+// antes de llegar al applet no son salida suya.
+func salidasDeTerritorio() []salidaDeTerritorio {
+	var salidas []salidaDeTerritorio
+
+	for _, municipio := range municipiosResueltos() {
+		salidas = append(salidas, salidaDeTerritorio{nombre: "exito-" + municipio.nombre, consulta: municipio.consultas[0]})
+	}
+
+	for _, grupo := range gruposDeCasos() {
+		for _, caso := range grupo.casos {
+			if caso.delApplet {
+				salidas = append(salidas, salidaDeTerritorio{
+					nombre:   "fallo-" + strconv.Itoa(caso.codigo) + "-" + grupo.nombre + "-" + caso.nombre,
+					consulta: caso.consulta,
+					codigo:   caso.codigo,
+				})
+			}
+		}
+	}
+
+	return salidas
+}
+
+// presentacionDeTerritorio es una de las dos formas en que el kernel presenta la
+// salida del verbo: el sobre, con --json, o la tabla, sin ella.
+type presentacionDeTerritorio struct {
+	nombre   string
+	banderas []string
+}
+
+// presentacionesDeTerritorio son las dos: lo que no aparece en una tampoco puede
+// aparecer en la otra.
+var presentacionesDeTerritorio = []presentacionDeTerritorio{
+	{nombre: "json", banderas: []string{"--json"}},
+	{nombre: "tabla"},
+}
+
+// TestSalidaSinBoletinesNoConfigurados fija sobre el registro local lo que la
+// salida del municipio no cubierto dice de sus boletines (FR-020 a FR-022, US2
+// escenarios 2, 3 y 4, SC-002):
+//
+//   - en ninguna de sus dos presentaciones, ni en la salida de error, aparece el
+//     código, el nombre ni la dirección de ningún boletín no configurado —los
+//     que los ficheros de las demás comunidades configuran—, que la misma
+//     búsqueda sí encuentra en la salida del cubierto, para no pasar en vacío;
+//   - boletines trae solo el estatal, el del fichero del estado;
+//   - la cobertura declara no-configurado el autonómico y el provincial, y el
+//     contrato publicado no admite para ellos más valores que configurado y
+//     no-configurado: ninguno que diga que no existen.
+func TestSalidaSinBoletinesNoConfigurados(t *testing.T) {
+	t.Parallel()
+
+	cubierto, noCubierto := municipioLlamado(t, "cubierto"), municipioLlamado(t, "no-cubierto")
+	noConfigurados := boletinesConfiguradosFueraDe(t, fuentesDeTerritorio(),
+		noCubierto.territorioEsperado(t).Comunidad.Codigo)
+
+	for _, forma := range presentacionesDeTerritorio {
+		t.Run("ningun-boletin-no-configurado-en-"+forma.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			compruebaSinBoletinesNoConfigurados(t, cubierto, noCubierto, noConfigurados, forma.banderas)
+		})
+	}
+
+	t.Run("solo-el-boletin-estatal", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaSoloElBoletinEstatal(t, noCubierto)
+	})
+
+	t.Run("cobertura-sin-valor-de-no-existe", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaCoberturaNoConfigurada(t, noCubierto)
+	})
+}
+
+// municipioLlamado es el municipio resuelto del registro local con ese nombre,
+// que tiene que estar.
+func municipioLlamado(t *testing.T, nombre string) municipioResuelto {
+	t.Helper()
+
+	municipios := municipiosResueltos()
+
+	i := slices.IndexFunc(municipios, func(municipio municipioResuelto) bool {
+		return municipio.nombre == nombre
+	})
+	require.NotEqual(t, -1, i, "%q está entre los municipios resueltos", nombre)
+
+	return municipios[i]
+}
+
+// territorioEsperado es el data que el municipio tiene que devolver, leído de su
+// esperado escrito a mano y no de lo que emite el applet.
+func (municipio municipioResuelto) territorioEsperado(t *testing.T) territorio.Territorio {
+	t.Helper()
+
+	var esperado territorio.Territorio
+
+	require.NoError(t, json.Unmarshal([]byte(municipio.data), &esperado), "el data esperado de %s", municipio.nombre)
+
+	return esperado
+}
+
+// territorioEmitido es el data del sobre que emite resolver con --json.
+func territorioEmitido(t *testing.T, salida string) territorio.Territorio {
+	t.Helper()
+
+	var sobre struct {
+		Data territorio.Territorio `json:"data"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(salida), &sobre), "con --json la salida estándar es el sobre")
+
+	return sobre.Data
+}
+
+// boletinesConfiguradosFueraDe son los boletines que configuran los ficheros de
+// las comunidades de las fuentes distintas de la del municipio, leídos de esos
+// ficheros y no de lo que emite el applet. La del municipio no configura
+// ninguno, que es lo que lo deja fuera del territorio configurado, así que para
+// él todos son boletines no configurados; y tiene que haber alguno, porque
+// buscar en su salida una lista vacía no probaría nada.
+func boletinesConfiguradosFueraDe(t *testing.T, fuentes territorio.Fuentes, comunidad string) []territorio.BoletinConfigurado {
+	t.Helper()
+
+	var boletines []territorio.BoletinConfigurado
+
+	for _, codigo := range slices.Sorted(maps.Keys(fuentes.Comunidades)) {
+		var fichero territorio.FicheroDeComunidad
+
+		require.NoError(t, yaml.Unmarshal(fuentes.Comunidades[codigo], &fichero), "el fichero de la comunidad %s", codigo)
+
+		if codigo == comunidad {
+			require.Nil(t, fichero.Boletines, "la comunidad %s del municipio no configura ningún boletín", codigo)
+
+			continue
+		}
+
+		if fichero.Boletines == nil {
+			continue
+		}
+
+		for _, boletin := range []*territorio.BoletinConfigurado{fichero.Boletines.Autonomico, fichero.Boletines.Provincial} {
+			if boletin != nil {
+				boletines = append(boletines, *boletin)
+			}
+		}
+	}
+
+	require.NotEmpty(t, boletines, "las fuentes configuran algún boletín fuera de la comunidad %s", comunidad)
+
+	return boletines
+}
+
+// compruebaSinBoletinesNoConfigurados busca, en una presentación, el código, el
+// nombre y la dirección de cada boletín no configurado: la búsqueda los
+// encuentra en la salida del cubierto, cuya comunidad los configura, y no
+// encuentra ninguno en la del no cubierto, ni en su salida estándar ni en la de
+// error (FR-021, US2 escenario 3, SC-002).
+func compruebaSinBoletinesNoConfigurados(
+	t *testing.T, cubierto, noCubierto municipioResuelto, noConfigurados []territorio.BoletinConfigurado, banderas []string,
+) {
+	t.Helper()
+
+	registro := registroDeTerritorio(t, fuentesDeTerritorio())
+
+	delCubierto := invocar(t, registro, argvDeResolver(cubierto.consultas[0], banderas...)...)
+	require.Equal(t, 0, delCubierto.codigo, delCubierto.errores)
+
+	delNoCubierto := invocar(t, registro, argvDeResolver(noCubierto.consultas[0], banderas...)...)
+	require.Equal(t, 0, delNoCubierto.codigo, delNoCubierto.errores)
+
+	for _, boletin := range noConfigurados {
+		for _, dato := range []string{boletin.Codigo, boletin.Nombre, boletin.URL} {
+			require.Contains(t, delCubierto.salida, dato, "la búsqueda encuentra %q donde está configurado", dato)
+
+			assert.NotContains(t, delNoCubierto.salida, dato, "%q no aparece fuera del territorio configurado", dato)
+			assert.NotContains(t, delNoCubierto.errores, dato, "%q tampoco aparece en la salida de error", dato)
+		}
+	}
+}
+
+// compruebaSoloElBoletinEstatal exige que los boletines del no cubierto sean
+// uno solo, el estatal, con el código, el nombre y la dirección del fichero del
+// estado (FR-008, FR-021, US2 escenario 2).
+func compruebaSoloElBoletinEstatal(t *testing.T, noCubierto municipioResuelto) {
+	t.Helper()
+
+	var estado territorio.FicheroDeEstado
+
+	require.NoError(t, yaml.Unmarshal(fuentesDeTerritorio().Estado, &estado), "el fichero del estado")
+
+	res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()), argvDeResolver(noCubierto.consultas[0], "--json")...)
+	require.Equal(t, 0, res.codigo, res.errores)
+
+	boletines := territorioEmitido(t, res.salida).Boletines
+	require.Len(t, boletines, 1, "solo el estatal: %+v", boletines)
+
+	assert.Equal(t, "estatal", boletines[0].Nivel)
+	assert.Equal(t, estado.Boletin.Codigo, boletines[0].Codigo)
+	assert.Equal(t, estado.Boletin.Nombre, boletines[0].Nombre)
+	assert.Equal(t, estado.Boletin.URL, boletines[0].URL)
+}
+
+// compruebaCoberturaNoConfigurada exige que la cobertura del no cubierto declare
+// no-configurado el boletín autonómico y el provincial, y que el contrato
+// publicado no deje decir de ellos nada más: su enumerado es configurado y
+// no-configurado (data-model §2.4), y el mismo sobre con cualquier otro valor
+// —uno que dijera que no existen— no valida (FR-020, FR-022, US2 escenario 4).
+func compruebaCoberturaNoConfigurada(t *testing.T, noCubierto municipioResuelto) {
+	t.Helper()
+
+	res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()), argvDeResolver(noCubierto.consultas[0], "--json")...)
+	require.Equal(t, 0, res.codigo, res.errores)
+
+	cobertura := territorioEmitido(t, res.salida).Cobertura
+	assert.Equal(t, "no-configurado", cobertura.BoletinAutonomico)
+	assert.Equal(t, "no-configurado", cobertura.BoletinProvincial)
+
+	publicado, id := ficheroPublicadoDelVerbo(t, "resolver")
+	esquema := salidaPublicada(t, publicado, id, "resolver")
+
+	require.NoError(t, esquema.Validate(sobreValidable(t, res.salida)), "el sobre del no cubierto valida")
+
+	for _, aspecto := range []string{"boletin_autonomico", "boletin_provincial"} {
+		assert.ElementsMatch(t, []any{"configurado", "no-configurado"},
+			valorDelEsquema(t, publicado, "$defs", "resolver", "$defs", "territorio.Cobertura", "properties", aspecto, "enum"),
+			"cobertura.%s no tiene en el contrato ningún valor que diga que el boletín no existe", aspecto)
+
+		conOtroValor := sobreValidable(t, res.salida)
+		objetoDe(t, objetoDeData(t, conOtroValor)["cobertura"], "cobertura")[aspecto] = "no-existe"
+
+		assert.Errorf(t, esquema.Validate(conOtroValor), "cobertura.%s fuera de su enumerado no valida", aspecto)
 	}
 }

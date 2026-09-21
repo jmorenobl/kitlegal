@@ -1,21 +1,15 @@
 {
-  "id": "T010",
-  "texto": "T010 [datos] [US1] Contrato publicado del applet y su activación, indivisibles: `schemas/municipio.json` generado con la receta existente (`TestEsquemasPublicados` con `-actualizar-esquemas`; **no se escribe a mano**) con su `$id` y su parte `$defs.resolver` en la forma canónica, la fila nueva de la tabla de `internal/app/esquemas_test.go` (entidad `municipio`, verbo `resolver`), el registro del applet en `internal/app/registro.go` y en `internal/app/ejemplo/kitlegal-e2e/main.go` —los dos con las fuentes embebidas, que no dependen del entorno— y los cuatro sitios que fijan la lista de applets: `internal/app/registro_test.go`, `cmd/kitlegal/main_test.go`, `internal/app/testdata/script/argumentos.txtar` e `internal/app/testdata/script/ayuda.txtar`; nada más, y el código que toca es exactamente el que un control existente hace inseparable del fichero protegido, porque en cuanto el verbo está en el registro `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada y el esquema se genera **desde** el applet ya registrado: separarlos dejaría `make ci` en rojo entre dos tareas; la pausa revisa juntos el contrato publicado y los dos guiones existentes (FR-007, FR-086, FR-092, SC-012, contrato del applet §6, plan *Complexity Tracking* D16).",
+  "id": "T011",
+  "texto": "T011 [US2] La salida real contra el contrato ya publicado: `internal/app/territorio_test.go` gana `TestSalidaDeTerritorioContraSchemas` (la salida del verbo, para un municipio cubierto y para uno no cubierto, valida contra el contrato publicado `municipio.json` compilado del fichero real) y `TestSalidaSinBoletinesNoConfigurados` (en la salida del municipio no cubierto no aparece el código, ni el nombre, ni la dirección de ningún boletín no configurado, `boletines` trae solo el estatal y `cobertura` declara `no-configurado` el autonómico y el provincial, sin ningún valor que permita concluir que no existan); no toca ningún otro fichero (FR-020, FR-021, FR-022, FR-092, US2 escenarios 2, 3 y 4, SC-002, Definition of Done §1.4).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T010.md y déjala sin marcar.",
-  "base": "1df1e6238c503f54f71acdfe78832b258162c720",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T011.md y déjala sin marcar.",
+  "base": "038564f8fbefe9dcb0569b628492cc665c33cc5a",
   "rutas": [
-    "cmd/kitlegal/main_test.go",
-    "internal/app/ejemplo/kitlegal-e2e/main.go",
-    "internal/app/esquemas_test.go",
-    "internal/app/registro.go",
-    "internal/app/registro_test.go",
-    "internal/app/testdata/script/argumentos.txtar",
-    "internal/app/testdata/script/ayuda.txtar",
-    "schemas/municipio.json"
+    "internal/app/territorio_test.go",
+    "municipio.json"
   ],
   "cierre": false
 }
