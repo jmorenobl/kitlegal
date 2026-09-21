@@ -10,8 +10,8 @@
     "source": { "type": "string", "minLength": 1 },
     "correspondencia": {
       "type": "object",
-      "propertyNames": { "pattern": "^[0-9]{5}$" },
-      "additionalProperties": { "type": "string", "pattern": "^L01[0-9]{6}$" }
+      "propertyNames": { "pattern": "^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$" },
+      "additionalProperties": { "type": "string", "pattern": "^[Ll]01(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})[0-9]$" }
     }
   }
 }

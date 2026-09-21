@@ -30,14 +30,17 @@ rutas** que va a crear o modificar, y **solo** esas (plan, «Obligaciones», pun
   correspondencia INE→DIR3 generada, verificada y congelada fuera de la ejecución. Las tareas de documentación, cierre y
   plataforma no llevan historia.
 - **[datos]**: la tarea toca material bajo `testdata/` o `schemas/`, o el material congelado que la pausa humana revisa
-  con él. Son **diez**, las del plan (obligación 1): T001, T002, T003, T005, T010, T012, T013, T014, T015 y T018.
-  Ninguna mezcla trabajo ajeno a su material y **solo dos tocan código**, por la razón escrita en cada una y en
-  *Complexity Tracking* de plan.md: T010 (registrar el applet, sin lo cual el esquema no se puede generar, D16) y T018
-  (la expectativa de test que la forma del esquema de eval impone, D28). T003 lleva además la fila de `docs/SOURCES.md`
-  y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa misma pausa. **Ocho provocan pausa
-  humana** —T001, T002, T003, T010, T013, T014, T015 y T018: material existente modificado o esquema nuevo—, y **T005 y
-  T012 no**, porque son ficheros nuevos bajo el `testdata/` de un paquete, fuera del territorio de fixtures; a esos dos
-  los revisa la revisión final del hito (FR-086).
+  con él. Son **once**: las diez del plan (obligación 1) —T001, T002, T003, T005, T010, T012, T013, T014, T015 y
+  T018— y T027, que entró al redelimitar T007 en su primer intento: los patrones de identificador que T001 y T003
+  fijaron en tres esquemas no son las gramáticas de los analizadores, que es lo que el subtest `gramaticas` de T007
+  exige, y cambiarlos es material de esquema (nota de T007 en `gates/`). Ninguna mezcla trabajo ajeno a su material y
+  **solo dos tocan código**, por la razón escrita en cada una y en *Complexity Tracking* de plan.md: T010 (registrar el
+  applet, sin lo cual el esquema no se puede generar, D16) y T018 (la expectativa de test que la forma del esquema de
+  eval impone, D28). T003 lleva además la fila de `docs/SOURCES.md` y el registro de la muestra porque FR-049 y FR-047
+  los ponen dentro de esa misma pausa. **Nueve provocan pausa humana** —T001, T002, T003, T027, T010, T013, T014, T015
+  y T018: material existente modificado o esquema nuevo—, y **T005 y T012 no**, porque son ficheros nuevos bajo el
+  `testdata/` de un paquete, fuera del territorio de fixtures; a esos dos los revisa la revisión final del hito
+  (FR-086).
 - **[plataforma]**: la tarea necesita la plataforma remota. Es **una**, la última: T026 (publicar la rama, abrir la
   propuesta de cambio y leer y registrar la ejecución de aceptación). Fusionar nunca es del workflow.
 
@@ -76,10 +79,10 @@ rutas** que va a crear o modificar, y **solo** esas (plan, «Obligaciones», pun
 
 **Rebanadas verticales y excepciones declaradas.** Son rebanadas completas —test antes que código, `make ci` en verde
 por sí solas— T004, T006, T007, T008, T009, T011, T016, T017, T019, T020, T021 y T022. Las demás tampoco dejan nada a
-medias, cada una por su razón: **T001, T002, T003, T005, T013 y T014** son `[datos]` y solo traen material congelado,
-esquemas o corpus que ningún lector mira todavía, de modo que `make ci` sigue en verde y el control que los valida llega
-en la tarea que lo puede dejar en verde (T007 para los ficheros de territorio y el corpus del pliegue, T004 y T005 para
-el fuzz, T016 para la jerarquía y T017 para las marcas `vertebral`); **T010, T012, T015 y T018** son `[datos]`
+medias, cada una por su razón: **T001, T002, T003, T005, T013, T014 y T027** son `[datos]` y solo traen material
+congelado, esquemas o corpus que ningún lector mira todavía, de modo que `make ci` sigue en verde y el control que los
+valida llega en la tarea que lo puede dejar en verde (T007 para los ficheros de territorio, los patrones de sus esquemas
+y el corpus del pliegue, T004 y T005 para el fuzz, T016 para la jerarquía y T017 para las marcas `vertebral`); **T010, T012, T015 y T018** son `[datos]`
 indivisibles, con la pieza de código o de test que un control existente ata a su material (D16, D28, D29) o con el guion
 e2e que ejerce lo ya registrado; **T023** es el job, que ningún `make ci` ejecuta; **T024** es documentación; **T025** es
 validación sobre el árbol terminado, cuyo único fichero escrito está en el directorio del hito; **T026** solo publica,
@@ -132,7 +135,9 @@ salida con cobertura— sobre fuentes sintéticas, y que los ficheros congelados
 
 - [X] T006 [US1] Dominio del territorio con tests sintéticos, uno por fichero: `internal/core/territorio/doc.go`; `internal/core/territorio/fuentes.go` con `Fuentes` (cuatro campos de bytes), `Ficheros` y los tipos `FicheroDeMunicipios`, `FicheroDeDIR3`, `FicheroDeEstado` y `FicheroDeComunidad` **exportados**, y `Cargar(Fuentes) (*Registro, error)`, que decodifica, comprueba los seis puntos de integridad de data-model §2.1 —toda provincia declarada por una sola comunidad, todo municipio de la correspondencia existente y con DIR3 coherente con su código y su dígito, ningún código repetido, régimen `comun` o `foral`, nombre de fichero igual al código que declara dentro y **la `comunidad` de cada municipio igual a la de la comunidad que declara su provincia**— y construye los índices; `internal/core/territorio/nombres.go` con `Plegar` exportado (minúsculas, diacríticos a su letra base, separadores y espacios colapsados) y las formas conocidas derivadas **del nombre oficial**, sin caso especial por municipio: la del INE, la del artículo pospuesto antepuesto y cada lado de un nombre bilingüe; `internal/core/territorio/registro.go` con los índices por código y por forma plegada y los candidatos ordenados por código INE; `internal/core/territorio/resolver.go` con `Resolver` (solo cifras → código de cinco o seis cifras, si no, nombre; primero «¿está en la relación?» y después el dígito); `internal/core/territorio/salida.go` con el territorio resuelto de data-model §2.5 (ocho claves, `source` en cada dato, `boletines` con siempre el estatal y solo los niveles configurados, `cobertura` de tres claves con vocabulario cerrado y sin ningún valor que signifique «no existe», la invariante del DIR3 no verificado y la fecha más antigua de los ficheros que sostienen la respuesta); e `internal/core/territorio/errores.go` (solo `schema.ClaseArgumentos` y `schema.ClaseNoEncontrado`, cada mensaje nombrando la entrada); con `TestCargar`, `TestRegistro`, `TestPlegar`, `TestFormasDelNombre`, `TestPlegarEsIdempotente`, `TestResolver`, `TestTerritorioResuelto`, `TestFechaMasAntigua` y `TestClaseDeLosErroresDeTerritorio` escritos antes y **enteros sobre fuentes sintéticas**: ningún test del dominio abre un fichero (FR-006, FR-008, FR-010 a FR-015, FR-020 a FR-024, FR-054, FR-055, FR-096, FR-097, US1 a US4, SC-002, SC-003, SC-008, data-model §2.1 a §2.8).
 
-- [ ] T007 [US1] Los datos congelados dentro del binario y su validación en `make ci`: `data/datos.go` (paquete `data` con su comentario de paquete y **solo** directivas `//go:embed` para los tres ficheros sueltos y el subárbol de comunidades, más `Comunidades() (map[string][]byte, error)` que devuelve un mapa por código; sin más lógica, y un patrón que no case es error de compilación, no modo de fallo en ejecución) e `internal/skills/territorio.go` con `LeerTerritorio`, que valida los cuatro documentos contra sus esquemas con el lector común —clave repetida incluida— usando los tipos que exporta el dominio, sin repetirlos; su test lleva `TestLeerTerritorio` sobre documentos sintéticos (válido, clave desconocida, patrón, clave repetida) y `TestTerritorioDelRepositorio` con los subtests `esquema`, `integridad` (delegando en `Cargar`), `fuentes` (todo `source` emitido es un identificador de fila de `SOURCES.md` o la ruta de un fichero congelado que existe), `solo-madrid-configurada`, `regimen-de-todas`, `gramaticas` (los `pattern` de los tres esquemas aceptan y rechazan exactamente lo mismo que `AnalizarCodigoINE` y `AnalizarDIR3`), `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras`, los tres últimos sobre el corpus congelado real, y **todos ellos exigen que existan los cuatro ficheros y las 19 comunidades**, para no pasar en vacío; y `Makefile`, cuya expresión `-run` de `make skills-check` gana `TestTerritorioDelRepositorio` (FR-024, FR-044, FR-056, FR-097, US7 escenario 4, SC-005, SC-007, SC-012, contrato de datos §2 y §3).
+- [X] T027 [datos] [US7] Los patrones de identificador de los esquemas de territorio, iguales a las gramáticas de los analizadores, antes del control que los ata: en `schemas/territorio-municipios.yaml.json` (la clave de `municipios` y la `provincia` de cada fila), `schemas/territorio-dir3.yaml.json` (la clave y el valor de `correspondencia`) y `schemas/territorio-comunidad.yaml.json` (la clave de `provincias`), cada `pattern` que describe un código INE, su provincia o un DIR3 pasa a aceptar exactamente lo que aceptan `AnalizarCodigoINE` y `AnalizarDIR3` —el código INE, `^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$`, con la provincia de `01` a `52` y el municipio de `001` a `999`; la provincia sola, `^(0[1-9]|[1-4][0-9]|5[0-2])$`; y el DIR3, `^[Ll]01(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})[0-9]$`, con la letra en mayúscula o en minúscula, como el analizador—, sin tocar ningún otro patrón ni ninguna otra propiedad, y data-model §3.1 y §3.2, que describen esos patrones, pasan a decir lo mismo; es tarea de datos aparte porque el subtest `gramaticas` de T007 exige esa igualdad (contrato de identificadores §2) y los patrones que fijaron T001 y T003 —`^[0-9]{5}$`, `^[0-9]{2}$` y `^L01[0-9]{6}$`— aceptan la provincia `00` o mayor que `52` y el municipio `000` y rechazan la `l` minúscula, mientras T007 no lleva la etiqueta que deja tocar esquemas; la pausa revisa los tres esquemas juntos; no toca código ni datos: los ficheros congelados siguen validando —todos sus códigos están en rango, lo que T007 comprueba— y `make ci` sigue en verde porque hasta T007 ningún lector mira estos esquemas (FR-030, FR-031, FR-044, FR-086, contrato de identificadores §2, contrato de datos §2).
+
+- [ ] T007 [US1] Los datos congelados dentro del binario y su validación en `make ci`: `data/datos.go` (paquete `data` con su comentario de paquete y **solo** directivas `//go:embed` para los tres ficheros sueltos y el subárbol de comunidades, más `Comunidades() (map[string][]byte, error)` que devuelve un mapa por código; sin más lógica, y un patrón que no case es error de compilación, no modo de fallo en ejecución) e `internal/skills/territorio.go` con `LeerTerritorio`, que valida los cuatro documentos contra sus esquemas con el lector común —clave repetida incluida— usando los tipos que exporta el dominio, sin repetirlos, e `internal/skills/export_test.go`, que expone a los tests del paquete externo el compilador de esos esquemas, como ya hace con el de normas, para fijar sus errores de lectura y de compilación; su test lleva `TestLeerTerritorio` sobre documentos sintéticos (válido, clave desconocida, patrón, clave repetida), `TestCompilarEsquemaDelTerritorioDesdeUnaRuta` y `TestTerritorioDelRepositorio` con los subtests `esquema`, `integridad` (delegando en `Cargar`), `fuentes` (todo `source` emitido es un identificador de fila de `SOURCES.md` o la ruta de un fichero congelado que existe), `solo-madrid-configurada`, `regimen-de-todas`, `gramaticas` (los `pattern` de los tres esquemas, que T027 deja iguales a sus gramáticas, aceptan y rechazan exactamente lo mismo que `AnalizarCodigoINE` y `AnalizarDIR3`), `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras`, los tres últimos sobre el corpus congelado real, y **todos ellos exigen que existan los cuatro ficheros y las 19 comunidades**, para no pasar en vacío; y `Makefile`, cuya expresión `-run` de `make skills-check` gana `TestTerritorioDelRepositorio` (FR-024, FR-044, FR-056, FR-097, US7 escenario 4, SC-005, SC-007, SC-012, contrato de datos §2 y §3).
 
 **Checkpoint**: el territorio se resuelve entero en memoria desde bytes, y los ficheros reales viajan en el binario y se
 validan, con su integridad y su pliegue, dentro de `make ci`.
@@ -273,12 +278,12 @@ escrito; solo queda la plataforma.
 | FR-020, FR-021, FR-022 | T006, T009, T011, T012 |
 | FR-023 | T003, T006, T009 |
 | FR-024 | T006, T007, T020 |
-| FR-030 a FR-034 | T004 |
+| FR-030 a FR-034 | T004; T027 (los patrones de los esquemas de territorio, iguales a sus gramáticas) |
 | FR-035 | T004 (objetivos y semillas), T005 (corpus versionado) |
 | FR-040, FR-041 | T001 |
 | FR-042 | T003 |
 | FR-043 | T003, T019 (un comando de territorio no genera consulta), batería (`TestArquitectura` R2) |
-| FR-044 | T001, T002, T003, T014 (esquemas), T007 y T016 (validación en `make ci`) |
+| FR-044 | T001, T002, T003, T014 y T027 (esquemas), T007 y T016 (validación en `make ci`) |
 | FR-045 | T001, T002, T003 |
 | FR-046, FR-047, FR-048 | T003 |
 | FR-049 | T003, T024 |
@@ -298,7 +303,7 @@ escrito; solo queda la plataforma.
 | FR-083 | T020 (antes que T022), T023, T026 |
 | FR-084 | T018, T019 |
 | FR-085 | T013, T015, T018 |
-| FR-086 | T001, T002, T003, T005, T010, T012, T014, T015 |
+| FR-086 | T001, T002, T003, T005, T010, T012, T014, T015, T027 |
 | FR-090, FR-091 | T012 |
 | FR-092 | T008, T010, T011 |
 | FR-093, FR-094 | Cada tarea (batería); T025 |
@@ -328,7 +333,7 @@ escrito; solo queda la plataforma.
 
 | Obligación del plan | Dónde se cumple |
 |---|---|
-| 1. Orden y pausas | Una tarea por paso de «Orden de implementación», en su orden: 1→T001, 2→T002, 3→T003, 4→T004, 5→T005, 6→T006, 7→T007, 8→T008, 9→T009, 10→T010, 11→T011, 12→T012, 13→T013, 14→T014, 15→T015, 16→T016 y T017 (el paso 16 se parte en dos rebanadas verdes: el lector de la jerarquía y, después, las normas vertebrales con la tabla de generadores), 17→T018, 18→T019, 19→T020, 20→T021, 21→T022, 22→T023, 23→T024; el paso 24 se parte en T025 (cierre local, que escribe el cuerpo) y T026 (`[plataforma]`). Las diez `[datos]` son T001, T002, T003, T005, T010, T012, T013, T014, T015 y T018, y solo T010 y T018 declaran una ruta de código, con su razón |
+| 1. Orden y pausas | Una tarea por paso de «Orden de implementación», en su orden: 1→T001, 2→T002, 3→T003, 4→T004, 5→T005, 6→T006, 7→T007, 8→T008, 9→T009, 10→T010, 11→T011, 12→T012, 13→T013, 14→T014, 15→T015, 16→T016 y T017 (el paso 16 se parte en dos rebanadas verdes: el lector de la jerarquía y, después, las normas vertebrales con la tabla de generadores), 17→T018, 18→T019, 19→T020, 20→T021, 21→T022, 22→T023, 23→T024; el paso 24 se parte en T025 (cierre local, que escribe el cuerpo) y T026 (`[plataforma]`). Las diez `[datos]` del plan son T001, T002, T003, T005, T010, T012, T013, T014, T015 y T018, y solo T010 y T018 declaran una ruta de código, con su razón; T027, la undécima, entró al redelimitar T007 y va justo antes que ella, sin código |
 | 2. Sin descargar, grabar ni escribir de memoria | Batería; T001, T002, T003 y T015 dicen expresamente que el ejecutor no descarga ni graba; T017 se detiene si un título o un rango grabados no coinciden |
 | 3. Rutas declaradas | Cada línea nombra por su ruta completa los ficheros que crea o cambia, ficheros de test incluidos cuando no los cubre su fichero de código; lo que solo se lee, se compara o se ejecuta va sin carpeta (`municipios.yaml`, `municipio.json`, `jerarquia.yaml`, `SOURCES.md`, `verify-sources.sh`, `mapa-sistema-legal-skills.md`) o por su test o su objetivo de `make`; desde T001 ninguna línea posterior deja extraer las carpetas de datos, de esquemas ni de fixtures |
 | 4. `misspell` | Batería; ninguna tarea declara `.golangci.yml`, y si la implementación demostrara que necesita una entrada literal, se redelimita la tarea declarándolo con su motivo |
@@ -352,6 +357,9 @@ El orden es estrictamente secuencial: **ninguna tarea depende de una posterior**
 - **T004 → T006**: el dominio del territorio analiza códigos INE y DIR3 con los tipos de T004.
 - **T001, T002, T003, T006 → T007**: `TestTerritorioDelRepositorio` exige los cuatro ficheros reales y delega la
   integridad en `Cargar`; el paquete embebido no puede apuntar a ficheros que no existen.
+- **T004 → T027 → T007**: los patrones de los esquemas se igualan a las gramáticas de T004 antes de que el subtest
+  `gramaticas` de T007 los compare; T027 va en el fichero justo antes que T007, porque el bucle toma la primera tarea
+  sin marcar en el orden del fichero y no por su número.
 - **T007 → T009**: la raíz de producción y el binario de e2e pasan las fuentes embebidas.
 - **T008 → T010**: la tabla de esquemas tiene que estar parametrizada antes de que exista una fila que no sea `boe`.
 - **T009 → T010 → T011 → T012**: el esquema se genera desde el applet ya registrado; el test contra el contrato
@@ -399,7 +407,7 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
 - US3 (T002, T006, T012) marca el régimen foral allí donde lo hay.
 - US6 (T013, T015, T017) cierra la tabla de leyes vertebrales con identificadores verificados.
 - US5 (T014, T016, T018 a T023) extiende el formato de eval, escribe las evals y entrega la skill madre.
-- US7 (T001, T003, T007) deja el terreno congelado, verificado y validado en `make ci`.
+- US7 (T001, T003, T027, T007) deja el terreno congelado, verificado y validado en `make ci`.
 - T024-T026 documentan, validan y publican.
 
 ## Notas
@@ -413,7 +421,9 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
   `legal-core`, la refactorización de `internal/cli` y un ADR nuevo.
 - **Nombre de la tercera eval**: el contrato deja abierto el sufijo de la eval de no activación; aquí queda fijado como
   `03-no-activa-receta-de-cocina.yaml`, en la forma de las dos de no activación que ya tiene `boe-legislacion`.
-- **Ficheros existentes que se tocan**, exactamente: `docs/SOURCES.md` (T003); `internal/app/esquemas_test.go` (T008 y
+- **Ficheros existentes que se tocan**, exactamente: `docs/SOURCES.md` (T003); los esquemas de municipios, DIR3 y
+  comunidad que fijaron T001, T002 y T003 (T027, solo sus patrones de identificador); `internal/skills/export_test.go`
+  (T007); `internal/app/esquemas_test.go` (T008 y
   T010); `internal/arch_test.go` (T009); `internal/app/registro.go`, `internal/app/registro_test.go`,
   `cmd/kitlegal/main_test.go`, `internal/app/ejemplo/kitlegal-e2e/main.go`,
   `internal/app/testdata/script/argumentos.txtar` e `internal/app/testdata/script/ayuda.txtar` (T010);
@@ -444,6 +454,6 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
 | b. trazabilidad | Tabla «Trazabilidad» con **todos** los FR del spec (001-016, 020-024, 030-035, 040-049, 050-056, 060-069, 070-074, 080-086, 090-102) y todos los SC (001-015); cada tarea cita en su línea los requisitos que cumple; ninguna tarea añade nada que el spec o el plan no pidan, y lo que el spec deja fuera está enumerado en «Notas» |
 | c. rebanadas_verdes | Cada tarea de código lleva su test escrito primero y la implementación mínima que lo hace pasar; las excepciones están declaradas una a una con su razón en «Rebanadas verticales y excepciones declaradas» y ninguna deja un test en rojo al terminar; el orden es secuencial y está justificado en «Dependencias y orden»; el e2e que describe la entrega va en T012, la primera tarea que puede dejarlo en verde (necesita el applet registrado en el binario de e2e, T010) |
 | d. rutas_declaradas | Cada línea nombra por su ruta completa los ficheros que crea o cambia, sin llaves, comodines ni rutas de paquete o de carpeta genérica; los ficheros de test van por su ruta cuando no los cubre la regla «declarar `x.go` permite `x_test.go`»; lo que solo se lee o se ejecuta va sin carpeta o por su test o su objetivo de `make` |
-| e. datos_separados | Las diez `[datos]` (T001, T002, T003, T005, T010, T012, T013, T014, T015, T018) son las únicas líneas que nombran material bajo esquemas o fixtures; solo T010 y T018 declaran código, por la indivisibilidad que un control existente impone y que plan.md razona en *Complexity Tracking*, y las dos lo revisan en su pausa; T003 añade la fila de fuentes y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa misma pausa; T026 es la única `[plataforma]`, va la última, no mezcla otro trabajo y nunca fusiona |
-| f. dod | Tabla «Definition of Done» con los doce puntos: los aplicables con su tarea (`CHANGELOG.md` en T024, esquemas en T001, T002, T003, T010, T013, T014 y T018, fixtures en T005, T012 y T015, `docs/SOURCES.md` en T003, evals antes que la skill en T020 y T022, cobertura en T025, e2e en T012) y los no aplicables con su razón (ADR y grafo) |
+| e. datos_separados | Las once `[datos]` (T001, T002, T003, T005, T010, T012, T013, T014, T015, T018 y T027, esta última entrada al redelimitar T007) son las únicas líneas que nombran material bajo esquemas o fixtures; solo T010 y T018 declaran código, por la indivisibilidad que un control existente impone y que plan.md razona en *Complexity Tracking*, y las dos lo revisan en su pausa; T003 añade la fila de fuentes y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa misma pausa; T026 es la única `[plataforma]`, va la última, no mezcla otro trabajo y nunca fusiona |
+| f. dod | Tabla «Definition of Done» con los doce puntos: los aplicables con su tarea (`CHANGELOG.md` en T024, esquemas en T001, T002, T003, T010, T013, T014, T018 y T027, fixtures en T005, T012 y T015, `docs/SOURCES.md` en T003, evals antes que la skill en T020 y T022, cobertura en T025, e2e en T012) y los no aplicables con su razón (ADR y grafo) |
 | g. checklist_veraz | `checklists/requirements.md` está enteramente marcado y ninguna tarea lo modifica; sus marcas describen el spec, que las tareas no cambian |

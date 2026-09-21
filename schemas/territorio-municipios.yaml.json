@@ -10,7 +10,7 @@
     "source": { "type": "string", "minLength": 1 },
     "municipios": {
       "type": "object",
-      "propertyNames": { "pattern": "^[0-9]{5}$" },
+      "propertyNames": { "pattern": "^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$" },
       "additionalProperties": { "$ref": "#/$defs/municipio" }
     }
   },
@@ -22,7 +22,7 @@
       "properties": {
         "dc": { "type": "string", "pattern": "^[0-9]$" },
         "nombre": { "type": "string", "minLength": 1 },
-        "provincia": { "type": "string", "pattern": "^[0-9]{2}$" },
+        "provincia": { "type": "string", "pattern": "^(0[1-9]|[1-4][0-9]|5[0-2])$" },
         "comunidad": { "type": "string", "pattern": "^[0-9]{2}$" }
       }
     }

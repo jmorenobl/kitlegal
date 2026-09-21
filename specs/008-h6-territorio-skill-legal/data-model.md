@@ -226,11 +226,14 @@ municipios:
   "28074": {dc: "8", nombre: "Leganés", provincia: "28", comunidad: "13"}
 ```
 
-`propertyNames.pattern` `^[0-9]{5}$`; `dc` una cifra; `nombre` no vacío; `provincia` dos cifras; `comunidad` dos
-cifras. Las cinco columnas de FR-040, **siempre las cinco**: es la misma forma que enseñan §2.2 y research.md D4, y
-la coherencia de `comunidad` con la comunidad que declara la provincia la exige §2.1, punto 6. Una línea por
-municipio (research.md D4). Los valores de este ejemplo son ilustrativos: los fija la tarea `[datos]` desde la
-relación del INE (research.md S1, S5).
+`propertyNames.pattern` `^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$`, el código INE de §1.1:
+provincia de `01` a `52` y municipio de `001` a `999`; `dc` una cifra; `nombre` no vacío; `provincia`
+`^(0[1-9]|[1-4][0-9]|5[0-2])$`, de `01` a `52` (el mismo patrón que la clave de `provincias` de §3.4); `comunidad` dos
+cifras. Los patrones del código INE y de la provincia aceptan exactamente lo que acepta `AnalizarCodigoINE`, y los ata
+el subtest `TestTerritorioDelRepositorio/gramaticas` (contrato de identificadores §2). Las cinco columnas de FR-040,
+**siempre las cinco**: es la misma forma que enseñan §2.2 y research.md D4, y la coherencia de `comunidad` con la
+comunidad que declara la provincia la exige §2.1, punto 6. Una línea por municipio (research.md D4). Los valores de
+este ejemplo son ilustrativos: los fija la tarea `[datos]` desde la relación del INE (research.md S1, S5).
 
 ### 3.2 `dir3.yaml` — esquema `schemas/territorio-dir3.yaml.json`
 
@@ -241,7 +244,12 @@ correspondencia:
   "28074": "L01280748"
 ```
 
-Solo filas verificadas (FR-048). `propertyNames.pattern` `^[0-9]{5}$`; valor `^L01[0-9]{6}$`.
+Solo filas verificadas (FR-048). `propertyNames.pattern` el del código INE de §3.1,
+`^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$`; valor
+`^[Ll]01(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})[0-9]$`, el DIR3 de §1.2: la letra en mayúscula o
+en minúscula, como `AnalizarDIR3`, que la normaliza a mayúscula (el fichero la escribe en mayúscula), el tipo `01`, un
+código INE en rango y el dígito. Los dos aceptan exactamente lo que aceptan `AnalizarCodigoINE` y `AnalizarDIR3`, y los
+ata el mismo subtest `gramaticas`.
 
 ### 3.3 `estado.yaml` — esquema `schemas/territorio-estado.yaml.json`
 

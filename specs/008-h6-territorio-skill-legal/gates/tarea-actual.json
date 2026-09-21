@@ -1,20 +1,16 @@
 {
-  "id": "T006",
-  "texto": "T006 [US1] Dominio del territorio con tests sintéticos, uno por fichero: `internal/core/territorio/doc.go`; `internal/core/territorio/fuentes.go` con `Fuentes` (cuatro campos de bytes), `Ficheros` y los tipos `FicheroDeMunicipios`, `FicheroDeDIR3`, `FicheroDeEstado` y `FicheroDeComunidad` **exportados**, y `Cargar(Fuentes) (*Registro, error)`, que decodifica, comprueba los seis puntos de integridad de data-model §2.1 —toda provincia declarada por una sola comunidad, todo municipio de la correspondencia existente y con DIR3 coherente con su código y su dígito, ningún código repetido, régimen `comun` o `foral`, nombre de fichero igual al código que declara dentro y **la `comunidad` de cada municipio igual a la de la comunidad que declara su provincia**— y construye los índices; `internal/core/territorio/nombres.go` con `Plegar` exportado (minúsculas, diacríticos a su letra base, separadores y espacios colapsados) y las formas conocidas derivadas **del nombre oficial**, sin caso especial por municipio: la del INE, la del artículo pospuesto antepuesto y cada lado de un nombre bilingüe; `internal/core/territorio/registro.go` con los índices por código y por forma plegada y los candidatos ordenados por código INE; `internal/core/territorio/resolver.go` con `Resolver` (solo cifras → código de cinco o seis cifras, si no, nombre; primero «¿está en la relación?» y después el dígito); `internal/core/territorio/salida.go` con el territorio resuelto de data-model §2.5 (ocho claves, `source` en cada dato, `boletines` con siempre el estatal y solo los niveles configurados, `cobertura` de tres claves con vocabulario cerrado y sin ningún valor que signifique «no existe», la invariante del DIR3 no verificado y la fecha más antigua de los ficheros que sostienen la respuesta); e `internal/core/territorio/errores.go` (solo `schema.ClaseArgumentos` y `schema.ClaseNoEncontrado`, cada mensaje nombrando la entrada); con `TestCargar`, `TestRegistro`, `TestPlegar`, `TestFormasDelNombre`, `TestPlegarEsIdempotente`, `TestResolver`, `TestTerritorioResuelto`, `TestFechaMasAntigua` y `TestClaseDeLosErroresDeTerritorio` escritos antes y **enteros sobre fuentes sintéticas**: ningún test del dominio abre un fichero (FR-006, FR-008, FR-010 a FR-015, FR-020 a FR-024, FR-054, FR-055, FR-096, FR-097, US1 a US4, SC-002, SC-003, SC-008, data-model §2.1 a §2.8).",
+  "id": "T027",
+  "texto": "T027 [datos] [US7] Los patrones de identificador de los esquemas de territorio, iguales a las gramáticas de los analizadores, antes del control que los ata: en `schemas/territorio-municipios.yaml.json` (la clave de `municipios` y la `provincia` de cada fila), `schemas/territorio-dir3.yaml.json` (la clave y el valor de `correspondencia`) y `schemas/territorio-comunidad.yaml.json` (la clave de `provincias`), cada `pattern` que describe un código INE, su provincia o un DIR3 pasa a aceptar exactamente lo que aceptan `AnalizarCodigoINE` y `AnalizarDIR3` —el código INE, `^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$`, con la provincia de `01` a `52` y el municipio de `001` a `999`; la provincia sola, `^(0[1-9]|[1-4][0-9]|5[0-2])$`; y el DIR3, `^[Ll]01(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})[0-9]$`, con la letra en mayúscula o en minúscula, como el analizador—, sin tocar ningún otro patrón ni ninguna otra propiedad, y data-model §3.1 y §3.2, que describen esos patrones, pasan a decir lo mismo; es tarea de datos aparte porque el subtest `gramaticas` de T007 exige esa igualdad (contrato de identificadores §2) y los patrones que fijaron T001 y T003 —`^[0-9]{5}$`, `^[0-9]{2}$` y `^L01[0-9]{6}$`— aceptan la provincia `00` o mayor que `52` y el municipio `000` y rechazan la `l` minúscula, mientras T007 no lleva la etiqueta que deja tocar esquemas; la pausa revisa los tres esquemas juntos; no toca código ni datos: los ficheros congelados siguen validando —todos sus códigos están en rango, lo que T007 comprueba— y `make ci` sigue en verde porque hasta T007 ningún lector mira estos esquemas (FR-030, FR-031, FR-044, FR-086, contrato de identificadores §2, contrato de datos §2).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T006.md y déjala sin marcar.",
-  "base": "c48cc70ab0e232272906aff3463b2761a3374467",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T027.md y déjala sin marcar.",
+  "base": "2fc10f8aabe0edf3a319d94e5b9ed402e4ad2c91",
   "rutas": [
-    "internal/core/territorio/doc.go",
-    "internal/core/territorio/errores.go",
-    "internal/core/territorio/fuentes.go",
-    "internal/core/territorio/nombres.go",
-    "internal/core/territorio/registro.go",
-    "internal/core/territorio/resolver.go",
-    "internal/core/territorio/salida.go"
+    "schemas/territorio-comunidad.yaml.json",
+    "schemas/territorio-dir3.yaml.json",
+    "schemas/territorio-municipios.yaml.json"
   ],
   "cierre": false
 }
