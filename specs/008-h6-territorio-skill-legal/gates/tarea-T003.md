@@ -186,3 +186,39 @@ esquema del fichero congelado, que es justo lo que la línea de la tarea fija.
   completa una persona debería decir la secuencia explícita —«el ejecutor marca la tarea con el esquema; la persona
   añade el material en la pausa y lo confirma en la rama»— en lugar de la cláusula «todo lo escribe y lo decide una
   persona en la pausa», que sin esta nota se lee como una orden de no marcar. Afecta también a T015.
+
+## Resuelto en la pausa (2026-09-21)
+
+`data/territorio/dir3.yaml` (8.132 filas), `gates/verificacion-dir3.md` y las dos filas de `docs/SOURCES.md`.
+`scripts/verify-sources.sh` **no se ha tocado**.
+
+**S2 queda resuelto: la derivación es una regla, sin una sola excepción.** La verificación no fue muestral sino
+exhaustiva sobre los 8.132 municipios: el `DC` del REL coincide con el dígito de control del INE en el 100 % de las
+filas, ningún municipio del INE se queda sin fila en el REL, y las 8.134 filas del volcado son 8.132 municipios más
+dos duplicados exactos. Detalle y cifras en `gates/verificacion-dir3.md`.
+
+De los tres casos de FR-046, dos quedan con ejemplo nombrado (fusionado: Oza-Cesuras y Cerdedo-Cotobade; foral:
+Pamplona/Iruña y Vitoria-Gasteiz). El tercero, «con entidades locales menores», **no**: el REL no publica volcado de
+entidades de ámbito inferior al municipio —doce rutas de exportación probadas, solo responden `municipios`,
+`provincias`, `comarcas`, `mancomunidades` e `islas`— y nombrar uno sin fuente sería escribirlo de memoria. La
+comprobación exhaustiva lo cubre de hecho; queda anotado en el registro para quien reabra FR-046.
+
+### `docs/SOURCES.md`
+
+1. La fila `mpt.rel` gana la fecha del volcado: **2026-09-21**.
+2. Se añade la fila **`ine.codigos-territoriales`** para `cod_ccaa.htm` y `cod_provincia.htm`, de donde salieron los
+   nombres de las 19 comunidades y las 52 provincias en la pausa de T002 (la herencia que esta tarea tenía que
+   decidir). Se declara en vez de darla por cubierta por `ine.municipios`: es otra dirección y sostiene otro dato. La
+   licencia, los términos y la ruta `/daco/` son los mismos que Jorge revisó el 2026-09-18 para `ine.municipios`, así
+   que la revisión de fondo no cambia; el «Revisado» dice 2026-09-21 porque es el día en que se comprobaron para esta
+   fila.
+
+El `source` de los 19 ficheros de comunidad **sigue siendo `ine.municipios`**, como fija `data-model` §3.4: los
+códigos y las provincias salen de ahí, y la procedencia de los nombres queda escrita en `gates/tarea-T002.md` y en
+esta fila nueva. Cambiarlo contradiría el artefacto sin gate que lo apruebe.
+
+### Comprobado antes de aprobar
+
+Con el lector real en un `_test.go` temporal borrado antes de `make ci`: `dir3.yaml` valida contra su esquema; las
+8.132 claves existen en `municipios.yaml`; y para cada fila `valor[3:8] == clave` y `valor[8] == dc`, que es la
+integridad que `Cargar` exigirá en T006. `make ci` en verde.
