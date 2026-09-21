@@ -1,15 +1,20 @@
 {
-  "id": "T005",
-  "texto": "T005 [datos] [US4] Corpus semilla versionado del fuzz: `internal/core/ids/testdata/fuzz/FuzzCodigoINE/` e `internal/core/ids/testdata/fuzz/FuzzCodigoDIR3/` con las entradas mínimas del contrato de identificadores §6 (cinco y seis cifras, ceros por delante, provincia fuera de rango, municipio `000`, cadena vacía, caracteres que no son cifras ASCII, longitudes imposibles, y el DIR3 en mayúscula, en minúscula, corto y con letra ajena), que `make ci` ejecuta **sin** `-fuzz`, como corpus semilla; el ejecutor no lanza ningún fuzz largo ni abre la red, no toca código y `make ci` queda en verde (FR-035, FR-086, SC-006, contrato de identificadores §6).",
+  "id": "T006",
+  "texto": "T006 [US1] Dominio del territorio con tests sintéticos, uno por fichero: `internal/core/territorio/doc.go`; `internal/core/territorio/fuentes.go` con `Fuentes` (cuatro campos de bytes), `Ficheros` y los tipos `FicheroDeMunicipios`, `FicheroDeDIR3`, `FicheroDeEstado` y `FicheroDeComunidad` **exportados**, y `Cargar(Fuentes) (*Registro, error)`, que decodifica, comprueba los seis puntos de integridad de data-model §2.1 —toda provincia declarada por una sola comunidad, todo municipio de la correspondencia existente y con DIR3 coherente con su código y su dígito, ningún código repetido, régimen `comun` o `foral`, nombre de fichero igual al código que declara dentro y **la `comunidad` de cada municipio igual a la de la comunidad que declara su provincia**— y construye los índices; `internal/core/territorio/nombres.go` con `Plegar` exportado (minúsculas, diacríticos a su letra base, separadores y espacios colapsados) y las formas conocidas derivadas **del nombre oficial**, sin caso especial por municipio: la del INE, la del artículo pospuesto antepuesto y cada lado de un nombre bilingüe; `internal/core/territorio/registro.go` con los índices por código y por forma plegada y los candidatos ordenados por código INE; `internal/core/territorio/resolver.go` con `Resolver` (solo cifras → código de cinco o seis cifras, si no, nombre; primero «¿está en la relación?» y después el dígito); `internal/core/territorio/salida.go` con el territorio resuelto de data-model §2.5 (ocho claves, `source` en cada dato, `boletines` con siempre el estatal y solo los niveles configurados, `cobertura` de tres claves con vocabulario cerrado y sin ningún valor que signifique «no existe», la invariante del DIR3 no verificado y la fecha más antigua de los ficheros que sostienen la respuesta); e `internal/core/territorio/errores.go` (solo `schema.ClaseArgumentos` y `schema.ClaseNoEncontrado`, cada mensaje nombrando la entrada); con `TestCargar`, `TestRegistro`, `TestPlegar`, `TestFormasDelNombre`, `TestPlegarEsIdempotente`, `TestResolver`, `TestTerritorioResuelto`, `TestFechaMasAntigua` y `TestClaseDeLosErroresDeTerritorio` escritos antes y **enteros sobre fuentes sintéticas**: ningún test del dominio abre un fichero (FR-006, FR-008, FR-010 a FR-015, FR-020 a FR-024, FR-054, FR-055, FR-096, FR-097, US1 a US4, SC-002, SC-003, SC-008, data-model §2.1 a §2.8).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T005.md y déjala sin marcar.",
-  "base": "8c3fdeab93aabd65cadf37137e6ebda87618fed1",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T006.md y déjala sin marcar.",
+  "base": "c48cc70ab0e232272906aff3463b2761a3374467",
   "rutas": [
-    "internal/core/ids/testdata/fuzz/FuzzCodigoDIR3/",
-    "internal/core/ids/testdata/fuzz/FuzzCodigoINE/"
+    "internal/core/territorio/doc.go",
+    "internal/core/territorio/errores.go",
+    "internal/core/territorio/fuentes.go",
+    "internal/core/territorio/nombres.go",
+    "internal/core/territorio/registro.go",
+    "internal/core/territorio/resolver.go",
+    "internal/core/territorio/salida.go"
   ],
   "cierre": false
 }
