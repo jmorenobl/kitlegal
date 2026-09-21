@@ -39,19 +39,24 @@ const (
 	borradorDeLosEsquemas = "https://json-schema.org/draft/2020-12/schema"
 )
 
-// ficheroDeEsquemas es uno de los ficheros publicados en schemas/: su nombre, la
-// entidad que nombra su título y los verbos de boe cuyas salidas agrupa, en orden
-// alfabético (contrato esquemas-fixtures-y-controles §1).
+// ficheroDeEsquemas es uno de los ficheros publicados en schemas/: el applet cuyos
+// verbos publica, su nombre, la entidad que nombra su título y los verbos cuyas
+// salidas agrupa, en orden alfabético (contrato esquemas-fixtures-y-controles §1).
+// El applet compone el título, «<applet> · <entidad>», y el nombre de cada parte,
+// «<applet> <verbo>», que es como se invoca el verbo (contrato del applet
+// territorio §6).
 type ficheroDeEsquemas struct {
+	applet  string
 	nombre  string
 	entidad string
 	verbos  []string
 }
 
-// ficherosDeEsquemas son los dos ficheros publicados, con sus verbos (FR-110).
+// ficherosDeEsquemas son los ficheros publicados, con su applet y sus verbos
+// (FR-110).
 var ficherosDeEsquemas = []ficheroDeEsquemas{
-	{nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
-	{nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
+	{applet: "boe", nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
+	{applet: "boe", nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
 }
 
 // TestEsquemasPublicados es lo que vigila make schema-check (FR-110, SC-006;
@@ -130,7 +135,7 @@ func TestEsquemasPublicados(t *testing.T) {
 			assert.Equal(t, "https://ventanillalegal.es/schemas/"+fichero.nombre, documento["$id"])
 			assert.Equal(t, "https://json-schema.org/draft/2020-12/schema", documento["$schema"])
 			assert.Equal(t, descripciones[fichero.nombre], documento["description"])
-			assert.Equal(t, "boe · "+fichero.entidad, documento["title"])
+			assert.Equal(t, fichero.applet+" · "+fichero.entidad, documento["title"])
 
 			partes, esObjeto := documento["$defs"].(map[string]any)
 			require.True(t, esObjeto, "$defs de %s es un objeto", fichero.nombre)
@@ -141,7 +146,7 @@ func TestEsquemasPublicados(t *testing.T) {
 				require.True(t, esObjeto, "la parte de %s en %s es un objeto", verbo, fichero.nombre)
 
 				assert.Equal(t, "https://ventanillalegal.es/schemas/"+fichero.nombre+"/"+verbo, parte["$id"])
-				assert.Equal(t, "boe "+verbo, parte["title"], "la parte es lo que emite el verbo con --describe")
+				assert.Equal(t, fichero.applet+" "+verbo, parte["title"], "la parte es lo que emite el verbo con --describe")
 				assert.Contains(t, parte, "properties")
 			}
 		}
@@ -155,11 +160,39 @@ func TestEsquemasPublicados(t *testing.T) {
 		require.NoError(t, comprobarEsquemas(t.TempDir(), ficherosDeEsquemas, nil))
 	})
 
+	t.Run("el-applet-sale-de-la-tabla", func(t *testing.T) {
+		t.Parallel()
+
+		// Una fila de otro applet con sus partes: el título, la descripción y la
+		// invocación que nombra el fallo de una parte salen de la fila.
+		otra := ficheroDeEsquemas{applet: "otro", nombre: "cosa.json", entidad: "cosa", verbos: []string{"deshacer", "hacer"}}
+		partes := map[string]any{
+			"deshacer": map[string]any{"$id": raizDeLosEsquemas + "cosa.json/deshacer", "title": "otro deshacer"},
+			"hacer":    map[string]any{"$id": raizDeLosEsquemas + "cosa.json/hacer", "title": "otro hacer"},
+		}
+
+		documento := documentoDeEsquemas(otra, partes)
+		assert.Equal(t, "otro · cosa", documento["title"])
+		assert.Equal(t, "Salidas de los verbos deshacer y hacer del applet otro."+
+			" Generado desde --describe con make schema-check; no editar.", documento["description"])
+
+		carpeta := t.TempDir()
+		escribeEsquema(t, carpeta, otra, esquemaCanonico(t, otra, partes))
+
+		// La salida de hacer cambiada sin regenerar.
+		emitidasDeOtra := maps.Clone(partes)
+		emitidasDeOtra["hacer"] = partes["deshacer"]
+
+		assert.Equal(t,
+			[]string{"schemas/cosa.json: la parte de «hacer» no coincide con lo que emite `kitlegal otro hacer --describe`"},
+			fallosDe(comprobarEsquemas(carpeta, []ficheroDeEsquemas{otra}, map[string]map[string]any{otra.nombre: emitidasDeOtra})))
+	})
+
 	t.Run("escribe-solo-para-su-propietario", func(t *testing.T) {
 		t.Parallel()
 
 		carpeta := filepath.Join(t.TempDir(), "schemas")
-		bloque := ficherosDeEsquemas[1]
+		bloque := ficheroDeLaTabla(t, "bloque.json")
 
 		escribeEsquema(t, carpeta, bloque, esquemaCanonico(t, bloque, emitidas[bloque.nombre]))
 
@@ -173,16 +206,16 @@ func TestEsquemasPublicados(t *testing.T) {
 }
 
 // compruebaElComparadorDeEsquemas publica en carpetas temporales otras formas de
-// los dos ficheros regenerados con las partes reales y exige, para cada una, la
-// lista exacta de fallos del comparador, en su orden: ninguno si coinciden, el
-// de la parte y verbo distintos si difiere una parte, y el del fichero si difiere
-// fuera de ellas.
+// los ficheros regenerados con las partes reales y exige, para cada una, la lista
+// exacta de fallos del comparador, en su orden: ninguno si coinciden, el de la
+// parte y verbo distintos si difiere una parte, y el del fichero si difiere fuera
+// de ellas.
 func compruebaElComparadorDeEsquemas(t *testing.T, emitidas map[string]map[string]any) {
 	t.Helper()
 
-	norma, bloque := ficherosDeEsquemas[0], ficherosDeEsquemas[1]
-	normaRegenerada := esquemaCanonico(t, norma, emitidas[norma.nombre])
-	bloqueRegenerado := esquemaCanonico(t, bloque, emitidas[bloque.nombre])
+	norma, bloque := ficheroDeLaTabla(t, "norma.json"), ficheroDeLaTabla(t, "bloque.json")
+	regenerados := esquemasRegenerados(t, emitidas)
+	normaRegenerada, bloqueRegenerado := regenerados[norma.nombre], regenerados[bloque.nombre]
 
 	const (
 		parteDeArticulo  = "schemas/bloque.json: la parte de «articulo» no coincide con lo que emite `kitlegal boe articulo --describe`"
@@ -213,7 +246,7 @@ func compruebaElComparadorDeEsquemas(t *testing.T, emitidas map[string]map[strin
 	}{
 		{
 			nombre:     "regenerados-coinciden",
-			publicados: map[string][]byte{norma.nombre: normaRegenerada, bloque.nombre: bloqueRegenerado},
+			publicados: regenerados,
 		},
 		{
 			nombre: "parte-editada-a-mano",
@@ -278,14 +311,15 @@ func compruebaElComparadorDeEsquemas(t *testing.T, emitidas map[string]map[strin
 
 // TestEsquemasCubrenTodosLosVerbos completa lo que vigila TestEsquemasPublicados,
 // que no compara un fichero que no existe (FR-110, FR-111, SC-006; contrato
-// esquemas-fixtures-y-controles §1): los dos ficheros publicados existen y cada
-// verbo del registro de producción tiene su parte en exactamente uno de ellos.
-// Sin esto, borrar un fichero o registrar un verbo sin publicar su parte dejaría
-// su salida sin el contrato contra el que la valida TestSalidaDeBoeContraSchemas.
+// esquemas-fixtures-y-controles §1): los ficheros publicados existen y cada verbo
+// del registro de producción tiene su parte en exactamente uno de ellos. Sin
+// esto, borrar un fichero o registrar un verbo sin publicar su parte dejaría su
+// salida sin el contrato contra el que la valida TestSalidaDeBoeContraSchemas.
 //
 // El primer subtest lo comprueba sobre schemas/; el resto demuestra sobre
 // carpetas temporales, con las partes reales, que la comprobación no pasa en
-// vacío.
+// vacío. Cada caso publica todos los ficheros de la tabla regenerados salvo lo
+// que cambia, de modo que una fila nueva no altera los fallos que espera.
 func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
 	t.Parallel()
 
@@ -299,15 +333,29 @@ func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
 	})
 
 	emitidas := partesDeProduccion(t)
-	norma, bloque := ficherosDeEsquemas[0], ficherosDeEsquemas[1]
-	normaRegenerada := esquemaCanonico(t, norma, emitidas[norma.nombre])
-	bloqueRegenerado := esquemaCanonico(t, bloque, emitidas[bloque.nombre])
+	norma, bloque := ficheroDeLaTabla(t, "norma.json"), ficheroDeLaTabla(t, "bloque.json")
+	regenerados := esquemasRegenerados(t, emitidas)
 
 	sinArticulos := maps.Clone(emitidas[bloque.nombre])
 	delete(sinArticulos, "articulos")
 
 	normaConArticulo := maps.Clone(emitidas[norma.nombre])
 	normaConArticulo["articulo"] = emitidas[bloque.nombre]["articulo"]
+
+	t.Run("la-parte-lleva-el-applet-de-su-fichero", func(t *testing.T) {
+		t.Parallel()
+
+		// Otro applet con un verbo que boe también tiene: su parte cubre «otro
+		// articulo» y no es una segunda parte de «boe articulo».
+		otra := ficheroDeEsquemas{applet: "otro", nombre: "otra.json", entidad: "otra", verbos: []string{"articulo"}}
+
+		carpeta := publicaEnUnaCarpeta(t, regenerados)
+		escribeEsquema(t, carpeta, otra,
+			esquemaCanonico(t, otra, map[string]any{"articulo": emitidas[bloque.nombre]["articulo"]}))
+
+		require.NoError(t, comprobarCobertura(carpeta,
+			append(slices.Clone(ficherosDeEsquemas), otra), append(slices.Clone(registrados), "otro articulo")))
+	})
 
 	casos := []struct {
 		nombre      string
@@ -317,12 +365,12 @@ func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
 	}{
 		{
 			nombre:      "regenerados-cubren-los-registrados",
-			publicados:  map[string][]byte{norma.nombre: normaRegenerada, bloque.nombre: bloqueRegenerado},
+			publicados:  regenerados,
 			registrados: registrados,
 		},
 		{
 			nombre:      "falta-un-fichero",
-			publicados:  map[string][]byte{norma.nombre: normaRegenerada},
+			publicados:  sinFichero(regenerados, bloque.nombre),
 			registrados: registrados,
 			fallos: []string{
 				"schemas/bloque.json: el fichero no está publicado",
@@ -331,26 +379,20 @@ func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
 			},
 		},
 		{
-			nombre: "verbo-sin-parte",
-			publicados: map[string][]byte{
-				norma.nombre:  normaRegenerada,
-				bloque.nombre: esquemaCanonico(t, bloque, sinArticulos),
-			},
+			nombre:      "verbo-sin-parte",
+			publicados:  conFichero(regenerados, bloque.nombre, esquemaCanonico(t, bloque, sinArticulos)),
 			registrados: registrados,
 			fallos:      []string{"«boe articulos» no tiene su parte en ningún fichero de schemas/"},
 		},
 		{
-			nombre: "verbo-en-dos-ficheros",
-			publicados: map[string][]byte{
-				norma.nombre:  esquemaCanonico(t, norma, normaConArticulo),
-				bloque.nombre: bloqueRegenerado,
-			},
+			nombre:      "verbo-en-dos-ficheros",
+			publicados:  conFichero(regenerados, norma.nombre, esquemaCanonico(t, norma, normaConArticulo)),
 			registrados: registrados,
 			fallos:      []string{"«boe articulo» tiene su parte en más de un fichero de schemas/: norma.json, bloque.json"},
 		},
 		{
 			nombre:      "verbo-registrado-sin-publicar",
-			publicados:  map[string][]byte{norma.nombre: normaRegenerada, bloque.nombre: bloqueRegenerado},
+			publicados:  regenerados,
 			registrados: append(slices.Clone(registrados), "boe nuevo"),
 			fallos:      []string{"«boe nuevo» no tiene su parte en ningún fichero de schemas/"},
 		},
@@ -393,7 +435,7 @@ func verbosDeProduccion(t *testing.T) []string {
 // comprobarCobertura exige que cada fichero de la lista exista en la carpeta y
 // que cada verbo registrado, «<applet> <verbo>», tenga su parte en exactamente
 // uno de ellos, y reúne todos los fallos. Una parte es una clave del $defs de la
-// raíz, y las de los dos ficheros son verbos del applet boe (contrato
+// raíz y nombra un verbo del applet de su fichero (contrato
 // esquemas-fixtures-y-controles §1).
 func comprobarCobertura(carpeta string, ficheros []ficheroDeEsquemas, registrados []string) error {
 	var fallos []error
@@ -409,7 +451,8 @@ func comprobarCobertura(carpeta string, ficheros []ficheroDeEsquemas, registrado
 		}
 
 		for verbo := range partes {
-			publicadaEn["boe "+verbo] = append(publicadaEn["boe "+verbo], fichero.nombre)
+			invocado := fichero.applet + " " + verbo
+			publicadaEn[invocado] = append(publicadaEn[invocado], fichero.nombre)
 		}
 	}
 
@@ -468,10 +511,57 @@ func publicaEnUnaCarpeta(t *testing.T, publicados map[string][]byte) string {
 	return carpeta
 }
 
-// partesDeProduccion regenera en memoria las partes de los dos ficheros: pide
-// --describe de cada verbo al registro de producción, por la raíz de composición
-// entera y con los argumentos del contrato, y añade a cada documento su $id. El
-// resultado, por nombre de fichero y de verbo, solo se lee.
+// ficheroDeLaTabla es la fila de la tabla con ese nombre, que tiene que estar:
+// las pruebas nombran los ficheros que usan en lugar de depender del orden de
+// las filas.
+func ficheroDeLaTabla(t *testing.T, nombre string) ficheroDeEsquemas {
+	t.Helper()
+
+	i := slices.IndexFunc(ficherosDeEsquemas, func(fichero ficheroDeEsquemas) bool {
+		return fichero.nombre == nombre
+	})
+	require.NotEqual(t, -1, i, "%s está en la tabla de ficheros publicados", nombre)
+
+	return ficherosDeEsquemas[i]
+}
+
+// esquemasRegenerados son todos los ficheros de la tabla en su forma canónica con
+// las partes emitidas, por nombre: lo que escribiría -actualizar-esquemas.
+func esquemasRegenerados(t *testing.T, emitidas map[string]map[string]any) map[string][]byte {
+	t.Helper()
+
+	regenerados := make(map[string][]byte, len(ficherosDeEsquemas))
+
+	for _, fichero := range ficherosDeEsquemas {
+		regenerados[fichero.nombre] = esquemaCanonico(t, fichero, emitidas[fichero.nombre])
+	}
+
+	return regenerados
+}
+
+// conFichero son los ficheros publicados con el de ese nombre cambiado por el
+// contenido, sin tocar los demás ni el mapa de partida.
+func conFichero(publicados map[string][]byte, nombre string, contenido []byte) map[string][]byte {
+	variante := maps.Clone(publicados)
+	variante[nombre] = contenido
+
+	return variante
+}
+
+// sinFichero son los ficheros publicados sin el de ese nombre, sin tocar el mapa
+// de partida.
+func sinFichero(publicados map[string][]byte, nombre string) map[string][]byte {
+	variante := maps.Clone(publicados)
+	delete(variante, nombre)
+
+	return variante
+}
+
+// partesDeProduccion regenera en memoria las partes de los ficheros de la tabla:
+// pide --describe de cada verbo, con el applet de su fichero, al registro de
+// producción, por la raíz de composición entera y con los argumentos del
+// contrato, y añade a cada documento su $id. El resultado, por nombre de fichero
+// y de verbo, solo se lee.
 func partesDeProduccion(t *testing.T) map[string]map[string]any {
 	t.Helper()
 
@@ -484,13 +574,14 @@ func partesDeProduccion(t *testing.T) map[string]map[string]any {
 		partes := make(map[string]any, len(fichero.verbos))
 
 		for _, verbo := range fichero.verbos {
-			invocacion := argvDeBoe(append(argumentoDelContrato(t, verbo), "--describe")...)
+			invocacion := slices.Concat([]string{"kitlegal", fichero.applet},
+				argumentoDelContrato(t, fichero.applet, verbo), []string{"--describe"})
 
 			res := invocar(t, registro, invocacion...)
-			require.Equal(t, 0, res.codigo, "kitlegal boe %s --describe: %s", verbo, res.errores)
+			require.Equal(t, 0, res.codigo, "kitlegal %s %s --describe: %s", fichero.applet, verbo, res.errores)
 
 			parte, err := objetoJSON([]byte(res.salida))
-			require.NoError(t, err, "kitlegal boe %s --describe emite un único objeto JSON", verbo)
+			require.NoError(t, err, "kitlegal %s %s --describe emite un único objeto JSON", fichero.applet, verbo)
 
 			parte["$id"] = raizDeLosEsquemas + fichero.nombre + "/" + verbo
 			partes[verbo] = parte
@@ -502,19 +593,29 @@ func partesDeProduccion(t *testing.T) map[string]map[string]any {
 	return emitidas
 }
 
-// argumentoDelContrato es la invocación del verbo que usan las pruebas del
-// applet, verbo incluido: --describe no ejecuta nada, pero la gramática exige los
+// contratosDeLosApplets son, por applet, los verbos de su contrato con la
+// invocación que usan sus pruebas: de ahí salen los argumentos con los que cada
+// verbo de la tabla se describe.
+var contratosDeLosApplets = map[string]func() []verboDelContrato{
+	"boe": verbosDelContrato,
+}
+
+// argumentoDelContrato es la invocación del verbo del applet que usan sus
+// pruebas, verbo incluido: --describe no ejecuta nada, pero la gramática exige los
 // argumentos antes de describirse.
-func argumentoDelContrato(t *testing.T, verbo string) []string {
+func argumentoDelContrato(t *testing.T, applet, verbo string) []string {
 	t.Helper()
 
-	for _, contrato := range verbosDelContrato() {
-		if contrato.nombre == verbo {
-			return slices.Clone(contrato.argumento)
+	contrato, conContrato := contratosDeLosApplets[applet]
+	require.True(t, conContrato, "el applet %q no tiene contrato con las invocaciones de sus verbos", applet)
+
+	for _, delContrato := range contrato() {
+		if delContrato.nombre == verbo {
+			return slices.Clone(delContrato.argumento)
 		}
 	}
 
-	require.Failf(t, "verbo sin invocación", "el verbo %q no está en el contrato puerto-y-applet §4", verbo)
+	require.Failf(t, "verbo sin invocación", "el verbo %q no está en el contrato del applet %q", verbo, applet)
 
 	return nil
 }
@@ -537,9 +638,9 @@ func documentoDeEsquemas(fichero ficheroDeEsquemas, partes map[string]any) map[s
 		"$defs":   partes,
 		"$id":     raizDeLosEsquemas + fichero.nombre,
 		"$schema": borradorDeLosEsquemas,
-		"description": "Salidas de los verbos " + enumeracion(fichero.verbos) + " del applet boe." +
+		"description": "Salidas de los verbos " + enumeracion(fichero.verbos) + " del applet " + fichero.applet + "." +
 			" Generado desde --describe con make schema-check; no editar.",
-		"title": "boe · " + fichero.entidad,
+		"title": fichero.applet + " · " + fichero.entidad,
 	}
 }
 
@@ -669,8 +770,8 @@ func partesDistintas(fichero ficheroDeEsquemas, publicadas, emitidas map[string]
 
 		if !publica || !emite || !reflect.DeepEqual(publicada, emitida) {
 			fallos = append(fallos, fmt.Errorf(
-				"schemas/%s: la parte de «%s» no coincide con lo que emite `kitlegal boe %s --describe`",
-				fichero.nombre, verbo, verbo))
+				"schemas/%s: la parte de «%s» no coincide con lo que emite `kitlegal %s %s --describe`",
+				fichero.nombre, verbo, fichero.applet, verbo))
 		}
 	}
 

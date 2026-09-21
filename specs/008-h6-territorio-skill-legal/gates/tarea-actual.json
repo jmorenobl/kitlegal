@@ -1,18 +1,16 @@
 {
-  "id": "T007",
-  "texto": "T007 [US1] Los datos congelados dentro del binario y su validación en `make ci`: `data/datos.go` (paquete `data` con su comentario de paquete y **solo** directivas `//go:embed` para los tres ficheros sueltos y el subárbol de comunidades, más `Comunidades() (map[string][]byte, error)` que devuelve un mapa por código; sin más lógica, y un patrón que no case es error de compilación, no modo de fallo en ejecución) e `internal/skills/territorio.go` con `LeerTerritorio`, que valida los cuatro documentos contra sus esquemas con el lector común —clave repetida incluida— usando los tipos que exporta el dominio, sin repetirlos, e `internal/skills/export_test.go`, que expone a los tests del paquete externo el compilador de esos esquemas, como ya hace con el de normas, para fijar sus errores de lectura y de compilación; su test lleva `TestLeerTerritorio` sobre documentos sintéticos (válido, clave desconocida, patrón, clave repetida), `TestCompilarEsquemaDelTerritorioDesdeUnaRuta` y `TestTerritorioDelRepositorio` con los subtests `esquema`, `integridad` (delegando en `Cargar`), `fuentes` (todo `source` emitido es un identificador de fila de `SOURCES.md` o la ruta de un fichero congelado que existe), `solo-madrid-configurada`, `regimen-de-todas`, `gramaticas` (los `pattern` de los tres esquemas, que T027 deja iguales a sus gramáticas, aceptan y rechazan exactamente lo mismo que `AnalizarCodigoINE` y `AnalizarDIR3`), `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras`, los tres últimos sobre el corpus congelado real, y **todos ellos exigen que existan los cuatro ficheros y las 19 comunidades**, para no pasar en vacío; y `Makefile`, cuya expresión `-run` de `make skills-check` gana `TestTerritorioDelRepositorio` (FR-024, FR-044, FR-056, FR-097, US7 escenario 4, SC-005, SC-007, SC-012, contrato de datos §2 y §3).",
-  "intento": 2,
+  "id": "T008",
+  "texto": "T008 [US1] Tabla de esquemas publicados parametrizada por applet, **sin añadir ninguna fila**: `internal/app/esquemas_test.go`, donde `ficherosDeEsquemas` gana la columna del applet y los nueve puntos que hoy escriben `boe` literal pasan a leerla, de modo que el título `<applet> · <entidad>` y el nombre de la parte publicada se compongan de la tabla en vez de estar cableados; `TestEsquemasPublicados` y `TestEsquemasCubrenTodosLosVerbos` siguen en verde sobre `norma.json` y `bloque.json` sin regenerar nada y `make schema-check` no cambia de resultado (FR-007, FR-092, SC-012, contrato del applet §6, plan *Complexity Tracking*).",
+  "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T007.md y déjala sin marcar.",
-  "base": "f84f73e43143c507743d71362cb3b60eaf50178f",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T008.md y déjala sin marcar.",
+  "base": "c73e0115e318db144a4d62c010781f44c8fef731",
   "rutas": [
-    "Makefile",
-    "SOURCES.md",
-    "data/datos.go",
-    "internal/skills/export_test.go",
-    "internal/skills/territorio.go"
+    "bloque.json",
+    "internal/app/esquemas_test.go",
+    "norma.json"
   ],
   "cierre": false
 }
