@@ -1,19 +1,15 @@
 {
-  "id": "T020",
-  "texto": "T020 [US5] Las tres evals de la skill, antes que su `SKILL.md`, y el control que las exige: primero `internal/evals/conjunto_test.go` con el subtest `TestEvalsDelRepositorio/conjunto-legal-core`, que aplica `ReglasDeLegalCore()` a la carpeta de evals de la skill y queda en rojo, y a continuación los tres ficheros que lo devuelven a verde —`evals/legal-core/01-territorio-municipio-cubierto.yaml` (activa, la pregunta de la aceptación sobre el municipio de referencia, comando de territorio y esperado con comunidad, provincia y su boletín), `evals/legal-core/02-territorio-municipio-no-cubierto.yaml` (la misma pregunta sobre un municipio de una comunidad sin configuración, con comunidad, provincia y los dos aspectos `no-configurado` en el esperado) y `evals/legal-core/03-no-activa-receta-de-cocina.yaml` (una pregunta que no es de territorio ni de derecho, con `activa: false`)—, **ninguna con `citas`**, porque `legal-core` no afirma contenido de norma; los municipios concretos viven aquí y en los fixtures, nunca en el código ni en los datos; se confirman en un commit anterior al primero que crea la skill (FR-024, FR-069, FR-080, FR-081, FR-082, FR-083, US5 escenarios 1, 2 y 3, SC-011, SC-015, contrato de evals §3 y §4).",
+  "id": "T021",
+  "texto": "T021 [US5] Casos negativos de skills parametrizados por skill, **sin añadir ninguna skill todavía**: `internal/app/skills_test.go`, donde la constante `skillDelHito` pasa a ser la lista `skillsExigidas` —con un solo elemento por ahora—, la exigencia de `TestSkillsDelRepositorio/skills` pasa de `require.Contains` a `require.Subset` sobre ella, y los casos negativos `/skills`, `/normas-nombradas` y `/sin-instrucciones-de-evals` dejan de estar cableados a `boe-legislacion` y se ejercen sobre cada skill del recorrido; con una sola skill instalada el recorrido pasa por una sola, `make ci` sigue en verde y ningún control cambia de resultado (FR-060, FR-064, SC-009, contrato de la skill §5, plan *Complexity Tracking* D26).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T020.md y déjala sin marcar.",
-  "base": "d7765c1f59dcc151dd42a21735bd1bb1c3c70e47",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T021.md y déjala sin marcar.",
+  "base": "5c11d1d4d822db3122e0b7f4e1fc666ba15c32b3",
   "rutas": [
-    "SKILL.md",
-    "TestEvalsDelRepositorio/conjunto-legal-core",
-    "evals/legal-core/01-territorio-municipio-cubierto.yaml",
-    "evals/legal-core/02-territorio-municipio-no-cubierto.yaml",
-    "evals/legal-core/03-no-activa-receta-de-cocina.yaml",
-    "internal/evals/conjunto_test.go"
+    "TestSkillsDelRepositorio/skills",
+    "internal/app/skills_test.go"
   ],
   "cierre": false
 }
