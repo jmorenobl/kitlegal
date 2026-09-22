@@ -1,0 +1,14 @@
+# Eval positiva: la pregunta de la aceptación sobre el municipio de referencia, del territorio configurado. La respuesta
+# tiene que pasar por el applet territorio y declarar la comunidad, la provincia y su boletín tal como los devuelve; no
+# afirma contenido de norma, así que no lleva citas (FR-069, FR-080, FR-081, FR-100).
+pregunta: "¿Qué comunidad, provincia y boletines corresponden a mi ayuntamiento, el de Leganés?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Leganés
+territorio:
+  comunidad: Comunidad de Madrid
+  provincia: Madrid
+  boletines:
+    - BOCM

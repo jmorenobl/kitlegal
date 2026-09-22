@@ -1,22 +1,19 @@
 {
-  "id": "T019",
-  "texto": "T019 [US5] Formato, juicio, consultas e informe con la variante de territorio: `internal/evals/formato.go` (campo `Municipio` en el comando esperado, campo `Territorio` en la eval y `formaDelComando` como **único** sitio que decide la variante, en lugar de los tres `switch` por verbo), `internal/evals/territorio.go` (nuevo, hermano de `citas.go`: `ExtraerTerritorio`, que saca de la respuesta lo declarado por su **forma fija** —comunidad y provincia con el pliegue del dominio, el código del boletín exacto y como palabra, y el aspecto de cobertura en la forma `<aspecto>: <valor>` con tolerancia a los espacios y a las mayúsculas y exacta en las dos palabras—), `internal/evals/juzgar.go` (`satisface` y `textoDelComando` para el comando de territorio, `TerritorioEncontrado` y `TerritorioAusente` en el resultado con su motivo, y la condición de `Pasa` que gana que no quede ninguno ausente), `internal/evals/consultas.go` (un comando de territorio **no genera ninguna consulta que grabar**, y la regla de lo grabado sigue aplicándose a los comandos del BOE), `internal/evals/conjunto.go` (`ComprobarConjunto(evals, normas, reglas)` parametrizado, con las diez reglas de `boe-legislacion` intactas y `ReglasDeLegalCore()` con `tamaño`, `cubierto`, `no cubierto`, `no activación` y `esperado verificable`) e `internal/evals/informe.go` (las dos columnas «Territorio encontrado» y «Territorio ausente»), con `TestLeerEval`, `TestFormaDelComando`, `TestExtraerTerritorio`, `TestJuzgar/territorio-satisface`, `/territorio-otro-municipio-no-satisface`, `/territorio-ausente`, `/territorio-y-citas`, `TestConsultasNecesarias`, `TestConjuntoDeEvals` sobre evals sintéticas, `TestInforme` y el subtest `TestEvalsDelRepositorio/cobertura-del-esquema` (el enumerado del esquema y el vocabulario del applet dicen lo mismo) escritos antes; el subtest `conjunto-legal-core` **no entra aquí**, porque exige tres evals que todavía no existen (FR-043, FR-084, US5, SC-011, SC-015, contrato de evals §2 y §3).",
+  "id": "T020",
+  "texto": "T020 [US5] Las tres evals de la skill, antes que su `SKILL.md`, y el control que las exige: primero `internal/evals/conjunto_test.go` con el subtest `TestEvalsDelRepositorio/conjunto-legal-core`, que aplica `ReglasDeLegalCore()` a la carpeta de evals de la skill y queda en rojo, y a continuación los tres ficheros que lo devuelven a verde —`evals/legal-core/01-territorio-municipio-cubierto.yaml` (activa, la pregunta de la aceptación sobre el municipio de referencia, comando de territorio y esperado con comunidad, provincia y su boletín), `evals/legal-core/02-territorio-municipio-no-cubierto.yaml` (la misma pregunta sobre un municipio de una comunidad sin configuración, con comunidad, provincia y los dos aspectos `no-configurado` en el esperado) y `evals/legal-core/03-no-activa-receta-de-cocina.yaml` (una pregunta que no es de territorio ni de derecho, con `activa: false`)—, **ninguna con `citas`**, porque `legal-core` no afirma contenido de norma; los municipios concretos viven aquí y en los fixtures, nunca en el código ni en los datos; se confirman en un commit anterior al primero que crea la skill (FR-024, FR-069, FR-080, FR-081, FR-082, FR-083, US5 escenarios 1, 2 y 3, SC-011, SC-015, contrato de evals §3 y §4).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T019.md y déjala sin marcar.",
-  "base": "422c0283bd1fd0b0a6c9d4c0229a9232a4146e85",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T020.md y déjala sin marcar.",
+  "base": "d7765c1f59dcc151dd42a21735bd1bb1c3c70e47",
   "rutas": [
-    "TestEvalsDelRepositorio/cobertura-del-esquema",
-    "TestJuzgar/territorio-satisface",
-    "citas.go",
-    "internal/evals/conjunto.go",
-    "internal/evals/consultas.go",
-    "internal/evals/formato.go",
-    "internal/evals/informe.go",
-    "internal/evals/juzgar.go",
-    "internal/evals/territorio.go"
+    "SKILL.md",
+    "TestEvalsDelRepositorio/conjunto-legal-core",
+    "evals/legal-core/01-territorio-municipio-cubierto.yaml",
+    "evals/legal-core/02-territorio-municipio-no-cubierto.yaml",
+    "evals/legal-core/03-no-activa-receta-de-cocina.yaml",
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false
 }

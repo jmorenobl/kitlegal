@@ -828,6 +828,11 @@ const (
 	// skillDelRepositorio es el SKILL.md de boe-legislacion, relativo al
 	// directorio de este paquete: la skill cuyas respuestas juzgan sus evals.
 	skillDelRepositorio = "../../skills/boe-legislacion/SKILL.md"
+
+	// evalsDeLegalCore es evals/legal-core/, relativo al directorio de este
+	// paquete: las evals de la skill legal-core, a las que se aplican las reglas
+	// de su juego (contrato de evals §3 y §4 de H6).
+	evalsDeLegalCore = "../../evals/legal-core"
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -839,10 +844,11 @@ const (
 // del formato admite en avisos exactamente los códigos de aviso del binario
 // (FR-013 de H5.1); el SKILL.md de boe-legislacion lleva la forma fija de cada
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
-// H5.1); y el esquema publicado admite en la cobertura del territorio esperado
+// H5.1); el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
-// evals §1.2 de H6). Lee las carpetas enteras, así que ningún fichero de eval se
-// nombra aquí.
+// evals §1.2 de H6); y las de evals/legal-core/ cumplen las reglas del conjunto de
+// legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011). Lee las
+// carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -878,6 +884,17 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		deOtrasReglas := slices.DeleteFunc(slices.Clone(defectos), esDeNormasConocidas)
 		assert.Empty(t, deOtrasReglas, "defectos del conjunto de %s:\n%s",
 			evalsDelRepositorio, presentarDefectos(deOtrasReglas))
+	})
+
+	t.Run("conjunto-legal-core", func(t *testing.T) {
+		t.Parallel()
+
+		deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+		require.NoError(t, err)
+
+		defectosDeLegalCore := ComprobarConjunto(deLegalCore.Evals, normasConocidasDe(normas), ReglasDeLegalCore())
+		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
+			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
 	})
 
 	t.Run("normas-conocidas", func(t *testing.T) {

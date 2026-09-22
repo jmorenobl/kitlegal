@@ -1,0 +1,16 @@
+# Eval positiva: la misma pregunta sobre un municipio de una comunidad sin configuración. La respuesta tiene que pasar
+# por el applet territorio, declarar la comunidad y la provincia y decir, en su forma fija, que ni el boletín
+# autonómico ni el provincial están configurados; no afirma contenido de norma, así que no lleva citas (FR-069,
+# FR-080, FR-081, FR-101).
+pregunta: "¿Qué comunidad, provincia y boletines corresponden a mi ayuntamiento, el de Tordesillas?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Tordesillas
+territorio:
+  comunidad: Castilla y León
+  provincia: Valladolid
+  cobertura:
+    - "boletin_autonomico: no-configurado"
+    - "boletin_provincial: no-configurado"
