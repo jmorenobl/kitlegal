@@ -54,9 +54,9 @@ const (
 
 // skillsExigidas son las skills que skills/ tiene que tener: sin una de ellas,
 // las comprobaciones sobre skills/ pasarían en vacío para ella (plan, obligación
-// 12). boe-legislacion la trajo H5. Los casos negativos no salen de esta lista,
-// sino de las skills que hay (skillsDelRecorrido).
-var skillsExigidas = []string{"boe-legislacion"}
+// 12). boe-legislacion la trajo H5 y legal-core, H6. Los casos negativos no
+// salen de esta lista, sino de las skills que hay (skillsDelRecorrido).
+var skillsExigidas = []string{"boe-legislacion", "legal-core"}
 
 // cabeceraDeUnaReferencia es la primera línea de una referencia generada, que
 // nombra el YAML de datos del que sale (FR-031, FR-065, FR-066).
