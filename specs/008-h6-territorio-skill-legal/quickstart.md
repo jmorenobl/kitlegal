@@ -124,14 +124,16 @@ de las cinco columnas que FR-040 exige (data-model §3.1).
 
 ## 6. Ambigüedad, inexistencia y código mal formado (US4, FR-010 a FR-014, SC-004)
 
-El código ausente de la relación tampoco se escribe a mano: se compone de una provincia que trae el propio fichero
-congelado y de un número de municipio que ese fichero no tiene, comprobado antes de invocar (misma técnica que §5 y §9).
-Un código con provincia fuera de `01`-`52` **no está bien formado** y no llega a ser un código: es exit 2, no 3
-(data-model §2.6, contrato de identificadores §2).
+Ni el nombre ambiguo ni el código ausente de la relación se escriben a mano (misma técnica que §5 y §9). El nombre es
+el primero que la relación congelada repite: dos filas con el mismo nombre oficial se pliegan a la misma forma, así que
+ese nombre es ambiguo por construcción. El código se compone de una provincia que trae el propio fichero congelado y de
+un número de municipio que ese fichero no tiene, comprobado antes de invocar. Un código con provincia fuera de
+`01`-`52` **no está bien formado** y no llega a ser un código: es exit 2, no 3 (data-model §2.6, contrato de
+identificadores §2).
 
 ```bash
-rtk proxy sh -c './bin/kitlegal territorio resolver "Villanueva" --json; echo "código: $?"'
-rtk proxy ./bin/kitlegal territorio resolver "Villanueva" --json | rtk proxy jq -r '.data.clase, .data.mensaje'
+rtk proxy sh -c 'set -e; n=$(sed -n "s/.*nombre: \"\([^\"]*\)\".*/\1/p" data/territorio/municipios.yaml | sort | uniq -d | head -1); echo "nombre de más de un municipio: $n"; set +e; ./bin/kitlegal territorio resolver "$n" --json; echo "código: $?"'
+rtk proxy sh -c 'n=$(sed -n "s/.*nombre: \"\([^\"]*\)\".*/\1/p" data/territorio/municipios.yaml | sort | uniq -d | head -1); ./bin/kitlegal territorio resolver "$n" --json | jq -r ".data.clase, .data.mensaje"'
 rtk proxy sh -c './bin/kitlegal territorio resolver "Municipio Que No Existe" --json; echo "código: $?"'
 rtk proxy sh -c 'set -e; p=$(sed -n "s/^  \"\([0-9][0-9]\)[0-9]\{3\}\":.*/\1/p" data/territorio/municipios.yaml | head -1); n=999; while grep -q "^  \"$p$n\":" data/territorio/municipios.yaml; do n=$((n - 1)); done; echo "bien formado y ausente de la relación: $p$n"; set +e; ./bin/kitlegal territorio resolver "$p$n" --json; echo "código: $?"'
 rtk proxy sh -c './bin/kitlegal territorio resolver 99999 --json; echo "código: $?"'
@@ -139,19 +141,16 @@ rtk proxy sh -c './bin/kitlegal territorio resolver 2807 --json; echo "código: 
 rtk proxy sh -c 'set -e; c=$(./bin/kitlegal territorio resolver Leganés --json | jq -r .data.codigo_ine.codigo); d=$(./bin/kitlegal territorio resolver Leganés --json | jq -r .data.codigo_ine.digito_de_control); otro=$(( (d + 1) % 10 )); set +e; ./bin/kitlegal territorio resolver "$c$otro" --json; echo "código: $?"'
 ```
 
-Espera, en este orden: **2** con clase `argumentos` y un mensaje que lista todos los candidatos con su código INE y su
-provincia, ordenados por código; **3** (el nombre no corresponde a ningún municipio); la línea `bien formado y ausente
-de la relación: <PPMMM>` y después **3**, con clase `no-encontrado`; **2** para `99999`, con clase `argumentos` y un
-mensaje que dice qué tiene de malo —la provincia `99` está fuera de `01`-`52`, así que la entrada no llega a ser un
-código y **nunca** puede dar 3—; **2** (cuatro cifras no son un código); **2** (dígito de control distinto del oficial
-—se toma el de Leganés y se le suma uno— y el mensaje dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6.
+Espera, en este orden: la línea `nombre de más de un municipio: <nombre>` y después **2**, con clase `argumentos` y un
+mensaje que lista todos los candidatos con su código INE y su provincia, ordenados por código —la segunda orden repite
+la clase y el mensaje—; **3** (el nombre no corresponde a ningún municipio); la línea `bien formado y ausente de la
+relación: <PPMMM>` y después **3**, con clase `no-encontrado`; **2** para `99999`, con clase `argumentos` y un mensaje
+que dice qué tiene de malo —la provincia `99` está fuera de `01`-`52`, así que la entrada no llega a ser un código y
+**nunca** puede dar 3—; **2** (cuatro cifras no son un código); **2** (dígito de control distinto del oficial —se toma
+el de Leganés y se le suma uno— y el mensaje dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6.
 
-Si el nombre `Villanueva` resultara no ser ambiguo en la relación congelada, el caso ambiguo se toma del propio
-registro:
-
-```bash
-rtk proxy sh -c 'sed -n "s/.*nombre: \"\([^\"]*\)\".*/\1/p" data/territorio/municipios.yaml | sort | uniq -d | head -3'
-```
+La guía nombraba antes el caso ambiguo a mano, `Villanueva`, y en la relación congelada ningún municipio se llama
+exactamente así: da 3, no 2 (cierre de T025, intento 1, `gates/tarea-T025.md`).
 
 ## 7. La matriz territorial y el tiempo, en el e2e (FR-090, FR-091, control 17)
 
@@ -203,9 +202,12 @@ rtk proxy cat specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md
 Espera: los subtests `esquema`, `integridad`, `fuentes`, `solo-madrid-configurada`, `regimen-de-todas`, `gramaticas`,
 `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras` en verde; la cabecera con `fecha` y
 `source`; el número de municipios de la relación; 19 ficheros de comunidad; 18 sin `boletines` —solo la Comunidad de
-Madrid los trae (FR-051)—; y, en el registro de verificación, una fila por municipio de la muestra con el código
-derivado, el real y de dónde salió, incluidos el municipio fusionado o renombrado, el foral y el que tiene entidades
-locales menores, con su conclusión.
+Madrid los trae (FR-051)—; y, en el registro de verificación, la comprobación de la relación entera contra el volcado
+del REL, la conclusión —la derivación es una regla— y una fila por municipio de la muestra con el código derivado y de
+dónde sale el real, el número de inscripción del REL: los fusionados, el renombrado y los forales. El caso con entidades
+locales menores figura **sin ejemplo nombrado**, con su motivo —el REL no publica volcado de entidades inferiores al
+municipio— y la comprobación exhaustiva que lo cubre de hecho, como resolvió la pausa de T003 (`gates/tarea-T003.md`,
+«Resuelto en la pausa»); es un pendiente de FR-046 y SC-008 que el cuerpo de la publicación declara.
 
 Los tres últimos son los controles sobre el **corpus congelado real** y por eso viven aquí y no en
 `internal/core/territorio`, que no puede leer ficheros ni en sus tests (research.md D27, V7).
@@ -267,17 +269,19 @@ rtk proxy wc -l skills/legal-core/SKILL.md
 rtk proxy head -2 skills/legal-core/references/leyes_vertebrales.md
 rtk proxy head -2 skills/legal-core/references/jerarquia_normativa.md
 rtk proxy readlink skills/legal-core/scripts/territorio
-rtk proxy grep -c 'vertebral: true' data/normas.yaml
+rtk proxy grep -cE '^[[:space:]]+vertebral: true$' data/normas.yaml
 rtk proxy git diff --stat main -- skills/boe-legislacion
 rtk proxy go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestIdentificadoresDeLasNormas)$' ./internal/app/ ./internal/skills/ ./internal/evals/
 ```
 
 Espera: frontmatter con `kitlegal-applets: territorio` y las dos referencias; menos de 300 líneas; la cabecera
 `<!-- generado desde data/normas.yaml, no editar -->` y `<!-- generado desde data/jerarquia.yaml, no editar -->`;
-`../../../bin/instalado/kitlegal` como destino del enlace; quince normas marcadas; **un solo fichero cambiado en
-`skills/boe-legislacion`, `references/normas.md`**, y solo por regeneración al entrar las siete normas (FR-074,
-obligación 6: `SKILL.md` y todo lo demás de esa skill, intactos); y los tres tests en verde, incluido el que ata cada
-identificador `BOE-A-…` a su búsqueda grabada.
+`../../../bin/instalado/kitlegal` como destino del enlace; quince normas marcadas —la expresión casa solo con el campo
+sangrado de cada norma, no con el comentario de cabecera del fichero, que nombra la marca y hacía contar dieciséis a la
+sonda sin anclar (cierre de T025, intento 1)—; **un solo fichero cambiado en `skills/boe-legislacion`,
+`references/normas.md`**, y solo por regeneración al entrar las siete normas (FR-074, obligación 6: `SKILL.md` y todo
+lo demás de esa skill, intactos); y los tres tests en verde, incluido el que ata cada identificador `BOE-A-…` a su
+búsqueda grabada.
 
 Que la generación es idempotente y que la deriva se detecta, sobre un clon desechable:
 
