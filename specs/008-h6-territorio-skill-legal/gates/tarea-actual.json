@@ -1,16 +1,23 @@
 {
-  "id": "T016",
-  "texto": "T016 [US5] El lector de la jerarquía normativa y su control, antes que el generador que la usa: `internal/skills/jerarquia.go`, lector nuevo del fichero `jerarquia.yaml` que lo valida contra su esquema con el lector común —clave repetida incluida— y devuelve los niveles en el orden del enumerado y las cuatro reglas, con `TestLeerJerarquia` sobre documentos sintéticos (válido, nivel fuera del enumerado, regla desconocida, clave desconocida, clave repetida), `TestEsquemaDeJerarquia` y `TestJerarquiaDelRepositorio` (el fichero real: los cinco niveles en su orden y las cuatro reglas, **exigiendo que existan** para no pasar en vacío) escritos antes que el código; y `Makefile`, cuya expresión `-run` de `make skills-check` gana `TestJerarquiaDelRepositorio`; no toca datos, normas ni generadores, y `make ci` queda en verde por sí sola (FR-044, FR-066, FR-067, US5, SC-009, data-model §4.2, contrato de la skill §4).",
-  "intento": 1,
+  "id": "T017",
+  "texto": "T017 [US6] Las quince leyes vertebrales y la tabla de generadores de referencias: `data/normas.yaml` con las siete normas nuevas —identificador `BOE-A-…`, título y rango **copiados de su búsqueda grabada**, con sus materias y su abreviatura— y la marca `vertebral: true` en las quince de la tabla de leyes vertebrales del mapa del sistema legal (`mapa-sistema-legal-skills.md` §1.4) y en ninguna más; `internal/skills/normas.go` con el campo `Vertebral bool`; `internal/skills/referencias.go` e `internal/skills/sincronia.go` con la **tabla de generadores** que sustituye al `switch` por nombre (`normas` → todas las normas, `leyes_vertebrales` → solo las marcadas, `jerarquia_normativa` → niveles y reglas leídos con el lector de T016) y con la cabecera, el título y las columnas derivadas de ella en vez de constantes de normas; `internal/skills/frontmatter.go`, donde cada referencia declara su fichero de datos y una referencia declarada sin generador sigue siendo un defecto con su mensaje; y `skills/boe-legislacion/references/normas.md` regenerado **solo** con `make skills-sync`, nunca a mano, que es lo único que cambia de esa skill; y `internal/app/skills_test.go`, solo en `probarNormasNombradas`, cuyo caso negativo daba como ausentes de la tabla la LEC y la LOPDGDD, dos de las siete normas que entran aquí, y pasa a nombrar normas con el número 0, que ninguna norma lleva, para no depender de lo que le falte a la tabla (redelimitada en el intento 1: lo razona `gates/tarea-T017.md`); es indivisible porque los mismos controles atan las tres piezas: `TestRegenerarYComparar` compara la salida de la tabla de generadores con las referencias del repositorio —que cambian al añadirse las normas—, `TestNormasDelRepositorio/vertebrales` exige que las marcadas sean exactamente las quince y `TestSkillsDelRepositorio`, que `make skills-sync` ejecuta, queda en rojo en cuanto la LEC y la LOPDGDD están en la tabla, de modo que separar datos, generadores y ese caso deja `make ci` en rojo entre dos tareas; con `TestRenderizarNormas`, `TestRenderizarLeyesVertebrales`, `TestRenderizarJerarquia`, `TestRegenerarYComparar`, `TestLeerFrontmatter`, `TestValidarFrontmatter`, `TestNormasDelRepositorio/vertebrales` (las quince y ninguna más), `TestIdentificadoresDeLasNormas` y `TestSkillsDelRepositorio` en verde; si un título o un rango grabados no coinciden con lo esperado, se detiene sin marcarse y lo anota en `gates/tarea-T017.md` (FR-065, FR-066, FR-067, FR-070, FR-071, FR-072, FR-074, US6 escenarios 1, 2 y 3, SC-009, SC-010, contrato de la skill §4).",
+  "intento": 2,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T016.md y déjala sin marcar.",
-  "base": "3476c3763f09d6c552002baf193e10fc3e2c3a8e",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T017.md y déjala sin marcar.",
+  "base": "87d3d71653aaab1698ee0f129f484a0228112c21",
   "rutas": [
-    "Makefile",
-    "internal/skills/jerarquia.go",
-    "jerarquia.yaml"
+    "TestNormasDelRepositorio/vertebrales",
+    "data/normas.yaml",
+    "gates/tarea-T017.md",
+    "internal/app/skills_test.go",
+    "internal/skills/frontmatter.go",
+    "internal/skills/normas.go",
+    "internal/skills/referencias.go",
+    "internal/skills/sincronia.go",
+    "mapa-sistema-legal-skills.md",
+    "skills/boe-legislacion/references/normas.md"
   ],
   "cierre": false
 }

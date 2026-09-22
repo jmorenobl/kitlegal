@@ -54,16 +54,10 @@ const (
 	maximoDeLaCompatibilidad = 500
 )
 
-// Lo que la validación de las referencias busca en el repositorio (data-model
-// §1.3).
-const (
-	// carpetaDeLosDatos es el directorio de los YAML de datos, relativo a la raíz
-	// del repositorio.
-	carpetaDeLosDatos = "data"
-
-	// extensionDeLosDatos es la extensión del YAML de datos de una referencia.
-	extensionDeLosDatos = ".yaml"
-)
+// carpetaDeLosDatos es el directorio de los YAML de datos, relativo a la raíz
+// del repositorio: donde la validación de las referencias busca el que la tabla
+// de generadores declara para cada una (data-model §1.3; research.md D20).
+const carpetaDeLosDatos = "data"
 
 // etiquetaDeCadena es la etiqueta de YAML de un escalar de texto.
 const etiquetaDeCadena = "!!str"
@@ -106,8 +100,9 @@ type DeclaracionDeKitlegal struct {
 	// los presenta, o nil si la skill no la declara.
 	Applets []string
 
-	// Referencias son los nombres de kitlegal-referencias, cada uno con su
-	// data/<nombre>.yaml, o nil si la skill no la declara.
+	// Referencias son los nombres de kitlegal-referencias, o nil si la skill no
+	// la declara. Cada nombre es el de una fila de la tabla de generadores, que
+	// declara de qué YAML de datos sale la referencia.
 	Referencias []string
 }
 
@@ -353,9 +348,11 @@ func esCadena(nodo *yaml.Node) bool {
 //   - compatibility tiene hasta 500 caracteres;
 //   - cada clave de primer nivel es del estándar;
 //   - cada applet de kitlegal-applets está entre los registrados y no se repite;
-//   - cada referencia de kitlegal-referencias tiene su YAML de datos del mismo
-//     nombre, data/<nombre>.yaml, como fichero regular del directorio de datos
-//     del repositorio de raíz.
+//   - cada referencia de kitlegal-referencias tiene fila en la tabla de
+//     generadores —un YAML de datos de su nombre no se la da—, y el YAML de
+//     datos que esa fila declara, que no tiene por qué llamarse como ella, es un
+//     fichero regular del directorio de datos del repositorio de raíz
+//     (research.md D20).
 //
 // Los caracteres se cuentan como runas, no como bytes. El error queda para un
 // directorio de datos que existe y no se puede listar, que solo se lista si la
@@ -503,9 +500,10 @@ func defectosDeLosApplets(declarados, registrados []string) []string {
 	return defectos
 }
 
-// defectosDeLasReferencias son los defectos de kitlegal-referencias: uno por
-// cada referencia sin su YAML de datos. Sin referencias declaradas no lista el
-// directorio de datos.
+// defectosDeLasReferencias son los defectos de kitlegal-referencias, en el orden
+// de la declaración: uno por cada referencia sin fila en la tabla de generadores
+// y uno por cada referencia sin el YAML de datos que su fila declara. Sin
+// referencias declaradas no lista el directorio de datos.
 func defectosDeLasReferencias(raiz string, declaradas []string) ([]string, error) {
 	if len(declaradas) == 0 {
 		return nil, nil
@@ -521,9 +519,14 @@ func defectosDeLasReferencias(raiz string, declaradas []string) ([]string, error
 	var defectos []string
 
 	for _, referencia := range declaradas {
-		fichero := referencia + extensionDeLosDatos
-		if !slices.Contains(datos, fichero) {
-			defectos = append(defectos, fmt.Sprintf("%s: %q sin %s", ruta, referencia, carpetaDeLosDatos+"/"+fichero))
+		generador, conocido := generadoresDeReferencias[referencia]
+
+		switch {
+		case !conocido:
+			defectos = append(defectos, fmt.Sprintf("%s: %q sin generador conocido", ruta, referencia))
+		case !slices.Contains(datos, generador.datos):
+			defectos = append(defectos, fmt.Sprintf("%s: %q sin %s", ruta, referencia,
+				carpetaDeLosDatos+"/"+generador.datos))
 		}
 	}
 
@@ -531,9 +534,9 @@ func defectosDeLasReferencias(raiz string, declaradas []string) ([]string, error
 }
 
 // yamlDeDatos son los nombres de los ficheros regulares del directorio de datos
-// del repositorio de raíz. Buscar el nombre de la referencia entre ellos, y no
-// componer una ruta con él, hace que solo cuente un fichero de ese directorio.
-// Un repositorio sin directorio de datos no tiene ninguno.
+// del repositorio de raíz. Buscar entre ellos el YAML de datos de una referencia,
+// y no componer una ruta con él, hace que solo cuente un fichero de ese
+// directorio. Un repositorio sin directorio de datos no tiene ninguno.
 func yamlDeDatos(raiz string) ([]string, error) {
 	directorio := filepath.Join(raiz, carpetaDeLosDatos)
 

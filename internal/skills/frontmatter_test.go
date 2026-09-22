@@ -101,6 +101,28 @@ func TestLeerFrontmatter(t *testing.T) {
 			}(),
 		},
 		{
+			// Los nombres se leen tal cual, sin suponer ningún fichero de datos: el de
+			// cada referencia lo declara la tabla de generadores, y leyes_vertebrales
+			// sale de data/normas.yaml.
+			nombre: "referencias-que-no-se-llaman-como-sus-datos",
+			contenido: delimitador + nameYDescription +
+				"metadata:\n  kitlegal-applets: territorio\n  kitlegal-referencias: leyes_vertebrales jerarquia_normativa\n" +
+				delimitador,
+			frontmatter: func() skills.Frontmatter {
+				leido := frontmatterLeido("metadata")
+				leido.Metadata = map[string]string{
+					"kitlegal-applets":     "territorio",
+					"kitlegal-referencias": "leyes_vertebrales jerarquia_normativa",
+				}
+
+				return leido
+			}(),
+			deKitlegal: skills.DeclaracionDeKitlegal{
+				Applets:     []string{"territorio"},
+				Referencias: []string{"leyes_vertebrales", "jerarquia_normativa"},
+			},
+		},
+		{
 			// La lectura no la rechaza: la rechaza ValidarFrontmatter.
 			nombre:      "clave-que-no-es-del-estandar",
 			contenido:   delimitador + nameYDescription + "user-invocable: true\n" + delimitador,
@@ -279,14 +301,18 @@ var appletsRegistrados = []string{"boe", "placsp"}
 // skill y el defecto, y sus límites exactos son válidos —name de 64 caracteres,
 // description de 1024 contados en caracteres y no en bytes, compatibility de
 // 500—; las claves del estándar se admiten y las demás no; cada applet declarado
-// está registrado y sin repetir; y cada referencia declarada tiene su YAML de
-// datos del mismo nombre, un fichero regular del directorio de datos.
+// está registrado y sin repetir; y cada referencia declarada tiene generador en
+// la tabla de generadores y el YAML de datos que esa tabla le declara, que no
+// tiene por qué llamarse como ella, es un fichero regular del directorio de
+// datos (research.md D20). Una referencia sin generador es un defecto aunque haya
+// un YAML de datos de su nombre.
 func TestValidarFrontmatter(t *testing.T) {
 	t.Parallel()
 
 	conDatos := t.TempDir()
 	escribirFicheroDePrueba(t, filepath.Join(conDatos, "data", "normas.yaml"), "normas:\n")
-	require.NoError(t, os.MkdirAll(filepath.Join(conDatos, "data", "leyes.yaml"), 0o750))
+	escribirFicheroDePrueba(t, filepath.Join(conDatos, "data", "tributos.yaml"), "tributos:\n")
+	require.NoError(t, os.MkdirAll(filepath.Join(conDatos, "data", "jerarquia.yaml"), 0o750))
 
 	sinDatos := t.TempDir()
 
@@ -437,19 +463,29 @@ func TestValidarFrontmatter(t *testing.T) {
 			defectos: []string{`boe-legislacion: metadata/kitlegal-applets: applet "" no registrado`},
 		},
 		{
-			nombre:   "referencia-sin-su-yaml-de-datos",
+			nombre: "referencia-que-no-se-llama-como-sus-datos",
+			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas leyes_vertebrales" },
+		},
+		{
+			nombre:   "referencia-sin-generador",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas tributos" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin data/tributos.yaml`},
+			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin generador conocido`},
 		},
 		{
 			nombre:   "referencia-cuyo-yaml-de-datos-no-es-un-fichero",
-			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "leyes" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "leyes" sin data/leyes.yaml`},
+			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "jerarquia_normativa" },
+			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`},
 		},
 		{
 			nombre:   "referencia-sin-directorio-de-datos",
 			raiz:     sinDatos,
 			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "normas" sin data/normas.yaml`},
+		},
+		{
+			nombre:   "referencia-sin-el-yaml-de-datos-de-otro-nombre",
+			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "leyes_vertebrales" },
+			raiz:     sinDatos,
+			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "leyes_vertebrales" sin data/normas.yaml`},
 		},
 		{
 			nombre: "varios-defectos-en-orden",
@@ -464,7 +500,7 @@ func TestValidarFrontmatter(t *testing.T) {
 				"boe-legislacion: falta description",
 				"boe-legislacion: clave no admitida: user-invocable",
 				`boe-legislacion: metadata/kitlegal-applets: applet "cita" no registrado`,
-				`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin data/tributos.yaml`,
+				`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
 			},
 		},
 	}

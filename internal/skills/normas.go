@@ -49,6 +49,11 @@ type Norma struct {
 	// Materias son las materias que sirven para elegirla, al menos una y sin
 	// repetir, en el orden del documento.
 	Materias []string `yaml:"materias"`
+
+	// Vertebral dice si es una de las leyes de la tabla de leyes vertebrales del
+	// mapa del sistema legal, las que da references/leyes_vertebrales.md
+	// (data-model §4.1; FR-067, FR-070). La marca es opcional: sin ella, no lo es.
+	Vertebral bool `yaml:"vertebral"`
 }
 
 // DefectoDeNorma es un defecto de una entrada de data/normas.yaml: nombra la

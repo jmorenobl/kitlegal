@@ -16,10 +16,11 @@ import (
 )
 
 // Las fuentes del repositorio temporal de TestRegenerarYComparar, sin nada
-// generado: la tabla de normas y el SKILL.md de dos skills. alfa declara dos
-// applets, en otro orden que el del registro, y la referencia de las normas, y su
-// tabla de comandos está escrita a mano; beta no declara nada, así que no lleva
-// tabla, ni referencias, ni enlaces.
+// generado: la tabla de normas, con una marcada vertebral, la jerarquía y el
+// SKILL.md de dos skills. alfa declara dos applets, en otro orden que el del
+// registro, y las tres referencias de la tabla de generadores, dos de ellas del
+// mismo YAML de datos, y su tabla de comandos está escrita a mano; beta no declara
+// nada, así que no lleva tabla, ni referencias, ni enlaces.
 const (
 	normasDeSincronia = "normas:\n" +
 		"  BOE-A-2015-10565:\n" +
@@ -27,6 +28,7 @@ const (
 		"    rango: Ley\n" +
 		"    materias:\n" +
 		"      - procedimiento\n" +
+		"    vertebral: true\n" +
 		"  BOE-A-1985-5392:\n" +
 		"    titulo: Otra norma de prueba de la sincronía.\n" +
 		"    rango: Ley\n" +
@@ -34,14 +36,28 @@ const (
 		"    materias:\n" +
 		"      - régimen local\n"
 
+	// jerarquiaDeSincronia tiene los cinco niveles y las cuatro reglas, cada uno
+	// una vez y en su orden, como exige el esquema de data/jerarquia.yaml.
+	jerarquiaDeSincronia = "niveles:\n" +
+		"  - {nivel: ue, nombre: Unión, boletin: Diario de la Unión, normas: [Reglamento]}\n" +
+		"  - {nivel: estado, nombre: Estado, boletin: Boletín del Estado, normas: [Ley, Real Decreto]}\n" +
+		"  - {nivel: comunidad-autonoma, nombre: Comunidad, boletin: Boletín de la comunidad, normas: [Ley]}\n" +
+		"  - {nivel: provincia, nombre: Provincia, boletin: Boletín de la provincia, normas: [Ordenanza]}\n" +
+		"  - {nivel: municipio, nombre: Municipio, boletin: Boletín de la provincia, normas: [Ordenanza]}\n" +
+		"reglas:\n" +
+		"  - {regla: competencia-antes-que-jerarquia, enunciado: Primero la competencia.}\n" +
+		"  - {regla: ley-posterior, enunciado: La posterior deroga a la anterior.}\n" +
+		"  - {regla: ley-especial, enunciado: La especial prevalece.}\n" +
+		"  - {regla: reglamento-nunca-contra-ley, enunciado: El reglamento cede ante la ley.}\n"
+
 	// cabeceraDeAlfa es el SKILL.md de alfa hasta la marca de inicio de su tabla,
 	// incluida: la marca está en la línea 10.
 	cabeceraDeAlfa = "---\n" +
 		"name: alfa\n" +
-		"description: Skill de prueba con dos applets y una referencia.\n" +
+		"description: Skill de prueba con dos applets y tres referencias.\n" +
 		"metadata:\n" +
 		"  kitlegal-applets: dos uno\n" +
-		"  kitlegal-referencias: normas\n" +
+		"  kitlegal-referencias: " + referenciasDeAlfa + "\n" +
 		"---\n" +
 		"# Alfa\n" +
 		"\n" +
@@ -61,11 +77,16 @@ const (
 		"# Beta\n"
 )
 
+// referenciasDeAlfa es el valor de kitlegal-referencias de alfa.
+const referenciasDeAlfa = "normas leyes_vertebrales jerarquia_normativa"
+
 // Lo que la sincronía genera para alfa desde esas fuentes y desde
 // descripcionesDeSincronia, byte a byte: la región de su tabla de comandos, con
 // una sección por applet en el orden de su declaración (contrato
-// sincronizacion-y-comprobacion §3), y la referencia de las normas, por año y
-// número del identificador (contrato normas-y-referencias §5).
+// sincronizacion-y-comprobacion §3); la referencia de las normas, por año y
+// número del identificador (contrato normas-y-referencias §5); la de las leyes
+// vertebrales, solo con la marcada; y la de la jerarquía, con sus cinco niveles y
+// sus cuatro reglas (contrato de la skill legal-core §2).
 const (
 	regionDeAlfa = "\n" +
 		"### `scripts/dos`\n" +
@@ -88,7 +109,39 @@ const (
 	referenciaDeAlfa = comienzoDeLaReferencia +
 		"| Otra norma de prueba de la sincronía. | ONP | `BOE-A-1985-5392` | Ley | régimen local |\n" +
 		"| Norma de prueba de la sincronía. |  | `BOE-A-2015-10565` | Ley | procedimiento |\n"
+
+	vertebralesDeAlfa = comienzoDeLasLeyesVertebrales +
+		"| Norma de prueba de la sincronía. |  | `BOE-A-2015-10565` | Ley | procedimiento |\n"
+
+	jerarquiaDeAlfa = "<!-- generado desde data/jerarquia.yaml, no editar -->\n" +
+		"\n" +
+		"# Jerarquía normativa\n" +
+		"\n" +
+		"| Nivel | Boletín | Tipos de norma, de mayor a menor rango |\n" +
+		"|---|---|---|\n" +
+		"| Unión | Diario de la Unión | Reglamento |\n" +
+		"| Estado | Boletín del Estado | Ley, Real Decreto |\n" +
+		"| Comunidad | Boletín de la comunidad | Ley |\n" +
+		"| Provincia | Boletín de la provincia | Ordenanza |\n" +
+		"| Municipio | Boletín de la provincia | Ordenanza |\n" +
+		"\n" +
+		"## Reglas de interpretación\n" +
+		"\n" +
+		"- `competencia-antes-que-jerarquia`: Primero la competencia.\n" +
+		"- `ley-posterior`: La posterior deroga a la anterior.\n" +
+		"- `ley-especial`: La especial prevalece.\n" +
+		"- `reglamento-nunca-contra-ley`: El reglamento cede ante la ley.\n"
 )
+
+// referenciasRegeneradasDeAlfa son las tres referencias de alfa, en el orden de
+// su declaración, en unas referencias nuevas en cada llamada.
+func referenciasRegeneradasDeAlfa() []skills.Referencia {
+	return []skills.Referencia{
+		{Fichero: "normas.md", Contenido: []byte(referenciaDeAlfa)},
+		{Fichero: "leyes_vertebrales.md", Contenido: []byte(vertebralesDeAlfa)},
+		{Fichero: "jerarquia_normativa.md", Contenido: []byte(jerarquiaDeAlfa)},
+	}
+}
 
 // descripcionesDeSincronia son las descripciones de los verbos del registro de
 // prueba, en su orden —uno leer y dos listar—, con las mismas banderas y el mismo
@@ -120,9 +173,11 @@ func descripcionesDeSincronia() []skills.DescripcionDeVerbo {
 
 // TestRegenerarYComparar fija Regenerar, Escribir y Comparar sobre repositorios
 // temporales (data-model §5; contrato sincronizacion-y-comprobacion §2;
-// research.md D4, D5 y D7; FR-034, FR-035, FR-036, FR-042, SC-005): lo generado
-// sale de la declaración de cada skill y de data/, sin nada escrito para una skill
-// concreta; Regenerar y Comparar no escriben nada; Escribir deja el árbol sin
+// research.md D4, D5, D7 y D20; FR-034, FR-035, FR-036, FR-042, FR-065 a FR-067,
+// SC-005, SC-009): lo generado sale de la declaración de cada skill y de data/,
+// sin nada escrito para una skill concreta, y cada referencia, de la fila de la
+// tabla de generadores que lleva su nombre, que no tiene por qué ser el de su
+// YAML de datos; Regenerar y Comparar no escriben nada; Escribir deja el árbol sin
 // derivas, y un segundo Escribir no cambia ningún byte, ningún enlace ni ningún
 // tiempo de modificación; cada clase de deriva nombra la skill y el fichero o el
 // enlace, y Escribir la deshace; y cada defecto de una skill nombra la skill, la
@@ -141,7 +196,7 @@ func TestRegenerarYComparar(t *testing.T) {
 			{
 				Nombre:      "alfa",
 				Contenido:   []byte(skillMdDeAlfaSincronizado),
-				Referencias: []skills.Referencia{{Fichero: "normas.md", Contenido: []byte(referenciaDeAlfa)}},
+				Referencias: referenciasRegeneradasDeAlfa(),
 				Enlaces: []skills.Enlace{
 					{Nombre: "dos", Destino: destinoDeLosEnlacesDePrueba},
 					{Nombre: "uno", Destino: destinoDeLosEnlacesDePrueba},
@@ -155,6 +210,8 @@ func TestRegenerarYComparar(t *testing.T) {
 		assert.Equal(t, []*skills.Deriva{
 			{Skill: "alfa", Ruta: "SKILL.md", Clase: skills.DerivaContenidoDistinto},
 			{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaFicheroAusente},
+			{Skill: "alfa", Ruta: "references/leyes_vertebrales.md", Clase: skills.DerivaFicheroAusente},
+			{Skill: "alfa", Ruta: "references/jerarquia_normativa.md", Clase: skills.DerivaFicheroAusente},
 			{Skill: "alfa", Ruta: "scripts/dos", Clase: skills.DerivaEnlaceAusente},
 			{Skill: "alfa", Ruta: "scripts/uno", Clase: skills.DerivaEnlaceAusente},
 		}, derivas)
@@ -164,7 +221,11 @@ func TestRegenerarYComparar(t *testing.T) {
 		assert.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
 
 		assert.Equal(t, skillMdDeAlfaSincronizado, leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md")))
-		assert.Equal(t, referenciaDeAlfa, leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md")))
+
+		for _, referencia := range referenciasRegeneradasDeAlfa() {
+			assert.Equal(t, string(referencia.Contenido),
+				leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", referencia.Fichero)))
+		}
 
 		for _, applet := range []string{"dos", "uno"} {
 			destino, err := os.Readlink(rutaDeSkill(raiz, "alfa", "scripts", applet))
@@ -236,15 +297,48 @@ func probarDerivas(t *testing.T) {
 			mensaje: "alfa: references/normas.md: contenido-distinto",
 		},
 		{
+			// La norma no es vertebral: solo cambia la referencia de todas las normas.
 			nombre: "datos-sin-regenerar",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
-					"titulo: Norma de prueba de la sincronía.", "titulo: Norma de prueba con otro título.")
+					"titulo: Otra norma de prueba de la sincronía.", "titulo: Otra norma de prueba con otro título.")
 			},
 			deriva:  skills.Deriva{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaContenidoDistinto},
 			mensaje: "alfa: references/normas.md: contenido-distinto",
+		},
+		{
+			// La marca no es una columna: la referencia de todas las normas no cambia,
+			// y la de las leyes vertebrales gana una fila.
+			nombre: "marca-vertebral-sin-regenerar",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
+					"      - régimen local\n", "      - régimen local\n    vertebral: true\n")
+			},
+			deriva: skills.Deriva{
+				Skill: "alfa",
+				Ruta:  "references/leyes_vertebrales.md",
+				Clase: skills.DerivaContenidoDistinto,
+			},
+			mensaje: "alfa: references/leyes_vertebrales.md: contenido-distinto",
+		},
+		{
+			nombre: "jerarquia-sin-regenerar",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "jerarquia.yaml"),
+					"enunciado: La especial prevalece.", "enunciado: La especial prevalece sobre la general.")
+			},
+			deriva: skills.Deriva{
+				Skill: "alfa",
+				Ruta:  "references/jerarquia_normativa.md",
+				Clase: skills.DerivaContenidoDistinto,
+			},
+			mensaje: "alfa: references/jerarquia_normativa.md: contenido-distinto",
 		},
 		{
 			nombre: "describe-cambiado",
@@ -449,15 +543,25 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{`alfa: metadata/kitlegal-applets: applet "tres" no registrado`},
 		},
 		{
+			// Un YAML de datos con su nombre no le da generador: lo da la tabla.
 			nombre: "referencia-sin-generador",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"),
-					"kitlegal-referencias: normas\n", "kitlegal-referencias: normas otras\n")
+					"kitlegal-referencias: "+referenciasDeAlfa+"\n", "kitlegal-referencias: "+referenciasDeAlfa+" otras\n")
 				escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "otras.yaml"), "otras: []\n")
 			},
 			defectos: []string{`alfa: metadata/kitlegal-referencias: "otras" sin generador conocido`},
+		},
+		{
+			nombre: "referencia-sin-su-yaml-de-datos",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				retirarDePrueba(t, filepath.Join(raiz, "data", "jerarquia.yaml"))
+			},
+			defectos: []string{`alfa: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`},
 		},
 		{
 			nombre: "trescientas-lineas",
@@ -512,6 +616,8 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{"alfa: SKILL.md: uno leer no declara las mismas banderas globales que dos listar"},
 		},
 		{
+			// Dos referencias de alfa salen de data/normas.yaml, y su defecto va una
+			// sola vez.
 			nombre: "norma-con-vertical",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
@@ -520,6 +626,16 @@ func probarDefectos(t *testing.T) {
 					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
 			},
 			defectos: []string{"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical"},
+		},
+		{
+			nombre: "jerarquia-con-una-clave-desconocida",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "jerarquia.yaml"),
+					"normas: [Reglamento]}", "normas: [Reglamento], vigencia: 2026}")
+			},
+			defectos: []string{"alfa: data/jerarquia.yaml: niveles/0, línea 2: additional properties 'vigencia' not allowed"},
 		},
 		{
 			nombre: "sin-skill-md",
@@ -815,6 +931,7 @@ func arbolDeFuentes(t *testing.T) string {
 
 	raiz := t.TempDir()
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"), normasDeSincronia)
+	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "jerarquia.yaml"), jerarquiaDeSincronia)
 	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), skillMdDeAlfaSinSincronizar)
 	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "SKILL.md"), skillMdDeBetaSinNadaQueGenerar)
 

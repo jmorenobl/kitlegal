@@ -572,7 +572,10 @@ var normaNombrada = regexp.MustCompile(
 // probarNormasNombradas fija que toda norma que nombra el SKILL.md de una skill
 // empieza el título de una norma de data/normas.yaml (FR-020): en el árbol real,
 // que nombra alguna, y en una copia con cinco normas nombradas que la tabla no
-// tiene, una de cada forma, y una que sí tiene, que no falla.
+// tiene, una de cada forma, y una que sí tiene, que no falla. Las cinco llevan el
+// número 0, que no lleva ninguna norma: la tabla crece con cada hito —en H6, con
+// la LEC 1/2000 y la LOPDGDD 3/2018, que eran dos de estos ejemplos— y un ejemplo
+// que pudiera entrar en ella dejaría el caso sin fallo.
 func probarNormasNombradas(t *testing.T) {
 	t.Helper()
 
@@ -582,19 +585,19 @@ func probarNormasNombradas(t *testing.T) {
 
 	copia := copiaDelRepositorio(t)
 	ruta := rutaEnLaSkill(copia, skillDelHito, "SKILL.md")
-	escribirFicheroDeLaCopia(t, ruta, leerFicheroDelArbol(t, ruta)+"Ver la Ley 1/2000, la Ley Orgánica 3/2018, "+
-		"el Real Decreto 1098/2001, el Real Decreto-ley 8/2020, el Real Decreto Legislativo 7/2015 y el "+
+	escribirFicheroDeLaCopia(t, ruta, leerFicheroDelArbol(t, ruta)+"Ver la Ley 0/2000, la Ley Orgánica 0/2018, "+
+		"el Real Decreto 0/2001, el Real Decreto-ley 0/2020, el Real Decreto Legislativo 0/2015 y el "+
 		"Real Decreto Legislativo 2/2004.\n")
 
 	const sinEntrada = "boe-legislacion: SKILL.md nombra «%s», que no empieza el título de ninguna norma de " +
 		"data/normas.yaml"
 
 	assert.Equal(t, []string{
-		fmt.Sprintf(sinEntrada, "Ley 1/2000"),
-		fmt.Sprintf(sinEntrada, "Ley Orgánica 3/2018"),
-		fmt.Sprintf(sinEntrada, "Real Decreto 1098/2001"),
-		fmt.Sprintf(sinEntrada, "Real Decreto-ley 8/2020"),
-		fmt.Sprintf(sinEntrada, "Real Decreto Legislativo 7/2015"),
+		fmt.Sprintf(sinEntrada, "Ley 0/2000"),
+		fmt.Sprintf(sinEntrada, "Ley Orgánica 0/2018"),
+		fmt.Sprintf(sinEntrada, "Real Decreto 0/2001"),
+		fmt.Sprintf(sinEntrada, "Real Decreto-ley 0/2020"),
+		fmt.Sprintf(sinEntrada, "Real Decreto Legislativo 0/2015"),
 	}, fallosDeNormasNombradas(t, copia))
 }
 

@@ -18,7 +18,8 @@ const (
 	carpetaDeLasReferencias = "references"
 
 	// extensionDeLasReferencias es la extensión de una referencia generada:
-	// references/<nombre>.md sale de data/<nombre>.yaml.
+	// references/<nombre>.md sale del YAML de datos que la tabla de generadores
+	// declara para <nombre>.
 	extensionDeLasReferencias = ".md"
 
 	// maximoDeLineas es el número de líneas de SKILL.md a partir del cual es un
@@ -152,12 +153,12 @@ func (d *Deriva) Error() string {
 // registrados, de las que salen también los nombres de esos applets:
 //
 //   - el frontmatter de SKILL.md se lee y se valida (LeerFrontmatter y
-//     ValidarFrontmatter), y cada referencia declarada tiene que tener un
-//     generador conocido;
+//     ValidarFrontmatter), así que cada referencia declarada tiene fila en la
+//     tabla de generadores y el YAML de datos que esa fila declara;
 //   - con el frontmatter sin defectos, SKILL.md lleva en su región la tabla de
 //     comandos de los applets que declara, si declara alguno; cada referencia
-//     declarada se genera desde su data/<nombre>.yaml; y los enlaces esperados
-//     son los de EnlacesEsperados;
+//     declarada se genera con su fila desde su YAML de datos; y los enlaces
+//     esperados son los de EnlacesEsperados;
 //   - SKILL.md, tal como quedaría, tiene que tener menos de 300 líneas.
 //
 // Nada de eso sale de una lista escrita para una skill concreta: sale de la
@@ -247,8 +248,8 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 
 // declaracionDeLaSkill lee y valida el frontmatter de la skill, y devuelve su
 // declaración de kitlegal con los defectos del frontmatter: los de su lectura,
-// con SKILL.md delante, sin declaración; o los de ValidarFrontmatter seguidos de
-// uno por cada referencia declarada sin generador conocido.
+// con SKILL.md delante, sin declaración; o los de ValidarFrontmatter, entre ellos
+// el de cada referencia declarada sin generador.
 func declaracionDeLaSkill(raiz string, skill Skill, registrados []string) (
 	DeclaracionDeKitlegal, []*DefectoDeSkill, error,
 ) {
@@ -262,19 +263,7 @@ func declaracionDeLaSkill(raiz string, skill Skill, registrados []string) (
 		return DeclaracionDeKitlegal{}, nil, fmt.Errorf("%s: %w", skill.Nombre, err)
 	}
 
-	deKitlegal := frontmatter.DeclaracionDeKitlegal()
-	ruta := presentarRuta([]string{claveMetadata, claveKitlegalReferencias})
-
-	for _, referencia := range deKitlegal.Referencias {
-		if _, conocido := generadorDeReferencia(referencia); !conocido {
-			defectos = append(defectos, &DefectoDeSkill{
-				Skill:   skill.Nombre,
-				Defecto: fmt.Sprintf("%s: %q sin generador conocido", ruta, referencia),
-			})
-		}
-	}
-
-	return deKitlegal, defectos, nil
+	return frontmatter.DeclaracionDeKitlegal(), defectos, nil
 }
 
 // contenidoRegenerado es el SKILL.md de la skill con la tabla de comandos de los
@@ -302,26 +291,35 @@ func contenidoRegenerado(skill Skill, applets []string, descripciones []Descripc
 }
 
 // referenciasGeneradas son las referencias declaradas por la skill, cada una
-// generada desde su YAML de datos, en su orden, y un defecto por cada error de
-// unos datos que no se pueden generar, con su YAML delante. Solo se llama con el
-// frontmatter sin defectos: cada referencia tiene generador y YAML de datos.
+// generada con su fila de la tabla de generadores desde el YAML de datos que esa
+// fila declara, en su orden, y un defecto por cada error de unos datos que no se
+// pueden generar, con su YAML delante. Los defectos de un YAML de datos van una
+// sola vez aunque salgan de él varias referencias. Solo se llama con el
+// frontmatter sin defectos: cada referencia tiene fila y YAML de datos.
 func referenciasGeneradas(raiz, skill string, nombres []string) ([]Referencia, []*DefectoDeSkill, error) {
 	var (
 		referencias []Referencia
 		defectos    []*DefectoDeSkill
 	)
 
-	for _, nombre := range nombres {
-		generar, _ := generadorDeReferencia(nombre)
-		datos := carpetaDeLosDatos + "/" + nombre + extensionDeLosDatos
+	conDefectos := make(map[string]bool, len(nombres))
 
-		contenido, err := leerFichero(filepath.Join(raiz, carpetaDeLosDatos, nombre+extensionDeLosDatos))
+	for _, nombre := range nombres {
+		generador := generadoresDeReferencias[nombre]
+		if conDefectos[generador.datos] {
+			continue
+		}
+
+		datos := carpetaDeLosDatos + "/" + generador.datos
+
+		contenido, err := leerFichero(filepath.Join(raiz, carpetaDeLosDatos, generador.datos))
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s no se puede leer: %w", skill, datos, err)
 		}
 
-		generada, err := generar(contenido)
+		generada, err := generador.generar(contenido)
 		if err != nil {
+			conDefectos[generador.datos] = true
 			defectos = append(defectos, defectosDelError(skill, datos, err)...)
 
 			continue
@@ -335,28 +333,6 @@ func referenciasGeneradas(raiz, skill string, nombres []string) ([]Referencia, [
 	}
 
 	return referencias, nil, nil
-}
-
-// generadorDeReferencia es la función que genera la referencia de nombre desde
-// el contenido de su YAML de datos, y si la hay (data-model §1.3): hoy, solo la
-// de las normas.
-func generadorDeReferencia(nombre string) (func(datos []byte) ([]byte, error), bool) {
-	switch nombre {
-	case nombreDeLasNormas:
-		return generarNormas, true
-	default:
-		return nil, false
-	}
-}
-
-// generarNormas es references/normas.md desde el contenido de data/normas.yaml.
-func generarNormas(datos []byte) ([]byte, error) {
-	normas, err := LeerNormas(datos)
-	if err != nil {
-		return nil, err
-	}
-
-	return RenderizarNormas(normas), nil
 }
 
 // defectoDeLasLineas es el defecto de un SKILL.md con 300 líneas o más.

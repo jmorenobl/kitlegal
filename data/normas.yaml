@@ -1,5 +1,7 @@
-# Normas que referencian las skills de kitlegal. Única fuente de verdad de references/normas.md.
+# Normas que referencian las skills de kitlegal. Única fuente de verdad de references/normas.md y de references/leyes_vertebrales.md.
 # Cada identificador está verificado contra la búsqueda grabada de la fuente (TestIdentificadoresDeLasNormas).
+# vertebral: true marca las quince leyes de la tabla de leyes vertebrales de refs/mapa-sistema-legal-skills.md §1.4, y
+# ninguna más (TestNormasDelRepositorio/vertebrales).
 normas:
   BOE-A-2015-10565:
     titulo: "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas."
@@ -7,24 +9,28 @@ normas:
     abreviatura: LPAC
     materias:
       - procedimiento administrativo
+    vertebral: true
   BOE-A-2017-12902:
     titulo: "Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE y 2014/24/UE, de 26 de febrero de 2014."
     rango: Ley
     abreviatura: LCSP
     materias:
       - contratación pública
+    vertebral: true
   BOE-A-1985-5392:
     titulo: "Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local"
     rango: Ley
     abreviatura: LRBRL
     materias:
       - régimen local
+    vertebral: true
   BOE-A-2003-23186:
     titulo: "Ley 58/2003, de 17 de diciembre, General Tributaria."
     rango: Ley
     abreviatura: LGT
     materias:
       - tributos
+    vertebral: true
   BOE-A-2004-4214:
     titulo: "Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales."
     rango: Real Decreto Legislativo
@@ -32,6 +38,7 @@ normas:
     materias:
       - tributos
       - haciendas locales
+    vertebral: true
   BOE-A-2006-20764:
     titulo: "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio."
     rango: Ley
@@ -46,6 +53,7 @@ normas:
     materias:
       - régimen jurídico del sector público
       - potestad sancionadora
+    vertebral: true
   BOE-A-2013-12887:
     titulo: "Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno."
     rango: Ley
@@ -53,6 +61,7 @@ normas:
     materias:
       - transparencia
       - acceso a la información pública
+    vertebral: true
   BOE-A-1978-31229:
     titulo: "Constitución Española."
     rango: Constitución
@@ -60,6 +69,7 @@ normas:
     materias:
       - organización territorial
       - autonomía local
+    vertebral: true
   BOE-A-2015-11430:
     titulo: "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores."
     rango: Real Decreto Legislativo
@@ -73,3 +83,56 @@ normas:
     materias:
       - régimen jurídico de las administraciones públicas
       - procedimiento administrativo
+  BOE-A-1889-4763:
+    titulo: "Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil."
+    rango: Real Decreto
+    abreviatura: CC
+    materias:
+      - derecho civil
+      - fuentes del derecho
+    vertebral: true
+  BOE-A-1998-16718:
+    titulo: "Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa."
+    rango: Ley
+    abreviatura: LJCA
+    materias:
+      - jurisdicción contencioso-administrativa
+      - recurso contencioso-administrativo
+    vertebral: true
+  BOE-A-2000-323:
+    titulo: "Ley 1/2000, de 7 de enero, de Enjuiciamiento Civil."
+    rango: Ley
+    abreviatura: LEC
+    materias:
+      - proceso civil
+    vertebral: true
+  BOE-A-1985-12666:
+    titulo: "Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial."
+    rango: Ley Orgánica
+    abreviatura: LOPJ
+    materias:
+      - poder judicial
+    vertebral: true
+  BOE-A-2003-20977:
+    titulo: "Ley 38/2003, de 17 de noviembre, General de Subvenciones."
+    rango: Ley
+    abreviatura: LGS
+    materias:
+      - subvenciones
+    vertebral: true
+  BOE-A-2018-16673:
+    titulo: "Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales."
+    rango: Ley Orgánica
+    abreviatura: LOPDGDD
+    materias:
+      - protección de datos personales
+      - derechos digitales
+    vertebral: true
+  BOE-A-2003-21614:
+    titulo: "Ley 47/2003, de 26 de noviembre, General Presupuestaria."
+    rango: Ley
+    abreviatura: LGP
+    materias:
+      - presupuestos públicos
+      - control del gasto público
+    vertebral: true
