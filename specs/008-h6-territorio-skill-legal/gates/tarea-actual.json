@@ -1,18 +1,14 @@
 {
-  "id": "T022",
-  "texto": "T022 [US5] La skill `legal-core` v0, primero la exigencia y después sus ficheros: `internal/app/skills_test.go` añade `legal-core` a `skillsExigidas` —el control de que la skill existe queda en rojo—, y a continuación `skills/legal-core/SKILL.md` (frontmatter válido con `name: legal-core`, `description` no vacía, `metadata.kitlegal-applets` con **solo** `territorio` y `metadata.kitlegal-referencias` con `leyes_vertebrales jerarquia_normativa`; menos de 300 líneas contadas sobre el fichero regenerado; protocolo que **empieza por identificar el territorio** —y pregunta el municipio cuando la conversación no lo dice, sin suponerlo—, lo resuelve con el binario con `--json` sin dar por sabido ningún dato de territorio, lee `cobertura` y la traslada a la respuesta sin nombrar ningún boletín que el applet no haya devuelto, trata la ambigüedad ofreciendo los candidatos y la ausencia sin concluir «no existe», razona con las dos referencias y **delega en `boe-legislacion`**, en un solo sentido, el texto de cualquier artículo; región generada de la tabla de comandos con **solo** los verbos de `territorio`; las seis reglas invariantes del contrato §1.4; nada de plazos, recursos ni competencia, que son de H9; y sin mencionar evals, el job, modelos ni la caché), `skills/legal-core/references/leyes_vertebrales.md` y `skills/legal-core/references/jerarquia_normativa.md` **regeneradas con `make skills-sync`** desde los datos, con su cabecera literal «generado …, no editar» y sin el texto de ninguna norma, y el enlace `skills/legal-core/scripts/territorio` al binario instalado; `TestSkillsDelRepositorio`, `TestTablaDeComandosCoincideConLaGramatica` y `TestRegenerarYComparar` vuelven a verde con diff vacío (FR-060 a FR-069, FR-102, US5 escenario 4, SC-009, contrato de la skill §1 a §3).",
-  "intento": 2,
+  "id": "T023",
+  "texto": "T023 [US5] Matriz de skills en el job de evals: `.github/workflows/evals.yml` pasa de una skill a una matriz (`boe-legislacion` y `legal-core`) con `fail-fast: false` y un informe por skill dentro de la **misma** ejecución, la prueba de red se mantiene como bandera solo para `boe-legislacion` —`territorio` no tiene red que probar, porque no puede pedir nada por construcción— y el filtro de rutas gana el patrón de los paquetes de dominio (el de `core`, junto al de `data`, que ya cubre los ficheros congelados); el umbral no cambia (una eval pasa cuando al menos 2 de sus 3 sesiones pasan, y el informe lleva el commit evaluado y el identificador del modelo); ninguna tarea ejecuta `make evals` (FR-083, SC-015, contrato de evals §5).",
+  "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T022.md y déjala sin marcar.",
-  "base": "174c434e1e31300541fa5fb81fa9e2d7f799230e",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T023.md y déjala sin marcar.",
+  "base": "7800adfebc897c6434a1e8d2cf619b8c7d78f9c2",
   "rutas": [
-    "internal/app/skills_test.go",
-    "skills/legal-core/SKILL.md",
-    "skills/legal-core/references/jerarquia_normativa.md",
-    "skills/legal-core/references/leyes_vertebrales.md",
-    "skills/legal-core/scripts/territorio"
+    ".github/workflows/evals.yml"
   ],
   "cierre": false
 }

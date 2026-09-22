@@ -374,6 +374,17 @@ común de eval con su job de evals. El binario distribuido no cambia.
   integración continua por igual. El análisis estático alcanza también los ficheros con la etiqueta de compilación
   `evals` (`run.build-tags` de `.golangci.yml`), los arneses que usa el job de evals.
 
+*De H6 — el applet `territorio` y la skill `legal-core`:*
+
+- **El job de evals mide las dos skills en la misma ejecución.** El flujo `evals` deja de evaluar solo
+  `boe-legislacion` y pasa a una matriz de skills, `boe-legislacion` y `legal-core`: un trabajo por skill, cada uno
+  con su informe, y el rojo de uno no cancela el otro (`fail-fast: false`). La prueba de red sigue siendo solo de
+  `boe-legislacion`, cuyo texto invoca el applet `boe`: la entrada `prueba_de_red` y la etiqueta
+  `evals-prueba-de-red` la añaden a su trabajo y no al de `legal-core`, porque `territorio` no puede pedir nada a la
+  red. Al abrirse o reabrirse una propuesta de cambio, el job arranca también si toca los paquetes de dominio
+  (`internal/core/`); los ficheros congelados de `data/territorio/` ya los cubría `data/`. El umbral no cambia: cada
+  serie de tres sesiones pasa con dos, y el informe lleva el commit evaluado y el identificador del modelo.
+
 ### Corregido
 
 *De H5.1 — los avisos de vigencia en las evals:*
