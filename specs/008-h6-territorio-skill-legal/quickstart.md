@@ -332,10 +332,14 @@ Requiere la propuesta de cambio abierta y el secreto del modelo; no se ejecuta e
 
 ```bash
 rtk proxy sh -c 'gh run list --workflow evals.yml --branch 008-h6-territorio-skill-legal --limit 3 --json databaseId,workflowName,status,conclusion,headSha'
-rtk proxy sh -c 'set -e; id=$(gh run list --workflow evals.yml --branch 008-h6-territorio-skill-legal --limit 1 --json databaseId --jq ".[0].databaseId"); test -n "$id"; gh run view "$id" --log | sed -n "/^# Informe de evals/,/^## Sesiones/p"'
+rtk proxy sh -c 'set -e; id=$(gh run list --workflow evals.yml --branch 008-h6-territorio-skill-legal --limit 1 --json databaseId --jq ".[0].databaseId"); test -n "$id"; gh run view "$id" --log | cut -f3- | sed -E "s/^[^ ]+ //" | awk "/^# Informe de evals de /{n++; p=1} p{print} /^## Sesiones/{p=0} END{if (n != 2) {print \"informes: \" n \" de 2\"; exit 1}}"; echo "código: $?"'
 ```
 
-Espera: **una sola ejecución** con sus dos trabajos de la matriz en verde; en el informe de `legal-core`, las tres
+`gh run view --log` pone delante de cada línea el trabajo, el paso —separados por tabuladores— y la hora; la orden
+los quita antes de buscar las cabeceras, y termina en 1 si no encuentra los dos informes (T026, intento 1: anclada al
+principio de la línea sin quitarlos, no imprimía nada y terminaba en 0).
+
+Espera: **una sola ejecución** con sus dos trabajos de la matriz en verde; `código: 0` tras los dos informes; en el informe de `legal-core`, las tres
 evals con su tasa (al menos 2 de 3 sesiones), el commit evaluado y el identificador del modelo, y `red` vacío; en el
 de `boe-legislacion`, su conjunto pasando con la regla de H5 y H5.1. La respuesta de la eval del municipio no cubierto
 dice explícitamente qué no está configurado y no nombra ningún boletín que el applet no haya devuelto (SC-013). El

@@ -80,7 +80,8 @@ rutas** que va a crear o modificar, y **solo** esas (plan, «Obligaciones», pun
   `git status --porcelain`, `git diff`, `make`) se ejecuta con `rtk proxy`, cada etapa de la tubería incluida.
 
 **Rebanadas verticales y excepciones declaradas.** Son rebanadas completas —test antes que código, `make ci` en verde
-por sí solas— T004, T006, T007, T008, T009, T011, T016, T017, T019, T020, T021 y T022. Las demás tampoco dejan nada a
+por sí solas— T004, T006, T007, T008, T009, T011, T016, T017, T019, T020, T021, T022 y T029 (esta, añadida tras el
+intento 1 de T026 por el rojo de `ci` en la plataforma; nota de T026 en `gates/`). Las demás tampoco dejan nada a
 medias, cada una por su razón: **T001, T002, T003, T005, T013, T014 y T027** son `[datos]` y solo traen material
 congelado, esquemas o corpus que ningún lector mira todavía, de modo que `make ci` sigue en verde y el control que los
 valida llega en la tarea que lo puede dejar en verde (T007 para los ficheros de territorio, los patrones de sus esquemas
@@ -247,6 +248,8 @@ entrega.
 
 **Checkpoint**: el hito está implementado y validado con su guía, con la cobertura medida y el cuerpo de la publicación
 escrito; solo queda la plataforma.
+
+- [X] T029 Carga del territorio dentro de su presupuesto de tiempo en la integración continua. Origen: el intento 1 de T026 (2026-09-22). La ejecución `ci` de la propuesta de cambio cayó en `make test-integration` porque el cronometraje del guion de la matriz territorial midió 235 ms al resolver Leganés, con un máximo de 200 ms; el mismo guion había pasado minutos antes en `make test` del mismo trabajo. La carga está en el borde de la cota de Performance Goals del plan, que descansaba en S3 de research.md, una estimación nunca medida. Causa, medida sobre `47f3090` con los datos congelados reales (nota de T026): cargar el registro asigna 36,4 MB en unas 756 000 asignaciones por invocación para 830 KB de datos. El árbol de nodos que el lector de YAML construye para las filas de la relación y de la correspondencia, junto con su decodificación fila a fila, suma el 72 % de lo asignado. En el runner, con la recogida de basura y los demás paquetes de test compitiendo por la CPU, eso cuesta de 180 a 235 ms. El arreglo va a la causa, en `internal/core/territorio/`. Test primero: un control determinista del coste de la carga, sobre una relación y una correspondencia sintéticas del tamaño real (8 132 filas cada una), que hoy falla y exige como mucho un tercio de los bytes y de las asignaciones que la carga actual necesita para esa misma entrada; esa medida se toma antes de cambiar nada y se anota en la nota de la tarea. La carga nueva da exactamente los mismos ficheros decodificados y los mismos defectos que la actual, con su fichero y su línea o su clave: lo fijan los tests existentes más una comparación con la decodificación del lector de YAML sobre entradas con nombres difíciles (comillas, tildes, barras y apóstrofos). La cobertura del paquete no baja del 100 % que tiene. No se tocan el máximo de 200 ms, la orden de cronometraje, el guion e2e, los ficheros congelados, sus esquemas, el kernel ni el applet, y no entran dependencias nuevas. Si el presupuesto solo se sostiene cambiando alguna de esas cosas, la tarea se detiene sin marcarse y lo anota en su nota (plan, Performance Goals y control 17; FR-043, FR-056).
 
 ---
 

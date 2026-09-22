@@ -225,17 +225,56 @@ func TestCargar(t *testing.T) {
 			"el registro no tiene todos los municipios de la relación")
 	})
 
-	casos := []struct {
-		nombre string
-		// ficheros cambia el territorio sintético antes de codificarlo.
-		ficheros func(*Ficheros)
-		// fuentes cambia los bytes ya codificados, para lo que un valor de Go
-		// no puede representar.
-		fuentes func(*Fuentes)
-		// defectos son los que el error tiene que decir, cada uno con su
-		// fichero delante.
-		defectos []string
-	}{
+	for _, caso := range casosDeCarga() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			compruebaDefectosDeCarga(t, caso, fuentesDe)
+		})
+	}
+}
+
+// casoDeCarga son unas fuentes con defectos y los que Cargar tiene que decir.
+type casoDeCarga struct {
+	nombre string
+	// ficheros cambia el territorio sintético antes de codificarlo.
+	ficheros func(*Ficheros)
+	// fuentes cambia los bytes ya codificados, para lo que un valor de Go no
+	// puede representar.
+	fuentes func(*Fuentes)
+	// defectos son los que el error tiene que decir, cada uno con su fichero
+	// delante.
+	defectos []string
+}
+
+// compruebaDefectosDeCarga codifica el territorio sintético de un caso con
+// codificar, le aplica sus cambios y exige que Cargar no dé ningún registro y
+// diga todos sus defectos.
+func compruebaDefectosDeCarga(t *testing.T, caso casoDeCarga, codificar func(*testing.T, Ficheros) Fuentes) {
+	t.Helper()
+
+	ficheros := ficherosSinteticos()
+	if caso.ficheros != nil {
+		caso.ficheros(&ficheros)
+	}
+
+	fuentes := codificar(t, ficheros)
+	if caso.fuentes != nil {
+		caso.fuentes(&fuentes)
+	}
+
+	registro, err := Cargar(fuentes)
+	require.Error(t, err, "unas fuentes con defectos no pueden cargar")
+	assert.Nil(t, registro, "un error de carga no puede acompañarse de un registro a medias")
+
+	for _, defecto := range caso.defectos {
+		require.ErrorContains(t, err, defecto)
+	}
+}
+
+// casosDeCarga son los casos de TestCargar, nuevos en cada llamada.
+func casosDeCarga() []casoDeCarga {
+	return []casoDeCarga{
 		{
 			nombre: "municipio-sin-provincia",
 			ficheros: func(f *Ficheros) {
@@ -482,29 +521,5 @@ func TestCargar(t *testing.T) {
 				"data/territorio/municipios.yaml: el municipio 47992 no tiene nombre",
 			},
 		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			ficheros := ficherosSinteticos()
-			if caso.ficheros != nil {
-				caso.ficheros(&ficheros)
-			}
-
-			fuentes := fuentesDe(t, ficheros)
-			if caso.fuentes != nil {
-				caso.fuentes(&fuentes)
-			}
-
-			registro, err := Cargar(fuentes)
-			require.Error(t, err, "unas fuentes con defectos no pueden cargar")
-			assert.Nil(t, registro, "un error de carga no puede acompañarse de un registro a medias")
-
-			for _, defecto := range caso.defectos {
-				require.ErrorContains(t, err, defecto)
-			}
-		})
 	}
 }

@@ -1,16 +1,15 @@
 {
-  "id": "T025",
-  "texto": "T025 Cierre sin tocar el árbol fuera del directorio del hito: ejecuta en primer plano `make ci` y, tal cual y en orden, los prerrequisitos y los escenarios 1 a 13 de `specs/008-h6-territorio-skill-legal/quickstart.md`, con las formas `rtk proxy` de su tabla, y se detiene sin marcarse y lo anota en `gates/tarea-T025.md` ante cualquier resultado distinto del esperado; mide sobre el perfil que deja `make ci` la cobertura global (≥ 70 %) y la de los paquetes de dominio (≥ 85 %) con `go tool cover -func`; y escribe `specs/008-h6-territorio-skill-legal/gates/pr-h6.md`, el cuerpo de la publicación del hito, con la plantilla del ritual (objetivo, alcance, controles añadidos, decisiones, pendientes), «Dependencias: ninguna nueva» y el motivo del único módulo que pasa a enlazarse, las medidas fechadas por el commit sobre el que se tomaron y, en pendientes, la regla de SC-015 sobre qué puede cambiar después de la ejecución de aceptación; no escribe ningún otro fichero (FR-093, FR-094, FR-095, FR-096, FR-097, SC-012, Definition of Done §1.1 y §1.9, ritual §6.3, plan obligación 9).",
-  "intento": 2,
+  "id": "T029",
+  "texto": "T029 Carga del territorio dentro de su presupuesto de tiempo en la integración continua. Origen: el intento 1 de T026 (2026-09-22). La ejecución `ci` de la propuesta de cambio cayó en `make test-integration` porque el cronometraje del guion de la matriz territorial midió 235 ms al resolver Leganés, con un máximo de 200 ms; el mismo guion había pasado minutos antes en `make test` del mismo trabajo. La carga está en el borde de la cota de Performance Goals del plan, que descansaba en S3 de research.md, una estimación nunca medida. Causa, medida sobre `47f3090` con los datos congelados reales (nota de T026): cargar el registro asigna 36,4 MB en unas 756 000 asignaciones por invocación para 830 KB de datos. El árbol de nodos que el lector de YAML construye para las filas de la relación y de la correspondencia, junto con su decodificación fila a fila, suma el 72 % de lo asignado. En el runner, con la recogida de basura y los demás paquetes de test compitiendo por la CPU, eso cuesta de 180 a 235 ms. El arreglo va a la causa, en `internal/core/territorio/`. Test primero: un control determinista del coste de la carga, sobre una relación y una correspondencia sintéticas del tamaño real (8 132 filas cada una), que hoy falla y exige como mucho un tercio de los bytes y de las asignaciones que la carga actual necesita para esa misma entrada; esa medida se toma antes de cambiar nada y se anota en la nota de la tarea. La carga nueva da exactamente los mismos ficheros decodificados y los mismos defectos que la actual, con su fichero y su línea o su clave: lo fijan los tests existentes más una comparación con la decodificación del lector de YAML sobre entradas con nombres difíciles (comillas, tildes, barras y apóstrofos). La cobertura del paquete no baja del 100 % que tiene. No se tocan el máximo de 200 ms, la orden de cronometraje, el guion e2e, los ficheros congelados, sus esquemas, el kernel ni el applet, y no entran dependencias nuevas. Si el presupuesto solo se sostiene cambiando alguna de esas cosas, la tarea se detiene sin marcarse y lo anota en su nota (plan, Performance Goals y control 17; FR-043, FR-056).",
+  "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T025.md y déjala sin marcar.",
-  "base": "2df74db83ca3b036408d90c6801f0ffd3d18fbf3",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T029.md y déjala sin marcar.",
+  "base": "47f3090e5288d9beccaa1188217f062f975a27d7",
   "rutas": [
-    "gates/tarea-T025.md",
-    "specs/008-h6-territorio-skill-legal/gates/pr-h6.md",
-    "specs/008-h6-territorio-skill-legal/quickstart.md"
+    "internal/core/territorio/",
+    "research.md"
   ],
   "cierre": false
 }

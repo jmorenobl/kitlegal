@@ -2,6 +2,7 @@ package territorio
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func TestRegistro(t *testing.T) {
 		}
 
 		slices.SortFunc(municipios, func(a, b *municipioRegistrado) int {
-			return -compararPorCodigo(a, b)
+			return strings.Compare(b.codigo.String(), a.codigo.String())
 		})
 
 		invertido := &Registro{}

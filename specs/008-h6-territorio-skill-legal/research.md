@@ -134,7 +134,9 @@ La fila lleva las cinco columnas que FR-040 exige —código, dígito de control
 integridad de `Cargar` (data-model §2.1, punto 6), donde además se declara cuál de los dos caminos es el autoritativo.
 
 **Motivo.** El mapa por código da unicidad gratis: el lector común rechaza la clave repetida (V37) y el esquema la fija
-con `propertyNames.pattern`, igual que `data/normas.yaml`. La forma de flujo mantiene una línea por fila.
+con `propertyNames.pattern`, igual que `data/normas.yaml`. La forma de flujo mantiene una línea por fila. Desde T029,
+además, la carga lee en esta forma las filas de la relación y de la correspondencia sin pasar por el lector de YAML, que
+lee entero cualquier fichero escrito de otra manera (S3).
 
 **Alternativas.** *CSV o TSV*: más compacto y el formato natural del origen, pero no se puede validar con JSON Schema,
 que es lo que FR-044 exige. *JSON*: se valida igual y se analiza más rápido con la biblioteca estándar, pero
@@ -629,7 +631,7 @@ hecho en este plan.
 |---|---|---|
 | **S1** | La relación del INE (`diccionario26.xlsx`) trae, por municipio, código de comunidad, código de provincia, código de municipio, dígito de control y nombre oficial | La tarea `[datos]` de `municipios.yaml`; si trae menos, el fichero declara lo que hay y `cobertura` lo dice |
 | **S2** | El DIR3 del ayuntamiento es `L` + el número de inscripción del REL (`L01PPMMMDC`) | La muestra de FR-046, en la pausa de la tarea `[datos]` (ADR 0017, decisión 3) |
-| **S3** | Son 8.132 municipios y el fichero de municipios ronda los 650 KB, de modo que su análisis en cada invocación está por debajo de 200 ms | `docs/SOURCES.md` da la cifra de municipios; el tiempo lo mide el e2e con `cronometra` |
+| **S3** | Son 8.132 municipios y el fichero de municipios ronda los 650 KB, de modo que su análisis en cada invocación está por debajo de 200 ms | `docs/SOURCES.md` da la cifra de municipios; el tiempo lo mide el e2e con `cronometra`. **Medido (T026 y T029, 2026-09-22)**: la cifra se confirma —8 132 filas en la relación y en la correspondencia, 632 KB y 183 KB— y el tiempo no: la ejecución `ci` de la propuesta de cambio midió 235 ms al resolver Leganés (nota de T026). Cargar asignaba 36,4 MB en 756 111 asignaciones, el 72 % en el árbol de nodos del lector de YAML y la decodificación fila a fila. Desde T029 las filas escritas en la forma de D4 se leen sin el lector, con el mismo resultado y los mismos defectos que él, y cualquier otra forma la lee él entera; ordenar el registro tampoco vuelve a escribir cada código en cada comparación. Con los datos reales, una carga asigna 9,8 MB en 63 333 asignaciones (9 ms en local, y 17 ms la invocación entera). `TestCosteDeLaCarga` lo fija sobre fuentes sintéticas del tamaño real: como mucho un tercio de las 779 065 asignaciones y los 37 455 908 bytes que la carga anterior necesitaba para ellas |
 | **S4** | El pliegue de nombres no deja ningún municipio inalcanzable ni descubre runas fuera de la tabla | Los dos tests de D10, en cuanto exista `municipios.yaml` |
 | **S5** | Los códigos INE de comunidad que se citan como ejemplo en estos artefactos (13 Madrid, 15 Navarra, 16 País Vasco, 18 y 19 para Ceuta y Melilla) | La tarea `[datos]`: los códigos salen del fichero del INE, no de estos documentos |
 | **S6** | GitHub ejecuta la matriz de dos skills como una sola ejecución del flujo, con un identificador de ejecución común | La ejecución de cierre del hito (tarea `[plataforma]`) |

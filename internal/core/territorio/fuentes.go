@@ -256,12 +256,10 @@ func decodificarFichero[T any](ruta string, contenido []byte) (T, error) {
 	return fichero, nil
 }
 
-// relacionSinFilas y correspondenciaSinFilas son la relación y la
-// correspondencia con su mapa de filas aún sin decodificar: el lector de YAML
-// busca la clave repetida de un mapa comparando cada clave con todas las demás,
-// y con las miles de filas de estos dos ficheros esa comparación, ella sola,
-// pasa del tiempo que tiene una invocación entera (research.md S3). El resto
-// del fichero sí lo decodifica el lector, con sus claves conocidas.
+// relacionSinFilas y correspondenciaSinFilas son la cabecera de la relación y
+// la de la correspondencia, con su mapa de filas en un nodo que el lector de
+// YAML no decodifica: las filas se leen aparte (decodificarFicheroDeFilas). El
+// resto del fichero sí lo decodifica el lector, con sus claves conocidas.
 type (
 	relacionSinFilas struct {
 		Fecha      string    `yaml:"fecha"`
@@ -277,80 +275,60 @@ type (
 
 // decodificarRelacion lee data/territorio/municipios.yaml.
 func decodificarRelacion(contenido []byte) (FicheroDeMunicipios, error) {
-	relacion, err := decodificarFichero[relacionSinFilas](rutaDeMunicipios, contenido)
-	if err != nil {
-		return FicheroDeMunicipios{}, err
-	}
-
-	filas, err := decodificarFilas[FilaDeMunicipio](rutaDeMunicipios, "municipios", &relacion.Municipios)
+	relacion, filas, err := decodificarFicheroDeFilas[relacionSinFilas](
+		rutaDeMunicipios, "municipios", contenido, leerFilaDeMunicipio)
 
 	return FicheroDeMunicipios{Fecha: relacion.Fecha, Source: relacion.Source, Municipios: filas}, err
 }
 
 // decodificarCorrespondencia lee data/territorio/dir3.yaml.
 func decodificarCorrespondencia(contenido []byte) (FicheroDeDIR3, error) {
-	correspondencia, err := decodificarFichero[correspondenciaSinFilas](rutaDeDIR3, contenido)
-	if err != nil {
-		return FicheroDeDIR3{}, err
-	}
-
-	filas, err := decodificarFilas[string](rutaDeDIR3, "correspondencia", &correspondencia.Correspondencia)
+	correspondencia, filas, err := decodificarFicheroDeFilas[correspondenciaSinFilas](
+		rutaDeDIR3, "correspondencia", contenido, leerFilaDeDIR3)
 
 	return FicheroDeDIR3{Fecha: correspondencia.Fecha, Source: correspondencia.Source, Correspondencia: filas}, err
 }
 
-// decodificarFilas decodifica un mapa de filas, una por clave, y busca la clave
-// repetida con un mapa de Go, fila a fila, en lugar de comparar cada clave con
-// todas las demás. Cada fila la decodifica el lector, que en ella sí busca la
-// clave repetida: son unas pocas. Lo que no hace el lector al decodificar un
-// nodo es rechazar dentro de la fila una clave que el tipo no declara; no se
-// pierde nada, porque la carga exige cada dato de la fila —una columna mal
-// escrita es una que falta— y la clave de más la rechaza el esquema del
-// fichero en make ci (FR-044). Los defectos de todas las filas se dicen
-// juntos, cada uno con su línea o con su clave.
+// decodificarFilas decodifica con el lector de YAML el nodo de un mapa de
+// filas, una por clave, y busca la clave repetida fila a fila (filasLeidas).
+// Cada fila la decodifica el lector, que en ella sí busca la clave repetida:
+// son unas pocas. Lo que no hace el lector al decodificar un nodo es rechazar
+// dentro de la fila una clave que el tipo no declara; no se pierde nada,
+// porque la carga exige cada dato de la fila —una columna mal escrita es una
+// que falta— y la clave de más la rechaza el esquema del fichero en make ci
+// (FR-044). Los defectos de todas las filas se dicen juntos, cada uno con su
+// línea o con su clave.
 func decodificarFilas[V any](ruta, clave string, nodo *yaml.Node) (map[string]V, error) {
-	defecto := func(formato string, argumentos ...any) error {
-		return &defectoDeCarga{fichero: ruta, motivo: clave + ": " + fmt.Sprintf(formato, argumentos...)}
-	}
-
 	if nodo.Kind != yaml.MappingNode {
-		return nil, defecto("no es un mapa de filas")
+		return nil, defectoDeFilas(ruta, clave, "no es un mapa de filas")
 	}
 
-	filas := make(map[string]V, len(nodo.Content)/2)
-	lineas := make(map[string]int, len(nodo.Content)/2)
-
-	var defectos []error
+	filas := nuevasFilasLeidas[V](ruta, clave, len(nodo.Content)/2)
 
 	for indice := 0; indice+1 < len(nodo.Content); indice += 2 {
 		nombre, valor := nodo.Content[indice], nodo.Content[indice+1]
 
 		if nombre.Kind != yaml.ScalarNode {
-			defectos = append(defectos, defecto("la clave de la línea %d no es un texto", nombre.Line))
+			filas.defecto("la clave de la línea %d no es un texto", nombre.Line)
 
 			continue
 		}
 
-		if primera, repetida := lineas[nombre.Value]; repetida {
-			defectos = append(defectos, defecto("la clave %q está repetida en las líneas %d y %d",
-				nombre.Value, primera, nombre.Line))
-
+		if !filas.nueva(nombre.Value, nombre.Line) {
 			continue
 		}
-
-		lineas[nombre.Value] = nombre.Line
 
 		var fila V
 		if err := valor.Decode(&fila); err != nil {
-			defectos = append(defectos, defecto("la fila de %s no se puede leer: %s", nombre.Value, err.Error()))
+			filas.defecto("la fila de %s no se puede leer: %s", nombre.Value, err.Error())
 
 			continue
 		}
 
-		filas[nombre.Value] = fila
+		filas.filas[nombre.Value] = fila
 	}
 
-	return filas, errors.Join(defectos...)
+	return filas.resultado()
 }
 
 // carga comprueba los ficheros ya decodificados mientras construye el

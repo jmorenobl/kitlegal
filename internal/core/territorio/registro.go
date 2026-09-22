@@ -1,8 +1,8 @@
 package territorio
 
 import (
+	"maps"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core/ids"
@@ -77,26 +77,28 @@ func (r *Registro) FechaDeLaRelacion() time.Time {
 }
 
 // indexar construye los dos índices del registro. Los municipios se indexan
-// en orden de código INE, venga en el orden que venga la lista, de modo que
-// los candidatos de toda forma quedan en ese orden (FR-014).
+// por nombre en orden de código INE, venga en el orden que venga la lista, de
+// modo que los candidatos de toda forma quedan en ese orden (FR-014).
+//
+// El orden sale de las claves del índice por código: cada código se escribe
+// una sola vez, al indexarlo, y no en cada comparación de una ordenación, que
+// con los miles de municipios de la relación es una buena parte de lo que
+// cuesta una carga (research.md S3).
 func (r *Registro) indexar(municipios []*municipioRegistrado) {
-	ordenados := slices.SortedFunc(slices.Values(municipios), compararPorCodigo)
-
-	r.porCodigo = make(map[string]*municipioRegistrado, len(ordenados))
+	r.porCodigo = make(map[string]*municipioRegistrado, len(municipios))
 	r.porNombre = map[string][]*municipioRegistrado{}
 
-	for _, municipio := range ordenados {
+	for _, municipio := range municipios {
 		r.porCodigo[municipio.codigo.String()] = municipio
+	}
+
+	for _, codigo := range slices.Sorted(maps.Keys(r.porCodigo)) {
+		municipio := r.porCodigo[codigo]
 
 		for _, forma := range formasDelNombre(municipio.nombre) {
 			r.porNombre[forma] = append(r.porNombre[forma], municipio)
 		}
 	}
-}
-
-// compararPorCodigo ordena dos municipios por su código INE.
-func compararPorCodigo(a, b *municipioRegistrado) int {
-	return strings.Compare(a.codigo.String(), b.codigo.String())
 }
 
 // municipio es el municipio de la relación con ese código INE, si lo hay.
