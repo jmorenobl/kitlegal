@@ -1,23 +1,16 @@
 {
-  "id": "T017",
-  "texto": "T017 [US6] Las quince leyes vertebrales y la tabla de generadores de referencias: `data/normas.yaml` con las siete normas nuevas —identificador `BOE-A-…`, título y rango **copiados de su búsqueda grabada**, con sus materias y su abreviatura— y la marca `vertebral: true` en las quince de la tabla de leyes vertebrales del mapa del sistema legal (`mapa-sistema-legal-skills.md` §1.4) y en ninguna más; `internal/skills/normas.go` con el campo `Vertebral bool`; `internal/skills/referencias.go` e `internal/skills/sincronia.go` con la **tabla de generadores** que sustituye al `switch` por nombre (`normas` → todas las normas, `leyes_vertebrales` → solo las marcadas, `jerarquia_normativa` → niveles y reglas leídos con el lector de T016) y con la cabecera, el título y las columnas derivadas de ella en vez de constantes de normas; `internal/skills/frontmatter.go`, donde cada referencia declara su fichero de datos y una referencia declarada sin generador sigue siendo un defecto con su mensaje; y `skills/boe-legislacion/references/normas.md` regenerado **solo** con `make skills-sync`, nunca a mano, que es lo único que cambia de esa skill; y `internal/app/skills_test.go`, solo en `probarNormasNombradas`, cuyo caso negativo daba como ausentes de la tabla la LEC y la LOPDGDD, dos de las siete normas que entran aquí, y pasa a nombrar normas con el número 0, que ninguna norma lleva, para no depender de lo que le falte a la tabla (redelimitada en el intento 1: lo razona `gates/tarea-T017.md`); es indivisible porque los mismos controles atan las tres piezas: `TestRegenerarYComparar` compara la salida de la tabla de generadores con las referencias del repositorio —que cambian al añadirse las normas—, `TestNormasDelRepositorio/vertebrales` exige que las marcadas sean exactamente las quince y `TestSkillsDelRepositorio`, que `make skills-sync` ejecuta, queda en rojo en cuanto la LEC y la LOPDGDD están en la tabla, de modo que separar datos, generadores y ese caso deja `make ci` en rojo entre dos tareas; con `TestRenderizarNormas`, `TestRenderizarLeyesVertebrales`, `TestRenderizarJerarquia`, `TestRegenerarYComparar`, `TestLeerFrontmatter`, `TestValidarFrontmatter`, `TestNormasDelRepositorio/vertebrales` (las quince y ninguna más), `TestIdentificadoresDeLasNormas` y `TestSkillsDelRepositorio` en verde; si un título o un rango grabados no coinciden con lo esperado, se detiene sin marcarse y lo anota en `gates/tarea-T017.md` (FR-065, FR-066, FR-067, FR-070, FR-071, FR-072, FR-074, US6 escenarios 1, 2 y 3, SC-009, SC-010, contrato de la skill §4).",
-  "intento": 2,
-  "datos": false,
+  "id": "T018",
+  "texto": "T018 [datos] [US5] Esquema del formato común de eval, con la expectativa de test que su forma impone: `schemas/eval.yaml.json` con exactamente los tres cambios del contrato de evals §1 y ninguno más —la cuarta variante `comando-territorio` (`applet`, `verbo` constante `resolver` y `municipio` no vacío, `additionalProperties: false`) como un `$ref` más del `oneOf` de `comandos`; el esperado `territorio` con `minProperties: 1` y las claves `comunidad`, `provincia`, `boletines` y `cobertura`, esta última sobre el enumerado cerrado `aspecto-de-cobertura` con las seis combinaciones del vocabulario del applet; y el `then` que pasa a `required: [\"comandos\"]` con `anyOf` de `citas` o `territorio`, con `territorio` añadido a lo que el `else` prohíbe— y, en la misma tarea, `internal/evals/formato.go` y `internal/evals/formato_test.go`, donde el caso `positiva-sin-citas` pasa a `positiva-sin-esperado-verificable` con el mensaje **que el esquema nuevo produce** (el nodo `anyOf` tiene causas y el lector desciende a las hojas de sus dos ramas), sin relajar la comparación; las evals de `boe-legislacion` siguen validando sin tocar un byte y la pausa revisa esquema y expectativa juntos (FR-084, FR-085, US5, SC-011, SC-015, contrato de evals §1, plan *Complexity Tracking* D28).",
+  "intento": 1,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T017.md y déjala sin marcar.",
-  "base": "87d3d71653aaab1698ee0f129f484a0228112c21",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
+  "base": "dd03a9f9eb9f7042bc9a9f7a88e939645f68aca7",
   "rutas": [
-    "TestNormasDelRepositorio/vertebrales",
-    "data/normas.yaml",
-    "gates/tarea-T017.md",
-    "internal/app/skills_test.go",
-    "internal/skills/frontmatter.go",
-    "internal/skills/normas.go",
-    "internal/skills/referencias.go",
-    "internal/skills/sincronia.go",
-    "mapa-sistema-legal-skills.md",
-    "skills/boe-legislacion/references/normas.md"
+    "internal/evals/formato.go",
+    "internal/evals/formato_test.go",
+    "schemas/eval.yaml.json"
   ],
   "cierre": false
 }

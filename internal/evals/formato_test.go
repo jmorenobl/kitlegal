@@ -128,9 +128,12 @@ func TestLeerEval(t *testing.T) {
 			error:     nombreDeEval + ": línea 1: missing property 'activa'",
 		},
 		{
-			nombre:    "positiva-sin-citas",
+			// Sin citas ni territorio fallan las dos ramas del anyOf del esperado
+			// verificable, y el defecto es una hoja de cada una.
+			nombre:    "positiva-sin-esperado-verificable",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21,
-			error:     nombreDeEval + ": línea 1: missing property 'citas'",
+			error: nombreDeEval + ": línea 1: missing property 'citas'\n" +
+				"línea 1: missing property 'territorio'",
 		},
 		{
 			nombre:    "no-activa-con-comandos",
