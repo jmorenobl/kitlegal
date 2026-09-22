@@ -30,17 +30,19 @@ rutas** que va a crear o modificar, y **solo** esas (plan, «Obligaciones», pun
   correspondencia INE→DIR3 generada, verificada y congelada fuera de la ejecución. Las tareas de documentación, cierre y
   plataforma no llevan historia.
 - **[datos]**: la tarea toca material bajo `testdata/` o `schemas/`, o el material congelado que la pausa humana revisa
-  con él. Son **once**: las diez del plan (obligación 1) —T001, T002, T003, T005, T010, T012, T013, T014, T015 y
-  T018— y T027, que entró al redelimitar T007 en su primer intento: los patrones de identificador que T001 y T003
+  con él. Son **doce**: las diez del plan (obligación 1) —T001, T002, T003, T005, T010, T012, T013, T014, T015 y
+  T018—; T027, que entró al redelimitar T007 en su primer intento: los patrones de identificador que T001 y T003
   fijaron en tres esquemas no son las gramáticas de los analizadores, que es lo que el subtest `gramaticas` de T007
-  exige, y cambiarlos es material de esquema (nota de T007 en `gates/`). Ninguna mezcla trabajo ajeno a su material y
-  **solo dos tocan código**, por la razón escrita en cada una y en *Complexity Tracking* de plan.md: T010 (registrar el
-  applet, sin lo cual el esquema no se puede generar, D16) y T018 (la expectativa de test que la forma del esquema de
-  eval impone, D28). T003 lleva además la fila de `docs/SOURCES.md` y el registro de la muestra porque FR-049 y FR-047
-  los ponen dentro de esa misma pausa. **Nueve provocan pausa humana** —T001, T002, T003, T027, T010, T013, T014, T015
-  y T018: material existente modificado o esquema nuevo—, y **T005 y T012 no**, porque son ficheros nuevos bajo el
-  `testdata/` de un paquete, fuera del territorio de fixtures; a esos dos los revisa la revisión final del hito
-  (FR-086).
+  exige, y cambiarlos es material de esquema (nota de T007 en `gates/`); y T028, que entró al redelimitar T022 en su
+  primer intento: el guion de reinstalación de `make install` exige que el directorio personal de skills tenga solo
+  `boe-legislacion`, en cuanto `legal-core` existe la instalación la enlaza también, y cambiar el guion es material de
+  test existente (nota de T022 en `gates/`). Ninguna mezcla trabajo ajeno a su material y **solo dos tocan código**,
+  por la razón escrita en cada una y en *Complexity Tracking* de plan.md: T010 (registrar el applet, sin lo cual el
+  esquema no se puede generar, D16) y T018 (la expectativa de test que la forma del esquema de eval impone, D28). T003
+  lleva además la fila de `docs/SOURCES.md` y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa
+  misma pausa. **Diez provocan pausa humana** —T001, T002, T003, T027, T010, T013, T014, T015, T018 y T028: material
+  existente modificado o esquema nuevo—, y **T005 y T012 no**, porque son ficheros nuevos bajo el `testdata/` de un
+  paquete, fuera del territorio de fixtures; a esos dos los revisa la revisión final del hito (FR-086).
 - **[plataforma]**: la tarea necesita la plataforma remota. Es **una**, la última: T026 (publicar la rama, abrir la
   propuesta de cambio y leer y registrar la ejecución de aceptación). Fusionar nunca es del workflow.
 
@@ -84,7 +86,8 @@ congelado, esquemas o corpus que ningún lector mira todavía, de modo que `make
 valida llega en la tarea que lo puede dejar en verde (T007 para los ficheros de territorio, los patrones de sus esquemas
 y el corpus del pliegue, T004 y T005 para el fuzz, T016 para la jerarquía y T017 para las marcas `vertebral`); **T010, T012, T015 y T018** son `[datos]`
 indivisibles, con la pieza de código o de test que un control existente ata a su material (D16, D28, D29) o con el guion
-e2e que ejerce lo ya registrado; **T023** es el job, que ningún `make ci` ejecuta; **T024** es documentación; **T025** es
+e2e que ejerce lo ya registrado; **T028** es `[datos]` porque cambia un guion de test existente, y deja `make ci` en
+verde por sí sola, con una sola skill y después con dos; **T023** es el job, que ningún `make ci` ejecuta; **T024** es documentación; **T025** es
 validación sobre el árbol terminado, cuyo único fichero escrito está en el directorio del hito; **T026** solo publica,
 lee y registra.
 
@@ -218,6 +221,8 @@ empieza por el territorio, con sus dos referencias generadas.
 
 - [X] T021 [US5] Casos negativos de skills parametrizados por skill, **sin añadir ninguna skill todavía**: `internal/app/skills_test.go`, donde la constante `skillDelHito` pasa a ser la lista `skillsExigidas` —con un solo elemento por ahora—, la exigencia de `TestSkillsDelRepositorio/skills` pasa de `require.Contains` a `require.Subset` sobre ella, y los casos negativos `/skills`, `/normas-nombradas` y `/sin-instrucciones-de-evals` dejan de estar cableados a `boe-legislacion` y se ejercen sobre cada skill del recorrido; con una sola skill instalada el recorrido pasa por una sola, `make ci` sigue en verde y ningún control cambia de resultado (FR-060, FR-064, SC-009, contrato de la skill §5, plan *Complexity Tracking* D26).
 
+- [X] T028 [datos] [US5] La reinstalación comprobada sin nombrar las skills, antes de que llegue la segunda: `internal/skills/testdata/script/instalar-de-nuevo.txtar`, cuya última comprobación deja de exigir que el directorio personal de skills tenga exactamente `boe-legislacion` y pasa a exigir una entrada por cada skill del árbol copiado y ninguna más —la lista sale de recorrer los directorios de skills del árbol como los recorre la instalación, tiene que traer `boe-legislacion` para no pasar en vacío y se compara byte a byte con el listado del directorio personal—, con el comentario de cabecera alineado y nada más; es tarea de datos aparte porque ese guion es material de test existente y T022 no lleva la etiqueta que deja tocarlo, mientras que en cuanto `legal-core` existe la instalación la enlaza también y la expectativa literal queda en rojo, y es divisible porque la comprobación nueva está en verde con una skill y con dos (redelimitación de T022 en su intento 1, razonada en su nota); la pausa revisa el guion; no toca código ni ningún otro guion, y `make ci` queda en verde por sí sola (FR-060, FR-085; FR-053 y SC-006 de H5).
+
 - [ ] T022 [US5] La skill `legal-core` v0, primero la exigencia y después sus ficheros: `internal/app/skills_test.go` añade `legal-core` a `skillsExigidas` —el control de que la skill existe queda en rojo—, y a continuación `skills/legal-core/SKILL.md` (frontmatter válido con `name: legal-core`, `description` no vacía, `metadata.kitlegal-applets` con **solo** `territorio` y `metadata.kitlegal-referencias` con `leyes_vertebrales jerarquia_normativa`; menos de 300 líneas contadas sobre el fichero regenerado; protocolo que **empieza por identificar el territorio** —y pregunta el municipio cuando la conversación no lo dice, sin suponerlo—, lo resuelve con el binario con `--json` sin dar por sabido ningún dato de territorio, lee `cobertura` y la traslada a la respuesta sin nombrar ningún boletín que el applet no haya devuelto, trata la ambigüedad ofreciendo los candidatos y la ausencia sin concluir «no existe», razona con las dos referencias y **delega en `boe-legislacion`**, en un solo sentido, el texto de cualquier artículo; región generada de la tabla de comandos con **solo** los verbos de `territorio`; las seis reglas invariantes del contrato §1.4; nada de plazos, recursos ni competencia, que son de H9; y sin mencionar evals, el job, modelos ni la caché), `skills/legal-core/references/leyes_vertebrales.md` y `skills/legal-core/references/jerarquia_normativa.md` **regeneradas con `make skills-sync`** desde los datos, con su cabecera literal «generado …, no editar» y sin el texto de ninguna norma, y el enlace `skills/legal-core/scripts/territorio` al binario instalado; `TestSkillsDelRepositorio`, `TestTablaDeComandosCoincideConLaGramatica` y `TestRegenerarYComparar` vuelven a verde con diff vacío (FR-060 a FR-069, FR-102, US5 escenario 4, SC-009, contrato de la skill §1 a §3).
 
 **Checkpoint**: la skill madre está entregada, medida por tres evals escritas antes que ella y vigilada por los mismos
@@ -290,7 +295,7 @@ escrito; solo queda la plataforma.
 | FR-050 a FR-053 | T002 |
 | FR-054, FR-055 | T002, T006 |
 | FR-056 | T007, T012 |
-| FR-060 | T021, T022 |
+| FR-060 | T021, T022; T028 (la reinstalación comprobada sin nombrar las skills) |
 | FR-061 a FR-064 | T022 |
 | FR-065, FR-066 | T016 (lector de la jerarquía), T017 (generadores), T022 (ficheros generados) |
 | FR-067 | T013, T014, T016, T017, T022 |
@@ -302,7 +307,7 @@ escrito; solo queda la plataforma.
 | FR-080, FR-081, FR-082 | T020 |
 | FR-083 | T020 (antes que T022), T023, T026 |
 | FR-084 | T018, T019 |
-| FR-085 | T013, T015, T018 |
+| FR-085 | T013, T015, T018, T028 |
 | FR-086 | T001, T002, T003, T005, T010, T012, T014, T015, T027 |
 | FR-090, FR-091 | T012 |
 | FR-092 | T008, T010, T011 |
@@ -333,7 +338,7 @@ escrito; solo queda la plataforma.
 
 | Obligación del plan | Dónde se cumple |
 |---|---|
-| 1. Orden y pausas | Una tarea por paso de «Orden de implementación», en su orden: 1→T001, 2→T002, 3→T003, 4→T004, 5→T005, 6→T006, 7→T007, 8→T008, 9→T009, 10→T010, 11→T011, 12→T012, 13→T013, 14→T014, 15→T015, 16→T016 y T017 (el paso 16 se parte en dos rebanadas verdes: el lector de la jerarquía y, después, las normas vertebrales con la tabla de generadores), 17→T018, 18→T019, 19→T020, 20→T021, 21→T022, 22→T023, 23→T024; el paso 24 se parte en T025 (cierre local, que escribe el cuerpo) y T026 (`[plataforma]`). Las diez `[datos]` del plan son T001, T002, T003, T005, T010, T012, T013, T014, T015 y T018, y solo T010 y T018 declaran una ruta de código, con su razón; T027, la undécima, entró al redelimitar T007 y va justo antes que ella, sin código |
+| 1. Orden y pausas | Una tarea por paso de «Orden de implementación», en su orden: 1→T001, 2→T002, 3→T003, 4→T004, 5→T005, 6→T006, 7→T007, 8→T008, 9→T009, 10→T010, 11→T011, 12→T012, 13→T013, 14→T014, 15→T015, 16→T016 y T017 (el paso 16 se parte en dos rebanadas verdes: el lector de la jerarquía y, después, las normas vertebrales con la tabla de generadores), 17→T018, 18→T019, 19→T020, 20→T021, 21→T022, 22→T023, 23→T024; el paso 24 se parte en T025 (cierre local, que escribe el cuerpo) y T026 (`[plataforma]`). Las diez `[datos]` del plan son T001, T002, T003, T005, T010, T012, T013, T014, T015 y T018, y solo T010 y T018 declaran una ruta de código, con su razón; T027, la undécima, entró al redelimitar T007 y va justo antes que ella, sin código; T028, la duodécima, entró al redelimitar T022 y va justo antes que ella, sin código |
 | 2. Sin descargar, grabar ni escribir de memoria | Batería; T001, T002, T003 y T015 dicen expresamente que el ejecutor no descarga ni graba; T017 se detiene si un título o un rango grabados no coinciden |
 | 3. Rutas declaradas | Cada línea nombra por su ruta completa los ficheros que crea o cambia, ficheros de test incluidos cuando no los cubre su fichero de código; lo que solo se lee, se compara o se ejecuta va sin carpeta (`municipios.yaml`, `municipio.json`, `jerarquia.yaml`, `SOURCES.md`, `verify-sources.sh`, `mapa-sistema-legal-skills.md`) o por su test o su objetivo de `make`; desde T001 ninguna línea posterior deja extraer las carpetas de datos, de esquemas ni de fixtures |
 | 4. `misspell` | Batería; ninguna tarea declara `.golangci.yml`, y si la implementación demostrara que necesita una entrada literal, se redelimita la tarea declarándolo con su motivo |
@@ -373,6 +378,9 @@ El orden es estrictamente secuencial: **ninguna tarea depende de una posterior**
   las aplica a las evals.
 - **T020 → T022**: las evals se confirman en un commit anterior al primero que crea la skill (FR-083).
 - **T021 → T022**: los casos negativos se parametrizan antes de que exista una segunda skill a la que alcanzar.
+- **T028 → T022**: el guion de reinstalación deja de nombrar las skills antes de que exista la segunda, que la
+  instalación enlaza en cuanto está en el árbol; T028 va en el fichero justo antes que T022, porque el bucle toma la
+  primera tarea sin marcar en el orden del fichero y no por su número.
 - **T014, T016, T017 → T022**: las dos referencias se generan desde `data/`, así que la jerarquía, su lector, las marcas
   `vertebral` y la tabla de generadores tienen que existir antes.
 - **T022 → T023 → T024 → T025 → T026**: el job mide la skill; la documentación describe lo entregado; el cierre valida el
@@ -406,7 +414,8 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
 - US4 (T004, T005, T009) da los identificadores y la distinción entre ambiguo, inexistente y mal formado.
 - US3 (T002, T006, T012) marca el régimen foral allí donde lo hay.
 - US6 (T013, T015, T017) cierra la tabla de leyes vertebrales con identificadores verificados.
-- US5 (T014, T016, T018 a T023) extiende el formato de eval, escribe las evals y entrega la skill madre.
+- US5 (T014, T016, T018 a T021, T028, T022 y T023) extiende el formato de eval, escribe las evals y entrega la skill
+  madre.
 - US7 (T001, T003, T027, T007) deja el terreno congelado, verificado y validado en `make ci`.
 - T024-T026 documentan, validan y publican.
 
@@ -433,7 +442,8 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
   `skills/boe-legislacion/references/normas.md` (T017); `Makefile` (T007 y T016); `schemas/eval.yaml.json`,
   `internal/evals/formato.go` y `internal/evals/formato_test.go` (T018; `formato.go` también en T019);
   `internal/evals/juzgar.go`, `consultas.go`, `conjunto.go` e `informe.go` (T019); `internal/evals/conjunto_test.go`
-  (T019 y T020); `internal/app/skills_test.go` (T017, T021 y T022); `.github/workflows/evals.yml` (T023); `CHANGELOG.md`,
+  (T019 y T020); `internal/app/skills_test.go` (T017, T021 y T022);
+  `internal/skills/testdata/script/instalar-de-nuevo.txtar` (T028); `.github/workflows/evals.yml` (T023); `CHANGELOG.md`,
   `README.md` y `CONTRIBUTING.md` (T024).
 - **Rutas protegidas desde T001**: ninguna tarea posterior a una `[datos]` nombra con su carpeta el material que aquella
   fijó. Lo que solo se lee o se compara aparece sin carpeta (`municipios.yaml`, `municipio.json`, `jerarquia.yaml`,
@@ -454,6 +464,6 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
 | b. trazabilidad | Tabla «Trazabilidad» con **todos** los FR del spec (001-016, 020-024, 030-035, 040-049, 050-056, 060-069, 070-074, 080-086, 090-102) y todos los SC (001-015); cada tarea cita en su línea los requisitos que cumple; ninguna tarea añade nada que el spec o el plan no pidan, y lo que el spec deja fuera está enumerado en «Notas» |
 | c. rebanadas_verdes | Cada tarea de código lleva su test escrito primero y la implementación mínima que lo hace pasar; las excepciones están declaradas una a una con su razón en «Rebanadas verticales y excepciones declaradas» y ninguna deja un test en rojo al terminar; el orden es secuencial y está justificado en «Dependencias y orden»; el e2e que describe la entrega va en T012, la primera tarea que puede dejarlo en verde (necesita el applet registrado en el binario de e2e, T010) |
 | d. rutas_declaradas | Cada línea nombra por su ruta completa los ficheros que crea o cambia, sin llaves, comodines ni rutas de paquete o de carpeta genérica; los ficheros de test van por su ruta cuando no los cubre la regla «declarar `x.go` permite `x_test.go`»; lo que solo se lee o se ejecuta va sin carpeta o por su test o su objetivo de `make` |
-| e. datos_separados | Las once `[datos]` (T001, T002, T003, T005, T010, T012, T013, T014, T015, T018 y T027, esta última entrada al redelimitar T007) son las únicas líneas que nombran material bajo esquemas o fixtures; solo T010 y T018 declaran código, por la indivisibilidad que un control existente impone y que plan.md razona en *Complexity Tracking*, y las dos lo revisan en su pausa; T003 añade la fila de fuentes y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa misma pausa; T026 es la única `[plataforma]`, va la última, no mezcla otro trabajo y nunca fusiona |
+| e. datos_separados | Las doce `[datos]` (T001, T002, T003, T005, T010, T012, T013, T014, T015, T018, T027 y T028, estas dos últimas entradas al redelimitar T007 y T022) son las únicas líneas que nombran material bajo esquemas o fixtures; solo T010 y T018 declaran código, por la indivisibilidad que un control existente impone y que plan.md razona en *Complexity Tracking*, y las dos lo revisan en su pausa; T003 añade la fila de fuentes y el registro de la muestra porque FR-049 y FR-047 los ponen dentro de esa misma pausa; T026 es la única `[plataforma]`, va la última, no mezcla otro trabajo y nunca fusiona |
 | f. dod | Tabla «Definition of Done» con los doce puntos: los aplicables con su tarea (`CHANGELOG.md` en T024, esquemas en T001, T002, T003, T010, T013, T014, T018 y T027, fixtures en T005, T012 y T015, `docs/SOURCES.md` en T003, evals antes que la skill en T020 y T022, cobertura en T025, e2e en T012) y los no aplicables con su razón (ADR y grafo) |
 | g. checklist_veraz | `checklists/requirements.md` está enteramente marcado y ninguna tarea lo modifica; sus marcas describen el spec, que las tareas no cambian |

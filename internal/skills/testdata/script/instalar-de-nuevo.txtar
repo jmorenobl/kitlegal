@@ -1,7 +1,8 @@
 # Repetir la instalación termina con 0 y deja el mismo estado: los enlaces de
 # la skill y del binario instalado nombran lo mismo que tras la primera, ninguno
 # se duplica ni se rompe, y en el directorio personal de skills no aparece nada
-# más que `boe-legislacion` (US3 escenario 2, FR-053, SC-006).
+# más que una entrada por cada skill del árbol (US3 escenario 2, FR-053,
+# SC-006).
 #
 # HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
 # $WORK/repo (FR-055; contrato instalacion §4).
@@ -28,5 +29,13 @@ cmp stdout destino-del-binario.txt
 # directorio al que apunta: la segunda instalación no deja ninguno ahí.
 ! exists $WORK/repo/skills/boe-legislacion/boe-legislacion
 
+# Y en el directorio personal de skills hay una entrada por cada skill del
+# árbol, con su nombre, y ninguna más. La lista sale del árbol, recorrido como lo
+# recorre la instalación, y no del guion: así no cambia al añadirse una skill, y
+# que traiga boe-legislacion impide que la comparación pase en vacío.
+exec sh -c 'for skill in "$WORK"/repo/skills/*/; do basename "$skill"; done'
+stdout '^boe-legislacion$'
+cp stdout skills-del-arbol.txt
+
 exec ls -A $HOME/.claude/skills
-stdout '\Aboe-legislacion\n\z'
+cmp stdout skills-del-arbol.txt

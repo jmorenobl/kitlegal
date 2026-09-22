@@ -1,15 +1,14 @@
 {
-  "id": "T021",
-  "texto": "T021 [US5] Casos negativos de skills parametrizados por skill, **sin añadir ninguna skill todavía**: `internal/app/skills_test.go`, donde la constante `skillDelHito` pasa a ser la lista `skillsExigidas` —con un solo elemento por ahora—, la exigencia de `TestSkillsDelRepositorio/skills` pasa de `require.Contains` a `require.Subset` sobre ella, y los casos negativos `/skills`, `/normas-nombradas` y `/sin-instrucciones-de-evals` dejan de estar cableados a `boe-legislacion` y se ejercen sobre cada skill del recorrido; con una sola skill instalada el recorrido pasa por una sola, `make ci` sigue en verde y ningún control cambia de resultado (FR-060, FR-064, SC-009, contrato de la skill §5, plan *Complexity Tracking* D26).",
+  "id": "T028",
+  "texto": "T028 [datos] [US5] La reinstalación comprobada sin nombrar las skills, antes de que llegue la segunda: `internal/skills/testdata/script/instalar-de-nuevo.txtar`, cuya última comprobación deja de exigir que el directorio personal de skills tenga exactamente `boe-legislacion` y pasa a exigir una entrada por cada skill del árbol copiado y ninguna más —la lista sale de recorrer los directorios de skills del árbol como los recorre la instalación, tiene que traer `boe-legislacion` para no pasar en vacío y se compara byte a byte con el listado del directorio personal—, con el comentario de cabecera alineado y nada más; es tarea de datos aparte porque ese guion es material de test existente y T022 no lleva la etiqueta que deja tocarlo, mientras que en cuanto `legal-core` existe la instalación la enlaza también y la expectativa literal queda en rojo, y es divisible porque la comprobación nueva está en verde con una skill y con dos (redelimitación de T022 en su intento 1, razonada en su nota); la pausa revisa el guion; no toca código ni ningún otro guion, y `make ci` queda en verde por sí sola (FR-060, FR-085; FR-053 y SC-006 de H5).",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T021.md y déjala sin marcar.",
-  "base": "5c11d1d4d822db3122e0b7f4e1fc666ba15c32b3",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T028.md y déjala sin marcar.",
+  "base": "bc46eac7a7d8cf6aeb891e4235ec2d3abc5750fd",
   "rutas": [
-    "TestSkillsDelRepositorio/skills",
-    "internal/app/skills_test.go"
+    "internal/skills/testdata/script/instalar-de-nuevo.txtar"
   ],
   "cierre": false
 }
