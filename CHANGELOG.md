@@ -23,7 +23,10 @@ distribuido, con caché, contratos de salida publicados y una verificación noct
 **H5 — skill `boe-legislacion`** trae la primera skill del producto, que consulta y cita cualquier norma
 consolidada del BOE con ese binario, y el andamiaje que comparten todas las skills: una tabla de normas como
 única fuente de verdad, lo generado comprobado en `make ci`, la instalación con `make install` y el formato
-común de eval con su job de evals. El binario distribuido no cambia.
+común de eval con su job de evals. El binario distribuido no cambia. **H6 — applet `territorio` y skill
+`legal-core`** trae el segundo applet, el primero sin fuente que consultar en red: resuelve cualquier municipio de
+España a su territorio desde datos congelados que viajan dentro del binario, y declara lo que no está configurado en
+lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta por el territorio.
 
 ### Añadido
 
@@ -275,6 +278,85 @@ común de eval con su job de evals. El binario distribuido no cambia.
   se publica sin decidir el veredicto. La Ley 30/1992 entra en `data/normas.yaml`, sin ninguna marca de derogación, y
   su índice lo graba una persona con `scripts/grabar-evals.sh`.
 
+*De H6 — el applet `territorio` y la skill `legal-core`:*
+
+- **Applet `territorio`, con un solo verbo, `resolver`**, registrado en el binario distribuido junto a `boe`:
+  `kitlegal territorio resolver <consulta>` —o `territorio resolver <consulta>` por el enlace— resuelve un municipio
+  de España, por su nombre o por su código INE de cinco cifras o de seis con el dígito de control, a su territorio.
+  `data` lleva siempre las mismas ocho claves —`municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`,
+  `regimen`, `boletines` y `cobertura`—, ninguna omitida y cada dato con su `source`: la fila de `docs/SOURCES.md` o
+  el fichero de `data/territorio/` del que sale. `boletines` trae siempre el BOE y, además, solo los boletines que la
+  comunidad tiene configurados; `cobertura` dice si el boletín autonómico y el provincial están `configurado` o
+  `no-configurado` y si el DIR3 del ayuntamiento está `verificado` o `no-verificado`, y ninguno de sus valores
+  significa «no existe». Fuera del territorio configurado la salida no nombra ningún boletín que no tenga, y un DIR3
+  sin verificar va vacío, nunca calculado. `regimen` marca `comun` o `foral` en todas las comunidades, estén
+  configuradas o no. No pide nada a la red ni toca la caché: el sobre lleva `fuente` `kitlegal.territorio`, `url`
+  `kitlegal:applet/territorio` y, como `fecha_consulta`, la fecha más antigua de los ficheros que sostienen la
+  respuesta, de modo que la misma consulta da la misma salida byte a byte, con `--offline` o sin él y desde cualquier
+  directorio. Códigos: `0` resuelto; `2` una entrada que no llega a ser un código —provincia fuera de `01`-`52`,
+  municipio `000`— o un dígito de control que no es el oficial, y un nombre que corresponde a más de un municipio,
+  cuyo mensaje enumera todos los candidatos como `<código INE> <nombre> (<provincia>)`; `3` un nombre, o un código
+  bien formado, que no está en la relación; nunca `4`, `5` ni `6`. Su contrato se publica en `schemas/municipio.json`
+  (`$defs.resolver`), generado desde `--describe` y comprobado por `make schema-check` como los de `boe`.
+- **Datos congelados de territorio en `data/territorio/`**, versionados y embebidos en el binario, que no los pide
+  en red en ningún momento (ADR 0017): `municipios.yaml`, la relación de municipios del INE con su dígito de control,
+  su provincia y su comunidad (`source` `ine.municipios`); `dir3.yaml`, el DIR3 del ayuntamiento de cada municipio,
+  solo con las filas verificadas contra el número de inscripción del Registro de Entidades Locales (`source`
+  `mpt.rel`); `estado.yaml`, el boletín estatal; y `comunidades/`, un fichero por cada una de las 19 comunidades y
+  ciudades autónomas con su régimen y sus provincias. Solo la Comunidad de Madrid trae `boletines`: el BOCM, a la vez
+  autonómico y provincial, con el motivo escrito en su fichero. Añadir un territorio es rellenar los boletines de su
+  fichero, sin tocar código ni skills. Una persona los genera fuera del repositorio desde las descargas del INE y del
+  REL; `docs/SOURCES.md` lleva la fila de cada origen con la fecha del fichero y `scripts/verify-sources.sh` no gana
+  ningún caso, porque no se consultan. Se validan contra `schemas/territorio-municipios.yaml.json`,
+  `schemas/territorio-dir3.yaml.json`, `schemas/territorio-estado.yaml.json` y
+  `schemas/territorio-comunidad.yaml.json`, y `make skills-check` comprueba además su integridad —toda provincia
+  declarada por una sola comunidad, todo DIR3 coherente con el código y el dígito de su municipio—, la procedencia de
+  cada dato y que todo municipio se alcance por su nombre oficial, resuelto o entre los candidatos de un nombre
+  ambiguo.
+- **Jerarquía normativa como dato**, `data/jerarquia.yaml`, validada contra `schemas/jerarquia.yaml.json` dentro de
+  `make skills-check`: los cinco niveles en su orden —Unión Europea, Estado, comunidad autónoma, provincia y
+  municipio—, con la clase de boletín que publica las normas de cada uno y sus tipos de norma de mayor a menor rango,
+  y las cuatro reglas de interpretación: competencia antes que jerarquía, ley posterior, ley especial y reglamento
+  nunca contra ley. No lleva el identificador ni el texto de ninguna norma.
+- **Las leyes vertebrales, con su identificador verificado**: `data/normas.yaml` gana siete normas, con el
+  identificador, el título y el rango copiados de su búsqueda grabada del BOE, y la marca opcional `vertebral: true`
+  en las quince de la tabla de leyes vertebrales del mapa del sistema legal, y en ninguna más. `schemas/normas.yaml.json`
+  gana esa propiedad y, en el enumerado de rangos, los que traen las búsquedas nuevas. `references/normas.md` de
+  `boe-legislacion` se regenera con ellas; su `SKILL.md` y sus evals no cambian.
+- **Skill `legal-core` v0** (`skills/legal-core/`), la skill madre y el punto de partida de las preguntas de derecho
+  público que dependen de un municipio. Su `SKILL.md`, de menos de 300 líneas, fija un protocolo que empieza por
+  identificar el territorio —y pregunta el municipio si la conversación no lo dice, sin suponerlo—, lo resuelve con
+  `scripts/territorio resolver … --json`, traslada la `cobertura` a la respuesta sin nombrar ningún boletín que el
+  applet no haya devuelto, ofrece todos los candidatos de un nombre ambiguo, no concluye «no existe» de lo que no
+  encuentra, razona con sus dos referencias y delega en `boe-legislacion`, en un solo sentido, el texto de cualquier
+  artículo. Sus dos referencias se generan con `make skills-sync` y llevan la cabecera que prohíbe editarlas:
+  `references/leyes_vertebrales.md`, desde las normas marcadas `vertebral` de `data/normas.yaml`, y
+  `references/jerarquia_normativa.md`, desde `data/jerarquia.yaml`. Llama al binario por `scripts/territorio`, un
+  enlace al binario instalado, y `make install` la enlaza junto a `boe-legislacion`.
+- **Identificadores código INE y DIR3** (`internal/core/ids`): el código INE se analiza con cinco cifras —provincia
+  `01`-`52` y municipio `001`-`999`— o con seis, la última el dígito de control, que se compara con el oficial
+  nombrando los dos; el DIR3 del ayuntamiento, con la forma `L01PPMMMD`, se analiza con la letra en mayúscula o en
+  minúscula y se normaliza a mayúscula, y se compone desde el código y su dígito. Cada error nombra la entrada y dice
+  qué tiene de malo, con la clase de argumentos inválidos y nunca con un pánico; `make test` ejecuta sus dos objetivos
+  de fuzz sobre un corpus semilla versionado. Los patrones de identificador de los esquemas de territorio aceptan
+  exactamente lo mismo que los analizadores, y `make skills-check` lo comprueba.
+- **Variante de territorio del formato común de eval**: `comandos` admite una cuarta forma, `applet`, `verbo`
+  `resolver` y `municipio`, y la eval gana el esperado opcional `territorio` —`comunidad`, `provincia`, los códigos de
+  `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet—; una eval que
+  activa la skill lleva `citas`, `territorio` o los dos. Se juzga sin modelo: la comunidad y la provincia sin
+  distinguir mayúsculas ni tildes, el código de cada boletín como palabra exacta y cada aspecto de cobertura en su
+  forma fija, con los blancos y las mayúsculas tolerados; un comando de territorio no necesita nada grabado. El
+  informe gana las columnas «Territorio encontrado» y «Territorio ausente», y `make skills-check` comprueba que el
+  enumerado de cobertura del esquema y el vocabulario del applet dicen lo mismo. Las evals de `boe-legislacion` siguen
+  validando sin cambiar un byte.
+- **Evals de `legal-core`** (`evals/legal-core/`), tres, escritas antes que la skill y que deciden todas: qué
+  comunidad, provincia y boletines corresponden a un ayuntamiento, sobre un municipio de la Comunidad de Madrid —con
+  su comunidad, su provincia y el BOCM en lo esperado— y sobre uno de una comunidad sin configuración —con su
+  comunidad, su provincia y los dos boletines declarados no configurados—, y una pregunta ajena que no debe activarla.
+  Ninguna lleva citas, porque la skill no afirma el contenido de ninguna norma. `make skills-check` exige de su
+  conjunto al menos tres evals, la del municipio configurado, la del no configurado, una de no activación y un
+  esperado verificable en toda eval que activa la skill.
+
 ### Cambiado
 
 *De H1 — el kernel de la línea de órdenes:*
@@ -398,5 +480,5 @@ común de eval con su job de evals. El binario distribuido no cambia.
   ilegible.
 
 Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
-con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **un solo applet, `boe`**: los de las demás fuentes (`placsp`,
+con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **dos applets, `boe` y `territorio`**: los de las demás fuentes (`placsp`,
 `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.

@@ -1,14 +1,16 @@
 {
-  "id": "T023",
-  "texto": "T023 [US5] Matriz de skills en el job de evals: `.github/workflows/evals.yml` pasa de una skill a una matriz (`boe-legislacion` y `legal-core`) con `fail-fast: false` y un informe por skill dentro de la **misma** ejecución, la prueba de red se mantiene como bandera solo para `boe-legislacion` —`territorio` no tiene red que probar, porque no puede pedir nada por construcción— y el filtro de rutas gana el patrón de los paquetes de dominio (el de `core`, junto al de `data`, que ya cubre los ficheros congelados); el umbral no cambia (una eval pasa cuando al menos 2 de sus 3 sesiones pasan, y el informe lleva el commit evaluado y el identificador del modelo); ninguna tarea ejecuta `make evals` (FR-083, SC-015, contrato de evals §5).",
+  "id": "T024",
+  "texto": "T024 [P] Documentación del hito alineada en la misma rama: `CHANGELOG.md` (sección *Unreleased*, «Añadido») con el applet `territorio` y su verbo `resolver`, la skill `legal-core` v0 con sus dos referencias generadas, los datos congelados de territorio y de jerarquía, los identificadores de código INE y DIR3 y la variante de territorio del formato común de eval; `README.md` y `CONTRIBUTING.md` donde enumeran applets, skills, carpetas de datos y pasos de trabajo, incluida la fila de `make skills-check` de sus tablas de controles, que pasa a cubrir también la validación de los ficheros congelados y de la jerarquía; ninguna otra cifra ni sección, **ningún ADR** —ADR 0017 ya decidió el origen de los datos y ADR 0006 la procedencia del sobre de un applet calculado, y este hito no cambia ninguna decisión de arquitectura— y ninguna fila nueva en la tabla de fuentes, que T003 dejó cierta (FR-098, FR-099, SC-014, Definition of Done §1.6 y §1.7, plan obligación 8).",
   "intento": 1,
   "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T023.md y déjala sin marcar.",
-  "base": "7800adfebc897c6434a1e8d2cf619b8c7d78f9c2",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T024.md y déjala sin marcar.",
+  "base": "38bf7e14cf00a2b2f8ae005878b0a5e18e18ed83",
   "rutas": [
-    ".github/workflows/evals.yml"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "README.md"
   ],
   "cierre": false
 }
