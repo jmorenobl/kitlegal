@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164, `feat(H6): T029`), la tarea que el rojo de `ci` del intento 1 añadió antes de la plataforma, y registra la ejecución de aceptación en gates/evals-cierre.md. -->
+<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164, `feat(H6): T029`), la tarea que el rojo de `ci` del intento 1 añadió antes de la plataforma; T026, intento 3, registró la ejecución de aceptación vigente (35722605048, sobre 2b81164) en gates/evals-cierre.md. -->
 
 ## Objetivo
 
@@ -318,15 +318,28 @@ revisa la revisión final del hito (FR-086).
 
 - **Regla de SC-015 sobre lo que puede cambiar después de la ejecución de aceptación** (plan, obligación 9): el commit
   del informe de evals tiene que ser de la rama del hito, y **la cabeza que se fusiona solo puede diferir de él en
-  ficheros bajo `specs/008-h6-territorio-skill-legal/`**. Desde que T026 identifique la ejecución de aceptación,
-  ninguna tarea ni corrección de la revisión puede tocar código, datos, esquemas, skills, evals ni documentación fuera
-  de `specs/`; si hace falta —incluidos los dos puntos de documentación y el test de abajo—, se aplica y **se repite la
-  ejecución** de evals sobre el commit resultante, como hizo H5.1 por etiqueta, y `gates/evals-cierre.md` registra la
-  repetición vigente.
-- **Aceptación** (SC-013, SC-015): la ejecuta y registra T026 en `gates/evals-cierre.md`; las tres evals de
-  `legal-core` con al menos 2 de 3 sesiones y `red` vacío, el conjunto de `boe-legislacion` pasando con la regla de H5 y
-  H5.1, ninguna petición a la red de una fuente, y la respuesta del municipio no cubierto sin nombrar ningún boletín
-  que el applet no haya devuelto.
+  ficheros bajo `specs/008-h6-territorio-skill-legal/`**. La ejecución vigente es la 35722605048, sobre `2b81164`
+  (`feat(H6): T029`): desde ese commit ninguna tarea ni corrección de la revisión puede tocar código, datos, esquemas,
+  skills, evals ni documentación fuera de `specs/`; si hace falta —incluidos los dos puntos de documentación y el test
+  de abajo—, se aplica y **se repite la ejecución** de evals sobre el commit resultante, como hizo H5.1 por etiqueta, y
+  `gates/evals-cierre.md` registra la repetición vigente. La primera ejecución, 35714659803 sobre `47f3090`, dejó de
+  cubrir la cabeza cuando T029 tocó `internal/core/territorio/`; queda registrada y no cuenta.
+- **Aceptación** (SC-013, SC-015): registrada por T026 (intento 3) en `gates/evals-cierre.md`. En la ejecución
+  35722605048, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y umbral 2: las tres
+  evals de `legal-core` dan 3 de 3 con el modelo que decide, las 18 de `boe-legislacion` llegan al umbral sin que sus
+  ficheros hayan cambiado frente a `main`, `red` vacío en los dos informes, ninguna invocación fuera de lo grabado
+  llega a la red, y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún
+  boletín que el applet no devolvió. `ci` en verde sobre `2b81164` (35721902798) y sobre la cabeza `ee967b6`
+  (35724203328), con los cuatro estados de Codecov en verde.
+- **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
+  «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
+  puede aparecer, así que el juez no ve si una respuesta nombra un boletín que el applet no devolvió. En el intento 1
+  una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en la ejecución
+  vigente ninguna de las seis. El spec tampoco fija si esa cláusula se cuenta respuesta a respuesta o por serie y
+  umbral como SC-015; en la ejecución vigente las dos lecturas coinciden y no hubo que elegir. Para que la cláusula la
+  juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
+  no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
+  `internal/evals`, así que es una pieza aparte, después de este hito.
 - **El caso «con entidades locales menores» de FR-046 y SC-008 no tiene ejemplo nombrado** (T003, «Resuelto en la
   pausa»; `gates/verificacion-dir3.md`): el REL no publica volcado de entidades de ámbito inferior al municipio (doce
   rutas de exportación probadas) y nombrar un municipio sin fuente sería escribirlo de memoria. La comprobación

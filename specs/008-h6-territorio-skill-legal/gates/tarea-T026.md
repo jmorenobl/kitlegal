@@ -254,3 +254,77 @@ ci	Ejecutar los controles	2026-09-22T10:18:09.9563558Z FAIL
 ci	Ejecutar los controles	2026-09-22T10:18:09.9660878Z make: *** [Makefile:73: test-integration] Error 1
 ci	Ejecutar los controles	2026-09-22T10:18:09.9680420Z ##[error]Process completed with exit code 2.
 ~~~~
+
+## Intento 2 (2026-09-22): sin nota; reconstruido desde el commit y la plataforma
+
+El intento 2 no escribió nada en esta nota ni en `gates/evals-cierre.md`. Lo que hizo consta en su commit,
+`ee967b6` (`feat(H6): T026`, 11:52:20Z, el que el workflow hace tras el intento), que toca solo
+`specs/008-h6-territorio-skill-legal/`: puso al día `gates/pr-h6.md` con T029 (cabeza `2b81164`, 33 commits, 156
+ficheros y 30 340 líneas fuera de `specs/`, `filas.go` y `coste_test.go` en el inventario, el control del coste de la
+carga entre los controles y la decisión de leer las filas sin el lector de YAML entre las decisiones) y cambió en
+`quickstart.md` §14 la expectativa «una sola ejecución» por «una ejecución vigente» —la última de la rama, sobre su
+cabeza; si hubo que repetirla por etiqueta porque la cabeza cambió fuera de `specs/`, las anteriores quedan registradas
+y no cuentan—.
+
+En la plataforma, según `gh run list` y los eventos de #39: el push de `2b81164` (T029) disparó `ci` 35721902798
+(`pull_request`, 11:31:14Z–11:38:12Z, `success`, sin ningún paso en rojo); a las 11:38:45Z `jmorenobl` puso la etiqueta
+`evals` en #39, que abrió la ejecución de evals 35722605048 a las 11:38:47Z, con `cambios` en `skipped` (así está
+escrito el job para la actividad `labeled`) y los dos trabajos de la matriz sobre `2b81164`; `evals (legal-core)`
+terminó en `success` a las 11:47:13Z y `evals (boe-legislacion)` seguía en marcha cuando el intento acabó, 14 minutos
+después de la etiqueta, con un trabajo que en el intento 1 tardó 37. No sincronizó el cuerpo de #39 con
+`gh pr edit`: al empezar el intento 3 la propuesta seguía con el cuerpo de T025 (cabeza `2df74db`, 31 commits).
+
+Por qué no quedó en verde: no esperó al final de la ejecución y no dejó dicho por qué. No hay más evidencia.
+
+## Intento 3 (2026-09-22)
+
+**Estado: marcada [X].** La ejecución de evals vigente, 35722605048 sobre `2b81164` (`feat(H6): T029`), salió
+`aprobado` en sus dos trabajos, `ci` está en verde sobre ese commit (35721902798) y sobre la cabeza `ee967b6`
+(35724203328), los cuatro estados de Codecov están en verde con medida, y `make ci` en local termina con
+`ci: todos los controles en verde`. Los datos, las comprobaciones y las salidas enteras están en
+`gates/evals-cierre.md`, «Intento 3». No se fusionó nada, no se empujó a `main`, no se forzó nada, no se borró ninguna
+rama, etiqueta o release, y la ejecución no se relanzó: la vigente es la que lanzó la etiqueta del intento 2, y este
+intento la esperó y la leyó.
+
+Hecho, en orden: leída esta nota; prerrequisitos (sesión de `gh` de `jmorenobl` con alcance `repo`, secreto
+`CLAUDE_CODE_OAUTH_TOKEN`, etiquetas `evals` y `evals-prueba-de-red`, cuerpo `gates/pr-h6.md` con «Dependencias:
+ninguna nueva»); árbol limpio fuera del directorio del hito; `git push -u origin 008-h6-territorio-skill-legal`
+(`2b81164..ee967b6`, solo `specs/`); `gh pr view` encontró #39, así que no se creó otra; `gh pr edit 39 --body-file`
+para poner en #39 el cuerpo que el intento 2 había actualizado sin sincronizar; espera en primer plano de `ci` sobre
+`ee967b6` y de la ejecución de evals; las dos órdenes del §14 tal cual (la 2 imprime los dos informes y `código: 0`);
+descarga de los registros de los dos trabajos y extracción de `informe.md` e `informe.json` de cada uno (el de
+`legal-core`, descargado por la API antes de que acabara la ejecución y con `gh run view --job` después: idénticos);
+lectura de las 18 sesiones de `legal-core` para SC-013; registro en `gates/evals-cierre.md`; `make ci`; marca.
+
+### 1. Lo que cambió respecto del intento 1
+
+- **`ci` en verde.** T029 dejó la carga del territorio en 9 ms y 9,8 MB con los datos reales, y el guion de la matriz
+  con su `cronometra` de 200 ms pasó en el runner en `make test` y en `make test-integration` (35721902798 sobre
+  `2b81164`; 35724203328 sobre `ee967b6`). Codecov emitió sus cuatro estados con medida (`codecov/project` 96,47 %,
+  `codecov/patch` 96,73 % del diff, `internal/cli` 98,09 %, `internal/core` 98,63 %).
+- **SC-015 cubre la cabeza.** El commit del informe, `2b81164`, es el último de la rama que cambió algo fuera de
+  `specs/008-h6-territorio-skill-legal/`; desde él, la cabeza solo difiere en ficheros de ese directorio (los del
+  intento 2 y los de este). `quickstart.md` §14 lo dice ahora con esas palabras: «la última de la rama, sobre el último
+  commit que cambió algo fuera de `specs/…`», en lugar de «sobre su cabeza», que no era literalmente cierto.
+- **SC-013 sin la ambigüedad del intento 1.** Las seis respuestas de Tordesillas declaran los dos aspectos
+  `no-configurado` y ninguna nombra un boletín que el applet no devolvió: 6 de 6, y 3 de 3 con el modelo que decide.
+  La decisión que el intento 1 dejó abierta —si la segunda cláusula se cuenta respuesta a respuesta o por serie y
+  umbral— no ha hecho falta tomarla, porque las dos lecturas coinciden. No se ha tomado aquí: es de alcance (cambia
+  FR-084, el esquema de eval y el juez) y queda escrita en `gates/pr-h6.md`, «Pendientes», para quien la aborde como
+  pieza aparte después del hito, junto con la mejora del juez que la haría mecánica.
+
+### 2. Lo que este intento escribió
+
+Solo bajo `specs/008-h6-territorio-skill-legal/`: `gates/evals-cierre.md` (la sección «Intento 3» delante de la del
+intento 1, que se conserva, y una nota sobre el intento 2), esta nota (los intentos 2 y 3), `gates/pr-h6.md` (la
+cabecera, la regla de SC-015 anclada a la ejecución vigente, la aceptación registrada y el pendiente de SC-013),
+`quickstart.md` §14 (la expectativa de la ejecución vigente) y `tasks.md` (la marca de T026). El cuerpo de #39 se
+sincronizó con `gates/pr-h6.md` al terminar.
+
+### 3. Verificación
+
+`make ci` en primer plano tras escribir todo lo anterior, con código 0 y la última línea `ci: todos los controles en
+verde`: `fmt-check`, `lint`, `test`, `test-integration`, `vuln`, `schema-check`, `skills-check`, `secrets`,
+`mod-verify` y `mod-tidy-check`, sin ningún `FAIL`. No dejó ningún `ci.log` en la raíz; el `bin/kitlegal` que hay
+(ignorado por git, `.gitignore:2`) es de las 11:22Z, anterior a este intento, y no lo escribe `make ci`. Repetido una
+vez más, en primer plano, después de la última edición de esta nota: mismo resultado.
