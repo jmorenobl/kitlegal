@@ -13,6 +13,7 @@ package data
 import (
 	"embed"
 	"fmt"
+	"io/fs"
 	"path"
 	"strings"
 )
@@ -53,7 +54,15 @@ const (
 // un fichero <código>.yaml es un error que la nombra, no algo que se descarta
 // en silencio. Cada llamada devuelve un mapa nuevo.
 func Comunidades() (map[string][]byte, error) {
-	entradas, err := comunidades.ReadDir(carpetaDeComunidades)
+	return comunidadesDe(comunidades)
+}
+
+// comunidadesDe es el recorrido de Comunidades sobre un sistema de ficheros
+// cualquiera, para que sus tres ramas de error —el subárbol que no se lista, la
+// entrada que no es un fichero <código>.yaml y el fichero que no se lee— se
+// puedan ejercer sin tocar el embebido.
+func comunidadesDe(arbol fs.FS) (map[string][]byte, error) {
+	entradas, err := fs.ReadDir(arbol, carpetaDeComunidades)
 	if err != nil {
 		return nil, fmt.Errorf("no se puede listar data/%s: %w", carpetaDeComunidades, err)
 	}
@@ -68,7 +77,7 @@ func Comunidades() (map[string][]byte, error) {
 			return nil, fmt.Errorf("data/%s no es el fichero de una comunidad, <código>%s", ruta, extensionDeComunidad)
 		}
 
-		contenido, err := comunidades.ReadFile(ruta)
+		contenido, err := fs.ReadFile(arbol, ruta)
 		if err != nil {
 			return nil, fmt.Errorf("no se puede leer data/%s: %w", ruta, err)
 		}

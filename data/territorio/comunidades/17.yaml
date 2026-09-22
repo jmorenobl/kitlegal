@@ -1,5 +1,5 @@
 fecha: "2026-09-20"
-source: ine.municipios
+source: ine.codigos-territoriales
 codigo: "17"
 nombre: "La Rioja"
 regimen: comun

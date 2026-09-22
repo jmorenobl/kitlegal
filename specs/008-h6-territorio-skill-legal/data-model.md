@@ -105,8 +105,8 @@ reales viven en `internal/skills` (research.md D27).
 | Entidad | Campos | Origen | Id natural (H7) |
 |---|---|---|---|
 | **Municipio** | nombre oficial, código INE, dígito de control, provincia, comunidad | `ine.municipios` | código INE |
-| **Provincia** | código de dos cifras, nombre, comunidad | `ine.municipios` (nombres, en el fichero de su comunidad) | código |
-| **Comunidad** | código, nombre, régimen, provincias, boletines (opcional) | `ine.municipios` y la configuración | código |
+| **Provincia** | código de dos cifras, nombre, comunidad | `ine.codigos-territoriales` (nombres, en el fichero de su comunidad) | código |
+| **Comunidad** | código, nombre, régimen, provincias, boletines (opcional) | `ine.codigos-territoriales` (nombres) y la configuración | código |
 | **Ayuntamiento** | código DIR3 | `mpt.rel`, solo si está verificado | código DIR3 |
 | **Régimen** | `comun` \| `foral` | La configuración de su comunidad | — |
 
@@ -153,8 +153,8 @@ Ocho claves de primer nivel, cada una con el `source` del dato que la sostiene (
 {
   "municipio":  {"nombre": "…", "source": "ine.municipios"},
   "codigo_ine": {"codigo": "PPMMM", "digito_de_control": "D", "source": "ine.municipios"},
-  "provincia":  {"codigo": "PP", "nombre": "…", "source": "ine.municipios"},
-  "comunidad":  {"codigo": "CC", "nombre": "…", "source": "ine.municipios"},
+  "provincia":  {"codigo": "PP", "nombre": "…", "source": "ine.codigos-territoriales"},
+  "comunidad":  {"codigo": "CC", "nombre": "…", "source": "ine.codigos-territoriales"},
   "dir3":       {"codigo": "L01PPMMMD", "source": "mpt.rel"},
   "regimen":    {"valor": "comun", "source": "data/territorio/comunidades/CC.yaml"},
   "boletines":  [ {"nivel": "…", "codigo": "…", "nombre": "…", "url": "…", "motivo": "", "source": "…"} ],
@@ -223,7 +223,7 @@ Todos llevan en la raíz `fecha` (la del fichero de origen, `AAAA-MM-DD`) y `sou
 fecha: 2026-02-04
 source: ine.municipios
 municipios:
-  "28074": {dc: "8", nombre: "Leganés", provincia: "28", comunidad: "13"}
+  "28074": {dc: "5", nombre: "Leganés", provincia: "28", comunidad: "13"}
 ```
 
 `propertyNames.pattern` `^(0[1-9]|[1-4][0-9]|5[0-2])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$`, el código INE de §1.1:
@@ -241,7 +241,7 @@ este ejemplo son ilustrativos: los fija la tarea `[datos]` desde la relación de
 fecha: 2026-09-20
 source: mpt.rel
 correspondencia:
-  "28074": "L01280748"
+  "28074": "L01280745"
 ```
 
 Solo filas verificadas (FR-048). `propertyNames.pattern` el del código INE de §3.1,
@@ -266,7 +266,7 @@ boletin:
 
 ```yaml
 fecha: 2026-09-20
-source: ine.municipios
+source: ine.codigos-territoriales
 codigo: "13"
 nombre: "Comunidad de Madrid"
 regimen: comun

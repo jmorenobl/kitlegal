@@ -125,7 +125,7 @@ ocupe **una línea** y un diff señale exactamente lo que cambió (FR-041):
 fecha: 2026-02-04
 source: ine.municipios
 municipios:
-  "28074": {dc: "8", nombre: "Leganés", provincia: "28", comunidad: "13"}
+  "28074": {dc: "5", nombre: "Leganés", provincia: "28", comunidad: "13"}
 ```
 
 La fila lleva las cinco columnas que FR-040 exige —código, dígito de control, nombre, provincia y comunidad—, y es la
@@ -294,10 +294,10 @@ de datos*: duplica en los datos lo que el código tiene que saber hacer igualmen
 ```json
 {
   "municipio":  {"nombre": "Leganés", "source": "ine.municipios"},
-  "codigo_ine": {"codigo": "28074", "digito_de_control": "8", "source": "ine.municipios"},
-  "provincia":  {"codigo": "28", "nombre": "Madrid", "source": "ine.municipios"},
-  "comunidad":  {"codigo": "13", "nombre": "Comunidad de Madrid", "source": "ine.municipios"},
-  "dir3":       {"codigo": "L01280748", "source": "mpt.rel"},
+  "codigo_ine": {"codigo": "28074", "digito_de_control": "5", "source": "ine.municipios"},
+  "provincia":  {"codigo": "28", "nombre": "Madrid", "source": "ine.codigos-territoriales"},
+  "comunidad":  {"codigo": "13", "nombre": "Comunidad de Madrid", "source": "ine.codigos-territoriales"},
+  "dir3":       {"codigo": "L01280745", "source": "mpt.rel"},
   "regimen":    {"valor": "comun", "source": "data/territorio/comunidades/13.yaml"},
   "boletines":  [{"nivel": "estatal", "codigo": "BOE", "nombre": "…", "url": "…", "motivo": "", "source": "data/territorio/estado.yaml"}],
   "cobertura":  {"boletin_autonomico": "configurado", "boletin_provincial": "configurado", "dir3": "verificado"}

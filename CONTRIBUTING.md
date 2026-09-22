@@ -75,7 +75,7 @@ propuesta de cambio: también tiene que cumplir la convención.
 
 ## Versionado y `CHANGELOG.md`
 
-**Versionado semántico.** El proyecto está en `0.y.z` hasta la primera release, que es H6 (`v0.1.0`);
+**Versionado semántico.** El proyecto está en `0.y.z` hasta la primera release, que es H19 (`v0.1.0`);
 mientras el mayor sea `0`, un cambio incompatible sube el **menor**. A partir de `1.0.0`, mayor para lo
 incompatible, menor para funcionalidad nueva compatible y parche para correcciones. Las etiquetas son
 `vX.Y.Z` y las pone una persona, nunca la integración continua.
@@ -85,7 +85,7 @@ cabeza, y bajo ella los apartados `Añadido`, `Cambiado`, `Obsoleto`, `Eliminado
 `Seguridad`, solo los que tengan contenido. Todo cambio de comportamiento visible entra en *Unreleased*
 en la misma propuesta que lo introduce; al publicar una versión, esa sección se cierra bajo su número y
 su fecha y se abre una nueva vacía. En H0 el changelog se mantiene **a mano**; su generación automática
-llega con el release de H6.
+llega con el release de H19.
 
 ## Los controles
 
@@ -164,7 +164,7 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 
 | Orden | Qué hace hoy | Hito |
 |---|---|---|
-| `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
+| `make release` | **Falla** con código distinto de 0 | H19 (`.goreleaser.yaml`) |
 
 `release` falla en lugar de anunciar lo que le falta y terminar con éxito porque es una acción con
 efectos externos: no puede simular éxito. No forma parte de `ci` ni del flujo nocturno.

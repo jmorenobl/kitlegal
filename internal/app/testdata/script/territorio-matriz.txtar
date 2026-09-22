@@ -35,8 +35,8 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/ter
 # Cada dato con su source (FR-005).
 stdout '"municipio":\{"nombre":"Leganés","source":"ine\.municipios"\}'
 stdout '"codigo_ine":\{"codigo":"28074","digito_de_control":"5","source":"ine\.municipios"\}'
-stdout '"provincia":\{"codigo":"28","nombre":"Madrid","source":"ine\.municipios"\}'
-stdout '"comunidad":\{"codigo":"13","nombre":"Comunidad de Madrid","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"28","nombre":"Madrid","source":"ine\.codigos-territoriales"\}'
+stdout '"comunidad":\{"codigo":"13","nombre":"Comunidad de Madrid","source":"ine\.codigos-territoriales"\}'
 stdout '"dir3":\{"codigo":"L01280745","source":"mpt\.rel"\}'
 stdout '"regimen":\{"valor":"comun","source":"data/territorio/comunidades/13\.yaml"\}'
 
@@ -83,8 +83,8 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/ter
 ! stderr .
 stdout '"municipio":\{"nombre":"Tordesillas","source":"ine\.municipios"\}'
 stdout '"codigo_ine":\{"codigo":"47165","digito_de_control":"9","source":"ine\.municipios"\}'
-stdout '"provincia":\{"codigo":"47","nombre":"Valladolid","source":"ine\.municipios"\}'
-stdout '"comunidad":\{"codigo":"07","nombre":"Castilla y León","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"47","nombre":"Valladolid","source":"ine\.codigos-territoriales"\}'
+stdout '"comunidad":\{"codigo":"07","nombre":"Castilla y León","source":"ine\.codigos-territoriales"\}'
 stdout '"dir3":\{"codigo":"L01471659","source":"mpt\.rel"\}'
 stdout '"regimen":\{"valor":"comun","source":"data/territorio/comunidades/07\.yaml"\}'
 
@@ -108,7 +108,7 @@ cp stdout tordesillas.json
 exec $KITLEGAL_BIN territorio resolver Abáigar --json
 ! stderr .
 stdout '"codigo_ine":\{"codigo":"31001","digito_de_control":"8","source":"ine\.municipios"\}'
-stdout '"comunidad":\{"codigo":"15","nombre":"Comunidad Foral de Navarra","source":"ine\.municipios"\}'
+stdout '"comunidad":\{"codigo":"15","nombre":"Comunidad Foral de Navarra","source":"ine\.codigos-territoriales"\}'
 stdout '"regimen":\{"valor":"foral","source":"data/territorio/comunidades/15\.yaml"\}'
 stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
 
@@ -116,8 +116,8 @@ stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial"
 exec $KITLEGAL_BIN territorio resolver Amurrio --json
 ! stderr .
 stdout '"codigo_ine":\{"codigo":"01002","digito_de_control":"9","source":"ine\.municipios"\}'
-stdout '"provincia":\{"codigo":"01","nombre":"Araba/Álava","source":"ine\.municipios"\}'
-stdout '"comunidad":\{"codigo":"16","nombre":"País Vasco","source":"ine\.municipios"\}'
+stdout '"provincia":\{"codigo":"01","nombre":"Araba/Álava","source":"ine\.codigos-territoriales"\}'
+stdout '"comunidad":\{"codigo":"16","nombre":"País Vasco","source":"ine\.codigos-territoriales"\}'
 stdout '"regimen":\{"valor":"foral","source":"data/territorio/comunidades/16\.yaml"\}'
 stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
 cp stdout amurrio.json

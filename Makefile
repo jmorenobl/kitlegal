@@ -132,9 +132,9 @@ mod-verify: check-tools
 mod-tidy-check: check-tools
 	go mod tidy -diff
 
-## release: publicación de la release firmada (la aporta H6)
+## release: publicación de la release firmada (la aporta H19)
 release:
-	@echo "release: sin configurar hasta H6 (.goreleaser.yaml)" >&2
+	@echo "release: sin configurar hasta H19 (.goreleaser.yaml)" >&2
 	@exit 1
 
 ## hooks: instala los ganchos de pre-commit

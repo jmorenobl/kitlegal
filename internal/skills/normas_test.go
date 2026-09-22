@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -470,7 +471,28 @@ func TestEsquemaDeNormas(t *testing.T) {
 func TestCompilarEsquemaDeNormasDesdeUnaRuta(t *testing.T) {
 	t.Parallel()
 
-	esquema, err := skills.CompilarEsquemaDeNormas(esquemaPublicadoDeNormas)
+	comprobarCompilarEsquemaDesdeUnaRuta(t, skills.CompilarEsquemaDeNormas, esquemaPublicadoDeNormas,
+		"no se puede leer el esquema de data/normas.yaml: ", "el esquema de data/normas.yaml ", "rango")
+}
+
+// comprobarCompilarEsquemaDesdeUnaRuta fija, para cada compilador de esquema
+// publicado, las dos ramas de error que su ruta constante no da nunca: el
+// fichero que no se puede leer y el esquema que no compila. Los tres
+// compiladores —normas, territorio y jerarquía— tienen el mismo esqueleto, así
+// que lo comprueban con esta misma función y no con tres copias.
+//
+// compilar es el compilador expuesto en export_test.go; valida, la ruta de un
+// esquema publicado que sí compila; noSeLee y noCompila, los dos mensajes que
+// el compilador antepone, y propiedad, una propiedad con un "type" inválido con
+// la que fabricar el esquema que no compila.
+func comprobarCompilarEsquemaDesdeUnaRuta(
+	t *testing.T,
+	compilar func(string) (*jsonschema.Schema, error),
+	valida, noSeLee, noCompila, propiedad string,
+) {
+	t.Helper()
+
+	esquema, err := compilar(valida)
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
 
@@ -479,17 +501,17 @@ func TestCompilarEsquemaDeNormasDesdeUnaRuta(t *testing.T) {
 	carpeta := filepath.Join(directorio, "carpeta.json")
 	require.NoError(t, os.Mkdir(carpeta, 0o750))
 
-	esquema, err = skills.CompilarEsquemaDeNormas(carpeta)
+	esquema, err = compilar(carpeta)
 	require.ErrorIs(t, err, syscall.EISDIR)
-	require.ErrorContains(t, err, "no se puede leer el esquema de data/normas.yaml: ")
+	require.ErrorContains(t, err, noSeLee)
 	assert.Nil(t, esquema)
 
-	sinCompilar := filepath.Join(directorio, "rango-sin-tipo.json")
+	sinCompilar := filepath.Join(directorio, propiedad+"-sin-tipo.json")
 	escribirFicheroDePrueba(t, sinCompilar,
-		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"rango": {"type": "texto"}}}`)
+		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"`+propiedad+`": {"type": "no"}}}`)
 
-	esquema, err = skills.CompilarEsquemaDeNormas(sinCompilar)
-	require.ErrorContains(t, err, "el esquema de data/normas.yaml "+sinCompilar+": el esquema no compila: ")
+	esquema, err = compilar(sinCompilar)
+	require.ErrorContains(t, err, noCompila+sinCompilar+": el esquema no compila: ")
 	assert.Nil(t, esquema)
 }
 

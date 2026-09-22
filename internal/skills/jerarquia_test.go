@@ -327,3 +327,15 @@ func TestJerarquiaDelRepositorio(t *testing.T) {
 	assert.Equal(t, nivelesDeLaJerarquia, niveles, "%s trae los cinco niveles en su orden", jerarquiaDelRepositorio)
 	assert.Equal(t, reglasDeInterpretacion, reglas, "%s trae las cuatro reglas en su orden", jerarquiaDelRepositorio)
 }
+
+// TestCompilarEsquemaDeJerarquiaDesdeUnaRuta fija las dos ramas de error con
+// las que no se obtiene el esquema de data/jerarquia.yaml, que la ruta constante
+// del paquete no da nunca: el fichero que no se puede leer y el esquema que no
+// compila. Es el equivalente de TestCompilarEsquemaDelTerritorioDesdeUnaRuta y
+// de su gemelo de normas.
+func TestCompilarEsquemaDeJerarquiaDesdeUnaRuta(t *testing.T) {
+	t.Parallel()
+
+	comprobarCompilarEsquemaDesdeUnaRuta(t, skills.CompilarEsquemaDeJerarquia, "../../schemas/jerarquia.yaml.json",
+		"no se puede leer el esquema de data/jerarquia.yaml: ", "el esquema de data/jerarquia.yaml ", "niveles")
+}

@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"unicode"
 
@@ -251,27 +250,9 @@ func TestLeerTerritorio(t *testing.T) {
 func TestCompilarEsquemaDelTerritorioDesdeUnaRuta(t *testing.T) {
 	t.Parallel()
 
-	esquema, err := skills.CompilarEsquemaDelTerritorio("../../schemas/territorio-estado.yaml.json")
-	require.NoError(t, err)
-	assert.NotNil(t, esquema)
-
-	directorio := t.TempDir()
-
-	carpeta := filepath.Join(directorio, "carpeta.json")
-	require.NoError(t, os.Mkdir(carpeta, 0o750))
-
-	esquema, err = skills.CompilarEsquemaDelTerritorio(carpeta)
-	require.ErrorIs(t, err, syscall.EISDIR)
-	require.ErrorContains(t, err, "no se puede leer un esquema de data/territorio/: ")
-	assert.Nil(t, esquema)
-
-	sinCompilar := filepath.Join(directorio, "fecha-sin-tipo.json")
-	escribirFicheroDePrueba(t, sinCompilar,
-		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"fecha": {"type": "dia"}}}`)
-
-	esquema, err = skills.CompilarEsquemaDelTerritorio(sinCompilar)
-	require.ErrorContains(t, err, "el esquema de data/territorio/ "+sinCompilar+": el esquema no compila: ")
-	assert.Nil(t, esquema)
+	comprobarCompilarEsquemaDesdeUnaRuta(t, skills.CompilarEsquemaDelTerritorio,
+		"../../schemas/territorio-estado.yaml.json",
+		"no se puede leer un esquema de data/territorio/: ", "el esquema de data/territorio/ ", "fecha")
 }
 
 // Los ficheros congelados de data/territorio/ y la tabla de fuentes, relativos
@@ -333,7 +314,7 @@ func TestTerritorioDelRepositorio(t *testing.T) {
 		{"esquema", comprobarEsquema},
 		{"integridad", comprobarIntegridad},
 		{"fuentes", comprobarFuentes},
-		{"solo-madrid-configurada", comprobarSoloMadridConfigurada},
+		{"madrid-configurada", comprobarMadridConfigurada},
 		{"regimen-de-todas", comprobarRegimenDeTodas},
 		{"gramaticas", func(t *testing.T, _ *corpusDelRepositorio) { t.Helper(); comprobarGramaticas(t) }},
 		{"pliegue-cubre-el-corpus", comprobarPliegueCubreElCorpus},
@@ -484,10 +465,14 @@ func comprobarFuentes(t *testing.T, corpus *corpusDelRepositorio) {
 	}
 }
 
-// comprobarSoloMadridConfigurada exige que la Comunidad de Madrid sea la única
-// con boletines y que declare el BOCM como autonómico y como provincial, con
-// la razón escrita (FR-051, FR-052, SC-005).
-func comprobarSoloMadridConfigurada(t *testing.T, corpus *corpusDelRepositorio) {
+// comprobarMadridConfigurada exige que la Comunidad de Madrid esté configurada
+// y declare el BOCM como autonómico y como provincial, con la razón escrita
+// (FR-052). **No** exige que sea la única: configurar otra comunidad es
+// rellenar los boletines de su fichero y nada más (SC-005, CONTRIBUTING), así
+// que prohibirlo aquí haría falsa esa promesa. Que hoy solo esté Madrid
+// (FR-051) es el estado del hito y se comprueba en su cierre (quickstart §9),
+// no en un control permanente.
+func comprobarMadridConfigurada(t *testing.T, corpus *corpusDelRepositorio) {
 	t.Helper()
 
 	ficheros := corpus.ficheros(t)
@@ -498,8 +483,8 @@ func comprobarSoloMadridConfigurada(t *testing.T, corpus *corpusDelRepositorio) 
 			configuradas = append(configuradas, codigo)
 		}
 	}
-	require.Equal(t, []string{codigoDeLaConfigurada}, configuradas,
-		"solo la comunidad %s trae boletines (FR-051)", codigoDeLaConfigurada)
+	require.Contains(t, configuradas, codigoDeLaConfigurada,
+		"la comunidad %s trae boletines (FR-052)", codigoDeLaConfigurada)
 
 	configurada := ficheros.Comunidades[codigoDeLaConfigurada]
 	assert.Equal(t, nombreDeLaConfigurada, configurada.Nombre)

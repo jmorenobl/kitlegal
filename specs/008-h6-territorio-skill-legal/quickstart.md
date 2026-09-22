@@ -199,7 +199,7 @@ rtk proxy grep -L 'boletines:' data/territorio/comunidades/*.yaml | rtk proxy wc
 rtk proxy cat specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md
 ```
 
-Espera: los subtests `esquema`, `integridad`, `fuentes`, `solo-madrid-configurada`, `regimen-de-todas`, `gramaticas`,
+Espera: los subtests `esquema`, `integridad`, `fuentes`, `madrid-configurada`, `regimen-de-todas`, `gramaticas`,
 `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras` en verde; la cabecera con `fecha` y
 `source`; el número de municipios de la relación; 19 ficheros de comunidad; 18 sin `boletines` —solo la Comunidad de
 Madrid los trae (FR-051)—; y, en el registro de verificación, la comprobación de la relación entera contra el volcado

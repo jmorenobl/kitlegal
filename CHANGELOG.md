@@ -303,7 +303,8 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   su provincia y su comunidad (`source` `ine.municipios`); `dir3.yaml`, el DIR3 del ayuntamiento de cada municipio,
   solo con las filas verificadas contra el número de inscripción del Registro de Entidades Locales (`source`
   `mpt.rel`); `estado.yaml`, el boletín estatal; y `comunidades/`, un fichero por cada una de las 19 comunidades y
-  ciudades autónomas con su régimen y sus provincias. Solo la Comunidad de Madrid trae `boletines`: el BOCM, a la vez
+  ciudades autónomas con su régimen y sus provincias, cuyos nombres salen de las tablas de códigos del INE (`source`
+  `ine.codigos-territoriales`). Solo la Comunidad de Madrid trae `boletines`: el BOCM, a la vez
   autonómico y provincial, con el motivo escrito en su fichero. Añadir un territorio es rellenar los boletines de su
   fichero, sin tocar código ni skills. Una persona los genera fuera del repositorio desde las descargas del INE y del
   REL; `docs/SOURCES.md` lleva la fila de cada origen con la fecha del fichero y `scripts/verify-sources.sh` no gana
@@ -480,5 +481,5 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   ilegible.
 
 Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
-con código distinto de `0` hasta H6 porque es una acción con efectos externos. El binario que se publica registra **dos applets, `boe` y `territorio`**: los de las demás fuentes (`placsp`,
+con código distinto de `0` hasta H19 porque es una acción con efectos externos. El binario que se publica registra **dos applets, `boe` y `territorio`**: los de las demás fuentes (`placsp`,
 `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.

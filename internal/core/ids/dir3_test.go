@@ -41,8 +41,8 @@ func TestAnalizarDIR3(t *testing.T) {
 			nombre, entrada, normalizado, codigoINE string
 			digito                                  byte
 		}{
-			{"Leganés", "L01280748", "L01280748", "28074", '8'},
-			{"letra en minúscula", "l01280748", "L01280748", "28074", '8'},
+			{"Leganés", "L01280745", "L01280745", "28074", '5'},
+			{"letra en minúscula", "l01280745", "L01280745", "28074", '5'},
 			{"ceros por delante", "L01010014", "L01010014", "01001", '4'},
 			{"dígito cero", "L01289990", "L01289990", "28999", '0'},
 		}

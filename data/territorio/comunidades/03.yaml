@@ -1,5 +1,5 @@
 fecha: "2026-09-20"
-source: ine.municipios
+source: ine.codigos-territoriales
 codigo: "03"
 nombre: "Principado de Asturias"
 regimen: comun

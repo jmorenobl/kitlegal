@@ -105,7 +105,7 @@ en tabla.
 | Integridad entre ficheros, incluida la coherencia municipio→comunidad→provincia | `TestTerritorioDelRepositorio/integridad` | sí |
 | Gramáticas de los esquemas contra los analizadores | `TestTerritorioDelRepositorio/gramaticas` | sí |
 | Que el `source` de cada dato existe | `TestTerritorioDelRepositorio/fuentes` (los identificadores, contra `docs/SOURCES.md`; las rutas, contra el árbol) | sí |
-| Que solo la Comunidad de Madrid trae `boletines` | `TestTerritorioDelRepositorio/solo-madrid-configurada` | sí |
+| Que la Comunidad de Madrid está configurada, sin prohibir otras (SC-005) | `TestTerritorioDelRepositorio/madrid-configurada` | sí |
 | Que las 19 comunidades tienen régimen | `TestTerritorioDelRepositorio/regimen-de-todas` | sí |
 | Que el pliegue de nombres cubre el corpus, no deja municipios inalcanzables y no deja ningún nombre que sea solo cifras | `TestTerritorioDelRepositorio/pliegue-cubre-el-corpus`, `/nombres-alcanzables`, `/ningun-nombre-es-solo-cifras` (research.md D27) | sí |
 | Que ningún municipio concreto aparece en código ni en la skill | `TestSkillsDelRepositorio` (normas nombradas y revisión final); los municipios solo en fixtures, e2e y evals | sí / revisión |
