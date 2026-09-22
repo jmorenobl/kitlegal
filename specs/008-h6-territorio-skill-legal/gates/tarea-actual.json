@@ -1,15 +1,16 @@
 {
-  "id": "T014",
-  "texto": "T014 [datos] [US5] La jerarquía normativa como dato: `schemas/jerarquia.yaml.json` (nuevo: `niveles` con `nivel` en un enumerado cerrado de cinco valores en orden —`ue`, `estado`, `comunidad-autonoma`, `provincia`, `municipio`—, `nombre`, `boletin` y `normas`, y `reglas` con `regla` en un enumerado de las cuatro reglas de interpretación y su `enunciado`; `additionalProperties: false`) y `data/jerarquia.yaml` con los cinco niveles, el boletín y los tipos de norma de cada uno, y las cuatro reglas (competencia antes que jerarquía, ley posterior, ley especial y reglamento nunca contra ley); hasta T016 no hay lector ni control que lo mire, así que no toca código y `make ci` sigue en verde (FR-044, FR-066, FR-067, FR-086, US5, SC-009, data-model §4.2).",
+  "id": "T016",
+  "texto": "T016 [US5] El lector de la jerarquía normativa y su control, antes que el generador que la usa: `internal/skills/jerarquia.go`, lector nuevo del fichero `jerarquia.yaml` que lo valida contra su esquema con el lector común —clave repetida incluida— y devuelve los niveles en el orden del enumerado y las cuatro reglas, con `TestLeerJerarquia` sobre documentos sintéticos (válido, nivel fuera del enumerado, regla desconocida, clave desconocida, clave repetida), `TestEsquemaDeJerarquia` y `TestJerarquiaDelRepositorio` (el fichero real: los cinco niveles en su orden y las cuatro reglas, **exigiendo que existan** para no pasar en vacío) escritos antes que el código; y `Makefile`, cuya expresión `-run` de `make skills-check` gana `TestJerarquiaDelRepositorio`; no toca datos, normas ni generadores, y `make ci` queda en verde por sí sola (FR-044, FR-066, FR-067, US5, SC-009, data-model §4.2, contrato de la skill §4).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T014.md y déjala sin marcar.",
-  "base": "bc895f61bba3ce11a735d53dfa0742d1155a408f",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T016.md y déjala sin marcar.",
+  "base": "3476c3763f09d6c552002baf193e10fc3e2c3a8e",
   "rutas": [
-    "data/jerarquia.yaml",
-    "schemas/jerarquia.yaml.json"
+    "Makefile",
+    "internal/skills/jerarquia.go",
+    "jerarquia.yaml"
   ],
   "cierre": false
 }
