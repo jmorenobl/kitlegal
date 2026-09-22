@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-22T07:18:45Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1889-4763/metadatos",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1293"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Tue, 22 Sep 2026 07:18:46 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260907T125934Z\",\n            \"identificador\": \"BOE-A-1889-4763\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"4835\",\n                \"texto\": \"Ministerio de Gracia y Justicia\"\n            },\n            \"rango\": {\n                \"codigo\": \"1340\",\n                \"texto\": \"Real Decreto\"\n            },\n            \"fecha_disposicion\": \"18890724\",\n            \"titulo\": \"Real Decreto de 24 de julio de 1889 por el que se publica el C\\u00f3digo Civil.\",\n            \"diario\": \"Gaceta de Madrid\",\n            \"fecha_publicacion\": \"18890725\",\n            \"diario_numero\": \"206\",\n            \"fecha_vigencia\": \"18890816\",\n            \"estatus_derogacion\": \"N\",\n            \"estatus_anulacion\": \"N\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rd\\/1889\\/07\\/24\\/(1)\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1889-4763\"\n        }\n    ]\n}"
+  }
+}

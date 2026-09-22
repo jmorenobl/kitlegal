@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-22T07:18:35Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada?limit=10&query=%7B%22query%22%3A%20%7B%22query_string%22%3A%20%7B%22query%22%3A%20%22titulo%3Aenjuiciamiento%20AND%20titulo%3Acivil%22%7D%7D%7D",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Tue, 22 Sep 2026 07:18:35 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260327T103425Z\",\n            \"identificador\": \"BOE-A-2000-323\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20000107\",\n            \"numero_oficial\": \"1\\/2000\",\n            \"titulo\": \"Ley 1\\/2000, de 7 de enero, de Enjuiciamiento Civil.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20000108\",\n            \"diario_numero\": \"7\",\n            \"fecha_vigencia\": \"20010108\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2000\\/01\\/07\\/1\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2000-323\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251220T144039Z\",\n            \"identificador\": \"BOE-A-2021-20727\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20211215\",\n            \"numero_oficial\": \"17\\/2021\",\n            \"titulo\": \"Ley 17\\/2021, de 15 de diciembre, de modificaci\\u00f3n del C\\u00f3digo Civil, la Ley Hipotecaria y la Ley de Enjuiciamiento Civil, sobre el r\\u00e9gimen jur\\u00eddico de los animales.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20211216\",\n            \"diario_numero\": \"300\",\n            \"fecha_vigencia\": \"20220105\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2021\\/12\\/15\\/17\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2021-20727\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251219T183846Z\",\n            \"identificador\": \"BOE-A-2015-10727\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20151005\",\n            \"numero_oficial\": \"42\\/2015\",\n            \"titulo\": \"Ley 42\\/2015, de 5 de octubre, de reforma de la Ley 1\\/2000, de 7 de enero, de Enjuiciamiento Civil.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20151006\",\n            \"diario_numero\": \"239\",\n            \"fecha_vigencia\": \"20151007\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2015\\/10\\/05\\/42\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2015-10727\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251219T130654Z\",\n            \"identificador\": \"BOE-A-2011-14222\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1320\",\n                \"texto\": \"Real Decreto-ley\"\n            },\n            \"fecha_disposicion\": \"20110826\",\n            \"numero_oficial\": \"12\\/2011\",\n            \"titulo\": \"Real Decreto-ley 12\\/2011, de 26 de agosto, por el que se modifica la Ley 1\\/2000, de 7 de enero, de Enjuiciamiento Civil, para la aplicaci\\u00f3n del Convenio Internacional sobre el embargo preventivo de buques y se regulan competencias auton\\u00f3micas en materia de polic\\u00eda de dominio p\\u00fablico hidr\\u00e1ulico.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20110830\",\n            \"diario_numero\": \"208\",\n            \"fecha_vigencia\": \"20120328\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rdl\\/2011\\/08\\/26\\/12\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2011-14222\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251218T200429Z\",\n            \"identificador\": \"BOE-A-2003-21053\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"20031118\",\n            \"numero_oficial\": \"41\\/2003\",\n            \"titulo\": \"Ley 41\\/2003, de 18 de noviembre, de protecci\\u00f3n patrimonial de las personas con discapacidad y de modificaci\\u00f3n del C\\u00f3digo Civil, de la Ley de Enjuiciamiento Civil y de la Normativa Tributaria con esta finalidad.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20031119\",\n            \"diario_numero\": \"277\",\n            \"fecha_vigencia\": \"20031120\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/2003\\/11\\/18\\/41\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2003-21053\"\n        },\n        {\n            \"fecha_actualizacion\": \"20251218T144026Z\",\n            \"identificador\": \"BOE-A-1996-1069\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1290\",\n                \"texto\": \"Ley Org\\u00e1nica\"\n            },\n            \"fecha_disposicion\": \"19960115\",\n            \"numero_oficial\": \"1\\/1996\",\n            \"titulo\": \"Ley Org\\u00e1nica 1\\/1996, de 15 de enero, de Protecci\\u00f3n Jur\\u00eddica del Menor, de modificaci\\u00f3n parcial del C\\u00f3digo Civil y de la Ley de Enjuiciamiento Civil.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19960117\",\n            \"diario_numero\": \"15\",\n            \"fecha_vigencia\": \"19960216\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/lo\\/1996\\/01\\/15\\/1\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1996-1069\"\n        }\n    ]\n}"
+  }
+}

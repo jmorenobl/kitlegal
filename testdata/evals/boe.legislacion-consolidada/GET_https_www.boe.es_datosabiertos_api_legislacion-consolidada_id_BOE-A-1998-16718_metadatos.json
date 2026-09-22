@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-09-22T07:18:33Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/metadatos",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://ventanillalegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Tue, 22 Sep 2026 07:18:33 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20260305T102624Z\",\n            \"identificador\": \"BOE-A-1998-16718\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7723\",\n                \"texto\": \"Jefatura del Estado\"\n            },\n            \"rango\": {\n                \"codigo\": \"1300\",\n                \"texto\": \"Ley\"\n            },\n            \"fecha_disposicion\": \"19980713\",\n            \"numero_oficial\": \"29\\/1998\",\n            \"titulo\": \"Ley 29\\/1998, de 13 de julio, reguladora de la Jurisdicci\\u00f3n Contencioso-administrativa.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"19980714\",\n            \"diario_numero\": \"167\",\n            \"fecha_vigencia\": \"19981214\",\n            \"estatus_derogacion\": \"N\",\n            \"estatus_anulacion\": \"N\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/l\\/1998\\/07\\/13\\/29\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-1998-16718\"\n        }\n    ]\n}"
+  }
+}

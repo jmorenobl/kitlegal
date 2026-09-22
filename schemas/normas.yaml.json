@@ -22,10 +22,13 @@
         "titulo": { "type": "string", "minLength": 1 },
         "rango": {
           "enum": [
+            "Acuerdo",
             "Constitución",
             "Decreto Foral Legislativo",
+            "Instrucción",
             "Ley",
             "Ley Foral",
+            "Ley Orgánica",
             "Orden",
             "Real Decreto",
             "Real Decreto Legislativo",

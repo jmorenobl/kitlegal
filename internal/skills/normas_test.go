@@ -208,9 +208,12 @@ func TestLeerNormas(t *testing.T) {
 			error:     "BOE-A-2015-10565: titulo: got number, want string",
 		},
 		{
-			nombre:    "rango-no-admitido",
-			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, rangoDeLaLPAC, "    rango: Ley Orgánica\n"),
-			error:     "BOE-A-2015-10565: rango no admitido: Ley Orgánica",
+			nombre: "rango-no-admitido",
+			// «Bando» es un acto del alcalde: nunca aparece como rango en la
+			// legislación consolidada del BOE, así que ninguna grabación futura
+			// puede meterlo en el enum y volver a dejar este caso sin error.
+			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, rangoDeLaLPAC, "    rango: Bando\n"),
+			error:     "BOE-A-2015-10565: rango no admitido: Bando",
 		},
 		{
 			nombre:    "materia-sin-texto",
