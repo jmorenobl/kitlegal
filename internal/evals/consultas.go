@@ -70,8 +70,11 @@ type Consulta struct {
 // (data-model §7.1; contrato evals-y-grabaciones §4), recorriendo cada eval en su
 // orden:
 //
-//  1. por cada comando esperado: la forma bloque, articulo <norma> <bloque>; la
-//     consulta de norma, <verbo> <norma>; la búsqueda, buscar <terminos…>;
+//  1. por cada comando esperado, según su forma: la forma bloque, articulo
+//     <norma> <bloque>; la consulta de norma, <verbo> <norma>; la búsqueda,
+//     buscar <terminos…>; y el comando de territorio, ninguna, porque el applet
+//     territorio no pide nada por red ni usa la caché y no hay nada que grabar
+//     (data-model §6.3 de H6; FR-043);
 //  2. por cada norma de sus comandos y de sus citas, sin repetir: indice <norma>
 //     y metadatos <norma>;
 //  3. por cada cita esperada: articulo <norma> <bloque>.
@@ -85,13 +88,16 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 	for _, eval := range conjunto {
 		comando := Origen{Eval: eval.Fichero, Punto: PuntoComandoEsperado}
 		for _, esperado := range eval.Comandos {
-			switch esperado.Verbo {
-			case "":
+			switch formaDelComando(esperado) {
+			case formaBloque:
 				necesarias.anotar(comando, esperado.Applet, verboArticulo, esperado.Norma, esperado.Bloque)
-			case verboBuscar:
-				necesarias.anotar(comando, esperado.Applet, esperado.Verbo, esperado.Terminos...)
-			default:
+			case formaConsultaDeNorma:
 				necesarias.anotar(comando, esperado.Applet, esperado.Verbo, esperado.Norma)
+			case formaBusqueda:
+				necesarias.anotar(comando, esperado.Applet, esperado.Verbo, esperado.Terminos...)
+			case formaTerritorio:
+				// Lo que resuelve viaja dentro del binario: no hay consulta que la
+				// caché preparada tenga que servir.
 			}
 		}
 

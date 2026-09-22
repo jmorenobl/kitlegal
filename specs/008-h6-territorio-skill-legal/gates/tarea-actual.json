@@ -1,16 +1,22 @@
 {
-  "id": "T018",
-  "texto": "T018 [datos] [US5] Esquema del formato común de eval, con la expectativa de test que su forma impone: `schemas/eval.yaml.json` con exactamente los tres cambios del contrato de evals §1 y ninguno más —la cuarta variante `comando-territorio` (`applet`, `verbo` constante `resolver` y `municipio` no vacío, `additionalProperties: false`) como un `$ref` más del `oneOf` de `comandos`; el esperado `territorio` con `minProperties: 1` y las claves `comunidad`, `provincia`, `boletines` y `cobertura`, esta última sobre el enumerado cerrado `aspecto-de-cobertura` con las seis combinaciones del vocabulario del applet; y el `then` que pasa a `required: [\"comandos\"]` con `anyOf` de `citas` o `territorio`, con `territorio` añadido a lo que el `else` prohíbe— y, en la misma tarea, `internal/evals/formato.go` y `internal/evals/formato_test.go`, donde el caso `positiva-sin-citas` pasa a `positiva-sin-esperado-verificable` con el mensaje **que el esquema nuevo produce** (el nodo `anyOf` tiene causas y el lector desciende a las hojas de sus dos ramas), sin relajar la comparación; las evals de `boe-legislacion` siguen validando sin tocar un byte y la pausa revisa esquema y expectativa juntos (FR-084, FR-085, US5, SC-011, SC-015, contrato de evals §1, plan *Complexity Tracking* D28).",
+  "id": "T019",
+  "texto": "T019 [US5] Formato, juicio, consultas e informe con la variante de territorio: `internal/evals/formato.go` (campo `Municipio` en el comando esperado, campo `Territorio` en la eval y `formaDelComando` como **único** sitio que decide la variante, en lugar de los tres `switch` por verbo), `internal/evals/territorio.go` (nuevo, hermano de `citas.go`: `ExtraerTerritorio`, que saca de la respuesta lo declarado por su **forma fija** —comunidad y provincia con el pliegue del dominio, el código del boletín exacto y como palabra, y el aspecto de cobertura en la forma `<aspecto>: <valor>` con tolerancia a los espacios y a las mayúsculas y exacta en las dos palabras—), `internal/evals/juzgar.go` (`satisface` y `textoDelComando` para el comando de territorio, `TerritorioEncontrado` y `TerritorioAusente` en el resultado con su motivo, y la condición de `Pasa` que gana que no quede ninguno ausente), `internal/evals/consultas.go` (un comando de territorio **no genera ninguna consulta que grabar**, y la regla de lo grabado sigue aplicándose a los comandos del BOE), `internal/evals/conjunto.go` (`ComprobarConjunto(evals, normas, reglas)` parametrizado, con las diez reglas de `boe-legislacion` intactas y `ReglasDeLegalCore()` con `tamaño`, `cubierto`, `no cubierto`, `no activación` y `esperado verificable`) e `internal/evals/informe.go` (las dos columnas «Territorio encontrado» y «Territorio ausente»), con `TestLeerEval`, `TestFormaDelComando`, `TestExtraerTerritorio`, `TestJuzgar/territorio-satisface`, `/territorio-otro-municipio-no-satisface`, `/territorio-ausente`, `/territorio-y-citas`, `TestConsultasNecesarias`, `TestConjuntoDeEvals` sobre evals sintéticas, `TestInforme` y el subtest `TestEvalsDelRepositorio/cobertura-del-esquema` (el enumerado del esquema y el vocabulario del applet dicen lo mismo) escritos antes; el subtest `conjunto-legal-core` **no entra aquí**, porque exige tres evals que todavía no existen (FR-043, FR-084, US5, SC-011, SC-015, contrato de evals §2 y §3).",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "plataforma": false,
   "plataforma_bloqueada": false,
-  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T018.md y déjala sin marcar.",
-  "base": "dd03a9f9eb9f7042bc9a9f7a88e939645f68aca7",
+  "red": "Esta tarea no lleva [plataforma]: no uses la plataforma remota (ni git push ni gh). Si para cumplirla necesitas evidencia de la propuesta de cambio, la tarea está mal delimitada: anótalo en gates/tarea-T019.md y déjala sin marcar.",
+  "base": "422c0283bd1fd0b0a6c9d4c0229a9232a4146e85",
   "rutas": [
+    "TestEvalsDelRepositorio/cobertura-del-esquema",
+    "TestJuzgar/territorio-satisface",
+    "citas.go",
+    "internal/evals/conjunto.go",
+    "internal/evals/consultas.go",
     "internal/evals/formato.go",
-    "internal/evals/formato_test.go",
-    "schemas/eval.yaml.json"
+    "internal/evals/informe.go",
+    "internal/evals/juzgar.go",
+    "internal/evals/territorio.go"
   ],
   "cierre": false
 }

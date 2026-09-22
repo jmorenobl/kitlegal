@@ -93,13 +93,23 @@ type informeCrudo struct {
 	Evals   []resultadoCrudo `json:"evals"`
 }
 
-// resultadoCrudo es el resultado de una sesión de informe.json con sus avisos y
-// sus invocaciones tal como están escritos.
+// resultadoCrudo es el resultado de una sesión de informe.json con sus avisos, su
+// territorio y sus invocaciones tal como están escritos.
 type resultadoCrudo struct {
-	Sesion            string            `json:"sesion"`
-	AvisosEncontrados jsontext.Value    `json:"avisos_encontrados"`
-	AvisosAusentes    jsontext.Value    `json:"avisos_ausentes"`
-	Invocaciones      []invocacionCruda `json:"invocaciones"`
+	Sesion               string            `json:"sesion"`
+	AvisosEncontrados    jsontext.Value    `json:"avisos_encontrados"`
+	AvisosAusentes       jsontext.Value    `json:"avisos_ausentes"`
+	TerritorioEncontrado jsontext.Value    `json:"territorio_encontrado"`
+	TerritorioAusente    jsontext.Value    `json:"territorio_ausente"`
+	Invocaciones         []invocacionCruda `json:"invocaciones"`
+}
+
+// encabezadosDeLaTablaDeSesiones son los de la tabla de las sesiones de
+// informe.md, con los avisos junto a las citas y el territorio junto a los avisos
+// (contrato de evals §2 de H6).
+var encabezadosDeLaTablaDeSesiones = []string{
+	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes",
+	"Avisos encontrados", "Avisos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
 }
 
 // invocacionCruda es una invocación de informe.json con su código y sus
@@ -416,13 +426,12 @@ func TestInformeConAvisos(t *testing.T) {
 			assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
-				filaDeTabla("Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
-					"Citas ausentes", "Avisos encontrados", "Avisos ausentes", "Resultado"),
-				filaDeTabla(slices.Repeat([]string{"---"}, 11)...),
+				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
+				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-					"ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "no pasa"),
+					"ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno", "no pasa"),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-					"ninguno", "ninguna", "ninguno", "ninguno", "pasa"))
+					"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
 				"la sección de la sesión publica la respuesta con la forma fija")
@@ -519,8 +528,9 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	assert.Contains(t, seccion, contenidoDeLaSesion(t, directorioDeSesion(leido, sesionDelArticulo21), "pregunta.txt"))
 	assert.Contains(t, seccion, respuestaConCita)
 
-	// Ninguna de las dos evals del caso espera avisos: cada sesión los escribe
-	// como listas vacías, no como null (FR-040).
+	// Ninguna de las dos evals del caso espera avisos ni territorio: cada sesión
+	// los escribe como listas vacías, no como null (FR-040 de H5.1; contrato de
+	// evals §2 de H6).
 	require.Len(t, leido.crudo.Evals, 2, "informe.json tiene las dos sesiones del caso")
 
 	for _, resultado := range leido.crudo.Evals {
@@ -528,7 +538,21 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 			"avisos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.AvisosAusentes),
 			"avisos_ausentes de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.TerritorioEncontrado),
+			"territorio_encontrado de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.TerritorioAusente),
+			"territorio_ausente de %s es una lista vacía, no null", resultado.Sesion)
 	}
+
+	// El territorio encontrado y el ausente van en la tabla de las sesiones
+	// detrás de los avisos, vacíos en las dos.
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
+		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
+		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
+		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+			"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"),
+		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+			"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 }
 
 // comprobarFueraDeLoGrabado exige las dos invocaciones de a9998 de la sesión de
