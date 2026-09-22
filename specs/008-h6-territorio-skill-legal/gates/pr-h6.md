@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026) registra la ejecución de aceptación en gates/evals-cierre.md. -->
+<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164, `feat(H6): T029`), la tarea que el rojo de `ci` del intento 1 añadió antes de la plataforma, y registra la ejecución de aceptación en gates/evals-cierre.md. -->
 
 ## Objetivo
 
@@ -25,7 +25,7 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-la cabeza `2df74db` (`feat(H6): T024`): 31 commits; fuera de `specs/`, **153 ficheros, 29 246 líneas añadidas y 657
+la cabeza `2b81164` (`feat(H6): T029`): 33 commits; fuera de `specs/`, **156 ficheros, 30 340 líneas añadidas y 657
 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
@@ -34,11 +34,13 @@ la plataforma y la revisión. Por árboles:
   `AnalizarCodigoINEConDigito`, `ComprobarDigito`), `dir3.go` (`AnalizarDIR3`, `ComponerDIR3`), `errores.go` (errores
   tipados con la clase `argumentos`), `doc.go`, sus tests y los dos objetivos de fuzz `FuzzCodigoINE` y
   `FuzzCodigoDIR3`, con trece semillas versionadas cada uno en `testdata/fuzz/`.
-- **`internal/core/territorio`** (nuevo, 13 ficheros Go): `fuentes.go` (los cuatro tipos de fichero congelado y
-  `Cargar`, que valida la integridad entre ficheros), `registro.go`, `nombres.go` (el pliegue `Plegar` y las formas
-  alternativas derivadas del nombre oficial), `resolver.go`, `salida.go` (las ocho claves de `data`, cada dato con su
-  `source`, y `cobertura`), `errores.go`, `doc.go` y sus tests, todos sintéticos: el dominio recibe bytes y no lee
-  ningún fichero.
+- **`internal/core/territorio`** (nuevo, 16 ficheros Go): `fuentes.go` (los cuatro tipos de fichero congelado y
+  `Cargar`, que valida la integridad entre ficheros), `filas.go` (T029: la relación y la correspondencia, cuando están
+  en su forma de una fila por línea, se leen sin construir el árbol de nodos del lector de YAML; cualquier otro fichero
+  lo sigue leyendo el lector entero, con los mismos defectos), `registro.go`, `nombres.go` (el pliegue `Plegar` y las
+  formas alternativas derivadas del nombre oficial), `resolver.go`, `salida.go` (las ocho claves de `data`, cada dato
+  con su `source`, y `cobertura`), `errores.go`, `doc.go` y sus tests, todos sintéticos —entre ellos `coste_test.go`,
+  el control del coste de la carga—: el dominio recibe bytes y no lee ningún fichero.
 - **`data/`**: `datos.go` (paquete `data`, solo `//go:embed`: sin lógica); `territorio/municipios.yaml` (8 132
   municipios de la relación del INE con provincia, comunidad y dígito de control; `fecha: 2026-02-04`),
   `territorio/dir3.yaml` (8 132 filas verificadas contra el REL), `territorio/estado.yaml` (el BOE) y
@@ -117,8 +119,8 @@ control ni en el job de evals.
 ## Controles añadidos
 
 Los 28 controles de la tabla del plan («Controles mecánicos que este hito añade o toca») están en el árbol: 27 dentro
-de `make ci` y el último, la aceptación con modelo, fuera de él por diseño. Lo que pasa a ser mecánico, con el
-escenario del quickstart que lo demuestra:
+de `make ci` y el último, la aceptación con modelo, fuera de él por diseño; T029 añadió uno más dentro de `make ci`,
+el coste de la carga. Lo que pasa a ser mecánico, con el escenario del quickstart que lo demuestra:
 
 - **Ficheros congelados contra su esquema, con integridad y procedencia** (`TestTerritorioDelRepositorio/esquema`,
   `/integridad`, `/fuentes`, `/solo-madrid-configurada`, `/regimen-de-todas`, dentro de `make skills-check`): una fila
@@ -145,6 +147,12 @@ escenario del quickstart que lo demuestra:
   (no cubierto, sin ningún boletín no configurado en la salida), Abáigar y Amurrio (forales) y un nombre ambiguo; nombre,
   código, código con dígito y `--offline` byte a byte iguales (`cmp`); la invocación desde otro directorio; y el
   tiempo con `cronometra` (escenarios 3 y 7).
+- **Coste de la carga del territorio** (`TestCosteDeLaCarga`, T029, con `TestFormaDeLasFilas`, `TestCargarEnFilas`,
+  `TestNombresDificiles` y `FuzzFilasComoElLector`): cargar una relación y una correspondencia sintéticas del tamaño
+  real (8 132 filas cada una) no puede pasar de 259 688 asignaciones ni de 12 485 302 bytes —un tercio de lo que
+  asignaba la carga de `47f3090`, medido antes de cambiarla—, medido con asignaciones y no con tiempo para que no
+  dependa de la máquina; y la lectura en su forma da exactamente lo que da el lector de YAML, defecto a defecto, sobre
+  50 ficheros escritos a mano y bajo fuzz (`gates/tarea-T029.md`).
 - **Skill nueva bajo los mismos controles negativos que `boe-legislacion`** (`TestSkillsDelRepositorio`, casos
   parametrizados por skill): una referencia editada a mano falla con «legal-core: references/jerarquia_normativa.md:
   contenido-distinto»; `make skills-sync` es idempotente (escenario 11).
@@ -298,6 +306,13 @@ revisa la revisión final del hito (FR-086).
   calculado; H6 no cambia ninguna decisión de arquitectura.
 - **Sin exclusiones de lint** (D24): `aspecto` en singular, `configuración` y `autónomas` con tilde; los dos
   analizadores de `ids` en ficheros distintos con la comprobación de cifras compartida, para no disparar `dupl`.
+- **La carga del territorio lee las filas en su forma sin el lector de YAML** (T029, tras el rojo de `ci` del intento
+  1 de T026; `gates/tarea-T026.md` § 1 y `gates/tarea-T029.md`): en el runner, `territorio resolver Leganés` tardó
+  235 ms con un máximo de 200 ms, porque cargar 830 KB de datos asignaba 36 MB en unas 756 000 asignaciones, el 72 %
+  en el árbol de nodos que el lector construye para las filas. Se rechazó subir la cota, medir el mínimo de varias
+  tiradas o sacar el cronometraje de `make ci`: el arreglo va a la causa y deja la carga con los datos reales en 9 ms y
+  9,8 MB, con la misma salida byte a byte —la huella de Leganés es la de la ejecución `ci` del intento 1— y los
+  mismos defectos, y sin tocar la cota, el guion, los datos, sus esquemas, el kernel, el applet ni `go.mod`.
 
 ## Pendientes
 

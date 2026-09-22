@@ -339,7 +339,9 @@ rtk proxy sh -c 'set -e; id=$(gh run list --workflow evals.yml --branch 008-h6-t
 los quita antes de buscar las cabeceras, y termina en 1 si no encuentra los dos informes (T026, intento 1: anclada al
 principio de la línea sin quitarlos, no imprimía nada y terminaba en 0).
 
-Espera: **una sola ejecución** con sus dos trabajos de la matriz en verde; `código: 0` tras los dos informes; en el informe de `legal-core`, las tres
+Espera: **una ejecución vigente** —la última de la rama, sobre su cabeza; si hubo que repetirla por etiqueta porque la
+cabeza cambió fuera de `specs/` después de la primera (regla de SC-015), las anteriores quedan registradas y no
+cuentan— con sus dos trabajos de la matriz en verde; `código: 0` tras los dos informes; en el informe de `legal-core`, las tres
 evals con su tasa (al menos 2 de 3 sesiones), el commit evaluado y el identificador del modelo, y `red` vacío; en el
 de `boe-legislacion`, su conjunto pasando con la regla de H5 y H5.1. La respuesta de la eval del municipio no cubierto
 dice explícitamente qué no está configurado y no nombra ningún boletín que el applet no haya devuelto (SC-013). El
