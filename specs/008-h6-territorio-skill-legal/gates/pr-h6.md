@@ -47,8 +47,8 @@ la plataforma y la revisión. Por árboles:
   `territorio/comunidades/` (19 ficheros, uno por comunidad y ciudad autónoma, con régimen y provincias; solo `13.yaml`,
   la Comunidad de Madrid, trae `boletines`: el BOCM, autonómico y provincial con su motivo); `jerarquia.yaml` (los
   cinco niveles, su boletín, sus tipos de norma y las cuatro reglas de interpretación); `normas.yaml` gana siete
-  normas (Código Civil, LOPJ, LEC, LRBRL, LPH, LCSP y LOPDGDD, con identificador, título y rango copiados de su
-  búsqueda grabada) y la marca `vertebral: true` en las quince de la tabla de `refs/` §1.4.
+  normas (Código Civil, LJCA, LEC, LOPJ, LGS, LOPDGDD y LGP, con identificador, título y rango copiados de su
+  búsqueda grabada; la LRBRL y la LCSP ya estaban desde H5) y la marca `vertebral: true` en las quince de la tabla de `refs/` §1.4.
 - **`internal/app`** (10 ficheros): `territorio.go` (el applet, registrado junto a `boe`), `registro.go` (inyección
   de `FuentesEmbebidas`), `esquemas_test.go` (tabla de esquemas parametrizada por applet), `skills_test.go` (casos
   negativos parametrizados por skill y `skillsExigidas` con las dos skills), el guion e2e `territorio-matriz.txtar`
@@ -224,7 +224,7 @@ dominio desde `internal/skills` no cuenta para el umbral. El paquete `data` sale
 pero el perfil solo atribuye a cada paquete lo que ejecutan sus propios tests, y `data` no tiene ninguno porque no
 tiene lógica (D15). **Ningún umbral se rebaja**: `codecov.yml` no aparece en el diff.
 
-**Sin ninguna supresión nueva**: `0` líneas `//nolint`, `0` `t.Skip` y `0` `TODO` añadidas en ficheros `.go` frente
+**Una sola supresión nueva, razonada**: `//nolint:paralleltest` en `internal/core/territorio/coste_test.go:36`, porque la prueba mide lo que asigna todo el proceso y otra en paralelo contaría lo suyo; `0` `t.Skip` y `0` `TODO` añadidos en ficheros `.go` frente
 a `main`; ninguna entrada nueva en `misspell.ignore-rules` (`.golangci.yml` no cambia).
 
 **Sin red en las tareas**: ninguna ejecutó `KITLEGAL_RECORD`, `scripts/grabar-evals.sh`, `make evals`,
