@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164) y T026, intento 3, registró la primera ejecución de aceptación válida (35722605048, sobre 2b81164). La revisión final (2026-09-22 a 2026-09-24) la corrigió en dos rondas y registró en gates/evals-cierre.md la ejecución de aceptación vigente: la repetida sobre la cabeza tras las correcciones fuera de specs/ (ver «Revisión final»). -->
+<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164) y T026, intento 3, registró la primera ejecución de aceptación válida (35722605048, sobre 2b81164). La revisión final (2026-09-22 a 2026-09-24) la corrigió ronda a ronda, como cuenta la sección «Revisión final», y registró en gates/evals-cierre.md la ejecución de aceptación vigente: la repetida sobre la cabeza tras las correcciones fuera de specs/ (ver «Revisión final»). -->
 
 ## Objetivo
 
@@ -382,7 +382,13 @@ autorizó una tercera solo para ellos:
 3. **El resumen de `docs/SOURCES.md`** (A): la viñeta de *Documentación* incluye el cambio de fecha de la ronda 2,
    con su commit.
 
-Como las dos rondas tocan ficheros fuera de `specs/`, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
+Ronda 4 (`gates/revision-a-r4.json`, `gates/revision-b-r4.json`): los dos jueces rechazaron por el recuento de rondas
+que la ronda 3 dejó desfasado en el comentario de cabecera y en la frase sobre las rondas que tocan ficheros fuera de
+`specs/`; el juez A, además, por `plan.md`, que seguía diciendo que en el `Makefile` cambia una sola receta. La
+cabecera deja de contar rondas y remite a esta sección, la frase dice «las rondas 1 y 2», y `plan.md` gana la viñeta
+de `release`. Todo bajo `specs/`, sin efecto sobre SC-015.
+
+Como las rondas 1 y 2 tocan ficheros fuera de `specs/` —las siguientes no—, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
 (36011479943) y, tras la ronda 2, sobre `6d08752` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
 
 ## Pendientes

@@ -333,12 +333,14 @@ Según la sección «Gates» de la constitución. «Demostración» dice qué fa
 
 ### Objetivos del `Makefile`
 
-Ningún objetivo nuevo. **Una sola receta cambia**, la de `skills-check`:
+Ningún objetivo nuevo. Cambian dos recetas, `skills-check` y, en la revisión final, `release`:
 
 - `skills-check` (←): su expresión `-run` gana `TestTerritorioDelRepositorio` y `TestJerarquiaDelRepositorio`; el
   paquete `./internal/skills/` ya está en su lista, así que no cambia nada más. Como la receta cambia, la fila de
   `make skills-check` de las tablas de controles de `README.md` y `CONTRIBUTING.md` se alinea en la misma rama con lo
   que el objetivo pasa a cubrir (obligación 8).
+- `release` (←, revisión final, `c481451`): su comentario y su mensaje dicen H19, el hito de la release (ADR 0013), en
+  vez de H6; la receta sigue fallando con código distinto de 0.
 - `schema-check`: sin cambio de receta; gana `schemas/municipio.json` por la vía del registro de producción.
 - `test` y `test-e2e`: sin cambio de receta; ganan el guion `territorio-matriz.txtar` y los tests de los paquetes
   nuevos.
