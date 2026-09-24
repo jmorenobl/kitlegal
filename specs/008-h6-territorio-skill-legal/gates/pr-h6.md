@@ -25,8 +25,8 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-`6d08752` (`fix(H6): los motivos de la ronda 2 de la revisión final`), el último commit que cambia algo fuera de
-`specs/`: 42 commits; fuera de `specs/`, **157 ficheros, 30 500 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
+`ead63d9` (`fix(H6): la guarda de declaraElNombre, con su test y su motivo`), el último commit que cambia algo fuera
+de `specs/`: 47 commits; fuera de `specs/`, **157 ficheros, 30 509 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
 
@@ -404,8 +404,17 @@ revisión final en el árbol y en el inventario de tests, el `//nolint` razonado
 test corre en qué objetivo del `Makefile`, `formaDelComando` en `formato.go` y los dos bloques *De H6* del CHANGELOG—,
 todas corregidas. Todo bajo `specs/`, sin efecto sobre SC-015.
 
-Como las rondas 1 y 2 tocan ficheros fuera de `specs/` —las siguientes no—, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
-(36011479943) y, tras la ronda 2, sobre `6d08752` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
+Ronda 6 (`gates/revision-a-r6.json`, `gates/revision-b-r6.json`): los dos jueces rechazaron por dos frases sobre el
+paquete `data` que el repaso dejó —`plan.md` citaba el §3 del contrato de datos en su versión vieja y este cuerpo decía
+que `data` no tiene lógica—, y el juez A, además, por una guarda sin test: `declaraElNombre`
+(`internal/evals/territorio.go`) no daba por declarado un nombre que se pliega a nada, ningún test lo ejercía y su
+comentario daba el motivo al revés. `TestExtraerTerritorio` gana el caso `nombres-que-se-pliegan-a-nada`, que el
+mutante sin la guarda pone en rojo, y el comentario dice el motivo real (`ead63d9`). Como toca `internal/evals/`, la
+ejecución de aceptación se repitió.
+
+Como las rondas 1, 2 y 6 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió tras
+cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457) y sobre `ead63d9` (*Pendientes*, SC-015;
+`gates/evals-cierre.md`).
 
 ## Pendientes
 
@@ -416,15 +425,17 @@ Como las rondas 1 y 2 tocan ficheros fuera de `specs/` —las siguientes no—, 
   `CHANGELOG.md`, `CONTRIBUTING.md`, `data/datos.go` y su test, los 19 ficheros de comunidad, el e2e y cinco tests;
   y `9a77c6b`: la nota al pie del DIR3 en `docs/SOURCES.md`); se repitió por etiqueta, como H5.1, sobre `9a77c6b`
   (36011479943), y la ronda 2 volvió a tocarlos (`6d08752`: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
-  `docs/SOURCES.md` y un test). **La vigente es la 36019842457, sobre `6d08752`**, y desde ese commit la cabeza solo
-  cambia bajo `specs/008-h6-territorio-skill-legal/`. Las tres anteriores —35714659803 sobre `47f3090`, 35722605048
-  sobre `2b81164` y 36011479943 sobre `9a77c6b`— quedan registradas en `gates/evals-cierre.md` y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 2»). En la ejecución
-  36019842457, sobre `6d08752`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
+  `docs/SOURCES.md` y un test), y se repitió sobre `6d08752` (36019842457); y la ronda 6 tocó `internal/evals/`
+  (`ead63d9`: un comentario y un caso de test). **La vigente es la 36038417662, sobre `ead63d9`**, y desde ese commit
+  la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`. Las cuatro anteriores —35714659803 sobre
+  `47f3090`, 35722605048 sobre `2b81164`, 36011479943 sobre `9a77c6b` y 36019842457 sobre `6d08752`— quedan
+  registradas en `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 6»). En la ejecución
+  36038417662, sobre `ead63d9`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
   umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 con
   `claude-sonnet-5` sin que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente,
-  y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún boletín que el
-  applet no devolvió. `ci` en verde sobre `6d08752` (36019821690), con los cuatro estados de Codecov en verde y con
+  y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado`; las tres del modelo que decide, sin
+  nombrar ningún boletín que el applet no devolvió (SC-013, abajo). `ci` en verde sobre `ead63d9` (36038400511), con los cuatro estados de Codecov en verde y con
   medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
@@ -432,11 +443,12 @@ Como las rondas 1 y 2 tocan ficheros fuera de `specs/` —las siguientes no—, 
   una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en el intento 3,
   ninguna; en la 36011479943, una del modelo informativo (`haiku-4-5-20251001-02`: «el Boletín Oficial de Castilla y
   León», con mayúsculas, el nombre propio del boletín autonómico), con veredicto `pasa`, y ninguna de las tres del
-  modelo que decide; en la vigente, 36019842457, ninguna de las seis. El spec no fijaba si esa cláusula se cuenta
+  modelo que decide; en la 36019842457, ninguna de las seis; en la vigente, 36038417662, otra vez una del informativo
+  (`haiku-4-5-20251001-02`: «Boletín Oficial de Castilla y León (BOCYL)») y ninguna del modelo que decide. El spec no fijaba si esa cláusula se cuenta
   respuesta a respuesta o por serie y umbral como SC-015, y en la 36011479943 las dos lecturas daban distinto (5 de 6
   frente a 3 de 3 y 2 de 3). **Decisión de Jorge (2026-09-24): vale la lectura por serie y umbral**, la misma que el
-  resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—. En la vigente las dos
-  coinciden. Para que la cláusula la
+  resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—; con ella, la vigente
+  cumple (3 de 3 y 2 de 3). Para que la cláusula la
   juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
   no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
   `internal/evals`, así que es una pieza aparte, después de este hito.
