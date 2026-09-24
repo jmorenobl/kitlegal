@@ -351,29 +351,35 @@ los dos. Los seis están cerrados:
    supresión `//nolint` declarada con su motivo (`e4c0b65`) y el dígito de control de Leganés en `research.md` y
    `data-model.md` (`c481451`).
 
+Como `c481451` y `9a77c6b` tocan ficheros fuera de `specs/`, la ejecución de aceptación se repitió sobre `9a77c6b`: la
+36011479943, las dos skills `aprobado` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
+
 ## Pendientes
 
 - **Regla de SC-015 sobre lo que puede cambiar después de la ejecución de aceptación** (plan, obligación 9): el commit
   del informe de evals tiene que ser de la rama del hito, y **la cabeza que se fusiona solo puede diferir de él en
   ficheros bajo `specs/008-h6-territorio-skill-legal/`**. La ejecución 35722605048, sobre `2b81164` (`feat(H6): T029`),
   dejó de cubrirla cuando la revisión final tocó código, datos y documentación fuera de `specs/` (`c481451`: `Makefile`,
-  `CHANGELOG.md`, `CONTRIBUTING.md`, `data/datos.go` y su test, los 19 ficheros de comunidad, el e2e y cuatro tests;
-  y la nota al pie del DIR3 en `docs/SOURCES.md`). **Se repite la ejecución** sobre la cabeza que resulta, por
-  etiqueta como H5.1, y `gates/evals-cierre.md` registra la repetición vigente. Las dos anteriores —35714659803 sobre
-  `47f3090`, que dejó de cubrir la cabeza con T029, y 35722605048— quedan registradas y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada por T026 (intento 3) en `gates/evals-cierre.md`. En la ejecución
-  35722605048, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y umbral 2: las tres
-  evals de `legal-core` dan 3 de 3 con el modelo que decide, las 18 de `boe-legislacion` llegan al umbral sin que sus
-  ficheros hayan cambiado frente a `main`, `red` vacío en los dos informes, ninguna invocación fuera de lo grabado
-  llega a la red, y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún
-  boletín que el applet no devolvió. `ci` en verde sobre `2b81164` (35721902798) y sobre la cabeza `ee967b6`
-  (35724203328), con los cuatro estados de Codecov en verde.
+  `CHANGELOG.md`, `CONTRIBUTING.md`, `data/datos.go` y su test, los 19 ficheros de comunidad, el e2e y cinco tests;
+  y `9a77c6b`: la nota al pie del DIR3 en `docs/SOURCES.md`). Se repitió por etiqueta, como H5.1: **la vigente es la
+  36011479943, sobre `9a77c6b`**, y desde ese commit la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`.
+  Las dos anteriores —35714659803 sobre `47f3090`, que dejó de cubrir la cabeza con T029, y 35722605048— quedan
+  registradas en `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final»). En la ejecución
+  36011479943, sobre `9a77c6b`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
+  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 sin
+  que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente, y las seis respuestas
+  de Tordesillas declaran los dos aspectos `no-configurado`. `ci` en verde sobre `9a77c6b` (36011447433), con los
+  cuatro estados de Codecov en verde y con medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
   puede aparecer, así que el juez no ve si una respuesta nombra un boletín que el applet no devolvió. En el intento 1
-  una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en la ejecución
-  vigente ninguna de las seis. El spec tampoco fija si esa cláusula se cuenta respuesta a respuesta o por serie y
-  umbral como SC-015; en la ejecución vigente las dos lecturas coinciden y no hubo que elegir. Para que la cláusula la
+  una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en el intento 3,
+  ninguna; en la ejecución vigente, una del modelo informativo (`haiku-4-5-20251001-02`: «el Boletín Oficial de
+  Castilla y León», con mayúsculas, el nombre propio del boletín autonómico), con veredicto `pasa`, y ninguna de las
+  tres del modelo que decide. El spec tampoco fija si esa cláusula se cuenta respuesta a respuesta o por serie y
+  umbral como SC-015: **por serie y umbral se cumple** (3 de 3 del modelo que decide, 2 de 3 del informativo);
+  **respuesta a respuesta, no** (5 de 6). Quien fusiona decide con esto delante. Para que la cláusula la
   juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
   no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
   `internal/evals`, así que es una pieza aparte, después de este hito.
