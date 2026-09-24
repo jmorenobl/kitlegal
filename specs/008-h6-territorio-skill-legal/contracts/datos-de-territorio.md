@@ -52,8 +52,8 @@ var Municipios []byte
 var DIR3 []byte
 //go:embed territorio/estado.yaml
 var Estado []byte
-//go:embed territorio/comunidades
-var comunidades embed.FS
+//go:embed territorio/comunidades/01.yaml territorio/comunidades/02.yaml … territorio/comunidades/19.yaml
+var comunidades embed.FS   // cada fichero por su nombre: la falta de uno no compila
 
 func Comunidades() (map[string][]byte, error)
 ```
@@ -108,5 +108,5 @@ en tabla.
 | Que la Comunidad de Madrid está configurada, sin prohibir otras (SC-005) | `TestTerritorioDelRepositorio/madrid-configurada` | sí |
 | Que las 19 comunidades tienen régimen | `TestTerritorioDelRepositorio/regimen-de-todas` | sí |
 | Que el pliegue de nombres cubre el corpus, no deja municipios inalcanzables y no deja ningún nombre que sea solo cifras | `TestTerritorioDelRepositorio/pliegue-cubre-el-corpus`, `/nombres-alcanzables`, `/ningun-nombre-es-solo-cifras` (research.md D27) | sí |
-| Que ningún municipio concreto aparece en código ni en la skill | `TestSkillsDelRepositorio` (normas nombradas y revisión final); los municipios solo en fixtures, e2e y evals | sí / revisión |
+| Que ningún municipio concreto aparece en código ni en la skill | Ningún control mecánico: lo vigila la revisión final; los municipios solo en fixtures, e2e y evals | no |
 | Que el binario no pide estas fuentes | `TestArquitectura` R2 y la ausencia de fila «consultada en ejecución» en `docs/SOURCES.md` | sí |

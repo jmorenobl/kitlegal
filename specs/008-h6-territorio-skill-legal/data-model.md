@@ -147,7 +147,8 @@ los enumerados sean exactamente esos.
 
 ### 2.5 Territorio resuelto: el `data` del verbo
 
-Ocho claves de primer nivel, cada una con el `source` del dato que la sostiene (FR-005, FR-006):
+Ocho claves de primer nivel. Cada dato que sale de un fichero lleva su `source` (FR-005, FR-006); `cobertura`, que dice
+lo que el registro tiene configurado o verificado, no lo lleva:
 
 ```json
 {

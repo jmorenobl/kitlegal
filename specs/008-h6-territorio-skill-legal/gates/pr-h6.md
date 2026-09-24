@@ -441,6 +441,16 @@ una más con código 4, la de `--offline` sin la respuesta en la caché; y el ju
 `--dry-run` —V15 de `research.md` y la viñeta de D7 de este cuerpo— sin la excepción del plazo agotado. Corregidas;
 todo bajo `specs/`, sin efecto sobre SC-015.
 
+Ronda 11 (`gates/revision-a-r11.json`, `gates/revision-b-r11.json`): el juez B aprobó y el juez A rechazó por cuatro
+motivos. El principal es del producto: `data/datos.go` embebía `data/territorio/comunidades/` como directorio, de modo
+que la falta de uno de los 19 ficheros compilaba y fallaba en ejecución, contra lo que decidió Q4. Ahora cada fichero
+se embebe por su nombre y la falta de cualquiera no compila (comprobado apartando `05.yaml`: «pattern
+territorio/comunidades/05.yaml: no matching files found»). Los otros tres: la fila del contrato de datos que atribuía a
+`TestSkillsDelRepositorio` el control de municipios en código y skill, que ningún test hace y vigila la revisión; la
+frase de data-model §2.5 que daba `source` también a `cobertura`; y dos tests de `internal/core/ids` que presentaban el
+8 como dígito de Leganés, ya con el 5 oficial. Como toca `data/` e `internal/core/ids`, la ejecución de aceptación se
+repitió.
+
 Como las rondas 1, 2, 6, 8 y 9 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió
 tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662), sobre
 `ca78cac` (36052056175) y sobre `6b1bf87` (36058947741) (*Pendientes*, SC-015; `gates/evals-cierre.md`).

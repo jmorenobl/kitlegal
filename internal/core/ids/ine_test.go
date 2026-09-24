@@ -114,7 +114,7 @@ func TestAnalizarCodigoINE(t *testing.T) {
 		t.Parallel()
 
 		casos := []casoDeAnalisis{
-			{nombre: "Leganés", entrada: "280748"},
+			{nombre: "Leganés", entrada: "280745"},
 			{nombre: "ceros por delante", entrada: "010014"},
 			{nombre: "dígito cero", entrada: "010040"},
 			{nombre: "vacía", entrada: "", motivo: "tiene 0 cifras y la forma PPMMMD tiene 6"},

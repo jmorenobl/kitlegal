@@ -2,9 +2,10 @@
 // se leen en ejecución: los de data/territorio/ (FR-056; research.md D2).
 //
 // Las directivas //go:embed viven aquí, junto a los ficheros, porque un patrón
-// no puede subir de directorio: un paquete de internal/ no los alcanzaría. Un
-// patrón que no casa con ningún fichero es un error de compilación, así que la
-// ausencia de uno nunca llega a la ejecución; que su contenido valga lo
+// no puede subir de directorio: un paquete de internal/ no los alcanzaría. Cada
+// fichero se nombra en su directiva, y un patrón que no casa con ningún fichero
+// es un error de compilación, así que la ausencia de uno nunca llega a la
+// ejecución; que su contenido valga lo
 // comprueba make ci contra sus esquemas (contrato de datos §2 y §3). El paquete
 // no interpreta nada: entrega los bytes tal como están escritos, y quien los
 // analiza es el dominio (research.md D3).
@@ -36,9 +37,15 @@ var DIR3 []byte
 var Estado []byte
 
 // comunidades es el subárbol data/territorio/comunidades/, con un fichero por
-// comunidad y ciudad autónoma.
+// comunidad y ciudad autónoma. Cada uno se embebe por su nombre, y no el
+// directorio entero, para que la falta de cualquiera de los 19 sea un error de
+// compilación y no un fallo en ejecución.
 //
-//go:embed territorio/comunidades
+//go:embed territorio/comunidades/01.yaml territorio/comunidades/02.yaml territorio/comunidades/03.yaml territorio/comunidades/04.yaml
+//go:embed territorio/comunidades/05.yaml territorio/comunidades/06.yaml territorio/comunidades/07.yaml territorio/comunidades/08.yaml
+//go:embed territorio/comunidades/09.yaml territorio/comunidades/10.yaml territorio/comunidades/11.yaml territorio/comunidades/12.yaml
+//go:embed territorio/comunidades/13.yaml territorio/comunidades/14.yaml territorio/comunidades/15.yaml territorio/comunidades/16.yaml
+//go:embed territorio/comunidades/17.yaml territorio/comunidades/18.yaml territorio/comunidades/19.yaml
 var comunidades embed.FS
 
 // Dónde está el subárbol de comunidades dentro de lo embebido y cómo se llama

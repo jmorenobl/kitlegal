@@ -66,7 +66,7 @@ func TestClaseDeLosErrores(t *testing.T) {
 		{"INE con dígito con algo que no es cifra", codigoINEConDigito, "28074a", analizarINEConDigito("28074a")},
 		{"INE con dígito de provincia inexistente", codigoINEConDigito, "530018", analizarINEConDigito("530018")},
 		{"INE con dígito de municipio 000", codigoINEConDigito, "280008", analizarINEConDigito("280008")},
-		{"INE con dígito distinto del oficial", codigoINEConDigito, "280749", leganes.ComprobarDigito('9', '8')},
+		{"INE con dígito distinto del oficial", codigoINEConDigito, "280749", leganes.ComprobarDigito('9', '5')},
 		{"DIR3 vacío", codigoDIR3, "", analizarDIR3("")},
 		{"DIR3 con otra letra", codigoDIR3, "X01280748", analizarDIR3("X01280748")},
 		{"DIR3 con algo que no es cifra", codigoDIR3, "L0128074a", analizarDIR3("L0128074a")},
