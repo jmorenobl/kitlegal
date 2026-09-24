@@ -143,8 +143,8 @@ el coste de la carga. Lo que pasa a ser mecánico, con el escenario del quicksta
   y 3 929 765 ejecuciones sin hallazgo (escenarios 6 y 10).
 - **Forma del sobre y códigos del applet** (`TestResolverDevuelveElTerritorio`, `TestCodigosDeTerritorio`,
   `TestSalidaDeTerritorioContraSchemas`): ocho claves siempre, `cobertura` con tres, la salida real validada contra el
-  esquema publicado; `0` resuelto, `2` ambiguo o mal formado, `3` no encontrado, nunca `4`, `5` ni `6` (escenarios 2 y
-  6).
+  esquema publicado; `0` resuelto, `2` ambiguo o mal formado, `3` no encontrado; el applet no decide nunca `4`, `5` ni `6`, y el `4` del plazo agotado de `--timeout`, que
+  pone el kernel, tiene su caso (escenarios 2 y 6).
 - **`--describe` sin deriva y cobertura de esquemas** (`TestEsquemasPublicados`, en `make schema-check`, y
   `TestEsquemasCubrenTodosLosVerbos`, en `make test`): `schemas/municipio.json` alterado falla con «el fichero no es la serialización canónica de
   sus partes» (escenario 8).

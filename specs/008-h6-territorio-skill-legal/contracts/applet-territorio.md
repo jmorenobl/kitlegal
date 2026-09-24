@@ -60,7 +60,8 @@ La tabla completa de entradas está en [data-model.md](../data-model.md) §2.6. 
 | 0 | Municipio resuelto | — |
 | 2 | Entrada mal formada, o nombre que corresponde a más de un municipio | `argumentos` |
 | 3 | Municipio que no está en la relación (por nombre, o por código **bien formado**: provincia `01`-`52` y municipio `001`-`999`) | `no-encontrado` |
-| 4, 5, 6 | **Nunca** (FR-016) | — |
+| 4 | Solo si se agota `--timeout`: lo decide el kernel para todo applet (FR-020 de H1), no el applet, y el sobre de fallo lleva la firma del applet | `fuente-no-disponible` |
+| 4, 5, 6 | El applet **no los decide nunca** (FR-016): no consulta fuentes ni cruza la frontera humana | — |
 
 El mensaje del error del applet llega literal al `mensaje` del sobre de fallo y a la salida de error
 (research.md V17). Para el nombre ambiguo, el mensaje lleva **todos** los candidatos en la forma fija
@@ -73,7 +74,7 @@ El mensaje del error del applet llega literal al `mensaje` del sobre de fallo y 
 | `--json` | Presenta el sobre; sin ella, la forma de tabla del presentador |
 | `--offline` | **Ninguno**: el applet no consulta nada, así que devuelve exactamente lo mismo (FR-009) |
 | `--dry-run` | El applet se ejecuta igual y no rellena `Ensayo`; el kernel escribe su línea en la salida de error. Una consulta que se resuelve no emite sobre y termina con 0; una que el applet rechaza emite, con `--json`, el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, el reloj; §2) y termina con su código, 2 o 3 (research.md D7, V15) |
-| `--timeout` | El plazo de la operación; no hay operación que lo agote |
+| `--timeout` | El plazo de la invocación. La carga del registro lo agota si es más corto que ella (del orden de decenas de milisegundos): entonces el kernel termina con 4, clase `fuente-no-disponible` y la firma del applet (FR-020 de H1) |
 | `--describe` | Emite el esquema de entrada y salida del verbo |
 | `--no-graph`, `--asunto`, `--verbose` | Heredados, sin efecto propio en H6 (el grafo es H7) |
 
@@ -114,7 +115,7 @@ func AppletTerritorio(fuentes territorio.Fuentes) Applet
 | Forma del sobre y de `data` | `TestResolverDevuelveElTerritorio` (`internal/app/territorio_test.go`) | sí |
 | Salida real contra el esquema publicado | `TestSalidaDeTerritorioContraSchemas` | sí |
 | `--describe` sin deriva | `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos` | sí (`schema-check` el primero; `test` el segundo) |
-| Códigos 0, 2 y 3, y que nunca hay 4, 5 ni 6 | `TestCodigosDeTerritorio` | sí |
+| Códigos 0, 2 y 3; que el applet no decide nunca 4, 5 ni 6; y el 4 del plazo agotado | `TestCodigosDeTerritorio` | sí |
 | Igualdad byte a byte por nombre, por código y con `--offline` | `territorio-matriz.txtar` | sí (`test-e2e` dentro de `test`) |
 | Matriz territorial completa | `territorio-matriz.txtar` (Leganés, Tordesillas, foral, ambiguo) | sí |
 | Que ningún boletín no configurado aparece | `territorio-matriz.txtar` + `TestSalidaSinBoletinesNoConfigurados` | sí |

@@ -147,7 +147,7 @@ la clase y el mensaje—; **3** (el nombre no corresponde a ningún municipio); 
 relación: <PPMMM>` y después **3**, con clase `no-encontrado`; **2** para `99999`, con clase `argumentos` y un mensaje
 que dice qué tiene de malo —la provincia `99` está fuera de `01`-`52`, así que la entrada no llega a ser un código y
 **nunca** puede dar 3—; **2** (cuatro cifras no son un código); **2** (dígito de control distinto del oficial —se toma
-el de Leganés y se le suma uno— y el mensaje dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6.
+el de Leganés y se le suma uno— y el mensaje dice cuál se esperaba). Ninguna invocación devuelve 4, 5 ni 6 (el 4 solo aparece si se agota `--timeout`, y lo pone el kernel).
 
 La guía nombraba antes el caso ambiguo a mano, `Villanueva`, y en la relación congelada ningún municipio se llama
 exactamente así: da 3, no 2 (cierre de T025, intento 1, `gates/tarea-T025.md`).

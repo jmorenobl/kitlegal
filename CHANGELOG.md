@@ -296,7 +296,8 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   directorio. Códigos: `0` resuelto; `2` una entrada que no llega a ser un código —provincia fuera de `01`-`52`,
   municipio `000`— o un dígito de control que no es el oficial, y un nombre que corresponde a más de un municipio,
   cuyo mensaje enumera todos los candidatos como `<código INE> <nombre> (<provincia>)`; `3` un nombre, o un código
-  bien formado, que no está en la relación; nunca `4`, `5` ni `6`. Su contrato se publica en `schemas/municipio.json`
+  bien formado, que no está en la relación. El applet no decide nunca `4`, `5` ni `6`; solo el plazo de `--timeout`,
+  que pone el kernel para todo applet, termina en `4`. Su contrato se publica en `schemas/municipio.json`
   (`$defs.resolver`), generado desde `--describe` y comprobado por `make schema-check` como los de `boe`.
 - **Datos congelados de territorio en `data/territorio/`**, versionados y embebidos en el binario, que no los pide
   en red en ningún momento (ADR 0017): `municipios.yaml`, la relación de municipios del INE con su dígito de control,

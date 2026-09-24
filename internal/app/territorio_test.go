@@ -143,9 +143,10 @@ var clavesDelTerritorio = []string{
 	"municipio", "codigo_ine", "provincia", "comunidad", "dir3", "regimen", "boletines", "cobertura",
 }
 
-// codigosQueNuncaDa son los que el applet no puede devolver: no consulta
-// fuentes ni cruza la frontera humana, y sus datos no pueden faltar en
-// ejecución (FR-016).
+// codigosQueNuncaDa son los que el applet no decide nunca: no consulta fuentes
+// ni cruza la frontera humana, y sus datos no pueden faltar en ejecución
+// (FR-016). El 4 solo lo pone el kernel, para todo applet, cuando se agota el
+// plazo de --timeout (FR-020 de H1).
 var codigosQueNuncaDa = []int{4, 5, 6}
 
 // fuentesDeTerritorio devuelve el registro local, nuevo en cada llamada: cada
@@ -481,7 +482,10 @@ func gruposDeCasos() []grupoDeCasos {
 //     00 o mayor que 52, con el municipio 000— son 2, con clase argumentos y
 //     nunca 3, y lo mismo el dígito que no es el oficial;
 //   - la invocación sin la consulta, o sin el verbo, es 2 y la firma el kernel;
-//   - y ninguna invocación, con ninguna bandera, termina en 4, 5 ni 6.
+//   - ninguna invocación, con ninguna bandera y con un plazo que la carga
+//     cumple, termina en 4, 5 ni 6;
+//   - y un plazo que la carga no puede cumplir termina en 4, con clase fuente
+//     no disponible y la firma del applet: lo decide el kernel, no el applet.
 func TestCodigosDeTerritorio(t *testing.T) {
 	t.Parallel()
 
@@ -504,6 +508,27 @@ func TestCodigosDeTerritorio(t *testing.T) {
 
 		compruebaQueNuncaDaCuatroCincoNiSeis(t)
 	})
+
+	t.Run("plazo-agotado-da-4-y-lo-decide-el-kernel", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaPlazoAgotado(t)
+	})
+}
+
+// compruebaPlazoAgotado exige la única excepción de FR-016, la que fija H1 para
+// todo applet: con un plazo de un nanosegundo, vencido antes de que el applet
+// termine, la invocación es 4 con clase fuente no disponible y la firma del
+// applet, aunque el applet habría resuelto la consulta (FR-020).
+func compruebaPlazoAgotado(t *testing.T) {
+	t.Helper()
+
+	consulta := municipiosResueltos()[0].consultas[0]
+	res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()),
+		argvDeResolver(consulta, "--json", "--timeout", "1ns")...)
+
+	exigirSobreDeFallo(t, res, schema.ClaseFuenteNoDisponible, 4, firmaDeTerritorio)
+	assert.Contains(t, res.errores, "plazo", "el mensaje dice que lo que falló fue el plazo")
 }
 
 // comprueba invoca el caso sobre el registro local y exige su sobre de fallo.
@@ -555,7 +580,8 @@ func mensajeDelDominio(t *testing.T, consulta string) string {
 
 // banderasDeTerritorio son las combinaciones de banderas globales con las que
 // se barren todas las consultas: ninguna cambia lo que el applet puede
-// devolver.
+// devolver. El plazo de --timeout es uno que la carga cumple; el que no, lo
+// prueba compruebaPlazoAgotado.
 var banderasDeTerritorio = [][]string{
 	nil,
 	{"--json"},
@@ -571,7 +597,8 @@ var banderasDeTerritorio = [][]string{
 // compruebaQueNuncaDaCuatroCincoNiSeis invoca todas las consultas de estos
 // tests, las que se resuelven y las que no, con cada combinación de banderas
 // globales, sobre un mismo applet, y exige que todas terminen en 0, 2 o 3
-// (FR-016, SC-004).
+// (FR-016, SC-004): con un plazo que la carga cumple, el applet no decide
+// nunca 4, 5 ni 6.
 func compruebaQueNuncaDaCuatroCincoNiSeis(t *testing.T) {
 	t.Helper()
 

@@ -37,8 +37,8 @@ Las banderas de cada verbo, en «territorio <verbo> --help».
   autonómico y el provincial, sin nombrar ninguno: lo que no está configurado nunca se presenta como inexistente. No
   pide nada a la red, así que responde igual con `--offline`. Los fallos salen con los códigos estables: `2` una
   entrada que no es un código bien formado, un dígito de control que no es el oficial o un nombre de varios
-  municipios, con todos los candidatos en el mensaje; `3` un municipio que no está en la relación; nunca `4`, `5` ni
-  `6`. Su contrato está publicado en `schemas/municipio.json`.
+  municipios, con todos los candidatos en el mensaje; `3` un municipio que no está en la relación. El applet no decide nunca `4`, `5` ni
+  `6`; solo el plazo de `--timeout`, que pone el kernel para todo applet, termina en `4`. Su contrato está publicado en `schemas/municipio.json`.
 - **Datos congelados** en `data/territorio/`: la relación de municipios del INE, el DIR3 del ayuntamiento de cada
   municipio —derivado del número de inscripción del Registro de Entidades Locales, con la regla verificada contra el
   directorio DIR3 oficial—, el boletín estatal y un fichero por comunidad y ciudad autónoma con su régimen y, si está

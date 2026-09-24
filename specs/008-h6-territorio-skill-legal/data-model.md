@@ -191,7 +191,8 @@ entrada plegada → ¿vacía? ── sí ──→ no nombra nada (2)
 | Nombre que corresponde a varios | 2 | Mensaje con **todos** los candidatos, ordenados por código INE |
 | Nombre que no corresponde a ninguno | 3 | — |
 
-El applet **nunca** devuelve 4, 5 ni 6 (FR-016).
+El applet **nunca** decide 4, 5 ni 6 (FR-016); solo el plazo agotado de `--timeout`, que pone el kernel para todo
+applet, termina en 4 (FR-020 de H1).
 
 ### 2.7 Normalización de nombres
 
