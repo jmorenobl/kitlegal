@@ -17,7 +17,7 @@ anteriores quedan registradas y no cuentan.
 | Commit evaluado | `6b1bf872ed75b4cb0ec007b9c4e28e9ffcbe9772`: el `headSha` de la ejecución y el `Commit:` de los dos informes |
 | Modelos | decide `claude-sonnet-5`; informativo `claude-haiku-4-5-20251001`; Claude Code `2.1.270`; 3 repeticiones y umbral 2 |
 | `legal-core` | `aprobado`, `Motivos: ninguno`. Las tres evals, 3 de 3 con los dos modelos; ninguna invocación fuera de lo grabado |
-| `boe-legislacion` | `aprobado`, `Motivos: ninguno`. Las 18 evals, 3 de 3 con `claude-sonnet-5`; con el informativo, 3 de 3 salvo la 02 y la 06, 2 de 3. Veinte invocaciones fuera de lo grabado, todas con código 5 y ninguna llega a la red |
+| `boe-legislacion` | `aprobado`, `Motivos: ninguno`. Las 18 evals, 3 de 3 con `claude-sonnet-5`; con el informativo, 3 de 3 salvo la 02 y la 06, 2 de 3. Veintiuna invocaciones fuera de lo grabado: veinte con código 5 y una con código 4 (`boe articulo BOE-A-2004-4964 a17 --json --offline`, sesión `06-irpf-rendimientos-del-trabajo-claude-haiku-4-5-20251001-03`: `--offline` sin la respuesta en la caché); ninguna llega a la red |
 | Red | «ninguna petición llegó a la red de una fuente» en los dos informes |
 | Sin Python | en los dos trabajos, `usuario: root` y `resultado: ninguno` |
 | `ci` de la cabeza | ejecución [36058929322](https://github.com/jmorenobl/kitlegal/actions/runs/36058929322) sobre `6b1bf87`, 21:03:04Z–21:10:11Z, `success` |

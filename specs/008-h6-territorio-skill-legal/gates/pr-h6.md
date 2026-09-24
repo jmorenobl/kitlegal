@@ -268,8 +268,8 @@ revisa la revisión final del hito (FR-086).
   dejaría fuera de `make skills-check`.
 - **`fecha_consulta` es la del fichero congelado más antiguo** (D6), no el reloj: es la regla de ADR 0015 y lo que
   hace posible la igualdad byte a byte con `--offline` (SC-001). `--dry-run` no cambia lo que hace el applet: una consulta
-  que se resuelve no emite sobre, y una que el applet rechaza emite el sobre de fallo firmado por el kernel
-  (`kitlegal.cli`, el reloj), como fijó H1 (D7).
+  que se resuelve no emite sobre, y una que el applet rechaza, o cuyo `--timeout` se agota, emite el sobre de fallo
+  firmado por el kernel (`kitlegal.cli`, el reloj) —con 4 si fue el plazo—, como fijó H1 (D7).
 - **Ocho claves sin `omitempty`, cada dato con su `source`, y `cobertura` con vocabulario cerrado** (D11, D12): un
   boletín no configurado no aparece —ni vacío—, porque una entrada vacía se leería como «no tiene», que es lo que FR-022
   prohíbe; la equivalencia autonómico = provincial en Madrid es una decisión por territorio escrita en su fichero, no
@@ -434,6 +434,12 @@ descarta el `Resultado` del applet. El contrato del applet gana en §2 las dos f
 `--dry-run`— y lo dice en §4, §5 y §8, `research.md` lo dice en D7 y D13, y `compruebaPlazoAgotado` comprueba las dos
 variantes con su firma (la que lleva la firma cambiada falla). Como toca `internal/app/territorio_test.go`, la
 ejecución de aceptación se repitió.
+
+Ronda 10 (`gates/revision-a-r10.json`, `gates/revision-b-r10.json`): los dos jueces rechazaron porque el registro de
+la ejecución vigente contaba veinte invocaciones fuera de lo grabado, todas con código 5, y el informe trae veintiuna:
+una más con código 4, la de `--offline` sin la respuesta en la caché; y el juez A, además, por dos frases de
+`--dry-run` —V15 de `research.md` y la viñeta de D7 de este cuerpo— sin la excepción del plazo agotado. Corregidas;
+todo bajo `specs/`, sin efecto sobre SC-015.
 
 Como las rondas 1, 2, 6, 8 y 9 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió
 tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662), sobre
