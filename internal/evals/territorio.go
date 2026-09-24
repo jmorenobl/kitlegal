@@ -139,8 +139,9 @@ func ExtraerTerritorio(respuesta string, esperado TerritorioEsperado) Territorio
 
 // declaraElNombre dice si la respuesta plegada, con un espacio delante y otro
 // detrás, contiene el nombre plegado entre dos espacios. Un nombre que se pliega a
-// nada no se declara nunca: el pliegue no deja dos espacios seguidos, así que
-// cualquier respuesta lo contendría.
+// nada no se declara nunca: sin la guarda, su aguja serían dos espacios seguidos,
+// que el pliegue solo deja en una respuesta que también se pliega a nada, y esa
+// respuesta lo daría por declarado.
 func declaraElNombre(plegada, nombre string) bool {
 	plegado := territorio.Plegar(nombre)
 

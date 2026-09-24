@@ -165,6 +165,14 @@ func TestExtraerTerritorio(t *testing.T) {
 			textos:   []string{""},
 		},
 		{
+			// El esquema admite cualquier nombre no vacío, también uno de solo
+			// signos: se pliega a nada y no se declara, ni en una respuesta que
+			// también se pliega a nada.
+			nombre:   "nombres-que-se-pliegan-a-nada",
+			esperado: TerritorioEsperado{Comunidad: "—", Provincia: "·"},
+			textos:   []string{"", "…", "Castilla y León, Ávila"},
+		},
+		{
 			nombre: "sin-esperado",
 			textos: []string{"Comunidad de Madrid, Madrid, BOCM, boletin_autonomico: configurado"},
 		},

@@ -280,7 +280,7 @@ revisa la revisión final del hito (FR-086).
   códigos de donde salieron. Los candidatos del
   nombre ambiguo van en el mensaje, en forma fija y ordenados por código (D14), porque `data` de un fallo es
   `{clase, mensaje}` y añadirle una clave cambiaría ADR 0006.
-- **Datos embebidos por un paquete `data` sin lógica** (D15; Clarifications Q4): `//go:embed` no sube de directorio,
+- **Datos embebidos por un paquete `data` que no interpreta nada** (solo embebe y recorre el subárbol de comunidades) (D15; Clarifications Q4): `//go:embed` no sube de directorio,
   y FR-041 exige que los ficheros vivan en `data/territorio/`. Se rechazan moverlos a `internal/core/territorio/data/`
   (contradice el roadmap), un paquete en la raíz del módulo (ocupa el nombre reservado a `pkg/legalkit`) y un fichero Go
   generado con los municipios como literales (Q4).

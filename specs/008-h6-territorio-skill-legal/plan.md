@@ -391,7 +391,8 @@ código, en el orden del fichero (`golang-testing`); tablas con subtests con nom
 tienen test; e `internal/app/territorio_test.go` cubre el applet y su esquema. Las directivas `//go:embed` de
 `data/datos.go` no necesitan test —un patrón que no casa es error de compilación, y que el contenido valga lo
 comprueba `TestTerritorioDelRepositorio` sobre los mismos ficheros, que lee por ruta relativa sin importar el paquete
-`data` (contracts/datos-de-territorio.md §3: lo importan `internal/app` y el binario de e2e, nadie más)—. Su lógica,
+`data` (contracts/datos-de-territorio.md §3: lo importa solo `internal/app`, y por él lo reciben la raíz de producción y el
+binario de e2e)—. Su lógica,
 `Comunidades() (map[string][]byte, error)` y el recorrido `comunidadesDe(fs.FS)`, la prueba `data/datos_test.go`,
 añadido en la revisión final (`c481451`): `TestComunidades` sobre el subárbol embebido y `TestComunidadesDe` con las
 tres ramas de error sobre `fstest.MapFS`. `TestRegistroDeProduccion` (`internal/app/registro_test.go`) y el e2e la
