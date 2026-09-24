@@ -138,3 +138,10 @@ la guía, y después la limpieza. **Ningún resultado distinto del esperado.**
   `coverage-integration.out` son los de `make ci`, ignorados por git.
 - Verificación determinista al terminar: `make ci` en primer plano otra vez, en verde, y la tarea marcada `[X]` en el
   mismo turno.
+
+## Revisión final (2026-09-24): §9 vuelve a pedir la verificación completa
+
+El arreglo 2 de arriba ajustó la expectativa de §9 a un registro que no cumplía FR-046 ni FR-047. Al reescribirse
+`gates/verificacion-dir3.md` con la verificación contra DIR3 real y el caso de entidades locales menores (nota final
+de `gates/tarea-T003.md`), §9 vuelve a esperar lo que piden FR-046, FR-047 y SC-008: una fila por municipio de la
+muestra con el código derivado, el DIR3 real, su procedencia y si coinciden, con los tres casos.

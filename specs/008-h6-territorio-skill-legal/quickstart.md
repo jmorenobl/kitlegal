@@ -202,12 +202,11 @@ rtk proxy cat specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md
 Espera: los subtests `esquema`, `integridad`, `fuentes`, `madrid-configurada`, `regimen-de-todas`, `gramaticas`,
 `pliegue-cubre-el-corpus`, `nombres-alcanzables` y `ningun-nombre-es-solo-cifras` en verde; la cabecera con `fecha` y
 `source`; el número de municipios de la relación; 19 ficheros de comunidad; 18 sin `boletines` —solo la Comunidad de
-Madrid los trae (FR-051)—; y, en el registro de verificación, la comprobación de la relación entera contra el volcado
-del REL, la conclusión —la derivación es una regla— y una fila por municipio de la muestra con el código derivado y de
-dónde sale el real, el número de inscripción del REL: los fusionados, el renombrado y los forales. El caso con entidades
-locales menores figura **sin ejemplo nombrado**, con su motivo —el REL no publica volcado de entidades inferiores al
-municipio— y la comprobación exhaustiva que lo cubre de hecho, como resolvió la pausa de T003 (`gates/tarea-T003.md`,
-«Resuelto en la pausa»); es un pendiente de FR-046 y SC-008 que el cuerpo de la publicación declara.
+Madrid los trae (FR-051)—; y, en el registro de verificación, una fila por municipio de la muestra con el código
+derivado, el **DIR3 real**, de dónde salió el real —una consulta pública fuera del repositorio, no el número de
+inscripción del REL, que es la entrada de la derivación— y si coinciden, con al menos un municipio fusionado o
+renombrado, uno foral y uno con entidades locales menores (FR-046, FR-047, SC-008); la comprobación de la relación
+entera contra el volcado del REL como criterio de entrada (FR-048); y la conclusión —la derivación es una regla—.
 
 Los tres últimos son los controles sobre el **corpus congelado real** y por eso viven aquí y no en
 `internal/core/territorio`, que no puede leer ficheros ni en sus tests (research.md D27, V7).

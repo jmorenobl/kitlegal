@@ -222,3 +222,17 @@ esta fila nueva. Cambiarlo contradiría el artefacto sin gate que lo apruebe.
 Con el lector real en un `_test.go` temporal borrado antes de `make ci`: `dir3.yaml` valida contra su esquema; las
 8.132 claves existen en `municipios.yaml`; y para cada fila `valor[3:8] == clave` y `valor[8] == dc`, que es la
 integridad que `Cargar` exigirá en T006. `make ci` en verde.
+
+## Reabierto en la revisión final (2026-09-24)
+
+Los dos jueces rechazaron la verificación de esta pausa (`revision-a.json` y `revision-b.json`, criterios `f` y `h`), y
+con razón: la «comprobación exhaustiva» comparaba el número de inscripción del REL con el código INE y su dígito de
+control, es decir, la entrada de la derivación consigo misma, y el registro no tenía las columnas «DIR3 real», «De
+dónde salió el real» y «Coincide» que pedía el paso 3 de este manifiesto. Además, el caso «con entidades locales
+menores» sí tenía fuente: el volcado `…/export_excel/eatimes/all/all` del REL, que esta pausa no encontró.
+
+`gates/verificacion-dir3.md` se reescribió con la verificación que faltaba: siete municipios —los tres casos de FR-046,
+entidades locales menores incluidas— contra las fichas de unidad orgánica del directorio del Punto de Acceso General,
+siete coincidencias. La comprobación REL↔INE se conserva como lo que es, el criterio de entrada de FR-048. La
+conclusión no cambia —regla, 8.132 de 8.132—, pero ahora descansa en una verificación contra DIR3 real. `data/` no
+cambia.

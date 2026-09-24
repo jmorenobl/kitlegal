@@ -41,9 +41,10 @@ la plataforma y la revisión. Por árboles:
   formas alternativas derivadas del nombre oficial), `resolver.go`, `salida.go` (las ocho claves de `data`, cada dato
   con su `source`, y `cobertura`), `errores.go`, `doc.go` y sus tests, todos sintéticos —entre ellos `coste_test.go`,
   el control del coste de la carga—: el dominio recibe bytes y no lee ningún fichero.
-- **`data/`**: `datos.go` (paquete `data`, solo `//go:embed`: sin lógica); `territorio/municipios.yaml` (8 132
+- **`data/`**: `datos.go` (paquete `data`: los `//go:embed` y el recorrido del subárbol de comunidades, sin
+  interpretar nada) y `datos_test.go`; `territorio/municipios.yaml` (8 132
   municipios de la relación del INE con provincia, comunidad y dígito de control; `fecha: 2026-02-04`),
-  `territorio/dir3.yaml` (8 132 filas verificadas contra el REL), `territorio/estado.yaml` (el BOE) y
+  `territorio/dir3.yaml` (8 132 filas; la regla, verificada contra DIR3 real), `territorio/estado.yaml` (el BOE) y
   `territorio/comunidades/` (19 ficheros, uno por comunidad y ciudad autónoma, con régimen y provincias; solo `13.yaml`,
   la Comunidad de Madrid, trae `boletines`: el BOCM, autonómico y provincial con su motivo); `jerarquia.yaml` (los
   cinco niveles, su boletín, sus tipos de norma y las cuatro reglas de interpretación); `normas.yaml` gana siete
@@ -89,7 +90,9 @@ la plataforma y la revisión. Por árboles:
 - **Documentación** (4): `CHANGELOG.md` (bloque *De H6* en «Añadido» de *Unreleased*), `README.md` y
   `CONTRIBUTING.md` (el applet, la skill, `data/territorio/` y la fila de `make skills-check` de sus tablas de
   controles) y `docs/SOURCES.md` (la fila `mpt.rel` con la fecha del volcado, 2026-09-21, y la fila
-  `ine.codigos-territoriales` de las tablas de códigos de comunidad y provincia, las dos dentro de la pausa de T003).
+  `ine.codigos-territoriales` de las tablas de códigos de comunidad y provincia, las dos dentro de la pausa de T003;
+  y, en la revisión final, la nota al pie `[^rel-dir3]`, que pasa de anunciar la verificación del DIR3 a describir la
+  que se hizo).
 
 **Sin cambios**, como exige el spec: `internal/core/schema`, `internal/cli`, `internal/httpx`, `internal/cache`,
 `internal/source/boe`, `internal/render`, `cmd/kitlegal/main.go`, `scripts/` (ningún caso nuevo en
@@ -123,7 +126,7 @@ de `make ci` y el último, la aceptación con modelo, fuera de él por diseño; 
 el coste de la carga. Lo que pasa a ser mecánico, con el escenario del quickstart que lo demuestra:
 
 - **Ficheros congelados contra su esquema, con integridad y procedencia** (`TestTerritorioDelRepositorio/esquema`,
-  `/integridad`, `/fuentes`, `/solo-madrid-configurada`, `/regimen-de-todas`, dentro de `make skills-check`): una fila
+  `/integridad`, `/fuentes`, `/madrid-configurada`, `/regimen-de-todas`, dentro de `make skills-check`): una fila
   cuya `comunidad` no es la de su provincia falla con «el municipio 01001 declara la comunidad 99
   (…/99.yaml) y su provincia 01 es de la comunidad 16 (…/16.yaml)» (escenario 9).
 - **El pliegue atado al corpus real** (`/pliegue-cubre-el-corpus`, `/nombres-alcanzables`,
@@ -195,7 +198,7 @@ las formas `rtk proxy` de su tabla. **Ningún resultado distinto del esperado.**
 | 6 · códigos | `nombre de más de un municipio: Arroyomolinos` → **2**, clase `argumentos`, «el nombre "Arroyomolinos" es el de 2 municipios de la relación; consulta uno por su código INE: 10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)»; `Municipio Que No Existe` → **3**; `bien formado y ausente de la relación: 01999` → **3**, `no-encontrado`; `99999` → **2** («la provincia "99" no está entre 01 y 52»); `2807` → **2** («tiene 4 cifras y la forma PPMMM tiene 5»); `280746` → **2** («el dígito de control recibido es "6" y el oficial es "5"»); ningún 4, 5 ni 6 |
 | 7 · e2e | `ok` (`TestEntregaDelHito/territorio-matriz`) |
 | 8 · contrato | `schema-check` en `ok`; `territorio resolver` y `consulta`; `territorio · municipio` y `resolver`; sin posicional, `argumentos inválidos: expected "<consulta>"` y `código: 2`; en el clon alterado, `schemas/municipio.json: el fichero no es la serialización canónica de sus partes` y `código: 2` |
-| 9 · datos | Los nueve subtests en `PASS`; cabecera `fecha: "2026-02-04"` y `source: ine.municipios`; **8132** municipios; **19** comunidades; **18** sin `boletines`; el registro de verificación con la comprobación exhaustiva y los casos de FR-046 (abajo, *Pendientes*); `todos los municipios tienen DIR3 verificado`; integridad rota en el clon → `integridad` falla nombrando `01001`, `99` y `16`, `código: 2`; runa fuera del pliegue → `pliegue-cubre-el-corpus` falla nombrando `01001` y `Ø`, `código: 2` |
+| 9 · datos | Los nueve subtests en `PASS`; cabecera `fecha: "2026-02-04"` y `source: ine.municipios`; **8132** municipios; **19** comunidades; **18** sin `boletines`; el registro de verificación tal como estaba entonces (la revisión final lo reescribió: *Decisiones*); `todos los municipios tienen DIR3 verificado`; integridad rota en el clon → `integridad` falla nombrando `01001`, `99` y `16`, `código: 2`; runa fuera del pliegue → `pliegue-cubre-el-corpus` falla nombrando `01001` y `Ø`, `código: 2` |
 | 10 · ids y fuzz | `ok`; trece entradas de corpus en cada objetivo; `FuzzCodigoINE` 3 791 151 ejecuciones y `FuzzCodigoDIR3` 3 929 765 en 30 s, los dos `PASS` y sin hallazgo; el árbol, limpio después |
 | 11 · skill | Frontmatter con `kitlegal-applets: territorio` y `kitlegal-referencias: leyes_vertebrales jerarquia_normativa`; **170** líneas; las dos cabeceras «generado desde…, no editar»; `../../../bin/instalado/kitlegal`; **15** marcas `vertebral: true`; solo `references/normas.md` (7 inserciones) en `skills/boe-legislacion`; los tres tests en `ok`; en el clon, `skills-sync` lo deja limpio (solo `fin del estado del clon`) y la edición a mano falla con «legal-core: references/jerarquia_normativa.md: contenido-distinto», `código: 2` |
 | 12 · evals | Las tres evals; `formato`, `conjunto`, `conjunto-legal-core`, `normas-conocidas`, `grabado` y `cobertura-del-esquema` en `PASS` (y `avisos-del-esquema` y `avisos-de-la-skill`, de H5.1); `5c11d1d feat(H6): T020` antes que `7800adf feat(H6): T022`; solo `fin del diff` |
@@ -219,10 +222,10 @@ sobre `2df74db` (y, por árbol, la suma de sentencias del perfil contando cada b
 
 **Todo el dominio que añade H6 está cubierto al 100 % por sus tests sintéticos**, que es lo que la obligación 7 del
 plan exige: `make test` mide por paquete y sin `-coverpkg`, así que lo que `TestTerritorioDelRepositorio` ejerce del
-dominio desde `internal/skills` no cuenta para el umbral. El paquete `data` sale con 0/19: su única función,
-`Comunidades()`, la ejercen los tests de `internal/app` a través de `FuentesEmbebidas` (ocho pasadas en el perfil),
-pero el perfil solo atribuye a cada paquete lo que ejecutan sus propios tests, y `data` no tiene ninguno porque no
-tiene lógica (D15). **Ningún umbral se rebaja**: `codecov.yml` no aparece en el diff.
+dominio desde `internal/skills` no cuenta para el umbral. El paquete `data` estaba al 0 % cuando se midió esta
+tabla, porque sus tests eran los de `internal/app`; la revisión final le dio los suyos (`datos_test.go`, las tres
+ramas de error del recorrido de comunidades sobre `fstest.MapFS`) y queda al 100 %. **Ningún umbral se rebaja**:
+`codecov.yml` no aparece en el diff.
 
 **Una sola supresión nueva, razonada**: `//nolint:paralleltest` en `internal/core/territorio/coste_test.go:36`, porque la prueba mide lo que asigna todo el proceso y otra en paralelo contaría lo suyo; `0` `t.Skip` y `0` `TODO` añadidos en ficheros `.go` frente
 a `main`; ninguna entrada nueva en `misspell.ignore-rules` (`.golangci.yml` no cambia).
@@ -237,12 +240,20 @@ revisa la revisión final del hito (FR-086).
 
 ## Decisiones
 
-- **La derivación del DIR3 es una regla verificada sobre la población entera, no una muestra** (T003, pausa del
-  2026-09-21; `gates/verificacion-dir3.md`): el número de inscripción del REL coincide con el código INE y su dígito
-  de control en los 8 132 municipios, sin una sola excepción, así que `dir3.yaml` entra en extenso con las 8 132 filas
-  y ningún municipio queda `no-verificado`. La alternativa de FR-048 —la derivación como tabla de excepciones— no hizo
-  falta porque no hubo discrepancias; la de recalcular la regla en ejecución se rechaza porque el fichero es el
-  registro de lo verificado en una fecha, no un cálculo.
+- **La derivación del DIR3 es una regla, verificada contra DIR3 real** (T003 y revisión final;
+  `gates/verificacion-dir3.md`): `L` + el número de inscripción del REL. La muestra de FR-046 —siete municipios:
+  Leganés; los fusionados Oza-Cesuras y Cerdedo-Cotobade; los forales Pamplona/Iruña y Vitoria-Gasteiz; Riello y
+  Vitoria-Gasteiz, con 37 y 61 entidades locales menores según el volcado `eatimes` del REL; y Soba, duplicada en el
+  volcado de municipios— se comparó el 2026-09-24 con las fichas de unidad orgánica del directorio del Punto de Acceso
+  General, consultadas dentro de su `robots.txt`: cada ficha da el código derivado como el de «Ayuntamiento de» ese
+  municipio, siete coincidencias y ninguna discrepancia. Aparte, la regla se aplica sin discrepancia a los 8 132
+  municipios —el número de inscripción del REL coincide con el código INE y su dígito de control en todos—, que es el
+  criterio de entrada de FR-048; así que `dir3.yaml` entra en extenso con las 8 132 filas y ningún municipio queda
+  `no-verificado`. La primera versión del registro (pausa del 2026-09-21) daba esa coherencia REL↔INE por
+  verificación, y era circular: la rechazaron los dos jueces en la revisión final y se rehízo con la consulta al
+  directorio. La alternativa de FR-048 —la derivación como tabla de excepciones— no hizo falta porque no hubo
+  discrepancias; la de recalcular la regla en ejecución se rechaza porque el fichero es el registro de lo verificado
+  en una fecha, no un cálculo.
 - **El dígito de control es un dato oficial, no un algoritmo** (D9): `ids` compara el dígito declarado con el que
   viaja en la relación; escribir el algoritmo de memoria sería lo que ADR 0017 prohíbe con el DIR3. Consecuencia en
   los códigos: provincia fuera de `01`-`52` o municipio `000` no llega a ser un código (`2`), un código bien formado
@@ -261,7 +272,9 @@ revisa la revisión final del hito (FR-086).
   prohíbe; la equivalencia autonómico = provincial en Madrid es una decisión por territorio escrita en su fichero, no
   deducida de que sea uniprovincial.
 - **Procedencia `kitlegal.territorio` / `kitlegal:applet/territorio`** (D13; ADR 0006, fila «applet calculado»): los
-  identificadores de fuente (`ine.municipios`, `mpt.rel`) viajan dentro de `data`, en cada dato. Los candidatos del
+  identificadores de fuente (`ine.municipios`, `ine.codigos-territoriales`, `mpt.rel`) viajan dentro de `data`, en
+  cada dato: el de los nombres de provincia y comunidad es `ine.codigos-territoriales`, la fila de las tablas de
+  códigos de donde salieron. Los candidatos del
   nombre ambiguo van en el mensaje, en forma fija y ordenados por código (D14), porque `data` de un fallo es
   `{clase, mensaje}` y añadirle una clave cambiaría ADR 0006.
 - **Datos embebidos por un paquete `data` sin lógica** (D15; Clarifications Q4): `//go:embed` no sube de directorio,
@@ -314,16 +327,40 @@ revisa la revisión final del hito (FR-086).
   9,8 MB, con la misma salida byte a byte —la huella de Leganés es la de la ejecución `ci` del intento 1— y los
   mismos defectos, y sin tocar la cota, el guion, los datos, sus esquemas, el kernel, el applet ni `go.mod`.
 
+## Revisión final
+
+Ronda 1 (`gates/revision-a-r1.json`, `gates/revision-b-r1.json`): los dos jueces rechazaron, con seis motivos entre
+los dos. Los seis están cerrados:
+
+1. **La verificación del DIR3 era circular** (A y B, criterios `f` y `h`): comparaba el número de inscripción del REL
+   con el código INE, la entrada de la derivación consigo misma, y le faltaba el caso con entidades locales menores.
+   Rehecha contra el directorio del Punto de Acceso General, con los tres casos de FR-046 y siete coincidencias
+   (*Decisiones*; `gates/verificacion-dir3.md`, nota final de `gates/tarea-T003.md`). `docs/SOURCES.md` describe ahora
+   esa verificación y `quickstart.md` §9 vuelve a esperar las columnas de FR-047. `data/` no cambia.
+2. **El `source` de los nombres de provincia y comunidad** (A y B): los 19 ficheros de comunidad declaran
+   `ine.codigos-territoriales`, la fila de donde salieron esos nombres, en vez de `ine.municipios` (`c481451`, con el e2e,
+   `data-model.md` y el CHANGELOG).
+3. **La release es H19, no H6** (A y B): corregidas las afirmaciones de `Makefile`, `CONTRIBUTING.md` y `CHANGELOG.md`
+   (`c481451`).
+4. **El control que impedía añadir un territorio** (A): `solo-madrid-configurada` pasa a `madrid-configurada` y exige
+   solo lo de FR-052; con boletines añadidos a otra comunidad, `make ci` sigue en verde (`c481451`).
+5. **Ramas sin test** (A y B): `compilarEsquemaDeJerarquia` gana su test de las dos ramas de error y el paquete `data`
+   pasa de 0 % a 100 % con `datos_test.go`; los tres tests de compilación de esquemas comparten ya una sola función
+   (`c481451`).
+6. **Inexactitudes de este cuerpo y de los artefactos** (A y B): la lista de las siete normas, `DIR3DeAyuntamiento`, la
+   supresión `//nolint` declarada con su motivo (`e4c0b65`) y el dígito de control de Leganés en `research.md` y
+   `data-model.md` (`c481451`).
+
 ## Pendientes
 
 - **Regla de SC-015 sobre lo que puede cambiar después de la ejecución de aceptación** (plan, obligación 9): el commit
   del informe de evals tiene que ser de la rama del hito, y **la cabeza que se fusiona solo puede diferir de él en
-  ficheros bajo `specs/008-h6-territorio-skill-legal/`**. La ejecución vigente es la 35722605048, sobre `2b81164`
-  (`feat(H6): T029`): desde ese commit ninguna tarea ni corrección de la revisión puede tocar código, datos, esquemas,
-  skills, evals ni documentación fuera de `specs/`; si hace falta —incluidos los dos puntos de documentación y el test
-  de abajo—, se aplica y **se repite la ejecución** de evals sobre el commit resultante, como hizo H5.1 por etiqueta, y
-  `gates/evals-cierre.md` registra la repetición vigente. La primera ejecución, 35714659803 sobre `47f3090`, dejó de
-  cubrir la cabeza cuando T029 tocó `internal/core/territorio/`; queda registrada y no cuenta.
+  ficheros bajo `specs/008-h6-territorio-skill-legal/`**. La ejecución 35722605048, sobre `2b81164` (`feat(H6): T029`),
+  dejó de cubrirla cuando la revisión final tocó código, datos y documentación fuera de `specs/` (`c481451`: `Makefile`,
+  `CHANGELOG.md`, `CONTRIBUTING.md`, `data/datos.go` y su test, los 19 ficheros de comunidad, el e2e y cuatro tests;
+  y la nota al pie del DIR3 en `docs/SOURCES.md`). **Se repite la ejecución** sobre la cabeza que resulta, por
+  etiqueta como H5.1, y `gates/evals-cierre.md` registra la repetición vigente. Las dos anteriores —35714659803 sobre
+  `47f3090`, que dejó de cubrir la cabeza con T029, y 35722605048— quedan registradas y no cuentan.
 - **Aceptación** (SC-013, SC-015): registrada por T026 (intento 3) en `gates/evals-cierre.md`. En la ejecución
   35722605048, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y umbral 2: las tres
   evals de `legal-core` dan 3 de 3 con el modelo que decide, las 18 de `boe-legislacion` llegan al umbral sin que sus
@@ -340,36 +377,19 @@ revisa la revisión final del hito (FR-086).
   juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
   no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
   `internal/evals`, así que es una pieza aparte, después de este hito.
-- **El caso «con entidades locales menores» de FR-046 y SC-008 no tiene ejemplo nombrado** (T003, «Resuelto en la
-  pausa»; `gates/verificacion-dir3.md`): el REL no publica volcado de entidades de ámbito inferior al municipio (doce
-  rutas de exportación probadas) y nombrar un municipio sin fuente sería escribirlo de memoria. La comprobación
-  exhaustiva de los 8 132 municipios cubre de hecho el riesgo que ese caso vigila —que un municipio con entidades
-  menores derive distinto—, y los otros dos casos tienen ejemplo (fusionados Oza-Cesuras y Cerdedo-Cotobade; forales
-  Pamplona/Iruña y Vitoria-Gasteiz). Queda para quien reabra FR-046 con una fuente pública de entidades menores.
 - **La guía del hito se corrigió en este cierre** (T025, intento 1; `gates/tarea-T025.md`), en tres textos de
   `quickstart.md` que no casaban con los datos congelados, ninguno un defecto del producto: la sonda de §11 contaba el
   comentario de cabecera de `data/normas.yaml` que nombra la marca `vertebral: true` (16 en lugar de 15) y pasó a
   anclarse al campo sangrado; el nombre ambiguo de §6, `Villanueva`, no existe como nombre exacto en la relación (da
   3, no 2) y ahora se toma del propio registro, como el código ausente; y la expectativa de §9 sobre el registro de
-  verificación describía una fila con entidades locales menores que la pausa de T003 dejó, razonadamente, sin nombrar.
+  verificación, que T025 ajustó al registro de la pausa de T003 y la revisión final devolvió a lo que piden FR-046 y
+  FR-047 al rehacer la verificación del DIR3 (*Decisiones*).
   `data/normas.yaml` no se tocó: quitarle la frase al comentario para que una sonda floja acertara sería arreglar el
   síntoma.
 - **`govulncheck` y un módulo requerido**: el mismo `make ci` informa, sin fallar, de una vulnerabilidad en un módulo
   que el código no llama, `GO-2026-5970` («Infinite loop on invalid input in golang.org/x/text»; encontrada en
   `golang.org/x/text@v0.14.0`, corregida en v0.39.0), según `govulncheck -show verbose` sobre `2df74db`. H6 no toca
   `go.mod` ni `go.sum`, así que viene de `main`, como en H5.1; subir la versión queda fuera de este hito.
-- **Dos ramas de error sin test en `internal/skills/jerarquia.go`** (nota de T016): `compilarEsquemaDeJerarquia`
-  sigue la forma de sus dos hermanos, pero sus ramas de fallo (carpeta en lugar del fichero, JSON que no compila) no
-  tienen `TestCompilarEsquemaDeJerarquiaDesdeUnaRuta` ni la línea de `export_test.go` que lo permitiría; los otros dos
-  sí. No afecta a `make ci` ni al comportamiento; es de la revisión final, y si se aplica después de la aceptación,
-  cae bajo la regla de SC-015.
-- **Dos frases de `CONTRIBUTING.md` heredadas de `main`** (líneas 78 y 88, desde `c8db4ee`, 2026-09-11): «la primera
-  release, que es H6 (`v0.1.0`)» y «su generación automática llega con el release de H6». Desde ADR 0013 (2026-09-13)
-  el release `v0.1.0` cierra la fase 3 en H19 (`docs/ROADMAP.md` §4). No están en el diff del hito y T024 se limitó por
-  su propia delimitación a lo que H6 entrega; es de la revisión final, bajo la misma regla.
-- **Un ejemplo con el dígito de control escrito de memoria en un artefacto** (`research.md:298`, `L01280748`; el
-  oficial de Leganés es `5`, aviso de las pausas de T001 y T003): ninguno se copió a `data/`, `testdata/` ni al código;
-  lo corrige la tarea que toque ese fichero, que está bajo `specs/` y no afecta a SC-015.
 - **Integración continua y Codecov**: leer los estados de la propuesta de cambio antes de fusionar; la rama principal
   no impide fusionar en rojo. Fusionar es humano (ADR 0007).
 - **Backlog, fuera de este hito**: configurar otras comunidades en `data/territorio/comunidades/` (grupo
