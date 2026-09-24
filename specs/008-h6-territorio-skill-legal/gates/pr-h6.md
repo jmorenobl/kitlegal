@@ -1,4 +1,4 @@
-<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164, `feat(H6): T029`), la tarea que el rojo de `ci` del intento 1 añadió antes de la plataforma; T026, intento 3, registró la ejecución de aceptación vigente (35722605048, sobre 2b81164) en gates/evals-cierre.md. -->
+<!-- Propuesta de cambio de H6. La escribió la tarea de cierre (T025, intento 2) con la medida hecha sobre 2df74db (`feat(H6): T024`) el 2026-09-22; la tarea de plataforma (T026, intento 2) la puso al día con T029 (2b81164) y T026, intento 3, registró la primera ejecución de aceptación válida (35722605048, sobre 2b81164). La revisión final (2026-09-22 a 2026-09-24) la corrigió en dos rondas y registró en gates/evals-cierre.md la ejecución de aceptación vigente: la repetida sobre la cabeza tras las correcciones fuera de specs/ (ver «Revisión final»). -->
 
 ## Objetivo
 
@@ -25,13 +25,13 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-la cabeza `2b81164` (`feat(H6): T029`): 33 commits; fuera de `specs/`, **156 ficheros, 30 340 líneas añadidas y 657
-retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
+`6d08752` (`fix(H6): los motivos de la ronda 2 de la revisión final`), el último commit que cambia algo fuera de
+`specs/`: 42 commits; fuera de `specs/`, **157 ficheros, 30 500 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
 
 - **`internal/core/ids`** (nuevo, 7 ficheros Go y 26 de corpus): `ine.go` (`AnalizarCodigoINE`,
-  `AnalizarCodigoINEConDigito`, `ComprobarDigito`), `dir3.go` (`AnalizarDIR3`, `ComponerDIR3`), `errores.go` (errores
+  `AnalizarCodigoINEConDigito`, `ComprobarDigito`), `dir3.go` (`AnalizarDIR3`, `DIR3DeAyuntamiento`), `errores.go` (errores
   tipados con la clase `argumentos`), `doc.go`, sus tests y los dos objetivos de fuzz `FuzzCodigoINE` y
   `FuzzCodigoDIR3`, con trece semillas versionadas cada uno en `testdata/fuzz/`.
 - **`internal/core/territorio`** (nuevo, 16 ficheros Go): `fuentes.go` (los cuatro tipos de fichero congelado y
@@ -59,7 +59,7 @@ la plataforma y la revisión. Por árboles:
   esquema) y `jerarquia.go` (lector de `data/jerarquia.yaml`), la tabla de generadores de referencias en
   `referencias.go` (rompe el acoplamiento «nombre de la referencia = fichero de datos»), `frontmatter.go`
   (`kitlegal-referencias`), `normas.go` (`Vertebral`), `sincronia.go`, `export_test.go`, sus tests —entre ellos
-  `TestTerritorioDelRepositorio`, con nueve subtests sobre el corpus real, 915 líneas— y el guion de reinstalación
+  `TestTerritorioDelRepositorio`, con nueve subtests sobre el corpus real, 900 líneas— y el guion de reinstalación
   `instalar-de-nuevo.txtar`, que deja de nombrar las skills.
 - **`internal/evals`** (12 ficheros): `territorio.go` (el esperado de territorio y su juicio por forma fija),
   `formato.go` (cuarta variante de comando y `Territorio`), `juzgar.go` (`TerritorioEncontrado`, `TerritorioAusente`
@@ -347,12 +347,30 @@ los dos. Los seis están cerrados:
 5. **Ramas sin test** (A y B): `compilarEsquemaDeJerarquia` gana su test de las dos ramas de error y el paquete `data`
    pasa de 0 % a 100 % con `datos_test.go`; los tres tests de compilación de esquemas comparten ya una sola función
    (`c481451`).
-6. **Inexactitudes de este cuerpo y de los artefactos** (A y B): la lista de las siete normas, `DIR3DeAyuntamiento`, la
-   supresión `//nolint` declarada con su motivo (`e4c0b65`) y el dígito de control de Leganés en `research.md` y
-   `data-model.md` (`c481451`).
+6. **Inexactitudes de este cuerpo y de los artefactos** (A y B): la lista de las siete normas y la supresión `//nolint`
+   declarada con su motivo (`e4c0b65`); el dígito de control de Leganés en `research.md` y `data-model.md` (`c481451`).
+   `ComponerDIR3` por `DIR3DeAyuntamiento` quedó sin corregir y lo cerró la ronda 2.
 
-Como `c481451` y `9a77c6b` tocan ficheros fuera de `specs/`, la ejecución de aceptación se repitió sobre `9a77c6b`: la
-36011479943, las dos skills `aprobado` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
+Ronda 2 (`gates/revision-a-r2.json`, `gates/revision-b-r2.json`): los dos jueces rechazaron otra vez, con nueve
+motivos entre los dos, todos corregibles y todos cerrados en `6d08752` y en el commit de este cuerpo:
+
+1. **Una rama de error sin test** (A): la de `cuerpoDeLasLeyesVertebrales`. El caso nuevo
+   `vertebrales-sin-normas-con-vertical` declara las referencias como `legal-core`, sin `normas` delante; el mutante
+   que descarta el error de `LeerNormas` lo pone en rojo.
+2. **La verificación del DIR3 atribuida al REL en `README.md` y `CHANGELOG.md`** (A): ahora dicen que el DIR3 sale
+   del número de inscripción y que la regla se verificó contra el directorio DIR3 oficial. `CONTRIBUTING.md` dice que
+   un refresco usa también las tablas de códigos del INE y vuelve a verificar la derivación contra DIR3 real.
+3. **La fecha de `ine.codigos-territoriales` en `docs/SOURCES.md`** (A): 2026-09-20, el día de la descarga de T002
+   (sus SHA-256 coinciden), no el 2026-09-21, que es el de la revisión de la fila.
+4. **`research.md`** (A): el `source` de los nombres de comunidad es `ine.codigos-territoriales`.
+5. **`plan.md`, control 4** (B): la demostración es lo que `madrid-configurada` detecta, no añadir boletines a otra
+   comunidad.
+6. **Este cuerpo** (A y B): `DIR3DeAyuntamiento`, el comentario de cabecera, las cifras del *Alcance* (medidas en
+   `6d08752`) y las 900 líneas de `TestTerritorioDelRepositorio`; y el cuerpo publicado en #39, que era anterior a
+   `e4c0b65`, se vuelve a sincronizar con `gh pr edit 39 --body-file` tras este commit.
+
+Como las dos rondas tocan ficheros fuera de `specs/`, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
+(36011479943) y, tras la ronda 2, sobre `6d08752` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
 
 ## Pendientes
 
@@ -361,25 +379,29 @@ Como `c481451` y `9a77c6b` tocan ficheros fuera de `specs/`, la ejecución de ac
   ficheros bajo `specs/008-h6-territorio-skill-legal/`**. La ejecución 35722605048, sobre `2b81164` (`feat(H6): T029`),
   dejó de cubrirla cuando la revisión final tocó código, datos y documentación fuera de `specs/` (`c481451`: `Makefile`,
   `CHANGELOG.md`, `CONTRIBUTING.md`, `data/datos.go` y su test, los 19 ficheros de comunidad, el e2e y cinco tests;
-  y `9a77c6b`: la nota al pie del DIR3 en `docs/SOURCES.md`). Se repitió por etiqueta, como H5.1: **la vigente es la
-  36011479943, sobre `9a77c6b`**, y desde ese commit la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`.
-  Las dos anteriores —35714659803 sobre `47f3090`, que dejó de cubrir la cabeza con T029, y 35722605048— quedan
-  registradas en `gates/evals-cierre.md` y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final»). En la ejecución
-  36011479943, sobre `9a77c6b`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
-  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 sin
-  que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente, y las seis respuestas
-  de Tordesillas declaran los dos aspectos `no-configurado`. `ci` en verde sobre `9a77c6b` (36011447433), con los
-  cuatro estados de Codecov en verde y con medida.
+  y `9a77c6b`: la nota al pie del DIR3 en `docs/SOURCES.md`); se repitió por etiqueta, como H5.1, sobre `9a77c6b`
+  (36011479943), y la ronda 2 volvió a tocarlos (`6d08752`: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
+  `docs/SOURCES.md` y un test). **La vigente es la 36019842457, sobre `6d08752`**, y desde ese commit la cabeza solo
+  cambia bajo `specs/008-h6-territorio-skill-legal/`. Las tres anteriores —35714659803 sobre `47f3090`, 35722605048
+  sobre `2b81164` y 36011479943 sobre `9a77c6b`— quedan registradas en `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 2»). En la ejecución
+  36019842457, sobre `6d08752`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
+  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 con
+  `claude-sonnet-5` sin que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente,
+  y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún boletín que el
+  applet no devolvió. `ci` en verde sobre `6d08752` (36019821690), con los cuatro estados de Codecov en verde y con
+  medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
   puede aparecer, así que el juez no ve si una respuesta nombra un boletín que el applet no devolvió. En el intento 1
   una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en el intento 3,
-  ninguna; en la ejecución vigente, una del modelo informativo (`haiku-4-5-20251001-02`: «el Boletín Oficial de
-  Castilla y León», con mayúsculas, el nombre propio del boletín autonómico), con veredicto `pasa`, y ninguna de las
-  tres del modelo que decide. El spec tampoco fija si esa cláusula se cuenta respuesta a respuesta o por serie y
-  umbral como SC-015: **por serie y umbral se cumple** (3 de 3 del modelo que decide, 2 de 3 del informativo);
-  **respuesta a respuesta, no** (5 de 6). Quien fusiona decide con esto delante. Para que la cláusula la
+  ninguna; en la 36011479943, una del modelo informativo (`haiku-4-5-20251001-02`: «el Boletín Oficial de Castilla y
+  León», con mayúsculas, el nombre propio del boletín autonómico), con veredicto `pasa`, y ninguna de las tres del
+  modelo que decide; en la vigente, 36019842457, ninguna de las seis. El spec no fijaba si esa cláusula se cuenta
+  respuesta a respuesta o por serie y umbral como SC-015, y en la 36011479943 las dos lecturas daban distinto (5 de 6
+  frente a 3 de 3 y 2 de 3). **Decisión de Jorge (2026-09-24): vale la lectura por serie y umbral**, la misma que el
+  resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—. En la vigente las dos
+  coinciden. Para que la cláusula la
   juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
   no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
   `internal/evals`, así que es una pieza aparte, después de este hito.
