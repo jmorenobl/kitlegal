@@ -25,8 +25,8 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-`ead63d9` (`fix(H6): la guarda de declaraElNombre, con su test y su motivo`), el último commit que cambia algo fuera
-de `specs/`: 47 commits; fuera de `specs/`, **157 ficheros, 30 509 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
+`ca78cac` (`fix(H6): el 4 del plazo agotado, que decide el kernel, dicho y probado`), el último commit que cambia algo
+fuera de `specs/`: 50 commits; fuera de `specs/`, **157 ficheros, 30 537 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
 
@@ -417,9 +417,18 @@ notas de `tasks.md`, no incluía `ead63d9` ni sus dos ficheros de `internal/eval
 dar veredicto —la sesión que lo ejecutaba se reinició— y se repitió junto con el A en la ronda siguiente. Todo bajo
 `specs/`, sin efecto sobre SC-015.
 
-Como las rondas 1, 2 y 6 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió tras
-cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457) y sobre `ead63d9` (*Pendientes*, SC-015;
-`gates/evals-cierre.md`).
+Ronda 8 (`gates/revision-a-r8.json`, `gates/revision-b-r8.json`): el juez A aprobó y el juez B rechazó porque el
+contrato, el spec y la documentación prometían que `territorio resolver` no termina nunca en 4, y con un `--timeout`
+que la carga no cumple termina en 4: lo decide el kernel de H1 para todo applet (FR-020, `conPlazoAgotado`), con clase
+`fuente-no-disponible` y la firma del applet. No cambian ni el kernel ni el applet: la promesa se acota a lo que decide
+el applet —en FR-016 y SC-004, el contrato del applet, data-model, plan, tasks, quickstart, `README.md`, `CHANGELOG.md`
+y este cuerpo— y `TestCodigosDeTerritorio` gana el caso `plazo-agotado-da-4-y-lo-decide-el-kernel` (`--timeout 1ns`,
+vencido antes de que el applet termine: determinista). Como toca `README.md`, `CHANGELOG.md` e `internal/app/`, la
+ejecución de aceptación se repitió (`ca78cac`).
+
+Como las rondas 1, 2, 6 y 8 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió
+tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662) y sobre
+`ca78cac` (*Pendientes*, SC-015; `gates/evals-cierre.md`).
 
 ## Pendientes
 
