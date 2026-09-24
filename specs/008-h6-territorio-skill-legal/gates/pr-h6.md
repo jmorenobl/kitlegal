@@ -25,8 +25,8 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-`6b1bf87` (`fix(H6): el plazo agotado bajo --dry-run, con la firma del kernel`), el último commit que cambia algo
-fuera de `specs/`: 53 commits; fuera de `specs/`, **157 ficheros, 30 548 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
+`9c81b29` (`fix(H6): cada fichero de comunidad, embebido por su nombre`), el último commit que cambia algo fuera de
+`specs/`: 56 commits; fuera de `specs/`, **157 ficheros, 30 555 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
 
@@ -451,9 +451,10 @@ frase de data-model §2.5 que daba `source` también a `cobertura`; y dos tests 
 8 como dígito de Leganés, ya con el 5 oficial. Como toca `data/` e `internal/core/ids`, la ejecución de aceptación se
 repitió.
 
-Como las rondas 1, 2, 6, 8 y 9 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió
-tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662), sobre
-`ca78cac` (36052056175) y sobre `6b1bf87` (36058947741) (*Pendientes*, SC-015; `gates/evals-cierre.md`).
+Como las rondas 1, 2, 6, 8, 9 y 11 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se
+repitió tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662),
+sobre `ca78cac` (36052056175), sobre `6b1bf87` (36058947741) y sobre `9c81b29` (36066946991) (*Pendientes*, SC-015;
+`gates/evals-cierre.md`).
 
 ## Pendientes
 
@@ -467,17 +468,19 @@ tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sob
   `docs/SOURCES.md` y un test), y se repitió sobre `6d08752` (36019842457); y la ronda 6 tocó `internal/evals/`
   (`ead63d9`: un comentario y un caso de test), y se repitió sobre `ead63d9` (36038417662); y la ronda 8 tocó
   `README.md`, `CHANGELOG.md` e `internal/app/territorio_test.go` (`ca78cac`), y se repitió sobre `ca78cac`
-  (36052056175); y la ronda 9 volvió a tocar `internal/app/territorio_test.go` (`6b1bf87`). **La vigente es la
-  36058947741, sobre `6b1bf87`**, y desde ese commit la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`.
-  Las seis anteriores —35714659803 sobre `47f3090`, 35722605048 sobre `2b81164`, 36011479943 sobre `9a77c6b`,
-  36019842457 sobre `6d08752`, 36038417662 sobre `ead63d9` y 36052056175 sobre `ca78cac`— quedan registradas en
-  `gates/evals-cierre.md` y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 9»). En la ejecución
-  36058947741, sobre `6b1bf87`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
-  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 con
-  `claude-sonnet-5` sin que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente,
+  (36052056175); la ronda 9 volvió a tocar `internal/app/territorio_test.go` (`6b1bf87`), y se repitió sobre
+  `6b1bf87` (36058947741); y la ronda 11 tocó `data/datos.go` y dos tests de `internal/core/ids` (`9c81b29`). **La
+  vigente es la 36066946991, sobre `9c81b29`**, y desde ese commit la cabeza solo cambia bajo
+  `specs/008-h6-territorio-skill-legal/`. Las siete anteriores —35714659803 sobre `47f3090`, 35722605048 sobre
+  `2b81164`, 36011479943 sobre `9a77c6b`, 36019842457 sobre `6d08752`, 36038417662 sobre `ead63d9`, 36052056175 sobre
+  `ca78cac` y 36058947741 sobre `6b1bf87`— quedan registradas en `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 11»). En la ejecución
+  36066946991, sobre `9c81b29`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
+  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` llegan al
+  umbral con `claude-sonnet-5` —3 de 3 salvo la 10 y la 18, 2 de 3— sin que sus ficheros hayan cambiado frente a
+  `main`, ninguna petición llega a la red de una fuente,
   y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún boletín que el
-  applet no devolvió (SC-013, abajo). `ci` en verde sobre `6b1bf87` (36058929322), con los cuatro estados de Codecov en
+  applet no devolvió (SC-013, abajo). `ci` en verde sobre `9c81b29` (36066933001), con los cuatro estados de Codecov en
   verde y con medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
@@ -489,7 +492,7 @@ tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sob
   (`haiku-4-5-20251001-02`: «Boletín Oficial de Castilla y León (BOCYL)») y ninguna del modelo que decide; en la
   36052056175, **una de cada modelo**: `haiku-4-5-20251001-02` («su Boletín Oficial de la Comunidad
   (BOCYL)») y, por primera vez, una del modelo que decide, `sonnet-5-02` («el equivalente al BOCyL», «el equivalente al
-  BOP de Valladolid»); y en la vigente, 36058947741, ninguna de las seis. El spec no fijaba si esa cláusula se cuenta
+  BOP de Valladolid»); en la 36058947741, ninguna de las seis; y en la vigente, 36066946991, tampoco. El spec no fijaba si esa cláusula se cuenta
   respuesta a respuesta o por serie y umbral como SC-015, y en la 36011479943 las dos lecturas daban distinto (5 de 6
   frente a 3 de 3 y 2 de 3). **Decisión de Jorge (2026-09-24): vale la lectura por serie y umbral**, la misma que el
   resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—; con ella, la vigente
