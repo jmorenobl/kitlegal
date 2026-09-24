@@ -36,7 +36,7 @@ research.md D8.
 |---|---|---|
 | Código INE | `^[0-9]{5}$` con provincia `01`-`52` y municipio `001`-`999` | vacío, no cifras ASCII, otra longitud, provincia `00` o `>52`, municipio `000` |
 | Código INE con dígito | `^[0-9]{6}$`, las cinco primeras como arriba | ídem |
-| DIR3 de ayuntamiento | `^[Ll]01[0-9]{6}$`, normalizado a `L` mayúscula | cualquier otra letra, otra longitud, cifras no ASCII |
+| DIR3 de ayuntamiento | `L` o `l`, `01`, un código INE de cinco cifras como el de la primera fila (provincia `01`-`52`, municipio `001`-`999`) y una cifra de control; normalizado a `L` mayúscula | cualquier otra letra, otra longitud, cifras no ASCII, y provincia `00` o `>52` o municipio `000` en las cinco cifras que siguen a `L01` |
 
 Las cifras se comprueban byte a byte, sin `regexp`, como `internal/source/boe/ids.go`. **Los patrones de los esquemas
 de `data/territorio/` y estas gramáticas se atan con un test**, el subtest

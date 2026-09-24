@@ -163,7 +163,7 @@ Ocho claves de primer nivel, cada una con el `source` del dato que la sostiene (
 ```
 
 **Vocabulario de `source`** (FR-005): el identificador de la fila de `docs/SOURCES.md` cuando el dato viene de una
-descarga (`ine.municipios`, `mpt.rel`), o la ruta del fichero de `data/territorio/` cuando lo fija la configuración.
+descarga (`ine.municipios`, `ine.codigos-territoriales`, `mpt.rel`), o la ruta del fichero de `data/territorio/` cuando lo fija la configuración.
 Un test exige que todo `source` emitido sea una de las dos cosas y que los identificadores existan en
 `docs/SOURCES.md`.
 
@@ -174,8 +174,9 @@ Nunca se emite un código derivado como si fuera registral.
 ### 2.6 Entrada y resolución
 
 ```
-entrada → ¿solo cifras? ── sí ──→ código INE (5 o 6 cifras)
-                         └─ no ──→ nombre
+entrada plegada → ¿vacía? ── sí ──→ no nombra nada (2)
+                            └─ no ──→ ¿alguna letra? ── no ──→ código INE (5 o 6 cifras)
+                                                      └─ sí ──→ nombre
 ```
 
 | Caso | Código | Qué devuelve |
@@ -183,7 +184,8 @@ entrada → ¿solo cifras? ── sí ──→ código INE (5 o 6 cifras)
 | Código de cinco cifras de un municipio de la relación | 0 | El territorio |
 | Código de seis cifras con el dígito oficial | 0 | El mismo `data` y la misma huella que por cinco cifras y que por nombre (SC-001) |
 | Código de seis cifras con dígito distinto del oficial | 2 | Mensaje que dice el dígito recibido y el oficial |
-| Solo cifras que no forman un código (vacío, 4 cifras, 7 cifras, provincia 00 o 53…, municipio 000) | 2 | Mensaje que dice qué tiene de malo |
+| Entrada vacía o hecha solo de espacios y separadores | 2 | «la consulta … no nombra ningún municipio: no tiene ninguna letra ni ninguna cifra» |
+| Sin ninguna letra y sin formar un código (4 o 7 cifras, provincia 00 o 53…, municipio 000, un separador o una cifra no ASCII entre las cifras, como `28-074`) | 2 | Mensaje que dice qué tiene de malo |
 | Código **bien formado** —provincia `01`-`52` y municipio `001`-`999`— que no está en la relación | 3 | — |
 | Nombre que corresponde a un municipio | 0 | El territorio |
 | Nombre que corresponde a varios | 2 | Mensaje con **todos** los candidatos, ordenados por código INE |
@@ -204,7 +206,7 @@ El applet **nunca** devuelve 4, 5 ni 6 (FR-016).
 4. Tres controles mecánicos sobre el corpus congelado (research.md D10), que por leer los ficheros reales viven en
    `internal/skills` y no en el dominio (research.md D27): toda runa de todo nombre está cubierta por el pliegue,
    ningún municipio queda inalcanzable por efecto de la normalización —o se resuelve él, o la ambigüedad lo nombra
-   entre sus candidatos— y ningún nombre plegado es solo cifras, forma que §2.6 lee como código.
+   entre sus candidatos— y ningún nombre plegado se queda sin letras, forma que §2.6 lee como código.
 
 ### 2.8 Fecha de la respuesta
 
@@ -238,7 +240,7 @@ este ejemplo son ilustrativos: los fija la tarea `[datos]` desde la relación de
 ### 3.2 `dir3.yaml` — esquema `schemas/territorio-dir3.yaml.json`
 
 ```yaml
-fecha: 2026-09-20
+fecha: 2026-09-21
 source: mpt.rel
 correspondencia:
   "28074": "L01280745"

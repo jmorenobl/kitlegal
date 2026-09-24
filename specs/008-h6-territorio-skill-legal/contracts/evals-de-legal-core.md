@@ -68,7 +68,7 @@ a
 ```
 
 y el `else` gana `territorio` a la lista de lo que una eval de no activación no puede declarar. Sigue siendo cierto
-que **toda eval que afirme contenido de norma declara `citas`**: quien lo afirma es quien las declara, y las once
+que **toda eval que afirme contenido de norma declara `citas`**: quien lo afirma es quien las declara, y las dieciséis
 evals de `boe-legislacion` que hoy las traen siguen validando sin cambio (compatibilidad hacia atrás, FR-084).
 
 **Lo que este cambio arrastra.** Una eval activa con `comandos` y sin `citas` ni `territorio` sigue siendo inválida,

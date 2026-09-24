@@ -62,8 +62,8 @@ la plataforma y la revisión. Por árboles:
   `TestTerritorioDelRepositorio`, con nueve subtests sobre el corpus real, 900 líneas— y el guion de reinstalación
   `instalar-de-nuevo.txtar`, que deja de nombrar las skills.
 - **`internal/evals`** (12 ficheros): `territorio.go` (el esperado de territorio y su juicio por forma fija),
-  `formato.go` (cuarta variante de comando y `Territorio`), `juzgar.go` (`TerritorioEncontrado`, `TerritorioAusente`
-  y `formaDelComando`, la discriminación de la variante en un solo sitio), `conjunto.go` (`ComprobarConjunto`
+  `formato.go` (cuarta variante de comando, `Territorio` y `formaDelComando`, la discriminación de la variante en un
+  solo sitio), `juzgar.go` (`TerritorioEncontrado` y `TerritorioAusente`), `conjunto.go` (`ComprobarConjunto`
   parametrizado por reglas: `ReglasDeBoeLegislacion()` y `ReglasDeLegalCore()`), `consultas.go`, `informe.go` (dos
   columnas nuevas) y sus tests.
 - **`internal/arch_test.go`** y **`cmd/kitlegal/main_test.go`**: `go.yaml.in/yaml/v3` en `modulosDelBinario` con su
@@ -88,7 +88,7 @@ la plataforma y la revisión. Por árboles:
 - **`Makefile`**: cambian dos recetas. `skills-check`, cuya expresión `-run` gana `TestTerritorioDelRepositorio` y
   `TestJerarquiaDelRepositorio`; y `release`, cuyo comentario y cuyo mensaje dicen ahora H19, el hito de la release
   (ADR 0013), en vez de H6 (revisión final, `c481451`).
-- **Documentación** (4): `CHANGELOG.md` (bloque *De H6* en «Añadido» de *Unreleased*), `README.md` y
+- **Documentación** (4): `CHANGELOG.md` (bloques *De H6* en «Añadido» y en «Cambiado» de *Unreleased*), `README.md` y
   `CONTRIBUTING.md` (el applet, la skill, `data/territorio/` y la fila de `make skills-check` de sus tablas de
   controles) y `docs/SOURCES.md` (la fila `mpt.rel` con la fecha del volcado, 2026-09-21, y la fila
   `ine.codigos-territoriales` de las tablas de códigos de comunidad y provincia, las dos dentro de la pausa de T003;
@@ -145,8 +145,8 @@ el coste de la carga. Lo que pasa a ser mecánico, con el escenario del quicksta
   `TestSalidaDeTerritorioContraSchemas`): ocho claves siempre, `cobertura` con tres, la salida real validada contra el
   esquema publicado; `0` resuelto, `2` ambiguo o mal formado, `3` no encontrado, nunca `4`, `5` ni `6` (escenarios 2 y
   6).
-- **`--describe` sin deriva y cobertura de esquemas** (`TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos`,
-  en `make schema-check`): `schemas/municipio.json` alterado falla con «el fichero no es la serialización canónica de
+- **`--describe` sin deriva y cobertura de esquemas** (`TestEsquemasPublicados`, en `make schema-check`, y
+  `TestEsquemasCubrenTodosLosVerbos`, en `make test`): `schemas/municipio.json` alterado falla con «el fichero no es la serialización canónica de
   sus partes» (escenario 8).
 - **Matriz territorial en e2e** (`territorio-matriz.txtar`, en `TestEntregaDelHito`): Leganés (cubierto), Tordesillas
   (no cubierto, sin ningún boletín no configurado en la salida), Abáigar y Amurrio (forales) y un nombre ambiguo; nombre,
@@ -267,8 +267,9 @@ revisa la revisión final del hito (FR-086).
   denegada la entrada y salida también en sus tests (`depguard` con `run.tests`), y ponerlos en `internal/app` los
   dejaría fuera de `make skills-check`.
 - **`fecha_consulta` es la del fichero congelado más antiguo** (D6), no el reloj: es la regla de ADR 0015 y lo que
-  hace posible la igualdad byte a byte con `--offline` (SC-001). `--dry-run` no cambia lo que hace el applet ni emite
-  sobre, como fijó H1 (D7).
+  hace posible la igualdad byte a byte con `--offline` (SC-001). `--dry-run` no cambia lo que hace el applet: una consulta
+  que se resuelve no emite sobre, y una que el applet rechaza emite el sobre de fallo firmado por el kernel
+  (`kitlegal.cli`, el reloj), como fijó H1 (D7).
 - **Ocho claves sin `omitempty`, cada dato con su `source`, y `cobertura` con vocabulario cerrado** (D11, D12): un
   boletín no configurado no aparece —ni vacío—, porque una entrada vacía se leería como «no tiene», que es lo que FR-022
   prohíbe; la equivalencia autonómico = provincial en Madrid es una decisión por territorio escrita en su fichero, no
@@ -387,6 +388,21 @@ que la ronda 3 dejó desfasado en el comentario de cabecera y en la frase sobre 
 `specs/`; el juez A, además, por `plan.md`, que seguía diciendo que en el `Makefile` cambia una sola receta. La
 cabecera deja de contar rondas y remite a esta sección, la frase dice «las rondas 1 y 2», y `plan.md` gana la viñeta
 de `release`. Todo bajo `specs/`, sin efecto sobre SC-015.
+
+Ronda 5 (`gates/revision-a-r5.json`, `gates/revision-b-r5.json`): los dos jueces rechazaron por cuatro desfases de los
+artefactos de diseño frente al producto final: `--dry-run` con una consulta que el applet rechaza (sale el sobre de
+fallo firmado por el kernel), la regla de resolución de data-model §2.6 («¿alguna letra?», y la entrada vacía como
+caso aparte), la gramática del DIR3 del contrato de identificadores (con los rangos de provincia y municipio) y el
+paquete `data`, que desde la ronda 1 tiene test propio. Como cada ronda encontraba desfases nuevos del mismo tipo, además
+de corregir esos cuatro se repasaron **enteros**, contra el código, los datos, los tests y el binario de la cabeza,
+`spec.md`, `plan.md`, `research.md`, `tasks.md`, `data-model.md`, los contratos, `quickstart.md`, este cuerpo y, fuera
+de `specs/`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/SOURCES.md` y `skills/legal-core/SKILL.md`. Fuera de
+`specs/` no apareció nada; dentro, una treintena de frases que describían el plan y no el producto final —el `source`
+`ine.codigos-territoriales` en FR-005, la regla «sin letras» en el plan y en T006, los ficheros de T029 y de la
+revisión final en el árbol y en el inventario de tests, el `//nolint` razonado de `coste_test.go` en las obligaciones,
+`--dry-run` en D13, el S2 resuelto, la fecha del ejemplo de `dir3.yaml`, los once/dieciséis evals con `citas`, qué
+test corre en qué objetivo del `Makefile`, `formaDelComando` en `formato.go` y los dos bloques *De H6* del CHANGELOG—,
+todas corregidas. Todo bajo `specs/`, sin efecto sobre SC-015.
 
 Como las rondas 1 y 2 tocan ficheros fuera de `specs/` —las siguientes no—, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
 (36011479943) y, tras la ronda 2, sobre `6d08752` (*Pendientes*, SC-015; `gates/evals-cierre.md`).

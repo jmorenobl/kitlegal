@@ -31,7 +31,7 @@ Todo lo de esta tabla se comprobó en este repositorio, en esta máquina y sin r
 | V12 | `go.yaml.in/yaml/v3` ofrece `Decoder.KnownFields(bool)`, que rechaza claves que no son campos del `struct` | orden `go doc go.yaml.in/yaml/v3.Decoder`, `go doc go.yaml.in/yaml/v3.Decoder.KnownFields` |
 | V13 | Convención de los tipos de `data`: **ninguna etiqueta lleva `omitempty`**, todo campo se emite siempre, un valor que la fuente no da va como cadena vacía y una lista sin elementos va como `[]`, nunca `null` | `internal/source/boe/datos.go:10-15` |
 | V14 | Las restricciones formales del esquema salen de etiquetas `jsonschema:"…"` sobre el tipo de `data`: `enum=`, `pattern=`, `minLength=`, `format=` | `internal/source/boe/datos.go:49,65,109`; `internal/core/schema/sobre.go:32,34,42`; `internal/core/schema/error.go:79` |
-| V15 | Con `--dry-run` **el applet se ejecuta igual** (la bandera viaja en el contexto y la honra cada capa con efectos), el kernel **no emite sobre** y escribe la descripción en la salida de error; el código sigue siendo el que corresponda al resultado | `internal/app/main.go:357-376`, `:402-424`; `docs/ADR/0011-ensayo-por-capas.md` §Decisión |
+| V15 | Con `--dry-run` **el applet se ejecuta igual** (la bandera viaja en el contexto y la honra cada capa con efectos) y el kernel escribe la descripción en la salida de error y descarta el `Resultado`: si el applet termina bien, **no emite sobre**; si falla, emite con `--json` el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, el reloj); el código sigue siendo el que corresponda al resultado | `internal/app/main.go:357-376`, `:402-424`; `docs/ADR/0011-ensayo-por-capas.md` §Decisión |
 | V16 | `Procedencia.FechaConsulta` con valor cero significa «la fecha la pone el reloj del montador»; con valor, el montador usa **la que declara quien consultó** | `docs/ADR/0015-puerto-source-y-fecha-de-consulta.md` §La fecha de consulta; `internal/cli/sobre.go` (`Montador`) |
 | V17 | El mensaje del error del applet llega **literal** al `mensaje` del sobre de fallo (`schema.DatosError{Clase: Clasificar(err), Mensaje: err.Error()}`), y el sobre de fallo solo se escribe con `--json`; el mensaje va siempre a la salida de error | `internal/cli/sobre.go:100-122`, `:160-168`; `internal/core/schema/error.go:74-80` |
 | V18 | `Clasificar` mira primero los cinco sentinelas del kernel con `errors.Is` y después `errors.As` a `schema.ConClase`; `CodigoSalida` es el único punto de traducción y `codigoDeClase` es un `switch` sin `default` que `exhaustive` vigila | `internal/cli/errors.go:28-59`, `:90-123`, `:136-152` |
@@ -186,11 +186,13 @@ es lo más simple, pero hace pasar por recién consultado un volcado de hace mes
 explícitamente en su opción c— y rompe la igualdad byte a byte que pide SC-001. *La fecha de compilación del binario*:
 no es la fecha de ningún dato y volvería a mentir sobre la antigüedad.
 
-### D7 · `--dry-run` no cambia lo que hace el applet, y no emite sobre
+### D7 · `--dry-run` no cambia lo que hace el applet, y no emite sobre de éxito
 
 **Decisión.** `territorio` no rellena `Resultado.Ensayo`: no tiene ninguna capa con efectos que describir. Con
-`--dry-run`, el applet se ejecuta igual, el kernel escribe su línea en la salida de error y **no emite sobre**, que es
-el comportamiento que H1 fijó y el ADR 0011 documenta (V15). Con `--offline`, el applet devuelve exactamente lo mismo
+`--dry-run`, el applet se ejecuta igual y el kernel escribe su línea en la salida de error: una consulta que se
+resuelve **no emite sobre**, y una que el applet rechaza emite, con `--json`, el sobre de fallo firmado por el kernel
+(`kitlegal.cli`, `kitlegal:cli`, el reloj) con su código, 2 o 3. Es el comportamiento que H1 fijó y el ADR 0011
+documenta (V15); H6 no lo cambia. Con `--offline`, el applet devuelve exactamente lo mismo
 que sin la bandera, byte a byte (D6).
 
 **Motivo.** FR-009 pide que las dos banderas «se comporten sin cambiar la respuesta» y concreta el caso de `--offline`.
@@ -266,7 +268,7 @@ la función que la aplica se exporta como `territorio.Plegar` —la comparten el
 de corpus (D27)— y **tres tests mecánicos la atan al corpus congelado**: (1) toda runa que aparece en algún nombre
 oficial está cubierta por el pliegue o es ASCII —una runa nueva hace fallar `make ci`, no pasa en silencio—; (2) ningún
 municipio queda inalcanzable: por su nombre oficial se resuelve él, o se declara una ambigüedad que lo nombra entre sus
-candidatos; (3) ningún nombre plegado es solo cifras, porque esa forma la lee la resolución como un código (data-model
+candidatos; (3) ningún nombre plegado se queda sin letras, porque esa forma la lee la resolución como un código (data-model
 §2.6). **Los tres viven en `internal/skills`, no en el dominio** (D27): son los ficheros congelados reales, y el
 dominio no puede leerlos.
 
@@ -331,7 +333,8 @@ de provincial*: lo prohíbe el caso límite del spec; la equivalencia es una dec
 
 **Decisión.** `fuente: "kitlegal.territorio"`, `url: "kitlegal:applet/territorio"` (ADR 0006, fila «applet calculado»;
 V36). Los fallos que **decide el applet** —nombre ambiguo, municipio inexistente, código mal formado— viajan con esa
-misma procedencia y su fecha (D6); los que decide el kernel antes de llegar al applet —falta el argumento, bandera
+misma procedencia y su fecha (D6) —salvo con `--dry-run`, en que el kernel descarta el `Resultado` y firma el
+fallo con `kitlegal.cli` / `kitlegal:cli` y el reloj (D7)—; los que decide el kernel antes de llegar al applet —falta el argumento, bandera
 desconocida— salen con `kitlegal.cli` / `kitlegal:cli`, como en cualquier otro applet (V17).
 
 **Motivo.** Un sobre de fallo con la procedencia del applet es una «cita negativa útil» (ADR 0006) y hace verificable
@@ -351,7 +354,9 @@ municipio» de «elige uno», y el spec pide código 2. *Añadir una clave al `d
 
 ### D15 · El paquete `data` y lo que el binario pasa a enlazar
 
-**Decisión.** `data/datos.go` (paquete `data`) declara los embebidos y nada más: sin lógica, sin lectura de disco.
+**Decisión.** `data/datos.go` (paquete `data`) declara los embebidos y el recorrido del subárbol de comunidades
+(`Comunidades`, sobre `comunidadesDe(fs.FS)`, probado en `data/datos_test.go` desde la revisión final): no interpreta
+nada y no lee de disco.
 `internal/app` los inyecta. Como el dominio analiza YAML, el binario pasa a enlazar `go.yaml.in/yaml/v3`, que hay que
 añadir a `modulosDelBinario` con su motivo (V11).
 
@@ -475,7 +480,8 @@ skills mezcladas y el doble de tiempo en serie. *Dos ejecuciones*: no son «la m
 
 ### D24 · Lint y vocabulario
 
-**Decisión.** Ninguna exclusión nueva de lint y ningún `//nolint`. En Go no se escribe suelta ninguna de las tres
+**Decisión.** Ninguna exclusión nueva de lint y un solo `//nolint`, razonado: `//nolint:paralleltest` en
+`internal/core/territorio/coste_test.go:36` (T029), porque el test mide las asignaciones de todo el proceso. En Go no se escribe suelta ninguna de las tres
 palabras que `misspell` marca (V4): se escribe `aspecto` en singular —`cada aspecto de la cobertura`—, `configuración`
 y `autónomas` con tilde. Si la implementación necesitara `aspectos` como clave o como identificador, entra en
 `misspell.ignore-rules` con su comentario, como las 20 que ya están (V39); no se prevé, porque `cobertura` tiene tres claves
@@ -630,7 +636,7 @@ hecho en este plan.
 | # | Supuesto | Qué lo resolverá |
 |---|---|---|
 | **S1** | La relación del INE (`diccionario26.xlsx`) trae, por municipio, código de comunidad, código de provincia, código de municipio, dígito de control y nombre oficial | La tarea `[datos]` de `municipios.yaml`; si trae menos, el fichero declara lo que hay y `cobertura` lo dice |
-| **S2** | El DIR3 del ayuntamiento es `L` + el número de inscripción del REL (`L01PPMMMDC`) | La muestra de FR-046, en la pausa de la tarea `[datos]` (ADR 0017, decisión 3) |
+| **S2** | El DIR3 del ayuntamiento es `L` + el número de inscripción del REL (`L01PPMMMDC`) | La muestra de FR-046, en la pausa de la tarea `[datos]` (ADR 0017, decisión 3). **Resuelto (revisión final, `9a77c6b`, 2026-09-24)**: verificado contra las fichas del directorio del PAG en siete municipios —fusionados, forales y con entidades locales menores—, sin discrepancias; `gates/verificacion-dir3.md` |
 | **S3** | Son 8.132 municipios y el fichero de municipios ronda los 650 KB, de modo que su análisis en cada invocación está por debajo de 200 ms | `docs/SOURCES.md` da la cifra de municipios; el tiempo lo mide el e2e con `cronometra`. **Medido (T026 y T029, 2026-09-22)**: la cifra se confirma —8 132 filas en la relación y en la correspondencia, 632 KB y 183 KB— y el tiempo no: la ejecución `ci` de la propuesta de cambio midió 235 ms al resolver Leganés (nota de T026). Cargar asignaba 36,4 MB en 756 111 asignaciones, el 72 % en el árbol de nodos del lector de YAML y la decodificación fila a fila. Desde T029 las filas escritas en la forma de D4 se leen sin el lector, con el mismo resultado y los mismos defectos que él, y cualquier otra forma la lee él entera; ordenar el registro tampoco vuelve a escribir cada código en cada comparación. Con los datos reales, una carga asigna 9,8 MB en 63 333 asignaciones (9 ms en local, y 17 ms la invocación entera). `TestCosteDeLaCarga` lo fija sobre fuentes sintéticas del tamaño real: como mucho un tercio de las 779 065 asignaciones y los 37 455 908 bytes que la carga anterior necesitaba para ellas |
 | **S4** | El pliegue de nombres no deja ningún municipio inalcanzable ni descubre runas fuera de la tabla | Los dos tests de D10, en cuanto exista `municipios.yaml` |
 | **S5** | Los códigos INE de comunidad que se citan como ejemplo en estos artefactos (13 Madrid, 15 Navarra, 16 País Vasco, 18 y 19 para Ceuta y Melilla) | La tarea `[datos]`: los códigos salen del fichero del INE, no de estos documentos |

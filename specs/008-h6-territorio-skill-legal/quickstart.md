@@ -356,7 +356,7 @@ rtk proxy git status --porcelain | rtk proxy grep -vE '^.. specs/008-h6-territor
 rtk proxy rm -r bin
 ```
 
-Espera: la carpeta temporal desaparece con sus tres clones y los cuatro ficheros de la sección 3; el estado del árbol
+Espera: la carpeta temporal desaparece con sus cuatro clones y los cuatro ficheros de la sección 3; el estado del árbol
 muestra solo `fin del estado`. Los ficheros que estos escenarios escriben fuera de `bin/` y de la carpeta temporal son
 `coverage.out` y `coverage-integration.out`, que genera `make ci` y que git ignora. La última orden es opcional:
 `bin/kitlegal` lo regenera `make build`.

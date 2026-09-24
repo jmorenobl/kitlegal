@@ -59,7 +59,7 @@ func Comunidades() (map[string][]byte, error)
 ```
 
 Sin más lógica que leer el subárbol embebido de comunidades. No lo importa `internal/core` (research.md D3): lo
-importan `internal/app` y el binario de e2e.
+importa solo `internal/app` (`FuentesEmbebidas`), y por él lo reciben la raíz de producción y el binario de e2e.
 
 ## 4. La tarea `[datos]` que los genera
 
