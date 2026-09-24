@@ -440,30 +440,37 @@ tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sob
   y `9a77c6b`: la nota al pie del DIR3 en `docs/SOURCES.md`); se repitió por etiqueta, como H5.1, sobre `9a77c6b`
   (36011479943), y la ronda 2 volvió a tocarlos (`6d08752`: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
   `docs/SOURCES.md` y un test), y se repitió sobre `6d08752` (36019842457); y la ronda 6 tocó `internal/evals/`
-  (`ead63d9`: un comentario y un caso de test). **La vigente es la 36038417662, sobre `ead63d9`**, y desde ese commit
-  la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`. Las cuatro anteriores —35714659803 sobre
-  `47f3090`, 35722605048 sobre `2b81164`, 36011479943 sobre `9a77c6b` y 36019842457 sobre `6d08752`— quedan
-  registradas en `gates/evals-cierre.md` y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 6»). En la ejecución
-  36038417662, sobre `ead63d9`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
-  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` dan 3 de 3 con
-  `claude-sonnet-5` sin que sus ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente,
-  y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado`; las tres del modelo que decide, sin
-  nombrar ningún boletín que el applet no devolvió (SC-013, abajo). `ci` en verde sobre `ead63d9` (36038400511), con los cuatro estados de Codecov en verde y con
-  medida.
+  (`ead63d9`: un comentario y un caso de test), y se repitió sobre `ead63d9` (36038417662); y la ronda 8 tocó
+  `README.md`, `CHANGELOG.md` e `internal/app/territorio_test.go` (`ca78cac`). **La vigente es la 36052056175, sobre
+  `ca78cac`**, y desde ese commit la cabeza solo cambia bajo `specs/008-h6-territorio-skill-legal/`. Las cinco
+  anteriores —35714659803 sobre `47f3090`, 35722605048 sobre `2b81164`, 36011479943 sobre `9a77c6b`, 36019842457 sobre
+  `6d08752` y 36038417662 sobre `ead63d9`— quedan registradas en `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 8»). En la ejecución
+  36052056175, sobre `ca78cac`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
+  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` llegan al
+  umbral —de la 01 a la 17, 3 de 3 con `claude-sonnet-5`; la 18, de materia y «Decide: no», 2 de 3— sin que sus
+  ficheros hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente, y las seis respuestas de
+  Tordesillas declaran los dos aspectos `no-configurado`; dos nombran además un boletín que el applet no devolvió, una
+  de cada modelo (SC-013, abajo). `ci` en verde sobre `ca78cac` (36052036268), con los cuatro estados de Codecov en
+  verde y con medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
   puede aparecer, así que el juez no ve si una respuesta nombra un boletín que el applet no devolvió. En el intento 1
   una sesión de seis lo hizo («normalmente el BOCyL», «BOP de Valladolid»), con veredicto `aprobado`; en el intento 3,
   ninguna; en la 36011479943, una del modelo informativo (`haiku-4-5-20251001-02`: «el Boletín Oficial de Castilla y
   León», con mayúsculas, el nombre propio del boletín autonómico), con veredicto `pasa`, y ninguna de las tres del
-  modelo que decide; en la 36019842457, ninguna de las seis; en la vigente, 36038417662, otra vez una del informativo
-  (`haiku-4-5-20251001-02`: «Boletín Oficial de Castilla y León (BOCYL)») y ninguna del modelo que decide. El spec no fijaba si esa cláusula se cuenta
+  modelo que decide; en la 36019842457, ninguna de las seis; en la 36038417662, otra vez una del informativo
+  (`haiku-4-5-20251001-02`: «Boletín Oficial de Castilla y León (BOCYL)») y ninguna del modelo que decide; y en la
+  vigente, 36052056175, **una de cada modelo**: `haiku-4-5-20251001-02` («su Boletín Oficial de la Comunidad
+  (BOCYL)») y, por primera vez, una del modelo que decide, `sonnet-5-02` («el equivalente al BOCyL», «el equivalente al
+  BOP de Valladolid»). El spec no fijaba si esa cláusula se cuenta
   respuesta a respuesta o por serie y umbral como SC-015, y en la 36011479943 las dos lecturas daban distinto (5 de 6
   frente a 3 de 3 y 2 de 3). **Decisión de Jorge (2026-09-24): vale la lectura por serie y umbral**, la misma que el
   resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—; con ella, la vigente
-  cumple (3 de 3 y 2 de 3). Para que la cláusula la
-  juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
+  cumple (2 de 3 y 2 de 3; respuesta a respuesta serían 4 de 6). **Quien fusiona debe saber que el motivo de esa
+  decisión ya no es del todo cierto**: en la vigente el modelo que decide falla una vez de tres, dentro del umbral. Es
+  la razón más fuerte para la pieza de después del hito, que además de lo de abajo puede reforzar la regla en
+  `skills/legal-core/SKILL.md`. Para que la cláusula la juzgue la máquina con el mismo umbral que el resto haría falta un esperado que liste los boletines que la respuesta
   no puede nombrar, o que el juez compare los nombrados con los devueltos: cambia FR-084, `schemas/eval.yaml.json` y
   `internal/evals`, así que es una pieza aparte, después de este hito.
 - **La guía del hito se corrigió en este cierre** (T025, intento 1; `gates/tarea-T025.md`), en tres textos de

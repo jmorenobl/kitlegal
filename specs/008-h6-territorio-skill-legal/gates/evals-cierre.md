@@ -1,9 +1,215 @@
 # Ejecución de aceptación de H6 (quickstart §14, FR-100, FR-101, SC-013, SC-015)
 
-## Revisión final, ronda 6 (2026-09-24): ejecución repetida, la vigente
+## Revisión final, ronda 8 (2026-09-24): ejecución repetida, la vigente
+
+**La ejecución de evals 36052056175, sobre `ca78cac` (`fix(H6): el 4 del plazo agotado, que decide el kernel, dicho y
+probado`), es la vigente.** La ronda 8 tocó `README.md`, `CHANGELOG.md` e `internal/app/territorio_test.go`, fuera de
+`specs/008-h6-territorio-skill-legal/`, así que la 36038417662 (abajo) dejó de cubrir la cabeza y se repitió por
+etiqueta sobre `ca78cac`. Todo lo que se commitea después está bajo `specs/008-h6-territorio-skill-legal/`. Las cinco
+anteriores quedan registradas y no cuentan.
+
+| Dato | Valor |
+|---|---|
+| Ejecución de evals vigente | <https://github.com/jmorenobl/kitlegal/actions/runs/36052056175>, evento `pull_request` |
+| Trabajos | `cambios` `skipped` (por diseño en `labeled`) · `evals (legal-core)` `success` (20:01:22Z–20:12:01Z) · `evals (boe-legislacion)` `success` (20:01:22Z–20:40:57Z) |
+| Commit evaluado | `ca78cac34a95ca681c6e28941cf22c4959aa054a`: el `headSha` de la ejecución y el `Commit:` de los dos informes |
+| Modelos | decide `claude-sonnet-5`; informativo `claude-haiku-4-5-20251001`; Claude Code `2.1.270`; 3 repeticiones y umbral 2 |
+| `legal-core` | `aprobado`, `Motivos: ninguno`. Las tres evals, 3 de 3 con los dos modelos; ninguna invocación fuera de lo grabado |
+| `boe-legislacion` | `aprobado`, `Motivos: ninguno`. De la 01 a la 12, 3 de 3 con los dos modelos; de la 13 a la 17, 3 de 3 con `claude-sonnet-5`, y la 18, 2 de 3 («Decide: no», llega al umbral). Dieciocho invocaciones fuera de lo grabado, todas con código 5 y ninguna llega a la red |
+| Red | «ninguna petición llegó a la red de una fuente» en los dos informes |
+| Sin Python | en los dos trabajos, `usuario: root` y `resultado: ninguno` |
+| `ci` de la cabeza | ejecución [36052036268](https://github.com/jmorenobl/kitlegal/actions/runs/36052036268) sobre `ca78cac`, 20:01:09Z–20:08:06Z, `success` |
+| Codecov sobre la cabeza | cuatro check-runs `success` con medida: `codecov/project` `96.76% (target 70.00%)`, `codecov/patch` `98.79% of diff hit (target 96.42%)`, `codecov/project/internal/cli` `98.09% (target 90.00%)`, `codecov/project/internal/core` `98.63% (target 85.00%)` |
+
+### SC-013
+
+**Municipio cubierto (Leganés)**: las seis sesiones pasan por `territorio resolver Leganés --json` (código 0, sin
+conexiones) y el juez las da por `pasa`.
+
+**Municipio no cubierto (Tordesillas)**: las seis pasan por `territorio resolver Tordesillas --json` (código 0, sin
+conexiones), dan solo el BOE y declaran los dos aspectos `no-configurado` diciendo que no significa que no existan.
+**Dos nombran un boletín que el applet no devolvió, y por primera vez una es del modelo que decide**:
+`sonnet-5-02` —«el boletín oficial de Castilla y León (el equivalente al BOCyL)» y «el boletín oficial de la provincia
+de Valladolid (el equivalente al BOP de Valladolid)», aunque termina diciendo que no tiene «un nombre o dirección
+verificados que pueda darte sin inventarlos»— y `haiku-4-5-20251001-02` —«su Boletín Oficial de la Comunidad
+(BOCYL)»—. El juez da las seis por `pasa`, porque la cláusula no está en el esperado.
+
+**Veredicto: SC-013 se cumple con la lectura que fijó Jorge el 2026-09-24, por serie y umbral** (2 de 3 del modelo que
+decide, 2 de 3 del informativo); respuesta a respuesta serían 4 de 6. Jorge decidió esa lectura a la vista de la
+36011479943, en la que el modelo que decide no había fallado ninguna vez; en esta falla una. Queda en `gates/pr-h6.md`,
+«Pendientes», para que quien fusiona lo vea.
+
+### Orden 1 del §14, tal cual
+
+~~~~text
+[{"conclusion":"success","databaseId":36052056175,"headSha":"ca78cac34a95ca681c6e28941cf22c4959aa054a","status":"completed","workflowName":"evals"},{"conclusion":"success","databaseId":36038417662,"headSha":"ead63d943079d4bac488ee8889de3e874f372e34","status":"completed","workflowName":"evals"},{"conclusion":"success","databaseId":36019842457,"headSha":"6d0875283816bb3a0eac32456048f997df471578","status":"completed","workflowName":"evals"}]
+~~~~
+
+### Orden 2 del §14, tal cual (salida entera)
+
+~~~~text
+# Informe de evals de boe-legislacion
+
+## Veredicto
+
+Veredicto: aprobado
+
+Motivos: ninguno
+
+## Cabecera
+
+Modelo que decide: claude-sonnet-5
+
+Modelos informativos: claude-haiku-4-5-20251001
+
+Repeticiones por eval: 3
+
+Umbral: 2
+
+Modelos de las sesiones: claude-haiku-4-5-20251001, claude-sonnet-5
+
+Versiones de Claude Code: 2.1.270
+
+Commit: ca78cac34a95ca681c6e28941cf22c4959aa054a
+
+## Comprobación sin Python
+
+```text
+búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
+usuario: root
+resultado: ninguno
+```
+
+## Ficheros mal formados
+
+ninguno
+
+## Invocaciones fuera de lo grabado
+
+| Sesión | Eval | Orden | Código |
+| --- | --- | --- | --- |
+| 02-lcsp-contrato-menor-claude-sonnet-5-02 | 02-lcsp-contrato-menor.yaml | boe articulo BOE-A-2017-12902 a6-5 --json | 5 |
+| 02-lcsp-contrato-menor-claude-sonnet-5-02 | 02-lcsp-contrato-menor.yaml | boe articulo BOE-A-2017-12902 a6-5 --json | 5 |
+| 04-lgt-prescripcion-claude-sonnet-5-01 | 04-lgt-prescripcion.yaml | boe buscar Ley General Tributaria --json | 5 |
+| 04-lgt-prescripcion-claude-sonnet-5-03 | 04-lgt-prescripcion.yaml | boe buscar Ley General Tributaria --json | 5 |
+| 08-ltaibg-plazo-de-resolucion-claude-haiku-4-5-20251001-02 | 08-ltaibg-plazo-de-resolucion.yaml | boe buscar transparencia acceso información pública 2013 --json | 5 |
+| 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-02 | 08-ltaibg-plazo-de-resolucion.yaml | boe buscar transparencia, acceso a la información pública y buen gobierno --json | 5 |
+| 10-et-vacaciones-claude-sonnet-5-03 | 10-et-vacaciones.yaml | boe buscar Estatuto de los Trabajadores --json | 5 |
+| 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-01 | 13-lrbrl-atribuciones-por-materia.yaml | boe buscar bases del régimen local --json | 5 |
+| 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-02 | 13-lrbrl-atribuciones-por-materia.yaml | boe buscar bases del régimen local --json | 5 |
+| 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01 | 14-trlrhl-impuestos-por-materia.yaml | boe articulo BOE-A-2004-4214 a60 --json | 5 |
+| 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01 | 14-trlrhl-impuestos-por-materia.yaml | boe articulo BOE-A-2004-4214 a60 --json | 5 |
+| 14-trlrhl-impuestos-por-materia-claude-sonnet-5-03 | 14-trlrhl-impuestos-por-materia.yaml | boe articulos BOE-A-2004-4214 a59 a60 --json | 5 |
+| 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02 | 16-lrjsp-legalidad-por-materia.yaml | boe articulos BOE-A-2015-10566 a25 a26 a27 --json | 5 |
+| 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02 | 16-lrjsp-legalidad-por-materia.yaml | boe articulo BOE-A-2015-10566 a26 --json | 5 |
+| 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02 | 16-lrjsp-legalidad-por-materia.yaml | boe articulo BOE-A-2015-10566 a26 --json | 5 |
+| 17-ltaibg-plazo-por-materia-claude-sonnet-5-03 | 17-ltaibg-plazo-por-materia.yaml | boe articulo BOE-A-2013-12887 a22 --json | 5 |
+| 18-lrjpac-norma-derogada-claude-sonnet-5-01 | 18-lrjpac-norma-derogada.yaml | boe analisis BOE-A-1992-26318 --json | 5 |
+| 18-lrjpac-norma-derogada-claude-sonnet-5-03 | 18-lrjpac-norma-derogada.yaml | boe buscar régimen jurídico de las administraciones públicas y del procedimiento administrativo común --json | 5 |
+
+## Peticiones llegadas a la red
+
+ninguna petición llegó a la red de una fuente
+
+## Tasas por eval
+
+| Eval | Modelo | Decide | Planificada | Tasa | Resultado |
+| --- | --- | --- | --- | --- | --- |
+| 01-lpac-articulo-21.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 01-lpac-articulo-21.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 02-lcsp-contrato-menor.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 02-lcsp-contrato-menor.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 03-lrbrl-atribuciones-del-pleno.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 03-lrbrl-atribuciones-del-pleno.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 04-lgt-prescripcion.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 04-lgt-prescripcion.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 05-trlrhl-impuestos-municipales.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 05-trlrhl-impuestos-municipales.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 06-irpf-rendimientos-del-trabajo.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 06-irpf-rendimientos-del-trabajo.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 07-lrjsp-principio-de-legalidad.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 07-lrjsp-principio-de-legalidad.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 08-ltaibg-plazo-de-resolucion.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 08-ltaibg-plazo-de-resolucion.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 09-constitucion-articulo-140.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 09-constitucion-articulo-140.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 10-et-vacaciones.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 10-et-vacaciones.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 11-no-activa-programacion.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 11-no-activa-programacion.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 12-no-activa-acuerdo-entre-amigos.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 12-no-activa-acuerdo-entre-amigos.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 13-lrbrl-atribuciones-por-materia.yaml | claude-sonnet-5 | no | sí | 3 de 3 | llega al umbral |
+| 14-trlrhl-impuestos-por-materia.yaml | claude-sonnet-5 | no | sí | 3 de 3 | llega al umbral |
+| 15-irpf-rendimientos-por-materia.yaml | claude-sonnet-5 | no | sí | 3 de 3 | llega al umbral |
+| 16-lrjsp-legalidad-por-materia.yaml | claude-sonnet-5 | no | sí | 3 de 3 | llega al umbral |
+| 17-ltaibg-plazo-por-materia.yaml | claude-sonnet-5 | no | sí | 3 de 3 | llega al umbral |
+| 18-lrjpac-norma-derogada.yaml | claude-sonnet-5 | no | sí | 2 de 3 | llega al umbral |
+
+## Sesiones
+# Informe de evals de legal-core
+
+## Veredicto
+
+Veredicto: aprobado
+
+Motivos: ninguno
+
+## Cabecera
+
+Modelo que decide: claude-sonnet-5
+
+Modelos informativos: claude-haiku-4-5-20251001
+
+Repeticiones por eval: 3
+
+Umbral: 2
+
+Modelos de las sesiones: claude-haiku-4-5-20251001, claude-sonnet-5
+
+Versiones de Claude Code: 2.1.270
+
+Commit: ca78cac34a95ca681c6e28941cf22c4959aa054a
+
+## Comprobación sin Python
+
+```text
+búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
+usuario: root
+resultado: ninguno
+```
+
+## Ficheros mal formados
+
+ninguno
+
+## Invocaciones fuera de lo grabado
+
+ninguna
+
+## Peticiones llegadas a la red
+
+ninguna petición llegó a la red de una fuente
+
+## Tasas por eval
+
+| Eval | Modelo | Decide | Planificada | Tasa | Resultado |
+| --- | --- | --- | --- | --- | --- |
+| 01-territorio-municipio-cubierto.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 01-territorio-municipio-cubierto.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 02-territorio-municipio-no-cubierto.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 02-territorio-municipio-no-cubierto.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+| 03-no-activa-receta-de-cocina.yaml | claude-sonnet-5 | sí | sí | 3 de 3 | llega al umbral |
+| 03-no-activa-receta-de-cocina.yaml | claude-haiku-4-5-20251001 | no | sí | 3 de 3 | llega al umbral |
+
+## Sesiones
+código: 0
+~~~~
+
+## Revisión final, ronda 6 (2026-09-24): ejecución repetida, vigente hasta la ronda 8
 
 **La ejecución de evals 36038417662, sobre `ead63d9` (`fix(H6): la guarda de declaraElNombre, con su test y su
-motivo`), es la vigente.** La ronda 6 tocó `internal/evals/territorio.go` (un comentario) e
+motivo`), fue la vigente hasta que la ronda 8 volvió a tocar ficheros fuera de `specs/` (arriba).** La ronda 6 tocó `internal/evals/territorio.go` (un comentario) e
 `internal/evals/territorio_test.go` (un caso), fuera de `specs/008-h6-territorio-skill-legal/` y dentro del filtro de
 rutas del job, así que la 36019842457 (abajo) dejó de cubrir la cabeza y se repitió por etiqueta sobre `ead63d9`. Todo
 lo que se commitea después está bajo `specs/008-h6-territorio-skill-legal/`. Las cuatro anteriores quedan registradas y
