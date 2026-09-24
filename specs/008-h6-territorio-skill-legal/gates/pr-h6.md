@@ -85,14 +85,16 @@ la plataforma y la revisión. Por árboles:
 - **`.github/workflows/evals.yml`**: matriz de skills (`boe-legislacion`, `legal-core`) con `fail-fast: false`, un
   informe por skill en la misma ejecución; la prueba de red solo en el trabajo de `boe-legislacion`; el filtro de rutas
   gana `internal/core/*`.
-- **`Makefile`**: una sola receta cambia, `skills-check`, cuya expresión `-run` gana `TestTerritorioDelRepositorio` y
-  `TestJerarquiaDelRepositorio`.
+- **`Makefile`**: cambian dos recetas. `skills-check`, cuya expresión `-run` gana `TestTerritorioDelRepositorio` y
+  `TestJerarquiaDelRepositorio`; y `release`, cuyo comentario y cuyo mensaje dicen ahora H19, el hito de la release
+  (ADR 0013), en vez de H6 (revisión final, `c481451`).
 - **Documentación** (4): `CHANGELOG.md` (bloque *De H6* en «Añadido» de *Unreleased*), `README.md` y
   `CONTRIBUTING.md` (el applet, la skill, `data/territorio/` y la fila de `make skills-check` de sus tablas de
   controles) y `docs/SOURCES.md` (la fila `mpt.rel` con la fecha del volcado, 2026-09-21, y la fila
   `ine.codigos-territoriales` de las tablas de códigos de comunidad y provincia, las dos dentro de la pausa de T003;
   y, en la revisión final, la nota al pie `[^rel-dir3]`, que pasa de anunciar la verificación del DIR3 a describir la
-  que se hizo).
+  que se hizo, en `9a77c6b`, y la «Fecha del fichero» de `ine.codigos-territoriales`, que pasa de 2026-09-21 a
+  2026-09-20, el día de la descarga, en `6d08752`).
 
 **Sin cambios**, como exige el spec: `internal/core/schema`, `internal/cli`, `internal/httpx`, `internal/cache`,
 `internal/source/boe`, `internal/render`, `cmd/kitlegal/main.go`, `scripts/` (ningún caso nuevo en
@@ -361,13 +363,24 @@ motivos entre los dos, todos corregibles y todos cerrados en `6d08752` y en el c
    del número de inscripción y que la regla se verificó contra el directorio DIR3 oficial. `CONTRIBUTING.md` dice que
    un refresco usa también las tablas de códigos del INE y vuelve a verificar la derivación contra DIR3 real.
 3. **La fecha de `ine.codigos-territoriales` en `docs/SOURCES.md`** (A): 2026-09-20, el día de la descarga de T002
-   (sus SHA-256 coinciden), no el 2026-09-21, que es el de la revisión de la fila.
+   —las copias que quedaron de esa descarga llevan esa fecha y los SHA-256 que registra `gates/tarea-T002.md`;
+   comprobación anotada al final de `gates/tarea-T003.md`—, no el 2026-09-21, que es el de la revisión de la fila.
 4. **`research.md`** (A): el `source` de los nombres de comunidad es `ine.codigos-territoriales`.
 5. **`plan.md`, control 4** (B): la demostración es lo que `madrid-configurada` detecta, no añadir boletines a otra
    comunidad.
 6. **Este cuerpo** (A y B): `DIR3DeAyuntamiento`, el comentario de cabecera, las cifras del *Alcance* (medidas en
    `6d08752`) y las 900 líneas de `TestTerritorioDelRepositorio`; y el cuerpo publicado en #39, que era anterior a
-   `e4c0b65`, se vuelve a sincronizar con `gh pr edit 39 --body-file` tras este commit.
+   `e4c0b65`, se volvió a sincronizar con `gh pr edit 39 --body-file` (`1d39df9`).
+
+Ronda 3 (`gates/revision-a-r3.json`, `gates/revision-b-r3.json`): el juez B aprobó y el juez A rechazó con tres
+motivos, todos de este cuerpo y bajo `specs/`, sin efecto sobre SC-015. Agotadas las dos rondas de corrección, Jorge
+autorizó una tercera solo para ellos:
+
+1. **El `Makefile`** (A): la viñeta del *Alcance* nombra las dos recetas que cambian, `skills-check` y `release`.
+2. **«Sus SHA-256 coinciden»** (A): la comprobación que lo sostiene —las copias de la descarga de T002, con su fecha
+   y sus hashes— queda anotada al final de `gates/tarea-T003.md`, y el punto 3 de la ronda 2 remite a ella.
+3. **El resumen de `docs/SOURCES.md`** (A): la viñeta de *Documentación* incluye el cambio de fecha de la ronda 2,
+   con su commit.
 
 Como las dos rondas tocan ficheros fuera de `specs/`, la ejecución de aceptación se repitió: primero sobre `9a77c6b`
 (36011479943) y, tras la ronda 2, sobre `6d08752` (*Pendientes*, SC-015; `gates/evals-cierre.md`).

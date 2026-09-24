@@ -236,3 +236,13 @@ entidades locales menores incluidas— contra las fichas de unidad orgánica del
 siete coincidencias. La comprobación REL↔INE se conserva como lo que es, el criterio de entrada de FR-048. La
 conclusión no cambia —regla, 8.132 de 8.132—, pero ahora descansa en una verificación contra DIR3 real. `data/` no
 cambia.
+
+### La fecha de `ine.codigos-territoriales` (revisión final, ronda 2)
+
+La fila se añadió en esta pausa con «Fecha del fichero» 2026-09-21, pero las tablas se descargaron el 2026-09-20, en
+la pausa de T002. Comprobado el 2026-09-24 sobre las copias que quedaron fuera del repositorio, sin volver a
+descargarlas: `cod_ccaa.htm`, modificada el 2026-09-20 a las 17:36 UTC, SHA-256
+`843977236254a0aedd4bb27a806a796fc79800a8cc0bd6a1deb25e866454e927`; y `cod_provincia.htm`, el 2026-09-20 a las 17:37
+UTC, SHA-256 `f26be07b88d4004c713dc94185c26ed6c35d831e9e3ef83960fd251a4f813fde`. Los dos hashes son los que registra
+`gates/tarea-T002.md` («Resuelto en la pausa»). `docs/SOURCES.md` pasa a 2026-09-20 en `6d08752`; el «Revisado» sigue
+en 2026-09-21, el día en que se revisó la fila.
