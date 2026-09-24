@@ -30,6 +30,8 @@ territorio resolver <consulta>          # por el enlace simbólico del multicall
 | Fallo decidido por el applet (ambiguo, no encontrado, código mal formado) | `kitlegal.territorio` | `kitlegal:applet/territorio` | la misma |
 | Fallo anterior al applet (falta el argumento, bandera desconocida) | `kitlegal.cli` | `kitlegal:cli` | el reloj del montador |
 | Fallo decidido por el applet bajo `--dry-run` (el kernel descarta el `Resultado` del applet y firma el fallo él) | `kitlegal.cli` | `kitlegal:cli` | el reloj del montador |
+| Plazo de `--timeout` agotado (lo decide el kernel, FR-020 de H1; código 4) | `kitlegal.territorio` | `kitlegal:applet/territorio` | la fecha del dato, como el éxito |
+| Plazo de `--timeout` agotado bajo `--dry-run` | `kitlegal.cli` | `kitlegal:cli` | el reloj del montador |
 
 Consecuencia comprobable: **dos ejecuciones del mismo verbo con la misma consulta producen la misma salida byte a
 byte**, con `--offline` y sin él (US1 escenarios 3 y 4, SC-001).
@@ -60,7 +62,7 @@ La tabla completa de entradas está en [data-model.md](../data-model.md) §2.6. 
 | 0 | Municipio resuelto | — |
 | 2 | Entrada mal formada, o nombre que corresponde a más de un municipio | `argumentos` |
 | 3 | Municipio que no está en la relación (por nombre, o por código **bien formado**: provincia `01`-`52` y municipio `001`-`999`) | `no-encontrado` |
-| 4 | Solo si se agota `--timeout`: lo decide el kernel para todo applet (FR-020 de H1), no el applet, y el sobre de fallo lleva la firma del applet | `fuente-no-disponible` |
+| 4 | Solo si se agota `--timeout`: lo decide el kernel para todo applet (FR-020 de H1), no el applet, y el sobre de fallo lleva la firma del applet, o la del kernel con `--dry-run` (§2) | `fuente-no-disponible` |
 | 4, 5, 6 | El applet **no los decide nunca** (FR-016): no consulta fuentes ni cruza la frontera humana | — |
 
 El mensaje del error del applet llega literal al `mensaje` del sobre de fallo y a la salida de error
@@ -73,8 +75,8 @@ El mensaje del error del applet llega literal al `mensaje` del sobre de fallo y 
 |---|---|
 | `--json` | Presenta el sobre; sin ella, la forma de tabla del presentador |
 | `--offline` | **Ninguno**: el applet no consulta nada, así que devuelve exactamente lo mismo (FR-009) |
-| `--dry-run` | El applet se ejecuta igual y no rellena `Ensayo`; el kernel escribe su línea en la salida de error. Una consulta que se resuelve no emite sobre y termina con 0; una que el applet rechaza emite, con `--json`, el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, el reloj; §2) y termina con su código, 2 o 3 (research.md D7, V15) |
-| `--timeout` | El plazo de la invocación. La carga del registro lo agota si es más corto que ella (del orden de decenas de milisegundos): entonces el kernel termina con 4, clase `fuente-no-disponible` y la firma del applet (FR-020 de H1) |
+| `--dry-run` | El applet se ejecuta igual y no rellena `Ensayo`; el kernel escribe su línea en la salida de error. Una consulta que se resuelve dentro del plazo no emite sobre y termina con 0 —si el plazo se agota, sale el sobre de fallo firmado por el kernel con 4 (§2)—; una que el applet rechaza emite, con `--json`, el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, el reloj; §2) y termina con su código, 2 o 3 (research.md D7, V15) |
+| `--timeout` | El plazo de la invocación. La carga del registro lo agota si es más corto que ella (del orden de decenas de milisegundos): entonces el kernel termina con 4, clase `fuente-no-disponible` y la firma del applet, o la del kernel con `--dry-run` (§2; FR-020 de H1) |
 | `--describe` | Emite el esquema de entrada y salida del verbo |
 | `--no-graph`, `--asunto`, `--verbose` | Heredados, sin efecto propio en H6 (el grafo es H7) |
 
@@ -115,7 +117,7 @@ func AppletTerritorio(fuentes territorio.Fuentes) Applet
 | Forma del sobre y de `data` | `TestResolverDevuelveElTerritorio` (`internal/app/territorio_test.go`) | sí |
 | Salida real contra el esquema publicado | `TestSalidaDeTerritorioContraSchemas` | sí |
 | `--describe` sin deriva | `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos` | sí (`schema-check` el primero; `test` el segundo) |
-| Códigos 0, 2 y 3; que el applet no decide nunca 4, 5 ni 6; y el 4 del plazo agotado | `TestCodigosDeTerritorio` | sí |
+| Códigos 0, 2 y 3; que el applet no decide nunca 4, 5 ni 6; y el 4 del plazo agotado, con la firma del applet y, con `--dry-run`, la del kernel | `TestCodigosDeTerritorio` (`plazo-agotado-da-4-y-lo-decide-el-kernel`, las dos variantes) | sí |
 | Igualdad byte a byte por nombre, por código y con `--offline` | `territorio-matriz.txtar` | sí (`test-e2e` dentro de `test`) |
 | Matriz territorial completa | `territorio-matriz.txtar` (Leganés, Tordesillas, foral, ambiguo) | sí |
 | Que ningún boletín no configurado aparece | `territorio-matriz.txtar` + `TestSalidaSinBoletinesNoConfigurados` | sí |

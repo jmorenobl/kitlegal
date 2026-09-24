@@ -191,7 +191,8 @@ no es la fecha de ningún dato y volvería a mentir sobre la antigüedad.
 **Decisión.** `territorio` no rellena `Resultado.Ensayo`: no tiene ninguna capa con efectos que describir. Con
 `--dry-run`, el applet se ejecuta igual y el kernel escribe su línea en la salida de error: una consulta que se
 resuelve **no emite sobre**, y una que el applet rechaza emite, con `--json`, el sobre de fallo firmado por el kernel
-(`kitlegal.cli`, `kitlegal:cli`, el reloj) con su código, 2 o 3. Es el comportamiento que H1 fijó y el ADR 0011
+(`kitlegal.cli`, `kitlegal:cli`, el reloj) con su código, 2 o 3; y si se agota `--timeout`, el mismo sobre del kernel
+con 4. Es el comportamiento que H1 fijó y el ADR 0011
 documenta (V15); H6 no lo cambia. Con `--offline`, el applet devuelve exactamente lo mismo
 que sin la bandera, byte a byte (D6).
 
@@ -334,7 +335,8 @@ de provincial*: lo prohíbe el caso límite del spec; la equivalencia es una dec
 **Decisión.** `fuente: "kitlegal.territorio"`, `url: "kitlegal:applet/territorio"` (ADR 0006, fila «applet calculado»;
 V36). Los fallos que **decide el applet** —nombre ambiguo, municipio inexistente, código mal formado— viajan con esa
 misma procedencia y su fecha (D6) —salvo con `--dry-run`, en que el kernel descarta el `Resultado` y firma el
-fallo con `kitlegal.cli` / `kitlegal:cli` y el reloj (D7)—; los que decide el kernel antes de llegar al applet —falta el argumento, bandera
+fallo con `kitlegal.cli` / `kitlegal:cli` y el reloj (D7)—. El 4 del plazo agotado de `--timeout` lo decide el kernel
+(FR-020 de H1) y lleva la misma firma del applet, salvo con `--dry-run`, en que lleva la del kernel. Los que decide el kernel antes de llegar al applet —falta el argumento, bandera
 desconocida— salen con `kitlegal.cli` / `kitlegal:cli`, como en cualquier otro applet (V17).
 
 **Motivo.** Un sobre de fallo con la procedencia del applet es una «cita negativa útil» (ADR 0006) y hace verificable

@@ -420,11 +420,20 @@ dar veredicto —la sesión que lo ejecutaba se reinició— y se repitió junto
 Ronda 8 (`gates/revision-a-r8.json`, `gates/revision-b-r8.json`): el juez A aprobó y el juez B rechazó porque el
 contrato, el spec y la documentación prometían que `territorio resolver` no termina nunca en 4, y con un `--timeout`
 que la carga no cumple termina en 4: lo decide el kernel de H1 para todo applet (FR-020, `conPlazoAgotado`), con clase
-`fuente-no-disponible` y la firma del applet. No cambian ni el kernel ni el applet: la promesa se acota a lo que decide
+`fuente-no-disponible` y la firma del applet (o la del kernel con `--dry-run`, que la ronda 9 añadió). No cambian ni el
+kernel ni el applet: la promesa se acota a lo que decide
 el applet —en FR-016 y SC-004, el contrato del applet, data-model, plan, tasks, quickstart, `README.md`, `CHANGELOG.md`
 y este cuerpo— y `TestCodigosDeTerritorio` gana el caso `plazo-agotado-da-4-y-lo-decide-el-kernel` (`--timeout 1ns`,
 vencido antes de que el applet termine: determinista). Como toca `README.md`, `CHANGELOG.md` e `internal/app/`, la
 ejecución de aceptación se repitió (`ca78cac`).
+
+Ronda 9 (`gates/revision-a-r9.json`, `gates/revision-b-r9.json`): el juez B aprobó y el juez A rechazó porque la
+ronda 8 no contempló el plazo agotado bajo `--dry-run`: `territorio resolver Leganés --json --dry-run --timeout 1ns`
+termina en 4 con el sobre de fallo firmado por el kernel (`kitlegal.cli`, el reloj), porque con `--dry-run` el kernel
+descarta el `Resultado` del applet. El contrato del applet gana en §2 las dos filas del plazo agotado —con y sin
+`--dry-run`— y lo dice en §4, §5 y §8, `research.md` lo dice en D7 y D13, y `compruebaPlazoAgotado` comprueba las dos
+variantes con su firma (la que lleva la firma cambiada falla). Como toca `internal/app/territorio_test.go`, la
+ejecución de aceptación se repitió.
 
 Como las rondas 1, 2, 6 y 8 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió
 tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457), sobre `ead63d9` (36038417662) y sobre

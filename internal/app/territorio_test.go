@@ -485,7 +485,8 @@ func gruposDeCasos() []grupoDeCasos {
 //   - ninguna invocación, con ninguna bandera y con un plazo que la carga
 //     cumple, termina en 4, 5 ni 6;
 //   - y un plazo que la carga no puede cumplir termina en 4, con clase fuente
-//     no disponible y la firma del applet: lo decide el kernel, no el applet.
+//     no disponible y la firma del applet, o la del kernel con --dry-run: lo
+//     decide el kernel, no el applet.
 func TestCodigosDeTerritorio(t *testing.T) {
 	t.Parallel()
 
@@ -518,17 +519,27 @@ func TestCodigosDeTerritorio(t *testing.T) {
 
 // compruebaPlazoAgotado exige la única excepción de FR-016, la que fija H1 para
 // todo applet: con un plazo de un nanosegundo, vencido antes de que el applet
-// termine, la invocación es 4 con clase fuente no disponible y la firma del
-// applet, aunque el applet habría resuelto la consulta (FR-020).
+// termine, la invocación es 4 con clase fuente no disponible, aunque el applet
+// habría resuelto la consulta (FR-020). Firma el sobre el applet; con --dry-run,
+// que descarta el Resultado del applet, el kernel.
 func compruebaPlazoAgotado(t *testing.T) {
 	t.Helper()
 
 	consulta := municipiosResueltos()[0].consultas[0]
-	res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()),
-		argvDeResolver(consulta, "--json", "--timeout", "1ns")...)
+	variantes := []struct {
+		banderas    []string
+		procedencia schema.Procedencia
+	}{
+		{banderas: []string{"--json", "--timeout", "1ns"}, procedencia: firmaDeTerritorio},
+		{banderas: []string{"--json", "--dry-run", "--timeout", "1ns"}, procedencia: cli.ProcedenciaKernel()},
+	}
 
-	exigirSobreDeFallo(t, res, schema.ClaseFuenteNoDisponible, 4, firmaDeTerritorio)
-	assert.Contains(t, res.errores, "plazo", "el mensaje dice que lo que falló fue el plazo")
+	for _, variante := range variantes {
+		res := invocar(t, registroDeTerritorio(t, fuentesDeTerritorio()), argvDeResolver(consulta, variante.banderas...)...)
+
+		exigirSobreDeFallo(t, res, schema.ClaseFuenteNoDisponible, 4, variante.procedencia)
+		assert.Contains(t, res.errores, "plazo", "con %v, el mensaje dice que lo que falló fue el plazo", variante.banderas)
+	}
 }
 
 // comprueba invoca el caso sobre el registro local y exige su sobre de fallo.
