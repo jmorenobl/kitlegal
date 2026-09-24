@@ -301,8 +301,9 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
 - **Datos congelados de territorio en `data/territorio/`**, versionados y embebidos en el binario, que no los pide
   en red en ningún momento (ADR 0017): `municipios.yaml`, la relación de municipios del INE con su dígito de control,
   su provincia y su comunidad (`source` `ine.municipios`); `dir3.yaml`, el DIR3 del ayuntamiento de cada municipio,
-  solo con las filas verificadas contra el número de inscripción del Registro de Entidades Locales (`source`
-  `mpt.rel`); `estado.yaml`, el boletín estatal; y `comunidades/`, un fichero por cada una de las 19 comunidades y
+  `L` más su número de inscripción en el Registro de Entidades Locales, solo con los municipios cuyo número es coherente
+  con su código INE y su dígito de control (`source` `mpt.rel`); la regla se verificó contra el directorio DIR3 del
+  Punto de Acceso General en una muestra con municipios fusionados, forales y con entidades locales menores; `estado.yaml`, el boletín estatal; y `comunidades/`, un fichero por cada una de las 19 comunidades y
   ciudades autónomas con su régimen y sus provincias, cuyos nombres salen de las tablas de códigos del INE (`source`
   `ine.codigos-territoriales`). Solo la Comunidad de Madrid trae `boletines`: el BOCM, a la vez
   autonómico y provincial, con el motivo escrito en su fichero. Añadir un territorio es rellenar los boletines de su

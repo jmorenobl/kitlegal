@@ -40,8 +40,9 @@ Las banderas de cada verbo, en «territorio <verbo> --help».
   municipios, con todos los candidatos en el mensaje; `3` un municipio que no está en la relación; nunca `4`, `5` ni
   `6`. Su contrato está publicado en `schemas/municipio.json`.
 - **Datos congelados** en `data/territorio/`: la relación de municipios del INE, el DIR3 del ayuntamiento de cada
-  municipio verificado contra el Registro de Entidades Locales, el boletín estatal y un fichero por comunidad y ciudad
-  autónoma con su régimen y, si está configurada, sus boletines. Los genera una persona fuera del repositorio (ADR
+  municipio —derivado del número de inscripción del Registro de Entidades Locales, con la regla verificada contra el
+  directorio DIR3 oficial—, el boletín estatal y un fichero por comunidad y ciudad autónoma con su régimen y, si está
+  configurada, sus boletines. Los genera una persona fuera del repositorio (ADR
   0017), viajan dentro del binario y `make skills-check` los valida.
 - **Skill `legal-core`**: identifica el territorio antes de razonar —y pregunta el municipio si no se dice—, lo
   resuelve con el applet, traslada la cobertura sin nombrar ningún boletín que el applet no haya devuelto y razona con

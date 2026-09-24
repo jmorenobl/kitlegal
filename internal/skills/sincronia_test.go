@@ -628,6 +628,20 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical"},
 		},
 		{
+			// Como legal-core: leyes_vertebrales sin normas delante, así que el
+			// defecto de data/normas.yaml lo encuentra su propio generador.
+			nombre: "vertebrales-sin-normas-con-vertical",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"),
+					"kitlegal-referencias: "+referenciasDeAlfa+"\n", "kitlegal-referencias: leyes_vertebrales jerarquia_normativa\n")
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
+					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+			},
+			defectos: []string{"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical"},
+		},
+		{
 			nombre: "jerarquia-con-una-clave-desconocida",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()

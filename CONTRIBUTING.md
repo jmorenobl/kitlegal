@@ -219,8 +219,13 @@ nueva, o una eval que consulta algo que no está grabado, llega con su grabació
 
 **Los datos de territorio no se regeneran con `make skills-sync`**: `data/territorio/` no deriva de nada del
 repositorio, sino de descargas públicas que no se consultan en red (ADR 0017). Los refresca una persona, fuera del
-repositorio, desde la relación de municipios del INE y el volcado del Registro de Entidades Locales, con la fila de
-cada origen en `docs/SOURCES.md` puesta a la fecha del fichero. Añadir un territorio es rellenar `boletines` en el
+repositorio, desde la relación de municipios del INE, las tablas de códigos de comunidad y provincia del INE (los
+nombres) y el volcado del Registro de Entidades Locales, con la fila de cada origen en `docs/SOURCES.md` puesta a la
+fecha del fichero. Un refresco de `dir3.yaml` vuelve a verificar la derivación contra DIR3 real en una muestra con
+un municipio fusionado o renombrado, uno foral y uno con entidades locales menores, y la registra con el código
+derivado, el real y su procedencia (ADR 0017; como en
+`specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md`): sin ella, `cobertura.dir3: verificado` no sería
+cierto. Añadir un territorio es rellenar `boletines` en el
 fichero de su comunidad, `data/territorio/comunidades/<código>.yaml`, sin tocar código ni skills. Los ficheros viajan
 dentro del binario, así que un cambio en ellos llega a `territorio resolver` al volver a construirlo.
 

@@ -152,7 +152,7 @@ que es lo que FR-044 exige. *JSON*: se valida igual y se analiza más rápido co
 | `data/territorio/municipios.yaml` | Los 8.132 municipios: código INE, dígito de control, nombre oficial, provincia y comunidad | `ine.municipios` |
 | `data/territorio/dir3.yaml` | La correspondencia INE→DIR3, **solo las filas verificadas** | `mpt.rel` |
 | `data/territorio/estado.yaml` | Lo nacional que no es por comunidad: el boletín estatal | el propio fichero |
-| `data/territorio/comunidades/<código>.yaml` | Una por comunidad y ciudad autónoma (19): nombre, régimen, provincias y, si está configurado, sus boletines | `ine.municipios` (nombres) y el propio fichero (régimen y boletines) |
+| `data/territorio/comunidades/<código>.yaml` | Una por comunidad y ciudad autónoma (19): nombre, régimen, provincias y, si está configurado, sus boletines | `ine.codigos-territoriales` (nombres) y el propio fichero (régimen y boletines) |
 
 Esquemas: `schemas/territorio-municipios.yaml.json`, `schemas/territorio-dir3.yaml.json`,
 `schemas/territorio-comunidad.yaml.json` —uno solo para los 19 ficheros de comunidad— y
