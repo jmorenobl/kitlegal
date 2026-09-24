@@ -412,6 +412,11 @@ comentario daba el motivo al revés. `TestExtraerTerritorio` gana el caso `nombr
 mutante sin la guarda pone en rojo, y el comentario dice el motivo real (`ead63d9`). Como toca `internal/evals/`, la
 ejecución de aceptación se repitió.
 
+Ronda 7 (`gates/revision-a-r7.json`): el juez A rechazó porque la lista de ficheros que tocó la revisión final, en las
+notas de `tasks.md`, no incluía `ead63d9` ni sus dos ficheros de `internal/evals/`; se añadieron. El juez B no llegó a
+dar veredicto —la sesión que lo ejecutaba se reinició— y se repitió junto con el A en la ronda siguiente. Todo bajo
+`specs/`, sin efecto sobre SC-015.
+
 Como las rondas 1, 2 y 6 tocan ficheros fuera de `specs/` —las demás no—, la ejecución de aceptación se repitió tras
 cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842457) y sobre `ead63d9` (*Pendientes*, SC-015;
 `gates/evals-cierre.md`).
