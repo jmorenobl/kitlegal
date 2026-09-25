@@ -1,88 +1,112 @@
 # Workflow por hito con spec-kit
 
-Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`). El workflow encadena los comandos `speckit.*` en modo headless (`claude -p`) e intercala **gates automáticos** que evalúa Claude con la sección «Criterio de decisión autónoma» de `.specify/memory/constitution.md`.
+Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de spec-kit (`.specify/workflows/hito/workflow.yml`). La persona está en los dos extremos y en ningún punto intermedio (ADR 0018): **escribe la entrada** —la sección del hito en `docs/ROADMAP.md`— y **lee el informe final**, que llega como cuerpo de la propuesta de cambio. Entre medias, los comandos `speckit.*` corren en modo headless (`claude -p`), los gates los deciden scripts y jueces con rúbrica, y el run solo se detiene por una causa mayor que detecta el código.
 
 ## Piezas
 
 | Pieza | Dónde | Para qué |
 |---|---|---|
-| Constitución | `.specify/memory/constitution.md` | Principios, restricciones, DoD y el criterio con el que se decide sin humano |
-| Workflow | `.specify/workflows/hito/workflow.yml` | Secuencia, gates, bucle de reparación de CI |
-| Lanzador y supervisor | `scripts/hito.sh` | Comprueba `main` limpio, exporta flags de Claude y el wrapper de modelo, impide el reposo del Mac (`caffeinate -i` mientras vive), lanza el run y lo supervisa: reanuda ante límites de uso y fallos transitorios, se detiene ante gates y paradas deliberadas |
+| Constitución | `.specify/memory/constitution.md` | Principios, restricciones, DoD, las tres capas de gate y el criterio con el que se decide sin persona |
+| Workflow | `.specify/workflows/hito/workflow.yml` | Secuencia, rondas de juez, bucle de tareas, revisión, cierre e informe |
+| Pasos shell | `scripts/workflow/*.sh` | La lógica determinista de cada paso: prechecks, rondas, guardián, verificación, cuarentena, aceptación congelada, grabación, cierre e informe |
+| Lanzador y supervisor | `scripts/hito.sh` | Comprueba `main` limpio y las credenciales, toma el candado de sesión única, impide el reposo del Mac y supervisa el run: espera ante límites de uso, reanuda fallos transitorios y solo se detiene ante una causa mayor o el rechazo de entrada |
+| Sesión única | `scripts/workflow/sesion-unica.sh` + gancho `PreToolUse` en `.claude/settings.json` | Mientras vive un run, ninguna otra sesión de Claude Code puede editar ni cambiar el historial de ese árbol |
 | Guardia de push | `scripts/lefthook/pre-push/guardia-push.sh` | Gancho `pre-push` de lefthook: rechaza `main`, push forzados, borrados y etiquetas, sea cual sea la orden |
 | Wrapper de modelo | `scripts/claude-modelo.sh` | Ejecutable de Claude para spec-kit: traduce `--model <modelo>@<esfuerzo>` a `--model` + `--effort` |
 | Coste por paso | `scripts/coste-run.sh` | Consumo y coste estimado de un run por paso y por rol, desde los transcripts |
-| Extensión git | `.specify/extensions/git/` | Rama `NNN-hN-slug` por hito y auto-commit (Conventional Commits) tras cada fase |
+| Extensión git | `.specify/extensions/git/` | Rama `NNN-hN-slug` por hito |
 | Skills | `.claude/skills/speckit-*` | Los comandos `/speckit-*` (generados por `specify init`, no editar a mano) |
-| Artefactos | `specs/NNN-hN-slug/` | `spec.md`, `plan.md`, `research.md`, `tasks.md`, `checklists/`, `gates/*.json` |
+| Artefactos | `specs/NNN-hN-slug/` | `spec.md`, `plan.md`, `research.md`, `tasks.md`, `checklists/`, `aceptacion/`, `gates/` |
+| Evidencia de datos | `evidencias/<hito>/` | Material de origen grabado por `grabar_datos`, con `manifiesto.json` de huellas |
 
 ## Secuencia
 
 ```
-extraer_hito (shell: sección del hito en ROADMAP.md → JSON)
-→ specify (modo desatendido: alcance = sección; ambigüedades como [NEEDS CLARIFICATION], sin resolver)
-→ clarify_preguntas (command: solo formula preguntas, sin recomendación → gates/clarify-preguntas.json)
-→ resolver_clarify (prompt en PROCESO NUEVO, contexto limpio → gates/clarify-respuestas.json)
-→ check_clarify (shell: todas respondidas; ninguna escalada) → clarify_integrar (command: integra respuestas en spec.md)
-→ precheck_spec (shell) → ronda_spec ×2 [juez_spec → leer_gate_spec (archiva gates/spec-r<n>.json) → corrector_spec si rechazado y corregible] → check_gate_spec
-→ [supervisado] gate humano
-→ plan → precheck_plan → ronda_plan ×2 [juez → leer → corrector] → check_gate_plan → [supervisado] gate humano
-→ tasks → analyze → precheck_tasks (formato, ids, rutas declaradas, [datos]) → ronda_tasks ×2 → check_gate_tasks
-→ bucle por tarea (do-while):
-     siguiente_tarea (shell: primera "- [ ] Tnnn", intentos, base git, rutas declaradas, [datos] → gates/tarea-actual.json)
-     → si la tarea es [plataforma] y .claude/settings.json no permite push ni gh: gate humano antes de gastar intentos
-     → implementar_tarea (command implement, solo esa tarea; intento 1 con modelo_implementacion, reintentos con modelo_escalada; solo una tarea [plataforma] puede empujar la rama y abrir la PR)
-     → guardian_diff (shell: rutas declaradas; testdata/ y schemas/ solo con [datos]; .golangci.yml solo si añade entradas a misspell.ignore-rules)
-     → verificar (shell: make ci | go build+vet+test; log en gates/ci.log)
-     → si falla y la tarea quedó redelimitada ([ ] con gates/tarea-Tnnn.md escrito en el intento): sin reparar ni commitear, el bucle la reintenta
-     → si falla por otra causa: reparar (prompt con las últimas 80 líneas del log) → guardian_diff_reparacion → verificar_reparacion → si sigue en rojo, redelimitada_reparacion (reintento si `reparar` redelimitó; si no, parada)
-     → commit_tarea (solo en verde) → clasificar_datos → gate humano si la tarea [datos] modificó material existente de testdata/ o schemas/ o añadió fixtures o esquemas (independiente de `modo`)
-→ ci (make ci del hito) → si falla: do-while (reparar_hito + ci_reintento) ×3 → ci_tras_reparacion
-→ converge (solo lectura: sin make ci, gh ni subagentes) → implement_restante
-→ ronda_revision ×3 [preparar_jueces → fan-out en paralelo: juez A (DoD) ∥ juez B (adversarial) → leer_revision (archiva gates/revision-{a,b}-r<n>.json) → corrector sobre la unión de motivos si algún rechazo es corregible]
-→ ci_final (commitea los veredictos y su historial; make ci; ambos jueces aprobado; sin tareas pendientes; árbol limpio)
-→ rutas_sensibles → gate humano forzado si el diff toca docs/SOURCES.md, data/anomalias/ o una fuente nueva
-→ publicar_rama (git push -u origin <rama>; gh pr create hacia main si no existe propuesta; nunca merge)
-→ [supervisado] gate humano final
+extraer_hito (la sección del hito: la entrada de la persona)
+→ specify → clarify_preguntas → ronda_clarify ×3 [resolver_clarify (proceso nuevo) → check_clarify] → completar_clarify → clarify_integrar
+→ ronda_spec ×4 [precheck_spec → juez_spec (juez de entrada) → leer_gate_spec → corrector_spec] → check_gate_spec   ← único rechazo posible antes del final
+→ plan → ronda_plan ×4 [precheck → juez → leer → corrector] → check_gate_plan → commit
+→ tasks → analyze → ronda_tasks ×4 [precheck → juez → leer → corrector] → check_gate_tasks → commit
+→ bucle_tareas:
+     siguiente_tarea (primera "- [ ] Tnnn" fuera de cuarentena; si no queda ninguna, converge una vez)
+     → implementar_tarea (intento 1: modelo_implementacion; 2 y 3: modelo_escalada con el diagnóstico del anterior)
+     → verificar (guardián de diff + «rojo primero» si [aceptacion] + manifiesto grabable si [datos] + make ci)
+     → si rojo: redelimitada → reintento | reparar → verificar_reparacion → si sigue rojo, el diagnóstico va a la nota de la tarea
+     → estado_cierre → commit_tarea → congelar_aceptacion ([aceptacion]) → grabar_datos ([datos] con manifiesto)
+     (tras tres intentos sin verde: cuarentena y sigue)
+→ activar_aceptacion (la suite congelada entra en make ci)
+→ ci (make ci del hito) → si rojo: bucle_reparacion ×3 [reparar_hito → cerrar_reparacion]
+→ barrido (artefactos y documentación contra el producto) → cerrar_barrido
+→ ronda_revision ×4 [juez A ∥ juez B → leer_revision → corrector_revision → cerrar_correccion] → cerrar_revision
+→ publicar (push + propuesta de cambio) → bucle_cierre ×3 [medir_cierre (CI + evals sobre la cabeza) → reparar_cierre]
+→ informe_final (cuerpo de la propuesta de cambio)
 ```
 
-La fusión a `main` (squash-merge) y el release son siempre acciones humanas. El workflow deja la rama del hito commiteada y en verde, la empuja a `origin` y abre la propuesta de cambio si no existe (`publicar_rama`; antes, la tarea `[plataforma]` del hito si la hay). Nunca hace `merge`, ni push a `main`, ni push forzado: además de los permisos de `.claude/settings.json`, `scripts/lefthook/pre-push/guardia-push.sh` (gancho `pre-push` de lefthook, instalado con `make hooks` o `lefthook install`) rechaza esas referencias aunque el YAML cambiara. Una persona lo salta con `KITLEGAL_PUSH_HUMANO=1` (etiquetas de release). Motivación y datos en `docs/ADR/0007-workflow-desatendido.md`.
+La fusión a `main` (squash-merge) y el release son siempre acciones humanas. El workflow deja la rama del hito commiteada, la empuja a `origin`, abre la propuesta de cambio y pone el informe como cuerpo. Nunca hace `merge`, ni push a `main`, ni push forzado: además de los permisos de `.claude/settings.json`, `scripts/lefthook/pre-push/guardia-push.sh` (instalado con `make hooks` o `lefthook install`) rechaza esas referencias aunque el YAML cambiara. Una persona lo salta con `KITLEGAL_PUSH_HUMANO=1` (etiquetas de release). Motivación en `docs/ADR/0007-workflow-desatendido.md` y `docs/ADR/0018-workflow-autonomo-persona-en-los-extremos.md`.
+
+## Qué detiene el run
+
+Nada que decida un modelo. Solo esto:
+
+| Parada | Quién la detecta | Qué deja |
+|---|---|---|
+| Rechazo de entrada | `check_gate_spec`: el juez de entrada lista motivos en `entrada` con tipo `contradiccion`, `sin_criterio_comprobable` u `objetivo_vacio` | `gates/informe-rechazo.md`: fragmento, por qué impide derivar un test y una pregunta cerrada por motivo. Se corrige la sección del hito y se relanza desde `main` |
+| DAG bloqueado | `siguiente_tarea`: tres tareas seguidas en cuarentena sin ninguna en verde entre medias | `gates/dossier.md` |
+| Dependencia externa inaccesible | `grabar_datos` (la fuente no responde tras un reintento), `publicar` o `medir_cierre` (push, `gh` o comprobaciones que no terminan en 3 h) | `gates/dossier.md` |
+| Credencial ausente | `hito.sh` al arrancar (`claude`, `gh auth status`, `origin`) y el cierre | mensaje del supervisor o `gates/dossier.md` |
+| Presupuesto de tiempo | `hito.sh`: el run supera `KITLEGAL_TIEMPO_MAXIMO` segundos (48 h) desde su primer paso | mensaje del supervisor |
+
+Todo lo demás sigue: un gate que agota sus rondas pasa con sus motivos a `gates/<fase>-pendiente.md`; una tarea que no sale entra en cuarentena; un corrector que toca lo que no debe se aparta; un cierre que sigue en rojo tras tres mediciones queda así en el informe.
 
 ## Tres capas de gate
 
 Sigue la sección «Gates» de la constitución: cada comprobación vive en la capa más baja que pueda verificarla.
 
-1. **Mecánica (shell, sin LLM).** `precheck_*` corre antes de cualquier juez: marcadores pendientes, checklists, sección "Fuera de alcance", formato e ids de tareas, rutas declaradas, etiqueta `[datos]`. `verificar`/`ci` ejecutan `make ci`, que debe encadenar lint, `-race`, schema-check, drift de `references/`, test de arquitectura y golden files de citas. `leer_gate_*` valida el JSON del juez y su coherencia (aprobado ⇔ todos los criterios cumplen).
-2. **Juez LLM con rúbrica.** `juez_spec`, `juez_plan`, `juez_tasks`, `revision_juez_a` y `revision_juez_b` reciben criterios fijos (`a`…`i`) y escriben `{"veredicto","corregible","criterios":[{id,criterio,cumple,evidencia}],"motivos"}`. **No corrigen nada.** Revisan de forma exhaustiva (todos los incumplimientos en el primer veredicto, no uno por ronda) y, en rondas posteriores, comprueban primero los motivos anteriores. Si rechazan y el motivo es corregible, un `corrector_*` (proceso distinto) aplica los motivos, generalizando cada uno a la clase de defecto que lo causa, y se vuelve a juzgar, con tope de dos correcciones. Si el motivo requiere decisión humana (`corregible: false`), el `check_gate_*` para el run. Los autores (`specify`, `plan`, `tasks`) reciben la orden de comprobar su artefacto contra la rúbrica del juez antes de entregar: en H1 los tres gates se rechazaron exactamente una vez, y esa ronda es evitable sin bajar el listón porque el juez sigue juzgando igual.
-3. **Humano.** Pausas que no dependen de `modo` ni admiten pre-aprobación por input: tras una tarea `[datos]` que modifique material existente de `testdata/` o `schemas/` o añada fixtures grabados o esquemas (`clasificar_datos`: ficheros nuevos bajo `testdata/` de raíz, `internal/source/**` o `schemas/`; el material de test nuevo fuera de ese territorio, como código Go o guiones `.txtar` bajo `internal/<pkg>/testdata/`, sigue exigiendo `[datos]` y guardián pero no pausa: lo revisan los jueces finales), tras una tarea `[plataforma]` cuando los permisos de `.claude/settings.json` no permiten `git push` ni `gh pr create`, y al final si el diff toca `docs/SOURCES.md`, `data/anomalias/` o crea un directorio nuevo bajo `internal/source/`. El supervisor se detiene y avisa; se reanudan con `scripts/hito.sh --resume <run_id>` desde un terminal, que pregunta approve/reject.
+1. **Mecánica (shell, sin LLM).** `scripts/workflow/precheck.sh` corre antes de cada juez de artefactos y escribe sus defectos en `gates/<fase>-precheck.txt`: marcadores pendientes, checklists, «Fuera de alcance», ids de requisito únicos y citados, escenarios Dado/Cuando/Entonces, «Aceptación e2e» en el plan, formato e ids de tareas, rutas declaradas, `[datos]`, una sola `[aceptacion]` y la primera, y ninguna tarea de plataforma, de persona ni con `KITLEGAL_RECORD`. **No paran el run**: `gate.sh leer` fuerza el rechazo mientras quede alguno y el corrector los arregla. `verificar.sh` ejecuta el guardián de diff y `make ci`, que encadena lint, `-race`, schema-check, drift de `references/`, test de arquitectura y golden files de citas.
+2. **Juez LLM con rúbrica.** `juez_spec`, `juez_plan`, `juez_tasks` y los dos jueces finales reciben criterios fijos y escriben `{"veredicto","criterios":[{id,criterio,cumple,evidencia}],"motivos"}` (el de entrada, además, `"entrada":[…]`). **No corrigen nada.** Revisan de forma exhaustiva y, en rondas posteriores, comprueban primero los motivos anteriores. Si rechazan, un corrector (proceso distinto) aplica los motivos generalizando cada uno a su clase de defecto, y se vuelve a juzgar: hasta cuatro veredictos y tres correcciones. Un veredicto ausente o mal formado repite la ronda con un juez nuevo. Un motivo de alcance, frontera humana, privacidad, TOS, anomalías o decisión cerrada lo aplica el corrector con la lectura conservadora y deja una línea en `gates/supuestos.md`. Los autores (`specify`, `plan`, `tasks`) comprueban su artefacto contra la rúbrica y el precheck antes de entregar.
+3. **Humano, en los extremos.** Antes del run, la sección del hito y la fila revisada de `docs/SOURCES.md` en `main` para toda fuente que se vaya a grabar. Después, el informe final: fuentes, anomalías, adaptadores nuevos, fixtures y esquemas modificados, grabaciones, evidencia y supuestos, antes de fusionar.
 
-## Clarificación sin sesgo
+## Clarificación sin sesgo y sin persona
 
-`clarify` se divide en tres pasos para que quien formula las preguntas no sea quien las responde:
+`clarify` se divide para que quien formula las preguntas no sea quien las responde:
 
 1. **`clarify_preguntas`** ejecuta `/speckit-clarify` con la orden de solo escribir las preguntas y sus opciones en `gates/clarify-preguntas.json`, sin recomendación ni opción preferida, y sin tocar el spec.
-2. **`resolver_clarify`** es un `prompt` que spec-kit lanza como un proceso `claude -p` nuevo: no comparte conversación con el paso anterior y se le dice que decida solo con documentos (hito, `CLAUDE.md`, `refs/`, constitución). Aplica el criterio en este orden: (a) lo determinan las fuentes → esa es la respuesta; (b) no está especificado → "fuera de alcance: no se implementa"; (c) varias opciones válidas → la de mayor calidad y mejores prácticas, con la alternativa rechazada; (d) alcance, frontera humana, privacidad, TOS, anomalías o decisión cerrada → `escalar: true`.
-3. **`check_clarify`** detiene el run si alguna respuesta está escalada. Se edita `gates/clarify-respuestas.json` a mano y se reanuda. **`clarify_integrar`** vuelve a llamar a `/speckit-clarify` solo para integrar los pares Q/A en `spec.md` con marca `(auto: criterio, fuente)`.
+2. **`resolver_clarify`** es un `prompt` en un proceso `claude -p` nuevo que decide solo con documentos (hito, `CLAUDE.md`, `refs/`, constitución): (a) lo determinan las fuentes → esa es la respuesta; (b) no está especificado → «fuera de alcance: no se implementa»; (c) varias opciones válidas → la de mayor calidad, con la alternativa rechazada; (d) alcance, frontera humana, privacidad, TOS, anomalías o decisión cerrada → **lectura conservadora** con `conservadora: true`. Nunca escala.
+3. **`check_clarify`** comprueba que cada pregunta tiene respuesta; si falta alguna, `resolver_clarify` lo intenta de nuevo (tres veces). **`completar_clarify`** cierra lo que quede sin respuesta como «fuera de alcance». **`clarify_integrar`** lleva los pares Q/A a `spec.md` con marca `(auto: criterio …)` o `(auto: conservadora …)`.
 
-## Implementación tarea a tarea y guardián de diff
+## Implementación tarea a tarea
 
-Con `granularidad=tarea` (valor por defecto) el bucle toma la primera línea `- [ ] Tnnn` de `tasks.md`, anota el commit base y las rutas que la tarea declara, lanza `/speckit-implement` restringido a esa tarea y después:
+El bucle toma la primera línea `- [ ] Tnnn` que no está en cuarentena, anota el commit base, las rutas que declara y la huella de su nota, y lanza `/speckit-implement` restringido a esa tarea.
 
-- **`guardian_diff`** compara `git diff --name-only <base>` más los ficheros nuevos con las rutas declaradas. Falla, y el run se para, si un fichero queda fuera (scope creep) o si toca `testdata/` o `schemas/` sin etiqueta `[datos]` (arreglar el test en vez del código, grabar fixtures en el bucle). Siempre permitidos: `go.mod`, `go.sum`, `CHANGELOG.md`, el directorio del feature, y `x_test.go` cuando se declara `x.go`. Declarar un directorio (`internal/cli/`) permite todo lo que cuelga de él. `.golangci.yml` se admite sin declararlo **solo** cuando el diff se limita a añadir entradas a `misspell.ignore-rules` (el guardián compara el fichero sin comentarios ni ítems de esa lista, y exige que no falte ninguna entrada anterior): son las palabras españolas que el diccionario inglés toma por erratas, y en H3 T008 paró el run por una que no podía declarar.
-- **`verificar`** ejecuta la batería determinista. Si falla y la tarea quedó **redelimitada** —sigue `[ ]` y `gates/tarea-Tnnn.md` se escribió en este intento, normalmente con la línea de `tasks.md` ampliada—, no se repara ni se commitea: el intento siguiente relee la línea con sus rutas nuevas y hereda el árbol. En cualquier otro rojo, `reparar` recibe **las últimas 80 líneas de la salida** en el prompt y la ruta del log completo, con la orden de arreglar la causa y no el control (o de redelimitar la tarea si el arreglo exige tocar lo que no declara); después vuelven a pasar el guardián y la verificación. Si sigue en rojo y `reparar` no redelimitó, `redelimitada_reparacion` detiene el run.
-- Una tarea que no queda marcada `[X]` tras 3 intentos detiene el run (`gates/tareas-intentos.json`, `gates/tarea-Tnnn.md`); cada redelimitación consume un intento.
-- Una tarea `[datos]` pasa por `clasificar_datos` tras el commit: gate humano solo si modificó material existente de `testdata/` o `schemas/` o añadió fixtures grabados o esquemas.
-- Una tarea `[plataforma]` (evidencia en la propuesta de cambio, estados de CI o Codecov) es la única en la que el ejecutor puede hacer `git push -u origin <rama>` y usar `gh pr create|view|checks` y `gh run list`; va la última de `tasks.md` y `precheck_tasks` exige la etiqueta a toda tarea que nombre `gh pr`, `gh run`, «pull request» o «propuesta de cambio». Si `.claude/settings.json` conserva `Bash(git push:*)` en `deny` o no permite `gh pr create`, `siguiente_tarea` lo detecta y el run pausa en un gate antes de gastar intentos (en H1, T021 quemó sus tres intentos por esto).
+- **Guardián de diff** (`scripts/workflow/guardian-diff.sh tarea`): el diff desde la base se limita a las rutas declaradas, más `go.mod`, `go.sum`, `CHANGELOG.md`, el directorio del feature y `x_test.go` de un `x.go` declarado; declarar un directorio permite todo lo que cuelga de él. `testdata/` y `schemas/` solo con `[datos]`; `evidencias/` nunca (la escribe `grabar_datos`); la suite de aceptación congelada nunca; ningún `t.Skip` nuevo. `.golangci.yml` se admite sin declararlo solo cuando el diff se limita a añadir entradas a `misspell.ignore-rules` (palabras españolas que el diccionario inglés toma por erratas). Una violación es un rojo como otro: el reparador la ve en `gates/ci.log`.
+- **Verificación** (`scripts/workflow/verificar.sh tarea`): guardián; «rojo primero» si la tarea es `[aceptacion]`; manifiesto grabable si es `[datos]`; y `make ci` (sin `Makefile`, `go build ./... && go vet ./... && go test -race ./...`). La última línea de `gates/ci.log` es `kitlegal-verificacion exit=N`, que `estado_cierre` lee en lugar de fiarse de salidas de pasos que quizá no se ejecutaron.
+- **Rojo**: si la tarea quedó **redelimitada** (sigue `[ ]` y su nota cambió en este intento, normalmente con la línea de `tasks.md` ampliada), no se repara ni se commitea: el intento siguiente relee la línea con sus rutas nuevas y hereda el árbol. En cualquier otro rojo, `reparar` recibe las últimas 80 líneas del log; si sigue en rojo, `registrar_fallo` añade el diagnóstico a `gates/tarea-Tnnn.md` y el intento siguiente (con `modelo_escalada`) parte de ahí.
+- **Cuarentena**: una tarea que no queda `[X]` en verde tras tres intentos —o marcada `[X]` sin que dos iteraciones de cierre la dejen commiteada— aparta su trabajo como `gates/cuarentena/Tnnn.patch`, el árbol vuelve al último commit en verde (el directorio del feature conserva su contenido, salvo la suite congelada) y el bucle sigue. Tres cuarentenas seguidas sin ninguna tarea en verde entre medias son una causa mayor: DAG bloqueado.
+- **Aceptación congelada**: la primera tarea, `[aceptacion]`, escribe desde el spec los guiones testscript de la entrega en `<feature>/aceptacion/*.txtar` (y las evals de la skill si el hito la toca). `scripts/workflow/aceptacion.sh rojo-primero` copia cada guion un momento a `internal/app/testdata/script/` y exige que falle por una aserción: uno que pasa sin implementación, o que falla por no poder leerse, no prueba nada. Tras el commit, `congelar` guarda las huellas en `gates/aceptacion-congelada.json`; al acabar el bucle, `activar` los copia a `internal/app/testdata/script/<hito>-*.txtar` y desde ahí `make ci` los ejecuta. Si el plan dice «Aceptación e2e: no aplica», no hay tarea `[aceptacion]`.
+- **Datos externos**: una tarea `[datos]` deja el manifiesto `<paquete>/testdata/grabaciones.json` (con `fuente`) y su test `//go:build grabacion` `TestGrabar*`. Tras su commit, `grabar_datos` (`scripts/workflow/grabar-datos.sh grabar`) comprueba que la fuente tiene fila en `docs/SOURCES.md` de `main` con «Revisado» fechado, ejecuta el test con `KITLEGAL_RECORD=1` y `KITLEGAL_EVIDENCIAS=evidencias/<hito>`, admite solo lo escrito bajo `testdata/` del paquete y `evidencias/<hito>/`, registra huellas en `gates/grabaciones.md` y `evidencias/<hito>/manifiesto.json` (los ficheros de más de 20 MiB solo con su huella; copia en `~/.local/share/kitlegal/evidencias/<hito>/`) y commitea `chore(<hito>): grabaciones de …`. Los ficheros de `data/` derivados los produce código a partir de lo grabado.
+- **Converge**: cuando no queda ninguna tarea pendiente, `converge` compara el código con los artefactos una sola vez y añade a `tasks.md` lo que falte; esas tareas pasan por el mismo bucle.
 
-Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de que cada tarea es una rebanada vertical (test + implementación) que deja `make ci` en verde por sí sola, con todas sus rutas declaradas, y `precheck_tasks` + `juez_tasks` lo comprueban. Mientras no exista `Makefile` con objetivo `ci`, la batería es `go build ./... && go vet ./... && go test -race ./...`; sin `go.mod` no hay nada que verificar (primeras tareas de H0).
+Para que la verificación por tarea tenga sentido, `tasks` recibe la regla de que cada tarea es una rebanada vertical (test + implementación) que deja `make ci` en verde por sí sola, con todas sus rutas declaradas.
 
-`granularidad=hito` conserva la pasada única de `implement` sin guardián por tarea (más barata, menos control).
+## Del make ci del hito a la revisión
+
+- **`ci`** ejecuta `verificar.sh global` con la suite congelada ya activada. En rojo, `bucle_reparacion` (hasta tres intentos) llama a `reparar_hito` y `cerrar_reparacion`.
+- **Pasos globales** (`scripts/workflow/global.sh`): `base` fija el commit de partida y `cerrar` verifica desde él con el guardián global —nadie toca `testdata/`, `schemas/`, `evidencias/`, la configuración de verificación (`.golangci.yml`, `codecov.yml`, `lefthook.yml`, `.github/`, `tools/`, `scripts/workflow/`, `.specify/`, `.claude/`) ni la suite congelada— y `make ci`. En verde, commitea. Si el guardián lo rechaza, **aparta** todo lo hecho desde la base como `gates/aparcado-N.patch` y vuelve a ella. Con `make ci` en rojo, commitea marcándolo en el mensaje para que el paso siguiente lo vea, salvo en el barrido, que se aparta.
+- **Barrido** (`barrido`, `modelo_redaccion`): tras H6, donde la revisión final dio 13 rondas por afirmaciones que el producto ya no sostenía, un paso contrasta de una vez los artefactos del hito y la documentación del repositorio (README, CONTRIBUTING, CHANGELOG, `docs/`, `SKILL.md`, comentarios de paquete, cifras y ejemplos) con el código y el binario, y corrige el texto, nunca el código.
 
 ## Revisión final con dos jueces
 
-`preparar_jueces` genera los dos papeles y `revision_jueces` (paso `fan-out` del motor, `max_concurrency: 2`) lanza la plantilla `revision_juez` una vez por juez, **en paralelo** y sin que ninguno vea el veredicto del otro: el item `a` (`modelo_revisor`) evalúa la Definition of Done con rúbrica; el item `b` (`modelo_adversario`, otra familia de modelo para que los dos votos no compartan puntos ciegos) parte de la hipótesis contraria y busca evidencia de atajos, fixtures retocados, tests vacíos, promesas de los contratos que el binario no cumple, alcance excedido y violaciones que el linter no ve, mutando el código en una copia desechable para comprobar que los tests detectan lo que dicen. Ninguno modifica ficheros ni ejecuta `make ci` en el árbol (corren a la vez). `leer_revision` archiva los dos veredictos de la ronda (`gates/revision-{a,b}-r<n>.json`; los jueces sobrescriben `revision-{a,b}.json`) y combina: ambos aprueban → sigue; cualquier rechazo con `corregible: true` → `corrector_revision` aplica la **unión** de los motivos y nueva ronda (hasta tres veredictos y dos correcciones); algún motivo con `corregible: false` o rondas agotadas → `ci_final` para el run para un humano.
+`preparar_jueces` genera los dos papeles y `revision_jueces` (paso `fan-out`, `max_concurrency: 2`) lanza la plantilla `revision_juez` una vez por juez, **en paralelo** y sin que ninguno vea el veredicto del otro: el item `a` (`modelo_revisor`) evalúa la Definition of Done con rúbrica; el item `b` (`modelo_adversario`, otra familia de modelo) parte de la hipótesis contraria y busca atajos, fixtures o guiones congelados retocados, datos de `data/` que no salen de lo grabado, tests vacíos, promesas que el binario no cumple y alcance excedido, mutando el código en una copia desechable. Ninguno modifica ficheros ni ejecuta `make ci` en el árbol. `leer_revision` archiva los dos veredictos de la ronda (`gates/revision-{a,b}-r<n>.json`): ambos aprueban → sigue; cualquier rechazo → `corrector_revision` aplica la **unión** de los motivos, `cerrar_correccion` verifica y commitea, y nueva ronda (hasta cuatro veredictos). `cerrar_revision` commitea los veredictos; si las rondas se agotan sin aprobar, los motivos van a `gates/revision-pendiente.md` y al informe, y el run sigue.
 
-La regla anterior («desacuerdo → humano») se retiró con datos de H1: en la ronda 1 el juez A (`sonnet@max`, 3 min) no encontró nada y el B (`opus@max`, 26 min) encontró 13 defectos reales y corregibles; en la ronda 2 se invirtió (A cinco motivos nuevos, B aprobado). El desacuerdo medía la profundidad de cada juez, no la ambigüedad del código; por eso los dos jueces deben tener la misma capacidad y la diversidad se pone en el prompt y en la familia de modelo. Detalle en `docs/ADR/0007-workflow-desatendido.md`.
+La regla «desacuerdo → humano» se retiró con datos de H1 (ADR 0007): el desacuerdo medía la profundidad de cada juez, no la ambigüedad del código; por eso los dos jueces tienen la misma capacidad y la diversidad está en el prompt y en la familia de modelo.
+
+## Cierre en la plataforma e informe final
+
+El cierre va **después** de la revisión, sobre la cabeza que se va a fusionar: en H5 y H6 la ejecución de cierre de las evals era una tarea `[plataforma]` anterior a la revisión, y cada corrección la dejaba sin cubrir la cabeza. Ya no existen las tareas `[plataforma]`.
+
+- **`publicar`** (`scripts/workflow/cierre.sh publicar`) commitea los registros del directorio del feature, empuja la rama y abre la propuesta de cambio hacia `main` si no existe.
+- **`medir_cierre`** (`cierre.sh medir`) quita y vuelve a poner la etiqueta `evals` (el botón de «vuelve a medir» de `.github/workflows/evals.yml`), espera a que terminen todas las comprobaciones de GitHub Actions sobre la cabeza (hasta 3 h) y escribe `gates/cierre.json` y, de cada ejecución en rojo, el final de `gh run view --log-failed` en `gates/cierre.log`. Los estados de Codecov son informativos. En rojo, `reparar_cierre` (`modelo_escalada`) arregla, `cerrar_cierre` verifica y commitea, y se vuelve a medir (hasta tres mediciones).
+- **`informe_final`** (`scripts/workflow/informe.sh`) escribe sin modelo `gates/informe-final.md`, lo commitea, lo empuja y lo pone de cuerpo de la propuesta: estado local y remoto; trazabilidad de cada FR/SC del spec a sus tareas (con su estado) y a los guiones de aceptación; supuestos (clarify, correctores, rondas agotadas); cuarentena; lo que la capa 3 reserva a la persona; commits posteriores a la revisión; duración del run. `scripts/workflow/informe.sh <hito> --solo-ver` lo muestra sin tocar nada.
 
 ## Modelo por paso
 
@@ -92,116 +116,74 @@ Los roles agrupan pasos por el tipo de trabajo, no por fase:
 
 | Input | Pasos | Por defecto | Razón |
 |---|---|---|---|
-| `modelo_decision` | `resolver_clarify`, `plan`, `corrector_plan` | `opus@xhigh` | Decisiones cuyos errores se arrastran a todas las tareas. El plan fija herramientas, versiones y CI; su corrector necesita ver la premisa equivocada, no solo la línea citada. `xhigh` porque el plan es el artefacto con más consecuencias |
-| `modelo_juez` | `juez_spec`, `juez_plan`, `juez_tasks` | `opus@xhigh` | El juez debe ser al menos tan capaz como el autor (`modelo_redaccion` y `modelo_decision`, Opus); `xhigh` para que el primer veredicto sea exhaustivo y ahorre rondas |
+| `modelo_decision` | `resolver_clarify`, `plan`, `corrector_plan` | `opus@xhigh` | Decisiones cuyos errores se arrastran a todas las tareas; sin persona en medio, la lectura conservadora tiene que ser la buena |
+| `modelo_juez` | `juez_spec`, `juez_plan`, `juez_tasks` | `opus@xhigh` | El juez debe ser al menos tan capaz como el autor; el de entrada es el único que puede devolver el hito |
 | `modelo_revisor` | `revision_juez` (item `a`) | `opus@xhigh` | Rúbrica DoD casi toda comprobable |
-| `modelo_adversario` | `revision_juez` (item `b`) | `fable@xhigh` | Último gate antes de la fusión: otra familia que `modelo_revisor` para que los dos votos no fallen a la vez (ADR 0007). Es uno de los dos sitios donde Fable 5.1 sigue por defecto |
-| `modelo_redaccion` | `specify`, `clarify_preguntas`, `tasks`, `corrector_spec`, `corrector_tasks` | `opus@high` | Artefactos largos con muchas reglas; los correctores aplican motivos concretos del juez |
-| `modelo_implementacion` | `implementar_tarea` (intento 1), `implement`, `implement_restante`, `corrector_revision` | `opus@xhigh` | Código y depuración; `xhigh` es el nivel recomendado para trabajo agéntico de código. El corrector de la revisión final aplica motivos concretos con evidencia de los jueces, como los correctores de artefactos con `modelo_redaccion` |
-| `modelo_escalada` | `implementar_tarea_escalada` (intentos 2 y 3), `reparar`, `reparar_hito` | `fable@xhigh` | Solo actúa cuando `modelo_implementacion` ya falló: no repetir con el mismo modelo lo que acaba de salir mal. No cuesta nada si todo va bien; es el otro sitio donde Fable 5.1 sigue por defecto |
-| `modelo_analisis` | `clarify_integrar`, `analyze`, `converge` | `sonnet@high` | Lectura, contraste y transformación de artefactos; los fallos de `converge` los cubren los dos jueces finales |
+| `modelo_adversario` | `revision_juez` (item `b`) | `fable@xhigh` | Último gate antes del cierre: otra familia que `modelo_revisor` para que los dos votos no fallen a la vez (ADR 0007) |
+| `modelo_redaccion` | `specify`, `clarify_preguntas`, `tasks`, `corrector_spec`, `corrector_tasks`, `barrido` | `opus@high` | Artefactos largos con muchas reglas; los correctores y el barrido aplican motivos concretos o contrastan texto con código |
+| `modelo_implementacion` | `implementar_tarea` (intento 1), `corrector_revision` | `opus@xhigh` | Código y depuración; `xhigh` es el nivel recomendado para trabajo agéntico de código |
+| `modelo_escalada` | `implementar_tarea_escalada` (intentos 2 y 3), `reparar`, `reparar_hito`, `reparar_cierre` | `fable@xhigh` | Solo actúa cuando algo ya falló: no repetir con el mismo modelo lo que acaba de salir mal |
+| `modelo_analisis` | `clarify_integrar`, `analyze`, `converge` | `sonnet@high` | Lectura, contraste y transformación de artefactos |
 
-Criterio de coste, medido con `scripts/coste-run.sh` en los runs de H2 (`bfa8c3ac`) y H3 (`94612c4d`), a precio de lista: estos pasos son sobre todo lectura de contexto en caché, y Fable 5.1 lee de caché a mitad de precio que Opus 5, así que con el mismo perfil de tokens un paso en Fable cuesta entre 1,4 y 1,7 veces lo que en Opus, no el doble del precio nominal. Aun así, hasta el workflow 1.7.0 Fable (jueces, decisión y escalada) era el 44 % del coste de H3 (165 de 379 USD) y el 22 % de H2. Lo que justificaba cada asignación no se confirmó con datos: los jueces de spec, plan y tasks en Fable no ahorraron rondas frente a los de Opus de H1 (3/2-3/2-4 rondas frente a 3/2/2), y en la revisión final de H3 el juez B en Fable aprobó desde la ronda 2 mientras el juez A en Opus siguió encontrando defectos reales; las escaladas de H2 (T018) y H3 (T008) fueron un test inestable y una palabra de `misspell` fuera de las rutas congeladas, no límites de capacidad. Desde 1.8.0 Fable queda donde la estructura lo pide (juez adversarial y escalada); con el perfil de H3 eso ahorra unos 43 USD por run y deja Fable en el 12 %. Para revisarlo con datos nuevos: `scripts/coste-run.sh` da el coste por paso y por rol de cada run.
+Criterio de coste, medido con `scripts/coste-run.sh` en los runs de H2 (`bfa8c3ac`) y H3 (`94612c4d`), a precio de lista: estos pasos son sobre todo lectura de contexto en caché, y Fable 5.1 lee de caché a mitad de precio que Opus 5, así que con el mismo perfil de tokens un paso en Fable cuesta entre 1,4 y 1,7 veces lo que en Opus, no el doble del precio nominal. Hasta el workflow 1.7.0 Fable (jueces, decisión y escalada) era el 44 % del coste de H3; los jueces en Fable no ahorraron rondas frente a los de Opus de H1, y las escaladas de H2 y H3 no fueron límites de capacidad. Desde 1.8.0 Fable queda donde la estructura lo pide (juez adversarial y escalada). Para revisarlo con datos nuevos: `scripts/coste-run.sh` da el coste por paso y por rol de cada run.
 
 Sobrescritura por run:
 
 ```bash
-KITLEGAL_MODELO_IMPLEMENTACION=opus@max KITLEGAL_MODELO_ANALISIS=haiku scripts/hito.sh H0
-SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE=$PWD/scripts/claude-modelo.sh \
-  specify workflow run hito -i hito=H0 -i modelo_juez=fable@max
+KITLEGAL_MODELO_IMPLEMENTACION=opus@max KITLEGAL_MODELO_ANALISIS=haiku scripts/hito.sh H7
 ```
 
 Los pasos `shell` no usan modelo. Para fijar un modelo distinto en un solo paso sin tocar los inputs, edita su `model:` en el YAML o usa un overlay (`specify workflow overlay add …`).
 
-Para ajustar la asignación con datos, `scripts/coste-run.sh [run_id]` reconstruye desde los transcripts de Claude Code (spec-kit no conserva la salida de `claude -p`) las sesiones, turnos, tokens de salida y coste estimado de cada paso y de cada rol del run.
-
 ## Uso
 
 ```bash
-scripts/hito.sh H0                     # desatendido, tarea a tarea
-scripts/hito.sh H0 supervisado         # con pausas humanas
-SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE=$PWD/scripts/claude-modelo.sh \
-  specify workflow run hito -i hito=H0 -i granularidad=hito   # implement en una pasada
-specify workflow status                # runs y estado
-specify workflow status <run_id>
-scripts/hito.sh --resume <run_id>      # tras corregir a mano un artefacto
-scripts/hito.sh --resume <run_id> veredicto_plan=approve
-scripts/hito.sh --clasificar <run_id>  # qué haría el supervisor con ese run (completado, gate, deliberado, transitorio, limite)
-KITLEGAL_MODELO_FALLBACK=fable=opus,opus=sonnet KITLEGAL_MAX_REANUDACIONES=8 scripts/hito.sh H2
-scripts/paso.sh juez_plan H0           # relanzar a mano un paso prompt (juez, corrector) con su modelo
-scripts/paso.sh corrector_plan H0 opus@xhigh
-scripts/paso.sh revision_juez_b H2     # un juez del fan-out de la revisión final (items a y b)
+scripts/hito.sh H7                     # lanza el hito y lo lleva hasta el informe final
+scripts/hito.sh --resume <run_id>      # tras resolver una causa mayor (el dossier dice qué hace falta)
+scripts/hito.sh --clasificar <run_id>  # qué haría el supervisor con ese run
+KITLEGAL_MODELO_FALLBACK=fable=opus,opus=sonnet KITLEGAL_TIEMPO_MAXIMO=259200 scripts/hito.sh H7
+scripts/workflow/informe.sh H7 --solo-ver   # el informe tal como está ahora, sin tocar nada
+scripts/paso.sh juez_plan H7           # relanzar a mano un paso prompt (con el run parado)
+scripts/paso.sh revision_juez_b H7     # un juez del fan-out de la revisión final (items a y b)
 scripts/coste-run.sh [run_id]          # coste por paso y por rol (por defecto, el run más reciente)
-specify workflow resolve hito          # ver el workflow compuesto con overlays
+specify workflow status [<run_id>]     # runs y estado
 ```
 
 Estado de cada run en `.specify/workflows/runs/<run_id>/` (`state.json`, `inputs.json`, `log.jsonl`).
 
 ## Supervisor
 
-`specify workflow run` termina en cuanto un paso falla o un gate pausa, y el motor no reintenta nada. En el run de H1 eso costó 3,4 h de huecos en cuatro paradas, de las que solo una era una decisión humana. `scripts/hito.sh` envuelve `run`/`resume` en un bucle que clasifica cada parada leyendo `state.json`, `log.jsonl` y el transcript de la sesión headless (`~/.claude/projects/<ruta>/`), y actúa con una lista cerrada de acciones:
+`specify workflow run` termina en cuanto un paso falla, y el motor no reintenta nada. `scripts/hito.sh` envuelve `run`/`resume` en un bucle que clasifica cada parada leyendo `state.json`, `log.jsonl` y el transcript de la sesión headless (`~/.claude/projects/<ruta>/`), y actúa con una lista cerrada de acciones:
 
 | Clase | Cómo se reconoce | Acción |
 |---|---|---|
-| `completado` | `status: completed` | Termina y avisa |
-| `gate` | `status: paused` | Se detiene: la pausa es humana por construcción |
-| `limite` | Paso `prompt`/`command` fallido y la sesión headless posterior a su inicio terminó con `rate_limit`, «spend limit», «usage limit», `overloaded`, `api_error` o «API Error: NNN» (un `500` suelto no basta: en H3 un juez escribió «1 500 líneas») | Cambia de familia de modelo (`KITLEGAL_MODELO_FALLBACK`, por defecto `fable=opus,opus=sonnet`, conservando el esfuerzo) en **todos** los roles que usaban la familia que falló, espera `KITLEGAL_ESPERA_LIMITE` s (60) y reanuda con `--input modelo_<rol>=…` |
-| `transitorio` | Paso `prompt`/`command` fallido sin límite de uso, o paso shell `commit_*` fallido | Reanuda una vez; si el mismo paso vuelve a fallar, se detiene |
-| `deliberado` | Cualquier otro shell fallido (`precheck_*`, `check_*`, `leer_*`, `guardian_*`, `siguiente_tarea` con intentos agotados, `redelimitada_reparacion`, `ci_tras_reparacion`, `ci_final`, `publicar_rama`) | Se detiene y muestra la salida del paso: son paradas a propósito |
+| `completado` | `status: completed` | Termina y avisa: el informe es el cuerpo de la propuesta |
+| `rechazo` | Falla `check_gate_spec` | Se detiene: informe de rechazo en `gates/informe-rechazo.md` |
+| `causa_mayor` | Un paso shell sale con 3 | Se detiene: dossier en `gates/dossier.md` |
+| `limite` | Paso `prompt`/`command` fallido y la sesión headless posterior a su inicio terminó con `rate_limit`, «spend limit», «usage limit», `overloaded`, `api_error` o «API Error: NNN» | Cambia de familia de modelo (`KITLEGAL_MODELO_FALLBACK`, por defecto `fable=opus,opus=sonnet`, conservando el esfuerzo) en todos los roles que usaban la familia que falló, espera `KITLEGAL_ESPERA_LIMITE` s (60) y reanuda; sin repuesto, espera `KITLEGAL_ESPERA_SIN_REPUESTO` s (1800) y reanuda con los mismos modelos. No consume reanudaciones |
+| `transitorio` | Cualquier otro fallo de un paso | Reanuda; el mismo paso no se reanuda más de dos veces, y hay un tope de `KITLEGAL_MAX_REANUDACIONES` (8) por invocación |
 
-Tope de `KITLEGAL_MAX_REANUDACIONES` (8) reanudaciones por invocación. Mientras vive, `hito.sh` mantiene un `caffeinate -i` ligado a su PID: en el run de H3 el Mac se durmió a mitad del paso `plan` y la sesión estuvo 103 minutos reconectando («Connection lost while your computer was asleep»); Claude Code la recuperó sola, pero el hito tardó casi dos horas más. El supervisor nunca edita artefactos, veredictos, `tasks.md` ni permisos: solo relanza `specify workflow resume`, con la misma lista de acciones para el humano que lo lee. En macOS avisa con una notificación de escritorio al detenerse. `scripts/hito.sh --clasificar <run_id>` muestra la clasificación sin actuar.
+Antes de cada reanudación comprueba el presupuesto de tiempo (`KITLEGAL_TIEMPO_MAXIMO`, 48 h desde el primer paso del run). Al arrancar comprueba `claude`, la sesión de `gh` y el acceso a `origin`, y toma el candado de sesión única. Mientras vive, mantiene un `caffeinate -i` ligado a su PID: en H3 el Mac se durmió a mitad de `plan` y el hito tardó casi dos horas más. El supervisor nunca edita artefactos, veredictos, `tasks.md` ni permisos: solo relanza `specify workflow resume`. En macOS avisa con una notificación de escritorio al terminar o detenerse.
+
+## Una sola sesión por run
+
+En H6 una copia duplicada de la conversación estuvo trabajando en paralelo sobre el mismo árbol que el run. `scripts/hito.sh` toma un candado en el git-dir del árbol de trabajo (`kitlegal-run.lock`, uno por worktree) con su PID y un testigo aleatorio, y exporta el testigo en `KITLEGAL_RUN_TESTIGO`: lo heredan `specify`, los pasos shell y las sesiones `claude -p` del run. El gancho `PreToolUse` de `.claude/settings.json` (`scripts/workflow/sesion-unica.sh gancho`) rechaza, en cualquier sesión sin ese testigo, `Edit`, `Write`, `MultiEdit`, `NotebookEdit` y las órdenes de `Bash` que cambian el árbol o el historial (`git add|commit|checkout|reset|push…`, `rm`, `mv`, `sed -i`, `scripts/hito.sh`, `scripts/paso.sh`…); leer y `scripts/hito.sh --clasificar` siguen permitidos. `scripts/paso.sh` se niega a correr con un run vivo. Un candado cuyo PID ya no existe se ignora y se recupera.
 
 ## Permisos de Claude en modo headless
 
-`claude -p` respeta `.claude/settings.json`. Para que `implement` pueda compilar y testear sin prompts, y para que una tarea `[plataforma]` pueda empujar la rama del hito y abrir o leer la propuesta de cambio, el proyecto necesita una lista de permisos como esta (`deny` gana a `allow`; como `Bash(git:*)` ya permite `git push`, la política se expresa en `deny`: `main`, push forzados, borrados, etiquetas y el `git push` sin argumentos quedan denegados; la garantía real la da `scripts/lefthook/pre-push/guardia-push.sh`, que ve las referencias que git va a enviar):
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Read", "Edit", "Write", "Glob", "Grep",
-      "Bash(rtk:*)", "Bash(go:*)", "Bash(gofmt:*)", "Bash(gofumpt:*)", "Bash(goimports:*)",
-      "Bash(golangci-lint:*)", "Bash(govulncheck:*)", "Bash(goreleaser:*)", "Bash(lefthook:*)",
-      "Bash(gitleaks:*)", "Bash(make:*)", "Bash(git:*)", "Bash(jq:*)",
-      "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(wc:*)", "Bash(find:*)",
-      "Bash(grep:*)", "Bash(rg:*)", "Bash(sed:*)", "Bash(awk:*)", "Bash(mkdir:*)", "Bash(ln:*)",
-      "Bash(chmod:*)", "Bash(cp:*)", "Bash(mv:*)", "Bash(touch:*)", "Bash(date:*)",
-      "Bash(specify:*)", "Bash(.specify/scripts/bash/*)", "Bash(.specify/extensions/git/scripts/bash/*)",
-      "Bash(./kitlegal:*)", "Bash(./bin/kitlegal:*)", "Bash(rm:*)",
-      "Bash(gh auth status:*)", "Bash(gh pr create:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)",
-      "Bash(gh pr checks:*)", "Bash(gh pr diff:*)", "Bash(gh pr edit:*)",
-      "Bash(gh run list:*)", "Bash(gh run view:*)", "Bash(gh run watch:*)"
-    ],
-    "deny": [
-      "Bash(git push)", "Bash(git push origin main:*)", "Bash(git push -u origin main:*)", "Bash(git push origin HEAD:main:*)",
-      "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push --force-with-lease:*)",
-      "Bash(git push --delete:*)", "Bash(git push -d:*)", "Bash(git push origin --delete:*)", "Bash(git push origin :*)",
-      "Bash(git push --all:*)", "Bash(git push --mirror:*)", "Bash(git push --tags:*)",
-      "Bash(git merge:*)", "Bash(git reset --hard:*)",
-      "Bash(gh pr merge:*)", "Bash(gh pr close:*)", "Bash(gh release:*)", "Bash(gh repo delete:*)",
-      "Bash(rm -rf:*)", "Bash(curl:*)", "Bash(wget:*)", "Bash(sudo:*)"
-    ]
-  }
-}
-```
+`claude -p` respeta `.claude/settings.json`. Para que `implement` pueda compilar y testear sin prompts el proyecto necesita una lista de permisos como la del fichero (`deny` gana a `allow`; como `Bash(git:*)` ya permite `git push`, la política se expresa en `deny`: `main`, push forzados, borrados, etiquetas y el `git push` sin argumentos quedan denegados; la garantía real la da `scripts/lefthook/pre-push/guardia-push.sh`, que ve las referencias que git va a enviar). Desde la 2.0.0 publicar y medir en la plataforma lo hacen los pasos shell `publicar`, `medir_cierre` e `informe_final`, que no pasan por los permisos de Claude, y los prompts de los pasos con modelo prohíben `git push` y `gh`. Los permisos siguen admitiendo `git push` de ramas y `gh pr create|edit|view|checks` porque los usan las sesiones interactivas; lo que nunca admite ninguna sesión (fusionar, empujar a `main`, forzar, borrar, etiquetar) lo sigue garantizando el gancho `pre-push`.
 
 `scripts/hito.sh` exporta `SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS="--permission-mode acceptEdits"`. En un entorno aislado (contenedor o VM) puede sustituirse por `--dangerously-skip-permissions`.
 
 ## Limitaciones conocidas
 
 - Los pasos `command` transmiten la salida al terminal y no la capturan; por eso los jueces escriben ficheros en `gates/` y `analyze` recibe la instrucción de guardar su informe.
-- Los pasos `shell` tienen `timeout` explícito de 1800 s, y `make ci` debe caber en ese margen; los pasos `prompt` (jueces, correctores, `resolver_clarify`, `reparar`, `reparar_hito`), de 3600 s desde 1.9.2. En H5 (run `ee7453ae`, 2026-09-15) se cortaron a los 1800 s `corrector_plan`, con ocho motivos sobre un plan de 45 K y seis contratos, y el juez A de la revisión final, sobre un diff de más de diez mil líneas; y un corte dentro de una ronda no es barato: el supervisor lo trata como transitorio y `resume` repite la ronda entera, jueces incluidos.
-- Un `shell` que falla detiene el run salvo `continue_on_error: true`; solo lo llevan los pasos cuyo fallo se enruta a una reparación o a un reintento (`verificar`, `verificar_reparacion`, `ci`, `ci_reintento`). Los `precheck_*`, `check_*`, `guardian_diff*`, `leer_*` y `redelimitada_reparacion` fallan a propósito para parar.
-- Rondas juez → corrector: hasta tres veredictos y dos correcciones (`gates/<fase>-rondas` cuenta; el corrector no actúa en la tercera ronda), de modo que toda corrección se vuelve a juzgar. Cada `leer_gate_*` guarda una copia del veredicto de la ronda en `gates/<fase>-r<n>.json` (y `leer_revision`, `gates/revision-{a,b}-r<n>.json`): en H3 hubo que reconstruir desde los transcripts qué motivos dio cada ronda, porque el juez sobrescribe el fichero. Si el tercer veredicto sigue rechazado, `check_gate_*` (o `ci_final`) para. El tope lo lleva también la condición de cada `ronda_*` (`ronda < 3`), no solo `max_iterations`: el motor cuenta las iteraciones por ejecución, y `resume` reejecuta el bucle entero, así que hasta 1.9.0 un corte a mitad de ronda (en H5, el corrector del plan superó los 1800 s y el supervisor reanudó) daba tres iteraciones nuevas y encadenaba jueces sin corrector sobre el mismo artefacto (tercer veredicto, corrector omitido por `ronda < 3`, cuarto juez). Con la condición, tras un `resume` con las rondas agotadas el bucle ejecuta un solo juez, que confirma o rechaza, y `check_gate_*` decide. Para una ronda extra a mano: `scripts/paso.sh juez_plan H0` y después `scripts/hito.sh --resume <run_id>`; los jueces finales se relanzan con `scripts/paso.sh revision_juez_a|b <hito>`, que resuelve el item del fan-out ejecutando `preparar_jueces`.
-- Los dos jueces finales corren a la vez sobre el mismo árbol; por eso su prompt les prohíbe `make ci` y cualquier escritura fuera de un temporal. `scripts/coste-run.sh` atribuye las sesiones que arrancan en el solape por familia de modelo, así que conviene que `modelo_revisor` y `modelo_juez` sean de familias distintas.
-- `precheck_tasks` exige `[plataforma]` a toda tarea que nombre `gh pr`, `gh run`, «pull request» o «propuesta de cambio»; una tarea que necesite la plataforma con otras palabras la detecta el criterio e del `juez_tasks`.
-- El supervisor reconoce el límite de uso por el texto del transcript; un error nuevo con otra redacción se clasifica como `transitorio` y se reanuda una sola vez.
-- Las sesiones headless se reconocen en los transcripts por el entrypoint `sdk-cli`, que `scripts/claude-modelo.sh` fija en el entorno: sin eso, un hito lanzado desde la extensión de VS Code (que exporta `CLAUDE_CODE_ENTRYPOINT=claude-vscode` a sus procesos hijos) dejaba sesiones que ni `limite_api` ni `scripts/coste-run.sh` reconocían (run 94612c4d de H3, 2026-09-12). Para runs grabados antes de esa corrección: `KITLEGAL_ENTRYPOINTS_HEADLESS=sdk-cli,claude-vscode`; las sesiones interactivas de la extensión comparten ese entrypoint y se descartan porque su primer mensaje lleva `origin.kind = human`, que las headless no traen. `coste-run.sh` agrupa en la fila «manual (paso.sh)» las sesiones headless que empiezan fuera de todo paso (rondas a mano tras una parada).
-- Los hooks de auto-commit de la extensión git son opcionales y en headless no se ejecutan; los commits los hacen pasos `shell` deterministas: `commit_artefactos_plan`, `commit_artefactos_tasks`, `commit_tarea` (uno por tarea, mensaje `feat(Hn): Tnnn`), `commit_restante` y, al principio de `ci_final`, el de los veredictos de la revisión final (`gates/revision-*.json`, con las copias por ronda, y `gates/revision-rondas`). Este último vive dentro de `ci_final` porque un `--resume` tras re-juzgar a mano con `scripts/paso.sh` vuelve a ejecutar ese paso; sin él, `ci_final` fallaría por árbol sucio aunque los dos jueces aprobaran.
-- El guardián de diff extrae rutas de la línea de la tarea: tokens con `/`, con extensión conocida, ficheros de raíz sin extensión que terminan en `ignore` (`.gitleaksignore`, `.gitignore`), `.editorconfig`, `Makefile` y `LICENSE`. Una tarea que toque muchos ficheros debe declarar directorios; un fichero de raíz con otro nombre extensionless no es declarable y hay que ampliar la expresión en el YAML.
-- **`resume` reejecuta el paso de nivel superior**, no el paso anidado que falló (`engine.py`: «resume will re-run the parent step and its nested body»). Fuera de los bucles no se nota: `check_gate_spec` o `ci_final` se repiten tal cual. Dentro de `bucle_tareas` significa una **iteración nueva**: `siguiente_tarea` vuelve a elegir tarea y el trabajo sin commitear de la anterior contaría como diff de la siguiente. Desde 1.6.1 `siguiente_tarea` lo detecta —tarea de `gates/tarea-actual.json` marcada `[X]` y árbol sucio fuera del directorio del feature— y emite una iteración de **cierre** (`cierre: true`): sin implementar nada pasa por `guardian_diff` con la base original, `verificar` y `commit_tarea`, y solo después elige la siguiente. Procedimiento tras una parada dentro del bucle: arreglar la causa, dejar la tarea `[X]` si ya está en verde (o `[ ]` para que el bucle la reintente) y reanudar. Una tarea que el propio ejecutor redelimita (`[ ]` + `gates/tarea-Tnnn.md` nuevo) ya no para el run: el bucle la reintenta sin commitear, con la línea actual de `tasks.md` y la misma base git. `scripts/paso.sh` también lanza pasos `shell` (`guardian_diff`, `verificar`, `commit_tarea`) para cerrar una tarea a mano si hiciera falta.
-- **El motor conserva la última salida de cada id de paso entre iteraciones del bucle**, y una condición que lea la de un paso que no se ejecutó en esta iteración lee la de la anterior. Hasta 1.8.0 `cerrar_tarea` decidía el commit con `steps.redelimitada`, que solo corre cuando `verificar` falla: tras un intento redelimitado, el intento siguiente en verde no se commiteaba, `siguiente_tarea` lo convertía en cierre y el cierre tampoco commiteaba, sin tope (H4, T003: 145 vueltas de guardián + `make ci`, 81 minutos, hasta que un fallo fortuito de la verificación recalculó la salida). Desde 1.9.0 `verificar` y `verificar_reparacion` dejan como última línea de `gates/ci.log` `kitlegal-verificacion exit=N`, el paso `estado_cierre` —que corre en todas las iteraciones— decide `commitear` con esa línea y con `tasks.md` y la nota en el árbol, y `siguiente_tarea` cuenta los cierres por tarea (`Tnnn:cierre` en `gates/tareas-intentos.json`) y se detiene al tercero: sin implementador de por medio, dos vueltas iguales bastan para saber que el bucle no avanza. Regla general para el YAML: una condición solo puede leer salidas de pasos que se ejecutan incondicionalmente en la misma iteración.
-- **Cada run congela el workflow**: `specify workflow run` copia la definición a `.specify/workflows/runs/<run_id>/workflow.yml` y `resume` la lee de ahí. Editar `.specify/workflows/hito/workflow.yml` a mitad de un run no afecta a ese run. Para aplicar un cambio a un run parado, copia la definición nueva sobre el snapshot y comprueba que `current_step_index` sigue apuntando al paso correcto (`state.json`), porque insertar pasos desplaza los índices.
-- La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista. Si hace falta, añadir un objetivo `make check` más rápido y usarlo en `verificar`.
-- `inputs.hito` se interpola en un `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`.
-- Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow y la constitución no se tocan.
+- Los pasos `shell` tienen `timeout` explícito (1800 s los que ejecutan `make ci`, 3600 s `grabar_datos`, 11 400 s `medir_cierre`); los pasos `prompt`, 3600 s. Un corte dentro de una ronda lo trata el supervisor como transitorio, y `resume` repite la ronda entera.
+- **`resume` reejecuta el paso de nivel superior**, no el paso anidado que falló (`engine.py`: «resume will re-run the parent step and its nested body»). Dentro de `bucle_tareas` significa una **iteración nueva**: `siguiente_tarea` detecta una tarea marcada `[X]` con cambios sin commitear y emite una iteración de **cierre** (sin implementar: verificación y commit con la base original). Las rondas cuentan en `gates/<fase>-rondas`, que solo pone a cero el paso `iniciar_*` anterior al bucle; tras un `resume` con las rondas agotadas, el bucle ejecuta un solo juez y `cerrar` decide.
+- **El motor conserva la última salida de cada id de paso entre iteraciones del bucle**, y una condición que lea la de un paso que no se ejecutó en esta iteración lee la de la anterior (H4, T003: 145 vueltas). Regla para el YAML: una condición solo puede leer salidas de pasos que se ejecutan incondicionalmente en la misma iteración; `estado_cierre` decide el commit con la última línea de `gates/ci.log` y con `tasks.md`.
+- **Cada run congela el workflow**: `specify workflow run` copia la definición a `.specify/workflows/runs/<run_id>/workflow.yml` y `resume` la lee de ahí. Los scripts de `scripts/workflow/` no se congelan: un cambio en ellos afecta a los runs en curso.
+- El guardián extrae rutas de la línea de la tarea: tokens con `/`, con extensión conocida, ficheros de raíz sin extensión que terminan en `ignore`, `.editorconfig`, `Makefile` y `LICENSE`. Una tarea que toque muchos ficheros debe declarar directorios.
+- El supervisor reconoce el límite de uso por el texto del transcript; un error nuevo con otra redacción se clasifica como `transitorio`. Las sesiones headless se reconocen por el entrypoint `sdk-cli`, que fija `scripts/claude-modelo.sh` (para runs anteriores a esa corrección: `KITLEGAL_ENTRYPOINTS_HEADLESS=sdk-cli,claude-vscode`).
+- La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista.
+- `inputs.hito` se interpola en pasos `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`.
+- Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow, `scripts/workflow/` y la constitución no se tocan.
