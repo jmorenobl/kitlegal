@@ -448,7 +448,7 @@ Tarea: "T024 CHANGELOG, README y CONTRIBUTING del hito"
   `internal/evals/juzgar.go`, `consultas.go`, `conjunto.go` e `informe.go` (T019); `internal/evals/conjunto_test.go`
   (T019 y T020); `internal/app/skills_test.go` (T017, T021 y T022);
   `internal/skills/testdata/script/instalar-de-nuevo.txtar` (T028); `.github/workflows/evals.yml` (T023); `CHANGELOG.md`,
-  `README.md` y `CONTRIBUTING.md` (T024). Además, la revisión final (`c481451`, `9a77c6b`, `6d08752`, `ead63d9`, `ca78cac`, `6b1bf87`, `9c81b29`) tocó `Makefile`
+  `README.md` y `CONTRIBUTING.md` (T024). Además, la revisión final (`c481451`, `9a77c6b`, `6d08752`, `ead63d9`, `ca78cac`, `6b1bf87`, `9c81b29`, `434a1eb`) tocó `Makefile`
   (receta `release`), `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `docs/SOURCES.md`, los 19 ficheros de
   `data/territorio/comunidades/` (`source`), `data/datos.go`, el e2e `territorio-matriz.txtar` y los tests
   `internal/core/ids/dir3_test.go`, `ine_test.go` y `errores_test.go`, `internal/skills/export_test.go`, `jerarquia_test.go`, `normas_test.go`,

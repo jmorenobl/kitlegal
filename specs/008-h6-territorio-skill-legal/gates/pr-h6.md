@@ -25,8 +25,8 @@ ha verificado.
 ## Alcance
 
 Frente a `main` (`04a2aaa`, `docs(h6): registrar fuentes congeladas para territorio y festivos (ADR 0017) (#38)`), en
-`9c81b29` (`fix(H6): cada fichero de comunidad, embebido por su nombre`), el último commit que cambia algo fuera de
-`specs/`: 56 commits; fuera de `specs/`, **157 ficheros, 30 555 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
+`434a1eb` (`docs(H6): la muestra del DIR3, nombrada municipio a municipio en SOURCES.md`), el último commit que
+cambia algo fuera de `specs/`: 59 commits; fuera de `specs/`, **157 ficheros, 30 555 líneas añadidas y 670 retiradas**, de las que 16 445 son los ficheros congelados de `data/territorio/` y 1 121 las grabaciones del BOE. En
 `specs/008-h6-territorio-skill-legal/`, los artefactos del hito, que siguen cambiando con lo que registran el cierre,
 la plataforma y la revisión. Por árboles:
 
@@ -93,7 +93,7 @@ la plataforma y la revisión. Por árboles:
   controles) y `docs/SOURCES.md` (la fila `mpt.rel` con la fecha del volcado, 2026-09-21, y la fila
   `ine.codigos-territoriales` de las tablas de códigos de comunidad y provincia, las dos dentro de la pausa de T003;
   y, en la revisión final, la nota al pie `[^rel-dir3]`, que pasa de anunciar la verificación del DIR3 a describir la
-  que se hizo, en `9a77c6b`, y la «Fecha del fichero» de `ine.codigos-territoriales`, que pasa de 2026-09-21 a
+  que se hizo, en `9a77c6b` y, con los siete municipios de la muestra nombrados, en `434a1eb`, y la «Fecha del fichero» de `ine.codigos-territoriales`, que pasa de 2026-09-21 a
   2026-09-20, el día de la descarga, en `6d08752`).
 
 **Sin cambios**, como exige el spec: `internal/core/schema`, `internal/cli`, `internal/httpx`, `internal/cache`,
@@ -456,6 +456,13 @@ repitió tras cada una: sobre `9a77c6b` (36011479943), sobre `6d08752` (36019842
 sobre `ca78cac` (36052056175), sobre `6b1bf87` (36058947741) y sobre `9c81b29` (36066946991) (*Pendientes*, SC-015;
 `gates/evals-cierre.md`).
 
+Ronda 12 (`gates/revision-a-r12.json`, `gates/revision-b-r12.json`): **los dos jueces aprobaron**, y el run pasó
+`ci_final` y se paró en el gate de rutas sensibles. Al revisar `docs/SOURCES.md` para él, la nota al pie del DIR3
+contaba la muestra como «Leganés, dos fusionados, dos forales y dos con entidades locales menores», siete como si
+fueran grupos disjuntos, cuando Vitoria-Gasteiz es foral y con entidades locales menores y Soba no aparecía. Ahora
+nombra los siete (`434a1eb`); la ejecución de aceptación se repitió sobre ese commit (36072782640) y los jueces
+volvieron a revisar.
+
 ## Pendientes
 
 - **Regla de SC-015 sobre lo que puede cambiar después de la ejecución de aceptación** (plan, obligación 9): el commit
@@ -469,18 +476,19 @@ sobre `ca78cac` (36052056175), sobre `6b1bf87` (36058947741) y sobre `9c81b29` (
   (`ead63d9`: un comentario y un caso de test), y se repitió sobre `ead63d9` (36038417662); y la ronda 8 tocó
   `README.md`, `CHANGELOG.md` e `internal/app/territorio_test.go` (`ca78cac`), y se repitió sobre `ca78cac`
   (36052056175); la ronda 9 volvió a tocar `internal/app/territorio_test.go` (`6b1bf87`), y se repitió sobre
-  `6b1bf87` (36058947741); y la ronda 11 tocó `data/datos.go` y dos tests de `internal/core/ids` (`9c81b29`). **La
-  vigente es la 36066946991, sobre `9c81b29`**, y desde ese commit la cabeza solo cambia bajo
-  `specs/008-h6-territorio-skill-legal/`. Las siete anteriores —35714659803 sobre `47f3090`, 35722605048 sobre
-  `2b81164`, 36011479943 sobre `9a77c6b`, 36019842457 sobre `6d08752`, 36038417662 sobre `ead63d9`, 36052056175 sobre
-  `ca78cac` y 36058947741 sobre `6b1bf87`— quedan registradas en `gates/evals-cierre.md` y no cuentan.
-- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, ronda 11»). En la ejecución
-  36066946991, sobre `9c81b29`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3 repeticiones y
-  umbral 2: las tres evals de `legal-core` dan 3 de 3 con los dos modelos, las 18 de `boe-legislacion` llegan al
-  umbral con `claude-sonnet-5` —3 de 3 salvo la 10 y la 18, 2 de 3— sin que sus ficheros hayan cambiado frente a
-  `main`, ninguna petición llega a la red de una fuente,
+  `6b1bf87` (36058947741); la ronda 11 tocó `data/datos.go` y dos tests de `internal/core/ids` (`9c81b29`), y se
+  repitió sobre `9c81b29` (36066946991); y al revisar el gate de rutas sensibles se corrigió la nota al pie del DIR3 en
+  `docs/SOURCES.md` (`434a1eb`). **La vigente es la 36072782640, sobre `434a1eb`**, y desde ese commit la cabeza solo
+  cambia bajo `specs/008-h6-territorio-skill-legal/`. Las ocho anteriores —35714659803 sobre `47f3090`, 35722605048
+  sobre `2b81164`, 36011479943 sobre `9a77c6b`, 36019842457 sobre `6d08752`, 36038417662 sobre `ead63d9`, 36052056175
+  sobre `ca78cac`, 36058947741 sobre `6b1bf87` y 36066946991 sobre `9c81b29`— quedan registradas en
+  `gates/evals-cierre.md` y no cuentan.
+- **Aceptación** (SC-013, SC-015): registrada en `gates/evals-cierre.md` («Revisión final, gate de rutas sensibles»). En
+  la ejecución 36072782640, sobre `434a1eb`, las dos skills salen `aprobado` con `claude-sonnet-5` decidiendo, 3
+  repeticiones y umbral 2: las tres evals de `legal-core` y las 18 de `boe-legislacion` dan 3 de 3 con
+  `claude-sonnet-5`, sin que los ficheros de eval de `boe-legislacion` hayan cambiado frente a `main`, ninguna petición llega a la red de una fuente,
   y las seis respuestas de Tordesillas declaran los dos aspectos `no-configurado` sin nombrar ningún boletín que el
-  applet no devolvió (SC-013, abajo). `ci` en verde sobre `9c81b29` (36066933001), con los cuatro estados de Codecov en
+  applet no devolvió (SC-013, abajo). `ci` en verde sobre `434a1eb` (36072767128), con los cuatro estados de Codecov en
   verde y con medida.
 - **La segunda cláusula de SC-013 la lee una persona, no el juez** (`gates/tarea-T026.md` § 2 del intento 1 y
   «Intento 3»): el esperado de territorio de FR-084 declara lo que tiene que aparecer en la respuesta, no lo que no
@@ -492,7 +500,7 @@ sobre `ca78cac` (36052056175), sobre `6b1bf87` (36058947741) y sobre `9c81b29` (
   (`haiku-4-5-20251001-02`: «Boletín Oficial de Castilla y León (BOCYL)») y ninguna del modelo que decide; en la
   36052056175, **una de cada modelo**: `haiku-4-5-20251001-02` («su Boletín Oficial de la Comunidad
   (BOCYL)») y, por primera vez, una del modelo que decide, `sonnet-5-02` («el equivalente al BOCyL», «el equivalente al
-  BOP de Valladolid»); en la 36058947741, ninguna de las seis; y en la vigente, 36066946991, tampoco. El spec no fijaba si esa cláusula se cuenta
+  BOP de Valladolid»); en la 36058947741 y en la 36066946991, ninguna de las seis; y en la vigente, 36072782640, tampoco. El spec no fijaba si esa cláusula se cuenta
   respuesta a respuesta o por serie y umbral como SC-015, y en la 36011479943 las dos lecturas daban distinto (5 de 6
   frente a 3 de 3 y 2 de 3). **Decisión de Jorge (2026-09-24): vale la lectura por serie y umbral**, la misma que el
   resto de las evals —el modelo que decide no falló ninguna vez y el informativo no bloquea—; con ella, la vigente
