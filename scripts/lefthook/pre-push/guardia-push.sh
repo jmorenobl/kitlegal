@@ -2,10 +2,10 @@
 # Guardia de push (gancho `pre-push` de lefthook, job `script` con `use_stdin`;
 # lefthook.yml fija source_dir: scripts/lefthook).
 #
-# Capa mecánica de la política del workflow `hito`: el workflow y las tareas
-# [plataforma] empujan la rama del hito y abren la propuesta de cambio; fusionar
-# en `main` y publicar releases son acciones humanas (constitución, «Flujo de
-# trabajo y gates» §4). Los permisos de .claude/settings.json filtran las órdenes
+# Capa mecánica de la política del workflow `hito`: el workflow empuja la rama
+# del hito y abre la propuesta de cambio en su cierre; fusionar en `main` y
+# publicar releases son acciones humanas (constitución, «Flujo de trabajo y
+# gates» §5; ADR 0018). Los permisos de .claude/settings.json filtran las órdenes
 # por prefijo; este gancho ve lo que git va a enviar de verdad, sea cual sea la
 # forma de la orden.
 #

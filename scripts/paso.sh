@@ -7,14 +7,15 @@
 #   scripts/paso.sh corrector_plan H2        # aplica los motivos del último veredicto
 #   scripts/paso.sh revision_juez_a H2       # juez A de la revisión final (item "a" del fan-out)
 #   scripts/paso.sh revision_juez_b H2 opus@xhigh   # juez B con otro modelo y esfuerzo
-#   scripts/paso.sh guardian_diff H2         # guardián de diff de la tarea de gates/tarea-actual.json
-#   scripts/paso.sh verificar H2             # make ci con el log en gates/ci.log
+#   scripts/paso.sh verificar H2             # guardián + make ci de la tarea actual, log en gates/ci.log
 #   scripts/paso.sh commit_tarea H2          # commit feat(H2): Tnnn de la tarea actual
 #
-# Útil cuando un run se ha parado en check_gate_* o ci_final y quieres una ronda
-# más antes de reanudar con scripts/hito.sh --resume <run_id>, o cuando se ha
-# parado dentro del bucle de tareas y quieres cerrar la tarea a mano (aunque
-# desde 1.6.1 el propio bucle cierra una tarea marcada [X] y sin commitear).
+# Desde el workflow 2.0.0 (ADR 0018) ningún gate para el run, así que esto ya no
+# es parte de la operación normal: sirve para reproducir un paso concreto al
+# investigar un run, o tras una causa mayor antes de reanudar con
+# scripts/hito.sh --resume <run_id>. Los pasos shell llaman a scripts/workflow/*.sh,
+# que también se pueden ejecutar directamente. No corre con un run vivo sobre el
+# árbol (una sola sesión por run).
 # Los pasos shell que interpolan salidas de otros pasos no se pueden lanzar sueltos.
 #
 # Los jueces de la revisión final viven en un fan-out (`revision_jueces`) con una
@@ -23,6 +24,10 @@
 # inputs por defecto o los KITLEGAL_MODELO_* del entorno.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+# Una sola sesión por run (ADR 0018): con un run vivo sobre este árbol, un paso
+# lanzado a mano escribiría a la vez que él.
+scripts/workflow/sesion-unica.sh comprobar
 
 paso="${1:?uso: scripts/paso.sh <id_paso> <hito> [modelo]}"
 hito="${2:?uso: scripts/paso.sh <id_paso> <hito> [modelo]}"

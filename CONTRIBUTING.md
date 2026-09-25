@@ -34,8 +34,11 @@ Un hito no se cierra sin la *Definition of Done* completa (`docs/ROADMAP.md` §1
 el release son siempre acciones humanas.
 
 Los hitos se preparan con el workflow `hito` de spec-kit (`scripts/hito.sh H<n>`, documentado en
-[`docs/WORKFLOW.md`](docs/WORKFLOW.md)), que deja sus artefactos en `specs/NNN-hN-slug/`. Los principios
-que rigen las decisiones automáticas están en [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+[`docs/WORKFLOW.md`](docs/WORKFLOW.md)), que deja sus artefactos en `specs/NNN-hN-slug/`. La persona está en
+los extremos (ADR 0018): escribe la sección del hito en `docs/ROADMAP.md`, que es la entrada del run, y lee
+el informe final, que llega como cuerpo de la propuesta de cambio; entre medias el workflow no pausa. Los
+principios que rigen las decisiones automáticas están en
+[`.specify/memory/constitution.md`](.specify/memory/constitution.md).
 
 ## Estructura de la propuesta de cambio
 
