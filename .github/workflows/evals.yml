@@ -1,5 +1,6 @@
 # Evals de skills con Claude Code (FR-070). No forma parte de make ci: las evals con modelo cuestan y no son
-# deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md.
+# deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md;
+# la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5.
 name: evals
 
 on:
@@ -7,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       prueba_de_red:
-        description: "Añade la sesión de prueba de red de la eval 01 (SC-012)"
+        description: "Añade la sesión de prueba de red de la eval 01 de boe-legislacion (SC-012)"
         type: boolean
         default: false
   # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
@@ -40,7 +41,9 @@ jobs:
         run: |
           # Las opciones las fija el propio paso (research.md V56).
           set -euo pipefail
-          # Lo que las evals miden: la skill y sus datos, las propias evals, el applet boe y el kernel que lo invoca, el
+          # Lo que las evals miden: las skills y sus datos —data/* cubre también los ficheros congelados de
+          # data/territorio/, porque en un patrón de case * casa también las barras—, las propias evals, el applet
+          # boe, los paquetes de dominio de internal/core —el de territorio entre ellos— y el kernel que los invoca, el
           # arnés del job y el fichero del job. Una ruta que no se puede leer detiene el paso, y no lo deja en «no».
           cambiados=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMERO}/files" --jq '.[].filename')
           echo "ficheros cambiados:"
@@ -48,8 +51,8 @@ jobs:
           coincide=no
           while IFS= read -r fichero; do
             case "$fichero" in
-              skills/* | evals/* | data/* | internal/source/boe/* | internal/cli/* | internal/evals/* | \
-              scripts/evals.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
+              skills/* | evals/* | data/* | internal/source/boe/* | internal/core/* | internal/cli/* | \
+              internal/evals/* | scripts/evals.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
                 echo "toca lo que las evals miden: $fichero"
                 coincide=si
                 ;;
@@ -57,6 +60,8 @@ jobs:
           done <<< "$cambiados"
           echo "coincide=$coincide" >> "$GITHUB_OUTPUT"
 
+  # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
+  # de la otra, que termina y publica el suyo (SC-015; research.md D23).
   evals:
     needs: [cambios]
     if: >-
@@ -66,6 +71,10 @@ jobs:
         github.event.label.name == 'evals-prueba-de-red' ||
         needs.cambios.outputs.coincide == 'si'
       )
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: [boe-legislacion, legal-core]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
@@ -81,9 +90,14 @@ jobs:
       UMBRAL_DE_EVALS: 2
       # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
       VERSION_DE_CLAUDE_CODE: 2.1.270
-      SKILL_EVALUADA: boe-legislacion
+      SKILL_EVALUADA: ${{ matrix.skill }}
       COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
-      PRUEBA_DE_RED: ${{ github.event.label.name == 'evals-prueba-de-red' || inputs.prueba_de_red == true }}
+      # La prueba de red es solo de boe-legislacion: su texto invoca el applet boe para provocar dos invocaciones fuera
+      # de lo grabado, y territorio no tiene red que probar, porque no puede pedir nada por construcción (FR-043). Lo
+      # decide el flujo y no Go, que la añadiría a la primera eval de cualquier skill; en el trabajo de otra skill vale
+      # false, con la entrada o con la etiqueta.
+      PRUEBA_DE_RED: >-
+        ${{ matrix.skill == 'boe-legislacion' && (github.event.label.name == 'evals-prueba-de-red' || inputs.prueba_de_red == true) }}
     steps:
       - name: Obtener el código del commit evaluado
         uses: actions/checkout@v7

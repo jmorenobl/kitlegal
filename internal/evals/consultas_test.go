@@ -12,6 +12,11 @@ import (
 // identificador, y el bloque de cada cita; ninguna invocación repetida, en el
 // orden en que aparece por primera vez y con cada eval y punto de los que sale,
 // sin repetir tampoco ninguno.
+//
+// Desde H6, un comando de territorio no genera ninguna consulta que grabar —el
+// applet no pide nada por red ni usa la caché—, ni solo ni junto a los comandos y
+// las citas del BOE de la misma eval, que siguen generando las suyas (data-model
+// §6.3 de H6; research D21; FR-043).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -22,9 +27,11 @@ func TestConsultasNecesarias(t *testing.T) {
 		// solo copia los identificadores.
 		otra = "BOE-A-0000-2"
 
-		deTresFormas   = "01-lpac-tres-formas.yaml"
-		deNoActivacion = "02-no-activa-programacion.yaml"
-		deArticulo22   = "03-lpac-articulo-22.yaml"
+		deTresFormas            = "01-lpac-tres-formas.yaml"
+		deNoActivacion          = "02-no-activa-programacion.yaml"
+		deArticulo22            = "03-lpac-articulo-22.yaml"
+		deSoloTerritorio        = "04-territorio-municipio-cubierto.yaml"
+		deTerritorioYArticulo21 = "05-territorio-y-articulo-21.yaml"
 	)
 
 	// Una eval con las tres formas de comando, dos normas —la LPAC, de un comando
@@ -74,6 +81,28 @@ func TestConsultasNecesarias(t *testing.T) {
 	normaDel22 := Origen{Eval: deArticulo22, Punto: PuntoNormaDeLaEval}
 	citaDel22 := Origen{Eval: deArticulo22, Punto: PuntoCitaEsperada}
 
+	// Una eval de territorio sin nada del BOE y otra que resuelve el municipio y
+	// además lee y cita el art. 21.
+	resolver := ComandoEsperado{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}
+	soloTerritorio := Eval{
+		Fichero:    deSoloTerritorio,
+		Pregunta:   "¿En qué boletines se publican las normas que afectan a Leganés?",
+		Activa:     true,
+		Comandos:   []ComandoEsperado{resolver},
+		Territorio: TerritorioEsperado{Comunidad: "Comunidad de Madrid", Boletines: []string{"BOCM"}},
+	}
+	territorioYArticulo21 := Eval{
+		Fichero:    deTerritorioYArticulo21,
+		Pregunta:   "¿Qué dice el art. 21 de la Ley 39/2015 y en qué boletines publica Leganés?",
+		Activa:     true,
+		Comandos:   []ComandoEsperado{resolver, {Applet: "boe", Norma: lpac, Bloque: "a21"}},
+		Citas:      []CitaEsperada{{Norma: lpac, Bloque: "a21"}},
+		Territorio: TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
+	}
+	comandoDeTerritorioYArticulo21 := Origen{Eval: deTerritorioYArticulo21, Punto: PuntoComandoEsperado}
+	normaDeTerritorioYArticulo21 := Origen{Eval: deTerritorioYArticulo21, Punto: PuntoNormaDeLaEval}
+	citaDeTerritorioYArticulo21 := Origen{Eval: deTerritorioYArticulo21, Punto: PuntoCitaEsperada}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -115,6 +144,28 @@ func TestConsultasNecesarias(t *testing.T) {
 					Origenes: []Origen{normaDel21, comandoDel22, normaDel22},
 				},
 				{Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a22"}, Origenes: []Origen{citaDel22}},
+			},
+		},
+		{
+			nombre:   "territorio-sin-consultas",
+			conjunto: []Eval{soloTerritorio, noActivacion},
+		},
+		{
+			nombre:   "territorio-junto-al-boe",
+			conjunto: []Eval{territorioYArticulo21},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
+					Origenes: []Origen{comandoDeTerritorioYArticulo21, citaDeTerritorioYArticulo21},
+				},
+				{
+					Applet: "boe", Verbo: "indice", Argumentos: []string{lpac},
+					Origenes: []Origen{normaDeTerritorioYArticulo21},
+				},
+				{
+					Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac},
+					Origenes: []Origen{normaDeTerritorioYArticulo21},
+				},
 			},
 		},
 		{

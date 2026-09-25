@@ -1,0 +1,9 @@
+fecha: "2026-09-20"
+source: ine.codigos-territoriales
+codigo: "16"
+nombre: "País Vasco"
+regimen: foral
+provincias:
+  "01": "Araba/Álava"
+  "20": "Gipuzkoa"
+  "48": "Bizkaia"

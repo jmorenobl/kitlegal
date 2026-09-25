@@ -1,0 +1,64 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 520f6fe en un clon fuera del repositorio (/tmp/juez-a-h6-r10.1RJL/repo). La primera pasada cayó en `make test-integration`: territorio-matriz.txtar:200, `cronometra 200ms … territorio resolver 47165 --json` midió 201,97 ms, con una carga media de 10,95 en la máquina (el otro juez corría su `make ci` a la vez y yo compilaba el binario con `go build` y dos `go run`). En aislado, `go test -race -tags=integration -run TestEntregaDelHito -count=3 ./internal/app` pasa las tres veces (el guion territorio-matriz entero en 0,55 s y 0,59 s) y el registro del binario da `duracion=10.6ms` por invocación. La segunda pasada completa, sin nada más en paralelo por mi parte, termina con 0 y «ci: todos los controles en verde»: lint «0 issues.»; los quince paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/evals 99,1 %, internal/cli 98,6 %, internal/skills 98,5 %, internal/app 93,6 %); govulncheck «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; schema-check y skills-check en «ok»; gitleaks «no leaks found»; «all modules verified» cinco veces. Es un rojo de carga, no del hito: la cota de 200 ms es la de Performance Goals del plan (plan.md:87-89) y T029 fijó su causa, pero quien fusiona debe saber que dos `make ci` simultáneos en la misma máquina pueden rozarla. gates/ci.log termina en «ci: todos los controles en verde». `rtk proxy git status --porcelain` vacío en el repositorio y en el clon al terminar (el mutante, revertido con git checkout). Plataforma: `gh pr view 39` da 6b1bf87 como cabeza remota, OPEN y MERGEABLE; `gh pr checks 39`: ci (36058929322) SUCCESS, `evals (boe-legislacion)` y `evals (legal-core)` (36058947741) SUCCESS, `cambios` SKIPPED por diseño y los cuatro estados de Codecov SUCCESS; `git diff --name-only 6b1bf87..HEAD` da solo gates/evals-cierre.md, gates/pr-h6.md y tasks.md, bajo specs/008-h6-territorio-skill-legal/, como exige SC-015; el cuerpo publicado de #39 es idéntico a gates/pr-h6.md salvo el salto de línea final."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El motivo 2 de la ronda 9 está corregido: compruebaPlazoAgotado (internal/app/territorio_test.go:525-543) recorre dos variantes, `--json --timeout 1ns` con firmaDeTerritorio y `--json --dry-run --timeout 1ns` con cli.ProcedenciaKernel(), y exige en las dos 4, clase fuente-no-disponible y «plazo» en la salida de error; los comentarios de TestCodigosDeTerritorio (:487-489) y de compruebaPlazoAgotado (:520-524) dicen las dos firmas, y el §8 del contrato (:120) nombra las dos variantes. Mutante sobre el clon: en la rama de --dry-run de ejecutarVerbo (internal/app/main.go:360-369), conservar el Resultado del applet cuando el error es cli.ErrFuenteNoDisponible → solo falla `TestCodigosDeTerritorio/plazo-agotado-da-4-y-lo-decide-el-kernel` («expected: \"kitlegal.cli\" actual: \"kitlegal.territorio\"» y lo mismo en url); revertido con git checkout. La firma que exige el test es la que declara (firmaDeTerritorio es fuente y url, :135-138; exigirSobreDeFallo compara esas dos, internal/app/codigos_test.go:340-341). Desde 2935269 no cambia ningún otro fichero de código, test, dato, esquema ni fixture, así que los mutantes de las rondas anteriores siguen valiendo; tests offline y ficheros de testdata/ solo los que piden las tareas [datos]."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre todas las líneas añadidas de los .go del diff frente a main: ningún net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal, panic(, exec.Command, recover(, Getenv, unsafe ni método POST. `git diff --name-only main...HEAD` no toca go.mod, go.sum, .golangci.yml, codecov.yml, internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, docs/ADR ni scripts. En la reproducción, depguard y forbidigo sin hallazgos («0 issues.») y el paquete internal (TestArquitectura, TestDependenciasDelBinario) en «ok»."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza (`go run -C <clon> ./cmd/kitlegal territorio resolver Leganés --json --timeout 5s`): sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`, la misma huella que en las rondas 8 y 9— y `data` con las ocho claves en su orden, cada dato con su source y el BOCM en los dos niveles con el motivo de la uniprovincialidad. Los sobres de fallo (28999 → no-encontrado, Castejón → argumentos con los dos candidatos, --timeout 1ns → fuente-no-disponible) tienen las seis claves y `data` exactamente {clase, mensaje}. TestSalidaDeTerritorioContraSchemas valida la salida real contra $defs.resolver de schemas/municipio.json y TestEsquemasPublicados (schema-check) está en «ok» en la reproducción."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El motivo 1 de la ronda 9 está cerrado en el contrato y lo sostiene el binario: `territorio resolver Leganés --json --timeout 1ns` termina con 4, clase fuente-no-disponible y la firma del applet (`kitlegal.territorio`, 2026-02-04T00:00:00Z), como dicen §2 (:33), §4 (:65) y §5 (:79); `--json --dry-run --timeout 1ns` termina con 4 y el sobre del kernel (`kitlegal.cli`, `kitlegal:cli`, fecha_consulta del reloj, 2026-09-24T23:50:08…), como dicen §2 (:34), §4 (:65) y §5 (:78-79); `--json --dry-run` sin plazo corto no escribe nada en la salida estándar y termina con 0, como dice §5 (:78). 28999 → 3 (no-encontrado) y Castejón → 2 (argumentos, «16067 Castejón (Cuenca); 31070 Castejón (Navarra)»), con la firma del applet. Errores tipados con schema.ConClase → 2 y 3; ningún panic en rutas de usuario (fuzz en «ok»); research.md D7 (:192-195) y D13 (:336-339) dicen ya la excepción del plazo agotado."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Lo que pedía la ronda 9 está hecho: el contrato del applet gana las dos filas de §2 (:33-34) y lo dice en §4, §5 y §8; research.md D7 y D13 dicen la excepción; gates/pr-h6.md cuenta la ronda 9 (:430-436) y la ejecución vigente en Pendientes (:453-465), con el cuerpo publicado sincronizado; tasks.md:451 incluye 6b1bf87 y internal/app/territorio_test.go en la revisión final; las cifras del Alcance (pr-h6.md:28-29: 53 commits; 157 ficheros, 30 548 y 670 líneas fuera de specs/) casan con `git rev-list --count main..6b1bf87` y `git diff --shortstat main...6b1bf87 -- . ':!specs'`; la afirmación de SC-013 de la vigente (ninguna de las seis respuestas de Tordesillas nombra un boletín no devuelto) casa con las seis respuestas del log del trabajo 107832872878; los tiempos de los trabajos casan con `gh pr checks 39`. README.md, CHANGELOG.md y docs/SOURCES.md sin cambios desde la ronda 8; sin ADR (ninguna decisión cambia). No cumple por dos afirmaciones que los hechos contradicen: el recuento de invocaciones fuera de lo grabado de la ejecución vigente (gates/evals-cierre.md:20, motivo 1) y dos descripciones de --dry-run sin el plazo agotado que quedaron fuera de la corrección de la ronda 9 (gates/pr-h6.md:270-272 y research.md:34, motivo 2)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 8 fuera del test y de specs/: el applet no abre conexiones ni toca la caché (lee los ficheros embebidos por data/datos.go vía app.FuentesEmbebidas); ninguna línea añadida importa net/http ni hace POST; ningún secreto (gitleaks «no leaks found»); los datos de territorio no llevan NIF ni DNI de persona. En la ejecución de aceptación vigente, los dos informes dicen «ninguna petición llegó a la red de una fuente», y la única invocación fuera de lo grabado que no sale con 5 es un `--offline` que sale con 4 sin pedir nada."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas de los .go del diff: el único //nolint es `//nolint:paralleltest` en internal/core/territorio/coste_test.go:36, con su motivo en la línea y declarado en plan.md; ningún t.Skip, TODO, FIXME, XXX ni HACK; los únicos descartes con `_` son los booleanos de strings.Cut y, en tests, reflect.FieldByName y strconv.Atoi sobre etiquetas propias. La corrección de la ronda 9 añade una variante al test sin relajar ninguna aserción y sin tocar el kernel, el applet, fixtures, esquemas ni umbrales (codecov.yml y .golangci.yml sin cambios); el rojo de carga de la primera pasada no se esquivó cambiando la cota, que sigue en 200 ms."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "6b1bf87 toca internal/app/territorio_test.go (la variante con --dry-run del caso del plazo agotado y sus comentarios) y specs/ (contrato, research, pr-h6.md y los veredictos de la ronda 9); 520f6fe, solo specs/. Ningún cambio en el kernel, el applet, los datos, los esquemas ni la skill. El resto del diff es el que se evaluó en las rondas anteriores: los dos paquetes de dominio, el paquete data, el applet y su esquema publicado, los 22 ficheros congelados con sus cuatro esquemas, la jerarquía, las siete normas con sus grabaciones y la marca vertebral, la extensión compatible del formato de eval, la skill legal-core con sus referencias y sus tres evals, la matriz del job y la documentación; sin otros verbos de territorio, otras comunidades configuradas, grafo, festivos ni config.yaml."
+    }
+  ],
+  "motivos": [
+    "[f] specs/008-h6-territorio-skill-legal/gates/evals-cierre.md:20, en la tabla de la ejecución vigente (36058947741, sobre 6b1bf87), fila `boe-legislacion`, dice «Veinte invocaciones fuera de lo grabado, todas con código 5 y ninguna llega a la red», y el informe que el mismo fichero copia «tal cual» (:84-106) tiene 21 filas: veinte con código 5 y una con código 4 (:99, `06-irpf-rendimientos-del-trabajo-claude-haiku-4-5-20251001-03`, `boe articulo BOE-A-2004-4964 a17 --json --offline`, que sale con 4 porque --offline no encuentra la respuesta en la caché y no pide nada). El log del trabajo 107832872591 de esa ejecución (`gh run view 36058947741 --log --job 107832872591`) da lo mismo: 20 filas con 5 y 1 con 4. Corregir la fila: «Veintiuna invocaciones fuera de lo grabado: veinte con código 5 y una, con --offline, con código 4; ninguna llega a la red». Es el registro de aceptación de SC-015 que lee quien fusiona; el cambio va bajo specs/ y no obliga a repetir la ejecución.",
+    "[f] Quedan dos descripciones de --dry-run con la misma omisión que la ronda 9 corrigió en el contrato (§5, :78) y en research.md D7 y D13: (1) gates/pr-h6.md:270-272, en el cuerpo de la propuesta: «`--dry-run` no cambia lo que hace el applet: una consulta que se resuelve no emite sobre, y una que el applet rechaza emite el sobre de fallo firmado por el kernel (`kitlegal.cli`, el reloj), como fijó H1 (D7)»; (2) research.md:34, V15: «si el applet termina bien, **no emite sobre**; si falla, emite con `--json` el sobre de fallo firmado por el kernel […]; el código sigue siendo el que corresponda al resultado». El binario las contradice: con `territorio resolver Leganés --json --dry-run --timeout 1ns` el applet termina bien y la invocación emite el sobre de fallo del kernel (`kitlegal.cli`, `kitlegal:cli`, fecha_consulta del reloj) y termina con 4, no con el código del resultado. Corregir las dos frases con la excepción que ya dice D7 (research.md:193-195: «y si se agota `--timeout`, el mismo sobre del kernel con 4») y volver a sincronizar el cuerpo publicado de #39 con `gh pr edit 39 --body-file`. Todo bajo specs/, sin efecto sobre SC-015."
+  ]
+}

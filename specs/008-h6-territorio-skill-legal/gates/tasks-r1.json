@@ -1,0 +1,54 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md §Métricas: «Incidencias CRÍTICAS: 0 · ALTAS: 0 · MEDIAS: 2 · BAJAS: 3», y §Siguientes acciones lo confirma («Sin incidencias críticas ni altas»). No queda ningún hallazgo CRITICAL/HIGH sin resolver. Comprobadas además las dos BAJAS que dependían de un hecho del repositorio: C3 es infundada —internal/evals/conjunto_test.go:710-733 (malFormadosDeCadaSkill) recorre cada carpeta de evals/ y solo exige que sus ficheros se lean; ni TestEvalsDelRepositorio ni internal/app/skills_test.go exigen una carpeta de skill por carpeta de evals, así que T019 puede crear evals/legal-core/ antes que la skill— y C4 está resuelta —T012 usa el mismo umbral de 200 ms ya establecido en internal/app/testdata/script/boe-cache-rapida.txtar:19—. Siguen sin recoger las dos MEDIAS/BAJAS de redacción C1 y C5 (T002), que no bloquean este criterio pero van como observación."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Los 79 FR (001-016, 020-024, 030-035, 040-049, 050-056, 060-069, 070-074, 080-086, 090-102) y los 15 SC que declara spec.md §Requirements y §Success Criteria aparecen todos en la tabla «Trazabilidad: requisito → tarea» de tasks.md:262-319 con al menos una tarea; recuento cruzado contra spec.md sin huecos. En sentido inverso, las 25 tareas citan en su propia línea los requisitos que cumplen (T001 → FR-040/041/044/045/086; T009 → FR-001 a FR-016; T019 → FR-080 a FR-083; T023 → FR-098/099; T025 → FR-100/101, SC-013, SC-015) y ninguna introduce trabajo que el spec no pida: lo excluido está enumerado en tasks.md:399-405, alineado con spec.md §Fuera de alcance."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": false,
+      "evidencia": "El orden secuencial está justificado tarea a tarea (tasks.md:340-363) y las excepciones a «test + implementación» están declaradas una a una con su razón (tasks.md:75-83); las tres indivisibilidades se corresponden con controles reales del repositorio (Makefile:105 ejecuta skills-check por nombre de test, de ahí que T007 y T016 declaren Makefile; internal/skills/normas_test.go:375-380 compara el enum de rango con assert.Equal contra las grabaciones, de ahí T015; internal/app/esquemas_test.go exige la parte publicada de todo verbo registrado, de ahí T010). PERO T024 «ejecuta … tal cual y en orden los prerrequisitos y los escenarios 1 a 13 de quickstart.md … y se detiene sin marcarse ante cualquier resultado distinto del esperado» (tasks.md:230), y el escenario 6 no puede dar lo que espera: quickstart.md:131 invoca `territorio resolver 99999` y quickstart.md:136-139 espera exit 3 («código bien formado que no está en la relación»), mientras data-model.md:186 clasifica «provincia 00 o 53…» como entrada que no forma código → exit 2, y contracts/identificadores-ine-y-dir3.md:37 rechaza provincia >52 en el analizador que T004 implementa. Con la implementación correcta, T024 se detiene en el escenario 6 y el hito no cierra."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Aplicado a las 25 líneas el extractor literal del guardián (.specify/workflows/hito/workflow.yml:624), ninguna deja extraer una carpeta genérica: no aparece `internal/`, `internal/app/`, `internal/evals/`, `data/`, `schemas/`, `testdata/`, `evals/` ni `skills/`. Las únicas carpetas declaradas son las del material propio de la tarea que lo crea: `data/territorio/comunidades/` (T002, 19 ficheros), `internal/core/ids/testdata/fuzz/FuzzCodigoINE/` y `…/FuzzCodigoDIR3/` (T005) y `testdata/evals/` (T015, cuyos nombres de grabación los fija la persona en la pausa). Lo que solo se lee o se ejecuta va sin carpeta (`municipio.json`, `jerarquia.yaml`, `SOURCES.md`, `verify-sources.sh`, `mapa-sistema-legal-skills.md`) y el guardián no lo casa. Los ficheros de test no nombrados quedan cubiertos por la regla x.go → x_test.go del propio guardián (workflow.yml:717), y los que dos tareas comparten se declaran en las dos (tasks.md:424-427). Verificado además que los seis sitios que T010 debe tocar existen y son esos: cmd/kitlegal/main_test.go:18, internal/app/testdata/script/argumentos.txtar:24,30 y ayuda.txtar:15-18 (alineación por columna, que un applet de 10 letras rompe), internal/app/registro.go:164 y registro_test.go:233; internal/app/testdata/script/boe-verbos.txtar:46 usa ` +` y no necesita cambio."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Las diez líneas que nombran material bajo `schemas/` o un `testdata/` son exactamente las diez marcadas [datos] (T001, T002, T003, T005, T010, T012, T013, T014, T015, T017) y ninguna otra tarea los nombra; coincide con la obligación 1 de plan.md:540-545, ya aprobada en gates/plan.json. Solo T010 y T017 declaran código, y en los dos casos un control existente lo hace inseparable del fichero protegido (TestEsquemasCubrenTodosLosVerbos exige la parte publicada en cuanto el verbo está registrado; el `then` nuevo del esquema de eval cambia el mensaje que compara internal/evals/formato_test.go), razonado en plan.md *Complexity Tracking* D16 y D28; la alternativa deja `make ci` en rojo entre dos tareas. La clasificación del workflow confirma las ocho pausas que tasks.md:37-40 anuncia y que T005 y T012 no pausan (workflow.yml:940-946: material nuevo bajo el testdata/ de un paquete no produce motivo). T025 es la única [plataforma], va la última, solo empuja, abre la propuesta, lee la ejecución y registra la evidencia, y no fusiona."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md:245-258 recorre los doce puntos de docs/ROADMAP.md §1 con su tarea: CHANGELOG.md en T023 (punto 6 y 8 de la documentación); esquemas en T001, T002, T003, T010, T013, T014 y T017 (punto 4); fixtures en T005, T012 y T015 (punto 2); docs/SOURCES.md en T003 (punto 8) —coherente con el repositorio: las filas `ine.municipios` y `mpt.rel` ya existen (docs/SOURCES.md:65-66), así que T003 actualiza la fecha del volcado y, por FR-049, no añade caso a scripts/verify-sources.sh—; evals antes que la skill, T019 antes de T021 (punto 10); cobertura medida en T024 (punto 9); matriz territorial en T012 (punto 11). Los dos no aplicables llevan su razón escrita: ADR (ninguna decisión de arquitectura cambia; ADR 0017 y ADR 0006 ya decidieron) y grafo (H6 es anterior a H7, ADR 0014)."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md es la única checklist y está enteramente marcada; comprobadas sus marcas contra spec.md: 0 apariciones de «NEEDS CLARIFICATION» en spec.md (y 0 en plan.md, tasks.md y quickstart.md); las cinco entradas de *Clarifications · Session 2026-09-20* llevan el prefijo «(auto: criterio …; fuente: …)» que exige la constitución (spec.md:24-31); están las secciones obligatorias (*Resumen*, *Criterios del hito*, *User Scenarios & Testing* con US1-US7 y *Edge Cases*, *Requirements* con FR-001 a FR-102 y *Key Entities*, *Success Criteria* SC-001 a SC-015, *Fuera de alcance*, *Assumptions*); cada FR tiene escenario o criterio medible según la tabla de la propia nota de validación, comprobada por muestreo (FR-023 → US7 escenario 3 y SC-008; FR-056 → SC-001 y SC-012). Ninguna tarea modifica la checklist."
+    }
+  ],
+  "motivos": [
+    "BLOQUEANTE — quickstart.md §6 (líneas 131 y 136-139) y, por dependencia, la tarea T024 de tasks.md:230. La orden `./bin/kitlegal territorio resolver 99999` está anotada como «código bien formado que no está en la relación» y se espera exit 3, pero la provincia 99 está fuera de `01`-`52`: data-model.md:186 la clasifica en la fila «Solo cifras que no forman un código (vacío, 4 cifras, 7 cifras, provincia 00 o 53…) | 2» y contracts/identificadores-ine-y-dir3.md:37 la enumera entre lo que `AnalizarCodigoINE` rechaza, que es lo que T004 implementa. Corrección: en quickstart §6, sustituir el caso por un código de provincia válida ausente de la relación, derivado del propio fichero congelado y no escrito de memoria (misma técnica que §5 y §9: leer una provincia de data/territorio/municipios.yaml y componer un `PPMMM` que el fichero no traiga, comprobándolo con grep antes de invocar), y dejar 99999 —o mantenerlo— como caso explícito de exit 2 con su expectativa corregida. Es una clase de error, no una línea: repásese en todos los artefactos donde se ejerce «código bien formado que no está en la relación» —en tasks.md el caso de exit 3 de T012 (línea 162) y el subtest `codigo-inexistente` del inventario de plan.md:406—, de modo que ninguno pueda acabar usando un código con provincia fuera de rango.",
+    "Observación no bloqueante (analyze.md C1 y C5, ambas sin recoger) — tasks.md:101, T002. Es la única tarea [datos] de material congelado que no dice de dónde sale lo que escribe ni qué hacer si falta, a diferencia de T001 («escritos por una persona en la pausa … si el material no está disponible se detiene sin marcarse») y T003 («todo lo escribe y lo decide una persona en la pausa»). Añadir en T002 el origen de cada dato (provincias y códigos desde `municipios.yaml`; régimen, nombre y código, nombre y dirección del BOCM revisados por la persona en la pausa) y la parada con anotación en `gates/tarea-T002.md` si falta el material. Cuadrar con ello la frase de la batería (tasks.md:52-54), que hoy cuenta a T002 entre las pausas en que «una persona obtiene» descargas, cuando T002 no descarga nada.",
+    "Observación no bloqueante (analyze.md C2) — tasks.md:180, T016. Concentra unos diez ficheros de tres áreas (normas nuevas y marcas `vertebral`, lector de jerarquía, tabla de generadores con `referencias.go`/`sincronia.go`/`frontmatter.go`/`normas.go`, `Makefile` y la regeneración de `normas.md`). Es la tarea con más probabilidad de agotar los tres intentos. O bien se deja constancia en la propia línea de por qué es indivisible —la tabla de generadores y las marcas se validan con los mismos controles (`TestRegenerarYComparar`, `TestNormasDelRepositorio/vertebrales`)— o bien se parte en dos rebanadas verdes: «lector de jerarquía + su control + `Makefile`» y «normas nuevas, marcas y tabla de generadores».",
+    "Observación no bloqueante — tasks.md:307, fila SC-003 de la tabla de trazabilidad. Lista T002, T006 y T012, pero la parte medible de SC-003 «el 100 % de los municipios de la relación tiene régimen» la comprueba el subtest `regimen-de-todas` de `TestTerritorioDelRepositorio`, que entra en T007 (tasks.md:132). Añadir T007 a esa fila."
+  ]
+}

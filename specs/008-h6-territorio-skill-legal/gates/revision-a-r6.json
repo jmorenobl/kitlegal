@@ -1,0 +1,65 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 6347c15, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r6): salida 0; «0 issues.»; los catorce paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/skills 98,5 %, internal/evals 99,1 %, internal/app 93,6 %); govulncheck «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados y los tres paquetes de skills-check en «ok»; gitleaks «no leaks found»; «all modules verified» en la raíz y en los cuatro módulos de herramientas; `go mod tidy -diff` sin salida; «ci: todos los controles en verde». gates/ci.log es anterior a c481451 (da el paquete data sin tests), así que vale la reproducción. `git status --porcelain` vacío en el repositorio y en el clon al terminar (cada mutante se revirtió). En la plataforma, `gh pr checks 39`: 7 en verde y 0 en rojo sobre 6d08752, la cabeza remota; `git diff --stat 6d08752..HEAD -- . ':(exclude)specs'` no da nada."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "Cinco mutantes nuevos en el clon, todos revertidos. Cuatro los detecta el test que dice detectarlos: internal/core/territorio/resolver.go:36 sin la rama de la consulta vacía → TestResolver («no nombra ningún municipio»); fuentes.go:430 sin el defecto de la provincia sin nombre → TestCargar y TestCargarEnFilas /comunidad-y-provincia-sin-nombre; data/datos.go:76 sin `entrada.IsDir()` → TestComunidadesDe/una-entrada-que-es-un-directorio; nombres.go:134 sin la comprobación de una sola palabra tras la coma → TestFormasDelNombre/coma_que_no_pospone_un_artículo; salida.go:218 con el provincial antes que el autonómico → TestTerritorioResuelto, TestResolverDevuelveElTerritorio y el e2e TestEntregaDelHito/territorio-matriz. El quinto sobrevive: internal/evals/territorio.go:147 sin la guarda `plegado != \"\"` deja `go test ./internal/evals/` en «ok» (motivo). Tests offline; los fixtures nuevos de testdata/ son los que piden T005, T012, T015 y T028."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`rtk proxy git diff main...HEAD -- '*.go'` no añade net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal ni panic(. `go list`: internal/core/ids importa fmt, unicode/utf8 y core/schema; internal/core/territorio, bytes, errors, fmt, maps, slices, strings, time, unicode, unicode/utf8, go.yaml.in/yaml/v3, core/ids y core/schema (ni os, ni io, ni io/fs); data, embed, fmt, io/fs, path y strings, y su único importador es internal/app/registro.go:11. depguard y forbidigo sin hallazgos y TestArquitectura y TestDependenciasDelBinario en verde en la reproducción; go.yaml.in/yaml/v3 en modulosDelBinario con su motivo (internal/arch_test.go:154-160); go.mod y go.sum fuera del diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go) valida el sobre real con --json contra $defs.resolver de schemas/municipio.json, y TestEsquemasPublicados (schema-check, en verde) ata ese fichero a --describe. Con el binario de la cabeza (`go run ./cmd/kitlegal`, que no escribe en el árbol), Leganés da el sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`— y `data` con las ocho claves, cada dato con su source (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/13.yaml, data/territorio/estado.yaml); Tordesillas, solo el BOE y los dos boletines `no-configurado`; `territorio --help` coincide con el bloque de README.md."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario del clon: Leganés, 28074, 280745, Pamplona, Donostia, «Coruña, A» y «A Coruña» → 0; 280746 (dígito «6» frente al oficial «5»), Arroyomolinos («10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)», clase argumentos), 99999, 28000, la cadena vacía, «28-074», «28074 », « 28074», «٢٨٠٧٤», «···» y «--» → 2; Vitoria, zzzz, 01999 y L01280745 (con letra: nombre) → 3; nunca 4, 5 ni 6, y KITLEGAL_CACHE_DIR no llega a crearse. Con --dry-run, 280746 escribe la línea del kernel, el sobre de fallo `kitlegal.cli` / `kitlegal:cli` con el reloj y termina con 2; Leganés, solo la línea y 0. Errores tipados con Clase() (internal/core/ids/errores.go:49-51, internal/core/territorio/errores.go:34-36); el defecto de carga no lleva clase y sale como inesperado (internal/app/territorio.go:121-124). Ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Los cuatro motivos de la ronda 5 están corregidos en 6347c15 y el binario los sostiene: --dry-run con consulta rechazada en contracts/applet-territorio.md:32 y :75, research.md:34 (V15), :189-196 (D7) y D13, y gates/pr-h6.md:270-272; data-model §2.6 (:176-188) describe la regla de internal/core/territorio/resolver.go:32-43 y el mensaje de errores.go:43; la fila DIR3 de contracts/identificadores-ine-y-dir3.md:39 es la gramática de internal/core/ids/dir3.go:57-66; plan.md:95, :232-234 y :389-397 dan a data su test propio. El cuerpo publicado de #39 coincide con pr-h6.md salvo el salto de línea final. CHANGELOG (Unreleased), README, CONTRIBUTING y docs/SOURCES.md dicen lo que hacen el binario y los datos; no hace falta ADR. No cumple: dos afirmaciones nuevas que el producto no sostiene, una de ellas en el cuerpo publicado (motivos). Observación sin motivo: contracts/datos-de-territorio.md:110 sigue diciendo «ningún nombre que sea solo cifras», cierto pero más débil que lo que comprueba el subtest («sin letras», como ya dicen plan.md control 5 y data-model §2.7)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún fichero nuevo importa net/http ni usa internal/httpx; territorio no abre red ni caché en ningún camino (las sondas no crearon KITLEGAL_CACHE_DIR). La consulta al directorio del Punto de Acceso General de la revisión final (gates/verificacion-dir3.md:48-67) fue GET, fuera del repositorio, dentro de su robots.txt (una petición por minuto en la ventana de visita) y con User-Agent `kitlegal/0.1 (+https://ventanillalegal.es/bot)`. gitleaks sin hallazgos; ningún NIF ni dato de persona en data/territorio, data/jerarquia.yaml ni skills/legal-core; SKILL.md:169-170 prohíbe toda acción con identidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un solo //nolint en el diff, razonado en su línea y declarado (internal/core/territorio/coste_test.go:36, paralleltest; pr-h6.md:232); ningún t.Skip, TODO ni FIXME añadido; los valores descartados son el booleano de strings.Cut y el de reflect.FieldByName sobre etiquetas propias. Observación sin motivo, como en rondas anteriores: internal/core/territorio/salida_test.go:446 descarta el error de strconv.Atoi al leer minLength/minItems, pero una etiqueta mal escrita se vería como diff de schemas/municipio.json en schema-check. Ningún fixture, grabación ni esquema cambia desde la ronda 2."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "6347c15 solo toca specs/. En toda la rama, `git diff --name-only main...HEAD` sobre internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, docs/ROADMAP.md, .specify, go.mod, go.sum, skills/boe-legislacion y evals/boe-legislacion devuelve solo skills/boe-legislacion/references/normas.md, regenerado; ni otros verbos, ni otras comunidades configuradas, ni grafo, festivos o config.yaml."
+    }
+  ],
+  "motivos": [
+    "[b] internal/evals/territorio.go:144-148 (declaraElNombre): ningún test ejerce la guarda `plegado != \"\"`. Quitándola en un clon, `go test ./internal/evals/` sigue en verde: TestExtraerTerritorio (internal/evals/territorio_test.go:23) no tiene ningún caso con una comunidad o una provincia que se pliegan a nada, que el esquema de eval admite (`minLength: 1`, schemas/eval.yaml.json:37-38; «—» o «·», por ejemplo), y «texto-vacio» (:163) usa los nombres de Madrid. Además, el comentario de :140-143 da un motivo que el código no sostiene: «el pliegue no deja dos espacios seguidos, así que cualquier respuesta lo contendría». Es al revés: como Plegar nunca deja dos espacios seguidos ni blancos en los extremos, sin la guarda la aguja de dos espacios solo la contiene una respuesta que se pliega a nada (vacía o de solo signos). Añadir a TestExtraerTerritorio un caso con comunidad y provincia que se pliegan a nada (p. ej. «—» y «·») y los textos «» y «…», que exija que no se declaran (el mutante lo pone en rojo), y reescribir el comentario: sin la guarda, un nombre que se pliega a nada se daría por declarado en una respuesta que también se pliega a nada. Toca internal/evals/, fuera de specs/: por la regla de SC-015 (plan, obligación 9) la ejecución de aceptación vigente, 36019842457 sobre 6d08752, deja de cubrir la cabeza y hay que repetirla (el filtro de rutas del job incluye internal/evals/*); después, poner al día en gates/pr-h6.md el Alcance (el último commit fuera de specs/ y sus cifras), la Revisión final y los Pendientes, y sincronizar el cuerpo publicado.",
+    "[f] plan.md:393-394 cita contracts/datos-de-territorio.md §3 con «lo importan `internal/app` y el binario de e2e, nadie más». Ni el contrato ni el código lo sostienen: 6347c15 corrigió el contrato (:61-62: «lo importa solo `internal/app` (`FuentesEmbebidas`), y por él lo reciben la raíz de producción y el binario de e2e»), el único importador de github.com/jmorenobl/kitlegal/data es internal/app/registro.go:11, y el binario de e2e llama a app.FuentesEmbebidas (internal/app/ejemplo/kitlegal-e2e/main.go:75) sin importar data. Poner en plan.md lo que dice el contrato. Bajo specs/, sin efecto sobre SC-015.",
+    "[f] gates/pr-h6.md:283, que es también el cuerpo publicado de #39, abre la viñeta de D15 con «Datos embebidos por un paquete `data` sin lógica». El producto no lo sostiene y los propios artefactos ya dicen lo contrario: data/datos.go:56-89 recorre el subárbol de comunidades con tres ramas de error, probadas en data/datos_test.go (TestComunidadesDe); plan.md:393-395 habla de «Su lógica, `Comunidades()`… y el recorrido `comunidadesDe(fs.FS)`»; y research.md:357-359 (D15), de «los embebidos y el recorrido del subárbol de comunidades… no interpreta nada». Cambiar la viñeta a «Datos embebidos por un paquete `data` que no interpreta nada: los //go:embed y el recorrido del subárbol de comunidades» (o equivalente), añadir la ronda 6 a «Revisión final» y sincronizar el cuerpo publicado con `gh pr edit 39 --body-file specs/008-h6-territorio-skill-legal/gates/pr-h6.md` en un paso con plataforma. Bajo specs/, sin efecto sobre SC-015."
+  ]
+}

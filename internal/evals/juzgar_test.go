@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 	"testing"
@@ -30,10 +31,43 @@ const (
 	avisoDeVigenciaAgotada = "⚠ VIGENCIA AGOTADA: esta norma ya no está en vigor."
 )
 
-// juicio es una llamada a Juzgar y el resultado que el caso exige de ella.
+// Lo que juzgan las evals de territorio y sus sesiones de TestJuzgar,
+// construidas en memoria (contrato de evals §2 de H6).
+const (
+	// skillDeTerritorio es la skill cuyas evals esperan el territorio, y
+	// territorioDeLaSkillInstalada, el nombre de invocación con el que la skill
+	// instalada invoca el applet territorio.
+	skillDeTerritorio            = "legal-core"
+	territorioDeLaSkillInstalada = "/home/runner/.claude/skills/legal-core/scripts/territorio"
+
+	ficheroDelMunicipioCubierto = "01-territorio-municipio-cubierto.yaml"
+
+	// textoDelComandoDeLeganes es el comando de territorio de la eval del
+	// municipio cubierto con el texto con el que lo presenta el informe, y
+	// ordenDeLeganes, la orden de la invocación que lo satisface.
+	textoDelComandoDeLeganes = "territorio resolver Leganés"
+	ordenDeLeganes           = "territorio resolver Leganés --json"
+
+	// respuestaDelMunicipio declara cada elemento del territorio esperado de esa
+	// eval con su forma fija.
+	respuestaDelMunicipio = "Leganés está en la provincia de Madrid, en la Comunidad de Madrid.\n\n" +
+		"Sus normas se publican en el BOE y en el BOCM.\n\n" +
+		"- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado"
+)
+
+// elementosDelMunicipio son los elementos del territorio esperado de la eval del
+// municipio cubierto, con el texto con el que los presentan el informe y los
+// motivos, en el orden de la eval.
+var elementosDelMunicipio = []string{
+	"comunidad: Comunidad de Madrid", "provincia: Madrid", "boletín: BOCM", "boletin_autonomico: configurado",
+}
+
+// juicio es una llamada a Juzgar y el resultado que el caso exige de ella. skill
+// es la skill con la que se juzga; vacía, la de las sesiones de boe-legislacion.
 type juicio struct {
 	eval     Eval
 	sesion   Sesion
+	skill    string
 	esperado ResultadoDeEval
 }
 
@@ -58,6 +92,15 @@ type juicio struct {
 // evals sin avisos dejan las dos listas nulas y el mismo resultado que en H5
 // (contrato de formato, juicio e informe §4 y §6 de H5.1; FR-030 a FR-035, SC-003;
 // US2, escenarios 3 a 8; research D3).
+//
+// Desde H6, el comando de territorio lo satisface solo una invocación con consulta
+// y código 0 de territorio resolver cuyo único argumento, plegado, es el municipio
+// esperado; y los elementos del territorio esperado —comunidad, provincia, cada
+// boletín y cada aspecto de cobertura— se reparten, en el orden de la eval, entre
+// los que la respuesta declara con su forma fija y los ausentes, cada uno con su
+// motivo detrás de los de los avisos: un elemento ausente impide pasar aunque el
+// comando esté, y una eval con citas y territorio se juzga por los dos (contrato
+// de evals §2 de H6; FR-084; US5).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -414,6 +457,22 @@ func TestJuzgar(t *testing.T) {
 					r.Pasa = false
 				})},
 		},
+		{
+			nombre:  "territorio-satisface",
+			juicios: territorioSatisface(t),
+		},
+		{
+			nombre:  "territorio-otro-municipio-no-satisface",
+			juicios: []juicio{territorioOtroMunicipio(t)},
+		},
+		{
+			nombre:  "territorio-ausente",
+			juicios: territorioAusente(t),
+		},
+		{
+			nombre:  "territorio-y-citas",
+			juicios: territorioYCitas(t),
+		},
 	}
 
 	for _, caso := range casos {
@@ -421,11 +480,258 @@ func TestJuzgar(t *testing.T) {
 			t.Parallel()
 
 			for _, j := range caso.juicios {
-				assert.Equal(t, j.esperado, Juzgar(j.eval, j.sesion, skillDeLasSesiones),
+				assert.Equal(t, j.esperado, Juzgar(j.eval, j.sesion, cmp.Or(j.skill, skillDeLasSesiones)),
 					"la eval %s con la sesión del caso", j.eval.Fichero)
 			}
 		})
 	}
+}
+
+// territorioSatisface son los juicios de la eval del municipio cubierto con una
+// sesión que lo resuelve y declara todo su territorio, uno por cada forma de
+// escribir el municipio que, plegada, es la suya: con sus tildes, sin ellas, en
+// mayúsculas y por kitlegal territorio. En todos, el comando queda ejecutado con el
+// texto de la eval, los cuatro elementos encontrados y la eval pasa.
+func territorioSatisface(t *testing.T) []juicio {
+	t.Helper()
+
+	invocaciones := []struct {
+		argv  []string
+		orden string
+	}{
+		{argv: deLegalCore("resolver", "Leganés", "--json"), orden: ordenDeLeganes},
+		{argv: deLegalCore("resolver", "leganes", "--json"), orden: "territorio resolver leganes --json"},
+		{argv: deLegalCore("resolver", "LEGANÉS", "--json"), orden: "territorio resolver LEGANÉS --json"},
+		{argv: []string{"/ruta/kitlegal", "territorio", "resolver", "Leganés", "--json"}, orden: ordenDeLeganes},
+	}
+
+	juicios := make([]juicio, 0, len(invocaciones))
+
+	for _, invocacion := range invocaciones {
+		juicios = append(juicios, juicio{
+			eval:   evalDelMunicipioCubierto(),
+			sesion: sesionDeTerritorio(respuestaDelMunicipio, invocada(t, codigoDeSalida(0), invocacion.argv)),
+			skill:  skillDeTerritorio,
+			esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+				r.Invocaciones = []InvocacionInformada{{Orden: invocacion.orden, Codigo: codigoDeSalida(0)}}
+			}),
+		})
+	}
+
+	return juicios
+}
+
+// territorioOtroMunicipio es el juicio de la eval del municipio cubierto con una
+// sesión que declara todo su territorio sin resolverlo: resuelve otro municipio,
+// resuelve el suyo con --describe, que no consulta, y lo busca con otro applet,
+// todas con código 0. El comando queda ausente y la eval no pasa, con los cuatro
+// elementos encontrados.
+func territorioOtroMunicipio(t *testing.T) juicio {
+	t.Helper()
+
+	return juicio{
+		eval: evalDelMunicipioCubierto(),
+		sesion: sesionDeTerritorio(respuestaDelMunicipio,
+			invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Getafe", "--json")),
+			invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Leganés", "--describe")),
+			invocada(t, codigoDeSalida(0), deLaSkill("buscar", "Leganés", "--json"))),
+		skill: skillDeTerritorio,
+		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.ComandosEjecutados = nil
+			r.ComandosAusentes = []string{textoDelComandoDeLeganes}
+			r.Invocaciones = []InvocacionInformada{
+				{Orden: "territorio resolver Getafe --json", Codigo: codigoDeSalida(0)},
+				{Orden: "territorio resolver Leganés --describe", Codigo: codigoDeSalida(0)},
+				{Orden: "boe buscar Leganés --json", Codigo: codigoDeSalida(0)},
+			}
+			r.Motivos = []string{"comando ausente: " + textoDelComandoDeLeganes}
+			r.Pasa = false
+		}),
+	}
+}
+
+// territorioAusente son los juicios de la eval del municipio cubierto con una
+// sesión que lo resuelve y cuya respuesta no declara parte de su territorio: sin
+// nada de él, los cuatro elementos quedan ausentes, cada uno con su motivo; y con
+// la comunidad —que lleva el nombre de la provincia— y el boletín, pero con el
+// otro valor del aspecto, solo queda ausente el aspecto. En los dos, el comando
+// queda ejecutado y la eval no pasa.
+func territorioAusente(t *testing.T) []juicio {
+	t.Helper()
+
+	sinNada := "Leganés publica sus normas en el BOE."
+	conOtroValor := "Leganés está en la Comunidad de Madrid y publica en el BOCM.\n\nboletin_autonomico: no-configurado"
+
+	return []juicio{
+		{
+			eval:   evalDelMunicipioCubierto(),
+			sesion: sesionDeTerritorio(sinNada, resuelveLeganes(t)),
+			skill:  skillDeTerritorio,
+			esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+				r.TerritorioEncontrado = nil
+				r.TerritorioAusente = elementosDelMunicipio
+				r.Respuesta = sinNada
+				r.Motivos = []string{
+					"territorio ausente: comunidad: Comunidad de Madrid",
+					"territorio ausente: provincia: Madrid",
+					"territorio ausente: boletín: BOCM",
+					"territorio ausente: boletin_autonomico: configurado",
+				}
+				r.Pasa = false
+			}),
+		},
+		{
+			eval:   evalDelMunicipioCubierto(),
+			sesion: sesionDeTerritorio(conOtroValor, resuelveLeganes(t)),
+			skill:  skillDeTerritorio,
+			esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+				r.TerritorioEncontrado = elementosDelMunicipio[:3]
+				r.TerritorioAusente = elementosDelMunicipio[3:]
+				r.Respuesta = conOtroValor
+				r.Motivos = []string{"territorio ausente: boletin_autonomico: configurado"}
+				r.Pasa = false
+			}),
+		},
+	}
+}
+
+// territorioYCitas son los juicios de una eval que espera el territorio y una
+// cita, con una sesión que resuelve el municipio y lee el bloque: con los dos en
+// la respuesta, pasa; sin la cita, falta solo la cita; sin el boletín, falta solo
+// el boletín; y sin los dos, faltan los dos, con el motivo de la cita delante del
+// del territorio.
+func territorioYCitas(t *testing.T) []juicio {
+	t.Helper()
+
+	eval := Eval{
+		Fichero:  "04-territorio-y-articulo-21.yaml",
+		Pregunta: "¿Qué dice el art. 21 de la Ley 39/2015 y en qué boletines publica Leganés?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{
+			{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"},
+			{Applet: "boe", Norma: normaDeLasTrazas, Bloque: "a21"},
+		},
+		Citas:      []CitaEsperada{{Norma: normaDeLasTrazas, Bloque: "a21"}},
+		Territorio: TerritorioEsperado{Comunidad: "Comunidad de Madrid", Boletines: []string{"BOCM"}},
+	}
+
+	const (
+		elTerritorio = "Leganés está en la Comunidad de Madrid y publica en el BOCM.\n\n"
+		otroBoletin  = "Leganés está en la Comunidad de Madrid.\n\n"
+		sinLaCita    = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver."
+		motivoCita   = "cita ausente: " + textoDeLaCita21
+		motivoBocm   = "territorio ausente: boletín: BOCM"
+	)
+
+	// juicioCon es el juicio de la eval con la sesión de la respuesta dada: su
+	// resultado es el que pasa, con esa respuesta y los cambios aplicados.
+	juicioCon := func(respuesta string, cambiar func(*ResultadoDeEval)) juicio {
+		esperado := ResultadoDeEval{
+			Eval:                 eval.Fichero,
+			Activa:               true,
+			Activada:             true,
+			ComandosEjecutados:   []string{textoDelComandoDeLeganes, textoDelComando21},
+			CitasEncontradas:     []string{textoDeLaCita21},
+			TerritorioEncontrado: []string{"comunidad: Comunidad de Madrid", "boletín: BOCM"},
+			Invocaciones: []InvocacionInformada{
+				{Orden: ordenDeLeganes, Codigo: codigoDeSalida(0)},
+				{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			},
+			Respuesta:        respuesta,
+			CodigoDeLaSesion: codigoDeSalida(0),
+			FinDeLaSesion:    "result success",
+			SesionTerminada:  true,
+			Pasa:             true,
+		}
+
+		if cambiar != nil {
+			cambiar(&esperado)
+		}
+
+		return juicio{
+			eval:     eval,
+			sesion:   sesionDeTerritorio(respuesta, resuelveLeganes(t), leeElArticulo21(t)),
+			skill:    skillDeTerritorio,
+			esperado: esperado,
+		}
+	}
+
+	return []juicio{
+		juicioCon(elTerritorio+respuestaConCita, nil),
+		juicioCon(elTerritorio+sinLaCita, func(r *ResultadoDeEval) {
+			r.CitasEncontradas, r.CitasAusentes = nil, []string{textoDeLaCita21}
+			r.Motivos, r.Pasa = []string{motivoCita}, false
+		}),
+		juicioCon(otroBoletin+respuestaConCita, func(r *ResultadoDeEval) {
+			r.TerritorioEncontrado = []string{"comunidad: Comunidad de Madrid"}
+			r.TerritorioAusente = []string{"boletín: BOCM"}
+			r.Motivos, r.Pasa = []string{motivoBocm}, false
+		}),
+		juicioCon(otroBoletin+sinLaCita, func(r *ResultadoDeEval) {
+			r.CitasEncontradas, r.CitasAusentes = nil, []string{textoDeLaCita21}
+			r.TerritorioEncontrado = []string{"comunidad: Comunidad de Madrid"}
+			r.TerritorioAusente = []string{"boletín: BOCM"}
+			r.Motivos, r.Pasa = []string{motivoCita, motivoBocm}, false
+		}),
+	}
+}
+
+// evalDelMunicipioCubierto es la eval de territorio del municipio cubierto: su
+// comando de territorio y un esperado con la comunidad, la provincia, el boletín
+// autonómico y un aspecto de cobertura.
+func evalDelMunicipioCubierto() Eval {
+	return Eval{
+		Fichero:  ficheroDelMunicipioCubierto,
+		Pregunta: "¿En qué boletines se publican las normas que afectan a Leganés?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+		Territorio: TerritorioEsperado{
+			Comunidad: "Comunidad de Madrid",
+			Provincia: "Madrid",
+			Boletines: []string{"BOCM"},
+			Cobertura: []string{"boletin_autonomico: configurado"},
+		},
+	}
+}
+
+// resultadoDelMunicipioQuePasa es el resultado de la eval del municipio cubierto
+// con la sesión que lo resuelve y declara todo su territorio.
+func resultadoDelMunicipioQuePasa() ResultadoDeEval {
+	return ResultadoDeEval{
+		Eval:                 ficheroDelMunicipioCubierto,
+		Activa:               true,
+		Activada:             true,
+		ComandosEjecutados:   []string{textoDelComandoDeLeganes},
+		TerritorioEncontrado: elementosDelMunicipio,
+		Invocaciones:         []InvocacionInformada{{Orden: ordenDeLeganes, Codigo: codigoDeSalida(0)}},
+		Respuesta:            respuestaDelMunicipio,
+		CodigoDeLaSesion:     codigoDeSalida(0),
+		FinDeLaSesion:        "result success",
+		SesionTerminada:      true,
+		Pasa:                 true,
+	}
+}
+
+// sesionDeTerritorio es la sesión que terminó con código 0 y result success,
+// activó legal-core y tiene la respuesta y las invocaciones dadas.
+func sesionDeTerritorio(respuesta string, invocaciones ...Invocacion) Sesion {
+	return cambiada(sesionTerminada(false, respuesta, invocaciones...), func(s *Sesion) {
+		s.SkillsActivadas = []string{skillDeTerritorio}
+	})
+}
+
+// resuelveLeganes es la invocación de la skill que resuelve el municipio de la
+// eval del municipio cubierto y termina con código 0.
+func resuelveLeganes(t *testing.T) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Leganés", "--json"))
+}
+
+// deLegalCore es el argv con el que la skill instalada invoca el applet
+// territorio.
+func deLegalCore(tokens ...string) []string {
+	return slices.Concat([]string{territorioDeLaSkillInstalada}, tokens)
 }
 
 // metadatosNoSatisfaceIndice es el juicio de una eval que espera el índice de la

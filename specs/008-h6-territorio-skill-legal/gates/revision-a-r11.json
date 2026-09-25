@@ -1,0 +1,66 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza af9b73d en un clon fuera del repositorio (/tmp/juez-a-h6-r11.lQnv/repo): termina con 0. Lint «0 issues.»; los catorce paquetes con tests en «ok» en los dos perfiles (race e integration): data, internal/core/ids e internal/core/territorio al 100 %, internal/evals 99,1 %, internal/cli 98,6 %, internal/skills 98,5 %, internal/app 93,6 %, internal/core/schema 90,1 %; govulncheck «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados (schema-check) en «ok»; gitleaks «no leaks found». El gancho de rtk truncó el final del registro, así que skills-check, mod-verify y mod-tidy-check se repitieron con `rtk proxy make`: internal/app, internal/skills e internal/evals en «ok», «all modules verified» en la raíz y en los cuatro módulos de herramientas y `go mod tidy -diff` sin salida. gates/ci.log (ignorado por .gitignore:17) termina en «ci: todos los controles en verde». `git status --porcelain` vacío en el repositorio y en el clon al terminar (los mutantes y el fichero borrado, restaurados con git checkout). Plataforma: `gh pr view 39` da 6b1bf87 como cabeza remota, OPEN y MERGEABLE; `gh pr checks 39`: ci, `evals (boe-legislacion)`, `evals (legal-core)` y los cuatro estados de Codecov en pass, `cambios` skipping por diseño; `git diff --name-only 6b1bf87..HEAD` da solo ficheros bajo specs/008-h6-territorio-skill-legal/ (SC-015); el cuerpo publicado de #39 es idéntico a gates/pr-h6.md salvo el salto de línea final."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Mutantes de esta ronda sobre el clon, todos revertidos: (1) territorioDe (internal/core/territorio/salida.go:183) emitiendo el DIR3 derivado con cobertura no-verificado → fallan TestTerritorioResuelto y TestResolverDevuelveElTerritorio; (2) resolverNombre (resolver.go:92) resolviendo con dos candidatos → fallan TestResolver/nombre-ambiguo, TestClaseDeLosErroresDeTerritorio/fallos_de_consulta/nombre_ambiguo y TestEntregaDelHito/territorio-matriz; (3) ayuntamiento (fuentes.go:595) sin comparar el dígito → fallan TestCargar/dir3-incoherente y TestCargarEnFilas/dir3-incoherente. `go test -race -shuffle=on -count=3` sobre internal/core/territorio, internal/core/ids, internal/evals y data, `-count=5` de los tests del applet y `-count=2` de la matriz e2e, en «ok»; fuzz en el clon sin hallazgos (FuzzCodigoINE 15 s, 1,77 M ejecuciones; FuzzCodigoDIR3 60 s, 7,6 M; FuzzFilasComoElLector 15 s). TestCosteDeLaCarga mide 66 571 asignaciones y 10 156 860 bytes, bajo sus cotas de 259 688 y 12 485 302 (coste_test.go:23-24). Todo offline; los ficheros nuevos de testdata/ son los que piden las tareas (corpus de fuzz, guion e2e, grabaciones del BOE)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre todas las líneas añadidas de los .go del diff frente a main: ningún net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal, panic(, exec.Command, recover(, Getenv ni método POST; el único //nolint es internal/core/territorio/coste_test.go:36, con su motivo. `git diff --stat main...HEAD` no toca go.mod, go.sum, .golangci.yml, codecov.yml, internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render ni cmd/kitlegal/main.go. go.yaml.in/yaml/v3 entra en modulosDelBinario con su motivo (internal/arch_test.go:154-160). En la reproducción, depguard y forbidigo sin hallazgos («0 issues.») y el paquete internal (TestArquitectura, TestDependenciasDelBinario) en «ok»."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza (`go run -C <clon> ./cmd/kitlegal territorio resolver …`): Leganés da el sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`, la misma huella por nombre, por `280745`, por `leganes` y con --offline— y `data` con las ocho claves en su orden, cada dato con su source; Tordesillas, Pamplona/Iruña, Ceuta, Donostia/San Sebastián y El Escorial, igual, con solo el BOE y los dos boletines no-configurado fuera de Madrid. Los sobres de fallo (Castejón, 28999, 471650, 99001, 28000, «␠», 2807, 28-074, 2807451) tienen las seis claves y `data` exactamente {clase, mensaje}. TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:820-839) valida la salida real, de éxito y de cada fallo del applet, contra $defs.resolver leída de schemas/municipio.json; TestEsquemasPublicados en «ok»."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Códigos observados en el binario: 0 para los municipios resueltos; 2 para Castejón (clase argumentos, «16067 Castejón (Cuenca); 31070 Castejón (Navarra)»), 471650 («el dígito de control recibido es \"0\" y el oficial es \"9\"»), 99001, 28000, «␠», 2807, 28-074 y 2807451, cada uno diciendo qué falla; 3 para 28999 (no-encontrado); `--json --timeout 1ns` → 4, fuente-no-disponible, firma del applet; `--json --dry-run --timeout 1ns` → 4 con el sobre del kernel (`kitlegal.cli`, reloj); `--json --dry-run` sin plazo corto no emite sobre; un applet inexistente → 2 con «applets disponibles: boe, territorio». Es lo que dicen el contrato del applet §2, §4 y §5 y research.md V15 y D7. Errores tipados con schema.ConClase (errorDeConsulta, errores de ids) → 2 y 3; los defectos de carga, sin clase, salen como inesperado (1) por diseño (contrato del applet §7); ningún panic (fuzz en «ok»)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Lo que pedía la ronda 10 está hecho: gates/evals-cierre.md:20 cuenta ya veintiuna invocaciones fuera de lo grabado, veinte con 5 y una con 4, como la tabla del informe copiado (:86-108); research.md:34 (V15) y gates/pr-h6.md:270-272 dicen la excepción del plazo agotado bajo --dry-run; pr-h6.md cuenta la ronda 10 (:438-442) y el cuerpo publicado de #39 está sincronizado. README.md (la ayuda de `territorio --help`, «applets disponibles: boe, territorio», los códigos), CHANGELOG.md (Unreleased, bloques De H6), CONTRIBUTING.md y docs/SOURCES.md (fechas 2026-02-04, 2026-09-20 y 2026-09-21, que casan con la `fecha` de municipios.yaml, de las comunidades y de dir3.yaml; 8 132 filas) contrastados con el binario y con los datos sin contradicción; las cifras del Alcance de pr-h6.md (7, 16, 10, 14, 12, 8 y 22 ficheros por árbol; 76 casos de /gramaticas; cotas de TestCosteDeLaCarga) casan con el diff y con los tests. Sin ADR (ninguna decisión cambia). No cumple por cuatro afirmaciones que el producto o los datos contradicen (motivos 1 a 4)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El applet no abre conexiones ni toca la caché: lee los ficheros embebidos (data/datos.go) vía app.FuentesEmbebidas (internal/app/registro.go); el e2e borra la reproducción y comprueba que no existe la caché (territorio-matriz.txtar:25 y :206). Ninguna línea añadida importa net/http ni hace POST; ningún secreto (gitleaks «no leaks found»); los datos de territorio no llevan NIF ni DNI de persona. scripts/verify-sources.sh no cambia. En la ejecución de aceptación vigente (36058947741), los dos informes dicen «ninguna petición llegó a la red de una fuente»."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un único //nolint, `//nolint:paralleltest` en internal/core/territorio/coste_test.go:36, con su motivo en la línea; ningún t.Skip, TODO, FIXME, XXX ni HACK en las líneas añadidas; los únicos descartes con `_` son los booleanos de strings.Cut y, en tests, reflect.FieldByName y strconv.Atoi sobre etiquetas propias. codecov.yml y .golangci.yml sin cambios; la cota de 200 ms del e2e sigue en 200 ms; ningún fixture ajustado: desde 6b1bf87 no cambia nada fuera de specs/."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "af9b73d y 520f6fe solo tocan specs/. El diff frente a main es el del spec: los paquetes internal/core/ids e internal/core/territorio, el paquete data, el applet territorio con su esquema publicado, los 22 ficheros congelados con sus cuatro esquemas, data/jerarquia.yaml, las siete normas con sus grabaciones y la marca vertebral, la extensión compatible del formato de eval, la skill legal-core con sus referencias y sus tres evals, la matriz del job de evals y la documentación; el cambio de H6 a H19 en la receta release (Makefile, CONTRIBUTING.md, CHANGELOG.md) alinea con ADR 0013 un texto que dejaría de ser cierto al fusionar, y está declarado (pr-h6.md:88-90). Sin otros verbos, otras comunidades configuradas, grafo, festivos ni config.yaml."
+    }
+  ],
+  "motivos": [
+    "[f] La promesa de que la falta de un fichero de data/territorio/ es un error de compilación no la cumple el binario para los 19 ficheros de comunidad: data/datos.go:41-42 los embebe con un patrón de directorio (`//go:embed territorio/comunidades`), que solo falla al compilar si el directorio no casa con ningún fichero. Comprobado en el clon: sin data/territorio/comunidades/05.yaml, `go build ./cmd/kitlegal` compila y `territorio resolver Leganés --json` termina con 1, clase inesperado («el municipio 35001 es de la provincia 35, que no declara ninguna comunidad»…); solo lo caza make ci (TestFuentesEmbebidas, internal/app/registro_test.go:295, y TestTerritorioDelRepositorio/integridad), así que un `make build` o un `make install` sin make ci deja un binario con modo de fallo por datos ausentes. Lo afirman sin matiz spec.md:29 (Clarification Q4: «un fichero ausente es un fallo de compilación, no hay modo de fallo en ejecución»), plan.md:26-27, contracts/datos-de-territorio.md:38-39 y el comentario de paquete de data/datos.go:5-8 («la ausencia de uno nunca llega a la ejecución»). Corregir en el producto, que es lo que decidió Q4: en data/datos.go, embeber cada uno de los 19 ficheros de comunidad por su nombre en la directiva de `comunidades` (el recorrido de comunidadesDe y sus tests siguen valiendo, y configurar un territorio sigue siendo rellenar `boletines` en un fichero que ya existe, FR-053), de modo que la falta de cualquiera sea error de compilación, y dejar el comentario diciéndolo. Toca data/, así que hay que repetir la ejecución de aceptación (SC-015) y poner al día gates/evals-cierre.md y gates/pr-h6.md.",
+    "[f] contracts/datos-de-territorio.md:111 (§6, «Qué lo vigila») atribuye a `TestSkillsDelRepositorio` («normas nombradas») el control de que ningún municipio concreto aparece en código ni en la skill, con «sí / revisión» en make ci, y ese test no lo mira: sus subtests (internal/app/skills_test.go:91-153) son skills, deriva, trescientas-lineas, frontmatter, enlaces, region, regenerar-dos-veces, normas-nombradas —que solo busca nombres de leyes con la expresión de :847-848— y sin-instrucciones-de-evals, y ninguno nombra municipios. Corregir la fila para que diga lo que hay: ningún control mecánico; lo vigila la revisión final (en make ci: no).",
+    "[f] data-model.md:150 dice que las ocho claves de `data` van «cada una con el `source` del dato que la sostiene», y `cobertura` no lleva `source` ni en el tipo (internal/core/territorio/salida.go:146-153) ni en la salida real (`\"cobertura\":{\"boletin_autonomico\":…,\"boletin_provincial\":…,\"dir3\":…}`), como muestra el propio ejemplo de :161. Corregir la frase: cada dato que sale de un fichero lleva su source (FR-005); `cobertura`, que dice lo que el registro tiene configurado o verificado, no lleva.",
+    "[f] Dos tests presentan el 8 como dígito de control de Leganés, el mismo dígito escrito de memoria que la revisión final retiró de los artefactos (gates/verificacion-dir3.md:119-124: «`L01280745`, no `L01280748` … Ninguno lo presenta como el DIR3 de Leganés»), cuando el oficial es 5 (data/territorio/municipios.yaml:4367, dir3.yaml:4367): internal/core/ids/ine_test.go:117 nombra «Leganés» el caso `280748`, y internal/core/ids/errores_test.go:69 compara con `leganes.ComprobarDigito('9', '8')`, dando 8 como oficial. Los dos tests comprueban forma y clase, no el dato, así que basta con que no digan algo falso: en ine_test.go:117, nombrar el caso por su forma (o usar `280745`), y en errores_test.go:69, pasar el oficial de la relación, `'5'`. Toca internal/core/ids, que el filtro del job de evals cubre: va con la repetición de la ejecución de aceptación del motivo 1."
+  ]
+}

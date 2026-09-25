@@ -1,0 +1,67 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza ed24d42, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r2): fmt, lint (0 issues), test -race, test-integration, vuln, schema-check, skills-check, secrets, mod-verify y tidy -diff en verde, «ci: todos los controles en verde», salida 0. gates/ci.log (2026-09-22 14:30) es anterior a c481451 —aún muestra el paquete data sin tests—, así que no vale como evidencia de la cabeza; la reproducción sí. Cobertura del perfil de ese make ci: global 97,2 %; internal/core/ids, internal/core/territorio y data al 100 %. `git status --porcelain` vacío en el repositorio y en el clon al terminar (el mutante del criterio b se revirtió)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "Corregido lo de la ronda 1: compilarEsquemaDeJerarquia al 100 % con TestCompilarEsquemaDeJerarquiaDesdeUnaRuta (internal/skills/jerarquia_test.go:336-341; export_test.go:14-17), y data/datos.go al 100 % con TestComunidadesDe sobre fstest.MapFS, sus tres ramas de error incluidas (data/datos_test.go:33-79). Lo que queda sin cubrir de LeerJerarquia (75 %) es la propagación del esquema compilado una sola vez desde una ruta constante, el mismo patrón que LeerNormas de H5 (85,7 %) y LeerTerritorio (96,3 %), cuyas ramas de error se prueban ya por su compilador. dir3_test.go:44-45 da a Leganés L01280745. Los tests siguen siendo offline. No cumple: la rama de error de internal/skills/referencias.go:194-201 (cuerpoDeLasLeyesVertebrales, 75 %), código nuevo de H6, no la ejerce ningún test; el mutante que descarta el error de LeerNormas sobrevive a `go test ./internal/skills/ ./internal/app/`, con y sin -tags=integration."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El diff no añade net/http, os.Exit, fmt.Print*, panic ni errores descartados (el único `_` añadido es el booleano de strings.Cut); golangci-lint con depguard y forbidigo sin hallazgos; TestArquitectura en verde; go.mod y go.sum sin cambios; go.yaml.in/yaml/v3 en modulosDelBinario con su motivo (internal/arch_test.go:154-160). La corrección de data/datos.go solo importa io/fs."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782) valida la salida real con --json contra schemas/municipio.json; TestEsquemasPublicados ata municipio.json a --describe (schema-check en verde). Con el binario del clon, Leganés y Tordesillas dan el sobre de seis claves y data de ocho, con provincia.source y comunidad.source `ine.codigos-territoriales`, lo mismo que fija el e2e tras la corrección (territorio-matriz.txtar:38-39, 86-87, 111, 119-120)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario del clon: Leganés 0; Arroyomolinos 2, clase argumentos y los dos candidatos en orden de código («10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)»); 01999 3, clase no-encontrado; 280740 2, nombrando el dígito recibido y el oficial; tordesillas con --offline 0; nunca 4, 5 ni 6. Errores tipados con Clase() (internal/core/territorio/errores.go, internal/core/ids/errores.go); unas fuentes que no cargan salen como inesperado, sin clase (internal/app/territorio.go:117-124). Ningún panic en rutas de usuario; fuzz de INE y DIR3 con corpus versionado en make test."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Corregido de la ronda 1: la release en H19 (Makefile:135 y 137, CONTRIBUTING.md:78, 88 y 167, CHANGELOG.md:484); el source de provincia y comunidad en ine.codigos-territoriales en los 19 ficheros, el e2e, data-model §2.2, §2.5 y §3.4 y el CHANGELOG; madrid-configurada ya no impide configurar otra comunidad (internal/skills/territorio_test.go:468-499), así que CONTRIBUTING.md:223 y CHANGELOG.md:308 son ciertos; el dígito de Leganés en research.md y data-model.md; docs/SOURCES.md:76 describe la verificación hecha; las normas y el nolint de pr-h6.md. No cumple: README.md:42-43 y CHANGELOG.md:303-304 atribuyen la verificación del DIR3 al REL; CONTRIBUTING.md:220-223 no dice que refrescar exige las tablas de códigos del INE y la verificación contra DIR3 real; docs/SOURCES.md:66 fecha el 2026-09-21 una descarga que T002 hizo el 2026-09-20; pr-h6.md:34 sigue nombrando ComponerDIR3 y :350-351 lo da por corregido, su línea 1 llama vigente a una ejecución que ya no lo es, su Alcance (:27-31, :62) mide 2b81164, y el cuerpo publicado en #39 es anterior a e4c0b65; research.md:155 conserva ine.municipios como source de las comunidades."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo hace HTTP: territorio no tiene red por construcción (el e2e borra la reproducción y comprueba `! exists cache`) y verify-sources.sh no gana casos (ADR 0017). La verificación contra DIR3 real se hizo fuera del repositorio, con GET, User-Agent identificable y dentro del robots.txt del directorio del PAG (Crawl-delay 60, Visit-time 0100-0645 GMT; gates/verificacion-dir3.md:48-67), sin WAF, CAPTCHA, certificado ni credenciales (ADR 0017 §4), y docs/SOURCES.md:76 la registra. gitleaks sin hallazgos; ningún NIF ni dato de persona en los ficheros congelados."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "La verificación que faltaba existe ya: gates/verificacion-dir3.md:23-31 compara siete municipios —los fusionados Oza-Cesuras y Cerdedo-Cotobade, los forales Pamplona/Iruña y Vitoria-Gasteiz, Riello y Vitoria-Gasteiz con entidades locales menores— con el DIR3 real, su procedencia y si coincide, como piden FR-046, FR-047 y SC-008, y la coherencia REL↔INE queda como criterio de entrada de FR-048 (:79-104). Los siete derivados coinciden con data/territorio/dir3.yaml (líneas 48, 2222, 3732, 4367, 4821, 5348 y 5847), y sus códigos y nombres con municipios.yaml; el quickstart §9 vuelve a exigir las columnas de FR-047. Un solo //nolint, razonado (internal/core/territorio/coste_test.go:36); ningún t.Skip, TODO ni error silenciado; los cambios del e2e y de dir3_test.go siguen a datos corregidos, no a un test que había que hacer pasar."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Las correcciones se ciñen a los motivos de la ronda 1: el recorrido de Comunidades pasa a comunidadesDe sobre fs.FS porque el motivo lo pedía; comprobarCompilarEsquemaDesdeUnaRuta evita, sin nolint, el dupl del tercer test de compilación; 9a77c6b y ed24d42 solo tocan docs/SOURCES.md y specs/. Sin festivos, grafo, config.yaml, otros verbos ni otros territorios; internal/cli, httpx, cache, source/boe, core/schema y render sin cambios; skills/boe-legislacion/SKILL.md y evals/boe-legislacion/ intactos."
+    }
+  ],
+  "motivos": [
+    "[b] La rama de error de cuerpoDeLasLeyesVertebrales (internal/skills/referencias.go:194-201), código nuevo de H6, no la ejerce ningún test (75 %). Comprobado con un mutante en un clon: sustituir la comprobación por `normas, _ := LeerNormas(datos)` deja en verde `go test ./internal/skills/ ./internal/app/`, con y sin -tags=integration. El único caso con data/normas.yaml inválido, `norma-con-vertical` (internal/skills/sincronia_test.go:619-629), usa la skill alfa, que declara `normas` antes que `leyes_vertebrales` (sincronia_test.go:81), así que referenciasGeneradas se detiene en el generador de normas (internal/skills/sincronia.go:309-326) y nunca llega a este. legal-core, en cambio, declara solo `leyes_vertebrales jerarquia_normativa`: con el mutante, su referencia se regeneraría vacía y sin defecto. Hay que añadir a probarDefectos un caso en que la skill declare `leyes_vertebrales` sin `normas` delante, como legal-core, con data/normas.yaml inválido, y que exija el defecto «alfa: data/normas.yaml: …». Toca código fuera de specs/, así que la ejecución de evals se repite sobre el commit resultante (SC-015).",
+    "[f] README.md:42-43 («el DIR3 del ayuntamiento de cada municipio verificado contra el Registro de Entidades Locales») y CHANGELOG.md:303-304 («solo con las filas verificadas contra el número de inscripción del Registro de Entidades Locales») siguen presentando como verificación la comparación con el REL, que es la entrada de la derivación. El propio registro dice que esa comparación «no verifica el DIR3 —lo hace la sección 1—» (gates/verificacion-dir3.md:90), y es la lectura que rechazaron los dos jueces en la ronda 1. Hay que reescribir las dos frases: el DIR3 sale del número de inscripción del REL; la regla se verificó contra DIR3 real, en el directorio del PAG, sobre una muestra de siete municipios con los tres casos de FR-046; y dir3.yaml lleva los municipios cuyo número del REL es coherente con su código INE y su dígito de control (FR-048). Además, CONTRIBUTING.md:220-223, que dice cómo se refrescan los datos, solo nombra la relación del INE y el volcado del REL. Tiene que nombrar también las tablas de códigos del INE (ine.codigos-territoriales), de las que salen los nombres de provincia y comunidad, y la verificación de la derivación contra DIR3 real que exigen ADR 0017 §3 y FR-046 a FR-048: un refresco que siga el texto actual dejaría `cobertura.dir3: verificado` sin verificar. Toca documentación fuera de specs/, así que la ejecución de evals se repite (SC-015).",
+    "[f] La fila ine.codigos-territoriales de docs/SOURCES.md:66 da como «Fecha del fichero» el 2026-09-21, «fecha de descarga». Pero las tablas cod_ccaa.htm y cod_provincia.htm de las que salen los nombres se descargaron en la pausa de T002, el 2026-09-20 (gates/tarea-T002.md:198-203, con sus SHA-256; commit cb89e6e del 2026-09-20 a las 19:46), y los 19 ficheros de comunidad que desde c481451 citan esa fila como source llevan fecha 2026-09-20 (p. ej. data/territorio/comunidades/13.yaml:1). Nada registra una descarga del 2026-09-21: gates/tarea-T003.md:209-214 solo dice que ese día se revisó la fila. FR-049 exige que SOURCES.md sea cierto respecto de los ficheros generados. Hay dos salidas. En una tarea [datos] con revisión humana (capa 3), poner la fecha de la descarga que usó T002, el 2026-09-20. O, si hubo una descarga el 2026-09-21, registrarla con sus hashes en gates/tarea-T003.md, y entonces SOURCES.md no cambia. Si cambia SOURCES.md, la ejecución de evals se repite (SC-015).",
+    "[f] gates/pr-h6.md, el cuerpo de la propuesta de cambio, sigue con inexactitudes, y el motivo 4 del juez B en la ronda 1 no quedó cerrado del todo. La línea 34 sigue nombrando `ComponerDIR3`, que no existe (la función es DIR3DeAyuntamiento, internal/core/ids/dir3.go:78), y las líneas 350-351 afirman que `DIR3DeAyuntamiento` se corrigió en e4c0b65, que solo tocó las normas y el nolint. La línea 1 llama «vigente» a la ejecución 35722605048, cuando el propio cuerpo dice que la vigente es la 36011479943 (líneas 354-355 y 365). El Alcance (líneas 27-31) mide sobre 2b81164 —33 commits, 156 ficheros, 30 340 líneas añadidas y 657 retiradas— y a la vez enumera datos_test.go, que entonces no existía; frente a main, la cabeza da 41 commits, 157 ficheros, 30 479 y 670. Y la línea 62 dice que TestTerritorioDelRepositorio ocupa 915 líneas, cuando internal/skills/territorio_test.go tiene 900. Hay que corregirlo y añadir a «Revisión final» esta ronda y sus correcciones. Después hay que volver a sincronizar el cuerpo publicado. El de #39 (`gh pr view 39`) es anterior incluso a e4c0b65: dice «LRBRL, LPH, LCSP», «0 líneas //nolint», «8 132 filas verificadas contra el REL», `/solo-madrid-configurada` y que el paquete data «sale con 0/19». El paso publicar_rama del workflow no edita una propuesta que ya existe (.specify/workflows/hito/workflow.yml:1216), así que hace falta `gh pr edit 39 --body-file specs/008-h6-territorio-skill-legal/gates/pr-h6.md` en un paso con plataforma. El fichero está bajo specs/ y no afecta a SC-015.",
+    "[f] specs/008-h6-territorio-skill-legal/research.md:155 sigue dando `ine.municipios` (nombres) como source de los ficheros de comunidad. Desde c481451 esos ficheros declaran ine.codigos-territoriales (data/territorio/comunidades/13.yaml:2), y así lo dicen data-model §2.2 (líneas 108-109) y §3.4 (línea 269) y la propia research.md:298-299. Hay que cambiar la celda a `ine.codigos-territoriales` (nombres) y el propio fichero (régimen y boletines). Está bajo specs/ y no afecta a SC-015."
+  ]
+}

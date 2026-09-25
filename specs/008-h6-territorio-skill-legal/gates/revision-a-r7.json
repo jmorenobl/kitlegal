@@ -1,0 +1,63 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 4e7cd3a, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r7.rub9/repo, `make -C … ci`): salida 0; gitleaks «no leaks found»; «0 issues.»; los quince paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/cli 98,6 %, internal/skills 98,5 %, internal/evals 99,1 %, internal/app 93,6 %); govulncheck «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados y los tests de skills-check en «ok». gates/ci.log es anterior a c481451, así que vale la reproducción. `rtk proxy git status --porcelain` vacío en el repositorio y en los dos clones al terminar (el mutante se revirtió). Plataforma: `git ls-remote` y `gh pr view 39` dan ead63d9 como cabeza remota (OPEN, MERGEABLE); `gh pr checks 39`: ci (36038400511), evals (legal-core) y evals (boe-legislacion) (36038417662) y los cuatro estados de Codecov en SUCCESS y `cambios` SKIPPED; los check-runs de Codecov sobre ead63d9 tienen medida: 96.76 % (target 70 %), patch 98.79 % (target 96.42 %), internal/cli 98.09 %, internal/core 98.63 %. `git diff --name-only ead63d9..HEAD` da solo gates/evals-cierre.md y gates/pr-h6.md."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El motivo [b] de la ronda 6 está corregido en ead63d9: internal/evals/territorio_test.go:167-174 añade el caso `nombres-que-se-pliegan-a-nada` (comunidad «—», provincia «·», textos «», «…» y «Castilla y León, Ávila», declarado vacío). Mutante en un clon: internal/evals/territorio.go:148 sin `plegado != \"\" &&` → `go test ./internal/evals/ -run TestExtraerTerritorio` en FAIL en /nombres-que-se-pliegan-a-nada con los textos «» y «…» (declara «—» y «·»); revertido, `git status --porcelain` vacío. El comentario de :140-144 dice ahora el motivo real y el código lo sostiene: Plegar (internal/core/territorio/nombres.go:37-63) solo escribe un espacio entre dos letras, nunca al principio, al final ni dos seguidos, así que la aguja «  » solo está en la respuesta plegada «  » de una respuesta que se pliega a nada. Desde 6d08752 no cambia ningún otro fichero de código, test, dato ni esquema; los tests son offline y los fixtures nuevos de testdata/ son los que piden T005, T012, T015 y T028."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`rtk proxy git diff 6347c15..HEAD -- internal` solo cambia un comentario de internal/evals/territorio.go y un caso de tabla de su test: ningún import, ni net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal o panic. En la reproducción de `make ci`, depguard y forbidigo sin hallazgos («0 issues.») y TestArquitectura y TestDependenciasDelBinario en «ok» (paquete internal). El único importador de github.com/jmorenobl/kitlegal/data sigue siendo internal/app/registro.go:11; go.mod y go.sum fuera del diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza (`go run -C <clon> ./cmd/kitlegal`, sin escribir en el árbol): Leganés da el sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`— y `data` con las ocho claves, cada dato con su source (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/13.yaml, data/territorio/estado.yaml); `28074 --offline --json` da la misma huella byte a byte; Tordesillas (tabla) solo el BOE y los dos boletines `no-configurado`; Vitoria-Gasteiz y Pamplona/Iruña con `regimen` `foral` y solo el BOE. TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go) valida la salida real contra $defs.resolver de schemas/municipio.json y TestEsquemasPublicados (schema-check) la ata a --describe; los dos en «ok» en la reproducción."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza: Leganés, 28074, Vitoria-Gasteiz, Pamplona y Tordesillas → 0; Arroyomolinos → 2, clase argumentos, «10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)» en el mensaje y en la salida de error; 53001 → 2 («la provincia \"53\" no está entre 01 y 52»); 01999 → 3, no-encontrado; sin posicional → 2 con el sobre `kitlegal.cli` / `kitlegal:cli` y el reloj; `280746 --json --dry-run` → la línea del kernel, el sobre de fallo `kitlegal.cli` / `kitlegal:cli` con el reloj y 2, que es lo que fija contracts/applet-territorio.md:32 y :75. Nunca 4, 5 ni 6. Errores tipados con Clase() (internal/core/ids/errores.go, internal/core/territorio/errores.go); ningún panic en rutas de usuario; ead63d9 no toca ninguna ruta de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Los tres motivos de la ronda 6 están corregidos. plan.md:394-395 cita ya el §3 del contrato como es («lo importa solo `internal/app`, y por él lo reciben la raíz de producción y el binario de e2e»). gates/pr-h6.md:283 dice «que no interpreta nada (solo embebe y recorre el subárbol de comunidades)»; la ronda 6 está en «Revisión final» (:407-417) y en *Pendientes* (:421-454); el cuerpo publicado de #39 coincide con gates/pr-h6.md salvo el salto de línea final (`gh pr view 39 --json body` contra el fichero). Cifras del *Alcance* contrastadas con git: `git diff --shortstat main...ead63d9 -- . ':(exclude)specs'` da 157 ficheros, 30 509 y 670; 47 commits; 16 445 líneas en data/territorio y 1 121 en testdata/evals; ids 7 Go y 26 de corpus, territorio 16 Go, app 10, skills 14, evals 12, schemas 8, evals/legal-core 3. gates/evals-cierre.md («ronda 6») contrastado con el log de 36038417662: la respuesta de `02-territorio-municipio-no-cubierto-claude-haiku-4-5-20251001-02` nombra el «Boletín Oficial de Castilla y León (BOCYL)», la de `…-claude-sonnet-5-01` dice «no debo nombrarlos por mi cuenta», nueve invocaciones fuera de lo grabado con código 5 y las dos tablas de tasas como las copia; las cifras de Codecov coinciden con los check-runs. CHANGELOG.md, README.md, CONTRIBUTING.md, docs/SOURCES.md y SKILL.md no cambian desde 6d08752 y siguen sosteniéndose; ningún ADR hace falta. No cumple por tasks.md:451-455 (motivo)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "ead63d9 no toca nada de red: ningún fichero del diff importa net/http ni usa internal/httpx, y territorio no abre red ni caché en ningún camino (e2e territorio-matriz.txtar sin reproducción). Los dos informes de 36038417662 dicen «ninguna petición llegó a la red de una fuente». La consulta al directorio del Punto de Acceso General que sostiene gates/verificacion-dir3.md fue GET, fuera del repositorio, dentro de su robots.txt y con el User-Agent de la constitución. gitleaks sin hallazgos; ningún NIF ni dato de persona en data/territorio, data/jerarquia.yaml ni skills/legal-core; skills/legal-core/SKILL.md:169-170 prohíbe toda acción con identidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "El caso nuevo de ead63d9 no salta nada ni relaja ninguna aserción: exige declarado vacío con assert.Equal (internal/evals/territorio_test.go:186); el comentario corregido describe lo que hace el código. Sigue habiendo un solo //nolint en el diff, razonado en su línea (internal/core/territorio/coste_test.go:36) y declarado en pr-h6.md:232; ningún t.Skip, TODO ni FIXME; ningún fixture, grabación ni esquema cambia desde la ronda 2."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "ead63d9 toca exactamente los dos ficheros que nombraba el motivo [b] de la ronda 6 (internal/evals/territorio.go, un comentario; internal/evals/territorio_test.go, un caso); 4e7cd3a solo toca specs/. En toda la rama, internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, go.mod, go.sum y evals/boe-legislacion siguen fuera del diff, y skills/boe-legislacion solo cambia en references/normas.md, regenerado; ni otros verbos, ni otras comunidades configuradas, ni grafo, festivos o config.yaml."
+    }
+  ],
+  "motivos": [
+    "[f] specs/008-h6-territorio-skill-legal/tasks.md:451-455 (Notas, «Ficheros existentes que se tocan, exactamente») dice que la revisión final (`c481451`, `9a77c6b`, `6d08752`) tocó `Makefile`, `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md`, `docs/SOURCES.md`, los 19 ficheros de comunidad, `data/datos.go`, el e2e y seis tests, y creó `data/datos_test.go`. Desde la ronda 6 la lista ya no es exacta: `rtk proxy git log --format='%h %s' a8ed0a7..HEAD -- . ':(exclude)specs'` da cuatro commits (c481451, 9a77c6b, 6d08752 y ead63d9), y `git diff --name-only a8ed0a7..HEAD` fuera de specs/ incluye además internal/evals/territorio.go e internal/evals/territorio_test.go, que tocó ead63d9 (el comentario de `declaraElNombre` y el caso `nombres-que-se-pliegan-a-nada`). gates/pr-h6.md:428-429 ya lo cuenta así. Añadir `ead63d9` a la lista de commits de la frase y los dos ficheros de internal/evals/ a lo que tocó. Bajo specs/: no afecta a SC-015 ni al cuerpo publicado de #39."
+  ]
+}

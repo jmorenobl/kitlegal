@@ -1,0 +1,6 @@
+fecha: "2026-09-20"
+source: data/territorio/estado.yaml
+boletin:
+  codigo: "BOE"
+  nombre: "Boletín Oficial del Estado"
+  url: "https://www.boe.es/"

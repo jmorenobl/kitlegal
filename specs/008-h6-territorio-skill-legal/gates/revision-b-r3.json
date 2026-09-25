@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido sobre un clon de la cabeza 1d39df9 en /tmp/juez-b-h6-r3-20260924: lint «0 issues.», los quince paquetes con tests en «ok» en los dos perfiles (data 100 %, internal/core/ids 100 %, internal/core/territorio 100 %, internal/skills 98,5 %, internal/app 93,6 %, internal/evals 99,1 %), govulncheck «No vulnerabilities found.», schema-check y skills-check en «ok», gitleaks «no leaks found», los cinco módulos verificados, `go mod tidy -diff` sin salida, «ci: todos los controles en verde», salida 0 y `git status --porcelain` vacío en el clon después. gates/ci.log sigue siendo el de 2e02685 (2026-09-22) y no cubre la cabeza: vale la reproducción. En el repositorio, `git status --porcelain` solo muestra gates/revision-a.json, el veredicto del otro juez escrito en paralelo; ningún fichero de código, datos ni documentación. En la plataforma, `gh run list`: ci 36019821690 y evals 36019842457 (trabajos `evals (legal-core)` y `evals (boe-legislacion)`) en `success` sobre 6d08752, que es la cabeza remota de #39 (`git ls-remote`); `gh pr checks 39` da los siete en verde (ci, las dos evals y los cuatro estados de Codecov) con `cambios` `skipped` por diseño. `git diff --stat 6d08752..HEAD` solo trae gates/evals-cierre.md y gates/pr-h6.md, bajo specs/, como exige SC-015."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El motivo [b] del juez A en la ronda 2 está cerrado y es eficaz: el caso `vertebrales-sin-normas-con-vertical` (internal/skills/sincronia_test.go:630-643) declara las referencias como legal-core, sin `normas` delante, y el mutante que descarta el error de LeerNormas en cuerpoDeLasLeyesVertebrales (internal/skills/referencias.go:195-201) deja en rojo exactamente ese subtest de TestRegenerarYComparar y ninguno más. Catorce mutantes más sobre el clon, todos detectados por el test que dice detectarlos: cobertura siempre `configurado` (internal/core/territorio/salida.go:228-234) → TestTerritorioResuelto/municipio_no_cubierto y /solo_los_niveles_configurados; fecha_consulta del reloj (internal/app/territorio.go:114) → TestResolverDevuelveElTerritorio y TestCodigosDeTerritorio; Pasa sin TerritorioAusente (internal/evals/juzgar.go:236-238) → TestJuzgar/territorio-ausente y /territorio-y-citas; regla «no cubierto» anulada (internal/evals/conjunto.go:539-543) → TestConjuntoDeEvals/legal-core/sin-la-del-no-cubierto, /no-cubierto-con-un-solo-aspecto y /orden-de-la-tabla; provincia 00 aceptada (internal/core/ids/ine.go:24) → TestAnalizarCodigoINE/*/provincia_00; entrada de directorio admitida (data/datos.go:76) → TestComunidadesDe/una-entrada-que-es-un-directorio; defectos sin la ruta del fichero (internal/skills/territorio.go:142) → cinco casos de TestLeerTerritorio; forma del artículo antepuesto suprimida (internal/core/territorio/nombres.go:114-116) → TestFormasDelNombre y TestResolver/forma-alternativa; clave repetida no detectada (internal/core/territorio/filas.go:419-423) → TestFormaDeLasFilas/*/clave-repetida y TestCargarEnFilas; boletín por subcadena (internal/evals/territorio.go:126) → TestExtraerTerritorio/boletin-en-otras-mayusculas-o-dentro-de-otra-palabra; `motivo` del BOCM suprimido en data/territorio/comunidades/13.yaml → TestTerritorioDelRepositorio/madrid-configurada; tabla de comandos de skills/legal-core/SKILL.md editada a mano → TestSkillsDelRepositorio/skills («legal-core: SKILL.md: contenido-distinto»); source de la provincia cambiado (salida.go:197) → TestResolverDevuelveElTerritorio y el e2e TestEntregaDelHito/territorio-matriz en internal/app/testdata/script/territorio-matriz.txtar:38. Todo test es offline y ningún test de internal/core/** lee un fichero; los ficheros bajo testdata/ y schemas/ no cambian desde la ronda 2 (6d08752 y 1d39df9 no los tocan)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Desde la ronda 2 el único fichero Go que cambió es internal/skills/sincronia_test.go, con un caso de tabla. grep sobre los .go del diff frente a main: ningún net/http, os.Exit ni fmt.Print* añadidos; el único `_ =` es el booleano de strings.Cut (internal/core/territorio/filas.go:130). internal/core/ids importa fmt, unicode/utf8 y core/schema; internal/core/territorio, bytes, errors, fmt, maps, slices, strings, time, unicode, go.yaml.in/yaml/v3, core/ids y core/schema; el paquete data importa embed, fmt, io/fs, path y strings fuera de internal/core, y solo lo importan internal/app/registro.go:9 y el binario de e2e; yaml/v3 está en modulosDelBinario con su motivo (internal/arch_test.go:154-160). depguard y forbidigo con «0 issues.», TestArquitectura, TestDependenciasDelBinario y TestElBinarioNoEnlazaLosEjemplos en verde en la reproducción; go.mod, go.sum, .golangci.yml y codecov.yml no aparecen en el diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782-801) valida el sobre real emitido con --json —los dos éxitos y los dieciséis fallos que decide el applet— contra $defs.resolver de schemas/municipio.json leído del fichero publicado; compruebaCoberturaNoConfigurada (:1024-1049) exige que el contrato no admita para la cobertura ningún valor distinto de configurado/no-configurado; TestEsquemasPublicados y TestEsquemasCubrenTodosLosVerbos en verde (schema-check de la reproducción); el e2e ancla las seis claves del sobre y las ocho de data a los dos extremos de la salida (territorio-matriz.txtar:32, 82, 131, 136, 148, 155, 159, 165) y el mutante del source de la provincia lo confirma en la línea 38."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: errores tipados con schema.ConClase en internal/core/ids/errores.go:49-51 (siempre argumentos) y internal/core/territorio/errores.go:33-35 (argumentos o no-encontrado, ninguna otra clase); el defecto de carga no lleva clase y no se envuelve con %w, así que sale como inesperado, código 1 y firma del kernel (territorio/errores.go:85-104; internal/app/territorio.go:121-124; compruebaDefectoDeComposicion, territorio_test.go:700-725). TestCodigosDeTerritorio fija 0, 2 y 3 y que ninguna consulta con ninguna combinación de banderas da 4, 5 ni 6 (:575-603); el e2e comprueba los códigos 2 y 3 con su sobre de fallo y el mensaje en la salida de error (txtar:130-166); FuzzCodigoINE y FuzzCodigoDIR3 corren con su corpus de trece semillas cada uno sin panic; el mutante de la fecha del reloj cae en TestResolverDevuelveElTerritorio y en TestCodigosDeTerritorio."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los cuatro motivos de la ronda 2 de este juez y los cinco del juez A están cerrados: (1) gates/pr-h6.md:34 nombra `DIR3DeAyuntamiento` y :352 dice que la ronda 2 lo cerró, que es lo que pasó; (2) la cabecera pr-h6.md:1 remite a «Revisión final» y :384 fija como vigente la 36019842457 sobre 6d08752, la misma que da `gh run list`; (3) el cuerpo publicado de #39 (`gh pr view 39 --json body`) coincide con pr-h6.md salvo el salto de línea final; (4) plan.md:308 describe lo que `madrid-configurada` detecta y lo que no; (A1) el caso de sincronia_test.go; (A2) README.md:40-43 y CHANGELOG.md:301-306 atribuyen la verificación al directorio DIR3 del Punto de Acceso General, y CONTRIBUTING.md:215-225 nombra las tablas de códigos del INE y la verificación contra DIR3 real en cada refresco; (A3) docs/SOURCES.md:65 fecha la descarga el 2026-09-20, en la pausa de T002; (A4) las cifras del Alcance de pr-h6.md:27-29 son las del árbol —`git diff --shortstat origin/main...6d08752` sin specs/: 157 ficheros, 30 500 y 670; data/territorio 16 445; testdata/evals 1 121; `rev-list --count`: 42— y internal/skills/territorio_test.go tiene 900 líneas; (A5) research.md:155 da `ine.codigos-territoriales`. Además: los recuentos por árbol de pr-h6.md:33-95 coinciden con el diff (ids 7 Go y 26 de corpus, territorio 16, app 10, skills 14, evals 12, schemas 8, testdata/evals 22, documentación 4); la sección «Revisión final» registra las dos rondas; gates/evals-cierre.md:3-24 registra la ejecución vigente con sus trabajos, el headSha, los modelos y los cuatro estados de Codecov que `gh pr checks 39` confirma, en la forma que fija el §14 del quickstart; lo que el e2e afirma de la relación (01902 cierra la provincia 01) es cierto en data/territorio/municipios.yaml; CHANGELOG.md (Unreleased) registra el applet, la skill, los datos, la jerarquía, los identificadores, la variante de eval y la matriz del job, y :476-477 dice que la release es H19; ningún ADR hace falta (ADR 0017 y ADR 0006 ya deciden origen y procedencia); docs/SOURCES.md:74 describe la verificación hecha; data-model.md:108-109, :156-157 y :269 dan el source de los nombres."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: ningún fichero nuevo importa net/http ni usa internal/httpx; territorio no abre red ni caché en ningún camino (txtar:25 borra la reproducción y :206 exige que no exista la caché); un comando de territorio no genera consulta grabable (internal/evals/consultas.go:689-691); solo GET en las siete grabaciones de T015 y en la consulta al directorio del Punto de Acceso General que sostiene verificacion-dir3.md, hecha fuera del repositorio, dentro de su robots.txt y con User-Agent `kitlegal/0.1 (+https://ventanillalegal.es/bot)` (verificacion-dir3.md:48-56); ningún municipio concreto en código ni en datos fuera de fixtures, e2e y evals (grep sobre los .go sin _test, data/territorio/comunidades y skills/legal-core/SKILL.md); ningún NIF ni dato de persona en data/territorio, data/jerarquia.yaml ni skills/legal-core; gitleaks sin hallazgos; «ninguna petición llegó a la red de una fuente» en los dos informes de la vigente (evals-cierre.md:21, :108, :188); SKILL.md:169-170 prohíbe toda acción con identidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin t.Skip ni TODO en ningún .go del diff; el único //nolint (internal/core/territorio/coste_test.go:36, paralleltest) lleva su motivo escrito y está declarado en pr-h6.md:230; el caso nuevo de sincronia_test.go ejerce la rama que faltaba en lugar de relajar ningún control; ningún fixture, grabación ni esquema cambió desde la ronda 2 (`git log --name-only` de 6d08752 y 1d39df9 no toca testdata/ ni schemas/); las correcciones de documentación de 6d08752 describen lo que el repositorio sostiene —la verificación de verificacion-dir3.md §1 y la fecha de la descarga de T002— y no ajustan ninguna expectativa para que pase un test."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "6d08752 toca exactamente lo que pedían los nueve motivos de la ronda 2 (README.md, CONTRIBUTING.md, CHANGELOG.md, docs/SOURCES.md, internal/skills/sincronia_test.go, plan.md, research.md y gates/) y 1d39df9 solo gates/ (`git show --stat`); en toda la rama, ningún cambio en internal/cli, internal/httpx, internal/cache, internal/source/boe, internal/core/schema, internal/render, go.mod, go.sum, .golangci.yml ni codecov.yml; skills/boe-legislacion solo cambia en references/normas.md por regeneración (7 filas) y evals/boe-legislacion no cambia; sin otros verbos de territorio, otras comunidades configuradas, grafo, festivos ni config.yaml."
+    }
+  ],
+  "motivos": []
+}

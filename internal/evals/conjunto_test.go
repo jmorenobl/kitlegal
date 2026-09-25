@@ -211,7 +211,8 @@ const (
 )
 
 // conjuntoSintetico son las evals y las normas conocidas con las que
-// TestConjuntoDeEvals llama a ComprobarConjuntoDeBoeLegislacion.
+// TestConjuntoDeEvals llama a ComprobarConjunto con las reglas de
+// boe-legislacion.
 type conjuntoSintetico struct {
 	evals  []Eval
 	normas map[string]NormaConocida
@@ -320,13 +321,23 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 	}
 }
 
-// TestConjuntoDeEvals fija ComprobarConjuntoDeBoeLegislacion (contrato de evals
-// §2): el conjunto que cumple todas las reglas de data-model §6.3 no da ningún
-// defecto; cada copia que incumple solo una regla da exactamente un defecto, con
-// el nombre de esa regla y un mensaje que nombra los ficheros y las normas
-// implicados; y un conjunto que las incumple todas da un defecto por regla, en
-// el orden de la tabla.
+// TestConjuntoDeEvals fija ComprobarConjunto con sus dos juegos de reglas
+// (contrato de evals §3 de H6; research D22): las diez de boe-legislacion, que no
+// cambian, y las cinco de legal-core, cada juego sobre evals sintéticas.
 func TestConjuntoDeEvals(t *testing.T) {
+	t.Parallel()
+
+	t.Run("boe-legislacion", probarReglasDeBoeLegislacion)
+	t.Run("legal-core", probarReglasDeLegalCore)
+}
+
+// probarReglasDeBoeLegislacion fija ComprobarConjunto con ReglasDeBoeLegislacion
+// (contrato de evals §2 de H5): el conjunto que cumple todas las reglas de
+// data-model §6.3 no da ningún defecto; cada copia que incumple solo una regla da
+// exactamente un defecto, con el nombre de esa regla y un mensaje que nombra los
+// ficheros y las normas implicados; y un conjunto que las incumple todas da un
+// defecto por regla, en el orden de la tabla.
+func probarReglasDeBoeLegislacion(t *testing.T) {
 	t.Parallel()
 
 	todos := []string{
@@ -351,7 +362,7 @@ func TestConjuntoDeEvals(t *testing.T) {
 		conjunto := conjuntoQueCumple(t)
 		require.Equal(t, todos, ficherosDelConjunto(conjunto), "el conjunto sintético es el del contrato")
 
-		assert.Empty(t, ComprobarConjuntoDeBoeLegislacion(conjunto.evals, conjunto.normas))
+		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion()))
 	})
 
 	casos := []struct {
@@ -527,7 +538,7 @@ func TestConjuntoDeEvals(t *testing.T) {
 			conjunto := conjuntoQueCumple(t)
 			caso.modificar(t, &conjunto)
 
-			defectos := ComprobarConjuntoDeBoeLegislacion(conjunto.evals, conjunto.normas)
+			defectos := ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion())
 			require.Len(t, defectos, 1, "la copia solo incumple la regla %s: %v", caso.regla, defectos)
 			assert.Equal(t, caso.regla, defectos[0].Regla)
 
@@ -553,16 +564,234 @@ func TestConjuntoDeEvals(t *testing.T) {
 			})
 		}
 
-		reglas := []string{}
-		for _, defecto := range ComprobarConjuntoDeBoeLegislacion(conjunto.evals, conjunto.normas) {
-			reglas = append(reglas, defecto.Regla)
-		}
-
 		assert.Equal(t, []string{
 			"tamaño", "positivas", "no activación", "informativas", "materias distintas", "normas del hito",
 			"art. 21", "fiscal", "boe-fiscal", "normas conocidas",
-		}, reglas)
+		}, reglasIncumplidas(ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion())))
 	})
+}
+
+// Las evals sintéticas del conjunto de legal-core de probarReglasDeLegalCore: la
+// del municipio cubierto, la del no cubierto y la de no activación (contrato de
+// evals §4 de H6).
+const (
+	legalCoreCubierto       = "01-territorio-municipio-cubierto.yaml"
+	legalCoreNoCubierto     = "02-territorio-municipio-no-cubierto.yaml"
+	legalCoreNoActivacion   = "03-no-activa-receta-de-cocina.yaml"
+	legalCoreSinVerificable = "04-territorio-sin-esperado.yaml"
+	legalCoreConCitas       = "04-articulo-21-con-citas.yaml"
+)
+
+// conjuntoDeLegalCore devuelve, nuevo en cada llamada, un conjunto que cumple las
+// cinco reglas de legal-core: una eval activa que resuelve un municipio del
+// territorio configurado y espera su boletín, otra que resuelve uno de una
+// comunidad sin configuración y espera no configurado cada aspecto de boletín, y
+// una de no activación.
+func conjuntoDeLegalCore() []Eval {
+	return []Eval{
+		{
+			Fichero:  legalCoreCubierto,
+			Pregunta: "¿En qué boletines se publican las normas que afectan a Leganés?",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+			Territorio: TerritorioEsperado{
+				Comunidad: "Comunidad de Madrid", Provincia: "Madrid", Boletines: []string{"BOCM"},
+			},
+		},
+		{
+			Fichero:  legalCoreNoCubierto,
+			Pregunta: "¿En qué boletines se publican las normas que afectan a Tordesillas?",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Tordesillas"}},
+			Territorio: TerritorioEsperado{
+				Comunidad: "Castilla y León",
+				Provincia: "Valladolid",
+				Cobertura: []string{"boletin_autonomico: no-configurado", "boletin_provincial: no-configurado"},
+			},
+		},
+		{Fichero: legalCoreNoActivacion, Pregunta: "¿Cómo hago una tortilla de patatas?"},
+	}
+}
+
+// probarReglasDeLegalCore fija ComprobarConjunto con ReglasDeLegalCore (contrato
+// de evals §3 de H6; FR-081, FR-082): el conjunto que las cumple no da ningún
+// defecto, y tampoco con una eval activa más que solo espera citas; cada copia que
+// incumple una regla da el defecto de esa regla, con su nombre y un mensaje que
+// nombra los ficheros implicados —y el de tamaño con él cuando le quita una de sus
+// tres evals, porque las otras tres reglas no las cumple una misma eval—; y un
+// conjunto que las incumple todas da un defecto por regla, en el orden de la
+// tabla.
+func probarReglasDeLegalCore(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cumple-todas", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, ComprobarConjunto(conjuntoDeLegalCore(), nil, ReglasDeLegalCore()))
+
+		conCitas := append(conjuntoDeLegalCore(), Eval{
+			Fichero:  legalCoreConCitas,
+			Pregunta: preguntaDelArticulo21Eval,
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "boe", Norma: normaLPAC, Bloque: "a21"}},
+			Citas:    []CitaEsperada{{Norma: normaLPAC, Bloque: "a21"}},
+		})
+		assert.Empty(t, ComprobarConjunto(conCitas, nil, ReglasDeLegalCore()),
+			"una eval que solo espera citas tiene un esperado verificable")
+	})
+
+	casos := []struct {
+		nombre    string
+		modificar func(t *testing.T, evals []Eval) []Eval
+		reglas    []string
+		ficheros  []string
+	}{
+		{
+			nombre:    "sin-la-del-cubierto",
+			modificar: sinLaEval(legalCoreCubierto),
+			reglas:    []string{"tamaño", "cubierto"},
+			ficheros:  []string{legalCoreNoCubierto},
+		},
+		{
+			nombre:    "sin-la-del-no-cubierto",
+			modificar: sinLaEval(legalCoreNoCubierto),
+			reglas:    []string{"tamaño", "no cubierto"},
+			ficheros:  []string{legalCoreCubierto},
+		},
+		{
+			nombre:    "sin-la-de-no-activación",
+			modificar: sinLaEval(legalCoreNoActivacion),
+			reglas:    []string{"tamaño", "no activación"},
+			ficheros:  []string{legalCoreCubierto, legalCoreNoCubierto},
+		},
+		{
+			nombre: "cubierto-sin-boletines",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, legalCoreCubierto).Territorio.Boletines = nil
+
+				return evals
+			},
+			reglas:   []string{"cubierto"},
+			ficheros: []string{legalCoreCubierto, legalCoreNoCubierto},
+		},
+		{
+			nombre: "cubierto-sin-comando-de-territorio",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, legalCoreCubierto).Comandos = []ComandoEsperado{
+					{Applet: "boe", Verbo: "buscar", Terminos: []string{"Leganés"}},
+				}
+
+				return evals
+			},
+			reglas:   []string{"cubierto"},
+			ficheros: []string{legalCoreNoCubierto},
+		},
+		{
+			nombre: "cubierto-sin-activar",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, legalCoreCubierto).Activa = false
+
+				return evals
+			},
+			reglas:   []string{"cubierto"},
+			ficheros: []string{legalCoreNoCubierto},
+		},
+		{
+			// Con boletines, la eval de una comunidad sin configuración sigue sin
+			// ser la de un municipio del territorio configurado.
+			nombre: "no-cubierto-con-boletines-no-es-cubierto",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, legalCoreNoCubierto).Territorio.Boletines = []string{"BOE"}
+
+				return sinLaEval(legalCoreCubierto)(t, evals)
+			},
+			reglas:   []string{"tamaño", "cubierto"},
+			ficheros: []string{legalCoreNoCubierto},
+		},
+		{
+			nombre: "no-cubierto-con-un-solo-aspecto",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, legalCoreNoCubierto).Territorio.Cobertura = []string{"boletin_autonomico: no-configurado"}
+
+				return evals
+			},
+			reglas:   []string{"no cubierto"},
+			ficheros: []string{legalCoreCubierto, legalCoreNoCubierto},
+		},
+		{
+			nombre: "esperado-verificable",
+			modificar: func(_ *testing.T, evals []Eval) []Eval {
+				return append(evals, Eval{
+					Fichero:  legalCoreSinVerificable,
+					Pregunta: "¿Qué boletín publica las ordenanzas de Leganés?",
+					Activa:   true,
+					Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+				})
+			},
+			reglas:   []string{"esperado verificable"},
+			ficheros: []string{legalCoreSinVerificable},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			defectos := ComprobarConjunto(caso.modificar(t, conjuntoDeLegalCore()), nil, ReglasDeLegalCore())
+			require.Equal(t, caso.reglas, reglasIncumplidas(defectos), "la copia incumple solo esas reglas: %v", defectos)
+
+			for _, fichero := range caso.ficheros {
+				assert.Contains(t, defectos[len(defectos)-1].Mensaje, fichero, "el mensaje nombra lo implicado")
+			}
+		})
+	}
+
+	t.Run("orden-de-la-tabla", func(t *testing.T) {
+		t.Parallel()
+
+		sinEsperado := []Eval{{
+			Fichero:  legalCoreSinVerificable,
+			Pregunta: "¿Qué boletín publica las ordenanzas de Leganés?",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+		}}
+
+		assert.Equal(t, []string{"tamaño", "cubierto", "no cubierto", "no activación", "esperado verificable"},
+			reglasIncumplidas(ComprobarConjunto(sinEsperado, nil, ReglasDeLegalCore())))
+	})
+
+	t.Run("sin-configuración-ningún-boletín", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []string{"boletin_autonomico: no-configurado", "boletin_provincial: no-configurado"},
+			aspectosNoConfigurados(), "una comunidad sin configuración tiene sin configurar sus dos boletines")
+	})
+}
+
+// sinLaEval devuelve la modificación de probarReglasDeLegalCore que quita del
+// conjunto la eval con ese fichero, que tiene que estar.
+func sinLaEval(fichero string) func(t *testing.T, evals []Eval) []Eval {
+	return func(t *testing.T, evals []Eval) []Eval {
+		t.Helper()
+		evalDe(t, evals, fichero)
+
+		return slices.DeleteFunc(evals, func(eval Eval) bool { return eval.Fichero == fichero })
+	}
+}
+
+// reglasIncumplidas son las reglas de los defectos, en su orden.
+func reglasIncumplidas(defectos []DefectoDelConjunto) []string {
+	reglas := []string{}
+	for _, defecto := range defectos {
+		reglas = append(reglas, defecto.Regla)
+	}
+
+	return reglas
 }
 
 // ficherosDelConjunto son los ficheros de las evals del conjunto, en su orden.
@@ -599,6 +828,11 @@ const (
 	// skillDelRepositorio es el SKILL.md de boe-legislacion, relativo al
 	// directorio de este paquete: la skill cuyas respuestas juzgan sus evals.
 	skillDelRepositorio = "../../skills/boe-legislacion/SKILL.md"
+
+	// evalsDeLegalCore es evals/legal-core/, relativo al directorio de este
+	// paquete: las evals de la skill legal-core, a las que se aplican las reglas
+	// de su juego (contrato de evals §3 y §4 de H6).
+	evalsDeLegalCore = "../../evals/legal-core"
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -608,9 +842,13 @@ const (
 // esperan solo normas de data/normas.yaml y tienen en las grabaciones de H4 y de
 // H5 lo que necesitan para servir sin red cada consulta; el esquema publicado
 // del formato admite en avisos exactamente los códigos de aviso del binario
-// (FR-013 de H5.1); y el SKILL.md de boe-legislacion lleva la forma fija de cada
+// (FR-013 de H5.1); el SKILL.md de boe-legislacion lleva la forma fija de cada
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
-// H5.1). Lee las carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// H5.1); el esquema publicado admite en la cobertura del territorio esperado
+// exactamente las combinaciones del vocabulario del applet territorio (contrato de
+// evals §1.2 de H6); y las de evals/legal-core/ cumplen las reglas del conjunto de
+// legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011). Lee las
+// carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -621,7 +859,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 	// Una sola llamada: conjunto y normas-conocidas presentan cada uno una parte
 	// de sus defectos.
-	defectos := ComprobarConjuntoDeBoeLegislacion(conjunto.Evals, normasConocidasDe(normas))
+	defectos := ComprobarConjunto(conjunto.Evals, normasConocidasDe(normas), ReglasDeBoeLegislacion())
 	esDeNormasConocidas := func(defecto DefectoDelConjunto) bool { return defecto.Regla == reglaDeNormasConocidas }
 
 	t.Run("formato", func(t *testing.T) {
@@ -648,12 +886,23 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			evalsDelRepositorio, presentarDefectos(deOtrasReglas))
 	})
 
+	t.Run("conjunto-legal-core", func(t *testing.T) {
+		t.Parallel()
+
+		deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+		require.NoError(t, err)
+
+		defectosDeLegalCore := ComprobarConjunto(deLegalCore.Evals, normasConocidasDe(normas), ReglasDeLegalCore())
+		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
+			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
+	})
+
 	t.Run("normas-conocidas", func(t *testing.T) {
 		t.Parallel()
 
 		// Con la regla nombrada de otra forma, este subtest no vería sus defectos
 		// y pasaría en vacío.
-		require.True(t, slices.ContainsFunc(reglasDelConjunto, func(regla reglaDelConjunto) bool {
+		require.True(t, slices.ContainsFunc(ReglasDeBoeLegislacion(), func(regla ReglaDelConjunto) bool {
 			return regla.nombre == reglaDeNormasConocidas
 		}), "la regla %q es una de las del conjunto", reglaDeNormasConocidas)
 
@@ -700,6 +949,20 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		assert.NoError(t, ComprobarFormasDeAviso(string(skill)),
 			"%s enseña la forma fija de cada código de aviso del binario", skillDelRepositorio)
+	})
+
+	t.Run("cobertura-del-esquema", func(t *testing.T) {
+		t.Parallel()
+
+		// Con el vocabulario vacío, un esquema sin enumerado pasaría en vacío.
+		require.NotEmpty(t, aspectosDeCobertura(), "el applet territorio tiene vocabulario de cobertura")
+
+		esquema, err := esquemaDeEval()
+		require.NoError(t, err)
+
+		assert.NoError(t, ComprobarAspectosDeCobertura(esquema),
+			"el esquema publicado %s admite en la cobertura del territorio exactamente el vocabulario del applet",
+			rutaDelEsquemaDeEval)
 	})
 }
 

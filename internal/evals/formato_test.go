@@ -36,6 +36,25 @@ const (
 		"  - vigencia-agotada\n"
 )
 
+// Trozos de las evals sintéticas de territorio de TestLeerEval y
+// TestFormaDelComando, cada uno con sus líneas completas: la pregunta de un
+// municipio, su comando de territorio y el esperado con las cuatro claves (contrato
+// de evals §1.1 y §1.2 de H6).
+const (
+	preguntaDelMunicipio = "pregunta: \"¿En qué boletines se publican las normas que afectan a Leganés?\"\n"
+	comandoDelMunicipio  = "comandos:\n" +
+		"  - applet: territorio\n" +
+		"    verbo: resolver\n" +
+		"    municipio: Leganés\n"
+	territorioDelMunicipio = "territorio:\n" +
+		"  comunidad: Comunidad de Madrid\n" +
+		"  provincia: Madrid\n" +
+		"  boletines: [BOCM]\n" +
+		"  cobertura:\n" +
+		"    - \"boletin_autonomico: configurado\"\n" +
+		"    - \"dir3: verificado\"\n"
+)
+
 // TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1 y
 // de sus avisos (contrato de formato, juicio e informe §6): las tres formas de
 // comando, con y sin reproduce, la que espera avisos, informativa o no, y la de no
@@ -43,10 +62,23 @@ const (
 // repetido se acepta o se rechaza igual que citas; cada fichero inválido, con una
 // clave repetida incluida, da un error que empieza por su nombre y dice qué falla
 // y dónde.
+//
+// Desde H6, la cuarta forma de comando, la de territorio, se lee con su Municipio,
+// y el esperado de territorio, con sus cuatro claves en Territorio: con él, una
+// eval activa sin citas es válida, y con citas también; un territorio vacío, con
+// una clave o un aspecto de cobertura que el formato no tiene, o en una eval de
+// no activación, y un comando de territorio sin municipio o con una norma, se
+// rechazan (contrato de evals §1 y §2 de H6; FR-084).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
 	citaDeLaLRBRL := []CitaEsperada{{Norma: "BOE-A-1985-5392", Bloque: "a85bis."}}
+
+	// La eval de territorio del municipio cubierto y lo que se lee de su comando y
+	// de su esperado.
+	positivaDelMunicipio := preguntaDelMunicipio + "activa: true\n" + comandoDelMunicipio
+	preguntaDelMunicipioLeida := "¿En qué boletines se publican las normas que afectan a Leganés?"
+	comandoDelMunicipioLeido := []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}}
 
 	// La positiva del art. 21, sin avisos, y lo que se lee de su comando y de su
 	// cita: los casos de avisos le añaden líneas al final.
@@ -128,9 +160,12 @@ func TestLeerEval(t *testing.T) {
 			error:     nombreDeEval + ": línea 1: missing property 'activa'",
 		},
 		{
-			nombre:    "positiva-sin-citas",
+			// Sin citas ni territorio fallan las dos ramas del anyOf del esperado
+			// verificable, y el defecto es una hoja de cada una.
+			nombre:    "positiva-sin-esperado-verificable",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21,
-			error:     nombreDeEval + ": línea 1: missing property 'citas'",
+			error: nombreDeEval + ": línea 1: missing property 'citas'\n" +
+				"línea 1: missing property 'territorio'",
 		},
 		{
 			nombre:    "no-activa-con-comandos",
@@ -251,6 +286,70 @@ func TestLeerEval(t *testing.T) {
 				Avisos:      []string{"derogada", "vigencia-agotada"},
 			},
 		},
+		{
+			nombre:    "comando-de-territorio",
+			documento: positivaDelMunicipio + territorioDelMunicipio,
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: preguntaDelMunicipioLeida,
+				Activa:   true,
+				Comandos: comandoDelMunicipioLeido,
+				Territorio: TerritorioEsperado{
+					Comunidad: "Comunidad de Madrid",
+					Provincia: "Madrid",
+					Boletines: []string{"BOCM"},
+					Cobertura: []string{"boletin_autonomico: configurado", "dir3: verificado"},
+				},
+			},
+		},
+		{
+			nombre: "territorio-con-citas",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 +
+				"  - applet: territorio\n    verbo: resolver\n    municipio: Leganés\n" +
+				citaDelArticulo21 + "territorio:\n  comunidad: Comunidad de Madrid\n",
+			leida: Eval{
+				Fichero:    nombreDeEval,
+				Pregunta:   "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:     true,
+				Comandos:   slices.Concat(comandoDelArticulo21Leido, comandoDelMunicipioLeido),
+				Citas:      citaDelArticulo21Leida,
+				Territorio: TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
+			},
+		},
+		{
+			nombre:    "territorio-vacio",
+			documento: positivaDelMunicipio + "territorio: {}\n",
+			error:     nombreDeEval + ": territorio, línea 7: minProperties: got 0, want 1",
+		},
+		{
+			nombre:    "territorio-con-clave-desconocida",
+			documento: positivaDelMunicipio + "territorio:\n  municipio: Leganés\n",
+			error:     nombreDeEval + ": territorio, línea 8: additional properties 'municipio' not allowed",
+		},
+		{
+			nombre:    "aspecto-de-cobertura-desconocido",
+			documento: positivaDelMunicipio + "territorio:\n  cobertura:\n    - \"boletin_autonomico: si\"\n",
+			error: nombreDeEval + ": territorio/cobertura/0, línea 9: value must be one of " +
+				"'boletin_autonomico: configurado', 'boletin_autonomico: no-configurado', " +
+				"'boletin_provincial: configurado', 'boletin_provincial: no-configurado', " +
+				"'dir3: verificado', 'dir3: no-verificado'",
+		},
+		{
+			nombre:    "no-activa-con-territorio",
+			documento: preguntaDelMunicipio + "activa: false\n" + territorioDelMunicipio,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre: "comando-de-territorio-sin-municipio",
+			documento: preguntaDelMunicipio + "activa: true\n" +
+				"comandos:\n  - applet: territorio\n    verbo: resolver\n" + territorioDelMunicipio,
+			fragmentos: []string{"comandos/0, línea 4: missing property 'municipio'"},
+		},
+		{
+			nombre:     "comando-de-territorio-con-norma",
+			documento:  positivaDelMunicipio + "    norma: BOE-A-2015-10565\n" + territorioDelMunicipio,
+			fragmentos: []string{"comandos/0, línea 4: additional properties 'norma' not allowed"},
+		},
 	}
 
 	for _, caso := range casos {
@@ -277,6 +376,68 @@ func TestLeerEval(t *testing.T) {
 			for _, fragmento := range caso.fragmentos {
 				assert.ErrorContains(t, err, fragmento)
 			}
+		})
+	}
+}
+
+// TestFormaDelComando fija que formaDelComando decide la variante de un comando
+// esperado por su verbo (data-model §6.1 de H6; research D21): cada una de las
+// cuatro formas del esquema, leída con LeerEval de una eval que solo lleva ese
+// comando, tiene la suya —la de consulta de norma, con cualquiera de los tres
+// verbos de su enumerado— y el comando de territorio no es una consulta de norma.
+func TestFormaDelComando(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// comando son las líneas del único comando de la eval.
+		comando string
+
+		forma formaDeComando
+	}{
+		{
+			nombre:  "bloque",
+			comando: "  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a21\n",
+			forma:   formaBloque,
+		},
+		{
+			nombre:  "consulta-del-indice",
+			comando: "  - applet: boe\n    verbo: indice\n    norma: BOE-A-2015-10565\n",
+			forma:   formaConsultaDeNorma,
+		},
+		{
+			nombre:  "consulta-de-los-metadatos",
+			comando: "  - applet: boe\n    verbo: metadatos\n    norma: BOE-A-2015-10565\n",
+			forma:   formaConsultaDeNorma,
+		},
+		{
+			nombre:  "consulta-del-analisis",
+			comando: "  - applet: boe\n    verbo: analisis\n    norma: BOE-A-2015-10565\n",
+			forma:   formaConsultaDeNorma,
+		},
+		{
+			nombre:  "busqueda",
+			comando: "  - applet: boe\n    verbo: buscar\n    terminos: [procedimiento, común]\n",
+			forma:   formaBusqueda,
+		},
+		{
+			nombre:  "territorio",
+			comando: "  - applet: territorio\n    verbo: resolver\n    municipio: Leganés\n",
+			forma:   formaTerritorio,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			eval, err := LeerEval(nombreDeEval,
+				[]byte(preguntaDelArticulo21+"activa: true\ncomandos:\n"+caso.comando+citaDelArticulo21))
+			require.NoError(t, err)
+			require.Len(t, eval.Comandos, 1)
+
+			assert.Equal(t, caso.forma, formaDelComando(eval.Comandos[0]))
 		})
 	}
 }

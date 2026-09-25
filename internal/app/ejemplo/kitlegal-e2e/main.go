@@ -1,10 +1,10 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
-// binario que se publica— con los applets de ejemplo y el applet boe. Lo único
-// que cambia entre este binario y el distribuido es la composición: qué applets
-// se registran y de dónde responde boe, que aquí es la reproducción de sus
-// grabaciones y nunca la red (FR-009, FR-114, contracts/registro-y-describe.md
-// §3; contrato puerto-y-applet §5 de H4).
+// binario que se publica— con los applets de ejemplo y los applets boe y
+// territorio. Lo único que cambia entre este binario y el distribuido es la
+// composición: qué applets se registran y de dónde responde boe, que aquí es la
+// reproducción de sus grabaciones y nunca la red (FR-009, FR-114,
+// contracts/registro-y-describe.md §3; contrato puerto-y-applet §5 de H4).
 //
 // Es la segunda —y última— raíz de composición del proyecto, y por eso es uno de
 // los dos únicos sitios del árbol donde se nombran os.Exit, os.Stdout y
@@ -58,20 +58,29 @@ func main() {
 	))
 }
 
-// registroDeE2E construye el registro de este binario: los applets de ejemplo y
-// boe sobre la reproducción. Construirlo no pide nada ni abre nada. Un registro
-// que no se construye es un defecto de quien escribió un applet o esta
-// composición, y app.Arrancar lo convierte en el fallo inesperado antes de
-// atender ninguna invocación: nunca en un código de salida de usuario ni en un
-// pánico (FR-008; research.md D16 de H4).
+// registroDeE2E construye el registro de este binario: los applets de ejemplo,
+// boe sobre la reproducción y territorio con los mismos ficheros embebidos que el
+// binario distribuido, que no dependen del entorno (contrato del applet
+// territorio §7). Construirlo no pide nada ni abre nada. Un registro que no se
+// construye es un defecto de quien escribió un applet o esta composición, y
+// app.Arrancar lo convierte en el fallo inesperado antes de atender ninguna
+// invocación: nunca en un código de salida de usuario ni en un pánico (FR-008;
+// research.md D16 de H4).
 func registroDeE2E() (*app.Registro, error) {
 	registro, err := ejemplo.Registro()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := registro.Registrar(app.AppletBoe(dependenciasDeReproduccion())); err != nil {
+	fuentes, err := app.FuentesEmbebidas()
+	if err != nil {
 		return nil, err
+	}
+
+	for _, applet := range []app.Applet{app.AppletBoe(dependenciasDeReproduccion()), app.AppletTerritorio(fuentes)} {
+		if err := registro.Registrar(applet); err != nil {
+			return nil, err
+		}
 	}
 
 	return registro, nil

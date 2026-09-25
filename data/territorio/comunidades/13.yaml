@@ -1,0 +1,10 @@
+fecha: "2026-09-20"
+source: ine.codigos-territoriales
+codigo: "13"
+nombre: "Comunidad de Madrid"
+regimen: comun
+provincias:
+  "28": "Madrid"
+boletines:
+  autonomico: {codigo: "BOCM", nombre: "Boletín Oficial de la Comunidad de Madrid", url: "https://www.bocm.es/"}
+  provincial: {codigo: "BOCM", nombre: "Boletín Oficial de la Comunidad de Madrid", url: "https://www.bocm.es/", motivo: "Comunidad uniprovincial: el BOCM hace también de boletín provincial."}

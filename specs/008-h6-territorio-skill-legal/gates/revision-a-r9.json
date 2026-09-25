@@ -1,0 +1,64 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 2935269 en un clon fuera del repositorio (/tmp/juez-a-h6-r9.4Mk9/repo): termina con 0 y «ci: todos los controles en verde»; lint «0 issues.»; los quince paquetes con tests en «ok» en los dos perfiles (race e integration): data, internal/core/ids e internal/core/territorio al 100 %, internal/evals 99,1 %, internal/cli 98,6 %, internal/skills 98,5 %, internal/app 93,6 %; govulncheck «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados (schema-check) y los tests de skills-check en «ok»; gitleaks «no leaks found»; «all modules verified» en la raíz y en los cuatro módulos de herramientas; `go mod tidy -diff` sin salida. gates/ci.log es anterior a c481451 (internal/skills al 98,2 %), así que vale la reproducción. `rtk proxy git status --porcelain` vacío en el repositorio y en el clon al terminar (el mutante, revertido con git checkout). Plataforma: `git ls-remote` y `gh pr view 39` dan ca78cac como cabeza remota (OPEN, MERGEABLE); `gh pr checks 39`: 7 en verde, 0 en rojo; ci 36052036268 y evals 36052056175 en success sobre ca78cac; `git diff --name-only ca78cac..HEAD` da solo gates/evals-cierre.md, gates/pr-h6.md y tasks.md, bajo specs/008-h6-territorio-skill-legal/, como exige SC-015. El cuerpo publicado de #39 es idéntico a gates/pr-h6.md salvo el salto de línea final. SC-013 se cumple con la lectura por serie y umbral que decidió Jorge (2 de 3 y 2 de 3), y gates/pr-h6.md:464-472 avisa a quien fusiona de que en la vigente el modelo que decide nombra una vez un boletín no devuelto (sonnet-5-02); es una decisión humana ya tomada y declarada, no un motivo de este juez."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "El caso nuevo `plazo-agotado-da-4-y-lo-decide-el-kernel` (internal/app/territorio_test.go:512-532) es sólido para lo que invoca: el mutante que hace que conPlazoAgotado (internal/app/main.go:440-441) devuelva nil cuando el applet no falló lo pone en rojo —4 esperado frente a 0, ok verdadero, sin clase ni mensaje, «\"\" does not contain \"plazo\"»—, y 300 repeticiones con -race salen en «ok» (el plazo de 1 ns vence siempre antes de que el applet devuelva: determinista). Desde aeea04c no cambia ningún otro fichero de código, test, dato, esquema ni fixture, así que los 22 mutantes de las rondas anteriores siguen valiendo; tests offline y ficheros nuevos de testdata/ solo los que piden T005, T012, T015 y T028. No cumple porque el comentario de TestCodigosDeTerritorio (:487-488) atribuye al test una comprobación general —«un plazo que la carga no puede cumplir termina en 4 […] y la firma del applet»— que el caso solo hace sin --dry-run, y con --dry-run la firma es del kernel: la fila del contrato que hay que añadir para ese caso (motivo 1) queda sin test que la vigile (motivo 2)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre todas las líneas añadidas de los .go del diff frente a main: ningún net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal, panic(, exec.Command, recover( ni Getenv; el test nuevo solo usa invocar, registroDeTerritorio y exigirSobreDeFallo. `git diff --name-only main...HEAD` no toca go.mod, go.sum, .golangci.yml, codecov.yml, internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, docs/ADR ni scripts. En la reproducción, depguard y forbidigo sin hallazgos («0 issues.») y el paquete internal (TestArquitectura, TestDependenciasDelBinario, con go.yaml.in/yaml/v3 y su motivo en internal/arch_test.go) en «ok»."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza (`go run -C <clon> ./cmd/kitlegal territorio resolver Leganés --json --timeout 5s`): sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`— y `data` con las ocho claves en su orden, cada dato con su source (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/13.yaml, data/territorio/estado.yaml), el BOCM en los dos niveles con el motivo de la uniprovincialidad y cobertura configurado/configurado/verificado. Con `--timeout 1ns`, el sobre de fallo también tiene las seis claves y `data` exactamente {clase, mensaje}. TestSalidaDeTerritorioContraSchemas valida la salida real contra $defs.resolver de schemas/municipio.json y TestEsquemasPublicados (schema-check) está en «ok» en la reproducción."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": false,
+      "evidencia": "Errores tipados con schema.ConClase → 2 y 3; ningún panic en rutas de usuario (fuzz y barrido en «ok»); lo que corrigió la ronda 8 se sostiene en el binario: `territorio resolver Leganés --json --timeout 1ns` termina con 4, clase fuente-no-disponible, «fuente no disponible: se agotó el plazo de la operación» y la firma del applet (kitlegal.territorio, 2026-02-04T00:00:00Z), y con `--timeout 5s` termina con 0. Pero el contrato promete sobre esa combinación algo que el binario no hace: `territorio resolver Leganés --json --dry-run --timeout 1ns` termina con 4 y emite el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, fecha_consulta del reloj, 2026-09-24T22:47:53…), mientras contracts/applet-territorio.md:76 (§5, --dry-run) dice que «una consulta que se resuelve no emite sobre y termina con 0» y :63 (§4) y :77 (§5, --timeout) dicen sin condición que el plazo agotado sale con «la firma del applet» (motivo 1)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "README.md:40-41 y CHANGELOG.md:299-300 dicen ahora lo que hace el binario («El applet no decide nunca 4, 5 ni 6; solo el plazo de --timeout, que pone el kernel para todo applet, termina en 4»), igual que spec.md FR-016 (:223) y SC-004 (:337), data-model.md:194, plan.md:28, :139, :326, :427 y :629, tasks.md:159 y :271 y quickstart.md:150; ningún otro sitio del repositorio conserva la promesa vieja (git grep de «4, 5 ni 6», «nunca 4» y «no hay operación que lo agote»). skills/legal-core/SKILL.md:138-139 enumera 0, 2 y 3 sin decir que sean los únicos, y el plazo por omisión es 30 s (internal/cli/globales.go:16, :37), que la carga no agota: no es una afirmación falsa. Sin ADR (ninguna decisión cambia) y docs/SOURCES.md sin cambios desde la ronda 8. No cumple porque la corrección de la ronda 8 introdujo en el contrato del applet afirmaciones que el binario contradice con --dry-run (contracts/applet-territorio.md:63, :76, :77, y la tabla de procedencia de §2, :26-32, sin la situación del plazo agotado), research.md D7 (:190-195) y D13 (:334-338) no dicen la excepción, y el comentario de internal/app/territorio_test.go:487-488 generaliza la firma del applet a toda invocación (motivos 1 y 2)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 8 fuera del test y de la documentación: el applet no abre conexiones ni toca la caché (lee los ficheros embebidos por data/datos.go vía app.FuentesEmbebidas); ninguna línea añadida importa net/http ni hace POST; ningún secreto (gitleaks «no leaks found»); los datos de territorio no llevan NIF ni DNI de persona (municipios, provincias, comunidades y DIR3 de entidades locales); la verificación del DIR3 contra administracion.gob.es se hizo en la pausa humana, dentro de su robots.txt, y está en gates/verificacion-dir3.md y docs/SOURCES.md:76, no en el binario."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas de los .go del diff: el único //nolint es `//nolint:paralleltest` en internal/core/territorio/coste_test.go:36, con su motivo en la línea y declarado en plan.md (obligación 5 y rúbrica g); ningún t.Skip, TODO, FIXME, XXX ni HACK; el test nuevo no ajusta ningún fixture ni esquema y no rebaja ningún umbral (codecov.yml y .golangci.yml sin cambios); la corrección de la ronda 8 no toca el kernel ni el applet para que el test pase, sino que describe la decisión cerrada de H1 (FR-020, conPlazoAgotado) y la ata a un test."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "ca78cac solo toca la documentación de la promesa de códigos (README.md, CHANGELOG.md y los artefactos de specs/) y añade un caso de test en internal/app/territorio_test.go; ea31118 y 2935269, solo specs/. Ningún cambio en el kernel, el applet, los datos, los esquemas ni la skill. El resto del diff es el que se evaluó en la ronda 8: los dos paquetes de dominio, el paquete data, el applet y su esquema publicado, los 22 ficheros congelados con sus cuatro esquemas, la jerarquía, las siete normas con sus grabaciones y la marca vertebral, la extensión compatible del formato de eval, la skill legal-core con sus referencias y sus tres evals, la matriz del job y la documentación; sin otros verbos de territorio, otras comunidades configuradas, grafo, festivos ni config.yaml. Las cifras del Alcance de gates/pr-h6.md:26-29 (50 commits hasta ca78cac; 157 ficheros, 30 537 líneas añadidas y 670 retiradas fuera de specs/) casan con `git rev-list --count main..ca78cac` y `git diff --shortstat main...HEAD -- . ':!specs'`."
+    }
+  ],
+  "motivos": [
+    "[e][f] La corrección de la ronda 8 describe el plazo agotado sin la combinación con --dry-run, y el binario la contradice: `go run ./cmd/kitlegal territorio resolver Leganés --json --dry-run --timeout 1ns` termina con 4 y emite el sobre de fallo firmado por el kernel —`fuente: kitlegal.cli`, `url: kitlegal:cli`, `fecha_consulta` del reloj—, porque con --dry-run el kernel descarta el Resultado del applet (la misma regla de contracts/applet-territorio.md:32); sin --dry-run lo firma el applet (`kitlegal.territorio`, 2026-02-04T00:00:00Z). El contrato dice otra cosa en cuatro sitios: (1) §4, :63, «y el sobre de fallo lleva la firma del applet», sin condición; (2) §5, :77, fila --timeout, «entonces el kernel termina con 4, clase fuente-no-disponible y la firma del applet», sin condición; (3) §5, :76, fila --dry-run, «Una consulta que se resuelve no emite sobre y termina con 0», falso cuando el plazo se agota (sale el sobre de fallo y 4); (4) §2, :26-32, la tabla de procedencia enumera las situaciones y no tiene la del plazo agotado. Corregir: §2 gana la fila «Plazo agotado de --timeout (lo decide el kernel, FR-020 de H1)» con `kitlegal.territorio` / `kitlegal:applet/territorio` / la fecha del dato, y la de ese mismo caso bajo --dry-run con `kitlegal.cli` / `kitlegal:cli` / el reloj del montador; :63 y :77 dicen «la firma del applet, o la del kernel con --dry-run (§2)»; :76 acota el 0 de la consulta que se resuelve a un plazo que la carga cumple y dice que, si se agota, sale el sobre de fallo del kernel con 4; y research.md D7 (:190-195) y D13 (:334-338), que describen los fallos bajo --dry-run, dicen la misma excepción. El relato de la ronda 8 en gates/pr-h6.md (:420-426, «con clase fuente-no-disponible y la firma del applet») se completa igual y el cuerpo publicado de #39 se vuelve a sincronizar con `gh pr edit 39 --body-file`. Todo bajo specs/, sin efecto sobre SC-015.",
+    "[f][b] internal/app/territorio_test.go:487-488: el comentario de TestCodigosDeTerritorio afirma en general que «un plazo que la carga no puede cumplir termina en 4, con clase fuente no disponible y la firma del applet», y el caso que lo vigila, compruebaPlazoAgotado (:519-532), solo invoca `--json --timeout 1ns`, sin --dry-run; con --dry-run la firma es la del kernel (motivo anterior), así que el comentario dice más de lo que el test comprueba —el mismo defecto que el juez B señaló en la ronda 8 sobre «con ninguna bandera»— y la fila de §2 que pide el motivo anterior quedaría sin test. Corregir: compruebaPlazoAgotado gana la variante `--json --dry-run --timeout 1ns`, que exige 4, clase fuente-no-disponible y cli.ProcedenciaKernel() (como hace `comprueba` para los fallos del kernel, :540-543), el comentario de :487-488 y el de :519-522 dicen las dos firmas, y el §8 del contrato (:118) nombra la variante. Como toca internal/app/, fuera de specs/, la regla de SC-015 (plan, obligación 9) obliga a repetir la ejecución de aceptación sobre la cabeza corregida, como en las rondas 1, 2, 6 y 8, y a registrarla en gates/evals-cierre.md y en «Revisión final» y «Pendientes» de gates/pr-h6.md, con la lista de ficheros de la revisión final de tasks.md al día."
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido dos veces por este juez sobre la cabeza eaec247, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r4): las dos con salida 0; lint «0 issues.»; los catorce paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/skills 98,5 %, internal/evals 99,1 %, internal/app 93,6 %); govulncheck «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados en «ok». Como RTK recorta la cola de `make`, repetí sin filtro `make skills-check secrets mod-verify mod-tidy-check`: los tres paquetes de skills-check en «ok», gitleaks «no leaks found», «all modules verified» en la raíz y en los cuatro módulos de herramientas y `go mod tidy -diff` sin salida. gates/ci.log termina en «ci: todos los controles en verde». En la plataforma, sobre 6d08752: ci 36019821690 `success` y los cuatro check-runs de Codecov `success` con medida (96.76 %, patch 98.79 %, internal/cli 98.09 %, internal/core 98.63 %; `gh api …/check-runs`); `git diff --stat 6d08752..HEAD` solo toca specs/008-h6-territorio-skill-legal/gates/. `git status --porcelain` vacío en el repositorio y en el clon al terminar (los mutantes se revirtieron con `git checkout`)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El código no cambia desde 6d08752. Mutantes en el clon, revertidos: `ComprobarDigito` que acepta cualquier dígito (internal/core/ids/ine.go:95) pone en rojo TestComprobarDigito (ine_test.go:169) y TestClaseDeLosErrores (errores_test.go:83), además de TestResolver (resolver_test.go:163) y TestResolverDevuelveElTerritorio (internal/app/territorio_test.go:242); un DIR3 ausente declarado `verificado` (internal/core/territorio/salida.go:183, FR-023) pone en rojo TestTerritorioResuelto (salida_test.go:187-206). Siguen en pie el caso `vertebrales-sin-normas-con-vertical` (internal/skills/sincronia_test.go:630-643) y las ramas de error de `data/datos_test.go`. Tests offline; los fixtures nuevos de testdata/ son los que el hito pide (corpus de fuzz, grabaciones de T015 y guiones e2e)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`rtk proxy git diff main...HEAD -- '*.go'` no añade net/http, os.Exit, fmt.Print* ni panic. internal/core/territorio, internal/core/ids e internal/app/territorio.go no importan net/http, os, io ni io/fs; solo data/datos.go importa io/fs, fuera del dominio y para el `//go:embed`. golangci-lint (depguard, forbidigo) sin hallazgos y TestArquitectura/TestDependenciasDelBinario en verde en la reproducción; go.mod y go.sum sin cambios; go.yaml.in/yaml/v3 en modulosDelBinario con su motivo (internal/arch_test.go:154-160)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782) valida la salida real con --json contra la parte `resolver` de schemas/municipio.json, y TestEsquemasPublicados lo ata a --describe (en verde). Con `go -C /tmp/juez-a-h6-r4 run ./cmd/kitlegal territorio resolver --json …`, Leganés (28074), Tordesillas y Pamplona dan el sobre de seis claves (`kitlegal.territorio`, `kitlegal:applet/territorio`, `fecha_consulta` 2026-02-04T00:00:00Z, `hash` sha256) y `data` de ocho claves, cada dato con su `source` (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/NN.yaml, data/territorio/estado.yaml); los fallos (Arroyomolinos, 280746, «٢٨٠٧٤») dan el sobre con `ok:false` y `data` {clase, mensaje}."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario compilado del clon: Leganés, «  LEGANES », 28074, 280745, Tordesillas, 471659, A Coruña, «Coruña, A», Donostia, San Sebastián, Pamplona, Iruña, Ceuta, Melilla y Madrid → 0; Arroyomolinos → 2, clase argumentos, «10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)»; 01999 y «zzzz» → 3; 280746 → 2 («el dígito de control recibido es \"6\" y el oficial es \"5\"»); 99999, 28000, cadena vacía, 2807, 1234567, 28-074 y «٢٨٠٧٤» (\"٢\" no es una cifra) → 2; nunca 4, 5 ni 6, y la caché (KITLEGAL_CACHE_DIR) no llega a crearse. Con --dry-run el kernel escribe su línea en la salida de error y el código sigue siendo el del resultado (280746 → 2), como fijan research.md D7 y contracts/applet-territorio.md:74. Errores tipados con Clase() (internal/core/ids/errores.go, internal/core/territorio/errores.go); ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Los tres motivos de mi ronda 3 están corregidos: (1) gates/pr-h6.md:88-90 nombra las dos recetas que cambian, skills-check y release (H6 → H19, c481451), que es lo que da `git diff main...HEAD -- Makefile` (Makefile:105, :135, :137); (2) la comprobación de los SHA-256 está anotada en gates/tarea-T003.md:240-248, y la he repetido: las copias cod_ccaa.htm y cod_provincia.htm del scratchpad de la sesión 14fd67f6 tienen fecha de modificación 2026-09-20 19:36:26 y 19:37:08 (+0200, las 17:36 y 17:37 UTC que dice la nota) y SHA-256 843977236254a0aedd4bb27a806a796fc79800a8cc0bd6a1deb25e866454e927 y f26be07b88d4004c713dc94185c26ed6c35d831e9e3ef83960fd251a4f813fde, que empiezan y acaban como los de gates/tarea-T002.md:203; pr-h6.md:365-367 remite a esa nota; (3) pr-h6.md:91-97 recoge los tres cambios de docs/SOURCES.md con su commit (las filas de c1fa166, la nota al pie de 9a77c6b y la fecha de 6d08752), que es lo que da el word-diff por commit. El cuerpo publicado de #39 coincide con pr-h6.md salvo el salto de línea final (`gh pr view 39 --json body -q .body | diff - …`). Siguen ciertos: las cifras del Alcance medidas en 6d08752 (`rev-list --count` 42; 16, 10, 14 y 12 ficheros por árbol; 13 semillas por objetivo; 22 en testdata/evals), la ejecución de aceptación vigente 36019842457 (`gh run view`: headSha 6d08752, legal-core y boe-legislacion `success`) y el CHANGELOG, el README y CONTRIBUTING (H19 en CONTRIBUTING.md:78, :88 y :167). No cumple: la corrección de la ronda 3 añadió la «Ronda 3» sin poner al día el texto de alrededor (pr-h6.md:1 y :385), y plan.md:336 sigue diciendo lo mismo que se corrigió en pr-h6.md:88."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Desde la ronda 3 solo cambian ficheros bajo specs/. Ningún código nuevo hace HTTP ni usa internal/httpx: territorio no tiene red por construcción (el e2e borra la reproducción y exige que no exista la caché; en mis sondas KITLEGAL_CACHE_DIR no llegó a crearse) y scripts/verify-sources.sh no cambia. La comprobación de hashes de la ronda 3 se hizo sobre copias locales, sin volver a descargar nada (gates/tarea-T003.md:243). gitleaks sin hallazgos; ningún NIF ni dato de persona en data/territorio, data/jerarquia.yaml ni skills/legal-core. La verificación contra DIR3 real (gates/verificacion-dir3.md: GET, User-Agent identificable, dentro del robots.txt del PAG) no cambia."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un solo //nolint, razonado (internal/core/territorio/coste_test.go:36, paralleltest); ningún t.Skip ni TODO/FIXME añadido en .go; los `_` del diff son los de strings.Cut y reflect.FieldByName sobre etiquetas propias. Ningún fixture, grabación ni esquema cambia desde la ronda 2. Observación sin motivo, como en la ronda 3: internal/core/territorio/salida_test.go:446 descarta el error de strconv.Atoi al leer minLength/minItems de la etiqueta; TestEsquemasPublicados detecta esa misma etiqueta mal escrita, así que no oculta nada en make ci."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "eaec247 se ciñe a los tres motivos de la ronda 3: gates/pr-h6.md, gates/tarea-T003.md y los veredictos (`git show --stat`). En toda la rama, `git diff --stat main...HEAD` no toca internal/cli, internal/httpx, internal/cache, internal/source/boe, internal/core/schema, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, go.mod ni go.sum; skills/boe-legislacion solo cambia en references/normas.md por regeneración; el cambio de la receta release corrige una afirmación falsa (H6 → H19, ADR 0013) que exigió la ronda 1."
+    }
+  ],
+  "motivos": [
+    "[f] gates/pr-h6.md:1: el comentario de cabecera dice que la revisión final «la corrigió en dos rondas», pero el propio cuerpo registra tres (:334, :356 y :375-383), y la tercera, eaec247, también lo corrigió. Además, pr-h6.md:385 empieza «Como las dos rondas tocan ficheros fuera de `specs/`…» justo después del párrafo de la ronda 3, que según :376 no tocó nada fuera de specs/. Cambiar la cabecera a «en tres rondas» y :385 a «Como las rondas 1 y 2 tocan ficheros fuera de `specs/`…», o a «las dos primeras rondas»; si hace falta, añadir a «Revisión final» la ronda 4 con esta corrección. Después volver a sincronizar el cuerpo publicado con `gh pr edit 39 --body-file specs/008-h6-territorio-skill-legal/gates/pr-h6.md` en un paso con plataforma. Está bajo specs/ y no afecta a SC-015.",
+    "[f] specs/008-h6-territorio-skill-legal/plan.md:336 dice «Ningún objetivo nuevo. **Una sola receta cambia**, la de `skills-check`», y desde c481451 cambian dos: skills-check (Makefile:105) y release, cuyo comentario y cuyo mensaje pasan de H6 a H19 (Makefile:135 y :137). Es la misma afirmación que se corrigió en pr-h6.md:88-90 en la ronda 3. Hay precedente: la ronda 2 ya corrigió en plan.md:308 lo que la revisión final cambió del control 4. Poner al día la sección «Objetivos del `Makefile`» con una viñeta para `release`: su comentario y su mensaje dicen H19, el hito de la release (ADR 0013), corregidos en la revisión final (c481451). Está bajo specs/ y no afecta a SC-015."
+  ]
+}

@@ -16,7 +16,8 @@
         "oneOf": [
           { "$ref": "#/$defs/comando-bloque" },
           { "$ref": "#/$defs/comando-consulta-de-norma" },
-          { "$ref": "#/$defs/comando-busqueda" }
+          { "$ref": "#/$defs/comando-busqueda" },
+          { "$ref": "#/$defs/comando-territorio" }
         ]
       }
     },
@@ -27,13 +28,34 @@
     "avisos": {
       "type": "array", "minItems": 1,
       "items": { "$ref": "#/$defs/codigo-de-aviso" }
+    },
+    "territorio": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "comunidad": { "type": "string", "minLength": 1 },
+        "provincia": { "type": "string", "minLength": 1 },
+        "boletines": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "cobertura": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/aspecto-de-cobertura" } }
+      }
     }
   },
   "if": { "required": ["activa"], "properties": { "activa": { "const": true } } },
-  "then": { "required": ["comandos", "citas"] },
-  "else": { "not": { "anyOf": [{ "required": ["comandos"] }, { "required": ["citas"] }, { "required": ["avisos"] }] } },
+  "then": {
+    "required": ["comandos"],
+    "anyOf": [{ "required": ["citas"] }, { "required": ["territorio"] }]
+  },
+  "else": { "not": { "anyOf": [{ "required": ["comandos"] }, { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["territorio"] }] } },
   "$defs": {
     "codigo-de-aviso": { "enum": ["consolidacion-no-finalizada", "derogada", "vigencia-agotada"] },
+    "aspecto-de-cobertura": {
+      "enum": [
+        "boletin_autonomico: configurado", "boletin_autonomico: no-configurado",
+        "boletin_provincial: configurado", "boletin_provincial: no-configurado",
+        "dir3: verificado", "dir3: no-verificado"
+      ]
+    },
     "applet": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
     "norma": { "type": "string", "pattern": "^BOE-A-[0-9]{4}-[0-9]{1,9}$" },
     "bloque": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$" },
@@ -68,6 +90,16 @@
           "type": "array", "minItems": 1,
           "items": { "type": "string", "minLength": 1 }
         }
+      }
+    },
+    "comando-territorio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo", "municipio"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "const": "resolver" },
+        "municipio": { "type": "string", "minLength": 1 }
       }
     },
     "cita": {

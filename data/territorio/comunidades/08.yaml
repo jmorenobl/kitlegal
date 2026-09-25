@@ -1,0 +1,11 @@
+fecha: "2026-09-20"
+source: ine.codigos-territoriales
+codigo: "08"
+nombre: "Castilla - La Mancha"
+regimen: comun
+provincias:
+  "02": "Albacete"
+  "13": "Ciudad Real"
+  "16": "Cuenca"
+  "19": "Guadalajara"
+  "45": "Toledo"

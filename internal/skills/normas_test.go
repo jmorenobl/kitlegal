@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -114,6 +115,44 @@ func TestLeerNormas(t *testing.T) {
 			},
 		},
 		{
+			// La marca es opcional: la lleva la LPAC, la LRBRL la escribe falsa y la
+			// LCSP no la escribe, que es lo mismo.
+			nombre: "con-vertebral",
+			documento: inicioDeLasNormas +
+				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertebral: true\n") +
+				normaDeLaLCSP +
+				normaDeLaLRBRL + "    vertebral: false\n",
+			normas: []skills.Norma{
+				{
+					Identificador: "BOE-A-2015-10565",
+					Titulo:        tituloDeLaLPAC,
+					Rango:         "Ley",
+					Abreviatura:   "LPAC",
+					Materias:      []string{"procedimiento administrativo"},
+					Vertebral:     true,
+				},
+				{
+					Identificador: "BOE-A-2017-12902",
+					Titulo:        tituloDeLaLCSP,
+					Rango:         "Ley",
+					Abreviatura:   "LCSP",
+					Materias:      []string{"contratación pública"},
+				},
+				{
+					Identificador: "BOE-A-1985-5392",
+					Titulo:        tituloDeLaLRBRL,
+					Rango:         "Ley",
+					Materias:      []string{"régimen local"},
+				},
+			},
+		},
+		{
+			nombre: "vertebral-que-no-es-booleano",
+			documento: inicioDeLasNormas +
+				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertebral: \"sí\"\n"),
+			error: "BOE-A-2015-10565: vertebral: got string, want boolean",
+		},
+		{
 			nombre: "con-vertical",
 			documento: inicioDeLasNormas +
 				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertical: fiscal\n"),
@@ -208,9 +247,12 @@ func TestLeerNormas(t *testing.T) {
 			error:     "BOE-A-2015-10565: titulo: got number, want string",
 		},
 		{
-			nombre:    "rango-no-admitido",
-			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, rangoDeLaLPAC, "    rango: Ley Orgánica\n"),
-			error:     "BOE-A-2015-10565: rango no admitido: Ley Orgánica",
+			nombre: "rango-no-admitido",
+			// «Bando» es un acto del alcalde: nunca aparece como rango en la
+			// legislación consolidada del BOE, así que ninguna grabación futura
+			// puede meterlo en el enum y volver a dejar este caso sin error.
+			documento: inicioDeLasNormas + cambiada(t, normaDeLaLPAC, rangoDeLaLPAC, "    rango: Bando\n"),
+			error:     "BOE-A-2015-10565: rango no admitido: Bando",
 		},
 		{
 			nombre:    "materia-sin-texto",
@@ -333,10 +375,36 @@ func cambiada(t *testing.T, texto, viejo, nuevo string) string {
 // este paquete, que es donde go test ejecuta sus tests (research.md V46).
 const tablaDeNormasDelRepositorio = "../../data/normas.yaml"
 
+// leyesVertebrales son los identificadores de las quince leyes de la tabla de
+// leyes vertebrales de refs/mapa-sistema-legal-skills.md §1.4, en su orden
+// (FR-070): la Constitución, el Código Civil, la LPAC, la LRJSP, la LJCA, la LEC,
+// la LOPJ, la LRBRL, el TRLRHL, la LCSP, la LGS, la LTAIBG, la LGT, la LOPDGDD y
+// la Ley General Presupuestaria. TestIdentificadoresDeLasNormas ata cada uno a su
+// búsqueda grabada del BOE (FR-071, FR-072).
+var leyesVertebrales = []string{
+	"BOE-A-1978-31229",
+	"BOE-A-1889-4763",
+	"BOE-A-2015-10565",
+	"BOE-A-2015-10566",
+	"BOE-A-1998-16718",
+	"BOE-A-2000-323",
+	"BOE-A-1985-12666",
+	"BOE-A-1985-5392",
+	"BOE-A-2004-4214",
+	"BOE-A-2017-12902",
+	"BOE-A-2003-20977",
+	"BOE-A-2013-12887",
+	"BOE-A-2003-23186",
+	"BOE-A-2018-16673",
+	"BOE-A-2003-21614",
+}
+
 // TestNormasDelRepositorio comprueba que la tabla de normas del repositorio es
 // válida (US6, escenario 1; FR-021, FR-043): LeerNormas la lee sin ningún
 // defecto, sin campo vertical ni ningún otro que el esquema no declare, y con
-// alguna norma.
+// alguna norma; y la marca vertebral la llevan exactamente las quince leyes de la
+// tabla de leyes vertebrales, ninguna más ni ninguna menos (FR-067, FR-070,
+// SC-010).
 func TestNormasDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -346,6 +414,22 @@ func TestNormasDelRepositorio(t *testing.T) {
 	normas, err := skills.LeerNormas(contenido)
 	require.NoError(t, err, "la tabla de normas del repositorio, %s", tablaDeNormasDelRepositorio)
 	assert.NotEmpty(t, normas, "la tabla de normas del repositorio, %s, tiene normas", tablaDeNormasDelRepositorio)
+
+	t.Run("vertebrales", func(t *testing.T) {
+		t.Parallel()
+
+		var marcadas []string
+
+		for _, norma := range normas {
+			if norma.Vertebral {
+				marcadas = append(marcadas, norma.Identificador)
+			}
+		}
+
+		assert.ElementsMatch(t, leyesVertebrales, marcadas,
+			"las normas de %s con vertebral: true son las quince de la tabla de leyes vertebrales",
+			tablaDeNormasDelRepositorio)
+	})
 }
 
 // esquemaPublicadoDeNormas es el esquema de data/normas.yaml, relativo al
@@ -387,7 +471,28 @@ func TestEsquemaDeNormas(t *testing.T) {
 func TestCompilarEsquemaDeNormasDesdeUnaRuta(t *testing.T) {
 	t.Parallel()
 
-	esquema, err := skills.CompilarEsquemaDeNormas(esquemaPublicadoDeNormas)
+	comprobarCompilarEsquemaDesdeUnaRuta(t, skills.CompilarEsquemaDeNormas, esquemaPublicadoDeNormas,
+		"no se puede leer el esquema de data/normas.yaml: ", "el esquema de data/normas.yaml ", "rango")
+}
+
+// comprobarCompilarEsquemaDesdeUnaRuta fija, para cada compilador de esquema
+// publicado, las dos ramas de error que su ruta constante no da nunca: el
+// fichero que no se puede leer y el esquema que no compila. Los tres
+// compiladores —normas, territorio y jerarquía— tienen el mismo esqueleto, así
+// que lo comprueban con esta misma función y no con tres copias.
+//
+// compilar es el compilador expuesto en export_test.go; valida, la ruta de un
+// esquema publicado que sí compila; noSeLee y noCompila, los dos mensajes que
+// el compilador antepone, y propiedad, una propiedad con un "type" inválido con
+// la que fabricar el esquema que no compila.
+func comprobarCompilarEsquemaDesdeUnaRuta(
+	t *testing.T,
+	compilar func(string) (*jsonschema.Schema, error),
+	valida, noSeLee, noCompila, propiedad string,
+) {
+	t.Helper()
+
+	esquema, err := compilar(valida)
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
 
@@ -396,17 +501,17 @@ func TestCompilarEsquemaDeNormasDesdeUnaRuta(t *testing.T) {
 	carpeta := filepath.Join(directorio, "carpeta.json")
 	require.NoError(t, os.Mkdir(carpeta, 0o750))
 
-	esquema, err = skills.CompilarEsquemaDeNormas(carpeta)
+	esquema, err = compilar(carpeta)
 	require.ErrorIs(t, err, syscall.EISDIR)
-	require.ErrorContains(t, err, "no se puede leer el esquema de data/normas.yaml: ")
+	require.ErrorContains(t, err, noSeLee)
 	assert.Nil(t, esquema)
 
-	sinCompilar := filepath.Join(directorio, "rango-sin-tipo.json")
+	sinCompilar := filepath.Join(directorio, propiedad+"-sin-tipo.json")
 	escribirFicheroDePrueba(t, sinCompilar,
-		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"rango": {"type": "texto"}}}`)
+		`{"$schema": "https://json-schema.org/draft/2020-12/schema", "properties": {"`+propiedad+`": {"type": "no"}}}`)
 
-	esquema, err = skills.CompilarEsquemaDeNormas(sinCompilar)
-	require.ErrorContains(t, err, "el esquema de data/normas.yaml "+sinCompilar+": el esquema no compila: ")
+	esquema, err = compilar(sinCompilar)
+	require.ErrorContains(t, err, noCompila+sinCompilar+": el esquema no compila: ")
 	assert.Nil(t, esquema)
 }
 

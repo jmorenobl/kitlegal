@@ -1,0 +1,61 @@
+{
+  "veredicto": "aprobado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza aeea04c en un clon fuera del repositorio (/tmp/juez-a-h6-r8.8YcY/repo): `exit=0`; gitleaks «no leaks found»; fmt sin diff y lint «0 issues.»; los quince paquetes con tests en «ok» en los dos perfiles (race e integration): data, internal/core/ids e internal/core/territorio al 100 %, internal/evals 99,1 %, internal/cli 98,6 %, internal/skills 98,5 %, internal/app 93,6 %; govulncheck «No vulnerabilities found.» y «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados (schema-check) y los seis tests de skills-check en «ok». gates/ci.log es anterior a c481451, así que vale la reproducción. `rtk proxy git status --porcelain` vacío en el repositorio y en los dos clones al terminar (los cuatro mutantes, revertidos). Plataforma: `git ls-remote` y `gh pr view 39` dan ead63d9 como cabeza remota (OPEN, MERGEABLE); `gh pr checks 39`: 7 en verde, 0 en rojo; `gh run view 36038417662`: success sobre ead63d943079…, `evals (legal-core)` y `evals (boe-legislacion)` en success. `git diff --name-only ead63d9..HEAD` da solo ficheros bajo specs/008-h6-territorio-skill-legal/ (evals-cierre.md, pr-h6.md, revision-a*.json, revision-rondas, tasks.md), como exige SC-015."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Desde la ronda 7 no cambia ningún fichero de código, test, dato, esquema ni fixture (aeea04c solo toca specs/). Esta ronda aplica cuatro mutantes nuevos en un clon aparte, cada uno revertido después, y los cuatro los detecta el test que dice detectarlos: fuentes.go:250 `KnownFields(false)` → TestCargar/clave-desconocida y TestCargarEnFilas/clave-desconocida y /filas-ilegibles en rojo; nombres.go:47 sin el punto volado → TestPlegar/diacríticos («col legats» frente a «collegats»); app/territorio.go:108 el éxito firmado con FechaDeLaRelacion en vez de la más antigua → TestResolverDevuelveElTerritorio/cubierto y /no-cubierto (2026-03-10 frente a 2026-01-15 y 2026-02-20, sobre fuentes sintéticas); ids/dir3.go:58 aceptando otro tipo de entidad → TestAnalizarDIR3/rechazados/otra_entidad_local y TestClaseDeLosErrores/DIR3_de_otra_entidad_local (acepta «L02280748»). Todos los tests que citan plan.md (controles 1-27) y contracts/applet-territorio.md §8 existen con ese nombre (git grep: TestComprobarDigito, TestIdaYVuelta, FuzzCodigoINE/FuzzCodigoDIR3, TestFormaDelComando, TestJuzgar con los casos territorio-*, TestTerritorioDelRepositorio con sus nueve subtests —esquema, integridad, fuentes, madrid-configurada, regimen-de-todas, gramaticas, pliegue-cubre-el-corpus, nombres-alcanzables, ningun-nombre-es-solo-cifras—, TestEvalsDelRepositorio/formato, /conjunto-legal-core y /cobertura-del-esquema…). Tests offline; los ficheros nuevos de testdata/ son los que piden T005, T012, T015 y T028."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre todas las líneas añadidas de los .go del diff frente a main: ningún net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal, panic(, exec.Command, recover( ni Getenv; el único `_ =` es el booleano de strings.Cut (internal/core/territorio/filas.go); fuera de los tests no hay ningún error descartado con `, _`. El único importador de github.com/jmorenobl/kitlegal/data es internal/app/registro.go:11; el binario de e2e lo recibe por app.FuentesEmbebidas (internal/app/ejemplo/kitlegal-e2e/main.go). go.yaml.in/yaml/v3 entra en modulosDelBinario con su motivo (internal/arch_test.go:154-160). En la reproducción, depguard y forbidigo sin hallazgos y TestArquitectura y TestDependenciasDelBinario en «ok» (paquete internal); go.mod y go.sum fuera del diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza (`go run -C <clon> ./cmd/kitlegal`): Leganés da el sobre de seis claves —`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71896b…`— y `data` con las ocho claves en su orden, cada dato con su source (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/13.yaml, data/territorio/estado.yaml), el BOCM en los dos niveles con el motivo de la uniprovincialidad y la cobertura configurado/configurado/verificado; Tordesillas y Vitoria-Gasteiz, solo el BOE y los dos boletines `no-configurado`, con régimen comun y foral; Donostia (un lado del nombre bilingüe) y «Pobla de Benifassà, la» se resuelven. TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782-801) valida la salida real de los municipios resueltos y de cada fallo que decide el applet contra $defs.resolver de schemas/municipio.json, y compruebaCoberturaNoConfigurada (:1024-1049) exige que el enumerado publicado no admita otro valor; TestEsquemasPublicados la ata a --describe. Los dos en «ok» en la reproducción; el e2e (territorio-matriz.txtar:32, :82) ancla las ocho claves y los dos extremos del sobre."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario de la cabeza: Leganés, Tordesillas, Vitoria-Gasteiz, Donostia y «Pobla de Benifassà, la» → 0; Arroyomolinos → 2, clase argumentos, «10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)» en el sobre y en la salida de error; 53001 → 2 («la provincia \"53\" no está entre 01 y 52»); la cadena vacía → 2 («no nombra ningún municipio: no tiene ninguna letra ni ninguna cifra»); 01999 → 3, no-encontrado; sin posicional → 2 con el sobre `kitlegal.cli` / `kitlegal:cli` y el reloj; `280746 --json --dry-run` → la línea del kernel, el sobre de fallo `kitlegal.cli` / `kitlegal:cli` con el reloj y 2, exactamente lo que fijan contracts/applet-territorio.md:32 y :75. Nunca 4, 5 ni 6. Errores tipados con Clase() (internal/core/ids/errores.go:49-51, internal/core/territorio/errores.go:33-35); unas fuentes que no cargan salen como inesperado sin %w (internal/app/territorio.go:117-124); ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "El motivo [f] de la ronda 7 está corregido en aeea04c: tasks.md:451-456 cuenta ya la revisión final como `c481451`, `9a77c6b`, `6d08752`, `ead63d9` y nombra `internal/evals/territorio.go` y `territorio_test.go`; coincide con `git diff --name-only a8ed0a7..HEAD` fuera de specs/ (35 ficheros) y con `git log a8ed0a7..HEAD` fuera de specs/ (los cuatro commits). Los dos motivos del juez B en la ronda 6 siguen corregidos: plan.md:394-395 cita el §3 del contrato de datos como es, y gates/pr-h6.md:283 dice «que no interpreta nada (solo embebe y recorre el subárbol de comunidades)». pr-h6.md gana la ronda 7 (:415-418), cierta; el cuerpo publicado de #39 coincide con gates/pr-h6.md salvo el salto de línea final (`gh pr view 39 --json body` contra el fichero). Cifras del *Alcance* contrastadas con git: 47 commits de main (04a2aaa) a ead63d9; 157 ficheros, 30 509 y 670 fuera de specs/; 16 445 en data/territorio y 1 121 en testdata/evals; ids 7 Go y 26 de corpus, territorio 16, app 10, skills 14, evals 12, schemas 8, evals/legal-core 3. CHANGELOG.md (Unreleased, los bloques De H6 en Añadido y Cambiado y el párrafo final con H19 y los dos applets), README.md (el bloque de `territorio --help` coincide byte a byte con el binario; «applets disponibles: boe, territorio»), CONTRIBUTING.md, docs/SOURCES.md (filas ine.codigos-territoriales y mpt.rel, nota de la verificación contra DIR3 real) y skills/legal-core/SKILL.md (170 líneas; códigos 0/2/3 y cobertura como los da el binario) dicen lo que el producto hace; los quince `vertebral: true` de data/normas.yaml son las quince filas de refs/mapa-sistema-legal-skills.md §1.4, y los tres rangos nuevos del esquema los exige la igualdad con lo grabado (research.md V47, T015). Ningún ADR hace falta."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún fichero del diff importa net/http ni usa internal/httpx; territorio no abre red ni caché en ningún camino (territorio-matriz.txtar:25 borra la reproducción y :206 exige que no exista la caché). Los dos informes de la ejecución vigente 36038417662 dicen «ninguna petición llegó a la red de una fuente». La verificación del DIR3 (gates/verificacion-dir3.md, docs/SOURCES.md) la hizo una persona fuera del repositorio con GET, dentro de su robots.txt. Ningún NIF, DNI ni dato de persona en data/, skills/legal-core ni evals/legal-core (el grep solo casa «Benifallim», «Benifassà»… y dos palabras de SKILL.md); gitleaks sin hallazgos; ningún municipio como caso especial en código ni en data/ (solo en fixtures, e2e y evals); skills/legal-core/SKILL.md:169-170 prohíbe toda acción con identidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un solo //nolint en las líneas añadidas, razonado en la suya (internal/core/territorio/coste_test.go:36, paralleltest: mide lo que asigna todo el proceso) y declarado en pr-h6.md:232; ningún t.Skip, TODO, FIXME ni XXX; ningún error silenciado salvo el booleano de strings.Cut; codecov.yml y .golangci.yml fuera del diff; ningún fixture, grabación ni esquema cambia desde la ronda 2, y los del hito entraron en tareas [datos] o en c481451 alineados con el source corregido de los datos. La lectura de SC-013 por serie y umbral es una decisión de Jorge registrada (gates/evals-cierre.md:38, pr-h6.md:454), no un atajo del ejecutor."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "aeea04c y 4e7cd3a solo tocan specs/008-h6-territorio-skill-legal/. En toda la rama, internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, go.mod, go.sum y evals/boe-legislacion siguen fuera del diff; skills/boe-legislacion solo cambia en references/normas.md, regenerado; el cambio de .github/workflows/evals.yml (matriz de skills y filtro internal/core/*) es el que pide SC-015 (T023), y el de release en Makefile/CONTRIBUTING (H6 → H19) corrige una afirmación que el hito volvía falsa. Ni otros verbos de territorio, ni otras comunidades configuradas, ni grafo, festivos o config.yaml."
+    }
+  ],
+  "motivos": []
+}

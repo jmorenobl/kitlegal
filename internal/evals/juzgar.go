@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
 // Los dos códigos de salida estables con los que una invocación con consulta dice
@@ -26,21 +28,22 @@ const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
-// una cita o un aviso ausentes van seguidos de su texto, el mismo con el que los
-// presenta el informe, que en un aviso es su código (contrato de formato, juicio e
-// informe §4 de H5.1).
+// una cita, un aviso o un elemento del territorio ausentes van seguidos de su
+// texto, el mismo con el que los presenta el informe, que en un aviso es su código
+// (contrato de formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6).
 const (
 	motivoDeSesionSinTerminar = "la sesión no terminó: "
 	motivoDeComandoAusente    = "comando ausente: "
 	motivoDeCitaAusente       = "cita ausente: "
 	motivoDeAvisoAusente      = "aviso ausente: "
+	motivoDeTerritorioAusente = "territorio ausente: "
 	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
 )
 
 // ResultadoDeEval es el juicio de una sesión con su eval (data-model §10.2): lo
-// esperado y lo observado, el reparto de los comandos, las citas y los avisos
-// esperados, lo que hicieron las invocaciones de la sesión, por qué no pasa y si
-// pasa. Sus claves JSON son las de cada eval de informe.json (contrato
+// esperado y lo observado, el reparto de los comandos, las citas, los avisos y el
+// territorio esperados, lo que hicieron las invocaciones de la sesión, por qué no
+// pasa y si pasa. Sus claves JSON son las de cada eval de informe.json (contrato
 // job-de-evals §5).
 type ResultadoDeEval struct {
 	// Sesion es el nombre del directorio de la sesión. Juzgar no lo conoce: lo
@@ -68,7 +71,8 @@ type ResultadoDeEval struct {
 	// ComandosEjecutados y ComandosAusentes reparten los comandos esperados, en
 	// el orden de la eval, entre los que satisface alguna invocación de la sesión
 	// y los que no (data-model §6.1), cada uno con su texto: bloque <applet>
-	// <norma> <bloque>, <applet> <verbo> <norma> o <applet> buscar <términos…>.
+	// <norma> <bloque>, <applet> <verbo> <norma>, <applet> buscar <términos…> o
+	// <applet> resolver <municipio>.
 	ComandosEjecutados []string `json:"comandos_ejecutados"`
 	ComandosAusentes   []string `json:"comandos_ausentes"`
 
@@ -83,6 +87,15 @@ type ResultadoDeEval struct {
 	// código.
 	AvisosEncontrados []string `json:"avisos_encontrados"`
 	AvisosAusentes    []string `json:"avisos_ausentes"`
+
+	// TerritorioEncontrado y TerritorioAusente reparten los elementos del
+	// territorio esperado, en el orden de la eval —comunidad, provincia, cada
+	// boletín y cada aspecto de cobertura— y con sus repeticiones, entre los que la
+	// respuesta declara con su forma fija y los que no (ExtraerTerritorio), cada
+	// uno con su texto: comunidad: <nombre>, provincia: <nombre>, boletín:
+	// <código> o <aspecto>: <valor>.
+	TerritorioEncontrado []string `json:"territorio_encontrado"`
+	TerritorioAusente    []string `json:"territorio_ausente"`
 
 	// Invocaciones son todas las invocaciones de applet de la sesión, en su
 	// orden.
@@ -119,14 +132,14 @@ type ResultadoDeEval struct {
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
 	// activación que no coincide; cada comando ausente; cada cita ausente; cada
-	// aviso ausente; y el modelo que la sesión declara sin ser el pedido, que pone
-	// EscribirInforme. Vacío si pasa.
+	// aviso ausente; cada elemento del territorio ausente; y el modelo que la
+	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa.
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide y no falta ningún
-	// comando, ninguna cita ni ningún aviso esperados. No lo cambian
-	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
-	// de un aviso que la eval no espera.
+	// comando, ninguna cita, ningún aviso ni ningún elemento del territorio
+	// esperados. No lo cambian FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed
+	// (FR-076), ni la forma fija de un aviso que la eval no espera.
 	Pasa bool `json:"pasa"`
 }
 
@@ -185,6 +198,11 @@ type LlegadaALaRed struct {
 // eval de no activación cuya sesión murió sin activar nada pasaría en vacío. Una
 // eval sin avisos deja vacíos los encontrados y los ausentes, y su juicio es el de
 // antes de H5.1 (FR-034).
+//
+// Desde H6, reparte además los elementos del territorio esperado entre los que la
+// respuesta declara con su forma fija (ExtraerTerritorio) y los ausentes, y un
+// ausente impide pasar; una eval sin territorio esperado deja vacíos los dos y su
+// juicio es el de antes (contrato de evals §2 de H6; FR-084).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -209,6 +227,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
 	resultado.repartirAvisos(eval.Avisos, ExtraerAvisos(sesion.Respuesta))
+	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
 
 	for _, invocacion := range sesion.Invocaciones {
 		resultado.informar(invocacion)
@@ -216,7 +235,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 
 	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
 		len(resultado.ComandosAusentes) == 0 && len(resultado.CitasAusentes) == 0 &&
-		len(resultado.AvisosAusentes) == 0
+		len(resultado.AvisosAusentes) == 0 && len(resultado.TerritorioAusente) == 0
 
 	return resultado
 }
@@ -297,6 +316,24 @@ func (r *ResultadoDeEval) repartirAvisos(esperados, avisos []string) {
 	}
 }
 
+// repartirTerritorio reparte los elementos del territorio esperado entre
+// encontrados y ausentes según lo que de él declara la respuesta, con un motivo
+// por cada ausente.
+func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsperado) {
+	declarados := declarado.elementos()
+
+	for _, elemento := range esperado.elementos() {
+		if slices.Contains(declarados, elemento) {
+			r.TerritorioEncontrado = append(r.TerritorioEncontrado, elemento)
+
+			continue
+		}
+
+		r.TerritorioAusente = append(r.TerritorioAusente, elemento)
+		r.Motivos = append(r.Motivos, motivoDeTerritorioAusente+elemento)
+	}
+}
+
 // informar añade la invocación a las del resultado con sus parejas de destino y
 // clase, una llegada a la red por cada destino de clase red y, si consultó y
 // terminó con un código distinto de 0, la lleva a fuera de lo grabado con 4 o 5
@@ -336,23 +373,30 @@ func (r *ResultadoDeEval) informar(invocacion Invocacion) {
 }
 
 // satisface dice si la invocación satisface el comando esperado (data-model
-// §6.1): tiene que consultar, terminar con código 0 y ser del mismo applet; en la
-// forma bloque, leer ese bloque de esa norma; en la búsqueda, ser buscar con cada
-// término como palabra de sus argumentos; y en la consulta de norma, ser el mismo
-// verbo con esa norma.
+// §6.1 de H5 y de H6): tiene que consultar, terminar con código 0 y ser del mismo
+// applet; y, según la forma del comando, en la forma bloque, leer ese bloque de
+// esa norma; en la consulta de norma, ser el mismo verbo con esa norma; en la
+// búsqueda, ser buscar con cada término como palabra de sus argumentos; y en el
+// comando de territorio, ser resolver con el municipio como argumento.
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
 		return false
 	}
 
-	switch comando.Verbo {
-	case "":
-		return leeElBloque(invocacion, comando.Norma, comando.Bloque)
-	case verboBuscar:
-		return invocacion.Verbo == verboBuscar && contieneLosTerminos(invocacion.Argumentos, comando.Terminos)
-	default:
-		return invocacion.Verbo == comando.Verbo && esDeLaNorma(invocacion, comando.Norma)
+	var satisfecho bool
+
+	switch formaDelComando(comando) {
+	case formaBloque:
+		satisfecho = leeElBloque(invocacion, comando.Norma, comando.Bloque)
+	case formaConsultaDeNorma:
+		satisfecho = invocacion.Verbo == comando.Verbo && esDeLaNorma(invocacion, comando.Norma)
+	case formaBusqueda:
+		satisfecho = invocacion.Verbo == verboBuscar && contieneLosTerminos(invocacion.Argumentos, comando.Terminos)
+	case formaTerritorio:
+		satisfecho = invocacion.Verbo == verboResolver && resuelveElMunicipio(invocacion.Argumentos, comando.Municipio)
 	}
+
+	return satisfecho
 }
 
 // consultoConExito dice si la invocación consultó y terminó con código 0: ni
@@ -374,6 +418,16 @@ func leeElBloque(invocacion Invocacion, norma, bloque string) bool {
 // las globales.
 func esDeLaNorma(invocacion Invocacion, norma string) bool {
 	return len(invocacion.Argumentos) > 0 && invocacion.Argumentos[0] == norma
+}
+
+// resuelveElMunicipio dice si el único argumento de la invocación es el
+// municipio, plegados los dos con territorio.Plegar, el mismo pliegue con el que
+// el applet compara los nombres: resolver recibe un solo argumento y no tiene
+// banderas propias (contrato del applet territorio §1), e InterpretarInvocacion ya
+// quitó las globales. Resolverlo por su código INE no es resolver el municipio que
+// la eval escribe.
+func resuelveElMunicipio(argumentos []string, municipio string) bool {
+	return len(argumentos) == 1 && territorio.Plegar(argumentos[0]) == territorio.Plegar(municipio)
 }
 
 // contieneLosTerminos dice si los argumentos, unidos por un espacio, contienen
@@ -439,18 +493,25 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 }
 
 // textoDelComando es el comando esperado con el texto con el que lo presentan el
-// informe y los motivos (contrato job-de-evals §5): bloque <applet> <norma>
-// <bloque> en la forma bloque, que satisfacen dos verbos; <applet> buscar
-// <términos…> en la búsqueda; y <applet> <verbo> <norma> en la consulta de norma.
+// informe y los motivos (contrato job-de-evals §5), según su forma: bloque
+// <applet> <norma> <bloque> en la forma bloque, que satisfacen dos verbos;
+// <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
+// la búsqueda; y <applet> resolver <municipio> en el comando de territorio.
 func textoDelComando(comando ComandoEsperado) string {
-	switch comando.Verbo {
-	case "":
-		return strings.Join([]string{"bloque", comando.Applet, comando.Norma, comando.Bloque}, " ")
-	case verboBuscar:
-		return strings.Join(slices.Concat([]string{comando.Applet, comando.Verbo}, comando.Terminos), " ")
-	default:
-		return strings.Join([]string{comando.Applet, comando.Verbo, comando.Norma}, " ")
+	var partes []string
+
+	switch formaDelComando(comando) {
+	case formaBloque:
+		partes = []string{"bloque", comando.Applet, comando.Norma, comando.Bloque}
+	case formaConsultaDeNorma:
+		partes = []string{comando.Applet, comando.Verbo, comando.Norma}
+	case formaBusqueda:
+		partes = slices.Concat([]string{comando.Applet, comando.Verbo}, comando.Terminos)
+	case formaTerritorio:
+		partes = []string{comando.Applet, comando.Verbo, comando.Municipio}
 	}
+
+	return strings.Join(partes, " ")
 }
 
 // copiaDelCodigo es una copia del código de una invocación, para que el resultado

@@ -102,7 +102,7 @@ schema-check: check-tools
 
 ## skills-check: comprueba skills, datos y evals sin red, sin modelo y sin escribir nada
 skills-check: check-tools
-	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
+	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestJerarquiaDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
 
 ## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
 verify-sources: check-tools
@@ -132,9 +132,9 @@ mod-verify: check-tools
 mod-tidy-check: check-tools
 	go mod tidy -diff
 
-## release: publicación de la release firmada (la aporta H6)
+## release: publicación de la release firmada (la aporta H19)
 release:
-	@echo "release: sin configurar hasta H6 (.goreleaser.yaml)" >&2
+	@echo "release: sin configurar hasta H19 (.goreleaser.yaml)" >&2
 	@exit 1
 
 ## hooks: instala los ganchos de pre-commit

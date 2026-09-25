@@ -1,0 +1,65 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 3e20622, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r5): salida 0; lint «0 issues.»; los catorce paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/skills 98,5 %, internal/evals 99,1 %, internal/app 93,6 %); govulncheck «Your code is affected by 0 vulnerabilities.»; TestEsquemasPublicados y los tres paquetes de skills-check en «ok»; gitleaks «no leaks found»; «all modules verified» en la raíz y en los cuatro módulos de herramientas; `go mod tidy -diff` sin salida; «ci: todos los controles en verde». gates/ci.log es anterior a c481451 (da el paquete data sin tests), así que vale la reproducción. `git status --porcelain` vacío en el repositorio y en el clon al terminar (los mutantes se revirtieron con `git checkout`). En la plataforma: ci 36019821690 y evals 36019842457 (`evals (legal-core)` y `evals (boe-legislacion)`) en `success` sobre 6d08752, la cabeza remota de #39; `gh pr checks 39`: 7 en verde, 0 en rojo; `git diff --stat 6d08752..HEAD` solo trae once ficheros bajo specs/008-h6-territorio-skill-legal/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El código no cambia desde 6d08752. Cuatro mutantes nuevos en el clon, revertidos, cada uno detectado por el test que dice detectarlo: internal/core/territorio/fuentes.go:250 con `KnownFields(false)` → TestCargar y TestCargarEnFilas; salida.go:185 con el DIR3 firmado con el source de la relación y sin su fecha → TestTerritorioResuelto, TestFechaMasAntigua, TestResolverDevuelveElTerritorio y el e2e TestEntregaDelHito; internal/evals/juzgar.go:238 sin `len(TerritorioAusente) == 0` en Pasa → TestJuzgar/territorio-ausente y /territorio-y-citas; internal/evals/territorio.go:50 sin delimitador tras el valor del aspecto → TestExtraerTerritorio/aspecto-sin-su-forma. TestTerritorioDelRepositorio corre sus nueve subtests sobre el corpus real y `gramaticas` tiene 76 casos hoja, como dice pr-h6.md:138. Tests offline; los fixtures nuevos de testdata/ son los que piden T005, T012, T015 y T028."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`rtk proxy git diff main...HEAD -- '*.go'` no añade net/http, os.Exit, fmt.Print*, os.Stdout, os.Stderr, log.Fatal ni panic(. `go list` de las importaciones: internal/core/ids → fmt, unicode/utf8 y core/schema; internal/core/territorio → bytes, errors, fmt, maps, slices, strings, time, unicode, unicode/utf8, go.yaml.in/yaml/v3, core/ids y core/schema (ni os, ni io, ni io/fs); data → embed, fmt, io/fs, path y strings, importado solo por internal/app/registro.go y el binario de e2e. depguard y forbidigo sin hallazgos y TestArquitectura y TestDependenciasDelBinario en verde en la reproducción; go.yaml.in/yaml/v3 en modulosDelBinario con su motivo (internal/arch_test.go:154-160); go.mod y go.sum fuera del diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782) valida el sobre real con --json contra $defs.resolver leído de schemas/municipio.json, para cada municipio resuelto y cada fallo que decide el applet; compruebaCoberturaNoConfigurada (:1024) exige que el enumerado publicado no admita otro valor; TestEsquemasPublicados (schema-check) lo ata a --describe. Con el binario del clon, Leganés da el sobre de seis claves (`kitlegal.territorio`, `kitlegal:applet/territorio`, 2026-02-04T00:00:00Z, `sha256:3f71…`) y `data` de ocho claves, cada dato con su source (ine.municipios, ine.codigos-territoriales, mpt.rel, data/territorio/comunidades/13.yaml, data/territorio/estado.yaml); `territorio resolver x --describe` emite el esquema y sin el posicional termina en 2; `territorio --help` coincide byte a byte con el bloque de README.md."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario compilado del clon: Leganés, 28074, 280745, Tordesillas, Pamplona, Iruña, Donostia, San Sebastián, «Coruña, A», «A Coruña», Ceuta, Melilla, Bilbao, «L'Hospitalet de Llobregat», «Las Palmas de Gran Canaria» y «Castellón de la Plana» → 0 (Leganés por nombre y por código dan la misma huella); Arroyomolinos → 2, clase argumentos, «10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)»; 280746 → 2 (dígito «6» frente al oficial «5»); 99999, 28000, cadena vacía, «٢٨٠٧٤», «28-074», «28 074» y «28074.» → 2; 01999, «zzzz» y «Vitoria» → 3; nunca 4, 5 ni 6, y KITLEGAL_CACHE_DIR no llega a crearse. Con --dry-run el código sigue siendo el del resultado (280746 → 2, Arroyomolinos → 2). Errores tipados con Clase() (internal/core/ids/errores.go:49-51, internal/core/territorio/errores.go:33-35); el defecto de carga no lleva clase y sale como inesperado (internal/app/territorio.go:121-124). Ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Los dos motivos de mi ronda 4 y el del juez B están corregidos en 3e20622: la cabecera de gates/pr-h6.md:1 ya no cuenta rondas y remite a «Revisión final»; :385-392 añade la ronda 4 y dice «las rondas 1 y 2»; plan.md:336-343 nombra las dos recetas, con la viñeta de release (H6 → H19, c481451). El cuerpo publicado de #39 coincide con pr-h6.md salvo el salto de línea final (`gh pr view 39 --json body`). Las cifras del Alcance se sostienen (`git diff --shortstat 04a2aaa 6d08752 -- . ':(exclude)specs'`: 157 ficheros, 30 500 y 670; 16 445 en data/territorio; 1 121 en testdata/evals; 42 commits). CHANGELOG (Unreleased), README, CONTRIBUTING y docs/SOURCES.md dicen lo que hacen el binario y los datos; no hace falta ADR. No cumple: tres afirmaciones de los artefactos del hito que el producto no sostiene, que las rondas anteriores no vieron (motivos)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún fichero nuevo importa net/http ni usa internal/httpx; territorio no abre red ni caché en ningún camino (mis sondas no crearon KITLEGAL_CACHE_DIR; el e2e borra la reproducción); scripts/ fuera del diff. La consulta al directorio del Punto de Acceso General de la revisión final (gates/verificacion-dir3.md:48-67) fue GET, fuera del repositorio, dentro de su robots.txt (una petición por minuto en la ventana de visita) y con User-Agent `kitlegal/0.1 (+https://ventanillalegal.es/bot)`. gitleaks sin hallazgos; ningún NIF ni dato de persona en data/territorio, data/jerarquia.yaml ni skills/legal-core; SKILL.md:169-170 prohíbe toda acción con identidad."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un solo //nolint en el diff, razonado en su línea y declarado en pr-h6.md:232 (internal/core/territorio/coste_test.go:36, paralleltest: la prueba mide lo que asigna todo el proceso); ningún t.Skip, TODO ni FIXME añadido; los valores descartados son el booleano de strings.Cut y el de reflect.FieldByName sobre etiquetas propias. Observación sin motivo, como en las rondas 3 y 4: internal/core/territorio/salida_test.go:446 descarta el error de strconv.Atoi al leer minLength/minItems; invopop/jsonschema (parseUint) también ignoraría una etiqueta mal escrita, pero el cambio se vería como diff de schemas/municipio.json en schema-check. Ningún fixture, grabación ni esquema cambia desde la ronda 2."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "3e20622 solo toca specs/ (pr-h6.md, plan.md y los veredictos). En toda la rama, `git diff --name-only main...HEAD` sobre internal/cli, internal/httpx, internal/cache, internal/source, internal/core/schema, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, go.mod, go.sum, skills/boe-legislacion y evals/boe-legislacion devuelve solo skills/boe-legislacion/references/normas.md, regenerado; ni otros verbos, ni otras comunidades configuradas, ni grafo, festivos o config.yaml."
+    }
+  ],
+  "motivos": [
+    "[f] --dry-run con una consulta que el applet rechaza. contracts/applet-territorio.md:74 (§5), research.md:34 (V15) y :189-194 (D7) y gates/pr-h6.md:270-271 dicen que con --dry-run el kernel «no emite sobre»; y la tabla de §2 (contracts/applet-territorio.md:27-31) da a todo fallo que decide el applet la firma `kitlegal.territorio` / `kitlegal:applet/territorio` con la fecha de la relación. El binario no lo sostiene: `kitlegal territorio resolver --json --dry-run 280746` (y lo mismo con Arroyomolinos) escribe la línea de --dry-run en la salida de error y, además, en la salida estándar el sobre de fallo `{\"ok\":false,\"fuente\":\"kitlegal.cli\",\"url\":\"kitlegal:cli\",\"fecha_consulta\":<el reloj>,…}`, y termina con 2. Pasa porque bajo --dry-run el kernel descarta el Resultado del applet (internal/app/main.go:360-368) y el montador firma el fallo con ProcedenciaKernel; es comportamiento del kernel de H1, que H6 no cambia, así que se corrige la documentación y no el código. Decir en los cuatro sitios que, con --dry-run, una consulta que se resuelve no emite sobre y una que el applet rechaza emite el sobre de fallo firmado por el kernel (`kitlegal.cli`, `kitlegal:cli`, el reloj), con el código del fallo (2 o 3); y añadir esa fila a la tabla de §2. Después, sincronizar el cuerpo publicado con `gh pr edit 39 --body-file specs/008-h6-territorio-skill-legal/gates/pr-h6.md` en un paso con plataforma. Todo bajo specs/, sin tocar código, así que no afecta a SC-015.",
+    "[f] data-model.md:176-179 y :186 (§2.6) describen la resolución como «¿solo cifras? sí → código INE; no → nombre», con la fila «Solo cifras que no forman un código (vacío, …)». El producto usa otra regla: toda entrada sin ninguna letra se lee como código (internal/core/territorio/resolver.go:19-25 y :38), y la vacía o hecha solo de separadores es un caso aparte, con su propio mensaje (errores.go:40-45, resolver.go:36). El control del corpus también comprueba «sin letras» y cita §2.6 (internal/skills/territorio_test.go:562-577). En el binario, «28-074», «28 074» y «28074.» terminan en 2 («\"-\" no es una cifra»…), y con la regla de §2.6 serían nombres y terminarían en 3. Poner al día §2.6: el diagrama como «¿alguna letra? no → código INE; sí → nombre»; la fila 186 como «Sin ninguna letra y sin formar un código (4 o 7 cifras, provincia 00 o 53…, municipio 000, un separador o una cifra no ASCII entre las cifras) → 2»; y una fila para la entrada vacía o hecha solo de separadores (2, «no nombra ningún municipio»). En §2.7, punto 4 (:207), decir «ningún nombre plegado se queda sin letras». Todo bajo specs/, sin efecto sobre SC-015.",
+    "[f] contracts/identificadores-ine-y-dir3.md:39 (§2) da como gramática del DIR3 `^[Ll]01[0-9]{6}$`, que solo rechaza «cualquier otra letra, otra longitud, cifras no ASCII», y :41-44 afirma que los `pattern` de los esquemas y «estas gramáticas» aceptan y rechazan exactamente lo mismo. No es así: AnalizarDIR3 aplica a las cinco cifras que siguen a L01 la gramática del código INE (internal/core/ids/dir3.go:63), y el esquema que dejó T027 lleva el patrón con rangos. `L01000748` y `L01530018` casan con la forma del contrato, y el analizador los rechaza (internal/core/ids/dir3_test.go:79-80) igual que el esquema. Es justo el patrón que T027 (tasks.md:142) y pr-h6.md:292-295 dan como el que no es la gramática del analizador. Corregir la fila DIR3: forma «L o l, 01, un código INE de cinco cifras como el de la fila anterior (provincia 01-52, municipio 001-999) y una cifra de control, normalizado a L mayúscula», y en «Rechaza» añadir «provincia 00 o mayor que 52 y municipio 000 en las cinco cifras que siguen a L01». Bajo specs/, sin efecto sobre SC-015."
+  ]
+}

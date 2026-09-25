@@ -1,0 +1,65 @@
+{
+  "veredicto": "rechazado",
+  "corregible": true,
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "`make ci` reproducido por este juez sobre la cabeza 1d39df9, en un clon de la rama fuera del repositorio (/tmp/juez-a-h6-r3): fmt sin diff, lint «0 issues.», los catorce paquetes con tests en «ok» en los dos perfiles (data, internal/core/ids e internal/core/territorio al 100 %, internal/skills 98,5 %, internal/app 93,6 %; total 97,2 %), schema-check y skills-check en «ok», gitleaks «no leaks found», «all modules verified» en los cinco módulos, `go mod tidy -diff` sin salida, «ci: todos los controles en verde» y salida 0. gates/ci.log es de antes de c481451 (aún da el paquete data sin tests), así que la evidencia de la cabeza es la reproducción. En la plataforma, sobre 6d08752: ci 36019821690 `success` y los cuatro estados de Codecov `success` con medida (96.76 %, patch 98.79 %, internal/cli 98.09 %, internal/core 98.63 %); `git diff --stat 6d08752..HEAD` solo trae gates/evals-cierre.md y gates/pr-h6.md. `git status --porcelain` vacío en el repositorio y en los dos clones al terminar (los mutantes se revirtieron)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Mi motivo [b] de la ronda 2 está corregido: el caso `vertebrales-sin-normas-con-vertical` (internal/skills/sincronia_test.go:630-643) declara `kitlegal-referencias: leyes_vertebrales jerarquia_normativa`, como legal-core, con data/normas.yaml inválido. Mutante en un clon: `normas, _ := LeerNormas(datos)` en internal/skills/referencias.go:195 pone en rojo TestRegenerarYComparar/vertebrales-sin-normas-con-vertical (sincronia_test.go:724, «An error is expected but got nil», y dos derivas espurias de leyes_vertebrales.md y normas.md); revertido. cuerpoDeLasLeyesVertebrales pasa de 75 % a 100 % en el coverage.out de la reproducción. Lo que queda por debajo de 100 % en código de H6 —LeerJerarquia 75 %, LeerTerritorio 96,3 %, FuentesEmbebidas 75 % y RegistroDeProduccion 80 % (internal/app/registro.go:168-204)— es la propagación del error de datos embebidos o de un esquema de ruta constante, inalcanzable sin cambiar el diseño, el mismo patrón que LeerNormas de H5 (85,7 %); las ramas de error de sus compiladores y de comunidadesDe sí tienen test (data/datos_test.go; jerarquia_test.go:342-347). Los tests son offline; el caso nuevo altera el fixture sintético de probarDefectos, no testdata/."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`rtk proxy git diff main...HEAD -- '*.go'` no añade net/http, os.Exit, fmt.Print* ni panic; golangci-lint con depguard y forbidigo sin hallazgos; TestArquitectura y TestDependenciasDelBinario en verde en la reproducción; go.mod y go.sum sin cambios; go.yaml.in/yaml/v3 en modulosDelBinario con su motivo (internal/arch_test.go:154-160). Desde la ronda 2 solo cambia un test y documentación."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "TestSalidaDeTerritorioContraSchemas (internal/app/territorio_test.go:782) valida la salida real con --json contra schemas/municipio.json; TestEsquemasPublicados lo ata a --describe (schema-check en verde). Con el binario del clon (`go run ./cmd/kitlegal`), Leganés, Tordesillas, «A Coruña», Donostia y Pamplona dan el sobre de seis claves y data de ocho, cada dato con su source (provincia y comunidad `ine.codigos-territoriales`, dir3 `mpt.rel`, régimen y boletines con la ruta de su fichero). Mutante: `minLength=uno` en internal/core/territorio/salida.go:73 hace fallar TestEsquemasPublicados (esquemas_test.go:91)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Con el binario del clon: Leganés y «  LEGANES » 0; Arroyomolinos 2, clase argumentos, «10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)»; 01999 3, no-encontrado; 280746 2, «el dígito de control recibido es \"6\" y el oficial es \"5\"»; 99999 2 (provincia); 28000 2 (municipio 000); cadena vacía 2; Tordesillas y 471659 con --offline dan el mismo hash (sha256:caf23950…); nunca 4, 5 ni 6. `territorio --help` coincide con README.md:173-181 y un applet inventado sale con 2 y «applets disponibles: boe, territorio» (README.md:328). Errores tipados con Clase() (internal/core/ids/errores.go, internal/core/territorio/errores.go); fuentes que no cargan salen como inesperado (internal/app/territorio.go:117-124). Ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Corregido de la ronda 2: README.md:193-197 y CHANGELOG.md:301-306 dicen que el DIR3 sale del número de inscripción del REL y que la regla se verificó contra el directorio DIR3 oficial; CONTRIBUTING.md:218-226 nombra las tablas de códigos del INE y exige volver a verificar la derivación contra DIR3 real en un refresco; docs/SOURCES.md:66 da 2026-09-20, el día de la pausa de T002 (gates/tarea-T002.md:196-203; cb89e6e, 2026-09-20 19:46; comunidades/*.yaml:1); research.md:155 da ine.codigos-territoriales; plan.md:308 describe lo que madrid-configurada detecta (territorio_test.go:475-500). pr-h6.md: DIR3DeAyuntamiento (:34), la cabecera (:1), el Alcance medido en 6d08752 —42 commits, 157 ficheros, 30 500 y 670 líneas, 16 445 de data/territorio y 1 121 de grabaciones, comprobado con `git diff --shortstat`—, 900 líneas (:62), 170 de SKILL.md, 206 del e2e, 76 casos de gramaticas, las cotas de coste (coste_test.go:23-24) y la ronda 2 en «Revisión final»; el cuerpo publicado de #39 es ya pr-h6.md (`gh pr view 39 --json body | diff`: solo el salto final). evals-cierre.md: la 36019842457 sobre 6d08752, los dos trabajos `success`, «Veredicto: aprobado» y «ninguna petición llegó a la red de una fuente» en los dos informes del registro. No cumple: pr-h6.md:88-89 dice que en el Makefile cambia una sola receta; pr-h6.md:363-364 afirma que «sus SHA-256 coinciden» sin nada con que coincidan; y pr-h6.md:92-95 atribuye a la revisión final solo la nota al pie de docs/SOURCES.md."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo hace HTTP: territorio no tiene red por construcción (el e2e borra la reproducción y exige que no exista la caché) y scripts/verify-sources.sh no cambia. gitleaks sin hallazgos; ningún NIF ni dato de persona. La verificación contra DIR3 real (gates/verificacion-dir3.md:48-67: GET, User-Agent identificable, dentro del Crawl-delay, Request-rate y Visit-time del robots.txt del PAG) no cambió desde la ronda 2. El cambio de fecha de docs/SOURCES.md en 6d08752 es capa 3 de la constitución; el paso rutas_sensibles del flujo (.specify/workflows/hito/workflow.yml:1172-1195) fuerza, sin depender de `modo`, la revisión humana del diff de docs/SOURCES.md antes de publicar, así que queda cubierto por el gate (y por eso el Alcance del cuerpo tiene que describir bien ese diff: motivo 3)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Un solo //nolint, razonado (internal/core/territorio/coste_test.go:36); ningún t.Skip ni TODO; el caso nuevo altera el fixture sintético para provocar el defecto, no para que pase un test. Observación sin motivo: internal/core/territorio/salida_test.go:446 descarta el error de strconv.Atoi al leer minLength/minItems de la etiqueta, así que una etiqueta mal escrita dejaría vacía esa comprobación del test del dominio; no oculta nada en make ci, porque TestEsquemasPublicados falla con esa misma etiqueta (mutante del criterio d)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "6d08752 y 1d39df9 se ciñen a los motivos de la ronda 2: un caso de test (sincronia_test.go, +14), una a nueve líneas en README.md, CHANGELOG.md, CONTRIBUTING.md y docs/SOURCES.md, una celda en plan.md y otra en research.md, y gates/. `git diff --stat main...HEAD` vacío para internal/core/schema, internal/cli, internal/httpx, internal/cache, internal/source/boe, internal/render, cmd/kitlegal/main.go, scripts/, .golangci.yml, codecov.yml, docs/ADR, go.mod, go.sum, .specify/, skills/boe-legislacion/SKILL.md y evals/boe-legislacion/. La decisión de Jorge sobre la lectura de SC-013 (pr-h6.md:400-404) queda registrada sin cambiar spec, código ni evals."
+    }
+  ],
+  "motivos": [
+    "[f] gates/pr-h6.md:88-89 dice «`Makefile`: una sola receta cambia, `skills-check`…», y desde c481451 cambian dos: skills-check (Makefile:105) y release, cuyo comentario y cuyo mensaje pasan de H6 a H19 (Makefile:135 y :137; `git diff main...HEAD -- Makefile`), como reconoce el propio cuerpo en «Revisión final» (:343-344) y en «Pendientes» (:380-381). Cambiar la viñeta para que nombre las dos recetas: skills-check, con los dos tests que gana su expresión -run, y release, cuyo comentario y cuyo mensaje dicen ahora H19, el hito de la release (ADR 0013), corregido en la revisión final. Está bajo specs/ y no afecta a SC-015.",
+    "[f] gates/pr-h6.md:363-364 dice que la fecha de ine.codigos-territoriales es «2026-09-20, el día de la descarga de T002 (sus SHA-256 coinciden)», pero ningún registro trae un segundo hash con el que puedan coincidir: los SHA-256 de cod_ccaa.htm y cod_provincia.htm solo aparecen en gates/tarea-T002.md:203 (`git grep 843977236254a0ae` y `f26be07b88d4004c` dan esa única línea), y gates/tarea-T003.md:205-214, que añadió la fila, no registra ninguna descarga ni ningún hash. Quitar el paréntesis o sustituirlo por lo que sí consta, p. ej. «(la descarga con los SHA-256 de gates/tarea-T002.md:203)». Si de verdad se volvieron a descargar las tablas para comparar, registrar esa descarga con su fecha y sus hashes en gates/, y decirlo. Está bajo specs/ y no afecta a SC-015.",
+    "[f] gates/pr-h6.md:92-95 enumera lo que cambia en docs/SOURCES.md —la fila mpt.rel y la fila ine.codigos-territoriales, «las dos dentro de la pausa de T003», y, «en la revisión final, la nota al pie [^rel-dir3]»—, pero la revisión final cambió también la fecha de la fila ine.codigos-territoriales, de 2026-09-21 a 2026-09-20 (6d08752; docs/SOURCES.md:66). Es el único sitio del cuerpo que resume ese diff, y el paso rutas_sensibles del flujo (.specify/workflows/hito/workflow.yml:1172-1195) pide a una persona que lo revise antes de publicar: tiene que estar completo. Añadir a esa viñeta el cambio de fecha de la ronda 2, con su commit. Después, añadir a «Revisión final» esta ronda 3 y sus correcciones, y volver a sincronizar el cuerpo publicado con `gh pr edit 39 --body-file specs/008-h6-territorio-skill-legal/gates/pr-h6.md` en un paso con plataforma (publicar_rama no edita una propuesta que ya existe). Está bajo specs/ y no afecta a SC-015."
+  ]
+}

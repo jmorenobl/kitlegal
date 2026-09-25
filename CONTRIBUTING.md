@@ -23,7 +23,9 @@ rama, una propuesta de cambio y un *squash-merge* con la integración continua e
    y IX).
 3. **`make ci` en verde en local** y propuesta de cambio con la estructura de la sección siguiente.
 4. **Revisión** de código y de seguridad sobre la propuesta. Si el hito toca una fuente externa, su fila
-   de [`docs/SOURCES.md`](docs/SOURCES.md) y su caso de `make verify-sources` entran en el mismo cambio.
+   de [`docs/SOURCES.md`](docs/SOURCES.md) y su caso de `make verify-sources` entran en el mismo cambio; si la
+   fuente no se consulta en red y sus datos entran congelados en `data/`, como los de `data/territorio/` (ADR 0017),
+   solo su fila, con la fecha del fichero generado.
 5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release.
 6. **Actualizar el roadmap solo si cambia el orden o el alcance**; el detalle vive en las propuestas de
    cambio y en los ADR.
@@ -73,7 +75,7 @@ propuesta de cambio: también tiene que cumplir la convención.
 
 ## Versionado y `CHANGELOG.md`
 
-**Versionado semántico.** El proyecto está en `0.y.z` hasta la primera release, que es H6 (`v0.1.0`);
+**Versionado semántico.** El proyecto está en `0.y.z` hasta la primera release, que es H19 (`v0.1.0`);
 mientras el mayor sea `0`, un cambio incompatible sube el **menor**. A partir de `1.0.0`, mayor para lo
 incompatible, menor para funcionalidad nueva compatible y parche para correcciones. Las etiquetas son
 `vX.Y.Z` y las pone una persona, nunca la integración continua.
@@ -83,7 +85,7 @@ cabeza, y bajo ella los apartados `Añadido`, `Cambiado`, `Obsoleto`, `Eliminado
 `Seguridad`, solo los que tengan contenido. Todo cambio de comportamiento visible entra en *Unreleased*
 en la misma propuesta que lo introduce; al publicar una versión, esa sección se cierra bajo su número y
 su fecha y se abre una nueva vacía. En H0 el changelog se mantiene **a mano**; su generación automática
-llega con el release de H6.
+llega con el release de H19.
 
 ## Los controles
 
@@ -101,7 +103,7 @@ porque la integración continua ejecuta esa misma orden y no aplica ningún cont
 | Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal) | `make test-integration` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
-| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; derivas de las referencias, de la tabla de comandos y de los enlaces de `scripts/`; tabla de normas contra su esquema y sus identificadores; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; derivas de las referencias, de la tabla de comandos y de los enlaces de `scripts/`; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
 | Regeneración de lo que se deriva de cada skill (referencias, tabla de comandos de `SKILL.md`, enlaces de `scripts/`) | `make skills-sync` | no — escribe en el árbol |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
 | Integridad de los módulos (`go mod verify`, raíz y herramientas) | `make mod-verify` | sí |
@@ -162,7 +164,7 @@ Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito 
 
 | Orden | Qué hace hoy | Hito |
 |---|---|---|
-| `make release` | **Falla** con código distinto de 0 | H6 (`.goreleaser.yaml`) |
+| `make release` | **Falla** con código distinto de 0 | H19 (`.goreleaser.yaml`) |
 
 `release` falla en lugar de anunciar lo que le falta y terminar con éxito porque es una acción con
 efectos externos: no puede simular éxito. No forma parte de `ci` ni del flujo nocturno.
@@ -178,7 +180,8 @@ regenera, desde `data/*.yaml` y desde `--describe` del binario, las referencias,
 ## `make schema-check` y `make verify-sources`
 
 `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
-distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`— y los
+distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`, y
+`municipio.json`, el de `territorio`— y los
 compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
 de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
 regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
@@ -193,7 +196,8 @@ go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/ -args -actualiz
 texto no vacío—. Por eso **necesita red y no está en `make ci`**, cuyos tests corren siempre sin red,
 contra respuestas grabadas. Lo ejecuta cada noche el trabajo `fuentes` del flujo `nightly`, que, si falla,
 comenta la incidencia abierta con el título del caso o la abre. Un hito que añade una fuente añade su caso
-a esta verificación (*Definition of Done*, punto 8). Ningún control ni flujo graba respuestas: las
+a esta verificación (*Definition of Done*, punto 8), salvo que la fuente no se consulte en red y sus datos entren
+congelados en `data/` (ADR 0017): no hay respuesta que verificar, y lleva solo su fila de `docs/SOURCES.md`. Ningún control ni flujo graba respuestas: las
 grabaciones contra las que corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
 
 ## Skills y evals
@@ -207,10 +211,23 @@ de `scripts/` se derivan de `data/*.yaml` y de `--describe` del binario. Tras ca
 cambiar su entrada o su salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio:
 `make skills-check`, dentro de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero o el enlace
 que difieren. Comprueba además el frontmatter de cada `SKILL.md` y que tenga menos de 300 líneas, la tabla de normas
-contra `schemas/normas.yaml.json`, que cada identificador está en la búsqueda grabada del BOE, y el formato y el
-conjunto de las evals y que lo que necesitan está grabado. Una norma nueva, o una eval que consulta algo que no está
-grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh`: ningún control ni flujo graba
-respuestas.
+contra `schemas/normas.yaml.json`, que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa
+de `data/jerarquia.yaml` contra `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra
+sus esquemas y su integridad, y el formato y el conjunto de las evals y que lo que necesitan está grabado. Una norma
+nueva, o una eval que consulta algo que no está grabado, llega con su grabación, que hace una persona con
+`scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
+
+**Los datos de territorio no se regeneran con `make skills-sync`**: `data/territorio/` no deriva de nada del
+repositorio, sino de descargas públicas que no se consultan en red (ADR 0017). Los refresca una persona, fuera del
+repositorio, desde la relación de municipios del INE, las tablas de códigos de comunidad y provincia del INE (los
+nombres) y el volcado del Registro de Entidades Locales, con la fila de cada origen en `docs/SOURCES.md` puesta a la
+fecha del fichero. Un refresco de `dir3.yaml` vuelve a verificar la derivación contra DIR3 real en una muestra con
+un municipio fusionado o renombrado, uno foral y uno con entidades locales menores, y la registra con el código
+derivado, el real y su procedencia (ADR 0017; como en
+`specs/008-h6-territorio-skill-legal/gates/verificacion-dir3.md`): sin ella, `cobertura.dir3: verificado` no sería
+cierto. Añadir un territorio es rellenar `boletines` en el
+fichero de su comunidad, `data/territorio/comunidades/<código>.yaml`, sin tocar código ni skills. Los ficheros viajan
+dentro del binario, así que un cambio en ellos llega a `territorio resolver` al volver a construirlo.
 
 ### Formato común de eval
 
@@ -222,8 +239,9 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 |---|---|---|
 | `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
 | `activa` | sí | Si la pregunta debe activar la skill |
-| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de tres formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`) o una búsqueda (`applet`, `verbo` `buscar`, `terminos`) |
-| `citas` | sí si `activa` es `true`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cuatro formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`) o un municipio (`applet`, `verbo` `resolver`, `municipio`) |
+| `citas` | sí si `activa` es `true` y no hay `territorio`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `territorio` | sí si `activa` es `true` y no hay `citas`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
@@ -231,14 +249,19 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
 dentro de `make ci`. Una entrada del directorio que no es un
 fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
-eval positiva sin citas o una de no activación con comandos fallan nombrando el fichero; ninguna se salta. Para
-`boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que deciden, de
-materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no activación,
-entre otras.
+eval positiva sin citas ni territorio o una de no activación con comandos fallan nombrando el fichero; ninguna se
+salta. Para `boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que
+deciden, de materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no
+activación, entre otras. Para `legal-core`, al menos tres evals: una positiva que resuelve un municipio del territorio
+configurado y declara sus boletines, otra que resuelve uno de una comunidad sin configuración y declara no
+configurados el boletín autonómico y el provincial, al menos una de no activación, y citas o territorio en toda
+positiva.
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
-termina, hace con éxito cada consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas` y lleva la
-forma fija de cada aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
+termina, hace con éxito cada consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas`, declarando lo
+que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el código de cada boletín
+como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`— y con la forma fija de cada
+aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
 traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
 ([Job de evals](#job-de-evals)).
 
@@ -256,8 +279,9 @@ informativa con el modelo que decide— no llega al umbral, una serie no tiene e
 plan, una sesión es ilegible, un fichero está mal formado, no hay ninguna eval bien formada que juzgar o una petición
 llega a la red (ADR 0016).
 
-Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), que fija en su definición, cada uno en
-su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
+Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
+ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro.
+Fija en su definición, cada uno en su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
 (`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
 repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
 (`UMBRAL_DE_EVALS`). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero. Usa
@@ -271,14 +295,14 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
 
-Con las dieciocho evals de `boe-legislacion`, una ejecución abre 90 sesiones: 36 de `claude-sonnet-5` sobre las doce
+Con las dieciocho evals de `boe-legislacion`, su trabajo abre 90 sesiones: 36 de `claude-sonnet-5` sobre las doce
 que deciden, 18 sobre las seis informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
 del tope de 120 minutos del job (`timeout-minutes`). Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
 | Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/core/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
 | Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del
@@ -307,7 +331,8 @@ Cómo se lee el informe:
   tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
   ilegible o una petición llegada a la red hacen fallar el veredicto igual.
 
-La **prueba de red** añade, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
+La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no puede pedir nada a la red, así que el de
+`legal-core` no la lleva—, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
 su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`.

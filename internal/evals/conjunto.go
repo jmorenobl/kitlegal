@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
 // formaDelNombre es la forma del nombre de un fichero de eval, <nn>-<descripción>.yaml:
@@ -53,7 +55,7 @@ type FicheroMalFormado struct {
 //     con un Conjunto vacío. Un directorio vacío da un Conjunto vacío sin error.
 //
 // Solo lee y comprueba el formato: las reglas del conjunto son de
-// ComprobarConjuntoDeBoeLegislacion.
+// ComprobarConjunto.
 func LeerConjunto(dir string) (Conjunto, error) {
 	entradas, err := os.ReadDir(dir)
 	if err != nil {
@@ -107,8 +109,8 @@ func leerEntrada(dir string, entrada fs.DirEntry) (Eval, error) {
 }
 
 // NormaConocida es lo que las reglas del conjunto necesitan de una norma de
-// data/normas.yaml; ComprobarConjuntoDeBoeLegislacion las recibe en un mapa por
-// identificador (contrato evals-y-grabaciones §2).
+// data/normas.yaml; ComprobarConjunto las recibe en un mapa por identificador
+// (contrato evals-y-grabaciones §2).
 type NormaConocida struct {
 	// Abreviatura es la abreviatura de la norma, o vacía si no tiene.
 	Abreviatura string
@@ -118,10 +120,11 @@ type NormaConocida struct {
 }
 
 // DefectoDelConjunto es el incumplimiento de una regla del conjunto de evals
-// (data-model §6.3).
+// (data-model §6.3 de H5 y §6.4 de H6).
 type DefectoDelConjunto struct {
-	// Regla es el nombre de la regla en la tabla de data-model §6.3, como
-	// «materias distintas» o «normas conocidas».
+	// Regla es el nombre de la regla en la tabla de su juego, como «materias
+	// distintas» o «normas conocidas» en el de boe-legislacion y «cubierto» en el
+	// de legal-core.
 	Regla string
 
 	// Mensaje dice qué se incumple, nombrando los ficheros de eval y las normas
@@ -146,8 +149,21 @@ const (
 // (FR-062), en el orden de data-model §6.3.
 var abreviaturasDelHito = []string{"LPAC", "LCSP", "LRBRL", "LGT", "TRLRHL"}
 
-// reglaDelConjunto es una regla de data-model §6.3 con su nombre en la tabla.
-type reglaDelConjunto struct {
+// Lo que fijan las reglas del conjunto de evals de legal-core (contrato de evals
+// §3 de H6; FR-080 a FR-082).
+const (
+	minimoDeEvalsDeLegalCore = 3
+
+	// valorNoConfigurado es el valor del vocabulario de cobertura con el que el
+	// applet territorio dice que la comunidad no tiene configurado un aspecto
+	// (data-model §2.4 de H6).
+	valorNoConfigurado = "no-configurado"
+)
+
+// ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
+// su nombre en la tabla de ese juego. Los juegos los dan ReglasDeBoeLegislacion y
+// ReglasDeLegalCore, y los aplica ComprobarConjunto.
+type ReglaDelConjunto struct {
 	nombre string
 
 	// incumplimiento devuelve el mensaje del defecto, o vacío si el conjunto
@@ -155,32 +171,48 @@ type reglaDelConjunto struct {
 	incumplimiento func(conjunto *conjuntoAComprobar) string
 }
 
-// reglasDelConjunto son las reglas de data-model §6.3 en el orden de su tabla,
-// salvo la de revisión (sin municipio), que no es mecánica.
-var reglasDelConjunto = []reglaDelConjunto{
-	{nombre: "tamaño", incumplimiento: incumplimientoDelTamanio},
-	{nombre: "positivas", incumplimiento: incumplimientoDePositivas},
-	{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
-	{nombre: "informativas", incumplimiento: incumplimientoDeInformativas},
-	{nombre: "materias distintas", incumplimiento: incumplimientoDeMateriasDistintas},
-	{nombre: "normas del hito", incumplimiento: incumplimientoDeNormasDelHito},
-	{nombre: "art. 21", incumplimiento: incumplimientoDelArticulo21},
-	{nombre: "fiscal", incumplimiento: incumplimientoFiscal},
-	{nombre: "boe-fiscal", incumplimiento: incumplimientoDeBoeFiscal},
-	{nombre: "normas conocidas", incumplimiento: incumplimientoDeNormasConocidas},
+// ReglasDeBoeLegislacion son las reglas del conjunto de evals de boe-legislacion
+// de data-model §6.3 de H5, en el orden de su tabla, salvo la de revisión (sin
+// municipio), que no es mecánica. Cada llamada devuelve un juego nuevo.
+func ReglasDeBoeLegislacion() []ReglaDelConjunto {
+	return []ReglaDelConjunto{
+		{nombre: "tamaño", incumplimiento: incumplimientoDelTamanio},
+		{nombre: "positivas", incumplimiento: incumplimientoDePositivas},
+		{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
+		{nombre: "informativas", incumplimiento: incumplimientoDeInformativas},
+		{nombre: "materias distintas", incumplimiento: incumplimientoDeMateriasDistintas},
+		{nombre: "normas del hito", incumplimiento: incumplimientoDeNormasDelHito},
+		{nombre: "art. 21", incumplimiento: incumplimientoDelArticulo21},
+		{nombre: "fiscal", incumplimiento: incumplimientoFiscal},
+		{nombre: "boe-fiscal", incumplimiento: incumplimientoDeBoeFiscal},
+		{nombre: "normas conocidas", incumplimiento: incumplimientoDeNormasConocidas},
+	}
 }
 
-// ComprobarConjuntoDeBoeLegislacion aplica a las evals bien formadas de
-// evals/boe-legislacion/ las reglas de data-model §6.3, salvo la de revisión, con
-// las normas de data/normas.yaml por identificador (contrato evals-y-grabaciones
-// §2). Devuelve un defecto por cada regla que se incumple, en el orden de la
-// tabla, y ninguno si se cumplen todas. No lee ficheros.
-func ComprobarConjuntoDeBoeLegislacion(evals []Eval, normas map[string]NormaConocida) []DefectoDelConjunto {
+// ReglasDeLegalCore son las reglas del conjunto de evals de legal-core del
+// contrato de evals §3 de H6, en el orden de su tabla. Cada llamada devuelve un
+// juego nuevo.
+func ReglasDeLegalCore() []ReglaDelConjunto {
+	return []ReglaDelConjunto{
+		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDeLegalCore},
+		{nombre: "cubierto", incumplimiento: incumplimientoDelMunicipioCubierto},
+		{nombre: "no cubierto", incumplimiento: incumplimientoDelMunicipioNoCubierto},
+		{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
+		{nombre: "esperado verificable", incumplimiento: incumplimientoDelEsperadoVerificable},
+	}
+}
+
+// ComprobarConjunto aplica a las evals bien formadas de una carpeta evals/<skill>/
+// las reglas del juego dado, con las normas de data/normas.yaml por identificador
+// (contrato evals-y-grabaciones §2 de H5; contrato de evals §3 de H6). Devuelve un
+// defecto por cada regla que se incumple, en el orden del juego, y ninguno si se
+// cumplen todas. No lee ficheros.
+func ComprobarConjunto(evals []Eval, normas map[string]NormaConocida, reglas []ReglaDelConjunto) []DefectoDelConjunto {
 	conjunto := nuevoConjuntoAComprobar(evals, normas)
 
 	var defectos []DefectoDelConjunto
 
-	for _, regla := range reglasDelConjunto {
+	for _, regla := range reglas {
 		if mensaje := regla.incumplimiento(conjunto); mensaje != "" {
 			defectos = append(defectos, DefectoDelConjunto{Regla: regla.nombre, Mensaje: mensaje})
 		}
@@ -214,6 +246,10 @@ type conjuntoAComprobar struct {
 	// delArticulo21 son las posiciones de las evals que deciden con la pregunta y
 	// la cita del art. 21.
 	delArticulo21 []int
+
+	// sobreUnMunicipio son las posiciones de las evals con activa: true que
+	// tienen un comando de territorio.
+	sobreUnMunicipio []int
 }
 
 // nuevoConjuntoAComprobar pasa una sola vez por las evals y deja hecho lo que
@@ -222,6 +258,12 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 	conjunto := &conjuntoAComprobar{evals: evals, normas: normas, citadaPor: map[string][]int{}}
 
 	for posicion, eval := range evals {
+		if eval.Activa && slices.ContainsFunc(eval.Comandos, func(comando ComandoEsperado) bool {
+			return formaDelComando(comando) == formaTerritorio
+		}) {
+			conjunto.sobreUnMunicipio = append(conjunto.sobreUnMunicipio, posicion)
+		}
+
 		if eval.Informativa {
 			conjunto.informativas = append(conjunto.informativas, posicion)
 
@@ -457,6 +499,96 @@ func incumplimientoDeNormasConocidas(conjunto *conjuntoAComprobar) string {
 	}
 
 	return "normas de citas o comandos esperados que no están en data/normas.yaml: " + strings.Join(partes, "; ")
+}
+
+// incumplimientoDelMinimoDeLegalCore: al menos tres evals bien formadas.
+func incumplimientoDelMinimoDeLegalCore(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.evals) >= minimoDeEvalsDeLegalCore {
+		return ""
+	}
+
+	return fmt.Sprintf("hay %d evals y el conjunto lleva al menos %d: %s",
+		len(conjunto.evals), minimoDeEvalsDeLegalCore, conjunto.todosLosFicheros())
+}
+
+// incumplimientoDelMunicipioCubierto: al menos una eval activa resuelve con su
+// comando de territorio un municipio del territorio configurado y declara sus
+// boletines en lo esperado. Las reglas no resuelven municipios, así que lo que
+// hace cubierto al municipio se lee de lo que su eval espera: declara boletines y
+// no es de una comunidad sin configuración (deComunidadSinConfiguracion), que
+// también puede declarar el boletín estatal. Nombra las evals activas con un
+// comando de territorio.
+func incumplimientoDelMunicipioCubierto(conjunto *conjuntoAComprobar) string {
+	for _, posicion := range conjunto.sobreUnMunicipio {
+		eval := conjunto.evals[posicion]
+		if len(eval.Territorio.Boletines) > 0 && !deComunidadSinConfiguracion(eval) {
+			return ""
+		}
+	}
+
+	return "ninguna eval activa resuelve con un comando de territorio un municipio del territorio configurado " +
+		"y declara sus boletines en lo esperado; evals activas con un comando de territorio: " +
+		conjunto.ficheros(conjunto.sobreUnMunicipio)
+}
+
+// incumplimientoDelMunicipioNoCubierto: al menos una eval activa resuelve con su
+// comando de territorio un municipio de una comunidad sin configuración y declara
+// en lo esperado cada aspecto de cobertura no configurado. Nombra lo que tiene que
+// declarar y las evals activas con un comando de territorio.
+func incumplimientoDelMunicipioNoCubierto(conjunto *conjuntoAComprobar) string {
+	for _, posicion := range conjunto.sobreUnMunicipio {
+		if deComunidadSinConfiguracion(conjunto.evals[posicion]) {
+			return ""
+		}
+	}
+
+	return fmt.Sprintf("ninguna eval activa resuelve con un comando de territorio un municipio de una comunidad "+
+		"sin configuración y declara en lo esperado %s; evals activas con un comando de territorio: %s",
+		strings.Join(aspectosNoConfigurados(), ", "), conjunto.ficheros(conjunto.sobreUnMunicipio))
+}
+
+// incumplimientoDelEsperadoVerificable: toda eval activa declara citas o
+// territorio en lo esperado. Nombra las que no.
+func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
+	var sinVerificable []int
+
+	for posicion, eval := range conjunto.evals {
+		if eval.Activa && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 {
+			sinVerificable = append(sinVerificable, posicion)
+		}
+	}
+
+	if len(sinVerificable) == 0 {
+		return ""
+	}
+
+	return "evals activas sin citas ni territorio en lo esperado: " + conjunto.ficheros(sinVerificable)
+}
+
+// deComunidadSinConfiguracion dice si la eval espera el territorio de un
+// municipio de una comunidad sin configuración: su cobertura declara no
+// configurado cada aspecto que puede estarlo (aspectosNoConfigurados).
+func deComunidadSinConfiguracion(eval Eval) bool {
+	noConfigurados := aspectosNoConfigurados()
+
+	return len(noConfigurados) > 0 && !slices.ContainsFunc(noConfigurados, func(aspecto string) bool {
+		return !slices.Contains(eval.Territorio.Cobertura, aspecto)
+	})
+}
+
+// aspectosNoConfigurados son, en la forma <aspecto>: <valor> y en el orden de sus
+// claves, las del vocabulario de territorio.AspectosDeCobertura que pueden valer
+// no-configurado, con ese valor: los de una comunidad sin configuración.
+func aspectosNoConfigurados() []string {
+	var noConfigurados []string
+
+	for _, aspecto := range territorio.AspectosDeCobertura() {
+		if slices.Contains(aspecto.Valores, valorNoConfigurado) {
+			noConfigurados = append(noConfigurados, aspectoDeCobertura(aspecto.Clave, valorNoConfigurado))
+		}
+	}
+
+	return noConfigurados
 }
 
 // ficheros enumera los ficheros de las evals en esas posiciones.

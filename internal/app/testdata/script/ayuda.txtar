@@ -8,13 +8,15 @@
 
 symlink kitlegal -> $KITLEGAL_BIN
 
-# La ayuda del binario: los dos applets de ejemplo, ordenados y con su
-# descripción, y dónde seguir buscando.
+# La ayuda del binario: los dos applets de ejemplo y territorio, ordenados y con
+# su descripción, y dónde seguir buscando. El nombre más largo, territorio, fija
+# el ancho de la columna de nombres.
 exec ./kitlegal --help
 stdout '\Auso: kitlegal <applet> \[verbo\] \[banderas\]\n'
 stdout '^applets:$'
-stdout '^  contar  Cuenta '
-stdout '^  echo    Devuelve '
+stdout '^  contar      Cuenta '
+stdout '^  echo        Devuelve '
+stdout '^  territorio  Resuelve un municipio de España '
 stdout 'Los verbos de cada applet, en «kitlegal <applet> --help»\.\n\z'
 ! stderr .
 

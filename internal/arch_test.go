@@ -116,7 +116,9 @@ func TestArquitectura(t *testing.T) {
 // Los que entraron en H1 están justificados en plan.md (Complexity Tracking) y en
 // gates/pr-h1.md; los que entran en H4, cuando el applet boe enlaza
 // internal/httpx e internal/cache, en gates/pr-h4.md (FR-060, FR-124;
-// research.md D14 de H4). Lo que importa cada uno lo mide `go list -deps` sobre
+// research.md D14 de H4); el que entra en H6, cuando el applet territorio
+// enlaza internal/core/territorio, en plan.md de H6 (Complexity Tracking) y en
+// gates/pr-h6.md. Lo que importa cada uno lo mide `go list -deps` sobre
 // el binario de cada una de plataformasDeDistribucion; el que no llega a todas
 // lo dice en su línea.
 //
@@ -149,6 +151,13 @@ var modulosDelBinario = []string{
 	// §V, H4: internal/httpx interpreta con él el robots.txt de cada sitio antes
 	// de pedirle nada.
 	"github.com/temoto/robotstxt",
+	// §V, H6: internal/core/territorio analiza con él los ficheros congelados de
+	// data/territorio/, que son YAML como todo data/ (docs/ROADMAP.md §2). Entra
+	// por internal/app, cuyas importaciones sigue `go list -deps` todas, en cuanto
+	// existe el applet territorio, esté o no registrado. Es la biblioteca de YAML
+	// que el repositorio fijó en H5; v4, que ya llegaba por otro camino, no tiene
+	// ninguna versión estable (research.md D15 de H6).
+	"go.yaml.in/yaml/v3",
 	// H1: lo importa github.com/pb33f/ordered-map/v2.
 	"go.yaml.in/yaml/v4",
 	// H4: lo importan modernc.org/sqlite, modernc.org/libc, modernc.org/memory y

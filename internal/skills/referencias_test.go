@@ -2,6 +2,7 @@ package skills_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,5 +119,146 @@ func TestRenderizarNormas(t *testing.T) {
 
 		slices.Reverse(normas)
 		assert.Equal(t, esperada, string(skills.RenderizarNormas(normas)))
+	})
+}
+
+// comienzoDeLasLeyesVertebrales es lo que abre toda referencia de leyes
+// vertebrales, hasta la fila de separación de su tabla (contrato de la skill
+// legal-core §2): la cabecera nombra data/normas.yaml, del que sale aunque no se
+// llame como ella, y los encabezados son los de la referencia de normas.
+const comienzoDeLasLeyesVertebrales = "<!-- generado desde data/normas.yaml, no editar -->\n" +
+	"\n" +
+	"# Leyes vertebrales\n" +
+	"\n" +
+	"| Norma | Abreviatura | Identificador | Rango | Materias |\n" +
+	"|---|---|---|---|---|\n"
+
+// normasDePruebaConDosVertebrales son normasDePrueba con la marca vertebral en la
+// de la barra en el título, BOE-A-2015-10566, y en la LRBRL, BOE-A-1985-5392.
+func normasDePruebaConDosVertebrales() []skills.Norma {
+	normas := normasDePrueba()
+	normas[0].Vertebral = true
+	normas[2].Vertebral = true
+
+	return normas
+}
+
+// TestRenderizarLeyesVertebrales fija RenderizarLeyesVertebrales (contrato de la
+// skill legal-core §2 y §4; research.md D20; FR-065, FR-067): solo las normas
+// marcadas vertebral, con la cabecera que nombra data/normas.yaml, su propio
+// título y los encabezados, el orden y los escapes de la referencia de normas; sin
+// ninguna marcada, la tabla vacía; y las normas que recibe no cambian.
+func TestRenderizarLeyesVertebrales(t *testing.T) {
+	t.Parallel()
+
+	t.Run("solo-las-marcadas", func(t *testing.T) {
+		t.Parallel()
+
+		esperada := comienzoDeLasLeyesVertebrales +
+			"| Ley 7/1985, de 2 de abril, reguladora de las Bases del Régimen Local. | LRBRL | `BOE-A-1985-5392` | Ley | régimen local |\n" +
+			"| Norma de prueba con una barra \\| en el título. |  | `BOE-A-2015-10566` | Ley | régimen jurídico del sector público |\n"
+
+		assert.Equal(t, esperada, string(skills.RenderizarLeyesVertebrales(normasDePruebaConDosVertebrales())))
+	})
+
+	t.Run("todas-marcadas-dan-las-filas-de-las-normas", func(t *testing.T) {
+		t.Parallel()
+
+		normas := normasDePrueba()
+		for indice := range normas {
+			normas[indice].Vertebral = true
+		}
+
+		filas := strings.TrimPrefix(referenciaDeLasNormasDePrueba, comienzoDeLaReferencia)
+		assert.Equal(t, comienzoDeLasLeyesVertebrales+filas, string(skills.RenderizarLeyesVertebrales(normas)))
+	})
+
+	t.Run("ninguna-marcada", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, comienzoDeLasLeyesVertebrales, string(skills.RenderizarLeyesVertebrales(normasDePrueba())))
+	})
+
+	t.Run("no-cambia-las-normas-que-recibe", func(t *testing.T) {
+		t.Parallel()
+
+		normas := normasDePruebaConDosVertebrales()
+		skills.RenderizarLeyesVertebrales(normas)
+
+		assert.Equal(t, normasDePruebaConDosVertebrales(), normas)
+	})
+}
+
+// referenciaDeLaJerarquiaConEscapes son los bytes exactos de la referencia de
+// jerarquiaConEscapes: una fila por nivel en el orden en que llegan, con los tipos
+// de norma separados por «, », la barra escrita \| y cada salto de línea como un
+// espacio; y detrás la lista de las reglas, cada una con su código y su
+// enunciado en una sola línea.
+const referenciaDeLaJerarquiaConEscapes = "<!-- generado desde data/jerarquia.yaml, no editar -->\n" +
+	"\n" +
+	"# Jerarquía normativa\n" +
+	"\n" +
+	"| Nivel | Boletín | Tipos de norma, de mayor a menor rango |\n" +
+	"|---|---|---|\n" +
+	"| Unión Europea | Diario de prueba \\| con una barra | Reglamento, Directiva |\n" +
+	"| Estado | Boletín de prueba en dos líneas | Ley \\| con una barra |\n" +
+	"\n" +
+	"## Reglas de interpretación\n" +
+	"\n" +
+	"- `ley-posterior`: La posterior deroga a la anterior, con saltos de Windows y de retorno de carro.\n" +
+	"- `ley-especial`: La especial | prevalece sobre la general.\n"
+
+// jerarquiaConEscapes es la jerarquía de TestRenderizarJerarquia: dos niveles y dos
+// reglas, con una barra y saltos de línea de las tres formas en sus textos.
+func jerarquiaConEscapes() skills.Jerarquia {
+	return skills.Jerarquia{
+		Niveles: []skills.NivelNormativo{
+			{
+				Codigo:  "ue",
+				Nombre:  "Unión Europea",
+				Boletin: "Diario de prueba | con una barra",
+				Normas:  []string{"Reglamento", "Directiva"},
+			},
+			{Codigo: "estado", Nombre: "Estado", Boletin: "Boletín de prueba\nen dos líneas", Normas: []string{"Ley | con una barra"}},
+		},
+		Reglas: []skills.ReglaDeInterpretacion{
+			{
+				Codigo:    "ley-posterior",
+				Enunciado: "La posterior deroga a la anterior,\r\ncon saltos de Windows\ry de retorno de carro.",
+			},
+			{Codigo: "ley-especial", Enunciado: "La especial | prevalece\nsobre la general."},
+		},
+	}
+}
+
+// TestRenderizarJerarquia fija RenderizarJerarquia (contrato de la skill
+// legal-core §2 y §4; research.md D20; FR-066, FR-067): los bytes exactos de la
+// referencia, con la cabecera que nombra data/jerarquia.yaml, la tabla de niveles
+// con su boletín y sus tipos de norma, y la lista de reglas; los niveles y las
+// reglas van en el orden en que llegan, que es el que el esquema impone al
+// documento; y la jerarquía que recibe no cambia.
+func TestRenderizarJerarquia(t *testing.T) {
+	t.Parallel()
+
+	t.Run("bytes-exactos", func(t *testing.T) {
+		t.Parallel()
+
+		jerarquia := jerarquiaConEscapes()
+
+		assert.Equal(t, referenciaDeLaJerarquiaConEscapes, string(skills.RenderizarJerarquia(jerarquia)))
+		assert.Equal(t, jerarquiaConEscapes(), jerarquia, "la jerarquía que recibe no cambia")
+	})
+
+	t.Run("en-el-orden-en-que-llegan", func(t *testing.T) {
+		t.Parallel()
+
+		jerarquia := jerarquiaConEscapes()
+		slices.Reverse(jerarquia.Niveles)
+		slices.Reverse(jerarquia.Reglas)
+
+		referencia := string(skills.RenderizarJerarquia(jerarquia))
+
+		assert.Less(t, strings.Index(referencia, "| Estado |"), strings.Index(referencia, "| Unión Europea |"))
+		assert.Less(t, strings.Index(referencia, "`ley-especial`"), strings.Index(referencia, "`ley-posterior`"))
 	})
 }

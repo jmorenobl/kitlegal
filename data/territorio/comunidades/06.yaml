@@ -1,0 +1,7 @@
+fecha: "2026-09-20"
+source: ine.codigos-territoriales
+codigo: "06"
+nombre: "Cantabria"
+regimen: comun
+provincias:
+  "39": "Cantabria"
