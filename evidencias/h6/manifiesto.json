@@ -17,6 +17,108 @@
       "fecha": "2026-09-22",
       "versionado": "sí",
       "origen": "https://registroentidadeslocales.mpt.es/REL/frontend/export_data/file_export/export_excel/eatimes/all/all"
+    },
+    {
+      "fichero": "diccionario26.xlsx",
+      "sha256": "07f8e8d64eba73fe9d425196fe82f4e09a9886a287abd650e88ca8d98dd49052",
+      "bytes": 306819,
+      "fuente": "ine.municipios",
+      "fecha": "2026-09-25",
+      "versionado": "sí",
+      "origen": "https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx",
+      "nota": "recuperado: descargado de nuevo el 2026-09-25 con la misma huella que la descarga original del 2026-09-20"
+    },
+    {
+      "fichero": "cod_ccaa.htm",
+      "sha256": "843977236254a0aedd4bb27a806a796fc79800a8cc0bd6a1deb25e866454e927",
+      "bytes": 22669,
+      "fuente": "ine.codigos-territoriales",
+      "fecha": "2026-09-25",
+      "versionado": "sí",
+      "origen": "https://www.ine.es/daco/daco42/codmun/cod_ccaa.htm",
+      "nota": "recuperado: descargado de nuevo el 2026-09-25 con la misma huella que la descarga original del 2026-09-20"
+    },
+    {
+      "fichero": "cod_provincia.htm",
+      "sha256": "f26be07b88d4004c713dc94185c26ed6c35d831e9e3ef83960fd251a4f813fde",
+      "bytes": 26258,
+      "fuente": "ine.codigos-territoriales",
+      "fecha": "2026-09-25",
+      "versionado": "sí",
+      "origen": "https://www.ine.es/daco/daco42/codmun/cod_provincia.htm",
+      "nota": "recuperado: descargado de nuevo el 2026-09-25 con la misma huella que la descarga original del 2026-09-20"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01010590.html",
+      "sha256": "95dea00d61e83b7e4017075b5f2811763d504c99ce2fab31328789572629b3e6",
+      "bytes": 99286,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01010590"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01159027.html",
+      "sha256": "6ba160ac5db815b7927bdc8e279986048bcb6dd92e984e8e093950d8db9eecf5",
+      "bytes": 89016,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01159027"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01241324.html",
+      "sha256": "eb209ba00bf16913e3f1bef40b6c0040e44da898317dedb49918a5306fbc5204",
+      "bytes": 90813,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01241324"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01280745.html",
+      "sha256": "5342395b5a8bacfb1c7744b50b6276eb1f7a0254b4aad937e9e9b7113fb01141",
+      "bytes": 115278,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01280745"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01312016.html",
+      "sha256": "1a04ff4b205e295823c6c08a14ceded13c4e3cd86c589fa83d2d4e5c786f158f",
+      "bytes": 98239,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01312016"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01369026.html",
+      "sha256": "c1a39ea72c3ff060bf4c4d4cc11aeab9df63962e7c5708358918929fe2654336",
+      "bytes": 91260,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01369026"
+    },
+    {
+      "fichero": "pag-fichas/ficha-L01390839.html",
+      "sha256": "3dd97014dcd6ec520a0f41ff4b77162d8d4fcbfb9bea1ce1fc44e6d250aa0a9c",
+      "bytes": 90150,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "https://administracion.gob.es/pagFront/espanaAdmon/directorioOrganigrama/fichaUnidadOrganica.htm?codigoUnidad=L01390839"
+    },
+    {
+      "fichero": "pag-fichas/pag-resultados.txt",
+      "sha256": "12fcc816b8f6d37dfd96bc99fb1274ad4361741662f3160e614eda9d69c77143",
+      "bytes": 576,
+      "fuente": "pag.directorio",
+      "fecha": "2026-09-24",
+      "versionado": "sí",
+      "origen": "registro de la consulta (escrito por el guion de H6, no por el PAG)"
     }
   ]
 }
