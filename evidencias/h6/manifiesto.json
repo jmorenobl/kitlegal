@@ -1,0 +1,22 @@
+{
+  "ficheros": [
+    {
+      "fichero": "rel.xls",
+      "sha256": "eeffc6d08d523a5367ee37b57b34119cb6ffe28dd4634d195729748ba406f28c",
+      "bytes": 2063872,
+      "fuente": "mpt.rel",
+      "fecha": "2026-09-21",
+      "versionado": "sí",
+      "origen": "https://registroentidadeslocales.mpt.es/REL/frontend/export_data/file_export/export_excel/municipios/all/all"
+    },
+    {
+      "fichero": "eatimes.xls",
+      "sha256": "298ec243b69346c9c260aefeb474a6758537f741fdeac65797d7daaf6b3b36c3",
+      "bytes": 636928,
+      "fuente": "mpt.rel",
+      "fecha": "2026-09-22",
+      "versionado": "sí",
+      "origen": "https://registroentidadeslocales.mpt.es/REL/frontend/export_data/file_export/export_excel/eatimes/all/all"
+    }
+  ]
+}
