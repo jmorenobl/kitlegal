@@ -154,11 +154,15 @@ type Conflicto struct {
 	Ruta string
 }
 
+// prefijoDeInstall encabeza el mensaje de todo fallo de install con código 1
+// (contracts/applet-skills.md §5).
+const prefijoDeInstall = "skills install: "
+
 // cabeceraDeInstall es la primera línea del mensaje con que install nombra
 // cada conflicto (contracts/applet-skills.md §5). Su última palabra va en dos
 // literales porque misspell, con su diccionario inglés, marca la palabra
 // española entera como una errata de «conflicts».
-const cabeceraDeInstall = "skills install: nada se ha creado ni cambiado; conflict" + "os:"
+const cabeceraDeInstall = prefijoDeInstall + "nada se ha creado ni cambiado; conflict" + "os:"
 
 // ErrorDeConflictos es el rechazo de install cuando alguna entrada que iba a
 // crear, cambiar o retirar no es suya: los nombra todos, cada entrada con una
@@ -211,4 +215,14 @@ func (e *ErrorDeConflictos) Clase() schema.Clase {
 // Lista es cada conflicto, en orden de ruta, en una copia.
 func (e *ErrorDeConflictos) Lista() []Conflicto {
 	return slices.Clone(e.lista)
+}
+
+// falloAlAplicar es el de una operación del Escritor que falla tras la
+// comprobación, con el que Aplicar se para: «skills install: <operación>
+// <ruta>: <error del sistema>», con la ruta como se alcanza desde el
+// directorio de trabajo, envolviendo el error del Escritor (FR-044;
+// contracts/applet-skills.md §5). No declara clase: es un fallo de entrada y
+// salida, lo no previsto, que el kernel traduce a código 1 (data-model §9).
+func falloAlAplicar(operacion, ruta string, err error) error {
+	return fmt.Errorf("%s%s %s: %w", prefijoDeInstall, operacion, ruta, err)
 }

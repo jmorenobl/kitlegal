@@ -481,16 +481,41 @@ func (d *discoEnMemoria) paraCrear(op, ruta string) (string, nodoEnMemoria, bool
 // o hay otro, y retirar un fichero, un enlace sin seguirlo o un directorio
 // vacío; los enlaces, con el Enlazador de la invocación. Lo que el sistema
 // rechazaría es un error, así que un plan que pide algo imposible no pasa.
+//
+// Además anota cada operación que se le pide, en orden, y deja hacer fallar
+// una de ellas, como falla un disco lleno o sin permiso: la operación número
+// fallarEn, contando desde 1, no hace nada y devuelve errInyectado, el error
+// del sistema; con fallarEn 0 no falla ninguna.
 type escritorEnMemoria struct {
 	disco     *discoEnMemoria
 	enlazador *enlazadorEnMemoria
+	fallarEn  int
+	// operaciones son las pedidas, también la que falla: «crear <ruta>»,
+	// «escribir <ruta>», «retirar <ruta>» o «enlazar <ruta> -> <destino>».
+	operaciones []string
 }
 
 // El escritor en memoria es un Escritor.
 var _ instalacion.Escritor = (*escritorEnMemoria)(nil)
 
+// pedir anota operacion y devuelve errInyectado si es la que tiene que
+// fallar.
+func (e *escritorEnMemoria) pedir(operacion string) error {
+	e.operaciones = append(e.operaciones, operacion)
+
+	if len(e.operaciones) == e.fallarEn {
+		return errInyectado
+	}
+
+	return nil
+}
+
 // CrearDirectorio crea el directorio real de ruta, donde no hay nada.
 func (e *escritorEnMemoria) CrearDirectorio(ruta string) error {
+	if err := e.pedir("crear " + ruta); err != nil {
+		return err
+	}
+
 	fisica, _, existe, err := e.disco.paraCrear("CrearDirectorio", ruta)
 	if err != nil {
 		return err
@@ -508,6 +533,10 @@ func (e *escritorEnMemoria) CrearDirectorio(ruta string) error {
 // EscribirFichero deja en ruta un fichero regular con una copia de contenido,
 // donde no hay nada o sustituyendo a otro fichero regular.
 func (e *escritorEnMemoria) EscribirFichero(ruta string, contenido []byte) error {
+	if err := e.pedir("escribir " + ruta); err != nil {
+		return err
+	}
+
 	fisica, nodo, existe, err := e.disco.paraCrear("EscribirFichero", ruta)
 	if err != nil {
 		return err
@@ -525,6 +554,10 @@ func (e *escritorEnMemoria) EscribirFichero(ruta string, contenido []byte) error
 // Retirar quita la entrada de ruta, sin seguirla, si es un fichero, un enlace
 // o un directorio vacío.
 func (e *escritorEnMemoria) Retirar(ruta string) error {
+	if err := e.pedir("retirar " + ruta); err != nil {
+		return err
+	}
+
 	fisica, nodo, existe, err := e.disco.paraCrear("Retirar", ruta)
 
 	switch {
@@ -543,6 +576,10 @@ func (e *escritorEnMemoria) Retirar(ruta string) error {
 
 // Enlazar crea el enlace con el Enlazador de la invocación.
 func (e *escritorEnMemoria) Enlazar(destino, ruta string) error {
+	if err := e.pedir("enlazar " + ruta + " -> " + destino); err != nil {
+		return err
+	}
+
 	return e.enlazador.Enlazar(destino, ruta)
 }
 
@@ -631,61 +668,51 @@ func (e *enlazadorEnMemoria) Enlazar(destino, ruta string) error {
 	return nil
 }
 
-// aplicarEnMemoria lleva a cabo el plan con escritor, fase a fase y en el
-// orden de research.md D7: retira, crea lo que falta hasta .claude/skills y
-// enlaza —y la entrada cuyo enlace no se puede crear pasa a su recurso de
-// copia (FR-024)—, escribe el manifiesto final con los modos que resultaron y,
-// por último, los ficheros. Devuelve las skills que quedaron en copia por un
-// enlace que no se pudo crear; cualquier otro fallo termina el test.
+// aplicarEnMemoria lleva a cabo el plan con Aplicar sobre escritor, que no
+// puede fallar, y devuelve las skills cuya entrada de host quedó en copia
+// porque su enlace no se pudo crear (FR-024). Exige que la salida sea la
+// prevista en el plan salvo en eso: cada una de esas entradas, que el plan
+// preveía enlace, sale en copia.
 func aplicarEnMemoria(t *testing.T, plan instalacion.Plan, escritor *escritorEnMemoria) []string {
 	t.Helper()
 
-	for _, ruta := range plan.Retirar {
-		require.NoError(t, escritor.Retirar(ruta), "fase 1")
-	}
-
-	crearEnMemoria(t, escritor, plan.Enlazar.DirectoriosQueFaltan, "fase 2")
+	skills, err := instalacion.Aplicar(plan, escritor)
+	require.NoError(t, err)
+	require.Len(t, skills, len(plan.Skills), "una salida por cada skill pedida")
 
 	var enCopia []string
 
-	escribir := instalacion.Escrituras{
-		DirectoriosQueFaltan: slices.Clone(plan.Escribir.DirectoriosQueFaltan),
-		Ficheros:             slices.Clone(plan.Escribir.Ficheros),
-	}
-
-	for _, enlace := range plan.Enlazar.Enlaces {
-		if err := escritor.Enlazar(enlace.Destino, enlace.Ruta); err != nil {
-			enCopia = append(enCopia, enlace.Skill)
-			escribir.DirectoriosQueFaltan = append(escribir.DirectoriosQueFaltan, enlace.Copia.DirectoriosQueFaltan...)
-			escribir.Ficheros = append(escribir.Ficheros, enlace.Copia.Ficheros...)
+	for i, skill := range skills {
+		if !slices.Equal(skill.Enlaces, plan.Skills[i].Enlaces) {
+			enCopia = append(enCopia, skill.Nombre)
 		}
 	}
 
-	crearEnMemoria(t, escritor, plan.Manifiesto.DirectoriosQueFaltan, "fase 3")
-
-	contenido, err := plan.Manifiesto.Contenido(enCopia)
-	require.NoError(t, err, "fase 3")
-
-	if contenido != nil {
-		require.NoError(t, escritor.EscribirFichero(plan.Manifiesto.Ruta, contenido), "fase 3")
-	}
-
-	crearEnMemoria(t, escritor, escribir.DirectoriosQueFaltan, "fase 4")
-
-	for _, fichero := range escribir.Ficheros {
-		require.NoError(t, escritor.EscribirFichero(fichero.Ruta, fichero.Contenido), "fase 4")
-	}
+	assert.Equal(t, enModoCopia(plan.Skills, enCopia...), skills,
+		"la salida es la prevista, con la entrada de cada enlace que no se pudo crear en copia (FR-024)")
 
 	return enCopia
 }
 
-// crearEnMemoria crea cada directorio, en orden.
-func crearEnMemoria(t *testing.T, escritor *escritorEnMemoria, rutas []string, fase string) {
-	t.Helper()
+// enModoCopia son las skills de la salida prevista con la entrada de host de
+// cada una de nombres —un enlace previsto— en copia, en una lista nueva.
+func enModoCopia(previstas []instalacion.SkillInstalada, nombres ...string) []instalacion.SkillInstalada {
+	skills := make([]instalacion.SkillInstalada, 0, len(previstas))
 
-	for _, ruta := range rutas {
-		require.NoError(t, escritor.CrearDirectorio(ruta), fase)
+	for _, skill := range previstas {
+		enlaces := slices.Clone(skill.Enlaces)
+
+		for i := range enlaces {
+			if slices.Contains(nombres, skill.Nombre) && enlaces[i].Modo == instalacion.ModoEnlace {
+				enlaces[i].Modo = instalacion.ModoCopia
+			}
+		}
+
+		skill.Enlaces = enlaces
+		skills = append(skills, skill)
 	}
+
+	return skills
 }
 
 // enlazadorDePrueba es un Enlazador sintético: a Disponible responde siempre
@@ -894,6 +921,7 @@ func TestDiscoEnMemoria(t *testing.T) {
 	t.Run("abrir y listar", probarAbrirEnMemoria)
 	t.Run("fallos inyectados", probarFallosEnMemoria)
 	t.Run("escribir", probarEscribirEnMemoria)
+	t.Run("fallos del escritor", probarFallosDelEscritorEnMemoria)
 	t.Run("enlazar", probarEnlazarEnMemoria)
 }
 
@@ -1063,6 +1091,26 @@ func probarEscribirEnMemoria(t *testing.T) {
 	entrada, err = d.Examinar("dir/sub")
 	require.NoError(t, err)
 	assert.Equal(t, instalacion.EntradaAusente, entrada.Tipo)
+}
+
+// probarFallosDelEscritorEnMemoria fija cómo falla el Escritor en memoria:
+// anota cada operación pedida, en orden, y la que tiene que fallar devuelve
+// errInyectado sin hacer nada; las demás, antes y después, se hacen.
+func probarFallosDelEscritorEnMemoria(t *testing.T) {
+	t.Parallel()
+
+	d := nuevoDiscoEnMemoria(t)
+	e := &escritorEnMemoria{disco: d, enlazador: nuevoEnlazadorHonesto(d, admiteSiempre), fallarEn: 2}
+
+	require.NoError(t, e.CrearDirectorio("a"))
+	require.ErrorIs(t, e.EscribirFichero("a/f", []byte("uno")), errInyectado)
+	assert.Equal(t, instalacion.EntradaAusente, examinarEnMemoria(t, d, "a/f").Tipo, "la que falla no hace nada")
+
+	require.NoError(t, e.Enlazar("f", "a/enlace"))
+	require.NoError(t, e.Retirar("a/enlace"))
+	assert.Equal(t, instalacion.EntradaAusente, examinarEnMemoria(t, d, "a/enlace").Tipo)
+
+	assert.Equal(t, []string{"crear a", "escribir a/f", "enlazar a/enlace -> f", "retirar a/enlace"}, e.operaciones)
 }
 
 // probarEnlazarEnMemoria fija el Enlazador en memoria: responde lo que diga
