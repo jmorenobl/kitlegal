@@ -33,7 +33,9 @@ En este orden; la primera que falla decide, y **ninguna lee ni escribe nada del 
 | 5 | `-g` con `HOME` sin definir o vacío | los tres | 1 | `HOME no está definido o está vacío` |
 
 Un nombre repetido cuenta una vez. Los errores 1-4 declaran la clase `argumentos`; el 5 no declara ninguna de las
-cinco del kernel y sale como `inesperado` (FR-012 fija el 1).
+cinco del kernel y sale como `inesperado` (FR-012 fija el 1). Este orden es la precedencia de FR-052: un error de
+argumentos gana con 2 aunque la invocación caiga además en el 5 o en cualquier exit 1 del ámbito (conflicto, hallazgo,
+manifiesto ilegible, ruta que no es directorio, manifiesto con entradas de host), que no llegan a comprobarse.
 
 ## 3. Ámbito y rutas que se presentan
 

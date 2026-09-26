@@ -88,7 +88,13 @@ Esperado: el primer `doctor` sale con 1 y la línea `fichero editado: .agents/sk
 '.agents/skills/legal-core/SKILL.md' && kitlegal skills install legal-core --host claude`; tras ejecutar esa orden, el
 segundo sale con 0.
 
-## 6. Los `SKILL.md` solo cambian en la forma de invocar (FR-081, SC-014)
+## 6. Las skills sin instalación por enlaces (FR-081, FR-082, FR-083, SC-014)
+
+Dos escenarios, porque cada uno vale desde una tarea distinta: el 6a desde que los `SKILL.md` pasan a `kitlegal
+<applet>` y se retiran sus `scripts/` (plan, paso 11); el 6b desde que el job de evals deja de nombrar `bin/instalado`
+(plan, paso 12), porque hasta entonces `.github/workflows/evals.yml` lo nombra. Con la entrega completa, los dos.
+
+### 6a. Los `SKILL.md` solo cambian en la forma de invocar, y ninguna skill tiene `scripts/` (FR-081, FR-082)
 
 ```sh
 for s in boe-legislacion legal-core; do
@@ -96,12 +102,19 @@ for s in boe-legislacion legal-core; do
     | sed -e 's#scripts/boe#kitlegal boe#g' -e 's#scripts/territorio#kitlegal territorio#g' > "$T/$s.md"
   diff "$T/$s.md" "skills/$s/SKILL.md"
 done
-grep -rn -e 'scripts/boe' -e 'scripts/territorio' -e 'bin/instalado' skills Makefile .github; echo "sin restos: $?"
 ls skills/*/scripts 2>/dev/null; echo "sin scripts/: $?"
 ```
 
 Esperado: `diff` solo muestra las frases que dicen de dónde sale el binario (que `kitlegal` se invoca desde el `PATH`);
-`grep` y `ls` no encuentran nada (código 1 y distinto de 0).
+`ls` no encuentra nada (código distinto de 0).
+
+### 6b. Ningún resto de la instalación por enlaces en `skills`, `Makefile` y `.github` (FR-083, SC-014)
+
+```sh
+grep -rn -e 'scripts/boe' -e 'scripts/territorio' -e 'bin/instalado' skills Makefile .github; echo "sin restos: $?"
+```
+
+Esperado: `grep` no encuentra nada (código 1). Es lo mismo que fija `TestSinInstalacionPorEnlaces`.
 
 ## 7. El aviso de versión, sin red (US3, SC-013; contracts/aviso.md)
 

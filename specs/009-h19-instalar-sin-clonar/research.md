@@ -195,8 +195,11 @@ directorio tiene exactamente las mismas entradas y los mismos bytes: `--dry-run`
 cambio en disco (FR-048, FR-068), y la sonda no crea directorios.
 
 La predicción del plan sale de `Disponible` —es lo que da `--dry-run` (FR-048) y lo que usa `doctor` para «copia»
-(FR-069)—, y en la fase 2 de D7, si `Enlazar` falla igualmente, la entrada pasa a copia (FR-024 literal). En e2e, un
-binario compuesto con un enlazador que siempre falla (D24).
+(FR-069)—, y en la fase 2 de D7, si `Enlazar` falla igualmente, la entrada pasa a copia (FR-024 literal). El applet
+no compone el `Enlazador` dentro: lo recibe en `app.DependenciasDeSkills` (con la versión y lo empotrado), como `boe`
+recibe su cliente en `app.DependenciasDeBoe`, y `app.DependenciasDeSkillsDelSistema(version)` pone el del sistema de
+`internal/disco`; así se sustituye en `TestAppletSkills` y en e2e, un binario compuesto con un enlazador que siempre
+falla (D24).
 
 **Raíz que no existe.** Solo ocurre con `-g` y un `HOME` que no existe. Dentro del ámbito no hay ningún directorio donde
 sondear, y lo que hay por encima de la raíz no se toca (FR-027): el dominio no pregunta y predice `enlace`; si ese
@@ -413,7 +416,10 @@ solo lo adjunta y no entra en los checksums (V8, V14). Así la firma de los chec
 - además del `kitlegal` de siempre (versión `dev`, un binario de desarrollo), tres construcciones del mismo binario
   con `-ldflags` constantes: versión `v0.1.0`, versión `v0.2.0`, y versión `v0.1.0` con el enlazador que siempre
   falla, cuyas rutas absolutas exporta en `KITLEGAL_V1_BIN`, `KITLEGAL_V2_BIN` y `KITLEGAL_SIN_ENLACES_BIN`. Invocados
-  por un enlace llamado `kitlegal`, el despacho toma el applet del primer argumento (el nombre no está registrado);
+  por un enlace llamado `kitlegal`, el despacho toma el applet del primer argumento (el nombre no está registrado).
+  El enlazador que falla es un tipo del `package main` de e2e (nunca de `internal/disco`); cuando la variable `-X` lo
+  elige, `registroDeE2E` lo pone en el campo `Enlazador` de `app.DependenciasDeSkillsDelSistema(version)` antes de
+  pasarlas a `app.AppletSkills` (D9), sin tocar el applet;
 - `KITLEGAL_SKILLS` (el `skills/` del repositorio, para comparar lo instalado byte a byte con lo empotrado) y
   `KITLEGAL_INSTALADOR` (`scripts/install.sh`);
 - un **origen de release local**, construido una vez por el arnés con el binario de versión `v0.1.0` empaquetado como

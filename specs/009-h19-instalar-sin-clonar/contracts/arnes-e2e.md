@@ -1,7 +1,9 @@
 # Contrato: el arnés e2e y los guiones de aceptación
 
-Lo que los guiones de aceptación de H19 pueden usar. La tarea `[aceptacion]` (T001) los escribe contra **este**
-contrato en `specs/009-h19-instalar-sin-clonar/aceptacion/*.txtar`; quedan congelados; el workflow los activa al final
+Lo que los guiones de aceptación de H19 pueden usar del arnés, y de qué contrato sale cada formato que afirman (§6). La
+tarea `[aceptacion]` (T001) los escribe contra **este** contrato —binarios, variables, `arbol` y origen local— y, para
+lo que el binario o `install.sh` escriben, contra los contratos del producto que enumera §6, en
+`specs/009-h19-instalar-sin-clonar/aceptacion/*.txtar`; quedan congelados; el workflow los activa al final
 en `internal/app/testdata/script/` con el prefijo `h19-` (V19) y los ejecuta `TestEntregaDelHito`. Las tareas que
 implementan el arnés (`internal/app/e2e_test.go` y `internal/app/ejemplo/kitlegal-e2e/main.go`) lo cumplen tal cual.
 Decisión en [../research.md](../research.md) D24.
@@ -18,7 +20,8 @@ stdout '^  skills +\S'
 
 Hoy falla por esa aserción («no match for …»), que es lo que el rojo-primero exige (`scripts/workflow/aceptacion.sh`,
 V19): ningún guion puede fallar antes por `exec` («unexpected command failure»), por una orden desconocida o por uso.
-Detrás de la precondición, el guion puede usar todo lo de este contrato, que existirá cuando se active.
+Detrás de la precondición, el guion puede usar todo lo de este contrato, que existirá cuando se active, y afirmar los
+formatos de salida que fijan los contratos del producto, tal como enumera §6.
 
 ## 2. Binarios
 
@@ -32,6 +35,11 @@ ejemplo, `boe` sobre la reproducción de sus grabaciones, `territorio` y **`skil
 | `$KITLEGAL_V1_BIN` (ruta absoluta) | `v0.1.0` | el del sistema |
 | `$KITLEGAL_V2_BIN` (ruta absoluta) | `v0.2.0` | el del sistema |
 | `$KITLEGAL_SIN_ENLACES_BIN` (ruta absoluta) | `v0.1.0` | uno que siempre falla (`Disponible` falso, `Enlazar` con error) |
+
+El creador de enlaces llega al applet en sus dependencias (`app.AppletSkills(app.DependenciasDeSkills)`, research D9):
+los tres primeros usan `app.DependenciasDeSkillsDelSistema(version)` tal cual; el cuarto, las mismas con el campo
+`Enlazador` sustituido por un tipo del `package main` de e2e que siempre falla, elegido al construir con una variable de
+cadena `-X` de ese paquete y nunca por el entorno (research D24).
 
 Para que las órdenes de `doctor` (que invocan `kitlegal`) usen una versión concreta, el guion la pone delante en el
 `PATH` con un enlace llamado `kitlegal`:
@@ -135,3 +143,25 @@ Reglas de escritura: cada proyecto de prueba en su carpeta (`mkdir proyecto` y `
 `reproduccion/` y `cache/`; el código de salida exacto con `exec sh -c '…; test $? -eq N'` (como `boe-codigos.txtar`);
 el destino de un enlace con `exec readlink <ruta>` y `stdout '\A…\n\z'`; el JSON por regex sobre `stdout` (`--json`);
 ninguna orden a la red.
+
+**De dónde sale cada formato que un guion afirma.** Este contrato solo da el arnés. Lo que escriben el binario e
+`install.sh` lo fijan el spec y los contratos del producto, y las tareas que los implementan los cumplen tal cual; un
+guion afirma un formato de salida solo si está en el spec de forma literal o en uno de estos apartados, y lo copia de
+ahí sin inventar otro:
+
+| Lo que el guion afirma | Contrato |
+|---|---|
+| mensajes de los errores de invocación (`-g y --dir se excluyen`, `--host no se combina con --dir`, `el único host admitido es claude`, `no es ninguna skill de este binario; skills disponibles: …`, `HOME no está definido o está vacío`) y su precedencia | [applet-skills.md](./applet-skills.md) §2 (FR-052) |
+| rutas presentadas en `data` y en los mensajes, por ámbito | [applet-skills.md](./applet-skills.md) §3 |
+| claves y valores de `data` de `install`, `list` y `doctor` sin hallazgos (sobre de applet calculado incluido) | [applet-skills.md](./applet-skills.md) §4 |
+| cabecera del `mensaje` y líneas `<clase>: <ruta>` de conflictos y `<clase>: <ruta>: <orden>` de hallazgos, con sus clases literales y su orden, en `mensaje` y en stderr; la línea única `skills <verbo>: <clase>: <ruta>` de `list` y `doctor`; el mensaje de fallo de escritura | [applet-skills.md](./applet-skills.md) §5 |
+| la orden de cada hallazgo, que SC-011 ejecuta con `sh -c` tras extraerla de la línea `<clase>: <ruta>: <orden>` (lo que sigue al segundo `: `) | [applet-skills.md](./applet-skills.md) §5 y §6 |
+| líneas de `--dry-run` | [applet-skills.md](./applet-skills.md) §7 |
+| códigos de salida | [applet-skills.md](./applet-skills.md) §8 |
+| la línea del aviso, con ` -g` si el manifiesto es el global | [aviso.md](./aviso.md) §4 |
+| el manifiesto `kitlegal.json` que un guion escribe a mano o lee | [manifiesto.md](./manifiesto.md) §1 y §3 |
+| la forma de invocar en los `SKILL.md` empotrados (`kitlegal <applet> <verbo> …`) | [skills-e-invocacion.md](./skills-e-invocacion.md) §2 |
+| `install.sh`: el prefijo `install.sh: ` de los errores y lo que nombran (versión o «la última versión», y lo que falló), la línea `export PATH='<dir>':"$PATH"` y la última línea `kitlegal skills install` | [release.md](./release.md) §7 |
+
+Lo que ningún contrato fija de forma literal (p. ej. el texto de un error del sistema en un fallo de escritura) no se
+afirma más allá de lo que el contrato dice que el mensaje contiene.

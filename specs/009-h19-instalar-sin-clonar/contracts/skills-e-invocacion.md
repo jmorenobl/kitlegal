@@ -29,7 +29,7 @@ SHA-256. `TestSkillsEmpotradas` (raíz) exige que el conjunto y los bytes empotr
   `PATH`, y la de `legal-core` que hoy dice «si `scripts/territorio` no resuelve a un binario» pasa a «si `kitlegal` no
   está en el `PATH`». Nada más cambia: protocolo, reglas, forma de la cita y de los avisos intactos. Se comprueba así:
   sustituyendo de vuelta la forma de invocar, `git diff main -- skills/*/SKILL.md` solo deja esas frases
-  (quickstart §6).
+  (quickstart §6a).
 - `metadata.kitlegal-applets` y `metadata.kitlegal-referencias` no cambian.
 
 ## 3. `skills-sync` y `skills-check`

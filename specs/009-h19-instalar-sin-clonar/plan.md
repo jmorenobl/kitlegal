@@ -44,7 +44,8 @@ Decisiones que sostienen el diseño:
    contra un origen local y en CI contra el snapshot (D28).
 8. **El arnés e2e gana lo que la aceptación necesita** (D24): binarios con versión y con un enlazador que falla, la
    orden `arbol` para comparar el disco byte a byte sin seguir enlaces, y un origen de release local; todo fijado de
-   antemano en [contracts/arnes-e2e.md](./contracts/arnes-e2e.md), contra el que T001 escribe la suite congelada.
+   antemano en [contracts/arnes-e2e.md](./contracts/arnes-e2e.md), contra el que T001 escribe la suite congelada; los
+   formatos de salida que la suite afirma salen de los contratos del producto que enumera su §6.
 
 Artefactos de diseño: [data-model.md](./data-model.md) y [contracts/](./contracts/)
 ([applet-skills](./contracts/applet-skills.md), [manifiesto](./contracts/manifiesto.md),
@@ -104,7 +105,7 @@ reescritos · documentación.
 |---|---|---|---|
 | **I** | Fuentes públicas y frontera humana | H19 **no toca ninguna fuente** ni añade ninguna petición HTTP: el applet y el aviso no alcanzan `net` (subprueba de arquitectura nueva, D32) e `install.sh` solo descarga la release pública del propio proyecto por HTTPS. **Frontera humana intacta**: etiquetar, publicar, hacer público el repositorio y crear el tap y el bucket son humanos; `release.yml` solo corre en una etiqueta `v*` que empuja una persona (FR-110, FR-115) y ninguna tarea la dispara ni usa `PUBLISHER_TOKEN` (FR-097). Nada con identidad | ✅ Cumple |
 | **II** | Nada sin cita ni fuente | Los tres verbos emiten el sobre de seis claves con la procedencia de applet calculado (`kitlegal.skills`, `kitlegal:applet/skills`; ADR 0006, D15). No hay contenido legal ni grafo. Las skills instaladas son **byte a byte** las empotradas (FR-003) y conservan su protocolo de cita intacto (FR-081) | ✅ Cumple |
-| **III** | Tests primero y offline | T001 escribe los 18 guiones de aceptación desde el spec y **quedan congelados** antes de cualquier código (ADR 0018); cada tarea trae su test. Todo test es offline: el dominio con disco en memoria, el adaptador en `t.TempDir()`, `install.sh` contra `file://` con los proxies cerrados; ningún fixture de fuente nuevo. Toda salida correcta del applet se valida contra `schemas/instalacion.json` en test (FR-053). Umbrales intactos (`internal/core/**` ≥ 85 %, global ≥ 70 %), y el dominio nuevo cae en el de `internal/core/**` | ✅ Cumple |
+| **III** | Tests primero y offline | T001 escribe los 18 guiones de aceptación desde el spec y **quedan congelados** antes de cualquier código (ADR 0018); cada tarea de código trae su test, y las que no lo traen (la suite, `install.sh`, la documentación y el cierre de la DoD) se declaran una a una en tasks.md con su verificación. Todo test es offline: el dominio con disco en memoria, el adaptador en `t.TempDir()`, `install.sh` contra `file://` con los proxies cerrados; ningún fixture de fuente nuevo. Toda salida correcta del applet se valida contra `schemas/instalacion.json` en test (FR-053). Umbrales intactos (`internal/core/**` ≥ 85 %, global ≥ 70 %), y el dominio nuevo cae en el de `internal/core/**` | ✅ Cumple |
 | **IV** | Arquitectura hexagonal con reglas ejecutables | Dominio puro en `internal/core/instalacion`, que **define sus puertos** (`Disco`, `Escritor`, `Enlazador`) y no importa `os`, `io` ni `io/fs` (R1, V26); adaptador en `internal/disco`, que R1 pasa a denegar al dominio junto con el paquete raíz, también en sus tests (D32); composición en `internal/app`. Errores tipados con `schema.ConClase` que el kernel traduce a 2 y 1 (data-model §9); ningún `panic` en rutas de usuario (`FuzzLeerManifiesto`). Reglas de dependencia, abajo | ✅ Cumple con justificación (paquete adaptador nuevo) |
 | **V** | Simplicidad y dependencias fijadas | **Ninguna dependencia nueva del módulo.** Herramientas y acciones de la release —goreleaser como módulo de `tools/`, syft, cosign, `attest-build-provenance`, `cosign-installer`, `sbom-action/download-syft`— son las que el hito nombra (ROADMAP §3, «Cadena de suministro» y «Commits / versiones») y van a *Complexity Tracking*. Sin DI, ORM ni generador de CLI; `internal/cli` ni se extrae ni se toca | ✅ Cumple con justificación |
 | **VI** | Un binario, convenciones de agente | `skills` es un applet más del mismo ejecutable: hereda las ocho banderas globales, `--describe` emite su esquema, `--dry-run` describe por el canal del kernel (D13). Las skills dejan de depender del despacho por `os.Args[0]` y lo invocan como `kitlegal <applet>` desde el `PATH` (ADR 0019), y el despacho multicall sigue en el kernel | ✅ Cumple |
@@ -136,7 +137,7 @@ reescritos · documentación.
   instalación por enlaces (`TestSinInstalacionPorEnlaces`); el snapshot y el instalador contra él en CI; R1 ampliada a
   `internal/disco` y al paquete raíz, y la subprueba de arquitectura sin red (D32). En el workflow: guardián de diff con
   `[datos]` para `schemas/` y `testdata/`.
-- **Capa 2 (jueces)**: que la edición de los `SKILL.md` se limita a la forma de invocar (FR-081; quickstart §6) y que
+- **Capa 2 (jueces)**: que la edición de los `SKILL.md` se limita a la forma de invocar (FR-081; quickstart §6a) y que
   `README`, `CONTRIBUTING` y `CHANGELOG` están alineados con el `Makefile` (SC-020) lo juzgan los dos jueces de la
   revisión final; que las skills siguen activando y respondiendo igual, las evals del job con la instalación nueva
   (FR-128, SC-019), que mide el cierre del workflow.
@@ -226,7 +227,7 @@ skills/
 └── legal-core/scripts/            SE RETIRA
 schemas/instalacion.json           NUEVO   [datos] desde --describe
 cmd/kitlegal/main.go               SIN CAMBIO DE CÓDIGO: sigue pasando app.RegistroDeProduccion, que ahora recibe la versión de Arrancar
-cmd/kitlegal/main_test.go          CAMBIA  paso 6: appletsDelBinario = "applets disponibles: boe, skills, territorio" (l. 18; usada en 84, 90, 100) y caso «skills sin verbo»
+cmd/kitlegal/main_test.go          CAMBIA  paso 6b: appletsDelBinario = "applets disponibles: boe, skills, territorio" (l. 18; usada en 84, 90, 100) y caso «skills sin verbo»
 internal/
 ├── arch_test.go                   CAMBIA  paso 3: R1 con `disco` en paquetesInternos (nueve) y el paquete raíz como denegación exacta; paso 9: subprueba sin red (D32)
 ├── core/instalacion/              NUEVO   dominio puro
@@ -253,19 +254,19 @@ internal/
 │   ├── enlazador.go               Enlazador del sistema: Disponible(directorio) (sonda en ese directorio, retirada), Enlazar
 │   └── *_test.go                  t.TempDir(): enlaces, ciclos, tubería con nombre, permisos, atomicidad
 ├── app/
-│   ├── instalacion.go             NUEVO   applet skills: verbos, argumentos Kong, procedencia
+│   ├── instalacion.go             NUEVO   applet skills: AppletSkills(DependenciasDeSkills{versión, empotradas, Enlazador}), DependenciasDeSkillsDelSistema(version); verbos, argumentos Kong, procedencia
 │   ├── empotradas.go              NUEVO   kitlegal.Skills() → []instalacion.SkillEmpotrada
 │   ├── aviso.go                   NUEVO   composición del aviso (disco, HOME, versión, empotradas)
 │   ├── main.go                    CAMBIA  Arrancar(construir func(version string)); aviso tras Analizar
 │   ├── registro.go                CAMBIA  RegistroDeProduccion(version); Registro.Avisar; registra skills
 │   ├── main_test.go               CAMBIA  paso 5: ayudante arrancar (l. 196-202) y cierres de TestArrancar con func(version string); caso nuevo: construir recibe la versión
-│   ├── registro_test.go           CAMBIA  paso 5: RegistroDeProduccion("") (l. 239); paso 6: lista boe, skills, territorio (l. 243) y los tres verbos de skills
-│   ├── esquemas_test.go           CAMBIA  paso 5: RegistroDeProduccion("") (l. 428, 578); paso 6: fila instalacion.json
+│   ├── registro_test.go           CAMBIA  paso 5: RegistroDeProduccion("") (l. 239); paso 6b: lista boe, skills, territorio (l. 243) y los tres verbos de skills
+│   ├── esquemas_test.go           CAMBIA  paso 5: RegistroDeProduccion("") (l. 428, 578); paso 6b: fila instalacion.json
 │   ├── skills_test.go             CAMBIA  paso 5: RegistroDeProduccion("") (l. 168, 1066); paso 11: sin enlaces, kitlegal <applet>, TestOrdenesDeLasSkillsEmpotradas (detalle en «Tests existentes que cambian»)
 │   ├── instalacion_test.go        NUEVO   verbos, códigos, salida contra el esquema
 │   ├── aviso_test.go              NUEVO   invocaciones que avisan y que no; stdout y código intactos
 │   ├── e2e_test.go                CAMBIA  arnés: binarios, variables, arbol, origen, proxies (contracts/arnes-e2e.md)
-│   ├── ejemplo/kitlegal-e2e/main.go CAMBIA registra skills y el aviso; enlazador elegible con -X
+│   ├── ejemplo/kitlegal-e2e/main.go CAMBIA registra skills y el aviso; enlazador que falla (tipo del package main) sustituido en DependenciasDeSkills si lo elige una variable -X
 │   └── testdata/script/
 │       ├── argumentos.txtar       CAMBIA  [datos] lista de applets con skills
 │       └── h19-*.txtar            NUEVOS  activación del workflow (copias congeladas de aceptacion/)
@@ -291,7 +292,10 @@ README.md, CONTRIBUTING.md, CHANGELOG.md CAMBIAN
 ## Aceptación e2e
 
 **Aceptación e2e:** 18 guiones testscript, escritos por T001 desde el spec y el contrato
-[contracts/arnes-e2e.md](./contracts/arnes-e2e.md) en `specs/009-h19-instalar-sin-clonar/aceptacion/`, congelados, y
+[contracts/arnes-e2e.md](./contracts/arnes-e2e.md) —con los formatos de salida de los contratos del producto que
+enumera su §6: mensajes de validación de applet-skills §2, claves de `data` de §4, líneas de conflictos y hallazgos de
+§5-§6, códigos de §8, la línea del aviso de aviso.md §4 y los mensajes de `install.sh` de release.md §7— en
+`specs/009-h19-instalar-sin-clonar/aceptacion/`, congelados, y
 activados al final como `internal/app/testdata/script/h19-*.txtar` (los ejecuta `TestEntregaDelHito` en `make ci`); los
 dos `instalador-*` se ejecutan además contra el snapshot en `make snapshot-check` (antes de la activación, con copias momentáneas de
 los congelados: contra el origen local en la tarea del paso 13 y contra el snapshot en las de los pasos 14 y 15;
@@ -308,7 +312,7 @@ obligación 6). Por historia de usuario:
 | `skills-invocacion` | US2 | US2.1, US2.2 · FR-081, FR-082, FR-084 · SC-014 |
 | `skills-idempotencia` | US3 | US3.4 · FR-033, FR-034, FR-045, FR-046 · SC-007 |
 | `skills-aviso` | US3 | US3.1, US3.2, US3.5, US3.6, US3.7 (metadatos de construcción), US3.9 (manifiesto local sin `HOME`) · FR-070, FR-071, FR-072, FR-075, FR-077 · SC-013, SC-022 |
-| `skills-aviso-sin-aviso` | US3 | US3.3, US3.7 (`v` inicial), US3.8, US3.9 · FR-070, FR-073, FR-074, FR-076 · SC-013 |
+| `skills-aviso-sin-aviso` | US3 | US3.3, US3.7 (`v` inicial), US3.8, US3.9 · FR-070, FR-073, FR-074, FR-076, FR-072 (`./.agents` como fichero y `./.agents/skills` como enlace colgando, con un global de otra versión: sin aviso) · SC-013 |
 | `skills-list-doctor` | US4 | US4.1, US4.5 · FR-060, FR-061, FR-062, FR-067, FR-068 · SC-011 |
 | `skills-doctor-hallazgos` | US4 | US4.2, US4.3, US4.4, US4.6, US4.7, US4.10, US4.11 · FR-065, FR-066, FR-077 · SC-011 |
 | `skills-doctor-copia` | US4 | US4.3 (copia), US4.7 (sin `.claude/`), US4.8 · FR-024, FR-046, FR-069 · SC-012 |
@@ -316,7 +320,7 @@ obligación 6). Por historia de usuario:
 | `instalador-correcto` | US5 | US5.4, US5.6 (versión con y sin `v`, `KITLEGAL_INSTALL_DIR`, `HOME` vacío con directorio) · FR-100 a FR-107 · SC-017 |
 | `instalador-rechazos` | US5 | US5.5, US5.6 (rechazos) · FR-100 a FR-104, FR-108 · SC-017 |
 | `skills-ambito-global` | US6 | US6.1, US6.4 · FR-012 · SC-004 |
-| `skills-ambito-dir` | US6 | US6.2, US6.3, US6.5 · FR-013 · SC-005 |
+| `skills-ambito-dir` | US6 | US6.2, US6.3, US6.5 · FR-013, FR-052 (precedencia del exit 2 sobre el 1: `-g --dir` sin `HOME`, `install desconocida -g` con `HOME` vacío, skill desconocida con una carpeta ajena, `--dir --host claude` sobre un manifiesto con entradas de host) · SC-005 |
 
 Lo que ningún guion del binario puede ejercer tiene su propia aceptación, también automática: US2 con
 `TestInstalacion` (`make install` con `HOME` temporal: FR-125, FR-126, SC-018) y con el job de evals que mide el cierre
@@ -358,8 +362,8 @@ El trabajo de humo de `release.yml` y la instalación en un Mac limpio (FR-150, 
 | `TestAviso` | `internal/core/instalacion` | contracts/aviso.md §2-§4 (FR-070 a FR-073, FR-077) |
 | `TestExaminar`, `TestLeerNoSigueEnlaces`, `TestNoAbreLoQueNoEsRegular`, `TestEscrituraAtomica`, `TestRetirar` | `internal/disco` | D6, D8 sobre un árbol real (tubería con `syscall.Mkfifo` solo en Unix con su etiqueta de compilación) |
 | `TestEnlazadorDelSistema` | `internal/disco` | D9: la sonda se hace **en el directorio que se pasa** y lo deja con las mismas entradas y bytes; en un directorio sin permiso de escritura, `Disponible` es falso aunque `TMPDIR` admita enlaces; con `TMPDIR` apuntando a un fichero, un directorio escribible sigue dando verdadero (no usa `TMPDIR`); un nombre de sonda que ya existe se reintenta con otro sin tocar lo que había; retirar la sonda que falla es un error (con la retirada sustituida en el test interno del paquete) |
-| `TestAppletSkills` | `internal/app/instalacion_test.go` | verbos, banderas, códigos 0/1/2, sobre de fallo con clase `inesperado`, `--describe`, `--dry-run` por `Ensayo` (FR-050 a FR-054) |
-| `TestSalidaDeSkillsContraSchemas` | `internal/app/instalacion_test.go` | toda salida correcta, también sin manifiesto, valida contra `schemas/instalacion.json` (FR-053) |
+| `TestAppletSkills` | `internal/app/instalacion_test.go` | verbos, banderas, códigos 0/1/2, sobre de fallo con clase `inesperado`, `--describe`, `--dry-run` por `Ensayo` (FR-050 a FR-054), sobre un registro local del test y sin registrar el applet (paso 6a); con un `Enlazador` sintético que siempre falla en `DependenciasDeSkills`, la entrada de host queda como copia y `doctor` no la señala (FR-024, FR-069); `DependenciasDeSkillsDelSistema` lleva la versión, lo empotrado y un `Enlazador` no nulo |
+| `TestSalidaDeSkillsContraSchemas` | `internal/app/instalacion_test.go` | toda salida correcta, también sin manifiesto, valida contra `schemas/instalacion.json` (FR-053); nace en el paso 6c, con el esquema ya publicado |
 | `TestAvisoDelKernel` | `internal/app/aviso_test.go` | con un avisador sintético: lo llaman exactamente las invocaciones de FR-070; stdout byte a byte y código iguales; un `Aviso` que falla no cambia nada (D5) |
 | `TestOrdenesDeLasSkillsEmpotradas` | `internal/app/skills_test.go` | FR-084 sobre los `SKILL.md` **empotrados** |
 | `TestArbol` | `internal/app/e2e_test.go` | la orden `arbol` del arnés (formato, sin seguir enlaces, errores), como `TestCronometra` |
@@ -380,14 +384,14 @@ rojo. Barrido hecho con `git grep` sobre `RegistroDeProduccion`, `Arrancar(`, la
 
 | Paso | Fichero y líneas (en `main` hoy) | Qué lo rompe | Cambio |
 |---|---|---|---|
-| 5 | `internal/app/main_test.go:196-202` (ayudante `arrancar(t, construir func() (*Registro, error), …)`) y los cierres `construir` de `TestArrancar` (l. 220 y 256) | la firma nueva `Arrancar(…, construir func(version string) (*Registro, error), …)`: no compilan | pasan a `func(version string) (*Registro, error)`; `TestArrancar` gana el caso de la versión (D4) |
+| 5 | `internal/app/main_test.go:196-202` (ayudante `arrancar(t, construir func() (*Registro, error), …)`) y los cierres `construir` de `TestArrancar` (l. 220 y 256) | la firma nueva `Arrancar(…, construir func(version string) (*Registro, error), …)`: no compilan | pasan a `func(string) (*Registro, error)`, con el parámetro en blanco (`_ string`) en los cierres que no miran la versión (`revive`, `unused-parameter`); `TestArrancar` gana el caso de la versión, cuyo cierre sí la nombra (D4) |
 | 5 | `internal/app/registro_test.go:239`, `internal/app/esquemas_test.go:428` y `:578`, `internal/app/skills_test.go:168` y `:1066` | `RegistroDeProduccion()` pasa a `RegistroDeProduccion(version string)`: no compilan | `RegistroDeProduccion("")` (un binario sin versión SemVer, que no avisa ni compara: FR-073) |
 | 5 | `cmd/kitlegal/main_test.go:128` (`app.Arrancar(caso.argv, app.RegistroDeProduccion, …)`) | — | **no cambia**: el valor de función ya tiene la firma nueva, como en `cmd/kitlegal/main.go` |
-| 6 | `internal/app/registro_test.go:243` (`[]string{"boe", "territorio"}`) y el comentario de `TestRegistroDeProduccion` (l. 228-235) | registrar `skills` en producción | `boe`, `skills`, `territorio`, y `skills` con sus tres verbos |
-| 6 | `cmd/kitlegal/main_test.go:18` (`appletsDelBinario = "applets disponibles: boe, territorio"`, usada en l. 84, 90 y 100) y su comentario (l. 14-17) | registrar `skills` en producción: el despacho enumera `boe, skills, territorio` | la constante con `skills`; caso nuevo `skills` sin verbo (exit 2 y sus tres verbos) |
-| 6 | `internal/app/testdata/script/argumentos.txtar:24` y `:30` | registrar `skills` en el binario de e2e | `boe, contar, echo, skills, territorio` |
-| 6 | `internal/app/esquemas_test.go:58`, tabla `ficherosDeEsquemas` | `TestEsquemasCubrenTodosLosVerbos` exige la parte publicada de cada verbo del registro (V27) | fila `instalacion.json` |
-| 6 | `internal/app/skills_test.go:165-210` (`TestTablaDeComandosCoincideConLaGramatica`) | — | **no se edita, pero se ejerce**: recorre `registro.Nombres()`, que ya incluye `skills`; `RenderizarTabla` exige a sus tres verbos las mismas banderas globales y el mismo sobre que a los de `boe` (`internal/skills/comandos.go:512` y `:540-553`) y cada fila, con `--describe`, sale con 0 describiendo su verbo |
+| 6b | `internal/app/registro_test.go:243` (`[]string{"boe", "territorio"}`) y el comentario de `TestRegistroDeProduccion` (l. 228-235) | registrar `skills` en producción | `boe`, `skills`, `territorio`, y `skills` con sus tres verbos |
+| 6b | `cmd/kitlegal/main_test.go:18` (`appletsDelBinario = "applets disponibles: boe, territorio"`, usada en l. 84, 90 y 100) y su comentario (l. 14-17) | registrar `skills` en producción: el despacho enumera `boe, skills, territorio` | la constante con `skills`; caso nuevo `skills` sin verbo (exit 2 y sus tres verbos) |
+| 6b | `internal/app/testdata/script/argumentos.txtar:24` y `:30` | registrar `skills` en el binario de e2e | `boe, contar, echo, skills, territorio` |
+| 6b | `internal/app/esquemas_test.go:58`, tabla `ficherosDeEsquemas` | `TestEsquemasCubrenTodosLosVerbos` exige la parte publicada de cada verbo del registro (V27) | fila `instalacion.json` |
+| 6b | `internal/app/skills_test.go:165-210` (`TestTablaDeComandosCoincideConLaGramatica`) | — | **no se edita, pero se ejerce**: recorre `registro.Nombres()`, que ya incluye `skills`; `RenderizarTabla` exige a sus tres verbos las mismas banderas globales y el mismo sobre que a los de `boe` (`internal/skills/comandos.go:512` y `:540-553`) y cada fila, con `--describe`, sale con 0 describiendo su verbo |
 | 11 | `internal/skills/comandos_test.go:667-674` (`filaDeBuscar`, `filaDeArticulo`), las `esperada` de `TestRenderizarTabla` (l. 733-765) y `nueva` de `TestSustituirRegion` (l. 848) | la tabla se titula y se escribe con `kitlegal <applet>` | `` ### `kitlegal boe` `` y `kitlegal boe buscar …` (y lo mismo con `ejemplo`) |
 | 11 | `internal/skills/sincronia_test.go`: `regionDeAlfa` (l. 91-105); en `TestRegenerarYComparar`, los `Enlaces` esperados y las comprobaciones de `scripts/` de `escribir-sincroniza` (l. 200-238) y los enlaces y el fichero que `segundo-escribir-no-cambia-nada` crea en `scripts/` (l. 246-248); en `probarDerivas`, los casos `enlace-ausente`, `enlace-sobrante`, `enlace-en-una-skill-que-no-declara-applets`, `enlace-con-otro-destino` y `fichero-regular-en-lugar-de-enlace` (l. 409-470); en `probarDefectos`, la deriva de control de `beta` (l. 702-718, `scripts/uno` `enlace-sobrante`); en `TestEscribirSinAplicarUnArreglo`, el caso `enlazar-lo-que-otra-skill-ya-enlazo` (l. 898-914) | desaparecen las derivas y los arreglos de enlaces, `skills.Enlace` y `Regenerado.Enlaces`, y `scripts/` pasa a ser un defecto; `destinoDeLosEnlacesDePrueba` vive en `enlaces_test.go`, que se retira | `kitlegal dos`/`kitlegal uno` en la región; fuera los casos y comprobaciones de enlaces; la deriva de control de `probarDefectos` pasa a una que sigue existiendo (una referencia sobrante en `beta`); caso nuevo en `probarDefectos`: una entrada `scripts` en una skill es el defecto de FR-082 |
 | 11 | `internal/app/skills_test.go`: la descripción de `-regenerar-skills` (l. 26-33), `destinoDeLosEnlacesDeScripts` y `enlaceSobrante` (l. 40-46), `casosDeEnlaces` (l. 672-728) y su uso en `TestSkillsDelRepositorio` (l. 122), los enlaces de `probarRegenerarDosVeces` (l. 818-826), `enlazarEnLaCopia` (l. 1359-1364) si queda sin uso; el literal `"scripts/boe articulo <norma> [--bloque]"` (l. 206) e `invocacionDeLaSintaxis` (l. 1187-1206) | lo mismo, y la sintaxis de la tabla pasa de `scripts/<applet> <verbo> …` a `kitlegal <applet> <verbo> …`: `invocacionDeLaSintaxis` toma el primer campo como programa y el segundo como verbo, y con la forma nueva el verbo es el tercero | fuera lo de enlaces (`unused` rechaza lo que quede sin uso); `"kitlegal boe articulo <norma> [--bloque]"`; `invocacionDeLaSintaxis` toma `kitlegal`, el applet y el verbo; caso nuevo en `TestSkillsDelRepositorio`: `scripts/` es un defecto (FR-082) |
@@ -430,7 +434,8 @@ es la del proxy de módulos de Go para `tools/goreleaser/go.sum` (S10), que no e
 
 ## Orden de implementación (de dentro afuera)
 
-1. **T001 `[aceptacion]`**: los 18 guiones contra contracts/arnes-e2e.md, con la precondición en rojo; ningún código.
+1. **T001 `[aceptacion]`**: los 18 guiones contra contracts/arnes-e2e.md y los formatos de los contratos que enumera su
+   §6, con la precondición en rojo; ningún código.
 2. **Dominio** `internal/core/instalacion`, por capas y con sus tests: versiones → manifiesto → ámbito e invocación →
    puertos y disco en memoria → conflictos y plan → aplicar (FR-044) → doctor y órdenes (FR-066) → aviso.
 3. **Adaptador** `internal/disco` con sus tests sobre un árbol real (el `Enlazador` con la sonda en el directorio que
@@ -443,18 +448,39 @@ es la del proxy de módulos de Go para `tools/goreleaser/go.sum` (S10), que no e
 4. **Empotrado** `skills.go` + `TestSkillsEmpotradas`, y `internal/app/empotradas.go`. Verificación: la misma sonda
    temporal, ahora con `import _ "github.com/jmorenobl/kitlegal"`, pone `make lint` en rojo nombrando R1, y la sonda
    se retira antes de `make ci`.
-5. **Composición**: `Arrancar(construir func(version string))`, `RegistroDeProduccion(version)` y sus llamadores
+5. **Composición**: `Arrancar(construir func(version string))`, `RegistroDeProduccion(_ string)` y sus llamadores
    (`cmd/kitlegal`, e2e, `internal/evals/trazas.go`), sin registrar todavía el applet; con los tests existentes que la
    firma rompe («Tests existentes que cambian», paso 5): `internal/app/main_test.go`, `registro_test.go`,
-   `esquemas_test.go` y `skills_test.go`.
-6. **`[datos]` indivisible**: applet `skills` registrado en producción y en e2e + `schemas/instalacion.json` + fila de
-   `esquemas_test.go` + `argumentos.txtar` + `internal/app/registro_test.go` + `cmd/kitlegal/main_test.go`
-   (*Complexity Tracking*, como D16 de H6).
+   `esquemas_test.go` y `skills_test.go`. Como en este paso nadie usa todavía la versión dentro de
+   `RegistroDeProduccion` ni de `registroDeE2E`, sus parámetros van **en blanco** (`_ string`, como
+   `internal/app/main_test.go:407` con `func(_ context.Context)`), igual que en los cierres `construir` de los tests que
+   no la miran; si no, `revive` (reglas por omisión, `unused-parameter`) deja `make lint` en rojo. El paso 6b los
+   nombra al pasar la versión al applet.
+6. **Applet `skills`, en tres tareas, con el patrón D16 de H6** (H6 T009-T011):
+   - **6a, sin `[datos]`**: `internal/app/instalacion.go` con los tres verbos (argumentos Kong, la validación del
+     dominio, la composición con el disco y lo empotrado, la procedencia, el exit 1, `--dry-run` y `--describe`) y
+     `TestAppletSkills` sobre un registro local del test, **sin registrar el applet** ni en producción ni en e2e. El
+     constructor exportado sigue el patrón de `AppletBoe(DependenciasDeBoe)`: `AppletSkills(DependenciasDeSkills)`, con
+     la versión del binario, lo empotrado y el puerto `Enlazador`, que el applet **recibe y no compone dentro** para
+     que el creador de enlaces pueda sustituirse en test y en el binario de e2e (FR-024); y
+     `DependenciasDeSkillsDelSistema(version)`, las del binario distribuido con el `Enlazador` del sistema de
+     `internal/disco`, como `DependenciasDeRed()` para `boe`. `TestAppletSkills` pasa un `Enlazador` sintético que
+     siempre falla y comprueba el recurso de copia (FR-024, FR-069).
+   - **6b, `[datos]` indivisible y nada más**: el registro en `internal/app/registro.go` y en
+     `internal/app/ejemplo/kitlegal-e2e/main.go` (que nombran aquí el parámetro de versión y registran
+     `AppletSkills(DependenciasDeSkillsDelSistema(version))`, con el `Enlazador` del sistema en los dos) +
+     `schemas/instalacion.json` generado + fila de `esquemas_test.go` + las tres listas literales (`argumentos.txtar`,
+     `internal/app/registro_test.go`, `cmd/kitlegal/main_test.go`) (*Complexity Tracking*).
+   - **6c, sin `[datos]`**: `TestSalidaDeSkillsContraSchemas`, la salida real contra el esquema ya publicado.
 7. **Aviso** en la composición y en el kernel de `internal/app`, con `aviso_test.go`.
-8. **Arnés e2e** (contracts/arnes-e2e.md): binarios con versión y enlazador que falla, variables, `arbol` +
+8. **Arnés e2e** (contracts/arnes-e2e.md): binarios con versión y enlazador que falla (un tipo del `package main` de
+   e2e que `registroDeE2E` pone en el campo `Enlazador` de `DependenciasDeSkillsDelSistema(version)` cuando una
+   variable de cadena `-X` lo elige, sin tocar `internal/app/instalacion.go`), variables, `arbol` +
    `TestArbol`, origen de release local, proxies. Desde aquí, la suite de aceptación se puede ejecutar copiándola un
    momento a `testdata/script/` para medir el avance.
-9. **Arquitectura**: subprueba D32.
+9. **Arquitectura**: subprueba D32. Solo añade un test, sin implementación: la propiedad la dan los pasos 3 y 4; su
+   verificación es un mutante temporal (una importación de `net` en el dominio) que la pone en rojo y se retira antes
+   de `make ci`, como la tarea 6c solo añade `TestSalidaDeSkillsContraSchemas`.
 10. **`[datos]` indivisible**: `make install` nuevo + `TestInstalacion` y sus cuatro guiones (*Complexity Tracking*).
 11. **Skills**: `internal/skills` sin enlaces y con el defecto de `scripts/`; `SKILL.md` en `kitlegal <applet>`; `make
     skills-sync`; retirar `skills/*/scripts/`, `scripts/instalar-skills.sh`, `enlaces.go` y `enlaces_test.go`;
@@ -490,7 +516,7 @@ es la del proxy de módulos de Go para `tools/goreleaser/go.sum` (S10), que no e
 | goreleaser v2.18.1 como módulo de `tools/` | Lo exige el hito (FR-096) y ROADMAP §3 lo sitúa en H19; versión fijada por `go.sum` como las demás herramientas (D20) | `goreleaser-action`: una segunda forma de fijar la versión, y no daría `goreleaser check` en `make ci` |
 | syft y cosign, instalados solo en `release.yml` | SBOM y firma keyless de la release (FR-093; ROADMAP §3, «Cadena de suministro»); fuera de `tools/` por la clarificación del spec (FR-096) | En `tools/`: dos módulos grandes que ningún control de `make ci` usa |
 | Acciones nuevas en `release.yml`: `actions/attest-build-provenance`, `sigstore/cosign-installer`, `anchore/sbom-action/download-syft` | Atestación SLSA (FR-112) y las dos herramientas anteriores en el runner; fijadas por su etiqueta mayor como el resto de flujos (V36; versiones: S2) | Instalar con `go install` en el runner: descarga y compila dos grafos grandes en cada release sin ganar verificación |
-| `[datos]` que mezcla código: registrar `skills` + `schemas/instalacion.json` + fila de `esquemas_test.go` + `argumentos.txtar` + `internal/app/registro_test.go` + `cmd/kitlegal/main_test.go` (paso 6) | En cuanto el verbo está registrado, `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada (V27), el esquema no existe antes que el applet, y las tres listas literales de applets —`argumentos.txtar:24,30` (V29), `registro_test.go:243` y `appletsDelBinario` de `cmd/kitlegal/main_test.go:18`— cambian a la vez: cualquier otro orden deja `make ci` en rojo. Mismo patrón que D16 de H6 | Dos tareas: la primera dejaría `make ci` en rojo |
+| `[datos]` que mezcla código: registrar `skills` (en `registro.go` y en el binario de e2e) + `schemas/instalacion.json` + fila de `esquemas_test.go` + `argumentos.txtar` + `internal/app/registro_test.go` + `cmd/kitlegal/main_test.go` (paso 6b), **y nada más** | En cuanto el verbo está registrado, `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada (V27), el esquema se genera desde el applet registrado, y las tres listas literales de applets —`argumentos.txtar:24,30` (V29), `registro_test.go:243` y `appletsDelBinario` de `cmd/kitlegal/main_test.go:18`— cambian a la vez: cualquier otro orden deja `make ci` en rojo. El cuerpo del applet no está atado a ningún fichero protegido: va antes, en 6a, probado sobre un registro local del test sin registrarlo, y la salida contra el esquema publicado después, en 6c. Mismo patrón que D16 de H6 (H6 T009-T011) | Registrar en una tarea y publicar el esquema en otra deja `make ci` en rojo; meter el applet entero en la tarea `[datos]` mezcla código que ningún control hace inseparable del esquema |
 | `[datos]` que mezcla código: receta `install` del `Makefile` + `instalacion_test.go` + sus cuatro guiones (paso 10) | Los guiones de `internal/skills/testdata/script/` comprueban exactamente lo que hace la receta: cambiar una sin los otros deja `TestInstalacion` en rojo | Dos tareas: cualquiera de los dos órdenes deja `make test-integration` en rojo |
 | El aviso no propaga el error de escribir su línea (D5) | FR-072: el aviso nunca cambia el código de salida ni la salida estándar; un test lo fija | Propagarlo violaría FR-072; registrarlo iría al mismo descriptor roto |
 | Cambio de firma de `app.Arrancar` y `app.RegistroDeProduccion` (API de composición, contrato puerto-y-applet §5 de H4) | La versión del binario tiene que llegar al applet y al aviso sin una quinta inyección (FR-091) ni estado global (D4) | Quinta `-X`: la prohíbe FR-091; llevarla en `schema.Contexto`: cambiaría el kernel para todos los applets |
@@ -499,14 +525,21 @@ es la del proxy de módulos de Go para `tools/goreleaser/go.sum` (S10), que no e
 
 1. **T001 es la única tarea `[aceptacion]`** y la primera: escribe los 18 guiones de «Aceptación e2e» en
    `specs/009-h19-instalar-sin-clonar/aceptacion/`, cada uno con la precondición de contracts/arnes-e2e.md §1 como
-   **primeras órdenes** y un comentario de cabecera con sus FR/SC, usando solo lo de ese contrato; sin código de
-   producto y sin evals nuevas (FR-086: las evals no se tocan).
+   **primeras órdenes** y un comentario de cabecera con sus FR/SC; del arnés usa solo lo de contracts/arnes-e2e.md, y
+   cada formato de salida que afirma lo copia del spec, si lo fija de forma literal, o del contrato del producto que
+   nombra contracts/arnes-e2e.md §6 (mensajes de validación, applet-skills §2; claves de `data`, §4; líneas
+   `<clase>: <ruta>` y `<clase>: <ruta>: <orden>` con su cabecera y su orden, §5-§6; códigos de salida, §8; la línea
+   del aviso, aviso.md §4; el prefijo `install.sh: `, la línea `export PATH='<dir>':"$PATH"` y la última línea,
+   release.md §7), sin inventar otro, de modo que las tareas que implementan esos contratos puedan satisfacerla; sin
+   código de producto y sin evals nuevas (FR-086: las evals no se tocan).
 2. Las rutas del arnés, los nombres de los binarios, las variables y el formato de `arbol` son los de
    contracts/arnes-e2e.md, tal cual: la suite congelada depende de ellos.
 3. Registrar el applet (producción y e2e), publicar `schemas/instalacion.json`, añadir su fila y actualizar las tres
    listas literales de applets —`argumentos.txtar`, `internal/app/registro_test.go:243` y `appletsDelBinario` de
-   `cmd/kitlegal/main_test.go:18`— van en **una** tarea `[datos]` (paso 6); `make install` y `TestInstalacion` con sus
-   guiones, en **otra** (paso 10).
+   `cmd/kitlegal/main_test.go:18`— van en **una** tarea `[datos]` (paso 6b), y nada más: el cuerpo del applet y
+   `TestAppletSkills`, sin registrarlo, en la tarea anterior sin `[datos]` (6a), y `TestSalidaDeSkillsContraSchemas`
+   en la siguiente, también sin `[datos]` (6c); `make install` y `TestInstalacion` con sus guiones, en **otra** tarea
+   `[datos]` (paso 10).
 4. Cada tarea deja `make ci` en verde; la que añade `goreleaser-check` a `ci` crea antes (o a la vez) `tools/goreleaser`
    y `.goreleaser.yaml`, porque sin ellos `make ci` fallaría; y `scripts/install.sh` existe antes que `.goreleaser.yaml`
    (paso 13), porque `make release` falla sin él (V48). Ninguna tarea comprueba lo que un paso posterior crea: un test
@@ -536,7 +569,7 @@ es la del proxy de módulos de Go para `tools/goreleaser/go.sum` (S10), que no e
    «Commits / versiones» de ROADMAP §3) van a *Pendientes* de la propuesta de cambio, no a una tarea.
 9. El `maintainer` de los paquetes (D26) se anota en `gates/supuestos.md` para el informe final.
 10. Cada tarea declara en sus rutas, y cambia en su diff, los tests existentes que su paso rompe según «Tests
-    existentes que cambian, por paso» (pasos 5, 6, 11 y 12), y no toca los que esa tabla da por no cambiados.
+    existentes que cambian, por paso» (pasos 5, 6b, 11 y 12), y no toca los que esa tabla da por no cambiados.
     `TestSinInstalacionPorEnlaces` va en la tarea del paso 12, no en la del 11. La ampliación de R1 (`.golangci.yml` e
     `internal/arch_test.go`) va en la tarea del paso 3, que declara los dos ficheros; la sonda temporal
     `internal/core/instalacion/sonda_test.go` se crea y se retira dentro de la tarea del paso 3 y de la del 4, sin
