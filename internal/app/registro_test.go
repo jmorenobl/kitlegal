@@ -284,6 +284,77 @@ func TestRegistroDeProduccion(t *testing.T) {
 	})
 }
 
+// TestRegistroAvisa comprueba el aviso que lleva el registro: el valor cero no
+// tiene ninguno, Avisar registra el que se le da y uno nulo lo retira, sin tocar
+// los applets registrados (research.md D5 de H19).
+func TestRegistroAvisa(t *testing.T) {
+	t.Parallel()
+
+	var registro Registro
+
+	require.NoError(t, registro.Registrar(appletConVerbos("boe", verboDePrueba("articulo", true))))
+
+	_, hay := registro.aviso()
+	assert.False(t, hay, "el registro de valor cero no tiene aviso")
+
+	registro.Avisar(func() (string, bool) { return "aviso: de prueba", true })
+
+	linea, hay := registro.aviso()
+	assert.True(t, hay)
+	assert.Equal(t, "aviso: de prueba", linea, "el aviso es el del avisador registrado, tal cual")
+
+	registro.Avisar(nil)
+
+	_, hay = registro.aviso()
+	assert.False(t, hay, "un avisador nulo deja el registro sin aviso")
+	assert.Equal(t, []string{"boe"}, registro.Nombres(), "el aviso no toca los applets")
+}
+
+// TestRegistroDeProduccionAvisa comprueba de extremo a extremo, con el disco
+// real, el aviso que compone el registro de producción con su versión y lo que
+// el binario empotra (contracts/aviso.md; research.md D4 y D5 de H19): tras
+// instalar las skills con un binario, la invocación de otro applet con un binario
+// de otra versión lleva la línea del aviso, también cuando falla el verbo, y ni
+// skills ni un binario de desarrollo la llevan (FR-070, FR-071, FR-073, FR-074).
+//
+// No es paralelo: el ámbito local es el directorio de trabajo, que se cambia con
+// t.Chdir, y el global sale de HOME; y el kernel lee KITLEGAL_LOG del entorno,
+// que se fija en nivelSinEventos para comparar la salida de error byte a byte.
+func TestRegistroDeProduccionAvisa(t *testing.T) {
+	t.Setenv(cli.VariableNivel, nivelSinEventos)
+	t.Setenv(variableHome, t.TempDir())
+	enUnProyecto(t)
+
+	instalador, err := RegistroDeProduccion("v0.1.0")
+	require.NoError(t, err)
+
+	instalacion := invocar(t, instalador, "kitlegal", "skills", "install")
+	require.Equal(t, 0, instalacion.codigo, instalacion.errores)
+
+	nuevo, err := RegistroDeProduccion("v0.2.0")
+	require.NoError(t, err)
+
+	const linea = "aviso: las skills instaladas son de kitlegal v0.1.0 y este binario es kitlegal v0.2.0;" +
+		" ejecuta: kitlegal skills install\n"
+
+	desarrollo, err := RegistroDeProduccion("dev")
+	require.NoError(t, err)
+
+	sinAviso := invocar(t, desarrollo, "kitlegal", "boe", "articulo")
+	assert.Equal(t, 2, sinAviso.codigo)
+	assert.NotContains(t, sinAviso.errores, "aviso: ", "un binario de desarrollo no compara (FR-073)")
+
+	sinNorma := invocar(t, nuevo, "kitlegal", "boe", "articulo")
+	assert.Equal(t, 2, sinNorma.codigo, "el aviso no cambia el código del error de argumentos del verbo")
+	assert.Equal(t, linea+sinAviso.errores, sinNorma.errores,
+		"la salida de error es la misma con una línea más delante: la del aviso")
+	assert.Empty(t, sinNorma.salida)
+
+	lista := invocar(t, nuevo, "kitlegal", "skills", "list")
+	assert.Equal(t, 0, lista.codigo, lista.errores)
+	assert.NotContains(t, lista.errores, "aviso: ", "skills no avisa (FR-074)")
+}
+
 // nombresDeLosVerbos son los nombres de los verbos del applet, en el orden en que
 // los declara.
 func nombresDeLosVerbos(applet Applet) []string {

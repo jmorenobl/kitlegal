@@ -52,6 +52,10 @@ var verbosReservados = []string{"version"}
 // lo consume después solo lee.
 type Registro struct {
 	applets map[string]Applet
+
+	// avisador es el aviso de versión del binario, o nulo si no tiene
+	// ninguno.
+	avisador Avisador
 }
 
 // Registrar añade un applet al registro después de comprobar las cinco reglas
@@ -93,6 +97,26 @@ func (r *Registro) Buscar(nombre string) (Applet, bool) {
 // salida, y el recorrido de un mapa en Go no lo garantiza (FR-006, FR-026).
 func (r *Registro) Nombres() []string {
 	return slices.Sorted(maps.Keys(r.applets))
+}
+
+// Avisar registra el aviso de versión del binario, que el kernel busca en las
+// invocaciones que resuelven un applet distinto de skills con un verbo, una
+// vez analizado, y escribe en la salida de error (contracts/aviso.md §1;
+// research.md D5 de H19). Lo registra la raíz de composición al construir el
+// registro; uno nuevo sustituye al anterior y uno nulo deja el registro sin
+// aviso, como el valor cero.
+func (r *Registro) Avisar(avisador Avisador) {
+	r.avisador = avisador
+}
+
+// aviso es la línea del aviso registrado y si hay que darla. Sin avisador no
+// hay ninguna.
+func (r *Registro) aviso() (string, bool) {
+	if r.avisador == nil {
+		return "", false
+	}
+
+	return r.avisador()
 }
 
 // validarNombre comprueba las tres primeras reglas del contrato: el nombre es
@@ -172,7 +196,9 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // construir en Arrancar (research.md D4 de H19). La lleva a skills, que la
 // declara en el manifiesto de cada instalación y compara con ella en doctor,
 // junto con lo empotrado en el binario y el creador de enlaces del sistema de
-// internal/disco (FR-024, FR-031, FR-077).
+// internal/disco (FR-024, FR-031, FR-077); y con esas mismas dependencias
+// compone el aviso de versión, que registra (AvisoDeVersion; research.md D5 de
+// H19).
 func RegistroDeProduccion(version string) (*Registro, error) {
 	fuentes, err := FuentesEmbebidas()
 	if err != nil {
@@ -181,9 +207,11 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	var registro Registro
 
+	skills := DependenciasDeSkillsDelSistema(version)
+
 	applets := []Applet{
 		AppletBoe(DependenciasDeRed()),
-		AppletSkills(DependenciasDeSkillsDelSistema(version)),
+		AppletSkills(skills),
 		AppletTerritorio(fuentes),
 	}
 
@@ -192,6 +220,8 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 			return nil, err
 		}
 	}
+
+	registro.Avisar(AvisoDeVersion(skills))
 
 	return &registro, nil
 }

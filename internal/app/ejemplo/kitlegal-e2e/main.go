@@ -67,8 +67,9 @@ func main() {
 // escribió un applet o esta composición, y app.Arrancar lo convierte en el fallo
 // inesperado antes de atender ninguna invocación: nunca en un código de salida de
 // usuario ni en un pánico (FR-008; research.md D16 de H4). Recibe la versión del
-// binario como el registro de producción, y como allí la lleva a skills
-// (research.md D4 de H19).
+// binario como el registro de producción, y como allí la lleva a skills y
+// compone con las mismas dependencias el aviso de versión, que registra
+// (research.md D4 y D5 de H19).
 func registroDeE2E(version string) (*app.Registro, error) {
 	registro, err := ejemplo.Registro()
 	if err != nil {
@@ -80,9 +81,11 @@ func registroDeE2E(version string) (*app.Registro, error) {
 		return nil, err
 	}
 
+	skills := app.DependenciasDeSkillsDelSistema(version)
+
 	applets := []app.Applet{
 		app.AppletBoe(dependenciasDeReproduccion()),
-		app.AppletSkills(app.DependenciasDeSkillsDelSistema(version)),
+		app.AppletSkills(skills),
 		app.AppletTerritorio(fuentes),
 	}
 
@@ -91,6 +94,8 @@ func registroDeE2E(version string) (*app.Registro, error) {
 			return nil, err
 		}
 	}
+
+	registro.Avisar(app.AvisoDeVersion(skills))
 
 	return registro, nil
 }
