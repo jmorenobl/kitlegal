@@ -1,14 +1,18 @@
 {
-  "id": "T007",
-  "texto": "T007 [US1] `Aplicar(plan, escritor)` (research D7): recorre las cuatro fases por el puerto `Escritor` y se para en el primer fallo con un error que nombra la operación y la ruta (exit 1), con `TestAplicar` y `TestFalloAMitadSeCompleta`, que para cada operación n de varios escenarios (instalación nueva, actualización, copia que pasa a enlace, retirada de lo no empotrado) hace fallar el disco en memoria en la operación n y comprueba que planificar de nuevo da cero conflictos y, aplicado, el estado final — FR-044; rutas: internal/core/instalacion/aplicar.go, internal/core/instalacion/errores.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T008",
+  "texto": "T008 [US4] `list` y `doctor` en el dominio (data-model §6 y §10; contracts/applet-skills.md §4.2, §4.3, §5 y §6; research D12): `Listar` (directorio, manifiesto sí o no, versión nula sin manifiesto, cada skill con su versión, `empotrada` y sus enlaces) y `Diagnosticar` con las cinco clases de hallazgo sobre las skills declaradas y empotradas, su ruta y su orden de shell POSIX de una línea (rutas entre comillas simples con la `'` escapada, `rm --` o `rm -r --` solo donde el contrato lo pone y nunca `-f`, banderas de ámbito, `--host claude` si alguna skill nombrada tiene entrada de host y nunca con `--dir`), en el orden determinista de FR-066; ante manifiesto ilegible, ruta que no es directorio o, con `--dir`, manifiesto con entradas de host, error `AmbitoIlegible` sin skills ni hallazgos; con `TestListar`, `TestHallazgos`, `TestOrdenesDeDoctor` y `TestOrdenesDeDoctorArreglan` (simulando `rm` e `install` sobre el disco en memoria: garantías (i) y (ii) de FR-066), y con el `Enlazador` sintético de T006 una copia declarada no da el hallazgo «copia» — FR-036, FR-060 a FR-062, FR-065 a FR-069, SC-011, SC-012; rutas: internal/core/instalacion/listado.go, internal/core/instalacion/doctor.go, internal/core/instalacion/ordenes.go, internal/core/instalacion/salida.go, internal/core/instalacion/errores.go, internal/core/instalacion/discoEnMemoria_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "163b6e1fa6ec4e69df5d8700f2e8a695116233ba",
+  "base": "c107e4dbbba0e52ee9d8e0158288014308448625",
   "rutas": [
-    "internal/core/instalacion/aplicar.go",
+    "contracts/applet-skills.md",
     "internal/core/instalacion/discoEnMemoria_test.go",
-    "internal/core/instalacion/errores.go"
+    "internal/core/instalacion/doctor.go",
+    "internal/core/instalacion/errores.go",
+    "internal/core/instalacion/listado.go",
+    "internal/core/instalacion/ordenes.go",
+    "internal/core/instalacion/salida.go"
   ],
   "cierre": false,
   "converger": false,

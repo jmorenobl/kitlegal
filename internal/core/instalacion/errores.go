@@ -217,6 +217,136 @@ func (e *ErrorDeConflictos) Lista() []Conflicto {
 	return slices.Clone(e.lista)
 }
 
+// ClaseDeHallazgo es la de algo que doctor encuentra fuera de su sitio en una
+// skill declarada y empotrada, con el nombre literal con el que se nombra
+// (FR-065; contracts/applet-skills.md §5).
+type ClaseDeHallazgo string
+
+// Las cinco clases de FR-065, en el orden de su número, que desempata dos
+// hallazgos con la misma ruta (FR-066).
+const (
+	// HallazgoFicheroEditado (1) es un fichero declarado cuya huella ya no
+	// coincide, que ya no es un fichero regular o que falta.
+	HallazgoFicheroEditado ClaseDeHallazgo = "fichero editado"
+	// HallazgoEnlaceColgando (2) es el enlace de host de FR-021 declarado que
+	// no resuelve, o un enlace que no resuelve donde va el directorio de una
+	// skill o un directorio intermedio.
+	HallazgoEnlaceColgando ClaseDeHallazgo = "enlace colgando"
+	// HallazgoEnlaceAOtroSitio (3) es una entrada de host que ya no es lo que
+	// se declaró, o que falta, o cualquier otra cosa que no es un directorio
+	// real donde va el directorio de una skill o un directorio intermedio.
+	HallazgoEnlaceAOtroSitio ClaseDeHallazgo = "enlace a otro sitio"
+	// HallazgoCopia (4) es una copia de host declarada donde ya se puede
+	// crear el enlace.
+	HallazgoCopia ClaseDeHallazgo = "copia"
+	// HallazgoVersionDistinta (5) es la versión del manifiesto, o la de una
+	// skill, distinta de la del binario (FR-077).
+	HallazgoVersionDistinta ClaseDeHallazgo = "versión distinta"
+)
+
+// numero es el de la clase en FR-065, de 1 a 5, y 0 si no es ninguna de ellas.
+func (c ClaseDeHallazgo) numero() int {
+	return slices.Index([]ClaseDeHallazgo{
+		HallazgoFicheroEditado, HallazgoEnlaceColgando, HallazgoEnlaceAOtroSitio, HallazgoCopia, HallazgoVersionDistinta,
+	}, c) + 1
+}
+
+// Los verbos que nombran su fallo con código 1 (contracts/applet-skills.md
+// §5).
+const (
+	verboList   = "list"
+	verboDoctor = "doctor"
+)
+
+// ErrorDeHallazgos es el de doctor cuando encuentra algo fuera de su sitio en
+// las skills declaradas y empotradas: los nombra todos, cada uno con su clase,
+// su ruta y la orden que lo arregla, primero los que llevan rm y después los
+// demás; en cada grupo, por ruta byte a byte y, a igual ruta, por el número de
+// su clase (FR-065, FR-066; data-model §9).
+//
+// Declara la clase «inesperado», que el kernel traduce a código 1, y su
+// mensaje es el del sobre de fallo y la salida de error: una cabecera con
+// cuántos son y una línea «<clase>: <ruta>: <orden>» por hallazgo (research.md
+// D12). Se exporta para reconocerlo con errors.As; su valor cero no nombra
+// ninguno.
+type ErrorDeHallazgos struct {
+	// lista tiene cada hallazgo, en su orden.
+	lista []Hallazgo
+}
+
+// El error de doctor declara su clase él mismo.
+var _ schema.ConClase = (*ErrorDeHallazgos)(nil)
+
+// Error es la cabecera seguida de una línea por hallazgo, sin salto de línea
+// final. La cabecera dice «1 hallazgo:» con uno y «<n> hallazgos:» con los
+// demás.
+func (e *ErrorDeHallazgos) Error() string {
+	var mensaje strings.Builder
+
+	if len(e.lista) == 1 {
+		mensaje.WriteString("skills " + verboDoctor + ": 1 hallazgo:")
+	} else {
+		fmt.Fprintf(&mensaje, "skills %s: %d hallazgos:", verboDoctor, len(e.lista))
+	}
+
+	for _, h := range e.lista {
+		mensaje.WriteString("\n" + string(h.Clase) + ": " + h.Ruta + ": " + h.Orden)
+	}
+
+	return mensaje.String()
+}
+
+// Clase es «inesperado»: doctor con hallazgos sale con código 1.
+func (e *ErrorDeHallazgos) Clase() schema.Clase {
+	return schema.ClaseInesperado
+}
+
+// Lista es cada hallazgo, en su orden, en una copia.
+func (e *ErrorDeHallazgos) Lista() []Hallazgo {
+	return slices.Clone(e.lista)
+}
+
+// AmbitoIlegible es el de list y doctor cuando el ámbito no se puede leer: una
+// de sus guardas no es un directorio real (FR-027), el manifiesto es ilegible
+// (FR-035) o, con --dir, declara alguna entrada de host (FR-013). Nombra solo
+// esa entrada, con su clase, y ninguna skill ni ningún hallazgo (FR-061,
+// FR-067; data-model §9).
+//
+// Declara la clase «inesperado», que el kernel traduce a código 1, y su
+// mensaje es una sola línea, «skills <verbo>: <clase>: <ruta>»
+// (contracts/applet-skills.md §5). Se exporta para reconocerlo con errors.As.
+type AmbitoIlegible struct {
+	// verbo es list o doctor.
+	verbo string
+	// motivo es la entrada que no se puede leer, con su clase.
+	motivo Conflicto
+}
+
+// El ámbito ilegible declara su clase él mismo.
+var _ schema.ConClase = (*AmbitoIlegible)(nil)
+
+// ambitoIlegible es el error del verbo que nombra la entrada de ruta con esa
+// clase.
+func ambitoIlegible(verbo string, clase ClaseDeConflicto, ruta string) *AmbitoIlegible {
+	return &AmbitoIlegible{verbo: verbo, motivo: Conflicto{Clase: clase, Ruta: ruta}}
+}
+
+// Error es la línea que nombra la entrada.
+func (e *AmbitoIlegible) Error() string {
+	return "skills " + e.verbo + ": " + string(e.motivo.Clase) + ": " + e.motivo.Ruta
+}
+
+// Clase es «inesperado»: un ámbito ilegible sale con código 1.
+func (e *AmbitoIlegible) Clase() schema.Clase {
+	return schema.ClaseInesperado
+}
+
+// Motivo es la entrada que no se puede leer, con su clase: ruta que no es
+// directorio, manifiesto ilegible o manifiesto con entradas de host.
+func (e *AmbitoIlegible) Motivo() Conflicto {
+	return e.motivo
+}
+
 // falloAlAplicar es el de una operación del Escritor que falla tras la
 // comprobación, con el que Aplicar se para: «skills install: <operación>
 // <ruta>: <error del sistema>», con la ruta como se alcanza desde el

@@ -52,6 +52,8 @@ var (
 	// errSinEnlaces es crear un enlace en un directorio cuyo sistema de
 	// ficheros no los admite.
 	errSinEnlaces = errors.New("este sistema de ficheros no admite enlaces simbólicos")
+	// errEsDirectorio es retirar con rm, sin -r, un directorio real.
+	errEsDirectorio = errors.New("es un directorio")
 )
 
 // errInyectado es el fallo de entrada y salida que se inyecta en una llamada.
@@ -583,6 +585,30 @@ func (e *escritorEnMemoria) Enlazar(destino, ruta string) error {
 	return e.enlazador.Enlazar(destino, ruta)
 }
 
+// rm retira la entrada de ruta como la retira rm, la orden de shell con la
+// que empieza la orden de un hallazgo de doctor (FR-066): su directorio se
+// resuelve siguiendo los enlaces de encima y la entrada misma no se sigue, así
+// que un enlace se retira sin tocar su destino; un fichero, un enlace u otra
+// entrada se retiran siempre, y un directorio real solo con recursivo (-r),
+// con todo lo que cuelga de él, sin seguir ninguno de sus enlaces. Devuelve la
+// ruta física de lo que retiró.
+func (d *discoEnMemoria) rm(ruta string, recursivo bool) (string, error) {
+	fisica, nodo, existe, err := d.paraCrear("rm", ruta)
+
+	switch {
+	case err != nil:
+		return "", err
+	case !existe:
+		return "", fmt.Errorf("rm %s: %w", ruta, errNoExiste)
+	case nodo.tipo == instalacion.EntradaDirectorio && !recursivo:
+		return "", fmt.Errorf("rm %s: %w", ruta, errEsDirectorio)
+	}
+
+	d.retirar(fisica)
+
+	return fisica, nil
+}
+
 // tieneDentro dice si hay alguna entrada dentro de la ruta física dir.
 func (d *discoEnMemoria) tieneDentro(dir string) bool {
 	for clave := range d.nodos {
@@ -880,6 +906,32 @@ func (i *instalada) deVersion(version string) *instalada {
 	return i
 }
 
+// skillDeVersion hace de version solo la skill nombre, como la habría dejado
+// un install de esa skill sola con otro binario.
+func (i *instalada) skillDeVersion(nombre, version string) *instalada {
+	skill := i.manifiesto.Skills[nombre]
+	skill.Version = version
+	i.manifiesto.Skills[nombre] = skill
+
+	return i
+}
+
+// noEmpotrada deja en el directorio neutro la skill nombre, que las pruebas no
+// empotran, con un SKILL.md, y la declara de version con una entrada de host
+// en enlace que no está en el disco: la de una skill que puso ahí un binario
+// de otra versión o de otra rama (FR-036).
+func (i *instalada) noEmpotrada(nombre, version string) *instalada {
+	contenido := "# " + nombre + "\n"
+	i.disco.fichero(path.Join(i.ambito.RutaDeSkill(nombre), "SKILL.md"), contenido)
+	i.manifiesto.Skills[nombre] = instalacion.SkillDeclarada{
+		Version:  version,
+		Ficheros: map[string]string{nombre + "/SKILL.md": instalacion.HuellaDe([]byte(contenido))},
+		Claude:   &instalacion.EntradaDeHost{Ruta: ".claude/skills/" + nombre, Modo: instalacion.ModoEnlace},
+	}
+
+	return i
+}
+
 // deOtroBinario deja en el directorio de la skill nombre el fichero rel con
 // contenido y lo declara con esa huella, como lo habría dejado un binario que
 // empotraba otro contenido.
@@ -923,6 +975,7 @@ func TestDiscoEnMemoria(t *testing.T) {
 	t.Run("escribir", probarEscribirEnMemoria)
 	t.Run("fallos del escritor", probarFallosDelEscritorEnMemoria)
 	t.Run("enlazar", probarEnlazarEnMemoria)
+	t.Run("rm", probarRmEnMemoria)
 }
 
 // discoDeMuestra es un disco con una entrada de cada clase.
@@ -1143,6 +1196,43 @@ func probarEnlazarEnMemoria(t *testing.T) {
 	enlazador.err = errInyectado
 	_, err = enlazador.Disponible(temporal)
 	require.ErrorIs(t, err, errInyectado)
+}
+
+// probarRmEnMemoria fija rm sobre el disco en memoria, la de las órdenes de
+// doctor: retira un fichero, una tubería o un enlace sin seguirlo, y un
+// directorio real solo con -r y entero; lo que no existe es un error, y el
+// destino de un enlace retirado queda como estaba.
+func probarRmEnMemoria(t *testing.T) {
+	t.Parallel()
+
+	d := discoDeMuestra(t)
+
+	fisica, err := d.rm("enlace-a-dir/f", false)
+	require.NoError(t, err, "los enlaces de encima se siguen")
+	assert.Equal(t, "/trabajo/dir/f", fisica)
+
+	fisica, err = d.rm("enlace-a-dir", false)
+	require.NoError(t, err)
+	assert.Equal(t, "/trabajo/enlace-a-dir", fisica)
+	assert.Equal(t, instalacion.EntradaAusente, examinarEnMemoria(t, d, "enlace-a-dir").Tipo)
+	assert.Equal(t, instalacion.EntradaDirectorio, examinarEnMemoria(t, d, "dir/sub").Tipo, "el destino, intacto")
+
+	_, err = d.rm("tuberia", false)
+	require.NoError(t, err)
+
+	_, err = d.rm("dir", false)
+	require.ErrorIs(t, err, errEsDirectorio, "sin -r no retira un directorio")
+	assert.Equal(t, instalacion.EntradaDirectorio, examinarEnMemoria(t, d, "dir/sub").Tipo)
+
+	_, err = d.rm("dir", true)
+	require.NoError(t, err)
+	assert.Equal(t, instalacion.EntradaAusente, examinarEnMemoria(t, d, "dir/sub").Tipo, "con -r, entero")
+
+	_, err = d.rm("no-existe", false)
+	require.ErrorIs(t, err, errNoExiste)
+
+	_, err = d.rm("colgando/x", true)
+	require.ErrorIs(t, err, errNoExiste)
 }
 
 // examinarEnMemoria es la entrada de ruta en el disco, sin error.
