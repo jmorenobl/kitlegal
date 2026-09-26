@@ -70,6 +70,10 @@ var (
 // el punto de entrada de cada binario, el distribuido con RegistroDeProduccion y
 // el de e2e con el suyo (contrato puerto-y-applet §5; research.md D16 de H4).
 //
+// construir recibe la misma versión del binario que atiende «version», tal
+// cual: es la única vía por la que llega al registro, sin estado global ni otra
+// inyección de -ldflags (FR-091; research.md D4 de H19).
+//
 // Un registro que no se construye no es un fallo de quien invoca, sino un
 // defecto de composición: sale por el mismo montador que cualquier otro fallo,
 // con la forma que pida --json en el pre-escaneo —el sobre del kernel de clase
@@ -77,11 +81,11 @@ var (
 // como un pánico. Como Main, nunca llama a os.Exit.
 func Arrancar(
 	argv []string,
-	construir func() (*Registro, error),
+	construir func(version string) (*Registro, error),
 	stdout, stderr io.Writer,
 	version, commit, fecha string,
 ) int {
-	registro, err := construir()
+	registro, err := construir(version)
 	if err != nil {
 		return fallarAlArrancar(argv, stdout, stderr, err)
 	}

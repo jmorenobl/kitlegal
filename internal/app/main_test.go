@@ -194,7 +194,7 @@ func TestContextoDeEjecucion(t *testing.T) {
 
 // arrancar ejecuta la raíz de arranque entera, con el registro que construya
 // construir, contra dos buffers.
-func arrancar(t *testing.T, construir func() (*Registro, error), argv ...string) invocacionDePrueba {
+func arrancar(t *testing.T, construir func(string) (*Registro, error), argv ...string) invocacionDePrueba {
 	t.Helper()
 
 	var salida, errores bytes.Buffer
@@ -205,11 +205,12 @@ func arrancar(t *testing.T, construir func() (*Registro, error), argv ...string)
 }
 
 // TestArrancar fija la raíz de arranque de los binarios (contrato puerto-y-applet
-// §5 de H4; research.md D16): construye el registro una vez por arranque y, si se
-// construye, la invocación es exactamente la de Main; si no, el fallo es un
-// defecto de composición y nunca de quien invoca —el sobre del kernel de clase
-// inesperada si se pidió --json, el mensaje en la salida de error y el código 1,
-// también cuando el error del registro declara otra clase—, sin ningún pánico.
+// §5 de H4; research.md D16): construye el registro una vez por arranque, con la
+// versión del binario que recibe (research.md D4 de H19), y, si se construye, la
+// invocación es exactamente la de Main; si no, el fallo es un defecto de
+// composición y nunca de quien invoca —el sobre del kernel de clase inesperada si
+// se pidió --json, el mensaje en la salida de error y el código 1, también cuando
+// el error del registro declara otra clase—, sin ningún pánico.
 func TestArrancar(t *testing.T) {
 	t.Parallel()
 
@@ -217,7 +218,7 @@ func TestArrancar(t *testing.T) {
 		t.Parallel()
 
 		construcciones := 0
-		construir := func() (*Registro, error) {
+		construir := func(_ string) (*Registro, error) {
 			construcciones++
 
 			return registroDeCodigos(t, resultadoCorrecto), nil
@@ -237,6 +238,34 @@ func TestArrancar(t *testing.T) {
 		assert.Equal(t, 2, construcciones, "cada arranque construye su registro una sola vez")
 	})
 
+	t.Run("construir-recibe-la-version", func(t *testing.T) {
+		t.Parallel()
+
+		// La versión llega tal cual, también la que no tiene forma SemVer y la
+		// vacía de quien no tiene ninguna: Arrancar no la interpreta ni la
+		// sustituye, y es la misma que atiende «version» (FR-073, FR-091).
+		for _, version := range []string{versionDePrueba, "v0.2.0", "dev", ""} {
+			var recibidas []string
+
+			construir := func(recibida string) (*Registro, error) {
+				recibidas = append(recibidas, recibida)
+
+				return registroDeCodigos(t, resultadoCorrecto), nil
+			}
+
+			var salida, errores bytes.Buffer
+
+			codigo := Arrancar([]string{"kitlegal", "version"}, construir, &salida, &errores,
+				version, commitDePrueba, fechaDePrueba)
+
+			assert.Equal(t, 0, codigo, errores.String())
+			assert.Equal(t, []string{version}, recibidas,
+				"construir recibe, una sola vez, exactamente la versión que recibe Arrancar")
+			assert.Equal(t, fmt.Sprintf(formatoDeVersion, version, commitDePrueba, fechaDePrueba), salida.String(),
+				"la versión que recibe construir es la que atiende «version»")
+		}
+	})
+
 	t.Run("registro-invalido", func(t *testing.T) {
 		t.Parallel()
 
@@ -253,7 +282,7 @@ func TestArrancar(t *testing.T) {
 		}
 
 		for _, fallo := range fallos {
-			construir := func() (*Registro, error) { return nil, fallo }
+			construir := func(_ string) (*Registro, error) { return nil, fallo }
 
 			enJSON := arrancar(t, construir, "kitlegal", "prueba", "hola", "--json")
 			exigirSobreDeFallo(t, enJSON, schema.ClaseInesperado, 1, cli.ProcedenciaKernel())

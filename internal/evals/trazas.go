@@ -337,9 +337,11 @@ type interprete struct {
 // recibe las banderas globales y la ayuda de cada invocación, y sus escritores y
 // su terminación se sustituyen como en el analizador del kernel: la ayuda no se
 // escribe en ningún descriptor, y la terminación que Kong pide tras escribirla no
-// termina el proceso, sino que anota que la invocación la pidió.
+// termina el proceso, sino que anota que la invocación la pidió. El registro se
+// construye con la versión vacía, la de quien no tiene ninguna (FR-073): el
+// intérprete solo lee de él nombres y gramáticas.
 func nuevoInterprete() (interprete, error) {
-	registro, err := app.RegistroDeProduccion()
+	registro, err := app.RegistroDeProduccion("")
 	if err != nil {
 		return interprete{}, fmt.Errorf("el registro de applets del binario no se puede construir: %w", err)
 	}

@@ -425,7 +425,7 @@ func TestEsquemasCubrenTodosLosVerbos(t *testing.T) {
 func verbosDeProduccion(t *testing.T) []string {
 	t.Helper()
 
-	registro, err := RegistroDeProduccion()
+	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err)
 
 	var verbos []string
@@ -575,7 +575,7 @@ func sinFichero(publicados map[string][]byte, nombre string) map[string][]byte {
 func partesDeProduccion(t *testing.T) map[string]map[string]any {
 	t.Helper()
 
-	registro, err := RegistroDeProduccion()
+	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err)
 
 	emitidas := make(map[string]map[string]any, len(ficherosDeEsquemas))

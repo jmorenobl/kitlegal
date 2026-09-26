@@ -236,7 +236,7 @@ func TestRegistroRechaza(t *testing.T) {
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
-	registro, err := RegistroDeProduccion()
+	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 

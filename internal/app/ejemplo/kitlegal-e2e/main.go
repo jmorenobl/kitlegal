@@ -65,8 +65,10 @@ func main() {
 // construye es un defecto de quien escribió un applet o esta composición, y
 // app.Arrancar lo convierte en el fallo inesperado antes de atender ninguna
 // invocación: nunca en un código de salida de usuario ni en un pánico (FR-008;
-// research.md D16 de H4).
-func registroDeE2E() (*app.Registro, error) {
+// research.md D16 de H4). Recibe la versión del binario como el registro de
+// producción (research.md D4 de H19), y como allí, ninguno de los applets que
+// registra hoy la necesita, así que el parámetro va en blanco.
+func registroDeE2E(_ string) (*app.Registro, error) {
 	registro, err := ejemplo.Registro()
 	if err != nil {
 		return nil, err

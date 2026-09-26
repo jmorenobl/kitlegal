@@ -165,7 +165,12 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // inesperado antes de atender ninguna invocación, nunca en un código de salida
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
 // nada ni abre nada.
-func RegistroDeProduccion() (*Registro, error) {
+//
+// Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
+// tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
+// construir en Arrancar (research.md D4 de H19). Ninguno de los applets que
+// registra hoy la necesita, así que el parámetro va en blanco.
+func RegistroDeProduccion(_ string) (*Registro, error) {
 	fuentes, err := FuentesEmbebidas()
 	if err != nil {
 		return nil, err

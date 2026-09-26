@@ -165,7 +165,7 @@ func TestSkillsDelRepositorio(t *testing.T) {
 func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 	t.Parallel()
 
-	registro, err := RegistroDeProduccion()
+	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err)
 
 	descripciones := describirApplets(t, registro, registro.Nombres())
@@ -1063,7 +1063,7 @@ func referenciasDeLaSkill(t *testing.T, raiz, skill string) []string {
 func descripcionesDeLasSkills(t *testing.T, raiz string) []skills.DescripcionDeVerbo {
 	t.Helper()
 
-	registro, err := RegistroDeProduccion()
+	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err)
 
 	return describirApplets(t, registro, appletsDeclarados(t, raiz))
