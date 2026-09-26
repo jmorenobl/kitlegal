@@ -54,7 +54,8 @@ de la CLI `skills` y el que ya usa este repositorio (`.claude/skills/*` son enla
    `install.sh` para `curl | sh` (macOS y Linux sin más requisitos: descarga la release de la plataforma, verifica el
    checksum, instala en `~/.local/bin` y no toca los ficheros de arranque del shell), tap de Homebrew (macOS y Linux),
    bucket de Scoop (Windows), `.deb` y `.rpm` adjuntos a la release (nfpm) y `go install`. Checksums,
-   SBOM y firma keyless con cosign, como preveía H19. Sin repositorio apt propio ni winget hasta que el uso lo pida.
+   SBOM, firma keyless con cosign y atestación de procedencia, como preveía H19 (§3 del roadmap, «Cadena de suministro»).
+   Sin repositorio apt propio ni winget hasta que el uso lo pida.
 3. **`kitlegal skills install | list | doctor`** es un applet como los demás (sobre, `--json`, `--dry-run`,
    `--describe`), con este contrato:
    - **Local por defecto**: instala en `./.agents/skills/<skill>/`, en el directorio de trabajo, que es lo que se
