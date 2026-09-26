@@ -1,7 +1,11 @@
 package instalacion_test
 
 import (
+	"encoding/json"
 	"path"
+	"reflect"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -1050,4 +1054,1026 @@ func probarPedidoNoEmpotrado(t *testing.T) {
 	var rechazo *instalacion.ErrorDeConflictos
 	assert.NotErrorAs(t, err, &rechazo)
 	assert.Empty(t, d.accesos, "no se examina nada")
+}
+
+// casoDePlan es una fila de TestPlan: un disco sin ningún conflicto, una
+// invocación y lo que install va a hacer en él.
+type casoDePlan struct {
+	nombre string
+	// preparar deja el disco del caso, que empieza con el directorio de
+	// trabajo vacío y el temporal.
+	preparar func(d *discoEnMemoria)
+	// invocacion es la de install; se valida con HOME=homeDePrueba.
+	invocacion instalacion.Invocacion
+	// admite dice en qué directorio funciona el creador de enlaces, que
+	// sondea y enlaza con la misma respuesta; sin él, en todos.
+	admite func(directorio string) bool
+	// skills es la salida esperada, la misma con --dry-run.
+	skills []instalacion.SkillInstalada
+	// operaciones es el plan esperado, fase a fase, como lo escribe
+	// operacionesDelPlan; ninguna si no hay nada que hacer.
+	operaciones []string
+	// sondas tiene cada directorio por el que se pregunta Disponible, en
+	// orden.
+	sondas []string
+	// noExaminadas son rutas de las que no se puede examinar nada, ni ellas
+	// ni lo que cuelga de ellas.
+	noExaminadas []string
+	// comprobar, si lo hay, comprueba lo propio del caso en el disco que deja
+	// la aplicación del plan.
+	comprobar func(t *testing.T, d *discoEnMemoria)
+}
+
+// ambitoLocal es el ámbito de casi todas las filas, y versionVieja la de un
+// binario anterior.
+var (
+	ambitoLocal  = instalacion.NuevoAmbitoLocal()
+	versionVieja = "v0.0.9"
+)
+
+// TestPlan fija el plan de install (data-model §5; research.md D7 y D9;
+// FR-014, FR-015, FR-021, FR-024, FR-025, FR-033, FR-034, FR-036, FR-045 a
+// FR-048, FR-051; SC-006, SC-007, SC-010, SC-012). En cada fila:
+//
+//   - planificar no cambia nada en el disco, que es todo lo que hace
+//     --dry-run, y da por skill pedida su ruta, su estado y sus enlaces con su
+//     modo, y las cuatro fases en su orden;
+//   - Disponible solo se pregunta por el directorio de la sonda del ámbito,
+//     cuando hay que decidir entre enlace y copia, y una vez por directorio;
+//   - aplicado, cada entrada de host queda en el modo previsto, así que la
+//     salida de la orden es la de --dry-run (FR-048);
+//   - y la segunda ejecución da «sin cambios» en cada skill, con el plan vacío
+//     y el disco byte a byte igual (FR-045, SC-007).
+//
+// Ningún fichero sale con permiso de ejecución (FR-015): el plan solo escribe
+// ficheros regulares con EscribirFichero, que no lo da, y no tiene forma de
+// pedir otro modo.
+func TestPlan(t *testing.T) {
+	t.Parallel()
+
+	grupos := []struct {
+		nombre string
+		casos  []casoDePlan
+	}{
+		{nombre: "instalación nueva", casos: casosDeInstalacionNueva(t)},
+		{nombre: "global y --dir", casos: casosDeAmbitosDelPlan(t)},
+		{nombre: "actualización", casos: casosDeActualizacion(t)},
+		{nombre: "lo que no se toca", casos: casosDelPlanQueNoSeTocan(t)},
+		{nombre: "entradas de host", casos: casosDelPlanDelHost(t)},
+		{nombre: "copias de host", casos: casosDelPlanDeLasCopias()},
+		{nombre: "enlaces solo fuera del ámbito", casos: casosConEnlacesSoloFueraDelAmbito(t)},
+	}
+
+	for _, grupo := range grupos {
+		t.Run(grupo.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			probarCasosDePlan(t, grupo.casos)
+		})
+	}
+
+	t.Run("recurso de copia cuando el enlace falla al aplicar", probarRecursoDeCopia)
+	t.Run("con un conflicto no hay plan", probarPlanConConflictos)
+	t.Run("fallos al planificar", probarFallosAlPlanificar)
+	t.Run("la salida", probarSalidaDeInstall)
+}
+
+// probarCasosDePlan comprueba cada caso en su propio disco.
+func probarCasosDePlan(t *testing.T, casos []casoDePlan) {
+	t.Helper()
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			probarCasoDePlan(t, caso)
+		})
+	}
+}
+
+// probarCasoDePlan planifica el caso sobre su disco, lo compara con lo
+// esperado, lo aplica y planifica una segunda vez.
+func probarCasoDePlan(t *testing.T, caso casoDePlan) {
+	t.Helper()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.directorio(temporal)
+	caso.preparar(d)
+
+	pedido, err := instalacion.ValidarInvocacion(caso.invocacion, homeDePrueba, empotradasDePrueba())
+	require.NoError(t, err, "la invocación del caso")
+
+	admite := caso.admite
+	if admite == nil {
+		admite = admiteSiempre
+	}
+
+	enlazador := nuevoEnlazadorHonesto(d, admite)
+	antes := d.instantanea()
+
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	require.NoError(t, err)
+
+	assert.Equal(t, antes, d.instantanea(), "planificar, que es todo lo que hace --dry-run, no cambia nada (FR-048)")
+	assert.Equal(t, caso.skills, plan.Skills, "la salida de la orden y de --dry-run (FR-051)")
+	assert.Equal(t, caso.operaciones, operacionesDelPlan(t, plan), "las cuatro fases, en orden (D7)")
+	assert.Equal(t, caso.sondas, enlazador.preguntados, "Disponible, solo por el directorio de la sonda y una vez")
+	exigirDiscoRespetado(t, d, raizVigilada(pedido.Ambito))
+	exigirNoExaminadas(t, d, caso.noExaminadas...)
+
+	enCopia := aplicarEnMemoria(t, plan, &escritorEnMemoria{disco: d, enlazador: enlazador})
+	assert.Empty(t, enCopia, "cada entrada de host queda en el modo previsto: --dry-run dice lo que hace la orden")
+	exigirHostsEnElDisco(t, d, plan.Skills)
+
+	if caso.comprobar != nil {
+		caso.comprobar(t, d)
+	}
+
+	exigirSegundaSinCambios(t, d, pedido, admite, plan.Skills)
+}
+
+// operacionesDelPlan es el plan escrito una operación por línea, con el número
+// de su fase delante: lo que se retira, cada directorio que se crea, cada
+// enlace, el manifiesto si cambia con los modos previstos y cada fichero.
+func operacionesDelPlan(t *testing.T, plan instalacion.Plan) []string {
+	t.Helper()
+
+	var operaciones []string
+
+	anotar := func(fase, operacion string, rutas ...string) {
+		for _, ruta := range rutas {
+			operaciones = append(operaciones, fase+" "+operacion+" "+ruta)
+		}
+	}
+
+	anotar("1", "retirar", plan.Retirar...)
+	anotar("2", "crear", plan.Enlazar.DirectoriosQueFaltan...)
+
+	for _, enlace := range plan.Enlazar.Enlaces {
+		anotar("2", "enlazar", enlace.Ruta+" -> "+enlace.Destino)
+	}
+
+	anotar("3", "crear", plan.Manifiesto.DirectoriosQueFaltan...)
+
+	contenido, err := plan.Manifiesto.Contenido(nil)
+	require.NoError(t, err, "el manifiesto final")
+
+	if contenido != nil {
+		anotar("3", "manifiesto", plan.Manifiesto.Ruta)
+	}
+
+	anotar("4", "crear", plan.Escribir.DirectoriosQueFaltan...)
+
+	for _, fichero := range plan.Escribir.Ficheros {
+		anotar("4", "escribir", fichero.Ruta)
+	}
+
+	return operaciones
+}
+
+// exigirHostsEnElDisco exige que cada entrada de host de la salida esté en el
+// disco en su modo: el enlace de FR-021 o un directorio real con la copia.
+func exigirHostsEnElDisco(t *testing.T, d *discoEnMemoria, skills []instalacion.SkillInstalada) {
+	t.Helper()
+
+	for _, skill := range skills {
+		for _, enlace := range skill.Enlaces {
+			entrada := examinarEnMemoria(t, d, enlace.Ruta)
+
+			switch enlace.Modo {
+			case instalacion.ModoEnlace:
+				assert.Equal(t, enlaceEnMemoria("../../.agents/skills/"+skill.Nombre, true), entrada,
+					"%s, el enlace de FR-021", enlace.Ruta)
+			case instalacion.ModoCopia:
+				assert.Equal(t, instalacion.EntradaDirectorio, entrada.Tipo, "%s, una copia", enlace.Ruta)
+			}
+		}
+	}
+}
+
+// exigirSegundaSinCambios planifica de nuevo sobre lo que dejó la primera
+// ejecución, con un creador de enlaces que responde lo mismo, y exige «sin
+// cambios» en cada skill, con los mismos enlaces, el plan vacío, Disponible
+// preguntado como mucho una vez por directorio y el disco byte a byte igual
+// tras aplicarlo (FR-045, SC-007).
+func exigirSegundaSinCambios(
+	t *testing.T, d *discoEnMemoria, pedido instalacion.Pedido, admite func(string) bool,
+	primera []instalacion.SkillInstalada,
+) {
+	t.Helper()
+
+	enlazador := nuevoEnlazadorHonesto(d, admite)
+	antes := d.instantanea()
+
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	require.NoError(t, err, "la segunda ejecución no encuentra ningún conflicto")
+
+	esperadas := make([]instalacion.SkillInstalada, 0, len(primera))
+	for _, skill := range primera {
+		skill.Estado = instalacion.EstadoSinCambios
+		esperadas = append(esperadas, skill)
+	}
+
+	assert.Equal(t, esperadas, plan.Skills, "la segunda ejecución: sin cambios en cada skill")
+	assert.Empty(t, operacionesDelPlan(t, plan), "la segunda ejecución: el plan vacío")
+	assert.Empty(t, aplicarEnMemoria(t, plan, &escritorEnMemoria{disco: d, enlazador: enlazador}))
+	assert.Equal(t, antes, d.instantanea(), "la segunda ejecución deja el disco byte a byte igual")
+
+	preguntados := slices.Sorted(slices.Values(enlazador.preguntados))
+	assert.Len(t, enlazador.preguntados, len(slices.Compact(preguntados)), "Disponible, una vez por directorio")
+}
+
+// salidaEn es la skill nombre del ámbito con ese estado y, por cada modo, su
+// entrada en el host claude con ese modo.
+func salidaEn(
+	ambito instalacion.Ambito, nombre string, estado instalacion.Estado, modos ...instalacion.Modo,
+) instalacion.SkillInstalada {
+	enlaces := []instalacion.Enlace{}
+	for _, modo := range modos {
+		enlaces = append(enlaces, instalacion.Enlace{Host: "claude", Ruta: ambito.RutaDeHost(nombre), Modo: modo})
+	}
+
+	return instalacion.SkillInstalada{Nombre: nombre, Ruta: ambito.RutaDeSkill(nombre), Estado: estado, Enlaces: enlaces}
+}
+
+// lasDos es la salida de las dos skills empotradas en el ámbito, en orden de
+// nombre, con el mismo estado y los mismos modos.
+func lasDos(ambito instalacion.Ambito, estado instalacion.Estado, modos ...instalacion.Modo) []instalacion.SkillInstalada {
+	return []instalacion.SkillInstalada{
+		salidaEn(ambito, "boe-legislacion", estado, modos...),
+		salidaEn(ambito, "legal-core", estado, modos...),
+	}
+}
+
+// escribirEnteras son las operaciones de la fase 4 que escriben entera la
+// skill empotrada de cada ruta —su directorio en el neutro o su copia de
+// host, cuyo último elemento es el nombre de la skill—: primero cada
+// directorio de todas, de arriba abajo, y después cada fichero.
+func escribirEnteras(t *testing.T, rutas ...string) []string {
+	t.Helper()
+
+	var creados, escritos []string
+
+	for _, ruta := range rutas {
+		creados = append(creados, "4 crear "+ruta)
+
+		for _, fichero := range empotradaDePrueba(t, path.Base(ruta)).Ficheros {
+			crear := "4 crear " + path.Join(ruta, path.Dir(fichero.Ruta))
+			if !slices.Contains(creados, crear) {
+				creados = append(creados, crear)
+			}
+
+			escritos = append(escritos, "4 escribir "+path.Join(ruta, fichero.Ruta))
+		}
+	}
+
+	return append(creados, escritos...)
+}
+
+// manifiestoNuevo son las operaciones de la fase 3: cada directorio que falta
+// hasta el neutro y el manifiesto del ámbito.
+func manifiestoNuevo(ambito instalacion.Ambito, faltan ...string) []string {
+	operaciones := make([]string, 0, len(faltan)+1)
+	for _, dir := range faltan {
+		operaciones = append(operaciones, "3 crear "+dir)
+	}
+
+	return append(operaciones, "3 manifiesto "+ambito.RutaDelManifiesto())
+}
+
+// enlazarLasDos son las operaciones de la fase 2: cada directorio que falta
+// hasta .claude/skills y el enlace de FR-021 de cada skill empotrada.
+func enlazarLasDos(ambito instalacion.Ambito, faltan ...string) []string {
+	operaciones := make([]string, 0, len(faltan)+2)
+	for _, dir := range faltan {
+		operaciones = append(operaciones, "2 crear "+dir)
+	}
+
+	for _, nombre := range []string{"boe-legislacion", "legal-core"} {
+		operaciones = append(operaciones, "2 enlazar "+ambito.RutaDeHost(nombre)+" -> ../../.agents/skills/"+nombre)
+	}
+
+	return operaciones
+}
+
+// lasDosEn son las rutas de las dos skills empotradas en el directorio neutro
+// del ámbito, y lasDosConCopia, además, cada una seguida de su copia de host.
+func lasDosEn(ambito instalacion.Ambito) []string {
+	return []string{ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeSkill("legal-core")}
+}
+
+func lasDosConCopia(ambito instalacion.Ambito) []string {
+	return []string{
+		ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeHost("boe-legislacion"),
+		ambito.RutaDeSkill("legal-core"), ambito.RutaDeHost("legal-core"),
+	}
+}
+
+// casosDeInstalacionNueva son los de un ámbito local en el que no hay nada:
+// cada skill sale «instalada», con cada directorio que falta creado (FR-014)
+// y, si se enlaza en el host, con su enlace o su copia (FR-021 a FR-025).
+func casosDeInstalacionNueva(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	nuevo := manifiestoNuevo(ambitoLocal, ".agents", ".agents/skills")
+
+	return []casoDePlan{
+		{
+			nombre:      "sin .claude, sin hosts",
+			preparar:    func(*discoEnMemoria) {},
+			skills:      lasDos(ambitoLocal, instalacion.EstadoInstalada),
+			operaciones: slices.Concat(nuevo, escribirEnteras(t, lasDosEn(ambitoLocal)...)),
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				manifiesto := leerManifiestoDelDisco(t, d)
+				assert.Equal(t, versionDePrueba, manifiesto.Version)
+				assert.Equal(t, huellasEmpotradas(t, "legal-core", "legal-core/"), manifiesto.Skills["legal-core"].Ficheros)
+				assert.Nil(t, manifiesto.Skills["legal-core"].Claude, "sin hosts")
+			},
+		},
+		{
+			nombre:      "una sola skill: un directorio y un manifiesto que declara una (SC-006)",
+			preparar:    func(*discoEnMemoria) {},
+			invocacion:  instalacion.Invocacion{Skills: []string{"legal-core"}},
+			skills:      []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoInstalada)},
+			operaciones: slices.Concat(nuevo, escribirEnteras(t, ".agents/skills/legal-core")),
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				nombres, err := d.Nombres(".agents/skills")
+				require.NoError(t, err)
+				assert.Equal(t, []string{"kitlegal.json", "legal-core"}, nombres)
+				assert.Len(t, leerManifiestoDelDisco(t, d).Skills, 1)
+			},
+		},
+		{
+			nombre:   "con .claude, un enlace relativo por skill",
+			preparar: func(d *discoEnMemoria) { d.directorio(".claude") },
+			skills:   lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(enlazarLasDos(ambitoLocal, ".claude/skills"), nuevo,
+				escribirEnteras(t, lasDosEn(ambitoLocal)...)),
+			sondas: []string{".claude"},
+		},
+		{
+			nombre:     "--host claude sin .claude: se crea",
+			preparar:   func(*discoEnMemoria) {},
+			invocacion: conHost,
+			skills:     lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(enlazarLasDos(ambitoLocal, ".claude", ".claude/skills"), nuevo,
+				escribirEnteras(t, lasDosEn(ambitoLocal)...)),
+			sondas: []string{"."},
+		},
+		{
+			nombre:   "con .claude y un creador de enlaces que no funciona, copias (FR-024)",
+			preparar: func(d *discoEnMemoria) { d.directorio(".claude") },
+			admite:   admiteNunca,
+			skills:   lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoCopia),
+			operaciones: slices.Concat([]string{"2 crear .claude/skills"}, nuevo,
+				escribirEnteras(t, lasDosConCopia(ambitoLocal)...)),
+			sondas: []string{".claude"},
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				copia := leerManifiestoDelDisco(t, d).Skills["legal-core"].Claude
+				require.NotNil(t, copia)
+				assert.Equal(t, instalacion.ModoCopia, copia.Modo)
+				assert.Equal(t, huellasEmpotradas(t, "legal-core", ".claude/skills/legal-core/"), copia.Ficheros,
+					"la copia declara la huella de cada fichero copiado")
+			},
+		},
+	}
+}
+
+// casosDeAmbitosDelPlan son los del ámbito global y el de --dir, con las rutas
+// como se alcanzan desde el directorio de trabajo y cada directorio que falta
+// hasta el neutro y hasta .claude/skills, de arriba abajo (FR-014).
+func casosDeAmbitosDelPlan(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	deHome := ambitoGlobal(t, homeDePrueba)
+	dir := instalacion.NuevoAmbitoDir("otro/destino/")
+	conHostGlobal := instalacion.Invocacion{Global: true, Host: texto("claude")}
+	nuevo := manifiestoNuevo(deHome, homeDePrueba+"/.agents", homeDePrueba+"/.agents/skills")
+
+	return []casoDePlan{
+		{
+			nombre:     "-g con --host claude: la sonda, en HOME",
+			preparar:   func(d *discoEnMemoria) { d.directorio(homeDePrueba) },
+			invocacion: conHostGlobal,
+			skills:     lasDos(deHome, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(enlazarLasDos(deHome, homeDePrueba+"/.claude", homeDePrueba+"/.claude/skills"),
+				nuevo, escribirEnteras(t, lasDosEn(deHome)...)),
+			sondas: []string{homeDePrueba},
+		},
+		{
+			nombre:     "-g con un HOME que no existe: se crea, sin sonda, y se predice enlace (D9)",
+			preparar:   func(*discoEnMemoria) {},
+			invocacion: conHostGlobal,
+			skills:     lasDos(deHome, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(
+				enlazarLasDos(deHome, "/home", homeDePrueba, homeDePrueba+"/.claude", homeDePrueba+"/.claude/skills"),
+				nuevo, escribirEnteras(t, lasDosEn(deHome)...)),
+		},
+		{
+			nombre:     "--dir, con lo que falta por encima, y un .claude que no se mira",
+			preparar:   func(d *discoEnMemoria) { d.directorio(".claude") },
+			invocacion: instalacion.Invocacion{Dir: texto("otro/destino/")},
+			skills:     lasDos(dir, instalacion.EstadoInstalada),
+			operaciones: slices.Concat(manifiestoNuevo(dir, "otro", "otro/destino"),
+				escribirEnteras(t, lasDosEn(dir)...)),
+			noExaminadas: []string{".claude"},
+		},
+	}
+}
+
+// casosDeActualizacion son los de una instalación que ya está: nada que
+// cambiar, ficheros declarados que faltan, otro binario y ficheros que se
+// dejan de empotrar (FR-045, FR-046).
+func casosDeActualizacion(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	const skill = ".agents/skills/legal-core"
+
+	return []casoDePlan{
+		{
+			nombre: "nada que cambiar: sin cambios y el plan vacío",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").escribir()
+			},
+			skills: lasDos(ambitoLocal, instalacion.EstadoSinCambios, instalacion.ModoEnlace),
+		},
+		{
+			nombre: "ficheros declarados que faltan, repuestos sin tocar el manifiesto",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
+				d.retirar(".agents/skills/boe-legislacion/SKILL.md")
+				d.retirar(skill + "/references")
+			},
+			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada),
+			operaciones: []string{
+				"4 crear " + skill + "/references",
+				"4 escribir .agents/skills/boe-legislacion/SKILL.md",
+				"4 escribir " + skill + "/references/jerarquia_normativa.md",
+				"4 escribir " + skill + "/references/leyes_vertebrales.md",
+			},
+		},
+		{
+			nombre: "otro binario: se retira y se reescribe lo que difiere, y se declara la versión",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja).
+					deOtroBinario("legal-core", "SKILL.md", "# legal-core de antes\n").escribir()
+			},
+			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada),
+			operaciones: []string{
+				"1 retirar " + skill + "/SKILL.md",
+				"3 manifiesto .agents/skills/kitlegal.json",
+				"4 escribir " + skill + "/SKILL.md",
+			},
+		},
+		{
+			nombre: "lo que se deja de empotrar se retira si está intacto y se quita del manifiesto si falta",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "legal-core").
+					deOtroBinario("legal-core", "references/antigua.md", "antigua").
+					deOtroBinario("legal-core", "antiguas/una.md", "una").
+					declarar("legal-core", "legal-core/references/perdida.md", "perdida").escribir()
+			},
+			invocacion: instalacion.Invocacion{Skills: []string{"legal-core"}},
+			skills:     []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada)},
+			operaciones: []string{
+				"1 retirar " + skill + "/antiguas/una.md",
+				"1 retirar " + skill + "/references/antigua.md",
+				"3 manifiesto .agents/skills/kitlegal.json",
+			},
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				assert.Equal(t, huellasEmpotradas(t, "legal-core", "legal-core/"),
+					leerManifiestoDelDisco(t, d).Skills["legal-core"].Ficheros, "declara solo lo empotrado")
+				assert.Equal(t, instalacion.EntradaDirectorio, examinarEnMemoria(t, d, skill+"/antiguas").Tipo,
+					"el directorio que se queda vacío no está declarado y no se retira (FR-047)")
+			},
+		},
+	}
+}
+
+// casosDelPlanQueNoSeTocan son los de un subconjunto y de una skill que el
+// binario no empotra: sus entradas del manifiesto se conservan byte a byte y
+// no se examina nada suyo (FR-034, FR-036).
+func casosDelPlanQueNoSeTocan(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	var antesDelSubconjunto, antesSinNombres []byte
+
+	otraSkill := instalacion.SkillDeclarada{
+		Version:  versionVieja,
+		Ficheros: map[string]string{"otra-skill/SKILL.md": instalacion.HuellaDe([]byte("# otra\n"))},
+		Claude:   &instalacion.EntradaDeHost{Ruta: ".claude/skills/otra-skill", Modo: instalacion.ModoEnlace},
+	}
+
+	return []casoDePlan{
+		{
+			nombre: "un subconjunto conserva las demás entradas del manifiesto",
+			preparar: func(d *discoEnMemoria) {
+				i := instalarLocal(d, "boe-legislacion").deVersion(versionVieja)
+				i.manifiesto.Skills["otra-skill"] = otraSkill
+				i.escribir()
+				d.fichero(".agents/skills/boe-legislacion/SKILL.md", "editado a mano")
+				antesDelSubconjunto = leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto())
+			},
+			invocacion:   instalacion.Invocacion{Skills: []string{"legal-core"}},
+			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoInstalada)},
+			operaciones:  slices.Concat(manifiestoNuevo(ambitoLocal), escribirEnteras(t, ".agents/skills/legal-core")),
+			noExaminadas: []string{".agents/skills/boe-legislacion", ".agents/skills/otra-skill"},
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				exigirEntradasConservadas(t, antesDelSubconjunto, leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto()),
+					"boe-legislacion", "otra-skill")
+			},
+		},
+		{
+			nombre: "sin nombres, la skill que el binario no empotra se queda como está",
+			preparar: func(d *discoEnMemoria) {
+				i := instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja)
+				i.manifiesto.Skills["otra-skill"] = otraSkill
+				i.escribir()
+				d.enlace(".agents/skills/otra-skill", "../../no-existe")
+				antesSinNombres = leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto())
+			},
+			skills:       lasDos(ambitoLocal, instalacion.EstadoActualizada),
+			operaciones:  []string{"3 manifiesto .agents/skills/kitlegal.json"},
+			noExaminadas: []string{".agents/skills/otra-skill"},
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				exigirEntradasConservadas(t, antesSinNombres, leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto()),
+					"otra-skill")
+				assert.Equal(t, enlaceEnMemoria("../../no-existe", false),
+					examinarEnMemoria(t, d, ".agents/skills/otra-skill"))
+			},
+		},
+	}
+}
+
+// casosDelPlanDelHost son los de las entradas de host declaradas que faltan,
+// que se recrean o se quitan del manifiesto, y los del enlace de FR-021 que se
+// adopta (FR-021 a FR-023, FR-041, FR-046).
+func casosDelPlanDelHost(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	enlazadas := func(d *discoEnMemoria) *instalada {
+		return instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core")
+	}
+
+	boeSinCambios := salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoSinCambios, instalacion.ModoEnlace)
+	legalActualizada := salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada, instalacion.ModoEnlace)
+
+	return []casoDePlan{
+		{
+			nombre: "la entrada de host que falta se recrea",
+			preparar: func(d *discoEnMemoria) {
+				enlazadas(d).escribir()
+				d.retirar(".claude/skills/legal-core")
+			},
+			skills:      []instalacion.SkillInstalada{boeSinCambios, legalActualizada},
+			operaciones: []string{"2 enlazar .claude/skills/legal-core -> ../../.agents/skills/legal-core"},
+			sondas:      []string{".claude/skills"},
+		},
+		{
+			nombre: "sin .claude y con --host claude, se recrean las dos",
+			preparar: func(d *discoEnMemoria) {
+				enlazadas(d).escribir()
+				d.retirar(".claude")
+			},
+			invocacion:  conHost,
+			skills:      lasDos(ambitoLocal, instalacion.EstadoActualizada, instalacion.ModoEnlace),
+			operaciones: enlazarLasDos(ambitoLocal, ".claude", ".claude/skills"),
+			sondas:      []string{"."},
+		},
+		{
+			nombre: "sin .claude ni --host, se quita del manifiesto",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+				d.retirar(".claude")
+			},
+			skills: []instalacion.SkillInstalada{
+				salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoSinCambios),
+				salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada),
+			},
+			operaciones: []string{"3 manifiesto .agents/skills/kitlegal.json"},
+			comprobar: func(t *testing.T, d *discoEnMemoria) {
+				t.Helper()
+
+				assert.Nil(t, leerManifiestoDelDisco(t, d).Skills["legal-core"].Claude)
+			},
+		},
+		{
+			nombre: "un .claude que no es un directorio real, sin --host: se quita sin mirar debajo",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "legal-core").enlazar("legal-core").escribir()
+				d.fichero(".claude", "no soy un directorio")
+			},
+			invocacion:   instalacion.Invocacion{Skills: []string{"legal-core"}},
+			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada)},
+			operaciones:  []string{"3 manifiesto .agents/skills/kitlegal.json"},
+			noExaminadas: []string{".claude/skills"},
+		},
+		{
+			nombre: "el enlace de FR-021 colgando y sin declarar se adopta, y la skill se instala",
+			preparar: func(d *discoEnMemoria) {
+				d.directorio(".claude/skills")
+				d.enlace(".claude/skills/boe-legislacion", "../../.agents/skills/boe-legislacion")
+			},
+			skills: lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(
+				[]string{"2 enlazar .claude/skills/legal-core -> ../../.agents/skills/legal-core"},
+				manifiestoNuevo(ambitoLocal, ".agents", ".agents/skills"), escribirEnteras(t, lasDosEn(ambitoLocal)...)),
+			sondas: []string{".claude/skills"},
+		},
+		{
+			nombre: "el enlace de FR-021 donde se declara una copia se declara enlace",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").copiar("legal-core").escribir()
+				d.retirar(".claude/skills/legal-core")
+				d.enlace(".claude/skills/legal-core", "../../.agents/skills/legal-core")
+			},
+			skills:      []instalacion.SkillInstalada{boeSinCambios, legalActualizada},
+			operaciones: []string{"3 manifiesto .agents/skills/kitlegal.json"},
+		},
+	}
+}
+
+// casosDelPlanDeLasCopias son los de una copia de host declarada: pasa a
+// enlace si el creador de enlaces funciona en .claude/skills y, si no, se
+// mantiene y se actualiza como el directorio neutro (FR-024, FR-046).
+func casosDelPlanDeLasCopias() []casoDePlan {
+	const host = ".claude/skills/legal-core"
+
+	return []casoDePlan{
+		{
+			nombre: "la copia pasa a enlace: se retira entera y se enlaza",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
+			},
+			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada, instalacion.ModoEnlace),
+			operaciones: slices.Concat([]string{
+				"1 retirar " + host + "/SKILL.md",
+				"1 retirar " + host + "/references/jerarquia_normativa.md",
+				"1 retirar " + host + "/references/leyes_vertebrales.md",
+				"1 retirar " + host + "/references",
+				"1 retirar " + host,
+			}, enlazarLasDos(ambitoLocal), []string{"3 manifiesto .agents/skills/kitlegal.json"}),
+			sondas: []string{".claude/skills"},
+		},
+		{
+			nombre: "la copia que se mantiene, sin nada que actualizar, sale sin cambios",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+			},
+			admite: admiteNunca,
+			skills: lasDos(ambitoLocal, instalacion.EstadoSinCambios, instalacion.ModoCopia),
+			sondas: []string{".claude/skills"},
+		},
+		{
+			nombre: "la copia que se mantiene se actualiza como el directorio neutro",
+			preparar: func(d *discoEnMemoria) {
+				instalarLocal(d, "legal-core").copiar("legal-core").
+					copiaDeOtroBinario("legal-core", "SKILL.md", "# legal-core de antes\n").escribir()
+				d.retirar(host + "/references")
+			},
+			invocacion: instalacion.Invocacion{Skills: []string{"legal-core"}},
+			admite:     admiteNunca,
+			skills: []instalacion.SkillInstalada{
+				salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada, instalacion.ModoCopia),
+			},
+			operaciones: []string{
+				"1 retirar " + host + "/SKILL.md",
+				"3 manifiesto .agents/skills/kitlegal.json",
+				"4 crear " + host + "/references",
+				"4 escribir " + host + "/SKILL.md",
+				"4 escribir " + host + "/references/jerarquia_normativa.md",
+				"4 escribir " + host + "/references/leyes_vertebrales.md",
+			},
+			sondas: []string{".claude/skills"},
+		},
+	}
+}
+
+// casosConEnlacesSoloFueraDelAmbito son los de research.md D9, con el
+// Enlazador sintético que admite enlaces en el temporal, fuera del ámbito, y
+// en ningún directorio del ámbito. Como la sonda se hace en el directorio del
+// ámbito donde se enlazaría, la primera ejecución predice copia y la deja,
+// --dry-run dice lo mismo que la orden, y la segunda sale «sin cambios» con el
+// plan vacío en vez de retirar la copia para volver a fallar al enlazar
+// (FR-045, FR-048). Sondear en el temporal habría predicho enlace.
+func casosConEnlacesSoloFueraDelAmbito(t *testing.T) []casoDePlan {
+	t.Helper()
+
+	deHome := ambitoGlobal(t, homeDePrueba)
+	enElTrabajo := admiteFueraDe(directorioDeTrabajo)
+	nuevo := manifiestoNuevo(ambitoLocal, ".agents", ".agents/skills")
+
+	return []casoDePlan{
+		{
+			nombre:   "local con .claude",
+			preparar: func(d *discoEnMemoria) { d.directorio(".claude") },
+			admite:   enElTrabajo,
+			skills:   lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoCopia),
+			operaciones: slices.Concat([]string{"2 crear .claude/skills"}, nuevo,
+				escribirEnteras(t, lasDosConCopia(ambitoLocal)...)),
+			sondas: []string{".claude"},
+		},
+		{
+			nombre:     "local con --host claude y sin .claude",
+			preparar:   func(*discoEnMemoria) {},
+			invocacion: conHost,
+			admite:     enElTrabajo,
+			skills:     lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoCopia),
+			operaciones: slices.Concat([]string{"2 crear .claude", "2 crear .claude/skills"}, nuevo,
+				escribirEnteras(t, lasDosConCopia(ambitoLocal)...)),
+			sondas: []string{"."},
+		},
+		{
+			nombre:     "-g con --host claude y sin .claude",
+			preparar:   func(d *discoEnMemoria) { d.directorio(homeDePrueba) },
+			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			admite:     admiteFueraDe(homeDePrueba),
+			skills:     lasDos(deHome, instalacion.EstadoInstalada, instalacion.ModoCopia),
+			operaciones: slices.Concat([]string{"2 crear " + homeDePrueba + "/.claude", "2 crear " + homeDePrueba + "/.claude/skills"},
+				manifiestoNuevo(deHome, homeDePrueba+"/.agents", homeDePrueba+"/.agents/skills"),
+				escribirEnteras(t, lasDosConCopia(deHome)...)),
+			sondas: []string{homeDePrueba},
+		},
+		{
+			nombre: "-g con las copias ya hechas",
+			preparar: func(d *discoEnMemoria) {
+				instalarEn(d, deHome, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+			},
+			invocacion: global,
+			admite:     admiteFueraDe(homeDePrueba),
+			skills:     lasDos(deHome, instalacion.EstadoSinCambios, instalacion.ModoCopia),
+			sondas:     []string{homeDePrueba + "/.claude/skills"},
+		},
+	}
+}
+
+// probarRecursoDeCopia fija el recurso de FR-024 en la aplicación: la sonda
+// dice que se puede enlazar y el enlace falla igualmente, así que cada entrada
+// pasa a su copia, con los mismos ficheros que el directorio neutro, y el
+// manifiesto final la declara copia con sus huellas (SC-012). Después, con un
+// creador de enlaces que ya dice que no, la copia se mantiene sin cambios.
+func probarRecursoDeCopia(t *testing.T) {
+	t.Parallel()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.directorio(".claude")
+
+	pedido, err := instalacion.ValidarInvocacion(instalacion.Invocacion{}, "", empotradasDePrueba())
+	require.NoError(t, err)
+
+	enlazador := &enlazadorEnMemoria{disco: d, sondea: admiteSiempre, enlaza: admiteNunca}
+
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	require.NoError(t, err)
+	assert.Equal(t, lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace), plan.Skills,
+		"la predicción, que sale de la sonda")
+
+	require.Len(t, plan.Enlazar.Enlaces, 2)
+
+	for _, enlace := range plan.Enlazar.Enlaces {
+		exigirRecursoDeCopia(t, enlace)
+	}
+
+	previsto, err := plan.Manifiesto.Contenido(nil)
+	require.NoError(t, err)
+
+	conOtra, err := plan.Manifiesto.Contenido([]string{"otra-skill"})
+	require.NoError(t, err)
+	assert.Equal(t, previsto, conOtra, "una skill que no es la de ningún enlace del plan no cambia nada")
+
+	enCopia := aplicarEnMemoria(t, plan, &escritorEnMemoria{disco: d, enlazador: enlazador})
+	require.Equal(t, []string{"boe-legislacion", "legal-core"}, enCopia)
+
+	manifiesto := leerManifiestoDelDisco(t, d)
+	for _, nombre := range enCopia {
+		host := manifiesto.Skills[nombre].Claude
+		require.NotNil(t, host)
+		assert.Equal(t, instalacion.ModoCopia, host.Modo)
+		assert.Equal(t, huellasEmpotradas(t, nombre, ".claude/skills/"+nombre+"/"), host.Ficheros)
+	}
+
+	enCopias := lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoCopia)
+	exigirHostsEnElDisco(t, d, enCopias)
+	exigirSegundaSinCambios(t, d, pedido, admiteNunca, enCopias)
+}
+
+// exigirRecursoDeCopia exige que el enlace sea el de FR-021 y que su recurso
+// de copia sea el directorio de la entrada con cada fichero empotrado, byte a
+// byte.
+func exigirRecursoDeCopia(t *testing.T, enlace instalacion.EnlaceNuevo) {
+	t.Helper()
+
+	assert.Equal(t, ".claude/skills/"+enlace.Skill, enlace.Ruta)
+	assert.Equal(t, "../../.agents/skills/"+enlace.Skill, enlace.Destino)
+
+	esperado := instalacion.Escrituras{DirectoriosQueFaltan: []string{enlace.Ruta, enlace.Ruta + "/references"}}
+	for _, fichero := range empotradaDePrueba(t, enlace.Skill).Ficheros {
+		esperado.Ficheros = append(esperado.Ficheros,
+			instalacion.Escritura{Ruta: path.Join(enlace.Ruta, fichero.Ruta), Contenido: fichero.Contenido})
+	}
+
+	assert.Equal(t, esperado, enlace.Copia)
+}
+
+// probarPlanConConflictos exige que, con un conflicto, Planificar devuelva el
+// mismo rechazo que ComprobarConflictos, ningún plan y ninguna pregunta a
+// Disponible: no hay ninguna entrada que crear.
+func probarPlanConConflictos(t *testing.T) {
+	t.Parallel()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.directorio(".claude")
+	d.fichero(".agents/skills/legal-core/mio.md", "no es de kitlegal")
+
+	pedido, err := instalacion.ValidarInvocacion(instalacion.Invocacion{}, "", empotradasDePrueba())
+	require.NoError(t, err)
+
+	enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
+
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	exigirConflictos(t, err, []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/legal-core")})
+	assert.Equal(t, instalacion.Plan{}, plan)
+	assert.Empty(t, enlazador.preguntados)
+}
+
+// probarFallosAlPlanificar exige que un fallo del Disco o de la sonda al
+// decidir el plan se devuelva tal cual, y no como un conflicto, y que una
+// versión del binario que el manifiesto no admitiría se rechace antes de
+// examinar nada.
+func probarFallosAlPlanificar(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre     string
+		preparar   func(d *discoEnMemoria)
+		invocacion instalacion.Invocacion
+		sonda      error
+	}{
+		{
+			nombre:   "la sonda de una entrada de host que falta",
+			preparar: func(d *discoEnMemoria) { d.directorio(".claude") },
+			sonda:    errInyectado,
+		},
+		{
+			nombre:     "HOME, con -g",
+			preparar:   func(d *discoEnMemoria) { d.fallar(opExaminar, homeDePrueba, errInyectado) },
+			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+		},
+		{
+			nombre:     "lo que hay por encima de un HOME que no existe",
+			preparar:   func(d *discoEnMemoria) { d.fallar(opExaminar, "/home", errInyectado) },
+			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+		},
+		{
+			nombre:     "lo que hay por encima de --dir",
+			preparar:   func(d *discoEnMemoria) { d.fallar(opExaminar, "otro", errInyectado) },
+			invocacion: instalacion.Invocacion{Dir: texto("otro/destino")},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			d := nuevoDiscoEnMemoria(t)
+			caso.preparar(d)
+
+			pedido, err := instalacion.ValidarInvocacion(caso.invocacion, homeDePrueba, empotradasDePrueba())
+			require.NoError(t, err)
+
+			enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
+			enlazador.err = caso.sonda
+
+			_, err = instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+			exigirFalloSinConflictos(t, err, errInyectado)
+		})
+	}
+
+	for _, version := range []string{"", "v0.1.0\n"} {
+		t.Run("versión del binario "+strconv.Quote(version), func(t *testing.T) {
+			t.Parallel()
+
+			d := nuevoDiscoEnMemoria(t)
+
+			_, err := instalacion.Planificar(d, nuevoEnlazadorHonesto(d, admiteSiempre), pedidoLocalConHost(t),
+				empotradasDePrueba(), version)
+			require.Error(t, err)
+			assert.Empty(t, d.accesos, "no se examina nada")
+		})
+	}
+}
+
+// probarSalidaDeInstall fija la salida de install en JSON, la de
+// contracts/applet-skills.md §4.1, con la biblioteca con la que la escribe el
+// kernel: sus claves en español y una lista vacía como [], nunca null. Y que
+// los enumerados de las etiquetas jsonschema, de las que --describe saca el
+// esquema, son los valores del paquete.
+func probarSalidaDeInstall(t *testing.T) {
+	t.Parallel()
+
+	salida, err := json.Marshal([]instalacion.SkillInstalada{
+		salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoInstalada, instalacion.ModoEnlace),
+		salidaEn(ambitoLocal, "legal-core", instalacion.EstadoSinCambios),
+	})
+	require.NoError(t, err)
+
+	assert.JSONEq(t, `[
+		{"nombre": "boe-legislacion", "ruta": ".agents/skills/boe-legislacion", "estado": "instalada",
+		 "enlaces": [{"host": "claude", "ruta": ".claude/skills/boe-legislacion", "modo": "enlace"}]},
+		{"nombre": "legal-core", "ruta": ".agents/skills/legal-core", "estado": "sin cambios", "enlaces": []}
+	]`, string(salida))
+
+	enumerado := func(valores ...string) string {
+		return "enum=" + strings.Join(valores, ",enum=")
+	}
+
+	etiquetas := map[string]string{
+		"Estado": enumerado(string(instalacion.EstadoInstalada), string(instalacion.EstadoActualizada),
+			string(instalacion.EstadoSinCambios)),
+		"Host": enumerado("claude"),
+		"Modo": enumerado(string(instalacion.ModoEnlace), string(instalacion.ModoCopia)),
+	}
+
+	for campo, esperada := range etiquetas {
+		tipo := reflect.TypeFor[instalacion.Enlace]()
+		if campo == "Estado" {
+			tipo = reflect.TypeFor[instalacion.SkillInstalada]()
+		}
+
+		declarado, hay := tipo.FieldByName(campo)
+		require.True(t, hay, campo)
+		assert.Equal(t, esperada, declarado.Tag.Get("jsonschema"), campo)
+	}
+}
+
+// leerDelDisco son los bytes del fichero regular de ruta.
+func leerDelDisco(t *testing.T, d *discoEnMemoria, ruta string) []byte {
+	t.Helper()
+
+	contenido, err := d.Leer(ruta)
+	require.NoError(t, err)
+
+	return contenido
+}
+
+// leerManifiestoDelDisco es el manifiesto del ámbito local, que tiene que
+// existir y ser legible.
+func leerManifiestoDelDisco(t *testing.T, d *discoEnMemoria) instalacion.Manifiesto {
+	t.Helper()
+
+	manifiesto, err := instalacion.LeerManifiesto(leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto()))
+	require.NoError(t, err)
+
+	return manifiesto
+}
+
+// huellasEmpotradas son los ficheros empotrados de la skill nombre, cada uno
+// con prefijo delante de su ruta, con su huella: lo que declara el manifiesto
+// de una instalación o de una copia al día.
+func huellasEmpotradas(t *testing.T, nombre, prefijo string) map[string]string {
+	t.Helper()
+
+	huellas := map[string]string{}
+	for _, fichero := range empotradaDePrueba(t, nombre).Ficheros {
+		huellas[prefijo+fichero.Ruta] = fichero.Huella
+	}
+
+	return huellas
+}
+
+// exigirEntradasConservadas exige que la entrada de cada skill nombrada tenga
+// en el manifiesto despues exactamente los bytes que tenía en antes (FR-034,
+// FR-036), y que la versión de nivel superior sea ya la del binario que lo
+// escribió el último (contracts/manifiesto.md §2).
+func exigirEntradasConservadas(t *testing.T, antes, despues []byte, nombres ...string) {
+	t.Helper()
+
+	type entradas struct {
+		Skills  map[string]json.RawMessage `json:"skills"`
+		Version string                     `json:"version"`
+	}
+
+	var viejas, nuevas entradas
+
+	require.NoError(t, json.Unmarshal(antes, &viejas))
+	require.NoError(t, json.Unmarshal(despues, &nuevas))
+
+	for _, nombre := range nombres {
+		require.Contains(t, viejas.Skills, nombre)
+		assert.Equal(t, string(viejas.Skills[nombre]), string(nuevas.Skills[nombre]), "la entrada de %s, byte a byte", nombre)
+	}
+
+	assert.Equal(t, versionDePrueba, nuevas.Version)
 }

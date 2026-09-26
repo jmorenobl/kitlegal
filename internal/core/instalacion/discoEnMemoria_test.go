@@ -3,6 +3,7 @@ package instalacion_test
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"slices"
 	"strings"
@@ -39,6 +40,18 @@ var (
 	// errNoEsRegular es el fichero que se pide abrir y no es un fichero
 	// regular.
 	errNoEsRegular = errors.New("no es un fichero regular")
+)
+
+// Los errores de las operaciones del Escritor y del Enlazador sobre el disco
+// en memoria, los que el sistema también daría.
+var (
+	// errYaExiste es crear un directorio o un enlace donde ya hay algo.
+	errYaExiste = errors.New("ya existe")
+	// errNoVacio es retirar un directorio que tiene algo dentro.
+	errNoVacio = errors.New("el directorio no está vacío")
+	// errSinEnlaces es crear un enlace en un directorio cuyo sistema de
+	// ficheros no los admite.
+	errSinEnlaces = errors.New("este sistema de ficheros no admite enlaces simbólicos")
 )
 
 // errInyectado es el fallo de entrada y salida que se inyecta en una llamada.
@@ -433,6 +446,248 @@ func exigirNoExaminadas(t *testing.T, d *discoEnMemoria, rutas ...string) {
 	}
 }
 
+// instantanea es todo lo que hay en el disco, entrada a entrada: con ella se
+// comprueba que algo lo deja byte a byte igual, con las mismas entradas y los
+// mismos destinos de enlace (FR-045, FR-048).
+func (d *discoEnMemoria) instantanea() map[string]nodoEnMemoria {
+	return maps.Clone(d.nodos)
+}
+
+// paraCrear resuelve ruta como la resuelve el sistema al crear o cambiar algo
+// en ella: su directorio tiene que existir y ser un directorio, siguiendo los
+// enlaces de encima, y la entrada misma no se sigue. Devuelve su ruta física y
+// lo que hay en ella.
+func (d *discoEnMemoria) paraCrear(op, ruta string) (string, nodoEnMemoria, bool, error) {
+	abs := absoluta(ruta)
+
+	padre, err := d.seguir(path.Dir(abs))
+	if err == nil && d.nodos[padre].tipo != instalacion.EntradaDirectorio {
+		err = errNoEsDirectorio
+	}
+
+	if err != nil {
+		return "", nodoEnMemoria{}, false, fmt.Errorf("%s %s: %w", op, ruta, err)
+	}
+
+	fisica := path.Join(padre, path.Base(abs))
+	nodo, existe := d.nodos[fisica]
+
+	return fisica, nodo, existe, nil
+}
+
+// escritorEnMemoria es el puerto Escritor sobre el disco en memoria, con la
+// semántica estricta del sistema en cada operación suelta: crear un
+// directorio donde no hay nada, escribir un fichero regular donde no hay nada
+// o hay otro, y retirar un fichero, un enlace sin seguirlo o un directorio
+// vacío; los enlaces, con el Enlazador de la invocación. Lo que el sistema
+// rechazaría es un error, así que un plan que pide algo imposible no pasa.
+type escritorEnMemoria struct {
+	disco     *discoEnMemoria
+	enlazador *enlazadorEnMemoria
+}
+
+// El escritor en memoria es un Escritor.
+var _ instalacion.Escritor = (*escritorEnMemoria)(nil)
+
+// CrearDirectorio crea el directorio real de ruta, donde no hay nada.
+func (e *escritorEnMemoria) CrearDirectorio(ruta string) error {
+	fisica, _, existe, err := e.disco.paraCrear("CrearDirectorio", ruta)
+	if err != nil {
+		return err
+	}
+
+	if existe {
+		return fmt.Errorf("CrearDirectorio %s: %w", ruta, errYaExiste)
+	}
+
+	e.disco.nodos[fisica] = nodoEnMemoria{tipo: instalacion.EntradaDirectorio}
+
+	return nil
+}
+
+// EscribirFichero deja en ruta un fichero regular con una copia de contenido,
+// donde no hay nada o sustituyendo a otro fichero regular.
+func (e *escritorEnMemoria) EscribirFichero(ruta string, contenido []byte) error {
+	fisica, nodo, existe, err := e.disco.paraCrear("EscribirFichero", ruta)
+	if err != nil {
+		return err
+	}
+
+	if existe && nodo.tipo != instalacion.EntradaFichero {
+		return fmt.Errorf("EscribirFichero %s: %w", ruta, errNoEsRegular)
+	}
+
+	e.disco.nodos[fisica] = nodoEnMemoria{tipo: instalacion.EntradaFichero, contenido: slices.Clone(contenido)}
+
+	return nil
+}
+
+// Retirar quita la entrada de ruta, sin seguirla, si es un fichero, un enlace
+// o un directorio vacío.
+func (e *escritorEnMemoria) Retirar(ruta string) error {
+	fisica, nodo, existe, err := e.disco.paraCrear("Retirar", ruta)
+
+	switch {
+	case err != nil:
+		return err
+	case !existe:
+		return fmt.Errorf("Retirar %s: %w", ruta, errNoExiste)
+	case nodo.tipo == instalacion.EntradaDirectorio && e.disco.tieneDentro(fisica):
+		return fmt.Errorf("Retirar %s: %w", ruta, errNoVacio)
+	}
+
+	delete(e.disco.nodos, fisica)
+
+	return nil
+}
+
+// Enlazar crea el enlace con el Enlazador de la invocación.
+func (e *escritorEnMemoria) Enlazar(destino, ruta string) error {
+	return e.enlazador.Enlazar(destino, ruta)
+}
+
+// tieneDentro dice si hay alguna entrada dentro de la ruta física dir.
+func (d *discoEnMemoria) tieneDentro(dir string) bool {
+	for clave := range d.nodos {
+		if clave != "/" && path.Dir(clave) == dir {
+			return true
+		}
+	}
+
+	return false
+}
+
+// temporal es un directorio del disco en memoria que no es de ningún ámbito
+// de las pruebas, como el TMPDIR de una máquina real.
+const temporal = "/tmp"
+
+// admiteSiempre y admiteNunca son las respuestas de un creador de enlaces que
+// funciona en cualquier directorio y de uno que no funciona en ninguno.
+func admiteSiempre(string) bool { return true }
+
+func admiteNunca(string) bool { return false }
+
+// admiteFueraDe es la de un creador de enlaces que funciona en cualquier
+// directorio que no está por debajo de raiz, y en ninguno que lo está: el
+// ámbito vive en un sistema de ficheros sin enlaces y el temporal en otro que
+// los admite (research.md D9).
+func admiteFueraDe(raiz string) func(string) bool {
+	return func(directorio string) bool {
+		abs := absoluta(directorio)
+
+		return abs != raiz && !strings.HasPrefix(abs, raiz+"/")
+	}
+}
+
+// enlazadorEnMemoria es un Enlazador sintético sobre el disco en memoria:
+// Disponible responde lo que diga sondea del directorio, sin tocar el disco,
+// o err si lo tiene, y anota el directorio por el que se pregunta; Enlazar
+// crea el enlace en el disco si enlaza admite su directorio, y si no falla
+// como un sistema de ficheros sin enlaces. Un enlazador honesto sondea y
+// enlaza con la misma respuesta.
+type enlazadorEnMemoria struct {
+	disco       *discoEnMemoria
+	sondea      func(directorio string) bool
+	enlaza      func(directorio string) bool
+	err         error
+	preguntados []string
+}
+
+// El enlazador en memoria es un Enlazador.
+var _ instalacion.Enlazador = (*enlazadorEnMemoria)(nil)
+
+// nuevoEnlazadorHonesto es el que sondea y enlaza con la respuesta de admite.
+func nuevoEnlazadorHonesto(d *discoEnMemoria, admite func(string) bool) *enlazadorEnMemoria {
+	return &enlazadorEnMemoria{disco: d, sondea: admite, enlaza: admite}
+}
+
+// Disponible anota directorio y responde lo que diga sondea, o err.
+func (e *enlazadorEnMemoria) Disponible(directorio string) (bool, error) {
+	e.preguntados = append(e.preguntados, directorio)
+
+	if e.err != nil {
+		return false, e.err
+	}
+
+	return e.sondea(directorio), nil
+}
+
+// Enlazar crea en ruta un enlace con ese destino literal, donde no hay nada,
+// si enlaza admite su directorio.
+func (e *enlazadorEnMemoria) Enlazar(destino, ruta string) error {
+	fisica, _, existe, err := e.disco.paraCrear("Enlazar", ruta)
+
+	switch {
+	case err != nil:
+		return err
+	case !e.enlaza(path.Dir(absoluta(ruta))):
+		return fmt.Errorf("Enlazar %s: %w", ruta, errSinEnlaces)
+	case existe:
+		return fmt.Errorf("Enlazar %s: %w", ruta, errYaExiste)
+	}
+
+	e.disco.nodos[fisica] = nodoEnMemoria{tipo: instalacion.EntradaEnlace, destino: destino}
+
+	return nil
+}
+
+// aplicarEnMemoria lleva a cabo el plan con escritor, fase a fase y en el
+// orden de research.md D7: retira, crea lo que falta hasta .claude/skills y
+// enlaza —y la entrada cuyo enlace no se puede crear pasa a su recurso de
+// copia (FR-024)—, escribe el manifiesto final con los modos que resultaron y,
+// por último, los ficheros. Devuelve las skills que quedaron en copia por un
+// enlace que no se pudo crear; cualquier otro fallo termina el test.
+func aplicarEnMemoria(t *testing.T, plan instalacion.Plan, escritor *escritorEnMemoria) []string {
+	t.Helper()
+
+	for _, ruta := range plan.Retirar {
+		require.NoError(t, escritor.Retirar(ruta), "fase 1")
+	}
+
+	crearEnMemoria(t, escritor, plan.Enlazar.DirectoriosQueFaltan, "fase 2")
+
+	var enCopia []string
+
+	escribir := instalacion.Escrituras{
+		DirectoriosQueFaltan: slices.Clone(plan.Escribir.DirectoriosQueFaltan),
+		Ficheros:             slices.Clone(plan.Escribir.Ficheros),
+	}
+
+	for _, enlace := range plan.Enlazar.Enlaces {
+		if err := escritor.Enlazar(enlace.Destino, enlace.Ruta); err != nil {
+			enCopia = append(enCopia, enlace.Skill)
+			escribir.DirectoriosQueFaltan = append(escribir.DirectoriosQueFaltan, enlace.Copia.DirectoriosQueFaltan...)
+			escribir.Ficheros = append(escribir.Ficheros, enlace.Copia.Ficheros...)
+		}
+	}
+
+	crearEnMemoria(t, escritor, plan.Manifiesto.DirectoriosQueFaltan, "fase 3")
+
+	contenido, err := plan.Manifiesto.Contenido(enCopia)
+	require.NoError(t, err, "fase 3")
+
+	if contenido != nil {
+		require.NoError(t, escritor.EscribirFichero(plan.Manifiesto.Ruta, contenido), "fase 3")
+	}
+
+	crearEnMemoria(t, escritor, escribir.DirectoriosQueFaltan, "fase 4")
+
+	for _, fichero := range escribir.Ficheros {
+		require.NoError(t, escritor.EscribirFichero(fichero.Ruta, fichero.Contenido), "fase 4")
+	}
+
+	return enCopia
+}
+
+// crearEnMemoria crea cada directorio, en orden.
+func crearEnMemoria(t *testing.T, escritor *escritorEnMemoria, rutas []string, fase string) {
+	t.Helper()
+
+	for _, ruta := range rutas {
+		require.NoError(t, escritor.CrearDirectorio(ruta), fase)
+	}
+}
+
 // enlazadorDePrueba es un Enlazador sintético: a Disponible responde siempre
 // disponible, o err si lo tiene, y anota el directorio por el que se pregunta;
 // Enlazar solo anota la ruta del enlace, sin crear nada.
@@ -585,6 +840,38 @@ func (i *instalada) olvidar(nombre, ruta string) *instalada {
 	return i
 }
 
+// deVersion hace de version el manifiesto y cada skill que declara, como si
+// las hubiera puesto ahí otro binario.
+func (i *instalada) deVersion(version string) *instalada {
+	i.manifiesto.Version = version
+
+	for nombre, skill := range i.manifiesto.Skills {
+		skill.Version = version
+		i.manifiesto.Skills[nombre] = skill
+	}
+
+	return i
+}
+
+// deOtroBinario deja en el directorio de la skill nombre el fichero rel con
+// contenido y lo declara con esa huella, como lo habría dejado un binario que
+// empotraba otro contenido.
+func (i *instalada) deOtroBinario(nombre, rel, contenido string) *instalada {
+	i.disco.fichero(path.Join(i.ambito.RutaDeSkill(nombre), rel), contenido)
+	i.manifiesto.Skills[nombre].Ficheros[nombre+"/"+rel] = instalacion.HuellaDe([]byte(contenido))
+
+	return i
+}
+
+// copiaDeOtroBinario hace lo mismo que deOtroBinario en la copia de host de la
+// skill nombre, que tiene que estar declarada.
+func (i *instalada) copiaDeOtroBinario(nombre, rel, contenido string) *instalada {
+	i.disco.fichero(path.Join(i.ambito.RutaDeHost(nombre), rel), contenido)
+	i.manifiesto.Skills[nombre].Claude.Ficheros[".claude/skills/"+nombre+"/"+rel] = instalacion.HuellaDe([]byte(contenido))
+
+	return i
+}
+
 // escribir deja el manifiesto en el disco, en su forma canónica.
 func (i *instalada) escribir() {
 	contenido, err := i.manifiesto.Bytes()
@@ -606,6 +893,8 @@ func TestDiscoEnMemoria(t *testing.T) {
 	t.Run("examinar", probarExaminarEnMemoria)
 	t.Run("abrir y listar", probarAbrirEnMemoria)
 	t.Run("fallos inyectados", probarFallosEnMemoria)
+	t.Run("escribir", probarEscribirEnMemoria)
+	t.Run("enlazar", probarEnlazarEnMemoria)
 }
 
 // discoDeMuestra es un disco con una entrada de cada clase.
@@ -737,4 +1026,83 @@ func probarFallosEnMemoria(t *testing.T) {
 
 	_, err = d.Leer("dir/f")
 	require.NoError(t, err, "el fallo es solo de su operación y su ruta")
+}
+
+// probarEscribirEnMemoria fija las operaciones del Escritor en memoria: cada
+// una hace lo mismo que el sistema y rechaza lo que el sistema rechazaría.
+func probarEscribirEnMemoria(t *testing.T) {
+	t.Parallel()
+
+	d := discoDeMuestra(t)
+	e := &escritorEnMemoria{disco: d, enlazador: nuevoEnlazadorHonesto(d, admiteNunca)}
+
+	require.NoError(t, e.CrearDirectorio("nuevo"))
+	require.NoError(t, e.EscribirFichero("nuevo/f", []byte("uno")))
+	require.NoError(t, e.EscribirFichero("nuevo/f", []byte("dos")), "sustituye a un fichero regular")
+	require.NoError(t, e.EscribirFichero("enlace-a-dir/g", []byte("tres")), "los enlaces de encima se siguen")
+
+	leido, err := d.Leer("dir/g")
+	require.NoError(t, err)
+	assert.Equal(t, "tres", string(leido))
+
+	require.ErrorIs(t, e.CrearDirectorio("dir"), errYaExiste)
+	require.ErrorIs(t, e.CrearDirectorio("no-existe/x"), errNoExiste, "el padre tiene que existir")
+	require.ErrorIs(t, e.EscribirFichero("dir/f/x", nil), errNoEsDirectorio)
+	require.ErrorIs(t, e.EscribirFichero("dir/sub", nil), errNoEsRegular, "no sustituye a un directorio")
+	require.ErrorIs(t, e.EscribirFichero("colgando", nil), errNoEsRegular, "no escribe a través de un enlace")
+	require.ErrorIs(t, e.Retirar("dir"), errNoVacio)
+	require.ErrorIs(t, e.Retirar("no-existe"), errNoExiste)
+
+	require.NoError(t, e.Retirar("enlace-a-dir"), "retira el enlace, no lo que hay al otro lado")
+	require.NoError(t, e.Retirar("dir/sub"), "un directorio vacío")
+
+	entrada, err := d.Examinar("dir/f")
+	require.NoError(t, err)
+	assert.Equal(t, instalacion.EntradaFichero, entrada.Tipo)
+
+	entrada, err = d.Examinar("dir/sub")
+	require.NoError(t, err)
+	assert.Equal(t, instalacion.EntradaAusente, entrada.Tipo)
+}
+
+// probarEnlazarEnMemoria fija el Enlazador en memoria: responde lo que diga
+// sondea, anotando el directorio, y solo crea el enlace donde enlaza lo
+// admite.
+func probarEnlazarEnMemoria(t *testing.T) {
+	t.Parallel()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.directorio(temporal)
+
+	enlazador := nuevoEnlazadorHonesto(d, admiteFueraDe(directorioDeTrabajo))
+
+	fuera, err := enlazador.Disponible(temporal)
+	require.NoError(t, err)
+	assert.True(t, fuera, "fuera del ámbito admite enlaces")
+
+	dentro, err := enlazador.Disponible(".")
+	require.NoError(t, err)
+	assert.False(t, dentro, "dentro del ámbito, no")
+	assert.Equal(t, []string{temporal, "."}, enlazador.preguntados)
+
+	require.NoError(t, enlazador.Enlazar("../x", temporal+"/enlace"))
+	assert.Equal(t, enlaceEnMemoria("../x", false), examinarEnMemoria(t, d, temporal+"/enlace"))
+
+	require.ErrorIs(t, enlazador.Enlazar("x", "enlace"), errSinEnlaces)
+	require.ErrorIs(t, enlazador.Enlazar("x", temporal+"/enlace"), errYaExiste)
+	assert.Equal(t, instalacion.EntradaAusente, examinarEnMemoria(t, d, "enlace").Tipo)
+
+	enlazador.err = errInyectado
+	_, err = enlazador.Disponible(temporal)
+	require.ErrorIs(t, err, errInyectado)
+}
+
+// examinarEnMemoria es la entrada de ruta en el disco, sin error.
+func examinarEnMemoria(t *testing.T, d *discoEnMemoria, ruta string) instalacion.Entrada {
+	t.Helper()
+
+	entrada, err := d.Examinar(ruta)
+	require.NoError(t, err)
+
+	return entrada
 }

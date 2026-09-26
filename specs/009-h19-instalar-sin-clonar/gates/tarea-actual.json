@@ -1,16 +1,14 @@
 {
-  "id": "T005",
-  "texto": "T005 [US1] Puertos y conflictos de `install` (data-model §3 y §4): los puertos `Disco`, `Escritor` y `Enlazador` y la `Entrada` (ausente, directorio, fichero, enlace, otro; destino literal; `Resuelve`), un disco en memoria de test que modela enlaces colgando y en ciclo, tuberías y fallos de E/S, y la detección de conflictos antes de escribir nada (ámbito §4.1, directorio neutro §4.2, host `claude` §4.3, lo que no se toca §4.4): adopción del enlace con el destino literal de FR-021 aunque cuelgue, nada examinado por debajo de una entrada que no es un directorio real, una sola clase por entrada y el error `Conflictos` con la lista ordenada; con `TestConflictos`, una fila por caso de data-model §4 (carpeta ajena, fichero, enlace a otro sitio, enlace roto, fichero editado, fichero ajeno, ruta que no es directorio, manifiesto ilegible y manifiesto con entradas de host, en el directorio neutro y en el host) — FR-022, FR-023, FR-026, FR-027, FR-028, FR-040 a FR-043, FR-047, SC-008, SC-009; rutas: internal/core/instalacion/puertos.go, internal/core/instalacion/plan.go, internal/core/instalacion/errores.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T006",
+  "texto": "T006 [US1] El plan de `install` (data-model §5; research D7, D9): `Planificar` devuelve, sin conflictos, las cuatro fases (retirar → enlazar → manifiesto final → escribir) y por skill su ruta, su estado `instalada`/`actualizada`/`sin cambios` y sus enlaces con modo, con los tipos `SkillInstalada` y `Enlace` de data-model §10: subconjunto que conserva byte a byte las demás entradas del manifiesto, skill declarada no empotrada intacta, ficheros declarados que faltan repuestos, retirada de lo que se deja de empotrar con huella intacta, entrada de host que falta recreada o quitada del manifiesto, copia que pasa a enlace, recurso de copia con modo `copia` cuando el `Enlazador` falla, ficheros sin permiso de ejecución, y `Disponible` preguntado solo por el directorio de la sonda del ámbito, una vez por directorio; con `TestPlan`, incluido el `Enlazador` sintético que admite enlaces fuera del ámbito y no dentro (la segunda ejecución da `sin cambios` con el plan vacío y `--dry-run` da la misma salida que la orden real) — FR-014, FR-015, FR-021, FR-024, FR-025, FR-033, FR-034, FR-036, FR-045 a FR-048, FR-051, SC-006, SC-007, SC-010, SC-012; rutas: internal/core/instalacion/plan.go, internal/core/instalacion/salida.go, internal/core/instalacion/discoEnMemoria_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "9f7bac445a5733e3cbaed5306ae36d61d39a3fd9",
+  "base": "5b148edfbab4566e2c5d4853179fbcc936f57228",
   "rutas": [
-    "E/S",
     "internal/core/instalacion/discoEnMemoria_test.go",
-    "internal/core/instalacion/errores.go",
     "internal/core/instalacion/plan.go",
-    "internal/core/instalacion/puertos.go"
+    "internal/core/instalacion/salida.go"
   ],
   "cierre": false,
   "converger": false,
