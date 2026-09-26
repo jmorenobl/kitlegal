@@ -1,15 +1,15 @@
 {
-  "id": "T003",
-  "texto": "T003 [US1] Skill empotrada y manifiesto (data-model §1; contracts/manifiesto.md; research D10): `SkillEmpotrada` y `FicheroEmpotrado` con huella `sha256:<hex>`, y `Manifiesto` con `LeerManifiesto` estricto (toda desviación de la forma del contrato es manifiesto ilegible, tipado) y bytes canónicos deterministas sin rutas absolutas, fechas, usuarios ni máquinas; con `TestLeerManifiesto` (una fila por regla de forma), `TestManifiestoCanonico` (mismos bytes para dos instalaciones iguales en rutas distintas; releer y reescribir no cambia un byte) y `FuzzLeerManifiesto` con su corpus en `f.Add`, sin ficheros de corpus (ningún pánico) — FR-030 a FR-035, FR-144; rutas: internal/core/instalacion/skill.go, internal/core/instalacion/manifiesto.go, internal/core/instalacion/errores.go",
+  "id": "T004",
+  "texto": "T004 [US6] Ámbito e invocación (data-model §2; contracts/applet-skills.md §2 y §3; research D11, D14): el `Ámbito` local, global y `--dir` (raíz, directorio neutro, guardas, `ConHosts` y banderas para las órdenes, con las rutas como se alcanzan desde el directorio de trabajo) y `ValidarInvocacion` con la precedencia de FR-052 en el orden del contrato y sin examinar el disco (`-g` con `--dir` en `install`, `list` y `doctor`; `--host` con `--dir`; `--host` distinto de `claude`; skill desconocida → exit 2 con las disponibles, y repetida cuenta una vez; solo sin ninguno de esos, `-g` sin `HOME` → exit 1), con errores tipados por `schema.ConClase` (`argumentos` → 2, `inesperado` → 1; data-model §9) y `TestValidarInvocacion` (incluidas las invocaciones que caen a la vez en un error de argumentos y en `-g` sin `HOME`, que salen con 2) y `TestAmbito` — FR-010 a FR-013, FR-020, FR-052, SC-005; rutas: internal/core/instalacion/ambito.go, internal/core/instalacion/invocacion.go, internal/core/instalacion/errores.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "02c04937f5423ce605fb1d7ace281de1530563c1",
+  "base": "55b736c78012b57f7f4fbff1b6d9a390956b88a6",
   "rutas": [
-    "contracts/manifiesto.md",
+    "contracts/applet-skills.md",
+    "internal/core/instalacion/ambito.go",
     "internal/core/instalacion/errores.go",
-    "internal/core/instalacion/manifiesto.go",
-    "internal/core/instalacion/skill.go"
+    "internal/core/instalacion/invocacion.go"
   ],
   "cierre": false,
   "converger": false,
