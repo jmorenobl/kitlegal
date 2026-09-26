@@ -301,6 +301,19 @@ func (d *discoEnMemoria) acceder(op operacion, ruta string) (string, error) {
 	return abs, nil
 }
 
+// llamadas es cuántas veces se ha llamado a op, sobre cualquier ruta.
+func (d *discoEnMemoria) llamadas(op operacion) int {
+	n := 0
+
+	for _, pedido := range d.accesos {
+		if pedido.operacion == op {
+			n++
+		}
+	}
+
+	return n
+}
+
 // Examinar es la entrada de ruta sin seguirla: ausente, con su tipo y, si es
 // un enlace, su destino literal y si resuelve.
 func (d *discoEnMemoria) Examinar(ruta string) (instalacion.Entrada, error) {
@@ -1084,6 +1097,9 @@ func probarAbrirEnMemoria(t *testing.T) {
 
 	assert.Equal(t, acceso{operacion: opHuella, ruta: "/trabajo/dir/f"}, d.accesos[0], "cada llamada, anotada")
 	assert.Len(t, d.accesos, 8)
+	assert.Equal(t, 3, d.llamadas(opHuella), "las de cada operación, sobre cualquier ruta")
+	assert.Equal(t, 2, d.llamadas(opNombres))
+	assert.Zero(t, d.llamadas(opExaminar))
 }
 
 func probarFallosEnMemoria(t *testing.T) {

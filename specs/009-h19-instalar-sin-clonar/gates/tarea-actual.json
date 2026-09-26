@@ -1,18 +1,17 @@
 {
-  "id": "T008",
-  "texto": "T008 [US4] `list` y `doctor` en el dominio (data-model §6 y §10; contracts/applet-skills.md §4.2, §4.3, §5 y §6; research D12): `Listar` (directorio, manifiesto sí o no, versión nula sin manifiesto, cada skill con su versión, `empotrada` y sus enlaces) y `Diagnosticar` con las cinco clases de hallazgo sobre las skills declaradas y empotradas, su ruta y su orden de shell POSIX de una línea (rutas entre comillas simples con la `'` escapada, `rm --` o `rm -r --` solo donde el contrato lo pone y nunca `-f`, banderas de ámbito, `--host claude` si alguna skill nombrada tiene entrada de host y nunca con `--dir`), en el orden determinista de FR-066; ante manifiesto ilegible, ruta que no es directorio o, con `--dir`, manifiesto con entradas de host, error `AmbitoIlegible` sin skills ni hallazgos; con `TestListar`, `TestHallazgos`, `TestOrdenesDeDoctor` y `TestOrdenesDeDoctorArreglan` (simulando `rm` e `install` sobre el disco en memoria: garantías (i) y (ii) de FR-066), y con el `Enlazador` sintético de T006 una copia declarada no da el hallazgo «copia» — FR-036, FR-060 a FR-062, FR-065 a FR-069, SC-011, SC-012; rutas: internal/core/instalacion/listado.go, internal/core/instalacion/doctor.go, internal/core/instalacion/ordenes.go, internal/core/instalacion/salida.go, internal/core/instalacion/errores.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T009",
+  "texto": "T009 [US3] El aviso en el dominio (data-model §7; contracts/aviso.md §2-§4): `Aviso(disco, home, versionDelBinario, empotradas)` comprueba primero la forma SemVer de la versión del binario (sin ella no examina el disco) y busca el manifiesto con la regla de búsqueda de FR-070 y contracts/aviso.md §2, sin seguir enlaces: `./.agents`, `./.agents/skills` y `./.agents/skills/kitlegal.json`; el global (nunca sin `HOME`, ni en la raíz del sistema ni en una ruta relativa) solo si `./.agents` no existe, o `./.agents/skills` no existe dentro de un `./.agents` real, o los dos son directorios reales y no hay `kitlegal.json`; si `./.agents` o `./.agents/skills` existe y no es un directorio real, o el `kitlegal.json` local es ilegible o un enlace, ningún efecto y el global no se mira; compara la versión del manifiesto y la de cada skill declarada y empotrada con `MismaVersion`, y da exactamente una línea con la versión que difiere, la del binario y `kitlegal skills install` (con ` -g` si el manifiesto es el global); nunca devuelve error; con `TestAviso`, con una fila por paso de contracts/aviso.md §2 (incluidos `./.agents` como fichero y `./.agents/skills` como enlace colgando con un global de otra versión: ninguna línea) — FR-027, FR-070 a FR-073, FR-077, SC-013; rutas: internal/core/instalacion/aviso.go, internal/core/instalacion/discoEnMemoria_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "c107e4dbbba0e52ee9d8e0158288014308448625",
+  "base": "ade15402c52716c302542ed5e761a4d12803c664",
   "rutas": [
-    "contracts/applet-skills.md",
+    ".agents/skills",
+    ".agents/skills/kitlegal.json",
+    "contracts/aviso.md",
+    "internal/core/instalacion/aviso.go",
     "internal/core/instalacion/discoEnMemoria_test.go",
-    "internal/core/instalacion/doctor.go",
-    "internal/core/instalacion/errores.go",
-    "internal/core/instalacion/listado.go",
-    "internal/core/instalacion/ordenes.go",
-    "internal/core/instalacion/salida.go"
+    "kitlegal.json"
   ],
   "cierre": false,
   "converger": false,
