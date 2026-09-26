@@ -1,14 +1,15 @@
 {
-  "id": "T002",
-  "texto": "T002 [US3] Crear el paquete de dominio `instalacion` con su documentación (qué decide, sus puertos, sus invariantes y que no importa `os`, `io`, `io/fs`, `log` ni ningún adaptador; research D1) y la igualdad de versiones de data-model §8: `FormaSemVer` (gramática SemVer 2.0.0 con `v` opcional, sin ordenar) y `MismaVersion` (quitar una `v` inicial a cada una y comparar byte a byte), con `TestFormaSemVer` y `TestMismaVersion` en tabla (`v0.1.0` igual a `0.1.0`; `0.1.0` distinto de `0.1.0+abc` y de `0.1.1-SNAPSHOT-abc1234`; `dev`, un hash abreviado y ceros a la izquierda sin forma) — FR-073, FR-077, research D31; rutas: internal/core/instalacion/doc.go, internal/core/instalacion/version.go",
+  "id": "T003",
+  "texto": "T003 [US1] Skill empotrada y manifiesto (data-model §1; contracts/manifiesto.md; research D10): `SkillEmpotrada` y `FicheroEmpotrado` con huella `sha256:<hex>`, y `Manifiesto` con `LeerManifiesto` estricto (toda desviación de la forma del contrato es manifiesto ilegible, tipado) y bytes canónicos deterministas sin rutas absolutas, fechas, usuarios ni máquinas; con `TestLeerManifiesto` (una fila por regla de forma), `TestManifiestoCanonico` (mismos bytes para dos instalaciones iguales en rutas distintas; releer y reescribir no cambia un byte) y `FuzzLeerManifiesto` con su corpus en `f.Add`, sin ficheros de corpus (ningún pánico) — FR-030 a FR-035, FR-144; rutas: internal/core/instalacion/skill.go, internal/core/instalacion/manifiesto.go, internal/core/instalacion/errores.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "ac68194828c55f81ae305eb7e9d4542ee04d20db",
+  "base": "02c04937f5423ce605fb1d7ace281de1530563c1",
   "rutas": [
-    "internal/core/instalacion/doc.go",
-    "internal/core/instalacion/version.go",
-    "io/fs"
+    "contracts/manifiesto.md",
+    "internal/core/instalacion/errores.go",
+    "internal/core/instalacion/manifiesto.go",
+    "internal/core/instalacion/skill.go"
   ],
   "cierre": false,
   "converger": false,
