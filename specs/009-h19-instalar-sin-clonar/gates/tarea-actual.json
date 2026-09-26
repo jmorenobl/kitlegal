@@ -1,21 +1,13 @@
 {
-  "id": "T014",
-  "texto": "T014 [datos] [US1] Contrato publicado del applet y su registro, indivisibles y **nada más** (*Complexity Tracking* de plan.md; patrón D16 de H6, como H6 T010): el registro de `skills` en producción (internal/app/registro.go, donde `RegistroDeProduccion(version string)` nombra ya su parámetro y registra `AppletSkills(DependenciasDeSkillsDelSistema(version))` de T013, con el `Enlazador` del sistema de internal/disco) y en el binario de e2e (internal/app/ejemplo/kitlegal-e2e/main.go, `registroDeE2E(version string)` igual, también con el `Enlazador` del sistema: el que falla lo añade T017); schemas/instalacion.json generado con `TestEsquemasPublicados -actualizar-esquemas` (no se escribe a mano); la fila `instalacion.json` de `ficherosDeEsquemas` en internal/app/esquemas_test.go; y las tres listas literales de applets —internal/app/testdata/script/argumentos.txtar (líneas 24 y 30: `boe, contar, echo, skills, territorio`), internal/app/registro_test.go (`boe`, `skills`, `territorio`, y `skills` con sus tres verbos) y `appletsDelBinario` de cmd/kitlegal/main_test.go, con el caso nuevo «`kitlegal skills` sin verbo sale con 2 nombrando `skills` y sus tres verbos»—; el código que toca es exactamente el que un control existente hace inseparable del fichero protegido: en cuanto el verbo está en el registro, `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada y las tres listas cambian a la vez — FR-010, FR-024, FR-053, FR-145; rutas: internal/app/registro.go, internal/app/ejemplo/kitlegal-e2e/main.go, schemas/instalacion.json, internal/app/esquemas_test.go, internal/app/testdata/script/argumentos.txtar, internal/app/registro_test.go, cmd/kitlegal/main_test.go",
+  "id": "T015",
+  "texto": "T015 [US1] La salida real contra el contrato ya publicado, como H6 T011: `TestSalidaDeSkillsContraSchemas` en internal/app/instalacion_test.go (toda salida correcta de `install`, `list` y `doctor` sin hallazgos, también sin manifiesto, con versión nula y lista vacía, valida contra el contrato publicado `instalacion.json`, compilado del fichero real que publicó T014, sin tocarlo); no toca ningún otro fichero — FR-053, FR-061, FR-067; rutas: internal/app/instalacion_test.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "33be3b638ab53f816e4b7055d5790851f20538aa",
+  "base": "978723d23e405eb91f30197cd7cebce6e7882201",
   "rutas": [
-    "cmd/kitlegal/main_test.go",
     "instalacion.json",
-    "internal/app/ejemplo/kitlegal-e2e/main.go",
-    "internal/app/esquemas_test.go",
-    "internal/app/registro.go",
-    "internal/app/registro_test.go",
-    "internal/app/testdata/script/argumentos.txtar",
-    "internal/disco",
-    "plan.md",
-    "schemas/instalacion.json"
+    "internal/app/instalacion_test.go"
   ],
   "cierre": false,
   "converger": false,

@@ -1170,3 +1170,233 @@ func TestEnsayoDeInstall(t *testing.T) {
 	}, ensayoDeInstall(skills))
 	assert.Empty(t, ensayoDeInstall(nil))
 }
+
+// TestSalidaDeSkillsContraSchemas es el punto 4 de la Definition of Done sobre
+// el applet skills (FR-053, FR-061, FR-067; contracts/applet-skills.md §4): el
+// sobre real que emite el kernel con --json, sobre el registro local, valida
+// contra la parte de su verbo leída de schemas/instalacion.json, y no contra lo
+// que emite --describe mientras se ejecuta el test. Lo hace toda salida correcta
+// de install, list y doctor —la de doctor, sin hallazgos—: cada estado y cada
+// modo de install, la lista de enlaces vacía, los tres ámbitos, la skill
+// declarada que el binario ya no lleva y, sin manifiesto, la de list y la de
+// doctor con la versión nula y la lista vacía, que el contrato tiene que admitir.
+// La validación restringe: el mismo sobre con una clave de más o de menos en su
+// data no valida.
+//
+// No es paralelo, por lo mismo que TestAppletSkills: el ámbito local es el
+// directorio de trabajo, que cada subtest cambia, y el global sale de HOME, que
+// cada uno fija. Los esquemas se compilan antes de cambiar de directorio, porque
+// schemas/ se alcanza desde el del paquete.
+func TestSalidaDeSkillsContraSchemas(t *testing.T) {
+	t.Setenv(cli.VariableNivel, "")
+
+	esquemas := map[string]*jsonschema.Schema{}
+
+	for _, verbo := range []string{"install", "list", "doctor"} {
+		publicado, id := ficheroPublicadoDelVerbo(t, verbo)
+		require.Equal(t, raizDeLosEsquemas+"instalacion.json", id, "la parte de %q la publica instalacion.json", verbo)
+
+		esquemas[verbo] = salidaPublicada(t, publicado, id, verbo)
+	}
+
+	for _, caso := range salidasDeSkills() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Setenv(variableHome, t.TempDir())
+
+			res := invocar(t, caso.prepara(t), argvDeSkills(slices.Concat(caso.argumentos, []string{"--json"})...)...)
+
+			require.Equal(t, 0, res.codigo, res.errores)
+			assert.Equal(t, true, sobreDelJSON(t, res.salida)["ok"],
+				"ok decide la rama del esquema contra la que se valida data")
+
+			for _, rasgo := range caso.rasgos {
+				assert.Contains(t, res.salida, rasgo, "la salida es la que nombra el caso")
+			}
+
+			exigirSalidaPublicada(t, esquemas[caso.argumentos[0]], res.salida)
+		})
+	}
+}
+
+// salidaDeSkills es una invocación correcta de TestSalidaDeSkillsContraSchemas:
+// lo que se prepara antes, los argumentos sin --json, el primero de ellos el
+// verbo, y los fragmentos que su salida tiene que llevar para que el caso sea el
+// que dice, y no otra salida que también valide.
+type salidaDeSkills struct {
+	nombre     string
+	prepara    preparacionDeSkills
+	argumentos []string
+	rasgos     []string
+}
+
+// preparacionDeSkills deja el ámbito de un caso, en un proyecto nuevo que pasa a
+// ser el directorio de trabajo, y devuelve el registro de la invocación cuya
+// salida se valida.
+type preparacionDeSkills func(t *testing.T) *Registro
+
+// salidasDeSkills son las invocaciones correctas cuyo sobre se valida.
+func salidasDeSkills() []salidaDeSkills {
+	sistema := dependenciasDePrueba(disco.Enlazador{})
+	sinEnlaces := dependenciasDePrueba(enlazadorQueFalla{})
+
+	otraVersion := dependenciasDePrueba(disco.Enlazador{})
+	otraVersion.Version = "v0.2.0"
+
+	soloAlfa := dependenciasDePrueba(disco.Enlazador{})
+	soloAlfa.Skills = sinLaSkill(skillsDePrueba(), "beta")
+
+	enlazada := `"modo":"enlace"`
+	copiada := `"modo":"copia"`
+	absoluta := `"ruta":"/`
+	conVersion := `"version":"` + versionDeSkills + `"`
+	sinHallazgos := `"hallazgos":[]`
+	sinManifiesto := []string{`"manifiesto":false`, `"version":null`}
+
+	return []salidaDeSkills{
+		{
+			"install-instalada-y-enlazada", sinInstalar(".claude"),
+			[]string{"install"},
+			[]string{`"estado":"instalada"`, enlazada},
+		},
+		{
+			"install-sin-cambios", instaladoCon(sistema, sistema, nil, ".claude"),
+			[]string{"install"},
+			[]string{`"estado":"sin cambios"`, enlazada},
+		},
+		{
+			"install-actualizada", instaladoCon(sistema, otraVersion, nil, ".claude"),
+			[]string{"install"},
+			[]string{`"estado":"actualizada"`},
+		},
+		{
+			"install-sin-hosts-con-enlaces-vacios", sinInstalar(),
+			[]string{"install", "beta"},
+			[]string{`"nombre":"beta"`, `"enlaces":[]`},
+		},
+		{
+			"install-con-copia", instaladoCon(sinEnlaces, sinEnlaces, []string{"beta"}, ".claude"),
+			[]string{"install"},
+			[]string{`"estado":"instalada"`, `"estado":"sin cambios"`, copiada},
+		},
+		{"install-global", conClaudeEnHome(sinInstalar()), []string{"install", "-g"}, []string{absoluta, enlazada}},
+		{
+			"install-dir", sinInstalar(".claude"),
+			[]string{"install", "--dir", "mis-skills"},
+			[]string{`"ruta":"mis-skills/alfa"`, `"enlaces":[]`},
+		},
+
+		{
+			"list-sin-manifiesto", sinInstalar(".claude"),
+			[]string{"list"},
+			slices.Concat(sinManifiesto, []string{`"skills":[]`}),
+		},
+		{
+			"list-tras-install", instaladoCon(sistema, sistema, nil, ".claude"),
+			[]string{"list"},
+			[]string{`"manifiesto":true`, conVersion, `"empotrada":true`, enlazada},
+		},
+		{
+			"list-con-una-skill-que-ya-no-se-empotra", instaladoCon(sistema, soloAlfa, nil, ".claude"),
+			[]string{"list"},
+			[]string{`"empotrada":true`, `"empotrada":false`},
+		},
+		{"list-con-copias", instaladoCon(sinEnlaces, sinEnlaces, nil, ".claude"), []string{"list"}, []string{copiada}},
+		{
+			"list-global", conClaudeEnHome(instaladoCon(sistema, sistema, []string{"-g"})),
+			[]string{"list", "-g"},
+			[]string{`"directorio":"/`, absoluta, enlazada},
+		},
+		{
+			"list-dir", instaladoCon(sistema, sistema, []string{"--dir", "mis-skills"}),
+			[]string{"list", "--dir", "mis-skills"},
+			[]string{`"directorio":"mis-skills"`, `"enlaces":[]`},
+		},
+
+		{
+			"doctor-sin-manifiesto", sinInstalar(".claude"),
+			[]string{"doctor"},
+			slices.Concat(sinManifiesto, []string{sinHallazgos}),
+		},
+		{
+			"doctor-tras-install", instaladoCon(sistema, sistema, nil, ".claude"),
+			[]string{"doctor"},
+			[]string{`"manifiesto":true`, conVersion, sinHallazgos},
+		},
+		{
+			"doctor-con-una-skill-que-ya-no-se-empotra", instaladoCon(sistema, soloAlfa, nil, ".claude"),
+			[]string{"doctor"},
+			[]string{`"manifiesto":true`, sinHallazgos},
+		},
+		{
+			"doctor-con-copias", instaladoCon(sinEnlaces, sinEnlaces, nil, ".claude"),
+			[]string{"doctor"},
+			[]string{sinHallazgos},
+		},
+		{
+			"doctor-global", conClaudeEnHome(instaladoCon(sistema, sistema, []string{"-g"})),
+			[]string{"doctor", "--global"},
+			[]string{`"directorio":"/`, sinHallazgos},
+		},
+		{
+			"doctor-dir", instaladoCon(sistema, sistema, []string{"--dir", "mis-skills"}),
+			[]string{"doctor", "--dir", "mis-skills"},
+			[]string{`"directorio":"mis-skills"`, sinHallazgos},
+		},
+	}
+}
+
+// sinInstalar es un proyecto con esas carpetas y nada instalado, y la invocación
+// va con el creador de enlaces del sistema.
+func sinInstalar(carpetas ...string) preparacionDeSkills {
+	return func(t *testing.T) *Registro {
+		t.Helper()
+
+		enUnProyecto(t, carpetas...)
+
+		return delSistema(t)
+	}
+}
+
+// instaladoCon es un proyecto con esas carpetas en el que install, con esos
+// argumentos y las dependencias de antes, ya terminó con 0; la invocación va con
+// las de después.
+func instaladoCon(antes, despues DependenciasDeSkills, argumentos []string, carpetas ...string) preparacionDeSkills {
+	return func(t *testing.T) *Registro {
+		t.Helper()
+
+		enUnProyecto(t, carpetas...)
+
+		argv := argvDeSkills(slices.Concat([]string{"install"}, argumentos)...)
+
+		res := invocar(t, registroDeSkills(t, antes), argv...)
+		require.Equal(t, 0, res.codigo, res.errores)
+
+		return registroDeSkills(t, despues)
+	}
+}
+
+// conClaudeEnHome hace de HOME, antes de la preparación, un directorio nuevo con
+// .claude/ dentro: el host del ámbito global existe, así que install -g enlaza
+// en él.
+func conClaudeEnHome(prepara preparacionDeSkills) preparacionDeSkills {
+	return func(t *testing.T) *Registro {
+		t.Helper()
+
+		home := t.TempDir()
+		t.Setenv(variableHome, home)
+		require.NoError(t, os.Mkdir(filepath.Join(home, ".claude"), 0o750))
+
+		return prepara(t)
+	}
+}
+
+// sinLaSkill es lo empotrado sin la carpeta de esa skill.
+func sinLaSkill(empotrado fstest.MapFS, nombre string) fstest.MapFS {
+	for ruta := range empotrado {
+		if strings.HasPrefix(ruta, "skills/"+nombre+"/") {
+			delete(empotrado, ruta)
+		}
+	}
+
+	return empotrado
+}
