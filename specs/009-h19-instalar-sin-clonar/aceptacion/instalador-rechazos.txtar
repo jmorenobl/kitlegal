@@ -1,0 +1,202 @@
+# install.sh rechaza sin instalar nada: una versión con forma no admitida o más
+# de un argumento, y HOME sin definir o vacío sin KITLEGAL_INSTALL_DIR, antes de
+# descargar nada; un sistema o una arquitectura que no reconoce; una versión que
+# el origen no tiene; un archivo o unos checksums que faltan; una huella que no
+# coincide; y un archivo que no figura en los checksums, aunque haya una línea
+# cuyo nombre lo contiene. En todos, código distinto de 0, una línea en la
+# salida de error que empieza por «install.sh: » y nombra la versión pedida
+# —«la última versión» sin argumento— y lo que falló, un kitlegal anterior
+# intacto y ningún temporal sin retirar.
+#
+# Cubre: US5.5, US5.6 (rechazos) · FR-100, FR-101, FR-102, FR-103, FR-104,
+# FR-108 · SC-017.
+#
+# Contra el origen local de contracts/arnes-e2e.md §5, que se copia antes de
+# alterarlo, sin red: los proxies están cerrados. Un curl falso delante en el
+# PATH deja constancia de cualquier descarga, para probar que no la hay; un
+# uname falso da el sistema o la arquitectura que no se admite. Los mensajes,
+# de contracts/release.md §7.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env PATH_ORIGINAL=$PATH
+env KITLEGAL_INSTALL_URL=file://$KITLEGAL_ORIGEN
+env KITLEGAL_INSTALL_DIR=$WORK/destino
+env HOME=$WORK/home
+mkdir $WORK/home
+chmod 755 $WORK/falso-curl/curl
+chmod 755 $WORK/falso-uname/uname
+mkdir $WORK/trabajo
+cd $WORK/trabajo
+
+# --- Versión con forma no admitida y más de un argumento: nada descargado (FR-100) ---
+env PATH=$WORK/falso-curl${:}$PATH_ORIGINAL
+! exec sh $KITLEGAL_INSTALADOR 1.2
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*1\.2'
+! exec sh $KITLEGAL_INSTALADOR latest
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*latest'
+! exec sh $KITLEGAL_INSTALADOR 01.2.3
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*01\.2\.3'
+! exec sh $KITLEGAL_INSTALADOR vv1.2.3
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*vv1\.2\.3'
+! exec sh $KITLEGAL_INSTALADOR 1.2.3.4
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*1\.2\.3\.4'
+! exec sh $KITLEGAL_INSTALADOR $KITLEGAL_ORIGEN_VERSION $KITLEGAL_ORIGEN_VERSION
+stderr -count=1 '^install\.sh: '
+! exists $WORK/curl-llamado
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/destino
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+# --- HOME sin definir o vacío, sin KITLEGAL_INSTALL_DIR: antes de descargar (FR-103) ---
+#
+# Tampoco con KITLEGAL_INSTALL_DIR definido pero vacío; nunca en /.local/bin ni
+# en una ruta relativa: el directorio de trabajo sigue vacío.
+! exec env -u HOME -u KITLEGAL_INSTALL_DIR sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+env HOME=
+env KITLEGAL_INSTALL_DIR=
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+! exec env -u HOME sh $KITLEGAL_INSTALADOR $KITLEGAL_ORIGEN_VERSION
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*'${KITLEGAL_ORIGEN_VERSION@R}
+env HOME=$WORK/home
+env KITLEGAL_INSTALL_DIR=$WORK/destino
+! exists $WORK/curl-llamado
+arbol .
+! stdout .
+arbol $WORK/.tmp
+! stdout .
+env PATH=$PATH_ORIGINAL
+
+# --- Un sistema o una arquitectura que no se admite (FR-101) ---
+#
+# El mensaje nombra el valor que no se admite.
+env PATH=$WORK/falso-uname${:}$PATH_ORIGINAL
+env FALSO_S=FreeBSD FALSO_M=x86_64
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: (?:.*la última versión.*FreeBSD|.*FreeBSD.*la última versión)'
+env FALSO_S=Linux FALSO_M=riscv64
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: (?:.*la última versión.*riscv64|.*riscv64.*la última versión)'
+env FALSO_S=Darwin FALSO_M=i386
+! exec sh $KITLEGAL_INSTALADOR $KITLEGAL_ORIGEN_VERSION
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*i386'
+env PATH=$PATH_ORIGINAL
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/destino
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+# --- Una versión que el origen no tiene (FR-102) ---
+! exec sh $KITLEGAL_INSTALADOR 9.9.9
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*9\.9\.9'
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/.tmp
+! stdout .
+
+# --- Falta el archivo, o faltan los checksums (FR-102) ---
+exec cp -R $KITLEGAL_ORIGEN $WORK/sin-archivo
+exec chmod -R u+w $WORK/sin-archivo
+rm $WORK/sin-archivo/latest/download/$KITLEGAL_ORIGEN_ARCHIVO
+env KITLEGAL_INSTALL_URL=file://$WORK/sin-archivo
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/.tmp
+! stdout .
+
+exec cp -R $KITLEGAL_ORIGEN $WORK/sin-checksums
+exec chmod -R u+w $WORK/sin-checksums
+rm $WORK/sin-checksums/latest/download/checksums.txt
+rm $WORK/sin-checksums/download/v$KITLEGAL_ORIGEN_VERSION/checksums.txt
+env KITLEGAL_INSTALL_URL=file://$WORK/sin-checksums
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+! exec sh $KITLEGAL_INSTALADOR v$KITLEGAL_ORIGEN_VERSION
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*'${KITLEGAL_ORIGEN_VERSION@R}
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/.tmp
+! stdout .
+
+# --- Una huella que no coincide (US5.5, FR-102) ---
+exec cp -R $KITLEGAL_ORIGEN $WORK/huella
+exec chmod -R u+w $WORK/huella
+cp $WORK/corrupto.tar.gz $WORK/huella/latest/download/$KITLEGAL_ORIGEN_ARCHIVO
+env KITLEGAL_INSTALL_URL=file://$WORK/huella
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/destino
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+# --- Un archivo que no figura en los checksums (FR-102) ---
+#
+# Se retira su línea; queda, en el origen de make ci, la señuelo, cuyo nombre
+# contiene el del archivo: la búsqueda es por el segundo campo exacto, no por
+# subcadena ni por posición.
+exec cp -R $KITLEGAL_ORIGEN $WORK/sin-linea
+exec chmod -R u+w $WORK/sin-linea
+exec sh -c 'f="$WORK/sin-linea/latest/download/checksums.txt"; awk -v a="$KITLEGAL_ORIGEN_ARCHIVO" ''$2 != a'' "$f" > "$f.nuevo" && mv "$f.nuevo" "$f"'
+! grep '  '${KITLEGAL_ORIGEN_ARCHIVO@R}'$' $WORK/sin-linea/latest/download/checksums.txt
+env KITLEGAL_INSTALL_URL=file://$WORK/sin-linea
+! exec sh $KITLEGAL_INSTALADOR
+stderr -count=1 '^install\.sh: '
+stderr '^install\.sh: .*la última versión'
+cmp $WORK/destino/kitlegal $WORK/anterior/kitlegal
+arbol $WORK/destino
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+# Y ningún rechazo ha tocado HOME ni el directorio de trabajo.
+arbol $WORK/home
+! stdout .
+arbol .
+! stdout .
+
+-- destino/kitlegal --
+#!/bin/sh
+echo "un kitlegal anterior"
+-- anterior/kitlegal --
+#!/bin/sh
+echo "un kitlegal anterior"
+-- corrupto.tar.gz --
+Esto no es el archivo que describen los checksums.
+-- falso-curl/curl --
+#!/bin/sh
+# curl falso: deja constancia de que se le llamó y falla, para probar que
+# install.sh no ha descargado nada.
+echo "$@" >> "$WORK/curl-llamado"
+exit 22
+-- falso-uname/uname --
+#!/bin/sh
+# uname falso: da el sistema y la arquitectura que el guion elige.
+case "$1" in
+-s) echo "$FALSO_S" ;;
+-m) echo "$FALSO_M" ;;
+*) exit 1 ;;
+esac

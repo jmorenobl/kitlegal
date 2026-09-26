@@ -1,0 +1,105 @@
+# El host claude es un enlace relativo al directorio neutro, nunca una copia:
+# con .claude/ en el directorio de trabajo, `kitlegal skills install` enlaza
+# cada skill en .claude/skills/ con el destino literal
+# ../../.agents/skills/<skill>, leído del propio enlace, y la salida nombra cada
+# enlace con su modo; --host claude lo fuerza aunque .claude/ no exista; el
+# proyecto copiado a otra ruta sigue resolviendo y `doctor` sale con 0 en la
+# copia; y --host no admite otro valor que claude.
+#
+# Cubre: US1.2, US1.3, US1.5 · FR-020, FR-021, FR-022, FR-023, FR-025 · SC-002,
+# SC-003.
+#
+# El destino de un enlace se lee con readlink y no a través del enlace; el disco,
+# con `arbol`, que no sigue enlaces (contracts/arnes-e2e.md §4 y §6). Los
+# formatos son los de contracts/applet-skills.md §2-§4.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Con .claude/: un enlace relativo por skill (US1.2, SC-002) ---
+#
+# .claude es un directorio real, así que el host se enlaza sin pedirlo (FR-022),
+# y cada enlace sale en `data` con su ruta y su modo.
+mkdir $WORK/proyecto/.claude
+cd $WORK/proyecto
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+
+# El destino literal, leído del enlace (FR-021).
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+# En .claude no hay nada más que skills/ y los dos enlaces: ninguna copia
+# (FR-025) y ningún resto de la sonda del creador de enlaces.
+arbol .claude
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+
+# El manifiesto declara cada entrada de host con su ruta, relativa a la raíz
+# del ámbito, y su modo.
+grep '"ruta": *"\.claude/skills/boe-legislacion"' .agents/skills/kitlegal.json
+grep '"ruta": *"\.claude/skills/legal-core"' .agents/skills/kitlegal.json
+grep -count=2 '"modo": *"enlace"' .agents/skills/kitlegal.json
+! grep '"copia"' .agents/skills/kitlegal.json
+
+# --- El proyecto copiado a otra ruta (US1.5) ---
+#
+# Los enlaces se copian como enlaces y siguen resolviendo, sin el original, y
+# `doctor` en la copia, con el mismo binario, no encuentra nada: nada instalado
+# lleva una ruta absoluta.
+mkdir $WORK/otra/ruta
+exec cp -RP $WORK/proyecto $WORK/otra/ruta/proyecto
+cd $WORK
+rm $WORK/proyecto
+cd $WORK/otra/ruta/proyecto
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- --host claude sin .claude/ (US1.3, SC-003) ---
+#
+# Se crean .claude/ y .claude/skills/ y los dos enlaces relativos (FR-023).
+mkdir $WORK/sin-claude
+cd $WORK/sin-claude
+exec kitlegal skills install --host claude --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+arbol .claude
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- Sin .claude/ y sin --host, ningún host (FR-022) ---
+mkdir $WORK/sin-host
+cd $WORK/sin-host
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+arbol .
+! stdout '\.claude'
+
+# --- Un host que no es claude (FR-020) ---
+#
+# Código 2, el mensaje de contracts/applet-skills.md §2 (fila 3) y nada escrito,
+# también con .claude/ presente.
+mkdir $WORK/otro-host/.claude
+cd $WORK/otro-host
+exec sh -c 'kitlegal skills install --host codex --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*el único host admitido es claude(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'el único host admitido es claude'
+arbol .
+stdout '\Ad \.claude\n\z'
+
+exec sh -c 'kitlegal skills install --host antigravity; test $? -eq 2'
+! stdout .
+stderr 'el único host admitido es claude'
+arbol .
+stdout '\Ad \.claude\n\z'

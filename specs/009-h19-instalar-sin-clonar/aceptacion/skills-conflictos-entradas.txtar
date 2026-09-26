@@ -1,0 +1,212 @@
+# Una entrada con el nombre de una skill que no es suya —carpeta ajena,
+# fichero, enlace a otro sitio o enlace roto—, en el directorio neutro o en el
+# del host, es un conflicto: `install` los comprueba todos antes de escribir
+# nada, los nombra todos con su clase y su ruta, no crea ni cambia nada y
+# termina con 1; un conflicto en la segunda skill deja la primera sin instalar;
+# y el enlace de host que ya es exactamente el esperado no es conflicto, aunque
+# cuelgue: se adopta y se declara.
+#
+# Cubre: FR-040, FR-041 (a)-(d) y adopción del enlace esperado, FR-042, FR-043,
+# FR-052 · SC-008, SC-009.
+#
+# Cada caso vive en su propio directorio. «Nada se crea ni se cambia» se
+# comprueba con `arbol` antes y después, que no sigue enlaces y lista también
+# el destino de cada enlace, que queda dentro del directorio del caso
+# (contracts/arnes-e2e.md §4). El sobre de fallo es el del kernel, con clase
+# inesperado y en `mensaje` la cabecera y una línea `<clase>: <ruta>` por
+# conflicto, ordenadas por ruta; el mismo texto va a la salida de error
+# (contracts/applet-skills.md §5, FR-052).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- (a) Carpeta ajena en el directorio neutro ---
+cd $WORK/carpeta-ajena
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/boe-legislacion$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (b) Fichero en el directorio neutro: regular y tubería con nombre ---
+#
+# La tubería no se abre nunca: si se abriera, la orden no terminaría.
+cd $WORK/fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero: \.agents/skills/boe-legislacion$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/tuberia/.agents/skills
+cd $WORK/tuberia
+exec mkfifo .agents/skills/boe-legislacion
+arbol .
+stdout '^p \.agents/skills/boe-legislacion$'
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
+stderr '^fichero: \.agents/skills/boe-legislacion$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (c) Enlace a otro sitio en el directorio neutro: su destino resuelve ---
+#
+# No se escribe ni se lee a través de él: el directorio al que apunta queda
+# byte a byte como estaba.
+mkdir $WORK/enlace-otro/.agents/skills
+cd $WORK/enlace-otro
+symlink .agents/skills/boe-legislacion -> ../../otro-sitio
+arbol .
+stdout '^l \.agents/skills/boe-legislacion -> \.\./\.\./otro-sitio$'
+stdout '^f otro-sitio/mio\.md '
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/boe-legislacion"\}\}\n\z'
+stderr '^enlace a otro sitio: \.agents/skills/boe-legislacion$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (d) Enlace roto en el directorio neutro: colgando y en ciclo ---
+#
+# Un enlace es de (c) o de (d) según resuelva o no, nunca de las dos.
+mkdir $WORK/enlace-roto/.agents/skills
+cd $WORK/enlace-roto
+symlink .agents/skills/boe-legislacion -> ../../no-existe
+symlink .agents/skills/legal-core -> legal-core
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/boe-legislacion\nenlace roto: \.agents/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (a)-(d) en el host, con .claude/ presente ---
+#
+# El host se enlaza porque .claude es un directorio real (FR-022), y cada
+# entrada de .claude/skills/ que no declara el manifiesto y no es el enlace
+# esperado es un conflicto de exactamente una clase. En el host, un enlace es
+# conflicto cuando su destino literal no es ../../.agents/skills/<skill>.
+cd $WORK/host-carpeta
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.claude/skills/legal-core"\}\}\n\z'
+stderr '^carpeta ajena: \.claude/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+cd $WORK/host-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.claude/skills/legal-core"\}\}\n\z'
+stderr '^fichero: \.claude/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/host-enlace-otro/.claude/skills
+cd $WORK/host-enlace-otro
+symlink .claude/skills/legal-core -> ../../otro-sitio
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
+stderr '^enlace a otro sitio: \.claude/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/host-enlace-roto/.claude/skills
+cd $WORK/host-enlace-roto
+symlink .claude/skills/legal-core -> ../../no-existe
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.claude/skills/legal-core"\}\}\n\z'
+stderr '^enlace roto: \.claude/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Todos a la vez: se nombran todos, por ruta (FR-040, FR-042) ---
+#
+# Un conflicto en cada entrada de las dos skills, en el directorio neutro y en
+# el host: cuatro, uno por entrada, ordenados por ruta byte a byte —que aquí no
+# es ni el orden de las clases ni el de las skills— y nada escrito.
+mkdir $WORK/varios/.agents/skills
+mkdir $WORK/varios/.claude/skills
+cd $WORK/varios
+symlink .agents/skills/boe-legislacion -> ../../no-existe
+symlink .claude/skills/legal-core -> ../../otro-sitio
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nfichero: \.agents/skills/legal-core\\ncarpeta ajena: \.claude/skills/boe-legislacion\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/boe-legislacion\nfichero: \.agents/skills/legal-core\ncarpeta ajena: \.claude/skills/boe-legislacion\nenlace a otro sitio: \.claude/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Atomicidad entre skills: un conflicto en la segunda (FR-043, SC-008) ---
+#
+# legal-core es una carpeta ajena y boe-legislacion no tiene ninguno: la orden
+# sale con 1 y boe-legislacion no se instala; el disco queda intacto.
+cd $WORK/segunda
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/legal-core"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+! exists .agents/skills/boe-legislacion
+! exists .agents/skills/kitlegal.json
+
+# Sin la bandera --json, el mismo mensaje en la salida de error y nada en la
+# estándar.
+exec sh -c 'kitlegal skills install; test $? -eq 1'
+! stdout .
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/legal-core$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- El enlace de host esperado se adopta, aunque cuelgue (FR-041) ---
+#
+# .claude/skills/boe-legislacion ya es ../../.agents/skills/boe-legislacion y
+# el manifiesto no existe: no es conflicto; queda tal cual, declarado, y la
+# salida lo nombra con su modo; legal-core se enlaza como siempre.
+mkdir $WORK/adopta/.claude/skills
+cd $WORK/adopta
+symlink .claude/skills/boe-legislacion -> ../../.agents/skills/boe-legislacion
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+grep '"ruta": *"\.claude/skills/boe-legislacion"' .agents/skills/kitlegal.json
+grep '"ruta": *"\.claude/skills/legal-core"' .agents/skills/kitlegal.json
+
+-- carpeta-ajena/.agents/skills/boe-legislacion/mio.md --
+Una carpeta que no instaló kitlegal.
+-- fichero/.agents/skills/boe-legislacion --
+Un fichero con el nombre de una skill.
+-- enlace-otro/otro-sitio/mio.md --
+Lo que hay al otro lado del enlace.
+-- host-carpeta/.claude/skills/legal-core/mio.md --
+Una carpeta que no instaló kitlegal.
+-- host-fichero/.claude/skills/legal-core --
+Un fichero con el nombre de una skill.
+-- host-enlace-otro/otro-sitio/mio.md --
+Lo que hay al otro lado del enlace.
+-- varios/.agents/skills/legal-core --
+Un fichero con el nombre de una skill.
+-- varios/.claude/skills/boe-legislacion/mio.md --
+Una carpeta que no instaló kitlegal.
+-- varios/otro-sitio/mio.md --
+Lo que hay al otro lado del enlace.
+-- segunda/.agents/skills/legal-core/mio.md --
+Una carpeta que no instaló kitlegal.

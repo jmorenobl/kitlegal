@@ -1,0 +1,186 @@
+# --dir sustituye al directorio neutro y deja fuera los hosts: las skills en
+# <ruta>/<skill>/ y el manifiesto en <ruta>/kitlegal.json, sin ./.agents/skills/
+# y sin detectar ni crear ninguna entrada de host, con la ruta relativa o
+# absoluta tal como se pasó, limpia; list y doctor con --dir leen ese manifiesto;
+# --host claude con --dir, y -g con --dir, salen con 2 sin tocar el disco; un
+# directorio neutro cuyo manifiesto declara entradas de host no se gestiona con
+# --dir; y un error de argumentos gana siempre, con 2, a cualquier exit 1.
+#
+# Cubre: US6.2, US6.3, US6.5 · FR-013, FR-052 (precedencia del exit 2 sobre el
+# 1: -g --dir sin HOME, install desconocida -g con HOME vacío, skill
+# desconocida con una carpeta ajena, --dir --host claude sobre un manifiesto con
+# entradas de host) · SC-005.
+#
+# Las rutas presentadas y los mensajes de validación, con su orden, son los de
+# contracts/applet-skills.md §2 y §3; los de fallo, §5. «0 cambios en disco» es
+# `arbol` antes y después (contracts/arnes-e2e.md §4).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# --- --dir relativo, con .claude/ presente (US6.2, SC-005) ---
+#
+# .claude/ no se detecta: ni se enlaza nada ni se crea .claude/skills.
+mkdir $WORK/proyecto/.claude
+cd $WORK/proyecto
+exec kitlegal skills install --dir destino --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"destino/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"destino/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+arbol .
+stdout '\A(?:(?:d \.claude|d destino|[df] destino/(?:boe-legislacion|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f destino/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '^f destino/kitlegal\.json '
+stdout '^f destino/boe-legislacion/SKILL\.md '
+stdout '^f destino/legal-core/SKILL\.md '
+! stdout '\.agents'
+cmp destino/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+! grep '"hosts"' destino/kitlegal.json
+! grep ${WORK@R} destino/kitlegal.json
+
+# list y doctor con --dir leen ese manifiesto, y el ámbito local sigue sin
+# ninguno (US6.4).
+exec kitlegal skills list --dir destino --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"destino","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"destino/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"legal-core","ruta":"destino/legal-core","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
+! stderr .
+exec kitlegal skills doctor --dir destino --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"destino","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+! stderr .
+exec kitlegal skills list --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":false,"version":null,"skills":\[\]\}\}\n\z'
+
+# --- --dir absoluto, y una ruta con barra final ---
+#
+# La ruta presentada cuelga de la ruta tal como se pasó, limpia y sin barra
+# final.
+exec kitlegal skills install --dir $WORK/absoluto --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/absoluto/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/absoluto/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+exists $WORK/absoluto/kitlegal.json
+exec kitlegal skills list --dir $WORK/absoluto --json
+stdout '"data":\{"directorio":"'${WORK@R}'/absoluto","manifiesto":true,'
+exec kitlegal skills install --dir otro/destino/ --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"otro/destino/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"otro/destino/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+exists otro/destino/kitlegal.json
+
+# --- --host claude con --dir: 2 y nada escrito (US6.2) ---
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --dir nuevo --host claude --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*--host no se combina con --dir(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr '--host no se combina con --dir'
+exec sh -c 'kitlegal skills install --dir destino --host claude; test $? -eq 2'
+stderr '--host no se combina con --dir'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- -g con --dir: 2 y nada escrito ni leído, en los tres verbos (US6.3) ---
+#
+# También con --dry-run y con --host; no se elige ninguno de los dos ámbitos.
+exec sh -c 'kitlegal skills install -g --dir nuevo --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr '-g y --dir se excluyen'
+exec sh -c 'kitlegal skills install -g --dir nuevo --dry-run; test $? -eq 2'
+stderr '-g y --dir se excluyen'
+exec sh -c 'kitlegal skills install --global --dir nuevo --host claude; test $? -eq 2'
+stderr '-g y --dir se excluyen'
+! stderr '--host no se combina'
+exec sh -c 'kitlegal skills list -g --dir destino --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
+exec sh -c 'kitlegal skills doctor -g --dir destino --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+arbol $WORK/home
+! stdout .
+
+# --- Un directorio neutro cuyo manifiesto declara entradas de host (US6.5) ---
+#
+# El .agents/skills de una instalación local con .claude/ no se gestiona con
+# --dir: install, también con --dry-run, list y doctor salen con 1 nombrando el
+# manifiesto como «manifiesto con entradas de host», sin dar skills, hallazgos
+# ni órdenes, y el disco queda byte a byte igual.
+mkdir $WORK/con-hosts/.claude
+cd $WORK/con-hosts
+exec kitlegal skills install
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --dir .agents/skills --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
+exec sh -c 'kitlegal skills install --dir .agents/skills --dry-run --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+! stderr 'se habría pedido'
+exec sh -c 'kitlegal skills list --dir .agents/skills --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills list: manifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
+exec sh -c 'kitlegal skills doctor --dir .agents/skills --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills doctor: manifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
+! stderr 'kitlegal skills install'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Precedencia: un error de argumentos gana con 2 (FR-052, SC-005) ---
+#
+# Antes de mirar HOME, sin leer el disco y sin nombrar ningún conflicto; entre
+# varios, el primero en el orden de contracts/applet-skills.md §2.
+
+# -g y --dir, con HOME sin definir: 2, no el 1 de HOME.
+exec env -u HOME sh -c 'kitlegal skills install -g --dir destino --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'HOME no está definido'
+exec env -u HOME sh -c 'kitlegal skills list -g --dir destino --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'HOME no está definido'
+
+# Una skill desconocida y un host que no es claude, con HOME vacío.
+env HOME=
+exec sh -c 'kitlegal skills install desconocida -g --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'HOME no está definido'
+exec sh -c 'kitlegal skills install -g --host codex --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*el único host admitido es claude(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'HOME no está definido'
+env HOME=$WORK/home
+
+# --dir --host claude sobre un manifiesto con entradas de host: 2, sin nombrar
+# el conflicto.
+exec sh -c 'kitlegal skills install --dir .agents/skills --host claude --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*--host no se combina con --dir(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'manifiesto con entradas de host'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# Una skill desconocida junto a una válida cuya carpeta es ajena: 2, sin
+# nombrar la carpeta.
+cd $WORK/precedencia
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install legal-core desconocida --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+! stderr 'carpeta ajena'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# Entre varios errores de argumentos, el primero: -g con --dir antes que
+# --host con --dir, este antes que un host que no es claude, y este antes que
+# una skill desconocida.
+exec sh -c 'kitlegal skills install desconocida -g --dir destino --host codex; test $? -eq 2'
+stderr '-g y --dir se excluyen'
+! stderr '--host no se combina'
+! stderr 'el único host'
+! stderr 'no es ninguna skill'
+exec sh -c 'kitlegal skills install desconocida --dir destino --host codex; test $? -eq 2'
+stderr '--host no se combina con --dir'
+! stderr 'el único host'
+! stderr 'no es ninguna skill'
+exec sh -c 'kitlegal skills install desconocida --host codex; test $? -eq 2'
+stderr 'el único host admitido es claude'
+! stderr 'no es ninguna skill'
+arbol .
+cmp stdout $WORK/antes.txt
+
+-- precedencia/.agents/skills/legal-core/mio.md --
+Una carpeta que no instaló kitlegal.

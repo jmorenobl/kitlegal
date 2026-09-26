@@ -1,0 +1,89 @@
+# Las skills instaladas invocan `kitlegal <applet> …` desde el PATH, sin
+# scripts/: en los SKILL.md empotrados no queda ninguna invocación scripts/boe
+# ni scripts/territorio, la tabla de comandos titula cada applet con
+# `kitlegal <applet>`, y cada orden de la tabla nombra un applet y un verbo que
+# el binario tiene registrados; ninguna skill, ni instalada ni en el árbol,
+# lleva scripts/.
+#
+# Cubre: US2.1, US2.2 · FR-081, FR-082, FR-084 · SC-014.
+#
+# La forma de invocar es la de contracts/skills-e-invocacion.md §2. Que un
+# applet y un verbo estén registrados se comprueba en la ayuda del applet, que
+# sale del registro y no ejecuta nada: su primera línea es la de ese applet y
+# no la del binario, y enumera el verbo entre los suyos (ayuda.txtar).
+# $KITLEGAL_SKILLS es el skills/ del repositorio, de solo lectura
+# (contracts/arnes-e2e.md §3).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec kitlegal skills install
+
+# --- Ninguna invocación por scripts/ (US2.1, FR-081) ---
+! grep 'scripts/boe' .agents/skills/boe-legislacion/SKILL.md
+! grep 'scripts/territorio' .agents/skills/boe-legislacion/SKILL.md
+! grep 'scripts/boe' .agents/skills/legal-core/SKILL.md
+! grep 'scripts/territorio' .agents/skills/legal-core/SKILL.md
+
+# Toda invocación es kitlegal boe … o kitlegal territorio …, en el texto libre
+# y en la tabla generada, y la sección de comandos dice que kitlegal se invoca
+# desde el PATH.
+grep 'kitlegal boe articulo BOE-A-2015-10565 a21' .agents/skills/boe-legislacion/SKILL.md
+grep 'kitlegal territorio resolver' .agents/skills/legal-core/SKILL.md
+grep '^### `kitlegal boe`$' .agents/skills/boe-legislacion/SKILL.md
+grep '^### `kitlegal territorio`$' .agents/skills/legal-core/SKILL.md
+grep '^\| `kitlegal boe articulo ' .agents/skills/boe-legislacion/SKILL.md
+grep '^\| `kitlegal territorio resolver ' .agents/skills/legal-core/SKILL.md
+grep 'PATH' .agents/skills/boe-legislacion/SKILL.md
+grep 'PATH' .agents/skills/legal-core/SKILL.md
+
+# --- Cada orden de la tabla, registrada en el binario (US2.2, FR-084) ---
+exec sh $WORK/ordenes-de-la-tabla.sh .agents/skills/boe-legislacion/SKILL.md
+exec sh $WORK/ordenes-de-la-tabla.sh .agents/skills/legal-core/SKILL.md
+
+# Y la comprobación no es vacua: una orden con un verbo que no existe no pasa.
+! exec sh $WORK/ordenes-de-la-tabla.sh $WORK/tabla-con-un-verbo-inventado.md
+
+# --- Ninguna skill lleva scripts/ (FR-082, SC-014) ---
+#
+# Ni lo instalado ni el árbol del que se empotra: `arbol` no sigue enlaces, así
+# que tampoco un scripts/ que fuera un enlace pasaría inadvertido.
+arbol .agents/skills
+! stdout '^. [^/ ]+/scripts( |$)'
+! stdout 'scripts'
+arbol $KITLEGAL_SKILLS
+stdout '^f boe-legislacion/SKILL\.md '
+stdout '^f legal-core/SKILL\.md '
+! stdout '^. [^/ ]+/scripts( |$)'
+
+-- ordenes-de-la-tabla.sh --
+# ordenes-de-la-tabla.sh <SKILL.md>: cada orden de la tabla de comandos del
+# SKILL.md —las filas «| `kitlegal <applet> <verbo> …` |»— nombra un applet y
+# un verbo registrados en el kitlegal del PATH: la ayuda del applet empieza por
+# su propia línea de uso, no por la del binario, y enumera el verbo. Falla si
+# la tabla no tiene ninguna orden (FR-084, contracts/skills-e-invocacion.md §2).
+set -u
+ordenes=$(sed -n 's/^| `kitlegal \([a-z][a-z0-9-]*\) \([a-z][a-z0-9-]*\).*/\1 \2/p' "$1")
+if [ -z "$ordenes" ]; then
+	echo "$1 no tiene ninguna orden en su tabla de comandos" >&2
+	exit 1
+fi
+printf '%s\n' "$ordenes" | while read -r applet verbo; do
+	ayuda=$(kitlegal "$applet" --help) || exit 1
+	if [ "$(printf '%s\n' "$ayuda" | sed -n 1p)" != "uso: $applet <verbo> [banderas]" ]; then
+		echo "$1: «$applet» no es un applet registrado" >&2
+		exit 1
+	fi
+	if ! printf '%s\n' "$ayuda" | grep -q "^  $verbo  *[^ ]"; then
+		echo "$1: «kitlegal $applet $verbo» no es un verbo registrado" >&2
+		exit 1
+	fi
+done
+-- tabla-con-un-verbo-inventado.md --
+| Orden | Qué hace | Qué devuelve |
+|---|---|---|
+| `kitlegal boe articulo <norma> <bloque>` | Devuelve un bloque. | objeto |
+| `kitlegal boe inventado <norma>` | No existe. | nada |

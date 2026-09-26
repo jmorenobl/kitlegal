@@ -1,0 +1,116 @@
+# --dry-run hace las mismas comprobaciones que la orden real y dice lo mismo
+# —el estado que resultaría por skill, los enlaces con su modo y los
+# conflictos— con el mismo código de salida, sin ningún cambio en disco, ni
+# siquiera directorios vacíos: en una instalación nueva, en una actualización,
+# sin cambios, con conflictos, con --host claude sin .claude/ y con un creador
+# de enlaces que falla, cuyo modo predice la misma sonda que usa la orden real.
+#
+# Cubre: FR-048 · SC-010.
+#
+# Sin conflictos, la salida estándar queda vacía y la de error trae la línea del
+# kernel y una por skill pedida (contracts/applet-skills.md §7); con ellos, la
+# línea del kernel y el mismo fallo que sin la bandera (§5). El disco se compara
+# con `arbol` antes y después (contracts/arnes-e2e.md §4).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Instalación nueva, con .claude/ ---
+mkdir $WORK/nueva/.claude
+cd $WORK/nueva
+arbol .
+cp stdout $WORK/antes.txt
+exec kitlegal skills install --dry-run --json
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; enlace \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; enlace \.claude/skills/legal-core \(enlace\)\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# Lo que predijo es lo que hace la orden real.
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+
+# --- Sin cambios ---
+arbol .
+cp stdout $WORK/antes.txt
+exec kitlegal skills install --dry-run
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: sin cambios; enlace \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: sin cambios; enlace \.claude/skills/legal-core \(enlace\)\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# list y doctor no cambian nada, con la bandera o sin ella.
+exec kitlegal skills list --dry-run
+exec kitlegal skills doctor --dry-run
+exec kitlegal skills list
+exec kitlegal skills doctor
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Actualización con otro binario, de todas y de una sola ---
+mkdir $WORK/actualizacion
+cd $WORK/actualizacion
+exec $KITLEGAL_V1_BIN skills install
+arbol .
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN skills install --dry-run
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: actualizada\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: actualizada\n\z'
+exec $KITLEGAL_V2_BIN skills install legal-core --dry-run
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: actualizada\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+grep -count=3 '"v0\.1\.0"' .agents/skills/kitlegal.json
+
+exec $KITLEGAL_V2_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+
+# --- Con conflictos: el mismo fallo y el mismo código que sin la bandera ---
+cd $WORK/conflicto
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --dry-run --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+stderr '^--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install"'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/boe-legislacion$'
+! stderr 'se habría pedido'
+arbol .
+cmp stdout $WORK/antes.txt
+
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- --host claude sin .claude/: ni .claude se crea ---
+#
+# La sonda se hace en el directorio real más próximo dentro del ámbito, que es
+# el de trabajo, y se retira: el directorio queda vacío.
+mkdir $WORK/forzado
+cd $WORK/forzado
+exec kitlegal skills install --host claude --dry-run
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; enlace \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; enlace \.claude/skills/legal-core \(enlace\)\n\z'
+arbol .
+! stdout .
+
+# --- Con un creador de enlaces que falla: predice copia ---
+#
+# La predicción sale de la misma sonda que usa la orden real, que después deja
+# copias.
+mkdir $WORK/copia/.claude
+cd $WORK/copia
+arbol .
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --dry-run
+! stdout .
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; enlace \.claude/skills/boe-legislacion \(copia\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; enlace \.claude/skills/legal-core \(copia\)\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+
+-- conflicto/.agents/skills/boe-legislacion/mio.md --
+Una carpeta que no instaló kitlegal.
