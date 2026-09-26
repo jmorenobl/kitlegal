@@ -53,12 +53,14 @@ type ficheroDeEsquemas struct {
 }
 
 // ficherosDeEsquemas son los ficheros publicados, con su applet y sus verbos
-// (FR-110). El de territorio se llama como su entidad, igual que los de boe, y
-// no como el applet (contrato del applet territorio §6; research.md D25).
+// (FR-110). Los de territorio y skills se llaman como su entidad, igual que los
+// de boe, y no como el applet (contrato del applet territorio §6; research.md D25;
+// research.md D16 de H19).
 var ficherosDeEsquemas = []ficheroDeEsquemas{
 	{applet: "boe", nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
 	{applet: "boe", nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
 	{applet: "territorio", nombre: "municipio.json", entidad: "municipio", verbos: []string{"resolver"}},
+	{applet: "skills", nombre: "instalacion.json", entidad: "instalacion", verbos: []string{"doctor", "install", "list"}},
 }
 
 // TestEsquemasPublicados es lo que vigila make schema-check (FR-110, SC-006;
@@ -127,6 +129,8 @@ func TestEsquemasPublicados(t *testing.T) {
 			"bloque.json": "Salidas de los verbos articulo y articulos del applet boe." +
 				" Generado desde --describe con make schema-check; no editar.",
 			"municipio.json": "Salida del verbo resolver del applet territorio." +
+				" Generado desde --describe con make schema-check; no editar.",
+			"instalacion.json": "Salidas de los verbos doctor, install y list del applet skills." +
 				" Generado desde --describe con make schema-check; no editar.",
 		}
 
@@ -608,7 +612,20 @@ func partesDeProduccion(t *testing.T) map[string]map[string]any {
 // verbo de la tabla se describe.
 var contratosDeLosApplets = map[string]func() []verboDelContrato{
 	"boe":        verbosDelContrato,
+	"skills":     verbosDelContratoDeSkills,
 	"territorio": verbosDelContratoDeTerritorio,
+}
+
+// verbosDelContratoDeSkills son los tres verbos de skills con la invocación con
+// que se describen: ninguno tiene argumentos obligatorios, así que basta el verbo
+// (contracts/applet-skills.md §1 de H19). Describir no examina el disco ni lee lo
+// empotrado.
+func verbosDelContratoDeSkills() []verboDelContrato {
+	return []verboDelContrato{
+		{nombre: verboInstall, argumento: []string{verboInstall}},
+		{nombre: verboList, argumento: []string{verboList}},
+		{nombre: verboDoctor, argumento: []string{verboDoctor}},
+	}
 }
 
 // verbosDelContratoDeTerritorio es el único verbo de territorio con la

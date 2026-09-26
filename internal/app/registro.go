@@ -152,10 +152,11 @@ func validarVerbos(applet string, verbos []Verbo) error {
 }
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
-// con las dependencias de la red (DependenciasDeRed) y el applet territorio con
-// los ficheros que viajan en el binario (FuentesEmbebidas). Los applets de
-// ejemplo no se registran nunca aquí, sino en el binario que compila el test e2e,
-// que usa exactamente este mismo mecanismo (FR-001, FR-009,
+// con las dependencias de la red (DependenciasDeRed), el applet skills con las
+// del sistema (DependenciasDeSkillsDelSistema) y el applet territorio con los
+// ficheros que viajan en el binario (FuentesEmbebidas). Los applets de ejemplo no
+// se registran nunca aquí, sino en el binario que compila el test e2e, que usa
+// exactamente este mismo mecanismo (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
@@ -168,9 +169,11 @@ func validarVerbos(applet string, verbos []Verbo) error {
 //
 // Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
 // tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
-// construir en Arrancar (research.md D4 de H19). Ninguno de los applets que
-// registra hoy la necesita, así que el parámetro va en blanco.
-func RegistroDeProduccion(_ string) (*Registro, error) {
+// construir en Arrancar (research.md D4 de H19). La lleva a skills, que la
+// declara en el manifiesto de cada instalación y compara con ella en doctor,
+// junto con lo empotrado en el binario y el creador de enlaces del sistema de
+// internal/disco (FR-024, FR-031, FR-077).
+func RegistroDeProduccion(version string) (*Registro, error) {
 	fuentes, err := FuentesEmbebidas()
 	if err != nil {
 		return nil, err
@@ -178,7 +181,13 @@ func RegistroDeProduccion(_ string) (*Registro, error) {
 
 	var registro Registro
 
-	for _, applet := range []Applet{AppletBoe(DependenciasDeRed()), AppletTerritorio(fuentes)} {
+	applets := []Applet{
+		AppletBoe(DependenciasDeRed()),
+		AppletSkills(DependenciasDeSkillsDelSistema(version)),
+		AppletTerritorio(fuentes),
+	}
+
+	for _, applet := range applets {
 		if err := registro.Registrar(applet); err != nil {
 			return nil, err
 		}

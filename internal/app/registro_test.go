@@ -226,13 +226,15 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H6: boe y territorio, y nada más. Los applets de ejemplo no se registran nunca
-// aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
-// cualquier otro nombre desconocido (FR-001, FR-009, contracts/registro-y-describe.md
-// §3 de H1). Construirlo no pide nada ni abre nada: el cliente y la caché de boe se
-// componen en cada invocación (contrato puerto-y-applet §4 y §5 de H4), y
-// territorio recibe los ficheros que viajan en el binario (contrato del applet
-// territorio §7).
+// H19: boe, skills y territorio, y nada más. Los applets de ejemplo no se
+// registran nunca aquí, así que `kitlegal echo hola` sobre el binario que se
+// publica termina como cualquier otro nombre desconocido (FR-001, FR-009,
+// contracts/registro-y-describe.md §3 de H1). Construirlo no pide nada ni abre
+// nada: el cliente y la caché de boe se componen en cada invocación (contrato
+// puerto-y-applet §4 y §5 de H4), territorio recibe los ficheros que viajan en el
+// binario (contrato del applet territorio §7) y skills lee lo empotrado la
+// primera vez que se ejecuta uno de sus verbos (contracts/applet-skills.md §1 de
+// H19).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
@@ -240,12 +242,17 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe", "territorio"}, registro.Nombres(),
-		"el binario distribuido registra exactamente boe y territorio")
+	assert.Equal(t, []string{"boe", "skills", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe, skills y territorio")
 
 	applet, existe := registro.Buscar("boe")
 	require.True(t, existe)
 	assert.Len(t, applet.Verbos(), 6, "con sus seis verbos (FR-001)")
+
+	applet, existe = registro.Buscar("skills")
+	require.True(t, existe)
+	assert.Equal(t, []string{"install", "list", "doctor"}, nombresDeLosVerbos(applet),
+		"con sus tres verbos, en el orden del contrato (contracts/applet-skills.md §1 de H19)")
 
 	applet, existe = registro.Buscar("territorio")
 	require.True(t, existe)
@@ -275,6 +282,18 @@ func TestRegistroDeProduccion(t *testing.T) {
 		assert.Equal(t, "argumentos", data["clase"])
 		assert.Contains(t, data["mensaje"], "00000", "el mensaje nombra la entrada")
 	})
+}
+
+// nombresDeLosVerbos son los nombres de los verbos del applet, en el orden en que
+// los declara.
+func nombresDeLosVerbos(applet Applet) []string {
+	var nombres []string
+
+	for _, verbo := range applet.Verbos() {
+		nombres = append(nombres, verbo.Nombre)
+	}
+
+	return nombres
 }
 
 // TestFuentesEmbebidas comprueba lo que la raíz de producción y el binario de

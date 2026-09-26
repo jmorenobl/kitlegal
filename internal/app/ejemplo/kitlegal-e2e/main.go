@@ -1,6 +1,6 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
-// binario que se publica— con los applets de ejemplo y los applets boe y
+// binario que se publica— con los applets de ejemplo y los applets boe, skills y
 // territorio. Lo único que cambia entre este binario y el distribuido es la
 // composición: qué applets se registran y de dónde responde boe, que aquí es la
 // reproducción de sus grabaciones y nunca la red (FR-009, FR-114,
@@ -59,16 +59,17 @@ func main() {
 }
 
 // registroDeE2E construye el registro de este binario: los applets de ejemplo,
-// boe sobre la reproducción y territorio con los mismos ficheros embebidos que el
-// binario distribuido, que no dependen del entorno (contrato del applet
-// territorio §7). Construirlo no pide nada ni abre nada. Un registro que no se
-// construye es un defecto de quien escribió un applet o esta composición, y
-// app.Arrancar lo convierte en el fallo inesperado antes de atender ninguna
-// invocación: nunca en un código de salida de usuario ni en un pánico (FR-008;
-// research.md D16 de H4). Recibe la versión del binario como el registro de
-// producción (research.md D4 de H19), y como allí, ninguno de los applets que
-// registra hoy la necesita, así que el parámetro va en blanco.
-func registroDeE2E(_ string) (*app.Registro, error) {
+// boe sobre la reproducción, skills con las mismas dependencias del sistema que
+// el binario distribuido —la versión de este binario, lo empotrado y el creador
+// de enlaces de internal/disco— y territorio con los mismos ficheros embebidos,
+// que no dependen del entorno (contrato del applet territorio §7). Construirlo no
+// pide nada ni abre nada. Un registro que no se construye es un defecto de quien
+// escribió un applet o esta composición, y app.Arrancar lo convierte en el fallo
+// inesperado antes de atender ninguna invocación: nunca en un código de salida de
+// usuario ni en un pánico (FR-008; research.md D16 de H4). Recibe la versión del
+// binario como el registro de producción, y como allí la lleva a skills
+// (research.md D4 de H19).
+func registroDeE2E(version string) (*app.Registro, error) {
 	registro, err := ejemplo.Registro()
 	if err != nil {
 		return nil, err
@@ -79,7 +80,13 @@ func registroDeE2E(_ string) (*app.Registro, error) {
 		return nil, err
 	}
 
-	for _, applet := range []app.Applet{app.AppletBoe(dependenciasDeReproduccion()), app.AppletTerritorio(fuentes)} {
+	applets := []app.Applet{
+		app.AppletBoe(dependenciasDeReproduccion()),
+		app.AppletSkills(app.DependenciasDeSkillsDelSistema(version)),
+		app.AppletTerritorio(fuentes),
+	}
+
+	for _, applet := range applets {
 		if err := registro.Registrar(applet); err != nil {
 			return nil, err
 		}
