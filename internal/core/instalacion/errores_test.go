@@ -4,8 +4,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 // TestManifiestoIlegibleSinCausa exige que el valor cero del error, que
@@ -19,4 +21,38 @@ func TestManifiestoIlegibleSinCausa(t *testing.T) {
 
 	assert.Equal(t, "manifiesto ilegible", ilegible.Error())
 	assert.NoError(t, ilegible.Unwrap())
+}
+
+// TestErrorDeConflictosSinNinguno exige lo mismo del valor cero del rechazo
+// por conflicto: su mensaje es la cabecera sola, declara la clase
+// «inesperado» y no nombra ninguno (FR-144).
+func TestErrorDeConflictosSinNinguno(t *testing.T) {
+	t.Parallel()
+
+	var rechazo instalacion.ErrorDeConflictos
+
+	assert.Equal(t, cabeceraDeInstall, rechazo.Error())
+	assert.Equal(t, schema.ClaseInesperado, rechazo.Clase())
+	assert.Empty(t, rechazo.Lista())
+}
+
+// TestListaDeConflictosEsUnaCopia exige que cambiar la lista que devuelve el
+// rechazo no cambie lo que nombra.
+func TestListaDeConflictosEsUnaCopia(t *testing.T) {
+	t.Parallel()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.fichero(".agents", "no soy un directorio")
+
+	pedido, err := instalacion.ValidarInvocacion(instalacion.Invocacion{}, "", empotradasDePrueba())
+	require.NoError(t, err)
+
+	var rechazo *instalacion.ErrorDeConflictos
+	require.ErrorAs(t, instalacion.ComprobarConflictos(d, &enlazadorDePrueba{}, pedido, empotradasDePrueba()), &rechazo)
+
+	lista := rechazo.Lista()
+	lista[0].Ruta = "otra"
+
+	assert.Equal(t, []instalacion.Conflicto{conflicto(noEsDirectorio, ".agents")}, rechazo.Lista())
+	assert.Equal(t, cabeceraDeInstall+"\nruta que no es directorio: .agents", rechazo.Error())
 }

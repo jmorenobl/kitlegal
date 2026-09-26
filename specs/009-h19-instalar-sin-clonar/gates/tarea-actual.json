@@ -1,15 +1,16 @@
 {
-  "id": "T004",
-  "texto": "T004 [US6] Ámbito e invocación (data-model §2; contracts/applet-skills.md §2 y §3; research D11, D14): el `Ámbito` local, global y `--dir` (raíz, directorio neutro, guardas, `ConHosts` y banderas para las órdenes, con las rutas como se alcanzan desde el directorio de trabajo) y `ValidarInvocacion` con la precedencia de FR-052 en el orden del contrato y sin examinar el disco (`-g` con `--dir` en `install`, `list` y `doctor`; `--host` con `--dir`; `--host` distinto de `claude`; skill desconocida → exit 2 con las disponibles, y repetida cuenta una vez; solo sin ninguno de esos, `-g` sin `HOME` → exit 1), con errores tipados por `schema.ConClase` (`argumentos` → 2, `inesperado` → 1; data-model §9) y `TestValidarInvocacion` (incluidas las invocaciones que caen a la vez en un error de argumentos y en `-g` sin `HOME`, que salen con 2) y `TestAmbito` — FR-010 a FR-013, FR-020, FR-052, SC-005; rutas: internal/core/instalacion/ambito.go, internal/core/instalacion/invocacion.go, internal/core/instalacion/errores.go",
+  "id": "T005",
+  "texto": "T005 [US1] Puertos y conflictos de `install` (data-model §3 y §4): los puertos `Disco`, `Escritor` y `Enlazador` y la `Entrada` (ausente, directorio, fichero, enlace, otro; destino literal; `Resuelve`), un disco en memoria de test que modela enlaces colgando y en ciclo, tuberías y fallos de E/S, y la detección de conflictos antes de escribir nada (ámbito §4.1, directorio neutro §4.2, host `claude` §4.3, lo que no se toca §4.4): adopción del enlace con el destino literal de FR-021 aunque cuelgue, nada examinado por debajo de una entrada que no es un directorio real, una sola clase por entrada y el error `Conflictos` con la lista ordenada; con `TestConflictos`, una fila por caso de data-model §4 (carpeta ajena, fichero, enlace a otro sitio, enlace roto, fichero editado, fichero ajeno, ruta que no es directorio, manifiesto ilegible y manifiesto con entradas de host, en el directorio neutro y en el host) — FR-022, FR-023, FR-026, FR-027, FR-028, FR-040 a FR-043, FR-047, SC-008, SC-009; rutas: internal/core/instalacion/puertos.go, internal/core/instalacion/plan.go, internal/core/instalacion/errores.go, internal/core/instalacion/discoEnMemoria_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "55b736c78012b57f7f4fbff1b6d9a390956b88a6",
+  "base": "9f7bac445a5733e3cbaed5306ae36d61d39a3fd9",
   "rutas": [
-    "contracts/applet-skills.md",
-    "internal/core/instalacion/ambito.go",
+    "E/S",
+    "internal/core/instalacion/discoEnMemoria_test.go",
     "internal/core/instalacion/errores.go",
-    "internal/core/instalacion/invocacion.go"
+    "internal/core/instalacion/plan.go",
+    "internal/core/instalacion/puertos.go"
   ],
   "cierre": false,
   "converger": false,

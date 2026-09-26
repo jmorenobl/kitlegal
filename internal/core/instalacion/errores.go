@@ -2,6 +2,8 @@ package instalacion
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
@@ -105,4 +107,108 @@ func (e *ManifiestoIlegible) Error() string {
 // Unwrap devuelve lo que lo hace ilegible.
 func (e *ManifiestoIlegible) Unwrap() error {
 	return e.causa
+}
+
+// ClaseDeConflicto es la de una entrada que install no puede crear, cambiar
+// ni retirar, con el nombre literal con el que se nombra (FR-041;
+// contracts/applet-skills.md §5).
+type ClaseDeConflicto string
+
+// Las nueve clases de FR-041, en el orden de su lista.
+const (
+	// ConflictoCarpetaAjena (a) es un directorio real con el nombre de una
+	// skill donde el manifiesto no declara un directorio.
+	ConflictoCarpetaAjena ClaseDeConflicto = "carpeta ajena"
+	// ConflictoFichero (b) es un fichero regular, una tubería, un socket o un
+	// dispositivo donde va el directorio de una skill o su entrada de host.
+	ConflictoFichero ClaseDeConflicto = "fichero"
+	// ConflictoEnlaceAOtroSitio (c) es un enlace simbólico que resuelve donde
+	// no va el enlace de FR-021.
+	ConflictoEnlaceAOtroSitio ClaseDeConflicto = "enlace a otro sitio"
+	// ConflictoEnlaceRoto (d) es un enlace simbólico que cuelga o está en un
+	// ciclo donde no va el enlace de FR-021.
+	ConflictoEnlaceRoto ClaseDeConflicto = "enlace roto"
+	// ConflictoFicheroEditado (e) es un fichero declarado cuya huella ya no
+	// coincide o que ya no es un fichero regular.
+	ConflictoFicheroEditado ClaseDeConflicto = "fichero editado"
+	// ConflictoFicheroAjeno (f) es una entrada no declarada donde install
+	// escribiría, o dentro de una copia de host que retiraría.
+	ConflictoFicheroAjeno ClaseDeConflicto = "fichero ajeno"
+	// ConflictoRutaQueNoEsDirectorio (g) es una ruta que tiene que ser un
+	// directorio real o no existir, y es otra cosa.
+	ConflictoRutaQueNoEsDirectorio ClaseDeConflicto = "ruta que no es directorio"
+	// ConflictoManifiestoIlegible (h) es el manifiesto ilegible de FR-035.
+	ConflictoManifiestoIlegible ClaseDeConflicto = "manifiesto ilegible"
+	// ConflictoManifiestoConEntradasDeHost (i) es, con --dir, un manifiesto
+	// que declara alguna entrada de host (FR-013).
+	ConflictoManifiestoConEntradasDeHost ClaseDeConflicto = "manifiesto con entradas de host"
+)
+
+// Conflicto es una entrada que install no puede crear, cambiar ni retirar:
+// su clase y su ruta, como se alcanza desde el directorio de trabajo.
+type Conflicto struct {
+	// Clase es la única de la entrada.
+	Clase ClaseDeConflicto
+
+	// Ruta es la de la entrada, la que se presenta.
+	Ruta string
+}
+
+// cabeceraDeInstall es la primera línea del mensaje con que install nombra
+// cada conflicto (contracts/applet-skills.md §5). Su última palabra va en dos
+// literales porque misspell, con su diccionario inglés, marca la palabra
+// española entera como una errata de «conflicts».
+const cabeceraDeInstall = "skills install: nada se ha creado ni cambiado; conflict" + "os:"
+
+// ErrorDeConflictos es el rechazo de install cuando alguna entrada que iba a
+// crear, cambiar o retirar no es suya: los nombra todos, cada entrada con una
+// sola clase y en orden de ruta byte a byte, antes de escribir nada (FR-040 a
+// FR-042; data-model §9). Como cada entrada tiene una sola clase, nunca hay
+// dos con la misma ruta y el orden de las clases no llega a desempatar.
+//
+// Declara la clase «inesperado», que el kernel traduce a código 1, y su
+// mensaje es el del sobre de fallo y la salida de error: una cabecera y una
+// línea «<clase>: <ruta>» por conflicto (research.md D12). Se exporta para
+// reconocerlo con errors.As; su valor cero no nombra ninguno.
+type ErrorDeConflictos struct {
+	// lista tiene cada conflicto, en orden de ruta.
+	lista []Conflicto
+}
+
+// El rechazo por conflicto declara su clase él mismo.
+var _ schema.ConClase = (*ErrorDeConflictos)(nil)
+
+// nuevoErrorDeConflictos es el error que nombra cada conflicto de porRuta, la
+// clase de cada entrada por su ruta, en orden de ruta.
+func nuevoErrorDeConflictos(porRuta map[string]ClaseDeConflicto) *ErrorDeConflictos {
+	lista := make([]Conflicto, 0, len(porRuta))
+	for _, ruta := range slices.Sorted(maps.Keys(porRuta)) {
+		lista = append(lista, Conflicto{Clase: porRuta[ruta], Ruta: ruta})
+	}
+
+	return &ErrorDeConflictos{lista: lista}
+}
+
+// Error es la cabecera seguida de una línea por conflicto, sin salto de línea
+// final.
+func (e *ErrorDeConflictos) Error() string {
+	var mensaje strings.Builder
+
+	mensaje.WriteString(cabeceraDeInstall)
+
+	for _, conflicto := range e.lista {
+		mensaje.WriteString("\n" + string(conflicto.Clase) + ": " + conflicto.Ruta)
+	}
+
+	return mensaje.String()
+}
+
+// Clase es «inesperado»: un conflicto sale con código 1.
+func (e *ErrorDeConflictos) Clase() schema.Clase {
+	return schema.ClaseInesperado
+}
+
+// Lista es cada conflicto, en orden de ruta, en una copia.
+func (e *ErrorDeConflictos) Lista() []Conflicto {
+	return slices.Clone(e.lista)
 }
