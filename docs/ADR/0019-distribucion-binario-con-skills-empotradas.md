@@ -51,8 +51,9 @@ de la CLI `skills` y el que ya usa este repositorio (`.claude/skills/*` son enla
    `scripts/` en ninguna skill: la tabla de comandos invoca `kitlegal <applet> <verbo> …` con el binario en el `PATH`.
    El despacho por `os.Args[0]` del ADR 0001 sigue en el kernel, pero las skills ya no dependen de él.
 2. **El binario se instala con el gestor de paquetes de la plataforma**, y todo lo genera goreleaser en cada etiqueta:
-   tap de Homebrew (macOS y Linux), `.deb` y `.rpm` adjuntos a la release (nfpm), bucket de Scoop (Windows), y como
-   alternativas `install.sh` (descarga la release de la plataforma y verifica el checksum) y `go install`. Checksums,
+   `install.sh` para `curl | sh` (macOS y Linux sin más requisitos: descarga la release de la plataforma, verifica el
+   checksum, instala en `~/.local/bin` y no toca los ficheros de arranque del shell), tap de Homebrew (macOS y Linux),
+   bucket de Scoop (Windows), `.deb` y `.rpm` adjuntos a la release (nfpm) y `go install`. Checksums,
    SBOM y firma keyless con cosign, como preveía H19. Sin repositorio apt propio ni winget hasta que el uso lo pida.
 3. **`kitlegal skills install | list | doctor`** es un applet como los demás (sobre, `--json`, `--dry-run`,
    `--describe`), con este contrato:
@@ -81,8 +82,9 @@ de la CLI `skills` y el que ya usa este repositorio (`.claude/skills/*` son enla
 
 ## Consecuencias
 
-- Para quien lo usa: dos órdenes (`brew install jmorenobl/tap/kitlegal` y `kitlegal skills install`), actualizar es
-  `brew upgrade` y repetir la segunda, y el binario avisa cuando toca. Lo instalado en un proyecto entra en su git.
+- Para quien lo usa: dos órdenes (`curl -fsSL …/install.sh | sh` o `brew install jmorenobl/tap/kitlegal`, y
+  `kitlegal skills install`), actualizar es repetir la primera —o `brew upgrade`— y la segunda, y el binario avisa
+  cuando toca. `make install` no es una forma de instalar kitlegal: es el bucle de quien desarrolla y del job de evals. Lo instalado en un proyecto entra en su git.
 - La forma de invocación en `SKILL.md` cambia de `scripts/boe …` a `kitlegal boe …`. Las evals miden que las skills
   siguen resolviendo lo mismo: sus `comandos` se declaran por applet, no por ruta.
 - Desaparecen `scripts/instalar-skills.sh`, `bin/instalado/`, los enlaces que generaba `skills-sync` y los tests que
