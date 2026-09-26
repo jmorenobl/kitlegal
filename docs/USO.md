@@ -10,6 +10,25 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-20 · Instalarlo en otro proyecto, sin clonar, y actualizarlo con cada versión
+
+- **Qué se pidió.** Cómo instalar kitlegal para usarlo en cualquier proyecto —en Claude Code, Codex o Antigravity— y
+  actualizarlo conforme salgan versiones, con la menor fricción posible para alguien distinto de quien desarrolla.
+- **Qué falló.** Nada del producto: `make install` hace lo que dice. Pero es una instalación para quien desarrolla:
+  exige clonar y tener Go, la skill instalada es el árbol de trabajo del clon (cambia con la rama en la que esté) y
+  `scripts/boe` es un enlace a un binario de fuera de la skill, que ningún zip ni ningún gestor de paquetes puede
+  llevar. No había release (H19 estaba al cierre de la fase 3) y el repositorio es privado.
+- **Qué faltó.** Un artefacto instalable sin clonar. Se descartó repartir bundles `.skill`/zip: el binario pesa 11 MB
+  comprimido por plataforma, en macOS un ejecutable extraído de un zip descargado queda en cuarentena, y un bundle
+  fino con un shim que descargue el binario mete un descargador propio y dos versiones (skill y binario) que pueden
+  divergir.
+- **Qué se hizo.** Decisión de Jorge (2026-09-20, ADR 0019): el binario se instala con el gestor de paquetes de cada
+  plataforma (Homebrew en macOS y Linux, Scoop en Windows, `.deb`/`.rpm`, `install.sh`, `go install`), lleva las
+  skills dentro y las instala él con `kitlegal skills install`: local por defecto en `./.agents/skills/`, `-g` en
+  `~/.agents/skills/`, y los hosts como enlaces relativos (`--host claude` → `.claude/skills/`), detectados por su
+  directorio de configuración cuando no se indica. Es el disparador del ADR 0013: H19 se adelanta a la fase 1, detrás
+  de H6, con ese contrato.
+
 ### 2026-09-16 · Ninguna eval comprueba qué hace la skill ante una norma derogada
 
 - **Qué se pidió.** Nada en concreto: la duda salió al explicar por qué el job de evals corre sin red. Si las
