@@ -80,11 +80,21 @@ linters:
       # comprueba las mismas tres reglas sobre el grafo transitivo real, de modo
       # que borrar estas listas no basta para que una violación pase (FR-051).
       rules:
-        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los ocho
-        # paquetes de internal/ —la dependencia va siempre hacia dentro— y los
-        # paquetes de entrada y salida de la biblioteca estándar, que es lo que
-        # impide que un *slog.Logger o un io.Writer se instalen en internal/core
-        # sin que ningún control diga nada (research.md D2, D18).
+        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los nueve
+        # paquetes de internal/ —la dependencia va siempre hacia dentro—, el
+        # paquete raíz del módulo, con lo empotrado, y los paquetes de entrada y
+        # salida de la biblioteca estándar, que es lo que impide que un
+        # *slog.Logger o un io.Writer se instalen en internal/core sin que ningún
+        # control diga nada (research.md D2, D18).
+        #
+        # internal/disco y el paquete raíz entran en H19, en la misma tarea que
+        # crea el adaptador y antes de que exista ningún test que pudiera
+        # saltarse la regla: los `_test.go` del dominio solo los vigila esta
+        # lista, porque el grafo de internal/arch_test.go sale de `go list -deps`
+        # sin tests (H19 research.md D32, V47). El paquete raíz va como entrada
+        # **exacta**, con `$` al final: sin él sería un prefijo, y de ese prefijo
+        # cuelga el módulo entero, internal/core incluido (depguard v2.2.1,
+        # settings.go:224-247; H19 research.md V45).
         core:
           # `original`: sin lista de permitidos, se deniega exactamente lo
           # enumerado y se permite el resto.
@@ -92,12 +102,16 @@ linters:
           files:
             - "**/internal/core/**"
           deny:
+            - pkg: github.com/jmorenobl/kitlegal$
+              desc: "R1: el dominio no importa lo empotrado; recibe las skills como bytes desde internal/app"
             - pkg: github.com/jmorenobl/kitlegal/internal/app
               desc: "R1: el dominio no importa el kernel; es el kernel quien depende del dominio"
             - pkg: github.com/jmorenobl/kitlegal/internal/cache
               desc: "R1: el dominio no importa adaptadores; la caché se usa desde internal/source"
             - pkg: github.com/jmorenobl/kitlegal/internal/cli
               desc: "R1: el dominio no importa el kernel; es el kernel quien depende del dominio"
+            - pkg: github.com/jmorenobl/kitlegal/internal/disco
+              desc: "R1: el dominio no importa adaptadores; el disco llega por los puertos que define internal/core/instalacion"
             - pkg: github.com/jmorenobl/kitlegal/internal/graph
               desc: "R1: el dominio no importa adaptadores; el grafo se alimenta desde el applet, con GraphOp"
             - pkg: github.com/jmorenobl/kitlegal/internal/httpx

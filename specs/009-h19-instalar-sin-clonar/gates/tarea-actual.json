@@ -1,17 +1,17 @@
 {
-  "id": "T009",
-  "texto": "T009 [US3] El aviso en el dominio (data-model §7; contracts/aviso.md §2-§4): `Aviso(disco, home, versionDelBinario, empotradas)` comprueba primero la forma SemVer de la versión del binario (sin ella no examina el disco) y busca el manifiesto con la regla de búsqueda de FR-070 y contracts/aviso.md §2, sin seguir enlaces: `./.agents`, `./.agents/skills` y `./.agents/skills/kitlegal.json`; el global (nunca sin `HOME`, ni en la raíz del sistema ni en una ruta relativa) solo si `./.agents` no existe, o `./.agents/skills` no existe dentro de un `./.agents` real, o los dos son directorios reales y no hay `kitlegal.json`; si `./.agents` o `./.agents/skills` existe y no es un directorio real, o el `kitlegal.json` local es ilegible o un enlace, ningún efecto y el global no se mira; compara la versión del manifiesto y la de cada skill declarada y empotrada con `MismaVersion`, y da exactamente una línea con la versión que difiere, la del binario y `kitlegal skills install` (con ` -g` si el manifiesto es el global); nunca devuelve error; con `TestAviso`, con una fila por paso de contracts/aviso.md §2 (incluidos `./.agents` como fichero y `./.agents/skills` como enlace colgando con un global de otra versión: ninguna línea) — FR-027, FR-070 a FR-073, FR-077, SC-013; rutas: internal/core/instalacion/aviso.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T010",
+  "texto": "T010 [US1] Adaptador internal/disco sobre el sistema de ficheros (research D2, D6, D8, D9): `Examinar` y `Nombres` (`Lstat`, `Readlink` y `Stat` del enlace solo para `Resuelve`), `Huella` y `Leer` (`Lstat` → `Open` → `Stat` + `SameFile`, nunca a través de un enlace ni abriendo lo que no es fichero regular), `CrearDirectorio`, `EscribirFichero` atómico (temporal + `rename`, `0o600`) y `Retirar`, y el `Enlazador` del sistema con `Disponible(directorio)` que sondea en ese directorio (no en `TMPDIR`), lo deja con las mismas entradas y bytes y reintenta con otro nombre si el de la sonda existe; con `TestExaminar`, `TestLeerNoSigueEnlaces`, `TestNoAbreLoQueNoEsRegular`, `TestEscrituraAtomica`, `TestRetirar` y `TestEnlazadorDelSistema` sobre `t.TempDir()` (la tubería con `syscall.Mkfifo`, en un fichero de test solo Unix); y en la misma tarea R1 ampliada (research D32, punto 1): en .golangci.yml, la lista `core` de `depguard` deniega `github.com/jmorenobl/kitlegal/internal/disco` y `github.com/jmorenobl/kitlegal$` (entrada exacta), y en internal/arch_test.go `disco` entra en `paquetesInternos` y el paquete raíz como denegación exacta (`==`) de `compruebaDominioPuro`; verificación: una sonda temporal `package instalacion_test` en el dominio que importa en blanco el adaptador, sola en su línea, pone `make lint` en rojo nombrando R1, y se retira antes de `make ci` — FR-024, FR-028, FR-044, FR-142, SC-022; rutas: internal/disco/, .golangci.yml, internal/arch_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "ade15402c52716c302542ed5e761a4d12803c664",
+  "base": "b9cee4ad9cf9cebd01c7393c4024629b73049588",
   "rutas": [
-    ".agents/skills",
-    ".agents/skills/kitlegal.json",
-    "contracts/aviso.md",
-    "internal/core/instalacion/aviso.go",
-    "internal/core/instalacion/discoEnMemoria_test.go",
-    "kitlegal.json"
+    ".com/jmorenobl/kitlegal",
+    ".com/jmorenobl/kitlegal/internal/disco",
+    ".golangci.yml",
+    "internal/arch_test.go",
+    "internal/disco",
+    "internal/disco/"
   ],
   "cierre": false,
   "converger": false,

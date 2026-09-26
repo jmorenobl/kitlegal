@@ -458,14 +458,20 @@ type reglaExclusiva struct {
 }
 
 // compruebaDominioPuro hace cumplir R1: ningún paquete de internal/core puede
-// alcanzar, siguiendo aristas del módulo, el kernel, un adaptador o un paquete
-// de entrada y salida de la biblioteca estándar.
+// alcanzar, siguiendo aristas del módulo, el kernel, un adaptador, lo empotrado
+// en el paquete raíz del módulo o un paquete de entrada y salida de la
+// biblioteca estándar.
 //
 // El recorrido es transitivo dentro del módulo y se detiene en el paquete
 // denegado: interesa la arista que rompe la regla, no lo que ese paquete
 // importe después. Así una cadena core → pkg/legalkit → internal/render se
 // nombra entera, que es justo lo que `depguard` no puede ver mirando las
 // importaciones declaradas de un fichero.
+//
+// El paquete raíz se deniega por igualdad y no por prefijo, porque del prefijo
+// cuelga el módulo entero, internal/core incluido; así una arista del dominio
+// a lo empotrado se nombra como tal, y no solo por el io/fs que lo empotrado
+// importa (H19 research.md D32).
 func compruebaDominioPuro(t *testing.T, g grafo) {
 	t.Helper()
 
@@ -477,6 +483,8 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 	}
 	denegados = append(denegados, entradaYSalidaEstandar...)
 
+	exactos := []string{g.modulo}
+
 	for _, origen := range g.paquetesBajo(dominio) {
 		visitados := map[string]bool{origen: true}
 
@@ -486,11 +494,12 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 			actual := cadena[len(cadena)-1]
 
 			for _, importacion := range g.importa[actual] {
-				if denegado, hay := primerPrefijo(importacion, denegados); hay {
+				if denegado, hay := denegacion(importacion, denegados, exactos); hay {
 					t.Errorf("R1 · el dominio es puro: %s importa %q (lo prohíbe %q). "+
-						"internal/core no depende del kernel, de los adaptadores ni de la entrada y "+
-						"salida de la biblioteca estándar: el registro llega como *slog.Logger al método "+
-						"Ejecutar y la presentación se inyecta desde la raíz de composición "+
+						"internal/core no depende del kernel, de los adaptadores, de lo empotrado ni de la "+
+						"entrada y salida de la biblioteca estándar: el registro llega como *slog.Logger al "+
+						"método Ejecutar, la presentación se inyecta desde la raíz de composición y el disco "+
+						"y las skills empotradas llegan por los puertos del dominio "+
 						"(contracts/reglas-de-arquitectura.md R1).",
 						strings.Join(cadena, " → "), importacion, denegado)
 
@@ -575,10 +584,11 @@ func exigeDueno(t *testing.T, g grafo, regla reglaExclusiva) {
 		regla.nombre, strings.Join(regla.duenos, ", "), reservado)
 }
 
-// paquetesInternos son los ocho paquetes de internal/ que el dominio no puede
-// alcanzar: la dependencia va siempre hacia dentro, nunca al revés.
+// paquetesInternos son los nueve paquetes de internal/ que el dominio no puede
+// alcanzar: la dependencia va siempre hacia dentro, nunca al revés. disco, el
+// adaptador del sistema de ficheros, entra en H19 (research.md D32).
 var paquetesInternos = []string{
-	"app", "cache", "cli", "graph", "httpx", "render", "source", "store",
+	"app", "cache", "cli", "disco", "graph", "httpx", "render", "source", "store",
 }
 
 // entradaYSalidaEstandar son los paquetes de entrada y salida de la biblioteca
@@ -701,6 +711,17 @@ func ejecutaGoCon(t *testing.T, entorno []string, argumentos ...string) string {
 // comparando por componente: `internal/store` no cuelga de `internal/sto`.
 func cuelgaDe(paquete, prefijo string) bool {
 	return paquete == prefijo || strings.HasPrefix(paquete, prefijo+"/")
+}
+
+// denegacion devuelve la entrada que prohíbe la importación: la propia
+// importación si es uno de los exactos, que se comparan por igualdad, o el
+// primer prefijo de la lista del que cuelga.
+func denegacion(importacion string, prefijos, exactos []string) (string, bool) {
+	if slices.Contains(exactos, importacion) {
+		return importacion, true
+	}
+
+	return primerPrefijo(importacion, prefijos)
 }
 
 // primerPrefijo devuelve el primer prefijo de la lista del que cuelga el
