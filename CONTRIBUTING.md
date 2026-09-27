@@ -26,7 +26,7 @@ rama, una propuesta de cambio y un *squash-merge* con la integración continua e
    de [`docs/SOURCES.md`](docs/SOURCES.md) y su caso de `make verify-sources` entran en el mismo cambio; si la
    fuente no se consulta en red y sus datos entran congelados en `data/`, como los de `data/territorio/` (ADR 0017),
    solo su fila, con la fecha del fichero generado.
-5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release.
+5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release ([La release](#la-release)).
 6. **Actualizar el roadmap solo si cambia el orden o el alcance**; el detalle vive en las propuestas de
    cambio y en los ADR.
 
@@ -87,14 +87,17 @@ incompatible, menor para funcionalidad nueva compatible y parche para correccion
 cabeza, y bajo ella los apartados `Añadido`, `Cambiado`, `Obsoleto`, `Eliminado`, `Corregido` y
 `Seguridad`, solo los que tengan contenido. Todo cambio de comportamiento visible entra en *Unreleased*
 en la misma propuesta que lo introduce; al publicar una versión, esa sección se cierra bajo su número y
-su fecha y se abre una nueva vacía. En H0 el changelog se mantiene **a mano**; su generación automática
-llega con el release de H19.
+su fecha y se abre una nueva vacía. El changelog se mantiene **a mano**, también desde la primera
+release: las notas de cada release las genera goreleaser desde los Conventional Commits
+(`changelog` de `.goreleaser.yaml`), y no sustituyen a este fichero.
 
 ## Los controles
 
 `make ci` es **el veredicto del repositorio**: si está en verde en local, la propuesta de cambio pasa,
-porque la integración continua ejecuta esa misma orden y no aplica ningún control por otra vía.
-`make ci` no modifica ningún fichero versionado, así que se puede ejecutar con el árbol sucio sin miedo.
+porque la integración continua ejecuta esa misma orden y no aplica ningún control por otra vía; lo único
+que añade es el trabajo `snapshot`, que ejecuta otras dos órdenes del mismo `Makefile`, `make release` y
+`make snapshot-check` ([La release](#la-release)). `make ci` no modifica ningún fichero versionado, así
+que se puede ejecutar con el árbol sucio sin miedo.
 
 | Control | Orden | ¿En `make ci`? |
 |---|---|---|
@@ -106,14 +109,18 @@ porque la integración continua ejecuta esa misma orden y no aplica ningún cont
 | Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal) | `make test-integration` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
-| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; derivas de las referencias, de la tabla de comandos y de los enlaces de `scripts/`; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
-| Regeneración de lo que se deriva de cada skill (referencias, tabla de comandos de `SKILL.md`, enlaces de `scripts/`) | `make skills-sync` | no — escribe en el árbol |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
+| Regeneración de lo que se deriva de cada skill (referencias y tabla de comandos de `SKILL.md`); una skill con `scripts/` la hace fallar | `make skills-sync` | no — escribe en el árbol |
+| Configuración de la release válida (`goreleaser check`, sin construir nada; una propiedad obsoleta en la versión fijada falla) | `make goreleaser-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
 | Integridad de los módulos (`go mod verify`, raíz y herramientas) | `make mod-verify` | sí |
 | Dependencias saneadas (`go mod tidy -diff`) | `make mod-tidy-check` | sí |
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
+| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos y `checksums.txt`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
+| Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
+| Bucle de desarrollo: `go install` del binario y, con él, `kitlegal skills install -g --host claude` | `make install` | no — instala en la cuenta ([`make install` y los enlaces del anterior](#make-install-y-los-enlaces-del-anterior)) |
 | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
 | Análisis de seguridad semanal (CodeQL) | — (flujo `.github/workflows/codeql.yml`) | no |
 | Actualización semanal de dependencias | — (Dependabot, `.github/dependabot.yml`) | no |
@@ -161,24 +168,42 @@ revisión, y para eso necesita la justificación escrita.
 Las herramientas de los controles no son dependencias del producto: viven en su propio módulo
 (`tools/<herramienta>/go.mod`) precisamente para que el `go.mod` de `kitlegal` no las arrastre.
 
-## Órdenes que existen pero reciben su contenido en un hito posterior
+## La release
 
-Ninguna miente ni pasa en silencio: cada una nombra el objeto ausente y el hito que lo aporta.
+Desde H19 ninguna orden del `Makefile` espera su contenido de un hito posterior: la última, `make release`,
+construye ya la release. La define `.goreleaser.yaml` y la construye goreleaser, un módulo de herramienta
+más (`tools/goreleaser/go.mod`), que se invoca como los demás y que `make mod-verify` y Dependabot cubren.
+Tres órdenes:
 
-| Orden | Qué hace hoy | Hito |
-|---|---|---|
-| `make release` | **Falla** con código distinto de 0 | H19 (`.goreleaser.yaml`) |
+- **`make goreleaser-check`**, dentro de `make ci`: `goreleaser check` valida la configuración sin construir
+  nada, y falla si usa una propiedad que la versión fijada de goreleaser declara obsoleta.
+- **`make release`** construye el snapshot en `dist/` con `goreleaser release --snapshot --clean
+  --skip=publish,sign,sbom`: los seis archivos (`kitlegal_{darwin,linux}_{amd64,arm64}.tar.gz` y
+  `kitlegal_windows_{amd64,arm64}.zip`), `checksums.txt` y los paquetes `.deb` y `.rpm`, sin publicar, sin firmar y
+  sin SBOM, así que no necesita syft, cosign ni ningún secreto. Es la única definición del snapshot. `dist/` está
+  en `.gitignore`.
+- **`make snapshot-check`**, sobre el `dist/` de `make release`: `TestSnapshot` comprueba que están los seis
+  archivos con su huella en `checksums.txt`, que no hay SBOM ni firmas y que el binario de la plataforma que lo
+  ejecuta imprime en `version` la versión y el commit del snapshot; y los guiones `instalador-` del e2e ejecutan
+  `scripts/install.sh` contra ese `dist/`, sin red. Sin ningún guion `instalador-` que ejecutar, falla en lugar de
+  pasar en vacío.
 
-`release` falla en lugar de anunciar lo que le falta y terminar con éxito porque es una acción con
-efectos externos: no puede simular éxito. No forma parte de `ci` ni del flujo nocturno.
+Las dos últimas no están en `make ci` porque construyen seis plataformas; las ejecuta, en cada propuesta de
+cambio y en cada push a `main`, el trabajo `snapshot` del flujo `ci`, sin `id-token` y sin ningún secreto.
 
-`make test-e2e`, `make test-integration`, `make schema-check` y `make skills-sync` ya no están en esta
-tabla: desde H1 la primera ejecuta los guiones `testscript` contra el binario que el propio test
-construye; desde H3 la segunda ejecuta los tests etiquetados `integration` —los que dependen del entorno:
-los de la caché y, a partir de H5, el de la instalación de las skills— y forma parte de `make ci`; desde
-H4 la tercera compara `schemas/` con lo que emite `--describe` (sección siguiente); y desde H5, `make skills-sync`
-regenera, desde `data/*.yaml` y desde `--describe` del binario, las referencias, la tabla de comandos de
-`SKILL.md` y los enlaces de `scripts/` de cada skill (sección [«Skills y evals»](#skills-y-evals)).
+**Publicar es humano.** Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el flujo
+`release` (`.github/workflows/release.yml`). Su trabajo `publicar` construye con el mismo goreleaser, genera los
+SBOM con syft, firma `checksums.txt` con cosign sin clave, publica la release con `install.sh` adjunto, el cask
+del tap `jmorenobl/homebrew-tap` y el manifiesto del bucket `jmorenobl/scoop-bucket`, y atesta la procedencia de
+los seis archivos y de `checksums.txt`. Su trabajo `humo` comprueba lo publicado como lo recibe quien lo instala,
+sin el código del repositorio: la huella del archivo linux/amd64, `gh attestation verify` contra el repositorio,
+que `kitlegal version` imprime la etiqueta, que `kitlegal boe articulo BOE-A-2015-10565 a21 --offline` con una
+caché vacía sale con `4` y que `kitlegal skills install` en un directorio vacío deja
+`.agents/skills/boe-legislacion/SKILL.md`. El único secreto de la publicación es `PUBLISHER_TOKEN`, con permiso
+de escritura en el tap y en el bucket, y solo lo ve el paso que publica. Antes de la primera etiqueta, una persona
+crea esos dos repositorios, da de alta el secreto y hace público este, desde cuya rama `main` se sirve
+`install.sh`. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cierra bajo su número y su fecha
+([Versionado y `CHANGELOG.md`](#versionado-y-changelogmd)).
 
 ## `make schema-check` y `make verify-sources`
 
@@ -205,20 +230,54 @@ grabaciones contra las que corren los tests las hace una persona con `scripts/gr
 
 ## Skills y evals
 
-Una skill es un directorio sin código bajo `skills/`: `SKILL.md`, `references/` y `scripts/`. Qué son los tres
-directorios llamados `skills`, qué hace `make install` y qué se genera está en el [`README.md`](README.md#skills);
-esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
+Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019): cada
+orden de la skill invoca `kitlegal <applet> <verbo> …` desde el `PATH`, y el binario la lleva empotrada y la instala con
+`kitlegal skills install`. Qué son los tres directorios llamados `skills`, cómo se instala y qué se genera está en el
+[`README.md`](README.md#skills); esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
 
-**Lo generado no se edita.** `references/*.md`, la tabla de comandos de `SKILL.md` —entre sus marcas— y los enlaces
-de `scripts/` se derivan de `data/*.yaml` y de `--describe` del binario. Tras cambiar `data/`, añadir un verbo o
-cambiar su entrada o su salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio:
-`make skills-check`, dentro de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero o el enlace
-que difieren. Comprueba además el frontmatter de cada `SKILL.md` y que tenga menos de 300 líneas, la tabla de normas
-contra `schemas/normas.yaml.json`, que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa
-de `data/jerarquia.yaml` contra `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra
-sus esquemas y su integridad, y el formato y el conjunto de las evals y que lo que necesitan está grabado. Una norma
-nueva, o una eval que consulta algo que no está grabado, llega con su grabación, que hace una persona con
-`scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
+**Lo generado no se edita.** `references/*.md` y la tabla de comandos de `SKILL.md` —entre sus marcas— se derivan de
+`data/*.yaml` y de `--describe` del binario. Tras cambiar `data/`, añadir un verbo o cambiar su entrada o su salida,
+se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio: `make skills-check`, dentro de `make ci`, lo
+regenera en memoria y falla nombrando la skill y el fichero que difieren. Comprueba además el frontmatter de cada
+`SKILL.md` y que tenga menos de 300 líneas, que ninguna skill tiene `scripts/` —una entrada `skills/<skill>/scripts`
+hace fallar también `make skills-sync`, que no la retira—, que cada orden de la tabla de comandos de cada skill
+empotrada nombra un applet y un verbo que el binario registra, la tabla de normas contra `schemas/normas.yaml.json`,
+que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
+`schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, y el
+formato y el conjunto de las evals y que lo que necesitan está grabado. Una norma nueva, o una eval que consulta algo
+que no está grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh`: ningún control ni
+flujo graba respuestas.
+
+### `make install` y los enlaces del anterior
+
+`make install` es el bucle de desarrollo, no la forma de instalar kitlegal: `CGO_ENABLED=0 go install -trimpath` del
+binario con los datos de construcción del `Makefile` y, con ese binario —por la ruta que da
+`go list -f '{{.Target}}' ./cmd/kitlegal`, no por el `PATH`, donde podría ir antes otro `kitlegal`—,
+`kitlegal skills install -g --host claude`. Deja las skills del árbol en `~/.agents/skills/`, con su manifiesto
+`kitlegal.json`, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`; tras cambiar una
+skill, repetirla la deja `actualizada`. Las skills invocan `kitlegal` desde el `PATH`, así que el directorio de
+binarios de Go (`$GOBIN` o, sin él, `$GOPATH/bin`) tiene que estar en él. No crea `bin/instalado/` ni comprueba nada
+antes del `go install`: ante un conflicto, `skills install` sale con `1` sin cambiar nada, y `make install` también,
+con el binario ya instalado. `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol,
+con `HOME`, `GOBIN` y `GOPATH` temporales y sin red.
+
+El `make install` anterior a H19 dejaba `~/.claude/skills/boe-legislacion` y `~/.claude/skills/legal-core` como
+enlaces absolutos a `skills/<skill>` del clon, y `bin/instalado/kitlegal` apuntando al binario instalado. El nuevo
+nombra esos enlaces como «enlace a otro sitio» y falla sin tocar `~/.agents` ni `~/.claude`. Se retiran una sola vez,
+desde la raíz del clon:
+
+```sh
+for s in boe-legislacion legal-core; do
+  if [ "$(readlink "$HOME/.claude/skills/$s")" = "$(pwd -P)/skills/$s" ]; then rm -- "$HOME/.claude/skills/$s"; fi
+done
+rm -r -- bin/instalado
+make install
+```
+
+Solo se retira un enlace cuyo destino literal es la skill de este clon —`pwd -P`, porque el guion anterior enlazaba la
+ruta física—; cualquier otra entrada con ese nombre queda como está, y `make install` la sigue nombrando como
+conflicto hasta que se decida qué hacer con ella. `rm -r` sobre `bin/instalado` retira el directorio y el enlace que
+contiene, no el binario al que apuntaba.
 
 **Los datos de territorio no se regeneran con `make skills-sync`**: `data/territorio/` no deriva de nada del
 repositorio, sino de descargas públicas que no se consultan en red (ADR 0017). Los refresca una persona, fuera del
@@ -273,7 +332,8 @@ traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si l
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
 ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval está mal formada, que lo que
-necesitan está grabado y que la skill está instalada, y termina con `1` si algo falla. Después abre las sesiones de
+necesitan está grabado, que la skill está instalada y que `kitlegal` está en el `PATH`, y termina con `1` si algo
+falla. Después abre las sesiones de
 Claude Code del plan, cada una bajo `strace` y con la red cerrada salvo la del modelo: cada eval, tantas veces como
 repeticiones, con el modelo que decide y, si no es informativa, otras tantas con cada modelo informativo. Juzga cada
 sesión y agrupa las de cada eval con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan. El informe
@@ -284,6 +344,8 @@ llega a la red (ADR 0016).
 
 Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
 ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro.
+Cada trabajo instala con `make install` y añade al `PATH` el directorio donde `go install` deja el binario, de modo que
+las sesiones invocan `kitlegal` igual que quien lo usa.
 Fija en su definición, cada uno en su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
 (`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
 repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
@@ -425,7 +487,7 @@ su propuesta se revisa igual que cualquier otra y este procedimiento queda como 
 
 ## Dónde está escrito lo demás
 
-- [`README.md`](README.md) — qué es kitlegal, cómo construirlo y cómo ejecutar los controles.
+- [`README.md`](README.md) — qué es kitlegal, cómo instalarlo, cómo construirlo y cómo ejecutar los controles.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — los hitos, su orden y la *Definition of Done*.
 - [`docs/ADR/`](docs/ADR/) — las decisiones de arquitectura, con contexto y consecuencias.
 - [`docs/SOURCES.md`](docs/SOURCES.md) — las fuentes externas: licencia, términos de uso, `robots.txt`,
