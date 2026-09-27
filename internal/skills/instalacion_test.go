@@ -1,12 +1,12 @@
 //go:build integration
 
 // Las pruebas de este fichero ejecutan `make install` de verdad —la receta del
-// Makefile, el go install y scripts/instalar-skills.sh— y comprueban lo que deja:
-// el binario en el directorio de binarios de Go, cada skill enlazada en el
-// directorio personal de skills y su scripts/boe respondiendo desde el binario
-// instalado (FR-014, FR-050 a FR-055, SC-006, SC-007; contrato instalacion §4).
-// También fijan qué código lleva la copia del árbol en la que se instala, que
-// enumera go list.
+// Makefile: el go install y, con el binario recién instalado,
+// `kitlegal skills install -g --host claude`— y comprueban lo que deja: el
+// binario en el directorio de binarios de Go, las skills y su manifiesto en
+// ~/.agents/skills/ y un enlace relativo por skill en ~/.claude/skills/ (H19:
+// FR-125, FR-126, SC-018; contracts/skills-e-invocacion.md §5). También fijan
+// qué código lleva la copia del árbol en la que se instala, que enumera go list.
 //
 // Llevan la etiqueta integration porque ejecutan make y el go command y compilan
 // el binario: no son tests unitarios rápidos, y por eso make ci las ejecuta con
@@ -39,7 +39,7 @@ import (
 const (
 	// raizDelRepositorio es la del árbol de quien ejecuta los tests, relativa al
 	// directorio de este paquete. Solo se lee de ella: ningún guion escribe en
-	// ese árbol, tampoco su bin/instalado/kitlegal (research.md D15).
+	// ese árbol (research.md D15 de H5).
 	raizDelRepositorio = "../.."
 
 	// paqueteDelBinario es el paquete principal del binario que instala la
@@ -59,15 +59,18 @@ const (
 	carpetaDeGo           = "gopath"
 
 	// permisosDelPropietario son los bits de permiso que la copia conserva de
-	// cada fichero: los de su propietario, que dejan ejecutable el guion de
-	// instalación y cualquier otro fichero en 0o600.
+	// cada fichero: los de su propietario, que dejan ejecutable lo que lo es en
+	// el árbol y cualquier otro fichero en 0o600.
 	permisosDelPropietario fs.FileMode = 0o700
 )
 
-// rutasDeLaInstalacion es lo que la receta lee del repositorio además del código
-// del binario: ficheros sueltos y, en el caso de skills/, la carpeta entera con
-// sus enlaces tal cual (contrato instalacion §4).
-var rutasDeLaInstalacion = []string{"Makefile", "go.mod", "go.sum", "scripts/instalar-skills.sh", "skills"}
+// rutasDeLaInstalacion es lo que la copia lleva del repositorio además del
+// código del binario, que da ficherosDelBinario con lo que empotra skills.go: los
+// ficheros que lee la receta y skills/ entera, tal cual, como la tiene un clon,
+// que es contra lo que los guiones comparan lo instalado y adonde apuntaba el
+// enlace que dejaba el make install anterior (contracts/skills-e-invocacion.md
+// §5).
+var rutasDeLaInstalacion = []string{"Makefile", "go.mod", "go.sum", "skills"}
 
 // cachesDeGo son las cachés de módulos y de construcción del proceso de test,
 // que cada guion reutiliza para no descargar nada y no recompilar lo que el
@@ -88,38 +91,40 @@ type paqueteListado struct {
 
 // guionDelEnlaceRoto es el guion de la instalación contra un enlace roto con el
 // nombre de la skill, que TestInstalacion escribe en un directorio temporal y
-// ejecuta como los de directorioDeGuiones (contrato instalacion §4).
-const guionDelEnlaceRoto = `# Un enlace roto con el nombre de la skill en el directorio personal de skills
-# también es un conflicto (data-model §11.1): make install termina con código
-# distinto de 0 nombrándolo, no lo modifica y no crea ni cambia nada, tampoco el
-# binario del directorio de binarios de Go, porque la receta comprueba cada
-# conflicto antes de go install (US3 escenario 3, FR-054, SC-006; contrato instalacion §1 y
-# §2, paso 5).
+// ejecuta como los de directorioDeGuiones (contracts/skills-e-invocacion.md §5).
+const guionDelEnlaceRoto = `# Un enlace roto con el nombre de la skill en ~/.claude/skills/ —el que dejaba
+# el make install anterior cuando el clon ya no está— también es un conflicto:
+# make install termina con código distinto de 0 nombrándolo como «enlace roto»,
+# no lo modifica y no crea nada en ~/.agents (FR-125, FR-126; FR-041;
+# contracts/skills-e-invocacion.md §5).
 #
 # HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
-# $WORK/repo (FR-055; contrato instalacion §4).
+# $WORK/repo (FR-055 de H5; contrato instalacion §4 de H5).
 
 mkdir $HOME/.claude/skills
 symlink $HOME/.claude/skills/boe-legislacion -> $WORK/sin-destino
 
 ! exec make -C $WORK/repo install
-stderr 'conflicto: .*boe-legislacion'
+stderr '^enlace roto: '${WORK@R}'/home/\.claude/skills/boe-legislacion$'
 
-# El enlace conserva su destino, que sigue sin existir.
+# El enlace conserva su destino, que sigue sin existir, y es lo único que hay
+# en ~/.claude/skills/.
 exec readlink $HOME/.claude/skills/boe-legislacion
 stdout '\A'${WORK@R}'/sin-destino\n\z'
 ! exists $WORK/sin-destino
+exec ls -A $HOME/.claude/skills
+stdout '\Aboe-legislacion\n\z'
 
-# Y nada se ha instalado: ni el binario ni el enlace del binario instalado.
-! exists $WORK/gobin/kitlegal
-! exists $WORK/repo/bin/instalado
+# Y nada se ha instalado en ~/.agents.
+! exists $HOME/.agents
 `
 
 // TestInstalacion ejecuta los guiones de la instalación —en limpio, repetida,
-// contra una entrada en conflicto, sin GOBIN y contra un enlace roto— sobre una
-// copia mínima del repositorio en $WORK/repo (US3 escenarios 1-3, FR-050 a
-// FR-055, SC-006). Los cuatro primeros son los de directorioDeGuiones; el del
-// enlace roto, guionDelEnlaceRoto, lo escribe el test en un directorio temporal.
+// contra el enlace de la instalación anterior, sin GOBIN y contra un enlace
+// roto— sobre una copia mínima del repositorio en $WORK/repo (H19: US2 escenario
+// 3, FR-125, FR-126, SC-018; contracts/skills-e-invocacion.md §5). Los cuatro
+// primeros son los de directorioDeGuiones; el del enlace roto,
+// guionDelEnlaceRoto, lo escribe el test en un directorio temporal.
 //
 // Setup deja en cada directorio de trabajo el árbol que basta para make install
 // y el entorno de la tabla del contrato: HOME, GOBIN y GOPATH son carpetas de
@@ -373,9 +378,9 @@ func copiarArbol(origen, destino string, rutas []string) (err error) {
 }
 
 // copiarEntrada copia una entrada del árbol de origen en la misma ruta del de
-// destino. Un enlace se recrea con su destino literal, sin seguirlo —el de
-// scripts/ de cada skill no resuelve hasta que se instala—, y un fichero conserva
-// los permisos de su propietario.
+// destino. Un enlace se recrea con su destino literal, sin seguirlo, porque en
+// el árbol puede no resolver, y un fichero conserva los permisos de su
+// propietario.
 func copiarEntrada(desde, hacia *os.Root, ruta string, entrada fs.DirEntry) error {
 	estado, err := entrada.Info()
 	if err != nil {

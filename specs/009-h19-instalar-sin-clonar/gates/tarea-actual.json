@@ -1,13 +1,22 @@
 {
-  "id": "T018",
-  "texto": "T018 [P] [US1] Sin red por construcción (research D32, punto 2): subprueba de `TestArquitectura` en internal/arch_test.go según la cual el dominio `instalacion`, el adaptador `disco` y el paquete raíz no alcanzan `net`, `net/http` ni `httpx`, ni directa ni transitivamente dentro del módulo; sin implementación, porque la propiedad la dan T010 y T011 (excepción declarada arriba); verificación: un mutante temporal (una importación de `net` en el dominio) la pone en rojo y se retira antes de `make ci` — FR-016, FR-072, FR-076, FR-146, SC-022; rutas: internal/arch_test.go",
+  "id": "T019",
+  "texto": "T019 [datos] [US2] `make install` como bucle de desarrollo (contracts/release.md §3; contracts/skills-e-invocacion.md §5; research D18): la receta `install` del Makefile pasa a `CGO_ENABLED=0 go install -trimpath -ldflags \"$(LDFLAGS)\"` del binario seguido de `skills install -g --host claude` con el binario recién instalado (su ruta por `go list -f '{{.Target}}'`), sin el guion de enlaces ni `bin/instalado`, y su línea de `make help`; y en la misma tarea, indivisible según *Complexity Tracking* de plan.md: `TestInstalacion` en internal/skills/instalacion_test.go (`rutasDeLaInstalacion` sin el guion de enlaces; el enlace roto escrito en el test espera «enlace roto») y sus cuatro guiones reescritos según contracts/skills-e-invocacion.md §5 —internal/skills/testdata/script/instalar.txtar, internal/skills/testdata/script/instalar-de-nuevo.txtar, internal/skills/testdata/script/instalar-con-conflicto.txtar e internal/skills/testdata/script/instalar-sin-gobin.txtar—; verificación: `make test-integration` y quickstart.md §8 — FR-121, FR-125, FR-126, FR-145, SC-018; rutas: Makefile, internal/skills/instalacion_test.go, internal/skills/testdata/script/instalar.txtar, internal/skills/testdata/script/instalar-de-nuevo.txtar, internal/skills/testdata/script/instalar-con-conflicto.txtar, internal/skills/testdata/script/instalar-sin-gobin.txtar",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "90b0249c196d134541cc98338dc4eb729e5cf202",
+  "base": "40f1e83367836edc6af125059235fc2fbabd7d78",
   "rutas": [
-    "internal/arch_test.go",
-    "net/http"
+    "Makefile",
+    "bin/instalado",
+    "contracts/release.md",
+    "contracts/skills-e-invocacion.md",
+    "internal/skills/instalacion_test.go",
+    "internal/skills/testdata/script/instalar-con-conflicto.txtar",
+    "internal/skills/testdata/script/instalar-de-nuevo.txtar",
+    "internal/skills/testdata/script/instalar-sin-gobin.txtar",
+    "internal/skills/testdata/script/instalar.txtar",
+    "plan.md",
+    "quickstart.md"
   ],
   "cierre": false,
   "converger": false,

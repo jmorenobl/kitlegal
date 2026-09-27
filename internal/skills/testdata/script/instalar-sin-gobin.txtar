@@ -1,10 +1,11 @@
 # Sin GOBIN, `make install` deja el binario en el directorio de binarios por
-# defecto de Go, el `bin` de GOPATH, y la instalación sigue funcionando: el
-# enlace del binario instalado nombra ese destino y `scripts/boe` responde
-# (FR-050, FR-051; caso límite «`make install` sin `$GOBIN` definido» del spec).
+# defecto de Go, el bin de GOPATH, y las skills se instalan igual: la receta
+# ejecuta el binario por la ruta que da `go list -f '{{.Target}}'`, que es esa
+# (FR-125, FR-126; contracts/skills-e-invocacion.md §5; caso límite
+# «`make install` sin `$GOBIN` definido» del spec de H5).
 #
 # GOPATH es la carpeta de $WORK que fija Setup, así que tampoco aquí se alcanza
-# el directorio de binarios real (FR-055; contrato instalacion §4).
+# el directorio de binarios real (FR-055 de H5; contrato instalacion §4 de H5).
 
 env GOBIN=
 
@@ -12,10 +13,12 @@ exec make -C $WORK/repo install
 
 exists $WORK/gopath/bin/kitlegal
 ! exists $WORK/gobin/kitlegal
+! exists $WORK/repo/bin/instalado
 
-exec readlink $WORK/repo/bin/instalado/kitlegal
-stdout '\A'${WORK@R}'/gopath/bin/kitlegal\n\z'
-
-exec $HOME/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a21 --describe
-stdout '"title": "boe articulo"'
-! stderr .
+exec ls -A $HOME/.agents/skills
+stdout '\Aboe-legislacion\nkitlegal\.json\nlegal-core\n\z'
+exec readlink $HOME/.claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $HOME/.claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+cmp $HOME/.agents/skills/legal-core/SKILL.md $WORK/repo/skills/legal-core/SKILL.md

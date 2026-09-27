@@ -58,11 +58,15 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 build: check-tools
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/kitlegal ./cmd/kitlegal
 
-## install: instala kitlegal en el directorio de binarios de Go y enlaza las skills en ~/.claude/skills
+# El bucle de desarrollo, no la forma de instalar de quien usa: las skills se
+# instalan con el binario recién instalado, por la ruta que da go list y no por
+# el PATH, donde podría ir antes otro kitlegal. Sin comprobación previa: ante un
+# conflicto, skills install sale con 1 sin cambiar nada y make también
+# (specs/009-h19-instalar-sin-clonar/research.md D18).
+## install: bucle de desarrollo; go install de kitlegal y, con ese binario, skills install -g --host claude
 install: check-tools
-	scripts/instalar-skills.sh --comprobar
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
-	scripts/instalar-skills.sh "$$(go list -f '{{.Target}}' ./cmd/kitlegal)"
+	"$$(go list -f '{{.Target}}' ./cmd/kitlegal)" skills install -g --host claude
 
 ## test: tests unitarios con detector de carreras y perfil de cobertura
 test: check-tools
