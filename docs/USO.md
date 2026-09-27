@@ -27,7 +27,9 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   skills dentro y las instala él con `kitlegal skills install`: local por defecto en `./.agents/skills/`, `-g` en
   `~/.agents/skills/`, y los hosts como enlaces relativos (`--host claude` → `.claude/skills/`), detectados por su
   directorio de configuración cuando no se indica. Es el disparador del ADR 0013: H19 se adelanta a la fase 1, detrás
-  de H6, con ese contrato.
+  de H6, con ese contrato. Entregado en H19 (#47) y publicado como v0.1.1 el 2026-09-27: en un directorio vacío,
+  `curl … | sh` y `kitlegal skills install` bastan para que Claude Code responda al artículo 21 de la Ley 39/2015 con
+  su cita.
 
 ### 2026-09-16 · Ninguna eval comprueba qué hace la skill ante una norma derogada
 

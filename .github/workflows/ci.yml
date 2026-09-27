@@ -33,6 +33,32 @@ jobs:
       - name: Obtener el código
         uses: actions/checkout@v7
 
+      # Toda acción de los flujos tiene que existir en la versión que la fija. Una
+      # referencia que la acción no publica solo falla al ejecutar el flujo que la
+      # usa, y release.yml solo se ejecuta al etiquetar: v0.1.0 no llegó a
+      # publicarse por `sigstore/cosign-installer@v4`, que no existe. Aquí se
+      # comprueban todas en cada propuesta de cambio (también las que sube
+      # Dependabot). Las acciones locales (`./…`) no se resuelven en la API.
+      - name: Comprobar que existen las acciones de los flujos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          refs=$(grep -rhoE '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*[^[:space:]#]+' .github/workflows \
+            | sed -E 's/.*uses:[[:space:]]*//' | grep -v '^\./' | sort -u)
+          fallos=0
+          while IFS= read -r ref; do
+            repo=$(printf '%s' "${ref%@*}" | cut -d/ -f1-2)
+            version=${ref##*@}
+            if gh api "repos/${repo}/commits/${version}" --silent 2>/dev/null; then
+              echo "existe: ${ref}"
+            else
+              echo "::error::${ref} no existe: ${repo} no tiene la referencia ${version}"
+              fallos=$((fallos + 1))
+            fi
+          done <<< "$refs"
+          [ "$fallos" -eq 0 ]
+
       # La versión de Go sale de las directivas de go.mod, que la acción lee por
       # sí sola; el parche efectivo lo fija el GOTOOLCHAIN que exporta el
       # Makefile, y una asignación del Makefile gana al GOTOOLCHAIN=local que
@@ -45,9 +71,10 @@ jobs:
           go-version-file: go.mod
           # La caché de la acción cubre GOMODCACHE y GOCACHE, es decir las
           # dependencias, la construcción y los binarios de las cinco
-          # herramientas de control (goreleaser desde H19), que `go tool` compila desde fuente. Sin
-          # ella la ejecución en frío domina el tiempo del flujo y SC-006 («PR
-          # limpia en < 3 min») es inalcanzable (R5.2, research.md D12).
+          # herramientas de control (goreleaser desde H19), que `go tool`
+          # compila desde fuente. Sin ella la ejecución en frío domina el tiempo
+          # del flujo y SC-006 («PR limpia en < 3 min») es inalcanzable (R5.2,
+          # research.md D12).
           cache: true
           # Los modfiles de herramienta entran en la clave: sin ellos, subir la
           # versión de una herramienta reutilizaría la caché anterior. El go.sum
