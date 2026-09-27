@@ -46,7 +46,7 @@ type SkillInstalada struct {
 // creador de enlaces falló, copia (FR-024, FR-051).
 type Enlace struct {
 	// Host es el del directorio de skills de la entrada.
-	Host string `json:"host" jsonschema:"enum=claude"`
+	Host string `json:"host" jsonschema:"enum=claude,enum=antigravity"`
 	// Ruta es la de la entrada.
 	Ruta string `json:"ruta" jsonschema:"minLength=1"`
 	// Modo es cómo está la entrada.

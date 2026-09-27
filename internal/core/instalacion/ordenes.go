@@ -24,17 +24,17 @@ const (
 // ordenQueArregla es la orden que arregla un hallazgo, una sola línea de shell
 // POSIX (FR-066; contracts/applet-skills.md §6):
 //
-//	[rm [-r] -- '<ruta>' && ]kitlegal skills install <skill>… [-g | --dir '<ruta>'] [--host claude]
+//	[rm [-r] -- '<ruta>' && ]kitlegal skills install <skill>… [-g | --dir '<ruta>'] [--host <host>]…
 //
 // quitar dice si retira antes la entrada de ruta, la del hallazgo, detrás de
 // --, para que ninguna ruta se lea como una opción. install nombra las skills
 // —ninguna, que son todas las empotradas, si no hay ninguna— con las banderas
 // del ámbito —con una ruta de --dir que empieza por «-», --dir='<ruta>', en
-// una sola palabra (Ambito.Banderas)—, y --host claude si alguna de ellas
-// tiene una entrada de host declarada, que nunca con --dir, cuyo ámbito no
-// tiene hosts. Cada ruta va entre comillas simples, con cada comilla simple
-// escapada.
-func ordenQueArregla(ambito Ambito, quitar retirada, ruta string, skills []string, conHost bool) string {
+// una sola palabra (Ambito.Banderas)—, y un --host por cada uno de hosts, los
+// hosts en los que alguna de ellas tiene una entrada declarada, en su orden,
+// que nunca con --dir, cuyo ámbito no tiene hosts (ADR 0025). Cada ruta va
+// entre comillas simples, con cada comilla simple escapada.
+func ordenQueArregla(ambito Ambito, quitar retirada, ruta string, skills, hosts []string) string {
 	partes := make([]string, 0, len(skills)+10)
 
 	switch quitar {
@@ -52,8 +52,10 @@ func ordenQueArregla(ambito Ambito, quitar retirada, ruta string, skills []strin
 		partes = append(partes, banderas)
 	}
 
-	if conHost && ambito.ConHosts() {
-		partes = append(partes, "--host", hostClaude)
+	if ambito.ConHosts() {
+		for _, host := range hosts {
+			partes = append(partes, "--host", host)
+		}
 	}
 
 	return strings.Join(partes, " ")

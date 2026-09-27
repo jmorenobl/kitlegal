@@ -6,20 +6,81 @@ import (
 )
 
 // Las rutas que un ámbito define por debajo de su raíz (FR-011, FR-012,
-// FR-021, FR-030), relativas a ella y con /.
+// FR-030), relativas a ella y con /.
 const (
 	// directorioDeAgentes es el que contiene el directorio neutro.
 	directorioDeAgentes = ".agents"
 	// directorioNeutro es donde se instalan las skills en local y en global.
 	directorioNeutro = directorioDeAgentes + "/skills"
-	// directorioDelHostClaude es el de configuración del host claude.
-	directorioDelHostClaude = ".claude"
-	// directorioDeSkillsDelHostClaude es donde viven sus entradas de host.
-	directorioDeSkillsDelHostClaude = directorioDelHostClaude + "/skills"
 	// nombreDelManifiesto es el del único manifiesto del ámbito, en la raíz de
 	// su directorio neutro.
 	nombreDelManifiesto = "kitlegal.json"
 )
+
+// Los nombres de los hosts conocidos, los valores que admite --host y las
+// claves de hosts en el manifiesto (FR-020; ADR 0025).
+const (
+	hostClaude      = "claude"
+	hostAntigravity = "antigravity"
+)
+
+// definicionDeHost es un host que no lee el directorio neutro y necesita sus
+// propias entradas: su nombre; su directorio de configuración, ajustes, cuya
+// existencia decide si se enlaza sin --host (FR-022); su directorio de skills, donde viven
+// sus entradas (FR-021); los dos relativos a la raíz del ámbito y con /; y si
+// solo lo tiene el ámbito global.
+type definicionDeHost struct {
+	nombre     string
+	ajustes    string
+	skills     string
+	soloGlobal bool
+}
+
+// hostsConocidos son los hosts, en el orden en que se examinan, se enlazan y
+// se presentan (ADR 0025). claude lee .claude/skills en local y en global.
+// antigravity lee el directorio neutro del proyecto, así que en local no
+// necesita entradas, pero en global lee .gemini/config/skills y no
+// ~/.agents/skills. Los que leen el directorio neutro en los dos ámbitos, como
+// Codex, no son hosts.
+var hostsConocidos = []definicionDeHost{
+	{nombre: hostClaude, ajustes: ".claude", skills: ".claude/skills"},
+	{nombre: hostAntigravity, ajustes: ".gemini/config", skills: ".gemini/config/skills", soloGlobal: true},
+}
+
+// esHostConocido dice si nombre es el de un host conocido.
+func esHostConocido(nombre string) bool {
+	_, conocido := definicionDe(nombre)
+
+	return conocido
+}
+
+// definicionDe es la definición del host nombre y si es uno conocido.
+func definicionDe(nombre string) (definicionDeHost, bool) {
+	for _, host := range hostsConocidos {
+		if host.nombre == nombre {
+			return host, true
+		}
+	}
+
+	return definicionDeHost{}, false
+}
+
+// HostsConocidos son los nombres de los hosts conocidos, en su orden: los
+// valores que admite --host y el vocabulario del host de cada entrada en la
+// salida. Es una lista nueva en cada llamada.
+func HostsConocidos() []string {
+	return nombresDeHosts()
+}
+
+// nombresDeHosts son los nombres de los hosts conocidos, en su orden.
+func nombresDeHosts() []string {
+	nombres := make([]string, 0, len(hostsConocidos))
+	for _, host := range hostsConocidos {
+		nombres = append(nombres, host.nombre)
+	}
+
+	return nombres
+}
 
 // ClaseDeAmbito dice dónde actúa una invocación de skills (data-model §2).
 type ClaseDeAmbito int
@@ -64,8 +125,8 @@ type Ambito struct {
 }
 
 // NuevoAmbitoLocal es el ámbito del directorio de trabajo, el de por omisión
-// (FR-011): su directorio neutro es .agents/skills y tiene el host claude en
-// .claude/skills.
+// (FR-011): su directorio neutro es .agents/skills y su único host, claude,
+// tiene sus entradas en .claude/skills.
 func NuevoAmbitoLocal() Ambito {
 	return Ambito{clase: AmbitoLocal}
 }
@@ -97,8 +158,8 @@ func (a Ambito) Clase() ClaseDeAmbito {
 	return a.clase
 }
 
-// Raiz es la raíz del ámbito, de la que cuelgan su directorio neutro y el
-// directorio de su host (FR-021): vacía en el local, que es el directorio de
+// Raiz es la raíz del ámbito, de la que cuelgan su directorio neutro y el de
+// cada uno de sus hosts (FR-021): vacía en el local, que es el directorio de
 // trabajo, y HOME limpio en el global. Con --dir no hay raíz y también es
 // vacía: ese ámbito es solo su directorio neutro.
 func (a Ambito) Raiz() string {
@@ -128,10 +189,46 @@ func (a Ambito) Guardas() []string {
 	return []string{path.Join(a.raiz, directorioDeAgentes), a.Neutro()}
 }
 
-// ConHosts dice si el ámbito tiene el host claude: el local y el global sí;
-// el de --dir, no (FR-013).
+// ConHosts dice si el ámbito tiene algún host: el local y el global sí; el de
+// --dir, no (FR-013).
 func (a Ambito) ConHosts() bool {
 	return a.clase != AmbitoDir
+}
+
+// Hosts son los nombres de los hosts del ámbito, en el orden de los hosts
+// conocidos: claude en local; claude y antigravity en global; ninguno con
+// --dir (FR-013; ADR 0025). Es una lista nueva en cada llamada.
+func (a Ambito) Hosts() []string {
+	hosts := []string{}
+
+	for _, host := range hostsConocidos {
+		if a.tieneHost(host) {
+			hosts = append(hosts, host.nombre)
+		}
+	}
+
+	return hosts
+}
+
+// TieneHost dice si el host nombre es uno del ámbito.
+func (a Ambito) TieneHost(nombre string) bool {
+	host, conocido := definicionDe(nombre)
+
+	return conocido && a.tieneHost(host)
+}
+
+// tieneHost dice si el ámbito tiene host: con --dir, ninguno; en local, los
+// que no son solo del global.
+func (a Ambito) tieneHost(host definicionDeHost) bool {
+	switch a.clase {
+	case AmbitoDir:
+		return false
+	case AmbitoLocal:
+		return !host.soloGlobal
+	case AmbitoGlobal:
+	}
+
+	return true
 }
 
 // Banderas son las que repite cada orden de doctor para actuar en este mismo
@@ -172,38 +269,69 @@ func (a Ambito) RutaDeSkill(nombre string) string {
 	return path.Join(a.Neutro(), nombre)
 }
 
-// DirectorioDelHost es el de configuración del host claude, .claude bajo la
-// raíz, cuya existencia decide si se enlaza sin --host (FR-022). Con --dir,
-// que no tiene hosts, es vacía.
-func (a Ambito) DirectorioDelHost() string {
-	if !a.ConHosts() {
+// DirectorioDelHost es el de configuración del host, bajo la raíz —.claude,
+// o .gemini/config para antigravity—, cuya existencia decide si se enlaza sin
+// --host (FR-022). Vacía si el ámbito no tiene ese host.
+func (a Ambito) DirectorioDelHost(host string) string {
+	registrado, hay := a.definicionDelHost(host)
+	if !hay {
 		return ""
 	}
 
-	return path.Join(a.raiz, directorioDelHostClaude)
+	return path.Join(a.raiz, registrado.ajustes)
 }
 
-// SkillsDelHost es el directorio de las entradas del host claude,
-// .claude/skills bajo la raíz (FR-026). Con --dir, que no tiene hosts, es
-// vacía.
-func (a Ambito) SkillsDelHost() string {
-	if !a.ConHosts() {
+// SkillsDelHost es el directorio de las entradas del host, bajo la raíz
+// —.claude/skills, o .gemini/config/skills para antigravity— (FR-026). Vacía si
+// el ámbito no tiene ese host.
+func (a Ambito) SkillsDelHost(host string) string {
+	registrado, hay := a.definicionDelHost(host)
+	if !hay {
 		return ""
 	}
 
-	return path.Join(a.raiz, directorioDeSkillsDelHostClaude)
+	return path.Join(a.raiz, registrado.skills)
 }
 
-// RutaDeHost es la de la entrada de la skill nombre en el host claude,
-// .claude/skills/<nombre> bajo la raíz, la que se presenta en la salida
-// (FR-021, FR-051). Con --dir, que no tiene hosts, es vacía. nombre tiene que
-// ser el de una skill: no se comprueba.
-func (a Ambito) RutaDeHost(nombre string) string {
-	if !a.ConHosts() {
+// RutaDeHost es la de la entrada de la skill nombre en el host, <directorio
+// de skills del host>/<nombre>, la que se presenta en la salida (FR-021,
+// FR-051). Vacía si el ámbito no tiene ese host. nombre tiene que ser el de una
+// skill: no se comprueba.
+func (a Ambito) RutaDeHost(host, nombre string) string {
+	registrado, hay := a.definicionDelHost(host)
+	if !hay {
 		return ""
 	}
 
-	return path.Join(a.raiz, directorioDeSkillsDelHostClaude, nombre)
+	return path.Join(a.raiz, registrado.skills, nombre)
+}
+
+// cadenaDelHost es cada directorio que lleva de la raíz al de skills del
+// host, de arriba abajo y el de skills el último: .claude y .claude/skills, o
+// .gemini, .gemini/config y .gemini/config/skills. Cada uno tiene que ser un
+// directorio real o no existir, porque nada por debajo de la raíz se lee a
+// través de un enlace (FR-027, FR-028). Vacía si el ámbito no tiene ese host.
+func (a Ambito) cadenaDelHost(host string) []string {
+	registrado, hay := a.definicionDelHost(host)
+	if !hay {
+		return nil
+	}
+
+	var cadena []string
+	for _, dir := range cadenaDe(registrado.skills) {
+		if dir != "." {
+			cadena = append(cadena, path.Join(a.raiz, dir))
+		}
+	}
+
+	return cadena
+}
+
+// definicionDelHost es la definición del host, si el ámbito lo tiene.
+func (a Ambito) definicionDelHost(host string) (definicionDeHost, bool) {
+	registrado, conocido := definicionDe(host)
+
+	return registrado, conocido && a.tieneHost(registrado)
 }
 
 // entreComillas es texto como una sola palabra de shell POSIX: entre comillas

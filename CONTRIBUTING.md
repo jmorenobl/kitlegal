@@ -340,8 +340,9 @@ flujo graba respuestas.
 binario con los datos de construcción del `Makefile` y, con ese binario —por la ruta que da
 `go list -f '{{.Target}}' ./cmd/kitlegal`, no por el `PATH`, donde podría ir antes otro `kitlegal`—,
 `kitlegal skills install -g --host claude`. Deja las skills del árbol en `~/.agents/skills/`, con su manifiesto
-`kitlegal.json`, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`; tras cambiar una
-skill, repetirla la deja `actualizada`. Las skills invocan `kitlegal` desde el `PATH`, así que el directorio de
+`kitlegal.json`, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>` y, si existe
+`~/.gemini/config/`, en `~/.gemini/config/skills/<skill>` con destino `../../../.agents/skills/<skill>`, donde las ve
+Antigravity (ADR 0025); tras cambiar una skill, repetirla la deja `actualizada`. Las skills invocan `kitlegal` desde el `PATH`, así que el directorio de
 binarios de Go (`$GOBIN` o, sin él, `$GOPATH/bin`) tiene que estar en él. No crea `bin/instalado/` ni comprueba nada
 antes del `go install`: ante un conflicto, `skills install` sale con `7` sin cambiar nada (ADR 0023), y `make install` falla con
 él —`make` termina con su propio código, `2`—, con el binario ya instalado. `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol,

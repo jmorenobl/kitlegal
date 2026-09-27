@@ -69,11 +69,18 @@ const version = versionPublicada();
       <li><strong>Claude Code</strong> las carga de <code>.claude/skills/</code>, el enlace que crea kitlegal.</li>
       <li>
         <strong>Codex</strong> las lee de <code>.agents/skills/</code> y de <code>~/.agents/skills/</code>. Su entorno
-        aislado corta la red por omisión, así que la primera consulta al BOE te pedirá permiso.
+        aislado corta la red por omisión, así que te pedirá permiso en cada consulta al BOE. Para no aprobarlo cada vez,
+        añade a <code>~/.codex/rules/default.rules</code> la regla
+        <code>prefix_rule(pattern = ["kitlegal"], decision = "allow")</code>: con ella, Codex ejecuta
+        <code>kitlegal</code> sin preguntar y fuera de ese entorno aislado (sus reglas son todavía experimentales).
       </li>
       <li>
         <strong>Antigravity</strong> las lee de <code>.agents/skills/</code> del proyecto. La instalación global con
         <code>-g</code> todavía no le llega: instálalas en cada proyecto.
+      </li>
+      <li>
+        <strong>Claude Cowork y el chat de Claude</strong> todavía no: cargan las skills de tu cuenta de Claude y no las
+        de tu disco, así que lo que instala <code>kitlegal skills install</code> no les llega.
       </li>
     </ul>
     <p>

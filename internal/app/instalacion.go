@@ -154,14 +154,16 @@ func (a appletSkills) deUnAmbito(operacion operacionDeSkills) func() Argumentos 
 }
 
 // argumentosDeInstall son los de install: las skills que se piden, por su
-// posición, y las banderas del ámbito y del host (contracts/applet-skills.md
-// §1). Host y Dir son punteros porque pasar la bandera con un valor vacío
-// también es pasarla (FR-052). Qué combinaciones se admiten no lo decide la
-// gramática sino la validación del dominio, con sus mensajes (research.md D14).
+// posición, y las banderas del ámbito y de los hosts (contracts/applet-skills.md
+// §1). Dir es un puntero porque pasar la bandera con un valor vacío también es
+// pasarla (FR-052), y Host, una lista nil sin ningún --host y con un valor por
+// cada uno, sin partirlo por comas, también el vacío (ADR 0025). Qué
+// combinaciones se admiten no lo decide la gramática sino la validación del
+// dominio, con sus mensajes (research.md D14).
 type argumentosDeInstall struct {
 	Skills []string `arg:"" optional:"" name:"skill" help:"Skills que se instalan; sin ninguna, todas las del binario."`
 	Global bool     `short:"g" help:"Actúa en el ámbito global: $HOME/.agents/skills y los hosts de HOME."`
-	Host   *string  `placeholder:"claude" help:"Enlaza en el host aunque su directorio no exista; el único es claude."`
+	Host   []string `placeholder:"<host>" sep:"none" help:"Enlaza en el host aunque su directorio no exista: claude o antigravity, que solo tiene directorio propio con -g; se puede repetir."`
 	Dir    *string  `placeholder:"<ruta>" help:"Directorio de skills en lugar de .agents/skills: el ámbito es esa ruta, sin hosts."`
 
 	applet appletSkills
@@ -171,7 +173,7 @@ type argumentosDeInstall struct {
 func (a *argumentosDeInstall) Ejecutar(
 	_ context.Context, ec schema.Contexto, _ *slog.Logger,
 ) (schema.Resultado, error) {
-	invocacion := instalacion.Invocacion{Skills: a.Skills, Global: a.Global, Host: a.Host, Dir: a.Dir}
+	invocacion := instalacion.Invocacion{Skills: a.Skills, Global: a.Global, Hosts: a.Host, Dir: a.Dir}
 
 	return a.applet.ejecutar(invocacion, ec.DryRun, a.applet.dependencias.instalar)
 }

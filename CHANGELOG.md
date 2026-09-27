@@ -19,6 +19,10 @@ sustituyen a este fichero.
   dirección de su `$id`. Ninguna cita de la web está escrita a mano: cada fragmento sale del sobre que devolvió
   `kitlegal`, y la construcción falla si no está literal en él. Órdenes nuevas, fuera de `make ci`: `make web`,
   `make web-dev` y `make web-citas`.
+- **Antigravity como host** (ADR 0025): Antigravity lee sus skills globales en `~/.gemini/config/skills/` y no en
+  `~/.agents/skills/`, así que `kitlegal skills install -g` enlaza ahí cada skill, con el destino relativo
+  `../../../.agents/skills/<skill>`, cuando existe `~/.gemini/config/`. `--host antigravity` lo fuerza aunque no
+  exista. En un proyecto no hace falta: Antigravity lee su `.agents/skills/`.
 
 ### Cambiado
 
@@ -26,6 +30,17 @@ sustituyen a este fichero.
   cómo limitarlo. Hasta la 0.2.0 era `https://ventanillalegal.es/bot`.
 - **El `$id` de cada esquema de `schemas/` pasa a `https://kitlegal.es/schemas/…`** (incompatible para quien los
   referencie por su `$id`), y cada esquema se puede descargar en esa dirección.
+- **`--host` se puede repetir** (ADR 0025; incompatible): `--host claude --host antigravity`, con un valor por
+  bandera, y admite `claude` y `antigravity`; el rechazo dice «los hosts admitidos son claude y antigravity».
+  `--describe` de `skills install` lo declara como lista, y el `host` de cada entrada de la salida admite
+  `antigravity`, con las de `claude` primero. La orden que da `doctor` lleva un `--host` por cada host en el que la
+  skill tiene una entrada.
+- Un manifiesto local que declara una entrada de `antigravity`, que solo tiene el ámbito global, hace el ámbito
+  ilegible (código 7), como ya lo hacía cualquier entrada de host con `--dir`.
+- Un binario anterior da por ilegible un manifiesto global que declara `antigravity`: para volver a una versión
+  anterior, retira antes esas entradas.
+- **El README ya no promete Claude Cowork**: Cowork y el chat de Claude cargan las skills de la cuenta, no las del
+  disco. Explica también cómo evitar que Codex pida permiso en cada consulta al BOE.
 
 ## [0.2.0] - 2026-09-27
 

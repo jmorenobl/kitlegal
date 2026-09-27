@@ -231,7 +231,8 @@
           "properties": {
             "host": {
               "enum": [
-                "claude"
+                "claude",
+                "antigravity"
               ],
               "type": "string"
             },
@@ -312,7 +313,10 @@
               "type": "boolean"
             },
             "host": {
-              "type": "string"
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "json": {
               "type": "boolean"
@@ -433,7 +437,8 @@
           "properties": {
             "host": {
               "enum": [
-                "claude"
+                "claude",
+                "antigravity"
               ],
               "type": "string"
             },

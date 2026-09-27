@@ -8,11 +8,11 @@
 **kitlegal enseña a tu agente a responder preguntas legales correctamente: con el texto vigente delante y la cita
 exacta.**
 
-Es un conjunto de *skills* para Claude Code, Claude Cowork, Codex, Antigravity y cualquier agente que siga el
-estándar Agent Skills, más un programa, `kitlegal`, que les da lo que un modelo no debe hacer de memoria: leer el
-texto vigente en el BOE, comprobar que sigue en vigor, situar un municipio y dejar cada dato con su fuente, su fecha y
-su huella. Instalas kitlegal y, a partir de ahí, es **tu agente** el que consulta, razona y cita; kitlegal le da el
-método y las herramientas.
+Es un conjunto de *skills* para Claude Code, Codex, Antigravity y cualquier agente que siga el estándar Agent
+Skills y trabaje en tu equipo, más un programa, `kitlegal`, que les da lo que un modelo no debe hacer de memoria:
+leer el texto vigente en el BOE, comprobar que sigue en vigor, situar un municipio y dejar cada dato con su fuente,
+su fecha y su huella. Instalas kitlegal y, a partir de ahí, es **tu agente** el que consulta, razona y cita;
+kitlegal le da el método y las herramientas.
 
 La regla que lo gobierna todo: **nada sin cita**. Cada afirmación sobre una norma sale del texto que el programa acaba
 de leer, y si no lo puede leer, el agente lo dice en lugar de suplirlo.
@@ -71,10 +71,27 @@ Si ya usas Homebrew: `brew install jmorenobl/tap/kitlegal`. Cada release adjunta
 con Go instalado vale `go install github.com/jmorenobl/kitlegal/cmd/kitlegal@latest`.
 
 `kitlegal skills install` deja las skills en `.agents/skills/` del directorio en el que lo ejecutes —así van con el
-proyecto y las ve cualquier agente que abras ahí— y, si el proyecto tiene un `.claude/`, las enlaza también en
-`.claude/skills/`, que es donde las carga Claude Code (`--host claude` lo hace aunque el `.claude/` no exista
-todavía). Para tenerlas en todos tus proyectos a la vez, en lugar de en uno: `kitlegal skills install -g`. Después,
-abre el agente y pregunta.
+proyecto—, que es donde las leen Codex y Antigravity cuando abres ese directorio. Claude Code las carga de
+`.claude/skills/`: si el proyecto ya tiene un `.claude/`, las enlaza también ahí, y en una carpeta nueva lo hace
+`kitlegal skills install --host claude`. Después, abre el agente en ese directorio y pregunta.
+
+Para tenerlas en todos tus proyectos a la vez, en lugar de en uno: `kitlegal skills install -g`. Las deja en
+`~/.agents/skills/`, donde las lee Codex, y las enlaza en `~/.claude/skills/` si usas Claude Code y en
+`~/.gemini/config/skills/` si usas Antigravity, que en global no lee `~/.agents/skills/`. Si aún no has abierto uno
+de los dos, `--host claude` o `--host antigravity` (o las dos) lo enlazan igual.
+
+- **Codex** ejecuta las órdenes en un entorno aislado y sin red, así que te pedirá permiso cada vez que tu agente
+  consulte el BOE con `kitlegal`. Si no quieres aprobarlo en cada consulta, añade esta regla a
+  `~/.codex/rules/default.rules` (las reglas de Codex son todavía experimentales); con ella, Codex ejecuta `kitlegal`
+  sin preguntar y fuera de ese entorno aislado:
+
+  ```
+  prefix_rule(pattern = ["kitlegal"], decision = "allow")
+  ```
+
+- **Claude Cowork y el chat de Claude** todavía no: cargan las skills de tu cuenta de Claude y no las de tu disco,
+  así que lo que instala `kitlegal skills install` no les llega. Llegarán con un plugin (ver
+  [Lo que viene](#lo-que-viene)).
 
 **Actualizar**: repite la primera orden (o `brew upgrade kitlegal`, o `scoop update kitlegal`) y vuelve a ejecutar
 `kitlegal skills install`. Mientras lo instalado sea de una versión anterior a la del programa, el programa se lo hace
@@ -167,7 +184,7 @@ régimen foral y las haciendas forales, conforme se configuren. Añadir un terri
 skills.
 
 **Y otras formas de usarlo**: un servidor MCP para cualquier agente que hable ese protocolo, un plugin para Claude
-Code, paquetes por especialidad y una librería Go para quien quiera construir encima.
+—Claude Code, Cowork y el chat—, paquetes por especialidad y una librería Go para quien quiera construir encima.
 
 ### Para quién
 

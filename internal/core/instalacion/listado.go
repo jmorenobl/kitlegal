@@ -15,8 +15,9 @@ import (
 // manifiesto, la versión es nula y la lista está vacía.
 //
 // Antes lee el ámbito como lo lee doctor: con una guarda que no es un
-// directorio real, un manifiesto ilegible o, con --dir, un manifiesto con
-// entradas de host, devuelve un *AmbitoIlegible que lo nombra y ninguna skill.
+// directorio real, un manifiesto ilegible o un manifiesto con entradas de un
+// host que el ámbito no tiene, devuelve un *AmbitoIlegible que lo nombra y
+// ninguna skill.
 // Un fallo del Disco se devuelve tal cual.
 func Listar(disco Disco, ambito Ambito, empotradas []SkillEmpotrada) (Listado, error) {
 	manifiesto, hay, err := leerElAmbito(disco, ambito, verboList)
@@ -40,7 +41,7 @@ func Listar(disco Disco, ambito Ambito, empotradas []SkillEmpotrada) (Listado, e
 			Ruta:      ambito.RutaDeSkill(nombre),
 			Version:   declarada.Version,
 			Empotrada: empotra(empotradas, nombre),
-			Enlaces:   enlacesDeclarados(ambito, nombre, declarada.Claude),
+			Enlaces:   enlacesDeclarados(ambito, nombre, declarada.Hosts),
 		})
 	}
 
@@ -53,20 +54,25 @@ func empotra(empotradas []SkillEmpotrada, nombre string) bool {
 }
 
 // enlacesDeclarados son las entradas de host de la skill nombre que declara el
-// manifiesto, como se presentan: ninguna, o la de claude con su modo.
-func enlacesDeclarados(ambito Ambito, nombre string, host *EntradaDeHost) []Enlace {
-	if host == nil {
-		return []Enlace{}
+// manifiesto, como se presentan: cada una con su host y su modo, en el orden de
+// los hosts; ninguna si no declara ninguna.
+func enlacesDeclarados(ambito Ambito, nombre string, entradas map[string]EntradaDeHost) []Enlace {
+	enlaces := []Enlace{}
+
+	for _, host := range nombresDeHosts() {
+		if entrada, hay := entradas[host]; hay {
+			enlaces = append(enlaces, Enlace{Host: host, Ruta: ambito.RutaDeHost(host, nombre), Modo: entrada.Modo})
+		}
 	}
 
-	return []Enlace{{Host: hostClaude, Ruta: ambito.RutaDeHost(nombre), Modo: host.Modo}}
+	return enlaces
 }
 
 // leerElAmbito lee el manifiesto del ámbito para list y doctor, con las tres
 // primeras filas de data-model §4.1, las mismas que comprueba install: cada
 // guarda tiene que ser un directorio real o no existir, sin seguir enlaces
-// (FR-027), y el manifiesto, legible (FR-035) y, con --dir, sin entradas de
-// host (FR-013). Si no, devuelve el *AmbitoIlegible del verbo que nombra la
+// (FR-027), y el manifiesto, legible (FR-035) y sin entradas de un host que el
+// ámbito no tiene (FR-013; ADR 0025). Si no, devuelve el *AmbitoIlegible del verbo que nombra la
 // primera entrada que no lo es, sin examinar nada por debajo de ella.
 //
 // Si falta una guarda o el manifiesto, no hay manifiesto: devuelve falso, sin
@@ -103,7 +109,7 @@ func leerElAmbito(disco Disco, ambito Ambito, verbo string) (Manifiesto, bool, e
 		// Un manifiesto leído lleva siempre versión, que LeerManifiesto no
 		// admite vacía: sin ella, no había kitlegal.json.
 		return Manifiesto{}, false, nil
-	case !ambito.ConHosts() && conEntradasDeHost(manifiesto):
+	case conEntradasDeHostAjenas(manifiesto, ambito):
 		return Manifiesto{}, false, ambitoIlegible(verbo, ConflictoManifiestoConEntradasDeHost, ruta)
 	}
 

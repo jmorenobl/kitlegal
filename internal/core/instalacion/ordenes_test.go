@@ -177,7 +177,7 @@ func ordenDeInstall(t *testing.T, args []string) instalacion.Invocacion {
 			if bandera == "--dir" {
 				invocacion.Dir = &valor
 			} else {
-				invocacion.Host = &valor
+				invocacion.Hosts = append(invocacion.Hosts, valor)
 			}
 		default:
 			require.False(t, strings.HasPrefix(args[i], "-"), "una bandera que install no tiene: %s", args[i])
