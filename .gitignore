@@ -21,6 +21,11 @@ node_modules/
 # Logs de verificación del workflow (se regeneran en cada tarea)
 specs/*/gates/ci.log
 
+# Credenciales de Google (Search Console) por si alguna cae dentro del repositorio;
+# su sitio es ~/.config/kitlegal/ (docs/SEO.md)
+*service-account*.json
+client_secret*.json
+
 # Caché regenerable de spec-kit y worktrees de agente (nunca se versionan)
 .specify/integrations/.cache/
 .claude/worktrees/
