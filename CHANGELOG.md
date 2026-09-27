@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-27
+
 ### Cambiado
 
 - **La licencia pasa de Apache-2.0 a EUPL-1.2** (ADR 0022): `LICENSE` con el texto oficial de la Licencia Pública de
