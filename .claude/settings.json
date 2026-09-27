@@ -81,7 +81,7 @@
       "Bash(gh pr merge:*)",
       "Bash(gh repo edit:*)",
       "Bash(gh api:*)",
-      "Bash(KITLEGAL_PUSH_HUMANO=1 git push origin v:*)",
+      "Bash(git push origin v:*)",
       "Bash(curl:*)"
     ]
   },
