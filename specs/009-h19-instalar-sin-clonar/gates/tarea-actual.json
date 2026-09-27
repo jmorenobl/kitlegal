@@ -1,19 +1,13 @@
 {
-  "id": "T017",
-  "texto": "T017 El arnés e2e de contracts/arnes-e2e.md, tal cual (research D24): en internal/app/e2e_test.go, `TestMain` construye fuera del repositorio, además de `kitlegal` (versión `dev`), tres binarios de e2e con `-ldflags` constantes —versión `v0.1.0`, versión `v0.2.0` y versión `v0.1.0` con el enlazador que siempre falla (`Disponible` falso, `Enlazar` con error; contracts/arnes-e2e.md §2), elegido por una variable de cadena `-X` del `package main` de internal/app/ejemplo/kitlegal-e2e/main.go, no por el entorno: ese enlazador es un tipo del propio `package main` de e2e (nunca de internal/disco; plan.md, ADR 0010), y cuando la variable lo elige, `registroDeE2E` sustituye con él el campo `Enlazador` de `DependenciasDeSkillsDelSistema(version)` antes de pasarlas a `AppletSkills` (T013), sin tocar internal/app/instalacion.go— y exporta en cada guion `KITLEGAL_V1_BIN`, `KITLEGAL_V2_BIN`, `KITLEGAL_SIN_ENLACES_BIN`, `KITLEGAL_SKILLS`, `KITLEGAL_INSTALADOR` (sin exigir que exista), el origen de release local de §5 (`KITLEGAL_ORIGEN`, `KITLEGAL_ORIGEN_VERSION`, `KITLEGAL_ORIGEN_ARCHIVO`, con el archivo de la plataforma y `checksums.txt` con su línea señuelo; con `KITLEGAL_DIST`, el archivo y los checksums del snapshot y la versión de su `metadata.json`, y el fallo `KITLEGAL_DIST: ningún guion instalador- que ejecutar` si no hay ningún guion `instalador-`) y los proxies cerrados de §3; y la orden `arbol` de §4; con `TestArbol` (formato, sin seguir enlaces, orden de bytes, directorio que no existe o no es real) y un test del origen construido a partir de un snapshot sintético en `t.TempDir()` — FR-024 (enlazador inyectable), FR-107, FR-108, FR-143, FR-146, SC-012, SC-013, SC-017, SC-022; rutas: internal/app/e2e_test.go, internal/app/ejemplo/kitlegal-e2e/main.go",
+  "id": "T018",
+  "texto": "T018 [P] [US1] Sin red por construcción (research D32, punto 2): subprueba de `TestArquitectura` en internal/arch_test.go según la cual el dominio `instalacion`, el adaptador `disco` y el paquete raíz no alcanzan `net`, `net/http` ni `httpx`, ni directa ni transitivamente dentro del módulo; sin implementación, porque la propiedad la dan T010 y T011 (excepción declarada arriba); verificación: un mutante temporal (una importación de `net` en el dominio) la pone en rojo y se retira antes de `make ci` — FR-016, FR-072, FR-076, FR-146, SC-022; rutas: internal/arch_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "1cb95b24220f1cb76c105bd387848da4d8c45347",
+  "base": "90b0249c196d134541cc98338dc4eb729e5cf202",
   "rutas": [
-    "checksums.txt",
-    "contracts/arnes-e2e.md",
-    "internal/app/e2e_test.go",
-    "internal/app/ejemplo/kitlegal-e2e/main.go",
-    "internal/app/instalacion.go",
-    "internal/disco",
-    "metadata.json",
-    "plan.md"
+    "internal/arch_test.go",
+    "net/http"
   ],
   "cierre": false,
   "converger": false,

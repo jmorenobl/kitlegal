@@ -22,6 +22,10 @@
 // prohibido es llamar a `os.Exit` o referenciar `os.Stdout`, y eso un grafo de
 // importación no lo ve. Las vigila `forbidigo` con análisis de tipos, y fingir
 // aquí que están cubiertas daría una garantía falsa (FR-051, SC-008).
+//
+// Desde H19 comprueba además, sobre el mismo grafo, una garantía que no es una
+// regla del contrato sino de un hito, y que sí es de importación: lo que
+// instala las skills y da el aviso no alcanza la red (H19 research.md D32).
 package internal_test
 
 import (
@@ -55,9 +59,10 @@ const raizDelModulo = ".."
 // transitivo del que parte este test.
 const plantillaDeListado = "{{.ImportPath}}\t{{join .Imports \" \"}}"
 
-// TestArquitectura comprueba las tres reglas de importación sobre el grafo
-// transitivo real del módulo. Es el test que el escenario 8 de quickstart.md
-// invoca por su nombre.
+// TestArquitectura comprueba las tres reglas de importación y la garantía sin
+// red de H19 sobre el grafo transitivo real del módulo, más un control del
+// recorrido que comparten R1 y la garantía sin red. Es el test que el
+// escenario 8 de quickstart.md invoca por su nombre.
 func TestArquitectura(t *testing.T) {
 	t.Parallel()
 
@@ -106,6 +111,18 @@ func TestArquitectura(t *testing.T) {
 			},
 			denegados: []string{"database/sql", "modernc.org/sqlite"},
 		})
+	})
+
+	t.Run("sin red · instalacion, disco y el paquete raíz no alcanzan net, net/http ni internal/httpx", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaSinRed(t, grafo)
+	})
+
+	t.Run("control: el recorrido nombra la cadena entera y solo sigue aristas del módulo", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaElRecorrido(t)
 	})
 }
 
@@ -463,10 +480,9 @@ type reglaExclusiva struct {
 // biblioteca estándar.
 //
 // El recorrido es transitivo dentro del módulo y se detiene en el paquete
-// denegado: interesa la arista que rompe la regla, no lo que ese paquete
-// importe después. Así una cadena core → pkg/legalkit → internal/render se
-// nombra entera, que es justo lo que `depguard` no puede ver mirando las
-// importaciones declaradas de un fichero.
+// denegado (grafo.alcanza). Así una cadena core → pkg/legalkit →
+// internal/render se nombra entera, que es justo lo que `depguard` no puede ver
+// mirando las importaciones declaradas de un fichero.
 //
 // El paquete raíz se deniega por igualdad y no por prefijo, porque del prefijo
 // cuelga el módulo entero, internal/core incluido; así una arista del dominio
@@ -486,33 +502,144 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 	exactos := []string{g.modulo}
 
 	for _, origen := range g.paquetesBajo(dominio) {
-		visitados := map[string]bool{origen: true}
+		for _, violada := range g.alcanza(origen, denegados, exactos) {
+			t.Errorf("R1 · el dominio es puro: %s importa %q (lo prohíbe %q). "+
+				"internal/core no depende del kernel, de los adaptadores, de lo empotrado ni de la "+
+				"entrada y salida de la biblioteca estándar: el registro llega como *slog.Logger al "+
+				"método Ejecutar, la presentación se inyecta desde la raíz de composición y el disco "+
+				"y las skills empotradas llegan por los puertos del dominio "+
+				"(contracts/reglas-de-arquitectura.md R1).",
+				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
+		}
+	}
+}
 
-		for cadenas := [][]string{{origen}}; len(cadenas) > 0; {
-			cadena := cadenas[0]
-			cadenas = cadenas[1:]
-			actual := cadena[len(cadena)-1]
+// compruebaSinRed hace cumplir la garantía sin red de H19 (research.md D32,
+// punto 2): el dominio instalacion, el adaptador disco y el paquete raíz, que
+// lleva lo empotrado, no alcanzan net, net/http ni internal/httpx, ni directa
+// ni transitivamente dentro del módulo. Es la prueba mecánica de que el applet
+// skills y el aviso no abren ninguna conexión (H19 FR-016, FR-072, FR-076,
+// SC-022), que R2 no da: R2 reserva net/http a internal/httpx, pero no prohíbe
+// net a nadie.
+//
+// Las denegaciones son de prefijo, como las demás de este fichero: net cubre
+// todo el árbol de red de la biblioteca estándar —net/rpc, net/smtp,
+// net/http/httptest…—, cuyas aristas internas el recorrido no sigue; y net/http
+// va delante solo para que el fallo nombre la entrada más precisa. El paquete
+// raíz es origen por igualdad, porque por prefijo de él cuelga el módulo
+// entero.
+func compruebaSinRed(t *testing.T, g grafo) {
+	t.Helper()
 
-			for _, importacion := range g.importa[actual] {
-				if denegado, hay := denegacion(importacion, denegados, exactos); hay {
-					t.Errorf("R1 · el dominio es puro: %s importa %q (lo prohíbe %q). "+
-						"internal/core no depende del kernel, de los adaptadores, de lo empotrado ni de la "+
-						"entrada y salida de la biblioteca estándar: el registro llega como *slog.Logger al "+
-						"método Ejecutar, la presentación se inyecta desde la raíz de composición y el disco "+
-						"y las skills empotradas llegan por los puertos del dominio "+
-						"(contracts/reglas-de-arquitectura.md R1).",
-						strings.Join(cadena, " → "), importacion, denegado)
+	denegados := []string{"net/http", "net", g.modulo + "/internal/httpx"}
 
-					continue
-				}
+	// Sin estas comprobaciones la garantía pasaría en vacío el día que uno de
+	// los tres paquetes se renombrara o se mudara, que es cuando deja de
+	// vigilar lo que dice vigilar.
+	require.Contains(t, g.importa, g.modulo,
+		"el grafo no contiene el paquete raíz, que lleva lo empotrado: la garantía sin red no lo vigilaría")
 
-				if g.esDelModulo(importacion) && !visitados[importacion] {
-					visitados[importacion] = true
-					cadenas = append(cadenas, append(slices.Clone(cadena), importacion))
-				}
+	origenes := []string{g.modulo}
+
+	for _, raiz := range []string{g.modulo + "/internal/core/instalacion", g.modulo + "/internal/disco"} {
+		paquetes := g.paquetesBajo(raiz)
+		require.NotEmpty(t, paquetes, "el grafo no contiene %s: la garantía sin red no lo vigilaría", raiz)
+
+		origenes = append(origenes, paquetes...)
+	}
+
+	for _, origen := range origenes {
+		for _, violada := range g.alcanza(origen, denegados, nil) {
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El applet skills y el aviso no abren "+
+				"ninguna conexión: el dominio de la instalación, el adaptador del disco y lo empotrado no "+
+				"dependen de la red, que solo se usa a través de internal/httpx desde los adaptadores de "+
+				"fuente (H19 FR-016, FR-072, FR-076, SC-022; research.md D32).",
+				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
+		}
+	}
+}
+
+// compruebaElRecorrido es el control de grafo.alcanza, el recorrido que
+// comparten R1 y la garantía sin red, sobre un grafo escrito a mano: nombra la
+// cadena entera hasta cada importación prohibida, directa o transitiva; se
+// detiene en ella; no sigue aristas de fuera del módulo aunque lleven a lo
+// prohibido; termina en los ciclos; y compara las denegaciones exactas por
+// igualdad, sin capturar lo que cuelga de ellas. Sin él, la transitividad solo
+// la probaría leer el código: una sonda con una importación directa no la
+// ejercita.
+func compruebaElRecorrido(t *testing.T) {
+	t.Helper()
+
+	const (
+		modulo = "ejemplo.org/m"
+		a      = modulo + "/internal/a"
+		b      = modulo + "/internal/b"
+		c      = modulo + "/internal/c"
+	)
+
+	g := grafo{modulo: modulo, importa: map[string][]string{
+		modulo:       {"embed", a},
+		a:            {"crypto/tls", b},
+		b:            {"net/http", a, modulo, c},
+		c:            {"net"},
+		"crypto/tls": {"net"},
+		"net/http":   {"net"},
+	}}
+
+	assert.Equal(t, []violacion{
+		{cadena: []string{modulo, a, b}, importacion: "net/http", denegado: "net/http"},
+		{cadena: []string{modulo, a, b, c}, importacion: "net", denegado: "net"},
+	}, g.alcanza(modulo, []string{"net/http", "net"}, nil),
+		"dos violaciones, cada una con su cadena desde el origen, y ni net/http → net ni crypto/tls → net, "+
+			"que son aristas de fuera del módulo; los ciclos b → a y b → raíz terminan")
+
+	assert.Equal(t, []violacion{
+		{cadena: []string{a, b}, importacion: modulo, denegado: modulo},
+	}, g.alcanza(a, nil, []string{modulo}),
+		"la denegación exacta del paquete raíz nombra la arista hacia él, y no a, b ni c, que cuelgan de él")
+}
+
+// violacion es una importación prohibida alcanzada desde un origen: la cadena
+// de paquetes del módulo que lleva hasta quien la importa, empezando por el
+// origen; la importación; y la entrada de la regla que la prohíbe.
+type violacion struct {
+	cadena      []string
+	importacion string
+	denegado    string
+}
+
+// alcanza visita el grafo en anchura desde el origen y devuelve, en el orden
+// del recorrido, cada importación que prohíbe una denegación: los prefijos por
+// componente y los exactos por igualdad (denegacion). Solo sigue aristas del
+// módulo (esDelModulo) y se detiene en la importación denegada: interesa la
+// arista que rompe la regla, no lo que ese paquete importe después. Cada
+// paquete se visita una vez, de modo que los ciclos terminan y cada violación
+// sale con la cadena más corta hasta quien la comete.
+func (g grafo) alcanza(origen string, prefijos, exactos []string) []violacion {
+	var violaciones []violacion
+
+	visitados := map[string]bool{origen: true}
+
+	for cadenas := [][]string{{origen}}; len(cadenas) > 0; {
+		cadena := cadenas[0]
+		cadenas = cadenas[1:]
+		actual := cadena[len(cadena)-1]
+
+		for _, importacion := range g.importa[actual] {
+			if denegado, hay := denegacion(importacion, prefijos, exactos); hay {
+				violaciones = append(violaciones, violacion{cadena: cadena, importacion: importacion, denegado: denegado})
+
+				continue
+			}
+
+			if g.esDelModulo(importacion) && !visitados[importacion] {
+				visitados[importacion] = true
+				cadenas = append(cadenas, append(slices.Clone(cadena), importacion))
 			}
 		}
 	}
+
+	return violaciones
 }
 
 // compruebaImportacionExclusiva hace cumplir R2 y R3: las importaciones que
