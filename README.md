@@ -1,4 +1,9 @@
-# kitlegal
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/portada-oscuro.svg">
+    <img src="docs/img/portada-claro.svg" alt="kitlegal: tu agente responde con la ley delante y la cita exacta" width="100%">
+  </picture>
+</h1>
 
 **kitlegal enseña a tu agente a responder preguntas legales correctamente: con el texto vigente delante y la cita
 exacta.**
@@ -106,6 +111,28 @@ Todo esto se mide: cada skill tiene un conjunto de preguntas de prueba que se ej
 de agente de verdad, antes de cada cambio que las toca; y el programa se comprueba cada noche contra el BOE real para
 detectar si la fuente ha cambiado.
 
+## ¿Y las sentencias?
+
+Hoy kitlegal no consulta jurisprudencia, y la del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores
+de justicia y las audiencias provinciales no llegará por ahora, por una razón que no es técnica. Esas sentencias se
+consultan en el buscador del **CENDOJ**, el Centro de Documentación Judicial del Consejo General del Poder Judicial, y
+sus condiciones de uso **prohíben expresamente consultarlo de forma masiva o automatizada**; además, lo protege un
+CAPTCHA. Un programa que lo recorriera, aunque fuera despacio, incumpliría esas condiciones y esquivaría una barrera
+puesta a propósito. kitlegal solo usa fuentes que permiten lo que hace con ellas, así que no lo hace.
+
+Lo que sí está previsto, por vías que lo permiten:
+
+- **Las sentencias del Tribunal Constitucional**, que se publican todas en el BOE, y las del Supremo que anulan una
+  disposición, que también se publican en él: tu agente podrá leerlas y citarlas con su ECLI igual que hoy cita un
+  artículo.
+- **Reconocer y citar bien una sentencia que tú identifiques** (por su ECLI o su ROJ) y decirte dónde consultarla,
+  sin resumir nunca un texto que el programa no ha leído.
+
+Mientras tanto, si necesitas una sentencia del Supremo o de otro tribunal, búscala en el CENDOJ o en una base de datos
+jurídica y pégasela a tu agente: con el texto delante, la analizará y la citará con el mismo rigor. Si el Consejo
+General del Poder Judicial abre una vía pública para programas o cambia sus condiciones, se revisará. La decisión, en
+[docs/ADR/0003-no-cendoj-masivo.md](docs/ADR/0003-no-cendoj-masivo.md).
+
 ## Lo que viene
 
 kitlegal se construye por hitos, en el orden en que cada cosa empieza a ser útil. Sin fechas: cada hito se publica
@@ -159,4 +186,8 @@ completo, en [docs/ROADMAP.md](docs/ROADMAP.md); las decisiones, en [docs/ADR/](
 
 ## Licencia
 
-Apache-2.0. Ver [LICENSE](LICENSE).
+kitlegal es software libre bajo la [Licencia Pública de la Unión Europea (EUPL) v. 1.2](LICENSE). Puedes usarlo,
+estudiarlo, modificarlo y distribuirlo; si distribuyes una versión modificada, o la ofreces como servicio, tiene que
+seguir siendo libre bajo la EUPL o una licencia compatible. La versión en castellano, con el mismo valor jurídico que
+la inglesa de `LICENSE`, es la publicada en el Diario Oficial de la UE por la
+[Decisión de Ejecución (UE) 2017/863](https://eur-lex.europa.eu/eli/dec_impl/2017/863/oj?locale=es).
