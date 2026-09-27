@@ -62,7 +62,7 @@ jobs:
 
       # La procedencia SLSA de los seis archivos y de checksums.txt, tal como quedan en dist/ (FR-112).
       - name: Atestar la procedencia
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/kitlegal_darwin_amd64.tar.gz
