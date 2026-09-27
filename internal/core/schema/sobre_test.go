@@ -175,7 +175,7 @@ func TestSobre(t *testing.T) {
 		})
 	}
 
-	t.Run("el resultado lleva procedencia, datos y ensayo, y nada más", func(t *testing.T) {
+	t.Run("el resultado lleva procedencia, datos, forma legible y ensayo, y nada más", func(t *testing.T) {
 		t.Parallel()
 
 		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella
@@ -183,14 +183,16 @@ func TestSobre(t *testing.T) {
 		// garantizarlo es que el tipo no tenga más campos (FR-015, FR-044,
 		// contracts/registro-y-describe.md §1).
 		//
-		// Ensayo es el tercero y el único que H2 añade: la descripción de lo que
-		// una capa con efectos no llegó a hacer bajo --dry-run, que el kernel
-		// presenta y que no entra en el sobre (docs/ADR/0011).
+		// Ensayo es el que H2 añade: la descripción de lo que una capa con
+		// efectos no llegó a hacer bajo --dry-run, que el kernel presenta y que
+		// no entra en el sobre (docs/ADR/0011). Legible es el contenido contado
+		// para una persona, que sin --json sustituye a la tabla mínima y tampoco
+		// entra en el sobre (docs/ADR/0026).
 		//
 		// La fecha de consulta no es un campo del resultado sino de su
 		// procedencia, y H4 la añade como tercero: quien consultó la declara si
 		// la conoce, y el kernel sigue fechando cuando no (docs/ADR/0015).
-		assert.Equal(t, []string{"Procedencia", "Datos", "Ensayo"},
+		assert.Equal(t, []string{"Procedencia", "Datos", "Legible", "Ensayo"},
 			camposDe(reflect.TypeFor[Resultado]()))
 		assert.Equal(t, []string{"Fuente", "URL", "FechaConsulta"},
 			camposDe(reflect.TypeFor[Procedencia]()))

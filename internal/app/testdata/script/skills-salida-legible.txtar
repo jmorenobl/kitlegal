@@ -1,0 +1,188 @@
+# La salida de skills install, list y doctor sin --json es un texto para una
+# persona y no la tabla mínima (ADR 0026): dónde han quedado las skills y quién
+# las lee de ahí, cada skill con su estado o su versión y sus entradas de host
+# con el nombre de la marca (Claude Code, Antigravity), HOME abreviado a ~, el
+# agente que no las verá con la orden que lo enlaza, y en doctor «todo en
+# orden» o cada hallazgo explicado en una frase con su orden lista para copiar.
+# Nada del sobre —fuente, url, huella— aparece; con --json el sobre es el de
+# siempre, byte a byte, y el aviso de versión sigue en la salida de error.
+#
+# Los casos son los que la persona ve al instalar: -g con los dos hosts, la
+# segunda ejecución con todo sin cambios, el proyecto sin ningún host, una
+# entrada en modo copia, un ámbito sin nada instalado y doctor con hallazgos.
+# $KITLEGAL_SIN_ENLACES_BIN es el binario v0.1.0 cuyo creador de enlaces
+# siempre falla (contracts/arnes-e2e.md §2); kitlegal es el de desarrollo,
+# versión dev.
+
+# Precondición: el binario registra el applet skills.
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- En la cuenta, con Claude Code y Antigravity (US1, ADR 0025) ---
+env HOME=$WORK/home
+mkdir $WORK/home/.claude $WORK/home/.gemini/config
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec kitlegal skills install -g
+cmp stdout $WORK/esperado/install-g.txt
+! stderr .
+
+# La segunda ejecución dice que no había nada que cambiar.
+exec kitlegal skills install -g
+cmp stdout $WORK/esperado/install-g-sin-cambios.txt
+! stderr .
+
+exec kitlegal skills list -g
+cmp stdout $WORK/esperado/list-g.txt
+! stderr .
+
+exec kitlegal skills doctor -g
+cmp stdout $WORK/esperado/doctor-g-en-orden.txt
+! stderr .
+
+# Ni una palabra del sobre en ninguna de las tres.
+exec kitlegal skills install -g
+! stdout 'fuente|kitlegal\.skills|kitlegal:applet|sha256|fecha_consulta|hash'
+exec kitlegal skills list -g
+! stdout 'fuente|kitlegal\.skills|kitlegal:applet|sha256|fecha_consulta|hash'
+exec kitlegal skills doctor -g
+! stdout 'fuente|kitlegal\.skills|kitlegal:applet|sha256|fecha_consulta|hash'
+
+# Con --json, el sobre de siempre y nada más: sin ~ ni nombres de marca.
+exec kitlegal skills list -g --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+! stdout 'Claude Code|~/'
+! stderr .
+
+# --- En el proyecto, sin ningún host ---
+mkdir $WORK/sin-hosts
+cd $WORK/sin-hosts
+exec kitlegal skills install
+cmp stdout $WORK/esperado/install-sin-hosts.txt
+! stderr .
+exec kitlegal skills list
+cmp stdout $WORK/esperado/list-sin-hosts.txt
+! stderr .
+
+# --- Sin nada instalado: list y doctor lo dicen y dan la orden ---
+mkdir $WORK/vacio
+cd $WORK/vacio
+exec kitlegal skills list
+cmp stdout $WORK/esperado/sin-nada.txt
+! stderr .
+exec kitlegal skills doctor
+cmp stdout $WORK/esperado/sin-nada.txt
+! stderr .
+exec kitlegal skills doctor --dir destino
+stdout '\ANo hay skills de kitlegal en destino\. Para instalarlas: kitlegal skills install --dir ''destino''\n\z'
+
+# --- Una entrada en modo copia dice por qué no es un enlace ---
+mkdir $WORK/copia/.claude
+cd $WORK/copia
+exec $KITLEGAL_SIN_ENLACES_BIN skills install
+cmp stdout $WORK/esperado/install-copia.txt
+! stderr .
+exec $KITLEGAL_SIN_ENLACES_BIN skills list
+stdout '^    Claude Code  \.claude/skills/legal-core \(copia, porque en esa carpeta no se pueden crear enlaces\)$'
+
+# Con el binario que sí sabe enlazar, doctor lo cuenta como algo que arreglar,
+# junto a la versión, cada uno con su orden debajo, en el orden de doctor: por
+# ruta, así que el manifiesto va antes que las entradas de .claude/.
+exec kitlegal skills doctor
+cmp stdout $WORK/esperado/doctor-copia.txt
+! stderr .
+
+# --- doctor con hallazgos en la cuenta: las rutas con ~, la orden tal cual ---
+#
+# La orden no se abrevia: es la que se copia y se pega, y ~ entre comillas
+# simples no se expandiría.
+cd $WORK/proyecto
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/legal-core/SKILL.md"'
+exec kitlegal skills doctor -g
+stdout '\AHay 1 cosa que arreglar en las skills de ~/\.agents/skills:\n\n  1\. ~/\.agents/skills/legal-core/SKILL\.md ya no es el fichero que dejó kitlegal: se ha editado, se ha sustituido o falta\.\n     rm -- '''${WORK@R}'/home/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g --host claude --host antigravity\n\nEjecuta la orden y vuelve a comprobarlo con «kitlegal skills doctor -g»\.\n\z'
+! stderr .
+
+# Ejecutar la orden que da deja doctor en orden.
+exec sh -c 'rm -- "$HOME/.agents/skills/legal-core/SKILL.md" && kitlegal skills install legal-core -g --host claude --host antigravity'
+stdout '^  legal-core  actualizada$'
+exec kitlegal skills doctor -g
+cmp stdout $WORK/esperado/doctor-g-en-orden.txt
+
+# --- El aviso de versión sigue en la salida de error, como estaba ---
+#
+# Lo da un binario con versión SemVer, v0.2.0, sobre la instalación v0.1.0; el
+# de desarrollo no avisa (FR-073).
+cd $WORK/copia
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+-- esperado/install-g.txt --
+Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
+
+  boe-legislacion  instalada
+    Claude Code  ~/.claude/skills/boe-legislacion
+    Antigravity  ~/.gemini/config/skills/boe-legislacion
+  legal-core       instalada
+    Claude Code  ~/.claude/skills/legal-core
+    Antigravity  ~/.gemini/config/skills/legal-core
+
+Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
+-- esperado/install-g-sin-cambios.txt --
+Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
+
+  boe-legislacion  sin cambios
+    Claude Code  ~/.claude/skills/boe-legislacion
+    Antigravity  ~/.gemini/config/skills/boe-legislacion
+  legal-core       sin cambios
+    Claude Code  ~/.claude/skills/legal-core
+    Antigravity  ~/.gemini/config/skills/legal-core
+
+Ya estaban instaladas y al día: no se ha cambiado nada.
+-- esperado/list-g.txt --
+Skills de kitlegal en ~/.agents/skills (Codex las lee de ahí):
+
+  boe-legislacion  dev
+    Claude Code  ~/.claude/skills/boe-legislacion
+    Antigravity  ~/.gemini/config/skills/boe-legislacion
+  legal-core       dev
+    Claude Code  ~/.claude/skills/legal-core
+    Antigravity  ~/.gemini/config/skills/legal-core
+-- esperado/doctor-g-en-orden.txt --
+Todo en orden: las skills de ~/.agents/skills son de kitlegal dev y están como las dejó.
+-- esperado/install-sin-hosts.txt --
+Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):
+
+  boe-legislacion  instalada
+  legal-core       instalada
+
+Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
+Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
+-- esperado/list-sin-hosts.txt --
+Skills de kitlegal en .agents/skills (Codex y Antigravity las leen de ahí):
+
+  boe-legislacion  dev
+  legal-core       dev
+
+Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
+-- esperado/sin-nada.txt --
+No hay skills de kitlegal en .agents/skills. Para instalarlas: kitlegal skills install
+-- esperado/install-copia.txt --
+Skills de kitlegal v0.1.0 en .agents/skills (Codex y Antigravity las leen de ahí):
+
+  boe-legislacion  instalada
+    Claude Code  .claude/skills/boe-legislacion (copia, porque en esa carpeta no se pueden crear enlaces)
+  legal-core       instalada
+    Claude Code  .claude/skills/legal-core (copia, porque en esa carpeta no se pueden crear enlaces)
+
+Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
+-- esperado/doctor-copia.txt --
+Hay 3 cosas que arreglar en las skills de .agents/skills:
+
+  1. Las skills son de kitlegal v0.1.0 y este kitlegal es dev.
+     kitlegal skills install boe-legislacion legal-core --host claude
+  2. .claude/skills/boe-legislacion es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install boe-legislacion --host claude
+  3. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install legal-core --host claude
+
+Ejecuta las órdenes en ese orden y vuelve a comprobarlo con «kitlegal skills doctor».

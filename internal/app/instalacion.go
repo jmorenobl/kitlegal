@@ -206,9 +206,11 @@ var (
 )
 
 // operacionDeSkills es lo que hace un verbo con la invocación ya validada: su
-// data, o con --dry-run su descripción, sin procedencia, o su fallo.
+// data con su forma para una persona, o con --dry-run su descripción, sin
+// procedencia, o su fallo. home es el valor de HOME con el que se validó la
+// invocación, con el que la forma para una persona abrevia las rutas.
 type operacionDeSkills func(
-	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, ensayo bool,
+	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, ensayo bool, home string,
 ) (schema.Resultado, error)
 
 // ejecutar atiende una invocación de cualquiera de los tres verbos, en el orden
@@ -240,12 +242,14 @@ func (a appletSkills) ejecutar(
 
 	firmado := schema.Resultado{Procedencia: schema.Procedencia{Fuente: fuenteDeSkills, URL: urlDeSkills}}
 
-	pedido, err := instalacion.ValidarInvocacion(invocacion, os.Getenv(variableHome), empotradas)
+	home := os.Getenv(variableHome)
+
+	pedido, err := instalacion.ValidarInvocacion(invocacion, home, empotradas)
 	if err != nil {
 		return firmado, err
 	}
 
-	resultado, err := operacion(pedido, empotradas, ensayo)
+	resultado, err := operacion(pedido, empotradas, ensayo, home)
 	resultado.Procedencia = firmado.Procedencia
 
 	return resultado, err
@@ -262,7 +266,7 @@ func (a appletSkills) ejecutar(
 // se hace, porque es de donde sale el modo que se predice, y deja el disco como
 // estaba (research.md D9).
 func (d DependenciasDeSkills) instalar(
-	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, ensayo bool,
+	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, ensayo bool, home string,
 ) (schema.Resultado, error) {
 	plan, err := instalacion.Planificar(disco.Lector{}, d.Enlazador, pedido, empotradas, d.Version)
 	if err != nil {
@@ -270,7 +274,7 @@ func (d DependenciasDeSkills) instalar(
 	}
 
 	if ensayo {
-		return schema.Resultado{Ensayo: ensayoDeInstall(plan.Skills)}, nil
+		return schema.Resultado{Ensayo: ensayoDeInstall(plan.Skills, hogar(home))}, nil
 	}
 
 	instaladas, err := instalacion.Aplicar(plan, disco.NuevoEscritor(d.Enlazador))
@@ -280,20 +284,23 @@ func (d DependenciasDeSkills) instalar(
 		return schema.Resultado{}, err
 	}
 
-	return schema.Resultado{Datos: instaladas}, nil
+	return schema.Resultado{
+		Datos:   instaladas,
+		Legible: legibleDeInstall(instaladas, pedido.Ambito, d.Version, hogar(home)),
+	}, nil
 }
 
 // listar da lo que el manifiesto del ámbito declara, sin examinar nada más ni
 // cambiar nada (FR-060 a FR-062).
 func (DependenciasDeSkills) listar(
-	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, _ bool,
+	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, _ bool, home string,
 ) (schema.Resultado, error) {
 	listado, err := instalacion.Listar(disco.Lector{}, pedido.Ambito, empotradas)
 	if err != nil {
 		return schema.Resultado{}, delVerbo(verboList, err)
 	}
 
-	return schema.Resultado{Datos: listado}, nil
+	return schema.Resultado{Datos: listado, Legible: legibleDeList(listado, pedido.Ambito, hogar(home))}, nil
 }
 
 // diagnosticar compara el disco del ámbito con su manifiesto y con la versión
@@ -302,27 +309,33 @@ func (DependenciasDeSkills) listar(
 // diagnóstico, con los hallazgos que haya: encontrar algo es el resultado de una
 // verificación que ha funcionado, y sale con código 0 (ADR 0023).
 func (d DependenciasDeSkills) diagnosticar(
-	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, _ bool,
+	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, _ bool, home string,
 ) (schema.Resultado, error) {
 	diagnostico, err := instalacion.Diagnosticar(disco.Lector{}, d.Enlazador, pedido.Ambito, empotradas, d.Version)
 	if err != nil {
 		return schema.Resultado{}, delVerbo(verboDoctor, err)
 	}
 
-	return schema.Resultado{Datos: diagnostico}, nil
+	return schema.Resultado{
+		Datos:   diagnostico,
+		Legible: legibleDeDoctor(diagnostico, pedido.Ambito, hogar(home)),
+	}, nil
 }
 
 // ensayoDeInstall es lo que --dry-run describe de install: una línea por skill
-// pedida, con su ruta, el estado que resultaría y cada entrada de host con el
-// modo que predice la sonda (contracts/applet-skills.md §7). El prefijo
-// «--dry-run: se habría pedido » lo pone el kernel.
-func ensayoDeInstall(skills []instalacion.SkillInstalada) []string {
+// pedida, con su ruta, el estado que resultaría y cada entrada de host, con el
+// nombre de su marca y el modo que predice la sonda
+// (contracts/applet-skills.md §7), con el mismo vocabulario y las rutas
+// abreviadas igual que en la salida de la orden real. El prefijo «--dry-run: se
+// habría pedido » lo pone el kernel.
+func ensayoDeInstall(skills []instalacion.SkillInstalada, h hogar) []string {
 	lineas := make([]string, 0, len(skills))
 
 	for _, skill := range skills {
-		linea := "instalar " + skill.Nombre + " en " + skill.Ruta + ": " + string(skill.Estado)
+		linea := "instalar " + skill.Nombre + " en " + h.abreviar(skill.Ruta) + ": " + string(skill.Estado)
 		for _, enlace := range skill.Enlaces {
-			linea += "; enlace " + enlace.Ruta + " (" + string(enlace.Modo) + ")"
+			linea += "; " + nombreDeMarca(enlace.Host) + " " + h.abreviar(enlace.Ruta) +
+				" (" + string(enlace.Modo) + ")"
 		}
 
 		lineas = append(lineas, linea)
