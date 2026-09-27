@@ -1,6 +1,6 @@
 # 0020 · Fusión y release: los decide la persona, los ejecuta el agente
 
-- **Estado**: aceptada
+- **Estado**: aceptada; el ADR 0021 retira el gancho `pre-push` y el prefijo `KITLEGAL_PUSH_HUMANO=1`
 - **Fecha**: 2026-09-27
 - **Hito**: transversal (constitución 2.2.0, tras H19). Matiza el ADR 0007 y el ADR 0018 en quién ejecuta la fusión
   y el release; no cambia quién los decide.

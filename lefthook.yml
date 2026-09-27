@@ -33,17 +33,3 @@ pre-commit:
 
     - name: mod-tidy-check
       run: make mod-tidy-check
-
-# `pre-push` es la capa mecánica de la política de publicación
-# (scripts/lefthook/pre-push/guardia-push.sh): el workflow `hito` empuja la rama del
-# hito y abre la propuesta de cambio; `main`, los push forzados, los borrados y las
-# etiquetas quedan para una persona (KITLEGAL_PUSH_HUMANO=1). Es un `script` y no un
-# `run` a propósito: lefthook salta los `run` de pre-push cuando el push no cambia
-# ficheros (borrados, etiquetas), y un script se ejecuta siempre. `use_stdin` le
-# entrega las referencias que git va a enviar, sea cual sea la forma de la orden.
-pre-push:
-  jobs:
-    - name: guardia-push
-      script: guardia-push.sh
-      runner: bash
-      use_stdin: true
