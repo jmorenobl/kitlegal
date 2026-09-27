@@ -44,8 +44,8 @@ jobs:
         with:
           go-version-file: go.mod
           # La caché de la acción cubre GOMODCACHE y GOCACHE, es decir las
-          # dependencias, la construcción y los binarios de las cuatro
-          # herramientas de control, que `go tool` compila desde fuente. Sin
+          # dependencias, la construcción y los binarios de las cinco
+          # herramientas de control (goreleaser desde H19), que `go tool` compila desde fuente. Sin
           # ella la ejecución en frío domina el tiempo del flujo y SC-006 («PR
           # limpia en < 3 min») es inalcanzable (R5.2, research.md D12).
           cache: true
@@ -103,8 +103,8 @@ jobs:
             go.sum
             tools/*/go.sum
 
-      # Los seis archivos y checksums.txt en dist/, sin publicar, sin firmar y
-      # sin SBOM (FR-095).
+      # Los seis archivos, los paquetes .deb y .rpm y checksums.txt (que lista también
+      # install.sh) en dist/, sin publicar, sin firmar y sin SBOM (FR-095).
       - name: Construir el snapshot
         run: make release
 

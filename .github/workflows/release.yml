@@ -120,7 +120,7 @@ jobs:
           salida=$(./kitlegal version)
           primera=$(head -n 1 <<< "$salida")
           if [ "$primera" != "kitlegal $GITHUB_REF_NAME" ]; then
-            echo "version imprime «$primera» en lugar de «kitlegal $GITHUB_REF_NAME»" >&2
+            echo "version imprime «${primera}» en lugar de «kitlegal ${GITHUB_REF_NAME}»" >&2
             exit 1
           fi
 

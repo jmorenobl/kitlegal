@@ -87,7 +87,7 @@ homebrew_casks:
       name: homebrew-tap
       token: "{{ .Env.PUBLISHER_TOKEN }}"
     homepage: https://github.com/jmorenobl/kitlegal
-    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    description: Tu asistente de IA responde con la ley vigente del BOE y la cita exacta
     # El cask pone en cuarentena lo que descarga y el binario no está
     # notarizado: sin retirarla, no arrancaría en un Mac (research.md D25).
     hooks:
@@ -106,7 +106,7 @@ scoops:
       name: scoop-bucket
       token: "{{ .Env.PUBLISHER_TOKEN }}"
     homepage: https://github.com/jmorenobl/kitlegal
-    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    description: Tu asistente de IA responde con la ley vigente del BOE y la cita exacta
     license: EUPL-1.2
 
 nfpms:
@@ -116,7 +116,7 @@ nfpms:
   - package_name: kitlegal
     formats: [deb, rpm]
     maintainer: "Jorge <jmorenobl@gmail.com>"
-    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    description: Tu asistente de IA responde con la ley vigente del BOE y la cita exacta
     homepage: https://github.com/jmorenobl/kitlegal
     license: EUPL-1.2
 

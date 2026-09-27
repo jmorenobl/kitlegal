@@ -71,9 +71,9 @@ updates:
       goreleaser:
         patterns: ["*"]
 
-  # Las acciones que usan los tres flujos de `.github/workflows/`: Dependabot
-  # las descubre bajo el directorio declarado, así que una única entrada en la
-  # raíz cubre `ci`, `nightly` y `codeql` a la vez.
+  # Las acciones que usan los flujos de `.github/workflows/`: Dependabot las
+  # descubre bajo el directorio declarado, así que una única entrada en la raíz
+  # cubre `ci`, `nightly`, `codeql`, `evals` y `release` a la vez.
   - package-ecosystem: github-actions
     directory: /
     schedule:

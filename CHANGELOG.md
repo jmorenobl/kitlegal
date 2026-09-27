@@ -3,8 +3,8 @@
 Todo cambio de comportamiento visible de `kitlegal` se registra aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto se adhiere al
-[versionado semántico](https://semver.org/lang/es/). Mientras el mayor sea `0` —la primera release, `v0.1.0`,
-es la de H19 (ADR 0019)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a mano**, también
+[versionado semántico](https://semver.org/lang/es/). Mientras el mayor sea `0` —la primera release publicada,
+`v0.1.1`, es la de H19 (ADR 0019)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a mano**, también
 desde esa release: cada propuesta de cambio añade su entrada bajo *Unreleased* en el mismo cambio que
 introduce el comportamiento, y al publicar una versión esa sección se cierra bajo su número y su fecha y
 se abre una nueva vacía. Las notas de cada release las genera goreleaser desde los Conventional Commits, y no
@@ -12,8 +12,19 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
-Todavía no hay ninguna versión publicada. Lo que sigue es lo que aportan los hitos cerrados hasta hoy, en
-orden de llegada: **H0 — esqueleto del repositorio y sus controles**, un repositorio sin fuentes legales
+### Cambiado
+
+- **La licencia pasa de Apache-2.0 a EUPL-1.2** (ADR 0022): `LICENSE` con el texto oficial de la Licencia Pública de
+  la Unión Europea v. 1.2, y el identificador SPDX `EUPL-1.2` en el bucket de Scoop y en los paquetes `.deb` y `.rpm`
+  (el cask de Homebrew no declara licencia). v0.1.1 sigue bajo Apache-2.0.
+- **La descripción del cask, el bucket y los paquetes** dice lo que kitlegal hace para quien lo usa: «Tu asistente de
+  IA responde con la ley vigente del BOE y la cita exacta».
+
+## [0.1.1] - 2026-09-27
+
+Primera versión publicada. La etiqueta `v0.1.0` existe, pero no tiene release: su publicación falló antes de construir
+nada, porque `release.yml` fijaba `sigstore/cosign-installer@v4`, una etiqueta que esa acción no publica, y se corrigió
+en esta versión. Lo que sigue es lo que aportan los hitos cerrados hasta hoy, en orden de llegada: **H0 — esqueleto del repositorio y sus controles**, un repositorio sin fuentes legales
 todavía, pero blindado, para que cualquier línea de Go que entre después atraviese los mismos gates; y
 **H1 — kernel de la línea de órdenes**, lo que un applet **no** tiene que declarar, de modo que cada
 fuente legal de los hitos siguientes herede la misma forma de invocarse, de fallar y de citar sin volver
@@ -441,11 +452,6 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
   sus rechazos en UTF-8 y sus cortes.
 
 ### Cambiado
-
-*Fuera de hito:*
-
-- **La licencia pasa de Apache-2.0 a EUPL-1.2** (ADR 0022): `LICENSE` con el texto oficial de la Licencia Pública de
-  la Unión Europea v. 1.2, y el identificador SPDX `EUPL-1.2` en el cask, el bucket y los paquetes `.deb` y `.rpm`.
 
 *De H1 — el kernel de la línea de órdenes:*
 

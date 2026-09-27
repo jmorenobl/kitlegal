@@ -31,9 +31,9 @@
 # real, y por eso vive aquí y no en `make ci`.
 #
 # Lo que este flujo NO hace: grabar respuestas —`KITLEGAL_RECORD` no aparece en
-# ningún flujo; las grabaciones las hace una persona—, ninguna invocación de
-# `release` —que no entra ni en `ci` ni en `nightly` y falla a propósito hasta
-# H6— y ninguna publicación del perfil de cobertura, que FR-029 encomienda
+# ningún flujo; las grabaciones las hace una persona—, ninguna construcción
+# de la release —el snapshot lo construye el trabajo `snapshot` de `ci` y la
+# publicación, `release.yml` en cada etiqueta— y ninguna publicación del perfil de cobertura, que FR-029 encomienda
 # únicamente al flujo `ci`.
 name: nightly
 
