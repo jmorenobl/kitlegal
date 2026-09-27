@@ -455,9 +455,7 @@ func TestOrdenesDeDoctor(t *testing.T) {
 				d, ambito := caso.preparado(t)
 
 				diagnostico, _, err := caso.diagnosticar(d, ambito)
-				if err != nil {
-					continue
-				}
+				require.NoError(t, err, "%s: con hallazgos o sin ellos, doctor no falla (ADR 0023)", caso.nombre)
 
 				for _, h := range diagnostico.Hallazgos {
 					exigirOrdenDelHallazgo(t, caso, ambito, h)

@@ -75,4 +75,4 @@ Se aplica en `clarify`, en los gates automáticos del workflow `hito` y en cualq
 
 Esta constitución prevalece sobre cualquier otra práctica. Toda PR se revisa contra ella. Enmiendas: cambio en este fichero + ADR que lo motive + actualización de `CLAUDE.md` si afecta a una decisión cerrada. Las decisiones listadas como cerradas en `CLAUDE.md` no se reabren en spec, plan ni clarify.
 
-**Version**: 2.4.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-27| **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-27
+**Version**: 2.4.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-27

@@ -4,7 +4,7 @@
 # enlace simbólico, .claude cuando se enlaza con --host claude y .claude/skills
 # cuando se enlaza en el host, y como «manifiesto ilegible» un kitlegal.json que
 # no respeta su forma, sin escribir nada a través de ellas; `list` y `doctor`
-# salen con 1 con una sola línea que las nombra; y, sin --host, un .claude que
+# salen con 7 (ADR 0023) con una sola línea que las nombra; y, sin --host, un .claude que
 # es un fichero o un enlace cuenta como ausente: ni conflicto ni host.
 #
 # Cubre: FR-022, FR-023, FR-026, FR-027, FR-035, FR-041 (g)-(h), FR-061,
@@ -163,7 +163,7 @@ cmp stdout $WORK/antes.txt
 # --- Manifiesto ilegible (FR-035, FR-041 (h), FR-061, FR-067) ---
 #
 # Un kitlegal.json que no es JSON: install no sabe qué es suyo y no toca nada;
-# list y doctor salen con 1 nombrándolo, sin dar skills ni hallazgos.
+# list y doctor salen con 7 nombrándolo, sin dar skills ni hallazgos.
 cd $WORK/ilegible-texto
 arbol .
 cp stdout $WORK/antes.txt

@@ -49,8 +49,8 @@ Opción 4. **Todo verbo de todo applet devuelve uno de estos resultados, y solo 
 | **Fuente no disponible**: la fuente no responde, o sin red y sin caché | 4 | `false` | `{clase: "fuente-no-disponible", mensaje}` |
 | **Límite o TOS** | 5 | `false` | `{clase: "limite-o-tos", mensaje}` |
 | **Identidad humana**: la acción exige identidad y no se ha hecho | 6 | `false` | `{clase: "identidad-humana", mensaje}` |
-| **Conflicto**: el estado local impide actuar y la persona puede resolverlo —una entrada que no es suya, un fichero que la orden necesita y no puede leer, el entorno sin lo que la orden pide— | 7 | `false` | `{clase: "conflicto", mensaje}` |
-| **Inesperado**: un defecto del programa o del entorno —un fallo de entrada y salida, lo empotrado ilegible, una clase no declarada— | 1 | `false` | `{clase: "inesperado", mensaje}` |
+| **Conflicto**: la orden reconoce y nombra algo del estado que gestiona la persona que le impide actuar —una entrada que no es suya, un fichero cuyo contenido no tiene la forma que debe, el entorno sin lo que la orden pide— | 7 | `false` | `{clase: "conflicto", mensaje}` |
+| **Inesperado**: un defecto del programa o del entorno —un error del sistema que la orden no interpreta, lo empotrado ilegible, un almacén interno inutilizable, una clase no declarada— | 1 | `false` | `{clase: "inesperado", mensaje}` |
 
 Reglas que se siguen de la tabla:
 
@@ -60,12 +60,22 @@ Reglas que se siguen de la tabla:
   verificar**, con la clase de la causa. No hay un modo que convierta los hallazgos en un código distinto de 0:
   ningún consumidor lo necesita hoy (constitución, principio V); si llega a necesitarlo, será una bandera explícita
   y un ADR.
-- **`conflicto` es previsible; `inesperado`, no.** Lo que la persona puede resolver mirando el mensaje —quitar una
-  carpeta, definir `HOME`, arreglar un manifiesto— es conflicto. Lo que no depende de ella es inesperado.
-- **Una fuente pública nunca produce `conflicto`**: no tiene estado local que le impida actuar. `boe` y `territorio`
-  siguen con sus clases (y `boe` nunca con 6 ni con 7).
-- **El ensayo predice el código de la orden real** cuando se puede saber sin efectos: sale con 2 ante argumentos
-  inválidos y con 7 ante un conflicto, y con 0 en otro caso. Lo demás del ADR 0011 no cambia.
+- **La frontera entre `conflicto` e `inesperado` es mecánica**, para que ningún hito tenga que interpretarla:
+  - es **conflicto** lo que la propia orden **reconoce y nombra**, con su ruta o su variable, en el estado que
+    gestiona la persona: su proyecto, lo que tiene instalado, su entorno. Se arregla mirando el mensaje: quitar una
+    carpeta, definir `HOME`, rehacer un manifiesto que no tiene su forma;
+  - es **inesperado** todo **error del sistema que la orden no interpreta** —un permiso denegado, un fallo de
+    entrada y salida, una ruta que el sistema rechaza al examinarla—, venga de donde venga, y todo fallo de los
+    **almacenes internos** de kitlegal (`cache.db`, y `world.db` desde H7). Esos almacenes son del programa, no de
+    la persona: si uno no se puede abrir o es de otro esquema, lo que corresponde es que el programa lo resuelva
+    —migrarlo o rehacerlo—, y si no puede, es un defecto suyo.
+  - Así, `skills doctor` sale con 7 si `kitlegal.json` es un directorio o no respeta su forma, y con 1 si el
+    sistema no deja leerlo; con 7 si la ruta de `--dir` es un fichero, y con 1 si el sistema no deja examinarla.
+- **Una fuente pública nunca produce `conflicto`**: el único estado local que tiene es la caché, que es interna.
+  `boe` y `territorio` siguen con sus clases (y `boe` nunca con 6 ni con 7).
+- **El ensayo sale con la clase de cualquier fallo que se conozca sin efectos**, igual que la orden real: 2 ante
+  argumentos inválidos, 7 ante un conflicto, 4 si pide la fuente sin red y sin caché, 1 ante un defecto; y 0 si
+  nada lo impide. Lo demás del ADR 0011 no cambia.
 - **`data` de fallo sigue siendo exactamente `{clase, mensaje}`** (ADR 0006). La lista de un conflicto va en el
   mensaje, una entrada por línea y en orden determinista.
 - **La correspondencia clase ↔ código sigue siendo cerrada y única** (`internal/cli`, un `switch` sin rama por
@@ -77,12 +87,16 @@ Lo que cambia con esta decisión:
   `internal/cli` gana `ErrConflicto` y el código 7.
 - `skills doctor` sale con 0 y con los hallazgos en `data.hallazgos` (FR-065 a FR-067 de H19: cada uno con `clase`,
   `ruta` y `orden`); desaparece el error que los llevaba.
-- `skills install` con conflictos, `list` y `doctor` con el ámbito ilegible, y `-g` sin `HOME` salen con 7 y clase
-  `conflicto`; con `--dry-run`, igual.
+- `skills install` con conflictos, `list` y `doctor` con el ámbito ilegible (una guarda que no es un directorio, un
+  manifiesto que no es un fichero regular o no respeta su forma, o que declara entradas de host con `--dir`), y `-g`
+  sin `HOME` salen con 7 y clase `conflicto`; con `--dry-run`, igual. Un error del sistema al leer el manifiesto
+  deja de ser un manifiesto ilegible: sale tal cual, con 1, como ya salía un error al examinarlo.
 - La suite activa de H19 (`internal/app/testdata/script/h19-*.txtar`) se adapta a este contrato. La copia congelada
   en `specs/009-h19-instalar-sin-clonar/aceptacion/` queda como registro de lo que se congeló en H19.
 - H7 se reescribe en `docs/ROADMAP.md`: `graph check` da `version-obsoleta` y `fuente-caducada` como hallazgos en
-  `data`, con código 0.
+  `data`, con código 0, y un `world.db` inutilizable es un defecto (1), como la caché. Donde otros documentos dicen
+  otra cosa —la sección de H19 del roadmap («exit 1 con hallazgos»), `refs/kitlegal-grafo.md` («`graph check`: 0
+  limpio, 1 avisos, 2 errores»)—, manda este ADR, y quedan anotados.
 
 ## Consecuencias
 

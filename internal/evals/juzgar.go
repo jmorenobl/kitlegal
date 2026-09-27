@@ -14,7 +14,7 @@ import (
 // Los dos códigos de salida estables con los que una invocación con consulta dice
 // que no tuvo lo que pedía: 4, fuente no disponible, el de --offline sin la
 // consulta en la caché, y 5, límite o términos de uso, el de la petición que el
-// proxy del job rechaza (CLAUDE.md, «Exit codes estables»; contrato job-de-evals
+// proxy del job rechaza (CLAUDE.md, «Contrato de resultados»; contrato job-de-evals
 // §6). Una invocación que termina con uno de ellos está fuera de lo grabado
 // (data-model §10.2).
 const (

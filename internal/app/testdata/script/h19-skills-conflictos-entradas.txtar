@@ -2,7 +2,7 @@
 # fichero, enlace a otro sitio o enlace roto—, en el directorio neutro o en el
 # del host, es un conflicto: `install` los comprueba todos antes de escribir
 # nada, los nombra todos con su clase y su ruta, no crea ni cambia nada y
-# termina con 1; un conflicto en la segunda skill deja la primera sin instalar;
+# termina con 7 (ADR 0023); un conflicto en la segunda skill deja la primera sin instalar;
 # y el enlace de host que ya es exactamente el esperado no es conflicto, aunque
 # cuelgue: se adopta y se declara.
 #
@@ -13,7 +13,7 @@
 # comprueba con `arbol` antes y después, que no sigue enlaces y lista también
 # el destino de cada enlace, que queda dentro del directorio del caso
 # (contracts/arnes-e2e.md §4). El sobre de fallo es el del kernel, con clase
-# inesperado y en `mensaje` la cabecera y una línea `<clase>: <ruta>` por
+# conflicto y en `mensaje` la cabecera y una línea `<clase>: <ruta>` por
 # conflicto, ordenadas por ruta; el mismo texto va a la salida de error
 # (contracts/applet-skills.md §5, FR-052).
 
@@ -154,7 +154,7 @@ cmp stdout $WORK/antes.txt
 # --- Atomicidad entre skills: un conflicto en la segunda (FR-043, SC-008) ---
 #
 # legal-core es una carpeta ajena y boe-legislacion no tiene ninguno: la orden
-# sale con 1 y boe-legislacion no se instala; el disco queda intacto.
+# sale con 7 y boe-legislacion no se instala; el disco queda intacto.
 cd $WORK/segunda
 arbol .
 cp stdout $WORK/antes.txt

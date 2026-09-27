@@ -47,11 +47,10 @@ var (
 	ErrConflicto = errors.New("conflicto con el estado local")
 )
 
-// Los códigos de salida del proyecto (CLAUDE.md, «Exit codes estables»; ADR
-// 0023, que añade el 7). El 1 es el del fallo
-// inesperado: la convención de Unix para el error general, y el único valor
-// libre que un consumidor interpreta sin documentación (FR-031, research.md
-// D8).
+// Los códigos de salida del proyecto (CLAUDE.md, «Contrato de resultados»; ADR
+// 0023, que añade el 7). El 1 es el del fallo inesperado: la convención de
+// Unix para el error general, y el único valor libre que un consumidor
+// interpreta sin documentación (FR-031, research.md D8).
 const (
 	codigoCorrecto           = 0
 	codigoInesperado         = 1

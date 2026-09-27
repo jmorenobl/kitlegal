@@ -190,7 +190,7 @@ cmp stdout $WORK/antes.txt
 # --- (h) kitlegal.json sustituido por un enlace a un manifiesto válido ---
 #
 # El manifiesto no se lee a través del enlace: es ilegible para install, list y
-# doctor, que salen con 1, y el manifiesto al que apunta queda intacto. Y el
+# doctor, que salen con 7, y el manifiesto al que apunta queda intacto. Y el
 # aviso no tiene ningún efecto, aunque al otro lado haya uno de otra versión y
 # en HOME otro de otra versión: el local es ilegible y el global no se busca
 # (FR-070, FR-072).

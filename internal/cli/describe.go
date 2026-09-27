@@ -26,7 +26,7 @@ const (
 // errEsquemaImposible es el fallo de quien declaró el verbo, no el de quien lo
 // invoca: unos argumentos que no son un struct, un sobre que dejó de declarar
 // sus claves o dos tipos distintos que se describirían con el mismo nombre. No
-// lleva ninguno de los cinco sentinelas, así que sale con el código de lo que
+// lleva ninguno de los seis sentinelas, así que sale con el código de lo que
 // nadie previó y nunca con el de argumentos inválidos (FR-031).
 var errEsquemaImposible = errors.New("cli: el esquema del verbo no se pudo construir")
 

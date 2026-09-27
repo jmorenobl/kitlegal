@@ -34,7 +34,7 @@ func (e errorConClase) Clase() schema.Clase {
 
 // errorConClaseSobreSentinela declara una clase **y** envuelve un sentinela del
 // kernel. No es lo que hará ningún adaptador —ninguno importa internal/cli—,
-// pero fija el orden que Clasificar promete: los cinco sentinelas se comprueban
+// pero fija el orden que Clasificar promete: los seis sentinelas se comprueban
 // antes que la clase declarada, de modo que lo que H1 clasificaba de una manera
 // se sigue clasificando igual.
 type errorConClaseSobreSentinela struct {
@@ -260,7 +260,7 @@ func casosDeClase() []casoDeClase {
 }
 
 // TestClasificar comprueba que la clase de un error se decide con errors.Is
-// sobre los cinco sentinelas, que envolver con %w no la cambia y que lo que no
+// sobre los seis sentinelas, que envolver con %w no la cambia y que lo que no
 // casa con ninguno es inesperado y no un éxito disfrazado (FR-029, FR-031,
 // FR-032).
 //

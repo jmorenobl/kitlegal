@@ -24,7 +24,7 @@ const sinSobre = false
 
 // errSinFallo lo devuelve Fallo cuando se le pide el sobre de un error que no
 // existe. No es un fallo de quien invoca sino un defecto de quien llama, así
-// que no lleva ninguno de los cinco sentinelas y sale, como todo lo que nadie
+// que no lleva ninguno de los seis sentinelas y sale, como todo lo que nadie
 // previó, con el código del fallo inesperado (FR-031).
 var errSinFallo = errors.New("cli: un sobre de fallo necesita un fallo")
 
@@ -155,7 +155,7 @@ func (m Montador) Exito(res schema.Resultado) (schema.Sobre, error) {
 // La clase, el mensaje y el código salen todos del mismo error y por la misma
 // traducción con la que termina el proceso, que es lo que hace cierto por
 // construcción que `ok` sea falso si y solo si el código de salida no es 0
-// (FR-014): ninguno de los cinco sentinelas ni el fallo inesperado se traducen
+// (FR-014): ninguno de los seis sentinelas ni el fallo inesperado se traducen
 // al código del éxito.
 func (m Montador) Fallo(proc schema.Procedencia, err error) (schema.Sobre, error) {
 	if err == nil {

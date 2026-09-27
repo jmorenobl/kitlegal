@@ -74,6 +74,7 @@ env PATH=$WORK/bin-sin-enlaces${:}$PATH_ORIGINAL
 exec sh -c 'echo "una línea añadida a mano" >> .claude/skills/legal-core/SKILL.md'
 exec kitlegal skills doctor --json
 stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.claude/skills/legal-core/SKILL\.md","orden":"rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+! stderr .
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
@@ -125,7 +126,7 @@ stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-le
 
 # --- Una copia con un fichero editado o una entrada no declarada (US4.8) ---
 #
-# Con el creador que funciona, install sale con 1 nombrándolo y la copia queda
+# Con el creador que funciona, install sale con 7 nombrándolo y la copia queda
 # byte a byte igual.
 mkdir $WORK/copia-editada/.claude
 cd $WORK/copia-editada

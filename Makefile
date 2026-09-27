@@ -66,7 +66,7 @@ build: check-tools
 # El bucle de desarrollo, no la forma de instalar de quien usa: las skills se
 # instalan con el binario recién instalado, por la ruta que da go list y no por
 # el PATH, donde podría ir antes otro kitlegal. Sin comprobación previa: ante un
-# conflicto, skills install sale con 1 sin cambiar nada y make falla con él, con
+# conflicto, skills install sale con 7 sin cambiar nada y make falla con él, con
 # su propio código, 2 (specs/009-h19-instalar-sin-clonar/research.md D18).
 ## install: bucle de desarrollo; go install de kitlegal y, con ese binario, skills install -g --host claude
 install: check-tools

@@ -200,15 +200,15 @@ type casoDeCodigo struct {
 	codigo    int
 }
 
-// casosDeCodigo son las siete filas de la tabla de contracts/banderas-y-exit-codes.md
-// §4: el éxito, el fallo inesperado y las cinco clases declaradas. Ninguna clase
-// queda sin caso (SC-006).
+// casosDeCodigo son las ocho filas de la tabla de contracts/banderas-y-exit-codes.md
+// §4 y del ADR 0023: el éxito, el fallo inesperado y las seis clases declaradas.
+// Ninguna clase queda sin caso (SC-006).
 func casosDeCodigo() []casoDeCodigo {
 	return []casoDeCodigo{
 		{clase: "correcto", desenlace: resultadoCorrecto, codigo: 0},
 		{
 			// Lo inesperado es lo que nadie declaró: un error que no casa con
-			// ninguno de los cinco sentinelas. Es el mismo código con el que sale
+			// ninguno de los seis sentinelas. Es el mismo código con el que sale
 			// un fallo de escritura propagado por el presentador (FR-031).
 			clase:     schema.ClaseInesperado,
 			desenlace: falloDe(errors.New("algo que nadie previó")),
@@ -227,10 +227,11 @@ func casosDeCodigo() []casoDeCodigo {
 			desenlace: falloDe(cli.ErrIdentidadHumana),
 			codigo:    6,
 		},
+		{clase: schema.ClaseConflicto, desenlace: falloDe(cli.ErrConflicto), codigo: 7},
 	}
 }
 
-// TestCodigoSalida fuerza los siete desenlaces desde el applet y comprueba el
+// TestCodigoSalida fuerza los ocho desenlaces desde el applet y comprueba el
 // código con el que termina el proceso y el reparto de descriptores **sin**
 // --json: el mensaje del fallo va a la salida de error y la estándar queda
 // vacía, porque un resultado que no existe no se cita
@@ -272,7 +273,7 @@ func TestCodigoSalida(t *testing.T) {
 
 // TestSobreDeFallo comprueba la otra mitad del contrato: con --json, la salida
 // estándar lleva el sobre de seis claves con `ok` falso y la clase y el mensaje
-// dentro de `data`, para cada uno de los seis códigos de fallo y también para
+// dentro de `data`, para cada uno de los siete códigos de fallo y también para
 // los dos fallos **anteriores** a la ejecución del applet (FR-045, SC-014).
 func TestSobreDeFallo(t *testing.T) {
 	t.Parallel()

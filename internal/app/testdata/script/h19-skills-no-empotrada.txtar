@@ -101,7 +101,7 @@ exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 # estaba.
 exec $KITLEGAL_V1_BIN skills doctor --json
 stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core --host claude"\}\]\}\}\n\z'
-! stderr 'otra-skill'
+! stderr .
 cp stdout $WORK/doctor.json
 mkdir $WORK/bin-v1
 symlink $WORK/bin-v1/kitlegal -> $KITLEGAL_V1_BIN

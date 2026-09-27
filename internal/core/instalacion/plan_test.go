@@ -277,14 +277,6 @@ func casosDelAmbito() []casoDeConflictos {
 			esperados: []instalacion.Conflicto{conflicto(ilegible, ".agents/skills/kitlegal.json")},
 		},
 		{
-			nombre: "manifiesto que no se puede leer",
-			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
-				d.fallar(opLeer, ".agents/skills/kitlegal.json", errInyectado)
-			},
-			esperados: []instalacion.Conflicto{conflicto(ilegible, ".agents/skills/kitlegal.json")},
-		},
-		{
 			nombre: "con --dir, manifiesto que declara entradas de host",
 			preparar: func(d *discoEnMemoria) {
 				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
@@ -958,6 +950,7 @@ func probarFallosAlComprobar(t *testing.T) {
 	}{
 		{nombre: "una guarda", operacion: opExaminar, ruta: ".agents"},
 		{nombre: "el manifiesto", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/kitlegal.json"},
+		{nombre: "leer el manifiesto", preparar: instalacionConCopia, operacion: opLeer, ruta: ".agents/skills/kitlegal.json"},
 		{nombre: ".claude", operacion: opExaminar, ruta: ".claude"},
 		{nombre: ".claude/skills", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".claude/skills"},
 		{nombre: "una skill", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/legal-core"},

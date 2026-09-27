@@ -4,7 +4,7 @@
 # absoluta tal como se pasó, limpia; list y doctor con --dir leen ese manifiesto;
 # --host claude con --dir, y -g con --dir, salen con 2 sin tocar el disco; un
 # directorio neutro cuyo manifiesto declara entradas de host no se gestiona con
-# --dir; y un error de argumentos gana siempre, con 2, a cualquier exit 1.
+# --dir; y un error de argumentos gana siempre, con 2, a cualquier conflicto.
 #
 # Cubre: US6.2, US6.3, US6.5 · FR-013, FR-052 (precedencia del exit 2 sobre el
 # 1: -g --dir sin HOME, install desconocida -g con HOME vacío, skill
@@ -98,7 +98,7 @@ arbol $WORK/home
 # --- Un directorio neutro cuyo manifiesto declara entradas de host (US6.5) ---
 #
 # El .agents/skills de una instalación local con .claude/ no se gestiona con
-# --dir: install, también con --dry-run, list y doctor salen con 1 nombrando el
+# --dir: install, también con --dry-run, list y doctor salen con 7 nombrando el
 # manifiesto como «manifiesto con entradas de host», sin dar skills, hallazgos
 # ni órdenes, y el disco queda byte a byte igual.
 mkdir $WORK/con-hosts/.claude

@@ -3,7 +3,7 @@
 # ~/.claude/skills/, sin crear nada en el directorio de trabajo; las rutas que
 # se presentan son absolutas; list y doctor con -g leen el manifiesto global y
 # no el local; los enlaces que dejó el make install anterior son conflicto; y -g
-# con HOME sin definir o vacío termina con 1 sin escribir ni leer nada.
+# con HOME sin definir o vacío termina con 7 sin escribir ni leer nada.
 #
 # Cubre: US6.1, US6.4 · FR-012 · SC-004.
 #
@@ -103,8 +103,9 @@ cmp stdout $WORK/antes.txt
 
 # --- -g con HOME sin definir o vacío (FR-012) ---
 #
-# install, list y doctor salen con 1 y el mensaje de contracts/applet-skills.md
-# §2 (fila 5), en el sobre de fallo con clase inesperado, sin escribir nada.
+# install, list y doctor salen con 7 y el mensaje de contracts/applet-skills.md
+# §2 (fila 5), en el sobre de fallo con clase conflicto (ADR 0023), sin escribir
+# nada.
 cd $WORK/proyecto
 arbol .
 cp stdout $WORK/proyecto-antes.txt

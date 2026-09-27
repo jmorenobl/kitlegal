@@ -4,19 +4,19 @@
 # (una entrada o todo .claude/); versión distinta del manifiesto y de sus dos
 # skills (un único hallazgo) o de una sola skill; y, dentro del directorio de
 # una skill, el enlace que ocupa el sitio de la skill o de references/ y el
-# SKILL.md que es un enlace o un directorio. doctor sale con 1 sin cambiar nada,
+# SKILL.md que es un enlace o un directorio. doctor sale con 0 sin cambiar nada,
 # y ejecutar sus órdenes con sh -c, en el orden en que las lista, deja un doctor
 # posterior en 0, en el ámbito local, con -g y con --dir.
 #
 # Cubre: US4.2, US4.3, US4.4, US4.6, US4.7, US4.10, US4.11 · FR-065, FR-066,
 # FR-077 · SC-011.
 #
-# El sobre de fallo lleva en `mensaje` la cabecera y una línea
-# `<clase>: <ruta>: <orden>` por hallazgo, primero los que llevan rm y después
-# los demás, y el mismo texto va a la salida de error (contracts/applet-skills.md
-# §5); la forma de la orden es la de §6. La orden no se reescribe aquí: se
-# extrae de la salida de error de doctor —lo que sigue al segundo «: »— y se
-# ejecuta tal cual con ordenes.sh. Las órdenes invocan kitlegal desde el PATH:
+# Un hallazgo es un resultado, no un fallo (ADR 0023): el sobre correcto lleva en
+# `data.hallazgos` cada uno con su `clase`, su `ruta` y su `orden`, primero los
+# que llevan rm y después los demás, y la salida de error queda vacía
+# (contracts/applet-skills.md §5); la forma de la orden es la de §6. La orden no
+# se reescribe aquí: se extrae del JSON de doctor —el valor de cada "orden"— y
+# se ejecuta tal cual con ordenes.sh. Las órdenes invocan kitlegal desde el PATH:
 # cuando la instalación es de una versión concreta, un enlace llamado kitlegal
 # en $WORK/bin-* pone delante ese binario (contracts/arnes-e2e.md §2).
 

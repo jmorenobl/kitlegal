@@ -25,9 +25,11 @@ sustituyen a este fichero.
     `ruta` y la `orden` que lo arregla). Antes salía con 1 y el sobre de fallo, como si el programa hubiera fallado.
     Un guion que quiera fallar con hallazgos mira `data.hallazgos`.
   - **Código 7 y clase `conflicto`** para lo que el estado local impide y la persona puede resolver: `skills install`
-    ante una entrada que no es suya (también con `--dry-run`), `skills list` y `doctor` ante un manifiesto ilegible o
-    una ruta del ámbito que no es un directorio, y `-g` sin `HOME`. Antes salían con 1, el código del fallo
-    inesperado, que queda para los defectos del programa o del entorno.
+    ante una entrada que no es suya (también con `--dry-run`), `skills list` y `doctor` ante una ruta del ámbito que
+    no es un directorio o un manifiesto que no es un fichero regular, no respeta su forma o, con `--dir`, declara
+    entradas de host, y `-g` sin `HOME`. Antes salían con 1, el código del fallo inesperado, que queda para los
+    defectos del programa o del entorno: un error del sistema al leer el manifiesto sale ahora con 1, como ya salía
+    un error al examinarlo.
   - El sobre de fallo de todo `--describe` y de `schemas/*.json` admite la clase `conflicto`.
 
 ## [0.1.1] - 2026-09-27
