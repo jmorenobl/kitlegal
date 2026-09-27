@@ -42,7 +42,7 @@ extraer_hito (la sección del hito: la entrada de la persona)
 → informe_final (cuerpo de la propuesta de cambio)
 ```
 
-La fusión a `main` (squash-merge) y el release son siempre acciones humanas. El workflow deja la rama del hito commiteada, la empuja a `origin`, abre la propuesta de cambio y pone el informe como cuerpo. Nunca hace `merge`, ni push a `main`, ni push forzado: además de los permisos de `.claude/settings.json`, `scripts/lefthook/pre-push/guardia-push.sh` (instalado con `make hooks` o `lefthook install`) rechaza esas referencias aunque el YAML cambiara. Una persona lo salta con `KITLEGAL_PUSH_HUMANO=1` (etiquetas de release). Motivación en `docs/ADR/0007-workflow-desatendido.md` y `docs/ADR/0018-workflow-autonomo-persona-en-los-extremos.md`.
+La fusión a `main` (squash-merge) y el release los decide siempre una persona; en una sesión interactiva, a petición suya, los ejecuta el agente con confirmación de cada orden (ADR 0020). El workflow deja la rama del hito commiteada, la empuja a `origin`, abre la propuesta de cambio y pone el informe como cuerpo. Nunca hace `merge`, ni push a `main`, ni push forzado: además de los permisos de `.claude/settings.json`, `scripts/lefthook/pre-push/guardia-push.sh` (instalado con `make hooks` o `lefthook install`) rechaza esas referencias aunque el YAML cambiara. Una persona lo salta con `KITLEGAL_PUSH_HUMANO=1` (etiquetas de release); esa orden es `ask` en `.claude/settings.json`, así que en headless no se ejecuta. Motivación en `docs/ADR/0007-workflow-desatendido.md` y `docs/ADR/0018-workflow-autonomo-persona-en-los-extremos.md`.
 
 ## Qué detiene el run
 
