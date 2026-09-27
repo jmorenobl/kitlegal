@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-28
+
 ### Cambiado
 
 - **`kitlegal skills install`, `list` y `doctor` hablan a una persona** (ADR 0026): sin `--json`, en lugar de la
