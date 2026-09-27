@@ -31,6 +31,13 @@ const formatoDeVersion = "kitlegal %s\ncommit: %s\nfecha:  %s\n"
 // y el registro seguirá siendo la única lista.
 const verboVersion = "version"
 
+// banderaDeVersion es la forma de «version» que casi cualquier programa
+// entiende: «kitlegal --version» es lo mismo que «kitlegal version», con el
+// mismo texto y las mismas reglas. Solo vale como primer argumento del
+// binario, donde se reconocen los verbos reservados; un applet invocado por su
+// nombre de enlace no la conoce.
+const banderaDeVersion = "--version"
+
 // prefijoDeEnsayo encabeza todas las líneas que --dry-run deja en la salida de
 // error —la del kernel y una por cada operación que una capa con efectos
 // describió—, de modo que quien las lea sepa desde el primer carácter de cada

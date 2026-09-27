@@ -12,6 +12,12 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **`kitlegal --version`** hace lo mismo que `kitlegal version`: el mismo texto y las mismas reglas, también que
+  no admite nada detrás. La ayuda del binario dice cómo pedir la versión, y el error de un applet que no existe
+  lo recuerda.
+
 ## [0.3.0] - 2026-09-27
 
 ### Añadido
