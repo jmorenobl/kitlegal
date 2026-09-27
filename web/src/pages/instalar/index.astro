@@ -66,7 +66,10 @@ const version = versionPublicada();
       ese directorio no exista todavía. Para tenerlas en todos tus proyectos a la vez: <code>kitlegal skills install -g</code>.
     </p>
     <ul>
-      <li><strong>Claude Code</strong> las carga de <code>.claude/skills/</code>, el enlace que crea kitlegal.</li>
+      <li>
+        <strong>Claude Code</strong> las carga de <code>.claude/skills/</code> y, con <code>-g</code>, de
+        <code>~/.claude/skills/</code>: los enlaces que crea kitlegal.
+      </li>
       <li>
         <strong>Codex</strong> las lee de <code>.agents/skills/</code> y de <code>~/.agents/skills/</code>. Su entorno
         aislado corta la red por omisión, así que te pedirá permiso en cada consulta al BOE. Para no aprobarlo cada vez,
@@ -75,8 +78,10 @@ const version = versionPublicada();
         <code>kitlegal</code> sin preguntar y fuera de ese entorno aislado (sus reglas son todavía experimentales).
       </li>
       <li>
-        <strong>Antigravity</strong> las lee de <code>.agents/skills/</code> del proyecto. La instalación global con
-        <code>-g</code> todavía no le llega: instálalas en cada proyecto.
+        <strong>Antigravity</strong> las lee de <code>.agents/skills/</code> del proyecto. En global no mira
+        <code>~/.agents/skills/</code> sino <code>~/.gemini/config/skills/</code>, y ahí las enlaza
+        <code>kitlegal skills install -g</code> si Antigravity está instalado; <code>--host antigravity</code> lo hace
+        aunque no lo esté todavía.
       </li>
       <li>
         <strong>Claude Cowork y el chat de Claude</strong> todavía no: cargan las skills de tu cuenta de Claude y no las
