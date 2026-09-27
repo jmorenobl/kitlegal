@@ -2,7 +2,7 @@
 
 - **Estado**: aceptada; sustituida en parte por el ADR 0018 (las pausas humanas, la parada por motivos no corregibles
   y las tareas `[plataforma]`). Siguen vigentes la unión de motivos, los jueces en paralelo, el supervisor y la
-  publicación de la rama con el gancho `pre-push`.
+  publicación de la rama; el gancho `pre-push` lo retira el ADR 0021.
 - **Fecha**: 2026-09-12
 - **Hito**: transversal (workflow `hito` 1.6.0, antes de H2)
 

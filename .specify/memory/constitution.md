@@ -45,7 +45,7 @@ Nada se particulariza para un municipio: ninguna herramienta, dato versionado ni
 2. Orden: un hito se planifica de fuera adentro (qué debe resolver la skill, con sus evals → qué herramientas necesita) y se implementa de dentro afuera (`core` → adaptador → applet → skill).
 3. Gates automáticos: Constitution Check en el plan (una violación sin justificar es un rechazo del juez), checklists completas antes de implementar, suite de aceptación escrita primero y congelada, `make ci` verde antes de revisión, revisión de código y seguridad antes de la PR.
 4. La persona está en los extremos del run y en ningún punto intermedio (ADR 0018): escribe la entrada —la sección del hito en `docs/ROADMAP.md`— y lee el informe final antes de decidir. Entre medias, el workflow no pausa para nadie.
-5. La fusión a `main` y el release los decide siempre una persona; el agente los ejecuta solo a petición expresa en una sesión interactiva, con confirmación de cada orden, y nunca dentro de un run (ADR 0020). Empujar la rama del hito, abrir la propuesta de cambio y medir el cierre (CI y evals sobre la cabeza) lo hace el workflow después de la revisión final; un gancho `pre-push` rechaza `main`, los push forzados, los borrados y las etiquetas (ADR 0007).
+5. La fusión a `main` y el release los decide siempre una persona; el agente los ejecuta solo a petición expresa en una sesión interactiva, con confirmación de cada orden, y nunca dentro de un run (ADR 0020). Empujar la rama del hito, abrir la propuesta de cambio y medir el cierre (CI y evals sobre la cabeza) lo hace el workflow después de la revisión final; lo que el run no puede hacer lo impiden los permisos de `.claude/settings.json` y la protección de `main` en GitHub, sin gancho `pre-push` (ADR 0021).
 
 ## Gates: mecánico antes que juez, juez antes que humano
 
@@ -75,4 +75,4 @@ Se aplica en `clarify`, en los gates automáticos del workflow `hito` y en cualq
 
 Esta constitución prevalece sobre cualquier otra práctica. Toda PR se revisa contra ella. Enmiendas: cambio en este fichero + ADR que lo motive + actualización de `CLAUDE.md` si afecta a una decisión cerrada. Las decisiones listadas como cerradas en `CLAUDE.md` no se reabren en spec, plan ni clarify.
 
-**Version**: 2.2.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-27
+**Version**: 2.3.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-27

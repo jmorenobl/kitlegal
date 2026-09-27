@@ -11,7 +11,6 @@ Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de sp
 | Pasos shell | `scripts/workflow/*.sh` | La lógica determinista de cada paso: prechecks, rondas, guardián, verificación, cuarentena, aceptación congelada, grabación, cierre e informe |
 | Lanzador y supervisor | `scripts/hito.sh` | Comprueba `main` limpio y las credenciales, toma el candado de sesión única, impide el reposo del Mac y supervisa el run: espera ante límites de uso, reanuda fallos transitorios y solo se detiene ante una causa mayor o el rechazo de entrada |
 | Sesión única | `scripts/workflow/sesion-unica.sh` + gancho `PreToolUse` en `.claude/settings.json` | Mientras vive un run, ninguna otra sesión de Claude Code puede editar ni cambiar el historial de ese árbol |
-| Guardia de push | `scripts/lefthook/pre-push/guardia-push.sh` | Gancho `pre-push` de lefthook: rechaza `main`, push forzados, borrados y etiquetas, sea cual sea la orden |
 | Wrapper de modelo | `scripts/claude-modelo.sh` | Ejecutable de Claude para spec-kit: traduce `--model <modelo>@<esfuerzo>` a `--model` + `--effort` |
 | Coste por paso | `scripts/coste-run.sh` | Consumo y coste estimado de un run por paso y por rol, desde los transcripts |
 | Extensión git | `.specify/extensions/git/` | Rama `NNN-hN-slug` por hito |
@@ -42,7 +41,7 @@ extraer_hito (la sección del hito: la entrada de la persona)
 → informe_final (cuerpo de la propuesta de cambio)
 ```
 
-La fusión a `main` (squash-merge) y el release los decide siempre una persona; en una sesión interactiva, a petición suya, los ejecuta el agente con confirmación de cada orden (ADR 0020). El workflow deja la rama del hito commiteada, la empuja a `origin`, abre la propuesta de cambio y pone el informe como cuerpo. Nunca hace `merge`, ni push a `main`, ni push forzado: además de los permisos de `.claude/settings.json`, `scripts/lefthook/pre-push/guardia-push.sh` (instalado con `make hooks` o `lefthook install`) rechaza esas referencias aunque el YAML cambiara. Una persona lo salta con `KITLEGAL_PUSH_HUMANO=1` (etiquetas de release); esa orden es `ask` en `.claude/settings.json`, así que en headless no se ejecuta. Motivación en `docs/ADR/0007-workflow-desatendido.md` y `docs/ADR/0018-workflow-autonomo-persona-en-los-extremos.md`.
+La fusión a `main` (squash-merge) y el release los decide siempre una persona; en una sesión interactiva, a petición suya, los ejecuta el agente con confirmación de cada orden (ADR 0020). El workflow deja la rama del hito commiteada, la empuja a `origin`, abre la propuesta de cambio y pone el informe como cuerpo. Nunca hace `merge`, ni push a `main`, ni push forzado, ni etiqueta: lo impiden los permisos de `.claude/settings.json` (fusionar y empujar una etiqueta son `ask`, que en headless no se ejecuta; push a `main`, forzado y borrados, `deny`) y, en el servidor, la protección de `main` en GitHub (`ci` y `snapshot` en verde, sin push forzado ni borrado). Sin gancho `pre-push` (ADR 0021). Motivación en `docs/ADR/0007-workflow-desatendido.md` y `docs/ADR/0018-workflow-autonomo-persona-en-los-extremos.md`.
 
 ## Qué detiene el run
 

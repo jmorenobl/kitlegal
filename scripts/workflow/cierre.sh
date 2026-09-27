@@ -16,7 +16,7 @@
 # final del log de cada ejecución en rojo en gates/cierre.log. Solo cuentan las
 # comprobaciones con flujo de GitHub Actions: los estados de Codecov son
 # informativos (su «:x:» no es un rojo). Nunca fusiona, ni empuja a main, ni
-# fuerza: además de los permisos, lo impide scripts/lefthook/pre-push/guardia-push.sh.
+# fuerza: lo impiden los permisos de .claude/settings.json y la protección de main en GitHub (ADR 0021).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 . scripts/workflow/comun.sh
