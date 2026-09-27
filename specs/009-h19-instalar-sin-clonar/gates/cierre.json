@@ -1,0 +1,79 @@
+{
+  "sha": "aa9b62863d43fa67788e934305e7bdec4d708bfa",
+  "verde": false,
+  "fecha": "2026-09-27T04:00:51Z",
+  "checks": [
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/47",
+      "name": "codecov/project/internal/cli",
+      "startedAt": "2026-09-27T03:30:30Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/47",
+      "name": "codecov/project/internal/core",
+      "startedAt": "2026-09-27T03:30:30Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/47",
+      "name": "codecov/patch",
+      "startedAt": "2026-09-27T03:30:29Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/47",
+      "name": "codecov/project",
+      "startedAt": "2026-09-27T03:30:28Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "fail",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36291141634/job/108541351437",
+      "name": "evals (boe-legislacion)",
+      "startedAt": "2026-09-27T03:21:06Z",
+      "state": "FAILURE",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36291141634/job/108541351383",
+      "name": "evals (legal-core)",
+      "startedAt": "2026-09-27T03:21:06Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36291145585/job/108541349124",
+      "name": "cambios",
+      "startedAt": "2026-09-27T03:21:03Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36291141667/job/108541337608",
+      "name": "ci",
+      "startedAt": "2026-09-27T03:21:00Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36291141667/job/108541337508",
+      "name": "snapshot",
+      "startedAt": "2026-09-27T03:21:00Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    }
+  ]
+}

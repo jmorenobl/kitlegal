@@ -602,6 +602,21 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
   segunda forma se lee ahora como la primera; con argumentos, con otro resultado o con la marca dentro sigue siendo
   ilegible.
 
+*De H19 — instalar sin clonar:*
+
+- **La traza de una sesión con un hilo huérfano que muere en la parada de entrada se lee entera.** Cuando el binario
+  sale mientras su runtime crea un hilo, strace deja la `clone` sin terminar y, del hilo creado, un fichero sin la
+  línea que lo crea. La lectura ya lo admitía si solo tenía su línea final, pero no si el núcleo lo mataba en la
+  parada de entrada de una llamada que strace no llega a identificar, que deja `???()` seguido de espacios y `= ?`
+  (o `???( <unfinished ...>`): lo tomaba por un segundo fichero raíz, declaraba la sesión ilegible y el veredicto
+  del job fallaba aunque todas las series pasaran. Así ocurrió con una sesión del modelo que decide en la ejecución
+  `36291141634`, y una sonda lo reproduce (`specs/009-h19-instalar-sin-clonar/gates/cierre-traza-huerfana.md`).
+  Ese fichero es ahora un huérfano más: no pertenece a ningún proceso ni tiene nada que atribuir. La misma sonda
+  dejó la otra forma con la que strace escribe esa parada, `syscall_0x<número>(<seis argumentos crudos>` sin
+  terminar, cuando lee los registros del hilo pero el número no es de ninguna llamada que conozca, y se lee como la
+  llamada desconocida. Un fichero sin línea de creación con cualquier llamada del filtro sigue siendo ilegible,
+  también si la dejó sin terminar el fin del proceso.
+
 Ninguna orden del `Makefile` espera ya su contenido de un hito posterior: `release`, que fallaba hasta H19, construye
 el snapshot de la release. El binario que se publica registra **tres applets, `boe`, `skills` y `territorio`**: los de
 las demás fuentes (`placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.
