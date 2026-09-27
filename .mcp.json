@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gsc": {
+      "command": "uvx",
+      "args": ["--python", ">=3.11", "mcp-search-console"],
+      "env": {
+        "GSC_CREDENTIALS_PATH": "${HOME}/.config/kitlegal/gsc-service-account.json",
+        "GSC_SKIP_OAUTH": "true"
+      }
+    }
+  }
+}
