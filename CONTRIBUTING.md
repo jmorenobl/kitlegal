@@ -188,6 +188,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Análisis estático rápido | `make lint-fast` | no — es el del gancho de pre-commit |
 | Tests unitarios con detector de carreras y perfil de cobertura | `make test` | sí |
 | Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal) | `make test-integration` | sí |
+| Cotas de tiempo de los guiones e2e (`TestMedidasDeTiempo`: `boe articulo` desde la caché y `territorio resolver` por debajo de 200 ms), solas y sin la caché de resultados de `go test`, después de las dos anteriores, que la saltan: medir con el reloj mientras corren todos los paquetes mide la carga de la máquina, no el programa | `make test-tiempos` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
 | Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |

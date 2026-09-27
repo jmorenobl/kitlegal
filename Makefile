@@ -55,7 +55,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 
 .DEFAULT_GOAL := help
 
-.PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
+.PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
 	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check \
 	goreleaser-check release snapshot-check check-tools hooks ci help
 
@@ -73,13 +73,23 @@ install: check-tools
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
 	"$$(go list -f '{{.Target}}' ./cmd/kitlegal)" skills install -g --host claude
 
+# TestMedidasDeTiempo cronometra el binario con el reloj de pared: test y
+# test-integration la saltan, porque corren todos los paquetes a la vez, y
+# test-tiempos la ejecuta sola después, sin la caché de resultados de go test
+# (una medida guardada no mide la máquina en la que corre).
+MEDIDAS_DE_TIEMPO := ^TestMedidasDeTiempo$$
+
 ## test: tests unitarios con detector de carreras y perfil de cobertura
 test: check-tools
-	go test -race -shuffle=on -coverprofile=coverage.out ./...
+	go test -race -shuffle=on -coverprofile=coverage.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
 
 ## test-integration: tests con la etiqueta de compilación integration
 test-integration: check-tools
-	go test -race -tags=integration -coverprofile=coverage-integration.out ./...
+	go test -race -tags=integration -coverprofile=coverage-integration.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
+
+## test-tiempos: las cotas de tiempo de los guiones e2e, solas y sin nada más en marcha
+test-tiempos: check-tools
+	go test -race -count=1 -run '$(MEDIDAS_DE_TIEMPO)' ./internal/app/
 
 ## test-e2e: tests de extremo a extremo con testscript, contra el binario que construye el propio test
 test-e2e: check-tools
@@ -184,7 +194,7 @@ check-tools:
 	fi
 
 ## ci: el veredicto del repositorio; no modifica ningún fichero versionado
-ci: fmt-check lint test test-integration vuln schema-check skills-check goreleaser-check secrets mod-verify \
+ci: fmt-check lint test test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify \
 	mod-tidy-check
 	@echo "ci: todos los controles en verde"
 
