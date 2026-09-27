@@ -17,7 +17,7 @@ import (
 const (
 	fraseGlobalConDir     = "-g y --dir se excluyen"
 	fraseHostConDir       = "--host no se combina con --dir"
-	fraseHostNoAdmitido   = "el único host admitido es claude"
+	fraseHostNoAdmitido   = "los hosts admitidos son claude y antigravity"
 	fraseSkillDesconocida = "no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core"
 	fraseSinHome          = "HOME no está definido o está vacío"
 )
@@ -103,10 +103,21 @@ func TestValidarInvocacion(t *testing.T) {
 	t.Run("nombra el host que no se admite", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := instalacion.ValidarInvocacion(instalacion.Invocacion{Host: texto("codex")}, "", skillsDelBinario())
+		_, err := instalacion.ValidarInvocacion(instalacion.Invocacion{Hosts: []string{"codex"}}, "", skillsDelBinario())
 
 		exigirRechazo(t, err, schema.ClaseArgumentos, fraseHostNoAdmitido)
 		assert.Contains(t, err.Error(), `"codex"`)
+	})
+
+	t.Run("nombra solo el primer host que no se admite", func(t *testing.T) {
+		t.Parallel()
+
+		invocacion := instalacion.Invocacion{Hosts: []string{"claude", "codex", "antigravity", "gemini"}}
+		_, err := instalacion.ValidarInvocacion(invocacion, "", skillsDelBinario())
+
+		exigirRechazo(t, err, schema.ClaseArgumentos, fraseHostNoAdmitido)
+		assert.Contains(t, err.Error(), `"codex"`)
+		assert.NotContains(t, err.Error(), `"gemini"`, "solo el primero que no se admite")
 	})
 
 	t.Run("las disponibles en orden de nombre aunque lleguen en otro", func(t *testing.T) {
@@ -161,7 +172,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		},
 		{
 			nombre:     "-g con --dir y --host claude",
-			invocacion: instalacion.Invocacion{Global: true, Dir: texto("destino"), Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Dir: texto("destino"), Hosts: []string{"claude"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseGlobalConDir,
 		},
 		{
@@ -172,7 +183,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre: "-g con --dir, un host que no es claude y una skill desconocida, sin HOME",
 			invocacion: instalacion.Invocacion{
-				Global: true, Dir: texto("destino"), Host: texto("codex"), Skills: []string{"desconocida"},
+				Global: true, Dir: texto("destino"), Hosts: []string{"codex"}, Skills: []string{"desconocida"},
 			},
 			home: "", clase: schema.ClaseArgumentos, frase: fraseGlobalConDir,
 		},
@@ -180,51 +191,56 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		// Fila 2: --host con --dir, sea cual sea el host.
 		{
 			nombre:     "--host claude con --dir",
-			invocacion: instalacion.Invocacion{Host: texto("claude"), Dir: texto("destino")},
+			invocacion: instalacion.Invocacion{Hosts: []string{"claude"}, Dir: texto("destino")},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostConDir,
 		},
 		{
 			nombre:     "--host vacío con --dir",
-			invocacion: instalacion.Invocacion{Host: texto(""), Dir: texto(".agents/skills")},
+			invocacion: instalacion.Invocacion{Hosts: []string{""}, Dir: texto(".agents/skills")},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostConDir,
 		},
 		{
 			nombre: "--host que no es claude con --dir y una skill desconocida",
 			invocacion: instalacion.Invocacion{
-				Host: texto("codex"), Dir: texto("destino"), Skills: []string{"desconocida"},
+				Hosts: []string{"codex"}, Dir: texto("destino"), Skills: []string{"desconocida"},
 			},
 			home: home, clase: schema.ClaseArgumentos, frase: fraseHostConDir,
 		},
 
-		// Fila 3: --host con un valor distinto de claude.
+		// Fila 3: --host con un valor que no es el de ningún host conocido.
 		{
 			nombre:     "--host codex",
-			invocacion: instalacion.Invocacion{Host: texto("codex")},
+			invocacion: instalacion.Invocacion{Hosts: []string{"codex"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 		{
-			nombre:     "--host antigravity",
-			invocacion: instalacion.Invocacion{Host: texto("antigravity")},
+			nombre:     "--host gemini",
+			invocacion: instalacion.Invocacion{Hosts: []string{"gemini"}},
+			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
+		},
+		{
+			nombre:     "un --host conocido y otro que no",
+			invocacion: instalacion.Invocacion{Hosts: []string{"claude", "codex"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 		{
 			nombre:     "--host vacío",
-			invocacion: instalacion.Invocacion{Host: texto("")},
+			invocacion: instalacion.Invocacion{Hosts: []string{""}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 		{
 			nombre:     "--host Claude, con mayúscula",
-			invocacion: instalacion.Invocacion{Host: texto("Claude")},
+			invocacion: instalacion.Invocacion{Hosts: []string{"Claude"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 		{
 			nombre:     "--host que no es claude y una skill desconocida",
-			invocacion: instalacion.Invocacion{Host: texto("codex"), Skills: []string{"desconocida"}},
+			invocacion: instalacion.Invocacion{Hosts: []string{"codex"}, Skills: []string{"desconocida"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 		{
 			nombre:     "-g con un host que no es claude, sin HOME",
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("codex")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"codex"}},
 			home:       "", clase: schema.ClaseArgumentos, frase: fraseHostNoAdmitido,
 		},
 
@@ -262,7 +278,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre: "-g con --host claude y una skill desconocida, sin HOME",
 			invocacion: instalacion.Invocacion{
-				Global: true, Host: texto("claude"), Skills: []string{"legal-core", "desconocida"},
+				Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core", "desconocida"},
 			},
 			home: "", clase: schema.ClaseArgumentos, frase: fraseSkillDesconocida,
 		},
@@ -276,7 +292,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre: "-g con --host claude y skills empotradas, una repetida, sin HOME",
 			invocacion: instalacion.Invocacion{
-				Global: true, Host: texto("claude"), Skills: []string{"legal-core", "legal-core"},
+				Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core", "legal-core"},
 			},
 			home: "", clase: schema.ClaseConflicto, frase: fraseSinHome,
 		},
@@ -331,8 +347,23 @@ func probarInvocacionesValidas(t *testing.T) {
 		},
 		{
 			nombre:     "--host claude",
-			invocacion: instalacion.Invocacion{Host: texto("claude")},
-			esperado:   instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: todas, HostClaude: true},
+			invocacion: instalacion.Invocacion{Hosts: []string{"claude"}},
+			esperado:   instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: todas, Hosts: []string{"claude"}},
+		},
+		{
+			nombre:     "--host antigravity en local: se admite aunque el ámbito no lo tenga",
+			invocacion: instalacion.Invocacion{Hosts: []string{"antigravity"}},
+			esperado: instalacion.Pedido{
+				Ambito: instalacion.NuevoAmbitoLocal(), Skills: todas, Hosts: []string{"antigravity"},
+			},
+		},
+		{
+			nombre:     "--host repetido y desordenado: en el orden de los hosts y una vez",
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"antigravity", "claude", "antigravity"}},
+			home:       "/home/ana",
+			esperado: instalacion.Pedido{
+				Ambito: ambitoGlobal(t, "/home/ana"), Skills: todas, Hosts: []string{"claude", "antigravity"},
+			},
 		},
 		{
 			nombre:     "-g con HOME",
@@ -342,10 +373,10 @@ func probarInvocacionesValidas(t *testing.T) {
 		},
 		{
 			nombre:     "-g con --host claude, una skill y HOME con barra final",
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude"), Skills: []string{"legal-core"}},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core"}},
 			home:       "/home/ana/",
 			esperado: instalacion.Pedido{
-				Ambito: ambitoGlobal(t, "/home/ana"), Skills: []string{"legal-core"}, HostClaude: true,
+				Ambito: ambitoGlobal(t, "/home/ana"), Skills: []string{"legal-core"}, Hosts: []string{"claude"},
 			},
 		},
 		{

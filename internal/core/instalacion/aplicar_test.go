@@ -124,7 +124,7 @@ func escenariosDeAplicar() []escenarioDeAplicar {
 		{
 			nombre:     "instalación nueva con -g, --host claude y un HOME que no existe",
 			preparar:   func(*discoEnMemoria) {},
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}},
 		},
 		{
 			nombre: "actualización desde otro binario, con un fichero declarado que falta",
@@ -302,12 +302,12 @@ func probarCopiaAlAplicar(t *testing.T) {
 
 	manifiesto := leerManifiestoDelDisco(t, d)
 
-	copia := manifiesto.Skills["boe-legislacion"].Claude
+	copia := entradaDe(manifiesto.Skills["boe-legislacion"], "claude")
 	require.NotNil(t, copia)
 	assert.Equal(t, instalacion.ModoCopia, copia.Modo)
 	assert.Equal(t, huellasEmpotradas(t, "boe-legislacion", ".claude/skills/boe-legislacion/"), copia.Ficheros)
 
-	enlace := manifiesto.Skills["legal-core"].Claude
+	enlace := entradaDe(manifiesto.Skills["legal-core"], "claude")
 	require.NotNil(t, enlace)
 	assert.Equal(t, instalacion.ModoEnlace, enlace.Modo)
 }

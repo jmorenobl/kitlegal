@@ -32,9 +32,10 @@ type casoDeAmbitoIlegible struct {
 // casosDeAmbitoIlegible son los de las tres primeras filas de data-model
 // §4.1, que list y doctor comprueban igual que install: una guarda del ámbito
 // que no es un directorio real, un manifiesto ilegible —también un
-// kitlegal.json que es un enlace, aunque apunte a un manifiesto válido— y, con
-// --dir, un manifiesto con entradas de host. Con cualquiera de ellos no se
-// sabe qué es de quién y no se examina ninguna skill.
+// kitlegal.json que es un enlace, aunque apunte a un manifiesto válido— y un
+// manifiesto con entradas de un host que el ámbito no tiene: cualquiera con
+// --dir y antigravity en local (ADR 0025). Con cualquiera de ellos no se sabe
+// qué es de quién y no se examina ninguna skill.
 func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 	instaladas := func(d *discoEnMemoria) {
 		instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
@@ -117,6 +118,17 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 			invocacion:   instalacion.Invocacion{Dir: texto(".agents/skills")},
 			motivo:       conflicto(conEntradasDeHost, ".agents/skills/kitlegal.json"),
 			noExaminadas: sinExaminar,
+		},
+		{
+			nombre: "local con una entrada de antigravity, que solo tiene el global",
+			preparar: func(d *discoEnMemoria) {
+				i := instalarLocal(d, "legal-core")
+				i.manifiesto.Skills["legal-core"] = conEntrada(i.manifiesto.Skills["legal-core"], "antigravity",
+					instalacion.EntradaDeHost{Ruta: ".gemini/config/skills/legal-core", Modo: instalacion.ModoEnlace})
+				i.escribir()
+			},
+			motivo:       conflicto(conEntradasDeHost, ".agents/skills/kitlegal.json"),
+			noExaminadas: []string{".agents/skills/legal-core", ".gemini"},
 		},
 		{
 			nombre: "-g con $HOME/.agents enlazado desde un repositorio de dotfiles",
@@ -335,6 +347,25 @@ func casosDeListado(t *testing.T) []casoDeListado {
 				listadaEn(deHome, "legal-core", versionDePrueba, true, instalacion.ModoEnlace)),
 		},
 		{
+			nombre: "-g: una skill en los dos hosts, claude primero",
+			preparar: func(d *discoEnMemoria) {
+				instalarEn(d, deHome, "legal-core").copiarEn("antigravity", "legal-core").
+					enlazarEn("claude", "legal-core").escribir()
+			},
+			invocacion: global,
+			esperado: listadoDe(deHome, versionDePrueba, instalacion.SkillListada{
+				Nombre:    "legal-core",
+				Ruta:      deHome.RutaDeSkill("legal-core"),
+				Version:   versionDePrueba,
+				Empotrada: true,
+				Enlaces: []instalacion.Enlace{
+					{Host: "claude", Ruta: deHome.RutaDeHost("claude", "legal-core"), Modo: instalacion.ModoEnlace},
+					{Host: "antigravity", Ruta: deHome.RutaDeHost("antigravity", "legal-core"), Modo: instalacion.ModoCopia},
+				},
+			}),
+			noExaminadas: []string{homeDePrueba + "/.claude", homeDePrueba + "/.gemini"},
+		},
+		{
 			nombre:     "-g con un HOME que no existe",
 			preparar:   func(*discoEnMemoria) {},
 			invocacion: global,
@@ -381,7 +412,7 @@ func listadaEn(
 ) instalacion.SkillListada {
 	enlaces := []instalacion.Enlace{}
 	for _, modo := range modos {
-		enlaces = append(enlaces, instalacion.Enlace{Host: "claude", Ruta: ambito.RutaDeHost(nombre), Modo: modo})
+		enlaces = append(enlaces, instalacion.Enlace{Host: "claude", Ruta: ambito.RutaDeHost("claude", nombre), Modo: modo})
 	}
 
 	return instalacion.SkillListada{

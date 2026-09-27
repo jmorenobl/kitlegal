@@ -10,6 +10,23 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-27 · Un botón de «instalar» para quien no usa la terminal
+
+- **Qué se pidió.** Si se puede instalar kitlegal con un clic en las apps de escritorio —Claude, Codex, Antigravity,
+  Gemini—, sin `curl` ni `kitlegal skills install`, para alguien no técnico.
+- **Qué falló.** Al revisar qué lee cada agente salieron tres cosas de lo ya publicado: `kitlegal skills install -g`
+  no llegaba a Antigravity, que en global lee `~/.gemini/config/skills/` y no `~/.agents/skills/` (comprobado con
+  `agy` 1.2.10); el README prometía Claude Cowork, que carga las skills de la cuenta y no las del disco; y Codex
+  ejecuta `kitlegal` sin red, así que pide permiso en cada consulta al BOE.
+- **Qué faltó.** No hay botón universal. Todos los «un clic» que existen instalan servidores MCP (`.mcpb` de Claude
+  Desktop, enlaces de VS Code y Cursor) o plugins desde un marketplace (Claude: *Customize > Plugins*, que se sincroniza
+  con Cowork y Claude Code; Codex: `codex://plugins/install/…` con el marketplace ya añadido), y para llevar el
+  binario hay que empaquetarlo por plataforma (falta comprobar si macOS exige firmarlo y notarizarlo dentro de un
+  `.mcpb`). La vía es `kitlegal mcp serve` más un plugin, del backlog de distribución. La app Gemini no
+  ofrece skills en el Espacio Económico Europeo, y Gemini CLI se retiró para particulares en favor de Antigravity.
+- **Qué se hizo.** Decisión de Jorge: por ahora, `curl … | sh` y `kitlegal skills install`. Se arregla lo que falló:
+  host `antigravity` para `-g` (ADR 0025), el README deja de prometer Cowork y explica la regla de Codex.
+
 ### 2026-09-20 · Instalarlo en otro proyecto, sin clonar, y actualizarlo con cada versión
 
 - **Qué se pidió.** Cómo instalar kitlegal para usarlo en cualquier proyecto —en Claude Code, Codex o Antigravity— y

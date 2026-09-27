@@ -65,7 +65,7 @@ type casoDeConflictos struct {
 
 // Invocaciones de install que repiten las filas.
 var (
-	conHost = instalacion.Invocacion{Host: texto("claude")}
+	conHost = instalacion.Invocacion{Hosts: []string{"claude"}}
 	global  = instalacion.Invocacion{Global: true}
 )
 
@@ -391,7 +391,7 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 		{
 			nombre:     "con -g, .claude es el de HOME",
 			preparar:   func(d *discoEnMemoria) { d.fichero(homeDePrueba+"/.claude", "no soy un directorio") },
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}},
 			esperados:  []instalacion.Conflicto{conflicto(noEsDirectorio, homeDePrueba+"/.claude")},
 		},
 	}
@@ -908,7 +908,7 @@ func casosQueNoSeTocan() []casoDeConflictos {
 				i.manifiesto.Skills["otra-skill"] = instalacion.SkillDeclarada{
 					Version:  "v0.0.9",
 					Ficheros: map[string]string{"otra-skill/SKILL.md": instalacion.HuellaDe([]byte("# otra\n"))},
-					Claude:   &instalacion.EntradaDeHost{Ruta: ".claude/skills/otra-skill", Modo: instalacion.ModoEnlace},
+					Hosts:    enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/otra-skill", Modo: instalacion.ModoEnlace}),
 				}
 				i.escribir()
 				d.enlace(".agents/skills/otra-skill", "../../no-existe")
@@ -1235,7 +1235,7 @@ func exigirHostsEnElDisco(t *testing.T, d *discoEnMemoria, skills []instalacion.
 
 			switch enlace.Modo {
 			case instalacion.ModoEnlace:
-				assert.Equal(t, enlaceEnMemoria("../../.agents/skills/"+skill.Nombre, true), entrada,
+				assert.Equal(t, enlaceEnMemoria(subidaDelHostDePrueba[enlace.Host]+skill.Nombre, true), entrada,
 					"%s, el enlace de FR-021", enlace.Ruta)
 			case instalacion.ModoCopia:
 				assert.Equal(t, instalacion.EntradaDirectorio, entrada.Tipo, "%s, una copia", enlace.Ruta)
@@ -1283,7 +1283,7 @@ func salidaEn(
 ) instalacion.SkillInstalada {
 	enlaces := []instalacion.Enlace{}
 	for _, modo := range modos {
-		enlaces = append(enlaces, instalacion.Enlace{Host: "claude", Ruta: ambito.RutaDeHost(nombre), Modo: modo})
+		enlaces = append(enlaces, instalacion.Enlace{Host: "claude", Ruta: ambito.RutaDeHost("claude", nombre), Modo: modo})
 	}
 
 	return instalacion.SkillInstalada{Nombre: nombre, Ruta: ambito.RutaDeSkill(nombre), Estado: estado, Enlaces: enlaces}
@@ -1343,7 +1343,7 @@ func enlazarLasDos(ambito instalacion.Ambito, faltan ...string) []string {
 	}
 
 	for _, nombre := range []string{"boe-legislacion", "legal-core"} {
-		operaciones = append(operaciones, "2 enlazar "+ambito.RutaDeHost(nombre)+" -> ../../.agents/skills/"+nombre)
+		operaciones = append(operaciones, "2 enlazar "+ambito.RutaDeHost("claude", nombre)+" -> ../../.agents/skills/"+nombre)
 	}
 
 	return operaciones
@@ -1357,8 +1357,8 @@ func lasDosEn(ambito instalacion.Ambito) []string {
 
 func lasDosConCopia(ambito instalacion.Ambito) []string {
 	return []string{
-		ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeHost("boe-legislacion"),
-		ambito.RutaDeSkill("legal-core"), ambito.RutaDeHost("legal-core"),
+		ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeHost("claude", "boe-legislacion"),
+		ambito.RutaDeSkill("legal-core"), ambito.RutaDeHost("claude", "legal-core"),
 	}
 }
 
@@ -1382,7 +1382,7 @@ func casosDeInstalacionNueva(t *testing.T) []casoDePlan {
 				manifiesto := leerManifiestoDelDisco(t, d)
 				assert.Equal(t, versionDePrueba, manifiesto.Version)
 				assert.Equal(t, huellasEmpotradas(t, "legal-core", "legal-core/"), manifiesto.Skills["legal-core"].Ficheros)
-				assert.Nil(t, manifiesto.Skills["legal-core"].Claude, "sin hosts")
+				assert.Empty(t, manifiesto.Skills["legal-core"].Hosts, "sin hosts")
 			},
 		},
 		{
@@ -1428,7 +1428,7 @@ func casosDeInstalacionNueva(t *testing.T) []casoDePlan {
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
-				copia := leerManifiestoDelDisco(t, d).Skills["legal-core"].Claude
+				copia := entradaDe(leerManifiestoDelDisco(t, d).Skills["legal-core"], "claude")
 				require.NotNil(t, copia)
 				assert.Equal(t, instalacion.ModoCopia, copia.Modo)
 				assert.Equal(t, huellasEmpotradas(t, "legal-core", ".claude/skills/legal-core/"), copia.Ficheros,
@@ -1446,7 +1446,7 @@ func casosDeAmbitosDelPlan(t *testing.T) []casoDePlan {
 
 	deHome := ambitoGlobal(t, homeDePrueba)
 	dir := instalacion.NuevoAmbitoDir("otro/destino/")
-	conHostGlobal := instalacion.Invocacion{Global: true, Host: texto("claude")}
+	conHostGlobal := instalacion.Invocacion{Global: true, Hosts: []string{"claude"}}
 	nuevo := manifiestoNuevo(deHome, homeDePrueba+"/.agents", homeDePrueba+"/.agents/skills")
 
 	return []casoDePlan{
@@ -1577,7 +1577,7 @@ func casosDelPlanQueNoSeTocan(t *testing.T) []casoDePlan {
 	otraSkill := instalacion.SkillDeclarada{
 		Version:  versionVieja,
 		Ficheros: map[string]string{"otra-skill/SKILL.md": instalacion.HuellaDe([]byte("# otra\n"))},
-		Claude:   &instalacion.EntradaDeHost{Ruta: ".claude/skills/otra-skill", Modo: instalacion.ModoEnlace},
+		Hosts:    enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/otra-skill", Modo: instalacion.ModoEnlace}),
 	}
 
 	return []casoDePlan{
@@ -1674,7 +1674,7 @@ func casosDelPlanDelHost(t *testing.T) []casoDePlan {
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
-				assert.Nil(t, leerManifiestoDelDisco(t, d).Skills["legal-core"].Claude)
+				assert.Nil(t, entradaDe(leerManifiestoDelDisco(t, d).Skills["legal-core"], "claude"))
 			},
 		},
 		{
@@ -1812,7 +1812,7 @@ func casosConEnlacesSoloFueraDelAmbito(t *testing.T) []casoDePlan {
 		{
 			nombre:     "-g con --host claude y sin .claude",
 			preparar:   func(d *discoEnMemoria) { d.directorio(homeDePrueba) },
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}},
 			admite:     admiteFueraDe(homeDePrueba),
 			skills:     lasDos(deHome, instalacion.EstadoInstalada, instalacion.ModoCopia),
 			operaciones: slices.Concat([]string{"2 crear " + homeDePrueba + "/.claude", "2 crear " + homeDePrueba + "/.claude/skills"},
@@ -1872,7 +1872,7 @@ func probarRecursoDeCopia(t *testing.T) {
 
 	manifiesto := leerManifiestoDelDisco(t, d)
 	for _, nombre := range enCopia {
-		host := manifiesto.Skills[nombre].Claude
+		host := entradaDe(manifiesto.Skills[nombre], "claude")
 		require.NotNil(t, host)
 		assert.Equal(t, instalacion.ModoCopia, host.Modo)
 		assert.Equal(t, huellasEmpotradas(t, nombre, ".claude/skills/"+nombre+"/"), host.Ficheros)
@@ -1943,12 +1943,12 @@ func probarFallosAlPlanificar(t *testing.T) {
 		{
 			nombre:     "HOME, con -g",
 			preparar:   func(d *discoEnMemoria) { d.fallar(opExaminar, homeDePrueba, errInyectado) },
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}},
 		},
 		{
 			nombre:     "lo que hay por encima de un HOME que no existe",
 			preparar:   func(d *discoEnMemoria) { d.fallar(opExaminar, "/home", errInyectado) },
-			invocacion: instalacion.Invocacion{Global: true, Host: texto("claude")},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}},
 		},
 		{
 			nombre:     "lo que hay por encima de --dir",
@@ -2016,7 +2016,7 @@ func probarSalidaDeInstall(t *testing.T) {
 	etiquetas := map[string]string{
 		"Estado": enumerado(string(instalacion.EstadoInstalada), string(instalacion.EstadoActualizada),
 			string(instalacion.EstadoSinCambios)),
-		"Host": enumerado("claude"),
+		"Host": enumerado(instalacion.HostsConocidos()...),
 		"Modo": enumerado(string(instalacion.ModoEnlace), string(instalacion.ModoCopia)),
 	}
 

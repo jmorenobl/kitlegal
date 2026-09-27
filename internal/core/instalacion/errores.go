@@ -57,10 +57,21 @@ func hostConDir() error {
 		"sin ningún host")
 }
 
-// hostNoAdmitido es la fila 3: --host con un valor distinto de claude
-// (FR-020), que nombra con %q.
+// hostNoAdmitido es la fila 3: --host con un valor que no es el de ningún
+// host conocido (FR-020; ADR 0025), que nombra con %q junto a los admitidos.
 func hostNoAdmitido(host string) error {
-	return argumentosInvalidos(fmt.Sprintf("el host %q no se admite: el único host admitido es %s", host, hostClaude))
+	return argumentosInvalidos(fmt.Sprintf("el host %q no se admite: los hosts admitidos son %s", host,
+		enumeracion(nombresDeHosts())))
+}
+
+// enumeracion es la de nombres en castellano: separados por comas y el último
+// por «y».
+func enumeracion(nombres []string) string {
+	if len(nombres) < 2 {
+		return strings.Join(nombres, "")
+	}
+
+	return strings.Join(nombres[:len(nombres)-1], ", ") + " y " + nombres[len(nombres)-1]
 }
 
 // skillDesconocida es la fila 4: nombre, con %q, no es el de ninguna skill
@@ -143,8 +154,9 @@ const (
 	ConflictoRutaQueNoEsDirectorio ClaseDeConflicto = "ruta que no es directorio"
 	// ConflictoManifiestoIlegible (h) es el manifiesto ilegible de FR-035.
 	ConflictoManifiestoIlegible ClaseDeConflicto = "manifiesto ilegible"
-	// ConflictoManifiestoConEntradasDeHost (i) es, con --dir, un manifiesto
-	// que declara alguna entrada de host (FR-013).
+	// ConflictoManifiestoConEntradasDeHost (i) es un manifiesto que declara
+	// alguna entrada de un host que el ámbito no tiene: cualquiera con --dir
+	// (FR-013) y antigravity en local (ADR 0025).
 	ConflictoManifiestoConEntradasDeHost ClaseDeConflicto = "manifiesto con entradas de host"
 )
 

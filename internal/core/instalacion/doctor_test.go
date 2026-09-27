@@ -152,12 +152,14 @@ type grupoDeDoctor struct {
 
 // gruposDeDoctor son las filas de TestHallazgos: una por cada clase de
 // hallazgo de data-model §6, en el directorio neutro, dentro de una skill, en
-// el host claude y en una copia de host, y por cada regla de las versiones.
+// los hosts claude y antigravity y en una copia de host, y por cada regla de
+// las versiones.
 func gruposDeDoctor() []grupoDeDoctor {
 	return []grupoDeDoctor{
 		{nombre: "directorio neutro", casos: casosDoctorDelNeutro()},
 		{nombre: "dentro de una skill", casos: casosDoctorDentroDeUnaSkill()},
 		{nombre: "host claude", casos: casosDoctorDelHost()},
+		{nombre: "host antigravity", casos: casosDoctorDeAntigravity()},
 		{nombre: "copia de host", casos: casosDoctorDeLaCopia()},
 		{nombre: "versiones", casos: casosDoctorDeLasVersiones()},
 	}

@@ -852,35 +852,95 @@ func instalarLocal(d *discoEnMemoria, nombres ...string) *instalada {
 	return instalarEn(d, instalacion.NuevoAmbitoLocal(), nombres...)
 }
 
-// enlazar deja la entrada de host de la skill nombre como el enlace de FR-021
-// y la declara en modo enlace.
-func (i *instalada) enlazar(nombre string) *instalada {
-	i.disco.enlace(i.ambito.RutaDeHost(nombre), "../../.agents/skills/"+nombre)
+// El directorio de skills de cada host, relativo a la raíz del ámbito, y el
+// destino de su enlace hasta el directorio neutro (ADR 0025).
+var (
+	skillsDelHostDePrueba = map[string]string{
+		"claude":      ".claude/skills",
+		"antigravity": ".gemini/config/skills",
+	}
+	subidaDelHostDePrueba = map[string]string{
+		"claude":      "../../.agents/skills/",
+		"antigravity": "../../../.agents/skills/",
+	}
+)
 
-	skill := i.manifiesto.Skills[nombre]
-	skill.Claude = &instalacion.EntradaDeHost{Ruta: ".claude/skills/" + nombre, Modo: instalacion.ModoEnlace}
-	i.manifiesto.Skills[nombre] = skill
+// entradaDe es la entrada de la skill declarada en el host, o nil si no tiene.
+func entradaDe(skill instalacion.SkillDeclarada, host string) *instalacion.EntradaDeHost {
+	entrada, hay := skill.Hosts[host]
+	if !hay {
+		return nil
+	}
+
+	return &entrada
+}
+
+// conEntrada es skill con entrada en el host, en un mapa de hosts nuevo.
+func conEntrada(skill instalacion.SkillDeclarada, host string, entrada instalacion.EntradaDeHost) instalacion.SkillDeclarada {
+	hosts := maps.Clone(skill.Hosts)
+	if hosts == nil {
+		hosts = map[string]instalacion.EntradaDeHost{}
+	}
+
+	hosts[host] = entrada
+	skill.Hosts = hosts
+
+	return skill
+}
+
+// cambiarEnClaude aplica cambio a la entrada en claude de la skill del
+// manifiesto, que tiene que tenerla, y la deja en su sitio.
+func cambiarEnClaude(m *instalacion.Manifiesto, skill string, cambio func(*instalacion.EntradaDeHost)) {
+	entrada := m.Skills[skill].Hosts["claude"]
+	cambio(&entrada)
+	m.Skills[skill].Hosts["claude"] = entrada
+}
+
+// enClaude son las entradas de host de una skill que solo tiene la de claude.
+func enClaude(entrada instalacion.EntradaDeHost) map[string]instalacion.EntradaDeHost {
+	return map[string]instalacion.EntradaDeHost{"claude": entrada}
+}
+
+// enlazar es enlazarEn en el host claude.
+func (i *instalada) enlazar(nombre string) *instalada {
+	return i.enlazarEn("claude", nombre)
+}
+
+// enlazarEn deja la entrada de la skill nombre en el host como el enlace de
+// FR-021 y la declara en modo enlace.
+func (i *instalada) enlazarEn(host, nombre string) *instalada {
+	i.disco.enlace(i.ambito.RutaDeHost(host, nombre), subidaDelHostDePrueba[host]+nombre)
+
+	i.manifiesto.Skills[nombre] = conEntrada(i.manifiesto.Skills[nombre], host, instalacion.EntradaDeHost{
+		Ruta: skillsDelHostDePrueba[host] + "/" + nombre,
+		Modo: instalacion.ModoEnlace,
+	})
 
 	return i
 }
 
-// copiar deja la entrada de host de la skill nombre como la copia de FR-024,
-// con los ficheros empotrados, y la declara en modo copia con sus huellas.
+// copiar es copiarEn en el host claude.
 func (i *instalada) copiar(nombre string) *instalada {
+	return i.copiarEn("claude", nombre)
+}
+
+// copiarEn deja la entrada de la skill nombre en el host como la copia de
+// FR-024, con los ficheros empotrados, y la declara en modo copia con sus
+// huellas.
+func (i *instalada) copiarEn(host, nombre string) *instalada {
 	ficheros := map[string]string{}
+	ruta := skillsDelHostDePrueba[host] + "/" + nombre
 
 	for _, fichero := range empotradaDePrueba(i.disco.t, nombre).Ficheros {
-		i.disco.fichero(path.Join(i.ambito.RutaDeHost(nombre), fichero.Ruta), string(fichero.Contenido))
-		ficheros[".claude/skills/"+nombre+"/"+fichero.Ruta] = fichero.Huella
+		i.disco.fichero(path.Join(i.ambito.RutaDeHost(host, nombre), fichero.Ruta), string(fichero.Contenido))
+		ficheros[ruta+"/"+fichero.Ruta] = fichero.Huella
 	}
 
-	skill := i.manifiesto.Skills[nombre]
-	skill.Claude = &instalacion.EntradaDeHost{
-		Ruta:     ".claude/skills/" + nombre,
+	i.manifiesto.Skills[nombre] = conEntrada(i.manifiesto.Skills[nombre], host, instalacion.EntradaDeHost{
+		Ruta:     ruta,
 		Modo:     instalacion.ModoCopia,
 		Ficheros: ficheros,
-	}
-	i.manifiesto.Skills[nombre] = skill
+	})
 
 	return i
 }
@@ -894,13 +954,13 @@ func (i *instalada) declarar(nombre, ruta, contenido string) *instalada {
 }
 
 // olvidar retira del manifiesto la declaración de ruta en la skill nombre o
-// en su copia de host, sin tocar el disco.
+// en sus copias de host, sin tocar el disco.
 func (i *instalada) olvidar(nombre, ruta string) *instalada {
 	skill := i.manifiesto.Skills[nombre]
 	delete(skill.Ficheros, ruta)
 
-	if skill.Claude != nil {
-		delete(skill.Claude.Ficheros, ruta)
+	for _, entrada := range skill.Hosts {
+		delete(entrada.Ficheros, ruta)
 	}
 
 	return i
@@ -939,7 +999,7 @@ func (i *instalada) noEmpotrada(nombre, version string) *instalada {
 	i.manifiesto.Skills[nombre] = instalacion.SkillDeclarada{
 		Version:  version,
 		Ficheros: map[string]string{nombre + "/SKILL.md": instalacion.HuellaDe([]byte(contenido))},
-		Claude:   &instalacion.EntradaDeHost{Ruta: ".claude/skills/" + nombre, Modo: instalacion.ModoEnlace},
+		Hosts:    enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/" + nombre, Modo: instalacion.ModoEnlace}),
 	}
 
 	return i
@@ -956,10 +1016,10 @@ func (i *instalada) deOtroBinario(nombre, rel, contenido string) *instalada {
 }
 
 // copiaDeOtroBinario hace lo mismo que deOtroBinario en la copia de host de la
-// skill nombre, que tiene que estar declarada.
+// skill nombre en claude, que tiene que estar declarada.
 func (i *instalada) copiaDeOtroBinario(nombre, rel, contenido string) *instalada {
-	i.disco.fichero(path.Join(i.ambito.RutaDeHost(nombre), rel), contenido)
-	i.manifiesto.Skills[nombre].Claude.Ficheros[".claude/skills/"+nombre+"/"+rel] = instalacion.HuellaDe([]byte(contenido))
+	i.disco.fichero(path.Join(i.ambito.RutaDeHost("claude", nombre), rel), contenido)
+	i.manifiesto.Skills[nombre].Hosts["claude"].Ficheros[".claude/skills/"+nombre+"/"+rel] = instalacion.HuellaDe([]byte(contenido))
 
 	return i
 }

@@ -15,7 +15,7 @@ import (
 // Manifiesto es kitlegal.json, el único de cada ámbito, en la raíz de su
 // directorio neutro (FR-030, FR-031; contracts/manifiesto.md): la versión del
 // binario que lo escribió por última vez y cada skill declarada, con sus
-// ficheros y su entrada de host. No lleva rutas absolutas, fechas, usuarios ni
+// ficheros y sus entradas de host. No lleva rutas absolutas, fechas, usuarios ni
 // máquinas, así que se versiona con el proyecto (FR-032).
 type Manifiesto struct {
 	// Version es la del binario que lo escribió por última vez.
@@ -35,15 +35,18 @@ type SkillDeclarada struct {
 	// empieza por el nombre de la skill y una barra, → huella de sus bytes.
 	Ficheros map[string]string
 
-	// Claude es su entrada en el host claude, o nil si no tiene.
-	Claude *EntradaDeHost
+	// Hosts son sus entradas de host, por nombre del host; sin ninguna, nil o
+	// vacío, que el manifiesto no distingue.
+	Hosts map[string]EntradaDeHost
 }
 
 // EntradaDeHost es la entrada de una skill en el directorio de skills de un
-// host, <raíz del ámbito>/.claude/skills/<skill> (FR-021, FR-024).
+// host, <raíz del ámbito>/<directorio de skills del host>/<skill> (FR-021,
+// FR-024; ADR 0025).
 type EntradaDeHost struct {
 	// Ruta es la de la entrada relativa a la raíz del ámbito, exactamente
-	// .claude/skills/<skill>.
+	// .claude/skills/<skill> en claude y .gemini/config/skills/<skill> en
+	// antigravity.
 	Ruta string
 
 	// Modo dice si la entrada es un enlace o una copia.
@@ -66,9 +69,6 @@ const (
 	ModoCopia Modo = "copia"
 )
 
-// hostClaude es la única clave admitida en hosts (FR-020).
-const hostClaude = "claude"
-
 // LeerManifiesto lee el contenido de un kitlegal.json y lo devuelve si respeta
 // la forma de contracts/manifiesto.md §1. Si no, devuelve un
 // *ManifiestoIlegible y un Manifiesto vacío (§3, reglas 3 y 4; FR-035):
@@ -81,8 +81,9 @@ const hostClaude = "claude"
 //     ficheros de una entrada de host van solo, y siempre, en copia;
 //  3. y cada valor cumple su regla: versiones no vacías y sin caracteres de
 //     control; nombres de skill con su forma; rutas relativas, limpias y con
-//     /, bajo el directorio de su skill o de su copia; huellas sha256; la
-//     única clave de hosts, claude, con la ruta de FR-021 y un modo conocido.
+//     /, bajo el directorio de su skill o de su copia; huellas sha256; y las
+//     claves de hosts, cada una la de un host conocido, con la ruta de FR-021
+//     de ese host y un modo conocido (ADR 0025).
 //
 // Que exista, sea un fichero regular y se pueda leer lo comprueba quien lo
 // lee del disco, que solo pasa aquí sus bytes.
@@ -190,8 +191,12 @@ func (d documentoDelManifiesto) manifiesto() Manifiesto {
 	for nombre, entrada := range d.Skills {
 		skill := SkillDeclarada{Version: entrada.Version, Ficheros: entrada.Ficheros}
 
-		if host, hay := entrada.Hosts[hostClaude]; hay {
-			skill.Claude = &EntradaDeHost{Ruta: host.Ruta, Modo: Modo(host.Modo), Ficheros: host.Ficheros}
+		for nombreDelHost, host := range entrada.Hosts {
+			if skill.Hosts == nil {
+				skill.Hosts = map[string]EntradaDeHost{}
+			}
+
+			skill.Hosts[nombreDelHost] = EntradaDeHost{Ruta: host.Ruta, Modo: Modo(host.Modo), Ficheros: host.Ficheros}
 		}
 
 		skills[nombre] = skill
@@ -201,23 +206,27 @@ func (d documentoDelManifiesto) manifiesto() Manifiesto {
 }
 
 // documentoDe es la forma JSON de m tal como se escribe: skills y los ficheros
-// de cada skill van siempre, aunque estén vacíos; hosts, solo con una entrada
-// de host; y los ficheros de esa entrada van en copia aunque estén vacíos y
-// faltan en enlace si no tiene ninguno, de modo que un enlace con ficheros
-// llega a la comprobación y no se escribe.
+// de cada skill van siempre, aunque estén vacíos; hosts, solo con alguna
+// entrada de host; y los ficheros de cada entrada van en copia aunque estén
+// vacíos y faltan en enlace si no tiene ninguno, de modo que un enlace con
+// ficheros llega a la comprobación y no se escribe.
 func documentoDe(m Manifiesto) documentoDelManifiesto {
 	skills := make(objeto[documentoDeSkill], len(m.Skills))
 
 	for nombre, skill := range m.Skills {
 		entrada := documentoDeSkill{Version: skill.Version, Ficheros: presente(skill.Ficheros)}
 
-		if host := skill.Claude; host != nil {
+		for nombreDelHost, host := range skill.Hosts {
 			documento := documentoDeHost{Modo: string(host.Modo), Ruta: host.Ruta}
 			if host.Modo == ModoCopia || len(host.Ficheros) > 0 {
 				documento.Ficheros = presente(host.Ficheros)
 			}
 
-			entrada.Hosts = objeto[documentoDeHost]{hostClaude: documento}
+			if entrada.Hosts == nil {
+				entrada.Hosts = objeto[documentoDeHost]{}
+			}
+
+			entrada.Hosts[nombreDelHost] = documento
 		}
 
 		skills[nombre] = entrada
@@ -273,7 +282,7 @@ func comprobarVersion(version string) error {
 }
 
 // comprobarSkill aplica las reglas de la entrada de la skill nombre: su
-// nombre, su versión, sus ficheros y, si tiene, su entrada de host.
+// nombre, su versión, sus ficheros y, si tiene, sus entradas de host.
 func comprobarSkill(nombre string, entrada documentoDeSkill) error {
 	if !esNombreDeSkill(nombre) {
 		return fmt.Errorf("el nombre no tiene la forma de un nombre de skill: a-z, 0-9 y -, sin guion al "+
@@ -300,23 +309,26 @@ func comprobarSkill(nombre string, entrada documentoDeSkill) error {
 		return errors.New("hosts no tiene ninguna entrada: sin entradas se omite")
 	}
 
-	for _, host := range slices.Sorted(maps.Keys(entrada.Hosts)) {
-		if host != hostClaude {
-			return fmt.Errorf("hosts: el host %q no se admite: el único es %q", host, hostClaude)
+	for _, nombreDelHost := range slices.Sorted(maps.Keys(entrada.Hosts)) {
+		registrado, conocido := definicionDe(nombreDelHost)
+		if !conocido {
+			return fmt.Errorf("hosts: el host %q no se admite: los admitidos son %s", nombreDelHost,
+				enumeracion(nombresDeHosts()))
 		}
-	}
 
-	if err := comprobarHost(nombre, entrada.Hosts[hostClaude]); err != nil {
-		return fmt.Errorf("hosts: %s: %w", hostClaude, err)
+		if err := comprobarHost(nombre, registrado, entrada.Hosts[nombreDelHost]); err != nil {
+			return fmt.Errorf("hosts: %s: %w", nombreDelHost, err)
+		}
 	}
 
 	return nil
 }
 
-// comprobarHost aplica las reglas de la entrada de host de la skill nombre:
-// su ruta exacta, su modo y los ficheros, que van solo, y siempre, en copia.
-func comprobarHost(nombre string, host documentoDeHost) error {
-	if ruta := ".claude/skills/" + nombre; host.Ruta != ruta {
+// comprobarHost aplica las reglas de la entrada de la skill nombre en el host
+// registrado: su ruta exacta, la del directorio de skills del host y el
+// nombre, su modo y los ficheros, que van solo, y siempre, en copia.
+func comprobarHost(nombre string, registrado definicionDeHost, host documentoDeHost) error {
+	if ruta := path.Join(registrado.skills, nombre); host.Ruta != ruta {
 		return fmt.Errorf("la ruta es %q y tiene que ser %q", host.Ruta, ruta)
 	}
 

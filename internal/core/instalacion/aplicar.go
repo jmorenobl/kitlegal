@@ -16,9 +16,10 @@ const (
 // son la salida de install (FR-051):
 //
 //  1. retira, en su orden, lo que el plan retira;
-//  2. crea lo que falta hasta .claude/skills y cada enlace de host; si uno no
-//     se puede crear, su entrada pasa al recurso de copia, que se escribe en
-//     la fase 4, y los demás enlaces se intentan igual (FR-024);
+//  2. crea lo que falta hasta el directorio de skills de cada host y cada
+//     enlace de host; si uno no se puede crear, su entrada pasa al recurso de
+//     copia, que se escribe en la fase 4, y los demás enlaces se intentan
+//     igual (FR-024);
 //  3. crea lo que falta hasta el directorio neutro y escribe, de una vez, el
 //     manifiesto final, con cada entrada cuyo enlace no se pudo crear en
 //     copia, si cambia;
@@ -70,8 +71,8 @@ func crearDirectorios(escritor Escritor, rutas []string) error {
 }
 
 // enlazarLosHosts crea, en orden, cada enlace de host del plan y devuelve las
-// skills cuyo enlace no se pudo crear y lo que se escribe en la fase 4: lo del
-// plan y, detrás, el recurso de copia de cada una de ellas. El error de un
+// rutas de las entradas cuyo enlace no se pudo crear y lo que se escribe en la
+// fase 4: lo del plan y, detrás, el recurso de copia de cada una de ellas. El error de un
 // enlace que no se puede crear no se propaga porque no es un fallo de la
 // orden: FR-024 manda copiar en su lugar y nombrar la entrada en copia, que
 // es lo que decide.
@@ -88,7 +89,7 @@ func enlazarLosHosts(escritor Escritor, plan Plan) ([]string, Escrituras) {
 			continue
 		}
 
-		enCopia = append(enCopia, enlace.Skill)
+		enCopia = append(enCopia, enlace.Ruta)
 		escribir.DirectoriosQueFaltan = append(escribir.DirectoriosQueFaltan, enlace.Copia.DirectoriosQueFaltan...)
 		escribir.Ficheros = append(escribir.Ficheros, enlace.Copia.Ficheros...)
 	}
@@ -97,8 +98,8 @@ func enlazarLosHosts(escritor Escritor, plan Plan) ([]string, Escrituras) {
 }
 
 // escribirElManifiesto crea lo que falta hasta el directorio neutro y escribe
-// el manifiesto final, con la entrada de host de cada skill de enCopia en
-// copia, si cambia.
+// el manifiesto final, con cada entrada de host de enCopia en copia, si
+// cambia.
 func escribirElManifiesto(escritor Escritor, manifiesto ManifiestoFinal, enCopia []string) error {
 	if err := crearDirectorios(escritor, manifiesto.DirectoriosQueFaltan); err != nil {
 		return err
@@ -136,17 +137,17 @@ func escribirLasEscrituras(escritor Escritor, escribir Escrituras) error {
 	return nil
 }
 
-// salidaAplicada son las skills previstas, en una lista nueva, con la entrada
-// de host de cada skill de enCopia —la de un enlace que no se pudo crear— en
-// copia. Es una lista, aunque esté vacía.
+// salidaAplicada son las skills previstas, en una lista nueva, con cada
+// entrada de host de enCopia —la de un enlace que no se pudo crear— en copia.
+// Es una lista, aunque esté vacía.
 func salidaAplicada(previstas []SkillInstalada, enCopia []string) []SkillInstalada {
 	skills := make([]SkillInstalada, 0, len(previstas))
 
 	for _, skill := range previstas {
 		skill.Enlaces = slices.Clone(skill.Enlaces)
 
-		if slices.Contains(enCopia, skill.Nombre) {
-			for i := range skill.Enlaces {
+		for i, enlace := range skill.Enlaces {
+			if slices.Contains(enCopia, enlace.Ruta) {
 				skill.Enlaces[i].Modo = ModoCopia
 			}
 		}

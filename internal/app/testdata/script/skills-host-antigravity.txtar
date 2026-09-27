@@ -1,0 +1,85 @@
+# El host antigravity (ADR 0025): Antigravity lee sus skills globales en
+# ~/.gemini/config/skills/ y no en ~/.agents/skills/, así que con -g y
+# ~/.gemini/config/ `kitlegal skills install` enlaza cada skill ahí con el
+# destino literal ../../../.agents/skills/<skill>; con ~/.claude/ también, las
+# dos entradas salen con claude primero, en install y en list; la orden de
+# doctor fuerza los dos hosts y ejecutarla lo arregla; --host antigravity crea
+# la cadena aunque ~/.gemini/ no exista; con ~/.gemini/ sin config/, el de
+# Gemini CLI, no enlaza; y en local --host antigravity se admite sin enlazar
+# nada, porque Antigravity lee el .agents/skills/ del proyecto.
+#
+# El destino de un enlace se lee con readlink y no a través del enlace; el
+# disco, con `arbol`, que no sigue enlaces (contracts/arnes-e2e.md §4 y §6).
+
+# Precondición: el binario registra el applet skills.
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Con ~/.gemini/config/: un enlace por skill que sube tres niveles ---
+env HOME=$WORK/home
+mkdir $WORK/home/.gemini/config
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec kitlegal skills install -g --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+
+exec readlink $WORK/home/.gemini/config/skills/legal-core
+stdout '\A\.\./\.\./\.\./\.agents/skills/legal-core\n\z'
+cmp $WORK/home/.gemini/config/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+grep '"antigravity": *\{' $WORK/home/.agents/skills/kitlegal.json
+grep '"ruta": *"\.gemini/config/skills/legal-core"' $WORK/home/.agents/skills/kitlegal.json
+! grep ${WORK@R} $WORK/home/.agents/skills/kitlegal.json
+
+# Nada en el directorio de trabajo, y la segunda vez nada que cambiar.
+arbol .
+! stdout .
+exec kitlegal skills install -g --json
+stdout '"estado":"sin cambios","enlaces":\[\{"host":"antigravity".*"estado":"sin cambios","enlaces":\[\{"host":"antigravity"'
+! stdout '"instalada"|"actualizada"'
+
+# --- Con ~/.claude/ también: los dos hosts, claude primero ---
+env HOME=$WORK/home-dos
+mkdir $WORK/home-dos/.claude
+mkdir $WORK/home-dos/.gemini/config
+exec kitlegal skills install legal-core -g --json
+stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+exec kitlegal skills list -g --json
+stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+
+# Sin ~/.gemini/config/, doctor lo encuentra y su orden fuerza los dos hosts,
+# de modo que ejecutarla lo arregla.
+rm $WORK/home-dos/.gemini/config
+exec kitlegal skills doctor -g --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","orden":"kitlegal skills install legal-core -g --host claude --host antigravity"\}\]\}\}\n\z'
+exec kitlegal skills install legal-core -g --host claude --host antigravity
+exec kitlegal skills doctor -g --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink $WORK/home-dos/.gemini/config/skills/legal-core
+stdout '\A\.\./\.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- --host antigravity sin ~/.gemini/: se crea la cadena entera ---
+env HOME=$WORK/home-sin-gemini
+mkdir $WORK/home-sin-gemini
+exec kitlegal skills install -g --host antigravity
+exec readlink $WORK/home-sin-gemini/.gemini/config/skills/boe-legislacion
+stdout '\A\.\./\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+
+# --- ~/.gemini/ sin config/, el de Gemini CLI: no se enlaza ---
+env HOME=$WORK/home-gemini-cli
+mkdir $WORK/home-gemini-cli/.gemini
+exec kitlegal skills install -g --json
+stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+arbol $WORK/home-gemini-cli
+! stdout '\.gemini/'
+
+# --- En local, --host antigravity se admite y no enlaza nada ---
+env HOME=$WORK/home
+mkdir $WORK/local
+cd $WORK/local
+exec kitlegal skills install --host antigravity --json
+stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+arbol .
+! stdout '\.gemini|\.claude'
+stdout '^f \.agents/skills/kitlegal\.json '

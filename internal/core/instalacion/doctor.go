@@ -23,13 +23,14 @@ import (
 //     FR-021, declarado, que no resuelve;
 //  3. enlace a otro sitio: su directorio o un directorio intermedio que es
 //     cualquier otra cosa que no es un directorio real, que se retira con rm;
-//     o su entrada de host, que ya no es lo que se declaró —se retira con rm,
-//     o con rm -r si es un directorio real— o que falta, también porque
-//     .claude o .claude/skills ya no son un directorio real, que no se lee a
-//     través de ellos;
-//  4. copia: su copia de host declarada, que sigue siendo un directorio real,
-//     donde el Enlazador dice que ya se puede crear el enlace: el mismo que usa
-//     install, preguntado una sola vez por .claude/skills (FR-069);
+//     o una entrada suya de host, que ya no es lo que se declaró —se retira
+//     con rm, o con rm -r si es un directorio real— o que falta, también
+//     porque algún directorio de la raíz al de skills del host ya no es un
+//     directorio real, que no se lee a través de él;
+//  4. copia: una copia suya de host declarada, que sigue siendo un directorio
+//     real, donde el Enlazador dice que ya se puede crear el enlace: el mismo
+//     que usa install, preguntado una sola vez por el directorio de skills de
+//     cada host (FR-069);
 //  5. versión distinta: la del manifiesto, distinta de version según FR-077,
 //     con un único hallazgo cuya orden reinstala todas; y si no, la de cada
 //     skill que difiere.
@@ -41,8 +42,8 @@ import (
 // resultado de una verificación que ha funcionado, no un fallo (ADR 0023).
 //
 // Antes lee el ámbito como list: con una guarda que no es un directorio real,
-// un manifiesto ilegible o, con --dir, un manifiesto con entradas de host,
-// devuelve un *AmbitoIlegible que lo nombra y ningún hallazgo. Un fallo del
+// un manifiesto ilegible o un manifiesto con entradas de un host que el ámbito
+// no tiene, devuelve un *AmbitoIlegible que lo nombra y ningún hallazgo. Un fallo del
 // Disco o del Enlazador se devuelve tal cual, y una version que el manifiesto
 // no admitiría —la que declararía el install de cada orden— es un error antes
 // de examinar nada.
@@ -71,7 +72,14 @@ func Diagnosticar(
 	versionDelManifiesto := manifiesto.Version
 	diagnostico.Version = &versionDelManifiesto
 
-	r := &revision{disco: disco, enlazador: enlazador, ambito: ambito, manifiesto: manifiesto}
+	r := &revision{
+		disco:       disco,
+		enlazador:   enlazador,
+		ambito:      ambito,
+		manifiesto:  manifiesto,
+		hostsReales: map[string]bool{},
+		sondas:      map[string]bool{},
+	}
 
 	nombres := declaradasYEmpotradas(manifiesto, empotradas)
 	for _, nombre := range nombres {
@@ -102,7 +110,7 @@ func declaradasYEmpotradas(manifiesto Manifiesto, empotradas []SkillEmpotrada) [
 }
 
 // revision es el estado de una invocación de doctor: lo que examina, dónde,
-// lo que ya sabe del host y la respuesta de la sonda, y cada hallazgo que
+// lo que ya sabe de cada host y la respuesta de su sonda, y cada hallazgo que
 // lleva encontrado.
 type revision struct {
 	disco      Disco
@@ -110,13 +118,12 @@ type revision struct {
 	ambito     Ambito
 	manifiesto Manifiesto
 
-	// hostExaminado dice si ya se examinaron .claude y .claude/skills, y
-	// hostReal, si los dos son un directorio real.
-	hostExaminado bool
-	hostReal      bool
-	// sonda es la respuesta de Disponible por .claude/skills, o nil si no se
-	// ha preguntado.
-	sonda *bool
+	// hostsReales dice, por cada host ya examinado, si cada directorio de la
+	// raíz al de skills del host es un directorio real.
+	hostsReales map[string]bool
+	// sondas es la respuesta de Disponible por el directorio de skills de cada
+	// host al que ya se ha preguntado.
+	sondas map[string]bool
 
 	pendientes []pendiente
 }
@@ -124,14 +131,32 @@ type revision struct {
 // anotar añade el hallazgo de esa clase en ruta, con la orden que retira la
 // entrada como diga quitar y reinstala las skills nombres.
 func (r *revision) anotar(clase ClaseDeHallazgo, ruta string, quitar retirada, nombres ...string) {
-	conHost := slices.ContainsFunc(nombres, func(nombre string) bool {
-		return r.manifiesto.Skills[nombre].Claude != nil
-	})
-
 	r.pendientes = append(r.pendientes, pendiente{
-		hallazgo: Hallazgo{Clase: clase, Ruta: ruta, Orden: ordenQueArregla(r.ambito, quitar, ruta, nombres, conHost)},
-		retira:   quitar != sinRetirar,
+		hallazgo: Hallazgo{
+			Clase: clase,
+			Ruta:  ruta,
+			Orden: ordenQueArregla(r.ambito, quitar, ruta, nombres, r.hostsDeclarados(nombres)),
+		},
+		retira: quitar != sinRetirar,
 	})
+}
+
+// hostsDeclarados son los hosts, en su orden, en los que alguna de las skills
+// nombres tiene una entrada declarada.
+func (r *revision) hostsDeclarados(nombres []string) []string {
+	var hosts []string
+
+	for _, host := range nombresDeHosts() {
+		if slices.ContainsFunc(nombres, func(nombre string) bool {
+			_, hay := r.manifiesto.Skills[nombre].Hosts[host]
+
+			return hay
+		}) {
+			hosts = append(hosts, host)
+		}
+	}
+
+	return hosts
 }
 
 // anotarNoDirectorio añade el hallazgo de la entrada de ruta, que tiene que
@@ -147,8 +172,8 @@ func (r *revision) anotarNoDirectorio(nombre, ruta string, entrada Entrada) {
 	r.anotar(clase, ruta, conRm, nombre)
 }
 
-// revisarSkill revisa la skill nombre en el directorio neutro y, si tiene una
-// entrada de host declarada, en el host.
+// revisarSkill revisa la skill nombre en el directorio neutro y, en el orden
+// de los hosts, en cada uno en el que tiene una entrada declarada.
 func (r *revision) revisarSkill(nombre string) error {
 	declarada := r.manifiesto.Skills[nombre]
 	base := r.ambito.RutaDeSkill(nombre)
@@ -170,11 +195,22 @@ func (r *revision) revisarSkill(nombre string) error {
 		r.anotarNoDirectorio(nombre, base, entrada)
 	}
 
-	if err != nil || declarada.Claude == nil {
+	if err != nil {
 		return err
 	}
 
-	return r.revisarHost(nombre, declarada.Claude)
+	for _, host := range nombresDeHosts() {
+		entrada, hay := declarada.Hosts[host]
+		if !hay {
+			continue
+		}
+
+		if err := r.revisarHost(nombre, host, entrada); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // revisarFicheros revisa los ficheros declarados de base, el directorio real
@@ -285,13 +321,13 @@ func (r *revision) revisarFichero(nombre, ruta, huellaDeclarada string) error {
 	return nil
 }
 
-// revisarHost revisa la entrada de host declarada de la skill nombre: si
-// .claude o .claude/skills no son un directorio real, no se lee a través de
-// ellos y la entrada cuenta como que falta.
-func (r *revision) revisarHost(nombre string, host *EntradaDeHost) error {
-	ruta := r.ambito.RutaDeHost(nombre)
+// revisarHost revisa la entrada declarada de la skill nombre en el host: si
+// algún directorio de la raíz al de skills del host no es un directorio real,
+// no se lee a través de él y la entrada cuenta como que falta.
+func (r *revision) revisarHost(nombre, host string, declarada EntradaDeHost) error {
+	ruta := r.ambito.RutaDeHost(host, nombre)
 
-	hayHost, err := r.skillsDelHostReal()
+	hayHost, err := r.skillsDelHostReal(host)
 	if err != nil {
 		return err
 	}
@@ -311,15 +347,15 @@ func (r *revision) revisarHost(nombre string, host *EntradaDeHost) error {
 	case EntradaAusente:
 		r.anotar(HallazgoEnlaceAOtroSitio, ruta, sinRetirar, nombre)
 	case EntradaEnlace:
-		r.revisarEnlaceDeHost(nombre, ruta, entrada, host.Modo)
+		r.revisarEnlaceDeHost(nombre, host, ruta, entrada, declarada.Modo)
 	case EntradaDirectorio:
-		if host.Modo == ModoEnlace {
+		if declarada.Modo == ModoEnlace {
 			r.anotar(HallazgoEnlaceAOtroSitio, ruta, conRmR, nombre)
 
 			return nil
 		}
 
-		return r.revisarCopia(nombre, ruta, host)
+		return r.revisarCopia(nombre, host, ruta, declarada)
 	case EntradaFichero, EntradaOtra:
 		r.anotar(HallazgoEnlaceAOtroSitio, ruta, conRm, nombre)
 	}
@@ -327,54 +363,58 @@ func (r *revision) revisarHost(nombre string, host *EntradaDeHost) error {
 	return nil
 }
 
-// revisarEnlaceDeHost revisa la entrada de host de ruta, que es un enlace:
+// revisarEnlaceDeHost revisa la entrada del host de ruta, que es un enlace:
 // solo es lo declarado si se declaró enlace y su destino literal es el de
-// FR-021; si no, está en otro sitio, y se retira. Siéndolo, cuelga si no
-// resuelve, y su orden solo reinstala.
-func (r *revision) revisarEnlaceDeHost(nombre, ruta string, entrada Entrada, modo Modo) {
+// FR-021 para ese host; si no, está en otro sitio, y se retira. Siéndolo,
+// cuelga si no resuelve, y su orden solo reinstala.
+func (r *revision) revisarEnlaceDeHost(nombre, host, ruta string, entrada Entrada, modo Modo) {
 	switch {
-	case entrada.Destino != destinoDeHost(nombre) || modo != ModoEnlace:
+	case entrada.Destino != destinoDeHost(host, nombre) || modo != ModoEnlace:
 		r.anotar(HallazgoEnlaceAOtroSitio, ruta, conRm, nombre)
 	case !entrada.Resuelve:
 		r.anotar(HallazgoEnlaceColgando, ruta, sinRetirar, nombre)
 	}
 }
 
-// revisarCopia revisa la copia de host declarada de ruta, que sigue siendo un
-// directorio real: sus ficheros declarados, como los del directorio neutro, y
-// si el Enlazador ya puede crear el enlace en .claude/skills (FR-069).
-func (r *revision) revisarCopia(nombre, ruta string, host *EntradaDeHost) error {
-	if err := r.revisarFicheros(nombre, ruta, relativas(host.Ficheros, host.Ruta+"/")); err != nil {
+// revisarCopia revisa la copia declarada de ruta en el host, que sigue siendo
+// un directorio real: sus ficheros declarados, como los del directorio neutro,
+// y si el Enlazador ya puede crear el enlace en el directorio de skills del
+// host (FR-069).
+func (r *revision) revisarCopia(nombre, host, ruta string, declarada EntradaDeHost) error {
+	if err := r.revisarFicheros(nombre, ruta, relativas(declarada.Ficheros, declarada.Ruta+"/")); err != nil {
 		return err
 	}
 
-	if r.sonda == nil {
-		disponible, err := r.enlazador.Disponible(r.ambito.SkillsDelHost())
+	disponible, preguntado := r.sondas[host]
+	if !preguntado {
+		var err error
+
+		disponible, err = r.enlazador.Disponible(r.ambito.SkillsDelHost(host))
 		if err != nil {
 			return err
 		}
 
-		r.sonda = &disponible
+		r.sondas[host] = disponible
 	}
 
-	if *r.sonda {
+	if disponible {
 		r.anotar(HallazgoCopia, ruta, sinRetirar, nombre)
 	}
 
 	return nil
 }
 
-// skillsDelHostReal dice si .claude y .claude/skills son, los dos, un
-// directorio real, examinados sin seguir enlaces y una sola vez; el segundo,
-// solo si el primero lo es.
-func (r *revision) skillsDelHostReal() (bool, error) {
-	if r.hostExaminado {
-		return r.hostReal, nil
+// skillsDelHostReal dice si cada directorio de la raíz al de skills del host
+// es un directorio real, examinados de arriba abajo, sin seguir enlaces, una
+// sola vez y cada uno solo si el de encima lo es.
+func (r *revision) skillsDelHostReal(host string) (bool, error) {
+	if esReal, examinado := r.hostsReales[host]; examinado {
+		return esReal, nil
 	}
 
 	hayHost := true
 
-	for _, dir := range []string{r.ambito.DirectorioDelHost(), r.ambito.SkillsDelHost()} {
+	for _, dir := range r.ambito.cadenaDelHost(host) {
 		entrada, err := r.disco.Examinar(dir)
 		if err != nil {
 			return false, err
@@ -387,7 +427,7 @@ func (r *revision) skillsDelHostReal() (bool, error) {
 		}
 	}
 
-	r.hostExaminado, r.hostReal = true, hayHost
+	r.hostsReales[host] = hayHost
 
 	return hayHost, nil
 }

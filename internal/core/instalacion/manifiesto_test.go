@@ -91,7 +91,7 @@ func manifiestoDeReferencia() instalacion.Manifiesto {
 					"boe-legislacion/SKILL.md":             huellaDeA,
 					"boe-legislacion/references/normas.md": huellaDeB,
 				},
-				Claude: &instalacion.EntradaDeHost{Ruta: ".claude/skills/boe-legislacion", Modo: instalacion.ModoEnlace},
+				Hosts: enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/boe-legislacion", Modo: instalacion.ModoEnlace}),
 			},
 			"legal-core": {
 				Version: "v0.1.0",
@@ -100,7 +100,7 @@ func manifiestoDeReferencia() instalacion.Manifiesto {
 					"legal-core/references/jerarquia_normativa.md": huellaDeABC,
 					"legal-core/references/leyes_vertebrales.md":   huellaVacia,
 				},
-				Claude: &instalacion.EntradaDeHost{
+				Hosts: enClaude(instalacion.EntradaDeHost{
 					Ruta: ".claude/skills/legal-core",
 					Modo: instalacion.ModoCopia,
 					Ficheros: map[string]string{
@@ -108,7 +108,7 @@ func manifiestoDeReferencia() instalacion.Manifiesto {
 						".claude/skills/legal-core/references/jerarquia_normativa.md": huellaDeABC,
 						".claude/skills/legal-core/references/leyes_vertebrales.md":   huellaVacia,
 					},
-				},
+				}),
 			},
 			"otra-skill": {
 				Version:  "v0.0.9",
@@ -283,9 +283,9 @@ func probarManifiestosLegibles(t *testing.T) {
 				"legal-core": {
 					Version:  "v0.1.0",
 					Ficheros: map[string]string{"legal-core/SKILL.md": huellaDeC},
-					Claude: &instalacion.EntradaDeHost{
+					Hosts: enClaude(instalacion.EntradaDeHost{
 						Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoCopia, Ficheros: map[string]string{},
-					},
+					}),
 				},
 			}},
 		},
@@ -666,7 +666,8 @@ func probarIlegiblesPorLaForma(t *testing.T) {
 			motivo:    "no es sha256: seguido de",
 		},
 
-		// hosts: se omite sin entradas y su única clave es claude.
+		// hosts: se omite sin entradas y sus claves son las de los hosts
+		// conocidos, claude y antigravity.
 		{nombre: "hosts sin entradas", contenido: conHosts(`{}`), motivo: `skill "legal-core": hosts no tiene ninguna entrada`},
 		{
 			nombre:    "otro host",
@@ -680,8 +681,14 @@ func probarIlegiblesPorLaForma(t *testing.T) {
 		},
 		{
 			nombre:    "claude y otro host",
-			contenido: conHosts(`{"antigravity": ` + enlaceDeLegalCore + `, "claude": ` + enlaceDeLegalCore + `}`),
-			motivo:    `el host "antigravity" no se admite`,
+			contenido: conHosts(`{"claude": ` + enlaceDeLegalCore + `, "codex": ` + enlaceDeLegalCore + `}`),
+			motivo:    `el host "codex" no se admite`,
+		},
+		{
+			nombre:    "antigravity con la ruta de claude",
+			contenido: conHosts(`{"antigravity": ` + enlaceDeLegalCore + `}`),
+			motivo: `skill "legal-core": hosts: antigravity: la ruta es ".claude/skills/legal-core" y tiene que ser ` +
+				`".gemini/config/skills/legal-core"`,
 		},
 
 		// La entrada de host claude: su ruta exacta y su modo.
@@ -911,13 +918,18 @@ func manifiestoLlenadoEnOrden(inverso bool) instalacion.Manifiesto {
 		skill := referencia.Skills[nombre]
 		skill.Ficheros = llenar(skill.Ficheros)
 
-		if skill.Claude != nil {
-			host := *skill.Claude
-			if host.Ficheros != nil {
-				host.Ficheros = llenar(host.Ficheros)
+		if skill.Hosts != nil {
+			hosts := map[string]instalacion.EntradaDeHost{}
+
+			for host, entrada := range skill.Hosts {
+				if entrada.Ficheros != nil {
+					entrada.Ficheros = llenar(entrada.Ficheros)
+				}
+
+				hosts[host] = entrada
 			}
 
-			skill.Claude = &host
+			skill.Hosts = hosts
 		}
 
 		manifiesto.Skills[nombre] = skill
@@ -977,11 +989,29 @@ func probarObjetosSinEntradas(t *testing.T) {
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
 				"legal-core": {
 					Version: "v0.1.0",
-					Claude:  &instalacion.EntradaDeHost{Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoCopia},
+					Hosts:   enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoCopia}),
 				},
 			}},
 			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
 				"        \"claude\": {\n          \"ficheros\": {},\n          \"modo\": \"copia\",\n" +
+				"          \"ruta\": \".claude/skills/legal-core\"\n        }\n      },\n" +
+				"      \"version\": \"v0.1.0\"\n    }\n  },\n  \"version\": \"v0.1.0\"\n}\n",
+		},
+		{
+			nombre: "los dos hosts, con sus claves en orden",
+			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
+				"legal-core": {
+					Version: "v0.1.0",
+					Hosts: map[string]instalacion.EntradaDeHost{
+						"claude":      {Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoEnlace},
+						"antigravity": {Ruta: ".gemini/config/skills/legal-core", Modo: instalacion.ModoEnlace},
+					},
+				},
+			}},
+			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
+				"        \"antigravity\": {\n          \"modo\": \"enlace\",\n" +
+				"          \"ruta\": \".gemini/config/skills/legal-core\"\n        },\n" +
+				"        \"claude\": {\n          \"modo\": \"enlace\",\n" +
 				"          \"ruta\": \".claude/skills/legal-core\"\n        }\n      },\n" +
 				"      \"version\": \"v0.1.0\"\n    }\n  },\n  \"version\": \"v0.1.0\"\n}\n",
 		},
@@ -991,9 +1021,9 @@ func probarObjetosSinEntradas(t *testing.T) {
 				"legal-core": {
 					Version:  "v0.1.0",
 					Ficheros: map[string]string{},
-					Claude: &instalacion.EntradaDeHost{
+					Hosts: enClaude(instalacion.EntradaDeHost{
 						Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoEnlace, Ficheros: map[string]string{},
-					},
+					}),
 				},
 			}},
 			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
@@ -1084,32 +1114,43 @@ func probarLoQueNoSeEscribe(t *testing.T) {
 		{
 			nombre: "host con la ruta absoluta de un proyecto",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["boe-legislacion"].Claude.Ruta = "/home/ana/proyecto/.claude/skills/boe-legislacion"
+				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
+					e.Ruta = "/home/ana/proyecto/.claude/skills/boe-legislacion"
+				})
 			},
 		},
 		{
 			nombre: "host con la ruta absoluta de un HOME",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["boe-legislacion"].Claude.Ruta = "/Users/luis/.claude/skills/boe-legislacion"
+				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
+					e.Ruta = "/Users/luis/.claude/skills/boe-legislacion"
+				})
 			},
 		},
 		{
 			nombre: "fichero de la copia con la ruta absoluta de un HOME",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["legal-core"].Claude.Ficheros["/Users/luis/.claude/skills/legal-core/SKILL.md"] = huellaDeC
+				m.Skills["legal-core"].Hosts["claude"].Ficheros["/Users/luis/.claude/skills/legal-core/SKILL.md"] = huellaDeC
 			},
 		},
-		{nombre: "host sin modo", cambiar: func(m *instalacion.Manifiesto) { m.Skills["boe-legislacion"].Claude.Modo = "" }},
 		{
-			nombre:  "host con otro modo",
-			cambiar: func(m *instalacion.Manifiesto) { m.Skills["boe-legislacion"].Claude.Modo = "symlink" },
+			nombre: "host sin modo",
+			cambiar: func(m *instalacion.Manifiesto) {
+				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) { e.Modo = "" })
+			},
+		},
+		{
+			nombre: "host con otro modo",
+			cambiar: func(m *instalacion.Manifiesto) {
+				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) { e.Modo = "symlink" })
+			},
 		},
 		{
 			nombre: "enlace con ficheros",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["boe-legislacion"].Claude.Ficheros = map[string]string{
-					".claude/skills/boe-legislacion/SKILL.md": huellaDeA,
-				}
+				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
+					e.Ficheros = map[string]string{".claude/skills/boe-legislacion/SKILL.md": huellaDeA}
+				})
 			},
 		},
 	}

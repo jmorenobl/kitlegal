@@ -25,6 +25,10 @@ type rutasDelAmbito struct {
 	directorioDelHost string
 	skillsDelHost     string
 	host              string
+	hosts             []string
+	configAntigravity string
+	skillsAntigravity string
+	hostAntigravity   string
 }
 
 // rutasDe lee de ambito todo lo que dice de sí mismo.
@@ -38,9 +42,13 @@ func rutasDe(ambito instalacion.Ambito) rutasDelAmbito {
 		banderas:          ambito.Banderas(),
 		manifiesto:        ambito.RutaDelManifiesto(),
 		skill:             ambito.RutaDeSkill("legal-core"),
-		directorioDelHost: ambito.DirectorioDelHost(),
-		skillsDelHost:     ambito.SkillsDelHost(),
-		host:              ambito.RutaDeHost("legal-core"),
+		directorioDelHost: ambito.DirectorioDelHost("claude"),
+		skillsDelHost:     ambito.SkillsDelHost("claude"),
+		host:              ambito.RutaDeHost("claude", "legal-core"),
+		hosts:             ambito.Hosts(),
+		configAntigravity: ambito.DirectorioDelHost("antigravity"),
+		skillsAntigravity: ambito.SkillsDelHost("antigravity"),
+		hostAntigravity:   ambito.RutaDeHost("antigravity", "legal-core"),
 	}
 }
 
@@ -59,7 +67,8 @@ func ambitoGlobal(t *testing.T, home string) instalacion.Ambito {
 // barra final y como se alcanzan desde el directorio de trabajo —relativas en
 // local, colgando de HOME con -g y de la ruta tal como se pasó con --dir—; las
 // guardas, de las que cada una tiene que ser un directorio real o no existir
-// (FR-027); los hosts, que solo tienen el local y el global (FR-013, FR-021);
+// (FR-027); los hosts, que solo tienen el local —claude— y el global —claude y
+// antigravity— (FR-013, FR-021; ADR 0025);
 // y las banderas que repite cada orden de doctor, con la ruta de --dir tal
 // como se pasó, entre comillas simples y con cada comilla simple escapada como
 // la escapa el shell, en la palabra siguiente o, si empieza por «-», en la
@@ -82,6 +91,7 @@ func TestAmbito(t *testing.T) {
 		directorioDelHost: ".claude",
 		skillsDelHost:     ".claude/skills",
 		host:              ".claude/skills/legal-core",
+		hosts:             []string{"claude"},
 	}
 	globalDeAna := rutasDelAmbito{
 		clase:             instalacion.AmbitoGlobal,
@@ -95,6 +105,10 @@ func TestAmbito(t *testing.T) {
 		directorioDelHost: "/home/ana/.claude",
 		skillsDelHost:     "/home/ana/.claude/skills",
 		host:              "/home/ana/.claude/skills/legal-core",
+		hosts:             []string{"claude", "antigravity"},
+		configAntigravity: "/home/ana/.gemini/config",
+		skillsAntigravity: "/home/ana/.gemini/config/skills",
+		hostAntigravity:   "/home/ana/.gemini/config/skills/legal-core",
 	}
 
 	// dir es el ámbito de --dir, sin raíz ni hosts, con su directorio neutro
@@ -107,6 +121,7 @@ func TestAmbito(t *testing.T) {
 			banderas:   banderas,
 			manifiesto: manifiesto,
 			skill:      skill,
+			hosts:      []string{},
 		}
 	}
 
@@ -138,6 +153,10 @@ func TestAmbito(t *testing.T) {
 				directorioDelHost: "/.claude",
 				skillsDelHost:     "/.claude/skills",
 				host:              "/.claude/skills/legal-core",
+				hosts:             []string{"claude", "antigravity"},
+				configAntigravity: "/.gemini/config",
+				skillsAntigravity: "/.gemini/config/skills",
+				hostAntigravity:   "/.gemini/config/skills/legal-core",
 			},
 		},
 

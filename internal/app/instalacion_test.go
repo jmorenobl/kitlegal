@@ -1047,12 +1047,12 @@ type casoDeValidacion struct {
 
 // Los mensajes de la tabla del contrato §2.
 const (
-	mensajeGlobalConDir  = "-g y --dir se excluyen"
-	mensajeHostConDir    = "--host no se combina con --dir"
-	mensajeHostNoClaude  = "el único host admitido es claude"
-	mensajeSinHome       = "HOME no está definido o está vacío"
-	mensajeSkillDeFuera  = `"desconocida" no es ninguna skill de este binario; skills disponibles: alfa, beta`
-	mensajeSkillDeFueraB = `"otra" no es ninguna skill de este binario; skills disponibles: alfa, beta`
+	mensajeGlobalConDir   = "-g y --dir se excluyen"
+	mensajeHostConDir     = "--host no se combina con --dir"
+	mensajeHostNoAdmitido = "los hosts admitidos son claude y antigravity"
+	mensajeSinHome        = "HOME no está definido o está vacío"
+	mensajeSkillDeFuera   = `"desconocida" no es ninguna skill de este binario; skills disponibles: alfa, beta`
+	mensajeSkillDeFueraB  = `"otra" no es ninguna skill de este binario; skills disponibles: alfa, beta`
 )
 
 // casosDeValidacion son las filas del contrato §2 en los tres verbos y cada
@@ -1077,9 +1077,12 @@ func casosDeValidacion() []casoDeValidacion {
 		argumentos("g-y-dir-con-dry-run", mensajeGlobalConDir, "install", "-g", "--dir", "otro", "--dry-run"),
 		argumentos("host-con-dir", mensajeHostConDir, "install", "--dir", "otro", "--host", "claude"),
 		argumentos("host-con-dir-vacio", mensajeHostConDir, "install", "--dir", "", "--host", "claude"),
-		argumentos("host-que-no-es-claude", mensajeHostNoClaude, "install", "--host", "codex"),
-		argumentos("host-vacio", mensajeHostNoClaude, "install", "--host", ""),
-		argumentos("host-antes-que-la-skill", mensajeHostNoClaude, "install", "desconocida", "--host", "codex"),
+		argumentos("host-desconocido", mensajeHostNoAdmitido, "install", "--host", "codex"),
+		argumentos("host-repetido-con-uno-desconocido", mensajeHostNoAdmitido,
+			"install", "--host", "claude", "--host", "codex"),
+		argumentos("host-con-coma-sin-partir", `"claude,antigravity"`, "install", "--host", "claude,antigravity"),
+		argumentos("host-vacio", mensajeHostNoAdmitido, "install", "--host", ""),
+		argumentos("host-antes-que-la-skill", mensajeHostNoAdmitido, "install", "desconocida", "--host", "codex"),
 		argumentos("skill-desconocida", mensajeSkillDeFuera, "install", "desconocida"),
 		argumentos("la-primera-desconocida", mensajeSkillDeFuera, "install", "desconocida", "otra"),
 		argumentos("desconocida-tras-una-conocida", mensajeSkillDeFueraB, "install", "beta", "otra"),

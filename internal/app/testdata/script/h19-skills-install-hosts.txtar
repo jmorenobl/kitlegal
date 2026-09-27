@@ -4,7 +4,8 @@
 # ../../.agents/skills/<skill>, leído del propio enlace, y la salida nombra cada
 # enlace con su modo; --host claude lo fuerza aunque .claude/ no exista; el
 # proyecto copiado a otra ruta sigue resolviendo y `doctor` sale con 0 en la
-# copia; y --host no admite otro valor que claude.
+# copia; y --host no admite otro valor que claude o antigravity, que en local
+# se admite sin enlazar nada (ADR 0025; skills-host-antigravity.txtar).
 #
 # Cubre: US1.2, US1.3, US1.5 · FR-020, FR-021, FR-022, FR-023, FR-025 · SC-002,
 # SC-003.
@@ -86,20 +87,20 @@ stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legisl
 arbol .
 ! stdout '\.claude'
 
-# --- Un host que no es claude (FR-020) ---
+# --- Un host que no es claude ni antigravity (FR-020; ADR 0025) ---
 #
 # Código 2, el mensaje de contracts/applet-skills.md §2 (fila 3) y nada escrito,
 # también con .claude/ presente.
 mkdir $WORK/otro-host/.claude
 cd $WORK/otro-host
 exec sh -c 'kitlegal skills install --host codex --json; test $? -eq 2'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*el único host admitido es claude(?:[^"\\]|\\.)*"\}\}\n\z'
-stderr 'el único host admitido es claude'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*los hosts admitidos son claude y antigravity(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'los hosts admitidos son claude y antigravity'
 arbol .
 stdout '\Ad \.claude\n\z'
 
-exec sh -c 'kitlegal skills install --host antigravity; test $? -eq 2'
+exec sh -c 'kitlegal skills install --host gemini; test $? -eq 2'
 ! stdout .
-stderr 'el único host admitido es claude'
+stderr 'el host "gemini" no se admite: los hosts admitidos son claude y antigravity'
 arbol .
 stdout '\Ad \.claude\n\z'

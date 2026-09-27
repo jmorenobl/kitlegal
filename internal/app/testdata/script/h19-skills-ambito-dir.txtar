@@ -135,13 +135,13 @@ exec env -u HOME sh -c 'kitlegal skills list -g --dir destino --json; test $? -e
 stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se excluyen(?:[^"\\]|\\.)*"\}\}\n\z'
 ! stderr 'HOME no está definido'
 
-# Una skill desconocida y un host que no es claude, con HOME vacío.
+# Una skill desconocida y un host que no se admite, con HOME vacío.
 env HOME=
 exec sh -c 'kitlegal skills install desconocida -g --json; test $? -eq 2'
 stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
 ! stderr 'HOME no está definido'
 exec sh -c 'kitlegal skills install -g --host codex --json; test $? -eq 2'
-stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*el único host admitido es claude(?:[^"\\]|\\.)*"\}\}\n\z'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*los hosts admitidos son claude y antigravity(?:[^"\\]|\\.)*"\}\}\n\z'
 ! stderr 'HOME no está definido'
 env HOME=$WORK/home
 
@@ -165,19 +165,19 @@ arbol .
 cmp stdout $WORK/antes.txt
 
 # Entre varios errores de argumentos, el primero: -g con --dir antes que
-# --host con --dir, este antes que un host que no es claude, y este antes que
+# --host con --dir, este antes que un host que no se admite, y este antes que
 # una skill desconocida.
 exec sh -c 'kitlegal skills install desconocida -g --dir destino --host codex; test $? -eq 2'
 stderr '-g y --dir se excluyen'
 ! stderr '--host no se combina'
-! stderr 'el único host'
+! stderr 'hosts admitidos'
 ! stderr 'no es ninguna skill'
 exec sh -c 'kitlegal skills install desconocida --dir destino --host codex; test $? -eq 2'
 stderr '--host no se combina con --dir'
-! stderr 'el único host'
+! stderr 'hosts admitidos'
 ! stderr 'no es ninguna skill'
 exec sh -c 'kitlegal skills install desconocida --host codex; test $? -eq 2'
-stderr 'el único host admitido es claude'
+stderr 'los hosts admitidos son claude y antigravity'
 ! stderr 'no es ninguna skill'
 arbol .
 cmp stdout $WORK/antes.txt

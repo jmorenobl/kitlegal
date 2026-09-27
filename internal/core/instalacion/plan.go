@@ -50,16 +50,18 @@ type Plan struct {
 	Escribir Escrituras
 }
 
-// Enlazado es la fase 2 del plan: lo que falta hasta .claude/skills y cada
-// entrada de host que se crea como enlace (FR-021, FR-023).
+// Enlazado es la fase 2 del plan: lo que falta hasta el directorio de skills
+// de cada host y cada entrada de host que se crea como enlace (FR-021,
+// FR-023).
 type Enlazado struct {
-	// DirectoriosQueFaltan son los que faltan hasta .claude/skills incluido,
-	// de arriba abajo, si hay que crear alguna entrada de host, enlace o copia
-	// (FR-014, FR-023).
+	// DirectoriosQueFaltan son los que faltan hasta el directorio de skills,
+	// incluido, de cada host en el que hay que crear alguna entrada, enlace o
+	// copia: host a host en su orden y, en cada uno, de arriba abajo (FR-014,
+	// FR-023).
 	DirectoriosQueFaltan []string
 
 	// Enlaces son las entradas de host que se crean como enlace, en orden de
-	// skill.
+	// skill y, en cada una, en el de los hosts.
 	Enlaces []EnlaceNuevo
 }
 
@@ -70,10 +72,16 @@ type EnlaceNuevo struct {
 	// Skill es el nombre de su skill.
 	Skill string
 
-	// Ruta es la de la entrada, <raíz>/.claude/skills/<skill>.
+	// Host es el nombre de su host.
+	Host string
+
+	// Ruta es la de la entrada, <raíz>/<directorio de skills del
+	// host>/<skill>, única entre todas las del plan.
 	Ruta string
 
-	// Destino es el literal del enlace, ../../.agents/skills/<skill>.
+	// Destino es el literal del enlace, relativo al directorio de skills del
+	// host: ../../.agents/skills/<skill> desde .claude/skills y
+	// ../../../.agents/skills/<skill> desde .gemini/config/skills.
 	Destino string
 
 	// Copia es lo que se escribe en la fase 4 si el enlace no se puede crear:
@@ -101,14 +109,22 @@ type ManifiestoFinal struct {
 	// declaradas son las entradas finales de las skills pedidas, cada entrada
 	// de host en el modo previsto.
 	declaradas map[string]SkillDeclarada
-	// copias son, por skill con un enlace que crear, la entrada de host que
-	// se declara si el enlace no se puede crear.
-	copias map[string]*EntradaDeHost
+	// copias son, por la ruta de cada entrada de host que se crea como enlace,
+	// la entrada que se declara si el enlace no se puede crear.
+	copias map[string]reservaDeCopia
+}
+
+// reservaDeCopia es la entrada de host en copia que se declara en lugar de un
+// enlace que no se pudo crear: la de ese host en esa skill.
+type reservaDeCopia struct {
+	skill   string
+	host    string
+	entrada EntradaDeHost
 }
 
 // Contenido son los bytes canónicos del manifiesto final, con la entrada de
-// host de cada skill de enCopia —las de un enlace que no se pudo crear en la
-// fase 2— en copia; un nombre que no es el de ningún enlace del plan no cambia
+// host de cada ruta de enCopia —la de un enlace que no se pudo crear en la
+// fase 2— en copia; una ruta que no es la de ningún enlace del plan no cambia
 // nada. Si ninguna entrada de una skill pedida cambia, es nil: el manifiesto
 // no se escribe y queda byte a byte igual (FR-033, FR-045). Las demás
 // entradas se conservan tal como están, también las de las skills que el
@@ -123,8 +139,11 @@ func (m ManifiestoFinal) Contenido(enCopia []string) ([]byte, error) {
 	cambia := false
 
 	for nombre, declarada := range m.declaradas {
-		if copia, hay := m.copias[nombre]; hay && slices.Contains(enCopia, nombre) {
-			declarada.Claude = copia
+		for _, ruta := range enCopia {
+			if reserva, hay := m.copias[ruta]; hay && reserva.skill == nombre {
+				declarada.Hosts = maps.Clone(declarada.Hosts)
+				declarada.Hosts[reserva.host] = reserva.entrada
+			}
 		}
 
 		anterior, estaba := skills[nombre]
@@ -168,22 +187,22 @@ type Escritura struct {
 // Por cada skill pedida (data-model §4.2 y §4.3; FR-046): en el directorio
 // neutro, se escribe lo empotrado que falta o cuya huella declarada no es la
 // suya, retirando antes lo intacto que se reescribe, y se retira lo declarado
-// e intacto que ya no se empotra; en el host, si se enlaza en esta ejecución,
-// el enlace de FR-021 que ya está se adopta, la entrada que falta se crea como
-// enlace o como copia, una copia declarada pasa a enlace o se mantiene y se
-// actualiza, y, si no se enlaza, la entrada declarada se quita del
-// manifiesto sin tocar el disco. Sale «instalada» si el manifiesto no la
-// declaraba, «actualizada» si cambia algo en el disco o en su entrada del
-// manifiesto, y «sin cambios» si no. Lo que falta hasta el directorio neutro
-// y hasta .claude/skills se crea de arriba abajo, desde lo primero que existe,
-// que se usa tal cual (FR-014, FR-027).
+// e intacto que ya no se empotra; en cada host del ámbito, si se enlaza en
+// esta ejecución, el enlace de FR-021 que ya está se adopta, la entrada que
+// falta se crea como enlace o como copia, una copia declarada pasa a enlace o
+// se mantiene y se actualiza, y, si no se enlaza, la entrada declarada se
+// quita del manifiesto sin tocar el disco. Sale «instalada» si el manifiesto
+// no la declaraba, «actualizada» si cambia algo en el disco o en su entrada
+// del manifiesto, y «sin cambios» si no. Lo que falta hasta el directorio
+// neutro y hasta el directorio de skills de cada host se crea de arriba abajo,
+// desde lo primero que existe, que se usa tal cual (FR-014, FR-027).
 //
 // Si una entrada de host se tiene que crear, el modo previsto sale de
 // preguntar a Disponible por el directorio de la sonda: el directorio real
-// existente más próximo a .claude/skills dentro del ámbito, donde vivirá la
-// entrada, una vez por directorio; si no hay ninguno, porque la raíz del
-// ámbito no existe, no se pregunta y se prevé enlace (data-model §3; research.md
-// D9). Un fallo del Disco o del Enlazador se devuelve tal cual. Una version
+// existente más próximo al de skills del host dentro del ámbito, donde vivirá
+// la entrada, una vez por directorio; si no hay ninguno, porque la raíz del
+// ámbito no existe, no se pregunta y se prevé enlace (data-model §3;
+// research.md D9). Un fallo del Disco o del Enlazador se devuelve tal cual. Una version
 // que el manifiesto no admitiría es un error antes de examinar nada.
 func Planificar(
 	disco Disco, enlazador Enlazador, pedido Pedido, empotradas []SkillEmpotrada, version string,
@@ -202,23 +221,25 @@ func Planificar(
 
 // ComprobarConflictos comprueba, antes de escribir nada, todas las entradas
 // que install va a crear, cambiar o retirar para las skills del pedido, en el
-// directorio neutro y en el host claude si se enlaza, y las nombra todas si
+// directorio neutro y en cada host en el que se enlaza, y las nombra todas si
 // alguna no es suya (FR-040 a FR-043, FR-047; data-model §4):
 //
 //  1. el ámbito: cada guarda es un directorio real o no existe, el manifiesto
-//     es legible y, con --dir, no declara entradas de host; con cualquiera de
-//     estos no se sabe qué es de quién y no se examina ninguna skill. Si se
-//     enlaza en el host, .claude y .claude/skills tienen que ser, cada uno, un
-//     directorio real o no existir; sin --host, un .claude que no es un
-//     directorio real cuenta como ausente y no se enlaza (FR-022, FR-023,
-//     FR-026, FR-027);
+//     es legible y no declara entradas de un host que el ámbito no tiene; con
+//     cualquiera de estos no se sabe qué es de quién y no se examina ninguna
+//     skill. Si se enlaza en un host, cada directorio de la raíz al de skills
+//     del host —.claude y .claude/skills; .gemini, .gemini/config y
+//     .gemini/config/skills— tiene que ser un directorio real o no existir;
+//     sin --host, uno por encima del de skills que no es un directorio real
+//     cuenta como ausente y no se enlaza (FR-022, FR-023, FR-026, FR-027;
+//     ADR 0025);
 //  2. el directorio neutro de cada skill pedida y, si está declarada, cada
 //     directorio intermedio y cada fichero suyo, empotrado o declarado (§4.2);
-//  3. su entrada de host, si se enlaza y .claude/skills es un directorio real:
-//     el enlace de FR-021 se adopta aunque cuelgue, y una copia declarada se
-//     examina entera si va a pasar a enlace, o como el directorio neutro si se
-//     mantiene, según diga el Enlazador por .claude/skills, una sola vez
-//     (§4.3; data-model §3).
+//  3. su entrada en cada host, si se enlaza y su directorio de skills es un
+//     directorio real: el enlace de FR-021 se adopta aunque cuelgue, y una
+//     copia declarada se examina entera si va a pasar a enlace, o como el
+//     directorio neutro si se mantiene, según diga el Enlazador por ese
+//     directorio, una sola vez (§4.3; data-model §3).
 //
 // Las skills declaradas que no se piden o que el binario no empotra no se
 // examinan (§4.4). Nada se examina por debajo de una entrada que no es un
@@ -249,6 +270,7 @@ func comprobar(disco Disco, enlazador Enlazador, pedido Pedido, empotradas []Ski
 		ambito:      pedido.Ambito,
 		enConflicto: map[string]ClaseDeConflicto{},
 		sondas:      map[string]bool{},
+		hosts:       map[string]hostExaminado{},
 		encima:      map[string]Entrada{},
 	}
 
@@ -259,13 +281,13 @@ func comprobar(disco Disco, enlazador Enlazador, pedido Pedido, empotradas []Ski
 
 	ambitoIlegible := len(c.enConflicto) > 0
 
-	hostReal, err := c.comprobarElHost(pedido.HostClaude)
+	hostsReales, err := c.comprobarLosHosts(pedido.Hosts)
 	if err != nil {
 		return nil, err
 	}
 
 	if !ambitoIlegible {
-		err = c.comprobarLasSkills(pedidas, neutroReal, hostReal)
+		err = c.comprobarLasSkills(pedidas, neutroReal, hostsReales)
 		if err != nil {
 			return nil, err
 		}
@@ -313,8 +335,8 @@ type comprobacion struct {
 	// neutroQueFalta son las guardas del ámbito que no existen, desde la
 	// primera que falta y de arriba abajo.
 	neutroQueFalta []string
-	// host es lo que se sabe del host claude.
-	host hostExaminado
+	// hosts es lo que se sabe de cada host del ámbito, por nombre.
+	hosts map[string]hostExaminado
 	// skills es lo examinado de cada skill pedida, en orden de nombre.
 	skills []skillExaminada
 	// encima es lo examinado por encima de la raíz del ámbito o de la ruta de
@@ -322,13 +344,13 @@ type comprobacion struct {
 	encima map[string]Entrada
 }
 
-// hostExaminado es lo que se sabe del host claude: si se enlaza en esta
-// ejecución y, si se enlaza, si .claude y .claude/skills son, cada uno, un
-// directorio real o faltan.
+// hostExaminado es lo que se sabe de un host: si se enlaza en esta ejecución
+// y, si se enlaza, cada directorio de la raíz al de skills del host y si es un
+// directorio real o falta.
 type hostExaminado struct {
 	seEnlaza bool
-	claude   estadoDeDirectorio
-	skills   estadoDeDirectorio
+	cadena   []string
+	estados  []estadoDeDirectorio
 }
 
 // skillExaminada es lo que se sabe de una skill pedida sin ningún conflicto:
@@ -341,8 +363,9 @@ type skillExaminada struct {
 	// neutro es lo que hay en su directorio del directorio neutro; nada si
 	// falta.
 	neutro examinado
-	// host es su entrada de host, si se enlaza y .claude/skills existe.
-	host hostDeSkill
+	// hosts son sus entradas de host, por nombre del host, en cada uno en el
+	// que se enlaza y cuyo directorio de skills existe.
+	hosts map[string]hostDeSkill
 }
 
 // hostDeSkill es lo que se sabe de la entrada de host de una skill: su tipo
@@ -406,8 +429,8 @@ func (c *comprobacion) examinarDirectorio(ruta string) (estadoDeDirectorio, erro
 }
 
 // comprobarElNeutro aplica las tres primeras filas de data-model §4.1 —las
-// guardas del ámbito, el manifiesto ilegible y, con --dir, el manifiesto con
-// entradas de host—, guarda el manifiesto, si lo hay y se puede leer, y las
+// guardas del ámbito, el manifiesto ilegible y el manifiesto con entradas de un
+// host que el ámbito no tiene—, guarda el manifiesto, si lo hay y se puede leer, y las
 // guardas que faltan, y dice si el directorio neutro es un directorio real.
 func (c *comprobacion) comprobarElNeutro() (bool, error) {
 	guardas := c.ambito.Guardas()
@@ -442,7 +465,7 @@ func (c *comprobacion) comprobarElNeutro() (bool, error) {
 		return true, err
 	}
 
-	if !c.ambito.ConHosts() && conEntradasDeHost(manifiesto) {
+	if conEntradasDeHostAjenas(manifiesto, c.ambito) {
 		c.anotar(ruta, ConflictoManifiestoConEntradasDeHost)
 	}
 
@@ -479,62 +502,97 @@ func leerManifiestoDe(disco Disco, ruta string) (Manifiesto, error) {
 	return LeerManifiesto(contenido)
 }
 
-// conEntradasDeHost dice si el manifiesto declara alguna entrada de host.
-func conEntradasDeHost(manifiesto Manifiesto) bool {
+// conEntradasDeHostAjenas dice si el manifiesto declara alguna entrada de un
+// host que el ámbito no tiene: cualquiera con --dir, que no tiene hosts, y una
+// de antigravity en local, que lee el directorio neutro (FR-013; ADR 0025).
+func conEntradasDeHostAjenas(manifiesto Manifiesto, ambito Ambito) bool {
 	for _, skill := range manifiesto.Skills {
-		if skill.Claude != nil {
-			return true
+		for host := range skill.Hosts {
+			if !ambito.TieneHost(host) {
+				return true
+			}
 		}
 	}
 
 	return false
 }
 
-// comprobarElHost aplica las dos últimas filas de data-model §4.1, guarda si
-// se enlaza en el host en esta ejecución (§4.3) y dice si hay entradas de
-// host que examinar: solo si se enlaza y .claude/skills es un directorio
-// real. Si se enlaza y falta .claude o .claude/skills, no existe ninguna
-// entrada de host; si alguno de los dos existe y no es un directorio real, es
-// el conflicto y nada por debajo se examina.
-func (c *comprobacion) comprobarElHost(conHostClaude bool) (bool, error) {
-	if !c.ambito.ConHosts() {
-		return false, nil
-	}
+// comprobarLosHosts aplica a cada host del ámbito, en su orden, las dos
+// últimas filas de data-model §4.1 y dice en cuáles hay entradas de host que
+// examinar. forzados son los pedidos con --host.
+func (c *comprobacion) comprobarLosHosts(forzados []string) (map[string]bool, error) {
+	reales := map[string]bool{}
 
-	claude := c.ambito.DirectorioDelHost()
-
-	entrada, err := c.disco.Examinar(claude)
-	if err != nil {
-		return false, err
-	}
-
-	switch entrada.Tipo {
-	case EntradaDirectorio:
-	case EntradaAusente:
-		c.host = hostExaminado{seEnlaza: conHostClaude, claude: directorioAusente, skills: directorioAusente}
-
-		return false, nil
-	default:
-		if conHostClaude {
-			c.anotar(claude, ConflictoRutaQueNoEsDirectorio)
+	for _, host := range c.ambito.Hosts() {
+		conEntradas, err := c.comprobarElHost(host, slices.Contains(forzados, host))
+		if err != nil {
+			return nil, err
 		}
 
-		return false, nil
+		reales[host] = conEntradas
 	}
 
-	estado, err := c.examinarDirectorio(c.ambito.SkillsDelHost())
-	c.host = hostExaminado{seEnlaza: true, claude: directorioReal, skills: estado}
+	return reales, nil
+}
+
+// comprobarElHost aplica al host las dos últimas filas de data-model §4.1,
+// guarda si se enlaza en él en esta ejecución (§4.3) y dice si hay entradas
+// suyas que examinar: solo si se enlaza y su directorio de skills es un
+// directorio real. Se enlaza si se forzó con --host o si su directorio de
+// configuración y los de encima son, cada uno, un directorio real (FR-022,
+// FR-023). Si se enlaza y falta alguno de la cadena, no existe ninguna entrada
+// suya; si uno existe y no es un directorio real, es el conflicto y nada por
+// debajo se examina.
+func (c *comprobacion) comprobarElHost(host string, forzado bool) (bool, error) {
+	cadena := c.ambito.cadenaDelHost(host)
+	skills := len(cadena) - 1
+	estados := make([]estadoDeDirectorio, len(cadena))
+
+	for i, dir := range cadena[:skills] {
+		entrada, err := c.disco.Examinar(dir)
+		if err != nil {
+			return false, err
+		}
+
+		switch entrada.Tipo {
+		case EntradaDirectorio:
+			estados[i] = directorioReal
+		case EntradaAusente:
+			for j := i; j < len(estados); j++ {
+				estados[j] = directorioAusente
+			}
+
+			c.hosts[host] = hostExaminado{seEnlaza: forzado, cadena: cadena, estados: estados}
+
+			return false, nil
+		case EntradaFichero, EntradaEnlace, EntradaOtra:
+			if forzado {
+				c.anotar(dir, ConflictoRutaQueNoEsDirectorio)
+			}
+
+			return false, nil
+		}
+	}
+
+	estado, err := c.examinarDirectorio(cadena[skills])
+	estados[skills] = estado
+	c.hosts[host] = hostExaminado{seEnlaza: true, cadena: cadena, estados: estados}
 
 	return estado == directorioReal, err
 }
 
 // comprobarLasSkills examina cada skill pedida en el directorio neutro, si es
-// un directorio real, y en el host, si hay entradas de host que examinar, y
-// guarda lo examinado.
-func (c *comprobacion) comprobarLasSkills(pedidas []SkillEmpotrada, neutroReal, hostReal bool) error {
+// un directorio real, y en cada host de hostsReales, los que tienen entradas
+// que examinar, y guarda lo examinado.
+func (c *comprobacion) comprobarLasSkills(pedidas []SkillEmpotrada, neutroReal bool, hostsReales map[string]bool) error {
 	for _, skill := range pedidas {
 		declarada, esDeclarada := c.manifiesto.Skills[skill.Nombre]
-		examinada := skillExaminada{empotrada: skill, declarada: declarada, esDeclarada: esDeclarada}
+		examinada := skillExaminada{
+			empotrada:   skill,
+			declarada:   declarada,
+			esDeclarada: esDeclarada,
+			hosts:       map[string]hostDeSkill{},
+		}
 
 		var err error
 
@@ -545,8 +603,12 @@ func (c *comprobacion) comprobarLasSkills(pedidas []SkillEmpotrada, neutroReal, 
 			}
 		}
 
-		if hostReal {
-			examinada.host, err = c.comprobarEnElHost(skill, declarada.Claude)
+		for _, host := range c.ambito.Hosts() {
+			if !hostsReales[host] {
+				continue
+			}
+
+			examinada.hosts[host], err = c.comprobarEnElHost(skill, host, entradaDeclarada(declarada, host))
 			if err != nil {
 				return err
 			}
@@ -556,6 +618,17 @@ func (c *comprobacion) comprobarLasSkills(pedidas []SkillEmpotrada, neutroReal, 
 	}
 
 	return nil
+}
+
+// entradaDeclarada es la entrada de la skill declarada en el host, o nil si no
+// tiene.
+func entradaDeclarada(declarada SkillDeclarada, host string) *EntradaDeHost {
+	entrada, hay := declarada.Hosts[host]
+	if !hay {
+		return nil
+	}
+
+	return &entrada
 }
 
 // comprobarEnElNeutro aplica a la skill la primera tabla de data-model §4.2 y,
@@ -588,11 +661,11 @@ func (c *comprobacion) comprobarEnElNeutro(
 	return nil, nil
 }
 
-// comprobarEnElHost aplica a la entrada de host de la skill la tabla de
-// data-model §4.3, con host su entrada declarada, si la tiene, y devuelve lo
-// que se sabe de ella.
-func (c *comprobacion) comprobarEnElHost(skill SkillEmpotrada, host *EntradaDeHost) (hostDeSkill, error) {
-	ruta := c.ambito.RutaDeHost(skill.Nombre)
+// comprobarEnElHost aplica a la entrada de la skill en el host la tabla de
+// data-model §4.3, con declarada su entrada declarada, si la tiene, y devuelve
+// lo que se sabe de ella.
+func (c *comprobacion) comprobarEnElHost(skill SkillEmpotrada, host string, declarada *EntradaDeHost) (hostDeSkill, error) {
+	ruta := c.ambito.RutaDeHost(host, skill.Nombre)
 
 	entrada, err := c.disco.Examinar(ruta)
 	if err != nil {
@@ -604,11 +677,11 @@ func (c *comprobacion) comprobarEnElHost(skill SkillEmpotrada, host *EntradaDeHo
 	switch entrada.Tipo {
 	case EntradaAusente:
 	case EntradaEnlace:
-		if entrada.Destino != destinoDeHost(skill.Nombre) {
+		if entrada.Destino != destinoDeHost(host, skill.Nombre) {
 			c.anotar(ruta, claseDelEnlace(entrada))
 		}
 	case EntradaDirectorio:
-		return c.comprobarDirectorioDeHost(ruta, skill, host)
+		return c.comprobarDirectorioDeHost(ruta, host, skill, declarada)
 	case EntradaFichero, EntradaOtra:
 		c.anotar(ruta, ConflictoFichero)
 	}
@@ -616,10 +689,20 @@ func (c *comprobacion) comprobarEnElHost(skill SkillEmpotrada, host *EntradaDeHo
 	return examinada, nil
 }
 
-// destinoDeHost es el destino literal del enlace de host de la skill nombre,
-// ../../.agents/skills/<nombre> (FR-021).
-func destinoDeHost(nombre string) string {
-	return path.Join("../..", directorioNeutro, nombre)
+// destinoDeHost es el destino literal del enlace de la skill nombre en el
+// host, relativo a su directorio de skills: un .. por cada elemento de ese
+// directorio y .agents/skills/<nombre> —../../.agents/skills/<nombre> desde
+// .claude/skills, ../../../.agents/skills/<nombre> desde
+// .gemini/config/skills— (FR-021; ADR 0025).
+func destinoDeHost(host, nombre string) string {
+	registrado, _ := definicionDe(host)
+
+	elementos := []string{}
+	for range strings.Count(registrado.skills, "/") + 1 {
+		elementos = append(elementos, "..")
+	}
+
+	return path.Join(append(elementos, directorioNeutro, nombre)...)
 }
 
 // claseDelEnlace es la de un enlace en conflicto: a otro sitio si resuelve y
@@ -635,25 +718,27 @@ func claseDelEnlace(entrada Entrada) ClaseDeConflicto {
 // comprobarDirectorioDeHost aplica las filas de data-model §4.3 de una entrada
 // de host que es un directorio real: sin declarar o declarada enlace, es una
 // carpeta ajena; declarada copia, pasa a enlace si el Enlazador está
-// disponible en .claude/skills, y entonces todo lo que contiene tiene que
-// estar declarado e intacto, o se mantiene y se comprueba como el directorio
-// neutro.
-func (c *comprobacion) comprobarDirectorioDeHost(ruta string, skill SkillEmpotrada, host *EntradaDeHost) (hostDeSkill, error) {
+// disponible en el directorio de skills del host, y entonces todo lo que
+// contiene tiene que estar declarado e intacto, o se mantiene y se comprueba
+// como el directorio neutro.
+func (c *comprobacion) comprobarDirectorioDeHost(
+	ruta, host string, skill SkillEmpotrada, declarada *EntradaDeHost,
+) (hostDeSkill, error) {
 	examinada := hostDeSkill{tipo: EntradaDirectorio}
 
-	if host == nil || host.Modo != ModoCopia {
+	if declarada == nil || declarada.Modo != ModoCopia {
 		c.anotar(ruta, ConflictoCarpetaAjena)
 
 		return examinada, nil
 	}
 
-	disponible, err := c.disponible(c.ambito.SkillsDelHost())
+	disponible, err := c.disponible(c.ambito.SkillsDelHost(host))
 	if err != nil {
 		return examinada, err
 	}
 
 	examinada.aEnlace = disponible
-	examinada.declarados = relativas(host.Ficheros, host.Ruta+"/")
+	examinada.declarados = relativas(declarada.Ficheros, declarada.Ruta+"/")
 
 	if disponible {
 		examinada.copia, err = c.comprobarCopiaQueSeRetira(ruta, examinada.declarados)
@@ -891,10 +976,12 @@ type planificacion struct {
 	plan    Plan
 	// declaradas son las entradas finales de las skills pedidas.
 	declaradas map[string]SkillDeclarada
-	// copias son las entradas en copia de las de un enlace que crear.
-	copias map[string]*EntradaDeHost
-	// hostQueCrear dice si se crea alguna entrada de host, enlace o copia.
-	hostQueCrear bool
+	// copias son las entradas en copia de las de un enlace que crear, por su
+	// ruta.
+	copias map[string]reservaDeCopia
+	// hostsQueCrear son los hosts en los que se crea alguna entrada, enlace o
+	// copia.
+	hostsQueCrear map[string]bool
 	// creados es cada directorio de encima del ámbito que el plan ya crea.
 	creados map[string]bool
 }
@@ -903,12 +990,13 @@ type planificacion struct {
 // skill pedida.
 func (c *comprobacion) planificar(version string) (Plan, error) {
 	p := &planificacion{
-		c:          c,
-		version:    version,
-		plan:       Plan{Skills: make([]SkillInstalada, 0, len(c.skills))},
-		declaradas: map[string]SkillDeclarada{},
-		copias:     map[string]*EntradaDeHost{},
-		creados:    map[string]bool{},
+		c:             c,
+		version:       version,
+		plan:          Plan{Skills: make([]SkillInstalada, 0, len(c.skills))},
+		declaradas:    map[string]SkillDeclarada{},
+		copias:        map[string]reservaDeCopia{},
+		hostsQueCrear: map[string]bool{},
+		creados:       map[string]bool{},
 	}
 
 	for _, skill := range c.skills {
@@ -925,7 +1013,7 @@ func (c *comprobacion) planificar(version string) (Plan, error) {
 }
 
 // planificarSkill añade al plan lo de la skill: su directorio en el neutro,
-// su entrada de host, su entrada final del manifiesto y su salida.
+// sus entradas de host, su entrada final del manifiesto y su salida.
 func (p *planificacion) planificarSkill(skill skillExaminada) error {
 	nombre := skill.empotrada.Nombre
 	neutro := p.c.ambito.RutaDeSkill(nombre)
@@ -933,7 +1021,7 @@ func (p *planificacion) planificarSkill(skill skillExaminada) error {
 	cambiaElNeutro := p.actualizar(neutro, skill.neutro, relativas(skill.declarada.Ficheros, nombre+"/"),
 		skill.empotrada.Ficheros)
 
-	host, cambiaElHost, err := p.planificarHost(skill)
+	hosts, cambiaElHost, err := p.planificarHosts(skill)
 	if err != nil {
 		return err
 	}
@@ -941,7 +1029,7 @@ func (p *planificacion) planificarSkill(skill skillExaminada) error {
 	nueva := SkillDeclarada{
 		Version:  p.version,
 		Ficheros: ficherosDeclarados(skill.empotrada.Ficheros, nombre+"/"),
-		Claude:   host,
+		Hosts:    hosts,
 	}
 	p.declaradas[nombre] = nueva
 
@@ -955,8 +1043,11 @@ func (p *planificacion) planificarSkill(skill skillExaminada) error {
 	}
 
 	enlaces := []Enlace{}
-	if host != nil {
-		enlaces = append(enlaces, Enlace{Host: hostClaude, Ruta: p.c.ambito.RutaDeHost(nombre), Modo: host.Modo})
+
+	for _, host := range p.c.ambito.Hosts() {
+		if entrada, hay := hosts[host]; hay {
+			enlaces = append(enlaces, Enlace{Host: host, Ruta: p.c.ambito.RutaDeHost(host, nombre), Modo: entrada.Modo})
+		}
 	}
 
 	p.plan.Skills = append(p.plan.Skills, SkillInstalada{Nombre: nombre, Ruta: neutro, Estado: estado, Enlaces: enlaces})
@@ -964,37 +1055,66 @@ func (p *planificacion) planificarSkill(skill skillExaminada) error {
 	return nil
 }
 
-// planificarHost añade al plan lo de la entrada de host de la skill
+// planificarHosts añade al plan lo de las entradas de host de la skill, host a
+// host en su orden, y devuelve las que quedan declaradas, por host —nil si no
+// queda ninguna—, y si cambia algo en el disco en alguno.
+func (p *planificacion) planificarHosts(skill skillExaminada) (map[string]EntradaDeHost, bool, error) {
+	var declaradas map[string]EntradaDeHost
+
+	cambia := false
+
+	for _, host := range p.c.ambito.Hosts() {
+		entrada, cambiaEnEste, err := p.planificarHost(skill, host)
+		if err != nil {
+			return nil, false, err
+		}
+
+		cambia = cambia || cambiaEnEste
+
+		if entrada != nil {
+			if declaradas == nil {
+				declaradas = map[string]EntradaDeHost{}
+			}
+
+			declaradas[host] = *entrada
+		}
+	}
+
+	return declaradas, cambia, nil
+}
+
+// planificarHost añade al plan lo de la entrada de la skill en el host
 // (data-model §4.3) y devuelve la que queda declarada, si queda alguna, y si
-// cambia algo en el disco: sin enlazar en esta ejecución, ninguna, y la
-// declarada se quita del manifiesto sin tocar el disco (FR-046); el enlace de
-// FR-021 que ya está se adopta o se queda (FR-041); una copia declarada pasa
-// a enlace, retirándola entera, o se mantiene y se actualiza como el
-// directorio neutro; y la que falta se crea en el modo previsto.
-func (p *planificacion) planificarHost(skill skillExaminada) (*EntradaDeHost, bool, error) {
-	if !p.c.host.seEnlaza {
+// cambia algo en el disco: sin enlazar en el host en esta ejecución, ninguna,
+// y la declarada se quita del manifiesto sin tocar el disco (FR-046); el
+// enlace de FR-021 que ya está se adopta o se queda (FR-041); una copia
+// declarada pasa a enlace, retirándola entera, o se mantiene y se actualiza
+// como el directorio neutro; y la que falta se crea en el modo previsto.
+func (p *planificacion) planificarHost(skill skillExaminada, host string) (*EntradaDeHost, bool, error) {
+	if !p.c.hosts[host].seEnlaza {
 		return nil, false, nil
 	}
 
-	ruta := p.c.ambito.RutaDeHost(skill.empotrada.Nombre)
+	ruta := p.c.ambito.RutaDeHost(host, skill.empotrada.Nombre)
+	enElHost := skill.hosts[host]
 
 	switch {
-	case skill.host.tipo == EntradaEnlace:
-		return entradaEnlazada(skill.empotrada), false, nil
-	case skill.host.tipo == EntradaDirectorio && !skill.host.aEnlace:
-		cambia := p.actualizar(ruta, skill.host.copia, skill.host.declarados, skill.empotrada.Ficheros)
+	case enElHost.tipo == EntradaEnlace:
+		return entradaEnlazada(host, skill.empotrada), false, nil
+	case enElHost.tipo == EntradaDirectorio && !enElHost.aEnlace:
+		cambia := p.actualizar(ruta, enElHost.copia, enElHost.declarados, skill.empotrada.Ficheros)
 
-		return entradaEnCopia(skill.empotrada), cambia, nil
-	case skill.host.tipo == EntradaDirectorio:
-		p.plan.Retirar = append(p.plan.Retirar, retiradaDeCopia(ruta, skill.host.copia)...)
-		p.enlazar(skill.empotrada, ruta)
+		return entradaEnCopia(host, skill.empotrada), cambia, nil
+	case enElHost.tipo == EntradaDirectorio:
+		p.plan.Retirar = append(p.plan.Retirar, retiradaDeCopia(ruta, enElHost.copia)...)
+		p.enlazar(host, skill.empotrada, ruta)
 
-		return entradaEnlazada(skill.empotrada), true, nil
+		return entradaEnlazada(host, skill.empotrada), true, nil
 	}
 
-	p.hostQueCrear = true
+	p.hostsQueCrear[host] = true
 
-	modo, err := p.c.modoPrevisto()
+	modo, err := p.c.modoPrevisto(host)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1002,12 +1122,12 @@ func (p *planificacion) planificarHost(skill skillExaminada) (*EntradaDeHost, bo
 	if modo == ModoCopia {
 		p.actualizar(ruta, nil, nil, skill.empotrada.Ficheros)
 
-		return entradaEnCopia(skill.empotrada), true, nil
+		return entradaEnCopia(host, skill.empotrada), true, nil
 	}
 
-	p.enlazar(skill.empotrada, ruta)
+	p.enlazar(host, skill.empotrada, ruta)
 
-	return entradaEnlazada(skill.empotrada), true, nil
+	return entradaEnlazada(host, skill.empotrada), true, nil
 }
 
 // actualizar añade al plan lo que se retira y se escribe en base, el
@@ -1026,16 +1146,17 @@ func (p *planificacion) actualizar(
 	return len(retirar) > 0 || len(escribir.Ficheros) > 0
 }
 
-// enlazar añade al plan el enlace de FR-021 en la entrada de host ruta de la
-// skill, con su recurso de copia (FR-024).
-func (p *planificacion) enlazar(skill SkillEmpotrada, ruta string) {
+// enlazar añade al plan el enlace de FR-021 en la entrada ruta de la skill en
+// el host, con su recurso de copia (FR-024).
+func (p *planificacion) enlazar(host string, skill SkillEmpotrada, ruta string) {
 	p.plan.Enlazar.Enlaces = append(p.plan.Enlazar.Enlaces, EnlaceNuevo{
 		Skill:   skill.Nombre,
+		Host:    host,
 		Ruta:    ruta,
-		Destino: destinoDeHost(skill.Nombre),
+		Destino: destinoDeHost(host, skill.Nombre),
 		Copia:   aEscribir(ruta, nil, nil, skill.Ficheros),
 	})
-	p.copias[skill.Nombre] = entradaEnCopia(skill)
+	p.copias[ruta] = reservaDeCopia{skill: skill.Nombre, host: host, entrada: *entradaEnCopia(host, skill)}
 }
 
 // aRetirar son los ficheros de base que se retiran en la fase 1, en orden de
@@ -1139,52 +1260,54 @@ func ficherosDeclarados(empotrados []FicheroEmpotrado, prefijo string) map[strin
 	return ficheros
 }
 
-// rutaDeclaradaDeHost es la de la entrada de host de la skill nombre como la
-// declara el manifiesto, relativa a la raíz del ámbito (FR-031).
-func rutaDeclaradaDeHost(nombre string) string {
-	return path.Join(directorioDeSkillsDelHostClaude, nombre)
+// rutaDeclaradaDeHost es la de la entrada de la skill nombre en el host como
+// la declara el manifiesto, relativa a la raíz del ámbito (FR-031).
+func rutaDeclaradaDeHost(host, nombre string) string {
+	registrado, _ := definicionDe(host)
+
+	return path.Join(registrado.skills, nombre)
 }
 
-// entradaEnlazada es la entrada de host de la skill declarada en enlace.
-func entradaEnlazada(skill SkillEmpotrada) *EntradaDeHost {
-	return &EntradaDeHost{Ruta: rutaDeclaradaDeHost(skill.Nombre), Modo: ModoEnlace}
+// entradaEnlazada es la entrada de la skill en el host declarada en enlace.
+func entradaEnlazada(host string, skill SkillEmpotrada) *EntradaDeHost {
+	return &EntradaDeHost{Ruta: rutaDeclaradaDeHost(host, skill.Nombre), Modo: ModoEnlace}
 }
 
-// entradaEnCopia es la entrada de host de la skill declarada en copia, con la
-// huella de cada fichero copiado (FR-024).
-func entradaEnCopia(skill SkillEmpotrada) *EntradaDeHost {
-	ruta := rutaDeclaradaDeHost(skill.Nombre)
+// entradaEnCopia es la entrada de la skill en el host declarada en copia, con
+// la huella de cada fichero copiado (FR-024).
+func entradaEnCopia(host string, skill SkillEmpotrada) *EntradaDeHost {
+	ruta := rutaDeclaradaDeHost(host, skill.Nombre)
 
 	return &EntradaDeHost{Ruta: ruta, Modo: ModoCopia, Ficheros: ficherosDeclarados(skill.Ficheros, ruta+"/")}
 }
 
 // mismaDeclaracion dice si dos entradas de skill del manifiesto declaran lo
-// mismo: su versión, sus ficheros con su huella y su entrada de host.
+// mismo: su versión, sus ficheros con su huella y sus entradas de host.
 func mismaDeclaracion(a, b SkillDeclarada) bool {
-	return a.Version == b.Version && maps.Equal(a.Ficheros, b.Ficheros) && mismaEntradaDeHost(a.Claude, b.Claude)
+	return a.Version == b.Version && maps.Equal(a.Ficheros, b.Ficheros) &&
+		maps.EqualFunc(a.Hosts, b.Hosts, mismaEntradaDeHost)
 }
 
-// mismaEntradaDeHost dice si dos entradas de host declaran lo mismo, o si
-// faltan las dos.
-func mismaEntradaDeHost(a, b *EntradaDeHost) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-
+// mismaEntradaDeHost dice si dos entradas de host declaran lo mismo.
+func mismaEntradaDeHost(a, b EntradaDeHost) bool {
 	return a.Ruta == b.Ruta && a.Modo == b.Modo && maps.Equal(a.Ficheros, b.Ficheros)
 }
 
-// planificarLoQueFalta añade al plan lo que falta hasta .claude/skills, si se
-// crea alguna entrada de host, y el manifiesto final con lo que falta hasta el
-// directorio neutro, si cambia.
+// planificarLoQueFalta añade al plan lo que falta hasta el directorio de
+// skills de cada host en el que se crea alguna entrada, en su orden, y el
+// manifiesto final con lo que falta hasta el directorio neutro, si cambia.
 func (p *planificacion) planificarLoQueFalta() error {
-	if p.hostQueCrear {
-		faltan, err := p.queFaltaHastaElHost()
+	for _, host := range p.c.ambito.Hosts() {
+		if !p.hostsQueCrear[host] {
+			continue
+		}
+
+		faltan, err := p.queFaltaHastaElHost(host)
 		if err != nil {
 			return err
 		}
 
-		p.plan.Enlazar.DirectoriosQueFaltan = faltan
+		p.plan.Enlazar.DirectoriosQueFaltan = append(p.plan.Enlazar.DirectoriosQueFaltan, faltan...)
 	}
 
 	p.plan.Manifiesto = ManifiestoFinal{
@@ -1205,15 +1328,24 @@ func (p *planificacion) planificarLoQueFalta() error {
 	return err
 }
 
-// queFaltaHastaElHost es lo que falta hasta .claude/skills incluido.
-func (p *planificacion) queFaltaHastaElHost() ([]string, error) {
-	switch {
-	case p.c.host.claude == directorioAusente:
-		faltan, err := p.queFaltaHasta(p.c.ambito.DirectorioDelHost())
+// queFaltaHastaElHost es lo que falta hasta el directorio de skills del host
+// incluido: desde el primero de su cadena que falta, lo que falta por encima
+// de él si es el primero de la cadena, él y los de debajo.
+func (p *planificacion) queFaltaHastaElHost(host string) ([]string, error) {
+	examinado := p.c.hosts[host]
 
-		return append(faltan, p.nuevos(p.c.ambito.SkillsDelHost())...), err
-	case p.c.host.skills == directorioAusente:
-		return p.nuevos(p.c.ambito.SkillsDelHost()), nil
+	for i, estado := range examinado.estados {
+		if estado != directorioAusente {
+			continue
+		}
+
+		if i > 0 {
+			return p.nuevos(examinado.cadena[i:]...), nil
+		}
+
+		faltan, err := p.queFaltaHasta(examinado.cadena[0])
+
+		return append(faltan, p.nuevos(examinado.cadena[1:]...)...), err
 	}
 
 	return nil, nil
@@ -1290,12 +1422,12 @@ func (c *comprobacion) examinarEncima(ruta string) (Entrada, error) {
 	return entrada, nil
 }
 
-// modoPrevisto es el modo en que se crea una entrada de host que falta: el que
-// diga el Enlazador por el directorio de la sonda, enlace si se puede y copia
-// si no (FR-024), o enlace si no hay ningún directorio donde sondear (research.md
-// D9).
-func (c *comprobacion) modoPrevisto() (Modo, error) {
-	sonda, hay, err := c.directorioDeLaSonda()
+// modoPrevisto es el modo en que se crea una entrada del host que falta: el
+// que diga el Enlazador por el directorio de la sonda, enlace si se puede y
+// copia si no (FR-024), o enlace si no hay ningún directorio donde sondear
+// (research.md D9).
+func (c *comprobacion) modoPrevisto(host string) (Modo, error) {
+	sonda, hay, err := c.directorioDeLaSonda(host)
 	if err != nil {
 		return "", err
 	}
@@ -1316,17 +1448,20 @@ func (c *comprobacion) modoPrevisto() (Modo, error) {
 	return ModoCopia, nil
 }
 
-// directorioDeLaSonda es el directorio real existente más próximo a
-// .claude/skills sin salir del ámbito, donde vivirá la entrada de host, y si
-// hay alguno: .claude/skills, .claude o la raíz. La raíz se usa tal cual y
-// existe si es un directorio o un enlace que resuelve (FR-027); en local es el
-// directorio de trabajo, que existe siempre y no se examina (data-model §3).
-func (c *comprobacion) directorioDeLaSonda() (string, bool, error) {
-	switch {
-	case c.host.skills == directorioReal:
-		return c.ambito.SkillsDelHost(), true, nil
-	case c.host.claude == directorioReal:
-		return c.ambito.DirectorioDelHost(), true, nil
+// directorioDeLaSonda es el directorio real existente más próximo al de
+// skills del host sin salir del ámbito, donde vivirá la entrada, y si hay
+// alguno: el más bajo de su cadena que es un directorio real —.claude/skills o
+// .claude; .gemini/config/skills, .gemini/config o .gemini— o la raíz. La raíz
+// se usa tal cual y existe si es un directorio o un enlace que resuelve
+// (FR-027); en local es el directorio de trabajo, que existe siempre y no se
+// examina (data-model §3).
+func (c *comprobacion) directorioDeLaSonda(host string) (string, bool, error) {
+	examinado := c.hosts[host]
+
+	for i := len(examinado.estados) - 1; i >= 0; i-- {
+		if examinado.estados[i] == directorioReal {
+			return examinado.cadena[i], true, nil
+		}
 	}
 
 	raiz := path.Clean(c.ambito.Raiz())

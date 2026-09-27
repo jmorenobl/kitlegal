@@ -14,9 +14,10 @@ type Invocacion struct {
 	// Global dice si se pasó -g/--global.
 	Global bool
 
-	// Host es el valor de --host, o nil si no se pasó; un valor vacío
-	// también se pasó.
-	Host *string
+	// Hosts son los valores de --host, tal cual y en el orden en que se
+	// escribieron, o nil si no se pasó ninguno; un valor vacío también se
+	// pasó.
+	Hosts []string
 
 	// Dir es la ruta de --dir tal como se pasó, con /, o nil si no se pasó;
 	// una ruta vacía también se pasó.
@@ -33,9 +34,11 @@ type Pedido struct {
 	// (FR-010).
 	Skills []string
 
-	// HostClaude dice si se pidió --host claude, que enlaza en el host aunque
-	// .claude no exista (FR-023).
-	HostClaude bool
+	// Hosts son los pedidos con --host, cada uno una vez y en el orden de los
+	// hosts conocidos: se enlaza en ellos aunque su directorio de configuración
+	// no exista (FR-023). Uno que el ámbito no tiene —antigravity en local, que
+	// lee el directorio neutro— no pide nada más (ADR 0025).
+	Hosts []string
 }
 
 // ValidarInvocacion comprueba la invocación antes de tocar el disco —no
@@ -45,7 +48,8 @@ type Pedido struct {
 //
 //  1. -g junto a --dir, en los tres verbos (FR-013);
 //  2. --host junto a --dir (FR-013);
-//  3. --host con un valor distinto de claude (FR-020);
+//  3. --host con un valor que no es el de ningún host conocido, nombrando el
+//     primero (FR-020; ADR 0025);
 //  4. un nombre que no es de ninguna de las skills empotradas, también el de
 //     una que el manifiesto declara y el binario no empotra (FR-010, FR-036),
 //     nombrando la primera y las disponibles;
@@ -70,7 +74,21 @@ func ValidarInvocacion(invocacion Invocacion, home string, empotradas []SkillEmp
 		return Pedido{}, err
 	}
 
-	return Pedido{Ambito: ambito, Skills: pedidas, HostClaude: invocacion.Host != nil}, nil
+	return Pedido{Ambito: ambito, Skills: pedidas, Hosts: hostsPedidos(invocacion.Hosts)}, nil
+}
+
+// hostsPedidos son los hosts de --host, que ya son todos conocidos, cada uno
+// una vez y en el orden de los hosts conocidos; nil sin ninguno.
+func hostsPedidos(valores []string) []string {
+	var pedidos []string
+
+	for _, host := range nombresDeHosts() {
+		if slices.Contains(valores, host) {
+			pedidos = append(pedidos, host)
+		}
+	}
+
+	return pedidos
 }
 
 // comprobarBanderas aplica las filas 1 a 3, las de las banderas, en orden.
@@ -78,10 +96,14 @@ func comprobarBanderas(invocacion Invocacion) error {
 	switch {
 	case invocacion.Global && invocacion.Dir != nil:
 		return globalConDir()
-	case invocacion.Host != nil && invocacion.Dir != nil:
+	case invocacion.Hosts != nil && invocacion.Dir != nil:
 		return hostConDir()
-	case invocacion.Host != nil && *invocacion.Host != hostClaude:
-		return hostNoAdmitido(*invocacion.Host)
+	}
+
+	for _, host := range invocacion.Hosts {
+		if !esHostConocido(host) {
+			return hostNoAdmitido(host)
+		}
 	}
 
 	return nil
