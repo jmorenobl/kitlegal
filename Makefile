@@ -43,6 +43,11 @@ GOVULNCHECK := go tool -modfile=tools/govulncheck/go.mod govulncheck
 GITLEAKS    := go tool -modfile=tools/gitleaks/go.mod gitleaks
 LEFTHOOK    := go tool -modfile=tools/lefthook/go.mod lefthook
 
+# La herramienta de la release, fijada igual que las de los controles (FR-096 de
+# H19). syft y cosign no están aquí: solo los instala y ejecuta el flujo de la
+# release, y el snapshot no los usa (specs/009-h19-instalar-sin-clonar/research.md D20).
+GORELEASER  := go tool -modfile=tools/goreleaser/go.mod goreleaser
+
 # Los modfiles de herramienta se descubren, no se enumeran: así mod-verify
 # cubre los que existan en cada momento y también cualquiera que se añada
 # después sin tocar este fichero (contracts/make-targets.md).
@@ -51,8 +56,8 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check release \
-	check-tools hooks ci help
+	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check \
+	goreleaser-check release snapshot-check check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
 build: check-tools
@@ -136,10 +141,26 @@ mod-verify: check-tools
 mod-tidy-check: check-tools
 	go mod tidy -diff
 
-## release: publicación de la release firmada (la aporta H19)
-release:
-	@echo "release: sin configurar hasta H19 (.goreleaser.yaml)" >&2
-	@exit 1
+## goreleaser-check: valida .goreleaser.yaml con goreleaser check, sin construir nada; una propiedad obsoleta falla
+goreleaser-check: check-tools
+	$(GORELEASER) check
+
+# La única definición del snapshot: el trabajo snapshot de la integración
+# continua lo construye con este objetivo. --snapshot ya no publica; --skip lo
+# repite y omite además la firma y el SBOM, cuyas herramientas solo instala el
+# flujo de la release (FR-095 de H19; specs/009-h19-instalar-sin-clonar/research.md D29).
+## release: construye el snapshot local en dist/ para las seis plataformas; no publica, no firma ni genera SBOM
+release: check-tools
+	$(GORELEASER) release --snapshot --clean --skip=publish,sign,sbom
+
+# Sobre el dist/ de make release, fuera de ci: TestSnapshot y los guiones
+# instalador- del arnés e2e contra ese snapshot. Sin ningún guion instalador-
+# que ejecutar, el arnés falla en lugar de pasar en vacío
+# (specs/009-h19-instalar-sin-clonar/contracts/arnes-e2e.md §5).
+## snapshot-check: comprueba el dist/ de make release (TestSnapshot) y ejecuta contra él los guiones instalador-
+snapshot-check: check-tools
+	go test -count=1 -tags=snapshot -run '^TestSnapshot$$' .
+	KITLEGAL_DIST=$(CURDIR)/dist go test -count=1 -run '^TestEntregaDelHito$$/instalador-' ./internal/app/
 
 ## hooks: instala los ganchos de pre-commit
 hooks: check-tools
@@ -163,7 +184,8 @@ check-tools:
 	fi
 
 ## ci: el veredicto del repositorio; no modifica ningún fichero versionado
-ci: fmt-check lint test test-integration vuln schema-check skills-check secrets mod-verify mod-tidy-check
+ci: fmt-check lint test test-integration vuln schema-check skills-check goreleaser-check secrets mod-verify \
+	mod-tidy-check
 	@echo "ci: todos los controles en verde"
 
 ## help: enumera las órdenes disponibles

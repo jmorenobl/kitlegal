@@ -1,0 +1,147 @@
+# Configuración de la release de kitlegal (H19).
+#
+# Contrato: specs/009-h19-instalar-sin-clonar/contracts/release.md §2; decisiones en
+# su research.md D20-D23, D25 y D26. La versión de goreleaser está fijada en
+# tools/goreleaser/go.mod y se invoca por el Makefile: `make goreleaser-check`
+# (dentro de `make ci`) valida este fichero, y `make release` construye el
+# snapshot local sin publicar, firmar ni generar SBOM. Publicar es cosa de
+# .github/workflows/release.yml, en una etiqueta v*, y etiquetar es humano.
+#
+# Escrito contra v2.18.1 sin ninguna propiedad obsoleta: `goreleaser check` sale
+# con 2 ante una (FR-094). TestConfiguracionDeLaRelease (release_test.go) lo lee
+# de forma estricta: una sección o una propiedad que no fija el contrato lo hace
+# fallar.
+version: 2
+
+project_name: kitlegal
+
+builds:
+  # Seis plataformas, sin cgo y con -trimpath, como `make build` (FR-090). goarch
+  # se declara entero: el valor por omisión incluiría 386 (research.md V16).
+  - main: ./cmd/kitlegal
+    binary: kitlegal
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    # Las cuatro inyecciones del LDFLAGS del Makefile, una por entrada y
+    # ninguna más: declararlas sustituye las de omisión de goreleaser (FR-091;
+    # research.md V16). La versión es la etiqueta tal cual en una release
+    # (v0.1.0, la que da el Makefile en ese commit) y la del snapshot en un
+    # snapshot, y va igual al verbo version y al User-Agent (FR-092; research.md
+    # V6).
+    ldflags:
+      - "-X main.version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}"
+      - "-X main.commit={{ .FullCommit }}"
+      - "-X main.fecha={{ .Date }}"
+      - "-X github.com/jmorenobl/kitlegal/internal/httpx.version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}"
+
+archives:
+  # Sin versión en el nombre, para que «la última release» sea una URL fija de
+  # GitHub que install.sh descarga sin consultar la API (research.md D22). El
+  # binario va en la raíz del archivo, con la licencia, el README y el CHANGELOG
+  # (los ficheros por omisión; research.md V7).
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  # SHA-256, el algoritmo por omisión, de todo lo que se sube; install.sh se
+  # adjunta con release.extra_files, que no entra aquí, y por eso se nombra
+  # también en checksum.extra_files: así la firma de los checksums lo cubre
+  # (research.md D23, V8). La ruta es literal y tiene que existir, o el snapshot
+  # falla (research.md V48).
+  name_template: checksums.txt
+  extra_files:
+    - glob: ./scripts/install.sh
+
+sboms:
+  # Un SBOM de syft por archivo (research.md V9). syft solo lo instala
+  # release.yml; el snapshot lo omite con --skip=sbom (FR-095, FR-096).
+  - artifacts: archive
+
+signs:
+  # Firma keyless de checksums.txt con cosign en un bundle, el patrón del propio
+  # goreleaser (research.md V10). cosign solo lo instala release.yml; el snapshot
+  # la omite con --skip=sign (FR-095, FR-096).
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - --yes
+
+homebrew_casks:
+  # Un cask y no una fórmula: brews está obsoleto en v2.18.1 (research.md D21,
+  # V3). PUBLISHER_TOKEN solo se evalúa al publicar: ni `goreleaser check` ni el
+  # snapshot lo necesitan (FR-097; research.md V11).
+  - name: kitlegal
+    repository:
+      owner: jmorenobl
+      name: homebrew-tap
+      token: "{{ .Env.PUBLISHER_TOKEN }}"
+    homepage: https://github.com/jmorenobl/kitlegal
+    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    # El cask pone en cuarentena lo que descarga y el binario no está
+    # notarizado: sin retirarla, no arrancaría en un Mac (research.md D25).
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kitlegal"]
+          end
+
+scoops:
+  # Con el mismo secreto que el tap, evaluado solo al publicar (FR-097;
+  # research.md V12).
+  - name: kitlegal
+    repository:
+      owner: jmorenobl
+      name: scoop-bucket
+      token: "{{ .Env.PUBLISHER_TOKEN }}"
+    homepage: https://github.com/jmorenobl/kitlegal
+    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    license: Apache-2.0
+
+nfpms:
+  # Sin maintainer, goreleaser da la configuración por obsoleta (research.md
+  # V13). El de aquí es la identidad de autoría que ya publica el historial del
+  # repositorio (research.md D26; supuesto anotado en gates/supuestos.md).
+  - package_name: kitlegal
+    formats: [deb, rpm]
+    maintainer: "Jorge <jmorenobl@gmail.com>"
+    description: Consulta fuentes legales públicas españolas desde skills agénticas
+    homepage: https://github.com/jmorenobl/kitlegal
+    license: Apache-2.0
+
+release:
+  # Fijado, para que `goreleaser check` no dependa de git ni de un remote
+  # (research.md V2); install.sh va adjunto a la release (FR-109).
+  github:
+    owner: jmorenobl
+    name: kitlegal
+  extra_files:
+    - glob: ./scripts/install.sh
+
+changelog:
+  # Las notas de la release, desde los Conventional Commits (FR-093). Cada
+  # commit va al primer grupo, en este orden, cuya expresión casa con su
+  # mensaje; el último, sin expresión, recoge el resto (research.md V14).
+  # CHANGELOG.md sigue escribiéndose a mano.
+  use: git
+  sort: asc
+  groups:
+    - title: Novedades
+      regexp: '^feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Correcciones
+      regexp: '^fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Otros cambios
+      order: 2

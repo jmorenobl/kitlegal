@@ -31,11 +31,17 @@ run:
   # sesiones con modelo y que ni make ci ni ninguna tarea ejecutan; sin la
   # etiqueta aquí, ese fichero quedaría fuera de todo control y uno que ni
   # compila pasaría el lint en verde (H5 research.md D20 y V38).
+  #
+  # Y los que llevan snapshot: la comprobación del dist/ de make release
+  # (snapshot_test.go) solo la compila make snapshot-check, que ni make ci ni el
+  # trabajo ci ejecutan; sin la etiqueta aquí, ese fichero quedaría fuera de todo
+  # control y uno que ni compila pasaría el lint en verde (H19 research.md D33).
   build-tags:
     - integration
     - fuentes
     - grabacion
     - evals
+    - snapshot
 
 linters:
   # `standard` aporta errcheck, govet, staticcheck, ineffassign y unused.
