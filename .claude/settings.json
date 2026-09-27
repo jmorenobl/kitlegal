@@ -70,14 +70,19 @@
       "Bash(git push --tags:*)",
       "Bash(git merge:*)",
       "Bash(git reset --hard:*)",
-      "Bash(gh pr merge:*)",
       "Bash(gh pr close:*)",
       "Bash(gh release:*)",
       "Bash(gh repo delete:*)",
       "Bash(rm -rf:*)",
-      "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(sudo:*)"
+    ],
+    "ask": [
+      "Bash(gh pr merge:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh api:*)",
+      "Bash(KITLEGAL_PUSH_HUMANO=1 git push origin v:*)",
+      "Bash(curl:*)"
     ]
   },
   "hooks": {
