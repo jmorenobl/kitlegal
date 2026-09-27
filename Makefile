@@ -106,7 +106,7 @@ schema-check: check-tools
 
 ## skills-check: comprueba skills, datos y evals sin red, sin modelo y sin escribir nada
 skills-check: check-tools
-	go test -count=1 -run '^(TestSkillsDelRepositorio|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestJerarquiaDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
+	go test -count=1 -run '^(TestSkillsDelRepositorio|TestOrdenesDeLasSkillsEmpotradas|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestJerarquiaDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas)$$' ./internal/app/ ./internal/skills/ ./internal/evals/
 
 ## verify-sources: comprueba contra la fuente real que sus respuestas se siguen interpretando (requiere red; fuera de ci)
 verify-sources: check-tools
@@ -116,7 +116,7 @@ verify-sources: check-tools
 evals: check-tools
 	scripts/evals.sh "$(SKILL)"
 
-## skills-sync: regenera references/, la tabla de comandos de SKILL.md y los enlaces de scripts/ de cada skill
+## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools
 	scripts/skills-sync.sh
 

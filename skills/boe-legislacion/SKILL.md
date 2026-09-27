@@ -18,7 +18,7 @@ metadata:
 Esta skill responde preguntas sobre el contenido de normas consolidadas del Boletín Oficial del Estado —la
 Constitución, leyes orgánicas y ordinarias, reales decretos legislativos, reales decretos y las normas autonómicas que
 el BOE consolida— de cualquier ámbito: procedimiento administrativo, contratación pública, régimen local, tributos,
-transparencia, relaciones laborales… Lo que dice de una norma sale del texto que devuelve `scripts/boe` en la misma
+transparencia, relaciones laborales… Lo que dice de una norma sale del texto que devuelve `kitlegal boe` en la misma
 conversación, y cada afirmación sobre ese texto va con su cita. La skill consulta y cita: no tramita nada y no sustituye
 el asesoramiento de un profesional.
 
@@ -36,42 +36,42 @@ menudo; no es exhaustiva.
 ### 2. Resolver `BOE-A-…`
 
 - Si la norma está en `references/normas.md`, toma de ahí su identificador `BOE-A-…`.
-- Si no está, búscala con `scripts/boe buscar` por las palabras de su título:
+- Si no está, búscala con `kitlegal boe buscar` por las palabras de su título:
 
   ```bash
-  scripts/boe buscar régimen jurídico del sector público --json
+  kitlegal boe buscar régimen jurídico del sector público --json
   ```
 
   Elige entre los resultados por título y rango, y di en la respuesta qué norma elegiste. Si hay varias posibles —una
   ley y su texto refundido, una ley y el reglamento que la desarrolla, una norma estatal y otra autonómica de título
   parecido—, di cuáles y por qué eliges una; si la pregunta no permite elegir, pregunta o responde de ambas
   distinguiéndolas.
-- Una norma autonómica consolidada en el BOE se resuelve igual: si `scripts/boe buscar` la encuentra por su título, se
+- Una norma autonómica consolidada en el BOE se resuelve igual: si `kitlegal boe buscar` la encuentra por su título, se
   lee y se cita como una estatal.
 - Si la búsqueda no da la norma, reformúlala con otras palabras del título; que no aparezca no prueba que no exista
   (regla 1).
 
-### 3. Leer índice y bloques con `scripts/boe`
+### 3. Leer índice y bloques con `kitlegal boe`
 
 - Si no conoces el id del bloque —saber el número del artículo no basta—, lee el índice de la norma:
 
   ```bash
-  scripts/boe indice BOE-A-2015-10565 --json
+  kitlegal boe indice BOE-A-2015-10565 --json
   ```
 
 - Copia el id de la entrada del índice cuyo `titulo` es el artículo que buscas; nunca lo compongas a partir del número
   del artículo, porque en muchas normas los ids no son `a<número>`. En la Ley 9/2017, la entrada con `titulo`
   «Artículo 118» tiene el id `a1-30`, y `a118` no está en su índice.
-- Lee los bloques de uno en uno con `scripts/boe articulo`:
+- Lee los bloques de uno en uno con `kitlegal boe articulo`:
 
   ```bash
-  scripts/boe articulo BOE-A-2015-10565 a21 --json
+  kitlegal boe articulo BOE-A-2015-10565 a21 --json
   ```
 
-  Usa `scripts/boe articulos`, que los devuelve en el orden pedido, solo cuando necesites varios bloques a la vez y
+  Usa `kitlegal boe articulos`, que los devuelve en el orden pedido, solo cuando necesites varios bloques a la vez y
   todos salgan del índice.
-- Una orden de `scripts/boe articulos` falla entera en cuanto falla uno de sus bloques. Si una orden con varios bloques
-  termina con el código 4 o 5, pide cada bloque por separado con `scripts/boe articulo` antes de dar ninguno por no
+- Una orden de `kitlegal boe articulos` falla entera en cuanto falla uno de sus bloques. Si una orden con varios bloques
+  termina con el código 4 o 5, pide cada bloque por separado con `kitlegal boe articulo` antes de dar ninguno por no
   consultado: el fallo de un bloque no impide leer los demás.
 
 - Sigue las remisiones que hagan falta para responder: si el bloque remite a otro artículo, de la misma norma o de
@@ -79,11 +79,11 @@ menudo; no es exhaustiva.
 - Si la pregunta depende de la vigencia de la norma o de sus modificaciones, lee sus metadatos y su análisis:
 
   ```bash
-  scripts/boe metadatos BOE-A-2017-12902 --json
-  scripts/boe analisis BOE-A-2017-12902 --json
+  kitlegal boe metadatos BOE-A-2017-12902 --json
+  kitlegal boe analisis BOE-A-2017-12902 --json
   ```
 
-- No pidas nunca un id de bloque que no salga del índice o de la propia pregunta. Si `scripts/boe` termina con el
+- No pidas nunca un id de bloque que no salga del índice o de la propia pregunta. Si `kitlegal boe` termina con el
   código 3 (no encontrado), vuelve al índice en lugar de probar otros ids; si el artículo no existe en la norma, dilo.
 
 ### 4. Evaluar si falta contexto
@@ -95,13 +95,13 @@ Antes de responder, comprueba si lo leído basta:
 - **Vigencia**: si el sobre trae avisos (derogada, vigencia agotada, consolidación no finalizada) o la fecha de
   vigencia del bloque no encaja con la situación preguntada, tenlo en cuenta y trasládalo (regla 3).
 - **Modificaciones**: si una norma posterior cambió el bloque (`norma_modificadora`) de un modo que importa para la
-  pregunta, consulta `scripts/boe metadatos` o `scripts/boe analisis`.
+  pregunta, consulta `kitlegal boe metadatos` o `kitlegal boe analisis`.
 
-Si falta algo que no puedes leer con `scripts/boe`, dilo en la respuesta en lugar de suplirlo.
+Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lugar de suplirlo.
 
 ### 5. Responder citando
 
-- Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `scripts/boe`
+- Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `kitlegal boe`
   en esta conversación. La cita es la forma legible de la norma y del bloque seguida, en la misma línea, de
   `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
   `<identificador>, bloque <id>]`, con el identificador `BOE-A-…` y el id tal como los da la fuente (más en «Cómo se
@@ -136,7 +136,7 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
   el identificador y el id sin corchetes.
 - La regla vale igual cuando la cita va sola en una línea o debajo de una cita textual en bloque, como tras transcribir
   el artículo: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`.
-- El identificador y el id van tal como los devuelve `scripts/boe`, también cuando el id termina en punto: el corchete
+- El identificador y el id van tal como los devuelve `kitlegal boe`, también cuando el id termina en punto: el corchete
   de cierre lo delimita.
 - Una cita por bloque. Un bloque remitido se cita por separado, con su norma y su id.
 
@@ -157,21 +157,21 @@ del binario o de una explicación:
 
 ## Comandos
 
-Invoca el binario por el enlace `scripts/boe` de esta skill. Códigos de salida: 0 correcto, 2 argumentos inválidos, 3
+`kitlegal` se invoca desde el `PATH`. Códigos de salida: 0 correcto, 2 argumentos inválidos, 3
 no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requiere identidad humana.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
-### `scripts/boe`
+### `kitlegal boe`
 
 | Orden | Qué hace | Qué devuelve en `data` |
 |---|---|---|
-| `scripts/boe buscar <texto>...` | Busca normas consolidadas por las palabras de su título o con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, `vigencia_agotada`, `estado_consolidacion`, `url` |
-| `scripts/boe indice <norma>` | Devuelve los bloques de una norma consolidada, en el orden de la fuente. | objeto con `norma`, `url`, `bloques` |
-| `scripts/boe articulo <norma> <bloque>` | Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
-| `scripts/boe articulos <norma> <bloques>...` | Devuelve el texto vigente de varios bloques de una norma, en el orden pedido. | lista de objetos con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
-| `scripts/boe metadatos <norma>` | Devuelve los datos de una norma y los avisos de su vigencia. | objeto con `norma`, `titulo`, `rango`, `numero_oficial`, `fecha_disposicion`, `fecha_publicacion`, `fecha_vigencia`, `estatus_derogacion`, `vigencia_agotada`, `estado_consolidacion`, `url_eli`, `avisos` |
-| `scripts/boe analisis <norma>` | Devuelve las materias, las notas y las referencias de una norma. | objeto con `norma`, `materias`, `notas`, `referencias` |
+| `kitlegal boe buscar <texto>...` | Busca normas consolidadas por las palabras de su título o con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, `vigencia_agotada`, `estado_consolidacion`, `url` |
+| `kitlegal boe indice <norma>` | Devuelve los bloques de una norma consolidada, en el orden de la fuente. | objeto con `norma`, `url`, `bloques` |
+| `kitlegal boe articulo <norma> <bloque>` | Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
+| `kitlegal boe articulos <norma> <bloques>...` | Devuelve el texto vigente de varios bloques de una norma, en el orden pedido. | lista de objetos con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
+| `kitlegal boe metadatos <norma>` | Devuelve los datos de una norma y los avisos de su vigencia. | objeto con `norma`, `titulo`, `rango`, `numero_oficial`, `fecha_disposicion`, `fecha_publicacion`, `fecha_vigencia`, `estatus_derogacion`, `vigencia_agotada`, `estado_consolidacion`, `url_eli`, `avisos` |
+| `kitlegal boe analisis <norma>` | Devuelve las materias, las notas y las referencias de una norma. | objeto con `norma`, `materias`, `notas`, `referencias` |
 
 Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 
@@ -183,11 +183,11 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 
 1. **No concluir que algo no existe.** Una búsqueda vacía, o que una norma no esté en `references/normas.md`, no prueba
    que la norma o la regulación no existan: di «no encontrada con esta búsqueda» y propón reformular la búsqueda.
-2. **Nunca inventar contenido legal.** Si `scripts/boe` falla —código 3 (no encontrado), 4 (fuente no disponible) o 5
+2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla —código 3 (no encontrado), 4 (fuente no disponible) o 5
    (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué no se pudo consultar y no suplas el
    texto con conocimiento propio. Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada
-   bloque por separado con `scripts/boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si `scripts/boe` no
-   resuelve a un binario, di que falta instalar kitlegal.
+   bloque por separado con `kitlegal boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si `kitlegal` no
+   está en el `PATH`, di que falta instalar kitlegal.
 3. **Trasladar la vigencia.** Traslada cada aviso de vigencia que devuelve el binario (derogada, vigencia agotada,
    consolidación no finalizada) con su forma fija —`⚠`, la etiqueta del aviso tal como la da el binario y dos puntos,
    con la frase del binario o una explicación detrás— y no presentes como vigente el texto de una norma derogada.

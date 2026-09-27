@@ -20,30 +20,28 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/render"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // regenerarSkills es la bandera con la que TestSkillsDelRepositorio escribe en
-// skills/, antes de comparar, lo que regenera: las referencias, la tabla de
-// comandos de SKILL.md y los enlaces de scripts/. Solo la pasa
-// scripts/skills-sync.sh, que es lo que ejecuta make skills-sync; make
-// skills-check nunca la pasa (contrato sincronizacion-y-comprobacion §1 y §2).
+// skills/, antes de comparar, lo que regenera: las referencias y la tabla de
+// comandos de SKILL.md. Solo la pasa scripts/skills-sync.sh, que es lo que
+// ejecuta make skills-sync; make skills-check nunca la pasa (contrato
+// sincronizacion-y-comprobacion §1 y §2).
 var regenerarSkills = flag.Bool("regenerar-skills", false,
-	"escribe en skills/ las referencias, la tabla de comandos de SKILL.md y los enlaces de scripts/ antes de compararlos")
+	"escribe en skills/ las referencias y la tabla de comandos de SKILL.md antes de compararlas")
 
 const (
 	// raizDelRepositorio es la raíz del repositorio, relativa al directorio de
 	// este paquete, que es donde go test ejecuta sus tests.
 	raizDelRepositorio = "../.."
 
-	// destinoDeLosEnlacesDeScripts es el destino literal de todo enlace de
-	// scripts/ de una skill (data-model §3).
-	destinoDeLosEnlacesDeScripts = "../../../bin/instalado/kitlegal"
-
-	// enlaceSobrante es el nombre de un enlace de scripts/ que ninguna skill
-	// espera, porque no es el de ningún applet.
-	enlaceSobrante = "sobrante"
+	// programaDeLasOrdenes es con lo que empieza cada orden de la tabla de
+	// comandos: el binario, invocado desde el PATH (contracts/skills-e-invocacion.md
+	// §2 de H19; FR-080).
+	programaDeLasOrdenes = "kitlegal"
 
 	// inicioDeLaTablaDeComandos y finDeLaTablaDeComandos son las dos líneas que
 	// delimitan la región generada de SKILL.md (data-model §2).
@@ -67,9 +65,10 @@ var cabeceraDeUnaReferencia = regexp.MustCompile(`\A<!-- generado desde (data/[^
 // research.md D2, D6 y D7; FR-030 a FR-036, FR-040 a FR-042): describe cada
 // verbo de cada applet que declara alguna skill con la misma función que atiende
 // --describe, regenera en memoria lo generado de cada skill y lo compara con su
-// árbol. Cada defecto de una skill falla nombrando la skill y el defecto, y cada
-// deriva, la skill y el fichero o el enlace. Con -regenerar-skills escribe antes
-// lo regenerado, salvo si alguna skill tiene defectos, que se presentan igual.
+// árbol. Cada defecto de una skill —también llevar scripts/ (ADR 0019; FR-082 de
+// H19)— falla nombrando la skill y el defecto, y cada deriva, la skill y el
+// fichero. Con -regenerar-skills escribe antes lo regenerado, salvo si alguna
+// skill tiene defectos, que se presentan igual.
 //
 // El primer subtest compara el árbol real y exige las skills exigidas; los
 // siguientes rompen, de uno en uno y para cada skill del árbol, copias temporales
@@ -116,10 +115,10 @@ func TestSkillsDelRepositorio(t *testing.T) {
 		probarSobreCopias(t, descripciones, casosDeFrontmatter)
 	})
 
-	t.Run("enlaces", func(t *testing.T) {
+	t.Run("scripts", func(t *testing.T) {
 		t.Parallel()
 
-		probarSobreCopias(t, descripciones, casosDeEnlaces)
+		probarSobreCopias(t, descripciones, casosDeScripts)
 	})
 
 	t.Run("region", func(t *testing.T) {
@@ -203,11 +202,140 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 		cambiadas[articulo].Argumentos[bloque].Obligatorio = false
 
 		orden := sintaxisDeLaTabla(t, registro.Nombres(), cambiadas)[articulo]
-		require.Equal(t, "scripts/boe articulo <norma> [--bloque]", orden)
+		require.Equal(t, "kitlegal boe articulo <norma> [--bloque]", orden)
 
 		res := invocar(t, registro, invocacionDeLaSintaxis(t, orden)...)
 		assert.Equal(t, 2, res.codigo, "la gramática exige el bloque por su posición: %s", res.errores)
 	})
+}
+
+// TestOrdenesDeLasSkillsEmpotradas fija que las skills que lleva dentro el
+// binario solo mandan ejecutar lo que ese binario sabe hacer
+// (contracts/skills-e-invocacion.md §3 de H19; FR-084, SC-014): cada orden de la
+// región generada del SKILL.md de cada skill empotrada empieza por kitlegal, un
+// applet del registro de producción y un verbo de ese applet. Lee lo empotrado y
+// no el árbol, porque es lo que se instala. Para que no pase en vacío, las skills
+// exigidas están empotradas y cada skill que declara applets tiene alguna orden;
+// y el subtest de control demuestra que la comprobación falla con una orden por
+// el enlace de la instalación anterior, sin verbo, con un applet sin registrar y
+// con un verbo sin registrar, y que no cuenta lo que queda fuera de la región.
+func TestOrdenesDeLasSkillsEmpotradas(t *testing.T) {
+	t.Parallel()
+
+	registro, err := RegistroDeProduccion("")
+	require.NoError(t, err)
+
+	empotradas, err := skillsEmpotradas()
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(empotradas))
+
+	for _, skill := range empotradas {
+		nombres = append(nombres, skill.Nombre)
+
+		t.Run(skill.Nombre, func(t *testing.T) {
+			t.Parallel()
+
+			skillMd := ficheroEmpotrado(t, skill, "SKILL.md")
+
+			frontmatter, err := skills.LeerFrontmatter(skillMd)
+			require.NoError(t, err)
+
+			ordenes := ordenesDeLaRegion(t, string(skillMd))
+			if len(frontmatter.DeclaracionDeKitlegal().Applets) > 0 {
+				require.NotEmpty(t, ordenes, "la tabla de comandos de %s tiene alguna orden", skill.Nombre)
+			}
+
+			assert.Empty(t, ordenesSinRegistrar(registro, ordenes))
+		})
+	}
+
+	require.Subset(t, nombres, skillsExigidas, "el binario lleva dentro las skills exigidas")
+
+	t.Run("control", func(t *testing.T) {
+		t.Parallel()
+
+		skillMd := "| `kitlegal boe inventado` | Fuera de la región: no cuenta. | nada |\n" +
+			inicioDeLaTablaDeComandos + "\n" +
+			"\n### `kitlegal boe`\n\n| Orden | Qué hace | Qué devuelve en `data` |\n|---|---|---|\n" +
+			"| `kitlegal boe articulo <norma> <bloque>` | Registrada. | objeto |\n" +
+			"| `scripts/boe articulo <norma> <bloque>` | Por el enlace de la instalación anterior. | objeto |\n" +
+			"| `kitlegal boe` | Sin verbo. | objeto |\n" +
+			"| `kitlegal inventado leer <bloque>` | Applet sin registrar. | objeto |\n" +
+			"| `kitlegal boe inventado <norma>` | Verbo sin registrar. | objeto |\n" +
+			finDeLaTablaDeComandos + "\n"
+
+		ordenes := ordenesDeLaRegion(t, skillMd)
+		require.Len(t, ordenes, 5, "solo cuentan las filas de la región")
+
+		assert.Equal(t, []string{
+			"«scripts/boe articulo <norma> <bloque>» no empieza por kitlegal <applet> <verbo>",
+			"«kitlegal boe» no empieza por kitlegal <applet> <verbo>",
+			"«kitlegal inventado leer <bloque>»: el applet inventado no está registrado",
+			"«kitlegal boe inventado <norma>»: el applet boe no tiene el verbo inventado",
+		}, ordenesSinRegistrar(registro, ordenes))
+	})
+}
+
+// ficheroEmpotrado son los bytes del fichero de la ruta, relativa a su carpeta,
+// de la skill empotrada, que tiene que estar.
+func ficheroEmpotrado(t *testing.T, skill instalacion.SkillEmpotrada, ruta string) []byte {
+	t.Helper()
+
+	indice := slices.IndexFunc(skill.Ficheros, func(fichero instalacion.FicheroEmpotrado) bool {
+		return fichero.Ruta == ruta
+	})
+	require.GreaterOrEqual(t, indice, 0, "la skill empotrada %s lleva %s", skill.Nombre, ruta)
+
+	return skill.Ficheros[indice].Contenido
+}
+
+// ordenesDeLaRegion son las órdenes de las filas de la región generada del
+// SKILL.md, entre sus dos marcas, en su orden; ninguna si no tiene las marcas en
+// su orden.
+func ordenesDeLaRegion(t *testing.T, skillMd string) []string {
+	t.Helper()
+
+	_, tras, conInicio := strings.Cut(skillMd, inicioDeLaTablaDeComandos+"\n")
+	region, _, conFin := strings.Cut(tras, finDeLaTablaDeComandos+"\n")
+
+	if !conInicio || !conFin {
+		return nil
+	}
+
+	return ordenesDeLaTabla(t, region)
+}
+
+// ordenesSinRegistrar es un fallo por cada orden que no empieza por kitlegal, un
+// applet del registro y un verbo de ese applet, en su orden; nil si no hay
+// ninguno.
+func ordenesSinRegistrar(registro *Registro, ordenes []string) []string {
+	var fallos []string
+
+	for _, orden := range ordenes {
+		partes := strings.Fields(orden)
+		if len(partes) < 3 || partes[0] != programaDeLasOrdenes {
+			fallos = append(fallos, fmt.Sprintf("«%s» no empieza por kitlegal <applet> <verbo>", orden))
+
+			continue
+		}
+
+		applet, registrado := registro.Buscar(partes[1])
+		if !registrado {
+			fallos = append(fallos, fmt.Sprintf("«%s»: el applet %s no está registrado", orden, partes[1]))
+
+			continue
+		}
+
+		conVerbo := slices.ContainsFunc(applet.Verbos(), func(verbo Verbo) bool {
+			return verbo.Nombre == partes[2]
+		})
+		if !conVerbo {
+			fallos = append(fallos, fmt.Sprintf("«%s»: el applet %s no tiene el verbo %s", orden, partes[1], partes[2]))
+		}
+	}
+
+	return fallos
 }
 
 // casoSobreUnaCopia es un cambio sobre una copia temporal del árbol real —en sus
@@ -669,62 +797,60 @@ func conOtroFrontmatter(skill, directorio, frontmatter string) func(t *testing.T
 	}
 }
 
-// casosDeEnlaces son las clases de deriva de los enlaces de scripts/ de la skill
-// (data-model §3 y §5; FR-036; US5 escenario 5): un enlace que no espera y, por
-// cada applet que declara, su enlace ausente, con otro destino o sustituido por
-// un fichero regular.
-func casosDeEnlaces(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+// casosDeScripts son el defecto de FR-082 en la skill (ADR 0019;
+// contracts/skills-e-invocacion.md §3 de H19): una entrada scripts en su
+// directorio, sea lo que sea —el directorio con un enlace por applet declarado
+// que dejaba la instalación anterior, uno vacío, un fichero o un enlace
+// colgante, que solo se ve sin seguirlo—, hace fallar la comprobación nombrando
+// la skill y el defecto, y nada más.
+func casosDeScripts(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
-	casos := []casoSobreUnaCopia{{
-		nombre: "enlace-sobrante",
-		alterar: func(t *testing.T, copia string) {
-			t.Helper()
+	fallos := []string{skill.nombre + ": una skill no lleva scripts/ (ADR 0019)"}
 
-			enlazarEnLaCopia(t, destinoDeLosEnlacesDeScripts, rutaEnLaSkill(copia, skill.nombre, "scripts", enlaceSobrante))
+	return []casoSobreUnaCopia{
+		{
+			nombre: "con-los-enlaces-de-la-instalacion-anterior",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				require.NoError(t, os.Mkdir(rutaEnLaSkill(copia, skill.nombre, "scripts"), 0o750))
+
+				for _, applet := range skill.applets {
+					enlazarEnLaCopia(t, "../../../bin/instalado/kitlegal",
+						rutaEnLaSkill(copia, skill.nombre, "scripts", applet))
+				}
+			},
+			fallos: fallos,
 		},
-		fallos: []string{skill.nombre + ": scripts/" + enlaceSobrante + ": enlace-sobrante"},
-	}}
+		{
+			nombre: "vacio",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
 
-	for _, applet := range skill.applets {
-		enlace := skill.nombre + ": scripts/" + applet + ": "
-
-		casos = append(casos,
-			casoSobreUnaCopia{
-				nombre: "enlace-ausente-" + applet,
-				alterar: func(t *testing.T, copia string) {
-					t.Helper()
-
-					retirarDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "scripts", applet))
-				},
-				fallos: []string{enlace + "enlace-ausente"},
+				require.NoError(t, os.Mkdir(rutaEnLaSkill(copia, skill.nombre, "scripts"), 0o750))
 			},
-			casoSobreUnaCopia{
-				nombre: "enlace-con-otro-destino-" + applet,
-				alterar: func(t *testing.T, copia string) {
-					t.Helper()
+			fallos: fallos,
+		},
+		{
+			nombre: "fichero",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
 
-					ruta := rutaEnLaSkill(copia, skill.nombre, "scripts", applet)
-					retirarDeLaCopia(t, ruta)
-					enlazarEnLaCopia(t, "../../../bin/kitlegal", ruta)
-				},
-				fallos: []string{enlace + "enlace-con-otro-destino (apunta a ../../../bin/kitlegal)"},
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "scripts"), "#!/bin/sh\n")
 			},
-			casoSobreUnaCopia{
-				nombre: "fichero-regular-en-lugar-de-enlace-" + applet,
-				alterar: func(t *testing.T, copia string) {
-					t.Helper()
+			fallos: fallos,
+		},
+		{
+			nombre: "enlace-colgante",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
 
-					ruta := rutaEnLaSkill(copia, skill.nombre, "scripts", applet)
-					retirarDeLaCopia(t, ruta)
-					escribirFicheroDeLaCopia(t, ruta, "no es un enlace\n")
-				},
-				fallos: []string{enlace + "enlace-con-otro-destino (no es un enlace simbólico)"},
+				enlazarEnLaCopia(t, "no-existe", rutaEnLaSkill(copia, skill.nombre, "scripts"))
 			},
-		)
+			fallos: fallos,
+		},
 	}
-
-	return casos
 }
 
 // casosDeRegion son los defectos de las marcas de la región generada del
@@ -794,9 +920,9 @@ func lineaDeLaMarca(t *testing.T, contenido, marca string) int {
 
 // probarRegenerarDosVeces fija que la regeneración de la skill es idempotente
 // (FR-034, FR-036): sobre una copia con una deriva de cada parte generada —la
-// tabla, cada referencia, una referencia sobrante, cada enlace y un enlace
-// sobrante—, Escribir la deja sin derivas, y un segundo Escribir no cambia ningún
-// byte, ningún enlace ni ningún tiempo de modificación.
+// tabla, cada referencia y una referencia sobrante—, Escribir la deja sin
+// derivas y sin ningún scripts/ (ADR 0019; FR-080 de H19), y un segundo Escribir
+// no cambia ningún byte ni ningún tiempo de modificación.
 func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeVerbo, skill skillDelRecorrido) {
 	t.Helper()
 
@@ -815,27 +941,20 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "antigua.md"), "# Antigua\n")
 	fallos = append(fallos, skill.nombre+": references/antigua.md: fichero-sobrante")
 
-	for _, applet := range skill.applets {
-		enlace := rutaEnLaSkill(copia, skill.nombre, "scripts", applet)
-		retirarDeLaCopia(t, enlace)
-		enlazarEnLaCopia(t, "../../../bin/kitlegal", enlace)
-		fallos = append(fallos, skill.nombre+": scripts/"+applet+": enlace-con-otro-destino (apunta a ../../../bin/kitlegal)")
-	}
-
-	enlazarEnLaCopia(t, destinoDeLosEnlacesDeScripts, rutaEnLaSkill(copia, skill.nombre, "scripts", enlaceSobrante))
-	fallos = append(fallos, skill.nombre+": scripts/"+enlaceSobrante+": enlace-sobrante")
-
 	require.Equal(t, fallos, fallosDeLasSkills(t, copia, descripciones))
 
 	escribirSkills(t, copia, descripciones)
 	require.Empty(t, fallosDeLasSkills(t, copia, descripciones), "Escribir deja la copia sin defectos ni derivas")
+
+	_, err := os.Lstat(rutaEnLaSkill(copia, skill.nombre, "scripts"))
+	require.ErrorIs(t, err, fs.ErrNotExist, "Escribir no crea scripts/")
 
 	envejecerArbol(t, copia)
 	antes := fotografiarArbol(t, copia)
 
 	escribirSkills(t, copia, descripciones)
 	assert.Equal(t, antes, fotografiarArbol(t, copia),
-		"el segundo Escribir no cambia ningún byte, ningún enlace ni ningún tiempo de modificación")
+		"el segundo Escribir no cambia ningún byte ni ningún tiempo de modificación")
 	assert.Empty(t, fallosDeLasSkills(t, copia, descripciones))
 }
 
@@ -1154,17 +1273,25 @@ func indiceDelVerbo(t *testing.T, descripciones []skills.DescripcionDeVerbo, app
 }
 
 // sintaxisDeLaTabla son las órdenes de las filas de la tabla de comandos que se
-// genera para los applets, en su orden: el texto de la primera celda, sin las
-// comillas de código.
+// genera para los applets, en su orden.
 func sintaxisDeLaTabla(t *testing.T, applets []string, descripciones []skills.DescripcionDeVerbo) []string {
 	t.Helper()
 
 	tabla, err := skills.RenderizarTabla(applets, descripciones)
 	require.NoError(t, err)
 
+	return ordenesDeLaTabla(t, string(tabla))
+}
+
+// ordenesDeLaTabla son las órdenes de las filas de una tabla de comandos, en su
+// orden: el texto de la primera celda, sin las comillas de código, de cada línea
+// que empieza por una celda de código.
+func ordenesDeLaTabla(t *testing.T, tabla string) []string {
+	t.Helper()
+
 	var ordenes []string
 
-	for linea := range strings.Lines(string(tabla)) {
+	for linea := range strings.Lines(tabla) {
 		celda, esFila := strings.CutPrefix(linea, "| `")
 		if !esFila {
 			continue
@@ -1180,19 +1307,21 @@ func sintaxisDeLaTabla(t *testing.T, applets []string, descripciones []skills.De
 }
 
 // invocacionDeLaSintaxis es la invocación mínima que cumple una sintaxis de la
-// tabla, seguida de --describe (contrato sincronizacion-y-comprobacion §3): el
-// enlace del applet como nombre del programa, que es como lo invoca la skill, el
-// verbo, x por cada argumento obligatorio, x y por cada uno de varios valores y
-// ninguno de los opcionales.
+// tabla, seguida de --describe (contrato sincronizacion-y-comprobacion §3;
+// contracts/skills-e-invocacion.md §2 de H19): kitlegal como nombre del programa,
+// el applet y el verbo, que es como lo invoca la skill desde el PATH, x por cada
+// argumento obligatorio, x y por cada uno de varios valores y ninguno de los
+// opcionales.
 func invocacionDeLaSintaxis(t *testing.T, orden string) []string {
 	t.Helper()
 
 	partes := strings.Fields(orden)
-	require.GreaterOrEqual(t, len(partes), 2, "la sintaxis %q nombra el applet y el verbo", orden)
+	require.GreaterOrEqual(t, len(partes), 3, "la sintaxis %q nombra el programa, el applet y el verbo", orden)
+	require.Equal(t, programaDeLasOrdenes, partes[0], "la sintaxis %q invoca kitlegal", orden)
 
-	argv := []string{partes[0], partes[1]}
+	argv := []string{partes[0], partes[1], partes[2]}
 
-	for _, parte := range partes[2:] {
+	for _, parte := range partes[3:] {
 		switch {
 		case strings.HasPrefix(parte, "[--"):
 		case strings.HasSuffix(parte, ">..."):
@@ -1265,8 +1394,9 @@ func rutaEnLaSkill(raiz, skill string, partes ...string) string {
 // real para la skill —su directorio de skills/ y data/— y devuelve su raíz: sin
 // las demás skills, un cambio en data/ o en lo que declara --describe solo da los
 // fallos de ella. Los enlaces simbólicos se recrean con su destino literal, sin
-// seguirlos: el de scripts/ no resuelve hasta que se instala. Los dos árboles se
-// abren como os.Root, que no deja salir de ellos por un enlace mientras se copia.
+// seguirlos, de modo que la copia tiene lo mismo que el árbol aunque no resuelvan.
+// Los dos árboles se abren como os.Root, que no deja salir de ellos por un enlace
+// mientras se copia.
 func copiaConLaSkill(t *testing.T, skill string) string {
 	t.Helper()
 

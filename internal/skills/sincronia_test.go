@@ -20,7 +20,7 @@ import (
 // SKILL.md de dos skills. alfa declara dos applets, en otro orden que el del
 // registro, y las tres referencias de la tabla de generadores, dos de ellas del
 // mismo YAML de datos, y su tabla de comandos está escrita a mano; beta no declara
-// nada, así que no lleva tabla, ni referencias, ni enlaces.
+// nada, así que no lleva ni tabla ni referencias.
 const (
 	normasDeSincronia = "normas:\n" +
 		"  BOE-A-2015-10565:\n" +
@@ -89,15 +89,15 @@ const referenciasDeAlfa = "normas leyes_vertebrales jerarquia_normativa"
 // sus cuatro reglas (contrato de la skill legal-core §2).
 const (
 	regionDeAlfa = "\n" +
-		"### `scripts/dos`\n" +
+		"### `kitlegal dos`\n" +
 		"\n" +
 		columnasDeLaTabla +
-		"| `scripts/dos listar` | Lista los bloques. | lista de objetos con `bloque` |\n" +
+		"| `kitlegal dos listar` | Lista los bloques. | lista de objetos con `bloque` |\n" +
 		"\n" +
-		"### `scripts/uno`\n" +
+		"### `kitlegal uno`\n" +
 		"\n" +
 		columnasDeLaTabla +
-		"| `scripts/uno leer <bloque>` | Lee un bloque. | objeto con `texto` |\n" +
+		"| `kitlegal uno leer <bloque>` | Lee un bloque. | objeto con `texto` |\n" +
 		"\n" +
 		"Todas devuelven el sobre `ok`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.\n" +
 		"\n" +
@@ -178,10 +178,11 @@ func descripcionesDeSincronia() []skills.DescripcionDeVerbo {
 // sin nada escrito para una skill concreta, y cada referencia, de la fila de la
 // tabla de generadores que lleva su nombre, que no tiene por qué ser el de su
 // YAML de datos; Regenerar y Comparar no escriben nada; Escribir deja el árbol sin
-// derivas, y un segundo Escribir no cambia ningún byte, ningún enlace ni ningún
-// tiempo de modificación; cada clase de deriva nombra la skill y el fichero o el
-// enlace, y Escribir la deshace; y cada defecto de una skill nombra la skill, la
-// deja sin nada que comparar e impide que Escribir escriba nada.
+// derivas y sin ningún scripts/ (ADR 0019; FR-080), y un segundo Escribir no
+// cambia ningún byte ni ningún tiempo de modificación; cada clase de deriva nombra
+// la skill y el fichero, y Escribir la deshace; y cada defecto de una skill —entre
+// ellos, llevar scripts/ (FR-082)— nombra la skill, la deja sin nada que comparar
+// e impide que Escribir escriba nada.
 func TestRegenerarYComparar(t *testing.T) {
 	t.Parallel()
 
@@ -197,10 +198,6 @@ func TestRegenerarYComparar(t *testing.T) {
 				Nombre:      "alfa",
 				Contenido:   []byte(skillMdDeAlfaSincronizado),
 				Referencias: referenciasRegeneradasDeAlfa(),
-				Enlaces: []skills.Enlace{
-					{Nombre: "dos", Destino: destinoDeLosEnlacesDePrueba},
-					{Nombre: "uno", Destino: destinoDeLosEnlacesDePrueba},
-				},
 			},
 			{Nombre: "beta", Contenido: []byte(skillMdDeBetaSinNadaQueGenerar)},
 		}}, regenerado)
@@ -212,8 +209,6 @@ func TestRegenerarYComparar(t *testing.T) {
 			{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaFicheroAusente},
 			{Skill: "alfa", Ruta: "references/leyes_vertebrales.md", Clase: skills.DerivaFicheroAusente},
 			{Skill: "alfa", Ruta: "references/jerarquia_normativa.md", Clase: skills.DerivaFicheroAusente},
-			{Skill: "alfa", Ruta: "scripts/dos", Clase: skills.DerivaEnlaceAusente},
-			{Skill: "alfa", Ruta: "scripts/uno", Clase: skills.DerivaEnlaceAusente},
 		}, derivas)
 		assert.Equal(t, antes, fotografiar(t, raiz), "Regenerar y Comparar no escriben nada")
 
@@ -227,15 +222,13 @@ func TestRegenerarYComparar(t *testing.T) {
 				leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", referencia.Fichero)))
 		}
 
-		for _, applet := range []string{"dos", "uno"} {
-			destino, err := os.Readlink(rutaDeSkill(raiz, "alfa", "scripts", applet))
-			require.NoError(t, err)
-			assert.Equal(t, destinoDeLosEnlacesDePrueba, destino, "el enlace de %s lleva el destino literal", applet)
-		}
-
 		assert.Equal(t, skillMdDeBetaSinNadaQueGenerar, leerFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "SKILL.md")))
 		assert.NoDirExists(t, rutaDeSkill(raiz, "beta", "references"), "beta no declara referencias")
-		assert.NoDirExists(t, rutaDeSkill(raiz, "beta", "scripts"), "beta no declara applets")
+
+		for _, skill := range []string{"alfa", "beta"} {
+			_, err := os.Lstat(rutaDeSkill(raiz, skill, "scripts"))
+			require.ErrorIs(t, err, fs.ErrNotExist, "Escribir no le crea scripts/ a %s, declare o no applets", skill)
+		}
 	})
 
 	t.Run("segundo-escribir-no-cambia-nada", func(t *testing.T) {
@@ -243,9 +236,6 @@ func TestRegenerarYComparar(t *testing.T) {
 
 		raiz := arbolDeFuentes(t)
 		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), "# Sobrante\n")
-		crearEnlaceDePrueba(t, "../../../bin/kitlegal", rutaDeSkill(raiz, "alfa", "scripts", "uno"))
-		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "scripts", "dos"), "no es un enlace\n")
-		crearEnlaceDePrueba(t, destinoDeLosEnlacesDePrueba, rutaDeSkill(raiz, "beta", "scripts", "tres"))
 
 		require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
 		require.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
@@ -255,7 +245,7 @@ func TestRegenerarYComparar(t *testing.T) {
 
 		require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
 		assert.Equal(t, antes, fotografiar(t, raiz),
-			"el segundo Escribir no cambia ningún byte, ningún enlace ni ningún tiempo de modificación")
+			"el segundo Escribir no cambia ningún byte ni ningún tiempo de modificación")
 	})
 
 	t.Run("doscientas-noventa-y-nueve-lineas", func(t *testing.T) {
@@ -273,8 +263,7 @@ func TestRegenerarYComparar(t *testing.T) {
 
 // probarDerivas fija cada clase de deriva de data-model §5: sobre un árbol
 // sincronizado con un solo cambio, Comparar da exactamente esa deriva, que nombra
-// la skill y el fichero o el enlace, y Escribir la deshace sin dejar ningún
-// defecto.
+// la skill y el fichero, y Escribir la deshace sin dejar ningún defecto.
 func probarDerivas(t *testing.T) {
 	t.Helper()
 
@@ -405,70 +394,6 @@ func probarDerivas(t *testing.T) {
 			deriva:  skills.Deriva{Skill: "beta", Ruta: "references/normas.md", Clase: skills.DerivaFicheroSobrante},
 			mensaje: "beta: references/normas.md: fichero-sobrante",
 		},
-		{
-			nombre: "enlace-ausente",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				retirarDePrueba(t, rutaDeSkill(raiz, "alfa", "scripts", "uno"))
-			},
-			deriva:  skills.Deriva{Skill: "alfa", Ruta: "scripts/uno", Clase: skills.DerivaEnlaceAusente},
-			mensaje: "alfa: scripts/uno: enlace-ausente",
-		},
-		{
-			nombre: "enlace-sobrante",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				crearEnlaceDePrueba(t, destinoDeLosEnlacesDePrueba, rutaDeSkill(raiz, "alfa", "scripts", "tres"))
-			},
-			deriva:  skills.Deriva{Skill: "alfa", Ruta: "scripts/tres", Clase: skills.DerivaEnlaceSobrante},
-			mensaje: "alfa: scripts/tres: enlace-sobrante",
-		},
-		{
-			nombre: "enlace-en-una-skill-que-no-declara-applets",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				crearEnlaceDePrueba(t, destinoDeLosEnlacesDePrueba, rutaDeSkill(raiz, "beta", "scripts", "uno"))
-			},
-			deriva:  skills.Deriva{Skill: "beta", Ruta: "scripts/uno", Clase: skills.DerivaEnlaceSobrante},
-			mensaje: "beta: scripts/uno: enlace-sobrante",
-		},
-		{
-			nombre: "enlace-con-otro-destino",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				ruta := rutaDeSkill(raiz, "alfa", "scripts", "uno")
-				retirarDePrueba(t, ruta)
-				crearEnlaceDePrueba(t, "../../../bin/kitlegal", ruta)
-			},
-			deriva: skills.Deriva{
-				Skill:   "alfa",
-				Ruta:    "scripts/uno",
-				Clase:   skills.DerivaEnlaceConOtroDestino,
-				Detalle: "apunta a ../../../bin/kitlegal",
-			},
-			mensaje: "alfa: scripts/uno: enlace-con-otro-destino (apunta a ../../../bin/kitlegal)",
-		},
-		{
-			nombre: "fichero-regular-en-lugar-de-enlace",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				ruta := rutaDeSkill(raiz, "alfa", "scripts", "dos")
-				retirarDePrueba(t, ruta)
-				escribirFicheroDePrueba(t, ruta, "#!/bin/sh\n")
-			},
-			deriva: skills.Deriva{
-				Skill:   "alfa",
-				Ruta:    "scripts/dos",
-				Clase:   skills.DerivaEnlaceConOtroDestino,
-				Detalle: "no es un enlace simbólico",
-			},
-			mensaje: "alfa: scripts/dos: enlace-con-otro-destino (no es un enlace simbólico)",
-		},
 	}
 
 	for _, caso := range casos {
@@ -502,9 +427,13 @@ func probarDerivas(t *testing.T) {
 }
 
 // probarDefectos fija los defectos de una skill (data-model §5): cada uno nombra
-// la skill y van en el orden frontmatter, líneas, región y datos; una skill con
-// defectos no tiene nada regenerado con que comparar, aunque las demás sí; y
-// Escribir no escribe nada, tampoco lo de las skills sin defectos.
+// la skill y van en el orden frontmatter, líneas, región, datos y scripts/; una
+// skill con defectos no tiene nada regenerado con que comparar, aunque las demás
+// sí; y Escribir no escribe nada, tampoco lo de las skills sin defectos. Una
+// entrada scripts en el directorio de una skill, sea lo que sea —el directorio con
+// los enlaces que dejaba la instalación anterior, uno vacío, un fichero o un
+// enlace colgante—, es un defecto, también en una skill sin SKILL.md, y Escribir
+// no la retira (ADR 0019; contracts/skills-e-invocacion.md §3; FR-082).
 func probarDefectos(t *testing.T) {
 	t.Helper()
 
@@ -688,6 +617,68 @@ func probarDefectos(t *testing.T) {
 				"alfa: SKILL.md: sin las marcas de la tabla de comandos",
 			},
 		},
+		{
+			nombre: "scripts-con-los-enlaces-de-la-instalacion-anterior",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				for _, applet := range []string{"dos", "uno"} {
+					crearEnlaceDePrueba(t, "../../../bin/instalado/kitlegal", rutaDeSkill(raiz, "alfa", "scripts", applet))
+				}
+			},
+			defectos: []string{"alfa: una skill no lleva scripts/ (ADR 0019)"},
+		},
+		{
+			nombre: "scripts-vacio",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				require.NoError(t, os.Mkdir(rutaDeSkill(raiz, "alfa", "scripts"), 0o750))
+			},
+			defectos: []string{"alfa: una skill no lleva scripts/ (ADR 0019)"},
+		},
+		{
+			nombre: "scripts-que-es-un-fichero",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "scripts"), "#!/bin/sh\n")
+			},
+			defectos: []string{"alfa: una skill no lleva scripts/ (ADR 0019)"},
+		},
+		{
+			// Lstat: un enlace que no resuelve también está.
+			nombre: "scripts-que-es-un-enlace-colgante",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				crearEnlaceDePrueba(t, "no-existe", rutaDeSkill(raiz, "alfa", "scripts"))
+			},
+			defectos: []string{"alfa: una skill no lleva scripts/ (ADR 0019)"},
+		},
+		{
+			nombre: "scripts-en-una-skill-sin-skill-md",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(rutaDeSkill(raiz, "gamma", "scripts"), 0o750))
+			},
+			defectos: []string{"gamma: falta SKILL.md", "gamma: una skill no lleva scripts/ (ADR 0019)"},
+		},
+		{
+			nombre: "datos-y-scripts-en-su-orden",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
+					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+				require.NoError(t, os.Mkdir(rutaDeSkill(raiz, "alfa", "scripts"), 0o750))
+			},
+			defectos: []string{
+				"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical",
+				"alfa: una skill no lleva scripts/ (ADR 0019)",
+			},
+		},
 	}
 
 	for _, caso := range casos {
@@ -701,7 +692,7 @@ func probarDefectos(t *testing.T) {
 
 			// beta no tiene defectos y sí una deriva, que Comparar sigue viendo y que
 			// Escribir tampoco deshace.
-			crearEnlaceDePrueba(t, destinoDeLosEnlacesDePrueba, rutaDeSkill(raiz, "beta", "scripts", "uno"))
+			escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), "# Sobrante\n")
 			envejecer(t, raiz)
 			antes := fotografiar(t, raiz)
 
@@ -715,7 +706,8 @@ func probarDefectos(t *testing.T) {
 
 			derivas, err := skills.Comparar(raiz, regenerado)
 			require.NoError(t, err)
-			assert.Equal(t, []*skills.Deriva{{Skill: "beta", Ruta: "scripts/uno", Clase: skills.DerivaEnlaceSobrante}},
+			assert.Equal(t,
+				[]*skills.Deriva{{Skill: "beta", Ruta: "references/sobrante.md", Clase: skills.DerivaFicheroSobrante}},
 				derivas, "una skill con defectos no tiene nada regenerado con que comparar; las demás, sí")
 
 			err = skills.Escribir(raiz, regenerado)
@@ -767,8 +759,8 @@ func TestRegenerarSinPoderListar(t *testing.T) {
 
 // TestCompararYEscribirSinBuscarLasDerivas fija los errores que impiden buscar
 // las derivas de una skill (data-model §5), sobre la estructura de un repositorio
-// temporal sincronizado: un fichero donde va references/ o scripts/ de alfa, y un
-// fichero donde va el propio directorio de alfa. Comparar y Escribir reciben lo
+// temporal sincronizado: un fichero donde va references/ de alfa, y un fichero
+// donde va el propio directorio de alfa. Comparar y Escribir reciben lo
 // regenerado como un dato y miran el árbol tal como está cuando se las llama, así
 // que en el último caso lo regenerado es de antes del cambio: con el fichero,
 // Regenerar ya no listaría alfa. Las dos dan el mismo error, que nombra la skill y
@@ -788,7 +780,6 @@ func TestCompararYEscribirSinBuscarLasDerivas(t *testing.T) {
 		causa error
 	}{
 		{nombre: "references-que-es-un-fichero", partes: []string{"references"}, error: "alfa: references no es un directorio"},
-		{nombre: "scripts-que-es-un-fichero", partes: []string{"scripts"}, error: "alfa: scripts no es un directorio"},
 		{nombre: "skill-que-es-un-fichero", error: "alfa: references no se puede consultar: ", causa: syscall.ENOTDIR},
 	}
 
@@ -822,19 +813,6 @@ func TestCompararYEscribirSinBuscarLasDerivas(t *testing.T) {
 	}
 }
 
-// skillMdDeBetaConElAppletUno es el SKILL.md de beta cuando declara el applet
-// uno, como alfa, con la región de su tabla vacía.
-const skillMdDeBetaConElAppletUno = "---\n" +
-	"name: beta\n" +
-	"description: Skill de prueba con uno de los applets de alfa.\n" +
-	"metadata:\n" +
-	"  kitlegal-applets: uno\n" +
-	"---\n" +
-	"# Beta\n" +
-	"\n" +
-	inicioDeLaTabla + "\n" +
-	finDeLaTabla + "\n"
-
 // TestEscribirSinAplicarUnArreglo fija los errores de Escribir al deshacer una
 // deriva, cada uno sobre la estructura de un repositorio temporal y con la skill,
 // la ruta y lo que no se puede hacer:
@@ -842,14 +820,8 @@ const skillMdDeBetaConElAppletUno = "---\n" +
 //   - retirar: references/normas.md es un directorio con un fichero dentro;
 //   - crear el directorio: el directorio de alfa es ahora un enlace colgante, así
 //     que ninguna de sus rutas existe y el directorio no se puede crear donde
-//     está el enlace;
-//   - enlazar: alfa y beta declaran el applet uno, y el directorio de beta es
-//     ahora un enlace al de alfa; Escribir busca las derivas de las dos antes de
-//     deshacer ninguna, y cuando llega a las de beta, alfa ya ha creado
-//     scripts/uno.
-//
-// En los dos últimos, lo regenerado es de antes del cambio: Regenerar no lista un
-// enlace como skill.
+//     está el enlace. Lo regenerado es de antes del cambio: Regenerar no lista un
+//     enlace como skill.
 func TestEscribirSinAplicarUnArreglo(t *testing.T) {
 	t.Parallel()
 
@@ -893,23 +865,6 @@ func TestEscribirSinAplicarUnArreglo(t *testing.T) {
 				return regenerado
 			},
 			prefijo: "alfa: SKILL.md: el directorio ",
-			causa:   fs.ErrExist,
-		},
-		{
-			nombre: "enlazar-lo-que-otra-skill-ya-enlazo",
-			preparar: func(t *testing.T, raiz string) skills.Regenerado {
-				t.Helper()
-
-				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "SKILL.md"), skillMdDeBetaConElAppletUno)
-				regenerado := regenerar(t, raiz, descripcionesDeSincronia())
-
-				ruta := rutaDeSkill(raiz, "beta")
-				require.NoError(t, os.RemoveAll(ruta))
-				crearEnlaceDePrueba(t, "alfa", ruta)
-
-				return regenerado
-			},
-			prefijo: "beta: scripts/uno no se puede enlazar: ",
 			causa:   fs.ErrExist,
 		},
 	}

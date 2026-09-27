@@ -664,11 +664,11 @@ func probarDefectosDeLaDescripcion(t *testing.T) {
 const (
 	columnasDeLaTabla = "| Orden | Qué hace | Qué devuelve en `data` |\n|---|---|---|\n"
 
-	filaDeBuscar = "| `scripts/boe buscar <texto>...` | Busca normas consolidadas por las palabras de su título o " +
+	filaDeBuscar = "| `kitlegal boe buscar <texto>...` | Busca normas consolidadas por las palabras de su título o " +
 		"con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, " +
 		"`vigencia_agotada`, `estado_consolidacion`, `url` |\n"
 
-	filaDeArticulo = "| `scripts/boe articulo <norma> <bloque>` | Devuelve el texto vigente de un bloque de una " +
+	filaDeArticulo = "| `kitlegal boe articulo <norma> <bloque>` | Devuelve el texto vigente de un bloque de una " +
 		"norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, " +
 		"`fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, " +
 		"`url_eli` |\n"
@@ -730,8 +730,8 @@ func TestRenderizarTabla(t *testing.T) {
 			nombre:     "una-sola-clave-de-fallo",
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{unaClaveDeFallo},
-			esperada: "\n### `scripts/ejemplo`\n\n" + columnasDeLaTabla +
-				"| `scripts/ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
 				"\n" +
 				"Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` " +
 				"falso, `data` lleva `mensaje`.\n" +
@@ -743,26 +743,26 @@ func TestRenderizarTabla(t *testing.T) {
 			nombre:     "filas-del-contrato",
 			applets:    []string{"boe"},
 			documentos: []describeDePrueba{buscarDePrueba(), articuloDePrueba()},
-			esperada:   "\n### `scripts/boe`\n\n" + columnasDeLaTabla + filaDeBuscar + filaDeArticulo + pieDeLaTabla,
+			esperada:   "\n### `kitlegal boe`\n\n" + columnasDeLaTabla + filaDeBuscar + filaDeArticulo + pieDeLaTabla,
 		},
 		{
 			nombre:     "secciones-en-el-orden-declarado",
 			applets:    []string{"ejemplo", "boe"},
 			documentos: []describeDePrueba{buscarDePrueba(), vacio, noDeclarado, articuloDePrueba()},
-			esperada: "\n### `scripts/ejemplo`\n\n" + columnasDeLaTabla +
-				"| `scripts/ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
-				"\n### `scripts/boe`\n\n" + columnasDeLaTabla + filaDeBuscar + filaDeArticulo +
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
+				"\n### `kitlegal boe`\n\n" + columnasDeLaTabla + filaDeBuscar + filaDeArticulo +
 				pieDeLaTabla,
 		},
 		{
 			nombre:     "sintaxis-y-escapes",
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{consultarDePrueba(), vacio, nadaDePrueba()},
-			esperada: "\n### `scripts/ejemplo`\n\n" + columnasDeLaTabla +
-				"| `scripts/ejemplo consultar <norma> <bloques>... [--desde] [--materias]` | Consulta los " +
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo consultar <norma> <bloques>... [--desde] [--materias]` | Consulta los " +
 				"bloques de una norma \\| o de varias. | objeto con `norma`, `con\\|barra` |\n" +
-				"| `scripts/ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
-				"| `scripts/ejemplo nada` | Devuelve una lista de objetos sin claves. | lista de objetos |\n" +
+				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo nada` | Devuelve una lista de objetos sin claves. | lista de objetos |\n" +
 				pieDeLaTabla,
 		},
 	}
@@ -845,7 +845,7 @@ func TestSustituirRegion(t *testing.T) {
 	const (
 		antes    = "---\nname: ejemplo\n---\n\n# Ejemplo\n\n## Comandos\n\n"
 		despues  = "\n## Reglas\n\n1. Nunca inventar contenido legal.\n"
-		nueva    = "\n### `scripts/boe`\n\nnueva\n\n"
+		nueva    = "\n### `kitlegal boe`\n\nnueva\n\n"
 		inicio   = inicioDeLaTabla + "\n"
 		fin      = finDeLaTabla + "\n"
 		sinFinal = finDeLaTabla
