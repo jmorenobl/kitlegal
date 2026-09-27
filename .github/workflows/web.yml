@@ -60,6 +60,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: echo "KITLEGAL_VERSION=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)" >> "$GITHUB_ENV"
+      # /llms.txt lista las skills de la versión publicada, que no tienen por
+      # qué ser las de main: las lee del árbol de su etiqueta, que el checkout
+      # superficial no trae.
+      - name: Traer la etiqueta de la versión publicada
+        run: git fetch --depth=1 origin tag "$KITLEGAL_VERSION"
       - name: Comprobar y construir la web
         run: make web
       - name: Subir el sitio

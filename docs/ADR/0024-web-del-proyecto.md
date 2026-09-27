@@ -51,6 +51,15 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
 3. **`kitlegal.es`**, sin redirigir `ventanillalegal.es`: las versiones que se identificaban con ella (hasta la
    0.2.0) no tienen uso fuera del desarrollo, y una redirección que nadie sigue es una pieza más que mantener.
 
+**Índice para agentes** ([llms.txt](https://llmstxt.org/)).
+
+1. **Una integración de Astro** (`astro-llms-md`, `astro-slop`, `@4hse/astro-llms-txt`…). Rechazada: sacan el
+   índice de los títulos del HTML construido o piden a un modelo que resuma cada página al construir; no saben qué
+   skills instala la versión publicada, y la mayoría no admite Astro 7.
+2. **Un `llms.txt` escrito a mano en `public/`.** Rechazada: repetiría títulos, órdenes y cifras que la web ya
+   tiene, y se separaría de ellos.
+3. **Generarlo al construir**, como `robots.txt`, con lo que la web y el repositorio ya dicen.
+
 ## Decisión
 
 - **La web vive en `web/`** y es un proyecto Astro que produce HTML estático. Se publica en **https://kitlegal.es**
@@ -71,6 +80,13 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
   las dos.
 - **La web publica lo que el binario ya enlaza**: `/bot/` explica el rastreador (qué es, cómo se comporta, cómo
   limitarlo en `robots.txt`) y `/schemas/<fichero>` sirve cada esquema de `schemas/` en la dirección de su `$id`.
+- **Un índice para agentes, `/llms.txt`**, generado al construir y anunciado en cada página con
+  `<link rel="describedby">`, que es como lo descubre la versión 2 de la especificación. Lo compone
+  `web/src/pages/llms.txt.ts` con el título y la descripción de cada página, las órdenes de `/instalar/`, las
+  skills de la última versión publicada —nombre y descripción de su `SKILL.md`, leídos del árbol de su etiqueta:
+  son las que instala `kitlegal skills install`, y `main` puede ir por delante— y los esquemas de `/schemas/`. Las
+  páginas no tienen versión en Markdown: lo que un agente necesita para instalar kitlegal está en el índice, y el
+  resto enlaza a ficheros Markdown del repositorio (el README, cada `SKILL.md` y el CHANGELOG de esa versión).
 - **El binario pasa a `kitlegal.es`**: la identificación es `kitlegal/x.y (+https://kitlegal.es/bot)` y los `$id`
   de `schemas/` son `https://kitlegal.es/schemas/…`. Las grabaciones de `testdata/` y de `internal/*/testdata/`
   conservan la identificación con la que se grabaron: registran lo que se envió, y la reproducción no la compara.
@@ -86,6 +102,8 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
 
 - Cambiar una cita de la web es cambiar `citas.yaml` y ejecutar `make web-citas`; escribir el texto a mano no
   construye.
+- Cambiar un enlace de `/llms.txt` o su descripción es cambiar la página, la skill o el esquema de los que sale. El
+  flujo de la web trae la etiqueta de la última versión publicada, y la construcción falla si no está en el clon.
 - El binario se identifica con una dirección que resuelve, y los esquemas publicados se pueden descargar por su
   `$id`. Para quien valide contra los esquemas por su `$id`, el cambio de dirección es un cambio incompatible de la
   próxima versión.

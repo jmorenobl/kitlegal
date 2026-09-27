@@ -1,29 +1,27 @@
 ---
 import Orden from "../../components/Orden.astro";
 import Prosa from "../../components/Prosa.astro";
+import { instalar as pagina } from "../../data/paginas";
 import Base from "../../layouts/Base.astro";
 import { migas } from "../../lib/estructurados";
 import { REPOSITORIO, versionPublicada } from "../../lib/proyecto";
 
-const titulo = "Instalar kitlegal en macOS, Linux y Windows";
-const descripcion =
-  "Instala el programa kitlegal y sus skills para Claude Code, Codex o Antigravity: curl, Homebrew, Scoop, paquetes .deb y .rpm o go install.";
 const version = versionPublicada();
 ---
 
-<Base titulo={titulo} descripcion={descripcion} imagen="instalar" datos={migas({ nombre: "Instalar", ruta: "/instalar/" })}>
+<Base
+  titulo={pagina.titulo}
+  descripcion={pagina.descripcion}
+  imagen="instalar"
+  datos={migas({ nombre: "Instalar", ruta: pagina.ruta })}
+>
   <Prosa
     etiqueta={`Instalar · ${version}`}
     titulo="Instalar kitlegal"
     entradilla="Dos órdenes. La primera instala el programa; la segunda, las skills, en el proyecto en el que estés. Después, abre tu agente en ese proyecto y pregunta."
   >
     <h2>macOS y Linux</h2>
-    <Orden
-      lineas={[
-        "curl -fsSL https://raw.githubusercontent.com/jmorenobl/kitlegal/main/scripts/install.sh | sh",
-        "kitlegal skills install",
-      ]}
-    />
+    <Orden lineas={pagina.macosLinux} />
     <p>
       El instalador no necesita nada que no traigan ya macOS y cualquier Linux (<code>curl</code>, <code>tar</code> y
       <code>sha256sum</code> o <code>shasum</code>), comprueba la huella SHA-256 de lo que descarga y deja
@@ -34,14 +32,7 @@ const version = versionPublicada();
 
     <h2>Windows</h2>
     <p>En PowerShell, con <a href="https://scoop.sh/">Scoop</a>:</p>
-    <Orden
-      indicador=">"
-      lineas={[
-        "scoop bucket add jmorenobl https://github.com/jmorenobl/scoop-bucket",
-        "scoop install kitlegal",
-        "kitlegal skills install",
-      ]}
-    />
+    <Orden indicador=">" lineas={pagina.windows} />
 
     <h2>Otras formas</h2>
     <ul>

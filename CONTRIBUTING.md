@@ -585,6 +585,12 @@ guarda en `web/src/data/sobres/`. Los sobres se versionan con el cambio. `make w
 literal en su sobre o si los fragmentos no siguen el orden del texto, y la página une con « […] » los que no son
 contiguos. Las cifras (municipios, versión) salen de `data/` y de la última release, nunca del texto de la página.
 
+En `/llms.txt`, el índice de la web para agentes de IA ([llmstxt.org](https://llmstxt.org/)), solo el resumen está
+escrito en `web/src/pages/llms.txt.ts`. El resto lo toma al construir: el título y la descripción de cada página
+(`web/src/data/`), las órdenes de instalación, las cifras, las skills de la última versión publicada —leídas del
+árbol de su etiqueta, que el flujo de la web trae— y los esquemas de `schemas/`. Para cambiar un enlace o su
+descripción, se cambia su origen.
+
 Las dependencias de la web van en `web/package.json` y `web/pnpm-lock.yaml`. pnpm no instala una versión hasta que
 lleva una semana publicada (`web/pnpm-workspace.yaml`), y Dependabot las propone agrupadas con la misma espera.
 
