@@ -169,10 +169,10 @@ func gruposDeDoctor() []grupoDeDoctor {
 // hallazgo con su ruta y la orden que lo arregla, en el orden de FR-066. En
 // cada fila:
 //
-//   - se nombra exactamente cada hallazgo esperado, en un error que declara la
-//     clase «inesperado» y cuyo mensaje es una cabecera y una línea
-//     «<clase>: <ruta>: <orden>» por hallazgo; sin ninguno, el diagnóstico con
-//     el manifiesto, su versión, la del binario y la lista vacía;
+//   - el diagnóstico llega siempre, sin error, con el manifiesto, su versión,
+//     la del binario y exactamente cada hallazgo esperado, o la lista vacía:
+//     encontrar algo es el resultado de la verificación, no un fallo (ADR
+//     0023);
 //   - nada cambia en el disco (FR-068);
 //   - Disponible solo se pregunta por .claude/skills ante una copia de host
 //     que sigue siendo un directorio real, una sola vez (FR-069);
@@ -234,17 +234,16 @@ func probarCasoDeDoctor(t *testing.T, caso casoDeDoctor) {
 
 	diagnostico, enlazador, err := caso.diagnosticar(d, ambito)
 
-	exigirHallazgos(t, err, caso.esperados)
-
-	if len(caso.esperados) > 0 {
-		assert.Equal(t, instalacion.Diagnostico{}, diagnostico, "con hallazgos, ningún diagnóstico")
-	} else {
-		assert.Equal(t, ambito.Neutro(), diagnostico.Directorio)
-		assert.True(t, diagnostico.Manifiesto)
-		assert.NotNil(t, diagnostico.Version, "con manifiesto, su versión (FR-067)")
-		assert.Equal(t, caso.versionDelCaso(), diagnostico.VersionDelBinario)
-		assert.Equal(t, []instalacion.Hallazgo{}, diagnostico.Hallazgos)
-	}
+	// Encontrar algo es el resultado de una verificación que ha funcionado: el
+	// diagnóstico llega entero, con los hallazgos como datos, y nunca como
+	// fallo (ADR 0023).
+	require.NoError(t, err, "con hallazgos o sin ellos, doctor no falla")
+	assert.Equal(t, ambito.Neutro(), diagnostico.Directorio)
+	assert.True(t, diagnostico.Manifiesto)
+	assert.NotNil(t, diagnostico.Version, "con manifiesto, su versión (FR-067)")
+	assert.Equal(t, caso.versionDelCaso(), diagnostico.VersionDelBinario)
+	assert.Equal(t, hallazgosEsperados(caso.esperados), diagnostico.Hallazgos,
+		"primero los que llevan rm; en cada grupo, por ruta y por clase (FR-066)")
 
 	assert.Equal(t, antes, d.instantanea(), "doctor no deja ningún cambio en disco (FR-068)")
 	assert.Equal(t, caso.sondas, enlazador.preguntados, "Disponible, solo por .claude/skills ante una copia y una vez")
@@ -252,40 +251,15 @@ func probarCasoDeDoctor(t *testing.T, caso casoDeDoctor) {
 	exigirNoExaminadas(t, d, caso.noExaminadas...)
 }
 
-// exigirHallazgos exige que err nombre exactamente cada hallazgo esperado, o
-// ningún error si no se espera ninguno.
-func exigirHallazgos(t *testing.T, err error, esperados []instalacion.Hallazgo) {
-	t.Helper()
-
-	if len(esperados) == 0 {
-		require.NoError(t, err, "sin ningún hallazgo, doctor sale con 0")
-
-		return
+// hallazgosEsperados es la lista que el diagnóstico tiene que traer: la del
+// caso, o la lista vacía —nunca nula, que en JSON sería null— si el caso no
+// espera ninguno.
+func hallazgosEsperados(esperados []instalacion.Hallazgo) []instalacion.Hallazgo {
+	if esperados == nil {
+		return []instalacion.Hallazgo{}
 	}
 
-	var rechazo *instalacion.ErrorDeHallazgos
-	require.ErrorAs(t, err, &rechazo, "cada hallazgo llega en el error tipado")
-	assert.Equal(t, esperados, rechazo.Lista(), "primero los que llevan rm; en cada grupo, por ruta y por clase")
-
-	var conClase schema.ConClase
-	require.ErrorAs(t, err, &conClase, "el error declara su clase")
-	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
-
-	lineas := []string{cabeceraDeDoctor(len(esperados))}
-	for _, esperado := range esperados {
-		lineas = append(lineas, string(esperado.Clase)+": "+esperado.Ruta+": "+esperado.Orden)
-	}
-
-	assert.Equal(t, strings.Join(lineas, "\n"), err.Error(), "el mensaje de contracts/applet-skills.md §5")
-}
-
-// cabeceraDeDoctor es la primera línea del mensaje de doctor con n hallazgos.
-func cabeceraDeDoctor(n int) string {
-	if n == 1 {
-		return "skills doctor: 1 hallazgo:"
-	}
-
-	return "skills doctor: " + strconv.Itoa(n) + " hallazgos:"
+	return esperados
 }
 
 // casosDoctorDelNeutro son los de una skill del directorio neutro, en local y
@@ -958,8 +932,9 @@ func probarFallosDelDoctor(t *testing.T) {
 			require.ErrorIs(t, err, errInyectado)
 			assert.Equal(t, instalacion.Diagnostico{}, diagnostico)
 
-			var hallazgos *instalacion.ErrorDeHallazgos
-			assert.NotErrorAs(t, err, &hallazgos, "un fallo de entrada y salida no es un hallazgo")
+			var conClase schema.ConClase
+			assert.NotErrorAs(t, err, &conClase,
+				"un fallo de entrada y salida no declara clase: es un defecto del entorno, no un conflicto (ADR 0023)")
 
 			var ilegible *instalacion.AmbitoIlegible
 			assert.NotErrorAs(t, err, &ilegible, "ni un ámbito ilegible")

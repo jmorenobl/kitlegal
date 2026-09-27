@@ -99,14 +99,14 @@ exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 # cuya orden reinstala solo las declaradas y empotradas, con --host claude
 # porque tienen entrada de host; ejecutada, deja doctor en 0 y otra-skill como
 # estaba.
-exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core --host claude"\}\}\n\z'
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core --host claude"\}\]\}\}\n\z'
 ! stderr 'otra-skill'
-cp stderr $WORK/doctor.err
+cp stdout $WORK/doctor.json
 mkdir $WORK/bin-v1
 symlink $WORK/bin-v1/kitlegal -> $KITLEGAL_V1_BIN
 env PATH=$WORK/bin-v1${:}$PATH
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
 cmp .agents/skills/kitlegal.json $WORK/manifiesto-v1.json
@@ -136,16 +136,16 @@ Una skill que este binario no empotra, editada a mano después de instalarla.
 -- proyecto/otro-sitio/nota.md --
 Lo que hay al otro lado del enlace de host de otra-skill.
 -- ordenes.sh --
-# ordenes.sh <salida de error de doctor>: ejecuta con sh -c, en el directorio
-# de trabajo y en el orden en que doctor las lista, las órdenes de sus
-# hallazgos: lo que sigue al segundo «: » de cada línea
-# «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5 y §6). Falla si no
-# hay ninguna o si alguna falla.
+# ordenes.sh <sobre JSON de doctor>: ejecuta con sh -c, en el directorio de
+# trabajo y en el orden en que doctor las lista, las órdenes de sus hallazgos:
+# el valor de cada "orden" de data.hallazgos (contracts/applet-skills.md §5 y
+# §6; ADR 0023). Ninguna orden lleva comillas dobles, así que basta con grep.
+# Falla si no hay ninguna o si alguna falla.
 set -u
-lineas=$(grep -E '^(fichero editado|enlace colgando|enlace a otro sitio|copia|versión distinta): ' "$1") || {
+ordenes=$(grep -o '"orden":"[^"]*"' "$1" | sed 's/^"orden":"//; s/"$//') && [ -n "$ordenes" ] || {
 	echo "ningún hallazgo en $1" >&2
 	exit 1
 }
-printf '%s\n' "$lineas" | sed 's/^[^:]*: [^:]*: //' | while IFS= read -r orden; do
+printf '%s\n' "$ordenes" | while IFS= read -r orden; do
 	sh -c "$orden" || exit 1
 done

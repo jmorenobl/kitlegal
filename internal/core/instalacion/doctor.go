@@ -36,8 +36,9 @@ import (
 //
 // Por debajo de una entrada que no es un directorio real no hay ningún
 // hallazgo: lo es ella; y lo que no está declarado no es un hallazgo (FR-047,
-// FR-066). Con alguno devuelve un *ErrorDeHallazgos, con los hallazgos en el
-// orden de FR-066; sin ninguno, el Diagnostico, también sin manifiesto.
+// FR-066). Devuelve el Diagnostico con los hallazgos en el orden de FR-066, o
+// con la lista vacía si no hay ninguno o no hay manifiesto: encontrar algo es el
+// resultado de una verificación que ha funcionado, no un fallo (ADR 0023).
 //
 // Antes lee el ámbito como list: con una guarda que no es un directorio real,
 // un manifiesto ilegible o, con --dir, un manifiesto con entradas de host,
@@ -81,9 +82,7 @@ func Diagnosticar(
 
 	r.revisarVersiones(nombres, version)
 
-	if len(r.pendientes) > 0 {
-		return Diagnostico{}, &ErrorDeHallazgos{lista: enSuOrden(r.pendientes)}
-	}
+	diagnostico.Hallazgos = enSuOrden(r.pendientes)
 
 	return diagnostico, nil
 }

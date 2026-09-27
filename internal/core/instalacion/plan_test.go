@@ -75,8 +75,8 @@ var (
 // no se toca nunca (§4.4). En cada fila:
 //
 //   - se nombra exactamente cada conflicto esperado, cada entrada con una sola
-//     clase y en orden de ruta, en un error que declara la clase «inesperado»
-//     y cuyo mensaje es la cabecera de contracts/applet-skills.md §5 y una
+//     clase y en orden de ruta, en un error que declara la clase «conflicto»
+//     (código 7; ADR 0023) y cuyo mensaje es la cabecera de contracts/applet-skills.md §5 y una
 //     línea «<clase>: <ruta>» por conflicto; sin ninguno, ningún error;
 //   - no se abre nada que no sea un fichero regular, no se lista nada que no
 //     sea un directorio real y no se examina nada por debajo de una entrada del
@@ -168,7 +168,7 @@ func exigirConflictos(t *testing.T, err error, esperados []instalacion.Conflicto
 
 	var conClase schema.ConClase
 	require.ErrorAs(t, err, &conClase, "el rechazo declara su clase")
-	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
+	assert.Equal(t, schema.ClaseConflicto, conClase.Clase())
 
 	lineas := []string{cabeceraDeInstall}
 	for _, esperado := range esperados {

@@ -70,8 +70,10 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 ! stderr .
 exec kitlegal skills list --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
-exec sh -c 'kitlegal skills doctor; test $? -eq 1'
-stderr '^fichero editado: \.agents/skills/legal-core/SKILL\.md: '
+exec kitlegal skills doctor
+stdout '^hallazgos\.0\.clase +fichero editado$'
+stdout '^hallazgos\.0\.ruta +\.agents/skills/legal-core/SKILL\.md$'
+! stderr .
 
 # Un HOME sin manifiesto: list y doctor con -g salen con 0 y lo dicen.
 env HOME=$WORK/home-vacio
@@ -93,8 +95,8 @@ mkdir $WORK/home-antiguo/.claude/skills
 symlink $WORK/home-antiguo/.claude/skills/boe-legislacion -> $KITLEGAL_SKILLS/boe-legislacion
 arbol $WORK/home-antiguo
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install -g --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: '${WORK@R}'/home-antiguo/\.claude/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install -g --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: '${WORK@R}'/home-antiguo/\.claude/skills/boe-legislacion"\}\}\n\z'
 stderr '^enlace a otro sitio: '${WORK@R}'/home-antiguo/\.claude/skills/boe-legislacion$'
 arbol $WORK/home-antiguo
 cmp stdout $WORK/antes.txt
@@ -106,21 +108,21 @@ cmp stdout $WORK/antes.txt
 cd $WORK/proyecto
 arbol .
 cp stdout $WORK/proyecto-antes.txt
-exec env -u HOME sh -c 'kitlegal skills install -g --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
+exec env -u HOME sh -c 'kitlegal skills install -g --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
 stderr 'HOME no está definido o está vacío'
-exec env -u HOME sh -c 'kitlegal skills list -g; test $? -eq 1'
+exec env -u HOME sh -c 'kitlegal skills list -g; test $? -eq 7'
 stderr 'HOME no está definido o está vacío'
-exec env -u HOME sh -c 'kitlegal skills doctor -g; test $? -eq 1'
+exec env -u HOME sh -c 'kitlegal skills doctor -g; test $? -eq 7'
 stderr 'HOME no está definido o está vacío'
 env HOME=
-exec sh -c 'kitlegal skills install -g --json; test $? -eq 1'
-stdout '"data":\{"clase":"inesperado","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
-exec sh -c 'kitlegal skills list -g; test $? -eq 1'
+exec sh -c 'kitlegal skills install -g --json; test $? -eq 7'
+stdout '"data":\{"clase":"conflicto","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
+exec sh -c 'kitlegal skills list -g; test $? -eq 7'
 stderr 'HOME no está definido o está vacío'
-exec sh -c 'kitlegal skills doctor -g; test $? -eq 1'
+exec sh -c 'kitlegal skills doctor -g; test $? -eq 7'
 stderr 'HOME no está definido o está vacío'
-exec sh -c 'kitlegal skills install -g --dry-run; test $? -eq 1'
+exec sh -c 'kitlegal skills install -g --dry-run; test $? -eq 7'
 stderr 'HOME no está definido o está vacío'
 arbol .
 cmp stdout $WORK/proyecto-antes.txt

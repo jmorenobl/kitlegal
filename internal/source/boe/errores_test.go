@@ -257,10 +257,12 @@ func TestErrorDeBoeMensajes(t *testing.T) {
 		}
 
 		// Los cinco constructores cubren las cinco clases que una fuente pública
-		// puede producir, cada una una vez, y ninguno la de identidad humana: ningún
-		// verbo de boe termina con el código 6 (FR-100).
+		// puede producir, cada una una vez, y ninguno la de identidad humana ni la
+		// de conflicto: ningún verbo de boe termina con el código 6 (FR-100) ni
+		// con el 7, porque boe no tiene estado local que le impida actuar (ADR
+		// 0023).
 		clasesDeLaFuente := slices.DeleteFunc(schema.Clases(), func(clase schema.Clase) bool {
-			return clase == schema.ClaseIdentidadHumana
+			return clase == schema.ClaseIdentidadHumana || clase == schema.ClaseConflicto
 		})
 		declaradas := make([]schema.Clase, 0, len(constructores))
 		for _, constructor := range constructores {

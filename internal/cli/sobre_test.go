@@ -50,7 +50,8 @@ const esquemaDelContrato = `{
       "properties": {
         "clase": { "type": "string",
                    "enum": ["argumentos", "no-encontrado", "fuente-no-disponible",
-                            "limite-o-tos", "identidad-humana", "inesperado"] },
+                            "limite-o-tos", "identidad-humana", "conflicto",
+                            "inesperado"] },
         "mensaje": { "type": "string", "minLength": 1 }
       }
     }
@@ -202,7 +203,7 @@ func emitirDePrueba(
 	return montadorDePrueba().Emitir(doble, enJSON, res, err)
 }
 
-// casoDeFallo es una fila de la tabla de las seis clases: el error que se
+// casoDeFallo es una fila de la tabla de las siete clases: el error que se
 // fuerza, la clase y el código que le corresponden, la procedencia que trae el
 // applet —vacía en los fallos anteriores a su ejecución— y la que el sobre debe
 // acabar llevando.
@@ -229,7 +230,7 @@ func errorDeBanderaDesconocida(t *testing.T) error {
 	return err
 }
 
-// casosDeFallo cubre las seis clases del contrato con los dos fallos anteriores
+// casosDeFallo cubre las siete clases del contrato con los dos fallos anteriores
 // a la ejecución del applet incluidos, que es literalmente lo que pide SC-014.
 func casosDeFallo(t *testing.T) []casoDeFallo {
 	t.Helper()
@@ -284,6 +285,14 @@ func casosDeFallo(t *testing.T) []casoDeFallo {
 			procedencia: ProcedenciaKernel(),
 		},
 		{
+			nombre:      "conflicto con el estado local, con la procedencia del applet",
+			err:         fmt.Errorf("una entrada que iba a crear no es suya: %w", ErrConflicto),
+			clase:       schema.ClaseConflicto,
+			codigo:      7,
+			delApplet:   procedenciaDelApplet,
+			procedencia: procedenciaDelApplet,
+		},
+		{
 			nombre:      "inesperado, el fallo que nadie declaró",
 			err:         errEscrituraRota,
 			clase:       schema.ClaseInesperado,
@@ -294,7 +303,7 @@ func casosDeFallo(t *testing.T) []casoDeFallo {
 }
 
 // TestContratoSobre comprueba que todo sobre que el kernel emite —de éxito y de
-// fallo, y en fallo para las seis clases— cumple el contrato del sobre de
+// fallo, y en fallo para las siete clases— cumple el contrato del sobre de
 // salida, validándolo contra la descripción formal de contracts/sobre-de-salida.md
 // §6 compilada con las aserciones de formato activadas (FR-014 … FR-017, FR-045,
 // SC-014, SC-015 parcial).
@@ -328,7 +337,7 @@ func TestContratoSobre(t *testing.T) {
 		assert.Empty(t, doble.errores.String(), "un resultado correcto no avisa de nada")
 	})
 
-	t.Run("las seis clases de error con --json", func(t *testing.T) {
+	t.Run("las siete clases de error con --json", func(t *testing.T) {
 		t.Parallel()
 
 		for _, caso := range casosDeFallo(t) {

@@ -34,7 +34,7 @@ func (e errorDeclarado) Clase() Clase {
 var _ ConClase = errorDeclarado{}
 
 // TestClase comprueba el vocabulario de clases de error que aparece en el sobre
-// y en el esquema que emite --describe: las seis clases, con el valor exacto que
+// y en el esquema que emite --describe: las siete clases, con el valor exacto que
 // declara contracts/sobre-de-salida.md §6, y los datos de error con sus dos
 // únicas claves (FR-029, FR-045).
 func TestClase(t *testing.T) {
@@ -50,6 +50,7 @@ func TestClase(t *testing.T) {
 		{nombre: "fuente no disponible", clase: ClaseFuenteNoDisponible, valor: "fuente-no-disponible"},
 		{nombre: "límite o términos de uso", clase: ClaseLimiteOTos, valor: "limite-o-tos"},
 		{nombre: "identidad humana", clase: ClaseIdentidadHumana, valor: "identidad-humana"},
+		{nombre: "conflicto", clase: ClaseConflicto, valor: "conflicto"},
 		{nombre: "inesperado", clase: ClaseInesperado, valor: "inesperado"},
 	}
 
@@ -67,7 +68,7 @@ func TestClase(t *testing.T) {
 		})
 	}
 
-	t.Run("las seis clases son distintas entre sí", func(t *testing.T) {
+	t.Run("las siete clases son distintas entre sí", func(t *testing.T) {
 		t.Parallel()
 
 		vistas := make(map[Clase]struct{}, len(casos))
@@ -77,11 +78,11 @@ func TestClase(t *testing.T) {
 		assert.Len(t, vistas, len(casos))
 	})
 
-	t.Run("el vocabulario enumera las seis del contrato, en su orden, y ninguna más", func(t *testing.T) {
+	t.Run("el vocabulario enumera las siete del contrato, en su orden, y ninguna más", func(t *testing.T) {
 		t.Parallel()
 
 		// La lista esperada sale de la tabla de arriba, que escribe los valores
-		// del contrato a mano: si alguien añadiera una séptima constante y se
+		// del contrato a mano: si alguien añadiera una octava constante y se
 		// olvidara de Clases —o al revés—, el esquema de --describe y el sobre
 		// dejarían de hablar del mismo vocabulario, y esto lo señalaría.
 		esperadas := make([]Clase, 0, len(casos))

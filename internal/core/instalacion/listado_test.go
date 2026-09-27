@@ -173,7 +173,7 @@ func probarAmbitosIlegibles(t *testing.T, verbo string, leer leerElAmbito) {
 }
 
 // exigirAmbitoIlegible exige que err sea el error del ámbito ilegible del
-// verbo que nombra motivo: de clase «inesperado», que sale con código 1, y con
+// verbo que nombra motivo: de clase «conflicto», que sale con código 7, y con
 // el mensaje de una línea de contracts/applet-skills.md §5, «skills <verbo>:
 // <clase>: <ruta>».
 func exigirAmbitoIlegible(t *testing.T, err error, verbo string, motivo instalacion.Conflicto) {
@@ -185,7 +185,7 @@ func exigirAmbitoIlegible(t *testing.T, err error, verbo string, motivo instalac
 
 	var conClase schema.ConClase
 	require.ErrorAs(t, err, &conClase, "el ámbito ilegible declara su clase")
-	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
+	assert.Equal(t, schema.ClaseConflicto, conClase.Clase())
 
 	assert.Equal(t, "skills "+verbo+": "+string(motivo.Clase)+": "+motivo.Ruta, err.Error())
 }

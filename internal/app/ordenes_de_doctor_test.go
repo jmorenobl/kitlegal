@@ -22,7 +22,7 @@ const variableDirDePrueba = "KITLEGAL_DIR_DE_PRUEBA"
 // con el análisis de la invocación real, que las pruebas del dominio imitan: con
 // cada ruta de --dir —también una que empieza por «-», que ese análisis leería
 // como otra bandera si fuera en la palabra siguiente a --dir—, instalada
-// legal-core y editado su SKILL.md, doctor sale con 1 y un solo hallazgo; su
+// legal-core y editado su SKILL.md, doctor sale con 0 y un solo hallazgo; su
 // orden, ejecutada por sh en el mismo directorio de trabajo, sale con 0 y deja
 // SKILL.md como lo empotra el binario; y el doctor siguiente sale con 0 y sin
 // hallazgos.
@@ -81,34 +81,34 @@ func TestOrdenesDeDoctorConElBinario(t *testing.T) {
 }
 
 // ordenDelUnicoHallazgo ejecuta doctor con la ruta de --dir en el proyecto,
-// exige que salga con 1 con un solo hallazgo, el del fichero editado de ruta, y
-// devuelve su orden, tal como la escribe el mensaje del sobre de fallo:
-// «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5).
+// exige que salga con 0 con un solo hallazgo en su data, el del fichero editado
+// de ruta, y devuelve su orden (contracts/applet-skills.md §5; ADR 0023).
 func ordenDelUnicoHallazgo(t *testing.T, proyecto, dir, ruta string) string {
 	t.Helper()
 
 	salida, errores, codigo := enSh(t, proyecto, dir, `kitlegal skills doctor --dir="$`+variableDirDePrueba+`" --json`)
-	require.Equal(t, 1, codigo, "doctor con un fichero editado sale con 1: %s%s", salida, errores)
+	require.Equal(t, 0, codigo, "doctor con un fichero editado sale con 0: %s%s", salida, errores)
 
 	var sobre struct {
 		OK   bool `json:"ok"`
 		Data struct {
-			Mensaje string `json:"mensaje"`
+			Hallazgos []struct {
+				Clase string `json:"clase"`
+				Ruta  string `json:"ruta"`
+				Orden string `json:"orden"`
+			} `json:"hallazgos"`
 		} `json:"data"`
 	}
 
 	require.NoError(t, json.Unmarshal([]byte(salida), &sobre), salida)
-	require.False(t, sobre.OK, salida)
+	require.True(t, sobre.OK, salida)
+	require.Len(t, sobre.Data.Hallazgos, 1, "un solo hallazgo: %s", salida)
 
-	cabecera, linea, hay := strings.Cut(sobre.Data.Mensaje, "\n")
-	require.True(t, hay, "la cabecera y una línea por hallazgo: %q", sobre.Data.Mensaje)
-	require.Equal(t, "skills doctor: 1 hallazgo:", cabecera)
-	require.NotContains(t, linea, "\n", "un solo hallazgo: %q", sobre.Data.Mensaje)
+	hallazgo := sobre.Data.Hallazgos[0]
+	require.Equal(t, "fichero editado", hallazgo.Clase, salida)
+	require.Equal(t, ruta, hallazgo.Ruta, salida)
 
-	orden, hay := strings.CutPrefix(linea, "fichero editado: "+ruta+": ")
-	require.True(t, hay, "el hallazgo es el del fichero editado %s: %q", ruta, linea)
-
-	return orden
+	return hallazgo.Orden
 }
 
 // enSh ejecuta el guion con sh, que lo lee de su entrada estándar, en el

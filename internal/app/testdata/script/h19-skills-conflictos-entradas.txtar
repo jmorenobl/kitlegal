@@ -25,8 +25,8 @@ stdout '^  skills +\S'
 cd $WORK/carpeta-ajena
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/boe-legislacion$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -37,8 +37,8 @@ cmp stdout $WORK/antes.txt
 cd $WORK/fichero
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero: \.agents/skills/boe-legislacion$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -49,8 +49,8 @@ exec mkfifo .agents/skills/boe-legislacion
 arbol .
 stdout '^p \.agents/skills/boe-legislacion$'
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/boe-legislacion"\}\}\n\z'
 stderr '^fichero: \.agents/skills/boe-legislacion$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -66,8 +66,8 @@ arbol .
 stdout '^l \.agents/skills/boe-legislacion -> \.\./\.\./otro-sitio$'
 stdout '^f otro-sitio/mio\.md '
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/boe-legislacion"\}\}\n\z'
 stderr '^enlace a otro sitio: \.agents/skills/boe-legislacion$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -81,8 +81,8 @@ symlink .agents/skills/boe-legislacion -> ../../no-existe
 symlink .agents/skills/legal-core -> legal-core
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/boe-legislacion\nenlace roto: \.agents/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -96,8 +96,8 @@ cmp stdout $WORK/antes.txt
 cd $WORK/host-carpeta
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.claude/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.claude/skills/legal-core"\}\}\n\z'
 stderr '^carpeta ajena: \.claude/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -105,8 +105,8 @@ cmp stdout $WORK/antes.txt
 cd $WORK/host-fichero
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.claude/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.claude/skills/legal-core"\}\}\n\z'
 stderr '^fichero: \.claude/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -116,8 +116,8 @@ cd $WORK/host-enlace-otro
 symlink .claude/skills/legal-core -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
 stderr '^enlace a otro sitio: \.claude/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -127,8 +127,8 @@ cd $WORK/host-enlace-roto
 symlink .claude/skills/legal-core -> ../../no-existe
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.claude/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.claude/skills/legal-core"\}\}\n\z'
 stderr '^enlace roto: \.claude/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -145,8 +145,8 @@ symlink .agents/skills/boe-legislacion -> ../../no-existe
 symlink .claude/skills/legal-core -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nfichero: \.agents/skills/legal-core\\ncarpeta ajena: \.claude/skills/boe-legislacion\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/boe-legislacion\\nfichero: \.agents/skills/legal-core\\ncarpeta ajena: \.claude/skills/boe-legislacion\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/boe-legislacion\nfichero: \.agents/skills/legal-core\ncarpeta ajena: \.claude/skills/boe-legislacion\nenlace a otro sitio: \.claude/skills/legal-core$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -158,8 +158,8 @@ cmp stdout $WORK/antes.txt
 cd $WORK/segunda
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/legal-core"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 ! exists .agents/skills/boe-legislacion
@@ -167,7 +167,7 @@ cmp stdout $WORK/antes.txt
 
 # Sin la bandera --json, el mismo mensaje en la salida de error y nada en la
 # estándar.
-exec sh -c 'kitlegal skills install; test $? -eq 1'
+exec sh -c 'kitlegal skills install; test $? -eq 7'
 ! stdout .
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/legal-core$'
 arbol .

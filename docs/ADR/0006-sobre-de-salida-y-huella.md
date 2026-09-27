@@ -1,6 +1,7 @@
 # 0006 · El sobre de salida: forma canónica de `data`, huella con prefijo y espacio reservado
 
-- **Estado**: aceptada
+- **Estado**: aceptada; ampliada por el ADR 0023, que añade la séptima clase, `conflicto` (código 7), y fija que los
+  hallazgos de una verificación son datos de un resultado correcto
 - **Fecha**: 2026-09-11
 - **Hito**: H1
 

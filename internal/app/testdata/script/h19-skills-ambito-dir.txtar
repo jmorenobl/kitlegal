@@ -106,17 +106,17 @@ cd $WORK/con-hosts
 exec kitlegal skills install
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --dir .agents/skills --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c 'kitlegal skills install --dir .agents/skills --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
-exec sh -c 'kitlegal skills install --dir .agents/skills --dry-run --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c 'kitlegal skills install --dir .agents/skills --dry-run --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
 ! stderr 'se habría pedido'
-exec sh -c 'kitlegal skills list --dir .agents/skills --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c 'kitlegal skills list --dir .agents/skills --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills list: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
 stderr '^skills list: manifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
-exec sh -c 'kitlegal skills doctor --dir .agents/skills --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c 'kitlegal skills doctor --dir .agents/skills --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills doctor: manifiesto con entradas de host: \.agents/skills/kitlegal\.json"\}\}\n\z'
 stderr '^skills doctor: manifiesto con entradas de host: \.agents/skills/kitlegal\.json$'
 ! stderr 'kitlegal skills install'
 arbol .
