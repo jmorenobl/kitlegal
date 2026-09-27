@@ -17,6 +17,10 @@ sustituyen a este fichero.
 - **`kitlegal --version`** hace lo mismo que `kitlegal version`: el mismo texto y las mismas reglas, también que
   no admite nada detrás. La ayuda del binario dice cómo pedir la versión, y el error de un applet que no existe
   lo recuerda.
+- **https://kitlegal.es/llms.txt**, el índice de la web para agentes de IA ([llmstxt.org](https://llmstxt.org/)):
+  qué es kitlegal, cómo se instala, las skills de la última versión publicada con su descripción y los esquemas.
+  Cada página lo anuncia con `<link rel="describedby">`. Sus cifras, órdenes y enlaces no se escriben a mano:
+  salen de las páginas, de `skills/` en la etiqueta de esa versión y de `schemas/`.
 
 ## [0.3.0] - 2026-09-27
 

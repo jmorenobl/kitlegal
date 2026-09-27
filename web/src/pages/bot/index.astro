@@ -4,19 +4,21 @@
 // averiguar qué le está pidiendo datos y cómo pararlo.
 import Orden from "../../components/Orden.astro";
 import Prosa from "../../components/Prosa.astro";
+import { rastreador as pagina } from "../../data/paginas";
 import Base from "../../layouts/Base.astro";
 import { migas } from "../../lib/estructurados";
 import { REPOSITORIO } from "../../lib/proyecto";
-
-const titulo = "El rastreador de kitlegal";
-const descripcion =
-  "Qué son las peticiones con el agente de usuario kitlegal, cómo se comportan con tu sitio y cómo limitarlas o bloquearlas con robots.txt.";
 ---
 
-<Base titulo={titulo} descripcion={descripcion} imagen="bot" datos={migas({ nombre: "Rastreador", ruta: "/bot/" })}>
+<Base
+  titulo={pagina.titulo}
+  descripcion={pagina.descripcion}
+  imagen="bot"
+  datos={migas({ nombre: "Rastreador", ruta: pagina.ruta })}
+>
   <Prosa
     etiqueta="Para quien administra un sitio"
-    titulo={titulo}
+    titulo={pagina.titulo}
     entradilla="Si ves en tus registros peticiones con este agente de usuario, vienen de kitlegal: un programa de código abierto que una persona ejecuta en su equipo para consultar normas en fuentes públicas oficiales."
   >
     <Orden indicador="User-Agent:" lineas={["kitlegal/<versión> (+https://kitlegal.es/bot)"]} />

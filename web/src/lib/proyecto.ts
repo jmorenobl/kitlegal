@@ -61,3 +61,36 @@ export function versionPublicada(): string {
   }
   return version;
 }
+
+// Lo que instala la versión publicada se lee del árbol de su etiqueta, no del de
+// main, que puede ir por delante. El flujo de la web trae esa etiqueta; en local
+// ya está.
+function gitPublicado(argumentos: string[]): string {
+  try {
+    return execFileSync("git", argumentos, { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch (error) {
+    throw new Error(`web: git ${argumentos.join(" ")} falla; ¿está la etiqueta ${versionPublicada()} en el clon?`, {
+      cause: error,
+    });
+  }
+}
+
+// carpetasPublicadas lista las carpetas de <carpeta> en la versión publicada.
+export function carpetasPublicadas(carpeta: string): string[] {
+  return gitPublicado(["ls-tree", "-d", "--name-only", `${versionPublicada()}:${carpeta}`])
+    .split("\n")
+    .filter((nombre) => nombre !== "");
+}
+
+// leerPublicado devuelve un fichero del repositorio tal como está en la versión
+// publicada.
+export function leerPublicado(ruta: string): string {
+  return gitPublicado(["show", `${versionPublicada()}:${ruta}`]);
+}
+
+// urlPublicada es la dirección de un fichero del repositorio en la versión
+// publicada, en bruto: sin la página de GitHub alrededor, que es lo que un
+// agente lee mejor.
+export function urlPublicada(ruta: string): string {
+  return `https://raw.githubusercontent.com/jmorenobl/kitlegal/${versionPublicada()}/${ruta}`;
+}
