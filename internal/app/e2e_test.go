@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"time"
 
 	"github.com/rogpeppe/go-internal/testscript"
+	"github.com/rogpeppe/go-internal/txtar"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -452,6 +454,10 @@ func anteponerAlPath(directorio string) error {
 // directorio de trabajo que testscript le da y borra: boe responde desde la
 // copia de sus grabaciones que Setup deja en ese directorio, y su caché vive en
 // él (FR-114, research.md D13 de H4).
+//
+// Los guiones que cronometran no van aquí sino en TestMedidasDeTiempo: esta
+// prueba corre en paralelo con el resto del paquete y de los demás paquetes, y
+// una medida de reloj en una máquina cargada mide la carga, no el programa.
 func TestEntregaDelHito(t *testing.T) {
 	t.Parallel()
 
@@ -461,8 +467,40 @@ func TestEntregaDelHito(t *testing.T) {
 
 	require.NoError(t, entorno.err)
 
+	_, sinMedidas, err := guionesPorMedida(directorioDeGuiones)
+	require.NoError(t, err)
+
+	ejecutarGuiones(t, sinMedidas)
+}
+
+// TestMedidasDeTiempo ejecuta los guiones que cronometran —la cota de 200 ms de
+// boe articulo desde la caché y la de territorio resolver (FR-117, SC-002 de
+// H4; H6)— con el reloj de pared, como los escribió su hito, pero sin nada más
+// en marcha: no es paralela, así que en su paquete corre antes que las pruebas
+// paralelas, y make ci la ejecuta en su propio paso (test-tiempos), después de
+// test y test-integration, que la saltan. Así la medida es del programa y no de
+// lo que la máquina esté haciendo a la vez: en el runner de GitHub, con todos
+// los paquetes de go test -race ./... en marcha, una invocación de 8 ms llegó a
+// medir 236 ms.
+//
+//nolint:paralleltest // Mide con el reloj de pared: con otra prueba a la vez, mediría también lo suyo.
+func TestMedidasDeTiempo(t *testing.T) {
+	require.NoError(t, entorno.err)
+
+	conMedidas, _, err := guionesPorMedida(directorioDeGuiones)
+	require.NoError(t, err)
+	require.NotEmpty(t, conMedidas, "sin guiones que cronometren, esta prueba pasaría en vacío")
+
+	ejecutarGuiones(t, conMedidas)
+}
+
+// ejecutarGuiones ejecuta los guiones de ficheros —rutas relativas al paquete—
+// con los binarios, las variables y las órdenes de contracts/arnes-e2e.md.
+func ejecutarGuiones(t *testing.T, ficheros []string) {
+	t.Helper()
+
 	testscript.Run(t, testscript.Params{
-		Dir:                 directorioDeGuiones,
+		Files:               ficheros,
 		RequireExplicitExec: true,
 		Setup: func(env *testscript.Env) error {
 			for variable, valor := range entorno.variables {
@@ -478,6 +516,46 @@ func TestEntregaDelHito(t *testing.T) {
 			ordenArbol:      listarArbol,
 		},
 	})
+}
+
+// ordenCronometraEnUnaLinea reconoce una línea de guion que invoca cronometra,
+// con o sin sangría y con o sin condición delante ([unix] cronometra …).
+var ordenCronometraEnUnaLinea = regexp.MustCompile(`(?m)^\s*(\[[^\]]*\]\s*)*` + ordenCronometra + `\s`)
+
+// guionesPorMedida reparte los guiones del directorio —lo que testscript
+// ejecutaría con Dir: los .txtar y los .txt— entre los que cronometran y los
+// demás, cada lista en el orden del directorio. Solo mira el guion, no los
+// ficheros que lleva dentro: una sección -- … -- que nombrara cronometra no es
+// una orden.
+func guionesPorMedida(directorio string) ([]string, []string, error) {
+	entradas, err := os.ReadDir(directorio)
+	if err != nil {
+		return nil, nil, fmt.Errorf("e2e: no se pudo listar %s: %w", directorio, err)
+	}
+
+	var conMedidas, sinMedidas []string
+
+	for _, entrada := range entradas {
+		nombre := entrada.Name()
+		if entrada.IsDir() || (filepath.Ext(nombre) != ".txtar" && filepath.Ext(nombre) != ".txt") {
+			continue
+		}
+
+		ruta := filepath.Join(directorio, nombre)
+
+		archivo, err := txtar.ParseFile(ruta)
+		if err != nil {
+			return nil, nil, fmt.Errorf("e2e: no se pudo leer el guion %s: %w", ruta, err)
+		}
+
+		if ordenCronometraEnUnaLinea.Match(archivo.Comment) {
+			conMedidas = append(conMedidas, ruta)
+		} else {
+			sinMedidas = append(sinMedidas, ruta)
+		}
+	}
+
+	return conMedidas, sinMedidas, nil
 }
 
 // errSinGuionesDelInstalador es el fallo de TestEntregaDelHito con KITLEGAL_DIST
@@ -590,6 +668,51 @@ func cronometrar(
 	}
 
 	return nil
+}
+
+// TestGuionesPorMedida fija el reparto entre TestEntregaDelHito y
+// TestMedidasDeTiempo: un guion que invoca cronometra —con sangría o tras una
+// condición— va con las medidas; uno que solo la nombra en una sección de
+// fichero o en un comentario, no; y lo que no es un guion no va a ninguna de
+// las dos listas. Así ninguna medida vuelve a correr en paralelo sin que se
+// note, y ningún guion se queda sin ejecutar.
+func TestGuionesPorMedida(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	guiones := map[string]string{
+		"a-mide.txtar":         "exec kitlegal version\ncronometra 200ms kitlegal version\n",
+		"b-sangria.txtar":      "  cronometra 1s kitlegal version\n",
+		"c-condicion.txt":      "[unix] cronometra 1s kitlegal version\n",
+		"d-no-mide.txtar":      "exec kitlegal version\n# cronometra solo en un comentario\n",
+		"e-en-fichero.txtar":   "exec kitlegal version\n-- nota.txt --\ncronometra 1s algo\n",
+		"f-no-es-guion.md":     "cronometra 1s kitlegal version\n",
+		"g-cronometrado.txtar": "exec cronometrador\n",
+	}
+
+	for nombre, contenido := range guiones {
+		require.NoError(t, os.WriteFile(filepath.Join(directorio, nombre), []byte(contenido), 0o600))
+	}
+
+	require.NoError(t, os.Mkdir(filepath.Join(directorio, "subdirectorio.txtar"), 0o700))
+
+	conMedidas, sinMedidas, err := guionesPorMedida(directorio)
+	require.NoError(t, err)
+
+	enDirectorio := func(nombres ...string) []string {
+		rutas := make([]string, 0, len(nombres))
+		for _, nombre := range nombres {
+			rutas = append(rutas, filepath.Join(directorio, nombre))
+		}
+
+		return rutas
+	}
+
+	assert.Equal(t, enDirectorio("a-mide.txtar", "b-sangria.txtar", "c-condicion.txt"), conMedidas)
+	assert.Equal(t, enDirectorio("d-no-mide.txtar", "e-en-fichero.txtar", "g-cronometrado.txtar"), sinMedidas)
+
+	_, _, err = guionesPorMedida(filepath.Join(directorio, "no-existe"))
+	require.Error(t, err)
 }
 
 // TestCronometra fija el contrato de la orden cronometra sin lanzar ningún

@@ -265,7 +265,7 @@ var recetasDeLaRelease = map[string][]string{
 // (FR-094) y ni release ni snapshot-check, que construyen y leen dist/
 // (contracts/release.md §3).
 var controlesDeCI = []string{
-	"fmt-check", "lint", "test", "test-integration", "vuln", "schema-check", "skills-check", "goreleaser-check",
+	"fmt-check", "lint", "test", "test-integration", "test-tiempos", "vuln", "schema-check", "skills-check", "goreleaser-check",
 	"secrets", "mod-verify", "mod-tidy-check",
 }
 
