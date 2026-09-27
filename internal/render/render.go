@@ -48,7 +48,9 @@ func Nuevo(salida, errores io.Writer) *Presentador {
 // Presentar escribe el sobre en la salida estándar en la forma que pide enJSON:
 // el documento JSON cuando es verdadero y la tabla mínima cuando no. Es el
 // único camino por el que un sobre llega a la salida estándar, tanto en éxito
-// como en fallo (FR-041, FR-042, FR-045).
+// como en fallo (FR-041, FR-042, FR-045). Qué sobre y en qué forma lo decide
+// el kernel: este paquete no conoce applets, y un applet que cuenta su
+// resultado para una persona llega aquí como texto, por Texto (docs/ADR/0026).
 func (p *Presentador) Presentar(sobre schema.Sobre, enJSON bool) error {
 	if enJSON {
 		return enDescriptor(nombreSalida, escribirJSON(p.salida, sobre))
@@ -57,9 +59,11 @@ func (p *Presentador) Presentar(sobre schema.Sobre, enJSON bool) error {
 	return enDescriptor(nombreSalida, escribirTabla(p.salida, sobre))
 }
 
-// Texto escribe en la salida estándar el texto dirigido a una persona que no es
-// un resultado: las tres líneas de version y la ayuda derivada del registro. No
-// lo altera --json, que solo elige la forma del sobre (FR-026, FR-042).
+// Texto escribe en la salida estándar el texto dirigido a una persona: las tres
+// líneas de version y la ayuda derivada del registro, que --json no altera
+// porque solo elige la forma del sobre (FR-026, FR-042), y el contenido de un
+// resultado contado para una persona, que sin --json ocupa el lugar de la tabla
+// mínima (docs/ADR/0026).
 func (p *Presentador) Texto(texto string) error {
 	return enDescriptor(nombreSalida, escribirTexto(p.salida, texto))
 }

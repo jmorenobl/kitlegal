@@ -12,6 +12,19 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **`kitlegal skills install`, `list` y `doctor` hablan a una persona** (ADR 0026): sin `--json`, en lugar de la
+  tabla mínima del sobre (`fuente kitlegal.skills`, `0.enlaces.0.host claude`…) dicen dónde han quedado las skills y
+  qué agente las lee de ahí, cada skill con su estado o su versión y sus entradas por marca (Claude Code,
+  Antigravity), con `~` en las rutas de la cuenta; si un agente no las verá, la orden que lo enlaza; y al terminar,
+  qué hacer ahora. `doctor` dice «Todo en orden» o explica cada hallazgo en una frase, con su orden lista para copiar
+  debajo. Con `--json` no cambia ni un byte: ni el sobre, ni `schemas/instalacion.json`, ni los códigos de salida.
+  `--dry-run` usa el mismo vocabulario: `Claude Code .claude/skills/legal-core (enlace)` donde antes decía
+  `enlace .claude/skills/legal-core (enlace)`. `boe` y `territorio` siguen con la tabla mínima.
+- **`schema.Resultado` gana `Legible`** (ADR 0026): el contenido contado para una persona, que el kernel escribe sin
+  `--json` en lugar de la tabla mínima. Vacío, la tabla como siempre; el presentador sigue sin conocer applets.
+
 ### Añadido
 
 - **`kitlegal --version`** hace lo mismo que `kitlegal version`: el mismo texto y las mismas reglas, también que

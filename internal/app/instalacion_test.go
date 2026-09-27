@@ -615,8 +615,8 @@ func compruebaDryRunDeSkills(t *testing.T) {
 	arbol := arbolDelProyecto(t, ".")
 
 	compruebaEnsayoDeInstall(t, registro, []string{
-		"instalar alfa en .agents/skills/alfa: instalada; enlace .claude/skills/alfa (enlace)",
-		"instalar beta en .agents/skills/beta: instalada; enlace .claude/skills/beta (enlace)",
+		"instalar alfa en .agents/skills/alfa: instalada; Claude Code .claude/skills/alfa (enlace)",
+		"instalar beta en .agents/skills/beta: instalada; Claude Code .claude/skills/beta (enlace)",
 	})
 	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "--dry-run no cambia nada")
 
@@ -625,8 +625,8 @@ func compruebaDryRunDeSkills(t *testing.T) {
 	arbol = arbolDelProyecto(t, ".")
 
 	compruebaEnsayoDeInstall(t, registro, []string{
-		"instalar alfa en .agents/skills/alfa: sin cambios; enlace .claude/skills/alfa (enlace)",
-		"instalar beta en .agents/skills/beta: sin cambios; enlace .claude/skills/beta (enlace)",
+		"instalar alfa en .agents/skills/alfa: sin cambios; Claude Code .claude/skills/alfa (enlace)",
+		"instalar beta en .agents/skills/beta: sin cambios; Claude Code .claude/skills/beta (enlace)",
 	})
 
 	for _, verbo := range []string{"list", "doctor"} {
@@ -677,8 +677,8 @@ func compruebaEnlazadorQueFalla(t *testing.T) {
 	registro := registroDeSkills(t, dependenciasDePrueba(enlazadorQueFalla{}))
 
 	compruebaEnsayoDeInstall(t, registro, []string{
-		"instalar alfa en .agents/skills/alfa: instalada; enlace .claude/skills/alfa (copia)",
-		"instalar beta en .agents/skills/beta: instalada; enlace .claude/skills/beta (copia)",
+		"instalar alfa en .agents/skills/alfa: instalada; Claude Code .claude/skills/alfa (copia)",
+		"instalar beta en .agents/skills/beta: instalada; Claude Code .claude/skills/beta (copia)",
 	})
 
 	instaladas := exitoDeSkills[[]instalacion.SkillInstalada](t, invocar(t, registro, argvDeSkills("install", "--json")...))
@@ -1208,10 +1208,15 @@ func TestEnsayoDeInstall(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"instalar alfa en .agents/skills/alfa: actualizada",
-		"instalar beta en /home/x/.agents/skills/beta: sin cambios; enlace /home/x/.claude/skills/beta (copia);" +
-			" enlace /home/x/otro/beta (enlace)",
-	}, ensayoDeInstall(skills))
-	assert.Empty(t, ensayoDeInstall(nil))
+		"instalar beta en ~/.agents/skills/beta: sin cambios; Claude Code ~/.claude/skills/beta (copia);" +
+			" Claude Code ~/otro/beta (enlace)",
+	}, ensayoDeInstall(skills, "/home/x"), "con HOME, las rutas que cuelgan de él se abrevian")
+	assert.Equal(t, []string{
+		"instalar alfa en .agents/skills/alfa: actualizada",
+		"instalar beta en /home/x/.agents/skills/beta: sin cambios; Claude Code /home/x/.claude/skills/beta (copia);" +
+			" Claude Code /home/x/otro/beta (enlace)",
+	}, ensayoDeInstall(skills, ""), "sin HOME, tal cual")
+	assert.Empty(t, ensayoDeInstall(nil, "/home/x"))
 }
 
 // TestSalidaDeSkillsContraSchemas es el punto 4 de la Definition of Done sobre

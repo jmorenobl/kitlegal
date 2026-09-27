@@ -13,14 +13,13 @@ cp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
 
 exec make -C $WORK/repo install
 
-# La salida de `kitlegal skills install` sin --json es una tabla de clave y
-# valor, con una fila por campo de cada skill: la 0 es boe-legislacion y la 1,
-# legal-core, las dos sin cambios.
-stdout '^0\.nombre +boe-legislacion$'
-stdout '^0\.estado +sin cambios$'
-stdout '^1\.nombre +legal-core$'
-stdout '^1\.estado +sin cambios$'
-! stdout '\.estado +(?:instalada|actualizada)$'
+# La salida de `kitlegal skills install` sin --json es el texto para una
+# persona (ADR 0026): una línea por skill con su estado, las dos sin cambios, y
+# la despedida que dice que no se ha cambiado nada.
+stdout '^  boe-legislacion +sin cambios$'
+stdout '^  legal-core +sin cambios$'
+! stdout '^  \S+ +(?:instalada|actualizada)$'
+stdout '^Ya estaban instaladas y al día: no se ha cambiado nada\.$'
 
 cmp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
 

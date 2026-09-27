@@ -81,14 +81,23 @@ func (p Procedencia) Validar() error {
 }
 
 // Resultado es lo que devuelve un applet: de dónde —y, si lo sabe, cuándo—
-// viene el contenido, el contenido y —solo en ensayo— lo que no llegó a
-// hacerse. Ni Ok, ni Hash, ni forma de presentación, ni código de salida; de
-// todo eso se ocupa el kernel, que es quien monta el sobre y quien lo fecha
-// cuando la procedencia no declara la fecha de consulta (FR-015, FR-044,
-// FR-096).
+// viene el contenido, el contenido, —si el applet la da— su forma para una
+// persona y —solo en ensayo— lo que no llegó a hacerse. Ni Ok, ni Hash, ni
+// forma de presentación, ni código de salida; de todo eso se ocupa el kernel,
+// que es quien monta el sobre y quien lo fecha cuando la procedencia no
+// declara la fecha de consulta (FR-015, FR-044, FR-096).
 type Resultado struct {
 	Procedencia Procedencia
 	Datos       any
+	// Legible es el contenido contado para una persona: el texto que el kernel
+	// escribe en la salida estándar, en lugar de la tabla mínima, cuando no se
+	// pide --json. Vacío significa que el applet no lo cuenta y se presenta la
+	// tabla, que es lo que hacen los applets que consultan fuentes. Lo compone
+	// el applet a partir de los mismos Datos, en el mismo instante y sin
+	// entrada ni salida, así que no puede decir otra cosa que el sobre; no
+	// entra en el sobre ni en la huella, porque no es contenido citable: con
+	// --json no cambia ni un byte (docs/ADR/0026).
+	Legible string
 	// Ensayo describe, una línea por operación, lo que cada capa con efectos
 	// habría hecho en lugar de hacerlo. Solo se rellena bajo --dry-run, y solo
 	// lo rellena quien tiene el efecto: el dominio no sabe presentarlo ni
