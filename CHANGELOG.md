@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
 ### Añadido
 
 - **La web del proyecto, https://kitlegal.es** (ADR 0024), en `web/`: una portada para despachos y otra para
