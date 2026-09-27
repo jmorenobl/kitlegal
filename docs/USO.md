@@ -10,6 +10,35 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-27 · El roadmap describe un kit municipal; la web y el README ofrecen uno para cualquier asunto
+
+- **Qué se pidió.** Revisar la fase 2 del roadmap, «Actuar en mi municipio»: kitlegal ha acabado siendo una
+  herramienta genérica, la web habla a despachos y a la ciudadanía, y un abogado o un ciudadano tendría que poder
+  usarlo en cualquier materia —fiscal, laboral, mercantil— de forma genérica, dejando la especialización para las
+  verticales. Y contrastarlo con una conversación de Jorge con otro agente sobre lo que existe en el mercado y una
+  estrategia para ponerse por delante.
+- **Qué falló.** Nada del producto. El roadmap era lo único que seguía diciendo municipio: H10 guardaba «el municipio
+  de la persona usuaria», que no sirve a un despacho y no es lo que mira el art. 30.6 LPAC (el del interesado y el de
+  la sede del órgano); H11 recurría «un acto municipal» y sacaba el órgano de `territorio`, que solo da el DIR3 de los
+  ayuntamientos. Y ese texto es la entrada del run, así que H10 y H11 habrían salido municipales. Al generalizar faltaba
+  la frontera con las verticales: la DA 1ª.2 LPAC saca del procedimiento común los tributos, la Seguridad Social, las
+  sanciones tributarias, sociales y de tráfico y la extranjería, y un recurso de la LPAC contra una multa de tráfico
+  es un escrito mal fundado. De la estrategia externa, dos piezas encajaban y no estaban: la redacción de un artículo
+  a una fecha (el BOE ya la da y el binario se queda con la última) y revisar las citas de un texto ajeno. Otras
+  chocaban: la telemetría, con la promesa de la web; CENDOJ, con el ADR 0003. Y la conversación daba por hecho que
+  faltaban Homebrew y `.deb`, que ya existen.
+- **Qué faltó.** Una medida antes de subir de prioridad la búsqueda del artículo por su materia (entrada del
+  2026-09-15): con Sonnet, las cinco preguntas por materia de H5 pasaron 3 de 3 (ADR 0016), así que no está demostrado
+  que la herramienta haga falta.
+- **Qué se hizo.** Decisión de Jorge, en sesión interactiva y fuera del workflow `hito` (ADR 0027): la fase 2 pasa a
+  ser «actuar: llevar un asunto ante cualquier administración» y cubre el procedimiento común y el acceso a la
+  información en cualquier materia, declarando no cubierto lo que la ley regula aparte; H10 guarda los municipios del
+  asunto; H11 genera acceso, alzada o reposición y alegaciones ante cualquier órgano; entra H20, la redacción a una
+  fecha, entre H7 y H8; H8 valida textos ajenos; la fase 3 pasa a ser «consultar lo que hacen las administraciones,
+  empezando por el municipio»; el artículo por materia queda en el backlog con condición de entrada medible; sin
+  telemetría; los directorios, el benchmark y los acuerdos con colegios o universidades quedan fuera del roadmap.
+  Constitución 2.5.0.
+
 ### 2026-09-27 · La salida de `skills install` es críptica para quien no es técnico
 
 - **Qué se pidió.** Instalar las skills en la cuenta con `kitlegal skills install -g`, siguiendo el README, y saber
