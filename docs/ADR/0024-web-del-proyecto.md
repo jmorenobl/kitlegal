@@ -48,7 +48,8 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
    mudarse después cuesta lo acumulado.
 2. **`ventanillalegal.es`**, la que ya publicaba el binario. Rechazada como dirección principal: el nombre del
    proyecto es kitlegal (nombre único) y `kitlegal.es` es del proyecto.
-3. **`kitlegal.es`**, con `ventanillalegal.es` redirigida allí.
+3. **`kitlegal.es`**, sin redirigir `ventanillalegal.es`: las versiones que se identificaban con ella (hasta la
+   0.2.0) no tienen uso fuera del desarrollo, y una redirección que nadie sigue es una pieza más que mantener.
 
 ## Decisión
 
@@ -73,7 +74,7 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
 - **El binario pasa a `kitlegal.es`**: la identificación es `kitlegal/x.y (+https://kitlegal.es/bot)` y los `$id`
   de `schemas/` son `https://kitlegal.es/schemas/…`. Las grabaciones de `testdata/` y de `internal/*/testdata/`
   conservan la identificación con la que se grabaron: registran lo que se envió, y la reproducción no la compara.
-  `ventanillalegal.es` se redirige a `kitlegal.es` conservando la ruta, para las versiones hasta la 0.2.0.
+  `ventanillalegal.es` no se redirige ni se menciona en la web.
 - **Sin nada de terceros en la página**: fuentes servidas desde la propia web (Fontsource), iconos en SVG en línea,
   ni scripts ni estilos en línea, y una política de seguridad de contenido que lo impone. Las imágenes para compartir
   y el icono de Apple se generan al construir.
@@ -89,6 +90,6 @@ Faltaba decidir dónde vive la web, con qué se construye, en qué dirección se
   `$id`. Para quien valide contra los esquemas por su `$id`, el cambio de dirección es un cambio incompatible de la
   próxima versión.
 - La persona tiene que activar Pages con origen «GitHub Actions» y el dominio `kitlegal.es` en el repositorio,
-  apuntar el DNS de `kitlegal.es` a GitHub Pages, verificar el dominio en la cuenta y redirigir `ventanillalegal.es`.
+  apuntar el DNS de `kitlegal.es` a GitHub Pages y verificar el dominio en la cuenta.
 - El repositorio tiene un segundo ecosistema de dependencias (npm, en `web/`), aislado: no entra en `make ci`, en el
   binario ni en la release.
