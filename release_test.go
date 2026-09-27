@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"maps"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"slices"
@@ -452,26 +453,36 @@ type regla struct {
 }
 
 // laRelease es lo que TestConfiguracionDeLaRelease comprueba: .goreleaser.yaml
-// leído de forma estricta y como documento YAML, y el Makefile.
+// leído de forma estricta y como documento YAML, el Makefile, ci.yml y
+// release.yml leídos de forma estricta fuera de sus trabajos, y cada flujo de
+// .github/workflows como documento YAML, por su ruta.
 type laRelease struct {
-	raiz       fs.FS
-	goreleaser configuracionDeGoreleaser
-	documento  *yaml.Node
-	makefile   makefile
+	raiz        fs.FS
+	goreleaser  configuracionDeGoreleaser
+	documento   *yaml.Node
+	makefile    makefile
+	ci          flujoDeGitHub
+	publicacion flujoDeGitHub
+	flujos      map[string]*yaml.Node
 }
 
-// TestConfiguracionDeLaRelease fija lo que contracts/release.md §2 y §3 dicen de
-// la release y se puede comprobar sin construirla (research.md D28):
-// .goreleaser.yaml tiene exactamente las secciones de la tabla de §2 con sus
-// valores —seis plataformas sin cgo y con -trimpath, las cuatro inyecciones del
-// Makefile con la plantilla de etiqueta y de snapshot, archivos sin versión en
-// el nombre, checksums con install.sh, SBOM, firma con cosign, cask con el
-// gancho de la cuarentena, bucket, paquetes, release con install.sh y notas por
-// Conventional Commits— y nombra PUBLISHER_TOKEN solo en los dos token; y el
-// Makefile tiene los objetivos de §3 con sus recetas y su línea de ayuda, y
-// goreleaser-check en ci sin release ni snapshot-check (FR-090 a FR-097,
-// FR-121). Que ninguna propiedad esté obsoleta lo comprueba goreleaser check, en
-// make ci (FR-094).
+// TestConfiguracionDeLaRelease fija lo que contracts/release.md §2, §3, §5 y §6
+// dicen de la release y se puede comprobar sin construirla ni ejecutar ningún
+// flujo (research.md D28): .goreleaser.yaml tiene exactamente las secciones de
+// la tabla de §2 con sus valores —seis plataformas sin cgo y con -trimpath, las
+// cuatro inyecciones del Makefile con la plantilla de etiqueta y de snapshot,
+// archivos sin versión en el nombre, checksums con install.sh, SBOM, firma con
+// cosign, cask con el gancho de la cuarentena, bucket, paquetes, release con
+// install.sh y notas por Conventional Commits— y nombra PUBLISHER_TOKEN solo en
+// los dos token; el Makefile tiene los objetivos de §3 con sus recetas y su
+// línea de ayuda, y goreleaser-check en ci sin release ni snapshot-check
+// (FR-090 a FR-097, FR-121); release.yml solo se dispara con una etiqueta v*,
+// con los permisos de cada trabajo y ninguno del flujo, PUBLISHER_TOKEN solo en
+// el entorno del paso que publica, la atestación de los seis archivos y de
+// checksums.txt y el humo con sus seis comprobaciones (FR-110 a FR-115); y el
+// trabajo snapshot de ci.yml, sin id-token ni ningún secreto, ejecuta make
+// release y make snapshot-check (FR-120). Que ninguna propiedad esté obsoleta lo
+// comprueba goreleaser check, en make ci (FR-094).
 func TestConfiguracionDeLaRelease(t *testing.T) {
 	t.Parallel()
 
@@ -496,6 +507,12 @@ func TestConfiguracionDeLaRelease(t *testing.T) {
 		{"objetivos-del-makefile", probarObjetivosDelMakefile},
 		{"ci", probarCI},
 		{"ayuda", probarAyuda},
+		{"flujo-de-la-release", probarFlujoDeLaRelease},
+		{"trabajo-de-publicacion", probarTrabajoDePublicacion},
+		{"tokens-de-la-publicacion", probarTokensDeLaPublicacion},
+		{"atestacion", probarAtestacion},
+		{"humo", probarHumo},
+		{"trabajo-de-snapshot", probarTrabajoDeSnapshot},
 	}
 
 	for _, caso := range casos {
@@ -507,24 +524,38 @@ func TestConfiguracionDeLaRelease(t *testing.T) {
 	}
 }
 
-// leerLaRelease lee .goreleaser.yaml de forma estricta y como documento, y el
-// Makefile.
+// leerLaRelease lee .goreleaser.yaml de forma estricta y como documento, el
+// Makefile, ci.yml y release.yml de forma estricta fuera de sus trabajos, y cada
+// flujo como documento.
 func leerLaRelease(t *testing.T, raiz fs.FS) laRelease {
 	t.Helper()
 
 	contenido, err := fs.ReadFile(raiz, ficheroDeGoreleaser)
 	require.NoError(t, err)
 
-	leida := laRelease{raiz: raiz, documento: &yaml.Node{}, makefile: leerMakefile(t, raiz)}
+	leida := laRelease{
+		raiz:        raiz,
+		documento:   &yaml.Node{},
+		makefile:    leerMakefile(t, raiz),
+		ci:          leerFlujo(t, raiz, flujoDeCI),
+		publicacion: leerFlujo(t, raiz, flujoDeLaRelease),
+		flujos:      leerLosFlujos(t, raiz),
+	}
 
-	estricto := yaml.NewDecoder(bytes.NewReader(contenido))
-	estricto.KnownFields(true)
-
-	require.NoError(t, estricto.Decode(&leida.goreleaser),
+	require.NoError(t, decodificarEstricto(contenido, &leida.goreleaser),
 		"%s tiene algo que la tabla de contracts/release.md §2 no fija", ficheroDeGoreleaser)
 	require.NoError(t, yaml.Unmarshal(contenido, leida.documento))
 
 	return leida
+}
+
+// decodificarEstricto lee el YAML en el destino y falla con una clave que el
+// destino no declara.
+func decodificarEstricto(contenido []byte, destino any) error {
+	estricto := yaml.NewDecoder(bytes.NewReader(contenido))
+	estricto.KnownFields(true)
+
+	return estricto.Decode(destino)
 }
 
 // leerMakefile lee las variables, las reglas y las líneas de ayuda del
@@ -905,4 +936,501 @@ func probarAyuda(t *testing.T, release laRelease) {
 			"la línea de make help de %s no describe lo que hace (FR-121)", objetivo)
 		assert.Containsf(t, release.makefile.reglas, objetivo, "make help describe %s, que no es un objetivo", objetivo)
 	}
+}
+
+const (
+	// carpetaDeFlujos es la de los flujos de GitHub Actions; flujoDeCI, el de la
+	// integración continua, con el trabajo snapshot (contracts/release.md §5), y
+	// flujoDeLaRelease, el que publica una etiqueta v* (§6).
+	carpetaDeFlujos  = ".github/workflows"
+	flujoDeCI        = ".github/workflows/ci.yml"
+	flujoDeLaRelease = ".github/workflows/release.yml"
+
+	// trabajoDeCI es el de make ci, cuya preparación de Go repite el trabajo
+	// snapshot; trabajoDePublicacion y trabajoDeHumo son los de release.yml.
+	trabajoDeCI          = "ci"
+	trabajoDeSnapshot    = "snapshot"
+	trabajoDePublicacion = "publicar"
+	trabajoDeHumo        = "humo"
+
+	// runnerDeLosFlujos es el de los tres trabajos: linux/amd64, el binario que
+	// ejecutan TestSnapshot y el humo (research.md S15).
+	runnerDeLosFlujos = "ubuntu-latest"
+
+	// accionDeCheckout, accionDeSetupGo, accionDeSyft, accionDeCosign y
+	// accionDeAtestacion son las acciones de los trabajos, sin su etiqueta.
+	accionDeCheckout   = "actions/checkout"
+	accionDeSetupGo    = "actions/setup-go"
+	accionDeSyft       = "anchore/sbom-action/download-syft"
+	accionDeCosign     = "sigstore/cosign-installer"
+	accionDeAtestacion = "actions/attest-build-provenance"
+
+	// ordenDePublicacion es la del paso que publica: el goreleaser de tools/, el
+	// mismo que el de make release, sin --snapshot (FR-096; contracts/release.md
+	// §6).
+	ordenDePublicacion = herramientaGoreleaser + " release --clean"
+
+	// ordenDelSnapshot y ordenDeSuComprobacion son las dos órdenes del trabajo
+	// snapshot: construirlo y comprobarlo (FR-120).
+	ordenDelSnapshot      = "make release"
+	ordenDeSuComprobacion = "make snapshot-check"
+
+	// lecturaDeSecretos es el contexto del que un flujo lee un secreto, y
+	// accesoDelFlujo, el token que la plataforma da a cada ejecución con los
+	// permisos del trabajo; los dos se leen con expresion.
+	lecturaDeSecretos = "secrets"
+	accesoDelFlujo    = "github.token"
+
+	// variableDeLaRelease es la del token con el que goreleaser publica la
+	// release en GitHub.
+	variableDeLaRelease = "GITHUB_TOKEN"
+
+	// repositorioDelProyecto es el de la release, contra el que el humo la
+	// descarga y verifica su atestación.
+	repositorioDelProyecto = propietarioEnGitHub + "/" + nombreDelProyecto
+
+	// carpetaDeLaRelease es donde goreleaser deja lo que construye, y
+	// checksumsDeLaRelease, el fichero de checksums que publica
+	// (contracts/release.md §2).
+	carpetaDeLaRelease   = "dist"
+	checksumsDeLaRelease = "checksums.txt"
+
+	// archivoDelHumo es el archivo publicado para el runner del humo.
+	archivoDelHumo = "kitlegal_linux_amd64.tar.gz"
+
+	// shellDelHumo, directorioDelHumo y opcionesDelHumo son el shell de cada paso
+	// del humo, el directorio temporal del runner en el que se ejecuta, que se lee
+	// con expresion, y su primera orden: una orden que falla, una variable sin
+	// valor o una tubería rota detienen el paso.
+	shellDelHumo      = "bash"
+	directorioDelHumo = "runner.temp"
+	opcionesDelHumo   = "set -euo pipefail"
+)
+
+// archivosDeLaRelease son los seis archivos que la release publica y atesta
+// (FR-112): los mismos que TestSnapshot exige en el snapshot, que solo se
+// compila con la etiqueta snapshot (SC-016; research.md D22).
+var archivosDeLaRelease = []string{
+	"kitlegal_darwin_amd64.tar.gz",
+	"kitlegal_darwin_arm64.tar.gz",
+	"kitlegal_linux_amd64.tar.gz",
+	"kitlegal_linux_arm64.tar.gz",
+	"kitlegal_windows_amd64.zip",
+	"kitlegal_windows_arm64.zip",
+}
+
+// comprobacionesDelHumo son, en orden y un paso cada una, las seis
+// comprobaciones del trabajo humo, con las órdenes que el guion de su paso
+// tiene que llevar, cada una como una línea entera: una orden comentada,
+// precedida de un echo o seguida de un || true ya no comprueba nada
+// (contracts/release.md §6; FR-113).
+var comprobacionesDelHumo = []struct {
+	nombre  string
+	ordenes []string
+}{
+	{"descarga", []string{
+		`gh release download "$GITHUB_REF_NAME" --repo ` + repositorioDelProyecto +
+			" --pattern " + archivoDelHumo + " --pattern " + checksumsDeLaRelease,
+	}},
+	{"huella", []string{
+		`awk '$2 == "` + archivoDelHumo + `"' ` + checksumsDeLaRelease + " > huella.txt",
+		"sha256sum --check --strict huella.txt",
+	}},
+	{"atestacion", []string{
+		"gh attestation verify " + archivoDelHumo + " --repo " + repositorioDelProyecto,
+	}},
+	{"version", []string{
+		"tar -xzf " + archivoDelHumo + " " + nombreDelProyecto,
+		"salida=$(./kitlegal version)",
+		`primera=$(head -n 1 <<< "$salida")`,
+		`if [ "$primera" != "kitlegal $GITHUB_REF_NAME" ]; then`,
+		"exit 1",
+	}},
+	{"boe-sin-red", []string{
+		"cache=$(mktemp -d)",
+		`KITLEGAL_CACHE_DIR="$cache" ./kitlegal boe articulo BOE-A-2015-10565 a21 --offline || codigo=$?`,
+		`if [ "$codigo" -ne 4 ]; then`,
+		"exit 1",
+	}},
+	{"skills-install", []string{
+		"proyecto=$(mktemp -d)",
+		`cd "$proyecto"`,
+		`"$RUNNER_TEMP/kitlegal" skills install`,
+		"if [ ! -f .agents/skills/boe-legislacion/SKILL.md ]; then",
+		"exit 1",
+	}},
+}
+
+// etiquetaMayor es como los flujos fijan una acción: por su etiqueta mayor,
+// como el resto de flujos del repositorio (research.md V36).
+var etiquetaMayor = regexp.MustCompile(`^v[0-9]+$`)
+
+// flujoDeGitHub es un flujo de GitHub Actions leído de forma estricta fuera de
+// sus trabajos: otra clave del flujo —un env, un concurrency, unos defaults—
+// hace fallar el test. Cada trabajo lo lee después la comprobación que lo mira;
+// va como valor y no como puntero, porque yaml.v3 solo deja sin leer un
+// yaml.Node.
+type flujoDeGitHub struct {
+	ruta        string
+	Name        string                     `yaml:"name"`
+	On          map[string]*eventoDelFlujo `yaml:"on"`
+	Permissions map[string]string          `yaml:"permissions"`
+	Jobs        map[string]yaml.Node       `yaml:"jobs"`
+}
+
+// eventoDelFlujo es el filtro de un evento: sin ninguno, el evento no tiene
+// valor.
+type eventoDelFlujo struct {
+	Branches []string `yaml:"branches"`
+	Tags     []string `yaml:"tags"`
+}
+
+// trabajoDelFlujo es un trabajo con las claves que usan los de
+// contracts/release.md §5 y §6. Leído de forma estricta, un if, un
+// continue-on-error o un timeout que el contrato no fija hacen fallar el test.
+type trabajoDelFlujo struct {
+	Needs       []string          `yaml:"needs"`
+	RunsOn      string            `yaml:"runs-on"`
+	Permissions map[string]string `yaml:"permissions"`
+	Env         map[string]string `yaml:"env"`
+	Steps       []pasoDelFlujo    `yaml:"steps"`
+}
+
+type pasoDelFlujo struct {
+	Name             string            `yaml:"name"`
+	Uses             string            `yaml:"uses"`
+	With             map[string]string `yaml:"with"`
+	Env              map[string]string `yaml:"env"`
+	Shell            string            `yaml:"shell"`
+	WorkingDirectory string            `yaml:"working-directory"`
+	Run              string            `yaml:"run"`
+}
+
+// leerFlujo lee un flujo de forma estricta fuera de sus trabajos.
+func leerFlujo(t *testing.T, raiz fs.FS, ruta string) flujoDeGitHub {
+	t.Helper()
+
+	contenido, err := fs.ReadFile(raiz, ruta)
+	require.NoError(t, err)
+
+	leido := flujoDeGitHub{ruta: ruta}
+	require.NoErrorf(t, decodificarEstricto(contenido, &leido),
+		"%s tiene, fuera de sus trabajos, algo que contracts/release.md §5 y §6 no fijan", ruta)
+
+	return leido
+}
+
+// leerLosFlujos lee cada flujo de .github/workflows como documento, por su ruta.
+func leerLosFlujos(t *testing.T, raiz fs.FS) map[string]*yaml.Node {
+	t.Helper()
+
+	flujos := map[string]*yaml.Node{}
+
+	for _, patron := range []string{"*.yml", "*.yaml"} {
+		rutas, err := fs.Glob(raiz, path.Join(carpetaDeFlujos, patron))
+		require.NoError(t, err)
+
+		for _, ruta := range rutas {
+			contenido, err := fs.ReadFile(raiz, ruta)
+			require.NoError(t, err)
+
+			flujos[ruta] = &yaml.Node{}
+			require.NoError(t, yaml.Unmarshal(contenido, flujos[ruta]), ruta)
+		}
+	}
+
+	require.Subset(t, slices.Collect(maps.Keys(flujos)), []string{flujoDeCI, flujoDeLaRelease},
+		"la búsqueda no lee los flujos que vigila: pasaría en vacío")
+
+	return flujos
+}
+
+// leerTrabajo lee de forma estricta un trabajo del flujo.
+func leerTrabajo(t *testing.T, flujo flujoDeGitHub, nombre string) trabajoDelFlujo {
+	t.Helper()
+
+	nodo, existe := flujo.Jobs[nombre]
+	require.Truef(t, existe, "%s no tiene el trabajo %s", flujo.ruta, nombre)
+
+	contenido, err := yaml.Marshal(&nodo)
+	require.NoError(t, err)
+
+	var leido trabajoDelFlujo
+	require.NoErrorf(t, decodificarEstricto(contenido, &leido),
+		"el trabajo %s de %s tiene algo que contracts/release.md §5 y §6 no fijan", nombre, flujo.ruta)
+
+	return leido
+}
+
+// secuencia es, paso a paso, lo que hace cada paso: la acción que usa, sin su
+// etiqueta, o la orden que ejecuta. Exige que cada acción vaya fijada por su
+// etiqueta mayor (research.md V36).
+func secuencia(t *testing.T, pasos []pasoDelFlujo) []string {
+	t.Helper()
+
+	hechos := make([]string, 0, len(pasos))
+
+	for _, paso := range pasos {
+		if paso.Uses == "" {
+			hechos = append(hechos, strings.TrimSpace(paso.Run))
+
+			continue
+		}
+
+		accion, etiqueta, _ := strings.Cut(paso.Uses, "@")
+		assert.Regexpf(t, etiquetaMayor, etiqueta, "%s no va fijada por su etiqueta mayor (research.md V36)", paso.Uses)
+
+		hechos = append(hechos, accion)
+	}
+
+	return hechos
+}
+
+// pasosEnOrden exige que los pasos hagan exactamente lo esperado y en ese orden,
+// y los da por lo que hacen (secuencia).
+func pasosEnOrden(t *testing.T, pasos []pasoDelFlujo, esperados ...string) map[string]pasoDelFlujo {
+	t.Helper()
+
+	hechos := secuencia(t, pasos)
+	require.Equal(t, esperados, hechos, "los pasos del trabajo y su orden (contracts/release.md §5 y §6)")
+
+	porLoQueHacen := map[string]pasoDelFlujo{}
+	for indice, hecho := range hechos {
+		porLoQueHacen[hecho] = pasos[indice]
+	}
+
+	return porLoQueHacen
+}
+
+// indiceDelPaso es la posición del paso que hace lo pedido (secuencia).
+func indiceDelPaso(t *testing.T, trabajo trabajoDelFlujo, hecho string) int {
+	t.Helper()
+
+	indice := slices.Index(secuencia(t, trabajo.Steps), hecho)
+	require.GreaterOrEqualf(t, indice, 0, "ningún paso hace %s", hecho)
+
+	return indice
+}
+
+// rutasEnLosFlujos son, flujo a flujo en orden de ruta, las rutas que nombran el
+// texto (rutasQueNombran), una vez cada una y tras la del flujo.
+func rutasEnLosFlujos(flujos map[string]*yaml.Node, texto string) []string {
+	var rutas []string
+
+	for _, fichero := range slices.Sorted(maps.Keys(flujos)) {
+		for _, ruta := range slices.Compact(rutasQueNombran(flujos[fichero], texto, "")) {
+			rutas = append(rutas, fichero+": "+ruta)
+		}
+	}
+
+	return rutas
+}
+
+// ordenesDelGuion son las líneas del guion de un paso sin su sangría, sin las
+// vacías y sin los comentarios, que no comprueban nada.
+func ordenesDelGuion(guion string) []string {
+	var ordenes []string
+
+	for _, linea := range strings.Split(guion, "\n") {
+		linea = strings.TrimSpace(linea)
+		if linea != "" && !strings.HasPrefix(linea, "#") {
+			ordenes = append(ordenes, linea)
+		}
+	}
+
+	return ordenes
+}
+
+// probarFlujoDeLaRelease: release.yml solo se dispara al empujar una etiqueta
+// v*, con ningún otro evento (FR-110, FR-115); no da permisos a nivel de flujo,
+// de modo que cada trabajo tiene solo los que declara (FR-111); y sus trabajos
+// son publicar y humo.
+func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
+	t.Helper()
+
+	flujo := release.publicacion
+
+	assert.Equal(t, map[string]*eventoDelFlujo{"push": {Tags: []string{"v*"}}}, flujo.On,
+		"%s se dispara solo al empujar una etiqueta v* (FR-110)", flujo.ruta)
+	assert.Nil(t, flujo.Permissions, "%s no da permisos a nivel de flujo (contracts/release.md §6)", flujo.ruta)
+	assert.ElementsMatch(t, []string{trabajoDePublicacion, trabajoDeHumo}, slices.Collect(maps.Keys(flujo.Jobs)))
+}
+
+// probarTrabajoDePublicacion: publicar corre en ubuntu-latest con contents,
+// id-token y attestations de escritura y sin entorno propio (FR-111, FR-114);
+// obtiene el código con toda su historia sin dejar la credencial en el clon,
+// instala Go sin restaurar ninguna caché, syft y cosign, publica con el
+// goreleaser de tools/ con GITHUB_TOKEN y PUBLISHER_TOKEN en el entorno de ese
+// paso, y atesta, en ese orden (contracts/release.md §6).
+func probarTrabajoDePublicacion(t *testing.T, release laRelease) {
+	t.Helper()
+
+	publicar := leerTrabajo(t, release.publicacion, trabajoDePublicacion)
+
+	assert.Equal(t, runnerDeLosFlujos, publicar.RunsOn)
+	assert.Empty(t, publicar.Needs)
+	assert.Equal(t, map[string]string{"contents": "write", "id-token": "write", "attestations": "write"},
+		publicar.Permissions, "los permisos de %s (FR-111)", trabajoDePublicacion)
+	assert.Empty(t, publicar.Env, "%s no tiene entorno propio: cada secreto va en el paso que publica (FR-114)",
+		trabajoDePublicacion)
+
+	pasos := pasosEnOrden(t, publicar.Steps,
+		accionDeCheckout, accionDeSetupGo, accionDeSyft, accionDeCosign, ordenDePublicacion, accionDeAtestacion)
+
+	assert.Equal(t, map[string]string{"fetch-depth": "0", "persist-credentials": "false"}, pasos[accionDeCheckout].With,
+		"el código con toda su historia, para las notas de la release, y sin la credencial en el clon")
+	assert.Equal(t, map[string]string{"go-version-file": "go.mod", "cache": "false"}, pasos[accionDeSetupGo].With,
+		"Go de go.mod, sin restaurar nada de otra ejecución en lo que se publica y se firma")
+	assert.Equal(t, map[string]string{
+		variableDeLaRelease:   expresion(lecturaDeSecretos + "." + variableDeLaRelease),
+		variableDelPublicador: expresion(lecturaDeSecretos + "." + variableDelPublicador),
+	}, pasos[ordenDePublicacion].Env, "el entorno del paso que publica (FR-097, FR-114)")
+}
+
+// probarTokensDeLaPublicacion: de todos los flujos, solo el paso que publica
+// nombra PUBLISHER_TOKEN (FR-097, FR-114), y release.yml no lee ningún secreto
+// fuera del entorno de ese paso.
+func probarTokensDeLaPublicacion(t *testing.T, release laRelease) {
+	t.Helper()
+
+	publicar := leerTrabajo(t, release.publicacion, trabajoDePublicacion)
+	entorno := fmt.Sprintf("jobs.%s.steps[%d].env.", trabajoDePublicacion,
+		indiceDelPaso(t, publicar, ordenDePublicacion))
+
+	assert.Equal(t, []string{flujoDeLaRelease + ": " + entorno + variableDelPublicador},
+		rutasEnLosFlujos(release.flujos, variableDelPublicador),
+		"%s solo se usa en el paso que publica (FR-097, FR-114)", variableDelPublicador)
+	assert.ElementsMatch(t, []string{entorno + variableDeLaRelease, entorno + variableDelPublicador},
+		rutasQueNombran(release.flujos[flujoDeLaRelease], lecturaDeSecretos, ""),
+		"%s solo lee un secreto en el entorno del paso que publica (FR-114)", flujoDeLaRelease)
+}
+
+// expresion es como un flujo lee un valor de un contexto de GitHub Actions:
+// expresion("github.token") es ${{ github.token }}.
+func expresion(valor string) string {
+	return "${{ " + valor + " }}"
+}
+
+// probarAtestacion: tras publicar, attest-build-provenance atesta la procedencia
+// de exactamente los seis archivos y checksums.txt de dist/, y ningún otro flujo
+// la usa (FR-112).
+func probarAtestacion(t *testing.T, release laRelease) {
+	t.Helper()
+
+	publicar := leerTrabajo(t, release.publicacion, trabajoDePublicacion)
+	indice := indiceDelPaso(t, publicar, accionDeAtestacion)
+
+	assert.Greater(t, indice, indiceDelPaso(t, publicar, ordenDePublicacion), "la atestación va tras publicar")
+
+	var sujetos []string
+	for _, fichero := range append(slices.Clone(archivosDeLaRelease), checksumsDeLaRelease) {
+		sujetos = append(sujetos, path.Join(carpetaDeLaRelease, fichero))
+	}
+
+	atestacion := publicar.Steps[indice]
+
+	assert.Equal(t, []string{"subject-path"}, slices.Collect(maps.Keys(atestacion.With)))
+	assert.ElementsMatch(t, sujetos, strings.Fields(atestacion.With["subject-path"]),
+		"los seis archivos y %s (FR-112)", checksumsDeLaRelease)
+	assert.Equal(t, []string{fmt.Sprintf("%s: jobs.%s.steps[%d].uses", flujoDeLaRelease, trabajoDePublicacion, indice)},
+		rutasEnLosFlujos(release.flujos, accionDeAtestacion), "solo release.yml atesta (FR-112)")
+}
+
+// probarHumo: humo espera a publicar y corre en ubuntu-latest, con permiso para
+// leer el contenido y las atestaciones y el token del flujo para gh; hace las
+// seis comprobaciones de contracts/release.md §6, un paso cada una y en orden,
+// ninguno con una acción, de modo que no obtiene el código del repositorio
+// (FR-113).
+func probarHumo(t *testing.T, release laRelease) {
+	t.Helper()
+
+	humo := leerTrabajo(t, release.publicacion, trabajoDeHumo)
+
+	assert.Equal(t, []string{trabajoDePublicacion}, humo.Needs)
+	assert.Equal(t, runnerDeLosFlujos, humo.RunsOn)
+	assert.Equal(t, map[string]string{"contents": "read", "attestations": "read"}, humo.Permissions,
+		"los permisos de %s (contracts/release.md §6)", trabajoDeHumo)
+	assert.Equal(t, map[string]string{"GH_TOKEN": expresion(accesoDelFlujo)}, humo.Env,
+		"gh usa el token de la ejecución, con los permisos de %s", trabajoDeHumo)
+	require.Len(t, humo.Steps, len(comprobacionesDelHumo), "un paso por comprobación del humo (FR-113)")
+
+	for indice, comprobacion := range comprobacionesDelHumo {
+		probarPasoDelHumo(t, humo.Steps[indice], comprobacion.nombre, comprobacion.ordenes)
+	}
+}
+
+// probarPasoDelHumo: el paso de una comprobación no usa ninguna acción, corre con
+// bash en el directorio temporal del runner, empieza fijando sus opciones de
+// shell, lleva cada orden de la comprobación como una línea entera fuera de sus
+// comentarios y bash lo lee sin errores de sintaxis, sin ejecutarlo.
+func probarPasoDelHumo(t *testing.T, paso pasoDelFlujo, comprobacion string, esperadas []string) {
+	t.Helper()
+
+	assert.Emptyf(t, paso.Uses, "el paso %q del humo usa una acción", comprobacion)
+	assert.Equalf(t, shellDelHumo, paso.Shell, "el shell del paso %q del humo", comprobacion)
+	assert.Equalf(t, expresion(directorioDelHumo), paso.WorkingDirectory, "el directorio del paso %q del humo",
+		comprobacion)
+
+	ordenes := ordenesDelGuion(paso.Run)
+	require.NotEmptyf(t, ordenes, "el paso %q del humo no ejecuta nada", comprobacion)
+	assert.Equalf(t, opcionesDelHumo, ordenes[0], "el paso %q del humo no empieza fijando sus opciones", comprobacion)
+
+	for _, orden := range esperadas {
+		assert.Containsf(t, ordenes, orden, "el paso %q del humo no hace lo que fija contracts/release.md §6 (FR-113)",
+			comprobacion)
+	}
+
+	sintaxis := exec.CommandContext(t.Context(), shellDelHumo, "-n")
+	sintaxis.Stdin = strings.NewReader(paso.Run)
+
+	salida, err := sintaxis.CombinedOutput()
+	assert.NoErrorf(t, err, "bash no lee el paso %q del humo: %s", comprobacion, salida)
+}
+
+// probarTrabajoDeSnapshot: ci.yml se dispara en cada propuesta de cambio y en
+// cada push a main, sin permisos a nivel de flujo; su trabajo snapshot corre en
+// esos eventos sin condición ni espera, en ubuntu-latest, solo con permiso para
+// leer el contenido —sin id-token— y sin ningún secreto ni el token del flujo;
+// obtiene el código con toda su historia, prepara Go y la caché como el trabajo
+// ci, y ejecuta make release y make snapshot-check, y nada más (FR-120;
+// contracts/release.md §5).
+func probarTrabajoDeSnapshot(t *testing.T, release laRelease) {
+	t.Helper()
+
+	assert.Equal(t, map[string]*eventoDelFlujo{"pull_request": nil, "push": {Branches: []string{"main"}}},
+		release.ci.On, "los eventos de %s (contracts/release.md §5)", flujoDeCI)
+	assert.Nil(t, release.ci.Permissions, "%s no da permisos a nivel de flujo", flujoDeCI)
+
+	snapshot := leerTrabajo(t, release.ci, trabajoDeSnapshot)
+
+	assert.Equal(t, runnerDeLosFlujos, snapshot.RunsOn)
+	assert.Empty(t, snapshot.Needs, "%s corre junto a %s, sin esperarlo", trabajoDeSnapshot, trabajoDeCI)
+	assert.Equal(t, map[string]string{"contents": "read"}, snapshot.Permissions, "sin id-token (FR-120)")
+
+	nodo := release.ci.Jobs[trabajoDeSnapshot]
+	for _, lectura := range []string{lecturaDeSecretos, accesoDelFlujo} {
+		assert.Emptyf(t, rutasQueNombran(&nodo, lectura, "jobs."+trabajoDeSnapshot),
+			"%s no usa ningún secreto (FR-097, FR-120)", trabajoDeSnapshot)
+	}
+
+	pasos := pasosEnOrden(t, snapshot.Steps, accionDeCheckout, accionDeSetupGo, ordenDelSnapshot, ordenDeSuComprobacion)
+
+	assert.Equal(t, map[string]string{"fetch-depth": "0"}, pasos[accionDeCheckout].With,
+		"el código con toda su historia, de la que sale la versión del snapshot (research.md D30)")
+
+	// El trabajo ci se lee tal cual, sin exigirle nada más: lo fija su propio
+	// contrato, y aquí solo importa su preparación de Go.
+	var delCI trabajoDelFlujo
+
+	nodoDeCI := release.ci.Jobs[trabajoDeCI]
+	require.NoError(t, nodoDeCI.Decode(&delCI))
+
+	indice := slices.IndexFunc(delCI.Steps, func(paso pasoDelFlujo) bool {
+		return strings.HasPrefix(paso.Uses, accionDeSetupGo+"@")
+	})
+	require.GreaterOrEqualf(t, indice, 0, "el trabajo %s no usa %s", trabajoDeCI, accionDeSetupGo)
+
+	assert.Equal(t, delCI.Steps[indice].Uses, pasos[accionDeSetupGo].Uses)
+	assert.Equal(t, delCI.Steps[indice].With, pasos[accionDeSetupGo].With,
+		"la preparación de Go y la caché del trabajo %s (contracts/release.md §5)", trabajoDeCI)
 }
