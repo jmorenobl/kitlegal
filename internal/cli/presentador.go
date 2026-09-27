@@ -27,10 +27,11 @@ type Presentador interface {
 	// Es el único camino por el que un sobre llega a la salida estándar, tanto en
 	// éxito como en fallo (FR-041, FR-042, FR-045).
 	Presentar(sobre schema.Sobre, enJSON bool) error
-	// Texto escribe en la salida estándar el texto dirigido a una persona que no
-	// es un resultado: las tres líneas de version y la ayuda derivada del
-	// registro. No lo altera --json, que solo elige la forma del sobre (FR-026,
-	// FR-042).
+	// Texto escribe en la salida estándar el texto dirigido a una persona: las
+	// tres líneas de version y la ayuda derivada del registro, que --json no
+	// altera porque solo elige la forma del sobre (FR-026, FR-042), y el
+	// contenido de un resultado contado para una persona, que sin --json ocupa
+	// el lugar de la tabla mínima (docs/ADR/0026).
 	Texto(texto string) error
 	// Aviso escribe en la salida de error el mensaje dirigido a una persona: la
 	// causa de un fallo, la lista de applets disponibles, la descripción de

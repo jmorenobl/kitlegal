@@ -10,6 +10,25 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-27 · La salida de `skills install` es críptica para quien no es técnico
+
+- **Qué se pidió.** Instalar las skills en la cuenta con `kitlegal skills install -g`, siguiendo el README, y saber
+  qué había pasado: dónde han quedado, qué agente las verá y qué hacer a continuación.
+- **Qué falló.** La orden funciona, pero sin `--json` imprime la tabla mínima genérica del sobre: `fuente
+  kitlegal.skills`, `url kitlegal:applet/skills`, `hash sha256:…` y después `0.enlaces.0.host claude`,
+  `0.enlaces.0.modo enlace`, `0.estado actualizada`… con la ruta absoluta de HOME en cada línea. A quien no sabe qué
+  es un sobre ni una huella no le dice nada, y `skills list` y `skills doctor` salen igual: un `doctor` sin hallazgos
+  no dice «todo en orden», y uno con hallazgos da `hallazgos.0.clase`, `hallazgos.0.orden`, en vez de una frase y la
+  orden lista para copiar.
+- **Qué faltó.** Un camino para que un applet cuente su resultado a una persona sin que el presentador conozca applets
+  (ADR 0005) y sin cambiar ni un byte de `--json`, que es lo que leen los agentes y las evals (ADR 0023).
+- **Qué se hizo.** Decisión de Jorge, en sesión interactiva y fuera del workflow `hito`, como los ADR 0023 y 0025:
+  `schema.Resultado` gana `Legible`, que el kernel escribe sin `--json` en lugar de la tabla (ADR 0026), y `skills`
+  lo rellena en `install`, `list` y `doctor`: dónde están las skills y quién las lee de ahí, cada una con su estado o
+  su versión y sus entradas por marca (Claude Code, Antigravity), `~` en las rutas, el agente que no las verá con la
+  orden que lo enlaza, «todo en orden» o cada hallazgo en una frase con su orden debajo. `boe` y `territorio` siguen
+  con la tabla: ahí la procedencia es la cita. `--dry-run` usa el mismo vocabulario.
+
 ### 2026-09-27 · Un botón de «instalar» para quien no usa la terminal
 
 - **Qué se pidió.** Si se puede instalar kitlegal con un clic en las apps de escritorio —Claude, Codex, Antigravity,

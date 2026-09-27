@@ -7,6 +7,10 @@
 > Nota (2026-09-13): el ADR 0014 añade a `schema.Resultado` las operaciones de grafo que el applet
 > observa, aplicadas por el kernel con la `Procedencia` del propio resultado como `source`. `Applet`,
 > `Verbo` y `Argumentos` no cambian; lo que crece es el valor de dominio que el applet ya devolvía.
+>
+> Nota (2026-09-27): el ADR 0026 añade a `schema.Resultado` el campo `Legible`, el contenido contado para
+> una persona, que el kernel escribe sin `--json` en lugar de la tabla mínima. Por el mismo camino y con la
+> misma regla: el contrato no cambia, y `render` sigue sin conocer applets.
 
 ## Contexto y problema
 

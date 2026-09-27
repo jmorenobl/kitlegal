@@ -285,9 +285,8 @@ mkdir $WORK/version-dev
 cd $WORK/version-dev
 exec $KITLEGAL_V1_BIN skills install
 exec kitlegal skills doctor
-stdout '^hallazgos\.0\.clase +versión distinta$'
-stdout '^hallazgos\.0\.ruta +\.agents/skills/kitlegal\.json$'
-stdout '^hallazgos\.0\.orden +kitlegal skills install boe-legislacion legal-core$'
+stdout '^  1\. Las skills son de kitlegal v0\.1\.0 y este kitlegal es dev\.$'
+stdout '^     kitlegal skills install boe-legislacion legal-core$'
 
 # --- Versión distinta de una sola skill (US4.10) ---
 #

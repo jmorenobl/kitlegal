@@ -733,3 +733,77 @@ func TestMontadorFechaDeConsulta(t *testing.T) {
 			"en el sobre de fallo la huella se calcula igual que en el de éxito")
 	})
 }
+
+// TestResultadoLegible comprueba lo que cambia el ADR 0026 en el único punto
+// que emite: un resultado que trae su contenido contado para una persona sale,
+// sin --json, como ese texto y no como la tabla mínima; con --json, el sobre y
+// ni un byte del texto; sin el texto, la tabla como siempre; y el sobre se
+// monta igual aunque no se escriba, así que una procedencia que no sostiene una
+// cita sigue siendo el mismo fallo con o sin texto.
+func TestResultadoLegible(t *testing.T) {
+	t.Parallel()
+
+	const legible = "Skills de kitlegal v0.3.0 en ~/.agents/skills:\n\n  legal-core  instalada\n"
+
+	conLegible := resultadoDePrueba()
+	conLegible.Legible = legible
+
+	t.Run("sin --json, el texto en lugar de la tabla", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConJSON{}
+		require.Equal(t, 0, emitirDePrueba(doble, false, conLegible, nil))
+
+		assert.Equal(t, []string{legible}, doble.textos, "el texto va por Texto, a la salida estándar")
+		assert.Empty(t, doble.sobres, "no se presenta ningún sobre")
+		assert.Equal(t, legible+"\n", doble.salida.String(), "el doble cierra cada escritura con un salto")
+		assert.Empty(t, doble.errores.String())
+	})
+
+	t.Run("con --json, el sobre y ni un byte del texto", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConJSON{}
+		require.Equal(t, 0, emitirDePrueba(doble, true, conLegible, nil))
+
+		assert.Empty(t, doble.textos)
+		require.Len(t, doble.sobres, 1)
+		assert.NotContains(t, doble.salida.String(), "Skills de kitlegal")
+
+		sinLegible := &presentadorConJSON{}
+		require.Equal(t, 0, emitirDePrueba(sinLegible, true, resultadoDePrueba(), nil))
+		assert.Equal(t, sinLegible.salida.String(), doble.salida.String(), "el sobre es el mismo con y sin texto")
+	})
+
+	t.Run("sin texto, la tabla mínima como siempre", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConJSON{}
+		require.Equal(t, 0, emitirDePrueba(doble, false, resultadoDePrueba(), nil))
+
+		assert.Empty(t, doble.textos)
+		require.Len(t, doble.sobres, 1)
+		assert.Equal(t, "sobre(ok=true, json=false)\n", doble.salida.String())
+	})
+
+	t.Run("el sobre se exige aunque no se escriba", func(t *testing.T) {
+		t.Parallel()
+
+		sinProcedencia := conLegible
+		sinProcedencia.Procedencia = schema.Procedencia{}
+
+		doble := &presentadorConJSON{}
+		assert.Equal(t, codigoInesperado, emitirDePrueba(doble, false, sinProcedencia, nil))
+		assert.Empty(t, doble.textos, "un resultado que no se puede citar no se cuenta")
+		assert.Contains(t, doble.errores.String(), schema.ErrFuenteVacia.Error())
+	})
+
+	t.Run("una escritura fallida del texto es el fallo inesperado", func(t *testing.T) {
+		t.Parallel()
+
+		doble := &presentadorConJSON{}
+		doble.fallo = errEscrituraRota
+
+		assert.Equal(t, codigoInesperado, emitirDePrueba(doble, false, conLegible, nil))
+	})
+}

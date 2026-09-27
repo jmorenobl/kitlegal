@@ -66,7 +66,9 @@ type Montador struct {
 // a su ejecución, en cuyo caso su procedencia no se conoce y firma el kernel—,
 // y err es el fallo, o nulo si no lo hubo. enJSON elige la forma del sobre; sin
 // él un fallo no lleva sobre, porque la tabla mínima es la forma de un
-// resultado y no la de un fallo (contracts/sobre-de-salida.md §5 y §7).
+// resultado y no la de un fallo (contracts/sobre-de-salida.md §5 y §7), y un
+// resultado que el applet cuenta para una persona sale con ese texto en lugar
+// de la tabla (docs/ADR/0026).
 func (m Montador) Emitir(p Presentador, enJSON bool, res schema.Resultado, err error) int {
 	if err != nil {
 		return m.emitirFallo(p, enJSON, res.Procedencia, err)
@@ -80,7 +82,7 @@ func (m Montador) Emitir(p Presentador, enJSON bool, res schema.Resultado, err e
 		return m.emitirFallo(p, enJSON, res.Procedencia, errMontaje)
 	}
 
-	if errEscritura := p.Presentar(sobre, enJSON); errEscritura != nil {
+	if errEscritura := presentar(p, enJSON, res, sobre); errEscritura != nil {
 		// Aquí la salida estándar ya ha fallado. El fallo sale por el mismo
 		// camino que cualquier otro pero sin sobre: no se intenta un segundo
 		// por el descriptor que acaba de romperse
@@ -89,6 +91,22 @@ func (m Montador) Emitir(p Presentador, enJSON bool, res schema.Resultado, err e
 	}
 
 	return codigoCorrecto
+}
+
+// presentar escribe un resultado correcto en la salida estándar: el sobre, en
+// JSON si se pidió y si no en la tabla mínima, salvo que el applet cuente su
+// contenido para una persona, que sin --json sustituye a la tabla (docs/ADR/0026).
+// El sobre ya está montado en los tres casos: lo que hace citable un resultado
+// —la procedencia válida y la huella— se exige igual aunque no se escriba.
+//
+// Con --json, Legible no interviene: el sobre es el único camino de la forma
+// legible por máquina y no cambia ni un byte por lo que el applet cuente.
+func presentar(p Presentador, enJSON bool, res schema.Resultado, sobre schema.Sobre) error {
+	if !enJSON && res.Legible != "" {
+		return p.Texto(res.Legible)
+	}
+
+	return p.Presentar(sobre, enJSON)
 }
 
 // emitirFallo escribe el sobre de fallo —solo si se pidió la forma legible por

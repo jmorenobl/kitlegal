@@ -71,8 +71,8 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 exec kitlegal skills list --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
 exec kitlegal skills doctor
-stdout '^hallazgos\.0\.clase +fichero editado$'
-stdout '^hallazgos\.0\.ruta +\.agents/skills/legal-core/SKILL\.md$'
+stdout '^Hay 1 cosa que arreglar en las skills de \.agents/skills:$'
+stdout '^  1\. \.agents/skills/legal-core/SKILL\.md ya no es el fichero que dejó kitlegal: se ha editado, se ha sustituido o falta\.$'
 ! stderr .
 
 # Un HOME sin manifiesto: list y doctor con -g salen con 0 y lo dicen.
