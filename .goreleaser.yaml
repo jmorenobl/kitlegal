@@ -107,7 +107,7 @@ scoops:
       token: "{{ .Env.PUBLISHER_TOKEN }}"
     homepage: https://github.com/jmorenobl/kitlegal
     description: Consulta fuentes legales públicas españolas desde skills agénticas
-    license: Apache-2.0
+    license: EUPL-1.2
 
 nfpms:
   # Sin maintainer, goreleaser da la configuración por obsoleta (research.md
@@ -118,7 +118,7 @@ nfpms:
     maintainer: "Jorge <jmorenobl@gmail.com>"
     description: Consulta fuentes legales públicas españolas desde skills agénticas
     homepage: https://github.com/jmorenobl/kitlegal
-    license: Apache-2.0
+    license: EUPL-1.2
 
 release:
   # Fijado, para que `goreleaser check` no dependa de git ni de un remote

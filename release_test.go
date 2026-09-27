@@ -209,7 +209,7 @@ const (
 	paginaDelProyecto   = "https://github.com/jmorenobl/kitlegal"
 
 	// licenciaDelProyecto es la de LICENSE, con su identificador SPDX.
-	licenciaDelProyecto = "Apache-2.0"
+	licenciaDelProyecto = "EUPL-1.2"
 
 	// mantenedorDeLosPaquetes es el maintainer de los .deb y .rpm: el nombre y
 	// la dirección que ya publica el historial del repositorio (research.md D26;

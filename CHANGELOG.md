@@ -442,6 +442,11 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
 
 ### Cambiado
 
+*Fuera de hito:*
+
+- **La licencia pasa de Apache-2.0 a EUPL-1.2** (ADR 0022): `LICENSE` con el texto oficial de la Licencia Pública de
+  la Unión Europea v. 1.2, y el identificador SPDX `EUPL-1.2` en el cask, el bucket y los paquetes `.deb` y `.rpm`.
+
 *De H1 — el kernel de la línea de órdenes:*
 
 - **El contrato observable del binario deja de ser el de H0.** De aquel se conservan las tres líneas de
