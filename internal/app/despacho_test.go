@@ -124,7 +124,7 @@ func TestDespacho(t *testing.T) {
 			// mensaje lo nombra y enumera los que sí existen.
 			nombre:        "el primer argumento no corresponde a ningún applet",
 			argv:          []string{"/usr/local/bin/kitlegal", "noexiste", "hola"},
-			errorContiene: []string{"noexiste", "echo", "segundo"},
+			errorContiene: []string{"noexiste", "echo", "segundo", "la versión, con «kitlegal version»"},
 		},
 		{
 			// Caso 5: los verbos reservados se reconocen antes que el registro,
@@ -134,6 +134,19 @@ func TestDespacho(t *testing.T) {
 			argv:      []string{"/usr/local/bin/kitlegal", "version"},
 			destino:   DestinoReservado,
 			reservado: "version",
+		},
+		{
+			// --version es «version» con la forma de una bandera: el mismo
+			// destino y el mismo verbo reservado.
+			nombre:    "--version como primer argumento es el verbo reservado version",
+			argv:      []string{"/usr/local/bin/kitlegal", "--version"},
+			destino:   DestinoReservado,
+			reservado: "version",
+		},
+		{
+			nombre:        "--version tampoco admite nada detrás, y el mensaje nombra la bandera",
+			argv:          []string{"/usr/local/bin/kitlegal", "--version", "extra"},
+			errorContiene: []string{`la bandera "--version"`, "extra", "no admite argumentos ni banderas"},
 		},
 		{
 			// Un verbo reservado no admite nada detrás: «version» no tiene sobre

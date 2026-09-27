@@ -45,6 +45,7 @@ func AyudaDelBinario(invocacion string, r *Registro) string {
 
 	ayuda.WriteString(bloque("applets:", entradas))
 	fmt.Fprintf(&ayuda, "\nLos verbos de cada applet, en «%s <applet> --help».\n", invocacion)
+	fmt.Fprintf(&ayuda, "La versión del programa, en «%s version» o «%s --version».\n", invocacion, invocacion)
 
 	return ayuda.String()
 }
@@ -87,6 +88,12 @@ func listaDeApplets(r *Registro) string {
 	}
 
 	return "applets disponibles: " + strings.Join(nombres, ", ")
+}
+
+// comoPedirLaVersion es la pista que acompaña a esa lista: el verbo reservado
+// no es un applet y no sale en ella.
+func comoPedirLaVersion(invocacion string) string {
+	return fmt.Sprintf("la versión, con «%s version»", invocacion)
 }
 
 // listaDeVerbos es la enumeración que acompaña a una invocación que no nombra

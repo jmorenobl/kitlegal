@@ -227,6 +227,8 @@ func TestArrancar(t *testing.T) {
 		version := arrancar(t, construir, "kitlegal", "version")
 		assert.Equal(t, invocar(t, registroDeCodigos(t, resultadoCorrecto), "kitlegal", "version"), version,
 			"con el registro construido, la invocación es la de Main")
+		assert.Equal(t, version, arrancar(t, construir, "kitlegal", "--version"),
+			"--version es «version»: el mismo código, la misma salida y nada en la de error")
 
 		res := arrancar(t, construir, "kitlegal", "prueba", "hola", "--json")
 		assert.Equal(t, 0, res.codigo, res.errores)
@@ -235,7 +237,7 @@ func TestArrancar(t *testing.T) {
 		assert.Equal(t, true, sobre["ok"])
 		assert.Equal(t, procedenciaDePrueba.Fuente, sobre["fuente"])
 
-		assert.Equal(t, 2, construcciones, "cada arranque construye su registro una sola vez")
+		assert.Equal(t, 3, construcciones, "cada arranque construye su registro una sola vez")
 	})
 
 	t.Run("construir-recibe-la-version", func(t *testing.T) {
@@ -317,6 +319,7 @@ func TestSalidaEstandarRota(t *testing.T) {
 
 	escriben := [][]string{
 		{"kitlegal", "version"},
+		{"kitlegal", "--version"},
 		{"kitlegal", "--help"},
 		{"kitlegal", "prueba", "--help"},
 		{"kitlegal", "prueba", "probar", "--help"},

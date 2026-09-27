@@ -91,9 +91,10 @@ func Despachar(registro *Registro, argv []string, previo cli.Preliminar) (Despac
 	// 2. Si no lo está —incluido «kitlegal»—, el applet sale del primer
 	// argumento. Los verbos reservados se reconocen **antes** que el registro,
 	// que es justo lo que hace inalcanzable a un applet llamado como uno de
-	// ellos y por lo que el registro los rechaza al construirse (FR-003, D17).
+	// ellos y por lo que el registro los rechaza al construirse (FR-003, D17);
+	// y --version es «version» con la forma de una bandera.
 	if len(resto) > 0 {
-		if slices.Contains(verbosReservados, resto[0]) {
+		if slices.Contains(verbosReservados, resto[0]) || resto[0] == banderaDeVersion {
 			return despachoReservado(resto)
 		}
 
@@ -112,7 +113,7 @@ func Despachar(registro *Registro, argv []string, previo cli.Preliminar) (Despac
 		}, nil
 	}
 
-	return Despacho{}, appletNoResuelto(registro, resto)
+	return Despacho{}, appletNoResuelto(invocacion, registro, resto)
 }
 
 // despachoReservado atiende un verbo del propio binario, que no admite
@@ -120,14 +121,20 @@ func Despachar(registro *Registro, argv []string, previo cli.Preliminar) (Despac
 // sobra tras él no es un argumento que descartar sino una invocación que hay
 // que corregir, código 2, con el mensaje nombrando lo que sobra (FR-027; es el
 // mismo código con el que H0 respondía a «kitlegal version extra»,
-// specs/001-h0-esqueleto-del-repo/contracts/cli-version.md).
+// specs/001-h0-esqueleto-del-repo/contracts/cli-version.md). --version se
+// atiende como «version», y el mensaje nombra lo que se escribió.
 func despachoReservado(resto []string) (Despacho, error) {
-	if len(resto) > 1 {
-		return Despacho{}, fmt.Errorf("%w: el verbo %q no admite argumentos ni banderas, y recibió %q",
-			cli.ErrArgumentos, resto[0], resto[1:])
+	reservado, forma := resto[0], "el verbo"
+	if reservado == banderaDeVersion {
+		reservado, forma = verboVersion, "la bandera"
 	}
 
-	return Despacho{Destino: DestinoReservado, Reservado: resto[0]}, nil
+	if len(resto) > 1 {
+		return Despacho{}, fmt.Errorf("%w: %s %q no admite argumentos ni banderas, y recibió %q",
+			cli.ErrArgumentos, forma, resto[0], resto[1:])
+	}
+
+	return Despacho{Destino: DestinoReservado, Reservado: reservado}, nil
 }
 
 // despachoDeApplet normaliza el verbo con el applet ya resuelto y **antes** de
@@ -200,16 +207,17 @@ func verboPorOmision(applet Applet) (string, bool) {
 
 // appletNoResuelto construye el fallo de la invocación cuyo applet no puede
 // determinarse: sin primer argumento o con uno que no está registrado. El
-// mensaje nombra lo desconocido y enumera lo disponible, porque quien lo lee
-// —persona o agente— necesita saber qué escribir a continuación (FR-006).
-func appletNoResuelto(registro *Registro, resto []string) error {
+// mensaje nombra lo desconocido, enumera lo disponible y dice cómo pedir la
+// versión, porque quien lo lee —persona o agente— necesita saber qué escribir
+// a continuación (FR-006).
+func appletNoResuelto(invocacion string, registro *Registro, resto []string) error {
 	if len(resto) == 0 {
-		return fmt.Errorf("%w: no se ha indicado ningún applet; %s",
-			cli.ErrArgumentos, listaDeApplets(registro))
+		return fmt.Errorf("%w: no se ha indicado ningún applet; %s; %s",
+			cli.ErrArgumentos, listaDeApplets(registro), comoPedirLaVersion(invocacion))
 	}
 
-	return fmt.Errorf("%w: %q no es ningún applet de kitlegal; %s",
-		cli.ErrArgumentos, resto[0], listaDeApplets(registro))
+	return fmt.Errorf("%w: %q no es ningún applet de kitlegal; %s; %s",
+		cli.ErrArgumentos, resto[0], listaDeApplets(registro), comoPedirLaVersion(invocacion))
 }
 
 // nombreDeInvocacion es el último componente del nombre con el que se llamó al

@@ -17,7 +17,16 @@ stdout '^applets:$'
 stdout '^  contar      Cuenta '
 stdout '^  echo        Devuelve '
 stdout '^  territorio  Resuelve un municipio de España '
-stdout 'Los verbos de cada applet, en «kitlegal <applet> --help»\.\n\z'
+stdout 'Los verbos de cada applet, en «kitlegal <applet> --help»\.\n'
+stdout 'La versión del programa, en «kitlegal version» o «kitlegal --version»\.\n\z'
+! stderr .
+
+# --version es «version» con la forma de una bandera: la misma salida, byte a
+# byte, y nada en la de error.
+exec ./kitlegal version
+cp stdout version.txt
+exec ./kitlegal --version
+cmp stdout version.txt
 ! stderr .
 
 # La ayuda de un applet: sus verbos, con el de omisión marcado como tal. Pedirla
