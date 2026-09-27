@@ -2,13 +2,92 @@
 
 Esta guía es el contrato de trabajo del repositorio: cómo se organiza un hito, qué forma tiene una
 propuesta de cambio, qué controles hay que ver en verde antes de abrirla y qué se espera de quien
-añade una dependencia. Lo que hace falta para construir y ejecutar el binario está en
-[`README.md`](README.md); las decisiones ya cerradas, en [`docs/ADR/`](docs/ADR/).
+añade una dependencia. El [`README.md`](README.md) es para quien usa kitlegal y no dice nada de esto; las decisiones
+ya cerradas están en [`docs/ADR/`](docs/ADR/).
 
-Prerrequisitos: `go` (1.21 o superior) y `git` y, para `make test`, `sh` con las utilidades POSIX, `curl`, `tar`,
-`mktemp` y `sha256sum` o `shasum`, que ya traen macOS y cualquier Linux y con las que los tests ejecutan
-`scripts/install.sh` contra un origen local, sin red. Nada más —ni las herramientas de los controles ni un parche
-concreto de Go—; el porqué está en el README.
+## Trabajar desde el clon
+
+Usar kitlegal no necesita nada de lo que sigue: basta la instalación del README. Para trabajar en el propio kitlegal
+hacen falta dos cosas que hay que instalar y, para `make test`, las utilidades de sistema que ya traen macOS y
+cualquier Linux, y nada más:
+
+| Prerrequisito | Comprobación |
+|---|---|
+| Go 1.21 o superior | `go version` |
+| `git` | `git --version` |
+| `sh` con las utilidades POSIX, `curl`, `tar`, `mktemp` y `sha256sum` o `shasum`: con ellas los tests ejecutan `scripts/install.sh` contra un origen local, sin red | `command -v sh curl tar mktemp` |
+
+**No hay que instalar ninguna herramienta de control.** `golangci-lint`, `govulncheck`, `gitleaks`,
+`lefthook` y `goreleaser` se construyen solos, con la versión fijada en `tools/<herramienta>/go.mod`, la
+primera vez que se invoca la orden que los usa.
+
+**Tampoco hay que instalar un parche concreto de Go, ni importa cuál tengas.** `go.mod` declara la
+directiva `toolchain` y el `Makefile` exporta `GOTOOLCHAIN` con ese valor, así que todas las órdenes
+se ejecutan con ese parche exacto —el mismo que ejecuta la integración continua— y el go command lo
+descarga y lo verifica solo si falta. Cualquier `go` ≥ 1.21 sirve.
+
+```bash
+git clone https://github.com/jmorenobl/kitlegal.git
+cd kitlegal
+make check-tools     # comprueba go, git y que el toolchain fijado es obtenible
+make build           # deja el ejecutable en bin/kitlegal
+make install         # bucle de desarrollo: go install del binario y, con él, kitlegal skills install -g --host claude
+```
+
+> La **primera** ejecución compila las herramientas desde fuente y, si el parche fijado no está en la
+> caché, lo descarga: requiere red y tarda varios minutos. Las siguientes las sirve la caché de
+> construcción de Go en segundos.
+
+`make build` y `make install` inyectan los mismos datos de construcción —versión, commit y fecha— y compilan sin cgo y
+con `-trimpath`. Qué instala `make install`, y dónde, está en
+[`make install` y los enlaces del anterior](#make-install-y-los-enlaces-del-anterior).
+
+### Tres directorios llamados `skills`
+
+| Directorio | Qué es | ¿Es kitlegal? |
+|---|---|---|
+| `skills/` | **El producto que se distribuye**: las skills de kitlegal, hoy `boe-legislacion` y `legal-core`, empotradas en el binario, que las instala con `kitlegal skills install` | sí |
+| `.agents/skills/` | Skills de agente vendorizadas para trabajar en este repositorio: las de Go de `samber/cc-skills-golang`, registradas con su origen y su huella en el registro de bloqueo `skills-lock.json`, y las `speckit-*` que genera la integración `agy` de spec-kit para Antigravity (registradas en `.specify/integrations/agy.manifest.json`). Se versionan tal cual y no se editan; `.agents/.gitattributes` las marca como vendorizadas y generadas, para que no cuenten en las estadísticas de lenguaje del repositorio ni se desplieguen en los diffs de las propuestas de cambio | no |
+| `.claude/skills/` | Lo que carga Claude Code al trabajar en el repositorio: un enlace a cada skill de `.agents/skills/` más las skills de spec-kit, con las que se prepara cada hito | no |
+
+En el proyecto de quien usa kitlegal, `.agents/skills/` es donde `kitlegal skills install` deja las skills. En este
+repositorio ese directorio es el de las vendorizadas, y el bucle de desarrollo no instala en el clon sino en la cuenta.
+
+### `kitlegal version`
+
+Verbo reservado del kernel, que se reconoce antes que el registro de applets. Sin banderas y sin
+subverbos:
+
+```console
+$ ./bin/kitlegal version
+kitlegal a3dee64-dirty
+commit: a3dee64269ee98da45b2f0a96202899fdaac9354
+fecha:  2026-09-10T19:27:47Z
+```
+
+Tres líneas en la salida estándar, salida de error vacía y código de salida `0`. La versión sale de
+`git describe --tags --always --dirty`: mientras no haya ninguna etiqueta es el commit abreviado, con
+el sufijo `-dirty` si el árbol tiene cambios sin confirmar; en cuanto exista `v0.1.0` pasará a leerse
+`v0.1.0-3-ga3dee64`. El commit coincide carácter a carácter con `git rev-parse HEAD` de la revisión
+construida y la fecha es el instante de construcción en UTC. Un binario de la release imprime su
+etiqueta tal cual (`kitlegal v0.1.0`). Un binario hecho con `make build` o `make install` nunca
+imprime los valores por defecto del código (`dev`, `none`, `unknown`); si los ves, lo estás
+ejecutando con `go run` o lo construyó un `go install` sin inyecciones, que instala las mismas skills
+pero es un binario de desarrollo: no da el aviso de versión.
+
+Cualquier otra invocación —sin applet, con un applet desconocido o con un argumento sobrante tras
+`version`— escribe el fallo en la salida de error, nombrando lo que no ha reconocido y enumerando los
+applets que existen, y termina con código `2`, que es «args» en la tabla de códigos de salida
+estables del proyecto:
+
+```console
+$ ./bin/kitlegal inventado
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, skills, territorio
+$ echo $?
+2
+```
+
+`kitlegal --help` describe el uso y enumera los applets registrados, con código `0`.
 
 ## El ritual por hito
 
@@ -234,8 +313,9 @@ grabaciones contra las que corren los tests las hace una persona con `scripts/gr
 
 Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019): cada
 orden de la skill invoca `kitlegal <applet> <verbo> …` desde el `PATH`, y el binario la lleva empotrada y la instala con
-`kitlegal skills install`. Qué son los tres directorios llamados `skills`, cómo se instala y qué se genera está en el
-[`README.md`](README.md#skills); esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
+`kitlegal skills install`. Qué son los tres directorios llamados `skills` está en
+[Tres directorios llamados `skills`](#tres-directorios-llamados-skills) y cómo se instala, en el
+[`README.md`](README.md#instalar); esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
 
 **Lo generado no se edita.** `references/*.md` y la tabla de comandos de `SKILL.md` —entre sus marcas— se derivan de
 `data/*.yaml` y de `--describe` del binario. Tras cambiar `data/`, añadir un verbo o cambiar su entrada o su salida,
@@ -489,7 +569,8 @@ su propuesta se revisa igual que cualquier otra y este procedimiento queda como 
 
 ## Dónde está escrito lo demás
 
-- [`README.md`](README.md) — qué es kitlegal, cómo instalarlo, cómo construirlo y cómo ejecutar los controles.
+- [`README.md`](README.md) — para quien usa kitlegal: qué sabe hacer su agente con él, cómo instalarlo y qué le
+  garantiza. Construirlo y ejecutar los controles está aquí.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — los hitos, su orden y la *Definition of Done*.
 - [`docs/ADR/`](docs/ADR/) — las decisiones de arquitectura, con contexto y consecuencias.
 - [`docs/SOURCES.md`](docs/SOURCES.md) — las fuentes externas: licencia, términos de uso, `robots.txt`,
