@@ -24,7 +24,7 @@ licencia permisiva deja que cualquiera la cierre en un producto propio sin devol
 
 Opción 3: EUPL-1.2. `LICENSE` lleva el texto oficial en inglés (el de la lista de licencias SPDX, que es el que
 reconocen GitHub y pkg.go.dev); la versión en castellano tiene el mismo valor. El identificador SPDX `EUPL-1.2` va en
-el cask, el bucket y los paquetes de la release.
+el bucket de Scoop y en los paquetes `.deb` y `.rpm` de la release (el cask de Homebrew no declara licencia).
 
 ## Consecuencias
 
