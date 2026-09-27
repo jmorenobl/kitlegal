@@ -44,8 +44,10 @@
 //   - El aviso nunca es un error: lo que no permite decidir no tiene ningún
 //     efecto (FR-072).
 //   - Una invocación inválida es un error de clase «argumentos»; un conflicto
-//     de install, un hallazgo de doctor o un ámbito ilegible, de clase
-//     «inesperado»; y ninguna entrada provoca un panic (data-model §9).
+//     de install, un ámbito ilegible o -g sin HOME, de clase «conflicto»; un
+//     hallazgo de doctor no es un error, sino un dato del diagnóstico; un error
+//     del sistema se devuelve tal cual; y ninguna entrada provoca un panic
+//     (data-model §9; ADR 0023).
 //
 // Es dominio puro: no importa os, io, io/fs, log ni ningún adaptador —tampoco
 // internal/disco ni lo empotrado en la raíz del módulo— y no abre ninguna

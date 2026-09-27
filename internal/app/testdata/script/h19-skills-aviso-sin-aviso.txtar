@@ -42,8 +42,8 @@ exec $KITLEGAL_V2_BIN skills list --json
 ! stderr .
 exec $KITLEGAL_V2_BIN skills install --dry-run
 ! stderr '^aviso: '
-exec sh -c '"$KITLEGAL_V2_BIN" skills doctor; test $? -eq 1'
-stderr '^versión distinta: '
+exec $KITLEGAL_V2_BIN skills doctor
+stdout '^hallazgos\.0\.clase +versión distinta$'
 ! stderr '^aviso: '
 
 # --- version y la ayuda no avisan (US3.3, FR-070) ---

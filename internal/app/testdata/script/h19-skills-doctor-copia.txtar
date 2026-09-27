@@ -72,20 +72,20 @@ cmp stdout $WORK/antes.txt
 # mismo creador que falla, reponen la copia.
 env PATH=$WORK/bin-sin-enlaces${:}$PATH_ORIGINAL
 exec sh -c 'echo "una línea añadida a mano" >> .claude/skills/legal-core/SKILL.md'
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.claude/skills/legal-core/SKILL\.md: rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
-stderr '^fichero editado: \.claude/skills/legal-core/SKILL\.md: rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude$'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.claude/skills/legal-core/SKILL\.md","orden":"rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+! stderr .
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 
 rm .claude/skills/legal-core/references/leyes_vertebrales.md
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.claude/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.claude/skills/legal-core/references/leyes_vertebrales\.md","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .claude/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
@@ -97,14 +97,13 @@ env PATH=$PATH_ORIGINAL
 # con ese creador, deja el enlace de FR-021 y doctor en 0.
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\ncopia: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\\ncopia: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
-stderr '^skills doctor: 2 hallazgos:\ncopia: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\ncopia: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude$'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"copia","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"copia","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
 env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -127,7 +126,7 @@ stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-le
 
 # --- Una copia con un fichero editado o una entrada no declarada (US4.8) ---
 #
-# Con el creador que funciona, install sale con 1 nombrándolo y la copia queda
+# Con el creador que funciona, install sale con 7 nombrándolo y la copia queda
 # byte a byte igual.
 mkdir $WORK/copia-editada/.claude
 cd $WORK/copia-editada
@@ -135,8 +134,8 @@ exec $KITLEGAL_SIN_ENLACES_BIN skills install
 exec sh -c 'echo "una línea añadida a mano" >> .claude/skills/legal-core/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.claude/skills/legal-core/SKILL\.md"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.claude/skills/legal-core/SKILL\.md"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero editado: \.claude/skills/legal-core/SKILL\.md$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -147,8 +146,8 @@ exec $KITLEGAL_SIN_ENLACES_BIN skills install
 cp $WORK/nota.md .claude/skills/legal-core/extra.md
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.claude/skills/legal-core/extra\.md"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.claude/skills/legal-core/extra\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -219,16 +218,16 @@ grep -q "\"$2\": *\"sha256:$huella\"" "$1" || {
 	exit 1
 }
 -- ordenes.sh --
-# ordenes.sh <salida de error de doctor>: ejecuta con sh -c, en el directorio
-# de trabajo y en el orden en que doctor las lista, las órdenes de sus
-# hallazgos: lo que sigue al segundo «: » de cada línea
-# «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5 y §6). Falla si no
-# hay ninguna o si alguna falla.
+# ordenes.sh <sobre JSON de doctor>: ejecuta con sh -c, en el directorio de
+# trabajo y en el orden en que doctor las lista, las órdenes de sus hallazgos:
+# el valor de cada "orden" de data.hallazgos (contracts/applet-skills.md §5 y
+# §6; ADR 0023). Ninguna orden lleva comillas dobles, así que basta con grep.
+# Falla si no hay ninguna o si alguna falla.
 set -u
-lineas=$(grep -E '^(fichero editado|enlace colgando|enlace a otro sitio|copia|versión distinta): ' "$1") || {
+ordenes=$(grep -o '"orden":"[^"]*"' "$1" | sed 's/^"orden":"//; s/"$//') && [ -n "$ordenes" ] || {
 	echo "ningún hallazgo en $1" >&2
 	exit 1
 }
-printf '%s\n' "$lineas" | sed 's/^[^:]*: [^:]*: //' | while IFS= read -r orden; do
+printf '%s\n' "$ordenes" | while IFS= read -r orden; do
 	sh -c "$orden" || exit 1
 done

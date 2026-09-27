@@ -73,8 +73,8 @@ func NuevoAmbitoLocal() Ambito {
 // NuevoAmbitoGlobal es el ámbito de -g, con raíz en home, el valor de HOME
 // con / (FR-012). Sin HOME —sin definir o vacío, que para quien lo lee del
 // entorno es lo mismo— no hay ámbito global: devuelve el valor cero y el
-// error de clase «inesperado» que dice que falta HOME (contracts/applet-skills.md
-// §2, fila 5; data-model §9). HOME no se comprueba de ninguna otra forma: es
+// error de clase «conflicto» que dice que falta HOME (contracts/applet-skills.md
+// §2, fila 5; data-model §9; ADR 0023). HOME no se comprueba de ninguna otra forma: es
 // lo que hay por encima de la raíz (FR-027).
 func NuevoAmbitoGlobal(home string) (Ambito, error) {
 	if home == "" {

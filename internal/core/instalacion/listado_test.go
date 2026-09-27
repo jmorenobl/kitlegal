@@ -96,15 +96,6 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 			noExaminadas: sinExaminar,
 		},
 		{
-			nombre: "kitlegal.json no se puede leer",
-			preparar: func(d *discoEnMemoria) {
-				instaladas(d)
-				d.fallar(opLeer, ".agents/skills/kitlegal.json", errInyectado)
-			},
-			motivo:       conflicto(ilegible, ".agents/skills/kitlegal.json"),
-			noExaminadas: sinExaminar,
-		},
-		{
 			nombre:     "la ruta de --dir es un fichero",
 			preparar:   func(d *discoEnMemoria) { d.fichero("destino", "no soy un directorio") },
 			invocacion: instalacion.Invocacion{Dir: texto("destino")},
@@ -173,7 +164,7 @@ func probarAmbitosIlegibles(t *testing.T, verbo string, leer leerElAmbito) {
 }
 
 // exigirAmbitoIlegible exige que err sea el error del ámbito ilegible del
-// verbo que nombra motivo: de clase «inesperado», que sale con código 1, y con
+// verbo que nombra motivo: de clase «conflicto», que sale con código 7, y con
 // el mensaje de una línea de contracts/applet-skills.md §5, «skills <verbo>:
 // <clase>: <ruta>».
 func exigirAmbitoIlegible(t *testing.T, err error, verbo string, motivo instalacion.Conflicto) {
@@ -185,7 +176,7 @@ func exigirAmbitoIlegible(t *testing.T, err error, verbo string, motivo instalac
 
 	var conClase schema.ConClase
 	require.ErrorAs(t, err, &conClase, "el ámbito ilegible declara su clase")
-	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
+	assert.Equal(t, schema.ClaseConflicto, conClase.Clase())
 
 	assert.Equal(t, "skills "+verbo+": "+string(motivo.Clase)+": "+motivo.Ruta, err.Error())
 }
@@ -403,18 +394,29 @@ func listadaEn(
 }
 
 // probarFallosAlListar exige que un fallo al examinar una guarda o el
-// manifiesto se devuelva tal cual: no es un ámbito ilegible, que sí es no
-// poder leer el manifiesto (FR-035).
+// manifiesto, o al leer el manifiesto, se devuelva tal cual: un error del
+// sistema que la orden no interpreta no es un ámbito ilegible, que es lo que la
+// orden reconoce y nombra (FR-035; ADR 0023).
 func probarFallosAlListar(t *testing.T) {
 	t.Parallel()
 
-	for _, ruta := range []string{".agents", ".agents/skills", ".agents/skills/kitlegal.json"} {
-		t.Run(ruta, func(t *testing.T) {
+	casos := []struct {
+		operacion operacion
+		ruta      string
+	}{
+		{opExaminar, ".agents"},
+		{opExaminar, ".agents/skills"},
+		{opExaminar, ".agents/skills/kitlegal.json"},
+		{opLeer, ".agents/skills/kitlegal.json"},
+	}
+
+	for _, caso := range casos {
+		t.Run(string(caso.operacion)+" "+caso.ruta, func(t *testing.T) {
 			t.Parallel()
 
 			d := nuevoDiscoEnMemoria(t)
 			instalarLocal(d, "legal-core").escribir()
-			d.fallar(opExaminar, ruta, errInyectado)
+			d.fallar(caso.operacion, caso.ruta, errInyectado)
 
 			listado, err := instalacion.Listar(d, ambitoLocal, empotradasDePrueba())
 			require.ErrorIs(t, err, errInyectado)

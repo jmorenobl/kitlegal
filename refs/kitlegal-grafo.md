@@ -250,6 +250,11 @@ Se ejecuta al abrir un asunto, antes de generar un escrito, y bajo demanda. Cada
 
 Salida: JSON y tabla; exit 0 (limpio), 1 (warnings), 2 (errores). `escrito generar` se niega a producir el fichero final con errores salvo `--force`.
 
+> **Nota (2026-09-27, ADR 0023):** los códigos de esta línea quedan sustituidos por el contrato de resultados. `graph
+> check` sale con 0 con hallazgos o sin ellos, cada uno en `data` con su clase y su severidad; distinto de 0 solo si no
+> ha podido verificar (2 argumentos; 1 si `world.db` no se puede usar, porque es un almacén interno). La negativa de
+> `escrito generar` ante hallazgos de severidad `error` es un conflicto: código 7.
+
 ---
 
 ## 7. Detección de anomalías (`graph anomalies`)

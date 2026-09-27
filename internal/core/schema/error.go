@@ -6,9 +6,13 @@ package schema
 // kernel, en un único switch sin rama por defecto (FR-029, FR-030).
 type Clase string
 
-// Las seis clases del contrato (contracts/sobre-de-salida.md §6). Cada una
-// corresponde a un código de salida, y ClaseInesperado recoge todo fallo que no
-// encaja en las demás (FR-031).
+// Las siete clases del contrato (contracts/sobre-de-salida.md §6; ADR 0023).
+// Cada una corresponde a un código de salida, y ClaseInesperado recoge todo
+// fallo que no encaja en las demás (FR-031).
+//
+// Son clases de fallo: la orden no hizo lo que se le pidió. Una verificación
+// que encuentra algo sí lo hizo, así que sus hallazgos no son una clase sino
+// datos de un resultado correcto (ADR 0023).
 const (
 	// ClaseArgumentos es la bandera desconocida, el valor inválido, el
 	// argumento obligatorio ausente y el applet no registrado.
@@ -24,13 +28,19 @@ const (
 	// ClaseIdentidadHumana es la acción que requiere identidad humana y que,
 	// por tanto, no se ha realizado.
 	ClaseIdentidadHumana Clase = "identidad-humana"
-	// ClaseInesperado es cualquier fallo que no encaja en los anteriores.
+	// ClaseConflicto es la orden que no se ejecuta porque el estado local lo
+	// impide —una entrada que no es suya, un manifiesto ilegible— y que la
+	// persona puede resolver. Es una situación prevista, no un defecto: por
+	// eso no es inesperada (ADR 0023).
+	ClaseConflicto Clase = "conflicto"
+	// ClaseInesperado es cualquier fallo que no encaja en los anteriores: un
+	// defecto del programa o del entorno.
 	ClaseInesperado Clase = "inesperado"
 )
 
-// Clases es el vocabulario completo, en el orden del contrato: las seis clases
-// y ninguna más. Es de lo que el kernel deriva el `enum` con el que --describe
-// restringe `clase` en el sobre de fallo, de modo que el esquema y las
+// Clases es el vocabulario completo, en el orden del contrato: las siete
+// clases y ninguna más. Es de lo que el kernel deriva el `enum` con el que
+// --describe restringe `clase` en el sobre de fallo, de modo que el esquema y las
 // constantes no puedan decir cosas distintas (FR-017, FR-048). Devuelve una
 // lista nueva en cada llamada: nadie puede alterar el vocabulario desde fuera.
 func Clases() []Clase {
@@ -40,6 +50,7 @@ func Clases() []Clase {
 		ClaseFuenteNoDisponible,
 		ClaseLimiteOTos,
 		ClaseIdentidadHumana,
+		ClaseConflicto,
 		ClaseInesperado,
 	}
 }
@@ -56,7 +67,7 @@ func Clases() []Clase {
 //
 // Clase debe devolver una de las de Clases(). Quien clasifica no se fía: una
 // clase de fuera del vocabulario no podría ir en el sobre —el esquema de
-// --describe la restringe a las seis—, así que la trata como lo que es, un
+// --describe la restringe a las siete—, así que la trata como lo que es, un
 // fallo no previsto (FR-063).
 type ConClase interface {
 	error
@@ -72,7 +83,7 @@ type ConClase interface {
 // §6); la de Clase no hace falta, porque el kernel describe el tipo Clase
 // entero con el vocabulario de Clases.
 type DatosError struct {
-	// Clase es una de las seis, y corresponde al código de salida emitido.
+	// Clase es una de las siete, y corresponde al código de salida emitido.
 	Clase Clase `json:"clase"`
 	// Mensaje es el mensaje dirigido a la persona, el mismo que va a la salida
 	// de error. Nunca va vacío: un fallo sin mensaje no le dice nada a nadie.

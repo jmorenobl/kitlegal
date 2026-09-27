@@ -11,12 +11,13 @@ import (
 
 // errorDeInvocacion es el rechazo de una invocación antes de tocar el disco
 // (contracts/applet-skills.md §2): uno de argumentos, que el kernel traduce a
-// código 2, o -g sin HOME, que traduce a 1 (data-model §9). No se exporta:
+// código 2, o -g sin HOME, un conflicto con el entorno que la persona resuelve
+// y que traduce a 7 (data-model §9; ADR 0023). No se exporta:
 // quien lo recibe lo reconoce por su clase, con errors.As a schema.ConClase,
 // que es como lo reconoce el kernel.
 type errorDeInvocacion struct {
 	// clase es schema.ClaseArgumentos o, solo para -g sin HOME,
-	// schema.ClaseInesperado.
+	// schema.ClaseConflicto.
 	clase schema.Clase
 	// mensaje contiene la frase de su fila de la tabla y dice por qué.
 	mensaje string
@@ -71,20 +72,23 @@ func skillDesconocida(nombre string, disponibles []string) error {
 
 // homeSinDefinir es la fila 5: -g con HOME sin definir o vacío (FR-012). No
 // es un error de argumentos —la orden está bien escrita y es el entorno el que
-// no la permite—, así que declara la clase «inesperado» (data-model §9).
+// no la permite— ni un defecto del programa: es un conflicto con el entorno que
+// la persona resuelve, así que declara la clase «conflicto» (data-model §9; ADR
+// 0023).
 func homeSinDefinir() error {
 	return &errorDeInvocacion{
-		clase: schema.ClaseInesperado,
+		clase: schema.ClaseConflicto,
 		mensaje: "HOME no está definido o está vacío: el ámbito global de -g está en " +
 			"$HOME/" + directorioNeutro,
 	}
 }
 
 // ManifiestoIlegible es un kitlegal.json que existe y no se puede usar: no es
-// un fichero regular, no se puede leer o no respeta la forma de
-// contracts/manifiesto.md (FR-035). Quien no puede leer el manifiesto no sabe
-// qué es suyo, así que install lo nombra como conflicto y no toca nada, list y
-// doctor salen nombrándolo y el aviso no tiene ningún efecto.
+// un fichero regular o no respeta la forma de contracts/manifiesto.md (FR-035).
+// Un error del sistema al leerlo no es esto: llega tal cual, como defecto del
+// entorno (ADR 0023). Quien no puede usar el manifiesto no sabe qué es suyo,
+// así que install lo nombra como conflicto y no toca nada, list y doctor salen
+// nombrándolo y el aviso no tiene ningún efecto.
 //
 // No declara una clase a propósito: nunca llega así al kernel. El conflicto
 // de install y el ámbito ilegible de list y doctor son los errores que la
@@ -154,8 +158,8 @@ type Conflicto struct {
 	Ruta string
 }
 
-// prefijoDeInstall encabeza el mensaje de todo fallo de install con código 1
-// (contracts/applet-skills.md §5).
+// prefijoDeInstall encabeza el mensaje de todo fallo de install que nombra
+// entradas: el de un conflicto y el de escritura (contracts/applet-skills.md §5).
 const prefijoDeInstall = "skills install: "
 
 // cabeceraDeInstall es la primera línea del mensaje con que install nombra
@@ -170,8 +174,8 @@ const cabeceraDeInstall = prefijoDeInstall + "nada se ha creado ni cambiado; con
 // FR-042; data-model §9). Como cada entrada tiene una sola clase, nunca hay
 // dos con la misma ruta y el orden de las clases no llega a desempatar.
 //
-// Declara la clase «inesperado», que el kernel traduce a código 1, y su
-// mensaje es el del sobre de fallo y la salida de error: una cabecera y una
+// Declara la clase «conflicto», que el kernel traduce a código 7 (ADR 0023), y
+// su mensaje es el del sobre de fallo y la salida de error: una cabecera y una
 // línea «<clase>: <ruta>» por conflicto (research.md D12). Se exporta para
 // reconocerlo con errors.As; su valor cero no nombra ninguno.
 type ErrorDeConflictos struct {
@@ -207,9 +211,9 @@ func (e *ErrorDeConflictos) Error() string {
 	return mensaje.String()
 }
 
-// Clase es «inesperado»: un conflicto sale con código 1.
+// Clase es «conflicto»: un conflicto sale con código 7.
 func (e *ErrorDeConflictos) Clase() schema.Clase {
-	return schema.ClaseInesperado
+	return schema.ClaseConflicto
 }
 
 // Lista es cada conflicto, en orden de ruta, en una copia.
@@ -251,60 +255,11 @@ func (c ClaseDeHallazgo) numero() int {
 	}, c) + 1
 }
 
-// Los verbos que nombran su fallo con código 1 (contracts/applet-skills.md
-// §5).
+// Los verbos que nombran su ámbito ilegible (contracts/applet-skills.md §5).
 const (
 	verboList   = "list"
 	verboDoctor = "doctor"
 )
-
-// ErrorDeHallazgos es el de doctor cuando encuentra algo fuera de su sitio en
-// las skills declaradas y empotradas: los nombra todos, cada uno con su clase,
-// su ruta y la orden que lo arregla, primero los que llevan rm y después los
-// demás; en cada grupo, por ruta byte a byte y, a igual ruta, por el número de
-// su clase (FR-065, FR-066; data-model §9).
-//
-// Declara la clase «inesperado», que el kernel traduce a código 1, y su
-// mensaje es el del sobre de fallo y la salida de error: una cabecera con
-// cuántos son y una línea «<clase>: <ruta>: <orden>» por hallazgo (research.md
-// D12). Se exporta para reconocerlo con errors.As; su valor cero no nombra
-// ninguno.
-type ErrorDeHallazgos struct {
-	// lista tiene cada hallazgo, en su orden.
-	lista []Hallazgo
-}
-
-// El error de doctor declara su clase él mismo.
-var _ schema.ConClase = (*ErrorDeHallazgos)(nil)
-
-// Error es la cabecera seguida de una línea por hallazgo, sin salto de línea
-// final. La cabecera dice «1 hallazgo:» con uno y «<n> hallazgos:» con los
-// demás.
-func (e *ErrorDeHallazgos) Error() string {
-	var mensaje strings.Builder
-
-	if len(e.lista) == 1 {
-		mensaje.WriteString("skills " + verboDoctor + ": 1 hallazgo:")
-	} else {
-		fmt.Fprintf(&mensaje, "skills %s: %d hallazgos:", verboDoctor, len(e.lista))
-	}
-
-	for _, h := range e.lista {
-		mensaje.WriteString("\n" + string(h.Clase) + ": " + h.Ruta + ": " + h.Orden)
-	}
-
-	return mensaje.String()
-}
-
-// Clase es «inesperado»: doctor con hallazgos sale con código 1.
-func (e *ErrorDeHallazgos) Clase() schema.Clase {
-	return schema.ClaseInesperado
-}
-
-// Lista es cada hallazgo, en su orden, en una copia.
-func (e *ErrorDeHallazgos) Lista() []Hallazgo {
-	return slices.Clone(e.lista)
-}
 
 // AmbitoIlegible es el de list y doctor cuando el ámbito no se puede leer: una
 // de sus guardas no es un directorio real (FR-027), el manifiesto es ilegible
@@ -312,8 +267,8 @@ func (e *ErrorDeHallazgos) Lista() []Hallazgo {
 // esa entrada, con su clase, y ninguna skill ni ningún hallazgo (FR-061,
 // FR-067; data-model §9).
 //
-// Declara la clase «inesperado», que el kernel traduce a código 1, y su
-// mensaje es una sola línea, «skills <verbo>: <clase>: <ruta>»
+// Declara la clase «conflicto», que el kernel traduce a código 7 (ADR 0023), y
+// su mensaje es una sola línea, «skills <verbo>: <clase>: <ruta>»
 // (contracts/applet-skills.md §5). Se exporta para reconocerlo con errors.As.
 type AmbitoIlegible struct {
 	// verbo es list o doctor.
@@ -336,9 +291,9 @@ func (e *AmbitoIlegible) Error() string {
 	return "skills " + e.verbo + ": " + string(e.motivo.Clase) + ": " + e.motivo.Ruta
 }
 
-// Clase es «inesperado»: un ámbito ilegible sale con código 1.
+// Clase es «conflicto»: un ámbito ilegible sale con código 7.
 func (e *AmbitoIlegible) Clase() schema.Clase {
-	return schema.ClaseInesperado
+	return schema.ClaseConflicto
 }
 
 // Motivo es la entrada que no se puede leer, con su clase: ruta que no es

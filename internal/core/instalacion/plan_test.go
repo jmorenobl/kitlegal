@@ -75,8 +75,8 @@ var (
 // no se toca nunca (§4.4). En cada fila:
 //
 //   - se nombra exactamente cada conflicto esperado, cada entrada con una sola
-//     clase y en orden de ruta, en un error que declara la clase «inesperado»
-//     y cuyo mensaje es la cabecera de contracts/applet-skills.md §5 y una
+//     clase y en orden de ruta, en un error que declara la clase «conflicto»
+//     (código 7; ADR 0023) y cuyo mensaje es la cabecera de contracts/applet-skills.md §5 y una
 //     línea «<clase>: <ruta>» por conflicto; sin ninguno, ningún error;
 //   - no se abre nada que no sea un fichero regular, no se lista nada que no
 //     sea un directorio real y no se examina nada por debajo de una entrada del
@@ -168,7 +168,7 @@ func exigirConflictos(t *testing.T, err error, esperados []instalacion.Conflicto
 
 	var conClase schema.ConClase
 	require.ErrorAs(t, err, &conClase, "el rechazo declara su clase")
-	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
+	assert.Equal(t, schema.ClaseConflicto, conClase.Clase())
 
 	lineas := []string{cabeceraDeInstall}
 	for _, esperado := range esperados {
@@ -274,14 +274,6 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre:    "manifiesto que es una tubería con nombre",
 			preparar:  func(d *discoEnMemoria) { d.tuberia(".agents/skills/kitlegal.json") },
-			esperados: []instalacion.Conflicto{conflicto(ilegible, ".agents/skills/kitlegal.json")},
-		},
-		{
-			nombre: "manifiesto que no se puede leer",
-			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
-				d.fallar(opLeer, ".agents/skills/kitlegal.json", errInyectado)
-			},
 			esperados: []instalacion.Conflicto{conflicto(ilegible, ".agents/skills/kitlegal.json")},
 		},
 		{
@@ -958,6 +950,7 @@ func probarFallosAlComprobar(t *testing.T) {
 	}{
 		{nombre: "una guarda", operacion: opExaminar, ruta: ".agents"},
 		{nombre: "el manifiesto", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/kitlegal.json"},
+		{nombre: "leer el manifiesto", preparar: instalacionConCopia, operacion: opLeer, ruta: ".agents/skills/kitlegal.json"},
 		{nombre: ".claude", operacion: opExaminar, ruta: ".claude"},
 		{nombre: ".claude/skills", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".claude/skills"},
 		{nombre: "una skill", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/legal-core"},

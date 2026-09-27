@@ -452,10 +452,11 @@ func (c *comprobacion) comprobarElNeutro() (bool, error) {
 }
 
 // leerManifiestoDe lee el manifiesto de ruta sin seguir un enlace (FR-028):
-// sin él, el Manifiesto vacío; si existe y no es un fichero regular, no se
-// puede leer o no respeta la forma de contracts/manifiesto.md, un
-// *ManifiestoIlegible (FR-035); y si no se puede examinar, el error del
-// Disco.
+// sin él, el Manifiesto vacío; si existe y no es un fichero regular o no
+// respeta la forma de contracts/manifiesto.md, un *ManifiestoIlegible (FR-035),
+// que es un conflicto: lo reconoce y lo nombra la propia orden. Si no se puede
+// examinar ni leer, el error del Disco tal cual: un error del sistema que la
+// orden no interpreta es un defecto del entorno, no un conflicto (ADR 0023).
 func leerManifiestoDe(disco Disco, ruta string) (Manifiesto, error) {
 	entrada, err := disco.Examinar(ruta)
 	if err != nil {
@@ -472,7 +473,7 @@ func leerManifiestoDe(disco Disco, ruta string) (Manifiesto, error) {
 
 	contenido, err := disco.Leer(ruta)
 	if err != nil {
-		return Manifiesto{}, &ManifiestoIlegible{causa: err}
+		return Manifiesto{}, err
 	}
 
 	return LeerManifiesto(contenido)

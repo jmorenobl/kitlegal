@@ -219,7 +219,7 @@ func TestRegistroRechaza(t *testing.T) {
 			assert.Len(t, registro.Nombres(), len(caso.yaEstaban),
 				"el applet rechazado no entra en el registro")
 			assert.Equal(t, schema.ClaseInesperado, cli.Clasificar(err),
-				"un registro inválido no lleva ninguno de los cinco sentinelas: "+
+				"un registro inválido no lleva ninguno de los seis sentinelas: "+
 					"es un defecto de compilación y nunca un código de salida de usuario")
 		})
 	}

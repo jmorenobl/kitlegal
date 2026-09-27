@@ -34,7 +34,7 @@ func (e errorConClase) Clase() schema.Clase {
 
 // errorConClaseSobreSentinela declara una clase **y** envuelve un sentinela del
 // kernel. No es lo que hará ningún adaptador —ninguno importa internal/cli—,
-// pero fija el orden que Clasificar promete: los cinco sentinelas se comprueban
+// pero fija el orden que Clasificar promete: los seis sentinelas se comprueban
 // antes que la clase declarada, de modo que lo que H1 clasificaba de una manera
 // se sigue clasificando igual.
 type errorConClaseSobreSentinela struct {
@@ -55,12 +55,12 @@ type casoDeClase struct {
 	codigo int
 }
 
-// casosDeClase cubre las seis clases —una fila por clase, con el sentinela que
+// casosDeClase cubre las siete clases —una fila por clase, con el sentinela que
 // la produce y, para la inesperada, el error que no casa con ninguno—, el error
 // desconocido de otro paquete y el error envuelto en uno y en dos niveles
 // (FR-029 … FR-032).
 //
-// Cubre además las mismas seis clases declaradas por el propio error, que es
+// Cubre además las mismas siete clases declaradas por el propio error, que es
 // como las nombra un adaptador que no importa el kernel: la clase de fuera del
 // vocabulario, la envuelta y la que compite con un sentinela (FR-063, D4).
 func casosDeClase() []casoDeClase {
@@ -94,6 +94,12 @@ func casosDeClase() []casoDeClase {
 			err:    ErrIdentidadHumana,
 			clase:  schema.ClaseIdentidadHumana,
 			codigo: 6,
+		},
+		{
+			nombre: "conflicto",
+			err:    ErrConflicto,
+			clase:  schema.ClaseConflicto,
+			codigo: 7,
 		},
 		{
 			nombre: "inesperado",
@@ -184,6 +190,15 @@ func casosDeClase() []casoDeClase {
 			codigo: 6,
 		},
 		{
+			nombre: "declarada: conflicto",
+			err: errorConClase{
+				clase:   schema.ClaseConflicto,
+				mensaje: "una entrada que iba a crear no es suya",
+			},
+			clase:  schema.ClaseConflicto,
+			codigo: 7,
+		},
+		{
 			nombre: "declarada: inesperado",
 			err: errorConClase{
 				clase:   schema.ClaseInesperado,
@@ -245,7 +260,7 @@ func casosDeClase() []casoDeClase {
 }
 
 // TestClasificar comprueba que la clase de un error se decide con errors.Is
-// sobre los cinco sentinelas, que envolver con %w no la cambia y que lo que no
+// sobre los seis sentinelas, que envolver con %w no la cambia y que lo que no
 // casa con ninguno es inesperado y no un éxito disfrazado (FR-029, FR-031,
 // FR-032).
 //
@@ -264,7 +279,7 @@ func TestClasificar(t *testing.T) {
 		})
 	}
 
-	t.Run("los cinco sentinelas son distintos entre sí", func(t *testing.T) {
+	t.Run("los seis sentinelas son distintos entre sí", func(t *testing.T) {
 		t.Parallel()
 
 		sentinelas := []error{
@@ -273,6 +288,7 @@ func TestClasificar(t *testing.T) {
 			ErrFuenteNoDisponible,
 			ErrLimiteOTos,
 			ErrIdentidadHumana,
+			ErrConflicto,
 		}
 		for i, uno := range sentinelas {
 			for j, otro := range sentinelas {
@@ -293,7 +309,7 @@ func TestClasificar(t *testing.T) {
 		}
 	})
 
-	t.Run("la clase que sale de Clasificar es siempre una de las seis", func(t *testing.T) {
+	t.Run("la clase que sale de Clasificar es siempre una de las siete", func(t *testing.T) {
 		t.Parallel()
 
 		// La clase que devuelve Clasificar es la que va al sobre de fallo, donde
@@ -308,7 +324,7 @@ func TestClasificar(t *testing.T) {
 	t.Run("el error nulo no tiene clase y nunca se confunde con un éxito", func(t *testing.T) {
 		t.Parallel()
 
-		// La ausencia de fallo no es ninguna de las seis clases. Quien pueda
+		// La ausencia de fallo no es ninguna de las siete clases. Quien pueda
 		// tener un error nulo pregunta por el código de salida, que sí distingue
 		// el éxito; la clase de lo que no es un error es la de lo no previsto.
 		assert.Equal(t, schema.ClaseInesperado, Clasificar(nil))
@@ -316,7 +332,7 @@ func TestClasificar(t *testing.T) {
 }
 
 // TestCodigoSalida comprueba la única traducción de error a código de salida:
-// los seis códigos de la tabla cerrada del proyecto, el 0 del éxito y el 1 del
+// los códigos de la tabla cerrada del proyecto (del 2 al 7), el 0 del éxito y el 1 del
 // fallo inesperado, que no es ninguno de los reservados (FR-029 … FR-032,
 // SC-006).
 func TestCodigoSalida(t *testing.T) {
@@ -344,7 +360,7 @@ func TestCodigoSalida(t *testing.T) {
 		}
 	})
 
-	t.Run("la tabla cubre las seis clases y ninguna repite código", func(t *testing.T) {
+	t.Run("la tabla cubre las siete clases y ninguna repite código", func(t *testing.T) {
 		t.Parallel()
 
 		porClase := make(map[schema.Clase]int)
@@ -364,6 +380,7 @@ func TestCodigoSalida(t *testing.T) {
 			schema.ClaseFuenteNoDisponible: 4,
 			schema.ClaseLimiteOTos:         5,
 			schema.ClaseIdentidadHumana:    6,
+			schema.ClaseConflicto:          7,
 		}, porClase)
 	})
 
@@ -371,9 +388,9 @@ func TestCodigoSalida(t *testing.T) {
 		t.Parallel()
 
 		// El switch de la traducción no lleva rama por defecto, de modo que el
-		// linter exhaustive falle si alguien añade una séptima clase sin código.
+		// linter exhaustive falle si alguien añade una octava clase sin código.
 		// Una Clase construida a mano fuera del vocabulario no es ninguna de las
-		// seis y acaba donde acaba todo lo que no se ha previsto: en el 1.
+		// siete y acaba donde acaba todo lo que no se ha previsto: en el 1.
 		assert.Equal(t, 1, codigoDeClase(schema.Clase("una-clase-que-nadie-ha-declarado")))
 	})
 }

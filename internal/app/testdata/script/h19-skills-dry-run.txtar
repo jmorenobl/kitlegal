@@ -71,16 +71,16 @@ stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legisl
 cd $WORK/conflicto
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --dry-run --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --dry-run --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
 stderr '^--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install"'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/boe-legislacion$'
 ! stderr 'se habría pedido'
 arbol .
 cmp stdout $WORK/antes.txt
 
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/boe-legislacion"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 

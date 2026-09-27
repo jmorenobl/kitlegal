@@ -235,7 +235,7 @@ func TestAmbito(t *testing.T) {
 		t.Parallel()
 
 		ambito, err := instalacion.NuevoAmbitoGlobal("")
-		exigirRechazo(t, err, schema.ClaseInesperado, fraseSinHome)
+		exigirRechazo(t, err, schema.ClaseConflicto, fraseSinHome)
 		assert.Zero(t, ambito, "sin HOME se devuelve el valor cero, nunca un ámbito global a medias")
 	})
 }

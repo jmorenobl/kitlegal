@@ -30,8 +30,8 @@ exec kitlegal skills install
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero editado: \.agents/skills/legal-core/SKILL\.md$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -51,8 +51,8 @@ arbol .
 cp stdout $WORK/antes.txt
 arbol $WORK/fuera-skill-enlace
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 arbol $WORK/fuera-skill-enlace
@@ -70,8 +70,8 @@ mkdir .agents/skills/legal-core/SKILL.md
 cp $WORK/nota.md .agents/skills/legal-core/SKILL.md/nota.md
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -83,8 +83,8 @@ exec mkfifo .agents/skills/legal-core/SKILL.md
 arbol .
 stdout '^p \.agents/skills/legal-core/SKILL\.md$'
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -104,8 +104,8 @@ arbol .
 cp stdout $WORK/antes.txt
 arbol $WORK/fuera-references
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
 stderr '^ruta que no es directorio: \.agents/skills/legal-core/references$'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -119,8 +119,8 @@ rm .agents/skills/legal-core/references
 cp $WORK/nota.md .agents/skills/legal-core/references
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -140,8 +140,8 @@ arbol .
 cp stdout $WORK/antes.txt
 arbol $WORK/fuera-skill-a-copia
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/legal-core"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 arbol $WORK/fuera-skill-a-copia
@@ -154,8 +154,8 @@ rm .agents/skills/legal-core
 symlink .agents/skills/legal-core -> $WORK/no-existe
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -173,8 +173,8 @@ exec sh $WORK/olvida.sh .agents/skills/kitlegal.json legal-core/references/jerar
 exec kitlegal skills list --json
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -182,15 +182,15 @@ rm .agents/skills/legal-core/references/jerarquia_normativa.md
 symlink .agents/skills/legal-core/references/jerarquia_normativa.md -> ../SKILL.md
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
+exec sh -c 'kitlegal skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # --- (h) kitlegal.json sustituido por un enlace a un manifiesto válido ---
 #
 # El manifiesto no se lee a través del enlace: es ilegible para install, list y
-# doctor, que salen con 1, y el manifiesto al que apunta queda intacto. Y el
+# doctor, que salen con 7, y el manifiesto al que apunta queda intacto. Y el
 # aviso no tiene ningún efecto, aunque al otro lado haya uno de otra versión y
 # en HOME otro de otra versión: el local es ilegible y el global no se busca
 # (FR-070, FR-072).
@@ -213,13 +213,13 @@ arbol .
 cp stdout $WORK/antes.txt
 arbol $WORK/fuera-manifiesto
 cp stdout $WORK/fuera-antes.txt
-exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
-exec sh -c '"$KITLEGAL_V1_BIN" skills list --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills list --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
 stderr '^skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
-exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 7'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
 stderr '^skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 ! stderr .

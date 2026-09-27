@@ -4,19 +4,19 @@
 # (una entrada o todo .claude/); versión distinta del manifiesto y de sus dos
 # skills (un único hallazgo) o de una sola skill; y, dentro del directorio de
 # una skill, el enlace que ocupa el sitio de la skill o de references/ y el
-# SKILL.md que es un enlace o un directorio. doctor sale con 1 sin cambiar nada,
+# SKILL.md que es un enlace o un directorio. doctor sale con 0 sin cambiar nada,
 # y ejecutar sus órdenes con sh -c, en el orden en que las lista, deja un doctor
 # posterior en 0, en el ámbito local, con -g y con --dir.
 #
 # Cubre: US4.2, US4.3, US4.4, US4.6, US4.7, US4.10, US4.11 · FR-065, FR-066,
 # FR-077 · SC-011.
 #
-# El sobre de fallo lleva en `mensaje` la cabecera y una línea
-# `<clase>: <ruta>: <orden>` por hallazgo, primero los que llevan rm y después
-# los demás, y el mismo texto va a la salida de error (contracts/applet-skills.md
-# §5); la forma de la orden es la de §6. La orden no se reescribe aquí: se
-# extrae de la salida de error de doctor —lo que sigue al segundo «: »— y se
-# ejecuta tal cual con ordenes.sh. Las órdenes invocan kitlegal desde el PATH:
+# Un hallazgo es un resultado, no un fallo (ADR 0023): el sobre correcto lleva en
+# `data.hallazgos` cada uno con su `clase`, su `ruta` y su `orden`, primero los
+# que llevan rm y después los demás, y la salida de error queda vacía
+# (contracts/applet-skills.md §5); la forma de la orden es la de §6. La orden no
+# se reescribe aquí: se extrae del JSON de doctor —el valor de cada "orden"— y
+# se ejecuta tal cual con ordenes.sh. Las órdenes invocan kitlegal desde el PATH:
 # cuando la instalación es de una versión concreta, un enlace llamado kitlegal
 # en $WORK/bin-* pone delante ese binario (contracts/arnes-e2e.md §2).
 
@@ -39,13 +39,12 @@ exec kitlegal skills install
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
-stderr '^skills doctor: 1 hallazgos?:\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core$'
-cp stderr $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
 cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
@@ -55,10 +54,10 @@ mkdir $WORK/editado-host/.claude
 cd $WORK/editado-host
 exec kitlegal skills install
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/legal-core
@@ -71,11 +70,10 @@ mkdir $WORK/falta
 cd $WORK/falta
 exec kitlegal skills install
 rm .agents/skills/legal-core/references/leyes_vertebrales.md
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core"\}\}\n\z'
-stderr '^fichero editado: \.agents/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core$'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/references/leyes_vertebrales\.md","orden":"kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
@@ -92,13 +90,12 @@ rm .claude/skills/legal-core
 symlink .claude/skills/legal-core -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
-stderr '^enlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude$'
-cp stderr $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/legal-core
@@ -110,10 +107,10 @@ cd $WORK/host-fichero
 exec kitlegal skills install
 rm .claude/skills/legal-core
 cp $WORK/nota.md .claude/skills/legal-core
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/legal-core
@@ -125,10 +122,10 @@ exec kitlegal skills install
 rm .claude/skills/legal-core
 mkdir .claude/skills/legal-core
 cp $WORK/nota.md .claude/skills/legal-core/nota.md
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -r -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -r -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/legal-core
@@ -141,21 +138,20 @@ mkdir $WORK/host-falta/.claude
 cd $WORK/host-falta
 exec kitlegal skills install
 rm .claude/skills/legal-core
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
 rm .claude
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
-stderr '^skills doctor: 2 hallazgos:\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude$'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/boe-legislacion
@@ -172,10 +168,10 @@ cd $WORK/colgando-host
 exec kitlegal skills install
 rm .agents/skills/legal-core
 symlink .agents/skills/legal-core -> $WORK/no-existe
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nenlace colgando: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core --host claude\\nenlace colgando: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core --host claude"\},\{"clase":"enlace colgando","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
@@ -191,10 +187,10 @@ cd $WORK/dentro-colgando
 exec kitlegal skills install
 rm .agents/skills/legal-core
 symlink .agents/skills/legal-core -> $WORK/no-existe
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace colgando: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 
@@ -207,10 +203,10 @@ rm .agents/skills/legal-core
 symlink .agents/skills/legal-core -> $WORK/fuera-copia/legal-core
 arbol $WORK/fuera-copia
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 arbol $WORK/fuera-copia
@@ -225,10 +221,10 @@ rm .agents/skills/legal-core/references
 symlink .agents/skills/legal-core/references -> $WORK/fuera-references/references
 arbol $WORK/fuera-references
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.agents/skills/legal-core/references: rm -- ''\.agents/skills/legal-core/references'' && kitlegal skills install legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/legal-core/references","orden":"rm -- ''\.agents/skills/legal-core/references'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 arbol $WORK/fuera-references
@@ -243,10 +239,10 @@ rm .agents/skills/legal-core/SKILL.md
 symlink .agents/skills/legal-core/SKILL.md -> $WORK/fuera-skill/SKILL.md
 arbol $WORK/fuera-skill
 cp stdout $WORK/fuera-antes.txt
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 arbol $WORK/fuera-skill
@@ -258,10 +254,10 @@ exec kitlegal skills install
 rm .agents/skills/legal-core/SKILL.md
 mkdir .agents/skills/legal-core/SKILL.md
 cp $WORK/nota.md .agents/skills/legal-core/SKILL.md/nota.md
-exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -r -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -r -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
@@ -274,12 +270,11 @@ cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 mkdir $WORK/version/.claude
 cd $WORK/version
 exec $KITLEGAL_V1_BIN skills install
-exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core --host claude"\}\}\n\z'
-stderr '^versión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core --host claude$'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V2_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.2\.0","version_del_binario":"v0\.2\.0","hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -289,8 +284,10 @@ env PATH=$PATH_ORIGINAL
 mkdir $WORK/version-dev
 cd $WORK/version-dev
 exec $KITLEGAL_V1_BIN skills install
-exec sh -c 'kitlegal skills doctor; test $? -eq 1'
-stderr '^versión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core$'
+exec kitlegal skills doctor
+stdout '^hallazgos\.0\.clase +versión distinta$'
+stdout '^hallazgos\.0\.ruta +\.agents/skills/kitlegal\.json$'
+stdout '^hallazgos\.0\.orden +kitlegal skills install boe-legislacion legal-core$'
 
 # --- Versión distinta de una sola skill (US4.10) ---
 #
@@ -301,11 +298,11 @@ mkdir $WORK/version-una
 cd $WORK/version-una
 exec $KITLEGAL_V1_BIN skills install
 exec $KITLEGAL_V2_BIN skills install legal-core
-exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/boe-legislacion: kitlegal skills install boe-legislacion"\}\}\n\z'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V2_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -320,14 +317,13 @@ exec $KITLEGAL_V1_BIN skills install
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core"\}\}\n\z'
-stderr '^skills doctor: 2 hallazgos:\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core$'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V2_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\},\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -342,11 +338,11 @@ cd $WORK/grupo
 exec $KITLEGAL_V1_BIN skills install
 exec $KITLEGAL_V2_BIN skills install boe-legislacion
 rm .claude/skills/boe-legislacion
-exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nversión distinta: \.agents/skills/legal-core: kitlegal skills install legal-core --host claude\\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude"\}\}\n\z'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V2_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -366,11 +362,11 @@ exec $KITLEGAL_V1_BIN skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
 exec sh -c 'sed "s/\"0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
 grep -count=3 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
-exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core"\}\}\n\z'
-cp stderr $WORK/doctor.err
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '"hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
@@ -382,10 +378,10 @@ mkdir $WORK/global
 cd $WORK/global
 exec kitlegal skills install -g
 exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/legal-core/SKILL.md"'
-exec sh -c 'kitlegal skills doctor -g --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: '${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md: rm -- '''${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor -g --json
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"'${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md","orden":"rm -- '''${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor -g --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp $WORK/home-g/.agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
@@ -397,10 +393,10 @@ mkdir $WORK/con-dir
 cd $WORK/con-dir
 exec kitlegal skills install --dir destino
 exec sh -c 'echo "una línea añadida a mano" >> destino/legal-core/SKILL.md'
-exec sh -c 'kitlegal skills doctor --dir destino --json; test $? -eq 1'
-stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: destino/legal-core/SKILL\.md: rm -- ''destino/legal-core/SKILL\.md'' && kitlegal skills install legal-core --dir ''destino''"\}\}\n\z'
-cp stderr $WORK/doctor.err
-exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --dir destino --json
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"destino/legal-core/SKILL\.md","orden":"rm -- ''destino/legal-core/SKILL\.md'' && kitlegal skills install legal-core --dir ''destino''"\}\]\}\}\n\z'
+cp stdout $WORK/doctor.json
+exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --dir destino --json
 stdout '"data":\{"directorio":"destino","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
 cmp destino/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
@@ -411,16 +407,16 @@ Un fichero que kitlegal no instaló.
 -- host-otro/otro-sitio/mio.md --
 Un fichero que kitlegal no instaló.
 -- ordenes.sh --
-# ordenes.sh <salida de error de doctor>: ejecuta con sh -c, en el directorio
-# de trabajo y en el orden en que doctor las lista, las órdenes de sus
-# hallazgos: lo que sigue al segundo «: » de cada línea
-# «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5 y §6). Falla si no
-# hay ninguna o si alguna falla.
+# ordenes.sh <sobre JSON de doctor>: ejecuta con sh -c, en el directorio de
+# trabajo y en el orden en que doctor las lista, las órdenes de sus hallazgos:
+# el valor de cada "orden" de data.hallazgos (contracts/applet-skills.md §5 y
+# §6; ADR 0023). Ninguna orden lleva comillas dobles, así que basta con grep.
+# Falla si no hay ninguna o si alguna falla.
 set -u
-lineas=$(grep -E '^(fichero editado|enlace colgando|enlace a otro sitio|copia|versión distinta): ' "$1") || {
+ordenes=$(grep -o '"orden":"[^"]*"' "$1" | sed 's/^"orden":"//; s/"$//') && [ -n "$ordenes" ] || {
 	echo "ningún hallazgo en $1" >&2
 	exit 1
 }
-printf '%s\n' "$lineas" | sed 's/^[^:]*: [^:]*: //' | while IFS= read -r orden; do
+printf '%s\n' "$ordenes" | while IFS= read -r orden; do
 	sh -c "$orden" || exit 1
 done

@@ -87,10 +87,10 @@ type SkillListada struct {
 	Enlaces []Enlace `json:"enlaces"`
 }
 
-// Diagnostico es lo que da doctor sin ningún hallazgo: el directorio neutro
-// del ámbito, si hay manifiesto, su versión, la del binario y la lista de
-// hallazgos, vacía (FR-067). Con algún hallazgo, doctor no da un Diagnostico
-// sino un *ErrorDeHallazgos.
+// Diagnostico es lo que da doctor: el directorio neutro del ámbito, si hay
+// manifiesto, su versión, la del binario y la lista de hallazgos, vacía si no
+// hay ninguno (FR-067). Los hallazgos son datos de una verificación que ha
+// funcionado, no un fallo: doctor sale con código 0 con o sin ellos (ADR 0023).
 type Diagnostico struct {
 	// Directorio es el directorio neutro, como se alcanza desde el directorio
 	// de trabajo.
@@ -101,7 +101,8 @@ type Diagnostico struct {
 	Version *string `json:"version" jsonschema:"nullable,minLength=1"`
 	// VersionDelBinario es la del binario que diagnostica.
 	VersionDelBinario string `json:"version_del_binario" jsonschema:"minLength=1"`
-	// Hallazgos es la lista de hallazgos, vacía en la salida correcta.
+	// Hallazgos es la lista de hallazgos, en el orden de FR-066; vacía si no hay
+	// ninguno.
 	Hallazgos []Hallazgo `json:"hallazgos"`
 }
 

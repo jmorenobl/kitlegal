@@ -1,6 +1,7 @@
 # 0011 · El ensayo lo describe cada capa con efectos y lo presenta el kernel
 
-- **Estado**: aceptada
+- **Estado**: aceptada; el ADR 0023 precisa el código del ensayo: el de la orden real cuando se conoce sin efectos (2
+  ante argumentos inválidos, 7 ante un conflicto con el estado local)
 - **Fecha**: 2026-09-12
 - **Hito**: H2
 

@@ -454,13 +454,11 @@ func TestOrdenesDeDoctor(t *testing.T) {
 			for _, caso := range grupo.casos {
 				d, ambito := caso.preparado(t)
 
-				_, _, err := caso.diagnosticar(d, ambito)
+				diagnostico, _, err := caso.diagnosticar(d, ambito)
+				require.NoError(t, err, "%s: con hallazgos o sin ellos, doctor no falla (ADR 0023)", caso.nombre)
 
-				var rechazo *instalacion.ErrorDeHallazgos
-				if errors.As(err, &rechazo) {
-					for _, h := range rechazo.Lista() {
-						exigirOrdenDelHallazgo(t, caso, ambito, h)
-					}
+				for _, h := range diagnostico.Hallazgos {
+					exigirOrdenDelHallazgo(t, caso, ambito, h)
 				}
 			}
 		})
@@ -553,12 +551,11 @@ func probarQueLasOrdenesArreglan(t *testing.T, caso casoDeDoctor) {
 
 	d, ambito := caso.preparado(t)
 
-	_, _, err := caso.diagnosticar(d, ambito)
+	primero, _, err := caso.diagnosticar(d, ambito)
+	require.NoError(t, err)
 
-	var rechazo *instalacion.ErrorDeHallazgos
-	require.ErrorAs(t, err, &rechazo)
-
-	hallazgos := rechazo.Lista()
+	hallazgos := primero.Hallazgos
+	require.NotEmpty(t, hallazgos, "el caso tiene hallazgos que arreglar")
 
 	if caso.excepcion != "" {
 		probarExcepcion(t, d, caso, hallazgos)

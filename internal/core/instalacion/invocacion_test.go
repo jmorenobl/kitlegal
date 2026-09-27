@@ -72,7 +72,7 @@ func skillsDelBinario() []instalacion.SkillEmpotrada {
 // con --dir; (3) --host con un valor distinto de claude; (4) un nombre que no
 // es de una skill empotrada, con la lista de las disponibles; las cuatro de
 // clase «argumentos», código 2. Solo sin ninguna de ellas, (5) -g con HOME sin
-// definir o vacío, de clase «inesperado», código 1. La primera que se cumple
+// definir o vacío, de clase «conflicto», código 7 (ADR 0023). La primera que se cumple
 // decide, aunque la invocación caiga además en las siguientes, y un error de
 // argumentos gana siempre a -g sin HOME (SC-005).
 //
@@ -271,14 +271,14 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre:     "-g sin HOME",
 			invocacion: instalacion.Invocacion{Global: true},
-			home:       "", clase: schema.ClaseInesperado, frase: fraseSinHome,
+			home:       "", clase: schema.ClaseConflicto, frase: fraseSinHome,
 		},
 		{
 			nombre: "-g con --host claude y skills empotradas, una repetida, sin HOME",
 			invocacion: instalacion.Invocacion{
 				Global: true, Host: texto("claude"), Skills: []string{"legal-core", "legal-core"},
 			},
-			home: "", clase: schema.ClaseInesperado, frase: fraseSinHome,
+			home: "", clase: schema.ClaseConflicto, frase: fraseSinHome,
 		},
 	}
 

@@ -217,7 +217,8 @@ type operacionDeSkills func(
 //     que quien invoca pueda corregir: sale como inesperado, sin procedencia;
 //  2. la invocación se valida antes de tocar el disco, con HOME tal como está en
 //     el entorno: un error de argumentos sale con 2 y, solo sin ninguno, -g sin
-//     HOME sale con 1 (contracts/applet-skills.md §2);
+//     HOME sale con 7, un conflicto con el entorno (contracts/applet-skills.md
+//     §2; ADR 0023);
 //  3. y solo entonces el verbo examina el ámbito.
 //
 // Todo lo que decide el applet, correcto o fallido, lo firma él (FR-050): el
@@ -253,7 +254,9 @@ func (a appletSkills) ejecutar(
 // de las dependencias (FR-040 a FR-047); su data es cada skill pedida tal como
 // queda (FR-051). Con --dry-run no aplica nada: describe el plan, una línea por
 // skill, que el kernel presenta en la salida de error, y con algún conflicto
-// falla igual que sin la bandera (FR-048; research.md D13). La sonda del Enlazador sí
+// falla igual que sin la bandera, con código 7: el conflicto se conoce sin
+// efectos, así que el ensayo predice el código de la orden real (FR-048;
+// research.md D13; ADR 0023). La sonda del Enlazador sí
 // se hace, porque es de donde sale el modo que se predice, y deja el disco como
 // estaba (research.md D9).
 func (d DependenciasDeSkills) instalar(
@@ -293,8 +296,9 @@ func (DependenciasDeSkills) listar(
 
 // diagnosticar compara el disco del ámbito con su manifiesto y con la versión
 // del binario, sin cambiar nada, con el Enlazador de las dependencias para
-// decidir si una copia ya podría ser un enlace (FR-065 a FR-069); sin hallazgos,
-// su data es el diagnóstico, y con alguno, el fallo que los nombra.
+// decidir si una copia ya podría ser un enlace (FR-065 a FR-069). Su data es el
+// diagnóstico, con los hallazgos que haya: encontrar algo es el resultado de una
+// verificación que ha funcionado, y sale con código 0 (ADR 0023).
 func (d DependenciasDeSkills) diagnosticar(
 	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, _ bool,
 ) (schema.Resultado, error) {
@@ -330,8 +334,8 @@ func ensayoDeInstall(skills []instalacion.SkillInstalada) []string {
 // del creador de enlaces que no se pudo retirar y el de una versión del binario
 // que el manifiesto no admitiría (contracts/applet-skills.md §5). Lo envuelve,
 // porque no declara ninguna clase que pudiera decidir otro código. Los que sí la
-// declaran —el de un conflicto de install, el de los hallazgos de doctor y el
-// del ámbito ilegible— ya empiezan por él y pasan tal cual.
+// declaran —el de un conflicto de install y el del ámbito ilegible— ya empiezan
+// por él y pasan tal cual.
 func delVerbo(verbo string, err error) error {
 	var conClase schema.ConClase
 	if errors.As(err, &conClase) {

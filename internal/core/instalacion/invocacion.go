@@ -52,8 +52,8 @@ type Pedido struct {
 //  5. y solo sin ninguna de las anteriores, -g sin HOME (FR-012).
 //
 // Las cuatro primeras son de clase «argumentos» (código 2) y ganan a la
-// quinta, de clase «inesperado» (código 1), y a cualquier exit 1 del ámbito,
-// que no llega a comprobarse. Con un rechazo, el Pedido es el valor cero. Sin
+// quinta, de clase «conflicto» (código 7; ADR 0023), y a cualquier fallo del
+// ámbito, que no llega a comprobarse. Con un rechazo, el Pedido es el valor cero. Sin
 // ninguno, devuelve el ámbito de la invocación y las skills pedidas.
 func ValidarInvocacion(invocacion Invocacion, home string, empotradas []SkillEmpotrada) (Pedido, error) {
 	if err := comprobarBanderas(invocacion); err != nil {

@@ -266,13 +266,15 @@ func (e enlazadorQueOcupaElManifiesto) Disponible(string) (bool, error) {
 //   - declara install, list y doctor, ninguno por omisión, con sus banderas y el
 //     tipo de su data (§1, §4);
 //   - valida la invocación antes de tocar el disco, con la precedencia de FR-052,
-//     y sale con 2 o, solo con -g sin HOME, con 1 (§2);
+//     y sale con 2 o, solo con -g sin HOME, con 7, un conflicto con el entorno
+//     (§2; ADR 0023);
 //   - instala en el ámbito local, en el global y en el de --dir, con las rutas
 //     como se alcanzan desde el directorio de trabajo, enlaza en el host y repite
 //     sin cambios (§3, §4.1);
-//   - list y doctor dan su data, también sin manifiesto (§4.2, §4.3);
-//   - un conflicto, un hallazgo o un fallo del disco salen con 1, con el sobre
-//     de fallo del kernel y el mensaje del contrato (§5, §6);
+//   - list y doctor dan su data, también sin manifiesto, y doctor con sus
+//     hallazgos en ella y código 0 (§4.2, §4.3; ADR 0023);
+//   - un conflicto sale con 7 y un fallo del disco con 1, con el sobre de fallo
+//     del kernel y el mensaje del contrato (§5, §6; ADR 0023);
 //   - --dry-run describe por Resultado.Ensayo sin cambiar nada (§7), y --describe
 //     describe los tres verbos;
 //   - con un creador de enlaces que siempre falla, las entradas de host quedan
@@ -328,8 +330,8 @@ func casosDelApplet() []casoDelApplet {
 		{"install-de-las-nombradas-una-vez-cada-una", compruebaInstallDeLasNombradas},
 		{"list-y-doctor-sin-manifiesto", compruebaListYDoctorSinManifiesto},
 		{"list-y-doctor-tras-install", compruebaListYDoctorTrasInstall},
-		{"doctor-con-un-hallazgo-sale-con-1", compruebaDoctorConUnHallazgo},
-		{"install-con-un-conflicto-sale-con-1", compruebaInstallConUnConflicto},
+		{"doctor-con-un-hallazgo-sale-con-0", compruebaDoctorConUnHallazgo},
+		{"install-con-un-conflicto-sale-con-7", compruebaInstallConUnConflicto},
 		{"dry-run-describe-sin-cambiar-nada", compruebaDryRunDeSkills},
 		{"enlazador-que-falla-deja-copias-que-doctor-no-senala", compruebaEnlazadorQueFalla},
 		{"ambito-global", compruebaAmbitoGlobal},
@@ -545,10 +547,11 @@ func compruebaListYDoctorTrasInstall(t *testing.T) {
 	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "ni list ni doctor cambian nada")
 }
 
-// compruebaDoctorConUnHallazgo edita un fichero instalado: doctor sale con 1,
-// con el sobre de fallo de clase inesperado y, en el mensaje y en la salida de
-// error, la cabecera y la línea del hallazgo con la orden que lo arregla, sin
-// cambiar nada (FR-052, FR-065 a FR-068; contracts/applet-skills.md §5 y §6).
+// compruebaDoctorConUnHallazgo edita un fichero instalado: doctor sale con 0,
+// con el sobre correcto del applet y el hallazgo en su data —clase, ruta y la
+// orden que lo arregla—, sin cambiar nada. Encontrar algo es el resultado de una
+// verificación que ha funcionado, no un fallo (FR-065 a FR-068;
+// contracts/applet-skills.md §5 y §6; ADR 0023).
 func compruebaDoctorConUnHallazgo(t *testing.T) {
 	t.Helper()
 
@@ -561,18 +564,21 @@ func compruebaDoctorConUnHallazgo(t *testing.T) {
 
 	arbol := arbolDelProyecto(t, ".")
 
-	mensaje := falloDeSkills(t, invocar(t, registro, argvDeSkills("doctor", "--json")...),
-		schema.ClaseInesperado, 1, firmaDeSkills)
+	diagnostico := exitoDeSkills[instalacion.Diagnostico](t, invocar(t, registro, argvDeSkills("doctor", "--json")...))
 
-	assert.Equal(t, "skills doctor: 1 hallazgo:\n"+
-		"fichero editado: .agents/skills/alfa/SKILL.md: "+
-		"rm -- '.agents/skills/alfa/SKILL.md' && kitlegal skills install alfa --host claude", mensaje)
+	assert.Equal(t, []instalacion.Hallazgo{{
+		Clase: instalacion.HallazgoFicheroEditado,
+		Ruta:  ".agents/skills/alfa/SKILL.md",
+		Orden: "rm -- '.agents/skills/alfa/SKILL.md' && kitlegal skills install alfa --host claude",
+	}}, diagnostico.Hallazgos)
 	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "doctor no cambia nada")
 }
 
 // compruebaInstallConUnConflicto deja una carpeta ajena con el nombre de una
-// skill: install sale con 1 y la nombra, sin crear ni cambiar nada, con la
-// bandera --dry-run y sin ella (FR-040 a FR-042, FR-048, FR-052).
+// skill: install sale con 7, un conflicto con el estado local, y la nombra, sin
+// crear ni cambiar nada, con la bandera --dry-run y sin ella: el conflicto se
+// conoce sin efectos, así que el ensayo predice el código de la orden real
+// (FR-040 a FR-042, FR-048, FR-052; ADR 0023).
 func compruebaInstallConUnConflicto(t *testing.T) {
 	t.Helper()
 
@@ -583,14 +589,14 @@ func compruebaInstallConUnConflicto(t *testing.T) {
 	arbol := arbolDelProyecto(t, ".")
 
 	mensaje := falloDeSkills(t, invocar(t, registro, argvDeSkills("install", "--json")...),
-		schema.ClaseInesperado, 1, firmaDeSkills)
+		schema.ClaseConflicto, 7, firmaDeSkills)
 	assert.Equal(t, cabeceraDeLosConflictos+"\ncarpeta ajena: .agents/skills/alfa", mensaje)
 	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "nada se crea ni se cambia")
 
 	// Con --dry-run, el mismo fallo y el mismo código; el sobre lo firma el
 	// kernel, que descarta el Resultado del applet en ensayo.
 	ensayo := invocar(t, registro, argvDeSkills("install", "--dry-run", "--json")...)
-	assert.Equal(t, mensaje, falloDeSkills(t, ensayo, schema.ClaseInesperado, 1, cli.ProcedenciaKernel()))
+	assert.Equal(t, mensaje, falloDeSkills(t, ensayo, schema.ClaseConflicto, 7, cli.ProcedenciaKernel()))
 	assert.True(t, strings.HasPrefix(ensayo.errores, prefijoDeEnsayo+"no se ha ejecutado nada"), ensayo.errores)
 	assert.NotContains(t, ensayo.errores, "se habría pedido", "con un conflicto no describe ninguna skill")
 	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "ni con --dry-run")
@@ -820,9 +826,14 @@ func compruebaDescribeDeSkills(t *testing.T) {
 	escribirEnElProyecto(t, ".agents/skills/alfa/SKILL.md", "editado a mano\n")
 
 	res := invocar(t, registro, argvDeSkills("doctor", "--json")...)
-	require.Equal(t, 1, res.codigo, res.errores)
+	require.Equal(t, 0, res.codigo, res.errores)
 	require.NoError(t, esquemas["doctor"].Validate(sobreValidable(t, res.salida)),
-		"el sobre de fallo valida contra la rama else de su --describe")
+		"el sobre con un hallazgo valida contra la rama then de su --describe (ADR 0023)")
+
+	res = invocar(t, registro, argvDeSkills("install", "--json")...)
+	require.Equal(t, 7, res.codigo, res.errores)
+	require.NoError(t, esquemas["install"].Validate(sobreValidable(t, res.salida)),
+		"el sobre de un conflicto valida contra la rama else de su --describe")
 }
 
 // esquemaDeSkillsEmitido pide el --describe del verbo, exige su título y sus
@@ -1054,7 +1065,7 @@ func casosDeValidacion() []casoDeValidacion {
 	}
 	sinHome := func(nombre string, argv ...string) casoDeValidacion {
 		return casoDeValidacion{
-			nombre: nombre, argv: argvDeSkills(argv...), codigo: 1, clase: schema.ClaseInesperado, mensaje: mensajeSinHome,
+			nombre: nombre, argv: argvDeSkills(argv...), codigo: 7, clase: schema.ClaseConflicto, mensaje: mensajeSinHome,
 		}
 	}
 
