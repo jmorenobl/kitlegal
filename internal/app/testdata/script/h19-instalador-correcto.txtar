@@ -1,0 +1,161 @@
+# install.sh instala sin clonar, contra un origen de release local y sin red:
+# sin versión (la última) y con la versión pasada como argumento, con y sin v;
+# en ~/.local/bin (también con KITLEGAL_INSTALL_DIR definido pero vacío) o en
+# $KITLEGAL_INSTALL_DIR (también con HOME sin definir o vacío); verifica la
+# huella contra el checksums.txt, cuya línea busca por el nombre exacto del
+# archivo; sustituye un kitlegal anterior; no toca ningún fichero de arranque
+# del shell ni nada fuera del directorio de instalación, y retira sus
+# temporales; si el directorio no está en el PATH imprime la línea exacta que
+# lo añade, que evaluada en sh lo deja en el PATH; y termina con la orden
+# siguiente, `kitlegal skills install`.
+#
+# Cubre: US5.4, US5.6 (versión con y sin v, KITLEGAL_INSTALL_DIR, HOME vacío
+# con directorio) · FR-100, FR-101, FR-102, FR-103, FR-104, FR-105, FR-106,
+# FR-107 · SC-017.
+#
+# El origen es el de contracts/arnes-e2e.md §5: $KITLEGAL_ORIGEN, de solo
+# lectura, con la disposición de las URL de descarga de GitHub, el archivo de
+# esta plataforma y un checksums.txt con una línea señuelo cuyo nombre contiene
+# el del archivo; su versión, sin v, es $KITLEGAL_ORIGEN_VERSION, y la que
+# imprime el binario instalado es esa, con o sin v. install.sh lo lee por
+# KITLEGAL_INSTALL_URL=file://… (FR-107), y los proxies del arnés están
+# cerrados: ninguna descarga sale de la máquina. Los formatos, de
+# contracts/release.md §7.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env PATH_ORIGINAL=$PATH
+env KITLEGAL_INSTALL_URL=file://$KITLEGAL_ORIGEN
+env KITLEGAL_INSTALL_DIR=
+env HOME=$WORK/home
+mkdir $WORK/trabajo
+cd $WORK/trabajo
+
+# --- La última versión, en ~/.local/bin (US5.4) ---
+#
+# KITLEGAL_INSTALL_DIR está definido pero vacío: cuenta como no definido.
+exec sh $KITLEGAL_INSTALADOR
+cp stdout $WORK/salida.txt
+stdout '^export PATH='''${WORK@R}'/home/\.local/bin'':"\$PATH"$'
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/home/.local/bin/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+
+# La línea del PATH, evaluada en sh, deja el directorio en el PATH (FR-105).
+exec sh -c 'eval "$(grep ''^export PATH='' "$WORK/salida.txt")" && case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) exit 1 ;; esac'
+
+# Ningún fichero de arranque del shell cambia, y en HOME no hay nada más que el
+# directorio de instalación y el binario (FR-104); ni en el directorio de
+# trabajo, ni ningún temporal sin retirar.
+cmp $WORK/home/.profile $WORK/original/.profile
+cmp $WORK/home/.bashrc $WORK/original/.bashrc
+cmp $WORK/home/.zshrc $WORK/original/.zshrc
+arbol $WORK/home
+stdout '\A(?:(?:f \.bashrc|d \.local|d \.local/bin|f \.local/bin/kitlegal|f \.profile|f \.zshrc)(?: [0-7]+ \S+)?\n)+\z'
+stdout '^f \.local/bin/kitlegal '
+arbol .
+! stdout .
+arbol $WORK/.tmp
+! stdout .
+
+# --- Con la versión como argumento, sin v y con v (US5.6) ---
+#
+# Las dos piden la misma release, la de la etiqueta v<versión>, y se instalan en
+# $KITLEGAL_INSTALL_DIR, que se crea si falta.
+env KITLEGAL_INSTALL_DIR=$WORK/destino-sin-v
+exec sh $KITLEGAL_INSTALADOR $KITLEGAL_ORIGEN_VERSION
+stdout '^export PATH='''${WORK@R}'/destino-sin-v'':"\$PATH"$'
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/destino-sin-v/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+arbol $WORK/destino-sin-v
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+env KITLEGAL_INSTALL_DIR=$WORK/destino-con-v
+exec sh $KITLEGAL_INSTALADOR v$KITLEGAL_ORIGEN_VERSION
+stdout '^export PATH='''${WORK@R}'/destino-con-v'':"\$PATH"$'
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/destino-con-v/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+arbol $WORK/destino-con-v
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+arbol $WORK/.tmp
+! stdout .
+
+# --- Un directorio que ya está en el PATH: sin línea que añadir (FR-105) ---
+env KITLEGAL_INSTALL_DIR=$WORK/en-el-path
+env PATH=$WORK/en-el-path${:}$PATH_ORIGINAL
+exec sh $KITLEGAL_INSTALADOR
+! stdout 'export PATH'
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+env PATH=$PATH_ORIGINAL
+
+# --- Un kitlegal anterior se sustituye (FR-103) ---
+env KITLEGAL_INSTALL_DIR=$WORK/con-anterior
+exec sh $KITLEGAL_INSTALADOR
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/con-anterior/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+arbol $WORK/con-anterior
+stdout '\Af kitlegal [0-7]+ \S+\n\z'
+
+# --- HOME vacío o sin definir, con KITLEGAL_INSTALL_DIR (US5.6, FR-103) ---
+env HOME=
+env KITLEGAL_INSTALL_DIR=$WORK/sin-home
+exec sh $KITLEGAL_INSTALADOR
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/sin-home/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+exec env -u HOME KITLEGAL_INSTALL_DIR=$WORK/sin-home-definido sh $KITLEGAL_INSTALADOR
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec $WORK/sin-home-definido/kitlegal version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+env HOME=$WORK/home
+
+# --- Un directorio con una comilla simple en su nombre (FR-105) ---
+#
+# La línea del PATH escribe la comilla como '\'' y, evaluada en sh, deja ese
+# mismo directorio en el PATH.
+env 'KITLEGAL_INSTALL_DIR='$WORK'/con''comilla'
+exec sh $KITLEGAL_INSTALADOR
+cp stdout $WORK/salida-comilla.txt
+stdout '^export PATH='''${WORK@R}'/con''\\''''comilla'':"\$PATH"$'
+stdout '(?:\A|\n)kitlegal skills install\n?\z'
+exec sh -c 'eval "$(grep ''^export PATH='' "$WORK/salida-comilla.txt")" && case ":$PATH:" in *":$KITLEGAL_INSTALL_DIR:"*) ;; *) exit 1 ;; esac'
+exec $WORK'/con''comilla/kitlegal' version
+stdout '\Akitlegal v?'${KITLEGAL_ORIGEN_VERSION@R}'\n'
+arbol $WORK/.tmp
+! stdout .
+
+# Y nada de lo anterior ha tocado HOME.
+cmp $WORK/home/.profile $WORK/original/.profile
+cmp $WORK/home/.bashrc $WORK/original/.bashrc
+cmp $WORK/home/.zshrc $WORK/original/.zshrc
+
+-- home/.profile --
+# .profile de quien instala: install.sh no lo toca.
+export EDITOR=vi
+-- home/.bashrc --
+# .bashrc de quien instala: install.sh no lo toca.
+alias ll='ls -l'
+-- home/.zshrc --
+# .zshrc de quien instala: install.sh no lo toca.
+setopt autocd
+-- original/.profile --
+# .profile de quien instala: install.sh no lo toca.
+export EDITOR=vi
+-- original/.bashrc --
+# .bashrc de quien instala: install.sh no lo toca.
+alias ll='ls -l'
+-- original/.zshrc --
+# .zshrc de quien instala: install.sh no lo toca.
+setopt autocd
+-- con-anterior/kitlegal --
+#!/bin/sh
+echo "un kitlegal anterior"

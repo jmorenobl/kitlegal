@@ -1,0 +1,219 @@
+# Cuándo no hay aviso: con `kitlegal skills …`, con `version`, con cualquier
+# petición de ayuda y con los fallos anteriores a resolver el applet con un
+# verbo; con un binario de desarrollo; con versiones que solo difieren en la v
+# inicial; con un manifiesto en la versión del binario que declara además una
+# skill no empotrada de otra versión; sin HOME y sin nada local, sin ningún
+# efecto; y con un ./.agents que es un fichero, un ./.agents/skills que es un
+# enlace o un manifiesto local ilegible, aunque el global sea de otra versión:
+# el ámbito local cuenta como ilegible y el global no se busca.
+#
+# Cubre: US3.3, US3.7 (v inicial), US3.8, US3.9 · FR-070, FR-072 (./.agents
+# como fichero y ./.agents/skills como enlace colgando, con un global de otra
+# versión: sin aviso), FR-073, FR-074, FR-076 · SC-013.
+#
+# Cada «sin aviso» lleva al lado su control: la misma orden en la que el aviso
+# sí sale, de modo que su ausencia no se deba a otra cosa. La línea es la de
+# contracts/aviso.md §4; qué invocaciones la buscan, §1; qué manifiesto se
+# mira, §2. Ninguna orden abre la red: el binario no consulta si hay una
+# versión nueva (FR-076) y los proxies del arnés están cerrados.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# --- Un manifiesto local de otra versión, y el control ---
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cp stdout $WORK/territorio.json
+exec $KITLEGAL_V1_BIN skills install
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+# --- skills no avisa (US3.3, FR-074) ---
+#
+# Ni list, ni install --dry-run, ni doctor, que sí ve la versión distinta como
+# hallazgo.
+exec $KITLEGAL_V2_BIN skills list --json
+! stderr .
+exec $KITLEGAL_V2_BIN skills install --dry-run
+! stderr '^aviso: '
+exec sh -c '"$KITLEGAL_V2_BIN" skills doctor; test $? -eq 1'
+stderr '^versión distinta: '
+! stderr '^aviso: '
+
+# --- version y la ayuda no avisan (US3.3, FR-070) ---
+exec $KITLEGAL_V2_BIN version
+stdout '\Akitlegal v0\.2\.0\n'
+! stderr .
+exec $KITLEGAL_V2_BIN --help
+! stderr .
+exec $KITLEGAL_V2_BIN boe --help
+! stderr .
+exec $KITLEGAL_V2_BIN boe articulo --help
+! stderr .
+exec $KITLEGAL_V2_BIN territorio resolver --help
+! stderr .
+
+# --- Los fallos anteriores a resolver el applet con un verbo no avisan (FR-070) ---
+#
+# Un applet desconocido, ningún applet, un applet sin verbo nombrado ni verbo
+# por omisión y argumentos de más tras version.
+exec sh -c '"$KITLEGAL_V2_BIN" noexiste; test $? -eq 2'
+stderr 'no es ningún applet'
+! stderr '^aviso: '
+exec sh -c '"$KITLEGAL_V2_BIN"; test $? -eq 2'
+! stderr '^aviso: '
+exec sh -c '"$KITLEGAL_V2_BIN" boe; test $? -eq 2'
+stderr 'verbos de boe'
+! stderr '^aviso: '
+exec sh -c '"$KITLEGAL_V2_BIN" version extra; test $? -eq 2'
+! stderr '^aviso: '
+
+# --- Un binario de desarrollo no compara (US3.3, FR-073) ---
+#
+# El kitlegal del PATH tiene versión dev, sin forma SemVer: ni siquiera mira el
+# disco, y la salida es la misma.
+exec kitlegal territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+
+# --- Versiones que solo difieren en la v inicial (US3.7, FR-077) ---
+#
+# El manifiesto y sus dos skills en 0.1.0 frente al binario v0.1.0: iguales.
+# El control, v0.2.0: distintas, y la línea da la versión tal como la guarda el
+# manifiesto.
+mkdir $WORK/sin-v
+cd $WORK/sin-v
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
+grep -count=3 '"0\.1\.0"' .agents/skills/kitlegal.json
+exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal 0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+# --- Una skill declarada que el binario no empotra, de otra versión (US3.8, FR-036) ---
+#
+# El manifiesto está en la versión del binario y solo declara una skill que
+# este binario no lleva, instalada con v0.0.9: su versión no se compara. El
+# control, con el binario v0.2.0, avisa por la versión del manifiesto.
+cd $WORK/no-empotrada
+exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+# --- Sin HOME y sin nada local: ningún efecto (US3.9, FR-070) ---
+#
+# La salida de error, la estándar y el código son los mismos que con un HOME
+# temporal sin manifiesto, también en una orden que falla.
+mkdir $WORK/vacio
+cd $WORK/vacio
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+cp stderr $WORK/con-home.err
+exec env -u HOME $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+exec env -u HOME sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+cp stderr $WORK/sin-home.err
+exec sh $WORK/mismas-lineas.sh $WORK/con-home.err $WORK/sin-home.err
+env HOME=
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+! stderr 'HOME no está definido'
+cp stderr $WORK/home-vacio.err
+exec sh $WORK/mismas-lineas.sh $WORK/con-home.err $WORK/home-vacio.err
+
+# --- El ámbito local que no se puede leer, con un global de otra versión (FR-072) ---
+#
+# Control: sin nada local, el global de otra versión avisa con -g; y también
+# con un ./.agents real sin skills/, o con ./.agents/skills real y sin
+# manifiesto, porque ahí el local no tiene nada que leer (contracts/aviso.md
+# §2).
+env HOME=$WORK/home-v1
+mkdir $WORK/home-v1
+exec $KITLEGAL_V1_BIN skills install -g
+cd $WORK/vacio
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+mkdir $WORK/agents-vacio/.agents
+cd $WORK/agents-vacio
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+mkdir $WORK/skills-vacio/.agents/skills
+cd $WORK/skills-vacio
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+
+# ./.agents es un fichero: sin aviso.
+cd $WORK/agents-fichero
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+
+# ./.agents/skills es un enlace colgando: sin aviso.
+mkdir $WORK/skills-colgando/.agents
+cd $WORK/skills-colgando
+symlink .agents/skills -> no-existe
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+
+# ./.agents/skills es un enlace al directorio neutro global, con su manifiesto de
+# otra versión: no se sigue, así que tampoco avisa.
+mkdir $WORK/skills-enlace/.agents
+cd $WORK/skills-enlace
+symlink .agents/skills -> $WORK/home-v1/.agents/skills
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+
+# ./.agents/skills/kitlegal.json ilegible: sin aviso.
+cd $WORK/local-ilegible
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+
+-- mismas-lineas.sh --
+# mismas-lineas.sh <a> <b>: las dos salidas de error tienen el mismo número de
+# líneas y ninguna es un aviso (SC-013).
+set -u
+a=$(wc -l < "$1" | tr -d ' ')
+b=$(wc -l < "$2" | tr -d ' ')
+if [ "$a" -ne "$b" ]; then
+	echo "$1 tiene $a líneas y $2, $b" >&2
+	exit 1
+fi
+! grep -q '^aviso: ' "$1" && ! grep -q '^aviso: ' "$2"
+-- no-empotrada/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "otra-skill": {
+      "ficheros": {
+        "otra-skill/SKILL.md": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "version": "v0.0.9"
+    }
+  },
+  "version": "v0.1.0"
+}
+-- no-empotrada/.agents/skills/otra-skill/SKILL.md --
+Una skill que este binario no empotra.
+-- agents-fichero/.agents --
+No soy un directorio.
+-- local-ilegible/.agents/skills/kitlegal.json --
+esto no es JSON

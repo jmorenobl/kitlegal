@@ -1,0 +1,234 @@
+# El recurso de copia y su vuelta a enlace: con un creador de enlaces que
+# falla, cada entrada de host queda como copia con los mismos contenidos y el
+# manifiesto y la salida la anotan `copia`; con ese mismo creador, `doctor` no
+# la señala y una segunda instalación no cambia nada; un fichero de la copia
+# editado o que falta es un hallazgo; con un creador que funciona, `doctor` la
+# señala como copia, y `install` retira la copia y crea el enlace, salvo que la
+# copia tenga un fichero editado o una entrada no declarada, que son conflicto;
+# y una entrada de host declarada que falta se recrea si el host se enlaza, o
+# sale del manifiesto si no.
+#
+# Cubre: US4.3 (copia), US4.7 (sin .claude/), US4.8 · FR-024, FR-046, FR-069 ·
+# SC-012.
+#
+# $KITLEGAL_SIN_ENLACES_BIN es el binario v0.1.0 con un creador de enlaces que
+# siempre falla, y $KITLEGAL_V1_BIN, el mismo con el del sistema
+# (contracts/arnes-e2e.md §2): sus manifiestos son de la misma versión, así que
+# no hay hallazgos de versión. Las órdenes de doctor se extraen de su salida de
+# error y se ejecutan con ordenes.sh, con el binario que toca delante en el
+# PATH; los formatos son los de contracts/applet-skills.md §4-§6.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env PATH_ORIGINAL=$PATH
+mkdir $WORK/bin-v1 $WORK/bin-sin-enlaces
+symlink $WORK/bin-v1/kitlegal -> $KITLEGAL_V1_BIN
+symlink $WORK/bin-sin-enlaces/kitlegal -> $KITLEGAL_SIN_ENLACES_BIN
+
+# --- La copia, con el creador de enlaces que falla (FR-024, SC-012) ---
+mkdir $WORK/copia/.claude
+cd $WORK/copia
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+! stderr .
+
+# Directorios reales con los mismos ficheros que el directorio neutro, ningún
+# enlace; y el manifiesto anota el modo y la huella de cada fichero copiado,
+# con su ruta relativa a la raíz del ámbito.
+arbol .claude
+stdout '^d skills/boe-legislacion$'
+stdout '^d skills/legal-core$'
+stdout '^f skills/legal-core/SKILL\.md '
+! stdout '^l '
+cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .claude/skills/boe-legislacion/references/normas.md $KITLEGAL_SKILLS/boe-legislacion/references/normas.md
+cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .claude/skills/legal-core/references/jerarquia_normativa.md $KITLEGAL_SKILLS/legal-core/references/jerarquia_normativa.md
+cmp .claude/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+grep -count=2 '"modo": *"copia"' .agents/skills/kitlegal.json
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/legal-core/SKILL.md .claude/skills/legal-core/SKILL.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/boe-legislacion/references/normas.md .claude/skills/boe-legislacion/references/normas.md
+
+exec $KITLEGAL_SIN_ENLACES_BIN skills list --json
+stdout '"skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\}\n\z'
+
+# Con el creador que sigue fallando, la copia no es un hallazgo (FR-069) y una
+# segunda instalación no cambia nada.
+exec $KITLEGAL_SIN_ENLACES_BIN skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+arbol .
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Un fichero de la copia, editado o que falta (SC-011) ---
+#
+# Fichero editado con la ruta dentro de la copia: con rm si la huella cambió,
+# sin rm si falta; las dos órdenes llevan --host claude y, ejecutadas con el
+# mismo creador que falla, reponen la copia.
+env PATH=$WORK/bin-sin-enlaces${:}$PATH_ORIGINAL
+exec sh -c 'echo "una línea añadida a mano" >> .claude/skills/legal-core/SKILL.md'
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.claude/skills/legal-core/SKILL\.md: rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
+stderr '^fichero editado: \.claude/skills/legal-core/SKILL\.md: rm -- ''\.claude/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude$'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+
+rm .claude/skills/legal-core/references/leyes_vertebrales.md
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.claude/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp .claude/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+env PATH=$PATH_ORIGINAL
+
+# --- Con un creador que funciona, la copia es un hallazgo (US4.3) ---
+#
+# doctor la señala sin tocar nada —la sonda se retira—, y su orden, ejecutada
+# con ese creador, deja el enlace de FR-021 y doctor en 0.
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\ncopia: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\\ncopia: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
+stderr '^skills doctor: 2 hallazgos:\ncopia: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\ncopia: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude$'
+cp stderr $WORK/doctor.err
+arbol .
+cmp stdout $WORK/antes.txt
+env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+grep -count=2 '"modo": *"enlace"' .agents/skills/kitlegal.json
+! grep '"copia"' .agents/skills/kitlegal.json
+! grep '"\.claude/skills/legal-core/SKILL\.md"' .agents/skills/kitlegal.json
+
+# --- install convierte la copia en enlace (US4.8, FR-046) ---
+mkdir $WORK/a-enlace/.claude
+cd $WORK/a-enlace
+exec $KITLEGAL_SIN_ENLACES_BIN skills install
+exec $KITLEGAL_V1_BIN skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+arbol .claude
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- Una copia con un fichero editado o una entrada no declarada (US4.8) ---
+#
+# Con el creador que funciona, install sale con 1 nombrándolo y la copia queda
+# byte a byte igual.
+mkdir $WORK/copia-editada/.claude
+cd $WORK/copia-editada
+exec $KITLEGAL_SIN_ENLACES_BIN skills install
+exec sh -c 'echo "una línea añadida a mano" >> .claude/skills/legal-core/SKILL.md'
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.claude/skills/legal-core/SKILL\.md"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero editado: \.claude/skills/legal-core/SKILL\.md$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/copia-ajena/.claude
+cd $WORK/copia-ajena
+exec $KITLEGAL_SIN_ENLACES_BIN skills install
+cp $WORK/nota.md .claude/skills/legal-core/extra.md
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.claude/skills/legal-core/extra\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# Con el creador que falla, esa copia se mantiene: la entrada no declarada no
+# coincide con ninguna ruta empotrada y se deja como está (FR-047).
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Una entrada de host declarada que falta (SC-012, FR-046) ---
+#
+# Con .claude/ presente, install la recrea —el enlace, o la copia si el creador
+# falla— y esa skill sale actualizada; sin .claude/ y sin --host, sale del
+# manifiesto sin crear nada de host (US4.7); con --host claude, se recrea.
+mkdir $WORK/recrear/.claude
+cd $WORK/recrear
+exec kitlegal skills install
+rm .claude/skills/legal-core
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+mkdir $WORK/recrear-copia/.claude
+cd $WORK/recrear-copia
+exec $KITLEGAL_V1_BIN skills install
+rm .claude/skills/legal-core
+exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+
+mkdir $WORK/sin-claude/.claude
+cd $WORK/sin-claude
+exec kitlegal skills install
+rm .claude
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+! grep '"hosts"' .agents/skills/kitlegal.json
+arbol .
+! stdout '\.claude'
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+
+mkdir $WORK/con-host/.claude
+cd $WORK/con-host
+exec kitlegal skills install
+rm .claude
+exec kitlegal skills install --host claude --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+
+-- nota.md --
+Un fichero que kitlegal no instaló.
+-- declara.sh --
+# declara.sh <manifiesto> <clave> <fichero>: el manifiesto declara <clave> con
+# la huella SHA-256 de los bytes de <fichero>, en la forma «sha256:» y 64
+# hexadecimales en minúscula (contracts/manifiesto.md §1).
+set -u
+if command -v sha256sum > /dev/null 2>&1; then
+	huella=$(sha256sum < "$3" | cut -d ' ' -f 1)
+else
+	huella=$(shasum -a 256 < "$3" | cut -d ' ' -f 1)
+fi
+grep -q "\"$2\": *\"sha256:$huella\"" "$1" || {
+	echo "$1 no declara $2 con sha256:$huella" >&2
+	exit 1
+}
+-- ordenes.sh --
+# ordenes.sh <salida de error de doctor>: ejecuta con sh -c, en el directorio
+# de trabajo y en el orden en que doctor las lista, las órdenes de sus
+# hallazgos: lo que sigue al segundo «: » de cada línea
+# «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5 y §6). Falla si no
+# hay ninguna o si alguna falla.
+set -u
+lineas=$(grep -E '^(fichero editado|enlace colgando|enlace a otro sitio|copia|versión distinta): ' "$1") || {
+	echo "ningún hallazgo en $1" >&2
+	exit 1
+}
+printf '%s\n' "$lineas" | sed 's/^[^:]*: [^:]*: //' | while IFS= read -r orden; do
+	sh -c "$orden" || exit 1
+done

@@ -19,6 +19,24 @@
     "specs/009-h19-instalar-sin-clonar/aceptacion/skills-install-local.txtar": "6db44006a3691af75e1c3c1b50a70e6cf8a05b36ca9a6de76f04d8c851c0fcee",
     "specs/009-h19-instalar-sin-clonar/aceptacion/skills-invocacion.txtar": "2aff5399bc5274a7ce5afdd4213d053a8458866cbe090827411c34682d2ecb20",
     "specs/009-h19-instalar-sin-clonar/aceptacion/skills-list-doctor.txtar": "b00cd1af33939bc02e8b697145fab9c77514bc6d707320ffd64be029ff87e566",
-    "specs/009-h19-instalar-sin-clonar/aceptacion/skills-no-empotrada.txtar": "e5b4d1bb0dc7ccc735ee9eed44f82674e4c4fa07cb3d368ddeb38869ebda7367"
+    "specs/009-h19-instalar-sin-clonar/aceptacion/skills-no-empotrada.txtar": "e5b4d1bb0dc7ccc735ee9eed44f82674e4c4fa07cb3d368ddeb38869ebda7367",
+    "internal/app/testdata/script/h19-instalador-correcto.txtar": "9d6e2320165b4054cfa91d9f5d3fcc5c81f387c7aaca6b15cf36231cd106f7e5",
+    "internal/app/testdata/script/h19-instalador-rechazos.txtar": "23fb1dbc2b9918d857c0cafe169c76e24f295342fd91eccc1f62c17466528ffa",
+    "internal/app/testdata/script/h19-skills-ambito-dir.txtar": "6458f77c3a1ac4573b366a1d86ef17775335f43b68795d3276f3bca39fcd2db4",
+    "internal/app/testdata/script/h19-skills-ambito-global.txtar": "67026f374b4623d835b375dc0f522f52d08d0d22a0ef4737e626201b01dc81c2",
+    "internal/app/testdata/script/h19-skills-aviso-sin-aviso.txtar": "467ab8a0a6c92692f7e0274e0c4133800902cdbe0c52f9bda08f10f6327b6065",
+    "internal/app/testdata/script/h19-skills-aviso.txtar": "555f8daa8e8fc55d9a887f95a6015bc413717cb04545a2540f2c5ed50387dad5",
+    "internal/app/testdata/script/h19-skills-conflictos-dentro.txtar": "7a006eebada8bb9cf77153549cbb588bfba9f1e4530912a173f9955ff6340c71",
+    "internal/app/testdata/script/h19-skills-conflictos-entradas.txtar": "4cc2b30f271790436f156baa4b6063b9164af564ffd75620dfc7bd56248a2968",
+    "internal/app/testdata/script/h19-skills-conflictos-rutas.txtar": "04f93c09d9a80855c8de167277bc0926955a60577be8499b3dd85d0fae2bb6d7",
+    "internal/app/testdata/script/h19-skills-doctor-copia.txtar": "95b61ad75ca1fb88dc7c32b2a609e753ea191cee1feb47d9ef7dec59a4168622",
+    "internal/app/testdata/script/h19-skills-doctor-hallazgos.txtar": "70e2c8c90a3ad05d966fb8beba1c5908fa1f6da4f4b380fc8682aff78a6ec1dc",
+    "internal/app/testdata/script/h19-skills-dry-run.txtar": "d0c98cc8b2ac91f77e6a7e83a081c6d29a0bcf386a1b822bf476a9e961c4f491",
+    "internal/app/testdata/script/h19-skills-idempotencia.txtar": "54d2030238b06af3c6a50ad25ca87a745d0d86354034313ba919187309be7058",
+    "internal/app/testdata/script/h19-skills-install-hosts.txtar": "407247bb7d29e0a14a872be54cd48a925b8eff1b38ff0393a5a0f2124bb8e6ca",
+    "internal/app/testdata/script/h19-skills-install-local.txtar": "6db44006a3691af75e1c3c1b50a70e6cf8a05b36ca9a6de76f04d8c851c0fcee",
+    "internal/app/testdata/script/h19-skills-invocacion.txtar": "2aff5399bc5274a7ce5afdd4213d053a8458866cbe090827411c34682d2ecb20",
+    "internal/app/testdata/script/h19-skills-list-doctor.txtar": "b00cd1af33939bc02e8b697145fab9c77514bc6d707320ffd64be029ff87e566",
+    "internal/app/testdata/script/h19-skills-no-empotrada.txtar": "e5b4d1bb0dc7ccc735ee9eed44f82674e4c4fa07cb3d368ddeb38869ebda7367"
   }
 }
