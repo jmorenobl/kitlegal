@@ -1,6 +1,7 @@
 # Evals de skills con Claude Code (FR-070). No forma parte de make ci: las evals con modelo cuestan y no son
 # deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md;
-# la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5.
+# la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5; la instalación con make
+# install y kitlegal en el PATH, specs/009-h19-instalar-sin-clonar/contracts/skills-e-invocacion.md §6.
 name: evals
 
 on:
@@ -124,7 +125,16 @@ jobs:
           claude --version
 
       - name: Instalar kitlegal y las skills como las deja make install
-        run: make install
+        shell: bash
+        run: |
+          # Las opciones las fija el propio paso: si go list falla, el paso se detiene en lugar de dejar en el PATH el
+          # directorio de una ruta vacía (research.md V56).
+          set -euo pipefail
+          make install
+          # Las skills invocan kitlegal desde el PATH (FR-127 de H19): el directorio donde go install deja el binario
+          # entra en el de los pasos siguientes, sin confiar en que setup-go lo haya puesto (H19, research.md D19).
+          binario=$(go list -f '{{.Target}}' ./cmd/kitlegal)
+          dirname "$binario" >> "$GITHUB_PATH"
 
       - name: Retirar Python del runner
         shell: bash
@@ -142,9 +152,11 @@ jobs:
           marca="retirada de Python"
           echo "--- inicio de la $marca ---"
 
-          # Lo que el job usa después de este paso: la retirada no puede llevárselo (research.md D22, S7).
-          usados=("$GITHUB_WORKSPACE" "$HOME/.claude")
-          kitlegal=$(readlink -e "$GITHUB_WORKSPACE/bin/instalado/kitlegal")
+          # Lo que el job usa después de este paso: la retirada no puede llevárselo (research.md D22, S7). Las skills de
+          # ~/.claude/skills son enlaces a ~/.agents/skills, y kitlegal se localiza en el PATH: si no está, readlink -e
+          # falla y el paso se detiene (H19, contracts/skills-e-invocacion.md §6).
+          usados=("$GITHUB_WORKSPACE" "$HOME/.claude" "$HOME/.agents")
+          kitlegal=$(readlink -e "$(command -v kitlegal)")
           usados+=("$kitlegal")
           for orden in bash sudo find rm timeout strace claude node go make git; do
             if ! ruta=$(command -v "$orden"); then echo "falta $orden" >&2; exit 1; fi
