@@ -27,7 +27,7 @@ Sin ninguna propiedad obsoleta en v2.18.1 (V3): `goreleaser check` sale con 0 (F
 | `builds[0].ldflags` | exactamente cuatro `-X`: `main.version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}`, `main.commit={{ .FullCommit }}`, `main.fecha={{ .Date }}`, `github.com/jmorenobl/kitlegal/internal/httpx.version=` con la misma plantilla que `main.version`; los mismos cuatro símbolos que el `LDFLAGS` del `Makefile` | FR-091, FR-092 |
 | `archives[0]` | `name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"`, `formats: [tar.gz]`, `format_overrides: [{goos: windows, formats: [zip]}]`; el binario en la raíz del archivo | FR-093 |
 | `checksum` | `name_template: checksums.txt` (SHA-256 por omisión), `extra_files: [{glob: ./scripts/install.sh}]` | FR-093 |
-| `sboms` | una entrada con los valores por omisión (syft, un SBOM por archivo) | FR-093 |
+| `sboms` | una entrada, `artifacts: archive`: el valor por omisión escrito explícito (syft, un SBOM por archivo) | FR-093 |
 | `signs` | `cmd: cosign`, `artifacts: checksum`, `signature: "${artifact}.sigstore.json"`, `args: [sign-blob, "--bundle=${signature}", "${artifact}", --yes]` | FR-093 |
 | `homebrew_casks[0]` | `name: kitlegal`, `repository: {owner: jmorenobl, name: homebrew-tap, token: "{{ .Env.PUBLISHER_TOKEN }}"}`, `homepage`, `description`, `hooks.post.install` que retira `com.apple.quarantine` del binario en macOS | FR-093, FR-097 |
 | `scoops[0]` | `name: kitlegal`, `repository: {owner: jmorenobl, name: scoop-bucket, token: "{{ .Env.PUBLISHER_TOKEN }}"}`, `homepage`, `description`, `license: Apache-2.0` | FR-093, FR-097 |
@@ -85,7 +85,8 @@ release`; `make snapshot-check` (FR-120).
 `on: push: tags: ['v*']` y ningún otro evento (FR-110). Permisos por trabajo, ninguno a nivel de flujo.
 
 **`publicar`** (`ubuntu-latest`; `contents: write`, `id-token: write`, `attestations: write`, FR-111):
-`actions/checkout` con `fetch-depth: 0`; `actions/setup-go` con `go-version-file: go.mod`; instalar syft
+`actions/checkout` con `fetch-depth: 0` y `persist-credentials: false`; `actions/setup-go` con `go-version-file:
+go.mod` y `cache: false`; instalar syft
 (`anchore/sbom-action/download-syft`) y cosign (`sigstore/cosign-installer`); `go tool -modfile=tools/goreleaser/go.mod
 goreleaser release --clean` con `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` y `PUBLISHER_TOKEN: ${{
 secrets.PUBLISHER_TOKEN }}` **solo en el entorno de ese paso** (FR-114); `actions/attest-build-provenance` con
@@ -119,14 +120,15 @@ sh install.sh [<versión>]
 | `uname -s` | `Darwin` → `darwin`, `Linux` → `linux`; otro valor: error que lo nombra |
 | `uname -m` | `x86_64`/`amd64` → `amd64`, `arm64`/`aarch64` → `arm64`; otro valor: error que lo nombra |
 | `KITLEGAL_INSTALL_DIR` | directorio de instalación si está definido y no vacío |
-| `HOME` | si no, `$HOME/.local/bin`; sin ninguno de los dos, error **antes de descargar** |
+| `HOME` | si no, `$HOME/.local/bin`; sin ninguno de los dos, o con un `HOME` que no es una ruta absoluta o que solo tiene barras, error **antes de descargar** |
 | `KITLEGAL_INSTALL_URL` | base de las URL, por omisión `https://github.com/jmorenobl/kitlegal/releases`; los tests la apuntan a `file://…` (FR-107) |
 
 Descargas (`curl -fsSL`): `<base>/latest/download/<archivo>` sin versión, `<base>/download/v<versión>/<archivo>` con
 ella, y `checksums.txt` del mismo sitio; `<archivo>` = `kitlegal_<os>_<arch>.tar.gz`.
 
 Verificación: la línea de `checksums.txt` cuyo **segundo campo es exactamente** `<archivo>` (nunca por posición ni
-subcadena); huella con `sha256sum` o, si no existe, `shasum -a 256`; sin línea o con huella distinta, error.
+subcadena); huella con `sha256sum` o, si no existe, `shasum -a 256`; sin línea, con más de una o con huella distinta,
+error.
 
 Instalación: solo el miembro `kitlegal` del archivo, copiado a un temporal del directorio de instalación (creado si
 falta) y renombrado encima de `kitlegal`; un `kitlegal` anterior sigue intacto ante cualquier error. Ningún fichero de
@@ -136,4 +138,11 @@ Salida correcta (salida estándar): si el directorio no está en el `PATH`, una 
 `export PATH='<directorio>':"$PATH"` (comilla simple escrita `'\''`), que evaluada en `sh` deja el directorio en el
 `PATH`; la **última línea** es `kitlegal skills install`. Error (salida de error): una línea que empieza por
 `install.sh: ` y nombra la versión («la última versión» sin argumento) y lo que falló; código distinto de 0; nada
-instalado.
+instalado. Lo mismo en un locale UTF-8 con el `/bin/sh` de macOS (bash 3.2): ninguna variable va sin llaves delante
+de un carácter que no es ASCII.
+
+Guion cortado (`curl … | sh` que recibe solo una parte): todo lo que hace va en funciones y la llamada a `main`, en
+la última línea, dentro de un grupo `{ main "$@"; }`, así que ningún corte ejecuta nada a medias; una guarda en la
+segunda línea, que `main` retira al empezar, hace terminar con código 1 y una línea `install.sh: ` el corte que deja
+las funciones enteras sin la llamada. Solo un corte antes de que la guarda llegue entera sale con 0, como un guion
+vacío (revisión final).

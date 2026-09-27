@@ -18,7 +18,7 @@ exec kitlegal --help
 stdout '^  skills +\S'
 ```
 
-Hoy falla por esa aserción («no match for …»), que es lo que el rojo-primero exige (`scripts/workflow/aceptacion.sh`,
+Sin el applet `skills` registrado, falla por esa aserción («no match for …»), que es lo que el rojo-primero exige (`scripts/workflow/aceptacion.sh`,
 V19): ningún guion puede fallar antes por `exec` («unexpected command failure»), por una orden desconocida o por uso.
 Detrás de la precondición, el guion puede usar todo lo de este contrato, que existirá cuando se active, y afirmar los
 formatos de salida que fijan los contratos del producto, tal como enumera §6.

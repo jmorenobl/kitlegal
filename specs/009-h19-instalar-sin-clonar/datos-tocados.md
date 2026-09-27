@@ -3,8 +3,9 @@
 Lista para el informe final y su revisión humana posterior (constitución, capa 3; FR-145): cada fichero bajo
 `schemas/` o bajo cualquier `testdata/` que el hito crea o modifica, con la tarea que lo tocó y su motivo. Sale de
 `git diff --name-status main` sobre `1ae8471` (T025, el último commit antes de esta tarea), filtrado a esos dos
-árboles, más los guiones que añade la activación de la suite, que todavía no están en el diff. Ningún fichero de esos
-árboles se retira.
+árboles, más los guiones que añade la activación de la suite (`95efed2`), que ya están en el diff de la rama:
+`git diff --name-status main...HEAD` sobre `95efed2` da exactamente los ficheros de las tres tablas. Ningún fichero de
+esos árboles se retira.
 
 ## Esquemas (`schemas/`)
 
@@ -42,7 +43,7 @@ línea «Cubre» de cabecera.
 | A | `internal/app/testdata/script/h19-skills-install-local.txtar` | US1.1, US1.4, US1.6 · FR-001, FR-003, FR-004, FR-010, FR-011, FR-014, FR-015, FR-016, FR-030 a FR-032, FR-050, FR-051, FR-122 · SC-001, SC-006, SC-021 |
 | A | `internal/app/testdata/script/h19-skills-install-hosts.txtar` | US1.2, US1.3, US1.5 · FR-020 a FR-023, FR-025 · SC-002, SC-003 |
 | A | `internal/app/testdata/script/h19-skills-ambito-global.txtar` | US6.1, US6.4 · FR-012 · SC-004 |
-| A | `internal/app/testdata/script/h19-skills-ambito-dir.txtar` | US6.2, US6.3, US6.5 · FR-013, FR-052 |
+| A | `internal/app/testdata/script/h19-skills-ambito-dir.txtar` | US6.2, US6.3, US6.5 · FR-013, FR-052 · SC-005 |
 | A | `internal/app/testdata/script/h19-skills-conflictos-entradas.txtar` | FR-040, FR-041 (a)-(d), FR-042, FR-043, FR-052 · SC-008, SC-009 |
 | A | `internal/app/testdata/script/h19-skills-conflictos-rutas.txtar` | FR-022, FR-023, FR-026, FR-027, FR-035, FR-041 (g)-(h), FR-061, FR-067 · SC-009 |
 | A | `internal/app/testdata/script/h19-skills-conflictos-dentro.txtar` | FR-028, FR-041 (e)-(g), FR-047 · SC-009 |
@@ -73,12 +74,16 @@ línea «Cubre» de cabecera.
 
 ## Puntos de la Definition of Done que no aplican
 
-- **ADR nuevo**: no aplica. ADR 0019 (`docs/adr/0019-distribucion-binario-con-skills-empotradas.md`) ya decide la
+- **ADR nuevo**: no aplica. ADR 0019 (`docs/ADR/0019-distribucion-binario-con-skills-empotradas.md`) ya decide la
   distribución por gestor de paquetes, las skills empotradas en el binario y `kitlegal skills install` local por
-  defecto con los hosts por enlace; el hito lo implementa sin reabrirlo y no añade nada a `docs/adr/`.
+  defecto con los hosts por enlace; el hito lo implementa sin reabrirlo y no añade nada a `docs/ADR/`.
 - **Fila de `docs/SOURCES.md`**: no aplica. El hito no toca ninguna fuente: `skills` es un applet calculado (procedencia
-  `kitlegal.skills`, `kitlegal:applet/skills`) que no abre red —lo fija la subprueba sin red de `TestArquitectura`
-  (T018)—, y ni `scripts/install.sh` ni la release son fuentes de datos. `docs/SOURCES.md` no cambia.
+  `kitlegal.skills`, `kitlegal:applet/skills`) que no abre red. La subprueba sin red de `TestArquitectura` (T018; la
+  amplió la revisión final) fija que ni el dominio de la instalación, ni el adaptador del disco, ni lo empotrado, ni
+  los ficheros de `internal/app` que componen el applet y el aviso (`instalacion.go`, `empotradas.go`, `aviso.go`)
+  importan la red o algo del módulo que la alcance; lo que esos ficheros llamen de otros ficheros del paquete no lo ve
+  un análisis de importaciones, y lo miden los guiones e2e con los proxies cerrados. Ni `scripts/install.sh` ni la
+  release son fuentes de datos. `docs/SOURCES.md` no cambia.
 - **Grabaciones**: no aplica. No hay manifiesto `grabaciones.json`, ni test `//go:build grabacion`, ni paso
   `grabar_datos`, ni material en `evidencias/`. La única red que usó una tarea fue la del proxy de módulos de Go para
   `tools/goreleaser/go.sum` (T023; research S10), que no es una fuente de datos.
@@ -96,4 +101,6 @@ del árbol, con su cabecera `mode:`.
 | Global | 97,7 % | ≥ 70 % |
 
 Las cifras valen para `1ae8471`: si la activación de la suite o la revisión final cambian código, se vuelven a medir
-sobre la cabeza final.
+sobre la cabeza final. La revisión final cambió código (`internal/core/instalacion/ambito.go`, `scripts/install.sh` y
+tests); medidas de nuevo con el perfil de su `make ci`, sobre `95efed2` con sus cambios, dan las mismas tres cifras:
+`internal/core/instalacion` 99,9 % (1194 de 1195 sentencias), `internal/core/**` 99,5 % y global 97,7 %.

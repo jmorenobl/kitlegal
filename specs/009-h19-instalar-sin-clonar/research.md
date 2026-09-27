@@ -98,8 +98,8 @@ no lleva la versión inyectada con `-X` y daría otra versión que `kitlegal ver
 
 **Decisión.** El registro guarda un avisador opcional (`Registro.Avisar(func() (string, bool))`), que componen
 `RegistroDeProduccion` y el registro de e2e con el disco real, `HOME` y las skills empotradas. `internal/app/main.go`
-lo llama **una vez** en `resolverApplet`, justo después de `cli.Analizar`, cuando el applet no es `skills` y la
-decisión no es la ayuda —también si el análisis falla, que es el exit 2 de «`kitlegal boe articulo` sin norma»—, y
+lo llama **una vez** en `resolverApplet`, justo después de `cli.Analizar`, cuando el applet no es `skills`, la
+decisión no es la ayuda y el pre-escaneo no vio una petición de ayuda —también si el análisis falla, que es el exit 2 de «`kitlegal boe articulo` sin norma»—, y
 escribe la línea con `Presentador.Aviso`. `version`, la ayuda del binario y los fallos anteriores al despacho no llegan
 nunca ahí (FR-070).
 
@@ -142,9 +142,11 @@ nombrándolo:
    que ya no se empotran, y las copias de host que pasan a enlace (con sus directorios, ya vacíos).
 2. **Enlazar** las entradas de host que tocan (nuevas, que faltan o que sustituyen a una copia), creando antes
    `<Raiz>/.claude` y `<Raiz>/.claude/skills` si faltan (FR-023); si el creador de enlaces falla, esa entrada pasa a
-   copia (FR-024).
-3. **Escribir el manifiesto final**, de una vez y de forma atómica, con los modos que resultaron de la fase 2.
-4. **Escribir** los ficheros (del directorio neutro y de las copias), creando los directorios que falten.
+   copia (FR-024). Una entrada que la sonda ya prevé en copia no se intenta enlazar: va directa a la fase 4.
+3. **Escribir el manifiesto final**, de una vez y de forma atómica, con los modos que resultaron de la fase 2, creando
+   antes lo que falte hasta el directorio neutro.
+4. **Escribir** los ficheros (del directorio neutro y de las copias), creando los directorios que falten dentro de cada
+   skill y de cada copia.
 
 **Por qué.** Tras un fallo en cualquier punto, el estado del disco es uno que `install` completa sin conflictos: en
 1 y 4, un fichero declarado que falta se repone (FR-046); en 2, un enlace creado antes de declararlo tiene el destino
@@ -185,10 +187,10 @@ va a enlazar.
 
 El `Enlazador` del sistema responde con una **sonda en ese directorio**: crea con `os.Symlink` un enlace de nombre
 `.kitlegal-sonda-<16 hexadecimales aleatorios>` y destino literal `kitlegal-sonda` (no resuelve y no se sigue), y lo
-retira con `os.Remove`. Si crearlo falla, `false` (con `fs.ErrExist` prueba otro nombre, hasta 8 veces, antes de darse
-por vencido con error); si retirarlo falla, devuelve el error y la orden sale con 1 nombrando la ruta de la sonda, porque
-el disco ya no quedaría como estaba. Recuerda la respuesta por directorio durante la invocación, y el dominio solo
-pregunta cuando tiene que decidir entre enlace y copia: una entrada de host que hay que crear, o una declarada `copia`
+retira con `os.Remove`. Si crearlo falla, `false` (con `fs.ErrExist` prueba otro nombre, hasta ocho nombres en total,
+antes de darse por vencido con error); si retirarlo falla, devuelve el error y la orden sale con 1 nombrando la ruta de
+la sonda, porque el disco ya no quedaría como estaba. El `Enlazador` del sistema no guarda nada entre llamadas: es el
+dominio el que recuerda la respuesta por directorio durante la invocación, y solo pregunta cuando tiene que decidir entre enlace y copia: una entrada de host que hay que crear, o una declarada `copia`
 que sigue siendo un directorio real (`install` y la clase 4 de `doctor`). Nunca se pregunta en el caso idempotente (un
 enlace declarado que sigue siendo el de FR-021), ni en `list`, ni en el aviso, ni con `--dir`. Al terminar la sonda el
 directorio tiene exactamente las mismas entradas y los mismos bytes: `--dry-run` y `doctor` siguen sin dejar ningún
@@ -290,8 +292,9 @@ exit 2 con la lista de las disponibles (un repetido cuenta una vez); `-g` sin `H
 validación la hace el verbo con errores del dominio que declaran su clase (`argumentos` → 2), no Kong: el mensaje de
 Kong para `xor` o `enum` sale en inglés y no dice lo que pide FR-013.
 
-**Por qué.** FR-010, FR-012, FR-013 y FR-020 exigen «nada escrito ni leído del disco». El `enum` del esquema de
-`--describe` para `--host` se declara con la etiqueta `jsonschema` (V22).
+**Por qué.** FR-010, FR-012, FR-013 y FR-020 exigen «nada escrito ni leído del disco». En el esquema de `--describe`,
+`--host` es una cadena sin `enum`: el kernel describe la entrada reflejando el tipo de cada campo y no sus etiquetas,
+así que el valor admitido lo dicen su ayuda y el mensaje de la validación (FR-020; `gates/supuestos.md`, T013).
 
 ### D15 · Salida de los tres verbos
 
@@ -370,7 +373,7 @@ es una fuente de datos y no pasa por `grabar_datos` (S10).
   `format_overrides` de `windows` a `zip` (V7); ficheros del archivo, los de omisión (licencia, README y CHANGELOG).
 - `checksum`: `name_template: checksums.txt`, SHA-256 (por omisión), y `extra_files` con `scripts/install.sh`, que
   así también lleva su huella (D23).
-- `sboms`: los valores por omisión, un SBOM de syft por archivo (V9).
+- `sboms`: `- artifacts: archive`, el valor por omisión escrito explícito, un SBOM de syft por archivo (V9).
 - `signs`: `cmd: cosign`, `artifacts: checksum`, firma keyless en un *bundle* (`sign-blob --bundle=${signature}
   ${artifact} --yes`), el patrón del propio `.goreleaser.yaml` de goreleaser (V10; flags de cosign: S3).
 - `homebrew_casks` (no `brews`, obsoleto: V3) en `jmorenobl/homebrew-tap`, con `token: "{{ .Env.PUBLISHER_TOKEN }}"`,
@@ -403,7 +406,8 @@ el límite de peticiones anónimas de la API y una segunda URL que puede fallar.
 
 ### D23 · La huella de `install.sh` también va en `checksums.txt`
 
-**Decisión.** `checksum.extra_files: [{glob: scripts/install.sh}]`, además de `release.extra_files`.
+**Decisión.** `checksum.extra_files: [{glob: ./scripts/install.sh}]`, además de `release.extra_files` (con el mismo
+`glob`).
 
 **Por qué.** FR-093 pide la huella de «todos los artefactos subidos», y `install.sh` se sube; `release.extra_files`
 solo lo adjunta y no entra en los checksums (V8, V14). Así la firma de los checksums cubre también el instalador.
@@ -429,8 +433,8 @@ solo lo adjunta y no entra en los checksums (V8, V14). Así la firma de los chec
   versión de `dist/metadata.json` (FR-108, FR-120);
 - la orden `arbol <directorio>`: una línea por entrada, sin seguir enlaces y en orden de bytes, con tipo, ruta y, según
   el tipo, huella y permisos o destino literal; `cp stdout` y `cmp` sobre ella comparan el disco «byte a byte»;
-- `http_proxy`, `https_proxy`, `HTTP_PROXY`, `HTTPS_PROXY` y `ALL_PROXY` a `http://127.0.0.1:9` y `NO_PROXY` vacío en
-  todos los guiones: toda petición HTTP(S) que se colara fallaría (V32).
+- `http_proxy`, `https_proxy`, `HTTP_PROXY`, `HTTPS_PROXY` y `ALL_PROXY` a `http://127.0.0.1:9` y `NO_PROXY` y
+  `no_proxy` vacíos en todos los guiones: toda petición HTTP(S) que se colara fallaría (V32).
 
 **Por qué.** Sin binarios de versiones distintas no hay aviso ni «actualizada» que probar; sin enlazador inyectable no
 hay SC-012 en e2e (FR-143); sin una instantánea sin seguir enlaces no hay «0 cambios en disco» comprobable. Las
@@ -470,10 +474,11 @@ sin red.
 
 **Decisión.** POSIX `sh` con `set -eu`, sin `bash`, `jq`, Go ni git. Orden: argumentos (0 o 1; versión SemVer 2.0.0
 con `v` opcional, comprobada con `grep -E` y `LC_ALL=C`) → sistema y arquitectura (`uname -s`/`uname -m`, FR-101) →
-directorio de instalación (`$KITLEGAL_INSTALL_DIR` no vacío, si no `$HOME/.local/bin`; sin ninguno de los dos, fallo
-**antes de descargar**, FR-103) → temporal con `mktemp -d` y `trap` que lo retira → `curl -fsSL` del archivo y de
-`checksums.txt` → huella de la línea cuyo **segundo campo es exactamente** el nombre del archivo (`awk '$2 == f'`), con
-`sha256sum` o, si no está, `shasum -a 256` → extracción solo del miembro `kitlegal` → copia a un temporal del
+directorio de instalación (`$KITLEGAL_INSTALL_DIR` no vacío, si no `$HOME/.local/bin`; sin ninguno de los dos, o con un
+`HOME` que no es absoluto o es la raíz del sistema, fallo **antes de descargar**, FR-103) → temporal con `mktemp -d` y
+`trap` que lo retira → `curl -fsSL` del archivo y de `checksums.txt` → huella de la única línea cuyo **segundo campo es
+exactamente** el nombre del archivo (`awk '$2 == archivo'`; ninguna o más de una es un error), con `sha256sum` o, si no
+está, `shasum -a 256` → extracción solo del miembro `kitlegal` → copia a un temporal del
 directorio de instalación y `mv -f` encima (un `kitlegal` anterior sigue intacto hasta el final) → si el directorio no
 está en el `PATH`, la línea exacta `export PATH='<dir>':"$PATH"` (con la comilla simple escapada) → última línea,
 `kitlegal skills install`. Todo error va a la salida de error con código distinto de 0 y un mensaje que nombra la
@@ -498,9 +503,10 @@ hacen fallar cualquier petición HTTP(S).
   el paso de publicación (FR-097, FR-114), `release.yml` solo en etiquetas `v*` con `id-token: write` y
   `attestations: write`, la atestación y el trabajo de humo con sus seis comprobaciones (FR-110 a FR-113), y el trabajo
   de snapshot de `ci.yml` sin `id-token` ni secretos y con `make release` y `make snapshot-check` (FR-120).
-- `TestSinInstalacionPorEnlaces` (raíz, en `make test`): ni `SKILL.md`, ni el `Makefile`, ni `.github/` contienen
-  `scripts/boe`, `scripts/territorio` ni `bin/instalado`, y no existen `scripts/instalar-skills.sh` ni
-  `internal/skills/enlaces.go` (SC-014, FR-083).
+- `TestSinInstalacionPorEnlaces` (raíz, en `make test`): ningún fichero de `skills/` ni de `.github/`, ni el
+  `Makefile`, contienen `scripts/boe`, `scripts/territorio` ni `bin/instalado`; no existen `scripts/instalar-skills.sh`,
+  `internal/skills/enlaces.go` ni `internal/skills/enlaces_test.go`, y ninguna skill tiene una entrada `scripts`
+  (SC-014, FR-083).
 - `TestSnapshot` (raíz, etiqueta de compilación `snapshot`, en `make snapshot-check`): sobre `dist/` —con
   `metadata.json` y `artifacts.json` (V15)— los seis archivos, cada línea de `checksums.txt` que los nombra con la
   huella calculada, ni SBOM ni firmas, y el binario de la plataforma que ejecuta el test imprime en `version` la versión

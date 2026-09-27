@@ -29,9 +29,11 @@ const (
 // quitar dice si retira antes la entrada de ruta, la del hallazgo, detrás de
 // --, para que ninguna ruta se lea como una opción. install nombra las skills
 // —ninguna, que son todas las empotradas, si no hay ninguna— con las banderas
-// del ámbito, y --host claude si alguna de ellas tiene una entrada de host
-// declarada, que nunca con --dir, cuyo ámbito no tiene hosts. Cada ruta va
-// entre comillas simples, con cada comilla simple escapada.
+// del ámbito —con una ruta de --dir que empieza por «-», --dir='<ruta>', en
+// una sola palabra (Ambito.Banderas)—, y --host claude si alguna de ellas
+// tiene una entrada de host declarada, que nunca con --dir, cuyo ámbito no
+// tiene hosts. Cada ruta va entre comillas simples, con cada comilla simple
+// escapada.
 func ordenQueArregla(ambito Ambito, quitar retirada, ruta string, skills []string, conHost bool) string {
 	partes := make([]string, 0, len(skills)+10)
 

@@ -337,6 +337,7 @@ func casosDelApplet() []casoDelApplet {
 		{"describe-los-tres-verbos", compruebaDescribeDeSkills},
 		{"sonda-que-no-se-retira-sale-con-1", compruebaSondaQueNoSeRetira},
 		{"fallo-al-escribir-sale-con-1", compruebaFalloAlEscribir},
+		{"fallo-del-disco-nombra-el-verbo", compruebaFalloDelDiscoNombraElVerbo},
 		{"version-que-el-manifiesto-no-admite", compruebaVersionQueNoSeDeclara},
 		{"offline-y-sin-grafo-no-cambian-nada", compruebaOfflineYSinGrafo},
 		{"dependencias-del-sistema", compruebaDependenciasDelSistema},
@@ -915,6 +916,34 @@ func compruebaFalloAlEscribir(t *testing.T) {
 
 	assert.True(t, strings.HasPrefix(mensaje, "skills install: escribir "+manifiesto+": "), mensaje)
 	assert.Equal(t, 1, strings.Count(mensaje, "skills install:"), "el verbo, una sola vez: %s", mensaje)
+}
+
+// compruebaFalloDelDiscoNombraElVerbo hace fallar el disco al examinar la ruta
+// de --dir, que pasa por un fichero regular: install, list y doctor salen con 1
+// y el mensaje empieza por «skills <verbo>: » una sola vez, seguido de la
+// operación y la ruta, sin cambiar nada (contracts/applet-skills.md §5). El
+// fallo se provoca por la forma del árbol y no por un permiso, para que no
+// dependa de quién ejecuta el test.
+func compruebaFalloDelDiscoNombraElVerbo(t *testing.T) {
+	t.Helper()
+
+	enUnProyecto(t)
+	escribirEnElProyecto(t, "fichero", "no soy un directorio\n")
+
+	registro := delSistema(t)
+	arbol := arbolDelProyecto(t, ".")
+
+	for _, verbo := range []string{"install", "list", "doctor"} {
+		mensaje := falloDeSkills(t, invocar(t, registro, argvDeSkills(verbo, "--dir", "fichero/sub", "--json")...),
+			schema.ClaseInesperado, 1, firmaDeSkills)
+
+		cabecera := "skills " + verbo + ": examinar fichero/sub: "
+		assert.True(t, strings.HasPrefix(mensaje, cabecera), "%s: %s", verbo, mensaje)
+		assert.NotEqual(t, cabecera, mensaje, "%s: el mensaje dice el error del sistema", verbo)
+		assert.Equal(t, 1, strings.Count(mensaje, "skills "), "%s: el verbo, una sola vez: %s", verbo, mensaje)
+	}
+
+	assert.Equal(t, arbol, arbolDelProyecto(t, "."), "ninguno de los tres cambia nada")
 }
 
 // compruebaVersionQueNoSeDeclara compone el applet con una versión vacía, que

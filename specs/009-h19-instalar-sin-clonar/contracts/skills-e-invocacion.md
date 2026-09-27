@@ -26,8 +26,8 @@ SHA-256. `TestSkillsEmpotradas` (raíz) exige que el conjunto y los bytes empotr
   `\`kitlegal <applet> <verbo> <argumentos>\``; la regenera `make skills-sync` desde `--describe` (FR-080, FR-133).
 - En el **texto libre**, toda invocación `scripts/boe` pasa a `kitlegal boe` y `scripts/territorio` a `kitlegal
   territorio` (FR-081). Las frases que dicen de dónde sale el binario pasan a decir que `kitlegal` se invoca desde el
-  `PATH`, y la de `legal-core` que hoy dice «si `scripts/territorio` no resuelve a un binario» pasa a «si `kitlegal` no
-  está en el `PATH`». Nada más cambia: protocolo, reglas, forma de la cita y de los avisos intactos. Se comprueba así:
+  `PATH`, y las dos que decían «si `scripts/<applet>` no resuelve a un binario» (la de `legal-core` y la regla 2 de
+  `boe-legislacion`) pasan a «si `kitlegal` no está en el `PATH`». Nada más cambia: protocolo, reglas, forma de la cita y de los avisos intactos. Se comprueba así:
   sustituyendo de vuelta la forma de invocar, `git diff main -- skills/*/SKILL.md` solo deja esas frases
   (quickstart §6a).
 - `metadata.kitlegal-applets` y `metadata.kitlegal-referencias` no cambian.
@@ -66,13 +66,14 @@ instalando sobre la copia mínima del árbol con `HOME`, `GOBIN` y `GOPATH` temp
 | `instalar-sin-gobin.txtar` | sin `GOBIN`, el binario queda en `$GOPATH/bin` y las skills se instalan igual |
 
 El guion del enlace roto escrito en `instalacion_test.go` pasa a esperar «enlace roto». `rutasDeLaInstalacion` deja
-de copiar `scripts/instalar-skills.sh` y copia `skills.go` por ser un `GoFile` del cierre de `./cmd/kitlegal` (lo
-recoge `ficherosDelBinario`, con sus `EmbedFiles`).
+de copiar `scripts/instalar-skills.sh` (queda `Makefile`, `go.mod`, `go.sum` y `skills` entera), y la copia lleva
+`skills.go` por ser un `GoFile` del cierre de `./cmd/kitlegal` (lo recoge `ficherosDelBinario`, con sus `EmbedFiles`).
 
 ## 6. Job de evals
 
-- `.github/workflows/evals.yml`, paso «Instalar kitlegal y las skills como las deja make install»: `make install` y
-  `dirname "$(go list -f '{{.Target}}' ./cmd/kitlegal)" >> "$GITHUB_PATH"`.
+- `.github/workflows/evals.yml`, paso «Instalar kitlegal y las skills como las deja make install»: con `set -euo
+  pipefail`, `make install`, `binario=$(go list -f '{{.Target}}' ./cmd/kitlegal)` y `dirname "$binario" >>
+  "$GITHUB_PATH"`, de modo que un `go list` que falla detiene el paso.
 - Paso «Retirar Python del runner»: `kitlegal=$(readlink -e "$(command -v kitlegal)")`, que falla si no está; y
   `$HOME/.agents` entre lo que no se retira.
 - `scripts/evals.sh`, comprobación 6: además de `~/.claude/skills/<skill>/SKILL.md`, que `kitlegal` está en el `PATH`.

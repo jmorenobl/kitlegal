@@ -81,8 +81,10 @@ en Windows (el recurso de copia se prueba con el enlazador que falla).
 
 **Project Type**: CLI multicall + skills del estándar Agent Skills empotradas + release multiplataforma.
 
-**Performance Goals**: el aviso cuesta como mucho seis `Lstat` y la lectura de un fichero pequeño por invocación; el
-guion `boe-cache-rapida.txtar` (200 ms) sigue en verde con él.
+**Performance Goals**: en un binario con versión SemVer, el aviso cuesta por invocación la lectura en memoria de lo
+empotrado, con la huella de cada fichero, y como mucho siete `Lstat` (seis exámenes y el de la lectura) y la lectura de
+un fichero pequeño; el binario de desarrollo no lee nada (FR-073). El guion `boe-cache-rapida.txtar` (200 ms) sigue en
+verde con él.
 
 **Constraints**: nunca leer, escribir ni hashear a través de un enlace por debajo de la raíz del ámbito (FR-028);
 atómico e idempotente (FR-040 a FR-045); la predicción de enlace o copia se sondea en el sistema de ficheros del propio
@@ -91,8 +93,8 @@ sobre de fallo de ADR 0006 intacto (FR-052); ninguna tarea publica, etiqueta ni 
 (FR-097, FR-115).
 
 **Scale/Scope**: 1 applet con 3 verbos · 2 paquetes nuevos (`internal/core/instalacion`, `internal/disco`) y el paquete
-raíz · 1 esquema publicado nuevo · 1 módulo de herramienta · 1 flujo nuevo y 3 tocados · 1 guion POSIX nuevo y 1
-retirado · 2 `SKILL.md` · 18 guiones de aceptación y 1 guion e2e existente tocado · 4 guiones de integración
+raíz · 1 esquema publicado nuevo · 1 módulo de herramienta · 1 flujo nuevo, 2 tocados y `dependabot.yml` · 1 guion
+POSIX nuevo y 1 guion bash retirado · 2 `SKILL.md` · 18 guiones de aceptación y 1 guion e2e existente tocado · 4 guiones de integración
 reescritos · documentación.
 
 ## Constitution Check
@@ -207,7 +209,7 @@ skills_test.go                     NUEVO   TestSkillsEmpotradas (FR-001, FR-003,
 release_test.go                    NUEVO   TestSinInstalacionPorEnlaces (paso 12), TestConfiguracionDeLaRelease (pasos 14 y 15)
 snapshot_test.go                   NUEVO   //go:build snapshot · TestSnapshot (FR-120, SC-016)
 .goreleaser.yaml                   NUEVO   contracts/release.md §2
-Makefile                           CAMBIA  install, release, goreleaser-check, snapshot-check, ci, help
+Makefile                           CAMBIA  install, release, goreleaser-check, snapshot-check, skills-check, skills-sync, ci, help
 .golangci.yml                      CAMBIA  run.build-tags + snapshot; depguard `core`: + internal/disco y github.com/jmorenobl/kitlegal$ (D32, paso 3)
 .github/
 ├── workflows/ci.yml               CAMBIA  trabajo snapshot
@@ -238,24 +240,27 @@ internal/
 │   ├── version.go                 FormaSemVer, MismaVersion
 │   ├── manifiesto.go              Manifiesto, LeerManifiesto, Bytes canónicos
 │   ├── invocacion.go              validación de §2 del contrato del applet
-│   ├── plan.go                    Planificar: conflictos (§4) y plan en cuatro fases (§5)
+│   ├── plan.go                    ComprobarConflictos (§4) y Planificar: plan en cuatro fases (§5)
 │   ├── aplicar.go                 Aplicar(plan, escritor)
+│   ├── listado.go                 Listar: lo que da list
 │   ├── doctor.go                  Diagnosticar: hallazgos (§6)
 │   ├── ordenes.go                 orden de shell POSIX de cada hallazgo, comillas
 │   ├── aviso.go                   Aviso (contracts/aviso.md)
 │   ├── salida.go                  SkillInstalada, Listado, Diagnostico…
-│   ├── errores.go                 Invocación, Conflictos, Hallazgos, ÁmbitoIlegible (ConClase)
+│   ├── errores.go                 errorDeInvocacion, ErrorDeConflictos, ErrorDeHallazgos, AmbitoIlegible (ConClase); ManifiestoIlegible
 │   └── *_test.go                  disco en memoria (discoEnMemoria_test.go), tablas, propiedades, fuzz
 ├── disco/                         NUEVO   adaptador sobre el sistema de ficheros
 │   ├── doc.go
-│   ├── examinar.go                Examinar, Nombres (Lstat, Readlink, Stat del enlace)
+│   ├── examinar.go                Lector: Examinar, Nombres (Lstat, Readlink, Stat del enlace)
 │   ├── leer.go                    Huella, Leer (Lstat → Open → Stat → SameFile)
-│   ├── escribir.go                CrearDirectorio, EscribirFichero (temporal + rename), Retirar
+│   ├── escribir.go                Escritor (NuevoEscritor(enlazador)): CrearDirectorio, EscribirFichero (temporal + rename), Retirar, Enlazar
 │   ├── enlazador.go               Enlazador del sistema: Disponible(directorio) (sonda en ese directorio, retirada), Enlazar
+│   ├── errores.go                 errores con la operación y la ruta, y el «error del sistema» sin ellas
 │   └── *_test.go                  t.TempDir(): enlaces, ciclos, tubería con nombre, permisos, atomicidad
 ├── app/
-│   ├── instalacion.go             NUEVO   applet skills: AppletSkills(DependenciasDeSkills{versión, empotradas, Enlazador}), DependenciasDeSkillsDelSistema(version); verbos, argumentos Kong, procedencia
-│   ├── empotradas.go              NUEVO   kitlegal.Skills() → []instalacion.SkillEmpotrada
+│   ├── instalacion.go             NUEVO   applet skills: AppletSkills(DependenciasDeSkills{Version, Skills fs.FS, Enlazador}), DependenciasDeSkillsDelSistema(version); verbos, argumentos Kong, procedencia
+│   ├── empotradas.go              NUEVO   skillsEmpotradasDe(kitlegal.Skills()) → []instalacion.SkillEmpotrada
+│   ├── empotradas_test.go         NUEVO   la lectura de lo empotrado y sus errores
 │   ├── aviso.go                   NUEVO   composición del aviso (disco, HOME, versión, empotradas)
 │   ├── main.go                    CAMBIA  Arrancar(construir func(version string)); aviso tras Analizar
 │   ├── registro.go                CAMBIA  RegistroDeProduccion(version); Registro.Avisar; registra skills
@@ -267,6 +272,7 @@ internal/
 │   ├── aviso_test.go              NUEVO   invocaciones que avisan y que no; stdout y código intactos
 │   ├── e2e_test.go                CAMBIA  arnés: binarios, variables, arbol, origen, proxies (contracts/arnes-e2e.md)
 │   ├── ejemplo/kitlegal-e2e/main.go CAMBIA registra skills y el aviso; enlazador que falla (tipo del package main) sustituido en DependenciasDeSkills si lo elige una variable -X
+│   ├── ejemplo/kitlegal-e2e/main_test.go NUEVO la elección del enlazador, el que falla y el registro de e2e
 │   └── testdata/script/
 │       ├── argumentos.txtar       CAMBIA  [datos] lista de applets con skills
 │       └── h19-*.txtar            NUEVOS  activación del workflow (copias congeladas de aceptacion/)
@@ -349,7 +355,7 @@ El trabajo de humo de `release.yml` y la instalación en un Mac limpio (FR-150, 
 |---|---|---|
 | `TestSkillsEmpotradas` | `skills_test.go` (raíz) | lo empotrado = `skills/*/SKILL.md` + `references/**` del árbol, byte a byte; una skill sin `SKILL.md` no entra (FR-001, FR-003, FR-004) |
 | `TestConfiguracionDeLaRelease` | `release_test.go` (raíz) | contracts/release.md §2, §3, §5 y §6 (§2 y §3 desde el paso 14; §5 y §6 en el 15, cuando existen los flujos): plataformas, las cuatro `-X` iguales al `Makefile`, secciones, tokens, disparadores, permisos, humo, trabajo de snapshot sin secretos (FR-090 a FR-097, FR-110 a FR-114, FR-120) |
-| `TestSinInstalacionPorEnlaces` | `release_test.go` (raíz) | ni `SKILL.md`, ni `Makefile`, ni `.github/` nombran `scripts/boe`, `scripts/territorio` ni `bin/instalado`; no existen `scripts/instalar-skills.sh`, `internal/skills/enlaces.go` ni `skills/*/scripts` (FR-083, SC-014) |
+| `TestSinInstalacionPorEnlaces` | `release_test.go` (raíz) | ningún fichero de `skills/` ni de `.github/`, ni el `Makefile`, nombran `scripts/boe`, `scripts/territorio` ni `bin/instalado` (la búsqueda de quickstart §6b); no existen `scripts/instalar-skills.sh`, `internal/skills/enlaces.go`, `internal/skills/enlaces_test.go` ni `skills/*/scripts` (FR-083, SC-014) |
 | `TestSnapshot` | `snapshot_test.go` (raíz, `snapshot`) | contracts/release.md §4 (SC-016) |
 | `TestFormaSemVer`, `TestMismaVersion` | `internal/core/instalacion` | D31, FR-073, FR-077 |
 | `TestLeerManifiesto`, `TestManifiestoCanonico`, `FuzzLeerManifiesto` | `internal/core/instalacion` | contracts/manifiesto.md: cada regla de forma → ilegible; mismos bytes en dos «máquinas»; ningún pánico (FR-032, FR-035) |
@@ -358,7 +364,8 @@ El trabajo de humo de `release.yml` y la instalación en un Mac limpio (FR-150, 
 | `TestPlan` | `internal/core/instalacion` | estados, adopción, subconjunto, skill no empotrada intacta, repuesta, retirada de lo no empotrado, copia ↔ enlace, quitar host del manifiesto (FR-034, FR-036, FR-046, FR-047); `Disponible` solo se pregunta por el directorio de la sonda del ámbito (data-model §3), y con un `Enlazador` sintético que admite enlaces fuera del ámbito y no dentro, la segunda ejecución da `sin cambios` con el plan vacío y `--dry-run` da la misma salida que la orden real (FR-045, FR-048; D9) |
 | `TestFalloAMitadSeCompleta` | `internal/core/instalacion` | FR-044 para cada operación del plan de varios escenarios (D7) |
 | `TestHallazgos`, `TestOrdenesDeDoctor` | `internal/core/instalacion` | data-model §6: clase, ruta, orden, orden de la lista, `--host claude`, comillas (FR-065, FR-066); con el mismo `Enlazador` sintético de `TestPlan`, una copia declarada no da el hallazgo «copia», cuya orden no la arreglaría (FR-066 (i), FR-069; D9) |
-| `TestOrdenesDeDoctorArreglan` | `internal/core/instalacion` | FR-066 (i) y (ii) sobre el disco en memoria, simulando `rm` e `install` |
+| `TestOrdenesDeDoctorArreglan` | `internal/core/instalacion` | FR-066 (i) y (ii) sobre el disco en memoria, simulando `rm` e `install`; la lectura de la orden rechaza, como el análisis de la invocación, un valor de `--dir` que empieza por `-` en la palabra siguiente (revisión final) |
+| `TestOrdenesDeDoctorConElBinario` | `internal/app/ordenes_de_doctor_test.go` | FR-066 (i) con el binario de e2e y `sh`: la orden de `doctor` para cada ruta de `--dir` —también las que empiezan por `-`— sale con 0 y el `doctor` siguiente no da hallazgos (revisión final) |
 | `TestAviso` | `internal/core/instalacion` | contracts/aviso.md §2-§4 (FR-070 a FR-073, FR-077) |
 | `TestExaminar`, `TestLeerNoSigueEnlaces`, `TestNoAbreLoQueNoEsRegular`, `TestEscrituraAtomica`, `TestRetirar` | `internal/disco` | D6, D8 sobre un árbol real (tubería con `syscall.Mkfifo` solo en Unix con su etiqueta de compilación) |
 | `TestEnlazadorDelSistema` | `internal/disco` | D9: la sonda se hace **en el directorio que se pasa** y lo deja con las mismas entradas y bytes; en un directorio sin permiso de escritura, `Disponible` es falso aunque `TMPDIR` admita enlaces; con `TMPDIR` apuntando a un fichero, un directorio escribible sigue dando verdadero (no usa `TMPDIR`); un nombre de sonda que ya existe se reintenta con otro sin tocar lo que había; retirar la sonda que falla es un error (con la retirada sustituida en el test interno del paquete) |
@@ -370,7 +377,8 @@ El trabajo de humo de `release.yml` y la instalación en un Mac limpio (FR-150, 
 | `TestEntregaDelHito` | `internal/app/e2e_test.go` | los 18 guiones `h19-*` y los existentes |
 | `TestInstalacion` | `internal/skills/instalacion_test.go` (`integration`) | contracts/skills-e-invocacion.md §5 (FR-125, FR-126, SC-018) |
 | `TestSkillsDelRepositorio` | `internal/app/skills_test.go` | sin casos de enlaces; caso nuevo: `scripts/` es un defecto (FR-082) |
-| `TestArquitectura` | `internal/arch_test.go` | R1 con `internal/disco` y el paquete raíz (exacto) desde el paso 3, y la subprueba sin red desde el paso 9 (D32, SC-022) |
+| `TestArquitectura` | `internal/arch_test.go` | R1 con `internal/disco` y el paquete raíz (exacto) desde el paso 3, y la subprueba sin red y el control del recorrido que comparte con R1 (`grafo.alcanza`) desde el paso 9 (D32, SC-022); la revisión final añade a la subprueba sin red las importaciones de `internal/app/instalacion.go`, `empotradas.go` y `aviso.go` |
+| `TestInstaladorEnUTF8`, `TestInstaladorCortado` | `instalador_test.go` (raíz) | `install.sh`: ninguna variable sin llaves delante de un carácter no ASCII, y los rechazos previos a descargar con `sh` y `bash` en C.UTF-8 dan una sola línea `install.sh: ` (contracts/release.md §7); cortado al final y en medio de cada línea, no ejecuta nada ni sale con 0 (FR-100, FR-106) (revisión final) |
 | `TestArrancar` | `internal/app/main_test.go` | gana un caso: `construir` recibe exactamente la versión que recibe `Arrancar` (D4) |
 | `TestRegistroDeProduccion` | `internal/app/registro_test.go` | el registro de producción es `boe`, `skills`, `territorio`, y `skills` con sus tres verbos (FR-010) |
 | `TestPuntoDeEntrada` | `cmd/kitlegal/main_test.go` | la lista de applets del binario distribuido con `skills`; `kitlegal skills` sin verbo sale con 2 nombrando `skills` y enumerando sus tres verbos (contracts/applet-skills.md §1) |
@@ -401,7 +409,7 @@ rojo. Barrido hecho con `git grep` sobre `RegistroDeProduccion`, `Arrancar(`, la
 **Lo que no cambia**, y por qué, para que ninguna tarea lo «limpie»: las trazas y constantes de `internal/evals` que
 nombran `scripts/boe` (`trazas_test.go:24` y sus casos, `juzgar_test.go:41`, `internal/evals/testdata/sesiones/**`)
 prueban el lector de trazas, que reconoce el applet por el nombre de invocación multicall y acepta `scripts/boe` y
-`kitlegal boe` (`internal/evals/trazas.go:221`); `TestSinInstalacionPorEnlaces` no las vigila (solo `SKILL.md`,
+`kitlegal boe` (`internal/evals/trazas.go:221`); `TestSinInstalacionPorEnlaces` no las vigila (solo `skills/`,
 `Makefile` y `.github/`). `internal/app/testdata/script/ayuda.txtar` compara por expresión regular y `territorio` sigue
 siendo el nombre más largo, así que `skills` no mueve la columna.
 

@@ -1467,6 +1467,21 @@ func casosDeAmbitosDelPlan(t *testing.T) []casoDePlan {
 			sondas: []string{homeDePrueba},
 		},
 		{
+			// La raíz se usa tal cual (FR-027): un HOME que es un enlace que
+			// resuelve a un directorio existe, y es donde se sondea; no es el
+			// HOME que no existe de la fila siguiente, que no se sondea.
+			nombre: "-g con --host claude y un HOME que es un enlace a un directorio: la sonda, en HOME (D9)",
+			preparar: func(d *discoEnMemoria) {
+				d.directorio("/usuarios/ana")
+				d.enlace(homeDePrueba, "/usuarios/ana")
+			},
+			invocacion: conHostGlobal,
+			skills:     lasDos(deHome, instalacion.EstadoInstalada, instalacion.ModoEnlace),
+			operaciones: slices.Concat(enlazarLasDos(deHome, homeDePrueba+"/.claude", homeDePrueba+"/.claude/skills"),
+				nuevo, escribirEnteras(t, lasDosEn(deHome)...)),
+			sondas: []string{homeDePrueba},
+		},
+		{
 			nombre:     "-g con un HOME que no existe: se crea, sin sonda, y se predice enlace (D9)",
 			preparar:   func(*discoEnMemoria) {},
 			invocacion: conHostGlobal,
@@ -1713,15 +1728,21 @@ func casosDelPlanDeLasCopias() []casoDePlan {
 
 	return []casoDePlan{
 		{
-			nombre: "la copia pasa a enlace: se retira entera y se enlaza",
+			// La copia lleva, además de lo empotrado, un fichero declarado de
+			// otro binario dos niveles por debajo de references: retirarla de
+			// arriba abajo chocaría con references, que aún no está vacío.
+			nombre: "la copia pasa a enlace: se retira entera, de abajo arriba, y se enlaza",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").
+					copiaDeOtroBinario("legal-core", "references/antiguas/una.md", "una").escribir()
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada, instalacion.ModoEnlace),
 			operaciones: slices.Concat([]string{
 				"1 retirar " + host + "/SKILL.md",
+				"1 retirar " + host + "/references/antiguas/una.md",
 				"1 retirar " + host + "/references/jerarquia_normativa.md",
 				"1 retirar " + host + "/references/leyes_vertebrales.md",
+				"1 retirar " + host + "/references/antiguas",
 				"1 retirar " + host + "/references",
 				"1 retirar " + host,
 			}, enlazarLasDos(ambitoLocal), []string{"3 manifiesto .agents/skills/kitlegal.json"}),

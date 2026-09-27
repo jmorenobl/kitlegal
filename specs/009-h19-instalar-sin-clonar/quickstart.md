@@ -10,7 +10,7 @@ el detalle.
 - Red: solo la de las herramientas de Go —el toolchain que fija `go.mod`, el proxy de módulos la primera vez que se
   construye `tools/goreleaser` (research S10) y la base de datos de `make vuln`—. Ningún escenario pide nada a una
   fuente legal ni a GitHub.
-- Efectos en el árbol: `bin/` (escenarios 1 y 7), `dist/` (escenarios 9 y 10) y los perfiles de cobertura de `make ci`,
+- Efectos en el árbol: `bin/` (el arranque y los escenarios 7 y 11), `dist/` (escenarios 9 y 10) y los perfiles de cobertura de `make ci`,
   **todos ignorados por git** (`.gitignore`). Ningún escenario toca el índice, el historial ni un fichero versionado;
   todo lo demás vive en `$T`, que el último escenario borra. `git status --porcelain` al final es el mismo que al
   principio.

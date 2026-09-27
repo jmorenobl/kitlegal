@@ -1,0 +1,67 @@
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+index b192428..74d4e98 100644
+--- a/.github/dependabot.yml
++++ b/.github/dependabot.yml
+@@ -71,9 +71,9 @@ updates:
+       goreleaser:
+         patterns: ["*"]
+ 
+-  # Las acciones que usan los tres flujos de `.github/workflows/`: Dependabot
+-  # las descubre bajo el directorio declarado, así que una única entrada en la
+-  # raíz cubre `ci`, `nightly` y `codeql` a la vez.
++  # Las acciones que usan los flujos de `.github/workflows/`: Dependabot las
++  # descubre bajo el directorio declarado, así que una única entrada en la raíz
++  # cubre `ci`, `nightly`, `codeql`, `evals` y `release` a la vez.
+   - package-ecosystem: github-actions
+     directory: /
+     schedule:
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 07fd0c4..02c1f4f 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -118,7 +118,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
+ | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
+ | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
+ | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
+-| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos y `checksums.txt`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
++| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, `checksums.txt` y los paquetes `.deb` y `.rpm`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
+ | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
+ | Bucle de desarrollo: `go install` del binario y, con él, `kitlegal skills install -g --host claude` | `make install` | no — instala en la cuenta ([`make install` y los enlaces del anterior](#make-install-y-los-enlaces-del-anterior)) |
+ | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
+@@ -208,8 +208,8 @@ crea esos dos repositorios, da de alta el secreto y hace público este, desde cu
+ ## `make schema-check` y `make verify-sources`
+ 
+ `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
+-distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`, y
+-`municipio.json`, el de `territorio`— y los
++distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`,
++`municipio.json`, el de `territorio`, e `instalacion.json`, el de `skills`— y los
+ compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
+ de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
+ regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
+diff --git a/README.md b/README.md
+index 6e4f01c..278cec6 100644
+--- a/README.md
++++ b/README.md
+@@ -506,7 +506,7 @@ separado mientras se depura:
+ | `make skills-sync` | **Regenera** las referencias y la tabla de comandos de `SKILL.md` de cada skill, y falla si una skill tiene `scripts/`: escribe en el árbol, y por eso no forma parte de `ci` | no |
+ | `make lint-fast` | Análisis estático rápido, el del gancho de pre-commit | no |
+ | `make test-e2e` | Tests de extremo a extremo con `testscript`, contra un binario que registra los applets de ejemplo, `boe`, que responde desde sus grabaciones sin red, `skills` y `territorio` | no |
+-| `make release` | Construye el snapshot de la release en `dist/` —los seis archivos y `checksums.txt`— sin publicar, firmar ni generar SBOM; lo ejecuta el trabajo `snapshot` de la integración continua | no |
++| `make release` | Construye el snapshot de la release en `dist/` —los seis archivos, `checksums.txt` y los paquetes `.deb` y `.rpm`— sin publicar, firmar ni generar SBOM; lo ejecuta el trabajo `snapshot` de la integración continua | no |
+ | `make snapshot-check` | Sobre el `dist/` de `make release`, comprueba el snapshot (`TestSnapshot`) y ejecuta contra él, sin red, los guiones `instalador-` que prueban `scripts/install.sh`; lo ejecuta el trabajo `snapshot` | no |
+ | `make verify-sources` | Comprueba contra la fuente real que sus respuestas se siguen interpretando —hoy, `boe articulo` contra la API del BOE—: **requiere red** y lo ejecuta el flujo nocturno | no |
+ | `make evals` | Ejecuta las evals de una skill (`SKILL=<skill>`) en sesiones con modelo de Claude Code; lo lanza el job de evals | no |
+diff --git a/docs/ROADMAP.md b/docs/ROADMAP.md
+index c3534cc..6285d41 100644
+--- a/docs/ROADMAP.md
++++ b/docs/ROADMAP.md
+@@ -125,7 +125,7 @@ Qué control, con qué herramienta, y en qué hito entra. Todo lo que entra se q
+ | Dependencias mínimas | `go mod tidy -diff` en CI; una dependencia nueva requiere justificación en la PR | H0 |
+ | Observabilidad local | `log/slog` a stderr, `--verbose`, `KITLEGAL_LOG=debug`; `--dry-run` imprime la petición sin ejecutarla | H1 |
+ | Pre-commit | `lefthook`: `gofumpt`, `golangci-lint run --fast`, `gitleaks`, `go mod tidy -diff` | H0 |
+-| Commits / versiones | Conventional Commits, SemVer, `CHANGELOG.md` generado por goreleaser | H0 / H19 |
++| Commits / versiones | Conventional Commits, SemVer, `CHANGELOG.md` a mano y notas de cada release generadas por goreleaser | H0 / H19 |
+ | Docs de decisiones | `docs/ADR/NNNN-*.md` (formato MADR corto) | H0 |
+ 
+ Dependencias fijadas (fuera de esta lista, justificar): `alecthomas/kong`, `modernc.org/sqlite`, `stretchr/testify`, `rogpeppe/go-internal` (testscript), `golang.org/x/time/rate`, `temoto/robotstxt`, `gopkg.in/yaml.v3`, `invopop/jsonschema` (generación), `santhosh-tekuri/jsonschema` (validación en tests). En el hito de distribución (backlog): `modelcontextprotocol/go-sdk`.

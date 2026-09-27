@@ -22,7 +22,8 @@ Sin seguir enlaces en ninguna ruta de este apartado (FR-028):
 2. `./.agents/skills`: si no existe, paso 4. Si existe y no es un directorio real, **fin sin efecto**.
 3. `./.agents/skills/kitlegal.json`: si no existe, paso 4. Si existe, **es el manifiesto** (y el global no se mira);
    si es ilegible ([manifiesto.md](./manifiesto.md) §3), **fin sin efecto**.
-4. Si `HOME` no está definido o está vacío, **fin sin efecto** (nunca `/.agents/…` ni una ruta relativa). Si no, los
+4. Si `HOME` no está definido, está vacío, no es una ruta absoluta o, limpio, es `/`, **fin sin efecto** (nunca
+   `/.agents/…` ni una ruta relativa). Si no, los
    pasos 1-3 sobre `$HOME/.agents`, `$HOME/.agents/skills` y `$HOME/.agents/skills/kitlegal.json`; si no hay manifiesto
    ahí, fin sin efecto.
 

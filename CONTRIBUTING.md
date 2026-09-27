@@ -5,8 +5,10 @@ propuesta de cambio, qué controles hay que ver en verde antes de abrirla y qué
 añade una dependencia. Lo que hace falta para construir y ejecutar el binario está en
 [`README.md`](README.md); las decisiones ya cerradas, en [`docs/ADR/`](docs/ADR/).
 
-Prerrequisitos: `go` (1.21 o superior) y `git`. Nada más —ni las herramientas de los controles ni un
-parche concreto de Go—; el porqué está en el README.
+Prerrequisitos: `go` (1.21 o superior) y `git` y, para `make test`, `sh` con las utilidades POSIX, `curl`, `tar`,
+`mktemp` y `sha256sum` o `shasum`, que ya traen macOS y cualquier Linux y con las que los tests ejecutan
+`scripts/install.sh` contra un origen local, sin red. Nada más —ni las herramientas de los controles ni un parche
+concreto de Go—; el porqué está en el README.
 
 ## El ritual por hito
 
@@ -118,7 +120,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
-| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos y `checksums.txt`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
+| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | Bucle de desarrollo: `go install` del binario y, con él, `kitlegal skills install -g --host claude` | `make install` | no — instala en la cuenta ([`make install` y los enlaces del anterior](#make-install-y-los-enlaces-del-anterior)) |
 | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
@@ -200,16 +202,16 @@ sin el código del repositorio: la huella del archivo linux/amd64, `gh attestati
 que `kitlegal version` imprime la etiqueta, que `kitlegal boe articulo BOE-A-2015-10565 a21 --offline` con una
 caché vacía sale con `4` y que `kitlegal skills install` en un directorio vacío deja
 `.agents/skills/boe-legislacion/SKILL.md`. El único secreto de la publicación es `PUBLISHER_TOKEN`, con permiso
-de escritura en el tap y en el bucket, y solo lo ve el paso que publica. Antes de la primera etiqueta, una persona
-crea esos dos repositorios, da de alta el secreto y hace público este, desde cuya rama `main` se sirve
-`install.sh`. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cierra bajo su número y su fecha
+de escritura en el tap y en el bucket, y solo lo ve el paso que publica. Los dos repositorios ya existen, públicos y
+vacíos; antes de la primera etiqueta, una persona da de alta el secreto y hace público este, desde cuya rama `main`
+se sirve `install.sh` y sin el cual no se puede verificar la atestación. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cierra bajo su número y su fecha
 ([Versionado y `CHANGELOG.md`](#versionado-y-changelogmd)).
 
 ## `make schema-check` y `make verify-sources`
 
 `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
-distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`, y
-`municipio.json`, el de `territorio`— y los
+distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`,
+`municipio.json`, el de `territorio`, e `instalacion.json`, el de `skills`— y los
 compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
 de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
 regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
@@ -257,8 +259,8 @@ binario con los datos de construcción del `Makefile` y, con ese binario —por 
 `kitlegal.json`, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`; tras cambiar una
 skill, repetirla la deja `actualizada`. Las skills invocan `kitlegal` desde el `PATH`, así que el directorio de
 binarios de Go (`$GOBIN` o, sin él, `$GOPATH/bin`) tiene que estar en él. No crea `bin/instalado/` ni comprueba nada
-antes del `go install`: ante un conflicto, `skills install` sale con `1` sin cambiar nada, y `make install` también,
-con el binario ya instalado. `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol,
+antes del `go install`: ante un conflicto, `skills install` sale con `1` sin cambiar nada, y `make install` falla con
+él —`make` termina con su propio código, `2`—, con el binario ya instalado. `make test-integration` lo prueba (`TestInstalacion`) sobre una copia mínima del árbol,
 con `HOME`, `GOBIN` y `GOPATH` temporales y sin red.
 
 El `make install` anterior a H19 dejaba `~/.claude/skills/boe-legislacion` y `~/.claude/skills/legal-core` como

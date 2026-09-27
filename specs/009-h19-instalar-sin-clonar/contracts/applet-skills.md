@@ -32,8 +32,8 @@ En este orden; la primera que falla decide, y **ninguna lee ni escribe nada del 
 | 4 | un nombre que no es de una skill empotrada (también una declarada en el manifiesto y no empotrada, FR-036) | `install` | 2 | `no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core` |
 | 5 | `-g` con `HOME` sin definir o vacío | los tres | 1 | `HOME no está definido o está vacío` |
 
-Un nombre repetido cuenta una vez. Los errores 1-4 declaran la clase `argumentos`; el 5 no declara ninguna de las
-cinco del kernel y sale como `inesperado` (FR-012 fija el 1). Este orden es la precedencia de FR-052: un error de
+Un nombre repetido cuenta una vez. Los errores 1-4 declaran la clase `argumentos`; el 5 declara la clase
+`inesperado` (FR-012 fija el 1). Este orden es la precedencia de FR-052: un error de
 argumentos gana con 2 aunque la invocación caiga además en el 5 o en cualquier exit 1 del ámbito (conflicto, hallazgo,
 manifiesto ilegible, ruta que no es directorio, manifiesto con entradas de host), que no llegan a comprobarse.
 
@@ -42,7 +42,7 @@ manifiesto ilegible, ruta que no es directorio, manifiesto con entradas de host)
 | Ámbito | Raíz | Directorio neutro | Manifiesto | Hosts | Ruta presentada de `<skill>` |
 |---|---|---|---|---|---|
 | local (por omisión) | el directorio de trabajo | `.agents/skills` | `.agents/skills/kitlegal.json` | `claude`, en `.claude/skills/<skill>` | `.agents/skills/<skill>` |
-| global (`-g`) | `$HOME` | `$HOME/.agents/skills` | `$HOME/.agents/skills/kitlegal.json` | `claude`, en `$HOME/.claude/skills/<skill>` | `<HOME>/.agents/skills/<skill>` (absoluta) |
+| global (`-g`) | `$HOME` | `$HOME/.agents/skills` | `$HOME/.agents/skills/kitlegal.json` | `claude`, en `$HOME/.claude/skills/<skill>` | `<HOME>/.agents/skills/<skill>` (absoluta; `HOME` se usa tal cual, limpio) |
 | `--dir <ruta>` | — | `<ruta>` | `<ruta>/kitlegal.json` | ninguno | `<ruta>/<skill>` (relativa o absoluta, como se pasó) |
 
 Toda ruta se escribe con `/`, limpia (`path.Clean`) y sin barra final; con `--dir` relativo, cuelga de la ruta tal como
@@ -163,6 +163,9 @@ Una sola línea de shell POSIX por hallazgo:
 - `--host claude` si y solo si alguna de las skills que nombra tiene una entrada de host declarada. Nunca con `--dir`.
 - Comillas simples con la `'` escrita `'\''`. Ruta de `rm`: la del hallazgo, como se alcanza desde el directorio de
   trabajo (§3).
+- La ruta de `--dir` va en la palabra siguiente a la bandera, `--dir '<ruta>'`, salvo si empieza por `-`: entonces va
+  en la misma palabra, `--dir='<ruta>'`, porque el análisis de la invocación leería `'-raro'` como otra bandera y la
+  orden saldría con 2 después de que `rm` hubiera retirado la entrada, sin cumplir la garantía (i) de FR-066.
 
 ## 7. `--dry-run` en `install` — FR-048
 

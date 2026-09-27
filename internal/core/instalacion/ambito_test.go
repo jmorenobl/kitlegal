@@ -62,7 +62,8 @@ func ambitoGlobal(t *testing.T, home string) instalacion.Ambito {
 // (FR-027); los hosts, que solo tienen el local y el global (FR-013, FR-021);
 // y las banderas que repite cada orden de doctor, con la ruta de --dir tal
 // como se pasó, entre comillas simples y con cada comilla simple escapada como
-// la escapa el shell (FR-066).
+// la escapa el shell, en la palabra siguiente o, si empieza por «-», en la
+// misma palabra que --dir (FR-066).
 //
 // El valor cero es el ámbito local, el de por omisión (FR-011), y sin HOME no
 // hay ámbito global (FR-012).
@@ -179,6 +180,29 @@ func TestAmbito(t *testing.T) {
 			ambito: instalacion.NuevoAmbitoDir("it's/x"),
 			esperan: dir("it's/x", `--dir 'it'\''s/x'`, "it's/x/kitlegal.json",
 				"it's/x/legal-core"),
+		},
+		{
+			// Separada, la palabra «'-raro'» se leería como otra bandera: la
+			// ruta va en la misma palabra que --dir.
+			nombre:  "dir que empieza por un guion",
+			ambito:  instalacion.NuevoAmbitoDir("-raro"),
+			esperan: dir("-raro", "--dir='-raro'", "-raro/kitlegal.json", "-raro/legal-core"),
+		},
+		{
+			nombre:  "dir que es un guion suelto",
+			ambito:  instalacion.NuevoAmbitoDir("-"),
+			esperan: dir("-", "--dir='-'", "-/kitlegal.json", "-/legal-core"),
+		},
+		{
+			nombre: "dir que empieza por un guion y lleva una comilla simple",
+			ambito: instalacion.NuevoAmbitoDir("--it's"),
+			esperan: dir("--it's", `--dir='--it'\''s'`, "--it's/kitlegal.json",
+				"--it's/legal-core"),
+		},
+		{
+			nombre:  "dir con un guion que no va delante",
+			ambito:  instalacion.NuevoAmbitoDir("a/-raro"),
+			esperan: dir("a/-raro", "--dir 'a/-raro'", "a/-raro/kitlegal.json", "a/-raro/legal-core"),
 		},
 		{
 			nombre: "dir con blancos y lo que el shell expandiría sin comillas",

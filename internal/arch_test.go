@@ -113,7 +113,8 @@ func TestArquitectura(t *testing.T) {
 		})
 	})
 
-	t.Run("sin red · instalacion, disco y el paquete raíz no alcanzan net, net/http ni internal/httpx", func(t *testing.T) {
+	t.Run("sin red · instalacion, disco, el paquete raíz y los ficheros del applet skills y del aviso no alcanzan net, "+
+		"net/http ni internal/httpx", func(t *testing.T) {
 		t.Parallel()
 
 		compruebaSinRed(t, grafo)
@@ -515,12 +516,20 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 }
 
 // compruebaSinRed hace cumplir la garantía sin red de H19 (research.md D32,
-// punto 2): el dominio instalacion, el adaptador disco y el paquete raíz, que
-// lleva lo empotrado, no alcanzan net, net/http ni internal/httpx, ni directa
-// ni transitivamente dentro del módulo. Es la prueba mecánica de que el applet
-// skills y el aviso no abren ninguna conexión (H19 FR-016, FR-072, FR-076,
-// SC-022), que R2 no da: R2 reserva net/http a internal/httpx, pero no prohíbe
-// net a nadie.
+// punto 2) sobre lo que importa el código del applet skills y del aviso: el
+// dominio instalacion, el adaptador disco y el paquete raíz, que lleva lo
+// empotrado, no alcanzan net, net/http ni internal/httpx, ni directa ni
+// transitivamente dentro del módulo; y los ficheros de internal/app que
+// componen el applet y el aviso (ficherosSinRed) no importan nada de eso ni
+// ningún paquete del módulo que lo alcance. Es la prueba mecánica de que ese
+// código no puede abrir ninguna conexión por lo que importa (H19 FR-016,
+// FR-072, FR-076, SC-022), que R2 no da: R2 reserva net/http a internal/httpx,
+// pero no prohíbe net a nadie.
+//
+// Lo que no ve es una llamada de esos ficheros a otro fichero de internal/app,
+// paquete que sí importa internal/httpx para componer boe: un análisis de
+// importaciones no llega dentro de un paquete. Eso lo miden los guiones e2e
+// del applet y del aviso, con los proxies cerrados (contracts/arnes-e2e.md §3).
 //
 // Las denegaciones son de prefijo, como las demás de este fichero: net cubre
 // todo el árbol de red de la biblioteca estándar —net/rpc, net/smtp,
@@ -557,6 +566,62 @@ func compruebaSinRed(t *testing.T, g grafo) {
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
+
+	for _, fichero := range ficherosSinRed {
+		for _, violada := range violacionesDelFichero(t, g, fichero, denegados) {
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El fichero es del applet skills o del aviso, "+
+				"que no abren ninguna conexión: solo importa el dominio de la instalación, el adaptador del "+
+				"disco, lo empotrado y lo que no llega a la red (H19 FR-016, FR-072, FR-076, SC-022; "+
+				"research.md D32).",
+				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
+		}
+	}
+}
+
+// ficherosSinRed son, relativos a internal/, los ficheros de producción de
+// internal/app que componen el applet skills —el applet y la lectura de lo
+// empotrado— y el avisador de versión que llama el kernel. La garantía sin red
+// no puede ser del paquete, que importa internal/httpx para componer boe: es
+// de lo que importa cada uno de ellos.
+var ficherosSinRed = []string{"app/instalacion.go", "app/empotradas.go", "app/aviso.go"}
+
+// violacionesDelFichero son las importaciones prohibidas del fichero: cada una
+// que prohíbe una denegación, con el fichero como cadena, y cada una que
+// alcanza siguiendo el grafo desde un paquete del módulo que importa, con la
+// cadena desde el fichero. Un fichero sin ninguna importación no vigilaría
+// nada: se exige que tenga alguna.
+func violacionesDelFichero(t *testing.T, g grafo, fichero string, denegados []string) []violacion {
+	t.Helper()
+
+	arbol, err := parser.ParseFile(token.NewFileSet(), fichero, nil, parser.ImportsOnly|parser.SkipObjectResolution)
+	require.NoError(t, err, "sin red · el fichero %s no se puede leer: la garantía no lo vigilaría", fichero)
+	require.NotEmpty(t, arbol.Imports, "sin red · %s no importa nada: la garantía no vigilaría nada", fichero)
+
+	var violaciones []violacion
+
+	for _, especificacion := range arbol.Imports {
+		importacion, err := strconv.Unquote(especificacion.Path.Value)
+		require.NoError(t, err, "sin red · %s: la importación %s no se puede leer", fichero, especificacion.Path.Value)
+
+		if denegado, hay := denegacion(importacion, denegados, nil); hay {
+			violaciones = append(violaciones, violacion{cadena: []string{fichero}, importacion: importacion, denegado: denegado})
+
+			continue
+		}
+
+		if !g.esDelModulo(importacion) {
+			continue
+		}
+
+		require.Contains(t, g.importa, importacion, "sin red · %s importa %s, que no está en el grafo", fichero, importacion)
+
+		for _, violada := range g.alcanza(importacion, denegados, nil) {
+			violada.cadena = append([]string{fichero}, violada.cadena...)
+			violaciones = append(violaciones, violada)
+		}
+	}
+
+	return violaciones
 }
 
 // compruebaElRecorrido es el control de grafo.alcanza, el recorrido que

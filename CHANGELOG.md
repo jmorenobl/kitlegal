@@ -393,8 +393,9 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
   enlaces—. `doctor` comprueba lo instalado contra el manifiesto y da hallazgos de cinco clases —fichero editado,
   enlace colgando, enlace a otro sitio, copia y versión distinta—, cada uno como `<clase>: <ruta>: <orden>`, con una
   orden de shell POSIX de una línea que lo arregla (`rm -- '<ruta>' && kitlegal skills install <skill> …`, con `-r`
-  solo sobre un directorio real y nunca `-f`), en un orden en que ejecutarlas una tras otra deja el siguiente `doctor`
-  sin hallazgos; con alguno termina con `1`. Sin manifiesto, los dos terminan con `0`, con versión nula y lista vacía;
+  solo sobre un directorio real y nunca `-f`, y la ruta de `--dir` como `--dir '<ruta>'` o, si empieza por `-`,
+  `--dir='<ruta>'`, para que no se lea como otra bandera), en un orden en que ejecutarlas una tras otra deja el
+  siguiente `doctor` sin hallazgos; con alguno termina con `1`. Sin manifiesto, los dos terminan con `0`, con versión nula y lista vacía;
   ante un manifiesto ilegible o una ruta del ámbito que no es un directorio, con `1`.
 - **Validación de la invocación antes de mirar el disco**: `-g` con `--dir`, `--host` con `--dir`, `--host` distinto
   de `claude` y una skill que el binario no lleva —con las disponibles en el mensaje— terminan con `2`, en ese orden de
@@ -433,8 +434,11 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
   `$KITLEGAL_INSTALL_DIR` o `~/.local/bin` renombrándolo encima del anterior, no toca ningún fichero de arranque del
   shell, imprime la línea `export PATH=…` si el directorio no está en el `PATH` y termina con
   `kitlegal skills install`. Todo error sale por la salida de error con el prefijo `install.sh: `, un código distinto
-  de `0` y nada instalado. Se sirve desde `main` y va adjunto a cada release; los guiones `instalador-` del e2e lo
-  prueban contra un origen local y contra el snapshot, sin red.
+  de `0` y nada instalado, también con el `/bin/sh` de macOS en un locale UTF-8. Todo lo que hace está en funciones y
+  la llamada va en la última línea, así que un guion que llega cortado no ejecuta nada a medias y, si solo le falta
+  esa llamada, termina con `1`. Se sirve desde `main` y va adjunto a cada release; los guiones `instalador-` del e2e lo
+  prueban contra un origen local y contra el snapshot, sin red, y `TestInstaladorEnUTF8` y `TestInstaladorCortado`,
+  sus rechazos en UTF-8 y sus cortes.
 
 ### Cambiado
 
@@ -558,8 +562,9 @@ sin clonar** trae la distribución (ADR 0019): el binario se instala con el gest
   con su manifiesto, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`. Ya no
   comprueba nada antes de `go install`: un conflicto lo da `skills install`, que termina con `1` sin cambiar nada,
   con el binario ya instalado. Los enlaces absolutos que dejaba el `make install` anterior son un conflicto («enlace a
-  otro sitio»), y `CONTRIBUTING.md` da el paso único que los retira. `TestInstalacion` y sus cuatro guiones lo
-  comprueban con `HOME`, `GOBIN` y `GOPATH` temporales.
+  otro sitio»), y `CONTRIBUTING.md` da el paso único que los retira. `TestInstalacion` y sus cinco guiones —los cuatro
+  de `internal/skills/testdata/script/` y el del enlace roto, que escribe el propio test— lo comprueban con `HOME`,
+  `GOBIN` y `GOPATH` temporales.
 - **`make skills-sync` y `make skills-check` dejan los enlaces**: ni los generan ni los comprueban; una skill con
   `scripts/` es un defecto que hace fallar a los dos (ADR 0019), y `make skills-check` comprueba además que cada orden
   de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario

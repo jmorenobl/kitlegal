@@ -27,7 +27,7 @@ dominio la recibe ya leída (no importa `io/fs`, V26).
 | `Neutro` | cadena | `.agents/skills` | `$HOME/.agents/skills` | `<ruta>` limpia, como se pasó |
 | `Guardas` | lista de rutas | `.agents`, `.agents/skills` | `$HOME/.agents`, `$HOME/.agents/skills` | `<ruta>` |
 | `ConHosts` | booleano | sí | sí | no |
-| `Banderas` | cadena para las órdenes | `""` | `-g` | `--dir '<ruta tal como se pasó>'` |
+| `Banderas` | cadena para las órdenes | `""` | `-g` | `--dir '<ruta tal como se pasó>'`; `--dir='<ruta>'` si empieza por `-` |
 
 Rutas: con `/` y como se alcanzan desde el directorio de trabajo (D11). El adaptador las convierte al separador del
 sistema al tocar el disco. Lo que hay por encima de `Raiz` o de `<ruta>` no se comprueba (FR-027).
@@ -40,7 +40,7 @@ Lo que el dominio sabe de una ruta, siempre **sin seguir enlaces** (FR-028, D6):
 |---|---|---|
 | `Tipo` | siempre | `ausente`, `directorio` (real), `fichero` (regular), `enlace`, `otro` (tubería, socket, dispositivo…) |
 | `Destino` | `enlace` | destino literal (`os.Readlink`) |
-| `Resuelve` | `enlace` | si seguirlo llega a algo que existe (`os.Stat` sobre el enlace, sin leer nada); falso si cuelga o está en ciclo |
+| `Resuelve` | `enlace` | si seguirlo llega a algo que existe (`os.Stat` sobre el enlace, sin leer nada); falso si cuelga, pasa por algo que no es un directorio o está en ciclo; cualquier otro fallo del `Stat` es un error de E/S |
 
 Operaciones del puerto: `Examinar(ruta) (Entrada, error)`, `Huella(ruta) (string, error)` (solo fichero regular:
 `Lstat` → `Open` → `Stat` + `SameFile`; si no, error «no es un fichero regular»), `Leer(ruta) ([]byte, error)` (mismas
@@ -149,12 +149,13 @@ Sin conflictos, el dominio devuelve un `Plan`:
 |---|---|
 | `Skills` | por skill pedida: nombre, ruta presentada, `Estado` (`instalada` / `actualizada` / `sin cambios`) y enlaces resultantes con su modo previsto |
 | `Retirar` | fase 1: ficheros declarados intactos que se reescriben o ya no se empotran; copias que pasan a enlace (ficheros y, después, sus directorios) |
-| `Enlazar` | fase 2: `<Raiz>/.claude` y `<Raiz>/.claude/skills` si faltan (`CrearDirectorio`) y después las entradas de host que hay que crear, cada una con los ficheros de su recurso de copia |
-| `Manifiesto` | fase 3: función de los modos que resultaron en la fase 2 → bytes canónicos del manifiesto final, o nada si no cambia |
-| `Escribir` | fase 4: directorios que faltan y ficheros nuevos o reescritos del directorio neutro y de las copias |
+| `Enlazar` | fase 2: lo que falta hasta `<Raiz>/.claude/skills` incluido, de arriba abajo (`CrearDirectorio`), si hay que crear alguna entrada de host, y después las entradas de host que se crean como enlace, cada una con los ficheros de su recurso de copia; la que la sonda predice `copia` no se intenta enlazar y va directamente a la fase 4 |
+| `Manifiesto` | fase 3: lo que falta hasta el directorio neutro incluido, que se crea antes porque el manifiesto vive en él, y una función de los modos que resultaron en la fase 2 → bytes canónicos del manifiesto final, o nada si no cambia (y entonces no se crea nada) |
+| `Escribir` | fase 4: directorios que faltan dentro de cada skill y de cada copia, y ficheros nuevos o reescritos del directorio neutro y de las copias |
 
 `Aplicar(plan, escritor)` del dominio recorre las fases en orden a través del puerto `Escritor` —el adaptador solo
-implementa las operaciones sueltas— y se para en el primer fallo (exit 1 con la operación y la ruta). Invariante que
+implementa las operaciones sueltas— y se para en el primer fallo (exit 1 con la operación y la ruta); sin fallo,
+devuelve la salida de `install`: `Skills` con la entrada de host de cada enlace que no se pudo crear en `copia`. Invariante que
 prueba `TestFalloAMitadSeCompleta` con un disco en memoria que falla en la operación *n*, para cada *n*: volver a
 planificar sobre el disco resultante da cero conflictos y, aplicado, el estado final. Con nada que cambiar, las listas están vacías y el
 manifiesto no se escribe: el disco queda byte a byte igual (FR-033, FR-045).
@@ -204,8 +205,8 @@ decidir es «sin efecto».
 
 | Función | Regla |
 |---|---|
-| `FormaSemVer(v)` | `v` opcional + la gramática de SemVer 2.0.0 (núcleo `X.Y.Z` sin ceros a la izquierda, pre-release e identificadores de construcción) |
-| `MismaVersion(a, b)` | quitar **una** `v` inicial a cada una y comparar byte a byte (`v0.1.0` = `0.1.0`; `0.1.0` ≠ `0.1.0+abc`) |
+| `FormaSemVer(v)` | una `v` minúscula opcional + la gramática de SemVer 2.0.0 (núcleo `X.Y.Z` sin ceros a la izquierda, pre-release e identificadores de construcción) |
+| `MismaVersion(a, b)` | quitar **una** `v` minúscula inicial a cada una y comparar byte a byte (`v0.1.0` = `0.1.0`; `0.1.0` ≠ `0.1.0+abc`) |
 
 ## 9. Errores y clases
 
@@ -213,8 +214,8 @@ decidir es «sin efecto».
 |---|---|---|
 | invocación inválida (contracts/applet-skills.md §2, filas 1-4) | `argumentos` | 2 |
 | `-g` sin `HOME` | `inesperado` | 1 |
-| `Conflictos` (lista ordenada de `{clase, ruta}`) | `inesperado` | 1 |
-| `Hallazgos` (lista ordenada de `{clase, ruta, orden}`) | `inesperado` | 1 |
+| `ErrorDeConflictos` (lista ordenada de `{clase, ruta}`) | `inesperado` | 1 |
+| `ErrorDeHallazgos` (lista ordenada de `{clase, ruta, orden}`) | `inesperado` | 1 |
 | `AmbitoIlegible` en `list`/`doctor` (`{clase, ruta}`) | `inesperado` | 1 |
 | fallo de E/S (examinar, escribir o retirar la sonda del creador de enlaces, §3) | ninguna (lo no previsto) | 1 |
 

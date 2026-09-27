@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"strings"
 	"testing"
@@ -431,6 +432,24 @@ func compruebaAvisoDeLaMismaVersion(t *testing.T) {
 	}
 }
 
+// arbolQueCuentaLecturas es lo empotrado que cuenta cada entrada que se abre.
+// Solo tiene Open, y no las formas rápidas de fstest.MapFS, para que toda
+// lectura pase por él.
+type arbolQueCuentaLecturas struct {
+	arbol    fs.FS
+	lecturas *int
+}
+
+func (a arbolQueCuentaLecturas) Open(nombre string) (fs.File, error) {
+	*a.lecturas++
+
+	return a.arbol.Open(nombre)
+}
+
+// compruebaAvisoDeDesarrollo exige que un binario cuya versión no tiene forma
+// SemVer no compare, y que lo decida antes de leer lo empotrado (FR-073;
+// AvisoDeVersion): con un manifiesto de otra versión instalado, no avisa y no
+// abre ninguna entrada de lo empotrado, que una versión con forma sí lee.
 func compruebaAvisoDeDesarrollo(t *testing.T) {
 	t.Helper()
 
@@ -438,9 +457,20 @@ func compruebaAvisoDeDesarrollo(t *testing.T) {
 	instalarLasDePrueba(t, versionDeSkills)
 
 	for _, version := range []string{"dev", "", "0123abc"} {
-		_, hay := avisoDeLasDePrueba(version)
+		lecturas := 0
+		arbol := arbolQueCuentaLecturas{arbol: skillsDePrueba(), lecturas: &lecturas}
+
+		_, hay := AvisoDeVersion(DependenciasDeSkills{Version: version, Skills: arbol})()
 		assert.False(t, hay, "%q no tiene forma SemVer: un binario de desarrollo no compara (FR-073)", version)
+		assert.Zero(t, lecturas, "%q: un binario de desarrollo no lee lo empotrado", version)
 	}
+
+	lecturas := 0
+	arbol := arbolQueCuentaLecturas{arbol: skillsDePrueba(), lecturas: &lecturas}
+
+	_, hay := AvisoDeVersion(DependenciasDeSkills{Version: versionDelAvisoNueva, Skills: arbol})()
+	assert.True(t, hay, "control: con forma SemVer y otra versión instalada, avisa")
+	assert.Positive(t, lecturas, "control: con forma SemVer, lee lo empotrado")
 }
 
 func compruebaAvisoDeUnaSkill(t *testing.T) {

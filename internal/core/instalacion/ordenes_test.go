@@ -148,27 +148,37 @@ func (l *lectorDeShell) cerrarOrden() error {
 }
 
 // ordenDeInstall es la invocación de install cuyos argumentos, tras
-// «kitlegal skills install», son args: las skills, -g, --dir y --host.
+// «kitlegal skills install», son args: las skills, -g, --dir y --host, estas
+// dos con su valor en la palabra siguiente o, tras un =, en la misma. Lee como
+// el análisis de la invocación del kernel: una palabra siguiente que empieza
+// por «-» es otra bandera y no el valor, así que la orden que la escribiera
+// saldría con 2 sin reinstalar nada, y es un fallo del test.
 func ordenDeInstall(t *testing.T, args []string) instalacion.Invocacion {
 	t.Helper()
 
 	var invocacion instalacion.Invocacion
 
 	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "-g":
-			invocacion.Global = true
-		case "--dir", "--host":
-			require.Less(t, i+1, len(args), "%s sin valor", args[i])
+		bandera, valor, conIgual := strings.Cut(args[i], "=")
 
-			valor := args[i+1]
-			if args[i] == "--dir" {
+		switch {
+		case args[i] == "-g":
+			invocacion.Global = true
+		case bandera == "--dir" || bandera == "--host":
+			if !conIgual {
+				require.Less(t, i+1, len(args), "%s sin valor", args[i])
+				require.False(t, strings.HasPrefix(args[i+1], "-"),
+					"%s %q: el análisis de la invocación lee el valor como otra bandera", args[i], args[i+1])
+
+				valor = args[i+1]
+				i++
+			}
+
+			if bandera == "--dir" {
 				invocacion.Dir = &valor
 			} else {
 				invocacion.Host = &valor
 			}
-
-			i++
 		default:
 			require.False(t, strings.HasPrefix(args[i], "-"), "una bandera que install no tiene: %s", args[i])
 
@@ -382,6 +392,15 @@ func casosDeOrdenes(t *testing.T) []casoDeDoctor {
 				"rm -- 'legal-core/SKILL.md' && kitlegal skills install legal-core --dir ''")},
 		},
 		{
+			// Con la ruta en la palabra siguiente, «--dir '-raro'», el install
+			// de la orden saldría con 2 después de que rm retirara el fichero.
+			nombre:     "--dir que empieza por un guion: la ruta en la misma palabra que la bandera",
+			preparar:   editadoEn(instalacion.NuevoAmbitoDir("-raro")),
+			invocacion: instalacion.Invocacion{Dir: texto("-raro")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "-raro/legal-core/SKILL.md",
+				"rm -- '-raro/legal-core/SKILL.md' && kitlegal skills install legal-core --dir='-raro'")},
+		},
+		{
 			nombre: "--dir: el manifiesto de otra versión, con las dos skills",
 			preparar: func(d *discoEnMemoria) {
 				instalarEn(d, instalacion.NuevoAmbitoDir("destino"), "boe-legislacion", "legal-core").
@@ -472,6 +491,9 @@ func probarLectorDeShell(t *testing.T) {
 		},
 		"rm -- 'x && y' && z": {{"rm", "--", "x && y"}, {"z"}},
 		"a'b'c":               {{"abc"}},
+		`kitlegal skills install x --dir='-a'\''b'`: {
+			{"kitlegal", "skills", "install", "x", "--dir=-a'b"},
+		},
 	}
 
 	for linea, esperadas := range leidas {

@@ -38,15 +38,16 @@ scoop bucket add jmorenobl https://github.com/jmorenobl/scoop-bucket
 scoop install kitlegal
 ```
 
-`install.sh` es POSIX `sh` y solo necesita `curl`, `tar`, `mktemp` y `sha256sum` o `shasum`. Descarga de las releases
-de GitHub el archivo del sistema y la arquitectura en que se ejecuta (`darwin` o `linux`, `amd64` o `arm64`) y
-`checksums.txt`, comprueba la huella SHA-256 del archivo y deja `kitlegal` en `~/.local/bin`, o en
-`$KITLEGAL_INSTALL_DIR` si está definido. Sin argumento instala la última release; con uno, esa versión
+`install.sh` es POSIX `sh` y, además de las utilidades POSIX básicas (`uname`, `grep`, `awk`, `mkdir`, `cp`, `chmod`,
+`mv`, `rm`), solo necesita `curl`, `tar`, `mktemp` y `sha256sum` o `shasum`. Descarga de las releases de GitHub el
+archivo del sistema y la arquitectura en que se ejecuta (`darwin` o `linux`, `amd64` o `arm64`) y `checksums.txt`,
+comprueba la huella SHA-256 del archivo y deja `kitlegal` en `$KITLEGAL_INSTALL_DIR` si está definido y no está
+vacío, y si no en `~/.local/bin`. Sin argumento instala la última release; con uno, esa versión
 (`curl -fsSL …/install.sh | sh -s -- 0.1.0`, donde `0.1.0` y `v0.1.0` piden la misma). No toca ningún fichero de
 arranque del shell: si el directorio no está en el `PATH`, imprime la línea `export PATH=…` que lo añade. Ante
 cualquier error —una versión que no existe, una descarga que falla, una huella que no coincide— sale con un código
-distinto de `0`, sin instalar nada y con el `kitlegal` que hubiera intacto. Su última línea es la orden siguiente,
-`kitlegal skills install`.
+distinto de `0`, sin instalar nada y con el `kitlegal` que hubiera intacto; y si la descarga del propio guion se corta
+por el camino, no ejecuta nada a medias. Su última línea es la orden siguiente, `kitlegal skills install`.
 
 Cada release adjunta además paquetes `.deb` y `.rpm` y un SBOM por archivo; `checksums.txt` va firmado con cosign sin
 clave, y cada archivo lleva su atestación de procedencia, que se comprueba con
@@ -104,16 +105,18 @@ kitlegal` o repitiendo `install.sh`—, y después, otra vez, `kitlegal skills i
 `actualizada`.
 
 Hasta entonces, el binario avisa. Cuando el manifiesto del proyecto —o, si el proyecto no tiene ninguno, el de la
-cuenta— o alguna de sus skills es de otra versión que el binario, cada orden de otro applet escribe una línea más en la
-salida de error:
+cuenta— o alguna de sus skills es de otra versión que el binario, cada orden de otro applet resuelta con un verbo
+—también si termina con un error de argumentos del verbo, con `--dry-run` o con `--describe`— escribe una línea más en
+la salida de error:
 
 ```text
 aviso: las skills instaladas son de kitlegal v0.1.0 y este binario es kitlegal v0.2.0; ejecuta: kitlegal skills install
 ```
 
 con ` -g` al final si el manifiesto es el de la cuenta. El aviso no pide nada a la red y no cambia ni la salida
-estándar ni el código de salida. No lo dan `kitlegal skills …`, `kitlegal version` ni la ayuda, ni un binario de
-desarrollo cuya versión no tiene la forma de una versión semántica (`dev`, un commit abreviado).
+estándar ni el código de salida. No lo dan `kitlegal skills …`, `kitlegal version` ni la ayuda, ni los fallos
+anteriores a resolver el applet con su verbo —un applet que no existe, un applet sin verbo (`kitlegal boe`)—, ni un
+binario de desarrollo cuya versión no tiene la forma de una versión semántica (`dev`, un commit abreviado).
 
 ## Qué entrega este hito (H19)
 
@@ -270,13 +273,14 @@ está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Prerrequisitos
 
-Para trabajar en kitlegal desde el clon —usarlo no necesita nada de esto, basta [Instalar](#instalar)—, exactamente
-dos, y nada más:
+Para trabajar en kitlegal desde el clon —usarlo no necesita nada de esto, basta [Instalar](#instalar)—, dos que hay
+que instalar y, para `make test`, las utilidades de sistema que ya traen macOS y cualquier Linux, y nada más:
 
 | Prerrequisito | Comprobación |
 |---|---|
 | Go 1.21 o superior | `go version` |
 | `git` | `git --version` |
+| `sh` con las utilidades POSIX, `curl`, `tar`, `mktemp` y `sha256sum` o `shasum`: con ellas los tests ejecutan `scripts/install.sh` contra un origen local, sin red | `command -v sh curl tar mktemp` |
 
 **No hay que instalar ninguna herramienta de control.** `golangci-lint`, `govulncheck`, `gitleaks`,
 `lefthook` y `goreleaser` se construyen solos, con la versión fijada en `tools/<herramienta>/go.mod`, la
@@ -336,7 +340,8 @@ ejecuta `kitlegal skills install -g --host claude`. Las skills del árbol quedan
 manifiesto, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`; tras cambiar una
 skill, repetirla la deja `actualizada`. Como las skills invocan `kitlegal` desde el `PATH`, el directorio de binarios de
 Go tiene que estar en él. Ante un conflicto, `skills install` lo nombra y sale con `1` sin cambiar nada, y
-`make install` también, con el binario ya instalado. Los enlaces que dejaba el `make install` anterior a H19 son uno de
+`make install` falla con él —`make` termina con su propio código, `2`—, con el binario ya instalado. Los enlaces que
+dejaba el `make install` anterior a H19 son uno de
 esos conflictos: el paso único que los retira está en [`CONTRIBUTING.md`](CONTRIBUTING.md#make-install-y-los-enlaces-del-anterior).
 
 Con las skills instaladas basta preguntar a Claude Code por una norma —«¿qué dice el art. 21 de la Ley 39/2015?»—:
@@ -506,7 +511,7 @@ separado mientras se depura:
 | `make skills-sync` | **Regenera** las referencias y la tabla de comandos de `SKILL.md` de cada skill, y falla si una skill tiene `scripts/`: escribe en el árbol, y por eso no forma parte de `ci` | no |
 | `make lint-fast` | Análisis estático rápido, el del gancho de pre-commit | no |
 | `make test-e2e` | Tests de extremo a extremo con `testscript`, contra un binario que registra los applets de ejemplo, `boe`, que responde desde sus grabaciones sin red, `skills` y `territorio` | no |
-| `make release` | Construye el snapshot de la release en `dist/` —los seis archivos y `checksums.txt`— sin publicar, firmar ni generar SBOM; lo ejecuta el trabajo `snapshot` de la integración continua | no |
+| `make release` | Construye el snapshot de la release en `dist/` —los seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`— sin publicar, firmar ni generar SBOM; lo ejecuta el trabajo `snapshot` de la integración continua | no |
 | `make snapshot-check` | Sobre el `dist/` de `make release`, comprueba el snapshot (`TestSnapshot`) y ejecuta contra él, sin red, los guiones `instalador-` que prueban `scripts/install.sh`; lo ejecuta el trabajo `snapshot` | no |
 | `make verify-sources` | Comprueba contra la fuente real que sus respuestas se siguen interpretando —hoy, `boe articulo` contra la API del BOE—: **requiere red** y lo ejecuta el flujo nocturno | no |
 | `make evals` | Ejecuta las evals de una skill (`SKILL=<skill>`) en sesiones con modelo de Claude Code; lo lanza el job de evals | no |

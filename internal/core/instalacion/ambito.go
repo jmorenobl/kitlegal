@@ -137,11 +137,20 @@ func (a Ambito) ConHosts() bool {
 // Banderas son las que repite cada orden de doctor para actuar en este mismo
 // ámbito (FR-066): ninguna en local, -g en global y, con --dir, la ruta tal
 // como se pasó, entre comillas simples.
+//
+// La ruta de --dir va en la palabra siguiente, «--dir '<ruta>'», salvo si
+// empieza por «-»: el análisis de la invocación lee esa palabra como otra
+// bandera, y la orden saldría con 2 sin reinstalar nada, así que entonces va
+// en la misma palabra, «--dir='<ruta>'», que es la forma que acepta.
 func (a Ambito) Banderas() string {
 	switch a.clase {
 	case AmbitoGlobal:
 		return "-g"
 	case AmbitoDir:
+		if strings.HasPrefix(a.dir, "-") {
+			return "--dir=" + entreComillas(a.dir)
+		}
+
 		return "--dir " + entreComillas(a.dir)
 	case AmbitoLocal:
 		// El de por omisión no lleva ninguna.
