@@ -23,7 +23,7 @@ const skillMdCompleto = "---\n" +
 	"description: >-\n" +
 	"  Consulta y cita normativa\n" +
 	"  consolidada del BOE.\n" +
-	"license: Apache-2.0\n" +
+	"license: EUPL-1.2\n" +
 	"allowed-tools:\n" +
 	"  - Bash\n" +
 	"  - Read\n" +

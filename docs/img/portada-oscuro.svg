@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="t d">
+  <title id="t">kitlegal</title>
+  <desc id="d">Tu agente responde con la ley delante y la cita exacta. Ejemplo: el artículo 21 de la Ley 39/2015, citado como art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21].</desc>
+  <defs>
+    <style>
+      .serif { font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif; }
+      .sans { font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+      .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="420" fill="#131519"/>
+
+  <!-- Marca y promesa -->
+  <text x="80" y="150" class="serif" font-size="76" font-weight="700" fill="#E5808E">§</text>
+  <text x="132" y="150" class="serif" font-size="76" font-weight="700" fill="#ECE9E2">kitlegal</text>
+  <text x="82" y="206" class="sans" font-size="25" fill="#B9B4AA">Tu agente responde con la ley delante</text>
+  <text x="82" y="240" class="sans" font-size="25" fill="#B9B4AA">y la cita exacta.</text>
+
+  <g class="mono" font-size="14" fill="#B9B4AA">
+    <rect x="82" y="282" width="62" height="32" rx="16" fill="none" stroke="#3A3F47"/>
+    <text x="113" y="303" text-anchor="middle">BOE</text>
+    <rect x="154" y="282" width="62" height="32" rx="16" fill="none" stroke="#3A3F47"/>
+    <text x="185" y="303" text-anchor="middle">INE</text>
+    <rect x="226" y="282" width="70" height="32" rx="16" fill="none" stroke="#3A3F47"/>
+    <text x="261" y="303" text-anchor="middle">DIR3</text>
+    <rect x="306" y="282" width="132" height="32" rx="16" fill="none" stroke="#3A3F47"/>
+    <text x="372" y="303" text-anchor="middle">Agent Skills</text>
+  </g>
+
+  <text x="82" y="366" class="sans" font-size="14" fill="#8C877D">Skills para tu agente · fuentes públicas · software libre (EUPL-1.2)</text>
+
+  <!-- Ejemplo: pregunta, texto vigente y cita -->
+  <rect x="660" y="60" width="548" height="300" rx="16" fill="#1C1F24" stroke="#2E333A"/>
+  <text x="692" y="108" class="sans" font-size="16" fill="#9D988E">› ¿Qué dice el art. 21 de la Ley 39/2015?</text>
+  <line x1="692" y1="128" x2="1176" y2="128" stroke="#2A2E34"/>
+  <text x="692" y="166" class="serif" font-size="19" font-weight="700" fill="#ECE9E2">Artículo 21. Obligación de resolver.</text>
+  <text x="692" y="197" class="serif" font-size="16" fill="#CFCAC0">1. La Administración está obligada a dictar resolución</text>
+  <text x="692" y="220" class="serif" font-size="16" fill="#CFCAC0">expresa y a notificarla en todos los procedimientos…</text>
+  <rect x="692" y="246" width="484" height="42" rx="8" fill="#3A2126"/>
+  <text x="710" y="272" class="mono" font-size="13" fill="#E5808E">art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]</text>
+  <text x="692" y="328" class="mono" font-size="12" fill="#8C877D">fuente · url · fecha_consulta · hash</text>
+</svg>
