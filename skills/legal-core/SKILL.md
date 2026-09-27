@@ -18,7 +18,7 @@ metadata:
 
 Esta skill es el punto de partida de las preguntas de derecho público español que dependen de dónde se plantean. Antes
 de razonar sobre ninguna norma identifica el territorio —municipio, provincia, comunidad autónoma, régimen, DIR3 del
-ayuntamiento y boletines oficiales— con `scripts/territorio`, y después razona con dos referencias:
+ayuntamiento y boletines oficiales— con `kitlegal territorio`, y después razona con dos referencias:
 `references/leyes_vertebrales.md`, con el identificador `BOE-A-…` de cada ley vertebral, y
 `references/jerarquia_normativa.md`, con qué nivel regula qué, dónde publica cada nivel y las reglas de
 interpretación. No da el texto de ningún artículo: eso lo hace `boe-legislacion`. La skill identifica y orienta: no
@@ -36,12 +36,12 @@ Antes de razonar sobre ninguna norma, averigua de qué municipio se habla.
 - Toma el municipio de la conversación: su nombre o su código INE, tal como los haya dado la persona.
 - Si la conversación no lo dice, **pregúntalo** y espera la respuesta. No lo supongas, no lo deduzcas de otros datos
   ni sigas con un municipio de ejemplo. Si solo se nombra una provincia o una comunidad, pregunta también por el
-  municipio: `scripts/territorio` resuelve municipios.
+  municipio: `kitlegal territorio` resuelve municipios.
 
-### 2. Resolverlo con `scripts/territorio`
+### 2. Resolverlo con `kitlegal territorio`
 
 ```bash
-scripts/territorio resolver <nombre o código INE> --json
+kitlegal territorio resolver <nombre o código INE> --json
 ```
 
 - Pasa el nombre o el código tal como los dio la persona; no conviertas de memoria un nombre en un código ni al revés.
@@ -50,7 +50,7 @@ scripts/territorio resolver <nombre o código INE> --json
   tiene un trato propio: lo que cambia de un territorio a otro lo dice `data`.
 - Con el código 0, `data` trae siempre ocho claves —`municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`,
   `regimen`, `boletines` y `cobertura`—, y cada dato lleva su `source`.
-- Si `scripts/territorio` no resuelve a un binario, di que falta instalar kitlegal y no suplas los datos.
+- Si `kitlegal` no está en el `PATH`, di que falta instalar kitlegal y no suplas los datos.
 
 ### 3. Leer `cobertura` y trasladarla a la respuesta
 
@@ -134,17 +134,17 @@ dir3: <valor>
 
 ## Comandos
 
-Invoca el binario por el enlace `scripts/territorio` de esta skill. Responde con la relación de municipios y la
+`kitlegal` se invoca desde el `PATH`. Responde con la relación de municipios y la
 configuración territorial que lleva dentro el binario, sin consultar ninguna fuente. Códigos de salida: 0 correcto, 2
 argumentos inválidos —también un nombre que es el de más de un municipio—, 3 no está en la relación.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
-### `scripts/territorio`
+### `kitlegal territorio`
 
 | Orden | Qué hace | Qué devuelve en `data` |
 |---|---|---|
-| `scripts/territorio resolver <consulta>` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. | objeto con `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines`, `cobertura` |
+| `kitlegal territorio resolver <consulta>` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. | objeto con `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines`, `cobertura` |
 
 Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 
@@ -155,7 +155,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 ## Reglas
 
 1. **Nunca inventar contenido legal ni citar de memoria.** Ni el texto de una norma, ni su identificador, ni ningún
-   dato de territorio: lo que no salga en esta conversación de `scripts/territorio`, de las referencias o de
+   dato de territorio: lo que no salga en esta conversación de `kitlegal territorio`, de las referencias o de
    `boe-legislacion`, no se afirma.
 2. **Cada afirmación sobre una norma, con su identificador.** El identificador `BOE-A-…` sale de
    `references/leyes_vertebrales.md` o de `boe-legislacion`; el texto de un artículo, solo de `boe-legislacion`.

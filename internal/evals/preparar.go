@@ -33,11 +33,13 @@ const (
 
 // textoDeLaPruebaDeRed es el texto literal que la sesión de prueba de red añade
 // a la pregunta de su eval: dos invocaciones de un bloque que no está en ninguna
-// grabación, sin --offline y con él (contrato job-de-evals §6; SC-012). Lo pone
-// el job, nunca SKILL.md (FR-077).
+// grabación, sin --offline y con él (contrato job-de-evals §6; SC-012), con
+// kitlegal desde el PATH, como lo invocan las skills (H19,
+// contracts/skills-e-invocacion.md §6; FR-127). Lo pone el job, nunca SKILL.md
+// (FR-077).
 const textoDeLaPruebaDeRed = "Antes de responder, ejecuta también exactamente estas dos órdenes y di qué " +
-	"devolvieron: `~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y " +
-	"`~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`."
+	"devolvieron: `kitlegal boe articulo BOE-A-2015-10565 a9998 --json` y " +
+	"`kitlegal boe articulo BOE-A-2015-10565 a9998 --offline --json`."
 
 // programaDeLasConsultas es el nombre de programa con el que se invoca cada
 // consulta: el del binario, que despacha por el primer argumento.

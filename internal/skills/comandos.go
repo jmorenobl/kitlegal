@@ -23,9 +23,11 @@ const (
 
 // Lo que forma la tabla de comandos (contrato sincronizacion-y-comprobacion §3).
 const (
-	// carpetaDeLosScripts es el directorio de los enlaces de una skill al
-	// binario: cada orden de la tabla se invoca por el enlace de su applet.
-	carpetaDeLosScripts = "scripts"
+	// programaDeLasOrdenes es el binario tal como lo invoca una skill, desde el
+	// PATH: cada applet de la tabla se titula `kitlegal <applet>` y cada orden se
+	// escribe `kitlegal <applet> <verbo> …` (ADR 0019;
+	// contracts/skills-e-invocacion.md §2 de H19; FR-080).
+	programaDeLasOrdenes = "kitlegal"
 
 	// columnasDeLaTabla son la fila de títulos de la tabla de un applet y su fila
 	// de separación.
@@ -469,8 +471,8 @@ func (p propiedadesEnOrden) nombres() []string {
 // de los verbos del registro (contrato sincronizacion-y-comprobacion §3;
 // data-model §2.2; FR-032, FR-034):
 //
-//   - una sección ### por applet, en el orden de applets, con el enlace del
-//     applet como título y una tabla con una fila por verbo del applet, en el
+//   - una sección ### por applet, en el orden de applets, con `kitlegal
+//     <applet>` como título y una tabla con una fila por verbo del applet, en el
 //     orden de las descripciones; las de un applet que no se declara no se
 //     presentan;
 //   - cada fila da la sintaxis de la orden —<nombre> si el argumento es
@@ -506,7 +508,7 @@ func RenderizarTabla(applets []string, descripciones []DescripcionDeVerbo) ([]by
 	var tabla bytes.Buffer
 
 	for indice, verbos := range secciones {
-		tabla.WriteString("\n### `" + carpetaDeLosScripts + "/" + applets[indice] + "`\n\n" + columnasDeLaTabla + "\n")
+		tabla.WriteString("\n### `" + programaDeLasOrdenes + " " + applets[indice] + "`\n\n" + columnasDeLaTabla + "\n")
 
 		for _, verbo := range verbos {
 			if err := mismoSobreYBanderas(comun, verbo); err != nil {
@@ -568,10 +570,10 @@ func filaDelVerbo(verbo DescripcionDeVerbo) string {
 	return "| " + strings.Join(celdas, " | ") + " |\n"
 }
 
-// sintaxisDeLaOrden es la orden de un verbo por el enlace de su applet, con cada
-// argumento en su orden (data-model §2.2).
+// sintaxisDeLaOrden es la orden de un verbo: kitlegal, su applet y el verbo, con
+// cada argumento en su orden (data-model §2.2).
 func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
-	partes := []string{carpetaDeLosScripts + "/" + verbo.Applet, verbo.Verbo}
+	partes := []string{programaDeLasOrdenes, verbo.Applet, verbo.Verbo}
 
 	for _, argumento := range verbo.Argumentos {
 		switch {

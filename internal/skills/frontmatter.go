@@ -93,8 +93,7 @@ type Frontmatter struct {
 }
 
 // DeclaracionDeKitlegal es lo que una skill declara en metadata para que la
-// sincronización le genere tabla, enlaces y referencias (data-model §1.3;
-// research.md D4).
+// sincronización le genere tabla y referencias (data-model §1.3; research.md D4).
 type DeclaracionDeKitlegal struct {
 	// Applets son los nombres de kitlegal-applets, en el orden en que la tabla
 	// los presenta, o nil si la skill no la declara.

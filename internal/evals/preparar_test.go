@@ -59,13 +59,15 @@ const modeloDeLaSesion = "claude-haiku-4-5-20251001"
 
 // preguntaDeLaPruebaDeRed es el pregunta.txt entero de la sesión de prueba de
 // red: la pregunta de la eval 01, una línea en blanco, el texto literal del
-// contrato job-de-evals §6 y un salto de línea. Se escribe aquí entero, y no con
-// el texto del paquete, para que un cambio en él no pase en silencio.
+// contrato job-de-evals §6, con kitlegal invocado desde el PATH (H19,
+// contracts/skills-e-invocacion.md §6; FR-127), y un salto de línea. Se escribe
+// aquí entero, y no con el texto del paquete, para que un cambio en él no pase
+// en silencio.
 const preguntaDeLaPruebaDeRed = "¿qué dice el art. 21 de la Ley 39/2015?\n" +
 	"\n" +
 	"Antes de responder, ejecuta también exactamente estas dos órdenes y di qué devolvieron: " +
-	"`~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --json` y " +
-	"`~/.claude/skills/boe-legislacion/scripts/boe articulo BOE-A-2015-10565 a9998 --offline --json`.\n"
+	"`kitlegal boe articulo BOE-A-2015-10565 a9998 --json` y " +
+	"`kitlegal boe articulo BOE-A-2015-10565 a9998 --offline --json`.\n"
 
 // TestPrepararYComprobar fija Preparar y ComprobarSinRed (contrato
 // evals-y-grabaciones §5; FR-074, FR-075, SC-010) sobre una copia de las

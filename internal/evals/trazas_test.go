@@ -804,6 +804,25 @@ const (
 		`sin_addr=inet_addr("127.0.0.1")}, 16) = ?`
 )
 
+// Líneas reales de la sonda de H19 (specs/009-h19-instalar-sin-clonar/gates/
+// cierre-traza-huerfana.md), tal como las escribió strace 6.8 en un contenedor de
+// ubuntu:24.04 en arm64 sobre el programa de la sonda de V65: la llamada cuyo
+// número strace no conoce, sin cerrar y con sus seis argumentos crudos, en los dos
+// ficheros sin línea de creación de la traza de la repetición 1783 con 100 µs de
+// espera, y tras cuatro clones en t.3345 de la repetición 123; la misma llamada
+// cerrada como strace cierra la desconocida, que la sonda no dio y se admite por
+// la misma regla; la señal de apropiación del runtime de Go, en t.225832 de la
+// repetición 2756; y la clone con el errno que strace no nombra de la repetición
+// 1478, que sigue siendo ilegible.
+const (
+	lineaDeNumeroDesconocidoSinCerrar  = "syscall_0x2f777(0x7b9a036dfe00, 0, 0x6a7341b073188, 0, 0x3e8, 0x4e20 <unfinished ...>"
+	lineaDeNumeroDesconocidoCerrada    = "syscall_0x2f777(0x7b9a036dfe00, 0, 0x6a7341b073188, 0, 0x3e8, 0x4e20) = ?"
+	lineaDeNumeroDesconocidoTrasClones = "syscall_0xd18(0, 0, 0, 0x1, 0x54eb09722000, 0x54eb096ac218 <unfinished ...>"
+	lineaDeSenalDeApropiacion          = "--- SIGURG {si_signo=SIGURG, si_code=SI_TKILL, si_pid=229206, si_uid=0} ---"
+	lineaDeCloneConErrnoSinNombre      = "clone(child_stack=0x6a48e76a4000, flags=" + banderasDeHiloDeGo +
+		") = -1 (errno 18446744073709551481)"
+)
+
 // Líneas de las trazas que escribe TestLeerTrazasSinTerminar: la execve con la
 // que empieza el fichero raíz de cada traza de la sonda de V65 (la de t.254), que
 // no es ningún applet; el connect de una invocación a una dirección pública que
@@ -969,6 +988,202 @@ func TestLeerTrazasSinTerminar(t *testing.T) {
 	}
 }
 
+// TestLeerTrazasHuerfanoConLlamadaDesconocida fija, sobre trazas que el propio
+// test escribe en t.TempDir() con las líneas reales de la sonda de H19, la lectura
+// del fichero sin la línea que lo crea que tiene, además de su línea final, la
+// llamada desconocida (data-model §9, reglas 1 y 5; FR-076): el hilo que una
+// clone sin terminar pudo crear y que el núcleo mató en la parada de entrada de
+// una llamada que strace no llegó a identificar. Así lo escribió el runner en la
+// sesión 18-lrjpac-norma-derogada-claude-sonnet-5-01 de la ejecución 36291141634,
+// y el lector lo tomaba por un segundo fichero raíz. Legibles y sin ninguna
+// invocación: las trazas reales de la sonda —un huérfano así con la clone de forma
+// A, dos con las clones de forma A y B, y un hilo con línea de creación que
+// termina tras sus clones en la llamada de número desconocido—, y la primera con
+// la llamada desconocida abierta, con una señal delante o con la de número
+// desconocido, abierta o cerrada. Legible con su invocación, la de un applet cuyo
+// hilo deja una clone sin terminar y un huérfano así. E ilegibles, con un error
+// que nombra el fichero: el huérfano así sin ninguna creación sin terminar que lo
+// explique; el fichero sin línea de creación cuya única llamada es una clone sin
+// terminar, que es del filtro; y la traza de la sonda en la que dos líneas crean
+// el mismo hilo, con la llamada de número desconocido en dos ficheros sin
+// creación propia.
+func TestLeerTrazasHuerfanoConLlamadaDesconocida(t *testing.T) {
+	t.Parallel()
+
+	final := lineaFinalConCero
+	desconocidaCerrada := lineaDeLlamadaDesconocidaCerradaDelRunner + "\n" + final
+	cloneDeGoSinTerminar := func(pila string) string {
+		return "clone(child_stack=" + pila + ", flags=" + banderasDeHiloDeGo + ") = ?\n"
+	}
+	cloneDeGoNoDisponible := func(pila string) string {
+		return "clone(child_stack=" + pila + ", flags=" + banderasDeHiloDeGo + ") = ? <unavailable>\n"
+	}
+
+	// Repetición 2313 con 20 µs de espera: la clone de forma A en t.122926, línea
+	// 3, y el huérfano t.122931 con la llamada desconocida cerrada.
+	unHuerfano := map[string]string{
+		"t.122920": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x1486328a2000", 122921) +
+			lineaDeCloneDeGo("0x1486328e8000", 122922) + lineaDeCloneDeGo("0x1486328e4000", 122923) +
+			lineaDeCloneDeGo("0x148632914000", 122924) + lineaDeCloneDeGo("0x148632972000", 122926) + final,
+		"t.122921": final,
+		"t.122922": lineaDeCloneDeGo("0x148632918000", 122925) + lineaDeCloneDeGo("0x148632a84000", 122927) + final,
+		"t.122923": final,
+		"t.122924": final,
+		"t.122925": final,
+		"t.122926": lineaDeCloneDeGo("0x148632a98000", 122928) + lineaDeCloneDeGo("0x148632a88000", 122929) +
+			cloneDeGoSinTerminar("0x14863296e000") + final,
+		"t.122927": lineaDeCloneDeGo("0x148632ab0000", 122930) + final,
+		"t.122928": final,
+		"t.122929": final,
+		"t.122930": final,
+		"t.122931": desconocidaCerrada,
+	}
+
+	// Repetición 2037 con 20 µs: la clone de forma A en t.117278 y la de forma B
+	// en t.117279, y dos huérfanos, t.117280 y t.117281.
+	dosHuerfanos := map[string]string{
+		"t.117275": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x66942bb14000", 117276) +
+			lineaDeCloneDeGo("0x66942bb5a000", 117277) + lineaDeCloneDeGo("0x66942bb56000", 117278) + final,
+		"t.117276": final,
+		"t.117277": lineaDeCloneDeGo("0x66942bb98000", 117279) + final,
+		"t.117278": cloneDeGoSinTerminar("0x66942bb94000") + final,
+		"t.117279": cloneDeGoNoDisponible("0x66942bc20000") + final,
+		"t.117280": desconocidaCerrada,
+		"t.117281": desconocidaCerrada,
+	}
+
+	// Repetición 123 con 100 µs: t.3345, que crea t.3343 en su línea 1, termina
+	// tras cuatro clones en la llamada de número desconocido sin cerrar; ninguna
+	// creación sin terminar ni huérfano.
+	numeroDesconocidoTrasClones := map[string]string{
+		"t.3339": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x54eb096ca000", 3340) +
+			lineaDeCloneDeGo("0x54eb09710000", 3341) + lineaDeCloneDeGo("0x54eb0970c000", 3342) + final,
+		"t.3340": final,
+		"t.3341": lineaDeCloneDeGo("0x54eb09798000", 3343) + lineaDeCloneDeGo("0x54eb097a8000", 3344) + final,
+		"t.3342": final,
+		"t.3343": lineaDeCloneDeGo("0x54eb097a4000", 3345) + final,
+		"t.3344": lineaDeCloneDeGo("0x54eb09898000", 3346) + final,
+		"t.3345": lineaDeCloneDeGo("0x54eb097b8000", 3347) + lineaDeCloneDeGo("0x54eb097bc000", 3348) +
+			lineaDeCloneDeGo("0x54eb09794000", 3350) + lineaDeCloneDeGo("0x54eb09928000", 3351) +
+			lineaDeNumeroDesconocidoTrasClones + "\n" + final,
+		"t.3346": lineaDeCloneDeGo("0x54eb09918000", 3349) + final,
+		"t.3347": final,
+		"t.3348": final,
+		"t.3349": lineaDeCloneDeGo("0x54eb09998000", 3352) + final,
+		"t.3350": final,
+		"t.3351": final,
+		"t.3352": final,
+	}
+
+	// Repetición 1783 con 100 µs: t.194419, línea 3, y t.194420, línea 1, crean
+	// las dos el hilo 194423, y t.194423 y t.194424, sin otra línea de creación,
+	// tienen la llamada de número desconocido sin cerrar.
+	creacionRepetida := map[string]string{
+		"t.194413": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0x7b9a036e0000", 194414) +
+			lineaDeCloneDeGo("0x7b9a03726000", 194415) + lineaDeCloneDeGo("0x7b9a03722000", 194416) +
+			lineaDeCloneDeGo("0x7b9a03794000", 194418) + lineaDeCloneDeGo("0x7b9a037f2000", 194419) + final,
+		"t.194414": final,
+		"t.194415": lineaDeCloneDeGo("0x7b9a03798000", 194417) + lineaDeCloneDeGo("0x7b9a03806000", 194420) + final,
+		"t.194416": final,
+		"t.194417": final,
+		"t.194418": final,
+		"t.194419": lineaDeCloneDeGo("0x7b9a03824000", 194421) + lineaDeCloneDeGo("0x7b9a0380a000", 194422) +
+			lineaDeCloneDeGo("0x7b9a037ee000", 194423) + final,
+		"t.194420": lineaDeCloneDeGo("0x7b9a03832000", 194423) + final,
+		"t.194421": final,
+		"t.194422": final,
+		"t.194423": lineaDeNumeroDesconocidoSinCerrar + "\n" + final,
+		"t.194424": lineaDeNumeroDesconocidoSinCerrar + "\n" + final,
+	}
+
+	huerfanoAbierto := maps.Clone(unHuerfano)
+	huerfanoAbierto["t.122931"] = lineaDeLlamadaDesconocida + "\n" + final
+
+	huerfanoConSenal := maps.Clone(unHuerfano)
+	huerfanoConSenal["t.122931"] = lineaDeSenalDeApropiacion + "\n" + desconocidaCerrada
+
+	huerfanoConNumero := maps.Clone(unHuerfano)
+	huerfanoConNumero["t.122931"] = lineaDeNumeroDesconocidoSinCerrar + "\n" + final
+
+	huerfanoConNumeroCerrado := maps.Clone(unHuerfano)
+	huerfanoConNumeroCerrado["t.122931"] = lineaDeNumeroDesconocidoCerrada + "\n" + final
+
+	// Una invocación de la skill instalada cuyo hilo 2001 deja una clone sin
+	// terminar, y el huérfano t.2002 que pudo crear.
+	invocacionConHuerfano := map[string]string{
+		"t.2000": lineaDeExecveDeBoe + lineaDeCloneDeGo("0xc000100000", 2001) + final,
+		"t.2001": cloneDeGoSinTerminar("0xc000104000") + final,
+		"t.2002": desconocidaCerrada,
+	}
+
+	// El huérfano t.259 con la llamada desconocida cerrada, junto a la abierta de
+	// un hilo con línea de creación, y ninguna creación sin terminar.
+	sinCreacionSinTerminar := map[string]string{
+		"t.254": lineaDeExecveDeLaSonda + lineaDeCloneDeGo("0xc413c510000", 255) + final,
+		"t.255": lineaDeLlamadaDesconocida + "\n" + final,
+		"t.259": desconocidaCerrada,
+	}
+
+	// Un fichero sin línea de creación cuya única llamada es una clone sin
+	// terminar, junto al huérfano.
+	sinOrigenConCloneSinTerminar := maps.Clone(unHuerfano)
+	sinOrigenConCloneSinTerminar["t.122932"] = cloneDeGoSinTerminar("0x148632ab4000") + final
+
+	a21 := []string{normaDeLasTrazas, "a21"}
+	json := []string{"--json"}
+
+	casos := []struct {
+		nombre       string
+		hilos        map[string]string
+		invocaciones []Invocacion
+		defecto      *defectoEsperado
+	}{
+		{nombre: "un-huerfano-con-la-llamada-desconocida-cerrada", hilos: unHuerfano},
+		{nombre: "dos-huerfanos-con-la-llamada-desconocida-cerrada", hilos: dosHuerfanos},
+		{nombre: "hilo-creado-que-termina-en-el-numero-desconocido", hilos: numeroDesconocidoTrasClones},
+		{nombre: "huerfano-con-la-llamada-desconocida-abierta", hilos: huerfanoAbierto},
+		{nombre: "huerfano-con-una-senal-delante", hilos: huerfanoConSenal},
+		{nombre: "huerfano-con-el-numero-desconocido-sin-cerrar", hilos: huerfanoConNumero},
+		{nombre: "huerfano-con-el-numero-desconocido-cerrado", hilos: huerfanoConNumeroCerrado},
+		{
+			nombre:       "huerfano-en-una-invocacion",
+			hilos:        invocacionConHuerfano,
+			invocaciones: []Invocacion{invocacionDeBoe(2000, codigoDeSalida(0), "articulo", a21, json)},
+		},
+		{
+			nombre:  "huerfano-sin-creacion-sin-terminar",
+			hilos:   sinCreacionSinTerminar,
+			defecto: &defectoEsperado{ficheros: []string{"t.259"}, motivo: "quedó sin terminar", ajenos: []string{"t.255"}},
+		},
+		{
+			nombre: "fichero-sin-origen-con-clone-sin-terminar",
+			hilos:  sinOrigenConCloneSinTerminar,
+			defecto: &defectoEsperado{
+				ficheros: []string{"t.122920", "t.122932"},
+				motivo:   "solo puede faltarle a uno",
+				ajenos:   []string{"t.122931"},
+			},
+		},
+		{
+			nombre: "creacion-repetida-con-el-numero-desconocido",
+			hilos:  creacionRepetida,
+			defecto: &defectoEsperado{
+				ficheros: []string{"t.194423", "t.194419", "t.194420"},
+				motivo:   "dos líneas crean",
+				ajenos:   []string{"t.194424"},
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comprobarLectura(t, escribirTraza(t, caso.hilos, nil), false, caso.invocaciones, caso.defecto)
+		})
+	}
+}
+
 // TestLeerTrazasHiloCreadoAntesDeLaEjecucion fija, sobre una traza que el propio
 // test escribe en t.TempDir(), la regla 3 de data-model §9 con dos hilos del
 // mismo proceso que conectan: bash crea el primero antes de reemplazarse por el
@@ -1102,13 +1317,18 @@ func TestLeerLlamadaConRelleno(t *testing.T) {
 
 // TestLeerLlamadaSinTerminar fija, sobre líneas literales, las cuatro formas de la
 // llamada que el fin del proceso deja sin terminar (data-model §9, regla 5;
-// research.md V65): la línea del runner y cada línea real de la sonda se leen
-// como una llamada sin terminar de su nombre, sin resultado —con el texto tras
-// «= » como resultado, vacío en la forma sin cerrar—, que no crea ningún hilo, y
-// con su dirección en el connect. Las formas no se abren a nada más: la marca con
-// cualquier otro resultado, la marca dentro de los argumentos, la llamada
-// desconocida con argumentos o con resultado y la forma sin cerrar de una llamada
-// que no es del filtro siguen siendo ilegibles.
+// research.md V65) y la llamada cuyo número strace no conoce, que la sonda de H19
+// dejó en la misma parada de entrada que la desconocida
+// (gates/cierre-traza-huerfana.md de ese hito): la línea del runner y cada línea
+// real de la sonda se leen como una llamada sin terminar de su nombre, sin
+// resultado —con el texto tras «= » como resultado, vacío en la forma sin
+// cerrar—, que no crea ningún hilo, y con su dirección en el connect. Las formas
+// no se abren a nada más: la marca con cualquier otro resultado, la marca dentro
+// de los argumentos, la llamada desconocida con argumentos o con resultado, la de
+// número desconocido con otros argumentos que sus seis crudos o con otro
+// resultado, la forma sin cerrar de una llamada que no es del filtro y una clone
+// con un errno que strace no nombra, que la sonda de H19 dejó dos veces en arm64 y
+// el runner nunca, siguen siendo ilegibles.
 func TestLeerLlamadaSinTerminar(t *testing.T) {
 	t.Parallel()
 
@@ -1131,6 +1351,13 @@ func TestLeerLlamadaSinTerminar(t *testing.T) {
 			resultado: "?",
 		},
 		{nombre: "llamada-desconocida-cerrada-con-un-espacio", texto: "???() = ?", llamada: "???", resultado: "?"},
+		{nombre: "numero-desconocido-sin-cerrar", texto: lineaDeNumeroDesconocidoSinCerrar, llamada: "syscall_0x2f777"},
+		{
+			nombre:    "numero-desconocido-cerrado",
+			texto:     lineaDeNumeroDesconocidoCerrada,
+			llamada:   "syscall_0x2f777",
+			resultado: "?",
+		},
 		{
 			nombre:    "connect",
 			texto:     lineaDeConnectSinTerminar,
@@ -1167,6 +1394,7 @@ func TestLeerLlamadaSinTerminar(t *testing.T) {
 	}
 
 	conMarca := strings.TrimSuffix(lineaDeCloneSinTerminarDelRunner, ") = ?")
+	argumentosCrudos := strings.TrimSuffix(lineaDeNumeroDesconocidoCerrada, ") = ?")
 	otraForma := "no es ninguna de las formas de línea de la traza"
 
 	ilegibles := []struct{ nombre, texto, motivo string }{
@@ -1218,6 +1446,50 @@ func TestLeerLlamadaSinTerminar(t *testing.T) {
 			nombre: "sin-cerrar-con-direccion-sin-leer",
 			texto:  "connect(9, 0x7ffc3e7a1b90, 16 <unfinished ...>",
 			motivo: "los argumentos de connect no tienen la forma de la traza",
+		},
+		{
+			nombre: "numero-desconocido-con-resultado",
+			texto:  argumentosCrudos + ") = -1 ENOSYS (Function not implemented)",
+			motivo: "solo el resultado ?",
+		},
+		{nombre: "numero-desconocido-no-disponible", texto: argumentosCrudos + ") = ? <unavailable>", motivo: "solo el resultado ?"},
+		{nombre: "numero-desconocido-con-cero-argumentos", texto: "syscall_0x2f777() = ?", motivo: "seis argumentos sin decodificar"},
+		{
+			nombre: "numero-desconocido-con-argumentos-decodificados",
+			texto:  "syscall_0x2f777(child_stack=0x7b9a036dfe00, flags=0) = ?",
+			motivo: "seis argumentos sin decodificar",
+		},
+		{
+			nombre: "numero-desconocido-sin-cerrar-con-cinco-argumentos",
+			texto:  "syscall_0x2f777(0x7b9a036dfe00, 0, 0x6a7341b073188, 0, 0x3e8 <unfinished ...>",
+			motivo: "seis argumentos sin decodificar",
+		},
+		{
+			// strace escribe los argumentos crudos con %#lx: un decimal que no es 0
+			// no es suyo.
+			nombre: "numero-desconocido-con-argumento-decimal",
+			texto:  "syscall_0x2f777(0x7b9a036dfe00, 1, 0x6a7341b073188, 0, 0x3e8, 0x4e20) = ?",
+			motivo: "seis argumentos sin decodificar",
+		},
+		{
+			nombre: "numero-desconocido-con-la-marca-dentro",
+			texto:  "syscall_0x2f777(0x7b9a036dfe00 <unfinished ...>, 0, 0x6a7341b073188, 0, 0x3e8, 0x4e20) = ?",
+			motivo: "seis argumentos sin decodificar",
+		},
+		{
+			nombre: "numero-desconocido-en-mayusculas",
+			texto:  "syscall_0x2F777(0x7b9a036dfe00, 0, 0x6a7341b073188, 0, 0x3e8, 0x4e20) = ?",
+			motivo: otraForma,
+		},
+		{nombre: "numero-desconocido-en-decimal", texto: "syscall_194423(0, 0, 0, 0, 0, 0) = ?", motivo: otraForma},
+		{
+			// La sonda de H19 la dejó dos veces en arm64, en la clone con la que
+			// un hilo del proceso que salía creó el último hilo de la traza: un
+			// errno que strace no nombra, y que no es ninguno de Linux, es un
+			// resultado que no se puede leer, no una forma que se admita.
+			nombre: "clone-con-errno-sin-nombre",
+			texto:  lineaDeCloneConErrnoSinNombre,
+			motivo: otraForma,
 		},
 	}
 

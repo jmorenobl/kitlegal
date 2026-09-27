@@ -1,0 +1,174 @@
+# El aviso de versión, sin red: con un manifiesto de otra versión, una orden de
+# otro applet escribe exactamente una línea más en la salida de error, con las
+# dos versiones y la orden que lo arregla (con -g si el manifiesto es el
+# global), sin cambiar ni la salida estándar, byte a byte, ni el código de
+# salida; también cuando la orden falla, con --describe y con --dry-run; cuando
+# solo una skill declarada es de otra versión; cuando la diferencia está en los
+# metadatos de construcción; y con un manifiesto local sin HOME.
+#
+# Cubre: US3.1, US3.2, US3.5, US3.6, US3.7 (metadatos de construcción), US3.9
+# (manifiesto local sin HOME) · FR-070, FR-071, FR-072, FR-075, FR-077 ·
+# SC-013, SC-022.
+#
+# El binario que avisa es $KITLEGAL_V2_BIN (v0.2.0) y el que instala,
+# $KITLEGAL_V1_BIN (v0.1.0): el mismo binario, con las mismas skills empotradas
+# (contracts/arnes-e2e.md §2). La línea es la de contracts/aviso.md §4. La
+# salida estándar se compara sobre órdenes que no dependen del reloj: territorio,
+# cuya fecha_consulta es la de sus datos, y una consulta de boe servida por la
+# caché con --offline. Nada de esto abre la red: los proxies del arnés están
+# cerrados y ninguna orden sale de $WORK (SC-022).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# La caché, sembrada desde $WORK, donde está la reproducción de boe.
+exec $KITLEGAL_V2_BIN boe articulo BOE-A-2015-10565 a21 --json
+! stderr .
+
+# --- Referencias, sin ningún manifiesto ---
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cp stdout $WORK/territorio.json
+exec $KITLEGAL_V2_BIN boe articulo BOE-A-2015-10565 a21 --offline --json
+! stderr .
+cp stdout $WORK/boe.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --describe
+! stderr .
+cp stdout $WORK/describe.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --dry-run
+! stdout .
+cp stderr $WORK/dry-run-sin.err
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+cp stderr $WORK/sin-norma-sin.err
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo BOE-A-2015-10565 a99 --offline; test $? -eq 4'
+! stdout .
+cp stderr $WORK/sin-cache-sin.err
+
+# --- Un manifiesto local de otra versión (US3.1, SC-013) ---
+#
+# Exactamente una línea en la salida de error, que antes estaba vacía, y la
+# salida estándar byte a byte igual; el código, 0 como antes.
+exec $KITLEGAL_V1_BIN skills install
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+exec $KITLEGAL_V2_BIN boe articulo BOE-A-2015-10565 a21 --offline --json
+cmp stdout $WORK/boe.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+# --- Con --describe, con --dry-run y con un fallo del verbo (US3.5, FR-075) ---
+#
+# El aviso sale una vez el verbo está resuelto, termine como termine: la misma
+# salida estándar, el mismo código y exactamente una línea más en la de error.
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --describe
+cmp stdout $WORK/describe.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --dry-run
+! stdout .
+stderr -count=1 '^aviso: '
+stderr '^aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install$'
+cp stderr $WORK/dry-run-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/dry-run-sin.err $WORK/dry-run-con.err
+
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+stderr -count=1 '^aviso: '
+stderr '^aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install$'
+cp stderr $WORK/sin-norma-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/sin-norma-sin.err $WORK/sin-norma-con.err
+
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo BOE-A-2015-10565 a99 --offline; test $? -eq 4'
+! stdout .
+stderr -count=1 '^aviso: '
+stderr '^aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install$'
+cp stderr $WORK/sin-cache-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/sin-cache-sin.err $WORK/sin-cache-con.err
+
+# --- El manifiesto local, sin HOME (US3.9, FR-070) ---
+#
+# Con HOME sin definir o vacío el global no se busca, pero el local se compara
+# como siempre: una línea, sin -g.
+exec env -u HOME $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+env HOME=
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+env HOME=$WORK/home
+
+# --- Solo un manifiesto global de otra versión (US3.2) ---
+#
+# Sin nada en el directorio de trabajo, el global: la línea propone -g.
+env HOME=$WORK/home-global
+mkdir $WORK/home-global
+exec $KITLEGAL_V1_BIN skills install -g
+mkdir $WORK/solo-global
+cd $WORK/solo-global
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+
+# Con un manifiesto local, manda el local y el global no se mira: el de
+# proyecto, de otra versión, avisa sin -g; uno local al día no avisa, aunque el
+# global sea de otra versión (FR-070).
+cd $WORK/proyecto
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+mkdir $WORK/local-al-dia
+cd $WORK/local-al-dia
+exec $KITLEGAL_V2_BIN skills install
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+! stderr .
+
+# --- Solo una skill declarada de otra versión (US3.6, FR-071) ---
+#
+# Tras instalar un subconjunto con el binario nuevo, el manifiesto está en la
+# versión nueva pero boe-legislacion sigue declarada con la anterior: el aviso
+# la ve, con esa versión.
+env HOME=$WORK/home
+mkdir $WORK/subconjunto
+cd $WORK/subconjunto
+exec $KITLEGAL_V1_BIN skills install
+exec $KITLEGAL_V2_BIN skills install legal-core
+grep -count=2 '"v0\.2\.0"' .agents/skills/kitlegal.json
+grep -count=1 '"v0\.1\.0"' .agents/skills/kitlegal.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+
+# --- Una versión que solo difiere en los metadatos de construcción (US3.7, FR-077) ---
+#
+# 0.1.0+abc no es v0.1.0: se compara la cadena sin la v inicial, metadatos
+# incluidos.
+mkdir $WORK/metadatos
+cd $WORK/metadatos
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
+grep -count=3 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
+exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal 0\.1\.0\+abc y este binario es kitlegal v0\.1\.0; ejecuta: kitlegal skills install\n\z'
+
+-- una-linea-mas.sh --
+# una-linea-mas.sh <sin> <con>: la salida de error <con> tiene exactamente una
+# línea más que <sin>, y es la única de las dos que empieza por «aviso: »
+# (contracts/aviso.md §4, SC-013).
+set -u
+sin=$(wc -l < "$1" | tr -d ' ')
+con=$(wc -l < "$2" | tr -d ' ')
+if [ "$con" -ne $((sin + 1)) ]; then
+	echo "sin manifiesto, $sin líneas; con él, $con" >&2
+	exit 1
+fi
+test "$(grep -c '^aviso: ' "$1")" -eq 0 && test "$(grep -c '^aviso: ' "$2")" -eq 1

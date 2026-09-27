@@ -1,0 +1,94 @@
+# Qué hay instalado y si está sano, sin cambiar nada: `list` enumera lo que
+# declara el manifiesto del ámbito, con su versión y sus enlaces, y `doctor`,
+# sobre una instalación sin tocar, no encuentra nada; los dos salen con 0. Sin
+# manifiesto también salen con 0, sin nada en la salida de error, y su `data`
+# dice que no hay manifiesto, con la versión nula y la lista vacía; con un
+# manifiesto que no declara ninguna skill, que lo hay y su versión.
+#
+# Cubre: US4.1, US4.5 · FR-060, FR-061, FR-062, FR-067, FR-068 · SC-011.
+#
+# Las claves de `data` son las de contracts/applet-skills.md §4.2 y §4.3. Que
+# ninguno de los dos cambia el disco se comprueba con `arbol` antes y después
+# (contracts/arnes-e2e.md §4). El binario es $KITLEGAL_V1_BIN (v0.1.0), para que
+# las versiones de la salida sean concretas.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Sin manifiesto (US4.5, FR-061, FR-067) ---
+mkdir $WORK/vacio
+cd $WORK/vacio
+exec $KITLEGAL_V1_BIN skills list --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":false,"version":null,"skills":\[\]\}\}\n\z'
+! stderr .
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":false,"version":null,"version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+! stderr .
+arbol .
+! stdout .
+
+# Con el directorio neutro creado pero sin kitlegal.json, igual: no hay
+# manifiesto.
+mkdir $WORK/sin-manifiesto/.agents/skills
+cd $WORK/sin-manifiesto
+exec $KITLEGAL_V1_BIN skills list --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":false,"version":null,"skills":\[\]\}\}\n\z'
+! stderr .
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":false,"version":null,"version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- Una instalación sin tocar, con .claude/ (US4.1, FR-060, FR-067) ---
+mkdir $WORK/instalado/.claude
+cd $WORK/instalado
+exec $KITLEGAL_V1_BIN skills install
+arbol .
+cp stdout $WORK/instalado.txt
+
+exec $KITLEGAL_V1_BIN skills list --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+! stderr .
+
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# Sin --json, los dos salen igual con 0.
+exec $KITLEGAL_V1_BIN skills list
+! stderr .
+exec $KITLEGAL_V1_BIN skills doctor
+! stderr .
+
+# Ninguno de los dos ha escrito nada (FR-062, FR-068).
+arbol .
+cmp stdout $WORK/instalado.txt
+
+# --- Una sola skill instalada ---
+mkdir $WORK/una
+cd $WORK/una
+exec $KITLEGAL_V1_BIN skills install legal-core
+exec $KITLEGAL_V1_BIN skills list --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
+
+# --- Un manifiesto que no declara ninguna skill (FR-061, FR-067) ---
+#
+# Hay manifiesto y su versión no es nula, aunque la lista esté vacía; así se
+# distingue de un ámbito sin manifiesto.
+cd $WORK/declara-nada
+arbol .
+cp stdout $WORK/declara-nada.txt
+exec $KITLEGAL_V1_BIN skills list --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\]\}\}\n\z'
+! stderr .
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+! stderr .
+arbol .
+cmp stdout $WORK/declara-nada.txt
+
+-- declara-nada/.agents/skills/kitlegal.json --
+{
+  "skills": {},
+  "version": "v0.1.0"
+}

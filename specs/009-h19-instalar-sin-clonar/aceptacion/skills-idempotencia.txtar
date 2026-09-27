@@ -1,0 +1,118 @@
+# Atómico e idempotente: una segunda ejecución con el mismo binario y nada
+# tocado deja el disco byte a byte igual —contenidos, destinos de enlace y lista
+# de entradas— y dice `sin cambios` para cada skill; con otro binario, las
+# skills salen `actualizada`, los ficheros son los empotrados y el manifiesto
+# lleva la versión nueva, y otra ejecución vuelve a no cambiar nada; instalar
+# una sola skill conserva byte a byte la entrada de las demás; un fichero
+# declarado que falta se repone; y uno declarado que ya no se empotra, con la
+# huella intacta, se retira.
+#
+# Cubre: US3.4 · FR-033, FR-034, FR-045, FR-046 · SC-007.
+#
+# «Byte a byte» es `arbol` —tipo, ruta, permisos, huella de cada fichero y
+# destino literal de cada enlace, sin seguirlos— antes y después
+# (contracts/arnes-e2e.md §4). $KITLEGAL_V1_BIN y $KITLEGAL_V2_BIN son el mismo
+# binario con las versiones v0.1.0 y v0.2.0 (§2), con las mismas skills
+# empotradas; el manifiesto es el de contracts/manifiesto.md §1.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Segunda ejecución con el mismo binario (FR-033, FR-045, SC-007) ---
+mkdir $WORK/proyecto/.claude
+cd $WORK/proyecto
+exec kitlegal skills install
+arbol .
+cp stdout $WORK/primera.txt
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+arbol .
+cmp stdout $WORK/primera.txt
+
+# --- Actualizar con otro binario, y otra vez (US3.4) ---
+mkdir $WORK/actualizar/.claude
+cd $WORK/actualizar
+exec $KITLEGAL_V1_BIN skills install
+grep -count=3 '"v0\.1\.0"' .agents/skills/kitlegal.json
+exec $KITLEGAL_V2_BIN skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+grep -count=3 '"v0\.2\.0"' .agents/skills/kitlegal.json
+! grep '"v0\.1\.0"' .agents/skills/kitlegal.json
+cmp .agents/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+arbol .
+cp stdout $WORK/actualizada.txt
+
+exec $KITLEGAL_V2_BIN skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+arbol .
+cmp stdout $WORK/actualizada.txt
+
+# --- Un subconjunto con otro binario conserva a las demás (FR-034) ---
+#
+# El manifiesto pasa a la versión nueva y legal-core también; la entrada de
+# boe-legislacion queda byte a byte como estaba: devolviendo la versión nueva
+# a la anterior, el manifiesto es el mismo que antes.
+mkdir $WORK/subconjunto
+cd $WORK/subconjunto
+exec $KITLEGAL_V1_BIN skills install
+cp .agents/skills/kitlegal.json $WORK/manifiesto-v1.json
+exec $KITLEGAL_V2_BIN skills install legal-core --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+grep -count=2 '"v0\.2\.0"' .agents/skills/kitlegal.json
+grep -count=1 '"v0\.1\.0"' .agents/skills/kitlegal.json
+exec sh -c 'sed "s/\"v0\.2\.0\"/\"v0.1.0\"/g" .agents/skills/kitlegal.json'
+cmp stdout $WORK/manifiesto-v1.json
+
+# --- Un fichero declarado que falta se repone (FR-046) ---
+#
+# Solo cambia la skill a la que le falta: esa sale actualizada y la otra, sin
+# cambios.
+mkdir $WORK/falta
+cd $WORK/falta
+exec kitlegal skills install
+rm .agents/skills/legal-core/references/leyes_vertebrales.md
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+
+# --- Un fichero declarado que ya no se empotra, con la huella intacta, se retira (FR-046) ---
+#
+# Se declara en el manifiesto un fichero de legal-core que este binario no
+# empotra, con la huella de sus bytes, como lo habría dejado un binario que sí
+# lo empotrara: install lo retira, legal-core sale actualizada y el manifiesto
+# vuelve a ser byte a byte el de antes.
+mkdir $WORK/retirar
+cd $WORK/retirar
+exec kitlegal skills install
+cp .agents/skills/kitlegal.json $WORK/manifiesto-completo.json
+cp $WORK/antigua.md .agents/skills/legal-core/references/antigua.md
+exec sh $WORK/declarar.sh .agents/skills/kitlegal.json legal-core/references/antigua.md .agents/skills/legal-core/references/antigua.md
+exec kitlegal skills list --json
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+! exists .agents/skills/legal-core/references/antigua.md
+cmp .agents/skills/kitlegal.json $WORK/manifiesto-completo.json
+
+-- antigua.md --
+Una referencia que una versión anterior empotraba.
+-- declarar.sh --
+# declarar.sh <manifiesto> <clave> <fichero>: añade al texto del manifiesto,
+# delante de la declaración del SKILL.md de la misma skill, la de <clave> con
+# la huella SHA-256 de los bytes de <fichero> (contracts/manifiesto.md §1), sin
+# tocar nada más: el manifiesto sigue siendo legible.
+set -eu
+skill=${2%%/*}
+if command -v sha256sum > /dev/null 2>&1; then
+	huella=$(sha256sum < "$3" | cut -d ' ' -f 1)
+else
+	huella=$(shasum -a 256 < "$3" | cut -d ' ' -f 1)
+fi
+sed "s|\"$skill/SKILL\.md\"|\"$2\": \"sha256:$huella\", &|" "$1" > "$1.nuevo"
+mv "$1.nuevo" "$1"
+grep -q "\"$2\": \"sha256:$huella\"" "$1"

@@ -1,0 +1,291 @@
+# Las rutas del ámbito tienen que ser directorios reales o no existir, y el
+# manifiesto, legible: `install` nombra como «ruta que no es directorio» cada
+# una de .agents, .agents/skills y la ruta de --dir cuando es un fichero o un
+# enlace simbólico, .claude cuando se enlaza con --host claude y .claude/skills
+# cuando se enlaza en el host, y como «manifiesto ilegible» un kitlegal.json que
+# no respeta su forma, sin escribir nada a través de ellas; `list` y `doctor`
+# salen con 1 con una sola línea que las nombra; y, sin --host, un .claude que
+# es un fichero o un enlace cuenta como ausente: ni conflicto ni host.
+#
+# Cubre: FR-022, FR-023, FR-026, FR-027, FR-035, FR-041 (g)-(h), FR-061,
+# FR-067 · SC-009.
+#
+# Cada caso en su directorio y con `arbol` antes y después, que no sigue
+# enlaces, sobre el directorio del caso, donde queda también el destino de cada
+# enlace (contracts/arnes-e2e.md §4). Los mensajes son los de
+# contracts/applet-skills.md §5: la cabecera de `install` y una línea
+# `<clase>: <ruta>` por conflicto; en `list` y `doctor`, una sola línea
+# `skills <verbo>: <clase>: <ruta>`.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- .agents como fichero y como enlace a un directorio (FR-027) ---
+cd $WORK/agents-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nruta que no es directorio: \.agents$'
+exec sh -c 'kitlegal skills list --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: ruta que no es directorio: \.agents"\}\}\n\z'
+stderr '^skills list: ruta que no es directorio: \.agents$'
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: ruta que no es directorio: \.agents"\}\}\n\z'
+stderr '^skills doctor: ruta que no es directorio: \.agents$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+cd $WORK/agents-enlace
+symlink .agents -> real
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents"\}\}\n\z'
+exec sh -c 'kitlegal skills install --host claude; test $? -eq 1'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nruta que no es directorio: \.agents$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- .agents/skills como fichero y como enlace a un directorio (FR-027) ---
+cd $WORK/skills-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/skills-enlace/.agents
+cd $WORK/skills-enlace
+symlink .agents/skills -> ../real
+arbol .
+stdout '^l \.agents/skills -> \.\./real$'
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills"\}\}\n\z'
+stderr '^ruta que no es directorio: \.agents/skills$'
+
+# list y doctor tampoco leen a través de él (SC-009): 1 y una sola línea, aunque
+# al otro lado haya un manifiesto válido.
+exec sh -c 'kitlegal skills list --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: ruta que no es directorio: \.agents/skills"\}\}\n\z'
+stderr '^skills list: ruta que no es directorio: \.agents/skills$'
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: ruta que no es directorio: \.agents/skills"\}\}\n\z'
+stderr '^skills doctor: ruta que no es directorio: \.agents/skills$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- La ruta de --dir como fichero y como enlace a un directorio (FR-027) ---
+cd $WORK/dir-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --dir destino --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: destino"\}\}\n\z'
+exec sh -c 'kitlegal skills list --dir destino --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills list: ruta que no es directorio: destino"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+cd $WORK/dir-enlace
+symlink destino -> real
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --dir destino --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: destino"\}\}\n\z'
+exec sh -c 'kitlegal skills doctor --dir destino --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills doctor: ruta que no es directorio: destino"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- .claude como fichero y como enlace, con --host claude (FR-023) ---
+cd $WORK/claude-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --host claude --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.claude"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/claude-enlace/real-claude
+cd $WORK/claude-enlace
+symlink .claude -> real-claude
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --host claude --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.claude"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Sin --host, ese .claude cuenta como ausente (FR-022) ---
+#
+# Ni conflicto ni ninguna entrada de host: la instalación termina bien sin
+# enlaces, el fichero .claude queda como estaba y nada se crea a través del
+# enlace .claude.
+cd $WORK/claude-fichero
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+cmp .claude $WORK/claude-fichero-original
+! grep '"hosts"' .agents/skills/kitlegal.json
+
+cd $WORK/claude-enlace
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+arbol real-claude
+! stdout .
+exec readlink .claude
+stdout '\Areal-claude\n\z'
+
+# --- .claude/skills como fichero y como enlace, al enlazar el host (FR-026) ---
+#
+# .claude es un directorio real, así que el host se enlaza sin pedirlo.
+cd $WORK/claude-skills-fichero
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.claude/skills"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/claude-skills-enlace/.claude
+mkdir $WORK/claude-skills-enlace/real-skills
+cd $WORK/claude-skills-enlace
+symlink .claude/skills -> ../real-skills
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --host claude --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.claude/skills"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- Manifiesto ilegible (FR-035, FR-041 (h), FR-061, FR-067) ---
+#
+# Un kitlegal.json que no es JSON: install no sabe qué es suyo y no toca nada;
+# list y doctor salen con 1 nombrándolo, sin dar skills ni hallazgos.
+cd $WORK/ilegible-texto
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nmanifiesto ilegible: \.agents/skills/kitlegal\.json$'
+exec sh -c 'kitlegal skills list --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# Las demás formas de no respetar la forma de contracts/manifiesto.md §1 y §3:
+# un miembro desconocido, un nombre repetido, datos tras el documento, una ruta
+# con «..», una huella que no es sha256 en minúscula, una versión vacía y un
+# kitlegal.json que es un directorio. Todas son el mismo conflicto.
+cd $WORK/ilegible-miembro
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+cd $WORK/ilegible-repetido
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+cd $WORK/ilegible-cola
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+cd $WORK/ilegible-ruta
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+cd $WORK/ilegible-huella
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+cd $WORK/ilegible-version
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+mkdir $WORK/ilegible-directorio/.agents/skills/kitlegal.json
+cd $WORK/ilegible-directorio
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c 'kitlegal skills list --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+
+# Y un manifiesto que sí respeta la forma, aunque no declare ninguna skill, es
+# legible: la instalación termina bien.
+cd $WORK/legible
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+
+-- agents-fichero/.agents --
+No soy un directorio.
+-- agents-enlace/real/skills/nota.md --
+Lo que hay al otro lado del enlace .agents.
+-- skills-fichero/.agents/skills --
+No soy un directorio.
+-- skills-enlace/real/kitlegal.json --
+{
+  "skills": {},
+  "version": "dev"
+}
+-- dir-fichero/destino --
+No soy un directorio.
+-- dir-enlace/real/nota.md --
+Lo que hay al otro lado del enlace destino.
+-- claude-fichero/.claude --
+No soy un directorio.
+-- claude-fichero-original --
+No soy un directorio.
+-- claude-skills-fichero/.claude/skills --
+No soy un directorio.
+-- ilegible-texto/.agents/skills/kitlegal.json --
+esto no es JSON
+-- ilegible-miembro/.agents/skills/kitlegal.json --
+{
+  "extra": true,
+  "skills": {},
+  "version": "dev"
+}
+-- ilegible-repetido/.agents/skills/kitlegal.json --
+{
+  "skills": {},
+  "version": "dev",
+  "version": "dev"
+}
+-- ilegible-cola/.agents/skills/kitlegal.json --
+{
+  "skills": {},
+  "version": "dev"
+}
+{}
+-- ilegible-ruta/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "legal-core": {
+      "ficheros": {
+        "legal-core/../SKILL.md": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "version": "dev"
+    }
+  },
+  "version": "dev"
+}
+-- ilegible-huella/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "legal-core": {
+      "ficheros": {
+        "legal-core/SKILL.md": "sha256:ABCDEF"
+      },
+      "version": "dev"
+    }
+  },
+  "version": "dev"
+}
+-- ilegible-version/.agents/skills/kitlegal.json --
+{
+  "skills": {},
+  "version": ""
+}
+-- legible/.agents/skills/kitlegal.json --
+{
+  "skills": {},
+  "version": "dev"
+}

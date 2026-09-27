@@ -1,0 +1,150 @@
+# Flujo de la release (FR-110 a FR-115 de H19; specs/009-h19-instalar-sin-clonar/contracts/release.md §6 y
+# research.md D30).
+#
+# Solo lo dispara una etiqueta v* que empuja una persona: etiquetar y publicar son humanos, y ninguna tarea ni ningún
+# otro flujo lo ejecuta (FR-110, FR-115). Dos trabajos, cada uno con sus permisos y ninguno heredado del flujo:
+#
+#   - `publicar` construye con el goreleaser de tools/ —el mismo módulo de herramienta que `make release`, sin
+#     --snapshot—, genera los SBOM con syft, firma checksums.txt con cosign sin clave, publica la release, el cask del
+#     tap y el manifiesto del bucket, y atesta la procedencia de los seis archivos y de checksums.txt (FR-111, FR-112).
+#   - `humo` comprueba lo publicado como lo recibe quien lo instala: sin el código del repositorio, descarga el archivo
+#     linux/amd64 de la release, verifica su huella y su atestación y ejecuta el binario (FR-113).
+#
+# Las acciones van fijadas por su etiqueta mayor, como en el resto de flujos, y las mantiene Dependabot (research.md
+# V36). Las mayores de syft, cosign y la atestación no se pueden comprobar sin red (research.md S2).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    # Escribir la release, y el id-token y las atestaciones para firmar sin clave y atestar (FR-111). Solo este
+    # trabajo los tiene.
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      # Toda la historia y sus etiquetas, de las que salen la versión y las notas de la release. La credencial no se
+      # queda en el clon: nada empuja por git, y así ningún paso posterior la encuentra en .git/config.
+      - name: Obtener el código con su historia
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # El Go que fijan las directivas de go.mod, como en `ci.yml`. Sin caché: lo que se publica y se firma no se
+      # construye sobre nada restaurado de otra ejecución.
+      - name: Instalar Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      # syft y cosign solo existen aquí: ni `make ci` ni el snapshot los usan, y no son módulos de tools/ (FR-096).
+      - name: Instalar syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Instalar cosign
+        uses: sigstore/cosign-installer@v4
+
+      # Los dos tokens, solo en el entorno de este paso (FR-097, FR-114): GITHUB_TOKEN para la release y
+      # PUBLISHER_TOKEN para el tap y el bucket, que .goreleaser.yaml lee al publicar.
+      - name: Publicar la release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHER_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
+        run: go tool -modfile=tools/goreleaser/go.mod goreleaser release --clean
+
+      # La procedencia SLSA de los seis archivos y de checksums.txt, tal como quedan en dist/ (FR-112).
+      - name: Atestar la procedencia
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/kitlegal_darwin_amd64.tar.gz
+            dist/kitlegal_darwin_arm64.tar.gz
+            dist/kitlegal_linux_amd64.tar.gz
+            dist/kitlegal_linux_arm64.tar.gz
+            dist/kitlegal_windows_amd64.zip
+            dist/kitlegal_windows_arm64.zip
+            dist/checksums.txt
+
+  # La release publicada, comprobada desde fuera (FR-113). Ningún paso obtiene el código ni usa una acción: todo
+  # ocurre en el directorio temporal del runner, con lo publicado y nada más. Una comprobación por paso, para que el
+  # registro nombre la que falla, y cada paso fija sus propias opciones de shell.
+  humo:
+    needs: [publicar]
+    runs-on: ubuntu-latest
+    # Leer la release y su atestación.
+    permissions:
+      contents: read
+      attestations: read
+    # gh lee el token de GH_TOKEN: el de esta ejecución, con los permisos de arriba.
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Descargar el archivo linux/amd64 publicado y checksums.txt
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern kitlegal_linux_amd64.tar.gz --pattern checksums.txt
+
+      - name: Comprobar la huella del archivo
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          # La línea cuyo segundo campo es exactamente el archivo, nunca por posición ni por subcadena. Sin ella,
+          # sha256sum no tiene ninguna línea que comprobar y falla.
+          awk '$2 == "kitlegal_linux_amd64.tar.gz"' checksums.txt > huella.txt
+          sha256sum --check --strict huella.txt
+
+      - name: Verificar la atestación del archivo
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          gh attestation verify kitlegal_linux_amd64.tar.gz --repo jmorenobl/kitlegal
+
+      - name: Comprobar que version imprime la etiqueta
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          tar -xzf kitlegal_linux_amd64.tar.gz kitlegal
+          salida=$(./kitlegal version)
+          primera=$(head -n 1 <<< "$salida")
+          if [ "$primera" != "kitlegal $GITHUB_REF_NAME" ]; then
+            echo "version imprime «$primera» en lugar de «kitlegal $GITHUB_REF_NAME»" >&2
+            exit 1
+          fi
+
+      - name: Comprobar que boe sin red y con la caché vacía sale con 4
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          cache=$(mktemp -d)
+          codigo=0
+          KITLEGAL_CACHE_DIR="$cache" ./kitlegal boe articulo BOE-A-2015-10565 a21 --offline || codigo=$?
+          if [ "$codigo" -ne 4 ]; then
+            echo "boe articulo --offline con la caché vacía sale con $codigo en lugar de 4" >&2
+            exit 1
+          fi
+
+      - name: Comprobar que skills install deja boe-legislacion en un directorio vacío
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          proyecto=$(mktemp -d)
+          cd "$proyecto"
+          "$RUNNER_TEMP/kitlegal" skills install
+          if [ ! -f .agents/skills/boe-legislacion/SKILL.md ]; then
+            echo "skills install no deja .agents/skills/boe-legislacion/SKILL.md" >&2
+            exit 1
+          fi

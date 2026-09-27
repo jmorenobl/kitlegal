@@ -1,0 +1,274 @@
+# Dentro del directorio de una skill declarada nada se lee, se escribe ni se
+# hashea a través de un enlace, y una entrada que no es un fichero regular no se
+# abre: `install` nombra con exactamente una clase el fichero editado (también
+# el SKILL.md sustituido por un enlace a una copia idéntica, por un directorio o
+# por una tubería con nombre), el directorio intermedio que no es un directorio
+# real, el <directorio neutro>/<skill> sustituido por un enlace, la entrada no
+# declarada en una ruta que escribiría y el kitlegal.json que es un enlace, sin
+# cambiar nada ni el destino de ningún enlace; y deja intacto lo no declarado
+# que no coincide con ninguna ruta empotrada.
+#
+# Cubre: FR-028, FR-041 (e)-(g), FR-047 · SC-009.
+#
+# Cada caso parte de una instalación limpia en su propio directorio. Los
+# destinos de los enlaces viven en $WORK/fuera-*, fuera del proyecto, y se
+# comparan con `arbol` antes y después, igual que el proyecto
+# (contracts/arnes-e2e.md §4); los mensajes son los de contracts/applet-skills.md
+# §5.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- (e) Un fichero instalado, editado a mano ---
+#
+# install solo sobrescribe lo que declara con la misma huella: un fichero con
+# otra huella es un conflicto y no se toca.
+mkdir $WORK/editado
+cd $WORK/editado
+exec kitlegal skills install
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero editado: \.agents/skills/legal-core/SKILL\.md$'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (e) SKILL.md sustituido por un enlace a una copia idéntica ---
+#
+# Aunque al otro lado esté el mismo contenido, el enlace no se sigue: es un
+# fichero editado, y la copia queda como estaba.
+mkdir $WORK/skill-enlace
+mkdir $WORK/fuera-skill-enlace
+cd $WORK/skill-enlace
+exec kitlegal skills install
+cp .agents/skills/legal-core/SKILL.md $WORK/fuera-skill-enlace/SKILL.md
+rm .agents/skills/legal-core/SKILL.md
+symlink .agents/skills/legal-core/SKILL.md -> $WORK/fuera-skill-enlace/SKILL.md
+arbol .
+cp stdout $WORK/antes.txt
+arbol $WORK/fuera-skill-enlace
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+arbol $WORK/fuera-skill-enlace
+cmp stdout $WORK/fuera-antes.txt
+
+# --- (e) SKILL.md sustituido por un directorio y por una tubería con nombre ---
+#
+# Ninguno de los dos es un fichero regular: no se abren, y los dos son un
+# fichero editado. Si la tubería se abriera, la orden no terminaría.
+mkdir $WORK/skill-directorio
+cd $WORK/skill-directorio
+exec kitlegal skills install
+rm .agents/skills/legal-core/SKILL.md
+mkdir .agents/skills/legal-core/SKILL.md
+cp $WORK/nota.md .agents/skills/legal-core/SKILL.md/nota.md
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+mkdir $WORK/skill-tuberia
+cd $WORK/skill-tuberia
+exec kitlegal skills install
+rm .agents/skills/legal-core/SKILL.md
+exec mkfifo .agents/skills/legal-core/SKILL.md
+arbol .
+stdout '^p \.agents/skills/legal-core/SKILL\.md$'
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (g) references sustituido por un enlace a un directorio y por un fichero ---
+#
+# Un directorio intermedio que no es un directorio real es «ruta que no es
+# directorio», y sus ficheros no se comprueban: la entrada es lo único que se
+# nombra.
+mkdir $WORK/references-enlace
+mkdir $WORK/fuera-references
+cd $WORK/references-enlace
+exec kitlegal skills install
+exec cp -R .agents/skills/legal-core/references $WORK/fuera-references/references
+rm .agents/skills/legal-core/references
+symlink .agents/skills/legal-core/references -> $WORK/fuera-references/references
+arbol .
+cp stdout $WORK/antes.txt
+arbol $WORK/fuera-references
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
+stderr '^ruta que no es directorio: \.agents/skills/legal-core/references$'
+arbol .
+cmp stdout $WORK/antes.txt
+arbol $WORK/fuera-references
+cmp stdout $WORK/fuera-antes.txt
+
+mkdir $WORK/references-fichero
+cd $WORK/references-fichero
+exec kitlegal skills install
+rm .agents/skills/legal-core/references
+cp $WORK/nota.md .agents/skills/legal-core/references
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nruta que no es directorio: \.agents/skills/legal-core/references"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- La skill declarada sustituida por un enlace (FR-041 (c) y (d)) ---
+#
+# En el directorio neutro, un enlace con el nombre de una skill es conflicto
+# esté declarada o no: a una copia idéntica, «enlace a otro sitio»; colgando,
+# «enlace roto». Nada se escribe a través de él.
+mkdir $WORK/skill-a-copia
+mkdir $WORK/fuera-skill-a-copia
+cd $WORK/skill-a-copia
+exec kitlegal skills install
+exec cp -R .agents/skills/legal-core $WORK/fuera-skill-a-copia/legal-core
+rm .agents/skills/legal-core
+symlink .agents/skills/legal-core -> $WORK/fuera-skill-a-copia/legal-core
+arbol .
+cp stdout $WORK/antes.txt
+arbol $WORK/fuera-skill-a-copia
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.agents/skills/legal-core"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+arbol $WORK/fuera-skill-a-copia
+cmp stdout $WORK/fuera-antes.txt
+
+mkdir $WORK/skill-colgando
+cd $WORK/skill-colgando
+exec kitlegal skills install
+rm .agents/skills/legal-core
+symlink .agents/skills/legal-core -> $WORK/no-existe
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/legal-core"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (f) Una entrada no declarada en una ruta que install escribiría ---
+#
+# Se retira del manifiesto la declaración de una referencia de legal-core, sin
+# tocar nada más de su texto: el fichero que sigue en el disco ya no es suyo y
+# es un «fichero ajeno»; y lo mismo si en su lugar hay un enlace, que no se
+# sigue.
+mkdir $WORK/ajeno
+cd $WORK/ajeno
+exec kitlegal skills install
+exec sh $WORK/olvida.sh .agents/skills/kitlegal.json legal-core/references/jerarquia_normativa.md
+! grep 'jerarquia_normativa' .agents/skills/kitlegal.json
+exec kitlegal skills list --json
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+rm .agents/skills/legal-core/references/jerarquia_normativa.md
+symlink .agents/skills/legal-core/references/jerarquia_normativa.md -> ../SKILL.md
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero ajeno: \.agents/skills/legal-core/references/jerarquia_normativa\.md"\}\}\n\z'
+arbol .
+cmp stdout $WORK/antes.txt
+
+# --- (h) kitlegal.json sustituido por un enlace a un manifiesto válido ---
+#
+# El manifiesto no se lee a través del enlace: es ilegible para install, list y
+# doctor, que salen con 1, y el manifiesto al que apunta queda intacto. Y el
+# aviso no tiene ningún efecto, aunque al otro lado haya uno de otra versión y
+# en HOME otro de otra versión: el local es ilegible y el global no se busca
+# (FR-070, FR-072).
+env HOME=$WORK/home-v1
+mkdir $WORK/home-v1
+exec $KITLEGAL_V1_BIN skills install -g
+mkdir $WORK/vacio
+cd $WORK/vacio
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+cp stdout $WORK/territorio.json
+
+mkdir $WORK/manifiesto-enlace
+mkdir $WORK/fuera-manifiesto
+cd $WORK/manifiesto-enlace
+exec $KITLEGAL_V1_BIN skills install
+mv .agents/skills/kitlegal.json $WORK/fuera-manifiesto/kitlegal.json
+symlink .agents/skills/kitlegal.json -> $WORK/fuera-manifiesto/kitlegal.json
+arbol .
+cp stdout $WORK/antes.txt
+arbol $WORK/fuera-manifiesto
+cp stdout $WORK/fuera-antes.txt
+exec sh -c '"$KITLEGAL_V1_BIN" skills install --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nmanifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+exec sh -c '"$KITLEGAL_V1_BIN" skills list --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills list: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
+exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json"\}\}\n\z'
+stderr '^skills doctor: manifiesto ilegible: \.agents/skills/kitlegal\.json$'
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
+! stderr .
+cmp stdout $WORK/territorio.json
+arbol .
+cmp stdout $WORK/antes.txt
+arbol $WORK/fuera-manifiesto
+cmp stdout $WORK/fuera-antes.txt
+
+# --- Lo no declarado que no coincide con ninguna ruta empotrada (FR-047) ---
+#
+# Un fichero, un directorio y un enlace colgando que el manifiesto no declara,
+# dentro de la skill: no son conflicto, y una actualización con otro binario
+# los deja como estaban, sin seguir el enlace.
+env HOME=$WORK/home-vacio
+mkdir $WORK/home-vacio
+mkdir $WORK/no-declarado
+cd $WORK/no-declarado
+exec $KITLEGAL_V1_BIN skills install
+cp $WORK/nota.md .agents/skills/legal-core/notas.md
+cp $WORK/nota.md .agents/skills/legal-core/references/mias.md
+mkdir .agents/skills/legal-core/borradores
+cp $WORK/nota.md .agents/skills/legal-core/borradores/uno.md
+symlink .agents/skills/legal-core/atajo -> ../../../no-existe
+arbol .agents/skills/legal-core
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+arbol .agents/skills/legal-core
+cmp stdout $WORK/antes.txt
+! grep 'notas\.md' .agents/skills/kitlegal.json
+! grep 'mias\.md' .agents/skills/kitlegal.json
+! grep 'borradores' .agents/skills/kitlegal.json
+! grep 'atajo' .agents/skills/kitlegal.json
+
+-- nota.md --
+Un fichero que kitlegal no instaló.
+-- olvida.sh --
+# olvida.sh <manifiesto> <clave>: retira del texto del manifiesto la
+# declaración de <clave> —su nombre, su huella y la coma que la separa de la
+# siguiente—, sin tocar nada más, de modo que el manifiesto siga siendo
+# legible (contracts/manifiesto.md §1). La clave no puede ser la última de su
+# objeto.
+set -eu
+clave=$(printf '%s' "$2" | sed 's/[.]/\\./g')
+sed "s|\"$clave\": *\"sha256:[0-9a-f]*\", *||" "$1" > "$1.nuevo"
+mv "$1.nuevo" "$1"
+if grep -q "\"$clave\"" "$1"; then
+	echo "$1 sigue declarando $2" >&2
+	exit 1
+fi

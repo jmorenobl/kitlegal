@@ -79,8 +79,22 @@ const (
 	// la cierra con el resultado de la llamada sin terminar, ???() = ?, con el
 	// relleno de alineación: así la escribió el runner en una sesión de la eval
 	// 04 de la ejecución 35156339496 de H5.1
-	// (specs/007-h5-1-avisos-de-vigencia/gates/tarea-T015.md).
+	// (specs/007-h5-1-avisos-de-vigencia/gates/tarea-T015.md). También la deja
+	// el hilo que una creación sin terminar pudo crear, en un fichero sin la
+	// línea que lo crea (regla 1): así lo escribió el runner en una sesión de la
+	// eval 18 de la ejecución 36291141634 de H19, y la sonda lo reproduce
+	// (specs/009-h19-instalar-sin-clonar/gates/cierre-traza-huerfana.md).
 	llamadaDesconocida = "???"
+
+	// prefijoDeNumeroDesconocido es el de la llamada que strace escribe cuando sí
+	// leyó los registros del hilo pero el número de llamada no es ninguno que
+	// conozca, syscall_0x<número>: la misma parada de entrada de un hilo que
+	// muere, con un registro que no guardaba ningún número de llamada, y con los
+	// seis argumentos sin decodificar. La sonda de H19 la dejó, sin cerrar, en
+	// dos ficheros sin la línea que los crea de una misma traza
+	// (gates/cierre-traza-huerfana.md de ese hito). Como ???, no es ninguna
+	// llamada del filtro, no se ejecutó y no tiene nada que atribuir.
+	prefijoDeNumeroDesconocido = "syscall_0x"
 )
 
 // Lo que strace escribe de la llamada que el fin del proceso deja sin terminar
@@ -112,16 +126,23 @@ var (
 	// el igual, strace escribe un espacio y, si la llamada no llega a la columna
 	// de alineación (-a 40, su valor por defecto), el relleno de espacios hasta
 	// ella: vfork(), la llamada con la que Claude Code de x86_64 crea sus
-	// procesos, sale con 33. ??? entra en la forma solo para que leerLlamada
-	// admita de ella ???() = ? y nada más.
-	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?)\((.*)\) += ` +
+	// procesos, sale con 33. ??? y syscall_0x… entran en la forma solo para que
+	// leerLlamada admita de ellas ???() = ? y syscall_0x…(<seis argumentos
+	// crudos>) = ?, y nada más.
+	formaDeLlamada = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?|syscall_0x[0-9a-f]+)\((.*)\) += ` +
 		`(([0-9]+)|-1 ([A-Z][A-Z0-9_]*) \([^()]*\)|\? [A-Z][A-Z0-9_]* \([^()]*\)|\?|\? <unavailable>)$`)
 
 	// formaDeLlamadaSinCerrar es la de la línea de entrada de una llamada que la
 	// línea final del hilo deja sin cerrar, sin paréntesis de cierre ni resultado
 	// (formas C y D de la regla 5): la llamada, sus argumentos si los escribió y
 	// la marca.
-	formaDeLlamadaSinCerrar = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?)\((.*) <unfinished \.\.\.>$`)
+	formaDeLlamadaSinCerrar = regexp.MustCompile(`^(execve|clone3|clone|vfork|fork|connect|\?\?\?|syscall_0x[0-9a-f]+)` +
+		`\((.*) <unfinished \.\.\.>$`)
+
+	// formaDeArgumentosCrudos es la de los seis argumentos que strace escribe, sin
+	// decodificar, de la llamada cuyo número no conoce: cada uno 0 o en
+	// hexadecimal.
+	formaDeArgumentosCrudos = regexp.MustCompile(`^(0|0x[0-9a-f]+)(, (0|0x[0-9a-f]+)){5}$`)
 
 	// formaDeSenal es la de una señal entregada, que se admite y no cuenta.
 	formaDeSenal = regexp.MustCompile(`^--- SIG[A-Z0-9_]+ \{.*\} ---$`)
@@ -257,12 +278,14 @@ type Invocacion struct {
 // (regla 6). La llamada que el fin del proceso deja sin terminar, que no la
 // produce el corte, se admite en cualquier sesión con la misma condición, y con
 // ella el fichero del hilo que una clone, clone3, fork o vfork así pudo crear,
-// sin la línea que lo crea y sin ninguna llamada (reglas 1 y 5).
+// sin la línea que lo crea y sin ninguna llamada del filtro: solo su línea
+// final, o la llamada desconocida con la que murió en la parada de entrada
+// (reglas 1 y 5).
 //
 // Lo que no entiende no lo ignora, porque un hilo o una conexión sin atribuir
 // dejarían en falso la red sin llegadas (FR-076). El error nombra el directorio
 // que no se puede leer o en el que ningún fichero sin la línea que lo crea tiene
-// llamadas; los ficheros sin esa línea que no pueden quedar sin ella; o el
+// llamadas del filtro; los ficheros sin esa línea que no pueden quedar sin ella; o el
 // fichero, el número de línea y su texto del primer defecto de una línea, que se
 // buscan fichero a fichero en orden de número y línea a línea, antes de comprobar
 // el origen de cada uno.
@@ -337,9 +360,11 @@ type interprete struct {
 // recibe las banderas globales y la ayuda de cada invocación, y sus escritores y
 // su terminación se sustituyen como en el analizador del kernel: la ayuda no se
 // escribe en ningún descriptor, y la terminación que Kong pide tras escribirla no
-// termina el proceso, sino que anota que la invocación la pidió.
+// termina el proceso, sino que anota que la invocación la pidió. El registro se
+// construye con la versión vacía, la de quien no tiene ninguna (FR-073): el
+// intérprete solo lee de él nombres y gramáticas.
 func nuevoInterprete() (interprete, error) {
-	registro, err := app.RegistroDeProduccion()
+	registro, err := app.RegistroDeProduccion("")
 	if err != nil {
 		return interprete{}, fmt.Errorf("el registro de applets del binario no se puede construir: %w", err)
 	}
@@ -542,6 +567,14 @@ func (l llamada) creaHilo() bool {
 	return l.creacion() && l.conValor
 }
 
+// desconocida dice si es la llamada que strace no llegó a identificar, ???, o la
+// de un número que no conoce, syscall_0x…: la parada de entrada en la que murió
+// un hilo, de una llamada que no es del filtro y que no se ejecutó (data-model
+// §9, regla 5, forma D).
+func (l llamada) desconocida() bool {
+	return l.nombre == llamadaDesconocida || strings.HasPrefix(l.nombre, prefijoDeNumeroDesconocido)
+}
+
 // hilo es lo leído del fichero t.<n> de un hilo.
 type hilo struct {
 	numero int
@@ -554,6 +587,13 @@ type hilo struct {
 	// da esa línea.
 	terminado bool
 	codigo    int
+}
+
+// conLlamadaDelFiltro dice si el hilo tiene alguna llamada del filtro de la
+// traza: execve, clone, clone3, fork, vfork o connect, con resultado o sin
+// terminar. La llamada desconocida no es ninguna de ellas.
+func (h hilo) conLlamadaDelFiltro() bool {
+	return slices.ContainsFunc(h.llamadas, func(l llamada) bool { return !l.desconocida() })
 }
 
 // leerHilos lee los ficheros del directorio de la traza en orden de número. Una
@@ -727,13 +767,12 @@ func leerLlamada(texto string) (llamada, error) {
 	partes := formaDeLlamada.FindStringSubmatch(texto)
 	if partes == nil {
 		return llamada{}, errors.New("no es ninguna de las formas de línea de la traza: execve, clone, clone3, " +
-			"fork, vfork o connect con su resultado o sin terminar, ???( <unfinished ...>, ???() = ?, una señal o " +
-			"la línea final")
+			"fork, vfork o connect con su resultado o sin terminar, ???( <unfinished ...>, ???() = ?, " +
+			"syscall_0x…(<seis argumentos crudos>) sin terminar, una señal o la línea final")
 	}
 
-	if partes[1] == llamadaDesconocida && (partes[2] != "" || partes[3] != resultadoSinTerminar) {
-		return llamada{}, fmt.Errorf("%s es la llamada que strace no llegó a identificar: no lleva argumentos y, "+
-			"cerrada, solo lleva el resultado %s", llamadaDesconocida, resultadoSinTerminar)
+	if err := comprobarDesconocidaCerrada(partes[1], partes[2], partes[3]); err != nil {
+		return llamada{}, err
 	}
 
 	argumentos, conMarca := strings.CutSuffix(partes[2], marcaSinTerminar)
@@ -767,9 +806,30 @@ func leerLlamada(texto string) (llamada, error) {
 	return leida, nil
 }
 
+// comprobarDesconocidaCerrada comprueba la llamada desconocida cerrada con su
+// resultado (data-model §9, regla 5, forma D): ??? no lleva argumentos y
+// syscall_0x… lleva sus seis argumentos crudos, y las dos solo el resultado ?, el
+// de la llamada que el fin del proceso deja sin terminar. De cualquier otra
+// llamada no dice nada.
+func comprobarDesconocidaCerrada(nombre, argumentos, resultado string) error {
+	switch {
+	case nombre == llamadaDesconocida && (argumentos != "" || resultado != resultadoSinTerminar):
+		return fmt.Errorf("%s es la llamada que strace no llegó a identificar: no lleva argumentos y, "+
+			"cerrada, solo lleva el resultado %s", llamadaDesconocida, resultadoSinTerminar)
+	case strings.HasPrefix(nombre, prefijoDeNumeroDesconocido) &&
+		(!formaDeArgumentosCrudos.MatchString(argumentos) || resultado != resultadoSinTerminar):
+		return fmt.Errorf("%s es la llamada cuyo número strace no conoce: lleva sus seis argumentos sin "+
+			"decodificar y, cerrada, solo el resultado %s", nombre, resultadoSinTerminar)
+	default:
+		return nil
+	}
+}
+
 // leerLlamadaSinCerrar lee la línea de entrada que la línea final del hilo dejó
-// sin cerrar: una llamada del filtro sin resultado (forma C) o ???, la que
-// strace no llegó a identificar y que no se ejecutó, sin argumentos (forma D).
+// sin cerrar: una llamada del filtro sin resultado (forma C); ???, la que
+// strace no llegó a identificar y que no se ejecutó, sin argumentos (forma D); o
+// syscall_0x…, la de un número que strace no conoce, con sus seis argumentos
+// crudos.
 func leerLlamadaSinCerrar(texto, nombre, argumentos string) (llamada, error) {
 	leida := llamada{texto: texto, nombre: nombre, sinResultado: true, sinTerminar: true}
 
@@ -777,6 +837,15 @@ func leerLlamadaSinCerrar(texto, nombre, argumentos string) (llamada, error) {
 		if argumentos != "" {
 			return llamada{}, fmt.Errorf("%s es la llamada que strace no llegó a identificar, y no lleva argumentos",
 				llamadaDesconocida)
+		}
+
+		return leida, nil
+	}
+
+	if strings.HasPrefix(nombre, prefijoDeNumeroDesconocido) {
+		if !formaDeArgumentosCrudos.MatchString(argumentos) {
+			return llamada{}, fmt.Errorf("%s es la llamada cuyo número strace no conoce, y lleva sus seis argumentos "+
+				"sin decodificar", nombre)
 		}
 
 		return leida, nil
@@ -1024,9 +1093,10 @@ type traza struct {
 	procesos map[int]int
 
 	// huerfanos son los ficheros sin la línea que los crea y sin ninguna llamada
-	// que admite la regla 1: los hilos que una creación sin terminar pudo crear y
-	// que el núcleo mató con el proceso antes de ninguna llamada trazada. No
-	// pertenecen a ningún proceso.
+	// del filtro que admite la regla 1: los hilos que una creación sin terminar
+	// pudo crear y que el núcleo mató con el proceso antes de ninguna llamada
+	// trazada, o en la parada de entrada de una que strace no llegó a
+	// identificar. No pertenecen a ningún proceso.
 	huerfanos map[int]bool
 }
 
@@ -1119,11 +1189,18 @@ func (t *traza) anotarCreaciones() error {
 }
 
 // raiz es el número del fichero raíz, el único sin la línea que lo crea que tiene
-// alguna llamada, y anota los huérfanos (regla 1): los demás ficheros sin esa
-// línea, que la regla admite si no tienen ninguna llamada y alguna clone, clone3,
-// fork o vfork de la traza quedó sin terminar, porque son los hilos que esa
-// llamada pudo crear, cuya creación strace no vio. Sin una creación así, o con
-// alguna llamada, siguen siendo ilegibles con un error que los nombra.
+// alguna llamada del filtro, y anota los huérfanos (regla 1): los demás ficheros
+// sin esa línea, que la regla admite si no tienen ninguna llamada del filtro y
+// alguna clone, clone3, fork o vfork de la traza quedó sin terminar, porque son
+// los hilos que esa llamada pudo crear, cuya creación strace no vio. El núcleo
+// los mató con el proceso antes de ninguna llamada trazada, y el fichero solo
+// tiene su línea final, o en la parada de entrada de una llamada que strace no
+// llegó a identificar, y el fichero tiene además la llamada desconocida (regla
+// 5, forma D): así lo escribió el runner en la ejecución 36291141634 de H19, y
+// así lo reproduce la sonda de gates/cierre-traza-huerfana.md de ese hito. Sin
+// una creación así, o con alguna llamada del filtro —también una que el fin del
+// proceso dejó sin terminar—, siguen siendo ilegibles con un error que los
+// nombra.
 func (t *traza) raiz() (int, error) {
 	var raices, huerfanos []hilo
 
@@ -1132,7 +1209,7 @@ func (t *traza) raiz() (int, error) {
 			continue
 		}
 
-		if len(h.llamadas) > 0 {
+		if h.conLlamadaDelFiltro() {
 			raices = append(raices, h)
 		} else {
 			huerfanos = append(huerfanos, h)
@@ -1142,14 +1219,14 @@ func (t *traza) raiz() (int, error) {
 	switch {
 	case len(huerfanos) > 0 && !t.conCreacionSinTerminar():
 		return 0, fmt.Errorf("traza ilegible: %s: %s no tienen la línea clone, clone3, fork o vfork que los crea ni "+
-			"ninguna llamada, y ninguna clone, clone3, fork o vfork de la traza quedó sin terminar: solo el hilo que "+
-			"una creación sin terminar pudo crear puede quedar sin esa línea", t.dir, rutasDe(huerfanos))
+			"ninguna llamada del filtro, y ninguna clone, clone3, fork o vfork de la traza quedó sin terminar: solo el "+
+			"hilo que una creación sin terminar pudo crear puede quedar sin esa línea", t.dir, rutasDe(huerfanos))
 	case len(raices) == 0:
 		return 0, fmt.Errorf("traza ilegible: %s: no hay ningún fichero sin la línea clone, clone3, fork o vfork "+
-			"que lo crea y con alguna llamada, y tiene que haber uno, el del proceso que arrancó strace", t.dir)
+			"que lo crea y con alguna llamada del filtro, y tiene que haber uno, el del proceso que arrancó strace", t.dir)
 	case len(raices) > 1:
 		return 0, fmt.Errorf("traza ilegible: %s: %s no tienen la línea clone, clone3, fork o vfork que los crea, "+
-			"y solo puede faltarle a uno con llamadas, el del proceso que arrancó strace", t.dir, rutasDe(raices))
+			"y solo puede faltarle a uno con llamadas del filtro, el del proceso que arrancó strace", t.dir, rutasDe(raices))
 	}
 
 	for _, h := range huerfanos {

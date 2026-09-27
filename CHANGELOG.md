@@ -3,11 +3,12 @@
 Todo cambio de comportamiento visible de `kitlegal` se registra aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto se adhiere al
-[versionado semántico](https://semver.org/lang/es/). Mientras el mayor sea `0` —lo será hasta la primera
-release, que es H19 (`v0.1.0`, ADR 0013)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a
-mano** hasta ese hito: cada propuesta de cambio añade su entrada bajo *Unreleased* en el mismo cambio que
+[versionado semántico](https://semver.org/lang/es/). Mientras el mayor sea `0` —la primera release, `v0.1.0`,
+es la de H19 (ADR 0019)— un cambio incompatible sube el **menor**. Este fichero se mantiene **a mano**, también
+desde esa release: cada propuesta de cambio añade su entrada bajo *Unreleased* en el mismo cambio que
 introduce el comportamiento, y al publicar una versión esa sección se cierra bajo su número y su fecha y
-se abre una nueva vacía.
+se abre una nueva vacía. Las notas de cada release las genera goreleaser desde los Conventional Commits, y no
+sustituyen a este fichero.
 
 ## [Unreleased]
 
@@ -26,7 +27,10 @@ consolidada del BOE con ese binario, y el andamiaje que comparten todas las skil
 común de eval con su job de evals. El binario distribuido no cambia. **H6 — applet `territorio` y skill
 `legal-core`** trae el segundo applet, el primero sin fuente que consultar en red: resuelve cualquier municipio de
 España a su territorio desde datos congelados que viajan dentro del binario, y declara lo que no está configurado en
-lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta por el territorio.
+lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta por el territorio. **H19 — instalar
+sin clonar** trae la distribución (ADR 0019): el binario se instala con el gestor de paquetes de cada plataforma o con
+`install.sh`, lleva las skills dentro y las instala con el applet `skills`, las skills invocan `kitlegal` desde el
+`PATH` y `make install` pasa a ser el bucle de desarrollo.
 
 ### Añadido
 
@@ -360,6 +364,82 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   conjunto al menos tres evals, la del municipio configurado, la del no configurado, una de no activación y un
   esperado verificable en toda eval que activa la skill.
 
+*De H19 — instalar sin clonar:*
+
+- **Las skills viajan dentro del binario**: `skills.go`, en la raíz del módulo, empotra el `SKILL.md` y todo
+  `references/` de cada skill del repositorio —hoy `boe-legislacion` y `legal-core`—, y es lo único que se instala.
+  También un `go install ./cmd/kitlegal` sin inyecciones las lleva y las instala igual. El binario no enlaza ningún
+  módulo nuevo.
+- **Applet `skills`, con tres verbos y ninguno por omisión**, registrado en el binario distribuido junto a `boe` y
+  `territorio`; sin verbo termina con `2`. **`kitlegal skills install [skill…]`** instala las skills empotradas —todas,
+  o solo las nombradas— en el directorio neutro del ámbito: `.agents/skills/` del directorio de trabajo por omisión,
+  `~/.agents/skills/` con `-g` o la ruta de `--dir`. En los dos primeros, si existe `.claude/` o se pide
+  `--host claude`, enlaza cada skill en `.claude/skills/<skill>` con el destino literal relativo
+  `../../.agents/skills/<skill>`; donde el sistema no deja crear enlaces, la entrada de host es una copia anotada
+  `copia`. Escribe el manifiesto del ámbito, `kitlegal.json`, determinista y sin rutas absolutas, fechas ni usuarios:
+  la versión del binario y, por skill, su versión, la huella SHA-256 de cada fichero y sus entradas de host con su
+  modo. Solo toca lo que ese manifiesto declara: antes de escribir nada busca los conflictos —carpeta ajena, fichero,
+  enlace a otro sitio, enlace roto, fichero editado, fichero ajeno, ruta que no es directorio, manifiesto ilegible y
+  manifiesto con entradas de host— y, con uno solo, no crea ni cambia nada y termina con `1`, con la cabecera
+  `skills install: nada se ha creado ni cambiado; conflictos:` y una línea `<clase>: <ruta>` por conflicto, en el
+  `mensaje` del sobre y en la salida de error. Nunca lee, escribe ni retira a través de un enlace simbólico por debajo
+  del ámbito, ni abre lo que no es un fichero regular. Cada skill sale `instalada`, `actualizada` o `sin cambios`:
+  repetir la orden con el mismo binario deja el disco byte a byte igual, y con otro sustituye lo instalado y retira lo
+  que el binario nuevo ya no empotra; una skill que el manifiesto declara y el binario no empotra se conserva sin
+  tocar. Si la escritura falla a mitad, repetir la orden la completa. `--dry-run` no toca el disco y termina con el
+  mismo código que la orden real, con una línea por skill en la salida de error.
+- **`kitlegal skills list` y `kitlegal skills doctor`**, que no cambian nada en disco. `list` enumera lo que declara el
+  manifiesto del ámbito —el directorio, su versión y, por skill, su versión, si el binario la empotra y sus
+  enlaces—. `doctor` comprueba lo instalado contra el manifiesto y da hallazgos de cinco clases —fichero editado,
+  enlace colgando, enlace a otro sitio, copia y versión distinta—, cada uno como `<clase>: <ruta>: <orden>`, con una
+  orden de shell POSIX de una línea que lo arregla (`rm -- '<ruta>' && kitlegal skills install <skill> …`, con `-r`
+  solo sobre un directorio real y nunca `-f`, y la ruta de `--dir` como `--dir '<ruta>'` o, si empieza por `-`,
+  `--dir='<ruta>'`, para que no se lea como otra bandera), en un orden en que ejecutarlas una tras otra deja el
+  siguiente `doctor` sin hallazgos; con alguno termina con `1`. Sin manifiesto, los dos terminan con `0`, con versión nula y lista vacía;
+  ante un manifiesto ilegible o una ruta del ámbito que no es un directorio, con `1`.
+- **Validación de la invocación antes de mirar el disco**: `-g` con `--dir`, `--host` con `--dir`, `--host` distinto
+  de `claude` y una skill que el binario no lleva —con las disponibles en el mensaje— terminan con `2`, en ese orden de
+  precedencia; `-g` sin `HOME` termina con `1`. El applet no pide nada a la red, no emite operaciones de grafo y firma
+  su sobre con `fuente` `kitlegal.skills` y `url` `kitlegal:applet/skills`. Su contrato se publica en
+  `schemas/instalacion.json` (`$defs.install`, `$defs.list` y `$defs.doctor`), generado desde `--describe` y
+  comprobado por `make schema-check`.
+- **Aviso de versión, sin red.** Toda orden de otro applet resuelta con un verbo —también si termina con un error de
+  argumentos del verbo, con `--dry-run` o con `--describe`— busca, sin seguir enlaces, el manifiesto del directorio de
+  trabajo y, si no lo hay, el de la cuenta. Si su versión, o la de alguna skill declarada que el binario empotra, es
+  distinta de la del binario —quitando a cada una una `v` inicial—, escribe exactamente una línea en la salida de error:
+  `aviso: las skills instaladas son de kitlegal <instalada> y este binario es kitlegal <binario>; ejecuta: kitlegal
+  skills install`, con ` -g` si el manifiesto es el de la cuenta. No cambia la salida estándar ni el código de salida,
+  y un fallo al escribirla no se propaga. No avisan `skills`, `version`, la ayuda, los fallos anteriores a resolver el
+  applet con su verbo ni un binario de desarrollo, cuya versión no tiene forma SemVer.
+- **La release**: `.goreleaser.yaml`, con goreleaser v2.18.1 como módulo de herramienta (`tools/goreleaser/`), construye
+  darwin, linux y windows en amd64 y arm64, sin cgo, con `-trimpath` y con las mismas cuatro inyecciones que el
+  `Makefile` —en una etiqueta, la versión es la etiqueta tal cual—; archivos `kitlegal_<os>_<arch>.tar.gz` (`.zip` en
+  Windows), `checksums.txt`, que incluye `install.sh`, un SBOM por archivo (syft), la firma sin clave de
+  `checksums.txt` (cosign), notas de release agrupadas por Conventional Commits, el cask del tap
+  `jmorenobl/homebrew-tap` para `brew install jmorenobl/tap/kitlegal` —con el gancho que retira la cuarentena de
+  macOS—, el manifiesto del bucket `jmorenobl/scoop-bucket` para `scoop install kitlegal`, y paquetes `.deb` y `.rpm`.
+  `make goreleaser-check` la valida dentro de `make ci`; `make release` construye el snapshot en `dist/` sin publicar,
+  firmar ni generar SBOM; y `make snapshot-check` lo comprueba (`TestSnapshot`) y ejecuta contra él los guiones del
+  instalador. `TestConfiguracionDeLaRelease` fija la configuración y los flujos.
+- **Flujo `release`** (`.github/workflows/release.yml`), solo al empujar una etiqueta `v*`: publica con
+  `PUBLISHER_TOKEN` —el único secreto, visible solo en el paso que publica—, atesta la procedencia de los seis
+  archivos y de `checksums.txt` y comprueba lo publicado en un trabajo de humo: la huella, `gh attestation verify`,
+  que `version` imprime la etiqueta, que `boe articulo … --offline` con la caché vacía termina con `4` y que
+  `skills install` deja `boe-legislacion` en un directorio vacío. Y el trabajo **`snapshot`** del flujo `ci`, en cada
+  propuesta de cambio y en cada push a `main`, sin `id-token` ni secretos: `make release` y `make snapshot-check`.
+- **`scripts/install.sh`**, el instalador POSIX `sh` de macOS y Linux, sin Go, git ni gestor de paquetes:
+  `curl -fsSL https://raw.githubusercontent.com/jmorenobl/kitlegal/main/scripts/install.sh | sh`, o con una versión
+  (`sh -s -- 0.1.0`, con o sin `v`). Detecta el sistema y la arquitectura, descarga el archivo y `checksums.txt` de la
+  release, verifica la huella en la línea cuyo segundo campo es exactamente el archivo, deja solo el binario en
+  `$KITLEGAL_INSTALL_DIR` o `~/.local/bin` renombrándolo encima del anterior, no toca ningún fichero de arranque del
+  shell, imprime la línea `export PATH=…` si el directorio no está en el `PATH` y termina con
+  `kitlegal skills install`. Todo error sale por la salida de error con el prefijo `install.sh: `, un código distinto
+  de `0` y nada instalado, también con el `/bin/sh` de macOS en un locale UTF-8. Todo lo que hace está en funciones y
+  la llamada va en la última línea, así que un guion que llega cortado no ejecuta nada a medias y, si solo le falta
+  esa llamada, termina con `1`. Se sirve desde `main` y va adjunto a cada release; los guiones `instalador-` del e2e lo
+  prueban contra un origen local y contra el snapshot, sin red, y `TestInstaladorEnUTF8` y `TestInstaladorCortado`,
+  sus rechazos en UTF-8 y sus cortes.
+
 ### Cambiado
 
 *De H1 — el kernel de la línea de órdenes:*
@@ -470,6 +550,46 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   (`internal/core/`); los ficheros congelados de `data/territorio/` ya los cubría `data/`. El umbral no cambia: cada
   serie de tres sesiones pasa con dos, y el informe lleva el commit evaluado y el identificador del modelo.
 
+*De H19 — instalar sin clonar:*
+
+- **Las skills invocan `kitlegal` desde el `PATH`.** La tabla de comandos de cada `SKILL.md`, que regenera
+  `make skills-sync`, titula cada applet `kitlegal <applet>` y escribe cada orden `kitlegal <applet> <verbo> …`; en el
+  texto libre de `boe-legislacion` y `legal-core`, `scripts/boe` y `scripts/territorio` pasan a `kitlegal boe` y
+  `kitlegal territorio`, y las frases que decían de dónde sale el binario dicen ahora que se invoca desde el `PATH`.
+  Protocolo, reglas, forma de la cita y de los avisos, y evals, sin cambios.
+- **`make install` es el bucle de desarrollo**, no la forma de instalar: `go install` con las inyecciones del
+  `Makefile` y, con ese binario, `kitlegal skills install -g --host claude`, que deja las skills en `~/.agents/skills/`,
+  con su manifiesto, y enlazadas en `~/.claude/skills/<skill>` con destino `../../.agents/skills/<skill>`. Ya no
+  comprueba nada antes de `go install`: un conflicto lo da `skills install`, que termina con `1` sin cambiar nada,
+  con el binario ya instalado. Los enlaces absolutos que dejaba el `make install` anterior son un conflicto («enlace a
+  otro sitio»), y `CONTRIBUTING.md` da el paso único que los retira. `TestInstalacion` y sus cinco guiones —los cuatro
+  de `internal/skills/testdata/script/` y el del enlace roto, que escribe el propio test— lo comprueban con `HOME`,
+  `GOBIN` y `GOPATH` temporales.
+- **`make skills-sync` y `make skills-check` dejan los enlaces**: ni los generan ni los comprueban; una skill con
+  `scripts/` es un defecto que hace fallar a los dos (ADR 0019), y `make skills-check` comprueba además que cada orden
+  de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario
+  (`TestOrdenesDeLasSkillsEmpotradas`).
+- **`make ci` encadena once controles**: `goreleaser-check` entra tras `skills-check`.
+- **El job de evals instala con `make install`** y añade al `PATH` de cada trabajo el directorio donde `go install`
+  deja el binario; `scripts/evals.sh` comprueba también que `kitlegal` está en el `PATH`, y la sesión de la prueba de
+  red pide `kitlegal boe articulo BOE-A-2015-10565 a9998 --json` y la misma con `--offline`. Ninguna eval cambia.
+- **La ayuda y los errores del binario enumeran `skills`**: `kitlegal --help` lo lista y un applet desconocido termina
+  en `applets disponibles: boe, skills, territorio`.
+- **`make test-e2e` construye además tres binarios de extremo a extremo** —con la versión `v0.1.0`, con `v0.2.0` y con
+  `v0.1.0` y un creador de enlaces que siempre falla— y un origen de release local, que usan los guiones del aviso, del
+  recurso de copia y del instalador.
+
+### Eliminado
+
+*De H19 — instalar sin clonar:*
+
+- **La instalación por enlaces**: `skills/boe-legislacion/scripts/boe`, `skills/legal-core/scripts/territorio`,
+  `scripts/instalar-skills.sh` con la comprobación previa de `make install`, `bin/instalado/`,
+  `internal/skills/enlaces.go` con sus tests y las derivas de enlaces de `skills-sync` y `skills-check`
+  (`enlace-ausente`, `enlace-sobrante` y `enlace-con-otro-destino`). `TestSinInstalacionPorEnlaces` comprueba que no
+  vuelven y que ni los `SKILL.md`, ni el `Makefile`, ni los flujos nombran `scripts/boe`, `scripts/territorio` ni
+  `bin/instalado`.
+
 ### Corregido
 
 *De H5.1 — los avisos de vigencia en las evals:*
@@ -482,6 +602,21 @@ lugar de inventarlo; y la skill madre `legal-core`, que empieza toda pregunta po
   segunda forma se lee ahora como la primera; con argumentos, con otro resultado o con la marca dentro sigue siendo
   ilegible.
 
-Una orden existe ya pero recibe su contenido en un hito posterior y no miente sobre ello: `release`, que falla
-con código distinto de `0` hasta H19 porque es una acción con efectos externos. El binario que se publica registra **dos applets, `boe` y `territorio`**: los de las demás fuentes (`placsp`,
-`bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.
+*De H19 — instalar sin clonar:*
+
+- **La traza de una sesión con un hilo huérfano que muere en la parada de entrada se lee entera.** Cuando el binario
+  sale mientras su runtime crea un hilo, strace deja la `clone` sin terminar y, del hilo creado, un fichero sin la
+  línea que lo crea. La lectura ya lo admitía si solo tenía su línea final, pero no si el núcleo lo mataba en la
+  parada de entrada de una llamada que strace no llega a identificar, que deja `???()` seguido de espacios y `= ?`
+  (o `???( <unfinished ...>`): lo tomaba por un segundo fichero raíz, declaraba la sesión ilegible y el veredicto
+  del job fallaba aunque todas las series pasaran. Así ocurrió con una sesión del modelo que decide en la ejecución
+  `36291141634`, y una sonda lo reproduce (`specs/009-h19-instalar-sin-clonar/gates/cierre-traza-huerfana.md`).
+  Ese fichero es ahora un huérfano más: no pertenece a ningún proceso ni tiene nada que atribuir. La misma sonda
+  dejó la otra forma con la que strace escribe esa parada, `syscall_0x<número>(<seis argumentos crudos>` sin
+  terminar, cuando lee los registros del hilo pero el número no es de ninguna llamada que conozca, y se lee como la
+  llamada desconocida. Un fichero sin línea de creación con cualquier llamada del filtro sigue siendo ilegible,
+  también si la dejó sin terminar el fin del proceso.
+
+Ninguna orden del `Makefile` espera ya su contenido de un hito posterior: `release`, que fallaba hasta H19, construye
+el snapshot de la release. El binario que se publica registra **tres applets, `boe`, `skills` y `territorio`**: los de
+las demás fuentes (`placsp`, `bdns`…) llegan en los hitos siguientes, en el orden de `docs/ROADMAP.md`.

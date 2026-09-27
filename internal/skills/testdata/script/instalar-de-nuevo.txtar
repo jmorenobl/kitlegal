@@ -1,41 +1,30 @@
-# Repetir la instalación termina con 0 y deja el mismo estado: los enlaces de
-# la skill y del binario instalado nombran lo mismo que tras la primera, ninguno
-# se duplica ni se rompe, y en el directorio personal de skills no aparece nada
-# más que una entrada por cada skill del árbol (US3 escenario 2, FR-053,
-# SC-006).
+# Repetir la instalación termina con 0 y no cambia nada: la segunda
+# `make install` dice `sin cambios` para las dos skills, deja el manifiesto
+# ~/.agents/skills/kitlegal.json byte a byte igual y los dos enlaces de
+# ~/.claude/skills/ con su destino literal (FR-125, FR-126, SC-018;
+# contracts/skills-e-invocacion.md §5). El detalle byte a byte de todo el árbol
+# instalado lo cubre el guion de aceptación skills-idempotencia.
 #
 # HOME, GOBIN y GOPATH son carpetas de $WORK y el árbol es la copia mínima de
-# $WORK/repo (FR-055; contrato instalacion §4).
+# $WORK/repo (FR-055 de H5; contrato instalacion §4 de H5).
+
+exec make -C $WORK/repo install
+cp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
 
 exec make -C $WORK/repo install
 
+# La salida de `kitlegal skills install` sin --json es una tabla de clave y
+# valor, con una fila por campo de cada skill: la 0 es boe-legislacion y la 1,
+# legal-core, las dos sin cambios.
+stdout '^0\.nombre +boe-legislacion$'
+stdout '^0\.estado +sin cambios$'
+stdout '^1\.nombre +legal-core$'
+stdout '^1\.estado +sin cambios$'
+! stdout '\.estado +(?:instalada|actualizada)$'
+
+cmp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
+
 exec readlink $HOME/.claude/skills/boe-legislacion
-stdout '/repo/skills/boe-legislacion\n\z'
-cp stdout destino-de-la-skill.txt
-
-exec readlink $WORK/repo/bin/instalado/kitlegal
-stdout '\A'${WORK@R}'/gobin/kitlegal\n\z'
-cp stdout destino-del-binario.txt
-
-exec make -C $WORK/repo install
-
-exec readlink $HOME/.claude/skills/boe-legislacion
-cmp stdout destino-de-la-skill.txt
-
-exec readlink $WORK/repo/bin/instalado/kitlegal
-cmp stdout destino-del-binario.txt
-
-# Un enlace creado otra vez sobre el que ya existe acabaría **dentro** del
-# directorio al que apunta: la segunda instalación no deja ninguno ahí.
-! exists $WORK/repo/skills/boe-legislacion/boe-legislacion
-
-# Y en el directorio personal de skills hay una entrada por cada skill del
-# árbol, con su nombre, y ninguna más. La lista sale del árbol, recorrido como lo
-# recorre la instalación, y no del guion: así no cambia al añadirse una skill, y
-# que traiga boe-legislacion impide que la comparación pase en vacío.
-exec sh -c 'for skill in "$WORK"/repo/skills/*/; do basename "$skill"; done'
-stdout '^boe-legislacion$'
-cp stdout skills-del-arbol.txt
-
-exec ls -A $HOME/.claude/skills
-cmp stdout skills-del-arbol.txt
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $HOME/.claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'

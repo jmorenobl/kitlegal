@@ -1,0 +1,126 @@
+# La instalación global: con -g, las skills y el manifiesto quedan en
+# ~/.agents/skills/ y, si existe ~/.claude/, los enlaces relativos en
+# ~/.claude/skills/, sin crear nada en el directorio de trabajo; las rutas que
+# se presentan son absolutas; list y doctor con -g leen el manifiesto global y
+# no el local; los enlaces que dejó el make install anterior son conflicto; y -g
+# con HOME sin definir o vacío termina con 1 sin escribir ni leer nada.
+#
+# Cubre: US6.1, US6.4 · FR-012 · SC-004.
+#
+# HOME es un directorio temporal de cada caso (contracts/arnes-e2e.md §3). Con
+# -g, toda ruta de la salida es absoluta, con HOME ya expandido, y el manifiesto
+# sigue sin rutas absolutas (contracts/applet-skills.md §3,
+# contracts/manifiesto.md §1).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+# --- Con ~/.claude/ (US6.1, SC-004) ---
+env HOME=$WORK/home
+mkdir $WORK/home/.claude
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec kitlegal skills install -g --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+! stderr .
+
+# Nada en el directorio de trabajo.
+arbol .
+! stdout .
+
+# En HOME, lo de una instalación local con .claude/: las dos skills y el
+# manifiesto en el directorio neutro y un enlace relativo por skill.
+arbol $WORK/home
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:boe-legislacion|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+|d \.claude|d \.claude/skills|l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion|l \.claude/skills/legal-core -> \.\./\.\./\.agents/skills/legal-core)\n)+\z'
+stdout '^f \.agents/skills/kitlegal\.json '
+stdout '^f \.agents/skills/boe-legislacion/SKILL\.md '
+stdout '^f \.agents/skills/legal-core/SKILL\.md '
+stdout '^l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion$'
+stdout '^l \.claude/skills/legal-core -> \.\./\.\./\.agents/skills/legal-core$'
+exec readlink $WORK/home/.claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+cmp $WORK/home/.agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp $WORK/home/.claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+grep '"ruta": *"\.claude/skills/legal-core"' $WORK/home/.agents/skills/kitlegal.json
+! grep ${WORK@R} $WORK/home/.agents/skills/kitlegal.json
+
+# --- Sin ~/.claude/, ningún host ---
+env HOME=$WORK/home-sin-claude
+mkdir $WORK/home-sin-claude
+exec kitlegal skills install -g --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+arbol $WORK/home-sin-claude
+! stdout '\.claude'
+arbol .
+! stdout .
+
+# --- list y doctor con -g leen el global, no el local (US6.4) ---
+#
+# El local solo tiene legal-core, sin host, y con un fichero editado; el global,
+# las dos skills y sus enlaces, sin tocar.
+env HOME=$WORK/home
+exec kitlegal skills install legal-core
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+exec kitlegal skills list -g --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+! stderr .
+exec kitlegal skills doctor -g --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+! stderr .
+exec kitlegal skills list --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
+exec sh -c 'kitlegal skills doctor; test $? -eq 1'
+stderr '^fichero editado: \.agents/skills/legal-core/SKILL\.md: '
+
+# Un HOME sin manifiesto: list y doctor con -g salen con 0 y lo dicen.
+env HOME=$WORK/home-vacio
+mkdir $WORK/home-vacio
+exec kitlegal skills list -g --json
+stdout '"data":\{"directorio":"'${WORK@R}'/home-vacio/\.agents/skills","manifiesto":false,"version":null,"skills":\[\]\}\}\n\z'
+! stderr .
+exec kitlegal skills doctor -g --json
+stdout '"data":\{"directorio":"'${WORK@R}'/home-vacio/\.agents/skills","manifiesto":false,"version":null,"version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- Los enlaces que dejó el make install anterior son conflicto ---
+#
+# ~/.claude/skills/boe-legislacion, un enlace absoluto al skills/ de un clon:
+# «enlace a otro sitio», con su ruta absoluta, y nada cambia en HOME ni en el
+# clon.
+env HOME=$WORK/home-antiguo
+mkdir $WORK/home-antiguo/.claude/skills
+symlink $WORK/home-antiguo/.claude/skills/boe-legislacion -> $KITLEGAL_SKILLS/boe-legislacion
+arbol $WORK/home-antiguo
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills install -g --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: '${WORK@R}'/home-antiguo/\.claude/skills/boe-legislacion"\}\}\n\z'
+stderr '^enlace a otro sitio: '${WORK@R}'/home-antiguo/\.claude/skills/boe-legislacion$'
+arbol $WORK/home-antiguo
+cmp stdout $WORK/antes.txt
+
+# --- -g con HOME sin definir o vacío (FR-012) ---
+#
+# install, list y doctor salen con 1 y el mensaje de contracts/applet-skills.md
+# §2 (fila 5), en el sobre de fallo con clase inesperado, sin escribir nada.
+cd $WORK/proyecto
+arbol .
+cp stdout $WORK/proyecto-antes.txt
+exec env -u HOME sh -c 'kitlegal skills install -g --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'HOME no está definido o está vacío'
+exec env -u HOME sh -c 'kitlegal skills list -g; test $? -eq 1'
+stderr 'HOME no está definido o está vacío'
+exec env -u HOME sh -c 'kitlegal skills doctor -g; test $? -eq 1'
+stderr 'HOME no está definido o está vacío'
+env HOME=
+exec sh -c 'kitlegal skills install -g --json; test $? -eq 1'
+stdout '"data":\{"clase":"inesperado","mensaje":"(?:[^"\\]|\\.)*HOME no está definido o está vacío(?:[^"\\]|\\.)*"\}\}\n\z'
+exec sh -c 'kitlegal skills list -g; test $? -eq 1'
+stderr 'HOME no está definido o está vacío'
+exec sh -c 'kitlegal skills doctor -g; test $? -eq 1'
+stderr 'HOME no está definido o está vacío'
+exec sh -c 'kitlegal skills install -g --dry-run; test $? -eq 1'
+stderr 'HOME no está definido o está vacío'
+arbol .
+cmp stdout $WORK/proyecto-antes.txt

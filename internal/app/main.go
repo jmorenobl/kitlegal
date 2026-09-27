@@ -70,6 +70,10 @@ var (
 // el punto de entrada de cada binario, el distribuido con RegistroDeProduccion y
 // el de e2e con el suyo (contrato puerto-y-applet §5; research.md D16 de H4).
 //
+// construir recibe la misma versión del binario que atiende «version», tal
+// cual: es la única vía por la que llega al registro, sin estado global ni otra
+// inyección de -ldflags (FR-091; research.md D4 de H19).
+//
 // Un registro que no se construye no es un fallo de quien invoca, sino un
 // defecto de composición: sale por el mismo montador que cualquier otro fallo,
 // con la forma que pida --json en el pre-escaneo —el sobre del kernel de clase
@@ -77,11 +81,11 @@ var (
 // como un pánico. Como Main, nunca llama a os.Exit.
 func Arrancar(
 	argv []string,
-	construir func() (*Registro, error),
+	construir func(version string) (*Registro, error),
 	stdout, stderr io.Writer,
 	version, commit, fecha string,
 ) int {
-	registro, err := construir()
+	registro, err := construir(version)
 	if err != nil {
 		return fallarAlArrancar(argv, stdout, stderr, err)
 	}
@@ -232,7 +236,7 @@ func resolver(
 
 		return fin
 	case DestinoApplet:
-		return atender(p, registrador, despacho, previo)
+		return atender(p, registrador, registro, despacho, previo)
 	}
 
 	// Destino es un tipo con base string, así que existen valores fuera de las
@@ -260,11 +264,12 @@ func atenderReservado(p cli.Presentador, reservado, textoDeVersion string) error
 func atender(
 	p cli.Presentador,
 	registrador *slog.Logger,
+	registro *Registro,
 	despacho Despacho,
 	previo cli.Preliminar,
 ) desenlace {
 	inicio := time.Now()
-	fin, verbo := resolverApplet(p, registrador, despacho, previo)
+	fin, verbo := resolverApplet(p, registrador, registro, despacho, previo)
 
 	cli.RegistrarEvento(context.Background(), registrador, cli.Evento{
 		Applet:     despacho.Applet.Nombre(),
@@ -277,12 +282,14 @@ func atender(
 	return fin
 }
 
-// resolverApplet construye la gramática del applet, la analiza y atiende la
-// decisión que gane la prelación. Devuelve además el verbo que quedó
-// seleccionado, que es lo que el registro de eventos necesita saber.
+// resolverApplet construye la gramática del applet, la analiza, busca el aviso
+// de versión del registro y atiende la decisión que gane la prelación. Devuelve
+// además el verbo que quedó seleccionado, que es lo que el registro de eventos
+// necesita saber.
 func resolverApplet(
 	p cli.Presentador,
 	registrador *slog.Logger,
+	registro *Registro,
 	despacho Despacho,
 	previo cli.Preliminar,
 ) (desenlace, string) {
@@ -300,6 +307,15 @@ func resolverApplet(
 	// por primer argumento salgan idénticas byte a byte (FR-007, SC-003).
 	analisis, err := cli.Analizar(
 		p, despacho.Applet.Nombre(), gramatica.valor.Interface(), despacho.Args)
+
+	// El applet está resuelto con su verbo y el verbo, analizado: es el único
+	// punto en que se busca el aviso, antes de atender la decisión y termine
+	// como termine el análisis, también con el error de argumentos que detecta
+	// el propio verbo (contracts/aviso.md §1; research.md D5 de H19).
+	if buscaElAviso(despacho.Applet, previo, analisis) {
+		avisar(p, registro)
+	}
+
 	if err != nil {
 		fin.err = err
 
@@ -326,6 +342,44 @@ func resolverApplet(
 	fin.err = fmt.Errorf("%w: decisión %q", errSinAtender, analisis.Decision)
 
 	return fin, analisis.Verbo
+}
+
+// appletSinAviso es el applet cuyas invocaciones nunca buscan el aviso: skills,
+// que es el que lo arregla y el que compara versiones en doctor (FR-074). Sale
+// del propio applet, de modo que su nombre esté escrito en un solo sitio.
+var appletSinAviso = appletSkills{}.Nombre()
+
+// buscaElAviso dice si una invocación que ya resolvió su applet con un verbo, y
+// lo analizó, busca el aviso de versión: todas, termine como termine el
+// análisis, salvo las de skills y las peticiones de ayuda (FR-070, FR-074).
+//
+// Petición de ayuda es la que decide el análisis —también --help=false, con el
+// que Kong escribe la ayuda igual— y la que vio el pre-escaneo aunque el
+// análisis haya fallado: con la ayuda que no se pudo escribir o con un error
+// de argumentos delante de --help. Esa invocación no escribe la ayuda, pero la
+// pidió, y ante la duda el aviso no se da (gates/supuestos.md, T016).
+func buscaElAviso(applet Applet, previo cli.Preliminar, analisis cli.Analisis) bool {
+	ayuda := previo.Ayuda || analisis.Decision == cli.DecisionAyuda
+
+	return !ayuda && applet.Nombre() != appletSinAviso
+}
+
+// avisar escribe el aviso de versión del registro, si hay que darlo, por el
+// presentador en la salida de error: una sola línea, que nunca va a la salida
+// estándar (contracts/aviso.md §4 y §5).
+//
+// El error de su escritura no se propaga, y es una decisión y no un silencio
+// (research.md D5 de H19): el aviso nunca cambia el código de salida ni la
+// salida estándar (FR-072), y registrarlo iría al mismo descriptor que acaba de
+// fallar. Si la salida de error está rota, el fallo que sí cuenta —el mensaje de
+// un error, si lo hay— lo encuentra el kernel en su propia escritura.
+func avisar(p cli.Presentador, registro *Registro) {
+	linea, hay := registro.aviso()
+	if !hay {
+		return
+	}
+
+	_ = p.Aviso(linea)
 }
 
 // ejecutarVerbo entrega el control al applet con el contexto de ejecución —las

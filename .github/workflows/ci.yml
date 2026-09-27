@@ -1,14 +1,21 @@
-# Flujo de integración continua (FR-025, research.md D12).
+# Flujo de integración continua (FR-025, research.md D12; el trabajo snapshot,
+# FR-120 de H19).
 #
-# Sus pasos propios se limitan a preparar el entorno y a publicar el perfil de
-# cobertura. Todos los controles —formato, lint, detector de carreras,
-# vulnerabilidades, esquemas, secretos, integridad de módulos y dependencias
-# saneadas— los aplica `make ci`, exactamente la misma orden que se ejecuta en
-# local y en el gancho de pre-commit. Esa identidad es lo que hace cierta SC-004:
-# lo que pasa en local pasa aquí, y lo que falla aquí falla en local.
+# Los pasos propios del trabajo `ci` se limitan a preparar el entorno y a
+# publicar el perfil de cobertura. Todos los controles —formato, lint, detector
+# de carreras, vulnerabilidades, esquemas, secretos, integridad de módulos y
+# dependencias saneadas— los aplica `make ci`, exactamente la misma orden que se
+# ejecuta en local y en el gancho de pre-commit. Esa identidad es lo que hace
+# cierta SC-004: lo que pasa en local pasa aquí, y lo que falla aquí falla en
+# local.
 #
 # Ninguna acción de terceros aplica un control por su cuenta (R5.1): ni
 # golangci-lint-action, ni gitleaks-action, ni un `go test` suelto.
+#
+# El trabajo `snapshot` construye la release sin publicarla y la comprueba con
+# dos órdenes del Makefile, las mismas que en local, que quedan fuera de
+# `make ci` porque construyen las seis plataformas y leen dist/
+# (specs/009-h19-instalar-sin-clonar/contracts/release.md §3 y §5).
 name: ci
 
 on:
@@ -64,3 +71,45 @@ jobs:
           files: ./coverage.out,./coverage-integration.out
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  # El snapshot de la release en los mismos eventos que `ci` (FR-120 de H19;
+  # specs/009-h19-instalar-sin-clonar/research.md D30). Va en un trabajo aparte,
+  # sin condición y sin esperar a `ci`: construir las seis plataformas no retrasa
+  # el veredicto de `make ci`, y un fallo de uno no oculta el del otro.
+  snapshot:
+    runs-on: ubuntu-latest
+    # Solo lee el árbol: sin `id-token` y sin ningún secreto, porque el snapshot
+    # no firma ni publica nada (FR-097, FR-120).
+    permissions:
+      contents: read
+    steps:
+      # Toda la historia y sus etiquetas: de ellas saca goreleaser la versión
+      # del snapshot (research.md D30, V5).
+      - name: Obtener el código con su historia
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # La misma preparación y la misma caché que el trabajo `ci`, por las
+      # mismas razones: el parche lo fija el GOTOOLCHAIN que exporta el
+      # Makefile, y los modfiles de herramienta —el de goreleaser entre ellos—
+      # entran en la clave.
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      # Los seis archivos y checksums.txt en dist/, sin publicar, sin firmar y
+      # sin SBOM (FR-095).
+      - name: Construir el snapshot
+        run: make release
+
+      # TestSnapshot sobre dist/ —el binario linux/amd64 de este runner imprime
+      # la versión y el commit del snapshot— y los guiones del instalador contra
+      # ese dist/, sin red (FR-108, SC-016, SC-017).
+      - name: Comprobar el snapshot
+        run: make snapshot-check

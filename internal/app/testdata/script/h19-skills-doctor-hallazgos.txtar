@@ -1,0 +1,426 @@
+# Cada hallazgo de `doctor`, con su clase, su ruta y la orden que lo arregla:
+# fichero editado (con rm) y fichero que falta (sin rm); enlace de host colgando,
+# a otro sitio (otro destino, un fichero o un directorio en su lugar) o que falta
+# (una entrada o todo .claude/); versión distinta del manifiesto y de sus dos
+# skills (un único hallazgo) o de una sola skill; y, dentro del directorio de
+# una skill, el enlace que ocupa el sitio de la skill o de references/ y el
+# SKILL.md que es un enlace o un directorio. doctor sale con 1 sin cambiar nada,
+# y ejecutar sus órdenes con sh -c, en el orden en que las lista, deja un doctor
+# posterior en 0, en el ámbito local, con -g y con --dir.
+#
+# Cubre: US4.2, US4.3, US4.4, US4.6, US4.7, US4.10, US4.11 · FR-065, FR-066,
+# FR-077 · SC-011.
+#
+# El sobre de fallo lleva en `mensaje` la cabecera y una línea
+# `<clase>: <ruta>: <orden>` por hallazgo, primero los que llevan rm y después
+# los demás, y el mismo texto va a la salida de error (contracts/applet-skills.md
+# §5); la forma de la orden es la de §6. La orden no se reescribe aquí: se
+# extrae de la salida de error de doctor —lo que sigue al segundo «: »— y se
+# ejecuta tal cual con ordenes.sh. Las órdenes invocan kitlegal desde el PATH:
+# cuando la instalación es de una versión concreta, un enlace llamado kitlegal
+# en $WORK/bin-* pone delante ese binario (contracts/arnes-e2e.md §2).
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env PATH_ORIGINAL=$PATH
+mkdir $WORK/bin-v1 $WORK/bin-v2
+symlink $WORK/bin-v1/kitlegal -> $KITLEGAL_V1_BIN
+symlink $WORK/bin-v2/kitlegal -> $KITLEGAL_V2_BIN
+
+# --- Un fichero editado, sin entrada de host (US4.2, US4.4) ---
+#
+# La orden lo retira y lo reinstala, sin --host claude porque la skill no tiene
+# entrada de host declarada; doctor no cambia nada en disco (FR-068).
+mkdir $WORK/editado
+cd $WORK/editado
+exec kitlegal skills install
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
+stderr '^skills doctor: 1 hallazgos?:\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core$'
+cp stderr $WORK/doctor.err
+arbol .
+cmp stdout $WORK/antes.txt
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+
+# --- Un fichero editado de una skill con entrada de host: --host claude ---
+mkdir $WORK/editado-host/.claude
+cd $WORK/editado-host
+exec kitlegal skills install
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- Un fichero declarado que falta (US4.6) ---
+#
+# Es un fichero editado, y la orden solo reinstala: sin rm.
+mkdir $WORK/falta
+cd $WORK/falta
+exec kitlegal skills install
+rm .agents/skills/legal-core/references/leyes_vertebrales.md
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core"\}\}\n\z'
+stderr '^fichero editado: \.agents/skills/legal-core/references/leyes_vertebrales\.md: kitlegal skills install legal-core$'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+
+# --- Una entrada de host que apunta a otro sitio (US4.3) ---
+#
+# Otro destino literal, un fichero y un directorio real en su lugar: enlace a
+# otro sitio, con rm -- (rm -r -- solo para el directorio real), y el destino
+# del enlace retirado queda intacto.
+mkdir $WORK/host-otro/.claude
+cd $WORK/host-otro
+exec kitlegal skills install
+rm .claude/skills/legal-core
+symlink .claude/skills/legal-core -> ../../otro-sitio
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
+stderr '^enlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude$'
+cp stderr $WORK/doctor.err
+arbol .
+cmp stdout $WORK/antes.txt
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+cmp otro-sitio/mio.md $WORK/nota.md
+
+mkdir $WORK/host-fichero/.claude
+cd $WORK/host-fichero
+exec kitlegal skills install
+rm .claude/skills/legal-core
+cp $WORK/nota.md .claude/skills/legal-core
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+mkdir $WORK/host-directorio/.claude
+cd $WORK/host-directorio
+exec kitlegal skills install
+rm .claude/skills/legal-core
+mkdir .claude/skills/legal-core
+cp $WORK/nota.md .claude/skills/legal-core/nota.md
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: rm -r -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- Una entrada de host que falta: una, o todo .claude/ (US4.7) ---
+#
+# Enlace a otro sitio sin rm, con --host claude: la orden recrea el enlace.
+mkdir $WORK/host-falta/.claude
+cd $WORK/host-falta
+exec kitlegal skills install
+rm .claude/skills/legal-core
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+rm .claude
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
+stderr '^skills doctor: 2 hallazgos:\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude\nenlace a otro sitio: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude$'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/legal-core
+stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+
+# --- Un enlace de host colgando (US4.3) ---
+#
+# El enlace de host conserva su destino literal, pero la skill del directorio
+# neutro es ahora un enlace colgando: dos hallazgos, primero el que lleva rm.
+mkdir $WORK/colgando-host/.claude
+cd $WORK/colgando-host
+exec kitlegal skills install
+rm .agents/skills/legal-core
+symlink .agents/skills/legal-core -> $WORK/no-existe
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nenlace colgando: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core --host claude\\nenlace colgando: \.claude/skills/legal-core: kitlegal skills install legal-core --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+
+# --- Dentro del directorio de una skill, sin .claude/ (US4.11) ---
+#
+# Un único hallazgo por la entrada que no es lo que debe, con la ruta de esa
+# entrada y una orden con rm -- (rm -r -- solo para un directorio real), sin
+# hallazgos por lo que queda por debajo; la orden deja doctor en 0 y el destino
+# de cada enlace, fuera del proyecto, byte a byte intacto.
+mkdir $WORK/dentro-colgando
+cd $WORK/dentro-colgando
+exec kitlegal skills install
+rm .agents/skills/legal-core
+symlink .agents/skills/legal-core -> $WORK/no-existe
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace colgando: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+
+mkdir $WORK/dentro-copia
+mkdir $WORK/fuera-copia
+cd $WORK/dentro-copia
+exec kitlegal skills install
+exec cp -R .agents/skills/legal-core $WORK/fuera-copia/legal-core
+rm .agents/skills/legal-core
+symlink .agents/skills/legal-core -> $WORK/fuera-copia/legal-core
+arbol $WORK/fuera-copia
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.agents/skills/legal-core: rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+arbol $WORK/fuera-copia
+cmp stdout $WORK/fuera-antes.txt
+
+mkdir $WORK/dentro-references
+mkdir $WORK/fuera-references
+cd $WORK/dentro-references
+exec kitlegal skills install
+exec cp -R .agents/skills/legal-core/references $WORK/fuera-references/references
+rm .agents/skills/legal-core/references
+symlink .agents/skills/legal-core/references -> $WORK/fuera-references/references
+arbol $WORK/fuera-references
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nenlace a otro sitio: \.agents/skills/legal-core/references: rm -- ''\.agents/skills/legal-core/references'' && kitlegal skills install legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+arbol $WORK/fuera-references
+cmp stdout $WORK/fuera-antes.txt
+
+mkdir $WORK/dentro-skill-enlace
+mkdir $WORK/fuera-skill
+cd $WORK/dentro-skill-enlace
+exec kitlegal skills install
+cp .agents/skills/legal-core/SKILL.md $WORK/fuera-skill/SKILL.md
+rm .agents/skills/legal-core/SKILL.md
+symlink .agents/skills/legal-core/SKILL.md -> $WORK/fuera-skill/SKILL.md
+arbol $WORK/fuera-skill
+cp stdout $WORK/fuera-antes.txt
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+arbol $WORK/fuera-skill
+cmp stdout $WORK/fuera-antes.txt
+
+mkdir $WORK/dentro-skill-directorio
+cd $WORK/dentro-skill-directorio
+exec kitlegal skills install
+rm .agents/skills/legal-core/SKILL.md
+mkdir .agents/skills/legal-core/SKILL.md
+cp $WORK/nota.md .agents/skills/legal-core/SKILL.md/nota.md
+exec sh -c 'kitlegal skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -r -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+
+# --- Versión distinta del manifiesto y de sus dos skills (US4.10) ---
+#
+# Un único hallazgo, con la ruta del manifiesto, cuya orden reinstala todas las
+# skills declaradas y empotradas, por orden de nombre, con --host claude porque
+# tienen entrada de host.
+mkdir $WORK/version/.claude
+cd $WORK/version
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core --host claude"\}\}\n\z'
+stderr '^versión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core --host claude$'
+cp stderr $WORK/doctor.err
+env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.2\.0","version_del_binario":"v0\.2\.0","hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+
+# doctor compara versiones también con un binario de desarrollo: dev no es
+# v0.1.0.
+mkdir $WORK/version-dev
+cd $WORK/version-dev
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c 'kitlegal skills doctor; test $? -eq 1'
+stderr '^versión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core$'
+
+# --- Versión distinta de una sola skill (US4.10) ---
+#
+# Tras instalar un subconjunto con otro binario, el manifiesto coincide y solo
+# boe-legislacion difiere: un hallazgo con la ruta de su directorio y una orden
+# que solo la nombra a ella.
+mkdir $WORK/version-una
+cd $WORK/version-una
+exec $KITLEGAL_V1_BIN skills install
+exec $KITLEGAL_V2_BIN skills install legal-core
+exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/boe-legislacion: kitlegal skills install boe-legislacion"\}\}\n\z'
+cp stderr $WORK/doctor.err
+env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+
+# --- Dos hallazgos a la vez: las órdenes, en el orden listado (US4.4) ---
+#
+# Un fichero editado y la versión distinta del manifiesto: primero el que lleva
+# rm; ejecutar las dos, una tras otra, deja doctor en 0.
+mkdir $WORK/dos
+cd $WORK/dos
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+arbol .
+cp stdout $WORK/antes.txt
+exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core"\}\}\n\z'
+stderr '^skills doctor: 2 hallazgos:\nfichero editado: \.agents/skills/legal-core/SKILL\.md: rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core$'
+cp stderr $WORK/doctor.err
+arbol .
+cmp stdout $WORK/antes.txt
+env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+
+# --- Dentro de un grupo, por ruta (FR-066) ---
+#
+# Dos hallazgos sin rm: la versión distinta de legal-core y la entrada de host
+# de boe-legislacion que falta. Van por ruta byte a byte, que aquí no es ni el
+# orden de las clases ni el de las skills.
+mkdir $WORK/grupo/.claude
+cd $WORK/grupo
+exec $KITLEGAL_V1_BIN skills install
+exec $KITLEGAL_V2_BIN skills install boe-legislacion
+rm .claude/skills/boe-legislacion
+exec sh -c '"$KITLEGAL_V2_BIN" skills doctor --json; test $? -eq 1'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"inesperado","mensaje":"skills doctor: 2 hallazgos:\\nversión distinta: \.agents/skills/legal-core: kitlegal skills install legal-core --host claude\\nenlace a otro sitio: \.claude/skills/boe-legislacion: kitlegal skills install boe-legislacion --host claude"\}\}\n\z'
+cp stderr $WORK/doctor.err
+env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+exec readlink .claude/skills/boe-legislacion
+stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+
+# --- La regla de igualdad de versiones (FR-077) ---
+#
+# 0.1.0 frente a v0.1.0: iguales, sin hallazgo. 0.1.0+abc frente a v0.1.0:
+# distintas, y la orden, ejecutada con el binario v0.1.0, lo arregla.
+mkdir $WORK/igualdad
+cd $WORK/igualdad
+exec $KITLEGAL_V1_BIN skills install
+exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
+grep -count=3 '"0\.1\.0"' .agents/skills/kitlegal.json
+exec $KITLEGAL_V1_BIN skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+exec sh -c 'sed "s/\"0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
+grep -count=3 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
+exec sh -c '"$KITLEGAL_V1_BIN" skills doctor --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nversión distinta: \.agents/skills/kitlegal\.json: kitlegal skills install boe-legislacion legal-core"\}\}\n\z'
+cp stderr $WORK/doctor.err
+env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --json
+stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
+env PATH=$PATH_ORIGINAL
+
+# --- Con -g: rutas absolutas y la bandera en la orden (SC-011) ---
+env HOME=$WORK/home-g
+mkdir $WORK/home-g
+mkdir $WORK/global
+cd $WORK/global
+exec kitlegal skills install -g
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/legal-core/SKILL.md"'
+exec sh -c 'kitlegal skills doctor -g --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: '${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md: rm -- '''${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor -g --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+cmp $WORK/home-g/.agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+arbol .
+! stdout .
+
+# --- Con --dir: la ruta tal como se pasó (SC-011) ---
+mkdir $WORK/con-dir
+cd $WORK/con-dir
+exec kitlegal skills install --dir destino
+exec sh -c 'echo "una línea añadida a mano" >> destino/legal-core/SKILL.md'
+exec sh -c 'kitlegal skills doctor --dir destino --json; test $? -eq 1'
+stdout '"mensaje":"skills doctor: 1 hallazgos?:\\nfichero editado: destino/legal-core/SKILL\.md: rm -- ''destino/legal-core/SKILL\.md'' && kitlegal skills install legal-core --dir ''destino''"\}\}\n\z'
+cp stderr $WORK/doctor.err
+exec sh $WORK/ordenes.sh $WORK/doctor.err
+exec kitlegal skills doctor --dir destino --json
+stdout '"data":\{"directorio":"destino","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
+cmp destino/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+! exists .agents
+
+-- nota.md --
+Un fichero que kitlegal no instaló.
+-- host-otro/otro-sitio/mio.md --
+Un fichero que kitlegal no instaló.
+-- ordenes.sh --
+# ordenes.sh <salida de error de doctor>: ejecuta con sh -c, en el directorio
+# de trabajo y en el orden en que doctor las lista, las órdenes de sus
+# hallazgos: lo que sigue al segundo «: » de cada línea
+# «<clase>: <ruta>: <orden>» (contracts/applet-skills.md §5 y §6). Falla si no
+# hay ninguna o si alguna falla.
+set -u
+lineas=$(grep -E '^(fichero editado|enlace colgando|enlace a otro sitio|copia|versión distinta): ' "$1") || {
+	echo "ningún hallazgo en $1" >&2
+	exit 1
+}
+printf '%s\n' "$lineas" | sed 's/^[^:]*: [^:]*: //' | while IFS= read -r orden; do
+	sh -c "$orden" || exit 1
+done

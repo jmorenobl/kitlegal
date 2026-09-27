@@ -1,0 +1,631 @@
+{
+  "$defs": {
+    "doctor": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "instalacion.Diagnostico": {
+          "additionalProperties": false,
+          "properties": {
+            "directorio": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hallazgos": {
+              "items": {
+                "$ref": "#/$defs/instalacion.Hallazgo"
+              },
+              "type": "array"
+            },
+            "manifiesto": {
+              "type": "boolean"
+            },
+            "version": {
+              "oneOf": [
+                {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version_del_binario": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "directorio",
+            "manifiesto",
+            "version",
+            "version_del_binario",
+            "hallazgos"
+          ],
+          "type": "object"
+        },
+        "instalacion.Hallazgo": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "fichero editado",
+                "enlace colgando",
+                "enlace a otro sitio",
+                "copia",
+                "versión distinta"
+              ],
+              "type": "string"
+            },
+            "orden": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "ruta": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "ruta",
+            "orden"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/instalacion.json/doctor",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Comprueba lo instalado en el ámbito contra su manifiesto y da la orden que arregla cada hallazgo.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "global": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/instalacion.Diagnostico"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "skills doctor"
+    },
+    "install": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "instalacion.Enlace": {
+          "additionalProperties": false,
+          "properties": {
+            "host": {
+              "enum": [
+                "claude"
+              ],
+              "type": "string"
+            },
+            "modo": {
+              "enum": [
+                "enlace",
+                "copia"
+              ],
+              "type": "string"
+            },
+            "ruta": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "host",
+            "ruta",
+            "modo"
+          ],
+          "type": "object"
+        },
+        "instalacion.SkillInstalada": {
+          "additionalProperties": false,
+          "properties": {
+            "enlaces": {
+              "items": {
+                "$ref": "#/$defs/instalacion.Enlace"
+              },
+              "type": "array"
+            },
+            "estado": {
+              "enum": [
+                "instalada",
+                "actualizada",
+                "sin cambios"
+              ],
+              "type": "string"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "ruta": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "nombre",
+            "ruta",
+            "estado",
+            "enlaces"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/instalacion.json/install",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Instala las skills del binario, todas o las nombradas, en el directorio de skills del ámbito y las enlaza en sus hosts.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "global": {
+              "type": "boolean"
+            },
+            "host": {
+              "type": "string"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "skill": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "items": {
+                  "$ref": "#/$defs/instalacion.SkillInstalada"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "skills install"
+    },
+    "list": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "instalacion.Enlace": {
+          "additionalProperties": false,
+          "properties": {
+            "host": {
+              "enum": [
+                "claude"
+              ],
+              "type": "string"
+            },
+            "modo": {
+              "enum": [
+                "enlace",
+                "copia"
+              ],
+              "type": "string"
+            },
+            "ruta": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "host",
+            "ruta",
+            "modo"
+          ],
+          "type": "object"
+        },
+        "instalacion.Listado": {
+          "additionalProperties": false,
+          "properties": {
+            "directorio": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "manifiesto": {
+              "type": "boolean"
+            },
+            "skills": {
+              "items": {
+                "$ref": "#/$defs/instalacion.SkillListada"
+              },
+              "type": "array"
+            },
+            "version": {
+              "oneOf": [
+                {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "directorio",
+            "manifiesto",
+            "version",
+            "skills"
+          ],
+          "type": "object"
+        },
+        "instalacion.SkillListada": {
+          "additionalProperties": false,
+          "properties": {
+            "empotrada": {
+              "type": "boolean"
+            },
+            "enlaces": {
+              "items": {
+                "$ref": "#/$defs/instalacion.Enlace"
+              },
+              "type": "array"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "ruta": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "version": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "nombre",
+            "ruta",
+            "version",
+            "empotrada",
+            "enlaces"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://ventanillalegal.es/schemas/instalacion.json/list",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Lista las skills que declara el manifiesto del ámbito, con su versión y sus enlaces.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "global": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/instalacion.Listado"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "skills list"
+    }
+  },
+  "$id": "https://ventanillalegal.es/schemas/instalacion.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salidas de los verbos doctor, install y list del applet skills. Generado desde --describe con make schema-check; no editar.",
+  "title": "skills · instalacion"
+}

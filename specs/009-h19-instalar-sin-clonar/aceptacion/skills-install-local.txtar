@@ -1,0 +1,183 @@
+# Instalación local de las skills empotradas, sin ningún clon: en un directorio
+# de trabajo vacío y sin .claude/, `kitlegal skills install` deja las dos skills
+# y su manifiesto en ./.agents/skills/ y nada más, ni en el directorio de
+# trabajo ni en HOME; lo instalado es byte a byte lo empotrado y sin permiso de
+# ejecución; el manifiesto lleva la versión y la huella de cada fichero, sin
+# rutas absolutas, y es el mismo en cualquier ruta; una sola skill deja una
+# sola skill declarada; un nombre repetido cuenta una vez y uno desconocido
+# termina con 2 sin escribir nada.
+#
+# Cubre: US1.1, US1.4, US1.6 · FR-001, FR-003, FR-004, FR-010, FR-011, FR-014,
+# FR-015, FR-016, FR-030, FR-031, FR-032, FR-050, FR-051, FR-122 (con el
+# kitlegal sin inyecciones) · SC-001, SC-006, SC-021.
+#
+# El kitlegal del PATH es el binario de e2e sin -ldflags (versión dev), como un
+# `go install ./cmd/kitlegal` sin inyecciones (FR-122), construido fuera del
+# repositorio y ejecutado desde $WORK, también fuera de él (SC-021). El disco se
+# lee con `arbol`, que no sigue enlaces (contracts/arnes-e2e.md §4); los
+# formatos de salida son los de contracts/applet-skills.md §2-§4 y el
+# manifiesto, el de contracts/manifiesto.md §1. Los códigos distintos de 0 los
+# comprueba el intérprete de órdenes, como en boe-codigos.txtar.
+
+# Precondición: el binario registra el applet skills (FR-010).
+exec kitlegal --help
+stdout '^  skills +\S'
+
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# --- Un directorio de trabajo vacío, sin .claude/ (US1.1, SC-001) ---
+#
+# Código 0 y el sobre entero, anclado a los dos extremos: la procedencia de
+# applet calculado y, por skill en orden de nombre, su ruta, su estado y ningún
+# enlace (FR-050, FR-051).
+mkdir $WORK/proyecto
+cd $WORK/proyecto
+exec kitlegal skills install --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+
+# Las únicas entradas nuevas son las dos skills y el manifiesto, en el
+# directorio neutro que la orden ha creado (FR-011, FR-014, FR-030): cada línea
+# de `arbol` es una de esas, y están todas. De cada skill, su SKILL.md y sus
+# references/ y nada más, ni scripts/ (FR-001); ningún enlace que pueda
+# apuntar al árbol de un clon (SC-021); y ningún fichero con permiso de
+# ejecución (FR-015).
+arbol .
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:boe-legislacion|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '^d \.agents/skills/boe-legislacion$'
+stdout '^f \.agents/skills/boe-legislacion/SKILL\.md '
+stdout '^f \.agents/skills/boe-legislacion/references/normas\.md '
+stdout '^d \.agents/skills/legal-core$'
+stdout '^f \.agents/skills/legal-core/SKILL\.md '
+stdout '^f \.agents/skills/legal-core/references/jerarquia_normativa\.md '
+stdout '^f \.agents/skills/legal-core/references/leyes_vertebrales\.md '
+stdout '^f \.agents/skills/kitlegal\.json '
+! stdout '/scripts'
+! stdout '^l '
+! stdout '^f \S+ [0-7]*[1357][0-7]* '
+cp stdout $WORK/proyecto.txt
+
+# Y en HOME, nada (SC-001).
+arbol $WORK/home
+! stdout .
+
+# Lo instalado es byte a byte lo empotrado, que es lo del árbol de skills/ del
+# repositorio (US1.4, FR-003, FR-004).
+cmp .agents/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .agents/skills/boe-legislacion/references/normas.md $KITLEGAL_SKILLS/boe-legislacion/references/normas.md
+cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .agents/skills/legal-core/references/jerarquia_normativa.md $KITLEGAL_SKILLS/legal-core/references/jerarquia_normativa.md
+cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+
+# El manifiesto: la versión del binario que lo escribió, la de cada skill y la
+# huella SHA-256 de cada fichero instalado, con su ruta relativa al directorio
+# neutro (US1.4, FR-031); sin entradas de host, sin rutas absolutas (FR-032).
+grep '"version": *"dev"' .agents/skills/kitlegal.json
+grep -count=3 '"version": *"dev"' .agents/skills/kitlegal.json
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json boe-legislacion/SKILL.md .agents/skills/boe-legislacion/SKILL.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json boe-legislacion/references/normas.md .agents/skills/boe-legislacion/references/normas.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/SKILL.md .agents/skills/legal-core/SKILL.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/references/jerarquia_normativa.md .agents/skills/legal-core/references/jerarquia_normativa.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/references/leyes_vertebrales.md .agents/skills/legal-core/references/leyes_vertebrales.md
+! grep '"hosts"' .agents/skills/kitlegal.json
+! grep ${WORK@R} .agents/skills/kitlegal.json
+! grep '"/' .agents/skills/kitlegal.json
+
+# --- El mismo manifiesto en otra ruta, y lo mismo con --offline (FR-016, FR-032) ---
+#
+# Dos instalaciones de lo mismo con el mismo binario dan manifiestos byte a byte
+# iguales, sea cual sea la ruta. --offline no cambia nada: la orden no abre
+# ninguna conexión, y el arnés tiene cerrados los proxies.
+mkdir $WORK/otra/ruta/mas/honda
+cd $WORK/otra/ruta/mas/honda
+exec kitlegal skills install --offline --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+cmp .agents/skills/kitlegal.json $WORK/proyecto/.agents/skills/kitlegal.json
+arbol .
+cmp stdout $WORK/proyecto.txt
+
+# --- Lo instalado sale del binario, no del disco (FR-003) ---
+#
+# Un directorio de trabajo con su propio skills/ no cambia nada: lo instalado
+# sigue siendo lo empotrado, y el skills/ del directorio queda como estaba.
+cd $WORK/con-skills
+exec kitlegal skills install
+cmp .agents/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp skills/boe-legislacion/SKILL.md $WORK/falso.md
+cmp skills/legal-core/SKILL.md $WORK/falso.md
+
+# --- El ámbito local no sube a buscar la raíz del proyecto (FR-011) ---
+#
+# Desde un subdirectorio de un proyecto ya instalado, el directorio neutro es
+# el ./.agents/skills/ del subdirectorio, y el del proyecto no se toca.
+mkdir $WORK/proyecto/sub
+cd $WORK/proyecto/sub
+arbol $WORK/proyecto/.agents
+cp stdout $WORK/proyecto-agents.txt
+exec kitlegal skills install --json
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+exists .agents/skills/kitlegal.json
+arbol $WORK/proyecto/.agents
+cmp stdout $WORK/proyecto-agents.txt
+
+# --- Una sola skill (US1.6, SC-006) ---
+#
+# Solo legal-core queda instalada y el manifiesto solo la declara a ella.
+mkdir $WORK/una
+cd $WORK/una
+exec kitlegal skills install legal-core --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+arbol .
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/legal-core(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '^d \.agents/skills/legal-core$'
+! stdout 'boe-legislacion'
+grep '"legal-core": *\{' .agents/skills/kitlegal.json
+! grep 'boe-legislacion' .agents/skills/kitlegal.json
+
+# Un nombre repetido cuenta una vez: una sola entrada en `data` (FR-010).
+exec kitlegal skills install legal-core legal-core --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\]\}\]\}\n\z'
+! stderr .
+
+# --- Un nombre que no es de ninguna skill empotrada (FR-010) ---
+#
+# Código 2, la lista de las disponibles y nada escrito, tampoco la skill
+# válida que lo acompaña (contracts/applet-skills.md §2, fila 4).
+mkdir $WORK/desconocida
+cd $WORK/desconocida
+exec sh -c 'kitlegal skills install desconocida --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core'
+arbol .
+! stdout .
+
+exec sh -c 'kitlegal skills install legal-core desconocida; test $? -eq 2'
+! stdout .
+stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core'
+arbol .
+! stdout .
+
+-- declara.sh --
+# declara.sh <manifiesto> <clave> <fichero>: el manifiesto declara <clave> con
+# la huella SHA-256 de los bytes de <fichero>, en la forma «sha256:» y 64
+# hexadecimales en minúscula (contracts/manifiesto.md §1).
+set -u
+if command -v sha256sum > /dev/null 2>&1; then
+	huella=$(sha256sum < "$3" | cut -d ' ' -f 1)
+else
+	huella=$(shasum -a 256 < "$3" | cut -d ' ' -f 1)
+fi
+grep -q "\"$2\": *\"sha256:$huella\"" "$1" || {
+	echo "$1 no declara $2 con sha256:$huella" >&2
+	exit 1
+}
+-- falso.md --
+Esto no es ninguna skill empotrada.
+-- con-skills/skills/boe-legislacion/SKILL.md --
+Esto no es ninguna skill empotrada.
+-- con-skills/skills/legal-core/SKILL.md --
+Esto no es ninguna skill empotrada.

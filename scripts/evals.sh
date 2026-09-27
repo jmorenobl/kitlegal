@@ -2,9 +2,10 @@
 # Ejecuta las evals de una skill con Claude Code y escribe su informe (FR-070, FR-071; contracts/job-de-evals.md §3 de
 # H5). Antes de la primera sesión comprueba todo lo que la evaluación necesita: Linux con strace, claude y timeout; que
 # no hay Python accesible; que el proxy de las sesiones rechaza; que los ficheros de eval están bien formados y que lo
-# grabado sirve sin red cada consulta que necesitan; y que la skill está instalada. Después abre las sesiones que pide
-# el plan —cada eval con el modelo que decide y con cada modelo informativo, repetida REPETICIONES_DE_EVALS veces—, con
-# la skill tal como la deja make install, sin red de ninguna fuente y bajo strace, y las juzga todas en el informe.
+# grabado sirve sin red cada consulta que necesitan; y que la skill está instalada y kitlegal en el PATH. Después abre
+# las sesiones que pide el plan —cada eval con el modelo que decide y con cada modelo informativo, repetida
+# REPETICIONES_DE_EVALS veces—, con la skill tal como la deja make install, sin red de ninguna fuente y bajo strace, y
+# las juzga todas en el informe.
 #
 #   make evals SKILL=<skill>
 #
@@ -99,9 +100,14 @@ if ! go test -count=1 -run '^(TestEvalsDelRepositorio|TestIdentificadoresDeLasNo
 	exit 1
 fi
 
-# 6. La skill instalada con make install, que es la única que ve la sesión (FR-077).
+# 6. La skill instalada con make install, que es la única que ve la sesión (FR-077), y kitlegal en el PATH, que es desde
+# donde la skill lo invoca (FR-127 de H19; contracts/skills-e-invocacion.md §6).
 if [[ ! -f "$HOME/.claude/skills/$skill/SKILL.md" ]]; then
 	echo "evals: la skill $skill no está instalada" >&2
+	exit 1
+fi
+if ! command -v kitlegal >/dev/null; then
+	echo "evals: kitlegal no está en el PATH" >&2
 	exit 1
 fi
 
