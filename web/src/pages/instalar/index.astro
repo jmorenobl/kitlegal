@@ -1,0 +1,102 @@
+---
+import Orden from "../../components/Orden.astro";
+import Prosa from "../../components/Prosa.astro";
+import Base from "../../layouts/Base.astro";
+import { migas } from "../../lib/estructurados";
+import { REPOSITORIO, versionPublicada } from "../../lib/proyecto";
+
+const titulo = "Instalar kitlegal en macOS, Linux y Windows";
+const descripcion =
+  "Instala el programa kitlegal y sus skills para Claude Code, Codex o Antigravity: curl, Homebrew, Scoop, paquetes .deb y .rpm o go install.";
+const version = versionPublicada();
+---
+
+<Base titulo={titulo} descripcion={descripcion} imagen="instalar" datos={migas({ nombre: "Instalar", ruta: "/instalar/" })}>
+  <Prosa
+    etiqueta={`Instalar · ${version}`}
+    titulo="Instalar kitlegal"
+    entradilla="Dos órdenes. La primera instala el programa; la segunda, las skills, en el proyecto en el que estés. Después, abre tu agente en ese proyecto y pregunta."
+  >
+    <h2>macOS y Linux</h2>
+    <Orden
+      lineas={[
+        "curl -fsSL https://raw.githubusercontent.com/jmorenobl/kitlegal/main/scripts/install.sh | sh",
+        "kitlegal skills install",
+      ]}
+    />
+    <p>
+      El instalador no necesita nada que no traigan ya macOS y cualquier Linux (<code>curl</code>, <code>tar</code> y
+      <code>sha256sum</code> o <code>shasum</code>), comprueba la huella SHA-256 de lo que descarga y deja
+      <code>kitlegal</code> en <code>~/.local/bin</code> (o en <code>$KITLEGAL_INSTALL_DIR</code>). Si ese directorio no
+      está en tu <code>PATH</code>, te imprime la línea que lo añade en lugar de tocar tus ficheros de arranque. Ante
+      cualquier fallo, no instala nada a medias.
+    </p>
+
+    <h2>Windows</h2>
+    <p>En PowerShell, con <a href="https://scoop.sh/">Scoop</a>:</p>
+    <Orden
+      indicador=">"
+      lineas={[
+        "scoop bucket add jmorenobl https://github.com/jmorenobl/scoop-bucket",
+        "scoop install kitlegal",
+        "kitlegal skills install",
+      ]}
+    />
+
+    <h2>Otras formas</h2>
+    <ul>
+      <li>Homebrew: <code>brew install jmorenobl/tap/kitlegal</code>.</li>
+      <li>
+        Paquetes <code>.deb</code> y <code>.rpm</code>, adjuntos a <a href={`${REPOSITORIO}/releases/tag/${version}`}
+          >cada versión publicada</a
+        >.
+      </li>
+      <li>Con Go instalado: <code>go install github.com/jmorenobl/kitlegal/cmd/kitlegal@latest</code>.</li>
+    </ul>
+    <p>
+      Cada archivo publicado lleva su atestación de procedencia, que se comprueba con
+      <code>gh attestation verify &lt;archivo&gt; --repo jmorenobl/kitlegal</code>.
+    </p>
+
+    <h2 id="agentes">Dónde quedan las skills y qué agente las lee</h2>
+    <p>
+      <code>kitlegal skills install</code> deja las skills en <code>.agents/skills/</code> del directorio en el que lo
+      ejecutes, así que van con el proyecto y las ve cualquier agente que abras ahí. Si el proyecto tiene un
+      <code>.claude/</code>, las enlaza también en <code>.claude/skills/</code>; <code>--host claude</code> lo hace aunque
+      ese directorio no exista todavía. Para tenerlas en todos tus proyectos a la vez: <code>kitlegal skills install -g</code>.
+    </p>
+    <ul>
+      <li><strong>Claude Code</strong> las carga de <code>.claude/skills/</code>, el enlace que crea kitlegal.</li>
+      <li>
+        <strong>Codex</strong> las lee de <code>.agents/skills/</code> y de <code>~/.agents/skills/</code>. Su entorno
+        aislado corta la red por omisión, así que la primera consulta al BOE te pedirá permiso.
+      </li>
+      <li>
+        <strong>Antigravity</strong> las lee de <code>.agents/skills/</code> del proyecto. La instalación global con
+        <code>-g</code> todavía no le llega: instálalas en cada proyecto.
+      </li>
+    </ul>
+    <p>
+      <code>kitlegal skills install --dry-run</code> cuenta lo que haría sin tocar nada, y nunca sobrescribe nada que no
+      haya instalado él. <code>kitlegal skills doctor</code> comprueba lo instalado y, si algo no está como lo dejó, da
+      la orden que lo arregla.
+    </p>
+
+    <h2>Actualizar</h2>
+    <p>
+      Repite la primera orden (o <code>brew upgrade kitlegal</code>, o <code>scoop update kitlegal</code>) y vuelve a
+      ejecutar <code>kitlegal skills install</code>. Mientras lo instalado sea de una versión anterior a la del programa,
+      el programa se lo hace saber a tu agente en cada consulta, sin pedir nada a la red, y tu agente te lo dice.
+    </p>
+
+    <h2>Primera pregunta</h2>
+    <p>Abre tu agente en el proyecto y pregunta, por ejemplo:</p>
+    <p class="rounded-sm border border-linea bg-panel p-4 font-serif italic">
+      «¿Qué dice el artículo 21 de la Ley 39/2015?»
+    </p>
+    <p>
+      Tu agente ejecutará <code>kitlegal boe articulo BOE-A-2015-10565 a21</code>, leerá el texto consolidado del BOE y
+      te responderá citando la norma y el bloque.
+    </p>
+  </Prosa>
+</Base>

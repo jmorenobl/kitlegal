@@ -60,7 +60,7 @@ const esquemaDelContrato = `{
 
 // urlDelEsquema es lo único que el compilador necesita además del documento: el
 // recurso se identifica por URL y el `$ref` interno se resuelve contra ella.
-const urlDelEsquema = "https://ventanillalegal.es/schemas/sobre.json"
+const urlDelEsquema = "https://kitlegal.es/schemas/sobre.json"
 
 // clavesDelSobre son las seis del contrato, ni una más ni una menos.
 var clavesDelSobre = []string{"ok", "fuente", "url", "fecha_consulta", "hash", "data"}

@@ -57,7 +57,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
 	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check \
-	goreleaser-check release snapshot-check check-tools hooks ci help
+	goreleaser-check release snapshot-check web web-dev web-citas check-web-tools check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
 build: check-tools
@@ -171,6 +171,37 @@ release: check-tools
 snapshot-check: check-tools
 	go test -count=1 -tags=snapshot -run '^TestSnapshot$$' .
 	KITLEGAL_DIST=$(CURDIR)/dist go test -count=1 -run '^TestEntregaDelHito$$/instalador-' ./internal/app/
+
+# La web (ADR 0024) se construye con Node y pnpm, en web/, y queda fuera de
+# make ci: comprobar el producto no exige Node. La comprueba y la publica su
+# propio flujo, .github/workflows/web.yml, con estas mismas órdenes. pnpm
+# instala exactamente lo del lockfile, y la versión de pnpm la fija
+# web/package.json (packageManager).
+WEB := pnpm --dir web
+
+## web: comprueba la web (tipos y citas contra sus sobres) y la construye en web/dist
+web: check-web-tools
+	$(WEB) install --frozen-lockfile
+	$(WEB) check
+	$(WEB) build
+
+## web-dev: la web en local, con recarga al guardar
+web-dev: check-web-tools
+	$(WEB) install --frozen-lockfile
+	$(WEB) dev
+
+# Los sobres de las citas los produce el binario de make build: la web no cita
+# nada que kitlegal no haya devuelto (ADR 0024).
+## web-citas: regenera con el binario los sobres de las citas de la web (requiere red; escribe en el árbol)
+web-citas: build check-web-tools
+	$(WEB) install --frozen-lockfile
+	KITLEGAL=$(CURDIR)/bin/kitlegal $(WEB) citas
+
+check-web-tools:
+	@command -v pnpm >/dev/null 2>&1 || { \
+		echo "kitlegal: falta 'pnpm', necesario solo para la web. Con Node 22.12 o superior: corepack enable pnpm" >&2; \
+		exit 1; \
+	}
 
 ## hooks: instala los ganchos de pre-commit
 hooks: check-tools

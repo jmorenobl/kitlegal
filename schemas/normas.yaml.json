@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ventanillalegal.es/schemas/normas.yaml.json",
+  "$id": "https://kitlegal.es/schemas/normas.yaml.json",
   "title": "data/normas.yaml",
   "type": "object",
   "additionalProperties": false,

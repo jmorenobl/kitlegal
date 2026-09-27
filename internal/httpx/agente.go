@@ -23,5 +23,5 @@ var version = "dev"
 // que la identificación envejezca sola cuando el binario cambie de versión
 // (FR-007, research.md D5).
 func AgenteDeUsuario() string {
-	return "kitlegal/" + version + " (+https://ventanillalegal.es/bot)"
+	return "kitlegal/" + version + " (+https://kitlegal.es/bot)"
 }

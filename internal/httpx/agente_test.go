@@ -40,7 +40,7 @@ func TestAgenteDeUsuario(t *testing.T) {
 	t.Log(agente)
 
 	forma := "^kitlegal/" + regexp.QuoteMeta(version) +
-		regexp.QuoteMeta(" (+https://ventanillalegal.es/bot)") + "$"
+		regexp.QuoteMeta(" (+https://kitlegal.es/bot)") + "$"
 
 	assert.Regexp(t, forma, agente,
 		"la identificación tiene la forma exacta kitlegal/<versión> (+<dirección del bot>) (FR-006)")

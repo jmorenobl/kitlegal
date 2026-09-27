@@ -1,0 +1,16 @@
+---
+import Portada from "../components/Portada.astro";
+import { despachos as audiencia } from "../data/audiencias";
+import Base from "../layouts/Base.astro";
+import { aplicacion } from "../lib/estructurados";
+---
+
+<Base
+  titulo={audiencia.titulo}
+  descripcion={audiencia.descripcion}
+  imagen={audiencia.imagen}
+  datos={aplicacion(audiencia.descripcion)}
+  inicio={audiencia.ruta}
+>
+  <Portada audiencia={audiencia} />
+</Base>

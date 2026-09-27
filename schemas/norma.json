@@ -133,7 +133,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/norma.json/analisis",
+      "$id": "https://kitlegal.es/schemas/norma.json/analisis",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve las materias, las notas y las referencias de una norma.",
       "properties": {
@@ -293,7 +293,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/norma.json/buscar",
+      "$id": "https://kitlegal.es/schemas/norma.json/buscar",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Busca normas consolidadas por las palabras de su título o con una consulta de la fuente.",
       "properties": {
@@ -482,7 +482,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/norma.json/indice",
+      "$id": "https://kitlegal.es/schemas/norma.json/indice",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve los bloques de una norma consolidada, en el orden de la fuente.",
       "properties": {
@@ -706,7 +706,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/norma.json/metadatos",
+      "$id": "https://kitlegal.es/schemas/norma.json/metadatos",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve los datos de una norma y los avisos de su vigencia.",
       "properties": {
@@ -806,7 +806,7 @@
       "title": "boe metadatos"
     }
   },
-  "$id": "https://ventanillalegal.es/schemas/norma.json",
+  "$id": "https://kitlegal.es/schemas/norma.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Salidas de los verbos analisis, buscar, indice y metadatos del applet boe. Generado desde --describe con make schema-check; no editar.",
   "title": "boe · norma"

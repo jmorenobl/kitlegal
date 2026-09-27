@@ -23,7 +23,7 @@ import (
 // compilador. No es la del contrato: lo que se compila aquí es el esquema
 // **generado**, y confundir los dos recursos ocultaría justo la diferencia que
 // este test existe para comprobar.
-const urlDelEsquemaGenerado = "https://ventanillalegal.es/schemas/describe.json"
+const urlDelEsquemaGenerado = "https://kitlegal.es/schemas/describe.json"
 
 // rutaDeLaSalida es el puntero JSON de la parte del documento que describe el
 // sobre. Se compila por separado —y no extrayéndola a otro documento— porque sus

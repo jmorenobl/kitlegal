@@ -12,6 +12,21 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **La web del proyecto, https://kitlegal.es** (ADR 0024), en `web/`: una portada para despachos y otra para
+  ciudadanía, la guía de instalación, la página del rastreador (`/bot/`) y los esquemas de `schemas/` en la
+  dirección de su `$id`. Ninguna cita de la web está escrita a mano: cada fragmento sale del sobre que devolvió
+  `kitlegal`, y la construcción falla si no está literal en él. Órdenes nuevas, fuera de `make ci`: `make web`,
+  `make web-dev` y `make web-citas`.
+
+### Cambiado
+
+- **kitlegal se identifica con `kitlegal/x.y (+https://kitlegal.es/bot)`**, una dirección que ahora explica qué es y
+  cómo limitarlo. Hasta la 0.2.0 era `https://ventanillalegal.es/bot`.
+- **El `$id` de cada esquema de `schemas/` pasa a `https://kitlegal.es/schemas/…`** (incompatible para quien los
+  referencie por su `$id`), y cada esquema se puede descargar en esa dirección.
+
 ## [0.2.0] - 2026-09-27
 
 ### Cambiado

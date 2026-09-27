@@ -99,7 +99,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/instalacion.json/doctor",
+      "$id": "https://kitlegal.es/schemas/instalacion.json/doctor",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Comprueba lo instalado en el ámbito contra su manifiesto y da la orden que arregla cada hallazgo.",
       "properties": {
@@ -289,7 +289,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/instalacion.json/install",
+      "$id": "https://kitlegal.es/schemas/instalacion.json/install",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Instala las skills del binario, todas o las nombradas, en el directorio de skills del ámbito y las enlaza en sus hosts.",
       "properties": {
@@ -527,7 +527,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/instalacion.json/list",
+      "$id": "https://kitlegal.es/schemas/instalacion.json/list",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Lista las skills que declara el manifiesto del ámbito, con su versión y sus enlaces.",
       "properties": {
@@ -627,7 +627,7 @@
       "title": "skills list"
     }
   },
-  "$id": "https://ventanillalegal.es/schemas/instalacion.json",
+  "$id": "https://kitlegal.es/schemas/instalacion.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Salidas de los verbos doctor, install y list del applet skills. Generado desde --describe con make schema-check; no editar.",
   "title": "skills · instalacion"
