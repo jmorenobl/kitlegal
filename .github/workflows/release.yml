@@ -48,8 +48,9 @@ jobs:
       - name: Instalar syft
         uses: anchore/sbom-action/download-syft@v0
 
+      # cosign-installer no publica etiqueta mayor (no existe `@v4`): se fija la versión completa y la sube Dependabot.
       - name: Instalar cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.1.2
 
       # Los dos tokens, solo en el entorno de este paso (FR-097, FR-114): GITHUB_TOKEN para la release y
       # PUBLISHER_TOKEN para el tap y el bucket, que .goreleaser.yaml lee al publicar.

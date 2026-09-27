@@ -1061,9 +1061,11 @@ var comprobacionesDelHumo = []struct {
 	}},
 }
 
-// etiquetaMayor es como los flujos fijan una acción: por su etiqueta mayor,
-// como el resto de flujos del repositorio (research.md V36).
-var etiquetaMayor = regexp.MustCompile(`^v[0-9]+$`)
+// etiquetaDeAccion es como los flujos fijan una acción: por su etiqueta mayor,
+// como el resto de flujos del repositorio (research.md V36), o por su versión
+// completa cuando la acción no publica etiqueta mayor. sigstore/cosign-installer
+// solo publica vX.Y.Z: con `@v4` la release v0.1.0 no pudo ni resolver la acción.
+var etiquetaDeAccion = regexp.MustCompile(`^v[0-9]+(\.[0-9]+\.[0-9]+)?$`)
 
 // flujoDeGitHub es un flujo de GitHub Actions leído de forma estricta fuera de
 // sus trabajos: otra clave del flujo —un env, un concurrency, unos defaults—
@@ -1164,7 +1166,7 @@ func leerTrabajo(t *testing.T, flujo flujoDeGitHub, nombre string) trabajoDelFlu
 
 // secuencia es, paso a paso, lo que hace cada paso: la acción que usa, sin su
 // etiqueta, o la orden que ejecuta. Exige que cada acción vaya fijada por su
-// etiqueta mayor (research.md V36).
+// etiqueta mayor o, si no la publica, por su versión completa (research.md V36).
 func secuencia(t *testing.T, pasos []pasoDelFlujo) []string {
 	t.Helper()
 
@@ -1178,7 +1180,7 @@ func secuencia(t *testing.T, pasos []pasoDelFlujo) []string {
 		}
 
 		accion, etiqueta, _ := strings.Cut(paso.Uses, "@")
-		assert.Regexpf(t, etiquetaMayor, etiqueta, "%s no va fijada por su etiqueta mayor (research.md V36)", paso.Uses)
+		assert.Regexpf(t, etiquetaDeAccion, etiqueta, "%s no va fijada por su etiqueta mayor ni por su versión completa (research.md V36)", paso.Uses)
 
 		hechos = append(hechos, accion)
 	}
