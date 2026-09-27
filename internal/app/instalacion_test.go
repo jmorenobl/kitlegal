@@ -867,7 +867,7 @@ func esquemaDeSkillsEmitido(t *testing.T, registro *Registro, verbo string, band
 		assert.NotContains(t, obligatorias, bandera, "%s no es obligatoria en %s", bandera, verbo)
 	}
 
-	const id = "https://ventanillalegal.es/schemas/skills/describe.json"
+	const id = "https://kitlegal.es/schemas/skills/describe.json"
 
 	compilador := jsonschema.NewCompiler()
 	compilador.AssertFormat()

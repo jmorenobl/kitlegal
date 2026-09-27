@@ -1,0 +1,90 @@
+# Citas de la web (ADR 0024).
+#
+# Ninguna frase de una norma se escribe a mano. Cada fragmento tiene que estar,
+# literal, en el texto del sobre que devolvió kitlegal y que se versiona en
+# sobres/: la construcción de la web falla si no lo está, si el sobre no es de
+# esa norma y ese bloque, o si una cita no tiene sobre. Los sobres se
+# regeneran con `make web-citas`, que ejecuta el binario contra el BOE.
+#
+# Un artículo se muestra con sus fragmentos unidos por « […] ». `destacado`,
+# si lo hay, es una parte de un fragmento que la página resalta.
+
+articulos:
+  lpacap-21:
+    norma: BOE-A-2015-10565
+    bloque: a21
+    referencia: Art. 21.2 y 21.3 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 2. El plazo máximo en el que debe notificarse la resolución expresa será el fijado por la norma reguladora del correspondiente procedimiento.
+      - Este plazo no podrá exceder de seis meses salvo que una norma con rango de Ley establezca uno mayor o así venga previsto en el Derecho de la Unión Europea.
+      - 3. Cuando las normas reguladoras de los procedimientos no fijen el plazo máximo, éste será de tres meses.
+    destacado: tres meses
+
+  lpacap-122:
+    norma: BOE-A-2015-10565
+    bloque: a122
+    referencia: Art. 122.1 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - El plazo para la interposición del recurso de alzada será de un mes, si el acto fuera expreso. Transcurrido dicho plazo sin haberse interpuesto el recurso, la resolución será firme a todos los efectos.
+    destacado: un mes
+
+  lpacap-24:
+    norma: BOE-A-2015-10565
+    bloque: a24
+    referencia: Art. 24.1 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - En los procedimientos iniciados a solicitud del interesado, sin perjuicio de la resolución que la Administración debe dictar en la forma prevista en el apartado 3 de este artículo, el vencimiento del plazo máximo sin haberse notificado resolución expresa, legitima al interesado o interesados para entenderla estimada por silencio administrativo, excepto en los supuestos en los que una norma con rango de ley o una norma de Derecho de la Unión Europea o de Derecho internacional aplicable en España establezcan lo contrario.
+
+  lcsp-118:
+    norma: BOE-A-2017-12902
+    bloque: a1-30
+    referencia: Art. 118.1 Ley 9/2017 (LCSP)
+    fragmentos:
+      - Se consideran contratos menores los contratos de valor estimado inferior a 40.000 euros, cuando se trate de contratos de obras, o a 15.000 euros, cuando se trate de contratos de suministro o de servicios, sin perjuicio de lo dispuesto en el artículo 229 en relación con las obras, servicios y suministros centralizados en el ámbito estatal.
+
+  lgt-66:
+    norma: BOE-A-2003-23186
+    bloque: a66
+    referencia: Art. 66 Ley 58/2003 (LGT)
+    fragmentos:
+      - "Prescribirán a los cuatro años los siguientes derechos:"
+      - a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación.
+      - b) El derecho de la Administración para exigir el pago de las deudas tributarias liquidadas y autoliquidadas.
+
+  lbrl-22:
+    norma: BOE-A-1985-5392
+    bloque: a22
+    referencia: Art. 22.2 Ley 7/1985 (LBRL)
+    fragmentos:
+      - "Corresponden, en todo caso, al Pleno municipal en los Ayuntamientos, y a la Asamblea vecinal en el régimen de Concejo Abierto, las siguientes atribuciones:"
+      - a) El control y la fiscalización de los órganos de gobierno.
+      - d) La aprobación del reglamento orgánico y de las ordenanzas.
+
+  et-49:
+    norma: BOE-A-2015-11430
+    bloque: a49
+    referencia: Art. 49.1.d) Real Decreto Legislativo 2/2015 (ET)
+    fragmentos:
+      - d) Por dimisión del trabajador, debiendo mediar el preaviso que señalen los convenios colectivos o la costumbre del lugar.
+
+  lau-36:
+    norma: BOE-A-1994-26003
+    bloque: a36
+    referencia: Art. 36.4 Ley 29/1994 (LAU)
+    fragmentos:
+      - El saldo de la fianza en metálico que deba ser restituido al arrendatario al final del arriendo, devengará el interés legal, transcurrido un mes desde la entrega de las llaves por el mismo sin que se hubiere hecho efectiva dicha restitución.
+
+  lirpf-81:
+    norma: BOE-A-2006-20764
+    bloque: a81
+    referencia: Art. 81.1 Ley 35/2006 (LIRPF)
+    fragmentos:
+      - Las mujeres con hijos menores de tres años con derecho a la aplicación del mínimo por descendientes previsto en el artículo 58 de esta ley,
+      - podrán minorar la cuota diferencial de este Impuesto hasta en 1.200 euros anuales por cada hijo menor de tres años hasta que el menor alcance los tres años de edad.
+
+# Normas de las que la web muestra los avisos de vigencia, tal como los da
+# `kitlegal boe metadatos`.
+normas:
+  ley-30-1992:
+    norma: BOE-A-1992-26318
+    referencia: Ley 30/1992

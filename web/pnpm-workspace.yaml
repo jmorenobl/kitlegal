@@ -1,0 +1,10 @@
+# Una versión recién publicada no entra hasta que lleva una semana en el
+# registro: es el margen en que se detectan y retiran los paquetes comprometidos
+# (ADR 0024). Dependabot respeta la misma espera con su cooldown.
+minimumReleaseAge: 10080
+
+# Ninguna dependencia ejecuta scripts al instalarse. El de esbuild solo comprueba
+# su binario, que ya llega como dependencia opcional de su plataforma, y la
+# construcción no lo necesita.
+allowBuilds:
+  esbuild: false

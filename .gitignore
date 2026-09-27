@@ -8,6 +8,11 @@
 # kitlegal runtime
 .kitlegal/
 
+# Web (ADR 0024): dependencias, salida de la construcción y caché de Astro
+node_modules/
+/web/dist/
+/web/.astro/
+
 # OS / editor
 .DS_Store
 .idea/

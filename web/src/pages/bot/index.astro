@@ -1,0 +1,72 @@
+---
+// La página a la que apunta el agente de usuario de kitlegal
+// (internal/httpx/agente.go): quien administra un sitio tiene que poder
+// averiguar qué le está pidiendo datos y cómo pararlo.
+import Orden from "../../components/Orden.astro";
+import Prosa from "../../components/Prosa.astro";
+import Base from "../../layouts/Base.astro";
+import { migas } from "../../lib/estructurados";
+import { REPOSITORIO } from "../../lib/proyecto";
+
+const titulo = "El rastreador de kitlegal";
+const descripcion =
+  "Qué son las peticiones con el agente de usuario kitlegal, cómo se comportan con tu sitio y cómo limitarlas o bloquearlas con robots.txt.";
+---
+
+<Base titulo={titulo} descripcion={descripcion} imagen="bot" datos={migas({ nombre: "Rastreador", ruta: "/bot/" })}>
+  <Prosa
+    etiqueta="Para quien administra un sitio"
+    titulo={titulo}
+    entradilla="Si ves en tus registros peticiones con este agente de usuario, vienen de kitlegal: un programa de código abierto que una persona ejecuta en su equipo para consultar normas en fuentes públicas oficiales."
+  >
+    <Orden indicador="User-Agent:" lineas={["kitlegal/<versión> (+https://kitlegal.es/bot)"]} />
+    <p>
+      Las versiones hasta la 0.2.0 se identifican con <code>(+https://ventanillalegal.es/bot)</code>: es el mismo
+      programa.
+    </p>
+
+    <h2>Cómo se comporta</h2>
+    <ul>
+      <li>
+        <strong>No recorre tu sitio.</strong> Pide los documentos concretos que la persona consulta, cuando los consulta.
+      </li>
+      <li>
+        <strong>Respeta tu <code>robots.txt</code></strong>: lo lee antes de pedir nada y lo guarda para no pedirlo con
+        cada documento.
+      </li>
+      <li>
+        <strong>Va despacio</strong>: cada consulta pide sus documentos a un ritmo de, como mucho, una petición por
+        segundo a cada sitio.
+      </li>
+      <li>
+        <strong>No insiste</strong>: si una petición falla por algo pasajero, la repite como mucho dos veces.
+      </li>
+      <li>
+        <strong>No pide dos veces lo mismo</strong>: guarda en el equipo de la persona lo que ya ha leído, con una vigencia
+        que fija cada fuente.
+      </li>
+      <li>
+        <strong>Solo lee</strong>: no envía formularios, no inicia sesión y no entra en ninguna sede electrónica.
+      </li>
+    </ul>
+
+    <h2>Qué consulta hoy</h2>
+    <p>
+      La <a href="https://www.boe.es/datosabiertos/api/legislacion-consolidada">API de legislación consolidada</a> de la
+      Agencia Estatal Boletín Oficial del Estado. Cada fuente nueva se revisa antes de consultarla: sus términos de uso,
+      su <code>robots.txt</code> y el ritmo que admite, y todo queda anotado en el
+      <a href={`${REPOSITORIO}/blob/main/docs/SOURCES.md`}>registro de fuentes</a> del proyecto.
+    </p>
+
+    <h2>Cómo limitarlo o bloquearlo</h2>
+    <p>
+      kitlegal busca su grupo de reglas por el nombre <code>kitlegal</code>, que gana a <code>User-agent: *</code>. Para
+      cerrarle todo el sitio:
+    </p>
+    <Orden indicador="" etiqueta="robots.txt" lineas={["User-agent: kitlegal", "Disallow: /"]} />
+    <p>
+      Si kitlegal te causa algún problema, o quieres que consulte tu sitio de otra forma,
+      <a href={`${REPOSITORIO}/issues`}>abre una incidencia en GitHub</a> y lo atenderemos.
+    </p>
+  </Prosa>
+</Base>

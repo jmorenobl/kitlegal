@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ventanillalegal.es/schemas/territorio-municipios.yaml.json",
+  "$id": "https://kitlegal.es/schemas/territorio-municipios.yaml.json",
   "title": "data/territorio/municipios.yaml",
   "type": "object",
   "additionalProperties": false,

@@ -1,0 +1,40 @@
+---
+// Un icono de Material Symbols (variante contorno, la de la maqueta), en SVG
+// en línea y decorativo: sin texto que indexar ni que lea un lector de
+// pantalla, y solo los iconos que se usan llegan a la página.
+import simbolos from "@iconify-json/material-symbols/icons.json";
+
+interface Props {
+  nombre: string;
+  class?: string;
+}
+
+const { nombre, class: clase = "size-5" } = Astro.props;
+
+type Conjunto = {
+  icons: Record<string, { body: string }>;
+  aliases?: Record<string, { parent: string }>;
+};
+
+function cuerpo(conjunto: Conjunto, id: string): string | undefined {
+  const icono = conjunto.icons[id];
+  if (icono) return icono.body;
+  const alias = conjunto.aliases?.[id];
+  return alias ? cuerpo(conjunto, alias.parent) : undefined;
+}
+
+const svg = cuerpo(simbolos as Conjunto, `${nombre}-outline`) ?? cuerpo(simbolos as Conjunto, nombre);
+if (!svg) {
+  throw new Error(`Icono: material-symbols no tiene «${nombre}»`);
+}
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+  class:list={["shrink-0", clase]}
+  set:html={svg}
+/>

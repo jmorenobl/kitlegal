@@ -15,7 +15,7 @@ import (
 // verbo emite con --describe. Es una URL de recurso, no una dirección que se
 // visite: el compilador resuelve contra ella las referencias `#/$defs/…` del
 // propio documento y nada más.
-const urlDelEsquemaEmitido = "https://ventanillalegal.es/schemas/ejemplo/describe.json"
+const urlDelEsquemaEmitido = "https://kitlegal.es/schemas/ejemplo/describe.json"
 
 // rutaDeLaSalida es el puntero JSON de la parte del documento que describe el
 // sobre. Se compila dentro del documento y no extraída, porque sus referencias

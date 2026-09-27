@@ -1,0 +1,23 @@
+---
+import Prosa from "../components/Prosa.astro";
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  titulo="Página no encontrada · kitlegal"
+  descripcion="Esta dirección no existe en kitlegal.es."
+  imagen="inicio"
+  indexable={false}
+>
+  <Prosa
+    etiqueta="Error 404"
+    titulo="Esta página no existe"
+    entradilla="Nada sin cita: tampoco una página. Puede que la dirección esté mal escrita o que la página se haya movido."
+  >
+    <ul>
+      <li><a href="/">Portada para despachos y abogados</a></li>
+      <li><a href="/ciudadania/">Portada para ciudadanos y trámites</a></li>
+      <li><a href="/instalar/">Instalar kitlegal</a></li>
+    </ul>
+  </Prosa>
+</Base>

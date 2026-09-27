@@ -33,7 +33,7 @@ const (
 	carpetaDeLosEsquemas = "../../schemas"
 	// raizDeLosEsquemas es el principio del $id de cada fichero publicado y del
 	// de cada una de sus partes.
-	raizDeLosEsquemas = "https://ventanillalegal.es/schemas/"
+	raizDeLosEsquemas = "https://kitlegal.es/schemas/"
 	// borradorDeLosEsquemas es el $schema de la raíz de cada fichero: el mismo
 	// borrador que declara cada parte.
 	borradorDeLosEsquemas = "https://json-schema.org/draft/2020-12/schema"
@@ -140,7 +140,7 @@ func TestEsquemasPublicados(t *testing.T) {
 
 			assert.ElementsMatch(t, []string{"$defs", "$id", "$schema", "description", "title"},
 				slices.Collect(maps.Keys(documento)), "la raíz de %s", fichero.nombre)
-			assert.Equal(t, "https://ventanillalegal.es/schemas/"+fichero.nombre, documento["$id"])
+			assert.Equal(t, "https://kitlegal.es/schemas/"+fichero.nombre, documento["$id"])
 			assert.Equal(t, "https://json-schema.org/draft/2020-12/schema", documento["$schema"])
 			assert.Equal(t, descripciones[fichero.nombre], documento["description"])
 			assert.Equal(t, fichero.applet+" · "+fichero.entidad, documento["title"])
@@ -153,7 +153,7 @@ func TestEsquemasPublicados(t *testing.T) {
 				parte, esObjeto := partes[verbo].(map[string]any)
 				require.True(t, esObjeto, "la parte de %s en %s es un objeto", verbo, fichero.nombre)
 
-				assert.Equal(t, "https://ventanillalegal.es/schemas/"+fichero.nombre+"/"+verbo, parte["$id"])
+				assert.Equal(t, "https://kitlegal.es/schemas/"+fichero.nombre+"/"+verbo, parte["$id"])
 				assert.Equal(t, fichero.applet+" "+verbo, parte["title"], "la parte es lo que emite el verbo con --describe")
 				assert.Contains(t, parte, "properties")
 			}

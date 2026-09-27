@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "fuente": "boe.legislacion-consolidada",
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a122",
+  "fecha_consulta": "2026-09-27T16:25:40.840543+02:00",
+  "hash": "sha256:b051c06d919d2255830be586c3007273b19edc7c458a5db7ba4950cad74e2951",
+  "data": {
+    "norma": "BOE-A-2015-10565",
+    "bloque": "a122",
+    "titulo": "Artículo 122",
+    "tipo": "precepto",
+    "fecha_version": "20151002",
+    "fecha_vigencia": "20161002",
+    "norma_modificadora": "BOE-A-2015-10565",
+    "texto": "Artículo 122. Plazos.\n1. El plazo para la interposición del recurso de alzada será de un mes, si el acto fuera expreso. Transcurrido dicho plazo sin haberse interpuesto el recurso, la resolución será firme a todos los efectos.\nSi el acto no fuera expreso el solicitante y otros posibles interesados podrán interponer recurso de alzada en cualquier momento a partir del día siguiente a aquel en que, de acuerdo con su normativa específica, se produzcan los efectos del silencio administrativo.\n2. El plazo máximo para dictar y notificar la resolución será de tres meses. Transcurrido este plazo sin que recaiga resolución, se podrá entender desestimado el recurso, salvo en el supuesto previsto en el artículo 24.1, tercer párrafo.\n3. Contra la resolución de un recurso de alzada no cabrá ningún otro recurso administrativo, salvo el recurso extraordinario de revisión, en los casos establecidos en el artículo 125.1.",
+    "hash_texto": "sha256:0df8bb0602617802125e2dc3029e04c81dad4ad59255a4ba67666bc502cf033d",
+    "avisos": [],
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565#a122",
+    "url_eli": "https://www.boe.es/eli/es/l/2015/10/01/39"
+  }
+}

@@ -1,0 +1,30 @@
+---
+// Una orden de terminal, en el marco oscuro de DESIGN.md. Cada línea es un
+// bloque, y el indicador no se selecciona al copiar.
+interface Props {
+  lineas: string[];
+  indicador?: string;
+  etiqueta?: string;
+}
+
+const { lineas, indicador = "$", etiqueta } = Astro.props;
+---
+
+<figure class="overflow-hidden rounded-lg border border-codigo-borde bg-codigo">
+  {
+    etiqueta && (
+      <figcaption class="border-b border-codigo-borde px-4 py-2 font-mono text-estampa text-sobre-noche uppercase">
+        {etiqueta}
+      </figcaption>
+    )
+  }
+  <code class="block overflow-x-auto p-4 font-mono text-sm leading-6 whitespace-pre text-cian">
+    {
+      lineas.map((linea) => (
+        <span class="block">
+          <span class="text-sobre-noche select-none">{indicador} </span>{linea}
+        </span>
+      ))
+    }
+  </code>
+</figure>

@@ -1,0 +1,104 @@
+---
+import "@fontsource-variable/inter";
+import "@fontsource-variable/newsreader";
+import "@fontsource-variable/newsreader/wght-italic.css";
+import "@fontsource-variable/jetbrains-mono";
+import "../styles/global.css";
+
+import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url";
+
+import Cabecera from "../components/Cabecera.astro";
+import Pie from "../components/Pie.astro";
+import { SITIO } from "../lib/proyecto";
+
+interface Props {
+  // Título de la pestaña y de los resultados de búsqueda (≤ 60 caracteres).
+  titulo: string;
+  // Descripción de los resultados de búsqueda (≤ 160 caracteres).
+  descripcion: string;
+  // Nombre de la imagen de /og/<imagen>.png que acompaña a la página al compartirla.
+  imagen: string;
+  // Datos estructurados (schema.org) propios de la página.
+  datos?: Record<string, unknown>[];
+  inicio?: string;
+  indexable?: boolean;
+}
+
+const { titulo, descripcion, imagen, datos = [], inicio, indexable = true } = Astro.props;
+
+if (titulo.length > 60) throw new Error(`Base: el título «${titulo}» pasa de 60 caracteres`);
+if (descripcion.length > 160) throw new Error(`Base: la descripción de «${titulo}» pasa de 160 caracteres`);
+
+const canonica = new URL(Astro.url.pathname, SITIO).href;
+const urlImagen = new URL(`/og/${imagen}.png`, SITIO).href;
+
+const sitioWeb = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "kitlegal",
+  url: `${SITIO}/`,
+  inLanguage: "es-ES",
+};
+
+// Todo lo de la página es del propio sitio: ni scripts, ni estilos en línea, ni
+// fuentes o imágenes de terceros. GitHub Pages no deja fijar cabeceras, así que
+// la política va en un meta.
+const politica = [
+  "default-src 'self'",
+  "script-src 'none'",
+  "style-src 'self'",
+  "img-src 'self' data:",
+  "font-src 'self'",
+  "base-uri 'self'",
+  "form-action 'none'",
+].join("; ");
+---
+
+<!doctype html>
+<html lang="es-ES">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content={politica} />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>{titulo}</title>
+    <meta name="description" content={descripcion} />
+    <link rel="canonical" href={canonica} />
+    {!indexable && <meta name="robots" content="noindex" />}
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0b1325" />
+
+    <link rel="preload" href={newsreaderLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="kitlegal" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={canonica} />
+    <meta property="og:image" content={urlImagen} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={titulo} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json" set:html={JSON.stringify([sitioWeb, ...datos])} />
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <a
+      href="#contenido"
+      class="sr-only z-[60] rounded-sm bg-noche px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
+    >
+      Saltar al contenido
+    </a>
+    <Cabecera inicio={inicio} />
+    <main id="contenido" class="flex-1 pt-20">
+      <slot />
+    </main>
+    <Pie />
+  </body>
+</html>

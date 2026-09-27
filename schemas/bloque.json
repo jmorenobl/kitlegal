@@ -110,7 +110,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/bloque.json/articulo",
+      "$id": "https://kitlegal.es/schemas/bloque.json/articulo",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia.",
       "properties": {
@@ -323,7 +323,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/bloque.json/articulos",
+      "$id": "https://kitlegal.es/schemas/bloque.json/articulos",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve el texto vigente de varios bloques de una norma, en el orden pedido.",
       "properties": {
@@ -433,7 +433,7 @@
       "title": "boe articulos"
     }
   },
-  "$id": "https://ventanillalegal.es/schemas/bloque.json",
+  "$id": "https://kitlegal.es/schemas/bloque.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Salidas de los verbos articulo y articulos del applet boe. Generado desde --describe con make schema-check; no editar.",
   "title": "boe · bloque"

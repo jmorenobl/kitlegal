@@ -272,7 +272,7 @@
           "type": "object"
         }
       },
-      "$id": "https://ventanillalegal.es/schemas/municipio.json/resolver",
+      "$id": "https://kitlegal.es/schemas/municipio.json/resolver",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "description": "Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado.",
       "properties": {
@@ -372,7 +372,7 @@
       "title": "territorio resolver"
     }
   },
-  "$id": "https://ventanillalegal.es/schemas/municipio.json",
+  "$id": "https://kitlegal.es/schemas/municipio.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Salida del verbo resolver del applet territorio. Generado desde --describe con make schema-check; no editar.",
   "title": "territorio · municipio"

@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "fuente": "boe.legislacion-consolidada",
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a66",
+  "fecha_consulta": "2026-09-27T16:25:44.051968+02:00",
+  "hash": "sha256:83e397c7e1bdbdd2094563473dcad19726cf891b9dfeca7f6c130715357a3cef",
+  "data": {
+    "norma": "BOE-A-2003-23186",
+    "bloque": "a66",
+    "titulo": "Artículo 66",
+    "tipo": "precepto",
+    "fecha_version": "20031218",
+    "fecha_vigencia": "20040701",
+    "norma_modificadora": "BOE-A-2003-23186",
+    "texto": "Artículo 66. Plazos de prescripción.\nPrescribirán a los cuatro años los siguientes derechos:\na) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación.\nb) El derecho de la Administración para exigir el pago de las deudas tributarias liquidadas y autoliquidadas.\nc) El derecho a solicitar las devoluciones derivadas de la normativa de cada tributo, las devoluciones de ingresos indebidos y el reembolso del coste de las garantías.\nd) El derecho a obtener las devoluciones derivadas de la normativa de cada tributo, las devoluciones de ingresos indebidos y el reembolso del coste de las garantías.",
+    "hash_texto": "sha256:cdc52c3ad939985581e2b7889639680510bb8febfd55ecc66dbb1c30e50cff2c",
+    "avisos": [],
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a66",
+    "url_eli": "https://www.boe.es/eli/es/l/2003/12/17/58"
+  }
+}

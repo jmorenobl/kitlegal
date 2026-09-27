@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ventanillalegal.es/schemas/eval.yaml.json",
+  "$id": "https://kitlegal.es/schemas/eval.yaml.json",
   "title": "evals/<skill>/<nn>-<descripción>.yaml",
   "type": "object",
   "additionalProperties": false,

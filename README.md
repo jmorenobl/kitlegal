@@ -17,6 +17,8 @@ método y las herramientas.
 La regla que lo gobierna todo: **nada sin cita**. Cada afirmación sobre una norma sale del texto que el programa acaba
 de leer, y si no lo puede leer, el agente lo dice en lugar de suplirlo.
 
+Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
+
 ## Qué sabe hacer tu agente con kitlegal
 
 Con las dos skills que hay hoy, `boe-legislacion` y `legal-core`, tu agente responde sobre **cualquier norma

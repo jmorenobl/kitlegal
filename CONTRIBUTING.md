@@ -202,6 +202,9 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
+| La web: tipos, cada cita contra su sobre y construcción en `web/dist` ([La web](#la-web)) | `make web` | no — necesita Node y pnpm; lo ejecuta el flujo `web` |
+| La web en local, con recarga al guardar | `make web-dev` | no — servidor de desarrollo |
+| Sobres de las citas de la web, regenerados con el binario de `make build` | `make web-citas` | no — toca la red y escribe en el árbol |
 | Bucle de desarrollo: `go install` del binario y, con él, `kitlegal skills install -g --host claude` | `make install` | no — instala en la cuenta ([`make install` y los enlaces del anterior](#make-install-y-los-enlaces-del-anterior)) |
 | Cobertura: global ≥ 70 % y `internal/core/**` ≥ 85 % | `make test` genera el perfil; el umbral lo aplica Codecov sobre la propuesta | no como orden |
 | Análisis de seguridad semanal (CodeQL) | — (flujo `.github/workflows/codeql.yml`) | no |
@@ -567,6 +570,22 @@ Procedimiento manual, cuatro pasos:
 
 Si Dependabot llegara a proponer esta subida por sí solo —está por comprobar sobre el repositorio real—,
 su propuesta se revisa igual que cualquier otra y este procedimiento queda como camino manual.
+
+## La web
+
+La web, https://kitlegal.es, vive en `web/` (ADR 0024): Astro, HTML estático y ningún script en la página. Necesita
+Node 22.12 o superior y pnpm (`corepack enable pnpm`); nada más del repositorio los necesita, y por eso no entra en
+`make ci`. El flujo `.github/workflows/web.yml` la construye con `make web` en cada propuesta de cambio que toca
+`web/`, `data/` o `schemas/`, y la publica en GitHub Pages desde `main` y al terminar cada release.
+
+**Ninguna cita se escribe a mano.** Para citar un artículo, se declara en `web/src/data/citas.yaml` —norma, bloque y
+los fragmentos, copiados del texto— y se ejecuta `make web-citas`, que pide al binario el sobre de cada cita y lo
+guarda en `web/src/data/sobres/`. Los sobres se versionan con el cambio. `make web` falla si un fragmento no está
+literal en su sobre o si los fragmentos no siguen el orden del texto, y la página une con « […] » los que no son
+contiguos. Las cifras (municipios, versión) salen de `data/` y de la última release, nunca del texto de la página.
+
+Las dependencias de la web van en `web/package.json` y `web/pnpm-lock.yaml`. pnpm no instala una versión hasta que
+lleva una semana publicada (`web/pnpm-workspace.yaml`), y Dependabot las propone agrupadas con la misma espera.
 
 ## Dónde está escrito lo demás
 

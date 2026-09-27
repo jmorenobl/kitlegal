@@ -1,0 +1,89 @@
+# La web del proyecto, https://kitlegal.es, en GitHub Pages (ADR 0024).
+#
+# El trabajo `construir` comprueba y construye la web con `make web`, la misma
+# orden que en local: tipos, cada cita contra su sobre y cada cifra contra
+# data/. Corre en cada propuesta de cambio que toca la web o lo que la web lee,
+# y en main. En main, y cuando termina bien una release —la cabecera muestra la
+# última versión publicada—, `desplegar` publica lo construido.
+#
+# La release no dispara este flujo con `release: published`: la crea
+# GITHUB_TOKEN, y los eventos de ese token no lanzan otros flujos. Por eso se
+# escucha el final del flujo `release`.
+name: web
+
+on:
+  pull_request:
+    paths:
+      - web/**
+      - data/**
+      - schemas/**
+      - Makefile
+      - .github/workflows/web.yml
+  push:
+    branches: [main]
+    paths:
+      - web/**
+      - data/**
+      - schemas/**
+      - Makefile
+      - .github/workflows/web.yml
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  construir:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    # Solo lee el árbol y la API de releases (R5.5).
+    permissions:
+      contents: read
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7
+      # La versión de pnpm la fija web/package.json (packageManager) y la de
+      # Node, web/.node-version: ninguna se declara aquí.
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+      - name: Instalar Node y restaurar la caché de pnpm
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.node-version
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      # La cabecera y los datos estructurados muestran la última versión
+      # publicada, no la última etiqueta: se pregunta a la API de releases.
+      - name: Leer la última versión publicada
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "KITLEGAL_VERSION=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)" >> "$GITHUB_ENV"
+      - name: Comprobar y construir la web
+        run: make web
+      - name: Subir el sitio
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/dist
+
+  desplegar:
+    if: github.event_name != 'pull_request'
+    needs: construir
+    runs-on: ubuntu-latest
+    # Los únicos permisos que exige publicar en Pages, y solo en este trabajo.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    # Un despliegue no se cancela a medias: el siguiente espera su turno.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Publicar en GitHub Pages
+        id: despliegue
+        uses: actions/deploy-pages@v5

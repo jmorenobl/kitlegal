@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ventanillalegal.es/schemas/jerarquia.yaml.json",
+  "$id": "https://kitlegal.es/schemas/jerarquia.yaml.json",
   "title": "data/jerarquia.yaml",
   "type": "object",
   "additionalProperties": false,
