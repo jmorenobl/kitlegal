@@ -8,6 +8,10 @@
 > «verticales»), no en una «fase 8»; H24 pasa al backlog («profundidad») y el mecanismo de packs va con la
 > distribución, no con H22. El principio —base antes que vertical, verticales sin código y en cualquier
 > momento tras H5— no cambia.
+>
+> Nota (2026-09-27): el ADR 0027 fija la frontera entre base y vertical: la base cubre el procedimiento
+> común (LPAC) y el acceso a la información (LTAIBG) en cualquier materia; lo que la ley regula aparte (DA
+> 1ª.2 LPAC, art. 112.4) lo declara no cubierto y llega con su vertical, con sus recursos, plazos y escritos.
 
 ## Contexto y problema
 

@@ -4,6 +4,11 @@
 - **Fecha**: 2026-09-13
 - **Hito**: transversal (renumera desde H6; el detalle numerado termina en la fase 3)
 
+> Nota (2026-09-27): el ADR 0027 cambia el encuadre de las fases 2 y 3 sin tocar su orden. La 2 pasa a ser
+> «actuar: llevar un asunto ante cualquier administración», genérica en la materia salvo lo que la ley regula
+> aparte, que se declara no cubierto; la 3, «consultar lo que hacen las administraciones, empezando por el
+> municipio». Entra H20 (la redacción a una fecha) entre H7 y H8 con el siguiente número libre.
+
 ## Contexto y problema
 
 El roadmap tenía 31 hitos en ocho fases, todos numerados y detallados. Su primera mitad ya cumplía el

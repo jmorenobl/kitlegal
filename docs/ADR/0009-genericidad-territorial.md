@@ -4,6 +4,10 @@
 - **Fecha**: 2026-09-11
 - **Hito**: transversal (entra en H7)
 
+> Nota (2026-09-27): el ADR 0027 cambia de quién es el municipio que guarda `.kitlegal/config.yaml`: ya no
+> es el de la persona que usa el kit, sino los del asunto —el del interesado y el de la sede del órgano, los
+> que mira el art. 30.6 LPAC—, porque un despacho lleva asuntos de muchos municipios. Lo demás no cambia.
+
 ## Contexto y problema
 
 Los documentos de diseño estaban escritos desde Leganés, y no solo en los ejemplos. El mecanismo de

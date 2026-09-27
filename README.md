@@ -158,14 +158,19 @@ kitlegal se construye por hitos, en el orden en que cada cosa empieza a ser úti
 cuando funciona y está medido. Lo que hay hoy es la base sobre la que se apoya todo lo demás.
 
 **Pronto: citas verificadas, plazos y memoria.** Que tu agente resuelva una cita en lenguaje natural («el artículo de
-la LPAC sobre el silencio administrativo») al texto vigente con su dirección oficial; que calcule plazos
-administrativos con los festivos nacionales, autonómicos y locales de tu municipio; y que `kitlegal` recuerde qué
+la LPAC sobre el silencio administrativo») al texto vigente con su dirección oficial, o al que estaba vigente en la
+fecha que importa —la de los hechos, la del acto—; que revise las citas de un escrito entero, o de la respuesta de
+otro asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado; que calcule plazos
+administrativos con los festivos nacionales, autonómicos y locales del municipio; y que `kitlegal` recuerde qué
 normas ha consultado para avisar si alguna ha cambiado desde entonces.
 
-**Después: actuar ante la Administración.** Seguir tus expedientes (qué pediste, a quién, cuándo, qué plazo corre) y
-preparar escritos fundamentados —una solicitud de acceso a información pública, un recurso de reposición, unas
-alegaciones— que terminan en un fichero listo para firmar. Valen ante cualquier administración, porque el
-procedimiento común es el mismo para un ministerio, una consejería, una diputación o un ayuntamiento.
+**Después: actuar ante la Administración.** Llevar un asunto, propio o de un cliente: seguir los expedientes (qué se
+pidió, a quién, cuándo, qué plazo corre) y preparar escritos fundamentados —una solicitud de acceso a información
+pública, un recurso de alzada o de reposición, unas alegaciones— que terminan en un fichero listo para firmar. Valen
+ante cualquier administración, porque el procedimiento común es el mismo para un ministerio, una consejería, una
+diputación o un ayuntamiento. Cuando un asunto se rige por un procedimiento propio —tributos, Seguridad Social,
+multas de tráfico, extranjería—, kitlegal lo dice en lugar de aplicarle el común: esos llegan con las
+especializaciones.
 
 **Luego: saber qué hacen las administraciones.** Qué contrata cada una y a quién (la Plataforma de Contratación del
 Sector Público recoge al Estado, las comunidades, las diputaciones y los ayuntamientos), qué subvenciona (la Base de
