@@ -4,6 +4,15 @@
 #
 #   scripts/workflow/cierre.sh publicar <hito>   # empuja la rama y abre la propuesta si no existe
 #   scripts/workflow/cierre.sh medir <hito>      # vuelve a medir: CI y evals sobre la cabeza → JSON
+#   scripts/workflow/cierre.sh evals <hito>      # solo recoge los informes de evals de la última medición
+#
+# Tras medir, cada trabajo del flujo `evals` que terminó deja su informe.json en
+# gates/evals/<skill>.json: el job lo imprime entero en su registro entre las marcas
+# «--- inicio de informe.json ---» y «--- fin de informe.json ---» (scripts/evals.sh),
+# y de ahí lo copia este paso, sin modelo. El informe final saca de esos ficheros la
+# tasa de cada eval (ADR 0028). `evals` hace solo esa recogida, sin empujar ni poner
+# etiquetas, sobre las comprobaciones que ya están en gates/cierre.json: sirve para un
+# run que midió con un workflow anterior.
 #
 # En H5 y H6 la ejecución de cierre de las evals era una tarea [plataforma] dentro
 # del bucle, antes de la revisión final: cada corrección de la revisión la dejaba
@@ -21,8 +30,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 . scripts/workflow/comun.sh
 
-sub="${1:?uso: cierre.sh publicar|medir <hito>}"
-hito="${2:?uso: cierre.sh publicar|medir <hito>}"
+sub="${1:?uso: cierre.sh publicar|medir|evals <hito>}"
+hito="${2:?uso: cierre.sh publicar|medir|evals <hito>}"
 d=$(feature_dir)
 rama=$(git branch --show-current)
 espera_max="${KITLEGAL_CIERRE_ESPERA_MAX:-10800}" # 3 h: el job de evals tiene un tope de 120 min por skill
@@ -33,6 +42,37 @@ dossier() {
   echo "cierre detenido ($1). Dossier en $d/gates/dossier.md" >&2
   exit 3
 }
+
+# Copia a gates/evals/<skill>.json el informe.json de cada trabajo de evals de gates/cierre.json.
+# Un trabajo cuyo registro no trae un informe legible no deja fichero: el informe final
+# lo dice. Nunca para el run: las tasas son información para la persona, no un gate.
+recoger_evals() {
+  local e="$d/gates/evals" fila nombre skill link run job destino
+  rm -rf "$e"; mkdir -p "$e"
+  jq -c '.checks[] | select(.workflow == "evals" and (.bucket == "pass" or .bucket == "fail"))' "$d/gates/cierre.json" |
+  while IFS= read -r fila; do
+    nombre=$(jq -r .name <<<"$fila"); link=$(jq -r .link <<<"$fila")
+    skill=$(printf '%s' "$nombre" | sed -nE 's/^evals \(([a-z0-9-]+)\)$/\1/p')
+    run=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/([0-9]+)/job/[0-9]+.*#\1#p')
+    job=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/[0-9]+/job/([0-9]+).*#\1#p')
+    [ -n "$skill" ] && [ -n "$run" ] && [ -n "$job" ] || continue
+    destino="$e/$skill.json"
+    # gh run view --log antepone trabajo, paso y hora a cada línea: se quitan con cut y sed.
+    gh run view "$run" --job "$job" --log 2>/dev/null | cut -f3- | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
+      | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$destino" || true
+    if jq -e '.skill and (.tasas | type == "array")' "$destino" >/dev/null 2>&1; then
+      echo "evals: informe de $skill en $destino" >&2
+    else
+      rm -f "$destino"; echo "evals: el registro de $nombre no trae un informe.json legible" >&2
+    fi
+  done
+}
+
+if [ "$sub" = evals ]; then
+  [ -f "$d/gates/cierre.json" ] || { echo "evals: no hay gates/cierre.json; el cierre no ha medido" >&2; exit 1; }
+  command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 || { echo "evals: gh no tiene sesión" >&2; exit 1; }
+  recoger_evals; exit 0
+fi
 
 [ "$rama" != main ] || dossier "rama equivocada" "La rama actual es main; el cierre nunca empuja main."
 command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 \
@@ -89,6 +129,7 @@ case "$sub" in
       # gh run view --log antepone trabajo, paso y hora a cada línea: se quita con cut.
       { echo "== $link"; gh run view "$run" --log-failed 2>&1 | cut -f3- | tail -150; } >> "$d/gates/cierre.log"
     done
+    recoger_evals
     n=$(( $(cat "$d/gates/cierre-rondas" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$d/gates/cierre-rondas"
     jq -n --arg sha "$sha" --argjson verde "$verde" --argjson rojos "$rojos" --argjson n "$n" '{sha:$sha, verde:$verde, ronda:$n, rojos:[$rojos[].name]}';;
 
