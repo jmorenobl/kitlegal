@@ -1,14 +1,15 @@
 {
-  "id": "T021",
-  "texto": "T021 Costes medidos solos (research D28; plan.md paso 16): internal/app/coste_test.go con `TestCosteDelGrafo`, no paralelo y con su `//nolint:paralleltest` razonado (mide con el reloj de pared, como `TestMedidasDeTiempo`), con el binario de e2e: SC-007 (mediana de 20 `boe articulo` servidos desde la caché con un `world.db` que ya existe, con y sin `--no-graph`: la diferencia no pasa de 150 ms) y SC-008 (`graph check` < 3 s y `graph stats` < 1 s, mediana de 5, sobre un `world.db` de 10 000 nodos y 10 000 aristas construido con `graph.Nuevo(graph.ConDirectorio(t.TempDir()))`), publicando las medianas medidas; en el Makefile, `MEDIDAS_DE_TIEMPO := ^(TestMedidasDeTiempo|TestCosteDelGrafo)$$`, de modo que `test` y `test-integration` lo saltan y `test-tiempos` lo ejecuta solo — SC-007, SC-008; rutas: internal/app/coste_test.go, Makefile",
+  "id": "T022",
+  "texto": "T022 [datos] [US5] El esquema de eval ampliado (contracts/evals-y-skill.md §1; research D26; plan.md paso 17): schemas/eval.yaml.json gana `comando-comprobacion` en el `oneOf` de `comandos`, `prohibidos` (`comando-prohibido`, `minItems: 1`) y `grafo_previo` (`grabaciones` con el patrón de §1 y `comandos` de bloque), estos dos solo con `activa: true` por el `else` del esquema; `avisos` no cambia; y, si el `else` ampliado cambia algún mensaje que internal/evals/formato_test.go compara literalmente, esa expectativa en la misma tarea (*Complexity Tracking* de plan.md); ninguna eval existente deja de validar — FR-086, FR-095; rutas: schemas/eval.yaml.json, internal/evals/formato_test.go",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "16c8fd0ca38e92c38d98a28c5cf79da22965c6ab",
+  "base": "3ad3766d79a8e7993fae01032f109fae7f8e1610",
   "rutas": [
-    "Makefile",
-    "internal/app/coste_test.go",
-    "plan.md"
+    "contracts/evals-y-skill.md",
+    "internal/evals/formato_test.go",
+    "plan.md",
+    "schemas/eval.yaml.json"
   ],
   "cierre": false,
   "converger": false,

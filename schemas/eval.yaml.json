@@ -17,8 +17,25 @@
           { "$ref": "#/$defs/comando-bloque" },
           { "$ref": "#/$defs/comando-consulta-de-norma" },
           { "$ref": "#/$defs/comando-busqueda" },
-          { "$ref": "#/$defs/comando-territorio" }
+          { "$ref": "#/$defs/comando-territorio" },
+          { "$ref": "#/$defs/comando-comprobacion" }
         ]
+      }
+    },
+    "prohibidos": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/comando-prohibido" }
+    },
+    "grafo_previo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grabaciones", "comandos"],
+      "properties": {
+        "grabaciones": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "comandos": {
+          "type": "array", "minItems": 1,
+          "items": { "$ref": "#/$defs/comando-bloque" }
+        }
       }
     },
     "citas": {
@@ -46,7 +63,14 @@
     "required": ["comandos"],
     "anyOf": [{ "required": ["citas"] }, { "required": ["territorio"] }]
   },
-  "else": { "not": { "anyOf": [{ "required": ["comandos"] }, { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["territorio"] }] } },
+  "else": {
+    "not": {
+      "anyOf": [
+        { "required": ["comandos"] }, { "required": ["prohibidos"] }, { "required": ["grafo_previo"] },
+        { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["territorio"] }
+      ]
+    }
+  },
   "$defs": {
     "codigo-de-aviso": { "enum": ["consolidacion-no-finalizada", "derogada", "vigencia-agotada"] },
     "aspecto-de-cobertura": {
@@ -100,6 +124,24 @@
         "applet": { "$ref": "#/$defs/applet" },
         "verbo": { "const": "resolver" },
         "municipio": { "type": "string", "minLength": 1 }
+      }
+    },
+    "comando-comprobacion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "const": "check" }
+      }
+    },
+    "comando-prohibido": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "type": "string", "pattern": "^[a-z]+$" }
       }
     },
     "cita": {
