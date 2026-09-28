@@ -1,12 +1,18 @@
 {
-  "id": "T018",
-  "texto": "T018 [US3] No interferencia y procedencia del sobre, sobre el binario ya registrado (plan.md paso 13): en internal/app/grafo_test.go, `TestLaSalidaDeBoeNoCambiaConElGrafo` (cada respuesta grabada de `boe articulo` de H4 y H5.1, en proceso, con y sin `--no-graph`, con y sin `--json`, con la hora de la reproducción fijada por `httpx.ConHora` y el almacén en `t.TempDir()`: salida estándar byte a byte igual y el mismo código; con `--no-graph` y con `--dry-run`, `world.db` y sus auxiliares con la misma huella o sin existir) y `TestLaEntregaLlevaLaProcedenciaDelSobre` (para `boe articulo`, `boe articulos` y `territorio resolver`, la fuente, la url y la fecha de consulta de cada nodo, arista y texto que la invocación crea o cuya observación guardada actualiza son byte a byte las del sobre que devolvió; lo que no toca conserva la suya; ninguna operación entra sin fuente); sin implementación (excepción declarada arriba); verificación: mutantes temporales retirados antes de `make ci` — FR-021, FR-031, FR-034, FR-042, FR-089, FR-091; SC-002, SC-003, SC-004; rutas: internal/app/grafo_test.go",
+  "id": "T019",
+  "texto": "T019 [datos] [US2] Las tres derivadas del e2e, y **nada más** (research D22; plan.md paso 14): internal/app/testdata/derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json (el bloque `a21` con `fecha_vigencia` `20250101` y el párrafo añadido `[Redacción sintética de prueba: versión posterior derivada de la grabación de H4.]`), internal/app/testdata/derivadas/sin-eli/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json (`url_eli` vacío) e internal/app/testdata/derivadas/eli-sin-segmento/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json (`url_eli` `https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565`), producidas por un programa de un solo uso fuera del repositorio a partir de las grabaciones de H4 del paquete `boe`, que cambia exactamente eso y nada más (misma forma de grabación, mismo nombre que la que sustituyen); verificación: `make ci` en verde; el control de derivación llega en T020 — FR-040, FR-090, FR-095; rutas: internal/app/testdata/derivadas/version-posterior/, internal/app/testdata/derivadas/sin-eli/, internal/app/testdata/derivadas/eli-sin-segmento/",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "e13458d12931d497f10abb9456b67b0c5de96a94",
+  "base": "c687abe2413eaf64c95b19fa71161e6b5028d4d8",
   "rutas": [
-    "internal/app/grafo_test.go",
+    ".es/buscar/act.php",
+    "internal/app/testdata/derivadas/eli-sin-segmento/",
+    "internal/app/testdata/derivadas/eli-sin-segmento/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json",
+    "internal/app/testdata/derivadas/sin-eli/",
+    "internal/app/testdata/derivadas/sin-eli/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json",
+    "internal/app/testdata/derivadas/version-posterior/",
+    "internal/app/testdata/derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json",
     "plan.md"
   ],
   "cierre": false,
