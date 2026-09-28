@@ -32,7 +32,8 @@ const (
 // errores-y-codigos, filas 2 y 3)— y, dentro de invocar, resuelve el artículo con
 // la caché de la invocación. El resultado lleva la dirección del bloque en éxito,
 // en ensayo y en los fallos del bloque, y la de los metadatos en los suyos
-// (FR-002, FR-101); en éxito, la fecha de consulta del artículo (FR-096).
+// (FR-002, FR-101); en éxito, la fecha de consulta del artículo (FR-096) y lo que
+// observa del mundo (resultadoDeLosArticulos).
 func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta ConsultaArticulo) (schema.Resultado, error) {
 	if err := ValidarNorma(consulta.Norma); err != nil {
 		return schema.Resultado{}, err
@@ -50,7 +51,7 @@ func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta Cons
 			return resultadoDelError(err), err
 		}
 
-		return resultadoDeLaConsulta(direccion, resuelto), nil
+		return resultadoDeLosArticulos(direccion, resuelto, resuelto.datos), nil
 	})
 }
 
@@ -62,7 +63,8 @@ func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta Cons
 // de invocar, resuelve los bloques con articulosDeLosBloques. El resultado lleva
 // en éxito y en ensayo la dirección de la norma, en la que se apoyan todos sus
 // bloques, y en fallo la de la petición que falló (FR-002, FR-101); en éxito, la
-// más antigua de las fechas de consulta de sus elementos (FR-096).
+// más antigua de las fechas de consulta de sus elementos (FR-096) y lo que
+// observan del mundo sus bloques distintos (resultadoDeLosArticulos).
 func (f *Fuente) articulos(ctx context.Context, ec schema.Contexto, consulta ConsultaArticulos) (schema.Resultado, error) {
 	if err := ValidarNorma(consulta.Norma); err != nil {
 		return schema.Resultado{}, err
@@ -86,8 +88,30 @@ func (f *Fuente) articulos(ctx context.Context, ec schema.Contexto, consulta Con
 			return resultadoDelError(err), err
 		}
 
-		return resultadoDeLaConsulta(direccion, resueltos), nil
+		return resultadoDeLosArticulos(direccion, resueltos, resueltos.datos...), nil
 	})
+}
+
+// resultadoDeLosArticulos es el Resultado de articulo y de articulos con lo que
+// dio su consulta resuelta: el de resultadoDeLaConsulta, sin cambiar ni un byte de
+// data ni nada de lo que se pidió o se leyó, y lo que observan del mundo sus
+// artículos, que da observadoDeLosArticulos, se hayan pedido a la fuente o salgan
+// de sus entradas (contracts/emision.md §1; FR-040, FR-042).
+//
+// Con las líneas de un ensayo no se ha leído ningún artículo y no se emite nada;
+// un fallo no llega aquí y su resultado tampoco emite. Que --dry-run no entregue
+// lo observado cuando los artículos salen de sus entradas no lo decide la fuente:
+// el kernel vuelve antes de entregar (FR-034; research.md D4).
+func resultadoDeLosArticulos[T any](direccion string, resuelta consultaResuelta[T], articulos ...Articulo,
+) schema.Resultado {
+	resultado := resultadoDeLaConsulta(direccion, resuelta)
+	if len(resuelta.ensayo) > 0 {
+		return resultado
+	}
+
+	resultado.Grafo = observadoDeLosArticulos(articulos...)
+
+	return resultado
 }
 
 // articulosDeLosBloques son los artículos de los bloques de una norma, todos ya

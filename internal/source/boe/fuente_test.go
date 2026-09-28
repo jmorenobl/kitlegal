@@ -674,7 +674,8 @@ func TestCacheDeLosSeisVerbos(t *testing.T) {
 		resultado, err := delArticulo.resuelve(t, schema.Contexto{},
 			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
 
-		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t)))
+		compruebaResuelta(t, resultado, err,
+			resultadoDelArticulo(direccionDelArticulo21, t0, eliDeLaLey39, articuloDelArticulo21(t)))
 		delArticulo.compruebaPeticiones(t, peticionDelBloque(direccionDelArticulo21))
 	})
 

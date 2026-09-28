@@ -1,24 +1,20 @@
 {
-  "id": "T011",
-  "texto": "T011 Entrega por el kernel, detrás de presentar (contracts/resultado-y-entrega.md §3-§6; research D4-D7): internal/cli/entrega.go con `LoteDe(sobre, observado)`, que toma del sobre presentado `Fuente`, `URL` y `FechaConsulta.Format(time.RFC3339Nano)`, y la línea de aviso `kitlegal: lo observado no ha llegado al grafo del mundo: <causa>` con cada salto de línea de la causa como un espacio; internal/cli/sobre.go con `Montador.Grafo core.GraphStore` y `Emitir(ctx, p, enJSON, res, err)`, que presenta exactamente como hoy y solo después, si `Grafo` no es nulo y hay operaciones, entrega con el contexto recibido, escribe la línea por `p.Aviso` si `Apply` falla sin propagar el error de esa escritura y devuelve el código de siempre; internal/cli/globales.go con la ayuda de `--no-graph` exactamente «No entrega al grafo del mundo nada de lo que observa la invocación.» y el comentario de `SinGrafo` sin la mención a H17; internal/app/main.go (el desenlace gana el plazo de `--timeout` y si llevaba `--no-graph`; `Main` crea el contexto con ese plazo y el montador con `graph.Nulo{}` con la bandera o el almacén del registro sin ella; `fallarAlArrancar` sin almacén y con `context.Background()`; `--dry-run` sigue volviendo antes de `Emitir`); internal/app/registro.go con `EntregarAlGrafo(almacen core.GraphStore)`, sin registrar nada todavía; tests: `TestEntregaDelMontador` en internal/cli/entrega_test.go (lote con la procedencia del sobre, también fechada por el reloj del montador; nada sin operaciones, sin almacén o en fallo; una línea de aviso y el mismo código; error de escritura del aviso sin efecto), las llamadas a `Emitir` de internal/cli/sobre_test.go e internal/cli/describe_test.go con contexto, `TestGlobales` con la ayuda literal en internal/cli/globales_test.go, y `TestEntregaDelKernel` en internal/app/main_test.go (`--no-graph` elige `graph.Nulo`; el plazo es el de `--timeout`; `--dry-run` y un fallo no entregan; un registro sin almacén no entrega) — FR-014, FR-021, FR-026, FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-046, FR-047; SC-004; rutas: internal/cli/entrega.go, internal/cli/entrega_test.go, internal/cli/sobre.go, internal/cli/sobre_test.go, internal/cli/describe_test.go, internal/cli/globales.go, internal/cli/globales_test.go, internal/app/main.go, internal/app/main_test.go, internal/app/registro.go",
-  "intento": 1,
+  "id": "T012",
+  "texto": "T012 [US1] Emisión de `boe` (contracts/emision.md §1; research D20): internal/source/boe/grafo.go construye el `Observado` de cada `Articulo` de éxito —en `articulos`, una vez por bloque distinto—: `Norma` con id ELI tomado de la ruta de `url_eli` con `net/url` desde el primer segmento exactamente `eli` hasta el final, sin consulta ni fragmento, y datos `{\"identificador\"}`; `Bloque` `<eli>#<bloque>` con `{\"bloque\"}`; `BloqueVersion` `<eli>#<bloque>@<fecha_vigencia>:<hash_texto>` con `fecha_vigencia`, `fecha_version`, `norma_modificadora` y `hash_texto` tal como los lleva el `Articulo`; las aristas `eli:has_part` y `eli:has_version`; y el texto por su `hash_texto`; `Vigencia` = `vigenciaLarga` (604 800 s); sin ELI (`url_eli` vacío, que no se puede analizar o sin ningún segmento `eli`) el artículo no emite nada ni con un id alternativo; internal/source/boe/articulo.go pone ese `Observado` en el resultado de éxito de `articulo` y `articulos`, sin cambiar ni un byte de `data`, lo que se pide a la fuente o a la caché, ni los fallos y el `--dry-run`, que no emiten; `indice`, `buscar`, `metadatos` y `analisis` no cambian; tests: `TestObservadoDeBoe` en internal/source/boe/grafo_test.go (ids, datos, aristas y texto de `articulo` y de `articulos` con un bloque repetido una vez; sin ELI y ELI sin `eli` → ninguna operación; vigencia 604 800 s; ningún nodo lleva el cuerpo; `indice`, `buscar`, `metadatos` y `analisis` sin operaciones) y, si algún test de éxito de internal/source/boe/articulo_test.go o de internal/source/boe/fuente_test.go compara un `Resultado` entero de `articulo` o de `articulos` (en el segundo, el subtest `articulo-con-los-metadatos-en-cache` de `TestCacheDeLosSeisVerbos`), con el `Observado` esperado — FR-040, FR-041, FR-042, FR-065, FR-071; SC-003; rutas: internal/source/boe/grafo.go, internal/source/boe/grafo_test.go, internal/source/boe/articulo.go, internal/source/boe/articulo_test.go, internal/source/boe/fuente_test.go",
+  "intento": 2,
   "datos": false,
   "aceptacion": false,
-  "base": "3587b0e268d4f9dd79f90893f1874528ec41b8b9",
+  "base": "e9022afb6f71377ba77602a146b9a9f6123c21a1",
   "rutas": [
-    "contracts/resultado-y-entrega.md",
-    "internal/app/main.go",
-    "internal/app/main_test.go",
-    "internal/app/registro.go",
-    "internal/cli/describe_test.go",
-    "internal/cli/entrega.go",
-    "internal/cli/entrega_test.go",
-    "internal/cli/globales.go",
-    "internal/cli/globales_test.go",
-    "internal/cli/sobre.go",
-    "internal/cli/sobre_test.go"
+    "contracts/emision.md",
+    "internal/source/boe/articulo.go",
+    "internal/source/boe/articulo_test.go",
+    "internal/source/boe/fuente_test.go",
+    "internal/source/boe/grafo.go",
+    "internal/source/boe/grafo_test.go",
+    "net/url"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "7eea6a344b069e4854ff7b2d183799b70be48a7195fecdcfc61622110d92a5eb"
 }

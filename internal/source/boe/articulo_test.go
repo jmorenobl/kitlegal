@@ -93,7 +93,7 @@ func TestArticulo(t *testing.T) {
 
 		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
 		consulta := ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21}
-		esperado := resultadoResuelto(direccionDelArticulo21, banco.reloj.ahora(), articuloDelArticulo21(t))
+		esperado := resultadoDelArticulo(direccionDelArticulo21, banco.reloj.ahora(), eliDeLaLey39, articuloDelArticulo21(t))
 
 		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
 
@@ -135,6 +135,8 @@ func TestArticulo(t *testing.T) {
 		direccion string
 		metadatos string
 		datos     func(*testing.T) Articulo
+		// eli es el id de la Norma que sale del url_eli de sus metadatos.
+		eli string
 	}{
 		{
 			// La Ley 30/1992: derogada y con la vigencia agotada, y un artículo
@@ -146,6 +148,7 @@ func TestArticulo(t *testing.T) {
 			direccion: direccionDelArticulo42,
 			metadatos: metadatosDerogada,
 			datos:     articuloDelArticulo42,
+			eli:       eliDeLaLey30,
 		},
 		{
 			nombre:    "tres-avisos",
@@ -154,6 +157,7 @@ func TestArticulo(t *testing.T) {
 			direccion: direccionDelArticulo21,
 			metadatos: metadatosVigente,
 			datos:     articuloConTresAvisos,
+			eli:       eliDeLaLey39,
 		},
 	}
 
@@ -162,7 +166,7 @@ func TestArticulo(t *testing.T) {
 			t.Parallel()
 
 			banco := nuevoBanco(t, caso.pedidor)
-			esperado := resultadoResuelto(caso.direccion, banco.reloj.ahora(), caso.datos(t))
+			esperado := resultadoDelArticulo(caso.direccion, banco.reloj.ahora(), caso.eli, caso.datos(t))
 
 			resultado, err := banco.resuelve(t, schema.Contexto{}, caso.consulta)
 
@@ -185,7 +189,7 @@ func TestArticulo(t *testing.T) {
 		_, err := banco.resuelve(t, schema.Contexto{}, ConsultaMetadatos{Norma: normaVigente})
 		require.NoError(t, err)
 
-		esperado := resultadoResuelto(direccionDelArticulo21, banco.reloj.ahora(), articuloDelArticulo21(t))
+		esperado := resultadoDelArticulo(direccionDelArticulo21, banco.reloj.ahora(), eliDeLaLey39, articuloDelArticulo21(t))
 
 		resultado, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
 
@@ -430,7 +434,7 @@ func TestArticulos(t *testing.T) {
 		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
 		consulta := ConsultaArticulos{Norma: normaVigente, Bloques: tresBloques}
 		datos := articulosComoArticulo(t, tresBloques...)
-		esperado := resultadoResuelto(direccionDeLaNormaVigente, banco.reloj.ahora(), datos)
+		esperado := resultadoDeArticulos(direccionDeLaNormaVigente, banco.reloj.ahora(), datos, datos...)
 		pedidas := []httpx.Peticion{
 			peticionDelBloque(direccionDelArticulo21),
 			peticionDeLosMetadatos(metadatosVigente),
@@ -452,7 +456,8 @@ func TestArticulos(t *testing.T) {
 			resultado, err := banco.resuelve(t, schema.Contexto{Offline: true},
 				ConsultaArticulo{Norma: normaVigente, Bloque: tresBloques[indice]})
 
-			compruebaResuelta(t, resultado, err, resultadoResuelto(direccion, banco.reloj.ahora(), datos[indice]))
+			compruebaResuelta(t, resultado, err,
+				resultadoDelArticulo(direccion, banco.reloj.ahora(), eliDeLaLey39, datos[indice]))
 		}
 
 		banco.reloj.adelanta(vigenciaDeLosArticulos - time.Nanosecond)
@@ -472,7 +477,8 @@ func TestArticulos(t *testing.T) {
 
 		banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
 		bloques := []string{bloqueDelArticulo21, bloqueDelArticulo21, bloqueDelArticulo21}
-		esperado := resultadoResuelto(direccionDeLaNormaVigente, banco.reloj.ahora(), articulosComoArticulo(t, bloques...))
+		datos := articulosComoArticulo(t, bloques...)
+		esperado := resultadoDeArticulos(direccionDeLaNormaVigente, banco.reloj.ahora(), datos, datos[0])
 
 		resultado, err := banco.resuelve(t, schema.Contexto{}, ConsultaArticulos{Norma: normaVigente, Bloques: bloques})
 
@@ -512,7 +518,8 @@ func TestArticulos(t *testing.T) {
 		resultado, err = banco.resuelve(t, schema.Contexto{Offline: true},
 			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
 
-		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t)))
+		compruebaResuelta(t, resultado, err,
+			resultadoDelArticulo(direccionDelArticulo21, t0, eliDeLaLey39, articuloDelArticulo21(t)))
 
 		resultado, err = banco.resuelve(t, schema.Contexto{Offline: true},
 			ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo23})
@@ -555,7 +562,7 @@ func TestArticulos(t *testing.T) {
 
 		// La del bloque guardado es la más antigua, aunque no sea ni la del
 		// primero ni la del último.
-		compruebaResuelta(t, resultado, err, resultadoResuelto(direccionDeLaNormaVigente, t0, datos))
+		compruebaResuelta(t, resultado, err, resultadoDeArticulos(direccionDeLaNormaVigente, t0, datos, datos...))
 		banco.compruebaPeticiones(t,
 			peticionDelBloque(direccionDelArticulo22),
 			peticionDeLosMetadatos(metadatosVigente),
@@ -580,7 +587,8 @@ func TestArticulos(t *testing.T) {
 			resultado, err := banco.resuelve(t, schema.Contexto{Offline: true},
 				ConsultaArticulo{Norma: normaVigente, Bloque: tresBloques[indice]})
 
-			compruebaResuelta(t, resultado, err, resultadoResuelto(guardado.direccion, guardado.fechaConsulta, datos[indice]))
+			compruebaResuelta(t, resultado, err,
+				resultadoDelArticulo(guardado.direccion, guardado.fechaConsulta, eliDeLaLey39, datos[indice]))
 		}
 	})
 
@@ -731,7 +739,7 @@ func TestFechaDeConsultaDeArticulo(t *testing.T) {
 
 		banco.reloj.adelanta(vigenciaDeLosMetadatos / 2)
 		t1 := banco.reloj.ahora()
-		esperado := resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t))
+		esperado := resultadoDelArticulo(direccionDelArticulo21, t0, eliDeLaLey39, articuloDelArticulo21(t))
 
 		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
 
@@ -757,7 +765,7 @@ func TestFechaDeConsultaDeArticulo(t *testing.T) {
 
 		banco := nuevoBanco(t, reproduceYAdelanta(carpetaDeLasGrabaciones, time.Second))
 		t0 := banco.reloj.ahora()
-		esperado := resultadoResuelto(direccionDelArticulo21, t0, articuloDelArticulo21(t))
+		esperado := resultadoDelArticulo(direccionDelArticulo21, t0, eliDeLaLey39, articuloDelArticulo21(t))
 
 		resultado, err := banco.resuelve(t, schema.Contexto{}, consulta)
 
@@ -1154,6 +1162,29 @@ func articulosComoArticulo(t *testing.T, bloques ...string) []Articulo {
 	}
 
 	return articulos
+}
+
+// resultadoDelArticulo es el Resultado de articulo resuelto: el de
+// resultadoResuelto con lo que observa su artículo, de la norma con ese ELI
+// (contracts/emision.md §1).
+func resultadoDelArticulo(direccion string, fechaConsulta time.Time, eli string, articulo Articulo) schema.Resultado {
+	resultado := resultadoResuelto(direccion, fechaConsulta, articulo)
+	resultado.Grafo = observadoDeLosBloques(eli, articulo)
+
+	return resultado
+}
+
+// resultadoDeArticulos es el Resultado de articulos de la Ley 39/2015, la norma
+// de sus pruebas, resuelto: el de resultadoResuelto con los artículos en el orden
+// pedido y con sus repeticiones, y lo que observan los distintos, una vez cada
+// uno y en el orden de su primera aparición (contracts/emision.md §1).
+func resultadoDeArticulos(direccion string, fechaConsulta time.Time, articulos []Articulo,
+	distintos ...Articulo,
+) schema.Resultado {
+	resultado := resultadoResuelto(direccion, fechaConsulta, articulos)
+	resultado.Grafo = observadoDeLosBloques(eliDeLaLey39, distintos...)
+
+	return resultado
 }
 
 // ejecucionesDeLosArgumentos son los tres modos en los que una consulta mal
