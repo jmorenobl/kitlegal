@@ -1,16 +1,14 @@
 {
-  "id": "T024",
-  "texto": "T024 [US5] Preparación del grafo previo de la sesión (contracts/evals-y-skill.md §3; research D26): internal/evals/preparar.go, si la eval de la sesión lleva `grafo_previo` y **antes** de llenar la caché de la sesión, copia en un temporal de reproducción las grabaciones de `UnionDeGrabaciones()` y encima el directorio del grafo previo nombrado, monta un registro con `boe` sobre esa reproducción, una caché temporal que se descarta y `EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(<caché de la sesión>)))`, y ejecuta cada comando como `kitlegal boe articulo <norma> <bloque> --json` con `app.Main`, donde un código distinto de 0 o cualquier salida de error es una `Falta`; después prepara la caché como hoy con un registro sin entrega al grafo; solo el grafo previo de la eval de la sesión; internal/evals/grabaciones.go con el directorio de los grafos previos junto al de las grabaciones de las evals; tests: `TestPrepararGrafoPrevio` en internal/evals/preparar_test.go sobre temporales con una derivada sintética escrita por el test (el grafo tiene solo la versión anterior, la caché sirve la grabada, una salida de error es una falta) y el directorio en internal/evals/grabaciones_test.go — FR-085; rutas: internal/evals/preparar.go, internal/evals/preparar_test.go, internal/evals/grabaciones.go, internal/evals/grabaciones_test.go",
+  "id": "T025",
+  "texto": "T025 [datos] [US5] La derivada del grafo previo de la eval, y **nada más** (research D22; plan.md paso 19): testdata/evals/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json, el bloque `a21` de la grabación de H4 con `fecha_vigencia` `20151002` y el párrafo añadido `[Redacción sintética de prueba: versión anterior derivada de la grabación de H4.]`, producida por un programa de un solo uso fuera del repositorio que cambia exactamente eso y nada más; verificación: `make ci` en verde; el control de derivación y la subprueba que la prepara llegan en T026 — FR-085, FR-095; rutas: testdata/evals/grafo-previo/lpac-a21-version-anterior/",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "df2104bb5f510fb64fab42a5a4eff5e773f980db",
+  "base": "e117dfafa8aba7877b3dc0db89141a2689423dcc",
   "rutas": [
-    "contracts/evals-y-skill.md",
-    "internal/evals/grabaciones.go",
-    "internal/evals/grabaciones_test.go",
-    "internal/evals/preparar.go",
-    "internal/evals/preparar_test.go"
+    "plan.md",
+    "testdata/evals/grafo-previo/lpac-a21-version-anterior/",
+    "testdata/evals/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json"
   ],
   "cierre": false,
   "converger": false,
