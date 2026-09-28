@@ -15,12 +15,22 @@ huella() {
 
 # Añade una línea con fecha a <feature_dir>/gates/supuestos.md, el registro de
 # decisiones conservadoras y pendientes que el informe final enseña a la persona.
+# Cada línea empieza por su impacto entre corchetes (ADR 0028); las que escribe un
+# paso shell hablan del propio run —un gate agotado, una tarea en cuarentena, un
+# cambio apartado— y llevan `[proceso]`.
 anotar_supuesto() {
   local d s
   d=$(feature_dir); s="$d/gates/supuestos.md"
   mkdir -p "$d/gates"
-  [ -f "$s" ] || printf '# Supuestos y pendientes del run\n\nCada línea la escribe un paso del workflow; el informe final las reúne.\n\n' > "$s"
-  printf -- '- %s · %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$s"
+  [ -f "$s" ] || printf '# Supuestos y pendientes del run\n\nCada línea la escribe un paso del workflow y empieza por su impacto: [comportamiento], [alcance], [skill], [interno] o [proceso]. El informe final las ordena por él.\n\n' > "$s"
+  printf -- '- [proceso] %s · %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$s"
+}
+
+# Directorio, dentro del git-dir del árbol de trabajo (uno por worktree), donde
+# gate.sh guarda la instantánea de los artefactos que juzgó cada ronda. No se
+# versiona: lo que se versiona es el diff de cada corrección (gates/*-correccion-r<n>.diff).
+dir_instantaneas() {
+  printf '%s/kitlegal-gates\n' "$(git rev-parse --git-dir)"
 }
 
 # Ficheros cambiados respecto a una base: modificados, añadidos y sin seguimiento.
