@@ -3,7 +3,6 @@ package graph
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -27,7 +26,6 @@ func TestErrores(t *testing.T) {
 	ruta := filepath.Join(directorio, "world.db")
 	citada := strconv.Quote(ruta)
 	causa := errors.New("causa de prueba")
-	denegado := fmt.Errorf("abrir: %w", fs.ErrPermission)
 	rechazo := &grafo.Rechazo{Operacion: schema.Nodo{ID: "ine:28074", Tipo: "Municipio"}, Motivo: "motivo de prueba"}
 
 	casos := []struct {
@@ -50,20 +48,11 @@ func TestErrores(t *testing.T) {
 		{
 			nombre:    "no es una base de datos utilizable",
 			fallo:     errorInutilizable(operacionLeer, ruta, causa),
-			mensaje:   "grafo: " + citada + " no es una base de datos utilizable; no se modifica",
+			mensaje:   "grafo: " + citada + " no es una base de datos utilizable: causa de prueba",
 			clase:     schema.ClaseInesperado,
 			operacion: operacionLeer,
 			ruta:      ruta,
 			causa:     causa,
-		},
-		{
-			nombre:    "no deja abrirse por el acceso denegado",
-			fallo:     errorInutilizable(operacionEscribir, ruta, denegado),
-			mensaje:   "grafo: " + citada + " no es una base de datos utilizable: acceso denegado; no se modifica",
-			clase:     schema.ClaseInesperado,
-			operacion: operacionEscribir,
-			ruta:      ruta,
-			causa:     fs.ErrPermission,
 		},
 		{
 			nombre:    "es un directorio",
@@ -134,27 +123,9 @@ func TestErrores(t *testing.T) {
 			causa:     rechazo,
 		},
 		{
-			nombre:    "directorio que no se puede crear ni escribir",
+			nombre:    "directorio que no se puede crear",
 			fallo:     errorDeDirectorioNoEscribible(directorio, causa),
 			mensaje:   "grafo: no se puede escribir world.db en " + strconv.Quote(directorio) + ": causa de prueba",
-			clase:     schema.ClaseInesperado,
-			operacion: operacionEscribir,
-			ruta:      directorio,
-			causa:     causa,
-		},
-		{
-			nombre:    "world.db que el proceso no puede abrir para escribir",
-			fallo:     errorDeFicheroNoEscribible(ruta, causa),
-			mensaje:   "grafo: no se puede escribir " + citada + ": causa de prueba; no se modifica",
-			clase:     schema.ClaseInesperado,
-			operacion: operacionEscribir,
-			ruta:      ruta,
-			causa:     causa,
-		},
-		{
-			nombre:    "publicación que falla por otra cosa que un world.db ya publicado",
-			fallo:     errorDePublicacion(directorio, causa),
-			mensaje:   "grafo: no se puede publicar world.db en " + strconv.Quote(directorio) + ": causa de prueba",
 			clase:     schema.ClaseInesperado,
 			operacion: operacionEscribir,
 			ruta:      directorio,
@@ -174,6 +145,15 @@ func TestErrores(t *testing.T) {
 			mensaje:   "grafo: no se pudo leer " + citada + ": causa de prueba",
 			clase:     schema.ClaseInesperado,
 			operacion: operacionLeer,
+			ruta:      ruta,
+			causa:     causa,
+		},
+		{
+			nombre:    "fallo de entrada y salida al escribir",
+			fallo:     errorDeEntradaSalida(operacionEscribir, ruta, causa),
+			mensaje:   "grafo: no se pudo escribir " + citada + ": causa de prueba",
+			clase:     schema.ClaseInesperado,
+			operacion: operacionEscribir,
 			ruta:      ruta,
 			causa:     causa,
 		},

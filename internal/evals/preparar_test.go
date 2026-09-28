@@ -375,8 +375,8 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 		nombre  string
 		fichero string
 
-		// mundoOcupado crea en cache/, antes de preparar, un directorio con el
-		// nombre de world.db: la entrega falla y el kernel lo avisa en la salida de
+		// mundoOcupado crea en cache/, antes de preparar, un world.db que no es
+		// una base SQLite: la entrega falla y el kernel lo avisa en la salida de
 		// error, con el código 0.
 		mundoOcupado bool
 
@@ -427,7 +427,8 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 			require.NoError(t, os.Mkdir(dirCache, 0o750))
 
 			if caso.mundoOcupado {
-				require.NoError(t, os.Mkdir(filepath.Join(dirCache, "world.db"), 0o750))
+				require.NoError(t, os.WriteFile(filepath.Join(dirCache, "world.db"),
+					[]byte("Este fichero no es una base de datos SQLite.\n"), 0o600))
 			}
 
 			faltas, err := PrepararSesion(SesionAPreparar{

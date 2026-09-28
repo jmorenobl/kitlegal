@@ -227,8 +227,9 @@ type casoDeLectura struct {
 	preparar func(t *testing.T, raiz string) string
 	// llena dice que se lee la muestra; sin ella y sin fallo, el grafo vacío.
 	llena bool
-	// fallo es el mensaje esperado para la ruta de world.db; nil si no falla.
-	fallo func(ruta string) string
+	// fallo es el mensaje esperado para la ruta de world.db y la causa del
+	// fallo; nil si no falla.
+	fallo func(ruta string, causa error) string
 }
 
 // TestLeerEstados fija la lectura en cada estado de world.db de data-model §3.1
@@ -241,10 +242,10 @@ type casoDeLectura struct {
 func TestLeerEstados(t *testing.T) {
 	t.Parallel()
 
-	noUtilizable := func(ruta string) string {
-		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable; no se modifica"
+	noUtilizable := func(ruta string, causa error) string {
+		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + causa.Error()
 	}
-	posterior := func(ruta string) string {
+	posterior := func(ruta string, _ error) string {
 		return "grafo: " + strconv.Quote(ruta) +
 			" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
 	}
@@ -275,7 +276,7 @@ func TestLeerEstados(t *testing.T) {
 		{
 			nombre:   "un directorio",
 			preparar: conDirectorioEnSuLugar,
-			fallo: func(ruta string) string {
+			fallo: func(ruta string, _ error) string {
 				return "grafo: " + strconv.Quote(ruta) + " es un directorio y no una base de datos utilizable; no se modifica"
 			},
 		},
@@ -314,11 +315,10 @@ func TestLeerEstados(t *testing.T) {
 }
 
 // TestLeerSinPermisoDeLectura fija world.db que el proceso no puede leer
-// (FR-010; contracts/almacen-world-db.md §6, fila 2): «inesperado» con la
-// variante del acceso denegado, que es lo que quien lo lee puede arreglar, y
-// sin crear, cambiar ni retirar nada. Como el fichero no se deja leer, lo que se
-// compara es la lista del directorio y el tamaño, los permisos y la fecha de
-// cada entrada.
+// (FR-010; contracts/almacen-world-db.md §6): «inesperado» con la causa, el
+// acceso denegado, y sin crear, cambiar ni retirar nada. Como el fichero no se
+// deja leer, lo que se compara es la lista del directorio y el tamaño, los
+// permisos y la fecha de cada entrada.
 func TestLeerSinPermisoDeLectura(t *testing.T) {
 	t.Parallel()
 
@@ -333,9 +333,22 @@ func TestLeerSinPermisoDeLectura(t *testing.T) {
 
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	assert.Nil(t, lectura)
-	compruebaFallo(t, err, schema.ClaseInesperado, ruta,
-		"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable: acceso denegado; no se modifica")
+	require.ErrorIs(t, err, fs.ErrPermission)
+	compruebaFallo(t, err, schema.ClaseInesperado, ruta, mensajeInutilizable(t, ruta, err))
 	assert.Equal(t, antes, entradasDe(t, directorio))
+}
+
+// mensajeInutilizable es el mensaje de la regla genérica con la ruta de
+// world.db y la causa del fallo (contracts/almacen-world-db.md §6; H7.1
+// FR-070).
+func mensajeInutilizable(t *testing.T, ruta string, err error) string {
+	t.Helper()
+
+	var fallo *Error
+
+	require.ErrorAs(t, err, &fallo)
+
+	return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + fallo.Causa.Error()
 }
 
 // permisosDenegados son los de un fichero que nadie salvo root puede leer ni
@@ -374,8 +387,11 @@ func compruebaEstado(t *testing.T, caso casoDeLectura) {
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 
 	if caso.fallo != nil {
+		var fallo *Error
+
 		assert.Nil(t, lectura)
-		compruebaFallo(t, err, schema.ClaseInesperado, ruta, caso.fallo(ruta))
+		require.ErrorAs(t, err, &fallo)
+		compruebaFallo(t, err, schema.ClaseInesperado, ruta, caso.fallo(ruta, fallo.Causa))
 	} else {
 		require.NoError(t, err)
 		compruebaContenido(t, lectura, caso.llena)
@@ -595,8 +611,7 @@ func TestLeerReabreInmutable(t *testing.T) {
 
 		lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 		assert.Nil(t, lectura)
-		compruebaFallo(t, err, schema.ClaseInesperado, ruta,
-			"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
+		compruebaFallo(t, err, schema.ClaseInesperado, ruta, mensajeInutilizable(t, ruta, err))
 		assert.Equal(t, antes, huellasDelArbol(t, directorio))
 	})
 }
@@ -942,8 +957,8 @@ func TestLecturaDeFilasDanadas(t *testing.T) {
 
 			t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
 
-			compruebaFallo(t, caso.verbo(t.Context(), lectura), schema.ClaseInesperado, ruta,
-				"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
+			err = caso.verbo(t.Context(), lectura)
+			compruebaFallo(t, err, schema.ClaseInesperado, ruta, mensajeInutilizable(t, ruta, err))
 		})
 	}
 }

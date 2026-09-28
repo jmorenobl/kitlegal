@@ -2,7 +2,6 @@ package graph
 
 import (
 	"context"
-	"os"
 	"slices"
 
 	"github.com/jmorenobl/kitlegal/internal/core"
@@ -21,11 +20,6 @@ import (
 type Almacen struct {
 	// opciones son las de Nuevo, que se resuelven en cada entrega.
 	opciones []Opcion
-	// enlazar publica el temporal con el nombre de world.db. Es os.Link salvo
-	// en las pruebas, que lo sustituyen para provocar las dos salidas que no
-	// son el éxito: un world.db que otra invocación publicó antes y cualquier
-	// otro fallo (publicar.go; plan.md, Complexity Tracking).
-	enlazar func(origen, destino string) error
 }
 
 // Almacen es un core.GraphStore.
@@ -35,7 +29,7 @@ var _ core.GraphStore = (*Almacen)(nil)
 // copia. No resuelve la ruta ni abre nada: una opción que no da ningún
 // directorio falla al entregar, no aquí (FR-001, FR-011, FR-026).
 func Nuevo(opciones ...Opcion) *Almacen {
-	return &Almacen{opciones: slices.Clone(opciones), enlazar: os.Link}
+	return &Almacen{opciones: slices.Clone(opciones)}
 }
 
 // Apply guarda el lote entero o nada, y aplicarlo otra vez no cambia nada
@@ -43,14 +37,11 @@ func Nuevo(opciones ...Opcion) *Almacen {
 //
 //  1. valida y consolida el lote sin tocar el disco (FR-024, FR-025) y mira el
 //     contexto: con el plazo agotado no toca nada;
-//  2. resuelve la ruta de world.db en este instante (FR-001, FR-011) y mira qué
-//     hay: un directorio es inutilizable, sin tocar nada;
-//  3. si no hay nada, construye world.db en un temporal y lo publica de una vez
-//     (publicar.go);
-//  4. si hay un fichero, lo aplica en su sitio (aplicar.go).
+//  2. resuelve la ruta de world.db en este instante (FR-001, FR-011);
+//  3. crea en su sitio lo que falte y aplica el lote en world.db (aplicar.go).
 //
 // Un fallo es un *Error con su clase, y lo que deja en el disco es lo que
-// declara contracts/almacen-world-db.md §4.1 (FR-033).
+// declara contracts/almacen-world-db.md §4 (FR-033; H7.1 FR-071).
 func (a *Almacen) Apply(ctx context.Context, lote core.Lote) error {
 	consolidado, err := consolidar(lote)
 	if err != nil {
@@ -66,18 +57,7 @@ func (a *Almacen) Apply(ctx context.Context, lote core.Lote) error {
 		return err
 	}
 
-	info, err := os.Stat(ruta)
-
-	switch {
-	case ausente(err):
-		return a.publicar(ctx, ruta, lote, consolidado)
-	case err != nil:
-		return errorDeEntradaSalida(operacionEscribir, ruta, err)
-	case info.IsDir():
-		return errorEsDirectorio(operacionEscribir, ruta)
-	}
-
-	return aplicarEnSuSitio(ctx, ruta, lote, consolidado)
+	return aplicarEnSuSitio(ctx, ruta, consolidado)
 }
 
 // susOpciones son las opciones del almacén; ninguna si es nulo.
@@ -87,14 +67,4 @@ func (a *Almacen) susOpciones() []Opcion {
 	}
 
 	return a.opciones
-}
-
-// enlazador es con qué se publica el temporal: os.Link si el almacén es nulo o
-// no se construyó con Nuevo.
-func (a *Almacen) enlazador() func(origen, destino string) error {
-	if a == nil || a.enlazar == nil {
-		return os.Link
-	}
-
-	return a.enlazar
 }

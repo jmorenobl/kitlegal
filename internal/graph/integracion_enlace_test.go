@@ -10,7 +10,6 @@
 package graph_test
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,12 +19,10 @@ import (
 )
 
 // TestIntegracionEnlace fija world.db que es un enlace simbólico por la API
-// (FR-004, FR-033; research.md V47): a un destino de otro directorio con un -wal
+// (FR-004; research.md V47): a un destino de otro directorio con un -wal
 // huérfano junto a él, los tres verbos leen lo confirmado en el WAL, el destino
 // y su -wal quedan con los mismos bytes —su -shm existe al terminar: la
-// desviación declarada de §3— y junto al enlace no aparece nada; sin destino,
-// los verbos leen el grafo vacío y la entrega falla con «no se puede escribir»
-// sin crear el destino, ningún world.db-nuevo-* ni nada en el directorio.
+// desviación declarada de §3— y junto al enlace no aparece nada.
 func TestIntegracionEnlace(t *testing.T) {
 	t.Parallel()
 
@@ -44,24 +41,6 @@ func TestIntegracionEnlace(t *testing.T) {
 		assert.Equal(t, antes, huellasDe(t, destino, destino+sufijoWAL), "el destino y su -wal no cambian")
 		assert.FileExists(t, destino+sufijoMemoriaCompartida, "el -shm del destino: la desviación declarada")
 		assert.Equal(t, junto, estadoDelArbol(t, directorio), "junto al enlace no aparece ningún auxiliar")
-	})
-
-	t.Run("sin destino", func(t *testing.T) {
-		t.Parallel()
-
-		raiz := t.TempDir()
-		destino := filepath.Join(raiz, "no-existe.db")
-		directorio := enlazadoA(t, raiz, destino)
-		ruta := rutaEn(directorio)
-		antes := estadoDelArbol(t, raiz)
-
-		assert.Equal(t, grafoVacio(), leerElGrafo(t, directorio))
-
-		err := almacenEn(directorio).Apply(t.Context(), elBloque())
-		compruebaNoSePuedeEscribir(t, err, ruta, fs.ErrNotExist)
-
-		assert.Equal(t, antes, estadoDelArbol(t, raiz), "no se crea nada")
-		assert.NoFileExists(t, destino)
 	})
 }
 

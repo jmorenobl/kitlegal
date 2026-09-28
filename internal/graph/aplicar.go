@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core"
@@ -13,14 +15,16 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-// modoWAL es lo que contesta PRAGMA journal_mode sobre una base en WAL.
-const modoWAL = "wal"
+const (
+	// modoWAL es lo que contesta PRAGMA journal_mode sobre una base en WAL.
+	modoWAL = "wal"
 
-// errFilaDanada marca lo guardado que ninguna entrega escribe —una fecha que no
-// es RFC 3339, una vigencia negativa o que no cabe en una duración—: al
-// fusionar con ello, world.db no es una base utilizable (FR-010), no un fallo de
-// entrada y salida.
-var errFilaDanada = errors.New("world.db guarda una fila que ninguna entrega escribe")
+	// permisosDeDirectorio y permisosDeFichero son los de cada directorio que
+	// crea la entrega y los de world.db: el grafo es de la cuenta, como la
+	// caché (H7 research.md D8; H7.1 research.md D18).
+	permisosDeDirectorio fs.FileMode = 0o700
+	permisosDeFichero    fs.FileMode = 0o600
+)
 
 // cadenaDeEscritura es la cadena de conexión de toda entrega, carácter a
 // carácter la de contracts/almacen-world-db.md §4 (research.md D11, V10): el
@@ -54,12 +58,16 @@ func consolidar(lote core.Lote) (grafo.Consolidado, error) {
 	return consolidado, nil
 }
 
-// aplicarEnSuSitio hace los pasos 4 a 7 de la entrega sobre un world.db que
-// existe (contracts/almacen-world-db.md §4): lo abre y lo prepara, aplica el
+// aplicarEnSuSitio hace los pasos 2 a 9 de la entrega (contracts/almacen-world-db.md
+// §4): crea en su sitio lo que falte, abre world.db y lo prepara, aplica el
 // lote en una transacción y lo cierra. Un fallo al cerrar se une al de la
 // entrega, o es él el fallo.
-func aplicarEnSuSitio(ctx context.Context, ruta string, lote core.Lote, consolidado grafo.Consolidado) error {
-	base, err := abrirParaEscribir(ctx, ruta, lote)
+func aplicarEnSuSitio(ctx context.Context, ruta string, consolidado grafo.Consolidado) error {
+	if err := crearEnSuSitio(ruta); err != nil {
+		return err
+	}
+
+	base, err := abrirParaEscribir(ctx, ruta)
 	if err != nil {
 		return err
 	}
@@ -67,36 +75,42 @@ func aplicarEnSuSitio(ctx context.Context, ruta string, lote core.Lote, consolid
 	return errors.Join(escribirLote(ctx, base, ruta, consolidado), cerrarTrasElFallo(base, operacionEscribir, ruta))
 }
 
-// abrirParaEscribir es el paso 4 (contracts/almacen-world-db.md §4; research.md
-// D11, V46, V49). Antes de abrir SQLite comprueba que el proceso puede escribir
-// world.db —si no, falla sin que nada cambie, se cree o se recupere— y, si
-// world.db tiene 0 bytes, que el lote entra en un grafo vacío: un fichero de 0
-// bytes no tiene esquema, y un lote que el grafo vacío rechaza no llega a abrir
-// SQLite, que borraría un -wal junto a él. Después lo abre con la cadena de
-// escritura y lo prepara (prepararLaBase). Devuelve la conexión abierta; si
-// falla, la cierra.
-func abrirParaEscribir(ctx context.Context, ruta string, lote core.Lote) (*sql.DB, error) {
-	if err := comprobarEscritura(ruta); err != nil {
-		return nil, errorDeFicheroNoEscribible(ruta, err)
+// crearEnSuSitio hace los pasos 2 y 3 de la entrega (contracts/almacen-world-db.md
+// §4; H7.1 research.md D18): crea el directorio de world.db con los que le
+// falten, en 0700, y world.db en su sitio, en 0600, si no está, sin temporal ni
+// enlace (H7.1 FR-071); lo cierra sin leerlo ni escribirlo, así que uno que ya
+// estaba no cambia. Una entrega que falla después deja como mucho el
+// directorio y world.db sin esquema, que la siguiente completa (H7 FR-004,
+// FR-013).
+func crearEnSuSitio(ruta string) error {
+	directorio := filepath.Dir(ruta)
+
+	if err := os.MkdirAll(directorio, permisosDeDirectorio); err != nil {
+		return errorDeDirectorioNoEscribible(directorio, err)
 	}
 
-	info, err := os.Stat(ruta)
+	fichero, err := os.OpenFile(filepath.Clean(ruta), os.O_RDWR|os.O_CREATE, permisosDeFichero)
 	if err != nil {
-		return nil, errorDeFicheroNoEscribible(ruta, err)
+		return errorDeEntradaSalida(operacionEscribir, ruta, err)
 	}
 
-	if info.Size() == 0 {
-		if err := grafo.ValidarContraGrafoVacio(lote); err != nil {
-			return nil, errorDeLoteRechazado(ruta, err)
-		}
+	if err := fichero.Close(); err != nil {
+		return errorDeEntradaSalida(operacionEscribir, ruta, err)
 	}
 
+	return nil
+}
+
+// abrirParaEscribir es el paso 4 (contracts/almacen-world-db.md §4; research.md
+// D11): abre world.db con la cadena de escritura y lo prepara (prepararLaBase).
+// Devuelve la conexión abierta; si falla, la cierra.
+func abrirParaEscribir(ctx context.Context, ruta string) (*sql.DB, error) {
 	base, err := abrirConexion(operacionEscribir, ruta, cadenaDeEscritura(ruta))
 	if err != nil {
 		return nil, err
 	}
 
-	if err := prepararLaBase(ctx, base, ruta, lote); err != nil {
+	if err := prepararLaBase(ctx, base, ruta); err != nil {
 		return nil, errors.Join(err, cerrarTrasElFallo(base, operacionEscribir, ruta))
 	}
 
@@ -105,15 +119,15 @@ func abrirParaEscribir(ctx context.Context, ruta string, lote core.Lote) (*sql.D
 
 // prepararLaBase lee la versión del esquema, con el reintento por tramos, y
 // decide: la que este binario conoce se aplica tal cual; una posterior no se
-// toca (FR-012); lo que no se deja leer como base, o una versión negativa, es
-// inutilizable (FR-010); y sin esquema —versión 0— el lote tiene que entrar en
-// un grafo vacío, y world.db se pone en WAL antes de la transacción que creará
-// el esquema, porque dentro de ella SQLite no lo fija (research.md V42).
+// toca (FR-012); cualquier otro resultado es un world.db que el binario no
+// puede usar, la regla genérica (H7.1 FR-070); y sin esquema —versión 0—
+// world.db se pone en WAL antes de la transacción que creará el esquema, porque
+// dentro de ella SQLite no lo fija (research.md V42).
 //
-// Si world.db tiene un -wal huérfano o un diario caliente, esta conexión los
-// recupera como cualquier escritor de SQLite, aunque la entrega falle después:
-// la desviación declarada de contracts/almacen-world-db.md §4.1.
-func prepararLaBase(ctx context.Context, base *sql.DB, ruta string, lote core.Lote) error {
+// Si world.db tiene el -wal de una escritura interrumpida, esta conexión lo
+// recupera como cualquier escritor de SQLite, aunque la entrega falle después
+// (H7.1 FR-077).
+func prepararLaBase(ctx context.Context, base *sql.DB, ruta string) error {
 	conocida, err := versionConocida()
 	if err != nil {
 		return errorDeMigracionesIlegibles(ruta, err)
@@ -137,16 +151,12 @@ func prepararLaBase(ctx context.Context, base *sql.DB, ruta string, lote core.Lo
 		return nil
 	}
 
-	if err := grafo.ValidarContraGrafoVacio(lote); err != nil {
-		return errorDeLoteRechazado(ruta, err)
-	}
-
 	return fijarWAL(ctx, base, ruta)
 }
 
 // fijarWAL pone la base en WAL si no lo está, fuera de toda transacción y con el
 // reintento por tramos, y comprueba que el pragma contesta wal (contracts/almacen-world-db.md
-// §4, pasos 3.4 y 4; FR-003). Dentro de una transacción SQLite no lo fija: sobre
+// §4, paso 4; FR-003). Dentro de una transacción SQLite no lo fija: sobre
 // una base en modo rollback falla, y sobre un fichero de 0 bytes contesta delete
 // sin ningún error (research.md V42), que es lo que este paso no deja pasar.
 func fijarWAL(ctx context.Context, base consultante, ruta string) error {
@@ -229,9 +239,9 @@ func deshacer(tx *sql.Tx, ruta string) error {
 // el orden de lo que lo explica: lo que ya es un *Error —la migración, un
 // esquema posterior— se devuelve tal cual; un rechazo del dominio es el lote que
 // no entra (FR-024); el contexto terminado es el plazo agotado, y SQLITE_BUSY con
-// el contexto vivo, la espera propia agotada (FR-014); lo guardado que ninguna
-// entrega escribe es la base inutilizable (FR-010); y cualquier otra cosa, un
-// fallo de entrada y salida que nombra world.db.
+// el contexto vivo, la espera propia agotada (FR-014); y cualquier otra cosa
+// —también fusionar con lo guardado que ninguna entrega escribe—, un fallo de
+// entrada y salida que nombra world.db (H7.1 research.md D21).
 func falloAlEscribir(ctx context.Context, ruta string, causa error) error {
 	var (
 		clasificado *Error
@@ -247,10 +257,6 @@ func falloAlEscribir(ctx context.Context, ruta string, causa error) error {
 
 	if deLaEspera := esperaDeLaInvocacion().falloDeLaEspera(ctx, operacionEscribir, ruta, causa); deLaEspera != nil {
 		return deLaEspera
-	}
-
-	if errors.Is(causa, errFilaDanada) {
-		return errorInutilizable(operacionEscribir, ruta, causa)
 	}
 
 	return errorDeEntradaSalida(operacionEscribir, ruta, causa)
@@ -299,8 +305,8 @@ var (
 // solo si cambia: uno que no estaba se escribe tal cual, y uno cuya fusión es lo
 // que ya estaba guardado no se escribe, de modo que una entrega repetida no
 // cambia nada (FR-022, FR-023). Un tipo o un cuerpo distintos los rechaza la
-// fusión con un *grafo.Rechazo; cualquier otro fallo de la fusión es lo guardado
-// que ninguna entrega escribe.
+// fusión con un *grafo.Rechazo; cualquier otro fallo de la fusión se devuelve
+// tal cual y lo clasifica falloAlEscribir.
 func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R) error {
 	for _, llegado := range registros {
 		guardado, estaba, err := t.leer(ctx, tx, llegado)
@@ -313,13 +319,9 @@ func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R
 		if estaba {
 			fusionado, err = t.fusionar(guardado, llegado)
 
-			var rechazo *grafo.Rechazo
-
 			switch {
-			case errors.As(err, &rechazo):
-				return err
 			case err != nil:
-				return fmt.Errorf("%w: %w", errFilaDanada, err)
+				return err
 			case fusionado == guardado:
 				continue
 			}
@@ -377,17 +379,6 @@ func (h *historiaGuardada) destinos() []any {
 	}
 }
 
-// vigencia es la vigencia guardada; una que ninguna entrega escribe es una fila
-// dañada.
-func (h historiaGuardada) vigencia() (time.Duration, error) {
-	vigencia, err := vigenciaGuardada(h.ttl)
-	if err != nil {
-		return 0, fmt.Errorf("%w: %w", errFilaDanada, err)
-	}
-
-	return vigencia, nil
-}
-
 // valoresDeHistoria son los valores de los siete campos de la historia, en su
 // orden: la vigencia en segundos, o NULL si no se declaró (FR-065).
 func valoresDeHistoria(primera, ultima grafo.Procedencia, vigencia time.Duration) []any {
@@ -426,7 +417,7 @@ func leerNodo(ctx context.Context, tx *sql.Tx, llegado grafo.RegistroDeNodo) (gr
 
 	guardado.PrimeraObservacion, guardado.UltimaObservacion = historia.primera, historia.ultima
 
-	if guardado.Vigencia, err = historia.vigencia(); err != nil {
+	if guardado.Vigencia, err = vigenciaGuardada(historia.ttl); err != nil {
 		return grafo.RegistroDeNodo{}, false, err
 	}
 
@@ -475,7 +466,7 @@ func leerArista(ctx context.Context, tx *sql.Tx, llegada grafo.RegistroDeArista)
 
 	guardada.PrimeraObservacion, guardada.UltimaObservacion = historia.primera, historia.ultima
 
-	if guardada.Vigencia, err = historia.vigencia(); err != nil {
+	if guardada.Vigencia, err = vigenciaGuardada(historia.ttl); err != nil {
 		return grafo.RegistroDeArista{}, false, err
 	}
 

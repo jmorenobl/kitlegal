@@ -28,11 +28,6 @@ const (
 
 	// idAusente no es el id de ningún nodo del lote ni del grafo.
 	idAusente = "eli/es/l/2099/01/01/1"
-
-	// sentenciasDeFuera dejan una base sin el esquema del grafo, con una tabla
-	// que el grafo no conoce y que tiene que seguir ahí, con su fila, después de
-	// la entrega (FR-013).
-	sentenciasDeFuera = `CREATE TABLE ajena (x TEXT); INSERT INTO ajena VALUES ('de fuera')`
 )
 
 // loteDelBOE es el lote de una consulta al BOE con la url y la fecha dadas, la
@@ -583,24 +578,57 @@ func TestApplyRechazaElLote(t *testing.T) {
 	})
 }
 
-// TestApplyEnSuSitio fija la entrega sobre un world.db que existe, en cada
-// estado de data-model §3.1 que no necesita otra conexión: sin esquema —de 0
-// bytes o con una tabla que no es del grafo— crea el esquema, lo pone en WAL y
-// aplica el lote en la misma entrega, sin tocar lo que no es suyo (FR-013); un
-// directorio, lo que no es una base, una base dañada, un esquema posterior y un
-// fichero que el proceso no puede escribir fallan con «inesperado» y su mensaje
-// sin cambiar ni crear nada (FR-010, FR-012; research.md V46); y con world.db
-// de 0 bytes, un lote que el grafo vacío rechaza no abre SQLite, así que un -wal
-// junto a él sigue ahí (research.md V49).
+// TestApplyCreaEnSuSitio fija la entrega sobre world.db ausente
+// (contracts/almacen-world-db.md §4, pasos 2 y 3; H7.1 FR-071; H7 FR-001,
+// FR-003, FR-013): crea cada directorio que falta, en 0700, y world.db en su
+// sitio, en 0600, en WAL, con el esquema y el lote; en el directorio no queda
+// nada más, ni un temporal ni un auxiliar.
+func TestApplyCreaEnSuSitio(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	directorio := filepath.Join(raiz, "a", "b")
+	ruta := filepath.Join(directorio, "world.db")
+	lote := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
+
+	require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote))
+
+	for _, cada := range []struct {
+		ruta     string
+		permisos fs.FileMode
+	}{
+		{ruta: filepath.Join(raiz, "a"), permisos: fs.ModeDir | 0o700},
+		{ruta: directorio, permisos: fs.ModeDir | 0o700},
+		{ruta: ruta, permisos: 0o600},
+	} {
+		info, err := os.Stat(cada.ruta)
+		require.NoError(t, err)
+		assert.Equal(t, cada.permisos, info.Mode(), "los permisos de %s", cada.ruta)
+	}
+
+	assert.Equal(t, []string{"world.db"}, nombresEn(t, directorio), "ni un temporal ni un auxiliar")
+	assert.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "world.db nace en WAL")
+	assert.Equal(t, registrosDe(t, lote), grafoGuardado(t, ruta))
+
+	base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+	compruebaEsquema(t, base)
+	assert.Equal(t, int64(1), versionDe(t, base))
+	require.NoError(t, base.Close())
+}
+
+// TestApplyEnSuSitio fija la entrega sobre un world.db sin esquema, el que deja
+// una creación interrumpida (contracts/almacen-world-db.md §4; H7.1 FR-071,
+// FR-077; H7 FR-004, FR-013): de 0 bytes, o ya en WAL y sin ninguna tabla, la
+// entrega siguiente lo pone en WAL si no lo está, crea el esquema y aplica el
+// lote, sin dejar ningún auxiliar.
 func TestApplyEnSuSitio(t *testing.T) {
 	t.Parallel()
 
 	lote := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
 
 	for nombre, preparar := range map[string]func(*testing.T, string) string{
-		"de 0 bytes": conBase(nil, 0o600),
-		"sin esquema, con una tabla de fuera en modo rollback": conSentencias(diarioClasico, 0o600, sentenciasDeFuera),
-		"sin esquema, con una tabla de fuera en WAL":           conSentencias(diarioWAL, 0o600, sentenciasDeFuera),
+		"de 0 bytes":          conBase(nil, 0o600),
+		"en WAL y sin tablas": enWALSinTablas,
 	} {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
@@ -620,64 +648,56 @@ func TestApplyEnSuSitio(t *testing.T) {
 			assert.Equal(t, []string{"world.db"}, nombresEn(t, directorio), "no queda ningún auxiliar")
 		})
 	}
-
-	t.Run("la tabla de fuera sigue con su fila", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := conSentencias(diarioClasico, 0o600, sentenciasDeFuera)(t, t.TempDir())
-		ruta := filepath.Join(directorio, "world.db")
-
-		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote))
-
-		base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
-		assert.Equal(t, []string{"ajena", "edges", "nodes", "schema_version", "texts"}, tablasDe(t, base))
-		assert.Equal(t, [][3]string{{"de fuera", "", ""}}, filasDe(t, base, `SELECT x, '', '' FROM ajena`))
-		require.NoError(t, base.Close())
-	})
 }
 
-// TestApplyNoModifica fija los estados en que la entrega falla sin cambiar ni
-// crear nada (FR-010, FR-012, FR-033; contracts/almacen-world-db.md §4, pasos 2
-// y 4, §4.1 y §6).
+// enWALSinTablas prepara world.db como lo deja una creación que se interrumpe
+// después de ponerlo en WAL (contracts/almacen-world-db.md §4, pasos 3 y 4): el
+// fichero que crea la entrega, en WAL y sin ninguna tabla.
+func enWALSinTablas(t *testing.T, raiz string) string {
+	t.Helper()
+
+	directorio := conBase(nil, 0o600)(t, raiz)
+	ruta := filepath.Join(directorio, "world.db")
+
+	base, err := abrirConexion(operacionEscribir, ruta, cadenaDeEscritura(ruta))
+	require.NoError(t, err)
+	require.NoError(t, fijarWAL(t.Context(), base, ruta))
+	require.NoError(t, base.Close())
+	require.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "premisa: world.db está en WAL")
+
+	return directorio
+}
+
+// TestApplyNoModifica fija las entregas que fallan sobre un world.db que el
+// binario no puede usar (contracts/almacen-world-db.md §4, paso 4, y §6): lo que
+// no es una base de datos sigue la regla genérica —«inesperado», con su ruta y
+// la causa en el mensaje, y nada se promete sobre sus bytes (H7.1 FR-070)—, y un
+// esquema posterior no se modifica (H7 FR-012): nada cambia ni aparece.
 func TestApplyNoModifica(t *testing.T) {
 	t.Parallel()
-
-	noUtilizable := func(ruta string) string {
-		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable; no se modifica"
-	}
 
 	casos := []struct {
 		nombre   string
 		preparar func(*testing.T, string) string
-		lote     core.Lote
-		mensaje  func(ruta string) string
+		mensaje  func(ruta string, fallo *Error) string
+		// intacto dice que la entrega no cambia ni crea ningún fichero.
+		intacto bool
 	}{
 		{
-			nombre:   "un directorio",
-			preparar: conDirectorioEnSuLugar,
-			mensaje: func(ruta string) string {
-				return "grafo: " + strconv.Quote(ruta) + " es un directorio y no una base de datos utilizable; no se modifica"
+			nombre:   "lo que no es una base de datos",
+			preparar: conBase(contenido, 0o600),
+			mensaje: func(ruta string, fallo *Error) string {
+				return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + fallo.Causa.Error()
 			},
 		},
-		{nombre: "lo que no es una base de datos", preparar: conBase(contenido, 0o600), mensaje: noUtilizable},
-		{nombre: "una base dañada", preparar: conBaseDanada, mensaje: noUtilizable},
 		{
 			nombre:   "un esquema posterior",
 			preparar: conSentencias(diarioWAL, 0o600, versionPosterior),
-			mensaje: func(ruta string) string {
+			mensaje: func(ruta string, _ *Error) string {
 				return "grafo: " + strconv.Quote(ruta) +
 					" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
 			},
-		},
-		{
-			nombre:   "de 0 bytes, con un -wal, y un lote que el grafo vacío rechaza",
-			preparar: ceroBytesConUnWALDeFuera,
-			lote: loteDelBOE(urlDeLaNorma, fechaDelBloque,
-				schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque}),
-			mensaje: func(ruta string) string {
-				return "grafo: el lote no entra en " + strconv.Quote(ruta) + `: la arista de "` + idNorma + `" a "` +
-					idBloque + `" por "eli:has_part": su origen no es un nodo del lote y el grafo est` + "\xc3\xa1 vac\xc3\xado"
-			},
+			intacto: true,
 		},
 	}
 
@@ -690,73 +710,17 @@ func TestApplyNoModifica(t *testing.T) {
 			ruta := filepath.Join(directorio, "world.db")
 			antes := huellasDelArbol(t, raiz)
 
-			lote := caso.lote
-			if lote.Operaciones == nil {
-				lote = loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
-			}
-
-			err := Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote)
-			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta, caso.mensaje(ruta))
-			assert.Equal(t, antes, huellasDelArbol(t, raiz), "nada cambia ni aparece")
-		})
-	}
-}
-
-// TestApplySinPermisoDeEscritura fija world.db que el proceso no puede escribir
-// (contracts/almacen-world-db.md §4, paso 4, y §6; research.md V46): la entrega
-// falla antes de abrir SQLite con «no se puede escribir» y la causa, y no cambia
-// ni aparece nada, ni un auxiliar.
-func TestApplySinPermisoDeEscritura(t *testing.T) {
-	t.Parallel()
-
-	raiz := t.TempDir()
-	directorio := conMuestra(diarioWAL, 0o400)(t, raiz)
-	ruta := filepath.Join(directorio, "world.db")
-
-	_, err := os.OpenFile(filepath.Clean(ruta), os.O_RDWR, 0)
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el proceso no puede escribir world.db (¿corre como root?)")
-
-	antes := huellasDelArbol(t, raiz)
-
-	err = Nuevo(ConDirectorio(directorio)).Apply(t.Context(), loteDelBOE(urlDeLaNorma, fechaSiguiente, laNorma(nil)))
-
-	var fallo *Error
-
-	require.ErrorAs(t, err, &fallo)
-	require.ErrorIs(t, err, fs.ErrPermission)
-	assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-	assert.Equal(t, ruta, fallo.Ruta)
-	assert.Equal(t, "grafo: no se puede escribir "+strconv.Quote(ruta)+": "+fallo.Causa.Error()+"; no se modifica", err.Error())
-	assert.Equal(t, antes, huellasDelArbol(t, raiz))
-}
-
-// TestApplySobreFilasDanadas fija lo guardado que ninguna entrega escribe —una
-// fecha que no es RFC 3339, una vigencia negativa—: al fusionar con ello, la
-// base no es utilizable (FR-010), y la entrega falla sin cambiar nada.
-func TestApplySobreFilasDanadas(t *testing.T) {
-	t.Parallel()
-
-	for nombre, sentencia := range map[string]string{
-		"la fecha de la última observación de un nodo":     `UPDATE nodes SET last_seen = 'ayer' WHERE id = '` + idNorma + `'`,
-		"la fecha de la primera observación de una arista": `UPDATE edges SET first_seen = 'ayer'`,
-		"la fecha de un texto":                             `UPDATE texts SET fetched_at = 'ayer'`,
-		"la vigencia de un nodo":                           `UPDATE nodes SET ttl = -1 WHERE id = '` + idNorma + `'`,
-		"la vigencia de una arista":                        `UPDATE edges SET ttl = -1`,
-	} {
-		t.Run(nombre, func(t *testing.T) {
-			t.Parallel()
-
-			directorio, ruta := grafoConElBloque(t)
-			alterar(t, ruta, sentencia)
-
-			antes := huellasDelArbol(t, directorio)
-
 			err := Nuevo(ConDirectorio(directorio)).Apply(t.Context(),
-				loteDelBOE(urlDelBloque, fechaSiguiente, operacionesDelBloque()...))
-			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta,
-				"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
-			require.ErrorIs(t, err, errFilaDanada)
-			assert.Equal(t, antes, huellasDelArbol(t, directorio))
+				loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...))
+
+			var fallo *Error
+
+			require.ErrorAs(t, err, &fallo)
+			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta, caso.mensaje(ruta, fallo))
+
+			if caso.intacto {
+				assert.Equal(t, antes, huellasDelArbol(t, raiz), "nada cambia ni aparece")
+			}
 		})
 	}
 }
@@ -808,17 +772,6 @@ func TestApplyConElPlazoAgotado(t *testing.T) {
 		suelta()
 		assert.Equal(t, antes, grafoGuardado(t, ruta))
 	})
-}
-
-// ceroBytesConUnWALDeFuera prepara world.db de 0 bytes junto al -wal no vacío y
-// el -shm de un escritor con marcos (research.md V49).
-func ceroBytesConUnWALDeFuera(t *testing.T, raiz string) string {
-	t.Helper()
-
-	directorio := cacheVacia(t, raiz)
-	ceroBytesConUnWAL(t, directorio, true, 0o600)
-
-	return directorio
 }
 
 // nombresEn son los nombres de las entradas del directorio, ordenados.

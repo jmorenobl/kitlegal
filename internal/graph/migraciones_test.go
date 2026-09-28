@@ -249,7 +249,7 @@ func TestMigrar(t *testing.T) {
 
 		require.ErrorAs(t, err, &fallo)
 		assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-		assert.Equal(t, fmt.Sprintf("grafo: %q no es una base de datos utilizable; no se modifica", ruta), fallo.Error())
+		assert.Equal(t, fmt.Sprintf("grafo: %q no es una base de datos utilizable: %s", ruta, fallo.Causa), fallo.Error())
 		assert.Equal(t, []string{"schema_version"}, tablasDe(t, base))
 	})
 

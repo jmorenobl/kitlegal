@@ -980,7 +980,14 @@ func TestCodigosDelGrafo(t *testing.T) {
 			compruebaCodigosDelSistema(t, schema.ClaseInesperado, 1, func(t *testing.T, mensaje string) {
 				t.Helper()
 
-				assert.Equal(t, "grafo: "+strconv.Quote(ruta)+" "+caso.motivo, mensaje)
+				esperado := "grafo: " + strconv.Quote(ruta) + " " + caso.motivo
+				if caso.conCausa {
+					assert.Regexp(t, `\A`+regexp.QuoteMeta(esperado)+`: .+\z`, mensaje)
+
+					return
+				}
+
+				assert.Equal(t, esperado, mensaje)
 			})
 
 			assert.Equal(t, antes, huellasDelDirectorio(t, directorio), "world.db con su huella")
@@ -1010,6 +1017,9 @@ type casoInutilizable struct {
 	nombre   string
 	preparar func(t *testing.T, ruta string)
 	motivo   string
+	// conCausa dice que el mensaje sigue, detrás del motivo, con «: » y la
+	// causa que da SQLite, que no se fija aquí: la regla genérica (H7.1 FR-070).
+	conCausa bool
 }
 
 // casosInutilizables son los tres de SC-011.
@@ -1022,7 +1032,8 @@ func casosInutilizables() []casoInutilizable {
 
 				escribirFicheroDePrueba(t, ruta, []byte("Este fichero no es una base de datos SQLite.\n"))
 			},
-			motivo: "no es una base de datos utilizable; no se modifica",
+			motivo:   "no es una base de datos utilizable",
+			conCausa: true,
 		},
 		{
 			nombre: "es-un-directorio",

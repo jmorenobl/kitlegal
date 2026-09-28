@@ -13,6 +13,10 @@
 //     de la caché, con su misma regla y sus mismos errores de clase
 //     «argumentos» (cache.Directorio). La ruta se resuelve al leer o al
 //     entregar, nunca al construir (FR-001, FR-011).
+//   - La entrega crea world.db en su sitio, en 0600 y con cada directorio que
+//     falta en 0700, sin temporal ni enlace: una creación interrumpida deja
+//     como mucho world.db sin esquema, que la entrega siguiente completa (H7.1
+//     FR-071).
 //   - El esquema está versionado con migraciones que viajan dentro del binario
 //     y se aplican dentro de la transacción que las pide: entran enteras o no
 //     entra nada, y un esquema de una versión posterior no se toca (FR-003,
@@ -34,9 +38,10 @@
 //   - No registra eventos con slog ni escribe en ningún descriptor: lo único
 //     que una entrega fallida deja en la salida de error es la línea que el
 //     kernel escribe con el error de Apply (FR-033).
-//   - No borra world.db ni lo rehace: un fichero que no es una base utilizable,
-//     o de otra versión, es un fallo explícito y queda como estaba (FR-010,
-//     FR-012).
+//   - No borra world.db ni lo rehace: un fichero que el binario no puede usar
+//     es un fallo explícito con su ruta y su causa, sin ninguna promesa sobre
+//     sus bytes (H7.1 FR-070), y uno de otra versión, además, no se toca
+//     (FR-012).
 //   - No firma ningún sobre ni decide ningún código de salida: la procedencia
 //     de cada operación es la del lote que construye el kernel, y la clase del
 //     fallo la traduce el kernel (FR-021, ADR 0023).
