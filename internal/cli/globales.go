@@ -37,7 +37,8 @@ type Globales struct {
 	// Agotarlo es código 4 (FR-020).
 	Timeout time.Duration `help:"Plazo total de la operación." default:"30s"`
 	// Offline declara que la operación no puede acceder a la red. Se acepta y se
-	// propaga; responder solo desde caché es alcance de H3 (FR-021).
+	// propaga; desde H3, quien consulta una fuente responde solo desde la caché
+	// (FR-021).
 	Offline bool `help:"Declara que la operación no puede acceder a la red."`
 	// DryRun pide describir la operación en lugar de realizarla. No corta el
 	// análisis: viaja en el contexto de ejecución (FR-022, research.md D10).
@@ -51,7 +52,8 @@ type Globales struct {
 	// cambia con ella (H7 FR-031).
 	SinGrafo bool `name:"no-graph" help:"No entrega al grafo del mundo nada de lo que observa la invocación."`
 	// Asunto declara sobre qué asunto se trabaja. Se acepta y se propaga; abrir
-	// o crear un asunto es alcance de H18 (FR-024).
+	// o crear un asunto es alcance de H10, la pieza G1 del grafo (FR-024;
+	// docs/ADR/0014).
 	Asunto string `help:"Asunto sobre el que se trabaja."`
 	// Verbose sube el detalle del registro de eventos, que va siempre a la
 	// salida de error. No altera la salida estándar en absoluto, y por eso

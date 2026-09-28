@@ -1,8 +1,8 @@
 # Quickstart: validar H7 · grafo del mundo
 
 Guía de validación de la entrega, escenario a escenario. Cada escenario remite a su contrato y a sus FR/SC; no repite
-el detalle. Se ejecuta **después** de implementar el hito: antes, el applet `graph` no existe y los escenarios 2 a 10
-fallan en su primera orden.
+el detalle. Se ejecuta **después** de implementar el hito: antes, el applet `graph` no existe, `boe` y `territorio` no
+dejan `world.db` y los escenarios 2 a 10 no dan lo esperado.
 
 ## Antes de empezar
 
@@ -12,10 +12,11 @@ fallan en su primera orden.
 - **Sin red de ninguna fuente**: `boe` responde con el binario de e2e, que sirve las grabaciones de H4 desde
   `reproduccion/` y nunca abre una conexión; `territorio` y `graph` no usan la red. La única red es la de `make ci`
   (`make vuln` consulta su base de datos), como en todos los hitos.
-- Efectos en el árbol: `bin/` (escenario 0) y los perfiles de cobertura de `make ci`, **ignorados por git**. Nada toca
-  `~/.cache/kitlegal`: toda invocación del binario lleva `KITLEGAL_CACHE_DIR` bajo `$T`, y los objetivos de `make` se
-  ejecutan **sin** esa variable (`env -u KITLEGAL_CACHE_DIR make …`), para que los tests vean el entorno de siempre. El
-  último escenario borra `$T` y compara `git status --porcelain` con el del principio.
+- Efectos en el árbol: `bin/` (el `make build` de esta preparación) y los perfiles de cobertura de `make ci`,
+  **ignorados por git**. Nada toca `~/.cache/kitlegal`: toda invocación del binario lleva `KITLEGAL_CACHE_DIR` bajo
+  `$T`, y los objetivos de `make` se ejecutan **sin** esa variable (`env -u KITLEGAL_CACHE_DIR make …`), para que los
+  tests vean el entorno de siempre. El último escenario borra `$T` y compara `git status --porcelain` con el del
+  principio.
 
 ```sh
 REPO=$(git rev-parse --show-toplevel)
@@ -122,9 +123,11 @@ cksum cache/world.db > antes.txt
 "$K" territorio resolver Leganés --no-graph > /dev/null
 cmp con.json sin.json && cksum cache/world.db | cmp - antes.txt && echo "intacto"
 "$K0" graph stats --json > s1.json; "$K0" graph stats --no-graph --json > s2.json; cmp s1.json s2.json && echo iguales
+ls cache
 ```
 
-Esperado: `intacto` e `iguales`; ni `world.db-wal` ni `world.db-shm` en `cache/`.
+Esperado: `intacto` e `iguales`; ni `world.db-wal` ni `world.db-shm` en `cache/` (sí pueden estar `cache.db-wal` y
+`cache.db-shm`, que deja `boe articulo --dry-run` como en `main`: es la caché de H3 y H4, no el grafo).
 
 ## 7. Una entrega fallida no cambia el código ni la salida (US3.5, US3.6, SC-011; contracts/resultado-y-entrega.md §4)
 
@@ -194,8 +197,9 @@ ls "$T/ocho"
 ```
 
 Esperado: `0` bytes de salida de error y ocho `Municipio` y ocho `Organo` con `kitlegal.territorio`; en `$T/ocho`,
-que no existía, solo `world.db`: una invocación lo publicó, las otras siete aplicaron sobre él y ningún temporal
-quedó (research D11).
+que no existía, `world.db` y ningún temporal `world.db-nuevo-*`: una invocación lo publicó y las otras siete aplicaron
+sobre él (research D11). Si las últimas conexiones cierran a la vez, SQLite puede dejar además `world.db-wal` y
+`world.db-shm`, que ningún requisito prohíbe y que `grafo-concurrencia` no afirma (supuesto de T001).
 
 ## 10. El binario distribuido y la skill (FR-050, FR-083, FR-085)
 

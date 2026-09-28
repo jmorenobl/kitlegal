@@ -29,9 +29,11 @@ var _ schema.ConClase = (*Rechazo)(nil)
 // Error nombra lo rechazado y el motivo, como «el nodo "ine:28074": <motivo>».
 // Un nodo se nombra por su id, una arista por sus extremos y su relación y un
 // texto por su huella, con %q, que hace visibles los espacios, los controles y
-// los bytes que no son UTF-8. Nunca repite el cuerpo de un texto ni el id de
-// una Persona: es donde el rechazo de FR-025 encuentra un documento de
-// identidad, y el mensaje llega a la salida de error (constitución VII).
+// los bytes que no son UTF-8. Nunca repite el cuerpo de un texto, y un nodo
+// Persona se nombra por su tipo y no por su id: es donde el rechazo de FR-025
+// encuentra un documento de identidad, y el mensaje llega a la salida de error
+// (constitución VII). Una arista, en cambio, se nombra por los ids de sus
+// extremos, sean del tipo que sean.
 func (r *Rechazo) Error() string {
 	return nombrar(r.Operacion) + ": " + r.Motivo
 }

@@ -188,7 +188,8 @@ consultas. Un hallazgo no es un aviso de vigencia: no lleva la forma fija de los
 ## Comandos
 
 `kitlegal` se invoca desde el `PATH`. Códigos de salida: 0 correcto, 2 argumentos inválidos, 3
-no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requiere identidad humana.
+no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requiere identidad humana, 1 fallo inesperado
+(por ejemplo, un `world.db` que no se puede leer en `kitlegal graph`).
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 

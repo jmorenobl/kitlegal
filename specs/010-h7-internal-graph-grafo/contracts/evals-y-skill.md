@@ -28,35 +28,48 @@ se juzga igual (FR-086).
 - `prohibidos` y `grafo_previo` solo con `activa: true`: el `else` del esquema los añade a su lista de claves
   prohibidas.
 - `avisos` no cambia: su enumerado sigue siendo `boe.CodigosDeAviso()`; los hallazgos de `graph check` no son avisos.
-- Go: `Eval` gana `Prohibidos []ComandoProhibido` (`yaml:"prohibidos"`) y `GrafoPrevio GrafoPrevio`
-  (`yaml:"grafo_previo"`); `formaDelComando` gana `formaComprobacion` para `verbo: check`, cuyo texto es
-  `<applet> check` y que no genera ninguna consulta que preparar.
+- Go: `Eval` gana `GrafoPrevio GrafoPrevio` (`yaml:"grafo_previo"`, delante de `Comandos`) y
+  `Prohibidos []ComandoProhibido` (`yaml:"prohibidos"`, detrás de `Comandos`); `ComandoProhibido{Applet, Verbo}` y
+  `GrafoPrevio{Grabaciones string; Comandos []ComandoEsperado}`, los dos con sus etiquetas `yaml`; `formaDelComando`
+  gana `formaComprobacion` para `verbo: check`, cuyo texto es `<applet> check` y que no genera ninguna consulta que
+  preparar.
 
 ## 2. Juicio (`internal/evals/juzgar.go`, `informe.go`)
 
 - Un comando de la forma comprobación lo satisface una invocación del mismo applet con verbo `check` que consulta y
   termina con 0.
 - Un comando prohibido lo ejecuta **toda invocación que consulta** (ni ayuda, ni `--describe`, ni `--dry-run`) del
-  mismo applet y verbo, termine como termine. Cada uno ejecutado va a `comandos_prohibidos_ejecutados` (nueva clave de
-  cada eval de `informe.json`, lista vacía cuando no hay) y deja un motivo `comando prohibido ejecutado: <applet>
-  <verbo>`; la eval no pasa. El informe legible publica la columna. Sin `prohibidos`, el juicio es el de antes.
+  mismo applet y verbo, termine como termine, también sin código (la que dejó el corte de la sesión). Cada prohibido
+  de la eval que ejecuta alguna invocación va, una vez, en el orden de la eval y con sus repeticiones, a
+  `comandos_prohibidos_ejecutados` (nueva clave de cada eval de `informe.json`, detrás de `comandos_ausentes`; lista
+  vacía cuando no hay) y deja un motivo `comando prohibido ejecutado: <applet> <verbo>`, detrás de los de los
+  comandos ausentes y delante de los de las citas; la eval no pasa. El informe legible publica la columna «Comandos
+  prohibidos ejecutados», detrás de «Comandos ausentes» («ninguno» si no hay). Sin `prohibidos`, el juicio es el de
+  antes.
 - Las citas se siguen comparando por identificador.
 
 ## 3. Preparación de la sesión (`internal/evals/preparar.go`)
 
-Si la eval de la sesión lleva `grafo_previo`, **antes** de llenar la caché de la sesión:
+Si la eval de la sesión lleva `grafo_previo`, **antes** de llenar la caché de la sesión (`prepararGrafoPrevio`, sin
+exportar):
 
-1. copia las grabaciones de `UnionDeGrabaciones()` y, encima, `testdata/evals/grafo-previo/<grabaciones>/` en un
-   temporal de reproducción;
-2. monta un registro con `boe` sobre esa reproducción, una caché **temporal** que se descarta y
+1. copia en un temporal de reproducción los conjuntos de `SesionAPreparar.Grabaciones` (en el job,
+   `UnionDeGrabaciones()`), en su orden, y, encima, `<SesionAPreparar.GrafosPrevios>/<grabaciones>/`, cuyo valor cero
+   es la constante `GrafosPrevios` (`../../testdata/evals/grafo-previo`, relativa a `internal/evals`);
+2. monta un registro con `boe` sobre `httpx.Replay` de esa reproducción, una caché **temporal** que se descarta y
    `EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(<caché de la sesión>)))`;
-3. ejecuta cada comando como `kitlegal boe articulo <norma> <bloque> --json` con `app.Main`; un código distinto de 0,
-   o **cualquier** salida de error (la línea de una entrega fallida), es una `Falta`.
+3. ejecuta cada comando, en su orden, como `kitlegal <applet> articulo <norma> <bloque> --json` con `app.Main`; un
+   código distinto de 0, o **cualquier** salida de error (la línea de una entrega fallida), es una `Falta` con el
+   punto `PuntoGrafoPrevio` («grafo previo»), que `Falta.String` nombra «el comando del grafo previo <applet>
+   articulo <norma> <bloque>».
 
-Después prepara la caché como hoy, con un registro **sin** entrega al grafo. Así el grafo de la sesión solo tiene la
+Con alguna falta o un error, `PrepararSesion` los devuelve tal cual, sin preparar la caché ni escribir `eval.txt`,
+`modelo.txt` ni `pregunta.txt`. Si no, prepara la caché como hoy, con un registro **sin** entrega al grafo. Así el grafo de la sesión solo tiene la
 versión anterior y la caché sirve la grabada; solo el grafo previo de la eval de la sesión se prepara, no el de las
-demás. `TestEvalsDelRepositorio` gana la subprueba `grafo-previo`: cada conjunto nombrado existe y su preparación, en
-temporales, no da ninguna falta y deja en el grafo un `BloqueVersion` por comando.
+demás. `TestEvalsDelRepositorio` gana la subprueba `grafo-previo`: en toda eval de cada carpeta de `evals/` que lleva
+`grafo_previo` (y exige que alguna lo lleve), cada conjunto nombrado existe y su preparación, en temporales, no da
+ninguna falta y deja en el grafo, para cada comando, la `Norma`, el `Bloque` y un `BloqueVersion` unidos por
+`eli:has_part` y `eli:has_version`.
 
 ## 4. La eval (`evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml`)
 
@@ -97,11 +110,17 @@ entra por una tarea `[datos]` (research D22).
 
 - Frontmatter: `kitlegal-applets: boe graph`; la región generada gana la tabla de `kitlegal graph` (`show`, `stats`,
   `check`) con `make skills-sync` (FR-083).
-- Protocolo (FR-080): tras resolver el `BOE-A-…` (paso 2) y antes de leer, `kitlegal graph check --json`; tras leer
-  (paso 3) y antes de responder, otra vez. En la respuesta, los hallazgos cuya explicación nombra el `BOE-A-…` de la
-  norma de la pregunta, agrupados por clase y dichos **una vez** cada clase: con `version-obsoleta`, que la redacción
-  ha cambiado respecto de la consultada antes, con las fechas de vigencia; con `fuente-caducada`, que la consulta
-  anterior había caducado y la respuesta se apoya en la lectura nueva. Los demás hallazgos no se trasladan.
+- Protocolo (FR-080), con una sección nueva «Memoria de consultas»: resuelto el `BOE-A-…` de la norma de la
+  pregunta (paso 2) —no el de cada norma remitida— y antes de leer ninguno de sus bloques,
+  `kitlegal graph check --json`; cuando ya no queda nada por leer (el paso 4 puede volver al 3), al empezar el paso 5
+  y antes de redactar la respuesta, otra vez. En la respuesta, los hallazgos de las dos comprobaciones cuya
+  `explicacion` nombra el `BOE-A-…` de la norma de la pregunta, solo (el de la `Norma`) o en la cita de un bloque de
+  esa norma leído para responder (los de su `Bloque` y sus `BloqueVersion`), agrupados por `clase` y dichos **una
+  vez** cada clase: con `version-obsoleta`, que la redacción ha cambiado respecto de la consultada antes, con las
+  fechas de vigencia (`fecha_vigencia` y `fecha_vigencia_reciente`); con `fuente-caducada`, que la consulta anterior
+  había caducado y la respuesta se apoya en la lectura nueva. Los demás hallazgos —de otras normas, también las
+  leídas por una remisión, y de bloques no leídos para responder— no se trasladan; un hallazgo no lleva la forma fija
+  de los avisos.
 - Reglas (FR-081, FR-082): el texto citado sale siempre de `kitlegal boe articulo` o `articulos`; nunca se cita,
   parafrasea ni reconstruye texto a partir de la salida de un verbo de `graph`; `graph check` con 0 es un resultado,
   con hallazgos o sin ellos, nunca un fallo de la herramienta; con otro código, se responde igual con el texto de
@@ -114,8 +133,8 @@ entra por una tarea `[datos]` (research D22).
 | Control | Test |
 |---|---|
 | El esquema admite las formas nuevas y rechaza sus variantes mal formadas y en evals de no activación; las existentes validan igual | `TestLeerEval`, `TestEsquemaDeEval` (`internal/evals/formato_test.go`) |
-| Forma comprobación, prohibidos (con y sin código 0; ayuda y `--describe` no cuentan), informe con la clave nueva | `TestFormaDelComando`, `TestJuzgar/…`, `TestInforme` |
+| Forma comprobación (sin consultas que preparar), prohibidos (con y sin código 0; ayuda y `--describe` no cuentan), informe con la clave nueva | `TestFormaDelComando` (`formato_test.go`), `TestConsultasNecesarias`, `TestJuzgar/…`, `TestInforme` |
 | Preparación del grafo previo (grafo con la anterior, caché con la grabada, falta ante stderr) | `TestPrepararGrafoPrevio` (`internal/evals/preparar_test.go`) |
-| Conjunto de `boe-legislacion` con la eval nueva informativa; conjuntos existentes intactos | `TestEvalsDelRepositorio` (`conjunto-…`, `grafo-previo`) |
+| Conjunto de `boe-legislacion` con la eval nueva informativa; conjuntos existentes intactos | `TestEvalsDelRepositorio` (`conjunto`, `conjunto-legal-core`, `grafo-previo`) |
 | `SKILL.md`: frontmatter, < 300 líneas, tabla sin deriva con `kitlegal graph check`, cada orden empotrada registrada | `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`, `make skills-check` |
 | Protocolo (FR-080 a FR-082) | jueces de la revisión final (capa 2) y la eval en el job (SC-012) |

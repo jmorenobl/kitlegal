@@ -2,8 +2,9 @@
 
 Lista para el informe final y su revisión humana posterior (constitución, capa 3; FR-095): cada fichero bajo
 `schemas/` o bajo cualquier `testdata/` que el hito crea o modifica, con la tarea que lo tocó y su motivo. Sale de
-`git diff --name-status main` sobre `6d01b81` (T028, el último commit antes de esta tarea), filtrado a esos dos
-árboles, más los guiones que añadirá la activación de la suite. Ningún fichero de esos árboles se retira ni se renombra
+`git diff --name-status main` sobre `6d01b81` (T028, el último commit antes de T029), filtrado a esos dos árboles, más
+los guiones que añadió la activación de la suite (`7e33a7b`): sobre la cabeza, `git diff --name-status main...HEAD`
+filtrado igual da exactamente las filas de las tres tablas de abajo. Ningún fichero de esos árboles se retira ni se renombra
 (`git diff --name-status main...HEAD` no da ninguna línea `D` ni `R`), y ninguna grabación existente cambia: las cuatro
 derivadas son ficheros nuevos, fuera de `internal/source/boe/testdata/`.
 
@@ -25,7 +26,7 @@ Los demás esquemas de `main` no cambian.
 | A | `internal/app/testdata/derivadas/eli-sin-segmento/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json` | T019 `[datos]` | Los mismos metadatos con `url_eli` `https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565`, una URL sin ningún segmento `eli`, y el `Content-Length` recalculado (1363 → 1370): el segundo caso en que `boe articulo` no emite (FR-040; `grafo-no-emiten`). |
 | A | `testdata/evals/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json` | T025 `[datos]` | El grafo previo de la eval 19 de `boe-legislacion` (FR-085; contracts/evals-y-skill.md §3): la grabación de H4 del bloque `a21` con `fecha_vigencia` `20151002` y el párrafo `[Redacción sintética de prueba: versión anterior derivada de la grabación de H4.]`. Solo cambia el `cuerpo`. La preparación de la sesión la entrega al grafo antes de llenar la caché, para que la consulta de la eval se encuentre con una versión anterior del bloque. |
 | M | `internal/app/testdata/script/argumentos.txtar` | T016 `[datos]` | La lista literal de applets de las líneas 24 y 30 pasa a `boe, contar, echo, graph, skills, territorio`, porque registrar `graph` la cambia. Solo esas dos líneas: ninguna aserción nueva ni retirada. |
-| M | `internal/app/testdata/script/territorio-matriz.txtar` | T016 `[datos]` | La línea 206 pasa de `! exists cache` a `! exists cache/cache.db`, y su comentario dice por qué (research D29): desde H7 el kernel crea el directorio de la caché para dejar en él `world.db` con lo que observa cada `territorio resolver`. Lo que la aserción protege, que `territorio` no abre la caché en ningún camino, se sigue afirmando sobre `cache.db`. Las líneas `cronometra` no cambian. |
+| M | `internal/app/testdata/script/territorio-matriz.txtar` | T016 `[datos]` | La línea 206 pasa de `! exists cache` a `! exists cache/cache.db` (l. 207 tras el cambio, porque el comentario de encima gana una línea), y ese comentario dice por qué (research D29): desde H7 el kernel crea el directorio de la caché para dejar en él `world.db` con lo que observa cada `territorio resolver`. Lo que la aserción protege, que `territorio` no abre la caché en ningún camino, se sigue afirmando sobre `cache.db`. Las líneas `cronometra` no cambian. |
 
 Las cuatro derivadas las produjo un programa de un solo uso, fuera del repositorio, a partir de las grabaciones de H4
 ya versionadas en `internal/source/boe/testdata/boe.legislacion-consolidada/`. Cada una conserva la forma y el nombre
@@ -37,14 +38,15 @@ de la grabación que sustituye y cambia exactamente lo que dice su nombre. Ning�
 Los dos guiones modificados cambian en la misma tarea que el registro de `graph` y de la entrega porque, por separado,
 `make ci` queda en rojo (*Complexity Tracking* de plan.md).
 
-## Guiones que añade la activación de la suite
+## Guiones que añadió la activación de la suite
 
-Tras la última tarea, el paso `activar_aceptacion` del workflow (`scripts/workflow/aceptacion.sh activar H7`) copia
+Tras la última tarea, el paso `activar_aceptacion` del workflow (`scripts/workflow/aceptacion.sh activar H7`) copió
 los 11 guiones congelados de `specs/010-h7-internal-graph-grafo/aceptacion/` a
-`internal/app/testdata/script/h7-<nombre>.txtar` y los añade a la huella de `gates/aceptacion-congelada.json`. Hoy no
-existe ningún `h7-*` en ese directorio. Los escribió T001 `[aceptacion]` desde el spec y ninguna tarea posterior los
-ha tocado. Entrarán como ficheros nuevos, con los mismos bytes que el congelado, y desde ahí los ejecutará
-`TestEntregaDelHito` en `make ci`. Lo que cubre cada uno es su línea «Cubre» de cabecera.
+`internal/app/testdata/script/h7-<nombre>.txtar` y los añadió a la huella de `gates/aceptacion-congelada.json`
+(commit `7e33a7b`). Los escribió T001 `[aceptacion]` desde el spec y ninguna tarea posterior los tocó. Entraron como
+ficheros nuevos, con los mismos bytes que el congelado (la huella de cada copia es la de su original), y desde ahí los
+ejecuta `TestEntregaDelHito` en `make ci`: los 11 pasan sobre la cabeza. Lo que cubre cada uno es su línea «Cubre» de
+cabecera.
 
 | Estado | Fichero | Cubre |
 |---|---|---|
@@ -109,13 +111,17 @@ del árbol, con su cabecera `mode:`.
 | `internal/graph` (adaptador nuevo) | 92,2 % | — |
 | Global | 97,4 % | ≥ 70 % |
 
-Las cifras valen para el código de producto de `6d01b81`, que es el del commit de T029. Si la activación de la suite
-o la revisión final cambian código, hay que volver a medirlas sobre la cabeza final.
+Las cifras valen para el código de producto de `6d01b81`, que es el del commit de T029. La activación de la suite
+(`7e33a7b`) solo añade guiones bajo `testdata/`: sobre el `coverage.out` de su `make ci`, las cuatro cifras en porcentaje
+se repiten (100,0 %, 99,6 %, 92,2 % y 97,4 %). Si la revisión final cambia código, hay que volver a medirlas sobre la
+cabeza final.
 
 ## Quickstart (escenarios 2 a 12)
 
 Ejecutados sobre `6d01b81`, tal como los escribe `quickstart.md`, en una sola sesión de `sh` con la preparación de
-«Antes de empezar». El escenario 1 es el `make ci` de la verificación de esta tarea. Todos dan lo esperado:
+«Antes de empezar». El escenario 1 es el `make ci` de la verificación de esta tarea. Todos dan lo esperado. El barrido
+global repitió los escenarios 2 a 10 sobre la cabeza (`7e33a7b`, más sus cambios de texto) con el texto actual del
+quickstart, y dieron lo mismo (en el 6, `ls cache` enseña `cache.db`, `cache.db-shm`, `cache.db-wal` y `world.db`):
 
 | Escenario | Resultado |
 |---|---|
@@ -128,7 +134,7 @@ Ejecutados sobre `6d01b81`, tal como los escribe `quickstart.md`, en una sola se
 | 8. Códigos | `código 2` en las siete invocaciones mal formadas (U+00A0 y U+007F incluidos); `código 3` con `a b`; `código 1` con una base que no lo es y con un directorio; `código 2` con la variable vacía y `--no-graph`; con 0 bytes, ceros y listas vacías y `0` bytes después; sobre `$T/ro`, `código 0`, `misma lectura`, solo `world.db` y `sin cambios`. |
 | 9. Ocho a la vez | `0` bytes de error, 8 `Municipio` y 8 `Organo` de `kitlegal.territorio`, solo `world.db` en `$T/ocho`. |
 | 10. Binario distribuido y skill | `Municipio` y `Organo` de Tordesillas; `1`; `5` líneas con `kitlegal graph check`; `skills-check` en verde. |
-| 11. Costes | `test-tiempos` en verde; SC-007, 0,95 ms de diferencia de mediana (máximo 150 ms); SC-008, `graph check` 165 ms (máximo 3 s) y `graph stats` 20 ms (máximo 1 s). |
+| 11. Costes | `test-tiempos` en verde; SC-007, 0,95 ms de diferencia de mediana (máximo 150 ms); SC-008, `graph check` 165 ms (máximo 3 s) y `graph stats` 20 ms (máximo 1 s). Repetido sobre `7e33a7b` en la misma máquina: 0,61 ms, 165 ms y 19 ms. |
 | 12. Limpieza | `árbol intacto`. |
 
 Dos desajustes del propio texto del quickstart, corregidos en ese fichero:
@@ -145,6 +151,7 @@ Dos observaciones ajenas a H7, que no contradicen nada de lo esperado:
 
 - En el escenario 6, `boe articulo --dry-run` deja `cache.db-wal` y `cache.db-shm` en `cache/`, igual que el binario
   de `main` (comprobado con los dos binarios de e2e sobre la misma reproducción). Es el camino de ensayo de la caché
-  de H3 y H4, no el grafo, y ningún escenario afirma nada sobre esos dos ficheros. Queda fuera del alcance del hito.
+  de H3 y H4, no el grafo, y ningún escenario los exige ni los prohíbe (el esperado del escenario 6 lo dice, desde el
+  barrido global, junto a la orden `ls cache` que enseña lo que afirma de `world.db`). Queda fuera del alcance del hito.
 - En el escenario 10, el binario distribuido avisa en la salida de error de que las skills instaladas en la cuenta son
   de otra versión (el aviso de H19). Es un efecto del entorno de quien ejecuta el quickstart, no del hito.

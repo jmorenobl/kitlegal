@@ -7,29 +7,38 @@ D34. Esquema y estados: [../data-model.md](../data-model.md) §3-§4.
 
 ```go
 type Opcion func(*ajustes) error
-func ConDirectorio(dir string) Opcion             // sustituye a la regla de ubicación; "" es «argumentos»
+func ConDirectorio(directorio string) Opcion     // sustituye a la regla de ubicación; "" es «argumentos» al resolver; con varias, gana la última
 
-type Almacen struct{ /* opciones, sin nada abierto */ }
-func Nuevo(opciones ...Opcion) *Almacen          // no resuelve la ruta ni abre nada
-func (a *Almacen) Apply(ctx context.Context, lote core.Lote) error
+type Almacen struct{ /* opciones y, solo en pruebas, la costura que sustituye a os.Link; nada abierto */ }
+func Nuevo(opciones ...Opcion) *Almacen          // guarda una copia de las opciones; no resuelve la ruta ni abre nada
+func (a *Almacen) Apply(ctx context.Context, lote core.Lote) error // valor cero y *Almacen nulo = Nuevo()
 
 type Nulo struct{}
 func (Nulo) Apply(context.Context, core.Lote) error // nil, sin tocar nada
 
 func Leer(ctx context.Context, opciones ...Opcion) (*Lectura, error)
-func (l *Lectura) Ficha(ctx context.Context, id string) (grafo.Ficha, bool, error)
+func (l *Lectura) Ficha(ctx context.Context, id string) (grafo.Ficha, bool, error) // false sin error si no está
 func (l *Lectura) Recuento(ctx context.Context) (grafo.Recuento, error)
 func (l *Lectura) Instantanea(ctx context.Context) (grafo.Instantanea, error)
-func (l *Lectura) Close() error                  // idempotente
+func (l *Lectura) Close() error                  // idempotente, también sobre el grafo vacío y una lectura nula
 
-type Error struct{ Operacion, Ruta string; Causa error; /* clase y motivo privados */ }
-func (e *Error) Error() string                   // empieza por «grafo: » y nombra world.db
+type Error struct {
+	Operacion string // «leer» (verbos de graph) o «escribir» (entrega)
+	Ruta      string // world.db o el directorio implicado; vacía si aún no se conoce
+	Causa     error
+	/* clase y motivo privados */
+}
+func (e *Error) Error() string                   // empieza por «grafo: » y nombra world.db; nunca vacío, ni con *Error nulo
 func (e *Error) Unwrap() error
-func (e *Error) Clase() schema.Clase             // schema.ConClase
+func (e *Error) Clase() schema.Clase             // schema.ConClase; sin clase declarada, «inesperado»
 ```
 
+Cada verbo de una `Lectura` lee en su propia transacción de lectura; sobre una `Lectura` ya cerrada o nula falla con
+`inesperado` («la lectura ya está cerrada»), nunca con un grafo vacío.
+
 `ConDirectorio` es la única opción: la usan los tests (bajo `t.TempDir()`), `DependenciasDeGrafo.Almacen` y la
-preparación de evals (contracts/evals-y-skill.md). No hay opción de registrador: `internal/graph` no registra con
+preparación de evals (contracts/evals-y-skill.md). El directorio de la opción se usa tal cual; lo que haya en él lo
+decide la lectura o la entrega. No hay opción de registrador: `internal/graph` no registra con
 `slog` ni escribe en ningún descriptor; lo único que una entrega fallida deja en la salida de error es la línea que el
 kernel escribe con el error de `Apply` (FR-033, contracts/resultado-y-entrega.md §4), así que, con `--verbose` o sin
 ella, una entrega que falla añade exactamente esa línea y una que no falla, ninguna.
@@ -53,15 +62,15 @@ destino a través de él (§4, paso 4).
 
 1. Resolver el directorio (§2). `os.Stat(<dir>/world.db)`: no existe (o un componente no es directorio, o es un
    enlace simbólico sin destino) → `Lectura` de un grafo vacío, sin abrir ni crear nada (FR-004); es un directorio →
-   inutilizable; otro fallo → inesperado. Un fichero de **0 bytes** → `Lectura` de un grafo vacío **sin abrir
+   inutilizable (variante «es un directorio», §6); otro fallo → inesperado («no se pudo leer», §6). Un fichero de **0 bytes** → `Lectura` de un grafo vacío **sin abrir
    SQLite**, haya los auxiliares que haya: con un `world.db-wal` no vacío junto a una base de 0 páginas, SQLite borra
    ese `-wal` al abrirla en cualquier modo que no sea `immutable` (`_pagerOpenWalIfPresent`,
    `modernc.org/sqlite@v1.59.0/lib/sqlite_g_000000000001ffff.go:4461-4490`; research V49), y
    un fichero de 0 bytes es siempre una base sin esquema (versión 0).
 2. `os.Stat` de `<base>-wal`, `<base>-shm` y `<base>-journal`, con `<base>` = la ruta que usa SQLite para nombrarlos:
    fuera de Windows, `filepath.EvalSymlinks(<dir>/world.db)`; en Windows, `<dir>/world.db` (research D10, V47). Si
-   `EvalSymlinks` falla con `fs.ErrNotExist` (lo retiraron después del `Stat`), grafo vacío, como en 1; con otro
-   error, inesperado.
+   `EvalSymlinks` falla con `fs.ErrNotExist` o `ENOTDIR` (lo retiraron después del `Stat`), grafo vacío, como en 1;
+   con otro error, o un `Stat` de un auxiliar que falla sin decir que no existe, inesperado.
 3. Comprobar si el proceso puede escribir `world.db`: `os.OpenFile(<dir>/world.db, os.O_RDWR, 0)` y `Close`, sin leer,
    escribir ni truncar (V46). `nil` → puede; `fs.ErrNotExist` → grafo vacío, como en 1; otro error → no puede.
 4. Abrir con una conexión (research D10):
@@ -74,15 +83,23 @@ destino a través de él (§4, paso 4).
      `-wal` huérfano, un `-shm` suelto o el diario de un escritor en modo rollback) →
      `file:<ruta>?mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)`, que lee también lo confirmado en el WAL y
      deja `world.db`, `world.db-wal` y `world.db-journal` byte a byte iguales (V36 D, F, V43, V45 c).
-5. Leer la versión con reintento por tramos:
+
+   En `<ruta>` (la de `<dir>/world.db` con `/` como separador) se escapan `%`, `?` y `#` (`%25`, `%3F`, `%23`), los
+   únicos caracteres que el URI `file:` de SQLite interpreta en el camino; la cadena de escritura (§4) hace lo mismo.
+5. Leer la versión con reintento por tramos (0 sin la tabla `schema_version`; si no, `COALESCE(MAX(version), 0)`):
+   - contexto terminado → plazo agotado; `SQLITE_BUSY` con el contexto vivo tras la espera propia → bloqueada (§4.1,
+     «Esperas»);
    - 26 u otro fallo del fichero → inutilizable; 776 (`SQLITE_READONLY_ROLLBACK`: un diario caliente, que `mode=ro`
      no puede deshacer, V43) → inutilizable «con una transacción interrumpida sin deshacer», sin reintentar otro modo;
-     1544/14 (en los modos que no son `immutable`) → si el fichero no se deja leer, inutilizable; sin `world.db-wal`
-     ni `world.db-journal`, reabrir `mode=ro&immutable=1&_pragma=query_only(1)`; con alguno, inutilizable
-     (`immutable` no lee el WAL ni deshace un diario caliente, V36 D, V43);
-   - versión 0 → grafo vacío, sin consultar tablas; versión > 1 → inutilizable «de otra versión» (FR-012).
+     1544/14 (en los modos que no son `immutable`) → si el fichero no se deja leer, inutilizable («acceso denegado» si
+     es por permisos); sin `world.db-wal` ni `world.db-journal`, reabrir `mode=ro&immutable=1&_pragma=query_only(1)`;
+     con alguno, inutilizable (`immutable` no lee el WAL ni deshace un diario caliente, V36 D, V43); en el modo
+     inmutable no se reabre nunca;
+   - versión 0 → grafo vacío, sin consultar tablas; versión > 1 → «tiene el esquema en la versión N» (FR-012);
+     versión negativa → inutilizable.
 6. Cada operación de lectura va en una transacción de lectura (instantánea coherente) con reintento por tramos.
-   `query_only` impide cualquier escritura de SQL. Sin auxiliares no cambia ni un byte de `world.db` ni de nada en su
+   `query_only` impide cualquier escritura de SQL. Una fila que ninguna entrega escribe (`props` que no es un objeto
+   JSON, `ttl` negativo o que no cabe en un `time.Duration`) es la base inutilizable de §6; `ttl` `NULL` es vigencia 0. Sin auxiliares no cambia ni un byte de `world.db` ni de nada en su
    directorio, pueda el proceso escribirlo (V9, V36 E) o no (V46), y tampoco si `world.db` es un enlace simbólico
    (V47). Con un `world.db-journal` frío, vacío o de un escritor vivo, tampoco (V43, V45 c). **Con un auxiliar de
    WAL**, `world.db` y `world.db-wal` quedan iguales, pero SQLite reescribe `world.db-shm` (marcas de lectura y, tras
@@ -99,36 +116,46 @@ destino a través de él (§4, paso 4).
 Cadena de escritura (research D11, V10): `file:<ruta>?_pragma=busy_timeout(100)&_pragma=synchronous(FULL)&_pragma=foreign_keys(1)&_txlock=immediate`,
 **sin** `journal_mode`, una conexión.
 
-1. `grafo.ValidarLote(lote)` sin tocar el disco (§5); un rechazo es un `*Error` que nombra `world.db`. Contexto ya
-   terminado → plazo agotado, sin tocar nada.
-2. Resolver el directorio (§2) y `os.Stat(<dir>/world.db)`: un directorio → inutilizable, sin tocar nada; ausente →
-   paso 3; un fichero → paso 4.
+1. Consolidar el lote sin tocar el disco: `grafo.Consolidar(lote)`, que valida con `grafo.ValidarLote` (§5) y reduce
+   el lote a un registro por clave, y rechazar una `Vigencia` que no es un número entero de segundos (la columna `ttl`
+   guarda segundos: «la vigencia … no es un número entero de segundos, que es como se guarda»); un rechazo es un
+   `*Error` «el lote no entra en world.db» (§6). Contexto ya terminado → plazo agotado, sin tocar nada.
+2. Resolver el directorio (§2) y `os.Stat(<dir>/world.db)`: un directorio → inutilizable (variante «es un
+   directorio»), sin tocar nada; ausente (también `ENOTDIR` o un enlace sin destino) → paso 3; otro fallo → «no se
+   pudo escribir» (§6); un fichero → paso 4.
 3. **Ausente: construir en un temporal y publicar** (research D11, V36 C).
    1. `grafo.ValidarContraGrafoVacio(lote)` (cada extremo de arista es un nodo del lote); un rechazo no crea nada.
    2. Crear los directorios que falten, de uno en uno desde el primer antecesor que no existe (`0o700`), anotando los
       que crea esta llamada (`EEXIST` no se anota).
-   3. `os.CreateTemp(<dir>, "world.db-nuevo-*")` (`0o600`); si falla porque `<dir>` ya no existe, volver a 3.2
-      mientras el contexto siga vivo.
+   3. `os.CreateTemp(<dir>, "world.db-nuevo-*")` (`0o600`); si 3.2 o 3.3 fallan porque algo ya no existe (otra
+      invocación retiró el directorio vacío) y el antecesor más cercano que existe (`os.Lstat`), `<dir>` incluido, es
+      un directorio (`os.Stat`), volver a 3.2 mientras el contexto siga vivo (terminado → plazo agotado); cualquier
+      otro fallo —también «no existe» bajo un enlace sin destino o algo que no es directorio, donde repetir daría lo
+      mismo— → «no se puede escribir world.db en "<dir>"» (§6).
    4. Abrir el temporal con la cadena de escritura, `PRAGMA journal_mode=WAL` fuera de toda transacción (tiene que
       devolver `wal`: dentro de una transacción, sobre un fichero de 0 bytes, devuelve `delete` sin error, V42), `BeginTx`,
       `migraciones/0001_grafo.sql`, `schema_version(1, <UTC RFC 3339>)`, el lote por los pasos 6 y 7 sobre un grafo
       vacío, confirmar y cerrar; el cierre no da error y no queda `<temporal>-wal`.
    5. Contexto terminado → plazo agotado, sin publicar.
    6. `os.Link(<temporal>, <dir>/world.db)`: nil → publicado; `errors.Is(err, fs.ErrExist)` → otra invocación lo
-      publicó antes: seguir por el paso 4 con el mismo contexto; otro error → la entrega falla («no se puede publicar»,
-      §6).
-   7. Siempre, borrar el temporal y su `-wal`, `-shm` o `-journal` si quedaran; si la entrega falla, `os.Remove` de
-      los directorios anotados en 3.2, del más profundo al menos (`ENOTEMPTY` y `ENOENT` no son fallo: otra invocación
-      los usa o ya no están). Cualquier otro fallo de la limpieza se une a la causa con `errors.Join`.
+      publicó antes (o el nombre lo ocupa un enlace sin destino): retirar el temporal y seguir por el paso 4 con el
+      mismo contexto; otro error → la entrega falla («no se puede publicar», §6).
+   7. Siempre, borrar el temporal y su `-wal`, `-shm` o `-journal` si quedaran; si la entrega falla (también en el
+      paso 4 al que lleva 3.6), `os.Remove` de los directorios anotados en 3.2, del más profundo al menos (`ENOTEMPTY`
+      y `ENOENT` no son fallo: otra invocación los usa o ya no están). Cualquier otro fallo de la limpieza se une a la
+      causa con `errors.Join`; si `world.db` ya se publicó y lo que falla es retirar el temporal, la entrega devuelve
+      ese fallo.
 4. **Existe: aplicar en su sitio.** Antes de abrir SQLite, `os.OpenFile(<dir>/world.db, os.O_RDWR, 0)` y `Close`
    (V46): con cualquier error —sin permiso, sistema de ficheros de solo lectura, o `fs.ErrNotExist` de un enlace sin
    destino (al que se llega desde 3.6, porque el nombre está ocupado) o de un fichero retirado entre medias—, la
-   entrega falla con «no se puede escribir» (§6) sin abrir SQLite: nada cambia, nada se crea y nada se recupera.
+   entrega falla con «no se puede escribir» (§6) sin abrir SQLite: nada cambia, nada se crea y nada se recupera; lo
+   mismo si después falla `os.Stat(<dir>/world.db)`.
    Si `world.db` tiene 0 bytes, `ValidarContraGrafoVacio` va aquí, **antes** de abrir SQLite (la versión 0 se sabe
    sin abrir): un lote que el grafo vacío rechaza no toca ningún fichero, tampoco un `world.db-wal` junto a él.
    Si no hay error, abrir `<dir>/world.db` con la cadena de escritura y leer la versión (reintento por
-   tramos): no es base → inutilizable; > 1 → «de otra versión», sin modificar nada salvo la recuperación del final de
-   este paso; 0 → repetir
+   tramos): plazo o espera propia agotados → §4.1, «Esperas»; no es base → inutilizable; > 1 → «tiene el esquema en
+   la versión N», sin modificar nada salvo la recuperación del final de este paso; negativa → inutilizable; 1 →
+   paso 5; 0 → repetir
    `ValidarContraGrafoVacio` y, si `PRAGMA journal_mode` no es `wal`, fijar `PRAGMA journal_mode=WAL` (reintento por
    tramos; fuera de toda transacción, porque dentro SQLite no lo fija: en rollback falla y sobre 0 bytes devuelve
    `delete` sin error, V42; tiene que devolver `wal`, y si no, la entrega falla antes de abrir la transacción). Desde
@@ -136,12 +163,18 @@ Cadena de escritura (research D11, V10): `file:<ruta>?_pragma=busy_timeout(100)&
    huérfano, esta conexión los recupera (el diario, en su primera lectura; el `-wal`, en el checkpoint del cierre si
    es la última conexión) aunque la entrega falle después: la otra fila declarada de §4.1 (V43, V44).
 5. `BeginTx(context.WithoutCancel(ctx), nil)` con reintento por tramos (inmediata por `_txlock`); releer la versión
-   **dentro**; si es 0, ejecutar `migraciones/0001_grafo.sql` e insertar `schema_version(1, <UTC RFC 3339>)`.
-6. Consolidar el lote (`grafo.Consolidar`) y, para cada nodo, luego cada texto, luego cada arista: leer lo guardado,
-   rechazar si el tipo o el cuerpo difieren o si falta un extremo, fusionar con `grafo` (data-model §4.1) y escribir
-   solo si cambia. Cualquier rechazo o fallo deshace la transacción entera.
-7. Confirmar; cerrar. Una transacción deshecha deja `world.db` con los mismos bytes si no había un `-wal` huérfano
-   (V11); con él, lo que dice §4.1.
+   **dentro**; si es 0, ejecutar `migraciones/0001_grafo.sql` e insertar `schema_version(1, <UTC RFC 3339>)`; si es
+   posterior, «tiene el esquema en la versión N»; si una sentencia de la migración falla, «no se pudo aplicar la
+   migración» (§6).
+6. Con el lote ya consolidado en el paso 1, para cada nodo, luego cada texto, luego cada arista (en el orden de sus
+   claves): leer lo guardado; en una arista, comprobar antes su origen y después su destino contra el grafo, que ya
+   tiene los nodos del lote («su origen/destino no está ni en el lote ni en el grafo»); fusionar con
+   `grafo.FusionarNodo`, `FusionarTexto` o `FusionarArista` (data-model §4.1), que rechazan un tipo o un cuerpo
+   distintos; y escribir solo si el fusionado difiere de lo guardado (el tipo de un nodo y el cuerpo de un texto no se
+   reescriben nunca). Lo guardado que ninguna entrega escribe (una fecha que no es RFC 3339, una vigencia negativa) es
+   la base inutilizable de §6. Cualquier rechazo o fallo deshace la transacción entera.
+7. Confirmar; cerrar (un fallo al cerrar se une al de la entrega, o es él el fallo). Una transacción deshecha deja
+   `world.db` con los mismos bytes si no había un `-wal` huérfano (V11); con él, lo que dice §4.1.
 
 ### 4.1 Lo que deja una entrega que falla (FR-033)
 
@@ -161,15 +194,23 @@ contexto; el total propio es 5 s. Contexto terminado → clase `fuente-no-dispon
 
 ## 5. Validación del lote (`internal/core/grafo`, FR-024, FR-025)
 
-`ValidarLote` rechaza el lote entero, con un error que nombra la operación y el motivo, si:
+`ValidarLote` rechaza el lote entero con el primer incumplimiento que encuentra —la procedencia, después todos los
+nodos, después el resto de las operaciones en su orden (aristas, textos, nulas o punteros)—, como un `*grafo.Rechazo{Operacion, Motivo}` de clase `inesperado` cuyo mensaje es
+`<operación>: <motivo>`: `el lote`, `el nodo "<id>"` (o `el nodo de tipo "Persona"`: un nodo `Persona` no se nombra
+por su id), `la arista de "<origen>" a "<destino>" por "<relación>"` (por los ids de sus extremos, sean del tipo que
+sean), `el texto "<huella>"` (nunca el cuerpo) o `la operación de tipo <tipo de Go>`, si:
 
 - `Fuente` o `URL` vacías, `URL` que no es URI absoluto (mismo criterio que `schema.Procedencia.Validar`),
-  `FechaConsulta` que no es RFC 3339, `Vigencia` negativa;
-- un nodo sin id o sin tipo; una arista sin origen, relación o destino; un texto cuya huella no es exactamente
-  `sha256:` + los 64 hexadecimales en minúscula de la SHA-256 de los bytes de su cuerpo;
+  `FechaConsulta` vacía o que no es RFC 3339, `Vigencia` negativa;
+- una operación nula («trae una operación nula») o que no es un valor `schema.Nodo`, `schema.Arista` o `schema.Texto`
+  (un puntero a uno de ellos: «solo entran los valores schema.Nodo, schema.Arista y schema.Texto»);
+- un nodo sin id o sin tipo; una arista sin origen, relación o destino (solo la cadena vacía es «sin»); un texto cuya
+  huella no es exactamente `sha256:` + los 64 hexadecimales en minúscula de la SHA-256 de los bytes de su cuerpo;
 - el mismo id con dos tipos en el lote;
-- un nodo de tipo `Persona` cuyo id, o cualquier **clave o valor de cadena** de sus datos a cualquier profundidad de
-  mapas y listas, casa con:
+- un nodo de tipo `Persona` cuyos datos no tienen forma JSON (sin ella no se puede comprobar que no llevan un
+  documento);
+- un nodo de tipo `Persona` cuyo id, o cualquier **clave o valor de cadena** de sus datos —en su forma JSON canónica,
+  la que se guarda— a cualquier profundidad de objetos y listas, casa con:
 
   ```text
   (?:^|[^A-Za-z0-9])(?:[0-9]{2}[.\- ]?[0-9]{3}[.\- ]?[0-9]{3}[.\- ]?[A-Za-z]|[XYZxyz][.\- ]?[0-9][.\- ]?[0-9]{3}[.\- ]?[0-9]{3}[.\- ]?[A-Za-z]|[A-Za-z][.\- ]?[0-9]{2}[.\- ]?[0-9]{3}[.\- ]?[0-9]{2}[.\- ]?[0-9A-Za-z])(?:[^A-Za-z0-9]|$)
@@ -195,27 +236,39 @@ nivel, dentro de una lista de un objeto anidado y como clave:
 Los caracteres que no son ASCII se escriben en el test con su escape de Go (barra invertida, `u` y el código
 hexadecimal: U+017F, U+212A, U+00A0…) para que se vean en el diff.
 
-`ValidarContraGrafoVacio(lote)` rechaza si un extremo de arista no es un nodo del lote. Dentro de la transacción: un
-extremo que no está ni en el lote ni en el grafo, un id con otro tipo que el guardado, una huella guardada con otro
-cuerpo (FR-024).
+`grafo.Consolidar(lote)` llama a `ValidarLote` y rechaza además un nodo cuyos datos no tienen forma JSON canónica
+(RFC 8785: un número que no es finito, una cadena o una clave que no es UTF-8, un valor que no es de JSON), con el
+error del codificador como motivo. `ValidarContraGrafoVacio(lote)` rechaza si un extremo de arista no es un nodo del
+lote («su origen/destino no es un nodo del lote y el grafo está vacío»). Dentro de la transacción: un extremo que no
+está ni en el lote ni en el grafo, un id con otro tipo que el guardado (lo rechaza `FusionarNodo`), una huella
+guardada con otro cuerpo (lo rechaza `FusionarTexto`) (FR-024).
 
 ## 6. Errores y códigos
 
-| Situación | Clase (verbos de `graph`) | Mensaje (siempre empieza por `grafo: ` y nombra `world.db`) |
+Todo error es un `*graph.Error`. Su mensaje empieza siempre por `grafo: ` y nombra `world.db`: por su ruta entre
+comillas (`%q`) cuando ya se conoce, y por su nombre, `world.db`, cuando no (la ruta no se pudo ubicar, o el fallo
+llegó antes de resolverla: plazo agotado o lote rechazado en el paso 1 de §4).
+
+| Situación | Clase (verbos de `graph`) | Mensaje |
 |---|---|---|
-| Ruta no resoluble (§2) | `argumentos` (2) | `grafo: no se puede ubicar world.db: <mensaje de la caché>` |
-| No es base, dañada, directorio, no deja abrirse, WAL sin memoria compartida | `inesperado` (1) | `grafo: "<ruta>" no es una base de datos utilizable; no se modifica` (o su variante: directorio, acceso denegado) |
+| Ruta no resoluble (§2) | `argumentos` (2) | `grafo: no se puede ubicar world.db: <mensaje de la caché, o el de ConDirectorio("")>` |
+| No es base, dañada, fila que ninguna entrega escribe, versión negativa, no deja abrirse, WAL sin memoria compartida | `inesperado` (1) | `grafo: "<ruta>" no es una base de datos utilizable; no se modifica` |
+| Variante: el fichero no se deja leer por permisos | `inesperado` (1) | `grafo: "<ruta>" no es una base de datos utilizable: acceso denegado; no se modifica` |
+| Variante: `world.db` es un directorio | `inesperado` (1) | `grafo: "<ruta>" es un directorio y no una base de datos utilizable; no se modifica` |
 | Diario de rollback caliente al leer (776 en `mode=ro`, §3; research D10, V43) | `inesperado` (1) | `grafo: "<ruta>" tiene una transacción interrumpida sin deshacer; no se modifica` |
 | Esquema posterior | `inesperado` (1) | `grafo: "<ruta>" tiene el esquema en la versión N y este binario conoce la 1: no se modifica` |
 | Bloqueo más largo que la espera propia | `inesperado` (1) | `grafo: "<ruta>" está bloqueada por otra invocación y la espera de 5s se agotó` |
-| Plazo agotado | `fuente-no-disponible` (4) | `grafo: el plazo terminó antes de <leer|escribir> "<ruta>"` |
-| Lote rechazado | `inesperado` (solo en la entrega) | `grafo: el lote no entra en world.db: <motivo>` (con la ruta si ya se conoce) |
-| Directorio o fichero que no se pueden crear o escribir | `inesperado` (solo en la entrega) | `grafo: no se puede escribir world.db en "<directorio>"…` |
+| Plazo agotado | `fuente-no-disponible` (4) | `grafo: el plazo terminó antes de <leer|escribir> "<ruta>"` (o `… escribir world.db` en el paso 1 de §4) |
+| Otro fallo de entrada y salida (un `Stat` que falla, cerrar, una lectura ya cerrada, el temporal que queda incompleto) | `inesperado` (1) | `grafo: no se pudo <leer|escribir> "<ruta>": <causa>` |
+| Lote rechazado | `inesperado` (solo en la entrega) | `grafo: el lote no entra en world.db: <rechazo>` en el paso 1 de §4; `grafo: el lote no entra en "<ruta>": <rechazo>` contra el grafo vacío o dentro de la transacción; `<rechazo>` es el mensaje del `grafo.Rechazo` (§5) |
+| Directorio o temporal que no se pueden crear | `inesperado` (solo en la entrega) | `grafo: no se puede escribir world.db en "<directorio>": <causa>` |
 | `world.db` existe y el proceso no puede abrirlo para escribir (§4, paso 4; research V46) | `inesperado` (solo en la entrega; los verbos de `graph` lo leen, §3) | `grafo: no se puede escribir "<ruta>": <causa>; no se modifica` |
 | `os.Link` falla con un error distinto de `fs.ErrExist` (research S7) | `inesperado` (solo en la entrega) | `grafo: no se puede publicar world.db en "<directorio>": <causa>` |
 | `PRAGMA journal_mode=WAL` no devuelve `wal` (§4, pasos 3.4 y 4; research V42) | `inesperado` (solo en la entrega) | `grafo: no se puede poner "<ruta>" en modo WAL: el modo sigue siendo <modo>` |
+| Una sentencia de la migración falla dentro de su transacción (FR-013) | `inesperado` (solo en la entrega) | `grafo: no se pudo aplicar la migración "0001_grafo.sql" en "<ruta>": <causa>` |
 
-En la entrega de un applet toda clase se convierte en la línea de aviso de contracts/resultado-y-entrega.md §4.
+Un fallo al cerrar tras otro fallo se une a él con `errors.Join`, y manda la clase del primero. En la entrega de un
+applet toda clase se convierte en la línea de aviso de contracts/resultado-y-entrega.md §4.
 
 ## 7. Qué lo vigila
 

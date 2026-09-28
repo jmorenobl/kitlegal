@@ -11,8 +11,11 @@ kitlegal graph stats          graph stats
 kitlegal graph check          graph check
 ```
 
-- Sin verbo por omisión; `kitlegal graph` sin verbo sale con 2 nombrando los tres (FR-050).
-- Hereda las ocho banderas globales, `--describe` y la ayuda (FR-050). Descripción del applet:
+- Sin verbo por omisión; `kitlegal graph` sin verbo sale con 2 nombrando los tres, en este orden: `argumentos
+  inválidos: el applet "graph" no declara ningún verbo por omisión, así que hay que nombrar uno; verbos de graph:
+  show, stats, check` (FR-050).
+- Hereda las ocho banderas globales (`--json`, `--timeout`, `--offline`, `--dry-run`, `--describe`, `--no-graph`,
+  `--asunto`, `--verbose`) y la ayuda (FR-050). Descripción del applet:
   `Lee el grafo del mundo: lo que el binario ha observado de las fuentes, con su procedencia.` Verbos:
   - `show`: `Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal.`
   - `stats`: `Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente.`
@@ -27,14 +30,21 @@ type DependenciasDeGrafo struct {
 	Reloj   func() time.Time // se lee una vez por invocación; nulo es un defecto de composición
 	Almacen []graph.Opcion   // vacío: la regla de ubicación de la caché
 }
-func DependenciasDelGrafoDelSistema() DependenciasDeGrafo // Reloj: time.Now
+func DependenciasDelGrafoDelSistema() DependenciasDeGrafo // Reloj: time.Now; Almacen vacío
 func AppletGrafo(dependencias DependenciasDeGrafo) Applet
 ```
+
+Cada verbo lee el reloj una vez, rechaza sin abrir nada un id que `grafo.ValidarID` no admite, abre la lectura con
+`graph.Leer(ctx, Almacen...)`, lee y la cierra; un fallo al cerrarla se une al del verbo con `errors.Join`. Con el
+reloj nulo el verbo falla con `inesperado` («graph: el applet se compuso sin reloj…») y el sobre de fallo lo firma el
+kernel.
 
 ## 2. Procedencia y efectos
 
 - Sobre de éxito: `fuente` = `kitlegal.graph`, `url` = `kitlegal:applet/graph`, `fecha_consulta` = el instante del
-  reloj de la invocación, que es también el instante de `check` (FR-051, FR-067).
+  reloj de la invocación, que es también el instante de `check` (FR-051, FR-067). Todo fallo que decide el applet
+  (un id que `ValidarID` rechaza, un id que no está, cada error de `internal/graph`) lleva la misma procedencia; los
+  que decide el analizador antes del applet los firma el kernel.
 - Ningún verbo crea ni modifica `world.db`, `world.db-wal`, `world.db-journal` ni su directorio, ni cambia el
   contenido del grafo (FR-004, FR-005), y ninguno entrega operaciones (FR-046): su `Resultado.Grafo` es el valor cero.
   Sin auxiliares —el estado normal— no cambia ni un byte de nada, también si el proceso no puede escribir
@@ -54,7 +64,13 @@ func AppletGrafo(dependencias DependenciasDeGrafo) Applet
 
 ## 3. `data`
 
+Los ejemplos son el `data` que da el binario (en el sobre va en una sola línea, con las claves en este orden; aquí
+con sangría para leerlo) tras `boe articulo BOE-A-2015-10565 a21` con el reloj `2026-09-28T12:00:00Z` y
+`territorio resolver Leganés` (guiones `h7-grafo-memoria` y `h7-grafo-show`).
+
 ### 3.1 `show <id>` → `grafo.Ficha`
+
+`kitlegal graph show 'eli/es/l/2015/10/01/39#a21' --json`:
 
 ```json
 {
@@ -70,30 +86,57 @@ func AppletGrafo(dependencias DependenciasDeGrafo) Applet
     }
   },
   "salientes": [
-    {"relacion": "eli:has_version", "id": "eli/es/l/2015/10/01/39#a21@20161002:sha256:…",
-     "primera_observacion": "…", "ultima_observacion": {"fuente": "…", "url": "…", "fecha_consulta": "…"}}
+    {
+      "relacion": "eli:has_version",
+      "id": "eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c",
+      "primera_observacion": "2026-09-28T12:00:00Z",
+      "ultima_observacion": {
+        "fuente": "boe.legislacion-consolidada",
+        "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21",
+        "fecha_consulta": "2026-09-28T12:00:00Z"
+      }
+    }
   ],
   "entrantes": [
-    {"relacion": "eli:has_part", "id": "eli/es/l/2015/10/01/39", "primera_observacion": "…", "ultima_observacion": {…}}
+    {
+      "relacion": "eli:has_part",
+      "id": "eli/es/l/2015/10/01/39",
+      "primera_observacion": "2026-09-28T12:00:00Z",
+      "ultima_observacion": {
+        "fuente": "boe.legislacion-consolidada",
+        "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21",
+        "fecha_consulta": "2026-09-28T12:00:00Z"
+      }
+    }
   ]
 }
 ```
 
-- `datos` son los guardados (los de la última observación); nunca el cuerpo de un bloque (FR-041, FR-070).
+- `datos` son los guardados (los de la última observación), un objeto con las claves ordenadas como las ordena
+  `encoding/json` (en un `BloqueVersion`: `fecha_version`, `fecha_vigencia`, `hash_texto`, `norma_modificadora`) y
+  `{}` si no hay ninguno; nunca el cuerpo de un bloque (FR-041, FR-070).
+- Un id que no está sale con 3 y el mensaje `no encontrado: el id "<id>" no está en el grafo del mundo`.
 - `salientes` y `entrantes` van ordenadas por `relacion` y después por `id`, comparando bytes, y nunca nulas (FR-053).
 - Toda fecha se reproduce carácter a carácter como la escribió el sobre de su observación (FR-053).
 
 ### 3.2 `stats` → `grafo.Recuento`
+
+`kitlegal graph stats --json`:
 
 ```json
 {
   "nodos": 5, "aristas": 3, "textos": 1,
   "nodos_por_tipo": [
     {"tipo": "Bloque", "fuente": "boe.legislacion-consolidada", "nodos": 1},
-    {"tipo": "Municipio", "fuente": "kitlegal.territorio", "nodos": 1}
+    {"tipo": "BloqueVersion", "fuente": "boe.legislacion-consolidada", "nodos": 1},
+    {"tipo": "Municipio", "fuente": "kitlegal.territorio", "nodos": 1},
+    {"tipo": "Norma", "fuente": "boe.legislacion-consolidada", "nodos": 1},
+    {"tipo": "Organo", "fuente": "kitlegal.territorio", "nodos": 1}
   ],
   "aristas_por_relacion": [
-    {"relacion": "eli:has_part", "fuente": "boe.legislacion-consolidada", "aristas": 1}
+    {"relacion": "eli:has_part", "fuente": "boe.legislacion-consolidada", "aristas": 1},
+    {"relacion": "eli:has_version", "fuente": "boe.legislacion-consolidada", "aristas": 1},
+    {"relacion": "lb:pertenece_a", "fuente": "kitlegal.territorio", "aristas": 1}
   ]
 }
 ```
@@ -103,25 +146,35 @@ ningún par con 0; los textos solo en total; con el grafo ausente o vacío, tres
 
 ### 3.3 `check` → `[]grafo.Hallazgo`
 
+Tras leer `a21` con la grabación de H4 (A, `fecha_vigencia` `20161002`) con el reloj `2026-09-28T12:00:00Z` y con la
+derivada `version-posterior` (B, `20250101`) con `2026-09-29T12:00:00Z`, `kitlegal graph check --json` con el reloj
+`2026-10-06T12:00:00Z`: la versión A ha caducado (su última observación es la de A; la `Norma`, el `Bloque` y la
+versión B tienen la de B, que caduca justo en ese instante y por tanto no antes) y está superada por B (`<url>` es
+`https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21`, escrita entera
+en la salida):
+
 ```json
 [
   {
     "clase": "fuente-caducada",
-    "id": "eli/es/l/2015/10/01/39#a21",
-    "explicacion": "La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en https://… del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.",
-    "procedencia": {"fuente": "boe.legislacion-consolidada", "url": "https://…", "fecha_consulta": "2026-09-28T12:00:00Z"},
+    "id": "eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c",
+    "explicacion": "La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en <url> del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.",
+    "procedencia": {"fuente": "boe.legislacion-consolidada", "url": "<url>", "fecha_consulta": "2026-09-28T12:00:00Z"},
     "vigencia_segundos": 604800
   },
   {
     "clase": "version-obsoleta",
-    "id": "eli/es/l/2015/10/01/39#a21@20161002:sha256:…",
-    "explicacion": "La versión de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://… el 2026-09-29T12:00:00Z.",
-    "procedencia": {"fuente": "boe.legislacion-consolidada", "url": "https://…", "fecha_consulta": "2026-09-29T12:00:00Z"},
+    "id": "eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c",
+    "explicacion": "La versión de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en <url> el 2026-09-29T12:00:00Z.",
+    "procedencia": {"fuente": "boe.legislacion-consolidada", "url": "<url>", "fecha_consulta": "2026-09-29T12:00:00Z"},
     "fecha_vigencia": "20161002",
     "fecha_vigencia_reciente": "20250101"
   }
 ]
 ```
+
+Con la `Norma` citada por su `identificador`, la explicación de `fuente-caducada` dice `La consulta de
+BOE-A-2015-10565 a …` (guion `h7-grafo-fuente-caducada`).
 
 `data` es la lista, vacía y nunca nula sin hallazgos (FR-060); ordenada por clase y después por id, comparando bytes
 (FR-062). Las claves propias de una clase no aparecen en la otra (`omitempty`, research V7).
@@ -135,7 +188,17 @@ ningún par con 0; los textos solo en total; con el grafo ausente o vacío, tres
 | `KITLEGAL_CACHE_DIR` presente y vacía o que nombra algo que no es directorio; sin ella y sin `HOME` (también con `--no-graph`) | 2 | `argumentos` |
 | `show` de un id ausente —también uno con espacios y algo más (`a b`), con un carácter de formato como U+200B o con bytes que no son UTF-8—, o con el grafo ausente o sin esquema (el mensaje nombra el id) | 3 | `no-encontrado` |
 | Plazo de `--timeout` agotado esperando un bloqueo | 4 | `fuente-no-disponible` |
-| `world.db` inutilizable (no es base, dañada, directorio, no deja abrirse —también sin deshacer un diario caliente, que leer exigiría modificar—, esquema posterior) o bloqueo más largo que la espera propia; el mensaje nombra la ruta | 1 | `inesperado` |
+| `world.db` inutilizable (no es base, dañada, directorio, no deja abrirse —también sin deshacer un diario caliente, que leer exigiría modificar—, esquema posterior) o bloqueo más largo que la espera propia; el mensaje nombra la ruta (contracts/almacen-world-db.md §6) | 1 | `inesperado` |
+| `check` sobre lo que ninguna entrega guarda y `grafo.Comprobar` no puede comprobar (una fecha de consulta que no es RFC 3339); el mensaje nombra `world.db` pero **no** su ruta, que `graph.Lectura` no expone: `grafo: world.db guarda lo que ninguna entrega escribe y no se puede comprobar; no se modifica: <causa>` | 1 | `inesperado` |
+| Dependencias sin reloj (defecto de composición) | 1 | `inesperado` |
+
+Mensajes: un id que `ValidarID` rechaza, `el id "<id>" no puede ser el de ningún nodo: <motivo>`, con el motivo
+`está vacío`, `solo tiene caracteres de espacio en blanco` o `contiene el carácter de control U+XXXX` (en ese orden de
+comprobación); un id ausente, `no encontrado: el id "<id>" no está en el grafo del mundo`; los fallos de
+`internal/graph`, los de contracts/almacen-world-db.md §6. Los bytes que no son UTF-8 de un argumento los cambia por
+U+FFFD el analizador de la línea de órdenes (Kong, en `internal/cli`) antes de que lleguen al applet, así que
+`show` busca el id con U+FFFD, que ningún applet emite, y sale con 3 nombrándolo así (lo fija
+`TestAppletGrafo/no-encontrado`).
 
 Las dos clases de caracteres del id de `show` (FR-052; research D35, V37):
 
@@ -172,10 +235,10 @@ generado con `TestEsquemasPublicados -actualizar-esquemas` y vigilado por `make 
 | Control | Test |
 |---|---|
 | Verbos, argumentos, códigos 0/1/2/3/4, procedencia, `--no-graph` igual, tabla sin `--json` | `TestAppletGrafo` (`internal/app/grafo_test.go`) sobre un registro local |
-| Toda salida correcta contra `schemas/grafo.json` | `TestSalidaDelGrafoContraSchemas` |
+| Toda salida correcta, y el sobre de cada fallo que decide el applet (2, 3, 4 y 1), contra `schemas/grafo.json` | `TestSalidaDelGrafoContraSchemas` |
 | Reglas, orden, explicaciones literales, instante de caducidad con desplazamiento, cita; `fecha_vigencia` válida solo con cifras ASCII | `TestComprobar`, `TestExplicaciones` (`internal/core/grafo`) |
 | Id de `show`: vacío, U+0020, U+00A0 y U+2003 solos, `\t` solo, U+0085 solo, U+007F solo y `a` + U+0000 + `b` → `argumentos`; `a b`, ` a`, U+200B y un id con un byte que no es UTF-8 → válidos | `TestValidarID` (`internal/core/grafo`) |
 | Ningún verbo devuelve una línea (≥ 20 caracteres) del texto de ninguna respuesta grabada de `articulo` y `articulos` (FR-070, SC-006) | `TestNingunVerboDelGrafoDevuelveTexto` |
 | Esquema de versión posterior en los tres verbos → 1 y fichero intacto (SC-011) | `TestCodigosDelGrafo` |
-| `check` < 3 s y `stats` < 1 s sobre 10 000 nodos y 10 000 aristas (SC-008) | `TestCosteDelGrafo` (`test-tiempos`) |
+| `check` < 3 s y `stats` < 1 s sobre 10 000 nodos y 10 000 aristas (SC-008) | `TestCosteDelGrafo` (`internal/app/coste_test.go`, `make test-tiempos`) |
 | e2e | `h7-grafo-show`, `h7-grafo-codigos`, `h7-grafo-version-obsoleta`, `h7-grafo-fuente-caducada`, `h7-grafo-applet` |

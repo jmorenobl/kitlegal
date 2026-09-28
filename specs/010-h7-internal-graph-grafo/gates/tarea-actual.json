@@ -1,20 +1,12 @@
 {
-  "id": "T029",
-  "texto": "T029 Cierre de la Definition of Done: specs/010-h7-internal-graph-grafo/datos-tocados.md enumera, para el informe final y su revisión posterior (capa 3), cada fichero de esquemas y de datos de prueba creado o modificado en el hito, sacado de `git diff --name-status main` (el esquema `grafo.json`, el esquema de eval, las tres derivadas del e2e, la derivada del grafo previo, `argumentos.txtar` y `territorio-matriz.txtar`, más los guiones `h7-*` que añadirá la activación de la suite), con la tarea que lo tocó y su motivo; deja constancia de que no aplican ni ADR nuevo (ADR 0014 deja los nombres al plan), ni fila nueva en el registro de fuentes revisadas, ni grabaciones, porque el hito no toca ninguna fuente; mide la cobertura leída de `coverage.out` con `go tool cover -func` (`internal/core/**` ≥ 85 %, global ≥ 70 %) y ejecuta los escenarios 2 a 12 de specs/010-h7-internal-graph-grafo/quickstart.md con lo esperado (un desajuste del propio texto del quickstart se corrige en ese fichero); sin código de producto (excepción declarada arriba) y con una sola corrección de test, la de la intermitencia de T007 que tiró la verificación del intento 1 (297,05 ms < 300 ms en el subtest de `TestReintentar` que corta la espera por el contexto): en internal/graph/espera_test.go, en `TestReintentar` y en `TestEsperaAnteUnBloqueoDeVerdad`, el origen de la medida `inicio := time.Now()` se toma antes de armar el plazo con `context.WithTimeout` (y antes del temporizador que suelta el bloqueo), porque medido después descuenta lo que tarda el hilo entre las dos líneas y la cota inferior de la espera cortada por el contexto falla; sin holgura en ninguna cota y sin ningún otro cambio; verificación: `make ci` en verde — FR-094, FR-095; SC-013; rutas: specs/010-h7-internal-graph-grafo/datos-tocados.md, specs/010-h7-internal-graph-grafo/quickstart.md, internal/graph/espera_test.go",
-  "intento": 2,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "6d01b8101a62bdb60d328fd97fb1665554eddd03",
-  "rutas": [
-    "argumentos.txtar",
-    "grafo.json",
-    "internal/core/**",
-    "internal/graph/espera_test.go",
-    "specs/010-h7-internal-graph-grafo/datos-tocados.md",
-    "specs/010-h7-internal-graph-grafo/quickstart.md",
-    "territorio-matriz.txtar"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
-  "nota": "9531f5be50d37c620dbef1aa7ab989769c47ed1f81593154994d10e6593233e3"
+  "nota": "-"
 }

@@ -127,8 +127,10 @@ escribe en `fecha_consulta` (V2). El almacén guarda ese texto tal cual y compar
 
 **Decisión.** `graph.Nulo` implementa `core.GraphStore` y descarta. El registro gana `EntregarAlGrafo(almacen
 core.GraphStore)`; el de producción y el de e2e lo llaman con `graph.Nuevo()`; el valor cero del registro —el de los
-tests y el de la preparación de evals— no entrega nada, de modo que ningún test escriba en el `world.db` de la cuenta
-de quien los ejecuta.
+tests y el de las consultas con que la preparación de evals llena la caché— no entrega nada, de modo que ningún test
+escriba en el `world.db` de la cuenta de quien los ejecuta. Quien necesita un grafo lo pide con un directorio
+explícito: los tests, con `graph.Nuevo(graph.ConDirectorio(<temporal>))`, y la preparación del grafo previo de una
+eval (D26), con `graph.Nuevo(graph.ConDirectorio(<caché de la sesión>))`.
 
 **Alternativa.** Que el valor cero entregue al `world.db` de la cuenta: cualquier test que ejecute un verbo con un
 registro propio escribiría en `$HOME`.
@@ -271,8 +273,10 @@ SQLite.
 
 **Decisión.** `Almacen.Apply`:
 
-1. valida el lote en el dominio (FR-024 lo que no necesita la base, FR-025) sin tocar el disco, y mira el contexto:
-   con el plazo ya agotado no toca nada;
+1. valida y consolida el lote en el dominio (`grafo.Consolidar`, que llama a `ValidarLote`: FR-024 lo que no necesita
+   la base, FR-025, y unos datos sin forma JSON canónica) sin tocar el disco, rechaza una vigencia que no es un número
+   entero de segundos —la columna `ttl` guarda segundos, y recortarla guardaría una vigencia que la fuente no
+   declaró—, y mira el contexto: con el plazo ya agotado no toca nada;
 2. resuelve el directorio (D8) y hace `os.Stat` de `world.db`: un directorio es inutilizable, sin tocar nada; ausente,
    paso 3; un fichero, paso 4;
 3. **`world.db` ausente: se construye en un temporal y se publica de una vez.**
@@ -281,7 +285,9 @@ SQLite.
    2. crea los directorios que falten, de uno en uno desde el primer antecesor que no existe (`0700`), y anota los que
       crea ella (un `EEXIST` es de otra invocación y no se anota);
    3. `os.CreateTemp(<dir>, "world.db-nuevo-*")` (`0600`); si falla porque el directorio ya no existe (otra invocación
-      que falló lo retiró vacío), vuelve a 3.2 mientras quede plazo;
+      que falló lo retiró vacío), vuelve a 3.2 mientras quede plazo, solo si el antecesor más cercano que existe
+      (`os.Lstat`), él mismo incluido, es un directorio; si es un enlace sin destino o algo que no es un directorio,
+      volver daría siempre lo mismo y la entrega falla enseguida («no se puede escribir world.db en …») sin crear nada;
    4. abre el temporal con la cadena de escritura del paso 4, fija `journal_mode=WAL` fuera de toda transacción y
       comprueba que el pragma devuelve `wal` —dentro de una transacción SQLite no lo fija, y sobre un fichero de 0
       bytes lo calla: devuelve `delete` sin error (V42)—; nadie más conoce el temporal, así que no espera a nadie; y en
@@ -440,7 +446,11 @@ arista por terna» (FR-022).
 fecha, sin vigencia antes que con ella y la menor, datos canónicos), comparando bytes; la **primera** es la de menor
 instante y, a igualdad, la menor por (url, fuente, texto de la fecha). Como solo se guardan esas dos y la de un texto
 (la más antigua con el mismo orden), el resultado no depende del orden de llegada ni de repetir un lote (FR-022). Las
-funciones son puras en `internal/core/grafo` y se prueban en los dos órdenes de llegada.
+funciones son puras en `internal/core/grafo` y se prueban en los dos órdenes de llegada. Quedaron así: un registro por
+tabla (`RegistroDeNodo`, `RegistroDeArista`, `RegistroDeTexto`, con los campos de las columnas de data-model §3) y
+`FusionarNodo`, `FusionarArista` y `FusionarTexto(guardado, llegado)`, que devuelven el registro fusionado —el guardado
+si nada cambia, para que el adaptador escriba solo si difiere— y rechazan con un `*Rechazo` un tipo o un cuerpo
+distintos del guardado; `Consolidar` reduce el lote a un registro por clave, ordenado por la clave.
 
 **Alternativa.** Guardar solo la fecha de la primera: el desempate por url no se podría reproducir y dependería del
 orden de llegada.
@@ -454,13 +464,17 @@ huella `sha256:` + SHA-256 de su cuerpo, si el lote da dos tipos a un id, o si u
 cualquier cadena de sus datos (claves y valores, a cualquier profundidad) algo con la forma de DNI, NIE o NIF. La
 expresión (RE2, V6) es una sola, **sin** la bandera `(?i)`: las mayúsculas y minúsculas van en clases ASCII explícitas,
 con las clases de caracteres de D34 y los separadores y los límites de FR-025 (contracts/almacen-world-db.md §5). Lo que necesita la base (extremos, tipo guardado, huella guardada con otro cuerpo) se
-comprueba dentro de la transacción (D11).
+comprueba dentro de la transacción (D11). También rechaza una operación nula o un puntero a `Nodo`, `Arista` o
+`Texto` (la interfaz sellada los admite), y `Consolidar` rechaza unos datos sin forma JSON canónica; las cadenas de una
+`Persona` se examinan en esa forma canónica, y una `Persona` cuyos datos no la tienen se rechaza.
 
 ### D15 · `check` sobre una instantánea, en el dominio
 
-**Decisión.** `internal/graph` lee todos los nodos y aristas en una transacción de lectura y
-`grafo.Comprobar(instantanea, ahora)` aplica las dos reglas y ordena los hallazgos. Diez mil nodos y diez mil aristas
-caben de sobra en memoria (SC-008).
+**Decisión.** `internal/graph` lee todos los nodos y aristas en una transacción de lectura (`Lectura.Instantanea`) y
+`grafo.Comprobar(instantanea, ahora) ([]Hallazgo, error)` aplica las dos reglas y ordena los hallazgos; sin hallazgos
+devuelve una lista vacía, nunca nula, y lo que ninguna entrega guarda (una fecha que no es RFC 3339, una vigencia
+negativa o con fracción de segundo) es un error sin hallazgos, que el applet da como `inesperado`. Diez mil nodos y
+diez mil aristas caben de sobra en memoria (SC-008).
 
 **Alternativa.** Consultas SQL con `json_extract`: reglas de dominio escritas en SQL, peor probadas y fuera del umbral
 de `internal/core/**`.
@@ -499,7 +513,8 @@ los verbos leen igual (no tienen efectos) y el kernel escribe su descripción, c
 **Decisión.** `internal/source/boe/grafo.go` compone el `Observado` de `articulo` y de `articulos` a partir de los
 `Articulo` ya compuestos (FR-040), con la vigencia de la consulta (`vigenciaLarga`); `articulo.go` lo pone en el
 resultado de éxito. El id de la norma sale de `url_eli` con `net/url`: desde el primer segmento de la ruta que es
-exactamente `eli` hasta el final; sin él no se emite nada (FR-040). `indice`, `buscar`, `metadatos` y `analisis` no
+exactamente `eli` hasta el final, con los segmentos de la ruta tal como va escrita (`EscapedPath`: una `%2F` no parte
+un segmento); sin él no se emite nada (FR-040). `indice`, `buscar`, `metadatos` y `analisis` no
 emiten.
 
 **Alternativa.** Componerlo en `internal/app/boe.go`: sacaría de la fuente el conocimiento de sus propios

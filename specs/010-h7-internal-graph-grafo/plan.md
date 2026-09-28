@@ -301,16 +301,20 @@ internal/
 │   ├── grafo/                       NUEVO   dominio del grafo
 │   │   ├── doc.go
 │   │   ├── vocabulario.go           tipos, relaciones, claves de datos, clases de hallazgo
-│   │   ├── lote.go                  ValidarLote, ValidarContraGrafoVacio, Consolidar
+│   │   ├── lote.go                  ValidarLote, ValidarContraGrafoVacio, Consolidado, Consolidar
 │   │   ├── persona.go               la expresión de FR-025 y el recorrido de los datos
-│   │   ├── canonico.go              datos canónicos (RFC 8785, jsontext)
-│   │   ├── observacion.go           instantes, desempate, fusión de nodos, aristas y textos (FR-023)
-│   │   ├── salida.go                Ficha, NodoDeFicha, AristaDeFicha, Procedencia, Recuento, Hallazgo, Instantanea
-│   │   ├── comprobar.go             Comprobar: version-obsoleta, fuente-caducada, orden
+│   │   ├── canonico.go              DatosCanonicos (RFC 8785, jsontext)
+│   │   ├── observacion.go           RegistroDeNodo, RegistroDeArista, RegistroDeTexto; instantes, desempate y
+│   │   │                            FusionarNodo, FusionarArista, FusionarTexto (FR-023)
+│   │   ├── salida.go                Procedencia, Ficha, NodoDeFicha, AristaDeFicha, Recuento, RecuentoDeNodos,
+│   │   │                            RecuentoDeAristas, Hallazgo, Instantanea, NodoDeInstantanea; MarshalJSON de
+│   │   │                            Ficha y Recuento (listas vacías, nunca null)
+│   │   ├── comprobar.go             Comprobar(instantanea, ahora) ([]Hallazgo, error): version-obsoleta,
+│   │   │                            fuente-caducada, orden
 │   │   ├── explicacion.go           plantillas, cita de un nodo, instante de caducidad
 │   │   ├── id.go                    ValidarID (show)
-│   │   ├── errores.go               errores de rechazo y de argumentos (ConClase)
-│   │   └── *_test.go                sintéticos, uno por fichero
+│   │   ├── errores.go               Rechazo (ConClase, inesperado) y el error de un id no válido (argumentos)
+│   │   └── *_test.go                sintéticos, uno por fichero salvo doc.go y vocabulario.go
 │   └── territorio/
 │       ├── grafo.go                 NUEVO   Territorio.Observado()
 │       └── grafo_test.go            NUEVO   incluido «sin DIR3» con fuentes sintéticas
@@ -320,16 +324,16 @@ internal/
 │   └── superficie_test.go           CAMBIA  «func Directorio» en superficieDelContrato (l. 68-89)
 ├── graph/                           NUEVO   adaptador SQLite de world.db
 │   ├── doc.go
-│   ├── almacen.go                   Nuevo, opciones, Apply
+│   ├── almacen.go                   Almacen, Nuevo, Apply (valida y consolida; publicar o aplicar en su sitio)
 │   ├── nulo.go                      Nulo
-│   ├── ruta.go                      directorio (opción o cache.Directorio), world.db
-│   ├── abrir.go                     cadenas de conexión, nombre de los auxiliares (ruta resuelta fuera de Windows), comprobación de escritura, apertura para leer (modo según los auxiliares y el permiso) y para escribir, recurso inmutable
+│   ├── ruta.go                      Opcion, ConDirectorio; directorio (opción o cache.Directorio), world.db
+│   ├── abrir.go                     cadenas de lectura, nombre de los auxiliares (ruta resuelta fuera de Windows), comprobación de escritura y de lectura, apertura para leer (modo según los auxiliares y el permiso), recurso inmutable, y las piezas que la entrega reutiliza (abrirConexion, leerVersion, cerrarTrasElFallo)
 │   ├── migraciones.go               versión, migración dentro de la transacción
 │   ├── migraciones/0001_grafo.sql   esquema v1 (data-model §3)
 │   ├── espera.go                    reintento por tramos que mira el contexto
-│   ├── aplicar.go                   la transacción de Apply
+│   ├── aplicar.go                   cadena de escritura; world.db que existe: comprobación de escritura, validación contra el grafo vacío con 0 bytes, versión, WAL fuera de la transacción, la transacción de Apply y la fusión con lo guardado
 │   ├── publicar.go                  world.db ausente: directorios, temporal, os.Link (costura no exportada), limpieza
-│   ├── lectura.go                   Leer, Ficha, Recuento, Instantanea, Close
+│   ├── lectura.go                   Lectura, Leer; Ficha, Recuento, Instantanea (cada una en su transacción de lectura), Close
 │   ├── errores.go                   Error (ConClase), mensajes con world.db
 │   ├── *_test.go                    t.TempDir(); superficie_test.go
 │   ├── integracion_test.go          //go:build integration — matriz de FR-088
@@ -337,16 +341,17 @@ internal/
 ├── source/boe/
 │   ├── grafo.go                     NUEVO   Observado de articulo/articulos, id ELI
 │   ├── grafo_test.go                NUEVO
-│   └── articulo.go                  CAMBIA  el resultado de éxito lleva su Observado
+│   ├── articulo.go                  CAMBIA  el resultado de éxito lleva su Observado
+│   └── articulo_test.go, fuente_test.go  CAMBIAN  los resultados de éxito esperados llevan su Observado
 ├── cli/
 │   ├── sobre.go                     CAMBIA  Montador.Grafo, Emitir(ctx, …), entrega tras presentar
-│   ├── entrega.go                   NUEVO   LoteDe, la línea de aviso
+│   ├── entrega.go                   NUEVO   LoteDe, la entrega y la línea de aviso
 │   ├── entrega_test.go              NUEVO   TestEntregaDelMontador
-│   ├── sobre_test.go, describe_test.go  CAMBIAN  Emitir(context.Background(), …)
+│   ├── sobre_test.go                CAMBIA  emitirDePrueba con Emitir(context.Background(), …)
 │   ├── globales.go                  CAMBIA  ayuda y comentario de --no-graph
 │   └── globales_test.go             CAMBIA  la ayuda literal
 ├── app/
-│   ├── grafo.go                     NUEVO   applet graph, DependenciasDeGrafo
+│   ├── grafo.go                     NUEVO   applet graph, DependenciasDeGrafo, DependenciasDelGrafoDelSistema
 │   ├── grafo_test.go                NUEVO   TestAppletGrafo, TestSalidaDelGrafoContraSchemas, TestCodigosDelGrafo,
 │   │                                        TestLaEntregaLlevaLaProcedenciaDelSobre, TestNingunVerboDelGrafoDevuelveTexto,
 │   │                                        TestLaSalidaDeBoeNoCambiaConElGrafo, TestGrabacionesDerivadas
@@ -356,10 +361,11 @@ internal/
 │   ├── registro.go                  CAMBIA  EntregarAlGrafo; registra graph y graph.Nuevo()
 │   ├── registro_test.go             CAMBIA  lista boe, graph, skills, territorio (l. 245-246)
 │   ├── territorio.go                CAMBIA  el resultado lleva resuelto.Observado()
+│   ├── territorio_test.go           CAMBIA  TestResolverDeclaraLoObservado
 │   ├── esquemas_test.go             CAMBIA  fila grafo.json
 │   ├── e2e_test.go                  CAMBIA  3 binarios con reloj, copia de derivadas, TestBinariosDelArnes
 │   ├── ejemplo/kitlegal-e2e/main.go CAMBIA  registra graph y la entrega; variable reloj (-X)
-│   ├── ejemplo/kitlegal-e2e/main_test.go CAMBIA  lista de applets (l. 90), reloj válido e inválido
+│   ├── ejemplo/kitlegal-e2e/main_test.go CAMBIA  lista de applets (l. 90); TestDependenciasDelReloj (reloj válido e inválido)
 │   └── testdata/
 │       ├── derivadas/               NUEVO   [datos] version-posterior/, sin-eli/, eli-sin-segmento/
 │       └── script/
@@ -367,13 +373,15 @@ internal/
 │           ├── territorio-matriz.txtar CAMBIA [datos] ! exists cache/cache.db (l. 206)
 │           └── h7-*.txtar           NUEVOS  activación del workflow (copias de aceptacion/)
 ├── evals/
-│   ├── formato.go                   CAMBIA  Prohibidos, GrafoPrevio, formaComprobacion
-│   ├── juzgar.go                    CAMBIA  forma comprobación, prohibidos
+│   ├── formato.go                   CAMBIA  Prohibidos, GrafoPrevio, ComandoProhibido, formaComprobacion
+│   ├── juzgar.go                    CAMBIA  forma comprobación, prohibidos (ComandosProhibidosEjecutados)
 │   ├── consultas.go                 CAMBIA  la comprobación no genera consulta
-│   ├── preparar.go                  CAMBIA  grafo previo antes de la caché
-│   ├── grabaciones.go               CAMBIA  directorio de los grafos previos
+│   ├── preparar.go                  CAMBIA  grafo previo antes de la caché (prepararGrafoPrevio, PuntoGrafoPrevio,
+│   │                                        SesionAPreparar.GrafosPrevios)
+│   ├── grabaciones.go               CAMBIA  constante GrafosPrevios, el directorio de los grafos previos
 │   ├── informe.go                   CAMBIA  comandos_prohibidos_ejecutados
-│   └── *_test.go                    CAMBIAN formato, juzgar, consultas, preparar, informe, conjunto
+│   ├── conjunto.go                  CAMBIA  el comentario de las informativas
+│   └── *_test.go                    CAMBIAN formato, juzgar, consultas, preparar, informe, conjunto, grabaciones
 └── arch_test.go                     CAMBIA  R6; comentario de R3
 cmd/kitlegal/main_test.go            CAMBIA  appletsDelBinario con graph (l. 19); graph sin verbo
 schemas/
@@ -405,7 +413,7 @@ lógica en `internal/core/grafo`), adaptador SQLite en `internal/graph`, composi
 | `grafo-memoria` | US1 | US1.1-US1.4, empate de fecha de consulta (*Edge Cases*) · FR-001, FR-002, FR-021, FR-022, FR-023, FR-026, FR-030, FR-035, FR-040, FR-043, FR-053, FR-054, FR-065, FR-089, FR-093 · SC-001, SC-002 |
 | `grafo-no-emiten` | US1 | US1.5 · FR-030, FR-032, FR-034, FR-040, FR-046 · SC-004 |
 | `grafo-version-obsoleta` | US2 | US2.1-US2.3 · FR-060, FR-061, FR-062, FR-063, FR-064, FR-090, FR-093 · SC-005 |
-| `grafo-fuente-caducada` | US2 | US2.4-US2.5 · FR-004, FR-061, FR-065, FR-066, FR-067 |
+| `grafo-fuente-caducada` | US2 | US2.4-US2.5 · FR-004, FR-023, FR-061, FR-065, FR-066, FR-067 |
 | `grafo-no-interferencia` | US3 | US3.1-US3.4, US3.7 · FR-005, FR-031, FR-034, FR-042, FR-091 · SC-003, SC-004 |
 | `grafo-entrega-fallida` | US3 | US3.5-US3.6 · FR-011, FR-012, FR-033 · SC-011 |
 | `grafo-codigos` | US4, US6 | US4.3, US4.4, US6.4 · FR-004, FR-010, FR-011, FR-013, FR-031, FR-052, FR-054, FR-060, FR-094 · SC-011 |
@@ -430,12 +438,12 @@ FR-080 a FR-082. **US6.1-US6.2** (rechazos y `Persona`), sin ningún emisor que 
 | Objetivo | Cambio | En `ci` |
 |---|---|---|
 | `test`, `test-integration` | sin cambio de receta; saltan también `TestCosteDelGrafo` porque entra en `MEDIDAS_DE_TIEMPO` | sí |
-| `test-tiempos` | `MEDIDAS_DE_TIEMPO := ^(TestMedidasDeTiempo|TestCosteDelGrafo)$$` (D28) | sí |
+| `test-tiempos` | `MEDIDAS_DE_TIEMPO := ^(TestMedidasDeTiempo|TestCosteDelGrafo)$$` (D28); su línea de `make help` nombra también el coste del grafo; la receta, sin `-v`, no cambia | sí |
 | `schema-check` | sin cambio de receta; gana `schemas/grafo.json` por el registro de producción | sí |
 | `skills-check` | sin cambio de receta; gana la tabla de `graph` en `boe-legislacion` y la eval nueva con su subprueba `grafo-previo` | sí |
 | `ci` | los mismos prerrequisitos | — |
 
-Como la receta de `test-tiempos` cambia, las tablas de objetivos de `README.md` y `CONTRIBUTING.md` se alinean en la
+Como lo que ejecuta `test-tiempos` cambia, las tablas de objetivos de `README.md` y `CONTRIBUTING.md` se alinean en la
 misma rama.
 
 ### Tests
@@ -446,13 +454,15 @@ misma rama.
 | `TestOperacionSellada`, `TestObservadoCero` | `internal/core/schema/grafo_test.go` | solo `Nodo`, `Arista` y `Texto` son operaciones; el valor cero no emite |
 | `TestValidarLote` | `internal/core/grafo/lote_test.go` | cada motivo de FR-024 que no necesita la base, con el lote entero rechazado; extremos contra grafo vacío; tipos en el lote |
 | `TestPersonaSinDocumento` | `internal/core/grafo/persona_test.go` | los 20 rechazos y las 11 aceptaciones de contracts/almacen-world-db.md §5 (SC-010 pide ≥ 12 y ≥ 6) en id, valor, anidado y clave, entre ellos los límites y las formas que solo la lectura ASCII decide: `ſ12345678Z`, `Martí12345678Z` y `12345678Zá` rechazan; `12345678Ñ`, `12345678` + U+212A, `12` + U+00A0 + `345 678 Z` y las cifras de anchura completa entran (D34) |
-| `TestDatosCanonicos` | `internal/core/grafo/canonico_test.go` | JCS: orden de claves, números, escapes; mismo resultado con otro orden |
+| `TestDatosCanonicos`, `TestDatosCanonicosSinOrden`, `TestDatosCanonicosImposibles` | `internal/core/grafo/canonico_test.go` | JCS: orden de claves, números, escapes; mismo resultado con otro orden; error sin corregir nada con lo que no tiene forma JSON |
+| `TestRechazo`, `TestSalidaDelGrafoEnJSON` | `internal/core/grafo/errores_test.go`, `salida_test.go` | cómo nombra un `Rechazo` cada operación (una `Persona` por su tipo, un texto por su huella); listas vacías y no `null` en `Ficha` y `Recuento` |
 | `TestFusionarNodo`, `TestFusionarArista`, `TestFusionarTexto`, `TestConsolidar` | `internal/core/grafo/observacion_test.go`, `lote_test.go` | FR-023 en los dos órdenes: fuera de orden, cada criterio del desempate, datos de la última, primera que no avanza, texto más antiguo, idéntica sin cambios |
 | `TestComprobar`, `TestExplicaciones`, `TestValidarID` | `internal/core/grafo` | FR-060 a FR-067: una vez por versión superada, empates de vigencia, vigencias no válidas (también con cifras que no son ASCII, D34), versión más reciente con sus desempates, caducidad estricta, futuro, sin vigencia, orden por clase e id, plantillas literales, instante con desplazamiento, cita de cada tipo; FR-052: id vacío, solo de espacio en blanco Unicode (U+0020, U+00A0, U+2003, `\t`, U+0085) o con un carácter de control Cc (U+0000, U+007F) → `argumentos`; `a b`, ` a`, U+200B y bytes que no son UTF-8 → válidos (D35) |
 | `TestObservadoDeTerritorio` | `internal/core/territorio/grafo_test.go` | FR-043 a FR-045 con fuentes sintéticas, «sin DIR3» incluido |
-| `TestDirectorio` (←), `TestSuperficieExportada` (←) | `internal/cache` | la regla exportada es la de la caché; la superficie gana solo esa función |
-| tests de `internal/graph` | `internal/graph/*_test.go` | ruta (opción, variable, `HOME`), cadenas de conexión, nombre de los auxiliares (ruta resuelta fuera de Windows), comprobación de escritura (`nil`, `fs.ErrNotExist`, otro error), modo de lectura según los auxiliares y el permiso, estados de data-model §3.1, esperas (tramos, contexto, espera propia), mensajes con `world.db`, `Nulo`, superficie sin la base; `publicar_test.go`: publicación del temporal con la costura de `os.Link` (`fs.ErrExist`, otro error, directorios retirados); `aplicar_test.go`: lo declarado para un `world.db` sin esquema fuera de WAL, con las cotas afirmadas en cada caso (mismas tablas y filas, `wal`, versión 0, ningún fichero nuevo) y el resultado exacto de cada base que construye, con la lista literal de bytes distintos y el tamaño —0 bytes → 4096; cabecera de este controlador → 18, 19, 27, 95; con otra versión en 96-99 → además 98, 99; con `version-valid-for` distinto del contador y tamaño 0 en 28-31 → además 31; con acarreo del contador → 18, 19, 26, 27, 94, 95; `auto_vacuum=full` con páginas libres al final → de 176 128 a 12 288 bytes y 18, 19, 27, 31, 35, 39, 95; con una página en uso detrás de las libres → de 188 416 a 24 576 bytes y los 59 de V45; `auto_vacuum=INCREMENTAL` → 18, 19, 27, 95; diario frío de `PERSIST` y vacío de `TRUNCATE` → 18, 19, 27, 95 y sin diario; 0 bytes con diario vacío → 4096 y sin diario— (contracts/almacen-world-db.md §7, V41, V45) |
-| matriz de FR-088 | `internal/graph/integracion_test.go` (`integration`) e `integracion_enlace_test.go` (`integration && unix`) | contracts/almacen-world-db.md §7, con la lectura con un `-wal` huérfano y con un escritor abierto (`world.db` y `-wal` iguales; `-shm` presente), con un `-shm` suelto (aparece un `-wal` vacío, V48), con un `world.db-journal` caliente (1, `inesperado`, `world.db` y el diario iguales), frío, vacío o de un escritor vivo (se lee; nada cambia), sin permiso de escritura sobre `world.db` (se lee y ningún fichero cambia ni aparece; la entrega falla sin tocar nada, tampoco con un diario caliente; V46), con `world.db` como enlace a un destino con un `-wal` huérfano y como enlace sin destino (V47), la recuperación declarada en una entrega que falla (con un `-wal` huérfano: `world.db` con lo confirmado y sin auxiliares; con un diario caliente: deshecho) y la ausencia de residuo con `world.db` ausente |
+| `TestResolverDeclaraLoObservado` | `internal/app/territorio_test.go` | el resultado de éxito de `territorio resolver` lleva `resuelto.Observado()`; un fallo no observa nada |
+| `TestDirectorio`, `TestSuperficieExportada` (←) | `internal/cache` | la regla exportada es la de la caché; la superficie gana solo esa función |
+| tests de `internal/graph` | `internal/graph/*_test.go` (`abrir_test.go`, `almacen_test.go`, `aplicar_test.go`, `errores_test.go`, `espera_test.go`, `lectura_test.go`, `migraciones_test.go`, `nulo_test.go`, `publicar_test.go`, `ruta_test.go`, `superficie_test.go`) | ruta (opción, variable, `HOME`), cadenas de conexión, nombre de los auxiliares (ruta resuelta fuera de Windows), comprobación de escritura (`nil`, `fs.ErrNotExist`, otro error), modo de lectura según los auxiliares y el permiso, estados de data-model §3.1, esperas (tramos, contexto, espera propia), mensajes con `world.db`, `Nulo`, superficie sin la base; `publicar_test.go`: publicación del temporal con la costura de `os.Link` (`fs.ErrExist`, otro error, directorios retirados); `aplicar_test.go`: lo declarado para un `world.db` sin esquema fuera de WAL, con las cotas afirmadas en cada caso (mismas tablas y filas, `wal`, versión 0, ningún fichero nuevo) y el resultado exacto de cada base que construye, con la lista literal de bytes distintos y el tamaño —0 bytes → 4096; cabecera de este controlador → 18, 19, 27, 95; con otra versión en 96-99 → además 98, 99; con `version-valid-for` distinto del contador y tamaño 0 en 28-31 → además 31; con acarreo del contador → 18, 19, 26, 27, 94, 95; `auto_vacuum=full` con páginas libres al final → de 176 128 a 12 288 bytes y 18, 19, 27, 31, 35, 39, 95; con una página en uso detrás de las libres → de 188 416 a 24 576 bytes y los 59 de V45; `auto_vacuum=INCREMENTAL` → 18, 19, 27, 95; diario frío de `PERSIST` y vacío de `TRUNCATE` → 18, 19, 27, 95 y sin diario; 0 bytes con diario vacío → 4096 y sin diario; una base que ya estaba en WAL → los mismos bytes— (`TestPasoAWALDeUnaBaseDeFuera`, por los pasos internos; contracts/almacen-world-db.md §7, V41, V45) |
+| matriz de FR-088 | `internal/graph/integracion_test.go` (`integration`) e `integracion_enlace_test.go` (`integration && unix`) | contracts/almacen-world-db.md §7, con la lectura con un `-wal` huérfano y con un escritor abierto (`world.db` y `-wal` iguales; `-shm` presente), con un `-shm` suelto (aparece un `-wal` vacío; el `-shm` de un lector sobre una base limpia queda igual y el de un escritor con marcos se reescribe, V48), con un `world.db` de 0 bytes y un `-wal` no vacío —sin `-shm`, con `-shm` y en `0400`: los tres verbos leen el grafo vacío y ningún fichero cambia; `Apply` con un lote que el grafo vacío rechaza no toca nada, y con un fallo posterior el `-wal` ya no está, salvo en `0400`, donde la entrega falla antes de abrir SQLite y nada cambia (V49)—, con un `world.db-journal` caliente (1, `inesperado`, `world.db` y el diario iguales), frío, vacío o de un escritor vivo (se lee; nada cambia), sin permiso de escritura sobre `world.db` (se lee y ningún fichero cambia ni aparece; la entrega falla sin tocar nada, tampoco con un diario caliente; V46), con `world.db` como enlace a un destino con un `-wal` huérfano y como enlace sin destino (V47), la recuperación declarada en una entrega que falla (con un `-wal` huérfano: `world.db` con lo confirmado y sin auxiliares; con un diario caliente: deshecho) y la ausencia de residuo con `world.db` ausente |
 | `TestObservadoDeBoe` | `internal/source/boe/grafo_test.go` | FR-040, FR-041, FR-065, FR-071: ids, datos, aristas, texto, sin ELI, verbos que no emiten |
 | `TestEntregaDelMontador` | `internal/cli/entrega_test.go` | contracts/resultado-y-entrega.md §4 |
 | `TestGlobales` (←) | `internal/cli/globales_test.go` | la ayuda literal de `--no-graph` |
@@ -468,7 +478,7 @@ misma rama.
 | `TestRegistroDeProduccion` (←), `TestRegistroDeE2E` (←), `TestPuntoDeEntrada` (←) | `internal/app`, `ejemplo/kitlegal-e2e`, `cmd/kitlegal` | registro `boe, graph, skills, territorio`; `graph` sin verbo → 2 con sus tres verbos |
 | `TestEsquemasPublicados` (←) | `internal/app/esquemas_test.go` | fila `grafo.json`, entidad `grafo`, verbos `check`, `show`, `stats` |
 | `TestArquitectura` (←) | `internal/arch_test.go` | R6 transitiva, con `internal/graph` en el grafo |
-| `TestLeerEval`, `TestEsquemaDeEval`, `TestFormaDelComando`, `TestJuzgar`, `TestInforme`, `TestPrepararGrafoPrevio`, `TestEvalsDelRepositorio` (←) | `internal/evals` | contracts/evals-y-skill.md §6 |
+| `TestLeerEval`, `TestEsquemaDeEval`, `TestFormaDelComando`, `TestConsultasNecesarias`, `TestJuzgar`, `TestInforme`, `TestInformeConProhibidos`, `TestPrepararGrafoPrevio`, `TestDirectorioDeLosGrafosPrevios`, `TestEvalsDelRepositorio` (←) | `internal/evals` | contracts/evals-y-skill.md §6 |
 | `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`, `TestTablaDeComandosCoincideConLaGramatica` | `internal/app/skills_test.go` (sin cambios) | la tabla de `graph` en `boe-legislacion`; cada fila con `--describe` sale con 0 |
 | `TestEntregaDelHito` | `internal/app/e2e_test.go` | los 11 guiones `h7-*` y los existentes |
 
@@ -482,8 +492,9 @@ cambia en el mismo diff**.
 |---|---|---|---|
 | 2 | `internal/core/schema/sobre_test.go:195-196` | `Resultado` gana `Grafo` | cinco campos |
 | 5 | `internal/cache/superficie_test.go:68-89` | se exporta `Directorio` | una entrada más |
-| 8 | `internal/cli/sobre_test.go`, `internal/cli/describe_test.go` (3 llamadas a `Emitir`) | `Emitir(ctx, …)` | `context.Background()` o `t.Context()` |
+| 8 | `internal/cli/sobre_test.go:203` (la única llamada a `Emitir` de los tests, en `emitirDePrueba`; `describe_test.go` solo lo nombra en cadenas de datos y no cambia) | `Emitir(ctx, …)` | `context.Background()` |
 | 8 | `internal/cli/globales_test.go` | la ayuda de `--no-graph` | la frase de FR-031 |
+| 9 | `internal/source/boe/articulo_test.go` (`TestArticulo`, `TestArticulos`, `TestFechaDeConsultaDeArticulo`), `internal/source/boe/fuente_test.go` (`TestCacheDeLosSeisVerbos`) | comparan el `Resultado` entero de un éxito sin `--dry-run`, que ahora lleva su `Observado` | el resultado esperado con el `Observado` del artículo o de los artículos |
 | 12 | `internal/app/registro_test.go:245-246`; `cmd/kitlegal/main_test.go:19`; `internal/app/ejemplo/kitlegal-e2e/main_test.go:90`; `internal/app/testdata/script/argumentos.txtar:24`, `:30` | registrar `graph` | `boe, graph, skills, territorio` (y `boe, contar, echo, graph, skills, territorio` en e2e) |
 | 12 | `internal/app/testdata/script/territorio-matriz.txtar:206` | la entrega crea `cache/world.db` | `! exists cache/cache.db` (D29) |
 | 12 | `internal/app/esquemas_test.go:59-64` (`ficherosDeEsquemas`) | `TestEsquemasCubrenTodosLosVerbos` (l. 337) exige la parte publicada de cada verbo | fila `grafo.json` |
@@ -494,9 +505,9 @@ cambia en el mismo diff**.
 cambiar nada del grafo ni de su salida estándar o de error, y tiene que caber en su cota (V38, S6); si en el runner no
 cabe, se optimiza la entrega en `internal/graph`, nunca el guion ni la cota. `boe-codigos.txtar:41` y
 `boe-verbos.txtar:58` afirman `! exists cache` solo tras invocaciones que fallan o no ejecutan, que no entregan (V27); `ayuda.txtar` compara por expresión y `territorio`
-sigue siendo el nombre más largo; los tests de `internal/source/boe` que comparan un `Resultado` entero lo hacen bajo
-`--dry-run`, sin emisión (si alguno de éxito lo hiciera, la tarea del paso 9 lo amplía con el `Observado` esperado);
-los tests que ejecutan verbos con `RegistroDeProduccion` solo piden `--describe` o fallan, y no entregan.
+sigue siendo el nombre más largo; los tests que ejecutan verbos con `RegistroDeProduccion` solo piden `--describe` o
+fallan, y no entregan. Los tests de `internal/source/boe` que comparan el `Resultado` entero de un éxito sin
+`--dry-run` sí cambiaron: la tarea del paso 9 los amplió con el `Observado` esperado (fila del paso 9 de la tabla).
 
 ### Fixtures, `testdata/` y `schemas/` (tareas `[datos]`, FR-095)
 
@@ -547,9 +558,10 @@ comprobadas por `TestGrabacionesDerivadas`; `world.db` es un almacén local.
 8. **Kernel**: `internal/cli/entrega.go`, `sobre.go` (`Montador.Grafo`, `Emitir(ctx, …)`), `globales.go`, sus tests y
    los que la firma rompe; `internal/app/main.go` (desenlace, montador, contexto con el plazo),
    `internal/app/registro.go` (`EntregarAlGrafo`, sin registrar nada todavía) y `TestEntregaDelKernel`.
-9. **Emisión de `boe`**: `internal/source/boe/grafo.go` y `articulo.go` con `TestObservadoDeBoe`.
+9. **Emisión de `boe`**: `internal/source/boe/grafo.go` y `articulo.go` con `TestObservadoDeBoe`, y los resultados
+   de éxito esperados de `articulo_test.go` y `fuente_test.go` con su `Observado`.
 10. **Emisión de `territorio`**: `internal/core/territorio/grafo.go` e `internal/app/territorio.go` con
-    `TestObservadoDeTerritorio`.
+    `TestObservadoDeTerritorio` y `TestResolverDeclaraLoObservado`.
 11. **Applet `graph` sin registrar** (patrón 6a de H19): `internal/app/grafo.go` con `TestAppletGrafo` y
     `TestCodigosDelGrafo` sobre un registro local del test.
 12. **`[datos]` indivisible, y nada más**: registrar `graph` y `EntregarAlGrafo(graph.Nuevo())` en

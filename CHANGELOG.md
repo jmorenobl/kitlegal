@@ -17,8 +17,8 @@ sustituyen a este fichero.
 - **El grafo del mundo** (ADR 0014, pieza G0): el binario recuerda lo que observa de las fuentes, con su procedencia,
   en `world.db`, una base SQLite junto a la caché y con su misma regla de ubicación —`~/.cache/kitlegal/world.db`, u
   otra carpeta con `KITLEGAL_CACHE_DIR`—. Cada nodo, arista y texto lleva la `fuente`, la `url` y la `fecha_consulta`
-  del sobre de la invocación que lo observó, carácter a carácter, con su primera y su última observación; nada entra
-  sin fuente. Lo entrega el kernel **después** de presentar la salida, y solo cuando la invocación termina con `0` y
+  del sobre de la invocación que lo observó, carácter a carácter: un nodo y una arista, las de su primera y su última
+  observación; un texto, las de la más antigua. Nada entra sin fuente. Lo entrega el kernel **después** de presentar la salida, y solo cuando la invocación termina con `0` y
   su applet declara lo que ha observado: la salida estándar y el código no cambian ni un byte, con grafo o sin él.
   Nunca entrega un fallo, `--dry-run`, la ayuda, `--describe` ni `version`; con `--offline`, sí, porque el grafo es
   local. La entrega es transaccional e idempotente —repetir la misma consulta no duplica nada, y dos observaciones
