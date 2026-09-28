@@ -11,6 +11,7 @@ import (
 	"github.com/jmorenobl/kitlegal/data"
 	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 )
 
 // Los cinco motivos por los que el registro rechaza un applet, uno por cada
@@ -191,12 +192,15 @@ func validarVerbos(applet string, verbos []Verbo) error {
 }
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
-// con las dependencias de la red (DependenciasDeRed), el applet skills con las
-// del sistema (DependenciasDeSkillsDelSistema) y el applet territorio con los
-// ficheros que viajan en el binario (FuentesEmbebidas). Los applets de ejemplo no
-// se registran nunca aquí, sino en el binario que compila el test e2e, que usa
-// exactamente este mismo mecanismo (FR-001, FR-009,
-// contracts/registro-y-describe.md §3 de H1).
+// con las dependencias de la red (DependenciasDeRed), el applet graph con las
+// del sistema (DependenciasDelGrafoDelSistema), el applet skills con las del
+// sistema (DependenciasDeSkillsDelSistema) y el applet territorio con los
+// ficheros que viajan en el binario (FuentesEmbebidas); y, como almacén al que
+// el kernel entrega lo que observa cada invocación, el grafo del mundo en
+// world.db, junto a la caché y con su misma regla de ubicación (graph.Nuevo sin
+// opciones; FR-001, FR-030). Los applets de ejemplo no se registran nunca aquí,
+// sino en el binario que compila el test e2e, que usa exactamente este mismo
+// mecanismo (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
 // el error del registro en lugar de ocultarlo: un registro inválido es un
@@ -204,7 +208,8 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // publicar, y si llegara al binario, Arrancar lo convierte en el fallo
 // inesperado antes de atender ninguna invocación, nunca en un código de salida
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
-// nada ni abre nada.
+// nada ni abre nada: tampoco world.db, cuya ruta se resuelve al leer o al
+// entregar.
 //
 // Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
 // tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
@@ -226,6 +231,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	applets := []Applet{
 		AppletBoe(DependenciasDeRed()),
+		AppletGrafo(DependenciasDelGrafoDelSistema()),
 		AppletSkills(skills),
 		AppletTerritorio(fuentes),
 	}
@@ -237,6 +243,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 	}
 
 	registro.Avisar(AvisoDeVersion(skills))
+	registro.EntregarAlGrafo(graph.Nuevo())
 
 	return &registro, nil
 }

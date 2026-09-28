@@ -1,9 +1,9 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
-// binario que se publica— con los applets de ejemplo y los applets boe, skills y
-// territorio. Lo único que cambia entre este binario y el distribuido es la
-// composición: qué applets se registran, de dónde responde boe, que aquí es la
-// reproducción de sus grabaciones y nunca la red, y, si la construcción lo
+// binario que se publica— con los applets de ejemplo y los applets boe, graph,
+// skills y territorio. Lo único que cambia entre este binario y el distribuido
+// es la composición: qué applets se registran, de dónde responde boe, que aquí
+// es la reproducción de sus grabaciones y nunca la red, y, si la construcción lo
 // elige, un creador de enlaces de skills que siempre falla (FR-009, FR-024,
 // FR-114, contracts/registro-y-describe.md §3; contrato puerto-y-applet §5 de
 // H4; contracts/arnes-e2e.md §2 de H19).
@@ -30,6 +30,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/app/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
@@ -85,18 +86,21 @@ func main() {
 }
 
 // registroDeE2E construye el registro de este binario: los applets de ejemplo,
-// boe sobre la reproducción, skills con las mismas dependencias del sistema que
-// el binario distribuido —la versión de este binario, lo empotrado y el creador
-// de enlaces de internal/disco, salvo que la construcción eligiera el que
-// falla— y territorio con los mismos ficheros embebidos, que no dependen del
-// entorno (contrato del applet territorio §7). Construirlo no pide nada ni abre
-// nada. Un registro que no se construye es un defecto de quien escribió un
-// applet o esta composición, y app.Arrancar lo convierte en el fallo inesperado
-// antes de atender ninguna invocación: nunca en un código de salida de usuario
-// ni en un pánico (FR-008; research.md D16 de H4). Recibe la versión del binario
-// como el registro de producción, y como allí la lleva a skills y compone con
-// las mismas dependencias el aviso de versión, que registra (research.md D4 y
-// D5 de H19).
+// boe sobre la reproducción, graph con las mismas dependencias del sistema que
+// el binario distribuido, skills con las mismas dependencias del sistema que el
+// binario distribuido —la versión de este binario, lo empotrado y el creador de
+// enlaces de internal/disco, salvo que la construcción eligiera el que falla— y
+// territorio con los mismos ficheros embebidos, que no dependen del entorno
+// (contrato del applet territorio §7). Construirlo no pide nada ni abre nada. Un
+// registro que no se construye es un defecto de quien escribió un applet o esta
+// composición, y app.Arrancar lo convierte en el fallo inesperado antes de
+// atender ninguna invocación: nunca en un código de salida de usuario ni en un
+// pánico (FR-008; research.md D16 de H4). Recibe la versión del binario como el
+// registro de producción, y como allí la lleva a skills y compone con las
+// mismas dependencias el aviso de versión, que registra (research.md D4 y D5 de
+// H19); y, como allí, entrega lo que observa cada invocación al grafo del mundo
+// con la regla de ubicación de la caché, que el e2e fija en el directorio de
+// trabajo de cada guion (FR-001, FR-030; research.md D6 de H7).
 func registroDeE2E(version string) (*app.Registro, error) {
 	skills, err := dependenciasDeSkills(version, enlazador)
 	if err != nil {
@@ -115,6 +119,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 
 	applets := []app.Applet{
 		app.AppletBoe(dependenciasDeReproduccion()),
+		app.AppletGrafo(app.DependenciasDelGrafoDelSistema()),
 		app.AppletSkills(skills),
 		app.AppletTerritorio(fuentes),
 	}
@@ -126,6 +131,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 	}
 
 	registro.Avisar(app.AvisoDeVersion(skills))
+	registro.EntregarAlGrafo(graph.Nuevo())
 
 	return registro, nil
 }

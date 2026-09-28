@@ -81,11 +81,13 @@ func TestEnlazadorFallido(t *testing.T) {
 
 // TestRegistroDeE2E comprueba que el registro de este binario, construido sin
 // ninguna elección de enlazador —como en los tests, sin -ldflags—, lleva los
-// applets de ejemplo, boe, skills y territorio.
+// applets de ejemplo, boe, graph, skills y territorio. Que además entrega al
+// grafo del mundo lo ejercen los guiones del e2e, que ven world.db en el
+// directorio de la caché de cada guion.
 func TestRegistroDeE2E(t *testing.T) {
 	t.Parallel()
 
 	registro, err := registroDeE2E(versionDePrueba)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"boe", "contar", "echo", "skills", "territorio"}, registro.Nombres())
+	assert.Equal(t, []string{"boe", "contar", "echo", "graph", "skills", "territorio"}, registro.Nombres())
 }

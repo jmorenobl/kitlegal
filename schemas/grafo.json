@@ -1,0 +1,608 @@
+{
+  "$defs": {
+    "check": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "grafo.Hallazgo": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "type": "string"
+            },
+            "explicacion": {
+              "type": "string"
+            },
+            "fecha_vigencia": {
+              "type": "string"
+            },
+            "fecha_vigencia_reciente": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "procedencia": {
+              "$ref": "#/$defs/grafo.Procedencia"
+            },
+            "vigencia_segundos": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "clase",
+            "id",
+            "explicacion",
+            "procedencia"
+          ],
+          "type": "object"
+        },
+        "grafo.Procedencia": {
+          "additionalProperties": false,
+          "properties": {
+            "fecha_consulta": {
+              "type": "string"
+            },
+            "fuente": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fuente",
+            "url",
+            "fecha_consulta"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/grafo.json/check",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "items": {
+                  "$ref": "#/$defs/grafo.Hallazgo"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "graph check"
+    },
+    "show": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "grafo.AristaDeFicha": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "primera_observacion": {
+              "type": "string"
+            },
+            "relacion": {
+              "type": "string"
+            },
+            "ultima_observacion": {
+              "$ref": "#/$defs/grafo.Procedencia"
+            }
+          },
+          "required": [
+            "relacion",
+            "id",
+            "primera_observacion",
+            "ultima_observacion"
+          ],
+          "type": "object"
+        },
+        "grafo.Ficha": {
+          "additionalProperties": false,
+          "properties": {
+            "entrantes": {
+              "items": {
+                "$ref": "#/$defs/grafo.AristaDeFicha"
+              },
+              "type": "array"
+            },
+            "nodo": {
+              "$ref": "#/$defs/grafo.NodoDeFicha"
+            },
+            "salientes": {
+              "items": {
+                "$ref": "#/$defs/grafo.AristaDeFicha"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "nodo",
+            "salientes",
+            "entrantes"
+          ],
+          "type": "object"
+        },
+        "grafo.NodoDeFicha": {
+          "additionalProperties": false,
+          "properties": {
+            "datos": {
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "primera_observacion": {
+              "type": "string"
+            },
+            "tipo": {
+              "type": "string"
+            },
+            "ultima_observacion": {
+              "$ref": "#/$defs/grafo.Procedencia"
+            }
+          },
+          "required": [
+            "id",
+            "tipo",
+            "datos",
+            "primera_observacion",
+            "ultima_observacion"
+          ],
+          "type": "object"
+        },
+        "grafo.Procedencia": {
+          "additionalProperties": false,
+          "properties": {
+            "fecha_consulta": {
+              "type": "string"
+            },
+            "fuente": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fuente",
+            "url",
+            "fecha_consulta"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/grafo.json/show",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/grafo.Ficha"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "graph show"
+    },
+    "stats": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "grafo.Recuento": {
+          "additionalProperties": false,
+          "properties": {
+            "aristas": {
+              "type": "integer"
+            },
+            "aristas_por_relacion": {
+              "items": {
+                "$ref": "#/$defs/grafo.RecuentoDeAristas"
+              },
+              "type": "array"
+            },
+            "nodos": {
+              "type": "integer"
+            },
+            "nodos_por_tipo": {
+              "items": {
+                "$ref": "#/$defs/grafo.RecuentoDeNodos"
+              },
+              "type": "array"
+            },
+            "textos": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "nodos",
+            "aristas",
+            "textos",
+            "nodos_por_tipo",
+            "aristas_por_relacion"
+          ],
+          "type": "object"
+        },
+        "grafo.RecuentoDeAristas": {
+          "additionalProperties": false,
+          "properties": {
+            "aristas": {
+              "type": "integer"
+            },
+            "fuente": {
+              "type": "string"
+            },
+            "relacion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "relacion",
+            "fuente",
+            "aristas"
+          ],
+          "type": "object"
+        },
+        "grafo.RecuentoDeNodos": {
+          "additionalProperties": false,
+          "properties": {
+            "fuente": {
+              "type": "string"
+            },
+            "nodos": {
+              "type": "integer"
+            },
+            "tipo": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tipo",
+            "fuente",
+            "nodos"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/grafo.json/stats",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/grafo.Recuento"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "graph stats"
+    }
+  },
+  "$id": "https://kitlegal.es/schemas/grafo.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salidas de los verbos check, show y stats del applet graph. Generado desde --describe con make schema-check; no editar.",
+  "title": "graph · grafo"
+}
