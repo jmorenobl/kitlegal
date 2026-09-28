@@ -2,6 +2,7 @@
 # Rondas juez → corrector del workflow `hito` (docs/WORKFLOW.md «Tres capas de gate»).
 #
 #   scripts/workflow/gate.sh iniciar spec|plan|tasks|revision   # antes del bucle: pone a cero las rondas
+#   scripts/workflow/gate.sh cambios spec|plan|tasks             # al empezar cada ronda: diff de la corrección anterior
 #   scripts/workflow/gate.sh leer spec|plan|tasks <max>          # tras el juez → JSON
 #   scripts/workflow/gate.sh leer revision <max>                 # tras los dos jueces finales → JSON
 #   scripts/workflow/gate.sh cerrar spec|plan|tasks|revision <hito>
@@ -10,7 +11,16 @@
 # mecánico fuerza el rechazo), archiva la ronda en gates/<fase>-r<n>.json y decide
 # `seguir`: otra ronda mientras no esté aprobado y queden rondas. Un veredicto
 # ausente o mal formado no para nada: la ronda se repite con un juez nuevo, sin
-# corrector (`invalido`).
+# corrector (`invalido`). Las `observaciones` del veredicto (lo que el juez vio y no
+# pasa el umbral de materialidad ni el criterio de uso, ADR 0028) no cuentan para
+# nada: se archivan con la ronda y no llegan al corrector.
+#
+# Convergencia (ADR 0028): desde la segunda ronda, un motivo nuevo solo cuenta si lo
+# introdujo la corrección anterior o si es material. Para que el juez lo sepa sin
+# fiarse de nadie, leer guarda la instantánea de los artefactos que juzgó (fuera del
+# historial, en el git-dir) y cambios, al empezar la ronda siguiente, escribe en
+# gates/<fase>-correccion-r<n>.diff lo que el corrector cambió desde ella. En la
+# revisión final no hace falta: cada corrección es un commit.
 #
 # Ningún juez para el run (ADR 0018). La única excepción es el juez del spec, que
 # puede RECHAZAR LA ENTRADA con una lista cerrada de motivos (`entrada`:
@@ -32,7 +42,8 @@ tipos_entrada='["contradiccion","sin_criterio_comprobable","objetivo_vacio"]'
 # Valida un veredicto; imprime el motivo si no vale.
 invalido() {
   [ -f "$1" ] || { echo "falta $1"; return 0; }
-  jq -e 'has("veredicto") and (.criterios | type == "array" and length > 0) and (.motivos | type == "array")' "$1" >/dev/null 2>&1 \
+  jq -e 'has("veredicto") and (.criterios | type == "array" and length > 0) and (.motivos | type == "array")
+         and ((has("observaciones") | not) or (.observaciones | type == "array"))' "$1" >/dev/null 2>&1 \
     || { echo "formato inválido en $1"; return 0; }
   [ "$(jq -r '(.criterios | all(.cumple == true)) == (.veredicto == "aprobado")' "$1")" = true ] \
     || { echo "veredicto incoherente con sus criterios en $1"; return 0; }
@@ -41,9 +52,34 @@ invalido() {
 
 siguiente_ronda() { local n; n=$(cat "$rondas" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$rondas"; echo "$n"; }
 
+# Instantánea de lo que juzgó la ronda $1: el directorio del feature sin gates/ ni
+# aceptacion/, que ningún corrector de artefactos toca.
+instantanea() {
+  local snap
+  snap="$(dir_instantaneas)/$fase-r$1"
+  rm -rf "$snap"; mkdir -p "$snap"
+  cp -R "$d/." "$snap/"
+  rm -rf "$snap/gates" "$snap/aceptacion"
+}
+
 case "$accion" in
   iniciar)
-    rm -f "$rondas"; echo "rondas de $fase a cero";;
+    rm -f "$rondas" "$g/$fase"-correccion-r*.diff
+    rm -rf "$(dir_instantaneas)/$fase"-r*
+    echo "rondas de $fase a cero";;
+
+  cambios)
+    # Lo que cambió la corrección de la última ronda juzgada: diff entre su instantánea
+    # y el directorio del feature de ahora. Sin ronda anterior (la primera), nada.
+    n=$(cat "$rondas" 2>/dev/null || echo 0)
+    snap="$(dir_instantaneas)/$fase-r$n"
+    if [ "$n" -eq 0 ] || [ ! -d "$snap" ]; then echo "$fase: primera ronda, sin corrección anterior"; exit 0; fi
+    salida="$g/$fase-correccion-r$n.diff"
+    # diff sale con 1 cuando hay diferencias: no es un fallo. Las rutas se reescriben
+    # para que el fichero no dependa del git-dir ni del directorio del feature.
+    { diff -ruN -x gates -x aceptacion "$snap" "$d" || [ $? -eq 1 ]; } \
+      | sed -e "s#^\(--- \)$snap/#\1antes/#" -e "s#^\(+++ \)$d/#\1ahora/#" -e "s#^diff -ruN -x gates -x aceptacion $snap/\([^ ]*\) .*#diff antes/\1 ahora/\1#" > "$salida"
+    echo "$fase: corrección de la ronda $n en $salida ($(awk '/^[+-]/ && !/^(\+\+\+ ahora|--- antes)\// {n++} END {print n + 0}' "$salida") líneas cambiadas)";;
 
   leer)
     max="${3:?uso: gate.sh leer <fase> <max>}"
@@ -70,6 +106,7 @@ case "$accion" in
       exit 0
     fi
     v="$g/$fase.json"
+    instantanea "$n" # también con un veredicto inválido: la ronda siguiente verá un diff vacío, que es la verdad
     m=$(invalido "$v" || true)
     if [ -n "$m" ]; then
       jq -n --argjson n "$n" --argjson max "$max" --arg m "$m" \
