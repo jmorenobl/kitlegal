@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -16,7 +17,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,6 +29,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // El registro local de estos tests: el applet graph compuesto con un reloj fijo
@@ -172,40 +176,33 @@ func argvDelGrafo(argumentos ...string) []string {
 	return slices.Concat([]string{"kitlegal", "graph"}, argumentos)
 }
 
-// huellaDelCuerpo es la del texto de la muestra: sha256 de sus bytes.
+// huellaDelCuerpo es la del texto de la muestra.
 func huellaDelCuerpo() string {
-	suma := sha256.Sum256([]byte(cuerpoDelBloque))
+	return huellaDelTexto(cuerpoDelBloque)
+}
+
+// huellaDelTexto es la de un texto: sha256 de sus bytes.
+func huellaDelTexto(cuerpo string) string {
+	suma := sha256.Sum256([]byte(cuerpo))
 
 	return "sha256:" + hex.EncodeToString(suma[:])
 }
 
 // idDeLaVersion es el de la BloqueVersion de la muestra.
 func idDeLaVersion() string {
-	return idDelBloque + "@" + fechaDeVigenciaDePrueba + ":" + huellaDelCuerpo()
+	return idDeUnaVersion(fechaDeVigenciaDePrueba, cuerpoDelBloque)
+}
+
+// idDeUnaVersion es el de la BloqueVersion del bloque de la muestra con esa
+// fecha de vigencia y ese texto.
+func idDeUnaVersion(fechaDeVigencia, cuerpo string) string {
+	return idDelBloque + "@" + fechaDeVigencia + ":" + huellaDelTexto(cuerpo)
 }
 
 // lotesDeLaMuestra son los dos lotes de la muestra.
 func lotesDeLaMuestra() []core.Lote {
-	huella := huellaDelCuerpo()
-	version := idDeLaVersion()
-
 	return []core.Lote{
-		{
-			Fuente: fuenteDeLaNorma, URL: urlDeLaNorma, FechaConsulta: fechaDeLaNorma, Vigencia: vigenciaDeLaNorma,
-			Operaciones: []schema.Operacion{
-				schema.Nodo{
-					ID: idDeLaNorma, Tipo: grafo.TipoNorma,
-					Datos: map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma},
-				},
-				schema.Nodo{ID: idDelBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a1"}},
-				schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-					grafo.DatoFechaVigencia: fechaDeVigenciaDePrueba, grafo.DatoHashTexto: huella,
-				}},
-				schema.Arista{Origen: idDeLaNorma, Relacion: grafo.RelacionTieneParte, Destino: idDelBloque},
-				schema.Arista{Origen: idDelBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-				schema.Texto{Huella: huella, Cuerpo: cuerpoDelBloque},
-			},
-		},
+		loteDelBloque(fechaDeLaNorma, fechaDeVigenciaDePrueba, cuerpoDelBloque),
 		{
 			Fuente: fuenteDelMunicipio, URL: urlDelMunicipio, FechaConsulta: fechaDelMunicipio,
 			Operaciones: []schema.Operacion{
@@ -215,6 +212,33 @@ func lotesDeLaMuestra() []core.Lote {
 				schema.Nodo{ID: idDelOrgano, Tipo: grafo.TipoOrgano, Datos: map[string]any{grafo.DatoDIR3: idDelOrgano}},
 				schema.Arista{Origen: idDelOrgano, Relacion: grafo.RelacionPerteneceA, Destino: idDelMunicipio},
 			},
+		},
+	}
+}
+
+// loteDelBloque es un lote con la forma de lo que emite boe articulo del bloque
+// de la muestra en una redacción, consultada en esa fecha por la fuente de la
+// norma y con una semana de vigencia: la Norma, el Bloque y la BloqueVersion de
+// esa fecha de vigencia y ese texto, con sus dos aristas, y el texto por su
+// huella (contracts/emision.md §1).
+func loteDelBloque(fechaDeConsulta, fechaDeVigencia, cuerpo string) core.Lote {
+	huella := huellaDelTexto(cuerpo)
+	version := idDeUnaVersion(fechaDeVigencia, cuerpo)
+
+	return core.Lote{
+		Fuente: fuenteDeLaNorma, URL: urlDeLaNorma, FechaConsulta: fechaDeConsulta, Vigencia: vigenciaDeLaNorma,
+		Operaciones: []schema.Operacion{
+			schema.Nodo{
+				ID: idDeLaNorma, Tipo: grafo.TipoNorma,
+				Datos: map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma},
+			},
+			schema.Nodo{ID: idDelBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a1"}},
+			schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+				grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huella,
+			}},
+			schema.Arista{Origen: idDeLaNorma, Relacion: grafo.RelacionTieneParte, Destino: idDelBloque},
+			schema.Arista{Origen: idDelBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
+			schema.Texto{Huella: huella, Cuerpo: cuerpo},
 		},
 	}
 }
@@ -1074,6 +1098,611 @@ func compruebaCodigosDelSistema(
 			mensajeEsperado(t, mensaje)
 		}
 	}
+}
+
+// La versión posterior del bloque de la muestra: otra redacción, con una fecha
+// de vigencia posterior, que la misma fuente observa después, como la
+// observaría boe articulo tras el cambio. En instanteDelGrafo su consulta sigue
+// vigente y la de la versión de la muestra ha caducado, así que check da un
+// hallazgo de cada clase sobre esta última.
+const (
+	fechaDeLaVersionPosterior  = "2026-10-02T10:00:00Z"
+	fechaDeVigenciaPosterior   = "20270101"
+	cuerpoDeLaVersionPosterior = cuerpoDelBloque + "\nSu redacci\xc3\xb3n posterior de prueba a\xc3\xb1ade esta frase."
+)
+
+// poblarConUnaVersionPosterior entrega la muestra y, después, el lote de la
+// versión posterior al world.db del directorio.
+func poblarConUnaVersionPosterior(t *testing.T, directorio string) {
+	t.Helper()
+
+	poblarElGrafo(t, directorio)
+
+	lote := loteDelBloque(fechaDeLaVersionPosterior, fechaDeVigenciaPosterior, cuerpoDeLaVersionPosterior)
+	require.NoError(t, graph.Nuevo(graph.ConDirectorio(directorio)).Apply(t.Context(), lote))
+}
+
+// sinWorldDB deja el directorio como está, vacío: el grafo ausente.
+func sinWorldDB(t *testing.T, _ string) {
+	t.Helper()
+}
+
+// conWorldDBDirectorio pone en el lugar de world.db un directorio, que no se
+// puede leer (contracts/almacen-world-db.md §6).
+func conWorldDBDirectorio(t *testing.T, directorio string) {
+	t.Helper()
+
+	require.NoError(t, os.Mkdir(filepath.Join(directorio, "world.db"), 0o700))
+}
+
+// TestSalidaDelGrafoContraSchemas es el punto 4 de la Definition of Done sobre
+// el applet graph (FR-051, FR-094; contracts/applet-graph.md §3, §6 y §7): el
+// sobre real que emite el kernel con --json, sobre el registro local, valida
+// contra la parte de su verbo leída de schemas/grafo.json, y no contra lo que
+// emite --describe mientras se ejecuta el test. Lo hace toda salida correcta de
+// show —la de cada tipo de nodo, con aristas en los dos sentidos y con alguna
+// lista vacía—, de stats —con el grafo ausente y con nodos— y de check —con
+// hallazgos de las dos clases, de una sola, sin hallazgos y con el grafo
+// ausente—, y también la de cada fallo que decide el applet, con 2, 3, 4 y 1
+// (gates/supuestos.md, T017); los que decide el kernel antes de llegar al
+// applet no son salida suya. La validación restringe: el mismo sobre con una
+// clave de más o de menos en su data no valida, y en check tampoco con un
+// elemento que no es un hallazgo ni con la lista nula.
+func TestSalidaDelGrafoContraSchemas(t *testing.T) {
+	t.Parallel()
+
+	esquemas := map[string]*jsonschema.Schema{}
+
+	for _, verbo := range verbosDelGrafo() {
+		publicado, id := ficheroPublicadoDelVerbo(t, verbo.nombre)
+		require.Equal(t, raizDeLosEsquemas+"grafo.json", id, "la parte de %q la publica grafo.json", verbo.nombre)
+
+		esquemas[verbo.nombre] = salidaPublicada(t, publicado, id, verbo.nombre)
+	}
+
+	for _, caso := range salidasDelGrafo() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			directorio := t.TempDir()
+			caso.prepara(t, directorio)
+
+			registro := registroDelGrafo(t, nuevoReloj(t, caso.instante).ahora, directorio)
+			res := invocar(t, registro, argvDelGrafo(slices.Concat(caso.argumentos, []string{"--json"})...)...)
+
+			require.Equal(t, caso.codigo, res.codigo, res.errores)
+
+			sobre := sobreDelJSON(t, res.salida)
+			assert.Equal(t, caso.codigo == 0, sobre["ok"], "ok decide la rama del esquema contra la que se valida data")
+			assert.Equal(t, firmaDelGrafo.Fuente, sobre["fuente"], "la salida es del applet y no del kernel")
+
+			for _, rasgo := range caso.rasgos {
+				assert.Contains(t, res.salida, rasgo, "la salida es la que nombra el caso")
+			}
+
+			exigirSalidaDelGrafoPublicada(t, esquemas[caso.argumentos[0]], res.salida)
+		})
+	}
+}
+
+// salidaDelGrafo es una invocación de TestSalidaDelGrafoContraSchemas: cómo se
+// prepara el directorio de world.db, el instante del reloj, el código con el
+// que termina, los argumentos sin --json, el primero de ellos el verbo, y los
+// fragmentos que su salida tiene que llevar para que el caso sea el que dice, y
+// no otra salida que también valide.
+type salidaDelGrafo struct {
+	nombre     string
+	prepara    func(t *testing.T, directorio string)
+	instante   string
+	codigo     int
+	argumentos []string
+	rasgos     []string
+}
+
+// salidasDelGrafo son las invocaciones cuyo sobre se valida.
+func salidasDelGrafo() []salidaDelGrafo {
+	sinAristas := func(sentido string) string { return `"` + sentido + `":[]` }
+	caducada := `"clase":"` + string(grafo.ClaseFuenteCaducada) + `"`
+	obsoleta := `"clase":"` + string(grafo.ClaseVersionObsoleta) + `"`
+	sinHallazgos := `"data":[]`
+
+	return []salidaDelGrafo{
+		{
+			"show-norma", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"show", idDeLaNorma},
+			[]string{`"tipo":"Norma"`, sinAristas("entrantes"), `"relacion":"eli:has_part"`},
+		},
+		{
+			"show-bloque", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"show", idDelBloque},
+			[]string{`"tipo":"Bloque"`, `"relacion":"eli:has_part"`, `"relacion":"eli:has_version"`},
+		},
+		{
+			"show-bloque-version", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"show", idDeLaVersion()},
+			[]string{`"tipo":"BloqueVersion"`, sinAristas("salientes"), `"hash_texto":"` + huellaDelCuerpo() + `"`},
+		},
+		{
+			"show-municipio", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"show", idDelMunicipio},
+			[]string{`"tipo":"Municipio"`, sinAristas("salientes"), fechaDelMunicipio},
+		},
+		{
+			"show-organo", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"show", idDelOrgano},
+			[]string{`"tipo":"Organo"`, sinAristas("entrantes"), `"relacion":"lb:pertenece_a"`},
+		},
+		{
+			"show-bloque-con-dos-versiones", poblarConUnaVersionPosterior, instanteDelGrafo, 0,
+			[]string{"show", idDelBloque},
+			[]string{idDeLaVersion(), idDeUnaVersion(fechaDeVigenciaPosterior, cuerpoDeLaVersionPosterior)},
+		},
+
+		{
+			"stats-sin-world-db", sinWorldDB, instanteDelGrafo, 0,
+			[]string{"stats"},
+			[]string{`"nodos":0`, `"nodos_por_tipo":[]`, `"aristas_por_relacion":[]`},
+		},
+		{"stats-con-la-muestra", poblarElGrafo, instanteDelGrafo, 0, []string{"stats"}, []string{`"nodos":5`}},
+		{
+			"stats-con-una-version-posterior", poblarConUnaVersionPosterior, instanteDelGrafo, 0,
+			[]string{"stats"},
+			[]string{`"nodos":6`, `"textos":2`},
+		},
+
+		{"check-sin-world-db", sinWorldDB, instanteDelGrafo, 0, []string{"check"}, []string{sinHallazgos}},
+		{"check-sin-hallazgos", poblarElGrafo, instanteSinCaducar, 0, []string{"check"}, []string{sinHallazgos}},
+		{"check-con-consultas-caducadas", poblarElGrafo, instanteDelGrafo, 0, []string{"check"}, []string{caducada}},
+		{
+			"check-con-hallazgos-de-las-dos-clases", poblarConUnaVersionPosterior, instanteDelGrafo, 0,
+			[]string{"check"},
+			[]string{caducada, obsoleta, `"fecha_vigencia_reciente":"` + fechaDeVigenciaPosterior + `"`},
+		},
+
+		{
+			"fallo-2-id-en-blanco", poblarElGrafo, instanteDelGrafo, 2,
+			[]string{"show", " "},
+			[]string{`"clase":"argumentos"`},
+		},
+		{
+			"fallo-3-id-que-no-esta", poblarElGrafo, instanteDelGrafo, 3,
+			[]string{"show", idQueNoEsta},
+			[]string{`"clase":"no-encontrado"`},
+		},
+		{
+			"fallo-3-sin-world-db", sinWorldDB, instanteDelGrafo, 3,
+			[]string{"show", idDelBloque},
+			[]string{`"clase":"no-encontrado"`},
+		},
+		{
+			"fallo-4-plazo-agotado", poblarElGrafo, instanteDelGrafo, 4,
+			[]string{"check", "--timeout", "1ns"},
+			[]string{`"clase":"fuente-no-disponible"`},
+		},
+		{
+			"fallo-1-world-db-es-un-directorio", conWorldDBDirectorio, instanteDelGrafo, 1,
+			[]string{"stats"},
+			[]string{`"clase":"inesperado"`},
+		},
+	}
+}
+
+// exigirSalidaDelGrafoPublicada exige que el sobre real valide contra la parte
+// publicada de su verbo y que la validación restrinja data. Si data es un
+// objeto —la ficha de show, el recuento de stats o los datos de un fallo—, lo
+// exige exigirSalidaPublicada; si es la lista de check, exigirHallazgosPublicados.
+func exigirSalidaDelGrafoPublicada(t *testing.T, esquema *jsonschema.Schema, salida string) {
+	t.Helper()
+
+	if _, esLista := sobreValidable(t, salida)["data"].([]any); esLista {
+		exigirHallazgosPublicados(t, esquema, salida)
+
+		return
+	}
+
+	exigirSalidaPublicada(t, esquema, salida)
+}
+
+// Las claves de un hallazgo (contracts/applet-graph.md §3.3; data-model §5): las
+// cuatro de todo hallazgo, que el esquema publicado exige, y las propias de su
+// clase, que llevan omitempty y que el esquema por eso admite sin exigirlas
+// (research.md V7). Cada hallazgo lleva las suyas y ninguna de la otra clase.
+var (
+	clavesDeTodoHallazgo = []string{"clase", "explicacion", "id", "procedencia"}
+	clavesDeSuClase      = map[grafo.ClaseDeHallazgo][]string{
+		grafo.ClaseFuenteCaducada:  {"vigencia_segundos"},
+		grafo.ClaseVersionObsoleta: {"fecha_vigencia", "fecha_vigencia_reciente"},
+	}
+)
+
+// exigirHallazgosPublicados exige que el sobre real de check valide contra su
+// parte publicada y que la validación restrinja la lista: no valida nula
+// (FR-060), ni con un elemento de más que no es un hallazgo —lo que también se
+// comprueba con la lista vacía—, ni con una clave de más en cualquiera de sus
+// hallazgos, ni sin cualquiera de las cuatro de todo hallazgo. Cada hallazgo
+// lleva exactamente esas cuatro y las de su clase.
+func exigirHallazgosPublicados(t *testing.T, esquema *jsonschema.Schema, salida string) {
+	t.Helper()
+
+	require.NoError(t, esquema.Validate(sobreValidable(t, salida)), "el sobre real valida contra su parte de schemas/")
+
+	nula := sobreValidable(t, salida)
+	nula["data"] = nil
+	require.Error(t, esquema.Validate(nula), "la lista nula no valida")
+
+	conUnoDeMas := sobreValidable(t, salida)
+	conUnoDeMas["data"] = append(hallazgosDelSobre(t, conUnoDeMas), map[string]any{"ajena": "no declarada"})
+	require.Error(t, esquema.Validate(conUnoDeMas), "un elemento que no es un hallazgo no valida")
+
+	for posicion := range hallazgosDelSobre(t, sobreValidable(t, salida)) {
+		hallazgo := hallazgoDelSobre(t, sobreValidable(t, salida), posicion)
+
+		clase, esTexto := hallazgo["clase"].(string)
+		require.True(t, esTexto, "la clase del hallazgo %d es un texto", posicion)
+		assert.ElementsMatch(t, slices.Concat(clavesDeTodoHallazgo, clavesDeSuClase[grafo.ClaseDeHallazgo(clase)]),
+			slices.Collect(maps.Keys(hallazgo)), "el hallazgo %d lleva las claves de su clase", posicion)
+
+		conClaveDeMas := sobreValidable(t, salida)
+		hallazgoDelSobre(t, conClaveDeMas, posicion)["ajena"] = "no declarada"
+		require.Errorf(t, esquema.Validate(conClaveDeMas), "el hallazgo %d con una clave de más no valida", posicion)
+
+		for _, clave := range clavesDeTodoHallazgo {
+			sinLaClave := sobreValidable(t, salida)
+			delete(hallazgoDelSobre(t, sinLaClave, posicion), clave)
+			assert.Errorf(t, esquema.Validate(sinLaClave), "el hallazgo %d sin la clave %q no valida", posicion, clave)
+		}
+	}
+}
+
+// hallazgosDelSobre es la lista de data del sobre de check.
+func hallazgosDelSobre(t *testing.T, sobre map[string]any) []any {
+	t.Helper()
+
+	hallazgos, esLista := sobre["data"].([]any)
+	require.True(t, esLista, "el data de check es una lista")
+
+	return hallazgos
+}
+
+// hallazgoDelSobre es el hallazgo de esa posición en el data del sobre de check.
+// Pertenece al sobre, así que cambiarlo cambia el sobre.
+func hallazgoDelSobre(t *testing.T, sobre map[string]any, posicion int) map[string]any {
+	t.Helper()
+
+	hallazgo, esObjeto := hallazgosDelSobre(t, sobre)[posicion].(map[string]any)
+	require.True(t, esObjeto, "el hallazgo %d es un objeto", posicion)
+
+	return hallazgo
+}
+
+// grabacionesDeEvals es la carpeta de la fuente boe con las respuestas que
+// grabaron H5 y H5.1, relativa a este paquete: la de evals.GrabacionesDeH5, que
+// resuelve igual desde internal/app, escrita aquí porque internal/evals importa
+// este paquete y no se puede importar desde sus tests.
+const grabacionesDeEvals = "../../testdata/evals/" + boe.NombreDeLaFuente
+
+// minimoDeCaracteres es la longitud a partir de la cual una línea del texto de
+// un bloque no puede aparecer en la salida de graph (FR-070; SC-006).
+const minimoDeCaracteres = 20
+
+// avisoDeEntregaFallida es el comienzo de la línea que el kernel escribe si lo
+// observado no llega al grafo (contracts/resultado-y-entrega.md §4).
+const avisoDeEntregaFallida = "kitlegal: lo observado no ha llegado al grafo del mundo"
+
+// TestNingunVerboDelGrafoDevuelveTexto fija FR-070 y SC-006 sobre lo que boe
+// observa de verdad: entrega al world.db de un directorio temporal, por el
+// kernel y con el applet boe servido desde la reproducción, cada respuesta
+// grabada de un bloque —las de H4 y las de H5 y H5.1—, con articulo y con
+// articulos, y exige que ninguna línea no vacía de 20 caracteres o más del texto
+// de ningún bloque aparezca en la salida de show de cada nodo del grafo, de
+// stats ni de check, con --json ni sin él. Con --json se busca en la salida tal
+// cual y en cada texto del documento, clave o valor, ya sin los escapes de JSON;
+// sin ella, en la tabla, que escribe los textos tal cual.
+//
+// Las premisas dicen que no pasa en vacío: cada línea buscada aparece, con la
+// misma búsqueda, en la tabla del boe articulo que la devolvió; el grafo guarda
+// un texto por cada huella que boe publicó y una BloqueVersion con cada una; y
+// check, en un instante en que todas las consultas han caducado, devuelve
+// hallazgos, cuyas explicaciones citan cada bloque.
+func TestNingunVerboDelGrafoDevuelveTexto(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	textos := entregarLasRespuestasGrabadas(t, directorio)
+
+	var lineas []string
+
+	for _, texto := range textos {
+		lineas = append(lineas, lineasDelTexto(texto)...)
+	}
+
+	require.NotEmpty(t, lineas, "premisa: hay líneas que buscar")
+
+	instantanea := instantaneaDelGrafo(t, directorio)
+	compruebaLoEntregado(t, instantanea, textos)
+
+	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
+
+	invocaciones := [][]string{{"stats"}, {"check"}}
+	for _, nodo := range instantanea.Nodos {
+		invocaciones = append(invocaciones, []string{"show", nodo.ID})
+	}
+
+	for _, argumentos := range invocaciones {
+		for _, conJSON := range []bool{true, false} {
+			argv := argumentos
+			if conJSON {
+				argv = slices.Concat(argumentos, []string{"--json"})
+			}
+
+			res := invocar(t, registro, argvDelGrafo(argv...)...)
+			require.Equal(t, 0, res.codigo, res.errores)
+
+			switch {
+			case slices.Equal(argv, []string{"stats", "--json"}):
+				var recuento grafo.Recuento
+				require.NoError(t, json.Unmarshal([]byte(datosFirmados(t, res, instanteDelGrafo)), &recuento))
+				assert.Equal(t, len(textos), recuento.Textos, "premisa: el grafo guarda un texto por cada huella")
+			case slices.Equal(argv, []string{"check", "--json"}):
+				assert.NotEqual(t, "[]", datosFirmados(t, res, instanteDelGrafo), "premisa: check da hallazgos")
+			}
+
+			assert.Empty(t, lineasQueAparecen(t, lineas, res.salida, conJSON), "%q no devuelve texto legal", argv)
+		}
+	}
+}
+
+// entregarLasRespuestasGrabadas invoca boe articulo por cada respuesta grabada
+// de un bloque y boe articulos por cada norma con los bloques grabados de ella,
+// sobre un registro que entrega al world.db del directorio, y devuelve el texto
+// de cada bloque por su huella. Cada invocación sale con 0 y sin la línea de una
+// entrega fallida; articulos devuelve de cada bloque el mismo texto que
+// articulo, y cada línea que se buscará aparece en la tabla de boe articulo.
+func entregarLasRespuestasGrabadas(t *testing.T, directorio string) map[string]string {
+	t.Helper()
+
+	textos := map[string]string{}
+
+	for _, carpeta := range []string{grabacionesDeBoe, grabacionesDeEvals} {
+		bloques := bloquesGrabados(t, carpeta)
+		require.NotEmpty(t, bloques, "premisa: %s tiene respuestas de bloques", carpeta)
+
+		porNorma := map[string][]string{}
+		registro := registroDeBoeQueEntrega(t, carpeta, directorio)
+
+		for _, grabado := range bloques {
+			res := invocarBoeEntregando(t, registro, "articulo", grabado.norma, grabado.bloque, "--json")
+			texto, huella := textoDelArticulo(t, sobreDelJSON(t, res.salida)["data"])
+			textos[huella] = texto
+
+			lineas := lineasDelTexto(texto)
+			tabla := invocarBoeEntregando(t, registro, "articulo", grabado.norma, grabado.bloque)
+			assert.Equal(t, lineas, lineasQueAparecen(t, lineas, tabla.salida, false),
+				"premisa: la misma búsqueda encuentra cada línea en la tabla de boe articulo %v", grabado)
+
+			porNorma[grabado.norma] = append(porNorma[grabado.norma], grabado.bloque)
+		}
+
+		registro = registroDeBoeQueEntrega(t, carpeta, directorio)
+
+		for _, norma := range slices.Sorted(maps.Keys(porNorma)) {
+			argumentos := slices.Concat([]string{"articulos", norma}, porNorma[norma], []string{"--json"})
+			res := invocarBoeEntregando(t, registro, argumentos...)
+
+			articulos, esLista := sobreDelJSON(t, res.salida)["data"].([]any)
+			require.True(t, esLista, "el data de articulos es una lista")
+			require.Len(t, articulos, len(porNorma[norma]))
+
+			for _, articulo := range articulos {
+				texto, huella := textoDelArticulo(t, articulo)
+				assert.Equal(t, textos[huella], texto, "articulos devuelve el texto que devolvió articulo")
+			}
+		}
+	}
+
+	return textos
+}
+
+// bloqueGrabado es el bloque de una norma cuya respuesta está grabada.
+type bloqueGrabado struct {
+	norma  string
+	bloque string
+}
+
+// direccionDeUnBloque es la de la API de la que sale el texto de un bloque, con
+// la norma y el bloque.
+var direccionDeUnBloque = regexp.MustCompile(
+	`\Ahttps://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/([^/]+)/texto/bloque/([^/?#]+)\z`)
+
+// bloquesGrabados son los bloques cuya respuesta grabada en la carpeta es un
+// texto, en el orden de sus ficheros: cada grabación de un bloque que la fuente
+// sirvió con 200. La de un bloque que la fuente no tiene, servida con 404, no
+// devuelve texto y queda fuera.
+func bloquesGrabados(t *testing.T, carpeta string) []bloqueGrabado {
+	t.Helper()
+
+	grabaciones := os.DirFS(carpeta)
+
+	entradas, err := fs.ReadDir(grabaciones, ".")
+	require.NoError(t, err)
+
+	var bloques []bloqueGrabado
+
+	for _, entrada := range entradas {
+		contenido, err := fs.ReadFile(grabaciones, entrada.Name())
+		require.NoError(t, err)
+
+		var grabacion struct {
+			Peticion struct {
+				URL string `json:"url"`
+			} `json:"peticion"`
+			Respuesta struct {
+				Estado int `json:"estado"`
+			} `json:"respuesta"`
+		}
+		require.NoError(t, json.Unmarshal(contenido, &grabacion), entrada.Name())
+
+		partes := direccionDeUnBloque.FindStringSubmatch(grabacion.Peticion.URL)
+		if partes == nil || grabacion.Respuesta.Estado != 200 {
+			continue
+		}
+
+		bloques = append(bloques, bloqueGrabado{norma: partes[1], bloque: partes[2]})
+	}
+
+	return bloques
+}
+
+// registroDeBoeQueEntrega es el registro de producción en lo que aquí importa:
+// el applet boe servido desde la reproducción de la carpeta, con una caché
+// nueva, y la entrega al world.db del directorio.
+func registroDeBoeQueEntrega(t *testing.T, carpeta, directorio string) *Registro {
+	t.Helper()
+
+	var registro Registro
+
+	require.NoError(t, registro.Registrar(AppletBoe(nuevoBancoDeBoe(t, carpeta).dependencias)))
+	registro.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(directorio)))
+
+	return &registro
+}
+
+// invocarBoeEntregando invoca boe con los argumentos sobre el registro y exige
+// que salga con 0 y que lo observado llegue al grafo.
+func invocarBoeEntregando(t *testing.T, registro *Registro, argumentos ...string) invocacionDePrueba {
+	t.Helper()
+
+	res := invocar(t, registro, argvDeBoe(argumentos...)...)
+	require.Equal(t, 0, res.codigo, res.errores)
+	require.NotContains(t, res.errores, avisoDeEntregaFallida, "%q", argumentos)
+
+	return res
+}
+
+// textoDelArticulo es el texto de un artículo del data de boe y su huella.
+func textoDelArticulo(t *testing.T, data any) (string, string) {
+	t.Helper()
+
+	articulo, esObjeto := data.(map[string]any)
+	require.True(t, esObjeto, "el artículo es un objeto")
+
+	texto, esTexto := articulo["texto"].(string)
+	require.True(t, esTexto, "el texto del artículo es un texto")
+
+	huella, esTexto := articulo["hash_texto"].(string)
+	require.True(t, esTexto, "la huella del artículo es un texto")
+
+	return texto, huella
+}
+
+// lineasDelTexto son las líneas no vacías de 20 caracteres o más del texto de
+// un bloque, tal cual; los caracteres se cuentan como runas y no como bytes.
+func lineasDelTexto(texto string) []string {
+	var lineas []string
+
+	for linea := range strings.SplitSeq(texto, "\n") {
+		if strings.TrimSpace(linea) != "" && utf8.RuneCountInString(linea) >= minimoDeCaracteres {
+			lineas = append(lineas, linea)
+		}
+	}
+
+	return lineas
+}
+
+// instantaneaDelGrafo lee todo el grafo del world.db del directorio por la API
+// pública de internal/graph.
+func instantaneaDelGrafo(t *testing.T, directorio string) grafo.Instantanea {
+	t.Helper()
+
+	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context())
+	require.NoError(t, err)
+	require.NoError(t, lectura.Close())
+
+	return instantanea
+}
+
+// compruebaLoEntregado es la premisa de que el grafo guarda lo que boe publicó:
+// un texto por cada huella y, por cada una, la BloqueVersion que la lleva.
+func compruebaLoEntregado(t *testing.T, instantanea grafo.Instantanea, textos map[string]string) {
+	t.Helper()
+
+	huellas := map[string]bool{}
+
+	for _, nodo := range instantanea.Nodos {
+		if nodo.Tipo == grafo.TipoBloqueVersion {
+			huella, esTexto := nodo.Datos[grafo.DatoHashTexto].(string)
+			require.True(t, esTexto, "la huella de %q es un texto", nodo.ID)
+
+			huellas[huella] = true
+		}
+	}
+
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(textos)), slices.Collect(maps.Keys(huellas)),
+		"premisa: una BloqueVersion por cada texto que publicó boe")
+}
+
+// lineasQueAparecen son las líneas que aparecen en la salida: en ella tal cual
+// y, con --json, en cada clave y cada valor de texto del documento. Se comparan
+// con cada tramo de espacio en blanco, en la línea y en la salida, reducido a
+// un espacio: la tabla alinea con espacios lo que escribe, y un tabulador del
+// texto sale en ella como relleno, así que una línea que lo lleve no aparecería
+// literalmente aunque su contenido estuviera ahí.
+func lineasQueAparecen(t *testing.T, lineas []string, salida string, conJSON bool) []string {
+	t.Helper()
+
+	textos := []string{blancosReducidos(salida)}
+
+	if conJSON {
+		var documento any
+		require.NoError(t, json.Unmarshal([]byte(salida), &documento))
+
+		for _, texto := range textosDelDocumento(documento) {
+			textos = append(textos, blancosReducidos(texto))
+		}
+	}
+
+	var aparecen []string
+
+	for _, linea := range lineas {
+		buscada := blancosReducidos(linea)
+
+		if slices.ContainsFunc(textos, func(texto string) bool { return strings.Contains(texto, buscada) }) {
+			aparecen = append(aparecen, linea)
+		}
+	}
+
+	return aparecen
+}
+
+// blancosReducidos es el texto con cada tramo de espacio en blanco —en el
+// sentido de unicode.IsSpace— reducido a un espacio y sin los de los extremos.
+func blancosReducidos(texto string) string {
+	return strings.Join(strings.Fields(texto), " ")
+}
+
+// textosDelDocumento son las claves y los valores de texto de un documento JSON
+// a cualquier profundidad.
+func textosDelDocumento(valor any) []string {
+	var textos []string
+
+	switch v := valor.(type) {
+	case string:
+		textos = append(textos, v)
+	case []any:
+		for _, elemento := range v {
+			textos = append(textos, textosDelDocumento(elemento)...)
+		}
+	case map[string]any:
+		for clave, elemento := range v {
+			textos = append(textos, clave)
+			textos = append(textos, textosDelDocumento(elemento)...)
+		}
+	}
+
+	return textos
 }
 
 // escribirFicheroDePrueba escribe un fichero de la prueba con acceso reservado a la
