@@ -1,16 +1,14 @@
 {
-  "id": "T013",
-  "texto": "T013 [US1] Emisión de `territorio` (contracts/emision.md §2; research D21): internal/core/territorio/grafo.go con `func (t Territorio) Observado() schema.Observado`: `Municipio` `ine:<código de cinco cifras>` con `{\"codigo_ine\", \"nombre\"}` siempre, y, si la respuesta trae DIR3 del ayuntamiento, `Organo` con id ese DIR3 y `{\"dir3\"}` y la arista `lb:pertenece_a` del `Organo` al `Municipio`; sin vigencia; la misma emisión para un municipio cubierto y uno no cubierto; internal/app/territorio.go pone `resuelto.Observado()` en el resultado de éxito y nada en los fallos; tests: `TestObservadoDeTerritorio` en internal/core/territorio/grafo_test.go con fuentes sintéticas (con DIR3, «sin DIR3» solo con el `Municipio`, cubierto y no cubierto iguales) y, si algún test de éxito de internal/app/territorio_test.go compara un `Resultado` entero, con el `Observado` esperado — FR-043, FR-044, FR-045, FR-065; rutas: internal/core/territorio/grafo.go, internal/core/territorio/grafo_test.go, internal/app/territorio.go, internal/app/territorio_test.go",
+  "id": "T014",
+  "texto": "T014 [US2] Reglas de `check` y explicaciones (data-model §6; contracts/applet-graph.md §5; research D15, D18, D34): internal/core/grafo/comprobar.go con `Comprobar(instantanea, ahora)`: `version-obsoleta` una vez por cada `BloqueVersion` con otra versión de su `Bloque` (arista `eli:has_version`) de `fecha_vigencia` estrictamente posterior, solo entre `fecha_vigencia` válidas (`time.Parse(\"20060102\", v)` sin error), con la versión más reciente por `fecha_vigencia`, después última observación de mayor instante, después id menor, su procedencia y las dos `fecha_vigencia` como valores propios; `fuente-caducada` una vez por cada nodo, de cualquier tipo, cuya última observación declara vigencia y cuyo instante más la vigencia es estrictamente anterior a `ahora`, con `vigencia_segundos`; las dos clases pueden coexistir sobre un nodo; orden por clase y después por id, comparando bytes; internal/core/grafo/explicacion.go con las dos plantillas literales de contracts/applet-graph.md §5, la cita de cada tipo de nodo de data-model §6 y el instante de caducidad en el desplazamiento de la `fecha_consulta`, escrito con `RFC3339Nano`; tests: `TestComprobar` (una vez por versión superada, empate en la más alta de FR-064 con un solo hallazgo sobre V1, misma fecha y distinta huella sin hallazgo, vigencias no válidas —vacía, otra longitud, fecha inexistente, cifras que no son ASCII escritas con su escape de Go—, versión más reciente con sus desempates, caducidad estricta, límite exacto sin hallazgo, futuro sin hallazgo, nodos sin vigencia sin hallazgo, las dos clases sobre el mismo nodo, orden, misma lista en dos ejecuciones) y `TestExplicaciones` (plantillas literales; los tres ejemplos de desplazamiento y fracción de contracts/applet-graph.md §5; cita de `Norma`, `Bloque` y `BloqueVersion` y el id cuando faltan datos) — FR-060, FR-061, FR-062, FR-063, FR-064, FR-066, FR-067; SC-005; rutas: internal/core/grafo/comprobar.go, internal/core/grafo/explicacion.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "8fc4481d9665a9e47fc3d3e27b7dee360731ac87",
+  "base": "5a87a3fcdb6f1881599c969625877b0ce090dddb",
   "rutas": [
-    "contracts/emision.md",
-    "internal/app/territorio.go",
-    "internal/app/territorio_test.go",
-    "internal/core/territorio/grafo.go",
-    "internal/core/territorio/grafo_test.go"
+    "contracts/applet-graph.md",
+    "internal/core/grafo/comprobar.go",
+    "internal/core/grafo/explicacion.go"
   ],
   "cierre": false,
   "converger": false,
