@@ -10,9 +10,38 @@ import (
 )
 
 // ficheroDeLaBase es el nombre de la base de datos dentro del directorio
-// efectivo (FR-020). No se exporta —nada de la ruta se exporta— y el contrato
-// lo fija, de modo que los tests externos escriben el literal (D2).
+// efectivo (FR-020). No se exporta —de la ruta solo se exporta el directorio,
+// con Directorio— y el contrato lo fija, de modo que los tests externos
+// escriben el literal (D2).
 const ficheroDeLaBase = "cache.db"
+
+// Directorio es la regla de ubicación de la caché cuando no se declara la
+// opción ConDirectorio: la variable KITLEGAL_CACHE_DIR si está presente y, si
+// no, <directorio de la cuenta>/.cache/kitlegal. Devuelve el directorio tal como
+// se resolvió, sin crearlo ni abrir nada, y falla con los mismos errores de
+// clase «argumentos» (2) que New: la variable presente y vacía, una ruta que
+// existe y no es un directorio, y la ruta por omisión indeterminable, cuyo
+// mensaje pide declarar HOME o KITLEGAL_CACHE_DIR (FR-019, FR-022, FR-023).
+//
+// Se exporta para que el grafo del mundo viva en el mismo directorio que la
+// caché con una sola regla, que no puede divergir de la de New porque es la
+// misma (H7: contracts/almacen-world-db.md §2, research D8). Lo que devuelve es
+// un directorio y no nombra la base de datos, así que la garantía de FR-005
+// sigue en pie.
+//
+// Cada llamada consulta el entorno: quien la usa decide cuándo resolver.
+func Directorio() (string, error) {
+	directorio, de, err := rutaEfectiva("", os.LookupEnv)
+	if err != nil {
+		return "", err
+	}
+
+	if err := compruebaRuta(directorio, de); err != nil {
+		return "", err
+	}
+
+	return directorio, nil
+}
 
 // origenDeLaRuta es de dónde salió el directorio de la caché: las tres únicas
 // procedencias posibles, y cada constante es ya la frase con la que los
@@ -36,15 +65,17 @@ const (
 // (FR-019, al pie de la letra: $HOME en Unix y macOS, %USERPROFILE% en
 // Windows).
 //
-// La variable se consulta **una sola vez**, aquí, al construir el cliente, y
-// quien llama pasa cómo consultarla: así esa única lectura es comprobable y la
-// opción, cuando está, no llega siquiera a mirar el entorno. Presente y vacía
-// devuelve la cadena vacía con su origen y nunca la ruta por omisión, porque la
-// caída silenciosa está prohibida (FR-022); rechazarla es cosa de compruebaRuta,
-// que es la validación que vale en cualquier modo.
+// La variable se consulta **una sola vez**, aquí, al construir el cliente o al
+// llamar a Directorio, y quien llama pasa cómo consultarla: así esa única
+// lectura es comprobable y la opción, cuando está, no llega siquiera a mirar el
+// entorno. Presente y vacía devuelve la cadena vacía con su origen y nunca la
+// ruta por omisión, porque la caída silenciosa está prohibida (FR-022);
+// rechazarla es cosa de compruebaRuta, que es la validación que vale en
+// cualquier modo.
 //
 // Un directorio vacío significa aquí «no se declaró la opción»: ConDirectorio
-// rechaza la cadena vacía antes, al aplicarse.
+// rechaza la cadena vacía antes, al aplicarse, y Directorio lo pasa siempre
+// vacío porque no tiene opción.
 func rutaEfectiva(directorio string, buscaEnElEntorno func(string) (string, bool)) (string, origenDeLaRuta, error) {
 	if directorio != "" {
 		return directorio, origenOpcion, nil

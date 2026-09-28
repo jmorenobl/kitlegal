@@ -1,17 +1,16 @@
 {
-  "id": "T005",
-  "texto": "T005 Fusión de observaciones y tipos de salida (data-model §4.1 y §5; research D13): internal/core/grafo/observacion.go con los instantes, el desempate `≺` (url, fuente, texto de la fecha, sin vigencia antes que con ella y la menor, datos canónicos en un nodo) y la fusión de nodos, aristas y textos de FR-023; `Consolidar` en internal/core/grafo/lote.go (dos operaciones con la misma clave en el lote comparten observación; dos nodos con el mismo id y datos distintos se quedan con los datos canónicos menores); internal/core/grafo/salida.go con `Ficha`, `NodoDeFicha`, `AristaDeFicha`, `Procedencia`, `Recuento` y `Hallazgo` con sus etiquetas JSON de data-model §5 (listas nunca nulas; las claves propias de cada clase con `omitempty`) y la `Instantanea` sin JSON; y, porque salida.go introduce las claves `primera_observacion` y `ultima_observacion`, la entrada `observacion` con su comentario en `misspell.ignore-rules` de .golangci.yml (research D31); tests: `TestFusionarNodo`, `TestFusionarArista`, `TestFusionarTexto` y `TestConsolidar` en los dos órdenes de llegada —fuera de orden, cada criterio del desempate, datos de la última enteros y sin mezclar, primera que no avanza, texto más antiguo, observación idéntica sin cambios— — FR-002, FR-022, FR-023, FR-053, FR-054; SC-001; rutas: internal/core/grafo/observacion.go, internal/core/grafo/lote.go, internal/core/grafo/salida.go, .golangci.yml",
+  "id": "T006",
+  "texto": "T006 La regla de ubicación de la caché, exportada una vez (contracts/almacen-world-db.md §2; research D8): `func Directorio() (string, error)` en internal/cache/ruta.go, la misma regla y los mismos errores de clase `argumentos` que la caché (`KITLEGAL_CACHE_DIR` presente y vacía o que nombra algo que no es directorio; sin ella y sin `HOME`, el mensaje que pide declarar `HOME` o `KITLEGAL_CACHE_DIR`), sin nombrar `database/sql` ni SQLite; tests: `TestDirectorio` en internal/cache/ruta_test.go y la entrada «func Directorio» en la lista cerrada de `superficieDelContrato` de internal/cache/superficie_test.go (l. 68-89) — FR-001, FR-011; rutas: internal/cache/ruta.go, internal/cache/ruta_test.go, internal/cache/superficie_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "c65088e16980fd87ae5aee539e1acae2c27d173d",
+  "base": "5bbda03380472343ec9e67af15e8a0f89dec0548",
   "rutas": [
-    ".golangci.yml",
-    ".ignore",
-    "internal/core/grafo/lote.go",
-    "internal/core/grafo/observacion.go",
-    "internal/core/grafo/salida.go",
-    "salida.go"
+    "contracts/almacen-world-db.md",
+    "database/sql",
+    "internal/cache/ruta.go",
+    "internal/cache/ruta_test.go",
+    "internal/cache/superficie_test.go"
   ],
   "cierre": false,
   "converger": false,
