@@ -23,6 +23,13 @@ const (
 	GrabacionesDeH5 = "../../testdata/evals/" + boe.NombreDeLaFuente
 )
 
+// GrafosPrevios es el directorio de los conjuntos de grabaciones derivadas con
+// los que se prepara el grafo previo de una eval, junto al de las grabaciones de
+// H5 y con la misma raíz (contrato evals-y-skill §3 de H7; research D26): el de
+// cada eval es el subdirectorio que nombra su grafo_previo. No es de
+// UnionDeGrabaciones: lo derivado llega al grafo de la sesión y nunca a su caché.
+const GrafosPrevios = "../../testdata/evals/grafo-previo"
+
 // UnionDeGrabaciones son los dos conjuntos en el orden en que Preparar los copia
 // a un mismo directorio para reproducir: H4 y, encima, H5. Solo comparten el
 // nombre de GET_https_www.boe.es_robots.txt.json, que la reproducción no usa

@@ -1,7 +1,10 @@
 package evals
 
 import (
+	"bytes"
 	"cmp"
+	"encoding/json/v2"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,7 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/core/grafo"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 )
 
 // Las grabaciones de H4 de la Ley 39/2015 que retiran los casos de
@@ -318,6 +324,251 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 	}
 }
 
+// Los conjuntos del directorio temporal que hace de GrafosPrevios en
+// TestPrepararGrafoPrevio, por su nombre en grafo_previo.
+const (
+	// grafoPrevioAnterior es el único que está: la derivada sintética del art. 21
+	// de la LPAC con la fecha de vigencia anterior.
+	grafoPrevioAnterior = "version-anterior"
+
+	// grafoPrevioQueNoEsta es el que ninguna preparación puede copiar.
+	grafoPrevioQueNoEsta = "sin-grabaciones"
+)
+
+// Las fechas de vigencia del art. 21 de la LPAC en TestPrepararGrafoPrevio: la
+// de su grabación de H4 y la anterior que le pone la derivada sintética, que no
+// cambia nada más.
+const (
+	vigenciaGrabadaDelArticulo21  = "20161002"
+	vigenciaAnteriorDelArticulo21 = "20151002"
+)
+
+// TestPrepararGrafoPrevio fija la preparación del grafo previo de la sesión
+// (contrato evals-y-skill §3 de H7; research D26; FR-085) sobre un directorio
+// temporal que hace de GrafosPrevios, con una derivada sintética del art. 21 de
+// la LPAC escrita por el test, y las grabaciones de H4: si la eval de la sesión
+// lleva grafo_previo, el grafo del mundo de cache/ tiene solo la versión
+// anterior y la caché sirve la grabada; sin él, no hay grafo; solo se prepara el
+// de la eval de la sesión, aunque las demás lleven uno que no se podría
+// preparar; y un comando del grafo previo que no termina en 0 o que escribe en
+// la salida de error —la línea de una entrega fallida— es una falta, que, como
+// el grafo previo que no se puede copiar, que es el error, deja la caché sin
+// preparar y la sesión sin pregunta.
+func TestPrepararGrafoPrevio(t *testing.T) {
+	t.Parallel()
+
+	const (
+		sinGrafoPrevio     = "02-lpac-articulo-22.yaml"
+		conGrafoQueNoEsta  = "03-grafo-previo-que-no-esta.yaml"
+		conBloqueSinGrabar = "04-grafo-previo-sin-grabar.yaml"
+	)
+
+	grafosPrevios := grafosPreviosConLaAnterior(t)
+	evals := crearConjunto(t, []entradaDeConjunto{
+		{nombre: nombreDeEval, contenido: contenidoDelArticulo21 + grafoPrevioDe(grafoPrevioAnterior, "a21")},
+		{nombre: sinGrafoPrevio, contenido: contenidoDelArticulo22},
+		{nombre: conGrafoQueNoEsta, contenido: contenidoDelArticulo21 + grafoPrevioDe(grafoPrevioQueNoEsta, "a21")},
+		{nombre: conBloqueSinGrabar, contenido: contenidoDelArticulo21 + grafoPrevioDe(grafoPrevioAnterior, "a9998")},
+	})
+
+	casos := []struct {
+		nombre  string
+		fichero string
+
+		// mundoOcupado crea en cache/, antes de preparar, un directorio con el
+		// nombre de world.db: la entrega falla y el kernel lo avisa en la salida de
+		// error, con el código 0.
+		mundoOcupado bool
+
+		// conGrafo exige que el grafo de cache/ tenga solo la versión anterior del
+		// art. 21 y que la caché sirva sin red la grabada; sin él, no hay grafo.
+		conGrafo bool
+
+		// errores son los fragmentos del error; sin ninguno, sin error.
+		errores []string
+
+		// falta son los fragmentos que tiene que nombrar una misma falta; sin
+		// ninguno, sin faltas.
+		falta []string
+	}{
+		{nombre: "grafo-con-la-version-anterior", fichero: nombreDeEval, conGrafo: true},
+		{nombre: "sin-grafo-previo", fichero: sinGrafoPrevio},
+		{
+			nombre:  "grafo-previo-que-no-esta",
+			fichero: conGrafoQueNoEsta,
+			errores: []string{conGrafoQueNoEsta, filepath.Join(grafosPrevios, grafoPrevioQueNoEsta)},
+		},
+		{
+			nombre:  "comando-que-no-termina-en-0",
+			fichero: conBloqueSinGrabar,
+			// La reproducción no tiene la grabación: el fallo es inesperado.
+			falta: []string{
+				conBloqueSinGrabar, "el comando del grafo previo boe articulo BOE-A-2015-10565 a9998",
+				"terminó con código 1", "no hay grabación",
+			},
+		},
+		{
+			nombre:       "salida-de-error",
+			fichero:      nombreDeEval,
+			mundoOcupado: true,
+			falta: []string{
+				nombreDeEval, "el comando del grafo previo boe articulo BOE-A-2015-10565 a21", "terminó con código 0",
+				"lo observado no ha llegado al grafo del mundo",
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sesion := t.TempDir()
+			dirCache := filepath.Join(sesion, "cache")
+			require.NoError(t, os.Mkdir(dirCache, 0o750))
+
+			if caso.mundoOcupado {
+				require.NoError(t, os.Mkdir(filepath.Join(dirCache, "world.db"), 0o750))
+			}
+
+			faltas, err := PrepararSesion(SesionAPreparar{
+				Evals:         evals,
+				Grabaciones:   []string{GrabacionesDeH4},
+				GrafosPrevios: grafosPrevios,
+				Fichero:       caso.fichero,
+				Modelo:        modeloDeLaSesion,
+				Directorio:    sesion,
+			})
+
+			if len(caso.errores) == 0 {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, syscall.ENOENT)
+
+				for _, fragmento := range caso.errores {
+					require.ErrorContains(t, err, fragmento)
+				}
+			}
+
+			if len(caso.falta) == 0 {
+				assert.Empty(t, faltas)
+			} else {
+				exigeFaltaQueNombra(t, faltas, caso.falta)
+			}
+
+			if len(caso.errores) > 0 || len(caso.falta) > 0 {
+				assert.NoFileExists(t, filepath.Join(dirCache, "cache.db"), "sin preparar la caché")
+				assert.NoFileExists(t, filepath.Join(sesion, "pregunta.txt"))
+
+				if !caso.mundoOcupado {
+					assert.NoFileExists(t, filepath.Join(dirCache, "world.db"), "sin nada en el grafo")
+				}
+
+				return
+			}
+
+			exigeCacheDeTodasLasEvals(t, evals, dirCache)
+			assert.FileExists(t, filepath.Join(sesion, "pregunta.txt"))
+
+			if !caso.conGrafo {
+				assert.NoFileExists(t, filepath.Join(dirCache, "world.db"), "sin grafo previo no hay grafo")
+
+				return
+			}
+
+			versiones := versionesDelGrafo(t, dirCache)
+			require.Len(t, versiones, 1, "el grafo de la sesión tiene una sola versión")
+			assert.Equal(t, vigenciaAnteriorDelArticulo21, versiones[0].Datos[grafo.DatoFechaVigencia],
+				"la del grafo previo, no la grabada")
+			assert.Contains(t, versiones[0].ID, "#a21@"+vigenciaAnteriorDelArticulo21+":")
+
+			assert.Equal(t, vigenciaGrabadaDelArticulo21, vigenciaServidaSinRed(t, dirCache),
+				"la caché de la sesión sirve la grabada, no la del grafo previo")
+		})
+	}
+}
+
+// grafoPrevioDe es el trozo grafo_previo de una eval sintética, con sus líneas
+// completas: el conjunto de grabaciones derivadas y un comando de bloque de la
+// LPAC.
+func grafoPrevioDe(grabaciones, bloque string) string {
+	return "grafo_previo:\n" +
+		"  grabaciones: " + grabaciones + "\n" +
+		"  comandos:\n" +
+		"    - applet: boe\n" +
+		"      norma: BOE-A-2015-10565\n" +
+		"      bloque: " + bloque + "\n"
+}
+
+// grafosPreviosConLaAnterior crea un directorio temporal que hace de
+// GrafosPrevios con un solo conjunto, grafoPrevioAnterior, que tiene la derivada
+// sintética del art. 21 de la LPAC: su grabación de H4 con la fecha de vigencia
+// anterior y nada más cambiado. Devuelve el directorio.
+func grafosPreviosConLaAnterior(t *testing.T) string {
+	t.Helper()
+
+	grabada := contenidoDelFichero(t, filepath.Join(GrabacionesDeH4, grabacionDelBloqueA21))
+	vigenciaGrabada := []byte(`fecha_vigencia=\"` + vigenciaGrabadaDelArticulo21 + `\"`)
+	require.Equal(t, 1, bytes.Count(grabada, vigenciaGrabada),
+		"la grabación de H4 del art. 21 lleva una sola versión, con su fecha de vigencia")
+
+	derivada := bytes.Replace(grabada, vigenciaGrabada,
+		[]byte(`fecha_vigencia=\"`+vigenciaAnteriorDelArticulo21+`\"`), 1)
+
+	grafosPrevios := t.TempDir()
+	conjunto := filepath.Join(grafosPrevios, grafoPrevioAnterior)
+	require.NoError(t, os.Mkdir(conjunto, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(conjunto, grabacionDelBloqueA21), derivada, 0o600))
+
+	return grafosPrevios
+}
+
+// versionesDelGrafo son las BloqueVersion del grafo del mundo de dirCache, en el
+// orden de su instantánea.
+func versionesDelGrafo(t *testing.T, dirCache string) []grafo.NodoDeInstantanea {
+	t.Helper()
+
+	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context())
+	require.NoError(t, errors.Join(err, lectura.Close()))
+
+	var versiones []grafo.NodoDeInstantanea
+
+	for _, nodo := range instantanea.Nodos {
+		if nodo.Tipo == grafo.TipoBloqueVersion {
+			versiones = append(versiones, nodo)
+		}
+	}
+
+	return versiones
+}
+
+// vigenciaServidaSinRed es la fecha de vigencia del art. 21 de la LPAC que sirve
+// sin red la caché de dirCache, leída con boe articulo --offline sobre una
+// reproducción vacía y sin entrega al grafo.
+func vigenciaServidaSinRed(t *testing.T, dirCache string) string {
+	t.Helper()
+
+	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	var salida, errores bytes.Buffer
+
+	codigo := app.Main([]string{"kitlegal", "boe", "articulo", "BOE-A-2015-10565", "a21", "--offline", "--json"},
+		registro, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+	require.Zero(t, codigo, "la caché sirve el art. 21 sin red: %s", errores.String())
+
+	var sobre struct {
+		Data struct {
+			FechaVigencia string `json:"fecha_vigencia"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre))
+
+	return sobre.Data.FechaVigencia
+}
+
 // TestFaltaSinOrigenesODeOtroPunto fija los dos textos de Falta.String que no
 // dan las consultas de ConsultasNecesarias: el de una consulta sin orígenes, que
 // es solo la invocación, su código y el mensaje, y el de un origen cuyo punto no
@@ -467,8 +718,10 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 // TestPrepararYComprobarSinDirectorioTemporal fija el error de Preparar y de
 // ComprobarSinRed cuando no pueden crear su directorio temporal, con TMPDIR en un
 // fichero de un directorio temporal del test (contrato evals-y-grabaciones §5): el
-// error nombra la caché y el directorio que no se crea, y no hay faltas. No es
-// paralelo, porque t.Setenv cambia el entorno de todo el proceso.
+// error nombra la caché y el directorio que no se crea, y no hay faltas. Desde H7,
+// lo mismo al preparar el grafo previo, cuyo error nombra el grafo previo y su
+// eval (contrato evals-y-skill §3 de H7). No es paralelo, porque t.Setenv cambia
+// el entorno de todo el proceso.
 func TestPrepararYComprobarSinDirectorioTemporal(t *testing.T) {
 	dirCache := t.TempDir()
 
@@ -490,6 +743,14 @@ func TestPrepararYComprobarSinDirectorioTemporal(t *testing.T) {
 	require.ErrorContains(t, err,
 		"comprobar sin red la caché "+dirCache+": el directorio vacío de reproducción no se puede crear")
 	assert.Nil(t, comprobadas)
+
+	previo := Eval{Fichero: nombreDeEval, GrafoPrevio: GrafoPrevio{Grabaciones: grafoPrevioAnterior}}
+	delGrafoPrevio, err := prepararGrafoPrevio(dirCache, nil, GrafosPrevios, previo)
+
+	require.ErrorIs(t, err, syscall.ENOTDIR)
+	require.ErrorContains(t, err, "preparar el grafo previo "+grafoPrevioAnterior+" de la eval "+nombreDeEval+
+		": el directorio temporal de las grabaciones no se puede crear")
+	assert.Nil(t, delGrafoPrevio)
 }
 
 // exigeErrorAlPreparar prepara una caché nueva con el conjunto de grabaciones y

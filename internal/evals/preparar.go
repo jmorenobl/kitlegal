@@ -2,6 +2,7 @@ package evals
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 )
 
@@ -50,11 +52,20 @@ const programaDeLasConsultas = "kitlegal"
 // ninguna consulta necesaria usa.
 const sinDatosDeConstruccion = ""
 
+// PuntoGrafoPrevio no es de los tres de data-model §7.1: es el de un comando del
+// grafo previo de una eval, que no es una consulta que la caché preparada tenga
+// que servir, sino una de las que llenan el grafo de la sesión antes de
+// prepararla (contrato evals-y-skill §3 de H7).
+const PuntoGrafoPrevio Punto = "grafo previo"
+
 // Falta es una consulta necesaria que no terminó en 0 al preparar la caché o al
 // comprobarla sin red: lo grabado, o la caché preparada, no la sirve (FR-074,
-// FR-075). Su eval y su punto son los Origenes de la consulta.
+// FR-075). También lo es un comando del grafo previo que no terminó en 0 o que
+// escribió algo en la salida de error (contrato evals-y-skill §3 de H7). Su eval
+// y su punto son los Origenes de la consulta.
 type Falta struct {
-	// Consulta es la que no terminó en 0, con cada eval y punto de los que sale.
+	// Consulta es la que no terminó en 0, o el comando del grafo previo que
+	// escribió en la salida de error, con cada eval y punto de los que sale.
 	Consulta Consulta
 
 	// Codigo es el código de salida con el que terminó.
@@ -62,7 +73,7 @@ type Falta struct {
 
 	// Mensaje es lo que escribió en la salida de error, sin el salto de línea
 	// final: nombra lo que faltaba, la petición sin grabación o la entrada que la
-	// caché no tiene.
+	// caché no tiene, o la entrega al grafo que falló.
 	Mensaje string
 }
 
@@ -90,7 +101,7 @@ func (f Falta) String() string {
 }
 
 // queFaltaDesde dice, en los términos del punto de data-model §7.1 del que sale
-// la consulta, qué es lo que falta.
+// la consulta, o del grafo previo, qué es lo que falta.
 func queFaltaDesde(punto Punto, consulta Consulta) string {
 	switch punto {
 	case PuntoComandoEsperado:
@@ -99,6 +110,8 @@ func queFaltaDesde(punto Punto, consulta Consulta) string {
 		return fmt.Sprintf("la norma %s sin %s", strings.Join(consulta.Argumentos, " "), consulta.Verbo)
 	case PuntoCitaEsperada:
 		return "la cita esperada " + strings.Join(consulta.Argumentos, " ") + " sin su bloque"
+	case PuntoGrafoPrevio:
+		return "el comando del grafo previo " + ordenDe(consulta)
 	default:
 		return fmt.Sprintf("la consulta %s del punto %q", ordenDe(consulta), punto)
 	}
@@ -151,7 +164,7 @@ func Preparar(dirCache string, grabaciones []string, consultas []Consulta) (_ []
 		return nil, fmt.Errorf("preparar la caché %s: %w", dirCache, err)
 	}
 
-	return ejecutarConsultas(registro, consultas, "--json"), nil
+	return ejecutarConsultas(registro, consultas, conOtroCodigo, "--json"), nil
 }
 
 // ComprobarSinRed ejecuta cada consulta con --offline sobre la caché de
@@ -179,7 +192,7 @@ func ComprobarSinRed(dirCache string, consultas []Consulta, opciones ...cache.Op
 		return nil, fmt.Errorf("comprobar sin red la caché %s: %w", dirCache, err)
 	}
 
-	return ejecutarConsultas(registro, consultas, "--offline", "--json"), nil
+	return ejecutarConsultas(registro, consultas, conOtroCodigo, "--offline", "--json"), nil
 }
 
 // SesionAPreparar es lo que PrepararSesion necesita para preparar el directorio
@@ -192,6 +205,12 @@ type SesionAPreparar struct {
 	// Grabaciones son los conjuntos de grabaciones, en el orden en que los copia
 	// Preparar.
 	Grabaciones []string
+
+	// GrafosPrevios es el directorio en el que el grafo previo de la eval de la
+	// sesión es el subdirectorio que nombra su grafo_previo. Vacío, el de la
+	// constante GrafosPrevios, el del repositorio, que es el del job; los tests
+	// dan uno temporal.
+	GrafosPrevios string
 
 	// Fichero es el nombre, dentro de Evals, de la eval con la que se juzga la
 	// sesión.
@@ -217,10 +236,15 @@ type SesionAPreparar struct {
 //  2. si Fichero no es ninguna de las evals, o si Modelo no tiene la forma de un
 //     id de modelo, termina con un error que lo nombra, sin preparar ni escribir
 //     nada;
-//  3. prepara cache/ con Preparar y las consultas necesarias de todas las evals,
+//  3. si la eval de Fichero lleva grafo_previo, y solo la suya, antes de llenar
+//     cache/ prepara con él el grafo del mundo de cache/ (prepararGrafoPrevio);
+//     sus faltas o su error se devuelven tal cual, sin preparar la caché ni
+//     escribir nada más;
+//  4. prepara cache/ con Preparar y las consultas necesarias de todas las evals,
 //     no solo las de Fichero, para que ninguna eval dependa del orden; sus faltas
-//     o su error se devuelven tal cual, sin escribir nada más;
-//  4. escribe eval.txt con Fichero, modelo.txt con Modelo y pregunta.txt con la
+//     o su error se devuelven tal cual, sin escribir nada más. Su registro no
+//     entrega al grafo: el de la sesión queda con lo del grafo previo;
+//  5. escribe eval.txt con Fichero, modelo.txt con Modelo y pregunta.txt con la
 //     pregunta de esa eval o, con PruebaDeRed, con la pregunta, una línea en
 //     blanco y el texto de la prueba de red, cada uno con un salto de línea final.
 func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
@@ -247,13 +271,14 @@ func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
 		return nil, fmt.Errorf("la eval %s no es ninguna de las evals bien formadas de %s", s.Fichero, s.Evals)
 	}
 
-	faltas, err := Preparar(filepath.Join(s.Directorio, directorioDeLaCache), s.Grabaciones,
-		ConsultasNecesarias(conjunto.Evals))
+	eval := conjunto.Evals[posicion]
+
+	faltas, err := prepararLaCache(s, conjunto.Evals, eval)
 	if len(faltas) > 0 || err != nil {
 		return faltas, err
 	}
 
-	pregunta := conjunto.Evals[posicion].Pregunta
+	pregunta := eval.Pregunta
 	if s.PruebaDeRed {
 		pregunta += "\n\n" + textoDeLaPruebaDeRed
 	}
@@ -270,6 +295,88 @@ func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
 	}
 
 	return nil, nil
+}
+
+// prepararLaCache hace los pasos 3 y 4 de PrepararSesion en cache/ de la
+// sesión: el grafo previo de la eval, si lo lleva, y después, si no dio faltas
+// ni error, la caché con las consultas necesarias de todas las evals.
+func prepararLaCache(s SesionAPreparar, evals []Eval, eval Eval) ([]Falta, error) {
+	dirCache := filepath.Join(s.Directorio, directorioDeLaCache)
+
+	if eval.GrafoPrevio.Grabaciones != "" {
+		faltas, err := prepararGrafoPrevio(dirCache, s.Grabaciones, cmp.Or(s.GrafosPrevios, GrafosPrevios), eval)
+		if len(faltas) > 0 || err != nil {
+			return faltas, err
+		}
+	}
+
+	return Preparar(dirCache, s.Grabaciones, ConsultasNecesarias(evals))
+}
+
+// prepararGrafoPrevio llena el grafo del mundo de dirCache, el directorio de la
+// caché de la sesión, con el grafo previo de la eval, en proceso y sin red
+// (contrato evals-y-skill §3 de H7; research D26; FR-085):
+//
+//  1. copia en un directorio temporal los conjuntos de grabaciones, en su orden,
+//     y encima el del grafo previo, el subdirectorio de grafosPrevios que nombra;
+//  2. registra, como Preparar, el applet boe sobre httpx.Replay de ese
+//     temporal, pero con la caché en otro temporal que se descarta, y entrega al
+//     grafo del mundo de dirCache;
+//  3. ejecuta cada comando del grafo previo, en su orden, como boe articulo
+//     <norma> <bloque> con app.Main y --json;
+//  4. cada comando que termina con un código distinto de 0, o que escribe
+//     cualquier cosa en la salida de error —donde el kernel avisa, con el código
+//     0, de una entrega que falló—, es una Falta con el punto PuntoGrafoPrevio.
+//
+// Nada de lo que lee llega a la caché de la sesión, que después prepara
+// Preparar con lo grabado: el grafo tiene la versión derivada y la caché, la
+// grabada. El error, como en Preparar, queda para lo que impide preparar,
+// nombrando el grafo previo y su eval: un temporal que no se crea o no se
+// retira, un conjunto que no se copia o el applet que Registrar rechaza.
+func prepararGrafoPrevio(dirCache string, grabaciones []string, grafosPrevios string, eval Eval) (_ []Falta, err error) {
+	previo := eval.GrafoPrevio
+	contexto := fmt.Sprintf("preparar el grafo previo %s de la eval %s", previo.Grabaciones, eval.Fichero)
+
+	reproduccion, err := os.MkdirTemp("", "kitlegal-evals-grafo-previo-grabaciones-")
+	if err != nil {
+		return nil, fmt.Errorf("%s: el directorio temporal de las grabaciones no se puede crear: %w", contexto, err)
+	}
+
+	defer func() { err = errors.Join(err, retirarTemporal(reproduccion)) }()
+
+	cacheQueSeDescarta, err := os.MkdirTemp("", "kitlegal-evals-grafo-previo-cache-")
+	if err != nil {
+		return nil, fmt.Errorf("%s: el directorio temporal de la caché no se puede crear: %w", contexto, err)
+	}
+
+	defer func() { err = errors.Join(err, retirarTemporal(cacheQueSeDescarta)) }()
+
+	for _, conjunto := range slices.Concat(grabaciones, []string{filepath.Join(grafosPrevios, previo.Grabaciones)}) {
+		if err := copiarGrabaciones(conjunto, reproduccion); err != nil {
+			return nil, fmt.Errorf("%s: %w", contexto, err)
+		}
+	}
+
+	registro, err := registroDeBoe(reproduccion, cache.ConDirectorio(cacheQueSeDescarta))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", contexto, err)
+	}
+
+	registro.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(dirCache)))
+
+	origen := Origen{Eval: eval.Fichero, Punto: PuntoGrafoPrevio}
+	consultas := make([]Consulta, 0, len(previo.Comandos))
+
+	for _, comando := range previo.Comandos {
+		consultas = append(consultas, Consulta{
+			Applet:     comando.Applet,
+			Verbo:      verboArticulo,
+			Argumentos: []string{comando.Norma, comando.Bloque},
+			Origenes:   []Origen{origen},
+		})
+	}
+
+	return ejecutarConsultas(registro, consultas, conOtroCodigoOSalidaDeError, "--json"), nil
 }
 
 // registroDeBoe monta el registro de las consultas en proceso: el valor cero de
@@ -289,11 +396,28 @@ func registroDeBoe(grabaciones string, opciones ...cache.Opcion) (*app.Registro,
 	return &registro, nil
 }
 
+// criterioDeFalta dice si una invocación que terminó con el código y escribió
+// errores en la salida de error es una Falta.
+type criterioDeFalta func(codigo int, errores string) bool
+
+// conOtroCodigo es el criterio de Preparar y ComprobarSinRed: la consulta que
+// termina con un código distinto de 0 (FR-074, FR-075).
+func conOtroCodigo(codigo int, _ string) bool {
+	return codigo != 0
+}
+
+// conOtroCodigoOSalidaDeError es el de los comandos del grafo previo: además,
+// el que escribe cualquier cosa en la salida de error, como la línea con la que
+// el kernel avisa de una entrega al grafo que falló y que termina con 0
+// (contrato evals-y-skill §3 de H7).
+func conOtroCodigoOSalidaDeError(codigo int, errores string) bool {
+	return codigo != 0 || errores != ""
+}
+
 // ejecutarConsultas invoca cada consulta, en su orden, con app.Main, las
 // banderas detrás de sus argumentos y búferes nuevos, y devuelve como Falta cada
-// una que termina con un código distinto de 0, con copias de sus argumentos y
-// sus orígenes.
-func ejecutarConsultas(registro *app.Registro, consultas []Consulta, banderas ...string) []Falta {
+// una que lo es según el criterio, con copias de sus argumentos y sus orígenes.
+func ejecutarConsultas(registro *app.Registro, consultas []Consulta, esFalta criterioDeFalta, banderas ...string) []Falta {
 	var faltas []Falta
 
 	for _, consulta := range consultas {
@@ -303,7 +427,7 @@ func ejecutarConsultas(registro *app.Registro, consultas []Consulta, banderas ..
 
 		codigo := app.Main(argv, registro, &salida, &errores,
 			sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
-		if codigo != 0 {
+		if esFalta(codigo, errores.String()) {
 			faltas = append(faltas, Falta{
 				Consulta: Consulta{
 					Applet:     consulta.Applet,

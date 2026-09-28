@@ -1,21 +1,16 @@
 {
-  "id": "T023",
-  "texto": "T023 [US5] Formato, juicio e informe de la eval ampliada (contracts/evals-y-skill.md §1 y §2; research D26): internal/evals/formato.go (`Eval.Prohibidos []ComandoProhibido` y `Eval.GrafoPrevio GrafoPrevio`; `formaComprobacion` para `verbo: check`, cuyo texto es `<applet> check`); internal/evals/consultas.go (la forma comprobación no genera ninguna consulta que preparar); internal/evals/juzgar.go (un comando de la forma comprobación lo satisface una invocación del mismo applet con verbo `check` que consulta y termina con 0; un prohibido lo ejecuta toda invocación que consulta —ni ayuda, ni `--describe`, ni `--dry-run`— del mismo applet y verbo, termine como termine, con el motivo `comando prohibido ejecutado: <applet> <verbo>`, y la eval no pasa; sin `prohibidos`, el juicio de antes); internal/evals/informe.go (`comandos_prohibidos_ejecutados`, lista vacía si no hay, en cada eval de `informe.json` y su columna en el informe legible); tests: `TestLeerEval` y `TestEsquemaDeEval` en internal/evals/formato_test.go (las formas nuevas se leen y validan; sus variantes mal formadas y en evals de no activación se rechazan; las existentes de `boe-legislacion` y `legal-core` se leen igual), `TestFormaDelComando` en internal/evals/consultas_test.go, `TestJuzgar` con prohibidos con y sin código 0 y ayuda o `--describe` que no cuentan en internal/evals/juzgar_test.go, y `TestInforme` con la clave nueva en internal/evals/informe_test.go — FR-085, FR-086; SC-012; rutas: internal/evals/formato.go, internal/evals/formato_test.go, internal/evals/consultas.go, internal/evals/consultas_test.go, internal/evals/juzgar.go, internal/evals/juzgar_test.go, internal/evals/informe.go, internal/evals/informe_test.go",
+  "id": "T024",
+  "texto": "T024 [US5] Preparación del grafo previo de la sesión (contracts/evals-y-skill.md §3; research D26): internal/evals/preparar.go, si la eval de la sesión lleva `grafo_previo` y **antes** de llenar la caché de la sesión, copia en un temporal de reproducción las grabaciones de `UnionDeGrabaciones()` y encima el directorio del grafo previo nombrado, monta un registro con `boe` sobre esa reproducción, una caché temporal que se descarta y `EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(<caché de la sesión>)))`, y ejecuta cada comando como `kitlegal boe articulo <norma> <bloque> --json` con `app.Main`, donde un código distinto de 0 o cualquier salida de error es una `Falta`; después prepara la caché como hoy con un registro sin entrega al grafo; solo el grafo previo de la eval de la sesión; internal/evals/grabaciones.go con el directorio de los grafos previos junto al de las grabaciones de las evals; tests: `TestPrepararGrafoPrevio` en internal/evals/preparar_test.go sobre temporales con una derivada sintética escrita por el test (el grafo tiene solo la versión anterior, la caché sirve la grabada, una salida de error es una falta) y el directorio en internal/evals/grabaciones_test.go — FR-085; rutas: internal/evals/preparar.go, internal/evals/preparar_test.go, internal/evals/grabaciones.go, internal/evals/grabaciones_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "e297040f75669660db927d6df8cd3f6f1e424c4e",
+  "base": "df2104bb5f510fb64fab42a5a4eff5e773f980db",
   "rutas": [
     "contracts/evals-y-skill.md",
-    "informe.json",
-    "internal/evals/consultas.go",
-    "internal/evals/consultas_test.go",
-    "internal/evals/formato.go",
-    "internal/evals/formato_test.go",
-    "internal/evals/informe.go",
-    "internal/evals/informe_test.go",
-    "internal/evals/juzgar.go",
-    "internal/evals/juzgar_test.go"
+    "internal/evals/grabaciones.go",
+    "internal/evals/grabaciones_test.go",
+    "internal/evals/preparar.go",
+    "internal/evals/preparar_test.go"
   ],
   "cierre": false,
   "converger": false,
