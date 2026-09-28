@@ -93,23 +93,27 @@ type informeCrudo struct {
 	Evals   []resultadoCrudo `json:"evals"`
 }
 
-// resultadoCrudo es el resultado de una sesión de informe.json con sus avisos, su
-// territorio y sus invocaciones tal como están escritos.
+// resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
+// prohibidos ejecutados, sus avisos, su territorio y sus invocaciones tal como
+// están escritos.
 type resultadoCrudo struct {
-	Sesion               string            `json:"sesion"`
-	AvisosEncontrados    jsontext.Value    `json:"avisos_encontrados"`
-	AvisosAusentes       jsontext.Value    `json:"avisos_ausentes"`
-	TerritorioEncontrado jsontext.Value    `json:"territorio_encontrado"`
-	TerritorioAusente    jsontext.Value    `json:"territorio_ausente"`
-	Invocaciones         []invocacionCruda `json:"invocaciones"`
+	Sesion                       string            `json:"sesion"`
+	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
+	AvisosEncontrados            jsontext.Value    `json:"avisos_encontrados"`
+	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
+	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
+	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
+	Invocaciones                 []invocacionCruda `json:"invocaciones"`
 }
 
 // encabezadosDeLaTablaDeSesiones son los de la tabla de las sesiones de
-// informe.md, con los avisos junto a las citas y el territorio junto a los avisos
-// (contrato de evals §2 de H6).
+// informe.md, con los comandos prohibidos ejecutados junto a los comandos
+// ausentes (contrato evals-y-skill §2 de H7), los avisos junto a las citas y el
+// territorio junto a los avisos (contrato de evals §2 de H6).
 var encabezadosDeLaTablaDeSesiones = []string{
-	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes",
-	"Avisos encontrados", "Avisos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
+	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
+	"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
+	"Territorio encontrado", "Territorio ausente", "Resultado",
 }
 
 // invocacionCruda es una invocación de informe.json con su código y sus
@@ -132,6 +136,11 @@ type invocacionCruda struct {
 // red, y no con una invocación fuera de lo grabado, con una serie informativa que
 // no pasa ni con una sesión que no pasa de una serie que sí llega al umbral
 // (FR-071, FR-073, FR-076, SC-003, SC-012; ADR 0016).
+//
+// Desde H7, cada sesión de informe.json lleva la clave comandos_prohibidos_ejecutados,
+// una lista vacía cuando no hay ninguno, y la tabla de las sesiones de informe.md,
+// su columna detrás de los comandos ausentes (contrato evals-y-skill §2 de H7); lo
+// que llevan cuando hay uno lo fija TestInformeConProhibidos.
 func TestInforme(t *testing.T) {
 	t.Parallel()
 
@@ -429,9 +438,10 @@ func TestInformeConAvisos(t *testing.T) {
 				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-					"ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno", "no pasa"),
+					"ninguno", "ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno",
+					"no pasa"),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-					"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
 				"la sección de la sesión publica la respuesta con la forma fija")
@@ -465,6 +475,107 @@ func copiaDelCasoAprobadoConAvisos(t *testing.T, sinLaCita bool) string {
 	}
 
 	escribirEnLaCopia(t, sesion, "sesion.jsonl", transcript)
+
+	return copia
+}
+
+// Lo que TestInformeConProhibidos cambia en su copia del caso aprobado (contrato
+// evals-y-skill §2 de H7).
+const (
+	// prohibidoDeLaEval01 es lo que se añade al final de la eval del art. 21: graph
+	// show prohibido.
+	prohibidoDeLaEval01 = "prohibidos:\n  - applet: graph\n    verbo: show\n"
+
+	// creacionDeLaLectura es la línea de la traza de claude de la sesión del
+	// art. 21 que crea el proceso que lee el bloque; la copia le añade detrás la
+	// misma línea con el proceso 3000.
+	creacionDeLaLectura = "clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, " +
+		"child_tidptr=0x7f3a9c2f5a10) = 2000\n"
+
+	// trazaDeGraphShow es el t.3000 de la copia: el proceso que pide con graph
+	// show la ficha del bloque y termina con código 3.
+	trazaDeGraphShow = `execve("/usr/local/bin/kitlegal", ["kitlegal", "graph", "show", ` +
+		`"eli/es/l/2015/10/01/39#a21", "--json"], 0x7ffd8f13a6c0 /* 25 vars */) = 0` + "\n" +
+		"+++ exited with 3 +++\n"
+)
+
+// TestInformeConProhibidos fija la clave comandos_prohibidos_ejecutados de
+// informe.json y su columna de informe.md (contrato evals-y-skill §2 de H7;
+// FR-085, FR-086): sobre una copia del caso aprobado en la que la eval del art. 21
+// prohíbe graph show y su sesión lo ejecuta, aunque termine con código 3,
+// informe.json lo lleva en esa sesión, con su motivo en la sesión y en la raíz, y
+// una lista vacía en la sesión de la eval que no prohíbe nada; la invocación va
+// además a las otras fallidas; e informe.md lo pone en la tabla de las sesiones,
+// detrás de los comandos ausentes, y publica la invocación con su código en la
+// sección de la sesión. Nada se escribe bajo testdata/.
+func TestInformeConProhibidos(t *testing.T) {
+	t.Parallel()
+
+	const motivoDeGraphShow = "comando prohibido ejecutado: " + textoDeGraphShow
+
+	copia := copiaDelCasoAprobadoConProhibido(t)
+
+	entradas := entradasDelCaso(casoAprobado, t.TempDir())
+	entradas.Evals = filepath.Join(copia, "evals")
+	entradas.Sesiones = filepath.Join(copia, "sesiones")
+
+	informe, err := EscribirInforme(entradas)
+	require.NoError(t, err)
+
+	leido := leerInformeEscrito(t, entradas.Destino, informe)
+	leido.caso = copia
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21)
+	assert.Equal(t, []string{textoDeGraphShow}, resultado.ComandosProhibidosEjecutados)
+	assert.Equal(t, []string{motivoDeGraphShow}, resultado.Motivos)
+	assert.Equal(t, []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: 3}}, resultado.OtrasFallidas)
+	assert.False(t, resultado.Pasa)
+
+	assert.Equal(t, `["graph show"]`,
+		compacto(t, resultadoEscrito(t, leido, sesionDelArticulo21).ComandosProhibidosEjecutados))
+	assert.Equal(t, "[]", string(resultadoEscrito(t, leido, sesionDeNoActivacion).ComandosProhibidosEjecutados))
+	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDeNoActivacion).Pasa)
+
+	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+		sesionDelArticulo21+": "+motivoDeGraphShow)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
+		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
+		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "no pasa"),
+		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
+		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones"))
+}
+
+// copiaDelCasoAprobadoConProhibido copia el caso aprobado de TestInforme en un
+// directorio temporal del test y devuelve su ruta. En la copia, la eval del
+// art. 21 prohíbe graph show, y la traza de su sesión tiene un proceso más, el
+// 3000, que claude crea detrás del que lee el bloque y que pide con graph show la
+// ficha del bloque y termina con código 3.
+func copiaDelCasoAprobadoConProhibido(t *testing.T) string {
+	t.Helper()
+
+	copia := t.TempDir()
+	require.NoError(t, os.CopyFS(copia, os.DirFS(filepath.Join(casosDeInforme, casoAprobado))))
+
+	evals := filepath.Join(copia, "evals")
+	eval := contenidoDeLaSesion(t, evals, ficheroDeLaEval01)
+	require.True(t, strings.HasSuffix(eval, "\n"), "la eval %s termina en un salto de línea", ficheroDeLaEval01)
+	escribirEnLaCopia(t, evals, ficheroDeLaEval01, eval+prohibidoDeLaEval01)
+
+	traza := filepath.Join(copia, "sesiones", sesionDelArticulo21, directorioDeLaTraza)
+	deClaude := contenidoDeLaSesion(t, traza, "t.1000")
+	require.Equal(t, 1, strings.Count(deClaude, creacionDeLaLectura),
+		"la traza de claude crea una sola vez el proceso que lee el bloque")
+
+	creacionDeGraphShow := strings.Replace(creacionDeLaLectura, "= 2000", "= 3000", 1)
+	escribirEnLaCopia(t, traza, "t.1000",
+		strings.Replace(deClaude, creacionDeLaLectura, creacionDeLaLectura+creacionDeGraphShow, 1))
+	escribirEnLaCopia(t, traza, "t.3000", trazaDeGraphShow)
 
 	return copia
 }
@@ -528,12 +639,14 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	assert.Contains(t, seccion, contenidoDeLaSesion(t, directorioDeSesion(leido, sesionDelArticulo21), "pregunta.txt"))
 	assert.Contains(t, seccion, respuestaConCita)
 
-	// Ninguna de las dos evals del caso espera avisos ni territorio: cada sesión
-	// los escribe como listas vacías, no como null (FR-040 de H5.1; contrato de
-	// evals §2 de H6).
+	// Ninguna de las dos evals del caso prohíbe comandos ni espera avisos ni
+	// territorio: cada sesión los escribe como listas vacías, no como null (FR-040
+	// de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2 de H7).
 	require.Len(t, leido.crudo.Evals, 2, "informe.json tiene las dos sesiones del caso")
 
 	for _, resultado := range leido.crudo.Evals {
+		assert.Equal(t, "[]", string(resultado.ComandosProhibidosEjecutados),
+			"comandos_prohibidos_ejecutados de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.AvisosEncontrados),
 			"avisos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.AvisosAusentes),
@@ -544,15 +657,16 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 			"territorio_ausente de %s es una lista vacía, no null", resultado.Sesion)
 	}
 
-	// El territorio encontrado y el ausente van en la tabla de las sesiones
-	// detrás de los avisos, vacíos en las dos.
+	// Los comandos prohibidos ejecutados van en la tabla de las sesiones detrás
+	// de los comandos ausentes, y el territorio encontrado y el ausente, detrás de
+	// los avisos, vacíos en las dos.
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-			"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"),
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-			"ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 }
 
 // comprobarFueraDeLoGrabado exige las dos invocaciones de a9998 de la sesión de

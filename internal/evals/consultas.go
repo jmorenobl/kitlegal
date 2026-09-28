@@ -72,9 +72,11 @@ type Consulta struct {
 //
 //  1. por cada comando esperado, según su forma: la forma bloque, articulo
 //     <norma> <bloque>; la consulta de norma, <verbo> <norma>; la búsqueda,
-//     buscar <terminos…>; y el comando de territorio, ninguna, porque el applet
+//     buscar <terminos…>; el comando de territorio, ninguna, porque el applet
 //     territorio no pide nada por red ni usa la caché y no hay nada que grabar
-//     (data-model §6.3 de H6; FR-043);
+//     (data-model §6.3 de H6; FR-043); y la comprobación, tampoco, porque lee el
+//     grafo de la sesión, no la caché ni la red (contrato evals-y-skill §1 de
+//     H7);
 //  2. por cada norma de sus comandos y de sus citas, sin repetir: indice <norma>
 //     y metadatos <norma>;
 //  3. por cada cita esperada: articulo <norma> <bloque>.
@@ -98,6 +100,9 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 			case formaTerritorio:
 				// Lo que resuelve viaja dentro del binario: no hay consulta que la
 				// caché preparada tenga que servir.
+			case formaComprobacion:
+				// Lo que comprueba es el grafo de la sesión, que no sale de la
+				// caché preparada: tampoco hay consulta que servir.
 			}
 		}
 

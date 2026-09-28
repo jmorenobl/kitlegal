@@ -37,9 +37,21 @@ type Eval struct {
 	// exigir (H5.1). Solo la ejecuta el modelo que decide.
 	Informativa bool `yaml:"informativa"`
 
+	// GrafoPrevio es lo que el grafo de la sesión tiene que haber registrado
+	// antes de que empiece: las grabaciones con las que se prepara y los comandos
+	// de bloque que lo llenan. Vacío si la eval no lo lleva; solo lo admite una
+	// eval que activa la skill (contrato evals-y-skill §1 y §3 de H7; FR-085).
+	GrafoPrevio GrafoPrevio `yaml:"grafo_previo"`
+
 	// Comandos son los comandos esperados de una eval que activa la skill, en el
 	// orden del fichero; vacío en una de no activación (FR-061).
 	Comandos []ComandoEsperado `yaml:"comandos"`
+
+	// Prohibidos son los comandos que ninguna invocación de la sesión puede
+	// ejecutar, en el orden del fichero; vacío si la eval no los tiene. Solo los
+	// admite una eval que activa la skill (contrato evals-y-skill §1 y §2 de H7;
+	// FR-085).
+	Prohibidos []ComandoProhibido `yaml:"prohibidos"`
 
 	// Citas son las citas esperadas de una eval que activa la skill, en el orden
 	// del fichero; vacío en una de no activación (FR-061).
@@ -58,17 +70,18 @@ type Eval struct {
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las
-// cuatro formas excluyentes de data-model §6.1 de H5 y de H6, que decide
-// formaDelComando: bloque (Applet, Norma y Bloque, sin Verbo), consulta de norma
-// (Applet, Verbo indice, metadatos o analisis, y Norma), búsqueda (Applet, Verbo
-// buscar y Terminos) o territorio (Applet, Verbo resolver y Municipio). Lo que su
-// forma no lleva queda vacío.
+// cinco formas excluyentes de data-model §6.1 de H5 y de H6 y del contrato
+// evals-y-skill §1 de H7, que decide formaDelComando: bloque (Applet, Norma y
+// Bloque, sin Verbo), consulta de norma (Applet, Verbo indice, metadatos o
+// analisis, y Norma), búsqueda (Applet, Verbo buscar y Terminos), territorio
+// (Applet, Verbo resolver y Municipio) o comprobación (Applet y Verbo check). Lo
+// que su forma no lleva queda vacío.
 type ComandoEsperado struct {
-	// Applet es el applet que se invoca, como boe o territorio.
+	// Applet es el applet que se invoca, como boe, territorio o graph.
 	Applet string `yaml:"applet"`
 
-	// Verbo es el verbo de una consulta de norma, de una búsqueda o de un
-	// comando de territorio; vacío en la forma bloque.
+	// Verbo es el verbo de una consulta de norma, de una búsqueda, de un comando
+	// de territorio o de una comprobación; vacío en la forma bloque.
 	Verbo string `yaml:"verbo"`
 
 	// Norma es el identificador de la norma de la forma bloque o de una
@@ -91,10 +104,40 @@ type ComandoEsperado struct {
 // territorio (contrato de evals §1.1 de H6).
 const verboResolver = "resolver"
 
-// formaDeComando es una de las cuatro formas de un comando esperado.
+// verboCheck es el verbo de un comando de comprobación, el de graph check
+// (contrato evals-y-skill §1 de H7).
+const verboCheck = "check"
+
+// ComandoProhibido es un comando que ninguna invocación de la sesión puede
+// ejecutar: un verbo de un applet, con cualquier argumento (contrato
+// evals-y-skill §1 y §2 de H7).
+type ComandoProhibido struct {
+	// Applet es el applet del comando, como graph.
+	Applet string `yaml:"applet"`
+
+	// Verbo es el verbo del comando, como show.
+	Verbo string `yaml:"verbo"`
+}
+
+// GrafoPrevio es el estado del grafo con el que empieza la sesión de una eval: el
+// que dejan los comandos de bloque ejecutados sobre las grabaciones derivadas
+// nombradas antes de preparar la caché de la sesión (contrato evals-y-skill §1 y
+// §3 de H7; research D26).
+type GrafoPrevio struct {
+	// Grabaciones es el nombre del conjunto de grabaciones derivadas con las que
+	// se prepara el grafo.
+	Grabaciones string `yaml:"grabaciones"`
+
+	// Comandos son los comandos de bloque que llenan el grafo, en el orden del
+	// fichero; solo tienen la forma bloque.
+	Comandos []ComandoEsperado `yaml:"comandos"`
+}
+
+// formaDeComando es una de las cinco formas de un comando esperado.
 type formaDeComando int
 
-// Las cuatro formas de un comando esperado (data-model §6.1 de H5 y de H6).
+// Las cinco formas de un comando esperado (data-model §6.1 de H5 y de H6;
+// contrato evals-y-skill §1 de H7).
 const (
 	// formaConsultaDeNorma es la de una consulta de norma: el verbo con la norma.
 	formaConsultaDeNorma formaDeComando = iota
@@ -108,14 +151,19 @@ const (
 	// formaTerritorio es la de un comando de territorio: resolver con el
 	// municipio.
 	formaTerritorio
+
+	// formaComprobacion es la de un comando de comprobación: check, sin
+	// argumentos.
+	formaComprobacion
 )
 
 // formaDelComando es la forma del comando esperado, que decide su verbo, el que
-// distingue las cuatro de data-model §6.1: sin verbo, la forma bloque; buscar, la
-// búsqueda; resolver, el comando de territorio; y cualquier otro, la consulta de
-// norma, porque el esquema de eval solo admite en esa forma los verbos de su
-// enumerado. Es el único sitio que decide la variante: la consumen el
-// juicio, el texto del comando y las consultas necesarias (research D21 de H6).
+// distingue las cinco de data-model §6.1 y del contrato evals-y-skill §1 de H7:
+// sin verbo, la forma bloque; buscar, la búsqueda; resolver, el comando de
+// territorio; check, la comprobación; y cualquier otro, la consulta de norma,
+// porque el esquema de eval solo admite en esa forma los verbos de su enumerado.
+// Es el único sitio que decide la variante: la consumen el juicio, el texto del
+// comando y las consultas necesarias (research D21 de H6).
 func formaDelComando(comando ComandoEsperado) formaDeComando {
 	switch comando.Verbo {
 	case "":
@@ -124,6 +172,8 @@ func formaDelComando(comando ComandoEsperado) formaDeComando {
 		return formaBusqueda
 	case verboResolver:
 		return formaTerritorio
+	case verboCheck:
+		return formaComprobacion
 	default:
 		return formaConsultaDeNorma
 	}

@@ -53,14 +53,15 @@ type ficheroDeEsquemas struct {
 }
 
 // ficherosDeEsquemas son los ficheros publicados, con su applet y sus verbos
-// (FR-110). Los de territorio y skills se llaman como su entidad, igual que los
-// de boe, y no como el applet (contrato del applet territorio §6; research.md D25;
-// research.md D16 de H19).
+// (FR-110). Los de territorio, skills y graph se llaman como su entidad, igual
+// que los de boe, y no como el applet (contrato del applet territorio §6;
+// research.md D25; research.md D16 de H19; contracts/applet-graph.md §6 de H7).
 var ficherosDeEsquemas = []ficheroDeEsquemas{
 	{applet: "boe", nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
 	{applet: "boe", nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
 	{applet: "territorio", nombre: "municipio.json", entidad: "municipio", verbos: []string{"resolver"}},
 	{applet: "skills", nombre: "instalacion.json", entidad: "instalacion", verbos: []string{"doctor", "install", "list"}},
+	{applet: "graph", nombre: "grafo.json", entidad: "grafo", verbos: []string{"check", "show", "stats"}},
 }
 
 // TestEsquemasPublicados es lo que vigila make schema-check (FR-110, SC-006;
@@ -131,6 +132,8 @@ func TestEsquemasPublicados(t *testing.T) {
 			"municipio.json": "Salida del verbo resolver del applet territorio." +
 				" Generado desde --describe con make schema-check; no editar.",
 			"instalacion.json": "Salidas de los verbos doctor, install y list del applet skills." +
+				" Generado desde --describe con make schema-check; no editar.",
+			"grafo.json": "Salidas de los verbos check, show y stats del applet graph." +
 				" Generado desde --describe con make schema-check; no editar.",
 		}
 
@@ -612,8 +615,23 @@ func partesDeProduccion(t *testing.T) map[string]map[string]any {
 // verbo de la tabla se describe.
 var contratosDeLosApplets = map[string]func() []verboDelContrato{
 	"boe":        verbosDelContrato,
+	"graph":      verbosDelContratoDeGrafo,
 	"skills":     verbosDelContratoDeSkills,
 	"territorio": verbosDelContratoDeTerritorio,
+}
+
+// verbosDelContratoDeGrafo son los tres verbos de graph con la invocación con
+// que se describen: show exige su id por su posición y el análisis de la
+// invocación va antes que la descripción, así que sin él --describe termina en 2;
+// stats y check no tienen argumentos (contracts/applet-graph.md §1). Describir no
+// valida el id ni abre world.db, de modo que el de show es el mismo con que lo
+// describe el guion grafo-applet de la suite de aceptación.
+func verbosDelContratoDeGrafo() []verboDelContrato {
+	return []verboDelContrato{
+		{nombre: "show", argumento: []string{"show", "x"}},
+		{nombre: "stats", argumento: []string{"stats"}},
+		{nombre: "check", argumento: []string{"check"}},
+	}
 }
 
 // verbosDelContratoDeSkills son los tres verbos de skills con la invocación con

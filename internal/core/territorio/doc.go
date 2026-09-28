@@ -31,7 +31,8 @@
 //     FR-016).
 //
 // Es dominio puro: no hace entrada ni salida y no importa más paquetes
-// internos que internal/core/ids e internal/core/schema (regla R1 de
+// internos que internal/core/ids, internal/core/schema e internal/core/grafo,
+// por el vocabulario con el que declara lo que observa (regla R1 de
 // docs/ROADMAP.md §2). Un Registro no cambia después de cargarse y puede
 // usarse desde varias goroutines a la vez.
 package territorio

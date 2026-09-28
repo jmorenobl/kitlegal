@@ -253,6 +253,31 @@ func TestGrabacionesSinSolape(t *testing.T) {
 		"los conjuntos de grabaciones %s y %s solo coinciden en %s", GrabacionesDeH4, GrabacionesDeH5, grabacionDeRobots)
 }
 
+// TestDirectorioDeLosGrafosPrevios fija dónde están los conjuntos de grabaciones
+// derivadas con los que se prepara cada grafo previo (contrato evals-y-skill §3
+// de H7; research D26): en grafo-previo/, junto al conjunto de grabaciones de las
+// evals, y fuera de la unión que reproduce Preparar, que no copia ninguno ni se
+// copia desde dentro de él, para que lo derivado llegue al grafo de la sesión y
+// nunca a su caché.
+func TestDirectorioDeLosGrafosPrevios(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, GrafosPrevios, filepath.Join(filepath.Dir(GrabacionesDeH5), "grafo-previo"),
+		"cada grafo previo va en grafo-previo/, junto a las grabaciones de las evals")
+
+	for _, conjunto := range UnionDeGrabaciones() {
+		desdeLosGrafosPrevios, err := filepath.Rel(GrafosPrevios, conjunto)
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(desdeLosGrafosPrevios, ".."+string(filepath.Separator)),
+			"el conjunto %s de la unión no está dentro de %s", conjunto, GrafosPrevios)
+
+		hastaLosGrafosPrevios, err := filepath.Rel(conjunto, GrafosPrevios)
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(hastaLosGrafosPrevios, ".."+string(filepath.Separator)),
+			"%s no está dentro del conjunto %s de la unión", GrafosPrevios, conjunto)
+	}
+}
+
 // rutaDelManifiestoDelRepositorio es la del manifiesto de grabación real, junto
 // al conjunto de grabaciones de H5 que llena.
 func rutaDelManifiestoDelRepositorio() string {

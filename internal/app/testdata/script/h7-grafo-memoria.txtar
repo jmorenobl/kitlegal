@@ -1,0 +1,177 @@
+# El binario recuerda lo que consulta, con su fuente: tras boe articulo y
+# territorio resolver, graph stats cuenta cada nodo por su tipo y su fuente y
+# cada arista por su relación y su fuente; repetir las dos consultas no cambia
+# nada; graph show de cada nodo y de cada arista devuelve, carácter a carácter,
+# la fuente, la url y la fecha_consulta del sobre que los observó; una consulta
+# servida con --offline también entrega; y dos consultas con la misma
+# fecha_consulta y distinta url dejan en la Norma la observación de la url
+# menor, lleguen en el orden que lleguen.
+#
+# Cubre: US1.1, US1.2, US1.3, US1.4 y el empate de fecha de consulta de «Edge
+# Cases» · FR-001, FR-002, FR-021, FR-022, FR-023, FR-026, FR-030, FR-035,
+# FR-040, FR-043, FR-053, FR-054, FR-065, FR-089, FR-093 · SC-001, SC-002.
+#
+# Nada de lo que se espera está escrito de memoria: la url del bloque, su
+# fecha_vigencia y su hash_texto son los del sobre de `boe articulo
+# BOE-A-2015-10565 a21 --json` sobre la reproducción de H4, y el id de la Norma
+# sale de su url_eli (contracts/emision.md §1); el código INE y el DIR3 de
+# Leganés, de data/territorio/municipios.yaml y dir3.yaml; la fecha_consulta de
+# territorio es la de sus datos, 2026-02-04T00:00:00Z; y la de boe y la de
+# graph, el reloj del binario T0, 2026-09-28T12:00:00Z (contracts/arnes-e2e.md
+# §2). Los formatos, de contracts/applet-graph.md §2-§3 y contracts/emision.md.
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- Una consulta de boe y lo que cuenta graph stats (US1.1) ---
+#
+# El directorio de la caché no existe todavía: la primera invocación que
+# observa algo crea world.db junto a cache.db (FR-001, FR-030).
+! exists cache
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloque":"a21",.*\}\}\n\z'
+stdout '"fecha_version":"20151002","fecha_vigencia":"20161002","norma_modificadora":"BOE-A-2015-10565"'
+stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+stdout '"url_eli":"https://www\.boe\.es/eli/es/l/2015/10/01/39"'
+! stderr .
+exists cache/cache.db
+exists cache/world.db
+
+# Una Norma, un Bloque y un BloqueVersion, una arista eli:has_part y una
+# eli:has_version y un texto, todo con la fuente de boe; los pares, ordenados
+# por tipo o relación y después por fuente (FR-054).
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":3,"aristas":2,"textos":1,"nodos_por_tipo":\[\{"tipo":"Bloque","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"BloqueVersion","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"Norma","fuente":"boe\.legislacion-consolidada","nodos":1\}\],"aristas_por_relacion":\[\{"relacion":"eli:has_part","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"eli:has_version","fuente":"boe\.legislacion-consolidada","aristas":1\}\]\}\}\n\z'
+! stderr .
+
+# --- Y una de territorio (US1.2) ---
+#
+# Los recuentos anteriores siguen iguales y se añaden un Municipio, un Organo y
+# una arista lb:pertenece_a con la fuente de territorio.
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z",'
+stdout '"codigo_ine":\{"codigo":"28074",'
+stdout '"dir3":\{"codigo":"L01280745",'
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":5,"aristas":3,"textos":1,"nodos_por_tipo":\[\{"tipo":"Bloque","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"BloqueVersion","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"Municipio","fuente":"kitlegal\.territorio","nodos":1\},\{"tipo":"Norma","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"Organo","fuente":"kitlegal\.territorio","nodos":1\}\],"aristas_por_relacion":\[\{"relacion":"eli:has_part","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"eli:has_version","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"lb:pertenece_a","fuente":"kitlegal\.territorio","aristas":1\}\]\}\}\n\z'
+! stderr .
+cp stdout stats.json
+
+# --- La procedencia de cada nodo y de cada arista (US1.4, FR-053, FR-089) ---
+#
+# Cada nodo que una consulta creó lleva como primera y como última observación,
+# carácter a carácter, la fecha_consulta del sobre que lo observó, y como
+# procedencia de la última su fuente y su url; lo mismo cada arista, que se ve
+# desde sus dos extremos.
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma","datos":\{"identificador":"BOE-A-2015-10565"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39#a21","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .
+cp stdout norma.json
+
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21","tipo":"Bloque","datos":\{"bloque":"a21"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_version","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+cp stdout bloque.json
+
+# Los datos del BloqueVersion son los del Articulo que lo observó, sin su
+# cuerpo (FR-040, FR-041).
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","tipo":"BloqueVersion","datos":\{[^{}]*\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\],"entrantes":\[\{"relacion":"eli:has_version","id":"eli/es/l/2015/10/01/39#a21","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\]\}\}\n\z'
+stdout '"datos":\{[^{}]*"fecha_vigencia":"20161002"'
+stdout '"datos":\{[^{}]*"fecha_version":"20151002"'
+stdout '"datos":\{[^{}]*"norma_modificadora":"BOE-A-2015-10565"'
+stdout '"datos":\{[^{}]*"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stdout '"texto"'
+! stderr .
+cp stdout version.json
+
+# Los de territorio, con su procedencia: kitlegal.territorio y la fecha de sus
+# datos, con el DIR3 congelado de Leganés (FR-043).
+exec $KITLEGAL_T0_BIN graph show ine:28074 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"ine:28074","tipo":"Municipio","datos":\{"codigo_ine":"28074","nombre":"Leganés"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\],"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280745","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+cp stdout municipio.json
+
+exec $KITLEGAL_T0_BIN graph show L01280745 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"L01280745","tipo":"Organo","datos":\{"dir3":"L01280745"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\{"relacion":"lb:pertenece_a","id":"ine:28074","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .
+cp stdout organo.json
+
+# --- Repetir no cambia nada (US1.3, FR-022, SC-001) ---
+#
+# boe responde desde la caché, con la fecha_consulta con la que guardó la
+# consulta, y territorio con la de sus datos, por nombre y por código: los
+# recuentos y cada nodo con sus aristas quedan byte a byte como estaban.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+! stderr .
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+! stderr .
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --json
+! stderr .
+exec kitlegal territorio resolver 280745 --json
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph stats --json
+cmp stdout stats.json
+! stderr .
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39 --json
+cmp stdout norma.json
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21' --json
+cmp stdout bloque.json
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c' --json
+cmp stdout version.json
+exec $KITLEGAL_T0_BIN graph show ine:28074 --json
+cmp stdout municipio.json
+exec $KITLEGAL_T0_BIN graph show L01280745 --json
+cmp stdout organo.json
+
+# --- --offline también entrega (FR-035) ---
+#
+# Un bloque guardado en la caché con --no-graph no está en el grafo; servido
+# después con --offline, sí, con la procedencia de su sobre.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a23 --no-graph --json
+! stderr .
+exec sh -c '"$KITLEGAL_T0_BIN" graph show "eli/es/l/2015/10/01/39#a23"; test $? -eq 3'
+! stdout .
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a23 --offline --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a23","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a23' --json
+stdout '"data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a23","tipo":"Bloque","datos":\{"bloque":"a23"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a23","fecha_consulta":"2026-09-28T12:00:00Z"\}\},'
+stdout '"entrantes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a23","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '"data":\{"nodos":7,"aristas":5,"textos":2,'
+
+# La Norma, observada por a21 y por a23 con la misma fecha_consulta, conserva
+# la observación de la url menor, la de a21, que llegó primero; la arista hacia
+# cada bloque, la de su propio sobre (FR-023, FR-089).
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma","datos":\{"identificador":"BOE-A-2015-10565"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39#a21","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39#a23","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a23","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .
+
+# --- El empate en el otro orden, sobre una caché nueva («Edge Cases») ---
+#
+# a22 primero y a21 después, las dos con el reloj T0: la Norma queda con la
+# observación de a21, la de url menor, aunque llegara la última.
+env KITLEGAL_CACHE_DIR=$WORK/empate
+! exists empate
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a22 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a22","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+exists empate/world.db
+
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma","datos":\{"identificador":"BOE-A-2015-10565"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39#a21","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39#a22","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a22","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .

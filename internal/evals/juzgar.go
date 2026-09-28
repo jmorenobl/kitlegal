@@ -28,12 +28,14 @@ const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
-// una cita, un aviso o un elemento del territorio ausentes van seguidos de su
-// texto, el mismo con el que los presenta el informe, que en un aviso es su código
-// (contrato de formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6).
+// una cita, un aviso o un elemento del territorio ausentes, y el de un comando
+// prohibido ejecutado, van seguidos de su texto, el mismo con el que los presenta
+// el informe, que en un aviso es su código (contrato de formato, juicio e informe
+// §4 de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2 de H7).
 const (
 	motivoDeSesionSinTerminar = "la sesión no terminó: "
 	motivoDeComandoAusente    = "comando ausente: "
+	motivoDeComandoProhibido  = "comando prohibido ejecutado: "
 	motivoDeCitaAusente       = "cita ausente: "
 	motivoDeAvisoAusente      = "aviso ausente: "
 	motivoDeTerritorioAusente = "territorio ausente: "
@@ -71,10 +73,17 @@ type ResultadoDeEval struct {
 	// ComandosEjecutados y ComandosAusentes reparten los comandos esperados, en
 	// el orden de la eval, entre los que satisface alguna invocación de la sesión
 	// y los que no (data-model §6.1), cada uno con su texto: bloque <applet>
-	// <norma> <bloque>, <applet> <verbo> <norma>, <applet> buscar <términos…> o
-	// <applet> resolver <municipio>.
+	// <norma> <bloque>, <applet> <verbo> <norma>, <applet> buscar <términos…>,
+	// <applet> resolver <municipio> o <applet> check.
 	ComandosEjecutados []string `json:"comandos_ejecutados"`
 	ComandosAusentes   []string `json:"comandos_ausentes"`
+
+	// ComandosProhibidosEjecutados son los comandos prohibidos de la eval, en su
+	// orden y con sus repeticiones, que ejecutó alguna invocación de la sesión,
+	// cada uno una vez aunque lo ejecuten varias y con su texto: <applet> <verbo>
+	// (contrato evals-y-skill §2 de H7). Vacío si la eval no prohíbe nada o si
+	// ninguna invocación ejecutó lo que prohíbe.
+	ComandosProhibidosEjecutados []string `json:"comandos_prohibidos_ejecutados"`
 
 	// CitasEncontradas y CitasAusentes reparten las citas esperadas, en el orden
 	// de la eval, entre las que están en la respuesta y las que no (data-model
@@ -131,15 +140,17 @@ type ResultadoDeEval struct {
 
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
-	// activación que no coincide; cada comando ausente; cada cita ausente; cada
-	// aviso ausente; cada elemento del territorio ausente; y el modelo que la
-	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa.
+	// activación que no coincide; cada comando ausente; cada comando prohibido
+	// ejecutado; cada cita ausente; cada aviso ausente; cada elemento del
+	// territorio ausente; y el modelo que la sesión declara sin ser el pedido, que
+	// pone EscribirInforme. Vacío si pasa.
 	Motivos []string `json:"motivos"`
 
-	// Pasa dice si la sesión terminó, la activación coincide y no falta ningún
+	// Pasa dice si la sesión terminó, la activación coincide, no falta ningún
 	// comando, ninguna cita, ningún aviso ni ningún elemento del territorio
-	// esperados. No lo cambian FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed
-	// (FR-076), ni la forma fija de un aviso que la eval no espera.
+	// esperados y no se ejecutó ningún comando prohibido. No lo cambian
+	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
+	// de un aviso que la eval no espera.
 	Pasa bool `json:"pasa"`
 }
 
@@ -203,6 +214,13 @@ type LlegadaALaRed struct {
 // respuesta declara con su forma fija (ExtraerTerritorio) y los ausentes, y un
 // ausente impide pasar; una eval sin territorio esperado deja vacíos los dos y su
 // juicio es el de antes (contrato de evals §2 de H6; FR-084).
+//
+// Desde H7, anota además cada comando prohibido de la eval que ejecuta alguna
+// invocación de la sesión que consulta, termine como termine, y uno ejecutado
+// impide pasar; el comando de comprobación lo satisface, como los demás, solo
+// una invocación que consulta y termina con 0. Una eval sin prohibidos deja vacía
+// la lista y su juicio es el de antes (contrato evals-y-skill §2 de H7; FR-085,
+// FR-086).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -225,6 +243,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	}
 
 	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
+	resultado.anotarProhibidos(eval.Prohibidos, sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
 	resultado.repartirAvisos(eval.Avisos, ExtraerAvisos(sesion.Respuesta))
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
@@ -234,8 +253,9 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	}
 
 	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
-		len(resultado.ComandosAusentes) == 0 && len(resultado.CitasAusentes) == 0 &&
-		len(resultado.AvisosAusentes) == 0 && len(resultado.TerritorioAusente) == 0
+		len(resultado.ComandosAusentes) == 0 && len(resultado.ComandosProhibidosEjecutados) == 0 &&
+		len(resultado.CitasAusentes) == 0 && len(resultado.AvisosAusentes) == 0 &&
+		len(resultado.TerritorioAusente) == 0
 
 	return resultado
 }
@@ -282,6 +302,30 @@ func (r *ResultadoDeEval) repartirComandos(comandos []ComandoEsperado, invocacio
 		r.ComandosAusentes = append(r.ComandosAusentes, texto)
 		r.Motivos = append(r.Motivos, motivoDeComandoAusente+texto)
 	}
+}
+
+// anotarProhibidos anota, con su motivo, cada comando prohibido que ejecuta
+// alguna invocación de la sesión.
+func (r *ResultadoDeEval) anotarProhibidos(prohibidos []ComandoProhibido, invocaciones []Invocacion) {
+	for _, prohibido := range prohibidos {
+		if !slices.ContainsFunc(invocaciones, func(invocacion Invocacion) bool {
+			return ejecutaElProhibido(invocacion, prohibido)
+		}) {
+			continue
+		}
+
+		texto := prohibido.Applet + " " + prohibido.Verbo
+		r.ComandosProhibidosEjecutados = append(r.ComandosProhibidosEjecutados, texto)
+		r.Motivos = append(r.Motivos, motivoDeComandoProhibido+texto)
+	}
+}
+
+// ejecutaElProhibido dice si la invocación ejecuta el comando prohibido
+// (contrato evals-y-skill §2 de H7): consulta y es del mismo applet y del mismo
+// verbo, termine con el código que termine o sin código. La que no consulta —la
+// ayuda, --describe o --dry-run— no ejecuta nada.
+func ejecutaElProhibido(invocacion Invocacion, prohibido ComandoProhibido) bool {
+	return invocacion.Consulta && invocacion.Applet == prohibido.Applet && invocacion.Verbo == prohibido.Verbo
 }
 
 // repartirCitas reparte las citas esperadas entre encontradas y ausentes según
@@ -376,8 +420,9 @@ func (r *ResultadoDeEval) informar(invocacion Invocacion) {
 // §6.1 de H5 y de H6): tiene que consultar, terminar con código 0 y ser del mismo
 // applet; y, según la forma del comando, en la forma bloque, leer ese bloque de
 // esa norma; en la consulta de norma, ser el mismo verbo con esa norma; en la
-// búsqueda, ser buscar con cada término como palabra de sus argumentos; y en el
-// comando de territorio, ser resolver con el municipio como argumento.
+// búsqueda, ser buscar con cada término como palabra de sus argumentos; en el
+// comando de territorio, ser resolver con el municipio como argumento; y en la
+// comprobación, ser check (contrato evals-y-skill §2 de H7).
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
 		return false
@@ -394,6 +439,8 @@ func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 		satisfecho = invocacion.Verbo == verboBuscar && contieneLosTerminos(invocacion.Argumentos, comando.Terminos)
 	case formaTerritorio:
 		satisfecho = invocacion.Verbo == verboResolver && resuelveElMunicipio(invocacion.Argumentos, comando.Municipio)
+	case formaComprobacion:
+		satisfecho = invocacion.Verbo == verboCheck
 	}
 
 	return satisfecho
@@ -496,7 +543,8 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 // informe y los motivos (contrato job-de-evals §5), según su forma: bloque
 // <applet> <norma> <bloque> en la forma bloque, que satisfacen dos verbos;
 // <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
-// la búsqueda; y <applet> resolver <municipio> en el comando de territorio.
+// la búsqueda; <applet> resolver <municipio> en el comando de territorio; y
+// <applet> check en la comprobación (contrato evals-y-skill §1 de H7).
 func textoDelComando(comando ComandoEsperado) string {
 	var partes []string
 
@@ -509,6 +557,8 @@ func textoDelComando(comando ComandoEsperado) string {
 		partes = slices.Concat([]string{comando.Applet, comando.Verbo}, comando.Terminos)
 	case formaTerritorio:
 		partes = []string{comando.Applet, comando.Verbo, comando.Municipio}
+	case formaComprobacion:
+		partes = []string{comando.Applet, comando.Verbo}
 	}
 
 	return strings.Join(partes, " ")

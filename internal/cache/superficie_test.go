@@ -1,8 +1,9 @@
 // superficie_test.go cierra la garantía de FR-005 por el único sitio por el que
 // podría abrirse: lo que el paquete exporta. Ninguna declaración exportada nombra
 // la biblioteca de base de datos ni el controlador de SQLite, y el paquete no
-// exporta nada que no esté en la lista del contrato del puerto y el cliente §2 y
-// del contrato de errores §2. Con las dos cosas, quien usa la caché desde fuera
+// exporta nada que no esté en la lista del contrato del puerto y el cliente §2,
+// del contrato de errores §2 y, desde H7, de la regla de ubicación que sirve
+// también al grafo del mundo. Con las dos cosas, quien usa la caché desde fuera
 // no tiene forma de recibir la conexión, de construirla ni de pasarle una
 // sentencia: la imposibilidad de ejecutar SQL arbitrario es así del diseño y no
 // del control. La regla R3 de `depguard`, `sqlclosecheck`, `rowserrcheck` e
@@ -56,17 +57,20 @@ import (
 var paquetesDeLaBase = []string{"database/sql", "modernc.org/sqlite"}
 
 // superficieDelContrato es la lista cerrada de lo que el paquete exporta, con el
-// nombre con el que la revisión anota cada declaración: la constante, el tipo
-// del cliente, el constructor, el tipo de las opciones y las cuatro opciones; los
-// tres métodos del cliente; y Error con sus tres métodos y los cinco campos que
-// el contrato de errores §2 declara. Cliente no lleva ningún campo exportado: el
-// contrato lo declara privado entero.
+// nombre con el que la revisión anota cada declaración: la constante y la regla
+// de ubicación que sirve también al grafo del mundo (H7,
+// contracts/almacen-world-db.md §2 y research D8), el tipo del cliente, el
+// constructor, el tipo de las opciones y las cuatro opciones; los tres métodos
+// del cliente; y Error con sus tres métodos y los cinco campos que el contrato
+// de errores §2 declara. Cliente no lleva ningún campo exportado: el contrato lo
+// declara privado entero.
 //
 // Se compara en los dos sentidos. Lo que sobra es superficie que nadie aprobó; lo
 // que falta quiere decir que la revisión dejó de ver algo, y sin esa mitad el
 // test pasaría en vacío el día que no encontrara nada.
 var superficieDelContrato = []string{
 	"const VariableDirectorio",
+	"func Directorio",
 	"tipo Cliente",
 	"func New",
 	"tipo Opcion",

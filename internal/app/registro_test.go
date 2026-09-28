@@ -11,6 +11,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 )
 
 // appletDePrueba es lo que declara un applet y nada más: nombre, descripción y
@@ -226,15 +227,17 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H19: boe, skills y territorio, y nada más. Los applets de ejemplo no se
-// registran nunca aquí, así que `kitlegal echo hola` sobre el binario que se
-// publica termina como cualquier otro nombre desconocido (FR-001, FR-009,
+// H7: boe, graph, skills y territorio, y nada más, y el almacén del grafo del
+// mundo al que el kernel entrega. Los applets de ejemplo no se registran nunca
+// aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
+// cualquier otro nombre desconocido (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1). Construirlo no pide nada ni abre
 // nada: el cliente y la caché de boe se componen en cada invocación (contrato
 // puerto-y-applet §4 y §5 de H4), territorio recibe los ficheros que viajan en el
-// binario (contrato del applet territorio §7) y skills lee lo empotrado la
+// binario (contrato del applet territorio §7), skills lee lo empotrado la
 // primera vez que se ejecuta uno de sus verbos (contracts/applet-skills.md §1 de
-// H19).
+// H19), y graph y el almacén resuelven la ruta de world.db en cada invocación
+// (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
@@ -242,10 +245,22 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe", "skills", "territorio"}, registro.Nombres(),
-		"el binario distribuido registra exactamente boe, skills y territorio")
+	assert.Equal(t, []string{"boe", "graph", "skills", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe, graph, skills y territorio")
 
-	applet, existe := registro.Buscar("boe")
+	applet, existe := registro.Buscar("graph")
+	require.True(t, existe)
+	assert.Equal(t, []string{"show", "stats", "check"}, nombresDeLosVerbos(applet),
+		"con sus tres verbos, en el orden del contrato (contracts/applet-graph.md §1)")
+
+	// El almacén de la regla de ubicación de la caché: el que construye
+	// graph.Nuevo sin opciones, y no el nulo, que descartaría lo observado
+	// (FR-001, FR-030).
+	assert.IsType(t, &graph.Almacen{}, registro.almacen,
+		"el kernel entrega lo que observa cada invocación al grafo del mundo")
+	assert.NotNil(t, registro.almacen)
+
+	applet, existe = registro.Buscar("boe")
 	require.True(t, existe)
 	assert.Len(t, applet.Verbos(), 6, "con sus seis verbos (FR-001)")
 

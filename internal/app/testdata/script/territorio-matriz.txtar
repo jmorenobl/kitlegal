@@ -202,5 +202,6 @@ cmp stdout tordesillas.json
 ! stderr .
 
 # Ninguna invocación ha abierto la caché: territorio no la toca en ningún camino
-# (contrato del applet §1).
-! exists cache
+# (contrato del applet §1). Su directorio sí existe desde H7, porque el kernel
+# deja en él world.db con lo que observa cada resolución (research.md D29 de H7).
+! exists cache/cache.db

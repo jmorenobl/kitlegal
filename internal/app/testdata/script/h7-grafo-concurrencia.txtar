@@ -1,0 +1,74 @@
+# Ocho invocaciones a la vez contra el mismo directorio de caché, que todavía
+# no existe: ocho territorio resolver de ocho municipios distintos terminan las
+# ocho con 0 y sin ningún aviso de grafo en la salida de error, y el grafo
+# tiene las observaciones de las ocho —ocho Municipio, ocho Organo y ocho
+# aristas lb:pertenece_a—, publicadas en un solo world.db sin ningún temporal
+# de publicación que sobre.
+#
+# Cubre: US6.3 · FR-014, FR-022 · SC-009.
+#
+# Los códigos INE y sus DIR3 son los de data/territorio/municipios.yaml y
+# dir3.yaml: Leganés 28074 (L01280745), Madrid 28079 (L01280796), Getafe 28065
+# (L01280650), Alcorcón 28007 (L01280072), Móstoles 28092 (L01280920),
+# Fuenlabrada 28058 (L01280587), Parla 28106 (L01281065) y Tordesillas 47165
+# (L01471659). Las ocho van en segundo plano y wait falla si alguna falló
+# (contracts/arnes-e2e.md §4); después de wait, la salida de error es la de las
+# ocho juntas.
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+! exists cache
+
+exec kitlegal territorio resolver 28074 --json &
+exec kitlegal territorio resolver 28079 --json &
+exec kitlegal territorio resolver 28065 --json &
+exec kitlegal territorio resolver 28007 --json &
+exec kitlegal territorio resolver 28092 --json &
+exec kitlegal territorio resolver 28058 --json &
+exec kitlegal territorio resolver 28106 --json &
+exec kitlegal territorio resolver 47165 --json &
+wait
+stdout -count=8 '^\{"ok":true,"fuente":"kitlegal\.territorio",'
+! stderr .
+
+# Una sola base, y ningún temporal world.db-nuevo-* de las siete que no la
+# publicaron (contracts/almacen-world-db.md §4, paso 3). Los auxiliares de WAL
+# no se afirman: si las ocho cierran a la vez, SQLite puede dejarlos, y ningún
+# requisito lo prohíbe.
+exec ls -A cache
+stdout '^world\.db$'
+! stdout 'world\.db-nuevo'
+
+# Las ocho observaciones, con la fuente de territorio.
+exec kitlegal graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":16,"aristas":8,"textos":0,"nodos_por_tipo":\[\{"tipo":"Municipio","fuente":"kitlegal\.territorio","nodos":8\},\{"tipo":"Organo","fuente":"kitlegal\.territorio","nodos":8\}\],"aristas_por_relacion":\[\{"relacion":"lb:pertenece_a","fuente":"kitlegal\.territorio","aristas":8\}\]\}\}\n\z'
+! stderr .
+
+# Cada municipio, con el órgano de su ayuntamiento.
+exec kitlegal graph show ine:28074 --json
+stdout '"datos":\{"codigo_ine":"28074","nombre":"Leganés"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280745",'
+exec kitlegal graph show ine:28079 --json
+stdout '"datos":\{"codigo_ine":"28079","nombre":"Madrid"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280796",'
+exec kitlegal graph show ine:28065 --json
+stdout '"datos":\{"codigo_ine":"28065","nombre":"Getafe"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280650",'
+exec kitlegal graph show ine:28007 --json
+stdout '"datos":\{"codigo_ine":"28007","nombre":"Alcorcón"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280072",'
+exec kitlegal graph show ine:28092 --json
+stdout '"datos":\{"codigo_ine":"28092","nombre":"Móstoles"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280920",'
+exec kitlegal graph show ine:28058 --json
+stdout '"datos":\{"codigo_ine":"28058","nombre":"Fuenlabrada"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280587",'
+exec kitlegal graph show ine:28106 --json
+stdout '"datos":\{"codigo_ine":"28106","nombre":"Parla"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01281065",'
+exec kitlegal graph show ine:47165 --json
+stdout '"datos":\{"codigo_ine":"47165","nombre":"Tordesillas"\}'
+stdout '"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01471659",'
+! stderr .

@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/skills"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
@@ -55,6 +56,25 @@ const (
 		"    - \"dir3: verificado\"\n"
 )
 
+// Trozos de las evals sintéticas del formato ampliado de TestLeerEval y
+// TestFormaDelComando, cada uno con sus líneas completas: el grafo previo con el
+// bloque del art. 21 de la LPAC, el comando de comprobación de graph —sin la
+// línea comandos:, para ir detrás de otro comando— y el prohibido graph show
+// (contrato evals-y-skill §1 y §4 de H7).
+const (
+	grafoPrevioDelArticulo21 = "grafo_previo:\n" +
+		"  grabaciones: lpac-a21-version-anterior\n" +
+		"  comandos:\n" +
+		"    - applet: boe\n" +
+		"      norma: BOE-A-2015-10565\n" +
+		"      bloque: a21\n"
+	comprobacionDelGrafo = "  - applet: graph\n" +
+		"    verbo: check\n"
+	prohibidoGraphShow = "prohibidos:\n" +
+		"  - applet: graph\n" +
+		"    verbo: show\n"
+)
+
 // TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1 y
 // de sus avisos (contrato de formato, juicio e informe §6): las tres formas de
 // comando, con y sin reproduce, la que espera avisos, informativa o no, y la de no
@@ -69,6 +89,17 @@ const (
 // una clave o un aspecto de cobertura que el formato no tiene, o en una eval de
 // no activación, y un comando de territorio sin municipio o con una norma, se
 // rechazan (contrato de evals §1 y §2 de H6; FR-084).
+//
+// Desde H7, la eval de la consulta repetida se lee entera: el grafo previo con
+// sus grabaciones y sus comandos de bloque en GrafoPrevio, el comando de
+// comprobación en Comandos con su Verbo y los prohibidos en Prohibidos, y los
+// prohibidos también sin grafo previo; un comando de comprobación con otro verbo,
+// con una norma o sin applet, unos prohibidos vacíos, sin verbo, con un verbo que
+// no es de minúsculas o con otra clave, un grafo previo sin grabaciones, con un
+// nombre de grabaciones que no es de minúsculas y guiones, sin comandos, con los
+// comandos vacíos, con un comando que no es de bloque o con otra clave, y unos
+// prohibidos o un grafo previo en una eval de no activación se rechazan
+// (contrato evals-y-skill §1 de H7; FR-085, FR-086).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -350,6 +381,117 @@ func TestLeerEval(t *testing.T) {
 			documento:  positivaDelMunicipio + "    norma: BOE-A-2015-10565\n" + territorioDelMunicipio,
 			fragmentos: []string{"comandos/0, línea 4: additional properties 'norma' not allowed"},
 		},
+		{
+			// La eval del contrato evals-y-skill §4 de H7, sin su comentario.
+			nombre: "consulta-repetida",
+			documento: preguntaDelArticulo21 + "activa: true\ninformativa: true\n" + grafoPrevioDelArticulo21 +
+				comandoDelArticulo21 + comprobacionDelGrafo + prohibidoGraphShow + citaDelArticulo21,
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:      true,
+				Informativa: true,
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				Comandos: slices.Concat(comandoDelArticulo21Leido,
+					[]ComandoEsperado{{Applet: "graph", Verbo: "check"}}),
+				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+				Citas:      citaDelArticulo21Leida,
+			},
+		},
+		{
+			nombre:    "prohibidos-sin-grafo-previo",
+			documento: positivaDelArticulo21 + prohibidoGraphShow + "  - applet: boe\n    verbo: buscar\n",
+			leida: Eval{
+				Fichero:    nombreDeEval,
+				Pregunta:   "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:     true,
+				Comandos:   comandoDelArticulo21Leido,
+				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}, {Applet: "boe", Verbo: "buscar"}},
+				Citas:      citaDelArticulo21Leida,
+			},
+		},
+		{
+			nombre: "comprobacion-con-otro-verbo",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 +
+				"  - applet: graph\n    verbo: stats\n" + citaDelArticulo21,
+			fragmentos: []string{"comandos/1/verbo, línea 8: value must be 'check'"},
+		},
+		{
+			nombre: "comprobacion-con-norma",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + comprobacionDelGrafo +
+				"    norma: BOE-A-2015-10565\n" + citaDelArticulo21,
+			fragmentos: []string{"comandos/1, línea 7: additional properties 'norma' not allowed"},
+		},
+		{
+			nombre: "comprobacion-sin-applet",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + "  - verbo: check\n" +
+				citaDelArticulo21,
+			fragmentos: []string{"comandos/1, línea 7: missing property 'applet'"},
+		},
+		{
+			nombre:    "prohibidos-vacio",
+			documento: positivaDelArticulo21 + "prohibidos: []\n",
+			error:     nombreDeEval + ": prohibidos, línea 10: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "prohibido-sin-verbo",
+			documento: positivaDelArticulo21 + "prohibidos:\n  - applet: graph\n",
+			error:     nombreDeEval + ": prohibidos/0, línea 11: missing property 'verbo'",
+		},
+		{
+			nombre:    "prohibido-con-verbo-mal-formado",
+			documento: positivaDelArticulo21 + "prohibidos:\n  - applet: graph\n    verbo: Show\n",
+			error:     nombreDeEval + ": prohibidos/0/verbo, línea 12: 'Show' does not match pattern '^[a-z]+$'",
+		},
+		{
+			nombre:    "prohibido-con-norma",
+			documento: positivaDelArticulo21 + prohibidoGraphShow + "    norma: BOE-A-2015-10565\n",
+			error:     nombreDeEval + ": prohibidos/0, línea 11: additional properties 'norma' not allowed",
+		},
+		{
+			nombre: "grafo-previo-sin-grabaciones",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  comandos:\n" +
+				"    - applet: boe\n      norma: BOE-A-2015-10565\n      bloque: a21\n",
+			error: nombreDeEval + ": grafo_previo, línea 11: missing property 'grabaciones'",
+		},
+		{
+			nombre: "grafo-previo-con-grabaciones-mal-formadas",
+			documento: positivaDelArticulo21 +
+				strings.Replace(grafoPrevioDelArticulo21, "lpac-a21-version-anterior", "../lpac-a21", 1),
+			error: nombreDeEval + ": grafo_previo/grabaciones, línea 11: " +
+				"'../lpac-a21' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+		},
+		{
+			nombre:    "grafo-previo-sin-comandos",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n",
+			error:     nombreDeEval + ": grafo_previo, línea 11: missing property 'comandos'",
+		},
+		{
+			nombre:    "grafo-previo-con-comandos-vacio",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos: []\n",
+			error:     nombreDeEval + ": grafo_previo/comandos, línea 12: minItems: got 0, want 1",
+		},
+		{
+			nombre: "grafo-previo-con-comando-de-comprobacion",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos:\n" +
+				"    - applet: graph\n      verbo: check\n",
+			fragmentos: []string{"grafo_previo/comandos/0, línea 13: additional properties 'verbo' not allowed"},
+		},
+		{
+			nombre:    "grafo-previo-con-clave-desconocida",
+			documento: positivaDelArticulo21 + grafoPrevioDelArticulo21 + "  skill: boe-legislacion\n",
+			error:     nombreDeEval + ": grafo_previo, línea 11: additional properties 'skill' not allowed",
+		},
+		{
+			nombre:    "no-activa-con-prohibidos",
+			documento: preguntaDelArticulo21 + "activa: false\n" + prohibidoGraphShow,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "no-activa-con-grafo-previo",
+			documento: preguntaDelArticulo21 + "activa: false\n" + grafoPrevioDelArticulo21,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
 	}
 
 	for _, caso := range casos {
@@ -382,9 +524,11 @@ func TestLeerEval(t *testing.T) {
 
 // TestFormaDelComando fija que formaDelComando decide la variante de un comando
 // esperado por su verbo (data-model §6.1 de H6; research D21): cada una de las
-// cuatro formas del esquema, leída con LeerEval de una eval que solo lleva ese
+// cinco formas del esquema, leída con LeerEval de una eval que solo lleva ese
 // comando, tiene la suya —la de consulta de norma, con cualquiera de los tres
-// verbos de su enumerado— y el comando de territorio no es una consulta de norma.
+// verbos de su enumerado— y ni el comando de territorio ni, desde H7, el de
+// comprobación, con el verbo check, son una consulta de norma (contrato
+// evals-y-skill §1 de H7).
 func TestFormaDelComando(t *testing.T) {
 	t.Parallel()
 
@@ -426,6 +570,11 @@ func TestFormaDelComando(t *testing.T) {
 			comando: "  - applet: territorio\n    verbo: resolver\n    municipio: Leganés\n",
 			forma:   formaTerritorio,
 		},
+		{
+			nombre:  "comprobacion",
+			comando: comprobacionDelGrafo,
+			forma:   formaComprobacion,
+		},
 	}
 
 	for _, caso := range casos {
@@ -445,12 +594,49 @@ func TestFormaDelComando(t *testing.T) {
 // TestEsquemaDeEval comprueba que el esquema publicado del formato común de eval
 // compila con las aserciones de formato activas. Lo que dicen sus patrones de
 // norma y de bloque lo fija TestGramaticasCoincidenConBoe.
+//
+// Desde H7, comprueba además que el formato ampliado es compatible hacia atrás
+// (FR-086; contrato evals-y-skill §1 de H7): cada eval del repositorio de
+// boe-legislacion y de legal-core se lee y valida; la que no escribe prohibidos
+// ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo el comando que
+// escribe el verbo check tiene la forma de comprobación, de modo que el resto
+// conserva la suya.
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
 	esquema, err := esquemaDeEval()
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
+
+	for _, dir := range []string{evalsDelRepositorio, evalsDeLegalCore} {
+		conjunto, err := LeerConjunto(dir)
+		require.NoError(t, err)
+		require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
+		require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
+
+		for _, eval := range conjunto.Evals {
+			ruta := filepath.Join(dir, eval.Fichero)
+
+			contenido, err := leerFichero(ruta)
+			require.NoError(t, err)
+
+			var claves map[string]any
+			require.NoError(t, yaml.Unmarshal(contenido, &claves), "%s es un documento YAML", ruta)
+
+			if _, escribe := claves["prohibidos"]; !escribe {
+				assert.Nil(t, eval.Prohibidos, "%s no escribe prohibidos y se lee sin ellos", ruta)
+			}
+
+			if _, escribe := claves["grafo_previo"]; !escribe {
+				assert.Zero(t, eval.GrafoPrevio, "%s no escribe grafo_previo y se lee sin grafo previo", ruta)
+			}
+
+			for posicion, comando := range eval.Comandos {
+				assert.Equal(t, comando.Verbo == "check", formaDelComando(comando) == formaComprobacion,
+					"el comando %d de %s tiene la forma de comprobación si y solo si su verbo es check", posicion, ruta)
+			}
+		}
+	}
 }
 
 // TestCompilarEsquemaDeEvalQueNoSirve fija los dos errores con los que no se

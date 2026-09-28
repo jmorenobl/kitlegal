@@ -82,6 +82,14 @@ const (
 	// caché de la cuenta de quien ejecuta los tests.
 	directorioDeLaCache = "cache"
 
+	// derivadasDelRepositorio son las grabaciones derivadas de las de H4, relativas
+	// al directorio de este paquete: una carpeta por caso, con la grabación que
+	// sustituye a la de H4 del mismo nombre; y directorioDeDerivadas, la carpeta
+	// de $WORK en la que cada guion tiene su copia (contracts/arnes-e2e.md §3 de
+	// H7; research.md D22 de H7).
+	derivadasDelRepositorio = "testdata/derivadas"
+	directorioDeDerivadas   = "derivadas"
+
 	// ordenCronometra es el nombre con el que los guiones escriben la orden que
 	// mide una invocación.
 	ordenCronometra = "cronometra"
@@ -92,10 +100,12 @@ const (
 	ordenArbol = "arbol"
 )
 
-// Las versiones de los binarios de e2e que no son el de desarrollo, y los
-// -ldflags con que se construyen (contracts/arnes-e2e.md §2; research.md D24).
-// Son constantes, como el resto de la orden de construcción: ni el entorno ni
-// ningún argumento deciden con qué se construye un binario.
+// Las versiones de los binarios de e2e que no son el de desarrollo, los relojes
+// de los que fijan el instante y los -ldflags con que se construyen
+// (contracts/arnes-e2e.md §2; research.md D24; contracts/arnes-e2e.md §2 y
+// research.md D23 de H7). Son constantes, como el resto de la orden de
+// construcción: ni el entorno ni ningún argumento deciden con qué se construye
+// un binario.
 const (
 	versionV1 = "v0.1.0"
 	versionV2 = "v0.2.0"
@@ -107,9 +117,22 @@ const (
 	// existe: lo que comprueba que este llega es TestBinariosDelArnes.
 	enlazadorQueFalla = "falla"
 
+	// relojT0, relojT1 y relojT8 son los valores de la variable de cadena reloj
+	// del package main de e2e: el instante con el que la reproducción de boe
+	// fecha lo que sirve y el reloj del applet graph. T1 es un día después de
+	// T0, y T8, ocho, cuando la consulta de una semana hecha en T0 ya ha
+	// caducado. Como con enlazador, lo que comprueba que el -X llega es
+	// TestBinariosDelArnes.
+	relojT0 = "2026-09-28T12:00:00Z"
+	relojT1 = "2026-09-29T12:00:00Z"
+	relojT8 = "2026-10-06T12:00:00Z"
+
 	ldflagsV1         = "-ldflags=-X main.version=" + versionV1
 	ldflagsV2         = "-ldflags=-X main.version=" + versionV2
 	ldflagsSinEnlaces = ldflagsV1 + " -X main.enlazador=" + enlazadorQueFalla
+	ldflagsT0         = "-ldflags=-X main.reloj=" + relojT0
+	ldflagsT1         = "-ldflags=-X main.reloj=" + relojT1
+	ldflagsT8         = "-ldflags=-X main.reloj=" + relojT8
 )
 
 // Las variables de entorno que el arnés deja en cada guion, además de
@@ -119,6 +142,9 @@ const (
 	variableV1               = "KITLEGAL_V1_BIN"
 	variableV2               = "KITLEGAL_V2_BIN"
 	variableSinEnlaces       = "KITLEGAL_SIN_ENLACES_BIN"
+	variableT0               = "KITLEGAL_T0_BIN"
+	variableT1               = "KITLEGAL_T1_BIN"
+	variableT8               = "KITLEGAL_T8_BIN"
 	variableSkills           = "KITLEGAL_SKILLS"
 	variableInstalador       = "KITLEGAL_INSTALADOR"
 	variableOrigen           = "KITLEGAL_ORIGEN"
@@ -160,9 +186,9 @@ var (
 	errMaximoAlcanzado      = errors.New(ordenCronometra + ": el programa tardó el máximo o más")
 )
 
-// binarioDelArnes es una de las cuatro construcciones del binario de e2e de
-// contracts/arnes-e2e.md §2: el mismo paquete, con la versión y el creador de
-// enlaces que fijan sus -ldflags.
+// binarioDelArnes es una de las siete construcciones del binario de e2e de
+// contracts/arnes-e2e.md §2: el mismo paquete, con la versión, el creador de
+// enlaces y el reloj que fijan sus -ldflags.
 type binarioDelArnes struct {
 	// variable es la que lleva su ruta absoluta a los guiones.
 	variable string
@@ -175,7 +201,7 @@ type binarioDelArnes struct {
 	orden func(ctx context.Context) *exec.Cmd
 }
 
-// binariosDelArnes son los cuatro que TestMain construye. El de desarrollo, sin
+// binariosDelArnes son los siete que TestMain construye. El de desarrollo, sin
 // -ldflags y con la versión dev de su código, es el que va en el PATH.
 var binariosDelArnes = [...]binarioDelArnes{
 	{
@@ -204,6 +230,27 @@ var binariosDelArnes = [...]binarioDelArnes{
 		carpeta:  "sin-enlaces",
 		orden: func(ctx context.Context) *exec.Cmd {
 			return exec.CommandContext(ctx, "go", "install", ldflagsSinEnlaces, paqueteDelBinario)
+		},
+	},
+	{
+		variable: variableT0,
+		carpeta:  "t0",
+		orden: func(ctx context.Context) *exec.Cmd {
+			return exec.CommandContext(ctx, "go", "install", ldflagsT0, paqueteDelBinario)
+		},
+	},
+	{
+		variable: variableT1,
+		carpeta:  "t1",
+		orden: func(ctx context.Context) *exec.Cmd {
+			return exec.CommandContext(ctx, "go", "install", ldflagsT1, paqueteDelBinario)
+		},
+	},
+	{
+		variable: variableT8,
+		carpeta:  "t8",
+		orden: func(ctx context.Context) *exec.Cmd {
+			return exec.CommandContext(ctx, "go", "install", ldflagsT8, paqueteDelBinario)
 		},
 	},
 }
@@ -273,7 +320,7 @@ func preparar() func() {
 	}
 }
 
-// prepararEn construye en el temporal los cuatro binarios de
+// prepararEn construye en el temporal los siete binarios de
 // contracts/arnes-e2e.md §2 y el origen de release local de §5, antepone el de
 // desarrollo al PATH y devuelve las variables de §3 que comparten todos los
 // guiones. Con dist, el origen es el del snapshot; sin él, el del binario
@@ -329,7 +376,7 @@ func prepararEn(temporal, dist string) (map[string]string, error) {
 }
 
 // construirBinarios construye a la vez, cada uno en su carpeta del temporal,
-// los cuatro binarios del arnés, y devuelve la ruta absoluta de cada uno por su
+// los siete binarios del arnés, y devuelve la ruta absoluta de cada uno por su
 // variable. Construirlos a la vez solo reparte la espera: la caché de
 // compilación de Go admite varias órdenes a la vez, y cada una escribe en su
 // propia carpeta.
@@ -509,7 +556,11 @@ func ejecutarGuiones(t *testing.T, ficheros []string) {
 
 			env.Setenv(cache.VariableDirectorio, filepath.Join(env.WorkDir, directorioDeLaCache))
 
-			return copiarGrabaciones(env.WorkDir)
+			if err := copiarGrabaciones(env.WorkDir); err != nil {
+				return err
+			}
+
+			return copiarDerivadas(env.WorkDir)
 		},
 		Cmds: map[string]func(ts *testscript.TestScript, neg bool, args []string){
 			ordenCronometra: cronometra,
@@ -601,6 +652,24 @@ func copiarGrabaciones(trabajo string) error {
 	if err := os.CopyFS(destino, os.DirFS(grabacionesDeLaFuente)); err != nil {
 		return fmt.Errorf("e2e: no se pudieron copiar las grabaciones de %s a %s: %w",
 			grabacionesDeLaFuente, destino, err)
+	}
+
+	return nil
+}
+
+// copiarDerivadas deja en el directorio de trabajo de un guion, en su carpeta
+// derivadas, una copia de las grabaciones derivadas de las de H4, con la misma
+// carpeta por caso: un guion pone una en juego copiándola sobre la de su
+// reproducción (contracts/arnes-e2e.md §3 de H7; research.md D23 de H7).
+//
+// Se copian, y no se enlazan, por lo mismo que las grabaciones: nada de lo que
+// haga un guion con su copia alcanza a las del repositorio.
+func copiarDerivadas(trabajo string) error {
+	destino := filepath.Join(trabajo, directorioDeDerivadas)
+
+	if err := os.CopyFS(destino, os.DirFS(derivadasDelRepositorio)); err != nil {
+		return fmt.Errorf("e2e: no se pudieron copiar las derivadas de %s a %s: %w",
+			derivadasDelRepositorio, destino, err)
 	}
 
 	return nil
@@ -1654,10 +1723,13 @@ func TestGuionesDelInstalador(t *testing.T) {
 
 // TestBinariosDelArnes fija la tabla de contracts/arnes-e2e.md §2 sobre los
 // binarios que TestMain construye: cada uno está en una ruta absoluta y se llama
-// kitlegal, dice su versión en «version», y solo el de KITLEGAL_SIN_ENLACES_BIN
-// deja como copia la entrada de host que los demás enlazan (FR-024). Es lo que
-// comprueba que cada -X llega: el enlazador de Go ignora sin avisar uno que
-// nombra una variable que no existe.
+// kitlegal, dice su versión en «version», solo el de KITLEGAL_SIN_ENLACES_BIN
+// deja como copia la entrada de host que los demás enlazan (FR-024), y los de
+// KITLEGAL_T0_BIN, KITLEGAL_T1_BIN y KITLEGAL_T8_BIN fechan con su instante lo
+// que graph stats responde sobre un directorio vacío y lo que boe pide a la
+// reproducción, mientras que los demás lo fechan con el reloj del sistema
+// (contracts/arnes-e2e.md §2 de H7). Es lo que comprueba que cada -X llega: el
+// enlazador de Go ignora sin avisar uno que nombra una variable que no existe.
 func TestBinariosDelArnes(t *testing.T) {
 	t.Parallel()
 
@@ -1667,11 +1739,17 @@ func TestBinariosDelArnes(t *testing.T) {
 		variable string
 		version  string
 		enlaza   bool
+		// reloj es el instante que fija su construcción; vacío, el binario
+		// fecha con el reloj del sistema.
+		reloj string
 	}{
 		{variable: variableDelBinario, version: "dev", enlaza: true},
 		{variable: variableV1, version: versionV1, enlaza: true},
 		{variable: variableV2, version: versionV2, enlaza: true},
 		{variable: variableSinEnlaces, version: versionV1, enlaza: false},
+		{variable: variableT0, version: "dev", enlaza: true, reloj: relojT0},
+		{variable: variableT1, version: "dev", enlaza: true, reloj: relojT1},
+		{variable: variableT8, version: "dev", enlaza: true, reloj: relojT8},
 	}
 
 	for _, caso := range casos {
@@ -1696,11 +1774,78 @@ func TestBinariosDelArnes(t *testing.T) {
 			} else {
 				assert.True(t, estado.IsDir(), "sin enlaces, la entrada de host es una copia")
 			}
+
+			compruebaElReloj(t, binario, caso.reloj)
 		})
 	}
 
 	assert.Equal(t, filepath.Dir(entorno.binario), strings.SplitN(os.Getenv("PATH"), string(os.PathListSeparator), 2)[0],
 		"el binario de desarrollo va en el PATH, por delante de todo")
+}
+
+// compruebaElReloj exige que el binario feche con el reloj de su construcción
+// el sobre de graph stats sobre un directorio vacío, que sigue vacío, y el de
+// boe articulo servido desde una copia de las grabaciones de H4, con su caché y
+// su world.db en el directorio de trabajo.
+func compruebaElReloj(t *testing.T, binario, reloj string) {
+	t.Helper()
+
+	vacio := t.TempDir()
+	stats := exec.CommandContext(t.Context(), binario, "graph", "stats", "--json")
+	compruebaLaFecha(t, stats, vacio, vacio, "kitlegal.graph", reloj)
+
+	entradas, err := os.ReadDir(vacio)
+	require.NoError(t, err)
+	assert.Empty(t, entradas, "graph stats no crea nada en el directorio vacío")
+
+	trabajo := t.TempDir()
+	require.NoError(t, copiarGrabaciones(trabajo))
+
+	articulo := exec.CommandContext(t.Context(), binario, "boe", "articulo", "BOE-A-2015-10565", "a21", "--json")
+	compruebaLaFecha(t, articulo, trabajo, filepath.Join(trabajo, directorioDeLaCache), boe.NombreDeLaFuente, reloj)
+}
+
+// compruebaLaFecha ejecuta la orden desde el directorio de trabajo con la
+// carpeta de la caché como único entorno y exige que salga con 0 y un sobre de
+// éxito de la fuente cuya fecha_consulta sea el reloj tal cual o, sin reloj, un
+// instante del reloj del sistema tomado mientras la orden se ejecutaba. El
+// límite inferior se toma al segundo: una fecha que se escribiera sin fracción
+// no es anterior a la invocación.
+func compruebaLaFecha(t *testing.T, orden *exec.Cmd, trabajo, carpetaDeLaCache, fuente, reloj string) {
+	t.Helper()
+
+	var errores bytes.Buffer
+
+	orden.Dir = trabajo
+	orden.Env = []string{cache.VariableDirectorio + "=" + carpetaDeLaCache}
+	orden.Stderr = &errores
+
+	antes := time.Now()
+	salida, err := orden.Output()
+	despues := time.Now()
+
+	require.NoError(t, err, "%q: %s", orden.Args, errores.String())
+
+	var sobre struct {
+		OK            bool   `json:"ok"`
+		Fuente        string `json:"fuente"`
+		FechaConsulta string `json:"fecha_consulta"`
+	}
+
+	require.NoError(t, json.Unmarshal(salida, &sobre), "%q: %s", orden.Args, salida)
+	assert.True(t, sobre.OK, "%q", orden.Args)
+	assert.Equal(t, fuente, sobre.Fuente, "%q", orden.Args)
+
+	if reloj != "" {
+		assert.Equal(t, reloj, sobre.FechaConsulta, "%q fecha con el reloj de su construcción", orden.Args)
+
+		return
+	}
+
+	fecha, err := time.Parse(time.RFC3339Nano, sobre.FechaConsulta)
+	require.NoError(t, err, "%q: fecha_consulta en RFC 3339", orden.Args)
+	assert.Truef(t, !fecha.Before(antes.Truncate(time.Second)) && !fecha.After(despues),
+		"%q fecha con el reloj del sistema: %s no está entre %s y %s", orden.Args, fecha, antes, despues)
 }
 
 // primeraLineaDeVersion es la primera línea de lo que el binario escribe en
@@ -1731,15 +1876,16 @@ func instalarBoeLegislacion(t *testing.T, binario, proyecto string) {
 }
 
 // TestVariablesDeLosGuiones fija las variables de contracts/arnes-e2e.md §3 que
-// TestMain deja para todos los guiones: las rutas, absolutas; el archivo de la
-// plataforma y la versión del origen; y los proxies cerrados.
+// TestMain deja para todos los guiones: las rutas, absolutas —también las de
+// los tres binarios con reloj de H7—; el archivo de la plataforma y la versión
+// del origen; y los proxies cerrados.
 func TestVariablesDeLosGuiones(t *testing.T) {
 	t.Parallel()
 
 	require.NoError(t, entorno.err)
 
 	rutas := []string{
-		variableDelBinario, variableV1, variableV2, variableSinEnlaces,
+		variableDelBinario, variableV1, variableV2, variableSinEnlaces, variableT0, variableT1, variableT8,
 		variableSkills, variableInstalador, variableOrigen,
 	}
 	for _, variable := range rutas {

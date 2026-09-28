@@ -16,12 +16,12 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-// Las dos tablas que resuelven o validan la ruta no declaran t.Parallel(), y no
-// es un descuido: usan t.Setenv, que «cannot be used in parallel tests», y el
+// Las tablas que resuelven o validan la ruta no declaran t.Parallel(), y no es
+// un descuido: usan t.Setenv, que «cannot be used in parallel tests», y el
 // entorno es justamente lo que miden. Declaran además siempre el estado de las
-// tres fuentes de la ruta —la opción, la variable y el directorio de la
-// cuenta—, de modo que lo que haya en la máquina de quien ejecuta el test no
-// pueda cambiar ningún resultado.
+// fuentes de la ruta —la opción, la variable y el directorio de la cuenta—, de
+// modo que lo que haya en la máquina de quien ejecuta el test no pueda cambiar
+// ningún resultado.
 
 // TestEsInexistente fija la regla «inexistente» del contrato del puerto §3: de
 // todo lo que os.Stat puede devolver, solo dos cosas significan que el
@@ -312,6 +312,146 @@ func TestRutaInservible(t *testing.T) {
 			}
 		})
 	}
+}
+
+// casoDeDirectorio es una fila de TestDirectorio: el estado del entorno y lo que
+// Directorio tiene que devolver con él. Una fila con nombra espera un fallo, y
+// esas son las palabras que su mensaje tiene que llevar; una sin nombra espera
+// el directorio de esperado.
+type casoDeDirectorio struct {
+	nombre    string
+	variable  string
+	declarada bool
+	sinCuenta bool
+	esperado  string
+	nombra    []string
+}
+
+// TestDirectorio fija la regla de ubicación que el paquete exporta para que el
+// grafo del mundo viva junto a la caché (contracts/almacen-world-db.md §2 de H7,
+// research D8): la variable si está presente y, sin ella, el directorio de la
+// cuenta; y, con los mismos valores inservibles que la caché, los mismos errores
+// de clase «argumentos» (2), con el mensaje que pide declarar HOME o
+// KITLEGAL_CACHE_DIR cuando no hay ni variable ni cuenta (H7 FR-001, FR-011).
+//
+// «La misma regla» no se afirma solo con las rutas esperadas: cada fila
+// construye además la caché de solo lectura con el mismo entorno —sin la opción,
+// que es lo que Directorio no tiene— y exige su mismo directorio o su mismo
+// error, campo a campo. Así las dos no pueden divergir sin que el test lo diga.
+//
+// Resolver no es crear: cada fila comprueba que bajo la raíz temporal, donde
+// están la cuenta, lo que nombra la variable y el fichero, no aparece, no
+// desaparece y no cambia nada. Eso incluye que la variable declarada y vacía no
+// cae en silencio al directorio de la cuenta (FR-022 de H3).
+func TestDirectorio(t *testing.T) {
+	raiz := t.TempDir()
+
+	cuenta := filepath.Join(raiz, "cuenta")
+	require.NoError(t, os.Mkdir(cuenta, 0o700))
+	t.Setenv("HOME", cuenta)
+	t.Setenv("USERPROFILE", cuenta)
+
+	existente := filepath.Join(raiz, "existente")
+	require.NoError(t, os.Mkdir(existente, 0o700))
+
+	fichero := filepath.Join(raiz, "fichero")
+	require.NoError(t, os.WriteFile(fichero, []byte("no soy un directorio"), 0o600))
+
+	inexistente := filepath.Join(raiz, "inexistente")
+
+	casos := []casoDeDirectorio{
+		{
+			nombre:    "la variable que nombra un directorio gana al de la cuenta",
+			variable:  existente,
+			declarada: true,
+			esperado:  existente,
+		},
+		{
+			nombre:    "la variable que nombra un directorio que aún no existe",
+			variable:  inexistente,
+			declarada: true,
+			esperado:  inexistente,
+		},
+		{
+			nombre:   "sin variable, el directorio de la cuenta",
+			esperado: filepath.Join(cuenta, ".cache", "kitlegal"),
+		},
+		{
+			nombre:    "la variable declarada y vacía",
+			variable:  "",
+			declarada: true,
+			nombra:    []string{origenDeLaVariable},
+		},
+		{
+			nombre:    "la variable que nombra un fichero",
+			variable:  fichero,
+			declarada: true,
+			nombra:    []string{origenDeLaVariable, fichero},
+		},
+		{
+			nombre:    "sin variable ni directorio de la cuenta",
+			sinCuenta: true,
+			nombra:    []string{"HOME", VariableDirectorio},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			if caso.declarada {
+				t.Setenv(VariableDirectorio, caso.variable)
+			} else {
+				sinVariable(t)
+			}
+
+			if caso.sinCuenta {
+				t.Setenv("HOME", "")
+				t.Setenv("USERPROFILE", "")
+			}
+
+			compruebaDirectorio(t, raiz, caso)
+		})
+	}
+}
+
+// compruebaDirectorio es el resto de cada fila de TestDirectorio, con el
+// entorno ya preparado: resuelve con Directorio y con la caché, y compara las
+// dos cosas con lo que la fila espera y entre sí.
+func compruebaDirectorio(t *testing.T, raiz string, caso casoDeDirectorio) {
+	t.Helper()
+
+	antes := arbolDe(t, raiz)
+
+	directorio, err := Directorio()
+
+	cliente, errDeLaCache := New(t.Context(), SoloLectura())
+	if cliente != nil {
+		t.Cleanup(func() { require.NoError(t, cliente.Close()) })
+	}
+
+	assert.Equal(t, antes, arbolDe(t, raiz), "resolver el directorio no crea ni toca nada")
+
+	if len(caso.nombra) == 0 {
+		require.NoError(t, err)
+		assert.Equal(t, caso.esperado, directorio)
+
+		require.NoError(t, errDeLaCache)
+		assert.Equal(t, cliente.directorio, directorio, "la misma regla que la caché, el mismo directorio")
+
+		return
+	}
+
+	require.Error(t, err)
+	assert.Empty(t, directorio, "un fallo no devuelve ningún directorio")
+	assert.Equal(t, schema.ClaseArgumentos, cli.Clasificar(err))
+	assert.Equal(t, 2, cli.CodigoSalida(err))
+
+	for _, texto := range caso.nombra {
+		assert.Contains(t, err.Error(), texto,
+			"el mensaje dice de dónde salió la ruta y cuál era, o qué hay que declarar")
+	}
+
+	assert.Nil(t, cliente)
+	assert.Equal(t, errDeLaCache, err, "los mismos errores que la caché: el mismo mensaje, la misma clase y los mismos campos")
 }
 
 // TestDirectorioNoCreable fija la fila 6 del contrato de errores y la

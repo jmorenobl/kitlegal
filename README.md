@@ -10,8 +10,8 @@ exacta.**
 
 Es un conjunto de *skills* para Claude Code, Codex, Antigravity y cualquier agente que siga el estándar Agent
 Skills y trabaje en tu equipo, más un programa, `kitlegal`, que les da lo que un modelo no debe hacer de memoria:
-leer el texto vigente en el BOE, comprobar que sigue en vigor, situar un municipio y dejar cada dato con su fuente,
-su fecha y su huella. Instalas kitlegal y, a partir de ahí, es **tu agente** el que consulta, razona y cita;
+leer el texto vigente en el BOE, comprobar que sigue en vigor, situar un municipio, recordar lo que ha consultado y
+dejar cada dato con su fuente, su fecha y su huella. Instalas kitlegal y, a partir de ahí, es **tu agente** el que consulta, razona y cita;
 kitlegal le da el método y las herramientas.
 
 La regla que lo gobierna todo: **nada sin cita**. Cada afirmación sobre una norma sale del texto que el programa acaba
@@ -33,6 +33,7 @@ consolida— y sitúa **cualquier municipio de España** en su territorio. Por e
 - «¿Cuántos días de vacaciones fija el Estatuto de los Trabajadores?»
 - «¿En qué plazo tiene que resolver la Administración una solicitud de acceso a información pública?»
 - «¿Qué comunidad, provincia y boletines oficiales corresponden a mi ayuntamiento?»
+- «Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?»
 
 Tu agente responde citando la norma y el artículo tal como los publica el BOE, siempre con la misma forma:
 
@@ -42,6 +43,9 @@ Tu agente responde citando la norma y el artículo tal como los publica el BOE, 
 Y si la norma ya no está en vigor, lo dice antes que nada:
 
 > ⚠ NORMA DEROGADA: la Ley 30/1992 fue derogada por la Ley 39/2015 …
+
+Y si ya la habías consultado y su redacción ha cambiado desde entonces, también te lo dice, con la fecha de vigencia
+de la redacción que consultaste y la de la actual.
 
 Cuando la pregunta depende de un municipio, tu agente empieza por situarlo —provincia, comunidad autónoma, régimen
 común o foral, boletines oficiales— y te dice qué parte de eso está configurada y qué no. Hoy los boletines están
@@ -114,6 +118,14 @@ atestación de procedencia, comprobable con `gh attestation verify <archivo> --r
 - **Comprueba la vigencia.** Antes de darte un artículo, el programa comprueba si la norma está derogada, si su
   vigencia ha terminado o si el BOE aún no ha terminado de consolidarla, y tu agente te lo traslada con un aviso de
   forma fija (`⚠ NORMA DEROGADA`, `⚠ VIGENCIA AGOTADA`, `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO`).
+- **Recuerda lo que ha consultado, y te avisa si ha cambiado.** Cada artículo que lee del BOE y cada municipio que
+  sitúa quedan anotados en tu equipo, con su fuente, su dirección y su fecha de consulta, en el *grafo del mundo*: un
+  fichero, `world.db`, en la misma carpeta en la que guarda lo ya leído (`~/.cache/kitlegal/`, u otra con
+  `KITLEGAL_CACHE_DIR`). Cuando vuelves a preguntar por una norma, tu agente lo repasa con `kitlegal graph check`
+  antes y después de leerla y te dice si la redacción ha cambiado desde la que consultaste o si aquella consulta ya
+  había caducado. Lo que cita sale siempre de la lectura nueva: el grafo guarda también el texto de cada redacción que
+  ha leído, pero nunca responde con él, y `kitlegal graph show <id>` y `kitlegal graph stats`, que enseñan lo
+  anotado, no devuelven texto legal. Nada de eso sale de tu equipo, y una orden con `--no-graph` no anota nada.
 - **Distingue.** Ley de reglamento, norma estatal de autonómica, y señala cuándo la respuesta puede variar según la
   comunidad autónoma.
 - **Solo fuentes públicas, y solo lectura.** kitlegal no entra en ninguna sede electrónica, no envía nada en tu
@@ -157,12 +169,11 @@ General del Poder Judicial abre una vía pública para programas o cambia sus co
 kitlegal se construye por hitos, en el orden en que cada cosa empieza a ser útil. Sin fechas: cada hito se publica
 cuando funciona y está medido. Lo que hay hoy es la base sobre la que se apoya todo lo demás.
 
-**Pronto: citas verificadas, plazos y memoria.** Que tu agente resuelva una cita en lenguaje natural («el artículo de
-la LPAC sobre el silencio administrativo») al texto vigente con su dirección oficial, o al que estaba vigente en la
-fecha que importa —la de los hechos, la del acto—; que revise las citas de un escrito entero, o de la respuesta de
-otro asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado; que calcule plazos
-administrativos con los festivos nacionales, autonómicos y locales del municipio; y que `kitlegal` recuerde qué
-normas ha consultado para avisar si alguna ha cambiado desde entonces.
+**Pronto: citas verificadas y plazos.** Que tu agente resuelva una cita en lenguaje natural («el artículo de la LPAC
+sobre el silencio administrativo») al texto vigente con su dirección oficial, o al que estaba vigente en la fecha que
+importa —la de los hechos, la del acto—; que revise las citas de un escrito entero, o de la respuesta de otro
+asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado; y que calcule plazos
+administrativos con los festivos nacionales, autonómicos y locales del municipio.
 
 **Después: actuar ante la Administración.** Llevar un asunto, propio o de un cliente: seguir los expedientes (qué se
 pidió, a quién, cuándo, qué plazo corre) y preparar escritos fundamentados —una solicitud de acceso a información

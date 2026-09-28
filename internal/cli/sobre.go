@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
@@ -46,7 +48,10 @@ type Reloj func() time.Time
 // emite. Un applet devuelve un schema.Resultado o un error y no conoce ni `ok`,
 // ni la huella, ni fecha_consulta, ni los códigos de salida: así la forma del
 // sobre es idéntica para todos los applets y también para los fallos anteriores
-// a la ejecución de cualquiera de ellos (FR-015, FR-045).
+// a la ejecución de cualquiera de ellos (FR-015, FR-045). Por la misma razón es
+// quien entrega al grafo del mundo lo que el applet observó: la procedencia de
+// cada operación es la del sobre presentado, y ningún applet puede poner otra
+// (FR-021).
 type Montador struct {
 	// Ahora es el reloj con el que se fecha el sobre cuando la procedencia no
 	// declara la fecha de consulta: la de un applet calculado, la del kernel o
@@ -55,6 +60,12 @@ type Montador struct {
 	// y solo un test necesita fijarlo: con el instante bajo control se puede
 	// comprobar que la huella no depende de él (FR-013, SC-005).
 	Ahora Reloj
+	// Grafo es el almacén del grafo del mundo al que se entrega lo que una
+	// invocación observó, después de presentarla. Nulo significa que no se
+	// entrega nada: es el valor cero, el de los tests y el de un fallo al
+	// arrancar; con --no-graph la raíz de composición pone el almacén nulo
+	// (contracts/resultado-y-entrega.md §3 y §4; research.md D4, D6).
+	Grafo core.GraphStore
 }
 
 // Emitir convierte el desenlace de una invocación en su código de salida y
@@ -69,7 +80,15 @@ type Montador struct {
 // resultado y no la de un fallo (contracts/sobre-de-salida.md §5 y §7), y un
 // resultado que el applet cuenta para una persona sale con ese texto en lugar
 // de la tabla (docs/ADR/0026).
-func (m Montador) Emitir(p Presentador, enJSON bool, res schema.Resultado, err error) int {
+//
+// Un resultado correcto, ya presentado y solo entonces, entrega al grafo del
+// mundo lo que el applet observó, con ctx —el contexto con el plazo de
+// --timeout de la invocación (FR-014)— y con la procedencia del sobre que acaba
+// de salir. Entregar después de presentar es lo que impide que nada del grafo
+// cambie lo presentado, y hacerlo aquí, lo que impide que un fallo o una
+// invocación que no llega a emitir entreguen nada (FR-026, FR-032;
+// research.md D4).
+func (m Montador) Emitir(ctx context.Context, p Presentador, enJSON bool, res schema.Resultado, err error) int {
 	if err != nil {
 		return m.emitirFallo(p, enJSON, res.Procedencia, err)
 	}
@@ -89,6 +108,8 @@ func (m Montador) Emitir(p Presentador, enJSON bool, res schema.Resultado, err e
 		// (contracts/banderas-y-exit-codes.md §4).
 		return m.emitirFallo(p, sinSobre, res.Procedencia, errEscritura)
 	}
+
+	m.entregar(ctx, p, sobre, res.Grafo)
 
 	return codigoCorrecto
 }

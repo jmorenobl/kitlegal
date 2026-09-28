@@ -73,11 +73,13 @@ install: check-tools
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/kitlegal
 	"$$(go list -f '{{.Target}}' ./cmd/kitlegal)" skills install -g --host claude
 
-# TestMedidasDeTiempo cronometra el binario con el reloj de pared: test y
-# test-integration la saltan, porque corren todos los paquetes a la vez, y
-# test-tiempos la ejecuta sola después, sin la caché de resultados de go test
-# (una medida guardada no mide la máquina en la que corre).
-MEDIDAS_DE_TIEMPO := ^TestMedidasDeTiempo$$
+# TestMedidasDeTiempo, que cronometra los guiones e2e, y TestCosteDelGrafo, que
+# mide el coste del grafo del mundo (SC-007 y SC-008 de H7), miden el binario
+# con el reloj de pared: test y test-integration las saltan, porque corren todos
+# los paquetes a la vez, y test-tiempos las ejecuta solas después, sin la caché
+# de resultados de go test (una medida guardada no mide la máquina en la que
+# corre).
+MEDIDAS_DE_TIEMPO := ^(TestMedidasDeTiempo|TestCosteDelGrafo)$$
 
 ## test: tests unitarios con detector de carreras y perfil de cobertura
 test: check-tools
@@ -87,7 +89,7 @@ test: check-tools
 test-integration: check-tools
 	go test -race -tags=integration -coverprofile=coverage-integration.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
 
-## test-tiempos: las cotas de tiempo de los guiones e2e, solas y sin nada más en marcha
+## test-tiempos: las cotas de tiempo de los guiones e2e y el coste del grafo, solas y sin nada más en marcha
 test-tiempos: check-tools
 	go test -race -count=1 -run '$(MEDIDAS_DE_TIEMPO)' ./internal/app/
 

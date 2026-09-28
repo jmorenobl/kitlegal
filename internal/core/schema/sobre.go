@@ -82,10 +82,11 @@ func (p Procedencia) Validar() error {
 
 // Resultado es lo que devuelve un applet: de dónde —y, si lo sabe, cuándo—
 // viene el contenido, el contenido, —si el applet la da— su forma para una
-// persona y —solo en ensayo— lo que no llegó a hacerse. Ni Ok, ni Hash, ni
-// forma de presentación, ni código de salida; de todo eso se ocupa el kernel,
-// que es quien monta el sobre y quien lo fecha cuando la procedencia no
-// declara la fecha de consulta (FR-015, FR-044, FR-096).
+// persona, —solo en ensayo— lo que no llegó a hacerse y —si lo observa— lo que
+// vio del mundo. Ni Ok, ni Hash, ni forma de presentación, ni código de salida;
+// de todo eso se ocupa el kernel, que es quien monta el sobre y quien lo fecha
+// cuando la procedencia no declara la fecha de consulta (FR-015, FR-044,
+// FR-096).
 type Resultado struct {
 	Procedencia Procedencia
 	Datos       any
@@ -109,6 +110,12 @@ type Resultado struct {
 	// modo de alcanzarlo. No entra en el sobre ni en la huella, porque no es
 	// contenido citable (FR-051, FR-065, docs/ADR/0011).
 	Ensayo []string
+	// Grafo es lo que la invocación observó del mundo, sin fuente propia: el
+	// kernel lo entrega al grafo del mundo después de presentar el sobre, con
+	// la procedencia de ese sobre, y solo si la invocación termina bien. No
+	// entra en el sobre ni en la huella. Su valor cero no emite nada, y es el
+	// de todo applet que no observa el mundo (docs/ADR/0014).
+	Grafo Observado
 }
 
 // errorDeValidacion expresa un error del dominio como constante: el paquete no

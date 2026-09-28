@@ -1,0 +1,28 @@
+{
+  "tarea": "T001",
+  "commit": "0ffba2e93bffd597a618286d257e11f567cb4256",
+  "ficheros": {
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-applet.txtar": "e594402c8b15b26608da828c5f6a375b0efb343ff91c106c8802092987593787",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-codigos.txtar": "c2a1b8c4471210008a7c5613fd338b627e56465d96692cc92ffb1503a6844e5f",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-concurrencia.txtar": "71ecc0ebf8a392eab4a010c39bee791e526f9e8c897160b0e5132b6bb9c08f0e",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-entrega-fallida.txtar": "b1afc23e7b826444cc920203f663895864e750be375d3df5568c42b75a7fd5af",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-fuente-caducada.txtar": "3e055cc8f0d30f877c369cf8f5bf7d7ca002f7e654fdfb1164d72c5ed0488507",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-matriz-territorial.txtar": "84dbc6b5bc5e6bcd8e6a33a3c40f6cf6b2cb7a9a27056fd261c4f61d4b8082f2",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-memoria.txtar": "9641c95d6ab9c4aee07c00992e9d711a75dc23b39c6a1399624b2781a9b0139b",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-no-emiten.txtar": "c8acac5f7cb1d963b5c3df5bd68446e21d67ce75654d70349826495b8558fd1d",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-no-interferencia.txtar": "7b3a7c2ef1b64db52eb1f0e69dd6f8aba08529aac9bcaea76db3ec1ce0ecc676",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-show.txtar": "02c62887fdf3a0eaa562b9603c20e42cb396ba489bdbe3dc9d2ae4c34985ab02",
+    "specs/010-h7-internal-graph-grafo/aceptacion/grafo-version-obsoleta.txtar": "ed3b869375a7964e19e2045b9aa1f7959a880d09e2ab90301e6711f692ca2b08",
+    "internal/app/testdata/script/h7-grafo-applet.txtar": "e594402c8b15b26608da828c5f6a375b0efb343ff91c106c8802092987593787",
+    "internal/app/testdata/script/h7-grafo-codigos.txtar": "c2a1b8c4471210008a7c5613fd338b627e56465d96692cc92ffb1503a6844e5f",
+    "internal/app/testdata/script/h7-grafo-concurrencia.txtar": "71ecc0ebf8a392eab4a010c39bee791e526f9e8c897160b0e5132b6bb9c08f0e",
+    "internal/app/testdata/script/h7-grafo-entrega-fallida.txtar": "b1afc23e7b826444cc920203f663895864e750be375d3df5568c42b75a7fd5af",
+    "internal/app/testdata/script/h7-grafo-fuente-caducada.txtar": "3e055cc8f0d30f877c369cf8f5bf7d7ca002f7e654fdfb1164d72c5ed0488507",
+    "internal/app/testdata/script/h7-grafo-matriz-territorial.txtar": "84dbc6b5bc5e6bcd8e6a33a3c40f6cf6b2cb7a9a27056fd261c4f61d4b8082f2",
+    "internal/app/testdata/script/h7-grafo-memoria.txtar": "9641c95d6ab9c4aee07c00992e9d711a75dc23b39c6a1399624b2781a9b0139b",
+    "internal/app/testdata/script/h7-grafo-no-emiten.txtar": "c8acac5f7cb1d963b5c3df5bd68446e21d67ce75654d70349826495b8558fd1d",
+    "internal/app/testdata/script/h7-grafo-no-interferencia.txtar": "7b3a7c2ef1b64db52eb1f0e69dd6f8aba08529aac9bcaea76db3ec1ce0ecc676",
+    "internal/app/testdata/script/h7-grafo-show.txtar": "02c62887fdf3a0eaa562b9603c20e42cb396ba489bdbe3dc9d2ae4c34985ab02",
+    "internal/app/testdata/script/h7-grafo-version-obsoleta.txtar": "ed3b869375a7964e19e2045b9aa1f7959a880d09e2ab90301e6711f692ca2b08"
+  }
+}

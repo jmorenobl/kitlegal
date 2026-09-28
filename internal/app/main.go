@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/render"
 )
 
@@ -109,6 +111,9 @@ func Arrancar(
 // schema.ConClase de un adaptador—, y la clasificación lo traduciría a un código
 // que culparía a quien invoca. Lo que clasifica aquí es el registro imposible,
 // que es inesperado, y el mensaje no se pierde.
+//
+// El montador no tiene almacén y el contexto es el de fondo: sin registro no
+// hay grafo al que entregar, y un fallo no entrega nada (FR-032).
 func fallarAlArrancar(argv []string, stdout, stderr io.Writer, err error) int {
 	desarmarTuberiaCerrada()
 
@@ -117,7 +122,7 @@ func fallarAlArrancar(argv []string, stdout, stderr io.Writer, err error) int {
 
 	var montador cli.Montador
 
-	return montador.Emitir(presentador, previo.JSON, schema.Resultado{},
+	return montador.Emitir(context.Background(), presentador, previo.JSON, schema.Resultado{},
 		fmt.Errorf("%w: %s", errRegistroImposible, err.Error()))
 }
 
@@ -156,12 +161,34 @@ func Main(
 		return cli.CodigoSalida(nil)
 	}
 
+	// La entrega al grafo, si la hay, termina dentro del plazo de --timeout de
+	// la invocación: el mismo instante límite con el que se ejecutó el applet,
+	// y no uno nuevo contado desde que el applet volvió (FR-014). Un desenlace
+	// que no llegó a ejecutarlo no trae límite y su contexto nace vencido, sin
+	// consecuencia: solo se entrega un resultado correcto, y todo resultado
+	// correcto sale del applet.
+	ctx, cancelar := context.WithDeadline(context.Background(), fin.limite)
+	defer cancelar()
+
 	// El único punto del proyecto que traduce un error a código de salida, y el
 	// único que emite el sobre de fallo. Las dos cosas, juntas y aquí
-	// (FR-030, FR-045).
-	var montador cli.Montador
+	// (FR-030, FR-045). Y detrás de presentar, la entrega al grafo del mundo
+	// (FR-026).
+	montador := cli.Montador{Grafo: almacenDeLaInvocacion(registro, fin)}
 
-	return montador.Emitir(presentador, fin.enJSON, fin.resultado, fin.err)
+	return montador.Emitir(ctx, presentador, fin.enJSON, fin.resultado, fin.err)
+}
+
+// almacenDeLaInvocacion es el almacén al que se entrega lo que observó la
+// invocación: con --no-graph, graph.Nulo, que lo descarta sin resolver ninguna
+// ruta ni abrir nada; sin ella, el del registro, que puede ser ninguno
+// (FR-031; research.md D6).
+func almacenDeLaInvocacion(registro *Registro, fin desenlace) core.GraphStore {
+	if fin.sinGrafo {
+		return graph.Nulo{}
+	}
+
+	return registro.almacen
 }
 
 // desarmarTuberiaCerrada hace que escribir en una tubería cuyo lector ha
@@ -202,6 +229,13 @@ type desenlace struct {
 	resultado schema.Resultado
 	// err es el fallo de la invocación, o nulo si no lo hubo.
 	err error
+	// limite es el instante en que vence el plazo de --timeout con el que se
+	// ejecutó el applet, o el cero si no llegó a ejecutarse. La entrega al grafo
+	// termina dentro de ese mismo plazo (FR-014).
+	limite time.Time
+	// sinGrafo dice si la invocación llevaba --no-graph, que elige el almacén
+	// nulo (FR-031).
+	sinGrafo bool
 }
 
 // resolver decide quién atiende la invocación y la atiende, dejando la
@@ -432,6 +466,8 @@ func ejecutarVerbo(
 	fin.conSobre = true
 	fin.resultado = resultado
 	fin.err = err
+	fin.limite, _ = ctx.Deadline()
+	fin.sinGrafo = ejecucion.SinGrafo
 
 	return fin, analisis.Verbo
 }

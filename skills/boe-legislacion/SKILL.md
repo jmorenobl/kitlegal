@@ -9,7 +9,7 @@ description: >-
   vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario
   kitlegal y responde citando identificador y bloque.
 metadata:
-  kitlegal-applets: boe
+  kitlegal-applets: boe graph
   kitlegal-referencias: normas
 ---
 
@@ -50,6 +50,12 @@ menudo; no es exhaustiva.
   lee y se cita como una estatal.
 - Si la búsqueda no da la norma, reformúlala con otras palabras del título; que no aparezca no prueba que no exista
   (regla 1).
+- Resuelto el `BOE-A-…` de la norma de la pregunta, y antes de leer ninguno de sus bloques, comprueba la memoria de
+  consultas (más en «Memoria de consultas»):
+
+  ```bash
+  kitlegal graph check --json
+  ```
 
 ### 3. Leer índice y bloques con `kitlegal boe`
 
@@ -101,6 +107,8 @@ Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lug
 
 ### 5. Responder citando
 
+- Cuando ya no quede nada por leer, y antes de redactar la respuesta, vuelve a ejecutar `kitlegal graph check --json`
+  y traslada lo que encuentren las dos comprobaciones como dice «Memoria de consultas».
 - Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `kitlegal boe`
   en esta conversación. La cita es la forma legible de la norma y del bloque seguida, en la misma línea, de
   `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
@@ -155,10 +163,33 @@ del binario o de una explicación:
 - La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
   Decir con otras palabras que la norma está derogada no traslada el aviso.
 
+## Memoria de consultas
+
+`kitlegal` recuerda en local las normas y los bloques que ha leído con `kitlegal boe articulo` o `articulos`: cada
+redacción, con su fecha de vigencia, y cuándo la consultó. `kitlegal graph check` repasa esa memoria y devuelve en
+`data` una lista de hallazgos, cada uno con su `clase` y una `explicacion` que nombra la norma (`BOE-A-…`) o el bloque
+(`[BOE-A-…, bloque <id>]`) del que habla. De los verbos de `kitlegal graph`, el protocolo solo usa `check`, dos veces:
+resuelto el `BOE-A-…` y antes de leer (paso 2), y cuando ya no queda nada por leer y antes de responder (paso 5).
+
+Al responder, reúne los hallazgos de las dos comprobaciones cuya `explicacion` nombra el `BOE-A-…` de la norma de la
+pregunta, solo o en la cita de un bloque de esa norma que has leído para responder, y agrúpalos por `clase`. Di cada
+clase presente una sola vez, aunque lleguen varios hallazgos de la misma clase o la misma clase en las dos
+comprobaciones:
+
+- `version-obsoleta`: di que la redacción ha cambiado respecto de la consultada antes, con las fechas de vigencia que
+  traen los hallazgos: la de cada redacción superada (`fecha_vigencia`) y la de la más reciente
+  (`fecha_vigencia_reciente`).
+- `fuente-caducada`: di que la consulta anterior había caducado y que la respuesta se apoya en la lectura nueva.
+
+Los demás hallazgos —los de otras normas, también las que hayas leído por una remisión, y los de bloques que no has
+leído para responder— no se trasladan. Sin hallazgos de la norma de la pregunta, no hay nada que decir de la memoria de
+consultas. Un hallazgo no es un aviso de vigencia: no lleva la forma fija de los avisos.
+
 ## Comandos
 
 `kitlegal` se invoca desde el `PATH`. Códigos de salida: 0 correcto, 2 argumentos inválidos, 3
-no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requiere identidad humana.
+no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requiere identidad humana, 1 fallo inesperado
+(por ejemplo, un `world.db` que no se puede leer en `kitlegal graph`).
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
@@ -172,6 +203,14 @@ no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requie
 | `kitlegal boe articulos <norma> <bloques>...` | Devuelve el texto vigente de varios bloques de una norma, en el orden pedido. | lista de objetos con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
 | `kitlegal boe metadatos <norma>` | Devuelve los datos de una norma y los avisos de su vigencia. | objeto con `norma`, `titulo`, `rango`, `numero_oficial`, `fecha_disposicion`, `fecha_publicacion`, `fecha_vigencia`, `estatus_derogacion`, `vigencia_agotada`, `estado_consolidacion`, `url_eli`, `avisos` |
 | `kitlegal boe analisis <norma>` | Devuelve las materias, las notas y las referencias de una norma. | objeto con `norma`, `materias`, `notas`, `referencias` |
+
+### `kitlegal graph`
+
+| Orden | Qué hace | Qué devuelve en `data` |
+|---|---|---|
+| `kitlegal graph show <id>` | Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal. | objeto con `nodo`, `salientes`, `entrantes` |
+| `kitlegal graph stats` | Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente. | objeto con `nodos`, `aristas`, `textos`, `nodos_por_tipo`, `aristas_por_relacion` |
+| `kitlegal graph check` | Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas. | lista de objetos con `clase`, `id`, `explicacion`, `procedencia`, `fecha_vigencia`, `fecha_vigencia_reciente`, `vigencia_segundos` |
 
 Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 
@@ -197,3 +236,11 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 5. **Ningún caso especial para un territorio.** No hay reglas propias de un municipio o de una comunidad concretos. Si
    se pregunta por un municipio, responde con la normativa estatal o autonómica consolidada en el BOE y señala que las
    ordenanzas y demás normas locales no están en esta fuente.
+6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** El texto citado sale siempre de
+   `kitlegal boe articulo` o `kitlegal boe articulos`. Nunca cites, parafrasees ni reconstruyas texto a partir de la
+   salida de un verbo de `kitlegal graph`: la memoria de consultas dice qué hay que volver a comprobar, no qué dice el
+   artículo.
+7. **Una comprobación con hallazgos no es un fallo.** `kitlegal graph check` con código 0 es un resultado, con
+   hallazgos o sin ellos, y nunca un fallo de la herramienta: trasládalos como dice «Memoria de consultas». Si termina
+   con otro código, responde igual con el texto de `kitlegal boe` y di que no se ha podido comprobar la memoria de
+   consultas.

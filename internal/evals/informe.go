@@ -65,8 +65,9 @@ var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
-		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes", "Citas ausentes",
-		"Avisos encontrados", "Avisos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
+		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
+		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
+		"Territorio encontrado", "Territorio ausente", "Resultado",
 	}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
 	encabezadosDeTasas        = []string{"Eval", "Modelo", "Decide", "Planificada", "Tasa", "Resultado"}
@@ -857,10 +858,12 @@ func resultadoDelUmbral(pasa bool) string {
 }
 
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
-// activa, activada, sesión terminada con su código, comandos ausentes, citas
-// ausentes, avisos encontrados, avisos ausentes, territorio encontrado, territorio
-// ausente y resultado. Los avisos van junto a las citas, cada uno con su código
-// (contrato de formato, juicio e informe §5 de H5.1), y el territorio junto a los
+// activa, activada, sesión terminada con su código, comandos ausentes, comandos
+// prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
+// territorio encontrado, territorio ausente y resultado. Los comandos prohibidos
+// ejecutados van junto a los ausentes, cada uno con su texto (contrato
+// evals-y-skill §2 de H7); los avisos, junto a las citas, cada uno con su código
+// (contrato de formato, juicio e informe §5 de H5.1); y el territorio, junto a los
 // avisos, cada elemento con su texto (contrato de evals §2 de H6).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
@@ -884,6 +887,7 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			siONo(resultado.Activada),
 			siONo(resultado.SesionTerminada) + " (" + codigo + ")",
 			unidosOVacio(resultado.ComandosAusentes, ningunoEnElInforme),
+			unidosOVacio(resultado.ComandosProhibidosEjecutados, ningunoEnElInforme),
 			unidosOVacio(resultado.CitasAusentes, ningunaEnElInforme),
 			unidosOVacio(resultado.AvisosEncontrados, ningunoEnElInforme),
 			unidosOVacio(resultado.AvisosAusentes, ningunoEnElInforme),

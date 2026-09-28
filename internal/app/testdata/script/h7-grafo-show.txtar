@@ -1,0 +1,119 @@
+# graph show enseña lo que se sabe de un id, sin texto legal: tras consultar
+# BOE-A-2015-10565 a21, show del Bloque da el nodo con su arista entrante
+# eli:has_part desde la Norma y su arista saliente eli:has_version hacia su
+# versión, cada una con su procedencia y su primera y última observación; show
+# del BloqueVersion lleva su fecha de vigencia y la huella del texto; y ninguna
+# línea del texto del artículo aparece en la salida de show, stats ni check,
+# con --json ni sin él, donde los tres verbos presentan la tabla mínima.
+#
+# Cubre: US4.1, US4.2 · FR-041, FR-053, FR-055, FR-070 · SC-006.
+#
+# El texto que no puede aparecer es el del propio sobre de boe articulo; lo
+# comprueba sin-texto.sh, al pie de este guion, con cada línea no vacía de 20
+# caracteres o más (FR-070). La fecha de vigencia y la huella son las de ese
+# sobre; el reloj de boe y de graph es el del binario T0 y el de check con
+# hallazgos, el de T8 (contracts/arnes-e2e.md §2).
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_vigencia":"20161002"'
+stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+cp stdout articulo.json
+
+# --- show del Bloque, con sus dos aristas (US4.1, FR-053) ---
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21","tipo":"Bloque","datos":\{"bloque":"a21"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_version","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+cp stdout bloque.json
+
+# --- show del BloqueVersion: su fecha de vigencia y la huella del texto (US4.2) ---
+#
+# Los datos identificativos, nunca el cuerpo del bloque (FR-041).
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","tipo":"BloqueVersion","datos":\{[^{}]*\},"primera_observacion":"2026-09-28T12:00:00Z",'
+stdout '"datos":\{[^{}]*"fecha_vigencia":"20161002"'
+stdout '"datos":\{[^{}]*"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stdout '"texto"'
+! stderr .
+cp stdout version.json
+
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39 --json
+stdout '"data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma",'
+! stderr .
+cp stdout norma.json
+
+# --- Sin --json, la tabla mínima del kernel (FR-055) ---
+#
+# Los cuatro datos de procedencia del sobre y después el contenido, aplanado.
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21'
+stdout '\Afuente +kitlegal\.graph\n'
+stdout '^url +kitlegal:applet/graph$'
+stdout '^fecha_consulta +2026-09-28T12:00:00Z$'
+stdout '^hash +sha256:[0-9a-f]{64}$'
+stdout '^nodo\.id +eli/es/l/2015/10/01/39#a21$'
+stdout '^nodo\.tipo +Bloque$'
+! stderr .
+cp stdout bloque.txt
+
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c'
+stdout '\Afuente +kitlegal\.graph\n'
+stdout '^nodo\.tipo +BloqueVersion$'
+! stderr .
+cp stdout version.txt
+
+exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39
+stdout '\Afuente +kitlegal\.graph\n'
+! stderr .
+cp stdout norma.txt
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '"data":\{"nodos":3,"aristas":2,"textos":1,'
+! stderr .
+cp stdout stats.json
+exec $KITLEGAL_T0_BIN graph stats
+stdout '\Afuente +kitlegal\.graph\n'
+! stderr .
+cp stdout stats.txt
+
+# check con T8, cuando la consulta ya ha caducado, para que su salida lleve
+# hallazgos con sus explicaciones.
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '"clase":"fuente-caducada"'
+! stderr .
+cp stdout check.json
+exec $KITLEGAL_T8_BIN graph check
+stdout '\Afuente +kitlegal\.graph\n'
+! stderr .
+cp stdout check.txt
+
+# --- Ninguna línea del texto del artículo (FR-070, SC-006) ---
+#
+# sin-texto.sh comprueba antes, con la tabla de boe articulo, que las líneas
+# que busca son las del texto: sin esa comprobación, una extracción vacía
+# pasaría en falso.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21
+cp stdout articulo.txt
+! exec sh $WORK/sin-texto.sh articulo.json articulo.txt
+exec sh $WORK/sin-texto.sh articulo.json bloque.json version.json norma.json bloque.txt version.txt norma.txt stats.json stats.txt check.json check.txt
+
+-- sin-texto.sh --
+# sin-texto.sh <sobre> <salida>…: ninguna línea no vacía de 20 caracteres o
+# más del texto del bloque que lleva <sobre>, el de boe articulo --json,
+# aparece en ninguna de las salidas (FR-070, SC-006). Las líneas se toman del
+# valor de «texto» que precede a «hash_texto» —el del bloque, y no el de ningún
+# aviso, que va detrás—, partido por sus saltos de línea escapados; si no hay
+# ninguna, falla, para no pasar en vacío.
+set -u
+sobre=$1
+shift
+sed -n 's/^.*"texto":"\(.*\)","hash_texto":.*$/\1/p' "$sobre" |
+	awk '{ n = split($0, partes, /\\n/); for (i = 1; i <= n; i++) if (length(partes[i]) >= 20) print partes[i] }' > lineas
+test -s lineas || { echo "el sobre no lleva ninguna línea de texto de 20 caracteres o más" >&2; exit 1; }
+if grep -F -f lineas "$@" >&2; then
+	echo "una línea del texto del bloque aparece en la salida" >&2
+	exit 1
+fi

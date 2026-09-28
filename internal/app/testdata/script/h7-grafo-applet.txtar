@@ -1,0 +1,139 @@
+# El applet graph, como cualquier applet: aparece en la ayuda del binario con
+# su descripción; su ayuda enumera sus tres verbos, ninguno por omisión, y sin
+# verbo sale con 2 nombrándolos; cada verbo hereda las ocho banderas globales y
+# se describe con --describe; se invoca también por el nombre del programa
+# graph (multicall); y su sobre se firma en el espacio reservado, con la fecha
+# de la invocación. La ayuda de --no-graph dice lo que la bandera hace ahora, y
+# no lo que decía.
+#
+# Cubre: FR-031 (ayuda de --no-graph), FR-050, FR-051 · US4.
+#
+# Las descripciones son las literales de contracts/applet-graph.md §1; el sobre,
+# el de §2; la ayuda de --no-graph, la de contracts/resultado-y-entrega.md §6,
+# que el analizador de la ayuda parte en varias líneas cuando no cabe en una:
+# por eso la frase se busca con cualquier espacio en blanco entre sus palabras.
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- La ayuda del binario y la del applet (FR-050) ---
+exec kitlegal --help
+stdout '^  graph +Lee el grafo del mundo: lo que el binario ha observado de las fuentes, con su procedencia\.$'
+! stderr .
+
+exec kitlegal graph --help
+stdout '\Auso: graph <verbo> \[banderas\]\n'
+stdout '^verbos:$'
+stdout '^  show +Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal\.$'
+stdout '^  stats +Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente\.$'
+stdout '^  check +Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas\.$'
+stdout 'Las banderas de cada verbo, en «graph <verbo> --help»\.\n\z'
+! stdout 'por omisión'
+! stderr .
+
+# Sin verbo: 2, y el mensaje nombra los tres.
+exec sh -c 'kitlegal graph; test $? -eq 2'
+! stdout .
+stderr 'el applet "graph" no declara ningún verbo por omisión'
+stderr 'verbos de graph: show, stats, check'
+
+# show recibe exactamente un argumento, id; los tres verbos heredan las ocho
+# banderas globales.
+exec kitlegal graph show --help
+stdout '^Usage: graph show <id> \[flags\]$'
+stdout '<id> +Id del nodo: un ELI, «ine:<código>», un DIR3…'
+! stderr .
+
+exec kitlegal graph stats --help
+stdout '--json'
+stdout '--timeout'
+stdout '--offline'
+stdout '--dry-run'
+stdout '--describe'
+stdout '--no-graph'
+stdout '--asunto'
+stdout '--verbose'
+! stderr .
+
+# --- --describe de cada verbo, sin ejecutar nada (FR-050) ---
+#
+# show, con su argumento: sin él, el análisis termina en 2 antes de describir
+# (contracts/arnes-e2e.md §4).
+exec kitlegal graph show x --describe
+stdout '\A\{\n'
+stdout '"title": "graph show"'
+stdout '"required": \[\n\s+"id"\n\s+\]'
+stdout '"salida":'
+stdout '"primera_observacion":'
+! stdout 'sha256:[0-9a-f]{64}'
+! stderr .
+
+exec sh -c 'kitlegal graph show --describe; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos: expected "<id>"'
+
+exec kitlegal graph stats --describe
+stdout '\A\{\n'
+stdout '"title": "graph stats"'
+stdout '"nodos_por_tipo":'
+! stdout 'sha256:[0-9a-f]{64}'
+! stderr .
+
+exec kitlegal graph check --describe
+stdout '\A\{\n'
+stdout '"title": "graph check"'
+stdout '"explicacion":'
+! stdout 'sha256:[0-9a-f]{64}'
+! stderr .
+
+# --- El sobre, firmado en el espacio reservado (FR-051) ---
+#
+# Con el reloj T0, la fecha_consulta es su instante; con el del sistema, la de
+# la invocación.
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
+! stderr .
+cp stdout stats.json
+
+exec $KITLEGAL_T0_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+! stderr .
+
+exec kitlegal graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[0-9]{4}-[0-9]{2}-[0-9]{2}T[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{'
+! stderr .
+
+# --offline no cambia lo que lee: el grafo es local.
+exec $KITLEGAL_T0_BIN graph stats --offline --json
+cmp stdout stats.json
+
+# --- Por el nombre del programa (FR-050, multicall) ---
+#
+# El enlace apunta al binario T0, así que las dos invocaciones dan el mismo
+# sobre, byte a byte.
+symlink graph -> $KITLEGAL_T0_BIN
+exec ./graph stats --json
+cmp stdout stats.json
+! stderr .
+
+exec ./graph --help
+stdout '\Auso: graph <verbo> \[banderas\]\n'
+! stderr .
+
+# --- La ayuda de --no-graph (FR-031) ---
+#
+# En la ayuda de un verbo de boe y en la de uno de graph, la frase nueva, y
+# ninguna forma de la antigua.
+exec kitlegal boe articulo --help
+stdout '--no-graph +No\s+entrega\s+al\s+grafo\s+del\s+mundo\s+nada\s+de\s+lo\s+que\s+observa\s+la\s+invocación\.'
+! stdout 'Declara\s+que\s+la\s+ejecución\s+no\s+altera\s+el\s+grafo'
+! stderr .
+
+exec kitlegal graph stats --help
+stdout '--no-graph +No\s+entrega\s+al\s+grafo\s+del\s+mundo\s+nada\s+de\s+lo\s+que\s+observa\s+la\s+invocación\.'
+! stdout 'Declara\s+que\s+la\s+ejecución\s+no\s+altera\s+el\s+grafo'
+
+# Ni la ayuda, ni --describe, ni los verbos de graph han creado nada en el
+# directorio de la caché (FR-004).
+! exists cache

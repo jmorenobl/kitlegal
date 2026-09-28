@@ -12,6 +12,151 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **El grafo del mundo** (ADR 0014, pieza G0): el binario recuerda lo que observa de las fuentes, con su procedencia,
+  en `world.db`, una base SQLite junto a la caché y con su misma regla de ubicación —`~/.cache/kitlegal/world.db`, u
+  otra carpeta con `KITLEGAL_CACHE_DIR`—. Cada nodo, arista y texto lleva la `fuente`, la `url` y la `fecha_consulta`
+  del sobre de la invocación que lo observó, carácter a carácter: un nodo y una arista, las de su primera y su última
+  observación; un texto, las de la más antigua. Nada entra sin fuente. Lo entrega el kernel **después** de presentar la salida, y solo cuando la invocación termina con `0` y
+  su applet declara lo que ha observado: la salida estándar y el código no cambian ni un byte, con grafo o sin él.
+  Nunca entrega un fallo, `--dry-run`, la ayuda, `--describe` ni `version`; con `--offline`, sí, porque el grafo es
+  local. La entrega es transaccional e idempotente —repetir la misma consulta no duplica nada, y dos observaciones
+  que llegan fuera de orden dejan lo mismo que en orden— y rechaza el lote entero, sin tocar nada, si le falta la
+  fuente, cambia el tipo de un id, trae un texto cuya huella no es la de su cuerpo o una arista sin sus extremos, o
+  si un nodo `Persona` lleva algo con forma de DNI, NIE o NIF (constitución VII). Varias invocaciones a la vez
+  entregan todas lo suyo: si otra tiene la base ocupada, una entrega espera en tramos de 100 ms, como mucho 5 s y
+  dentro del plazo de `--timeout`. La primera entrega crea `world.db` en un temporal y lo publica entero, de modo que un fallo no deja
+  nada a medias. El grafo es local: nada sale del equipo.
+- **Lo que se observa hoy.** `boe articulo` y `boe articulos` —en `articulos`, cada bloque distinto una vez— emiten
+  la norma como `Norma`, con su ELI por id (`eli/es/l/2015/10/01/39`, de la `url_eli` del BOE) y su `identificador`;
+  el bloque como `Bloque` (`<eli>#<bloque>`); su redacción como `BloqueVersion`
+  (`<eli>#<bloque>@<fecha_vigencia>:<hash_texto>`, con `fecha_vigencia`, `fecha_version`, `norma_modificadora` y
+  `hash_texto` tal como los da el artículo); las aristas `eli:has_part` y `eli:has_version`; y el texto del bloque
+  por su `hash_texto`, con la vigencia de 7 días con la que la caché guarda la consulta. Un artículo cuya norma no
+  trae ELI no emite nada, ni con otro id. `territorio resolver` emite el municipio como `Municipio`
+  (`ine:<código INE>`, con `codigo_ine` y `nombre`) y, si la respuesta trae el DIR3 del ayuntamiento, el `Organo`
+  con ese DIR3 por id y la arista `lb:pertenece_a` del ayuntamiento al municipio, sin vigencia y igual para un
+  municipio de un territorio configurado que para uno que no lo está. Ningún otro verbo de `boe`, ni `skills`, ni
+  `graph` emite nada.
+- **Applet `graph`**, registrado en el binario distribuido, con tres verbos y ninguno por omisión —sin verbo termina
+  con `2` nombrando los tres—, que solo **leen** el grafo: ninguno crea ni cambia `world.db` ni devuelve texto legal,
+  y `--no-graph` y `--offline` no cambian lo que leen. Firma su sobre con `fuente` `kitlegal.graph`, `url`
+  `kitlegal:applet/graph` y, como `fecha_consulta`, el instante de la invocación; `kitlegal graph …` y el enlace
+  `graph -> kitlegal` dan lo mismo.
+  - `graph show <id>` devuelve un nodo —un ELI, `ine:<código>`, un DIR3…— con su tipo, sus datos, su primera y su
+    última observación y sus aristas salientes y entrantes, cada una con las suyas; nunca el cuerpo de un bloque.
+  - `graph stats` cuenta los nodos, las aristas y los textos, y los nodos por tipo y fuente y las aristas por relación
+    y fuente.
+  - `graph check` devuelve en `data` una lista de hallazgos de dos clases, cada uno con su `clase`, el `id` del nodo,
+    una `explicacion` citable y la `procedencia` en la que se apoya: **`version-obsoleta`**, una redacción consultada
+    de un bloque cuando el grafo ya ha observado otra de fecha de vigencia posterior (`La versión de <cita> con fecha
+    de vigencia <fecha> está superada por la de fecha de vigencia <fecha>, observada en <url> el <fecha_consulta>.`,
+    con `fecha_vigencia` y `fecha_vigencia_reciente`); y **`fuente-caducada`**, un nodo cuya última consulta ha
+    superado la vigencia que declaró (`La consulta de <cita> a <fuente> en <url> del <fecha_consulta> tenía una
+    vigencia de <N> s y caducó el <instante>.`, con `vigencia_segundos`). La `<cita>` es la del bloque
+    (`[BOE-A-2015-10565, bloque a21]`) o el identificador de la norma. Termina con `0` con hallazgos o sin ellos
+    (ADR 0023).
+
+  Códigos: `2` un id vacío, formado solo por espacio en blanco o con un carácter de control, un argumento sobrante, o
+  la carpeta de la caché mal declarada (`KITLEGAL_CACHE_DIR` vacía o que no es un directorio; sin ella, sin `HOME`),
+  también con `--no-graph`; `3` un id que no está, también con el grafo vacío o sin crear —el id se busca tal cual,
+  sin recortar y con sus bytes aunque no sean UTF-8, y el mensaje lo nombra entre comillas y con escapes Go (`\xff`)—;
+  `4` el plazo de
+  `--timeout` agotado esperando la base; y `1` un `world.db` inutilizable —no es una base de datos, es un directorio,
+  tiene una transacción interrumpida sin deshacer o un esquema de una versión posterior— o bloqueado más de 5 s, que
+  el verbo nombra y no modifica. Sin `world.db`, el grafo está vacío y no se crea nada. Su contrato se publica en
+  `schemas/grafo.json` (`$defs.show`, `$defs.stats` y `$defs.check`), generado desde `--describe` y comprobado por
+  `make schema-check`.
+- **Una entrega fallida se avisa en una línea.** Si el grafo no puede recibir lo observado —`world.db` inutilizable
+  o de otra versión, sin permiso de escritura, bloqueado, el plazo agotado, la carpeta de la caché mal declarada o un
+  lote rechazado—, la invocación escribe en la salida de error exactamente
+  `kitlegal: lo observado no ha llegado al grafo del mundo: <causa>`, con la causa en una sola línea, y termina con el
+  mismo código y la misma salida estándar que habría dado sin grafo. No se reintenta ni se guarda para después.
+- **`boe-legislacion` v0.1 comprueba la memoria de consultas antes de responder.** Resuelto el `BOE-A-…` de la norma de
+  la pregunta, y antes de leer, ejecuta `kitlegal graph check --json`, y otra vez cuando ya no queda nada por leer. De
+  los hallazgos que nombran esa norma dice cada clase una sola vez: con `version-obsoleta`, que la redacción ha
+  cambiado respecto de la consultada antes, con las fechas de vigencia; con `fuente-caducada`, que la consulta anterior
+  había caducado y que la respuesta se apoya en la lectura nueva. El texto que cita sale siempre de
+  `kitlegal boe articulo` o `articulos`, nunca de la salida de `graph`; una comprobación con hallazgos no es un fallo,
+  y si `graph check` falla responde igual y dice que no ha podido comprobar la memoria de consultas. Su frontmatter
+  declara `kitlegal-applets: boe graph` y su tabla de comandos gana `kitlegal graph` (`show`, `stats`, `check`),
+  generada con `make skills-sync`. La forma de la cita y la de los avisos de vigencia no cambian.
+- **Eval informativa de la consulta repetida** (`evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml`):
+  el grafo de la sesión ya tiene una redacción anterior del artículo 21 de la Ley 39/2015 y la caché sirve la grabada;
+  la sesión tiene que leer el bloque con `kitlegal boe articulo`, comprobar con `kitlegal graph check`, no pedir
+  `kitlegal graph show` y citar el bloque. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa se publica sin
+  decidir el veredicto. La redacción anterior es una derivada de la grabación del BOE, sin ninguna grabación nueva
+  (`testdata/evals/grafo-previo/lpac-a21-version-anterior/`).
+- **El formato común de eval gana tres piezas**, opcionales y solo en una eval que activa la skill; las evals que ya
+  había se leen y se juzgan igual. `comandos` admite una quinta forma, la comprobación (`applet` y `verbo` `check`),
+  que la cumple una invocación de ese applet con `check` que termina con `0`. `prohibidos` lista los `applet` y `verbo`
+  que la sesión no puede invocar: toda invocación que consulta —no la ayuda, `--describe` ni `--dry-run`— de uno de
+  ellos, termine como termine, hace que la sesión no pase con el motivo `comando prohibido ejecutado: <applet>
+  <verbo>`; cada sesión publica en `informe.json` `comandos_prohibidos_ejecutados` y la tabla de sesiones de
+  `informe.md` gana la columna «Comandos prohibidos ejecutados». Y `grafo_previo` nombra un directorio de
+  `testdata/evals/grafo-previo/` y los bloques que, antes de la sesión, se consultan contra las grabaciones con ese
+  directorio encima para dejar su observación en el grafo de la sesión; la caché de la sesión se prepara después, como
+  siempre. `schemas/eval.yaml.json` los valida y `make skills-check` comprueba que cada grafo previo nombrado existe y
+  se prepara sin ninguna falta.
+
+### Cambiado
+
+- **`--no-graph` tiene efecto**: la invocación no entrega nada al grafo, ni resuelve la ruta de `world.db` ni lo
+  abre, y su ayuda dice «No entrega al grafo del mundo nada de lo que observa la invocación.», en lugar de «Declara
+  que la ejecución no altera el grafo.». La salida estándar y el código son los mismos con la bandera y sin ella.
+  Desde H1 se aceptaba sin semántica, a la espera del grafo.
+- **`territorio resolver` escribe en la carpeta de la caché**: sigue sin pedir nada a la red y sin tocar `cache.db`,
+  pero lo que observa llega a `world.db`, que la primera entrega crea en esa carpeta.
+- **La ayuda y los errores del binario enumeran `graph`**: `kitlegal --help` lo lista y el error de un applet
+  desconocido dice `applets disponibles: boe, graph, skills, territorio`.
+- **`schema.Resultado` gana `Grafo`**, lo que el applet ha observado: su vigencia y sus operaciones —`Nodo`, `Arista`
+  y `Texto`, ninguna con fuente, url ni fecha, que pone el kernel desde el sobre—. Vacío, no se entrega nada, así que
+  el contrato `Applet` (ADR 0005) no cambia y ningún applet que no emite implementa nada. En el kernel,
+  `cli.Montador` gana el almacén al que entrega y `Emitir` recibe el contexto con el plazo de `--timeout`.
+- **`make test-tiempos` mide también el coste del grafo** (`TestCosteDelGrafo`), solo y sin la caché de resultados de
+  `go test`, como `TestMedidasDeTiempo`, y `make test` y `make test-integration` lo saltan: con un `world.db` que ya
+  existe, la entrega no añade más de 150 ms a la mediana de 20 `boe articulo` servidos desde la caché respecto de los
+  mismos con `--no-graph`, y sobre un grafo de 10 000 nodos y 10 000 aristas `graph check` tarda menos de 3 s y
+  `graph stats` menos de 1 s (medianas de cinco). Las trece cotas de 200 ms de `boe articulo` desde la caché y de
+  `territorio resolver`, que ahora entregan al grafo, no cambian.
+- **`make test-integration` ejecuta la matriz del grafo** (`internal/graph/integracion_test.go` y, en Unix,
+  `integracion_enlace_test.go`): esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, bases
+  inutilizables, sin permiso de escritura, con los auxiliares de SQLite, con un enlace simbólico y lo que deja una
+  entrega que falla.
+- **`make lint` y `TestArquitectura` vigilan una regla más, R6**: `internal/graph` no importa las fuentes
+  (`internal/source`) ni la presentación (`internal/render`); y `internal/graph` es, con `internal/cache`, el único
+  paquete que importa `database/sql` y SQLite. El binario no enlaza ningún módulo nuevo.
+- **`make test-e2e` construye además tres binarios de extremo a extremo con el reloj fijo** (el 28 y el 29 de
+  septiembre y el 6 de octubre de 2026 a las 12:00 UTC), con los que `graph check` da hallazgos reproducibles, y
+  copia a cada guion tres respuestas del BOE derivadas de las grabaciones de H4 —una redacción posterior del
+  artículo 21 de la Ley 39/2015 y los metadatos de esa ley sin ELI, con la `url_eli` vacía y con una que no tiene
+  ningún segmento `eli`—, sin ninguna grabación nueva.
+- **Con 19 evals, el trabajo de `boe-legislacion` del job de evals abre 93 sesiones**: 57 de `claude-sonnet-5` —36
+  sobre las doce que deciden y 21 sobre las siete informativas— y 36 de `claude-haiku-4-5-20251001` sobre las doce que
+  deciden.
+
+El contenido del grafo es solo lo que se ha dicho. En los **bytes** de `world.db` y de los ficheros auxiliares que
+SQLite pone junto a él hay tres desviaciones declaradas (`specs/010-h7-internal-graph-grafo/plan.md`, *Complexity
+Tracking*), cada una por su causa y con su cota, y ninguna cambia el contenido:
+
+- **Una base de fuera sin el esquema del grafo.** Si `world.db` ya existía sin esquema y fuera del modo WAL —de 0
+  bytes o escrito por otro programa— y una entrega falla después de pasarlo a WAL, queda lo que SQLite escribe al
+  confirmar ese paso: bytes de la cabecera de la primera página, el vaciado de las páginas libres con
+  `auto_vacuum=full`, un diario frío o vacío que desaparece y, en el de 0 bytes, un fichero de 4096. Su contenido no
+  cambia, sigue siendo un grafo vacío y no queda ningún fichero nuevo.
+- **Lo que dejó un escritor interrumpido.** Con un `world.db-wal` huérfano o un diario de rollback caliente, la entrega
+  los recupera aunque falle después: el diario se deshace y el `-wal` se lleva a `world.db`, que cambia de bytes y de
+  tamaño con el contenido confirmado, y los auxiliares desaparecen. Junto a un `world.db` de 0 bytes, un `-wal` no se
+  recupera sino que se descarta, salvo que el lote se rechace antes de abrir SQLite.
+- **Leer con los auxiliares de WAL presentes** (otra invocación abierta, un `-wal` huérfano o un `-shm` suelto): los
+  verbos de `graph` reescriben o crean `world.db-shm` y, junto a un `-shm` suelto, crean un `world.db-wal` vacío;
+  `world.db`, un `-wal` que ya existía, el diario y el contenido no cambian. Sin auxiliares no cambia ni un byte,
+  pueda el proceso escribir `world.db` o no.
+
+Un proceso terminado por una señal a mitad de su primera entrega puede dejar el temporal `world.db-nuevo-*` y la
+carpeta que creó: el binario no atiende señales, y ningún lector ni ninguna entrega lo miran.
+
 ## [0.3.1] - 2026-09-28
 
 ### Cambiado

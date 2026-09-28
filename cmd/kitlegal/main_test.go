@@ -13,10 +13,11 @@ import (
 
 // appletsDelBinario es la lista de applets que enumera el kernel ante una
 // invocación que no resuelve ninguno: la evidencia observable de que el binario
-// que se publica registra boe, skills y territorio, y solo esos, desde H19
+// que se publica registra boe, graph, skills y territorio, y solo esos, desde H7
 // (FR-001, contracts/registro-y-describe.md §3 de H1; contrato del applet
-// territorio §7; contracts/applet-skills.md §1 de H19).
-const appletsDelBinario = "applets disponibles: boe, skills, territorio"
+// territorio §7; contracts/applet-skills.md §1 de H19; contracts/applet-graph.md
+// §1 de H7).
+const appletsDelBinario = "applets disponibles: boe, graph, skills, territorio"
 
 // TestPuntoDeEntrada ejerce el contrato observable del binario distribuido con la
 // **misma composición que main()** —app.Arrancar con el registro de producción y
@@ -31,10 +32,10 @@ const appletsDelBinario = "applets disponibles: boe, skills, territorio"
 // disponible —boe, skills y territorio, en este binario— (FR-006,
 // contracts/registro-y-describe.md §2 y §3); lo que sobra tras «version», que no
 // admite argumentos ni banderas, se nombra en el mensaje en lugar de descartarse
-// (FR-027); y boe, skills y territorio sin verbo se corrigen igual, porque
-// ninguno declara verbo por omisión (FR-001; contracts/applet-skills.md §1 de
-// H19). Ningún caso ejecuta un verbo, así que nada de esta tabla pide nada, abre
-// la caché ni examina el disco.
+// (FR-027); y boe, graph, skills y territorio sin verbo se corrigen igual, porque
+// ninguno declara verbo por omisión (FR-001, FR-050; contracts/applet-skills.md
+// §1 de H19). Ningún caso ejecuta un verbo, así que nada de esta tabla pide
+// nada, abre la caché o world.db ni examina el disco.
 //
 // No es paralelo, y no es un descuido: fija KITLEGAL_LOG —en el test y en cada
 // subcaso, que es lo que lo deja hermético por separado— para que el nivel del
@@ -109,6 +110,14 @@ func TestPuntoDeEntrada(t *testing.T) {
 			nombre:  "boe sin verbo termina con 2 y enumera sus verbos",
 			argv:    []string{"kitlegal", "boe"},
 			errores: []string{`"boe"`, "verbos de boe: buscar, indice, articulo, articulos, metadatos, analisis"},
+			codigo:  2,
+		},
+		{
+			// graph tampoco declara verbo por omisión: show, stats y check se
+			// nombran siempre (contracts/applet-graph.md §1).
+			nombre:  "graph sin verbo termina con 2 y enumera sus verbos",
+			argv:    []string{"kitlegal", "graph"},
+			errores: []string{`"graph"`, "verbos de graph: show, stats, check"},
 			codigo:  2,
 		},
 		{

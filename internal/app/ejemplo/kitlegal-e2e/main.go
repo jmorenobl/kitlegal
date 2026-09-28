@@ -1,12 +1,12 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
-// binario que se publica— con los applets de ejemplo y los applets boe, skills y
-// territorio. Lo único que cambia entre este binario y el distribuido es la
-// composición: qué applets se registran, de dónde responde boe, que aquí es la
-// reproducción de sus grabaciones y nunca la red, y, si la construcción lo
-// elige, un creador de enlaces de skills que siempre falla (FR-009, FR-024,
-// FR-114, contracts/registro-y-describe.md §3; contrato puerto-y-applet §5 de
-// H4; contracts/arnes-e2e.md §2 de H19).
+// binario que se publica— con los applets de ejemplo y los applets boe, graph,
+// skills y territorio. Lo único que cambia entre este binario y el distribuido
+// es la composición: qué applets se registran, de dónde responde boe, que aquí
+// es la reproducción de sus grabaciones y nunca la red, y, si la construcción lo
+// elige, un creador de enlaces de skills que siempre falla y un reloj fijo para
+// boe y graph (FR-009, FR-024, FR-114, contracts/registro-y-describe.md §3;
+// contrato puerto-y-applet §5 de H4; contracts/arnes-e2e.md §2 de H19 y de H7).
 //
 // Es la segunda —y última— raíz de composición del proyecto, y por eso es uno de
 // los dos únicos sitios del árbol donde se nombran os.Exit, os.Stdout y
@@ -27,18 +27,22 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/app/ejemplo"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // Datos de construcción. El binario de e2e de desarrollo se compila sin
 // -ldflags, así que los valores que se ven son estos; el arnés construye además
-// este mismo paquete con -X sobre version (v0.1.0 y v0.2.0) y sobre enlazador
-// (contracts/arnes-e2e.md §2). El contrato de `version` que ejerce el binario
-// distribuido lo comprueban los tests de cmd/kitlegal (D16).
+// este mismo paquete con -X sobre version (v0.1.0 y v0.2.0), sobre enlazador y
+// sobre reloj (contracts/arnes-e2e.md §2 de H19 y de H7). El contrato de
+// `version` que ejerce el binario distribuido lo comprueban los tests de
+// cmd/kitlegal (D16).
 var (
 	version = "dev"
 	commit  = "none"
@@ -51,6 +55,16 @@ var (
 	// nada que decida su comportamiento. Es una variable de cadena, y no una
 	// constante, porque -X solo fija variables de cadena (research.md D24).
 	enlazador string
+
+	// reloj elige el reloj de boe y de graph: sin valor, el del sistema, como el
+	// binario distribuido; con un instante RFC 3339, ese instante en cada
+	// lectura, el que declara cada respuesta que sirve la reproducción de boe —y
+	// con él la fecha_consulta de lo que boe pide— y el de cada invocación de
+	// graph. Es lo que deja a los guiones afirmar literales las fechas de
+	// consulta y las caducidades sin depender del día en que corren. Como
+	// enlazador, se fija al construir, con -X, y nunca por el entorno
+	// (contracts/arnes-e2e.md §2 de H7; research.md D23 de H7).
+	reloj string
 )
 
 // enlazadorQueFalla es el valor de enlazador que elige el creador de enlaces
@@ -64,6 +78,11 @@ var errEnlazadorDesconocido = errors.New("kitlegal-e2e: el binario se construyó
 
 // errSinEnlaces es el fallo de enlazadorFallido al crear un enlace.
 var errSinEnlaces = errors.New("kitlegal-e2e: este binario no crea enlaces simbólicos")
+
+// errRelojInvalido es un valor de reloj que no es un instante RFC 3339: un
+// defecto de quien construyó el binario, que se nombra en lugar de caer en
+// silencio al reloj del sistema.
+var errRelojInvalido = errors.New("kitlegal-e2e: el binario se construyó con un reloj que no es un instante RFC 3339")
 
 // directorioDeReproduccion es la carpeta de la que boe sirve sus grabaciones,
 // con una subcarpeta por fuente, relativa al directorio desde el que se invoca
@@ -85,20 +104,31 @@ func main() {
 }
 
 // registroDeE2E construye el registro de este binario: los applets de ejemplo,
-// boe sobre la reproducción, skills con las mismas dependencias del sistema que
-// el binario distribuido —la versión de este binario, lo empotrado y el creador
-// de enlaces de internal/disco, salvo que la construcción eligiera el que
-// falla— y territorio con los mismos ficheros embebidos, que no dependen del
-// entorno (contrato del applet territorio §7). Construirlo no pide nada ni abre
-// nada. Un registro que no se construye es un defecto de quien escribió un
+// boe sobre la reproducción, graph con las mismas dependencias del sistema que
+// el binario distribuido, skills con las mismas dependencias del sistema que el
+// binario distribuido —la versión de este binario, lo empotrado y el creador de
+// enlaces de internal/disco, salvo que la construcción eligiera el que falla— y
+// territorio con los mismos ficheros embebidos, que no dependen del entorno
+// (contrato del applet territorio §7); boe y graph, con el reloj del sistema
+// salvo que la construcción fijara el suyo. Construirlo no pide nada ni abre
+// nada. Un registro que no se construye —también el de una construcción con un
+// enlazador o un reloj que no elige nada— es un defecto de quien escribió un
 // applet o esta composición, y app.Arrancar lo convierte en el fallo inesperado
 // antes de atender ninguna invocación: nunca en un código de salida de usuario
-// ni en un pánico (FR-008; research.md D16 de H4). Recibe la versión del binario
-// como el registro de producción, y como allí la lleva a skills y compone con
-// las mismas dependencias el aviso de versión, que registra (research.md D4 y
-// D5 de H19).
+// ni en un pánico (FR-008; research.md D16 de H4). Recibe la versión del
+// binario como el registro de producción, y como allí la lleva a skills y
+// compone con las mismas dependencias el aviso de versión, que registra
+// (research.md D4 y D5 de H19); y, como allí, entrega lo que observa cada
+// invocación al grafo del mundo con la regla de ubicación de la caché, que el
+// e2e fija en el directorio de trabajo de cada guion (FR-001, FR-030;
+// research.md D6 de H7).
 func registroDeE2E(version string) (*app.Registro, error) {
 	skills, err := dependenciasDeSkills(version, enlazador)
+	if err != nil {
+		return nil, err
+	}
+
+	deBoe, delGrafo, err := dependenciasDelReloj(reloj)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +144,8 @@ func registroDeE2E(version string) (*app.Registro, error) {
 	}
 
 	applets := []app.Applet{
-		app.AppletBoe(dependenciasDeReproduccion()),
+		app.AppletBoe(deBoe),
+		app.AppletGrafo(delGrafo),
 		app.AppletSkills(skills),
 		app.AppletTerritorio(fuentes),
 	}
@@ -126,6 +157,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 	}
 
 	registro.Avisar(app.AvisoDeVersion(skills))
+	registro.EntregarAlGrafo(graph.Nuevo())
 
 	return registro, nil
 }
@@ -170,20 +202,49 @@ func (enlazadorFallido) Enlazar(destino, ruta string) error {
 	return fmt.Errorf("enlazar %s -> %s: %w", ruta, destino, errSinEnlaces)
 }
 
+// dependenciasDelReloj son las de boe y las de graph con el reloj que elige la
+// construcción: sin elección, la reproducción sin hora declarada —que es la del
+// sistema— y las del grafo del sistema tal cual, como el binario distribuido;
+// con un instante RFC 3339, la reproducción con httpx.ConHora en ese instante y
+// las del grafo del sistema con el Reloj sustituido por uno que siempre da ese
+// instante. Cualquier otro valor es un defecto de la construcción que se nombra
+// (contracts/arnes-e2e.md §2 de H7; research.md D23 de H7). Los applets las
+// reciben hechas y no saben de dónde sale su hora.
+func dependenciasDelReloj(eleccion string) (app.DependenciasDeBoe, app.DependenciasDeGrafo, error) {
+	delGrafo := app.DependenciasDelGrafoDelSistema()
+
+	if eleccion == "" {
+		return dependenciasDeReproduccion(), delGrafo, nil
+	}
+
+	instante, err := time.Parse(time.RFC3339, eleccion)
+	if err != nil {
+		return app.DependenciasDeBoe{}, app.DependenciasDeGrafo{}, fmt.Errorf("%w: %q: %w", errRelojInvalido, eleccion, err)
+	}
+
+	fijo := func() time.Time { return instante }
+	delGrafo.Reloj = fijo
+
+	return dependenciasDeReproduccion(httpx.ConHora(fijo)), delGrafo, nil
+}
+
 // dependenciasDeReproduccion son las de boe en este binario: el cliente de
 // reproducción sobre la carpeta de la fuente, que no abre ninguna conexión, con
-// el nombre de la fuente y el registrador que el kernel entrega al applet; y la
+// el nombre de la fuente, el registrador que el kernel entrega al applet y las
+// opciones que se le den —la hora que fija la construcción, si la fija—; y la
 // caché de siempre, la de KITLEGAL_CACHE_DIR o la de la cuenta, que el e2e fija
 // en el directorio de trabajo de cada guion. No lleva intervalo entre
 // peticiones: la reproducción no tiene sitio al que esperar y lo rechaza
 // (contrato puerto-y-applet §5 de H4).
-func dependenciasDeReproduccion() app.DependenciasDeBoe {
+func dependenciasDeReproduccion(opciones ...httpx.Opcion) app.DependenciasDeBoe {
 	return app.DependenciasDeBoe{
 		Cliente: func(registrador *slog.Logger) (*httpx.Cliente, error) {
 			return httpx.Replay(
 				filepath.Join(directorioDeReproduccion, boe.NombreDeLaFuente),
-				httpx.ConFuente(boe.NombreDeLaFuente),
-				httpx.ConRegistrador(registrador),
+				slices.Concat(
+					[]httpx.Opcion{httpx.ConFuente(boe.NombreDeLaFuente), httpx.ConRegistrador(registrador)},
+					opciones,
+				)...,
 			)
 		},
 	}
