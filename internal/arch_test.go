@@ -25,7 +25,9 @@
 //
 // Desde H19 comprueba además, sobre el mismo grafo, una garantía que no es una
 // regla del contrato sino de un hito, y que sí es de importación: lo que
-// instala las skills y da el aviso no alcanza la red (H19 research.md D32).
+// instala las skills y da el aviso no alcanza la red (H19 research.md D32). Y
+// desde H7, una cuarta regla de importación, R6: el adaptador del grafo del
+// mundo no alcanza las fuentes ni la presentación (H7 FR-092, research.md D30).
 package internal_test
 
 import (
@@ -59,10 +61,10 @@ const raizDelModulo = ".."
 // transitivo del que parte este test.
 const plantillaDeListado = "{{.ImportPath}}\t{{join .Imports \" \"}}"
 
-// TestArquitectura comprueba las tres reglas de importación y la garantía sin
-// red de H19 sobre el grafo transitivo real del módulo, más un control del
-// recorrido que comparten R1 y la garantía sin red. Es el test que el
-// escenario 8 de quickstart.md invoca por su nombre.
+// TestArquitectura comprueba las tres reglas de importación, R6 de H7 y la
+// garantía sin red de H19 sobre el grafo transitivo real del módulo, más un
+// control del recorrido que comparten R1, R6 y la garantía sin red. Es el test
+// que el escenario 8 de quickstart.md invoca por su nombre.
 func TestArquitectura(t *testing.T) {
 	t.Parallel()
 
@@ -97,13 +99,14 @@ func TestArquitectura(t *testing.T) {
 				"y grafo—; el resto del árbol los usa a través de su interfaz " +
 				"(contracts/reglas-de-arquitectura.md R3)",
 			// Sin duenoObligatorio, y no por descuido. Desde H3 la regla tiene
-			// su primer dueño real: internal/cache importa database/sql y el
-			// controlador de SQLite, y ningún otro paquete del árbol lo hace.
-			// Pero la exigencia pide los tres dueños —cada uno tiene que estar
-			// en el grafo—, e internal/store e internal/graph no llegan hasta
-			// H12 y H17. Activarla hoy convertiría en rojo el estado normal del
-			// árbol, que es justo lo contrario de lo que la bandera sirve; se
-			// activa cuando exista el último de los tres (H3 FR-037).
+			// su primer dueño real, internal/cache, y desde H7 el segundo,
+			// internal/graph: los dos importan database/sql y el controlador de
+			// SQLite, y ningún otro paquete del árbol lo hace. Pero la exigencia
+			// pide los tres dueños —cada uno tiene que estar en el grafo—, e
+			// internal/store no llega hasta H10. Activarla hoy convertiría en
+			// rojo el estado normal del árbol, que es justo lo contrario de lo
+			// que la bandera sirve; se activa cuando exista el último de los
+			// tres (H3 FR-037; H7 research.md D30).
 			duenos: []string{
 				grafo.modulo + "/internal/cache",
 				grafo.modulo + "/internal/store",
@@ -111,6 +114,12 @@ func TestArquitectura(t *testing.T) {
 			},
 			denegados: []string{"database/sql", "modernc.org/sqlite"},
 		})
+	})
+
+	t.Run("R6 · internal/graph no importa internal/source ni internal/render", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaAdaptadorDelGrafo(t, grafo)
 	})
 
 	t.Run("sin red · instalacion, disco, el paquete raíz y los ficheros del applet skills y del aviso no alcanzan net, "+
@@ -451,7 +460,8 @@ func (g grafo) paquetesBajo(prefijo string) []string {
 }
 
 // reglaExclusiva describe una regla de la forma «solo estos paquetes importan
-// esto»: R2 y R3.
+// esto»: R2 y R3. R1 y R6 son de la otra forma, «estos paquetes no alcanzan
+// esto», y van por grafo.alcanza.
 type reglaExclusiva struct {
 	// nombre es la etiqueta con la que el fallo nombra la regla violada
 	// (FR-053).
@@ -510,6 +520,37 @@ func compruebaDominioPuro(t *testing.T, g grafo) {
 				"método Ejecutar, la presentación se inyecta desde la raíz de composición y el disco "+
 				"y las skills empotradas llegan por los puertos del dominio "+
 				"(contracts/reglas-de-arquitectura.md R1).",
+				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
+		}
+	}
+}
+
+// compruebaAdaptadorDelGrafo hace cumplir R6 (H7 FR-092, research.md D30):
+// ningún paquete de internal/graph alcanza, siguiendo aristas del módulo, las
+// fuentes ni la presentación. Lo que el grafo guarda le llega en el lote que
+// construye el kernel, con la procedencia del sobre, y lo que lee lo presenta el
+// kernel: si el adaptador importara una fuente, podría firmar con ella; si
+// importara la presentación, podría escribir por su cuenta.
+//
+// Es transitiva, como R1, porque internal/graph importa internal/cache y lo que
+// importe la caché también cuenta: una cadena graph → cache → render se nombra
+// entera. Y exige que internal/graph esté en el grafo, porque sin él la regla
+// se cumpliría sin vigilar nada, como R2 antes de que H2 trajera su dueño.
+func compruebaAdaptadorDelGrafo(t *testing.T, g grafo) {
+	t.Helper()
+
+	adaptador := g.paquetesBajo(g.modulo + "/internal/graph")
+	require.NotEmpty(t, adaptador,
+		"R6 · el grafo no contiene internal/graph: la regla quedaría activa y vacía, cumpliéndose porque no hay "+
+			"nada que vigilar")
+
+	denegados := []string{g.modulo + "/internal/source", g.modulo + "/internal/render"}
+
+	for _, origen := range adaptador {
+		for _, violada := range g.alcanza(origen, denegados, nil) {
+			t.Errorf("R6 · el grafo no sabe de dónde viene ni cómo se presenta: %s importa %q (lo prohíbe %q). "+
+				"Lo observado llega a internal/graph en el lote que construye el kernel, con la procedencia del "+
+				"sobre, y lo que lee lo presenta el kernel (H7 FR-092, research.md D30).",
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
@@ -625,7 +666,7 @@ func violacionesDelFichero(t *testing.T, g grafo, fichero string, denegados []st
 }
 
 // compruebaElRecorrido es el control de grafo.alcanza, el recorrido que
-// comparten R1 y la garantía sin red, sobre un grafo escrito a mano: nombra la
+// comparten R1, R6 y la garantía sin red, sobre un grafo escrito a mano: nombra la
 // cadena entera hasta cada importación prohibida, directa o transitiva; se
 // detiene en ella; no sigue aristas de fuera del módulo aunque lleven a lo
 // prohibido; termina en los ciclos; y compara las denegaciones exactas por

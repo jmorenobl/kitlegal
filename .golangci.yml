@@ -83,8 +83,9 @@ linters:
       # delante exceptúa.
       #
       # Esta configuración no es la única garantía: internal/arch_test.go
-      # comprueba las mismas tres reglas sobre el grafo transitivo real, de modo
-      # que borrar estas listas no basta para que una violación pase (FR-051).
+      # comprueba las mismas reglas —las tres de importación y, desde H7, R6—
+      # sobre el grafo transitivo real, de modo que borrar estas listas no
+      # basta para que una violación pase (FR-051).
       rules:
         # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los nueve
         # paquetes de internal/ —la dependencia va siempre hacia dentro—, el
@@ -159,12 +160,13 @@ linters:
               desc: "R2: la red se usa a través de internal/httpx, que concentra reintentos, límite por sitio, robots.txt y User-Agent identificable"
 
         # R3 · SQLite y database/sql son de los tres paquetes de almacenamiento y
-        # de nadie más. Desde H3 la regla tiene dueño: internal/cache existe y es
-        # el único paquete del árbol que importa database/sql y el controlador de
-        # SQLite. internal/store e internal/graph llegan en H12 y H17 y ya figuran
-        # entre las excepciones. internal/arch_test.go comprueba lo mismo sobre el
-        # cierre transitivo real, aunque sin exigir dueño todavía: esa exigencia
-        # pide los tres paquetes en el grafo (H3 FR-036, FR-037).
+        # de nadie más. Desde H3 la regla tiene dueño, internal/cache, y desde H7
+        # el segundo, internal/graph: son los únicos paquetes del árbol que
+        # importan database/sql y el controlador de SQLite. internal/store llega
+        # en H10 y ya figura entre las excepciones. internal/arch_test.go
+        # comprueba lo mismo sobre el cierre transitivo real, aunque sin exigir
+        # dueño todavía: esa exigencia pide los tres paquetes en el grafo (H3
+        # FR-036, FR-037; H7 research.md D30).
         sql:
           list-mode: original
           files:
@@ -177,6 +179,23 @@ linters:
               desc: "R3: el acceso a base de datos vive en internal/{cache,store,graph}; el resto del árbol los usa por su interfaz"
             - pkg: modernc.org/sqlite
               desc: "R3: el controlador de SQLite vive en internal/{cache,store,graph}; el resto del árbol los usa por su interfaz"
+
+        # R6 · el adaptador del grafo del mundo no sabe de dónde viene lo
+        # observado ni cómo se presenta: internal/graph no importa las fuentes
+        # ni la presentación. Lo que guarda llega en el lote que construye el
+        # kernel, con la procedencia del sobre, y lo que lee lo presenta el
+        # kernel. internal/arch_test.go comprueba lo mismo sobre el cierre
+        # transitivo real y exige que internal/graph esté en el grafo, de modo
+        # que la regla no pase en vacío (H7 FR-092, research.md D30).
+        grafo:
+          list-mode: original
+          files:
+            - "**/internal/graph/**"
+          deny:
+            - pkg: github.com/jmorenobl/kitlegal/internal/source
+              desc: "R6: internal/graph no importa las fuentes; lo observado le llega en el lote que construye el kernel, con la procedencia del sobre"
+            - pkg: github.com/jmorenobl/kitlegal/internal/render
+              desc: "R6: internal/graph no presenta nada; lo que lee lo devuelve al applet graph y lo presenta el kernel"
 
         # Los applets de ejemplo son la implementación de referencia, no
         # funcionalidad del binario distribuido. Viven en un paquete normal del
