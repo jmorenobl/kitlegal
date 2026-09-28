@@ -62,7 +62,8 @@ contexto), `golang-testing` (tablas, `t.TempDir`, etiquetas), `golang-cli` (cód
 | V45 | **Lo que escribe el paso a WAL de una base de fuera** (sonda del corrector tras la ronda 3 del juez: módulo desechable, `modernc.org/sqlite v1.59.0`, `go1.27.1`, sin red; mismo camino que V41: cadena de escritura, leer la versión, `PRAGMA journal_mode=WAL`, otra conexión retiene la transacción inmediata, la propia falla con 5, se cierran las dos; datos con `zeroblob`, deterministas). V41 midió solo cabeceras sobre bases sin páginas libres y sin diario; el paso a WAL es **una confirmación en modo rollback** y hace todo lo que SQLite hace al confirmar: **(a)** con `auto_vacuum=full` y páginas libres —el estado que deja una aplicación que usa `sqlite3_autovacuum_pages`; en la sonda, `auto_vacuum=INCREMENTAL`, una tabla `a` con 40 filas de `zeroblob(3000)` borradas y los bytes 64-67 puestos a 0— la confirmación **vacía todas las páginas libres y trunca el fichero**: 176 128 → 12 288 bytes, y en los 12 288 que quedan cambian 18, 19, 27, 31, 35, 39 y 95 (28-31: 43 → 3 páginas; 32-35, primera página de la lista libre: 4 → 0; 36-39, páginas libres: 40 → 0); con dos tablas y las libres al final, 180 224 → 16 384 y los mismos siete bytes; con una página en uso **detrás** de las libres (tablas `a` y `otra` creadas antes, 40 filas en `a`, después 2 en `otra`, `a` vaciada), 188 416 → 24 576 bytes y 59 bytes distintos: los siete de la cabecera y otros en las páginas 2 (mapa de punteros), 4 (la página que apunta a las reubicadas) y 5 (una reubicada). En todos, las tablas y sus filas son las mismas y `auto_vacuum` sigue en `full`; con `auto_vacuum=INCREMENTAL` no se vacía nada (18, 19, 27, 95, mismo tamaño). **(b)** Un `world.db-journal` **frío** de `journal_mode=PERSIST` (8720 bytes) o **vacío** de `TRUNCATE` (0 bytes) **desaparece ya con el pragma**, con la conexión aún abierta y sin ninguna otra: la confirmación en modo `DELETE` borra el diario al terminar; `world.db` cambia en 18, 19, 27 y 95, como en V41. Con `world.db` de 0 bytes y un diario vacío: 0 → 4096 bytes y el diario desaparece. **(c)** Al leer (`mode=ro` y `mode=rw` + `query_only`), el diario frío de `PERSIST`, el vacío de `TRUNCATE` y el vacío junto a un `world.db` de 0 bytes quedan con los mismos bytes, igual que `world.db` | `go -C /tmp/corrector-h7-r4/sonda run . /tmp/corrector-h7-r4/sonda/datos residuo` y `… lectura` (2026-09-28); sonda del juez, reejecutada: `go -C /tmp/juez-h7-r3/sonda run . /tmp/corrector-h7-r4/sonda/datos-juez persist`; fuente: `_autoVacuumCommit` (`modernc.org/sqlite@v1.59.0/lib/sqlite_g_000000000001feab.go:1540-1616`: con `incrVacuum` a 0 vacía hasta `nFin`, escribe 32-35 y 36-39 a 0 en `:1605-1606` y 28-31 en `:1608`, y marca el truncado en `:1609`), `_pager_end_transaction` (`sqlite_g_000000000001ffff.go:4693-4749`, borra el diario en `:4749`) y `_hasHotJournal` (`:3578-3622`, que borra el de una base de 0 páginas en `:3622`); `Xsqlite3_autovacuum_pages` en `lib/sqlite.go:10188` |
 | V46 | **`world.db` que el proceso no puede escribir** (misma sonda, `… solo-lectura`; sonda del juez `… solo-lectura`): `world.db` en WAL con permisos `0400`, el directorio en `0700` y sin auxiliares. `mode=rw` + `query_only` y `mode=ro` leen sin error —SQLite cae a solo lectura sin avisar— y al cerrar dejan `world.db-shm` (32 768 bytes) y `world.db-wal` (0 bytes), los dos con los permisos de `world.db` (`0400`), que una conexión de solo lectura no puede borrar; la cadena de escritura lee la versión y abre `BEGIN IMMEDIATE` sin error y deja los mismos dos ficheros (sonda del juez). En modo rollback (`0400`) ninguno deja nada. `os.OpenFile(ruta, os.O_RDWR, 0)` falla con `permission denied`, `errors.Is(err, fs.ErrPermission)` es cierto, y no cambia ni los bytes ni la fecha de modificación de `world.db`; sobre un `world.db` que sí se puede escribir, abrirlo así y cerrarlo tampoco (misma huella y misma fecha). `mode=ro&immutable=1&_pragma=query_only(1)` lee la fila de `world.db` `0400`, en WAL y en rollback, y **no crea ningún fichero** ni cambia `world.db`. Con los auxiliares que dejó una lectura anterior (`-wal` de 0 bytes y `-shm`, los dos `0400`), `mode=ro` e `immutable=1` leen y ningún fichero cambia | `go -C /tmp/corrector-h7-r4/sonda run . /tmp/corrector-h7-r4/sonda/datos solo-lectura` (2026-09-28); sonda del juez, reejecutada: `go -C /tmp/juez-h7-r3/sonda run . /tmp/corrector-h7-r4/sonda/datos-juez solo-lectura`; `go doc os.OpenFile`, `go doc io/fs.ErrPermission` |
 | V47 | **`world.db` que es un enlace simbólico** (misma sonda, `… enlace`): con `cache/world.db` → `real/grafo.db` (en WAL), una conexión abierta por el nombre crea `real/grafo.db-wal` y `real/grafo.db-shm`, **junto al destino y con su nombre**, y ninguno junto al enlace: fuera de Windows, SQLite resuelve cada componente de la ruta (`_appendOnePathElement`, `sqlite_g_0000000000000003.go:13625-13670` en darwin y `sqlite_linux_amd64.go:36` en linux/amd64, que sigue `S_IFLNK`). En Windows, `_winFullPathnameNoMutex` (`sqlite_windows.go:125069-125126`) usa `GetFullPathNameW` (`_aSyscall[25]`, que apunta a `libc.XGetFullPathNameW` en `:130590`), que no sigue enlaces: allí los nombra por la ruta sin resolver (leído en el fuente, sin ejecutar: S5). Con un `-wal` huérfano junto al destino, `os.Stat("cache/world.db-wal")` no lo ve y `os.Stat(<ruta resuelta>-wal)` sí; `mode=rw` + `query_only` por el nombre hace el checkpoint al cerrar (el destino pasa de 4096 a 8192 bytes y sus auxiliares desaparecen) y `mode=ro` lo deja con los mismos bytes | `go -C /tmp/corrector-h7-r4/sonda run . /tmp/corrector-h7-r4/sonda/datos enlace` (2026-09-28) |
-| V48 | **`world.db-shm` suelto, sin `-wal`** (misma sonda, `… shm-suelto`; `world.db` en WAL cerrado limpio, que se puede escribir, y una copia del `-shm` de una conexión abierta): `mode=ro` lee, deja `world.db` y `world.db-shm` con los mismos bytes y **crea un `world.db-wal` de 0 bytes**; `mode=rw` + `query_only` lee y, al cerrar, **borra** `world.db-shm`. Ningún cierre del binario deja ese estado: SQLite borra `-wal` y `-shm` al cerrar la última conexión (V12) | `go -C /tmp/corrector-h7-r4/sonda run . /tmp/corrector-h7-r4/sonda/datos shm-suelto` (2026-09-28) |
+| V48 | **`world.db-shm` suelto, sin `-wal`**; el resultado depende del **origen** del `-shm`. **De un lector sobre una base limpia, sin marcos en el índice** (sonda del corrector, `… shm-suelto`, `/tmp/corrector-h7-r4/sonda/main.go:402-425`; `world.db` en WAL cerrado limpio, que se puede escribir, y una copia del `-shm` de esa conexión abierta): `mode=ro` lee, deja `world.db` y `world.db-shm` con los mismos bytes y **crea un `world.db-wal` de 0 bytes**; `mode=rw` + `query_only` lee y, al cerrar, **borra** `world.db-shm`. **De un escritor con marcos en el WAL** (sonda del juez, caso E: copia del `-shm` de un escritor abierto con marcos, sin su `-wal`): `mode=ro` lee, deja `world.db` igual, **reescribe** `world.db-shm` (huella 31996ab8 → fd4c9fda: SQLite reconstruye el índice porque el `-wal` que describe no está) y crea un `world.db-wal` de 0 bytes. Las dos caen en la causa declarada de D10 (lo que SQLite escribe en los auxiliares de WAL para leer); que el `-shm` quede igual **no** es general. Ningún cierre del binario deja ese estado: SQLite borra `-wal` y `-shm` al cerrar la última conexión (V12) | `go -C /tmp/corrector-h7-r4/sonda run . /tmp/corrector-h7-r4/sonda/datos shm-suelto` (2026-09-28); sonda del juez de la ronda 4 del plan, caso E (`gates/plan-pendiente.md`, motivo 2) |
+| V49 | **`world.db` de 0 bytes con un `world.db-wal` no vacío** (sonda del juez de la ronda 4 del plan, casos A, A2, B y G: `world.db` de 0 bytes y `world.db-wal` de 12 392 bytes, copia del WAL de un escritor con marcos): `mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)` lee 0 tablas y **borra** `world.db-wal`; igual con el `-shm` presente (el `-shm` queda igual) y con `world.db` en `0400`; `mode=rw` + `query_only` y la cadena de escritura hacen lo mismo en su primera lectura; solo `mode=ro&immutable=1` lo deja intacto. Con un `-wal` de 0 bytes no se borra nada (SQLite no lo cuenta como existente). Causa: `_pagerOpenWalIfPresent` borra el `-wal` de una base de 0 páginas (`_sqlite3OsDelete`, l. 4478) en cualquier modo que no sea `immutable`, **sin** llevar sus marcos a `world.db`: no es una recuperación sino un descarte. Un fichero de 0 bytes es siempre una base sin esquema (versión 0), así que su versión se sabe sin abrir SQLite | `go -C /tmp/juez-h7-r4/sonda run . /tmp/juez-h7-r4/datos` (`gates/plan-pendiente.md`, motivo 1); `modernc.org/sqlite@v1.59.0/lib/sqlite_g_000000000001ffff.go:4461-4490` |
 
 ## D · Decisiones
 
@@ -170,7 +171,9 @@ publica con `os.Link` y, en un `world.db` que ya existe sin esquema, fija WAL fu
 **Decisión.** Antes de abrir, los verbos de `graph`:
 
 1. hacen `os.Stat` de `world.db`: ausente (también un enlace simbólico sin destino) → grafo vacío sin abrir nada;
-   directorio → inutilizable;
+   directorio → inutilizable; un fichero de **0 bytes** → grafo vacío **sin abrir SQLite**, haya los auxiliares que
+   haya: un fichero de 0 bytes es siempre una base sin esquema (versión 0), y abrirlo en cualquier modo que no sea
+   `immutable` borraría un `world.db-wal` no vacío junto a él (`_pagerOpenWalIfPresent`, V49), contra FR-004;
 2. buscan sus tres auxiliares posibles, `-wal`, `-shm` y `-journal`, **con el nombre que les da SQLite**: fuera de
    Windows, a partir de la ruta resuelta con `filepath.EvalSymlinks`, porque SQLite sigue los enlaces y crea los
    auxiliares junto al destino y con su nombre; en Windows, a partir de la ruta tal cual, porque allí no los sigue
@@ -194,9 +197,11 @@ publica con `os.Link` y, en un `world.db` que ya existe sin esquema, fija WAL fu
   lee un directorio de solo lectura (última viñeta).
 - **Con algún auxiliar si puede escribir, o con `-wal` o `-journal` si no puede** (otra conexión abierta, un `-wal`
   huérfano de un escritor interrumpido, un `-shm` suelto, un `world.db-journal`, o los que dejó otro programa que leyó
-  sin permiso de escritura): `file:<ruta>?mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)`. Lee todo lo
+  sin permiso de escritura), con un `world.db` de más de 0 bytes (el de 0 bytes no llega aquí: paso 1):
+  `file:<ruta>?mode=ro&_pragma=busy_timeout(100)&_pragma=query_only(1)`. Lee todo lo
   confirmado, también lo que sigue en el WAL, y deja `world.db`, `world.db-wal` y el diario byte a byte iguales
-  (V36 D, F, V43); `mode=rw` + `query_only`, si al cerrar es la última conexión, haría un checkpoint que reescribe
+  (V36 D, F, V43); junto a una base de 0 páginas borraría el `-wal` (V49), y por eso ese caso se lee sin abrir
+  SQLite; `mode=rw` + `query_only`, si al cerrar es la última conexión, haría un checkpoint que reescribe
   `world.db` y borra los auxiliares (V36 D). Un `world.db-journal` es el diario de un escritor en modo rollback, un
   estado que el binario no busca (el grafo se escribe siempre en WAL, D11): llega con un `world.db` de fuera o tras
   una interrupción. Si es **frío** (cabecera a cero, el de `journal_mode=PERSIST`), **vacío** (0 bytes, el de
@@ -213,13 +218,16 @@ publica con `os.Link` y, en un `world.db` que ya existe sin esquema, fija WAL fu
 **Lo que no se puede evitar**, desviación declarada de FR-004, FR-031 y SC-004 en sus bytes (no en el contenido del
 grafo, FR-005), en *Complexity Tracking* y en `gates/supuestos.md`, declarada por su causa —lo que SQLite escribe en
 los auxiliares de WAL para leer lo confirmado en ellos— y con sus cotas: nunca cambia `world.db`, ni `world.db-wal`
-si existe, ni el diario, ni el contenido del grafo:
+si existe, ni el diario, ni el contenido del grafo. La cota del `-wal` se cumple también junto a un `world.db` de 0
+bytes porque ese caso no abre SQLite (paso 1; V49):
 
-- **Con algún auxiliar de WAL** (`-wal` o `-shm`), SQLite escribe en `world.db-shm` —el índice del WAL: las marcas de
-  lectura del lector y, tras un escritor interrumpido, la reconstrucción del índice— y lo crea, de 32 768 bytes, si
-  faltaba (V36 D, F); con un `world.db-shm` suelto, sin `-wal` —que ningún cierre del binario deja—, crea además un
-  `world.db-wal` de 0 bytes (V48). Cambian o aparecen esos dos auxiliares; `world.db` y lo que dicen `graph stats` y
-  `graph show`, no.
+- **Con algún auxiliar de WAL** (`-wal` o `-shm`) y un `world.db` de más de 0 bytes, SQLite escribe en `world.db-shm`
+  —el índice del WAL: las marcas de lectura del lector y, tras un escritor interrumpido, la reconstrucción del
+  índice— y lo crea, de 32 768 bytes, si faltaba (V36 D, F). Con un `world.db-shm` suelto, sin `-wal` —que ningún
+  cierre del binario deja—, crea además un `world.db-wal` de 0 bytes, y lo que hace con el `-shm` depende de su origen
+  (V48): el de un lector sobre una base limpia, sin marcos en el índice, queda igual; el de un escritor con marcos en
+  el WAL se reescribe, porque SQLite reconstruye el índice de un `-wal` que ya no está. Cambian o aparecen esos dos
+  auxiliares; `world.db` y lo que dicen `graph stats` y `graph show`, no.
 - **Con una entrega concurrente**, si un escritor abre `world.db` entre el `Stat` y la apertura del lector y cierra
   antes que él, el lector sin auxiliares es la última conexión y su cierre lleva a `world.db` lo que ese escritor
   confirmó: los bytes cambian por la entrega, no por la lectura, y el contenido es el que esa entrega dejó.
@@ -252,7 +260,12 @@ toma bloqueos ni lee el WAL, así que daría un grafo sin lo confirmado en él (
 `world.db` y `-wal` a un temporal y leer la copia*: dos lecturas no atómicas de dos ficheros que un escritor puede estar
 cambiando dan una instantánea incoherente, y la copia no distingue un `-wal` huérfano de uno en uso. *Desactivar el
 checkpoint al cerrar* (`SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE`): no evita la escritura en `-shm` y exige llegar a la API C del
-controlador, que ninguna verificación de este plan cubre.
+controlador, que ninguna verificación de este plan cubre. *Abrir con el modo que dictan los auxiliares también un
+`world.db` de 0 bytes* (la versión anterior de este plan): con un `-wal` no vacío junto a él, cualquier modo que no sea
+`immutable` lo borra sin llevar nada a `world.db` (V49), contra FR-004, FR-031 y SC-004. *Leer el de 0 bytes con
+`mode=ro&immutable=1`*: tampoco toca el `-wal` (V49), pero abre SQLite para saber lo que el tamaño ya dice (versión 0,
+grafo vacío) y deja la corrección de la lectura a un detalle del modo; no abrir nada es lo más simple y no depende de
+SQLite.
 
 ### D11 · Escritura: validar antes de tocar el disco; crear en un temporal y publicarlo con `os.Link`
 
@@ -289,7 +302,10 @@ controlador, que ninguna verificación de este plan cubre.
    permiso, sistema de ficheros de solo lectura, o `fs.ErrNotExist` de un enlace simbólico sin destino o de un
    fichero retirado entre medias— la entrega falla con «no se puede escribir» (`inesperado`) sin abrir SQLite: no
    cambia ni crea nada, ni recupera nada. Un enlace sin destino llega aquí desde el paso 3, cuyo `os.Link` da
-   `fs.ErrExist` porque el nombre está ocupado: así SQLite no crea el destino a través del enlace. Si puede, abre
+   `fs.ErrExist` porque el nombre está ocupado: así SQLite no crea el destino a través del enlace. Si `world.db` tiene
+   **0 bytes**, la comprobación de 3.1 contra el grafo vacío (`ValidarContraGrafoVacio`) va aquí, **antes** de abrir
+   SQLite —la versión 0 se sabe sin abrir—: un lote que el grafo vacío rechaza no toca ningún fichero, tampoco un
+   `world.db-wal` junto a él, que la primera lectura de la conexión de escritura borraría (V49). Si puede, abre
    **sin** `journal_mode` en la cadena de conexión
    (`busy_timeout`, `synchronous(FULL)`, `foreign_keys(1)`, `_txlock=immediate`) y lee la versión: de un esquema
    posterior, o de un fichero que no es base, sale sin modificar nada (FR-010, FR-012) salvo la recuperación que se
@@ -298,7 +314,8 @@ controlador, que ninguna verificación de este plan cubre.
    reintento por tramos, fuera de toda transacción, y comprueba que devuelve `wal` (V10, V11, V42). Si `world.db`
    tiene un `-wal` huérfano o un diario caliente, esta conexión los recupera como cualquier escritor de SQLite: el
    diario se deshace en su primera lectura (V43) y el `-wal` se lleva a `world.db` en el checkpoint del cierre si es
-   la última conexión (V44);
+   la última conexión (V44); junto a un `world.db` de 0 bytes, en cambio, un `-wal` no vacío no se recupera: la
+   primera lectura lo **descarta** —lo borra sin llevar nada a `world.db`— (V49);
 5. abre la transacción inmediata con reintento por tramos, relee la versión **dentro**, crea el esquema si es 0
    (FR-013, atómico) y aplica el lote con las comprobaciones que necesitan la base (extremos presentes, tipo guardado,
    cuerpo de una huella ya guardada); cualquier rechazo deshace todo (V11: en WAL y sin `-wal` huérfano, los mismos
@@ -324,7 +341,11 @@ controlador, que ninguna verificación de este plan cubre.
   verbos de `graph` con el `-wal` huérfano (D10) y, con el diario caliente, el de la última transacción confirmada, que
   los verbos no podían leer (salían con 1, D10). Los bytes de `world.db` cambian: **desviación declarada** de «el
   grafo MUST quedar como estaba» en sus bytes, no en su contenido, en *Complexity Tracking* y en `gates/supuestos.md`.
-  Con otra conexión abierta, el cierre de la entrega no es el último y no hay checkpoint.
+  Con otra conexión abierta, el cierre de la entrega no es el último y no hay checkpoint. Junto a un `world.db` de
+  **0 bytes**, un `-wal` no vacío no se recupera sino que se **descarta**: la primera lectura de la conexión de
+  escritura lo borra sin llevar nada a `world.db` (`_pagerOpenWalIfPresent`, V49), aunque la entrega falle después
+  (plazo, espera o E/S); es la misma desviación declarada, por su causa. Un lote que el grafo vacío rechaza no llega a
+  abrir SQLite (paso 4) y no lo toca.
 - **`world.db` existente, sin esquema y que no está en WAL** —un fichero de 0 bytes o una base en modo rollback sin el
   esquema del grafo; el binario nunca crea ninguno de los dos: solo llegan de fuera, escritos por cualquier programa
   con cualquier versión y configuración de SQLite—, si la entrega falla **después** de fijar WAL y antes de confirmar

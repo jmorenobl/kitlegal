@@ -39,8 +39,12 @@ func AppletGrafo(dependencias DependenciasDeGrafo) Applet
   contenido del grafo (FR-004, FR-005), y ninguno entrega operaciones (FR-046): su `Resultado.Grafo` es el valor cero.
   Sin auxiliares —el estado normal— no cambia ni un byte de nada, también si el proceso no puede escribir
   `world.db` (lo lee con `immutable=1`, research V46) o si `world.db` es un enlace simbólico (los auxiliares se
-  buscan donde SQLite los crea, research V47); con alguno de WAL (otra conexión abierta, un `-wal` huérfano o un
-  `-shm` suelto), SQLite reescribe o crea `world.db-shm`, y con un `-shm` suelto crea un `world.db-wal` vacío:
+  buscan donde SQLite los crea, research V47). Un `world.db` de 0 bytes se lee como grafo vacío sin abrir SQLite, así
+  que tampoco cambia ningún fichero haya los auxiliares que haya, ni un `world.db-wal` no vacío junto a él, que abrirlo
+  borraría (contracts/almacen-world-db.md §3, paso 1; research V49). Con algún auxiliar de WAL junto a un `world.db`
+  de más de 0 bytes (otra conexión abierta, un `-wal` huérfano o un `-shm` suelto), SQLite reescribe o crea
+  `world.db-shm`, y con un `-shm` suelto crea un `world.db-wal` vacío (el `-shm` de un lector sobre una base limpia
+  queda igual; el de un escritor con marcos se reescribe, research V48):
   desviación declarada de FR-004, FR-031 y SC-004 (contracts/almacen-world-db.md §3; research D10). Con un `world.db-journal` caliente (una transacción interrumpida
   sin deshacer) no leen: salen con 1 sin cambiar nada, porque deshacerla sería modificar `world.db` (research D10,
   V43).

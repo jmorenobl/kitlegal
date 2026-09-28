@@ -7,7 +7,7 @@
 **Modo**: desatendido. Las decisiones técnicas se tomaron con el «Criterio de decisión autónoma» de
 `.specify/memory/constitution.md` y están en [research.md](./research.md) (D1-D35) con su alternativa rechazada y su
 motivo. Toda afirmación sobre una herramienta o dependencia externa remite a la tabla de verificación de
-[research.md](./research.md) (V1-V48), con el `fichero:línea` del módulo o del toolchain, la salida de `go doc` o la
+[research.md](./research.md) (V1-V49), con el `fichero:línea` del módulo o del toolchain, la salida de `go doc` o la
 sonda ejecutada en local sin red; lo que no se puede comprobar sin el runner de CI o sin el job de evals está declarado
 como supuesto (S1-S7) y **no se afirma como hecho** en ningún punto de este plan. Lo que el diseño no puede cumplir
 del spec está medido y declarado como desviación en *Complexity Tracking* y en `gates/supuestos.md`.
@@ -33,26 +33,32 @@ Decisiones que sostienen el diseño:
    contexto con el plazo de `--timeout`, presenta y solo entonces entrega con la fuente, la url y el texto exacto de
    `fecha_consulta` **del sobre presentado**. Un fallo, `--dry-run` y un resultado sin operaciones no llegan a
    entregar; una entrega que falla deja una sola línea en la salida de error y el código intacto (D7).
-3. **Leer sin dejar rastro** (D10, sondas V9, V36, V43 y V45-V48): los auxiliares se buscan con el nombre que les da
-   SQLite (junto al destino si `world.db` es un enlace, V47) y se comprueba si el proceso puede escribir `world.db`.
-   Sin auxiliares —el estado normal—, con permiso, los verbos de `graph` abren con `mode=rw` + `query_only`, que no
-   crea el fichero ni deja nada (`mode=ro` dejaría `-wal` y `-shm`); sin permiso, con `mode=ro&immutable=1`, que
-   tampoco (cualquier otro modo dejaría `-wal` y `-shm` que nadie puede borrar, V46). Con auxiliares (otra conexión,
-   un `-wal` huérfano o un `world.db-journal`), con `mode=ro`, que no toca `world.db`, `-wal` ni el diario (`mode=rw`
-   haría un checkpoint al cerrar o desharía un diario caliente). Un diario caliente no se deja leer sin deshacerlo: el
-   verbo sale con 1 sin tocar nada (FR-010). Lo único inevitable, lo que SQLite escribe en los auxiliares de WAL para
-   leer lo confirmado en ellos (`world.db-shm`, y un `-wal` vacío junto a un `-shm` suelto), es una desviación
-   declarada.
+3. **Leer sin dejar rastro** (D10, sondas V9, V36, V43 y V45-V49): un `world.db` de 0 bytes es siempre una base sin
+   esquema y se lee como grafo vacío **sin abrir SQLite**, haya los auxiliares que haya, porque abrirlo en cualquier
+   modo que no sea `immutable` borraría un `world.db-wal` no vacío junto a él (V49). En los demás, los auxiliares se
+   buscan con el nombre que les da SQLite (junto al destino si `world.db` es un enlace, V47) y se comprueba si el
+   proceso puede escribir `world.db`. Sin auxiliares —el estado normal—, con permiso, los verbos de `graph` abren con
+   `mode=rw` + `query_only`, que no crea el fichero ni deja nada (`mode=ro` dejaría `-wal` y `-shm`); sin permiso, con
+   `mode=ro&immutable=1`, que tampoco (cualquier otro modo dejaría `-wal` y `-shm` que nadie puede borrar, V46). Con
+   auxiliares (otra conexión, un `-wal` huérfano o un `world.db-journal`) y un `world.db` de más de 0 bytes, con
+   `mode=ro`, que no toca `world.db`, `-wal` ni el diario (`mode=rw` haría un checkpoint al cerrar o desharía un diario
+   caliente). Un diario caliente no se deja leer sin deshacerlo: el verbo sale con 1 sin tocar nada (FR-010). Lo único
+   inevitable, lo que SQLite escribe en los auxiliares de WAL para leer lo confirmado en ellos (`world.db-shm`,
+   reescrito o creado, y un `-wal` vacío junto a un `-shm` suelto, que queda igual si es de un lector sobre una base
+   limpia y se reescribe si es de un escritor con marcos, V48), es una desviación declarada.
 4. **Escribir sin estropear lo que había** (D11, sondas V10, V11, V36 y V41-V46): validar el lote antes de tocar el
    disco; con `world.db` ausente, construir WAL, esquema y lote en un temporal del mismo directorio y publicarlo con
    `os.Link` —un fallo no deja nada, ni el directorio—; con un `world.db` que el proceso no puede escribir, fallar antes
-   de abrir SQLite, sin tocar nada (V46); con un `world.db` sin esquema, fijar WAL fuera de toda transacción (dentro,
-   SQLite no lo fija, V42) y crear el esquema y aplicar el lote en **una** transacción inmediata. Un rechazo no crea ni
+   de abrir SQLite, sin tocar nada (V46); con un `world.db` de 0 bytes, validar contra el grafo vacío **antes** de abrir
+   SQLite, para que un rechazo no toque un `-wal` junto a él (V49); con un `world.db` sin esquema, fijar WAL fuera de
+   toda transacción (dentro, SQLite no lo fija, V42) y crear el esquema y aplicar el lote en **una** transacción
+   inmediata. Un rechazo no crea ni
    cambia nada salvo en dos casos que llegan de fuera o de una interrupción, declarados como desviaciones en bytes por
    su causa y con sus cotas: lo que SQLite escribe al confirmar el paso a WAL de un `world.db` sin esquema que llega de
    fuera, si la entrega falla después (el contenido no cambia, sigue en versión 0 y no aparece ningún fichero; los
    conjuntos de bytes medidos son ejemplos que fija un test, V41, V45), y la recuperación que SQLite hace de un `-wal`
-   huérfano o de un diario caliente aunque la entrega falle después (V43, V44).
+   huérfano o de un diario caliente aunque la entrega falle después (V43, V44) —o, junto a un `world.db` de 0 bytes, el
+   descarte del `-wal`, que la primera lectura borra sin llevar nada a `world.db` (V49)—.
 5. **FR-023 como orden total** (D13) en el dominio: el resultado no depende del orden de llegada ni de repetir.
 6. **Reloj fijo en e2e por construcción, no por entorno** (D23): tres binarios de e2e con `-X main.reloj`, para que
    `fecha_consulta`, `version-obsoleta` y `fuente-caducada` se afirmen literales y no dependan del día en que corran.
@@ -98,9 +104,11 @@ mediana de 20 invocaciones (SC-007); `graph check` < 3 s y `graph stats` < 1 s s
 a entregar y dejan `world.db` y sus auxiliares con sus bytes (SC-004); ningún verbo de `graph` modifica `world.db`,
 `world.db-wal`, `world.db-journal` ni el contenido del grafo (FR-004, FR-005) ni devuelve texto legal (FR-070), y sin
 auxiliares no cambia ni un byte de nada, con `--no-graph` o sin ella, pueda el proceso escribir `world.db` o no y sea
-`world.db` un fichero o un enlace (D10, V46, V47); **con auxiliares de WAL** (otra conexión abierta, un `-wal`
-huérfano o un `-shm` suelto), SQLite reescribe o crea `world.db-shm` al leer, y junto a un `-shm` suelto crea un
-`world.db-wal` vacío: desviación declarada de FR-004, FR-031 y SC-004 (D10, V48); con un diario caliente el verbo
+`world.db` un fichero o un enlace (D10, V46, V47); un `world.db` de 0 bytes se lee sin abrir SQLite, así que ningún
+fichero cambia haya los auxiliares que haya (D10, V49); **con auxiliares de WAL** junto a un `world.db` de más de 0
+bytes (otra conexión abierta, un `-wal` huérfano o un `-shm` suelto), SQLite reescribe o crea `world.db-shm` al leer,
+y junto a un `-shm` suelto crea un `world.db-wal` vacío (el `-shm` de un lector sobre una base limpia queda igual; el
+de un escritor con marcos se reescribe): desviación declarada de FR-004, FR-031 y SC-004 (D10, V48); con un diario caliente el verbo
 sale con 1 sin leer ni cambiar nada (D10, V43). Una entrega que falla no crea ni cambia nada (FR-033) —tampoco sobre
 un `world.db` que el proceso no puede escribir, que falla antes de abrir SQLite (D11, V46)—, **salvo** en dos casos,
 desviaciones declaradas en bytes y no en el contenido del grafo, por su causa y con sus cotas (D11): (a) un
@@ -109,7 +117,8 @@ fijar WAL: queda lo que SQLite escribe al confirmar el paso a WAL —bytes de la
 páginas libres, el vaciado y el truncado del fichero; un `world.db-journal` frío o vacío que desaparece; 0 bytes →
 4096—, con el contenido de esa base igual, la versión 0 y ningún fichero nuevo (V41, V45); (b) un `world.db` con un
 `-wal` huérfano o un diario caliente, que la conexión de la entrega recupera aunque la
-entrega falle después (checkpoint al cerrar o diario deshecho, V43, V44). Una señal que termina el proceso a mitad de
+entrega falle después (checkpoint al cerrar o diario deshecho, V43, V44), o que descarta si el `-wal` está junto a un
+`world.db` de 0 bytes y la entrega, que ya validó contra el grafo vacío sin abrir SQLite, falla después (V49). Una señal que termina el proceso a mitad de
 una entrega no es un fallo que el programa trate (V39) y puede dejar el temporal `world.db-nuevo-*` (D11). El contrato `Applet` no cambia (FR-020); `internal/graph` no importa
 `source/*` ni `render` (FR-092); nada escribe en el `world.db` de la cuenta desde un test (D6); las cotas
 `cronometra 200ms` existentes se cumplen con la entrega (S6).
@@ -180,7 +189,9 @@ con sus cotas** —lo que nunca cambia: el contenido del grafo (o de la base de 
 aparece ningún fichero nuevo, salvo el `world.db-shm` y el `-wal` vacío de la lectura con auxiliares de WAL—, no por
 una lista de bytes que se dé por exhaustiva para cualquier fichero de fuera: los conjuntos medidos (V36, V41, V43-V45,
 V48) son ejemplos, y un test fija cada uno. Los estados de `world.db` que llegan de fuera y que el diseño sí puede
-evitar no se declaran: se evitan (un `world.db` que el proceso no puede escribir, V46; un enlace simbólico, V47).
+evitar no se declaran: se evitan (un `world.db` que el proceso no puede escribir, V46; un enlace simbólico, V47; un
+`world.db` de 0 bytes con un `-wal` no vacío, que los verbos de `graph` leen sin abrir SQLite y que un lote rechazado
+no toca, V49).
 
 ### Re-evaluación tras la fase 1 (diseño)
 
@@ -227,10 +238,16 @@ evitar no se declaran: se evitan (un `world.db` que el proceso no puede escribir
      escritor interrumpido, la conexión de la entrega los recupera aunque la entrega falle después: el diario se
      deshace al leer (V43) y el `-wal` se lleva a `world.db` en el checkpoint del cierre si es la última conexión
      (V44). Cambian los bytes y el tamaño de `world.db` y desaparecen los auxiliares; el contenido es el confirmado.
+     Junto a un `world.db` de 0 bytes, un `-wal` no vacío no se recupera sino que SQLite lo descarta en la primera
+     lectura de la conexión de escritura (`_pagerOpenWalIfPresent`); por eso, con 0 bytes, los verbos de `graph` leen
+     sin abrir SQLite y la entrega valida contra el grafo vacío antes de abrirlo, y solo un fallo posterior de una
+     entrega que ya validó deja el `-wal` descartado (contracts/almacen-world-db.md §3, §4, §4.1).
   3. **FR-004, FR-031 y SC-004** (D10): con auxiliares de WAL (otra conexión abierta, un `-wal` huérfano o un `-shm`
      suelto), leer escribe lo que SQLite necesita en ellos para leer lo confirmado: reescribe o crea `world.db-shm`, y
-     junto a un `-shm` suelto crea un `world.db-wal` de 0 bytes (V36 D, F, V48). **Cota**: `world.db`, un `-wal` que ya
-     existía, el diario y el contenido del grafo no cambian. Sin auxiliares —el estado de los guiones, del quickstart y
+     junto a un `-shm` suelto crea un `world.db-wal` de 0 bytes; el `-shm` suelto de un lector sobre una base limpia
+     queda igual y el de un escritor con marcos se reescribe (V36 D, F, V48). **Cota**: `world.db`, un `-wal` que ya
+     existía, el diario y el contenido del grafo no cambian; junto a un `world.db` de 0 bytes, que se lee sin abrir
+     SQLite, no cambia ningún fichero (V49). Sin auxiliares —el estado de los guiones, del quickstart y
      de toda invocación que ni coincide con otra ni sigue a un escritor interrumpido— no cambia nada, con permiso de
      escritura o sin él y con `world.db` fichero o enlace (V9, V36 E, V46, V47); con un diario de rollback, tampoco:
      se lee sin cambiar nada o, si está caliente, el verbo sale con 1 (V43, V45 c).
@@ -253,7 +270,7 @@ base que llegue, y por eso no se afirma.
 specs/010-h7-internal-graph-grafo/
 ├── spec.md
 ├── plan.md                 # este fichero
-├── research.md             # V1-V48, D1-D35, S1-S7
+├── research.md             # V1-V49, D1-D35, S1-S7
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
@@ -577,8 +594,8 @@ comprobadas por `TestGrabacionesDerivadas`; `world.db` es un almacén local.
 | Andamiaje SQLite propio en `internal/graph` con el diseño de la caché y cuatro diferencias (lectura con `mode=rw` + `query_only` sin auxiliares y con permiso de escritura, con `mode=ro&immutable=1` sin permiso y sin `-wal` ni `-journal`, y con `mode=ro` con auxiliares —`-wal`, `-shm` o `world.db-journal`, buscados con el nombre que les da SQLite, junto al destino de un enlace fuera de Windows—; comprobación del permiso de escritura con `os.OpenFile(…, os.O_RDWR, 0)` antes de abrir, al leer y al entregar; creación de `world.db` en un temporal publicado con `os.Link`; WAL fijado fuera de la cadena de conexión y de toda transacción en un `world.db` que ya existe sin esquema, comprobando que el pragma devuelve `wal`) | Las sondas V9-V11, V36, V42-V43 y V46-V47 muestran que el modo de lectura y el WAL de la caché dejarían auxiliares —también, sin permiso de escritura, `-wal` y `-shm` que nadie puede borrar—, reescribirían `world.db` al cerrar sobre un `-wal` huérfano (también el que está junto al destino de un enlace) o al leer con un diario caliente, o dejarían un `world.db` de 4096 bytes al fallar, contra FR-004, FR-031 y FR-033, y que el pragma de WAL falla en silencio sobre 0 bytes dentro de una transacción (D9-D11) | Reutilizar el de la caché tal cual: ver sondas. Crear en su sitio: el residuo de la primera versión de este plan (D11). Comprobar el permiso con `access(2)`: usuario real y no efectivo, sin Windows y un import nuevo de `golang.org/x/sys` (D10) |
 | Costura no exportada que sustituye a `os.Link` en los tests de `internal/graph` (`publicar_test.go`) | Las dos salidas de la publicación que no son el éxito —`fs.ErrExist` porque otra invocación publicó antes, y cualquier otro error— no se pueden provocar de forma determinista desde fuera, y son las que deciden que un fallo no deje nada (FR-033) y que la carrera de SC-009 no pierda ningún lote (D11) | No probarlas: la limpieza y la carrera quedarían sin control. Un sistema de ficheros sin enlaces duros en CI: no existe en el runner |
 | **Desviación declarada de FR-033, paso a WAL de una base de fuera**: una entrega que falla después de fijar WAL en un `world.db` que ya existía **sin esquema y fuera de WAL** (0 bytes, o base en rollback sin el esquema, escrita por cualquier programa con cualquier versión y configuración de SQLite) deja lo que SQLite escribe al confirmar el paso a WAL. **Cotas**, para cualquier base: su contenido (tablas, filas, esquema) no cambia, sigue en versión 0 y se lee como grafo vacío, y cerrada la última conexión no queda ningún fichero nuevo. **Qué cambia**: bytes de la cabecera de la página 1 (siempre 18, 19, 24-27 y 92-95; 28-31, 32-39 y 96-99 si no coincidían con lo que la confirmación calcula); con `auto_vacuum=full` y páginas libres, el vaciado de todas —reubicando las páginas en uso que están detrás— y el truncado del fichero; un `world.db-journal` frío o vacío desaparece; 0 bytes → 4096 (V36 A, B, V41, V45) | Crear el esquema de forma atómica exige una transacción, y el modo WAL (FR-003) no se puede fijar dentro de ella —en rollback el pragma falla y sobre 0 bytes devuelve `delete` sin error (V42)— ni sin que SQLite confirme, y una confirmación hace lo que hace siempre. Ese `world.db` no lo crea nunca el binario (con `world.db` ausente se publica un temporal completo y un fallo no deja nada): solo llega de fuera, y lo que queda no cambia su contenido. Los conjuntos medidos (cabeceras de este controlador y de otra versión, tamaño a 0, acarreo, `auto_vacuum=full` con libres al final y delante de una página en uso, diarios de `PERSIST` y `TRUNCATE`) son ejemplos que `aplicar_test.go` fija con su resultado exacto, junto con las cotas en cada caso (contracts/almacen-world-db.md §4.1, §7); en `gates/supuestos.md` | Sustituirlo por un temporal con `os.Rename`: lo que entregue otra invocación que ya lo tenga abierto iría a un fichero desenlazado. Crear el esquema en rollback y fijar WAL tras confirmar: una base de versión 1 fuera de WAL (contra FR-003) y el lote del grafo escrito con un diario de rollback, que una interrupción dejaría caliente y los verbos de `graph` no podrían leer (D11, V43). Evitar el vaciado con `sqlite3_autovacuum_pages`: API C del controlador sin verificar (D11). Enumerar los bytes como lista cerrada para cualquier base: no se puede comprobar (V45) |
-| **Desviación declarada de FR-033, recuperación de SQLite**: con un `-wal` huérfano o un diario de rollback caliente (un escritor interrumpido), la conexión de la entrega los recupera aunque la entrega falle después (rechazo, esquema posterior, plazo o espera agotados, E/S): el diario se deshace en su primera lectura y desaparece (V43); el `-wal` se lleva a `world.db` en el checkpoint del cierre, si es la última conexión, y `-wal` y `-shm` desaparecen (V44). Cambian los bytes y el tamaño de `world.db`; el contenido del grafo es el confirmado | La recuperación la hace SQLite al abrir o al cerrar una conexión de escritura, antes de saber si el lote entra, y es lo que hace cualquier escritor, también la primera entrega que sí entra. Lo fija la matriz de integración (contracts/almacen-world-db.md §4.1, §7); en `gates/supuestos.md` | Leer antes con `mode=ro` y abrir después para escribir: solo la evita en los fallos que esa lectura ve (esquema posterior, rechazo contra lo guardado), no en un plazo o una espera agotados ni con un diario caliente, que `mode=ro` no deja leer (V43), y añade una segunda apertura con su carrera. Desactivar el checkpoint al cerrar: exige la API C del controlador, sin verificar (D10) |
-| **Desviación declarada de FR-004, FR-031 y SC-004**: con auxiliares de WAL (otra conexión abierta, un `-wal` huérfano de un escritor interrumpido o un `-shm` suelto), los verbos de `graph` escriben lo que SQLite necesita para leer lo confirmado en ellos: reescriben o crean `world.db-shm` y, junto a un `-shm` suelto, crean un `world.db-wal` de 0 bytes. **Cota**: `world.db`, un `world.db-wal` que ya existía, el diario y el contenido del grafo no cambian (V36 D, F, V48) | SQLite guarda en `-shm` el índice del WAL y las marcas de lectura de cada lector: ningún modo que lea lo confirmado en el WAL evita escribirlo. Sin auxiliares —el estado de los guiones, del quickstart y de toda invocación que no coincide con otra— no cambia ni un byte, pueda el proceso escribir `world.db` o no y sea un fichero o un enlace (V9, V36 E, V46, V47); con un `world.db-journal` tampoco: se lee con `mode=ro` sin cambiar nada o, si está caliente, el verbo sale con 1 (V43, V45 c). Lo fija la matriz de integración (contracts/almacen-world-db.md §7); en `gates/supuestos.md` | `mode=rw` + `query_only` siempre: sobre un `-wal` huérfano, el cierre reescribe `world.db` y borra los auxiliares (V36 D), y con un diario caliente lo deshace al leer (V43). `immutable=1`: no lee lo confirmado en el WAL y ve las páginas sin confirmar de un diario caliente (V43). Copiar a un temporal: instantánea incoherente con un escritor a la vez (D10) |
+| **Desviación declarada de FR-033, recuperación de SQLite**: con un `-wal` huérfano o un diario de rollback caliente (un escritor interrumpido), la conexión de la entrega los recupera aunque la entrega falle después (rechazo, esquema posterior, plazo o espera agotados, E/S): el diario se deshace en su primera lectura y desaparece (V43); el `-wal` se lleva a `world.db` en el checkpoint del cierre, si es la última conexión, y `-wal` y `-shm` desaparecen (V44). Cambian los bytes y el tamaño de `world.db`; el contenido del grafo es el confirmado. Junto a un `world.db` de 0 bytes, un `-wal` no vacío no se recupera sino que se descarta: la primera lectura de la conexión de escritura lo borra sin llevar nada a `world.db` (`_pagerOpenWalIfPresent`, V49), aunque la entrega falle después (plazo, espera o E/S); un lote que el grafo vacío rechaza no llega a abrir SQLite y no lo toca | La recuperación la hace SQLite al abrir o al cerrar una conexión de escritura, antes de saber si el lote entra, y es lo que hace cualquier escritor, también la primera entrega que sí entra. Lo fija la matriz de integración (contracts/almacen-world-db.md §4.1, §7); en `gates/supuestos.md` | Leer antes con `mode=ro` y abrir después para escribir: solo la evita en los fallos que esa lectura ve (esquema posterior, rechazo contra lo guardado), no en un plazo o una espera agotados ni con un diario caliente, que `mode=ro` no deja leer (V43), y añade una segunda apertura con su carrera. Desactivar el checkpoint al cerrar: exige la API C del controlador, sin verificar (D10) |
+| **Desviación declarada de FR-004, FR-031 y SC-004**: con auxiliares de WAL (otra conexión abierta, un `-wal` huérfano de un escritor interrumpido o un `-shm` suelto), los verbos de `graph` escriben lo que SQLite necesita para leer lo confirmado en ellos: reescriben o crean `world.db-shm` y, junto a un `-shm` suelto, crean un `world.db-wal` de 0 bytes (el `-shm` suelto de un lector sobre una base limpia queda igual; el de un escritor con marcos se reescribe). **Cota**: `world.db`, un `world.db-wal` que ya existía, el diario y el contenido del grafo no cambian (V36 D, F, V48); un `world.db` de 0 bytes se lee sin abrir SQLite y no cambia ningún fichero, tampoco un `-wal` junto a él (V49) | SQLite guarda en `-shm` el índice del WAL y las marcas de lectura de cada lector: ningún modo que lea lo confirmado en el WAL evita escribirlo. Sin auxiliares —el estado de los guiones, del quickstart y de toda invocación que no coincide con otra— no cambia ni un byte, pueda el proceso escribir `world.db` o no y sea un fichero o un enlace (V9, V36 E, V46, V47); con un `world.db-journal` tampoco: se lee con `mode=ro` sin cambiar nada o, si está caliente, el verbo sale con 1 (V43, V45 c). Lo fija la matriz de integración (contracts/almacen-world-db.md §7); en `gates/supuestos.md` | `mode=rw` + `query_only` siempre: sobre un `-wal` huérfano, el cierre reescribe `world.db` y borra los auxiliares (V36 D), y con un diario caliente lo deshace al leer (V43). `immutable=1`: no lee lo confirmado en el WAL y ve las páginas sin confirmar de un diario caliente (V43). Copiar a un temporal: instantánea incoherente con un escritor a la vez (D10) |
 | Residuo ante una señal (fuera de FR-033, declarado): un proceso terminado por una señal a mitad de una entrega puede dejar `world.db-nuevo-*` con sus auxiliares y los directorios que creó | El binario no atiende señales (V39) y FR-033 enumera los fallos que el programa trata; ningún lector ni entrega mira el temporal (D11); en `gates/supuestos.md` | Atender `SIGINT`/`SIGTERM` para limpiar: no lo pide el hito (lectura conservadora). Borrar temporales viejos en la entrega siguiente: podría borrar el de otra invocación en curso |
 | Tres binarios más en el arnés e2e, con reloj fijo por `-X` | `fecha_consulta`, `version-obsoleta` y `fuente-caducada` literales y reproducibles; el binario de e2e no lee su comportamiento del entorno (D23, V22) | Reloj real: resultados según el día; variable de entorno: contra la regla del binario de e2e |
 | `[datos]` que mezcla código: registrar `graph` y la entrega (producción y e2e) + `schemas/grafo.json` + fila de `esquemas_test.go` + las cuatro listas de applets + `territorio-matriz.txtar:206` (paso 12), **y nada más** | En cuanto `graph` está registrado, `TestEsquemasCubrenTodosLosVerbos` exige su parte publicada, que se genera desde el applet registrado; las listas literales cambian a la vez; y en cuanto el e2e entrega, `territorio-matriz.txtar` deja de valer. Mismo patrón que D16 de H6 y el paso 6b de H19 | Registrar en una tarea y publicar en otra deja `make ci` en rojo; meter el applet entero en la `[datos]` mezcla código que ningún control ata al esquema (va antes, en el paso 11) |
@@ -652,8 +669,8 @@ comprobadas por `TestGrabacionesDerivadas`; `world.db` es un almacén local.
 | e. tests_primero | «Aceptación e2e» (11 guiones congelados con su FR/SC y lo que cubre cada otra aceptación), «Tests», «Tests existentes que cambian, por paso», «Fixtures», «Objetivos del Makefile» |
 | f. alcance | Solo FR-001 a FR-095; lo que el spec deja fuera no aparece; ninguna opción sin consumidor (la API de `internal/graph` solo tiene `ConDirectorio`); lo que el diseño añade está en *Complexity Tracking* |
 | g. sin_atajos | Obligaciones 8-10 y 15; el único error no propagado está razonado y probado (D7); los fallos de la limpieza del temporal se unen a la causa (D11) |
-| h. mejor_alternativa | research D1-D35, cada una con su alternativa rechazada; D9-D11 apoyadas en sondas (V9-V11, V36, V41-V48), con `world.db` sin permiso de escritura (`immutable` al leer y fallo antes de abrir al entregar, frente a abrir sin comprobar, `access(2)`, leer la cabecera o borrar lo que quede) y con `world.db` como enlace (auxiliares donde SQLite los crea, frente a junto al nombre o siempre junto a la ruta resuelta); las clases de caracteres de FR-025, FR-064 y FR-052 decididas en D34 y D35 |
-| i. afirmaciones_verificadas | research V1-V48 con `fichero:línea`, `go doc` o sonda (V6 y V9 corregidas por V36 y V37; el residuo de V36 B generalizado a otras cabeceras por V41 y a páginas libres y diarios fríos o vacíos por V45, con `_autoVacuumCommit`, `_pager_end_transaction` y `_hasHotJournal`; WAL dentro de una transacción en V42; diario y `-wal` huérfano en V43-V44; sin permiso de escritura en V46; enlace simbólico en V47; `-shm` suelto en V48), y las referencias de línea al repositorio releídas contra `main`; S1-S7 como supuestos, entre ellos las cotas `cronometra` existentes (S6), los enlaces duros (S7) y Windows (S5); lo que se afirma de una base de fuera son las cotas de cada desviación, y los conjuntos de bytes, ejemplos medidos |
+| h. mejor_alternativa | research D1-D35, cada una con su alternativa rechazada; D9-D11 apoyadas en sondas (V9-V11, V36, V41-V49), con `world.db` sin permiso de escritura (`immutable` al leer y fallo antes de abrir al entregar, frente a abrir sin comprobar, `access(2)`, leer la cabecera o borrar lo que quede) y con `world.db` como enlace (auxiliares donde SQLite los crea, frente a junto al nombre o siempre junto a la ruta resuelta); las clases de caracteres de FR-025, FR-064 y FR-052 decididas en D34 y D35 |
+| i. afirmaciones_verificadas | research V1-V49 con `fichero:línea`, `go doc` o sonda (V6 y V9 corregidas por V36 y V37; el residuo de V36 B generalizado a otras cabeceras por V41 y a páginas libres y diarios fríos o vacíos por V45, con `_autoVacuumCommit`, `_pager_end_transaction` y `_hasHotJournal`; WAL dentro de una transacción en V42; diario y `-wal` huérfano en V43-V44; sin permiso de escritura en V46; enlace simbólico en V47; `-shm` suelto, según su origen, en V48; `world.db` de 0 bytes con `-wal` en V49), y las referencias de línea al repositorio releídas contra `main`; S1-S7 como supuestos, entre ellos las cotas `cronometra` existentes (S6), los enlaces duros (S7) y Windows (S5); lo que se afirma de una base de fuera son las cotas de cada desviación, y los conjuntos de bytes, ejemplos medidos |
 | j. quickstart_ejecutable | quickstart.md: órdenes y rutas reales, binarios en `$T`, `KITLEGAL_CACHE_DIR` bajo `$T`, `bin/` ignorado, `$T` borrado y `git status` comparado al final |
 | k. datos_externos | «Datos externos»: ninguno; derivadas de grabaciones ya versionadas por tareas `[datos]` con su control |
 | l. autonomia | Ninguna pausa ni persona a mitad del run; el cierre (push, propuesta, CI, evals remotas) lo hace el workflow (obligación 5) |
