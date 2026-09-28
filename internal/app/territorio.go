@@ -89,6 +89,10 @@ type argumentosDeResolver struct {
 // del applet §2; data-model §2.8). Ese fallo lleva su clase, «argumentos» o
 // «no encontrado», y su mensaje nombra la entrada (FR-010 a FR-016).
 //
+// El resultado de éxito lleva además lo que observa del mundo el territorio
+// resuelto, que el kernel entrega al grafo del mundo con la procedencia del
+// sobre; un fallo no observa nada (contracts/emision.md §2).
+//
 // Unas fuentes que no cargan son un defecto de composición y no algo que quien
 // pregunta pueda corregir: salen como inesperado, sin procedencia, que firma y
 // fecha el kernel (contrato del applet §7).
@@ -105,7 +109,11 @@ func (a *argumentosDeResolver) Ejecutar(
 		return schema.Resultado{Procedencia: procedenciaDeTerritorio(registro.FechaDeLaRelacion())}, err
 	}
 
-	return schema.Resultado{Procedencia: procedenciaDeTerritorio(resuelto.Fecha()), Datos: resuelto}, nil
+	return schema.Resultado{
+		Procedencia: procedenciaDeTerritorio(resuelto.Fecha()),
+		Datos:       resuelto,
+		Grafo:       resuelto.Observado(),
+	}, nil
 }
 
 // procedenciaDeTerritorio es la firma del applet con la fecha de los ficheros

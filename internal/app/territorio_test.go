@@ -2,12 +2,14 @@ package app
 
 import (
 	"encoding/json"
+	"log/slog"
 	"maps"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -806,6 +808,131 @@ func compruebaAnalisisPorApplet(t *testing.T) {
 
 		assert.Equal(t, paso.codigo, res.codigo, res.errores)
 	}
+}
+
+// TestResolverDeclaraLoObservado fija lo que resolver pone en su Resultado
+// para el grafo del mundo, ejecutando el verbo sin el kernel, que no entrega
+// nada de un fallo y no dejaría ver si el applet lo trae (contracts/emision.md
+// §2; research.md D21; FR-043, FR-044, FR-045):
+//
+//   - el de éxito es el Resultado entero de siempre —la firma del applet con la
+//     fecha de los ficheros y el territorio resuelto— más lo que observa ese
+//     territorio: el Municipio y, si la respuesta trae DIR3, el Organo y su
+//     arista, sin vigencia;
+//   - el de cada consulta que el applet decide no resolver, y el de unas fuentes
+//     que no cargan, no lleva nada.
+//
+// Lo observado va escrito entero, y no compuesto con el dominio ni con las
+// constantes de internal/core/grafo, para que un cambio en ellos no pase por
+// aquí en silencio.
+func TestResolverDeclaraLoObservado(t *testing.T) {
+	t.Parallel()
+
+	observadoDe := map[string]schema.Observado{
+		"cubierto": {Operaciones: []schema.Operacion{
+			schema.Nodo{ID: "ine:11991", Tipo: "Municipio", Datos: map[string]any{
+				"codigo_ine": "11991", "nombre": "Villaconfigurada",
+			}},
+			schema.Nodo{ID: "L01119914", Tipo: "Organo", Datos: map[string]any{"dir3": "L01119914"}},
+			schema.Arista{Origen: "L01119914", Relacion: "lb:pertenece_a", Destino: "ine:11991"},
+		}},
+		"no-cubierto": {Operaciones: []schema.Operacion{
+			schema.Nodo{ID: "ine:21991", Tipo: "Municipio", Datos: map[string]any{
+				"codigo_ine": "21991", "nombre": "Robledal del R\xc3\xado",
+			}},
+		}},
+	}
+
+	for _, municipio := range municipiosResueltos() {
+		t.Run(municipio.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			compruebaResultadoDeResolver(t, municipio, observadoDe[municipio.nombre])
+		})
+	}
+
+	t.Run("los-fallos-no-observan-nada", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaFallosSinObservado(t)
+	})
+}
+
+// compruebaResultadoDeResolver exige el Resultado entero de éxito del
+// municipio, con lo que observa.
+func compruebaResultadoDeResolver(t *testing.T, municipio municipioResuelto, observado schema.Observado) {
+	t.Helper()
+
+	require.NotEmpty(t, observado.Operaciones, "lo observado de %s está escrito", municipio.nombre)
+
+	fecha, err := time.Parse(time.RFC3339, municipio.fecha)
+	require.NoError(t, err)
+
+	procedencia := firmaDeTerritorio
+	procedencia.FechaConsulta = fecha
+
+	for _, consulta := range municipio.consultas {
+		res, err := ejecutarResolver(t, fuentesDeTerritorio(), consulta)
+		require.NoError(t, err, "la consulta %q", consulta)
+
+		assert.Equal(t, schema.Resultado{
+			Procedencia: procedencia,
+			Datos:       territorioDelDominio(t, consulta),
+			Grafo:       observado,
+		}, res, "la consulta %q", consulta)
+	}
+}
+
+// compruebaFallosSinObservado exige que ningún Resultado de fallo del applet
+// lleve nada observado: ni el de una consulta que decide no resolver ni el de
+// unas fuentes que no cargan.
+func compruebaFallosSinObservado(t *testing.T) {
+	t.Helper()
+
+	for _, grupo := range gruposDeCasos() {
+		for _, caso := range grupo.casos {
+			if !caso.delApplet {
+				continue
+			}
+
+			res, err := ejecutarResolver(t, fuentesDeTerritorio(), caso.consulta)
+			require.Error(t, err, "%s/%s", grupo.nombre, caso.nombre)
+			assert.Equal(t, schema.Observado{}, res.Grafo, "%s/%s", grupo.nombre, caso.nombre)
+		}
+	}
+
+	for _, caso := range casosDeFuentesQueNoCargan() {
+		res, err := ejecutarResolver(t, caso.fuentes(), "Villaconfigurada")
+		require.Error(t, err, caso.nombre)
+		assert.Equal(t, schema.Observado{}, res.Grafo, caso.nombre)
+	}
+}
+
+// ejecutarResolver ejecuta el verbo resolver del applet compuesto con las
+// fuentes, sin el kernel, con la consulta.
+func ejecutarResolver(t *testing.T, fuentes territorio.Fuentes, consulta string) (schema.Resultado, error) {
+	t.Helper()
+
+	argumentos, deResolver := AppletTerritorio(fuentes).Verbos()[0].Argumentos().(*argumentosDeResolver)
+	require.True(t, deResolver, "los argumentos son los de resolver")
+
+	argumentos.Consulta = consulta
+
+	return argumentos.Ejecutar(t.Context(), schema.Contexto{}, slog.New(slog.DiscardHandler))
+}
+
+// territorioDelDominio es el territorio que el dominio resuelve de la consulta
+// sobre el mismo registro local.
+func territorioDelDominio(t *testing.T, consulta string) territorio.Territorio {
+	t.Helper()
+
+	registro, err := territorio.Cargar(fuentesDeTerritorio())
+	require.NoError(t, err)
+
+	resuelto, err := registro.Resolver(consulta)
+	require.NoError(t, err, "el dominio resuelve %q", consulta)
+
+	return resuelto
 }
 
 // TestSalidaDeTerritorioContraSchemas es el punto 4 de la Definition of Done
