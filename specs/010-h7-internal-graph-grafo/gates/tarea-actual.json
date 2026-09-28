@@ -1,18 +1,18 @@
 {
-  "id": "T002",
-  "texto": "T002 Tipos de operación y puerto (data-model §1 y §2; contracts/resultado-y-entrega.md §1 y §2; research D1-D3): internal/core/schema/grafo.go con `Observado` (`Vigencia time.Duration`, `Operaciones []Operacion`), la interfaz sellada `Operacion` y `Nodo`, `Arista` y `Texto` sin ninguna fuente; `Resultado.Grafo Observado` como quinto campo en internal/core/schema/sobre.go, cuyo valor cero es válido; internal/core/graphstore.go con `GraphStore` (`Apply(ctx, Lote) error`) y `Lote` (`Fuente`, `URL`, `FechaConsulta` como texto, `Vigencia`, `Operaciones`); el comentario de internal/core/doc.go dice que `GraphStore` ya existe; tests: `TestOperacionSellada` y `TestObservadoCero` en internal/core/schema/grafo_test.go, `TestSobre` con los cinco campos en internal/core/schema/sobre_test.go (l. 195-196) y `TestContexto` sin importaciones nuevas en `schema` (sin cambios); ningún applet cambia —FR-020, FR-021, FR-047; SC-013; rutas: internal/core/schema/grafo.go, internal/core/schema/grafo_test.go, internal/core/schema/sobre.go, internal/core/schema/sobre_test.go, internal/core/graphstore.go, internal/core/doc.go",
+  "id": "T003",
+  "texto": "T003 Dominio del grafo, base (data-model §7; contracts/applet-graph.md §4; research D1, D17, D35): el paquete nuevo internal/core/grafo con internal/core/grafo/doc.go; internal/core/grafo/vocabulario.go (los tipos `Norma`, `Bloque`, `BloqueVersion`, `Municipio`, `Organo` y `Persona`, las relaciones `eli:has_part`, `eli:has_version` y `lb:pertenece_a`, las claves de datos y las clases `fuente-caducada` y `version-obsoleta`); internal/core/grafo/canonico.go (datos canónicos RFC 8785 con `jsontext`); internal/core/grafo/errores.go (errores de rechazo y de argumentos con `schema.ConClase`); internal/core/grafo/id.go con `ValidarID`, que da `argumentos` a un id vacío, formado solo por caracteres con `unicode.IsSpace` o que contiene alguno con `unicode.IsControl`, y deja pasar tal cual `a b`, ` a`, U+200B y bytes que no son UTF-8; tests: `TestDatosCanonicos` (orden de claves, números, escapes, mismo resultado con otro orden), `TestValidarID` con los casos de contracts/applet-graph.md §7 escritos con su escape de Go, y los de errores; `TestArquitectura` R1 recorre el paquete nuevo sin cambios — FR-052, FR-023 (forma canónica); rutas: internal/core/grafo/doc.go, internal/core/grafo/vocabulario.go, internal/core/grafo/canonico.go, internal/core/grafo/errores.go, internal/core/grafo/id.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "0ffba2e93bffd597a618286d257e11f567cb4256",
+  "base": "f695c57bf36e7a1322a5402955a65df50947727a",
   "rutas": [
-    "contracts/resultado-y-entrega.md",
-    "internal/core/doc.go",
-    "internal/core/graphstore.go",
-    "internal/core/schema/grafo.go",
-    "internal/core/schema/grafo_test.go",
-    "internal/core/schema/sobre.go",
-    "internal/core/schema/sobre_test.go"
+    "contracts/applet-graph.md",
+    "internal/core/grafo",
+    "internal/core/grafo/canonico.go",
+    "internal/core/grafo/doc.go",
+    "internal/core/grafo/errores.go",
+    "internal/core/grafo/id.go",
+    "internal/core/grafo/vocabulario.go"
   ],
   "cierre": false,
   "converger": false,
