@@ -202,21 +202,26 @@ quedó (research D11).
 ```sh
 KITLEGAL_CACHE_DIR="$T/prod" "$REPO/bin/kitlegal" territorio resolver Tordesillas --json > /dev/null
 KITLEGAL_CACHE_DIR="$T/prod" "$REPO/bin/kitlegal" graph stats --json
-"$REPO/bin/kitlegal" boe articulo --help | grep -c 'No entrega al grafo del mundo nada de lo que observa la invocación'
+"$REPO/bin/kitlegal" boe articulo --help | tr -s ' \n' '  ' | grep -c 'No entrega al grafo del mundo nada de lo que observa la invocación'
 grep -c 'kitlegal graph check' "$REPO/skills/boe-legislacion/SKILL.md"
 env -u KITLEGAL_CACHE_DIR make -C "$REPO" skills-check
 ```
 
-Esperado: `graph stats` cuenta el `Municipio` y el `Organo` de Tordesillas; `1`; al menos una línea con
-`kitlegal graph check`; `skills-check` en verde (incluye la eval informativa nueva y su grafo previo).
+Esperado: `graph stats` cuenta el `Municipio` y el `Organo` de Tordesillas; `1` (la ayuda parte la frase en dos
+líneas cuando no cabe en una, como tiene en cuenta `grafo-applet`; `tr` las une antes de buscarla); al menos una línea
+con `kitlegal graph check`; `skills-check` en verde (incluye la eval informativa nueva y su grafo previo).
 
 ## 11. Costes (SC-007, SC-008)
 
 ```sh
 env -u KITLEGAL_CACHE_DIR make -C "$REPO" test-tiempos
+(cd "$REPO" && env -u KITLEGAL_CACHE_DIR go test -race -count=1 -v -run '^TestCosteDelGrafo$' ./internal/app/) | grep 'SC-00[78]: mediana'
 ```
 
-Esperado: en verde; `TestCosteDelGrafo` publica las medianas medidas.
+Esperado: `test-tiempos` en verde. `TestCosteDelGrafo` publica las medianas medidas con `t.Logf`, que `go test` solo
+muestra con `-v`: la segunda orden lo ejecuta otra vez, solo, y da dos líneas, `SC-007: mediana de 20 boe articulo
+desde la caché: …` con la diferencia y su máximo de 150 ms, y `SC-008: mediana de 5 sobre 10000 nodos y 10000
+aristas: …` con `graph check` (máximo 3 s) y `graph stats` (máximo 1 s).
 
 ## 12. Limpieza
 

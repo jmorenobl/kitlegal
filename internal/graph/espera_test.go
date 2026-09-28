@@ -121,6 +121,10 @@ func TestReintentar(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
+			// El origen de la medida va antes del plazo, que es lo que ancla el
+			// instante en que termina la espera: medido después, lo que tarda el
+			// hilo entre las dos líneas se descuenta y la cota inferior falla.
+			inicio := time.Now()
 			ctx := t.Context()
 
 			if caso.plazo > 0 {
@@ -132,7 +136,6 @@ func TestReintentar(t *testing.T) {
 
 			var llamadas int
 
-			inicio := time.Now()
 			err := caso.espera.reintentar(ctx, func() error {
 				llamadas++
 
@@ -318,6 +321,11 @@ func TestEsperaAnteUnBloqueoDeVerdad(t *testing.T) {
 			suelta := retenerElBloqueo(t, ruta)
 			base := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_txlock=immediate")
 
+			// El origen de la medida va antes del plazo y del temporizador que
+			// suelta el bloqueo, que son lo que ancla el instante en que termina
+			// la espera: medido después, lo que tarda el hilo entre las líneas se
+			// descuenta y la cota inferior falla.
+			inicio := time.Now()
 			ctx := t.Context()
 
 			if caso.plazo > 0 {
@@ -331,8 +339,6 @@ func TestEsperaAnteUnBloqueoDeVerdad(t *testing.T) {
 				temporizador := time.AfterFunc(caso.suelta, suelta)
 				t.Cleanup(func() { temporizador.Stop() })
 			}
-
-			inicio := time.Now()
 
 			var tx *sql.Tx
 
