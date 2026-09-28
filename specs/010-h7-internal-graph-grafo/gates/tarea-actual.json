@@ -1,14 +1,16 @@
 {
-  "id": "T014",
-  "texto": "T014 [US2] Reglas de `check` y explicaciones (data-model §6; contracts/applet-graph.md §5; research D15, D18, D34): internal/core/grafo/comprobar.go con `Comprobar(instantanea, ahora)`: `version-obsoleta` una vez por cada `BloqueVersion` con otra versión de su `Bloque` (arista `eli:has_version`) de `fecha_vigencia` estrictamente posterior, solo entre `fecha_vigencia` válidas (`time.Parse(\"20060102\", v)` sin error), con la versión más reciente por `fecha_vigencia`, después última observación de mayor instante, después id menor, su procedencia y las dos `fecha_vigencia` como valores propios; `fuente-caducada` una vez por cada nodo, de cualquier tipo, cuya última observación declara vigencia y cuyo instante más la vigencia es estrictamente anterior a `ahora`, con `vigencia_segundos`; las dos clases pueden coexistir sobre un nodo; orden por clase y después por id, comparando bytes; internal/core/grafo/explicacion.go con las dos plantillas literales de contracts/applet-graph.md §5, la cita de cada tipo de nodo de data-model §6 y el instante de caducidad en el desplazamiento de la `fecha_consulta`, escrito con `RFC3339Nano`; tests: `TestComprobar` (una vez por versión superada, empate en la más alta de FR-064 con un solo hallazgo sobre V1, misma fecha y distinta huella sin hallazgo, vigencias no válidas —vacía, otra longitud, fecha inexistente, cifras que no son ASCII escritas con su escape de Go—, versión más reciente con sus desempates, caducidad estricta, límite exacto sin hallazgo, futuro sin hallazgo, nodos sin vigencia sin hallazgo, las dos clases sobre el mismo nodo, orden, misma lista en dos ejecuciones) y `TestExplicaciones` (plantillas literales; los tres ejemplos de desplazamiento y fracción de contracts/applet-graph.md §5; cita de `Norma`, `Bloque` y `BloqueVersion` y el id cuando faltan datos) — FR-060, FR-061, FR-062, FR-063, FR-064, FR-066, FR-067; SC-005; rutas: internal/core/grafo/comprobar.go, internal/core/grafo/explicacion.go",
+  "id": "T015",
+  "texto": "T015 [US4] El applet `graph` sin registrarlo todavía ni en producción ni en el binario de e2e (contracts/applet-graph.md §1-§4; research D19): internal/app/grafo.go con `DependenciasDeGrafo` (`Reloj`, que se lee una vez por invocación y nulo es un defecto de composición; `Almacen []graph.Opcion`, vacío = la regla de ubicación de la caché), `DependenciasDelGrafoDelSistema()` con `time.Now` y `AppletGrafo(dependencias)`: descripción y verbos con los textos literales de §1; `show` con exactamente un argumento `id` validado por `grafo.ValidarID` (2) y `no-encontrado` (3) con un mensaje que nombra el id si no está o el grafo está ausente o sin esquema; `stats` y `check` sin argumentos posicionales; `check` con el instante del reloj de la invocación; sobre firmado con `fuente` `kitlegal.graph`, `url` `kitlegal:applet/graph` y `fecha_consulta` = ese instante; `Resultado.Grafo` vacío; los errores de `internal/graph` traducidos por su clase a 1, 2 y 4; sin `--json`, la tabla mínima del kernel sin texto legal; `--no-graph`, `--offline` y `--dry-run` como dice §2; tests: `TestAppletGrafo` en internal/app/grafo_test.go sobre un registro local del test con `graph.ConDirectorio` bajo `t.TempDir()` (verbos, argumentos, códigos 0, 1, 2, 3 y 4, procedencia, `--no-graph` con la misma salida y el mismo código, tabla sin `--json`, sin `world.db` → grafo vacío sin crearlo) y `TestCodigosDelGrafo` (no base, directorio y esquema de versión posterior en los tres verbos → 1 y el fichero con su huella; `KITLEGAL_CACHE_DIR` vacía, que nombra un fichero y sin ella ni `HOME` → 2, con y sin `--no-graph`) — FR-004, FR-005, FR-010, FR-011, FR-046, FR-050, FR-051, FR-052, FR-053, FR-054, FR-055, FR-060, FR-067, FR-070; SC-011; rutas: internal/app/grafo.go, internal/app/grafo_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "5a87a3fcdb6f1881599c969625877b0ce090dddb",
+  "base": "0c4d63a8c17ef826cebe3aef19b92ad11d47ce4a",
   "rutas": [
+    "applet/graph",
     "contracts/applet-graph.md",
-    "internal/core/grafo/comprobar.go",
-    "internal/core/grafo/explicacion.go"
+    "internal/app/grafo.go",
+    "internal/app/grafo_test.go",
+    "internal/graph"
   ],
   "cierre": false,
   "converger": false,
