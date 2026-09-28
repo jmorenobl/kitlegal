@@ -10,6 +10,24 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-28 · `graph check` devuelve todo lo consultado y repite señales que ya se dieron
+
+- **Qué se pidió.** Validar la rúbrica nueva de los jueces (ADR 0028) sobre H7 recién fusionado (#77), midiendo en el
+  binario lo que `boe-legislacion` lee de `kitlegal graph check` con un uso sostenido.
+- **Qué falló.** Con un `world.db` sembrado por el propio almacén —300 normas, 2 400 bloques, 240 de ellos con dos
+  redacciones, el 90 % consultado hace más de una semana—, `kitlegal graph check --json` sale con 0 y 3 045 524 bytes:
+  4 812 hallazgos (4 572 `fuente-caducada` y 240 `version-obsoleta`, unos 633 bytes cada uno). La skill lo pide dos
+  veces por pregunta: unos 6,1 MB, cuando lo que atañe a la norma de la pregunta son unos 20 hallazgos (≈ 13 KB). Y
+  ninguna señal se apaga: `version-obsoleta` se da para siempre sobre cada redacción superada, y `fuente-caducada`
+  también sobre redacciones superadas que ninguna lectura renueva. Al día siguiente de leer la redacción nueva, la
+  misma pregunta volvería a decir que la redacción ha cambiado. Pasó por cinco jueces sin que ninguno lo viera, porque
+  ningún criterio miraba el uso (ADR 0028, problema B).
+- **Qué faltó.** Que `graph check` se pueda acotar a la norma y a los bloques de la pregunta, con una salida que no
+  crezca con lo acumulado; que cada señal deje de darse cuando ya no dice nada nuevo; y que la eval de la consulta
+  repetida compruebe que la respuesta dice que la redacción cambió.
+- **Qué se hizo.** Medirlo (juez B de la revisión en la validación del ADR 0028) y abrir H7.1, entre H7 y H20, que
+  además retira de H7 lo que la rúbrica nueva dice que no pasa el umbral de materialidad.
+
 ### 2026-09-27 · El roadmap describe un kit municipal; la web y el README ofrecen uno para cualquier asunto
 
 - **Qué se pidió.** Revisar la fase 2 del roadmap, «Actuar en mi municipio»: kitlegal ha acabado siendo una
