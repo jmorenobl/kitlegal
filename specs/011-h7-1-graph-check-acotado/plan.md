@@ -149,8 +149,8 @@ internal/core/grafo/
 internal/graph/
 ├── migraciones/0002_lecturas.sql   # nuevo
 ├── lectura.go          # Instantanea(ctx, ambito): acotada en SQL; filas de lecturas; versión 1 legible
-├── abrir.go            # solo -wal decide el modo; fuera inmutable, permisos, enlaces, diarios, -shm, 776/1544/14
-├── almacen.go          # sin enlazar; Apply crea en su sitio
+├── abrir.go            # solo -wal decide el modo; lee las versiones 1 y 2; fuera inmutable, permisos, enlaces, diarios, -shm, directorio, 776/1544/14
+├── almacen.go          # sin enlazar; Apply crea en su sitio, sin os.Stat previo ni caso del directorio
 ├── aplicar.go          # MkdirAll + OpenFile 0600; lecturas previas y upsert; fuera extremos, permisos, errFilaDanada
 ├── errores.go          # fuera cuatro constructores; errorInutilizable sin «no se modifica»
 ├── doc.go              # lo que deja de ser cierto
@@ -257,7 +257,10 @@ resumen:
   (`hallazgosDeLaMuestra`, `salidasDelGrafo` —el caso de las dos clases pasa a una siembra con B caducada—,
   `exigirHallazgosPublicados`, la premisa de `TestNingunVerboDelGrafoDevuelveTexto`), el argumento de más de `check`
   (firma del applet), la tabla mínima de `graph` por la salida legible y el directorio por «no es una base»;
-  `TestCosteDelGrafo` (research D24); `Instantanea(ctx, grafo.Ambito{})` en `internal/evals/preparar_test.go:533` y
+  `TestCosteDelGrafo` (research D24); en `internal/core/grafo/explicacion_test.go`, `fuente-caducada` solo sobre la
+  `Norma`, el `Bloque` y la redacción vista (`probarPlantillaDeFuenteCaducada` sin la versión superada; en
+  `probarCitas`, la cita de una `BloqueVersion` sobre la redacción vista de su bloque, y ningún hallazgo sobre la que no
+  lo es ni sobre `Municipio` y `Organo`) y sus cinco llamadas a `Comprobar` con `grafo.Ambito{}`; `Instantanea(ctx, grafo.Ambito{})` en `internal/evals/preparar_test.go:533` y
   `conjunto_test.go:1093`; el vehículo de `preparar_test.go` «salida-de-error» pasa de un directorio a un fichero que
   no es una base; `formato_test.go` «comprobacion-con-norma» pasa a aceptarse; `comandos_test.go:762`,
   `skills_test.go:205` e `invocacionDeLaSintaxis`.

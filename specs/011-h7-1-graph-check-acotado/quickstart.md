@@ -88,6 +88,20 @@ Esperado: todos `ok`. Los guiones `h7-1-grafo-lecturas`, `h7-1-grafo-check-acota
 de la salida sin argumentos, ≤ 40 000 (SC-001, SC-002); `TestIntegracionGrafoDeH7`, SC-012; los de `internal/evals`,
 SC-008.
 
+Antes de que el workflow active la suite (dentro del bucle, en T025), la primera orden no encuentra ningún guion y
+pasaría en vacío: `TestEntregaDelHito` solo lee `internal/app/testdata/script/`. Entonces la suite se ejecuta sobre
+copias momentáneas, sin cambiarlas, que se retiran antes de `make ci`:
+
+```bash
+for g in grafo-lecturas grafo-check-acotado grafo-legible grafo-regla-generica; do
+  cp specs/011-h7-1-graph-check-acotado/aceptacion/$g.txtar internal/app/testdata/script/zz-$g.txtar
+done
+rtk proxy go test -count=1 -v -run '^TestEntregaDelHito$/^zz-' ./internal/app/
+rm internal/app/testdata/script/zz-grafo-*.txtar
+```
+
+Esperado: cuatro subtests `--- PASS: TestEntregaDelHito/zz-…` (se cuentan: cero no es un resultado) y `ok`.
+
 ## 7. Lo retirado no está (FR-095, SC-013)
 
 ```bash
