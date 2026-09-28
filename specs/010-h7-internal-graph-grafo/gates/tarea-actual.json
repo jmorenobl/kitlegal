@@ -1,15 +1,21 @@
 {
-  "id": "T022",
-  "texto": "T022 [datos] [US5] El esquema de eval ampliado (contracts/evals-y-skill.md §1; research D26; plan.md paso 17): schemas/eval.yaml.json gana `comando-comprobacion` en el `oneOf` de `comandos`, `prohibidos` (`comando-prohibido`, `minItems: 1`) y `grafo_previo` (`grabaciones` con el patrón de §1 y `comandos` de bloque), estos dos solo con `activa: true` por el `else` del esquema; `avisos` no cambia; y, si el `else` ampliado cambia algún mensaje que internal/evals/formato_test.go compara literalmente, esa expectativa en la misma tarea (*Complexity Tracking* de plan.md); ninguna eval existente deja de validar — FR-086, FR-095; rutas: schemas/eval.yaml.json, internal/evals/formato_test.go",
+  "id": "T023",
+  "texto": "T023 [US5] Formato, juicio e informe de la eval ampliada (contracts/evals-y-skill.md §1 y §2; research D26): internal/evals/formato.go (`Eval.Prohibidos []ComandoProhibido` y `Eval.GrafoPrevio GrafoPrevio`; `formaComprobacion` para `verbo: check`, cuyo texto es `<applet> check`); internal/evals/consultas.go (la forma comprobación no genera ninguna consulta que preparar); internal/evals/juzgar.go (un comando de la forma comprobación lo satisface una invocación del mismo applet con verbo `check` que consulta y termina con 0; un prohibido lo ejecuta toda invocación que consulta —ni ayuda, ni `--describe`, ni `--dry-run`— del mismo applet y verbo, termine como termine, con el motivo `comando prohibido ejecutado: <applet> <verbo>`, y la eval no pasa; sin `prohibidos`, el juicio de antes); internal/evals/informe.go (`comandos_prohibidos_ejecutados`, lista vacía si no hay, en cada eval de `informe.json` y su columna en el informe legible); tests: `TestLeerEval` y `TestEsquemaDeEval` en internal/evals/formato_test.go (las formas nuevas se leen y validan; sus variantes mal formadas y en evals de no activación se rechazan; las existentes de `boe-legislacion` y `legal-core` se leen igual), `TestFormaDelComando` en internal/evals/consultas_test.go, `TestJuzgar` con prohibidos con y sin código 0 y ayuda o `--describe` que no cuentan en internal/evals/juzgar_test.go, y `TestInforme` con la clave nueva en internal/evals/informe_test.go — FR-085, FR-086; SC-012; rutas: internal/evals/formato.go, internal/evals/formato_test.go, internal/evals/consultas.go, internal/evals/consultas_test.go, internal/evals/juzgar.go, internal/evals/juzgar_test.go, internal/evals/informe.go, internal/evals/informe_test.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "3ad3766d79a8e7993fae01032f109fae7f8e1610",
+  "base": "e297040f75669660db927d6df8cd3f6f1e424c4e",
   "rutas": [
     "contracts/evals-y-skill.md",
+    "informe.json",
+    "internal/evals/consultas.go",
+    "internal/evals/consultas_test.go",
+    "internal/evals/formato.go",
     "internal/evals/formato_test.go",
-    "plan.md",
-    "schemas/eval.yaml.json"
+    "internal/evals/informe.go",
+    "internal/evals/informe_test.go",
+    "internal/evals/juzgar.go",
+    "internal/evals/juzgar_test.go"
   ],
   "cierre": false,
   "converger": false,

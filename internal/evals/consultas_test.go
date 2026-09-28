@@ -17,6 +17,11 @@ import (
 // applet no pide nada por red ni usa la caché—, ni solo ni junto a los comandos y
 // las citas del BOE de la misma eval, que siguen generando las suyas (data-model
 // §6.3 de H6; research D21; FR-043).
+//
+// Desde H7, tampoco genera ninguna el comando de comprobación, graph check, que
+// lee el grafo de la sesión y no la caché preparada: la eval de la consulta
+// repetida solo necesita las consultas de su bloque y de su norma, las mismas que
+// la eval 01 (contrato evals-y-skill §1 de H7).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -32,6 +37,7 @@ func TestConsultasNecesarias(t *testing.T) {
 		deArticulo22            = "03-lpac-articulo-22.yaml"
 		deSoloTerritorio        = "04-territorio-municipio-cubierto.yaml"
 		deTerritorioYArticulo21 = "05-territorio-y-articulo-21.yaml"
+		deConsultaRepetida      = "06-lpac-articulo-21-redaccion-cambiada.yaml"
 	)
 
 	// Una eval con las tres formas de comando, dos normas —la LPAC, de un comando
@@ -103,6 +109,23 @@ func TestConsultasNecesarias(t *testing.T) {
 	normaDeTerritorioYArticulo21 := Origen{Eval: deTerritorioYArticulo21, Punto: PuntoNormaDeLaEval}
 	citaDeTerritorioYArticulo21 := Origen{Eval: deTerritorioYArticulo21, Punto: PuntoCitaEsperada}
 
+	// La eval de la consulta repetida, con la comprobación del grafo entre sus
+	// comandos, graph show prohibido y el grafo previo del mismo bloque.
+	bloqueDel21 := ComandoEsperado{Applet: "boe", Norma: lpac, Bloque: "a21"}
+	consultaRepetida := Eval{
+		Fichero:     deConsultaRepetida,
+		Pregunta:    "Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?",
+		Activa:      true,
+		Informativa: true,
+		GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: []ComandoEsperado{bloqueDel21}},
+		Comandos:    []ComandoEsperado{bloqueDel21, {Applet: "graph", Verbo: "check"}},
+		Prohibidos:  []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+		Citas:       []CitaEsperada{{Norma: lpac, Bloque: "a21"}},
+	}
+	comandoDeConsultaRepetida := Origen{Eval: deConsultaRepetida, Punto: PuntoComandoEsperado}
+	normaDeConsultaRepetida := Origen{Eval: deConsultaRepetida, Punto: PuntoNormaDeLaEval}
+	citaDeConsultaRepetida := Origen{Eval: deConsultaRepetida, Punto: PuntoCitaEsperada}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -166,6 +189,18 @@ func TestConsultasNecesarias(t *testing.T) {
 					Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac},
 					Origenes: []Origen{normaDeTerritorioYArticulo21},
 				},
+			},
+		},
+		{
+			nombre:   "comprobacion-sin-consultas",
+			conjunto: []Eval{consultaRepetida},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
+					Origenes: []Origen{comandoDeConsultaRepetida, citaDeConsultaRepetida},
+				},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
+				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
 			},
 		},
 		{

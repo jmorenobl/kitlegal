@@ -55,6 +55,24 @@ const (
 		"- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado"
 )
 
+// Lo que juzgan la eval de la consulta repetida y sus sesiones de TestJuzgar,
+// construidas en memoria (contrato evals-y-skill §2 y §4 de H7).
+const (
+	ficheroDeLaConsultaRepetida = "19-lpac-articulo-21-redaccion-cambiada.yaml"
+
+	// textoDeLaComprobacion es el comando de comprobación de esa eval, y
+	// textoDeGraphShow, su prohibido, con el texto con el que los presentan el
+	// informe y los motivos.
+	textoDeLaComprobacion = "graph check"
+	textoDeGraphShow      = "graph show"
+
+	// ordenDeLaComprobacion y ordenDeGraphShow son las órdenes de las
+	// invocaciones de la skill que comprueban el grafo y que piden la ficha del
+	// bloque.
+	ordenDeLaComprobacion = "graph check --json"
+	ordenDeGraphShow      = "graph show eli/es/l/2015/10/01/39#a21 --json"
+)
+
 // elementosDelMunicipio son los elementos del territorio esperado de la eval del
 // municipio cubierto, con el texto con el que los presentan el informe y los
 // motivos, en el orden de la eval.
@@ -101,6 +119,17 @@ type juicio struct {
 // motivo detrás de los de los avisos: un elemento ausente impide pasar aunque el
 // comando esté, y una eval con citas y territorio se juzga por los dos (contrato
 // de evals §2 de H6; FR-084; US5).
+//
+// Desde H7, el comando de comprobación lo satisface solo una invocación con
+// consulta y código 0 del mismo applet con el verbo check; y un comando
+// prohibido lo ejecuta toda invocación con consulta del mismo applet y el mismo
+// verbo, termine con 0, con otro código o sin código, pero no la ayuda,
+// --describe ni --dry-run, ni otro verbo del mismo applet ni el mismo verbo de
+// otro applet: cada prohibido ejecutado va, una sola vez aunque lo ejecuten
+// varias invocaciones, a los comandos prohibidos ejecutados con su motivo detrás
+// de los de los comandos ausentes y delante de los de las citas, y la eval no
+// pasa; sin prohibidos, el juicio es el de antes aunque la sesión ejecute ese
+// comando (contrato evals-y-skill §2 de H7; FR-085, FR-086).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -472,6 +501,39 @@ func TestJuzgar(t *testing.T) {
 		{
 			nombre:  "territorio-y-citas",
 			juicios: territorioYCitas(t),
+		},
+		{
+			nombre:  "comprobacion-satisfecha-y-prohibido-sin-ejecutar",
+			juicios: []juicio{consultaRepetidaQuePasa(t)},
+		},
+		{
+			nombre:  "comprobacion-sin-consulta-con-otro-codigo-o-con-otro-verbo",
+			juicios: []juicio{comprobacionAusente(t)},
+		},
+		{
+			nombre:  "prohibido-ejecutado-con-y-sin-codigo-0",
+			juicios: prohibidoEjecutado(t),
+		},
+		{
+			nombre:  "prohibido-con-ayuda-describe-o-dry-run-no-cuenta",
+			juicios: []juicio{prohibidoSinConsulta(t)},
+		},
+		{
+			nombre:  "otro-verbo-u-otro-applet-no-es-el-prohibido",
+			juicios: []juicio{otroQueElProhibido(t)},
+		},
+		{
+			nombre:  "prohibido-entre-comandos-y-citas-ausentes",
+			juicios: []juicio{prohibidoEntreAusentes(t)},
+		},
+		{
+			// La eval 01 no prohíbe nada: graph show no cambia su juicio.
+			nombre: "sin-prohibidos-el-juicio-de-antes",
+			juicios: []juicio{{
+				eval:     evalDelArticulo21(),
+				sesion:   sesionQuePasa(t, pideLaFicha(t, codigoDeSalida(0))),
+				esperado: resultadoQuePasa(InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)}),
+			}},
 		},
 	}
 
@@ -985,6 +1047,268 @@ func derogadaAusente(t *testing.T, respuesta string) juicio {
 		r.Motivos = []string{"aviso ausente: derogada"}
 		r.Pasa = false
 	})
+}
+
+// consultaRepetidaQuePasa es el juicio de la eval de la consulta repetida con una
+// sesión que comprueba el grafo antes y después de leer el bloque y lo cita: los
+// dos comandos quedan ejecutados, ningún prohibido y la eval pasa.
+func consultaRepetidaQuePasa(t *testing.T) juicio {
+	t.Helper()
+
+	return juicio{
+		eval: evalDeLaConsultaRepetida(),
+		sesion: sesionTerminada(true, respuestaConCita,
+			compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), compruebaElGrafo(t, codigoDeSalida(0))),
+		esperado: resultadoDeLaConsultaRepetida(
+			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+		),
+	}
+}
+
+// comprobacionAusente es el juicio de la eval de la consulta repetida con una
+// sesión que lee y cita el bloque y en la que ninguna invocación satisface la
+// comprobación: graph check con --describe o con --dry-run no consulta; con código
+// 7 no termina con 0, y va a las otras fallidas; y graph stats es otro verbo.
+func comprobacionAusente(t *testing.T) juicio {
+	t.Helper()
+
+	const (
+		describe = "graph check --describe"
+		ensayo   = "graph check --dry-run"
+		stats    = "graph stats --json"
+	)
+
+	return juicio{
+		eval: evalDeLaConsultaRepetida(),
+		sesion: sesionTerminada(true, respuestaConCita,
+			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(describe)...)),
+			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ensayo)...)),
+			compruebaElGrafo(t, codigoDeSalida(7)),
+			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(stats)...)),
+			leeElArticulo21(t)),
+		esperado: cambiado(resultadoDeLaConsultaRepetida(
+			InvocacionInformada{Orden: describe, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ensayo, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(7)},
+			InvocacionInformada{Orden: stats, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+		), func(r *ResultadoDeEval) {
+			r.ComandosEjecutados = []string{textoDelComando21}
+			r.ComandosAusentes = []string{textoDeLaComprobacion}
+			r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeLaComprobacion, Codigo: 7}}
+			r.Motivos = []string{"comando ausente: " + textoDeLaComprobacion}
+			r.Pasa = false
+		}),
+	}
+}
+
+// prohibidoEjecutado son los juicios de la eval de la consulta repetida con
+// sesiones que comprueban el grafo, leen y citan el bloque y además piden su
+// ficha con graph show: con código 0; con código 3, que va a las otras fallidas,
+// y otra vez con código 0, que no lo ejecuta dos veces; y sin código, porque el
+// tope cortó la sesión. En los tres, graph show queda ejecutado una vez, con su
+// motivo detrás de los de antes, y la eval no pasa.
+func prohibidoEjecutado(t *testing.T) []juicio {
+	t.Helper()
+
+	ejecutado := func(r *ResultadoDeEval) {
+		r.ComandosProhibidosEjecutados = []string{textoDeGraphShow}
+		r.Motivos = append(r.Motivos, "comando prohibido ejecutado: "+textoDeGraphShow)
+		r.Pasa = false
+	}
+
+	comprobada := InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)}
+	leida := InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)}
+
+	cortada := cambiada(sesionTerminada(true, respuestaConCita,
+		compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), pideLaFicha(t, nil)), func(s *Sesion) {
+		s.Codigo, s.Fin, s.Terminada, s.Cortada = 124, "assistant", false, true
+		s.MotivoSinTerminar = "tope de 240 s agotado (código 124)"
+	})
+
+	return []juicio{
+		{
+			eval: evalDeLaConsultaRepetida(),
+			sesion: sesionTerminada(true, respuestaConCita,
+				compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+			esperado: cambiado(resultadoDeLaConsultaRepetida(comprobada, leida,
+				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)}), ejecutado),
+		},
+		{
+			eval: evalDeLaConsultaRepetida(),
+			sesion: sesionTerminada(true, respuestaConCita, compruebaElGrafo(t, codigoDeSalida(0)),
+				pideLaFicha(t, codigoDeSalida(3)), leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+			esperado: cambiado(resultadoDeLaConsultaRepetida(comprobada,
+				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(3)}, leida,
+				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)},
+			), func(r *ResultadoDeEval) {
+				r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: 3}}
+				ejecutado(r)
+			}),
+		},
+		{
+			eval:   evalDeLaConsultaRepetida(),
+			sesion: cortada,
+			esperado: cambiado(resultadoDeLaConsultaRepetida(comprobada, leida, InvocacionInformada{Orden: ordenDeGraphShow}),
+				func(r *ResultadoDeEval) {
+					r.CodigoDeLaSesion = codigoDeSalida(124)
+					r.FinDeLaSesion = "assistant"
+					r.SesionTerminada = false
+					r.Motivos = []string{"la sesión no terminó: tope de 240 s agotado (código 124)"}
+					ejecutado(r)
+				}),
+		},
+	}
+}
+
+// prohibidoSinConsulta es el juicio de la eval de la consulta repetida con la
+// sesión que la pasa y, además, graph show con la ayuda larga y la corta, con
+// --describe y con --dry-run, todas con código 0: ninguna consulta, ninguna
+// ejecuta el prohibido y la eval pasa.
+func prohibidoSinConsulta(t *testing.T) juicio {
+	t.Helper()
+
+	invocaciones := []Invocacion{compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t)}
+	informadas := []InvocacionInformada{
+		{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+		{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+	}
+
+	for _, bandera := range []string{"--help", "-h", "--describe", "--dry-run"} {
+		orden := ordenDeGraphShow + " " + bandera
+		invocaciones = append(invocaciones, invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(orden)...)))
+		informadas = append(informadas, InvocacionInformada{Orden: orden, Codigo: codigoDeSalida(0)})
+	}
+
+	return juicio{
+		eval:     evalDeLaConsultaRepetida(),
+		sesion:   sesionTerminada(true, respuestaConCita, invocaciones...),
+		esperado: resultadoDeLaConsultaRepetida(informadas...),
+	}
+}
+
+// otroQueElProhibido es el juicio de la eval de la consulta repetida con la
+// sesión que la pasa y, además, otro verbo de graph, stats, y el verbo prohibido
+// en otro applet, boe show, que el binario rechaza con código 2 y va a las otras
+// fallidas: ninguno es graph show y la eval pasa.
+func otroQueElProhibido(t *testing.T) juicio {
+	t.Helper()
+
+	const (
+		stats      = "graph stats --json"
+		otroApplet = "boe show BOE-A-2015-10565 --json"
+	)
+
+	return juicio{
+		eval: evalDeLaConsultaRepetida(),
+		sesion: sesionTerminada(true, respuestaConCita,
+			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(stats)...)),
+			invocada(t, codigoDeSalida(2), deKitlegal(strings.Fields(otroApplet)...)),
+			compruebaElGrafo(t, codigoDeSalida(0)),
+			leeElArticulo21(t)),
+		esperado: cambiado(resultadoDeLaConsultaRepetida(
+			InvocacionInformada{Orden: stats, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: otroApplet, Codigo: codigoDeSalida(2)},
+			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+		), func(r *ResultadoDeEval) {
+			r.OtrasFallidas = []InvocacionFallida{{Orden: otroApplet, Codigo: 2}}
+		}),
+	}
+}
+
+// prohibidoEntreAusentes es el juicio de la eval de la consulta repetida con una
+// sesión que lee el bloque y pide su ficha, sin comprobar el grafo ni citar el
+// bloque: el motivo del prohibido va detrás del de la comprobación ausente y
+// delante del de la cita ausente.
+func prohibidoEntreAusentes(t *testing.T) juicio {
+	t.Helper()
+
+	const respuesta = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver."
+
+	return juicio{
+		eval:   evalDeLaConsultaRepetida(),
+		sesion: sesionTerminada(true, respuesta, leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+		esperado: cambiado(resultadoDeLaConsultaRepetida(
+			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)},
+		), func(r *ResultadoDeEval) {
+			r.ComandosEjecutados = []string{textoDelComando21}
+			r.ComandosAusentes = []string{textoDeLaComprobacion}
+			r.ComandosProhibidosEjecutados = []string{textoDeGraphShow}
+			r.CitasEncontradas = nil
+			r.CitasAusentes = []string{textoDeLaCita21}
+			r.Respuesta = respuesta
+			r.Motivos = []string{
+				"comando ausente: " + textoDeLaComprobacion,
+				"comando prohibido ejecutado: " + textoDeGraphShow,
+				"cita ausente: " + textoDeLaCita21,
+			}
+			r.Pasa = false
+		}),
+	}
+}
+
+// evalDeLaConsultaRepetida es la eval del contrato evals-y-skill §4 de H7: el
+// grafo previo con el bloque a21 de la Ley 39/2015, la lectura de ese bloque y la
+// comprobación del grafo, graph show prohibido y la cita del bloque.
+func evalDeLaConsultaRepetida() Eval {
+	bloque := ComandoEsperado{Applet: "boe", Norma: normaDeLasTrazas, Bloque: "a21"}
+
+	return Eval{
+		Fichero:     ficheroDeLaConsultaRepetida,
+		Pregunta:    "Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?",
+		Activa:      true,
+		Informativa: true,
+		GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: []ComandoEsperado{bloque}},
+		Comandos:    []ComandoEsperado{bloque, {Applet: "graph", Verbo: "check"}},
+		Prohibidos:  []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+		Citas:       []CitaEsperada{{Norma: normaDeLasTrazas, Bloque: "a21"}},
+	}
+}
+
+// resultadoDeLaConsultaRepetida es el resultado de la eval de la consulta
+// repetida con una sesión terminada y activada, con las invocaciones informadas
+// dadas y la cita en la respuesta, que ejecuta los dos comandos esperados y
+// ningún prohibido: pasa.
+func resultadoDeLaConsultaRepetida(informadas ...InvocacionInformada) ResultadoDeEval {
+	return ResultadoDeEval{
+		Eval:               ficheroDeLaConsultaRepetida,
+		Activa:             true,
+		Activada:           true,
+		ComandosEjecutados: []string{textoDelComando21, textoDeLaComprobacion},
+		CitasEncontradas:   []string{textoDeLaCita21},
+		Invocaciones:       informadas,
+		Respuesta:          respuestaConCita,
+		CodigoDeLaSesion:   codigoDeSalida(0),
+		FinDeLaSesion:      "result success",
+		SesionTerminada:    true,
+		Pasa:               true,
+	}
+}
+
+// compruebaElGrafo es la invocación de la skill que comprueba el grafo, con el
+// código dado.
+func compruebaElGrafo(t *testing.T, codigo *int) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigo, deKitlegal(strings.Fields(ordenDeLaComprobacion)...))
+}
+
+// pideLaFicha es la invocación de la skill que pide con graph show la ficha del
+// bloque a21 de la Ley 39/2015, con el código dado o sin código.
+func pideLaFicha(t *testing.T, codigo *int) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigo, deKitlegal(strings.Fields(ordenDeGraphShow)...))
+}
+
+// deKitlegal es el argv con el que la skill invoca un applet por el binario
+// kitlegal del PATH (ADR 0019).
+func deKitlegal(tokens ...string) []string {
+	return slices.Concat([]string{"kitlegal"}, tokens)
 }
 
 // evalDelArticulo21 es la eval 01 del contrato evals-y-grabaciones §1: bloque y
