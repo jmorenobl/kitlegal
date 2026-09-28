@@ -1,0 +1,512 @@
+package graph
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/jmorenobl/kitlegal/internal/core"
+	"github.com/jmorenobl/kitlegal/internal/core/grafo"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
+)
+
+// modoWAL es lo que contesta PRAGMA journal_mode sobre una base en WAL.
+const modoWAL = "wal"
+
+// errFilaDanada marca lo guardado que ninguna entrega escribe —una fecha que no
+// es RFC 3339, una vigencia negativa o que no cabe en una duración—: al
+// fusionar con ello, world.db no es una base utilizable (FR-010), no un fallo de
+// entrada y salida.
+var errFilaDanada = errors.New("world.db guarda una fila que ninguna entrega escribe")
+
+// cadenaDeEscritura es la cadena de conexión de toda entrega, carácter a
+// carácter la de contracts/almacen-world-db.md §4 (research.md D11, V10): el
+// tramo de espera, cada confirmación llevada al disco, las claves ajenas
+// comprobadas y la transacción inmediata, que toma el bloqueo de escritura al
+// empezar. No lleva journal_mode: en la cadena, un world.db de 0 bytes pasaría a
+// 4096 aunque el lote se rechazara; el WAL lo fija fijarWAL, fuera de toda
+// transacción.
+func cadenaDeEscritura(ruta string) string {
+	return "file:" + rutaParaURI(ruta) + "?" + pragmaDelTramo +
+		"&_pragma=synchronous(FULL)&_pragma=foreign_keys(1)&_txlock=immediate"
+}
+
+// consolidar es el paso 1 de la entrega, sin tocar el disco: valida el lote y lo
+// reduce a un registro por clave (grafo.Consolidar; FR-023, FR-024, FR-025), y
+// rechaza una vigencia que no es un número entero de segundos, que es como se
+// guarda (data-model §3): guardarla recortada no sería la que la fuente declara
+// (FR-065), y ningún applet emite una así.
+func consolidar(lote core.Lote) (grafo.Consolidado, error) {
+	consolidado, err := grafo.Consolidar(lote)
+	if err != nil {
+		return grafo.Consolidado{}, err
+	}
+
+	if lote.Vigencia%time.Second != 0 {
+		return grafo.Consolidado{}, &grafo.Rechazo{
+			Motivo: fmt.Sprintf("la vigencia %s no es un número entero de segundos, que es como se guarda", lote.Vigencia),
+		}
+	}
+
+	return consolidado, nil
+}
+
+// aplicarEnSuSitio hace los pasos 4 a 7 de la entrega sobre un world.db que
+// existe (contracts/almacen-world-db.md §4): lo abre y lo prepara, aplica el
+// lote en una transacción y lo cierra. Un fallo al cerrar se une al de la
+// entrega, o es él el fallo.
+func aplicarEnSuSitio(ctx context.Context, ruta string, lote core.Lote, consolidado grafo.Consolidado) error {
+	base, err := abrirParaEscribir(ctx, ruta, lote)
+	if err != nil {
+		return err
+	}
+
+	return errors.Join(escribirLote(ctx, base, ruta, consolidado), cerrarTrasElFallo(base, operacionEscribir, ruta))
+}
+
+// abrirParaEscribir es el paso 4 (contracts/almacen-world-db.md §4; research.md
+// D11, V46, V49). Antes de abrir SQLite comprueba que el proceso puede escribir
+// world.db —si no, falla sin que nada cambie, se cree o se recupere— y, si
+// world.db tiene 0 bytes, que el lote entra en un grafo vacío: un fichero de 0
+// bytes no tiene esquema, y un lote que el grafo vacío rechaza no llega a abrir
+// SQLite, que borraría un -wal junto a él. Después lo abre con la cadena de
+// escritura y lo prepara (prepararLaBase). Devuelve la conexión abierta; si
+// falla, la cierra.
+func abrirParaEscribir(ctx context.Context, ruta string, lote core.Lote) (*sql.DB, error) {
+	if err := comprobarEscritura(ruta); err != nil {
+		return nil, errorDeFicheroNoEscribible(ruta, err)
+	}
+
+	info, err := os.Stat(ruta)
+	if err != nil {
+		return nil, errorDeFicheroNoEscribible(ruta, err)
+	}
+
+	if info.Size() == 0 {
+		if err := grafo.ValidarContraGrafoVacio(lote); err != nil {
+			return nil, errorDeLoteRechazado(ruta, err)
+		}
+	}
+
+	base, err := abrirConexion(operacionEscribir, ruta, cadenaDeEscritura(ruta))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := prepararLaBase(ctx, base, ruta, lote); err != nil {
+		return nil, errors.Join(err, cerrarTrasElFallo(base, operacionEscribir, ruta))
+	}
+
+	return base, nil
+}
+
+// prepararLaBase lee la versión del esquema, con el reintento por tramos, y
+// decide: la que este binario conoce se aplica tal cual; una posterior no se
+// toca (FR-012); lo que no se deja leer como base, o una versión negativa, es
+// inutilizable (FR-010); y sin esquema —versión 0— el lote tiene que entrar en
+// un grafo vacío, y world.db se pone en WAL antes de la transacción que creará
+// el esquema, porque dentro de ella SQLite no lo fija (research.md V42).
+//
+// Si world.db tiene un -wal huérfano o un diario caliente, esta conexión los
+// recupera como cualquier escritor de SQLite, aunque la entrega falle después:
+// la desviación declarada de contracts/almacen-world-db.md §4.1.
+func prepararLaBase(ctx context.Context, base *sql.DB, ruta string, lote core.Lote) error {
+	conocida, err := versionConocida()
+	if err != nil {
+		return errorDeMigracionesIlegibles(ruta, err)
+	}
+
+	version, err := leerVersion(ctx, base)
+	if err != nil {
+		if deLaEspera := esperaDeLaInvocacion().falloDeLaEspera(ctx, operacionEscribir, ruta, err); deLaEspera != nil {
+			return deLaEspera
+		}
+
+		return errorInutilizable(operacionEscribir, ruta, err)
+	}
+
+	switch {
+	case version > conocida:
+		return errorDeVersionPosterior(operacionEscribir, ruta, version, conocida)
+	case version < 0:
+		return errorInutilizable(operacionEscribir, ruta, nil)
+	case version > 0:
+		return nil
+	}
+
+	if err := grafo.ValidarContraGrafoVacio(lote); err != nil {
+		return errorDeLoteRechazado(ruta, err)
+	}
+
+	return fijarWAL(ctx, base, ruta)
+}
+
+// fijarWAL pone la base en WAL si no lo está, fuera de toda transacción y con el
+// reintento por tramos, y comprueba que el pragma contesta wal (contracts/almacen-world-db.md
+// §4, pasos 3.4 y 4; FR-003). Dentro de una transacción SQLite no lo fija: sobre
+// una base en modo rollback falla, y sobre un fichero de 0 bytes contesta delete
+// sin ningún error (research.md V42), que es lo que este paso no deja pasar.
+func fijarWAL(ctx context.Context, base consultante, ruta string) error {
+	modo, err := modoDeDiario(ctx, base, `PRAGMA journal_mode`)
+	if err == nil && modo != modoWAL {
+		modo, err = modoDeDiario(ctx, base, `PRAGMA journal_mode=WAL`)
+	}
+
+	switch {
+	case err != nil:
+		return falloAlEscribir(ctx, ruta, err)
+	case modo != modoWAL:
+		return errorDeModoWAL(ruta, modo)
+	}
+
+	return nil
+}
+
+// modoDeDiario es lo que contesta el pragma de modo de diario, consultado o
+// fijado, esperando por tramos mientras otra invocación retiene world.db.
+func modoDeDiario(ctx context.Context, base consultante, pragma string) (string, error) {
+	var modo string
+
+	err := esperaDeLaInvocacion().reintentar(ctx, func() error {
+		return base.QueryRowContext(ctx, pragma).Scan(&modo)
+	})
+
+	return modo, err
+}
+
+// escribirLote hace los pasos 5 a 7 de la entrega (contracts/almacen-world-db.md
+// §4): abre la transacción inmediata con el reintento por tramos, crea en ella
+// el esquema si world.db no lo tiene (FR-013), aplica el lote consolidado y
+// confirma. Cualquier rechazo o fallo la deshace entera, así que no entra nada
+// del lote (FR-022, FR-024).
+//
+// La transacción empieza sin la cancelación del contexto, para que database/sql
+// no la deshaga desde otra goroutine al terminar el plazo; cada sentencia lleva
+// el contexto, que es lo que la interrumpe.
+func escribirLote(ctx context.Context, base *sql.DB, ruta string, consolidado grafo.Consolidado) error {
+	var tx *sql.Tx
+
+	err := esperaDeLaInvocacion().reintentar(ctx, func() (err error) {
+		tx, err = base.BeginTx(context.WithoutCancel(ctx), nil)
+
+		return err
+	})
+	if err != nil {
+		return falloAlEscribir(ctx, ruta, err)
+	}
+
+	err = migrar(ctx, tx, ruta)
+	if err == nil {
+		err = aplicarConsolidado(ctx, tx, consolidado)
+	}
+
+	if err != nil {
+		return errors.Join(falloAlEscribir(ctx, ruta, err), deshacer(tx, ruta))
+	}
+
+	if err := tx.Commit(); err != nil {
+		return falloAlEscribir(ctx, ruta, err)
+	}
+
+	return nil
+}
+
+// deshacer deshace la transacción de una entrega que falla. Una transacción que
+// ya terminó no es un fallo; cualquier otro fallo se devuelve para unirlo al de
+// la entrega.
+func deshacer(tx *sql.Tx, ruta string) error {
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		return errorDeEntradaSalida(operacionEscribir, ruta, err)
+	}
+
+	return nil
+}
+
+// falloAlEscribir clasifica un fallo de la entrega con world.db ya abierto, en
+// el orden de lo que lo explica: lo que ya es un *Error —la migración, un
+// esquema posterior— se devuelve tal cual; un rechazo del dominio es el lote que
+// no entra (FR-024); el contexto terminado es el plazo agotado, y SQLITE_BUSY con
+// el contexto vivo, la espera propia agotada (FR-014); lo guardado que ninguna
+// entrega escribe es la base inutilizable (FR-010); y cualquier otra cosa, un
+// fallo de entrada y salida que nombra world.db.
+func falloAlEscribir(ctx context.Context, ruta string, causa error) error {
+	var (
+		clasificado *Error
+		rechazo     *grafo.Rechazo
+	)
+
+	switch {
+	case errors.As(causa, &clasificado):
+		return causa
+	case errors.As(causa, &rechazo):
+		return errorDeLoteRechazado(ruta, causa)
+	}
+
+	if deLaEspera := esperaDeLaInvocacion().falloDeLaEspera(ctx, operacionEscribir, ruta, causa); deLaEspera != nil {
+		return deLaEspera
+	}
+
+	if errors.Is(causa, errFilaDanada) {
+		return errorInutilizable(operacionEscribir, ruta, causa)
+	}
+
+	return errorDeEntradaSalida(operacionEscribir, ruta, causa)
+}
+
+// aplicarConsolidado es el paso 6 (contracts/almacen-world-db.md §4): cada
+// nodo, luego cada texto y luego cada arista se fusiona con lo guardado y se
+// escribe solo si cambia. Los nodos van primero para que una arista encuentre en
+// el grafo los extremos que trae el propio lote.
+func aplicarConsolidado(ctx context.Context, tx *sql.Tx, consolidado grafo.Consolidado) error {
+	if err := tablaDeNodos.aplicar(ctx, tx, consolidado.Nodos); err != nil {
+		return err
+	}
+
+	if err := tablaDeTextos.aplicar(ctx, tx, consolidado.Textos); err != nil {
+		return err
+	}
+
+	return tablaDeAristas.aplicar(ctx, tx, consolidado.Aristas)
+}
+
+// tablaDelGrafo es lo que la entrega sabe hacer con los registros de una tabla
+// de world.db: leer el guardado con la clave del que llega, fusionarlos
+// (grafo.FusionarNodo, FusionarArista, FusionarTexto; data-model §4.1) y
+// escribir el fusionado.
+type tablaDelGrafo[R comparable] struct {
+	// leer devuelve el registro guardado con la clave del que llega, y false si
+	// no hay ninguno.
+	leer func(ctx context.Context, tx *sql.Tx, llegado R) (R, bool, error)
+	// fusionar junta lo guardado con lo que llega, o rechaza el lote.
+	fusionar func(guardado, llegado R) (R, error)
+	// escribir guarda el registro, nuevo o fusionado, con su clave.
+	escribir func(ctx context.Context, tx *sql.Tx, registro R) error
+}
+
+// Las tres tablas de world.db, cada una con sus sentencias.
+var (
+	tablaDeNodos   = tablaDelGrafo[grafo.RegistroDeNodo]{leer: leerNodo, fusionar: grafo.FusionarNodo, escribir: escribirNodo}
+	tablaDeTextos  = tablaDelGrafo[grafo.RegistroDeTexto]{leer: leerTexto, fusionar: grafo.FusionarTexto, escribir: escribirTexto}
+	tablaDeAristas = tablaDelGrafo[grafo.RegistroDeArista]{
+		leer: leerArista, fusionar: grafo.FusionarArista, escribir: escribirArista,
+	}
+)
+
+// aplicar fusiona cada registro que llega con el guardado y escribe el resultado
+// solo si cambia: uno que no estaba se escribe tal cual, y uno cuya fusión es lo
+// que ya estaba guardado no se escribe, de modo que una entrega repetida no
+// cambia nada (FR-022, FR-023). Un tipo o un cuerpo distintos los rechaza la
+// fusión con un *grafo.Rechazo; cualquier otro fallo de la fusión es lo guardado
+// que ninguna entrega escribe.
+func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R) error {
+	for _, llegado := range registros {
+		guardado, estaba, err := t.leer(ctx, tx, llegado)
+		if err != nil {
+			return err
+		}
+
+		fusionado := llegado
+
+		if estaba {
+			fusionado, err = t.fusionar(guardado, llegado)
+
+			var rechazo *grafo.Rechazo
+
+			switch {
+			case errors.As(err, &rechazo):
+				return err
+			case err != nil:
+				return fmt.Errorf("%w: %w", errFilaDanada, err)
+			case fusionado == guardado:
+				continue
+			}
+		}
+
+		if err := t.escribir(ctx, tx, fusionado); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// columnasDeHistoria son los siete campos que nodes y edges comparten, en este
+// orden: la primera observación (first_seen, first_source, first_url), la
+// última (last_seen, source, url) y su vigencia en segundos (ttl).
+const columnasDeHistoria = "first_seen, first_source, first_url, last_seen, source, url, ttl"
+
+// historiaExcluida pone los siete campos de la historia con los valores de la
+// fila que no entró por el conflicto de clave: los del registro fusionado.
+const historiaExcluida = "first_seen = excluded.first_seen, first_source = excluded.first_source, " +
+	"first_url = excluded.first_url, last_seen = excluded.last_seen, source = excluded.source, " +
+	"url = excluded.url, ttl = excluded.ttl"
+
+// Las sentencias de cada tabla. Una escritura inserta el registro o, si su clave
+// ya estaba, lo sustituye por el fusionado; el tipo de un nodo y el cuerpo de un
+// texto nunca cambian (FR-024), así que no se reescriben.
+const (
+	lecturaDeNodo   = "SELECT type, props, " + columnasDeHistoria + " FROM nodes WHERE id = ?"
+	escrituraDeNodo = "INSERT INTO nodes (id, type, props, " + columnasDeHistoria + ") " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET props = excluded.props, " + historiaExcluida
+
+	lecturaDeArista   = "SELECT " + columnasDeHistoria + " FROM edges WHERE src = ? AND rel = ? AND dst = ?"
+	escrituraDeArista = "INSERT INTO edges (src, rel, dst, " + columnasDeHistoria + ") " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (src, rel, dst) DO UPDATE SET " + historiaExcluida
+	extremoGuardado = "SELECT EXISTS (SELECT 1 FROM nodes WHERE id = ?)"
+
+	lecturaDeTexto   = "SELECT body, fetched_at, source, url FROM texts WHERE hash = ?"
+	escrituraDeTexto = "INSERT INTO texts (hash, body, fetched_at, source, url) VALUES (?, ?, ?, ?, ?) " +
+		"ON CONFLICT (hash) DO UPDATE SET fetched_at = excluded.fetched_at, source = excluded.source, url = excluded.url"
+)
+
+// historiaGuardada es la historia de un nodo o una arista tal como la guarda
+// world.db: la primera y la última observación, y la vigencia en su columna.
+type historiaGuardada struct {
+	primera, ultima grafo.Procedencia
+	ttl             sql.NullInt64
+}
+
+// destinos son dónde se leen los siete campos de la historia, en su orden.
+func (h *historiaGuardada) destinos() []any {
+	return []any{
+		&h.primera.FechaConsulta, &h.primera.Fuente, &h.primera.URL,
+		&h.ultima.FechaConsulta, &h.ultima.Fuente, &h.ultima.URL, &h.ttl,
+	}
+}
+
+// vigencia es la vigencia guardada; una que ninguna entrega escribe es una fila
+// dañada.
+func (h historiaGuardada) vigencia() (time.Duration, error) {
+	vigencia, err := vigenciaGuardada(h.ttl)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %w", errFilaDanada, err)
+	}
+
+	return vigencia, nil
+}
+
+// valoresDeHistoria son los valores de los siete campos de la historia, en su
+// orden: la vigencia en segundos, o NULL si no se declaró (FR-065).
+func valoresDeHistoria(primera, ultima grafo.Procedencia, vigencia time.Duration) []any {
+	var ttl any
+	if vigencia != 0 {
+		ttl = int64(vigencia / time.Second)
+	}
+
+	return []any{primera.FechaConsulta, primera.Fuente, primera.URL, ultima.FechaConsulta, ultima.Fuente, ultima.URL, ttl}
+}
+
+// encontrada separa la fila que no está, que no es un fallo, de un fallo al
+// leerla.
+func encontrada(err error) (bool, error) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
+}
+
+// leerNodo lee el nodo guardado con el id del que llega.
+func leerNodo(ctx context.Context, tx *sql.Tx, llegado grafo.RegistroDeNodo) (grafo.RegistroDeNodo, bool, error) {
+	guardado := grafo.RegistroDeNodo{ID: llegado.ID}
+
+	var historia historiaGuardada
+
+	estaba, err := encontrada(tx.QueryRowContext(ctx, lecturaDeNodo, llegado.ID).
+		Scan(append([]any{&guardado.Tipo, &guardado.Datos}, historia.destinos()...)...))
+	if !estaba {
+		return grafo.RegistroDeNodo{}, false, err
+	}
+
+	guardado.PrimeraObservacion, guardado.UltimaObservacion = historia.primera, historia.ultima
+
+	if guardado.Vigencia, err = historia.vigencia(); err != nil {
+		return grafo.RegistroDeNodo{}, false, err
+	}
+
+	return guardado, true, nil
+}
+
+// escribirNodo guarda el nodo.
+func escribirNodo(ctx context.Context, tx *sql.Tx, nodo grafo.RegistroDeNodo) error {
+	_, err := tx.ExecContext(ctx, escrituraDeNodo, append([]any{nodo.ID, nodo.Tipo, nodo.Datos},
+		valoresDeHistoria(nodo.PrimeraObservacion, nodo.UltimaObservacion, nodo.Vigencia)...)...)
+
+	return err
+}
+
+// leerArista comprueba que los dos extremos de la arista que llega están en el
+// grafo —los nodos del lote ya se escribieron, así que es estar en el lote o en
+// el grafo (FR-024)— y lee la arista guardada con su terna. Un extremo que falta
+// rechaza el lote con un *grafo.Rechazo que nombra la arista.
+func leerArista(ctx context.Context, tx *sql.Tx, llegada grafo.RegistroDeArista) (grafo.RegistroDeArista, bool, error) {
+	for _, extremo := range [...]struct{ id, nombre string }{
+		{id: llegada.Origen, nombre: "origen"},
+		{id: llegada.Destino, nombre: "destino"},
+	} {
+		var esta bool
+		if err := tx.QueryRowContext(ctx, extremoGuardado, extremo.id).Scan(&esta); err != nil {
+			return grafo.RegistroDeArista{}, false, err
+		}
+
+		if !esta {
+			return grafo.RegistroDeArista{}, false, &grafo.Rechazo{
+				Operacion: schema.Arista{Origen: llegada.Origen, Relacion: llegada.Relacion, Destino: llegada.Destino},
+				Motivo:    "su " + extremo.nombre + " no está ni en el lote ni en el grafo",
+			}
+		}
+	}
+
+	guardada := grafo.RegistroDeArista{Origen: llegada.Origen, Relacion: llegada.Relacion, Destino: llegada.Destino}
+
+	var historia historiaGuardada
+
+	estaba, err := encontrada(tx.QueryRowContext(ctx, lecturaDeArista, llegada.Origen, llegada.Relacion, llegada.Destino).
+		Scan(historia.destinos()...))
+	if !estaba {
+		return grafo.RegistroDeArista{}, false, err
+	}
+
+	guardada.PrimeraObservacion, guardada.UltimaObservacion = historia.primera, historia.ultima
+
+	if guardada.Vigencia, err = historia.vigencia(); err != nil {
+		return grafo.RegistroDeArista{}, false, err
+	}
+
+	return guardada, true, nil
+}
+
+// escribirArista guarda la arista.
+func escribirArista(ctx context.Context, tx *sql.Tx, arista grafo.RegistroDeArista) error {
+	_, err := tx.ExecContext(ctx, escrituraDeArista, append([]any{arista.Origen, arista.Relacion, arista.Destino},
+		valoresDeHistoria(arista.PrimeraObservacion, arista.UltimaObservacion, arista.Vigencia)...)...)
+
+	return err
+}
+
+// leerTexto lee el texto guardado con la huella del que llega.
+func leerTexto(ctx context.Context, tx *sql.Tx, llegado grafo.RegistroDeTexto) (grafo.RegistroDeTexto, bool, error) {
+	guardado := grafo.RegistroDeTexto{Huella: llegado.Huella}
+
+	estaba, err := encontrada(tx.QueryRowContext(ctx, lecturaDeTexto, llegado.Huella).Scan(&guardado.Cuerpo,
+		&guardado.Procedencia.FechaConsulta, &guardado.Procedencia.Fuente, &guardado.Procedencia.URL))
+	if !estaba {
+		return grafo.RegistroDeTexto{}, false, err
+	}
+
+	return guardado, true, nil
+}
+
+// escribirTexto guarda el texto.
+func escribirTexto(ctx context.Context, tx *sql.Tx, texto grafo.RegistroDeTexto) error {
+	_, err := tx.ExecContext(ctx, escrituraDeTexto, texto.Huella, texto.Cuerpo,
+		texto.Procedencia.FechaConsulta, texto.Procedencia.Fuente, texto.Procedencia.URL)
+
+	return err
+}

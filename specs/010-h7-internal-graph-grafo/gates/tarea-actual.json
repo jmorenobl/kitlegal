@@ -1,16 +1,18 @@
 {
-  "id": "T008",
-  "texto": "T008 Lectura de `world.db` sin dejar rastro (contracts/almacen-world-db.md §3; data-model §3.1; research D10, D16, V48, V49): internal/graph/abrir.go (las cadenas de conexión de §3 paso 4; el nombre de los auxiliares con la ruta resuelta por `filepath.EvalSymlinks` fuera de Windows y la ruta tal cual en Windows; la comprobación de escritura con `os.OpenFile(…, os.O_RDWR, 0)` y `Close`, que distingue `nil`, `fs.ErrNotExist` y otro error; el modo según los auxiliares y el permiso: `mode=rw` + `query_only` sin auxiliares y con permiso, `mode=ro&immutable=1` sin permiso y sin `-wal` ni `-journal`, `mode=ro` en otro caso; el reintento de §3 paso 5 con 776 como «transacción interrumpida sin deshacer») e internal/graph/lectura.go con `Leer`, `Lectura.Ficha`, `Lectura.Recuento` (por `GROUP BY` y orden en Go), `Lectura.Instantanea` y `Close` idempotente, cada operación en una transacción de lectura; ausente, un componente que no es directorio o un enlace sin destino → grafo vacío sin crear nada; **un `world.db` de 0 bytes → grafo vacío sin abrir SQLite, haya los auxiliares que haya** (SQLite borraría un `-wal` no vacío junto a una base de 0 páginas; motivo 1 de arriba); versión 0 → grafo vacío sin consultar tablas; directorio, no base, dañada o versión posterior → `inesperado` sin modificar nada; tests sobre `t.TempDir()` en internal/graph/abrir_test.go e internal/graph/lectura_test.go: cadenas, nombre de los auxiliares, comprobación de escritura, modo de apertura por estado, los estados de data-model §3.1 para la lectura con sus códigos y mensajes, `Ficha` con aristas salientes y entrantes ordenadas por relación e id y fechas carácter a carácter, `Recuento` con pares ordenados y sin ceros, y huellas de todo el directorio iguales antes y después de cada lectura sin auxiliares, con permiso y sin él — FR-004, FR-005, FR-010, FR-012, FR-014, FR-053, FR-054, FR-070; rutas: internal/graph/abrir.go, internal/graph/lectura.go",
+  "id": "T009",
+  "texto": "T009 Escritura transaccional e idempotente (contracts/almacen-world-db.md §4 y §4.1; data-model §3.1 y §4.2; research D11, V49): internal/graph/almacen.go con `Nuevo(opciones…)`, que no resuelve ni abre nada, y `Almacen.Apply`; internal/graph/aplicar.go con los pasos 1 y 2 y 4 a 7 de §4 (`ValidarLote` antes de tocar el disco; con `world.db` existente, la comprobación de escritura antes de abrir SQLite; **con `world.db` de 0 bytes, `ValidarContraGrafoVacio` antes de abrir SQLite** (motivo 1 de arriba); versión 0 → WAL fijado fuera de toda transacción comprobando que el pragma devuelve `wal`, y esquema y lote en una transacción inmediata con `context.WithoutCancel`; consolidar, rechazar tipo cambiado, cuerpo distinto o extremo ausente, fusionar con `grafo` y escribir solo lo que cambia, en el orden nodos, textos, aristas); internal/graph/publicar.go con el paso 3 de §4 (directorios anotados en `0700`, temporal `world.db-nuevo-*` en `0600`, WAL, esquema y lote en él, `os.Link` por una costura no exportada, `fs.ErrExist` → aplicar sobre el `world.db` publicado por otra invocación, limpieza del temporal, sus auxiliares y los directorios anotados, con `errors.Join`); tests: internal/graph/almacen_test.go (idempotencia 2 y 10 veces, observaciones fuera de orden y empates en los dos órdenes, reobservación con otros datos, rechazos contra lo guardado con el grafo intacto, esquema posterior sin tocar), internal/graph/publicar_test.go (las salidas de la costura de contracts/almacen-world-db.md §7: `fs.ErrExist` con las dos observaciones, otro error sin ningún residuo, lote rechazado contra el grafo vacío y contexto ya terminado sin crear nada) e internal/graph/aplicar_test.go (lo declarado en §4.1 para una base sin esquema fuera de WAL, por los pasos internos, con las cotas afirmadas en cada caso —mismas tablas y filas, `wal`, versión 0, ningún fichero nuevo— y la lista literal de bytes distintos y el tamaño de cada base de contracts/almacen-world-db.md §7, sin relajarla a un intervalo; y una base ya en WAL sin esquema con los mismos bytes) — FR-001, FR-002, FR-003, FR-012, FR-013, FR-022, FR-023, FR-024, FR-025, FR-033, FR-071; SC-001, SC-010; rutas: internal/graph/almacen.go, internal/graph/aplicar.go, internal/graph/publicar.go, internal/graph/almacen_test.go, internal/graph/publicar_test.go, internal/graph/aplicar_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "94cf2b048142bce0dfc9437010a173cd2dbb26fa",
+  "base": "ecec370b279128cb6997579af23fbfaaca6c4521",
   "rutas": [
     "contracts/almacen-world-db.md",
-    "internal/graph/abrir.go",
-    "internal/graph/abrir_test.go",
-    "internal/graph/lectura.go",
-    "internal/graph/lectura_test.go"
+    "internal/graph/almacen.go",
+    "internal/graph/almacen_test.go",
+    "internal/graph/aplicar.go",
+    "internal/graph/aplicar_test.go",
+    "internal/graph/publicar.go",
+    "internal/graph/publicar_test.go"
   ],
   "cierre": false,
   "converger": false,
