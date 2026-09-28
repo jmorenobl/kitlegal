@@ -1,16 +1,13 @@
 {
-  "id": "T026",
-  "texto": "T026 [US5] La eval de la consulta repetida (contracts/evals-y-skill.md §4; research D25): evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml tal cual el contrato (`activa: true`, `informativa: true`, `grafo_previo` con `lpac-a21-version-anterior` y el bloque `a21` de `BOE-A-2015-10565`, `comandos` `boe articulo` de ese bloque y `graph check`, `prohibidos` `graph show`, `citas` del bloque), con su comentario de cabecera; en la misma tarea, la subprueba `grafo-previo` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go (cada grafo previo nombrado existe y su preparación en temporales no da ninguna falta y deja en el grafo un `BloqueVersion` por comando) y `TestGrabacionesDerivadas` en internal/app/grafo_test.go ampliado con la derivada del grafo previo de la eval (su grabación de H4 salvo `fecha_vigencia` y el párrafo sintético); las reglas del conjunto (entre 10 y 20 evals, 10 positivas que deciden, materias distintas, informativas positivas) no cambian y los conjuntos existentes siguen igual; solo el comentario de `incumplimientoDeInformativas` en internal/evals/conjunto.go, que enumera por qué es informativa cada una, gana la tercera razón (la consulta repetida tras un cambio de versión, que se promueve con los datos de varias ejecuciones, FR-087) — FR-085, FR-086, FR-087; SC-012; rutas: evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml, internal/evals/conjunto.go, internal/evals/conjunto_test.go, internal/app/grafo_test.go",
+  "id": "T027",
+  "texto": "T027 [US5] `boe-legislacion` v0.1 (contracts/evals-y-skill.md §5; research D27): skills/boe-legislacion/SKILL.md con el frontmatter `kitlegal-applets: boe graph`; en el protocolo, `kitlegal graph check --json` tras resolver el `BOE-A-…` y antes de leer, y otra vez tras leer y antes de responder; la respuesta reúne los hallazgos de las dos comprobaciones cuya explicación nombra el `BOE-A-…` de la norma de la pregunta, los agrupa por clase y dice cada clase una sola vez (`version-obsoleta`: la redacción cambió respecto de la consultada antes, con las fechas de vigencia; `fuente-caducada`: la consulta anterior había caducado y la respuesta se apoya en la lectura nueva) y no traslada los demás; en las reglas, el texto citado sale siempre de `kitlegal boe articulo` o `articulos`, nunca se cita, parafrasea ni reconstruye texto de la salida de un verbo de `graph`, `graph check` con 0 es un resultado con hallazgos o sin ellos y nunca un fallo, y con otro código se responde igual con el texto de `kitlegal boe` diciendo que no se ha podido comprobar la memoria de consultas; nada más cambia (forma de la cita y de los avisos, resto del protocolo); menos de 300 líneas y sin nombrar evals, el job ni modelos; la región generada con la tabla de `kitlegal graph` (`show`, `stats`, `check`) regenerada con `make skills-sync`, sin editarla a mano; verificación: `make skills-check` sin deriva, `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas` y `TestTablaDeComandosCoincideConLaGramatica` en verde — FR-080, FR-081, FR-082, FR-083, FR-093; SC-012, SC-013; rutas: skills/boe-legislacion/SKILL.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "a62a08fb777993a47089701e63ccfbea63178470",
+  "base": "9ac77e93b128ffc9375ea5f600d23e3bc3269a08",
   "rutas": [
     "contracts/evals-y-skill.md",
-    "evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml",
-    "internal/app/grafo_test.go",
-    "internal/evals/conjunto.go",
-    "internal/evals/conjunto_test.go"
+    "skills/boe-legislacion/SKILL.md"
   ],
   "cierre": false,
   "converger": false,
