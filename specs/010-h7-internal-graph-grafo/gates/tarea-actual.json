@@ -1,18 +1,14 @@
 {
-  "id": "T003",
-  "texto": "T003 Dominio del grafo, base (data-model §7; contracts/applet-graph.md §4; research D1, D17, D35): el paquete nuevo internal/core/grafo con internal/core/grafo/doc.go; internal/core/grafo/vocabulario.go (los tipos `Norma`, `Bloque`, `BloqueVersion`, `Municipio`, `Organo` y `Persona`, las relaciones `eli:has_part`, `eli:has_version` y `lb:pertenece_a`, las claves de datos y las clases `fuente-caducada` y `version-obsoleta`); internal/core/grafo/canonico.go (datos canónicos RFC 8785 con `jsontext`); internal/core/grafo/errores.go (errores de rechazo y de argumentos con `schema.ConClase`); internal/core/grafo/id.go con `ValidarID`, que da `argumentos` a un id vacío, formado solo por caracteres con `unicode.IsSpace` o que contiene alguno con `unicode.IsControl`, y deja pasar tal cual `a b`, ` a`, U+200B y bytes que no son UTF-8; tests: `TestDatosCanonicos` (orden de claves, números, escapes, mismo resultado con otro orden), `TestValidarID` con los casos de contracts/applet-graph.md §7 escritos con su escape de Go, y los de errores; `TestArquitectura` R1 recorre el paquete nuevo sin cambios — FR-052, FR-023 (forma canónica); rutas: internal/core/grafo/doc.go, internal/core/grafo/vocabulario.go, internal/core/grafo/canonico.go, internal/core/grafo/errores.go, internal/core/grafo/id.go",
+  "id": "T004",
+  "texto": "T004 Validación del lote y rechazo de `Persona` (contracts/almacen-world-db.md §5; data-model §4.2; research D14, D34): internal/core/grafo/persona.go con la expresión de §5 tal cual, sin `(?i)` y con clases ASCII explícitas, aplicada al id y a toda clave o valor de cadena de los datos a cualquier profundidad de mapas y listas; internal/core/grafo/lote.go con `ValidarLote` (fuente y url no vacías, url URI absoluto con el criterio de `schema.Procedencia.Validar`, fecha RFC 3339, vigencia no negativa, nodo con id y tipo, arista con origen, relación y destino, huella `sha256:` + 64 hexadecimales en minúscula de los bytes del cuerpo, un solo tipo por id en el lote, `Persona` sin documento) y `ValidarContraGrafoVacio` (cada extremo de arista es un nodo del lote); tests: `TestValidarLote` (cada motivo de FR-024 que no necesita la base, con el lote entero rechazado y un error que nombra la operación y el motivo) y `TestPersonaSinDocumento` con los 20 rechazos y las 11 aceptaciones de §5 en el id, en un valor de primer nivel, dentro de una lista de un objeto anidado y como clave — FR-024, FR-025; SC-010; rutas: internal/core/grafo/persona.go, internal/core/grafo/lote.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "f695c57bf36e7a1322a5402955a65df50947727a",
+  "base": "284015ee3e3a531b0f0ae2db9426637e0bf0db65",
   "rutas": [
-    "contracts/applet-graph.md",
-    "internal/core/grafo",
-    "internal/core/grafo/canonico.go",
-    "internal/core/grafo/doc.go",
-    "internal/core/grafo/errores.go",
-    "internal/core/grafo/id.go",
-    "internal/core/grafo/vocabulario.go"
+    "contracts/almacen-world-db.md",
+    "internal/core/grafo/lote.go",
+    "internal/core/grafo/persona.go"
   ],
   "cierre": false,
   "converger": false,
