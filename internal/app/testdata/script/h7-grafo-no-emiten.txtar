@@ -1,0 +1,140 @@
+# Lo que no observa ninguna identidad del mundo no toca el grafo: los verbos de
+# boe que no emiten, los de skills, los de graph, una invocación que falla y
+# --dry-run no crean world.db; y un articulo cuya norma llega sin ELI —url_eli
+# vacío, o sin el segmento eli— no emite nada: la misma salida estándar y el
+# mismo código que con --no-graph, la salida de error vacía y world.db sin
+# crear.
+#
+# Cubre: US1.5 y el primer caso de «Edge Cases» · FR-030, FR-032, FR-034,
+# FR-040, FR-046 · SC-004.
+#
+# Las respuestas sin ELI son las derivadas de contracts/arnes-e2e.md §3,
+# puestas en la reproducción en lugar de los metadatos grabados; para que se
+# pidan de nuevo se retira antes la caché (cache.db). La reproducción grabada
+# es la de H4. Los códigos distintos de cero los comprueba el intérprete de
+# órdenes, como en boe-codigos.txtar.
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- Los verbos de boe que no emiten (FR-040) ---
+#
+# Todos consultan la reproducción y llenan la caché; ninguno crea world.db.
+! exists cache
+exec kitlegal boe buscar procedimiento administrativo común --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada",'
+! stderr .
+exec kitlegal boe indice BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada",'
+! stderr .
+exec kitlegal boe metadatos BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada",'
+! stderr .
+exec kitlegal boe analisis BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada",'
+! stderr .
+exists cache/cache.db
+! exists cache/world.db
+
+# --- Una invocación que falla no entrega nada (FR-032) ---
+exec sh -c 'kitlegal boe articulo BOE-A-2015-10565 a9999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,'
+exec sh -c 'kitlegal territorio resolver Arroyomolinos --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+! exists cache/world.db
+
+# --- --dry-run no entrega nada (FR-034) ---
+#
+# Ni boe articulo, ni boe articulos, ni territorio resolver, que con la
+# invocación ejecutada sí emiten.
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --dry-run --json
+! stdout .
+stderr '--dry-run: no se ha ejecutado nada'
+exec kitlegal boe articulos BOE-A-2015-10565 a21 a22 --dry-run --json
+! stdout .
+stderr '--dry-run: no se ha ejecutado nada'
+exec kitlegal territorio resolver Leganés --dry-run --json
+! stdout .
+stderr '--dry-run: no se ha ejecutado nada'
+! exists cache/world.db
+
+# --- skills no emite nada (FR-046) ---
+mkdir proyecto
+cd proyecto
+exec kitlegal skills install
+! stderr .
+exec kitlegal skills list
+! stderr .
+exec kitlegal skills doctor
+! stderr .
+cd $WORK
+! exists proyecto/world.db
+! exists cache/world.db
+
+# --- Los verbos de graph tampoco, y leen un grafo ausente (FR-004, FR-046) ---
+exec kitlegal graph stats --json
+stdout '"data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
+! stderr .
+exec kitlegal graph check --json
+stdout '"data":\[\]\}\n\z'
+! stderr .
+exec sh -c 'kitlegal graph show eli/es/l/2015/10/01/39; test $? -eq 3'
+! exists cache/world.db
+
+# --- Una norma cuyo url_eli está vacío (US1.5, FR-040) ---
+#
+# Con el reloj T0 las dos consultas se piden a la reproducción y fechan igual:
+# con grafo y sin él, la misma salida estándar byte a byte, el mismo código, la
+# salida de error vacía y world.db sin crear.
+cp derivadas/sin-eli/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+stdout '"url_eli":""'
+! stderr .
+! exists cache/world.db
+cp stdout sin-eli-con-grafo.json
+
+rm cache/cache.db
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph --json
+cmp stdout sin-eli-con-grafo.json
+! stderr .
+
+# Sin --json, igual; y boe articulos, que emite por cada bloque, tampoco.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21
+cp stdout sin-eli-con-grafo.txt
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph
+cmp stdout sin-eli-con-grafo.txt
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulos BOE-A-2015-10565 a21 a22 --json
+stdout '\A\{"ok":true,'
+! stderr .
+! exists cache/world.db
+
+# --- Una norma cuyo url_eli no tiene el segmento eli (US1.5, FR-040) ---
+cp derivadas/eli-sin-segmento/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+stdout '"url_eli":"https://www\.boe\.es/buscar/act\.php\?id=BOE-A-2015-10565"'
+! stderr .
+! exists cache/world.db
+cp stdout sin-segmento-con-grafo.json
+
+rm cache/cache.db
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph --json
+cmp stdout sin-segmento-con-grafo.json
+! stderr .
+
+exec $KITLEGAL_T0_BIN boe articulos BOE-A-2015-10565 a21 a22 --json
+stdout '\A\{"ok":true,'
+! stderr .
+
+# Nada de lo anterior ha creado world.db ni ninguno de sus ficheros auxiliares
+# (SC-004).
+! exists cache/world.db
+! exists cache/world.db-wal
+! exists cache/world.db-shm
+! exists cache/world.db-journal

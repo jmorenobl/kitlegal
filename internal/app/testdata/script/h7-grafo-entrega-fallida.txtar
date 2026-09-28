@@ -1,0 +1,177 @@
+# Una entrega que falla después de presentar la salida no cambia ni la salida
+# ni el código: con un world.db que no es una base de datos o que es un
+# directorio, boe articulo servido desde la caché sale con 0, con la misma
+# salida estándar que con un grafo sano, y la salida de error lleva exactamente
+# una línea más, que nombra world.db y la causa, sin tocar el fichero; y con
+# KITLEGAL_CACHE_DIR presente y vacía, que nombra un fichero, o sin ella y sin
+# HOME (ausente o vacía), territorio resolver sale con 0, con la misma salida
+# que con --no-graph y una línea más, sin crear nada. Con --no-graph, o con
+# skills list, que no emite, ninguna línea.
+#
+# Cubre: US3.5, US3.6 · FR-011, FR-012, FR-033 · SC-011.
+#
+# La línea es la de contracts/resultado-y-entrega.md §4 y su causa, el mensaje
+# de contracts/almacen-world-db.md §6. «Una línea más» la comprueba
+# una-linea-mas.sh, al pie de este guion (contracts/arnes-e2e.md §4).
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- Referencias, con un grafo sano ---
+#
+# La primera consulta llena la caché y crea world.db; las siguientes salen de la
+# caché con la misma fecha_consulta.
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+! stderr .
+exists cache/world.db
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+cp stdout sano.json
+cp stderr sano.err
+! stderr .
+exec kitlegal boe articulo BOE-A-2015-10565 a21
+cp stdout sano.txt
+! stderr .
+
+# --- world.db que no es una base de datos (US3.5, SC-011) ---
+cp no-es-una-base cache/world.db
+[unix] exec cksum cache/world.db
+[unix] cp stdout antes.txt
+
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sano.json
+stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: ".*world\.db" no es una base de datos utilizable; no se modifica$'
+cp stderr no-base.err
+exec sh $WORK/una-linea-mas.sh sano.err no-base.err
+
+exec kitlegal boe articulo BOE-A-2015-10565 a21
+cmp stdout sano.txt
+stderr -count=1 '^kitlegal: lo observado no ha llegado al grafo del mundo: '
+
+# Con --no-graph, ninguna línea.
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --no-graph --json
+cmp stdout sano.json
+! stderr .
+
+# El fichero no se ha modificado ni ha ganado ficheros auxiliares.
+[unix] exec cksum cache/world.db
+[unix] cmp stdout antes.txt
+! exists cache/world.db-wal
+! exists cache/world.db-shm
+! exists cache/world.db-journal
+
+# --- world.db que es un directorio (SC-011) ---
+rm cache/world.db
+mkdir cache/world.db
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sano.json
+stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: .*world\.db'
+cp stderr directorio.err
+exec sh $WORK/una-linea-mas.sh sano.err directorio.err
+exists cache/world.db
+! exists cache/world.db-wal
+rm cache/world.db
+
+# --- Referencias de territorio resolver, sin grafo ---
+exec kitlegal territorio resolver Leganés --json --no-graph
+cp stdout territorio.json
+cp stderr territorio.err
+! stderr .
+
+# --- KITLEGAL_CACHE_DIR presente y vacía (US3.6, FR-011, FR-033) ---
+#
+# boe articulo, que usa la caché, sale con 2 desde ella antes de presentar
+# nada, y no entrega (H3, FR-032): ninguna línea de grafo. Se invoca desde
+# $WORK, donde está la reproducción.
+env KITLEGAL_CACHE_DIR=
+exec sh -c 'kitlegal boe articulo BOE-A-2015-10565 a21 --json; test $? -eq 2'
+! stderr 'lo observado no ha llegado al grafo del mundo'
+
+# Esta variable y las que siguen no dan ningún directorio; territorio se invoca
+# desde un directorio vacío, en el que nada puede aparecer.
+mkdir entorno
+cd entorno
+
+exec kitlegal territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: no se puede ubicar world\.db: .+$'
+cp stderr $WORK/vacia.err
+exec sh $WORK/una-linea-mas.sh $WORK/territorio.err $WORK/vacia.err
+
+exec kitlegal territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+! stderr .
+exec kitlegal skills list
+! stderr .
+
+! exists world.db
+! exists .cache
+! exists cache
+
+# --- KITLEGAL_CACHE_DIR que nombra un fichero (US3.6, SC-011) ---
+env KITLEGAL_CACHE_DIR=$WORK/fichero
+exec kitlegal territorio resolver Leganés --json
+cmp stdout $WORK/territorio.json
+stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: no se puede ubicar world\.db: .+$'
+cp stderr $WORK/fichero.err
+exec sh $WORK/una-linea-mas.sh $WORK/territorio.err $WORK/fichero.err
+
+exec kitlegal territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+! stderr .
+exec kitlegal skills list
+! stderr .
+
+cmp $WORK/fichero $WORK/fichero.original
+! exists world.db
+! exists .cache
+! exists cache
+
+# --- Sin KITLEGAL_CACHE_DIR y sin HOME, ausente o vacía (US3.6, SC-011) ---
+env KITLEGAL_CACHE_DIR=$WORK/cache
+[unix] exec env -u KITLEGAL_CACHE_DIR -u HOME kitlegal territorio resolver Leganés --json
+[unix] cmp stdout $WORK/territorio.json
+[unix] stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: no se puede ubicar world\.db: .+$'
+[unix] cp stderr $WORK/sin-home.err
+[unix] exec sh $WORK/una-linea-mas.sh $WORK/territorio.err $WORK/sin-home.err
+
+[unix] exec env -u KITLEGAL_CACHE_DIR -u HOME kitlegal territorio resolver Leganés --json --no-graph
+[unix] cmp stdout $WORK/territorio.json
+[unix] ! stderr .
+[unix] exec env -u KITLEGAL_CACHE_DIR -u HOME kitlegal skills list
+[unix] ! stderr .
+
+[unix] exec env -u KITLEGAL_CACHE_DIR HOME= kitlegal territorio resolver Leganés --json
+[unix] cmp stdout $WORK/territorio.json
+[unix] stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: no se puede ubicar world\.db: .+$'
+[unix] cp stderr $WORK/home-vacia.err
+[unix] exec sh $WORK/una-linea-mas.sh $WORK/territorio.err $WORK/home-vacia.err
+
+[unix] exec env -u KITLEGAL_CACHE_DIR HOME= kitlegal territorio resolver Leganés --json --no-graph
+[unix] cmp stdout $WORK/territorio.json
+[unix] ! stderr .
+
+! exists world.db
+! exists .cache
+! exists cache
+
+-- no-es-una-base --
+Este fichero no es una base de datos SQLite.
+-- fichero --
+No es un directorio.
+-- fichero.original --
+No es un directorio.
+-- una-linea-mas.sh --
+# una-linea-mas.sh <sin> <con>: la salida de error <con> es <sin> con
+# exactamente una línea más, la de una entrega fallida, que nombra world.db
+# (contracts/resultado-y-entrega.md §4; FR-033, SC-011).
+set -u
+aviso='^kitlegal: lo observado no ha llegado al grafo del mundo: .*world\.db'
+sin=$(wc -l < "$1" | tr -d ' ')
+con=$(wc -l < "$2" | tr -d ' ')
+if [ "$con" -ne $((sin + 1)) ]; then
+	echo "sin el fallo, $sin líneas; con él, $con" >&2
+	exit 1
+fi
+test "$(grep -c "$aviso" "$1")" -eq 0 && test "$(grep -c "$aviso" "$2")" -eq 1 &&
+	grep -v "$aviso" "$2" | cmp -s - "$1"

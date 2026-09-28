@@ -1,0 +1,126 @@
+# El grafo no cambia ni un byte de la salida, y --no-graph lo deja intacto: la
+# salida de boe articulo servido desde la caché es byte a byte la misma con y
+# sin --no-graph, con y sin --json, con el mismo código; --no-graph y --dry-run
+# dejan world.db sin crear, o con los mismos bytes y sin ficheros auxiliares;
+# los verbos de graph leen igual con y sin --no-graph sin cambiar world.db; y
+# con KITLEGAL_CACHE_DIR presente y vacía, graph stats --no-graph sale con 2,
+# como sin la bandera.
+#
+# Cubre: US3.1, US3.2, US3.3, US3.4, US3.7 · FR-005, FR-031, FR-034, FR-042,
+# FR-091 · SC-003, SC-004.
+#
+# Los bytes de world.db se comparan con cksum (contracts/arnes-e2e.md §4): entre
+# dos órdenes del guion no queda ninguna conexión abierta, así que no hay
+# ficheros auxiliares. Las salidas que se comparan son las del binario T0, cuyo
+# reloj fija la fecha_consulta de boe y la de graph (§2).
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- --no-graph sin world.db: sigue sin existir (US3.4, SC-004) ---
+! exists cache
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+exists cache/cache.db
+! exists cache/world.db
+
+# Tampoco --dry-run, de boe ni de territorio.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a22 --dry-run
+! stdout .
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --dry-run
+! stdout .
+! exists cache/world.db
+
+# --- Byte a byte, con y sin --no-graph, desde la caché (US3.1, US3.2, SC-003) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph --json
+cp stdout sin-grafo.json
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sin-grafo.json
+! stderr .
+exists cache/world.db
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph
+cp stdout sin-grafo.txt
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21
+cmp stdout sin-grafo.txt
+! stderr .
+
+# Con el grafo ya existente, la salida sigue siendo la misma.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sin-grafo.json
+! stderr .
+
+# --- --no-graph y --dry-run con world.db existente (US3.3, FR-034, SC-004) ---
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --json
+! stderr .
+[unix] exec cksum cache/world.db
+[unix] cp stdout antes.txt
+! exists cache/world.db-wal
+! exists cache/world.db-shm
+! exists cache/world.db-journal
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '"data":\{"nodos":5,"aristas":3,"textos":1,'
+! stderr .
+cp stdout stats.json
+
+# Consultas que añadirían algo al grafo —otro bloque, otro municipio—, con
+# --no-graph o con --dry-run: world.db conserva sus bytes y graph stats, sus
+# recuentos.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a22 --no-graph --json
+! stderr .
+exec $KITLEGAL_T0_BIN territorio resolver Tordesillas --no-graph --json
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a23 --dry-run --json
+! stdout .
+exec $KITLEGAL_T0_BIN territorio resolver Getafe --dry-run --json
+! stdout .
+
+[unix] exec cksum cache/world.db
+[unix] cmp stdout antes.txt
+! exists cache/world.db-wal
+! exists cache/world.db-shm
+! exists cache/world.db-journal
+
+exec $KITLEGAL_T0_BIN graph stats --json
+cmp stdout stats.json
+
+# --- Los verbos de graph, con y sin --no-graph (US3.7, FR-005, FR-031) ---
+#
+# La misma salida byte a byte, con los recuentos del grafo poblado y no los de
+# uno vacío, y world.db con los mismos bytes.
+exec $KITLEGAL_T0_BIN graph stats --no-graph --json
+cmp stdout stats.json
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph check --json
+cp stdout check.json
+exec $KITLEGAL_T0_BIN graph check --no-graph --json
+cmp stdout check.json
+
+exec $KITLEGAL_T0_BIN graph show ine:28074 --json
+stdout '"tipo":"Municipio"'
+cp stdout show.json
+exec $KITLEGAL_T0_BIN graph show ine:28074 --no-graph --json
+cmp stdout show.json
+
+exec sh -c '"$KITLEGAL_T0_BIN" graph show ine:47165 --no-graph; test $? -eq 3'
+
+[unix] exec cksum cache/world.db
+[unix] cmp stdout antes.txt
+! exists cache/world.db-wal
+! exists cache/world.db-shm
+! exists cache/world.db-journal
+
+# Con KITLEGAL_CACHE_DIR presente y vacía, graph stats sale con 2 con
+# --no-graph como sin ella: la bandera no lo convierte en la lectura de un
+# grafo vacío (FR-011, FR-031).
+env KITLEGAL_CACHE_DIR=
+exec sh -c 'kitlegal graph stats --no-graph; test $? -eq 2'
+! stdout .
+exec sh -c 'kitlegal graph stats; test $? -eq 2'
+! stdout .
