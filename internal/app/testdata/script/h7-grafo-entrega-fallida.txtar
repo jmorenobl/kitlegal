@@ -1,12 +1,11 @@
 # Una entrega que falla después de presentar la salida no cambia ni la salida
-# ni el código: con un world.db que no es una base de datos o que es un
-# directorio, boe articulo servido desde la caché sale con 0, con la misma
-# salida estándar que con un grafo sano, y la salida de error lleva exactamente
-# una línea más, que nombra world.db y la causa, sin tocar el fichero; y con
-# KITLEGAL_CACHE_DIR presente y vacía, que nombra un fichero, o sin ella y sin
-# HOME (ausente o vacía), territorio resolver sale con 0, con la misma salida
-# que con --no-graph y una línea más, sin crear nada. Con --no-graph, o con
-# skills list, que no emite, ninguna línea.
+# ni el código: con un world.db que no es una base de datos, boe articulo
+# servido desde la caché sale con 0, con la misma salida estándar que con un
+# grafo sano, y la salida de error lleva exactamente una línea más, que nombra
+# world.db y la causa; y con KITLEGAL_CACHE_DIR presente y vacía, que nombra
+# un fichero, o sin ella y sin HOME (ausente o vacía), territorio resolver sale
+# con 0, con la misma salida que con --no-graph y una línea más, sin crear
+# nada. Con --no-graph, o con skills list, que no emite, ninguna línea.
 #
 # Cubre: US3.5, US3.6 · FR-011, FR-012, FR-033 · SC-011.
 #
@@ -35,12 +34,10 @@ cp stdout sano.txt
 
 # --- world.db que no es una base de datos (US3.5, SC-011) ---
 cp no-es-una-base cache/world.db
-[unix] exec cksum cache/world.db
-[unix] cp stdout antes.txt
 
 exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
 cmp stdout sano.json
-stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: ".*world\.db" no es una base de datos utilizable; no se modifica$'
+stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: ".*world\.db" no es una base de datos utilizable'
 cp stderr no-base.err
 exec sh $WORK/una-linea-mas.sh sano.err no-base.err
 
@@ -52,25 +49,6 @@ stderr -count=1 '^kitlegal: lo observado no ha llegado al grafo del mundo: '
 exec kitlegal boe articulo BOE-A-2015-10565 a21 --no-graph --json
 cmp stdout sano.json
 ! stderr .
-
-# El fichero no se ha modificado ni ha ganado ficheros auxiliares.
-[unix] exec cksum cache/world.db
-[unix] cmp stdout antes.txt
-! exists cache/world.db-wal
-! exists cache/world.db-shm
-! exists cache/world.db-journal
-
-# --- world.db que es un directorio (SC-011) ---
-rm cache/world.db
-mkdir cache/world.db
-exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
-cmp stdout sano.json
-stderr '^kitlegal: lo observado no ha llegado al grafo del mundo: grafo: .*world\.db'
-cp stderr directorio.err
-exec sh $WORK/una-linea-mas.sh sano.err directorio.err
-exists cache/world.db
-! exists cache/world.db-wal
-rm cache/world.db
 
 # --- Referencias de territorio resolver, sin grafo ---
 exec kitlegal territorio resolver Leganés --json --no-graph

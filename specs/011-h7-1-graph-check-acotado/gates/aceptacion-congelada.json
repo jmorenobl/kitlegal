@@ -1,0 +1,10 @@
+{
+  "tarea": "T001",
+  "commit": "0da488f1f7efe437467288810290b3dff9eef482",
+  "ficheros": {
+    "specs/011-h7-1-graph-check-acotado/aceptacion/grafo-check-acotado.txtar": "5fae7ddcd041abb1fe1c5912023392f428c61b69dcbd83c061f84ce9c6a25d4d",
+    "specs/011-h7-1-graph-check-acotado/aceptacion/grafo-lecturas.txtar": "43fda79138d974530a74dc583a7da16d99201f76a40bf7ddcd903b3abae5b510",
+    "specs/011-h7-1-graph-check-acotado/aceptacion/grafo-legible.txtar": "412f5325389581285c765aee3bf3d686fe4906449de1c06842acdd5a7c65f8b5",
+    "specs/011-h7-1-graph-check-acotado/aceptacion/grafo-regla-generica.txtar": "9abc3381cc041e72da22487aeb8b7dfd418ed768d28e04c48b92e9097e578e8f"
+  }
+}

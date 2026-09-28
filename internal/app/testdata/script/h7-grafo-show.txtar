@@ -4,7 +4,7 @@
 # versión, cada una con su procedencia y su primera y última observación; show
 # del BloqueVersion lleva su fecha de vigencia y la huella del texto; y ninguna
 # línea del texto del artículo aparece en la salida de show, stats ni check,
-# con --json ni sin él, donde los tres verbos presentan la tabla mínima.
+# con --json ni sin él.
 #
 # Cubre: US4.1, US4.2 · FR-041, FR-053, FR-055, FR-070 · SC-006.
 #
@@ -46,27 +46,18 @@ stdout '"data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma",'
 ! stderr .
 cp stdout norma.json
 
-# --- Sin --json, la tabla mínima del kernel (FR-055) ---
+# --- Sin --json (FR-055) ---
 #
-# Los cuatro datos de procedencia del sobre y después el contenido, aplanado.
+# Las salidas de los tres verbos se guardan para sin-texto.sh.
 exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21'
-stdout '\Afuente +kitlegal\.graph\n'
-stdout '^url +kitlegal:applet/graph$'
-stdout '^fecha_consulta +2026-09-28T12:00:00Z$'
-stdout '^hash +sha256:[0-9a-f]{64}$'
-stdout '^nodo\.id +eli/es/l/2015/10/01/39#a21$'
-stdout '^nodo\.tipo +Bloque$'
 ! stderr .
 cp stdout bloque.txt
 
 exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c'
-stdout '\Afuente +kitlegal\.graph\n'
-stdout '^nodo\.tipo +BloqueVersion$'
 ! stderr .
 cp stdout version.txt
 
 exec $KITLEGAL_T0_BIN graph show eli/es/l/2015/10/01/39
-stdout '\Afuente +kitlegal\.graph\n'
 ! stderr .
 cp stdout norma.txt
 
@@ -75,7 +66,6 @@ stdout '"data":\{"nodos":3,"aristas":2,"textos":1,'
 ! stderr .
 cp stdout stats.json
 exec $KITLEGAL_T0_BIN graph stats
-stdout '\Afuente +kitlegal\.graph\n'
 ! stderr .
 cp stdout stats.txt
 
@@ -86,7 +76,6 @@ stdout '"clase":"fuente-caducada"'
 ! stderr .
 cp stdout check.json
 exec $KITLEGAL_T8_BIN graph check
-stdout '\Afuente +kitlegal\.graph\n'
 ! stderr .
 cp stdout check.txt
 

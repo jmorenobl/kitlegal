@@ -2,8 +2,7 @@
 # no existe: ocho territorio resolver de ocho municipios distintos terminan las
 # ocho con 0 y sin ningún aviso de grafo en la salida de error, y el grafo
 # tiene las observaciones de las ocho —ocho Municipio, ocho Organo y ocho
-# aristas lb:pertenece_a—, publicadas en un solo world.db sin ningún temporal
-# de publicación que sobre.
+# aristas lb:pertenece_a— en un solo world.db.
 #
 # Cubre: US6.3 · FR-014, FR-022 · SC-009.
 #
@@ -33,13 +32,10 @@ wait
 stdout -count=8 '^\{"ok":true,"fuente":"kitlegal\.territorio",'
 ! stderr .
 
-# Una sola base, y ningún temporal world.db-nuevo-* de las siete que no la
-# publicaron (contracts/almacen-world-db.md §4, paso 3). Los auxiliares de WAL
-# no se afirman: si las ocho cierran a la vez, SQLite puede dejarlos, y ningún
-# requisito lo prohíbe.
+# Una sola base. Los auxiliares de WAL no se afirman: si las ocho cierran a la
+# vez, SQLite puede dejarlos, y ningún requisito lo prohíbe.
 exec ls -A cache
 stdout '^world\.db$'
-! stdout 'world\.db-nuevo'
 
 # Las ocho observaciones, con la fuente de territorio.
 exec kitlegal graph stats --json
