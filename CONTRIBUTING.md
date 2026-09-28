@@ -82,7 +82,7 @@ estables del proyecto:
 
 ```console
 $ ./bin/kitlegal inventado
-argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, skills, territorio
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, graph, skills, territorio; la versión, con «kitlegal version»
 $ echo $?
 2
 ```
@@ -187,11 +187,11 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Análisis estático (`golangci-lint`, `gosec` y `govet` incluidos) | `make lint` | sí |
 | Análisis estático rápido | `make lint-fast` | no — es el del gancho de pre-commit |
 | Tests unitarios con detector de carreras y perfil de cobertura | `make test` | sí |
-| Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal) | `make test-integration` | sí |
-| Cotas de tiempo de los guiones e2e (`TestMedidasDeTiempo`: `boe articulo` desde la caché y `territorio resolver` por debajo de 200 ms), solas y sin la caché de resultados de `go test`, después de las dos anteriores, que la saltan: medir con el reloj mientras corren todos los paquetes mide la carga de la máquina, no el programa | `make test-tiempos` | sí |
+| Tests con la etiqueta `integration` (dependen del entorno: permisos, dos procesos, la instalación de las skills con `make install` en un directorio personal temporal, la matriz de `world.db` de `internal/graph`) | `make test-integration` | sí |
+| Medidas con el reloj de pared, las dos de `MEDIDAS_DE_TIEMPO`: las cotas de tiempo de los guiones e2e (`TestMedidasDeTiempo`: `boe articulo` desde la caché y `territorio resolver` por debajo de 200 ms, ahora entregando al grafo del mundo) y el coste del grafo (`TestCosteDelGrafo`: con un `world.db` que ya existe, la entrega no añade más de 150 ms a la mediana de 20 `boe articulo` desde la caché respecto de los mismos con `--no-graph`, y, en medianas de cinco sobre 10 000 nodos y 10 000 aristas `graph check` tarda menos de 3 s y `graph stats` menos de 1 s). Solas y sin la caché de resultados de `go test`, después de las dos anteriores, que las saltan: medir con el reloj mientras corren todos los paquetes mide la carga de la máquina, no el programa | `make test-tiempos` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
-| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals y lo grabado que necesitan | `make skills-check` | sí |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals, lo grabado que necesitan y el grafo previo que nombran | `make skills-check` | sí |
 | Regeneración de lo que se deriva de cada skill (referencias y tabla de comandos de `SKILL.md`); una skill con `scripts/` la hace fallar | `make skills-sync` | no — escribe en el árbol |
 | Configuración de la release válida (`goreleaser check`, sin construir nada; una propiedad obsoleta en la versión fijada falla) | `make goreleaser-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
@@ -294,7 +294,7 @@ se sirve `install.sh` y sin el cual no se puede verificar la atestación. Al eti
 
 `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
 distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`,
-`municipio.json`, el de `territorio`, e `instalacion.json`, el de `skills`— y los
+`municipio.json`, el de `territorio`, `instalacion.json`, el de `skills`, y `grafo.json`, el de `graph`— y los
 compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
 de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
 regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
@@ -313,6 +313,50 @@ a esta verificación (*Definition of Done*, punto 8), salvo que la fuente no se 
 congelados en `data/` (ADR 0017): no hay respuesta que verificar, y lleva solo su fila de `docs/SOURCES.md`. Ningún control ni flujo graba respuestas: las
 grabaciones contra las que corren los tests las hace una persona con `scripts/grabar-fixtures.sh`.
 
+## El grafo del mundo (`internal/graph`)
+
+Desde H7 el binario recuerda lo que observa (ADR 0014) en `world.db`, una base SQLite en la carpeta de la caché y con
+su misma regla de ubicación (`cache.Directorio`: `KITLEGAL_CACHE_DIR` o `~/.cache/kitlegal`). Quien usa kitlegal lo lee
+con el applet `graph` —`show`, `stats` y `check`, que no escriben nada—, y lo escribe el kernel, nunca un applet:
+
+- **Un applet declara lo que observa en `Resultado.Grafo`** (`schema.Observado`): la vigencia de la consulta y sus
+  operaciones, `schema.Nodo`, `schema.Arista` y `schema.Texto`, sin fuente, url ni fecha. El kernel las entrega
+  después de presentar la salida, y solo si la invocación termina con `0`, al `core.GraphStore` del registro
+  (`Registro.EntregarAlGrafo`), con la `fuente`, la `url` y la `fecha_consulta` del sobre presentado; con `--no-graph`
+  entrega a `graph.Nulo`, que no abre nada. Si la entrega falla, la invocación escribe una línea de aviso en la salida
+  de error y conserva su salida y su código. Un applet que no observa identidades del mundo deja el campo vacío y no
+  implementa nada; uno nuevo que las observa nace emitiendo. Hoy emiten `boe articulo`, `boe articulos` y
+  `territorio resolver`, con los ids naturales (ELI, `ine:<código>`, DIR3) y los tipos y relaciones de
+  `internal/core/grafo/vocabulario.go`.
+- **La lógica es dominio**, `internal/core/grafo`: la validación del lote —con el rechazo de un documento de
+  identidad en un nodo `Persona`—, la fusión de observaciones, las reglas de `check` y sus explicaciones, sin E/S y
+  dentro del umbral de cobertura de `internal/core/**`. **El almacén es un adaptador**, `internal/graph`: SQLite con
+  su migración embebida (`internal/graph/migraciones/`), modo WAL, esperas en tramos de 100 ms que miran el contexto,
+  una lectura que sin auxiliares no cambia ni un byte y una primera escritura que construye `world.db` en un temporal
+  y lo publica. La regla R6 —lista `grafo` de `depguard` en `.golangci.yml` y `TestArquitectura`— le impide importar
+  `internal/source` e `internal/render`; con `internal/cache`, es el único paquete que importa `database/sql` y SQLite
+  (R3), y su superficie exportada no nombra ninguno de los dos (`TestSuperficieExportada`).
+
+Sus tests, y la orden que los ejecuta:
+
+| Qué comprueban | Dónde | Orden |
+|---|---|---|
+| Validación, `Persona`, fusión, reglas de `check` y explicaciones | `internal/core/grafo/*_test.go` | `make test` |
+| Ruta, errores, esperas, migración, modo de apertura según los auxiliares y el permiso, lectura, escritura, publicación del temporal (`publicar_test.go`) y lo que deja una entrega que falla sobre una base sin esquema que no creó el binario (`aplicar_test.go`), sobre `t.TempDir()` | `internal/graph/*_test.go` | `make test` |
+| La matriz por la API pública: esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, bases inutilizables, sin permiso de escritura, con los auxiliares y los diarios de SQLite y sin residuos | `internal/graph/integracion_test.go` (`//go:build integration`) | `make test-integration` |
+| `world.db` como enlace simbólico, con destino y sin él | `internal/graph/integracion_enlace_test.go` (`//go:build integration && unix`) | `make test-integration` |
+| El applet, su salida contra `schemas/grafo.json`, ningún texto legal en su salida, la salida de `boe` igual con grafo y sin él, y la procedencia de cada operación | `internal/app/grafo_test.go` | `make test` |
+| El coste de la entrega y de `graph check` y `graph stats` sobre un grafo grande; las medianas medidas salen en el mensaje de toda cota incumplida y con `go test -v -count=1 -run '^TestCosteDelGrafo$' ./internal/app/` | `internal/app/coste_test.go` (`TestCosteDelGrafo`) | `make test-tiempos` |
+| Los guiones de extremo a extremo, con tres binarios de reloj fijo (`KITLEGAL_T0_BIN`, `KITLEGAL_T1_BIN` y `KITLEGAL_T8_BIN`) y las respuestas derivadas de `internal/app/testdata/derivadas/` | `internal/app/testdata/script/` | `make test-e2e`, y `make test` con todo lo demás |
+
+**Ningún test escribe en `~/.cache/kitlegal`**: el que entrega lo hace a `graph.ConDirectorio(t.TempDir())` o monta un
+registro sin almacén, y un guion usa el `KITLEGAL_CACHE_DIR` del arnés. Lo que el almacén puede cambiar en los bytes
+—nunca en el contenido— de un `world.db` que no creó el binario, o junto a los auxiliares que deja un escritor
+interrumpido, son las tres desviaciones declaradas de H7 (`specs/010-h7-internal-graph-grafo/plan.md`, *Complexity
+Tracking*, y [CHANGELOG.md](CHANGELOG.md)). `aplicar_test.go` y la matriz de integración las afirman caso a caso, con
+la lista literal de bytes que cambian: si una versión nueva del controlador de SQLite cambia alguna, el test lo dice, y
+el caso se actualiza midiéndolo de nuevo, nunca relajándolo a un intervalo.
+
 ## Skills y evals
 
 Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019): cada
@@ -330,9 +374,9 @@ hace fallar también `make skills-sync`, que no la retira—, que cada orden de 
 empotrada nombra un applet y un verbo que el binario registra, la tabla de normas contra `schemas/normas.yaml.json`,
 que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
 `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, y el
-formato y el conjunto de las evals y que lo que necesitan está grabado. Una norma nueva, o una eval que consulta algo
-que no está grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh`: ningún control ni
-flujo graba respuestas.
+formato y el conjunto de las evals, que lo que necesitan está grabado y que el grafo previo que nombran se prepara.
+Una norma nueva, o una eval que consulta algo que no está grabado, llega con su grabación, que hace una persona con
+`scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
 
 ### `make install` y los enlaces del anterior
 
@@ -388,10 +432,12 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 |---|---|---|
 | `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
 | `activa` | sí | Si la pregunta debe activar la skill |
-| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cuatro formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`) o un municipio (`applet`, `verbo` `resolver`, `municipio`) |
+| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cinco formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`) o una comprobación (`applet`, `verbo` `check`) |
 | `citas` | sí si `activa` es `true` y no hay `territorio`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
 | `territorio` | sí si `activa` es `true` y no hay `citas`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
+| `prohibidos` | no; solo si `activa` es `true`, prohibido si es `false` | Los `applet` y `verbo` que la sesión no puede invocar (`graph` `show`…); al menos uno |
+| `grafo_previo` | no; solo si `activa` es `true`, prohibido si es `false` | Lo que el grafo del mundo de la sesión ya ha observado al empezar: `grabaciones`, un directorio de `testdata/evals/grafo-previo/` con respuestas del BOE que se ponen encima de las grabadas, y `comandos`, los bloques (`applet`, `norma`, `bloque`) que se consultan contra ellas antes de la sesión, entregando lo observado al grafo de la sesión; la caché de la sesión se prepara después, como siempre y sin entregar nada |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
@@ -404,13 +450,16 @@ deciden, de materias distintas, al menos una de no activación y al menos una in
 activación, entre otras. Para `legal-core`, al menos tres evals: una positiva que resuelve un municipio del territorio
 configurado y declara sus boletines, otra que resuelve uno de una comunidad sin configuración y declara no
 configurados el boletín autonómico y el provincial, al menos una de no activación, y citas o territorio en toda
-positiva.
+positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparación, en temporales, deja en el grafo un
+`BloqueVersion` por comando sin ninguna falta (`TestEvalsDelRepositorio`, subprueba `grafo-previo`).
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
-termina, hace con éxito cada consulta de `comandos` y responde citando cada `norma` y `bloque` de `citas`, declarando lo
-que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el código de cada boletín
-como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`— y con la forma fija de cada
-aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
+termina, hace con éxito cada consulta de `comandos` —una comprobación la cumple una invocación de ese applet con
+`check` que termina con `0`—, no invoca nada de `prohibidos` —cuenta toda invocación que consulta de ese applet y
+verbo, termine como termine; la ayuda, `--describe` y `--dry-run`, no— y responde citando cada `norma` y `bloque` de
+`citas`, declarando lo que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el
+código de cada boletín como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`— y con la
+forma fija de cada aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
 traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
 ([Job de evals](#job-de-evals)).
 
@@ -447,14 +496,14 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
 
-Con las dieciocho evals de `boe-legislacion`, su trabajo abre 90 sesiones: 36 de `claude-sonnet-5` sobre las doce
-que deciden, 18 sobre las seis informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
+Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones: 36 de `claude-sonnet-5` sobre las doce
+que deciden, 21 sobre las siete informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
 del tope de 120 minutos del job (`timeout-minutes`). Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
 | Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, `internal/source/boe/`, `internal/core/`, `internal/cli/`, `internal/evals/`, `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`— y `skills.go`), `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
 | Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del

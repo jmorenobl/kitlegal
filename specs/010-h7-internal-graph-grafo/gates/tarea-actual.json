@@ -1,13 +1,17 @@
 {
-  "id": "T027",
-  "texto": "T027 [US5] `boe-legislacion` v0.1 (contracts/evals-y-skill.md §5; research D27): skills/boe-legislacion/SKILL.md con el frontmatter `kitlegal-applets: boe graph`; en el protocolo, `kitlegal graph check --json` tras resolver el `BOE-A-…` y antes de leer, y otra vez tras leer y antes de responder; la respuesta reúne los hallazgos de las dos comprobaciones cuya explicación nombra el `BOE-A-…` de la norma de la pregunta, los agrupa por clase y dice cada clase una sola vez (`version-obsoleta`: la redacción cambió respecto de la consultada antes, con las fechas de vigencia; `fuente-caducada`: la consulta anterior había caducado y la respuesta se apoya en la lectura nueva) y no traslada los demás; en las reglas, el texto citado sale siempre de `kitlegal boe articulo` o `articulos`, nunca se cita, parafrasea ni reconstruye texto de la salida de un verbo de `graph`, `graph check` con 0 es un resultado con hallazgos o sin ellos y nunca un fallo, y con otro código se responde igual con el texto de `kitlegal boe` diciendo que no se ha podido comprobar la memoria de consultas; nada más cambia (forma de la cita y de los avisos, resto del protocolo); menos de 300 líneas y sin nombrar evals, el job ni modelos; la región generada con la tabla de `kitlegal graph` (`show`, `stats`, `check`) regenerada con `make skills-sync`, sin editarla a mano; verificación: `make skills-check` sin deriva, `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas` y `TestTablaDeComandosCoincideConLaGramatica` en verde — FR-080, FR-081, FR-082, FR-083, FR-093; SC-012, SC-013; rutas: skills/boe-legislacion/SKILL.md",
+  "id": "T028",
+  "texto": "T028 Documentación alineada (plan.md paso 22; «Objetivos del Makefile»): CHANGELOG.md en *Unreleased* con el cambio visible (el grafo del mundo en `world.db` junto a la caché, lo que emiten `boe articulo`, `boe articulos` y `territorio resolver`, el applet `graph` con `show`, `stats` y `check` y sus dos clases de hallazgo, `--no-graph` con efecto y su ayuda nueva, la línea de aviso de una entrega fallida, `boe-legislacion` v0.1 y la eval informativa nueva, y las desviaciones declaradas en bytes de plan.md); README.md con el applet `graph`, `world.db` y `--no-graph`; CONTRIBUTING.md con `test-tiempos` tal como queda en el Makefile (`TestMedidasDeTiempo` y `TestCosteDelGrafo`) y el paquete `internal/graph` con sus tests de integración; verificación: cada objetivo y applet que nombran aparece en `make help` y en `kitlegal --help`, y `make ci` — FR-094; SC-013; rutas: CHANGELOG.md, README.md, CONTRIBUTING.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "9ac77e93b128ffc9375ea5f600d23e3bc3269a08",
+  "base": "28386b9664e05f6b8b3da9ff0a43e4f9165081d5",
   "rutas": [
-    "contracts/evals-y-skill.md",
-    "skills/boe-legislacion/SKILL.md"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "README.md",
+    "internal/graph",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
