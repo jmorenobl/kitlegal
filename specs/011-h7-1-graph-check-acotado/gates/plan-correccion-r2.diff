@@ -1,0 +1,168 @@
+diff antes/contracts/almacen-world-db.md ahora/contracts/almacen-world-db.md
+--- antes/contracts/almacen-world-db.md	2026-09-28 23:31:28
++++ ahora/contracts/almacen-world-db.md	2026-09-28 23:36:20
+@@ -2,7 +2,7 @@
+ 
+ Lo que cambia de `specs/010-h7-internal-graph-grafo/contracts/almacen-world-db.md` (no se edita). FR-020 a FR-026,
+ FR-070 a FR-078. Modelo: [../data-model.md](../data-model.md) §1-§4 y §9. Decisiones: [../research.md](../research.md)
+-D1-D4, D8, D17-D22. Verificaciones: research V1-V10, V21 y V27.
++D1-D4, D8, D17-D22. Verificaciones: research V1-V10, V21, V27 y V28.
+ 
+ ## 1. API pública de `internal/graph`
+ 
+@@ -88,8 +88,9 @@
+ constitución VII) (FR-074, FR-075). Se retiran: URI no absoluto, nodo sin id o sin tipo, arista sin relación, arista sin
+ extremos y el grafo vacío como caso aparte. Ninguna otra entrada del lote es un caso de este contrato: lo que ningún
+ emisor produce (el kernel escribe la fecha del sobre con `time.RFC3339Nano`, research V27; la única vigencia declarada
+-es la constante de `boe`, V21) es la regla genérica —el lote no entra, §6— sin test propio; las comprobaciones que hoy
+-lo rechazan se quedan en el código (research D20).
++es la constante de `boe`, V21; los emisores solo ponen cadenas en los datos y ninguno emite `Persona`, V28) es la regla
++genérica —el lote no entra, §6— sin test propio; las comprobaciones que hoy lo rechazan se quedan en el código
++(research D20). Lo mismo vale para lo guardado que ninguna entrega escribe (research D21).
+ 
+ Desempate (FR-076): con el mismo instante de consulta, gana la observación de `url` menor comparando bytes; con la misma
+ `url`, la guardada (una observación idéntica no cambia nada). Dentro de un lote, un id repetido se queda con su primera
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-09-28 23:31:28
++++ ahora/plan.md	2026-09-28 23:36:31
+@@ -39,7 +39,8 @@
+ 5. **Retirar, no reescribir** (D17-D22): la lectura mira solo si hay `-wal`; la escritura crea en su sitio con los
+    permisos de H7; se retiran la publicación, los permisos, el inmutable, los enlaces, los diarios, el `-shm` suelto,
+    las bases de fuera, los rechazos y niveles de desempate que nadie produce, las filas dañadas y los casos no ASCII
+-   de `Persona`, con sus tests; lo que tiene vía real se queda con los suyos.
++   de `Persona`, con sus tests; salen también los tests de las entradas del lote y de lo guardado que ningún emisor
++   produce, cuyo código se queda como regla genérica (D20, D21); lo que tiene vía real se queda con los suyos.
+ 
+ No cambia ninguna decisión de arquitectura: no hay ADR nuevo y `specs/010-h7-internal-graph-grafo/` no se edita
+ (FR-083).
+@@ -119,7 +120,7 @@
+ ```text
+ specs/011-h7-1-graph-check-acotado/
+ ├── plan.md                 # este fichero
+-├── research.md             # D1-D24, verificaciones V1-V27, supuestos S1-S3
++├── research.md             # D1-D24, verificaciones V1-V28, supuestos S1-S3
+ ├── data-model.md           # lecturas, ámbito, Comprobacion, etiqueta, formato de eval, retirada
+ ├── quickstart.md           # escenarios de validación
+ ├── contracts/
+@@ -143,7 +144,7 @@
+ ├── lote.go             # fuera ValidarContraGrafoVacio, URI absoluto, id/tipo, arista; Consolidar: primera aparición
+ ├── observacion.go      # desempate solo por url
+ ├── persona.go          # solo el comentario de los casos no ASCII
+-└── *_test.go           # comprobar_test (secuencia, ámbito, cota, orden), lecturas_test, lote_test, observacion_test, persona_test
++└── *_test.go           # comprobar_test (secuencia, ámbito, cota, orden), lecturas_test, lote_test, observacion_test, persona_test, canonico_test, salida_test
+ internal/graph/
+ ├── migraciones/0002_lecturas.sql   # nuevo
+ ├── lectura.go          # Instantanea(ctx, ambito): acotada en SQL; filas de lecturas; versión 1 legible
+@@ -233,10 +234,16 @@
+   `TestApplyNoModifica`, `TestApplyEnSuSitio`, `TestIntegracionEsquema`, `TestIntegracionInutilizables`,
+   `TestIntegracionRecuperacionDeclarada`, `TestErrores` y `TestMigrar` («`schema_version` ajena» y «versión
+   negativa», research D21); los rechazos y los niveles de desempate retirados en `lote_test`, `observacion_test`,
+-  `almacen_test` e `integracion_test`, y los casos de entradas que ningún emisor produce (fecha que no es RFC 3339 y
+-  vigencia negativa en `lote_test`; vigencia con fracción de segundo y datos sin forma JSON canónica en
+-  `TestApplyRechazaElLote`; research D20); los casos no ASCII de `persona_test`; en `internal/app/grafo_test.go`,
+-  `compruebaGrafoIncomprobable` y los casos del directorio.
++  `almacen_test` e `integracion_test`; los casos de entradas del lote que ningún emisor produce (research D20): fecha
++  que no es RFC 3339 y vigencia negativa en `probarRechazosDeLaProcedencia` y datos sin forma JSON en
++  `probarLotesQueNoSeConsolidan` (`lote_test`), vigencia con fracción de segundo y datos sin forma JSON canónica en
++  `TestApplyRechazaElLote`, «un numero que no es finito», «una cadena que no es UTF-8» y «un valor que no es de JSON»
++  de `persona_test` y `TestDatosCanonicosImposibles` (`canonico_test`); los de lo guardado que ninguna entrega escribe
++  (research D21): `historiasImposibles` y sus casos en `probarNodosQueNoSeFusionan`, `probarAristasQueNoSeFusionan` y
++  `probarTextosQueNoSeFusionan` (`observacion_test`), `probarInstantaneasImposibles` entera (`comprobar_test`) y
++  `probarFichaSinFormaJSON` (`salida_test`); los casos no ASCII de `persona_test`; en `internal/app/grafo_test.go`,
++  `compruebaGrafoIncomprobable` con `baseConUnaFechaIlegible` y los casos del directorio. Las constantes y ayudas de
++  esos tests que quedan sin uso salen con ellos.
+ - **Se adaptan**: el esquema «de una versión posterior» de los tests pasa de la 2 a la 3 y su mensaje a «conoce la 2»
+   (`almacen_test.go:669`, `errores_test.go:88`, `integracion_test.go:363,746,1365,2007`, `lectura_test.go:249`,
+   `migraciones_test.go:208`, `internal/app/grafo_test.go:1043`); los tests de espera al leer (vehículo en WAL con
+@@ -304,6 +311,7 @@
+ | Retirada en `abrir.go`, `aplicar.go`, `almacen.go`, `publicar.go` y sus tests; filas dañadas | FR-070, FR-071, FR-072, FR-073, FR-095 |
+ | Vehículo WAL de los tests de espera al leer | FR-073, FR-077 |
+ | Retirada en `lote.go`, `observacion.go`, `persona_test.go` | FR-074, FR-075, FR-076 |
++| Retirada de los tests de entradas del lote y de lo guardado que ningún emisor produce (research D20, D21) | Entrega (7) del spec; constitución, «Gates» (regla genérica) |
+ | Derivada `version-ulterior` | FR-025, FR-091 |
+ | Guiones de H7 cambiados | FR-080, FR-081 |
+ | `schemas/grafo.json`, `schemas/eval.yaml.json` | FR-082 |
+@@ -311,9 +319,10 @@
+ | `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md` | FR-048, FR-097 (y lo que el hito deja falso en la documentación) |
+ 
+ Nada del diseño trata un estado o una entrada por debajo del umbral de materialidad: lo que el binario no produce, en
+-`world.db` o en un lote, sigue la regla genérica —1, `inesperado`, la ruta— sin caso propio, sin test y sin promesa
+-sobre sus bytes; las guardas que hoy lo rechazan se quedan en el código como esa regla, sin caso en los contratos ni
+-test propio (research D20, D21).
++`world.db` o en un lote (research V21, V27, V28), sigue la regla genérica —1, `inesperado`, la ruta— sin caso propio,
++sin test y sin promesa sobre sus bytes; las guardas que hoy lo rechazan se quedan en el código como esa regla, sin caso
++en los contratos ni test propio, y sus tests salen, caso a caso, en «Tests existentes que cambian» (research D20,
++D21).
+ 
+ ## Datos externos
+ 
+@@ -369,7 +378,7 @@
+ - g · Sin atajos: ningún `//nolint` nuevo, ningún `t.Skip`, ningún error silenciado (los errores de lectura de lo
+   guardado se devuelven: regla genérica).
+ - h · Mejor alternativa: cada decisión con la rechazada (research D1-D24).
+-- i · Afirmaciones verificadas: V1-V27 con fichero:línea o sonda; S1-S3 como supuestos.
++- i · Afirmaciones verificadas: V1-V28 con fichero:línea o sonda; S1-S3 como supuestos.
+ - j · Quickstart ejecutable: binario y caché en un directorio temporal; el único escenario que escribe en el
+   repositorio (§9) lo declara.
+ - k · Datos externos: ninguno.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-09-28 23:31:28
++++ ahora/research.md	2026-09-28 23:35:47
+@@ -41,6 +41,7 @@
+ | V25 | Una entrega cuya transacción inmediata se confirma sin cambiar ninguna fila no cambia ningún fichero del directorio | `TestApplyIdempotente` (`internal/graph/almacen_test.go:290-339`, `huellasDelArbol` tras cada entrega repetida), ejecutado en local | `ok` |
+ | V26 | Con `Norma *string arg:"" optional:""` y `Bloques []string arg:"" optional:""`, Kong deja `Norma` en `nil` sin argumentos y en `""` con un argumento vacío, y reparte `BOE-A-… a21 a22` y `BOE-A-… " "` en norma y bloques sin error | `kong@v1.16.1/mapper.go:293` (`ptrMapper`); sonda temporal en `internal/cli` (`kong.New` + `Parse`), borrada tras ejecutarla | como se dice |
+ | V27 | El único constructor de un lote con procedencia escribe la fecha de consulta con `time.RFC3339Nano` a partir del `time.Time` del sobre y copia la vigencia de lo observado | `internal/cli/entrega.go:28-35` (`LoteDe`); `grep` de `core.Lote{` fuera de tests | solo ahí |
++| V28 | Los emisores solo ponen cadenas en los `Datos` de un nodo, y ninguno emite `Persona`; un argumento llega al applet en UTF-8 válido salvo el `cli.Literal` de `graph show`, que no emite | `internal/source/boe/grafo.go:63-71` y `internal/core/territorio/grafo.go:29-39` (los dos únicos `schema.Nodo{` fuera de tests con datos); `grep` de `TipoPersona` fuera de tests (solo `internal/core/grafo`); `kong@v1.16.1/scanner.go:188` y `mapper.go:956-965` (`jsonTranscode` pasa el argumento por `json.Marshal`); `internal/app/grafo.go:110` | como se dice |
+ 
+ ## Supuestos no verificables en local (S)
+ 
+@@ -277,13 +278,20 @@
+ otro tipo (guardado o del lote); huella que no es la de su cuerpo o que ya guarda otro cuerpo (los diez casos de
+ `probarHuellas…` se reducen a uno por rechazo); la regla de `Persona` con sus casos ASCII. Ninguna otra entrada del
+ lote tiene caso ni test propio: una fecha de consulta que no es RFC 3339, una vigencia negativa o con fracción de
+-segundo y unos datos sin forma JSON canónica no los produce ningún emisor (V27, V21). El código que hoy los rechaza
+-(`validarProcedencia` en `lote.go`, `consolidar` en `internal/graph/aplicar.go:48`, la serialización canónica) se
+-queda: es la regla genérica en el código —lo que el binario no produce no entra, y la entrega lo dice como
+-`inesperado`—, y FR-075 cierra la lista de rechazos cuyo código se retira (FR-078, en `internal/graph`). Lo que sale
+-son sus casos de los tests: los cuatro de fecha y el de vigencia negativa de `probarRechazosDeLaProcedencia`
+-(`lote_test.go:169-193`) y, de `TestApplyRechazaElLote` (`almacen_test.go:523`), la vigencia con fracción de segundo y
+-los datos sin forma JSON canónica.
++segundo y unos datos sin forma JSON canónica —un número que no es finito, una cadena o una clave que no es UTF-8, un
++valor que no es de JSON—, en cualquier nodo o en una `Persona`, no los produce ningún emisor (V27, V21, V28). El código
++que hoy los rechaza (`validarProcedencia` en `lote.go`, `consolidar` en `internal/graph/aplicar.go:48`,
++`DatosCanonicos` en `canonico.go` y sus usos al consolidar y en `validarPersona`) se queda: es la regla genérica en el
++código —lo que el binario no produce no entra, y la entrega lo dice como `inesperado`—, y FR-075 cierra la lista de
++rechazos cuyo código se retira (FR-078, en `internal/graph`). Lo que sale son todos sus casos de los tests:
++- `lote_test.go`: los cuatro de fecha y el de vigencia negativa de `probarRechazosDeLaProcedencia` (169-193), y el
++  nodo con datos sin forma JSON de `probarLotesQueNoSeConsolidan` (595-607), que se queda con el lote sin fuente;
++- `almacen_test.go`: de `TestApplyRechazaElLote` (523), la vigencia con fracción de segundo y los datos sin forma JSON
++  canónica;
++- `persona_test.go`: «un numero que no es finito», «una cadena que no es UTF-8» y «un valor que no es de JSON»
++  (215-217), con la constante `motivoDatosSinJSON` (19), que queda sin uso;
++- `canonico_test.go`: `TestDatosCanonicosImposibles` entero (202-232).
++
+ **Por qué**: FR-074, FR-075 («cada uno con un test y sin enumerar más casos»), FR-076; constitución, «Gates» (umbral
+ de materialidad: los datos de un emisor que no existe los cubre la regla genérica).
+ 
+@@ -295,7 +303,20 @@
+ `graph`, en la entrega y en `internal/graph` (`TestIntegracionInutilizables`). También sale el código que solo sirve a
+ esos estados: `errFilaDanada` y su clasificación aparte (un fallo al fusionar con lo guardado es
+ `errorDeEntradaSalida`, 1) y las comprobaciones de rango de la vigencia guardada en `vigenciaGuardada` e `indexar`. Las
+-lecturas de JSON y de fechas guardadas siguen devolviendo su error, que es la regla genérica (1).
++lecturas de JSON y de fechas guardadas siguen devolviendo su error, que es la regla genérica (1), sin caso en los
++contratos ni test propio. Salen, por eso, los tests que las ejercen con lo que ninguna entrega escribe —una fecha de
++consulta que no es RFC 3339, guardada o llegando (la que llega ya la rechaza `validarProcedencia`, D20), y unos datos
++sin forma JSON, que `world.db` no puede dar porque los guarda como texto JSON—:
++- `observacion_test.go`: `historiaImposible` e `historiasImposibles` (296-318) y sus casos en
++  `probarNodosQueNoSeFusionan` (407-412), `probarAristasQueNoSeFusionan` (456-461) y `probarTextosQueNoSeFusionan`
++  (518-527), con `fechaImposible` y `mensajeFechaImposible` (41-45), que quedan sin uso;
++- `comprobar_test.go`: `probarInstantaneasImposibles` (429-460) y su subtest «instantaneas que ninguna lectura da»
++  (207), también el caso de la fecha, no solo los de vigencia que pierden su comprobación de rango;
++- `salida_test.go`: `probarFichaSinFormaJSON` (132, 136-145);
++- `internal/app/grafo_test.go`: con `compruebaGrafoIncomprobable`, su base `baseConUnaFechaIlegible` (2521-2547).
++
++El código que devuelve esos errores (`FusionarNodo`, `FusionarArista` y `FusionarTexto` al leer una fecha, `indexar`
++con la fecha guardada, `Ficha.MarshalJSON`) se queda como la regla genérica.
+ Sale también el subtest «una versión negativa no es una base utilizable» de `TestMigrar` (`migraciones_test.go:214`):
+ `migrar` solo registra las versiones 1 y 2, así que ese valor solo lo deja quien edita la base a mano. Las guardas que
+ evitan el `panic` de `lista[registrada:]` (`migraciones.go:134`, `aplicar.go:134`) se quedan como parte de la regla
