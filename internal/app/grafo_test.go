@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -2222,6 +2223,201 @@ func escribirFicheroDePrueba(t *testing.T, ruta string, contenido []byte) {
 	t.Helper()
 
 	require.NoError(t, os.WriteFile(filepath.Clean(ruta), contenido, 0o600))
+}
+
+// derivadasDelE2E es la carpeta de las grabaciones derivadas de las de H4 que
+// el arnés copia en el $WORK/derivadas/ de cada guion, relativa a este paquete:
+// una subcarpeta por caso, con una grabación que lleva el nombre de la de H4 que
+// sustituye (contracts/arnes-e2e.md §3; research.md D22).
+const derivadasDelE2E = "testdata/derivadas"
+
+// Los nombres de las grabaciones de H4 que sustituyen las derivadas, los que les
+// da la dirección de la que salen: la del bloque a21 y la de los metadatos de la
+// Ley 39/2015.
+const (
+	grabacionDelBloqueA21   = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json"
+	grabacionDeLosMetadatos = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json"
+)
+
+// parrafoDeLaVersionPosterior es el párrafo que marca como sintética la
+// redacción de la derivada version-posterior: el último de su versión.
+const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n posterior " +
+	"derivada de la grabaci\xc3\xb3n de H4.]"
+
+// grabacionDerivada es una derivada con lo que dice su nombre: la carpeta en la
+// que está, el nombre de la grabación de H4 que sustituye y la comprobación de
+// que, leída con boe, solo cambia eso.
+type grabacionDerivada struct {
+	carpeta, fichero string
+	// comprueba recibe la carpeta de reproducción con las grabaciones de H4 y
+	// otra igual con la derivada en lugar de la suya.
+	comprueba func(t *testing.T, original, derivada string)
+}
+
+// grabacionesDerivadas son las derivadas del e2e (research.md D22), cada una
+// con lo que dice su nombre: version-posterior, la fecha de vigencia 20250101 y
+// el párrafo sintético al final del texto, con la huella de ese texto; sin-eli,
+// la url_eli vacía; y eli-sin-segmento, una url_eli sin el segmento eli.
+func grabacionesDerivadas() []grabacionDerivada {
+	return []grabacionDerivada{
+		{
+			carpeta: filepath.Join(derivadasDelE2E, "version-posterior"),
+			fichero: grabacionDelBloqueA21,
+			comprueba: func(t *testing.T, original, derivada string) {
+				t.Helper()
+
+				compruebaLaDerivacion(t, original, derivada, []string{"articulo", normaDeBoe, "a21"},
+					func(articulo *boe.Articulo) {
+						articulo.FechaVigencia = "20250101"
+						articulo.Texto += "\n" + parrafoDeLaVersionPosterior
+						articulo.HashTexto = huellaDelTexto(articulo.Texto)
+					})
+			},
+		},
+		{
+			carpeta: filepath.Join(derivadasDelE2E, "sin-eli"),
+			fichero: grabacionDeLosMetadatos,
+			comprueba: func(t *testing.T, original, derivada string) {
+				t.Helper()
+
+				compruebaLaDerivacion(t, original, derivada, []string{"metadatos", normaDeBoe},
+					func(metadatos *boe.Metadatos) { metadatos.URLELI = "" })
+			},
+		},
+		{
+			carpeta: filepath.Join(derivadasDelE2E, "eli-sin-segmento"),
+			fichero: grabacionDeLosMetadatos,
+			comprueba: func(t *testing.T, original, derivada string) {
+				t.Helper()
+
+				compruebaLaDerivacion(t, original, derivada, []string{"metadatos", normaDeBoe},
+					func(metadatos *boe.Metadatos) {
+						metadatos.URLELI = "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565"
+					})
+			},
+		},
+	}
+}
+
+// TestGrabacionesDerivadas es el control de derivación de research.md D22 (FR-090,
+// FR-095): cada derivada del e2e lleva el nombre de una grabación de H4 y,
+// servida en su lugar, boe la lee y da el mismo Articulo o los mismos metadatos
+// que la grabación salvo exactamente lo que dice su nombre (grabacionesDerivadas).
+// Todo fichero de la carpeta de las derivadas tiene su comprobación y toda
+// comprobación, su fichero: una derivada nueva que no dijera qué cambia no pasa.
+// La premisa de cada una dice que no pasa en vacío: lo que dice su nombre cambia
+// algo de lo que da la grabación.
+func TestGrabacionesDerivadas(t *testing.T) {
+	t.Parallel()
+
+	derivadas := grabacionesDerivadas()
+	comprobadas := make([]string, 0, len(derivadas))
+
+	for _, derivada := range derivadas {
+		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta, derivada.fichero))
+	}
+
+	assert.ElementsMatch(t, ficherosDeLaCarpeta(t, derivadasDelE2E), comprobadas,
+		"cada derivada del e2e tiene su comprobación, y cada comprobación, su derivada")
+
+	for _, derivada := range derivadas {
+		t.Run(filepath.Base(derivada.carpeta), func(t *testing.T) {
+			t.Parallel()
+
+			require.FileExists(t, filepath.Join(grabacionesDeBoe, derivada.fichero),
+				"la derivada lleva el nombre de una grabación de H4")
+
+			derivada.comprueba(t, grabacionesDeBoe, reproduccionConLaDerivada(t, derivada))
+		})
+	}
+}
+
+// ficherosDeLaCarpeta son las rutas de los ficheros regulares que hay por
+// debajo de la carpeta, con ella delante; cualquier otra cosa que no sea un
+// directorio hace fallar la prueba.
+func ficherosDeLaCarpeta(t *testing.T, carpeta string) []string {
+	t.Helper()
+
+	var ficheros []string
+
+	err := fs.WalkDir(os.DirFS(carpeta), ".", func(ruta string, entrada fs.DirEntry, err error) error {
+		if err != nil || entrada.IsDir() {
+			return err
+		}
+
+		require.True(t, entrada.Type().IsRegular(), "%s es un fichero regular", ruta)
+
+		ficheros = append(ficheros, filepath.Join(carpeta, filepath.FromSlash(ruta)))
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	return ficheros
+}
+
+// reproduccionConLaDerivada es una carpeta de reproducción nueva con las
+// grabaciones de H4 y la derivada en lugar de la suya, como la deja un guion
+// que la pone en juego con cp. La escribe a través de un os.Root: nada de lo que
+// escribe puede salir de la carpeta.
+func reproduccionConLaDerivada(t *testing.T, derivada grabacionDerivada) string {
+	t.Helper()
+
+	carpeta := filepath.Join(t.TempDir(), boe.NombreDeLaFuente)
+	require.NoError(t, os.CopyFS(carpeta, os.DirFS(grabacionesDeBoe)))
+
+	contenido, err := fs.ReadFile(os.DirFS(derivada.carpeta), derivada.fichero)
+	require.NoError(t, err)
+
+	raiz, err := os.OpenRoot(carpeta)
+	require.NoError(t, err)
+
+	escrita := raiz.WriteFile(derivada.fichero, contenido, 0o600)
+	require.NoError(t, raiz.Close())
+	require.NoError(t, escrita)
+
+	return carpeta
+}
+
+// compruebaLaDerivacion lee con boe, con los argumentos, la reproducción
+// original y la derivada, y exige que la derivada dé lo que da la original con
+// el cambio aplicado; la premisa, que el cambio cambie algo.
+func compruebaLaDerivacion[T any](t *testing.T, original, derivada string, argumentos []string, cambio func(*T)) {
+	t.Helper()
+
+	leido := leidoConBoe[T](t, original, argumentos)
+
+	esperado := leidoConBoe[T](t, original, argumentos)
+	cambio(&esperado)
+
+	require.NotEqual(t, leido, esperado, "premisa: lo que dice el nombre cambia lo que da la grabación")
+	assert.Equal(t, esperado, leidoConBoe[T](t, derivada, argumentos), "la derivada solo cambia lo que dice su nombre")
+}
+
+// leidoConBoe es el data de boe con los argumentos y --json sobre la
+// reproducción de la carpeta, con una caché nueva, que tiene que salir con 0,
+// leído en T sin admitir ninguna clave que T no tenga: lo que se compara es todo
+// lo que boe da.
+func leidoConBoe[T any](t *testing.T, carpeta string, argumentos []string) T {
+	t.Helper()
+
+	res := nuevoBancoDeBoe(t, carpeta).invocar(t, argvDeBoe(slices.Concat(argumentos, []string{"--json"})...)...)
+	require.Equal(t, 0, res.codigo, res.errores)
+
+	var sobre struct {
+		Data json.RawMessage `json:"data"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(res.salida), &sobre))
+
+	decodificador := json.NewDecoder(bytes.NewReader(sobre.Data))
+	decodificador.DisallowUnknownFields()
+
+	var leido T
+
+	require.NoError(t, decodificador.Decode(&leido), "%s", sobre.Data)
+
+	return leido
 }
 
 // Las bases que ninguna entrega escribe —un esquema de una versión posterior,
