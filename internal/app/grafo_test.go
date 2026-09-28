@@ -2231,6 +2231,14 @@ func escribirFicheroDePrueba(t *testing.T, ruta string, contenido []byte) {
 // sustituye (contracts/arnes-e2e.md §3; research.md D22).
 const derivadasDelE2E = "testdata/derivadas"
 
+// grafosPreviosDeLasEvals es la carpeta de las grabaciones derivadas de las de
+// H4 con las que el job prepara el grafo previo de una eval, relativa a este
+// paquete: una subcarpeta por grafo previo (contracts/evals-y-skill.md §3 y §4;
+// research.md D22). Es la de evals.GrafosPrevios, que resuelve igual desde
+// internal/app, escrita aquí porque internal/evals importa este paquete y no se
+// puede importar desde sus tests.
+const grafosPreviosDeLasEvals = "../../testdata/evals/grafo-previo"
+
 // Los nombres de las grabaciones de H4 que sustituyen las derivadas, los que les
 // da la dirección de la que salen: la del bloque a21 y la de los metadatos de la
 // Ley 39/2015.
@@ -2244,6 +2252,12 @@ const (
 const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n posterior " +
 	"derivada de la grabaci\xc3\xb3n de H4.]"
 
+// parrafoDeLaVersionAnterior es el que marca como sintética la redacción de la
+// derivada lpac-a21-version-anterior, el grafo previo de la eval de la consulta
+// repetida: el último de su versión.
+const parrafoDeLaVersionAnterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n anterior " +
+	"derivada de la grabaci\xc3\xb3n de H4.]"
+
 // grabacionDerivada es una derivada con lo que dice su nombre: la carpeta en la
 // que está, el nombre de la grabación de H4 que sustituye y la comprobación de
 // que, leída con boe, solo cambia eso.
@@ -2254,26 +2268,17 @@ type grabacionDerivada struct {
 	comprueba func(t *testing.T, original, derivada string)
 }
 
-// grabacionesDerivadas son las derivadas del e2e (research.md D22), cada una
-// con lo que dice su nombre: version-posterior, la fecha de vigencia 20250101 y
-// el párrafo sintético al final del texto, con la huella de ese texto; sin-eli,
-// la url_eli vacía; y eli-sin-segmento, una url_eli sin el segmento eli.
+// grabacionesDerivadas son las derivadas del e2e y la del grafo previo de la eval
+// de la consulta repetida (research.md D22), cada una con lo que dice su nombre:
+// version-posterior, la fecha de vigencia 20250101 y el párrafo sintético al
+// final del texto, con la huella de ese texto; sin-eli, la url_eli vacía;
+// eli-sin-segmento, una url_eli sin el segmento eli; y lpac-a21-version-anterior,
+// la fecha de vigencia 20151002 y su párrafo sintético al final del texto, con la
+// huella de ese texto.
 func grabacionesDerivadas() []grabacionDerivada {
 	return []grabacionDerivada{
-		{
-			carpeta: filepath.Join(derivadasDelE2E, "version-posterior"),
-			fichero: grabacionDelBloqueA21,
-			comprueba: func(t *testing.T, original, derivada string) {
-				t.Helper()
-
-				compruebaLaDerivacion(t, original, derivada, []string{"articulo", normaDeBoe, "a21"},
-					func(articulo *boe.Articulo) {
-						articulo.FechaVigencia = "20250101"
-						articulo.Texto += "\n" + parrafoDeLaVersionPosterior
-						articulo.HashTexto = huellaDelTexto(articulo.Texto)
-					})
-			},
-		},
+		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-posterior"), "20250101",
+			parrafoDeLaVersionPosterior),
 		{
 			carpeta: filepath.Join(derivadasDelE2E, "sin-eli"),
 			fichero: grabacionDeLosMetadatos,
@@ -2296,15 +2301,38 @@ func grabacionesDerivadas() []grabacionDerivada {
 					})
 			},
 		},
+		versionDelArticulo21(filepath.Join(grafosPreviosDeLasEvals, "lpac-a21-version-anterior"), "20151002",
+			parrafoDeLaVersionAnterior),
+	}
+}
+
+// versionDelArticulo21 es la derivada de la carpeta que sustituye la grabación
+// del bloque a21 de la Ley 39/2015 con otra versión: la fecha de vigencia y el
+// párrafo sintético al final del texto, con la huella de ese texto.
+func versionDelArticulo21(carpeta, fechaVigencia, parrafo string) grabacionDerivada {
+	return grabacionDerivada{
+		carpeta: carpeta,
+		fichero: grabacionDelBloqueA21,
+		comprueba: func(t *testing.T, original, derivada string) {
+			t.Helper()
+
+			compruebaLaDerivacion(t, original, derivada, []string{"articulo", normaDeBoe, "a21"},
+				func(articulo *boe.Articulo) {
+					articulo.FechaVigencia = fechaVigencia
+					articulo.Texto += "\n" + parrafo
+					articulo.HashTexto = huellaDelTexto(articulo.Texto)
+				})
+		},
 	}
 }
 
 // TestGrabacionesDerivadas es el control de derivación de research.md D22 (FR-090,
-// FR-095): cada derivada del e2e lleva el nombre de una grabación de H4 y,
-// servida en su lugar, boe la lee y da el mismo Articulo o los mismos metadatos
-// que la grabación salvo exactamente lo que dice su nombre (grabacionesDerivadas).
-// Todo fichero de la carpeta de las derivadas tiene su comprobación y toda
-// comprobación, su fichero: una derivada nueva que no dijera qué cambia no pasa.
+// FR-095): cada derivada del e2e, y cada una del grafo previo de una eval
+// (FR-085), lleva el nombre de una grabación de H4 y, servida en su lugar, boe
+// la lee y da el mismo Articulo o los mismos metadatos que la grabación salvo
+// exactamente lo que dice su nombre (grabacionesDerivadas). Todo fichero de las
+// dos carpetas de derivadas tiene su comprobación y toda comprobación, su
+// fichero: una derivada nueva que no dijera qué cambia no pasa.
 // La premisa de cada una dice que no pasa en vacío: lo que dice su nombre cambia
 // algo de lo que da la grabación.
 func TestGrabacionesDerivadas(t *testing.T) {
@@ -2317,8 +2345,10 @@ func TestGrabacionesDerivadas(t *testing.T) {
 		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta, derivada.fichero))
 	}
 
-	assert.ElementsMatch(t, ficherosDeLaCarpeta(t, derivadasDelE2E), comprobadas,
-		"cada derivada del e2e tiene su comprobación, y cada comprobación, su derivada")
+	assert.ElementsMatch(t,
+		slices.Concat(ficherosDeLaCarpeta(t, derivadasDelE2E), ficherosDeLaCarpeta(t, grafosPreviosDeLasEvals)),
+		comprobadas,
+		"cada derivada del e2e y del grafo previo de una eval tiene su comprobación, y cada comprobación, su derivada")
 
 	for _, derivada := range derivadas {
 		t.Run(filepath.Base(derivada.carpeta), func(t *testing.T) {

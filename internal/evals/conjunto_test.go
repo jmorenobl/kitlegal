@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/core/grafo"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
@@ -846,8 +849,10 @@ const (
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
 // H5.1); el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
-// evals §1.2 de H6); y las de evals/legal-core/ cumplen las reglas del conjunto de
-// legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011). Lee las
+// evals §1.2 de H6); las de evals/legal-core/ cumplen las reglas del conjunto de
+// legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011); y el grafo
+// previo de cada eval que lo lleva existe y se prepara sin faltas, con un
+// BloqueVersion por comando (contrato evals-y-skill §3 de H7; FR-085). Lee las
 // carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
@@ -964,6 +969,42 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			"el esquema publicado %s admite en la cobertura del territorio exactamente el vocabulario del applet",
 			rutaDelEsquemaDeEval)
 	})
+
+	t.Run("grafo-previo", probarGrafosPrevios)
+}
+
+// conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
+// la carpeta.
+type conjuntoDeUnaSkill struct {
+	carpeta  string
+	conjunto Conjunto
+}
+
+// conjuntosDeCadaSkill lee como conjunto de evals cada carpeta de raiz, una por
+// skill, en orden de nombre. Lo que en raiz no es una carpeta no son las evals
+// de ninguna skill y no se lee.
+func conjuntosDeCadaSkill(t *testing.T, raiz string) []conjuntoDeUnaSkill {
+	t.Helper()
+
+	entradas, err := os.ReadDir(raiz)
+	require.NoError(t, err, "el directorio de evals %s", raiz)
+
+	var conjuntos []conjuntoDeUnaSkill
+
+	for _, entrada := range entradas {
+		if !entrada.IsDir() {
+			continue
+		}
+
+		dir := filepath.Join(raiz, entrada.Name())
+
+		leido, err := LeerConjunto(dir)
+		require.NoError(t, err)
+
+		conjuntos = append(conjuntos, conjuntoDeUnaSkill{carpeta: dir, conjunto: leido})
+	}
+
+	return conjuntos
 }
 
 // malFormadosDeCadaSkill lee como conjunto de evals cada carpeta de raiz, una por
@@ -973,26 +1014,123 @@ func TestEvalsDelRepositorio(t *testing.T) {
 func malFormadosDeCadaSkill(t *testing.T, raiz string) (carpetas, malFormados []string) {
 	t.Helper()
 
-	entradas, err := os.ReadDir(raiz)
-	require.NoError(t, err, "el directorio de evals %s", raiz)
+	for _, deUnaSkill := range conjuntosDeCadaSkill(t, raiz) {
+		carpetas = append(carpetas, deUnaSkill.carpeta)
 
-	for _, entrada := range entradas {
-		if !entrada.IsDir() {
-			continue
-		}
-
-		dir := filepath.Join(raiz, entrada.Name())
-		carpetas = append(carpetas, dir)
-
-		leido, err := LeerConjunto(dir)
-		require.NoError(t, err)
-
-		for _, malFormado := range leido.MalFormados {
-			malFormados = append(malFormados, dir+": "+malFormado.Error.Error())
+		for _, malFormado := range deUnaSkill.conjunto.MalFormados {
+			malFormados = append(malFormados, deUnaSkill.carpeta+": "+malFormado.Error.Error())
 		}
 	}
 
 	return carpetas, malFormados
+}
+
+// probarGrafosPrevios es la subprueba grafo-previo de TestEvalsDelRepositorio
+// (contrato evals-y-skill §3 de H7; FR-085): el grafo previo de cada eval de
+// cada carpeta de evals/ que lo lleva nombra un conjunto de GrafosPrevios que
+// existe, y prepararlo como lo prepara el job, con UnionDeGrabaciones y en
+// temporales, no da ninguna falta ni error y deja en el grafo del mundo un
+// BloqueVersion por comando, el de su norma y su bloque. Alguna eval lo lleva:
+// sin ninguna, la subprueba pasaría en vacío.
+func probarGrafosPrevios(t *testing.T) {
+	t.Parallel()
+
+	var comprobadas []string
+
+	for _, deUnaSkill := range conjuntosDeCadaSkill(t, directorioDeEvals) {
+		for _, eval := range deUnaSkill.conjunto.Evals {
+			if eval.GrafoPrevio.Grabaciones == "" {
+				continue
+			}
+
+			ruta := filepath.Join(deUnaSkill.carpeta, eval.Fichero)
+			comprobadas = append(comprobadas, ruta)
+
+			compruebaElGrafoPrevio(t, ruta, eval)
+		}
+	}
+
+	assert.NotEmpty(t, comprobadas, "alguna eval de %s lleva grafo_previo", directorioDeEvals)
+}
+
+// compruebaElGrafoPrevio exige que el grafo previo de la eval de esa ruta nombre
+// un conjunto de GrafosPrevios que existe y que prepararlo en una caché temporal,
+// con UnionDeGrabaciones, no dé ninguna falta ni error y deje en el grafo del
+// mundo un BloqueVersion por comando, el de su norma y su bloque.
+func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
+	t.Helper()
+
+	previo := eval.GrafoPrevio
+	require.DirExists(t, filepath.Join(GrafosPrevios, previo.Grabaciones),
+		"%s: el grafo previo que nombra está en %s", ruta, GrafosPrevios)
+
+	dirCache := t.TempDir()
+
+	faltas, err := prepararGrafoPrevio(dirCache, UnionDeGrabaciones(), GrafosPrevios, eval)
+	require.NoError(t, err, ruta)
+	assert.Empty(t, faltas, "%s: comandos del grafo previo que no se preparan:\n%s", ruta, presentarFaltas(faltas))
+
+	porComando := make([]CitaEsperada, 0, len(previo.Comandos))
+	for _, comando := range previo.Comandos {
+		porComando = append(porComando, CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque})
+	}
+
+	assert.ElementsMatch(t, porComando, bloquesVersionados(t, dirCache),
+		"%s: el grafo previo deja un BloqueVersion por comando, el de su norma y su bloque", ruta)
+}
+
+// bloquesVersionados son la norma y el bloque de cada BloqueVersion del grafo
+// del mundo de dirCache, en el orden de su instantánea: el identificador de la
+// Norma y el bloque del Bloque de los que cuelga, por las aristas eli:has_part y
+// eli:has_version. Una versión o un Bloque a los que no llega una sola de esas
+// aristas hace fallar la prueba.
+func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
+	t.Helper()
+
+	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context())
+	require.NoError(t, errors.Join(err, lectura.Close()))
+
+	nodos := make(map[string]grafo.NodoDeInstantanea, len(instantanea.Nodos))
+	for _, nodo := range instantanea.Nodos {
+		nodos[nodo.ID] = nodo
+	}
+
+	// deQuienCuelga es el nodo del que sale la única arista de la relación que
+	// llega al de ese id.
+	deQuienCuelga := func(relacion, id string) grafo.NodoDeInstantanea {
+		var origenes []string
+
+		for _, arista := range instantanea.Aristas {
+			if arista.Relacion == relacion && arista.Destino == id {
+				origenes = append(origenes, arista.Origen)
+			}
+		}
+
+		require.Len(t, origenes, 1, "una sola arista %s llega a %s", relacion, id)
+
+		return nodos[origenes[0]]
+	}
+
+	var versionados []CitaEsperada
+
+	for _, nodo := range instantanea.Nodos {
+		if nodo.Tipo != grafo.TipoBloqueVersion {
+			continue
+		}
+
+		bloque := deQuienCuelga(grafo.RelacionTieneVersion, nodo.ID)
+		norma := deQuienCuelga(grafo.RelacionTieneParte, bloque.ID)
+
+		versionados = append(versionados, CitaEsperada{
+			Norma:  fmt.Sprint(norma.Datos[grafo.DatoIdentificador]),
+			Bloque: fmt.Sprint(bloque.Datos[grafo.DatoBloque]),
+		})
+	}
+
+	return versionados
 }
 
 // TestFormatoDeLasEvalsDeCadaSkill fija, sobre un evals/ que el propio test

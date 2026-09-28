@@ -326,11 +326,12 @@ func incumplimientoDeNoActivacion(conjunto *conjuntoAComprobar) string {
 
 // incumplimientoDeInformativas: al menos una con informativa: true, y todas las
 // informativas son positivas. Una eval informativa se mide y se publica sin
-// decidir el veredicto (ADR 0016), y hoy lo es por una de dos razones: las
+// decidir el veredicto (ADR 0016), y hoy lo es por una de tres razones: las
 // preguntas por materia, porque la herramienta que las haría posibles sigue en el
-// backlog; y la de la norma derogada, porque promoverla a decisoria se decide con
-// los datos de varias ejecuciones (H5.1). Si midieran una no activación, no
-// medirían nada.
+// backlog; la de la norma derogada, porque promoverla a decisoria se decide con
+// los datos de varias ejecuciones (H5.1); y la de la consulta repetida tras un
+// cambio de versión, que se promueve también con los datos de varias ejecuciones
+// (FR-087 de H7). Si midieran una no activación, no medirían nada.
 func incumplimientoDeInformativas(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.informativasSinActivar) > 0 {
 		return "evals informativas que no son positivas (activa: true): " +

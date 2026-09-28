@@ -1,14 +1,16 @@
 {
-  "id": "T025",
-  "texto": "T025 [datos] [US5] La derivada del grafo previo de la eval, y **nada más** (research D22; plan.md paso 19): testdata/evals/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json, el bloque `a21` de la grabación de H4 con `fecha_vigencia` `20151002` y el párrafo añadido `[Redacción sintética de prueba: versión anterior derivada de la grabación de H4.]`, producida por un programa de un solo uso fuera del repositorio que cambia exactamente eso y nada más; verificación: `make ci` en verde; el control de derivación y la subprueba que la prepara llegan en T026 — FR-085, FR-095; rutas: testdata/evals/grafo-previo/lpac-a21-version-anterior/",
+  "id": "T026",
+  "texto": "T026 [US5] La eval de la consulta repetida (contracts/evals-y-skill.md §4; research D25): evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml tal cual el contrato (`activa: true`, `informativa: true`, `grafo_previo` con `lpac-a21-version-anterior` y el bloque `a21` de `BOE-A-2015-10565`, `comandos` `boe articulo` de ese bloque y `graph check`, `prohibidos` `graph show`, `citas` del bloque), con su comentario de cabecera; en la misma tarea, la subprueba `grafo-previo` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go (cada grafo previo nombrado existe y su preparación en temporales no da ninguna falta y deja en el grafo un `BloqueVersion` por comando) y `TestGrabacionesDerivadas` en internal/app/grafo_test.go ampliado con la derivada del grafo previo de la eval (su grabación de H4 salvo `fecha_vigencia` y el párrafo sintético); las reglas del conjunto (entre 10 y 20 evals, 10 positivas que deciden, materias distintas, informativas positivas) no cambian y los conjuntos existentes siguen igual; solo el comentario de `incumplimientoDeInformativas` en internal/evals/conjunto.go, que enumera por qué es informativa cada una, gana la tercera razón (la consulta repetida tras un cambio de versión, que se promueve con los datos de varias ejecuciones, FR-087) — FR-085, FR-086, FR-087; SC-012; rutas: evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml, internal/evals/conjunto.go, internal/evals/conjunto_test.go, internal/app/grafo_test.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "e117dfafa8aba7877b3dc0db89141a2689423dcc",
+  "base": "a62a08fb777993a47089701e63ccfbea63178470",
   "rutas": [
-    "plan.md",
-    "testdata/evals/grafo-previo/lpac-a21-version-anterior/",
-    "testdata/evals/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json"
+    "contracts/evals-y-skill.md",
+    "evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml",
+    "internal/app/grafo_test.go",
+    "internal/evals/conjunto.go",
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false,
   "converger": false,

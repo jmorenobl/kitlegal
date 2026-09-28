@@ -1,0 +1,25 @@
+# Eval informativa (FR-085, FR-087): el grafo de la sesión ya registró una versión anterior del art. 21 LPAC
+# (derivada de la grabación, con fecha de vigencia 20151002) y la caché sirve la grabada (20161002). La sesión tiene
+# que leer el bloque con kitlegal boe articulo, comprobar la memoria con kitlegal graph check, no pedir graph show y
+# citar el bloque. Que la respuesta diga que la redacción cambió no se comprueba mecánicamente (clarificación Q2).
+pregunta: "Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?"
+activa: true
+informativa: true
+grafo_previo:
+  grabaciones: lpac-a21-version-anterior
+  comandos:
+    - applet: boe
+      norma: BOE-A-2015-10565
+      bloque: a21
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+  - applet: graph
+    verbo: check
+prohibidos:
+  - applet: graph
+    verbo: show
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21
