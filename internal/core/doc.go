@@ -7,9 +7,10 @@
 //
 // Es la raíz del dominio que el §2 del roadmap reserva a los puertos, junto al
 // subpaquete schema, el contrato del sobre de salida. Cada puerto nace con el
-// hito que lo estrena: Cache nació con H3, y Source nace con H4 con la firma
-// que fija docs/ADR/0015. Los que todavía no existen —Fetcher, GraphStore,
-// Renderer— nacerán aquí con el suyo.
+// hito que lo estrena: Cache nació con H3, Source con H4 con la firma que fija
+// docs/ADR/0015, y GraphStore con H7, con el Lote que el kernel le entrega
+// (docs/ADR/0014). Los que todavía no existen —Fetcher, Renderer— nacerán aquí
+// con el suyo.
 //
 // Este fichero no contiene ninguna declaración, solo este comentario.
 package core

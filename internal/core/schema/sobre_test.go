@@ -175,7 +175,7 @@ func TestSobre(t *testing.T) {
 		})
 	}
 
-	t.Run("el resultado lleva procedencia, datos, forma legible y ensayo, y nada más", func(t *testing.T) {
+	t.Run("el resultado lleva procedencia, datos, forma legible, ensayo y grafo, y nada más", func(t *testing.T) {
 		t.Parallel()
 
 		// Lo que un applet devuelve no tiene por dónde llevar `ok`, la huella
@@ -187,12 +187,16 @@ func TestSobre(t *testing.T) {
 		// efectos no llegó a hacer bajo --dry-run, que el kernel presenta y que
 		// no entra en el sobre (docs/ADR/0011). Legible es el contenido contado
 		// para una persona, que sin --json sustituye a la tabla mínima y tampoco
-		// entra en el sobre (docs/ADR/0026).
+		// entra en el sobre (docs/ADR/0026). Grafo es el que añade H7: lo que la
+		// invocación observó del mundo, sin fuente propia, que el kernel entrega
+		// al grafo después de presentar, con la procedencia del sobre, y que
+		// tampoco entra en él; su valor cero no emite nada (docs/ADR/0014,
+		// FR-020, FR-021).
 		//
 		// La fecha de consulta no es un campo del resultado sino de su
 		// procedencia, y H4 la añade como tercero: quien consultó la declara si
 		// la conoce, y el kernel sigue fechando cuando no (docs/ADR/0015).
-		assert.Equal(t, []string{"Procedencia", "Datos", "Legible", "Ensayo"},
+		assert.Equal(t, []string{"Procedencia", "Datos", "Legible", "Ensayo", "Grafo"},
 			camposDe(reflect.TypeFor[Resultado]()))
 		assert.Equal(t, []string{"Fuente", "URL", "FechaConsulta"},
 			camposDe(reflect.TypeFor[Procedencia]()))
