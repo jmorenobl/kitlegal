@@ -1,14 +1,13 @@
 {
-  "id": "T017",
-  "texto": "T017 [US4] La salida real contra el contrato ya publicado y sin texto legal (contracts/applet-graph.md §7; como H19 T015): en internal/app/grafo_test.go, `TestSalidaDelGrafoContraSchemas` (toda salida correcta de `show`, `stats` y `check` —con hallazgos de las dos clases, sin hallazgos y con el grafo ausente— valida contra el esquema publicado `grafo.json` que dejó T016, compilado del fichero real sin tocarlo) y `TestNingunVerboDelGrafoDevuelveTexto` (tras entregar al almacén de `t.TempDir()` cada respuesta grabada de `articulo` y `articulos` de H4 y H5.1, ninguna línea no vacía de 20 caracteres o más del cuerpo de ningún bloque aparece en la salida de `show` de cada nodo, de `stats` ni de `check`, con `--json` ni sin él); sin implementación (excepción declarada arriba); verificación: mutantes temporales retirados antes de `make ci` — FR-051, FR-070, FR-094; SC-006; rutas: internal/app/grafo_test.go",
+  "id": "T018",
+  "texto": "T018 [US3] No interferencia y procedencia del sobre, sobre el binario ya registrado (plan.md paso 13): en internal/app/grafo_test.go, `TestLaSalidaDeBoeNoCambiaConElGrafo` (cada respuesta grabada de `boe articulo` de H4 y H5.1, en proceso, con y sin `--no-graph`, con y sin `--json`, con la hora de la reproducción fijada por `httpx.ConHora` y el almacén en `t.TempDir()`: salida estándar byte a byte igual y el mismo código; con `--no-graph` y con `--dry-run`, `world.db` y sus auxiliares con la misma huella o sin existir) y `TestLaEntregaLlevaLaProcedenciaDelSobre` (para `boe articulo`, `boe articulos` y `territorio resolver`, la fuente, la url y la fecha de consulta de cada nodo, arista y texto que la invocación crea o cuya observación guardada actualiza son byte a byte las del sobre que devolvió; lo que no toca conserva la suya; ninguna operación entra sin fuente); sin implementación (excepción declarada arriba); verificación: mutantes temporales retirados antes de `make ci` — FR-021, FR-031, FR-034, FR-042, FR-089, FR-091; SC-002, SC-003, SC-004; rutas: internal/app/grafo_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "1253812b3a4448a3484caeecef4378f2377731cb",
+  "base": "e13458d12931d497f10abb9456b67b0c5de96a94",
   "rutas": [
-    "contracts/applet-graph.md",
-    "grafo.json",
-    "internal/app/grafo_test.go"
+    "internal/app/grafo_test.go",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,

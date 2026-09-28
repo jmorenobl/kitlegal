@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"maps"
 	"math"
 	"os"
@@ -29,6 +30,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
+	"github.com/jmorenobl/kitlegal/internal/httpx"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
@@ -1503,10 +1505,12 @@ func entregarLasRespuestasGrabadas(t *testing.T, directorio string) map[string]s
 	return textos
 }
 
-// bloqueGrabado es el bloque de una norma cuya respuesta está grabada.
+// bloqueGrabado es el bloque de una norma cuya respuesta está grabada, con el
+// estado HTTP con el que la sirvió la fuente.
 type bloqueGrabado struct {
 	norma  string
 	bloque string
+	estado int
 }
 
 // direccionDeUnBloque es la de la API de la que sale el texto de un bloque, con
@@ -1519,6 +1523,17 @@ var direccionDeUnBloque = regexp.MustCompile(
 // sirvió con 200. La de un bloque que la fuente no tiene, servida con 404, no
 // devuelve texto y queda fuera.
 func bloquesGrabados(t *testing.T, carpeta string) []bloqueGrabado {
+	t.Helper()
+
+	return slices.DeleteFunc(respuestasDeBloques(t, carpeta), func(grabado bloqueGrabado) bool {
+		return grabado.estado != 200
+	})
+}
+
+// respuestasDeBloques son los bloques con una respuesta grabada en la carpeta,
+// la sirviera la fuente con el estado que la sirviera, en el orden de sus
+// ficheros.
+func respuestasDeBloques(t *testing.T, carpeta string) []bloqueGrabado {
 	t.Helper()
 
 	grabaciones := os.DirFS(carpeta)
@@ -1543,11 +1558,11 @@ func bloquesGrabados(t *testing.T, carpeta string) []bloqueGrabado {
 		require.NoError(t, json.Unmarshal(contenido, &grabacion), entrada.Name())
 
 		partes := direccionDeUnBloque.FindStringSubmatch(grabacion.Peticion.URL)
-		if partes == nil || grabacion.Respuesta.Estado != 200 {
+		if partes == nil {
 			continue
 		}
 
-		bloques = append(bloques, bloqueGrabado{norma: partes[1], bloque: partes[2]})
+		bloques = append(bloques, bloqueGrabado{norma: partes[1], bloque: partes[2], estado: grabacion.Respuesta.Estado})
 	}
 
 	return bloques
@@ -1559,9 +1574,21 @@ func bloquesGrabados(t *testing.T, carpeta string) []bloqueGrabado {
 func registroDeBoeQueEntrega(t *testing.T, carpeta, directorio string) *Registro {
 	t.Helper()
 
+	return registroConLaEntrega(t, directorio, AppletBoe(nuevoBancoDeBoe(t, carpeta).dependencias))
+}
+
+// registroConLaEntrega es un registro con los applets y la entrega al world.db
+// del directorio, la misma que compone la raíz de producción con la ubicación
+// de la caché.
+func registroConLaEntrega(t *testing.T, directorio string, applets ...Applet) *Registro {
+	t.Helper()
+
 	var registro Registro
 
-	require.NoError(t, registro.Registrar(AppletBoe(nuevoBancoDeBoe(t, carpeta).dependencias)))
+	for _, applet := range applets {
+		require.NoError(t, registro.Registrar(applet))
+	}
+
 	registro.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(directorio)))
 
 	return &registro
@@ -1700,6 +1727,490 @@ func textosDelDocumento(valor any) []string {
 			textos = append(textos, clave)
 			textos = append(textos, textosDelDocumento(elemento)...)
 		}
+	}
+
+	return textos
+}
+
+// Las horas de la reproducción de los tests de la entrega: la que declara cada
+// petición que sirve la reproducción, fijada con httpx.ConHora. Llevan fracción
+// de segundo y un desplazamiento que no es UTC, de modo que una fecha del lote
+// escrita de otra forma que la del sobre —sin la fracción, en UTC— no pasaría
+// por igual; y van en ese orden: la temprana, la tardía y la última.
+var (
+	desplazamientoDePrueba = time.FixedZone("", 2*60*60)
+	horaTemprana           = time.Date(2026, time.September, 28, 10, 0, 0, 250_000_000, desplazamientoDePrueba)
+	horaTardia             = time.Date(2026, time.September, 28, 11, 0, 0, 500_000_000, desplazamientoDePrueba)
+	horaUltima             = time.Date(2026, time.September, 28, 12, 0, 0, 750_000_000, desplazamientoDePrueba)
+)
+
+// bancoConLaHora es el banco de la carpeta con la hora de emisión fijada en el
+// instante: toda petición que sirve la reproducción lo declara, así que dos
+// bancos nuevos —cada uno con su caché vacía— piden lo mismo a la fuente y
+// fechan igual su sobre.
+func bancoConLaHora(t *testing.T, carpeta string, instante time.Time) *bancoDeBoe {
+	t.Helper()
+
+	banco := nuevoBancoDeBoe(t, carpeta)
+	banco.dependencias.Cliente = func(*slog.Logger) (*httpx.Cliente, error) {
+		banco.construcciones.Add(1)
+
+		return httpx.Replay(carpeta,
+			httpx.ConFuente(boe.NombreDeLaFuente),
+			httpx.ConRegistrador(banco.eventos.registrador()),
+			httpx.ConHora(func() time.Time { return instante }))
+	}
+
+	return banco
+}
+
+// TestLaSalidaDeBoeNoCambiaConElGrafo fija SC-003, SC-004, FR-031, FR-034 y
+// FR-042 por el kernel en proceso: para cada respuesta grabada de boe articulo
+// —las de H4, también la del bloque que la fuente no tiene, y las de H5 y
+// H5.1—, con --json y sin ella, la salida estándar y el código son los mismos
+// byte a byte con --no-graph que sin ella; y con --no-graph y con --dry-run,
+// world.db y sus auxiliares quedan con la misma huella o siguen sin existir.
+// Cada invocación sale de un banco nuevo, con su caché vacía y la hora de la
+// reproducción fijada, de modo que todas piden lo mismo a la fuente y fechan
+// igual su sobre; y el almacén vive en un directorio temporal. La salida de
+// error no se compara entera, porque lleva la hora y la duración del registro
+// de eventos de un fallo; de ella se exige que la entrega no deje ningún aviso.
+//
+// Las premisas dicen que no pasa en vacío: sin --no-graph, un artículo que sale
+// con 0 llega a world.db; y el ensayo sobre la caché que ya lo guarda lo sirve
+// de su entrada sin pedir nada, así que el applet devuelve lo que observa y es
+// el kernel el que no lo entrega.
+func TestLaSalidaDeBoeNoCambiaConElGrafo(t *testing.T) {
+	t.Parallel()
+
+	for _, grabaciones := range []struct{ nombre, carpeta string }{
+		{nombre: "h4", carpeta: grabacionesDeBoe},
+		{nombre: "evals", carpeta: grabacionesDeEvals},
+	} {
+		respuestas := respuestasDeBloques(t, grabaciones.carpeta)
+		require.NotEmpty(t, respuestas, "premisa: %s tiene respuestas de bloques", grabaciones.carpeta)
+
+		for _, grabado := range respuestas {
+			for _, banderas := range [][]string{{"--json"}, nil} {
+				argumentos := slices.Concat([]string{"articulo", grabado.norma, grabado.bloque}, banderas)
+
+				t.Run(strings.Join(slices.Concat([]string{grabaciones.nombre}, argumentos), "/"), func(t *testing.T) {
+					t.Parallel()
+
+					banco, directorio := compruebaLaMismaSalida(t, grabaciones.carpeta, grabado, argumentos)
+					compruebaQueElEnsayoNoEntrega(t, banco, directorio, grabado, argumentos)
+				})
+			}
+		}
+	}
+}
+
+// compruebaLaMismaSalida invoca boe con los argumentos tres veces, cada una
+// sobre un banco nuevo de la carpeta y con la entrega al world.db de un mismo
+// directorio temporal: con --no-graph y el directorio vacío, que sigue vacío;
+// sin ella, con la misma salida estándar y el mismo código, sin ningún aviso de
+// la entrega y, si el bloque se sirvió con 200, con lo observado en world.db; y
+// otra vez con --no-graph, con lo mismo y sin cambiar un byte del directorio.
+// Devuelve el banco de la invocación que entregó, cuya caché guarda ya lo que
+// leyó, y el directorio.
+func compruebaLaMismaSalida(
+	t *testing.T, carpeta string, grabado bloqueGrabado, argumentos []string,
+) (*bancoDeBoe, string) {
+	t.Helper()
+
+	directorio := t.TempDir()
+	vacio := huellasDelDirectorio(t, directorio)
+	sinGrafo := argvDeBoe(slices.Concat(argumentos, []string{"--no-graph"})...)
+	invocarConUnBancoNuevo := func(argv []string) (*bancoDeBoe, invocacionDePrueba) {
+		banco := bancoConLaHora(t, carpeta, horaTardia)
+
+		return banco, invocar(t, registroConLaEntrega(t, directorio, AppletBoe(banco.dependencias)), argv...)
+	}
+
+	_, descartado := invocarConUnBancoNuevo(sinGrafo)
+	assert.Equal(t, vacio, huellasDelDirectorio(t, directorio), "con --no-graph, world.db sigue sin existir")
+
+	banco, entregado := invocarConUnBancoNuevo(argvDeBoe(argumentos...))
+	compruebaLaMismaSalidaYElMismoCodigo(t, descartado, entregado)
+	assert.NotContains(t, entregado.errores, avisoDeEntregaFallida, "la entrega no deja ningún aviso")
+
+	if grabado.estado == 200 {
+		require.Equal(t, 0, entregado.codigo, entregado.errores)
+		require.FileExists(t, filepath.Join(directorio, "world.db"), "premisa: lo observado llega al grafo")
+	} else {
+		require.NotEqual(t, 0, entregado.codigo, "premisa: el bloque que la fuente no tiene no se lee")
+	}
+
+	poblado := huellasDelDirectorio(t, directorio)
+	_, otraVez := invocarConUnBancoNuevo(sinGrafo)
+	compruebaLaMismaSalidaYElMismoCodigo(t, entregado, otraVez)
+	assert.Equal(t, poblado, huellasDelDirectorio(t, directorio), "con --no-graph, world.db y sus auxiliares no cambian")
+
+	return banco, directorio
+}
+
+// compruebaLaMismaSalidaYElMismoCodigo exige que dos invocaciones den la misma
+// salida estándar, byte a byte, y el mismo código.
+func compruebaLaMismaSalidaYElMismoCodigo(t *testing.T, una, otra invocacionDePrueba) {
+	t.Helper()
+
+	assert.Equal(t, una.salida, otra.salida, "la misma salida estándar byte a byte")
+	assert.Equal(t, una.codigo, otra.codigo, "el mismo código")
+}
+
+// compruebaQueElEnsayoNoEntrega invoca boe con los argumentos y --dry-run sobre
+// el banco que ya leyó el bloque, con la entrega al world.db del directorio y
+// con la de un directorio vacío: ninguno cambia. Si el bloque se sirvió con 200,
+// su artículo está en la caché del banco y el ensayo lo sirve de su entrada, sin
+// pedir nada ni describir ninguna petición: el applet devuelve lo que observa y
+// es el kernel el que no lo entrega (FR-034).
+func compruebaQueElEnsayoNoEntrega(
+	t *testing.T, banco *bancoDeBoe, directorio string, grabado bloqueGrabado, argumentos []string,
+) {
+	t.Helper()
+
+	ensayo := argvDeBoe(slices.Concat(argumentos, []string{"--dry-run"})...)
+
+	for _, destino := range []string{directorio, t.TempDir()} {
+		antes := huellasDelDirectorio(t, destino)
+		pedidas := len(banco.eventos.pedidas(t))
+
+		res := invocar(t, registroConLaEntrega(t, destino, AppletBoe(banco.dependencias)), ensayo...)
+		assert.Equal(t, antes, huellasDelDirectorio(t, destino),
+			"con --dry-run, world.db y sus auxiliares no cambian o siguen sin existir")
+
+		if grabado.estado == 200 {
+			require.Equal(t, 0, res.codigo, res.errores)
+			assert.Len(t, banco.eventos.pedidas(t), pedidas, "premisa: el ensayo sirve el artículo de su entrada")
+			assert.NotContains(t, res.errores, prefijoDeEnsayo+"se habr\xc3\xada pedido",
+				"premisa: el ensayo no describe ninguna petición")
+		}
+	}
+}
+
+// claseDeTexto es la de un texto en el estado del grafo; la de un nodo lleva su
+// tipo y la de una arista, su relación.
+const claseDeTexto = "texto"
+
+// claseDeNodo es la de un nodo del tipo en el estado del grafo.
+func claseDeNodo(tipo string) string {
+	return "nodo " + tipo
+}
+
+// claseDeArista es la de una arista de la relación en el estado del grafo.
+func claseDeArista(relacion string) string {
+	return "arista " + relacion
+}
+
+// guardado es lo que el grafo guarda de un nodo, de una arista o de un texto:
+// su clase; la procedencia de su última observación, que en un texto es la de
+// su observación más antigua; la fecha de su primera observación, que un texto
+// no tiene; y los datos de un nodo, en JSON.
+type guardado struct {
+	clase       string
+	procedencia grafo.Procedencia
+	primera     string
+	datos       string
+}
+
+// cambiosDelGrafo son las clases de lo que una invocación crea en el grafo, de
+// lo que ya estaba y cambia de última observación —o de procedencia, en un
+// texto— y de lo que ya estaba y cambia de primera observación.
+type cambiosDelGrafo struct {
+	creados      []string
+	procedencias []string
+	primeras     []string
+}
+
+// pasoDeLaEntrega es una invocación de TestLaEntregaLlevaLaProcedenciaDelSobre:
+// su nombre, el applet que la atiende, sus argumentos, la hora de la
+// reproducción con la que se fecha su sobre —ninguna fuera de boe— y lo que
+// cambia en el grafo.
+type pasoDeLaEntrega struct {
+	nombre  string
+	applet  func(t *testing.T) Applet
+	argv    []string
+	hora    time.Time
+	cambios cambiosDelGrafo
+}
+
+// TestLaEntregaLlevaLaProcedenciaDelSobre fija FR-021, FR-089 y SC-002 por el
+// kernel en proceso, sobre el world.db de un directorio temporal con la muestra
+// ya entregada: boe articulo, boe articulos y territorio resolver, invocados uno
+// tras otro con la entrega registrada, crean o actualizan cada nodo, arista y
+// texto con la fuente, la url y la fecha de consulta del sobre que devolvió la
+// misma invocación, byte a byte; lo que no tocan conserva lo suyo; y nada queda
+// en el grafo sin fuente, url o fecha. Los nodos y las aristas se leen por la
+// API pública de internal/graph; los textos, del fichero (textosGuardados).
+//
+// El orden de las invocaciones ejerce cada caso de FR-023 y fija lo que cambia
+// cada una: la primera crea; la segunda, con una hora anterior, crea lo de su
+// otro bloque, adelanta la primera observación de lo que ya había observado la
+// primera sin tocar su última y da al texto que ya estaba la procedencia de la
+// observación más antigua; la tercera, posterior a todas, cambia la última
+// observación de lo que ya estaba de su bloque y de la Norma y deja el texto
+// con la suya; territorio resolver crea lo suyo sin tocar nada de boe; y su
+// repetición no cambia nada.
+func TestLaEntregaLlevaLaProcedenciaDelSobre(t *testing.T) {
+	t.Parallel()
+
+	directorio := t.TempDir()
+	poblarElGrafo(t, directorio)
+
+	antes := estadoDelGrafo(t, directorio)
+
+	for _, paso := range pasosDeLaEntrega(t) {
+		res := invocar(t, registroConLaEntrega(t, directorio, paso.applet(t)), paso.argv...)
+		require.Equal(t, 0, res.codigo, "%s: %s", paso.nombre, res.errores)
+		require.Empty(t, res.errores, "%s: lo observado llega al grafo", paso.nombre)
+
+		sobre := procedenciaDelSobre(t, res.salida)
+		if !paso.hora.IsZero() {
+			require.Equal(t, paso.hora.Format(time.RFC3339Nano), sobre.FechaConsulta,
+				"%s: premisa: el sobre lleva la hora de la reproducción", paso.nombre)
+		}
+
+		despues := estadoDelGrafo(t, directorio)
+		cambios := cambiosDeLaInvocacion(t, paso.nombre, antes, despues, sobre)
+
+		assert.ElementsMatch(t, paso.cambios.creados, cambios.creados, "%s: lo que crea", paso.nombre)
+		assert.ElementsMatch(t, paso.cambios.procedencias, cambios.procedencias,
+			"%s: lo que cambia de última observación", paso.nombre)
+		assert.ElementsMatch(t, paso.cambios.primeras, cambios.primeras,
+			"%s: lo que cambia de primera observación", paso.nombre)
+
+		antes = despues
+	}
+}
+
+// pasosDeLaEntrega son las invocaciones de
+// TestLaEntregaLlevaLaProcedenciaDelSobre en su orden, con lo que cambia cada
+// una por clase: boe articulo observa de un bloque la Norma, el Bloque, su
+// BloqueVersion, sus dos aristas y el texto (contracts/emision.md §1), y
+// territorio resolver, el Municipio, el Organo de su DIR3 y la arista entre
+// ellos (§2), sobre los datos de territorio del binario.
+func pasosDeLaEntrega(t *testing.T) []pasoDeLaEntrega {
+	t.Helper()
+
+	fuentes, err := FuentesEmbebidas()
+	require.NoError(t, err)
+
+	territorio := AppletTerritorio(fuentes)
+	deTerritorio := func(*testing.T) Applet { return territorio }
+	deBoe := func(hora time.Time) func(*testing.T) Applet {
+		return func(t *testing.T) Applet {
+			t.Helper()
+
+			return AppletBoe(bancoConLaHora(t, grabacionesDeBoe, hora).dependencias)
+		}
+	}
+
+	delBloque := []string{
+		claseDeNodo(grafo.TipoBloque), claseDeNodo(grafo.TipoBloqueVersion),
+		claseDeArista(grafo.RelacionTieneParte), claseDeArista(grafo.RelacionTieneVersion),
+	}
+	norma, resolver := claseDeNodo(grafo.TipoNorma), []string{"kitlegal", "territorio", "resolver", "28074", "--json"}
+
+	return []pasoDeLaEntrega{
+		{
+			nombre: "articulo", applet: deBoe(horaTardia), hora: horaTardia,
+			argv:    argvDeBoe("articulo", normaDeBoe, "a21", "--json"),
+			cambios: cambiosDelGrafo{creados: slices.Concat(delBloque, []string{norma, claseDeTexto})},
+		},
+		{
+			nombre: "articulos anteriores", applet: deBoe(horaTemprana), hora: horaTemprana,
+			argv: argvDeBoe("articulos", normaDeBoe, "a22", "a21", "a22", "--json"),
+			cambios: cambiosDelGrafo{
+				creados:      slices.Concat(delBloque, []string{claseDeTexto}),
+				procedencias: []string{claseDeTexto},
+				primeras:     slices.Concat(delBloque, []string{norma}),
+			},
+		},
+		{
+			nombre: "articulo posterior", applet: deBoe(horaUltima), hora: horaUltima,
+			argv:    argvDeBoe("articulo", normaDeBoe, "a22", "--json"),
+			cambios: cambiosDelGrafo{procedencias: slices.Concat(delBloque, []string{norma})},
+		},
+		{
+			nombre: "resolver", applet: deTerritorio, argv: resolver,
+			cambios: cambiosDelGrafo{creados: []string{
+				claseDeNodo(grafo.TipoMunicipio), claseDeNodo(grafo.TipoOrgano), claseDeArista(grafo.RelacionPerteneceA),
+			}},
+		},
+		{nombre: "resolver de nuevo", applet: deTerritorio, argv: resolver},
+	}
+}
+
+// procedenciaDelSobre es la fuente, la url y la fecha de consulta del sobre
+// correcto de una invocación con --json.
+func procedenciaDelSobre(t *testing.T, salida string) grafo.Procedencia {
+	t.Helper()
+
+	sobre := sobreDelJSON(t, salida)
+	require.Equal(t, true, sobre["ok"])
+
+	texto := func(clave string) string {
+		valor, esTexto := sobre[clave].(string)
+		require.True(t, esTexto, "%s es un texto", clave)
+
+		return valor
+	}
+
+	return grafo.Procedencia{Fuente: texto("fuente"), URL: texto("url"), FechaConsulta: texto("fecha_consulta")}
+}
+
+// cambiosDeLaInvocacion compara lo que el grafo guardaba antes de una
+// invocación con lo que guarda después y exige FR-089: nada desaparece ni
+// cambia de clase; lo que la invocación crea lleva como procedencia la del
+// sobre que devolvió y, si no es un texto, su fecha de consulta como primera
+// observación; lo que ya estaba y cambia de procedencia o de datos pasa a la
+// procedencia de ese sobre, y lo que cambia de primera observación, a su fecha;
+// lo demás conserva lo suyo; y nada queda sin fuente, url o fecha. Devuelve las
+// clases de lo que creó y de lo que cambió.
+func cambiosDeLaInvocacion(
+	t *testing.T, paso string, antes, despues map[string]guardado, sobre grafo.Procedencia,
+) cambiosDelGrafo {
+	t.Helper()
+
+	for clave := range antes {
+		assert.Contains(t, despues, clave, "%s: nada desaparece del grafo", paso)
+	}
+
+	var cambios cambiosDelGrafo
+
+	for clave, ahora := range despues {
+		compruebaConFuente(t, paso, clave, ahora)
+
+		previo, estaba := antes[clave]
+
+		switch {
+		case !estaba:
+			cambios.creados = append(cambios.creados, ahora.clase)
+			assert.Equal(t, sobre, ahora.procedencia, "%s: %q se crea con la procedencia del sobre", paso, clave)
+
+			if ahora.clase != claseDeTexto {
+				assert.Equal(t, sobre.FechaConsulta, ahora.primera, "%s: %q se crea con la fecha del sobre", paso, clave)
+			}
+		default:
+			assert.Equal(t, previo.clase, ahora.clase, "%s: %q no cambia de clase", paso, clave)
+
+			if ahora.procedencia != previo.procedencia || ahora.datos != previo.datos {
+				cambios.procedencias = append(cambios.procedencias, ahora.clase)
+				assert.Equal(t, sobre, ahora.procedencia, "%s: %q cambia a la procedencia del sobre", paso, clave)
+			}
+
+			if ahora.primera != previo.primera {
+				cambios.primeras = append(cambios.primeras, ahora.clase)
+				assert.Equal(t, sobre.FechaConsulta, ahora.primera, "%s: %q cambia a la fecha del sobre", paso, clave)
+			}
+		}
+	}
+
+	return cambios
+}
+
+// compruebaConFuente exige que lo guardado tenga fuente, url y fecha de
+// consulta y, si no es un texto, fecha de primera observación: ninguna
+// operación entra en el grafo sin fuente (FR-024).
+func compruebaConFuente(t *testing.T, paso, clave string, ahora guardado) {
+	t.Helper()
+
+	assert.NotEmpty(t, ahora.procedencia.Fuente, "%s: %q tiene fuente", paso, clave)
+	assert.NotEmpty(t, ahora.procedencia.URL, "%s: %q tiene url", paso, clave)
+	assert.NotEmpty(t, ahora.procedencia.FechaConsulta, "%s: %q tiene fecha de consulta", paso, clave)
+
+	if ahora.clase != claseDeTexto {
+		assert.NotEmpty(t, ahora.primera, "%s: %q tiene primera observación", paso, clave)
+	}
+}
+
+// estadoDelGrafo es todo lo que guarda el world.db del directorio, por la clave
+// de cada elemento: cada nodo y cada arista, con su primera y su última
+// observación, leídos por la API pública de internal/graph —la ficha de cada
+// nodo de la instantánea, con sus aristas salientes—, y cada texto con su
+// procedencia, que ninguna lectura de internal/graph devuelve.
+func estadoDelGrafo(t *testing.T, directorio string) map[string]guardado {
+	t.Helper()
+
+	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context())
+	require.NoError(t, err)
+
+	estado := map[string]guardado{}
+	aristas := 0
+
+	for _, nodo := range instantanea.Nodos {
+		ficha, esta, err := lectura.Ficha(t.Context(), nodo.ID)
+		require.NoError(t, err)
+		require.True(t, esta, "la ficha de %q", nodo.ID)
+
+		datos, err := json.Marshal(ficha.Nodo.Datos)
+		require.NoError(t, err)
+
+		estado["nodo\x00"+nodo.ID] = guardado{
+			clase:       claseDeNodo(ficha.Nodo.Tipo),
+			procedencia: ficha.Nodo.UltimaObservacion,
+			primera:     ficha.Nodo.PrimeraObservacion,
+			datos:       string(datos),
+		}
+
+		for _, arista := range ficha.Salientes {
+			estado["arista\x00"+nodo.ID+"\x00"+arista.Relacion+"\x00"+arista.ID] = guardado{
+				clase:       claseDeArista(arista.Relacion),
+				procedencia: arista.UltimaObservacion,
+				primera:     arista.PrimeraObservacion,
+			}
+			aristas++
+		}
+	}
+
+	require.NoError(t, lectura.Close())
+	require.Len(t, instantanea.Aristas, aristas, "premisa: cada arista sale de la ficha de su origen")
+
+	for huella, procedencia := range textosGuardados(t, directorio) {
+		estado["texto\x00"+huella] = guardado{clase: claseDeTexto, procedencia: procedencia}
+	}
+
+	return estado
+}
+
+// textosGuardados son los textos del world.db del directorio, por su huella,
+// con su procedencia, leídos del fichero con filasDeLaTablaSQLite: la tabla
+// texts de la migración 0001, con la huella, el cuerpo, la fecha de consulta,
+// la fuente y la url. Las premisas son que world.db está entero en su fichero
+// —sin auxiliares, que ninguna entrega ni lectura deja al cerrar— y que cada
+// cuerpo leído tiene la huella con la que se guardó, lo que dice que el árbol y
+// sus páginas de desbordamiento se han leído bien.
+func textosGuardados(t *testing.T, directorio string) map[string]grafo.Procedencia {
+	t.Helper()
+
+	for _, auxiliar := range []string{"world.db-wal", "world.db-shm", "world.db-journal"} {
+		require.NoFileExists(t, filepath.Join(directorio, auxiliar), "premisa: world.db está entero en su fichero")
+	}
+
+	base, err := fs.ReadFile(os.DirFS(directorio), "world.db")
+	require.NoError(t, err)
+
+	textos := map[string]grafo.Procedencia{}
+
+	for _, fila := range filasDeLaTablaSQLite(t, base, "texts") {
+		require.Len(t, fila, 5, "la huella, el cuerpo, la fecha de consulta, la fuente y la url")
+
+		valores := make([]string, 0, len(fila))
+
+		for _, valor := range fila {
+			texto, esTexto := valor.(string)
+			require.True(t, esTexto, "cada valor de una fila de texts es un texto: %#v", valor)
+
+			valores = append(valores, texto)
+		}
+
+		huella := valores[0]
+		require.Equal(t, huellaDelTexto(valores[1]), huella, "premisa: el cuerpo leído es el que se guardó")
+
+		textos[huella] = grafo.Procedencia{Fuente: valores[3], URL: valores[4], FechaConsulta: valores[2]}
 	}
 
 	return textos
@@ -1926,4 +2437,287 @@ func dosBytesSQLite(t *testing.T, destino []byte, valor int) {
 	}
 
 	binary.BigEndian.PutUint16(destino, uint16(valor))
+}
+
+// Lo que ninguna lectura de internal/graph devuelve —la procedencia de cada
+// texto— se lee aquí del fichero, con el mismo formato
+// (https://www.sqlite.org/fileformat2.html) y por la misma razón que las bases
+// de arriba se escriben a mano: R3. El lector baja por el árbol de una tabla
+// desde la página raíz que nombra sqlite_schema, por sus páginas interiores
+// hasta sus hojas, sigue las páginas de desbordamiento de una fila que no cabe
+// en su hoja y lee los valores de un registro de los tipos que escribe la
+// migración 0001: nulo, entero y texto.
+
+// lectorSQLite es una base SQLite entera en memoria, con el tamaño de sus
+// páginas y el útil de cada una, sin su espacio reservado.
+type lectorSQLite struct {
+	base   []byte
+	tamano int
+	util   int
+}
+
+// filasDeLaTablaSQLite son las filas de la tabla de la base, en orden de rowid,
+// cada una con sus valores: nil, un int64 o un texto.
+func filasDeLaTablaSQLite(t *testing.T, base []byte, tabla string) [][]any {
+	t.Helper()
+
+	lector := nuevoLectorSQLite(t, base)
+
+	for _, carga := range lector.cargas(t, 1) {
+		// Cada fila de sqlite_schema: su tipo, su nombre, su tabla, su página
+		// raíz y su sentencia.
+		esquema := valoresSQLite(t, carga)
+		require.Len(t, esquema, 5, "una fila de sqlite_schema")
+
+		if esquema[0] != "table" || esquema[1] != tabla {
+			continue
+		}
+
+		raiz, esEntero := esquema[3].(int64)
+		require.True(t, esEntero, "la página raíz de %q es un entero", tabla)
+
+		var filas [][]any
+
+		for _, carga := range lector.cargas(t, int(raiz)) {
+			filas = append(filas, valoresSQLite(t, carga))
+		}
+
+		return filas
+	}
+
+	require.FailNow(t, "la tabla no está en la base", "%q", tabla)
+
+	return nil
+}
+
+// nuevoLectorSQLite es el lector de la base, con el tamaño de página de su
+// cabecera —1 es 65 536— y el útil, sin los bytes que reserva.
+func nuevoLectorSQLite(t *testing.T, base []byte) lectorSQLite {
+	t.Helper()
+
+	require.GreaterOrEqual(t, len(base), 100, "la base tiene su cabecera")
+	require.Equal(t, "SQLite format 3\x00", string(base[:16]), "premisa: es una base SQLite")
+
+	tamano := int(binary.BigEndian.Uint16(base[16:18]))
+	if tamano == 1 {
+		tamano = 1 << 16
+	}
+
+	require.Zero(t, len(base)%tamano, "la base son páginas enteras")
+
+	return lectorSQLite{base: base, tamano: tamano, util: tamano - int(base[20])}
+}
+
+// pagina es la página del número, contando desde 1.
+func (l lectorSQLite) pagina(t *testing.T, numero int) []byte {
+	t.Helper()
+
+	require.True(t, numero >= 1 && numero*l.tamano <= len(l.base), "la página %d está en la base", numero)
+
+	return l.base[(numero-1)*l.tamano : numero*l.tamano]
+}
+
+// cargas son las de las filas del árbol de tabla con raíz en la página, en
+// orden de rowid: las de las celdas de una hoja y, en una página interior, las
+// del hijo de cada celda y después las del hijo de más a la derecha. La
+// cabecera de la página 1 va detrás de la del fichero.
+func (l lectorSQLite) cargas(t *testing.T, raiz int) [][]byte {
+	t.Helper()
+
+	pagina := l.pagina(t, raiz)
+
+	cabecera := 0
+	if raiz == 1 {
+		cabecera = 100
+	}
+
+	celdas := int(binary.BigEndian.Uint16(pagina[cabecera+3:]))
+
+	var cargas [][]byte
+
+	switch pagina[cabecera] {
+	case 0x0d: // hoja de una tabla
+		for i := range celdas {
+			cargas = append(cargas, l.cargaDeLaCelda(t, pagina, punteroSQLite(pagina, cabecera+8, i)))
+		}
+	case 0x05: // página interior de una tabla
+		for i := range celdas {
+			hijo := binary.BigEndian.Uint32(pagina[punteroSQLite(pagina, cabecera+12, i):])
+			cargas = append(cargas, l.cargas(t, int(hijo))...)
+		}
+
+		cargas = append(cargas, l.cargas(t, int(binary.BigEndian.Uint32(pagina[cabecera+8:])))...)
+	default:
+		require.FailNow(t, "la página no es de un árbol de tabla", "página %d, tipo %#x", raiz, pagina[cabecera])
+	}
+
+	return cargas
+}
+
+// punteroSQLite es el desplazamiento de la celda i de la página, el que guarda
+// en dos bytes su puntero en el vector que empieza en punteros.
+func punteroSQLite(pagina []byte, punteros, i int) int {
+	return int(binary.BigEndian.Uint16(pagina[punteros+2*i:]))
+}
+
+// cargaDeLaCelda es la carga entera de la celda de una hoja de tabla que empieza
+// en el desplazamiento: detrás de su longitud y de su rowid, dos enteros de
+// longitud variable, la parte que cabe en la página y, si no cabe entera, el
+// número de la primera página de desbordamiento, cada una de las cuales guarda
+// en sus cuatro primeros bytes el de la siguiente y después lo que sigue.
+func (l lectorSQLite) cargaDeLaCelda(t *testing.T, pagina []byte, desde int) []byte {
+	t.Helper()
+
+	longitud, bytesDeLaLongitud := varintDeSQLite(t, pagina[desde:])
+	_, bytesDelRowid := varintDeSQLite(t, pagina[desde+bytesDeLaLongitud:])
+	desde += bytesDeLaLongitud + bytesDelRowid
+
+	total := int(longitud)
+	local := l.local(total)
+	require.LessOrEqual(t, desde+local, len(pagina), "la parte local de la carga cabe en la página")
+
+	carga := slices.Clone(pagina[desde : desde+local])
+	if local == total {
+		return carga
+	}
+
+	siguiente := int(binary.BigEndian.Uint32(pagina[desde+local:]))
+
+	for len(carga) < total {
+		require.NotZero(t, siguiente, "las páginas de desbordamiento llegan al final de la carga")
+
+		desbordada := l.pagina(t, siguiente)
+		siguiente = int(binary.BigEndian.Uint32(desbordada))
+		carga = append(carga, desbordada[4:4+min(total-len(carga), l.util-4)]...)
+	}
+
+	return carga
+}
+
+// local es la parte de una carga de esa longitud que se guarda en su celda de
+// una hoja de tabla, con las cotas del formato: entera hasta el máximo; si no,
+// el mínimo más lo que sobre de llenar páginas de desbordamiento enteras, si
+// cabe, o el mínimo.
+func (l lectorSQLite) local(longitud int) int {
+	maximo := l.util - 35
+	if longitud <= maximo {
+		return longitud
+	}
+
+	minimo := (l.util-12)*32/255 - 23
+
+	if local := minimo + (longitud-minimo)%(l.util-4); local <= maximo {
+		return local
+	}
+
+	return minimo
+}
+
+// valoresSQLite son los valores del registro de una carga: detrás de la
+// longitud de su cabecera, el tipo de cada valor, enteros de longitud variable,
+// y detrás de la cabecera los valores, en ese orden.
+func valoresSQLite(t *testing.T, carga []byte) []any {
+	t.Helper()
+
+	longitud, desde := varintDeSQLite(t, carga)
+	cabecera := int(longitud)
+	require.LessOrEqual(t, cabecera, len(carga), "la cabecera del registro cabe en su carga")
+
+	var tipos []int
+
+	for desde < cabecera {
+		tipo, bytes := varintDeSQLite(t, carga[desde:])
+		tipos = append(tipos, int(tipo))
+		desde += bytes
+	}
+
+	valores := make([]any, 0, len(tipos))
+
+	for _, tipo := range tipos {
+		valor, bytes := valorSQLite(t, tipo, carga[desde:])
+		valores = append(valores, valor)
+		desde += bytes
+	}
+
+	require.Equal(t, len(carga), desde, "el registro ocupa la carga entera")
+
+	return valores
+}
+
+// valorSQLite es el valor de ese tipo del principio de los bytes, y cuántos
+// ocupa: nulo; un entero de 1, 2, 3, 4, 6 u 8 bytes, o las constantes 0 y 1; o
+// un texto de (tipo - 13) / 2 bytes. Los flotantes y los blobs no los escribe
+// la migración 0001.
+func valorSQLite(t *testing.T, tipo int, datos []byte) (any, int) {
+	t.Helper()
+
+	switch {
+	case tipo == 0:
+		return nil, 0
+	case tipo >= 1 && tipo <= 6:
+		bytes := bytesDeUnEnteroSQLite(tipo)
+		require.LessOrEqual(t, bytes, len(datos), "el entero está entero")
+
+		return enteroSQLite(datos[:bytes]), bytes
+	case tipo == 8 || tipo == 9:
+		return int64(tipo - 8), 0
+	case tipo >= 13 && tipo%2 == 1:
+		bytes := (tipo - 13) / 2
+		require.LessOrEqual(t, bytes, len(datos), "el texto está entero")
+
+		return string(datos[:bytes]), bytes
+	default:
+		require.FailNow(t, "un valor de un tipo que la migración 0001 no escribe", "tipo %d", tipo)
+
+		return nil, 0
+	}
+}
+
+// bytesDeUnEnteroSQLite son los que ocupa en un registro un entero de ese
+// tipo, del 1 al 6: los mismos que el tipo hasta el 4, 6 el 5 y 8 el 6.
+func bytesDeUnEnteroSQLite(tipo int) int {
+	switch tipo {
+	case 5:
+		return 6
+	case 6:
+		return 8
+	default:
+		return tipo
+	}
+}
+
+// enteroSQLite es el entero con signo de los bytes, los altos primero, en
+// complemento a dos.
+func enteroSQLite(datos []byte) int64 {
+	var valor int64
+
+	for _, b := range datos {
+		valor = valor<<8 | int64(b)
+	}
+
+	extension := 64 - 8*len(datos)
+
+	return valor << extension >> extension
+}
+
+// varintDeSQLite es el entero de longitud variable del principio de los datos,
+// y cuántos bytes ocupa: siete bits por byte, los más altos primero, mientras
+// el bit alto está puesto, y hasta un noveno byte, que aporta los ocho suyos.
+func varintDeSQLite(t *testing.T, datos []byte) (int64, int) {
+	t.Helper()
+
+	var valor int64
+
+	for i := range 8 {
+		require.Less(t, i, len(datos), "el entero de longitud variable está entero")
+
+		valor = valor<<7 | int64(datos[i]&0x7f)
+		if datos[i]&0x80 == 0 {
+			return valor, i + 1
+		}
+	}
+
+	require.Less(t, 8, len(datos), "el entero de longitud variable está entero")
+
+	return valor<<8 | int64(datos[8]), 9
 }
