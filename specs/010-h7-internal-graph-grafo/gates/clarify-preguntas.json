@@ -1,0 +1,29 @@
+{"preguntas":[
+{"id":"Q1","categoria":"Functional Scope & Behavior / Domain & Data Model (marcador [NEEDS CLARIFICATION] de FR-040)","pregunta":"¿Qué verbos de `boe` emiten operaciones de grafo además de `articulo` y `articulos`, y qué se registra cuando la respuesta de una norma llega con `url_eli` vacío?","por_que_importa":"Fija qué verbos tocan `world.db`, qué nodos cuenta `graph stats` tras cada verbo y qué id recibe una `Norma` sin ELI; cambia los tests de emisión, el test de fuente (FR-089) y los e2e de recuentos.","opciones":[
+{"id":"A","texto":"Solo `articulo` y `articulos` emiten; `indice`, `buscar`, `metadatos` y `analisis` no emiten nada; una respuesta con `url_eli` vacío no emite ninguna operación."},
+{"id":"B","texto":"`articulo`, `articulos` y `metadatos` emiten (`metadatos`, solo el nodo `Norma`); `indice`, `buscar` y `analisis` no emiten nada; una respuesta con `url_eli` vacío no emite ninguna operación."},
+{"id":"C","texto":"Como B, pero una respuesta con `url_eli` vacío emite igualmente sus nodos con un id derivado del identificador `BOE-A-…` en lugar del ELI; la misma norma puede quedar con ids de dos formas según lo que traiga cada respuesta."},
+{"id":"D","texto":"Los seis verbos emiten lo que observan; los que no traen ELI (`indice`, `buscar`, `analisis`) y las respuestas con `url_eli` vacío usan un id derivado del identificador `BOE-A-…`; la misma norma puede quedar con ids de dos formas según el verbo."}
+],"respuesta_corta_permitida":true},
+{"id":"Q2","categoria":"Completion Signals (marcador [NEEDS CLARIFICATION] de FR-085)","pregunta":"¿La eval de consulta repetida tras cambio de versión comprueba mecánicamente que la respuesta traslada el hallazgo `version-obsoleta`, o solo comprueba los comandos (ejecutados y prohibidos) y la cita?","por_que_importa":"Decide si el formato de eval y `SKILL.md` deben fijar una forma comprobable del aviso de cambio de redacción, y qué hace fallar la eval.","opciones":[
+{"id":"A","texto":"Solo comandos esperados (`boe articulo`, `graph check`), comando prohibido (`graph show`) y la cita del bloque; que la respuesta diga que la redacción cambió no se comprueba mecánicamente."},
+{"id":"B","texto":"Además de lo de A, la respuesta debe llevar un aviso con forma fija, comprobado como los avisos de vigencia de H5.1; `SKILL.md` fija esa forma y el formato de eval la expresa en `avisos`."},
+{"id":"C","texto":"Además de lo de A, la respuesta debe contener literalmente las dos fechas de vigencia (la anterior y la nueva), sin fijar una frase ni una forma de aviso."}
+],"respuesta_corta_permitida":true},
+{"id":"Q3","categoria":"Completion Signals / Constraints & Tradeoffs (marcador [NEEDS CLARIFICATION] de FR-087)","pregunta":"¿La eval nueva de FR-085 nace informativa o decisoria, y en ese caso cómo se concilia con la regla del conjunto que pide exactamente 10 evals positivas que deciden?","por_que_importa":"Determina si un fallo de la eval nueva bloquea el job de evals (ADR 0016) y si hay que cambiar la regla del conjunto y su comprobación.","opciones":[
+{"id":"A","texto":"Informativa, como la de H5.1: publica su tasa y no decide; la regla de 10 evals positivas decisorias no cambia."},
+{"id":"B","texto":"Decisoria, añadida a las existentes: la regla del conjunto pasa a admitir 11 (o un mínimo de 10) evals positivas decisorias."},
+{"id":"C","texto":"Decisoria, sustituyendo a una de las 10 decisorias actuales, que pasa a informativa: el conjunto sigue con exactamente 10 decisorias."}
+],"respuesta_corta_permitida":true},
+{"id":"Q4","categoria":"Interaction & UX Flow (FR-080, US5)","pregunta":"¿En qué momento del protocolo de `boe-legislacion` se ejecuta `kitlegal graph check` respecto de `kitlegal boe articulo`?","por_que_importa":"Con el grafo de la eval (solo la versión A registrada) y la caché sirviendo B, `version-obsoleta` solo aparece si `graph check` va después de leer; y `fuente-caducada` de la consulta anterior solo aparece si va antes, porque la lectura nueva la renueva. FR-080 pide tratar las dos clases, y el orden cambia el protocolo, la eval y sus comandos esperados.","opciones":[
+{"id":"A","texto":"Antes de `boe articulo`: ve `fuente-caducada` de la consulta anterior; `version-obsoleta` solo aparece si la versión nueva ya se observó en una sesión previa."},
+{"id":"B","texto":"Después de `boe articulo` y antes de responder: ve `version-obsoleta` de la versión recién leída; `fuente-caducada` del bloque recién leído no aparece porque la lectura la renueva."},
+{"id":"C","texto":"Dos veces, antes y después de `boe articulo`: ve las dos clases, a costa de dos invocaciones de `graph check` por pregunta."}
+],"respuesta_corta_permitida":true},
+{"id":"Q5","categoria":"Domain & Data Model / Edge Cases (FR-066)","pregunta":"¿A qué nodos se aplica `fuente-caducada` cuando una consulta de `boe articulo` ha superado su vigencia?","por_que_importa":"Una sola consulta caducada deja `Norma`, `Bloque` y `BloqueVersion` con la misma última observación; según el alcance, `graph check` da uno o varios hallazgos por consulta, y las versiones superadas pueden dar además `fuente-caducada` junto a `version-obsoleta`. Cambia la lista esperada en los e2e y lo que la skill filtra.","opciones":[
+{"id":"A","texto":"A todo nodo con vigencia declarada cuya última observación la supera: `Norma`, `Bloque` y cada `BloqueVersion`, también las versiones superadas."},
+{"id":"B","texto":"A todo nodo con vigencia declarada cuya última observación la supera, salvo los `BloqueVersion` que ya reciben `version-obsoleta`."},
+{"id":"C","texto":"Solo a los nodos `Bloque` (y a la `Norma` cuando no tiene ningún `Bloque` observado): un hallazgo por bloque consultado."},
+{"id":"D","texto":"Solo al `BloqueVersion` más reciente de cada `Bloque`: un hallazgo por bloque consultado, sobre su versión vigente conocida."}
+],"respuesta_corta_permitida":true}
+]}
