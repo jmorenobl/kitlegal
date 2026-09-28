@@ -311,6 +311,13 @@ linters:
         # del verbo analisis, que fija el modelo de datos de H4 (FR-120,
         # research.md D18); misspell lo lee como «materials».
         - materias
+        # «Observación», el tramo que comparten las claves primera_observacion y
+        # ultima_observacion con las que graph show da la primera y la última
+        # observación de un nodo y de cada arista, que fija el modelo de datos de
+        # H7 (data-model §5, contracts/applet-graph.md §3.1, research.md D31);
+        # misspell lo lee como «observation», también entre guiones bajos (H7
+        # research.md V30). Ningún identificador suelto se llama así.
+        - observacion
         # «Patrones», los pattern de NORMA y BLOQUE de schemas/normas.yaml.json y
         # schemas/eval.yaml.json, que TestGramaticasCoincidenConBoe compara con
         # boe.ValidarNorma y boe.ValidarBloque y que sus mensajes nombran

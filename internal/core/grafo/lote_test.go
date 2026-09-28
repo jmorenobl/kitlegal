@@ -432,3 +432,176 @@ func exigirRechazoDelLote(t *testing.T, err error, rechazada schema.Operacion, m
 	require.ErrorAs(t, err, &conClase)
 	assert.Equal(t, schema.ClaseInesperado, conClase.Clase())
 }
+
+// consolidadoDeEjemplo es lo que Consolidar da del lote de ejemplo: un
+// registro por id, por terna y por huella, ordenados por su clave comparando
+// bytes, cada uno con la procedencia del lote como primera y como última
+// observación, su vigencia y, en un nodo, sus datos canónicos.
+func consolidadoDeEjemplo() grafo.Consolidado {
+	lote := loteDeEjemplo()
+	procedencia := grafo.Procedencia{Fuente: lote.Fuente, URL: lote.URL, FechaConsulta: lote.FechaConsulta}
+
+	nodo := func(id, tipo, datos string) grafo.RegistroDeNodo {
+		return grafo.RegistroDeNodo{
+			ID: id, Tipo: tipo, Datos: datos,
+			PrimeraObservacion: procedencia, UltimaObservacion: procedencia, Vigencia: lote.Vigencia,
+		}
+	}
+	arista := func(origen, relacion, destino string) grafo.RegistroDeArista {
+		return grafo.RegistroDeArista{
+			Origen: origen, Relacion: relacion, Destino: destino,
+			PrimeraObservacion: procedencia, UltimaObservacion: procedencia, Vigencia: lote.Vigencia,
+		}
+	}
+
+	return grafo.Consolidado{
+		Nodos: []grafo.RegistroDeNodo{
+			nodo(idOrgano, grafo.TipoOrgano, `{"dir3":"L01280745"}`),
+			nodo(idNorma, grafo.TipoNorma, `{"identificador":"BOE-A-2015-10565"}`),
+			nodo(idBloque, grafo.TipoBloque, `{"bloque":"a21"}`),
+			nodo(idMunicipio, grafo.TipoMunicipio, `{"codigo_ine":"28074"}`),
+		},
+		Aristas: []grafo.RegistroDeArista{
+			arista(idOrgano, grafo.RelacionPerteneceA, idMunicipio),
+			arista(idNorma, grafo.RelacionTieneParte, idBloque),
+		},
+		Textos: []grafo.RegistroDeTexto{{Huella: huellaDe(cuerpoA21), Cuerpo: cuerpoA21, Procedencia: procedencia}},
+	}
+}
+
+// TestConsolidar fija la consolidación de un lote (data-model §4.2; FR-023):
+// dos operaciones con la misma clave —id, terna o huella— comparten la
+// observación del lote y quedan en un solo registro; dos nodos con el mismo id
+// y datos distintos se quedan con los datos canónicos menores, comparando
+// bytes, en los dos órdenes de llegada; el resultado no depende del orden de
+// las operaciones ni de que se repitan; y un lote que no se puede consolidar
+// se rechaza entero.
+func TestConsolidar(t *testing.T) {
+	t.Parallel()
+
+	t.Run("consolidados", probarLotesConsolidados)
+	t.Run("sin operaciones", probarLoteSinOperaciones)
+	t.Run("rechazos", probarLotesQueNoSeConsolidan)
+}
+
+// probarLotesConsolidados fija lo que Consolidar da del lote de ejemplo y de
+// sus variantes: en otro orden, con operaciones repetidas y con un nodo
+// repetido con datos distintos antes o después del primero.
+func probarLotesConsolidados(t *testing.T) {
+	t.Parallel()
+
+	conMasDatos := schema.Nodo{
+		ID: idNorma, Tipo: grafo.TipoNorma, Datos: map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565", "otro": "x"},
+	}
+	conOtrosDatos := schema.Nodo{
+		ID: idNorma, Tipo: grafo.TipoNorma, Datos: map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10566"},
+	}
+	alPrincipio := func(operacion schema.Operacion) func(*core.Lote) {
+		return func(lote *core.Lote) { lote.Operaciones = slices.Insert(lote.Operaciones, 0, operacion) }
+	}
+	otroTexto := schema.Texto{Huella: huellaDe("Articulo 22."), Cuerpo: "Articulo 22."}
+	conOtroTexto := func(consolidado *grafo.Consolidado) {
+		registro := consolidado.Textos[0]
+		registro.Huella, registro.Cuerpo = otroTexto.Huella, otroTexto.Cuerpo
+		consolidado.Textos = append(consolidado.Textos, registro)
+		slices.SortFunc(consolidado.Textos, func(a, b grafo.RegistroDeTexto) int {
+			return strings.Compare(a.Huella, b.Huella)
+		})
+	}
+	igual := func(*grafo.Consolidado) {}
+	// La coma va antes que la llave: los datos con la clave «otro» son los
+	// menores.
+	losDeMasDatos := func(consolidado *grafo.Consolidado) {
+		consolidado.Nodos[1].Datos = `{"identificador":"BOE-A-2015-10565","otro":"x"}`
+	}
+
+	casos := []struct {
+		nombre   string
+		cambiar  func(*core.Lote)
+		esperado func(*grafo.Consolidado)
+	}{
+		{"el lote de ejemplo", func(*core.Lote) {}, igual},
+		{"en orden inverso", func(lote *core.Lote) { slices.Reverse(lote.Operaciones) }, igual},
+		{"cada operacion dos veces", func(lote *core.Lote) {
+			lote.Operaciones = slices.Concat(lote.Operaciones, lote.Operaciones)
+		}, igual},
+		{"cada operacion dos veces, la segunda en orden inverso", func(lote *core.Lote) {
+			inversas := slices.Clone(lote.Operaciones)
+			slices.Reverse(inversas)
+			lote.Operaciones = slices.Concat(lote.Operaciones, inversas)
+		}, igual},
+		{"un nodo repetido con datos menores, despues del primero", conOperacion(conMasDatos), losDeMasDatos},
+		{"un nodo repetido con datos menores, antes del primero", alPrincipio(conMasDatos), losDeMasDatos},
+		{"un nodo repetido con datos mayores, despues del primero", conOperacion(conOtrosDatos), igual},
+		{"un nodo repetido con datos mayores, antes del primero", alPrincipio(conOtrosDatos), igual},
+		{"dos textos, por su huella", conOperacion(otroTexto), conOtroTexto},
+		{"dos textos en el otro orden", alPrincipio(otroTexto), conOtroTexto},
+		{"sin vigencia declarada", func(lote *core.Lote) { lote.Vigencia = 0 }, func(consolidado *grafo.Consolidado) {
+			for i := range consolidado.Nodos {
+				consolidado.Nodos[i].Vigencia = 0
+			}
+
+			for i := range consolidado.Aristas {
+				consolidado.Aristas[i].Vigencia = 0
+			}
+		}},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			lote := loteDeEjemplo()
+			caso.cambiar(&lote)
+			esperado := consolidadoDeEjemplo()
+			caso.esperado(&esperado)
+
+			consolidado, err := grafo.Consolidar(lote)
+			require.NoError(t, err)
+			assert.Equal(t, esperado, consolidado)
+		})
+	}
+}
+
+// probarLoteSinOperaciones fija que un lote válido sin operaciones no da
+// ningún registro.
+func probarLoteSinOperaciones(t *testing.T) {
+	t.Parallel()
+
+	lote := loteDeEjemplo()
+	lote.Operaciones = nil
+
+	consolidado, err := grafo.Consolidar(lote)
+	require.NoError(t, err)
+	assert.Empty(t, consolidado.Nodos)
+	assert.Empty(t, consolidado.Aristas)
+	assert.Empty(t, consolidado.Textos)
+}
+
+// probarLotesQueNoSeConsolidan fija que Consolidar no consolida un lote que
+// ValidarLote rechaza, con el mismo Rechazo, ni uno con un nodo cuyos datos no
+// tienen forma JSON canónica, que no se podrían guardar ni comparar: un
+// Rechazo que nombra el nodo y dice por qué.
+func probarLotesQueNoSeConsolidan(t *testing.T) {
+	t.Parallel()
+
+	sinFuente := loteDeEjemplo()
+	sinFuente.Fuente = ""
+
+	consolidado, err := grafo.Consolidar(sinFuente)
+	exigirRechazoDelLote(t, err, nil, "el lote: no lleva fuente")
+	assert.Zero(t, consolidado)
+
+	sinJSON := schema.Nodo{ID: "eli/es/l/2015/10/02/40", Tipo: grafo.TipoNorma, Datos: map[string]any{"rango": complex(1, 2)}}
+	lote := loteDeEjemplo()
+	conOperacion(sinJSON)(&lote)
+	require.NoError(t, grafo.ValidarLote(lote), "ValidarLote no examina los datos de lo que no es una Persona")
+
+	consolidado, err = grafo.Consolidar(lote)
+	require.ErrorContains(t, err, `el nodo "eli/es/l/2015/10/02/40": los datos no tienen forma JSON`)
+	assert.Zero(t, consolidado)
+
+	var rechazo *grafo.Rechazo
+	require.ErrorAs(t, err, &rechazo)
+	assert.Equal(t, sinJSON, rechazo.Operacion, "la operación rechazada, tal como la trae el lote")
+}

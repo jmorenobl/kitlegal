@@ -1,9 +1,13 @@
 package grafo
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core"
@@ -92,6 +96,88 @@ func ValidarContraGrafoVacio(lote core.Lote) error {
 	}
 
 	return nil
+}
+
+// Consolidado es un lote válido con cada clave una sola vez: un registro por
+// id de nodo, uno por terna de arista y uno por huella de texto, cada uno con
+// la observación del lote como primera y como última, y ordenados por su clave
+// comparando bytes (data-model §4.2). Es lo que el adaptador fusiona, registro
+// a registro, con lo guardado (contracts/almacen-world-db.md §4, paso 6).
+type Consolidado struct {
+	// Nodos son los registros de los nodos, por id.
+	Nodos []RegistroDeNodo
+	// Aristas son los registros de las aristas, por origen, relación y
+	// destino.
+	Aristas []RegistroDeArista
+	// Textos son los registros de los textos, por huella.
+	Textos []RegistroDeTexto
+}
+
+// Consolidar valida el lote con ValidarLote y lo reduce a un registro por
+// clave (data-model §4.2; FR-023). Dentro de un lote, dos operaciones con la
+// misma clave —id, terna o huella— comparten la observación del lote, con su
+// procedencia y su vigencia, y quedan en un solo registro. Dos nodos con el
+// mismo id y datos distintos se quedan con los datos canónicos menores,
+// comparando bytes: el último criterio del desempate de FusionarNodo, que es
+// el único en el que difieren dos observaciones del mismo lote. Dos textos con
+// la misma huella tienen el mismo cuerpo, porque ValidarLote exige que la
+// huella sea la de su cuerpo.
+//
+// El resultado no depende del orden de las operaciones ni de que alguna se
+// repita. Un lote que ValidarLote rechaza da su Rechazo, y uno con un nodo
+// cuyos datos no tienen forma JSON canónica, que no se podrían guardar ni
+// comparar, un Rechazo que nombra el nodo y dice por qué.
+func Consolidar(lote core.Lote) (Consolidado, error) {
+	if err := ValidarLote(lote); err != nil {
+		return Consolidado{}, err
+	}
+
+	procedencia := Procedencia{Fuente: lote.Fuente, URL: lote.URL, FechaConsulta: lote.FechaConsulta}
+	nodos := make(map[string]RegistroDeNodo)
+	aristas := make(map[schema.Arista]RegistroDeArista)
+	textos := make(map[string]RegistroDeTexto)
+
+	for _, operacion := range lote.Operaciones {
+		switch op := operacion.(type) {
+		case schema.Nodo:
+			datos, err := DatosCanonicos(op.Datos)
+			if err != nil {
+				return Consolidado{}, &Rechazo{Operacion: op, Motivo: err.Error()}
+			}
+
+			if previo, visto := nodos[op.ID]; visto && previo.Datos <= datos {
+				continue
+			}
+
+			nodos[op.ID] = RegistroDeNodo{
+				ID: op.ID, Tipo: op.Tipo, Datos: datos,
+				PrimeraObservacion: procedencia, UltimaObservacion: procedencia, Vigencia: lote.Vigencia,
+			}
+		case schema.Arista:
+			aristas[op] = RegistroDeArista{
+				Origen: op.Origen, Relacion: op.Relacion, Destino: op.Destino,
+				PrimeraObservacion: procedencia, UltimaObservacion: procedencia, Vigencia: lote.Vigencia,
+			}
+		case schema.Texto:
+			textos[op.Huella] = RegistroDeTexto{Huella: op.Huella, Cuerpo: op.Cuerpo, Procedencia: procedencia}
+		}
+	}
+
+	return Consolidado{
+		Nodos: slices.SortedFunc(maps.Values(nodos), func(a, b RegistroDeNodo) int {
+			return strings.Compare(a.ID, b.ID)
+		}),
+		Aristas: slices.SortedFunc(maps.Values(aristas), func(a, b RegistroDeArista) int {
+			return cmp.Or(
+				strings.Compare(a.Origen, b.Origen),
+				strings.Compare(a.Relacion, b.Relacion),
+				strings.Compare(a.Destino, b.Destino),
+			)
+		}),
+		Textos: slices.SortedFunc(maps.Values(textos), func(a, b RegistroDeTexto) int {
+			return strings.Compare(a.Huella, b.Huella)
+		}),
+	}, nil
 }
 
 // validarProcedencia rechaza el lote mismo si su procedencia no sostiene una
