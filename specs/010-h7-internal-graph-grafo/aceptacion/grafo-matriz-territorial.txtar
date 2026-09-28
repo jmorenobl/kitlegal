@@ -1,0 +1,52 @@
+# La matriz territorial de la emisión de territorio: Leganés, del territorio
+# configurado, y Tordesillas, de una comunidad sin configurar, dejan cada uno
+# su Municipio, su Organo y la arista lb:pertenece_a entre los dos, con la misma
+# forma: la cobertura declarada en data no cambia lo que se registra.
+#
+# Cubre: FR-043, FR-045, FR-094 (matriz territorial en e2e) · constitución IX.
+#
+# Los códigos INE, los nombres y los DIR3 son los de data/territorio/
+# (municipios.yaml y dir3.yaml): Leganés 28074 y L01280745, Tordesillas 47165 y
+# L01471659; la fecha_consulta de territorio es la de sus datos,
+# 2026-02-04T00:00:00Z. Ids, tipos, datos y aristas, los de
+# contracts/emision.md §2.
+
+# Precondición: el binario registra el applet graph (FR-050).
+exec kitlegal --help
+stdout '^  graph +\S'
+
+# --- Un municipio cubierto y uno no cubierto ---
+exec kitlegal territorio resolver Leganés --json
+stdout '"cobertura":\{"boletin_autonomico":"configurado","boletin_provincial":"configurado","dir3":"verificado"\}'
+! stderr .
+exec kitlegal territorio resolver Tordesillas --json
+stdout '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}'
+! stderr .
+
+exec kitlegal graph stats --json
+stdout '"data":\{"nodos":4,"aristas":2,"textos":0,"nodos_por_tipo":\[\{"tipo":"Municipio","fuente":"kitlegal\.territorio","nodos":2\},\{"tipo":"Organo","fuente":"kitlegal\.territorio","nodos":2\}\],"aristas_por_relacion":\[\{"relacion":"lb:pertenece_a","fuente":"kitlegal\.territorio","aristas":2\}\]\}\}\n\z'
+! stderr .
+
+# --- Leganés, cubierto ---
+exec kitlegal graph show ine:28074 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"ine:28074","tipo":"Municipio","datos":\{"codigo_ine":"28074","nombre":"Leganés"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\],"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01280745","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+exec kitlegal graph show L01280745 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"L01280745","tipo":"Organo","datos":\{"dir3":"L01280745"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\{"relacion":"lb:pertenece_a","id":"ine:28074","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .
+
+# --- Tordesillas, no cubierto: la misma forma ---
+exec kitlegal graph show ine:47165 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"ine:47165","tipo":"Municipio","datos":\{"codigo_ine":"47165","nombre":"Tordesillas"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\],"entrantes":\[\{"relacion":"lb:pertenece_a","id":"L01471659","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+exec kitlegal graph show L01471659 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"L01471659","tipo":"Organo","datos":\{"dir3":"L01471659"\},"primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\},"salientes":\[\{"relacion":"lb:pertenece_a","id":"ine:47165","primera_observacion":"2026-02-04T00:00:00Z","ultima_observacion":\{"fuente":"kitlegal\.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z"\}\}\],"entrantes":\[\]\}\}\n\z'
+! stderr .
+
+# --- Por código, lo mismo: ningún nodo ni arista nuevos ---
+exec kitlegal territorio resolver 47165 --json
+! stderr .
+exec kitlegal territorio resolver 280745 --json
+! stderr .
+exec kitlegal graph stats --json
+stdout '"data":\{"nodos":4,"aristas":2,"textos":0,'
