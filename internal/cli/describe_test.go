@@ -653,6 +653,29 @@ func verboConMarcas() Verbo {
 	}
 }
 
+// argumentosConLiteral y argumentosConCadena declaran el mismo argumento por su
+// posición, uno como Literal y el otro como string: para quien invoca son el
+// mismo argumento, y así los describe el documento.
+type (
+	argumentosConLiteral struct {
+		ID Literal `arg:"" help:"Lo que se busca."`
+	}
+
+	argumentosConCadena struct {
+		ID string `arg:"" help:"Lo que se busca."`
+	}
+)
+
+// verboDeBusqueda es la definición de un verbo que solo declara esos argumentos.
+func verboDeBusqueda(argumentos any) Verbo {
+	return Verbo{
+		Applet:     nombreDePrueba,
+		Verbo:      "buscar",
+		Ayuda:      "Busca lo que se le da.",
+		Argumentos: argumentos,
+	}
+}
+
 // TestDescribeGramatica comprueba que la entrada descrita es exactamente la que la
 // gramática acepta: qué campos nombran una bandera y cuáles de ellos tiene que
 // escribir quien invoca. Describir como obligatorio lo que no lo es —o describir un
@@ -660,6 +683,18 @@ func verboConMarcas() Verbo {
 // que se publica (FR-048, SC-010).
 func TestDescribeGramatica(t *testing.T) {
 	t.Parallel()
+
+	t.Run("un Literal se describe como una cadena", func(t *testing.T) {
+		t.Parallel()
+
+		literal, _ := describirDePrueba(t, verboDeBusqueda(&argumentosConLiteral{}))
+		cadena, _ := describirDePrueba(t, verboDeBusqueda(&argumentosConCadena{}))
+
+		assert.Equal(t, map[string]any{"type": "string"},
+			bajar(t, literal, "properties", "entrada", "properties", "id"))
+		assert.Equal(t, cadena, literal,
+			"el documento no distingue un Literal de un string, y no lo lleva a $defs")
+	})
 
 	t.Run("las cuatro marcas deciden qué es obligatorio", func(t *testing.T) {
 		t.Parallel()

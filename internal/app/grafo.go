@@ -102,8 +102,12 @@ func (a appletGrafo) Verbos() []Verbo {
 
 // argumentosDeShow son los de show: exactamente un id, por su posición
 // (FR-052). Ninguna bandera propia: el applet hereda las ocho globales.
+//
+// El id es un cli.Literal y no un string porque se busca tal cual, también con
+// bytes que no son UTF-8, y el analizador los cambiaría por U+FFFD antes de
+// llegar aquí en un string (FR-052, FR-053).
 type argumentosDeShow struct {
-	ID string `arg:"" name:"id" help:"Id del nodo: un ELI, «ine:<código>», un DIR3…"`
+	ID cli.Literal `arg:"" name:"id" help:"Id del nodo: un ELI, «ine:<código>», un DIR3…"`
 
 	dependencias DependenciasDeGrafo
 }
@@ -112,17 +116,19 @@ type argumentosDeShow struct {
 // aristas, sin el cuerpo de ningún texto (FR-053, FR-070). Un id que no puede
 // ser el de ningún nodo es «argumentos», sin abrir world.db (FR-052); uno que
 // no está, también con el grafo ausente o sin esquema, «no encontrado», con un
-// mensaje que lo nombra (FR-053).
+// mensaje que lo nombra con sus bytes, escritos con %q (FR-053).
 func (a *argumentosDeShow) Ejecutar(ctx context.Context, _ schema.Contexto, _ *slog.Logger) (schema.Resultado, error) {
-	return a.dependencias.responder(ctx, grafo.ValidarID(a.ID),
+	id := string(a.ID)
+
+	return a.dependencias.responder(ctx, grafo.ValidarID(id),
 		func(ctx context.Context, lectura *graph.Lectura, _ time.Time) (any, error) {
-			ficha, encontrada, err := lectura.Ficha(ctx, a.ID)
+			ficha, encontrada, err := lectura.Ficha(ctx, id)
 			if err != nil {
 				return nil, err
 			}
 
 			if !encontrada {
-				return nil, fmt.Errorf("%w: el id %q no está en el grafo del mundo", cli.ErrNoEncontrado, a.ID)
+				return nil, fmt.Errorf("%w: el id %q no está en el grafo del mundo", cli.ErrNoEncontrado, id)
 			}
 
 			return ficha, nil

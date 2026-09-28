@@ -649,20 +649,41 @@ func compruebaCheckConElReloj(t *testing.T) {
 // compruebaIDsQueNoEstan fija el 3 de show con un id que no está en el grafo:
 // uno que no es de ningún nodo, uno con espacios en blanco y algo más, que no
 // se recorta, uno con U+200B y uno con un byte que no es UTF-8, que se buscan
-// tal cual (FR-052, FR-053). El mensaje nombra el id y nada cambia.
+// tal cual (FR-052, FR-053). El mensaje nombra el id con sus bytes, escritos
+// con %q, y nada cambia.
 //
-// El byte que no es UTF-8 no llega al applet: el analizador de la línea de
-// órdenes, en internal/cli, lleva cada argumento de texto por JSON, que lo
-// cambia por U+FFFD. El applet busca tal cual el id que recibe, que tampoco
-// puede ser de ningún nodo, y lo nombra así (gates/supuestos.md, T015).
+// El grafo tiene, además de la muestra, el nodo cuyo id es el del byte que no
+// es UTF-8 con U+FFFD en su lugar, que es el que se buscaría si el id llegara
+// al applet como un string (el analizador cambia ese byte por U+FFFD), y show
+// lo encuentra: que el id con el byte salga con 3 es que se busca con sus
+// bytes y no con los de otro id.
 func compruebaIDsQueNoEstan(t *testing.T) {
 	t.Helper()
 
 	directorio := t.TempDir()
 	poblarElGrafo(t, directorio)
 
+	conSustituto := idDeLaNorma + "\xef\xbf\xbd"
+	require.NoError(t, graph.Nuevo(graph.ConDirectorio(directorio)).Apply(t.Context(), core.Lote{
+		Fuente: fuenteDeLaNorma, URL: urlDeLaNorma, FechaConsulta: fechaDeLaNorma, Vigencia: vigenciaDeLaNorma,
+		Operaciones: []schema.Operacion{schema.Nodo{
+			ID: conSustituto, Tipo: grafo.TipoNorma,
+			Datos: map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma},
+		}},
+	}))
+
 	antes := huellasDelDirectorio(t, directorio)
 	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
+
+	var ficha struct {
+		Nodo struct {
+			ID string `json:"id"`
+		} `json:"nodo"`
+	}
+
+	datos := datosFirmados(t, invocar(t, registro, argvDelGrafo("show", conSustituto, "--json")...), instanteDelGrafo)
+	require.NoError(t, json.Unmarshal([]byte(datos), &ficha))
+	require.Equal(t, conSustituto, ficha.Nodo.ID, "premisa: el id con U+FFFD está en el grafo")
 
 	for _, id := range []string{
 		idQueNoEsta,
@@ -675,8 +696,7 @@ func compruebaIDsQueNoEstan(t *testing.T) {
 		res := invocar(t, registro, argvDelGrafo("show", id, "--json")...)
 
 		mensaje := exigirFalloDelGrafo(t, res, schema.ClaseNoEncontrado, 3, instanteDelGrafo)
-		recibido := strings.ToValidUTF8(id, "\xef\xbf\xbd")
-		assert.Contains(t, mensaje, strconv.Quote(recibido), "el mensaje nombra el id %q", id)
+		assert.Contains(t, mensaje, strconv.Quote(id), "el mensaje nombra el id %q con sus bytes", id)
 	}
 
 	assert.Equal(t, antes, huellasDelDirectorio(t, directorio))

@@ -60,7 +60,9 @@ sustituyen a este fichero.
 
   Códigos: `2` un id vacío, formado solo por espacio en blanco o con un carácter de control, un argumento sobrante, o
   la carpeta de la caché mal declarada (`KITLEGAL_CACHE_DIR` vacía o que no es un directorio; sin ella, sin `HOME`),
-  también con `--no-graph`; `3` un id que no está, también con el grafo vacío o sin crear; `4` el plazo de
+  también con `--no-graph`; `3` un id que no está, también con el grafo vacío o sin crear —el id se busca tal cual,
+  sin recortar y con sus bytes aunque no sean UTF-8, y el mensaje lo nombra entre comillas y con escapes Go (`\xff`)—;
+  `4` el plazo de
   `--timeout` agotado esperando la base; y `1` un `world.db` inutilizable —no es una base de datos, es un directorio,
   tiene una transacción interrumpida sin deshacer o un esquema de una versión posterior— o bloqueado más de 5 s, que
   el verbo nombra y no modifica. Sin `world.db`, el grafo está vacío y no se crea nada. Su contrato se publica en

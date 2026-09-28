@@ -116,6 +116,12 @@ Las cifras valen para el código de producto de `6d01b81`, que es el del commit 
 se repiten (100,0 %, 99,6 %, 92,2 % y 97,4 %). Si la revisión final cambia código, hay que volver a medirlas sobre la
 cabeza final.
 
+La revisión final cambia código: `internal/cli/literal.go` (el tipo `cli.Literal`, con el que `graph show` recibe el id
+con sus bytes aunque no sean UTF-8; FR-052), el campo del id en `internal/app/grafo.go` y un comentario de
+`internal/core/grafo/id.go`. Medidas otra vez sobre el `coverage.out` de su `make ci`, con el mismo filtrado, las cuatro
+cifras se repiten (100,0 %, 99,6 % con 2531 de 2542 sentencias, 92,2 % y 97,4 %); `internal/cli` queda en 98,7 %
+(372 de 377 sentencias), con `literal.go` entero cubierto.
+
 ## Quickstart (escenarios 2 a 12)
 
 Ejecutados sobre `6d01b81`, tal como los escribe `quickstart.md`, en una sola sesión de `sh` con la preparación de

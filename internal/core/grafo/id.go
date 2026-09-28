@@ -19,8 +19,9 @@ import (
 // Cualquier otro id es válido y se busca tal cual, sin recortar: uno con
 // espacios y algo más (`a b`, ` a`), uno con un carácter de formato como
 // U+200B, que no es de ninguna de las dos clases, y uno con bytes que no son
-// UTF-8, que se leen como U+FFFD y tampoco lo son. Si no está en el grafo, es
-// quien lo busca quien dice que no se encuentra (FR-053).
+// UTF-8, que al recorrerlo se leen como U+FFFD y tampoco lo son; el id no se
+// cambia, y se busca con esos bytes. Si no está en el grafo, es quien lo busca
+// quien dice que no se encuentra (FR-053).
 func ValidarID(id string) error {
 	if id == "" {
 		return idNoValido(id, "está vacío")

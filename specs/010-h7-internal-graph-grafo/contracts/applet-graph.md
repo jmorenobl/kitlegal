@@ -195,10 +195,12 @@ BOE-A-2015-10565 a …` (guion `h7-grafo-fuente-caducada`).
 Mensajes: un id que `ValidarID` rechaza, `el id "<id>" no puede ser el de ningún nodo: <motivo>`, con el motivo
 `está vacío`, `solo tiene caracteres de espacio en blanco` o `contiene el carácter de control U+XXXX` (en ese orden de
 comprobación); un id ausente, `no encontrado: el id "<id>" no está en el grafo del mundo`; los fallos de
-`internal/graph`, los de contracts/almacen-world-db.md §6. Los bytes que no son UTF-8 de un argumento los cambia por
-U+FFFD el analizador de la línea de órdenes (Kong, en `internal/cli`) antes de que lleguen al applet, así que
-`show` busca el id con U+FFFD, que ningún applet emite, y sale con 3 nombrándolo así (lo fija
-`TestAppletGrafo/no-encontrado`).
+`internal/graph`, los de contracts/almacen-world-db.md §6. El id de `show` es un `cli.Literal`: el analizador de la
+línea de órdenes (Kong, en `internal/cli`) cambia por U+FFFD los bytes que no son UTF-8 de un argumento de texto, y
+un `cli.Literal` los conserva, así que `show` busca el id con los bytes recibidos y, si no está, sale con 3
+nombrándolo con `%q` (`"…\xff"`), no con U+FFFD; para `--describe` el id sigue siendo una cadena. Lo fijan
+`TestAppletGrafo/no-encontrado`, con un nodo cuyo id es el mismo con U+FFFD en lugar del byte, que `show` encuentra,
+y `TestAnalizarLiteral` (`internal/cli`).
 
 Las dos clases de caracteres del id de `show` (FR-052; research D35, V37):
 

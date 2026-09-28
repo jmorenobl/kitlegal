@@ -1,0 +1,60 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y su guardián «(global), 22 ficheros» coincide con el último commit de la cabeza (959ce56, 22 ficheros). Reproducido en solo lectura sobre HEAD, sin escribir en el árbol: `go tool -modfile=tools/golangci-lint/go.mod golangci-lint run ./...` → 0 issues; `go test -count=1 -skip '^(TestMedidasDeTiempo|TestCosteDelGrafo)$' ./...` → 6074 tests en verde en 22 paquetes, incluido TestEntregaDelHito con los 11 guiones h7-*; `go test -count=1 -tags=integration ./internal/graph/` → ok; `go vet ./...` → limpio; `go test -run '^TestEsquemasPublicados$' ./internal/app/` (schema-check) → ok. `git status --short` vacío antes y después."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene test offline (ci.log: internal/core/grafo 100 %, internal/graph 92,2 %, internal/app 96,2 %, internal/cli 98,6 %, source/boe 99,5 %, core/territorio 100 %, evals 99 %). Mutación con `go test -overlay` sobre copias en /tmp, sin tocar el árbol, 12 de 12 mutantes detectados: entrega.go que nunca entrega (entrega_test.go:297), sobre.go que entrega antes de presentar (compruebaEntregaDespuesDePresentar), persona.go sin examinar el id (TestPersonaSinDocumento), comprobar.go marcando fechas iguales (TestComprobar), observacion.go con la primera que avanza (observacion_test.go:553 y TestApplyFueraDeOrden), observacion.go aceptando un tipo cambiado (TestFusionarNodo y TestApplyRechazaContraLoGuardado), lectura.go devolviendo un cuerpo de texts (TestNingunVerboDelGrafoDevuelveTexto y TestAppletGrafo/tabla-sin-json-y-sin-texto-legal), main.go ignorando --no-graph (TestEntregaDelKernel y TestLaSalidaDeBoeNoCambiaConElGrafo), boe/grafo.go sin el Texto (TestObservadoDeBoe), territorio/grafo.go con Organo sin DIR3 (TestObservadoDeTerritorio), abrir.go leyendo siempre con mode=ro (TestDecidirApertura), lote.go admitiendo un lote sin fuente (TestValidarLote). Suite congelada: SHA-256 de los 11 guiones de specs/010-h7-internal-graph-grafo/aceptacion/ calculada con un programa propio y coincidente con gates/aceptacion-congelada.json; `git diff 0ffba2e HEAD -- aceptacion/` vacío (intacta desde T001); cada copia internal/app/testdata/script/h7-*.txtar byte a byte igual a su original (cmp); activada en 7e33a7b y en verde en la suite ejecutada."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "golangci-lint 0 issues con depguard (listas core, red, sql y la nueva grafo de .golangci.yml:190-198) y forbidigo; internal/arch_test.go:119-124 y 528-557 añaden R6 transitiva con exigencia de que internal/graph exista, y TestArquitectura pasa. Grep de las líneas añadidas en *.go: ninguna importación de net/http ni llamada a os.Exit, fmt.Print*, os.Stdout u os.Stderr fuera de los paquetes autorizados; internal/graph importa internal/core, core/grafo, core/schema e internal/cache (solo cache.Directorio, internal/graph/ruta.go:62) y nunca source ni render; internal/core/grafo importa solo core y schema (internal/core/grafo/lote.go:13-14)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "schemas/grafo.json generado desde --describe (fila en internal/app/esquemas_test.go, TestEsquemasPublicados en verde = make schema-check). internal/app/grafo_test.go:1154-1189 (TestSalidaDelGrafoContraSchemas) valida el sobre real emitido por el kernel con --json contra la parte de cada verbo leída del fichero publicado, en 18 casos (show de los cinco tipos y con dos versiones, stats vacío y poblado, check con hallazgos de una y dos clases, sin hallazgos y sin world.db, y los fallos 2, 3, 4 y 1), y exige que la validación restrinja (clave de más, clave de menos, lista nula, elemento ajeno; l. 1321-1358). Los 11 guiones afirman el sobre entero con \\A…\\z (p. ej. h7-grafo-memoria.txtar:45,59). graph firma en el espacio reservado kitlegal.graph / kitlegal:applet/graph (internal/app/grafo.go:20-23) y TestLasFuentesNoFirmanComoKitlegal sigue en verde."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "*graph.Error implementa schema.ConClase (internal/graph/errores.go:43,83-89) y cada situación de §6 lleva su clase: ubicación → argumentos (2), plazo → fuente-no-disponible (4), inutilizable/directorio/versión posterior/bloqueo → inesperado (1); el id ausente → cli.ErrNoEncontrado (3) en internal/app/grafo.go:125; los hallazgos salen con 0 (grafo.go:160-176). Comprobado en TestAppletGrafo (0/2/3/4/1), TestCodigosDelGrafo (1 y 2 con y sin --no-graph) y en h7-grafo-codigos.txtar (2 con U+00A0, U+2003, tabulador, U+0085, U+007F; 3 con `a b`, U+200B; 1 con no-base y directorio) y h7-grafo-entrega-fallida.txtar (entrega fallida: código 0, salida idéntica, exactamente una línea más). Ningún panic en el código de producción añadido (grep del diff); slices.MaxFunc solo con len>0 (comprobar.go:151-156); Almacen y Lectura toleran receptor nulo."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased (143 líneas) describe world.db, la emisión, el applet graph con sus códigos, la línea de aviso, boe-legislacion v0.1, la eval 19, el formato de eval, --no-graph, test-tiempos, test-integration, R6, test-e2e y las tres desviaciones en bytes; cada afirmación contrastada con el producto: `make test-e2e` existe (Makefile:96-98) y su TestMain construye los siete binarios; 19 evals con 7 informativas → 12 decisorias → 36+21+36 = 93 sesiones (contado en evals/boe-legislacion/); SKILL.md de 246 líneas con frontmatter `kitlegal-applets: boe graph` y tabla regenerada; README y CONTRIBUTING alineados con Makefile y applets. No aplica ADR (ADR 0014 ya decide la pieza G0 y deja los nombres al plan; ninguna decisión cerrada cambia) ni fila de docs/SOURCES.md (ninguna fuente nueva ni petición nueva): datos-tocados.md lo deja escrito. La única promesa del spec que el binario cumple solo en su efecto —FR-052, un id con bytes que no son UTF-8, que Kong cambia por U+FFFD antes del applet y sale con 3— está declarada en contracts/applet-graph.md:198-200 y gates/supuestos.md (T015) y la fija compruebaIDsQueNoEstan; el contrato y el binario coinciden."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "H7 no añade ninguna petición HTTP: el único paquete nuevo que toca URLs es internal/source/boe/grafo.go, con net/url para leer url_eli (l. 4, 87); internal/httpx no cambia (ni ritmo ni User-Agent). Ningún test nuevo abre red: grep de httpx.New(, KITLEGAL_RECORD y Grabar( en los *_test.go añadidos → nada; boe responde por httpx.Replay (internal/app/grafo_test.go:1759, ejemplo/kitlegal-e2e/main.go:498). Datos externos: cero grabaciones nuevas; las cuatro derivadas (internal/app/testdata/derivadas/*, testdata/evals/grafo-previo/*) salen de grabaciones de H4 versionadas y TestGrabacionesDerivadas (grafo_test.go:2338-2363) exige que cada una sea su grabación salvo exactamente lo que dice su nombre y que toda derivada tenga su comprobación. Sin secretos (gitleaks en verde en ci.log). Sin NIF de persona: el rechazo de Persona por expresión ASCII sin (?i) (internal/core/grafo/persona.go:24) probado en 20×4 rechazos y 11×4 aceptaciones; los documentos de los tests son los ejemplos canónicos (12345678Z, X-1234567-L, B-12.345.678). world.db es local y nada sale del equipo (graph.Nulo con --no-graph, internal/graph/nulo.go)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Único //nolint del diff: paralleltest en internal/app/coste_test.go:95, razonado y previsto por el plan (obligación 8). Ningún t.Skip ni TODO/FIXME en las líneas añadidas. Errores no propagados: `_ = p.Aviso(lineaDeEntregaFallida(err))` (internal/cli/entrega.go:56), decisión de FR-033/D7 fijada por compruebaAvisoQueNoSeEscribe (entrega_test.go:448-461), con el mismo patrón que el aviso de H19; `fin.limite, _ = ctx.Deadline()` (internal/app/main.go:469) tras un WithTimeout que siempre lleva plazo. Ningún fixture ni golden retocado: `git log --stat main..HEAD -- testdata schemas` solo muestra T016 (grafo.json nuevo, argumentos.txtar l. 24 y 30, territorio-matriz.txtar l. 206 → `! exists cache/cache.db`, con su comentario), T019, T022 y T025, todas [datos]; los guiones congelados no cambian desde T001. La única corrección de test del cierre (T029: `inicio := time.Now()` antes del plazo en internal/graph/espera_test.go) arregla la raíz de una intermitencia documentada en gates/tarea-T012.md y gates/tarea-T029.md, sin holgura en ninguna cota. El commit de barrido 959ce56 solo cambia comentarios, tiempos verbales del spec (FR-031) y la descripción de T023."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff se ciñe a FR-001–FR-095: world.db con nodes/edges/texts (internal/graph/migraciones/0001_grafo.sql), Resultado.Grafo y core.GraphStore/Lote (internal/core/schema/grafo.go, internal/core/graphstore.go), entrega tras presentar (internal/cli/sobre.go:112), emisión de boe articulo/articulos y territorio resolver, applet graph con show/stats/check, arnés con tres relojes, costes, formato de eval, eval 19 y SKILL.md v0.1. Nada de lo excluido aparece: sin graph query/neighbors/path/history/export, sin eli:cites, sin FTS5, sin grafo del asunto, sin atención a señales, sin emisión desde indice/buscar/metadatos/analisis (h7-grafo-no-emiten.txtar). Piezas fuera de la lista del spec razonadas en plan.md Complexity Tracking y presentes tal cual (cache.Directorio, Montador.Grafo/Emitir(ctx), costura de os.Link, -X main.reloj). Cada supuesto de gates/supuestos.md es lectura conservadora coherente con el spec y sus Clarifications: sin ELI no se emite nada ni con id alternativo (FR-040), sin deduplicar hallazgos (FR-066/080), clases ASCII en Persona (FR-025), White_Space y Cc en show (FR-052), U+FFFD documentado y con salida 3 (FR-052/053), los estados de world.db de fuera declarados por su causa y con sus cotas y fijados por test (aplicar_test.go, integracion_test.go)."
+    }
+  ],
+  "motivos": []
+}

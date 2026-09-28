@@ -664,7 +664,8 @@ sus caracteres son de espacio en blanco —la propiedad White_Space de Unicode, 
 U+0085, U+00A0, U+2003…— o si contiene **algún** carácter de control —la categoría Cc de Unicode,
 `unicode.IsControl`: U+0000-U+001F y U+007F-U+009F— (V37). Un id con espacios y algo más (`a b`, ` a`) es válido y se
 busca tal cual, sin recortar; si no está, 3 (FR-053). Un carácter de formato como U+200B no es de espacio en blanco ni
-de control, y un byte que no es UTF-8 se lee como U+FFFD, que tampoco: los dos son ids válidos que, si no están, dan 3.
+de control, y un byte que no es UTF-8, al recorrer el id, se lee como U+FFFD, que tampoco: los dos son ids válidos que,
+si no están, dan 3, y se buscan con sus bytes (el id de `show` es un `cli.Literal`, que el analizador no transcodifica).
 Ejemplos que fija `TestValidarID`, uno por clase: U+00A0 solo y U+2003 solo (espacio en blanco → 2), `a` + U+0000 +
 `b` y U+007F solo (control → 2), U+0085 solo (de las dos clases → 2), y `a b` y U+200B (válidos). El guion
 `h7-grafo-codigos` ejerce los mismos salvo U+0000, que no puede viajar en un argumento (V40).
