@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/jmorenobl/kitlegal/data"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
@@ -56,6 +57,10 @@ type Registro struct {
 	// avisador es el aviso de versión del binario, o nulo si no tiene
 	// ninguno.
 	avisador Avisador
+
+	// almacen es el grafo del mundo al que el kernel entrega lo que observan
+	// las invocaciones, o nulo si el registro no entrega nada.
+	almacen core.GraphStore
 }
 
 // Registrar añade un applet al registro después de comprobar las cinco reglas
@@ -107,6 +112,16 @@ func (r *Registro) Nombres() []string {
 // aviso, como el valor cero.
 func (r *Registro) Avisar(avisador Avisador) {
 	r.avisador = avisador
+}
+
+// EntregarAlGrafo registra el almacén del grafo del mundo al que el kernel
+// entrega, después de presentar, lo que observa cada invocación que termina
+// bien sin --no-graph (contracts/resultado-y-entrega.md §5; research.md D6).
+// Uno nuevo sustituye al anterior y uno nulo deja el registro sin entrega, como
+// el valor cero: el de los tests y el de la preparación de las evals, de modo
+// que ninguno escriba en el world.db de la cuenta de quien los ejecuta.
+func (r *Registro) EntregarAlGrafo(almacen core.GraphStore) {
+	r.almacen = almacen
 }
 
 // aviso es la línea del aviso registrado y si hay que darla. Sin avisador no

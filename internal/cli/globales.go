@@ -25,9 +25,10 @@ const timeoutPorOmision = 30 * time.Second
 // comentario: son la misma declaración embebida, y si un verbo declarara una
 // bandera con uno de estos ocho nombres la gramática no se construiría.
 //
-// Tres de las ocho —--offline, --no-graph y --asunto— no tienen todavía objeto:
-// H1 fija su sintaxis y las hace llegar al applet, y no les inventa una
-// semántica que ningún hito ha definido (FR-021, FR-023, FR-024).
+// H1 fijó la sintaxis de tres de las ocho —--offline, --no-graph y --asunto— y
+// las hizo llegar al applet sin inventarles una semántica que ningún hito había
+// definido (FR-021, FR-023, FR-024): --offline la tiene desde H3, --no-graph
+// desde H7, y --asunto sigue sin objeto.
 type Globales struct {
 	// JSON elige la forma legible por máquina: el sobre en JSON en lugar de la
 	// tabla mínima para personas (FR-019).
@@ -44,9 +45,11 @@ type Globales struct {
 	// Describe pide el esquema JSON de entrada y salida del verbo y excluye la
 	// ejecución. No viaja al applet, que nunca llega a verlo (FR-046, FR-049).
 	Describe bool `help:"Emite el esquema JSON de entrada y salida, sin ejecutar nada."`
-	// SinGrafo declara que la ejecución no altera el grafo. Se acepta y se
-	// propaga; el grafo llega en H17 (FR-023).
-	SinGrafo bool `name:"no-graph" help:"Declara que la ejecución no altera el grafo."`
+	// SinGrafo hace que la invocación no entregue al grafo del mundo nada de lo
+	// que observa: la raíz de composición entrega entonces al almacén nulo, que
+	// lo descarta. Solo gobierna la entrega; lo que leen los verbos del grafo no
+	// cambia con ella (H7 FR-031).
+	SinGrafo bool `name:"no-graph" help:"No entrega al grafo del mundo nada de lo que observa la invocación."`
 	// Asunto declara sobre qué asunto se trabaja. Se acepta y se propaga; abrir
 	// o crear un asunto es alcance de H18 (FR-024).
 	Asunto string `help:"Asunto sobre el que se trabaja."`

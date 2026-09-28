@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -197,10 +198,14 @@ func exigirContrato(t *testing.T, documento map[string]any) {
 // emitirDePrueba ejecuta el único punto que traduce el desenlace de una
 // invocación en código de salida y devuelve lo observable: el código y los dos
 // descriptores.
+//
+// El contexto es el de fondo porque el montador de estas tablas no tiene
+// almacén y no entrega nada: el contexto de la entrega lo comprueba
+// TestEntregaDelMontador.
 func emitirDePrueba(
 	doble *presentadorConJSON, enJSON bool, res schema.Resultado, err error,
 ) int {
-	return montadorDePrueba().Emitir(doble, enJSON, res, err)
+	return montadorDePrueba().Emitir(context.Background(), doble, enJSON, res, err)
 }
 
 // casoDeFallo es una fila de la tabla de las siete clases: el error que se

@@ -14,7 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
+	"github.com/jmorenobl/kitlegal/internal/graph"
 )
 
 // timeoutDelContrato es el plazo por omisión que promete
@@ -508,4 +510,314 @@ func TestPlazoAgotado(t *testing.T) {
 	exigirSobreDeFallo(t, res, schema.ClaseFuenteNoDisponible, 4, procedenciaDePrueba)
 	assert.Contains(t, res.errores, "plazo",
 		"el mensaje para la persona dice que lo que falló fue el plazo")
+}
+
+// procedenciaQueObserva es la de un applet que observa el mundo y conoce la
+// fecha de su consulta. Con la fecha fija, dos invocaciones escriben la misma
+// salida estándar byte a byte, que es lo que permite compararlas.
+var procedenciaQueObserva = schema.Procedencia{
+	Fuente:        procedenciaDePrueba.Fuente,
+	URL:           procedenciaDePrueba.URL,
+	FechaConsulta: time.Date(2026, time.February, 4, 0, 0, 0, 0, time.UTC),
+}
+
+// observadoDelKernel es lo que declara el applet de estas tablas cuando observa
+// el mundo: una operación y la vigencia de la consulta.
+func observadoDelKernel() schema.Observado {
+	return schema.Observado{
+		Vigencia: time.Hour,
+		Operaciones: []schema.Operacion{
+			schema.Nodo{ID: "ine:28074", Tipo: "Municipio", Datos: map[string]any{"codigo": "28074"}},
+		},
+	}
+}
+
+// errEntregaDelKernel es la causa de una entrega que falla, con un salto de
+// línea que la línea de aviso convierte en un espacio.
+var errEntregaDelKernel = errors.New("grafo: world.db no se puede escribir:\npermiso denegado")
+
+// almacenEspia es el doble del grafo del mundo que se registra en estas tablas:
+// anota cada lote, el límite del contexto con que llega y si ese contexto
+// seguía vivo, y devuelve el fallo que se le fije.
+type almacenEspia struct {
+	lotes     []core.Lote
+	limites   []time.Time
+	conLimite []bool
+	vivos     []bool
+	fallo     error
+}
+
+var _ core.GraphStore = (*almacenEspia)(nil)
+
+func (a *almacenEspia) Apply(ctx context.Context, lote core.Lote) error {
+	limite, conLimite := ctx.Deadline()
+
+	a.lotes = append(a.lotes, lote)
+	a.limites = append(a.limites, limite)
+	a.conLimite = append(a.conLimite, conLimite)
+	a.vivos = append(a.vivos, ctx.Err() == nil)
+
+	return a.fallo
+}
+
+// observaYAnota es el desenlace de un applet que observa el mundo y anota el
+// límite del contexto con el que se ejecutó.
+func observaYAnota(limites *[]time.Time) desenlaceDePrueba {
+	return func(ctx context.Context) (schema.Resultado, error) {
+		limite, _ := ctx.Deadline()
+		*limites = append(*limites, limite)
+
+		return schema.Resultado{
+			Procedencia: procedenciaQueObserva,
+			Datos:       map[string]any{"mensaje": "hola"},
+			Grafo:       observadoDelKernel(),
+		}, nil
+	}
+}
+
+// observa es el desenlace de un applet que observa el mundo, sin anotar nada.
+func observa(ctx context.Context) (schema.Resultado, error) {
+	return observaYAnota(&[]time.Time{})(ctx)
+}
+
+// registroQueEntrega es el registro de estas tablas con el almacén registrado.
+func registroQueEntrega(t *testing.T, desenlace desenlaceDePrueba, almacen core.GraphStore) *Registro {
+	t.Helper()
+
+	registro := registroDeCodigos(t, desenlace)
+	registro.EntregarAlGrafo(almacen)
+
+	return registro
+}
+
+// casoDeEntregaDelKernel es un subtest de TestEntregaDelKernel.
+type casoDeEntregaDelKernel struct {
+	nombre    string
+	comprueba func(t *testing.T)
+}
+
+// TestEntregaDelKernel comprueba lo que decide la raíz de composición sobre la
+// entrega (contracts/resultado-y-entrega.md §3-§5; research.md D4, D6): sin
+// --no-graph, lo observado llega al almacén del registro con la procedencia del
+// sobre; --no-graph elige graph.Nulo; el contexto de la entrega tiene el mismo
+// instante límite que el del applet, el de --timeout; --dry-run y un fallo no
+// entregan; un registro sin almacén no entrega; una entrega fallida deja una
+// línea en la salida de error y el código 0; y el último almacén registrado
+// sustituye al anterior (FR-014, FR-030 a FR-035, SC-004).
+func TestEntregaDelKernel(t *testing.T) {
+	t.Parallel()
+
+	casos := []casoDeEntregaDelKernel{
+		{"sin --no-graph entrega al almacén del registro", compruebaEntregaAlAlmacenDelRegistro},
+		{"--no-graph elige graph.Nulo", compruebaSinGrafoEligeElNulo},
+		{"el plazo de la entrega es el de --timeout", compruebaPlazoDeLaEntrega},
+		{"--dry-run no entrega", compruebaDryRunNoEntrega},
+		{"un fallo no entrega", compruebaFalloNoEntrega},
+		{"un registro sin almacén no entrega", compruebaRegistroSinAlmacen},
+		{"una entrega fallida avisa con una línea y sale con 0", compruebaEntregaFallidaDelKernel},
+		{"el último almacén registrado sustituye al anterior", compruebaEntregarAlGrafoSustituye},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.comprueba(t)
+		})
+	}
+}
+
+// compruebaEntregaAlAlmacenDelRegistro exige que una invocación que termina con
+// 0 entregue al almacén del registro un lote con la procedencia del sobre que
+// presentó, sin escribir nada en la salida de error (FR-030).
+func compruebaEntregaAlAlmacenDelRegistro(t *testing.T) {
+	t.Helper()
+
+	almacen := &almacenEspia{}
+	registro := registroQueEntrega(t, observa, almacen)
+
+	res := invocar(t, registro, "kitlegal", "prueba", "hola", "--json")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Empty(t, res.errores)
+
+	sobre := sobreDelJSON(t, res.salida)
+
+	require.Len(t, almacen.lotes, 1, "una invocación entrega un solo lote")
+	assert.Equal(t, sobre["fuente"], almacen.lotes[0].Fuente)
+	assert.Equal(t, sobre["url"], almacen.lotes[0].URL)
+	assert.Equal(t, sobre["fecha_consulta"], almacen.lotes[0].FechaConsulta)
+	assert.Equal(t, observadoDelKernel().Vigencia, almacen.lotes[0].Vigencia)
+	assert.Equal(t, observadoDelKernel().Operaciones, almacen.lotes[0].Operaciones)
+}
+
+// compruebaSinGrafoEligeElNulo exige que, con --no-graph, el almacén de la
+// invocación sea graph.Nulo y no el del registro, y que la salida estándar y el
+// código sean los mismos que sin la bandera (FR-031, SC-004).
+func compruebaSinGrafoEligeElNulo(t *testing.T) {
+	t.Helper()
+
+	almacen := &almacenEspia{}
+	registro := registroQueEntrega(t, observa, almacen)
+
+	assert.Equal(t, graph.Nulo{}, almacenDeLaInvocacion(registro, desenlace{sinGrafo: true}),
+		"con --no-graph el almacén es el nulo")
+	assert.Same(t, almacen, almacenDeLaInvocacion(registro, desenlace{}),
+		"sin la bandera, el del registro")
+
+	sinGrafo := invocar(t, registro, "kitlegal", "prueba", "hola", "--json", "--no-graph")
+
+	require.Equal(t, 0, sinGrafo.codigo, sinGrafo.errores)
+	assert.Empty(t, almacen.lotes, "con --no-graph nada llega al almacén del registro")
+	assert.Empty(t, sinGrafo.errores)
+
+	conGrafo := invocar(t, registro, "kitlegal", "prueba", "hola", "--json")
+
+	require.Equal(t, 0, conGrafo.codigo, conGrafo.errores)
+	assert.Len(t, almacen.lotes, 1)
+	assert.Equal(t, conGrafo.salida, sinGrafo.salida, "la bandera no cambia la salida estándar")
+}
+
+// compruebaPlazoDeLaEntrega exige que la entrega reciba un contexto vivo con el
+// mismo instante límite con el que se ejecutó el applet, que es el que fija
+// --timeout (FR-014).
+func compruebaPlazoDeLaEntrega(t *testing.T) {
+	t.Helper()
+
+	const plazo = 90 * time.Second
+
+	var limitesDelApplet []time.Time
+
+	almacen := &almacenEspia{}
+	registro := registroQueEntrega(t, observaYAnota(&limitesDelApplet), almacen)
+
+	antes := time.Now()
+	res := invocar(t, registro, "kitlegal", "prueba", "hola", "--json", "--timeout", plazo.String())
+	despues := time.Now()
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	require.Len(t, limitesDelApplet, 1)
+	require.Len(t, almacen.lotes, 1)
+
+	assert.True(t, almacen.conLimite[0], "la entrega tiene límite")
+	assert.True(t, almacen.vivos[0], "el contexto de la entrega no llega terminado")
+	assert.True(t, almacen.limites[0].Equal(limitesDelApplet[0]),
+		"el límite de la entrega es el mismo instante que el del applet: %s y %s",
+		almacen.limites[0], limitesDelApplet[0])
+	assert.False(t, almacen.limites[0].Before(antes.Add(plazo)), "el límite es el de --timeout")
+	assert.False(t, almacen.limites[0].After(despues.Add(plazo)), "el límite es el de --timeout")
+}
+
+// compruebaDryRunNoEntrega exige que --dry-run no entregue nada, también cuando
+// el applet trae operaciones (FR-034, SC-004).
+func compruebaDryRunNoEntrega(t *testing.T) {
+	t.Helper()
+
+	almacen := &almacenEspia{}
+	registro := registroQueEntrega(t, observa, almacen)
+
+	res := invocar(t, registro, "kitlegal", "prueba", "hola", "--json", "--dry-run")
+
+	assert.Equal(t, 0, res.codigo, res.errores)
+	assert.Empty(t, res.salida)
+	assert.Empty(t, almacen.lotes, "--dry-run vuelve antes de emitir y no entrega")
+}
+
+// compruebaFalloNoEntrega exige que una invocación que termina con un código
+// distinto de 0 no entregue nada aunque el applet trajera operaciones: un fallo
+// del applet y el plazo agotado (FR-032).
+func compruebaFalloNoEntrega(t *testing.T) {
+	t.Helper()
+
+	noEncontrado := func(_ context.Context) (schema.Resultado, error) {
+		return schema.Resultado{Procedencia: procedenciaQueObserva, Grafo: observadoDelKernel()},
+			fmt.Errorf("el bloque a99: %w", cli.ErrNoEncontrado)
+	}
+
+	tarde := func(ctx context.Context) (schema.Resultado, error) {
+		<-ctx.Done()
+
+		return observa(ctx)
+	}
+
+	fallos := []struct {
+		nombre    string
+		desenlace desenlaceDePrueba
+		argv      []string
+		codigo    int
+	}{
+		{"el applet falla", noEncontrado, []string{"kitlegal", "prueba", "hola", "--json"}, 3},
+		{"el plazo se agota", tarde, []string{"kitlegal", "prueba", "hola", "--json", "--timeout", "10ms"}, 4},
+	}
+
+	for _, fallo := range fallos {
+		almacen := &almacenEspia{}
+
+		res := invocar(t, registroQueEntrega(t, fallo.desenlace, almacen), fallo.argv...)
+
+		assert.Equal(t, fallo.codigo, res.codigo, fallo.nombre)
+		assert.Empty(t, almacen.lotes, "%s: un fallo no entrega nada", fallo.nombre)
+	}
+}
+
+// compruebaRegistroSinAlmacen exige que un registro al que nadie registró un
+// almacén —el valor cero, el de los tests y el de la preparación de evals— no
+// entregue nada ni avise de nada, y presente lo mismo (research.md D6).
+func compruebaRegistroSinAlmacen(t *testing.T) {
+	t.Helper()
+
+	registro := registroDeCodigos(t, observa)
+
+	assert.Nil(t, almacenDeLaInvocacion(registro, desenlace{}), "sin almacén registrado no hay a quién entregar")
+
+	res := invocar(t, registro, "kitlegal", "prueba", "hola", "--json")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Empty(t, res.errores, "sin almacén no hay entrega que pueda fallar")
+
+	conAlmacen := invocar(t, registroQueEntrega(t, observa, &almacenEspia{}), "kitlegal", "prueba", "hola", "--json")
+	assert.Equal(t, conAlmacen.salida, res.salida)
+}
+
+// compruebaEntregaFallidaDelKernel exige que una entrega que falla deje la
+// salida estándar y el código como estaban y escriba en la salida de error
+// exactamente la línea del contrato (FR-033, research.md D7).
+func compruebaEntregaFallidaDelKernel(t *testing.T) {
+	t.Helper()
+
+	fallida := invocar(t, registroQueEntrega(t, observa, &almacenEspia{fallo: errEntregaDelKernel}),
+		"kitlegal", "prueba", "hola", "--json")
+	correcta := invocar(t, registroQueEntrega(t, observa, &almacenEspia{}),
+		"kitlegal", "prueba", "hola", "--json")
+
+	assert.Equal(t, 0, fallida.codigo, "el sobre ya dijo ok: el código sigue siendo 0")
+	assert.Equal(t, correcta.salida, fallida.salida, "la salida estándar no cambia")
+	assert.Equal(t,
+		"kitlegal: lo observado no ha llegado al grafo del mundo: grafo: world.db no se puede escribir: permiso denegado\n",
+		fallida.errores, "exactamente una línea más en la salida de error")
+}
+
+// compruebaEntregarAlGrafoSustituye exige que un almacén registrado sustituya al
+// anterior y que el nulo deje el registro sin entrega, como el valor cero
+// (contracts/resultado-y-entrega.md §5).
+func compruebaEntregarAlGrafoSustituye(t *testing.T) {
+	t.Helper()
+
+	primero, segundo := &almacenEspia{}, &almacenEspia{}
+
+	registro := registroDeCodigos(t, observa)
+	registro.EntregarAlGrafo(primero)
+	registro.EntregarAlGrafo(segundo)
+
+	require.Equal(t, 0, invocar(t, registro, "kitlegal", "prueba", "hola").codigo)
+	assert.Empty(t, primero.lotes, "el primero ya no es el almacén del registro")
+	assert.Len(t, segundo.lotes, 1)
+
+	registro.EntregarAlGrafo(nil)
+
+	res := invocar(t, registro, "kitlegal", "prueba", "hola")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Len(t, segundo.lotes, 1, "con el nulo el registro deja de entregar")
+	assert.Nil(t, almacenDeLaInvocacion(registro, desenlace{}))
 }

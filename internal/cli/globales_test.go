@@ -32,6 +32,10 @@ var nombresDeLasOcho = []string{
 	"verbose",
 }
 
+// ayudaDeSinGrafo es la ayuda de --no-graph que fija FR-031 de H7, exactamente
+// (contracts/resultado-y-entrega.md §6), escrita aquí y no leída del código.
+const ayudaDeSinGrafo = "No entrega al grafo del mundo nada de lo que observa la invocaci\xc3\xb3n."
+
 // modeloDeGlobales construye el modelo de Kong de una gramática que no contiene
 // nada más que las ocho globales embebidas. Es la forma de comprobar lo que Kong
 // entiende de la declaración —nombres, valores por omisión y textos de ayuda—
@@ -111,6 +115,16 @@ func TestGlobales(t *testing.T) {
 			assert.NotEmpty(t, banderas[nombre].Help,
 				"la ayuda de %s es lo único que explica la bandera a quien invoca", nombre)
 		}
+	})
+
+	t.Run("la ayuda de --no-graph es la frase del contrato", func(t *testing.T) {
+		t.Parallel()
+
+		banderas := modeloDeGlobales(t)
+
+		require.Contains(t, banderas, "no-graph")
+		assert.Equal(t, ayudaDeSinGrafo, banderas["no-graph"].Help,
+			"la bandera dice lo que hace desde H7: el almacén nulo, que no entrega nada")
 	})
 
 	t.Run("solo --timeout tiene valor por omisión, y es 30s", func(t *testing.T) {
