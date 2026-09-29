@@ -2,6 +2,8 @@ package evals
 
 import (
 	"cmp"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -73,6 +75,27 @@ const (
 	ordenDeGraphShow      = "graph show eli/es/l/2015/10/01/39#a21 --json"
 )
 
+// Lo que juzgan la eval de la redacción cambiada y sus sesiones de TestJuzgar,
+// construidas en memoria (contrato evals-y-skill §2 y §5 de H7.1).
+const (
+	// versionObsoleta es el hallazgo que esa eval espera, y
+	// motivoDeVersionObsoleta, el motivo con el que queda ausente.
+	versionObsoleta         = "version-obsoleta"
+	motivoDeVersionObsoleta = "forma de hallazgo ausente: version-obsoleta"
+
+	// textoDeLaComprobacionDeLaNorma es su comando de comprobación, con el texto
+	// con el que lo presentan el informe y los motivos; y
+	// ordenDeLaComprobacionDeLaNorma, la orden de la invocación de la skill que
+	// comprueba la memoria con la norma y el bloque que ha leído.
+	textoDeLaComprobacionDeLaNorma = "graph check BOE-A-2015-10565"
+	ordenDeLaComprobacionDeLaNorma = "graph check BOE-A-2015-10565 a21 --json"
+
+	// trasladoDelCambio traslada el hallazgo con su forma fija, con el ejemplo de
+	// contrato evals-y-skill §4 de H7.1.
+	trasladoDelCambio = "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n con fecha de vigencia 20161002, " +
+		"la que se consult\xc3\xb3 antes, ha sido sustituida por la de 20250101, que es la que se cita."
+)
+
 // elementosDelMunicipio son los elementos del territorio esperado de la eval del
 // municipio cubierto, con el texto con el que los presentan el informe y los
 // motivos, en el orden de la eval.
@@ -130,6 +153,17 @@ type juicio struct {
 // de los de los comandos ausentes y delante de los de las citas, y la eval no
 // pasa; sin prohibidos, el juicio es el de antes aunque la sesión ejecute ese
 // comando (contrato evals-y-skill §2 de H7; FR-085, FR-086).
+//
+// Desde H7.1, los hallazgos esperados se reparten, en el orden de la eval, entre
+// los que la respuesta lleva con su forma fija —también con las tolerancias de la
+// de los avisos— y los ausentes, cada uno con su motivo detrás de los de los
+// avisos: un hallazgo ausente impide pasar aunque estén los comandos y la cita, y
+// decir el cambio con otras palabras no lleva la forma. El comando de
+// comprobación con norma lo satisface solo la invocación de check que lleva esa
+// norma como primer argumento, y el que no la lleva, cualquier check, como en
+// H7; una eval sin hallazgos se juzga como antes aunque la respuesta lleve la
+// forma (contrato evals-y-skill §2 de H7.1; FR-050, FR-051, FR-052, FR-094;
+// SC-008).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -535,6 +569,54 @@ func TestJuzgar(t *testing.T) {
 				esperado: resultadoQuePasa(InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)}),
 			}},
 		},
+		{
+			nombre: "hallazgo-con-su-forma-fija",
+			juicios: []juicio{conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+				r.HallazgosEncontrados = []string{versionObsoleta}
+			})},
+		},
+		{
+			// Un juicio por cada forma tolerada: la de contrato evals-y-skill §2 de
+			// H7.1, con el selector de presentación U+FE0F y el énfasis envolviendo
+			// la etiqueta en minúsculas; el selector U+FE0E; y espacios de más y
+			// U+00A0 entre las palabras.
+			nombre: "hallazgo-con-variantes-toleradas",
+			juicios: hallazgoTolerado(t,
+				"**\xe2\x9a\xa0\xef\xb8\x8f Redacci\xc3\xb3n modificada**: la redacci\xc3\xb3n ha sido sustituida.",
+				"\xe2\x9a\xa0\xef\xb8\x8e REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n ha sido sustituida.",
+				"\xe2\x9a\xa0  REDACCI\xc3\x93N\xc2\xa0MODIFICADA : la redacci\xc3\xb3n ha sido sustituida."),
+		},
+		{
+			nombre:  "hallazgo-ausente",
+			juicios: []juicio{conHallazgo(t, respuestaConCita, versionObsoletaAusente)},
+		},
+		{
+			// El comando y la cita están, y la respuesta dice el cambio sin la
+			// forma fija: el hallazgo queda ausente.
+			nombre: "hallazgo-dicho-con-otras-palabras",
+			juicios: []juicio{conHallazgo(t,
+				"La redacci\xc3\xb3n ha cambiado desde la consulta anterior.\n\n"+respuestaConCita, versionObsoletaAusente)},
+		},
+		{
+			nombre:  "hallazgo-ausente-detras-de-la-cita-y-del-aviso",
+			juicios: []juicio{hallazgoDetrasDeLosAusentes(t)},
+		},
+		{
+			nombre:  "comprobacion-con-otra-norma-no-satisface",
+			juicios: comprobacionConOtraNorma(t),
+		},
+		{
+			// La eval 01 no espera hallazgos: la forma en la respuesta no cambia su
+			// juicio.
+			nombre: "sin-hallazgos-el-juicio-de-antes",
+			juicios: []juicio{{
+				eval:   evalDelArticulo21(),
+				sesion: cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = trasladoDelCambio + "\n\n" + respuestaConCita }),
+				esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+					r.Respuesta = trasladoDelCambio + "\n\n" + respuestaConCita
+				}),
+			}},
+		},
 	}
 
 	for _, caso := range casos {
@@ -545,6 +627,100 @@ func TestJuzgar(t *testing.T) {
 				assert.Equal(t, j.esperado, Juzgar(j.eval, j.sesion, cmp.Or(j.skill, skillDeLasSesiones)),
 					"la eval %s con la sesión del caso", j.eval.Fichero)
 			}
+		})
+	}
+}
+
+// TestJuzgarLasEvalsSinHallazgos fija que las evals del repositorio de
+// boe-legislacion y de legal-core que no esperan hallazgos se juzgan igual que
+// antes de H7.1 (contrato evals-y-skill §1 de H7.1; FR-054): con una sesión
+// terminada, activada si la eval espera que se active, cuya respuesta lleva la
+// cita del art. 21 de la Ley 39/2015, el resultado es el mismo con la forma fija
+// de version-obsoleta delante de la respuesta que sin ella, salvo la respuesta, y
+// no reparte ningún hallazgo.
+func TestJuzgarLasEvalsSinHallazgos(t *testing.T) {
+	t.Parallel()
+
+	for dir, skill := range map[string]string{evalsDelRepositorio: skillDeLasSesiones, evalsDeLegalCore: skillDeTerritorio} {
+		conjunto, err := LeerConjunto(dir)
+		require.NoError(t, err)
+		require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
+
+		for _, eval := range conjunto.Evals {
+			if len(eval.Hallazgos) > 0 {
+				continue
+			}
+
+			sesion := func(respuesta string) Sesion {
+				return cambiada(sesionTerminada(false, respuesta), func(s *Sesion) {
+					if eval.Activa {
+						s.SkillsActivadas = []string{skill}
+					}
+				})
+			}
+
+			sinLaForma := Juzgar(eval, sesion(respuestaConCita), skill)
+			conLaForma := Juzgar(eval, sesion(trasladoDelCambio+"\n\n"+respuestaConCita), skill)
+
+			assert.Nil(t, conLaForma.HallazgosEncontrados, "%s no espera hallazgos y no encuentra ninguno", eval.Fichero)
+			assert.Nil(t, conLaForma.HallazgosAusentes, "%s no espera hallazgos y no le falta ninguno", eval.Fichero)
+
+			conLaForma.Respuesta = sinLaForma.Respuesta
+			assert.Equal(t, sinLaForma, conLaForma, "%s se juzga igual con la forma fija de un hallazgo en la respuesta",
+				eval.Fichero)
+		}
+	}
+}
+
+// TestHallazgosDelResultadoEnJSON fija que el resultado de una sesión escribe
+// hallazgos_encontrados y hallazgos_ausentes como listas, nunca null, codificado
+// como lo codifica EscribirInforme (contrato evals-y-skill §6 de H7.1; FR-055):
+// vacías con una eval que no espera hallazgos, y con version-obsoleta en la que
+// corresponde con la eval de la redacción cambiada.
+func TestHallazgosDelResultadoEnJSON(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre      string
+		juicio      juicio
+		encontrados string
+		ausentes    string
+	}{
+		{
+			nombre:      "sin-hallazgos",
+			juicio:      juicio{eval: evalDelArticulo21(), sesion: sesionQuePasa(t)},
+			encontrados: "[]",
+			ausentes:    "[]",
+		},
+		{
+			nombre:      "encontrado",
+			juicio:      conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConCita, func(*ResultadoDeEval) {}),
+			encontrados: `["version-obsoleta"]`,
+			ausentes:    "[]",
+		},
+		{
+			nombre:      "ausente",
+			juicio:      conHallazgo(t, respuestaConCita, func(*ResultadoDeEval) {}),
+			encontrados: "[]",
+			ausentes:    `["version-obsoleta"]`,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+			require.NoError(t, err)
+
+			var crudo struct {
+				Encontrados jsontext.Value `json:"hallazgos_encontrados"`
+				Ausentes    jsontext.Value `json:"hallazgos_ausentes"`
+			}
+
+			require.NoError(t, json.Unmarshal(codificado, &crudo))
+			assert.Equal(t, caso.encontrados, string(crudo.Encontrados))
+			assert.Equal(t, caso.ausentes, string(crudo.Ausentes))
 		})
 	}
 }
@@ -1303,6 +1479,144 @@ func pideLaFicha(t *testing.T, codigo *int) Invocacion {
 	t.Helper()
 
 	return invocada(t, codigo, deKitlegal(strings.Fields(ordenDeGraphShow)...))
+}
+
+// evalDeLaRedaccionCambiada es la eval del contrato evals-y-skill §5 de H7.1: la
+// de la consulta repetida con la norma en su comando de comprobación y el
+// hallazgo version-obsoleta esperado.
+func evalDeLaRedaccionCambiada() Eval {
+	eval := evalDeLaConsultaRepetida()
+	eval.Comandos = []ComandoEsperado{
+		{Applet: "boe", Norma: normaDeLasTrazas, Bloque: "a21"},
+		{Applet: "graph", Verbo: "check", Norma: normaDeLasTrazas},
+	}
+	eval.Hallazgos = []string{versionObsoleta}
+
+	return eval
+}
+
+// conHallazgo es el juicio de la eval de la redacción cambiada con la sesión
+// terminada y activada que lee el bloque, comprueba la memoria con su norma y
+// ese bloque y responde con la respuesta dada: su resultado esperado ejecuta los
+// dos comandos, sin ningún prohibido, con esa respuesta y los cambios aplicados.
+func conHallazgo(t *testing.T, respuesta string, cambiar func(*ResultadoDeEval)) juicio {
+	t.Helper()
+
+	return juicio{
+		eval:   evalDeLaRedaccionCambiada(),
+		sesion: sesionTerminada(true, respuesta, leeElArticulo21(t), compruebaLaNorma(t)),
+		esperado: cambiado(resultadoDeLaConsultaRepetida(
+			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
+		), func(r *ResultadoDeEval) {
+			r.ComandosEjecutados = []string{textoDelComando21, textoDeLaComprobacionDeLaNorma}
+			r.Respuesta = respuesta
+			cambiar(r)
+		}),
+	}
+}
+
+// hallazgoTolerado son los juicios de la eval de la redacción cambiada con la
+// sesión de conHallazgo y, delante de su respuesta con la cita, cada traslado
+// dado: en todos, version-obsoleta queda encontrado y la eval pasa.
+func hallazgoTolerado(t *testing.T, traslados ...string) []juicio {
+	t.Helper()
+
+	juicios := make([]juicio, 0, len(traslados))
+
+	for _, traslado := range traslados {
+		juicios = append(juicios, conHallazgo(t, traslado+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+			r.HallazgosEncontrados = []string{versionObsoleta}
+		}))
+	}
+
+	return juicios
+}
+
+// versionObsoletaAusente deja version-obsoleta ausente, con su motivo, y la
+// eval sin pasar.
+func versionObsoletaAusente(r *ResultadoDeEval) {
+	r.HallazgosAusentes = []string{versionObsoleta}
+	r.Motivos = append(r.Motivos, motivoDeVersionObsoleta)
+	r.Pasa = false
+}
+
+// hallazgoDetrasDeLosAusentes es el juicio de la eval de la redacción cambiada
+// que espera además el aviso derogada, con la sesión de conHallazgo y una
+// respuesta sin la cita, sin el aviso y sin el hallazgo: el motivo del hallazgo
+// va detrás del de la cita y del del aviso.
+func hallazgoDetrasDeLosAusentes(t *testing.T) juicio {
+	t.Helper()
+
+	const respuesta = "El art\xc3\xadculo 21 de la Ley 39/2015 regula la obligaci\xc3\xb3n de resolver."
+
+	caso := conHallazgo(t, respuesta, func(r *ResultadoDeEval) {
+		r.CitasEncontradas = nil
+		r.CitasAusentes = []string{textoDeLaCita21}
+		r.AvisosAusentes = []string{"derogada"}
+		r.Motivos = []string{"cita ausente: " + textoDeLaCita21, "aviso ausente: derogada"}
+		versionObsoletaAusente(r)
+	})
+	caso.eval.Avisos = []string{"derogada"}
+
+	return caso
+}
+
+// comprobacionConOtraNorma son los juicios de la sesión que lee y cita el bloque,
+// traslada el cambio con su forma fija y comprueba la memoria de otra norma y sin
+// norma, sin comprobarla de la suya: con la eval de la redacción cambiada, su
+// comando de comprobación queda ausente con su motivo y la eval no pasa, aunque
+// el hallazgo esté; con la de la consulta repetida de H7, cuya comprobación no
+// lleva norma, cualquiera de las dos la satisface y la eval pasa.
+func comprobacionConOtraNorma(t *testing.T) []juicio {
+	t.Helper()
+
+	const (
+		otraNorma = "graph check BOE-A-2017-12902 --json"
+		respuesta = trasladoDelCambio + "\n\n" + respuestaConCita
+	)
+
+	sesion := sesionTerminada(true, respuesta,
+		leeElArticulo21(t),
+		invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(otraNorma)...)),
+		compruebaElGrafo(t, codigoDeSalida(0)))
+
+	informadas := []InvocacionInformada{
+		{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+		{Orden: otraNorma, Codigo: codigoDeSalida(0)},
+		{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+	}
+
+	return []juicio{
+		{
+			eval:   evalDeLaRedaccionCambiada(),
+			sesion: sesion,
+			esperado: cambiado(resultadoDeLaConsultaRepetida(informadas...), func(r *ResultadoDeEval) {
+				r.ComandosEjecutados = []string{textoDelComando21}
+				r.ComandosAusentes = []string{textoDeLaComprobacionDeLaNorma}
+				r.HallazgosEncontrados = []string{versionObsoleta}
+				r.Respuesta = respuesta
+				r.Motivos = []string{"comando ausente: " + textoDeLaComprobacionDeLaNorma}
+				r.Pasa = false
+			}),
+		},
+		{
+			eval:   evalDeLaConsultaRepetida(),
+			sesion: sesion,
+			esperado: cambiado(resultadoDeLaConsultaRepetida(informadas...), func(r *ResultadoDeEval) {
+				r.Respuesta = respuesta
+			}),
+		},
+	}
+}
+
+// compruebaLaNorma es la invocación de la skill que comprueba la memoria de la
+// norma de la eval de la redacción cambiada con el bloque que ha leído, y termina
+// con código 0.
+func compruebaLaNorma(t *testing.T) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ordenDeLaComprobacionDeLaNorma)...))
 }
 
 // deKitlegal es el argv con el que la skill invoca un applet por el binario

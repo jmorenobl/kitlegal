@@ -1,16 +1,15 @@
 {
-  "id": "T019",
-  "texto": "T019 [US1] La etiqueta de `version-obsoleta` y su forma fija, del binario (contracts/evals-y-skill.md §2 y §3; data-model §7; research D12, V14): internal/core/grafo/vocabulario.go con `EtiquetasDeHallazgo()` = `{version-obsoleta: \"REDACCIÓN MODIFICADA\"}` (única fuente de verdad; `fuente-caducada` no la tiene); internal/evals/avisos.go extrae `formaFija(etiqueta)` del constructor de `formasDeAviso` sin cambiar ningún aviso; internal/evals/hallazgos.go con `ExtraerHallazgos` (las clases etiquetadas cuya forma lleva el texto, en su orden y sin repetir), `ComprobarFormasDeHallazgo` (un error por clase etiquetada cuya forma falta, que la nombra: `falta la forma fija del hallazgo version-obsoleta: ⚠ REDACCIÓN MODIFICADA:`) y `ComprobarClasesDeHallazgo` (el enumerado de `hallazgos` del esquema compilado es exactamente el conjunto de clases etiquetadas); el subtest `hallazgos-del-esquema` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go; tests: `TestEtiquetasDeHallazgo` (ninguna coincide con `boe.EtiquetasDeAviso()`; solo `version-obsoleta` está etiquetada), `TestExtraerHallazgos` (la forma con las tolerancias de H5.1 —selector de presentación, énfasis de Markdown, espacios, mayúsculas, `**⚠️ Redacción modificada**:`—, exacta en la etiqueta; «la redacción ha cambiado» sin la forma o la forma partida en dos líneas, nada), `TestComprobarFormasDeHallazgo` (pasa sobre un texto con la forma; falla nombrando `version-obsoleta` sin ella) y `TestComprobarClasesDeHallazgo` (enumerado exacto, con una clase de más y con una de menos); los tests de avisos sin cambios — FR-045, FR-051, FR-054; SC-008; rutas: internal/core/grafo/vocabulario.go, internal/evals/avisos.go, internal/evals/hallazgos.go, internal/evals/conjunto_test.go",
+  "id": "T020",
+  "texto": "T020 [US1] El formato y el juicio de la forma fija (contracts/evals-y-skill.md §1 y §2; data-model §8; research D13): internal/evals/formato.go: `Eval.Hallazgos []string` (`yaml:\"hallazgos\"`) y la forma comprobación con `Norma` opcional, cuyo texto es `graph check <norma>` (sin norma, `graph check`, como en H7); internal/evals/juzgar.go: `ResultadoDeEval` gana `HallazgosEncontrados` y `HallazgosAusentes` (`hallazgos_encontrados`, `hallazgos_ausentes`, listas nunca `null`), `Juzgar` los reparte con `ExtraerHallazgos` y añade el motivo `forma de hallazgo ausente: <clase>` por cada ausente —la sesión pasa solo sin ausentes—, y `satisface` de una comprobación con norma exige además `esDeLaNorma`; tests: `TestJuzgar` con la forma encontrada (pasa), ausente (no pasa) y dicha con otras palabras («la redacción ha cambiado» sin la forma: ausente, no pasa), la forma con las tolerancias (encontrada), y una comprobación con otra norma que no satisface la de la eval; `TestLeerEval` con `hallazgos` y con la norma de la comprobación; las demás evals de `boe-legislacion` y `legal-core` se leen y se juzgan igual; internal/evals/informe_test.go solo si alguna comparación literal incluye un `ResultadoDeEval` — FR-050, FR-051, FR-052, FR-054, FR-094; SC-008; rutas: internal/evals/formato.go, internal/evals/juzgar.go, internal/evals/informe_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "6463017a5e8ff1a566f4502f8311f47c868b558a",
+  "base": "ad08dcf9d917bab834e2c4d9a9c4267dc0224650",
   "rutas": [
     "contracts/evals-y-skill.md",
-    "internal/core/grafo/vocabulario.go",
-    "internal/evals/avisos.go",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/hallazgos.go"
+    "internal/evals/formato.go",
+    "internal/evals/informe_test.go",
+    "internal/evals/juzgar.go"
   ],
   "cierre": false,
   "converger": false,

@@ -75,6 +75,16 @@ const (
 		"    verbo: show\n"
 )
 
+// Trozos de las evals sintéticas del formato de H7.1 de TestLeerEval, cada uno
+// con sus líneas completas: la norma que consulta el comando de comprobación
+// —para ir detrás de comprobacionDelGrafo— y el hallazgo version-obsoleta
+// esperado (contrato evals-y-skill §1 y §5 de H7.1).
+const (
+	normaDeLaComprobacion     = "    norma: BOE-A-2015-10565\n"
+	hallazgoDeVersionObsoleta = "hallazgos:\n" +
+		"  - version-obsoleta\n"
+)
+
 // TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1 y
 // de sus avisos (contrato de formato, juicio e informe §6): las tres formas de
 // comando, con y sin reproduce, la que espera avisos, informativa o no, y la de no
@@ -102,10 +112,12 @@ const (
 // (contrato evals-y-skill §1 de H7; FR-085, FR-086).
 //
 // Desde H7.1, el comando de comprobación se lee también con la norma que
-// consulta, en su Norma, y sigue sin admitir bloques; y unos hallazgos vacíos,
-// con una clase que el formato no tiene —fuente-caducada, que ninguna skill
-// traslada con forma fija— o en una eval de no activación se rechazan, como los
-// avisos (contrato evals-y-skill §1 de H7.1; FR-054).
+// consulta, en su Norma, y sigue sin admitir bloques; los hallazgos esperados se
+// leen en Hallazgos, también en la eval de la redacción cambiada entera; y unos
+// hallazgos vacíos, con una clase que el formato no tiene —fuente-caducada, que
+// ninguna skill traslada con forma fija— o en una eval de no activación se
+// rechazan, como los avisos (contrato evals-y-skill §1 y §5 de H7.1; FR-050,
+// FR-054).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -425,7 +437,7 @@ func TestLeerEval(t *testing.T) {
 		{
 			nombre: "comprobacion-con-norma",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + comprobacionDelGrafo +
-				"    norma: BOE-A-2015-10565\n" + citaDelArticulo21,
+				normaDeLaComprobacion + citaDelArticulo21,
 			leida: Eval{
 				Fichero:  nombreDeEval,
 				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
@@ -510,6 +522,37 @@ func TestLeerEval(t *testing.T) {
 			nombre:    "no-activa-con-grafo-previo",
 			documento: preguntaDelArticulo21 + "activa: false\n" + grafoPrevioDelArticulo21,
 			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "hallazgos",
+			documento: positivaDelArticulo21 + hallazgoDeVersionObsoleta,
+			leida: Eval{
+				Fichero:   nombreDeEval,
+				Pregunta:  preguntaDelArticulo21Eval,
+				Activa:    true,
+				Comandos:  comandoDelArticulo21Leido,
+				Citas:     citaDelArticulo21Leida,
+				Hallazgos: []string{"version-obsoleta"},
+			},
+		},
+		{
+			// La eval del contrato evals-y-skill §5 de H7.1, sin su comentario.
+			nombre: "redaccion-cambiada",
+			documento: preguntaDelArticulo21 + "activa: true\ninformativa: true\n" + grafoPrevioDelArticulo21 +
+				comandoDelArticulo21 + comprobacionDelGrafo + normaDeLaComprobacion + prohibidoGraphShow +
+				citaDelArticulo21 + hallazgoDeVersionObsoleta,
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    preguntaDelArticulo21Eval,
+				Activa:      true,
+				Informativa: true,
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				Comandos: slices.Concat(comandoDelArticulo21Leido,
+					[]ComandoEsperado{{Applet: "graph", Verbo: "check", Norma: "BOE-A-2015-10565"}}),
+				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+				Citas:      citaDelArticulo21Leida,
+				Hallazgos:  []string{"version-obsoleta"},
+			},
 		},
 		{
 			nombre:    "hallazgo-desconocido",
@@ -612,7 +655,7 @@ func TestFormaDelComando(t *testing.T) {
 		},
 		{
 			nombre:  "comprobacion-con-norma",
-			comando: comprobacionDelGrafo + "    norma: BOE-A-2015-10565\n",
+			comando: comprobacionDelGrafo + normaDeLaComprobacion,
 			forma:   formaComprobacion,
 		},
 	}
@@ -641,6 +684,10 @@ func TestFormaDelComando(t *testing.T) {
 // ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo el comando que
 // escribe el verbo check tiene la forma de comprobación, de modo que el resto
 // conserva la suya.
+//
+// Desde H7.1, la que no escribe hallazgos se lee sin hallazgos, y el comando de
+// comprobación que no escribe la norma, sin Norma: se leen igual que en H7
+// (contrato evals-y-skill §1 de H7.1; FR-050, FR-054).
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
@@ -671,10 +718,39 @@ func TestEsquemaDeEval(t *testing.T) {
 				assert.Zero(t, eval.GrafoPrevio, "%s no escribe grafo_previo y se lee sin grafo previo", ruta)
 			}
 
+			if _, escribe := claves["hallazgos"]; !escribe {
+				assert.Nil(t, eval.Hallazgos, "%s no escribe hallazgos y se lee sin ellos", ruta)
+			}
+
 			for posicion, comando := range eval.Comandos {
 				assert.Equal(t, comando.Verbo == "check", formaDelComando(comando) == formaComprobacion,
 					"el comando %d de %s tiene la forma de comprobación si y solo si su verbo es check", posicion, ruta)
 			}
+
+			exigirComprobacionesSinNormaLeidasSinElla(t, ruta, claves, eval.Comandos)
+		}
+	}
+}
+
+// exigirComprobacionesSinNormaLeidasSinElla exige que cada comando de
+// comprobación que la eval de la ruta escribe sin la clave norma se lea sin
+// Norma: las claves son las del documento YAML de la eval, y los comandos, los
+// que se leyeron de él, en el mismo orden.
+func exigirComprobacionesSinNormaLeidasSinElla(t *testing.T, ruta string, claves map[string]any,
+	comandos []ComandoEsperado,
+) {
+	t.Helper()
+
+	// Sin la clave comandos, como en una eval de no activación, no hay ninguno.
+	escritos, _ := claves["comandos"].([]any)
+	require.Len(t, escritos, len(comandos), "%s escribe tantos comandos como se leen de ella", ruta)
+
+	for posicion, comando := range comandos {
+		escrito, esMapa := escritos[posicion].(map[string]any)
+		require.True(t, esMapa, "el comando %d de %s es un mapa", posicion, ruta)
+
+		if _, escribe := escrito["norma"]; comando.Verbo == verboCheck && !escribe {
+			assert.Empty(t, comando.Norma, "el comando %d de %s no escribe la norma y se lee sin ella", posicion, ruta)
 		}
 	}
 }
