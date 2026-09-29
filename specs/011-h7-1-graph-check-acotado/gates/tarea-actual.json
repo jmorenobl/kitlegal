@@ -1,15 +1,14 @@
 {
-  "id": "T021",
-  "texto": "T021 [US1] El informe declara la forma que exige cada eval y su tasa (contracts/evals-y-skill.md §6; research D14, V23): internal/evals/informe.go: `TasaDelInforme` gana `formas` (`[]string`, nunca `null`): la forma fija literal de cada clase de `hallazgos` de la eval, `⚠ ` + etiqueta + `:` desde `grafo.EtiquetasDeHallazgo()` (`[\"⚠ REDACCIÓN MODIFICADA:\"]` en la 19, `[]` en las demás); `informe.md` gana la columna «Formas exigidas» en la tabla de tasas y «Hallazgos encontrados» y «Hallazgos ausentes» en la de sesiones; lo demás del informe no cambia; tests en internal/evals/informe_test.go con los casos nuevos escritos como constantes en `t.TempDir()`, sin tocar los casos versionados del paquete: una eval con `hallazgos` da su forma junto a su tasa, una sin ellos `[]`, y las columnas nuevas en `informe.md` — FR-055; SC-006; rutas: internal/evals/informe.go",
+  "id": "T022",
+  "texto": "T022 [US1] La eval 19 exige la forma fija y la comprobación con la norma (contracts/evals-y-skill.md §5; research D15, V22): evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml tal cual el contrato —`norma: BOE-A-2015-10565` en su comando `graph check`, `hallazgos: [version-obsoleta]` y el comentario que dice que la sesión traslada el cambio con la forma fija—, con `grafo_previo` sin cambios y `informativa: true` (las reglas del conjunto no cambian); test del estado previo sin red en internal/evals/preparar_test.go: preparados el grafo previo y la caché de la sesión de la eval 19, una `boe articulo BOE-A-2015-10565 a21` servida por la caché y entregada al grafo de la sesión deja que `Comprobar` con el ámbito `BOE-A-2015-10565` dé exactamente un `version-obsoleta`, sobre la redacción de `20151002` con `20161002` como reciente; verificación: `make ci` con `skills-check` en verde (`TestEvalsDelRepositorio` lee y valida la eval) — FR-050, FR-053, FR-055; rutas: evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml, internal/evals/preparar_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "6c134ce963b4c41ec54f0ab9c1931b554b2b2a59",
+  "base": "3b16a7eadc05345634c723ab962079c9d58d3839",
   "rutas": [
     "contracts/evals-y-skill.md",
-    "informe.md",
-    "internal/evals/informe.go",
-    "internal/evals/informe_test.go"
+    "evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml",
+    "internal/evals/preparar_test.go"
   ],
   "cierre": false,
   "converger": false,
