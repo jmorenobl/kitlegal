@@ -1,15 +1,18 @@
 {
-  "id": "T023",
-  "texto": "T023 [US1] `boe-legislacion` v0.1.1 (contracts/evals-y-skill.md §4; research D16): skills/boe-legislacion/SKILL.md cambia solo en lo que piden FR-040 a FR-046 (FR-047): el paso 2 pierde la comprobación de la memoria antes de leer; el paso 3 pide leer cada bloque una sola vez por pregunta (FR-041); el primer punto del paso 5 pide, cuando no quede nada por leer y antes de redactar, `kitlegal graph check <norma> <bloques leídos> --json` una vez por cada norma cuyos bloques se van a citar, con el ejemplo `kitlegal graph check BOE-A-2015-10565 a21 --json`, nunca sin argumentos ni antes de leer (FR-040); «Memoria de consultas» reescrita: cada `version-obsoleta` con la forma fija `⚠ REDACCIÓN MODIFICADA:` y las dos fechas de vigencia detrás, con el ejemplo del contrato, y decirlo con otras palabras no lo traslada (FR-042); `fuente-caducada` no se traslada (FR-043); con 0 y sin `version-obsoleta`, nada de la memoria (FR-044); con otro código, la regla 7 (FR-046); fuera «Un hallazgo no es un aviso de vigencia…» y, en su lugar, que la etiqueta de `version-obsoleta` no es la de ningún aviso; la forma de la cita, la de los avisos, las reglas y la tabla generada en T014 sin cambios; < 300 líneas, frontmatter válido, sin nombrar evals, el job ni modelos; y el subtest `hallazgos-de-la-skill` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go (`ComprobarFormasDeHallazgo` sobre esta `SKILL.md`, sin error); verificación: `make ci` con `skills-check` en verde y, con la forma quitada un momento de `SKILL.md`, el subtest falla nombrando `version-obsoleta` (se restaura antes de `make ci`) — FR-040, FR-041, FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-093; SC-008; rutas: skills/boe-legislacion/SKILL.md, internal/evals/conjunto_test.go",
+  "id": "T024",
+  "texto": "T024 Documentación alineada (contracts/evals-y-skill.md §7; plan.md paso 8; `gates/supuestos.md`, «[alcance] plan: README.md…»): CHANGELOG.md en *Unreleased* —como H7 no ha salido en ninguna release, describe el comportamiento final—: se corrigen las entradas de H7 que el hito deja falsas (la creación de `world.db` en un temporal, el rechazo de una arista sin sus extremos «sin tocar nada», los códigos de `graph` con directorio o transacción interrumpida «que el verbo no modifica», «sin permiso de escritura» en la entrega fallida, `graph check` como «una lista de hallazgos», `boe-legislacion` v0.1 y el formato de eval) y se añaden el ámbito y la cota de `check` y la forma de su `data`, el apagado de `version-obsoleta`, `fuente-caducada` solo sobre lo vigente, la salida legible de `graph`, la regla genérica y lo retirado, y `boe-legislacion` v0.1.1 (una comprobación por norma citada, después de leer, y la forma `⚠ REDACCIÓN MODIFICADA:`); README.md (l. 121-128) y CONTRIBUTING.md (l. 335-351), solo donde el hito los deja falsos (la skill ya no comprueba antes de leer ni traslada `fuente-caducada`; la publicación con temporal y los tests retirados); CLAUDE.md no se toca; verificación: cada verbo, objetivo y test que nombran existe (`kitlegal graph check --help`, `make help`, `go test -list`) y `make ci` en verde — FR-048, FR-097; rutas: CHANGELOG.md, README.md, CONTRIBUTING.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "59e9d331f95dc7009dbdbdb5eff71e301c41d8d2",
+  "base": "905978b82eaf96d6076cfb8d162613ada9c884ea",
   "rutas": [
-    "SKILL.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "CONTRIBUTING.md",
+    "README.md",
     "contracts/evals-y-skill.md",
-    "internal/evals/conjunto_test.go",
-    "skills/boe-legislacion/SKILL.md"
+    "gates/supuestos.md",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,

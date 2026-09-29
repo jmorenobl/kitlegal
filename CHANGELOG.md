@@ -22,22 +22,30 @@ sustituyen a este fichero.
   su applet declara lo que ha observado: la salida estándar y el código no cambian ni un byte, con grafo o sin él.
   Nunca entrega un fallo, `--dry-run`, la ayuda, `--describe` ni `version`; con `--offline`, sí, porque el grafo es
   local. La entrega es transaccional e idempotente —repetir la misma consulta no duplica nada, y dos observaciones
-  que llegan fuera de orden dejan lo mismo que en orden— y rechaza el lote entero, sin tocar nada, si le falta la
-  fuente, cambia el tipo de un id, trae un texto cuya huella no es la de su cuerpo o una arista sin sus extremos, o
-  si un nodo `Persona` lleva algo con forma de DNI, NIE o NIF (constitución VII). Varias invocaciones a la vez
-  entregan todas lo suyo: si otra tiene la base ocupada, una entrega espera en tramos de 100 ms, como mucho 5 s y
-  dentro del plazo de `--timeout`. La primera entrega crea `world.db` en un temporal y lo publica entero, de modo que un fallo no deja
-  nada a medias. El grafo es local: nada sale del equipo.
+  que llegan fuera de orden dejan lo mismo que en orden— y rechaza el lote entero, sin escribir nada, si a una
+  operación le falta la fuente, la `url` o la fecha de consulta, si un id llega con otro tipo que el guardado o que el
+  que le da otra operación del lote, si un texto trae una huella que no es la de su cuerpo o que el grafo ya guarda
+  con otro cuerpo, o si un nodo `Persona` lleva algo con forma de DNI, NIE o NIF (constitución VII). Varias invocaciones a la vez entregan todas lo suyo: si otra tiene la
+  base ocupada, una entrega espera en tramos de 100 ms, como mucho 5 s y dentro del plazo de `--timeout`. La primera
+  entrega crea `world.db` en su sitio, en `0600` y con la carpeta que falta en `0700`, sin fichero temporal ni
+  enlace: una entrega que falla deja el grafo como estaba y, si lo estaba creando, como mucho la carpeta y un
+  `world.db` sin esquema, que se lee como el grafo vacío y la entrega siguiente completa. El grafo es local: nada
+  sale del equipo.
 - **Lo que se observa hoy.** `boe articulo` y `boe articulos` —en `articulos`, cada bloque distinto una vez— emiten
   la norma como `Norma`, con su ELI por id (`eli/es/l/2015/10/01/39`, de la `url_eli` del BOE) y su `identificador`;
   el bloque como `Bloque` (`<eli>#<bloque>`); su redacción como `BloqueVersion`
   (`<eli>#<bloque>@<fecha_vigencia>:<hash_texto>`, con `fecha_vigencia`, `fecha_version`, `norma_modificadora` y
   `hash_texto` tal como los da el artículo); las aristas `eli:has_part` y `eli:has_version`; y el texto del bloque
-  por su `hash_texto`, con la vigencia de 7 días con la que la caché guarda la consulta. Un artículo cuya norma no
-  trae ELI no emite nada, ni con otro id. `territorio resolver` emite el municipio como `Municipio`
-  (`ine:<código INE>`, con `codigo_ine` y `nombre`) y, si la respuesta trae el DIR3 del ayuntamiento, el `Organo`
-  con ese DIR3 por id y la arista `lb:pertenece_a` del ayuntamiento al municipio, sin vigencia y igual para un
-  municipio de un territorio configurado que para uno que no lo está. Ningún otro verbo de `boe`, ni `skills`, ni
+  por su `hash_texto`, con la vigencia de 7 días con la que la caché guarda la consulta. Cada bloque que devuelven y
+  llega al grafo es además una **lectura**, la sirva la fuente o la caché: una por bloque e invocación, y el grafo
+  guarda qué redacción vio la última lectura de cada bloque y cuál la anterior, sin que `graph show` ni `graph stats`
+  lo enseñen. Con `--no-graph` o `--dry-run`, con un código distinto de `0` o con una entrega fallida no hay
+  lectura. Un `world.db` escrito antes de las lecturas (esquema en la versión 1) se lee sin migrarlo, con cada
+  bloque como si tuviera una sola lectura, la de su redacción observada la última, y la entrega siguiente lo lleva a
+  la versión 2. Un artículo cuya norma no trae ELI no emite nada, ni con otro id. `territorio resolver` emite el
+  municipio como `Municipio` (`ine:<código INE>`, con `codigo_ine` y `nombre`) y, si la respuesta trae el DIR3 del
+  ayuntamiento, el `Organo` con ese DIR3 por id y la arista `lb:pertenece_a` del ayuntamiento al municipio, sin
+  vigencia y igual para un municipio de un territorio configurado que para uno que no lo está. Ningún otro verbo de `boe`, ni `skills`, ni
   `graph` emite nada.
 - **Applet `graph`**, registrado en el binario distribuido, con tres verbos y ninguno por omisión —sin verbo termina
   con `2` nombrando los tres—, que solo **leen** el grafo: ninguno crea ni cambia `world.db` ni devuelve texto legal,
@@ -48,52 +56,93 @@ sustituyen a este fichero.
     última observación y sus aristas salientes y entrantes, cada una con las suyas; nunca el cuerpo de un bloque.
   - `graph stats` cuenta los nodos, las aristas y los textos, y los nodos por tipo y fuente y las aristas por relación
     y fuente.
-  - `graph check` devuelve en `data` una lista de hallazgos de dos clases, cada uno con su `clase`, el `id` del nodo,
-    una `explicacion` citable y la `procedencia` en la que se apoya: **`version-obsoleta`**, una redacción consultada
-    de un bloque cuando el grafo ya ha observado otra de fecha de vigencia posterior (`La versión de <cita> con fecha
-    de vigencia <fecha> está superada por la de fecha de vigencia <fecha>, observada en <url> el <fecha_consulta>.`,
-    con `fecha_vigencia` y `fecha_vigencia_reciente`); y **`fuente-caducada`**, un nodo cuya última consulta ha
-    superado la vigencia que declaró (`La consulta de <cita> a <fuente> en <url> del <fecha_consulta> tenía una
-    vigencia de <N> s y caducó el <instante>.`, con `vigencia_segundos`). La `<cita>` es la del bloque
-    (`[BOE-A-2015-10565, bloque a21]`) o el identificador de la norma. Termina con `0` con hallazgos o sin ellos
-    (ADR 0023).
+  - `graph check [<norma> [<bloques>...]]` comprueba lo consultado de una norma —su `Norma`, por su identificador
+    `BOE-A-…`; sus `Bloque`, los nombrados o todos; y las redacciones de esos bloques— o, sin argumentos, todo lo
+    consultado. Una norma o un bloque que el grafo no conoce no es un error: no aporta ningún hallazgo, y los bloques
+    conocidos nombrados junto a él dan los suyos. Su `data` es un objeto con el ámbito pedido (`norma` y `bloques`:
+    `""` y `[]` sin argumentos), el total de cada clase en el ámbito (`version-obsoleta` y `fuente-caducada`),
+    cuántos hallazgos se omiten (`omitidos`) y `hallazgos`, la lista de **como mucho 50**, nunca `null`: todos los
+    `version-obsoleta` antes que los `fuente-caducada` y, dentro de cada clase, por id comparando bytes; no hay
+    bandera para cambiar la cota ni para paginar. Cada hallazgo lleva su `clase`, el `id` del nodo, una `explicacion`
+    citable y la `procedencia` en la que se apoya:
+    - **`version-obsoleta`**, cuando la última lectura de un bloque vio una redacción de fecha de vigencia
+      estrictamente posterior a la que vio la lectura anterior. Se da una vez, sobre la redacción que vio la anterior,
+      con su `fecha_vigencia` y, como `fecha_vigencia_reciente`, la de la última (`La versión de <cita> con fecha de
+      vigencia <fecha> está superada por la de fecha de vigencia <fecha>, observada en <url> el
+      <fecha_consulta>.`), y se **apaga** con la lectura siguiente del bloque: repetir `graph check` sin leer da lo
+      mismo, y leer otra vez la redacción nueva ya no da nada. La misma fecha de vigencia con otra huella, o una fecha
+      que no es válida, no la dan.
+    - **`fuente-caducada`**, un nodo cuya última consulta ha superado la vigencia que declaró (`La consulta de <cita>
+      a <fuente> en <url> del <fecha_consulta> tenía una vigencia de <N> s y caducó el <instante>.`, con
+      `vigencia_segundos`), **solo sobre lo vigente**: la `Norma`, el `Bloque` y la redacción que vio la última
+      lectura del bloque, nunca una redacción superada. La apaga la lectura siguiente, que la caché ya no puede
+      servir.
 
-  Códigos: `2` un id vacío, formado solo por espacio en blanco o con un carácter de control, un argumento sobrante, o
-  la carpeta de la caché mal declarada (`KITLEGAL_CACHE_DIR` vacía o que no es un directorio; sin ella, sin `HOME`),
-  también con `--no-graph`; `3` un id que no está, también con el grafo vacío o sin crear —el id se busca tal cual,
-  sin recortar y con sus bytes aunque no sean UTF-8, y el mensaje lo nombra entre comillas y con escapes Go (`\xff`)—;
-  `4` el plazo de
-  `--timeout` agotado esperando la base; y `1` un `world.db` inutilizable —no es una base de datos, es un directorio,
-  tiene una transacción interrumpida sin deshacer o un esquema de una versión posterior— o bloqueado más de 5 s, que
-  el verbo nombra y no modifica. Sin `world.db`, el grafo está vacío y no se crea nada. Su contrato se publica en
+    La `<cita>` es la del bloque (`[BOE-A-2015-10565, bloque a21]`) o el identificador de la norma. Termina con `0`
+    con hallazgos o sin ellos (ADR 0023), y no escribe nada.
+  - **Sin `--json`, los tres verbos hablan a una persona** (ADR 0026) en lugar de la tabla mínima del sobre: `stats`
+    dice cuántos nodos, aristas y textos hay y una línea por cada par de tipo y fuente y de relación y fuente; `show`,
+    el tipo y el id del nodo, un dato por línea, su primera y su última observación y cada arista con su relación, el
+    otro extremo y su procedencia; y `check`, una cabecera con el total de cada clase y cuántos se listan y se omiten,
+    un grupo por clase con cada explicación y su id debajo, o una frase que dice que no hay nada que volver a
+    comprobar y en qué ámbito (`No hay nada que volver a comprobar de BOE-A-2015-10565, bloque a21.`); sin
+    argumentos, termina diciendo cómo acotarla a una norma. Con `--json`, la salida no cambia, y los fallos siguen en
+    la salida de error.
+
+  Códigos: `2` un id vacío, formado solo por espacio en blanco o con un carácter de control, un argumento sobrante, en
+  `check` una norma sin la forma `BOE-A-<año>-<número>` o un bloque vacío o de solo espacio en blanco, o la carpeta de
+  la caché mal declarada (`KITLEGAL_CACHE_DIR` vacía o que no es un directorio; sin ella, sin `HOME`), también con
+  `--no-graph`; `3` un id que no está, también con el grafo vacío o sin crear —el id se busca tal cual, sin recortar
+  y con sus bytes aunque no sean UTF-8, y el mensaje lo nombra entre comillas y con escapes Go (`\xff`)—; `4` el
+  plazo de `--timeout` agotado esperando la base; y `1` un `world.db` bloqueado más de 5 s, uno con el esquema de una
+  versión posterior, que el verbo nombra y no modifica, o uno que el binario no puede usar por cualquier otra causa
+  —p. ej., un fichero que no es una base SQLite—, con la ruta y la causa en el mensaje
+  (`grafo: "<ruta>" no es una base de datos utilizable: <causa>`) y sin ninguna promesa sobre sus bytes. Sin
+  `world.db`, o con uno de 0 bytes o sin esquema, el grafo está vacío y no se crea nada. Su contrato se publica en
   `schemas/grafo.json` (`$defs.show`, `$defs.stats` y `$defs.check`), generado desde `--describe` y comprobado por
   `make schema-check`.
-- **Una entrega fallida se avisa en una línea.** Si el grafo no puede recibir lo observado —`world.db` inutilizable
-  o de otra versión, sin permiso de escritura, bloqueado, el plazo agotado, la carpeta de la caché mal declarada o un
-  lote rechazado—, la invocación escribe en la salida de error exactamente
+- **Una entrega fallida se avisa en una línea.** Si el grafo no puede recibir lo observado —un `world.db` que el
+  binario no puede usar o de otra versión, bloqueado, el plazo agotado, la carpeta de la caché mal declarada o que no
+  se puede crear, o un lote rechazado—, la invocación escribe en la salida de error exactamente
   `kitlegal: lo observado no ha llegado al grafo del mundo: <causa>`, con la causa en una sola línea, y termina con el
   mismo código y la misma salida estándar que habría dado sin grafo. No se reintenta ni se guarda para después.
-- **`boe-legislacion` v0.1 comprueba la memoria de consultas antes de responder.** Resuelto el `BOE-A-…` de la norma de
-  la pregunta, y antes de leer, ejecuta `kitlegal graph check --json`, y otra vez cuando ya no queda nada por leer. De
-  los hallazgos que nombran esa norma dice cada clase una sola vez: con `version-obsoleta`, que la redacción ha
-  cambiado respecto de la consultada antes, con las fechas de vigencia; con `fuente-caducada`, que la consulta anterior
-  había caducado y que la respuesta se apoya en la lectura nueva. El texto que cita sale siempre de
-  `kitlegal boe articulo` o `articulos`, nunca de la salida de `graph`; una comprobación con hallazgos no es un fallo,
-  y si `graph check` falla responde igual y dice que no ha podido comprobar la memoria de consultas. Su frontmatter
-  declara `kitlegal-applets: boe graph` y su tabla de comandos gana `kitlegal graph` (`show`, `stats`, `check`),
-  generada con `make skills-sync`. La forma de la cita y la de los avisos de vigencia no cambian.
+- **`boe-legislacion` v0.1.1 dice que la redacción ha cambiado desde la consulta anterior.** Lee cada bloque una sola
+  vez por pregunta y, cuando ya no queda nada por leer y antes de redactar, comprueba la memoria de consultas **una vez
+  por cada norma cuyos bloques cita**, con esa norma y los bloques leídos de ella
+  (`kitlegal graph check BOE-A-2015-10565 a21 --json`); nunca antes de leer ni sin argumentos. Cada
+  `version-obsoleta` lo traslada con una forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta que da el binario y
+  dos puntos, en la misma línea—, seguida de las dos fechas de vigencia, la de la redacción superada y la de la que
+  cita; decirlo con otras palabras no lo traslada, y la etiqueta no es la de ningún aviso de vigencia. No traslada
+  `fuente-caducada`, porque cita siempre lo que acaba de leer, y con `0` y sin `version-obsoleta` no dice nada de la
+  memoria de consultas. El texto que cita sale siempre de `kitlegal boe articulo` o `articulos`, nunca de la salida
+  de `graph`; una comprobación con hallazgos no es un fallo, y si `graph check` falla responde igual y dice que no ha
+  podido comprobar la memoria de consultas. Su frontmatter declara `kitlegal-applets: boe graph` y su tabla de
+  comandos gana `kitlegal graph` (`show`, `stats` y `check [<norma> [<bloques>...]]`), generada con
+  `make skills-sync`, que escribe los argumentos de posición opcionales como la ayuda del binario. La forma de la
+  cita y la de los avisos de vigencia no cambian. Sustituye a la v0.1 de H7, que no llegó a publicarse: comprobaba
+  dos veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también `fuente-caducada`.
 - **Eval informativa de la consulta repetida** (`evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml`):
   el grafo de la sesión ya tiene una redacción anterior del artículo 21 de la Ley 39/2015 y la caché sirve la grabada;
-  la sesión tiene que leer el bloque con `kitlegal boe articulo`, comprobar con `kitlegal graph check`, no pedir
-  `kitlegal graph show` y citar el bloque. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa se publica sin
-  decidir el veredicto. La redacción anterior es una derivada de la grabación del BOE, sin ninguna grabación nueva
-  (`testdata/evals/grafo-previo/lpac-a21-version-anterior/`).
-- **El formato común de eval gana tres piezas**, opcionales y solo en una eval que activa la skill; las evals que ya
-  había se leen y se juzgan igual. `comandos` admite una quinta forma, la comprobación (`applet` y `verbo` `check`),
-  que la cumple una invocación de ese applet con `check` que termina con `0`. `prohibidos` lista los `applet` y `verbo`
-  que la sesión no puede invocar: toda invocación que consulta —no la ayuda, `--describe` ni `--dry-run`— de uno de
-  ellos, termine como termine, hace que la sesión no pase con el motivo `comando prohibido ejecutado: <applet>
-  <verbo>`; cada sesión publica en `informe.json` `comandos_prohibidos_ejecutados` y la tabla de sesiones de
+  la sesión tiene que leer el bloque con `kitlegal boe articulo`, comprobar con `kitlegal graph check` y la norma
+  `BOE-A-2015-10565`, no pedir `kitlegal graph show`, citar el bloque y trasladar el cambio de redacción con la forma
+  fija `⚠ REDACCIÓN MODIFICADA:`. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa se publica sin decidir el
+  veredicto, y el informe declara junto a ella la forma que exige. La redacción anterior es una derivada de la
+  grabación del BOE, sin ninguna grabación nueva (`testdata/evals/grafo-previo/lpac-a21-version-anterior/`).
+- **El formato común de eval gana cuatro piezas**, opcionales y solo en una eval que activa la skill; las evals que
+  ya había se leen y se juzgan igual. `comandos` admite una quinta forma, la comprobación (`applet` y `verbo` `check`,
+  y, si se da, `norma`), que la cumple una invocación de ese applet con `check` —y con esa norma, si la eval la
+  nombra— que termina con `0`. `hallazgos` lista las clases de hallazgo de `graph check` cuya forma fija tiene que
+  llevar la respuesta —hoy solo `version-obsoleta`, la única a la que el binario da etiqueta—; se juzga sin ningún
+  modelo, con las tolerancias de los avisos (el selector de presentación del emoji, el énfasis de Markdown, los
+  espacios y las mayúsculas) y exacta en la etiqueta, y cada forma que falta hace que la sesión no pase con el motivo
+  `forma de hallazgo ausente: <clase>`: cada sesión publica en `informe.json` `hallazgos_encontrados` y
+  `hallazgos_ausentes`, la tasa de cada eval gana `formas`, con la forma literal que exige, y `informe.md` gana las
+  columnas «Formas exigidas» en la tabla de tasas y «Hallazgos encontrados» y «Hallazgos ausentes» en la de
+  sesiones. `make skills-check` comprueba además que el `SKILL.md` de `boe-legislacion` lleva la forma fija de
+  `version-obsoleta` y que las clases que admite `hallazgos` son exactamente las que etiqueta el binario.
+  `prohibidos` lista los `applet` y `verbo` que la sesión no puede invocar: toda invocación que consulta —no la
+  ayuda, `--describe` ni `--dry-run`— de uno de ellos, termine como termine, hace que la sesión no pase con el motivo
+  `comando prohibido ejecutado: <applet> <verbo>`; cada sesión publica en `informe.json` `comandos_prohibidos_ejecutados` y la tabla de sesiones de
   `informe.md` gana la columna «Comandos prohibidos ejecutados». Y `grafo_previo` nombra un directorio de
   `testdata/evals/grafo-previo/` y los bloques que, antes de la sesión, se consultan contra las grabaciones con ese
   directorio encima para dejar su observación en el grafo de la sesión; la caché de la sesión se prepara después, como
@@ -120,42 +169,52 @@ sustituyen a este fichero.
   mismos con `--no-graph`, y sobre un grafo de 10 000 nodos y 10 000 aristas `graph check` tarda menos de 3 s y
   `graph stats` menos de 1 s (medianas de cinco). Las trece cotas de 200 ms de `boe articulo` desde la caché y de
   `territorio resolver`, que ahora entregan al grafo, no cambian.
-- **`make test-integration` ejecuta la matriz del grafo** (`internal/graph/integracion_test.go` y, en Unix,
-  `integracion_enlace_test.go`): esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, bases
-  inutilizables, sin permiso de escritura, con los auxiliares de SQLite, con un enlace simbólico y lo que deja una
-  entrega que falla.
+- **`make test-integration` ejecuta la matriz del grafo** (`internal/graph/integracion_test.go`): esquema,
+  idempotencia, orden de llegada, rechazos, ocho entregas a la vez, un `world.db` que no es una base de datos y uno de
+  una versión posterior, el plazo y el bloqueo, la lectura con el `-wal` de una escritura propia interrumpida, un
+  `world.db` escrito por H7 y lo que deja una entrega que falla. Y **la medida de `graph check`**
+  (`internal/app/medida_test.go`): sobre un grafo sembrado de 300 normas y 2 400 bloques, 240 de ellos con dos
+  redacciones leídas y el 90 % consultado hace más de una semana, `graph check --json` sin argumentos da 50 hallazgos,
+  todos `version-obsoleta`, con los totales de cada clase y los omitidos, en 40 000 bytes como mucho, y con la norma o
+  con la norma y un bloque, solo los de ese ámbito; y lo que lee la skill con cinco bloques cuya redacción ha
+  cambiado, cinco `version-obsoleta` en 3 800 bytes como mucho.
 - **`make lint` y `TestArquitectura` vigilan una regla más, R6**: `internal/graph` no importa las fuentes
   (`internal/source`) ni la presentación (`internal/render`); y `internal/graph` es, con `internal/cache`, el único
   paquete que importa `database/sql` y SQLite. El binario no enlaza ningún módulo nuevo.
 - **`make test-e2e` construye además tres binarios de extremo a extremo con el reloj fijo** (el 28 y el 29 de
   septiembre y el 6 de octubre de 2026 a las 12:00 UTC), con los que `graph check` da hallazgos reproducibles, y
-  copia a cada guion tres respuestas del BOE derivadas de las grabaciones de H4 —una redacción posterior del
-  artículo 21 de la Ley 39/2015 y los metadatos de esa ley sin ELI, con la `url_eli` vacía y con una que no tiene
-  ningún segmento `eli`—, sin ninguna grabación nueva.
+  copia a cada guion cuatro respuestas del BOE derivadas de las grabaciones de H4 —dos redacciones posteriores del
+  artículo 21 de la Ley 39/2015, con fecha de vigencia `20250101` y `20260101`, y los metadatos de esa ley sin ELI,
+  con la `url_eli` vacía y con una que no tiene ningún segmento `eli`—, sin ninguna grabación nueva.
 - **Con 19 evals, el trabajo de `boe-legislacion` del job de evals abre 93 sesiones**: 57 de `claude-sonnet-5` —36
   sobre las doce que deciden y 21 sobre las siete informativas— y 36 de `claude-haiku-4-5-20251001` sobre las doce que
   deciden.
 
-El contenido del grafo es solo lo que se ha dicho. En los **bytes** de `world.db` y de los ficheros auxiliares que
-SQLite pone junto a él hay tres desviaciones declaradas (`specs/010-h7-internal-graph-grafo/plan.md`, *Complexity
-Tracking*), cada una por su causa y con su cota, y ninguna cambia el contenido:
+El contenido del grafo es solo lo que se ha dicho. De los **bytes** de `world.db` y de los ficheros auxiliares que
+SQLite pone junto a él se promete solo esto, y solo de lo que deja el propio binario
+(`specs/011-h7-1-graph-check-acotado/contracts/almacen-world-db.md`):
 
-- **Una base de fuera sin el esquema del grafo.** Si `world.db` ya existía sin esquema y fuera del modo WAL —de 0
-  bytes o escrito por otro programa— y una entrega falla después de pasarlo a WAL, queda lo que SQLite escribe al
-  confirmar ese paso: bytes de la cabecera de la primera página, el vaciado de las páginas libres con
-  `auto_vacuum=full`, un diario frío o vacío que desaparece y, en el de 0 bytes, un fichero de 4096. Su contenido no
-  cambia, sigue siendo un grafo vacío y no queda ningún fichero nuevo.
-- **Lo que dejó un escritor interrumpido.** Con un `world.db-wal` huérfano o un diario de rollback caliente, la entrega
-  los recupera aunque falle después: el diario se deshace y el `-wal` se lleva a `world.db`, que cambia de bytes y de
-  tamaño con el contenido confirmado, y los auxiliares desaparecen. Junto a un `world.db` de 0 bytes, un `-wal` no se
-  recupera sino que se descarta, salvo que el lote se rechace antes de abrir SQLite.
-- **Leer con los auxiliares de WAL presentes** (otra invocación abierta, un `-wal` huérfano o un `-shm` suelto): los
-  verbos de `graph` reescriben o crean `world.db-shm` y, junto a un `-shm` suelto, crean un `world.db-wal` vacío;
-  `world.db`, un `-wal` que ya existía, el diario y el contenido no cambian. Sin auxiliares no cambia ni un byte,
-  pueda el proceso escribir `world.db` o no.
+- **Leer sin `world.db-wal`** no cambia ni un byte de nada en la carpeta.
+- **Leer junto al `-wal`** de una escritura propia interrumpida o de otra invocación abierta: los verbos de `graph`
+  ven lo confirmado en él, dejan `world.db` y el `-wal` con los mismos bytes y dejan un `world.db-shm`.
+- **Una entrega junto al `-wal` que dejó una escritura interrumpida** lo recupera aunque falle después, como cualquier
+  escritor de SQLite: lleva a `world.db` lo confirmado en él y retira el `-wal` y el `-shm`.
 
-Un proceso terminado por una señal a mitad de su primera entrega puede dejar el temporal `world.db-nuevo-*` y la
-carpeta que creó: el binario no atiende señales, y ningún lector ni ninguna entrega lo miran.
+Cualquier otro estado —un directorio en el lugar de `world.db`, un enlace, permisos cambiados, un diario de rollback o
+un `-shm` ajenos, una base escrita por otra aplicación— sigue la **regla genérica** (constitución, «Gates»): si el
+binario no puede usarlo, es un defecto `inesperado` —`1` con la ruta y la causa en los verbos de `graph`, una línea
+de aviso en la entrega— y no se promete nada de sus bytes ni de su recuperación. Por eso H7.1 retira de H7, antes de
+que llegara a publicarse y con sus tests, lo que solo servía a esos estados o a entradas que ningún emisor produce: la
+publicación de `world.db` desde un temporal `world.db-nuevo-*` con un enlace duro; la comprobación del permiso de
+escritura al leer y al entregar, y la reapertura en solo lectura inmutable; el trato propio de un enlace simbólico,
+de un diario de rollback, de un `-shm` suelto y de una base de fuera, con sus listas de bytes; los mensajes de un
+directorio, de una transacción interrumpida y de un fichero sin permiso de escritura, y el «; no se modifica» de un
+`world.db` que no es una base de datos; los rechazos del lote por una `url` que no es un URI absoluto, un nodo sin id
+o sin tipo o una arista sin relación o sin sus extremos —una arista con un extremo que no está la sigue impidiendo la
+clave ajena de las aristas, que deshace la entrega entera—; los niveles del desempate de dos observaciones del mismo
+instante más allá de la `url`; los ejemplos no ASCII de la regla de `Persona`, que se queda con los ASCII; y el orden
+inverso de H7, en el que leer una redacción anterior después de otra posterior daba `version-obsoleta` sobre la
+anterior, y ahora no da nada: pedir una redacción anterior a propósito llegará con `--fecha`, en H20.
 
 ## [0.3.1] - 2026-09-28
 

@@ -331,9 +331,11 @@ con el applet `graph` —`show`, `stats` y `check`, que no escriben nada—, y l
 - **La lógica es dominio**, `internal/core/grafo`: la validación del lote —con el rechazo de un documento de
   identidad en un nodo `Persona`—, la fusión de observaciones, las reglas de `check` y sus explicaciones, sin E/S y
   dentro del umbral de cobertura de `internal/core/**`. **El almacén es un adaptador**, `internal/graph`: SQLite con
-  su migración embebida (`internal/graph/migraciones/`), modo WAL, esperas en tramos de 100 ms que miran el contexto,
-  una lectura que sin auxiliares no cambia ni un byte y una primera escritura que construye `world.db` en un temporal
-  y lo publica. La regla R6 —lista `grafo` de `depguard` en `.golangci.yml` y `TestArquitectura`— le impide importar
+  sus migraciones embebidas (`internal/graph/migraciones/`), modo WAL, esperas en tramos de 100 ms que miran el
+  contexto, una lectura que sin `world.db-wal` no cambia ni un byte y una primera escritura que crea `world.db` en su
+  sitio, sin temporal ni enlace. Un `world.db` que el binario no puede usar sigue la regla genérica (constitución,
+  «Gates»): código 1 con la ruta y la causa, sin caso ni test propios más allá de un fichero que no es una base
+  SQLite. La regla R6 —lista `grafo` de `depguard` en `.golangci.yml` y `TestArquitectura`— le impide importar
   `internal/source` e `internal/render`; con `internal/cache`, es el único paquete que importa `database/sql` y SQLite
   (R3), y su superficie exportada no nombra ninguno de los dos (`TestSuperficieExportada`).
 
@@ -342,20 +344,21 @@ Sus tests, y la orden que los ejecuta:
 | Qué comprueban | Dónde | Orden |
 |---|---|---|
 | Validación, `Persona`, fusión, reglas de `check` y explicaciones | `internal/core/grafo/*_test.go` | `make test` |
-| Ruta, errores, esperas, migración, modo de apertura según los auxiliares y el permiso, lectura, escritura, publicación del temporal (`publicar_test.go`) y lo que deja una entrega que falla sobre una base sin esquema que no creó el binario (`aplicar_test.go`), sobre `t.TempDir()` | `internal/graph/*_test.go` | `make test` |
-| La matriz por la API pública: esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, bases inutilizables, sin permiso de escritura, con los auxiliares y los diarios de SQLite y sin residuos | `internal/graph/integracion_test.go` (`//go:build integration`) | `make test-integration` |
-| `world.db` como enlace simbólico, con destino y sin él | `internal/graph/integracion_enlace_test.go` (`//go:build integration && unix`) | `make test-integration` |
+| Ruta, errores, esperas, migraciones, modo de apertura según haya o no `world.db-wal`, lectura con ámbito y sin él, escritura con sus lecturas y creación en su sitio, sobre `t.TempDir()` | `internal/graph/*_test.go` | `make test` |
+| La matriz por la API pública: esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, un `world.db` que no es una base de datos y uno de una versión posterior, el plazo y el bloqueo, el `-wal` de una escritura propia interrumpida, un `world.db` escrito por H7 y sin residuos | `internal/graph/integracion_test.go` (`//go:build integration`) | `make test-integration` |
 | El applet, su salida contra `schemas/grafo.json`, ningún texto legal en su salida, la salida de `boe` igual con grafo y sin él, y la procedencia de cada operación | `internal/app/grafo_test.go` | `make test` |
+| La salida legible de `stats`, `show` y `check` sin `--json` | `internal/app/grafo_legible_test.go` | `make test` |
+| La medida de `graph check` sobre el grafo sembrado de la bitácora (`TestMedidaDelGrafo`: 50 hallazgos en 40 000 bytes como mucho sin argumentos, y solo los del ámbito con la norma o con la norma y un bloque) y lo que lee la skill (`TestLoQueLeeLaSkill`: cinco `version-obsoleta` en 3 800 bytes como mucho) | `internal/app/medida_test.go` (`//go:build integration`) | `make test-integration` |
 | El coste de la entrega y de `graph check` y `graph stats` sobre un grafo grande; las medianas medidas salen en el mensaje de toda cota incumplida y con `go test -v -count=1 -run '^TestCosteDelGrafo$' ./internal/app/` | `internal/app/coste_test.go` (`TestCosteDelGrafo`) | `make test-tiempos` |
 | Los guiones de extremo a extremo, con tres binarios de reloj fijo (`KITLEGAL_T0_BIN`, `KITLEGAL_T1_BIN` y `KITLEGAL_T8_BIN`) y las respuestas derivadas de `internal/app/testdata/derivadas/` | `internal/app/testdata/script/` | `make test-e2e`, y `make test` con todo lo demás |
 
 **Ningún test escribe en `~/.cache/kitlegal`**: el que entrega lo hace a `graph.ConDirectorio(t.TempDir())` o monta un
-registro sin almacén, y un guion usa el `KITLEGAL_CACHE_DIR` del arnés. Lo que el almacén puede cambiar en los bytes
-—nunca en el contenido— de un `world.db` que no creó el binario, o junto a los auxiliares que deja un escritor
-interrumpido, son las tres desviaciones declaradas de H7 (`specs/010-h7-internal-graph-grafo/plan.md`, *Complexity
-Tracking*, y [CHANGELOG.md](CHANGELOG.md)). `aplicar_test.go` y la matriz de integración las afirman caso a caso, con
-la lista literal de bytes que cambian: si una versión nueva del controlador de SQLite cambia alguna, el test lo dice, y
-el caso se actualiza midiéndolo de nuevo, nunca relajándolo a un intervalo.
+registro sin almacén, y un guion usa el `KITLEGAL_CACHE_DIR` del arnés. De los bytes de `world.db` y de sus auxiliares
+solo se promete lo que dice [CHANGELOG.md](CHANGELOG.md), y solo de lo que deja el propio binario: leer sin `-wal` no
+cambia ni un byte (`TestLeerSinRastro`), leer junto al `-wal` de una escritura propia interrumpida deja `world.db` y el
+`-wal` como estaban (`TestIntegracionLecturaConWAL`), y una entrega junto a ese `-wal` lo recupera
+(`TestIntegracionRecuperacionDeclarada`). Un estado al que el binario no llega —un enlace, permisos cambiados, un
+diario de rollback, una base de otra aplicación— no lleva caso ni test propios: lo cubre la regla genérica.
 
 ## Skills y evals
 
@@ -432,10 +435,11 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 |---|---|---|
 | `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
 | `activa` | sí | Si la pregunta debe activar la skill |
-| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cinco formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`) o una comprobación (`applet`, `verbo` `check`) |
+| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cinco formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`) o una comprobación (`applet`, `verbo` `check` y, si se quiere, `norma`) |
 | `citas` | sí si `activa` es `true` y no hay `territorio`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
 | `territorio` | sí si `activa` es `true` y no hay `citas`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
+| `hallazgos` | no; solo si `activa` es `true`, prohibido si es `false` | Las clases de hallazgo de `graph check` cuya forma fija —`⚠`, la etiqueta que da el binario y dos puntos— debe llevar la respuesta; hoy solo `version-obsoleta` (`⚠ REDACCIÓN MODIFICADA:`), la única que el binario etiqueta |
 | `prohibidos` | no; solo si `activa` es `true`, prohibido si es `false` | Los `applet` y `verbo` que la sesión no puede invocar (`graph` `show`…); al menos uno |
 | `grafo_previo` | no; solo si `activa` es `true`, prohibido si es `false` | Lo que el grafo del mundo de la sesión ya ha observado al empezar: `grabaciones`, un directorio de `testdata/evals/grafo-previo/` con respuestas del BOE que se ponen encima de las grabadas, y `comandos`, los bloques (`applet`, `norma`, `bloque`) que se consultan contra ellas antes de la sesión, entregando lo observado al grafo de la sesión; la caché de la sesión se prepara después, como siempre y sin entregar nada |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
@@ -455,11 +459,11 @@ positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparaci
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
 termina, hace con éxito cada consulta de `comandos` —una comprobación la cumple una invocación de ese applet con
-`check` que termina con `0`—, no invoca nada de `prohibidos` —cuenta toda invocación que consulta de ese applet y
-verbo, termine como termine; la ayuda, `--describe` y `--dry-run`, no— y responde citando cada `norma` y `bloque` de
-`citas`, declarando lo que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el
-código de cada boletín como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`— y con la
-forma fija de cada aviso de `avisos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
+`check`, y con su `norma` si la lleva, que termina con `0`—, no invoca nada de `prohibidos` —cuenta toda invocación
+que consulta de ese applet y verbo, termine como termine; la ayuda, `--describe` y `--dry-run`, no— y responde
+citando cada `norma` y `bloque` de `citas`, declarando lo que espera `territorio` —la comunidad y la provincia sin
+distinguir mayúsculas ni tildes, el código de cada boletín como palabra exacta y cada aspecto de cobertura en su forma
+fija `<aspecto>: <valor>`— y con la forma fija de cada aviso de `avisos` y de cada clase de `hallazgos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
 traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
 ([Job de evals](#job-de-evals)).
 
