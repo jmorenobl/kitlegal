@@ -849,6 +849,8 @@ const (
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
 // H5.1); el esquema publicado admite en hallazgos exactamente las clases de
 // hallazgo que el binario etiqueta (contrato evals-y-skill §3 de H7.1; FR-054);
+// el SKILL.md de boe-legislacion lleva la forma fija de cada una de esas clases,
+// reconocida con la misma función que usa Juzgar (FR-045, FR-093 de H7.1);
 // el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
 // evals §1.2 de H6); las de evals/legal-core/ cumplen las reglas del conjunto de
@@ -967,6 +969,15 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.NoError(t, ComprobarClasesDeHallazgo(esquema),
 			"el esquema publicado %s admite en hallazgos exactamente las clases de hallazgo etiquetadas por el binario",
 			rutaDelEsquemaDeEval)
+	})
+
+	t.Run("hallazgos-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		skill := contenidoDelFichero(t, skillDelRepositorio)
+
+		assert.NoError(t, ComprobarFormasDeHallazgo(string(skill)),
+			"%s enseña la forma fija de cada clase de hallazgo etiquetada por el binario", skillDelRepositorio)
 	})
 
 	t.Run("cobertura-del-esquema", func(t *testing.T) {

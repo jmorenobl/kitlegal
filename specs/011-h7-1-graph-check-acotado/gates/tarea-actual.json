@@ -1,14 +1,15 @@
 {
-  "id": "T022",
-  "texto": "T022 [US1] La eval 19 exige la forma fija y la comprobación con la norma (contracts/evals-y-skill.md §5; research D15, V22): evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml tal cual el contrato —`norma: BOE-A-2015-10565` en su comando `graph check`, `hallazgos: [version-obsoleta]` y el comentario que dice que la sesión traslada el cambio con la forma fija—, con `grafo_previo` sin cambios y `informativa: true` (las reglas del conjunto no cambian); test del estado previo sin red en internal/evals/preparar_test.go: preparados el grafo previo y la caché de la sesión de la eval 19, una `boe articulo BOE-A-2015-10565 a21` servida por la caché y entregada al grafo de la sesión deja que `Comprobar` con el ámbito `BOE-A-2015-10565` dé exactamente un `version-obsoleta`, sobre la redacción de `20151002` con `20161002` como reciente; verificación: `make ci` con `skills-check` en verde (`TestEvalsDelRepositorio` lee y valida la eval) — FR-050, FR-053, FR-055; rutas: evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml, internal/evals/preparar_test.go",
+  "id": "T023",
+  "texto": "T023 [US1] `boe-legislacion` v0.1.1 (contracts/evals-y-skill.md §4; research D16): skills/boe-legislacion/SKILL.md cambia solo en lo que piden FR-040 a FR-046 (FR-047): el paso 2 pierde la comprobación de la memoria antes de leer; el paso 3 pide leer cada bloque una sola vez por pregunta (FR-041); el primer punto del paso 5 pide, cuando no quede nada por leer y antes de redactar, `kitlegal graph check <norma> <bloques leídos> --json` una vez por cada norma cuyos bloques se van a citar, con el ejemplo `kitlegal graph check BOE-A-2015-10565 a21 --json`, nunca sin argumentos ni antes de leer (FR-040); «Memoria de consultas» reescrita: cada `version-obsoleta` con la forma fija `⚠ REDACCIÓN MODIFICADA:` y las dos fechas de vigencia detrás, con el ejemplo del contrato, y decirlo con otras palabras no lo traslada (FR-042); `fuente-caducada` no se traslada (FR-043); con 0 y sin `version-obsoleta`, nada de la memoria (FR-044); con otro código, la regla 7 (FR-046); fuera «Un hallazgo no es un aviso de vigencia…» y, en su lugar, que la etiqueta de `version-obsoleta` no es la de ningún aviso; la forma de la cita, la de los avisos, las reglas y la tabla generada en T014 sin cambios; < 300 líneas, frontmatter válido, sin nombrar evals, el job ni modelos; y el subtest `hallazgos-de-la-skill` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go (`ComprobarFormasDeHallazgo` sobre esta `SKILL.md`, sin error); verificación: `make ci` con `skills-check` en verde y, con la forma quitada un momento de `SKILL.md`, el subtest falla nombrando `version-obsoleta` (se restaura antes de `make ci`) — FR-040, FR-041, FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-093; SC-008; rutas: skills/boe-legislacion/SKILL.md, internal/evals/conjunto_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "3b16a7eadc05345634c723ab962079c9d58d3839",
+  "base": "59e9d331f95dc7009dbdbdb5eff71e301c41d8d2",
   "rutas": [
+    "SKILL.md",
     "contracts/evals-y-skill.md",
-    "evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml",
-    "internal/evals/preparar_test.go"
+    "internal/evals/conjunto_test.go",
+    "skills/boe-legislacion/SKILL.md"
   ],
   "cierre": false,
   "converger": false,

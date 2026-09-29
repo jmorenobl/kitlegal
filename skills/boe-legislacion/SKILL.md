@@ -50,12 +50,6 @@ menudo; no es exhaustiva.
   lee y se cita como una estatal.
 - Si la búsqueda no da la norma, reformúlala con otras palabras del título; que no aparezca no prueba que no exista
   (regla 1).
-- Resuelto el `BOE-A-…` de la norma de la pregunta, y antes de leer ninguno de sus bloques, comprueba la memoria de
-  consultas (más en «Memoria de consultas»):
-
-  ```bash
-  kitlegal graph check --json
-  ```
 
 ### 3. Leer índice y bloques con `kitlegal boe`
 
@@ -76,6 +70,8 @@ menudo; no es exhaustiva.
 
   Usa `kitlegal boe articulos`, que los devuelve en el orden pedido, solo cuando necesites varios bloques a la vez y
   todos salgan del índice.
+- Lee cada bloque una sola vez por pregunta: una segunda lectura del mismo bloque apagaría lo que la memoria de
+  consultas tiene que decirte (más en «Memoria de consultas»).
 - Una orden de `kitlegal boe articulos` falla entera en cuanto falla uno de sus bloques. Si una orden con varios bloques
   termina con el código 4 o 5, pide cada bloque por separado con `kitlegal boe articulo` antes de dar ninguno por no
   consultado: el fallo de un bloque no impide leer los demás.
@@ -107,8 +103,15 @@ Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lug
 
 ### 5. Responder citando
 
-- Cuando ya no quede nada por leer, y antes de redactar la respuesta, vuelve a ejecutar `kitlegal graph check --json`
-  y traslada lo que encuentren las dos comprobaciones como dice «Memoria de consultas».
+- Cuando ya no quede nada por leer, y antes de redactar la respuesta, comprueba la memoria de consultas una vez por
+  cada norma cuyos bloques vas a citar, con esa norma y los bloques de ella que has leído, y traslada lo que encuentre
+  como dice «Memoria de consultas»:
+
+  ```bash
+  kitlegal graph check BOE-A-2015-10565 a21 --json
+  ```
+
+  No la pidas nunca sin argumentos ni antes de leer.
 - Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `kitlegal boe`
   en esta conversación. La cita es la forma legible de la norma y del bloque seguida, en la misma línea, de
   `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
@@ -165,25 +168,26 @@ del binario o de una explicación:
 
 ## Memoria de consultas
 
-`kitlegal` recuerda en local las normas y los bloques que ha leído con `kitlegal boe articulo` o `articulos`: cada
-redacción, con su fecha de vigencia, y cuándo la consultó. `kitlegal graph check` repasa esa memoria y devuelve en
-`data` una lista de hallazgos, cada uno con su `clase` y una `explicacion` que nombra la norma (`BOE-A-…`) o el bloque
-(`[BOE-A-…, bloque <id>]`) del que habla. De los verbos de `kitlegal graph`, el protocolo solo usa `check`, dos veces:
-resuelto el `BOE-A-…` y antes de leer (paso 2), y cuando ya no queda nada por leer y antes de responder (paso 5).
+`kitlegal` recuerda en local los bloques que ha leído con `kitlegal boe articulo` o `articulos` y qué redacción vio
+cada lectura. `kitlegal graph check <norma> <bloques>... --json` devuelve en `data.hallazgos` los de esa norma y esos
+bloques, cada uno con su `clase`. De los verbos de `kitlegal graph`, el protocolo solo usa `check`: una vez por norma
+citada, cuando ya no queda nada por leer y antes de responder (paso 5).
 
-Al responder, reúne los hallazgos de las dos comprobaciones cuya `explicacion` nombra el `BOE-A-…` de la norma de la
-pregunta, solo o en la cita de un bloque de esa norma que has leído para responder, y agrúpalos por `clase`. Di cada
-clase presente una sola vez, aunque lleguen varios hallazgos de la misma clase o la misma clase en las dos
-comprobaciones:
+- `version-obsoleta`: la redacción del bloque ha cambiado desde la lectura anterior. Trasládalo con su forma fija,
+  `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta `REDACCIÓN MODIFICADA` y dos puntos, en la misma línea—, con las dos
+  fechas de vigencia del hallazgo detrás: la de la redacción superada (`fecha_vigencia`) y la de la que acabas de leer
+  (`fecha_vigencia_reciente`). Por ejemplo:
 
-- `version-obsoleta`: di que la redacción ha cambiado respecto de la consultada antes, con las fechas de vigencia que
-  traen los hallazgos: la de cada redacción superada (`fecha_vigencia`) y la de la más reciente
-  (`fecha_vigencia_reciente`).
-- `fuente-caducada`: di que la consulta anterior había caducado y que la respuesta se apoya en la lectura nueva.
+  ```text
+  ⚠ REDACCIÓN MODIFICADA: la redacción con fecha de vigencia 20161002, la que se consultó antes, ha sido sustituida por la de 20250101, que es la que se cita.
+  ```
 
-Los demás hallazgos —los de otras normas, también las que hayas leído por una remisión, y los de bloques que no has
-leído para responder— no se trasladan. Sin hallazgos de la norma de la pregunta, no hay nada que decir de la memoria de
-consultas. Un hallazgo no es un aviso de vigencia: no lleva la forma fija de los avisos.
+  Decirlo con otras palabras no lo traslada.
+- `fuente-caducada` no se traslada: la respuesta cita el texto que acabas de leer, que la caché no sirve pasada su
+  vigencia.
+- Con código 0 y sin `version-obsoleta`, no digas nada de la memoria de consultas; con otro código, la regla 7.
+
+La etiqueta de `version-obsoleta` no es la de ningún aviso de vigencia.
 
 ## Comandos
 
