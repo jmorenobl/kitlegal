@@ -1,17 +1,17 @@
 {
-  "id": "T015",
-  "texto": "T015 [US3] La medida de la bitácora y lo que lee la skill (contracts/arnes-e2e.md §4; contracts/applet-graph.md §3 y §6; research D24): internal/app/medida_test.go con `//go:build integration`: `TestMedidaDelGrafo` siembra con `graph.Nuevo(graph.ConDirectorio(dir)).Apply` el grafo de la medida tal cual el contrato (300 normas `BOE-A-2020-1<i con tres cifras>` con id `eli/es/l/2020/01/01/<i+1>`, bloques `a1`…`a8`, fuente `boe.legislacion-consolidada`, vigencia 604 800 s, urls de la API, cuerpos inventados con su huella; primera lectura de cada norma en un lote con sus 8 bloques y la redacción A `20200101` —normas 0-269 el 2026-09-01T10:00:00Z, 270-299 el 2026-10-05T10:00:00Z—; segunda lectura del bloque `a1` de las normas 0-239 con B `20250101` el 2026-09-15T10:00:00Z) y ejecuta el binario de reloj T8 del arnés con `KITLEGAL_CACHE_DIR` en el directorio sembrado: `graph check --json` da 50 hallazgos, todos `version-obsoleta` (los 50 primeros ids de las A de `a1` comparando bytes), `\"version-obsoleta\":240,\"fuente-caducada\":4590,\"omitidos\":4780`, `norma` `\"\"` y una salida estándar ≤ 40 000 bytes; `graph check BOE-A-2020-1000 --json`, sus 18 hallazgos (1 y 17), todos de esa norma, en ≤ 40 000 bytes; y `graph check BOE-A-2020-1000 a1 --json`, exactamente los 4 de ese ámbito; con `t.Logf` de los bytes medidos; y `TestLoQueLeeLaSkill` (SC-005): los bloques `a21` a `a25` de `BOE-A-2015-10565`, con los ids y urls que emite `boe`, leídos con una redacción y después con otra posterior, las dos dentro de la vigencia a la hora de T8: `graph check BOE-A-2015-10565 a21 a22 a23 a24 a25 --json` da 5 hallazgos, todos `version-obsoleta` y ninguno `fuente-caducada`, en ≤ 3 800 bytes, y tras otra lectura de la redacción posterior de los cinco, ninguno; internal/app/e2e_test.go solo si hace falta exponer a los tests de integración el binario T8 que ya construye su `TestMain`; sin red ni escritura en `~/.cache/kitlegal`; verificación: `make ci` en verde (los ejecuta `test-integration`) — FR-013, FR-092; SC-001, SC-002, SC-005; rutas: internal/app/medida_test.go, internal/app/e2e_test.go",
+  "id": "T016",
+  "texto": "T016 [US5] La salida legible de los tres verbos (contracts/applet-graph.md §5; research D11, V17, V18): internal/app/grafo_legible.go con `legibleDeStats`, `legibleDeShow` y `legibleDeCheck`, que componen desde `data`, en el mismo instante, las plantillas exactas de §5 —`stats`: la frase de totales con singular y plural por el número y una sección por grupo con pares, y el grafo vacío en una línea; `show`: tipo e id, un dato por línea ordenado por clave (un valor que no es cadena, en JSON), la primera y la última observación con fuente y url, y las aristas salientes y entrantes con su procedencia, o «ninguna»; `check`: la cabecera con el total de cada clase, los listados y los omitidos siempre, un grupo por clase con algún listado —`version-obsoleta` primero— con cada explicación y su id debajo, la frase sin hallazgos con su ámbito («en todo lo consultado», «de BOE-A-…», «de BOE-A-…, bloque a21», «…, bloques a21 y a22», «…, bloques a21, a22 y a23») y, sin argumentos, la línea final de cómo acotar—, sin tabuladores ni secuencias de escape, columnas alineadas con espacios por runas y `\\n` al final; internal/app/grafo.go pone ese texto en `Resultado.Legible` de los tres verbos (el kernel lo escribe sin `--json`; con `--json` nada cambia; los fallos siguen en la salida de error); tests: internal/app/grafo_legible_test.go (cada plantilla exacta, singular y plural, los cinco ámbitos, sin tabuladores ni escapes, el mismo texto dos veces) e internal/app/grafo_test.go (los tres verbos sin `--json` dan el texto legible, sin ninguna línea `fuente`, `url`, `fecha_consulta` ni `hash`, ni `kitlegal.graph`, `kitlegal:applet/graph` o pares `nodo.`; `TestNingunVerboDelGrafoDevuelveTexto` también sin `--json`; con `--json`, `stats` y `show` byte a byte como antes); ningún otro applet cambia su salida sin `--json` — FR-060, FR-061, FR-062, FR-063, FR-064; SC-010; rutas: internal/app/grafo_legible.go, internal/app/grafo.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "ff0d20461f8f406fee48968480a63facfc6f5896",
+  "base": "cb91f867932ec45458cf56bbef031c8a7909fadb",
   "rutas": [
-    ".cache/kitlegal",
+    "applet/graph",
     "contracts/applet-graph.md",
-    "contracts/arnes-e2e.md",
-    "eli/es/l/2020/01/01/",
-    "internal/app/e2e_test.go",
-    "internal/app/medida_test.go"
+    "internal/app/grafo.go",
+    "internal/app/grafo_legible.go",
+    "internal/app/grafo_legible_test.go",
+    "internal/app/grafo_test.go"
   ],
   "cierre": false,
   "converger": false,

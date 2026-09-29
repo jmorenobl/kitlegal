@@ -462,7 +462,8 @@ type comprobacionDelGrafo struct {
 // de su reloj, que se lee una vez por invocación y es el instante de check; los
 // ids que no están (3) y los argumentos que no valen (2); check con su norma y
 // sus bloques; --no-graph, --offline y el nombre del programa, que no cambian
-// nada; la tabla mínima sin --json y sin texto legal; --dry-run, que lee igual;
+// nada; la salida legible sin --json, sin nada del sobre ni texto legal, y el
+// sobre de siempre con --json; --dry-run, que lee igual;
 // el plazo agotado (4); y el reloj que falta (1). Ningún verbo cambia un byte
 // del directorio.
 func TestAppletGrafo(t *testing.T) {
@@ -479,7 +480,7 @@ func TestAppletGrafo(t *testing.T) {
 		{nombre: "argumentos", comprobar: compruebaArgumentosDelGrafo},
 		{nombre: "check-acotado", comprobar: compruebaCheckAcotado},
 		{nombre: "misma-salida-con-no-graph-offline-y-multicall", comprobar: compruebaMismaSalidaDelGrafo},
-		{nombre: "tabla-sin-json-y-sin-texto-legal", comprobar: compruebaTablaDelGrafo},
+		{nombre: "legible-sin-json-y-sin-texto-legal", comprobar: compruebaLegibleDelGrafo},
 		{nombre: "dry-run", comprobar: compruebaEnsayoDelGrafo},
 		{nombre: "plazo-agotado", comprobar: compruebaPlazoDelGrafo},
 		{nombre: "sin-reloj", comprobar: compruebaGrafoSinReloj},
@@ -914,60 +915,178 @@ func sinRegistroDeEventos(res invocacionDePrueba) invocacionDePrueba {
 	return res
 }
 
-// compruebaTablaDelGrafo fija la forma legible sin --json (FR-055): la tabla
-// mínima del kernel, con las cuatro líneas de la firma —la misma huella que el
-// sobre— y el contenido aplanado, sin texto propio; y que ninguna línea del
-// texto guardado sale por ningún verbo, con --json ni sin él (FR-070).
-func compruebaTablaDelGrafo(t *testing.T) {
+// delSobreEnLoLegible casa con lo que la salida legible no lleva (H7.1 FR-060,
+// SC-010): las cuatro líneas de procedencia del sobre, la firma de graph y los
+// pares ruta/valor aplanados de la tabla mínima.
+var delSobreEnLoLegible = regexp.MustCompile(`(?m)^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|` +
+	`kitlegal:applet/graph|^(nodo|salientes|entrantes|nodos_por_tipo|aristas_por_relacion|hallazgos)\.`)
+
+// statsLegibleDeLaMuestra es lo que cuenta stats de la muestra, alineado en
+// columna (contracts/applet-graph.md §5.1).
+const statsLegibleDeLaMuestra = "El grafo del mundo tiene 5 nodos, 3 aristas y 1 texto.\n" +
+	"\n" +
+	"Nodos por tipo y fuente:\n" +
+	"  Bloque         prueba.legislacion  1\n" +
+	"  BloqueVersion  prueba.legislacion  1\n" +
+	"  Municipio      kitlegal.prueba     1\n" +
+	"  Norma          prueba.legislacion  1\n" +
+	"  Organo         kitlegal.prueba     1\n" +
+	"\n" +
+	"Aristas por relación y fuente:\n" +
+	"  eli:has_part     prueba.legislacion  1\n" +
+	"  eli:has_version  prueba.legislacion  1\n" +
+	"  lb:pertenece_a   kitlegal.prueba     1\n"
+
+// showLegibleDelMunicipio es lo que cuenta show del Municipio de la muestra:
+// sus dos datos, sus fechas con su desplazamiento, carácter a carácter, ninguna
+// arista saliente y la entrante desde su Organo (contracts/applet-graph.md
+// §5.2).
+func showLegibleDelMunicipio() string {
+	observacion := fechaDelMunicipio + " · " + fuenteDelMunicipio + " · " + urlDelMunicipio
+
+	return lineas(
+		"Municipio "+idDelMunicipio,
+		"  codigo_ine: 99001",
+		"  nombre: Villaprueba",
+		"Primera observación: "+fechaDelMunicipio,
+		"Última observación: "+observacion,
+		"",
+		"Aristas salientes: ninguna.",
+		"",
+		"Aristas entrantes:",
+		"  lb:pertenece_a ← "+idDelOrgano,
+		"    última observación: "+observacion,
+	)
+}
+
+// checkLegibleDeLaMuestra es lo que cuenta check sin argumentos de la muestra
+// en instanteDelGrafo: las tres consultas caducadas del primer lote, en orden
+// de id, y cómo acotar (contracts/applet-graph.md §5.3).
+func checkLegibleDeLaMuestra() string {
+	citaDelBloque := "[" + identificadorDeLaNorma + ", bloque a1]"
+
+	return lineas(
+		"Hallazgos en todo lo consultado: 0 version-obsoleta y 3 fuente-caducada; se listan 3 y se omiten 0.",
+		"",
+		"fuente-caducada (3):",
+		"  - "+caducadaDePrueba(idDeLaNorma, identificadorDeLaNorma).Explicacion,
+		"    "+idDeLaNorma,
+		"  - "+caducadaDePrueba(idDelBloque, citaDelBloque).Explicacion,
+		"    "+idDelBloque,
+		"  - "+caducadaDePrueba(idDeLaVersion(), citaDelBloque).Explicacion,
+		"    "+idDeLaVersion(),
+		"",
+		paraAcotar,
+	)
+}
+
+// sobreDelGrafoEnJSON es el sobre que escribe --json para un data correcto de
+// graph, byte a byte: la firma del applet con la fecha de su reloj, la huella de
+// data y data compacta, en una línea (H7 FR-051, FR-053, FR-054).
+func sobreDelGrafoEnJSON(t *testing.T, fecha, datos string) string {
+	t.Helper()
+
+	var compacto bytes.Buffer
+	require.NoError(t, json.Compact(&compacto, []byte(datos)))
+
+	huella, err := schema.Huella(json.RawMessage(compacto.Bytes()))
+	require.NoError(t, err)
+
+	return `{"ok":true,"fuente":"` + firmaDelGrafo.Fuente + `","url":"` + firmaDelGrafo.URL + `","fecha_consulta":"` +
+		fecha + `","hash":"` + huella + `","data":` + compacto.String() + "}\n"
+}
+
+// compruebaLegibleDelGrafo fija la salida sin --json (H7.1 FR-060 a FR-063,
+// SC-010; contracts/applet-graph.md §5): stats, show y check sobre la muestra
+// dan el texto legible byte a byte —check con hallazgos, sin ellos y acotado,
+// y con la versión obsoleta delante de las consultas caducadas—, sin nada del
+// sobre, sin pares aplanados y sin ninguna línea del texto guardado, y nada en
+// la salida de error; un fallo sigue sin salida estándar y con su mensaje en la
+// de error. Con --json, stats y show dan el mismo sobre que antes del hito, byte
+// a byte (FR-060).
+func compruebaLegibleDelGrafo(t *testing.T) {
 	t.Helper()
 
 	directorio := t.TempDir()
 	poblarElGrafo(t, directorio)
 
 	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
+	sinCaducar := registroDelGrafo(t, nuevoReloj(t, instanteSinCaducar).ahora, directorio)
 
-	casos := []struct {
+	for _, caso := range []struct {
+		registro   *Registro
 		argumentos []string
-		filas      []string
+		texto      string
 	}{
-		{
-			argumentos: []string{"show", idDelBloque},
-			filas: []string{
-				`nodo\.id +` + regexp.QuoteMeta(idDelBloque), `nodo\.tipo +Bloque`,
-				`entrantes\.0\.relacion +eli:has_part`, `salientes\.0\.id +` + regexp.QuoteMeta(idDeLaVersion()),
-			},
-		},
-		{argumentos: []string{"stats"}, filas: []string{`nodos +5`, `aristas +3`, `textos +1`}},
-		{
-			argumentos: []string{"check"},
-			filas: []string{
-				`fuente-caducada +3`, `omitidos +0`, `hallazgos\.0\.clase +fuente-caducada`,
-				`hallazgos\.2\.vigencia_segundos +604800`,
-			},
-		},
-	}
+		{registro, []string{"stats"}, statsLegibleDeLaMuestra},
+		{registro, []string{"show", idDelBloque}, showLegibleDePruebaDelBloque()},
+		{registro, []string{"show", idDelMunicipio}, showLegibleDelMunicipio()},
+		{registro, []string{"check"}, checkLegibleDeLaMuestra()},
+		{sinCaducar, []string{"check"}, lineas("No hay nada que volver a comprobar en todo lo consultado.", "", paraAcotar)},
+		{registro, []string{"check", normaDePrueba, "a1"}, lineas("No hay nada que volver a comprobar de " +
+			normaDePrueba + ", bloque a1.")},
+	} {
+		res := invocar(t, caso.registro, argvDelGrafo(caso.argumentos...)...)
 
-	for _, caso := range casos {
-		tabla := invocar(t, registro, argvDelGrafo(caso.argumentos...)...)
-		require.Equal(t, 0, tabla.codigo, tabla.errores)
-		assert.Empty(t, tabla.errores)
-
-		enJSON := invocar(t, registro, argvDelGrafo(slices.Concat(caso.argumentos, []string{"--json"})...)...)
-		huella := sobreDelJSON(t, enJSON.salida)["hash"]
-
-		assert.Regexp(t, `\Afuente +kitlegal\.graph\nurl +kitlegal:applet/graph\n`+
-			`fecha_consulta +`+regexp.QuoteMeta(instanteDelGrafo)+`\nhash +`+fmt.Sprint(huella)+`\n`, tabla.salida)
-
-		for _, fila := range caso.filas {
-			assert.Regexp(t, `(?m)^`+fila+`$`, tabla.salida, "%q", caso.argumentos)
-		}
+		require.Equal(t, 0, res.codigo, res.errores)
+		assert.Empty(t, res.errores, "%q", caso.argumentos)
+		assert.Equal(t, caso.texto, res.salida, "%q", caso.argumentos)
+		assert.NotRegexp(t, delSobreEnLoLegible, res.salida, "%q", caso.argumentos)
 
 		for _, linea := range strings.Split(cuerpoDelBloque, "\n") {
-			for _, salida := range []string{tabla.salida, enJSON.salida} {
-				assert.NotContains(t, salida, linea, "%q no devuelve texto legal", caso.argumentos)
-			}
+			assert.NotContains(t, res.salida, linea, "%q no devuelve texto legal", caso.argumentos)
 		}
 	}
+
+	for _, caso := range []struct {
+		argumentos []string
+		datos      string
+	}{
+		{[]string{"stats"}, recuentoDeLaMuestra},
+		{[]string{"show", idDelBloque}, fichaDelBloque()},
+		{[]string{"show", idDelMunicipio}, fichaDelMunicipio()},
+	} {
+		res := invocar(t, registro, argvDelGrafo(slices.Concat(caso.argumentos, []string{"--json"})...)...)
+
+		require.Equal(t, 0, res.codigo, res.errores)
+		assert.Equal(t, sobreDelGrafoEnJSON(t, instanteDelGrafo, caso.datos), res.salida, "%q", caso.argumentos)
+	}
+
+	for _, caso := range []struct {
+		argumentos []string
+		codigo     int
+		mensaje    string
+	}{
+		{[]string{"show", idQueNoEsta}, 3, strconv.Quote(idQueNoEsta)},
+		{[]string{"check", "a21"}, 2, `la norma "a21"`},
+	} {
+		res := invocar(t, registro, argvDelGrafo(caso.argumentos...)...)
+
+		assert.Equal(t, caso.codigo, res.codigo, "%q", caso.argumentos)
+		assert.Empty(t, res.salida, "%q: un fallo no tiene forma legible", caso.argumentos)
+		assert.Contains(t, res.errores, caso.mensaje, "%q: su mensaje va a la salida de error", caso.argumentos)
+	}
+
+	compruebaLegibleConLasDosClases(t)
+}
+
+// compruebaLegibleConLasDosClases fija el orden de los grupos de check sin
+// --json con hallazgos de las dos clases: con la versión posterior leída, el de
+// version-obsoleta, sobre la anterior, va delante del de fuente-caducada
+// (FR-063).
+func compruebaLegibleConLasDosClases(t *testing.T) {
+	t.Helper()
+
+	directorio := t.TempDir()
+	poblarConUnaVersionPosterior(t, directorio)
+
+	res := invocar(t, registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio), argvDelGrafo("check")...)
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Regexp(t, `\AHallazgos en todo lo consultado: 1 version-obsoleta y 3 fuente-caducada; se listan 4 y se`+
+		` omiten 0\.\n\nversion-obsoleta \(1\):\n  - La versión de .+\n    `+regexp.QuoteMeta(idDeLaVersion())+
+		`\nfuente-caducada \(3\):\n(  - .+\n    .+\n){3}\n`+regexp.QuoteMeta(paraAcotar)+`\n\z`, res.salida)
+	assert.NotRegexp(t, delSobreEnLoLegible, res.salida)
 }
 
 // compruebaEnsayoDelGrafo fija --dry-run (contracts/applet-graph.md §2): los
@@ -1564,7 +1683,8 @@ const avisoDeEntregaFallida = "kitlegal: lo observado no ha llegado al grafo del
 // de ningún bloque aparezca en la salida de show de cada nodo del grafo, de
 // stats ni de check, con --json ni sin él. Con --json se busca en la salida tal
 // cual y en cada texto del documento, clave o valor, ya sin los escapes de JSON;
-// sin ella, en la tabla, que escribe los textos tal cual.
+// sin ella, en la salida legible, que escribe los textos tal cual y no lleva
+// nada del sobre ni pares aplanados (H7.1 FR-060, SC-010).
 //
 // Las premisas dicen que no pasa en vacío: cada línea buscada aparece, con la
 // misma búsqueda, en la tabla del boe articulo que la devolvió; el grafo guarda
@@ -1614,6 +1734,8 @@ func TestNingunVerboDelGrafoDevuelveTexto(t *testing.T) {
 				var comprobacion grafo.Comprobacion
 				require.NoError(t, json.Unmarshal([]byte(datosFirmados(t, res, instanteDelGrafo)), &comprobacion))
 				assert.NotEmpty(t, comprobacion.Hallazgos, "premisa: check lista hallazgos")
+			case !conJSON:
+				assert.NotRegexp(t, delSobreEnLoLegible, res.salida, "%q es la salida legible", argv)
 			}
 
 			assert.Empty(t, lineasQueAparecen(t, lineas, res.salida, conJSON), "%q no devuelve texto legal", argv)
