@@ -6,13 +6,18 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"maps"
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
@@ -2535,6 +2540,21 @@ const (
 	grabacionDeLosMetadatos = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_metadatos.json"
 )
 
+// grabacionDelArticulo118 es la grabación de H4 del bloque a1-30 de la Ley
+// 9/2017 (LCSP), su art. 118, con dos redacciones: la original, de vigencia
+// 20180309, y la vigente, de 20200206 (research.md V15 de H7.2).
+const grabacionDelArticulo118 = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_" +
+	"BOE-A-2017-12902_texto_bloque_a1-30.json"
+
+// actualizarDerivadas es la bandera con la que TestGrabacionesDerivadas
+// escribe, antes de comprobarlas, las derivadas del grafo previo desde su
+// grabación con derivacionDelGrafoPrevio, como -actualizar-esquemas los
+// esquemas publicados. Solo la usa la tarea [datos] que entrega una derivada,
+// con la orden de contracts/eval-y-derivada.md §2 de H7.2; make ci nunca la
+// pasa, y sin ella el test solo comprueba (FR-010).
+var actualizarDerivadas = flag.Bool("actualizar-derivadas", false,
+	"escribe en testdata/evals/grafo-previo/ cada derivada del grafo previo desde su grabación antes de comprobarlas")
+
 // parrafoDeLaVersionPosterior es el párrafo que marca como sintética la
 // redacción de la derivada version-posterior: el último de su versión.
 const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n posterior " +
@@ -2622,6 +2642,41 @@ func versionDelArticulo21(carpeta, fechaVigencia, parrafo string) grabacionDeriv
 	}
 }
 
+// derivadaDelGrafoPrevio es una derivada de grafosPreviosDeLasEvals: su
+// subcarpeta, el nombre de la grabación de H4 de la que sale y que sustituye,
+// los argumentos de boe con los que se lee y la fecha de vigencia de la
+// redacción que da. No lleva comprobación propia: TestGrabacionesDerivadas
+// aplica a todas la reproducción byte a byte y la de la redacción de la grabada
+// (contracts/eval-y-derivada.md §3 de H7.2).
+type derivadaDelGrafoPrevio struct {
+	subcarpeta, fichero string
+	argumentos          []string
+	fechaVigencia       string
+}
+
+// carpeta es la subcarpeta de la derivada, relativa a este paquete.
+func (d derivadaDelGrafoPrevio) carpeta() string {
+	return filepath.Join(grafosPreviosDeLasEvals, d.subcarpeta)
+}
+
+// derivadasDelGrafoPrevio son las derivadas del grafo previo de las evals
+// (research.md D13 de H7.2), aparte de las del e2e de grabacionesDerivadas.
+func derivadasDelGrafoPrevio() []derivadaDelGrafoPrevio {
+	return []derivadaDelGrafoPrevio{redaccionOriginalDelArticulo118()}
+}
+
+// redaccionOriginalDelArticulo118 es el grafo previo de la eval de la consulta
+// repetida: la grabación del art. 118 de la LCSP sin su redacción vigente, que
+// da la original, la de vigencia 20180309 (FR-010).
+func redaccionOriginalDelArticulo118() derivadaDelGrafoPrevio {
+	return derivadaDelGrafoPrevio{
+		subcarpeta:    "lcsp-a1-30-redaccion-original",
+		fichero:       grabacionDelArticulo118,
+		argumentos:    []string{"articulo", "BOE-A-2017-12902", "a1-30"},
+		fechaVigencia: "20180309",
+	}
+}
+
 // TestGrabacionesDerivadas es el control de derivación de research.md D22 (FR-090,
 // FR-095): cada derivada del e2e, y cada una del grafo previo de una eval
 // (FR-085), lleva el nombre de una grabación de H4 y, servida en su lugar, boe
@@ -2631,14 +2686,34 @@ func versionDelArticulo21(carpeta, fechaVigencia, parrafo string) grabacionDeriv
 // fichero: una derivada nueva que no dijera qué cambia no pasa.
 // La premisa de cada una dice que no pasa en vacío: lo que dice su nombre cambia
 // algo de lo que da la grabación.
+//
+// Las derivadas del grafo previo de derivadasDelGrafoPrevio pasan todas por
+// compruebaLaDerivadaDelGrafoPrevio: son, byte a byte, la derivación de su
+// grabación, y dan una redacción que la grabada trae, la de su fecha (FR-010,
+// FR-011; research.md D13 de H7.2). Con -actualizar-derivadas, el test las
+// escribe antes desde su grabación.
 func TestGrabacionesDerivadas(t *testing.T) {
 	t.Parallel()
 
+	delGrafoPrevio := derivadasDelGrafoPrevio()
+
+	if *actualizarDerivadas {
+		for _, derivada := range delGrafoPrevio {
+			require.NoError(t, os.MkdirAll(derivada.carpeta(), 0o750))
+			escribirFicheroDePrueba(t, filepath.Join(derivada.carpeta(), derivada.fichero),
+				derivacionDelGrafoPrevio(t, grabadaDeBoe(t, derivada.fichero), derivada.fechaVigencia))
+		}
+	}
+
 	derivadas := grabacionesDerivadas()
-	comprobadas := make([]string, 0, len(derivadas))
+	comprobadas := make([]string, 0, len(derivadas)+len(delGrafoPrevio))
 
 	for _, derivada := range derivadas {
 		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta, derivada.fichero))
+	}
+
+	for _, derivada := range delGrafoPrevio {
+		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta(), derivada.fichero))
 	}
 
 	assert.ElementsMatch(t,
@@ -2656,6 +2731,323 @@ func TestGrabacionesDerivadas(t *testing.T) {
 			derivada.comprueba(t, grabacionesDeBoe, reproduccionConLaDerivada(t, derivada))
 		})
 	}
+
+	for _, derivada := range delGrafoPrevio {
+		t.Run(derivada.subcarpeta, func(t *testing.T) {
+			t.Parallel()
+
+			compruebaLaDerivadaDelGrafoPrevio(t, derivada)
+		})
+	}
+}
+
+// compruebaLaDerivadaDelGrafoPrevio es lo que TestGrabacionesDerivadas exige a
+// toda derivada del grafo previo: que lleve el nombre de una grabación de H4;
+// que sea, byte a byte, la derivación de esa grabación con su fecha de
+// vigencia, sin ningún otro cambio (comprobación 1, FR-010); y que, servida en
+// su lugar, boe dé la redacción de esa fecha que trae la grabada y ninguna
+// otra (comprobación 2, FR-011). La premisa, que la derivación con la fecha de
+// la última redacción devuelve la grabación byte a byte: sin ella, la
+// comparación de la 1 podría estar midiendo el formato con que se escribe y no
+// lo que la derivación quita.
+func compruebaLaDerivadaDelGrafoPrevio(t *testing.T, derivada derivadaDelGrafoPrevio) {
+	t.Helper()
+
+	grabada := grabadaDeBoe(t, derivada.fichero)
+
+	redacciones := redaccionesDelCuerpo(t, leerLaGrabacion(t, grabada).Respuesta.Cuerpo)
+	require.NotEmpty(t, redacciones, "premisa: la grabación trae alguna redacción del bloque")
+	require.Equal(t, string(grabada),
+		string(derivacionDelGrafoPrevio(t, grabada, redacciones[len(redacciones)-1].fechaVigencia)),
+		"premisa: la derivación con la fecha de la última redacción devuelve la grabación byte a byte")
+
+	escrita, err := fs.ReadFile(os.DirFS(derivada.carpeta()), derivada.fichero)
+	require.NoError(t, err)
+	assert.Equal(t, string(derivacionDelGrafoPrevio(t, grabada, derivada.fechaVigencia)), string(escrita),
+		"%s es, byte a byte, la derivación de su grabación con la fecha de vigencia %s",
+		filepath.Join(derivada.carpeta(), derivada.fichero), derivada.fechaVigencia)
+
+	assert.NoError(t, comprobarLaRedaccionDeLaGrabada(t, derivada, derivada.carpeta()))
+}
+
+// TestGrabacionesDerivadasInventadas es el test de que la comprobación 2 rechaza
+// lo inventado (FR-012, SC-005; contracts/eval-y-derivada.md §3 de H7.2): tres
+// derivadas armadas en t.TempDir() desde la grabación del art. 118 de la LCSP
+// —la redacción original con la fecha de vigencia 20151002, con un párrafo de
+// más al final, y con las dos cosas, como la de la eval de la consulta repetida
+// retirada— no pasan, cada una con un error que nombra su fichero y dice que la
+// redacción que da no es ninguna de las de la grabada. La huella no hace falta
+// inventarla aparte: boe la calcula desde el texto. La premisa, que la armada
+// sin inventar nada pasa: lo que rechaza la comprobación es lo inventado, no
+// cómo se arma.
+func TestGrabacionesDerivadasInventadas(t *testing.T) {
+	t.Parallel()
+
+	derivada := redaccionOriginalDelArticulo118()
+
+	fechaInventada := inventoEnElCuerpo{
+		antes:   `fecha_vigencia="20180309"`,
+		despues: `fecha_vigencia="20151002"`,
+	}
+	parrafoInventado := inventoEnElCuerpo{
+		antes: "</p>\n      </version>",
+		despues: "</p>\n        <p class=\"parrafo\">[P\xc3\xa1rrafo inventado: no lo trae ninguna redacci\xc3\xb3n " +
+			"de la grabada.]</p>\n      </version>",
+	}
+
+	require.NoError(t, comprobarLaRedaccionDeLaGrabada(t, derivada, derivadaInventada(t, derivada)),
+		"premisa: la derivada armada sin inventar nada pasa")
+
+	casos := []struct {
+		nombre   string
+		inventos []inventoEnElCuerpo
+	}{
+		{nombre: "fecha-inventada", inventos: []inventoEnElCuerpo{fechaInventada}},
+		{nombre: "parrafo-inventado", inventos: []inventoEnElCuerpo{parrafoInventado}},
+		{nombre: "fecha-y-parrafo-inventados", inventos: []inventoEnElCuerpo{fechaInventada, parrafoInventado}},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			carpeta := derivadaInventada(t, derivada, caso.inventos...)
+
+			err := comprobarLaRedaccionDeLaGrabada(t, derivada, carpeta)
+			require.ErrorContains(t, err, filepath.Join(carpeta, derivada.fichero),
+				"la derivada inventada no pasa, y el error nombra su fichero")
+			assert.ErrorContains(t, err, "no es ninguna de las de la grabada")
+		})
+	}
+}
+
+// inventoEnElCuerpo es un cambio que la grabada no trae en ninguna de sus
+// redacciones: el texto del cuerpo que sustituye y el que pone en su lugar.
+type inventoEnElCuerpo struct {
+	antes, despues string
+}
+
+// derivadaInventada arma en una carpeta nueva de t.TempDir(), con el nombre de
+// la grabación, la derivación de la grabación con la fecha de la derivada y
+// los inventos aplicados a su cuerpo, y devuelve la carpeta. La premisa de cada
+// invento, que el texto que sustituye está una sola vez en el cuerpo: si no
+// estuviera, la derivada no inventaría nada.
+func derivadaInventada(t *testing.T, derivada derivadaDelGrafoPrevio, inventos ...inventoEnElCuerpo) string {
+	t.Helper()
+
+	grabacion := leerLaGrabacion(t,
+		derivacionDelGrafoPrevio(t, grabadaDeBoe(t, derivada.fichero), derivada.fechaVigencia))
+
+	for _, invento := range inventos {
+		require.Equal(t, 1, strings.Count(grabacion.Respuesta.Cuerpo, invento.antes),
+			"premisa: %q está una sola vez en el cuerpo", invento.antes)
+
+		grabacion.Respuesta.Cuerpo = strings.Replace(grabacion.Respuesta.Cuerpo, invento.antes, invento.despues, 1)
+	}
+
+	carpeta := t.TempDir()
+	escribirFicheroDePrueba(t, filepath.Join(carpeta, derivada.fichero), escribirLaGrabacion(t, grabacion))
+
+	return carpeta
+}
+
+// comprobarLaRedaccionDeLaGrabada es la comprobación 2 (FR-011): el fichero de
+// la derivada en la carpeta, servido en lugar de su grabación, da con boe y sus
+// argumentos un Articulo igual, campo a campo, a exactamente uno de los que da
+// boe sobre la grabación reducida a cada una de sus redacciones con
+// derivacionDelGrafoPrevio, y es el de la fecha de vigencia de la derivada. Lo
+// que no lo cumple es un error que nombra el fichero: una fecha, un texto o una
+// huella que la grabada no trae en ninguna de sus redacciones no pasan por
+// ninguna de ellas (FR-012).
+func comprobarLaRedaccionDeLaGrabada(t *testing.T, derivada derivadaDelGrafoPrevio, carpeta string) error {
+	t.Helper()
+
+	servida, err := fs.ReadFile(os.DirFS(carpeta), derivada.fichero)
+	require.NoError(t, err)
+
+	leida := leidoConBoe[boe.Articulo](t, reproduccionConLaGrabacion(t, derivada.fichero, servida),
+		derivada.argumentos)
+
+	grabada := grabadaDeBoe(t, derivada.fichero)
+
+	var coinciden []string
+
+	for _, redaccion := range redaccionesDelCuerpo(t, leerLaGrabacion(t, grabada).Respuesta.Cuerpo) {
+		reducida := reproduccionConLaGrabacion(t, derivada.fichero,
+			derivacionDelGrafoPrevio(t, grabada, redaccion.fechaVigencia))
+
+		if reflect.DeepEqual(leida, leidoConBoe[boe.Articulo](t, reducida, derivada.argumentos)) {
+			coinciden = append(coinciden, redaccion.fechaVigencia)
+		}
+	}
+
+	ruta, orden := filepath.Join(carpeta, derivada.fichero), strings.Join(derivada.argumentos, " ")
+
+	switch {
+	case len(coinciden) == 0:
+		return fmt.Errorf("%s: la redacción que da boe %s no es ninguna de las de la grabada", ruta, orden)
+	case !slices.Equal(coinciden, []string{derivada.fechaVigencia}):
+		return fmt.Errorf("%s: la redacción que da boe %s es la de vigencia %s de la grabada, y la derivada declara "+
+			"la de %s", ruta, orden, strings.Join(coinciden, " y "), derivada.fechaVigencia)
+	}
+
+	return nil
+}
+
+// grabadaDeBoe es el contenido de la grabación de H4 del fichero.
+func grabadaDeBoe(t *testing.T, fichero string) []byte {
+	t.Helper()
+
+	grabada, err := fs.ReadFile(os.DirFS(grabacionesDeBoe), fichero)
+	require.NoError(t, err, "la derivada lleva el nombre de una grabación de H4")
+
+	return grabada
+}
+
+// grabacionDeHTTPX es una grabación leída con los campos del formato de
+// grabación de httpx en su orden (internal/httpx/grabar.go), que es el orden en
+// que el codificador los escribe: lo que la derivación no toca sale como
+// entró. Solo lleva el cuerpo como texto, el de las respuestas XML del BOE;
+// leerLaGrabacion no admite ninguna otra clave.
+type grabacionDeHTTPX struct {
+	Formato   int              `json:"formato"`
+	GrabadoEn string           `json:"grabado_en"`
+	Peticion  peticionDeHTTPX  `json:"peticion"`
+	Respuesta respuestaDeHTTPX `json:"respuesta"`
+}
+
+// peticionDeHTTPX es la petición de una grabación de httpx.
+type peticionDeHTTPX struct {
+	Metodo    string              `json:"metodo"`
+	URL       string              `json:"url"`
+	Cabeceras map[string][]string `json:"cabeceras"`
+}
+
+// respuestaDeHTTPX es la respuesta de una grabación de httpx, con el cuerpo
+// como texto.
+type respuestaDeHTTPX struct {
+	Estado    int                 `json:"estado"`
+	Cabeceras map[string][]string `json:"cabeceras"`
+	Cuerpo    string              `json:"cuerpo"`
+}
+
+// leerLaGrabacion lee una grabación de httpx sin admitir ninguna clave que
+// grabacionDeHTTPX no tenga: nada de lo grabado se pierde al escribirla.
+func leerLaGrabacion(t *testing.T, contenido []byte) grabacionDeHTTPX {
+	t.Helper()
+
+	decodificador := json.NewDecoder(bytes.NewReader(contenido))
+	decodificador.DisallowUnknownFields()
+
+	var grabacion grabacionDeHTTPX
+
+	require.NoError(t, decodificador.Decode(&grabacion), "la grabación tiene el formato de httpx")
+
+	return grabacion
+}
+
+// escribirLaGrabacion es la grabación con el codificador de las grabaciones de
+// httpx: sangrado de dos espacios, sin escapar HTML y con el salto de línea
+// final que pone Encode.
+func escribirLaGrabacion(t *testing.T, grabacion grabacionDeHTTPX) []byte {
+	t.Helper()
+
+	var contenido bytes.Buffer
+
+	codificador := json.NewEncoder(&contenido)
+	codificador.SetIndent("", "  ")
+	codificador.SetEscapeHTML(false)
+
+	require.NoError(t, codificador.Encode(grabacion))
+
+	return contenido.Bytes()
+}
+
+// redaccionDelCuerpo es una <version> hija del <bloque> del cuerpo de una
+// respuesta del BOE: su fecha de vigencia y el desplazamiento, en bytes del
+// cuerpo, justo detrás de su </version>.
+type redaccionDelCuerpo struct {
+	fechaVigencia string
+	fin           int64
+}
+
+// redaccionesDelCuerpo son las <version> hijas del <bloque> del cuerpo, en su
+// orden, localizadas con encoding/xml.
+func redaccionesDelCuerpo(t *testing.T, cuerpo string) []redaccionDelCuerpo {
+	t.Helper()
+
+	decodificador := xml.NewDecoder(strings.NewReader(cuerpo))
+
+	var (
+		abiertos    []string
+		fecha       string
+		redacciones []redaccionDelCuerpo
+	)
+
+	for {
+		ficha, err := decodificador.Token()
+		if errors.Is(err, io.EOF) {
+			return redacciones
+		}
+
+		require.NoError(t, err, "el cuerpo de la grabación es XML")
+
+		switch elemento := ficha.(type) {
+		case xml.StartElement:
+			abiertos = append(abiertos, elemento.Name.Local)
+
+			if esVersionDelBloque(abiertos) {
+				fecha = fechaDeVigenciaDeLaVersion(elemento)
+			}
+		case xml.EndElement:
+			if esVersionDelBloque(abiertos) {
+				redacciones = append(redacciones, redaccionDelCuerpo{fechaVigencia: fecha, fin: decodificador.InputOffset()})
+			}
+
+			abiertos = abiertos[:len(abiertos)-1]
+		}
+	}
+}
+
+// esVersionDelBloque dice si el último de los elementos abiertos es una
+// <version> hija de un <bloque>.
+func esVersionDelBloque(abiertos []string) bool {
+	return len(abiertos) >= 2 && slices.Equal(abiertos[len(abiertos)-2:], []string{"bloque", "version"})
+}
+
+// fechaDeVigenciaDeLaVersion es el atributo fecha_vigencia de la <version>, o
+// nada si no lo lleva.
+func fechaDeVigenciaDeLaVersion(version xml.StartElement) string {
+	for _, atributo := range version.Attr {
+		if atributo.Name.Space == "" && atributo.Name.Local == "fecha_vigencia" {
+			return atributo.Value
+		}
+	}
+
+	return ""
+}
+
+// derivacionDelGrafoPrevio es la derivación de una derivada del grafo previo
+// (contracts/eval-y-derivada.md §2 de H7.2): la grabación sin las redacciones
+// posteriores a la de la fecha de vigencia, quitando del cuerpo los bytes desde
+// el final del </version> de esa hasta el final del de la última —las
+// redacciones posteriores y el blanco que las precede— y nada más, escrita con
+// el codificador de las grabaciones.
+func derivacionDelGrafoPrevio(t *testing.T, grabada []byte, fechaVigencia string) []byte {
+	t.Helper()
+
+	grabacion := leerLaGrabacion(t, grabada)
+	cuerpo := grabacion.Respuesta.Cuerpo
+	redacciones := redaccionesDelCuerpo(t, cuerpo)
+
+	posicion := slices.IndexFunc(redacciones, func(redaccion redaccionDelCuerpo) bool {
+		return redaccion.fechaVigencia == fechaVigencia
+	})
+	require.NotEqual(t, -1, posicion, "la grabación trae una redacción con la fecha de vigencia %s", fechaVigencia)
+
+	grabacion.Respuesta.Cuerpo = cuerpo[:redacciones[posicion].fin] + cuerpo[redacciones[len(redacciones)-1].fin:]
+
+	return escribirLaGrabacion(t, grabacion)
 }
 
 // ficherosDeLaCarpeta son las rutas de los ficheros regulares que hay por
@@ -2684,21 +3076,29 @@ func ficherosDeLaCarpeta(t *testing.T, carpeta string) []string {
 
 // reproduccionConLaDerivada es una carpeta de reproducción nueva con las
 // grabaciones de H4 y la derivada en lugar de la suya, como la deja un guion
-// que la pone en juego con cp. La escribe a través de un os.Root: nada de lo que
-// escribe puede salir de la carpeta.
+// que la pone en juego con cp.
 func reproduccionConLaDerivada(t *testing.T, derivada grabacionDerivada) string {
+	t.Helper()
+
+	contenido, err := fs.ReadFile(os.DirFS(derivada.carpeta), derivada.fichero)
+	require.NoError(t, err)
+
+	return reproduccionConLaGrabacion(t, derivada.fichero, contenido)
+}
+
+// reproduccionConLaGrabacion es una carpeta de reproducción nueva con las
+// grabaciones de H4 y el contenido en lugar de la del fichero. La escribe a
+// través de un os.Root: nada de lo que escribe puede salir de la carpeta.
+func reproduccionConLaGrabacion(t *testing.T, fichero string, contenido []byte) string {
 	t.Helper()
 
 	carpeta := filepath.Join(t.TempDir(), boe.NombreDeLaFuente)
 	require.NoError(t, os.CopyFS(carpeta, os.DirFS(grabacionesDeBoe)))
 
-	contenido, err := fs.ReadFile(os.DirFS(derivada.carpeta), derivada.fichero)
-	require.NoError(t, err)
-
 	raiz, err := os.OpenRoot(carpeta)
 	require.NoError(t, err)
 
-	escrita := raiz.WriteFile(derivada.fichero, contenido, 0o600)
+	escrita := raiz.WriteFile(fichero, contenido, 0o600)
 	require.NoError(t, raiz.Close())
 	require.NoError(t, escrita)
 
