@@ -2,7 +2,6 @@ package grafo
 
 import (
 	"cmp"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -38,10 +37,10 @@ const formatoDeFechaDeVigencia = "20060102"
 // hallazgos, cada uno con su explicación (FR-061), en una lista que nunca es
 // nula (FR-060).
 //
-// Una instantánea con lo que ninguna entrega guarda —una fecha de consulta que
-// no es RFC 3339, una vigencia negativa o con fracción de segundo— es un
-// defecto de lo guardado y da un error, sin ningún hallazgo; el error no nombra
-// el id del nodo, que puede ser de una Persona.
+// Una instantánea con una fecha de consulta que no es RFC 3339, que ninguna
+// entrega guarda, da un error, sin ningún hallazgo: la regla genérica (H7.1
+// research.md D21). El error no nombra el id del nodo, que puede ser de una
+// Persona.
 func Comprobar(instantanea Instantanea, ahora time.Time) ([]Hallazgo, error) {
 	grafoLeido, err := indexar(instantanea)
 	if err != nil {
@@ -83,8 +82,7 @@ type extremo struct {
 }
 
 // indexar prepara la instantánea para las reglas. Falla si un nodo tiene una
-// fecha de consulta que no es RFC 3339 o una vigencia que no es un número
-// entero y positivo de segundos, que es como se guarda (FR-065).
+// fecha de consulta que no es RFC 3339.
 func indexar(instantanea Instantanea) (indice, error) {
 	leido := indice{
 		nodos:     make(map[string]nodoLeido, len(instantanea.Nodos)),
@@ -96,10 +94,6 @@ func indexar(instantanea Instantanea) (indice, error) {
 		observado, err := instante(nodo.UltimaObservacion.FechaConsulta)
 		if err != nil {
 			return indice{}, err
-		}
-
-		if nodo.Vigencia < 0 || nodo.Vigencia%time.Second != 0 {
-			return indice{}, fmt.Errorf("la vigencia guardada %s no es un número entero de segundos positivo", nodo.Vigencia)
 		}
 
 		leido.nodos[nodo.ID] = nodoLeido{NodoDeInstantanea: nodo, instante: observado}

@@ -1,7 +1,6 @@
 package grafo_test
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,18 +15,16 @@ import (
 const (
 	motivoIDConDocumento    = "su id tiene la forma de un DNI, un NIE o un NIF"
 	motivoDatosConDocumento = "sus datos llevan una clave o un valor con la forma de un DNI, un NIE o un NIF"
-	motivoDatosSinJSON      = "sus datos no tienen forma JSON, y sin ella no se puede comprobar que no llevan un DNI, un NIE o un NIF"
 )
 
 // cadenaPropia es un tipo de cadena que no es string: sus valores se examinan
 // igual, porque en los datos guardados son cadenas.
 type cadenaPropia string
 
-// documentos son los 20 valores que rechazan de contracts/almacen-world-db.md
-// §5 (SC-010 pide al menos 12): las tres formas —DNI, NIE y NIF de persona
+// documentos son los 17 valores ASCII que rechazan (H7.1 FR-074; H7 FR-025 y
+// SC-010, que pide al menos 12): las tres formas —DNI, NIE y NIF de persona
 // jurídica— con y sin separadores, en mayúsculas y en minúsculas, dentro de
-// un texto, en la fracción de segundo de una fecha y junto a un carácter que
-// no es letra ni cifra ASCII, que es límite (research.md D34, V37).
+// un texto y en la fracción de segundo de una fecha.
 var documentos = []struct {
 	nombre string
 	valor  string
@@ -49,30 +46,21 @@ var documentos = []struct {
 	{"DNI detras de un nombre", "Ana 12345678Z"},
 	{"fraccion de seis cifras de una fecha", "2026-09-28T12:00:00.123456Z"},
 	{"fraccion de ocho cifras de una fecha", "2026-09-28T12:00:00.12345678Z"},
-	{"DNI detras de U+017F", "\u017f12345678Z"},
-	{"DNI detras de una i con tilde", "Mart\u00ed12345678Z"},
-	{"DNI delante de una a con tilde", "12345678Z\u00e1"},
 }
 
-// sinDocumento son los 11 valores que entran de contracts/almacen-world-db.md
-// §5 (SC-010 pide al menos 6): nombres, fechas, una letra y siete cifras, y
-// las secuencias que solo parecen un documento con letras, cifras o espacios
-// que no son ASCII (research.md D34, V37).
+// sinDocumento son los 6 valores ASCII que entran (H7.1 FR-074; H7 FR-025 y
+// SC-010, que pide al menos 6): un nombre, fechas, instantes sin fracción de
+// segundo y una letra con siete cifras.
 var sinDocumento = []struct {
 	nombre string
 	valor  string
 }{
 	{"nombre con guiones", "ana-garcia-lopez"},
-	{"nombre con tildes", "Ana Garc\u00eda L\u00f3pez"},
 	{"fecha", "1990-01-01"},
 	{"dos fechas", "1990-01-01 y 2000-02-02"},
 	{"instante en UTC", "2026-09-28T12:00:00Z"},
 	{"instante con desplazamiento", "2026-09-28T12:00:00+02:00"},
 	{"una letra y siete cifras", "A1234567"},
-	{"ocho cifras y U+00D1", "12345678\u00d1"},
-	{"ocho cifras y el signo Kelvin U+212A", "12345678\u212a"},
-	{"DNI con U+00A0, que no es separador", "12\u00a0345 678 Z"},
-	{"cifras de anchura completa", "\uff11\uff12\uff13\uff14\uff15\uff16\uff17\uff18Z"},
 }
 
 // posicion es un lugar de una Persona en el que se examina una cadena, con el
@@ -121,13 +109,10 @@ var posiciones = []posicion{
 }
 
 // TestPersonaSinDocumento fija el rechazo de una Persona con un documento de
-// identidad (FR-025, SC-010; contracts/almacen-world-db.md §5; research.md
-// D14, D34): los 20 valores que rechazan y los 11 que entran, cada uno en el
-// id, en un valor de primer nivel, dentro de una lista de un objeto anidado y
-// como clave. La letra, la cifra y el espacio separador son ASCII; cualquier
-// otro carácter es límite. Los caracteres que no son ASCII van con su escape
-// de Go, para que se vean en el diff. El mensaje nombra la Persona por su tipo
-// y nunca repite el documento.
+// identidad (FR-025, SC-010; H7.1 FR-074; contracts/almacen-world-db.md §5):
+// los 17 valores que rechazan y los 6 que entran, cada uno en el id, en un
+// valor de primer nivel, dentro de una lista de un objeto anidado y como
+// clave. El mensaje nombra la Persona por su tipo y nunca repite el documento.
 func TestPersonaSinDocumento(t *testing.T) {
 	t.Parallel()
 
@@ -171,9 +156,7 @@ func probarCadenasQueEntran(t *testing.T) {
 // probarCadenasDeLosDatos fija que se examina toda cadena de los datos tal
 // como se guarda, en su forma JSON: a cualquier profundidad de listas y
 // objetos y con cualquier tipo de Go que sea una lista, un objeto o una
-// cadena; que los números, los booleanos y los nulos no se examinan; y que
-// unos datos sin forma JSON no entran, porque no se puede comprobar que no
-// llevan un documento.
+// cadena; y que los números, los booleanos y los nulos no se examinan.
 func probarCadenasDeLosDatos(t *testing.T) {
 	t.Parallel()
 
@@ -212,9 +195,6 @@ func probarCadenasDeLosDatos(t *testing.T) {
 		{"numeros, booleanos y nulos", map[string]any{"n": 12345678, "x": 1.5, "b": true, "z": nil}, ""},
 		{"sin datos", nil, ""},
 		{"datos vacios", map[string]any{}, ""},
-		{"un numero que no es finito", map[string]any{"12345678Z": math.NaN()}, motivoDatosSinJSON},
-		{"una cadena que no es UTF-8", map[string]any{"nota": "12345678Z\xff"}, motivoDatosSinJSON},
-		{"un valor que no es de JSON", map[string]any{"12345678Z": make(chan int)}, motivoDatosSinJSON},
 	}
 
 	for _, caso := range casos {

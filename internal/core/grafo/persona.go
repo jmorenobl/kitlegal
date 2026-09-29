@@ -14,13 +14,8 @@ import (
 // la cifra de control, con un separador opcional —exactamente «.», «-» o el
 // espacio U+0020— entre sus grupos, y entre dos límites: el principio o el
 // final de la cadena o un carácter que no es letra ni cifra ASCII (FR-025).
-//
-// Va sin la bandera (?i), cuyo plegado en RE2 es Unicode: con ella, [a-z]
-// casaría también «ſ» (U+017F) y el signo Kelvin (U+212A), y esos caracteres
-// dejarían de ser límite. Las mayúsculas y las minúsculas van en clases ASCII
-// explícitas, de modo que una letra es A-Z o a-z y una cifra es 0-9, y «á»,
-// «ñ», U+00A0 o las cifras de anchura completa no forman parte de ninguna
-// forma y sí son límite (research.md D34, V6, V37).
+// Las mayúsculas y las minúsculas van en clases ASCII explícitas, sin la
+// bandera (?i): una letra es A-Z o a-z y una cifra es 0-9 (H7.1 FR-074).
 var documentoDeIdentidad = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(?:[0-9]{2}[.\- ]?[0-9]{3}[.\- ]?[0-9]{3}[.\- ]?[A-Za-z]|[XYZxyz][.\- ]?[0-9][.\- ]?[0-9]{3}[.\- ]?[0-9]{3}[.\- ]?[A-Za-z]|[A-Za-z][.\- ]?[0-9]{2}[.\- ]?[0-9]{3}[.\- ]?[0-9]{2}[.\- ]?[0-9A-Za-z])(?:[^A-Za-z0-9]|$)`)
 
 // validarPersona rechaza una Persona cuyo id, o cualquier clave o valor de

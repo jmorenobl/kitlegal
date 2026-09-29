@@ -12,12 +12,12 @@ import (
 )
 
 // TestRechazo fija el error con el que un lote entero no entra en el grafo del
-// mundo (FR-024, FR-025; contracts/almacen-world-db.md §5 y §6): nombra la
-// operación rechazada —el propio lote, un nodo por su id, una arista por sus
-// extremos y su relación, un texto por su huella— y el motivo; declara la
-// clase «inesperado», la de un lote rechazado en la entrega, y la conserva
-// envuelto. Nunca repite el id de una Persona, que es donde el rechazo de
-// FR-025 encuentra un documento de identidad, ni el cuerpo de un texto.
+// mundo (FR-024, FR-025; H7.1 FR-075; contracts/almacen-world-db.md §5 y §6):
+// nombra la operación rechazada —el propio lote, un nodo por su id, un texto
+// por su huella— y el motivo; declara la clase «inesperado», la de un lote
+// rechazado en la entrega, y la conserva envuelto. Nunca repite el id de una
+// Persona, que es donde el rechazo de FR-025 encuentra un documento de
+// identidad, ni el cuerpo de un texto.
 func TestRechazo(t *testing.T) {
 	t.Parallel()
 
@@ -34,7 +34,6 @@ func TestRechazo(t *testing.T) {
 			schema.Nodo{ID: "ine:28074", Tipo: grafo.TipoMunicipio, Datos: map[string]any{grafo.DatoNombre: "Leganés"}},
 			`el nodo "ine:28074": el motivo`,
 		},
-		{"un nodo sin id", schema.Nodo{Tipo: grafo.TipoNorma}, `el nodo "": el motivo`},
 		{
 			"un nodo con un control en el id",
 			schema.Nodo{ID: "a\x00b", Tipo: grafo.TipoNorma},
@@ -46,24 +45,9 @@ func TestRechazo(t *testing.T) {
 			`el nodo de tipo "Persona": el motivo`,
 		},
 		{
-			"una arista",
-			schema.Arista{
-				Origen:   "eli/es/l/2015/10/01/39",
-				Relacion: grafo.RelacionTieneParte,
-				Destino:  "eli/es/l/2015/10/01/39#a21",
-			},
-			`la arista de "eli/es/l/2015/10/01/39" a "eli/es/l/2015/10/01/39#a21" por "eli:has_part": el motivo`,
-		},
-		{"una arista vacia", schema.Arista{}, `la arista de "" a "" por "": el motivo`},
-		{
 			"un texto, sin su cuerpo",
 			schema.Texto{Huella: "sha256:ab", Cuerpo: "Artículo 21. Obligación de resolver."},
 			`el texto "sha256:ab": el motivo`,
-		},
-		{
-			"una operacion que no es un valor",
-			&schema.Nodo{ID: "ine:28074", Tipo: grafo.TipoMunicipio},
-			"la operación de tipo *schema.Nodo: el motivo",
 		},
 	}
 

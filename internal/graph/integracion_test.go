@@ -850,19 +850,16 @@ func TestIntegracionIdempotencia(t *testing.T) {
 	}
 }
 
-// TestIntegracionObservaciones fija FR-023 por la API: dos observaciones de las
-// mismas claves dejan lo mismo lleguen en el orden que lleguen —fuera de orden,
-// la primera de la antigua y la última de la reciente; con otros datos, los de
-// la última, enteros; y en un empate de instante, la observación ganadora entera,
-// como si hubiera llegado sola—.
+// TestIntegracionObservaciones fija FR-023 y H7.1 FR-076 por la API: dos
+// observaciones de las mismas claves dejan lo mismo lleguen en el orden que
+// lleguen —fuera de orden, la primera de la antigua y la última de la reciente;
+// con otros datos, los de la última, enteros; y en un empate de instante, la de
+// url menor entera, como si hubiera llegado sola—.
 func TestIntegracionObservaciones(t *testing.T) {
 	t.Parallel()
 
 	reobservada := loteDelBOE(urlDeLaNorma, fechaReciente, laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}))
 	reobservada.Vigencia = 0
-
-	sinVigencia := loteDelBOE(urlDeLaNorma, fechaAntigua, laNorma(nil))
-	sinVigencia.Vigencia = 0
 
 	casos := []struct {
 		nombre           string
@@ -888,21 +885,6 @@ func TestIntegracionObservaciones(t *testing.T) {
 			primero:   loteDelBloque(urlDeLaNorma, fechaEnMadrid),
 			segundo:   loteDelBloque(urlDelBloque, fechaAntigua),
 			comprueba: comoSiLlegaraSolo(loteDelBloque(urlDeLaNorma, fechaEnMadrid)),
-		},
-		{
-			nombre:    "empate: sin vigencia antes que con ella",
-			primero:   sinVigencia,
-			segundo:   loteDelBOE(urlDeLaNorma, fechaAntigua, laNorma(nil)),
-			comprueba: comoSiLlegaraSolo(sinVigencia),
-		},
-		{
-			nombre: "empate: una reobservación con otros datos, los datos canónicos menores",
-			primero: loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "A"})),
-			segundo: loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "B"})),
-			comprueba: comoSiLlegaraSolo(loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "A"}))),
 		},
 	}
 
@@ -958,13 +940,12 @@ func comoSiLlegaraSolo(lote core.Lote) func(t *testing.T, l leido) {
 	}
 }
 
-// TestIntegracionRechazos fija FR-024 y FR-025 por la API: un lote sin fuente,
-// con un id que cambia de tipo en el grafo o en el propio lote, con un texto
-// cuya huella no es la de su cuerpo o ya está guardada con otro cuerpo, con un
-// extremo que no está ni en el lote ni en el grafo o con una Persona que lleva
-// un documento se rechaza entero, con «inesperado» y un mensaje que nombra
-// world.db y el motivo, y el grafo queda intacto: lo mismo se lee y ningún
-// fichero cambia ni aparece.
+// TestIntegracionRechazos fija FR-024 y FR-025 por la API (H7.1 FR-074,
+// FR-075): un lote sin fuente, con un id que cambia de tipo en el grafo o en el
+// propio lote, con un texto cuya huella no es la de su cuerpo o ya está
+// guardada con otro cuerpo o con una Persona que lleva un documento se rechaza
+// entero, con «inesperado» y un mensaje que nombra world.db y el motivo, y el
+// grafo queda intacto: lo mismo se lee y ningún fichero cambia ni aparece.
 func TestIntegracionRechazos(t *testing.T) {
 	t.Parallel()
 
@@ -1007,11 +988,6 @@ func TestIntegracionRechazos(t *testing.T) {
 			preparar: conLaHuellaDe2025GuardadaConOtroCuerpo,
 			lote: loteDelBOE(urlDelBloque, fechaReciente, municipio,
 				schema.Texto{Huella: huellaDe(cuerpo2025), Cuerpo: cuerpo2025}),
-		},
-		{
-			nombre: "un extremo que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaReciente, municipio,
-				schema.Arista{Origen: idMunicipio, Relacion: grafo.RelacionPerteneceA, Destino: idAusente}),
 		},
 		{
 			nombre:          "una Persona con un DNI en su id",

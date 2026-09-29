@@ -191,8 +191,7 @@ type casoDeComprobacion struct {
 // cuya consulta ha caducado estrictamente antes del instante de la
 // comprobación; las dos sobre el mismo nodo; una lista nunca nula, ordenada por
 // clase y por id, que no depende del orden de la instantánea ni cambia al
-// repetir la comprobación; y un error, sin hallazgos, con una instantánea que
-// ninguna lectura de world.db da.
+// repetir la comprobación.
 func TestComprobar(t *testing.T) {
 	t.Parallel()
 
@@ -203,8 +202,6 @@ func TestComprobar(t *testing.T) {
 			exigirComprobacion(t, caso)
 		})
 	}
-
-	t.Run("instantaneas que ninguna lectura da", probarInstantaneasImposibles)
 }
 
 // casosDeVersiones son los de version-obsoleta con fechas de vigencia válidas.
@@ -424,38 +421,4 @@ func exigirComprobacion(t *testing.T, caso casoDeComprobacion) {
 	alReves, err := grafo.Comprobar(invertida(caso.instantanea), caso.ahora)
 	require.NoError(t, err)
 	assert.Equal(t, hallazgos, alReves, "con la instantanea al reves")
-}
-
-// probarInstantaneasImposibles fija que una instantánea con lo que ninguna
-// entrega guarda —una fecha de consulta que no es RFC 3339, una vigencia
-// negativa o con fracción de segundo— da un error y ningún hallazgo: es un
-// defecto de lo guardado, no un grafo que comprobar.
-func probarInstantaneasImposibles(t *testing.T) {
-	t.Parallel()
-
-	casos := []struct {
-		nombre  string
-		nodo    grafo.NodoDeInstantanea
-		mensaje string
-	}{
-		{"una fecha de consulta que no es RFC 3339", normaLPAC(fechaImposible), mensajeFechaImposible},
-		{
-			"una vigencia negativa", conVigenciaDe(normaLPAC(lunes), -unaHora),
-			"la vigencia guardada -1h0m0s no es un n\xc3\xbamero entero de segundos positivo",
-		},
-		{
-			"una vigencia con fraccion de segundo", conVigenciaDe(normaLPAC(lunes), 1500*time.Millisecond),
-			"la vigencia guardada 1.5s no es un n\xc3\xbamero entero de segundos positivo",
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			hallazgos, err := grafo.Comprobar(deNodos(caso.nodo), elMartes)
-			require.ErrorContains(t, err, caso.mensaje)
-			assert.Nil(t, hallazgos)
-		})
-	}
 }

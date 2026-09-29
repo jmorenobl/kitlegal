@@ -11,8 +11,8 @@ import (
 // espacios, con las claves de cada objeto ordenadas por sus unidades UTF-16,
 // cada cadena con los escapes mínimos y cada número como un doble de IEEE 754
 // escrito con el algoritmo de ECMAScript. Es la forma con la que se guardan y
-// con la que se comparan, byte a byte, en el desempate de FR-023 (research.md
-// D17, V5). Unos datos nulos o vacíos son «{}».
+// con la que se comparan, byte a byte, con los guardados para escribir solo lo
+// que cambia (research.md D17, V5). Unos datos nulos o vacíos son «{}».
 //
 // La forma no depende de cómo se construyen los datos: ni del orden en el que
 // Go visita las claves de un mapa ni del tipo de Go de cada número o de cada

@@ -12,7 +12,6 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
-	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 const (
@@ -357,7 +356,6 @@ const (
 	lecturaDeArista   = "SELECT " + columnasDeHistoria + " FROM edges WHERE src = ? AND rel = ? AND dst = ?"
 	escrituraDeArista = "INSERT INTO edges (src, rel, dst, " + columnasDeHistoria + ") " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (src, rel, dst) DO UPDATE SET " + historiaExcluida
-	extremoGuardado = "SELECT EXISTS (SELECT 1 FROM nodes WHERE id = ?)"
 
 	lecturaDeTexto   = "SELECT body, fetched_at, source, url FROM texts WHERE hash = ?"
 	escrituraDeTexto = "INSERT INTO texts (hash, body, fetched_at, source, url) VALUES (?, ?, ?, ?, ?) " +
@@ -429,28 +427,11 @@ func escribirNodo(ctx context.Context, tx *sql.Tx, nodo grafo.RegistroDeNodo) er
 	return err
 }
 
-// leerArista comprueba que los dos extremos de la arista que llega están en el
-// grafo —los nodos del lote ya se escribieron, así que es estar en el lote o en
-// el grafo (FR-024)— y lee la arista guardada con su terna. Un extremo que falta
-// rechaza el lote con un *grafo.Rechazo que nombra la arista.
+// leerArista lee la arista guardada con la terna de la que llega. Un extremo
+// que no está ni en el lote ni en el grafo no se comprueba aquí: lo rechaza la
+// clave ajena de edges al escribirla, y la transacción entera se deshace
+// (H7.1 FR-075; research.md V5).
 func leerArista(ctx context.Context, tx *sql.Tx, llegada grafo.RegistroDeArista) (grafo.RegistroDeArista, bool, error) {
-	for _, extremo := range [...]struct{ id, nombre string }{
-		{id: llegada.Origen, nombre: "origen"},
-		{id: llegada.Destino, nombre: "destino"},
-	} {
-		var esta bool
-		if err := tx.QueryRowContext(ctx, extremoGuardado, extremo.id).Scan(&esta); err != nil {
-			return grafo.RegistroDeArista{}, false, err
-		}
-
-		if !esta {
-			return grafo.RegistroDeArista{}, false, &grafo.Rechazo{
-				Operacion: schema.Arista{Origen: llegada.Origen, Relacion: llegada.Relacion, Destino: llegada.Destino},
-				Motivo:    "su " + extremo.nombre + " no está ni en el lote ni en el grafo",
-			}
-		}
-	}
-
 	guardada := grafo.RegistroDeArista{Origen: llegada.Origen, Relacion: llegada.Relacion, Destino: llegada.Destino}
 
 	var historia historiaGuardada

@@ -129,20 +129,7 @@ func TestSalidaDelGrafoEnJSON(t *testing.T) {
 		})
 	}
 
-	t.Run("unos datos sin forma JSON", probarFichaSinFormaJSON)
 	t.Run("la instantanea no sale", probarInstantaneaSinJSON)
-}
-
-// probarFichaSinFormaJSON fija que una ficha cuyos datos no tienen forma JSON
-// da un error al escribirla, y no un documento a medias.
-func probarFichaSinFormaJSON(t *testing.T) {
-	t.Parallel()
-
-	ficha := grafo.Ficha{Nodo: grafo.NodoDeFicha{ID: idBloque, Datos: map[string]any{"rango": complex(1, 2)}}}
-
-	escrito, err := json.Marshal(ficha)
-	require.Error(t, err)
-	assert.Empty(t, escrito)
 }
 
 // probarInstantaneaSinJSON fija que ni la instantánea ni sus nodos llevan

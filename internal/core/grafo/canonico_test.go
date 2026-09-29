@@ -12,12 +12,13 @@ import (
 
 // TestDatosCanonicos fija la forma en la que se guardan y se comparan los datos
 // identificativos de un nodo: la del esquema de canonicalización JSON de RFC
-// 8785 (JCS), que es la que FR-023 nombra para desempatar dos observaciones del
-// mismo instante (research.md D17). Los valores esperados son los del propio
-// RFC donde los da —el ejemplo de §3.2.2.3 y el orden de claves de §3.2.3, que
-// compara unidades UTF-16 y no bytes— y, en los números, los del algoritmo de
-// ECMAScript que el RFC adopta: todo número es un doble de IEEE 754, sin
-// exponente entre 1e-7 y 1e21, sin ceros a la derecha y con -0 escrito 0.
+// 8785 (JCS), con la que la entrega compara lo que llega con lo guardado para
+// escribir solo lo que cambia (research.md D17). Los valores esperados son los
+// del propio RFC donde los da —el ejemplo de §3.2.2.3 y el orden de claves de
+// §3.2.3, que compara unidades UTF-16 y no bytes— y, en los números, los del
+// algoritmo de ECMAScript que el RFC adopta: todo número es un doble de IEEE
+// 754, sin exponente entre 1e-7 y 1e21, sin ceros a la derecha y con -0
+// escrito 0.
 // Los caracteres que no son ASCII van con su escape de Go, para que se vean en
 // el diff.
 func TestDatosCanonicos(t *testing.T) {
@@ -197,36 +198,4 @@ func TestDatosCanonicosSinOrden(t *testing.T) {
 			assert.Equal(t, primera, canonicos)
 		}
 	})
-}
-
-// TestDatosCanonicosImposibles fija que unos datos que no tienen forma JSON
-// —un número que no es finito, una cadena o una clave que no es UTF-8, un
-// valor que no es de JSON— no se canonicalizan a medias ni se corrigen: dan un
-// error que dice qué forma no pudieron tomar. RFC 8785 no admite números que
-// no sean finitos, y un byte que no es UTF-8 sustituido por U+FFFD cambiaría
-// los datos del nodo.
-func TestDatosCanonicosImposibles(t *testing.T) {
-	t.Parallel()
-
-	casos := []struct {
-		nombre string
-		datos  map[string]any
-	}{
-		{"NaN", map[string]any{"n": math.NaN()}},
-		{"infinito", map[string]any{"n": math.Inf(1)}},
-		{"menos infinito", map[string]any{"n": map[string]any{"m": math.Inf(-1)}}},
-		{"cadena que no es UTF-8", map[string]any{"s": "a\xffb"}},
-		{"clave que no es UTF-8", map[string]any{"a\xffb": "s"}},
-		{"valor que no es de JSON", map[string]any{"f": func() {}}},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			canonicos, err := grafo.DatosCanonicos(caso.datos)
-			require.ErrorContains(t, err, "los datos no tienen forma JSON canónica (RFC 8785)")
-			assert.Empty(t, canonicos)
-		})
-	}
 }

@@ -16,8 +16,8 @@
 //   - Un lote que incumple una regla se rechaza entero con un Rechazo que
 //     nombra la operación y el motivo, de clase «inesperado», y que nunca
 //     repite el cuerpo de un texto ni nombra por su id un nodo Persona, que
-//     nombra por su tipo; una arista sí se nombra por los ids de sus extremos
-//     (FR-024, FR-025).
+//     nombra por su tipo; ningún rechazo lleva una arista (FR-024, FR-025;
+//     H7.1 FR-075).
 //   - El id de `graph show` vacío, formado solo por caracteres de espacio en
 //     blanco o con algún carácter de control es un error de clase
 //     «argumentos», que nombra el id; cualquier otro se busca tal cual, sin

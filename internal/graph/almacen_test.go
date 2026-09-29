@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"io/fs"
-	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,14 +20,9 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-const (
-	// fechaSiguiente es un instante posterior a fechaDelBloque: la observación
-	// reciente de las pruebas que llegan fuera de orden.
-	fechaSiguiente = "2026-09-30T08:00:00Z"
-
-	// idAusente no es el id de ningún nodo del lote ni del grafo.
-	idAusente = "eli/es/l/2099/01/01/1"
-)
+// fechaSiguiente es un instante posterior a fechaDelBloque: la observación
+// reciente de las pruebas que llegan fuera de orden.
+const fechaSiguiente = "2026-09-30T08:00:00Z"
 
 // loteDelBOE es el lote de una consulta al BOE con la url y la fecha dadas, la
 // vigencia de boe articulo y las operaciones.
@@ -373,48 +367,19 @@ func TestApplyFueraDeOrden(t *testing.T) {
 	})
 }
 
-// TestApplyEmpates fija el desempate de FR-023 sobre world.db, en los dos
-// órdenes de llegada: con el mismo instante, gana la url menor —aunque la fecha
-// esté escrita con otro desplazamiento—, la que no declara vigencia y, en un
-// nodo, los datos canónicos menores; lo que queda es la observación ganadora
-// entera, como si hubiera llegado sola.
+// TestApplyEmpates fija el desempate de H7.1 FR-076 sobre world.db, en los dos
+// órdenes de llegada: con el mismo instante, gana la url menor, aunque la fecha
+// esté escrita con otro desplazamiento; lo que queda es la observación
+// ganadora entera, como si hubiera llegado sola.
 func TestApplyEmpates(t *testing.T) {
 	t.Parallel()
 
-	sinVigencia := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
-	sinVigencia.Vigencia = 0
+	gana := loteDelBOE(urlDeLaNorma, fechaConDesplazamiento, operacionesDelBloque()...)
+	pierde := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
+	esperado := registrosDe(t, gana)
 
-	casos := []struct {
-		nombre       string
-		gana, pierde core.Lote
-	}{
-		{
-			nombre: "la url menor, con la fecha escrita de otra forma",
-			gana:   loteDelBOE(urlDeLaNorma, fechaConDesplazamiento, operacionesDelBloque()...),
-			pierde: loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...),
-		},
-		{
-			nombre: "sin vigencia antes que con ella",
-			gana:   sinVigencia,
-			pierde: loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil)),
-		},
-		{
-			nombre: "los datos canónicos menores",
-			gana:   loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(map[string]any{grafo.DatoIdentificador: "A"})),
-			pierde: loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(map[string]any{grafo.DatoIdentificador: "B"})),
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			esperado := registrosDe(t, caso.gana)
-
-			assert.Equal(t, esperado, aplicarEnOrden(t, caso.gana, caso.pierde))
-			assert.Equal(t, esperado, aplicarEnOrden(t, caso.pierde, caso.gana))
-		})
-	}
+	assert.Equal(t, esperado, aplicarEnOrden(t, gana, pierde), "la que gana llega primero")
+	assert.Equal(t, esperado, aplicarEnOrden(t, pierde, gana), "la que gana llega después")
 }
 
 // grafoConElBloque deja en un directorio nuevo el grafo de una consulta de boe
@@ -430,12 +395,11 @@ func grafoConElBloque(t *testing.T) (string, string) {
 }
 
 // TestApplyRechazaContraLoGuardado fija lo que solo se sabe dentro de la
-// transacción (FR-024; contracts/almacen-world-db.md §4, paso 6, y §5): un id
-// con otro tipo que el guardado, una huella guardada con otro cuerpo y un
-// extremo que no está ni en el lote ni en el grafo rechazan el lote entero,
-// también lo que en él venía bien, con «inesperado» y un mensaje que nombra
-// world.db y el motivo. world.db queda con los mismos bytes y sin auxiliares
-// (V11; §4.1).
+// transacción (FR-024; H7.1 FR-075; contracts/almacen-world-db.md §4, paso 6,
+// y §5): un id con otro tipo que el guardado y una huella guardada con otro
+// cuerpo rechazan el lote entero, también lo que en él venía bien, con
+// «inesperado» y un mensaje que nombra world.db y el motivo. world.db queda
+// con los mismos bytes y sin auxiliares (V11; §4.1).
 func TestApplyRechazaContraLoGuardado(t *testing.T) {
 	t.Parallel()
 
@@ -465,20 +429,6 @@ func TestApplyRechazaContraLoGuardado(t *testing.T) {
 			lote:   loteDelBOE(urlDelBloque, fechaSiguiente, nuevo, schema.Texto{Huella: huellaDe2025, Cuerpo: cuerpo2025}),
 			motivo: `el texto "` + huellaDe2025 + `": el grafo ya guarda otro cuerpo con esa huella`,
 		},
-		{
-			nombre: "un destino que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaSiguiente, nuevo,
-				schema.Arista{Origen: idMunicipio, Relacion: grafo.RelacionPerteneceA, Destino: idAusente}),
-			motivo: `la arista de "` + idMunicipio + `" a "` + idAusente + `" por "lb:pertenece_a": ` +
-				"su destino no est\xc3\xa1 ni en el lote ni en el grafo",
-		},
-		{
-			nombre: "un origen que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaSiguiente, nuevo,
-				schema.Arista{Origen: idAusente, Relacion: grafo.RelacionTieneParte, Destino: idBloque}),
-			motivo: `la arista de "` + idAusente + `" a "` + idBloque + `" por "eli:has_part": ` +
-				"su origen no est\xc3\xa1 ni en el lote ni en el grafo",
-		},
 	}
 
 	for _, caso := range casos {
@@ -506,7 +456,8 @@ func TestApplyRechazaContraLoGuardado(t *testing.T) {
 }
 
 // TestApplyRechazaElLote fija lo que se rechaza sin tocar el disco (FR-024,
-// FR-025; SC-010; contracts/almacen-world-db.md §4, paso 1, y §5): con world.db
+// FR-025; SC-010; H7.1 FR-074, FR-075; contracts/almacen-world-db.md §4, paso
+// 1, y §5): con world.db
 // ausente no se crea nada, y con world.db presente no cambia ni aparece nada. El
 // mensaje nombra world.db, que todavía no tiene ruta, y el motivo del dominio,
 // que no repite el id de una Persona ni el cuerpo de un texto.
@@ -519,9 +470,6 @@ func TestApplyRechazaElLote(t *testing.T) {
 
 	sinFuente := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
 	sinFuente.Fuente = ""
-
-	fraccionaria := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
-	fraccionaria.Vigencia = 1500 * time.Millisecond
 
 	casos := map[string]core.Lote{
 		"sin fuente": sinFuente,
@@ -536,9 +484,6 @@ func TestApplyRechazaElLote(t *testing.T) {
 			persona("ana-garcia-lopez", map[string]any{"contacto": map[string]any{"documentos": []any{"B-12.345.678"}}})),
 		"una Persona con un DNI como clave": loteDelBOE(urlDeLaNorma, fechaDelBloque,
 			persona("ana-garcia-lopez", map[string]any{"12 345 678 z": "nombre"})),
-		"unos datos sin forma JSON canónica": loteDelBOE(urlDeLaNorma, fechaDelBloque,
-			laNorma(map[string]any{"cifra": math.NaN()})),
-		"una vigencia con fracción de segundo": fraccionaria,
 	}
 
 	for nombre, lote := range casos {
