@@ -1,0 +1,82 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-96 en verde («ci: todos los controles en verde», exit=0) con el guardián global sobre 8 ficheros, los mismos 8 del último commit ef18b8a (docs: CONTRIBUTING.md y specs/), así que el log es de la cabeza. Reproducido en un clon fuera del repo (/tmp/juezb/kitlegal, git clone de ef18b8a): `make ci` termina con código 0 (lint 0 issues, test -race con internal/evals 99,0 % e internal/app 96,3 %, test-integration, test-tiempos, vuln, schema-check, skills-check, secretos y módulos). Árbol del repo limpio (`git status --porcelain` solo lista el veredicto sin versionar del otro juez); `git merge-base HEAD main` = e523381 = main."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene test offline y los tests detectan lo que dicen: 16 mutantes aplicados en un clon desechable (/tmp/juezb/mut) y 16 detectados por su test dirigido. M1 `(?i:)`→`(?:)` en prohibidas.go:129 → TestExtraerExpresionesProhibidas/mayusculas y mayusculas-con-tilde; M2 `Pasa` sin `len(ExpresionesProhibidas)==0` (juzgar.go:294) → seis subtests de TestJuzgarLasExpresionesProhibidas/positiva; M3 sin `if !eval.Activa` (juzgar.go:428) → como-antes-del-hito; M4 sin `if !serie.tasa.Planificada` (informe.go:659) → TestInformeConExpresionesProhibidas/con-la-prueba-de-red; M5 sin `!juzgada.resultado.Activa` (informe.go:668) → por-sesion-y-por-modelo, con-la-prueba-de-red y con-una-sesion-ilegible; M6 sin `contieneComoPalabra(linea, leida)` (consulta_repetida.go:79) → TestCondicionesDeLaConsultaRepetida/la-forma-con-una-sola-fecha-en-su-linea; M7 lista sin copiar a las evals (conjunto.go:87) → TestLeerConjunto/con-lista; M8 derivada con «40.001 euros» → TestGrabacionesDerivadas/lcsp-a1-30-redaccion-original en grafo_test.go:2797 (byte a byte) y :2801 (comprobación 2); M9 lista sin «hallazgos» → expresiones-calibradas («eval 02: marca 0 respuestas por la maquinaria…»); M10 «memoria de consultas» en el bloque text de la regla 7 de SKILL.md:265 → expresiones-de-la-skill («el bloque text 4»); M11 comprobarLaRedaccionDeLaGrabada que devuelve nil (grafo_test.go:2893) → los tres casos de TestGrabacionesDerivadasInventadas (grafo_test.go:2848); M13 esquema sin minItems → TestEsquemaDeExpresionesProhibidas/maquinaria-vacia y otra-conversacion-vacia (formato_test.go:929); M14 eval 19 con `fuente-caducada` → formato (el esquema de eval lo rechaza) y TestEstadoPrevioDeLaRedaccionCambiada; M15 fechaVigencia 20200206 en derivadasDelGrafoPrevio (grafo_test.go:2667) → TestGrabacionesDerivadas; M16 derivada sustituida por la grabación completa de H4 → grafo-previo (conjunto_test.go:1617, «expected [version-obsoleta]») y TestEstadoPrevioDeLaRedaccionCambiada (preparar_test.go:637-638). Ningún t.Skip. Suite de aceptación congelada: no la hay ni la exige el plan («Aceptación e2e: no aplica», plan.md:146-158): el binario no cambia (`git diff --name-only main -- cmd internal ':!internal/evals' ':!*_test.go'` vacío; `go list -deps ./cmd/kitlegal` sin internal/evals) y la aceptación mecánica son los tests de make ci que enumera. La derivada es reproducible: `go test -run '^TestGrabacionesDerivadas$' ./internal/app/ -args -actualizar-derivadas` en el clon deja el mismo blob bfbdb1174cc2… y `git status --porcelain -- testdata/` vacío (FR-010)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas del diff: sin net/http, os.Exit, fmt.Print*, http.Get/Post ni exec.Command. Ningún fichero de producto del binario cambia; internal/evals sigue leyendo el grafo con graph.Leer y ejecutando graph check en proceso con app.Main (conjunto_test.go:1729-1787), como ya hacía preparar_test.go, y los imports nuevos de conjunto_test.go (internal/app, internal/cache, internal/source/boe) tienen ese precedente. golangci-lint con los ficheros de la etiqueta evals: 0 issues (gates/ci.log:9; reproducido)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet nueva ni cambiada; schema-check en verde (gates/ci.log:68-69). El esquema nuevo, schemas/expresiones-prohibidas.yaml.json, no sale de --describe: lo fija TestEsquemaDeExpresionesProhibidas (formato_test.go:832-935, que lo lee de su ruta y lo compila con skills.CompilarEsquema) y lo aplica LeerConjunto por leerExpresionesProhibidas (prohibidas.go:59-71). Las lecturas en proceso de compruebaLaSesion, bloqueLeido y comprobacionDeLaSesion (conjunto_test.go:1546-1585, 1791-1808) parsean el sobre real (`data`) de boe articulo y graph check, y con el binario de la rama el sobre de graph check y de boe articulo lleva ok, fuente, url, fecha_consulta y hash (medido, criterio j)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida nuevo ni cambiado (el binario no cambia). Una lista que no es fichero regular, no se puede leer o no valida es un FicheroMalFormado cuyo error empieza por expresiones-prohibidas.yaml (conjunto.go:101-140; prohibidas.go:59-71), sin panic: TestLeerConjunto/lista-sin-una-familia, lista-con-una-familia-repetida y lista-que-no-es-un-fichero, y TestInformeConListaMalFormada (informe_test.go:1032-1057) da veredicto `fallo` con el fichero en ficheros_mal_formados (FR-055). Con el binario de la rama sobre la sesión preparada de la eval 19: `boe articulo BOE-A-2017-12902 a1-30 --offline --json` y `graph check BOE-A-2017-12902 a1-30 --json` terminan con 0 y sin nada en stderr."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md, sección [Unreleased] (líneas 106-183): boe-legislacion v0.1.2 con lo que cambia para quien la usa, la eval nueva sobre el art. 118 LCSP con la derivada escrita por código y la retirada de la del art. 21 LPAC, y la lista de expresiones prohibidas con su decisión (FR-048, FR-086); cada afirmación comprobada contra el producto (38 = 22 + 16 expresiones; la orden `-actualizar-derivadas` existe; make skills-check hace lo que dice). CONTRIBUTING.md «Formato común de eval» (429-513) y «Job de evals» (561-576) describen el fichero, el esquema, la comparación, la limitación declarada, los campos expresiones_prohibidas y expresiones_prohibidas_por_modelo y la prueba de red fuera del recuento; `derivadasDelGrafoPrevio()` existe (grafo_test.go:2655). Sin ADR: ninguna decisión cambia (FR-070; `git diff --quiet main -- docs/ specs/010-… specs/011-…` = 0). docs/SOURCES.md no aplica: ninguna grabación nueva (internal/source sin cambios). SKILL.md: 266 líneas, frontmatter intacto, sin nombrar evals, job ni modelos (grep), región generada sin drift (skills-check). specs/012 coherente con el diff: cierre.md §1 lista exactamente los 6 ficheros A/D de schemas/, testdata/ y evals/."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún adaptador, ninguna petición HTTP ni grabación nueva: internal/source/**/testdata sin cambios, y la única derivada nueva sale de la grabación de H4 por código del repositorio (derivacionDelGrafoPrevio, grafo_test.go) y se reproduce byte a byte; la caché de la sesión sirve el bloque con --offline (exit 0), así que nada toca la red. Sin NIF ni datos personales en la lista, la eval ni las sesiones sintéticas. El quickstart §6 limita la conversación a `Bash(kitlegal *)`, Read y Skill con `--permission-mode dontAsk`, `--no-session-persistence` y `--setting-sources project` (banderas presentes en el `claude` instalado), instala la skill solo en el temporal (comprobado con el binario de la rama: enlace relativo ../../.agents/skills/boe-legislacion, SKILL.md v0.1.2 de 266 líneas, doctor en orden) y no escribe en el repositorio."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas: 0 nolint, 0 t.Skip, 0 TODO/FIXME. Los tres `_` del diff no silencian errores: bloqueLeido descarta la salida de error de una lectura sin entrega al grafo (conjunto_test.go:1550), el resultado de ValidarDocumentoYAML se comprueba por ErrorAs (formato_test.go:2397 del diff) y el bool de strings.Cut en seccionDetras. La exclusión `conversacion` de misspell (.golangci.yml:+9-14) es un falso positivo documentado con la misma forma que `controles` o `defectos`, declarada en T001 y necesaria por la clave otra_conversacion que fija el contrato. Fixtures y esquemas: solo altas y bajas (`git diff --name-status main -- testdata schemas`), ningún fichero existente retocado; los casos de informe se copian a t.TempDir(). gates/cuarentena.json vacío; tareas-intentos: T001 con 2 intentos (redelimitada por misspell), el resto con 1."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff cabe en FR-001 a FR-087: internal/evals cambia solo en la lista (prohibidas.go, conjunto.go, formato.go —compilarEsquemaPublicado, extraído para compartirlo—, juzgar.go, informe.go, doc.go), en la comprobación del quickstart (consulta_repetida.go, TestComprobarConsultaRepetida) y en las adaptaciones de FR-021; internal/app/grafo_test.go en la derivación, la lista de derivadas del grafo previo, la comparación carpeta a carpeta y la retirada; SKILL.md solo en C1-C9 (paso 5: 106-123; «Memoria de consultas»: 185-198; regla 2: 239-244; regla 7: 258-266); evals/ y testdata/ en lo que retira y añade el Alcance; specs/010 y 011 intactos; .github, data/, evidencias/ y docs/ sin cambios. Los cinco supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: FR-060 con la lista enumerada de efectos; `fallo` en lugar de un veredicto «rechazado» que no existe (FR-054); la variante sin norma de H7 conservada en comprobacionConOtraNorma (FR-021); exigirBanderas que nombra todas las que faltan (verificación de T010); y ningún test para siete líneas sin vía real (proporcionalidad), con los umbrales de codecov.yml cumplidos."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido con el binario construido de la rama sobre la sesión que prepara TestPrepararSesion para la eval 19 (grafo con la redacción 20180309, caché con la grabada), en /tmp/juezb/esc: `graph check BOE-A-2017-12902 a1-30 --json` da 326 B y 0 hallazgos antes de leer; `boe articulo … --offline --json` 2 525 B desde la caché (fecha_vigencia 20200206, norma_modificadora BOE-A-2020-1651); `graph check` después da exactamente un version-obsoleta 20180309 → 20200206 en 1 048 B (legible, 533 B); tras la segunda lectura vuelve a 0 hallazgos y 326 B: la señal se apaga con la lectura siguiente, que es lo que SC-002 espera de la segunda conversación; sin bloques 319 B y sin argumentos 303 B. Invocaciones por pregunta iguales a v0.1.1 (SKILL.md:106-114: cada bloque una vez y un check por norma citada; v0.1.2 no añade ninguna). La respuesta: 0 líneas sobre la comprobación (C1-C4), como mucho k × ≈160 B de forma con k bloques cambiados, y la frase de la regla 7 (≈83 B) solo en la respuesta en que graph check falló; nada de consultas anteriores sin version-obsoleta (C5). El informe: por sesión ≤ 38 expresiones (≈1,2 KB, `[]` lo habitual) y dos recuentos de ≈100 B, recalculados en cada job; la lista es fija (≈1 KB). El binario no cambia, así que el crecimiento con meses de uso sigue acotado por H7.1 SC 005 (≈300 B sin cambios, ≤ 3 800 B con cinco bloques cambiados)."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un requisito que lo exige: ExpresionesProhibidas, leerExpresionesProhibidas, Conjunto.Prohibidas y Eval.Prohibidas → FR-050, FR-052, FR-055; ExtraerExpresionesProhibidas con extremos de palabra y el separador de H5.1 → FR-051; anotarExpresionesProhibidas, el motivo y Pasa → FR-052, FR-054; RecuentoDeExpresiones, recontarExpresiones, la columna y la sección de informe.md → FR-053; el esquema de la lista → FR-050, FR-055; derivacionDelGrafoPrevio, -actualizar-derivadas, derivadaDelGrafoPrevio y las comprobaciones 1 y 2 → FR-010, FR-011; TestGrabacionesDerivadasInventadas → FR-012; la comparación carpeta a carpeta → FR-013; compruebaLaSesion → FR-002; comprobarConsultaRepetida y TestComprobarConsultaRepetida con sus cuatro banderas → FR-060 a FR-062; los subtests expresiones-calibradas, expresiones-en-los-bloques y expresiones-de-la-skill → FR-084, FR-085, FR-043. Ninguna rama para un estado sin vía real: la lista que no es fichero regular, no se lee o no valida sigue la regla del fichero mal formado sin caso propio; Juzgar no cambia de firma (el valor cero de la lista es «sin lista»). La única pieza sin FR es la caché de expresiones compiladas, que fijan plan.md y T002 y no cambia ninguna salida (observación 1)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[k] formasCompiladas, la caché global con cerrojo de expresiones regulares (internal/evals/prohibidas.go:93-119) y su subtest compilada-una-sola-vez (prohibidas_test.go:190-199): ningún FR la exige; la fijan plan.md («Performance Goals») y T002, y compilar 38 expresiones por respuesta costaría microsegundos. No cambia ninguna salida ni pasa el umbral; se podría retirar en un hito posterior sin tocar ningún contrato.",
+    "SC-001 (recuento ≤ 2 de 51 y ≤ 1 de 30, eval 19 con su forma y su tasa, veredicto aprobado y red vacío) y SC-002 (quickstart §6) no se pueden juzgar aquí: los dan el job de evals que el workflow lanza tras la revisión (FR-087) y la persona con el informe final (FR-062). Los mecanismos que los miden están en verde y detectan sus regresiones (criterio b).",
+    "expresiones-calibradas hace depender make ci de specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json (conjunto_test.go:1372); lo pide FR-084 y research D9 lo prefirió a copiar 93 respuestas a testdata/, pero mover o retirar ese fichero rompería el test.",
+    "recontarExpresiones (informe.go:664) indexa recuento por slices.Index(modelos, serie.tasa.Modelo) sin tratar -1; solo por construcción (informe.go:604, Planificada solo para las series del plan) las series planificadas son de los modelos del job. Sin vía real hoy.",
+    "La estimación local de codecov/patch (cierre.md §2: 144 de 151 líneas, 95,36 %) puede quedar por debajo del target auto de la base; las siete líneas son ramas de la regla genérica y el supuesto [alcance] de T012 lo deja a quien lea el informe. Los umbrales de la Definition of Done se cumplen (global 97,5 %, internal/core 98,6 %).",
+    "La derivada conserva el User-Agent de la grabación de H4 («kitlegal/dev (+https://ventanillalegal.es/bot)»): es un dato grabado que se copia sin cambios (FR-010), no una petición del hito; el binario, que no cambia, usa el de la constitución.",
+    "El mutante «eval 19 con fuente-caducada» lo rechaza el esquema de eval (subtest formato) antes de llegar a grafo-previo; por eso se añadió el mutante de la derivada con las dos redacciones, que sí ejerce la comprobación de FR-002 en compruebaLaSesion y en TestEstadoPrevioDeLaRedaccionCambiada.",
+    "El quickstart §6 depende de la versión de Claude Code de la persona (S1, comprobada en 2.1.284 por el research); las banderas que usa existen en la instalada en esta máquina."
+  ]
+}

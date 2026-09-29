@@ -293,6 +293,12 @@ linters:
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles
+        # «Conversación», el tramo de la clave otra_conversacion de la lista de
+        # expresiones prohibidas de una skill, que fija el contrato lista-y-juicio
+        # §1 de H7.2 (FR-050, research.md D2): en los documentos que la escriben
+        # en los tests y en la etiqueta YAML del campo que la lee; misspell lo lee
+        # como «conversation», también entre guiones bajos y guiones.
+        - conversacion
         # «Defectos de la skill», lo que Regenerar devuelve junto a las derivas y
         # lo que make skills-check presenta (data-model §5 de H5, contrato de
         # sincronización §2, research.md D20); misspell lo lee como «defects».

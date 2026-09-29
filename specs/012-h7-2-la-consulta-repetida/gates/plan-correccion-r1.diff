@@ -1,0 +1,199 @@
+diff antes/contracts/eval-y-derivada.md ahora/contracts/eval-y-derivada.md
+--- antes/contracts/eval-y-derivada.md	2026-09-29 11:58:00
++++ ahora/contracts/eval-y-derivada.md	2026-09-29 12:00:52
+@@ -67,10 +67,22 @@
+ 
+ ## 3. El control de derivaciones
+ 
+-`TestGrabacionesDerivadas` y `grabacionesDerivadas()` ganan una segunda clase de entrada, la **derivada del grafo
+-previo**, con su carpeta, su fichero, los argumentos de `boe` (`articulo BOE-A-2017-12902 a1-30`) y la fecha de
+-vigencia de la redacción que da (20180309). Para ella, la comprobación exige:
++La comprobación de cada derivada la decide su carpeta, no la clase de la entrada que la declara. Las declaraciones se
++separan por carpeta:
+ 
++- **las del e2e** (`derivadasDelE2E`): `grabacionesDerivadas()`, con sus entradas de hoy, su clase y su comprobación, sin
++  cambios (FR-013);
++- **las del grafo previo** (`grafosPreviosDeLasEvals`): una lista de un tipo propio, la **derivada del grafo previo**,
++  con su subcarpeta, su fichero, los argumentos de `boe` (`articulo BOE-A-2017-12902 a1-30`) y la fecha de vigencia de
++  la redacción que da (20180309). El tipo no lleva comprobación propia —las comprobaciones 1 y 2 las aplica el test a
++  toda entrada de la lista— y ninguna entrada de otra clase cabe en ella.
++
++`TestGrabacionesDerivadas` compara carpeta a carpeta: los ficheros de `derivadasDelE2E` con las entradas del e2e, y los
++de `grafosPreviosDeLasEvals` con las del grafo previo, en los dos sentidos. Una entrada de otra clase con carpeta de grafo
++previo —`versionDelArticulo21`, que se queda, admite cualquier carpeta— hace fallar el test nombrándola: es una entrada
++del e2e sin fichero en su carpeta, y su fichero, uno del grafo previo sin entrada. Toda derivada bajo
++`grafosPreviosDeLasEvals` pasa, por tanto, las comprobaciones 1 y 2:
++
+ 1. **Reproducible y sin otro cambio** (FR-010): el fichero es, byte a byte, la derivación de §2 sobre su grabación.
+ 2. **Una redacción de la grabada** (FR-011): servida en lugar de la grabación, `boe articulo … --json` da un `Articulo`
+    igual, campo a campo, a exactamente uno de los que da `boe` sobre la grabación reducida a cada una de sus
+@@ -84,9 +96,13 @@
+    huella distinta y el mismo texto.
+ 
+ Las derivadas del e2e (`version-posterior`, `version-ulterior`, `sin-eli`, `eli-sin-segmento`) siguen con su clase y su
+-comprobación; la regla «todo fichero de las dos carpetas tiene su comprobación, y toda comprobación su fichero» no cambia
+-(FR-013).
++comprobación, y todo fichero de las dos carpetas sigue teniendo su comprobación, y toda comprobación su fichero (FR-013):
++la comparación carpeta a carpeta lo sigue exigiendo, cada fichero con la declaración de su carpeta.
+ 
++**Cuándo entra la comparación carpeta a carpeta**: con la retirada de `lpac-a21-version-anterior` (§5), que es hoy una
++entrada del e2e (`versionDelArticulo21`) con carpeta de grafo previo y la haría fallar. Hasta entonces, la entrada nueva
++se comprueba con 1 y 2 y la comparación es la de hoy, las dos carpetas juntas; así ninguna tarea queda en rojo.
++
+ ## 4. La preparación de la eval dice lo que la sesión verá (FR-002)
+ 
+ La subprueba `grafo-previo` de `TestEvalsDelRepositorio` (`compruebaElGrafoPrevio`) sigue exigiendo lo de H7 —el
+@@ -120,4 +136,5 @@
+ - `internal/evals/juzgar_test.go`: `ficheroDeLaConsultaRepetida` pasa a `19-lcsp-contrato-menor-redaccion-cambiada.yaml`
+   y la eval sintética de la consulta repetida (`evalDeLaConsultaRepetida` y los juicios que la usan), a la forma de la
+   nueva: norma `BOE-A-2017-12902`, bloque `a1-30`, la comprobación con la norma.
+-- `internal/app/grafo_test.go`: la entrada retirada sale de `grabacionesDerivadas()` y su comentario deja de nombrarla.
++- `internal/app/grafo_test.go`: la entrada retirada sale de `grabacionesDerivadas()` y su comentario deja de nombrarla;
++  con ella, `TestGrabacionesDerivadas` pasa a comparar carpeta a carpeta (§3).
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-09-29 11:58:00
++++ ahora/data-model.md	2026-09-29 12:00:14
+@@ -88,11 +88,13 @@
+ | Carpeta | `testdata/evals/grafo-previo/<nombre>/`, un fichero con el nombre de la grabación de H4 que sustituye |
+ | La de H7.2 | `lcsp-a1-30-redaccion-original/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2017-12902_texto_bloque_a1-30.json` |
+ | Cómo se produce | la derivación de `internal/app/grafo_test.go` sobre la grabación y la fecha 20180309: quita las `<version>` posteriores y nada más; la escribe `-actualizar-derivadas` |
+-| Cómo se comprueba | `TestGrabacionesDerivadas`: byte a byte igual a la derivación, y servida en lugar de la grabación, `boe articulo` da exactamente una redacción de la grabada, la de 20180309 |
+-| Declaración | entrada de `grabacionesDerivadas()` de la clase «derivada del grafo previo»: carpeta, fichero, argumentos de `boe` y fecha de vigencia de la redacción que da |
++| Cómo se comprueba | `TestGrabacionesDerivadas`, por estar en su carpeta: byte a byte igual a la derivación, y servida en lugar de la grabación, `boe articulo` da exactamente una redacción de la grabada, la de 20180309 |
++| Declaración | entrada de la lista de derivadas del grafo previo, de su propio tipo y separada de `grabacionesDerivadas()`: subcarpeta, fichero, argumentos de `boe` y fecha de vigencia de la redacción que da |
+ 
+-Las derivadas del e2e (`internal/app/testdata/derivadas/…`) siguen siendo de su clase actual, con su comprobación
+-(FR-013).
++La carpeta decide la comprobación (contracts/eval-y-derivada.md §3): `TestGrabacionesDerivadas` compara los ficheros de
++cada carpeta con las entradas de su lista, en los dos sentidos, y una entrada de otra clase con carpeta de grafo previo
++lo hace fallar nombrándola. Las derivadas del e2e (`internal/app/testdata/derivadas/…`) siguen en
++`grabacionesDerivadas()`, de su clase actual, con su comprobación (FR-013).
+ 
+ ## 7. Comprobación de la consulta repetida (quickstart)
+ 
+@@ -108,5 +110,5 @@
+ |---|---|
+ | Eval 19 anterior | `evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml` |
+ | Su grafo previo | `testdata/evals/grafo-previo/lpac-a21-version-anterior/` |
+-| Su comprobación | la entrada `lpac-a21-version-anterior` de `grabacionesDerivadas()` |
++| Su comprobación | la entrada `lpac-a21-version-anterior` de `grabacionesDerivadas()`; con ella, la comparación de las dos carpetas juntas, que pasa a ser carpeta a carpeta |
+ | Su párrafo sintético | `parrafoDeLaVersionAnterior`, en `internal/app/grafo_test.go` |
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-09-29 11:58:00
++++ ahora/plan.md	2026-09-29 12:01:11
+@@ -134,7 +134,7 @@
+ ├── doc.go                           # el paquete lee también la lista
+ ├── job_test.go                      # TestComprobarConsultaRepetida y sus cuatro banderas (etiqueta evals)
+ └── formato_test.go, conjunto_test.go, juzgar_test.go, informe_test.go, consultas_test.go
+-internal/app/grafo_test.go           # derivación, -actualizar-derivadas, clase «derivada del grafo previo», TestGrabacionesDerivadasInventadas; fuera la entrada retirada
++internal/app/grafo_test.go           # derivación, -actualizar-derivadas, lista de derivadas del grafo previo (su tipo), comparación carpeta a carpeta, TestGrabacionesDerivadasInventadas; fuera la entrada retirada
+ skills/boe-legislacion/SKILL.md      # v0.1.2
+ CHANGELOG.md, CONTRIBUTING.md        # lo que el hito deja falso
+ ```
+@@ -181,9 +181,11 @@
+ 
+ ### Tests existentes que cambian
+ 
+-- `TestGrabacionesDerivadas` / `grabacionesDerivadas()`: la clase «derivada del grafo previo», la derivación y
+-  `-actualizar-derivadas`, la entrada nueva, y fuera la retirada con `parrafoDeLaVersionAnterior`
+-  (contracts/eval-y-derivada.md §3). Las cuatro del e2e, sin cambios (FR-013).
++- `TestGrabacionesDerivadas` / `grabacionesDerivadas()`: la derivación y `-actualizar-derivadas`; la lista de derivadas
++  del grafo previo, de su propio tipo, con la entrada nueva; fuera la retirada con `parrafoDeLaVersionAnterior`; y la
++  comparación carpeta a carpeta, para que la carpeta, y no la clase de la entrada, decida la comprobación: una entrada de
++  otra clase con carpeta de grafo previo falla nombrada (contracts/eval-y-derivada.md §3; FR-011, FR-012). Las cuatro
++  del e2e, sin cambios en `grabacionesDerivadas()` (FR-013).
+ - `compruebaElGrafoPrevio` (subprueba `grafo-previo`): lee como la sesión y ejecuta `graph check` (§4 del mismo
+   contrato; FR-002).
+ - `formato_test.go`, `consultas_test.go` y `juzgar_test.go`: los nombres retirados pasan a los nuevos y la eval sintética
+@@ -236,7 +238,7 @@
+ | Subtests `expresiones-calibradas`, `expresiones-en-los-bloques`, `expresiones-de-la-skill` | FR-084, FR-085, FR-043 y FR-051 |
+ | Eval `19-lcsp-contrato-menor-redaccion-cambiada.yaml` | FR-001-FR-004, FR-030 |
+ | Derivada `lcsp-a1-30-redaccion-original`, la derivación y `-actualizar-derivadas` | FR-010, FR-014 |
+-| Clase «derivada del grafo previo» en `TestGrabacionesDerivadas`; `TestGrabacionesDerivadasInventadas` | FR-011, FR-012, FR-013, FR-081 |
++| Lista de derivadas del grafo previo y comparación carpeta a carpeta en `TestGrabacionesDerivadas`; `TestGrabacionesDerivadasInventadas` | FR-011, FR-012, FR-013, FR-081 |
+ | `compruebaElGrafoPrevio` ampliada | FR-002 |
+ | Retirada de la eval 19 anterior, su derivada, su entrada y su párrafo; tests adaptados | FR-020, FR-021 |
+ | `SKILL.md` v0.1.2 (C1-C9) | FR-040-FR-047 |
+@@ -277,10 +279,14 @@
+ 4. `evals/boe-legislacion/expresiones-prohibidas.yaml` con las subpruebas `expresiones-calibradas`,
+    `expresiones-en-los-bloques` y `expresiones-de-la-skill`.
+ 5. **`[datos]`** La derivada `lcsp-a1-30-redaccion-original`, escrita con `-actualizar-derivadas`, con la derivación,
+-   la clase nueva de `grabacionesDerivadas()` y `TestGrabacionesDerivadasInventadas` en `internal/app/grafo_test.go`.
++   la lista de derivadas del grafo previo con su entrada (comprobaciones 1 y 2) y `TestGrabacionesDerivadasInventadas`
++   en `internal/app/grafo_test.go`. La comparación de ficheros y entradas sigue siendo la de hoy, con las dos carpetas
++   juntas: `lpac-a21-version-anterior` sigue siendo una entrada del e2e con carpeta de grafo previo.
+ 6. La eval nueva en lugar de la 19 anterior; los tests que nombran lo retirado (`formato_test.go`, `consultas_test.go`,
+    `juzgar_test.go`); `compruebaElGrafoPrevio` ampliada.
+-7. **`[datos]`** Retirada de `lpac-a21-version-anterior/` con su entrada y `parrafoDeLaVersionAnterior`.
++7. **`[datos]`** Retirada de `lpac-a21-version-anterior/` con su entrada y `parrafoDeLaVersionAnterior`, y, con ella,
++   la comparación carpeta a carpeta de `TestGrabacionesDerivadas` (contracts/eval-y-derivada.md §3), que, introducida
++   antes, dejaría `make ci` en rojo mientras existiera esa entrada.
+ 8. `skills/boe-legislacion/SKILL.md` v0.1.2.
+ 9. `consulta_repetida.go` con sus tests y `TestComprobarConsultaRepetida` en `job_test.go`.
+ 10. `CHANGELOG.md` y `CONTRIBUTING.md`.
+@@ -295,7 +301,7 @@
+ | Desviación | Por qué hace falta | Alternativa más simple rechazada |
+ |---|---|---|
+ | «Aceptación e2e: no aplica» (principio III: «cada hito empieza por el test e2e») | El hito no cambia el binario: no hay comportamiento suyo que un guion describa. La aceptación es la de la skill (job y quickstart), y cada pieza entra con sus tests en `make ci` | Un guion que ejerciera el binario sin cambios sobre los datos nuevos: no describiría la entrega, y lo que diría (FR-002) ya lo dice la subprueba `grafo-previo` |
+-| Tres tareas `[datos]` con código de test: el esquema con los casos que lo fijan; la derivada con su derivación y su comprobación; la retirada de la derivada con la de su entrada | `TestGrabacionesDerivadas` exige que cada fichero de las carpetas de derivadas tenga su comprobación y cada comprobación su fichero, y la derivada solo existe si la escribe la derivación (FR-010): separarlos deja una tarea en rojo. Precedente: la derivada `version-ulterior` y el esquema de eval de H7.1 | Separarlos, que dejaría `make ci` en rojo entre dos tareas |
++| Tres tareas `[datos]` con código de test: el esquema con los casos que lo fijan; la derivada con su derivación y su comprobación; la retirada de la derivada con la de su entrada y la comparación carpeta a carpeta | `TestGrabacionesDerivadas` exige que cada fichero de las carpetas de derivadas tenga su comprobación y cada comprobación su fichero, y la derivada solo existe si la escribe la derivación (FR-010); la comparación carpeta a carpeta rechaza la entrada retirada mientras exista: separarlos deja una tarea en rojo. Precedente: la derivada `version-ulterior` y el esquema de eval de H7.1 | Separarlos, que dejaría `make ci` en rojo entre dos tareas |
+ 
+ ## Comprobación contra la rúbrica del juez (`juez_plan`) y `precheck.sh plan`
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-09-29 11:58:00
++++ ahora/research.md	2026-09-29 12:01:01
+@@ -287,8 +287,13 @@
+   antes de comprobar escribe cada derivada del grafo previo desde su grabación; es el patrón de las banderas
+   `-actualizar-esquemas`, `-regenerar-skills` y `-actualizar-golden` del repositorio y de `-update` en la biblioteca
+   estándar (V18). La tarea `[datos]` la ejecuta; nada se escribe a mano (FR-010).
+-- **La comprueba** `TestGrabacionesDerivadas` con una clase nueva de entrada, la derivada del grafo previo, que declara
+-  la grabación de la que sale, los argumentos de `boe` y la fecha de vigencia de la redacción que da:
++- **La comprueba** `TestGrabacionesDerivadas`, y la comprobación la decide la carpeta: las derivadas de
++  `grafosPreviosDeLasEvals` se declaran en una lista propia, de un tipo nuevo —la derivada del grafo previo, que declara
++  su subcarpeta, la grabación de la que sale, los argumentos de `boe` y la fecha de vigencia de la redacción que da, sin
++  comprobación propia—, separada de `grabacionesDerivadas()`, que queda con las del e2e; y el test compara cada carpeta
++  con su lista, en los dos sentidos. Una entrada de otra clase con carpeta de grafo previo (`versionDelArticulo21`, que
++  se queda, admite cualquier carpeta) falla nombrada: es una entrada del e2e sin fichero en su carpeta. Toda derivada
++  del grafo previo pasa, así, por 1 y 2; 3 es el test de que 2 rechaza lo inventado:
+   1. la derivada es, byte a byte, la que da la derivación sobre la grabación (FR-010: reproducible y sin otro cambio);
+   2. servida en lugar de la grabación, `boe articulo` da exactamente una de las redacciones que trae la grabada —la que
+      da `boe` sobre la grabación reducida a cada una de sus versiones—, entera (fecha de versión y de vigencia, norma
+@@ -297,17 +302,22 @@
+      párrafo de más y con las dos cosas, como la retirada— y exige que la comprobación 2 las rechace nombrándolas
+      (FR-012, SC-005). La huella sale del texto: no hay derivada con una huella inventada y el texto de la grabada.
+ - Las derivadas del e2e (`version-posterior`, `version-ulterior`, `sin-eli`, `eli-sin-segmento`) siguen con su
+-  comprobación, y la regla de «todo fichero de las dos carpetas con su comprobación, y toda comprobación con su fichero»
+-  no cambia (FR-013).
++  comprobación, y todo fichero de las dos carpetas sigue con su comprobación, y toda comprobación con su fichero
++  (FR-013), ahora carpeta a carpeta.
++- La comparación carpeta a carpeta entra con la retirada de `lpac-a21-version-anterior` (D15), que es una entrada del
++  e2e con carpeta de grafo previo y la haría fallar; hasta entonces sigue la de hoy, con las dos carpetas juntas.
+ 
+ **Por qué.** FR-010 pide que la produzca código del repositorio de forma reproducible; FR-011 y FR-012, una
+-comprobación semántica que no depende de cómo se hizo. La comparación byte a byte es la que dice «sin ningún otro
+-cambio»; la de `boe`, la que dice «una redacción que la grabada trae».
++comprobación semántica que no depende de cómo se hizo y que alcance a toda derivada del grafo previo. La comparación
++byte a byte es la que dice «sin ningún otro cambio»; la de `boe`, la que dice «una redacción que la grabada trae»; la
++carpeta, y no la clase que elige quien declara, la que dice que ninguna derivada del grafo previo se la salta.
+ 
+ **Alternativas.** (a) Un guion o un programa fuera del repositorio, como las derivadas de H7: no es código del
+ repositorio (FR-010). (b) Derivar al preparar la sesión, sin fichero: cambia `PrepararSesion` y el formato de eval, y
+ FR-010 dice que la derivada entra por una tarea `[datos]`. (c) Solo la comprobación de `boe`: no dice que la derivada
+-salga de la grabación sin nada más.
++salga de la grabación sin nada más. (d) Una clase más en `grabacionesDerivadas()`, con la comparación de las dos
++carpetas juntas: una entrada del e2e con carpeta de grafo previo pasaría con una fecha y un párrafo inventados, como la
++retirada (FR-012).
+ 
+ ### D14 · FR-002 en la preparación de la eval
+ 
+@@ -325,7 +335,8 @@
+ 
+ **Decisión.** Salen `evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml`,
+ `testdata/evals/grafo-previo/lpac-a21-version-anterior/`, su entrada en `grabacionesDerivadas()` y
+-`parrafoDeLaVersionAnterior`. `versionDelArticulo21` se queda: la usan `version-posterior` y `version-ulterior`. Se
++`parrafoDeLaVersionAnterior`, y con ellos `TestGrabacionesDerivadas` pasa a comparar carpeta a carpeta (D13).
++`versionDelArticulo21` se queda: la usan `version-posterior` y `version-ulterior`. Se
+ adaptan, sin cambiar lo que comprueban, los tests que los nombran (V21): `internal/evals/formato_test.go` (documentos
+ sintéticos con `grabaciones: lpac-a21-version-anterior`, que pasan a `lcsp-a1-30-redaccion-original`),
+ `internal/evals/consultas_test.go` (el grafo previo sintético) e `internal/evals/juzgar_test.go` (la eval sintética de la

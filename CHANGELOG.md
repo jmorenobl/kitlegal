@@ -106,28 +106,77 @@ sustituyen a este fichero.
   se puede crear, o un lote rechazado—, la invocación escribe en la salida de error exactamente
   `kitlegal: lo observado no ha llegado al grafo del mundo: <causa>`, con la causa en una sola línea, y termina con el
   mismo código y la misma salida estándar que habría dado sin grafo. No se reintenta ni se guarda para después.
-- **`boe-legislacion` v0.1.1 dice que la redacción ha cambiado desde la consulta anterior.** Lee cada bloque una sola
-  vez por pregunta y, cuando ya no queda nada por leer y antes de redactar, comprueba la memoria de consultas **una vez
-  por cada norma cuyos bloques cita**, con esa norma y los bloques leídos de ella
-  (`kitlegal graph check BOE-A-2015-10565 a21 --json`); nunca antes de leer ni sin argumentos. Cada
-  `version-obsoleta` lo traslada con una forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta que da el binario y
-  dos puntos, en la misma línea—, seguida de las dos fechas de vigencia, la de la redacción superada y la de la que
-  cita; decirlo con otras palabras no lo traslada, y la etiqueta no es la de ningún aviso de vigencia. No traslada
-  `fuente-caducada`, porque cita siempre lo que acaba de leer, y con `0` y sin `version-obsoleta` no dice nada de la
-  memoria de consultas. El texto que cita sale siempre de `kitlegal boe articulo` o `articulos`, nunca de la salida
-  de `graph`; una comprobación con hallazgos no es un fallo, y si `graph check` falla responde igual y dice que no ha
-  podido comprobar la memoria de consultas. Su frontmatter declara `kitlegal-applets: boe graph` y su tabla de
-  comandos gana `kitlegal graph` (`show`, `stats` y `check [<norma> [<bloques>...]]`), generada con
-  `make skills-sync`, que escribe los argumentos de posición opcionales como la ayuda del binario. La forma de la
-  cita y la de los avisos de vigencia no cambian. Sustituye a la v0.1 de H7, que no llegó a publicarse: comprobaba
-  dos veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también `fuente-caducada`.
-- **Eval informativa de la consulta repetida** (`evals/boe-legislacion/19-lpac-articulo-21-redaccion-cambiada.yaml`):
-  el grafo de la sesión ya tiene una redacción anterior del artículo 21 de la Ley 39/2015 y la caché sirve la grabada;
-  la sesión tiene que leer el bloque con `kitlegal boe articulo`, comprobar con `kitlegal graph check` y la norma
-  `BOE-A-2015-10565`, no pedir `kitlegal graph show`, citar el bloque y trasladar el cambio de redacción con la forma
-  fija `⚠ REDACCIÓN MODIFICADA:`. Nace `informativa: true` (ADR 0016): se ejecuta y su tasa se publica sin decidir el
-  veredicto, y el informe declara junto a ella la forma que exige. La redacción anterior es una derivada de la
-  grabación del BOE, sin ninguna grabación nueva (`testdata/evals/grafo-previo/lpac-a21-version-anterior/`).
+- **`boe-legislacion` v0.1.2 empieza por lo que se pregunta y dice que la redacción ha cambiado desde la consulta
+  anterior.** Lee cada bloque una sola vez por pregunta y, cuando ya no queda nada por leer y antes de redactar,
+  comprueba la memoria de consultas **una vez por cada norma cuyos bloques cita**, con esa norma y los bloques leídos
+  de ella (`kitlegal graph check BOE-A-2015-10565 a21 --json`); nunca antes de leer ni sin argumentos. **La respuesta
+  no cuenta esa comprobación**: empieza por lo que se pregunta —la norma, su texto y su cita— y no nombra la memoria
+  de consultas, `kitlegal graph` ni ninguno de sus verbos, los códigos de salida, los hallazgos, las clases
+  `version-obsoleta` y `fuente-caducada`, el JSON ni el sobre, tampoco para decir que no hay nada que decir. Lo único
+  que dice de ella es cada `version-obsoleta`, con una forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta que da
+  el binario y dos puntos—, seguida en la misma línea de las dos fechas de vigencia tal como las da el hallazgo
+  (`AAAAMMDD`), la de la redacción superada y la de la que cita; decirlo con otras palabras no lo traslada, y la
+  etiqueta no es la de ningún aviso de vigencia. No traslada `fuente-caducada`, porque cita siempre lo que acaba de
+  leer. **No habla de lo dicho en otra conversación**, ni para afirmarlo, ni para confirmarlo, ni para desmentirlo, y
+  sin `version-obsoleta` no dice nada de lo consultado antes, ni que ha cambiado ni que no: la comprobación sin
+  hallazgos no distingue un bloque leído antes y sin cambios de uno que nunca se leyó. El texto que cita sale siempre
+  de `kitlegal boe articulo` o `articulos`, nunca de la salida de `graph`, y una comprobación con hallazgos no es un
+  fallo. Si `graph check` falla, responde igual con el texto leído y dice «No se ha podido comprobar si la redacción
+  ha cambiado desde una consulta anterior.», sin afirmar que ha cambiado ni que no; si falla `kitlegal boe`, dice qué
+  no pudo consultar por lo que significa para quien pregunta —que el artículo no está en la norma, que la fuente no
+  estaba disponible o que limitó las consultas—, sin el código, y no suple el texto. Su frontmatter declara
+  `kitlegal-applets: boe graph` y su tabla de comandos gana `kitlegal graph` (`show`, `stats` y
+  `check [<norma> [<bloques>...]]`), generada con `make skills-sync`, que escribe los argumentos de posición
+  opcionales como la ayuda del binario. La forma de la cita y la de los avisos de vigencia no cambian. Sustituye a la
+  v0.1.1 de H7.1, que no llegó a publicarse: contaba la comprobación en la respuesta, no fijaba cómo se escriben las
+  fechas de la forma, decía que no había podido comprobar la memoria de consultas cuando `graph check` fallaba y no
+  prohibía el código cuando fallaba `kitlegal boe`; y a la v0.1 de H7, que tampoco llegó a publicarse: comprobaba dos
+  veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también `fuente-caducada`.
+- **Eval informativa de la consulta repetida** (`evals/boe-legislacion/19-lcsp-contrato-menor-redaccion-cambiada.yaml`),
+  sobre un artículo que el BOE modificó de verdad, el 118 de la LCSP (expediente de los contratos menores): el grafo de
+  la sesión ya registró una lectura del bloque `a1-30` de `BOE-A-2017-12902` que vio su redacción original (vigencia
+  `20180309`), y la caché sirve la grabada, con la vigente (vigencia `20200206`, modificada por `BOE-A-2020-1651`). La
+  sesión tiene que leer el bloque con `kitlegal boe articulo`, comprobar con `kitlegal graph check` y la norma
+  `BOE-A-2017-12902`, no pedir `kitlegal graph show`, citar el bloque, trasladar el cambio de redacción con la forma
+  fija `⚠ REDACCIÓN MODIFICADA:` y, como toda eval de la skill que la activa, no llevar ninguna expresión prohibida.
+  Nace `informativa: true` (ADR 0016): se ejecuta y su tasa se publica sin decidir el veredicto, y el informe declara
+  junto a ella la forma que exige. La redacción original es una derivada de la grabación de H4 del bloque —la misma
+  respuesta sin la redacción posterior y sin ningún otro cambio—, sin ninguna grabación nueva
+  (`testdata/evals/grafo-previo/lcsp-a1-30-redaccion-original/`): la escribe código del repositorio,
+  `go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/ -args -actualizar-derivadas`, y
+  `TestGrabacionesDerivadas` exige a toda derivada del grafo previo de una eval que sea, byte a byte, la que da esa
+  derivación y que, servida en lugar de la grabación, `boe` dé exactamente una de las redacciones que trae la grabada
+  —fecha de vigencia, norma modificadora, texto y huella—: una fecha, un texto o una huella que la grabada no trae lo
+  hacen fallar nombrándola. `make skills-check` lee además, como la sesión, cada bloque de toda eval con grafo previo
+  y exige que `graph check` dé exactamente las clases de hallazgo que la eval espera y cada `version-obsoleta` con la
+  fecha de vigencia de la redacción del grafo previo y la de la que acaba de leer. Retira la eval de la consulta
+  repetida sobre el artículo 21 de la LPAC (`19-lpac-articulo-21-redaccion-cambiada.yaml`) y su grafo previo
+  (`testdata/evals/grafo-previo/lpac-a21-version-anterior/`), que sembraba una redacción escrita a mano, con una fecha
+  de vigencia y un párrafo que la respuesta grabada no trae.
+- **Lista de expresiones prohibidas en el formato común de eval.** Una skill puede tener, junto a sus evals,
+  `evals/<skill>/expresiones-prohibidas.yaml`, validada contra `schemas/expresiones-prohibidas.yaml.json`: las
+  expresiones que no lleva la respuesta de una eval que activa la skill, en dos familias, `maquinaria` y
+  `otra_conversacion`. Hoy solo la tiene `boe-legislacion`, con 38: 22 de la maquinaria interna
+  —`memoria de consultas`, `hallazgo`, `hallazgos`, `graph check`, `graph show`, `graph stats`, `kitlegal graph`,
+  `version-obsoleta`, `fuente-caducada`, `código de salida`, `códigos de salida`, de `código 0` a `código 7`,
+  `exit code`, `json` y `sobre de salida`— y 16 de lo dicho en otra conversación —`te dije`, `te confirmé`,
+  `te habría confirmado` y los demás verbos de decir con «te», `conversación anterior` y
+  `conversaciones anteriores`—. Se comparan por la forma, sin ningún modelo, con la tolerancia de las formas fijas de
+  los avisos —sin distinguir mayúsculas, con blancos y énfasis de Markdown entre las palabras y alrededor— y
+  delimitadas como palabras; lo mismo dicho con otras palabras no se detecta, y el informe publica cada respuesta. `Juzgar` la aplica a cada sesión de las evals de
+  `boe-legislacion` que activan la skill, con todos los modelos: cada expresión encontrada es un motivo
+  `expresión prohibida: <expresión>` y la sesión no pasa, así que **decide en las evals que deciden**, con el umbral
+  del ADR 0016 y sin cambiar la regla del veredicto, y cuenta en la tasa de las informativas sin decidir. Las evals de
+  no activación y las de una skill sin lista se juzgan como antes. El informe publica, por sesión,
+  `expresiones_prohibidas` en `informe.json` y la columna «Expresiones prohibidas» en la tabla de sesiones de
+  `informe.md`, y, por modelo, `expresiones_prohibidas_por_modelo` —`con_alguna` sobre `respuestas`, las sesiones
+  juzgadas de las series planificadas cuya eval activa la skill— y la sección «Expresiones prohibidas por modelo»; la
+  sesión de la prueba de red se juzga con la lista y publica sus expresiones, pero no entra en el recuento. Una lista
+  mal formada es un fichero mal formado: `make ci` falla nombrándola, y el informe la lista y da `fallo`.
+  `make skills-check` comprueba además que la lista de `boe-legislacion` marca, de las 93 respuestas del informe de
+  evals de H7.1, exactamente las 35 que llevaban la maquinaria o lo dicho en otra conversación, eval por eval, y
+  ninguna otra; y que no está en el texto de ningún bloque que leen sus evals ni en las formas fijas de los avisos y
+  de los hallazgos ni en los textos que su `SKILL.md` enseña a escribir.
 - **El formato común de eval gana cuatro piezas**, opcionales y solo en una eval que activa la skill; las evals que
   ya había se leen y se juzgan igual. `comandos` admite una quinta forma, la comprobación (`applet` y `verbo` `check`,
   y, si se da, `norma`), que la cumple una invocación de ese applet con `check` —y con esa norma, si la eval la

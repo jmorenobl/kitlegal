@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,6 +38,17 @@ var (
 	banderaPlan         = flag.String("plan", "", "fichero en el que se escribe el plan de sesiones")
 	banderaCommit       = flag.String("commit", "", "commit evaluado")
 	banderaSinPython    = flag.String("sin-python", "", "ruta de sin-python.txt")
+)
+
+// Banderas con las que el quickstart invoca, tras -args, la comprobación de la
+// consulta repetida (contracts/comprobacion-del-quickstart.md §1).
+var (
+	banderaPrimera       = flag.String("primera", "", "directorio de la primera conversación de la consulta repetida")
+	banderaSegunda       = flag.String("segunda", "", "directorio de la segunda conversación de la consulta repetida")
+	banderaFechaSuperada = flag.String("fecha-superada", "",
+		"fecha de vigencia de la redacción superada que la primera respuesta lleva en la línea de la forma")
+	banderaFechaLeida = flag.String("fecha-leida", "",
+		"fecha de vigencia de la redacción leída que la primera respuesta lleva en la línea de la forma")
 )
 
 // TestPlanDeSesiones escribe en el fichero de -plan las sesiones que el job tiene
@@ -142,13 +154,83 @@ func TestInformeDelJob(t *testing.T) {
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
 }
 
-// exigirBanderas falla, nombrándola, si alguna de las banderas no tiene valor:
-// con una ruta vacía, PrepararSesion o EscribirInforme leerían y escribirían en
-// el directorio de este paquete en lugar de en el de la ejecución.
+// TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta
+// repetida del quickstart §6 con comprobarConsultaRepetida: la lista de
+// expresiones prohibidas de las evals de la skill de -skill y las conversaciones
+// de -primera y -segunda, leídas con LeerSesion como las lee el job, y las fechas
+// de -fecha-superada y -fecha-leida. Falla con las conversaciones que no se
+// pueden leer o con una línea por condición que falla, una por renglón; si no
+// falla ninguna, lo registra (contracts/comprobacion-del-quickstart.md; FR-061).
+// Solo lo ejecuta la persona en el quickstart, porque necesita las dos
+// conversaciones con modelo (FR-062); lo que decide lo fija
+// TestCondicionesDeLaConsultaRepetida.
+func TestComprobarConsultaRepetida(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "skill", "primera", "segunda", "fecha-superada", "fecha-leida")
+
+	evals := filepath.Join(directorioDeEvalsDeLasSkills, *banderaSkill)
+
+	conjunto, err := LeerConjunto(evals)
+	require.NoError(t, err)
+
+	// Con la lista mal formada, el conjunto la deja vacía y ninguna respuesta
+	// llevaría expresiones prohibidas sin haberlas mirado.
+	malFormados := make([]string, 0, len(conjunto.MalFormados))
+	for _, malFormado := range conjunto.MalFormados {
+		malFormados = append(malFormados, malFormado.Error.Error())
+	}
+
+	require.Emptyf(t, malFormados, "el directorio de evals %s tiene ficheros mal formados:\n%s", evals,
+		strings.Join(malFormados, "\n"))
+
+	primera := leerConversacion(t, "primera", *banderaPrimera)
+	segunda := leerConversacion(t, "segunda", *banderaSegunda)
+
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	if lineas := comprobarConsultaRepetida(primera, segunda, conjunto.Prohibidas, *banderaFechaSuperada,
+		*banderaFechaLeida); len(lineas) > 0 {
+		t.Fatal(strings.Join(lineas, "\n"))
+	}
+
+	t.Logf("se cumplen las tres condiciones: la forma con %s y %s en la primera respuesta, sin ella en la segunda, "+
+		"y ninguna expresión prohibida en las dos", *banderaFechaSuperada, *banderaFechaLeida)
+}
+
+// leerConversacion lee con LeerSesion la conversación del directorio dado. Si
+// no se puede leer, lo anota nombrándola por su ordinal y con el error, y deja
+// seguir para que se lea también la otra.
+func leerConversacion(t *testing.T, ordinal, dir string) Sesion {
+	t.Helper()
+
+	sesion, err := LeerSesion(dir)
+	if err != nil {
+		t.Errorf("la %s conversación no se ha podido leer: %v", ordinal, err)
+	}
+
+	return sesion
+}
+
+// exigirBanderas falla, nombrando cada una, si alguna de las banderas no tiene
+// valor: con una ruta vacía, PrepararSesion o EscribirInforme leerían y
+// escribirían en el directorio de este paquete en lugar de en el de la
+// ejecución. Las mira todas antes de fallar, para que quien lanza la orden sin
+// ellas sepa de una vez las que faltan.
 func exigirBanderas(t *testing.T, nombres ...string) {
 	t.Helper()
 
+	faltan := false
+
 	for _, nombre := range nombres {
-		require.NotEmptyf(t, flag.Lookup(nombre).Value.String(), "falta la bandera -%s", nombre)
+		if !assert.NotEmptyf(t, flag.Lookup(nombre).Value.String(), "falta la bandera -%s", nombre) {
+			faltan = true
+		}
+	}
+
+	if faltan {
+		t.FailNow()
 	}
 }

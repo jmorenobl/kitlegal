@@ -117,7 +117,7 @@ func TestConsultasNecesarias(t *testing.T) {
 		Pregunta:    "Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?",
 		Activa:      true,
 		Informativa: true,
-		GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: []ComandoEsperado{bloqueDel21}},
+		GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: []ComandoEsperado{bloqueDel21}},
 		Comandos:    []ComandoEsperado{bloqueDel21, {Applet: "graph", Verbo: "check"}},
 		Prohibidos:  []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
 		Citas:       []CitaEsperada{{Norma: lpac, Bloque: "a21"}},

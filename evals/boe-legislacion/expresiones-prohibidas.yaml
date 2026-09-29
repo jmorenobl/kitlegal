@@ -1,0 +1,43 @@
+# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050): la maquinaria
+# interna y lo dicho en otra conversación. Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de
+# Markdown entre palabras, delimitadas como palabras; lo dicho con otras palabras no se detecta.
+maquinaria:
+  - memoria de consultas
+  - hallazgo
+  - hallazgos
+  - graph check
+  - graph show
+  - graph stats
+  - kitlegal graph
+  - version-obsoleta
+  - fuente-caducada
+  - código de salida
+  - códigos de salida
+  - código 0
+  - código 1
+  - código 2
+  - código 3
+  - código 4
+  - código 5
+  - código 6
+  - código 7
+  - exit code
+  - json
+  - sobre de salida
+otra_conversacion:
+  - te dije
+  - te respondí
+  - te confirmé
+  - te indiqué
+  - te comenté
+  - te contesté
+  - te expliqué
+  - te habría dicho
+  - te habría respondido
+  - te habría confirmado
+  - te habría indicado
+  - te habría comentado
+  - te habría contestado
+  - te habría explicado
+  - conversación anterior
+  - conversaciones anteriores

@@ -21,6 +21,12 @@ type Eval struct {
 	// YAML: lo pone LeerEval, y con él se nombra la eval.
 	Fichero string `yaml:"-"`
 
+	// Prohibidas es la lista de expresiones prohibidas de la carpeta de la eval,
+	// la de su skill. No es una clave del YAML: la pone LeerConjunto en cada eval
+	// de la carpeta, y queda vacía si la carpeta no la tiene o está mal formada
+	// (contrato lista-y-juicio §1 de H7.2; research D5).
+	Prohibidas ExpresionesProhibidas `yaml:"-"`
+
 	// Pregunta es lo que se pregunta en la sesión.
 	Pregunta string `yaml:"pregunta"`
 
@@ -222,17 +228,24 @@ var esquemaDeEval = sync.OnceValues(func() (*jsonschema.Schema, error) {
 })
 
 // compilarEsquemaDeEval lee el esquema del formato común de eval de la ruta y lo
-// compila con skills.CompilarEsquema. El error nombra la ruta: la del fichero que
-// no se puede leer o la del esquema que no compila.
+// compila con compilarEsquemaPublicado.
 func compilarEsquemaDeEval(ruta string) (*jsonschema.Schema, error) {
+	return compilarEsquemaPublicado(ruta, "del formato de eval")
+}
+
+// compilarEsquemaPublicado lee un esquema publicado de la ruta y lo compila con
+// skills.CompilarEsquema; de dice de qué documentos es, como «del formato de
+// eval», y va en el error. El error nombra la ruta: la del fichero que no se
+// puede leer o la del esquema que no compila.
+func compilarEsquemaPublicado(ruta, de string) (*jsonschema.Schema, error) {
 	contenido, err := leerFichero(ruta)
 	if err != nil {
-		return nil, fmt.Errorf("no se puede leer el esquema del formato de eval: %w", err)
+		return nil, fmt.Errorf("no se puede leer el esquema %s: %w", de, err)
 	}
 
 	esquema, err := skills.CompilarEsquema(contenido)
 	if err != nil {
-		return nil, fmt.Errorf("el esquema del formato de eval %s: %w", ruta, err)
+		return nil, fmt.Errorf("el esquema %s %s: %w", de, ruta, err)
 	}
 
 	return esquema, nil

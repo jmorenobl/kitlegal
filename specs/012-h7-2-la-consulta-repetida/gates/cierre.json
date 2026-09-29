@@ -1,0 +1,63 @@
+{
+  "sha": "fbdab2e5c8975b4c52aebda3623f308a4de433bd",
+  "verde": true,
+  "fecha": "2026-09-29T14:59:46Z",
+  "checks": [
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232205/job/109453433924",
+      "name": "desplegar",
+      "startedAt": "2026-09-29T14:23:36Z",
+      "state": "SKIPPED",
+      "workflow": "web"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232568/job/109453139058",
+      "name": "evals (legal-core)",
+      "startedAt": "2026-09-29T14:23:00Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232568/job/109453139126",
+      "name": "evals (boe-legislacion)",
+      "startedAt": "2026-09-29T14:22:58Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582240734/job/109453121405",
+      "name": "cambios",
+      "startedAt": "2026-09-29T14:22:53Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232205/job/109453091148",
+      "name": "construir",
+      "startedAt": "2026-09-29T14:22:53Z",
+      "state": "SUCCESS",
+      "workflow": "web"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232479/job/109453092964",
+      "name": "ci",
+      "startedAt": "2026-09-29T14:22:51Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/36582232479/job/109453093336",
+      "name": "snapshot",
+      "startedAt": "2026-09-29T14:22:51Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    }
+  ]
+}

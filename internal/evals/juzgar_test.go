@@ -58,13 +58,28 @@ const (
 )
 
 // Lo que juzgan la eval de la consulta repetida y sus sesiones de TestJuzgar,
-// construidas en memoria (contrato evals-y-skill §2 y §4 de H7).
+// construidas en memoria (contrato evals-y-skill §2 y §4 de H7; desde H7.2, con
+// la forma de la eval 19 del repositorio, contrato eval-y-derivada §1 y §5).
 const (
-	ficheroDeLaConsultaRepetida = "19-lpac-articulo-21-redaccion-cambiada.yaml"
+	ficheroDeLaConsultaRepetida = "19-lcsp-contrato-menor-redaccion-cambiada.yaml"
 
-	// textoDeLaComprobacion es el comando de comprobación de esa eval, y
-	// textoDeGraphShow, su prohibido, con el texto con el que los presentan el
-	// informe y los motivos.
+	// bloqueDelArticulo118 es el bloque que lee y cita esa eval, el art. 118 de
+	// la LCSP; ordenDelArticulo118 es la orden de su lectura, y
+	// textoDelComando118 y textoDeLaCita118, su comando esperado y su cita
+	// esperada, con el texto con el que los presenta el informe.
+	bloqueDelArticulo118 = "a1-30"
+	ordenDelArticulo118  = "boe articulo BOE-A-2017-12902 a1-30 --json"
+	textoDelComando118   = "bloque boe BOE-A-2017-12902 a1-30"
+	textoDeLaCita118     = "BOE-A-2017-12902 a1-30"
+
+	// respuestaSinLaCita118 habla del art. 118 de la LCSP sin citarlo, y
+	// respuestaConLaCita118 lleva además la cita esperada de esa eval.
+	respuestaSinLaCita118 = "El art\xc3\xadculo 118 de la LCSP regula el expediente de los contratos menores."
+	respuestaConLaCita118 = respuestaSinLaCita118 + "\n\n[BOE-A-2017-12902, bloque a1-30]"
+
+	// textoDeLaComprobacion es el comando de comprobación sin norma, el de la
+	// eval de H7, y textoDeGraphShow, el prohibido de esa eval, con el texto con
+	// el que los presentan el informe y los motivos.
 	textoDeLaComprobacion = "graph check"
 	textoDeGraphShow      = "graph show"
 
@@ -83,17 +98,37 @@ const (
 	versionObsoleta         = "version-obsoleta"
 	motivoDeVersionObsoleta = "forma de hallazgo ausente: version-obsoleta"
 
-	// textoDeLaComprobacionDeLaNorma es su comando de comprobación, con el texto
-	// con el que lo presentan el informe y los motivos; y
-	// ordenDeLaComprobacionDeLaNorma, la orden de la invocación de la skill que
-	// comprueba la memoria con la norma y el bloque que ha leído.
-	textoDeLaComprobacionDeLaNorma = "graph check BOE-A-2015-10565"
-	ordenDeLaComprobacionDeLaNorma = "graph check BOE-A-2015-10565 a21 --json"
+	// textoDeLaComprobacionDeLaNorma es su comando de comprobación, el de la
+	// consulta repetida desde H7.2, con el texto con el que lo presentan el
+	// informe y los motivos; y ordenDeLaComprobacionDeLaNorma, la orden de la
+	// invocación de la skill que comprueba la memoria con la norma y el bloque
+	// que ha leído.
+	textoDeLaComprobacionDeLaNorma = "graph check BOE-A-2017-12902"
+	ordenDeLaComprobacionDeLaNorma = "graph check BOE-A-2017-12902 a1-30 --json"
 
 	// trasladoDelCambio traslada el hallazgo con su forma fija, con el ejemplo de
 	// contrato evals-y-skill §4 de H7.1.
 	trasladoDelCambio = "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n con fecha de vigencia 20161002, " +
 		"la que se consult\xc3\xb3 antes, ha sido sustituida por la de 20250101, que es la que se cita."
+)
+
+// Lo que juzga TestJuzgarLasExpresionesProhibidas con la lista de
+// boe-legislacion (contrato lista-y-juicio §3 y §4 de H7.2).
+const (
+	// transicionDeLaMemoria es la frase de transición de las respuestas de H7.1
+	// que cuentan la comprobación (research, «Causa de raíz del ruido»): lleva
+	// memoria de consultas y hallazgos.
+	transicionDeLaMemoria = "Sin hallazgos en la memoria de consultas. Ya tengo todo lo necesario para responder."
+
+	// loDichoEnOtraConversacion atribuye a la skill algo dicho en otra
+	// conversación: lleva te confirmé.
+	loDichoEnOtraConversacion = "Como te confirmé, el plazo máximo para resolver es de tres meses."
+
+	// redaccionModificadaDeLaLCSP es la línea con la que la skill traslada
+	// version-obsoleta, con sus dos fechas: la del ejemplo del contrato
+	// lista-y-juicio §3, que no lleva ninguna expresión.
+	redaccionModificadaDeLaLCSP = "⚠ REDACCIÓN MODIFICADA: la redacción con fecha de vigencia 20180309, " +
+		"la que se consultó antes, ha sido sustituida por la de 20200206, que es la que se cita."
 )
 
 // elementosDelMunicipio son los elementos del territorio esperado de la eval del
@@ -571,7 +606,7 @@ func TestJuzgar(t *testing.T) {
 		},
 		{
 			nombre: "hallazgo-con-su-forma-fija",
-			juicios: []juicio{conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+			juicios: []juicio{conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConLaCita118, func(r *ResultadoDeEval) {
 				r.HallazgosEncontrados = []string{versionObsoleta}
 			})},
 		},
@@ -588,14 +623,14 @@ func TestJuzgar(t *testing.T) {
 		},
 		{
 			nombre:  "hallazgo-ausente",
-			juicios: []juicio{conHallazgo(t, respuestaConCita, versionObsoletaAusente)},
+			juicios: []juicio{conHallazgo(t, respuestaConLaCita118, versionObsoletaAusente)},
 		},
 		{
 			// El comando y la cita están, y la respuesta dice el cambio sin la
 			// forma fija: el hallazgo queda ausente.
 			nombre: "hallazgo-dicho-con-otras-palabras",
 			juicios: []juicio{conHallazgo(t,
-				"La redacci\xc3\xb3n ha cambiado desde la consulta anterior.\n\n"+respuestaConCita, versionObsoletaAusente)},
+				"La redacci\xc3\xb3n ha cambiado desde la consulta anterior.\n\n"+respuestaConLaCita118, versionObsoletaAusente)},
 		},
 		{
 			nombre:  "hallazgo-ausente-detras-de-la-cita-y-del-aviso",
@@ -694,13 +729,13 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 		},
 		{
 			nombre:      "encontrado",
-			juicio:      conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConCita, func(*ResultadoDeEval) {}),
+			juicio:      conHallazgo(t, trasladoDelCambio+"\n\n"+respuestaConLaCita118, func(*ResultadoDeEval) {}),
 			encontrados: `["version-obsoleta"]`,
 			ausentes:    "[]",
 		},
 		{
 			nombre:      "ausente",
-			juicio:      conHallazgo(t, respuestaConCita, func(*ResultadoDeEval) {}),
+			juicio:      conHallazgo(t, respuestaConLaCita118, func(*ResultadoDeEval) {}),
 			encontrados: "[]",
 			ausentes:    `["version-obsoleta"]`,
 		},
@@ -723,6 +758,256 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 			assert.Equal(t, caso.ausentes, string(crudo.Ausentes))
 		})
 	}
+}
+
+// TestJuzgarLasExpresionesProhibidas fija el juicio con la lista de expresiones
+// prohibidas de boe-legislacion, la del repositorio leída con LeerConjunto
+// (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052, FR-054, FR-083; SC-006;
+// US3.1 a US3.6): con la eval 01 del repositorio y una sesión que cumple todo lo
+// demás, cada expresión que lleva la respuesta, en el orden de la lista y con
+// las tolerancias de la forma fija de los avisos, va a las expresiones
+// prohibidas con su motivo y la eval no pasa; sin ninguna, o con la línea
+// ⚠ REDACCIÓN MODIFICADA: con sus dos fechas, pasa y la lista queda vacía. Los
+// motivos van detrás de los de Juzgar y delante del del modelo; una eval de no
+// activación y una de una skill sin lista se juzgan como antes del hito aunque
+// la respuesta las lleve; y el resultado escribe la clave detrás de
+// territorio_ausente, una lista vacía si no hay ninguna.
+func TestJuzgarLasExpresionesProhibidas(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+	require.NotEmpty(t, slices.Concat(conjunto.Prohibidas.Maquinaria, conjunto.Prohibidas.OtraConversacion),
+		"%s tiene su lista de expresiones prohibidas", evalsDelRepositorio)
+
+	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
+	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
+	require.Equal(t, conjunto.Prohibidas, positiva.Prohibidas, "%s lleva la lista de su carpeta", ficheroDeLaEval01)
+
+	t.Run("positiva", func(t *testing.T) {
+		t.Parallel()
+		juzgarLaPositivaConLaLista(t, positiva)
+	})
+
+	t.Run("detras-de-los-demas-motivos", func(t *testing.T) {
+		t.Parallel()
+		juzgarLosMotivosEnSuOrden(t, conjunto.Prohibidas)
+	})
+
+	t.Run("como-antes-del-hito", func(t *testing.T) {
+		t.Parallel()
+		juzgarComoAntesDelHito(t, conjunto)
+	})
+
+	t.Run("json", func(t *testing.T) {
+		t.Parallel()
+		codificarLasExpresionesDelResultado(t, positiva)
+	})
+}
+
+// juzgarLaPositivaConLaLista juzga la eval positiva con la lista y la sesión que
+// la pasa, con cada respuesta de la tabla delante de la cita: el resultado es el
+// de la sesión que pasa con las expresiones encontradas y sus motivos, y pasa solo
+// si no hay ninguna.
+func juzgarLaPositivaConLaLista(t *testing.T, positiva Eval) {
+	t.Helper()
+
+	encontradasEnLaTransicion := []string{"memoria de consultas", "hallazgos"}
+	motivosDeLaTransicion := []string{"expresión prohibida: memoria de consultas", "expresión prohibida: hallazgos"}
+
+	casos := []struct {
+		nombre      string
+		antes       string
+		encontradas []string
+		motivos     []string
+	}{
+		{nombre: "sin-expresiones"},
+		{
+			nombre:      "maquinaria",
+			antes:       transicionDeLaMemoria,
+			encontradas: encontradasEnLaTransicion,
+			motivos:     motivosDeLaTransicion,
+		},
+		{
+			nombre:      "otra-conversacion",
+			antes:       loDichoEnOtraConversacion,
+			encontradas: []string{"te confirmé"},
+			motivos:     []string{"expresión prohibida: te confirmé"},
+		},
+		{
+			nombre:      "otras-mayusculas",
+			antes:       "SIN HALLAZGOS EN LA MEMORIA DE CONSULTAS. Ya tengo todo lo necesario para responder.",
+			encontradas: encontradasEnLaTransicion,
+			motivos:     motivosDeLaTransicion,
+		},
+		{
+			// Dos espacios, tres y un espacio sin separación U+00A0.
+			nombre:      "espacios-de-mas",
+			antes:       "Sin  hallazgos en la memoria   de\xc2\xa0consultas. Ya tengo todo lo necesario para responder.",
+			encontradas: encontradasEnLaTransicion,
+			motivos:     motivosDeLaTransicion,
+		},
+		{
+			nombre:      "enfasis-alrededor",
+			antes:       "Sin hallazgos en la **memoria de consultas**. Ya tengo todo lo necesario para responder.",
+			encontradas: encontradasEnLaTransicion,
+			motivos:     motivosDeLaTransicion,
+		},
+		{
+			nombre:      "enfasis-entre-las-palabras",
+			antes:       "Sin _hallazgos_ en la *memoria* de _consultas_. Ya tengo todo lo necesario para responder.",
+			encontradas: encontradasEnLaTransicion,
+			motivos:     motivosDeLaTransicion,
+		},
+		{nombre: "redaccion-modificada", antes: redaccionModificadaDeLaLCSP},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta := respuestaConCita
+			if caso.antes != "" {
+				respuesta = caso.antes + "\n\n" + respuestaConCita
+			}
+
+			esperado := cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+				r.Respuesta = respuesta
+				r.ExpresionesProhibidas = caso.encontradas
+				r.Motivos = caso.motivos
+				r.Pasa = len(caso.encontradas) == 0
+			})
+
+			sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta })
+
+			assert.Equal(t, esperado, Juzgar(positiva, sesion, skillDeLasSesiones), "%s con la respuesta del caso",
+				positiva.Fichero)
+		})
+	}
+}
+
+// juzgarLosMotivosEnSuOrden juzga la eval del municipio cubierto con la lista
+// dada y una sesión que resuelve el municipio sin declarar su territorio y
+// responde con la transición de la memoria: los motivos de las expresiones van
+// detrás de los del territorio ausente, que son los últimos de antes del hito, y
+// delante del del modelo que la sesión declara sin ser el pedido.
+func juzgarLosMotivosEnSuOrden(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	eval := evalDelMunicipioCubierto()
+	sesion := sesionDeTerritorio(transicionDeLaMemoria, resuelveLeganes(t))
+
+	antes := Juzgar(eval, sesion, skillDeTerritorio)
+	require.Equal(t, prefijados(motivoDeTerritorioAusente, elementosDelMunicipio), antes.Motivos,
+		"sin la lista, los únicos motivos son los del territorio ausente")
+
+	eval.Prohibidas = lista
+	resultado := Juzgar(eval, sesion, skillDeTerritorio)
+	resultado.Modelo, resultado.ModeloDeLaSesion = modeloInformativoDelCaso, modeloDeLasSesiones
+	resultado.exigirElModeloPedido()
+
+	assert.Equal(t, []string{"memoria de consultas", "hallazgos"}, resultado.ExpresionesProhibidas)
+	assert.Equal(t, slices.Concat(antes.Motivos, []string{
+		"expresión prohibida: memoria de consultas",
+		"expresión prohibida: hallazgos",
+		motivoDeOtroModelo + modeloDeLasSesiones + ", y se pidió " + modeloInformativoDelCaso,
+	}), resultado.Motivos)
+	assert.False(t, resultado.Pasa)
+}
+
+// juzgarComoAntesDelHito juzga la eval de no activación del conjunto, que lleva
+// la lista de su carpeta, y la del municipio cubierto de legal-core, cuya carpeta
+// no tiene lista, con una sesión que cumple lo que esperan y con la misma sesión
+// con expresiones de las dos familias detrás de la respuesta: el resultado es el
+// mismo salvo la respuesta, sin ninguna expresión, y pasa.
+func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
+	t.Helper()
+
+	noActivacion := *evalDe(t, conjunto.Evals, ficheroDeNoActivacion)
+	require.False(t, noActivacion.Activa, "%s no espera que la skill se active", ficheroDeNoActivacion)
+	require.Equal(t, conjunto.Prohibidas, noActivacion.Prohibidas, "%s lleva la lista de su carpeta",
+		ficheroDeNoActivacion)
+
+	deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+	require.NoError(t, err)
+	require.Zero(t, deLegalCore.Prohibidas, "%s no tiene lista de expresiones prohibidas", evalsDeLegalCore)
+
+	municipio := *evalDe(t, deLegalCore.Evals, ficheroDelMunicipioCubierto)
+	require.True(t, municipio.Activa, "%s espera que la skill se active", ficheroDelMunicipioCubierto)
+
+	casos := []struct {
+		eval      Eval
+		skill     string
+		respuesta string
+		sesion    func(respuesta string) Sesion
+	}{
+		{
+			eval:      noActivacion,
+			skill:     skillDeLasSesiones,
+			respuesta: respuestaSinSkill,
+			sesion:    func(respuesta string) Sesion { return sesionTerminada(false, respuesta) },
+		},
+		{
+			eval:      municipio,
+			skill:     skillDeTerritorio,
+			respuesta: respuestaDelMunicipio,
+			sesion: func(respuesta string) Sesion {
+				return sesionDeTerritorio(respuesta, resuelveLeganes(t))
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		conExpresiones := caso.respuesta + "\n\n" + transicionDeLaMemoria + " " + loDichoEnOtraConversacion
+		require.NotEmpty(t, ExtraerExpresionesProhibidas(conExpresiones, conjunto.Prohibidas),
+			"la respuesta del caso de %s lleva expresiones de la lista", caso.eval.Fichero)
+
+		antes := Juzgar(caso.eval, caso.sesion(caso.respuesta), caso.skill)
+		require.True(t, antes.Pasa, "la sesión del caso de %s cumple lo que la eval espera", caso.eval.Fichero)
+
+		ahora := Juzgar(caso.eval, caso.sesion(conExpresiones), caso.skill)
+		assert.Nil(t, ahora.ExpresionesProhibidas, "%s no encuentra ninguna expresión", caso.eval.Fichero)
+
+		ahora.Respuesta = antes.Respuesta
+		assert.Equal(t, antes, ahora, "%s se juzga igual con expresiones de la lista en la respuesta", caso.eval.Fichero)
+	}
+}
+
+// codificarLasExpresionesDelResultado codifica, como lo codifica
+// EscribirInforme, el resultado de la eval positiva con la sesión que la pasa, sin
+// expresiones y con la transición de la memoria: expresiones_prohibidas va detrás
+// de territorio_ausente, una lista vacía, nunca null, si no hay ninguna.
+func codificarLasExpresionesDelResultado(t *testing.T, positiva Eval) {
+	t.Helper()
+
+	casos := []struct {
+		respuesta string
+		clave     string
+	}{
+		{respuesta: respuestaConCita, clave: `"territorio_ausente":[],"expresiones_prohibidas":[],`},
+		{
+			respuesta: transicionDeLaMemoria + "\n\n" + respuestaConCita,
+			clave:     `"territorio_ausente":[],"expresiones_prohibidas":["memoria de consultas","hallazgos"],`,
+		},
+	}
+
+	for _, caso := range casos {
+		sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = caso.respuesta })
+
+		codificado, err := json.Marshal(Juzgar(positiva, sesion, skillDeLasSesiones))
+		require.NoError(t, err)
+		assert.Contains(t, string(codificado), caso.clave)
+	}
+}
+
+// prefijados son los textos con el principio dado delante de cada uno.
+func prefijados(principio string, textos []string) []string {
+	con := make([]string, 0, len(textos))
+	for _, texto := range textos {
+		con = append(con, principio+texto)
+	}
+
+	return con
 }
 
 // territorioSatisface son los juicios de la eval del municipio cubierto con una
@@ -1226,66 +1511,67 @@ func derogadaAusente(t *testing.T, respuesta string) juicio {
 }
 
 // consultaRepetidaQuePasa es el juicio de la eval de la consulta repetida con una
-// sesión que comprueba el grafo antes y después de leer el bloque y lo cita: los
-// dos comandos quedan ejecutados, ningún prohibido y la eval pasa.
+// sesión que comprueba la memoria de la norma antes y después de leer el bloque y
+// lo cita: los dos comandos quedan ejecutados, ningún prohibido y la eval pasa.
 func consultaRepetidaQuePasa(t *testing.T) juicio {
 	t.Helper()
 
 	return juicio{
 		eval: evalDeLaConsultaRepetida(),
-		sesion: sesionTerminada(true, respuestaConCita,
-			compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), compruebaElGrafo(t, codigoDeSalida(0))),
+		sesion: sesionTerminada(true, respuestaConLaCita118,
+			compruebaLaNorma(t, codigoDeSalida(0)), leeElArticulo118(t), compruebaLaNorma(t, codigoDeSalida(0))),
 		esperado: resultadoDeLaConsultaRepetida(
-			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
-			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
-			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
 		),
 	}
 }
 
 // comprobacionAusente es el juicio de la eval de la consulta repetida con una
 // sesión que lee y cita el bloque y en la que ninguna invocación satisface la
-// comprobación: graph check con --describe o con --dry-run no consulta; con código
-// 7 no termina con 0, y va a las otras fallidas; y graph stats es otro verbo.
+// comprobación: graph check con la norma y --describe o --dry-run no consulta;
+// con código 7 no termina con 0, y va a las otras fallidas; y graph stats es otro
+// verbo.
 func comprobacionAusente(t *testing.T) juicio {
 	t.Helper()
 
 	const (
-		describe = "graph check --describe"
-		ensayo   = "graph check --dry-run"
+		describe = "graph check BOE-A-2017-12902 a1-30 --describe"
+		ensayo   = "graph check BOE-A-2017-12902 a1-30 --dry-run"
 		stats    = "graph stats --json"
 	)
 
 	return juicio{
 		eval: evalDeLaConsultaRepetida(),
-		sesion: sesionTerminada(true, respuestaConCita,
+		sesion: sesionTerminada(true, respuestaConLaCita118,
 			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(describe)...)),
 			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ensayo)...)),
-			compruebaElGrafo(t, codigoDeSalida(7)),
+			compruebaLaNorma(t, codigoDeSalida(7)),
 			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(stats)...)),
-			leeElArticulo21(t)),
+			leeElArticulo118(t)),
 		esperado: cambiado(resultadoDeLaConsultaRepetida(
 			InvocacionInformada{Orden: describe, Codigo: codigoDeSalida(0)},
 			InvocacionInformada{Orden: ensayo, Codigo: codigoDeSalida(0)},
-			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(7)},
+			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(7)},
 			InvocacionInformada{Orden: stats, Codigo: codigoDeSalida(0)},
-			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 		), func(r *ResultadoDeEval) {
-			r.ComandosEjecutados = []string{textoDelComando21}
-			r.ComandosAusentes = []string{textoDeLaComprobacion}
-			r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeLaComprobacion, Codigo: 7}}
-			r.Motivos = []string{"comando ausente: " + textoDeLaComprobacion}
+			r.ComandosEjecutados = []string{textoDelComando118}
+			r.ComandosAusentes = []string{textoDeLaComprobacionDeLaNorma}
+			r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: 7}}
+			r.Motivos = []string{"comando ausente: " + textoDeLaComprobacionDeLaNorma}
 			r.Pasa = false
 		}),
 	}
 }
 
 // prohibidoEjecutado son los juicios de la eval de la consulta repetida con
-// sesiones que comprueban el grafo, leen y citan el bloque y además piden su
-// ficha con graph show: con código 0; con código 3, que va a las otras fallidas,
-// y otra vez con código 0, que no lo ejecuta dos veces; y sin código, porque el
-// tope cortó la sesión. En los tres, graph show queda ejecutado una vez, con su
-// motivo detrás de los de antes, y la eval no pasa.
+// sesiones que comprueban la memoria de la norma, leen y citan el bloque y además
+// piden una ficha con graph show: con código 0; con código 3, que va a las otras
+// fallidas, y otra vez con código 0, que no lo ejecuta dos veces; y sin código,
+// porque el tope cortó la sesión. En los tres, graph show queda ejecutado una
+// vez, con su motivo detrás de los de antes, y la eval no pasa.
 func prohibidoEjecutado(t *testing.T) []juicio {
 	t.Helper()
 
@@ -1295,11 +1581,11 @@ func prohibidoEjecutado(t *testing.T) []juicio {
 		r.Pasa = false
 	}
 
-	comprobada := InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)}
-	leida := InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)}
+	comprobada := InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)}
+	leida := InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)}
 
-	cortada := cambiada(sesionTerminada(true, respuestaConCita,
-		compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), pideLaFicha(t, nil)), func(s *Sesion) {
+	cortada := cambiada(sesionTerminada(true, respuestaConLaCita118,
+		compruebaLaNorma(t, codigoDeSalida(0)), leeElArticulo118(t), pideLaFicha(t, nil)), func(s *Sesion) {
 		s.Codigo, s.Fin, s.Terminada, s.Cortada = 124, "assistant", false, true
 		s.MotivoSinTerminar = "tope de 240 s agotado (código 124)"
 	})
@@ -1307,15 +1593,15 @@ func prohibidoEjecutado(t *testing.T) []juicio {
 	return []juicio{
 		{
 			eval: evalDeLaConsultaRepetida(),
-			sesion: sesionTerminada(true, respuestaConCita,
-				compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+			sesion: sesionTerminada(true, respuestaConLaCita118,
+				compruebaLaNorma(t, codigoDeSalida(0)), leeElArticulo118(t), pideLaFicha(t, codigoDeSalida(0))),
 			esperado: cambiado(resultadoDeLaConsultaRepetida(comprobada, leida,
 				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)}), ejecutado),
 		},
 		{
 			eval: evalDeLaConsultaRepetida(),
-			sesion: sesionTerminada(true, respuestaConCita, compruebaElGrafo(t, codigoDeSalida(0)),
-				pideLaFicha(t, codigoDeSalida(3)), leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+			sesion: sesionTerminada(true, respuestaConLaCita118, compruebaLaNorma(t, codigoDeSalida(0)),
+				pideLaFicha(t, codigoDeSalida(3)), leeElArticulo118(t), pideLaFicha(t, codigoDeSalida(0))),
 			esperado: cambiado(resultadoDeLaConsultaRepetida(comprobada,
 				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(3)}, leida,
 				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)},
@@ -1346,10 +1632,10 @@ func prohibidoEjecutado(t *testing.T) []juicio {
 func prohibidoSinConsulta(t *testing.T) juicio {
 	t.Helper()
 
-	invocaciones := []Invocacion{compruebaElGrafo(t, codigoDeSalida(0)), leeElArticulo21(t)}
+	invocaciones := []Invocacion{compruebaLaNorma(t, codigoDeSalida(0)), leeElArticulo118(t)}
 	informadas := []InvocacionInformada{
-		{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
-		{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+		{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
+		{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 	}
 
 	for _, bandera := range []string{"--help", "-h", "--describe", "--dry-run"} {
@@ -1360,7 +1646,7 @@ func prohibidoSinConsulta(t *testing.T) juicio {
 
 	return juicio{
 		eval:     evalDeLaConsultaRepetida(),
-		sesion:   sesionTerminada(true, respuestaConCita, invocaciones...),
+		sesion:   sesionTerminada(true, respuestaConLaCita118, invocaciones...),
 		esperado: resultadoDeLaConsultaRepetida(informadas...),
 	}
 }
@@ -1374,21 +1660,21 @@ func otroQueElProhibido(t *testing.T) juicio {
 
 	const (
 		stats      = "graph stats --json"
-		otroApplet = "boe show BOE-A-2015-10565 --json"
+		otroApplet = "boe show BOE-A-2017-12902 --json"
 	)
 
 	return juicio{
 		eval: evalDeLaConsultaRepetida(),
-		sesion: sesionTerminada(true, respuestaConCita,
+		sesion: sesionTerminada(true, respuestaConLaCita118,
 			invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(stats)...)),
 			invocada(t, codigoDeSalida(2), deKitlegal(strings.Fields(otroApplet)...)),
-			compruebaElGrafo(t, codigoDeSalida(0)),
-			leeElArticulo21(t)),
+			compruebaLaNorma(t, codigoDeSalida(0)),
+			leeElArticulo118(t)),
 		esperado: cambiado(resultadoDeLaConsultaRepetida(
 			InvocacionInformada{Orden: stats, Codigo: codigoDeSalida(0)},
 			InvocacionInformada{Orden: otroApplet, Codigo: codigoDeSalida(2)},
-			InvocacionInformada{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
-			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 		), func(r *ResultadoDeEval) {
 			r.OtrasFallidas = []InvocacionFallida{{Orden: otroApplet, Codigo: 2}}
 		}),
@@ -1396,52 +1682,53 @@ func otroQueElProhibido(t *testing.T) juicio {
 }
 
 // prohibidoEntreAusentes es el juicio de la eval de la consulta repetida con una
-// sesión que lee el bloque y pide su ficha, sin comprobar el grafo ni citar el
+// sesión que lee el bloque y pide una ficha, sin comprobar la memoria ni citar el
 // bloque: el motivo del prohibido va detrás del de la comprobación ausente y
 // delante del de la cita ausente.
 func prohibidoEntreAusentes(t *testing.T) juicio {
 	t.Helper()
 
-	const respuesta = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver."
-
 	return juicio{
 		eval:   evalDeLaConsultaRepetida(),
-		sesion: sesionTerminada(true, respuesta, leeElArticulo21(t), pideLaFicha(t, codigoDeSalida(0))),
+		sesion: sesionTerminada(true, respuestaSinLaCita118, leeElArticulo118(t), pideLaFicha(t, codigoDeSalida(0))),
 		esperado: cambiado(resultadoDeLaConsultaRepetida(
-			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 			InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)},
 		), func(r *ResultadoDeEval) {
-			r.ComandosEjecutados = []string{textoDelComando21}
-			r.ComandosAusentes = []string{textoDeLaComprobacion}
+			r.ComandosEjecutados = []string{textoDelComando118}
+			r.ComandosAusentes = []string{textoDeLaComprobacionDeLaNorma}
 			r.ComandosProhibidosEjecutados = []string{textoDeGraphShow}
 			r.CitasEncontradas = nil
-			r.CitasAusentes = []string{textoDeLaCita21}
-			r.Respuesta = respuesta
+			r.CitasAusentes = []string{textoDeLaCita118}
+			r.Respuesta = respuestaSinLaCita118
 			r.Motivos = []string{
-				"comando ausente: " + textoDeLaComprobacion,
+				"comando ausente: " + textoDeLaComprobacionDeLaNorma,
 				"comando prohibido ejecutado: " + textoDeGraphShow,
-				"cita ausente: " + textoDeLaCita21,
+				"cita ausente: " + textoDeLaCita118,
 			}
 			r.Pasa = false
 		}),
 	}
 }
 
-// evalDeLaConsultaRepetida es la eval del contrato evals-y-skill §4 de H7: el
-// grafo previo con el bloque a21 de la Ley 39/2015, la lectura de ese bloque y la
-// comprobación del grafo, graph show prohibido y la cita del bloque.
+// evalDeLaConsultaRepetida es la eval del contrato evals-y-skill §4 de H7 con la
+// forma de la eval 19 del repositorio (contrato eval-y-derivada §1 de H7.2), sin
+// el hallazgo esperado: el grafo previo con el bloque a1-30 de la LCSP, la
+// lectura de ese bloque y la comprobación de la memoria con su norma, graph show
+// prohibido y la cita del bloque.
 func evalDeLaConsultaRepetida() Eval {
-	bloque := ComandoEsperado{Applet: "boe", Norma: normaDeLasTrazas, Bloque: "a21"}
+	bloque := ComandoEsperado{Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}
 
 	return Eval{
-		Fichero:     ficheroDeLaConsultaRepetida,
-		Pregunta:    "Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?",
+		Fichero: ficheroDeLaConsultaRepetida,
+		Pregunta: "Hace tiempo te pregunt\xc3\xa9 qu\xc3\xa9 exige el art\xc3\xadculo 118 de la LCSP para el expediente " +
+			"de un contrato menor. \xc2\xbfQu\xc3\xa9 dice ahora?",
 		Activa:      true,
 		Informativa: true,
-		GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: []ComandoEsperado{bloque}},
-		Comandos:    []ComandoEsperado{bloque, {Applet: "graph", Verbo: "check"}},
+		GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: []ComandoEsperado{bloque}},
+		Comandos:    []ComandoEsperado{bloque, {Applet: "graph", Verbo: "check", Norma: normaDeLaLCSP}},
 		Prohibidos:  []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
-		Citas:       []CitaEsperada{{Norma: normaDeLasTrazas, Bloque: "a21"}},
+		Citas:       []CitaEsperada{{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
 	}
 }
 
@@ -1454,10 +1741,10 @@ func resultadoDeLaConsultaRepetida(informadas ...InvocacionInformada) ResultadoD
 		Eval:               ficheroDeLaConsultaRepetida,
 		Activa:             true,
 		Activada:           true,
-		ComandosEjecutados: []string{textoDelComando21, textoDeLaComprobacion},
-		CitasEncontradas:   []string{textoDeLaCita21},
+		ComandosEjecutados: []string{textoDelComando118, textoDeLaComprobacionDeLaNorma},
+		CitasEncontradas:   []string{textoDeLaCita118},
 		Invocaciones:       informadas,
-		Respuesta:          respuestaConCita,
+		Respuesta:          respuestaConLaCita118,
 		CodigoDeLaSesion:   codigoDeSalida(0),
 		FinDeLaSesion:      "result success",
 		SesionTerminada:    true,
@@ -1465,8 +1752,8 @@ func resultadoDeLaConsultaRepetida(informadas ...InvocacionInformada) ResultadoD
 	}
 }
 
-// compruebaElGrafo es la invocación de la skill que comprueba el grafo, con el
-// código dado.
+// compruebaElGrafo es la invocación de la skill que comprueba el grafo sin
+// norma, con el código dado.
 func compruebaElGrafo(t *testing.T, codigo *int) Invocacion {
 	t.Helper()
 
@@ -1481,15 +1768,19 @@ func pideLaFicha(t *testing.T, codigo *int) Invocacion {
 	return invocada(t, codigo, deKitlegal(strings.Fields(ordenDeGraphShow)...))
 }
 
-// evalDeLaRedaccionCambiada es la eval del contrato evals-y-skill §5 de H7.1: la
-// de la consulta repetida con la norma en su comando de comprobación y el
+// leeElArticulo118 es la invocación de la skill que lee el bloque de la eval de
+// la consulta repetida y termina con código 0.
+func leeElArticulo118(t *testing.T) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigoDeSalida(0), deLaSkill("articulo", normaDeLaLCSP, bloqueDelArticulo118, "--json"))
+}
+
+// evalDeLaRedaccionCambiada es la eval del contrato evals-y-skill §5 de H7.1,
+// como la eval 19 del repositorio desde H7.2: la de la consulta repetida con el
 // hallazgo version-obsoleta esperado.
 func evalDeLaRedaccionCambiada() Eval {
 	eval := evalDeLaConsultaRepetida()
-	eval.Comandos = []ComandoEsperado{
-		{Applet: "boe", Norma: normaDeLasTrazas, Bloque: "a21"},
-		{Applet: "graph", Verbo: "check", Norma: normaDeLasTrazas},
-	}
 	eval.Hallazgos = []string{versionObsoleta}
 
 	return eval
@@ -1504,12 +1795,11 @@ func conHallazgo(t *testing.T, respuesta string, cambiar func(*ResultadoDeEval))
 
 	return juicio{
 		eval:   evalDeLaRedaccionCambiada(),
-		sesion: sesionTerminada(true, respuesta, leeElArticulo21(t), compruebaLaNorma(t)),
+		sesion: sesionTerminada(true, respuesta, leeElArticulo118(t), compruebaLaNorma(t, codigoDeSalida(0))),
 		esperado: cambiado(resultadoDeLaConsultaRepetida(
-			InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
 		), func(r *ResultadoDeEval) {
-			r.ComandosEjecutados = []string{textoDelComando21, textoDeLaComprobacionDeLaNorma}
 			r.Respuesta = respuesta
 			cambiar(r)
 		}),
@@ -1525,7 +1815,7 @@ func hallazgoTolerado(t *testing.T, traslados ...string) []juicio {
 	juicios := make([]juicio, 0, len(traslados))
 
 	for _, traslado := range traslados {
-		juicios = append(juicios, conHallazgo(t, traslado+"\n\n"+respuestaConCita, func(r *ResultadoDeEval) {
+		juicios = append(juicios, conHallazgo(t, traslado+"\n\n"+respuestaConLaCita118, func(r *ResultadoDeEval) {
 			r.HallazgosEncontrados = []string{versionObsoleta}
 		}))
 	}
@@ -1548,13 +1838,11 @@ func versionObsoletaAusente(r *ResultadoDeEval) {
 func hallazgoDetrasDeLosAusentes(t *testing.T) juicio {
 	t.Helper()
 
-	const respuesta = "El art\xc3\xadculo 21 de la Ley 39/2015 regula la obligaci\xc3\xb3n de resolver."
-
-	caso := conHallazgo(t, respuesta, func(r *ResultadoDeEval) {
+	caso := conHallazgo(t, respuestaSinLaCita118, func(r *ResultadoDeEval) {
 		r.CitasEncontradas = nil
-		r.CitasAusentes = []string{textoDeLaCita21}
+		r.CitasAusentes = []string{textoDeLaCita118}
 		r.AvisosAusentes = []string{"derogada"}
-		r.Motivos = []string{"cita ausente: " + textoDeLaCita21, "aviso ausente: derogada"}
+		r.Motivos = []string{"cita ausente: " + textoDeLaCita118, "aviso ausente: derogada"}
 		versionObsoletaAusente(r)
 	})
 	caso.eval.Avisos = []string{"derogada"}
@@ -1566,25 +1854,31 @@ func hallazgoDetrasDeLosAusentes(t *testing.T) juicio {
 // traslada el cambio con su forma fija y comprueba la memoria de otra norma y sin
 // norma, sin comprobarla de la suya: con la eval de la redacción cambiada, su
 // comando de comprobación queda ausente con su motivo y la eval no pasa, aunque
-// el hallazgo esté; con la de la consulta repetida de H7, cuya comprobación no
-// lleva norma, cualquiera de las dos la satisface y la eval pasa.
+// el hallazgo esté; con la de la consulta repetida con la comprobación de H7, que
+// no lleva norma, cualquiera de las dos la satisface y la eval pasa.
 func comprobacionConOtraNorma(t *testing.T) []juicio {
 	t.Helper()
 
 	const (
-		otraNorma = "graph check BOE-A-2017-12902 --json"
-		respuesta = trasladoDelCambio + "\n\n" + respuestaConCita
+		otraNorma = "graph check BOE-A-2015-10565 --json"
+		respuesta = trasladoDelCambio + "\n\n" + respuestaConLaCita118
 	)
 
 	sesion := sesionTerminada(true, respuesta,
-		leeElArticulo21(t),
+		leeElArticulo118(t),
 		invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(otraNorma)...)),
 		compruebaElGrafo(t, codigoDeSalida(0)))
 
 	informadas := []InvocacionInformada{
-		{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+		{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 		{Orden: otraNorma, Codigo: codigoDeSalida(0)},
 		{Orden: ordenDeLaComprobacion, Codigo: codigoDeSalida(0)},
+	}
+
+	// La comprobación de H7 no lleva norma (contrato evals-y-skill §4 de H7).
+	conLaComprobacionDeH7 := evalDeLaConsultaRepetida()
+	conLaComprobacionDeH7.Comandos = []ComandoEsperado{
+		conLaComprobacionDeH7.Comandos[0], {Applet: "graph", Verbo: "check"},
 	}
 
 	return []juicio{
@@ -1592,7 +1886,7 @@ func comprobacionConOtraNorma(t *testing.T) []juicio {
 			eval:   evalDeLaRedaccionCambiada(),
 			sesion: sesion,
 			esperado: cambiado(resultadoDeLaConsultaRepetida(informadas...), func(r *ResultadoDeEval) {
-				r.ComandosEjecutados = []string{textoDelComando21}
+				r.ComandosEjecutados = []string{textoDelComando118}
 				r.ComandosAusentes = []string{textoDeLaComprobacionDeLaNorma}
 				r.HallazgosEncontrados = []string{versionObsoleta}
 				r.Respuesta = respuesta
@@ -1601,9 +1895,10 @@ func comprobacionConOtraNorma(t *testing.T) []juicio {
 			}),
 		},
 		{
-			eval:   evalDeLaConsultaRepetida(),
+			eval:   conLaComprobacionDeH7,
 			sesion: sesion,
 			esperado: cambiado(resultadoDeLaConsultaRepetida(informadas...), func(r *ResultadoDeEval) {
+				r.ComandosEjecutados = []string{textoDelComando118, textoDeLaComprobacion}
 				r.Respuesta = respuesta
 			}),
 		},
@@ -1611,12 +1906,12 @@ func comprobacionConOtraNorma(t *testing.T) []juicio {
 }
 
 // compruebaLaNorma es la invocación de la skill que comprueba la memoria de la
-// norma de la eval de la redacción cambiada con el bloque que ha leído, y termina
-// con código 0.
-func compruebaLaNorma(t *testing.T) Invocacion {
+// norma de la eval de la consulta repetida con el bloque que ha leído, con el
+// código dado.
+func compruebaLaNorma(t *testing.T, codigo *int) Invocacion {
 	t.Helper()
 
-	return invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ordenDeLaComprobacionDeLaNorma)...))
+	return invocada(t, codigo, deKitlegal(strings.Fields(ordenDeLaComprobacionDeLaNorma)...))
 }
 
 // deKitlegal es el argv con el que la skill invoca un applet por el binario

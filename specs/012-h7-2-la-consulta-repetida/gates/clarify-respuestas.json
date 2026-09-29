@@ -1,0 +1,44 @@
+{
+  "respuestas": [
+    {
+      "id": "Q1",
+      "opcion": "A",
+      "respuesta": "Cada conversación es una invocación no interactiva de Claude Code: `claude -p` con la pregunta literal de la eval nueva, sin `--continue` ni `--resume`, de modo que la segunda es una conversación nueva, lanzada desde el directorio de trabajo del escenario y con `KITLEGAL_CACHE_DIR` en el directorio temporal preparado. Cada invocación escribe su salida en un fichero propio de ese directorio temporal, y la comprobación mecánica (FR-061) lee de él la respuesta final de la sesión, la misma que juzgaría el job. La persona solo ejecuta las órdenes del quickstart: no escribe ni copia nada a mano. El plan fija las banderas exactas (modelo, los permisos justos para que la sesión ejecute `kitlegal`, formato de salida y de dónde se toma la respuesta final).",
+      "criterio": "a",
+      "fuente": "docs/ROADMAP.md, H7.2, Alcance, «Escenario de quickstart»: «El quickstart fija las órdenes y una comprobación mecánica de las dos salidas […] con órdenes que cualquiera repite»; spec FR-060 («Sus órdenes MUST poder repetirse tal cual»), FR-061 y US5; scripts/evals.sh (las sesiones del job son `claude -p` con la pregunta de la eval).",
+      "alternativa_rechazada": "B (sesión interactiva y copiar la respuesta a un fichero): no son órdenes que se repitan tal cual, como piden el hito y FR-060; depende de un paso manual que puede alterar el texto que se compara —la interfaz interactiva presenta el Markdown ya renderizado—, así que la comprobación no leería necesariamente lo que produjo el modelo. C (las dos formas): duplica el escenario y su documentación sin que ninguna fuente lo pida; la forma interactiva sigue sin ser repetible tal cual, y aceptar respuestas de dos orígenes abre dos caminos que comprobar para el mismo resultado.",
+      "conservadora": false,
+      "impacto": "alcance"
+    },
+    {
+      "id": "Q2",
+      "opcion": "A",
+      "respuesta": "Solo dentro del directorio temporal del escenario. El binario se construye desde la rama del hito en ese directorio y va primero en el PATH de las órdenes del escenario, de modo que la skill invoca ese `kitlegal` desde el PATH, como lo invocan las skills (ADR 0019). La skill se instala con ese mismo binario, `kitlegal skills install --host claude`, en ámbito local, en el directorio de trabajo de las conversaciones (`.agents/skills/` y el enlace relativo en `.claude/skills/`). Nada cambia fuera del directorio temporal: ni la instalación de kitlegal de la persona, ni las skills de su cuenta, ni el árbol, el índice o el historial de git (FR-060); tampoco quedan las conversaciones guardadas fuera de él (el job ya las abre sin persistencia de sesión). Como el escenario tiene que ejercer «el binario y la skill del hito» (FR-060), el plan fija cómo se garantiza que la conversación carga la skill instalada en ese directorio y no otra con el mismo nombre que la persona tenga en su cuenta (por ejemplo, la de una release anterior).",
+      "criterio": "c",
+      "fuente": "spec FR-060, US5 y Assumptions; CLAUDE.md, «Decisiones ya tomadas», Distribución (ADR 0019): `kitlegal skills install` instala en local por defecto y enlaza `--host claude` en `.claude/skills/` con un enlace relativo, las skills invocan `kitlegal` desde el PATH y «`make install` es solo el bucle de desarrollo».",
+      "alternativa_rechazada": "B (instalación global con `-g --host claude` y el binario en el PATH de la persona): sustituye la instalación de kitlegal de la persona hasta que la reinstale y cambia lo que ven todas sus demás sesiones y proyectos, un efecto fuera del escenario que ninguna fuente pide; el escenario tiene que poder repetirlo cualquiera (US5) sin dejar su máquina distinta. C (`make install` como requisito previo): CLAUDE.md lo reserva al bucle de desarrollo, instala en global con los mismos efectos que B y hace que el escenario dependa del entorno de desarrollo de quien lo ejecuta y no solo de las órdenes del quickstart.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q3",
+      "opcion": "A",
+      "respuesta": "Un punto de entrada de prueba de `internal/evals` con la etiqueta de compilación `evals`, invocado desde el quickstart con `go test -tags evals -run '^…$' ./internal/evals/ -args …`, como `TestPrepararSesion`, que el escenario ya usa para preparar el directorio con la misma preparación que el job (FR-060). Lee las dos respuestas guardadas y comprueba las tres condiciones de FR-061 con el mismo código que el job: la lista de la skill con su comparación de FR-051, y la comparación por la forma de `⚠ REDACCIÓN MODIFICADA:` que existe desde H7.1, más las dos fechas en la misma línea; dice cuál de las tres condiciones falla, si alguna. No añade criterios a `Juzgar`, no cambia el formato común de eval ni el informe del job, y queda fuera de `make ci` y del run (FR-062). Aplica la lista y su comparación a dos respuestas, que es lo que FR-061 pide («comparada como en FR-051»), así que cabe en el límite de FR-056 (la lista, FR-050 a FR-055). El plan fija su nombre y sus banderas.",
+      "criterio": "c",
+      "fuente": "spec FR-051, FR-056, FR-060, FR-061 y FR-062; internal/evals/job_test.go (TestPlanDeSesiones, TestPrepararSesion y TestInformeDelJob: puntos de entrada con la etiqueta `evals` invocados con `go test … -args`, fuera de `make ci`); constitución, «Criterio de decisión autónoma», punto 1 (ni atajos ni ñapas).",
+      "alternativa_rechazada": "B (órdenes de shell en quickstart.md con las expresiones y la tolerancia replicadas): dos copias de la lista y de su comparación que pueden divergir sin que nada lo detecte, con lo que la comprobación dejaría de ser «como en FR-051» (FR-061); la tolerancia a énfasis de Markdown y a mayúsculas con tildes no se reproduce con fidelidad con `grep` y cambia entre implementaciones (BSD en macOS, GNU en Linux), así que las órdenes no darían lo mismo en cualquier máquina; es una réplica, un atajo que la constitución descarta. C (guion nuevo bajo `scripts/`): o reimplementa la comparación fuera de Go, con el mismo problema que B aunque versionado, o acaba invocando el código de Go, y entonces es una capa más sin función propia.",
+      "conservadora": false,
+      "impacto": "alcance"
+    },
+    {
+      "id": "Q4",
+      "opcion": "B",
+      "respuesta": "Se aplica y se publica, pero no entra en el recuento por modelo. La sesión de la prueba de red se juzga con la eval 01, que activa la skill, así que `Juzgar` le aplica la lista como a cualquier sesión (FR-052) y el informe publica sus expresiones encontradas, como las de cada sesión (FR-053; Aceptación del hito: «cada sesión publica sus expresiones prohibidas»). El recuento por modelo frente al umbral (FR-053, SC-001) se hace sobre las sesiones de las series que pide el plan —con el conjunto actual, 51 respuestas de Sonnet 5 y 30 de Haiku 4.5—, sin la de la prueba de red, que el informe ya trata como una serie no planificada que no decide. Si su respuesta lleva expresiones de la lista —la pregunta ampliada pide decir qué devolvieron dos órdenes—, esa sesión no pasa y sus expresiones quedan a la vista junto a su tasa, sin decidir; lo que de ella decide el veredicto sigue siendo solo que `red` esté vacío. La ejecución de cierre no la incluye: `scripts/workflow/cierre.sh` pone solo la etiqueta `evals`.",
+      "criterio": "c",
+      "fuente": "spec FR-052, FR-053, FR-054 y SC-001; docs/ROADMAP.md, H7.2, «Umbral» (2 de 51 con Sonnet 5 y 1 de 30 con Haiku 4.5 con el conjunto actual); specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md §6, enmienda del ADR 0016 (la sesión se juzga con la eval 01, forma una serie que el plan no pide, no decide y «no mide la calidad de la skill sino la garantía de red»); internal/evals/plan.go (PruebaDeRed) e informe.go (series no planificadas con pregunta ampliada); .github/workflows/evals.yml (etiqueta `evals-prueba-de-red` y entrada `prueba_de_red`, la vía real) y scripts/workflow/cierre.sh.",
+      "alternativa_rechazada": "A (no aplicarla ni publicarla): contradice FR-052 («a cada sesión de cada eval de esa skill que activa la skill») y FR-053 («por sesión»), y exige una excepción para esa sesión en `Juzgar` o en el informe que el hito no pide y que FR-056 no deja añadir. C (contarla, 52 respuestas de Sonnet 5): mete en la medida de la skill una sesión cuya pregunta amplía el job para pedir justo lo que la lista prohíbe (lo que devuelven dos órdenes con `--json`), que según el contrato del job no mide la calidad de la skill; consumiría casi siempre una de las 2 respuestas que admite el umbral y haría que el recuento de dos jobs sobre el mismo commit dependiera de la etiqueta con que se lanzan.",
+      "conservadora": false,
+      "impacto": "skill"
+    }
+  ]
+}

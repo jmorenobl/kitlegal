@@ -28,20 +28,22 @@ const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
-// una cita, un aviso, un hallazgo o un elemento del territorio ausentes, y el de
-// un comando prohibido ejecutado, van seguidos de su texto, el mismo con el que
-// los presenta el informe, que en un aviso es su código y en un hallazgo, su clase
-// (contrato de formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6;
-// contrato evals-y-skill §2 de H7 y de H7.1).
+// una cita, un aviso, un hallazgo o un elemento del territorio ausentes, el de un
+// comando prohibido ejecutado y el de una expresión prohibida, van seguidos de su
+// texto, el mismo con el que los presenta el informe, que en un aviso es su código,
+// en un hallazgo, su clase, y en una expresión, la de la lista (contrato de
+// formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6; contrato
+// evals-y-skill §2 de H7 y de H7.1; contrato lista-y-juicio §4 de H7.2).
 const (
-	motivoDeSesionSinTerminar = "la sesión no terminó: "
-	motivoDeComandoAusente    = "comando ausente: "
-	motivoDeComandoProhibido  = "comando prohibido ejecutado: "
-	motivoDeCitaAusente       = "cita ausente: "
-	motivoDeAvisoAusente      = "aviso ausente: "
-	motivoDeHallazgoAusente   = "forma de hallazgo ausente: "
-	motivoDeTerritorioAusente = "territorio ausente: "
-	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
+	motivoDeSesionSinTerminar  = "la sesión no terminó: "
+	motivoDeComandoAusente     = "comando ausente: "
+	motivoDeComandoProhibido   = "comando prohibido ejecutado: "
+	motivoDeCitaAusente        = "cita ausente: "
+	motivoDeAvisoAusente       = "aviso ausente: "
+	motivoDeHallazgoAusente    = "forma de hallazgo ausente: "
+	motivoDeTerritorioAusente  = "territorio ausente: "
+	motivoDeExpresionProhibida = "expresión prohibida: "
+	motivoDeOtroModelo         = "la sesión no declara el modelo que se le pidió: "
 )
 
 // ResultadoDeEval es el juicio de una sesión con su eval (data-model §10.2): lo
@@ -114,6 +116,13 @@ type ResultadoDeEval struct {
 	TerritorioEncontrado []string `json:"territorio_encontrado"`
 	TerritorioAusente    []string `json:"territorio_ausente"`
 
+	// ExpresionesProhibidas son las expresiones de la lista de la eval que lleva
+	// la respuesta (ExtraerExpresionesProhibidas), en el orden de la lista —la
+	// maquinaria y después lo dicho en otra conversación— y cada una una vez.
+	// Vacía si no lleva ninguna, si la eval no espera que la skill se active o si
+	// su skill no tiene lista (contrato lista-y-juicio §4 de H7.2; FR-052).
+	ExpresionesProhibidas []string `json:"expresiones_prohibidas"`
+
 	// Invocaciones son todas las invocaciones de applet de la sesión, en su
 	// orden.
 	Invocaciones []InvocacionInformada `json:"invocaciones"`
@@ -150,15 +159,16 @@ type ResultadoDeEval struct {
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
 	// activación que no coincide; cada comando ausente; cada comando prohibido
 	// ejecutado; cada cita ausente; cada aviso ausente; cada hallazgo ausente; cada
-	// elemento del territorio ausente; y el modelo que la sesión declara sin ser el
-	// pedido, que pone EscribirInforme. Vacío si pasa.
+	// elemento del territorio ausente; cada expresión prohibida; y el modelo que la
+	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa.
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no falta ningún
 	// comando, ninguna cita, ningún aviso, ningún hallazgo ni ningún elemento del
-	// territorio esperados y no se ejecutó ningún comando prohibido. No lo cambian
-	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
-	// de un aviso o de un hallazgo que la eval no espera.
+	// territorio esperados, no se ejecutó ningún comando prohibido y la respuesta
+	// no lleva ninguna expresión prohibida. No lo cambian FueraDeLoGrabado,
+	// OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija de un aviso o de un
+	// hallazgo que la eval no espera.
 	Pasa bool `json:"pasa"`
 }
 
@@ -236,6 +246,12 @@ type LlegadaALaRed struct {
 // que lleva norma exige además que la invocación la consulte. Una eval sin
 // hallazgos deja vacíos los dos y su juicio es el de antes (contrato
 // evals-y-skill §2 de H7.1; FR-050 a FR-052).
+//
+// Desde H7.2, en una eval que espera que la skill se active, anota además cada
+// expresión de su lista que lleva la respuesta (ExtraerExpresionesProhibidas),
+// con su motivo detrás de los del territorio, y una encontrada impide pasar. Una
+// eval de no activación, o la de una skill sin lista, deja vacía la lista y su
+// juicio es el de antes (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -265,6 +281,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	resultado.HallazgosEncontrados, resultado.HallazgosAusentes = resultado.repartirFormas(eval.Hallazgos,
 		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
+	resultado.anotarExpresionesProhibidas(eval, sesion.Respuesta)
 
 	for _, invocacion := range sesion.Invocaciones {
 		resultado.informar(invocacion)
@@ -273,7 +290,8 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
 		len(resultado.ComandosAusentes) == 0 && len(resultado.ComandosProhibidosEjecutados) == 0 &&
 		len(resultado.CitasAusentes) == 0 && len(resultado.AvisosAusentes) == 0 &&
-		len(resultado.HallazgosAusentes) == 0 && len(resultado.TerritorioAusente) == 0
+		len(resultado.HallazgosAusentes) == 0 && len(resultado.TerritorioAusente) == 0 &&
+		len(resultado.ExpresionesProhibidas) == 0
 
 	return resultado
 }
@@ -398,6 +416,23 @@ func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsper
 
 		r.TerritorioAusente = append(r.TerritorioAusente, elemento)
 		r.Motivos = append(r.Motivos, motivoDeTerritorioAusente+elemento)
+	}
+}
+
+// anotarExpresionesProhibidas anota, con su motivo, cada expresión de la lista de
+// la eval que lleva la respuesta, si la eval espera que la skill se active: la
+// lista es de lo que no dice la respuesta de la skill, y una eval de no activación
+// no la juzga (FR-052). Con la lista vacía, la de una skill sin lista, no anota
+// nada.
+func (r *ResultadoDeEval) anotarExpresionesProhibidas(eval Eval, respuesta string) {
+	if !eval.Activa {
+		return
+	}
+
+	r.ExpresionesProhibidas = ExtraerExpresionesProhibidas(respuesta, eval.Prohibidas)
+
+	for _, expresion := range r.ExpresionesProhibidas {
+		r.Motivos = append(r.Motivos, motivoDeExpresionProhibida+expresion)
 	}
 }
 

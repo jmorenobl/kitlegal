@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ronda 2. gates/ci.log:1-96 en verde («ci: todos los controles en verde», exit=0; gitleaks a las 4:04PM, después del commit ef18b8a de las 15:16) con el guardián global sobre 11 ficheros: los 6 modificados de la corrección (cierre.md, gates/base-global, gates/supuestos.md, plan.md, quickstart.md, research.md) y los 5 sin versionar de gates/ (revision-a*.json, revision-b*.json, revision-rondas), es decir, el log es del árbol corregido. Reproducido en un clon fuera del repo (/tmp/juezb2.6yI9/ci, clon de ef18b8a con los 6 ficheros corregidos copiados encima): `make ci` termina con «ci: todos los controles en verde» y exit=0 (lint 0 issues, test -race con internal/evals 99,0 % e internal/app 96,3 %, test-integration, test-tiempos, vuln, schema-check, skills-check, goreleaser check, gitleaks, go mod verify y tidy). Árbol: `git status --porcelain` solo lista la corrección y los veredictos, todo bajo specs/012-…; no hay commit «fix(H7.2): motivos de la revisión final» porque scripts/workflow/global.sh cerrar (líneas 43-48) no commitea cuando no hay cambios fuera del directorio del feature («los registros de gates/ los versiona el paso siguiente que commitee»), así que el estado es el que el workflow espera. HEAD sigue siendo ef18b8a, con merge-base e523381 = main."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El código y los tests son los mismos de la ronda 1 (HEAD ef18b8a sin cambios; la corrección solo toca specs/012-…), donde 16 mutantes fueron detectados por su test dirigido. Repetidos en esta ronda en un clon desechable (/tmp/juezb2.6yI9/mut): `(?i:)`→`(?:)` en prohibidas.go:129 → TestExtraerExpresionesProhibidas/mayusculas y mayusculas-con-tilde y TestJuzgarLasExpresionesProhibidas/positiva («expected [memoria de consultas hallazgos], actual nil»); sin `contieneComoPalabra(linea, leida)` en consulta_repetida.go:79 → TestCondicionesDeLaConsultaRepetida/la-forma-con-una-sola-fecha-en-su-linea. Ningún t.Skip. Suite de aceptación congelada: no la hay ni la exige el plan («Aceptación e2e: no aplica», plan.md:148-160): el binario no cambia y la aceptación mecánica son los tests de make ci que enumera, todos en verde en el clon. La comprobación del quickstart, TestComprobarConsultaRepetida, ejercida de verdad sin modelo en el clon con el bloque literal del §6 (quickstart.md:82-121) y `claude` sustituido por una función que escribe un transcript stream-json: en bash y en zsh da `--- PASS` con «se cumplen las tres condiciones…» sobre dos respuestas sintéticas (la primera con la forma y las dos fechas, la segunda sin ella)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: `git diff --name-only main...HEAD -- cmd internal ':!internal/evals' ':!*_test.go'` vacío (el binario no cambia); grep sobre las líneas añadidas del diff sin net/http, os.Exit, fmt.Print*, http.Get/Post ni exec.Command; internal/evals sigue leyendo el grafo con graph.Leer y ejecutando graph check en proceso con app.Main (conjunto_test.go), como preparar_test.go ya hacía. golangci-lint con la etiqueta evals: 0 issues (gates/ci.log:9; reproducido en el clon, ci-full.log:7). La corrección no toca ningún .go."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: ninguna salida de applet nueva ni cambiada; schema-check en verde (gates/ci.log:68-69 y en el clon). El esquema nuevo, schemas/expresiones-prohibidas.yaml.json, no sale de --describe: lo fija TestEsquemaDeExpresionesProhibidas (formato_test.go) y lo aplica LeerConjunto por leerExpresionesProhibidas (prohibidas.go:59-71). Las lecturas en proceso de compruebaLaSesion (conjunto_test.go) parsean el sobre real de boe articulo y graph check."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: ningún código de salida nuevo ni cambiado (el binario no cambia). Una lista que no es fichero regular, no se puede leer o no valida es un FicheroMalFormado cuyo error empieza por expresiones-prohibidas.yaml (conjunto.go, prohibidas.go:59-71), sin panic (TestLeerConjunto, TestInformeConListaMalFormada → veredicto `fallo`, FR-055). En la reproducción del §6, la preparación (TestPrepararSesion), `kitlegal skills install boe-legislacion --host claude` con el binario de la rama y la comprobación terminan con 0 y sesion.err vacío."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md [Unreleased], CONTRIBUTING.md, sin ADR (FR-070) y docs/SOURCES.md sin tocar: como en la ronda 1, sin cambios. El motivo [f] del juez A está corregido y lo que la corrección afirma lo sostiene el producto y Claude Code: (1) quickstart.md:85-88 y 100-116 pasan a las conversaciones `CLAUDE_ENV_FILE=\"$d/entorno.sh\"` con `export PATH=\"$d/bin:$PATH\"` y, antes, resuelven `kitlegal` con `\"${SHELL:-/bin/sh}\" -l -i -c '. \"$CLAUDE_ENV_FILE\" && command -v kitlegal'` y no abren ninguna si no es `\"$d/bin/kitlegal\"` (quickstart.md:128-130, 132-137); research D17 (research.md:358-360, 368-372, 400-415, 423-425), V24 (research.md:503), plan.md:34-38, cierre.md:132-135 y el supuesto [comportamiento] corrector_revision de gates/supuestos.md:6 lo dicen igual. (2) Comprobado en el binario instalado, ~/.local/bin/claude → versions/2.1.284: la función iJe lee `a.CLAUDE_ENV_FILE` del entorno del proceso y registra «Session environment loaded from CLAUDE_ENV_FILE», y el constructor de la orden del Bash tool hace `Fe.push(source <instantánea> 2>/dev/null || true)` y después `We = D.scrubCredentialEnv ? null : await iJe(...)`, `if (We) Fe.push(We)`, antes de `eval <orden>`, unidos con ` && `; la instantánea se crea con `<shell> -c -l <guion que carga el fichero de configuración del shell>` y la última de esta máquina (~/.claude/shell-snapshots/snapshot-zsh-1790690719447-33coa7.sh:7013) exporta un PATH con /opt/homebrew/bin en la posición 12 y las entradas heredadas detrás, como midió el juez A. (3) Reproducido sin modelo el bloque literal del §6 en bash y en zsh (clon /tmp/juezb2.6yI9/mut): la comprobación previa da `\"$d/bin/kitlegal\"` con el guion y /opt/homebrew/bin/kitlegal sin él; con el guion abre las dos conversaciones y la comprobación pasa; con un guion vacío sale con 1, imprime «las conversaciones ejecutarían /opt/homebrew/bin/kitlegal y no …/bin/kitlegal: no se abren» y no abre ninguna. Nada de esto cambia README.md, CLAUDE.md ni la skill."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: ningún adaptador, petición HTTP ni grabación nueva (internal/source/**/testdata intacto; la única derivada sale de la grabación de H4 por código y se reproduce byte a byte); sin NIF ni datos personales. El §6 corregido sigue escribiendo solo en `\"$d\"`: el guion entorno.sh vive ahí, la comprobación previa solo lee (los ficheros de arranque del shell de la persona y el guion) y no toca la instalación de kitlegal ni las skills de la cuenta; en la reproducción, `git status` del clon no cambia y no queda nada fuera del temporal."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: 0 nolint, 0 t.Skip, 0 TODO/FIXME en las líneas añadidas; los tres `_` del diff no silencian errores; la exclusión `conversacion` de misspell (.golangci.yml) es un falso positivo documentado y declarado en T001; `git diff --name-status main -- testdata schemas` solo con altas y bajas. La corrección no ajusta ningún test ni fixture: solo specs/012-…; gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff de código es el de la ronda 1 y cabe en FR-001 a FR-087; specs/010 y 011, .github, data/, evidencias/ y docs/ sin cambios. La corrección se limita al escenario del quickstart (FR-060: «el binario … ir primero en el PATH de las órdenes» y «cómo se garantiza» lo que ejecuta la conversación), a su research, plan, cierre y supuesto, y no añade código, tests, banderas ni ficheros al producto. El supuesto nuevo de gates/supuestos.md:6 es una lectura coherente con el spec: mecanismo de Claude Code documentado (CLAUDE_ENV_FILE) en lugar de fijar `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`, y una red sin modelo que refusa abrir conversaciones cuando no resolverían el binario de la rama. Los cinco supuestos anteriores siguen siendo lecturas conservadoras."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1 (el binario y la skill no cambian): `graph check` sobre la sesión preparada da 326 B y 0 hallazgos antes de leer, 1 048 B con exactamente un version-obsoleta 20180309 → 20200206 tras la lectura y vuelve a 326 B tras la siguiente (la señal se apaga); invocaciones por pregunta iguales a v0.1.1; la respuesta 0 líneas sobre la comprobación y k × ≈160 B de forma con k bloques cambiados; el informe ≤ 38 expresiones por sesión y dos recuentos por modelo, recalculados en cada job; la lista fija (≈1 KB). El §6 corregido añade una sola orden sin modelo (la comprobación previa) y un fichero de una línea en el temporal; no añade invocaciones al modelo ni a `kitlegal`."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Sin cambios respecto a la ronda 1: cada mecanismo se traza a un FR (ExpresionesProhibidas y su lectura → FR-050/052/055; ExtraerExpresionesProhibidas → FR-051; motivo y Pasa → FR-052/054; RecuentoDeExpresiones y el informe → FR-053; el esquema → FR-050/055; derivación, -actualizar-derivadas y comprobaciones 1 y 2 → FR-010/011; TestGrabacionesDerivadasInventadas → FR-012; comparación carpeta a carpeta → FR-013; compruebaLaSesion → FR-002; comprobarConsultaRepetida y sus banderas → FR-060 a FR-062; los subtests de calibrado → FR-084/085/043). En el §6, el guion de una línea y la comprobación previa son lo mínimo que garantiza FR-060 tras el motivo del juez A: sin código nuevo en el repositorio, sin banderas ni variables del kit. La única pieza sin FR sigue siendo la caché de expresiones compiladas (observación 1)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[k] formasCompiladas, la caché global con cerrojo de expresiones regulares (internal/evals/prohibidas.go:93-119) y su subtest compilada-una-sola-vez: ningún FR la exige; la fijan plan.md («Performance Goals») y T002, y compilar 38 expresiones por respuesta costaría microsegundos. No cambia ninguna salida ni pasa el umbral; se podría retirar en un hito posterior sin tocar ningún contrato.",
+    "SC-001 (recuento ≤ 2 de 51 y ≤ 1 de 30, eval 19 con su forma y su tasa, veredicto aprobado y red vacío) y SC-002 (quickstart §6 con modelo) no se pueden juzgar aquí: los dan el job de evals que el workflow lanza tras la revisión (FR-087) y la persona con el informe final (FR-062). Sus mecanismos están en verde y detectan sus regresiones (criterio b), y el bloque del §6 se ejecuta tal cual sin modelo con `claude` sustituido.",
+    "La corrección de la ronda 1 no está en un commit «fix(H7.2): motivos de la revisión final»: scripts/workflow/global.sh cerrar devuelve sin_cambios cuando solo cambia el directorio del feature y deja que lo versione el siguiente paso que commitee. gates/base-global pasó de 4e4cde9 a ef18b8a por `global.sh base`. Es el comportamiento previsto; quien lea el informe final verá la corrección junto con los veredictos.",
+    "La comprobación previa del §6 resuelve `kitlegal` con `$SHELL -l -i`, mientras que Claude Code crea la instantánea con `<shell> -c -l` más el fichero de configuración del shell y elige zsh, bash o sh según `$SHELL`. Para quien tenga como shell de inicio de sesión uno que no sea de esa familia (fish…), el guion `export PATH=…` no se cargaría en la comprobación y el §6 no abriría ninguna conversación aunque el Bash de Claude Code (sh) sí lo cargaría: un rechazo del lado seguro, con mensaje, y el propio bloque del §6 es sintaxis de bash/zsh.",
+    "Con `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` activo, Claude Code no carga el guion (`We = D.scrubCredentialEnv ? null : …`) y la comprobación previa no lo sabe: las conversaciones ejecutarían el kitlegal de la instantánea sin aviso. En 2.1.284 el aislamiento está apagado salvo que la persona fije la variable (o el entrypoint local-agent / GITHUB_ACTIONS, que no son el caso de una máquina personal); gates/supuestos.md:6 lo declara.",
+    "En la reproducción del §6, el proceso `claude` no lleva `\"$d/bin\"` en su propio PATH (la orden ya no lo exporta): solo lo recibe el Bash tool por el guion. Nada de Claude Code necesita `kitlegal` fuera de ese Bash, y `--allowedTools 'Bash(kitlegal *)'` casa por el texto de la orden, no por la ruta.",
+    "expresiones-calibradas hace depender make ci de specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json (conjunto_test.go); lo pide FR-084 y research D9 lo prefirió a copiar 93 respuestas a testdata/, pero mover o retirar ese fichero rompería el test.",
+    "recontarExpresiones (informe.go) indexa recuento por slices.Index(modelos, serie.tasa.Modelo) sin tratar -1; solo por construcción las series planificadas son de los modelos del job. Sin vía real hoy.",
+    "La estimación local de codecov/patch (cierre.md §2: 144 de 151 líneas, 95,36 %) puede quedar por debajo del target auto de la base; las siete líneas son ramas de la regla genérica y el supuesto [alcance] de T012 lo deja a quien lea el informe. Los umbrales de la Definition of Done se cumplen (global 97,5 %, internal/core 98,6 %).",
+    "La derivada conserva el User-Agent de la grabación de H4 («kitlegal/dev (+https://ventanillalegal.es/bot)»): es un dato grabado que se copia sin cambios (FR-010), no una petición del hito; el binario, que no cambia, usa el de la constitución."
+  ]
+}

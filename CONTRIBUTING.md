@@ -429,7 +429,8 @@ dentro del binario, así que un cambio en ellos llega a `territorio resolver` al
 
 Las evals de una skill se escriben **antes** que la skill o que el cambio que la mejora (ritual, paso 1), en su propio
 directorio, `evals/<skill>/`, con un fichero YAML por eval llamado `<nn>-<descripción>.yaml` —dos cifras y una
-descripción en minúsculas con guiones—. Todas siguen el formato común de eval:
+descripción en minúsculas con guiones— y, si la skill la tiene, su lista de expresiones prohibidas (abajo). Todas las
+evals siguen el formato común de eval:
 
 | Campo | ¿Obligatorio? | Qué fija |
 |---|---|---|
@@ -445,9 +446,9 @@ descripción en minúsculas con guiones—. Todas siguen el formato común de ev
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
-Cada fichero de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra `schemas/eval.yaml.json`
-dentro de `make ci`. Una entrada del directorio que no es un
-fichero con esa forma de nombre, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
+Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
+`schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre
+ni la lista de expresiones prohibidas, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
 eval positiva sin citas ni territorio o una de no activación con comandos fallan nombrando el fichero; ninguna se
 salta. Para `boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que
 deciden, de materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no
@@ -455,7 +456,39 @@ activación, entre otras. Para `legal-core`, al menos tres evals: una positiva q
 configurado y declara sus boletines, otra que resuelve uno de una comunidad sin configuración y declara no
 configurados el boletín autonómico y el provincial, al menos una de no activación, y citas o territorio en toda
 positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparación, en temporales, deja en el grafo un
-`BloqueVersion` por comando sin ninguna falta (`TestEvalsDelRepositorio`, subprueba `grafo-previo`).
+`BloqueVersion` por comando sin ninguna falta; después, leyendo como la sesión cada bloque de los `comandos` de la eval,
+`graph check` termina con `0` con exactamente las clases de `hallazgos` de la eval, y cada `version-obsoleta` con la
+fecha de vigencia de la redacción que dejó el grafo previo y la de la que acaba de leer (`TestEvalsDelRepositorio`,
+subprueba `grafo-previo`). Cada respuesta de un grafo previo es una derivada de la grabación de H4 que sustituye —la
+misma respuesta sin sus redacciones posteriores a una fecha de vigencia, y nada más—: se declara en
+`derivadasDelGrafoPrevio()` de `internal/app/grafo_test.go`, la escribe
+`go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/ -args -actualizar-derivadas`, nunca una persona, y
+`TestGrabacionesDerivadas` exige que sea, byte a byte, esa derivación y que, servida en lugar de la grabación, `boe` dé
+exactamente una de las redacciones que trae la grabada, la de esa fecha.
+
+**La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
+expresiones que no lleva la respuesta de una eval que activa la skill. `make ci` la reconoce por ese nombre exacto —no
+es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: dos claves
+obligatorias, una por familia, cada una con una lista no vacía de expresiones de una o más palabras separadas por un
+espacio, sin blancos en los extremos ni `*` o `_`:
+
+| Familia | Qué recoge |
+|---|---|
+| `maquinaria` | Lo que la respuesta no cuenta de cómo trabaja la skill: la memoria de consultas, `kitlegal graph` y sus verbos, los códigos de salida, los hallazgos y sus clases, el JSON y el sobre, en formas que no chocan con el castellano corriente ni con el texto de las normas (`memoria de consultas`, `graph check`, `código 0`, `sobre de salida`…) |
+| `otra_conversacion` | Lo que atribuye a la skill algo dicho a quien pregunta en otra conversación: un verbo de decir con «te» en pretérito o en condicional compuesto, y `conversación anterior` (`te dije`, `te habría confirmado`…) |
+
+Cada expresión se compara con la respuesta por la forma, sin ningún modelo y con la tolerancia de las formas fijas de
+los avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las palabras y
+alrededor; delimitada como palabra —`hallazgo` no se encuentra dentro de `hallazgos`—, sin plegar tildes y sin admitir
+un salto de línea entre dos palabras. **Lo mismo dicho con otras palabras no se detecta**: es una limitación declarada,
+y el informe publica cada respuesta para verlo. Una lista mal formada —clave desconocida o repetida, familia que falta
+o vacía, expresión con blancos en un extremo o con `*` o `_`, o una entrada con ese nombre que no es un fichero— es un
+fichero mal formado, como una eval: `make ci` falla nombrándola y las evals de la carpeta se leen sin lista. Hoy solo
+la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya: marca exactamente las 35 respuestas
+con la maquinaria o con lo dicho en otra conversación del informe de evals de H7.1, eval por eval y familia por
+familia (subprueba `expresiones-calibradas`); ninguna expresión casa con el texto de los bloques que leen sus evals y
+sus grafos previos (`expresiones-en-los-bloques`), ni con las formas fijas de los avisos y de los hallazgos o los
+bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir (`expresiones-de-la-skill`).
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
 termina, hace con éxito cada consulta de `comandos` —una comprobación la cumple una invocación de ese applet con
@@ -463,17 +496,19 @@ termina, hace con éxito cada consulta de `comandos` —una comprobación la cum
 que consulta de ese applet y verbo, termine como termine; la ayuda, `--describe` y `--dry-run`, no— y responde
 citando cada `norma` y `bloque` de `citas`, declarando lo que espera `territorio` —la comunidad y la provincia sin
 distinguir mayúsculas ni tildes, el código de cada boletín como palabra exacta y cada aspecto de cobertura en su forma
-fija `<aspecto>: <valor>`— y con la forma fija de cada aviso de `avisos` y de cada clase de `hallazgos`. Lo juzga el informe sin modelo, con lo que deja la sesión: su transcript y su
-traza. Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
-([Job de evals](#job-de-evals)).
+fija `<aspecto>: <valor>`—, con la forma fija de cada aviso de `avisos` y de cada clase de `hallazgos` y, si la eval
+activa la skill y la skill tiene lista, sin ninguna expresión prohibida —cada una encontrada es un motivo
+`expresión prohibida: <expresión>`—; una eval de no activación, o una de una skill sin lista, no la mira. Lo juzga el
+informe sin modelo, con lo que deja la sesión: su transcript y su traza. Cada eval se abre varias veces con un mismo
+modelo, y esa serie pasa si las sesiones que pasan llegan al umbral ([Job de evals](#job-de-evals)).
 
 ### Job de evals
 
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
-ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval está mal formada, que lo que
-necesitan está grabado, que la skill está instalada y que `kitlegal` está en el `PATH`, y termina con `1` si algo
-falla. Después abre las sesiones de
+ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval ni la lista de expresiones
+prohibidas están mal formadas, que lo que necesitan está grabado, que la skill está instalada y que `kitlegal` está en
+el `PATH`, y termina con `1` si algo falla. Después abre las sesiones de
 Claude Code del plan, cada una bajo `strace` y con la red cerrada salvo la del modelo: cada eval, tantas veces como
 repeticiones, con el modelo que decide y, si no es informativa, otras tantas con cada modelo informativo. Juzga cada
 sesión y agrupa las de cada eval con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan. El informe
@@ -526,7 +561,8 @@ Cómo se lee el informe:
 - **El veredicto** es `aprobado` o `fallo`, y los motivos son exactamente las causas del fallo: una serie que decide y
   no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
-  fichero de eval mal formado o una petición llegada a la red.
+  fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas— o una petición llegada
+  a la red.
 - **La tabla «Tasas por eval»** tiene una fila por serie, con si decide, si la pide el plan, la tasa
   (`<pasan> de <sesiones>`) y si llega al umbral. Se publica también la de las series que pasan: un `2 de 3` es verde,
   pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado no se ve en el veredicto; se
@@ -535,12 +571,23 @@ Cómo se lee el informe:
   decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
   tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
   ilegible o una petición llegada a la red hacen fallar el veredicto igual.
+- **Las expresiones prohibidas**: cada sesión publica en `informe.json` las de la lista que lleva su respuesta,
+  `expresiones_prohibidas` —`[]` si ninguna o si no se le aplica la lista—, y la tabla «Sesiones» de `informe.md`, la
+  columna «Expresiones prohibidas» (`ninguna` si no lleva ninguna). En la raíz de `informe.json`,
+  `expresiones_prohibidas_por_modelo` da un elemento por modelo del job —el que decide y después los informativos, en
+  su orden— con `modelo`, `respuestas`, las sesiones juzgadas (no las ilegibles) de las series planificadas cuya eval
+  activa la skill, y `con_alguna`, las de ellas que llevan alguna expresión; `informe.md` lo da en la sección
+  «Expresiones prohibidas por modelo», detrás de «Tasas por eval». Una skill sin lista da `[]` y el párrafo «la skill
+  no tiene lista de expresiones prohibidas»: un recuento de cero diría que se buscó. Una sesión con alguna expresión
+  no pasa, y su serie decide con el umbral de siempre si es de las que deciden; la regla del veredicto no cambia.
 
 La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no puede pedir nada a la red, así que el de
 `legal-core` no la lleva—, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
-su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`.
+su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. Se juzga con la lista de expresiones prohibidas
+y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo`: el recuento es el mismo con la prueba de
+red y sin ella.
 
 ## `make vuln` necesita red
 

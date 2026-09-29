@@ -1,21 +1,28 @@
 package evals
 
 import (
+	"bytes"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/skills"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // Contenidos de las evals sintéticas de TestLeerConjunto. La del art. 21 se
@@ -41,6 +48,9 @@ type entradaDeConjunto struct {
 type malFormadoEsperado struct {
 	fichero   string
 	fragmento string
+
+	// exacto dice que el fragmento es el error entero.
+	exacto bool
 }
 
 // TestLeerConjunto fija la lectura de un directorio de evals del contrato
@@ -49,6 +59,14 @@ type malFormadoEsperado struct {
 // nombre y cada una con un error que empieza por su nombre, sin que ninguna se
 // salte ni sea el error de la lectura, que queda para el directorio que no se
 // puede listar.
+//
+// Desde H7.2, fija también la lista de expresiones prohibidas de la carpeta
+// (contrato lista-y-juicio §1; FR-050, FR-055): la entrada que se llama
+// exactamente expresiones-prohibidas.yaml no es un fichero de eval; bien
+// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval; si no es un
+// fichero regular o no valida, es un fichero mal formado que la nombra y las
+// evals se leen sin lista; y una carpeta sin ella se lee como antes del hito,
+// sin lista en el conjunto ni en ninguna eval.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -59,14 +77,31 @@ func TestLeerConjunto(t *testing.T) {
 		Comandos: []ComandoEsperado{{Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a21"}},
 		Citas:    []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a21"}},
 	}
-	pregunta := "¿Cómo invierto una lista enlazada en Go?"
+	leidaDeProgramacion := Eval{
+		Fichero:  "02-no-activa-programacion.yaml",
+		Pregunta: "¿Cómo invierto una lista enlazada en Go?",
+	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
+
+	// La lista bien formada, la del test del esquema, y lo que se lee de ella.
+	lista := ExpresionesProhibidas{
+		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
+		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
+	}
+	conLista := func(eval Eval) Eval {
+		eval.Prohibidas = lista
+
+		return eval
+	}
 
 	casos := []struct {
 		nombre      string
 		entradas    []entradaDeConjunto
 		evals       []Eval
 		malFormados []malFormadoEsperado
+
+		// prohibidas es la lista que tiene que quedar en el conjunto.
+		prohibidas ExpresionesProhibidas
 	}{
 		{
 			nombre: "bien-formadas",
@@ -74,7 +109,7 @@ func TestLeerConjunto(t *testing.T) {
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
-			evals: []Eval{leidaDelArticulo21, {Fichero: "02-no-activa-programacion.yaml", Pregunta: pregunta}},
+			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
 		},
 		{
 			nombre: "con-mal-formadas",
@@ -117,7 +152,7 @@ func TestLeerConjunto(t *testing.T) {
 				{nombre: "01-extension.yml", contenido: contenidoDeProgramacion},
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
 			},
-			evals: []Eval{{Fichero: "02-no-activa-programacion.yaml", Pregunta: pregunta}},
+			evals: []Eval{leidaDeProgramacion},
 			malFormados: []malFormadoEsperado{
 				{fichero: "001-tres-cifras.yaml", fragmento: sinLaForma},
 				{fichero: "01-.yaml", fragmento: sinLaForma},
@@ -129,6 +164,68 @@ func TestLeerConjunto(t *testing.T) {
 				{fichero: "1-una-cifra.yaml", fragmento: sinLaForma},
 			},
 		},
+		{
+			nombre: "con-lista",
+			entradas: []entradaDeConjunto{
+				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals:      []Eval{conLista(leidaDelArticulo21), conLista(leidaDeProgramacion)},
+			prohibidas: lista,
+		},
+		{
+			nombre: "lista-sin-una-familia",
+			entradas: []entradaDeConjunto{
+				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "missing property 'otra_conversacion'"},
+			},
+		},
+		{
+			nombre: "lista-con-una-familia-repetida",
+			entradas: []entradaDeConjunto{
+				{
+					nombre:    ficheroDeExpresionesProhibidas,
+					contenido: maquinariaBienFormada + otraConversacionBienFormada + "maquinaria:\n  - json\n",
+				},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 8"},
+			},
+		},
+		{
+			// Con su nombre, una carpeta no es un fichero de eval sin la forma de
+			// nombre: es la lista, que no es un fichero regular.
+			nombre: "lista-que-no-es-un-fichero",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeExpresionesProhibidas, carpeta: true},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{{
+				fichero:   ficheroDeExpresionesProhibidas,
+				fragmento: ficheroDeExpresionesProhibidas + ": no es un fichero regular",
+				exacto:    true,
+			}},
+		},
+		{
+			// Solo el nombre exacto es el de la lista: con otra extensión, es un
+			// fichero de eval sin la forma de nombre.
+			nombre: "lista-con-otro-nombre",
+			entradas: []entradaDeConjunto{
+				{nombre: "expresiones-prohibidas.yml", contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals:       []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{{fichero: "expresiones-prohibidas.yml", fragmento: sinLaForma}},
+		},
 	}
 
 	for _, caso := range casos {
@@ -138,6 +235,7 @@ func TestLeerConjunto(t *testing.T) {
 			conjunto, err := LeerConjunto(crearConjunto(t, caso.entradas))
 			require.NoError(t, err, "un fichero mal formado nunca es el error de la lectura")
 			assert.Equal(t, caso.evals, conjunto.Evals)
+			assert.Equal(t, caso.prohibidas, conjunto.Prohibidas)
 
 			ficheros := make([]string, 0, len(conjunto.MalFormados))
 			for _, malFormado := range conjunto.MalFormados {
@@ -156,6 +254,10 @@ func TestLeerConjunto(t *testing.T) {
 				require.ErrorContains(t, motivo, esperado.fragmento)
 				assert.True(t, strings.HasPrefix(motivo.Error(), esperado.fichero+": "),
 					"el error empieza por el nombre del fichero: %q", motivo.Error())
+
+				if esperado.exacto {
+					require.EqualError(t, motivo, esperado.fragmento)
+				}
 			}
 		})
 	}
@@ -856,8 +958,15 @@ const (
 // evals §1.2 de H6); las de evals/legal-core/ cumplen las reglas del conjunto de
 // legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011); y el grafo
 // previo de cada eval que lo lleva existe y se prepara sin faltas, con un
-// BloqueVersion por comando (contrato evals-y-skill §3 de H7; FR-085). Lee las
-// carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// BloqueVersion por comando (contrato evals-y-skill §3 de H7; FR-085). Desde
+// H7.2, la lista de expresiones prohibidas de evals/boe-legislacion/ marca en las
+// respuestas de H7.1 el reparto calibrado, y ninguna de sus expresiones casa con
+// el texto de los bloques que leen las evals ni con lo que la skill enseña a
+// escribir (contrato lista-y-juicio §6; FR-043, FR-084, FR-085 de H7.2); y, sobre
+// cada grafo previo, la lectura de los bloques de la eval y graph check dan los
+// hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
+// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Lee las carpetas enteras,
+// así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -995,6 +1104,327 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	})
 
 	t.Run("grafo-previo", probarGrafosPrevios)
+
+	t.Run("expresiones-calibradas", func(t *testing.T) {
+		t.Parallel()
+
+		probarExpresionesCalibradas(t, listaDelRepositorio(t, conjunto))
+	})
+
+	t.Run("expresiones-en-los-bloques", func(t *testing.T) {
+		t.Parallel()
+
+		probarExpresionesEnLosBloques(t, conjunto.Evals, listaDelRepositorio(t, conjunto))
+	})
+
+	t.Run("expresiones-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		probarExpresionesDeLaSkill(t, listaDelRepositorio(t, conjunto))
+	})
+}
+
+// informeDeH71 es el informe del job de evals de boe-legislacion en H7.1,
+// relativo al directorio de este paquete: sus respuestas son con las que se
+// calibra la lista de expresiones prohibidas (FR-084; research D9). Está
+// versionado y no se edita (FR-070).
+const informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
+
+// respuestasDeH71 son las sesiones de ese informe, una respuesta cada una.
+const respuestasDeH71 = 93
+
+// listaDelRepositorio es la lista de expresiones prohibidas de
+// evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
+// TestEvalsDelRepositorio. Tiene expresiones en sus dos familias: sin ellas, las
+// subpruebas que la aplican pasarían en vacío.
+func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
+	t.Helper()
+
+	lista := conjunto.Prohibidas
+	require.NotEmpty(t, lista.Maquinaria, "%s tiene lista de expresiones prohibidas, con las de la maquinaria",
+		evalsDelRepositorio)
+	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
+		evalsDelRepositorio)
+
+	return lista
+}
+
+// marcadasPorFamilia son, de las respuestas de una eval, cuántas llevan alguna
+// expresión de cada familia de la lista.
+type marcadasPorFamilia struct {
+	maquinaria       int
+	otraConversacion int
+}
+
+// probarExpresionesCalibradas es la subprueba expresiones-calibradas de
+// TestEvalsDelRepositorio (contrato lista-y-juicio §6; FR-084, SC-003, US4.2):
+// aplicada con ExtraerExpresionesProhibidas, la comparación de FR-051, a las 93
+// respuestas del informe de H7.1, la lista marca, por las dos cifras del fichero
+// de la eval y por familia, exactamente las del reparto calibrado —34 por la
+// maquinaria y la de «te habría confirmado» por lo dicho en otra conversación— y
+// ninguna de las otras 58. Las evals se nombran por sus dos cifras y nunca por su
+// nombre: el de una eval retirada no se escribe en ningún test (FR-020).
+func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	calibrado := map[string]marcadasPorFamilia{
+		"02": {maquinaria: 1},
+		"03": {maquinaria: 3},
+		"04": {maquinaria: 3},
+		"05": {maquinaria: 3},
+		"06": {maquinaria: 3},
+		"07": {maquinaria: 3},
+		"08": {maquinaria: 2},
+		"09": {maquinaria: 2},
+		"13": {maquinaria: 3},
+		"14": {maquinaria: 3},
+		"15": {maquinaria: 3},
+		"16": {maquinaria: 2},
+		"17": {maquinaria: 3},
+		"19": {otraConversacion: 1},
+	}
+
+	// De cada sesión del informe, lo que la calibración necesita.
+	var informe struct {
+		Evals []struct {
+			Eval      string `json:"eval"`
+			Respuesta string `json:"respuesta"`
+		} `json:"evals"`
+	}
+	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, informeDeH71), &informe),
+		"%s es un informe del job de evals", informeDeH71)
+	require.Len(t, informe.Evals, respuestasDeH71, "el informe %s tiene las respuestas de H7.1", informeDeH71)
+
+	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria}
+	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion}
+	marcadas := map[string]marcadasPorFamilia{}
+
+	for _, sesion := range informe.Evals {
+		require.Regexp(t, `^[0-9]{2}-`, sesion.Eval, "el fichero de cada eval del informe empieza por sus dos cifras")
+		numero := sesion.Eval[:2]
+
+		reparto := marcadas[numero]
+		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, maquinaria)) > 0 {
+			reparto.maquinaria++
+		}
+
+		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, otraConversacion)) > 0 {
+			reparto.otraConversacion++
+		}
+
+		marcadas[numero] = reparto
+	}
+
+	numeros := slices.Concat(slices.Collect(maps.Keys(marcadas)), slices.Collect(maps.Keys(calibrado)))
+	slices.Sort(numeros)
+
+	var distintas []string
+
+	for _, numero := range slices.Compact(numeros) {
+		if marcadas[numero] != calibrado[numero] {
+			distintas = append(distintas, fmt.Sprintf("eval %s: marca %d respuestas por la maquinaria y %d por otra "+
+				"conversación, y las calibradas son %d y %d", numero, marcadas[numero].maquinaria,
+				marcadas[numero].otraConversacion, calibrado[numero].maquinaria, calibrado[numero].otraConversacion))
+		}
+	}
+
+	assert.Empty(t, distintas, "evals de %s cuyas respuestas marca la lista de %s con otro reparto que el calibrado:\n%s",
+		informeDeH71, evalsDelRepositorio, strings.Join(distintas, "\n"))
+}
+
+// textoAMirar es un texto que no puede llevar ninguna expresión prohibida, con
+// lo que lo nombra en un fallo.
+type textoAMirar struct {
+	nombre string
+	texto  string
+}
+
+// expresionesEn da una línea por cada texto que lleva alguna expresión de la
+// lista, con su nombre y las expresiones que lleva, en el orden de los textos; o
+// nil si ninguno lleva ninguna.
+func expresionesEn(textos []textoAMirar, lista ExpresionesProhibidas) []string {
+	var lineas []string
+
+	for _, texto := range textos {
+		if encontradas := ExtraerExpresionesProhibidas(texto.texto, lista); len(encontradas) > 0 {
+			lineas = append(lineas, texto.nombre+": "+strings.Join(encontradas, ", "))
+		}
+	}
+
+	return lineas
+}
+
+// probarExpresionesEnLosBloques es la subprueba expresiones-en-los-bloques de
+// TestEvalsDelRepositorio (contrato lista-y-juicio §6; research D10; FR-085,
+// SC-004): ninguna expresión de la lista casa con el texto que da boe articulo
+// --json, lo que una respuesta puede transcribir, de cada bloque que leen las
+// evals —los de sus consultas necesarias, sobre UnionDeGrabaciones— ni de cada
+// bloque de los comandos de cada grafo previo, sobre las mismas grabaciones con
+// las del grafo previo encima. Cada lectura es en proceso, con su caché temporal.
+func probarExpresionesEnLosBloques(t *testing.T, evals []Eval, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	var leidos []textoAMirar
+
+	grabadas := registroDeLaReproduccion(t, copiaDeLaUnionDeGrabaciones(t))
+
+	for _, consulta := range ConsultasNecesarias(evals) {
+		if consulta.Applet == appletDeLasNormas && consulta.Verbo == verboArticulo {
+			leidos = append(leidos, bloqueLeido(t, grabadas, consulta))
+		}
+	}
+
+	for _, eval := range evals {
+		if eval.GrafoPrevio.Grabaciones == "" {
+			continue
+		}
+
+		reproduccion := copiaDeLaUnionDeGrabaciones(t)
+		require.NoError(t, copiarGrabaciones(filepath.Join(GrafosPrevios, eval.GrafoPrevio.Grabaciones), reproduccion))
+		derivadas := registroDeLaReproduccion(t, reproduccion)
+
+		for _, comando := range eval.GrafoPrevio.Comandos {
+			leido := bloqueLeido(t, derivadas, Consulta{
+				Applet: comando.Applet, Verbo: verboArticulo, Argumentos: []string{comando.Norma, comando.Bloque},
+			})
+			leido.nombre += " con las grabaciones del grafo previo " + eval.GrafoPrevio.Grabaciones
+			leidos = append(leidos, leido)
+		}
+	}
+
+	require.NotEmpty(t, leidos, "las evals de %s, o el grafo previo de alguna, leen algún bloque", evalsDelRepositorio)
+
+	conExpresiones := expresionesEn(leidos, lista)
+	assert.Empty(t, conExpresiones, "expresiones prohibidas en el texto de los %d bloques leídos para las evals de %s:\n%s",
+		len(leidos), evalsDelRepositorio, strings.Join(conExpresiones, "\n"))
+}
+
+// bloqueLeido es el texto del bloque de la consulta que da boe articulo --json
+// con el registro, nombrado por su orden. La lectura termina en 0 y el bloque
+// tiene texto: uno vacío no dejaría nada que mirar.
+func bloqueLeido(t *testing.T, registro *app.Registro, consulta Consulta) textoAMirar {
+	t.Helper()
+
+	// Sin entrega al grafo, la salida de error no dice nada que mirar aquí.
+	leido, _ := leerBloque(t, registro, consulta)
+	require.NotEmpty(t, leido.Texto, "«%s» da el texto del bloque", ordenDe(consulta))
+
+	return textoAMirar{nombre: ordenDe(consulta), texto: leido.Texto}
+}
+
+// articuloLeido es lo que estas pruebas miran de la data de boe articulo --json:
+// el texto del bloque y su fecha de vigencia.
+type articuloLeido struct {
+	Texto         string `json:"texto"`
+	FechaVigencia string `json:"fecha_vigencia"`
+}
+
+// leerBloque ejecuta con el registro boe articulo --json de la consulta y
+// devuelve su data y lo que escribió en la salida de error, donde el kernel
+// avisa de una entrega al grafo que falló. La lectura termina en 0 y su salida es
+// un sobre con un bloque.
+func leerBloque(t *testing.T, registro *app.Registro, consulta Consulta) (articuloLeido, string) {
+	t.Helper()
+
+	var salida, errores bytes.Buffer
+
+	argv := slices.Concat([]string{programaDeLasConsultas, consulta.Applet, consulta.Verbo}, consulta.Argumentos,
+		[]string{"--json"})
+	codigo := app.Main(argv, registro, &salida, &errores,
+		sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+	require.Zero(t, codigo, "«%s» lee el bloque: %s", ordenDe(consulta), errores.String())
+
+	var sobre struct {
+		Data articuloLeido `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s» es un sobre con un bloque",
+		ordenDe(consulta))
+
+	return sobre.Data, errores.String()
+}
+
+// probarExpresionesDeLaSkill es la subprueba expresiones-de-la-skill de
+// TestEvalsDelRepositorio (contrato lista-y-juicio §6; research D11; FR-043,
+// FR-051): ninguna expresión de la lista casa con lo que la skill enseña a
+// escribir en la respuesta —la forma escrita de cada etiqueta de aviso y de
+// hallazgo, y el contenido de cada bloque de código text del SKILL.md de
+// boe-legislacion, entre ellos el de la línea de version-obsoleta—.
+func probarExpresionesDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	etiquetasDeAviso := boe.EtiquetasDeAviso()
+	etiquetasDeHallazgo := grafo.EtiquetasDeHallazgo()
+	bloques := bloquesDeTexto(string(contenidoDelFichero(t, skillDelRepositorio)))
+
+	require.NotEmpty(t, etiquetasDeAviso, "el binario etiqueta algún aviso")
+	require.NotEmpty(t, etiquetasDeHallazgo, "el binario etiqueta alguna clase de hallazgo")
+	require.True(t, slices.ContainsFunc(bloques, func(bloque string) bool {
+		return slices.Contains(ExtraerHallazgos(bloque), string(grafo.ClaseVersionObsoleta))
+	}), "%s tiene bloques de código text, entre ellos el de la línea %s", skillDelRepositorio,
+		formaEscrita(etiquetasDeHallazgo[grafo.ClaseVersionObsoleta]))
+
+	var textos []textoAMirar
+
+	for _, codigo := range slices.Sorted(maps.Keys(etiquetasDeAviso)) {
+		textos = append(textos, textoAMirar{
+			nombre: "la forma del aviso " + codigo, texto: formaEscrita(etiquetasDeAviso[codigo]),
+		})
+	}
+
+	for _, clase := range slices.Sorted(maps.Keys(etiquetasDeHallazgo)) {
+		textos = append(textos, textoAMirar{
+			nombre: "la forma del hallazgo " + string(clase), texto: formaEscrita(etiquetasDeHallazgo[clase]),
+		})
+	}
+
+	for posicion, bloque := range bloques {
+		textos = append(textos, textoAMirar{
+			nombre: fmt.Sprintf("el bloque text %d de %s", posicion+1, skillDelRepositorio), texto: bloque,
+		})
+	}
+
+	conExpresiones := expresionesEn(textos, lista)
+	assert.Empty(t, conExpresiones, "expresiones prohibidas en lo que la skill enseña a escribir:\n%s",
+		strings.Join(conExpresiones, "\n"))
+}
+
+// Las líneas que abren y cierran un bloque de código text de Markdown, sin la
+// sangría con la que van dentro de una lista.
+const (
+	aperturaDeBloqueDeTexto = "```text"
+	cierreDeBloqueDeCodigo  = "```"
+)
+
+// bloquesDeTexto son los contenidos de los bloques de código text del Markdown,
+// en su orden: las líneas entre la que lo abre y la que lo cierra, sin sus saltos
+// de línea finales y unidas por uno. Como en CommonMark, un bloque que no se
+// cierra llega hasta el final del documento.
+func bloquesDeTexto(markdown string) []string {
+	var (
+		bloques []string
+		lineas  []string
+		dentro  bool
+	)
+
+	for linea := range strings.Lines(markdown) {
+		recortada := strings.TrimSpace(linea)
+
+		switch {
+		case !dentro && recortada == aperturaDeBloqueDeTexto:
+			dentro, lineas = true, []string{}
+		case dentro && recortada == cierreDeBloqueDeCodigo:
+			bloques = append(bloques, strings.Join(lineas, "\n"))
+			dentro = false
+		case dentro:
+			lineas = append(lineas, strings.TrimSuffix(linea, "\n"))
+		}
+	}
+
+	if dentro {
+		bloques = append(bloques, strings.Join(lineas, "\n"))
+	}
+
+	return bloques
 }
 
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
@@ -1054,8 +1484,10 @@ func malFormadosDeCadaSkill(t *testing.T, raiz string) (carpetas, malFormados []
 // cada carpeta de evals/ que lo lleva nombra un conjunto de GrafosPrevios que
 // existe, y prepararlo como lo prepara el job, con UnionDeGrabaciones y en
 // temporales, no da ninguna falta ni error y deja en el grafo del mundo un
-// BloqueVersion por comando, el de su norma y su bloque. Alguna eval lo lleva:
-// sin ninguna, la subprueba pasaría en vacío.
+// BloqueVersion por comando, el de su norma y su bloque; y, desde H7.2, lo que
+// hace después la sesión da los hallazgos que la eval espera (contrato
+// eval-y-derivada §4; FR-002). Alguna eval lo lleva: sin ninguna, la subprueba
+// pasaría en vacío.
 func probarGrafosPrevios(t *testing.T) {
 	t.Parallel()
 
@@ -1080,7 +1512,8 @@ func probarGrafosPrevios(t *testing.T) {
 // compruebaElGrafoPrevio exige que el grafo previo de la eval de esa ruta nombre
 // un conjunto de GrafosPrevios que existe y que prepararlo en una caché temporal,
 // con UnionDeGrabaciones, no dé ninguna falta ni error y deje en el grafo del
-// mundo un BloqueVersion por comando, el de su norma y su bloque.
+// mundo un BloqueVersion por comando, el de su norma y su bloque. Desde H7.2
+// exige además, sobre ese grafo, lo que verá la sesión (compruebaLaSesion).
 func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 	t.Helper()
 
@@ -1099,16 +1532,127 @@ func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 		porComando = append(porComando, CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque})
 	}
 
-	assert.ElementsMatch(t, porComando, bloquesVersionados(t, dirCache),
+	versionados := bloquesVersionados(t, dirCache)
+
+	citas := make([]CitaEsperada, 0, len(versionados))
+	anotados := make(map[string]bloqueVersionado, len(versionados))
+
+	for _, versionado := range versionados {
+		citas = append(citas, versionado.cita)
+		anotados[versionado.id] = versionado
+	}
+
+	assert.ElementsMatch(t, porComando, citas,
 		"%s: el grafo previo deja un BloqueVersion por comando, el de su norma y su bloque", ruta)
+
+	compruebaLaSesion(t, ruta, eval, dirCache, anotados)
 }
 
-// bloquesVersionados son la norma y el bloque de cada BloqueVersion del grafo
-// del mundo de dirCache, en el orden de su instantánea: el identificador de la
-// Norma y el bloque del Bloque de los que cuelga, por las aristas eli:has_part y
+// compruebaLaSesion hace sobre el grafo del mundo de dirCache, con el grafo
+// previo de la eval ya preparado, lo que hace su sesión, en proceso y sin red
+// (contrato eval-y-derivada §4 de H7.2; research D14; FR-002): lee cada bloque de
+// los comandos de la eval con boe articulo --json sobre UnionDeGrabaciones, con
+// una caché temporal y entregando a ese grafo, y comprueba con graph check --json
+// cada norma de sus comandos, con los bloques que ha leído de ella. Las dos
+// terminan en 0; las clases de los hallazgos son exactamente las de hallazgos de
+// la eval; y cada version-obsoleta es de un BloqueVersion que dejó el grafo
+// previo —de los anotados, por su id—, con la fecha de vigencia de esa versión
+// como la superada y la del bloque leído como la reciente.
+func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, anotados map[string]bloqueVersionado) {
+	t.Helper()
+
+	sesion, err := registroDeBoe(copiaDeLaUnionDeGrabaciones(t), cache.ConDirectorio(t.TempDir()))
+	require.NoError(t, err)
+	require.NoError(t, sesion.Registrar(app.AppletGrafo(app.DependenciasDeGrafo{
+		Reloj: time.Now, Almacen: []graph.Opcion{graph.ConDirectorio(dirCache)},
+	})))
+	sesion.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(dirCache)))
+
+	var normas []string
+
+	bloquesDe := map[string][]string{}
+	leidas := map[CitaEsperada]string{}
+
+	for _, comando := range eval.Comandos {
+		if comando.Norma != "" && !slices.Contains(normas, comando.Norma) {
+			normas = append(normas, comando.Norma)
+		}
+
+		if formaDelComando(comando) != formaBloque {
+			continue
+		}
+
+		consulta := Consulta{Applet: comando.Applet, Verbo: verboArticulo, Argumentos: []string{comando.Norma, comando.Bloque}}
+		leido, errores := leerBloque(t, sesion, consulta)
+		assert.Empty(t, errores, "%s: «%s» llega al grafo de la sesión", ruta, ordenDe(consulta))
+
+		bloquesDe[comando.Norma] = append(bloquesDe[comando.Norma], comando.Bloque)
+		leidas[CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque}] = leido.FechaVigencia
+	}
+
+	var clases []string
+
+	for _, norma := range normas {
+		for _, hallazgo := range comprobacionDeLaSesion(t, sesion, norma, bloquesDe[norma]).Hallazgos {
+			clases = append(clases, string(hallazgo.Clase))
+
+			if hallazgo.Clase != grafo.ClaseVersionObsoleta {
+				continue
+			}
+
+			anotado, esDelGrafoPrevio := anotados[hallazgo.ID]
+			if !assert.True(t, esDelGrafoPrevio, "%s: el version-obsoleta de %s es de una redacción que dejó el grafo "+
+				"previo: %s", ruta, norma, hallazgo.ID) {
+				continue
+			}
+
+			assert.Equal(t, anotado.fechaVigencia, hallazgo.FechaVigencia,
+				"%s: la redacción superada de %s es la que dejó el grafo previo", ruta, hallazgo.ID)
+			assert.Equal(t, leidas[anotado.cita], hallazgo.FechaVigenciaReciente,
+				"%s: la redacción reciente de %s es la que ha leído la sesión", ruta, hallazgo.ID)
+		}
+	}
+
+	slices.Sort(clases)
+	assert.Equal(t, slices.Sorted(slices.Values(eval.Hallazgos)), slices.Compact(clases),
+		"%s: graph check da en la sesión exactamente las clases de hallazgo que la eval espera", ruta)
+}
+
+// comprobacionDeLaSesion es la data de graph check <norma> <bloques> --json con
+// el registro de la sesión. La comprobación termina en 0.
+func comprobacionDeLaSesion(t *testing.T, sesion *app.Registro, norma string, bloques []string) grafo.Comprobacion {
+	t.Helper()
+
+	var salida, errores bytes.Buffer
+
+	argv := slices.Concat([]string{programaDeLasConsultas, "graph", verboCheck, norma}, bloques, []string{"--json"})
+	codigo := app.Main(argv, sesion, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion,
+		sinDatosDeConstruccion)
+	require.Zero(t, codigo, "«%s» comprueba la memoria: %s", strings.Join(argv[1:], " "), errores.String())
+
+	var sobre struct {
+		Data grafo.Comprobacion `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s» es un sobre con una comprobación",
+		strings.Join(argv[1:], " "))
+
+	return sobre.Data
+}
+
+// bloqueVersionado es un BloqueVersion del grafo del mundo: su id, la norma y el
+// bloque de los que cuelga y su fecha de vigencia.
+type bloqueVersionado struct {
+	id            string
+	cita          CitaEsperada
+	fechaVigencia string
+}
+
+// bloquesVersionados son los BloqueVersion del grafo del mundo de dirCache, en
+// el orden de su instantánea, cada uno con el identificador de la Norma y el
+// bloque del Bloque de los que cuelga, por las aristas eli:has_part y
 // eli:has_version. Una versión o un Bloque a los que no llega una sola de esas
 // aristas hace fallar la prueba.
-func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
+func bloquesVersionados(t *testing.T, dirCache string) []bloqueVersionado {
 	t.Helper()
 
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
@@ -1138,7 +1682,7 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 		return nodos[origenes[0]]
 	}
 
-	var versionados []CitaEsperada
+	var versionados []bloqueVersionado
 
 	for _, nodo := range instantanea.Nodos {
 		if nodo.Tipo != grafo.TipoBloqueVersion {
@@ -1148,9 +1692,13 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 		bloque := deQuienCuelga(grafo.RelacionTieneVersion, nodo.ID)
 		norma := deQuienCuelga(grafo.RelacionTieneParte, bloque.ID)
 
-		versionados = append(versionados, CitaEsperada{
-			Norma:  fmt.Sprint(norma.Datos[grafo.DatoIdentificador]),
-			Bloque: fmt.Sprint(bloque.Datos[grafo.DatoBloque]),
+		versionados = append(versionados, bloqueVersionado{
+			id: nodo.ID,
+			cita: CitaEsperada{
+				Norma:  fmt.Sprint(norma.Datos[grafo.DatoIdentificador]),
+				Bloque: fmt.Sprint(bloque.Datos[grafo.DatoBloque]),
+			},
+			fechaVigencia: fmt.Sprint(nodo.Datos[grafo.DatoFechaVigencia]),
 		})
 	}
 

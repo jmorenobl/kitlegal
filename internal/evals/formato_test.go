@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
@@ -63,7 +65,7 @@ const (
 // (contrato evals-y-skill §1 y §4 de H7).
 const (
 	grafoPrevioDelArticulo21 = "grafo_previo:\n" +
-		"  grabaciones: lpac-a21-version-anterior\n" +
+		"  grabaciones: lcsp-a1-30-redaccion-original\n" +
 		"  comandos:\n" +
 		"    - applet: boe\n" +
 		"      norma: BOE-A-2015-10565\n" +
@@ -409,7 +411,7 @@ func TestLeerEval(t *testing.T) {
 				Pregunta:    "¿qué dice el art. 21 de la Ley 39/2015?",
 				Activa:      true,
 				Informativa: true,
-				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: comandoDelArticulo21Leido},
 				Comandos: slices.Concat(comandoDelArticulo21Leido,
 					[]ComandoEsperado{{Applet: "graph", Verbo: "check"}}),
 				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
@@ -488,23 +490,23 @@ func TestLeerEval(t *testing.T) {
 		{
 			nombre: "grafo-previo-con-grabaciones-mal-formadas",
 			documento: positivaDelArticulo21 +
-				strings.Replace(grafoPrevioDelArticulo21, "lpac-a21-version-anterior", "../lpac-a21", 1),
+				strings.Replace(grafoPrevioDelArticulo21, "lcsp-a1-30-redaccion-original", "../lcsp-a1-30", 1),
 			error: nombreDeEval + ": grafo_previo/grabaciones, línea 11: " +
-				"'../lpac-a21' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+				"'../lcsp-a1-30' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
 		},
 		{
 			nombre:    "grafo-previo-sin-comandos",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n",
 			error:     nombreDeEval + ": grafo_previo, línea 11: missing property 'comandos'",
 		},
 		{
 			nombre:    "grafo-previo-con-comandos-vacio",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos: []\n",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n  comandos: []\n",
 			error:     nombreDeEval + ": grafo_previo/comandos, línea 12: minItems: got 0, want 1",
 		},
 		{
 			nombre: "grafo-previo-con-comando-de-comprobacion",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos:\n" +
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n  comandos:\n" +
 				"    - applet: graph\n      verbo: check\n",
 			fragmentos: []string{"grafo_previo/comandos/0, línea 13: additional properties 'verbo' not allowed"},
 		},
@@ -546,7 +548,7 @@ func TestLeerEval(t *testing.T) {
 				Pregunta:    preguntaDelArticulo21Eval,
 				Activa:      true,
 				Informativa: true,
-				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: comandoDelArticulo21Leido},
 				Comandos: slices.Concat(comandoDelArticulo21Leido,
 					[]ComandoEsperado{{Applet: "graph", Verbo: "check", Norma: "BOE-A-2015-10565"}}),
 				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
@@ -795,6 +797,138 @@ func TestCompilarEsquemaDeEvalQueNoSirve(t *testing.T) {
 			require.ErrorContains(t, err, ruta)
 			require.ErrorContains(t, err, caso.motivo)
 			assert.Nil(t, esquema)
+		})
+	}
+}
+
+// patronDeExpresion es el patrón de cada expresión de la lista de expresiones
+// prohibidas: una o más palabras separadas por un espacio, sin blancos en los
+// extremos y sin * ni _ (contrato lista-y-juicio §1; research D2).
+const patronDeExpresion = `^[^\s*_]+( [^\s*_]+)*$`
+
+// Familias bien formadas de una lista de expresiones prohibidas, cada una con sus
+// líneas completas, para los documentos de TestEsquemaDeExpresionesProhibidas:
+// expresiones de una palabra y de varias, y con letras que no son ASCII.
+const (
+	maquinariaBienFormada = "maquinaria:\n" +
+		"  - memoria de consultas\n" +
+		"  - hallazgos\n" +
+		"  - c\xc3\xb3digo de salida\n"
+	otraConversacionBienFormada = "otra_conversacion:\n" +
+		"  - te dije\n" +
+		"  - conversaci\xc3\xb3n anterior\n"
+)
+
+// TestEsquemaDeExpresionesProhibidas fija el esquema publicado de la lista de
+// expresiones prohibidas de una skill (contrato lista-y-juicio §1; FR-050,
+// FR-055): lo lee de su ruta, lo compila con skills.CompilarEsquema y valida
+// contra él, con el lector común de documentos YAML, listas escritas en el test.
+// Una lista con las dos familias valida y se lee entera. Sin una familia, con una
+// familia vacía, con una clave de más y con una expresión con un blanco en un
+// extremo, con dos blancos entre palabras, con * o con _ no valida, y cada
+// rechazo es el incumplimiento de ese defecto en su sitio: la lista de cada caso
+// es la bien formada con solo ese defecto, así que no la rechaza otro motivo.
+func TestEsquemaDeExpresionesProhibidas(t *testing.T) {
+	t.Parallel()
+
+	// rutaDelEsquema es el esquema publicado de la lista, relativo al directorio
+	// de este paquete, que es donde go test ejecuta los tests.
+	const rutaDelEsquema = "../../schemas/expresiones-prohibidas.yaml.json"
+
+	contenido, err := leerFichero(rutaDelEsquema)
+	require.NoError(t, err, "el esquema publicado %s se lee", rutaDelEsquema)
+
+	esquema, err := skills.CompilarEsquema(contenido)
+	require.NoError(t, err, "el esquema publicado %s compila", rutaDelEsquema)
+
+	leida, err := skills.ValidarDocumentoYAML[map[string][]string](
+		[]byte(maquinariaBienFormada+otraConversacionBienFormada), esquema)
+	require.NoError(t, err, "la lista con las dos familias valida: sin eso, un rechazo no diría nada del esquema")
+	require.Equal(t, map[string][]string{
+		"maquinaria":        {"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
+		"otra_conversacion": {"te dije", "conversaci\xc3\xb3n anterior"},
+	}, leida, "la lista con las dos familias se lee entera")
+
+	casos := []struct {
+		nombre    string
+		documento string
+
+		// ruta es la del punto de la lista donde el esquema la rechaza; nil, en
+		// la raíz.
+		ruta []string
+
+		// rechazo es el incumplimiento con el que el esquema la rechaza.
+		rechazo jsonschema.ErrorKind
+	}{
+		{
+			nombre:    "sin-maquinaria",
+			documento: otraConversacionBienFormada,
+			rechazo:   &kind.Required{Missing: []string{"maquinaria"}},
+		},
+		{
+			nombre:    "sin-otra-conversacion",
+			documento: maquinariaBienFormada,
+			rechazo:   &kind.Required{Missing: []string{"otra_conversacion"}},
+		},
+		{
+			nombre:    "maquinaria-vacia",
+			documento: "maquinaria: []\n" + otraConversacionBienFormada,
+			ruta:      []string{"maquinaria"},
+			rechazo:   &kind.MinItems{Got: 0, Want: 1},
+		},
+		{
+			nombre:    "otra-conversacion-vacia",
+			documento: maquinariaBienFormada + "otra_conversacion: []\n",
+			ruta:      []string{"otra_conversacion"},
+			rechazo:   &kind.MinItems{Got: 0, Want: 1},
+		},
+		{
+			nombre:    "clave-de-mas",
+			documento: maquinariaBienFormada + otraConversacionBienFormada + "avisos:\n  - derogada\n",
+			rechazo:   &kind.AdditionalProperties{Properties: []string{"avisos"}},
+		},
+		{
+			nombre:    "blanco-al-principio",
+			documento: "maquinaria:\n  - \" hallazgos\"\n" + otraConversacionBienFormada,
+			ruta:      []string{"maquinaria", "0"},
+			rechazo:   &kind.Pattern{Got: " hallazgos", Want: patronDeExpresion},
+		},
+		{
+			nombre:    "blanco-al-final",
+			documento: maquinariaBienFormada + "otra_conversacion:\n  - \"te dije \"\n",
+			ruta:      []string{"otra_conversacion", "0"},
+			rechazo:   &kind.Pattern{Got: "te dije ", Want: patronDeExpresion},
+		},
+		{
+			nombre:    "dos-blancos-entre-palabras",
+			documento: "maquinaria:\n  - \"memoria  de consultas\"\n" + otraConversacionBienFormada,
+			ruta:      []string{"maquinaria", "0"},
+			rechazo:   &kind.Pattern{Got: "memoria  de consultas", Want: patronDeExpresion},
+		},
+		{
+			nombre:    "asterisco",
+			documento: maquinariaBienFormada + "otra_conversacion:\n  - \"te *dije*\"\n",
+			ruta:      []string{"otra_conversacion", "0"},
+			rechazo:   &kind.Pattern{Got: "te *dije*", Want: patronDeExpresion},
+		},
+		{
+			nombre:    "guion-bajo",
+			documento: "maquinaria:\n  - \"_hallazgos_\"\n" + otraConversacionBienFormada,
+			ruta:      []string{"maquinaria", "0"},
+			rechazo:   &kind.Pattern{Got: "_hallazgos_", Want: patronDeExpresion},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := skills.ValidarDocumentoYAML[map[string][]string]([]byte(caso.documento), esquema)
+
+			var defecto *skills.DefectoEnElDocumento
+			require.ErrorAs(t, err, &defecto, "el esquema no valida la lista")
+			assert.Equal(t, caso.ruta, defecto.Ruta, "el esquema la rechaza en su sitio: %v", err)
+			assert.Equal(t, caso.rechazo, defecto.Tipo, "el esquema la rechaza por ese defecto: %v", err)
 		})
 	}
 }

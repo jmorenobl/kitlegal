@@ -51,29 +51,36 @@ const (
 	motivoDeLlegadaALaRed     = ": petición llegada a la red: "
 )
 
-// Textos fijos de informe.md (contrato job-de-evals §5).
+// Textos fijos de informe.md (contrato job-de-evals §5; contrato lista-y-juicio
+// §5 de H7.2).
 const (
-	ningunoEnElInforme  = "ninguno"
-	ningunaEnElInforme  = "ninguna"
-	sinLlegadasALaRed   = "ninguna petición llegó a la red de una fuente"
-	sinCodigoPorElCorte = "sin código (sesión cortada)"
-	sinConexiones       = "sin conexiones"
-	sinLeer             = "sin leer"
-	vaciaEnElInforme    = "vacía"
+	ningunoEnElInforme    = "ninguno"
+	ningunaEnElInforme    = "ninguna"
+	sinLlegadasALaRed     = "ninguna petición llegó a la red de una fuente"
+	sinCodigoPorElCorte   = "sin código (sesión cortada)"
+	sinConexiones         = "sin conexiones"
+	sinLeer               = "sin leer"
+	vaciaEnElInforme      = "vacía"
+	sinListaDeExpresiones = "la skill no tiene lista de expresiones prohibidas"
 )
 
-// Encabezados de las tablas de informe.md (contrato job-de-evals §5).
+// Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
+// lista-y-juicio §5 de H7.2).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
 		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
-		"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
+		"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente",
+		"Expresiones prohibidas", "Resultado",
 	}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
 	encabezadosDeTasas        = []string{
 		"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+	}
+	encabezadosDeExpresiones = []string{
+		"Modelo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
 	}
 )
 
@@ -168,6 +175,12 @@ type Informe struct {
 	// las observadas que el plan no pide (data-model §10.4).
 	Tasas []TasaDelInforme `json:"tasas"`
 
+	// ExpresionesProhibidasPorModelo es el recuento de las respuestas con alguna
+	// expresión prohibida, uno por modelo del job: el que decide y después los
+	// informativos, en su orden. Vacío, [] en informe.json, si la skill no tiene
+	// lista (contrato lista-y-juicio §5 de H7.2; FR-053).
+	ExpresionesProhibidasPorModelo []RecuentoDeExpresiones `json:"expresiones_prohibidas_por_modelo"`
+
 	// FueraDeLoGrabado son las invocaciones fuera de lo grabado de todas las
 	// sesiones, y Red, sus llegadas a la red, cada una con su sesión y su eval.
 	FueraDeLoGrabado []FueraDeLoGrabadoDelInforme `json:"fuera_de_lo_grabado"`
@@ -218,6 +231,22 @@ type TasaDelInforme struct {
 	Pasa     bool `json:"pasa"`
 }
 
+// RecuentoDeExpresiones es, para un modelo del job, cuántas respuestas de las
+// evals que activan la skill llevan alguna expresión prohibida (contrato
+// lista-y-juicio §5 de H7.2; data-model §3; FR-053). Es lo que se compara con el
+// umbral de SC-001.
+type RecuentoDeExpresiones struct {
+	// Modelo es el id del modelo, tal como lo fija el job.
+	Modelo string `json:"modelo"`
+
+	// ConAlguna son las de Respuestas que llevan alguna expresión prohibida.
+	ConAlguna int `json:"con_alguna"`
+
+	// Respuestas son las sesiones juzgadas —no las ilegibles— de las series que
+	// pide el plan con ese modelo cuya eval espera que la skill se active.
+	Respuestas int `json:"respuestas"`
+}
+
 // FueraDeLoGrabadoDelInforme es una invocación fuera de lo grabado con la sesión
 // y la eval de su resultado.
 type FueraDeLoGrabadoDelInforme struct {
@@ -258,7 +287,11 @@ type RedDelInforme struct {
 //  3. reparte las sesiones en series —eval, modelo y si la pregunta es la de la
 //     eval— y las compara con las que pide el plan (PlanDeEvals): cada serie
 //     lleva su tasa, y una serie que decide pasa si llegan al umbral
-//     (data-model §10.4; ADR 0016);
+//     (data-model §10.4; ADR 0016); con la lista de expresiones prohibidas de la
+//     skill, cuenta además por modelo las respuestas de las series que pide el
+//     plan cuya eval activa la skill y las que llevan alguna (recontarExpresiones;
+//     contrato lista-y-juicio §5 de H7.2), sin que eso cambie la regla del
+//     veredicto: una sesión con una expresión es una sesión que no pasa (FR-054);
 //  4. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
@@ -522,6 +555,8 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 		}
 	}
 
+	informe.ExpresionesProhibidasPorModelo = recontarExpresiones(e, conjunto.Prohibidas, sesiones, series)
+
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
 		informe.Evals = append(informe.Evals, resultado)
@@ -594,6 +629,55 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 	}
 
 	return series
+}
+
+// recontarExpresiones da el recuento de las respuestas con alguna expresión
+// prohibida por modelo (contrato lista-y-juicio §5 de H7.2; data-model §3;
+// research D7; FR-053): un elemento por modelo del job, el que decide y después
+// los informativos en su orden, con las sesiones juzgadas —no las ilegibles, que
+// no tienen respuesta juzgada— de las series que pide el plan cuya eval espera
+// que la skill se active, y cuántas de ellas llevan alguna. Las de una serie que
+// el plan no pide —la de la prueba de red o la de una sesión cuya eval, modelo o
+// pregunta no se pudieron leer— publican sus expresiones, pero no cuentan. Nil,
+// [] en informe.json, si la skill no tiene lista: un recuento de cero diría que
+// se buscó.
+func recontarExpresiones(
+	e InformeAEscribir, lista ExpresionesProhibidas, sesiones []sesionJuzgada, series []serieJuzgada,
+) []RecuentoDeExpresiones {
+	if len(lista.Maquinaria) == 0 && len(lista.OtraConversacion) == 0 {
+		return nil
+	}
+
+	modelos := slices.Concat([]string{e.ModeloQueDecide}, e.ModelosInformativos)
+
+	recuento := make([]RecuentoDeExpresiones, 0, len(modelos))
+	for _, modelo := range modelos {
+		recuento = append(recuento, RecuentoDeExpresiones{Modelo: modelo})
+	}
+
+	for _, serie := range series {
+		if !serie.tasa.Planificada {
+			continue
+		}
+
+		// Las series que pide el plan son de los modelos del job.
+		delModelo := &recuento[slices.Index(modelos, serie.tasa.Modelo)]
+
+		for _, posicion := range serie.sesiones {
+			juzgada := sesiones[posicion]
+			if juzgada.ilegible || !juzgada.resultado.Activa {
+				continue
+			}
+
+			delModelo.Respuestas++
+
+			if len(juzgada.resultado.ExpresionesProhibidas) > 0 {
+				delModelo.ConAlguna++
+			}
+		}
+	}
+
+	return recuento
 }
 
 // formasExigidas son las formas fijas que exige la eval del fichero dado entre
@@ -740,8 +824,10 @@ func retirarFichero(ruta string) error {
 // renderizarInforme da informe.md (contrato job-de-evals §5): el título; el
 // veredicto y sus motivos; la cabecera con sus cuatro líneas; la comprobación sin
 // Python en un bloque; los ficheros mal formados, las invocaciones fuera de lo
-// grabado y las peticiones llegadas a la red; la tabla de las sesiones; y una
-// sección por sesión.
+// grabado y las peticiones llegadas a la red; las tasas por eval; el recuento de
+// las expresiones prohibidas por modelo, o el párrafo de la skill sin lista
+// (contrato lista-y-juicio §5 de H7.2); la tabla de las sesiones; y una sección
+// por sesión.
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -784,6 +870,12 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 
 	md.parrafo("## Tasas por eval")
 	md.tablaOVacia(encabezadosDeTasas, filasDeTasas(informe.Tasas), ningunaEnElInforme)
+
+	// El recuento solo está vacío si la skill no tiene lista: con ella, lleva
+	// siempre al menos el modelo que decide.
+	md.parrafo("## Expresiones prohibidas por modelo")
+	md.tablaOVacia(encabezadosDeExpresiones, filasDeExpresiones(informe.ExpresionesProhibidasPorModelo),
+		sinListaDeExpresiones)
 
 	md.parrafo("## Sesiones")
 	md.tablaOVacia(encabezadosDeSesiones, filasDeSesiones(informe.Evals), ningunaEnElInforme)
@@ -884,6 +976,20 @@ func filasDeTasas(tasas []TasaDelInforme) [][]string {
 	return filas
 }
 
+// filasDeExpresiones son las filas de la tabla del recuento de las expresiones
+// prohibidas: por modelo, las respuestas con alguna expresión y las respuestas en
+// evals que activan la skill.
+func filasDeExpresiones(recuento []RecuentoDeExpresiones) [][]string {
+	filas := make([][]string, 0, len(recuento))
+	for _, delModelo := range recuento {
+		filas = append(filas, []string{
+			delModelo.Modelo, strconv.Itoa(delModelo.ConAlguna), strconv.Itoa(delModelo.Respuestas),
+		})
+	}
+
+	return filas
+}
+
 // resultadoDelUmbral dice si una serie llega al umbral.
 func resultadoDelUmbral(pasa bool) string {
 	if pasa {
@@ -897,12 +1003,13 @@ func resultadoDelUmbral(pasa bool) string {
 // activa, activada, sesión terminada con su código, comandos ausentes, comandos
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
 // hallazgos encontrados, hallazgos ausentes, territorio encontrado, territorio
-// ausente y resultado. Los comandos prohibidos ejecutados van junto a los
-// ausentes, cada uno con su texto (contrato evals-y-skill §2 de H7); los avisos,
-// junto a las citas, cada uno con su código (contrato de formato, juicio e
-// informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su clase
-// (contrato evals-y-skill §6 de H7.1); y el territorio, detrás, cada elemento con
-// su texto (contrato de evals §2 de H6).
+// ausente, expresiones prohibidas y resultado. Los comandos prohibidos ejecutados
+// van junto a los ausentes, cada uno con su texto (contrato evals-y-skill §2 de
+// H7); los avisos, junto a las citas, cada uno con su código (contrato de formato,
+// juicio e informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su
+// clase (contrato evals-y-skill §6 de H7.1); el territorio, detrás, cada elemento
+// con su texto (contrato de evals §2 de H6); y las expresiones prohibidas, detrás
+// del territorio, en el orden de la lista (contrato lista-y-juicio §5 de H7.2).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -933,6 +1040,7 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			unidosOVacio(resultado.HallazgosAusentes, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioEncontrado, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioAusente, ningunoEnElInforme),
+			unidosOVacio(resultado.ExpresionesProhibidas, ningunaEnElInforme),
 			pasa,
 		})
 	}
