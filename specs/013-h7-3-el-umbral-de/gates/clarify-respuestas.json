@@ -1,0 +1,54 @@
+{
+  "respuestas": [
+    {
+      "id": "Q1",
+      "opcion": "A",
+      "respuesta": "El sondeo no juzga los criterios que salen de la traza: los comandos esperados de cada eval (incluida la comprobación de la redacción) y los comandos prohibidos. Cada sesión pasa o falla por el resto de lo que juzga `Juzgar`: que terminó, la activación, las citas, los avisos, las formas de hallazgo, el territorio y las expresiones prohibidas. Todo eso sale del transcript y de `codigo-de-la-sesion` (`internal/evals/sesion.go`: `SkillsActivadas`, `Respuesta`, `Terminada`), y se juzga con el mismo código, sin un juez propio del sondeo. La salida nombra estos criterios entre lo que no comprueba (qué órdenes se ejecutaron: los comandos esperados y los prohibidos de cada eval), junto a las llegadas a la red y la ausencia de Python (FR-065). Por eso, sobre las mismas sesiones, la tasa de cada serie nunca es menor que la del job, y no es la del job. El test de FR-096 compara eval a eval todo el resultado del juicio salvo lo que sale de la traza: comandos ejecutados y ausentes, prohibidos ejecutados, invocaciones, fuera de lo grabado, otras fallidas y llegadas a la red, además de los motivos y el `pasa` que dependen de ellos. El plan fija cómo se aplica `Juzgar` sin esos criterios, por ejemplo con la eval sin comandos ni prohibidos, que según `Juzgar` deja su juicio «el de antes».",
+      "criterio": "a",
+      "fuente": "docs/ROADMAP.md, H7.3, Alcance, «Sondeo local para personas»: «publica la tasa de cada serie» y, en «Lo que no comprueba, lo dice», «Lo que el job lee de la traza de strace —qué órdenes se ejecutaron y las llegadas a la red— y la ausencia de Python quedan sin comprobar, y su salida los nombra: por eso sus tasas no son las del job». Spec FR-061, FR-065 y FR-096. internal/evals/juzgar.go: `repartirComandos` y `anotarProhibidos` leen `sesion.Invocaciones`. internal/evals/sesion.go: las invocaciones solo vienen de la traza (`LeerTrazas`).",
+      "alternativa_rechazada": "B (juzgar los comandos con las órdenes que el agente pide en el transcript) comprobaría con un sustituto lo que el hito dice que «queda sin comprobar». Además añade al juez una lectura nueva del transcript que el job no tiene, cuando FR-061 pide el mismo código que el job. Y una orden pedida no es una ejecutada: la shell puede fallar antes del `execve`, o una sola llamada de shell puede ejecutar varias invocaciones o ninguna. La tasa parecería la del job sin serlo. C (series sin tasa en las evals con comandos) contradice «publica la tasa de cada serie» (FR-065). Además dejaría sin tasa casi todas las evals de `boe-legislacion`, que es la skill para la que existe el sondeo.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q2",
+      "opcion": "A",
+      "respuesta": "El sondeo acepta una sola credencial: `CLAUDE_CODE_OAUTH_TOKEN` en el entorno, como el job, el token de la suscripción que da `claude setup-token`. Es la única que pasa a sus sesiones: no usa ninguna clave de API de pago por uso ni lee la sesión iniciada de Claude Code de la persona, es decir, ni su llavero ni sus ficheros de credenciales. Antes de abrir ninguna sesión basta con comprobar que la variable está y no está vacía. Si falta o está vacía, el sondeo dice que falta la credencial, nombra la variable y sale con un código distinto de 0 sin abrir ninguna sesión (FR-063, US4-5). Esa comprobación no consume ninguna llamada al modelo. Una credencial caducada o revocada se ve en la primera sesión: la sesión no termina y la salida la publica con su motivo, como el job. No hay comprobación previa contra el servicio.",
+      "criterio": "d",
+      "fuente": "docs/ROADMAP.md, H7.3, «Sondeo local para personas»: «la misma preparación […] que el job», «usa su credencial, y sin una que sirva lo dice antes de abrir ninguna sesión». Spec FR-063 y US4-5 («dice que falta la credencial»). CONTRIBUTING.md, job de evals: «el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token` (el proyecto no usa una clave de API de pago por uso)». ADR 0016. .github/workflows/evals.yml y scripts/evals.sh (`CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code`). Constitución, «Criterio de decisión autónoma», punto 4.",
+      "alternativa_rechazada": "B (aceptar también la sesión iniciada de Claude Code) obliga a leer el almacén de credenciales de la persona (el llavero de macOS o los ficheros de su configuración) y a copiarlas a la configuración aislada de cada sesión. Eso afecta a la seguridad y a la privacidad de su cuenta: deja credenciales en un directorio temporal, y si una sesión renueva el token de refresco puede invalidar el que usa la persona en su Claude Code. Es la lectura que más compromete, y ninguna fuente la pide. C añade a B una llamada previa al servicio que ninguna fuente especifica. No hay más forma documentada de validar un token de suscripción que abrir una sesión con modelo, que es justo lo que el requisito pide no hacer antes de la comprobación.",
+      "conservadora": true,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q3",
+      "opcion": "D",
+      "respuesta": "El sondeo publica solo lo agregado que pide FR-065: la tasa de cada serie, el recuento de respuestas con alguna expresión prohibida sobre las respuestas en evals que activan la skill (con el 5 % como referencia), lo que no comprueba y las sesiones sin medir por límite de uso. No lista las expresiones encontradas en cada sesión. Su directorio temporal (sesiones, cachés preparadas, transcripts, respuestas y el estado de Claude Code de cada sesión) se borra al terminar, también cuando termina con un código distinto de 0. No deja nada en disco, salvo las cachés de compilación de Go (FR-064). Quien necesite cada respuesta y sus expresiones las tiene en el informe del job, que publica las expresiones por sesión (H7.2 FR 053).",
+      "criterio": "c",
+      "fuente": "Spec FR-064, FR-065 y FR-066. Spec, «Uso, de fuera adentro», fila «La salida del sondeo»: «Una línea por serie […], el recuento, lo que no comprueba y las sesiones sin medir: con 5 evals y un modelo, unas 15 líneas, < 3 KB». Spec, «Fuera de alcance»: «Que el sondeo escriba un informe en otro formato, guarde un historial de sondeos o compare dos sondeos». Constitución, «Gates», criterio de uso (una salida que crece con lo acumulado es defecto) y «Criterio de decisión autónoma», puntos 1 y 2.",
+      "alternativa_rechazada": "A y B (expresiones por sesión) cambian la forma y el tamaño de la salida que el spec fija para el sondeo. Ninguna fuente lo pide, y ese detalle ya lo publica el informe del job. A y C (conservar el directorio e imprimir su ruta) dejan en disco, en cada sondeo, un directorio por sesión con su caché preparada, su transcript y su estado de Claude Code. Ese material se acumula con cada sondeo y no con la pregunta, y equivale a guardar el historial de sondeos que el spec deja fuera de alcance. Un directorio temporal se retira al terminar, como `t.TempDir` o `os.MkdirTemp` con su `os.RemoveAll`.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q4",
+      "opcion": "A",
+      "respuesta": "Como el job (FR-044). Tras una sesión cuyo resultado lleva el mensaje del límite de uso (el de la ventana, el semanal o el de la familia del modelo, que no se reponen mientras dura el sondeo), el sondeo no abre ninguna sesión más. Las que ya estaban abiertas terminan y se juzgan, y las que faltaban quedan sin medir por límite de uso. Su serie queda sin medir, y la salida publica esas sesiones como sin medir por límite de uso (FR-065). Sale con 0: ha abierto y juzgado lo que la cuenta le dejaba, y clasificado el resto con la misma regla que el job. Su código de salida no dice nada de la skill (FR-066). Tras reintentos por `rate_limit` agotados, o cortados por el tope (FR-040, b y c), sigue abriendo las demás, como el job.",
+      "criterio": "c",
+      "fuente": "Spec FR-040, FR-044, FR-061 («la clasificación de los límites de FR-040»), FR-065 («y las sesiones sin medir por límite de uso»), FR-066. Spec, «Edge Cases»: «Una sesión del sondeo que la cuenta no deja terminar: se publica sin medir por límite de uso, como en el job, y el sondeo sigue saliendo con 0». docs/ROADMAP.md, H7.3: «la misma preparación y el mismo juez» y «Tras un límite que no se repone […] el job no abre más sesiones, y las que faltan quedan también sin medir».",
+      "alternativa_rechazada": "B (seguir abriendo todas) repite contra una cuenta ya agotada peticiones que el propio hito da por inútiles, porque el límite no se repone. Solo añadiría más sesiones que chocan con el límite y el mismo resultado publicado. Se aparta además de la regla que el spec da al job por esa misma razón. C (salir con un código distinto de 0) usaría el código de salida para una circunstancia de la cuenta que FR-065 trata como parte normal de la salida («las sesiones sin medir por límite de uso»). Y lo confundiría con los que el spec reserva para no poder empezar (argumentos no válidos, FR-067, o credencial ausente, FR-063). El caso límite del spec dice que sigue saliendo con 0, como el job lo trata en su informe y no en un error de ejecución.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q5",
+      "opcion": "A",
+      "respuesta": "Un solo modelo por sondeo, en un único argumento que no puede estar vacío (FR-060, FR-067). La salida da las series de ese modelo y su recuento de expresiones prohibidas. La fila «La salida del sondeo» de «Uso, de fuera adentro» se corrige a «una línea por serie (≤ 19 evals)», sin «× los modelos pedidos». Para medir otro modelo se lanza otro sondeo.",
+      "criterio": "a",
+      "fuente": "docs/ROADMAP.md, H7.3, «Sondeo local para personas»: «`make evals-sondeo SKILL=<skill> EVALS=<números> MODELO=<id> REPETICIONES=<n>` […] abre en paralelo las sesiones de ese subconjunto de evals con ese modelo». Spec FR-060 («con un modelo y unas repeticiones») y FR-067 («un modelo vacío»). Aceptación del hito y FR-070: el escenario del quickstart usa solo Sonnet 5.",
+      "alternativa_rechazada": "B (uno o varios modelos) extiende FR-060 y FR-067 más allá de lo que dice el hito, que nombra `MODELO=<id>` y «ese modelo». Ninguna fuente lo pide, y el escenario que mide el sondeo (SC-002) usa un modelo. La mención «× los modelos pedidos» de la tabla de uso es la incoherencia que se corrige, no un requisito: lo no especificado no se implementa (constitución, «Criterio de decisión autónoma», punto 2).",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    }
+  ]
+}
