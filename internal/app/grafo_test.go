@@ -2259,6 +2259,12 @@ const (
 const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n posterior " +
 	"derivada de la grabaci\xc3\xb3n de H4.]"
 
+// parrafoDeLaVersionUlterior es el que marca como sintética la redacción de la
+// derivada version-ulterior, la redacción C del e2e (research.md D23 de H7.1): el
+// último de su versión.
+const parrafoDeLaVersionUlterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n ulterior " +
+	"derivada de la grabaci\xc3\xb3n de H4.]"
+
 // parrafoDeLaVersionAnterior es el que marca como sintética la redacción de la
 // derivada lpac-a21-version-anterior, el grafo previo de la eval de la consulta
 // repetida: el último de su versión.
@@ -2278,14 +2284,16 @@ type grabacionDerivada struct {
 // grabacionesDerivadas son las derivadas del e2e y la del grafo previo de la eval
 // de la consulta repetida (research.md D22), cada una con lo que dice su nombre:
 // version-posterior, la fecha de vigencia 20250101 y el párrafo sintético al
-// final del texto, con la huella de ese texto; sin-eli, la url_eli vacía;
-// eli-sin-segmento, una url_eli sin el segmento eli; y lpac-a21-version-anterior,
-// la fecha de vigencia 20151002 y su párrafo sintético al final del texto, con la
-// huella de ese texto.
+// final del texto, con la huella de ese texto; version-ulterior, lo mismo con la
+// fecha 20260101 y su párrafo; sin-eli, la url_eli vacía; eli-sin-segmento, una
+// url_eli sin el segmento eli; y lpac-a21-version-anterior, la fecha de vigencia
+// 20151002 y su párrafo sintético al final del texto, con la huella de ese texto.
 func grabacionesDerivadas() []grabacionDerivada {
 	return []grabacionDerivada{
 		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-posterior"), "20250101",
 			parrafoDeLaVersionPosterior),
+		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-ulterior"), "20260101",
+			parrafoDeLaVersionUlterior),
 		{
 			carpeta: filepath.Join(derivadasDelE2E, "sin-eli"),
 			fichero: grabacionDeLosMetadatos,

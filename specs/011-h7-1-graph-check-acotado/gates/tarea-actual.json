@@ -1,21 +1,17 @@
 {
-  "id": "T009",
-  "texto": "T009 [US4] `fuente-caducada` solo sobre lo vigente (data-model §5; research D5): internal/core/grafo/comprobar.go da `fuente-caducada` —condición, valores propios y explicación de H7 FR 066— solo sobre nodos `Norma`, `Bloque` y la `BloqueVersion` que es la redacción vista de un bloque de la instantánea (la `Ultima` de su fila o, sin fila, la de `RedaccionVistaSinLecturas`), nunca sobre otra `BloqueVersion` ni otro tipo; tests en internal/core/grafo/comprobar_test.go: tras el paso 5 de FR-025 y pasada la vigencia de la lectura de C, `fuente-caducada` sobre la `Norma`, el `Bloque` y C, ninguno sobre A ni B, y el `version-obsoleta` sobre B (4 en total, SC-004); tras otra lectura que ve C con una observación nueva, ninguno (FR-031); bloque sin fila, solo su redacción vista; nodos sin vigencia, ninguno; `Municipio` y `Organo` con la vigencia pasada, ninguno; en internal/core/grafo/explicacion_test.go, los casos que afirmaban `fuente-caducada` sobre lo que deja de ser vigente: `probarPlantillaDeFuenteCaducada` exige la plantilla sobre la `Norma`, el `Bloque` y `derivada` —la redacción vista sin lecturas de `grafoDelBloque`, la de observación más reciente— y ningún hallazgo sobre `grabada.id()`; en `casosDeCita` de `probarCitas`, cada cita de una `BloqueVersion` se afirma sobre la redacción vista de su bloque (`derivada`, o la `Ultima` de una fila de `Instantanea.Lecturas` que el caso añade cuando lo que se prueba es la cita de `grabada`), y las `BloqueVersion` que no son la redacción vista de ningún bloque de la instantánea —como en «una BloqueVersion sin su Bloque» y en «una BloqueVersion que cuelga de un nodo que no es un Bloque»— dejan de estar entre los nodos nombrados y el caso exige que no tengan ningún hallazgo; «los tipos sin cita» pasa a exigir que `Municipio` y `Organo` no tengan ninguno (FR-030); internal/core/grafo/explicacion.go cambia solo si alguna rama de la cita queda sin ningún uso posible, que sale con su caso (regla genérica, sin caso nuevo); en internal/app/grafo_test.go, el caso de las dos clases de `salidasDelGrafo` pasa a una siembra con B caducada; en internal/app/coste_test.go, `fuente-caducada` = normas + 2 × bloques (3 570); verificación: `make ci` en verde con h7-grafo-fuente-caducada.txtar y h7-grafo-show.txtar sin más cambios — FR-030, FR-031, FR-032; SC-004; rutas: internal/core/grafo/comprobar.go, internal/core/grafo/explicacion.go, internal/core/grafo/explicacion_test.go, internal/app/grafo_test.go, internal/app/coste_test.go",
-  "intento": 1,
-  "datos": false,
+  "id": "T010",
+  "texto": "T010 [datos] [US2] La redacción C del e2e con la entrada de su control, y **nada más** (research D23; contracts/arnes-e2e.md §1): primero el test, en internal/app/grafo_test.go —`grabacionesDerivadas()` gana la entrada `version-ulterior` con `versionDelArticulo21(filepath.Join(derivadasDelE2E, \"version-ulterior\"), \"20260101\", parrafoDeLaVersionUlterior)`, la constante `parrafoDeLaVersionUlterior` escrita con sus escapes de Go y la derivada nombrada en el comentario de `grabacionesDerivadas()`—, que sin la derivada falla (rojo), porque `TestGrabacionesDerivadas` exige una entrada por cada fichero de la carpeta de derivadas y la derivada sola deja `make ci` en rojo (redelimitada en el intento 1, con la salida en su nota); después la derivada, internal/app/testdata/derivadas/version-ulterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json, el bloque `a21` de la grabación de H4 del paquete `boe` con `fecha_vigencia` `20260101` y el párrafo `[Redacción sintética de prueba: versión ulterior derivada de la grabación de H4.]` añadido al final del texto, producida por un programa de un solo uso fuera del repositorio a partir de esa grabación, como `version-posterior` de H7 (misma forma de grabación, mismo nombre de fichero y la longitud declarada recalculada si la grabación la lleva), que cambia exactamente eso; ninguna grabación nueva ni red; verificación: `TestGrabacionesDerivadas` en rojo con la entrada y sin la derivada y en verde con las dos, y `make ci` en verde (el `Setup` del arnés ya copia el directorio de derivadas entero) — FR-025, FR-091; rutas: internal/app/testdata/derivadas/version-ulterior/, internal/app/grafo_test.go",
+  "intento": 2,
+  "datos": true,
   "aceptacion": false,
-  "base": "c5a5950d4ebf73b53dcc66dd31f5c915e07231d2",
+  "base": "dcefdec2c72daaea01f1f1e8a30db6168839e660",
   "rutas": [
-    "h7-grafo-fuente-caducada.txtar",
-    "h7-grafo-show.txtar",
-    "internal/app/coste_test.go",
+    "contracts/arnes-e2e.md",
     "internal/app/grafo_test.go",
-    "internal/core/grafo/comprobar.go",
-    "internal/core/grafo/comprobar_test.go",
-    "internal/core/grafo/explicacion.go",
-    "internal/core/grafo/explicacion_test.go"
+    "internal/app/testdata/derivadas/version-ulterior/",
+    "internal/app/testdata/derivadas/version-ulterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "5ecaffb09eb861c280cfb3374f85ae82fa194c280d1951153e477ebd9d71ef72"
 }
