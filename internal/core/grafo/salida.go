@@ -175,14 +175,18 @@ type Hallazgo struct {
 }
 
 // Instantanea es todo el grafo de una lectura consistente, lo que lee `graph
-// check`: cada nodo con su última observación y su vigencia, y cada arista
-// (data-model §5; research.md D15). No sale en ningún sobre y no lleva
-// etiquetas JSON.
+// check`: cada nodo con su última observación y su vigencia, cada arista y la
+// fila de lecturas de cada bloque que tiene una (data-model §5; research.md
+// D15; H7.1 data-model §3). No sale en ningún sobre y no lleva etiquetas JSON.
 type Instantanea struct {
 	// Nodos son todos los nodos.
 	Nodos []NodoDeInstantanea
 	// Aristas son todas las aristas, una por terna.
 	Aristas []schema.Arista
+	// Lecturas son las filas de lecturas de los bloques de la instantánea; un
+	// bloque sin fila cuenta con la de RedaccionVistaSinLecturas (H7.1
+	// FR-026).
+	Lecturas []LecturasDeBloque
 }
 
 // NodoDeInstantanea es un nodo de una instantánea: su id, su tipo, sus datos
