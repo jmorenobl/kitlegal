@@ -79,8 +79,10 @@ de su redacción, 655.
 
 Reglas comunes: texto en `Resultado.Legible` compuesto a partir de `data` en el mismo instante; sin las líneas
 `fuente`, `url`, `fecha_consulta` y `hash` del sobre ni el `kitlegal.graph` / `kitlegal:applet/graph` del sobre, sin
-pares ruta/valor aplanados (`nodo.id`, `0.clase`…), sin tabuladores ni secuencias de escape; columnas alineadas con
-espacios por el número de runas; termina en `\n`; con `--json`, nada cambia. Los fallos no tienen forma legible: su
+pares ruta/valor aplanados (`nodo.id`, `0.clase`…), sin tabuladores ni secuencias de escape; un valor de `data` que
+lleva algún carácter de control (`unicode.IsControl`: un tabulador, un salto, ESC…) se escribe entre comillas y con
+ellos escapados, con `strconv.Quote`, y cualquier otro, tal cual; columnas alineadas con espacios por el número de
+runas; termina en `\n`; con `--json`, nada cambia. Los fallos no tienen forma legible: su
 mensaje va a la salida de error, como hasta ahora.
 
 ### 5.1 `stats`
@@ -141,7 +143,7 @@ Para acotar la comprobación a una norma y a sus bloques: kitlegal graph check <
 ```
 
 - La cabecera dice siempre el total de cada clase y cuántos se listan y se omiten, también cuando no se omite
-  ninguno (`se omiten 0`; FR-063); con la medida, `Hallazgos en todo lo consultado: 240 version-obsoleta y 4590
+  ninguno (`se omiten 0`; FR-063), con el verbo en singular solo con 1 (`se lista 1`, `se omite 1`); con la medida, `Hallazgos en todo lo consultado: 240 version-obsoleta y 4590
   fuente-caducada; se listan 50 y se omiten 4780.`
 - Un grupo por clase con algún hallazgo listado, `version-obsoleta` primero, con el total de la clase entre
   paréntesis; cada hallazgo, su explicación y, debajo, su id.
@@ -158,8 +160,8 @@ una semana). Bytes con `--json`, de §3.
 | Salida | Quién la pide y cuántas veces por pregunta | Tamaño | Cuándo deja de darse cada señal |
 |---|---|---|---|
 | `graph check <norma> <bloques leídos> --json` | `boe-legislacion`, paso 5: una vez por norma citada (una en la mayoría de las preguntas, una más por remisión); traslada cada `version-obsoleta` con la forma fija; no le llega ningún `fuente-caducada` de lo recién leído | como mucho k hallazgos con k bloques leídos: 312 bytes sin cambios (lo habitual); 197 + 139 + 5 × 691 + 4 = 3 795 con cinco bloques cambiados (a21-a25 de la LPAC); no depende de lo acumulado | `version-obsoleta`: la da la lectura que ve la redacción nueva y la apaga la lectura siguiente de ese bloque (FR-024) |
-| `graph check [--json]` sin argumentos | una persona que repasa su memoria; ninguna skill | como mucho 50 hallazgos: con la medida, 4 830 contados (240 y 4 590), 50 listados, todos `version-obsoleta`: 197 + 102 + 50 × 685 + 49 = 34 598 bytes con los ids de la siembra de TestMedidaDelGrafo (un `version-obsoleta` de `BOE-A-2020-1299`, bloque `a1`, pesa 685; SC-001: ≤ 40 000) | `version-obsoleta`, como arriba; `fuente-caducada`: sobre la `Norma`, el `Bloque` y la redacción vista cuya consulta pasó su vigencia (7 días); la apaga la lectura siguiente del bloque, que ya no puede servir la caché (FR-031); nunca sobre una redacción superada |
-| `graph check <norma> [--json]` | una persona que acota (H8 y H10, fuera de este hito) | como mucho 50; con 8 bloques por norma, como mucho 8 + 17 = 25 hallazgos, unos 17 KB | como arriba |
+| `graph check [--json]` sin argumentos | una persona que repasa su memoria; ninguna skill | como mucho 50 hallazgos: con la medida, 4 830 contados (240 y 4 590), 50 listados, todos `version-obsoleta`: 34 591 bytes medidos con los ids de la siembra de TestMedidaDelGrafo, 197 + 102 + 50 × 685 + 49 menos 7, porque un `version-obsoleta` con el id de tres cifras de la siembra pesa 685 y los 50 primeros comparando bytes llevan uno de una cifra y cinco de dos (SC-001: ≤ 40 000) | `version-obsoleta`, como arriba; `fuente-caducada`: sobre la `Norma`, el `Bloque` y la redacción vista cuya consulta pasó su vigencia (7 días); la apaga la lectura siguiente del bloque, que ya no puede servir la caché (FR-031); nunca sobre una redacción superada |
+| `graph check <norma> [--json]` | una persona que acota (H8 y H10, fuera de este hito) | como mucho 50; con 8 bloques por norma, como mucho 8 + 17 = 25 hallazgos, unos 17 KB; con la medida, `BOE-A-2020-1000` da 18 (1 y 17) en 10 813 bytes | como arriba |
 | `graph stats [--json]` | una persona | una línea por par (tipo, fuente) y (relación, fuente): hoy 5 + 3, ≈ 1 KB con cualquier volumen | no da señales |
 | `graph show <id> [--json]` | una persona que depura | un nodo y sus aristas: una `Norma`, una por bloque consultado de ella (8 de media) | no da señales |
 

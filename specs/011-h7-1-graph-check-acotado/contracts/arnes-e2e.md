@@ -74,6 +74,11 @@ Claude Code (SC-007, S2). US6.3 (lo retirado no existe) la comprueban quickstart
     sobre la A de `a1` y `fuente-caducada` sobre la `Norma`, el `Bloque` `a1` y su B—, todos de ese ámbito. El binario
     es el de reloj T8 del arnés (`KITLEGAL_T8_BIN` de `entorno.variables`, `internal/app/e2e_test.go`), con
     `KITLEGAL_CACHE_DIR` en el directorio sembrado.
+- **`TestLoQueLeeLaSkill`** (`internal/app/medida_test.go`, `//go:build integration`; SC-005): los bloques `a21` a
+  `a25` de `BOE-A-2015-10565`, con los ids y urls que emite `boe`, leídos con una redacción y después con otra
+  posterior, dentro de la vigencia a la hora de T8: `graph check BOE-A-2015-10565 a21 a22 a23 a24 a25 --json` da 5
+  `version-obsoleta` y ningún `fuente-caducada` en ≤ 3 800 bytes (3 795 medidos), y tras otra lectura de los cinco,
+  ninguno (336 bytes).
 - **`TestIntegracionGrafoDeH7`** (`internal/graph/integracion_test.go`; FR-026, SC-012): entrega A (fecha
   `2026-09-28T12:00:00Z`) y B (`2026-09-29T12:00:00Z`) del mismo bloque; guarda el `Recuento`; lleva la base a lo que
   dejaba H7 (sin `lecturas` y sin la fila 2 de `schema_version`). Entonces: `Leer` + `Instantanea` + `Comprobar` no dan
@@ -93,7 +98,7 @@ Solo esto; ningún otro guion cambia (FR-081). Cada cambio quita o adapta una as
 | `h7-grafo-entrega-fallida.txtar` | En «world.db que no es una base de datos» (36-61): fuera `cksum` y `! exists` de auxiliares; la regex de la línea 43 pierde `; no se modifica$`. Fuera la sección «world.db que es un directorio» (63-73) y lo que la cabecera dice de ella. Se quedan el 0, `cmp stdout` y la línea que nombra `world.db` (`una-linea-mas.sh`) |
 | `h7-grafo-concurrencia.txtar` | Fuera `! stdout 'world\.db-nuevo'` (42) y los comentarios del temporal (5-6, 36-37) |
 | `h7-grafo-version-obsoleta.txtar` | Fuera la sección del orden inverso (75-121) y lo que la cabecera dice de US2.3. Con la regla nueva, el hallazgo sobre A no cambia de forma; la `data` de `check` (33, 57) pasa a la forma nueva (`"version-obsoleta":1,"fuente-caducada":0,"omitidos":0,"hallazgos":\[…\]`) |
-| `h7-grafo-fuente-caducada.txtar` | La `data` de `check` (25, 38, 46, 67) a la forma nueva; los tres `fuente-caducada` (Norma, Bloque y la redacción vista) no cambian |
+| `h7-grafo-fuente-caducada.txtar` | La `data` de `check` (25, 38, 46, 67) a la forma nueva, y `! stdout 'version-obsoleta'` (53) pasa a `! stdout '"clase":"version-obsoleta"'`, porque la clave del total está en toda `data` de `check`; los tres `fuente-caducada` (Norma, Bloque y la redacción vista) no cambian |
 | `h7-grafo-no-emiten.txtar` | La `data` de `check` (80) a la forma nueva sin argumentos |
 | `h7-grafo-applet.txtar` | La descripción de `check` en la ayuda (30) —con `\s+` entre palabras— y la `data` de `check` (100) |
 | `h7-grafo-show.txtar` | La sección «Sin --json, la tabla mínima del kernel» (49-91): las aserciones de la tabla (`\Afuente +kitlegal\.graph\n`, `^url …`, `^nodo\.id …`…) pasan a las de la salida legible (contracts/applet-graph.md §5), y se conservan los `cp stdout *.txt` que usa `sin-texto.sh`; la cabecera deja de decir «la tabla mínima» |

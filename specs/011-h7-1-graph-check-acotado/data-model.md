@@ -107,7 +107,8 @@ La secuencia de FR-025, con A = 20161002 (grabación de H4), B = 20250101 (deriv
   válidas (H7 FR 064: ocho cifras que nombran un día) con la de `U` estrictamente posterior: un hallazgo
   con `id` = `A`, `fecha_vigencia` = la de `A`, `fecha_vigencia_reciente` = la de `U`, `procedencia` = la última
   observación de `U` y la explicación de H7 (plantilla sin cambios, contracts/applet-graph.md §4). En cualquier otro
-  caso, ninguno. Sustituye a `versionesObsoletas` y `compararRecencia` de H7.
+  caso, ninguno. Sustituye la regla de `versionesObsoletas` de H7, que conserva el nombre y recibe las filas de
+  `lecturas`, y retira `compararRecencia`.
 - **`fuente-caducada`** (FR-030): la condición de H7 FR 066 (vigencia declarada y `fecha_consulta + vigencia`
   estrictamente anterior al instante), solo sobre nodos `Norma`, `Bloque` y las `BloqueVersion` que son la redacción
   vista de un bloque de la instantánea (§3). Nunca sobre otra `BloqueVersion` ni sobre otro tipo.

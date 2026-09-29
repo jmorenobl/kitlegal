@@ -95,7 +95,7 @@ semana (contracts/applet-graph.md §6).
 
 | Regla | Cómo la cumple |
 |---|---|
-| R1 · `internal/core/**` no importa adaptadores | `internal/core/grafo` solo gana biblioteca estándar (`cmp`, `slices`, `strings`, `time`, `fmt`); nada de `os`, `io`, `database/sql` (depguard, `internal/arch_test.go`). |
+| R1 · `internal/core/**` no importa adaptadores | `internal/core/grafo` solo gana biblioteca estándar (`cmp`, `maps`, `slices`, `strconv`, `strings`, `time`); nada de `os`, `io`, `database/sql` (depguard, `internal/arch_test.go`). |
 | R2 · Solo `internal/httpx` importa `net/http` | Sin cambios. |
 | R3 · Solo `cache`/`store`/`graph` importan SQLite y `database/sql` | La tabla, las consultas acotadas y el upsert viven en `internal/graph`; los tests que tocan SQL (p. ej. `TestIntegracionGrafoDeH7`, que devuelve la base a la versión 1) están en `internal/graph`; `TestMedidaDelGrafo` siembra con `graph.Nuevo(…).Apply`. |
 | R4 · Solo `cli` y `cmd/` llaman a `os.Exit` | Sin cambios. |
@@ -139,7 +139,7 @@ specs/011-h7-1-graph-check-acotado/
 internal/core/grafo/
 ├── vocabulario.go      # + EtiquetasDeHallazgo, MaximoDeHallazgos
 ├── lecturas.go         # nuevo: Lectura, LecturasDeBloque, Consolidado.Lecturas, RedaccionVistaSinLecturas
-├── comprobar.go        # Comprobar(instantanea, ambito, ahora) → Comprobacion; reglas nuevas; fuera versionesObsoletas/compararRecencia
+├── comprobar.go        # Comprobar(instantanea, ambito, ahora) → Comprobacion; reglas nuevas (versionesObsoletas sobre las lecturas); fuera compararRecencia
 ├── salida.go           # + Ambito, Comprobacion (MarshalJSON sin null); Instantanea.Lecturas
 ├── lote.go             # fuera ValidarContraGrafoVacio, URI absoluto, id/tipo, validarArista; Consolidar: un id repetido, una vez, sin comparar datos
 ├── errores.go          # nombrar sin el caso de la arista (ningún rechazo que se queda la lleva)
@@ -213,6 +213,7 @@ Ninguno nuevo ni cambiado. Lo nuevo entra en los que ya hay: `test` (unitarios),
 | Creación en su sitio: directorios 0700, `world.db` 0600, WAL, esquema 2 (lo que afirmaba `TestPublicar` del resultado) | `internal/graph` | FR-071 |
 | `TestIntegracionGrafoDeH7` | `internal/graph` (integration) | FR-026, SC-012 |
 | `TestMedidaDelGrafo` (sin argumentos, solo la norma, la norma y un bloque) | `internal/app` (integration) | FR-013, FR-092, SC-001, SC-002 |
+| `TestLoQueLeeLaSkill` (cinco bloques cambiados de la LPAC y, tras leerlos otra vez, ninguno; añadido en tasks, T015) | `internal/app` (integration) | SC-005 |
 | Validación de argumentos de `check` y firma del applet: `a21`, `BOE-B-2015-10565`, `""`, `"" a21` y un bloque `" "` → 2; sin norma → todo | `internal/app` | FR-004, SC-009 |
 | `grafo_legible_test.go`: plantillas exactas, singular y plural, sin tabuladores ni escapes, determinismo | `internal/app` | FR-060-FR-063 |
 | Sintaxis de opcionales de posición | `internal/skills` | FR-007 |
@@ -289,8 +290,9 @@ Detalle, con el ejemplo y sus bytes, en contracts/applet-graph.md §3 y §6. Res
   de los ids de la pregunta, nunca con lo acumulado), con cualquier volumen acumulado; con la
   medida, H7 le daba ≈ 6,1 MB por pregunta. No le llega ningún `fuente-caducada` de lo que acaba de leer: la caché no
   sirve una consulta caducada, así que la lectura renueva la observación.
-- **Una persona**, sin argumentos: como mucho 50 hallazgos; con la medida, 4 830 contados y 50 listados, 197 + 102 +
-  50 × 685 + 49 = 34 598 bytes con los ids de la siembra de TestMedidaDelGrafo (un `version-obsoleta` de `BOE-A-2020-1299`, bloque `a1`, pesa 685; SC-001: ≤ 40 000).
+- **Una persona**, sin argumentos: como mucho 50 hallazgos; con la medida, 4 830 contados y 50 listados, 34 591 bytes
+  medidos con los ids de la siembra de TestMedidaDelGrafo (197 + 102 + 50 × 685 + 49 menos 7: los 50 primeros ids
+  comparando bytes llevan uno de una cifra y cinco de dos, y uno de tres pesa 685; SC-001: ≤ 40 000).
 - **Cuándo se apaga cada señal**: `version-obsoleta`, con la lectura siguiente del bloque, la haga quien la haga
   (FR-024); `fuente-caducada`, con la lectura siguiente del bloque, que ya pregunta a la fuente (FR-031), y nunca se da
   sobre una redacción superada (FR-030). La tabla `lecturas` crece con los bloques distintos (2 400 filas, ≈ 600 KB con

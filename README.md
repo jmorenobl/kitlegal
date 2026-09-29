@@ -122,7 +122,7 @@ atestación de procedencia, comprobable con `gh attestation verify <archivo> --r
   sitúa quedan anotados en tu equipo, con su fuente, su dirección y su fecha de consulta, en el *grafo del mundo*: un
   fichero, `world.db`, en la misma carpeta en la que guarda lo ya leído (`~/.cache/kitlegal/`, u otra con
   `KITLEGAL_CACHE_DIR`). Cuando vuelves a preguntar por una norma, tu agente la lee de nuevo, repasa el grafo con
-  `kitlegal graph check` y esa norma, y te dice con un aviso de forma fija (`⚠ REDACCIÓN MODIFICADA`) si la redacción
+  `kitlegal graph check` y esa norma, y te dice con una forma fija (`⚠ REDACCIÓN MODIFICADA:`) si la redacción
   ha cambiado desde la que se leyó la vez anterior. Lo que cita sale siempre de la lectura nueva: el grafo guarda
   también el texto de cada redacción que ha leído, pero nunca responde con él, y `kitlegal graph show <id>` y
   `kitlegal graph stats`, que enseñan lo anotado, no devuelven texto legal. Nada de eso sale de tu equipo, y una orden

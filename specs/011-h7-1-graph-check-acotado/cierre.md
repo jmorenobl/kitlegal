@@ -11,7 +11,11 @@ Lista para la capa 3 del informe final: cada fichero bajo `schemas/` o bajo cual
 modifica, con la tarea que lo tocó y su motivo. Sale de `git diff --name-status main`, filtrado a esos dos árboles, y la
 tarea de cada fila, de `git log --format=%s main..HEAD -- <fichero>`. Son once filas: dos esquemas, una derivada y los
 ocho guiones de H7 que nombra FR-080. Ningún fichero de esos árboles se retira ni se renombra (ninguna línea `D` ni
-`R`), y ninguna grabación cambia: la derivada es un fichero nuevo, fuera de `internal/source/boe/testdata/`.
+`R`), y ninguna grabación cambia: la derivada es un fichero nuevo, fuera de `internal/source/boe/testdata/`. Tras
+T025, el workflow activa la suite congelada (`6655a29`) y el diff gana cuatro líneas `A` más, los guiones
+`h7-1-grafo-lecturas.txtar`, `h7-1-grafo-check-acotado.txtar`, `h7-1-grafo-legible.txtar` y
+`h7-1-grafo-regla-generica.txtar` del directorio de guiones del arnés, byte a byte iguales a los de `aceptacion/`
+(`cmp` sin diferencias); no son de ninguna tarea.
 
 ### Esquemas (`schemas/`)
 
@@ -136,7 +140,8 @@ dan lo esperado.
   `zz-grafo-lecturas` 1,66 s, `zz-grafo-legible` 1,73 s, `zz-grafo-check-acotado` 1,79 s). Las copias se retiraron
   antes de `make ci`. Las huellas SHA-256 de los cuatro guiones de `aceptacion/` son las de
   `gates/aceptacion-congelada.json` (T001, `0da488f`). La ejecución de los `h7-1-*` activados la hace el workflow tras
-  el bucle, con su `make ci`.
+  el bucle, con su `make ci`. Ya activados (`6655a29`), la orden del quickstart da cuatro subtests
+  `--- PASS: TestEntregaDelHito/h7-1-…`, contados, y `ok`.
 - **Los guiones de H7.** `^h7-grafo-`: once subtests `--- PASS`, ninguno `FAIL`, y `ok` —los ocho de FR-080 más
   `h7-grafo-matriz-territorial`, `h7-grafo-memoria` y `h7-grafo-no-interferencia`, sin cambios—.
 - **La medida** (`-tags=integration`, `-v`). `TestMedidaDelGrafo` pasa y publica `graph check --json` sin argumentos
@@ -157,8 +162,9 @@ dan lo esperado.
   ninguno.
 - **`specs/010-h7-internal-graph-grafo/` intacto** (FR-083): `git diff --quiet main -- specs/010-h7-internal-graph-grafo`
   sale con 0.
-- **Ningún otro guion cambia** (FR-081): `git diff --name-status main -- internal/app/testdata/script/` nombra
-  exactamente los ocho guiones de FR-080 (ocho líneas `M`, ninguna más), ninguna copia `zz-`. Con ello la matriz
+- **Ningún otro guion cambia** (FR-081): `git diff --name-status main -- internal/app/testdata/script/` nombra, al
+  cierre de T025, exactamente los ocho guiones de FR-080 (ocho líneas `M`, ninguna más), ninguna copia `zz-`; tras la
+  activación de la suite por el workflow, además, las cuatro líneas `A` de los `h7-1-*` (§1). Con ello la matriz
   territorial de H7 (`h7-grafo-matriz-territorial.txtar`, Definition of Done, punto 11) no cambia.
 - **`docs/SOURCES.md`: no aplica.** El hito no toca ninguna fuente: `graph` es un applet calculado (procedencia
   `kitlegal.graph`, `kitlegal:applet/graph`) que solo lee `world.db` y no abre red, y `boe` y `territorio` emiten lo

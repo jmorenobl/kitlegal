@@ -25,12 +25,13 @@ formado (el esquema lo rechaza), como un aviso desconocido en H5.1.
   separador de blancos Zs, tabuladores, `*` o `_`, cada palabra de la etiqueta sin distinguir mayúsculas (V14) con al
   menos un blanco entre dos, otro separador y `:`, en la misma línea (FR-051).
 - `ExtraerHallazgos(texto) []string`: las clases de `grafo.EtiquetasDeHallazgo()` cuya forma lleva el texto, en el
-  orden de las clases, sin repetir.
+  orden de las clases comparando bytes (`clasesEtiquetadas`), sin repetir.
 - `ComprobarFormasDeHallazgo(texto) error`: un error por clase etiquetada cuya forma falta, que nombra la clase:
   `falta la forma fija del hallazgo version-obsoleta: ⚠ REDACCIÓN MODIFICADA:` (FR-045).
 - `ComprobarClasesDeHallazgo(esquema) error`: el enumerado de `hallazgos` del esquema compilado es exactamente el
   conjunto de clases etiquetadas (como `ComprobarCodigosDeAviso`).
-- `Juzgar`: `repartirHallazgos(eval.Hallazgos, ExtraerHallazgos(respuesta))` → `HallazgosEncontrados` /
+- `Juzgar`: `repartirFormas(eval.Hallazgos, ExtraerHallazgos(respuesta), …)`, la misma función que reparte los
+  avisos, → `HallazgosEncontrados` /
   `HallazgosAusentes`, con el motivo `forma de hallazgo ausente: <clase>` por cada ausente; la sesión pasa solo sin
   ausentes. `satisface` de una comprobación con `Norma` exige además `esDeLaNorma(invocacion, comando.Norma)`; su texto
   es `graph check <norma>` (sin norma, `graph check`, como en H7).

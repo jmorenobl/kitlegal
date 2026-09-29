@@ -112,8 +112,8 @@ el grafo sí tiene que leer lo que dejó H7.
 
 **Decisión**: data-model §5. `version-obsoleta` sobre la redacción de `anterior` cuando la de `ultima` tiene fecha de
 vigencia válida y estrictamente posterior; `fuente-caducada` con la condición de H7 FR 066 sobre `Norma`, `Bloque` y
-la redacción vista de cada bloque; las plantillas de las explicaciones no cambian. Se retiran `versionesObsoletas` y
-`compararRecencia`.
+la redacción vista de cada bloque; las plantillas de las explicaciones no cambian. `versionesObsoletas` conserva el
+nombre con la regla nueva, sobre las filas de `lecturas`, y se retira `compararRecencia`.
 **Por qué**: FR-023, FR-024, FR-030. Con `territorio` sin vigencia declarada (V21), la restricción a esos tres tipos no
 cambia nada de lo que ve nadie hoy y es la lectura literal de FR-030.
 **Alternativa**: dejar `fuente-caducada` sobre todo nodo salvo las redacciones superadas. Rechazada: FR-030 dice «solo
@@ -362,7 +362,8 @@ reloj nuevo en el arnés.
 
 **Decisión**: (1) `internal/app/medida_test.go` (`//go:build integration`, `TestMedidaDelGrafo`) siembra con
 `graph.Nuevo(graph.ConDirectorio(dir)).Apply` el grafo de la medida (contracts/arnes-e2e.md §4) y ejecuta el binario de
-e2e con reloj T8 (`graph check --json` sin argumentos, y con la norma y un bloque). (2)
+e2e con reloj T8 (`graph check --json` sin argumentos, solo con la norma y con la norma y un bloque); en el mismo
+fichero, `TestLoQueLeeLaSkill` (SC-005, añadido en tasks, T015) mide lo que lee la skill con cinco bloques cambiados. (2)
 `internal/graph/integracion_test.go` gana `TestIntegracionGrafoDeH7`: entrega A (T0) y B (T1), devuelve la base a la
 versión 1 (sin `lecturas` y sin la fila 2 de `schema_version`, exactamente lo que dejaba H7) y comprueba FR-026 y SC-012.
 (3) `TestCosteDelGrafo` (`coste_test.go`) siembra cada versión en su propia entrega, como lecturas sucesivas, y compara

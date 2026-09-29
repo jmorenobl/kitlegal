@@ -4,8 +4,9 @@
 // nodo, las relaciones, las claves de datos y las clases de hallazgo—, la forma
 // canónica de los datos identificativos (RFC 8785), la validación de un lote y
 // el rechazo de una Persona con un documento de identidad, la fusión de
-// observaciones, las reglas de `graph check` con sus explicaciones y las formas
-// de salida de los verbos de `graph`.
+// observaciones, las lecturas de cada bloque, las reglas de `graph check` —con
+// su ámbito, su orden y su cota— y sus explicaciones, y las formas de salida de
+// los verbos de `graph`.
 //
 // Lo que garantiza:
 //

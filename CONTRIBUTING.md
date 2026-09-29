@@ -343,7 +343,7 @@ Sus tests, y la orden que los ejecuta:
 
 | Qué comprueban | Dónde | Orden |
 |---|---|---|
-| Validación, `Persona`, fusión, reglas de `check` y explicaciones | `internal/core/grafo/*_test.go` | `make test` |
+| Validación, `Persona`, fusión, lecturas, reglas, orden y cota de `check` y explicaciones | `internal/core/grafo/*_test.go` | `make test` |
 | Ruta, errores, esperas, migraciones, modo de apertura según haya o no `world.db-wal`, lectura con ámbito y sin él, escritura con sus lecturas y creación en su sitio, sobre `t.TempDir()` | `internal/graph/*_test.go` | `make test` |
 | La matriz por la API pública: esquema, idempotencia, orden de llegada, rechazos, ocho entregas a la vez, un `world.db` que no es una base de datos y uno de una versión posterior, el plazo y el bloqueo, el `-wal` de una escritura propia interrumpida, un `world.db` escrito por H7 y sin residuos | `internal/graph/integracion_test.go` (`//go:build integration`) | `make test-integration` |
 | El applet, su salida contra `schemas/grafo.json`, ningún texto legal en su salida, la salida de `boe` igual con grafo y sin él, y la procedencia de cada operación | `internal/app/grafo_test.go` | `make test` |
