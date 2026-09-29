@@ -65,7 +65,7 @@ const (
 // (contrato evals-y-skill §1 y §4 de H7).
 const (
 	grafoPrevioDelArticulo21 = "grafo_previo:\n" +
-		"  grabaciones: lpac-a21-version-anterior\n" +
+		"  grabaciones: lcsp-a1-30-redaccion-original\n" +
 		"  comandos:\n" +
 		"    - applet: boe\n" +
 		"      norma: BOE-A-2015-10565\n" +
@@ -411,7 +411,7 @@ func TestLeerEval(t *testing.T) {
 				Pregunta:    "¿qué dice el art. 21 de la Ley 39/2015?",
 				Activa:      true,
 				Informativa: true,
-				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: comandoDelArticulo21Leido},
 				Comandos: slices.Concat(comandoDelArticulo21Leido,
 					[]ComandoEsperado{{Applet: "graph", Verbo: "check"}}),
 				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
@@ -490,23 +490,23 @@ func TestLeerEval(t *testing.T) {
 		{
 			nombre: "grafo-previo-con-grabaciones-mal-formadas",
 			documento: positivaDelArticulo21 +
-				strings.Replace(grafoPrevioDelArticulo21, "lpac-a21-version-anterior", "../lpac-a21", 1),
+				strings.Replace(grafoPrevioDelArticulo21, "lcsp-a1-30-redaccion-original", "../lcsp-a1-30", 1),
 			error: nombreDeEval + ": grafo_previo/grabaciones, línea 11: " +
-				"'../lpac-a21' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+				"'../lcsp-a1-30' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
 		},
 		{
 			nombre:    "grafo-previo-sin-comandos",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n",
 			error:     nombreDeEval + ": grafo_previo, línea 11: missing property 'comandos'",
 		},
 		{
 			nombre:    "grafo-previo-con-comandos-vacio",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos: []\n",
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n  comandos: []\n",
 			error:     nombreDeEval + ": grafo_previo/comandos, línea 12: minItems: got 0, want 1",
 		},
 		{
 			nombre: "grafo-previo-con-comando-de-comprobacion",
-			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lpac-a21-version-anterior\n  comandos:\n" +
+			documento: positivaDelArticulo21 + "grafo_previo:\n  grabaciones: lcsp-a1-30-redaccion-original\n  comandos:\n" +
 				"    - applet: graph\n      verbo: check\n",
 			fragmentos: []string{"grafo_previo/comandos/0, línea 13: additional properties 'verbo' not allowed"},
 		},
@@ -548,7 +548,7 @@ func TestLeerEval(t *testing.T) {
 				Pregunta:    preguntaDelArticulo21Eval,
 				Activa:      true,
 				Informativa: true,
-				GrafoPrevio: GrafoPrevio{Grabaciones: "lpac-a21-version-anterior", Comandos: comandoDelArticulo21Leido},
+				GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-redaccion-original", Comandos: comandoDelArticulo21Leido},
 				Comandos: slices.Concat(comandoDelArticulo21Leido,
 					[]ComandoEsperado{{Applet: "graph", Verbo: "check", Norma: "BOE-A-2015-10565"}}),
 				Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},

@@ -1,0 +1,30 @@
+# Eval informativa (ADR 0016): la consulta repetida sobre un artículo que el BOE modificó de verdad. El grafo de la
+# sesión ya registró una lectura del art. 118 de la LCSP que vio su redacción original (vigencia 20180309), derivada de
+# la respuesta grabada quitándole solo la redacción posterior; la caché sirve la grabada, con la vigente (20200206, Real
+# Decreto-ley 3/2020). La sesión tiene que leer el bloque con kitlegal boe articulo, comprobar con kitlegal graph check y
+# la norma, no pedir graph show, citar el bloque y trasladar el cambio de redacción con la forma fija
+# ⚠ REDACCIÓN MODIFICADA:.
+pregunta: "Hace tiempo te pregunté qué exige el artículo 118 de la LCSP para el expediente de un contrato menor. ¿Qué dice ahora?"
+activa: true
+informativa: true
+grafo_previo:
+  grabaciones: lcsp-a1-30-redaccion-original
+  comandos:
+    - applet: boe
+      norma: BOE-A-2017-12902
+      bloque: a1-30
+comandos:
+  - applet: boe
+    norma: BOE-A-2017-12902
+    bloque: a1-30
+  - applet: graph
+    verbo: check
+    norma: BOE-A-2017-12902
+prohibidos:
+  - applet: graph
+    verbo: show
+citas:
+  - norma: BOE-A-2017-12902
+    bloque: a1-30
+hallazgos:
+  - version-obsoleta

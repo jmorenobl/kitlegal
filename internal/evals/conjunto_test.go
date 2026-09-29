@@ -12,11 +12,13 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/skills"
@@ -960,8 +962,11 @@ const (
 // H7.2, la lista de expresiones prohibidas de evals/boe-legislacion/ marca en las
 // respuestas de H7.1 el reparto calibrado, y ninguna de sus expresiones casa con
 // el texto de los bloques que leen las evals ni con lo que la skill enseña a
-// escribir (contrato lista-y-juicio §6; FR-043, FR-084, FR-085 de H7.2). Lee las
-// carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// escribir (contrato lista-y-juicio §6; FR-043, FR-084, FR-085 de H7.2); y, sobre
+// cada grafo previo, la lectura de los bloques de la eval y graph check dan los
+// hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
+// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Lee las carpetas enteras,
+// así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1300,6 +1305,27 @@ func probarExpresionesEnLosBloques(t *testing.T, evals []Eval, lista Expresiones
 func bloqueLeido(t *testing.T, registro *app.Registro, consulta Consulta) textoAMirar {
 	t.Helper()
 
+	// Sin entrega al grafo, la salida de error no dice nada que mirar aquí.
+	leido, _ := leerBloque(t, registro, consulta)
+	require.NotEmpty(t, leido.Texto, "«%s» da el texto del bloque", ordenDe(consulta))
+
+	return textoAMirar{nombre: ordenDe(consulta), texto: leido.Texto}
+}
+
+// articuloLeido es lo que estas pruebas miran de la data de boe articulo --json:
+// el texto del bloque y su fecha de vigencia.
+type articuloLeido struct {
+	Texto         string `json:"texto"`
+	FechaVigencia string `json:"fecha_vigencia"`
+}
+
+// leerBloque ejecuta con el registro boe articulo --json de la consulta y
+// devuelve su data y lo que escribió en la salida de error, donde el kernel
+// avisa de una entrega al grafo que falló. La lectura termina en 0 y su salida es
+// un sobre con un bloque.
+func leerBloque(t *testing.T, registro *app.Registro, consulta Consulta) (articuloLeido, string) {
+	t.Helper()
+
 	var salida, errores bytes.Buffer
 
 	argv := slices.Concat([]string{programaDeLasConsultas, consulta.Applet, consulta.Verbo}, consulta.Argumentos,
@@ -1309,15 +1335,12 @@ func bloqueLeido(t *testing.T, registro *app.Registro, consulta Consulta) textoA
 	require.Zero(t, codigo, "«%s» lee el bloque: %s", ordenDe(consulta), errores.String())
 
 	var sobre struct {
-		Data struct {
-			Texto string `json:"texto"`
-		} `json:"data"`
+		Data articuloLeido `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s» es un sobre con un bloque",
 		ordenDe(consulta))
-	require.NotEmpty(t, sobre.Data.Texto, "«%s» da el texto del bloque", ordenDe(consulta))
 
-	return textoAMirar{nombre: ordenDe(consulta), texto: sobre.Data.Texto}
+	return sobre.Data, errores.String()
 }
 
 // probarExpresionesDeLaSkill es la subprueba expresiones-de-la-skill de
@@ -1461,8 +1484,10 @@ func malFormadosDeCadaSkill(t *testing.T, raiz string) (carpetas, malFormados []
 // cada carpeta de evals/ que lo lleva nombra un conjunto de GrafosPrevios que
 // existe, y prepararlo como lo prepara el job, con UnionDeGrabaciones y en
 // temporales, no da ninguna falta ni error y deja en el grafo del mundo un
-// BloqueVersion por comando, el de su norma y su bloque. Alguna eval lo lleva:
-// sin ninguna, la subprueba pasaría en vacío.
+// BloqueVersion por comando, el de su norma y su bloque; y, desde H7.2, lo que
+// hace después la sesión da los hallazgos que la eval espera (contrato
+// eval-y-derivada §4; FR-002). Alguna eval lo lleva: sin ninguna, la subprueba
+// pasaría en vacío.
 func probarGrafosPrevios(t *testing.T) {
 	t.Parallel()
 
@@ -1487,7 +1512,8 @@ func probarGrafosPrevios(t *testing.T) {
 // compruebaElGrafoPrevio exige que el grafo previo de la eval de esa ruta nombre
 // un conjunto de GrafosPrevios que existe y que prepararlo en una caché temporal,
 // con UnionDeGrabaciones, no dé ninguna falta ni error y deje en el grafo del
-// mundo un BloqueVersion por comando, el de su norma y su bloque.
+// mundo un BloqueVersion por comando, el de su norma y su bloque. Desde H7.2
+// exige además, sobre ese grafo, lo que verá la sesión (compruebaLaSesion).
 func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 	t.Helper()
 
@@ -1506,16 +1532,127 @@ func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 		porComando = append(porComando, CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque})
 	}
 
-	assert.ElementsMatch(t, porComando, bloquesVersionados(t, dirCache),
+	versionados := bloquesVersionados(t, dirCache)
+
+	citas := make([]CitaEsperada, 0, len(versionados))
+	anotados := make(map[string]bloqueVersionado, len(versionados))
+
+	for _, versionado := range versionados {
+		citas = append(citas, versionado.cita)
+		anotados[versionado.id] = versionado
+	}
+
+	assert.ElementsMatch(t, porComando, citas,
 		"%s: el grafo previo deja un BloqueVersion por comando, el de su norma y su bloque", ruta)
+
+	compruebaLaSesion(t, ruta, eval, dirCache, anotados)
 }
 
-// bloquesVersionados son la norma y el bloque de cada BloqueVersion del grafo
-// del mundo de dirCache, en el orden de su instantánea: el identificador de la
-// Norma y el bloque del Bloque de los que cuelga, por las aristas eli:has_part y
+// compruebaLaSesion hace sobre el grafo del mundo de dirCache, con el grafo
+// previo de la eval ya preparado, lo que hace su sesión, en proceso y sin red
+// (contrato eval-y-derivada §4 de H7.2; research D14; FR-002): lee cada bloque de
+// los comandos de la eval con boe articulo --json sobre UnionDeGrabaciones, con
+// una caché temporal y entregando a ese grafo, y comprueba con graph check --json
+// cada norma de sus comandos, con los bloques que ha leído de ella. Las dos
+// terminan en 0; las clases de los hallazgos son exactamente las de hallazgos de
+// la eval; y cada version-obsoleta es de un BloqueVersion que dejó el grafo
+// previo —de los anotados, por su id—, con la fecha de vigencia de esa versión
+// como la superada y la del bloque leído como la reciente.
+func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, anotados map[string]bloqueVersionado) {
+	t.Helper()
+
+	sesion, err := registroDeBoe(copiaDeLaUnionDeGrabaciones(t), cache.ConDirectorio(t.TempDir()))
+	require.NoError(t, err)
+	require.NoError(t, sesion.Registrar(app.AppletGrafo(app.DependenciasDeGrafo{
+		Reloj: time.Now, Almacen: []graph.Opcion{graph.ConDirectorio(dirCache)},
+	})))
+	sesion.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(dirCache)))
+
+	var normas []string
+
+	bloquesDe := map[string][]string{}
+	leidas := map[CitaEsperada]string{}
+
+	for _, comando := range eval.Comandos {
+		if comando.Norma != "" && !slices.Contains(normas, comando.Norma) {
+			normas = append(normas, comando.Norma)
+		}
+
+		if formaDelComando(comando) != formaBloque {
+			continue
+		}
+
+		consulta := Consulta{Applet: comando.Applet, Verbo: verboArticulo, Argumentos: []string{comando.Norma, comando.Bloque}}
+		leido, errores := leerBloque(t, sesion, consulta)
+		assert.Empty(t, errores, "%s: «%s» llega al grafo de la sesión", ruta, ordenDe(consulta))
+
+		bloquesDe[comando.Norma] = append(bloquesDe[comando.Norma], comando.Bloque)
+		leidas[CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque}] = leido.FechaVigencia
+	}
+
+	var clases []string
+
+	for _, norma := range normas {
+		for _, hallazgo := range comprobacionDeLaSesion(t, sesion, norma, bloquesDe[norma]).Hallazgos {
+			clases = append(clases, string(hallazgo.Clase))
+
+			if hallazgo.Clase != grafo.ClaseVersionObsoleta {
+				continue
+			}
+
+			anotado, esDelGrafoPrevio := anotados[hallazgo.ID]
+			if !assert.True(t, esDelGrafoPrevio, "%s: el version-obsoleta de %s es de una redacción que dejó el grafo "+
+				"previo: %s", ruta, norma, hallazgo.ID) {
+				continue
+			}
+
+			assert.Equal(t, anotado.fechaVigencia, hallazgo.FechaVigencia,
+				"%s: la redacción superada de %s es la que dejó el grafo previo", ruta, hallazgo.ID)
+			assert.Equal(t, leidas[anotado.cita], hallazgo.FechaVigenciaReciente,
+				"%s: la redacción reciente de %s es la que ha leído la sesión", ruta, hallazgo.ID)
+		}
+	}
+
+	slices.Sort(clases)
+	assert.Equal(t, slices.Sorted(slices.Values(eval.Hallazgos)), slices.Compact(clases),
+		"%s: graph check da en la sesión exactamente las clases de hallazgo que la eval espera", ruta)
+}
+
+// comprobacionDeLaSesion es la data de graph check <norma> <bloques> --json con
+// el registro de la sesión. La comprobación termina en 0.
+func comprobacionDeLaSesion(t *testing.T, sesion *app.Registro, norma string, bloques []string) grafo.Comprobacion {
+	t.Helper()
+
+	var salida, errores bytes.Buffer
+
+	argv := slices.Concat([]string{programaDeLasConsultas, "graph", verboCheck, norma}, bloques, []string{"--json"})
+	codigo := app.Main(argv, sesion, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion,
+		sinDatosDeConstruccion)
+	require.Zero(t, codigo, "«%s» comprueba la memoria: %s", strings.Join(argv[1:], " "), errores.String())
+
+	var sobre struct {
+		Data grafo.Comprobacion `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s» es un sobre con una comprobación",
+		strings.Join(argv[1:], " "))
+
+	return sobre.Data
+}
+
+// bloqueVersionado es un BloqueVersion del grafo del mundo: su id, la norma y el
+// bloque de los que cuelga y su fecha de vigencia.
+type bloqueVersionado struct {
+	id            string
+	cita          CitaEsperada
+	fechaVigencia string
+}
+
+// bloquesVersionados son los BloqueVersion del grafo del mundo de dirCache, en
+// el orden de su instantánea, cada uno con el identificador de la Norma y el
+// bloque del Bloque de los que cuelga, por las aristas eli:has_part y
 // eli:has_version. Una versión o un Bloque a los que no llega una sola de esas
 // aristas hace fallar la prueba.
-func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
+func bloquesVersionados(t *testing.T, dirCache string) []bloqueVersionado {
 	t.Helper()
 
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
@@ -1545,7 +1682,7 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 		return nodos[origenes[0]]
 	}
 
-	var versionados []CitaEsperada
+	var versionados []bloqueVersionado
 
 	for _, nodo := range instantanea.Nodos {
 		if nodo.Tipo != grafo.TipoBloqueVersion {
@@ -1555,9 +1692,13 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 		bloque := deQuienCuelga(grafo.RelacionTieneVersion, nodo.ID)
 		norma := deQuienCuelga(grafo.RelacionTieneParte, bloque.ID)
 
-		versionados = append(versionados, CitaEsperada{
-			Norma:  fmt.Sprint(norma.Datos[grafo.DatoIdentificador]),
-			Bloque: fmt.Sprint(bloque.Datos[grafo.DatoBloque]),
+		versionados = append(versionados, bloqueVersionado{
+			id: nodo.ID,
+			cita: CitaEsperada{
+				Norma:  fmt.Sprint(norma.Datos[grafo.DatoIdentificador]),
+				Bloque: fmt.Sprint(bloque.Datos[grafo.DatoBloque]),
+			},
+			fechaVigencia: fmt.Sprint(nodo.Datos[grafo.DatoFechaVigencia]),
 		})
 	}
 

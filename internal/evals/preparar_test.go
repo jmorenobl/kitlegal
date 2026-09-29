@@ -570,14 +570,24 @@ func vigenciaServidaSinRed(t *testing.T, dirCache string) string {
 	return sobre.Data.FechaVigencia
 }
 
+// Las fechas de vigencia del art. 118 de la LCSP, el bloque a1-30 de la eval 19
+// del repositorio: la de su redacción original, la que deja su grafo previo, y
+// la de la vigente, la que sirve la caché de la sesión (contrato
+// eval-y-derivada §4 de H7.2; FR-002).
+const (
+	vigenciaOriginalDelArticulo118 = "20180309"
+	vigenciaVigenteDelArticulo118  = "20200206"
+)
+
 // TestEstadoPrevioDeLaRedaccionCambiada fija el estado previo sin red de la
 // eval 19 del repositorio (contrato evals-y-skill §5 de H7.1; research D15,
-// V22; FR-053): preparada su sesión como la prepara el job —el grafo previo y
-// después la caché, con las grabaciones de H4 y de H5—, la lectura del art. 21
+// V22; FR-053; desde H7.2, contrato eval-y-derivada §4, FR-002, US2.2):
+// preparada su sesión como la prepara el job —el grafo previo y después la
+// caché, con las grabaciones de H4 y de H5—, la lectura del art. 118 de la LCSP
 // de la sesión, servida por su caché y entregada a su grafo, deja que Comprobar,
 // con el ámbito de la comprobación que la eval espera, dé exactamente un
 // version-obsoleta, el hallazgo que la eval exige trasladar: sobre la redacción
-// de 20151002, con 20161002 como la reciente.
+// original, de 20180309, con la vigente, de 20200206, como la reciente.
 func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	t.Parallel()
 
@@ -591,7 +601,7 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	eval := conjunto.Evals[posicion]
 	ambito := grafo.Ambito{Norma: normaQueComprueba(t, eval)}
 
-	require.Equal(t, "BOE-A-2015-10565", ambito.Norma, "la sesión comprueba la memoria con la norma que cita")
+	require.Equal(t, normaDeLaLCSP, ambito.Norma, "la sesión comprueba la memoria con la norma que cita")
 	require.Equal(t, []string{string(grafo.ClaseVersionObsoleta)}, eval.Hallazgos,
 		"la eval exige trasladar el version-obsoleta")
 
@@ -609,7 +619,7 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, faltas, "la sesión se prepara sin faltas:\n%s", presentarFaltas(faltas))
 
-	leerElArticulo21EnLaSesion(t, dirCache)
+	leerEnLaSesion(t, dirCache, normaDeLaLCSP, bloqueDelArticulo118)
 
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
 	require.NoError(t, err)
@@ -626,9 +636,10 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 
 	assert.Equal(t, 1, comprobacion.VersionObsoleta, "exactamente un version-obsoleta en el ámbito")
 	require.Len(t, obsoletas, 1, "exactamente un version-obsoleta listado")
-	assert.Contains(t, obsoletas[0].ID, "#a21@"+vigenciaAnteriorDelArticulo21+":", "sobre la redacción del grafo previo")
-	assert.Equal(t, vigenciaAnteriorDelArticulo21, obsoletas[0].FechaVigencia, "la superada, la del grafo previo")
-	assert.Equal(t, vigenciaGrabadaDelArticulo21, obsoletas[0].FechaVigenciaReciente,
+	assert.Contains(t, obsoletas[0].ID, "#"+bloqueDelArticulo118+"@"+vigenciaOriginalDelArticulo118+":",
+		"sobre la redacción del grafo previo")
+	assert.Equal(t, vigenciaOriginalDelArticulo118, obsoletas[0].FechaVigencia, "la superada, la del grafo previo")
+	assert.Equal(t, vigenciaVigenteDelArticulo118, obsoletas[0].FechaVigenciaReciente,
 		"la reciente, la que sirve la caché de la sesión")
 }
 
@@ -645,12 +656,12 @@ func normaQueComprueba(t *testing.T, eval Eval) string {
 	return comprobaciones[0].Norma
 }
 
-// leerElArticulo21EnLaSesion es la lectura del art. 21 de la LPAC que hace la
-// sesión: boe articulo --json, sin --offline, con la caché de dirCache sobre una
+// leerEnLaSesion es la lectura del bloque de la norma que hace la sesión: boe
+// articulo --json, sin --offline, con la caché de dirCache sobre una
 // reproducción vacía —la sirve la caché o falla, nunca la red— y entregada al
 // grafo del mundo de dirCache. Termina en 0 y sin nada en la salida de error,
 // donde el kernel avisaría de una entrega que falló.
-func leerElArticulo21EnLaSesion(t *testing.T, dirCache string) {
+func leerEnLaSesion(t *testing.T, dirCache, norma, bloque string) {
 	t.Helper()
 
 	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
@@ -660,9 +671,9 @@ func leerElArticulo21EnLaSesion(t *testing.T, dirCache string) {
 
 	var salida, errores bytes.Buffer
 
-	codigo := app.Main([]string{"kitlegal", "boe", "articulo", "BOE-A-2015-10565", "a21", "--json"},
+	codigo := app.Main([]string{"kitlegal", "boe", "articulo", norma, bloque, "--json"},
 		registro, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
-	require.Zero(t, codigo, "la caché de la sesión sirve el art. 21: %s", errores.String())
+	require.Zero(t, codigo, "la caché de la sesión sirve el bloque %s de %s: %s", bloque, norma, errores.String())
 	assert.Empty(t, errores.String(), "la lectura llega al grafo de la sesión")
 }
 
