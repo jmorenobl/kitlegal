@@ -1,19 +1,15 @@
 {
-  "id": "T012",
-  "texto": "T012 [US3] La instantánea acotada al ámbito (data-model §6; contracts/almacen-world-db.md §1 y §3 paso 4; research D8, V7): internal/core/grafo/salida.go con `Ambito` (`Norma`, `Bloques`; `Norma` vacía, todo lo consultado); internal/graph/lectura.go: `Lectura.Instantanea(ctx, ambito)` —sin norma, todos los nodos y aristas como en H7 y todas las filas de `lecturas`; con norma, la `Norma` por `type = 'Norma'` y `json_extract(props, '$.identificador')`, sus `Bloque` por `eli:has_part` filtrados por `json_extract(props, '$.bloque')` en `json_each(?)` si se nombran, sus `BloqueVersion` por `eli:has_version`, esas aristas y las filas de `lecturas` de esos bloques; nodos por id y aristas por terna comparando bytes—; una norma o un bloque que no está no es un error y la instantánea no lo trae; internal/app/grafo.go pasa `grafo.Ambito{}` (el ámbito de los argumentos llega en T014); los demás usos, con `grafo.Ambito{}`: internal/evals/preparar_test.go, internal/evals/conjunto_test.go e internal/graph/integracion_test.go; tests en internal/graph/lectura_test.go: `TestInstantanea` con y sin ámbito en un grafo con dos normas (la norma conocida con y sin bloques, un bloque desconocido junto a uno conocido, una norma desconocida da una instantánea vacía, ningún nodo ni fila de la otra norma, una base de versión 1 sin filas, `world.db` ausente → vacía sin crear nada) — FR-002, FR-003, FR-005; rutas: internal/core/grafo/salida.go, internal/graph/lectura.go, internal/graph/integracion_test.go, internal/app/grafo.go, internal/evals/preparar_test.go, internal/evals/conjunto_test.go",
+  "id": "T013",
+  "texto": "T013 [US3] Opcionales de posición en la tabla de comandos, como Kong (research D7, V12, V16): internal/skills/comandos.go: `sintaxisDeLaOrden` escribe cada argumento no obligatorio como `[<nombre>` (`[<nombre>...` si es una lista) y cierra todos los corchetes al final (`kitlegal graph check [<norma> [<bloques>...]]`), en lugar de `[--nombre]`; tests: el caso de internal/skills/comandos_test.go (l. 762) y los de internal/app/skills_test.go (l. 205 e `invocacionDeLaSintaxis`, l. 1311-1331) con la sintaxis nueva, más un caso con un opcional solo y otro con un opcional seguido de una lista; ninguna `SKILL.md` cambia todavía (ningún verbo de una tabla tiene hoy argumentos opcionales: `make skills-check` sin drift) — FR-007, FR-040; rutas: internal/skills/comandos.go, internal/app/skills_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "da6f3ed62164038b03a616805cc9d715b149127e",
+  "base": "9799c7366e95bbf352b937cc9f12f490a75a9dd4",
   "rutas": [
-    "contracts/almacen-world-db.md",
-    "internal/app/grafo.go",
-    "internal/core/grafo/salida.go",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/preparar_test.go",
-    "internal/graph/integracion_test.go",
-    "internal/graph/lectura.go",
-    "internal/graph/lectura_test.go"
+    "SKILL.md",
+    "internal/app/skills_test.go",
+    "internal/skills/comandos.go",
+    "internal/skills/comandos_test.go"
   ],
   "cierre": false,
   "converger": false,

@@ -158,8 +158,9 @@ func TestSkillsDelRepositorio(t *testing.T) {
 // research.md D6). Para cada verbo del registro de producción, la sintaxis de su
 // fila en la tabla generada se convierte en la invocación mínima que la cumple,
 // seguida de --describe, y esa invocación termina en 0 describiendo ese verbo.
-// El último subtest demuestra que la comprobación no pasa en vacío: con un
-// argumento obligatorio presentado como opcional, la gramática rechaza la
+// Los dos últimos subtests demuestran que la comprobación no pasa en vacío: con
+// argumentos obligatorios presentados como opcionales —uno solo, y uno seguido de
+// otro de varios valores, anidados como los escribe Kong—, la gramática rechaza la
 // invocación que sale de la tabla.
 func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 	t.Parallel()
@@ -187,26 +188,63 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 		})
 	}
 
-	t.Run("obligatorio-presentado-como-opcional", func(t *testing.T) {
-		t.Parallel()
+	opcionales := []struct {
+		nombre, verbo string
+		argumentos    []string
+		orden         string
+	}{
+		{
+			nombre:     "obligatorio-presentado-como-opcional",
+			verbo:      "articulo",
+			argumentos: []string{"bloque"},
+			orden:      "kitlegal boe articulo <norma> [<bloque>]",
+		},
+		{
+			nombre:     "obligatorio-y-lista-presentados-como-opcionales",
+			verbo:      "articulos",
+			argumentos: []string{"norma", "bloques"},
+			orden:      "kitlegal boe articulos [<norma> [<bloques>...]]",
+		},
+	}
 
-		cambiadas := slices.Clone(descripciones)
-		articulo := indiceDelVerbo(t, cambiadas, "boe", "articulo")
-		cambiadas[articulo].Argumentos = slices.Clone(cambiadas[articulo].Argumentos)
+	for _, caso := range opcionales {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
 
-		bloque := slices.IndexFunc(cambiadas[articulo].Argumentos, func(argumento skills.Argumento) bool {
-			return argumento.Nombre == "bloque"
+			probarObligatoriosComoOpcionales(t, registro, descripciones, caso.verbo, caso.argumentos, caso.orden)
 		})
-		require.GreaterOrEqual(t, bloque, 0, "boe articulo declara el argumento bloque")
+	}
+}
 
-		cambiadas[articulo].Argumentos[bloque].Obligatorio = false
+// probarObligatoriosComoOpcionales presenta como opcionales los argumentos de un
+// verbo de boe que la gramática exige, comprueba que la fila de la tabla los
+// escribe como la sintaxis esperada y que la gramática rechaza la invocación que
+// sale de ella.
+func probarObligatoriosComoOpcionales(t *testing.T, registro *Registro, descripciones []skills.DescripcionDeVerbo,
+	verbo string, argumentos []string, esperada string,
+) {
+	t.Helper()
 
-		orden := sintaxisDeLaTabla(t, registro.Nombres(), cambiadas)[articulo]
-		require.Equal(t, "kitlegal boe articulo <norma> [--bloque]", orden)
+	cambiadas := slices.Clone(descripciones)
+	indice := indiceDelVerbo(t, cambiadas, "boe", verbo)
+	cambiadas[indice].Argumentos = slices.Clone(cambiadas[indice].Argumentos)
 
-		res := invocar(t, registro, invocacionDeLaSintaxis(t, orden)...)
-		assert.Equal(t, 2, res.codigo, "la gramática exige el bloque por su posición: %s", res.errores)
-	})
+	for _, nombre := range argumentos {
+		argumento := slices.IndexFunc(cambiadas[indice].Argumentos, func(argumento skills.Argumento) bool {
+			return argumento.Nombre == nombre
+		})
+		require.GreaterOrEqual(t, argumento, 0, "boe %s declara el argumento %s", verbo, nombre)
+		require.True(t, cambiadas[indice].Argumentos[argumento].Obligatorio, "boe %s exige %s", verbo, nombre)
+
+		cambiadas[indice].Argumentos[argumento].Obligatorio = false
+	}
+
+	orden := sintaxisDeLaTabla(t, registro.Nombres(), cambiadas)[indice]
+	require.Equal(t, esperada, orden)
+
+	res := invocar(t, registro, invocacionDeLaSintaxis(t, orden)...)
+	assert.Equal(t, 2, res.codigo, "la gramática exige %s por su posición: %s", strings.Join(argumentos, " y "),
+		res.errores)
 }
 
 // TestOrdenesDeLasSkillsEmpotradas fija que las skills que lleva dentro el
@@ -1311,7 +1349,7 @@ func ordenesDeLaTabla(t *testing.T, tabla string) []string {
 // contracts/skills-e-invocacion.md §2 de H19): kitlegal como nombre del programa,
 // el applet y el verbo, que es como lo invoca la skill desde el PATH, x por cada
 // argumento obligatorio, x y por cada uno de varios valores y ninguno de los
-// opcionales.
+// opcionales, que son los que abren corchete.
 func invocacionDeLaSintaxis(t *testing.T, orden string) []string {
 	t.Helper()
 
@@ -1323,7 +1361,7 @@ func invocacionDeLaSintaxis(t *testing.T, orden string) []string {
 
 	for _, parte := range partes[3:] {
 		switch {
-		case strings.HasPrefix(parte, "[--"):
+		case strings.HasPrefix(parte, "["):
 		case strings.HasSuffix(parte, ">..."):
 			argv = append(argv, "x", "y")
 		default:

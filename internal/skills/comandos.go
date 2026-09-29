@@ -475,10 +475,11 @@ func (p propiedadesEnOrden) nombres() []string {
 //     <applet>` como título y una tabla con una fila por verbo del applet, en el
 //     orden de las descripciones; las de un applet que no se declara no se
 //     presentan;
-//   - cada fila da la sintaxis de la orden —<nombre> si el argumento es
-//     obligatorio, <nombre>... si además admite varios valores y [--nombre] si
-//     es opcional—, lo que hace y lo que devuelve en data; en cada celda la barra
-//     se escribe \| y un salto de línea es un espacio;
+//   - cada fila da la sintaxis de la orden —<nombre> por cada argumento,
+//     <nombre>... si admite varios valores, y con [ delante si es opcional, con
+//     los corchetes cerrados al final, como la ayuda de Kong: [<norma>
+//     [<bloques>...]]—, lo que hace y lo que devuelve en data; en cada celda la
+//     barra se escribe \| y un salto de línea es un espacio;
 //   - detrás de la última sección, la línea del sobre y la de las banderas
 //     comunes, que valen para todas las órdenes de la tabla.
 //
@@ -571,22 +572,30 @@ func filaDelVerbo(verbo DescripcionDeVerbo) string {
 }
 
 // sintaxisDeLaOrden es la orden de un verbo: kitlegal, su applet y el verbo, con
-// cada argumento en su orden (data-model §2.2).
+// cada argumento en su orden (data-model §2.2; research.md D7). Un argumento
+// opcional abre un corchete que se cierra al final de la orden, así que los
+// opcionales quedan anidados como en la ayuda de Kong: `[<norma> [<bloques>...]]`.
+// Todos los argumentos propios de un verbo de una tabla son de posición, y Kong
+// no admite un obligatorio detrás de un opcional.
 func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 	partes := []string{programaDeLasOrdenes, verbo.Applet, verbo.Verbo}
+	abiertos := 0
 
 	for _, argumento := range verbo.Argumentos {
-		switch {
-		case !argumento.Obligatorio:
-			partes = append(partes, "[--"+argumento.Nombre+"]")
-		case argumento.Varios:
-			partes = append(partes, "<"+argumento.Nombre+">...")
-		default:
-			partes = append(partes, "<"+argumento.Nombre+">")
+		parte := "<" + argumento.Nombre + ">"
+		if argumento.Varios {
+			parte += "..."
 		}
+
+		if !argumento.Obligatorio {
+			parte = "[" + parte
+			abiertos++
+		}
+
+		partes = append(partes, parte)
 	}
 
-	return strings.Join(partes, " ")
+	return strings.Join(partes, " ") + strings.Repeat("]", abiertos)
 }
 
 // texto es lo que devuelve un verbo como lo escribe la tabla: la forma y, si la

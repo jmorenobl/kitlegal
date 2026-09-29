@@ -228,6 +228,24 @@ func consultarDePrueba() describeDePrueba {
 	return documento
 }
 
+// leerDePrueba es el documento de un verbo con un solo argumento, opcional.
+func leerDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo leer", "Lee una norma, o todas sin ella.")
+	documento.argumentos = `"norma": {"type": "string"}`
+
+	return documento
+}
+
+// comprobarDePrueba es el documento de un verbo con un argumento opcional
+// seguido de otro opcional de varios valores, como graph check.
+func comprobarDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo comprobar", "Comprueba una norma y sus bloques, o todo sin ellos.")
+	documento.argumentos = `"norma": {"type": "string"},
+        "bloques": {"items": {"type": "string"}, "type": "array"}`
+
+	return documento
+}
+
 // nadaDePrueba es el documento de un verbo cuyo data es una lista de objetos
 // cuya definición no declara ninguna propiedad.
 func nadaDePrueba() describeDePrueba {
@@ -706,7 +724,9 @@ func describirDocumentos(t *testing.T, documentos ...describeDePrueba) []skills.
 // §2.2; FR-032, FR-034): las filas de buscar y articulo del contrato; una sección
 // por applet en el orden declarado, con sus filas en el orden de las
 // descripciones y sin las de un applet no declarado; la sintaxis de un argumento
-// obligatorio, de uno de varios valores y de los opcionales; la barra de la ayuda
+// obligatorio, de uno de varios valores y de los opcionales, anidados como los
+// escribe Kong: uno solo, uno seguido de otro de varios valores y los dos detrás
+// de los obligatorios; la barra de la ayuda
 // y de una clave escrita \|; data sin $ref y una lista de objetos sin claves; la
 // misma salida en dos llamadas; y cada conjunto de descripciones que no permite
 // escribir la tabla, con su defecto.
@@ -759,10 +779,20 @@ func TestRenderizarTabla(t *testing.T) {
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{consultarDePrueba(), vacio, nadaDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo consultar <norma> <bloques>... [--desde] [--materias]` | Consulta los " +
+				"| `kitlegal ejemplo consultar <norma> <bloques>... [<desde> [<materias>...]]` | Consulta los " +
 				"bloques de una norma \\| o de varias. | objeto con `norma`, `con\\|barra` |\n" +
 				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
 				"| `kitlegal ejemplo nada` | Devuelve una lista de objetos sin claves. | lista de objetos |\n" +
+				pieDeLaTabla,
+		},
+		{
+			nombre:     "opcionales-de-posicion",
+			applets:    []string{"ejemplo"},
+			documentos: []describeDePrueba{leerDePrueba(), comprobarDePrueba()},
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo leer [<norma>]` | Lee una norma, o todas sin ella. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | Comprueba una norma y sus bloques, o " +
+				"todo sin ellos. | sin forma declarada |\n" +
 				pieDeLaTabla,
 		},
 	}
