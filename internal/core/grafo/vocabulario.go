@@ -73,6 +73,21 @@ const (
 	ClaseVersionObsoleta ClaseDeHallazgo = "version-obsoleta"
 )
 
+// etiquetaDeVersionObsoleta es lo que lleva entre la marca y los dos puntos la
+// forma fija con la que una skill traslada un version-obsoleta.
+const etiquetaDeVersionObsoleta = "REDACCIÓN MODIFICADA"
+
+// EtiquetasDeHallazgo es la etiqueta de cada clase de hallazgo que una skill
+// traslada con forma fija: lo que su frase lleva entre la marca y los dos
+// puntos, y la única fuente de verdad de esa forma (H7.1 FR-045; data-model §7).
+// Solo la tiene ClaseVersionObsoleta: un fuente-caducada no se traslada
+// (FR-043). Ninguna es la de un aviso de vigencia. El binario no escribe la
+// forma en ninguna salida. Cada llamada devuelve un mapa nuevo, que quien lo
+// recibe puede cambiar sin cambiar el de nadie más.
+func EtiquetasDeHallazgo() map[ClaseDeHallazgo]string {
+	return map[ClaseDeHallazgo]string{ClaseVersionObsoleta: etiquetaDeVersionObsoleta}
+}
+
 // MaximoDeHallazgos es cuántos hallazgos lista, como mucho, `graph check`: los
 // primeros de su orden; los totales de cada clase cuentan también los que no
 // lista (H7.1 FR-010, FR-012; research.md D10). No hay bandera que lo cambie

@@ -1,16 +1,16 @@
 {
-  "id": "T018",
-  "texto": "T018 [datos] [US1] El esquema de eval ampliado (contracts/evals-y-skill.md §1; data-model §8; plan.md paso 6): schemas/eval.yaml.json con `$defs.clase-de-hallazgo` `{\"enum\": [\"version-obsoleta\"]}`, la propiedad `hallazgos` (`array`, `minItems: 1`, ítems de ese enumerado) prohibida en el `else` de una eval que no activa la skill como `avisos`, y `$defs.comando-comprobacion` con `norma` opcional (`$ref` a `#/$defs/norma`; `required` sigue siendo `applet` y `verbo`); `avisos` y su enumerado sin cambios (FR-054); con los casos de internal/evals/formato_test.go que fijan el esquema: «comprobacion-con-norma» pasa a aceptarse, y `hallazgos` con una clase fuera del enumerado, vacío y en una eval con `activa: false` se rechazan; verificación: `make ci` en verde (ninguna eval del repositorio lleva todavía `hallazgos`) — FR-054, FR-082; rutas: schemas/eval.yaml.json, internal/evals/formato_test.go",
+  "id": "T019",
+  "texto": "T019 [US1] La etiqueta de `version-obsoleta` y su forma fija, del binario (contracts/evals-y-skill.md §2 y §3; data-model §7; research D12, V14): internal/core/grafo/vocabulario.go con `EtiquetasDeHallazgo()` = `{version-obsoleta: \"REDACCIÓN MODIFICADA\"}` (única fuente de verdad; `fuente-caducada` no la tiene); internal/evals/avisos.go extrae `formaFija(etiqueta)` del constructor de `formasDeAviso` sin cambiar ningún aviso; internal/evals/hallazgos.go con `ExtraerHallazgos` (las clases etiquetadas cuya forma lleva el texto, en su orden y sin repetir), `ComprobarFormasDeHallazgo` (un error por clase etiquetada cuya forma falta, que la nombra: `falta la forma fija del hallazgo version-obsoleta: ⚠ REDACCIÓN MODIFICADA:`) y `ComprobarClasesDeHallazgo` (el enumerado de `hallazgos` del esquema compilado es exactamente el conjunto de clases etiquetadas); el subtest `hallazgos-del-esquema` de `TestEvalsDelRepositorio` en internal/evals/conjunto_test.go; tests: `TestEtiquetasDeHallazgo` (ninguna coincide con `boe.EtiquetasDeAviso()`; solo `version-obsoleta` está etiquetada), `TestExtraerHallazgos` (la forma con las tolerancias de H5.1 —selector de presentación, énfasis de Markdown, espacios, mayúsculas, `**⚠️ Redacción modificada**:`—, exacta en la etiqueta; «la redacción ha cambiado» sin la forma o la forma partida en dos líneas, nada), `TestComprobarFormasDeHallazgo` (pasa sobre un texto con la forma; falla nombrando `version-obsoleta` sin ella) y `TestComprobarClasesDeHallazgo` (enumerado exacto, con una clase de más y con una de menos); los tests de avisos sin cambios — FR-045, FR-051, FR-054; SC-008; rutas: internal/core/grafo/vocabulario.go, internal/evals/avisos.go, internal/evals/hallazgos.go, internal/evals/conjunto_test.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "2ecacbe3c99dd8a3fb75672414fcca391958bfb8",
+  "base": "6463017a5e8ff1a566f4502f8311f47c868b558a",
   "rutas": [
     "contracts/evals-y-skill.md",
-    "defs/norma",
-    "internal/evals/formato_test.go",
-    "plan.md",
-    "schemas/eval.yaml.json"
+    "internal/core/grafo/vocabulario.go",
+    "internal/evals/avisos.go",
+    "internal/evals/conjunto_test.go",
+    "internal/evals/hallazgos.go"
   ],
   "cierre": false,
   "converger": false,

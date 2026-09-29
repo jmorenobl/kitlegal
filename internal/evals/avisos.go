@@ -39,29 +39,52 @@ const (
 const propiedadDeAvisos = "avisos"
 
 // formasDeAviso son las expresiones de la forma fija de cada código de
-// boe.CodigosDeAviso cuya etiqueta tiene palabras, compiladas una sola vez desde
-// boe.EtiquetasDeAviso: la marca, un separador, las palabras de la etiqueta en su
-// orden, cada una sin distinguir mayúsculas y con al menos un blanco entre dos,
-// otro separador y los dos puntos. Un código cuya etiqueta no tiene palabras no
-// tiene expresión y nunca se encuentra. Las piezas son fijas y cada palabra pasa
-// por regexp.QuoteMeta, así que la compilación no puede fallar.
+// boe.CodigosDeAviso, compiladas una sola vez desde boe.EtiquetasDeAviso con
+// formasFijas.
 var formasDeAviso = sync.OnceValue(func() map[string]*regexp.Regexp {
+	return formasFijas(boe.EtiquetasDeAviso())
+})
+
+// formasFijas son las expresiones de formaFija de cada etiqueta que tiene
+// palabras, por su clave. Una clave cuya etiqueta no tiene palabras no tiene
+// expresión y nunca se encuentra.
+func formasFijas[Clave ~string](etiquetas map[Clave]string) map[string]*regexp.Regexp {
 	formas := map[string]*regexp.Regexp{}
 
-	for codigo, etiqueta := range boe.EtiquetasDeAviso() {
-		palabras := strings.Fields(etiqueta)
-		for i, palabra := range palabras {
-			palabras[i] = `(?i:` + regexp.QuoteMeta(palabra) + `)`
-		}
-
-		if len(palabras) > 0 {
-			formas[codigo] = regexp.MustCompile(marcaDeAviso + separadorDeAviso +
-				strings.Join(palabras, entrePalabrasDeAviso) + separadorDeAviso + finalDeAviso)
+	for clave, etiqueta := range etiquetas {
+		if forma := formaFija(etiqueta); forma != nil {
+			formas[string(clave)] = forma
 		}
 	}
 
 	return formas
-})
+}
+
+// formaFija es la expresión de la forma fija de una etiqueta, la de los avisos
+// y la de los hallazgos (H7.1 FR-051; research D12): la marca, un separador, las
+// palabras de la etiqueta en su orden, cada una sin distinguir mayúsculas y con
+// al menos un blanco entre dos, otro separador y los dos puntos; nil si la
+// etiqueta no tiene palabras. Las piezas son fijas y cada palabra pasa por
+// regexp.QuoteMeta, así que la compilación no puede fallar.
+func formaFija(etiqueta string) *regexp.Regexp {
+	palabras := strings.Fields(etiqueta)
+	if len(palabras) == 0 {
+		return nil
+	}
+
+	for i, palabra := range palabras {
+		palabras[i] = `(?i:` + regexp.QuoteMeta(palabra) + `)`
+	}
+
+	return regexp.MustCompile(marcaDeAviso + separadorDeAviso +
+		strings.Join(palabras, entrePalabrasDeAviso) + separadorDeAviso + finalDeAviso)
+}
+
+// formaEscrita es la forma fija de una etiqueta tal como se enseña y como la
+// nombra un error: la marca, un espacio, la etiqueta y los dos puntos.
+func formaEscrita(etiqueta string) string {
+	return "⚠ " + etiqueta + ":"
+}
 
 // ExtraerAvisos devuelve los códigos de boe.CodigosDeAviso cuya forma fija —la
 // marca, la etiqueta de boe.EtiquetasDeAviso y los dos puntos, con las
@@ -69,17 +92,22 @@ var formasDeAviso = sync.OnceValue(func() map[string]*regexp.Regexp {
 // repetir, o nil si no lleva ninguna. No lee lo que sigue a la forma ni ninguna
 // otra redacción (FR-032, FR-033).
 func ExtraerAvisos(texto string) []string {
-	formas := formasDeAviso()
+	return extraerFormas(texto, boe.CodigosDeAviso(), formasDeAviso())
+}
 
-	var avisos []string
+// extraerFormas devuelve, en el orden de claves, las que tienen en formas una
+// expresión que casa con el texto, o nil si no hay ninguna. Una clave sin
+// expresión no se encuentra nunca.
+func extraerFormas(texto string, claves []string, formas map[string]*regexp.Regexp) []string {
+	var encontradas []string
 
-	for _, codigo := range boe.CodigosDeAviso() {
-		if forma, conForma := formas[codigo]; conForma && forma.MatchString(texto) {
-			avisos = append(avisos, codigo)
+	for _, clave := range claves {
+		if forma, conForma := formas[clave]; conForma && forma.MatchString(texto) {
+			encontradas = append(encontradas, clave)
 		}
 	}
 
-	return avisos
+	return encontradas
 }
 
 // ComprobarFormasDeAviso comprueba que el texto lleva la forma fija de cada código
@@ -95,8 +123,8 @@ func ComprobarFormasDeAviso(texto string) error {
 
 	for _, codigo := range boe.CodigosDeAviso() {
 		if !slices.Contains(encontrados, codigo) {
-			forma := "⚠ " + etiquetas[codigo] + ":"
-			defectos = append(defectos, fmt.Errorf("falta la forma fija del aviso %s: %s", codigo, forma))
+			defectos = append(defectos, fmt.Errorf("falta la forma fija del aviso %s: %s",
+				codigo, formaEscrita(etiquetas[codigo])))
 		}
 	}
 
@@ -112,7 +140,7 @@ func ComprobarFormasDeAviso(texto string) error {
 // sin enumerado no enumera ninguno (FR-013; data-model §6).
 func ComprobarCodigosDeAviso(esquema *jsonschema.Schema) error {
 	codigos := boe.CodigosDeAviso()
-	enumerados := enumeradoDeAvisos(esquema)
+	enumerados := enumeradoDeLaLista(esquema, propiedadDeAvisos)
 
 	var defectos []error
 
@@ -135,19 +163,19 @@ func ComprobarCodigosDeAviso(esquema *jsonschema.Schema) error {
 	return errors.Join(defectos...)
 }
 
-// enumeradoDeAvisos son los valores del enumerado al que llegan, en el esquema
-// compilado, la propiedad avisos, sus items de 2020-12 y cada $ref, en el orden
-// del esquema; nil si no llegan a ninguno. Una cadena de $ref que vuelve a un
-// esquema ya visto no llega a ningún enumerado.
-func enumeradoDeAvisos(esquema *jsonschema.Schema) []any {
-	avisos, conAvisos := esquema.Properties[propiedadDeAvisos]
-	if !conAvisos {
+// enumeradoDeLaLista son los valores del enumerado al que llegan, en el esquema
+// compilado, la propiedad nombrada, sus items de 2020-12 y cada $ref, en el
+// orden del esquema; nil si no llegan a ninguno. Una cadena de $ref que vuelve a
+// un esquema ya visto no llega a ningún enumerado.
+func enumeradoDeLaLista(esquema *jsonschema.Schema, propiedad string) []any {
+	lista, conLista := esquema.Properties[propiedad]
+	if !conLista {
 		return nil
 	}
 
 	vistos := map[*jsonschema.Schema]bool{}
 
-	for items := avisos.Items2020; items != nil && !vistos[items]; items = items.Ref {
+	for items := lista.Items2020; items != nil && !vistos[items]; items = items.Ref {
 		if items.Enum != nil {
 			return items.Enum.Values
 		}
