@@ -1,15 +1,16 @@
 {
-  "id": "T017",
-  "texto": "T017 [datos] [US5] La salida legible en `h7-grafo-show`, y **nada más** (FR-080; contracts/arnes-e2e.md §5): internal/app/testdata/script/h7-grafo-show.txtar: la sección que era «Sin --json, la tabla mínima del kernel» gana las aserciones de la salida legible de contracts/applet-graph.md §5 que ya da T016 —la primera línea de `show` del `Bloque`, del `BloqueVersion` y de la `Norma`, las cabeceras de `stats` y de `check` con T8 y el grupo `fuente-caducada`— y `! stdout '^(fuente|url|fecha_consulta|hash)\\s'`, con cada `cp stdout *.txt` de `sin-texto.sh` intacto y la cabecera del guion con la salida legible; ningún otro guion cambia (FR-081); verificación: `make ci` en verde — FR-060, FR-061, FR-062, FR-063, FR-080; SC-010; rutas: internal/app/testdata/script/h7-grafo-show.txtar",
+  "id": "T018",
+  "texto": "T018 [datos] [US1] El esquema de eval ampliado (contracts/evals-y-skill.md §1; data-model §8; plan.md paso 6): schemas/eval.yaml.json con `$defs.clase-de-hallazgo` `{\"enum\": [\"version-obsoleta\"]}`, la propiedad `hallazgos` (`array`, `minItems: 1`, ítems de ese enumerado) prohibida en el `else` de una eval que no activa la skill como `avisos`, y `$defs.comando-comprobacion` con `norma` opcional (`$ref` a `#/$defs/norma`; `required` sigue siendo `applet` y `verbo`); `avisos` y su enumerado sin cambios (FR-054); con los casos de internal/evals/formato_test.go que fijan el esquema: «comprobacion-con-norma» pasa a aceptarse, y `hallazgos` con una clase fuera del enumerado, vacío y en una eval con `activa: false` se rechazan; verificación: `make ci` en verde (ninguna eval del repositorio lleva todavía `hallazgos`) — FR-054, FR-082; rutas: schemas/eval.yaml.json, internal/evals/formato_test.go",
   "intento": 1,
   "datos": true,
   "aceptacion": false,
-  "base": "9807a550b4b2aa695c3501877ea5bfa8d92a7ac4",
+  "base": "2ecacbe3c99dd8a3fb75672414fcca391958bfb8",
   "rutas": [
-    "contracts/applet-graph.md",
-    "contracts/arnes-e2e.md",
-    "internal/app/testdata/script/h7-grafo-show.txtar",
-    "sin-texto.sh"
+    "contracts/evals-y-skill.md",
+    "defs/norma",
+    "internal/evals/formato_test.go",
+    "plan.md",
+    "schemas/eval.yaml.json"
   ],
   "cierre": false,
   "converger": false,

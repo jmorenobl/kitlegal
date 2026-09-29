@@ -46,6 +46,10 @@
       "type": "array", "minItems": 1,
       "items": { "$ref": "#/$defs/codigo-de-aviso" }
     },
+    "hallazgos": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/clase-de-hallazgo" }
+    },
     "territorio": {
       "type": "object",
       "additionalProperties": false,
@@ -67,12 +71,14 @@
     "not": {
       "anyOf": [
         { "required": ["comandos"] }, { "required": ["prohibidos"] }, { "required": ["grafo_previo"] },
-        { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["territorio"] }
+        { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["hallazgos"] },
+        { "required": ["territorio"] }
       ]
     }
   },
   "$defs": {
     "codigo-de-aviso": { "enum": ["consolidacion-no-finalizada", "derogada", "vigencia-agotada"] },
+    "clase-de-hallazgo": { "enum": ["version-obsoleta"] },
     "aspecto-de-cobertura": {
       "enum": [
         "boletin_autonomico: configurado", "boletin_autonomico: no-configurado",
@@ -132,7 +138,8 @@
       "required": ["applet", "verbo"],
       "properties": {
         "applet": { "$ref": "#/$defs/applet" },
-        "verbo": { "const": "check" }
+        "verbo": { "const": "check" },
+        "norma": { "$ref": "#/$defs/norma" }
       }
     },
     "comando-prohibido": {

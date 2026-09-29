@@ -93,13 +93,19 @@ const (
 // Desde H7, la eval de la consulta repetida se lee entera: el grafo previo con
 // sus grabaciones y sus comandos de bloque en GrafoPrevio, el comando de
 // comprobación en Comandos con su Verbo y los prohibidos en Prohibidos, y los
-// prohibidos también sin grafo previo; un comando de comprobación con otro verbo,
-// con una norma o sin applet, unos prohibidos vacíos, sin verbo, con un verbo que
+// prohibidos también sin grafo previo; un comando de comprobación con otro verbo
+// o sin applet, unos prohibidos vacíos, sin verbo, con un verbo que
 // no es de minúsculas o con otra clave, un grafo previo sin grabaciones, con un
 // nombre de grabaciones que no es de minúsculas y guiones, sin comandos, con los
 // comandos vacíos, con un comando que no es de bloque o con otra clave, y unos
 // prohibidos o un grafo previo en una eval de no activación se rechazan
 // (contrato evals-y-skill §1 de H7; FR-085, FR-086).
+//
+// Desde H7.1, el comando de comprobación se lee también con la norma que
+// consulta, en su Norma, y sigue sin admitir bloques; y unos hallazgos vacíos,
+// con una clase que el formato no tiene —fuente-caducada, que ninguna skill
+// traslada con forma fija— o en una eval de no activación se rechazan, como los
+// avisos (contrato evals-y-skill §1 de H7.1; FR-054).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -420,7 +426,20 @@ func TestLeerEval(t *testing.T) {
 			nombre: "comprobacion-con-norma",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + comprobacionDelGrafo +
 				"    norma: BOE-A-2015-10565\n" + citaDelArticulo21,
-			fragmentos: []string{"comandos/1, línea 7: additional properties 'norma' not allowed"},
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:   true,
+				Comandos: slices.Concat(comandoDelArticulo21Leido,
+					[]ComandoEsperado{{Applet: "graph", Verbo: "check", Norma: "BOE-A-2015-10565"}}),
+				Citas: citaDelArticulo21Leida,
+			},
+		},
+		{
+			nombre: "comprobacion-con-bloque",
+			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + comprobacionDelGrafo +
+				"    norma: BOE-A-2015-10565\n    bloque: a21\n" + citaDelArticulo21,
+			fragmentos: []string{"comandos/1, línea 7: additional properties 'bloque' not allowed"},
 		},
 		{
 			nombre: "comprobacion-sin-applet",
@@ -492,6 +511,21 @@ func TestLeerEval(t *testing.T) {
 			documento: preguntaDelArticulo21 + "activa: false\n" + grafoPrevioDelArticulo21,
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
+		{
+			nombre:    "hallazgo-desconocido",
+			documento: positivaDelArticulo21 + "hallazgos:\n  - fuente-caducada\n",
+			error:     nombreDeEval + ": hallazgos/0, línea 11: value must be 'version-obsoleta'",
+		},
+		{
+			nombre:    "hallazgos-vacio",
+			documento: positivaDelArticulo21 + "hallazgos: []\n",
+			error:     nombreDeEval + ": hallazgos, línea 10: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "no-activa-con-hallazgos",
+			documento: preguntaDelArticulo21 + "activa: false\nhallazgos:\n  - version-obsoleta\n",
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
 	}
 
 	for _, caso := range casos {
@@ -528,7 +562,8 @@ func TestLeerEval(t *testing.T) {
 // comando, tiene la suya —la de consulta de norma, con cualquiera de los tres
 // verbos de su enumerado— y ni el comando de territorio ni, desde H7, el de
 // comprobación, con el verbo check, son una consulta de norma (contrato
-// evals-y-skill §1 de H7).
+// evals-y-skill §1 de H7); tampoco, desde H7.1, la comprobación que lleva la
+// norma que consulta (contrato evals-y-skill §1 de H7.1).
 func TestFormaDelComando(t *testing.T) {
 	t.Parallel()
 
@@ -573,6 +608,11 @@ func TestFormaDelComando(t *testing.T) {
 		{
 			nombre:  "comprobacion",
 			comando: comprobacionDelGrafo,
+			forma:   formaComprobacion,
+		},
+		{
+			nombre:  "comprobacion-con-norma",
+			comando: comprobacionDelGrafo + "    norma: BOE-A-2015-10565\n",
 			forma:   formaComprobacion,
 		},
 	}
@@ -753,8 +793,9 @@ func evalPositiva(comando, cita map[string]any) map[string]any {
 // escritos en los esquemas aceptan y rechazan exactamente lo mismo que
 // boe.ValidarNorma y boe.ValidarBloque sobre los casos límite de data-model
 // (cabecera; control 10 del plan). En eval.yaml.json lo comprueba en cada sitio
-// del formato donde va el valor —el comando de bloque, el de consulta de norma y
-// la cita—, con una eval que solo puede fallar por ese valor: la misma eval con
+// del formato donde va el valor —el comando de bloque, el de consulta de norma,
+// desde H7.1 el de comprobación, y la cita—, con una eval que solo puede fallar
+// por ese valor: la misma eval con
 // un valor válido se lee sin error. En normas.yaml.json lo comprueba en el único
 // sitio donde va una norma, el nombre de cada entrada de normas, con una tabla
 // que solo puede fallar por ese nombre, y exige que cada rechazo sea el defecto
@@ -793,6 +834,10 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 					}},
 					{nombre: "comando de consulta de norma", documento: func(valor string) map[string]any {
 						return evalPositiva(map[string]any{"applet": "boe", "verbo": "metadatos", "norma": valor},
+							cita(normaValida, bloqueValido))
+					}},
+					{nombre: "comando de comprobación", documento: func(valor string) map[string]any {
+						return evalPositiva(map[string]any{"applet": "graph", "verbo": "check", "norma": valor},
 							cita(normaValida, bloqueValido))
 					}},
 					{nombre: "cita", documento: func(valor string) map[string]any {
