@@ -825,8 +825,9 @@ type expresionesDeLaSesion struct {
 // expresiones prohibidas (contrato lista-y-juicio §5 de H7.2; research D7;
 // FR-053, SC-001; US3.7, US3.8): sobre una copia del caso aprobado con la lista
 // del repositorio y con modeloInformativoDelCaso entre los modelos informativos,
-// cuya sesión del art. 21 con el modelo que decide lleva dos expresiones de la
-// maquinaria, la del art. 21 con el otro modelo ninguna y las dos de la eval de
+// cuya sesión del art. 21 con el modelo que decide lleva las de la transición de
+// la memoria —dos de la maquinaria y una del anuncio—, la del art. 21 con el
+// otro modelo ninguna y las dos de la eval de
 // no activación json, informe.json publica en cada sesión las que lleva —las de
 // la eval de no activación no se juzgan: lista vacía— y la tabla de las sesiones
 // de informe.md, en su columna; el recuento por modelo, primero el que decide,
@@ -884,9 +885,8 @@ func exigirExpresionesDelCaso(t *testing.T, pruebaDeRed bool) {
 
 	leido := informeDeLaCopia(t, copiaConExpresiones(t, true, pruebaDeRed), conElModeloInformativo)
 
-	memoriaYHallazgos := []string{"memoria de consultas", "hallazgos"}
 	esperadas := []expresionesDeLaSesion{
-		{sesion: sesionDelArticulo21, encontradas: memoriaYHallazgos},
+		{sesion: sesionDelArticulo21, encontradas: expresionesDeLaTransicion},
 		{sesion: sesionDelArticulo21ConOpus},
 		{sesion: sesionDeNoActivacion},
 		{sesion: sesionDeNoActivacionConOpus},
@@ -910,10 +910,26 @@ func exigirExpresionesDelCaso(t *testing.T, pruebaDeRed bool) {
 	}, `[{"modelo":"`+modeloQueDecide+`","con_alguna":1,"respuestas":1},`+
 		`{"modelo":"`+modeloInformativoDelCaso+`","con_alguna":0,"respuestas":1}]`)
 
-	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
-		sesionDelArticulo21+": expresión prohibida: memoria de consultas",
-		sesionDelArticulo21+": expresión prohibida: hallazgos")
+	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1)},
+		motivosDeLaTransicion(sesionDelArticulo21))...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// expresionesDeLaTransicion son las expresiones de la lista del repositorio que
+// lleva transicionDeLaMemoria, en el orden de la lista: dos de la maquinaria y
+// una del anuncio.
+var expresionesDeLaTransicion = []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"}
+
+// motivosDeLaTransicion son los motivos de la raíz que da la sesión dada por las
+// expresiones de la transición de la memoria que lleva su respuesta, en su orden.
+func motivosDeLaTransicion(sesion string) []string {
+	motivos := make([]string, 0, len(expresionesDeLaTransicion))
+	for _, expresion := range expresionesDeLaTransicion {
+		motivos = append(motivos, sesion+": expresión prohibida: "+expresion)
+	}
+
+	return motivos
 }
 
 // exigirExpresionesConUnaSesionIlegible escribe el informe de la copia con la
@@ -1001,7 +1017,7 @@ func exigirLaSerieConExpresiones(t *testing.T, informativa bool) {
 
 	exigirExpresionesPorSesion(t, leido, []expresionesDeLaSesion{
 		{sesion: sesionDeLaSerie(1)},
-		{sesion: sesionDeLaSerie(2), encontradas: []string{"memoria de consultas", "hallazgos"}},
+		{sesion: sesionDeLaSerie(2), encontradas: expresionesDeLaTransicion},
 		{sesion: sesionDeLaSerie(3), encontradas: []string{"te confirmé"}},
 	})
 	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 2, Respuestas: 3}},
@@ -1014,10 +1030,10 @@ func exigirLaSerieConExpresiones(t *testing.T, informativa bool) {
 		return
 	}
 
-	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 1, 3, 2),
-		sesionDeLaSerie(2)+": expresión prohibida: memoria de consultas",
-		sesionDeLaSerie(2)+": expresión prohibida: hallazgos",
-		sesionDeLaSerie(3)+": expresión prohibida: te confirmé")
+	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 1, 3, 2)},
+		motivosDeLaTransicion(sesionDeLaSerie(2)),
+		[]string{sesionDeLaSerie(3) + ": expresión prohibida: te confirmé"})...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 

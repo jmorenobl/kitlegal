@@ -1141,18 +1141,23 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	})
 }
 
-// informeDeH71 es el informe del job de evals de boe-legislacion en H7.1,
-// relativo al directorio de este paquete: sus respuestas son con las que se
-// calibra la lista de expresiones prohibidas (FR-084; research D9). Está
-// versionado y no se edita (FR-070).
-const informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
+// Los informes del job de evals de boe-legislacion en el cierre de H7.1 y de
+// H7.2, relativos al directorio de este paquete: sus respuestas son con las que
+// se calibra la lista de expresiones prohibidas (FR-021 de H7.3;
+// contracts/lista-de-expresiones.md §4). Están versionados y no se editan
+// (FR-080).
+const (
+	informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
+	informeDeH72 = "../../specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json"
+)
 
-// respuestasDeH71 son las sesiones de ese informe, una respuesta cada una.
-const respuestasDeH71 = 93
+// respuestasDeCadaInforme son las sesiones de cada uno de esos informes, una
+// respuesta cada una.
+const respuestasDeCadaInforme = 93
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
 // evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
-// TestEvalsDelRepositorio. Tiene expresiones en sus dos familias: sin ellas, las
+// TestEvalsDelRepositorio. Tiene expresiones en sus tres familias: sin ellas, las
 // subpruebas que la aplican pasarían en vacío.
 func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
 	t.Helper()
@@ -1162,44 +1167,105 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 		evalsDelRepositorio)
 	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
 		evalsDelRepositorio)
+	require.NotEmpty(t, lista.Anuncio, "%s tiene lista de expresiones prohibidas, con las del anuncio",
+		evalsDelRepositorio)
 
 	return lista
 }
 
 // marcadasPorFamilia son, de las respuestas de una eval, cuántas llevan alguna
-// expresión de cada familia de la lista.
+// expresión de cada familia de la lista y cuántas alguna de la lista entera.
 type marcadasPorFamilia struct {
 	maquinaria       int
 	otraConversacion int
+	anuncio          int
+	alguna           int
+}
+
+// columnasDelCalibrado es el nombre de cada columna de la tabla del calibrado,
+// en el orden de marcadasPorFamilia.cuentas: las tres familias, con su clave en
+// la lista, y alguna.
+var columnasDelCalibrado = []string{"maquinaria", "otra_conversacion", "anuncio", "alguna"}
+
+// cuentas son las cuentas del reparto en el orden de columnasDelCalibrado.
+func (m marcadasPorFamilia) cuentas() []int {
+	return []int{m.maquinaria, m.otraConversacion, m.anuncio, m.alguna}
+}
+
+// informeCalibrado es un informe versionado del job de evals con el reparto
+// calibrado de sus respuestas, por las dos cifras del fichero de la eval; las
+// evals que no están en él, ninguna en ninguna columna.
+type informeCalibrado struct {
+	ruta      string
+	calibrado map[string]marcadasPorFamilia
+}
+
+// informesCalibrados son los dos informes de la calibración con la tabla de
+// contracts/lista-de-expresiones.md §4: en H7.1, 35 de las 93 respuestas llevan
+// alguna, y en H7.2, 10.
+var informesCalibrados = []informeCalibrado{
+	{
+		ruta: informeDeH71,
+		calibrado: map[string]marcadasPorFamilia{
+			"02": {maquinaria: 1, alguna: 1},
+			"03": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"04": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"05": {maquinaria: 3, anuncio: 1, alguna: 3},
+			"06": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"07": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"08": {maquinaria: 2, anuncio: 1, alguna: 2},
+			"09": {maquinaria: 2, anuncio: 1, alguna: 2},
+			"13": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"14": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"16": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"17": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"19": {otraConversacion: 1, alguna: 1},
+		},
+	},
+	{
+		ruta: informeDeH72,
+		calibrado: map[string]marcadasPorFamilia{
+			"03": {maquinaria: 1, anuncio: 1, alguna: 1},
+			"06": {maquinaria: 1, anuncio: 1, alguna: 1},
+			"13": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"14": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"19": {maquinaria: 1, alguna: 1},
+		},
+	},
 }
 
 // probarExpresionesCalibradas es la subprueba expresiones-calibradas de
-// TestEvalsDelRepositorio (contrato lista-y-juicio §6; FR-084, SC-003, US4.2):
-// aplicada con ExtraerExpresionesProhibidas, la comparación de FR-051, a las 93
-// respuestas del informe de H7.1, la lista marca, por las dos cifras del fichero
-// de la eval y por familia, exactamente las del reparto calibrado —34 por la
-// maquinaria y la de «te habría confirmado» por lo dicho en otra conversación— y
-// ninguna de las otras 58. Las evals se nombran por sus dos cifras y nunca por su
-// nombre: el de una eval retirada no se escribe en ningún test (FR-020).
+// TestEvalsDelRepositorio (contracts/lista-de-expresiones.md §4 y §6; FR-021,
+// FR-095, SC-003, US1-5): aplicada con ExtraerExpresionesProhibidas, la
+// comparación de H7.2 FR 051, a las 93 respuestas de cada informe de
+// informesCalibrados, la lista marca, por las dos cifras del fichero de la eval,
+// en cada familia y en la lista entera, exactamente las del reparto calibrado, y
+// ninguna de las demás evals. Cada diferencia nombra el informe, la eval, la
+// columna, lo contado y lo calibrado. Las evals se nombran por sus dos cifras y
+// nunca por su nombre: el de una eval retirada no se escribe en ningún test
+// (FR-020 de H7.2).
 func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 	t.Helper()
 
-	calibrado := map[string]marcadasPorFamilia{
-		"02": {maquinaria: 1},
-		"03": {maquinaria: 3},
-		"04": {maquinaria: 3},
-		"05": {maquinaria: 3},
-		"06": {maquinaria: 3},
-		"07": {maquinaria: 3},
-		"08": {maquinaria: 2},
-		"09": {maquinaria: 2},
-		"13": {maquinaria: 3},
-		"14": {maquinaria: 3},
-		"15": {maquinaria: 3},
-		"16": {maquinaria: 2},
-		"17": {maquinaria: 3},
-		"19": {otraConversacion: 1},
+	var distintas []string
+
+	for _, informe := range informesCalibrados {
+		marcadas := marcadasEnElInforme(t, informe.ruta, lista)
+		distintas = append(distintas, distintasDelCalibrado(informe, marcadas)...)
 	}
+
+	assert.Empty(t, distintas, "respuestas de los informes calibrados que la lista de %s marca con otro reparto "+
+		"que el calibrado:\n%s", evalsDelRepositorio, strings.Join(distintas, "\n"))
+}
+
+// marcadasEnElInforme es el reparto de las respuestas del informe versionado de
+// la ruta que marca la lista, por las dos cifras del fichero de la eval: por
+// cada familia, las que llevan alguna expresión suya, y las que llevan alguna de
+// la lista entera. El informe tiene sus 93 respuestas.
+func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas) map[string]marcadasPorFamilia {
+	t.Helper()
 
 	// De cada sesión del informe, lo que la calibración necesita.
 	var informe struct {
@@ -1208,45 +1274,60 @@ func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 			Respuesta string `json:"respuesta"`
 		} `json:"evals"`
 	}
-	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, informeDeH71), &informe),
-		"%s es un informe del job de evals", informeDeH71)
-	require.Len(t, informe.Evals, respuestasDeH71, "el informe %s tiene las respuestas de H7.1", informeDeH71)
+	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, ruta), &informe), "%s es un informe del job de evals", ruta)
+	require.Len(t, informe.Evals, respuestasDeCadaInforme, "el informe %s tiene sus respuestas", ruta)
 
 	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria}
 	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion}
+	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio}
 	marcadas := map[string]marcadasPorFamilia{}
 
 	for _, sesion := range informe.Evals {
-		require.Regexp(t, `^[0-9]{2}-`, sesion.Eval, "el fichero de cada eval del informe empieza por sus dos cifras")
+		require.Regexp(t, `^[0-9]{2}-`, sesion.Eval, "el fichero de cada eval de %s empieza por sus dos cifras", ruta)
 		numero := sesion.Eval[:2]
 
 		reparto := marcadas[numero]
-		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, maquinaria)) > 0 {
-			reparto.maquinaria++
-		}
-
-		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, otraConversacion)) > 0 {
-			reparto.otraConversacion++
-		}
-
+		reparto.maquinaria += marcadaPor(sesion.Respuesta, maquinaria)
+		reparto.otraConversacion += marcadaPor(sesion.Respuesta, otraConversacion)
+		reparto.anuncio += marcadaPor(sesion.Respuesta, anuncio)
+		reparto.alguna += marcadaPor(sesion.Respuesta, lista)
 		marcadas[numero] = reparto
 	}
 
-	numeros := slices.Concat(slices.Collect(maps.Keys(marcadas)), slices.Collect(maps.Keys(calibrado)))
+	return marcadas
+}
+
+// marcadaPor es 1 si la respuesta lleva alguna expresión de la lista, y 0 si no.
+func marcadaPor(respuesta string, lista ExpresionesProhibidas) int {
+	if len(ExtraerExpresionesProhibidas(respuesta, lista)) > 0 {
+		return 1
+	}
+
+	return 0
+}
+
+// distintasDelCalibrado da una línea por cada eval y columna en que el reparto
+// marcado en el informe no es el calibrado, con el informe, la eval, la columna,
+// lo contado y lo calibrado, en orden de eval y de columna; o nil si no hay
+// ninguna.
+func distintasDelCalibrado(informe informeCalibrado, marcadas map[string]marcadasPorFamilia) []string {
+	numeros := slices.Concat(slices.Collect(maps.Keys(marcadas)), slices.Collect(maps.Keys(informe.calibrado)))
 	slices.Sort(numeros)
 
 	var distintas []string
 
 	for _, numero := range slices.Compact(numeros) {
-		if marcadas[numero] != calibrado[numero] {
-			distintas = append(distintas, fmt.Sprintf("eval %s: marca %d respuestas por la maquinaria y %d por otra "+
-				"conversación, y las calibradas son %d y %d", numero, marcadas[numero].maquinaria,
-				marcadas[numero].otraConversacion, calibrado[numero].maquinaria, calibrado[numero].otraConversacion))
+		contadas, calibradas := marcadas[numero].cuentas(), informe.calibrado[numero].cuentas()
+
+		for posicion, columna := range columnasDelCalibrado {
+			if contadas[posicion] != calibradas[posicion] {
+				distintas = append(distintas, fmt.Sprintf("%s, eval %s, columna %s: marca %d respuestas, y las "+
+					"calibradas son %d", informe.ruta, numero, columna, contadas[posicion], calibradas[posicion]))
+			}
 		}
 	}
 
-	assert.Empty(t, distintas, "evals de %s cuyas respuestas marca la lista de %s con otro reparto que el calibrado:\n%s",
-		informeDeH71, evalsDelRepositorio, strings.Join(distintas, "\n"))
+	return distintas
 }
 
 // textoAMirar es un texto que no puede llevar ninguna expresión prohibida, con

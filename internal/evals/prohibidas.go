@@ -78,17 +78,18 @@ func leerExpresionesProhibidas(contenido []byte) (ExpresionesProhibidas, error) 
 }
 
 // ExtraerExpresionesProhibidas devuelve las expresiones de la lista que lleva el
-// texto, en el orden de la lista —la maquinaria y después lo dicho en otra
-// conversación— y sin repetir, o nil si no lleva ninguna. Una expresión se
+// texto, en el orden de la lista —la maquinaria, lo dicho en otra conversación y
+// el anuncio— y sin repetir, o nil si no lleva ninguna. Una expresión se
 // encuentra si su forma casa en algún punto del texto: sus palabras en su orden,
 // cada una sin distinguir mayúsculas, con los blancos y el énfasis de Markdown
 // entre dos que tolera la forma fija de los avisos (H5.1), y sin letra ni cifra a
 // los lados. No pliega tildes ni admite un salto de línea entre dos palabras
-// (FR-051; contrato lista-y-juicio §3; research D3).
+// (FR-051 de H7.2 y FR-024 de H7.3; contratos lista-y-juicio §3 de H7.2 y
+// lista-de-expresiones §3 de H7.3; research D3).
 func ExtraerExpresionesProhibidas(texto string, lista ExpresionesProhibidas) []string {
 	var encontradas []string
 
-	for _, expresion := range slices.Concat(lista.Maquinaria, lista.OtraConversacion) {
+	for _, expresion := range slices.Concat(lista.Maquinaria, lista.OtraConversacion, lista.Anuncio) {
 		if !slices.Contains(encontradas, expresion) && formasDeExpresiones.forma(expresion).MatchString(texto) {
 			encontradas = append(encontradas, expresion)
 		}
