@@ -1,17 +1,14 @@
 {
-  "id": "T010",
-  "texto": "T010 [datos] [US2] La redacción C del e2e con la entrada de su control, y **nada más** (research D23; contracts/arnes-e2e.md §1): primero el test, en internal/app/grafo_test.go —`grabacionesDerivadas()` gana la entrada `version-ulterior` con `versionDelArticulo21(filepath.Join(derivadasDelE2E, \"version-ulterior\"), \"20260101\", parrafoDeLaVersionUlterior)`, la constante `parrafoDeLaVersionUlterior` escrita con sus escapes de Go y la derivada nombrada en el comentario de `grabacionesDerivadas()`—, que sin la derivada falla (rojo), porque `TestGrabacionesDerivadas` exige una entrada por cada fichero de la carpeta de derivadas y la derivada sola deja `make ci` en rojo (redelimitada en el intento 1, con la salida en su nota); después la derivada, internal/app/testdata/derivadas/version-ulterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json, el bloque `a21` de la grabación de H4 del paquete `boe` con `fecha_vigencia` `20260101` y el párrafo `[Redacción sintética de prueba: versión ulterior derivada de la grabación de H4.]` añadido al final del texto, producida por un programa de un solo uso fuera del repositorio a partir de esa grabación, como `version-posterior` de H7 (misma forma de grabación, mismo nombre de fichero y la longitud declarada recalculada si la grabación la lleva), que cambia exactamente eso; ninguna grabación nueva ni red; verificación: `TestGrabacionesDerivadas` en rojo con la entrada y sin la derivada y en verde con las dos, y `make ci` en verde (el `Setup` del arnés ya copia el directorio de derivadas entero) — FR-025, FR-091; rutas: internal/app/testdata/derivadas/version-ulterior/, internal/app/grafo_test.go",
-  "intento": 2,
-  "datos": true,
+  "id": "T011",
+  "texto": "T011 [US2] El control de la derivada C (research D23): en internal/app/grafo_test.go, `grabacionesDerivadas()` gana la entrada `version-ulterior` con `versionDelArticulo21(…, \"20260101\", parrafoDeLaVersionUlterior)` y la constante del párrafo escrita con sus escapes de Go, de modo que `TestGrabacionesDerivadas` exige que la derivada de T010 se lea con `boe` y dé el mismo `Articulo` que la grabación de H4 salvo la fecha de vigencia y el párrafo añadido; sin implementación (test sobre material ya versionado); verificación: con la fecha de la entrada cambiada un momento el test falla, se restaura antes de `make ci`, y `make ci` en verde — FR-091; rutas: internal/app/grafo_test.go",
+  "intento": 1,
+  "datos": false,
   "aceptacion": false,
-  "base": "dcefdec2c72daaea01f1f1e8a30db6168839e660",
+  "base": "4fca7c3ef559617231c0c09aaedba96e9185aefc",
   "rutas": [
-    "contracts/arnes-e2e.md",
-    "internal/app/grafo_test.go",
-    "internal/app/testdata/derivadas/version-ulterior/",
-    "internal/app/testdata/derivadas/version-ulterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json"
+    "internal/app/grafo_test.go"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "5ecaffb09eb861c280cfb3374f85ae82fa194c280d1951153e477ebd9d71ef72"
+  "nota": "-"
 }
