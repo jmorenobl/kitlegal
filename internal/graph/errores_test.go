@@ -56,8 +56,8 @@ func TestErrores(t *testing.T) {
 		},
 		{
 			nombre:    "esquema posterior",
-			fallo:     errorDeVersionPosterior(operacionLeer, ruta, 2, 1),
-			mensaje:   "grafo: " + citada + " tiene el esquema en la versión 2 y este binario conoce la 1: no se modifica",
+			fallo:     errorDeVersionPosterior(operacionLeer, ruta, 3, 2),
+			mensaje:   "grafo: " + citada + " tiene el esquema en la versión 3 y este binario conoce la 2: no se modifica",
 			clase:     schema.ClaseInesperado,
 			operacion: operacionLeer,
 			ruta:      ruta,

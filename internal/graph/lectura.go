@@ -34,6 +34,10 @@ type Lectura struct {
 	ruta string
 	// base es la conexión abierta; nil en el grafo vacío.
 	base *sql.DB
+	// conLecturas dice que la base tiene la tabla lecturas, la de la versión 2
+	// del esquema. La 1, la que escribe H7, no la tiene: todos sus bloques
+	// están sin fila (H7.1 data-model §3, research.md D4).
+	conLecturas bool
 	// cerrada dice que ya se llamó a Close.
 	cerrada bool
 }
@@ -41,11 +45,13 @@ type Lectura struct {
 // Leer abre world.db para leerlo (contracts/almacen-world-db.md §3; H7 FR-004,
 // FR-005, FR-012, FR-014; H7.1 FR-070): resuelve la ruta en este instante,
 // decide sin abrir SQLite si hay algo que abrir y, por la existencia de
-// world.db-wal, con qué modo, y lo abre leyendo la versión de su esquema. Sobre
-// lo que dejan las entregas, sin -wal no cambia ni un byte de nada en el
-// directorio; con él, lo único que cambia o aparece es el -shm que SQLite
-// escribe para leer lo confirmado —la desviación declarada de research.md D10
-// de H7—, y world.db y el -wal quedan como estaban.
+// world.db-wal, con qué modo, y lo abre leyendo la versión de su esquema. Una
+// base de la versión 1, la de H7, se lee sin migrarla y sin ninguna fila de
+// lecturas (H7.1 FR-026, research.md D4). Sobre lo que dejan las entregas, sin
+// -wal no cambia ni un byte de nada en el directorio; con él, lo único que
+// cambia o aparece es el -shm que SQLite escribe para leer lo confirmado —la
+// desviación declarada de research.md D10 de H7—, y world.db y el -wal quedan
+// como estaban.
 //
 // Un fallo es un *Error con su clase: la ruta no resoluble, «argumentos»; el
 // plazo agotado, «fuente-no-disponible»; world.db con un esquema posterior o
@@ -67,12 +73,12 @@ func Leer(ctx context.Context, opciones ...Opcion) (*Lectura, error) {
 		return &Lectura{ruta: ruta}, nil
 	}
 
-	base, err := abrirParaLeer(ctx, ruta, decidida.modo)
+	base, version, err := abrirParaLeer(ctx, ruta, decidida.modo)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Lectura{ruta: ruta, base: base}, nil
+	return &Lectura{ruta: ruta, base: base, conLecturas: version >= versionDeLasLecturas}, nil
 }
 
 // Ficha es lo que `graph show` devuelve del nodo del id (FR-053;
@@ -120,16 +126,20 @@ func (l *Lectura) Recuento(ctx context.Context) (grafo.Recuento, error) {
 }
 
 // Instantanea es todo el grafo de una sola transacción de lectura, lo que lee
-// `graph check` (data-model §5; research.md D15): cada nodo con sus datos, su
-// última observación y la vigencia que declaró, y cada arista por su terna. Los
-// nodos van por id y las aristas por origen, relación y destino, comparando
-// bytes, para que el orden no dependa del motor. El grafo vacío son dos listas
+// `graph check` (data-model §5; research.md D15; H7.1 data-model §3): cada nodo
+// con sus datos, su última observación y la vigencia que declaró, cada arista
+// por su terna y cada fila de lecturas. Los nodos van por id, las aristas por
+// origen, relación y destino y las filas por bloque, comparando bytes, para que
+// el orden no dependa del motor. El grafo vacío y una base de la versión 1, sin
+// la tabla lecturas, no tienen ninguna fila; el grafo vacío son tres listas
 // vacías.
 func (l *Lectura) Instantanea(ctx context.Context) (grafo.Instantanea, error) {
-	instantanea := grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}}
+	instantanea := grafo.Instantanea{
+		Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}, Lecturas: []grafo.LecturasDeBloque{},
+	}
 
 	err := l.enTransaccion(ctx, func(tx *sql.Tx) (err error) {
-		instantanea, err = leerInstantanea(ctx, tx)
+		instantanea, err = leerInstantanea(ctx, tx, l.conLecturas)
 
 		return err
 	})
@@ -324,9 +334,10 @@ func leerRecuento(ctx context.Context, tx *sql.Tx) (grafo.Recuento, error) {
 	return recuento, nil
 }
 
-// leerInstantanea lee todos los nodos y todas las aristas dentro de la
-// transacción y los ordena por bytes.
-func leerInstantanea(ctx context.Context, tx *sql.Tx) (grafo.Instantanea, error) {
+// leerInstantanea lee todos los nodos, todas las aristas y, si la base tiene la
+// tabla, todas las filas de lecturas dentro de la transacción, y los ordena por
+// bytes.
+func leerInstantanea(ctx context.Context, tx *sql.Tx, conLecturas bool) (grafo.Instantanea, error) {
 	nodos, err := consultar(ctx, tx, `SELECT id, type, props, last_seen, source, url, ttl FROM nodes`,
 		func(filas *sql.Rows) (grafo.NodoDeInstantanea, error) {
 			var (
@@ -363,6 +374,20 @@ func leerInstantanea(ctx context.Context, tx *sql.Tx) (grafo.Instantanea, error)
 		return grafo.Instantanea{}, err
 	}
 
+	lecturas := []grafo.LecturasDeBloque{}
+
+	if conLecturas {
+		lecturas, err = consultar(ctx, tx, `SELECT bloque, ultima, anterior FROM lecturas`,
+			func(filas *sql.Rows) (grafo.LecturasDeBloque, error) {
+				var fila grafo.LecturasDeBloque
+
+				return fila, filas.Scan(&fila.Bloque, &fila.Ultima, &fila.Anterior)
+			})
+		if err != nil {
+			return grafo.Instantanea{}, err
+		}
+	}
+
 	slices.SortFunc(nodos, func(a, b grafo.NodoDeInstantanea) int {
 		return strings.Compare(a.ID, b.ID)
 	})
@@ -370,8 +395,11 @@ func leerInstantanea(ctx context.Context, tx *sql.Tx) (grafo.Instantanea, error)
 		return cmp.Or(strings.Compare(a.Origen, b.Origen), strings.Compare(a.Relacion, b.Relacion),
 			strings.Compare(a.Destino, b.Destino))
 	})
+	slices.SortFunc(lecturas, func(a, b grafo.LecturasDeBloque) int {
+		return strings.Compare(a.Bloque, b.Bloque)
+	})
 
-	return grafo.Instantanea{Nodos: nodos, Aristas: aristas}, nil
+	return grafo.Instantanea{Nodos: nodos, Aristas: aristas, Lecturas: lecturas}, nil
 }
 
 // consultar hace la consulta dentro de la transacción y lee cada fila con leer.

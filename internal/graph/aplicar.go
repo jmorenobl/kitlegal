@@ -117,11 +117,13 @@ func abrirParaEscribir(ctx context.Context, ruta string) (*sql.DB, error) {
 }
 
 // prepararLaBase lee la versión del esquema, con el reintento por tramos, y
-// decide: la que este binario conoce se aplica tal cual; una posterior no se
-// toca (FR-012); cualquier otro resultado es un world.db que el binario no
-// puede usar, la regla genérica (H7.1 FR-070); y sin esquema —versión 0—
-// world.db se pone en WAL antes de la transacción que creará el esquema, porque
-// dentro de ella SQLite no lo fija (research.md V42).
+// decide: una de la 1 a la que este binario conoce sigue, y la transacción de
+// la entrega la migra si no es la conocida (H7.1 contracts/almacen-world-db.md
+// §4, paso 4); una posterior no se toca (FR-012); cualquier otro resultado es
+// un world.db que el binario no puede usar, la regla genérica (H7.1 FR-070); y
+// sin esquema —versión 0— world.db se pone en WAL antes de la transacción que
+// creará el esquema, porque dentro de ella SQLite no lo fija (research.md
+// V42).
 //
 // Si world.db tiene el -wal de una escritura interrumpida, esta conexión lo
 // recupera como cualquier escritor de SQLite, aunque la entrega falle después
@@ -186,11 +188,12 @@ func modoDeDiario(ctx context.Context, base consultante, pragma string) (string,
 	return modo, err
 }
 
-// escribirLote hace los pasos 5 a 7 de la entrega (contracts/almacen-world-db.md
+// escribirLote hace los pasos 5 a 9 de la entrega (contracts/almacen-world-db.md
 // §4): abre la transacción inmediata con el reintento por tramos, crea en ella
-// el esquema si world.db no lo tiene (FR-013), aplica el lote consolidado y
-// confirma. Cualquier rechazo o fallo la deshace entera, así que no entra nada
-// del lote (FR-022, FR-024).
+// el esquema si world.db no lo tiene o lo migra a la versión conocida (FR-013),
+// aplica el lote consolidado y confirma. Cualquier rechazo o fallo la deshace
+// entera, así que no entra nada del lote, tampoco sus lecturas (FR-022,
+// FR-024; H7.1 FR-020).
 //
 // La transacción empieza sin la cancelación del contexto, para que database/sql
 // no la deshaga desde otra goroutine al terminar el plazo; cada sentencia lleva
@@ -261,11 +264,19 @@ func falloAlEscribir(ctx context.Context, ruta string, causa error) error {
 	return errorDeEntradaSalida(operacionEscribir, ruta, causa)
 }
 
-// aplicarConsolidado es el paso 6 (contracts/almacen-world-db.md §4): cada
-// nodo, luego cada texto y luego cada arista se fusiona con lo guardado y se
-// escribe solo si cambia. Los nodos van primero para que una arista encuentre en
-// el grafo los extremos que trae el propio lote.
+// aplicarConsolidado es los pasos 6 a 8 (contracts/almacen-world-db.md §4):
+// antes de escribir nada del lote, la fila de lecturas que deja cada lectura
+// suya (lecturasQueCambian); después, cada nodo, luego cada texto y luego cada
+// arista se fusiona con lo guardado y se escribe solo si cambia; y al final,
+// cada fila de lecturas que cambia. Los nodos van primero para que una arista y
+// una fila de lecturas encuentren en el grafo los nodos que trae el propio
+// lote.
 func aplicarConsolidado(ctx context.Context, tx *sql.Tx, consolidado grafo.Consolidado) error {
+	lecturas, err := lecturasQueCambian(ctx, tx, consolidado.Lecturas())
+	if err != nil {
+		return err
+	}
+
 	if err := tablaDeNodos.aplicar(ctx, tx, consolidado.Nodos); err != nil {
 		return err
 	}
@@ -274,7 +285,100 @@ func aplicarConsolidado(ctx context.Context, tx *sql.Tx, consolidado grafo.Conso
 		return err
 	}
 
-	return tablaDeAristas.aplicar(ctx, tx, consolidado.Aristas)
+	if err := tablaDeAristas.aplicar(ctx, tx, consolidado.Aristas); err != nil {
+		return err
+	}
+
+	return escribirLecturas(ctx, tx, lecturas)
+}
+
+// lecturasQueCambian es el paso 6 (contracts/almacen-world-db.md §4; H7.1
+// data-model §4): para cada lectura del lote, la fila de su bloque tras ella
+// —Leida sobre la guardada o, sin fila, sobre la de partida (partidaSinFila)—,
+// calculada sobre lo que el grafo guarda antes del lote. Devuelve solo las que
+// no están guardadas tal cual, que son las que hay que escribir: con (v, v)
+// guardada, una lectura que ve v no deja nada, y una entrega repetida idéntica
+// no escribe (H7 FR-022).
+func lecturasQueCambian(ctx context.Context, tx *sql.Tx, lecturas []grafo.Lectura) ([]grafo.LecturasDeBloque, error) {
+	var cambian []grafo.LecturasDeBloque
+
+	for _, lectura := range lecturas {
+		guardada, estaba, err := leerFilaDeLecturas(ctx, tx, lectura.Bloque)
+		if err != nil {
+			return nil, err
+		}
+
+		partida := guardada
+
+		if !estaba {
+			if partida, err = partidaSinFila(ctx, tx, lectura); err != nil {
+				return nil, err
+			}
+		}
+
+		nueva := partida.Leida(lectura.Version)
+		if estaba && nueva == guardada {
+			continue
+		}
+
+		cambian = append(cambian, nueva)
+	}
+
+	return cambian, nil
+}
+
+// leerFilaDeLecturas lee la fila guardada del bloque, y false si no tiene.
+func leerFilaDeLecturas(ctx context.Context, tx *sql.Tx, bloque string) (grafo.LecturasDeBloque, bool, error) {
+	fila := grafo.LecturasDeBloque{Bloque: bloque}
+
+	estaba, err := encontrada(tx.QueryRowContext(ctx, lecturaDeLecturas, bloque).Scan(&fila.Ultima, &fila.Anterior))
+	if !estaba {
+		return grafo.LecturasDeBloque{}, false, err
+	}
+
+	return fila, true, nil
+}
+
+// partidaSinFila es la fila de partida de un bloque sin fila de lecturas —el de
+// un world.db de H7, o uno que H7 observó y nadie ha vuelto a leer—, que cuenta
+// con una lectura (H7.1 FR-026; research.md D3): (R, R), con R su redacción
+// vista sin lecturas entre las BloqueVersion que el grafo ya guarda de él
+// (grafo.RedaccionVistaSinLecturas). Si no guarda ninguna, el bloque es nuevo y
+// la partida es la propia lectura, de modo que su primera lectura deja (v, v).
+func partidaSinFila(ctx context.Context, tx *sql.Tx, lectura grafo.Lectura) (grafo.LecturasDeBloque, error) {
+	versiones, err := consultar(ctx, tx, lecturaDeVersionesGuardadas,
+		func(filas *sql.Rows) (grafo.NodoDeInstantanea, error) {
+			var version grafo.NodoDeInstantanea
+
+			return version, filas.Scan(&version.ID, &version.UltimaObservacion.FechaConsulta)
+		}, lectura.Bloque, grafo.RelacionTieneVersion, grafo.TipoBloqueVersion)
+	if err != nil {
+		return grafo.LecturasDeBloque{}, err
+	}
+
+	vista, hay, err := grafo.RedaccionVistaSinLecturas(versiones)
+	if err != nil {
+		return grafo.LecturasDeBloque{}, err
+	}
+
+	if !hay {
+		vista = lectura.Version
+	}
+
+	return grafo.LecturasDeBloque{Bloque: lectura.Bloque, Ultima: vista, Anterior: vista}, nil
+}
+
+// escribirLecturas es el paso 8 (contracts/almacen-world-db.md §4): guarda cada
+// fila, nueva o en lugar de la que tenía su bloque. La clave ajena exige que
+// sus tres nodos estén ya en el grafo.
+func escribirLecturas(ctx context.Context, tx *sql.Tx, filas []grafo.LecturasDeBloque) error {
+	for _, fila := range filas {
+		if _, err := tx.ExecContext(ctx, escrituraDeLecturas, fila.Bloque, fila.Ultima, fila.Anterior); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // tablaDelGrafo es lo que la entrega sabe hacer con los registros de una tabla
@@ -360,6 +464,15 @@ const (
 	lecturaDeTexto   = "SELECT body, fetched_at, source, url FROM texts WHERE hash = ?"
 	escrituraDeTexto = "INSERT INTO texts (hash, body, fetched_at, source, url) VALUES (?, ?, ?, ?, ?) " +
 		"ON CONFLICT (hash) DO UPDATE SET fetched_at = excluded.fetched_at, source = excluded.source, url = excluded.url"
+
+	// Las de la tabla lecturas (H7.1 research.md V6), y la de las versiones que
+	// el grafo guarda de un bloque: las BloqueVersion a las que llega su
+	// eli:has_version, con la fecha de su última observación.
+	lecturaDeLecturas   = "SELECT ultima, anterior FROM lecturas WHERE bloque = ?"
+	escrituraDeLecturas = "INSERT INTO lecturas (bloque, ultima, anterior) VALUES (?, ?, ?) " +
+		"ON CONFLICT (bloque) DO UPDATE SET ultima = excluded.ultima, anterior = excluded.anterior"
+	lecturaDeVersionesGuardadas = "SELECT n.id, n.last_seen FROM edges AS e JOIN nodes AS n ON n.id = e.dst " +
+		"WHERE e.src = ? AND e.rel = ? AND n.type = ?"
 )
 
 // historiaGuardada es la historia de un nodo o una arista tal como la guarda

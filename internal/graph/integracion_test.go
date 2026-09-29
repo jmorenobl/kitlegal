@@ -268,9 +268,11 @@ type leido struct {
 // listas vacías y ninguna ficha.
 func grafoVacio() leido {
 	return leido{
-		recuento:    grafo.Recuento{NodosPorTipo: []grafo.RecuentoDeNodos{}, AristasPorRelacion: []grafo.RecuentoDeAristas{}},
-		instantanea: grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}},
-		fichas:      map[string]grafo.Ficha{},
+		recuento: grafo.Recuento{NodosPorTipo: []grafo.RecuentoDeNodos{}, AristasPorRelacion: []grafo.RecuentoDeAristas{}},
+		instantanea: grafo.Instantanea{
+			Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}, Lecturas: []grafo.LecturasDeBloque{},
+		},
+		fichas: map[string]grafo.Ficha{},
 	}
 }
 
@@ -348,7 +350,7 @@ func mensajeInutilizable(ruta string, fallo *graph.Error) string {
 }
 
 func mensajeDeVersionPosterior(ruta string) string {
-	return "grafo: " + strconv.Quote(ruta) + " tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+	return "grafo: " + strconv.Quote(ruta) + " tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 }
 
 func mensajeDePlazo(operacion, nombre string) string {
@@ -667,8 +669,8 @@ func esquemaDe(t *testing.T, ruta string) (tablas []string, versiones []int64) {
 	return tablas, versiones
 }
 
-// tablasDelGrafo son las de la versión 1 del esquema.
-var tablasDelGrafo = []string{"edges", "nodes", "schema_version", "texts"}
+// tablasDelGrafo son las de la versión 2 del esquema.
+var tablasDelGrafo = []string{"edges", "lecturas", "nodes", "schema_version", "texts"}
 
 // ---------------------------------------------------------------------------
 // Los auxiliares de un escritor interrumpido.
@@ -685,11 +687,11 @@ func elTerritorioEnElWAL(t *testing.T, directorio string, _ *sql.DB) {
 }
 
 // unEsquemaPosteriorEnElWAL confirma en el WAL, desde la otra invocación, la
-// versión 2 del esquema: la de un binario posterior.
+// versión 3 del esquema: la de un binario posterior.
 func unEsquemaPosteriorEnElWAL(t *testing.T, _ string, otra *sql.DB) {
 	t.Helper()
 
-	_, err := otra.ExecContext(t.Context(), `INSERT INTO schema_version VALUES (2, '2030-01-01T00:00:00Z')`)
+	_, err := otra.ExecContext(t.Context(), `INSERT INTO schema_version VALUES (3, '2030-01-01T00:00:00Z')`)
 	require.NoError(t, err)
 }
 
@@ -760,7 +762,7 @@ func TestIntegracionEsquema(t *testing.T) {
 }
 
 // compruebaEsquemaCreado exige que en el directorio solo esté world.db, en WAL
-// y con las tablas y la versión 1 del esquema.
+// y con las tablas y las versiones 1 y 2 del esquema.
 func compruebaEsquemaCreado(t *testing.T, directorio string) {
 	t.Helper()
 
@@ -773,7 +775,7 @@ func compruebaEsquemaCreado(t *testing.T, directorio string) {
 		assert.Contains(t, tablas, tabla)
 	}
 
-	assert.Equal(t, []int64{1}, versiones)
+	assert.Equal(t, []int64{1, 2}, versiones)
 }
 
 // recuentoDelBloque es lo que graph stats cuenta tras la consulta del bloque.
@@ -1083,7 +1085,7 @@ func TestIntegracionConcurrencia(t *testing.T) {
 	assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "ningún auxiliar queda")
 
 	_, versiones := esquemaDe(t, rutaEn(directorio))
-	assert.Equal(t, []int64{1}, versiones, "el esquema se creó una sola vez")
+	assert.Equal(t, []int64{1, 2}, versiones, "el esquema se creó una sola vez")
 
 	l := leerElGrafo(t, directorio)
 	assert.Equal(t, invocaciones+1, l.recuento.Nodos)
@@ -1173,13 +1175,13 @@ func TestIntegracionInutilizables(t *testing.T) {
 	}
 }
 
-// conUnEsquemaPosterior deja el world.db del bloque con la versión 2 del
+// conUnEsquemaPosterior deja el world.db del bloque con la versión 3 del
 // esquema registrada, la de un binario posterior.
 func conUnEsquemaPosterior(t *testing.T, ruta string) {
 	t.Helper()
 
 	grafoEntregado(t, filepath.Dir(ruta), elBloque())
-	ejecutar(t, ruta, `INSERT INTO schema_version VALUES (2, '2030-01-01T00:00:00Z')`)
+	ejecutar(t, ruta, `INSERT INTO schema_version VALUES (3, '2030-01-01T00:00:00Z')`)
 	compruebaSinAuxiliares(t, ruta)
 }
 
@@ -1440,7 +1442,7 @@ func TestIntegracionRecuperacionDeclarada(t *testing.T) {
 		compruebaRecuperado(t, ruta, antes)
 
 		_, versiones := esquemaDe(t, ruta)
-		assert.Equal(t, []int64{1, 2}, versiones, "la versión 2 está ahora en world.db")
+		assert.Equal(t, []int64{1, 2, 3}, versiones, "la versión 3 está ahora en world.db")
 	})
 }
 

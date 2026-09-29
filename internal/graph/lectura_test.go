@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
@@ -232,10 +233,11 @@ type casoDeLectura struct {
 
 // TestLeerEstados fija la lectura en cada estado de world.db de data-model §3.1
 // que no necesita otra conexión (contracts/almacen-world-db.md §3 y §6; H7
-// FR-004, FR-005, FR-012; H7.1 FR-070): ausente, de 0 bytes o en WAL y sin
-// esquema, un grafo vacío; en la versión 1, la muestra; lo que no es una base
-// —el vehículo de la regla genérica— y un esquema posterior, «inesperado» con
-// su mensaje. En todos, ningún fichero bajo la raíz aparece, cambia o
+// FR-004, FR-005, FR-012; H7.1 FR-070, research.md D4): ausente, de 0 bytes o
+// en WAL y sin esquema, un grafo vacío; en la versión 2 y en la 1 de H7, que se
+// lee sin migrar y sin ninguna fila de lecturas, la muestra; lo que no es una
+// base —el vehículo de la regla genérica— y un esquema posterior, «inesperado»
+// con su mensaje. En todos, ningún fichero bajo la raíz aparece, cambia o
 // desaparece.
 func TestLeerEstados(t *testing.T) {
 	t.Parallel()
@@ -245,7 +247,7 @@ func TestLeerEstados(t *testing.T) {
 	}
 	posterior := func(ruta string, _ error) string {
 		return "grafo: " + strconv.Quote(ruta) +
-			" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+			" tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 	}
 
 	casos := []casoDeLectura{
@@ -259,7 +261,8 @@ func TestLeerEstados(t *testing.T) {
 		{nombre: "bajo un componente que no es directorio", preparar: bajoUnFichero},
 		{nombre: "de 0 bytes", preparar: conBase(nil)},
 		{nombre: "en WAL y sin esquema", preparar: enWALSinTablas},
-		{nombre: "versión 1 en WAL", preparar: conMuestra, llena: true},
+		{nombre: "versión 2 en WAL", preparar: conMuestra, llena: true},
+		{nombre: "versión 1 en WAL, la de H7", preparar: conMuestraDeH7, llena: true},
 		{nombre: "lo que no es una base de datos", preparar: conBase(contenido), fallo: noUtilizable},
 		{nombre: "un esquema posterior", preparar: conSentencias(versionPosterior), fallo: posterior},
 	}
@@ -313,8 +316,8 @@ func compruebaEstado(t *testing.T, caso casoDeLectura) {
 	assert.Equal(t, antes, huellasDelArbol(t, raiz), "leer no crea, no cambia ni retira nada")
 }
 
-// compruebaContenido lee con los tres verbos y compara con la muestra o con el
-// grafo vacío.
+// compruebaContenido lee con los tres verbos y compara con la muestra, que no
+// tiene ninguna fila de lecturas, o con el grafo vacío.
 func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 	t.Helper()
 
@@ -332,13 +335,21 @@ func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 		assert.True(t, encontrado, "la norma de la muestra está")
 		assert.Len(t, instantanea.Nodos, 8)
 		assert.Len(t, instantanea.Aristas, 7)
+		assert.Equal(t, []grafo.LecturasDeBloque{}, instantanea.Lecturas, "ninguna fila de lecturas, nunca nula")
 
 		return
 	}
 
 	assert.Equal(t, recuentoVacio(), recuento)
 	assert.False(t, encontrado, "en el grafo vacío no hay ningún nodo")
-	assert.Equal(t, grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}}, instantanea)
+	assert.Equal(t, instantaneaVacia(), instantanea)
+}
+
+// instantaneaVacia es la del grafo vacío: tres listas vacías, nunca nulas.
+func instantaneaVacia() grafo.Instantanea {
+	return grafo.Instantanea{
+		Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}, Lecturas: []grafo.LecturasDeBloque{},
+	}
 }
 
 // compruebaFallo compara el fallo de una lectura con su clase, su ruta y su
@@ -357,13 +368,15 @@ func compruebaFallo(t *testing.T, err error, clase schema.Clase, ruta, mensaje s
 
 // TestLeerSinRastro fija que una lectura completa —Leer, los tres verbos y
 // Close— sin -wal no cambia ni un byte de nada en el directorio, con la muestra
-// o sin esquema (contracts/almacen-world-db.md §3, paso 2; H7 FR-004, FR-005,
-// SC-004; research.md V8).
+// —también en la versión 1 de H7, que la lectura no migra— o sin esquema
+// (contracts/almacen-world-db.md §3, pasos 2 y 3; H7 FR-004, FR-005, SC-004;
+// H7.1 research.md D4, V8).
 func TestLeerSinRastro(t *testing.T) {
 	t.Parallel()
 
 	casos := map[string]func(*testing.T, string) string{
 		"con la muestra":       conMuestra,
+		"con la muestra de H7": conMuestraDeH7,
 		"en WAL y sin esquema": enWALSinTablas,
 	}
 
@@ -691,17 +704,20 @@ func TestRecuento(t *testing.T) {
 	require.NoError(t, vacia.Close())
 }
 
-// TestInstantanea fija lo que graph check lee (data-model §5; research.md D15):
-// cada nodo con sus datos, su última observación y la vigencia que declaró —cero
-// si no declaró ninguna—, y cada arista por su terna, en un orden que no
-// depende del motor: los nodos por id y las aristas por origen, relación y
-// destino, comparando bytes. Nunca el cuerpo de un texto.
+// TestInstantanea fija lo que graph check lee (data-model §5; research.md D15;
+// H7.1 data-model §3): cada nodo con sus datos, su última observación y la
+// vigencia que declaró —cero si no declaró ninguna—, cada arista por su terna y
+// cada fila de lecturas, en un orden que no depende del motor: los nodos por id
+// y las aristas por origen, relación y destino, comparando bytes. Nunca el
+// cuerpo de un texto.
 func TestInstantanea(t *testing.T) {
 	t.Parallel()
 
 	m := laMuestra(t)
 	directorio := t.TempDir()
-	crearGrafo(t, directorio, m.grafo())
+	ruta := crearGrafo(t, directorio, m.grafo())
+	alterar(t, ruta, "INSERT INTO lecturas (bloque, ultima, anterior) VALUES ('"+idBloque+"', '"+m.v2025.ID+"', '"+
+		m.v2016.ID+"')")
 
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	require.NoError(t, err)
@@ -738,6 +754,7 @@ func TestInstantanea(t *testing.T) {
 			terna(m.version2025),
 			terna(m.perteneceMinusculas),
 		},
+		Lecturas: []grafo.LecturasDeBloque{{Bloque: idBloque, Ultima: m.v2025.ID, Anterior: m.v2016.ID}},
 	}
 
 	instantanea, err := lectura.Instantanea(t.Context())
@@ -746,6 +763,40 @@ func TestInstantanea(t *testing.T) {
 	assert.Equal(t, semana, instantanea.Nodos[2].Vigencia, "la vigencia declarada, en segundos")
 	assert.Zero(t, instantanea.Nodos[0].Vigencia, "sin vigencia declarada, cero")
 	assertSinCuerpos(t, instantanea)
+}
+
+// TestInstantaneaConLecturas fija las filas de lecturas que lee graph check tal
+// como las dejan las entregas (H7.1 data-model §1 y §4): todas, cada una con su
+// última redacción vista y la anterior, por bloque comparando bytes, sin
+// depender del orden en que se escribieron.
+func TestInstantaneaConLecturas(t *testing.T) {
+	t.Parallel()
+
+	a21 := unaLectura("a21", "20161002", cuerpo2016)
+	a21Nueva := unaLectura("a21", "20250101", cuerpo2025)
+	a22 := unaLectura("a22", "20161002", cuerpo2016)
+
+	directorio := t.TempDir()
+	almacen := Nuevo(ConDirectorio(directorio))
+
+	// a22 se lee primero: si la lectura no ordenara las filas, iría delante.
+	for _, lote := range []core.Lote{
+		a22.entregada(fechaDelBloque), a21.entregada(fechaDelBloque), a21Nueva.entregada(fechaSiguiente),
+	} {
+		require.NoError(t, almacen.Apply(t.Context(), lote))
+	}
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context())
+	require.NoError(t, err)
+	require.NoError(t, lectura.Close())
+
+	assert.Equal(t, []grafo.LecturasDeBloque{
+		{Bloque: a21.bloque(), Ultima: a21Nueva.version(), Anterior: a21.version()},
+		{Bloque: a22.bloque(), Ultima: a22.version(), Anterior: a22.version()},
+	}, instantanea.Lecturas)
 }
 
 // TestLecturaClose fija que Close es idempotente —también sobre el grafo vacío
@@ -841,16 +892,30 @@ func TestLeerSinOpcion(t *testing.T) {
 	assert.Equal(t, schema.ClaseArgumentos, fallo.Clase())
 }
 
-// versionPosterior es un esquema de una versión que este binario no conoce.
+// versionPosterior es un esquema de una versión que este binario no conoce, la
+// 3.
 const versionPosterior = `CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL);
-INSERT INTO schema_version VALUES (1, '2026-09-28T12:00:00Z'), (2, '2030-01-01T00:00:00Z')`
+INSERT INTO schema_version VALUES (1, '2026-09-28T12:00:00Z'), (2, '2026-09-29T12:00:00Z'),
+(3, '2030-01-01T00:00:00Z')`
 
-// conMuestra prepara la muestra en world.db.
+// conMuestra prepara la muestra en world.db, con el esquema de la versión que
+// este binario conoce.
 func conMuestra(t *testing.T, raiz string) string {
 	t.Helper()
 
 	directorio := cacheVacia(t, raiz)
 	crearGrafo(t, directorio, muestra(t))
+
+	return directorio
+}
+
+// conMuestraDeH7 prepara la muestra en world.db con el esquema de la versión 1,
+// la que escribe H7: sin la tabla lecturas.
+func conMuestraDeH7(t *testing.T, raiz string) string {
+	t.Helper()
+
+	directorio := cacheVacia(t, raiz)
+	crearGrafoEnLaVersion(t, directorio, muestra(t), versionDeH7)
 
 	return directorio
 }
@@ -875,15 +940,22 @@ func conSentencias(sentencias string) func(*testing.T, string) string {
 }
 
 // crearGrafo escribe el grafo en world.db, dentro del directorio, en WAL y con
-// el esquema de la versión 1, y lo cierra: no queda ningún auxiliar. Devuelve la
-// ruta de world.db.
+// el esquema de la versión que este binario conoce, y lo cierra: no queda
+// ningún auxiliar. Devuelve la ruta de world.db.
 func crearGrafo(t *testing.T, directorio string, g grafoDePrueba) string {
+	t.Helper()
+
+	return crearGrafoEnLaVersion(t, directorio, g, laVersionConocida(t))
+}
+
+// crearGrafoEnLaVersion es crearGrafo con el esquema de la versión dada.
+func crearGrafoEnLaVersion(t *testing.T, directorio string, g grafoDePrueba, version int64) string {
 	t.Helper()
 
 	ruta := filepath.Join(directorio, "world.db")
 	base := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_txlock=immediate")
 	ponerEnWAL(t, base)
-	escribirGrafo(t, base, ruta, g)
+	escribirGrafo(t, base, g, version)
 	require.NoError(t, base.Close())
 
 	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida} {
@@ -904,13 +976,13 @@ func ponerEnWAL(t *testing.T, base *sql.DB) {
 	require.Equal(t, "wal", modo)
 }
 
-// escribirGrafo crea el esquema de la versión 1 y escribe las filas en una
-// transacción, como lo haría una entrega.
-func escribirGrafo(t *testing.T, base *sql.DB, ruta string, g grafoDePrueba) {
+// escribirGrafo crea el esquema de la versión dada y escribe las filas en una
+// transacción, como lo haría una entrega, sin ninguna fila de lecturas.
+func escribirGrafo(t *testing.T, base *sql.DB, g grafoDePrueba, version int64) {
 	t.Helper()
 
 	tx := empezar(t, base)
-	require.NoError(t, migrar(t.Context(), tx, ruta))
+	migrarHasta(t, tx, version)
 
 	for _, nodo := range g.nodos {
 		_, err := tx.ExecContext(t.Context(), `INSERT INTO nodes (id, type, props, first_seen, first_source,
@@ -971,7 +1043,7 @@ func copiaDeUnEscritorAbierto(t *testing.T, destino string, g grafoDePrueba) {
 	ruta := filepath.Join(t.TempDir(), "world.db")
 	escritor := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_pragma=wal_autocheckpoint(0)&_txlock=immediate")
 	ponerEnWAL(t, escritor)
-	escribirGrafo(t, escritor, ruta, g)
+	escribirGrafo(t, escritor, g, laVersionConocida(t))
 
 	for _, sufijo := range []string{"", sufijoWAL, sufijoMemoriaCompartida} {
 		copiar(t, ruta+sufijo, filepath.Join(destino, "world.db"+sufijo))

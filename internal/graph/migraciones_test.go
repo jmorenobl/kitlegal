@@ -24,7 +24,17 @@ type columna struct {
 	enClave int
 }
 
-// esquemaDeLaVersion1 es el de data-model §3, tabla a tabla y columna a
+const (
+	// versionDeH7 es la del esquema que escribe H7: la 0001, sin la tabla
+	// lecturas.
+	versionDeH7 int64 = 1
+
+	// aplicadaDePrueba es el instante con que migrarHasta registra cada
+	// versión.
+	aplicadaDePrueba = "2026-09-28T12:00:00Z"
+)
+
+// esquemaDeLaVersion1 es el de data-model §3 de H7, tabla a tabla y columna a
 // columna. La columna INTEGER PRIMARY KEY de schema_version es el rowid y
 // SQLite no la declara NOT NULL.
 var esquemaDeLaVersion1 = map[string][]columna{
@@ -65,15 +75,30 @@ var esquemaDeLaVersion1 = map[string][]columna{
 	},
 }
 
-// TestMigracionesEmbebidas fija lo que el binario trae dentro: una sola
-// migración, 0001_grafo.sql, que es la versión 1 (FR-013). El número del nombre
-// es la versión, y la versión conocida es el número de migraciones.
+// esquemaDeLasLecturas es el de la tabla que añade la versión 2 (H7.1
+// data-model §1): una fila por bloque leído, sin nulos. Su clave primaria es de
+// texto, no el rowid, y va declarada NOT NULL.
+var esquemaDeLasLecturas = map[string][]columna{
+	"lecturas": {
+		{"bloque", "TEXT", true, 1},
+		{"ultima", "TEXT", true, 0},
+		{"anterior", "TEXT", true, 0},
+	},
+}
+
+// tablasDeH7 son las tablas del esquema de la versión 1, por nombre.
+var tablasDeH7 = []string{"edges", "nodes", "schema_version", "texts"}
+
+// TestMigracionesEmbebidas fija lo que el binario trae dentro: dos migraciones,
+// 0001_grafo.sql, que es la versión 1 (H7 FR-013), y 0002_lecturas.sql, la 2,
+// que trae la tabla lecturas (H7.1 data-model §1). El número del nombre es la
+// versión, y la versión conocida es el número de migraciones.
 func TestMigracionesEmbebidas(t *testing.T) {
 	t.Parallel()
 
 	lista, err := migracionesEmbebidas()
 	require.NoError(t, err)
-	require.Len(t, lista, 1)
+	require.Len(t, lista, 2)
 
 	for posicion, cada := range lista {
 		assert.Equal(t, int64(posicion)+1, cada.version)
@@ -82,22 +107,25 @@ func TestMigracionesEmbebidas(t *testing.T) {
 	}
 
 	assert.Equal(t, "0001_grafo.sql", lista[0].nombre)
+	assert.Equal(t, "0002_lecturas.sql", lista[1].nombre)
+	assert.Equal(t, versionDeLasLecturas, lista[1].version, "la tabla lecturas llega con la 0002")
 
 	conocida, err := versionConocida()
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), conocida)
+	assert.Equal(t, int64(2), conocida)
 }
 
 // TestMigrar fija la migración de world.db dentro de la transacción que la pide
-// (FR-003, FR-013; contracts/almacen-world-db.md §4, pasos 3.4 y 5): sobre una
-// base sin esquema deja la versión 1 con el esquema de data-model §3 al
-// confirmar, y nada al deshacer; mientras la transacción no se confirma, otra
+// (FR-003, FR-013; contracts/almacen-world-db.md §2 y §4, pasos 4 y 5): sobre
+// una base sin esquema deja la versión 2 con el esquema entero al confirmar, y
+// nada al deshacer; sobre la versión 1 de H7, la 2 entra igual, con la
+// transacción, o no entra nada; mientras la transacción no se confirma, otra
 // conexión no ve nada; una migración que falla a medias no deja nada; sobre la
-// versión 1 no ejecuta nada; y un esquema posterior no se toca.
+// versión conocida no ejecuta nada; y un esquema posterior no se toca.
 func TestMigrar(t *testing.T) {
 	t.Parallel()
 
-	t.Run("confirmada, la base queda en la versión 1 con el esquema entero", func(t *testing.T) {
+	t.Run("confirmada, la base queda en la versión 2 con el esquema entero", func(t *testing.T) {
 		t.Parallel()
 
 		ruta, base := baseEnWAL(t)
@@ -113,20 +141,53 @@ func TestMigrar(t *testing.T) {
 
 		despues := time.Now().UTC()
 
-		assert.Equal(t, int64(1), versionDe(t, base))
-		assert.Equal(t, int64(1), versionDe(t, otra), "confirmada, la ve cualquiera")
+		assert.Equal(t, int64(2), versionDe(t, base))
+		assert.Equal(t, int64(2), versionDe(t, otra), "confirmada, la ve cualquiera")
 		compruebaEsquema(t, base)
 
-		var aplicada string
+		for _, version := range []int64{1, 2} {
+			var aplicada string
 
-		require.NoError(t, base.QueryRowContext(t.Context(),
-			"SELECT aplicada_en FROM schema_version WHERE version = 1").Scan(&aplicada))
+			require.NoError(t, base.QueryRowContext(t.Context(),
+				"SELECT aplicada_en FROM schema_version WHERE version = ?", version).Scan(&aplicada))
 
-		instante, err := time.Parse(time.RFC3339, aplicada)
-		require.NoError(t, err, "aplicada_en es RFC 3339")
-		assert.Equal(t, instante.UTC().Format(time.RFC3339), aplicada, "en UTC")
-		assert.False(t, instante.Before(antes), "no antes de migrar")
-		assert.False(t, instante.After(despues), "ni después de confirmar")
+			instante, err := time.Parse(time.RFC3339, aplicada)
+			require.NoError(t, err, "aplicada_en es RFC 3339")
+			assert.Equal(t, instante.UTC().Format(time.RFC3339), aplicada, "en UTC")
+			assert.False(t, instante.Before(antes), "no antes de migrar")
+			assert.False(t, instante.After(despues), "ni después de confirmar")
+		}
+	})
+
+	t.Run("sobre la versión 1, la 2 entra con la transacción que la pide", func(t *testing.T) {
+		t.Parallel()
+
+		ruta, base := baseDeH7(t)
+		otra := abrirBaseDePrueba(t, ruta, "mode=ro")
+		tx := empezar(t, base)
+
+		require.NoError(t, migrar(t.Context(), tx, ruta))
+		assert.Equal(t, versionDeH7, versionDe(t, otra), "sin confirmar, otra conexión sigue viendo la 1")
+		assert.Equal(t, tablasDeH7, tablasDe(t, otra), "y ninguna tabla lecturas")
+
+		require.NoError(t, tx.Commit())
+
+		assert.Equal(t, int64(2), versionDe(t, otra), "confirmada, la ve cualquiera")
+		compruebaEsquema(t, base)
+		assert.Equal(t, []int64{1, 2}, versionesDe(t, base), "la 1 sigue registrada y la 2 se añade")
+	})
+
+	t.Run("sobre la versión 1, deshecha, la base sigue en la 1", func(t *testing.T) {
+		t.Parallel()
+
+		ruta, base := baseDeH7(t)
+		tx := empezar(t, base)
+
+		require.NoError(t, migrar(t.Context(), tx, ruta))
+		require.NoError(t, tx.Rollback())
+
+		assert.Equal(t, tablasDeH7, tablasDe(t, base))
+		assert.Equal(t, []int64{1}, versionesDe(t, base))
 	})
 
 	t.Run("deshecha, no queda nada", func(t *testing.T) {
@@ -167,7 +228,7 @@ func TestMigrar(t *testing.T) {
 		assert.Equal(t, int64(0), versionDe(t, base))
 	})
 
-	t.Run("sobre la versión 1 no ejecuta nada", func(t *testing.T) {
+	t.Run("sobre la versión conocida no ejecuta nada", func(t *testing.T) {
 		t.Parallel()
 
 		ruta, base := baseEnWAL(t)
@@ -180,10 +241,7 @@ func TestMigrar(t *testing.T) {
 		require.NoError(t, migrar(t.Context(), tx, ruta))
 		require.NoError(t, tx.Commit())
 
-		var filas int
-
-		require.NoError(t, base.QueryRowContext(t.Context(), "SELECT count(*) FROM schema_version").Scan(&filas))
-		assert.Equal(t, 1, filas, "una sola fila por versión")
+		assert.Equal(t, []int64{1, 2}, versionesDe(t, base), "una sola fila por versión")
 		compruebaEsquema(t, base)
 	})
 
@@ -194,7 +252,7 @@ func TestMigrar(t *testing.T) {
 
 		_, err := base.ExecContext(t.Context(),
 			"CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL);"+
-				"INSERT INTO schema_version VALUES (2, '2030-01-01T00:00:00Z')")
+				"INSERT INTO schema_version VALUES (3, '2030-01-01T00:00:00Z')")
 		require.NoError(t, err)
 
 		tx := empezar(t, base)
@@ -205,10 +263,10 @@ func TestMigrar(t *testing.T) {
 
 		require.ErrorAs(t, err, &fallo)
 		assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-		assert.Equal(t, fmt.Sprintf("grafo: %q tiene el esquema en la versión 2 y este binario conoce la 1: no se modifica", ruta),
+		assert.Equal(t, fmt.Sprintf("grafo: %q tiene el esquema en la versión 3 y este binario conoce la 2: no se modifica", ruta),
 			fallo.Error())
 		assert.Equal(t, []string{"schema_version"}, tablasDe(t, base))
-		assert.Equal(t, int64(2), versionDe(t, base))
+		assert.Equal(t, int64(3), versionDe(t, base))
 	})
 
 	t.Run("el contexto terminado es el plazo agotado y no deja nada", func(t *testing.T) {
@@ -294,6 +352,49 @@ func baseEnWAL(t *testing.T) (string, *sql.DB) {
 	return ruta, base
 }
 
+// baseDeH7 es baseEnWAL con el esquema de la versión 1 confirmado, el que deja
+// H7: sin la tabla lecturas.
+func baseDeH7(t *testing.T) (string, *sql.DB) {
+	t.Helper()
+
+	ruta, base := baseEnWAL(t)
+	tx := empezar(t, base)
+	migrarHasta(t, tx, versionDeH7)
+	require.NoError(t, tx.Commit())
+
+	return ruta, base
+}
+
+// laVersionConocida es la versión del esquema que este binario conoce.
+func laVersionConocida(t *testing.T) int64 {
+	t.Helper()
+
+	conocida, err := versionConocida()
+	require.NoError(t, err)
+
+	return conocida
+}
+
+// migrarHasta aplica dentro de la transacción las migraciones embebidas hasta la
+// versión dada y registra cada una, como migrar: el esquema que deja un binario
+// que no conoce las siguientes.
+func migrarHasta(t *testing.T, tx *sql.Tx, version int64) {
+	t.Helper()
+
+	lista, err := migracionesEmbebidas()
+	require.NoError(t, err)
+	require.LessOrEqual(t, version, int64(len(lista)), "premisa: el binario trae esa versión")
+
+	for _, cada := range lista[:version] {
+		_, err := tx.ExecContext(t.Context(), cada.sentencias)
+		require.NoError(t, err)
+
+		_, err = tx.ExecContext(t.Context(),
+			`INSERT INTO schema_version(version, aplicada_en) VALUES (?, ?)`, cada.version, aplicadaDePrueba)
+		require.NoError(t, err)
+	}
+}
+
 // empezar abre la transacción inmediata de una entrega, sin la cancelación del
 // contexto, como la abre el almacén.
 func empezar(t *testing.T, base *sql.DB) *sql.Tx {
@@ -314,6 +415,20 @@ func versionDe(t *testing.T, base *sql.DB) int64 {
 	require.NoError(t, err)
 
 	return version
+}
+
+// versionesDe son las versiones que registra schema_version, en orden.
+func versionesDe(t *testing.T, base *sql.DB) []int64 {
+	t.Helper()
+
+	return filasGuardadas(t, base, "SELECT version FROM schema_version ORDER BY version",
+		func(filas *sql.Rows) int64 {
+			var version int64
+
+			require.NoError(t, filas.Scan(&version))
+
+			return version
+		})
 }
 
 // tablasDe son las tablas de la base, ordenadas, sin las internas de SQLite.
@@ -341,21 +456,18 @@ func tablasDe(t *testing.T, base *sql.DB) []string {
 	return tablas
 }
 
-// compruebaEsquema compara el esquema de la base con el de data-model §3:
-// tablas, cada columna, STRICT, índices y claves ajenas.
+// compruebaEsquema compara el esquema de la base con el de la versión 2: el de
+// data-model §3 de H7 y la tabla lecturas de H7.1 data-model §1, con cada
+// columna, STRICT, índices y claves ajenas.
 func compruebaEsquema(t *testing.T, base *sql.DB) {
 	t.Helper()
 
-	assert.Equal(t, []string{"edges", "nodes", "schema_version", "texts"}, tablasDe(t, base))
+	assert.Equal(t, []string{"edges", "lecturas", "nodes", "schema_version", "texts"}, tablasDe(t, base))
 
-	for tabla, definidas := range esquemaDeLaVersion1 {
-		assert.Equal(t, definidas, columnasDe(t, base, tabla), "cada columna de %s", tabla)
-
-		var estricta bool
-
-		require.NoError(t, base.QueryRowContext(t.Context(),
-			"SELECT strict FROM pragma_table_list WHERE schema = 'main' AND name = ?", tabla).Scan(&estricta))
-		assert.True(t, estricta, "%s es STRICT", tabla)
+	for _, esquema := range []map[string][]columna{esquemaDeLaVersion1, esquemaDeLasLecturas} {
+		for tabla, definidas := range esquema {
+			compruebaTabla(t, base, tabla, definidas)
+		}
 	}
 
 	assert.Equal(t, [][3]string{
@@ -371,6 +483,27 @@ func compruebaEsquema(t *testing.T, base *sql.DB) {
 		{"src", "nodes", "id"},
 	}, filasDe(t, base, `SELECT "from", "table", "to" FROM pragma_foreign_key_list('edges') ORDER BY "from"`),
 		"los dos extremos de una arista son nodos")
+
+	assert.Equal(t, [][3]string{
+		{"anterior", "nodes", "id"},
+		{"bloque", "nodes", "id"},
+		{"ultima", "nodes", "id"},
+	}, filasDe(t, base, `SELECT "from", "table", "to" FROM pragma_foreign_key_list('lecturas') ORDER BY "from"`),
+		"el bloque y las dos redacciones de una fila de lecturas son nodos")
+}
+
+// compruebaTabla exige que cada columna de la tabla sea la definida, en su
+// orden, y que la tabla sea STRICT.
+func compruebaTabla(t *testing.T, base *sql.DB, tabla string, definidas []columna) {
+	t.Helper()
+
+	assert.Equal(t, definidas, columnasDe(t, base, tabla), "cada columna de %s", tabla)
+
+	var estricta bool
+
+	require.NoError(t, base.QueryRowContext(t.Context(),
+		"SELECT strict FROM pragma_table_list WHERE schema = 'main' AND name = ?", tabla).Scan(&estricta))
+	assert.True(t, estricta, "%s es STRICT", tabla)
 }
 
 // columnasDe describe cada columna de la tabla, en su orden.

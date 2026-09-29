@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,23 +36,64 @@ func laNorma(datos map[string]any) schema.Nodo {
 	return schema.Nodo{ID: idNorma, Tipo: grafo.TipoNorma, Datos: datos}
 }
 
-// operacionesDelBloque son las de una consulta de boe articulo a21: la norma, el
-// bloque y su versión de 2016, las dos aristas que los unen y el texto de la
-// versión, en un orden que no es el de sus claves.
+// operacionesDelBloque son las de una consulta de boe articulo a21 que ve la
+// redacción de 2016.
 func operacionesDelBloque() []schema.Operacion {
-	huellaDe2016 := huella(cuerpo2016)
-	version := idBloque + "@20161002:" + huellaDe2016
+	return unaLectura("a21", "20161002", cuerpo2016).operaciones()
+}
 
+// lecturaDePrueba es una consulta de boe articulo sobre un bloque de la LPAC
+// que ve una redacción: la lectura de ese bloque que deja su entrega (H7.1
+// data-model §2).
+type lecturaDePrueba struct {
+	// enLaNorma es el id del bloque dentro de la norma, como a21.
+	enLaNorma string
+	// vigencia es la fecha de vigencia de la redacción vista.
+	vigencia string
+	// cuerpo es su texto.
+	cuerpo string
+}
+
+// unaLectura es la del bloque que ve la redacción con la fecha de vigencia y el
+// cuerpo dados.
+func unaLectura(enLaNorma, vigencia, cuerpo string) lecturaDePrueba {
+	return lecturaDePrueba{enLaNorma: enLaNorma, vigencia: vigencia, cuerpo: cuerpo}
+}
+
+// bloque es el id del Bloque.
+func (l lecturaDePrueba) bloque() string {
+	return idNorma + "#" + l.enLaNorma
+}
+
+// version es el id de la BloqueVersion que ve.
+func (l lecturaDePrueba) version() string {
+	return l.bloque() + "@" + l.vigencia + ":" + huella(l.cuerpo)
+}
+
+// url es la de la consulta del bloque.
+func (l lecturaDePrueba) url() string {
+	return urlDeLaNorma + "/texto/bloque/" + l.enLaNorma
+}
+
+// operaciones son las de la consulta: la norma, el bloque y la redacción vista,
+// las dos aristas que los unen y el texto de la redacción, en un orden que no
+// es el de sus claves.
+func (l lecturaDePrueba) operaciones() []schema.Operacion {
 	return []schema.Operacion{
-		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-		schema.Texto{Huella: huellaDe2016, Cuerpo: cuerpo2016},
-		schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-			grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: huellaDe2016,
+		schema.Arista{Origen: l.bloque(), Relacion: grafo.RelacionTieneVersion, Destino: l.version()},
+		schema.Texto{Huella: huella(l.cuerpo), Cuerpo: l.cuerpo},
+		schema.Nodo{ID: l.version(), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: l.vigencia, grafo.DatoHashTexto: huella(l.cuerpo),
 		}},
-		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque},
-		schema.Nodo{ID: idBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a21"}},
+		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: l.bloque()},
+		schema.Nodo{ID: l.bloque(), Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: l.enLaNorma}},
 		laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
 	}
+}
+
+// entregada es el lote de la consulta con la fecha dada.
+func (l lecturaDePrueba) entregada(fecha string) core.Lote {
+	return loteDelBOE(l.url(), fecha, l.operaciones()...)
 }
 
 // registrosDe es lo que un lote deja en un grafo vacío: cada registro
@@ -186,6 +228,26 @@ func filasGuardadas[T any](t *testing.T, base *sql.DB, consulta string, leer fun
 	return lista
 }
 
+// lecturasGuardadas son las filas de lecturas de world.db, por bloque comparando
+// bytes, leídas con una conexión que no deja ningún auxiliar ni cambia ningún
+// fichero; nil si no hay ninguna.
+func lecturasGuardadas(t *testing.T, ruta string) []grafo.LecturasDeBloque {
+	t.Helper()
+
+	base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+	lecturas := filasGuardadas(t, base, `SELECT bloque, ultima, anterior FROM lecturas ORDER BY bloque`,
+		func(filas *sql.Rows) grafo.LecturasDeBloque {
+			var fila grafo.LecturasDeBloque
+
+			require.NoError(t, filas.Scan(&fila.Bloque, &fila.Ultima, &fila.Anterior))
+
+			return fila
+		})
+	require.NoError(t, base.Close())
+
+	return lecturas
+}
+
 // compruebaFalloDeEntrega compara el fallo de una entrega con su clase, su ruta
 // y su mensaje exacto.
 func compruebaFalloDeEntrega(t *testing.T, err error, clase schema.Clase, ruta, mensaje string) {
@@ -313,6 +375,109 @@ func TestApplyIdempotente(t *testing.T) {
 			assert.Equal(t, 1, recuento.Textos)
 		})
 	}
+}
+
+// TestApplyLecturas fija las filas de lecturas que deja la entrega (H7.1
+// FR-020, FR-021, FR-026; data-model §1 y §4; contracts/almacen-world-db.md
+// §4, pasos 5 a 8): la primera lectura de un bloque nuevo guarda (v, v); cada
+// lectura siguiente pasa la última a la anterior —(B, A) y, al leer B otra
+// vez, (B, B)— y una entrega idéntica a la anterior ya no escribe nada; boe
+// articulos deja una fila por bloque; la primera lectura de un bloque que el
+// grafo de H7 ya observó parte de su redacción vista sin lecturas, calculada
+// sobre lo guardado antes del lote —(v, R)—; y un lote rechazado no deja
+// ninguna fila.
+func TestApplyLecturas(t *testing.T) {
+	t.Parallel()
+
+	a := unaLectura("a21", "20161002", cuerpo2016)
+	b := unaLectura("a21", "20250101", cuerpo2025)
+
+	t.Run("una lectura tras otra", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := t.TempDir()
+		ruta := filepath.Join(directorio, "world.db")
+		almacen := Nuevo(ConDirectorio(directorio))
+
+		require.NoError(t, almacen.Apply(t.Context(), a.entregada(fechaDelBloque)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a)}, lecturasGuardadas(t, ruta),
+			"la primera, de un bloque nuevo: (A, A)")
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(b, a)}, lecturasGuardadas(t, ruta),
+			"otra que ve una redacción nueva: (B, A)")
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(b, b)}, lecturasGuardadas(t, ruta),
+			"otra que ve B, la sirva la caché con su misma consulta: (B, B)")
+
+		antes := huellasDelArbol(t, directorio)
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, antes, huellasDelArbol(t, directorio), "con (B, B), leer B otra vez no escribe nada")
+	})
+
+	t.Run("boe articulos deja una fila por bloque", func(t *testing.T) {
+		t.Parallel()
+
+		a22 := unaLectura("a22", "20161002", cuerpo2025)
+		directorio := t.TempDir()
+
+		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(),
+			loteDelBOE(urlDeLaNorma, fechaDelBloque, slices.Concat(a.operaciones(), a22.operaciones())...)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a), filaDeLecturas(a22, a22)},
+			lecturasGuardadas(t, filepath.Join(directorio, "world.db")))
+	})
+
+	t.Run("la primera sobre un bloque que el grafo de H7 ya observó", func(t *testing.T) {
+		t.Parallel()
+
+		m := laMuestra(t)
+		require.Equal(t, a.version(), m.v2016.ID, "premisa: la lectura ve la redacción de 2016 de la muestra")
+		require.Less(t, m.v2016.UltimaObservacion.FechaConsulta, m.v2025.UltimaObservacion.FechaConsulta,
+			"premisa: antes del lote, la redacción observada la última es la de 2025")
+
+		directorio := conMuestraDeH7(t, t.TempDir())
+		ruta := filepath.Join(directorio, "world.db")
+
+		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), a.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{{Bloque: idBloque, Ultima: a.version(), Anterior: m.v2025.ID}},
+			lecturasGuardadas(t, ruta), "(A, R): R es la de 2025, no la que el lote vuelve a observar")
+
+		base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+		assert.Equal(t, []int64{1, 2}, versionesDe(t, base), "la entrega migra la base de H7 a la 2")
+		require.NoError(t, base.Close())
+	})
+
+	t.Run("un lote rechazado no deja ninguna fila", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := t.TempDir()
+		ruta := filepath.Join(directorio, "world.db")
+		almacen := Nuevo(ConDirectorio(directorio))
+		require.NoError(t, almacen.Apply(t.Context(), a.entregada(fechaDelBloque)))
+
+		antes := huellasDelArbol(t, directorio)
+
+		// La lectura de B con la norma de otro tipo que el guardado: la fusión
+		// la rechaza dentro de la transacción, con la fila de B ya calculada.
+		operaciones := b.operaciones()
+		operaciones[len(operaciones)-1] = schema.Nodo{ID: idNorma, Tipo: grafo.TipoMunicipio}
+
+		err := almacen.Apply(t.Context(), loteDelBOE(b.url(), fechaSiguiente, operaciones...))
+
+		var rechazo *grafo.Rechazo
+
+		require.ErrorAs(t, err, &rechazo)
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a)}, lecturasGuardadas(t, ruta))
+		assert.Equal(t, antes, huellasDelArbol(t, directorio), "el grafo queda como estaba, byte a byte")
+	})
+}
+
+// filaDeLecturas es la fila del bloque de las dos lecturas: la última redacción
+// vista y la anterior.
+func filaDeLecturas(ultima, anterior lecturaDePrueba) grafo.LecturasDeBloque {
+	return grafo.LecturasDeBloque{Bloque: ultima.bloque(), Ultima: ultima.version(), Anterior: anterior.version()}
 }
 
 // aplicarEnOrden entrega los lotes, uno tras otro, en un directorio nuevo y
@@ -552,7 +717,7 @@ func TestApplyCreaEnSuSitio(t *testing.T) {
 
 	base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
 	compruebaEsquema(t, base)
-	assert.Equal(t, int64(1), versionDe(t, base))
+	assert.Equal(t, int64(2), versionDe(t, base))
 	require.NoError(t, base.Close())
 }
 
@@ -582,7 +747,7 @@ func TestApplyEnSuSitio(t *testing.T) {
 			assert.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "world.db queda en WAL")
 
 			base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
-			assert.Equal(t, int64(1), versionDe(t, base))
+			assert.Equal(t, int64(2), versionDe(t, base))
 			require.NoError(t, base.Close())
 
 			assert.Equal(t, []string{"world.db"}, nombresEn(t, directorio), "no queda ningún auxiliar")
@@ -635,7 +800,7 @@ func TestApplyNoModifica(t *testing.T) {
 			preparar: conSentencias(versionPosterior),
 			mensaje: func(ruta string, _ *Error) string {
 				return "grafo: " + strconv.Quote(ruta) +
-					" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+					" tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 			},
 			intacto: true,
 		},

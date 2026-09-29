@@ -1016,7 +1016,7 @@ func casosInutilizables() []casoInutilizable {
 
 				escribirFicheroDePrueba(t, ruta, baseDeUnaVersionPosterior(t))
 			},
-			motivo: "tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica",
+			motivo: "tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica",
 		},
 	}
 }
@@ -2483,8 +2483,8 @@ type filaSQLite struct {
 // el registro lo lleva nulo.
 const sentenciaDeSchemaVersion = "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL)"
 
-// baseDeUnaVersionPosterior es un world.db con el esquema en la versión 2: el de
-// un binario posterior que migró desde la 1 (FR-012).
+// baseDeUnaVersionPosterior es un world.db con el esquema en la versión 3: el de
+// un binario posterior que migró desde la 1 y la 2 (FR-012).
 func baseDeUnaVersionPosterior(t *testing.T) []byte {
 	t.Helper()
 
@@ -2494,6 +2494,7 @@ func baseDeUnaVersionPosterior(t *testing.T) []byte {
 		filas: []filaSQLite{
 			{rowid: 1, valores: []any{nil, "2026-09-01T00:00:00Z"}},
 			{rowid: 2, valores: []any{nil, "2026-09-02T00:00:00Z"}},
+			{rowid: 3, valores: []any{nil, "2026-09-03T00:00:00Z"}},
 		},
 	})
 }

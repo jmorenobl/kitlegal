@@ -124,41 +124,43 @@ func decidirApertura(ruta string) (apertura, error) {
 
 // abrirParaLeer hace el paso 3 de la lectura (contracts/almacen-world-db.md
 // §3): abre world.db con el modo decidido y lee la versión de su esquema,
-// esperando por tramos mientras otra invocación lo retiene (H7 FR-014). Con la
-// versión que este binario conoce, devuelve la conexión abierta; sin esquema
-// —versión 0—, la cierra sin consultar ninguna tabla y devuelve nil, que es el
-// grafo vacío (H7 FR-004); con una posterior, «de otra versión» sin tocarlo
-// (H7 FR-012). Cualquier otro resultado es la regla genérica: inutilizable,
-// con la ruta y la causa (H7.1 FR-070).
-func abrirParaLeer(ctx context.Context, ruta string, modo modoDeLectura) (*sql.DB, error) {
+// esperando por tramos mientras otra invocación lo retiene (H7 FR-014). Con
+// cualquier versión de la 1 a la que este binario conoce, devuelve la conexión
+// abierta y la versión leída: la 1, la que escribe H7, se lee sin migrarla
+// —la lectura no escribe— y sin la tabla lecturas (H7.1 research.md D4). Sin
+// esquema —versión 0—, la cierra sin consultar ninguna tabla y devuelve nil, que
+// es el grafo vacío (H7 FR-004); con una posterior, «de otra versión» sin
+// tocarlo (H7 FR-012). Cualquier otro resultado es la regla genérica:
+// inutilizable, con la ruta y la causa (H7.1 FR-070).
+func abrirParaLeer(ctx context.Context, ruta string, modo modoDeLectura) (*sql.DB, int64, error) {
 	conocida, err := versionConocida()
 	if err != nil {
 		fallo := errorDeMigracionesIlegibles(ruta, err)
 		fallo.Operacion = operacionLeer
 
-		return nil, fallo
+		return nil, 0, fallo
 	}
 
 	base, err := abrirConexion(operacionLeer, ruta, cadenaDeLectura(ruta, modo))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	version, err := leerVersion(ctx, base)
 	if err != nil {
-		return nil, errors.Join(falloAlLeer(ctx, ruta, err), cerrarTrasElFallo(base, operacionLeer, ruta))
+		return nil, 0, errors.Join(falloAlLeer(ctx, ruta, err), cerrarTrasElFallo(base, operacionLeer, ruta))
 	}
 
 	switch {
-	case version == conocida:
-		return base, nil
 	case version == 0:
-		return nil, cerrarTrasElFallo(base, operacionLeer, ruta)
+		return nil, 0, cerrarTrasElFallo(base, operacionLeer, ruta)
 	case version > conocida:
-		return nil, errors.Join(errorDeVersionPosterior(operacionLeer, ruta, version, conocida),
+		return nil, 0, errors.Join(errorDeVersionPosterior(operacionLeer, ruta, version, conocida),
 			cerrarTrasElFallo(base, operacionLeer, ruta))
+	case version > 0:
+		return base, version, nil
 	default:
-		return nil, errors.Join(errorInutilizable(operacionLeer, ruta, nil),
+		return nil, 0, errors.Join(errorInutilizable(operacionLeer, ruta, nil),
 			cerrarTrasElFallo(base, operacionLeer, ruta))
 	}
 }

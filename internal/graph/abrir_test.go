@@ -193,6 +193,48 @@ func conBase(datos []byte, sufijos ...string) func(*testing.T, string) string {
 	}
 }
 
+// TestAbrirParaLeer fija el paso 3 de la lectura (contracts/almacen-world-db.md
+// §3; H7.1 research.md D4): sin esquema —la versión 0—, ninguna conexión, que es
+// el grafo vacío; con la versión 1, la de H7, sin la tabla lecturas, y con la
+// 2, la conexión abierta y la versión leída. Abrir no migra ni escribe nada.
+func TestAbrirParaLeer(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		preparar func(t *testing.T, raiz string) string
+		version  int64
+	}{
+		{nombre: "en WAL y sin esquema", preparar: enWALSinTablas, version: 0},
+		{nombre: "la versión 1", preparar: conMuestraDeH7, version: 1},
+		{nombre: "la versión 2", preparar: conMuestra, version: 2},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := t.TempDir()
+			ruta := filepath.Join(caso.preparar(t, raiz), "world.db")
+			antes := huellasDelArbol(t, raiz)
+
+			base, version, err := abrirParaLeer(t.Context(), ruta, modoSinWAL)
+			require.NoError(t, err)
+			assert.Equal(t, caso.version, version)
+
+			if caso.version == 0 {
+				assert.Nil(t, base, "el grafo vacío no deja ninguna conexión abierta")
+			} else {
+				require.NotNil(t, base)
+				assert.Equal(t, caso.version, versionDe(t, base), "la conexión abierta es la de esa base")
+				require.NoError(t, base.Close())
+			}
+
+			assert.Equal(t, antes, huellasDelArbol(t, raiz), "abrir no migra ni escribe nada")
+		})
+	}
+}
+
 // TestAusente fija qué fallos de os.Stat son un fichero ausente: no existe, o
 // un componente de la ruta no es un directorio, que en Unix no es
 // fs.ErrNotExist.
