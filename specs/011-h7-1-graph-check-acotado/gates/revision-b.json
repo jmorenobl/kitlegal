@@ -1,0 +1,83 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:94 «ci: todos los controles en verde» (lint 0 issues en la línea 9, unitarios, integración, tiempos, vuln, schema-check, skills-check, secretos, módulos). Reproducido en una copia desacoplada de HEAD 7ddca7f (`git worktree add --detach`, fuera del repositorio): `make ci` sale con 0. Árbol de trabajo limpio (`git status --porcelain` vacío)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta y activada: las huellas SHA-256 de specs/011-h7-1-graph-check-acotado/aceptacion/*.txtar y de internal/app/testdata/script/h7-1-*.txtar coinciden con gates/aceptacion-congelada.json; solo las tocan 0da488f (T001) y 6655a29 (activación). En la copia, TestEntregaDelHito/h7-1-{regla-generica,lecturas,legible,check-acotado} dan --- PASS los cuatro. Mutaciones en otra copia, todas detectadas: comprobar.go:243 (Before en vez de !After) → TestComprobar FAIL; comprobar.go:319 (fuente-caducada sobre toda BloqueVersion) → TestComprobar FAIL; comprobar.go:70 (cota 51) → TestComprobarConLaCota FAIL; comprobar.go:85-89 (clases invertidas) → TestComprobar FAIL; aplicar.go:319 (la fila no desplaza la anterior: la señal no se apaga) → TestApplyLecturas FAIL y h7-1-grafo-lecturas.txtar:87 (paso 4) FAIL; lectura.go:381 (la norma sin bloques no trae ninguno) → TestInstantanea FAIL; aplicar.go:364-368 (partida sin fila ignora la redacción vista) → TestApplyLecturas FAIL; juzgar.go:276 (un hallazgo ausente no impide pasar) → TestJuzgar FAIL; internal/app/grafo.go:233 (bloque en blanco admitido) → TestAppletGrafo/argumentos FAIL. Tests offline: ninguno abre red (reproducción de H4; la derivada version-ulterior la fija TestGrabacionesDerivadas, internal/app/grafo_test.go:2632-2637)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "gates/ci.log:9 «0 issues» (depguard, forbidigo, gosec…). internal/core/grafo/lecturas.go importa solo cmp, strings y time (R1); SQL y database/sql solo en internal/graph (lectura.go:1282-1347, aplicar.go:461-470) (R3); internal/app/grafo.go importa internal/source/boe desde la raíz de composición, que ya lo importaba, y internal/graph no importa source ni render (R6); la salida legible va en Resultado.Legible (grafo.go:297-300) y la escribe el kernel (R5). go.mod, go.sum, .golangci.yml, codecov.yml, Makefile y .github sin cambios."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "schemas/grafo.json regenerado con $defs.grafo.Comprobacion (required norma, bloques, version-obsoleta, fuente-caducada, omitidos, hallazgos) y la entrada de check con norma y bloques fuera de required; gates/ci.log:68-69 schema-check sin drift. internal/app/grafo_test.go TestSalidaDelGrafoContraSchemas valida la salida real contra el esquema que emite --describe, con los casos nuevos check-acotado-a-una-norma-y-sus-bloques, fallo-2-norma-sin-su-forma y fallo-2-bloque-en-blanco, y exige que las listas nulas no validen (exigirHallazgosPublicados). Los guiones h7-1-*.txtar afirman el sobre entero (\\A{\"ok\":true,\"fuente\":\"kitlegal.graph\",…,\"hash\":\"sha256:…\",\"data\":{…}}\\n\\z)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "internal/app/grafo.go:223-240 envuelve cli.ErrArgumentos (2) antes de abrir nada; internal/graph/abrir.go falloAlLeer/errorInutilizable (1, inesperado, ruta y causa) y errorDeVersionPosterior (1); 0 con hallazgos (ADR 0023). Lo comprueban en el binario h7-1-grafo-check-acotado.txtar (2 con a21, BOE-B-2015-10565, \"\" y \" \"; 0 con BOE-A-2099-99999), h7-1-grafo-regla-generica.txtar (1 en stats, show y check, y 0 con una línea de aviso en la entrega) y h7-grafo-codigos.txtar. Ninguna ruta de usuario alcanza un panic: fechada() y versionesDe() leen mapas con ids ausentes sin fallar (comprobar.go:265-279), valorDeDato codifica nil como null (grafo_legible.go:418-433)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased) 15-23, 34-43, 69-111, 117-145, 158-174, 189-197, 233-257 describe el comportamiento final: ámbito y cota de check y su data, apagado de version-obsoleta, fuente-caducada solo sobre lo vigente, salida legible, regla genérica y lo retirado, boe-legislacion v0.1.1; cada afirmación tiene su test (TestLeerSinRastro, TestIntegracionLecturaConWAL, TestIntegracionRecuperacionDeclarada, TestMedidaDelGrafo, TestLoQueLeeLaSkill). README.md:121-128 y CONTRIBUTING.md:331-351, 435-441 corregidos donde el hito los dejaba falsos. Sin ADR nuevo (FR-083; docs/ sin cambios) y docs/SOURCES.md sin tocar (ninguna fuente nueva). skills/boe-legislacion/SKILL.md: 250 líneas, frontmatter válido, sin nombrar evals, job ni modelos."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún fichero del diff importa net/http ni abre red; los guiones leen de la reproducción de H4 y la única derivada nueva (internal/app/testdata/derivadas/version-ulterior/…a21.json) sale de esa grabación con la fecha 20260101 y el párrafo sintético, fijada por TestGrabacionesDerivadas. gitleaks sin fugas (gates/ci.log:80). Ningún NIF ni dato personal: la regla de Persona se queda con sus casos ASCII (persona.go:20-22, persona_test.go). Sin cambios en httpx, User-Agent ni ritmo."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas del diff no hay nolint, t.Skip, TODO, FIXME ni «_ =» sobre un error. Los ocho guiones de H7 cambian solo en lo que enumera FR-080 (git diff --name-status main HEAD -- internal/app/testdata/script/: 8 M y 4 A), y cada aflojamiento de T002 (5106cda) quita aserciones de lo que el hito retira antes de tocar el código; la sustitución de «! stdout 'version-obsoleta'» por «! stdout '\"clase\":\"version-obsoleta\"'» en h7-grafo-fuente-caducada.txtar afirma lo mismo sobre la data nueva (gates/supuestos.md, T014). TestCosteDelGrafo pasa a entregar cada versión en su propio lote, que es lo que produce boe articulo, y sigue exigiendo totales exactos (coste_test.go:117-128)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff se traza al spec: lecturas (FR-020 a FR-026), ámbito y cota (FR-001 a FR-015), fuente-caducada solo sobre lo vigente (FR-030 a FR-032), skill y eval (FR-040 a FR-055), salida legible (FR-060 a FR-064), retirada (FR-070 a FR-078), guiones y esquemas (FR-080 a FR-083). specs/010-h7-internal-graph-grafo/ sin tocar; ningún otro guion ni applet cambia su salida (h7-1-grafo-legible.txtar:525-534, boe articulo con la tabla mínima). Los 38 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec; el de T025 no toca umbrales ni añade tests a estados que FR-073 veta."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en la copia con TestMedidaDelGrafo y TestLoQueLeeLaSkill (medida_test.go:108-110, 130, 151): graph check --json sin argumentos sobre 300 normas y 2 400 bloques (240 con dos lecturas, 90 % hace más de una semana) = 34 591 bytes, 50 listados de 4 830 (≤ 40 000, SC-001); con la norma 10 813; con la norma y un bloque 2 759; lo que lee la skill con cinco bloques cambiados 3 795 (≤ 3 800, SC-005) y 336 tras leerlos otra vez: la salida crece con la pregunta, no con lo acumulado. Invocaciones por pregunta: SKILL.md:107-113 pide graph check una vez por norma citada, después de leer y con los bloques leídos, nunca sin argumentos (H7 pedía dos, ≈ 6,1 MB). version-obsoleta se apaga con la lectura siguiente: h7-1-grafo-lecturas.txtar pasos 2-4 (líneas 59-93) y la mutación de aplicar.go:319 la detecta; fuente-caducada no llega a la skill (FR-043, lo recién leído no la da: TestLoQueLeeLaSkill 0 fuente-caducada) y para una persona queda acotada a 50 y contada."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo nuevo se traza (plan.md:301-329, comprobado contra el diff): tabla lecturas y Leida (FR-020/021), RedaccionVistaSinLecturas y lectura de la versión 1 sin migrar (FR-026, SC-012), Ambito e instantánea acotada en SQL (FR-002/003), Comprobacion, MaximoDeHallazgos y rangoDeClase (FR-010 a FR-012), vigente() (FR-030), argumentos y validación de check (FR-004), grafo_legible.go (FR-060 a FR-063), EtiquetasDeHallazgo, formaFija, ExtraerHallazgos, ComprobarFormasDeHallazgo y ComprobarClasesDeHallazgo (FR-045, FR-051, FR-054, FR-093), formas del informe (FR-055), opcionales anidados en la tabla (FR-007), crearEnSuSitio (FR-071). Lo retirado es lo que enumeran FR-070 a FR-076: publicar.go, publicar_test.go e integracion_enlace_test.go no existen; grep de symlink, journal, -shm suelto, chmod e immutable en internal/graph, internal/core/grafo e internal/app solo encuentra el -wal/-shm de escrituras propias (FR-077) y el directorio sin escritura (FR-011). Lo que queda sin FR estricto es menor y va en observaciones."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "TestIntegracionGrafoDeH7 (internal/graph/integracion_test.go:1479-1518) no distingue una partida sin fila que ignore la redacción vista: con aplicar.go:364-368 mutado para partir siempre de la propia lectura sigue pasando, porque su primera entrega tras H7 vuelve a ver la redacción observada la última; lo detecta TestApplyLecturas («la primera sobre un bloque que el grafo de H7 ya observó»), así que FR-026 queda cubierto en el unitario y no en la integración.",
+    "presentable() (internal/app/grafo_legible.go:533-539) y TestLegibleDelGrafoSinTabuladoresNiEscapes (grafo_legible_test.go:623-678, con ESC, DEL y controles C1) se trazan al contrato §5 del plan y al supuesto de T016, no a un FR; la única entrada real es un id de bloque con un carácter de control tecleado por una persona. Pasa el umbral por ser un argumento, pero es el mecanismo menos proporcionado del hito.",
+    "Dos propiedades internas sin FR: EtiquetasDeHallazgo() devuelve un mapa nuevo en cada llamada y TestEtiquetaDeVersionObsoleta (vocabulario_test.go:342-354) prueba que mutarlo no afecta; Comprobar clona ambito.Bloques y TestComprobarCopiaElAmbito (comprobar_test.go:799-803) prueba la copia. Ninguna diferencia observable para una persona o una skill.",
+    "TestComprobarClasesDeHallazgo (internal/evals/hallazgos_test.go) prueba los casos «referencia-circular» y «sin-enumerado» de schemas/eval.yaml.json, estados que solo deja una edición a mano del esquema (bajo el umbral); reproduce el precedente de ComprobarCodigosDeAviso de H5.1 sobre la función compartida enumeradoDeLaLista.",
+    "SC-005 se cumple con 3 795 de 3 800 bytes: cinco bytes de margen. La cota la fijó el spec sobre la medida (research D9); cualquier cambio de la plantilla de la explicación, de una url o de la forma del id la rompe, así que TestLoQueLeeLaSkill vigila también el texto literal de la explicación.",
+    "Criterio de uso, fuera de la skill: un version-obsoleta sobre un bloque que nadie vuelve a leer sigue listado en graph check sin argumentos hasta esa lectura (240 en la medida, 50 listados); es lo que FR-024 y el Fuera de alcance deciden (la apaga cualquier lectura, no un estado de «ya dicho»), no llega a la skill y se apaga con la acción que pide. graph show de una Norma crece con los bloques consultados de esa norma, declarado fuera de alcance.",
+    "FR-096, «el diff sin retroceder respecto de la base»: cierre.md §2 estima 91,2 % de cobertura del diff (508 de 557 líneas) frente a ~97 % de la base, así que el estado codecov/patch (target auto, informational false en codecov.yml) puede salir en rojo en la propuesta de cambio; las 49 líneas son ramas de la regla genérica que FR-073 veta testear, lo recoge el supuesto de T025 y no forma parte de make ci ni de la Definition of Done §1.9.",
+    "decidirApertura (internal/graph/abrir.go) decide «grafo vacío» por info.Size() == 0 sin mirar el tipo de entrada: un directorio en el lugar de world.db sale como 1 (SQLite no lo abre) en APFS y ext4, donde un directorio no mide 0; en un sistema de ficheros donde midiera 0 saldría como grafo vacío con 0. Estado tocado desde fuera: regla genérica, no motivo.",
+    "gates/ci.log no lleva la línea de cierre del make ci de la activación de la suite con los cuatro guiones h7-1-*; la evidencia de (a) y (b) sale de la reproducción en la copia (make ci con 0 y los cuatro subtests --- PASS)."
+  ]
+}
