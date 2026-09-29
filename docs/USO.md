@@ -10,6 +10,51 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-29 · La eval de la consulta repetida es imposible, y las respuestas narran la comprobación
+
+- **Qué se pidió.** Verificar el cierre de H7.1 (#80) leyendo lo que responde `boe-legislacion` en las evals: el informe
+  del job sobre `a8aeb0d` (`specs/011-h7-1-graph-check-acotado/gates/evals/`) y, para comparar, el del cierre de H7
+  sobre `d4a96db` (ejecución 36431889063, sacado del registro del job con `gh run view … --log | cut -f3-`).
+- **Qué falló.**
+  - **La eval 19 plantea una situación imposible.** Su grafo previo siembra una redacción «anterior» del art. 21 LPAC
+    derivada a mano, con vigencia 20151002, anterior a la entrada en vigor de la ley. La caché sirve la respuesta real
+    del BOE, que trae una sola `<version>`: la original, con vigencia 20161002. El grafo y el BOE se contradicen.
+    Sonnet 5 pasa 3 de 3 en H7 y 2 de 3 en H7.1. Una sesión de H7.1 que traslada la forma añade que lo consultado
+    antes «era la versión previa a su entrada en vigor» y que el contenido no ha cambiado: vio la incoherencia. La que
+    falla (`19-…-claude-sonnet-5-03`) no traslada `version-obsoleta`, dice que el artículo «no ha sido modificado por
+    ninguna norma posterior» y remata con «Este texto coincide con lo que te habría confirmado antes», algo que la
+    skill no puede saber. En la realidad esa contradicción no se da: cuando el BOE consolida un cambio, la respuesta del
+    bloque trae sus redacciones anteriores y la norma que lo modificó. Un artículo que lo cumple es el art. 118 de la
+    LCSP (`BOE-A-2017-12902`, bloque `a1-30`): el Real Decreto-ley 3/2020 lo modificó, y su respuesta grabada en H4 trae
+    las dos redacciones (vigencia 20180309 y 20200206).
+  - **Las respuestas empiezan contando la comprobación.** «Sin hallazgos en la memoria de consultas. Ya tengo todo lo
+    necesario para responder.», «Código 0 sin hallazgos, así que no hay nada que trasladar de la memoria de
+    consultas.», «Sin hallazgos ni avisos de vigencia.»… `SKILL.md` lo prohíbe desde H7 («Con código 0 y sin
+    `version-obsoleta`, no digas nada de la memoria de consultas»), y ninguna eval lo mide. Medido con este patrón, sin
+    distinguir mayúsculas, sobre la respuesta entera:
+
+    ```text
+    hallazgo|memoria de consultas|graph\s+(check|show|stats)|kitlegal\s+graph|version-obsoleta|fuente-caducada|c[oó]digo(\s+de\s+salida)?\s+[0-7]\b|c[oó]digo\s+de\s+salida|\bjson\b|exit\s+code
+    ```
+
+    | Cierre | Respuestas con ruido | En el primer párrafo | Sonnet 5, evals que activan | Haiku 4.5 | `legal-core` |
+    |---|---|---|---|---|---|
+    | H7 (`d4a96db`) | 43 de 93 (46 %) | 41 | 43 de 51 (84 %) | 0 de 30 | 0 de 18 |
+    | H7.1 (`a8aeb0d`) | 34 de 93 (37 %) | 34 | 34 de 51 (67 %) | 0 de 30 | 0 de 18 |
+
+    En H7.1, por eval: 02 (1), 03 (3), 04 (3), 05 (3), 06 (3), 07 (3), 08 (2), 09 (2), 13 (3), 14 (3), 15 (3), 16 (2)
+    y 17 (3). Los términos: «hallazgo» en las 34, «memoria de consultas» en 24, «código 0» en 7 y `version-obsoleta` en
+    2. Además, una respuesta afirma lo dicho en otra conversación: la de «te habría confirmado antes», en la eval 19
+    (patrón `\bte\s+(dije|respond[ií]|confirm[eé]|indiqu[eé]|coment[eé]|contest[eé]|expliqu[eé])\b|\bte\s+habr[ií]a\b|como\s+(ya\s+)?te\b|conversaci[oó]n\s+anterior`);
+    en H7, ninguna. En total, 35 respuestas de H7.1 incumplen. En H7, una de las 43 lo dice fuera del primer párrafo
+    («mi memoria de consultas de esta herramienta registra…», en la eval 19) y otra da el código de salida de un límite
+    de ritmo («(código 5)»). No se cuentan «No hay avisos de vigencia sobre este bloque» ni frases parecidas (dos en
+    H7.1): dicen a quien lee que la norma no está derogada, que es derecho y no maquinaria.
+- **Qué faltó.** Que la eval de la consulta repetida siembre una redacción anterior que el BOE tenga, derivada de su
+  respuesta y no escrita a mano, y que un control lo impida; que alguna eval mire la respuesta en busca de lo que la
+  skill prohíbe decir; y saber por qué Sonnet 5 narra la última orden pese a la regla.
+- **Qué se hizo.** Abrir H7.2, entre H7.1 y H20 y antes de cualquier release que lleve H7.
+
 ### 2026-09-28 · `graph check` devuelve todo lo consultado y repite señales que ya se dieron
 
 - **Qué se pidió.** Validar la rúbrica nueva de los jueces (ADR 0028) sobre H7 recién fusionado (#77), midiendo en el
