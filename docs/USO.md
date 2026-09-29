@@ -10,6 +10,45 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-29 · H7.2 no cumple su umbral: el ruido cambia de palabras, y medirlo cuesta 40 minutos
+
+- **Qué se pidió.** Verificar el cierre de H7.2 (#82) contra su SC-001: como mucho el 5 % de las respuestas de cada
+  modelo en las evals de `boe-legislacion` que activan la skill llevan una expresión prohibida. Informe del job sobre
+  `fbdab2e` (`specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json`, clave
+  `expresiones_prohibidas_por_modelo`).
+- **Qué falló.**
+  - **El umbral no se cumple.** Sonnet 5: 10 de 51 (19,6 %; H7.1, 34 de 51; H7, 43 de 51). Haiku 4.5: 0 de 30. Por
+    eval: 03 (1), 06 (1), 13 (2), 14 (2), 15 (3) y 19 (1); ocho son de evals informativas, que no deciden nunca, y las
+    de la 03 y la 06 están en series que pasaron con 2 de 3. `legal-core`, 0 de 18.
+  - **Una sola forma, con las palabras de `SKILL.md`.** Ocho empiezan por «Sin hallazgos que trasladar.» —a veces con
+    «Ya puedo responder.», «Redacto la respuesta.» o «Con esto ya tengo la respuesta completa»—, y otra por «No hay
+    hallazgos, así que respondo con el texto vigente.». Es el párrafo de transición tras la última orden
+    (`graph check`) que ya describía el research de H7.2, dicho ahora con el vocabulario del protocolo: la regla 7 de
+    v0.1.2 se titula «Una comprobación con hallazgos no es un fallo» y dice «con hallazgos o sin ellos […]
+    trasládalos», y el paso 5 enumera «los hallazgos» entre lo que no se nombra. Las demás respuestas de Sonnet 5 ya
+    no llevan ningún párrafo de transición, ni con otras palabras: el ruido se ha concentrado, no desplazado. Las
+    frases de anuncio («ya puedo responder», «ya tengo todo lo necesario», «redacto la respuesta», «que trasladar»)
+    solo aparecen, en los cierres de H7.1 y H7.2, en respuestas que la lista ya marca.
+  - **Un ejemplo copiado como dato.** La eval 19, sesión 02 de Sonnet 5, empieza por «⚠ REDACCIÓN MODIFICADA: la
+    redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20250101... en
+    realidad las fechas del hallazgo son 20180309 y 20200206». 20250101 y «la que se consultó antes» salen del ejemplo
+    de «Memoria de consultas» de `SKILL.md`, que describe una redacción del art. 21 LPAC que el BOE no tiene.
+  - **Todo salió en verde.** El job dio «aprobado» porque la lista decide por serie (2 de 3) y el 5 % solo se
+    publicaba; el cierre no intentó arreglarlo y la trazabilidad dio SC-001 por hecho. Lo corrige para el proceso el
+    ADR 0029; el job y la skill, H7.3.
+  - **Cada intento cuesta 40 minutos.** El trabajo de `boe-legislacion` abre sus 93 sesiones una tras otra: 33 min 22 s
+    y 34 min 28 s de sesiones en las dos ejecuciones del cierre (36 min 37 s y 42 min 33 s el trabajo entero), unos
+    22 s por sesión; `legal-core`, 18 sesiones en menos de 4 min. Exige Linux con strace y sudo, así que un cambio de
+    `SKILL.md` no se puede probar en un Mac. Además, cada cierre ejecuta el job dos veces a la vez sobre el mismo
+    commit (el evento de apertura y la etiqueta `evals`; también en H7 y H7.1): el doble de sesiones sin medir nada
+    nuevo. Esas dos ejecuciones simultáneas son, a la vez, lo único medido sobre cuántas sesiones aguanta la
+    suscripción a la vez: dos de `boe-legislacion` durante media hora y cuatro durante unos minutos, con las 111
+    sesiones de cada una terminadas con `result success`.
+- **Qué faltó.** Que el umbral decida en el job; que `SKILL.md` no enseñe el vocabulario que la respuesta no puede
+  decir ni lleve ejemplos con datos inventados; y un modo de medir un cambio de la skill en minutos, en local, antes de
+  pedir el veredicto.
+- **Qué se hizo.** Abrir H7.3, entre H7.2 y H20, y no publicar ninguna release hasta que el umbral se cumpla.
+
 ### 2026-09-29 · La eval de la consulta repetida es imposible, y las respuestas narran la comprobación
 
 - **Qué se pidió.** Verificar el cierre de H7.1 (#80) leyendo lo que responde `boe-legislacion` en las evals: el informe
