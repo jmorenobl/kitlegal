@@ -1,0 +1,244 @@
+# La salida de graph sin --json, pensada para personas. Con el bloque a21 de la
+# LPAC leído (la redacción A, con el reloj T0): graph stats y graph show del
+# Bloque dan las plantillas de contracts/applet-graph.md §5.1 y §5.2, y show de
+# la redacción, su tipo, sus datos y su arista entrante; graph check da, sin
+# hallazgos, una sola frase que nombra la norma y el bloque pedidos, o esa
+# frase para todo lo consultado y cómo acotar; y, pasada la vigencia, los
+# hallazgos listados con su explicación y su id, agrupados por clase, con el
+# total de cada clase y lo omitido, y cómo acotar solo sin argumentos. Con la
+# redacción B leída después, el grupo version-obsoleta va delante del de
+# fuente-caducada. Ninguna salida legible lleva las líneas de procedencia del
+# sobre, su fuente ni su url, pares ruta/valor aplanados, tabuladores,
+# secuencias de escape ni una línea del texto del bloque; con --json, stats y
+# show siguen con la forma de H7 y check con la de contracts/applet-graph.md
+# §3; y boe articulo sin --json sigue con la tabla mínima.
+#
+# Cubre: US5.1-US5.5 · FR-060, FR-061, FR-062, FR-063, FR-064, FR-091 · SC-010.
+#
+# Las plantillas son las de contracts/applet-graph.md §5, y las explicaciones,
+# las de §4; la forma de --json de stats y show, la de h7-grafo-show.txtar y
+# h7-grafo-codigos.txtar. T0, T1 y T8 son los relojes de contracts/arnes-e2e.md
+# §1: con T1 ninguna consulta ha caducado y con T8 sí, desde el
+# 2026-10-05T12:00:00Z. La fecha_vigencia y el hash_texto de A son los del
+# sobre de boe articulo sobre la grabación de H4; la huella de B no se escribe.
+# sin-texto.sh, al pie, es el de h7-grafo-show.txtar.
+
+# Precondición: graph check se acota y lista como mucho 50 hallazgos (FR-007).
+exec kitlegal graph check --help
+stdout 'como\s+mucho\s+50\s+hallazgos'
+
+# --- A, la grabación de H4, leída con T0 ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+stdout '"fecha_vigencia":"20161002"'
+stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+cp stdout articulo.json
+
+# --- graph stats (US5.1, FR-061) ---
+#
+# Sin --json, los tres recuentos y cada par de su data, con la plantilla de
+# §5.1; ninguna línea del sobre ni pares aplanados.
+exec $KITLEGAL_T0_BIN graph stats
+cmp stdout stats.esperado
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout stats.txt
+
+# Con --json, la forma de H7 (US5.5, FR-060).
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":3,"aristas":2,"textos":1,"nodos_por_tipo":\[\{"tipo":"Bloque","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"BloqueVersion","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"Norma","fuente":"boe\.legislacion-consolidada","nodos":1\}\],"aristas_por_relacion":\[\{"relacion":"eli:has_part","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"eli:has_version","fuente":"boe\.legislacion-consolidada","aristas":1\}\]\}\}\n\z'
+! stderr .
+cp stdout stats.json
+
+# --- graph show del Bloque (US5.2, FR-062) ---
+#
+# Sin --json, la plantilla de §5.2: tipo e id, sus datos, su primera y su
+# última observación con la fuente y la url, y cada arista con su relación, el
+# otro extremo y su procedencia.
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21'
+cmp stdout show-bloque.esperado
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout bloque.txt
+
+# Con --json, la forma de H7 (US5.5, FR-060).
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21","tipo":"Bloque","datos":\{"bloque":"a21"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\},"salientes":\[\{"relacion":"eli:has_version","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\],"entrantes":\[\{"relacion":"eli:has_part","id":"eli/es/l/2015/10/01/39","primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\}\}\]\}\}\n\z'
+! stderr .
+cp stdout bloque.json
+
+# --- graph show de la redacción A (US5.2, FR-062) ---
+#
+# Su tipo y su id, un dato por línea —entre ellos su fecha de vigencia y la
+# huella de su texto, nunca el texto—, ninguna arista saliente y la entrante
+# desde su Bloque.
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c'
+stdout '\ABloqueVersion eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c\n'
+stdout '^  fecha_vigencia: 20161002$'
+stdout '^  hash_texto: sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c$'
+stdout '^Primera observación: 2026-09-28T12:00:00Z$'
+stdout '^Última observación: 2026-09-28T12:00:00Z · boe\.legislacion-consolidada · https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21$'
+stdout '^Aristas salientes: ninguna\.$'
+stdout '^Aristas entrantes:$'
+stdout '^  eli:has_version ← eli/es/l/2015/10/01/39#a21$'
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout version.txt
+
+# --- graph check sin hallazgos, con la norma y el bloque (T1; US5.4, FR-063) ---
+#
+# Una sola frase que nombra la norma y el bloque pedidos, sin la línea de cómo
+# acotar.
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21
+stdout '\ANo hay nada que volver a comprobar de BOE-A-2015-10565, bloque a21\.\n\z'
+! stderr .
+cp stdout check-bloque.txt
+
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- graph check sin hallazgos y sin argumentos (T1; US5.4, FR-063) ---
+#
+# La frase para todo lo consultado, la línea en blanco y cómo acotar.
+exec $KITLEGAL_T1_BIN graph check
+stdout '\ANo hay nada que volver a comprobar en todo lo consultado\.\n\nPara acotar la comprobación a una norma y a sus bloques: kitlegal graph check <norma> \[<bloque>\.\.\.\]\n\z'
+! stderr .
+cp stdout check-vacio.txt
+
+exec $KITLEGAL_T1_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- graph check con hallazgos y sin argumentos (T8; US5.3, FR-063) ---
+#
+# La cabecera con el total de cada clase, los listados y los omitidos, también
+# cuando no se omite ninguno; un grupo por clase con algún hallazgo, con su
+# total; cada hallazgo, su explicación y debajo su id; y cómo acotar.
+exec $KITLEGAL_T8_BIN graph check
+cmp stdout check-todo.esperado
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout check-todo.txt
+
+# Con --json, la forma de §3 con los mismos hallazgos (US5.5, FR-060).
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39","explicacion":"La consulta de BOE-A-2015-10565 a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21","explicacion":"La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\}\]\}\}\n\z'
+! stderr .
+cp stdout check-todo.json
+
+# --- graph check con hallazgos y la norma (T8; US5.3, FR-063) ---
+#
+# El ámbito en la cabecera y sin la línea de cómo acotar.
+exec $KITLEGAL_T8_BIN graph check BOE-A-2015-10565
+cmp stdout check-norma.esperado
+! stdout 'Para acotar'
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout check-norma.txt
+
+# --- boe articulo sin --json sigue con la tabla mínima (FR-064) ---
+#
+# Es también la comprobación de que sin-texto.sh encuentra el texto donde lo
+# hay: sin ella, una extracción vacía pasaría en falso.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21
+stdout '\Afuente +boe\.legislacion-consolidada\n'
+stdout '^url +https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21$'
+stdout '^fecha_consulta +2026-09-28T12:00:00Z$'
+stdout '^hash +sha256:[0-9a-f]{64}$'
+stdout '^fecha_vigencia +20161002$'
+stdout '^hash_texto +sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c$'
+! stderr .
+cp stdout articulo.txt
+! exec sh $WORK/sin-texto.sh articulo.json articulo.txt
+
+# --- Con la redacción B leída después: version-obsoleta delante (US5.3, FR-063) ---
+#
+# Caducada la caché, la fuente sirve B con el reloj T0; pasada la vigencia, con
+# T8, el grupo version-obsoleta, sobre A, va delante del de fuente-caducada,
+# sobre la Norma, el Bloque y B.
+cp derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+stdout '"fecha_vigencia":"20250101"'
+! stderr .
+
+exec $KITLEGAL_T8_BIN graph check
+stdout '\AHallazgos en todo lo consultado: 1 version-obsoleta y 3 fuente-caducada; se listan 4 y se omiten 0\.\n\nversion-obsoleta \(1\):\n  - La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-28T12:00:00Z\.\n    eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c\nfuente-caducada \(3\):\n  - La consulta de BOE-A-2015-10565 a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.\n    eli/es/l/2015/10/01/39\n  - La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.\n    eli/es/l/2015/10/01/39#a21\n  - La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.\n    eli/es/l/2015/10/01/39#a21@20250101:sha256:[0-9a-f]{64}\n\nPara acotar la comprobación a una norma y a sus bloques: kitlegal graph check <norma> \[<bloque>\.\.\.\]\n\z'
+! stdout '^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|kitlegal:applet/graph|^nodo\.|\t|\x1b'
+! stderr .
+cp stdout check-cambio.txt
+
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":1,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c",'
+! stderr .
+cp stdout check-cambio.json
+
+# --- Ninguna línea del texto del bloque (FR-060, SC-010) ---
+exec sh $WORK/sin-texto.sh articulo.json stats.txt stats.json bloque.txt bloque.json version.txt check-bloque.txt check-vacio.txt check-todo.txt check-todo.json check-norma.txt check-cambio.txt check-cambio.json
+
+-- stats.esperado --
+El grafo del mundo tiene 3 nodos, 2 aristas y 1 texto.
+
+Nodos por tipo y fuente:
+  Bloque         boe.legislacion-consolidada  1
+  BloqueVersion  boe.legislacion-consolidada  1
+  Norma          boe.legislacion-consolidada  1
+
+Aristas por relación y fuente:
+  eli:has_part     boe.legislacion-consolidada  1
+  eli:has_version  boe.legislacion-consolidada  1
+-- show-bloque.esperado --
+Bloque eli/es/l/2015/10/01/39#a21
+  bloque: a21
+Primera observación: 2026-09-28T12:00:00Z
+Última observación: 2026-09-28T12:00:00Z · boe.legislacion-consolidada · https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21
+
+Aristas salientes:
+  eli:has_version → eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c
+    última observación: 2026-09-28T12:00:00Z · boe.legislacion-consolidada · https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21
+
+Aristas entrantes:
+  eli:has_part ← eli/es/l/2015/10/01/39
+    última observación: 2026-09-28T12:00:00Z · boe.legislacion-consolidada · https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21
+-- check-todo.esperado --
+Hallazgos en todo lo consultado: 0 version-obsoleta y 3 fuente-caducada; se listan 3 y se omiten 0.
+
+fuente-caducada (3):
+  - La consulta de BOE-A-2015-10565 a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39
+  - La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39#a21
+  - La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c
+
+Para acotar la comprobación a una norma y a sus bloques: kitlegal graph check <norma> [<bloque>...]
+-- check-norma.esperado --
+Hallazgos de BOE-A-2015-10565: 0 version-obsoleta y 3 fuente-caducada; se listan 3 y se omiten 0.
+
+fuente-caducada (3):
+  - La consulta de BOE-A-2015-10565 a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39
+  - La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39#a21
+  - La consulta de [BOE-A-2015-10565, bloque a21] a boe.legislacion-consolidada en https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z.
+    eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c
+-- sin-texto.sh --
+# sin-texto.sh <sobre> <salida>…: ninguna línea no vacía de 20 caracteres o
+# más del texto del bloque que lleva <sobre>, el de boe articulo --json,
+# aparece en ninguna de las salidas (H7 FR 070; FR-060, SC-010). Las líneas se
+# toman del valor de «texto» que precede a «hash_texto» —el del bloque, y no el
+# de ningún aviso, que va detrás—, partido por sus saltos de línea escapados; si
+# no hay ninguna, falla, para no pasar en vacío.
+set -u
+sobre=$1
+shift
+sed -n 's/^.*"texto":"\(.*\)","hash_texto":.*$/\1/p' "$sobre" |
+	awk '{ n = split($0, partes, /\\n/); for (i = 1; i <= n; i++) if (length(partes[i]) >= 20) print partes[i] }' > lineas
+test -s lineas || { echo "el sobre no lleva ninguna línea de texto de 20 caracteres o más" >&2; exit 1; }
+if grep -F -f lineas "$@" >&2; then
+	echo "una línea del texto del bloque aparece en la salida" >&2
+	exit 1
+fi

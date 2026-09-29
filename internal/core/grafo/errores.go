@@ -11,10 +11,10 @@ import (
 // FR-025; contracts/almacen-world-db.md §5). Un solo Rechazo basta para que no
 // entre nada del lote.
 //
-// Se exporta porque lo construye también el adaptador, con lo que solo sabe
-// dentro de la transacción —un extremo que no está, un tipo o un cuerpo que ya
-// estaban guardados con otro valor—, y porque quien lo recibe llega con
-// errors.As a la operación y al motivo.
+// Se exporta porque quien lo recibe llega con errors.As a la operación y al
+// motivo, también cuando lo construye la fusión con lo que solo se sabe dentro
+// de la transacción: un tipo o un cuerpo que ya estaban guardados con otro
+// valor.
 type Rechazo struct {
 	// Operacion es la operación rechazada, tal como la trae el lote; nula si
 	// lo que se rechaza es el lote mismo: su procedencia o su vigencia.
@@ -27,13 +27,12 @@ type Rechazo struct {
 var _ schema.ConClase = (*Rechazo)(nil)
 
 // Error nombra lo rechazado y el motivo, como «el nodo "ine:28074": <motivo>».
-// Un nodo se nombra por su id, una arista por sus extremos y su relación y un
-// texto por su huella, con %q, que hace visibles los espacios, los controles y
-// los bytes que no son UTF-8. Nunca repite el cuerpo de un texto, y un nodo
-// Persona se nombra por su tipo y no por su id: es donde el rechazo de FR-025
-// encuentra un documento de identidad, y el mensaje llega a la salida de error
-// (constitución VII). Una arista, en cambio, se nombra por los ids de sus
-// extremos, sean del tipo que sean.
+// Un nodo se nombra por su id y un texto por su huella, con %q, que hace
+// visibles los espacios, los controles y los bytes que no son UTF-8. Nunca
+// repite el cuerpo de un texto, y un nodo Persona se nombra por su tipo y no
+// por su id: es donde el rechazo de FR-025 encuentra un documento de
+// identidad, y el mensaje llega a la salida de error (constitución VII).
+// Ningún rechazo lleva una arista (H7.1 FR-075; research.md V29).
 func (r *Rechazo) Error() string {
 	return nombrar(r.Operacion) + ": " + r.Motivo
 }
@@ -46,10 +45,10 @@ func (*Rechazo) Clase() schema.Clase {
 	return schema.ClaseInesperado
 }
 
-// nombrar describe la operación rechazada para el mensaje de un Rechazo. La
-// interfaz está sellada, pero un puntero a un Nodo, una Arista o un Texto
-// también la satisface: no es ninguno de los tres valores y se nombra por su
-// tipo.
+// nombrar describe la operación rechazada para el mensaje de un Rechazo.
+// Cualquier otra que un nodo o un texto —ningún rechazo lleva una arista, y un
+// puntero a un Nodo, una Arista o un Texto también satisface la interfaz
+// sellada— se nombra por su tipo de Go.
 func nombrar(operacion schema.Operacion) string {
 	switch op := operacion.(type) {
 	case nil:
@@ -60,8 +59,6 @@ func nombrar(operacion schema.Operacion) string {
 		}
 
 		return fmt.Sprintf("el nodo %q", op.ID)
-	case schema.Arista:
-		return fmt.Sprintf("la arista de %q a %q por %q", op.Origen, op.Destino, op.Relacion)
 	case schema.Texto:
 		return fmt.Sprintf("el texto %q", op.Huella)
 	default:

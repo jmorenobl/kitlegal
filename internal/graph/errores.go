@@ -1,9 +1,7 @@
 package graph
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"strconv"
 	"time"
 
@@ -112,36 +110,22 @@ func errorDeUbicacion(operacion string, causa error) *Error {
 		"no se puede ubicar "+ficheroDelGrafo+": "+causa.Error(), causa)
 }
 
-// errorInutilizable es world.db que no es una base de datos, está dañado o no
-// deja abrirse (§6, fila 2; FR-010). Si la causa es el acceso denegado, el
-// mensaje lo dice, porque es lo que quien lo lee puede arreglar.
+// errorInutilizable es world.db que el binario no puede usar, por cualquier
+// causa que no tiene fila propia: la regla genérica (§6; H7.1 FR-070). El
+// mensaje nombra la ruta y la causa, que es lo único que lo explica, y no
+// promete nada sobre los bytes de world.db.
 func errorInutilizable(operacion, ruta string, causa error) *Error {
-	detalle := ""
-	if errors.Is(causa, fs.ErrPermission) {
-		detalle = ": acceso denegado"
+	motivo := nombrar(ruta) + " no es una base de datos utilizable"
+	if causa != nil {
+		motivo += ": " + causa.Error()
 	}
 
-	return nuevoError(schema.ClaseInesperado, operacion, ruta,
-		nombrar(ruta)+" no es una base de datos utilizable"+detalle+"; no se modifica", causa)
-}
-
-// errorEsDirectorio es la variante de la fila 2 en que world.db es un
-// directorio (FR-010).
-func errorEsDirectorio(operacion, ruta string) *Error {
-	return nuevoError(schema.ClaseInesperado, operacion, ruta,
-		nombrar(ruta)+" es un directorio y no una base de datos utilizable; no se modifica", nil)
-}
-
-// errorDeTransaccionInterrumpida es el diario de rollback caliente que la
-// lectura en solo lectura no puede deshacer (§6, fila 3; research.md D10, V43).
-func errorDeTransaccionInterrumpida(ruta string, causa error) *Error {
-	return nuevoError(schema.ClaseInesperado, operacionLeer, ruta,
-		nombrar(ruta)+" tiene una transacción interrumpida sin deshacer; no se modifica", causa)
+	return nuevoError(schema.ClaseInesperado, operacion, ruta, motivo, causa)
 }
 
 // errorDeVersionPosterior es el esquema de una versión que este binario no
-// conoce (§6, fila 4; FR-012): quien lo escribió sabía algo que aquí no se
-// sabe, y no se toca.
+// conoce (§6; FR-012): quien lo escribió sabía algo que aquí no se sabe, y no
+// se toca.
 func errorDeVersionPosterior(operacion, ruta string, encontrada, conocida int64) *Error {
 	return nuevoError(schema.ClaseInesperado, operacion, ruta, fmt.Sprintf(
 		"%s tiene el esquema en la versión %d y este binario conoce la %d: no se modifica",
@@ -173,30 +157,14 @@ func errorDeLoteRechazado(ruta string, causa error) *Error {
 }
 
 // errorDeDirectorioNoEscribible es el directorio de world.db que la entrega no
-// puede crear o en el que no puede escribir (§6, fila 8).
+// puede crear (§6; contracts/almacen-world-db.md §4, paso 2).
 func errorDeDirectorioNoEscribible(directorio string, causa error) *Error {
 	return nuevoError(schema.ClaseInesperado, operacionEscribir, directorio,
 		"no se puede escribir "+ficheroDelGrafo+" en "+strconv.Quote(directorio)+": "+causa.Error(), causa)
 }
 
-// errorDeFicheroNoEscribible es world.db que existe y que el proceso no puede
-// abrir para escribir (§6, fila 9; research.md V46): la entrega falla antes de
-// abrir SQLite y no cambia nada.
-func errorDeFicheroNoEscribible(ruta string, causa error) *Error {
-	return nuevoError(schema.ClaseInesperado, operacionEscribir, ruta,
-		"no se puede escribir "+nombrar(ruta)+": "+causa.Error()+"; no se modifica", causa)
-}
-
-// errorDePublicacion es la publicación del temporal con os.Link que falla por
-// otra cosa que un world.db ya publicado por otra invocación (§6, fila 10;
-// research.md S7).
-func errorDePublicacion(directorio string, causa error) *Error {
-	return nuevoError(schema.ClaseInesperado, operacionEscribir, directorio,
-		"no se puede publicar "+ficheroDelGrafo+" en "+strconv.Quote(directorio)+": "+causa.Error(), causa)
-}
-
-// errorDeModoWAL es el PRAGMA journal_mode=WAL que no devuelve wal (§6, fila
-// 11; research.md V42): la entrega falla antes de abrir la transacción.
+// errorDeModoWAL es el PRAGMA journal_mode=WAL que no devuelve wal (§6;
+// research.md V42): la entrega falla antes de abrir la transacción.
 func errorDeModoWAL(ruta, modo string) *Error {
 	return nuevoError(schema.ClaseInesperado, operacionEscribir, ruta,
 		"no se puede poner "+nombrar(ruta)+" en modo WAL: el modo sigue siendo "+modo, nil)
@@ -204,8 +172,9 @@ func errorDeModoWAL(ruta, modo string) *Error {
 
 // errorDeEntradaSalida es un fallo sobrevenido del sistema de ficheros o del
 // controlador que ninguna otra situación explica: comprobar si world.db está,
-// cerrarlo, leerlo o escribirlo. Es «inesperado» y nombra la operación y la
-// ruta; la causa va en el mensaje porque es lo único que lo explica.
+// crearlo en su sitio, cerrarlo, leerlo o escribirlo. Es «inesperado» y nombra
+// la operación y la ruta; la causa va en el mensaje porque es lo único que lo
+// explica.
 func errorDeEntradaSalida(operacion, ruta string, causa error) *Error {
 	return nuevoError(schema.ClaseInesperado, operacion, ruta,
 		"no se pudo "+operacion+" "+nombrar(ruta)+": "+causa.Error(), causa)

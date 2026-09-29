@@ -4,8 +4,9 @@
 // nodo, las relaciones, las claves de datos y las clases de hallazgo—, la forma
 // canónica de los datos identificativos (RFC 8785), la validación de un lote y
 // el rechazo de una Persona con un documento de identidad, la fusión de
-// observaciones, las reglas de `graph check` con sus explicaciones y las formas
-// de salida de los verbos de `graph`.
+// observaciones, las lecturas de cada bloque, las reglas de `graph check` —con
+// su ámbito, su orden y su cota— y sus explicaciones, y las formas de salida de
+// los verbos de `graph`.
 //
 // Lo que garantiza:
 //
@@ -16,8 +17,8 @@
 //   - Un lote que incumple una regla se rechaza entero con un Rechazo que
 //     nombra la operación y el motivo, de clase «inesperado», y que nunca
 //     repite el cuerpo de un texto ni nombra por su id un nodo Persona, que
-//     nombra por su tipo; una arista sí se nombra por los ids de sus extremos
-//     (FR-024, FR-025).
+//     nombra por su tipo; ningún rechazo lleva una arista (FR-024, FR-025;
+//     H7.1 FR-075).
 //   - El id de `graph show` vacío, formado solo por caracteres de espacio en
 //     blanco o con algún carácter de control es un error de clase
 //     «argumentos», que nombra el id; cualquier otro se busca tal cual, sin

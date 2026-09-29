@@ -1,0 +1,138 @@
+# graph check acotado a una norma y a bloques suyos, en un grafo con dos
+# normas: la LPAC (BOE-A-2015-10565), con a21 y a22, y BOE-A-2017-12902, con
+# a1-30, leídas con el reloj T0 y comprobadas con T8, cuando todas sus
+# consultas han caducado. Sin argumentos salen los 8 fuente-caducada; con la
+# LPAC, sus 5 —la Norma, sus dos Bloque y sus dos redacciones—; con la LPAC y
+# a21, los 3 de ese bloque y ninguno de a22; con un bloque que el grafo no
+# conoce junto a a21, los mismos 3; con la otra norma, sus 3 y ninguno de la
+# LPAC; con una norma bien formada que el grafo no conoce, 0 y ningún hallazgo;
+# y con una norma sin la forma BOE-A-<año>-<número> o un bloque de solo espacio
+# en blanco, 2 y la clase argumentos, con y sin --json. La ayuda describe el
+# acotado y la cota, y su línea de uso lleva los dos argumentos opcionales.
+#
+# Cubre: US3.1-US3.4 · FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007,
+# FR-011, FR-012, FR-091 · SC-009.
+#
+# La descripción, la línea de uso, los códigos y los mensajes son los de
+# contracts/applet-graph.md §1 y §2; la forma de data, la de §3; el orden, el
+# de §4. T0 y T8 son los relojes de contracts/arnes-e2e.md §1. El ELI de
+# BOE-A-2017-12902 no se escribe: sus hallazgos se reconocen por la cita y la
+# url de su explicación, por la ausencia de los ids y del identificador de la
+# LPAC y por el recuento. Los códigos distintos de 0 los comprueba el
+# intérprete de órdenes, como en h7-grafo-codigos.txtar.
+
+# Precondición: graph check se acota y lista como mucho 50 hallazgos (FR-007).
+exec kitlegal graph check --help
+stdout 'como\s+mucho\s+50\s+hallazgos'
+
+# La ayuda de check: su descripción entera, con cualquier espacio en blanco
+# entre palabras porque la ayuda la parte en líneas, y la línea de uso con la
+# norma y los bloques opcionales (FR-001, FR-007).
+stdout 'Comprueba\s+lo\s+consultado\s+de\s+una\s+norma,\s+de\s+algunos\s+de\s+sus\s+bloques\s+o,\s+sin\s+argumentos,\s+todo\s+lo\s+consultado,\s+y\s+lista\s+como\s+mucho\s+50\s+hallazgos:\s+redacciones\s+que\s+han\s+cambiado\s+desde\s+la\s+lectura\s+anterior\s+y\s+consultas\s+caducadas\.'
+stdout '^Usage: graph check \[<norma> \[<bloques> \.\.\.\]\] \[flags\]$'
+! stderr .
+
+# --- Dos normas leídas con T0 ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+stdout '"fecha_vigencia":"20161002"'
+stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a22 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a22","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2017-12902 a1-30 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902/texto/bloque/a1-30","fecha_consulta":"2026-09-28T12:00:00Z",'
+! stderr .
+
+# --- Sin argumentos, todo lo consultado (FR-005) ---
+#
+# Los 8 fuente-caducada de las dos normas, ninguno omitido; los de la LPAC, por
+# id comparando bytes (FR-011).
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":8,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada",'
+stdout '\}\]\}\}\n\z'
+stdout -count=8 '\{"clase":"fuente-caducada","id":"[^"]+","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\}'
+stdout -count=8 '"clase":'
+stdout -count=5 '"id":"eli/es/l/2015/10/01/39[#"]'
+stdout '"id":"eli/es/l/2015/10/01/39",.*"id":"eli/es/l/2015/10/01/39#a21",.*"id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c",.*"id":"eli/es/l/2015/10/01/39#a22",.*"id":"eli/es/l/2015/10/01/39#a22@[0-9]{8}:sha256:[0-9a-f]{64}",'
+stdout -count=3 '"explicacion":"La consulta de (BOE-A-2017-12902|\[BOE-A-2017-12902, bloque a1-30\]) a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902/texto/bloque/a1-30 del 2026-09-28T12:00:00Z '
+! stderr .
+
+# --- Con la LPAC: solo lo suyo, y todo lo suyo (US3.1, FR-002) ---
+exec $KITLEGAL_T8_BIN graph check BOE-A-2015-10565 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\[\],"version-obsoleta":0,"fuente-caducada":5,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a22","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a22@[0-9]{8}:sha256:[0-9a-f]{64}","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\}\]\}\}\n\z'
+! stdout 'BOE-A-2017-12902'
+! stderr .
+
+# --- Con la LPAC y a21: la Norma, el Bloque y su redacción (US3.2, FR-002) ---
+exec $KITLEGAL_T8_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":0,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\}\]\}\}\n\z'
+! stdout '#a22'
+! stdout 'BOE-A-2017-12902'
+! stderr .
+cp stdout a21.json
+
+# --- Con un bloque que el grafo no conoce junto a a21: los mismos (US3.3, FR-003) ---
+#
+# Los bloques pedidos, en su orden; ningún hallazgo del desconocido.
+exec $KITLEGAL_T8_BIN graph check BOE-A-2015-10565 a21 a99 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21","a99"\],"version-obsoleta":0,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada",'
+! stdout '#a99'
+! stderr .
+cp stdout a21-a99.json
+exec sh $WORK/mismos-hallazgos.sh a21.json a21-a99.json
+
+# --- Con la otra norma: sus 3 y ninguno de la LPAC (US3.1, FR-002) ---
+exec $KITLEGAL_T8_BIN graph check BOE-A-2017-12902 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2017-12902","bloques":\[\],"version-obsoleta":0,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"fuente-caducada","id":"[^"]+","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"[^"]+","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"[^"]+","explicacion":"[^"]*","procedencia":\{[^{}]*\},"vigencia_segundos":604800\}\]\}\}\n\z'
+stdout -count=3 '"explicacion":"La consulta de (BOE-A-2017-12902|\[BOE-A-2017-12902, bloque a1-30\]) a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902/texto/bloque/a1-30 del 2026-09-28T12:00:00Z '
+! stdout 'eli/es/l/2015/10/01/39'
+! stdout 'BOE-A-2015-10565'
+! stderr .
+
+# --- Una norma bien formada que el grafo no conoce: 0 y ningún hallazgo (US3.3, FR-003, SC-009) ---
+exec $KITLEGAL_T8_BIN graph check BOE-A-2099-99999 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2099-99999","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- Argumentos inválidos: 2 y clase argumentos (US3.4, FR-004, FR-006, SC-009) ---
+#
+# Una norma sin la forma BOE-A-<año>-<número>: un id de bloque, otra serie del
+# BOE y una norma vacía. El error lo firma el applet, y el mensaje nombra el
+# valor.
+exec sh -c 'kitlegal graph check a21 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"argumentos inválidos: la norma \\"a21\\" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número"\}\}\n\z'
+stderr 'argumentos inválidos: la norma "a21" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número'
+
+exec sh -c 'kitlegal graph check BOE-B-2015-10565 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"argumentos inválidos: la norma \\"BOE-B-2015-10565\\" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número"\}\}\n\z'
+stderr 'argumentos inválidos: la norma "BOE-B-2015-10565" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número'
+
+exec sh -c 'kitlegal graph check "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"argumentos inválidos: la norma \\"\\" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número"\}\}\n\z'
+stderr 'argumentos inválidos: la norma "" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número'
+
+# Un bloque de solo espacio en blanco junto a la norma.
+exec sh -c 'kitlegal graph check BOE-A-2015-10565 " " --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"argumentos inválidos: el bloque \\" \\" está vacío o solo tiene espacio en blanco"\}\}\n\z'
+stderr 'argumentos inválidos: el bloque " " está vacío o solo tiene espacio en blanco'
+
+# Sin --json, lo mismo en la salida de error y nada en la estándar.
+exec sh -c 'kitlegal graph check a21; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos: la norma "a21" no tiene la forma BOE-A-<año>-<número>, con cuatro dígitos en el año y de uno a nueve en el número'
+exec sh -c 'kitlegal graph check BOE-A-2015-10565 " "; test $? -eq 2'
+! stdout .
+stderr 'argumentos inválidos: el bloque " " está vacío o solo tiene espacio en blanco'
+
+-- mismos-hallazgos.sh --
+# mismos-hallazgos.sh <uno> <otro>: los dos sobres de graph check --json llevan
+# la misma lista de hallazgos, byte a byte (FR-003). La lista se toma de detrás
+# de «"hallazgos":» hasta el final del sobre; si la primera está vacía o no
+# lleva ningún hallazgo, falla, para no pasar en vacío.
+set -u
+sed -n 's/^.*"hallazgos"://p' "$1" > hallazgos-uno
+sed -n 's/^.*"hallazgos"://p' "$2" > hallazgos-otro
+grep -q '^\[{"clase":' hallazgos-uno || { echo "el primer sobre no lleva ningún hallazgo" >&2; exit 1; }
+cmp hallazgos-uno hallazgos-otro

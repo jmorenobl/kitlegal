@@ -28,16 +28,18 @@ const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
-// una cita, un aviso o un elemento del territorio ausentes, y el de un comando
-// prohibido ejecutado, van seguidos de su texto, el mismo con el que los presenta
-// el informe, que en un aviso es su código (contrato de formato, juicio e informe
-// §4 de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2 de H7).
+// una cita, un aviso, un hallazgo o un elemento del territorio ausentes, y el de
+// un comando prohibido ejecutado, van seguidos de su texto, el mismo con el que
+// los presenta el informe, que en un aviso es su código y en un hallazgo, su clase
+// (contrato de formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6;
+// contrato evals-y-skill §2 de H7 y de H7.1).
 const (
 	motivoDeSesionSinTerminar = "la sesión no terminó: "
 	motivoDeComandoAusente    = "comando ausente: "
 	motivoDeComandoProhibido  = "comando prohibido ejecutado: "
 	motivoDeCitaAusente       = "cita ausente: "
 	motivoDeAvisoAusente      = "aviso ausente: "
+	motivoDeHallazgoAusente   = "forma de hallazgo ausente: "
 	motivoDeTerritorioAusente = "territorio ausente: "
 	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
 )
@@ -74,7 +76,7 @@ type ResultadoDeEval struct {
 	// el orden de la eval, entre los que satisface alguna invocación de la sesión
 	// y los que no (data-model §6.1), cada uno con su texto: bloque <applet>
 	// <norma> <bloque>, <applet> <verbo> <norma>, <applet> buscar <términos…>,
-	// <applet> resolver <municipio> o <applet> check.
+	// <applet> resolver <municipio>, o <applet> check y, si la lleva, su norma.
 	ComandosEjecutados []string `json:"comandos_ejecutados"`
 	ComandosAusentes   []string `json:"comandos_ausentes"`
 
@@ -96,6 +98,12 @@ type ResultadoDeEval struct {
 	// código.
 	AvisosEncontrados []string `json:"avisos_encontrados"`
 	AvisosAusentes    []string `json:"avisos_ausentes"`
+
+	// HallazgosEncontrados y HallazgosAusentes reparten los hallazgos esperados, en el orden de la eval y con sus
+	// repeticiones, entre los que la respuesta lleva con su forma fija y los que no (ExtraerHallazgos), cada uno con su
+	// clase (contrato evals-y-skill §2 de H7.1).
+	HallazgosEncontrados []string `json:"hallazgos_encontrados"`
+	HallazgosAusentes    []string `json:"hallazgos_ausentes"`
 
 	// TerritorioEncontrado y TerritorioAusente reparten los elementos del
 	// territorio esperado, en el orden de la eval —comunidad, provincia, cada
@@ -141,16 +149,16 @@ type ResultadoDeEval struct {
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
 	// activación que no coincide; cada comando ausente; cada comando prohibido
-	// ejecutado; cada cita ausente; cada aviso ausente; cada elemento del
-	// territorio ausente; y el modelo que la sesión declara sin ser el pedido, que
-	// pone EscribirInforme. Vacío si pasa.
+	// ejecutado; cada cita ausente; cada aviso ausente; cada hallazgo ausente; cada
+	// elemento del territorio ausente; y el modelo que la sesión declara sin ser el
+	// pedido, que pone EscribirInforme. Vacío si pasa.
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no falta ningún
-	// comando, ninguna cita, ningún aviso ni ningún elemento del territorio
-	// esperados y no se ejecutó ningún comando prohibido. No lo cambian
+	// comando, ninguna cita, ningún aviso, ningún hallazgo ni ningún elemento del
+	// territorio esperados y no se ejecutó ningún comando prohibido. No lo cambian
 	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
-	// de un aviso que la eval no espera.
+	// de un aviso o de un hallazgo que la eval no espera.
 	Pasa bool `json:"pasa"`
 }
 
@@ -221,6 +229,13 @@ type LlegadaALaRed struct {
 // una invocación que consulta y termina con 0. Una eval sin prohibidos deja vacía
 // la lista y su juicio es el de antes (contrato evals-y-skill §2 de H7; FR-085,
 // FR-086).
+//
+// Desde H7.1, reparte además los hallazgos esperados entre los que la respuesta
+// lleva con su forma fija (ExtraerHallazgos) y los ausentes, y un ausente impide
+// pasar: decirlo con otras palabras no lo traslada. El comando de comprobación
+// que lleva norma exige además que la invocación la consulte. Una eval sin
+// hallazgos deja vacíos los dos y su juicio es el de antes (contrato
+// evals-y-skill §2 de H7.1; FR-050 a FR-052).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -245,7 +260,10 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
 	resultado.anotarProhibidos(eval.Prohibidos, sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
-	resultado.repartirAvisos(eval.Avisos, ExtraerAvisos(sesion.Respuesta))
+	resultado.AvisosEncontrados, resultado.AvisosAusentes = resultado.repartirFormas(eval.Avisos,
+		ExtraerAvisos(sesion.Respuesta), motivoDeAvisoAusente)
+	resultado.HallazgosEncontrados, resultado.HallazgosAusentes = resultado.repartirFormas(eval.Hallazgos,
+		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
 
 	for _, invocacion := range sesion.Invocaciones {
@@ -255,7 +273,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
 		len(resultado.ComandosAusentes) == 0 && len(resultado.ComandosProhibidosEjecutados) == 0 &&
 		len(resultado.CitasAusentes) == 0 && len(resultado.AvisosAusentes) == 0 &&
-		len(resultado.TerritorioAusente) == 0
+		len(resultado.HallazgosAusentes) == 0 && len(resultado.TerritorioAusente) == 0
 
 	return resultado
 }
@@ -345,19 +363,24 @@ func (r *ResultadoDeEval) repartirCitas(esperadas []CitaEsperada, citas []Cita) 
 	}
 }
 
-// repartirAvisos reparte los avisos esperados entre encontrados y ausentes según
-// los avisos cuya forma fija lleva la respuesta, con un motivo por cada ausente.
-func (r *ResultadoDeEval) repartirAvisos(esperados, avisos []string) {
+// repartirFormas reparte los avisos o los hallazgos esperados, en su orden y con
+// sus repeticiones, entre los encontrados y los ausentes según los que la
+// respuesta lleva con su forma fija, con un motivo por cada ausente: el principio
+// dado seguido de su código o su clase. Sin ninguno esperado, las dos listas
+// quedan vacías.
+func (r *ResultadoDeEval) repartirFormas(esperados, conSuForma []string, motivo string) (encontrados, ausentes []string) {
 	for _, esperado := range esperados {
-		if slices.Contains(avisos, esperado) {
-			r.AvisosEncontrados = append(r.AvisosEncontrados, esperado)
+		if slices.Contains(conSuForma, esperado) {
+			encontrados = append(encontrados, esperado)
 
 			continue
 		}
 
-		r.AvisosAusentes = append(r.AvisosAusentes, esperado)
-		r.Motivos = append(r.Motivos, motivoDeAvisoAusente+esperado)
+		ausentes = append(ausentes, esperado)
+		r.Motivos = append(r.Motivos, motivo+esperado)
 	}
+
+	return encontrados, ausentes
 }
 
 // repartirTerritorio reparte los elementos del territorio esperado entre
@@ -422,7 +445,8 @@ func (r *ResultadoDeEval) informar(invocacion Invocacion) {
 // esa norma; en la consulta de norma, ser el mismo verbo con esa norma; en la
 // búsqueda, ser buscar con cada término como palabra de sus argumentos; en el
 // comando de territorio, ser resolver con el municipio como argumento; y en la
-// comprobación, ser check (contrato evals-y-skill §2 de H7).
+// comprobación, ser check (contrato evals-y-skill §2 de H7) y, si el comando
+// lleva norma, con esa norma (contrato evals-y-skill §2 de H7.1).
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
 		return false
@@ -440,7 +464,7 @@ func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	case formaTerritorio:
 		satisfecho = invocacion.Verbo == verboResolver && resuelveElMunicipio(invocacion.Argumentos, comando.Municipio)
 	case formaComprobacion:
-		satisfecho = invocacion.Verbo == verboCheck
+		satisfecho = invocacion.Verbo == verboCheck && (comando.Norma == "" || esDeLaNorma(invocacion, comando.Norma))
 	}
 
 	return satisfecho
@@ -461,7 +485,8 @@ func leeElBloque(invocacion Invocacion, norma, bloque string) bool {
 
 // esDeLaNorma dice si la norma es el primer argumento de la invocación. Los
 // verbos de una norma y los de sus bloques la reciben siempre en primer lugar y no
-// tienen banderas propias (internal/app/boe.go), y InterpretarInvocacion ya quitó
+// tienen banderas propias (internal/app/boe.go), como graph check, que la recibe
+// delante de sus bloques (internal/app/grafo.go), e InterpretarInvocacion ya quitó
 // las globales.
 func esDeLaNorma(invocacion Invocacion, norma string) bool {
 	return len(invocacion.Argumentos) > 0 && invocacion.Argumentos[0] == norma
@@ -544,7 +569,8 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 // <applet> <norma> <bloque> en la forma bloque, que satisfacen dos verbos;
 // <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
 // la búsqueda; <applet> resolver <municipio> en el comando de territorio; y
-// <applet> check en la comprobación (contrato evals-y-skill §1 de H7).
+// <applet> check en la comprobación (contrato evals-y-skill §1 de H7), seguido de
+// su norma si la lleva (contrato evals-y-skill §2 de H7.1).
 func textoDelComando(comando ComandoEsperado) string {
 	var partes []string
 
@@ -559,6 +585,9 @@ func textoDelComando(comando ComandoEsperado) string {
 		partes = []string{comando.Applet, comando.Verbo, comando.Municipio}
 	case formaComprobacion:
 		partes = []string{comando.Applet, comando.Verbo}
+		if comando.Norma != "" {
+			partes = append(partes, comando.Norma)
+		}
 	}
 
 	return strings.Join(partes, " ")

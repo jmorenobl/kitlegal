@@ -1,0 +1,783 @@
+{
+  "skill": "legal-core",
+  "modelo_que_decide": "claude-sonnet-5",
+  "modelos_informativos": [
+    "claude-haiku-4-5-20251001"
+  ],
+  "repeticiones": 3,
+  "umbral": 2,
+  "modelos_de_sesion": [
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-5"
+  ],
+  "versiones_de_claude_code": [
+    "2.1.270"
+  ],
+  "commit": "a8aeb0dbbc6a36a2f863ab7c87d60fc77bada2ad",
+  "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
+  "ficheros_mal_formados": [],
+  "veredicto": "aprobado",
+  "motivos": [],
+  "tasas": [
+    {
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    },
+    {
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    },
+    {
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    },
+    {
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    },
+    {
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-sonnet-5",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    },
+    {
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "pasa": true
+    }
+  ],
+  "fuera_de_lo_grabado": [],
+  "red": [],
+  "evals": [
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-haiku-4-5-20251001-01",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Municipio:** Leganés, código INE 28074 (dígito de control 5)\n\n**Provincia:** Madrid\n\n**Comunidad autónoma:** Comunidad de Madrid, régimen común\n\n**DIR3 del ayuntamiento:** L01280745\n\n**Boletines:**\n- BOE — Boletín Oficial del Estado (nivel estatal)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (nivel autonómico)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (nivel provincial)\n\nLa provincia es provincia única dentro de la comunidad, por eso el boletín autonómico hace también de boletín provincial.\n\n**Cobertura:**\n- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado\n\nTodos los datos están disponibles y verificados en kitlegal. Consulta del 4 de febrero de 2026.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-haiku-4-5-20251001-02",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Municipio:** Leganés, código INE 28074 (dígito de control 5)\n\n**Provincia:** Madrid\n\n**Comunidad autónoma:** Comunidad de Madrid, régimen común\n\n**DIR3 del ayuntamiento:** L01280745\n\n**Boletines:**\n- BOE — Boletín Oficial del Estado (nivel estatal)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (nivel autonómico)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (nivel provincial), puesto que la Comunidad de Madrid es uniprovincial\n\n**Cobertura:**\n- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado\n\n*Datos consultados el 4 de febrero de 2026.*",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-haiku-4-5-20251001-03",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Territorio de tu ayuntamiento**\n\n**Municipio:** Leganés, código INE 28074 (dígito de control 5)\n\n**Provincia:** Madrid\n\n**Comunidad o ciudad autónoma:** Comunidad de Madrid, régimen común\n\n**DIR3 del ayuntamiento:** L01280745\n\n**Boletines:**\n- BOE — Boletín Oficial del Estado (estatal)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (autonómico)\n- BOCM — Boletín Oficial de la Comunidad de Madrid (provincial)\n\n> La Comunidad de Madrid es uniprovincial: el BOCM actúa también como boletín provincial.\n\n**Cobertura:** boletin_autonomico: configurado | boletin_provincial: configurado | dir3: verificado\n\n---\n\n*Datos verificados conforme a la fecha de consulta: 4 de febrero de 2026.*",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-sonnet-5-01",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Estos son los datos del territorio de Leganés, según `kitlegal territorio` (consulta del 2026-02-04):\n\n**Municipio:** Leganés, código INE 28074 (dígito de control 5)\n**Provincia:** Madrid\n**Comunidad autónoma:** Comunidad de Madrid, régimen común\n**DIR3 del ayuntamiento:** L01280745\n\n**Boletines:**\n- **BOE** — Boletín Oficial del Estado (nivel estatal)\n- **BOCM** — Boletín Oficial de la Comunidad de Madrid (nivel autonómico)\n- **BOCM** — Boletín Oficial de la Comunidad de Madrid (nivel provincial) — como Madrid es comunidad uniprovincial, el BOCM hace también de boletín provincial.\n\n**Cobertura:**\n- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado\n\nEs decir, las normas de Leganés se publican, según el nivel, en el BOE (estatal) o en el BOCM (tanto autonómico como provincial, al ser Madrid una comunidad uniprovincial). Al ser de régimen común, no le aplican normas forales propias.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-sonnet-5-02",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Territorio del ayuntamiento de Leganés** (datos del 2026-02-04):\n\n- **Municipio:** Leganés, código INE 28074 (dígito de control 5)\n- **Provincia:** Madrid\n- **Comunidad autónoma:** Comunidad de Madrid, régimen común\n- **DIR3 del ayuntamiento:** L01280745\n- **Boletines:**\n  - BOE — Boletín Oficial del Estado (nivel estatal)\n  - BOCM — Boletín Oficial de la Comunidad de Madrid (nivel autonómico)\n  - BOCM — Boletín Oficial de la Comunidad de Madrid (nivel provincial, ya que Madrid es comunidad uniprovincial y el BOCM hace también de boletín provincial)\n\n**Cobertura:**\n- boletin_autonomico: configurado\n- boletin_provincial: configurado\n- dir3: verificado\n\nAl ser régimen común, no aplican particularidades forales.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-territorio-municipio-cubierto-claude-sonnet-5-03",
+      "eval": "01-territorio-municipio-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Leganés"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Comunidad de Madrid",
+        "provincia: Madrid",
+        "boletín: BOCM"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Leganés --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Territorio de Leganés** (datos del 2026-02-04):\n\n- **Municipio:** Leganés, código INE 28074 (dígito de control 5)\n- **Provincia:** Madrid\n- **Comunidad autónoma:** Comunidad de Madrid, régimen común\n- **DIR3 del ayuntamiento:** L01280745\n- **Boletines:**\n  - **BOE** — Boletín Oficial del Estado (nivel estatal)\n  - **BOCM** — Boletín Oficial de la Comunidad de Madrid (nivel autonómico)\n  - **BOCM** — Boletín Oficial de la Comunidad de Madrid (nivel provincial, ya que Madrid es comunidad uniprovincial y el BOCM hace también de boletín provincial)\n\n**Cobertura:**\n- `boletin_autonomico: configurado`\n- `boletin_provincial: configurado`\n- `dir3: verificado`\n\nAsí que las normas de ámbito estatal que afecten a Leganés se publican en el BOE, y tanto las autonómicas como las provinciales (al ser Madrid comunidad uniprovincial) se publican en el mismo boletín, el BOCM.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-haiku-4-5-20251001-01",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Territorio de Tordesillas:**\n\nMunicipio: Tordesillas, código INE 47165 (dígito de control 9)  \nProvincia: Valladolid  \nComunidad autónoma: Castilla y León, régimen común  \nDIR3 del ayuntamiento: L01471659  \nBoletines: BOE — Boletín Oficial del Estado (estatal)\n\n**Cobertura:**\n- boletin_autonomico: no-configurado\n- boletin_provincial: no-configurado\n- dir3: verificado\n\n**Lo que esto significa:**\n\nTordesillas es un municipio de régimen común situado en la provincia de Valladolid (Castilla y León). Su DIR3 está verificado en la correspondencia oficial.\n\nkitlegal tiene configurado el **Boletín Oficial del Estado (BOE)**, donde se publican las normas estatales.\n\nPara los **boletines autonómico y provincial** — es decir, el Boletín Oficial de Castilla y León (donde se publican las normas de la comunidad) y cualquier boletín provincial de Valladolid — kitlegal declara que **no están configurados**, lo que significa que no los tiene declarados en su correspondencia de territorio. Esto **no** quiere decir que esos boletines no existan: significa que la herramienta no los resuelve automáticamente en este momento.\n\n*Datos consultados el 4 de febrero de 2026.*",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-haiku-4-5-20251001-02",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Municipio:** Tordesillas, código INE 47165 (dígito de control 9)\n\n**Provincia:** Valladolid\n\n**Comunidad autónoma:** Castilla y León, régimen común\n\n**DIR3 del ayuntamiento:** L01471659\n\n**Boletines:**\n- BOE — Boletín Oficial del Estado (nivel estatal)\n\n**Cobertura de datos:**\n- `boletin_autonomico: no-configurado` — kitlegal no tiene declarado el boletín de Castilla y León\n- `boletin_provincial: no-configurado` — kitlegal no tiene declarado el boletín de Valladolid  \n- `dir3: verificado`\n\nDatos consultados: 4 de febrero de 2026\n\n**Explicación:** Tordesillas es un municipio de régimen común en la provincia de Valladolid, dentro de la comunidad autónoma de Castilla y León. En el Estado, sus normas se publican en el Boletín Oficial del Estado (BOE). A nivel autonómico y provincial, aunque existen boletines correspondientes a Castilla y León y Valladolid, kitlegal no los tiene configurados en su base de datos —esto no significa que no existan ni que no deba consultarlos, sino que la herramienta aún no dispone de esa configuración.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-haiku-4-5-20251001-03",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Territorio de Tordesillas**\n\nMunicipio: Tordesillas, código INE 47165 (dígito de control 9)  \nProvincia: Valladolid  \nComunidad autónoma: Castilla y León, régimen común  \nDIR3 del ayuntamiento: L01471659\n\n**Boletines que kitlegal tiene configurado:**\n- BOE — Boletín Oficial del Estado (estatal)\n\n**Cobertura de la configuración territorial:**\n- boletin_autonomico: no-configurado\n- boletin_provincial: no-configurado  \n- dir3: verificado\n\n**Qué significa:**\n\nkitlegal no tiene declarado el boletín autonómico de Castilla y León ni el boletín provincial de Valladolid en su configuración. Esto **no significa que no existan**: significa que la herramienta aún no los tiene integrados. El DIR3 del ayuntamiento está verificado en la correspondencia oficial.\n\nTordesillas se rige por el régimen común (no es de una comunidad de régimen foral), y los datos consultados datan de 4 de febrero de 2026.\n\nPara preguntas sobre el texto de leyes vertebrales que regulan materias de este territorio, puedo consultar la skill `boe-legislacion`.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-sonnet-5-01",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Este es el territorio de tu ayuntamiento, tal como lo devuelve kitlegal (datos del 2026-02-04):\n\n- **Municipio:** Tordesillas, código INE 47165 (dígito de control 9)\n- **Provincia:** Valladolid\n- **Comunidad autónoma:** Castilla y León, régimen común\n- **DIR3 del ayuntamiento:** L01471659\n- **Boletines:**\n  - BOE — Boletín Oficial del Estado (nivel estatal)\n\n**Cobertura:**\n- `boletin_autonomico: no-configurado`\n- `boletin_provincial: no-configurado`\n- `dir3: verificado`\n\nEsto significa que kitlegal solo tiene declarado el boletín estatal (BOE) para este territorio; no tiene configurado en su base de datos el boletín oficial de Castilla y León ni el de la provincia de Valladolid. Eso **no** implica que no existan — de hecho ambos existen (el Boletín Oficial de Castilla y León y el Boletín Oficial de la Provincia de Valladolid), pero no puedo darte su nombre exacto, sigla o dirección porque kitlegal no los ha devuelto para esta consulta, y la skill me exige no completarlos de memoria.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-sonnet-5-02",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El ayuntamiento de Tordesillas (código INE 47165, dígito de control 9), según los datos de kitlegal a fecha 2026-02-04:\n\n- **Municipio**: Tordesillas\n- **Provincia**: Valladolid\n- **Comunidad autónoma**: Castilla y León, régimen común\n- **DIR3 del ayuntamiento**: L01471659 (verificado)\n\n**Boletines**:\n- BOE — Boletín Oficial del Estado (nivel estatal)\n\n**Cobertura**:\n- `boletin_autonomico: no-configurado`\n- `boletin_provincial: no-configurado`\n- `dir3: verificado`\n\nEsto significa que kitlegal solo tiene declarado el boletín de nivel estatal para este municipio. No tiene configurado el boletín oficial de Castilla y León ni el boletín oficial de la provincia de Valladolid — eso no implica que no existan, solo que esta herramienta no los tiene registrados en su base de datos actual.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-territorio-municipio-no-cubierto-claude-sonnet-5-03",
+      "eval": "02-territorio-municipio-no-cubierto.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "comandos_ejecutados": [
+        "territorio resolver Tordesillas"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [
+        "comunidad: Castilla y León",
+        "provincia: Valladolid",
+        "boletin_autonomico: no-configurado",
+        "boletin_provincial: no-configurado"
+      ],
+      "territorio_ausente": [],
+      "invocaciones": [
+        {
+          "orden": "territorio resolver Tordesillas --json",
+          "codigo": 0,
+          "conexiones": []
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "## Territorio de Tordesillas\n\n- **Municipio:** Tordesillas, código INE 47165 (dígito de control 9)\n- **Provincia:** Valladolid\n- **Comunidad autónoma:** Castilla y León, régimen común\n- **DIR3 del ayuntamiento:** L01471659\n\n**Boletines:**\n- BOE — Boletín Oficial del Estado (nivel estatal): https://www.boe.es/\n\n**Cobertura:**\n- boletin_autonomico: no-configurado\n- boletin_provincial: no-configurado\n- dir3: verificado\n\nKitlegal no tiene declarado el boletín autonómico de Castilla y León ni el boletín provincial de Valladolid — eso no significa que no existan, solo que no están configurados en esta herramienta, así que no puedo darte su nombre o dirección exacta desde aquí.\n\nDatos consultados el 2026-02-04.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-haiku-4-5-20251001-01",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Hola, soy Claude Code, un asistente especializado en tareas de ingeniería de software como resolver bugs, añadir funcionalidad, refactorizar código y más.\n\nTu pregunta es sobre cocina, no sobre programación. No puedo ayudarte con recetas de cocina en este contexto.\n\nSi tienes tareas de software engineering en las que pueda ayudarte, estaré encantado de asistirte. ¿Hay algo de programación o desarrollo en lo que pueda colaborar contigo?",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-haiku-4-5-20251001-02",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Gracias por la pregunta, pero Claude Code está diseñado específicamente para ayudarte con tareas de ingeniería de software — escribir código, revisar cambios, debuggear, refactorizar, y cosas similares.\n\nPara recetas de cocina, sería mejor usar Claude directamente en [claude.ai](https://claude.ai), donde puedo ayudarte con todo tipo de preguntas generales, incluyendo cómo preparar una deliciosa tortilla de patatas.\n\n¿Hay algo relacionado con programación o desarrollo de software en lo que pueda ayudarte?",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-haiku-4-5-20251001-03",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "decide": false,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Esta es una pregunta sobre cocina, no sobre software engineering. No es algo en lo que pueda ayudarte de forma directa en Claude Code.\n\nSi tienes preguntas sobre código, programación, o cualquier tarea de ingeniería de software en este proyecto, estaré encantado de ayudarte. 👨‍💻",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-sonnet-5-01",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "No puedo ayudar con eso: no tengo activada ninguna herramienta o habilidad de recetas de cocina, y este entorno está configurado para tareas de ingeniería de software y consultas jurídicas (BOE, legislación, contexto municipal). Te recomiendo buscar la receta en una fuente de cocina especializada.\n\nSi necesitas ayuda con código, un repositorio, o una consulta legal/normativa española, dime y lo abordamos.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-sonnet-5-02",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Esta pregunta no está relacionada con desarrollo de software ni con el trabajo en este repositorio, así que no puedo ayudarte con eso aquí. Te recomiendo consultar una fuente de cocina para la receta.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "03-no-activa-receta-de-cocina-claude-sonnet-5-03",
+      "eval": "03-no-activa-receta-de-cocina.yaml",
+      "modelo": "claude-sonnet-5",
+      "modelo_de_la_sesion": "claude-sonnet-5",
+      "decide": true,
+      "activa": false,
+      "activada": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "invocaciones": [],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Esta pregunta no tiene relación con ingeniería de software ni con el trabajo en este repositorio, así que no puedo ayudarte con eso aquí. Estoy configurado para asistir con tareas técnicas (código, herramientas legales del proyecto, etc.).\n\nSi tienes alguna tarea relacionada con el proyecto en el que estamos trabajando, cuéntame y te ayudo encantado.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "motivos": [],
+      "pasa": true
+    }
+  ]
+}

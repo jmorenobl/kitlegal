@@ -1,24 +1,24 @@
 //go:build integration
 
 // Las pruebas de este fichero son la matriz de integración del almacén del
-// grafo del mundo por su API pública (FR-088; contracts/almacen-world-db.md §7;
-// research.md D33, V43-V49): lo que ve quien usa Nuevo, Apply, Leer y los
-// verbos de una Lectura sobre un world.db de verdad, con los permisos reales
-// del sistema de ficheros, con otras conexiones abiertas a la vez y con los
-// auxiliares que deja un escritor interrumpido.
+// grafo del mundo por su API pública (FR-088; contracts/almacen-world-db.md §7
+// de H7.1; research.md D33, V44 y V49 de H7): lo que ve quien usa Nuevo, Apply,
+// Leer y los verbos de una Lectura sobre un world.db de verdad, con otras
+// conexiones abiertas a la vez y con los auxiliares que deja un escritor
+// interrumpido.
 //
 // Lleva la etiqueta integration, como la matriz de la caché: make ci la ejecuta
 // con test-integration y el lint la alcanza con run.build-tags. Todo world.db
-// vive bajo t.TempDir(), nunca en el directorio de la cuenta, y cada permiso
-// que una prueba cambia se restaura cuando la prueba acaba, antes de que
-// t.TempDir lo retire.
+// vive bajo t.TempDir(), nunca en el directorio de la cuenta, y el permiso del
+// directorio que una prueba quita se restaura cuando la prueba acaba, antes de
+// que t.TempDir lo retire.
 //
 // Los estados se preparan con la propia API siempre que se puede —el world.db
 // que deja una entrega, el WAL que deja una entrega mientras otra invocación
 // sigue abierta— y con una conexión de SQLite de la prueba solo para lo que
-// ninguna entrega escribe: otra invocación que retiene world.db, la base de
-// otro programa, un esquema posterior o el diario de un escritor en modo
-// rollback.
+// ninguna entrega completa escribe: otra invocación que retiene world.db, un
+// esquema posterior o una creación interrumpida después de poner world.db en
+// WAL.
 //
 // Va en el paquete externo graph_test: lo que se mide es lo que ve quien usa la
 // superficie exportada.
@@ -77,14 +77,15 @@ const (
 
 	cuerpo2016 = "Texto del bloque a21 en su versi\xc3\xb3n de 2016"
 	cuerpo2025 = "Texto del bloque a21 en su versi\xc3\xb3n de 2025"
+	cuerpo2026 = "Texto del bloque a21 en su versi\xc3\xb3n de 2026"
 
 	semana = 7 * 24 * time.Hour
 
-	// El nombre de la base y los sufijos con que SQLite nombra sus auxiliares.
+	// El nombre de la base y los sufijos con que SQLite nombra sus auxiliares
+	// en WAL.
 	ficheroDelGrafo         = "world.db"
 	sufijoWAL               = "-wal"
 	sufijoMemoriaCompartida = "-shm"
-	sufijoDiario            = "-journal"
 
 	// operacionLeer y operacionEscribir son los valores de graph.Error.Operacion.
 	operacionLeer     = "leer"
@@ -94,25 +95,30 @@ const (
 	// mismo que espera el almacén en cada intento.
 	tramo = "_pragma=busy_timeout(100)"
 
+	// lecturaSinWAL son los ajustes de la cadena con que la lectura abre un
+	// world.db sin -wal (contracts/almacen-world-db.md §3, paso 2): lee sin
+	// poder escribir y no deja ningún auxiliar al cerrar (H7.1 research.md V8).
+	lecturaSinWAL = "mode=rw&" + tramo + "&_pragma=query_only(1)"
+
+	// Las dos formas en que la otra invocación de una prueba retiene world.db:
+	// con una transacción de escritura, que no deja entregar a nadie, y además
+	// en locking_mode EXCLUSIVE, que tampoco deja abrirlo a ningún lector
+	// (H7.1 research.md D22, V10).
+	reteniendoLaEscritura = tramo + "&_txlock=immediate"
+	enExclusiva           = tramo + "&_pragma=locking_mode(EXCLUSIVE)&_txlock=immediate"
+
 	// esperaPropia es la del almacén (contracts/almacen-world-db.md §4,
 	// «Esperas»), y plazoCorto, un plazo que termina mucho antes que ella.
-	// plazoHolgado también termina antes, pero da tiempo de sobra a lo que la
-	// entrega hace antes de esperar, aunque la máquina vaya cargada.
 	esperaPropia = 5 * time.Second
 	plazoCorto   = 300 * time.Millisecond
-	plazoHolgado = 2 * time.Second
 
 	// plazoTerminado pide a contextoCon un contexto que ya terminó.
 	plazoTerminado time.Duration = -1
 
 	// Los permisos que las pruebas ponen y quitan.
-	permisosDeLaCuenta    fs.FileMode = 0o600
-	permisosDeSoloLectura fs.FileMode = 0o400
-	permisosDenegados     fs.FileMode = 0o000
-	permisosDeDirectorio  fs.FileMode = 0o700
-	permisosSinEscritura  fs.FileMode = 0o500
-	permisoDeLectura      fs.FileMode = 0o400
-	permisoDeEscritura    fs.FileMode = 0o200
+	permisosDeLaCuenta   fs.FileMode = 0o600
+	permisosDeDirectorio fs.FileMode = 0o700
+	permisosSinEscritura fs.FileMode = 0o500
 )
 
 // codigoDeLaClase es el código de salida con que el kernel traduce cada clase
@@ -142,19 +148,32 @@ func laNorma(datos map[string]any) schema.Nodo {
 // norma, su bloque y la versión de 2016 del bloque, las dos aristas que los
 // unen y el texto de la versión.
 func loteDelBloque(url, fecha string) core.Lote {
-	huella := huellaDe(cuerpo2016)
-	version := idBloque + "@20161002:" + huella
+	return loteDeLaRedaccion(url, fecha, "20161002", cuerpo2016)
+}
+
+// loteDeLaRedaccion es el de boe articulo a21 con la url y la fecha dadas que
+// ve la redacción de esa fecha de vigencia y ese cuerpo: la norma, su bloque y
+// esa versión del bloque, las dos aristas que los unen y el texto de la
+// versión.
+func loteDeLaRedaccion(url, fecha, fechaDeVigencia, cuerpo string) core.Lote {
+	huella := huellaDe(cuerpo)
 
 	return loteDelBOE(url, fecha,
 		laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
 		schema.Nodo{ID: idBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a21"}},
-		schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-			grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: huella,
+		schema.Nodo{ID: laVersion(fechaDeVigencia, cuerpo), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huella,
 		}},
 		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque},
-		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-		schema.Texto{Huella: huella, Cuerpo: cuerpo2016},
+		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: laVersion(fechaDeVigencia, cuerpo)},
+		schema.Texto{Huella: huella, Cuerpo: cuerpo},
 	)
+}
+
+// laVersion es el id de la BloqueVersion del bloque a21 de esa fecha de
+// vigencia y ese cuerpo, con la forma que emite boe.
+func laVersion(fechaDeVigencia, cuerpo string) string {
+	return idBloque + "@" + fechaDeVigencia + ":" + huellaDe(cuerpo)
 }
 
 // loteDelTerritorio es el de territorio resolver Leganés con el órgano y la
@@ -182,13 +201,6 @@ func elBloque() core.Lote {
 // elTerritorio es la consulta del territorio.
 func elTerritorio() core.Lote {
 	return loteDelTerritorio(idOrgano, fechaDelTerritorio)
-}
-
-// unaAristaSinExtremos es un lote que el grafo vacío rechaza: una arista cuyos
-// extremos no son nodos del lote.
-func unaAristaSinExtremos() core.Lote {
-	return loteDelBOE(urlDeLaNorma, fechaAntigua,
-		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque})
 }
 
 // huellaDe es la huella del cuerpo de un texto: «sha256:» y los 64
@@ -270,9 +282,11 @@ type leido struct {
 // listas vacías y ninguna ficha.
 func grafoVacio() leido {
 	return leido{
-		recuento:    grafo.Recuento{NodosPorTipo: []grafo.RecuentoDeNodos{}, AristasPorRelacion: []grafo.RecuentoDeAristas{}},
-		instantanea: grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}},
-		fichas:      map[string]grafo.Ficha{},
+		recuento: grafo.Recuento{NodosPorTipo: []grafo.RecuentoDeNodos{}, AristasPorRelacion: []grafo.RecuentoDeAristas{}},
+		instantanea: grafo.Instantanea{
+			Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}, Lecturas: []grafo.LecturasDeBloque{},
+		},
+		fichas: map[string]grafo.Ficha{},
 	}
 }
 
@@ -287,7 +301,7 @@ func leerElGrafo(t *testing.T, directorio string) leido {
 	recuento, err := lectura.Recuento(t.Context())
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	fichas := map[string]grafo.Ficha{}
@@ -343,24 +357,14 @@ func falloDe(t *testing.T, err error) *graph.Error {
 	return fallo
 }
 
-// compruebaNoSePuedeEscribir exige el fallo de una entrega sobre un world.db
-// que el proceso no puede abrir para escribir (contracts/almacen-world-db.md §4,
-// paso 4, y §6), por la causa dada.
-func compruebaNoSePuedeEscribir(t *testing.T, err error, ruta string, causa error) {
-	t.Helper()
-
-	require.ErrorIs(t, err, causa)
-	compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, mensajeNoSePuedeEscribir(ruta, falloDe(t, err)))
-}
-
 // Los mensajes de contracts/almacen-world-db.md §6 que las pruebas esperan.
 
-func mensajeInutilizable(ruta string) string {
-	return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable; no se modifica"
+func mensajeInutilizable(ruta string, fallo *graph.Error) string {
+	return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + fallo.Causa.Error()
 }
 
 func mensajeDeVersionPosterior(ruta string) string {
-	return "grafo: " + strconv.Quote(ruta) + " tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+	return "grafo: " + strconv.Quote(ruta) + " tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 }
 
 func mensajeDePlazo(operacion, nombre string) string {
@@ -373,10 +377,6 @@ func mensajeDeBloqueo(_, nombre string) string {
 
 func mensajeDelLoteRechazado(ruta string, fallo *graph.Error) string {
 	return "grafo: el lote no entra en " + strconv.Quote(ruta) + ": " + fallo.Causa.Error()
-}
-
-func mensajeNoSePuedeEscribir(ruta string, fallo *graph.Error) string {
-	return "grafo: no se puede escribir " + strconv.Quote(ruta) + ": " + fallo.Causa.Error() + "; no se modifica"
 }
 
 // ---------------------------------------------------------------------------
@@ -408,24 +408,14 @@ func estadoDelArbol(t *testing.T, raiz string) map[string]string {
 	return estado
 }
 
-// describir es una entrada por su tipo y sus permisos y, además: un enlace, por
-// su destino; un fichero que se deja leer, por la huella de sus bytes; y uno
-// que no, por su tamaño, sin abrirlo.
+// describir es una entrada por su tipo y sus permisos y, si es un fichero, por
+// la huella de sus bytes.
 func describir(t *testing.T, ruta string, info fs.FileInfo) string {
 	t.Helper()
 
 	descripcion := info.Mode().String()
-
-	switch {
-	case info.Mode()&fs.ModeSymlink != 0:
-		destino, err := os.Readlink(ruta)
-		require.NoError(t, err)
-
-		return descripcion + " -> " + destino
-	case !info.Mode().IsRegular():
+	if !info.Mode().IsRegular() {
 		return descripcion
-	case info.Mode().Perm()&permisoDeLectura == 0:
-		return descripcion + " " + strconv.FormatInt(info.Size(), 10) + " bytes que no se dejan leer"
 	}
 
 	return descripcion + " " + huellaDelFichero(t, ruta)
@@ -507,12 +497,12 @@ func nombresEn(t *testing.T, directorio string) []string {
 	return nombres
 }
 
-// compruebaSinAuxiliares exige que junto a world.db no quede ninguno de sus
-// tres auxiliares.
+// compruebaSinAuxiliares exige que junto a world.db no quede ni su -wal ni su
+// -shm.
 func compruebaSinAuxiliares(t *testing.T, ruta string) {
 	t.Helper()
 
-	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida, sufijoDiario} {
+	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida} {
 		require.NoFileExists(t, ruta+sufijo)
 	}
 }
@@ -531,20 +521,6 @@ func restringir(t *testing.T, ruta string, permisos fs.FileMode) {
 	t.Cleanup(func() {
 		assert.NoError(t, os.Chmod(ruta, permisosDeAntes), "se restauran los permisos de %s", ruta)
 	})
-}
-
-// sinPermisoDeEscritura deja world.db en 0400 en un directorio en 0700, que
-// admite ficheros nuevos, y comprueba la premisa: el proceso no puede abrirlo
-// para escribir. Si pudiera, corre con privilegios que se saltan los permisos y
-// la prueba no mediría nada.
-func sinPermisoDeEscritura(t *testing.T, ruta string) {
-	t.Helper()
-
-	restringir(t, filepath.Dir(ruta), permisosDeDirectorio)
-	restringir(t, ruta, permisosDeSoloLectura)
-
-	_, err := os.OpenFile(filepath.Clean(ruta), os.O_RDWR, 0)
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el proceso no puede escribir world.db (¿corre como root?)")
 }
 
 // directorioSinEscritura quita al directorio el permiso de escritura y comprueba
@@ -595,16 +571,6 @@ func ejecutar(t *testing.T, ruta, sentencias string) {
 	require.NoError(t, base.Close())
 }
 
-// fijarDiario pone la base en el modo de diario dado y comprueba que lo está.
-func fijarDiario(t *testing.T, base *sql.DB, diario string) {
-	t.Helper()
-
-	var modo string
-
-	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode="+diario).Scan(&modo))
-	require.Equal(t, diario, modo)
-}
-
 // otraInvocacionAbierta abre sobre world.db la conexión de otra invocación, lee
 // con ella —así retiene el WAL— y la deja abierta hasta el final de la prueba.
 // Mientras siga abierta, ninguna entrega es la última conexión: la que cierra no
@@ -621,16 +587,16 @@ func otraInvocacionAbierta(t *testing.T, ruta string) *sql.DB {
 	return otra
 }
 
-// retener abre la conexión de otra invocación y empieza en ella una
-// transacción con el bloqueo dado, en la que lee, hasta que se llama a lo que
-// devuelve, que la deshace y cierra la conexión, o hasta que termina la prueba.
-// «deferred» retiene la lectura, que no deja a nadie tomar world.db en
-// exclusiva; «immediate», la escritura; y «exclusive», sobre una base en modo
-// rollback, también la lectura de los demás.
-func retener(t *testing.T, ruta, bloqueo string) (suelta func()) {
+// retener abre la conexión de otra invocación con los ajustes dados
+// —reteniendoLaEscritura o enExclusiva— y empieza en ella una transacción, en la
+// que lee, hasta que se llama a lo que devuelve, que la deshace y cierra la
+// conexión, o hasta que termina la prueba. En exclusiva, world.db no puede tener
+// abierta ninguna otra conexión: con la base en WAL, cada una conserva su
+// bloqueo compartido mientras sigue abierta.
+func retener(t *testing.T, ruta, ajustes string) (suelta func()) {
 	t.Helper()
 
-	otra := conexion(t, ruta, tramo+"&_txlock="+bloqueo)
+	otra := conexion(t, ruta, ajustes)
 
 	tx, err := otra.BeginTx(context.WithoutCancel(t.Context()), nil)
 	require.NoError(t, err, "la otra invocación toma world.db")
@@ -653,33 +619,24 @@ func retener(t *testing.T, ruta, bloqueo string) (suelta func()) {
 	return suelta
 }
 
-// enRollback saca de WAL el world.db que dejó una entrega: la misma base, con
-// el mismo grafo, en modo rollback y sin auxiliares.
-func enRollback(t *testing.T, ruta string) {
+// enWALSinTablas deja en la ruta lo que deja una creación de world.db que se
+// interrumpe después de ponerlo en WAL (contracts/almacen-world-db.md §4, pasos
+// 3 y 4; H7.1 FR-071): el fichero en WAL, sin ninguna tabla y sin auxiliares.
+func enWALSinTablas(t *testing.T, ruta string) {
 	t.Helper()
 
+	escribirFichero(t, ruta, nil)
+
 	base := conexion(t, ruta, tramo)
-	fijarDiario(t, base, "delete")
+
+	var modo string
+
+	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode=WAL").Scan(&modo))
+	require.Equal(t, "wal", modo)
 	require.NoError(t, base.Close())
 
 	compruebaSinAuxiliares(t, ruta)
-	require.Equal(t, []byte{1, 1}, leerFichero(t, ruta)[18:20], "premisa: world.db ya no está en WAL")
-}
-
-// baseDeFuera escribe en la ruta la base de otro programa, sin el esquema del
-// grafo, en el modo de diario dado y con las sentencias, y la cierra sin
-// dejar ningún auxiliar.
-func baseDeFuera(t *testing.T, ruta, diario, sentencias string) {
-	t.Helper()
-
-	base := conexion(t, ruta, tramo)
-	fijarDiario(t, base, diario)
-
-	_, err := base.ExecContext(t.Context(), sentencias)
-	require.NoError(t, err)
-	require.NoError(t, base.Close())
-
-	compruebaSinAuxiliares(t, ruta)
+	require.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "premisa: world.db está en WAL")
 }
 
 // columna son los valores de la única columna de la consulta, en su orden.
@@ -707,13 +664,14 @@ func columna[T any](t *testing.T, base *sql.DB, consulta string) []T {
 }
 
 // esquemaDe son las tablas de la base, por nombre, y las versiones que registra
-// su schema_version, leídas inmutable: sin crear ni cambiar ningún fichero y
-// sin leer ningún WAL (research.md V46), así que solo dicen lo que ya está en
+// su schema_version, leídas con la cadena de la lectura de un world.db sin
+// -wal, que no escribe nada ni deja ningún auxiliar al cerrar. Quien la llama
+// ya ha comprobado que no queda ningún -wal, así que dicen lo que está en
 // world.db.
 func esquemaDe(t *testing.T, ruta string) (tablas []string, versiones []int64) {
 	t.Helper()
 
-	base := conexion(t, ruta, "mode=ro&immutable=1")
+	base := conexion(t, ruta, lecturaSinWAL)
 	tablas = columna[string](t, base, `SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`)
 
 	if slices.Contains(tablas, "schema_version") {
@@ -725,8 +683,8 @@ func esquemaDe(t *testing.T, ruta string) (tablas []string, versiones []int64) {
 	return tablas, versiones
 }
 
-// tablasDelGrafo son las de la versión 1 del esquema.
-var tablasDelGrafo = []string{"edges", "nodes", "schema_version", "texts"}
+// tablasDelGrafo son las de la versión 2 del esquema.
+var tablasDelGrafo = []string{"edges", "lecturas", "nodes", "schema_version", "texts"}
 
 // ---------------------------------------------------------------------------
 // Los auxiliares de un escritor interrumpido.
@@ -743,11 +701,11 @@ func elTerritorioEnElWAL(t *testing.T, directorio string, _ *sql.DB) {
 }
 
 // unEsquemaPosteriorEnElWAL confirma en el WAL, desde la otra invocación, la
-// versión 2 del esquema: la de un binario posterior.
+// versión 3 del esquema: la de un binario posterior.
 func unEsquemaPosteriorEnElWAL(t *testing.T, _ string, otra *sql.DB) {
 	t.Helper()
 
-	_, err := otra.ExecContext(t.Context(), `INSERT INTO schema_version VALUES (2, '2030-01-01T00:00:00Z')`)
+	_, err := otra.ExecContext(t.Context(), `INSERT INTO schema_version VALUES (3, '2030-01-01T00:00:00Z')`)
 	require.NoError(t, err)
 }
 
@@ -771,69 +729,15 @@ func copiaConElWAL(t *testing.T, destino string, escribir escrituraEnElWAL, sufi
 	require.NoError(t, otra.Close())
 }
 
-// sentenciaDeRelleno añade al grafo un texto de 4000 bytes con el número de
-// vuelta en la huella: cien bastan para que un escritor con dos páginas de
-// caché vuelque páginas en world.db antes de confirmar.
-const sentenciaDeRelleno = `INSERT INTO texts (hash, body, fetched_at, source, url)
-	VALUES ('relleno:' || ?, replace(hex(zeroblob(2000)), '0', 'x'), '2026-09-28T10:00:00Z', 'relleno',
-	'https://relleno.example')`
-
-// copiaConUnDiarioCaliente deja en destino una copia de la base de origen, en
-// modo rollback, y de su diario tal como los tiene un escritor con una
-// transacción a medias que ya volcó páginas en la base: sin ningún bloqueo sobre
-// la copia, su diario está caliente (research.md V43). La transacción ejecuta
-// cien veces la sentencia, con el número de vuelta como argumento, y se deshace
-// después de copiar.
-func copiaConUnDiarioCaliente(t *testing.T, origen, destino, sentencia string) {
-	t.Helper()
-
-	confirmado := leerFichero(t, origen)
-	escritor := conexion(t, origen, tramo+"&_pragma=cache_size(2)&_txlock=immediate")
-
-	tx, err := escritor.BeginTx(context.WithoutCancel(t.Context()), nil)
-	require.NoError(t, err)
-
-	for vuelta := range 100 {
-		_, err := tx.ExecContext(t.Context(), sentencia, vuelta)
-		require.NoError(t, err)
-	}
-
-	diario := leerFichero(t, origen+sufijoDiario)
-	require.NotEmpty(t, diario, "premisa: la transacción a medias tiene su diario")
-	require.NotZero(t, diario[0], "premisa: el diario tiene su cabecera, así que está caliente")
-	require.NotEqual(t, confirmado, leerFichero(t, origen), "premisa: la transacción ya volcó páginas en la base")
-
-	copiarFicheros(t, origen, destino, "", sufijoDiario)
-
-	require.NoError(t, tx.Rollback())
-	require.NoError(t, escritor.Close())
-}
-
-// grafoConUnDiarioCaliente deja en el directorio el world.db del bloque en modo
-// rollback junto al diario caliente de un escritor que añadía textos, y
-// devuelve su ruta.
-func grafoConUnDiarioCaliente(t *testing.T, directorio string) string {
-	t.Helper()
-
-	origen := grafoEntregado(t, t.TempDir(), elBloque())
-	enRollback(t, origen)
-
-	ruta := rutaEn(directorio)
-	copiaConUnDiarioCaliente(t, origen, ruta, sentenciaDeRelleno)
-
-	return ruta
-}
-
 // ---------------------------------------------------------------------------
 // La matriz.
 
-// TestIntegracionEsquema fija la creación del esquema (FR-004, FR-013;
-// contracts/almacen-world-db.md §3, paso 1, y §4, pasos 3 a 5): la primera
-// entrega sobre un directorio que no existe crea world.db en WAL, con el
-// esquema y el lote y sin ningún auxiliar; un world.db de 0 bytes y una base sin
-// tablas se leen como el grafo vacío sin cambiar nada, y la entrega crea en ellos
-// el esquema; y el esquema es atómico: una migración que falla a medias no deja
-// ninguna de sus tablas.
+// TestIntegracionEsquema fija la creación del esquema (H7 FR-004, FR-013; H7.1
+// FR-071; contracts/almacen-world-db.md §3, paso 1, y §4, pasos 2 a 5): la
+// primera entrega sobre un directorio que no existe crea world.db en WAL, con el
+// esquema y el lote y sin ningún auxiliar; y lo que deja una creación
+// interrumpida —un world.db de 0 bytes, o en WAL y sin tablas— se lee como el
+// grafo vacío sin cambiar nada, y la entrega siguiente crea en él el esquema.
 func TestIntegracionEsquema(t *testing.T) {
 	t.Parallel()
 
@@ -855,12 +759,7 @@ func TestIntegracionEsquema(t *testing.T) {
 
 			escribirFichero(t, ruta, nil)
 		},
-		"una base sin tablas": func(t *testing.T, ruta string) {
-			t.Helper()
-
-			baseDeFuera(t, ruta, "delete", `PRAGMA user_version = 7`)
-			require.Positive(t, tamano(t, ruta), "premisa: es una base de datos, no un fichero vacío")
-		},
+		"un world.db en WAL y sin tablas": enWALSinTablas,
 	} {
 		t.Run(nombre+" se lee vacío sin cambiar y la entrega crea el esquema", func(t *testing.T) {
 			t.Parallel()
@@ -874,34 +773,15 @@ func TestIntegracionEsquema(t *testing.T) {
 			compruebaEsquemaCreado(t, directorio)
 		})
 	}
-
-	t.Run("una migración que falla a medias no deja ninguna tabla del esquema", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := rutaEn(directorio)
-		baseDeFuera(t, ruta, "wal", `CREATE TABLE nodes (x)`)
-		antes := estadoDelArbol(t, directorio)
-
-		err := almacenEn(directorio).Apply(t.Context(), elBloque())
-		compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, "grafo: no se pudo aplicar la migraci\xc3\xb3n "+
-			`"0001_grafo.sql" en `+strconv.Quote(ruta)+": "+falloDe(t, err).Causa.Error())
-
-		tablas, versiones := esquemaDe(t, ruta)
-		assert.Equal(t, []string{"nodes"}, tablas, "schema_version, creada antes que nodes, tampoco queda")
-		assert.Empty(t, versiones)
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "una base ya en WAL queda con los mismos bytes")
-		assert.Equal(t, grafoVacio(), leerElGrafo(t, directorio))
-	})
 }
 
 // compruebaEsquemaCreado exige que en el directorio solo esté world.db, en WAL
-// y con las tablas y la versión 1 del esquema.
+// y con las tablas y las versiones 1 y 2 del esquema.
 func compruebaEsquemaCreado(t *testing.T, directorio string) {
 	t.Helper()
 
 	ruta := rutaEn(directorio)
-	assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "ningún auxiliar ni temporal queda")
+	assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "ningún auxiliar queda")
 	assert.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "world.db está en WAL")
 
 	tablas, versiones := esquemaDe(t, ruta)
@@ -909,7 +789,7 @@ func compruebaEsquemaCreado(t *testing.T, directorio string) {
 		assert.Contains(t, tablas, tabla)
 	}
 
-	assert.Equal(t, []int64{1}, versiones)
+	assert.Equal(t, []int64{1, 2}, versiones)
 }
 
 // recuentoDelBloque es lo que graph stats cuenta tras la consulta del bloque.
@@ -986,19 +866,16 @@ func TestIntegracionIdempotencia(t *testing.T) {
 	}
 }
 
-// TestIntegracionObservaciones fija FR-023 por la API: dos observaciones de las
-// mismas claves dejan lo mismo lleguen en el orden que lleguen —fuera de orden,
-// la primera de la antigua y la última de la reciente; con otros datos, los de
-// la última, enteros; y en un empate de instante, la observación ganadora entera,
-// como si hubiera llegado sola—.
+// TestIntegracionObservaciones fija FR-023 y H7.1 FR-076 por la API: dos
+// observaciones de las mismas claves dejan lo mismo lleguen en el orden que
+// lleguen —fuera de orden, la primera de la antigua y la última de la reciente;
+// con otros datos, los de la última, enteros; y en un empate de instante, la de
+// url menor entera, como si hubiera llegado sola—.
 func TestIntegracionObservaciones(t *testing.T) {
 	t.Parallel()
 
 	reobservada := loteDelBOE(urlDeLaNorma, fechaReciente, laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}))
 	reobservada.Vigencia = 0
-
-	sinVigencia := loteDelBOE(urlDeLaNorma, fechaAntigua, laNorma(nil))
-	sinVigencia.Vigencia = 0
 
 	casos := []struct {
 		nombre           string
@@ -1024,21 +901,6 @@ func TestIntegracionObservaciones(t *testing.T) {
 			primero:   loteDelBloque(urlDeLaNorma, fechaEnMadrid),
 			segundo:   loteDelBloque(urlDelBloque, fechaAntigua),
 			comprueba: comoSiLlegaraSolo(loteDelBloque(urlDeLaNorma, fechaEnMadrid)),
-		},
-		{
-			nombre:    "empate: sin vigencia antes que con ella",
-			primero:   sinVigencia,
-			segundo:   loteDelBOE(urlDeLaNorma, fechaAntigua, laNorma(nil)),
-			comprueba: comoSiLlegaraSolo(sinVigencia),
-		},
-		{
-			nombre: "empate: una reobservación con otros datos, los datos canónicos menores",
-			primero: loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "A"})),
-			segundo: loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "B"})),
-			comprueba: comoSiLlegaraSolo(loteDelBOE(urlDeLaNorma, fechaAntigua,
-				laNorma(map[string]any{grafo.DatoIdentificador: "A"}))),
 		},
 	}
 
@@ -1094,13 +956,12 @@ func comoSiLlegaraSolo(lote core.Lote) func(t *testing.T, l leido) {
 	}
 }
 
-// TestIntegracionRechazos fija FR-024 y FR-025 por la API: un lote sin fuente,
-// con un id que cambia de tipo en el grafo o en el propio lote, con un texto
-// cuya huella no es la de su cuerpo o ya está guardada con otro cuerpo, con un
-// extremo que no está ni en el lote ni en el grafo o con una Persona que lleva
-// un documento se rechaza entero, con «inesperado» y un mensaje que nombra
-// world.db y el motivo, y el grafo queda intacto: lo mismo se lee y ningún
-// fichero cambia ni aparece.
+// TestIntegracionRechazos fija FR-024 y FR-025 por la API (H7.1 FR-074,
+// FR-075): un lote sin fuente, con un id que cambia de tipo en el grafo o en el
+// propio lote, con un texto cuya huella no es la de su cuerpo o ya está
+// guardada con otro cuerpo o con una Persona que lleva un documento se rechaza
+// entero, con «inesperado» y un mensaje que nombra world.db y el motivo, y el
+// grafo queda intacto: lo mismo se lee y ningún fichero cambia ni aparece.
 func TestIntegracionRechazos(t *testing.T) {
 	t.Parallel()
 
@@ -1143,11 +1004,6 @@ func TestIntegracionRechazos(t *testing.T) {
 			preparar: conLaHuellaDe2025GuardadaConOtroCuerpo,
 			lote: loteDelBOE(urlDelBloque, fechaReciente, municipio,
 				schema.Texto{Huella: huellaDe(cuerpo2025), Cuerpo: cuerpo2025}),
-		},
-		{
-			nombre: "un extremo que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaReciente, municipio,
-				schema.Arista{Origen: idMunicipio, Relacion: grafo.RelacionPerteneceA, Destino: idAusente}),
 		},
 		{
 			nombre:          "una Persona con un DNI en su id",
@@ -1210,12 +1066,11 @@ func conLaHuellaDe2025GuardadaConOtroCuerpo(t *testing.T, ruta string) {
 
 // TestIntegracionConcurrencia fija SC-009 y FR-014 por la API: ocho almacenes
 // entregan a la vez sobre un directorio que no existe, cada uno la consulta de
-// un órgano distinto de Leganés con su propia fecha. Uno publica world.db y los
-// otros siete encuentran el nombre ocupado y aplican en su sitio: las ocho
-// entregas salen bien, el esquema se crea una sola vez, no queda ningún
-// temporal ni auxiliar y las ocho observaciones quedan, también las ocho del
-// municipio que comparten (la primera, la de la fecha menor; la última, la de
-// la mayor).
+// un órgano distinto de Leganés con su propia fecha. Todos crean world.db en su
+// sitio si no está y aplican en él: las ocho entregas salen bien, el esquema se
+// crea una sola vez, no queda ningún auxiliar y las ocho observaciones quedan,
+// también las ocho del municipio que comparten (la primera, la de la fecha
+// menor; la última, la de la mayor).
 func TestIntegracionConcurrencia(t *testing.T) {
 	t.Parallel()
 
@@ -1241,10 +1096,10 @@ func TestIntegracionConcurrencia(t *testing.T) {
 	}
 
 	assert.Equal(t, []string{"cache"}, nombresEn(t, filepath.Join(raiz, "no-existe")))
-	assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "ningún temporal ni auxiliar queda")
+	assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "ningún auxiliar queda")
 
 	_, versiones := esquemaDe(t, rutaEn(directorio))
-	assert.Equal(t, []int64{1}, versiones, "el esquema se creó una sola vez")
+	assert.Equal(t, []int64{1, 2}, versiones, "el esquema se creó una sola vez")
 
 	l := leerElGrafo(t, directorio)
 	assert.Equal(t, invocaciones+1, l.recuento.Nodos)
@@ -1285,10 +1140,11 @@ func entregarALaVez(t *testing.T, directorio string, lotes []core.Lote) []error 
 	return fallos
 }
 
-// TestIntegracionInutilizables fija FR-010, FR-012 y SC-011 por la API: un
-// world.db que no es una base de datos, que es un directorio, con un esquema
-// posterior o que el proceso no puede leer hace fallar la lectura y la entrega
-// con «inesperado» (código 1) y su mensaje, y no se modifica.
+// TestIntegracionInutilizables fija H7.1 FR-070 y SC-011, y H7 FR-012, por la
+// API: un world.db que no es una base de datos —el vehículo de la regla
+// genérica— o con un esquema posterior hace fallar la lectura y la entrega con
+// «inesperado» (código 1) y su mensaje, que nombra la ruta y, en la regla
+// genérica, la causa. De los bytes de lo que no es una base no se promete nada.
 func TestIntegracionInutilizables(t *testing.T) {
 	t.Parallel()
 
@@ -1296,9 +1152,8 @@ func TestIntegracionInutilizables(t *testing.T) {
 		nombre string
 		// preparar deja world.db en el directorio.
 		preparar func(t *testing.T, ruta string)
-		// alLeer y alEntregar son los mensajes esperados.
-		alLeer     func(ruta string) string
-		alEntregar func(ruta string, fallo *graph.Error) string
+		// mensaje es el esperado al leer y al entregar.
+		mensaje func(ruta string, fallo *graph.Error) string
 	}{
 		{
 			nombre: "lo que no es una base de datos",
@@ -1307,32 +1162,12 @@ func TestIntegracionInutilizables(t *testing.T) {
 
 				escribirFichero(t, ruta, []byte("no soy una base de datos\n"))
 			},
-			alLeer:     mensajeInutilizable,
-			alEntregar: func(ruta string, _ *graph.Error) string { return mensajeInutilizable(ruta) },
+			mensaje: mensajeInutilizable,
 		},
 		{
-			nombre: "un directorio",
-			preparar: func(t *testing.T, ruta string) {
-				t.Helper()
-
-				require.NoError(t, os.Mkdir(ruta, permisosDeDirectorio))
-			},
-			alLeer:     mensajeDeDirectorio,
-			alEntregar: func(ruta string, _ *graph.Error) string { return mensajeDeDirectorio(ruta) },
-		},
-		{
-			nombre:     "un esquema posterior",
-			preparar:   conUnEsquemaPosterior,
-			alLeer:     mensajeDeVersionPosterior,
-			alEntregar: func(ruta string, _ *graph.Error) string { return mensajeDeVersionPosterior(ruta) },
-		},
-		{
-			nombre:   "un world.db que el proceso no puede leer",
-			preparar: sinPermisoDeLectura,
-			alLeer: func(ruta string) string {
-				return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: acceso denegado; no se modifica"
-			},
-			alEntregar: mensajeNoSePuedeEscribir,
+			nombre:   "un esquema posterior",
+			preparar: conUnEsquemaPosterior,
+			mensaje:  func(ruta string, _ *graph.Error) string { return mensajeDeVersionPosterior(ruta) },
 		},
 	}
 
@@ -1343,53 +1178,35 @@ func TestIntegracionInutilizables(t *testing.T) {
 			directorio := t.TempDir()
 			ruta := rutaEn(directorio)
 			caso.preparar(t, ruta)
-			antes := estadoDelArbol(t, directorio)
 
 			lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
 			assert.Nil(t, lectura)
-			compruebaFallo(t, err, operacionLeer, schema.ClaseInesperado, caso.alLeer(ruta))
+			compruebaFallo(t, err, operacionLeer, schema.ClaseInesperado, caso.mensaje(ruta, falloDe(t, err)))
 
 			err = almacenEn(directorio).Apply(t.Context(), loteDelBloque(urlDelBloque, fechaReciente))
-			compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, caso.alEntregar(ruta, falloDe(t, err)))
-
-			assert.Equal(t, antes, estadoDelArbol(t, directorio), "no se modifica")
+			compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, caso.mensaje(ruta, falloDe(t, err)))
 		})
 	}
 }
 
-// mensajeDeDirectorio es el de world.db que es un directorio.
-func mensajeDeDirectorio(ruta string) string {
-	return "grafo: " + strconv.Quote(ruta) + " es un directorio y no una base de datos utilizable; no se modifica"
-}
-
-// conUnEsquemaPosterior deja el world.db del bloque con la versión 2 del
+// conUnEsquemaPosterior deja el world.db del bloque con la versión 3 del
 // esquema registrada, la de un binario posterior.
 func conUnEsquemaPosterior(t *testing.T, ruta string) {
 	t.Helper()
 
 	grafoEntregado(t, filepath.Dir(ruta), elBloque())
-	ejecutar(t, ruta, `INSERT INTO schema_version VALUES (2, '2030-01-01T00:00:00Z')`)
+	ejecutar(t, ruta, `INSERT INTO schema_version VALUES (3, '2030-01-01T00:00:00Z')`)
 	compruebaSinAuxiliares(t, ruta)
 }
 
-// sinPermisoDeLectura deja el world.db del bloque sin ningún permiso y
-// comprueba la premisa: el proceso no puede leerlo.
-func sinPermisoDeLectura(t *testing.T, ruta string) {
-	t.Helper()
-
-	grafoEntregado(t, filepath.Dir(ruta), elBloque())
-	restringir(t, ruta, permisosDenegados)
-
-	_, err := os.Open(filepath.Clean(ruta))
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el proceso no puede leer world.db (¿corre como root?)")
-}
-
 // TestIntegracionPlazoYBloqueo fija FR-014 por la API: mientras otra invocación
-// retiene world.db, la lectura y la entrega esperan por tramos y salen, si el
-// plazo de quien llama termina antes, con «fuente-no-disponible» (código 4) sin
-// agotar la espera propia y, si no, al agotarla, con «inesperado» (código 1)
-// «bloqueada por otra invocación». Con el contexto ya terminado, ninguna de las
-// dos toca nada. En todos los casos el grafo queda como estaba.
+// retiene world.db —en exclusiva para la lectura (H7.1 research.md D22) y con
+// su escritura para la entrega—, la lectura y la entrega esperan por tramos y
+// salen, si el plazo de quien llama termina antes, con «fuente-no-disponible»
+// (código 4) sin agotar la espera propia y, si no, al agotarla, con
+// «inesperado» (código 1) «bloqueada por otra invocación». Con el contexto ya
+// terminado, ninguna de las dos toca nada. En todos los casos el grafo queda
+// como estaba.
 func TestIntegracionPlazoYBloqueo(t *testing.T) {
 	t.Parallel()
 
@@ -1410,9 +1227,8 @@ func TestIntegracionPlazoYBloqueo(t *testing.T) {
 
 			directorio := t.TempDir()
 			ruta := grafoEntregado(t, directorio, elBloque())
-			enRollback(t, ruta)
 			antes := estadoDelArbol(t, directorio)
-			suelta := retener(t, ruta, "exclusive")
+			suelta := retener(t, ruta, enExclusiva)
 
 			inicio := time.Now()
 			lectura, err := graph.Leer(contextoCon(t, caso.plazo), graph.ConDirectorio(directorio))
@@ -1431,7 +1247,7 @@ func TestIntegracionPlazoYBloqueo(t *testing.T) {
 			directorio := t.TempDir()
 			ruta := grafoEntregado(t, directorio, elBloque())
 			antes, leidoAntes := estadoDelArbol(t, directorio), leerElGrafo(t, directorio)
-			suelta := retener(t, ruta, "immediate")
+			suelta := retener(t, ruta, reteniendoLaEscritura)
 
 			inicio := time.Now()
 			err := almacenEn(directorio).Apply(contextoCon(t, caso.plazo), loteDelBloque(urlDelBloque, fechaReciente))
@@ -1480,57 +1296,11 @@ func compruebaLaEspera(t *testing.T, plazo, tardo time.Duration) {
 	assert.Less(t, tardo, esperaPropia, "el plazo llega antes que la espera propia")
 }
 
-// TestIntegracionSinPermisoDeEscritura fija world.db que el proceso no puede
-// escribir (contracts/almacen-world-db.md §3, pasos 3 y 4, §4, paso 4, y §4.1;
-// research.md V46): el que dejó una entrega, en WAL o ya en modo rollback, en
-// 0400, en un directorio en 0700 y sin auxiliares, se lee con los tres verbos y
-// ningún fichero cambia ni aparece; la entrega falla con «no se puede escribir»
-// antes de abrir SQLite, y tampoco cambia ni aparece nada. Con un diario
-// caliente junto a él, la entrega falla igual y no recupera nada: world.db y el
-// diario quedan con los mismos bytes.
-func TestIntegracionSinPermisoDeEscritura(t *testing.T) {
-	t.Parallel()
-
-	for nombre, enModoRollback := range map[string]bool{"en WAL": false, "en modo rollback": true} {
-		t.Run("world.db "+nombre+": se lee y la entrega no toca nada", func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			ruta := grafoEntregado(t, directorio, elBloque())
-
-			if enModoRollback {
-				enRollback(t, ruta)
-			}
-
-			sinPermisoDeEscritura(t, ruta)
-			compruebaLecturaSinCambios(t, directorio, leidoTras(t, elBloque()))
-
-			antes := estadoDelArbol(t, directorio)
-			err := almacenEn(directorio).Apply(t.Context(), loteDelBloque(urlDelBloque, fechaReciente))
-			compruebaNoSePuedeEscribir(t, err, ruta, fs.ErrPermission)
-			assert.Equal(t, antes, estadoDelArbol(t, directorio), "ningún fichero cambia ni aparece")
-		})
-	}
-
-	t.Run("con un diario caliente: la entrega falla y no se recupera nada", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := grafoConUnDiarioCaliente(t, directorio)
-		sinPermisoDeEscritura(t, ruta)
-		antes := estadoDelArbol(t, directorio)
-
-		err := almacenEn(directorio).Apply(t.Context(), loteDelBloque(urlDelBloque, fechaReciente))
-		compruebaNoSePuedeEscribir(t, err, ruta, fs.ErrPermission)
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "world.db y el diario quedan con los mismos bytes")
-	})
-}
-
-// TestIntegracionSinResiduo fija la fila «ausente» de contracts/almacen-world-db.md
-// §4.1 (FR-033) por la API: sobre un directorio de caché que no existe, una
-// entrega que falla —un lote que el grafo vacío rechaza, el contexto ya
-// terminado, un antecesor en el que no se puede crear el directorio— no deja ni
-// world.db, ni ningún world.db-nuevo-*, ni el directorio.
+// TestIntegracionSinResiduo fija por la API lo que deja una entrega que falla
+// antes de crear nada (contracts/almacen-world-db.md §4, pasos 1 y 2; H7 FR-011,
+// FR-033): sobre un directorio de caché que no existe, con el contexto ya
+// terminado o bajo un antecesor en el que no se puede crear el directorio, no
+// deja ni world.db ni el directorio.
 func TestIntegracionSinResiduo(t *testing.T) {
 	t.Parallel()
 
@@ -1540,20 +1310,12 @@ func TestIntegracionSinResiduo(t *testing.T) {
 		// existe; nil, un directorio que no existe bajo otro que tampoco.
 		preparar func(t *testing.T, raiz string) string
 		plazo    time.Duration
-		lote     core.Lote
 		clase    schema.Clase
 		mensaje  func(ruta string, fallo *graph.Error) string
 	}{
 		{
-			nombre:  "un lote que el grafo vacío rechaza",
-			lote:    unaAristaSinExtremos(),
-			clase:   schema.ClaseInesperado,
-			mensaje: mensajeDelLoteRechazado,
-		},
-		{
 			nombre: "el contexto ya terminado",
 			plazo:  plazoTerminado,
-			lote:   elBloque(),
 			clase:  schema.ClaseFuenteNoDisponible,
 			mensaje: func(string, *graph.Error) string {
 				return mensajeDePlazo(operacionEscribir, ficheroDelGrafo)
@@ -1562,7 +1324,6 @@ func TestIntegracionSinResiduo(t *testing.T) {
 		{
 			nombre:   "un antecesor en el que no se puede escribir",
 			preparar: bajoUnDirectorioSinEscritura,
-			lote:     elBloque(),
 			clase:    schema.ClaseInesperado,
 			mensaje: func(ruta string, fallo *graph.Error) string {
 				return "grafo: no se puede escribir world.db en " + strconv.Quote(filepath.Dir(ruta)) + ": " + fallo.Causa.Error()
@@ -1583,7 +1344,7 @@ func TestIntegracionSinResiduo(t *testing.T) {
 
 			antes := estadoDelArbol(t, raiz)
 
-			err := almacenEn(directorio).Apply(contextoCon(t, caso.plazo), caso.lote)
+			err := almacenEn(directorio).Apply(contextoCon(t, caso.plazo), elBloque())
 			compruebaFallo(t, err, operacionEscribir, caso.clase, caso.mensaje(rutaEn(directorio), falloDe(t, err)))
 
 			assert.Equal(t, antes, estadoDelArbol(t, raiz), "no queda nada")
@@ -1605,12 +1366,12 @@ func bajoUnDirectorioSinEscritura(t *testing.T, raiz string) string {
 }
 
 // TestIntegracionLecturaConWAL fija la lectura con auxiliares de WAL
-// (contracts/almacen-world-db.md §3, pasos 4 y 6; research.md V36 D y F): con un
-// -wal huérfano —la copia de los ficheros de un escritor abierto, sin otra
-// conexión— y con un escritor abierto de verdad, los tres verbos ven lo
-// confirmado en el WAL, world.db y el -wal quedan con los mismos bytes y, al
-// terminar, world.db-shm existe: la desviación declarada de FR-004, FR-031 y
-// SC-004, y nada más.
+// (contracts/almacen-world-db.md §3, paso 2; H7.1 FR-077; research.md V36 D y F
+// de H7): con un -wal huérfano —la copia de los ficheros de un escritor
+// abierto, sin otra conexión— y con un escritor abierto de verdad, los tres
+// verbos ven lo confirmado en el WAL, world.db y el -wal quedan con los mismos
+// bytes y, al terminar, world.db-shm existe: la desviación declarada de FR-004,
+// FR-031 y SC-004, y nada más.
 func TestIntegracionLecturaConWAL(t *testing.T) {
 	t.Parallel()
 
@@ -1654,322 +1415,13 @@ func compruebaLecturaConWAL(t *testing.T, directorio string) {
 		nombresEn(t, directorio), "el -shm existe al terminar, y nada más aparece")
 }
 
-// TestIntegracionLecturaConDiario fija la lectura junto a un world.db-journal
-// (contracts/almacen-world-db.md §3, pasos 4 a 6, y §6; research.md V43, V45 c):
-// con uno caliente —la copia de los ficheros de un escritor en rollback con la
-// transacción a medias y páginas volcadas— la lectura sale con «inesperado»
-// «transacción interrumpida sin deshacer» y no cambia nada; con uno frío, uno
-// vacío, uno vacío junto a un world.db de 0 bytes o el de un escritor vivo, se
-// lee lo confirmado y ningún fichero cambia ni aparece.
-func TestIntegracionLecturaConDiario(t *testing.T) {
-	t.Parallel()
-
-	t.Run("caliente: inesperado y nada cambia", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := grafoConUnDiarioCaliente(t, directorio)
-		antes := estadoDelArbol(t, directorio)
-
-		lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
-		assert.Nil(t, lectura)
-		compruebaFallo(t, err, operacionLeer, schema.ClaseInesperado, "grafo: "+strconv.Quote(ruta)+
-			" tiene una transacci\xc3\xb3n interrumpida sin deshacer; no se modifica")
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "world.db y el diario quedan con los mismos bytes")
-	})
-
-	casos := map[string]func(t *testing.T, ruta string) leido{
-		"frío, el que deja persist":               conUnDiarioQueQueda("persist"),
-		"vacío, el que deja truncate":             conUnDiarioQueQueda("truncate"),
-		"vacío, junto a un world.db de 0 bytes":   ceroBytesConUnDiarioVacio,
-		"el de un escritor vivo en modo rollback": conUnEscritorVivo,
-	}
-
-	for nombre, preparar := range casos {
-		t.Run(nombre+": se lee lo confirmado y nada cambia", func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			esperado := preparar(t, rutaEn(directorio))
-			require.FileExists(t, rutaEn(directorio)+sufijoDiario)
-			compruebaLecturaSinCambios(t, directorio, esperado)
-		})
-	}
-}
-
-// conUnDiarioQueQueda deja el world.db del bloque en modo rollback junto al
-// diario que el modo dado conserva al confirmar un cambio: frío —la cabecera a
-// cero— con persist, y vacío con truncate (research.md V45). Devuelve lo que
-// se lee.
-func conUnDiarioQueQueda(diario string) func(t *testing.T, ruta string) leido {
-	return func(t *testing.T, ruta string) leido {
-		t.Helper()
-
-		grafoEntregado(t, filepath.Dir(ruta), elBloque())
-		enRollback(t, ruta)
-
-		base := conexion(t, ruta, tramo)
-		fijarDiario(t, base, diario)
-
-		_, err := base.ExecContext(t.Context(), `PRAGMA user_version = 7`)
-		require.NoError(t, err)
-		require.NoError(t, base.Close())
-
-		cabecera := leerFichero(t, ruta+sufijoDiario)
-		if len(cabecera) > 0 {
-			assert.Zero(t, cabecera[0], "premisa: el diario que queda tiene la cabecera a cero, así que está frío")
-		}
-
-		return leidoTras(t, elBloque())
-	}
-}
-
-// ceroBytesConUnDiarioVacio deja un world.db de 0 bytes junto a un diario vacío:
-// se lee el grafo vacío.
-func ceroBytesConUnDiarioVacio(t *testing.T, ruta string) leido {
-	t.Helper()
-
-	escribirFichero(t, ruta, nil)
-	escribirFichero(t, ruta+sufijoDiario, nil)
-
-	return grafoVacio()
-}
-
-// conUnEscritorVivo deja el world.db del bloque en modo rollback con otra
-// invocación que escribe en él, con su transacción abierta y su diario, hasta
-// el final de la prueba. Se lee lo confirmado, sin lo que escribe.
-func conUnEscritorVivo(t *testing.T, ruta string) leido {
-	t.Helper()
-
-	grafoEntregado(t, filepath.Dir(ruta), elBloque())
-	enRollback(t, ruta)
-
-	escritor := conexion(t, ruta, tramo+"&_txlock=immediate")
-
-	tx, err := escritor.BeginTx(context.WithoutCancel(t.Context()), nil)
-	require.NoError(t, err)
-	t.Cleanup(func() { assert.NoError(t, tx.Rollback()) })
-
-	_, err = tx.ExecContext(t.Context(), sentenciaDeRelleno, 0)
-	require.NoError(t, err)
-
-	return leidoTras(t, elBloque())
-}
-
-// TestIntegracionLecturaConShmSuelto fija la lectura con un world.db-shm suelto,
-// sin -wal, en sus dos orígenes (research.md V48; gates/plan-pendiente.md, motivo
-// 2): el de un lector sobre una base limpia, sin marcos en el índice, queda
-// igual; el de un escritor con marcos en el WAL se reescribe, porque SQLite
-// reconstruye el índice del -wal que falta. En los dos se lee lo que hay en
-// world.db, world.db queda igual y aparece un world.db-wal de 0 bytes: la otra
-// parte de la desviación declarada de FR-004, FR-031 y SC-004.
-func TestIntegracionLecturaConShmSuelto(t *testing.T) {
-	t.Parallel()
-
-	casos := []struct {
-		nombre   string
-		preparar func(t *testing.T, ruta string)
-		// igual dice que el -shm queda con los mismos bytes.
-		igual bool
-	}{
-		{nombre: "el de un lector sobre una base limpia queda igual", preparar: conElShmDeUnLector, igual: true},
-		{
-			nombre: "el de un escritor con marcos se reescribe",
-			preparar: func(t *testing.T, ruta string) {
-				t.Helper()
-
-				copiaConElWAL(t, ruta, elTerritorioEnElWAL, "", sufijoMemoriaCompartida)
-			},
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			ruta := rutaEn(directorio)
-			caso.preparar(t, ruta)
-			require.NoFileExists(t, ruta+sufijoWAL)
-
-			antes := huellasDe(t, ruta, ruta+sufijoMemoriaCompartida)
-
-			assert.Equal(t, leidoTras(t, elBloque()), leerElGrafo(t, directorio), "lo que hay en world.db")
-
-			despues := huellasDe(t, ruta, ruta+sufijoMemoriaCompartida)
-			assert.Equal(t, antes[ruta], despues[ruta], "world.db no cambia")
-
-			if caso.igual {
-				assert.Equal(t, antes[ruta+sufijoMemoriaCompartida], despues[ruta+sufijoMemoriaCompartida])
-			} else {
-				assert.NotEqual(t, antes[ruta+sufijoMemoriaCompartida], despues[ruta+sufijoMemoriaCompartida])
-			}
-
-			assert.Zero(t, tamano(t, ruta+sufijoWAL), "aparece un -wal de 0 bytes")
-		})
-	}
-}
-
-// conElShmDeUnLector deja en la ruta el world.db del bloque, en WAL y cerrado
-// limpio, junto al -shm de una conexión que solo lo ha leído: sin marcos en el
-// índice y sin su -wal.
-func conElShmDeUnLector(t *testing.T, ruta string) {
-	t.Helper()
-
-	origen := grafoEntregado(t, t.TempDir(), elBloque())
-	lector := conexion(t, origen, tramo+"&_pragma=query_only(1)")
-
-	var nodos int
-
-	require.NoError(t, lector.QueryRowContext(t.Context(), `SELECT count(*) FROM nodes`).Scan(&nodos))
-	require.Zero(t, tamano(t, origen+sufijoWAL), "premisa: el WAL del lector no tiene marcos")
-
-	copiarFicheros(t, origen, ruta, "", sufijoMemoriaCompartida)
-	require.NoError(t, lector.Close())
-}
-
-// ceroBytes es un world.db de 0 bytes junto al -wal no vacío de un escritor con
-// marcos (research.md V49): con los permisos dados y, si se pide, también con
-// su -shm.
-type ceroBytes struct {
-	conMemoriaCompartida bool
-	permisos             fs.FileMode
-}
-
-// preparar deja el estado en el directorio y devuelve la ruta de world.db.
-func (c ceroBytes) preparar(t *testing.T, directorio string) string {
-	t.Helper()
-
-	ruta := rutaEn(directorio)
-	escribirFichero(t, ruta, nil)
-	restringir(t, ruta, c.permisos)
-	c.ponerElWAL(t, ruta)
-
-	return ruta
-}
-
-// ponerElWAL pone junto a world.db el -wal de un escritor con marcos y, si se
-// pide, su -shm.
-func (c ceroBytes) ponerElWAL(t *testing.T, ruta string) {
-	t.Helper()
-
-	escritor := rutaEn(t.TempDir())
-	copiaConElWAL(t, escritor, elTerritorioEnElWAL, "", sufijoWAL, sufijoMemoriaCompartida)
-
-	sufijos := []string{sufijoWAL}
-	if c.conMemoriaCompartida {
-		sufijos = append(sufijos, sufijoMemoriaCompartida)
-	}
-
-	copiarFicheros(t, escritor, ruta, sufijos...)
-	require.Positive(t, tamano(t, ruta+sufijoWAL), "premisa: el -wal no está vacío")
-}
-
-// puedeEscribirse dice si el proceso puede escribir el world.db de 0 bytes.
-func (c ceroBytes) puedeEscribirse() bool {
-	return c.permisos&permisoDeEscritura != 0
-}
-
-// TestIntegracionCeroBytesConWAL fija un world.db de 0 bytes junto a un -wal no
-// vacío (contracts/almacen-world-db.md §3, paso 1, §4, paso 4, y §4.1;
-// research.md V49; gates/plan-pendiente.md, motivo 1), sin -shm, con él y con
-// world.db en 0400: los tres verbos leen el grafo vacío sin abrir SQLite y
-// ningún fichero cambia; una entrega con un lote que el grafo vacío rechaza no
-// cambia ningún fichero; y una que falla después —el plazo agotado mientras otra
-// invocación retiene world.db— deja lo que declara §4.1: el -wal descartado,
-// sin llevar nada a world.db, y todo lo demás igual. Con world.db en 0400, la
-// entrega falla antes de abrir SQLite y no cambia nada.
-func TestIntegracionCeroBytesConWAL(t *testing.T) {
-	t.Parallel()
-
-	casos := map[string]ceroBytes{
-		"sin -shm":         {permisos: permisosDeLaCuenta},
-		"con -shm":         {conMemoriaCompartida: true, permisos: permisosDeLaCuenta},
-		"world.db en 0400": {permisos: permisosDeSoloLectura},
-	}
-
-	for nombre, caso := range casos {
-		t.Run(nombre+": se lee el grafo vacío y nada cambia", func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			caso.preparar(t, directorio)
-			compruebaLecturaSinCambios(t, directorio, grafoVacio())
-		})
-
-		t.Run(nombre+": un lote que el grafo vacío rechaza no cambia nada", func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			ruta := caso.preparar(t, directorio)
-			antes := estadoDelArbol(t, directorio)
-
-			err := almacenEn(directorio).Apply(t.Context(), unaAristaSinExtremos())
-
-			mensaje := mensajeNoSePuedeEscribir
-			if caso.puedeEscribirse() {
-				mensaje = mensajeDelLoteRechazado
-			}
-
-			compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, mensaje(ruta, falloDe(t, err)))
-			assert.Equal(t, antes, estadoDelArbol(t, directorio), "tampoco el -wal, que abrir SQLite borraría")
-		})
-
-		t.Run(nombre+": una entrega que falla después deja lo declarado", func(t *testing.T) {
-			t.Parallel()
-
-			compruebaFalloPosteriorSobreCeroBytes(t, caso)
-		})
-	}
-}
-
-// compruebaFalloPosteriorSobreCeroBytes entrega un lote que entra en el grafo
-// vacío sobre un world.db de 0 bytes con un -wal, con un plazo y otra
-// invocación que lee world.db desde antes de que apareciera el -wal. Si el
-// proceso puede escribir world.db, la conexión de la entrega descarta el -wal
-// en su primera lectura y el plazo termina mientras espera a tener world.db en
-// exclusiva para ponerlo en WAL: solo desaparece el -wal. El plazo es el
-// holgado porque esa primera lectura tiene que llegar antes de que termine. Si
-// no puede, la entrega falla antes de abrir SQLite y no cambia nada.
-func compruebaFalloPosteriorSobreCeroBytes(t *testing.T, caso ceroBytes) {
-	t.Helper()
-
-	directorio := t.TempDir()
-	ruta := rutaEn(directorio)
-	escribirFichero(t, ruta, nil)
-	restringir(t, ruta, caso.permisos)
-
-	suelta := retener(t, ruta, "deferred")
-	caso.ponerElWAL(t, ruta)
-	antes := estadoDelArbol(t, directorio)
-
-	err := almacenEn(directorio).Apply(contextoCon(t, plazoHolgado), elBloque())
-	suelta()
-
-	if !caso.puedeEscribirse() {
-		compruebaNoSePuedeEscribir(t, err, ruta, fs.ErrPermission)
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "nada cambia")
-
-		return
-	}
-
-	compruebaFallo(t, err, operacionEscribir, schema.ClaseFuenteNoDisponible,
-		mensajeDePlazo(operacionEscribir, strconv.Quote(ruta)))
-
-	delete(antes, ruta+sufijoWAL)
-	assert.Equal(t, antes, estadoDelArbol(t, directorio), "el -wal se descarta y todo lo demás queda igual")
-	assert.Zero(t, tamano(t, ruta), "no se llevó nada del -wal a world.db")
-}
-
 // TestIntegracionRecuperacionDeclarada fija la fila de la recuperación de
-// contracts/almacen-world-db.md §4.1 (research.md V43, V44): la conexión de una
+// contracts/almacen-world-db.md §4.1 de H7 (research.md V44 de H7): la conexión de una
 // entrega que falla recupera lo que dejó un escritor interrumpido, como
 // cualquier escritor de SQLite. Con un -wal huérfano, el checkpoint del cierre
 // lleva a world.db lo confirmado en él y retira el -wal y el -shm, tanto si el
 // lote se rechaza contra lo guardado como si lo confirmado es un esquema
-// posterior; con un diario caliente sobre una base en modo rollback sin el
-// esquema, la primera lectura lo deshace: world.db vuelve a lo que confirmó la
-// última transacción, sin diario y todavía fuera de WAL.
+// posterior.
 func TestIntegracionRecuperacionDeclarada(t *testing.T) {
 	t.Parallel()
 
@@ -2004,27 +1456,7 @@ func TestIntegracionRecuperacionDeclarada(t *testing.T) {
 		compruebaRecuperado(t, ruta, antes)
 
 		_, versiones := esquemaDe(t, ruta)
-		assert.Equal(t, []int64{1, 2}, versiones, "la versión 2 está ahora en world.db")
-	})
-
-	t.Run("un diario caliente sobre una base sin el esquema y un lote que el grafo vacío rechaza", func(t *testing.T) {
-		t.Parallel()
-
-		origen := rutaEn(t.TempDir())
-		baseDeFuera(t, origen, "delete", `CREATE TABLE ajena (clave INTEGER, valor BLOB);
-			INSERT INTO ajena VALUES (1, x'01'), (2, x'02'), (3, x'03')`)
-		confirmado := leerFichero(t, origen)
-
-		directorio := t.TempDir()
-		ruta := rutaEn(directorio)
-		copiaConUnDiarioCaliente(t, origen, ruta, `INSERT INTO ajena VALUES (100 + ?, zeroblob(4000))`)
-
-		err := almacenEn(directorio).Apply(t.Context(), unaAristaSinExtremos())
-		compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, mensajeDelLoteRechazado(ruta, falloDe(t, err)))
-
-		assert.Equal(t, []string{ficheroDelGrafo}, nombresEn(t, directorio), "el diario ya no existe")
-		assert.Equal(t, confirmado, leerFichero(t, ruta), "world.db vuelve a lo que confirmó la última transacción")
-		assert.Equal(t, []byte{1, 1}, leerFichero(t, ruta)[18:20], "y sigue fuera de WAL")
+		assert.Equal(t, []int64{1, 2, 3}, versiones, "la versión 3 está ahora en world.db")
 	})
 }
 
@@ -2036,4 +1468,83 @@ func compruebaRecuperado(t *testing.T, ruta, antes string) {
 	assert.NoFileExists(t, ruta+sufijoWAL)
 	assert.NoFileExists(t, ruta+sufijoMemoriaCompartida)
 	assert.NotEqual(t, antes, huellaDelFichero(t, ruta), "lo confirmado en el WAL está ahora en world.db")
+}
+
+// TestIntegracionGrafoDeH7 fija H7.1 FR-026 y SC-012 (contracts/arnes-e2e.md
+// §4 de H7.1): el world.db que dejaba H7 con dos redacciones del bloque a21
+// —sin la tabla lecturas ni la versión 2 del esquema— se lee sin migrar, con el
+// mismo recuento y sin ningún version-obsoleta, porque el bloque cuenta con una
+// sola lectura, la de su redacción observada la última; una entrega que vuelve
+// a ver esa redacción lo pasa a la versión 2 y sigue sin dar ninguno; y la
+// lectura siguiente, que ve una redacción posterior, da uno sobre la que vio
+// la anterior.
+func TestIntegracionGrafoDeH7(t *testing.T) {
+	t.Parallel()
+
+	// Las fechas de consulta de las lecturas de A, de B y de C.
+	const (
+		fechaDeA = "2026-09-28T12:00:00Z"
+		fechaDeB = "2026-09-29T12:00:00Z"
+		fechaDeC = "2026-09-30T12:00:00Z"
+	)
+
+	leidaA := loteDeLaRedaccion(urlDelBloque, fechaDeA, "20161002", cuerpo2016)
+	leidaB := loteDeLaRedaccion(urlDelBloque, fechaDeB, "20250101", cuerpo2025)
+	leidaC := loteDeLaRedaccion(urlDelBloque, fechaDeC, "20260101", cuerpo2026)
+
+	directorio := t.TempDir()
+	ruta := grafoEntregado(t, directorio, leidaA, leidaB)
+	recuento := leerElGrafo(t, directorio).recuento
+	require.Len(t, versionesObsoletasEn(t, directorio), 1, "premisa: con sus lecturas, B supera a A")
+
+	comoLoDejabaH7(t, ruta)
+	assert.Equal(t, recuento, leerElGrafo(t, directorio).recuento, "el recuento de H7 no cambia")
+	assert.Empty(t, versionesObsoletasEn(t, directorio), "sin lecturas, el bloque cuenta con una sola")
+
+	tablas, versiones := esquemaDe(t, ruta)
+	assert.NotContains(t, tablas, "lecturas", "leer no migra")
+	assert.Equal(t, []int64{1}, versiones, "leer no migra")
+
+	entregar(t, directorio, leidaB)
+	assert.Empty(t, versionesObsoletasEn(t, directorio), "la primera lectura ve la redacción observada la última")
+
+	entregar(t, directorio, leidaC)
+	assert.Equal(t, []grafo.Hallazgo{{
+		Clase: grafo.ClaseVersionObsoleta,
+		ID:    laVersion("20250101", cuerpo2025),
+		Explicacion: "La versi\xc3\xb3n de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20250101 est\xc3\xa1 " +
+			"superada por la de fecha de vigencia 20260101, observada en " + urlDelBloque + " el " + fechaDeC + ".",
+		Procedencia:           grafo.Procedencia{Fuente: fuenteDelBOE, URL: urlDelBloque, FechaConsulta: fechaDeC},
+		FechaVigencia:         "20250101",
+		FechaVigenciaReciente: "20260101",
+	}}, versionesObsoletasEn(t, directorio), "la lectura de C supera a la de B")
+
+	compruebaEsquemaCreado(t, directorio)
+}
+
+// comoLoDejabaH7 devuelve el world.db de la ruta a lo que dejaba H7: sin la
+// tabla lecturas ni la fila de la versión 2 en schema_version, con el resto
+// como estaba, y sin ningún auxiliar.
+func comoLoDejabaH7(t *testing.T, ruta string) {
+	t.Helper()
+
+	ejecutar(t, ruta, `DROP TABLE lecturas`)
+	ejecutar(t, ruta, `DELETE FROM schema_version WHERE version = 2`)
+	compruebaSinAuxiliares(t, ruta)
+}
+
+// versionesObsoletasEn son los hallazgos version-obsoleta de graph check sobre
+// el world.db del directorio, leído con la API como lo lee check.
+func versionesObsoletasEn(t *testing.T, directorio string) []grafo.Hallazgo {
+	t.Helper()
+
+	ahora, err := time.Parse(time.RFC3339, fechaReciente)
+	require.NoError(t, err)
+
+	comprobacion, err := grafo.Comprobar(leerElGrafo(t, directorio).instantanea, grafo.Ambito{}, ahora)
+	require.NoError(t, err)
+
+	return slices.DeleteFunc(comprobacion.Hallazgos, func(hallazgo grafo.Hallazgo) bool {
+		return hallazgo.Clase != grafo.ClaseVersionObsoleta
+	})
 }

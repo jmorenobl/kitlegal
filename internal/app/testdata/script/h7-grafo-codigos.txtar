@@ -2,9 +2,9 @@
 # poblado; 3 cuando show no encuentra el id; 2 con argumentos de más o de
 # menos, con un id vacío, formado solo por espacio en blanco o con un carácter
 # de control, y con una ubicación de la caché que no da un directorio, con y
-# sin --no-graph; y 1 con un world.db que no es una base de datos o que es un
-# directorio, sin tocar el fichero. Un world.db de 0 bytes se lee como un grafo
-# vacío sin modificarlo, y la primera entrega crea en él el esquema sin aviso.
+# sin --no-graph; y 1 con un world.db que no es una base de datos. Un world.db
+# de 0 bytes se lee como un grafo vacío sin modificarlo, y la primera entrega
+# crea en él el esquema sin aviso.
 #
 # Cubre: US4.3, US4.4, US6.4 · FR-004, FR-010, FR-011, FR-013, FR-031, FR-052,
 # FR-054, FR-060, FR-094 · SC-011.
@@ -29,7 +29,7 @@ exec kitlegal graph stats --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
 ! stderr .
 exec kitlegal graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 3'
 stdout '\A\{"ok":false,.*"data":\{"clase":"no-encontrado","mensaje":"[^\n]*ine:28074[^\n]*"\}\}\n\z'
@@ -49,7 +49,7 @@ exec kitlegal graph stats --json
 stdout '"data":\{"nodos":2,"aristas":1,"textos":0,'
 ! stderr .
 exec kitlegal graph check --json
-stdout '"data":\[\]\}\n\z'
+stdout '"data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 
 # Un id que no está: 3, clase no-encontrado, y el mensaje lo nombra.
@@ -158,43 +158,21 @@ env KITLEGAL_CACHE_DIR=$WORK/cache
 
 # --- world.db que no es una base de datos: 1 en los tres verbos (US6.4, FR-010, SC-011) ---
 #
-# Clase inesperado, un mensaje que nombra la ruta de world.db, y el fichero con
-# los mismos bytes y sin ficheros auxiliares.
+# Clase inesperado y un mensaje que nombra la ruta de world.db.
 env KITLEGAL_CACHE_DIR=$WORK/inutil
 mkdir inutil
 cp no-es-una-base inutil/world.db
-[unix] exec cksum inutil/world.db
-[unix] cp stdout no-base.txt
 
 exec sh -c 'kitlegal graph stats --json; test $? -eq 1'
 stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-stderr 'grafo: ".*world\.db" no es una base de datos utilizable; no se modifica'
+stderr 'grafo: ".*world\.db" no es una base de datos utilizable'
 exec sh -c 'kitlegal graph check --json; test $? -eq 1'
 stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-stderr 'grafo: ".*world\.db" no es una base de datos utilizable; no se modifica'
+stderr 'grafo: ".*world\.db" no es una base de datos utilizable'
 exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 1'
 stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-stderr 'grafo: ".*world\.db" no es una base de datos utilizable; no se modifica'
+stderr 'grafo: ".*world\.db" no es una base de datos utilizable'
 exec sh -c 'kitlegal graph stats --no-graph; test $? -eq 1'
-
-[unix] exec cksum inutil/world.db
-[unix] cmp stdout no-base.txt
-! exists inutil/world.db-wal
-! exists inutil/world.db-shm
-! exists inutil/world.db-journal
-
-# --- world.db que es un directorio: 1 en los tres verbos (US6.4, FR-010, SC-011) ---
-rm inutil/world.db
-mkdir inutil/world.db
-exec sh -c 'kitlegal graph stats --json; test $? -eq 1'
-stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-stderr 'grafo: .*world\.db'
-exec sh -c 'kitlegal graph check --json; test $? -eq 1'
-stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 1'
-stdout '"data":\{"clase":"inesperado","mensaje":"grafo: [^\n]*world\.db[^\n]*"\}\}\n\z'
-exists inutil/world.db
-! exists inutil/world.db-wal
 
 # --- world.db de 0 bytes: un grafo vacío, sin modificarlo (FR-004, FR-013) ---
 rm inutil/world.db
@@ -206,7 +184,7 @@ exec kitlegal graph stats --json
 stdout '"data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
 ! stderr .
 exec kitlegal graph check --json
-stdout '"data":\[\]\}\n\z'
+stdout '"data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 3'
 stdout '"data":\{"clase":"no-encontrado",'

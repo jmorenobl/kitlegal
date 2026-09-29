@@ -17,20 +17,20 @@ import (
 // data-model §4.1; research.md D13).
 //
 // Dos fechas se comparan como instantes: `…T12:00:00+02:00` y `…T10:00:00Z`
-// son el mismo. Entre dos observaciones del mismo instante decide el desempate
-// ≺, comparando bytes: la url menor; después, la fuente menor; después, el
-// texto menor de la fecha; después, sin vigencia antes que con ella, y entre
-// dos vigencias la menor; y en un nodo, después, los datos canónicos menores.
-// La primera es la de menor instante y, a igualdad, la menor por url, fuente y
-// texto de la fecha; la última, la de mayor instante y, a igualdad, la menor
-// por ≺; la de un texto, como la primera.
+// son el mismo. Entre dos observaciones del mismo instante decide la url
+// menor, comparando bytes; con la misma url, se queda la guardada (H7.1
+// FR-076). La primera es la de menor instante y la última, la de mayor; a
+// igualdad de instante, las dos son la de url menor; la de un texto, como la
+// primera.
 //
-// Así cada fusión elige, entre las dos observaciones de cada extremo, siempre
-// la misma, lleguen en el orden que lleguen: es conmutativa, asociativa e
-// idempotente, y el resultado no depende del orden de llegada ni de repetir un
-// lote (FR-022). La primera nunca avanza, la última nunca retrocede y una
-// observación idéntica a la guardada no cambia nada, así que quien guarda
-// compara la fusión con lo guardado y escribe solo si cambia.
+// Dos observaciones del mismo instante y la misma url son, en lo que producen
+// los emisores, la misma: la de un lote, cuya procedencia comparten todas sus
+// operaciones (research.md V29). Entre las que se producen, cada fusión elige
+// siempre la misma, lleguen en el orden que lleguen, y el resultado no depende
+// del orden de llegada ni de repetir un lote (FR-022). La primera nunca avanza,
+// la última nunca retrocede y una observación idéntica a la guardada no cambia
+// nada, así que quien guarda compara la fusión con lo guardado y escribe solo
+// si cambia.
 
 // RegistroDeNodo es lo que el grafo del mundo guarda de un nodo: su id, su
 // tipo, su primera y su última observación, y los datos identificativos y la
@@ -142,9 +142,9 @@ func FusionarArista(guardada, llegada RegistroDeArista) (RegistroDeArista, error
 // FusionarTexto junta lo que el grafo guarda de un texto con lo que llega de
 // él en un lote: un solo texto por huella, con el mismo cuerpo y la procedencia
 // de la observación más antigua de las dos (FR-023). La procedencia solo cambia
-// si la que llega es de un instante estrictamente anterior, o del mismo y gana
-// el desempate por url, fuente y texto de la fecha. Devuelve el registro
-// fusionado, que es el guardado si lo que llega no cambia nada.
+// si la que llega es de un instante estrictamente anterior, o del mismo y de
+// url menor. Devuelve el registro fusionado, que es el guardado si lo que llega
+// no cambia nada.
 //
 // Otro cuerpo con la misma huella rechaza el lote con un *Rechazo que nombra
 // el texto que llega por su huella y no repite ningún cuerpo (FR-024). Dos
@@ -226,8 +226,8 @@ func (r RegistroDeArista) terna() schema.Arista {
 }
 
 // fusionarHistorias elige, de las dos historias, la primera que es primera y
-// la última que es última. A igualdad en todo, las dos son la misma
-// observación y se queda la guardada.
+// la última que es última. A igualdad de instante y de url, se queda la
+// guardada.
 func fusionarHistorias(guardada, llegada historia) (historia, error) {
 	ordenDeLaPrimera, err := compararPrimeras(llegada.primera, guardada.primera)
 	if err != nil {
@@ -251,8 +251,7 @@ func fusionarHistorias(guardada, llegada historia) (historia, error) {
 }
 
 // compararPrimeras es negativo si a es primera antes que b: de menor instante
-// o, del mismo, menor por url, fuente y texto de la fecha. Cero solo si son la
-// misma procedencia.
+// o, del mismo, de url menor. Cero si son del mismo instante y la misma url.
 func compararPrimeras(a, b Procedencia) (int, error) {
 	instanteA, instanteB, err := instantes(a, b)
 	if err != nil {
@@ -263,32 +262,20 @@ func compararPrimeras(a, b Procedencia) (int, error) {
 }
 
 // compararUltimas es negativo si a es última antes que b: de mayor instante o,
-// del mismo, menor por el desempate ≺ —url, fuente, texto de la fecha,
-// vigencia y datos canónicos—. La vigencia cero, que es no haberla declarado,
-// va antes que cualquier otra, y entre dos, la menor. Cero solo si son la
-// misma observación.
+// del mismo, de url menor. Cero si son del mismo instante y la misma url.
 func compararUltimas(a, b ultima) (int, error) {
 	instanteA, instanteB, err := instantes(a.procedencia, b.procedencia)
 	if err != nil {
 		return 0, err
 	}
 
-	return cmp.Or(
-		instanteB.Compare(instanteA),
-		desempatar(a.procedencia, b.procedencia),
-		cmp.Compare(a.vigencia, b.vigencia),
-		strings.Compare(a.datos, b.datos),
-	), nil
+	return cmp.Or(instanteB.Compare(instanteA), desempatar(a.procedencia, b.procedencia)), nil
 }
 
-// desempatar ordena dos procedencias del mismo instante comparando bytes: por
-// url, después por fuente y después por el texto de la fecha.
+// desempatar ordena dos procedencias del mismo instante por su url, comparando
+// bytes (H7.1 FR-076).
 func desempatar(a, b Procedencia) int {
-	return cmp.Or(
-		strings.Compare(a.URL, b.URL),
-		strings.Compare(a.Fuente, b.Fuente),
-		strings.Compare(a.FechaConsulta, b.FechaConsulta),
-	)
+	return strings.Compare(a.URL, b.URL)
 }
 
 // instantes son los de las fechas de consulta de dos procedencias.

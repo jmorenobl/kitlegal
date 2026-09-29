@@ -55,8 +55,15 @@ func migracionesEmbebidas() ([]migracion, error) {
 	return lista, nil
 }
 
+// versionDeLasLecturas es la versión del esquema que trae la tabla lecturas,
+// 0002_lecturas.sql (H7.1 data-model §1): una base de la 1, la que escribe H7,
+// no la tiene, y se lee sin ella hasta que una entrega la migra (H7.1
+// research.md D4).
+const versionDeLasLecturas int64 = 2
+
 // versionConocida es la versión del esquema que este binario sabe construir y
-// leer: el número de migraciones que trae dentro. H7 introduce la 1 (FR-013).
+// leer: el número de migraciones que trae dentro. H7 introduce la 1 (FR-013) y
+// H7.1, la 2.
 func versionConocida() (int64, error) {
 	lista, err := migracionesEmbebidas()
 	if err != nil {
@@ -107,8 +114,10 @@ func versionRegistrada(ctx context.Context, base consultante) (int64, error) {
 // quien la pidió la deshace y no queda ningún esquema incompleto— (FR-013;
 // contracts/almacen-world-db.md §4, pasos 3.4 y 5).
 //
-// Cada migración pendiente se ejecuta y se registra en schema_version con el
-// instante en UTC y RFC 3339. Sobre la versión conocida no ejecuta nada; un
+// Cada migración pendiente —todas sobre una base sin esquema; solo la 2 sobre
+// la 1 que escribe H7 (H7.1 contracts/almacen-world-db.md §2)— se ejecuta y se
+// registra en schema_version con el instante en UTC y RFC 3339, el mismo para
+// todas las de una transacción. Sobre la versión conocida no ejecuta nada; un
 // esquema posterior no se toca (FR-012); una versión negativa no es de ningún
 // esquema y el fichero no es una base utilizable.
 func migrar(ctx context.Context, tx *sql.Tx, ruta string) error {

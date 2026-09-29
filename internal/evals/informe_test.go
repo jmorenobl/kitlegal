@@ -85,22 +85,33 @@ type informeLeido struct {
 }
 
 // informeCrudo es lo que se lee de informe.json sin convertirlo a un tipo de Go,
-// para distinguir null de una lista vacía: los motivos de la raíz y, de cada
-// sesión, sus avisos encontrados y ausentes y, de cada una de sus invocaciones, su
-// código y sus conexiones.
+// para distinguir null de una lista vacía: los motivos de la raíz, las formas
+// exigidas de cada serie y, de cada sesión, sus avisos encontrados y ausentes y, de
+// cada una de sus invocaciones, su código y sus conexiones.
 type informeCrudo struct {
 	Motivos jsontext.Value   `json:"motivos"`
+	Tasas   []tasaCruda      `json:"tasas"`
 	Evals   []resultadoCrudo `json:"evals"`
 }
 
+// tasaCruda es una serie de informe.json con sus formas exigidas tal como están
+// escritas.
+type tasaCruda struct {
+	Eval   string         `json:"eval"`
+	Modelo string         `json:"modelo"`
+	Formas jsontext.Value `json:"formas"`
+}
+
 // resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
-// prohibidos ejecutados, sus avisos, su territorio y sus invocaciones tal como
-// están escritos.
+// prohibidos ejecutados, sus avisos, sus hallazgos, su territorio y sus
+// invocaciones tal como están escritos.
 type resultadoCrudo struct {
 	Sesion                       string            `json:"sesion"`
 	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
 	AvisosEncontrados            jsontext.Value    `json:"avisos_encontrados"`
 	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
+	HallazgosEncontrados         jsontext.Value    `json:"hallazgos_encontrados"`
+	HallazgosAusentes            jsontext.Value    `json:"hallazgos_ausentes"`
 	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
 	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
 	Invocaciones                 []invocacionCruda `json:"invocaciones"`
@@ -108,13 +119,24 @@ type resultadoCrudo struct {
 
 // encabezadosDeLaTablaDeSesiones son los de la tabla de las sesiones de
 // informe.md, con los comandos prohibidos ejecutados junto a los comandos
-// ausentes (contrato evals-y-skill §2 de H7), los avisos junto a las citas y el
-// territorio junto a los avisos (contrato de evals §2 de H6).
+// ausentes (contrato evals-y-skill §2 de H7), los avisos junto a las citas, los
+// hallazgos junto a los avisos (contrato evals-y-skill §6 de H7.1) y el
+// territorio detrás (contrato de evals §2 de H6).
 var encabezadosDeLaTablaDeSesiones = []string{
 	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 	"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
-	"Territorio encontrado", "Territorio ausente", "Resultado",
+	"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
 }
+
+// encabezadosDeLaTablaDeTasas son los de la tabla de las series de informe.md,
+// con las formas exigidas junto a la tasa (contrato evals-y-skill §6 de H7.1).
+var encabezadosDeLaTablaDeTasas = []string{
+	"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+}
+
+// sinFormasExigidas son las formas exigidas de la serie de una eval que no espera
+// hallazgos: una lista vacía, no nil, igual que la que se lee de informe.json.
+var sinFormasExigidas = []string{}
 
 // invocacionCruda es una invocación de informe.json con su código y sus
 // conexiones tal como están escritos.
@@ -439,9 +461,10 @@ func TestInformeConAvisos(t *testing.T) {
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno",
-					"no pasa"),
+					"ninguno", "ninguno", "no pasa"),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
+					"pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
 				"la sección de la sesión publica la respuesta con la forma fija")
@@ -452,10 +475,20 @@ func TestInformeConAvisos(t *testing.T) {
 // copiaDelCasoAprobadoConAvisos copia el caso aprobado de TestInforme en un
 // directorio temporal del test y devuelve su ruta. En la copia, la eval del art. 21
 // espera derogada y vigencia-agotada, y a la respuesta de su sesión se le antepone
-// la forma fija de derogada y, con sinLaCita, se le quita la cita. La respuesta
+// la forma fija de derogada y, con sinLaCita, se le quita la cita.
+func copiaDelCasoAprobadoConAvisos(t *testing.T, sinLaCita bool) string {
+	t.Helper()
+
+	return copiaDelCasoAprobadoConLaEval01(t, avisosDeLaEval01, prefijoDeDerogada, sinLaCita)
+}
+
+// copiaDelCasoAprobadoConLaEval01 copia el caso aprobado de TestInforme en un
+// directorio temporal del test y devuelve su ruta. En la copia, a la eval del
+// art. 21 se le añade al final lo dado, a la respuesta de su sesión se le antepone
+// el prefijo, si no es vacío, y, con sinLaCita, se le quita la cita. La respuesta
 // está dos veces en el transcript, en el mensaje del asistente y en el result, y
 // cada cambio exige exactamente esas dos sustituciones (research V20).
-func copiaDelCasoAprobadoConAvisos(t *testing.T, sinLaCita bool) string {
+func copiaDelCasoAprobadoConLaEval01(t *testing.T, anadidoALaEval, prefijo string, sinLaCita bool) string {
 	t.Helper()
 
 	copia := t.TempDir()
@@ -464,11 +497,15 @@ func copiaDelCasoAprobadoConAvisos(t *testing.T, sinLaCita bool) string {
 	evals := filepath.Join(copia, "evals")
 	eval := contenidoDeLaSesion(t, evals, ficheroDeLaEval01)
 	require.True(t, strings.HasSuffix(eval, "\n"), "la eval %s termina en un salto de línea", ficheroDeLaEval01)
-	escribirEnLaCopia(t, evals, ficheroDeLaEval01, eval+avisosDeLaEval01)
+	escribirEnLaCopia(t, evals, ficheroDeLaEval01, eval+anadidoALaEval)
 
 	sesion := filepath.Join(copia, "sesiones", sesionDelArticulo21)
-	transcript := sustituirDosVeces(t, contenidoDeLaSesion(t, sesion, "sesion.jsonl"),
-		cadenaJSON(t, respuestaConCita), cadenaJSON(t, prefijoDeDerogada+respuestaConCita))
+	transcript := contenidoDeLaSesion(t, sesion, "sesion.jsonl")
+
+	if prefijo != "" {
+		transcript = sustituirDosVeces(t, transcript, cadenaJSON(t, respuestaConCita),
+			cadenaJSON(t, prefijo+respuestaConCita))
+	}
 
 	if sinLaCita {
 		transcript = sustituirDosVeces(t, transcript, citaDeLaRespuesta, "")
@@ -543,9 +580,10 @@ func TestInformeConProhibidos(t *testing.T) {
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "no pasa"),
+			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
+			"no pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
 		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones"))
@@ -559,13 +597,7 @@ func TestInformeConProhibidos(t *testing.T) {
 func copiaDelCasoAprobadoConProhibido(t *testing.T) string {
 	t.Helper()
 
-	copia := t.TempDir()
-	require.NoError(t, os.CopyFS(copia, os.DirFS(filepath.Join(casosDeInforme, casoAprobado))))
-
-	evals := filepath.Join(copia, "evals")
-	eval := contenidoDeLaSesion(t, evals, ficheroDeLaEval01)
-	require.True(t, strings.HasSuffix(eval, "\n"), "la eval %s termina en un salto de línea", ficheroDeLaEval01)
-	escribirEnLaCopia(t, evals, ficheroDeLaEval01, eval+prohibidoDeLaEval01)
+	copia := copiaDelCasoAprobadoConLaEval01(t, prohibidoDeLaEval01, "", false)
 
 	traza := filepath.Join(copia, "sesiones", sesionDelArticulo21, directorioDeLaTraza)
 	deClaude := contenidoDeLaSesion(t, traza, "t.1000")
@@ -578,6 +610,160 @@ func copiaDelCasoAprobadoConProhibido(t *testing.T) string {
 	escribirEnLaCopia(t, traza, "t.3000", trazaDeGraphShow)
 
 	return copia
+}
+
+// Lo que TestInformeConHallazgos cambia en su copia del caso aprobado y la forma
+// que espera leer en el informe (contrato evals-y-skill §6 de H7.1; research D14).
+const (
+	// hallazgosDeLaEval01 es lo que se añade al final de la eval del art. 21: el
+	// hallazgo version-obsoleta, cuya forma fija tiene que llevar la respuesta.
+	hallazgosDeLaEval01 = "hallazgos:\n  - version-obsoleta\n"
+
+	// formaDeVersionObsoleta es la forma fija que el informe declara que exige esa
+	// eval: la marca, un espacio, la etiqueta del binario y los dos puntos.
+	formaDeVersionObsoleta = "⚠ REDACCIÓN MODIFICADA:"
+)
+
+// TestInformeConHallazgos fija lo que EscribirInforme publica de los hallazgos
+// (contrato evals-y-skill §6 de H7.1; research D14; FR-055, SC-006): sobre una
+// copia del caso aprobado en la que la eval del art. 21 espera version-obsoleta,
+// la serie de esa eval declara en formas la forma fija literal que exige junto a
+// su tasa, y la de la eval sin hallazgos, una lista vacía, no null; cada sesión
+// reparte el hallazgo entre encontrados y ausentes según lleve o no la forma, con
+// el motivo del ausente en la sesión y en la raíz; e informe.md pone la forma en
+// la columna «Formas exigidas» de la tabla de las series, junto a la tasa, y los
+// hallazgos en «Hallazgos encontrados» y «Hallazgos ausentes», en la de las
+// sesiones, detrás de los avisos. Nada se escribe bajo testdata/.
+func TestInformeConHallazgos(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// prefijo es lo que la copia antepone a la respuesta de la sesión del
+		// art. 21: el traslado del cambio con su forma fija, o nada.
+		prefijo string
+
+		// pasa dice si la sesión del art. 21 pasa, y con ella su serie; tasa y
+		// umbral son las celdas de esa serie en la tabla de las series; y
+		// encontrados, ausentes y resultado, las de esa sesión en la de las
+		// sesiones.
+		pasa        bool
+		tasa        string
+		umbral      string
+		encontrados string
+		ausentes    string
+		resultado   string
+	}{
+		{
+			nombre:      "forma-encontrada",
+			prefijo:     trasladoDelCambio + " ",
+			pasa:        true,
+			tasa:        "1 de 1",
+			umbral:      "llega al umbral",
+			encontrados: versionObsoleta,
+			ausentes:    "ninguno",
+			resultado:   "pasa",
+		},
+		{
+			nombre:      "forma-ausente",
+			tasa:        "0 de 1",
+			umbral:      "no llega al umbral",
+			encontrados: "ninguno",
+			ausentes:    versionObsoleta,
+			resultado:   "no pasa",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copia := copiaDelCasoAprobadoConLaEval01(t, hallazgosDeLaEval01, caso.prefijo, false)
+
+			entradas := entradasDelCaso(casoAprobado, t.TempDir())
+			entradas.Evals = filepath.Join(copia, "evals")
+			entradas.Sesiones = filepath.Join(copia, "sesiones")
+
+			informe, err := EscribirInforme(entradas)
+			require.NoError(t, err)
+
+			leido := leerInformeEscrito(t, entradas.Destino, informe)
+			leido.caso = copia
+
+			pasan := 0
+			if caso.pasa {
+				pasan = 1
+			}
+
+			assert.Equal(t, TasaDelInforme{
+				Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+				Formas: []string{formaDeVersionObsoleta}, Sesiones: 1, Pasan: pasan, Pasa: caso.pasa,
+			}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide))
+			assert.Equal(t, sinFormasExigidas,
+				tasaDeLaSerie(t, leido.informe, ficheroDeNoActivacion, modeloQueDecide).Formas)
+			assert.Equal(t, map[string]string{
+				ficheroDeLaEval01:     `["` + formaDeVersionObsoleta + `"]`,
+				ficheroDeNoActivacion: "[]",
+			}, formasEscritas(t, leido), "formas de cada serie tal como está escrita en informe.json")
+
+			resultado := resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21)
+			assert.Equal(t, caso.pasa, resultado.Pasa)
+
+			delArticulo21 := resultadoEscrito(t, leido, sesionDelArticulo21)
+			deNoActivacion := resultadoEscrito(t, leido, sesionDeNoActivacion)
+			assert.Equal(t, "[]", string(deNoActivacion.HallazgosEncontrados))
+			assert.Equal(t, "[]", string(deNoActivacion.HallazgosAusentes))
+
+			if caso.pasa {
+				assert.Equal(t, `["`+versionObsoleta+`"]`, compacto(t, delArticulo21.HallazgosEncontrados))
+				assert.Equal(t, "[]", string(delArticulo21.HallazgosAusentes))
+				assert.Empty(t, resultado.Motivos)
+				exigirMotivosDeLaRaiz(t, leido)
+				assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+			} else {
+				assert.Equal(t, "[]", string(delArticulo21.HallazgosEncontrados))
+				assert.Equal(t, `["`+versionObsoleta+`"]`, compacto(t, delArticulo21.HallazgosAusentes))
+				assert.Equal(t, []string{motivoDeVersionObsoleta}, resultado.Motivos)
+				exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+					sesionDelArticulo21+": "+motivoDeVersionObsoleta)
+				assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+			}
+
+			exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+				filaDeTabla(encabezadosDeLaTablaDeTasas...),
+				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeTasas))...),
+				filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", formaDeVersionObsoleta, caso.tasa,
+					caso.umbral),
+				filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1",
+					"llega al umbral"))
+
+			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
+				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
+				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", caso.encontrados, caso.ausentes, "ninguno",
+					"ninguno", caso.resultado),
+				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
+					"pasa"))
+
+			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
+				caso.prefijo+respuestaConCita, "la sección de la sesión publica la respuesta")
+		})
+	}
+}
+
+// formasEscritas son, por eval, las formas exigidas de cada serie tal como están
+// escritas en informe.json, sin blancos.
+func formasEscritas(t *testing.T, leido informeLeido) map[string]string {
+	t.Helper()
+
+	formas := map[string]string{}
+	for _, tasa := range leido.crudo.Tasas {
+		formas[tasa.Eval] = compacto(t, tasa.Formas)
+	}
+
+	return formas
 }
 
 // escribirEnLaCopia reescribe un fichero de la copia de un caso con el contenido
@@ -639,9 +825,10 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	assert.Contains(t, seccion, contenidoDeLaSesion(t, directorioDeSesion(leido, sesionDelArticulo21), "pregunta.txt"))
 	assert.Contains(t, seccion, respuestaConCita)
 
-	// Ninguna de las dos evals del caso prohíbe comandos ni espera avisos ni
-	// territorio: cada sesión los escribe como listas vacías, no como null (FR-040
-	// de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2 de H7).
+	// Ninguna de las dos evals del caso prohíbe comandos ni espera avisos,
+	// hallazgos ni territorio: cada sesión los escribe como listas vacías, no como
+	// null (FR-040 de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2
+	// de H7 y §6 de H7.1).
 	require.Len(t, leido.crudo.Evals, 2, "informe.json tiene las dos sesiones del caso")
 
 	for _, resultado := range leido.crudo.Evals {
@@ -651,22 +838,43 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 			"avisos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.AvisosAusentes),
 			"avisos_ausentes de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.HallazgosEncontrados),
+			"hallazgos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.HallazgosAusentes),
+			"hallazgos_ausentes de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.TerritorioEncontrado),
 			"territorio_encontrado de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.TerritorioAusente),
 			"territorio_ausente de %s es una lista vacía, no null", resultado.Sesion)
 	}
 
+	// Sin hallazgos esperados, ninguna serie exige forma: formas es una lista
+	// vacía, no null, y su celda de la tabla de las series dice «ninguna».
+	require.Len(t, leido.crudo.Tasas, 2, "informe.json tiene las dos series del caso")
+
+	for _, tasa := range leido.crudo.Tasas {
+		assert.Equal(t, "[]", string(tasa.Formas), "formas de %s con %s es una lista vacía, no null",
+			tasa.Eval, tasa.Modelo)
+		assert.Equal(t, sinFormasExigidas, tasaDeLaSerie(t, leido.informe, tasa.Eval, tasa.Modelo).Formas)
+	}
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+		filaDeTabla(encabezadosDeLaTablaDeTasas...),
+		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeTasas))...),
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "llega al umbral"),
+		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "llega al umbral"))
+
 	// Los comandos prohibidos ejecutados van en la tabla de las sesiones detrás
-	// de los comandos ausentes, y el territorio encontrado y el ausente, detrás de
-	// los avisos, vacíos en las dos.
+	// de los comandos ausentes, los hallazgos encontrados y los ausentes, detrás de
+	// los avisos, y el territorio encontrado y el ausente, detrás de los
+	// hallazgos, vacíos en las dos.
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"),
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "pasa"))
 }
 
 // comprobarFueraDeLoGrabado exige las dos invocaciones de a9998 de la sesión de
@@ -964,7 +1172,7 @@ func comprobarUmbralAlcanzado(t *testing.T, leido informeLeido) {
 	tasa := tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide)
 	assert.Equal(t, TasaDelInforme{
 		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
-		Sesiones: 3, Pasan: 2, Pasa: true,
+		Formas: sinFormasExigidas, Sesiones: 3, Pasan: 2, Pasa: true,
 	}, tasa)
 
 	assert.False(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21+"-claude-haiku-03").Pasa,
@@ -973,7 +1181,7 @@ func comprobarUmbralAlcanzado(t *testing.T, leido informeLeido) {
 	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
-		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "2 de 3", "llega al umbral"))
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "ninguna", "2 de 3", "llega al umbral"))
 }
 
 // comprobarUmbralNoAlcanzado exige que la serie con solo una sesión que pasa de
@@ -1002,7 +1210,7 @@ func comprobarEvalInformativa(t *testing.T, leido informeLeido) {
 
 	assert.Equal(t, TasaDelInforme{
 		Eval: ficheroDeLaEvalInformativa, Modelo: modeloQueDecide, Planificada: true,
-		Sesiones: 1, Pasan: 0,
+		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEvalInformativa, modeloQueDecide))
 
 	assert.True(t, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide).Decide)
@@ -1018,7 +1226,7 @@ func comprobarModeloInformativo(t *testing.T, leido informeLeido) {
 
 	assert.Equal(t, TasaDelInforme{
 		Eval: ficheroDeLaEval01, Modelo: modeloInformativoDelCaso, Planificada: true,
-		Sesiones: 1, Pasan: 0,
+		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloInformativoDelCaso))
 
 	assert.Equal(t, []string{modeloInformativoDelCaso}, leido.informe.ModelosInformativos)

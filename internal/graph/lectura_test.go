@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
-	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,15 +19,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/core"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 const (
-	// diarioWAL y diarioClasico son los dos modos de diario con los que las
-	// pruebas escriben world.db: el de las entregas y el de una base de fuera.
-	diarioWAL     = "wal"
-	diarioClasico = "delete"
+	// sufijoMemoriaCompartida es el del índice del WAL que SQLite deja junto a
+	// world.db mientras una conexión lo tiene abierto, y que queda con el -wal
+	// si esa conexión se interrumpe.
+	sufijoMemoriaCompartida = "-shm"
 
 	fuenteDelBOE        = "boe.legislacion-consolidada"
 	fuenteDelTerritorio = "kitlegal.territorio"
@@ -44,8 +43,16 @@ const (
 	urlAjena          = "https://ajena.example/organo"
 	relacionMayuscula = "Z:enlace"
 
-	idNorma            = "eli/es/l/2015/10/01/39"
-	idBloque           = idNorma + "#a21"
+	identificadorDeLaNorma = "BOE-A-2015-10565"
+	idNorma                = "eli/es/l/2015/10/01/39"
+	idBloque               = idNorma + "#a21"
+
+	// La otra norma de las pruebas del ámbito, la LRBRL, tiene también un
+	// bloque a21: lo que se pide de una no puede traer el de la otra.
+	identificadorDeLaOtra = "BOE-A-1985-5392"
+	idOtraNorma           = "eli/es/l/1985/04/02/7"
+	urlDeLaOtra           = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/" + identificadorDeLaOtra
+
 	idMunicipio        = "ine:28074"
 	idOrgano           = "L01280745"
 	idOrganoAjeno      = "L01280740"
@@ -122,7 +129,7 @@ func laMuestra(t *testing.T) muestraDelGrafo {
 	id2025 := idBloque + "@20250101:" + texto2025.Huella
 
 	return muestraDelGrafo{
-		norma: nodo(idNorma, grafo.TipoNorma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"},
+		norma: nodo(idNorma, grafo.TipoNorma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma},
 			boe(urlDeLaNorma, fechaConDesplazamiento), boe(urlDeLaNorma, fechaConFraccion), semana),
 		bloque: nodo(idBloque, grafo.TipoBloque, map[string]any{grafo.DatoBloque: "a21"},
 			boe(urlDelBloque, fechaDelBloque), boe(urlDelBloque, fechaDelBloque), semana),
@@ -227,26 +234,28 @@ type casoDeLectura struct {
 	preparar func(t *testing.T, raiz string) string
 	// llena dice que se lee la muestra; sin ella y sin fallo, el grafo vacío.
 	llena bool
-	// fallo es el mensaje esperado para la ruta de world.db; nil si no falla.
-	fallo func(ruta string) string
+	// fallo es el mensaje esperado para la ruta de world.db y la causa del
+	// fallo; nil si no falla.
+	fallo func(ruta string, causa error) string
 }
 
 // TestLeerEstados fija la lectura en cada estado de world.db de data-model §3.1
-// que no necesita otra conexión (contracts/almacen-world-db.md §3 y §6; FR-004,
-// FR-005, FR-010, FR-012): ausente, de 0 bytes o sin esquema, un grafo vacío;
-// en la versión 1, la muestra, con permiso de escritura o sin él, en WAL o en
-// modo rollback y a través de un enlace; un directorio, lo que no es una base,
-// una base dañada y un esquema posterior, «inesperado» con su mensaje. En todos,
-// ningún fichero bajo la raíz aparece, cambia o desaparece.
+// que no necesita otra conexión (contracts/almacen-world-db.md §3 y §6; H7
+// FR-004, FR-005, FR-012; H7.1 FR-070, research.md D4): ausente, de 0 bytes o
+// en WAL y sin esquema, un grafo vacío; en la versión 2 y en la 1 de H7, que se
+// lee sin migrar y sin ninguna fila de lecturas, la muestra; lo que no es una
+// base —el vehículo de la regla genérica— y un esquema posterior, «inesperado»
+// con su mensaje. En todos, ningún fichero bajo la raíz aparece, cambia o
+// desaparece.
 func TestLeerEstados(t *testing.T) {
 	t.Parallel()
 
-	noUtilizable := func(ruta string) string {
-		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable; no se modifica"
+	noUtilizable := func(ruta string, causa error) string {
+		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + causa.Error()
 	}
-	posterior := func(ruta string) string {
+	posterior := func(ruta string, _ error) string {
 		return "grafo: " + strconv.Quote(ruta) +
-			" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+			" tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 	}
 
 	casos := []casoDeLectura{
@@ -258,36 +267,12 @@ func TestLeerEstados(t *testing.T) {
 			},
 		},
 		{nombre: "bajo un componente que no es directorio", preparar: bajoUnFichero},
-		{nombre: "un enlace sin destino", preparar: conEnlaceSinDestino},
-		{nombre: "de 0 bytes", preparar: conBase(nil, 0o600)},
-		{nombre: "de 0 bytes y sin permiso de escritura", preparar: conBase(nil, 0o400)},
-		{nombre: "sin esquema, con una tabla ajena que se llama nodes", preparar: conSentencias(diarioWAL, 0o600, tablaAjena)},
-		{nombre: "sin esquema y sin permiso de escritura", preparar: conSentencias(diarioWAL, 0o400, tablaAjena)},
-		{nombre: "versión 1 en WAL", preparar: conMuestra(diarioWAL, 0o600), llena: true},
-		{nombre: "versión 1 en modo rollback", preparar: conMuestra(diarioClasico, 0o600), llena: true},
-		{nombre: "versión 1 en WAL y sin permiso de escritura", preparar: conMuestra(diarioWAL, 0o400), llena: true},
-		{
-			nombre:   "versión 1 en modo rollback y sin permiso de escritura",
-			preparar: conMuestra(diarioClasico, 0o400),
-			llena:    true,
-		},
-		{nombre: "versión 1 a través de un enlace", preparar: conMuestraEnlazada, llena: true},
-		{
-			nombre:   "un directorio",
-			preparar: conDirectorioEnSuLugar,
-			fallo: func(ruta string) string {
-				return "grafo: " + strconv.Quote(ruta) + " es un directorio y no una base de datos utilizable; no se modifica"
-			},
-		},
-		{nombre: "lo que no es una base de datos", preparar: conBase(contenido, 0o600), fallo: noUtilizable},
-		{nombre: "lo que no es una base, sin permiso de escritura", preparar: conBase(contenido, 0o400), fallo: noUtilizable},
-		{nombre: "una base dañada", preparar: conBaseDanada, fallo: noUtilizable},
-		{nombre: "un esquema posterior", preparar: conSentencias(diarioWAL, 0o600, versionPosterior), fallo: posterior},
-		{
-			nombre:   "un esquema posterior, sin permiso de escritura",
-			preparar: conSentencias(diarioClasico, 0o400, versionPosterior),
-			fallo:    posterior,
-		},
+		{nombre: "de 0 bytes", preparar: conBase(nil)},
+		{nombre: "en WAL y sin esquema", preparar: enWALSinTablas},
+		{nombre: "versión 2 en WAL", preparar: conMuestra, llena: true},
+		{nombre: "versión 1 en WAL, la de H7", preparar: conMuestraDeH7, llena: true},
+		{nombre: "lo que no es una base de datos", preparar: conBase(contenido), fallo: noUtilizable},
+		{nombre: "un esquema posterior", preparar: conSentencias(versionPosterior), fallo: posterior},
 	}
 
 	for _, caso := range casos {
@@ -313,55 +298,6 @@ func TestLeerEstados(t *testing.T) {
 	})
 }
 
-// TestLeerSinPermisoDeLectura fija world.db que el proceso no puede leer
-// (FR-010; contracts/almacen-world-db.md §6, fila 2): «inesperado» con la
-// variante del acceso denegado, que es lo que quien lo lee puede arreglar, y
-// sin crear, cambiar ni retirar nada. Como el fichero no se deja leer, lo que se
-// compara es la lista del directorio y el tamaño, los permisos y la fecha de
-// cada entrada.
-func TestLeerSinPermisoDeLectura(t *testing.T) {
-	t.Parallel()
-
-	directorio := t.TempDir()
-	ruta := crearGrafo(t, directorio, diarioWAL, muestra(t))
-	restringir(t, ruta, permisosDenegados)
-
-	_, err := os.Open(filepath.Clean(ruta))
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el fichero no se deja leer (¿el proceso corre como root?)")
-
-	antes := entradasDe(t, directorio)
-
-	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
-	assert.Nil(t, lectura)
-	compruebaFallo(t, err, schema.ClaseInesperado, ruta,
-		"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable: acceso denegado; no se modifica")
-	assert.Equal(t, antes, entradasDe(t, directorio))
-}
-
-// permisosDenegados son los de un fichero que nadie salvo root puede leer ni
-// escribir.
-const permisosDenegados fs.FileMode = 0o000
-
-// entradasDe describe cada entrada del directorio por su nombre, su tamaño, sus
-// permisos y su fecha de modificación, sin leer su contenido.
-func entradasDe(t *testing.T, directorio string) map[string]string {
-	t.Helper()
-
-	entradas, err := os.ReadDir(directorio)
-	require.NoError(t, err)
-
-	descritas := map[string]string{}
-
-	for _, entrada := range entradas {
-		info, err := entrada.Info()
-		require.NoError(t, err)
-
-		descritas[entrada.Name()] = fmt.Sprintf("%d %s %s", info.Size(), info.Mode(), info.ModTime().Format(time.RFC3339Nano))
-	}
-
-	return descritas
-}
-
 // compruebaEstado es el cuerpo de cada fila de TestLeerEstados.
 func compruebaEstado(t *testing.T, caso casoDeLectura) {
 	t.Helper()
@@ -374,8 +310,11 @@ func compruebaEstado(t *testing.T, caso casoDeLectura) {
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 
 	if caso.fallo != nil {
+		var fallo *Error
+
 		assert.Nil(t, lectura)
-		compruebaFallo(t, err, schema.ClaseInesperado, ruta, caso.fallo(ruta))
+		require.ErrorAs(t, err, &fallo)
+		compruebaFallo(t, err, schema.ClaseInesperado, ruta, caso.fallo(ruta, fallo.Causa))
 	} else {
 		require.NoError(t, err)
 		compruebaContenido(t, lectura, caso.llena)
@@ -385,8 +324,8 @@ func compruebaEstado(t *testing.T, caso casoDeLectura) {
 	assert.Equal(t, antes, huellasDelArbol(t, raiz), "leer no crea, no cambia ni retira nada")
 }
 
-// compruebaContenido lee con los tres verbos y compara con la muestra o con el
-// grafo vacío.
+// compruebaContenido lee con los tres verbos y compara con la muestra, que no
+// tiene ninguna fila de lecturas, o con el grafo vacío.
 func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 	t.Helper()
 
@@ -396,7 +335,7 @@ func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 	_, encontrado, err := lectura.Ficha(t.Context(), idNorma)
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	if llena {
@@ -404,13 +343,21 @@ func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 		assert.True(t, encontrado, "la norma de la muestra está")
 		assert.Len(t, instantanea.Nodos, 8)
 		assert.Len(t, instantanea.Aristas, 7)
+		assert.Equal(t, []grafo.LecturasDeBloque{}, instantanea.Lecturas, "ninguna fila de lecturas, nunca nula")
 
 		return
 	}
 
 	assert.Equal(t, recuentoVacio(), recuento)
 	assert.False(t, encontrado, "en el grafo vacío no hay ningún nodo")
-	assert.Equal(t, grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}}, instantanea)
+	assert.Equal(t, instantaneaVacia(), instantanea)
+}
+
+// instantaneaVacia es la del grafo vacío: tres listas vacías, nunca nulas.
+func instantaneaVacia() grafo.Instantanea {
+	return grafo.Instantanea{
+		Nodos: []grafo.NodoDeInstantanea{}, Aristas: []schema.Arista{}, Lecturas: []grafo.LecturasDeBloque{},
+	}
 }
 
 // compruebaFallo compara el fallo de una lectura con su clase, su ruta y su
@@ -427,23 +374,18 @@ func compruebaFallo(t *testing.T, err error, clase schema.Clase, ruta, mensaje s
 	assert.Equal(t, mensaje, err.Error())
 }
 
-// TestLeerSinRastro fija que una lectura completa —Leer, los tres verbos y
-// Close— sin auxiliares no cambia ni un byte de nada en el directorio, pueda el
-// proceso escribir world.db o no, en WAL o en modo rollback, y también si
-// world.db es un enlace (contracts/almacen-world-db.md §3, paso 6; FR-004,
-// FR-005; SC-004).
+// TestLeerSinRastro fija que una lectura completa —Leer, los tres verbos, check
+// con ámbito y sin él, y Close— sin -wal no cambia ni un byte de nada en el directorio, con la muestra
+// —también en la versión 1 de H7, que la lectura no migra— o sin esquema
+// (contracts/almacen-world-db.md §3, pasos 2 y 3; H7 FR-004, FR-005, SC-004;
+// H7.1 research.md D4, V8).
 func TestLeerSinRastro(t *testing.T) {
 	t.Parallel()
 
 	casos := map[string]func(*testing.T, string) string{
-		"en WAL, con permiso":                   conMuestra(diarioWAL, 0o600),
-		"en WAL, sin permiso":                   conMuestra(diarioWAL, 0o400),
-		"en modo rollback, con permiso":         conMuestra(diarioClasico, 0o600),
-		"en modo rollback, sin permiso":         conMuestra(diarioClasico, 0o400),
-		"a través de un enlace":                 conMuestraEnlazada,
-		"a través de un enlace, sin permiso":    conMuestraEnlazadaSinPermiso,
-		"sin esquema, en WAL y con permiso":     conSentencias(diarioWAL, 0o600, tablaAjena),
-		"sin esquema, en rollback, sin permiso": conSentencias(diarioClasico, 0o400, tablaAjena),
+		"con la muestra":       conMuestra,
+		"con la muestra de H7": conMuestraDeH7,
+		"en WAL y sin esquema": enWALSinTablas,
 	}
 
 	for nombre, preparar := range casos {
@@ -463,7 +405,11 @@ func TestLeerSinRastro(t *testing.T) {
 			_, _, err = lectura.Ficha(t.Context(), idBloque)
 			require.NoError(t, err)
 
-			_, err = lectura.Instantanea(t.Context())
+			_, err = lectura.Instantanea(t.Context(), grafo.Ambito{})
+			require.NoError(t, err)
+
+			_, err = lectura.Instantanea(t.Context(),
+				grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}})
 			require.NoError(t, err)
 
 			require.NoError(t, lectura.Close())
@@ -473,11 +419,12 @@ func TestLeerSinRastro(t *testing.T) {
 	}
 }
 
-// TestLeerConAuxiliares fija la lectura cuando SQLite dejó auxiliares
-// (contracts/almacen-world-db.md §3, pasos 1, 4 y 5; data-model §3.1; research.md
-// D10, V36 D, V43, V49). Cada caso lleva su control, que comprueba sobre otra
-// copia de los mismos ficheros la premisa que lo hace necesario: sin él, la
-// prueba pasaría también con una lectura que no eligiera bien.
+// TestLeerConAuxiliares fija la lectura junto a los auxiliares que deja una
+// escritura propia interrumpida (contracts/almacen-world-db.md §3, pasos 1 y 2;
+// data-model §3.1; H7.1 FR-077; research.md V36 D, V49 de H7). Cada caso lleva
+// su control, que comprueba sobre otra copia de los mismos ficheros la premisa
+// que lo hace necesario: sin él, la prueba pasaría también con una lectura que
+// no eligiera bien.
 func TestLeerConAuxiliares(t *testing.T) {
 	t.Parallel()
 
@@ -499,45 +446,20 @@ func TestLeerConAuxiliares(t *testing.T) {
 
 		control := t.TempDir()
 		copiaDeUnEscritorAbierto(t, control, muestra(t))
-		leerLaVersionEn(t, filepath.Join(control, "world.db"), modoSinAuxiliares)
+		leerLaVersionEn(t, filepath.Join(control, "world.db"), modoSinWAL)
 		assert.NoFileExists(t, filepath.Join(control, "world.db"+sufijoWAL),
-			"control: el modo sin auxiliares hace el checkpoint al cerrar y retira el -wal")
+			"control: el modo sin -wal hace el checkpoint al cerrar y retira el -wal")
 	})
 
-	t.Run("un diario caliente: inesperado y nada cambia", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := filepath.Join(directorio, "world.db")
-		copiaDeUnDiarioCaliente(t, directorio)
-		antes := huellasDelArbol(t, directorio)
-
-		lectura, err := Leer(t.Context(), ConDirectorio(directorio))
-		assert.Nil(t, lectura)
-		compruebaFallo(t, err, schema.ClaseInesperado, ruta, "grafo: "+strconv.Quote(ruta)+
-			" tiene una transacci\xc3\xb3n interrumpida sin deshacer; no se modifica")
-		assert.Equal(t, antes, huellasDelArbol(t, directorio))
-
-		control := t.TempDir()
-		copiaDeUnDiarioCaliente(t, control)
-		leerLaVersionEn(t, filepath.Join(control, "world.db"), modoSinAuxiliares)
-		assert.NoFileExists(t, filepath.Join(control, "world.db"+sufijoDiario),
-			"control: el modo sin auxiliares deshace la transacción interrumpida al leer")
-	})
-
-	for nombre, ajuste := range map[string]struct {
-		conMemoriaCompartida bool
-		permisos             os.FileMode
-	}{
-		"de 0 bytes con un -wal no vacío":                {permisos: 0o600},
-		"de 0 bytes con un -wal no vacío y su -shm":      {conMemoriaCompartida: true, permisos: 0o600},
-		"de 0 bytes, sin permiso y con un -wal no vacío": {permisos: 0o400},
+	for nombre, conMemoriaCompartida := range map[string]bool{
+		"de 0 bytes con un -wal no vacío":           false,
+		"de 0 bytes con un -wal no vacío y su -shm": true,
 	} {
 		t.Run(nombre+": el grafo vacío sin abrir SQLite", func(t *testing.T) {
 			t.Parallel()
 
 			directorio := t.TempDir()
-			ceroBytesConUnWAL(t, directorio, ajuste.conMemoriaCompartida, ajuste.permisos)
+			ceroBytesConUnWAL(t, directorio, conMemoriaCompartida)
 			antes := huellasDelArbol(t, directorio)
 
 			lectura, err := Leer(t.Context(), ConDirectorio(directorio))
@@ -548,64 +470,21 @@ func TestLeerConAuxiliares(t *testing.T) {
 			assert.Equal(t, antes, huellasDelArbol(t, directorio), "tampoco el -wal, que abrir SQLite borraría")
 
 			control := t.TempDir()
-			ceroBytesConUnWAL(t, control, ajuste.conMemoriaCompartida, 0o600)
-			leerLaVersionEn(t, filepath.Join(control, "world.db"), modoConAuxiliares)
+			ceroBytesConUnWAL(t, control, conMemoriaCompartida)
+			leerLaVersionEn(t, filepath.Join(control, "world.db"), modoConWAL)
 			assert.NoFileExists(t, filepath.Join(control, "world.db"+sufijoWAL),
 				"control: SQLite borra el -wal de una base de 0 páginas al abrirla")
 		})
 	}
 }
 
-// TestLeerReabreInmutable fija el recurso de §3, paso 5, en un directorio que no
-// admite los auxiliares: sin -wal ni -journal, la lectura se reabre inmutable y
-// lee sin crear nada (research.md V9); con un -wal, lo confirmado en él no se
-// puede leer sin su memoria compartida y el fichero es inutilizable.
-func TestLeerReabreInmutable(t *testing.T) {
-	t.Parallel()
-
-	t.Run("sin -wal ni -journal: se lee", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		crearGrafo(t, directorio, diarioWAL, muestra(t))
-		directorioSinEscritura(t, directorio)
-		antes := huellasDelArbol(t, directorio)
-
-		decidida, err := decidirApertura(filepath.Join(directorio, "world.db"))
-		require.NoError(t, err)
-		require.Equal(t, modoSinAuxiliares, decidida.modo, "premisa: el fichero se puede escribir y no hay auxiliares")
-
-		lectura, err := Leer(t.Context(), ConDirectorio(directorio))
-		require.NoError(t, err)
-		compruebaContenido(t, lectura, true)
-		require.NoError(t, lectura.Close())
-
-		assert.Equal(t, antes, huellasDelArbol(t, directorio))
-	})
-
-	t.Run("con un -wal y sin su -shm: inutilizable", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := filepath.Join(directorio, "world.db")
-		copiaDeUnEscritorAbierto(t, directorio, muestra(t))
-		require.NoError(t, os.Remove(ruta+sufijoMemoriaCompartida))
-		directorioSinEscritura(t, directorio)
-		antes := huellasDelArbol(t, directorio)
-
-		lectura, err := Leer(t.Context(), ConDirectorio(directorio))
-		assert.Nil(t, lectura)
-		compruebaFallo(t, err, schema.ClaseInesperado, ruta,
-			"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
-		assert.Equal(t, antes, huellasDelArbol(t, directorio))
-	})
-}
-
 // TestLeerConElPlazoAgotado fija que la lectura atiende el contexto (FR-014;
-// contracts/almacen-world-db.md §4, «Esperas», y §6): terminado antes de leer, o
-// mientras otra invocación retiene world.db —al leer la versión y dentro de
-// cada verbo—, es «fuente-no-disponible» con su mensaje, y llega sin agotar la
-// espera propia.
+// contracts/almacen-world-db.md §3, paso 3, y §6): terminado antes de leer o
+// antes de un verbo, o mientras otra invocación retiene world.db al abrirlo, es
+// «fuente-no-disponible» con su mensaje, y llega sin agotar la espera propia.
+// Lo que retiene world.db es la conexión de research.md D22: con la base en
+// WAL, un lector ya abierto no lo retiene nadie, así que dentro de cada verbo
+// el plazo es el del contexto que ya terminó.
 func TestLeerConElPlazoAgotado(t *testing.T) {
 	t.Parallel()
 
@@ -617,7 +496,7 @@ func TestLeerConElPlazoAgotado(t *testing.T) {
 		t.Parallel()
 
 		directorio := t.TempDir()
-		ruta := crearGrafo(t, directorio, diarioWAL, muestra(t))
+		ruta := crearGrafo(t, directorio, muestra(t))
 		antes := huellasDelArbol(t, directorio)
 
 		terminado, cancela := context.WithCancel(t.Context())
@@ -634,8 +513,8 @@ func TestLeerConElPlazoAgotado(t *testing.T) {
 		t.Parallel()
 
 		directorio := t.TempDir()
-		ruta := crearGrafo(t, directorio, diarioClasico, muestra(t))
-		retenerElBloqueoExclusivo(t, ruta)
+		ruta := crearGrafo(t, directorio, muestra(t))
+		retenerEnExclusiva(t, ruta)
 
 		conPlazo, cancela := context.WithTimeout(t.Context(), 300*time.Millisecond)
 		defer cancela()
@@ -649,34 +528,31 @@ func TestLeerConElPlazoAgotado(t *testing.T) {
 		assert.Less(t, tardo, esperaPropia, "el plazo llega antes que la espera propia")
 	})
 
-	t.Run("otra invocación retiene world.db durante cada verbo", func(t *testing.T) {
+	t.Run("el contexto terminado antes de cada verbo", func(t *testing.T) {
 		t.Parallel()
 
 		directorio := t.TempDir()
-		ruta := crearGrafo(t, directorio, diarioClasico, muestra(t))
+		ruta := crearGrafo(t, directorio, muestra(t))
 
 		lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 		require.NoError(t, err)
 
 		t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
 
-		retenerElBloqueoExclusivo(t, ruta)
+		terminado, cancela := context.WithCancel(t.Context())
+		cancela()
 
-		conPlazo := func() context.Context {
-			ctx, cancela := context.WithTimeout(t.Context(), 200*time.Millisecond)
-			t.Cleanup(cancela)
-
-			return ctx
-		}
-
-		_, _, err = lectura.Ficha(conPlazo(), idNorma)
+		_, _, err = lectura.Ficha(terminado, idNorma)
 		compruebaFallo(t, err, schema.ClaseFuenteNoDisponible, ruta, plazo(ruta))
+		require.ErrorIs(t, err, context.Canceled)
 
-		_, err = lectura.Recuento(conPlazo())
+		_, err = lectura.Recuento(terminado)
 		compruebaFallo(t, err, schema.ClaseFuenteNoDisponible, ruta, plazo(ruta))
+		require.ErrorIs(t, err, context.Canceled)
 
-		_, err = lectura.Instantanea(conPlazo())
+		_, err = lectura.Instantanea(terminado, grafo.Ambito{})
 		compruebaFallo(t, err, schema.ClaseFuenteNoDisponible, ruta, plazo(ruta))
+		require.ErrorIs(t, err, context.Canceled)
 	})
 }
 
@@ -687,8 +563,8 @@ func TestLeerBloqueada(t *testing.T) {
 	t.Parallel()
 
 	directorio := t.TempDir()
-	ruta := crearGrafo(t, directorio, diarioClasico, muestra(t))
-	retenerElBloqueoExclusivo(t, ruta)
+	ruta := crearGrafo(t, directorio, muestra(t))
+	retenerEnExclusiva(t, ruta)
 
 	inicio := time.Now()
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
@@ -711,7 +587,7 @@ func TestFicha(t *testing.T) {
 
 	m := laMuestra(t)
 	directorio := t.TempDir()
-	crearGrafo(t, directorio, diarioWAL, m.grafo())
+	crearGrafo(t, directorio, m.grafo())
 
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	require.NoError(t, err)
@@ -720,7 +596,7 @@ func TestFicha(t *testing.T) {
 
 	esperadas := map[string]grafo.Ficha{
 		idNorma: {
-			Nodo:      nodoDeFicha(m.norma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
+			Nodo:      nodoDeFicha(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
 			Salientes: []grafo.AristaDeFicha{aristaDeFicha(m.parte, idBloque)},
 			Entrantes: []grafo.AristaDeFicha{},
 		},
@@ -815,7 +691,7 @@ func TestRecuento(t *testing.T) {
 	t.Parallel()
 
 	directorio := t.TempDir()
-	crearGrafo(t, directorio, diarioWAL, muestra(t))
+	crearGrafo(t, directorio, muestra(t))
 
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	require.NoError(t, err)
@@ -840,56 +716,65 @@ func TestRecuento(t *testing.T) {
 	require.NoError(t, vacia.Close())
 }
 
-// TestInstantanea fija lo que graph check lee (data-model §5; research.md D15):
-// cada nodo con sus datos, su última observación y la vigencia que declaró —cero
-// si no declaró ninguna—, y cada arista por su terna, en un orden que no
-// depende del motor: los nodos por id y las aristas por origen, relación y
-// destino, comparando bytes. Nunca el cuerpo de un texto.
+// TestInstantanea fija lo que graph check lee (data-model §5; research.md D15;
+// H7.1 data-model §3 y §6; contracts/almacen-world-db.md §3, paso 4;
+// research.md D8; FR-002, FR-003, FR-005): sin ámbito, todo el grafo; con una
+// norma, solo su Norma, sus Bloque —los nombrados, o todos si no se nombra
+// ninguno—, las BloqueVersion de esos bloques, las aristas que los unen y las
+// filas de lecturas de esos bloques. Una norma o un bloque que el grafo no
+// conoce no es un error: la instantánea no lo trae.
 func TestInstantanea(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sin ámbito, todo el grafo en un orden que no depende del motor", probarInstantaneaSinAmbito)
+	t.Run("con una norma, solo lo suyo", probarInstantaneaDeUnaNorma)
+	t.Run("una base de la versión 1, sin filas", probarAmbitoEnLaVersionDeH7)
+	t.Run("world.db ausente, vacía y sin crear nada", probarAmbitoSinGrafo)
+}
+
+// probarInstantaneaSinAmbito fija la instantánea sin ámbito: cada nodo con sus
+// datos, su última observación y la vigencia que declaró —cero si no declaró
+// ninguna—, cada arista por su terna y cada fila de lecturas, en un orden que
+// no depende del motor: los nodos por id y las aristas por origen, relación y
+// destino, comparando bytes. Nunca el cuerpo de un texto.
+func probarInstantaneaSinAmbito(t *testing.T) {
 	t.Parallel()
 
 	m := laMuestra(t)
 	directorio := t.TempDir()
-	crearGrafo(t, directorio, diarioWAL, m.grafo())
+	ruta := crearGrafo(t, directorio, m.grafo())
+	alterar(t, ruta, "INSERT INTO lecturas (bloque, ultima, anterior) VALUES ('"+idBloque+"', '"+m.v2025.ID+"', '"+
+		m.v2016.ID+"')")
 
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	require.NoError(t, err)
 
 	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
 
-	nodo := func(registro grafo.RegistroDeNodo, datos map[string]any) grafo.NodoDeInstantanea {
-		return grafo.NodoDeInstantanea{
-			ID: registro.ID, Tipo: registro.Tipo, Datos: datos,
-			UltimaObservacion: registro.UltimaObservacion, Vigencia: registro.Vigencia,
-		}
-	}
-	terna := func(registro grafo.RegistroDeArista) schema.Arista {
-		return schema.Arista{Origen: registro.Origen, Relacion: registro.Relacion, Destino: registro.Destino}
-	}
-
 	esperada := grafo.Instantanea{
 		Nodos: []grafo.NodoDeInstantanea{
-			nodo(m.organoAjeno, map[string]any{grafo.DatoDIR3: idOrganoAjeno}),
-			nodo(m.organo, map[string]any{grafo.DatoDIR3: idOrgano}),
-			nodo(m.norma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
-			nodo(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
-			nodo(m.v2016, map[string]any{grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: m.texto2016.Huella}),
-			nodo(m.v2025, map[string]any{grafo.DatoFechaVigencia: "20250101", grafo.DatoHashTexto: m.texto2025.Huella}),
-			nodo(m.municipio, map[string]any{grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s"}),
-			nodo(m.organoMinusculas, map[string]any{grafo.DatoDIR3: idOrganoMinusculas}),
+			nodoDeInstantanea(m.organoAjeno, map[string]any{grafo.DatoDIR3: idOrganoAjeno}),
+			nodoDeInstantanea(m.organo, map[string]any{grafo.DatoDIR3: idOrgano}),
+			nodoDeInstantanea(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
+			nodoDeInstantanea(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
+			nodoDeInstantanea(m.v2016, datosDeVersion("20161002", m.texto2016)),
+			nodoDeInstantanea(m.v2025, datosDeVersion("20250101", m.texto2025)),
+			nodoDeInstantanea(m.municipio, map[string]any{grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s"}),
+			nodoDeInstantanea(m.organoMinusculas, map[string]any{grafo.DatoDIR3: idOrganoMinusculas}),
 		},
 		Aristas: []schema.Arista{
-			terna(m.perteneceAjeno),
-			terna(m.pertenece),
-			terna(m.parte),
-			terna(m.enlace),
-			terna(m.version2016),
-			terna(m.version2025),
-			terna(m.perteneceMinusculas),
+			ternaDe(m.perteneceAjeno),
+			ternaDe(m.pertenece),
+			ternaDe(m.parte),
+			ternaDe(m.enlace),
+			ternaDe(m.version2016),
+			ternaDe(m.version2025),
+			ternaDe(m.perteneceMinusculas),
 		},
+		Lecturas: []grafo.LecturasDeBloque{{Bloque: idBloque, Ultima: m.v2025.ID, Anterior: m.v2016.ID}},
 	}
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 	assert.Equal(t, esperada, instantanea)
 	assert.Equal(t, semana, instantanea.Nodos[2].Vigencia, "la vigencia declarada, en segundos")
@@ -897,62 +782,307 @@ func TestInstantanea(t *testing.T) {
 	assertSinCuerpos(t, instantanea)
 }
 
-// TestLecturaDeFilasDanadas fija que una fila que la entrega nunca escribiría
-// —unos datos que no son un objeto JSON, una vigencia negativa o que no cabe en
-// una duración— es una base dañada: «inesperado», sin inventar un valor.
-func TestLecturaDeFilasDanadas(t *testing.T) {
+// probarInstantaneaDeUnaNorma fija la instantánea de una norma sobre un grafo
+// que dejan las entregas de boe articulo y territorio resolver, con dos
+// normas que tienen las dos un bloque a21 y un municipio con su órgano. Lo
+// esperado de cada ámbito es la instantánea sin ámbito del mismo grafo
+// restringida a los nodos, las aristas y las filas que se nombran: sus datos,
+// su procedencia y su orden los fija probarInstantaneaSinAmbito.
+func probarInstantaneaDeUnaNorma(t *testing.T) {
 	t.Parallel()
 
-	casos := map[string]struct {
-		sentencia string
-		verbo     func(context.Context, *Lectura) error
-	}{
-		"datos que no son JSON, en la ficha": {
-			sentencia: `UPDATE nodes SET props = 'no soy JSON' WHERE id = '` + idNorma + `'`,
-			verbo: func(ctx context.Context, lectura *Lectura) error {
-				_, _, err := lectura.Ficha(ctx, idNorma)
+	a21 := unaLectura("a21", "20161002", cuerpo2016)
+	a21Nueva := unaLectura("a21", "20250101", cuerpo2025)
+	a22 := unaLectura("a22", "20161002", cuerpo2016)
+	laOtra := unaLectura("a21", "20161002", cuerpo2016)
 
-				return err
-			},
+	directorio := t.TempDir()
+	almacen := Nuevo(ConDirectorio(directorio))
+
+	for _, lote := range []core.Lote{
+		a21.entregada(fechaDelBloque), a22.entregada(fechaDelBloque), enLaOtraNorma(laOtra, fechaDelBloque),
+		loteDelTerritorio(), a21Nueva.entregada(fechaSiguiente),
+	} {
+		require.NoError(t, almacen.Apply(t.Context(), lote))
+	}
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
+
+	completa, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
+	require.NoError(t, err)
+	require.Len(t, completa.Nodos, 11, "premisa: las dos normas, sus tres bloques, sus cuatro versiones, el"+
+		" municipio y su órgano")
+	require.Len(t, completa.Lecturas, 3, "premisa: una fila por cada uno de los tres bloques")
+
+	deLaNorma := map[string][]string{
+		a21.bloque(): {a21.version(), a21Nueva.version()},
+		a22.bloque(): {a22.version()},
+	}
+
+	casos := []struct {
+		nombre   string
+		ambito   grafo.Ambito
+		esperado ambitoEsperado
+	}{
+		{
+			nombre:   "la norma sin bloques: todos los suyos y ninguno de la otra",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma},
+			esperado: esperadoDe(idNorma, deLaNorma),
 		},
-		"datos que no son JSON, en la instantánea": {
-			sentencia: `UPDATE nodes SET props = '[1, 2]' WHERE id = '` + idNorma + `'`,
-			verbo:     instantaneaDe,
+		{
+			nombre:   "la norma y un bloque que la otra también tiene: solo el suyo",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}},
+			esperado: esperadoDe(idNorma, map[string][]string{a21.bloque(): deLaNorma[a21.bloque()]}),
 		},
-		"una vigencia negativa": {
-			sentencia: `UPDATE nodes SET ttl = -5 WHERE id = '` + idNorma + `'`,
-			verbo:     instantaneaDe,
+		{
+			nombre:   "un bloque desconocido junto a uno conocido: los del conocido",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a99", "a22"}},
+			esperado: esperadoDe(idNorma, map[string][]string{a22.bloque(): deLaNorma[a22.bloque()]}),
 		},
-		"una vigencia que no cabe en una duración": {
-			sentencia: `UPDATE nodes SET ttl = ` + strconv.FormatInt(math.MaxInt64, 10) + ` WHERE id = '` + idNorma + `'`,
-			verbo:     instantaneaDe,
+		{
+			nombre:   "solo un bloque desconocido: la norma sola",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a99"}},
+			esperado: esperadoDe(idNorma, nil),
+		},
+		{
+			nombre: "la otra norma: solo lo suyo",
+			ambito: grafo.Ambito{Norma: identificadorDeLaOtra},
+			esperado: esperadoDe(idOtraNorma, map[string][]string{
+				enLaOtra(laOtra.bloque()): {enLaOtra(laOtra.version())},
+			}),
+		},
+		{
+			nombre:   "una norma desconocida: vacía",
+			ambito:   grafo.Ambito{Norma: "BOE-A-2099-99999"},
+			esperado: ambitoEsperado{},
 		},
 	}
 
-	for nombre, caso := range casos {
-		t.Run(nombre, func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			ruta := crearGrafo(t, directorio, diarioWAL, muestra(t))
-			alterar(t, ruta, caso.sentencia)
-
-			lectura, err := Leer(t.Context(), ConDirectorio(directorio))
-			require.NoError(t, err)
-
-			t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
-
-			compruebaFallo(t, caso.verbo(t.Context(), lectura), schema.ClaseInesperado, ruta,
-				"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
-		})
+	for _, caso := range casos {
+		instantanea, err := lectura.Instantanea(t.Context(), caso.ambito)
+		require.NoError(t, err, caso.nombre)
+		assert.Equal(t, caso.esperado.en(t, completa), instantanea, caso.nombre)
+		assertSinCuerpos(t, instantanea)
 	}
 }
 
-// instantaneaDe lee la instantánea y devuelve solo el fallo.
-func instantaneaDe(ctx context.Context, lectura *Lectura) error {
-	_, err := lectura.Instantanea(ctx)
+// probarAmbitoEnLaVersionDeH7 fija la instantánea de una norma en una base de
+// la versión 1, la que escribe H7, que se lee sin migrar: sus nodos y sus
+// aristas, y ninguna fila de lecturas, nunca nula.
+func probarAmbitoEnLaVersionDeH7(t *testing.T) {
+	t.Parallel()
 
-	return err
+	m := laMuestra(t)
+	directorio := t.TempDir()
+	crearGrafoEnLaVersion(t, directorio, m.grafo(), versionDeH7)
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
+
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{Norma: identificadorDeLaNorma})
+	require.NoError(t, err)
+	assert.Equal(t, grafo.Instantanea{
+		Nodos: []grafo.NodoDeInstantanea{
+			nodoDeInstantanea(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
+			nodoDeInstantanea(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
+			nodoDeInstantanea(m.v2016, datosDeVersion("20161002", m.texto2016)),
+			nodoDeInstantanea(m.v2025, datosDeVersion("20250101", m.texto2025)),
+		},
+		Aristas:  []schema.Arista{ternaDe(m.parte), ternaDe(m.version2016), ternaDe(m.version2025)},
+		Lecturas: []grafo.LecturasDeBloque{},
+	}, instantanea)
+}
+
+// probarAmbitoSinGrafo fija que la instantánea de una norma y un bloque sin
+// world.db es la del grafo vacío, sin crear nada (FR-003; H7 FR-004).
+func probarAmbitoSinGrafo(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	directorio := cacheVacia(t, raiz)
+	antes := huellasDelArbol(t, raiz)
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context(),
+		grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}})
+	require.NoError(t, err)
+	assert.Equal(t, instantaneaVacia(), instantanea)
+	require.NoError(t, lectura.Close())
+
+	assert.Equal(t, antes, huellasDelArbol(t, raiz), "ningún fichero aparece")
+}
+
+// nodoDeInstantanea es el nodo de una instantánea tal como se espera a partir
+// de su fila: los datos, con el tipo que les da JSON.
+func nodoDeInstantanea(registro grafo.RegistroDeNodo, datos map[string]any) grafo.NodoDeInstantanea {
+	return grafo.NodoDeInstantanea{
+		ID: registro.ID, Tipo: registro.Tipo, Datos: datos,
+		UltimaObservacion: registro.UltimaObservacion, Vigencia: registro.Vigencia,
+	}
+}
+
+// datosDeVersion son los datos de una BloqueVersion con la fecha de vigencia y
+// la huella del texto dados.
+func datosDeVersion(vigencia string, texto grafo.RegistroDeTexto) map[string]any {
+	return map[string]any{grafo.DatoFechaVigencia: vigencia, grafo.DatoHashTexto: texto.Huella}
+}
+
+// ternaDe es la terna de una arista a partir de su fila.
+func ternaDe(registro grafo.RegistroDeArista) schema.Arista {
+	return schema.Arista{Origen: registro.Origen, Relacion: registro.Relacion, Destino: registro.Destino}
+}
+
+// ambitoEsperado es lo que la instantánea de un ámbito tiene que traer: los
+// ids de sus nodos, las ternas de sus aristas y los bloques de sus filas de
+// lecturas. A cero, nada.
+type ambitoEsperado struct {
+	nodos   map[string]bool
+	aristas map[schema.Arista]bool
+	bloques map[string]bool
+}
+
+// esperadoDe es el ámbito de la norma y de los bloques dados, cada uno con sus
+// versiones: la Norma, cada Bloque y cada BloqueVersion, la arista
+// eli:has_part de la norma a cada bloque, la eli:has_version de cada bloque a
+// cada versión suya, y la fila de cada bloque.
+func esperadoDe(norma string, bloques map[string][]string) ambitoEsperado {
+	esperado := ambitoEsperado{
+		nodos:   map[string]bool{norma: true},
+		aristas: map[schema.Arista]bool{},
+		bloques: map[string]bool{},
+	}
+
+	for bloque, versiones := range bloques {
+		esperado.nodos[bloque] = true
+		esperado.bloques[bloque] = true
+		esperado.aristas[schema.Arista{Origen: norma, Relacion: grafo.RelacionTieneParte, Destino: bloque}] = true
+
+		for _, version := range versiones {
+			esperado.nodos[version] = true
+			esperado.aristas[schema.Arista{Origen: bloque, Relacion: grafo.RelacionTieneVersion, Destino: version}] = true
+		}
+	}
+
+	return esperado
+}
+
+// en es la instantánea completa restringida al ámbito, en el orden de la
+// completa. Exige que todo lo nombrado esté en la completa: si no, lo esperado
+// estaría mal escrito y la comparación no diría nada.
+func (e ambitoEsperado) en(t *testing.T, completa grafo.Instantanea) grafo.Instantanea {
+	t.Helper()
+
+	restringida := instantaneaVacia()
+
+	for _, nodo := range completa.Nodos {
+		if e.nodos[nodo.ID] {
+			restringida.Nodos = append(restringida.Nodos, nodo)
+		}
+	}
+
+	for _, arista := range completa.Aristas {
+		if e.aristas[arista] {
+			restringida.Aristas = append(restringida.Aristas, arista)
+		}
+	}
+
+	for _, fila := range completa.Lecturas {
+		if e.bloques[fila.Bloque] {
+			restringida.Lecturas = append(restringida.Lecturas, fila)
+		}
+	}
+
+	require.Len(t, restringida.Nodos, len(e.nodos), "premisa: todos los nodos nombrados están en el grafo")
+	require.Len(t, restringida.Aristas, len(e.aristas), "premisa: todas las aristas nombradas están en el grafo")
+	require.Len(t, restringida.Lecturas, len(e.bloques), "premisa: todas las filas nombradas están en el grafo")
+
+	return restringida
+}
+
+// enLaOtra es el id de la norma de las pruebas, o de algo suyo, trasladado a la
+// otra norma.
+func enLaOtra(id string) string {
+	return idOtraNorma + strings.TrimPrefix(id, idNorma)
+}
+
+// enLaOtraNorma es el lote de la lectura trasladada a la otra norma: las mismas
+// operaciones, con los ids de la otra norma y su identificador BOE, desde la
+// url de su bloque.
+func enLaOtraNorma(lectura lecturaDePrueba, fecha string) core.Lote {
+	operaciones := lectura.operaciones()
+
+	for i, operacion := range operaciones {
+		switch trasladada := operacion.(type) {
+		case schema.Nodo:
+			trasladada.ID = enLaOtra(trasladada.ID)
+			if trasladada.Tipo == grafo.TipoNorma {
+				trasladada.Datos = map[string]any{grafo.DatoIdentificador: identificadorDeLaOtra}
+			}
+
+			operaciones[i] = trasladada
+		case schema.Arista:
+			trasladada.Origen, trasladada.Destino = enLaOtra(trasladada.Origen), enLaOtra(trasladada.Destino)
+			operaciones[i] = trasladada
+		}
+	}
+
+	return loteDelBOE(urlDeLaOtra+"/texto/bloque/"+lectura.enLaNorma, fecha, operaciones...)
+}
+
+// loteDelTerritorio es el de territorio resolver Leganés: el municipio, su
+// ayuntamiento y la arista que los une, sin vigencia declarada.
+func loteDelTerritorio() core.Lote {
+	return core.Lote{
+		Fuente: fuenteDelTerritorio, URL: urlDelTerritorio, FechaConsulta: fechaDelTerritorio,
+		Operaciones: []schema.Operacion{
+			schema.Nodo{ID: idMunicipio, Tipo: grafo.TipoMunicipio, Datos: map[string]any{
+				grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s",
+			}},
+			schema.Nodo{ID: idOrgano, Tipo: grafo.TipoOrgano, Datos: map[string]any{grafo.DatoDIR3: idOrgano}},
+			schema.Arista{Origen: idOrgano, Relacion: grafo.RelacionPerteneceA, Destino: idMunicipio},
+		},
+	}
+}
+
+// TestInstantaneaConLecturas fija las filas de lecturas que lee graph check tal
+// como las dejan las entregas (H7.1 data-model §1 y §4): todas, cada una con su
+// última redacción vista y la anterior, por bloque comparando bytes, sin
+// depender del orden en que se escribieron.
+func TestInstantaneaConLecturas(t *testing.T) {
+	t.Parallel()
+
+	a21 := unaLectura("a21", "20161002", cuerpo2016)
+	a21Nueva := unaLectura("a21", "20250101", cuerpo2025)
+	a22 := unaLectura("a22", "20161002", cuerpo2016)
+
+	directorio := t.TempDir()
+	almacen := Nuevo(ConDirectorio(directorio))
+
+	// a22 se lee primero: si la lectura no ordenara las filas, iría delante.
+	for _, lote := range []core.Lote{
+		a22.entregada(fechaDelBloque), a21.entregada(fechaDelBloque), a21Nueva.entregada(fechaSiguiente),
+	} {
+		require.NoError(t, almacen.Apply(t.Context(), lote))
+	}
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
+	require.NoError(t, err)
+	require.NoError(t, lectura.Close())
+
+	assert.Equal(t, []grafo.LecturasDeBloque{
+		{Bloque: a21.bloque(), Ultima: a21Nueva.version(), Anterior: a21.version()},
+		{Bloque: a22.bloque(), Ultima: a22.version(), Anterior: a22.version()},
+	}, instantanea.Lecturas)
 }
 
 // TestLecturaClose fija que Close es idempotente —también sobre el grafo vacío
@@ -962,7 +1092,7 @@ func TestLecturaClose(t *testing.T) {
 	t.Parallel()
 
 	llena := t.TempDir()
-	crearGrafo(t, llena, diarioWAL, muestra(t))
+	crearGrafo(t, llena, muestra(t))
 
 	for nombre, directorio := range map[string]string{"con la muestra": llena, "el grafo vacío": t.TempDir()} {
 		t.Run(nombre, func(t *testing.T) {
@@ -979,7 +1109,7 @@ func TestLecturaClose(t *testing.T) {
 			_, err = lectura.Recuento(t.Context())
 			compruebaCerrada(t, err)
 
-			_, err = lectura.Instantanea(t.Context())
+			_, err = lectura.Instantanea(t.Context(), grafo.Ambito{})
 			compruebaCerrada(t, err)
 		})
 	}
@@ -1017,7 +1147,7 @@ func TestLeerSinOpcion(t *testing.T) {
 	raiz := t.TempDir()
 	llena := filepath.Join(raiz, "llena")
 	require.NoError(t, os.Mkdir(llena, 0o700))
-	crearGrafo(t, llena, diarioWAL, muestra(t))
+	crearGrafo(t, llena, muestra(t))
 
 	t.Setenv(cache.VariableDirectorio, llena)
 
@@ -1048,136 +1178,97 @@ func TestLeerSinOpcion(t *testing.T) {
 	assert.Equal(t, schema.ClaseArgumentos, fallo.Clase())
 }
 
-// tablaAjena es una base sin el esquema del grafo con una tabla que se llama
-// como una de las suyas y tiene otra forma: si la lectura consultara las tablas
-// de una base en la versión 0, fallaría.
-const tablaAjena = `CREATE TABLE nodes (x)`
-
-// versionPosterior es un esquema de una versión que este binario no conoce.
+// versionPosterior es un esquema de una versión que este binario no conoce, la
+// 3.
 const versionPosterior = `CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL);
-INSERT INTO schema_version VALUES (1, '2026-09-28T12:00:00Z'), (2, '2030-01-01T00:00:00Z')`
+INSERT INTO schema_version VALUES (1, '2026-09-28T12:00:00Z'), (2, '2026-09-29T12:00:00Z'),
+(3, '2030-01-01T00:00:00Z')`
 
-// conMuestra prepara la muestra en world.db con el diario y los permisos dados.
-func conMuestra(diario string, permisos os.FileMode) func(*testing.T, string) string {
-	return func(t *testing.T, raiz string) string {
-		t.Helper()
-
-		directorio := cacheVacia(t, raiz)
-		ruta := crearGrafo(t, directorio, diario, muestra(t))
-		require.NoError(t, os.Chmod(ruta, permisos))
-
-		return directorio
-	}
-}
-
-// conMuestraEnlazada prepara world.db como enlace a la muestra, en WAL, en otro
-// directorio.
-func conMuestraEnlazada(t *testing.T, raiz string) string {
+// conMuestra prepara la muestra en world.db, con el esquema de la versión que
+// este binario conoce.
+func conMuestra(t *testing.T, raiz string) string {
 	t.Helper()
-
-	return muestraEnlazada(t, raiz, 0o600)
-}
-
-// conMuestraEnlazadaSinPermiso es conMuestraEnlazada con el destino en 0400.
-func conMuestraEnlazadaSinPermiso(t *testing.T, raiz string) string {
-	t.Helper()
-
-	return muestraEnlazada(t, raiz, 0o400)
-}
-
-// muestraEnlazada prepara la muestra en otro directorio, con los permisos
-// dados, y world.db como enlace a ella.
-func muestraEnlazada(t *testing.T, raiz string, permisos os.FileMode) string {
-	t.Helper()
-
-	otro := filepath.Join(raiz, "otro")
-	require.NoError(t, os.Mkdir(otro, 0o700))
-
-	destino := filepath.Join(otro, "grafo.db")
-	require.NoError(t, os.Rename(crearGrafo(t, otro, diarioWAL, muestra(t)), destino))
-	require.NoError(t, os.Chmod(destino, permisos))
 
 	directorio := cacheVacia(t, raiz)
-	require.NoError(t, os.Symlink(destino, filepath.Join(directorio, "world.db")))
+	crearGrafo(t, directorio, muestra(t))
 
 	return directorio
 }
 
-// conSentencias prepara world.db con el diario dado y las sentencias, sin el
-// esquema del grafo, y los permisos dados.
-func conSentencias(diario string, permisos os.FileMode, sentencias string) func(*testing.T, string) string {
+// conMuestraDeH7 prepara la muestra en world.db con el esquema de la versión 1,
+// la que escribe H7: sin la tabla lecturas.
+func conMuestraDeH7(t *testing.T, raiz string) string {
+	t.Helper()
+
+	directorio := cacheVacia(t, raiz)
+	crearGrafoEnLaVersion(t, directorio, muestra(t), versionDeH7)
+
+	return directorio
+}
+
+// conSentencias prepara world.db en WAL con las sentencias, sin el esquema del
+// grafo.
+func conSentencias(sentencias string) func(*testing.T, string) string {
 	return func(t *testing.T, raiz string) string {
 		t.Helper()
 
 		directorio := cacheVacia(t, raiz)
 		ruta := filepath.Join(directorio, "world.db")
 		base := abrirBaseDePrueba(t, ruta, pragmaDelTramo)
-		fijarDiario(t, base, diario)
+		ponerEnWAL(t, base)
 
 		_, err := base.ExecContext(t.Context(), sentencias)
 		require.NoError(t, err)
 		require.NoError(t, base.Close())
-		require.NoError(t, os.Chmod(ruta, permisos))
 
 		return directorio
 	}
 }
 
-// conBaseDanada prepara una base en modo rollback cuya cabecera declara más
-// páginas de las que tiene el fichero, con el contador de cambios igual a
-// version-valid-for para que SQLite se crea ese tamaño: al leer da
-// SQLITE_CORRUPT y no cambia nada (research.md V41).
-func conBaseDanada(t *testing.T, raiz string) string {
+// crearGrafo escribe el grafo en world.db, dentro del directorio, en WAL y con
+// el esquema de la versión que este binario conoce, y lo cierra: no queda
+// ningún auxiliar. Devuelve la ruta de world.db.
+func crearGrafo(t *testing.T, directorio string, g grafoDePrueba) string {
 	t.Helper()
 
-	directorio := cacheVacia(t, raiz)
-	ruta := crearGrafo(t, directorio, diarioClasico, muestra(t))
-
-	fichero := leerFichero(t, ruta)
-	require.Equal(t, fichero[24:28], fichero[92:96], "premisa: el tamaño de la cabecera es válido")
-
-	fichero[28], fichero[29], fichero[30], fichero[31] = 0, 0, 0x10, 0
-	escribirFichero(t, ruta, fichero)
-
-	return directorio
+	return crearGrafoEnLaVersion(t, directorio, g, laVersionConocida(t))
 }
 
-// crearGrafo escribe el grafo en world.db, dentro del directorio, con el
-// esquema de la versión 1 y el diario dado, y lo cierra: no queda ningún
-// auxiliar. Devuelve la ruta de world.db.
-func crearGrafo(t *testing.T, directorio, diario string, g grafoDePrueba) string {
+// crearGrafoEnLaVersion es crearGrafo con el esquema de la versión dada.
+func crearGrafoEnLaVersion(t *testing.T, directorio string, g grafoDePrueba, version int64) string {
 	t.Helper()
 
 	ruta := filepath.Join(directorio, "world.db")
 	base := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_txlock=immediate")
-	fijarDiario(t, base, diario)
-	escribirGrafo(t, base, ruta, g)
+	ponerEnWAL(t, base)
+	escribirGrafo(t, base, g, version)
 	require.NoError(t, base.Close())
 
-	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida, sufijoDiario} {
+	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida} {
 		require.NoFileExists(t, ruta+sufijo, "al cerrar la última conexión no queda ningún auxiliar")
 	}
 
 	return ruta
 }
 
-// fijarDiario pone la base en el modo de diario dado y comprueba que lo está.
-func fijarDiario(t *testing.T, base *sql.DB, diario string) {
+// ponerEnWAL pone la base en el modo de diario de las entregas, WAL, y
+// comprueba que lo está.
+func ponerEnWAL(t *testing.T, base *sql.DB) {
 	t.Helper()
 
 	var modo string
 
-	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode="+diario).Scan(&modo))
-	require.Equal(t, diario, modo)
+	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode=WAL").Scan(&modo))
+	require.Equal(t, "wal", modo)
 }
 
-// escribirGrafo crea el esquema de la versión 1 y escribe las filas en una
-// transacción, como lo haría una entrega.
-func escribirGrafo(t *testing.T, base *sql.DB, ruta string, g grafoDePrueba) {
+// escribirGrafo crea el esquema de la versión dada y escribe las filas en una
+// transacción, como lo haría una entrega, sin ninguna fila de lecturas.
+func escribirGrafo(t *testing.T, base *sql.DB, g grafoDePrueba, version int64) {
 	t.Helper()
 
 	tx := empezar(t, base)
-	require.NoError(t, migrar(t.Context(), tx, ruta))
+	migrarHasta(t, tx, version)
 
 	for _, nodo := range g.nodos {
 		_, err := tx.ExecContext(t.Context(), `INSERT INTO nodes (id, type, props, first_seen, first_source,
@@ -1237,8 +1328,8 @@ func copiaDeUnEscritorAbierto(t *testing.T, destino string, g grafoDePrueba) {
 
 	ruta := filepath.Join(t.TempDir(), "world.db")
 	escritor := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_pragma=wal_autocheckpoint(0)&_txlock=immediate")
-	fijarDiario(t, escritor, diarioWAL)
-	escribirGrafo(t, escritor, ruta, g)
+	ponerEnWAL(t, escritor)
+	escribirGrafo(t, escritor, g, laVersionConocida(t))
 
 	for _, sufijo := range []string{"", sufijoWAL, sufijoMemoriaCompartida} {
 		copiar(t, ruta+sufijo, filepath.Join(destino, "world.db"+sufijo))
@@ -1247,44 +1338,10 @@ func copiaDeUnEscritorAbierto(t *testing.T, destino string, g grafoDePrueba) {
 	require.NoError(t, escritor.Close())
 }
 
-// copiaDeUnDiarioCaliente deja en el destino una copia de world.db y de su
-// diario tal como los tiene un escritor en modo rollback con una transacción a
-// medias que ya volcó páginas en world.db: sin ningún bloqueo sobre la copia, su
-// diario está caliente (research.md V43).
-func copiaDeUnDiarioCaliente(t *testing.T, destino string) {
-	t.Helper()
-
-	ruta := crearGrafo(t, t.TempDir(), diarioClasico, muestra(t))
-	escritor := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_pragma=cache_size(2)&_txlock=immediate")
-	tx := empezar(t, escritor)
-
-	relleno := strings.Repeat("x", 4000)
-
-	for i := range 100 {
-		_, err := tx.ExecContext(t.Context(),
-			`INSERT INTO texts (hash, body, fetched_at, source, url) VALUES (?, ?, ?, ?, ?)`,
-			"relleno:"+strconv.Itoa(i), relleno, fechaDelBloque, fuenteDelBOE, urlDelBloque)
-		require.NoError(t, err)
-	}
-
-	require.FileExists(t, ruta+sufijoDiario, "premisa: la transacción a medias tiene su diario")
-
-	diario := leerFichero(t, ruta+sufijoDiario)
-	require.NotEmpty(t, diario)
-	require.NotZero(t, diario[0], "premisa: el diario ya tiene su cabecera, así que está caliente")
-
-	for _, sufijo := range []string{"", sufijoDiario} {
-		copiar(t, ruta+sufijo, filepath.Join(destino, "world.db"+sufijo))
-	}
-
-	require.NoError(t, tx.Rollback())
-	require.NoError(t, escritor.Close())
-}
-
-// ceroBytesConUnWAL deja en el directorio un world.db de 0 bytes, con los
-// permisos dados, junto al -wal no vacío de un escritor con marcos y, si se
-// pide, su -shm (research.md V49).
-func ceroBytesConUnWAL(t *testing.T, directorio string, conMemoriaCompartida bool, permisos os.FileMode) {
+// ceroBytesConUnWAL deja en el directorio un world.db de 0 bytes junto al -wal
+// no vacío de un escritor con marcos y, si se pide, su -shm (research.md V49 de
+// H7).
+func ceroBytesConUnWAL(t *testing.T, directorio string, conMemoriaCompartida bool) {
 	t.Helper()
 
 	escritor := t.TempDir()
@@ -1298,7 +1355,6 @@ func ceroBytesConUnWAL(t *testing.T, directorio string, conMemoriaCompartida boo
 	}
 
 	require.NoError(t, os.WriteFile(ruta, nil, 0o600))
-	require.NoError(t, os.Chmod(ruta, permisos))
 
 	info, err := os.Stat(ruta + sufijoWAL)
 	require.NoError(t, err)
@@ -1357,59 +1413,28 @@ func huellasDeFicheros(t *testing.T, rutas ...string) map[string]string {
 	return huellas
 }
 
-// permisosSinEscritura son los de un directorio que no admite ficheros nuevos.
-const permisosSinEscritura fs.FileMode = 0o500
-
-// directorioSinEscritura quita el permiso de escritura al directorio y lo
-// devuelve al terminar, antes de que t.TempDir lo retire. Comprueba la premisa:
-// si el proceso puede crear un fichero dentro, corre con privilegios que se
-// saltan los permisos y la prueba no mediría nada.
-func directorioSinEscritura(t *testing.T, directorio string) {
+// retenerEnExclusiva abre sobre world.db, en WAL y sin ninguna otra conexión
+// abierta, la de otra invocación en locking_mode EXCLUSIVE y deja abierta en
+// ella una transacción de escritura, en la que lee: la base queda bloqueada
+// para cualquier lector que la abra, con las dos cadenas de lectura, hasta que
+// termina la prueba (H7.1 research.md D22, V10). Con otra conexión ya abierta
+// no podría: en WAL, cada una conserva su bloqueo compartido mientras sigue
+// abierta.
+func retenerEnExclusiva(t *testing.T, ruta string) {
 	t.Helper()
 
-	restringir(t, directorio, permisosSinEscritura)
-
-	sonda := filepath.Join(directorio, "sonda")
-
-	err := os.WriteFile(sonda, nil, 0o600)
-	if err == nil {
-		require.NoError(t, os.Remove(sonda))
-	}
-
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el directorio no admite ficheros nuevos "+
-		"(¿el proceso corre como root?)")
-}
-
-// restringir cambia los permisos de la ruta y devuelve los de antes al
-// terminar la prueba.
-func restringir(t *testing.T, ruta string, permisos fs.FileMode) {
-	t.Helper()
-
-	info, err := os.Stat(ruta)
-	require.NoError(t, err)
-
-	permisosDeAntes := info.Mode().Perm()
-
-	require.NoError(t, os.Chmod(ruta, permisos))
-	t.Cleanup(func() {
-		assert.NoError(t, os.Chmod(ruta, permisosDeAntes), "se restauran los permisos de %s", ruta)
-	})
-}
-
-// retenerElBloqueoExclusivo abre otra conexión sobre una base en modo rollback
-// —la de otra invocación— y toma en ella el bloqueo exclusivo, que no deja leer
-// a nadie hasta que termina la prueba.
-func retenerElBloqueoExclusivo(t *testing.T, ruta string) {
-	t.Helper()
-
-	otra := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_txlock=exclusive")
+	otra := abrirBaseDePrueba(t, ruta, pragmaDelTramo+"&_pragma=locking_mode(EXCLUSIVE)&_txlock=immediate")
 
 	tx, err := otra.BeginTx(context.WithoutCancel(t.Context()), nil)
-	require.NoError(t, err, "la otra conexión toma el bloqueo exclusivo")
+	require.NoError(t, err, "la otra conexión toma world.db en exclusiva")
 
 	t.Cleanup(func() {
 		if err := tx.Rollback(); !errors.Is(err, sql.ErrTxDone) {
 			assert.NoError(t, err)
 		}
 	})
+
+	var objetos int
+
+	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT count(*) FROM sqlite_schema`).Scan(&objetos))
 }

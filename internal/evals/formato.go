@@ -62,6 +62,11 @@ type Eval struct {
 	// boe.CodigosDeAviso (FR-020 a FR-022 de H5.1).
 	Avisos []string `yaml:"avisos"`
 
+	// Hallazgos son las clases de hallazgo de graph check cuya forma fija tiene que llevar la respuesta, en el orden
+	// del fichero; vacío si la eval no los espera. Solo los admite una eval que activa la skill, como los avisos, y sus
+	// valores son las clases de grafo.EtiquetasDeHallazgo (contrato evals-y-skill §1 de H7.1; FR-054).
+	Hallazgos []string `yaml:"hallazgos"`
+
 	// Territorio es lo que la respuesta tiene que declarar del territorio del
 	// municipio, cada elemento por su forma fija (ExtraerTerritorio); vacío si la
 	// eval no lo espera. Solo lo admite una eval que activa la skill, y con él
@@ -74,8 +79,9 @@ type Eval struct {
 // evals-y-skill §1 de H7, que decide formaDelComando: bloque (Applet, Norma y
 // Bloque, sin Verbo), consulta de norma (Applet, Verbo indice, metadatos o
 // analisis, y Norma), búsqueda (Applet, Verbo buscar y Terminos), territorio
-// (Applet, Verbo resolver y Municipio) o comprobación (Applet y Verbo check). Lo
-// que su forma no lleva queda vacío.
+// (Applet, Verbo resolver y Municipio) o comprobación (Applet y Verbo check, y
+// desde H7.1 Norma opcional; contrato evals-y-skill §1 de H7.1). Lo que su forma
+// no lleva queda vacío.
 type ComandoEsperado struct {
 	// Applet es el applet que se invoca, como boe, territorio o graph.
 	Applet string `yaml:"applet"`
@@ -85,7 +91,8 @@ type ComandoEsperado struct {
 	Verbo string `yaml:"verbo"`
 
 	// Norma es el identificador de la norma de la forma bloque o de una
-	// consulta de norma.
+	// consulta de norma, o el de la norma que consulta una comprobación; vacío en
+	// una comprobación de todo lo consultado.
 	Norma string `yaml:"norma"`
 
 	// Bloque es el id del bloque de la forma bloque.
@@ -152,8 +159,8 @@ const (
 	// municipio.
 	formaTerritorio
 
-	// formaComprobacion es la de un comando de comprobación: check, sin
-	// argumentos.
+	// formaComprobacion es la de un comando de comprobación: check, con la
+	// norma que consulta o sin ella.
 	formaComprobacion
 )
 

@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 )
 
 // Lo que EscribirInforme lee del directorio de una sesión además de lo que lee
@@ -67,10 +69,12 @@ var (
 	encabezadosDeSesiones         = []string{
 		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
-		"Territorio encontrado", "Territorio ausente", "Resultado",
+		"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente", "Resultado",
 	}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
-	encabezadosDeTasas        = []string{"Eval", "Modelo", "Decide", "Planificada", "Tasa", "Resultado"}
+	encabezadosDeTasas        = []string{
+		"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+	}
 )
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
@@ -199,6 +203,13 @@ type TasaDelInforme struct {
 	// eval que no es informativa.
 	Planificada bool `json:"planificada"`
 	Decide      bool `json:"decide"`
+
+	// Formas son las formas fijas que exige la eval de la serie, junto a su tasa:
+	// la de cada clase de sus hallazgos, en su orden, escrita como se enseña —la
+	// marca, un espacio, la etiqueta de grafo.EtiquetasDeHallazgo y los dos
+	// puntos—. Nunca nil: vacía si la eval no espera hallazgos o si la serie no
+	// es de ninguna eval bien formada (contrato evals-y-skill §6 de H7.1; FR-055).
+	Formas []string `json:"formas"`
 
 	// Sesiones son las que se leyeron de la serie, y Pasan, cuántas de ellas
 	// pasan. Pasa dice si Pasan llega al umbral.
@@ -544,7 +555,8 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 // que pide el plan, en su orden y aunque no tengan ninguna sesión, y después las
 // observadas que el plan no pide —la de la prueba de red y la de cualquier sesión
 // de la que no se pudieran leer la eval, el modelo o la pregunta—, en el orden en
-// que aparecen. Una serie pasa si sus sesiones que pasan llegan al umbral.
+// que aparecen. Una serie pasa si sus sesiones que pasan llegan al umbral, y
+// declara las formas que exige su eval (formasExigidas).
 func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada) []serieJuzgada {
 	var series []serieJuzgada
 
@@ -578,9 +590,31 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 
 	for posicion := range series {
 		series[posicion].tasa.Pasa = series[posicion].tasa.Pasan >= e.Umbral
+		series[posicion].tasa.Formas = formasExigidas(evals, series[posicion].tasa.Eval)
 	}
 
 	return series
+}
+
+// formasExigidas son las formas fijas que exige la eval del fichero dado entre
+// las bien formadas: la de cada clase de sus hallazgos, en su orden, escrita con
+// formaEscrita y la etiqueta de grafo.EtiquetasDeHallazgo (contrato
+// evals-y-skill §6 de H7.1). Vacía, nunca nil, si la eval no espera hallazgos o
+// si el fichero no es el de ninguna eval bien formada.
+func formasExigidas(evals []Eval, fichero string) []string {
+	formas := []string{}
+
+	posicion := slices.IndexFunc(evals, func(eval Eval) bool { return eval.Fichero == fichero })
+	if posicion < 0 {
+		return formas
+	}
+
+	etiquetas := grafo.EtiquetasDeHallazgo()
+	for _, clase := range evals[posicion].Hallazgos {
+		formas = append(formas, formaEscrita(etiquetas[grafo.ClaseDeHallazgo(clase)]))
+	}
+
+	return formas
 }
 
 // agregarSinRepetir añade el valor a la lista si no está ya. Un valor vacío no se
@@ -823,9 +857,10 @@ func filasDeRed(red []RedDelInforme) [][]string {
 }
 
 // filasDeTasas son las filas de la tabla de las series: eval, modelo, si decide,
-// si el plan la pide, la tasa «<pasan> de <sesiones>» y si llega al umbral. La
-// eval de una serie con la pregunta ampliada lleva detrás con qué se amplió, que
-// es la prueba de red.
+// si el plan la pide, las formas que exige su eval junto a la tasa (contrato
+// evals-y-skill §6 de H7.1), la tasa «<pasan> de <sesiones>» y si llega al umbral.
+// La eval de una serie con la pregunta ampliada lleva detrás con qué se amplió,
+// que es la prueba de red.
 func filasDeTasas(tasas []TasaDelInforme) [][]string {
 	filas := make([][]string, 0, len(tasas))
 
@@ -840,6 +875,7 @@ func filasDeTasas(tasas []TasaDelInforme) [][]string {
 			tasa.Modelo,
 			siONo(tasa.Decide),
 			siONo(tasa.Planificada),
+			unidosOVacio(tasa.Formas, ningunaEnElInforme),
 			strconv.Itoa(tasa.Pasan) + " de " + strconv.Itoa(tasa.Sesiones),
 			resultadoDelUmbral(tasa.Pasa),
 		})
@@ -860,11 +896,13 @@ func resultadoDelUmbral(pasa bool) string {
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
 // activa, activada, sesión terminada con su código, comandos ausentes, comandos
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
-// territorio encontrado, territorio ausente y resultado. Los comandos prohibidos
-// ejecutados van junto a los ausentes, cada uno con su texto (contrato
-// evals-y-skill §2 de H7); los avisos, junto a las citas, cada uno con su código
-// (contrato de formato, juicio e informe §5 de H5.1); y el territorio, junto a los
-// avisos, cada elemento con su texto (contrato de evals §2 de H6).
+// hallazgos encontrados, hallazgos ausentes, territorio encontrado, territorio
+// ausente y resultado. Los comandos prohibidos ejecutados van junto a los
+// ausentes, cada uno con su texto (contrato evals-y-skill §2 de H7); los avisos,
+// junto a las citas, cada uno con su código (contrato de formato, juicio e
+// informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su clase
+// (contrato evals-y-skill §6 de H7.1); y el territorio, detrás, cada elemento con
+// su texto (contrato de evals §2 de H6).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -891,6 +929,8 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			unidosOVacio(resultado.CitasAusentes, ningunaEnElInforme),
 			unidosOVacio(resultado.AvisosEncontrados, ningunoEnElInforme),
 			unidosOVacio(resultado.AvisosAusentes, ningunoEnElInforme),
+			unidosOVacio(resultado.HallazgosEncontrados, ningunoEnElInforme),
+			unidosOVacio(resultado.HallazgosAusentes, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioEncontrado, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioAusente, ningunoEnElInforme),
 			pasa,

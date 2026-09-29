@@ -12,9 +12,8 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-// Las fuentes y las direcciones de las observaciones de ejemplo. fuenteCorta
-// es menor que fuenteBOE comparando bytes, porque es su prefijo, y la url del
-// bloque a21 es menor que la del a22.
+// Las fuentes y las direcciones de las observaciones de ejemplo. La url del
+// bloque a21 es menor que la del a22 comparando bytes.
 const (
 	fuenteBOE   = "boe.legislacion-consolidada"
 	fuenteCorta = "boe"
@@ -28,9 +27,6 @@ const (
 	lunes   = "2026-09-28T12:00:00Z"
 	// lunesEnMadrid es el mismo instante que lunes con un texto mayor.
 	lunesEnMadrid = "2026-09-28T14:00:00+02:00"
-	// lunesConFraccion es el mismo instante que lunes con un texto menor: el
-	// punto va antes que la Z.
-	lunesConFraccion = "2026-09-28T12:00:00.000Z"
 	// lunesAntesEnMadrid es una hora antes que lunes, con un texto mayor.
 	lunesAntesEnMadrid = "2026-09-28T13:00:00+02:00"
 	// lunesYMedio es medio segundo después que lunes, con un texto menor.
@@ -38,11 +34,6 @@ const (
 	martes      = "2026-09-29T12:00:00Z"
 	miercoles   = "2026-09-30T12:00:00Z"
 	jueves      = "2026-10-01T12:00:00Z"
-	// fechaImposible no es RFC 3339.
-	fechaImposible = "28/09/2026"
-	// mensajeFechaImposible es como empieza el error de una fecha guardada o
-	// llegada que no es RFC 3339.
-	mensajeFechaImposible = `la fecha de consulta "28/09/2026" no es RFC 3339`
 )
 
 // Las vigencias de ejemplo; sin vigencia es cero, que la fuente no la declara.
@@ -72,13 +63,6 @@ type vista struct {
 // con los datos menores.
 func ver(fecha, url string) vista {
 	return vista{fecha: fecha, url: url, fuente: fuenteBOE, datos: datosMenores}
-}
-
-// de es la misma observación de otra fuente.
-func (v vista) de(fuente string) vista {
-	v.fuente = fuente
-
-	return v
 }
 
 // conVigencia es la misma observación con otra vigencia.
@@ -155,11 +139,10 @@ type casoDeFusion struct {
 }
 
 // casosDeFusion son los de FR-023 que valen igual para nodos, aristas y
-// textos: el instante decide la primera y la última, y a igual instante, el
-// desempate por url, fuente, texto de la fecha y vigencia, cada criterio antes
-// que el siguiente. La que gana lleva los datos mayores, para que se vea que en
-// un nodo los datos no deciden antes que ningún otro criterio. Un texto guarda
-// la procedencia de la primera.
+// textos: el instante decide la primera y la última —dos fechas se comparan
+// como instantes, no por su texto—, y a igual instante, la url menor (H7.1
+// FR-076). La que gana lleva los datos mayores, para que se vea que en un nodo
+// los datos no deciden. Un texto guarda la procedencia de la primera.
 func casosDeFusion() []casoDeFusion {
 	return []casoDeFusion{
 		{
@@ -173,60 +156,19 @@ func casosDeFusion() []casoDeFusion {
 			sola(ver(lunes, urlA21).conDatos(datosMayores)),
 		},
 		{
-			"a igual url, la fuente menor",
-			sola(ver(lunes, urlA21).de(fuenteCorta).conDatos(datosMayores)), sola(ver(lunes, urlA21)),
-			sola(ver(lunes, urlA21).de(fuenteCorta).conDatos(datosMayores)),
-		},
-		{
-			"a igual fuente, el texto menor de la fecha",
-			sola(ver(lunes, urlA21).conDatos(datosMayores)), sola(ver(lunesEnMadrid, urlA21)),
-			sola(ver(lunes, urlA21).conDatos(datosMayores)),
-		},
-		{
-			"el mismo instante con fraccion de segundo, por su texto",
-			sola(ver(lunesConFraccion, urlA21).conDatos(datosMayores)), sola(ver(lunes, urlA21)),
-			sola(ver(lunesConFraccion, urlA21).conDatos(datosMayores)),
-		},
-		{
-			"a igual fecha, sin vigencia antes que con ella",
-			sola(ver(lunes, urlA21).conDatos(datosMayores)), sola(ver(lunes, urlA21).conVigencia(unaSemana)),
-			sola(ver(lunes, urlA21).conDatos(datosMayores)),
-		},
-		{
-			"entre dos vigencias, la menor",
-			sola(ver(lunes, urlA21).conVigencia(unaHora).conDatos(datosMayores)),
-			sola(ver(lunes, urlA21).conVigencia(unaSemana)),
-			sola(ver(lunes, urlA21).conVigencia(unaHora).conDatos(datosMayores)),
-		},
-		{
 			"el instante decide antes que la url",
 			sola(ver(lunes, urlA22)), sola(ver(martes, urlA21).conDatos(datosMayores)),
 			historia{ver(lunes, urlA22), ver(martes, urlA21).conDatos(datosMayores)},
 		},
 		{
-			"el instante decide antes que el texto de la fecha, con fraccion de segundo",
+			"el instante y no el texto de la fecha, con fraccion de segundo",
 			sola(ver(lunesYMedio, urlA22)), sola(ver(lunes, urlA21).conDatos(datosMayores)),
 			historia{ver(lunes, urlA21).conDatos(datosMayores), ver(lunesYMedio, urlA22)},
 		},
 		{
-			"el instante decide antes que el texto de la fecha, con otro desplazamiento",
+			"el instante y no el texto de la fecha, con otro desplazamiento",
 			sola(ver(lunesAntesEnMadrid, urlA22)), sola(ver(lunes, urlA21).conDatos(datosMayores)),
 			historia{ver(lunesAntesEnMadrid, urlA22), ver(lunes, urlA21).conDatos(datosMayores)},
-		},
-		{
-			"la url decide antes que la fuente",
-			sola(ver(lunes, urlA21).conDatos(datosMayores)), sola(ver(lunes, urlA22).de(fuenteCorta)),
-			sola(ver(lunes, urlA21).conDatos(datosMayores)),
-		},
-		{
-			"la fuente decide antes que el texto de la fecha",
-			sola(ver(lunesEnMadrid, urlA21).de(fuenteCorta).conDatos(datosMayores)), sola(ver(lunes, urlA21)),
-			sola(ver(lunesEnMadrid, urlA21).de(fuenteCorta).conDatos(datosMayores)),
-		},
-		{
-			"el texto de la fecha decide antes que la vigencia",
-			sola(ver(lunes, urlA21).conVigencia(unaSemana).conDatos(datosMayores)), sola(ver(lunesEnMadrid, urlA21)),
-			sola(ver(lunes, urlA21).conVigencia(unaSemana).conDatos(datosMayores)),
 		},
 		{
 			"una observacion identica",
@@ -268,23 +210,12 @@ func casosDeFusion() []casoDeFusion {
 
 // casosDeFusionDeDatos son los de FR-023 que solo tiene un nodo: sus datos
 // identificativos, que son los de su última observación, enteros y sin
-// mezclar, y el último criterio del desempate.
+// mezclar.
 func casosDeFusionDeDatos() []casoDeFusion {
 	datosDeLunes := `{"bloque":"a21","fecha_vigencia":"20161002"}`
 	datosDeMartes := `{"hash_texto":"sha256:00"}`
 
 	return []casoDeFusion{
-		{
-			"a igual vigencia, los datos canonicos menores",
-			sola(ver(lunes, urlA21).conVigencia(unaHora).conDatos(datosMayores)),
-			sola(ver(lunes, urlA21).conVigencia(unaHora).conDatos(datosMenores)),
-			sola(ver(lunes, urlA21).conVigencia(unaHora).conDatos(datosMenores)),
-		},
-		{
-			"la vigencia decide antes que los datos",
-			sola(ver(lunes, urlA21).conDatos(datosMayores)), sola(ver(lunes, urlA21).conVigencia(unaHora)),
-			sola(ver(lunes, urlA21).conDatos(datosMayores)),
-		},
 		{
 			"los datos de la ultima, enteros y sin mezclar",
 			sola(ver(lunes, urlA21).conDatos(datosDeLunes)), sola(ver(martes, urlA21).conDatos(datosDeMartes)),
@@ -293,36 +224,12 @@ func casosDeFusionDeDatos() []casoDeFusion {
 	}
 }
 
-// historiaImposible es un registro con una fecha que no es RFC 3339, en su
-// primera o en su última observación, guardado o llegando.
-type historiaImposible struct {
-	nombre   string
-	guardada historia
-	llegada  historia
-	enUltima bool
-}
-
-// historiasImposibles son las cuatro posiciones de una fecha que no es RFC
-// 3339: un defecto de lo guardado o de quien llama, nunca un Rechazo del lote.
-// Un texto solo tiene la primera.
-func historiasImposibles() []historiaImposible {
-	valida := ver(lunes, urlA21)
-	imposible := ver(fechaImposible, urlA21)
-
-	return []historiaImposible{
-		{"una fecha imposible en la primera guardada", historia{imposible, valida}, sola(valida), false},
-		{"una fecha imposible en la ultima guardada", historia{valida, imposible}, sola(valida), true},
-		{"una fecha imposible en la primera que llega", sola(valida), historia{imposible, valida}, false},
-		{"una fecha imposible en la ultima que llega", sola(valida), historia{valida, imposible}, true},
-	}
-}
-
 // TestFusionarNodo fija la fusión de lo guardado de un nodo con lo que llega
-// de él (FR-022, FR-023; data-model §4.1; research.md D13): la primera
+// de él (FR-022, FR-023; H7.1 FR-076; data-model §4.1): la primera
 // observación nunca avanza, la última nunca retrocede y lleva enteros los datos
-// y la vigencia de la observación que la sostiene, con el desempate de FR-023,
-// y el resultado es el mismo en los dos órdenes de llegada y no cambia al
-// repetir una observación. Un tipo distinto rechaza el lote.
+// y la vigencia de la observación que la sostiene, a igual instante la de url
+// menor, y el resultado es el mismo en los dos órdenes de llegada y no cambia
+// al repetir una observación. Un tipo distinto rechaza el lote.
 func TestFusionarNodo(t *testing.T) {
 	t.Parallel()
 
@@ -387,10 +294,8 @@ func probarNodoDeOtroTipo(t *testing.T) {
 	}
 }
 
-// probarNodosQueNoSeFusionan fija los defectos de quien llama o de lo
-// guardado, que no son un Rechazo del lote: dos nodos distintos, sin nombrar
-// sus ids, y una fecha que no es RFC 3339 en cualquiera de las cuatro
-// posiciones.
+// probarNodosQueNoSeFusionan fija el defecto de quien llama, que no es un
+// Rechazo del lote: dos nodos distintos, sin nombrar sus ids.
 func probarNodosQueNoSeFusionan(t *testing.T) {
 	t.Parallel()
 
@@ -403,21 +308,14 @@ func probarNodosQueNoSeFusionan(t *testing.T) {
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), guardado.ID, "no nombra los ids, que pueden ser de una Persona")
 	assert.NotContains(t, err.Error(), otro.ID, "no nombra los ids, que pueden ser de una Persona")
-
-	for _, caso := range historiasImposibles() {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			exigirDefecto(t, grafo.FusionarNodo, caso.guardada.nodo(), caso.llegada.nodo(), mensajeFechaImposible)
-		})
-	}
 }
 
 // TestFusionarArista fija la fusión de lo guardado de una arista con lo que
-// llega de ella (FR-022, FR-023; data-model §4.1; research.md D13): la primera
+// llega de ella (FR-022, FR-023; H7.1 FR-076; data-model §4.1): la primera
 // observación nunca avanza, la última nunca retrocede y lleva la vigencia de la
-// observación que la sostiene, con el desempate de FR-023, y el resultado es el
-// mismo en los dos órdenes de llegada y no cambia al repetir una observación.
+// observación que la sostiene, a igual instante la de url menor, y el
+// resultado es el mismo en los dos órdenes de llegada y no cambia al repetir
+// una observación.
 func TestFusionarArista(t *testing.T) {
 	t.Parallel()
 
@@ -432,10 +330,9 @@ func TestFusionarArista(t *testing.T) {
 	t.Run("defectos", probarAristasQueNoSeFusionan)
 }
 
-// probarAristasQueNoSeFusionan fija los defectos de quien llama o de lo
-// guardado, que no son un Rechazo del lote: dos aristas que difieren en su
-// origen, su relación o su destino, y una fecha que no es RFC 3339 en
-// cualquiera de las cuatro posiciones.
+// probarAristasQueNoSeFusionan fija el defecto de quien llama, que no es un
+// Rechazo del lote: dos aristas que difieren en su origen, su relación o su
+// destino.
 func probarAristasQueNoSeFusionan(t *testing.T) {
 	t.Parallel()
 
@@ -452,23 +349,14 @@ func probarAristasQueNoSeFusionan(t *testing.T) {
 		exigirDefecto(t, grafo.FusionarArista, guardada, llegada,
 			"no se pueden fusionar las observaciones de dos aristas distintas")
 	}
-
-	for _, caso := range historiasImposibles() {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			exigirDefecto(t, grafo.FusionarArista, caso.guardada.arista(), caso.llegada.arista(), mensajeFechaImposible)
-		})
-	}
 }
 
 // TestFusionarTexto fija la fusión de lo guardado de un texto con lo que llega
-// de él (FR-022, FR-023; data-model §4.1; research.md D13): un solo texto por
+// de él (FR-022, FR-023; H7.1 FR-076; data-model §4.1): un solo texto por
 // huella, con el mismo cuerpo y la procedencia de su observación más antigua,
 // que solo cambia si la que llega es estrictamente anterior o del mismo
-// instante y gana el desempate por url, fuente y texto de la fecha; el mismo
-// resultado en los dos órdenes de llegada. Una huella guardada con otro cuerpo
-// rechaza el lote.
+// instante y de url menor; el mismo resultado en los dos órdenes de llegada.
+// Una huella guardada con otro cuerpo rechaza el lote.
 func TestFusionarTexto(t *testing.T) {
 	t.Parallel()
 
@@ -502,9 +390,8 @@ func probarTextoConOtroCuerpo(t *testing.T) {
 	assert.NotContains(t, err.Error(), llegado.Cuerpo, "nunca repite un cuerpo")
 }
 
-// probarTextosQueNoSeFusionan fija los defectos de quien llama o de lo
-// guardado, que no son un Rechazo del lote: dos huellas distintas y una fecha
-// que no es RFC 3339 en la procedencia guardada o en la que llega.
+// probarTextosQueNoSeFusionan fija el defecto de quien llama, que no es un
+// Rechazo del lote: dos huellas distintas.
 func probarTextosQueNoSeFusionan(t *testing.T) {
 	t.Parallel()
 
@@ -514,18 +401,6 @@ func probarTextosQueNoSeFusionan(t *testing.T) {
 	otro.Cuerpo = "otro cuerpo"
 	exigirDefecto(t, grafo.FusionarTexto, guardado, otro,
 		"no se pueden fusionar las observaciones de dos textos distintos")
-
-	for _, caso := range historiasImposibles() {
-		if caso.enUltima {
-			continue
-		}
-
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			exigirDefecto(t, grafo.FusionarTexto, caso.guardada.texto(), caso.llegada.texto(), mensajeFechaImposible)
-		})
-	}
 }
 
 // exigirFusion comprueba que fusionar da lo esperado en los dos órdenes de

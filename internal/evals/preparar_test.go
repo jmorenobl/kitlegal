@@ -375,8 +375,8 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 		nombre  string
 		fichero string
 
-		// mundoOcupado crea en cache/, antes de preparar, un directorio con el
-		// nombre de world.db: la entrega falla y el kernel lo avisa en la salida de
+		// mundoOcupado crea en cache/, antes de preparar, un world.db que no es
+		// una base SQLite: la entrega falla y el kernel lo avisa en la salida de
 		// error, con el código 0.
 		mundoOcupado bool
 
@@ -427,7 +427,8 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 			require.NoError(t, os.Mkdir(dirCache, 0o750))
 
 			if caso.mundoOcupado {
-				require.NoError(t, os.Mkdir(filepath.Join(dirCache, "world.db"), 0o750))
+				require.NoError(t, os.WriteFile(filepath.Join(dirCache, "world.db"),
+					[]byte("Este fichero no es una base de datos SQLite.\n"), 0o600))
 			}
 
 			faltas, err := PrepararSesion(SesionAPreparar{
@@ -530,7 +531,7 @@ func versionesDelGrafo(t *testing.T, dirCache string) []grafo.NodoDeInstantanea 
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, errors.Join(err, lectura.Close()))
 
 	var versiones []grafo.NodoDeInstantanea
@@ -567,6 +568,102 @@ func vigenciaServidaSinRed(t *testing.T, dirCache string) string {
 	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre))
 
 	return sobre.Data.FechaVigencia
+}
+
+// TestEstadoPrevioDeLaRedaccionCambiada fija el estado previo sin red de la
+// eval 19 del repositorio (contrato evals-y-skill §5 de H7.1; research D15,
+// V22; FR-053): preparada su sesión como la prepara el job —el grafo previo y
+// después la caché, con las grabaciones de H4 y de H5—, la lectura del art. 21
+// de la sesión, servida por su caché y entregada a su grafo, deja que Comprobar,
+// con el ámbito de la comprobación que la eval espera, dé exactamente un
+// version-obsoleta, el hallazgo que la eval exige trasladar: sobre la redacción
+// de 20151002, con 20161002 como la reciente.
+func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == ficheroDeLaConsultaRepetida })
+	require.GreaterOrEqual(t, posicion, 0, "%s es una eval bien formada de %s", ficheroDeLaConsultaRepetida,
+		evalsDelRepositorio)
+
+	eval := conjunto.Evals[posicion]
+	ambito := grafo.Ambito{Norma: normaQueComprueba(t, eval)}
+
+	require.Equal(t, "BOE-A-2015-10565", ambito.Norma, "la sesión comprueba la memoria con la norma que cita")
+	require.Equal(t, []string{string(grafo.ClaseVersionObsoleta)}, eval.Hallazgos,
+		"la eval exige trasladar el version-obsoleta")
+
+	sesion := t.TempDir()
+	dirCache := filepath.Join(sesion, directorioDeLaCache)
+	require.NoError(t, os.Mkdir(dirCache, 0o750))
+
+	faltas, err := PrepararSesion(SesionAPreparar{
+		Evals:       evalsDelRepositorio,
+		Grabaciones: UnionDeGrabaciones(),
+		Fichero:     ficheroDeLaConsultaRepetida,
+		Modelo:      modeloDeLaSesion,
+		Directorio:  sesion,
+	})
+	require.NoError(t, err)
+	require.Empty(t, faltas, "la sesión se prepara sin faltas:\n%s", presentarFaltas(faltas))
+
+	leerElArticulo21EnLaSesion(t, dirCache)
+
+	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context(), ambito)
+	require.NoError(t, errors.Join(err, lectura.Close()))
+
+	comprobacion, err := grafo.Comprobar(instantanea, ambito, time.Now())
+	require.NoError(t, err)
+
+	obsoletas := slices.DeleteFunc(slices.Clone(comprobacion.Hallazgos), func(hallazgo grafo.Hallazgo) bool {
+		return hallazgo.Clase != grafo.ClaseVersionObsoleta
+	})
+
+	assert.Equal(t, 1, comprobacion.VersionObsoleta, "exactamente un version-obsoleta en el ámbito")
+	require.Len(t, obsoletas, 1, "exactamente un version-obsoleta listado")
+	assert.Contains(t, obsoletas[0].ID, "#a21@"+vigenciaAnteriorDelArticulo21+":", "sobre la redacción del grafo previo")
+	assert.Equal(t, vigenciaAnteriorDelArticulo21, obsoletas[0].FechaVigencia, "la superada, la del grafo previo")
+	assert.Equal(t, vigenciaGrabadaDelArticulo21, obsoletas[0].FechaVigenciaReciente,
+		"la reciente, la que sirve la caché de la sesión")
+}
+
+// normaQueComprueba es la norma del único comando de comprobación que la eval
+// espera: el ámbito con el que la sesión comprueba la memoria de consultas.
+func normaQueComprueba(t *testing.T, eval Eval) string {
+	t.Helper()
+
+	comprobaciones := slices.DeleteFunc(slices.Clone(eval.Comandos), func(comando ComandoEsperado) bool {
+		return formaDelComando(comando) != formaComprobacion
+	})
+	require.Len(t, comprobaciones, 1, "%s espera una sola comprobación de la memoria de consultas", eval.Fichero)
+
+	return comprobaciones[0].Norma
+}
+
+// leerElArticulo21EnLaSesion es la lectura del art. 21 de la LPAC que hace la
+// sesión: boe articulo --json, sin --offline, con la caché de dirCache sobre una
+// reproducción vacía —la sirve la caché o falla, nunca la red— y entregada al
+// grafo del mundo de dirCache. Termina en 0 y sin nada en la salida de error,
+// donde el kernel avisaría de una entrega que falló.
+func leerElArticulo21EnLaSesion(t *testing.T, dirCache string) {
+	t.Helper()
+
+	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	registro.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(dirCache)))
+
+	var salida, errores bytes.Buffer
+
+	codigo := app.Main([]string{"kitlegal", "boe", "articulo", "BOE-A-2015-10565", "a21", "--json"},
+		registro, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+	require.Zero(t, codigo, "la caché de la sesión sirve el art. 21: %s", errores.String())
+	assert.Empty(t, errores.String(), "la lectura llega al grafo de la sesión")
 }
 
 // TestFaltaSinOrigenesODeOtroPunto fija los dos textos de Falta.String que no

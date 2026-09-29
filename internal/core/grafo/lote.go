@@ -16,30 +16,25 @@ import (
 
 // ValidarLote comprueba, sin tocar el disco, lo que un lote tiene que cumplir
 // para entrar en el grafo del mundo con independencia de lo ya guardado
-// (FR-024, FR-025; contracts/almacen-world-db.md §5; data-model §4.2;
-// research.md D14):
+// (H7.1 FR-074, FR-075; contracts/almacen-world-db.md §5; data-model §4.2):
 //
-//   - fuente y url no vacías, url que es un URI absoluto —el criterio de
-//     schema.Procedencia.Validar—, fecha de consulta RFC 3339 y vigencia no
-//     negativa;
-//   - cada nodo con id y tipo, un solo tipo por id en todo el lote y ninguna
-//     Persona con la forma de un DNI, un NIE o un NIF en su id o en cualquier
-//     cadena de sus datos;
-//   - cada arista con origen, relación y destino;
-//   - cada texto con la huella de su cuerpo: «sha256:» y los 64 hexadecimales
-//     en minúscula de la SHA-256 de sus bytes, tal cual;
-//   - y cada operación, un valor schema.Nodo, schema.Arista o schema.Texto.
+//   - fuente, url y fecha de consulta no vacías;
+//   - un solo tipo por id en todo el lote y ninguna Persona con la forma de un
+//     DNI, un NIE o un NIF en su id o en cualquier cadena de sus datos;
+//   - y cada texto con la huella de su cuerpo: «sha256:» y los 64
+//     hexadecimales en minúscula de la SHA-256 de sus bytes, tal cual.
 //
 // Un solo incumplimiento rechaza el lote entero: devuelve el primero que
 // encuentra, como un *Rechazo que nombra la operación —o el lote, si es su
-// procedencia— y el motivo, y nil si no hay ninguno. Los nodos se validan
-// antes que las aristas, de modo que una Persona con un documento en su id se
-// rechaza por serlo antes de que ninguna arista la nombre por su id.
+// procedencia— y el motivo, y nil si no hay ninguno.
 //
-// Lo que necesita lo guardado —un extremo que no está ni en el lote ni en el
-// grafo, un id que el grafo ya tiene con otro tipo, una huella guardada con
-// otro cuerpo— se comprueba dentro de la transacción; contra un grafo vacío,
-// con ValidarContraGrafoVacio.
+// Lo que ningún emisor produce —una fecha que no es RFC 3339, una vigencia
+// negativa, una operación nula o que no es un valor schema.Nodo, schema.Arista
+// o schema.Texto— tampoco entra, sin caso propio: es la regla genérica
+// (research.md D20). Lo que necesita lo guardado —un id que el grafo ya tiene
+// con otro tipo, una huella guardada con otro cuerpo— se comprueba dentro de la
+// transacción, y un extremo de arista que no está ni en el lote ni en el grafo
+// lo rechaza la clave ajena de edges.
 func ValidarLote(lote core.Lote) error {
 	if err := validarProcedencia(lote); err != nil {
 		return err
@@ -48,50 +43,8 @@ func ValidarLote(lote core.Lote) error {
 	tipos := make(map[string]schema.Nodo)
 
 	for _, operacion := range lote.Operaciones {
-		if nodo, esNodo := operacion.(schema.Nodo); esNodo {
-			if err := validarNodo(nodo, tipos); err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, operacion := range lote.Operaciones {
-		if err := validarOperacion(operacion); err != nil {
+		if err := validarOperacion(operacion, tipos); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-// ValidarContraGrafoVacio comprueba lo que un lote tiene que cumplir para
-// entrar en un grafo vacío —world.db ausente o sin esquema—, que no tiene
-// ningún nodo: cada extremo de cada arista tiene que ser un nodo del propio
-// lote, en cualquier posición (FR-024; contracts/almacen-world-db.md §4, pasos
-// 3.1 y 4, y §5). El primer extremo que falta rechaza el lote entero con un
-// *Rechazo que nombra la arista.
-//
-// Se llama después de ValidarLote y antes de crear o abrir nada, así que un
-// lote que el grafo vacío rechaza no toca ningún fichero.
-func ValidarContraGrafoVacio(lote core.Lote) error {
-	nodos := make(map[string]bool)
-
-	for _, operacion := range lote.Operaciones {
-		if nodo, esNodo := operacion.(schema.Nodo); esNodo {
-			nodos[nodo.ID] = true
-		}
-	}
-
-	for _, operacion := range lote.Operaciones {
-		arista, esArista := operacion.(schema.Arista)
-
-		switch {
-		case !esArista:
-			continue
-		case !nodos[arista.Origen]:
-			return &Rechazo{Operacion: arista, Motivo: "su origen no es un nodo del lote y el grafo está vacío"}
-		case !nodos[arista.Destino]:
-			return &Rechazo{Operacion: arista, Motivo: "su destino no es un nodo del lote y el grafo está vacío"}
 		}
 	}
 
@@ -114,19 +67,18 @@ type Consolidado struct {
 }
 
 // Consolidar valida el lote con ValidarLote y lo reduce a un registro por
-// clave (data-model §4.2; FR-023). Dentro de un lote, dos operaciones con la
-// misma clave —id, terna o huella— comparten la observación del lote, con su
-// procedencia y su vigencia, y quedan en un solo registro. Dos nodos con el
-// mismo id y datos distintos se quedan con los datos canónicos menores,
-// comparando bytes: el último criterio del desempate de FusionarNodo, que es
-// el único en el que difieren dos observaciones del mismo lote. Dos textos con
-// la misma huella tienen el mismo cuerpo, porque ValidarLote exige que la
-// huella sea la de su cuerpo.
+// clave (data-model §4.2; H7.1 FR-076). Dentro de un lote, dos operaciones con
+// la misma clave —id, terna o huella— comparten la observación del lote, con su
+// procedencia y su vigencia, y quedan en un solo registro. Un id repetido se
+// guarda una vez, con los datos de su primera aparición y sin compararlos: los
+// emisores lo repiten con los mismos datos, como la Norma de cada bloque de
+// boe articulos (research.md V29). Dos textos con la misma huella tienen el
+// mismo cuerpo, porque ValidarLote exige que la huella sea la de su cuerpo.
 //
-// El resultado no depende del orden de las operaciones ni de que alguna se
-// repita. Un lote que ValidarLote rechaza da su Rechazo, y uno con un nodo
-// cuyos datos no tienen forma JSON canónica, que no se podrían guardar ni
-// comparar, un Rechazo que nombra el nodo y dice por qué.
+// Un lote que ValidarLote rechaza da su Rechazo, y uno con un nodo cuyos datos
+// no tienen forma JSON canónica, que no se podrían guardar, un Rechazo que
+// nombra el nodo y dice por qué: la regla genérica, porque ningún emisor los
+// produce (research.md D20).
 func Consolidar(lote core.Lote) (Consolidado, error) {
 	if err := ValidarLote(lote); err != nil {
 		return Consolidado{}, err
@@ -140,13 +92,13 @@ func Consolidar(lote core.Lote) (Consolidado, error) {
 	for _, operacion := range lote.Operaciones {
 		switch op := operacion.(type) {
 		case schema.Nodo:
+			if _, visto := nodos[op.ID]; visto {
+				continue
+			}
+
 			datos, err := DatosCanonicos(op.Datos)
 			if err != nil {
 				return Consolidado{}, &Rechazo{Operacion: op, Motivo: err.Error()}
-			}
-
-			if previo, visto := nodos[op.ID]; visto && previo.Datos <= datos {
-				continue
 			}
 
 			nodos[op.ID] = RegistroDeNodo{
@@ -181,10 +133,9 @@ func Consolidar(lote core.Lote) (Consolidado, error) {
 }
 
 // validarProcedencia rechaza el lote mismo si su procedencia no sostiene una
-// cita o su vigencia es negativa. Si la fuente y la url no están vacías, lo
-// único que schema.Procedencia.Validar puede rechazar es que la url no sea un
-// URI absoluto. La fecha tiene que ser RFC 3339, con o sin fracción de
-// segundo, que es como la escribe el sobre (research.md D5).
+// cita: sin fuente, sin url o sin fecha de consulta. Una fecha que no es RFC
+// 3339 —el sobre la escribe con time.RFC3339Nano, research.md V27— o una
+// vigencia negativa tampoco entran, sin caso propio (research.md D20).
 func validarProcedencia(lote core.Lote) error {
 	_, errFecha := time.Parse(time.RFC3339, lote.FechaConsulta)
 
@@ -193,8 +144,6 @@ func validarProcedencia(lote core.Lote) error {
 		return &Rechazo{Motivo: "no lleva fuente"}
 	case lote.URL == "":
 		return &Rechazo{Motivo: "no lleva url"}
-	case (schema.Procedencia{Fuente: lote.Fuente, URL: lote.URL}).Validar() != nil:
-		return &Rechazo{Motivo: fmt.Sprintf("la url %q no es un URI absoluto", lote.URL)}
 	case lote.FechaConsulta == "":
 		return &Rechazo{Motivo: "no lleva fecha de consulta"}
 	case errFecha != nil:
@@ -206,21 +155,14 @@ func validarProcedencia(lote core.Lote) error {
 	return nil
 }
 
-// validarNodo rechaza un nodo sin id o sin tipo, una Persona con un documento
-// de identidad y un id al que el lote ya dio otro tipo. tipos guarda, por id,
-// el primer nodo del lote con ese id.
+// validarNodo rechaza una Persona con un documento de identidad y un id al que
+// el lote ya dio otro tipo. tipos guarda, por id, el primer nodo del lote con
+// ese id.
 //
 // Si uno de los dos nodos con el mismo id es una Persona, el Rechazo la
 // nombra a ella, que se nombra por su tipo: el mensaje nunca repite el id de
 // una Persona.
 func validarNodo(nodo schema.Nodo, tipos map[string]schema.Nodo) error {
-	switch {
-	case nodo.ID == "":
-		return &Rechazo{Operacion: nodo, Motivo: "no lleva id"}
-	case nodo.Tipo == "":
-		return &Rechazo{Operacion: nodo, Motivo: "no lleva tipo"}
-	}
-
 	if nodo.Tipo == TipoPersona {
 		if err := validarPersona(nodo); err != nil {
 			return err
@@ -249,17 +191,16 @@ func validarNodo(nodo schema.Nodo, tipos map[string]schema.Nodo) error {
 	}
 }
 
-// validarOperacion rechaza una arista sin origen, relación o destino, un
-// texto cuya huella no es la de su cuerpo y lo que no es un valor
-// schema.Nodo, schema.Arista o schema.Texto: una operación nula o un puntero a
-// uno de ellos, que la interfaz sellada también admite. Los nodos ya los
-// validó ValidarLote.
-func validarOperacion(operacion schema.Operacion) error {
+// validarOperacion valida un nodo con validarNodo y un texto con validarTexto;
+// una arista no tiene nada que validar sin lo guardado. Lo que no es un valor
+// schema.Nodo, schema.Arista o schema.Texto —una operación nula o un puntero a
+// uno de ellos, que la interfaz sellada también admite— no entra.
+func validarOperacion(operacion schema.Operacion, tipos map[string]schema.Nodo) error {
 	switch op := operacion.(type) {
 	case schema.Nodo:
-		return nil
+		return validarNodo(op, tipos)
 	case schema.Arista:
-		return validarArista(op)
+		return nil
 	case schema.Texto:
 		return validarTexto(op)
 	case nil:
@@ -267,20 +208,6 @@ func validarOperacion(operacion schema.Operacion) error {
 	default:
 		return &Rechazo{Operacion: op, Motivo: "solo entran los valores schema.Nodo, schema.Arista y schema.Texto"}
 	}
-}
-
-// validarArista rechaza una arista a la que le falta un extremo o la relación.
-func validarArista(arista schema.Arista) error {
-	switch {
-	case arista.Origen == "":
-		return &Rechazo{Operacion: arista, Motivo: "no lleva origen"}
-	case arista.Relacion == "":
-		return &Rechazo{Operacion: arista, Motivo: "no lleva relación"}
-	case arista.Destino == "":
-		return &Rechazo{Operacion: arista, Motivo: "no lleva destino"}
-	}
-
-	return nil
 }
 
 // validarTexto rechaza un texto cuya huella no es exactamente la de los bytes

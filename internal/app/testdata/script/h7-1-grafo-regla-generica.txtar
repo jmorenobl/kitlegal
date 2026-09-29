@@ -1,0 +1,89 @@
+# La regla genérica (ADR 0023; constitución, «Gates») con su único vehículo, un
+# world.db que no es una base SQLite. Los tres verbos de graph —stats, show y
+# check, también acotado a una norma— salen con 1, la clase inesperado y un
+# mensaje que nombra la ruta de world.db y la causa, y sin --json no escriben
+# nada en la salida estándar; y boe articulo, servido desde la caché, sale con
+# 0, con la misma salida estándar que con --no-graph y exactamente una línea en
+# la salida de error, la de la entrega fallida.
+#
+# Cubre: US6.1, US6.2 · FR-006, FR-060, FR-070, FR-091 · SC-011.
+#
+# El mensaje es el de contracts/almacen-world-db.md §6 y contracts/applet-graph.md
+# §2 —sin «no se modifica»: para este caso no se promete nada sobre los bytes
+# de world.db ni sobre sus ficheros auxiliares, y nada de eso se afirma aquí—;
+# la línea de la entrega fallida, la de contracts/arnes-e2e.md §3. Los códigos
+# distintos de 0 los comprueba el intérprete de órdenes, como en
+# h7-grafo-codigos.txtar.
+
+# Precondición: graph check se acota y lista como mucho 50 hallazgos (FR-007).
+exec kitlegal graph check --help
+stdout 'como\s+mucho\s+50\s+hallazgos'
+
+# --- Los tres verbos de graph: 1, inesperado y la ruta (US6.1, FR-070) ---
+env KITLEGAL_CACHE_DIR=$WORK/inutil
+mkdir inutil
+cp no-es-una-base inutil/world.db
+
+exec sh -c 'kitlegal graph stats --json; test $? -eq 1'
+stdout '\A\{"ok":false,.*"data":\{"clase":"inesperado","mensaje":"grafo: \\"[^"\n]*/inutil/world\.db\\" no es una base de datos utilizable: [^\n]+"\}\}\n\z'
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+
+exec sh -c 'kitlegal graph show eli/es/l/2015/10/01/39 --json; test $? -eq 1'
+stdout '\A\{"ok":false,.*"data":\{"clase":"inesperado","mensaje":"grafo: \\"[^"\n]*/inutil/world\.db\\" no es una base de datos utilizable: [^\n]+"\}\}\n\z'
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+
+exec sh -c 'kitlegal graph check --json; test $? -eq 1'
+stdout '\A\{"ok":false,.*"data":\{"clase":"inesperado","mensaje":"grafo: \\"[^"\n]*/inutil/world\.db\\" no es una base de datos utilizable: [^\n]+"\}\}\n\z'
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+
+exec sh -c 'kitlegal graph check BOE-A-2015-10565 --json; test $? -eq 1'
+stdout '\A\{"ok":false,.*"data":\{"clase":"inesperado","mensaje":"grafo: \\"[^"\n]*/inutil/world\.db\\" no es una base de datos utilizable: [^\n]+"\}\}\n\z'
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+
+# Sin --json, el fallo no tiene forma legible: nada en la salida estándar y el
+# mensaje en la de error (FR-060).
+exec sh -c 'kitlegal graph stats; test $? -eq 1'
+! stdout .
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+exec sh -c 'kitlegal graph show eli/es/l/2015/10/01/39; test $? -eq 1'
+! stdout .
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+exec sh -c 'kitlegal graph check; test $? -eq 1'
+! stdout .
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+exec sh -c 'kitlegal graph check BOE-A-2015-10565; test $? -eq 1'
+! stdout .
+stderr 'grafo: "[^"\n]*/inutil/world\.db" no es una base de datos utilizable: '
+! stderr 'no se modifica'
+
+# --- La entrega: el applet no cambia, y una línea más (US6.2, FR-070) ---
+#
+# Con un grafo sano, la primera consulta llena la caché y crea world.db; la
+# siguiente, con --no-graph, sale de la caché y es la referencia.
+env KITLEGAL_CACHE_DIR=$WORK/cache
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+! stderr .
+exists cache/world.db
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --no-graph --json
+! stderr .
+cp stdout sin-grafo.json
+
+# Con world.db sustituido por un fichero que no es una base SQLite, la misma
+# consulta, servida desde la caché, sale con 0 y la misma salida estándar, y la
+# salida de error es exactamente una línea: la de la entrega fallida, con la
+# ruta y la causa.
+cp no-es-una-base cache/world.db
+exec kitlegal boe articulo BOE-A-2015-10565 a21 --json
+cmp stdout sin-grafo.json
+stderr '\Akitlegal: lo observado no ha llegado al grafo del mundo: grafo: "[^"\n]*/cache/world\.db" no es una base de datos utilizable: [^\n]+\n\z'
+! stderr 'no se modifica'
+
+-- no-es-una-base --
+Este fichero no es una base de datos SQLite.

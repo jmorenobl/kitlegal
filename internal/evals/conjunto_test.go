@@ -847,7 +847,11 @@ const (
 // del formato admite en avisos exactamente los códigos de aviso del binario
 // (FR-013 de H5.1); el SKILL.md de boe-legislacion lleva la forma fija de cada
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
-// H5.1); el esquema publicado admite en la cobertura del territorio esperado
+// H5.1); el esquema publicado admite en hallazgos exactamente las clases de
+// hallazgo que el binario etiqueta (contrato evals-y-skill §3 de H7.1; FR-054);
+// el SKILL.md de boe-legislacion lleva la forma fija de cada una de esas clases,
+// reconocida con la misma función que usa Juzgar (FR-045, FR-093 de H7.1);
+// el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
 // evals §1.2 de H6); las de evals/legal-core/ cumplen las reglas del conjunto de
 // legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011); y el grafo
@@ -954,6 +958,26 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		assert.NoError(t, ComprobarFormasDeAviso(string(skill)),
 			"%s enseña la forma fija de cada código de aviso del binario", skillDelRepositorio)
+	})
+
+	t.Run("hallazgos-del-esquema", func(t *testing.T) {
+		t.Parallel()
+
+		esquema, err := esquemaDeEval()
+		require.NoError(t, err)
+
+		assert.NoError(t, ComprobarClasesDeHallazgo(esquema),
+			"el esquema publicado %s admite en hallazgos exactamente las clases de hallazgo etiquetadas por el binario",
+			rutaDelEsquemaDeEval)
+	})
+
+	t.Run("hallazgos-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		skill := contenidoDelFichero(t, skillDelRepositorio)
+
+		assert.NoError(t, ComprobarFormasDeHallazgo(string(skill)),
+			"%s enseña la forma fija de cada clase de hallazgo etiquetada por el binario", skillDelRepositorio)
 	})
 
 	t.Run("cobertura-del-esquema", func(t *testing.T) {
@@ -1090,7 +1114,7 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, errors.Join(err, lectura.Close()))
 
 	nodos := make(map[string]grafo.NodoDeInstantanea, len(instantanea.Nodos))

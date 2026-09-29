@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // La procedencia con la que firma graph. Lee el grafo del mundo, que es local y
@@ -54,7 +57,9 @@ func DependenciasDelGrafoDelSistema() DependenciasDeGrafo {
 // §1). Ninguno escribe nada ni entrega operaciones —su Resultado.Grafo es el
 // valor cero (FR-004, FR-005, FR-046)—, así que --no-graph y --offline no
 // cambian lo que leen, y con --dry-run leen igual y el kernel escribe su
-// descripción, sin sobre (contracts/applet-graph.md §2).
+// descripción, sin sobre (contracts/applet-graph.md §2). Sin --json, cada uno
+// cuenta su data a una persona en lugar de la tabla mínima (grafo_legible.go;
+// H7.1 contracts/applet-graph.md §5).
 //
 // Componerlo no abre nada: cada invocación resuelve la ruta de world.db, lo lee
 // y lo cierra.
@@ -92,10 +97,13 @@ func (a appletGrafo) Verbos() []Verbo {
 		},
 		{
 			Nombre: "check",
-			Descripcion: "Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las" +
-				" consultas caducadas.",
+			// La cota, escrita desde grafo.MaximoDeHallazgos: la ayuda dice la
+			// que aplica Comprobar (H7.1 contracts/applet-graph.md §1).
+			Descripcion: fmt.Sprintf("Comprueba lo consultado de una norma, de algunos de sus bloques o, sin"+
+				" argumentos, todo lo consultado, y lista como mucho %d hallazgos: redacciones que han cambiado"+
+				" desde la lectura anterior y consultas caducadas.", grafo.MaximoDeHallazgos),
 			Argumentos: func() Argumentos { return &argumentosDeCheck{dependencias: a.dependencias} },
-			Salida:     []grafo.Hallazgo(nil),
+			Salida:     grafo.Comprobacion{},
 		},
 	}
 }
@@ -113,7 +121,8 @@ type argumentosDeShow struct {
 }
 
 // Ejecutar devuelve la ficha del nodo del id: sus datos, sus observaciones y sus
-// aristas, sin el cuerpo de ningún texto (FR-053, FR-070). Un id que no puede
+// aristas, sin el cuerpo de ningún texto (FR-053, FR-070), y el texto de
+// legibleDeShow que la cuenta (H7.1 FR-062). Un id que no puede
 // ser el de ningún nodo es «argumentos», sin abrir world.db (FR-052); uno que
 // no está, también con el grafo ausente o sin esquema, «no encontrado», con un
 // mensaje que lo nombra con sus bytes, escritos con %q (FR-053).
@@ -121,17 +130,22 @@ func (a *argumentosDeShow) Ejecutar(ctx context.Context, _ schema.Contexto, _ *s
 	id := string(a.ID)
 
 	return a.dependencias.responder(ctx, grafo.ValidarID(id),
-		func(ctx context.Context, lectura *graph.Lectura, _ time.Time) (any, error) {
+		func(ctx context.Context, lectura *graph.Lectura, _ time.Time) (any, string, error) {
 			ficha, encontrada, err := lectura.Ficha(ctx, id)
 			if err != nil {
-				return nil, err
+				return nil, "", err
 			}
 
 			if !encontrada {
-				return nil, fmt.Errorf("%w: el id %q no está en el grafo del mundo", cli.ErrNoEncontrado, id)
+				return nil, "", fmt.Errorf("%w: el id %q no está en el grafo del mundo", cli.ErrNoEncontrado, id)
 			}
 
-			return ficha, nil
+			legible, err := legibleDeShow(ficha)
+			if err != nil {
+				return nil, "", err
+			}
+
+			return ficha, legible, nil
 		})
 }
 
@@ -142,43 +156,87 @@ type argumentosDeStats struct {
 }
 
 // Ejecutar cuenta los nodos, las aristas y los textos del grafo, por tipo,
-// relación y fuente; el grafo ausente o vacío son tres ceros (FR-054).
+// relación y fuente; el grafo ausente o vacío son tres ceros (FR-054). El texto
+// de legibleDeStats lo cuenta a una persona (H7.1 FR-061).
 func (a *argumentosDeStats) Ejecutar(ctx context.Context, _ schema.Contexto, _ *slog.Logger) (schema.Resultado, error) {
 	return a.dependencias.responder(ctx, nil,
-		func(ctx context.Context, lectura *graph.Lectura, _ time.Time) (any, error) {
-			return lectura.Recuento(ctx)
+		func(ctx context.Context, lectura *graph.Lectura, _ time.Time) (any, string, error) {
+			recuento, err := lectura.Recuento(ctx)
+			if err != nil {
+				return nil, "", err
+			}
+
+			return recuento, legibleDeStats(recuento), nil
 		})
 }
 
-// argumentosDeCheck son los de check: ninguno, ni por su posición ni con una
-// bandera propia (FR-060).
+// argumentosDeCheck son los de check: la norma y sus bloques, por su posición y
+// los dos opcionales, como los de boe articulos, y ninguna bandera propia
+// (H7.1 FR-001, FR-015; research.md D6). La norma es un puntero para que una
+// dada vacía —la de una variable sin valor— se distinga de no darla, que es
+// comprobar todo lo consultado.
 type argumentosDeCheck struct {
+	Norma   *string  `arg:"" optional:"" name:"norma" help:"Identificador BOE de la norma, BOE-A-<año>-<número>; sin él, todo lo consultado."`
+	Bloques []string `arg:"" optional:"" name:"bloques" help:"Ids de bloque de esa norma, como a21; sin ellos, todos los suyos."`
+
 	dependencias DependenciasDeGrafo
 }
 
-// Ejecutar comprueba una instantánea del grafo en el instante del reloj de la
-// invocación y devuelve sus hallazgos, una lista vacía y no nula si no hay
-// ninguno: encontrar algo es un resultado correcto (FR-060, FR-067; ADR 0023).
+// Ejecutar comprueba el ámbito de los argumentos —una norma y, si se nombran,
+// bloques suyos; sin norma, todo lo consultado— en el instante del reloj de la
+// invocación y devuelve su comprobación: los totales de cada clase y como mucho
+// grafo.MaximoDeHallazgos hallazgos, una lista vacía y no nula si no hay
+// ninguno, y el texto de legibleDeCheck que la cuenta (H7.1 FR-063). Encontrar
+// algo es un resultado correcto (FR-060, FR-067; H7.1 FR-002, FR-010 a FR-012;
+// ADR 0023). Unos argumentos que no valen son «argumentos», sin
+// abrir world.db; una norma o un bloque bien formados que el grafo no conoce no
+// traen nada (H7.1 FR-003, FR-004).
 //
 // Una instantánea con lo que ninguna entrega guarda —una fecha de consulta que
 // no es RFC 3339— no se puede comprobar: es un world.db dañado, que sale como
 // inesperado y no como una lista de hallazgos inventada ni vacía.
 func (a *argumentosDeCheck) Ejecutar(ctx context.Context, _ schema.Contexto, _ *slog.Logger) (schema.Resultado, error) {
-	return a.dependencias.responder(ctx, nil,
-		func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (any, error) {
-			instantanea, err := lectura.Instantanea(ctx)
+	ambito, argumentos := a.ambito()
+
+	return a.dependencias.responder(ctx, argumentos,
+		func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (any, string, error) {
+			instantanea, err := lectura.Instantanea(ctx, ambito)
 			if err != nil {
-				return nil, err
+				return nil, "", err
 			}
 
-			hallazgos, err := grafo.Comprobar(instantanea, ahora)
+			comprobacion, err := grafo.Comprobar(instantanea, ambito, ahora)
 			if err != nil {
-				return nil, fmt.Errorf("grafo: world.db guarda lo que ninguna entrega escribe y no se puede"+
-					" comprobar; no se modifica: %w", err)
+				return nil, "", fmt.Errorf("grafo: world.db guarda lo que ninguna entrega escribe y no se puede"+
+					" comprobar: %w", err)
 			}
 
-			return hallazgos, nil
+			return comprobacion, legibleDeCheck(comprobacion), nil
 		})
+}
+
+// ambito es el que piden los argumentos, o el fallo «argumentos» que los
+// rechaza (contracts/applet-graph.md §2 de H7.1): una norma dada, también
+// vacía, fuera de la gramática de boe.ValidarNorma —la misma de boe articulo—,
+// o un bloque vacío o de solo espacio en blanco en el sentido de
+// unicode.IsSpace. Cada mensaje nombra el valor.
+func (a *argumentosDeCheck) ambito() (grafo.Ambito, error) {
+	if a.Norma == nil {
+		return grafo.Ambito{}, nil
+	}
+
+	if err := boe.ValidarNorma(*a.Norma); err != nil {
+		return grafo.Ambito{}, fmt.Errorf("%w: %w", cli.ErrArgumentos, err)
+	}
+
+	for _, bloque := range a.Bloques {
+		if strings.TrimFunc(bloque, unicode.IsSpace) == "" {
+			return grafo.Ambito{}, fmt.Errorf("%w: el bloque %q está vacío o solo tiene espacio en blanco",
+				cli.ErrArgumentos, bloque)
+		}
+	}
+
+	return grafo.Ambito{Norma: *a.Norma, Bloques: a.Bloques}, nil
 }
 
 // Las comprobaciones en tiempo de compilación del contrato del applet.
@@ -193,17 +251,23 @@ var (
 // con ese instante, rechaza los argumentos que el verbo ya sabe que no valen sin
 // abrir nada, abre la lectura de world.db, lee con ella y la cierra.
 //
+// leer devuelve el data del verbo y el texto que lo cuenta a una persona,
+// compuesto a partir de ese mismo data, que va en Resultado.Legible: el kernel
+// lo escribe en lugar de la tabla mínima sin --json, y con --json no cambia
+// nada (docs/ADR/0026; H7.1 FR-060).
+//
 // Todo fallo que decide el applet lleva su firma: el de los argumentos y el de
 // internal/graph, que declara su clase —la ruta que no se puede ubicar es
 // «argumentos»; el plazo de --timeout agotado, «fuente no disponible»; world.db
 // inutilizable o bloqueado más de la espera propia, «inesperado»— y el kernel la
-// traduce a 2, 4 o 1 (contracts/applet-graph.md §4). El reloj nulo es un
-// defecto de composición y no firma nada. El resultado no lleva operaciones de
-// grafo: ningún verbo observa el mundo (FR-046).
+// traduce a 2, 4 o 1 (contracts/applet-graph.md §4). Un fallo no tiene forma
+// legible: su mensaje va a la salida de error. El reloj nulo es un defecto de
+// composición y no firma nada. El resultado no lleva operaciones de grafo:
+// ningún verbo observa el mundo (FR-046).
 func (d DependenciasDeGrafo) responder(
 	ctx context.Context,
 	argumentos error,
-	leer func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (any, error),
+	leer func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (datos any, legible string, err error),
 ) (schema.Resultado, error) {
 	if d.Reloj == nil {
 		return schema.Resultado{}, errSinReloj
@@ -223,7 +287,7 @@ func (d DependenciasDeGrafo) responder(
 		return firmado, err
 	}
 
-	datos, err := leer(ctx, lectura, ahora)
+	datos, legible, err := leer(ctx, lectura, ahora)
 	if cierre := lectura.Close(); cierre != nil {
 		err = errors.Join(err, cierre)
 	}
@@ -233,6 +297,7 @@ func (d DependenciasDeGrafo) responder(
 	}
 
 	firmado.Datos = datos
+	firmado.Legible = legible
 
 	return firmado, nil
 }

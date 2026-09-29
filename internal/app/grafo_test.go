@@ -91,10 +91,17 @@ const cuerpoDelBloque = "Art\xc3\xadculo 1. Objeto de esta norma inventada.\n" +
 // aquí en silencio (FR-051; contracts/applet-graph.md §2).
 var firmaDelGrafo = schema.Procedencia{Fuente: "kitlegal.graph", URL: "kitlegal:applet/graph"}
 
-// Las descripciones literales de contracts/applet-graph.md §1.
+// Las descripciones literales de contracts/applet-graph.md §1, las de check con
+// el 50 de H7.1 FR-010 escrito aquí y no con grafo.MaximoDeHallazgos, para que
+// un cambio de la cota no pase por aquí en silencio.
 const (
 	descripcionDelGrafo = "Lee el grafo del mundo: lo que el binario ha observado de las fuentes, con su procedencia."
 	ayudaDelID          = "Id del nodo: un ELI, \xc2\xabine:<c\xc3\xb3digo>\xc2\xbb, un DIR3\xe2\x80\xa6"
+	descripcionDeCheck  = "Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo" +
+		" lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior" +
+		" y consultas caducadas."
+	ayudaDeLaNorma    = "Identificador BOE de la norma, BOE-A-<a\xc3\xb1o>-<n\xc3\xbamero>; sin \xc3\xa9l, todo lo consultado."
+	ayudaDeLosBloques = "Ids de bloque de esa norma, como a21; sin ellos, todos los suyos."
 )
 
 // verboDelGrafo es un verbo del contrato: su nombre, su descripción literal y
@@ -119,12 +126,7 @@ func verbosDelGrafo() []verboDelGrafo {
 				" y fuente.",
 			salida: grafo.Recuento{},
 		},
-		{
-			nombre: "check",
-			descripcion: "Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las" +
-				" consultas caducadas.",
-			salida: []grafo.Hallazgo(nil),
-		},
+		{nombre: "check", descripcion: descripcionDeCheck, salida: grafo.Comprobacion{}},
 	}
 }
 
@@ -318,10 +320,11 @@ const recuentoDeLaMuestra = `{
 // listas vacías, nunca nulas (FR-054).
 const recuentoVacio = `{"nodos": 0, "aristas": 0, "textos": 0, "nodos_por_tipo": [], "aristas_por_relacion": []}`
 
-// hallazgosDeLaMuestra es el data de check sobre la muestra en instanteDelGrafo:
-// una fuente caducada por cada nodo del primer lote, que declaró una semana de
-// vigencia, y ninguna por los del segundo, que no declaró ninguna; en orden de
-// id y con la cita de cada tipo (contracts/applet-graph.md §3.3 y §5).
+// hallazgosDeLaMuestra es el data de check sin argumentos sobre la muestra en
+// instanteDelGrafo: todo lo consultado, con una fuente caducada por cada nodo
+// del primer lote, que declaró una semana de vigencia, y ninguna por los del
+// segundo, que no declaró ninguna; en orden de id y con la cita de cada tipo
+// (contracts/applet-graph.md §3, §4 y §5).
 func hallazgosDeLaMuestra() string {
 	procedencia := procedenciaJSON(fuenteDeLaNorma, urlDeLaNorma, fechaDeLaNorma)
 	hallazgo := func(id, cita string) string {
@@ -333,11 +336,32 @@ func hallazgosDeLaMuestra() string {
 	}
 	citaDelBloque := "[" + identificadorDeLaNorma + ", bloque a1]"
 
-	return "[" + strings.Join([]string{
+	return comprobacionJSON("", nil, 0, 3,
 		hallazgo(idDeLaNorma, identificadorDeLaNorma),
 		hallazgo(idDelBloque, citaDelBloque),
 		hallazgo(idDeLaVersion(), citaDelBloque),
-	}, ",") + "]"
+	)
+}
+
+// comprobacionJSON es el data de check con ese ámbito —la norma y los bloques
+// pedidos—, esos totales de version-obsoleta y de fuente-caducada y esos
+// hallazgos, ya escritos en JSON; ninguno omitido, porque las muestras de estos
+// tests dan muchos menos de 50 (contracts/applet-graph.md §3).
+func comprobacionJSON(norma string, bloques []string, obsoletas, caducadas int, hallazgos ...string) string {
+	pedidos := make([]string, 0, len(bloques))
+	for _, bloque := range bloques {
+		pedidos = append(pedidos, strconv.Quote(bloque))
+	}
+
+	return fmt.Sprintf(`{"norma": %q, "bloques": [%s], "version-obsoleta": %d, "fuente-caducada": %d,
+		"omitidos": 0, "hallazgos": [%s]}`, norma, strings.Join(pedidos, ","), obsoletas, caducadas,
+		strings.Join(hallazgos, ","))
+}
+
+// sinHallazgosEnTodo es el data de check sin argumentos cuando no hay nada que
+// volver a comprobar.
+func sinHallazgosEnTodo() string {
+	return comprobacionJSON("", nil, 0, 0)
 }
 
 // datosFirmados comprueba un sobre correcto de graph —código 0, nada en la
@@ -431,15 +455,17 @@ type comprobacionDelGrafo struct {
 }
 
 // TestAppletGrafo fija el applet graph sobre un registro local, con un reloj
-// fijo y world.db bajo t.TempDir() (contracts/applet-graph.md §1-§4; research.md
-// D19): su declaración y sus textos literales, la ayuda y --describe de cada
-// verbo; el grafo ausente, que se lee como vacío sin crear nada; show, stats y
-// check sobre la muestra, con la firma del applet y la fecha de su reloj, que
-// se lee una vez por invocación y es el instante de check; los ids que no están
-// (3) y los argumentos que no valen (2); --no-graph, --offline y el nombre del
-// programa, que no cambian nada; la tabla mínima sin --json y sin texto legal;
-// --dry-run, que lee igual; el plazo agotado (4); y el reloj que falta y lo que
-// ninguna entrega guarda (1). Ningún verbo cambia un byte del directorio.
+// fijo y world.db bajo t.TempDir() (contracts/applet-graph.md §1-§4 de H7 y de
+// H7.1; research.md D19): su declaración y sus textos literales, la ayuda y
+// --describe de cada verbo; el grafo ausente, que se lee como vacío sin crear
+// nada; show, stats y check sobre la muestra, con la firma del applet y la fecha
+// de su reloj, que se lee una vez por invocación y es el instante de check; los
+// ids que no están (3) y los argumentos que no valen (2); check con su norma y
+// sus bloques; --no-graph, --offline y el nombre del programa, que no cambian
+// nada; la salida legible sin --json, sin nada del sobre ni texto legal, y el
+// sobre de siempre con --json; --dry-run, que lee igual;
+// el plazo agotado (4); y el reloj que falta (1). Ningún verbo cambia un byte
+// del directorio.
 func TestAppletGrafo(t *testing.T) {
 	t.Parallel()
 
@@ -452,12 +478,12 @@ func TestAppletGrafo(t *testing.T) {
 		{nombre: "check-con-el-reloj-de-la-invocacion", comprobar: compruebaCheckConElReloj},
 		{nombre: "no-encontrado", comprobar: compruebaIDsQueNoEstan},
 		{nombre: "argumentos", comprobar: compruebaArgumentosDelGrafo},
+		{nombre: "check-acotado", comprobar: compruebaCheckAcotado},
 		{nombre: "misma-salida-con-no-graph-offline-y-multicall", comprobar: compruebaMismaSalidaDelGrafo},
-		{nombre: "tabla-sin-json-y-sin-texto-legal", comprobar: compruebaTablaDelGrafo},
+		{nombre: "legible-sin-json-y-sin-texto-legal", comprobar: compruebaLegibleDelGrafo},
 		{nombre: "dry-run", comprobar: compruebaEnsayoDelGrafo},
 		{nombre: "plazo-agotado", comprobar: compruebaPlazoDelGrafo},
 		{nombre: "sin-reloj", comprobar: compruebaGrafoSinReloj},
-		{nombre: "lo-que-ninguna-entrega-guarda", comprobar: compruebaGrafoIncomprobable},
 	} {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
@@ -541,6 +567,16 @@ func compruebaAyudaDelGrafo(t *testing.T) {
 	assert.Contains(t, show.salida, "Usage: graph show <id> [flags]")
 	assert.Regexp(t, `(?m)<id> +`+regexp.QuoteMeta(ayudaDelID)+`$`, show.salida)
 
+	// La ayuda de check parte en líneas lo que no cabe en una: se busca con el
+	// espacio en blanco reducido.
+	check := invocar(t, registro, argvDelGrafo("check", "--help")...)
+	require.Equal(t, 0, check.codigo, check.errores)
+	assert.Regexp(t, `(?m)^Usage: graph check \[<norma> \[<bloques> \.\.\.\]\] \[flags\]$`, check.salida)
+
+	for _, texto := range []string{descripcionDeCheck, ayudaDeLaNorma, ayudaDeLosBloques} {
+		assert.Contains(t, blancosReducidos(check.salida), texto)
+	}
+
 	for _, argumentos := range [][]string{{"show", idDelBloque}, {"stats"}, {"check"}} {
 		verbo := argumentos[0]
 		descripcion := invocar(t, registro, argvDelGrafo(slices.Concat(argumentos, []string{"--describe"})...)...)
@@ -549,6 +585,10 @@ func compruebaAyudaDelGrafo(t *testing.T) {
 		var documento map[string]any
 		require.NoError(t, json.Unmarshal([]byte(descripcion.salida), &documento), verbo)
 		assert.Equal(t, "graph "+verbo, documento["title"])
+
+		if verbo == "check" {
+			compruebaEntradaDeCheck(t, documento)
+		}
 	}
 
 	assert.Zero(t, reloj.lecturas, "ni la ayuda ni --describe ejecutan ningún verbo")
@@ -558,10 +598,30 @@ func compruebaAyudaDelGrafo(t *testing.T) {
 	assert.Empty(t, entradas, "ni la ayuda ni --describe crean nada")
 }
 
+// compruebaEntradaDeCheck fija la entrada que describe --describe de check: la
+// norma, un texto, y los bloques, una lista de textos, ninguno de los dos en
+// required, porque los dos son opcionales (contracts/applet-graph.md §1).
+func compruebaEntradaDeCheck(t *testing.T, documento map[string]any) {
+	t.Helper()
+
+	assert.Equal(t, map[string]any{"type": "string"},
+		valorDelEsquema(t, documento, "properties", "entrada", "properties", "norma"))
+	assert.Equal(t, map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		valorDelEsquema(t, documento, "properties", "entrada", "properties", "bloques"))
+
+	entrada, esObjeto := valorDelEsquema(t, documento, "properties", "entrada").(map[string]any)
+	require.True(t, esObjeto, "la entrada es un objeto")
+
+	// Sin required, ninguna propiedad es obligatoria: la lista vacía.
+	requeridas, _ := entrada["required"].([]any)
+	assert.NotContains(t, requeridas, "norma", "la norma es opcional")
+	assert.NotContains(t, requeridas, "bloques", "los bloques son opcionales")
+}
+
 // compruebaGrafoAusente fija el grafo ausente —el directorio vacío y uno que ni
-// siquiera existe—: stats da tres ceros y dos listas vacías, check una lista
-// vacía y show un 3 que nombra el id, y ninguno crea world.db, sus auxiliares
-// ni su directorio (FR-004, FR-053, FR-054, FR-060).
+// siquiera existe—: stats da tres ceros y dos listas vacías, check una
+// comprobación sin hallazgos y show un 3 que nombra el id, y ninguno crea
+// world.db, sus auxiliares ni su directorio (FR-004, FR-053, FR-054, FR-060).
 func compruebaGrafoAusente(t *testing.T) {
 	t.Helper()
 
@@ -575,7 +635,7 @@ func compruebaGrafoAusente(t *testing.T) {
 		assert.JSONEq(t, recuentoVacio, datosFirmados(t, stats, instanteDelGrafo), directorio)
 
 		check := invocar(t, registro, argvDelGrafo("check", "--json")...)
-		assert.JSONEq(t, `[]`, datosFirmados(t, check, instanteDelGrafo), directorio)
+		assert.JSONEq(t, sinHallazgosEnTodo(), datosFirmados(t, check, instanteDelGrafo), directorio)
 
 		show := invocar(t, registro, argvDelGrafo("show", idDelMunicipio, "--json")...)
 		mensaje := exigirFalloDelGrafo(t, show, schema.ClaseNoEncontrado, 3, instanteDelGrafo)
@@ -635,8 +695,8 @@ func compruebaCheckConElReloj(t *testing.T) {
 		instante string
 		datos    string
 	}{
-		{instante: instanteSinCaducar, datos: `[]`},
-		{instante: caducidadDeLaNorma, datos: `[]`},
+		{instante: instanteSinCaducar, datos: sinHallazgosEnTodo()},
+		{instante: caducidadDeLaNorma, datos: sinHallazgosEnTodo()},
 		{instante: instanteDelGrafo, datos: hallazgosDeLaMuestra()},
 	} {
 		registro := registroDelGrafo(t, nuevoReloj(t, caso.instante).ahora, directorio)
@@ -703,11 +763,15 @@ func compruebaIDsQueNoEstan(t *testing.T) {
 }
 
 // compruebaArgumentosDelGrafo fija el 2 de los argumentos que no valen
-// (FR-052, FR-054, FR-060; contracts/applet-graph.md §4): los que rechaza el
-// analizador antes del applet —show sin id y con dos, stats y check con uno, una
-// bandera desconocida—, firmados por el kernel, y los ids que rechaza el
-// applet —vacío, solo espacio en blanco o con un carácter de control—, firmados
-// por él. Nada cambia.
+// (FR-052, FR-054, FR-060; H7.1 FR-004, FR-006, SC-009; contracts/applet-graph.md
+// §2 y §4 de H7 y de H7.1): los que rechaza el analizador antes del applet —show
+// sin id y con dos, stats con uno, una bandera desconocida—, firmados por el
+// kernel; los ids de show que rechaza el applet —vacío, solo espacio en blanco o
+// con un carácter de control—, firmados por él; y la norma y los bloques de
+// check que rechaza el applet antes de abrir nada —una norma sin la forma
+// BOE-A-<año>-<número>, también vacía y también con bloques detrás, y un bloque
+// vacío o de solo espacio en blanco—, firmados por él con el mensaje de
+// contracts/applet-graph.md §2, que nombra el valor. Nada cambia.
 func compruebaArgumentosDelGrafo(t *testing.T) {
 	t.Helper()
 
@@ -721,7 +785,6 @@ func compruebaArgumentosDelGrafo(t *testing.T) {
 		{"show"},
 		{"show", idDeLaNorma, idDelBloque},
 		{"stats", idDeLaNorma},
-		{"check", idDeLaNorma},
 		{"stats", "--no-existe"},
 		{"check", "--no-existe"},
 	} {
@@ -737,7 +800,65 @@ func compruebaArgumentosDelGrafo(t *testing.T) {
 		assert.Contains(t, mensaje, strconv.Quote(id), "el mensaje nombra el id %q", id)
 	}
 
+	const (
+		normaSinSuForma = "argumentos inv\xc3\xa1lidos: la norma %q no tiene la forma BOE-A-<a\xc3\xb1o>-<n\xc3\xbamero>," +
+			" con cuatro d\xc3\xadgitos en el a\xc3\xb1o y de uno a nueve en el n\xc3\xbamero"
+		bloqueEnBlanco = "argumentos inv\xc3\xa1lidos: el bloque %q est\xc3\xa1 vac\xc3\xado o solo tiene espacio en blanco"
+	)
+
+	for _, caso := range []struct {
+		argumentos []string
+		mensaje    string
+	}{
+		{[]string{"a21"}, fmt.Sprintf(normaSinSuForma, "a21")},
+		{[]string{idDeLaNorma}, fmt.Sprintf(normaSinSuForma, idDeLaNorma)},
+		{[]string{"BOE-B-2015-10565"}, fmt.Sprintf(normaSinSuForma, "BOE-B-2015-10565")},
+		{[]string{""}, fmt.Sprintf(normaSinSuForma, "")},
+		{[]string{"", "a21"}, fmt.Sprintf(normaSinSuForma, "")},
+		{[]string{"BOE-A-2015-10565", " "}, fmt.Sprintf(bloqueEnBlanco, " ")},
+		{[]string{"BOE-A-2015-10565", ""}, fmt.Sprintf(bloqueEnBlanco, "")},
+		{[]string{"BOE-A-2015-10565", "a21", "\t\xc2\xa0"}, fmt.Sprintf(bloqueEnBlanco, "\t\xc2\xa0")},
+	} {
+		res := invocar(t, registro, argvDelGrafo(slices.Concat([]string{"check"}, caso.argumentos, []string{"--json"})...)...)
+
+		mensaje := exigirFalloDelGrafo(t, res, schema.ClaseArgumentos, 2, instanteDelGrafo)
+		assert.Equal(t, caso.mensaje, mensaje, "%q", caso.argumentos)
+	}
+
 	assert.Equal(t, antes, huellasDelDirectorio(t, directorio))
+}
+
+// compruebaCheckAcotado fija lo que el applet hace con los argumentos de check
+// que valen (H7.1 FR-001 a FR-005, FR-012, FR-014): sin norma, todo lo
+// consultado; con una norma bien formada, la lectura acotada a ella, que aquí no
+// trae nada porque la muestra no tiene ninguna norma del BOE —la acotada de
+// verdad la fijan TestInstantanea y la suite de aceptación—, y la norma y los
+// bloques pedidos, copiados en data tal cual y en su orden, con 0. Ninguna
+// invocación cambia nada del directorio.
+func compruebaCheckAcotado(t *testing.T) {
+	t.Helper()
+
+	directorio := t.TempDir()
+	poblarElGrafo(t, directorio)
+
+	antes := huellasDelDirectorio(t, directorio)
+	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
+
+	for _, caso := range []struct {
+		argumentos []string
+		datos      string
+	}{
+		{nil, hallazgosDeLaMuestra()},
+		{[]string{"BOE-A-2099-99999"}, comprobacionJSON("BOE-A-2099-99999", nil, 0, 0)},
+		{[]string{"BOE-A-2099-99999", "a1"}, comprobacionJSON("BOE-A-2099-99999", []string{"a1"}, 0, 0)},
+		{[]string{"BOE-A-2099-99999", "a99", "a1"}, comprobacionJSON("BOE-A-2099-99999", []string{"a99", "a1"}, 0, 0)},
+	} {
+		res := invocar(t, registro, argvDelGrafo(slices.Concat([]string{"check"}, caso.argumentos, []string{"--json"})...)...)
+
+		assert.JSONEq(t, caso.datos, datosFirmados(t, res, instanteDelGrafo), "%q", caso.argumentos)
+	}
+
+	assert.Equal(t, antes, huellasDelDirectorio(t, directorio), "check no escribe nada")
 }
 
 // compruebaMismaSalidaDelGrafo fija que --no-graph y --offline no cambian nada
@@ -794,54 +915,178 @@ func sinRegistroDeEventos(res invocacionDePrueba) invocacionDePrueba {
 	return res
 }
 
-// compruebaTablaDelGrafo fija la forma legible sin --json (FR-055): la tabla
-// mínima del kernel, con las cuatro líneas de la firma —la misma huella que el
-// sobre— y el contenido aplanado, sin texto propio; y que ninguna línea del
-// texto guardado sale por ningún verbo, con --json ni sin él (FR-070).
-func compruebaTablaDelGrafo(t *testing.T) {
+// delSobreEnLoLegible casa con lo que la salida legible no lleva (H7.1 FR-060,
+// SC-010): las cuatro líneas de procedencia del sobre, la firma de graph y los
+// pares ruta/valor aplanados de la tabla mínima.
+var delSobreEnLoLegible = regexp.MustCompile(`(?m)^(fuente|url|fecha_consulta|hash)\s|kitlegal\.graph|` +
+	`kitlegal:applet/graph|^(nodo|salientes|entrantes|nodos_por_tipo|aristas_por_relacion|hallazgos)\.`)
+
+// statsLegibleDeLaMuestra es lo que cuenta stats de la muestra, alineado en
+// columna (contracts/applet-graph.md §5.1).
+const statsLegibleDeLaMuestra = "El grafo del mundo tiene 5 nodos, 3 aristas y 1 texto.\n" +
+	"\n" +
+	"Nodos por tipo y fuente:\n" +
+	"  Bloque         prueba.legislacion  1\n" +
+	"  BloqueVersion  prueba.legislacion  1\n" +
+	"  Municipio      kitlegal.prueba     1\n" +
+	"  Norma          prueba.legislacion  1\n" +
+	"  Organo         kitlegal.prueba     1\n" +
+	"\n" +
+	"Aristas por relación y fuente:\n" +
+	"  eli:has_part     prueba.legislacion  1\n" +
+	"  eli:has_version  prueba.legislacion  1\n" +
+	"  lb:pertenece_a   kitlegal.prueba     1\n"
+
+// showLegibleDelMunicipio es lo que cuenta show del Municipio de la muestra:
+// sus dos datos, sus fechas con su desplazamiento, carácter a carácter, ninguna
+// arista saliente y la entrante desde su Organo (contracts/applet-graph.md
+// §5.2).
+func showLegibleDelMunicipio() string {
+	observacion := fechaDelMunicipio + " · " + fuenteDelMunicipio + " · " + urlDelMunicipio
+
+	return lineas(
+		"Municipio "+idDelMunicipio,
+		"  codigo_ine: 99001",
+		"  nombre: Villaprueba",
+		"Primera observación: "+fechaDelMunicipio,
+		"Última observación: "+observacion,
+		"",
+		"Aristas salientes: ninguna.",
+		"",
+		"Aristas entrantes:",
+		"  lb:pertenece_a ← "+idDelOrgano,
+		"    última observación: "+observacion,
+	)
+}
+
+// checkLegibleDeLaMuestra es lo que cuenta check sin argumentos de la muestra
+// en instanteDelGrafo: las tres consultas caducadas del primer lote, en orden
+// de id, y cómo acotar (contracts/applet-graph.md §5.3).
+func checkLegibleDeLaMuestra() string {
+	citaDelBloque := "[" + identificadorDeLaNorma + ", bloque a1]"
+
+	return lineas(
+		"Hallazgos en todo lo consultado: 0 version-obsoleta y 3 fuente-caducada; se listan 3 y se omiten 0.",
+		"",
+		"fuente-caducada (3):",
+		"  - "+caducadaDePrueba(idDeLaNorma, identificadorDeLaNorma).Explicacion,
+		"    "+idDeLaNorma,
+		"  - "+caducadaDePrueba(idDelBloque, citaDelBloque).Explicacion,
+		"    "+idDelBloque,
+		"  - "+caducadaDePrueba(idDeLaVersion(), citaDelBloque).Explicacion,
+		"    "+idDeLaVersion(),
+		"",
+		paraAcotar,
+	)
+}
+
+// sobreDelGrafoEnJSON es el sobre que escribe --json para un data correcto de
+// graph, byte a byte: la firma del applet con la fecha de su reloj, la huella de
+// data y data compacta, en una línea (H7 FR-051, FR-053, FR-054).
+func sobreDelGrafoEnJSON(t *testing.T, fecha, datos string) string {
+	t.Helper()
+
+	var compacto bytes.Buffer
+	require.NoError(t, json.Compact(&compacto, []byte(datos)))
+
+	huella, err := schema.Huella(json.RawMessage(compacto.Bytes()))
+	require.NoError(t, err)
+
+	return `{"ok":true,"fuente":"` + firmaDelGrafo.Fuente + `","url":"` + firmaDelGrafo.URL + `","fecha_consulta":"` +
+		fecha + `","hash":"` + huella + `","data":` + compacto.String() + "}\n"
+}
+
+// compruebaLegibleDelGrafo fija la salida sin --json (H7.1 FR-060 a FR-063,
+// SC-010; contracts/applet-graph.md §5): stats, show y check sobre la muestra
+// dan el texto legible byte a byte —check con hallazgos, sin ellos y acotado,
+// y con la versión obsoleta delante de las consultas caducadas—, sin nada del
+// sobre, sin pares aplanados y sin ninguna línea del texto guardado, y nada en
+// la salida de error; un fallo sigue sin salida estándar y con su mensaje en la
+// de error. Con --json, stats y show dan el mismo sobre que antes del hito, byte
+// a byte (FR-060).
+func compruebaLegibleDelGrafo(t *testing.T) {
 	t.Helper()
 
 	directorio := t.TempDir()
 	poblarElGrafo(t, directorio)
 
 	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
+	sinCaducar := registroDelGrafo(t, nuevoReloj(t, instanteSinCaducar).ahora, directorio)
 
-	casos := []struct {
+	for _, caso := range []struct {
+		registro   *Registro
 		argumentos []string
-		filas      []string
+		texto      string
 	}{
-		{
-			argumentos: []string{"show", idDelBloque},
-			filas: []string{
-				`nodo\.id +` + regexp.QuoteMeta(idDelBloque), `nodo\.tipo +Bloque`,
-				`entrantes\.0\.relacion +eli:has_part`, `salientes\.0\.id +` + regexp.QuoteMeta(idDeLaVersion()),
-			},
-		},
-		{argumentos: []string{"stats"}, filas: []string{`nodos +5`, `aristas +3`, `textos +1`}},
-		{argumentos: []string{"check"}, filas: []string{`0\.clase +fuente-caducada`, `2\.vigencia_segundos +604800`}},
-	}
+		{registro, []string{"stats"}, statsLegibleDeLaMuestra},
+		{registro, []string{"show", idDelBloque}, showLegibleDePruebaDelBloque()},
+		{registro, []string{"show", idDelMunicipio}, showLegibleDelMunicipio()},
+		{registro, []string{"check"}, checkLegibleDeLaMuestra()},
+		{sinCaducar, []string{"check"}, lineas("No hay nada que volver a comprobar en todo lo consultado.", "", paraAcotar)},
+		{registro, []string{"check", normaDePrueba, "a1"}, lineas("No hay nada que volver a comprobar de " +
+			normaDePrueba + ", bloque a1.")},
+	} {
+		res := invocar(t, caso.registro, argvDelGrafo(caso.argumentos...)...)
 
-	for _, caso := range casos {
-		tabla := invocar(t, registro, argvDelGrafo(caso.argumentos...)...)
-		require.Equal(t, 0, tabla.codigo, tabla.errores)
-		assert.Empty(t, tabla.errores)
-
-		enJSON := invocar(t, registro, argvDelGrafo(slices.Concat(caso.argumentos, []string{"--json"})...)...)
-		huella := sobreDelJSON(t, enJSON.salida)["hash"]
-
-		assert.Regexp(t, `\Afuente +kitlegal\.graph\nurl +kitlegal:applet/graph\n`+
-			`fecha_consulta +`+regexp.QuoteMeta(instanteDelGrafo)+`\nhash +`+fmt.Sprint(huella)+`\n`, tabla.salida)
-
-		for _, fila := range caso.filas {
-			assert.Regexp(t, `(?m)^`+fila+`$`, tabla.salida, "%q", caso.argumentos)
-		}
+		require.Equal(t, 0, res.codigo, res.errores)
+		assert.Empty(t, res.errores, "%q", caso.argumentos)
+		assert.Equal(t, caso.texto, res.salida, "%q", caso.argumentos)
+		assert.NotRegexp(t, delSobreEnLoLegible, res.salida, "%q", caso.argumentos)
 
 		for _, linea := range strings.Split(cuerpoDelBloque, "\n") {
-			for _, salida := range []string{tabla.salida, enJSON.salida} {
-				assert.NotContains(t, salida, linea, "%q no devuelve texto legal", caso.argumentos)
-			}
+			assert.NotContains(t, res.salida, linea, "%q no devuelve texto legal", caso.argumentos)
 		}
 	}
+
+	for _, caso := range []struct {
+		argumentos []string
+		datos      string
+	}{
+		{[]string{"stats"}, recuentoDeLaMuestra},
+		{[]string{"show", idDelBloque}, fichaDelBloque()},
+		{[]string{"show", idDelMunicipio}, fichaDelMunicipio()},
+	} {
+		res := invocar(t, registro, argvDelGrafo(slices.Concat(caso.argumentos, []string{"--json"})...)...)
+
+		require.Equal(t, 0, res.codigo, res.errores)
+		assert.Equal(t, sobreDelGrafoEnJSON(t, instanteDelGrafo, caso.datos), res.salida, "%q", caso.argumentos)
+	}
+
+	for _, caso := range []struct {
+		argumentos []string
+		codigo     int
+		mensaje    string
+	}{
+		{[]string{"show", idQueNoEsta}, 3, strconv.Quote(idQueNoEsta)},
+		{[]string{"check", "a21"}, 2, `la norma "a21"`},
+	} {
+		res := invocar(t, registro, argvDelGrafo(caso.argumentos...)...)
+
+		assert.Equal(t, caso.codigo, res.codigo, "%q", caso.argumentos)
+		assert.Empty(t, res.salida, "%q: un fallo no tiene forma legible", caso.argumentos)
+		assert.Contains(t, res.errores, caso.mensaje, "%q: su mensaje va a la salida de error", caso.argumentos)
+	}
+
+	compruebaLegibleConLasDosClases(t)
+}
+
+// compruebaLegibleConLasDosClases fija el orden de los grupos de check sin
+// --json con hallazgos de las dos clases: con la versión posterior leída, el de
+// version-obsoleta, sobre la anterior, va delante del de fuente-caducada
+// (FR-063).
+func compruebaLegibleConLasDosClases(t *testing.T) {
+	t.Helper()
+
+	directorio := t.TempDir()
+	poblarConUnaVersionPosterior(t, directorio)
+
+	res := invocar(t, registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio), argvDelGrafo("check")...)
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Regexp(t, `\AHallazgos en todo lo consultado: 1 version-obsoleta y 3 fuente-caducada; se listan 4 y se`+
+		` omiten 0\.\n\nversion-obsoleta \(1\):\n  - La versión de .+\n    `+regexp.QuoteMeta(idDeLaVersion())+
+		`\nfuente-caducada \(3\):\n(  - .+\n    .+\n){3}\n`+regexp.QuoteMeta(paraAcotar)+`\n\z`, res.salida)
+	assert.NotRegexp(t, delSobreEnLoLegible, res.salida)
 }
 
 // compruebaEnsayoDelGrafo fija --dry-run (contracts/applet-graph.md §2): los
@@ -920,40 +1165,14 @@ func compruebaGrafoSinReloj(t *testing.T) {
 	assert.Empty(t, entradas)
 }
 
-// compruebaGrafoIncomprobable fija el 1 de check sobre un world.db que se lee
-// pero que guarda lo que ninguna entrega escribe: una fecha de consulta que no
-// es RFC 3339 (research.md D15; gates/supuestos.md, T014). El mensaje nombra
-// world.db y no el id del nodo, y nada cambia. La premisa, que show lee esa base
-// y devuelve el nodo con esa fecha, dice que el fallo es de la comprobación y
-// no de una base que no se puede abrir.
-func compruebaGrafoIncomprobable(t *testing.T) {
-	t.Helper()
-
-	directorio := t.TempDir()
-	escribirFicheroDePrueba(t, filepath.Join(directorio, "world.db"), baseConUnaFechaIlegible(t))
-
-	antes := huellasDelDirectorio(t, directorio)
-	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
-
-	show := invocar(t, registro, argvDelGrafo("show", idDeLaNorma, "--json")...)
-	assert.Contains(t, datosFirmados(t, show, instanteDelGrafo), `"primera_observacion":"ayer"`,
-		"premisa: la base se lee")
-
-	check := invocar(t, registro, argvDelGrafo("check", "--json")...)
-	mensaje := exigirFalloDelGrafo(t, check, schema.ClaseInesperado, 1, instanteDelGrafo)
-	assert.True(t, strings.HasPrefix(mensaje, "grafo: world.db "), "el mensaje nombra world.db: %q", mensaje)
-	assert.NotContains(t, mensaje, idDeLaNorma, "ni el id del nodo, que puede ser de una Persona")
-
-	assert.Equal(t, antes, huellasDelDirectorio(t, directorio))
-}
-
 // TestCodigosDelGrafo fija los códigos de lo que no deja leer world.db, con las
 // dependencias de la raíz de producción y la regla de ubicación de la caché
-// (contracts/applet-graph.md §4; FR-010, FR-011; SC-011):
+// (contracts/applet-graph.md §4; H7 FR-011, FR-012; H7.1 FR-070, SC-011):
 //
-//   - world.db que no es una base de datos, que es un directorio o cuyo esquema
-//     es de una versión posterior: 1 en los tres verbos, con y sin --no-graph,
-//     con el mensaje que nombra su ruta y el directorio igual byte a byte;
+//   - world.db que no es una base de datos —el vehículo de la regla genérica— o
+//     cuyo esquema es de una versión posterior: 1 en los tres verbos, con y sin
+//     --no-graph, con el mensaje que nombra su ruta y el directorio igual byte a
+//     byte;
 //   - KITLEGAL_CACHE_DIR presente y vacía, o que nombra un fichero, y sin ella y
 //     sin HOME: 2 en los tres verbos, con y sin --no-graph, con el mensaje que
 //     dice que no se puede ubicar world.db.
@@ -980,7 +1199,14 @@ func TestCodigosDelGrafo(t *testing.T) {
 			compruebaCodigosDelSistema(t, schema.ClaseInesperado, 1, func(t *testing.T, mensaje string) {
 				t.Helper()
 
-				assert.Equal(t, "grafo: "+strconv.Quote(ruta)+" "+caso.motivo, mensaje)
+				esperado := "grafo: " + strconv.Quote(ruta) + " " + caso.motivo
+				if caso.conCausa {
+					assert.Regexp(t, `\A`+regexp.QuoteMeta(esperado)+`: .+\z`, mensaje)
+
+					return
+				}
+
+				assert.Equal(t, esperado, mensaje)
 			})
 
 			assert.Equal(t, antes, huellasDelDirectorio(t, directorio), "world.db con su huella")
@@ -1010,9 +1236,13 @@ type casoInutilizable struct {
 	nombre   string
 	preparar func(t *testing.T, ruta string)
 	motivo   string
+	// conCausa dice que el mensaje sigue, detrás del motivo, con «: » y la
+	// causa que da SQLite, que no se fija aquí: la regla genérica (H7.1 FR-070).
+	conCausa bool
 }
 
-// casosInutilizables son los tres de SC-011.
+// casosInutilizables son el de H7.1 SC-011, lo que no es una base de datos, y
+// el esquema posterior de H7 FR-012.
 func casosInutilizables() []casoInutilizable {
 	return []casoInutilizable{
 		{
@@ -1020,18 +1250,10 @@ func casosInutilizables() []casoInutilizable {
 			preparar: func(t *testing.T, ruta string) {
 				t.Helper()
 
-				escribirFicheroDePrueba(t, ruta, []byte("Este fichero no es una base de datos SQLite.\n"))
+				escribirFicheroDePrueba(t, ruta, noEsUnaBase)
 			},
-			motivo: "no es una base de datos utilizable; no se modifica",
-		},
-		{
-			nombre: "es-un-directorio",
-			preparar: func(t *testing.T, ruta string) {
-				t.Helper()
-
-				require.NoError(t, os.Mkdir(ruta, 0o700))
-			},
-			motivo: "es un directorio y no una base de datos utilizable; no se modifica",
+			motivo:   "no es una base de datos utilizable",
+			conCausa: true,
 		},
 		{
 			nombre: "esquema-de-una-version-posterior",
@@ -1040,7 +1262,7 @@ func casosInutilizables() []casoInutilizable {
 
 				escribirFicheroDePrueba(t, ruta, baseDeUnaVersionPosterior(t))
 			},
-			motivo: "tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica",
+			motivo: "tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica",
 		},
 	}
 }
@@ -1125,17 +1347,21 @@ func compruebaCodigosDelSistema(
 
 // La versión posterior del bloque de la muestra: otra redacción, con una fecha
 // de vigencia posterior, que la misma fuente observa después, como la
-// observaría boe articulo tras el cambio. En instanteDelGrafo su consulta sigue
-// vigente y la de la versión de la muestra ha caducado, así que check da un
-// hallazgo de cada clase sobre esta última.
+// observaría boe articulo tras el cambio. Leída después de la de la muestra,
+// la supera (H7.1 FR-023) y pasa a ser la redacción vista del bloque; en
+// instanteDelGrafo ya ha caducado su consulta, que renovó la de la Norma y la
+// del Bloque, así que check da una version-obsoleta sobre la versión de la
+// muestra y una fuente-caducada sobre la Norma, el Bloque y esta, y ninguna
+// sobre la de la muestra, que ya no es la vista (H7.1 FR-030).
 const (
-	fechaDeLaVersionPosterior  = "2026-10-02T10:00:00Z"
+	fechaDeLaVersionPosterior  = "2026-09-29T09:00:00Z"
 	fechaDeVigenciaPosterior   = "20270101"
 	cuerpoDeLaVersionPosterior = cuerpoDelBloque + "\nSu redacci\xc3\xb3n posterior de prueba a\xc3\xb1ade esta frase."
 )
 
 // poblarConUnaVersionPosterior entrega la muestra y, después, el lote de la
-// versión posterior al world.db del directorio.
+// versión posterior al world.db del directorio: dos lecturas sucesivas del
+// bloque, cada una en su propia entrega, la última de la versión posterior.
 func poblarConUnaVersionPosterior(t *testing.T, directorio string) {
 	t.Helper()
 
@@ -1150,12 +1376,16 @@ func sinWorldDB(t *testing.T, _ string) {
 	t.Helper()
 }
 
-// conWorldDBDirectorio pone en el lugar de world.db un directorio, que no se
-// puede leer (contracts/almacen-world-db.md §6).
-func conWorldDBDirectorio(t *testing.T, directorio string) {
+// noEsUnaBase es el contenido de un world.db que no es una base de datos
+// SQLite: el vehículo de la regla genérica (H7.1 FR-070).
+var noEsUnaBase = []byte("Este fichero no es una base de datos SQLite.\n")
+
+// conWorldDBQueNoEsUnaBase pone en el lugar de world.db un fichero que no es
+// una base de datos, que no se puede leer (contracts/almacen-world-db.md §6).
+func conWorldDBQueNoEsUnaBase(t *testing.T, directorio string) {
 	t.Helper()
 
-	require.NoError(t, os.Mkdir(filepath.Join(directorio, "world.db"), 0o700))
+	escribirFicheroDePrueba(t, filepath.Join(directorio, "world.db"), noEsUnaBase)
 }
 
 // TestSalidaDelGrafoContraSchemas es el punto 4 de la Definition of Done sobre
@@ -1165,12 +1395,13 @@ func conWorldDBDirectorio(t *testing.T, directorio string) {
 // emite --describe mientras se ejecuta el test. Lo hace toda salida correcta de
 // show —la de cada tipo de nodo, con aristas en los dos sentidos y con alguna
 // lista vacía—, de stats —con el grafo ausente y con nodos— y de check —con
-// hallazgos de las dos clases, de una sola, sin hallazgos y con el grafo
-// ausente—, y también la de cada fallo que decide el applet, con 2, 3, 4 y 1
+// hallazgos de las dos clases, de una sola, sin hallazgos, con el grafo ausente
+// y acotado a una norma y a sus bloques—, y también la de cada fallo que decide
+// el applet, con 2 —también los de la norma y los bloques de check—, 3, 4 y 1
 // (gates/supuestos.md, T017); los que decide el kernel antes de llegar al
 // applet no son salida suya. La validación restringe: el mismo sobre con una
 // clave de más o de menos en su data no valida, y en check tampoco con un
-// elemento que no es un hallazgo ni con la lista nula.
+// elemento que no es un hallazgo ni con una lista nula (H7.1 FR-012, FR-082).
 func TestSalidaDelGrafoContraSchemas(t *testing.T) {
 	t.Parallel()
 
@@ -1227,7 +1458,8 @@ func salidasDelGrafo() []salidaDelGrafo {
 	sinAristas := func(sentido string) string { return `"` + sentido + `":[]` }
 	caducada := `"clase":"` + string(grafo.ClaseFuenteCaducada) + `"`
 	obsoleta := `"clase":"` + string(grafo.ClaseVersionObsoleta) + `"`
-	sinHallazgos := `"data":[]`
+	sinHallazgos := `"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":[]`
+	enTodo := `"data":{"norma":"","bloques":[],`
 
 	return []salidaDelGrafo{
 		{
@@ -1273,19 +1505,46 @@ func salidasDelGrafo() []salidaDelGrafo {
 			[]string{`"nodos":6`, `"textos":2`},
 		},
 
-		{"check-sin-world-db", sinWorldDB, instanteDelGrafo, 0, []string{"check"}, []string{sinHallazgos}},
-		{"check-sin-hallazgos", poblarElGrafo, instanteSinCaducar, 0, []string{"check"}, []string{sinHallazgos}},
-		{"check-con-consultas-caducadas", poblarElGrafo, instanteDelGrafo, 0, []string{"check"}, []string{caducada}},
+		{"check-sin-world-db", sinWorldDB, instanteDelGrafo, 0, []string{"check"}, []string{enTodo + sinHallazgos}},
+		{
+			"check-sin-hallazgos", poblarElGrafo, instanteSinCaducar, 0,
+			[]string{"check"},
+			[]string{enTodo + sinHallazgos},
+		},
+		{
+			"check-con-consultas-caducadas", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"check"},
+			[]string{enTodo + `"version-obsoleta":0,"fuente-caducada":3,`, caducada},
+		},
 		{
 			"check-con-hallazgos-de-las-dos-clases", poblarConUnaVersionPosterior, instanteDelGrafo, 0,
 			[]string{"check"},
-			[]string{caducada, obsoleta, `"fecha_vigencia_reciente":"` + fechaDeVigenciaPosterior + `"`},
+			[]string{
+				enTodo + `"version-obsoleta":1,"fuente-caducada":3,`, caducada, obsoleta,
+				`"fecha_vigencia_reciente":"` + fechaDeVigenciaPosterior + `"`,
+				`"id":"` + idDeUnaVersion(fechaDeVigenciaPosterior, cuerpoDeLaVersionPosterior) + `"`,
+			},
+		},
+		{
+			"check-acotado-a-una-norma-y-sus-bloques", poblarElGrafo, instanteDelGrafo, 0,
+			[]string{"check", "BOE-A-2099-99999", "a1", "a99"},
+			[]string{`"data":{"norma":"BOE-A-2099-99999","bloques":["a1","a99"],` + sinHallazgos},
 		},
 
 		{
 			"fallo-2-id-en-blanco", poblarElGrafo, instanteDelGrafo, 2,
 			[]string{"show", " "},
 			[]string{`"clase":"argumentos"`},
+		},
+		{
+			"fallo-2-norma-sin-su-forma", poblarElGrafo, instanteDelGrafo, 2,
+			[]string{"check", "a21"},
+			[]string{`"clase":"argumentos"`, `la norma \"a21\"`},
+		},
+		{
+			"fallo-2-bloque-en-blanco", poblarElGrafo, instanteDelGrafo, 2,
+			[]string{"check", "BOE-A-2099-99999", " "},
+			[]string{`"clase":"argumentos"`, `el bloque \" \"`},
 		},
 		{
 			"fallo-3-id-que-no-esta", poblarElGrafo, instanteDelGrafo, 3,
@@ -1303,7 +1562,7 @@ func salidasDelGrafo() []salidaDelGrafo {
 			[]string{`"clase":"fuente-no-disponible"`},
 		},
 		{
-			"fallo-1-world-db-es-un-directorio", conWorldDBDirectorio, instanteDelGrafo, 1,
+			"fallo-1-world-db-no-es-una-base", conWorldDBQueNoEsUnaBase, instanteDelGrafo, 1,
 			[]string{"stats"},
 			[]string{`"clase":"inesperado"`},
 		},
@@ -1311,19 +1570,19 @@ func salidasDelGrafo() []salidaDelGrafo {
 }
 
 // exigirSalidaDelGrafoPublicada exige que el sobre real valide contra la parte
-// publicada de su verbo y que la validación restrinja data. Si data es un
-// objeto —la ficha de show, el recuento de stats o los datos de un fallo—, lo
-// exige exigirSalidaPublicada; si es la lista de check, exigirHallazgosPublicados.
+// publicada de su verbo y que la validación restrinja data, que es siempre un
+// objeto —la ficha de show, el recuento de stats, la comprobación de check o
+// los datos de un fallo— y lo exige exigirSalidaPublicada; si es la
+// comprobación de check, exigirHallazgosPublicados exige además lo de sus
+// listas.
 func exigirSalidaDelGrafoPublicada(t *testing.T, esquema *jsonschema.Schema, salida string) {
 	t.Helper()
 
-	if _, esLista := sobreValidable(t, salida)["data"].([]any); esLista {
-		exigirHallazgosPublicados(t, esquema, salida)
-
-		return
-	}
-
 	exigirSalidaPublicada(t, esquema, salida)
+
+	if _, esComprobacion := objetoDeData(t, sobreValidable(t, salida))["hallazgos"]; esComprobacion {
+		exigirHallazgosPublicados(t, esquema, salida)
+	}
 }
 
 // Las claves de un hallazgo (contracts/applet-graph.md §3.3; data-model §5): las
@@ -1339,22 +1598,26 @@ var (
 )
 
 // exigirHallazgosPublicados exige que el sobre real de check valide contra su
-// parte publicada y que la validación restrinja la lista: no valida nula
-// (FR-060), ni con un elemento de más que no es un hallazgo —lo que también se
-// comprueba con la lista vacía—, ni con una clave de más en cualquiera de sus
-// hallazgos, ni sin cualquiera de las cuatro de todo hallazgo. Cada hallazgo
-// lleva exactamente esas cuatro y las de su clase.
+// parte publicada y que la validación restrinja sus listas: no valida con los
+// bloques ni con los hallazgos nulos (FR-060; H7.1 FR-012), ni con un elemento
+// de más en los hallazgos que no es un hallazgo —lo que también se comprueba
+// con la lista vacía—, ni con una clave de más en cualquiera de sus hallazgos,
+// ni sin cualquiera de las cuatro de todo hallazgo. Cada hallazgo lleva
+// exactamente esas cuatro y las de su clase.
 func exigirHallazgosPublicados(t *testing.T, esquema *jsonschema.Schema, salida string) {
 	t.Helper()
 
 	require.NoError(t, esquema.Validate(sobreValidable(t, salida)), "el sobre real valida contra su parte de schemas/")
 
-	nula := sobreValidable(t, salida)
-	nula["data"] = nil
-	require.Error(t, esquema.Validate(nula), "la lista nula no valida")
+	for _, lista := range []string{"bloques", "hallazgos"} {
+		nula := sobreValidable(t, salida)
+		objetoDeData(t, nula)[lista] = nil
+		require.Errorf(t, esquema.Validate(nula), "la lista %q nula no valida", lista)
+	}
 
 	conUnoDeMas := sobreValidable(t, salida)
-	conUnoDeMas["data"] = append(hallazgosDelSobre(t, conUnoDeMas), map[string]any{"ajena": "no declarada"})
+	objetoDeData(t, conUnoDeMas)["hallazgos"] = append(hallazgosDelSobre(t, conUnoDeMas),
+		map[string]any{"ajena": "no declarada"})
 	require.Error(t, esquema.Validate(conUnoDeMas), "un elemento que no es un hallazgo no valida")
 
 	for posicion := range hallazgosDelSobre(t, sobreValidable(t, salida)) {
@@ -1377,12 +1640,12 @@ func exigirHallazgosPublicados(t *testing.T, esquema *jsonschema.Schema, salida 
 	}
 }
 
-// hallazgosDelSobre es la lista de data del sobre de check.
+// hallazgosDelSobre es la lista de hallazgos del data del sobre de check.
 func hallazgosDelSobre(t *testing.T, sobre map[string]any) []any {
 	t.Helper()
 
-	hallazgos, esLista := sobre["data"].([]any)
-	require.True(t, esLista, "el data de check es una lista")
+	hallazgos, esLista := objetoDeData(t, sobre)["hallazgos"].([]any)
+	require.True(t, esLista, "los hallazgos de check son una lista")
 
 	return hallazgos
 }
@@ -1420,13 +1683,14 @@ const avisoDeEntregaFallida = "kitlegal: lo observado no ha llegado al grafo del
 // de ningún bloque aparezca en la salida de show de cada nodo del grafo, de
 // stats ni de check, con --json ni sin él. Con --json se busca en la salida tal
 // cual y en cada texto del documento, clave o valor, ya sin los escapes de JSON;
-// sin ella, en la tabla, que escribe los textos tal cual.
+// sin ella, en la salida legible, que escribe los textos tal cual y no lleva
+// nada del sobre ni pares aplanados (H7.1 FR-060, SC-010).
 //
 // Las premisas dicen que no pasa en vacío: cada línea buscada aparece, con la
 // misma búsqueda, en la tabla del boe articulo que la devolvió; el grafo guarda
 // un texto por cada huella que boe publicó y una BloqueVersion con cada una; y
-// check, en un instante en que todas las consultas han caducado, devuelve
-// hallazgos, cuyas explicaciones citan cada bloque.
+// check, en un instante en que todas las consultas han caducado, lista
+// hallazgos —como mucho 50—, cuyas explicaciones citan bloques.
 func TestNingunVerboDelGrafoDevuelveTexto(t *testing.T) {
 	t.Parallel()
 
@@ -1467,7 +1731,11 @@ func TestNingunVerboDelGrafoDevuelveTexto(t *testing.T) {
 				require.NoError(t, json.Unmarshal([]byte(datosFirmados(t, res, instanteDelGrafo)), &recuento))
 				assert.Equal(t, len(textos), recuento.Textos, "premisa: el grafo guarda un texto por cada huella")
 			case slices.Equal(argv, []string{"check", "--json"}):
-				assert.NotEqual(t, "[]", datosFirmados(t, res, instanteDelGrafo), "premisa: check da hallazgos")
+				var comprobacion grafo.Comprobacion
+				require.NoError(t, json.Unmarshal([]byte(datosFirmados(t, res, instanteDelGrafo)), &comprobacion))
+				assert.NotEmpty(t, comprobacion.Hallazgos, "premisa: check lista hallazgos")
+			case !conJSON:
+				assert.NotRegexp(t, delSobreEnLoLegible, res.salida, "%q es la salida legible", argv)
 			}
 
 			assert.Empty(t, lineasQueAparecen(t, lineas, res.salida, conJSON), "%q no devuelve texto legal", argv)
@@ -1665,7 +1933,7 @@ func instantaneaDelGrafo(t *testing.T, directorio string) grafo.Instantanea {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 	require.NoError(t, lectura.Close())
 
@@ -2156,7 +2424,7 @@ func estadoDelGrafo(t *testing.T, directorio string) map[string]guardado {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	estado := map[string]guardado{}
@@ -2272,6 +2540,12 @@ const (
 const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n posterior " +
 	"derivada de la grabaci\xc3\xb3n de H4.]"
 
+// parrafoDeLaVersionUlterior es el que marca como sintética la redacción de la
+// derivada version-ulterior, la redacción C del e2e (research.md D23 de H7.1): el
+// último de su versión.
+const parrafoDeLaVersionUlterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n ulterior " +
+	"derivada de la grabaci\xc3\xb3n de H4.]"
+
 // parrafoDeLaVersionAnterior es el que marca como sintética la redacción de la
 // derivada lpac-a21-version-anterior, el grafo previo de la eval de la consulta
 // repetida: el último de su versión.
@@ -2291,14 +2565,16 @@ type grabacionDerivada struct {
 // grabacionesDerivadas son las derivadas del e2e y la del grafo previo de la eval
 // de la consulta repetida (research.md D22), cada una con lo que dice su nombre:
 // version-posterior, la fecha de vigencia 20250101 y el párrafo sintético al
-// final del texto, con la huella de ese texto; sin-eli, la url_eli vacía;
-// eli-sin-segmento, una url_eli sin el segmento eli; y lpac-a21-version-anterior,
-// la fecha de vigencia 20151002 y su párrafo sintético al final del texto, con la
-// huella de ese texto.
+// final del texto, con la huella de ese texto; version-ulterior, lo mismo con la
+// fecha 20260101 y su párrafo; sin-eli, la url_eli vacía; eli-sin-segmento, una
+// url_eli sin el segmento eli; y lpac-a21-version-anterior, la fecha de vigencia
+// 20151002 y su párrafo sintético al final del texto, con la huella de ese texto.
 func grabacionesDerivadas() []grabacionDerivada {
 	return []grabacionDerivada{
 		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-posterior"), "20250101",
 			parrafoDeLaVersionPosterior),
+		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-ulterior"), "20260101",
+			parrafoDeLaVersionUlterior),
 		{
 			carpeta: filepath.Join(derivadasDelE2E, "sin-eli"),
 			fichero: grabacionDeLosMetadatos,
@@ -2503,8 +2779,8 @@ type filaSQLite struct {
 // el registro lo lleva nulo.
 const sentenciaDeSchemaVersion = "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL)"
 
-// baseDeUnaVersionPosterior es un world.db con el esquema en la versión 2: el de
-// un binario posterior que migró desde la 1 (FR-012).
+// baseDeUnaVersionPosterior es un world.db con el esquema en la versión 3: el de
+// un binario posterior que migró desde la 1 y la 2 (FR-012).
 func baseDeUnaVersionPosterior(t *testing.T) []byte {
 	t.Helper()
 
@@ -2514,36 +2790,9 @@ func baseDeUnaVersionPosterior(t *testing.T) []byte {
 		filas: []filaSQLite{
 			{rowid: 1, valores: []any{nil, "2026-09-01T00:00:00Z"}},
 			{rowid: 2, valores: []any{nil, "2026-09-02T00:00:00Z"}},
+			{rowid: 3, valores: []any{nil, "2026-09-03T00:00:00Z"}},
 		},
 	})
-}
-
-// baseConUnaFechaIlegible es un world.db con el esquema en la versión 1 y un
-// nodo cuya fecha de consulta, «ayer», no es RFC 3339: lo que ninguna entrega
-// escribe, porque ValidarLote la rechaza.
-func baseConUnaFechaIlegible(t *testing.T) []byte {
-	t.Helper()
-
-	// Los campos de observación de nodes y de edges, los de la migración 0001.
-	observaciones := "first_seen TEXT, first_source TEXT, first_url TEXT, last_seen TEXT, source TEXT, url TEXT," +
-		" ttl INTEGER)"
-
-	return baseSQLite(t,
-		tablaSQLite{
-			nombre:    "schema_version",
-			sentencia: sentenciaDeSchemaVersion,
-			filas:     []filaSQLite{{rowid: 1, valores: []any{nil, "2026-09-01T00:00:00Z"}}},
-		},
-		tablaSQLite{
-			nombre:    "nodes",
-			sentencia: "CREATE TABLE nodes (id TEXT, type TEXT, props TEXT, " + observaciones,
-			filas: []filaSQLite{{rowid: 1, valores: []any{
-				idDeLaNorma, grafo.TipoNorma, `{"identificador":"` + identificadorDeLaNorma + `"}`,
-				"ayer", fuenteDeLaNorma, urlDeLaNorma, "ayer", fuenteDeLaNorma, urlDeLaNorma, nil,
-			}}},
-		},
-		tablaSQLite{nombre: "edges", sentencia: "CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT, " + observaciones},
-	)
 }
 
 // baseSQLite escribe la base con las tablas dadas: la página 1 con la cabecera

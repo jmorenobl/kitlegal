@@ -2,11 +2,9 @@
 # consultado con la grabación de H4 (A) y, con la caché renovada y el mismo
 # world.db, con la derivada de fecha_vigencia posterior (B) da exactamente un
 # hallazgo version-obsoleta, sobre la versión de A, con su explicación citable y
-# código 0; con una sola versión, ninguno; y en el orden inverso, el mismo
-# hallazgo, porque la antigüedad la decide la fecha de vigencia y no el orden
-# de observación.
+# código 0; y con una sola versión, ninguno.
 #
-# Cubre: US2.1, US2.2, US2.3 · FR-060, FR-061, FR-062, FR-063, FR-064, FR-090,
+# Cubre: US2.1, US2.2 · FR-060, FR-061, FR-062, FR-063, FR-064, FR-090,
 # FR-093 · SC-005.
 #
 # A es la grabación de H4 (fecha_vigencia 20161002 y el hash_texto de su sobre)
@@ -30,14 +28,13 @@ stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6be
 
 # --- Una sola versión observada: ningún hallazgo (US2.2) ---
 exec $KITLEGAL_T1_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 
 # --- B, la derivada, con la caché renovada y el mismo world.db (US2.1) ---
 #
-# La grabación de A se guarda para el orden inverso; la derivada ocupa su
-# nombre en la reproducción y, sin cache.db, boe la pide de nuevo.
-cp reproduccion/boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json a21-grabada.json
+# La derivada ocupa el nombre de la grabación de A en la reproducción y, sin
+# cache.db, boe la pide de nuevo.
 cp derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
 rm cache/cache.db
 exists cache/world.db
@@ -54,7 +51,7 @@ stdout '"hash_texto":"sha256:[0-9a-f]{64}"'
 # las traen los sobres, y la url y la fecha_consulta del sobre de B (FR-063,
 # SC-005). Con T1 ninguna consulta ha caducado todavía.
 exec $KITLEGAL_T1_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-29T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-29T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":1,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-29T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-29T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\}\n\z'
 ! stderr .
 cp stdout obsoleta.json
 
@@ -70,52 +67,4 @@ stdout '"salientes":\[\{"relacion":"eli:has_version","id":"eli/es/l/2015/10/01/3
 ! stderr .
 exec $KITLEGAL_T1_BIN graph stats --json
 stdout '"data":\{"nodos":4,"aristas":3,"textos":2,'
-! stderr .
-
-# --- El orden inverso, en otro directorio de caché (US2.3) ---
-#
-# Primero B, con T1, y después A, con T0: A llega la última y con una
-# observación anterior, y el hallazgo sigue siendo el mismo, byte a byte.
-env KITLEGAL_CACHE_DIR=$WORK/inverso
-! exists inverso
-exec $KITLEGAL_T1_BIN boe articulo BOE-A-2015-10565 a21 --json
-stdout '"fecha_vigencia":"20250101"'
-! stderr .
-cp a21-grabada.json reproduccion/boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json
-rm inverso/cache.db
-exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
-stdout '"fecha_vigencia":"20161002"'
-stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
-! stderr .
-
-exec $KITLEGAL_T1_BIN graph check --json
-cmp stdout obsoleta.json
-! stderr .
-
-# La Norma se observó primero con T1 y después con T0: su primera observación
-# retrocede a la más antigua de las vistas y la última sigue siendo la de T1
-# (FR-023).
-exec $KITLEGAL_T1_BIN graph show eli/es/l/2015/10/01/39 --json
-stdout '"nodo":\{"id":"eli/es/l/2015/10/01/39","tipo":"Norma","datos":\{"identificador":"BOE-A-2015-10565"\},"primera_observacion":"2026-09-28T12:00:00Z","ultima_observacion":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-29T12:00:00Z"\}\}'
-! stderr .
-
-# Y aunque A se observe después también en el tiempo —B con T0 y A con T1—, el
-# hallazgo recae sobre A: su procedencia es la de la última observación de B,
-# la versión más reciente por fecha de vigencia.
-env KITLEGAL_CACHE_DIR=$WORK/inverso-t0
-! exists inverso-t0
-cp derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
-exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
-stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
-stdout '"fecha_vigencia":"20250101"'
-! stderr .
-cp a21-grabada.json reproduccion/boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json
-rm inverso-t0/cache.db
-exec $KITLEGAL_T1_BIN boe articulo BOE-A-2015-10565 a21 --json
-stdout '"fecha_consulta":"2026-09-29T12:00:00Z"'
-stdout '"fecha_vigencia":"20161002"'
-! stderr .
-
-exec $KITLEGAL_T1_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-28T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\n\z'
 ! stderr .

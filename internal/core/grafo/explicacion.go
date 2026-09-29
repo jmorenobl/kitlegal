@@ -18,7 +18,8 @@ import (
 // BloqueVersion, por la arista eli:has_version que llega a ella. Sin esos
 // datos —falta alguno, no es un texto o está vacío, la arista no llega desde un
 // nodo del tipo que la cita pide, o llegan desde dos y la cita no es una
-// sola—, y en cualquier otro tipo de nodo, la cita es el id del nodo.
+// sola—, la cita es el id del nodo. Solo esos tres tipos de nodo reciben un
+// hallazgo (H7.1 FR-030).
 
 const (
 	// plantillaVersionObsoleta es la de version-obsoleta: la cita de la versión
@@ -68,7 +69,8 @@ func (i indice) citar(id string) string {
 	return id
 }
 
-// cita es la del nodo de ese id según su tipo, y si la tiene.
+// cita es la del nodo de ese id según su tipo, y si la tiene. Un nodo que
+// recibe un hallazgo y no es una Norma ni un Bloque es una BloqueVersion.
 func (i indice) cita(id string) (string, bool) {
 	nodo := i.nodos[id]
 
@@ -77,15 +79,13 @@ func (i indice) cita(id string) (string, bool) {
 		return datoDeTexto(nodo, DatoIdentificador)
 	case TipoBloque:
 		return i.citaDeBloque(nodo)
-	case TipoBloqueVersion:
+	default:
 		bloque, unico := i.origenUnico(RelacionTieneVersion, id, TipoBloque)
 		if !unico {
 			return "", false
 		}
 
 		return i.citaDeBloque(bloque)
-	default:
-		return "", false
 	}
 }
 

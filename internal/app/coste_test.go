@@ -51,9 +51,11 @@ const (
 // municipiosDelGrafoGrande).
 //
 // Las normas se consultaron hace meses con la vigencia de una semana de boe, y
-// sus bloques tienen cuatro versiones: check tiene trabajo de las dos clases,
-// una fuente caducada por nodo de norma y una versión obsoleta por cada versión
-// que no es la última de su bloque.
+// cada bloque se leyó cuatro veces, una por versión y cada una en su propia
+// entrega, como cuatro consultas sucesivas de boe articulo: check tiene trabajo
+// de las dos clases, una fuente caducada por Norma, por Bloque y por la
+// redacción que vio la última lectura de cada bloque (H7.1 FR-030), y una
+// versión obsoleta por bloque, la que vio su penúltima lectura (H7.1 FR-023).
 const (
 	normasDelGrafoGrande = 70
 	bloquesPorNorma      = 25
@@ -202,23 +204,27 @@ func compruebaElCosteDelGrafoGrande(t *testing.T) {
 }
 
 // construirElGrafoGrande entrega al world.db del directorio los lotes del grafo
-// grande: uno por norma, como una consulta de boe cada una, y uno con los
-// municipios y sus órganos, como territorio.
+// grande: cuatro por norma, uno por versión y en su orden, como cuatro
+// consultas sucesivas de boe, y uno con los municipios y sus órganos, como
+// territorio.
 func construirElGrafoGrande(t *testing.T, directorio string) {
 	t.Helper()
 
 	almacen := graph.Nuevo(graph.ConDirectorio(directorio))
 
 	for norma := range normasDelGrafoGrande {
-		require.NoError(t, almacen.Apply(t.Context(), loteDeUnaNorma(norma)))
+		for version := range versionesPorBloque {
+			require.NoError(t, almacen.Apply(t.Context(), loteDeUnaNorma(norma, version)))
+		}
 	}
 
 	require.NoError(t, almacen.Apply(t.Context(), loteTerritorialGrande()))
 }
 
-// loteDeUnaNorma es el de una norma del grafo grande: la Norma, sus bloques y
-// las versiones de cada bloque, con sus aristas y el texto de cada versión.
-func loteDeUnaNorma(norma int) core.Lote {
+// loteDeUnaNorma es el de una lectura de una norma del grafo grande que ve la
+// versión de ese orden de cada uno de sus bloques: la Norma, sus bloques y esa
+// versión de cada bloque, con sus aristas y el texto de cada versión.
+func loteDeUnaNorma(norma, version int) core.Lote {
 	idDeLaNorma := "eli/prueba/l/2026/" + strconv.Itoa(norma)
 	operaciones := []schema.Operacion{schema.Nodo{
 		ID: idDeLaNorma, Tipo: grafo.TipoNorma,
@@ -228,24 +234,19 @@ func loteDeUnaNorma(norma int) core.Lote {
 	for bloque := range bloquesPorNorma {
 		nombre := "a" + strconv.Itoa(bloque+1)
 		idDelBloque := idDeLaNorma + "#" + nombre
+		cuerpo := fmt.Sprintf("Texto inventado %d del bloque %s.", version, idDelBloque)
+		huella := "sha256:" + huellaSHA256([]byte(cuerpo))
+		fechaDeVigencia := strconv.Itoa(primerAnoDeVigencia+version) + "0101"
+		idDeLaVersion := idDelBloque + "@" + fechaDeVigencia + ":" + huella
 		operaciones = append(operaciones,
 			schema.Nodo{ID: idDelBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: nombre}},
 			schema.Arista{Origen: idDeLaNorma, Relacion: grafo.RelacionTieneParte, Destino: idDelBloque},
+			schema.Nodo{ID: idDeLaVersion, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+				grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huella,
+			}},
+			schema.Arista{Origen: idDelBloque, Relacion: grafo.RelacionTieneVersion, Destino: idDeLaVersion},
+			schema.Texto{Huella: huella, Cuerpo: cuerpo},
 		)
-
-		for version := range versionesPorBloque {
-			cuerpo := fmt.Sprintf("Texto inventado %d del bloque %s.", version, idDelBloque)
-			huella := "sha256:" + huellaSHA256([]byte(cuerpo))
-			fechaDeVigencia := strconv.Itoa(primerAnoDeVigencia+version) + "0101"
-			idDeLaVersion := idDelBloque + "@" + fechaDeVigencia + ":" + huella
-			operaciones = append(operaciones,
-				schema.Nodo{ID: idDeLaVersion, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-					grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huella,
-				}},
-				schema.Arista{Origen: idDelBloque, Relacion: grafo.RelacionTieneVersion, Destino: idDeLaVersion},
-				schema.Texto{Huella: huella, Cuerpo: cuerpo},
-			)
-		}
 	}
 
 	return core.Lote{
@@ -302,26 +303,29 @@ func compruebaElRecuentoDelGrafoGrande(t *testing.T, salida []byte) {
 }
 
 // compruebaLosHallazgosDelGrafoGrande exige que graph check encuentre en el
-// grafo grande lo que tiene: una fuente caducada por cada nodo de las normas,
-// que se consultaron con vigencia hace meses, y ninguna de los municipios ni
-// de los órganos, que no la declaran; y una versión obsoleta por cada versión
-// que no es la última de su bloque.
+// grafo grande lo que tiene: una fuente caducada por cada Norma, cada Bloque y
+// la redacción que vio la última lectura de cada bloque, que se consultaron con
+// vigencia hace meses, y ninguna de las demás versiones, que ninguna lectura
+// vio la última vez, ni de los municipios ni de los órganos, que no la
+// declaran (H7.1 FR-030); y una versión obsoleta por bloque, la que vio su
+// penúltima lectura, superada por la de la última. Los totales de su data los
+// cuentan todos, y lista los 50 primeros, que son version-obsoleta porque esa
+// clase va primero y tiene más de 50 (H7.1 FR-010 a FR-012).
 func compruebaLosHallazgosDelGrafoGrande(t *testing.T, salida []byte) {
 	t.Helper()
 
-	var hallazgos []grafo.Hallazgo
+	var comprobacion grafo.Comprobacion
 
-	require.NoError(t, json.Unmarshal(datosDelSobreDeExito(t, salida), &hallazgos))
+	require.NoError(t, json.Unmarshal(datosDelSobreDeExito(t, salida), &comprobacion))
 
-	porClase := make(map[grafo.ClaseDeHallazgo]int)
-	for _, hallazgo := range hallazgos {
-		porClase[hallazgo.Clase]++
+	assert.Equal(t, bloquesDelGrafoGrande, comprobacion.VersionObsoleta)
+	assert.Equal(t, normasDelGrafoGrande+2*bloquesDelGrafoGrande, comprobacion.FuenteCaducada)
+	assert.Equal(t, bloquesDelGrafoGrande+normasDelGrafoGrande+2*bloquesDelGrafoGrande-50, comprobacion.Omitidos)
+	require.Len(t, comprobacion.Hallazgos, 50)
+
+	for _, hallazgo := range comprobacion.Hallazgos {
+		assert.Equal(t, grafo.ClaseVersionObsoleta, hallazgo.Clase, hallazgo.ID)
 	}
-
-	assert.Equal(t, map[grafo.ClaseDeHallazgo]int{
-		grafo.ClaseFuenteCaducada:  nodosDeLasNormas,
-		grafo.ClaseVersionObsoleta: bloquesDelGrafoGrande * (versionesPorBloque - 1),
-	}, porClase)
 }
 
 // datosDelSobreDeExito es el data de un sobre de éxito de graph.

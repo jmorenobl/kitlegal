@@ -1,0 +1,192 @@
+diff antes/contracts/almacen-world-db.md ahora/contracts/almacen-world-db.md
+--- antes/contracts/almacen-world-db.md	2026-09-28 23:44:27
++++ ahora/contracts/almacen-world-db.md	2026-09-28 23:50:56
+@@ -2,7 +2,7 @@
+ 
+ Lo que cambia de `specs/010-h7-internal-graph-grafo/contracts/almacen-world-db.md` (no se edita). FR-020 a FR-026,
+ FR-070 a FR-078. Modelo: [../data-model.md](../data-model.md) §1-§4 y §9. Decisiones: [../research.md](../research.md)
+-D1-D4, D8, D17-D22. Verificaciones: research V1-V10, V21, V27 y V28.
++D1-D4, D8, D17-D22. Verificaciones: research V1-V10, V21 y V27-V29.
+ 
+ ## 1. API pública de `internal/graph`
+ 
+@@ -88,13 +88,14 @@
+ constitución VII) (FR-074, FR-075). Se retiran: URI no absoluto, nodo sin id o sin tipo, arista sin relación, arista sin
+ extremos y el grafo vacío como caso aparte. Ninguna otra entrada del lote es un caso de este contrato: lo que ningún
+ emisor produce (el kernel escribe la fecha del sobre con `time.RFC3339Nano`, research V27; la única vigencia declarada
+-es la constante de `boe`, V21; los emisores solo ponen cadenas en los datos y ninguno emite `Persona`, V28) es la regla
++es la constante de `boe`, V21; los emisores solo ponen cadenas en los datos y ninguno emite `Persona`, V28; solo ponen
++valores `schema.Nodo`, `schema.Arista` y `schema.Texto`, nunca `nil` ni un puntero, V29) es la regla
+ genérica —el lote no entra, §6— sin test propio; las comprobaciones que hoy lo rechazan se quedan en el código
+ (research D20). Lo mismo vale para lo guardado que ninguna entrega escribe (research D21).
+ 
+ Desempate (FR-076): con el mismo instante de consulta, gana la observación de `url` menor comparando bytes; con la misma
+-`url`, la guardada (una observación idéntica no cambia nada). Dentro de un lote, un id repetido se queda con su primera
+-aparición.
++`url`, la guardada (una observación idéntica no cambia nada). Dentro de un lote, un id repetido —`boe articulos` repite
++la `Norma` en cada bloque, con los mismos datos (research V29)— se guarda una vez.
+ 
+ ## 6. Errores del almacén
+ 
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-09-28 23:44:27
++++ ahora/data-model.md	2026-09-28 23:51:37
+@@ -43,8 +43,10 @@
+ ```
+ 
+ - Solo `boe articulo` y `boe articulos` emiten `eli:has_version` (`internal/source/boe/grafo.go:74`, llamado desde
+-  `articulo.go:112`), una por bloque distinto de la invocación (`observadoDeLosArticulos`, `grafo.go:22-41`), y
+-  `Consolidar` deja una arista por terna: una lectura por bloque e invocación aunque se nombre dos veces (FR-020).
++  `articulo.go:112`), una por bloque distinto de la invocación (`observadoDeLosArticulos`, `grafo.go:22-41`, con su
++  test de H7 «articulos-con-un-bloque-repetido», `internal/source/boe/grafo_test.go:58`): una lectura por bloque e
++  invocación aunque se nombre dos veces (FR-020). Un lote con la misma arista dos veces no lo emite nadie (research
++  V29) y no es un caso de `Lecturas`.
+ - `--no-graph`, `--dry-run`, un código distinto de 0, una respuesta sin ELI o una entrega que falla no llegan a
+   confirmar ninguna transacción: no hay lectura (FR-020; H7 FR 031-034, FR 040).
+ 
+@@ -175,6 +177,6 @@
+ | `Almacen.enlazar`, `publicar`, `crearElTemporal`, `retirarElTemporal`, `retirarDirectorios`, `puedeRehacerse` | se retiran con `publicar.go` (FR-071); `world.db` se crea en su sitio |
+ | `modoInmutable`, `comprobarEscritura`, `comprobarLectura`, `rutaDeLosAuxiliares`, `sufijoDiario`, `sufijoMemoriaCompartida`, reapertura inmutable, clasificación 776/1544/14 | se retiran (FR-072); la lectura mira solo si hay `world.db-wal` |
+ | `errorEsDirectorio`, `errorDeTransaccionInterrumpida`, `errorDeFicheroNoEscribible`, `errorDePublicacion` | se retiran: esos estados son la regla genérica, `errorInutilizable` (FR-070) |
+-| `ValidarContraGrafoVacio`, comprobación de extremos en `leerArista`, rechazos de URI no absoluto, nodo sin id o sin tipo, arista sin relación | se retiran (FR-075); la clave ajena de `edges` rechaza un extremo ausente |
+-| desempate por fuente, texto de la fecha, vigencia y datos canónicos | se retira (FR-076); queda la `url` y la observación idéntica |
++| `ValidarContraGrafoVacio`, comprobación de extremos en `leerArista`, rechazos de URI no absoluto, nodo sin id o sin tipo, arista sin origen, relación o destino (`validarArista`), y el caso de la arista en `nombrar` | se retiran (FR-075); la clave ajena de `edges` rechaza un extremo ausente, y ningún rechazo que se queda lleva una arista (research V29) |
++| desempate por fuente, texto de la fecha, vigencia y datos canónicos, también el de un id repetido en el lote | se retira (FR-076); queda la `url` y la observación idéntica; `Consolidar` guarda una vez un id repetido, sin comparar sus datos |
+ | casos no ASCII de `persona_test.go` | se retiran (FR-074); la regla y sus casos ASCII se quedan |
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-09-28 23:44:27
++++ ahora/plan.md	2026-09-28 23:51:57
+@@ -120,7 +120,7 @@
+ ```text
+ specs/011-h7-1-graph-check-acotado/
+ ├── plan.md                 # este fichero
+-├── research.md             # D1-D24, verificaciones V1-V28, supuestos S1-S3
++├── research.md             # D1-D24, verificaciones V1-V29, supuestos S1-S3
+ ├── data-model.md           # lecturas, ámbito, Comprobacion, etiqueta, formato de eval, retirada
+ ├── quickstart.md           # escenarios de validación
+ ├── contracts/
+@@ -141,10 +141,11 @@
+ ├── lecturas.go         # nuevo: Lectura, LecturasDeBloque, Consolidado.Lecturas, RedaccionVistaSinLecturas
+ ├── comprobar.go        # Comprobar(instantanea, ambito, ahora) → Comprobacion; reglas nuevas; fuera versionesObsoletas/compararRecencia
+ ├── salida.go           # + Ambito, Comprobacion (MarshalJSON sin null); Instantanea.Lecturas
+-├── lote.go             # fuera ValidarContraGrafoVacio, URI absoluto, id/tipo, arista; Consolidar: primera aparición
++├── lote.go             # fuera ValidarContraGrafoVacio, URI absoluto, id/tipo, validarArista; Consolidar: un id repetido, una vez, sin comparar datos
++├── errores.go          # nombrar sin el caso de la arista (ningún rechazo que se queda la lleva)
+ ├── observacion.go      # desempate solo por url
+ ├── persona.go          # solo el comentario de los casos no ASCII
+-└── *_test.go           # comprobar_test (secuencia, ámbito, cota, orden), lecturas_test, lote_test, observacion_test, persona_test, canonico_test, salida_test
++└── *_test.go           # comprobar_test (secuencia, ámbito, cota, orden), lecturas_test, lote_test, errores_test, observacion_test, persona_test, canonico_test, salida_test
+ internal/graph/
+ ├── migraciones/0002_lecturas.sql   # nuevo
+ ├── lectura.go          # Instantanea(ctx, ambito): acotada en SQL; filas de lecturas; versión 1 legible
+@@ -205,7 +206,7 @@
+ 
+ | Test | Paquete | Cubre |
+ |---|---|---|
+-| `TestLecturas` (lote con `has_version` repetida → una) | `internal/core/grafo` | FR-020 |
++| `TestLecturas` (una por arista `eli:has_version` del lote: el de `boe articulos` con dos bloques da dos; el bloque nombrado dos veces ya lo fija el test de H7 del emisor, data-model §2) | `internal/core/grafo` | FR-020 |
+ | `TestComprobar` reescrito: secuencia de FR-025 sobre instantáneas, bloque sin fila, fechas iguales o no válidas, `fuente-caducada` solo sobre lo vigente, orden y cota con 51+ hallazgos, totales y omitidos | `internal/core/grafo` | FR-010-FR-012, FR-023, FR-024, FR-026, FR-030 |
+ | `TestRedaccionVistaSinLecturas` | `internal/core/grafo` | FR-026 |
+ | `Apply` con lecturas (fila nueva, desplazamiento, primera lectura de un bloque de H7, sin lectura si el lote se rechaza) e `Instantanea` con y sin ámbito (norma y bloques conocidos y desconocidos, versión 1) | `internal/graph` | FR-002, FR-003, FR-020, FR-021, FR-026 |
+@@ -234,9 +235,13 @@
+   `TestApplyNoModifica`, `TestApplyEnSuSitio`, `TestIntegracionEsquema`, `TestIntegracionInutilizables`,
+   `TestIntegracionRecuperacionDeclarada`, `TestErrores` y `TestMigrar` («`schema_version` ajena» y «versión
+   negativa», research D21); los rechazos y los niveles de desempate retirados en `lote_test`, `observacion_test`,
+-  `almacen_test` e `integracion_test`; los casos de entradas del lote que ningún emisor produce (research D20): fecha
+-  que no es RFC 3339 y vigencia negativa en `probarRechazosDeLaProcedencia` y datos sin forma JSON en
+-  `probarLotesQueNoSeConsolidan` (`lote_test`), vigencia con fracción de segundo y datos sin forma JSON canónica en
++  `almacen_test` e `integracion_test`; los casos de entradas del lote que ningún emisor produce (research D20, V29):
++  «una arista antes que sus extremos» en `probarLotesAceptados`, «una operacion nula» y «una operacion que no es un
++  valor» en `probarRechazosDeUnaOperacion` (con la frase de su comentario), fecha que no es RFC 3339 y vigencia
++  negativa en `probarRechazosDeLaProcedencia`, datos sin forma JSON en `probarLotesQueNoSeConsolidan` y los cuatro «un
++  nodo repetido con datos menores/mayores» de `probarLotesConsolidados` (`lote_test`); «un nodo sin id», «una arista»,
++  «una arista vacia» y «una operacion que no es un valor» de `TestRechazo` (`errores_test`), que nombran operaciones
++  de rechazos que se retiran o que nadie emite; vigencia con fracción de segundo y datos sin forma JSON canónica en
+   `TestApplyRechazaElLote`, «un numero que no es finito», «una cadena que no es UTF-8» y «un valor que no es de JSON»
+   de `persona_test` y `TestDatosCanonicosImposibles` (`canonico_test`); los de lo guardado que ninguna entrega escribe
+   (research D21): `historiasImposibles` y sus casos en `probarNodosQueNoSeFusionan`, `probarAristasQueNoSeFusionan` y
+@@ -310,7 +315,7 @@
+ | `errorInutilizable` sin promesa; retirada de constructores | FR-070 |
+ | Retirada en `abrir.go`, `aplicar.go`, `almacen.go`, `publicar.go` y sus tests; filas dañadas | FR-070, FR-071, FR-072, FR-073, FR-095 |
+ | Vehículo WAL de los tests de espera al leer | FR-073, FR-077 |
+-| Retirada en `lote.go`, `observacion.go`, `persona_test.go` | FR-074, FR-075, FR-076 |
++| Retirada en `lote.go`, `errores.go`, `observacion.go`, `persona_test.go` | FR-074, FR-075, FR-076 |
+ | Retirada de los tests de entradas del lote y de lo guardado que ningún emisor produce (research D20, D21) | Entrega (7) del spec; constitución, «Gates» (regla genérica) |
+ | Derivada `version-ulterior` | FR-025, FR-091 |
+ | Guiones de H7 cambiados | FR-080, FR-081 |
+@@ -319,7 +324,7 @@
+ | `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md` | FR-048, FR-097 (y lo que el hito deja falso en la documentación) |
+ 
+ Nada del diseño trata un estado o una entrada por debajo del umbral de materialidad: lo que el binario no produce, en
+-`world.db` o en un lote (research V21, V27, V28), sigue la regla genérica —1, `inesperado`, la ruta— sin caso propio,
++`world.db` o en un lote (research V21, V27-V29), sigue la regla genérica —1, `inesperado`, la ruta— sin caso propio,
+ sin test y sin promesa sobre sus bytes; las guardas que hoy lo rechazan se quedan en el código como esa regla, sin caso
+ en los contratos ni test propio, y sus tests salen, caso a caso, en «Tests existentes que cambian» (research D20,
+ D21).
+@@ -378,7 +383,7 @@
+ - g · Sin atajos: ningún `//nolint` nuevo, ningún `t.Skip`, ningún error silenciado (los errores de lectura de lo
+   guardado se devuelven: regla genérica).
+ - h · Mejor alternativa: cada decisión con la rechazada (research D1-D24).
+-- i · Afirmaciones verificadas: V1-V28 con fichero:línea o sonda; S1-S3 como supuestos.
++- i · Afirmaciones verificadas: V1-V29 con fichero:línea o sonda; S1-S3 como supuestos.
+ - j · Quickstart ejecutable: binario y caché en un directorio temporal; el único escenario que escribe en el
+   repositorio (§9) lo declara.
+ - k · Datos externos: ninguno.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-09-28 23:44:27
++++ ahora/research.md	2026-09-28 23:51:34
+@@ -42,6 +42,7 @@
+ | V26 | Con `Norma *string arg:"" optional:""` y `Bloques []string arg:"" optional:""`, Kong deja `Norma` en `nil` sin argumentos y en `""` con un argumento vacío, y reparte `BOE-A-… a21 a22` y `BOE-A-… " "` en norma y bloques sin error | `kong@v1.16.1/mapper.go:293` (`ptrMapper`); sonda temporal en `internal/cli` (`kong.New` + `Parse`), borrada tras ejecutarla | como se dice |
+ | V27 | El único constructor de un lote con procedencia escribe la fecha de consulta con `time.RFC3339Nano` a partir del `time.Time` del sobre y copia la vigencia de lo observado | `internal/cli/entrega.go:28-35` (`LoteDe`); `grep` de `core.Lote{` fuera de tests | solo ahí |
+ | V28 | Los emisores solo ponen cadenas en los `Datos` de un nodo, y ninguno emite `Persona`; un argumento llega al applet en UTF-8 válido salvo el `cli.Literal` de `graph show`, que no emite | `internal/source/boe/grafo.go:63-71` y `internal/core/territorio/grafo.go:29-39` (los dos únicos `schema.Nodo{` fuera de tests con datos); `grep` de `TipoPersona` fuera de tests (solo `internal/core/grafo`); `kong@v1.16.1/scanner.go:188` y `mapper.go:956-965` (`jsonTranscode` pasa el argumento por `json.Marshal`); `internal/app/grafo.go:110` | como se dice |
++| V29 | Los dos emisores solo ponen en `Operaciones` valores `schema.Nodo`, `schema.Arista` y `schema.Texto` —nunca `nil` ni un puntero—, cada arista detrás de sus dos extremos y ninguna dos veces (`boe` emite una vez cada bloque distinto), y un id repetido en un lote siempre con los mismos datos (la `Norma` de cada bloque de `boe articulos`); `LoteDe` los copia tal cual. Tras FR-075 ningún `Rechazo` lleva una arista | `internal/source/boe/grafo.go:22-40,64-75` e `internal/core/territorio/grafo.go:30-43`; `internal/cli/entrega.go:28-35`; `grep` de `Operaciones` y de `Rechazo{` fuera de tests: los únicos que llevan una arista son `ValidarContraGrafoVacio` (`internal/core/grafo/lote.go:92-94`), `validarArista` (`lote.go:276-280`) y `leerArista` (`internal/graph/aplicar.go:459`), que se retiran (D20) | como se dice |
+ 
+ ## Supuestos no verificables en local (S)
+ 
+@@ -273,19 +274,33 @@
+ 
+ **Decisión**: fuera `ValidarContraGrafoVacio`, la comprobación de extremos en `leerArista` (la clave ajena rechaza,
+ V5, y el lote entero se deshace: «no se pudo escribir…», 1), el URI no absoluto, el nodo sin id o sin tipo y la arista
+-sin relación (con sus tests); `desempatar` solo por `url`; `compararUltimas` por instante y `url`; `Consolidar` deja
+-la primera aparición de un id repetido en el lote. Se quedan, con un test cada uno: sin fuente, url o fecha; id con
+-otro tipo (guardado o del lote); huella que no es la de su cuerpo o que ya guarda otro cuerpo (los diez casos de
+-`probarHuellas…` se reducen a uno por rechazo); la regla de `Persona` con sus casos ASCII. Ninguna otra entrada del
+-lote tiene caso ni test propio: una fecha de consulta que no es RFC 3339, una vigencia negativa o con fracción de
+-segundo y unos datos sin forma JSON canónica —un número que no es finito, una cadena o una clave que no es UTF-8, un
+-valor que no es de JSON—, en cualquier nodo o en una `Persona`, no los produce ningún emisor (V27, V21, V28). El código
+-que hoy los rechaza (`validarProcedencia` en `lote.go`, `consolidar` en `internal/graph/aplicar.go:48`,
+-`DatosCanonicos` en `canonico.go` y sus usos al consolidar y en `validarPersona`) se queda: es la regla genérica en el
+-código —lo que el binario no produce no entra, y la entrega lo dice como `inesperado`—, y FR-075 cierra la lista de
+-rechazos cuyo código se retira (FR-078, en `internal/graph`). Lo que sale son todos sus casos de los tests:
+-- `lote_test.go`: los cuatro de fecha y el de vigencia negativa de `probarRechazosDeLaProcedencia` (169-193), y el
+-  nodo con datos sin forma JSON de `probarLotesQueNoSeConsolidan` (595-607), que se queda con el lote sin fuente;
++sin origen, relación o destino (`validarArista` entera: un extremo vacío es un extremo ausente, que la clave ajena ya
++rechaza), con sus tests; con ellos sale el caso de la arista de `nombrar` (`errores.go`), que solo nombraba esos
++rechazos: tras FR-075 ningún `Rechazo` lleva una arista (V29). `desempatar` solo por `url`; `compararUltimas` por
++instante y `url`; `Consolidar` guarda una vez un id repetido en el lote, el de su primera aparición, sin comparar sus
++datos (los emisores lo repiten con los mismos datos, V29; el nivel de los datos canónicos sale con FR-076). Se quedan,
++con un test cada uno: sin fuente, url o fecha; id con otro tipo (guardado o del lote); huella que no es la de su cuerpo
++o que ya guarda otro cuerpo (los diez casos de `probarHuellas…` se reducen a uno por rechazo); la regla de `Persona`
++con sus casos ASCII. Ninguna otra entrada del lote tiene caso ni test propio: una operación nula o que no es un valor
++`schema.Nodo`, `schema.Arista` o `schema.Texto`, una arista delante de sus extremos y un id repetido con otros datos
++(V29); una fecha de consulta que no es RFC 3339, una vigencia negativa o con fracción de segundo y unos datos sin
++forma JSON canónica —un número que no es finito, una cadena o una clave que no es UTF-8, un valor que no es de JSON—,
++en cualquier nodo o en una `Persona` (V27, V21, V28): no los produce ningún emisor. El código que hoy los rechaza
++(`validarOperacion` con `nil` y con `default` en `lote.go`, `nombrar` con `default` en `errores.go`,
++`validarProcedencia` en `lote.go`, `consolidar` en `internal/graph/aplicar.go:48`, `DatosCanonicos` en `canonico.go` y
++sus usos al consolidar y en `validarPersona`) se queda: es la regla genérica en el código —lo que el binario no produce
++no entra, y la entrega lo dice como `inesperado`—, y FR-075 cierra la lista de rechazos cuyo código se retira (FR-078,
++en `internal/graph`). Lo que sale son todos sus casos de los tests:
++- `lote_test.go`: en `probarLotesAceptados`, «una arista antes que sus extremos» (112-115), con la aserción de
++  `ValidarContraGrafoVacio` (134) a la que servía; en `probarRechazosDeUnaOperacion`, «una operacion nula» (250) y
++  «una operacion que no es un valor» (251-255), con la frase de su comentario que los anuncia (212-213); los cuatro de
++  fecha y el de vigencia negativa de `probarRechazosDeLaProcedencia` (169-193); el nodo con datos sin forma JSON de
++  `probarLotesQueNoSeConsolidan` (595-607), que se queda con el lote sin fuente; y los cuatro «un nodo repetido con
++  datos menores/mayores, antes/después del primero» de `probarLotesConsolidados` (533-536), con `conMasDatos`,
++  `conOtrosDatos` y `losDeMasDatos` (493-498, 512-516) y la frase de su comentario (487-488);
++- `errores_test.go`, en `TestRechazo`: «una operacion que no es un valor» (63-67), y «un nodo sin id» (37), «una
++  arista» (48-56) y «una arista vacia» (57), que solo nombran operaciones de los rechazos que FR-075 retira; los demás
++  nombran las de los rechazos que se quedan (el lote, un nodo, la `Persona`, un texto) y se quedan;
+ - `almacen_test.go`: de `TestApplyRechazaElLote` (523), la vigencia con fracción de segundo y los datos sin forma JSON
+   canónica;
+ - `persona_test.go`: «un numero que no es finito», «una cadena que no es UTF-8» y «un valor que no es de JSON»

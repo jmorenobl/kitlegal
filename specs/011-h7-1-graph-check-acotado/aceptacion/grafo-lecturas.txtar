@@ -1,0 +1,137 @@
+# La secuencia de lecturas de FR-025, paso a paso, sobre el bloque a21 de la
+# LPAC con tres redacciones de fechas de vigencia crecientes: A (la grabación de
+# H4), B (la derivada version-posterior) y C (la derivada version-ulterior).
+# graph check con la norma y el bloque no da nada tras leer A; da exactamente un
+# version-obsoleta sobre A cuando la lectura siguiente ve B, el mismo al repetir
+# la comprobación y tras una lectura con --no-graph; ninguno cuando otra lectura,
+# servida por la caché, vuelve a ver B, tampoco al repetir; y exactamente uno
+# sobre B cuando la siguiente ve C. Después, sin leer y pasada la vigencia, graph
+# check sin argumentos da el version-obsoleta sobre B primero y fuente-caducada
+# sobre la Norma, el Bloque y C, cuatro en total y ninguno fuente-caducada sobre
+# A ni sobre B; y una lectura nueva, que pregunta a la fuente, los apaga todos.
+#
+# Cubre: US2.1-US2.5, US4.1-US4.2 · FR-011, FR-014, FR-020, FR-023, FR-024,
+# FR-025, FR-030, FR-031, FR-032, FR-091 · SC-003, SC-004.
+#
+# Las lecturas van con el reloj T0 (2026-09-28T12:00:00Z) y las comprobaciones,
+# con T1 (2026-09-29T12:00:00Z), cuando ninguna consulta ha caducado; tras el
+# paso 5, con T8 (2026-10-06T12:00:00Z), cuando la vigencia de 604800 s de las
+# consultas de T0 venció el 2026-10-05T12:00:00Z (contracts/arnes-e2e.md §1).
+# «Caducada la caché» es retirar cache/cache.db conservando world.db. La
+# fecha_vigencia y el hash_texto de A son los del sobre de boe articulo sobre la
+# grabación de H4; las huellas de B y C no se escriben: se afirman con
+# sha256:[0-9a-f]{64} detrás de su fecha de vigencia. La forma de data, el orden
+# y las plantillas de las explicaciones son los de contracts/applet-graph.md §3
+# y §4.
+
+# Precondición: graph check se acota y lista como mucho 50 hallazgos (FR-007).
+exec kitlegal graph check --help
+stdout 'como\s+mucho\s+50\s+hallazgos'
+
+# --- Paso 1: se lee el bloque y la fuente sirve A (US2.1) ---
+! exists cache
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z",'
+stdout '"fecha_vigencia":"20161002"'
+stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+
+# Una sola lectura: ningún hallazgo (FR-023).
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+# --- Paso 2: caducada la caché, la fuente sirve B (US2.2) ---
+cp derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exists cache/world.db
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+stdout '"fecha_vigencia":"20250101"'
+stdout '"hash_texto":"sha256:[0-9a-f]{64}"'
+! stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+
+# Exactamente un version-obsoleta, sobre A, con la fecha de vigencia de A y la
+# de B; su procedencia y su explicación, las de la última observación de B
+# (FR-023).
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":1,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-28T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\}\n\z'
+! stderr .
+cp stdout paso2.json
+
+# Repetir la comprobación sin leer da el mismo, byte a byte: graph check no
+# cambia nada (FR-014).
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+cmp stdout paso2.json
+! stderr .
+
+# --- Paso 3: una lectura con --no-graph no es una lectura (US2.3, FR-020) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --no-graph --json
+stdout '"fecha_vigencia":"20250101"'
+! stderr .
+
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+cmp stdout paso2.json
+! stderr .
+
+# --- Paso 4: otra lectura, que sirve la caché, vuelve a ver B (US2.4, FR-024) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+stdout '"fecha_vigencia":"20250101"'
+! stderr .
+
+# La señal se ha apagado, y el graph check siguiente tampoco da nada.
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .
+cp stdout paso4.json
+
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+cmp stdout paso4.json
+! stderr .
+
+# --- Paso 5: caducada la caché, la fuente sirve C (US2.5) ---
+cp derivadas/version-ulterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exists cache/world.db
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-09-28T12:00:00Z"'
+stdout '"fecha_vigencia":"20260101"'
+stdout '"hash_texto":"sha256:[0-9a-f]{64}"'
+! stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"'
+! stderr .
+
+# Exactamente un version-obsoleta, sobre B, con la fecha de vigencia de B y la
+# de C (FR-023).
+exec $KITLEGAL_T1_BIN graph check BOE-A-2015-10565 a21 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"BOE-A-2015-10565","bloques":\["a21"\],"version-obsoleta":1,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20250101:sha256:[0-9a-f]{64}","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20250101 está superada por la de fecha de vigencia 20260101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-28T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"fecha_vigencia":"20250101","fecha_vigencia_reciente":"20260101"\}\]\}\}\n\z'
+! stderr .
+
+# --- Sin leer y pasada la vigencia de la lectura de C (US4.1, FR-032, SC-004) ---
+#
+# Sin argumentos, todo lo consultado: el version-obsoleta sobre B delante de
+# los fuente-caducada (FR-011), y fuente-caducada solo sobre la Norma, el Bloque
+# y C, la redacción que vio la última lectura (FR-030): cuatro en total.
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":1,"fuente-caducada":3,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20250101:sha256:[0-9a-f]{64}","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20250101 está superada por la de fecha de vigencia 20260101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-28T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"fecha_vigencia":"20250101","fecha_vigencia_reciente":"20260101"\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39","explicacion":"La consulta de BOE-A-2015-10565 a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21","explicacion":"La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\},\{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20260101:sha256:[0-9a-f]{64}","explicacion":"La consulta de \[BOE-A-2015-10565, bloque a21\] a boe\.legislacion-consolidada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 del 2026-09-28T12:00:00Z tenía una vigencia de 604800 s y caducó el 2026-10-05T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-28T12:00:00Z"\},"vigencia_segundos":604800\}\]\}\}\n\z'
+! stderr .
+stdout -count=4 '\{"clase":'
+! stdout '"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20161002:'
+! stdout '"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21@20250101:'
+
+# --- Una lectura nueva, pasada la vigencia, los apaga todos (US4.2, FR-031) ---
+#
+# Sin cache.db, boe pregunta a la fuente con el reloj T8, que sirve C: la
+# lectura renueva la Norma, el Bloque y C y vuelve a ver C.
+rm cache/cache.db
+exec $KITLEGAL_T8_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '"fecha_consulta":"2026-10-06T12:00:00Z"'
+stdout '"fecha_vigencia":"20260101"'
+! stderr .
+
+exec $KITLEGAL_T8_BIN graph check --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-10-06T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
+! stderr .

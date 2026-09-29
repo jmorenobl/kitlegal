@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"io/fs"
-	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -21,19 +21,9 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
-const (
-	// fechaSiguiente es un instante posterior a fechaDelBloque: la observación
-	// reciente de las pruebas que llegan fuera de orden.
-	fechaSiguiente = "2026-09-30T08:00:00Z"
-
-	// idAusente no es el id de ningún nodo del lote ni del grafo.
-	idAusente = "eli/es/l/2099/01/01/1"
-
-	// sentenciasDeFuera dejan una base sin el esquema del grafo, con una tabla
-	// que el grafo no conoce y que tiene que seguir ahí, con su fila, después de
-	// la entrega (FR-013).
-	sentenciasDeFuera = `CREATE TABLE ajena (x TEXT); INSERT INTO ajena VALUES ('de fuera')`
-)
+// fechaSiguiente es un instante posterior a fechaDelBloque: la observación
+// reciente de las pruebas que llegan fuera de orden.
+const fechaSiguiente = "2026-09-30T08:00:00Z"
 
 // loteDelBOE es el lote de una consulta al BOE con la url y la fecha dadas, la
 // vigencia de boe articulo y las operaciones.
@@ -46,23 +36,64 @@ func laNorma(datos map[string]any) schema.Nodo {
 	return schema.Nodo{ID: idNorma, Tipo: grafo.TipoNorma, Datos: datos}
 }
 
-// operacionesDelBloque son las de una consulta de boe articulo a21: la norma, el
-// bloque y su versión de 2016, las dos aristas que los unen y el texto de la
-// versión, en un orden que no es el de sus claves.
+// operacionesDelBloque son las de una consulta de boe articulo a21 que ve la
+// redacción de 2016.
 func operacionesDelBloque() []schema.Operacion {
-	huellaDe2016 := huella(cuerpo2016)
-	version := idBloque + "@20161002:" + huellaDe2016
+	return unaLectura("a21", "20161002", cuerpo2016).operaciones()
+}
 
+// lecturaDePrueba es una consulta de boe articulo sobre un bloque de la LPAC
+// que ve una redacción: la lectura de ese bloque que deja su entrega (H7.1
+// data-model §2).
+type lecturaDePrueba struct {
+	// enLaNorma es el id del bloque dentro de la norma, como a21.
+	enLaNorma string
+	// vigencia es la fecha de vigencia de la redacción vista.
+	vigencia string
+	// cuerpo es su texto.
+	cuerpo string
+}
+
+// unaLectura es la del bloque que ve la redacción con la fecha de vigencia y el
+// cuerpo dados.
+func unaLectura(enLaNorma, vigencia, cuerpo string) lecturaDePrueba {
+	return lecturaDePrueba{enLaNorma: enLaNorma, vigencia: vigencia, cuerpo: cuerpo}
+}
+
+// bloque es el id del Bloque.
+func (l lecturaDePrueba) bloque() string {
+	return idNorma + "#" + l.enLaNorma
+}
+
+// version es el id de la BloqueVersion que ve.
+func (l lecturaDePrueba) version() string {
+	return l.bloque() + "@" + l.vigencia + ":" + huella(l.cuerpo)
+}
+
+// url es la de la consulta del bloque.
+func (l lecturaDePrueba) url() string {
+	return urlDeLaNorma + "/texto/bloque/" + l.enLaNorma
+}
+
+// operaciones son las de la consulta: la norma, el bloque y la redacción vista,
+// las dos aristas que los unen y el texto de la redacción, en un orden que no
+// es el de sus claves.
+func (l lecturaDePrueba) operaciones() []schema.Operacion {
 	return []schema.Operacion{
-		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-		schema.Texto{Huella: huellaDe2016, Cuerpo: cuerpo2016},
-		schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-			grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: huellaDe2016,
+		schema.Arista{Origen: l.bloque(), Relacion: grafo.RelacionTieneVersion, Destino: l.version()},
+		schema.Texto{Huella: huella(l.cuerpo), Cuerpo: l.cuerpo},
+		schema.Nodo{ID: l.version(), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: l.vigencia, grafo.DatoHashTexto: huella(l.cuerpo),
 		}},
-		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque},
-		schema.Nodo{ID: idBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a21"}},
+		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: l.bloque()},
+		schema.Nodo{ID: l.bloque(), Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: l.enLaNorma}},
 		laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
 	}
+}
+
+// entregada es el lote de la consulta con la fecha dada.
+func (l lecturaDePrueba) entregada(fecha string) core.Lote {
+	return loteDelBOE(l.url(), fecha, l.operaciones()...)
 }
 
 // registrosDe es lo que un lote deja en un grafo vacío: cada registro
@@ -116,7 +147,7 @@ func grafoGuardado(t *testing.T, ruta string) grafoDePrueba {
 
 			require.NoError(t, filas.Scan(append([]any{&nodo.ID, &nodo.Tipo, &nodo.Datos}, historia.destinos()...)...))
 			nodo.PrimeraObservacion, nodo.UltimaObservacion, nodo.Vigencia = historia.primera, historia.ultima,
-				historia.vigencia(t)
+				historia.vigencia()
 
 			return nodo
 		})
@@ -132,7 +163,7 @@ func grafoGuardado(t *testing.T, ruta string) grafoDePrueba {
 			require.NoError(t, filas.Scan(append([]any{&arista.Origen, &arista.Relacion, &arista.Destino},
 				historia.destinos()...)...))
 			arista.PrimeraObservacion, arista.UltimaObservacion, arista.Vigencia = historia.primera, historia.ultima,
-				historia.vigencia(t)
+				historia.vigencia()
 
 			return arista
 		})
@@ -172,13 +203,8 @@ func (h *historiaLeida) destinos() []any {
 }
 
 // vigencia es la de la columna ttl, en segundos; NULL es cero.
-func (h historiaLeida) vigencia(t *testing.T) time.Duration {
-	t.Helper()
-
-	vigencia, err := vigenciaGuardada(h.ttl)
-	require.NoError(t, err)
-
-	return vigencia
+func (h historiaLeida) vigencia() time.Duration {
+	return vigenciaGuardada(h.ttl)
 }
 
 // filasGuardadas lee cada fila de la consulta con leer; nil si no hay ninguna,
@@ -200,6 +226,26 @@ func filasGuardadas[T any](t *testing.T, base *sql.DB, consulta string, leer fun
 	require.NoError(t, filas.Err())
 
 	return lista
+}
+
+// lecturasGuardadas son las filas de lecturas de world.db, por bloque comparando
+// bytes, leídas con una conexión que no deja ningún auxiliar ni cambia ningún
+// fichero; nil si no hay ninguna.
+func lecturasGuardadas(t *testing.T, ruta string) []grafo.LecturasDeBloque {
+	t.Helper()
+
+	base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+	lecturas := filasGuardadas(t, base, `SELECT bloque, ultima, anterior FROM lecturas ORDER BY bloque`,
+		func(filas *sql.Rows) grafo.LecturasDeBloque {
+			var fila grafo.LecturasDeBloque
+
+			require.NoError(t, filas.Scan(&fila.Bloque, &fila.Ultima, &fila.Anterior))
+
+			return fila
+		})
+	require.NoError(t, base.Close())
+
+	return lecturas
 }
 
 // compruebaFalloDeEntrega compara el fallo de una entrega con su clase, su ruta
@@ -331,6 +377,109 @@ func TestApplyIdempotente(t *testing.T) {
 	}
 }
 
+// TestApplyLecturas fija las filas de lecturas que deja la entrega (H7.1
+// FR-020, FR-021, FR-026; data-model §1 y §4; contracts/almacen-world-db.md
+// §4, pasos 5 a 8): la primera lectura de un bloque nuevo guarda (v, v); cada
+// lectura siguiente pasa la última a la anterior —(B, A) y, al leer B otra
+// vez, (B, B)— y una entrega idéntica a la anterior ya no escribe nada; boe
+// articulos deja una fila por bloque; la primera lectura de un bloque que el
+// grafo de H7 ya observó parte de su redacción vista sin lecturas, calculada
+// sobre lo guardado antes del lote —(v, R)—; y un lote rechazado no deja
+// ninguna fila.
+func TestApplyLecturas(t *testing.T) {
+	t.Parallel()
+
+	a := unaLectura("a21", "20161002", cuerpo2016)
+	b := unaLectura("a21", "20250101", cuerpo2025)
+
+	t.Run("una lectura tras otra", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := t.TempDir()
+		ruta := filepath.Join(directorio, "world.db")
+		almacen := Nuevo(ConDirectorio(directorio))
+
+		require.NoError(t, almacen.Apply(t.Context(), a.entregada(fechaDelBloque)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a)}, lecturasGuardadas(t, ruta),
+			"la primera, de un bloque nuevo: (A, A)")
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(b, a)}, lecturasGuardadas(t, ruta),
+			"otra que ve una redacción nueva: (B, A)")
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(b, b)}, lecturasGuardadas(t, ruta),
+			"otra que ve B, la sirva la caché con su misma consulta: (B, B)")
+
+		antes := huellasDelArbol(t, directorio)
+
+		require.NoError(t, almacen.Apply(t.Context(), b.entregada(fechaSiguiente)))
+		assert.Equal(t, antes, huellasDelArbol(t, directorio), "con (B, B), leer B otra vez no escribe nada")
+	})
+
+	t.Run("boe articulos deja una fila por bloque", func(t *testing.T) {
+		t.Parallel()
+
+		a22 := unaLectura("a22", "20161002", cuerpo2025)
+		directorio := t.TempDir()
+
+		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(),
+			loteDelBOE(urlDeLaNorma, fechaDelBloque, slices.Concat(a.operaciones(), a22.operaciones())...)))
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a), filaDeLecturas(a22, a22)},
+			lecturasGuardadas(t, filepath.Join(directorio, "world.db")))
+	})
+
+	t.Run("la primera sobre un bloque que el grafo de H7 ya observó", func(t *testing.T) {
+		t.Parallel()
+
+		m := laMuestra(t)
+		require.Equal(t, a.version(), m.v2016.ID, "premisa: la lectura ve la redacción de 2016 de la muestra")
+		require.Less(t, m.v2016.UltimaObservacion.FechaConsulta, m.v2025.UltimaObservacion.FechaConsulta,
+			"premisa: antes del lote, la redacción observada la última es la de 2025")
+
+		directorio := conMuestraDeH7(t, t.TempDir())
+		ruta := filepath.Join(directorio, "world.db")
+
+		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), a.entregada(fechaSiguiente)))
+		assert.Equal(t, []grafo.LecturasDeBloque{{Bloque: idBloque, Ultima: a.version(), Anterior: m.v2025.ID}},
+			lecturasGuardadas(t, ruta), "(A, R): R es la de 2025, no la que el lote vuelve a observar")
+
+		base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+		assert.Equal(t, []int64{1, 2}, versionesDe(t, base), "la entrega migra la base de H7 a la 2")
+		require.NoError(t, base.Close())
+	})
+
+	t.Run("un lote rechazado no deja ninguna fila", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := t.TempDir()
+		ruta := filepath.Join(directorio, "world.db")
+		almacen := Nuevo(ConDirectorio(directorio))
+		require.NoError(t, almacen.Apply(t.Context(), a.entregada(fechaDelBloque)))
+
+		antes := huellasDelArbol(t, directorio)
+
+		// La lectura de B con la norma de otro tipo que el guardado: la fusión
+		// la rechaza dentro de la transacción, con la fila de B ya calculada.
+		operaciones := b.operaciones()
+		operaciones[len(operaciones)-1] = schema.Nodo{ID: idNorma, Tipo: grafo.TipoMunicipio}
+
+		err := almacen.Apply(t.Context(), loteDelBOE(b.url(), fechaSiguiente, operaciones...))
+
+		var rechazo *grafo.Rechazo
+
+		require.ErrorAs(t, err, &rechazo)
+		assert.Equal(t, []grafo.LecturasDeBloque{filaDeLecturas(a, a)}, lecturasGuardadas(t, ruta))
+		assert.Equal(t, antes, huellasDelArbol(t, directorio), "el grafo queda como estaba, byte a byte")
+	})
+}
+
+// filaDeLecturas es la fila del bloque de las dos lecturas: la última redacción
+// vista y la anterior.
+func filaDeLecturas(ultima, anterior lecturaDePrueba) grafo.LecturasDeBloque {
+	return grafo.LecturasDeBloque{Bloque: ultima.bloque(), Ultima: ultima.version(), Anterior: anterior.version()}
+}
+
 // aplicarEnOrden entrega los lotes, uno tras otro, en un directorio nuevo y
 // devuelve lo que queda guardado.
 func aplicarEnOrden(t *testing.T, lotes ...core.Lote) grafoDePrueba {
@@ -383,48 +532,19 @@ func TestApplyFueraDeOrden(t *testing.T) {
 	})
 }
 
-// TestApplyEmpates fija el desempate de FR-023 sobre world.db, en los dos
-// órdenes de llegada: con el mismo instante, gana la url menor —aunque la fecha
-// esté escrita con otro desplazamiento—, la que no declara vigencia y, en un
-// nodo, los datos canónicos menores; lo que queda es la observación ganadora
-// entera, como si hubiera llegado sola.
+// TestApplyEmpates fija el desempate de H7.1 FR-076 sobre world.db, en los dos
+// órdenes de llegada: con el mismo instante, gana la url menor, aunque la fecha
+// esté escrita con otro desplazamiento; lo que queda es la observación
+// ganadora entera, como si hubiera llegado sola.
 func TestApplyEmpates(t *testing.T) {
 	t.Parallel()
 
-	sinVigencia := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
-	sinVigencia.Vigencia = 0
+	gana := loteDelBOE(urlDeLaNorma, fechaConDesplazamiento, operacionesDelBloque()...)
+	pierde := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
+	esperado := registrosDe(t, gana)
 
-	casos := []struct {
-		nombre       string
-		gana, pierde core.Lote
-	}{
-		{
-			nombre: "la url menor, con la fecha escrita de otra forma",
-			gana:   loteDelBOE(urlDeLaNorma, fechaConDesplazamiento, operacionesDelBloque()...),
-			pierde: loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...),
-		},
-		{
-			nombre: "sin vigencia antes que con ella",
-			gana:   sinVigencia,
-			pierde: loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil)),
-		},
-		{
-			nombre: "los datos canónicos menores",
-			gana:   loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(map[string]any{grafo.DatoIdentificador: "A"})),
-			pierde: loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(map[string]any{grafo.DatoIdentificador: "B"})),
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			esperado := registrosDe(t, caso.gana)
-
-			assert.Equal(t, esperado, aplicarEnOrden(t, caso.gana, caso.pierde))
-			assert.Equal(t, esperado, aplicarEnOrden(t, caso.pierde, caso.gana))
-		})
-	}
+	assert.Equal(t, esperado, aplicarEnOrden(t, gana, pierde), "la que gana llega primero")
+	assert.Equal(t, esperado, aplicarEnOrden(t, pierde, gana), "la que gana llega después")
 }
 
 // grafoConElBloque deja en un directorio nuevo el grafo de una consulta de boe
@@ -440,12 +560,11 @@ func grafoConElBloque(t *testing.T) (string, string) {
 }
 
 // TestApplyRechazaContraLoGuardado fija lo que solo se sabe dentro de la
-// transacción (FR-024; contracts/almacen-world-db.md §4, paso 6, y §5): un id
-// con otro tipo que el guardado, una huella guardada con otro cuerpo y un
-// extremo que no está ni en el lote ni en el grafo rechazan el lote entero,
-// también lo que en él venía bien, con «inesperado» y un mensaje que nombra
-// world.db y el motivo. world.db queda con los mismos bytes y sin auxiliares
-// (V11; §4.1).
+// transacción (FR-024; H7.1 FR-075; contracts/almacen-world-db.md §4, paso 6,
+// y §5): un id con otro tipo que el guardado y una huella guardada con otro
+// cuerpo rechazan el lote entero, también lo que en él venía bien, con
+// «inesperado» y un mensaje que nombra world.db y el motivo. world.db queda
+// con los mismos bytes y sin auxiliares (V11; §4.1).
 func TestApplyRechazaContraLoGuardado(t *testing.T) {
 	t.Parallel()
 
@@ -475,20 +594,6 @@ func TestApplyRechazaContraLoGuardado(t *testing.T) {
 			lote:   loteDelBOE(urlDelBloque, fechaSiguiente, nuevo, schema.Texto{Huella: huellaDe2025, Cuerpo: cuerpo2025}),
 			motivo: `el texto "` + huellaDe2025 + `": el grafo ya guarda otro cuerpo con esa huella`,
 		},
-		{
-			nombre: "un destino que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaSiguiente, nuevo,
-				schema.Arista{Origen: idMunicipio, Relacion: grafo.RelacionPerteneceA, Destino: idAusente}),
-			motivo: `la arista de "` + idMunicipio + `" a "` + idAusente + `" por "lb:pertenece_a": ` +
-				"su destino no est\xc3\xa1 ni en el lote ni en el grafo",
-		},
-		{
-			nombre: "un origen que no está ni en el lote ni en el grafo",
-			lote: loteDelBOE(urlDeLaNorma, fechaSiguiente, nuevo,
-				schema.Arista{Origen: idAusente, Relacion: grafo.RelacionTieneParte, Destino: idBloque}),
-			motivo: `la arista de "` + idAusente + `" a "` + idBloque + `" por "eli:has_part": ` +
-				"su origen no est\xc3\xa1 ni en el lote ni en el grafo",
-		},
 	}
 
 	for _, caso := range casos {
@@ -516,7 +621,8 @@ func TestApplyRechazaContraLoGuardado(t *testing.T) {
 }
 
 // TestApplyRechazaElLote fija lo que se rechaza sin tocar el disco (FR-024,
-// FR-025; SC-010; contracts/almacen-world-db.md §4, paso 1, y §5): con world.db
+// FR-025; SC-010; H7.1 FR-074, FR-075; contracts/almacen-world-db.md §4, paso
+// 1, y §5): con world.db
 // ausente no se crea nada, y con world.db presente no cambia ni aparece nada. El
 // mensaje nombra world.db, que todavía no tiene ruta, y el motivo del dominio,
 // que no repite el id de una Persona ni el cuerpo de un texto.
@@ -529,9 +635,6 @@ func TestApplyRechazaElLote(t *testing.T) {
 
 	sinFuente := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
 	sinFuente.Fuente = ""
-
-	fraccionaria := loteDelBOE(urlDeLaNorma, fechaDelBloque, laNorma(nil))
-	fraccionaria.Vigencia = 1500 * time.Millisecond
 
 	casos := map[string]core.Lote{
 		"sin fuente": sinFuente,
@@ -546,16 +649,13 @@ func TestApplyRechazaElLote(t *testing.T) {
 			persona("ana-garcia-lopez", map[string]any{"contacto": map[string]any{"documentos": []any{"B-12.345.678"}}})),
 		"una Persona con un DNI como clave": loteDelBOE(urlDeLaNorma, fechaDelBloque,
 			persona("ana-garcia-lopez", map[string]any{"12 345 678 z": "nombre"})),
-		"unos datos sin forma JSON canónica": loteDelBOE(urlDeLaNorma, fechaDelBloque,
-			laNorma(map[string]any{"cifra": math.NaN()})),
-		"una vigencia con fracción de segundo": fraccionaria,
 	}
 
 	for nombre, lote := range casos {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
 
-			for _, preparar := range []func(*testing.T, string) string{cacheVacia, conMuestra(diarioWAL, 0o600)} {
+			for _, preparar := range []func(*testing.T, string) string{cacheVacia, conMuestra} {
 				raiz := t.TempDir()
 				directorio := preparar(t, raiz)
 				antes := huellasDelArbol(t, raiz)
@@ -583,24 +683,57 @@ func TestApplyRechazaElLote(t *testing.T) {
 	})
 }
 
-// TestApplyEnSuSitio fija la entrega sobre un world.db que existe, en cada
-// estado de data-model §3.1 que no necesita otra conexión: sin esquema —de 0
-// bytes o con una tabla que no es del grafo— crea el esquema, lo pone en WAL y
-// aplica el lote en la misma entrega, sin tocar lo que no es suyo (FR-013); un
-// directorio, lo que no es una base, una base dañada, un esquema posterior y un
-// fichero que el proceso no puede escribir fallan con «inesperado» y su mensaje
-// sin cambiar ni crear nada (FR-010, FR-012; research.md V46); y con world.db
-// de 0 bytes, un lote que el grafo vacío rechaza no abre SQLite, así que un -wal
-// junto a él sigue ahí (research.md V49).
+// TestApplyCreaEnSuSitio fija la entrega sobre world.db ausente
+// (contracts/almacen-world-db.md §4, pasos 2 y 3; H7.1 FR-071; H7 FR-001,
+// FR-003, FR-013): crea cada directorio que falta, en 0700, y world.db en su
+// sitio, en 0600, en WAL, con el esquema y el lote; en el directorio no queda
+// nada más, ni un temporal ni un auxiliar.
+func TestApplyCreaEnSuSitio(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	directorio := filepath.Join(raiz, "a", "b")
+	ruta := filepath.Join(directorio, "world.db")
+	lote := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
+
+	require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote))
+
+	for _, cada := range []struct {
+		ruta     string
+		permisos fs.FileMode
+	}{
+		{ruta: filepath.Join(raiz, "a"), permisos: fs.ModeDir | 0o700},
+		{ruta: directorio, permisos: fs.ModeDir | 0o700},
+		{ruta: ruta, permisos: 0o600},
+	} {
+		info, err := os.Stat(cada.ruta)
+		require.NoError(t, err)
+		assert.Equal(t, cada.permisos, info.Mode(), "los permisos de %s", cada.ruta)
+	}
+
+	assert.Equal(t, []string{"world.db"}, nombresEn(t, directorio), "ni un temporal ni un auxiliar")
+	assert.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "world.db nace en WAL")
+	assert.Equal(t, registrosDe(t, lote), grafoGuardado(t, ruta))
+
+	base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
+	compruebaEsquema(t, base)
+	assert.Equal(t, int64(2), versionDe(t, base))
+	require.NoError(t, base.Close())
+}
+
+// TestApplyEnSuSitio fija la entrega sobre un world.db sin esquema, el que deja
+// una creación interrumpida (contracts/almacen-world-db.md §4; H7.1 FR-071,
+// FR-077; H7 FR-004, FR-013): de 0 bytes, o ya en WAL y sin ninguna tabla, la
+// entrega siguiente lo pone en WAL si no lo está, crea el esquema y aplica el
+// lote, sin dejar ningún auxiliar.
 func TestApplyEnSuSitio(t *testing.T) {
 	t.Parallel()
 
 	lote := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
 
 	for nombre, preparar := range map[string]func(*testing.T, string) string{
-		"de 0 bytes": conBase(nil, 0o600),
-		"sin esquema, con una tabla de fuera en modo rollback": conSentencias(diarioClasico, 0o600, sentenciasDeFuera),
-		"sin esquema, con una tabla de fuera en WAL":           conSentencias(diarioWAL, 0o600, sentenciasDeFuera),
+		"de 0 bytes":          conBase(nil),
+		"en WAL y sin tablas": enWALSinTablas,
 	} {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
@@ -614,70 +747,62 @@ func TestApplyEnSuSitio(t *testing.T) {
 			assert.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "world.db queda en WAL")
 
 			base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
-			assert.Equal(t, int64(1), versionDe(t, base))
+			assert.Equal(t, int64(2), versionDe(t, base))
 			require.NoError(t, base.Close())
 
 			assert.Equal(t, []string{"world.db"}, nombresEn(t, directorio), "no queda ningún auxiliar")
 		})
 	}
-
-	t.Run("la tabla de fuera sigue con su fila", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := conSentencias(diarioClasico, 0o600, sentenciasDeFuera)(t, t.TempDir())
-		ruta := filepath.Join(directorio, "world.db")
-
-		require.NoError(t, Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote))
-
-		base := abrirBaseDePrueba(t, ruta, "mode=rw&"+pragmaSoloConsultas)
-		assert.Equal(t, []string{"ajena", "edges", "nodes", "schema_version", "texts"}, tablasDe(t, base))
-		assert.Equal(t, [][3]string{{"de fuera", "", ""}}, filasDe(t, base, `SELECT x, '', '' FROM ajena`))
-		require.NoError(t, base.Close())
-	})
 }
 
-// TestApplyNoModifica fija los estados en que la entrega falla sin cambiar ni
-// crear nada (FR-010, FR-012, FR-033; contracts/almacen-world-db.md §4, pasos 2
-// y 4, §4.1 y §6).
+// enWALSinTablas prepara world.db como lo deja una creación que se interrumpe
+// después de ponerlo en WAL (contracts/almacen-world-db.md §4, pasos 3 y 4): el
+// fichero que crea la entrega, en WAL y sin ninguna tabla.
+func enWALSinTablas(t *testing.T, raiz string) string {
+	t.Helper()
+
+	directorio := conBase(nil)(t, raiz)
+	ruta := filepath.Join(directorio, "world.db")
+
+	base, err := abrirConexion(operacionEscribir, ruta, cadenaDeEscritura(ruta))
+	require.NoError(t, err)
+	require.NoError(t, fijarWAL(t.Context(), base, ruta))
+	require.NoError(t, base.Close())
+	require.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "premisa: world.db está en WAL")
+
+	return directorio
+}
+
+// TestApplyNoModifica fija las entregas que fallan sobre un world.db que el
+// binario no puede usar (contracts/almacen-world-db.md §4, paso 4, y §6): lo que
+// no es una base de datos sigue la regla genérica —«inesperado», con su ruta y
+// la causa en el mensaje, y nada se promete sobre sus bytes (H7.1 FR-070)—, y un
+// esquema posterior no se modifica (H7 FR-012): nada cambia ni aparece.
 func TestApplyNoModifica(t *testing.T) {
 	t.Parallel()
-
-	noUtilizable := func(ruta string) string {
-		return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable; no se modifica"
-	}
 
 	casos := []struct {
 		nombre   string
 		preparar func(*testing.T, string) string
-		lote     core.Lote
-		mensaje  func(ruta string) string
+		mensaje  func(ruta string, fallo *Error) string
+		// intacto dice que la entrega no cambia ni crea ningún fichero.
+		intacto bool
 	}{
 		{
-			nombre:   "un directorio",
-			preparar: conDirectorioEnSuLugar,
-			mensaje: func(ruta string) string {
-				return "grafo: " + strconv.Quote(ruta) + " es un directorio y no una base de datos utilizable; no se modifica"
+			nombre:   "lo que no es una base de datos",
+			preparar: conBase(contenido),
+			mensaje: func(ruta string, fallo *Error) string {
+				return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + fallo.Causa.Error()
 			},
 		},
-		{nombre: "lo que no es una base de datos", preparar: conBase(contenido, 0o600), mensaje: noUtilizable},
-		{nombre: "una base dañada", preparar: conBaseDanada, mensaje: noUtilizable},
 		{
 			nombre:   "un esquema posterior",
-			preparar: conSentencias(diarioWAL, 0o600, versionPosterior),
-			mensaje: func(ruta string) string {
+			preparar: conSentencias(versionPosterior),
+			mensaje: func(ruta string, _ *Error) string {
 				return "grafo: " + strconv.Quote(ruta) +
-					" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
+					" tiene el esquema en la versi\xc3\xb3n 3 y este binario conoce la 2: no se modifica"
 			},
-		},
-		{
-			nombre:   "de 0 bytes, con un -wal, y un lote que el grafo vacío rechaza",
-			preparar: ceroBytesConUnWALDeFuera,
-			lote: loteDelBOE(urlDeLaNorma, fechaDelBloque,
-				schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque}),
-			mensaje: func(ruta string) string {
-				return "grafo: el lote no entra en " + strconv.Quote(ruta) + `: la arista de "` + idNorma + `" a "` +
-					idBloque + `" por "eli:has_part": su origen no es un nodo del lote y el grafo est` + "\xc3\xa1 vac\xc3\xado"
-			},
+			intacto: true,
 		},
 	}
 
@@ -690,73 +815,17 @@ func TestApplyNoModifica(t *testing.T) {
 			ruta := filepath.Join(directorio, "world.db")
 			antes := huellasDelArbol(t, raiz)
 
-			lote := caso.lote
-			if lote.Operaciones == nil {
-				lote = loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
-			}
-
-			err := Nuevo(ConDirectorio(directorio)).Apply(t.Context(), lote)
-			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta, caso.mensaje(ruta))
-			assert.Equal(t, antes, huellasDelArbol(t, raiz), "nada cambia ni aparece")
-		})
-	}
-}
-
-// TestApplySinPermisoDeEscritura fija world.db que el proceso no puede escribir
-// (contracts/almacen-world-db.md §4, paso 4, y §6; research.md V46): la entrega
-// falla antes de abrir SQLite con «no se puede escribir» y la causa, y no cambia
-// ni aparece nada, ni un auxiliar.
-func TestApplySinPermisoDeEscritura(t *testing.T) {
-	t.Parallel()
-
-	raiz := t.TempDir()
-	directorio := conMuestra(diarioWAL, 0o400)(t, raiz)
-	ruta := filepath.Join(directorio, "world.db")
-
-	_, err := os.OpenFile(filepath.Clean(ruta), os.O_RDWR, 0)
-	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el proceso no puede escribir world.db (¿corre como root?)")
-
-	antes := huellasDelArbol(t, raiz)
-
-	err = Nuevo(ConDirectorio(directorio)).Apply(t.Context(), loteDelBOE(urlDeLaNorma, fechaSiguiente, laNorma(nil)))
-
-	var fallo *Error
-
-	require.ErrorAs(t, err, &fallo)
-	require.ErrorIs(t, err, fs.ErrPermission)
-	assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-	assert.Equal(t, ruta, fallo.Ruta)
-	assert.Equal(t, "grafo: no se puede escribir "+strconv.Quote(ruta)+": "+fallo.Causa.Error()+"; no se modifica", err.Error())
-	assert.Equal(t, antes, huellasDelArbol(t, raiz))
-}
-
-// TestApplySobreFilasDanadas fija lo guardado que ninguna entrega escribe —una
-// fecha que no es RFC 3339, una vigencia negativa—: al fusionar con ello, la
-// base no es utilizable (FR-010), y la entrega falla sin cambiar nada.
-func TestApplySobreFilasDanadas(t *testing.T) {
-	t.Parallel()
-
-	for nombre, sentencia := range map[string]string{
-		"la fecha de la última observación de un nodo":     `UPDATE nodes SET last_seen = 'ayer' WHERE id = '` + idNorma + `'`,
-		"la fecha de la primera observación de una arista": `UPDATE edges SET first_seen = 'ayer'`,
-		"la fecha de un texto":                             `UPDATE texts SET fetched_at = 'ayer'`,
-		"la vigencia de un nodo":                           `UPDATE nodes SET ttl = -1 WHERE id = '` + idNorma + `'`,
-		"la vigencia de una arista":                        `UPDATE edges SET ttl = -1`,
-	} {
-		t.Run(nombre, func(t *testing.T) {
-			t.Parallel()
-
-			directorio, ruta := grafoConElBloque(t)
-			alterar(t, ruta, sentencia)
-
-			antes := huellasDelArbol(t, directorio)
-
 			err := Nuevo(ConDirectorio(directorio)).Apply(t.Context(),
-				loteDelBOE(urlDelBloque, fechaSiguiente, operacionesDelBloque()...))
-			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta,
-				"grafo: "+strconv.Quote(ruta)+" no es una base de datos utilizable; no se modifica")
-			require.ErrorIs(t, err, errFilaDanada)
-			assert.Equal(t, antes, huellasDelArbol(t, directorio))
+				loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...))
+
+			var fallo *Error
+
+			require.ErrorAs(t, err, &fallo)
+			compruebaFalloDeEntrega(t, err, schema.ClaseInesperado, ruta, caso.mensaje(ruta, fallo))
+
+			if caso.intacto {
+				assert.Equal(t, antes, huellasDelArbol(t, raiz), "nada cambia ni aparece")
+			}
 		})
 	}
 }
@@ -808,17 +877,6 @@ func TestApplyConElPlazoAgotado(t *testing.T) {
 		suelta()
 		assert.Equal(t, antes, grafoGuardado(t, ruta))
 	})
-}
-
-// ceroBytesConUnWALDeFuera prepara world.db de 0 bytes junto al -wal no vacío y
-// el -shm de un escritor con marcos (research.md V49).
-func ceroBytesConUnWALDeFuera(t *testing.T, raiz string) string {
-	t.Helper()
-
-	directorio := cacheVacia(t, raiz)
-	ceroBytesConUnWAL(t, directorio, true, 0o600)
-
-	return directorio
 }
 
 // nombresEn son los nombres de las entradas del directorio, ordenados.
