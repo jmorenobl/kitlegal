@@ -348,7 +348,7 @@ queda. `CHANGELOG.md` y `docs/` los nombran como historia y no son código ni te
 
 **Decisión.** Los cambios C1-C9 de la causa de raíz, y ninguno más (FR-047): se quedan H7 FR 081, la parte de H7 FR 082
 del código 0, H7.1 FR 040, 041, 043 y 045, la forma de la cita y la de los avisos (FR-046). La tabla de comandos no cambia
-(el binario no cambia), `make skills-check` sin drift, < 300 líneas (hoy 251; v0.1.2, ≈ 265), sin nombrar evals, el
+(el binario no cambia), `make skills-check` sin drift, < 300 líneas (250 antes del hito; v0.1.2, 266), sin nombrar evals, el
 job ni modelos. Contrato: [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md).
 
 ### D17 · El escenario del quickstart (FR-060, FR-061)

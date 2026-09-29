@@ -45,8 +45,8 @@ No cambia ninguna decisión de arquitectura: no hay ADR nuevo, y `specs/010-…`
 lista y su esquema, con el lector común de `internal/skills`), `stretchr/testify`; biblioteca estándar (`regexp`,
 `encoding/xml`, `encoding/json`, `encoding/json/v2` del informe).
 
-**Storage**: ninguno nuevo. Ficheros del repositorio: la lista (`evals/boe-legislacion/`), su esquema (`schemas/`), la
-eval y la derivada (`testdata/evals/grafo-previo/`). El grafo y la caché de la sesión, los de siempre en temporales.
+**Storage**: ninguno nuevo. Ficheros del repositorio: la lista y la eval (`evals/boe-legislacion/`), el esquema de la
+lista (`schemas/`) y la derivada (`testdata/evals/grafo-previo/`). El grafo y la caché de la sesión, los de siempre en temporales.
 
 **Testing**: `go test -race` en `make ci` (unitarios con tabla y `t.Parallel`; subpruebas de `TestEvalsDelRepositorio`
 en `make skills-check`); puntos de entrada con la etiqueta `evals` fuera de `make ci`; el job de evals en la propuesta
@@ -132,7 +132,7 @@ internal/evals/
 ├── juzgar.go                        # ResultadoDeEval.ExpresionesProhibidas, motivo, Pasa
 ├── informe.go                       # RecuentoDeExpresiones, Informe.ExpresionesProhibidasPorModelo, columna y sección de informe.md
 ├── doc.go                           # el paquete lee también la lista
-├── job_test.go                      # TestComprobarConsultaRepetida y sus cuatro banderas (etiqueta evals)
+├── job_test.go                      # TestComprobarConsultaRepetida, con -skill y sus cuatro banderas nuevas (etiqueta evals)
 └── formato_test.go, conjunto_test.go, juzgar_test.go, informe_test.go, consultas_test.go
 internal/app/grafo_test.go           # derivación, -actualizar-derivadas, lista de derivadas del grafo previo (su tipo), comparación carpeta a carpeta, TestGrabacionesDerivadasInventadas; fuera la entrada retirada
 skills/boe-legislacion/SKILL.md      # v0.1.2
@@ -195,8 +195,8 @@ de ahí.
 
 ### Puntos de entrada fuera de `make ci`
 
-`TestComprobarConsultaRepetida` (etiqueta `evals`) con `-primera`, `-segunda`, `-fecha-superada` y `-fecha-leida`
-(contracts/comprobacion-del-quickstart.md). Lo ejecuta la persona en el quickstart §6; `golangci-lint` lo lintea (V19).
+`TestComprobarConsultaRepetida` (etiqueta `evals`) con la `-skill` de siempre y cuatro banderas nuevas, `-primera`,
+`-segunda`, `-fecha-superada` y `-fecha-leida`, todas obligatorias (contracts/comprobacion-del-quickstart.md). Lo ejecuta la persona en el quickstart §6; `golangci-lint` lo lintea (V19).
 
 ### Fixtures, `testdata/` y `schemas/` (tareas `[datos]`)
 

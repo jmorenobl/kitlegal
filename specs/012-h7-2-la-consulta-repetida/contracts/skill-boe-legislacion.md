@@ -95,7 +95,7 @@ memoria de consultas; con otro código, la regla 7.»:
 
 | Control | Dónde |
 |---|---|
-| Frontmatter válido, región generada sin drift, < 300 líneas (hoy 251; v0.1.2, ≈ 265) | `make skills-check` (`TestSkillsDelRepositorio`) |
+| Frontmatter válido, región generada sin drift, < 300 líneas (250 antes del hito; v0.1.2, 266) | `make skills-check` (`TestSkillsDelRepositorio`) |
 | La forma de cada aviso y de `version-obsoleta` sigue enseñada | subtests `avisos-de-la-skill` y `hallazgos-de-la-skill` |
 | Ningún bloque `text` de `SKILL.md` —la cita, el aviso, la línea `⚠ REDACCIÓN MODIFICADA:` y la frase de la regla 7— lleva una expresión de la lista | subtest `expresiones-de-la-skill` (contracts/lista-y-juicio.md §6) |
 | El efecto en las respuestas: ≤ 2 de 51 con Sonnet 5 y ≤ 1 de 30 con Haiku 4.5 con alguna expresión; la eval 19 con la forma | el job de evals de cierre (SC-001) |

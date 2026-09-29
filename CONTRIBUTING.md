@@ -456,7 +456,15 @@ activación, entre otras. Para `legal-core`, al menos tres evals: una positiva q
 configurado y declara sus boletines, otra que resuelve uno de una comunidad sin configuración y declara no
 configurados el boletín autonómico y el provincial, al menos una de no activación, y citas o territorio en toda
 positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparación, en temporales, deja en el grafo un
-`BloqueVersion` por comando sin ninguna falta (`TestEvalsDelRepositorio`, subprueba `grafo-previo`).
+`BloqueVersion` por comando sin ninguna falta; después, leyendo como la sesión cada bloque de los `comandos` de la eval,
+`graph check` termina con `0` con exactamente las clases de `hallazgos` de la eval, y cada `version-obsoleta` con la
+fecha de vigencia de la redacción que dejó el grafo previo y la de la que acaba de leer (`TestEvalsDelRepositorio`,
+subprueba `grafo-previo`). Cada respuesta de un grafo previo es una derivada de la grabación de H4 que sustituye —la
+misma respuesta sin sus redacciones posteriores a una fecha de vigencia, y nada más—: se declara en
+`derivadasDelGrafoPrevio()` de `internal/app/grafo_test.go`, la escribe
+`go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/ -args -actualizar-derivadas`, nunca una persona, y
+`TestGrabacionesDerivadas` exige que sea, byte a byte, esa derivación y que, servida en lugar de la grabación, `boe` dé
+exactamente una de las redacciones que trae la grabada, la de esa fecha.
 
 **La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
 expresiones que no lleva la respuesta de una eval que activa la skill. `make ci` la reconoce por ese nombre exacto —no
