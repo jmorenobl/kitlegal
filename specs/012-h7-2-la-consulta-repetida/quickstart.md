@@ -73,17 +73,19 @@ Esperado: menos de 300 líneas; `19`; la pregunta literal de FR-001, `grabacione
 ## 6. La consulta repetida en Claude Code (FR-060, FR-061, FR-062, SC-002)
 
 Necesita Claude Code con la credencial de la cuenta de la persona y red hacia el modelo; abre dos conversaciones con
-`claude-sonnet-5` (unos minutos, consumo de la suscripción). Todo va a un directorio temporal: el binario de la rama, la
-caché y el grafo preparados como la sesión de la eval nueva en el job, la skill instalada en local y las dos
-conversaciones. Nada cambia fuera de él: ni el repositorio, ni la instalación de kitlegal o las skills de la cuenta, ni
-queda ninguna conversación guardada (`--no-session-persistence`).
+`claude-sonnet-5` (unos minutos, consumo de la suscripción). Todo va a un directorio temporal: el binario de la rama y el
+guion que lo pone primero en el `PATH` de las conversaciones, la caché y el grafo preparados como la sesión de la eval
+nueva en el job, la skill instalada en local y las dos conversaciones. Nada cambia fuera de él: ni el repositorio, ni la
+instalación de kitlegal o las skills de la cuenta, ni queda ninguna conversación guardada (`--no-session-persistence`).
 
 ```bash
 d=$(cd "$(mktemp -d)" && pwd -P)
 mkdir -p "$d/bin" "$d/sesion/cache" "$d/trabajo" "$d/primera" "$d/segunda"
 
-# El binario de la rama, primero en el PATH de cada orden del escenario.
+# El binario de la rama, y el guion que Claude Code ejecuta antes de cada orden de Bash de las conversaciones
+# (CLAUDE_ENV_FILE) y lo pone primero en su PATH.
 CGO_ENABLED=0 go build -trimpath -o "$d/bin/kitlegal" ./cmd/kitlegal
+printf 'export PATH="%s/bin:$PATH"\n' "$d" > "$d/entorno.sh"
 
 # La preparación del job: el grafo con la redacción original del art. 118 LCSP y la caché con la vigente.
 go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args \
@@ -95,15 +97,23 @@ go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args
 test -L "$d/trabajo/.claude/skills/boe-legislacion" && test -f "$d/trabajo/.claude/skills/boe-legislacion/SKILL.md" \
   && echo "skill instalada en $d/trabajo"
 
-# Dos conversaciones nuevas, una tras otra, con la pregunta literal de la eval.
-for c in primera segunda; do
-  (cd "$d/trabajo" && export PATH="$d/bin:$PATH" KITLEGAL_CACHE_DIR="$d/sesion/cache" &&
+# Dos conversaciones nuevas, una tras otra, con la pregunta literal de la eval. Antes, sin modelo, `kitlegal` resuelto
+# como en el Bash de las conversaciones —los ficheros de arranque del shell de la persona y después el guion—: si no es
+# el de la rama, no se abre ninguna.
+(cd "$d/trabajo" && export CLAUDE_ENV_FILE="$d/entorno.sh" KITLEGAL_CACHE_DIR="$d/sesion/cache" &&
+  k=$("${SHELL:-/bin/sh}" -l -i -c '. "$CLAUDE_ENV_FILE" && command -v kitlegal' < /dev/null 2> /dev/null |
+    tail -n 1) &&
+  if [ "$k" != "$d/bin/kitlegal" ]; then
+    echo "las conversaciones ejecutarían ${k:-ningún kitlegal} y no $d/bin/kitlegal: no se abren" >&2
+    exit 1
+  fi &&
+  for c in primera segunda; do
     claude -p "$(cat "$d/sesion/pregunta.txt")" --model claude-sonnet-5 \
       --output-format stream-json --verbose --no-session-persistence --setting-sources project \
       --permission-mode dontAsk --allowedTools 'Bash(kitlegal *)' Read Skill \
       < /dev/null > "$d/$c/sesion.jsonl" 2> "$d/$c/sesion.err"
-   echo $? > "$d/$c/codigo-de-la-sesion")
-done
+    echo $? > "$d/$c/codigo-de-la-sesion"
+  done)
 
 # La comprobación mecánica de las dos respuestas.
 go test -tags evals -count=1 -v -run '^TestComprobarConsultaRepetida$' ./internal/evals/ -args \
@@ -115,15 +125,22 @@ Esperado: `skill instalada en …`; y de la comprobación, `--- PASS: TestCompro
 `se cumplen las tres condiciones: la forma con 20180309 y 20200206 en la primera respuesta, sin ella en la segunda, y
 ninguna expresión prohibida en las dos`, y `ok`. Si algo no se cumple, `--- FAIL` con una línea por condición que
 falla (contracts/comprobacion-del-quickstart.md §2); las respuestas se leen en el campo `result` del último mensaje de
-`"$d/primera/sesion.jsonl"` y `"$d/segunda/sesion.jsonl"`.
+`"$d/primera/sesion.jsonl"` y `"$d/segunda/sesion.jsonl"`. Si `kitlegal` no resuelve al de la rama, la orden de las
+conversaciones termina sin abrir ninguna con `las conversaciones ejecutarían … y no …/bin/kitlegal: no se abren`, y la
+comprobación no tiene nada que leer.
 
-Por qué estas banderas (research D17): `--setting-sources project` hace que la conversación cargue la
-`boe-legislacion` de `"$d/trabajo"` y no la de la cuenta —el cargador de Claude Code solo lee `~/.claude/skills` con la
-fuente `user`—; `--permission-mode dontAsk` con `--allowedTools` le deja activar la skill, leer sus `references/` y
-ejecutar `kitlegal`, y deniega sin preguntar todo lo demás; `stream-json` con `--verbose` es el formato del job, y la
-respuesta que se comprueba es la misma que juzgaría. La caché sirve el bloque siete días; si una conversación pide
-`metadatos` o `buscar` pasados cinco minutos desde la preparación, `kitlegal` los pide al BOE como en cualquier uso, y
-nada de lo que se comprueba depende de ellos.
+Por qué estas banderas (research D17): `CLAUDE_ENV_FILE` es lo que garantiza que las conversaciones ejecutan el binario
+de `"$d/bin"`, y no el `PATH` heredado: el Bash de Claude Code carga antes de cada orden una instantánea del shell de la
+persona con el `PATH` que dejan sus ficheros de arranque —un `brew shellenv` puede poner delante `/opt/homebrew/bin` y,
+con él, el `kitlegal` que la persona tenga instalado, otra versión: la v0.3.1 no tiene el applet `graph`— y después el
+guion de `CLAUDE_ENV_FILE`, que deja `"$d/bin"` como primera entrada; la comprobación previa resuelve `kitlegal` del
+mismo modo, con el shell de la persona como shell de inicio de sesión interactivo y el guion. `--setting-sources project`
+hace que la conversación cargue la `boe-legislacion` de `"$d/trabajo"` y no la de la cuenta —el cargador de Claude Code
+solo lee `~/.claude/skills` con la fuente `user`—; `--permission-mode dontAsk` con `--allowedTools` le deja activar la
+skill, leer sus `references/` y ejecutar `kitlegal`, y deniega sin preguntar todo lo demás; `stream-json` con
+`--verbose` es el formato del job, y la respuesta que se comprueba es la misma que juzgaría. La caché sirve el bloque
+siete días; si una conversación pide `metadatos` o `buscar` pasados cinco minutos desde la preparación, `kitlegal` los
+pide al BOE como en cualquier uso, y nada de lo que se comprueba depende de ellos.
 
 Cuando ya no hagan falta las respuestas:
 

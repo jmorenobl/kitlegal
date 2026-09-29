@@ -32,7 +32,9 @@ H7.2 no toca el binario: arregla lo que H7 y H7.1 dieron a `boe-legislacion` en 
    encontradas por sesión y el recuento por modelo. Calibrada: 35 de las 93 respuestas de H7.1 con el reparto de FR-084,
    0 en los bloques grabados y 0 en lo que `SKILL.md` enseña a escribir.
 4. **El escenario del quickstart** (research D17-D18): binario, caché y skill del hito en un directorio temporal, dos
-   `claude -p` con `--setting-sources project` para que cargue la skill de ese directorio y no la de la cuenta, y
+   `claude -p` con `--setting-sources project` para que cargue la skill de ese directorio y no la de la cuenta y con
+   `CLAUDE_ENV_FILE` apuntando a un guion que pone el binario de ese directorio primero en el `PATH` de su Bash —antes,
+   una comprobación sin modelo resuelve `kitlegal` como lo hará la conversación y no la abre si no es ese—, y
    `TestComprobarConsultaRepetida` (etiqueta `evals`) con el mismo código que el juicio.
 
 No cambia ninguna decisión de arquitectura: no hay ADR nuevo, y `specs/010-…` y `specs/011-…` no se editan (FR-070).

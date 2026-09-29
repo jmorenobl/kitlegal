@@ -129,6 +129,10 @@ esperado.
   [<skill> ...] [flags]`, con el argumento de posición `[<skill> ...]` y `--host=<host>` («claude o antigravity, que
   solo tiene directorio propio con -g; se puede repetir»): `boe-legislacion --host claude`, en ámbito local, es una
   invocación válida.
+- **`CLAUDE_ENV_FILE` y la comprobación previa del binario** (añadidas por el corrector de la revisión final): Claude
+  Code 2.1.284 ejecuta el guion detrás de la instantánea del shell y antes de cada orden de Bash, y una conversación con
+  el guion del escenario ejecuta el `kitlegal` de la rama; la orden de las conversaciones, extraída de `quickstart.md`,
+  en zsh y en bash, abre las dos con el guion y ninguna con un guion que no lo pone primero (research V24).
 
 ## 4. Lo que la Definition of Done no pide aquí, comprobado
 

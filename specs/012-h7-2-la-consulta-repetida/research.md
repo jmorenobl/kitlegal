@@ -355,8 +355,9 @@ job ni modelos. Contrato: [contracts/skill-boe-legislacion.md](./contracts/skill
 
 **Decisión.** Todo en `d=$(cd "$(mktemp -d)" && pwd -P)` (la ruta física, como `scripts/evals.sh`):
 
-1. **Binario** del árbol de la rama: `CGO_ENABLED=0 go build -trimpath -o "$d/bin/kitlegal" ./cmd/kitlegal`, primero en
-   el `PATH` de cada orden del escenario (`PATH="$d/bin:$PATH"`).
+1. **Binario** del árbol de la rama: `CGO_ENABLED=0 go build -trimpath -o "$d/bin/kitlegal" ./cmd/kitlegal`, y
+   `"$d/entorno.sh"` con `export PATH="$d/bin:$PATH"`, el guion que las conversaciones reciben en `CLAUDE_ENV_FILE`
+   para que sea el primero en el `PATH` de cada orden de su Bash (abajo, «Binario»).
 2. **Preparación**, la del job: `go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args
    -skill boe-legislacion -eval 19-lcsp-contrato-menor-redaccion-cambiada.yaml -modelo claude-sonnet-5
    -sesion "$d/sesion"`, con `"$d/sesion/cache"` creado vacío antes (V14). Deja el grafo previo y la caché en
@@ -364,7 +365,11 @@ job ni modelos. Contrato: [contracts/skill-boe-legislacion.md](./contracts/skill
 3. **Skill**, con ese binario y en ámbito local, en el directorio de trabajo de las conversaciones:
    `kitlegal skills install boe-legislacion --host claude` desde `"$d/trabajo"` (`.agents/skills/` y el enlace relativo
    en `.claude/skills/`; V12).
-4. **Cada conversación**, desde `"$d/trabajo"`, con `KITLEGAL_CACHE_DIR="$d/sesion/cache"`:
+4. **Cada conversación**, desde `"$d/trabajo"`, con `KITLEGAL_CACHE_DIR="$d/sesion/cache"` y
+   `CLAUDE_ENV_FILE="$d/entorno.sh"`, y antes de la primera, con ese mismo entorno, la comprobación sin modelo del
+   binario: `kitlegal` resuelto por el shell de la persona como shell de inicio de sesión interactivo seguido del guion
+   (`"${SHELL:-/bin/sh}" -l -i -c '. "$CLAUDE_ENV_FILE" && command -v kitlegal'`); si no es `"$d/bin/kitlegal"`, la
+   orden termina con un mensaje sin abrir ninguna conversación:
 
    ```text
    claude -p "$(cat "$d/sesion/pregunta.txt")" --model claude-sonnet-5 --output-format stream-json --verbose
@@ -392,16 +397,35 @@ Skill`: los permisos justos —activar la skill, leer sus `references/` y ejecut
 permiso se deniega sin preguntar (V9), también `WebFetch` y `WebSearch`. `--permission-mode bypassPermissions`, el del
 job, no es «justo» en la máquina de una persona.
 
+**Binario.** `CLAUDE_ENV_FILE` **es lo que garantiza que las conversaciones ejecutan el `kitlegal` de `"$d/bin"`**. El
+Bash de Claude Code no ejecuta las órdenes con el `PATH` heredado: cada una empieza cargando una instantánea del shell de
+la persona que exporta el `PATH` fijado al crearla, con lo que hayan hecho sus ficheros de arranque, y después el
+contenido del guion de `CLAUDE_ENV_FILE`, antes de la orden (V24). Los ficheros de arranque pueden poner delante del
+`PATH` heredado otro directorio con `kitlegal` —en macOS, un shell de inicio de sesión pasa por `path_helper`, y el
+`brew shellenv` habitual antepone `/opt/homebrew/bin`, donde está el de la distribución—: la revisión final midió el
+Bash de una sesión de Claude Code con `/opt/homebrew/bin` en la posición 12 y `kitlegal` en la v0.3.1, que no tiene el
+applet `graph`, mientras que en otra conversación de la misma máquina la instantánea conservó el orden heredado (V24).
+Ese orden depende, pues, de la persona y de cómo cree Claude Code la instantánea, y con otra versión delante el
+escenario ejercería un binario que no es el del hito. El guion va detrás de la instantánea, así que `"$d/bin"` queda
+primero hagan lo que hagan los ficheros de arranque. Como red sin modelo, la comprobación del paso 4 resuelve `kitlegal`
+en el mismo orden —el shell de la persona como shell de inicio de sesión interactivo, que lee todos sus ficheros de
+arranque, y después el guion— y no deja abrir ninguna conversación si no sale `"$d/bin/kitlegal"`, por ejemplo con un
+alias o una función `kitlegal` en esos ficheros, que la instantánea también lleva. Claude Code no ejecuta el guion con el
+aislamiento de subprocesos (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, activo por defecto con `GITHUB_ACTIONS`, V24): es el
+modo del runner del job, que lo desactiva, y en la máquina de la persona solo está activo si lo activa ella.
+
 **Caché.** `boe articulo` e `indice` se guardan siete días y un artículo en su entrada vigente se sirve sin pedir nada
 (V10): las dos conversaciones leen el bloque de la caché preparada con la redacción de 20200206. `buscar` y `metadatos`
 caducan a los cinco minutos; si una conversación los pide pasados, `kitlegal` los pide al BOE como en cualquier uso
 —por `internal/httpx`, fuente con fila revisada—, y nada de lo que comprueba el escenario depende de ellos (ninguno es
 una lectura de bloque).
 
-**Alternativas.** `CLAUDE_CONFIG_DIR` vacío o un `HOME` temporal para aislar la cuenta: en macOS la credencial va en el
-llavero, ligada a la configuración, y la conversación podría quedarse sin credencial (S3). `--bare`: solo admite
-`ANTHROPIC_API_KEY`, y el proyecto usa la suscripción (V6). Instalar en global o con `make install`: fuera de alcance
-(spec). Copiar las respuestas a mano o comprobarlas con órdenes de shell: fuera de alcance (spec).
+**Alternativas.** `PATH="$d/bin:$PATH"` en el entorno de la conversación: el orden heredado solo llega al Bash si los
+ficheros de arranque de la persona no anteponen nada (V24), y no es lo que Claude Code garantiza. `CLAUDE_CONFIG_DIR`
+vacío o un `HOME` temporal para aislar la cuenta: en macOS la credencial va en el llavero, ligada a la configuración, y
+la conversación podría quedarse sin credencial (S3). `--bare`: solo admite `ANTHROPIC_API_KEY`, y el proyecto usa la
+suscripción (V6). Instalar en global o con `make install`: fuera de alcance (spec). Copiar las respuestas a mano o
+comprobarlas con órdenes de shell: fuera de alcance (spec).
 
 ### D18 · La comprobación del quickstart en Go
 
@@ -476,6 +500,7 @@ nada que grabar.
 | V21 | Nombran lo retirado: `internal/evals/formato_test.go` (66, 412, 491, 497, 502, 507, 549), `consultas_test.go:120`, `juzgar_test.go:63, 1441`, `internal/app/grafo_test.go:2549-2601`; los verbos de `graph` son `show`, `stats` y `check`; `README.md` y `docs/` no describen la eval 19 ni la memoria de consultas | `git grep` de los nombres; `internal/app/grafo.go:77-100` |
 | V22 | El job fija `claude-sonnet-5` como modelo que decide, `claude-haiku-4-5-20251001` como informativo, 3 repeticiones y umbral 2 | `.github/workflows/evals.yml:87-92` |
 | V23 | Los dos patrones de `docs/USO.md` marcan 35 respuestas de H7.1 con el reparto de FR-084 | `jq … test("…"; "i")` sobre el informe de H7.1 |
+| V24 | El Bash de Claude Code 2.1.284 ejecuta cada orden como `<shell> -c 'source <instantánea> 2>/dev/null \|\| true && … && eval <orden>'`; la instantánea solo exporta `PATH` (con el valor fijado al crearla), además de funciones y alias; el contenido del fichero de `CLAUDE_ENV_FILE`, leído del entorno del proceso, va detrás del `source` de la instantánea y antes de la orden, salvo con el aislamiento de subprocesos (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, o `GITHUB_ACTIONS` sin él). Una conversación `claude -p` con `claude-haiku-4-5-20251001`, `--setting-sources project`, `--permission-mode dontAsk`, `--allowedTools 'Bash(kitlegal *)'` y `CLAUDE_ENV_FILE` con `export PATH="$d/bin:$PATH"`, sin `"$d/bin"` en el `PATH` heredado, ejecuta `kitlegal --version` → `kitlegal dev` (el de la rama; `/opt/homebrew/bin/kitlegal` da `kitlegal v0.3.1`). En esta máquina, con `"$d/bin"` solo delante del `PATH` heredado, la instantánea de una conversación `-p` conservó el orden heredado; la de la sesión en que se midió tiene `/opt/homebrew/bin` en la posición 12, y `zsh -l -i` con `"$d/bin"` delante resuelve `/opt/homebrew/bin/kitlegal` y, seguido del guion, `"$d/bin/kitlegal"`. El bloque de las conversaciones del §6, extraído de `quickstart.md`, en zsh y en bash con `claude` sustituido por una función: con el guion abre las dos y guarda su código; con un guion vacío sale con 1 y el mensaje, sin abrir ninguna | `ps` de una orden de Bash de la sesión; binario 2.1.284: función `iJe` (`CLAUDE_ENV_FILE`, «Session environment loaded from CLAUDE_ENV_FILE») y `if(We)Fe.push` tras el `source` de la instantánea, con `We` nulo si `scrubCredentialEnv`; `~/.claude/shell-snapshots/snapshot-zsh-*.sh`; prototipos `go run` en `/tmp/h72corr/` (corrector de la revisión final) |
 
 ## Supuestos no verificados
 
