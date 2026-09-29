@@ -301,7 +301,7 @@ func leerElGrafo(t *testing.T, directorio string) leido {
 	recuento, err := lectura.Recuento(t.Context())
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	fichas := map[string]grafo.Ficha{}

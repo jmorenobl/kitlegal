@@ -1,12 +1,19 @@
 {
-  "id": "T011",
-  "texto": "T011 [US2] El control de la derivada C (research D23): en internal/app/grafo_test.go, `grabacionesDerivadas()` gana la entrada `version-ulterior` con `versionDelArticulo21(…, \"20260101\", parrafoDeLaVersionUlterior)` y la constante del párrafo escrita con sus escapes de Go, de modo que `TestGrabacionesDerivadas` exige que la derivada de T010 se lea con `boe` y dé el mismo `Articulo` que la grabación de H4 salvo la fecha de vigencia y el párrafo añadido; sin implementación (test sobre material ya versionado); verificación: con la fecha de la entrada cambiada un momento el test falla, se restaura antes de `make ci`, y `make ci` en verde — FR-091; rutas: internal/app/grafo_test.go",
+  "id": "T012",
+  "texto": "T012 [US3] La instantánea acotada al ámbito (data-model §6; contracts/almacen-world-db.md §1 y §3 paso 4; research D8, V7): internal/core/grafo/salida.go con `Ambito` (`Norma`, `Bloques`; `Norma` vacía, todo lo consultado); internal/graph/lectura.go: `Lectura.Instantanea(ctx, ambito)` —sin norma, todos los nodos y aristas como en H7 y todas las filas de `lecturas`; con norma, la `Norma` por `type = 'Norma'` y `json_extract(props, '$.identificador')`, sus `Bloque` por `eli:has_part` filtrados por `json_extract(props, '$.bloque')` en `json_each(?)` si se nombran, sus `BloqueVersion` por `eli:has_version`, esas aristas y las filas de `lecturas` de esos bloques; nodos por id y aristas por terna comparando bytes—; una norma o un bloque que no está no es un error y la instantánea no lo trae; internal/app/grafo.go pasa `grafo.Ambito{}` (el ámbito de los argumentos llega en T014); los demás usos, con `grafo.Ambito{}`: internal/evals/preparar_test.go, internal/evals/conjunto_test.go e internal/graph/integracion_test.go; tests en internal/graph/lectura_test.go: `TestInstantanea` con y sin ámbito en un grafo con dos normas (la norma conocida con y sin bloques, un bloque desconocido junto a uno conocido, una norma desconocida da una instantánea vacía, ningún nodo ni fila de la otra norma, una base de versión 1 sin filas, `world.db` ausente → vacía sin crear nada) — FR-002, FR-003, FR-005; rutas: internal/core/grafo/salida.go, internal/graph/lectura.go, internal/graph/integracion_test.go, internal/app/grafo.go, internal/evals/preparar_test.go, internal/evals/conjunto_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "4fca7c3ef559617231c0c09aaedba96e9185aefc",
+  "base": "da6f3ed62164038b03a616805cc9d715b149127e",
   "rutas": [
-    "internal/app/grafo_test.go"
+    "contracts/almacen-world-db.md",
+    "internal/app/grafo.go",
+    "internal/core/grafo/salida.go",
+    "internal/evals/conjunto_test.go",
+    "internal/evals/preparar_test.go",
+    "internal/graph/integracion_test.go",
+    "internal/graph/lectura.go",
+    "internal/graph/lectura_test.go"
   ],
   "cierre": false,
   "converger": false,

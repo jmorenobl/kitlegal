@@ -1652,7 +1652,7 @@ func instantaneaDelGrafo(t *testing.T, directorio string) grafo.Instantanea {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 	require.NoError(t, lectura.Close())
 
@@ -2143,7 +2143,7 @@ func estadoDelGrafo(t *testing.T, directorio string) map[string]guardado {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	estado := map[string]guardado{}

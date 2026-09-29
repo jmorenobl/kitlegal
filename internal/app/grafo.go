@@ -166,7 +166,7 @@ type argumentosDeCheck struct {
 func (a *argumentosDeCheck) Ejecutar(ctx context.Context, _ schema.Contexto, _ *slog.Logger) (schema.Resultado, error) {
 	return a.dependencias.responder(ctx, nil,
 		func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (any, error) {
-			instantanea, err := lectura.Instantanea(ctx)
+			instantanea, err := lectura.Instantanea(ctx, grafo.Ambito{})
 			if err != nil {
 				return nil, err
 			}

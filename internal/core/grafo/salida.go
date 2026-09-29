@@ -174,14 +174,29 @@ type Hallazgo struct {
 	VigenciaSegundos int64 `json:"vigencia_segundos,omitempty"`
 }
 
-// Instantanea es todo el grafo de una lectura consistente, lo que lee `graph
-// check`: cada nodo con su última observación y su vigencia, cada arista y la
-// fila de lecturas de cada bloque que tiene una (data-model §5; research.md
-// D15; H7.1 data-model §3). No sale en ningún sobre y no lleva etiquetas JSON.
+// Ambito es lo que se comprueba: una norma y, si se nombran, bloques suyos;
+// Norma vacía, todo lo consultado (H7.1 data-model §6). Qué nodos, aristas y
+// filas entran en él lo decide la lectura acotada de internal/graph
+// (contracts/almacen-world-db.md §3, paso 4); una norma o un bloque que el
+// grafo no conoce no es un error, y no trae nada (FR-003).
+type Ambito struct {
+	// Norma es el identificador BOE, BOE-A-<año>-<número>; "", todo lo
+	// consultado.
+	Norma string
+	// Bloques son los ids de bloque tal como se pidieron; vacío, todos los de
+	// la norma.
+	Bloques []string
+}
+
+// Instantanea es lo que lee `graph check` de una lectura consistente: cada nodo
+// del ámbito con su última observación y su vigencia, cada arista del ámbito y
+// la fila de lecturas de cada bloque del ámbito que tiene una (data-model §5;
+// research.md D15; H7.1 data-model §3 y §6). Sin ámbito, todo el grafo. No
+// sale en ningún sobre y no lleva etiquetas JSON.
 type Instantanea struct {
-	// Nodos son todos los nodos.
+	// Nodos son los nodos del ámbito.
 	Nodos []NodoDeInstantanea
-	// Aristas son todas las aristas, una por terna.
+	// Aristas son las aristas del ámbito, una por terna.
 	Aristas []schema.Arista
 	// Lecturas son las filas de lecturas de los bloques de la instantánea; un
 	// bloque sin fila cuenta con la de RedaccionVistaSinLecturas (H7.1

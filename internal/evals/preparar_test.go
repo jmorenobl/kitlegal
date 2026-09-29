@@ -531,7 +531,7 @@ func versionesDelGrafo(t *testing.T, dirCache string) []grafo.NodoDeInstantanea 
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, errors.Join(err, lectura.Close()))
 
 	var versiones []grafo.NodoDeInstantanea

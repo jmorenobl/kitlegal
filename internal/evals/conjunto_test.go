@@ -1090,7 +1090,7 @@ func bloquesVersionados(t *testing.T, dirCache string) []CitaEsperada {
 	lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(dirCache))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, errors.Join(err, lectura.Close()))
 
 	nodos := make(map[string]grafo.NodoDeInstantanea, len(instantanea.Nodos))

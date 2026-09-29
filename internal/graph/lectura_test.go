@@ -43,8 +43,16 @@ const (
 	urlAjena          = "https://ajena.example/organo"
 	relacionMayuscula = "Z:enlace"
 
-	idNorma            = "eli/es/l/2015/10/01/39"
-	idBloque           = idNorma + "#a21"
+	identificadorDeLaNorma = "BOE-A-2015-10565"
+	idNorma                = "eli/es/l/2015/10/01/39"
+	idBloque               = idNorma + "#a21"
+
+	// La otra norma de las pruebas del ámbito, la LRBRL, tiene también un
+	// bloque a21: lo que se pide de una no puede traer el de la otra.
+	identificadorDeLaOtra = "BOE-A-1985-5392"
+	idOtraNorma           = "eli/es/l/1985/04/02/7"
+	urlDeLaOtra           = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/" + identificadorDeLaOtra
+
 	idMunicipio        = "ine:28074"
 	idOrgano           = "L01280745"
 	idOrganoAjeno      = "L01280740"
@@ -121,7 +129,7 @@ func laMuestra(t *testing.T) muestraDelGrafo {
 	id2025 := idBloque + "@20250101:" + texto2025.Huella
 
 	return muestraDelGrafo{
-		norma: nodo(idNorma, grafo.TipoNorma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"},
+		norma: nodo(idNorma, grafo.TipoNorma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma},
 			boe(urlDeLaNorma, fechaConDesplazamiento), boe(urlDeLaNorma, fechaConFraccion), semana),
 		bloque: nodo(idBloque, grafo.TipoBloque, map[string]any{grafo.DatoBloque: "a21"},
 			boe(urlDelBloque, fechaDelBloque), boe(urlDelBloque, fechaDelBloque), semana),
@@ -327,7 +335,7 @@ func compruebaContenido(t *testing.T, lectura *Lectura, llena bool) {
 	_, encontrado, err := lectura.Ficha(t.Context(), idNorma)
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 
 	if llena {
@@ -366,8 +374,8 @@ func compruebaFallo(t *testing.T, err error, clase schema.Clase, ruta, mensaje s
 	assert.Equal(t, mensaje, err.Error())
 }
 
-// TestLeerSinRastro fija que una lectura completa —Leer, los tres verbos y
-// Close— sin -wal no cambia ni un byte de nada en el directorio, con la muestra
+// TestLeerSinRastro fija que una lectura completa —Leer, los tres verbos, check
+// con ámbito y sin él, y Close— sin -wal no cambia ni un byte de nada en el directorio, con la muestra
 // —también en la versión 1 de H7, que la lectura no migra— o sin esquema
 // (contracts/almacen-world-db.md §3, pasos 2 y 3; H7 FR-004, FR-005, SC-004;
 // H7.1 research.md D4, V8).
@@ -397,7 +405,11 @@ func TestLeerSinRastro(t *testing.T) {
 			_, _, err = lectura.Ficha(t.Context(), idBloque)
 			require.NoError(t, err)
 
-			_, err = lectura.Instantanea(t.Context())
+			_, err = lectura.Instantanea(t.Context(), grafo.Ambito{})
+			require.NoError(t, err)
+
+			_, err = lectura.Instantanea(t.Context(),
+				grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}})
 			require.NoError(t, err)
 
 			require.NoError(t, lectura.Close())
@@ -538,7 +550,7 @@ func TestLeerConElPlazoAgotado(t *testing.T) {
 		compruebaFallo(t, err, schema.ClaseFuenteNoDisponible, ruta, plazo(ruta))
 		require.ErrorIs(t, err, context.Canceled)
 
-		_, err = lectura.Instantanea(terminado)
+		_, err = lectura.Instantanea(terminado, grafo.Ambito{})
 		compruebaFallo(t, err, schema.ClaseFuenteNoDisponible, ruta, plazo(ruta))
 		require.ErrorIs(t, err, context.Canceled)
 	})
@@ -584,7 +596,7 @@ func TestFicha(t *testing.T) {
 
 	esperadas := map[string]grafo.Ficha{
 		idNorma: {
-			Nodo:      nodoDeFicha(m.norma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
+			Nodo:      nodoDeFicha(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
 			Salientes: []grafo.AristaDeFicha{aristaDeFicha(m.parte, idBloque)},
 			Entrantes: []grafo.AristaDeFicha{},
 		},
@@ -705,12 +717,27 @@ func TestRecuento(t *testing.T) {
 }
 
 // TestInstantanea fija lo que graph check lee (data-model §5; research.md D15;
-// H7.1 data-model §3): cada nodo con sus datos, su última observación y la
-// vigencia que declaró —cero si no declaró ninguna—, cada arista por su terna y
-// cada fila de lecturas, en un orden que no depende del motor: los nodos por id
-// y las aristas por origen, relación y destino, comparando bytes. Nunca el
-// cuerpo de un texto.
+// H7.1 data-model §3 y §6; contracts/almacen-world-db.md §3, paso 4;
+// research.md D8; FR-002, FR-003, FR-005): sin ámbito, todo el grafo; con una
+// norma, solo su Norma, sus Bloque —los nombrados, o todos si no se nombra
+// ninguno—, las BloqueVersion de esos bloques, las aristas que los unen y las
+// filas de lecturas de esos bloques. Una norma o un bloque que el grafo no
+// conoce no es un error: la instantánea no lo trae.
 func TestInstantanea(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sin ámbito, todo el grafo en un orden que no depende del motor", probarInstantaneaSinAmbito)
+	t.Run("con una norma, solo lo suyo", probarInstantaneaDeUnaNorma)
+	t.Run("una base de la versión 1, sin filas", probarAmbitoEnLaVersionDeH7)
+	t.Run("world.db ausente, vacía y sin crear nada", probarAmbitoSinGrafo)
+}
+
+// probarInstantaneaSinAmbito fija la instantánea sin ámbito: cada nodo con sus
+// datos, su última observación y la vigencia que declaró —cero si no declaró
+// ninguna—, cada arista por su terna y cada fila de lecturas, en un orden que
+// no depende del motor: los nodos por id y las aristas por origen, relación y
+// destino, comparando bytes. Nunca el cuerpo de un texto.
+func probarInstantaneaSinAmbito(t *testing.T) {
 	t.Parallel()
 
 	m := laMuestra(t)
@@ -724,45 +751,304 @@ func TestInstantanea(t *testing.T) {
 
 	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
 
-	nodo := func(registro grafo.RegistroDeNodo, datos map[string]any) grafo.NodoDeInstantanea {
-		return grafo.NodoDeInstantanea{
-			ID: registro.ID, Tipo: registro.Tipo, Datos: datos,
-			UltimaObservacion: registro.UltimaObservacion, Vigencia: registro.Vigencia,
-		}
-	}
-	terna := func(registro grafo.RegistroDeArista) schema.Arista {
-		return schema.Arista{Origen: registro.Origen, Relacion: registro.Relacion, Destino: registro.Destino}
-	}
-
 	esperada := grafo.Instantanea{
 		Nodos: []grafo.NodoDeInstantanea{
-			nodo(m.organoAjeno, map[string]any{grafo.DatoDIR3: idOrganoAjeno}),
-			nodo(m.organo, map[string]any{grafo.DatoDIR3: idOrgano}),
-			nodo(m.norma, map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
-			nodo(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
-			nodo(m.v2016, map[string]any{grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: m.texto2016.Huella}),
-			nodo(m.v2025, map[string]any{grafo.DatoFechaVigencia: "20250101", grafo.DatoHashTexto: m.texto2025.Huella}),
-			nodo(m.municipio, map[string]any{grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s"}),
-			nodo(m.organoMinusculas, map[string]any{grafo.DatoDIR3: idOrganoMinusculas}),
+			nodoDeInstantanea(m.organoAjeno, map[string]any{grafo.DatoDIR3: idOrganoAjeno}),
+			nodoDeInstantanea(m.organo, map[string]any{grafo.DatoDIR3: idOrgano}),
+			nodoDeInstantanea(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
+			nodoDeInstantanea(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
+			nodoDeInstantanea(m.v2016, datosDeVersion("20161002", m.texto2016)),
+			nodoDeInstantanea(m.v2025, datosDeVersion("20250101", m.texto2025)),
+			nodoDeInstantanea(m.municipio, map[string]any{grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s"}),
+			nodoDeInstantanea(m.organoMinusculas, map[string]any{grafo.DatoDIR3: idOrganoMinusculas}),
 		},
 		Aristas: []schema.Arista{
-			terna(m.perteneceAjeno),
-			terna(m.pertenece),
-			terna(m.parte),
-			terna(m.enlace),
-			terna(m.version2016),
-			terna(m.version2025),
-			terna(m.perteneceMinusculas),
+			ternaDe(m.perteneceAjeno),
+			ternaDe(m.pertenece),
+			ternaDe(m.parte),
+			ternaDe(m.enlace),
+			ternaDe(m.version2016),
+			ternaDe(m.version2025),
+			ternaDe(m.perteneceMinusculas),
 		},
 		Lecturas: []grafo.LecturasDeBloque{{Bloque: idBloque, Ultima: m.v2025.ID, Anterior: m.v2016.ID}},
 	}
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 	assert.Equal(t, esperada, instantanea)
 	assert.Equal(t, semana, instantanea.Nodos[2].Vigencia, "la vigencia declarada, en segundos")
 	assert.Zero(t, instantanea.Nodos[0].Vigencia, "sin vigencia declarada, cero")
 	assertSinCuerpos(t, instantanea)
+}
+
+// probarInstantaneaDeUnaNorma fija la instantánea de una norma sobre un grafo
+// que dejan las entregas de boe articulo y territorio resolver, con dos
+// normas que tienen las dos un bloque a21 y un municipio con su órgano. Lo
+// esperado de cada ámbito es la instantánea sin ámbito del mismo grafo
+// restringida a los nodos, las aristas y las filas que se nombran: sus datos,
+// su procedencia y su orden los fija probarInstantaneaSinAmbito.
+func probarInstantaneaDeUnaNorma(t *testing.T) {
+	t.Parallel()
+
+	a21 := unaLectura("a21", "20161002", cuerpo2016)
+	a21Nueva := unaLectura("a21", "20250101", cuerpo2025)
+	a22 := unaLectura("a22", "20161002", cuerpo2016)
+	laOtra := unaLectura("a21", "20161002", cuerpo2016)
+
+	directorio := t.TempDir()
+	almacen := Nuevo(ConDirectorio(directorio))
+
+	for _, lote := range []core.Lote{
+		a21.entregada(fechaDelBloque), a22.entregada(fechaDelBloque), enLaOtraNorma(laOtra, fechaDelBloque),
+		loteDelTerritorio(), a21Nueva.entregada(fechaSiguiente),
+	} {
+		require.NoError(t, almacen.Apply(t.Context(), lote))
+	}
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
+
+	completa, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
+	require.NoError(t, err)
+	require.Len(t, completa.Nodos, 11, "premisa: las dos normas, sus tres bloques, sus cuatro versiones, el"+
+		" municipio y su órgano")
+	require.Len(t, completa.Lecturas, 3, "premisa: una fila por cada uno de los tres bloques")
+
+	deLaNorma := map[string][]string{
+		a21.bloque(): {a21.version(), a21Nueva.version()},
+		a22.bloque(): {a22.version()},
+	}
+
+	casos := []struct {
+		nombre   string
+		ambito   grafo.Ambito
+		esperado ambitoEsperado
+	}{
+		{
+			nombre:   "la norma sin bloques: todos los suyos y ninguno de la otra",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma},
+			esperado: esperadoDe(idNorma, deLaNorma),
+		},
+		{
+			nombre:   "la norma y un bloque que la otra también tiene: solo el suyo",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}},
+			esperado: esperadoDe(idNorma, map[string][]string{a21.bloque(): deLaNorma[a21.bloque()]}),
+		},
+		{
+			nombre:   "un bloque desconocido junto a uno conocido: los del conocido",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a99", "a22"}},
+			esperado: esperadoDe(idNorma, map[string][]string{a22.bloque(): deLaNorma[a22.bloque()]}),
+		},
+		{
+			nombre:   "solo un bloque desconocido: la norma sola",
+			ambito:   grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a99"}},
+			esperado: esperadoDe(idNorma, nil),
+		},
+		{
+			nombre: "la otra norma: solo lo suyo",
+			ambito: grafo.Ambito{Norma: identificadorDeLaOtra},
+			esperado: esperadoDe(idOtraNorma, map[string][]string{
+				enLaOtra(laOtra.bloque()): {enLaOtra(laOtra.version())},
+			}),
+		},
+		{
+			nombre:   "una norma desconocida: vacía",
+			ambito:   grafo.Ambito{Norma: "BOE-A-2099-99999"},
+			esperado: ambitoEsperado{},
+		},
+	}
+
+	for _, caso := range casos {
+		instantanea, err := lectura.Instantanea(t.Context(), caso.ambito)
+		require.NoError(t, err, caso.nombre)
+		assert.Equal(t, caso.esperado.en(t, completa), instantanea, caso.nombre)
+		assertSinCuerpos(t, instantanea)
+	}
+}
+
+// probarAmbitoEnLaVersionDeH7 fija la instantánea de una norma en una base de
+// la versión 1, la que escribe H7, que se lee sin migrar: sus nodos y sus
+// aristas, y ninguna fila de lecturas, nunca nula.
+func probarAmbitoEnLaVersionDeH7(t *testing.T) {
+	t.Parallel()
+
+	m := laMuestra(t)
+	directorio := t.TempDir()
+	crearGrafoEnLaVersion(t, directorio, m.grafo(), versionDeH7)
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, lectura.Close()) })
+
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{Norma: identificadorDeLaNorma})
+	require.NoError(t, err)
+	assert.Equal(t, grafo.Instantanea{
+		Nodos: []grafo.NodoDeInstantanea{
+			nodoDeInstantanea(m.norma, map[string]any{grafo.DatoIdentificador: identificadorDeLaNorma}),
+			nodoDeInstantanea(m.bloque, map[string]any{grafo.DatoBloque: "a21"}),
+			nodoDeInstantanea(m.v2016, datosDeVersion("20161002", m.texto2016)),
+			nodoDeInstantanea(m.v2025, datosDeVersion("20250101", m.texto2025)),
+		},
+		Aristas:  []schema.Arista{ternaDe(m.parte), ternaDe(m.version2016), ternaDe(m.version2025)},
+		Lecturas: []grafo.LecturasDeBloque{},
+	}, instantanea)
+}
+
+// probarAmbitoSinGrafo fija que la instantánea de una norma y un bloque sin
+// world.db es la del grafo vacío, sin crear nada (FR-003; H7 FR-004).
+func probarAmbitoSinGrafo(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	directorio := cacheVacia(t, raiz)
+	antes := huellasDelArbol(t, raiz)
+
+	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
+	require.NoError(t, err)
+
+	instantanea, err := lectura.Instantanea(t.Context(),
+		grafo.Ambito{Norma: identificadorDeLaNorma, Bloques: []string{"a21"}})
+	require.NoError(t, err)
+	assert.Equal(t, instantaneaVacia(), instantanea)
+	require.NoError(t, lectura.Close())
+
+	assert.Equal(t, antes, huellasDelArbol(t, raiz), "ningún fichero aparece")
+}
+
+// nodoDeInstantanea es el nodo de una instantánea tal como se espera a partir
+// de su fila: los datos, con el tipo que les da JSON.
+func nodoDeInstantanea(registro grafo.RegistroDeNodo, datos map[string]any) grafo.NodoDeInstantanea {
+	return grafo.NodoDeInstantanea{
+		ID: registro.ID, Tipo: registro.Tipo, Datos: datos,
+		UltimaObservacion: registro.UltimaObservacion, Vigencia: registro.Vigencia,
+	}
+}
+
+// datosDeVersion son los datos de una BloqueVersion con la fecha de vigencia y
+// la huella del texto dados.
+func datosDeVersion(vigencia string, texto grafo.RegistroDeTexto) map[string]any {
+	return map[string]any{grafo.DatoFechaVigencia: vigencia, grafo.DatoHashTexto: texto.Huella}
+}
+
+// ternaDe es la terna de una arista a partir de su fila.
+func ternaDe(registro grafo.RegistroDeArista) schema.Arista {
+	return schema.Arista{Origen: registro.Origen, Relacion: registro.Relacion, Destino: registro.Destino}
+}
+
+// ambitoEsperado es lo que la instantánea de un ámbito tiene que traer: los
+// ids de sus nodos, las ternas de sus aristas y los bloques de sus filas de
+// lecturas. A cero, nada.
+type ambitoEsperado struct {
+	nodos   map[string]bool
+	aristas map[schema.Arista]bool
+	bloques map[string]bool
+}
+
+// esperadoDe es el ámbito de la norma y de los bloques dados, cada uno con sus
+// versiones: la Norma, cada Bloque y cada BloqueVersion, la arista
+// eli:has_part de la norma a cada bloque, la eli:has_version de cada bloque a
+// cada versión suya, y la fila de cada bloque.
+func esperadoDe(norma string, bloques map[string][]string) ambitoEsperado {
+	esperado := ambitoEsperado{
+		nodos:   map[string]bool{norma: true},
+		aristas: map[schema.Arista]bool{},
+		bloques: map[string]bool{},
+	}
+
+	for bloque, versiones := range bloques {
+		esperado.nodos[bloque] = true
+		esperado.bloques[bloque] = true
+		esperado.aristas[schema.Arista{Origen: norma, Relacion: grafo.RelacionTieneParte, Destino: bloque}] = true
+
+		for _, version := range versiones {
+			esperado.nodos[version] = true
+			esperado.aristas[schema.Arista{Origen: bloque, Relacion: grafo.RelacionTieneVersion, Destino: version}] = true
+		}
+	}
+
+	return esperado
+}
+
+// en es la instantánea completa restringida al ámbito, en el orden de la
+// completa. Exige que todo lo nombrado esté en la completa: si no, lo esperado
+// estaría mal escrito y la comparación no diría nada.
+func (e ambitoEsperado) en(t *testing.T, completa grafo.Instantanea) grafo.Instantanea {
+	t.Helper()
+
+	restringida := instantaneaVacia()
+
+	for _, nodo := range completa.Nodos {
+		if e.nodos[nodo.ID] {
+			restringida.Nodos = append(restringida.Nodos, nodo)
+		}
+	}
+
+	for _, arista := range completa.Aristas {
+		if e.aristas[arista] {
+			restringida.Aristas = append(restringida.Aristas, arista)
+		}
+	}
+
+	for _, fila := range completa.Lecturas {
+		if e.bloques[fila.Bloque] {
+			restringida.Lecturas = append(restringida.Lecturas, fila)
+		}
+	}
+
+	require.Len(t, restringida.Nodos, len(e.nodos), "premisa: todos los nodos nombrados están en el grafo")
+	require.Len(t, restringida.Aristas, len(e.aristas), "premisa: todas las aristas nombradas están en el grafo")
+	require.Len(t, restringida.Lecturas, len(e.bloques), "premisa: todas las filas nombradas están en el grafo")
+
+	return restringida
+}
+
+// enLaOtra es el id de la norma de las pruebas, o de algo suyo, trasladado a la
+// otra norma.
+func enLaOtra(id string) string {
+	return idOtraNorma + strings.TrimPrefix(id, idNorma)
+}
+
+// enLaOtraNorma es el lote de la lectura trasladada a la otra norma: las mismas
+// operaciones, con los ids de la otra norma y su identificador BOE, desde la
+// url de su bloque.
+func enLaOtraNorma(lectura lecturaDePrueba, fecha string) core.Lote {
+	operaciones := lectura.operaciones()
+
+	for i, operacion := range operaciones {
+		switch trasladada := operacion.(type) {
+		case schema.Nodo:
+			trasladada.ID = enLaOtra(trasladada.ID)
+			if trasladada.Tipo == grafo.TipoNorma {
+				trasladada.Datos = map[string]any{grafo.DatoIdentificador: identificadorDeLaOtra}
+			}
+
+			operaciones[i] = trasladada
+		case schema.Arista:
+			trasladada.Origen, trasladada.Destino = enLaOtra(trasladada.Origen), enLaOtra(trasladada.Destino)
+			operaciones[i] = trasladada
+		}
+	}
+
+	return loteDelBOE(urlDeLaOtra+"/texto/bloque/"+lectura.enLaNorma, fecha, operaciones...)
+}
+
+// loteDelTerritorio es el de territorio resolver Leganés: el municipio, su
+// ayuntamiento y la arista que los une, sin vigencia declarada.
+func loteDelTerritorio() core.Lote {
+	return core.Lote{
+		Fuente: fuenteDelTerritorio, URL: urlDelTerritorio, FechaConsulta: fechaDelTerritorio,
+		Operaciones: []schema.Operacion{
+			schema.Nodo{ID: idMunicipio, Tipo: grafo.TipoMunicipio, Datos: map[string]any{
+				grafo.DatoCodigoINE: "28074", grafo.DatoNombre: "Legan\xc3\xa9s",
+			}},
+			schema.Nodo{ID: idOrgano, Tipo: grafo.TipoOrgano, Datos: map[string]any{grafo.DatoDIR3: idOrgano}},
+			schema.Arista{Origen: idOrgano, Relacion: grafo.RelacionPerteneceA, Destino: idMunicipio},
+		},
+	}
 }
 
 // TestInstantaneaConLecturas fija las filas de lecturas que lee graph check tal
@@ -789,7 +1075,7 @@ func TestInstantaneaConLecturas(t *testing.T) {
 	lectura, err := Leer(t.Context(), ConDirectorio(directorio))
 	require.NoError(t, err)
 
-	instantanea, err := lectura.Instantanea(t.Context())
+	instantanea, err := lectura.Instantanea(t.Context(), grafo.Ambito{})
 	require.NoError(t, err)
 	require.NoError(t, lectura.Close())
 
@@ -823,7 +1109,7 @@ func TestLecturaClose(t *testing.T) {
 			_, err = lectura.Recuento(t.Context())
 			compruebaCerrada(t, err)
 
-			_, err = lectura.Instantanea(t.Context())
+			_, err = lectura.Instantanea(t.Context(), grafo.Ambito{})
 			compruebaCerrada(t, err)
 		})
 	}
