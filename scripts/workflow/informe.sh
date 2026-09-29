@@ -15,13 +15,18 @@
 #      a la 2.1.0: se enseña entero, nunca se esconde— y lo interno solo contado;
 #   3. evals: la tasa de cada eval del job sobre la cabeza (gates/evals/<skill>.json,
 #      que recoge scripts/workflow/cierre.sh), con las nuevas, las cambiadas y las
-#      informativas marcadas;
+#      informativas marcadas; y debajo, los recuentos que publica el job
+#      (expresiones_prohibidas_por_modelo: con alguna, total y porcentaje por modelo) y
+#      sus `umbrales` (ADR 0029), con los que no se cumplen o solo se publican marcados;
 #   4. lo que la constitución (capa 3) reserva a la persona: fuentes, anomalías,
 #      adaptadores nuevos, fixtures y esquemas nuevos o modificados (nombrados),
 #      grabaciones y evidencias;
 #   5. tareas en cuarentena, con su parche y su nota;
-#   6. trazabilidad: cada FR/SC del spec → tareas (y su estado) → guiones de aceptación;
-#   7. commits posteriores a la revisión final, que ningún juez vio;
+#   6. trazabilidad: cada FR/SC del spec → tareas (y su estado) → guiones de aceptación,
+#      y su control de umbral (la sección «Controles de umbral» de plan.md): «tareas
+#      hechas» no es «comprobado por su control» (ADR 0029);
+#   7. commits posteriores a la revisión final, que ningún juez vio, con lo que toca
+#      cada uno fuera de gates/;
 #   8. cómo comprobarlo y duración del run.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -33,21 +38,6 @@ d=$(feature_dir)
 g="$d/gates"
 rama=$(git branch --show-current)
 titulo=$(awk -v h="$hito" 'index($0, "#### " h " · ") == 1 {print; exit}' docs/ROADMAP.md | sed -E 's/^#### [A-Z0-9.]+ · //')
-
-# Ids de requisito que menciona una línea, con los rangos «FR-001 a FR-008» expandidos.
-ids_de_linea() {
-  printf '%s\n' "$1" | awk '{
-    s = $0
-    while (match(s, /(FR|SC)-[0-9]+ (a|al|–|-) (FR|SC)-[0-9]+/)) {
-      r = substr(s, RSTART, RLENGTH); split(r, p, /[^A-Z0-9-]+/)
-      pre = substr(p[1], 1, 3); a = substr(p[1], 4) + 0; b = substr(p[length(p)], 4) + 0
-      if (b >= a && b - a < 200) for (i = a; i <= b; i++) printf "%s%03d\n", pre, i
-      s = substr(s, RSTART + RLENGTH)
-    }
-    t = $0
-    while (match(t, /(FR|SC)-[0-9]+/)) { print substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH) }
-  }' | sort -u
-}
 
 estado_tarea() { # X, cuarentena o pendiente
   if jq -e --arg id "$1" '.tareas | has($id)' "$g/cuarentena.json" >/dev/null 2>&1; then echo cuarentena
@@ -186,9 +176,99 @@ seccion_evals() {
             + " | " + ([(if $r.cambio == "A" then "**nueva**" elif $r.cambio == "M" then "cambiada" else empty end),
                         (if $r.informativa then "informativa" else empty end)] | join(" · ")) + " |"),
         ""' "$f"
+    recuentos_y_umbrales "$f"
   done
-  echo "Cada celda: sesiones que pasan de las abiertas; ✗, una serie que decide y no llega al umbral. Una eval informativa publica su tasa sin decidir el veredicto (ADR 0016)."
+  echo "Cada celda: sesiones que pasan de las abiertas; ✗, una serie que decide y no llega al umbral. Una eval informativa publica su tasa sin decidir el veredicto (ADR 0016). La regla por serie no hace cumplir un umbral agregado sobre todas las respuestas: eso solo lo hace un umbral del job que lo hace fallar (ADR 0029)."
   echo
+}
+
+# Umbrales del informe del job (contrato del ADR 0029). Cada elemento de `umbrales` es
+#   {nombre, descripcion, medida, total?, comparacion, umbral, cumple, decide}
+# Con `total`, lo que se compara es la proporción medida/total (0 si total es 0) y
+# `umbral` es una proporción; sin él, la propia medida. La comparación se rehace aquí,
+# en coma flotante como la hace el job, para señalar un `cumple` que no casa con la
+# medida. `decide` dice si incumplirlo pone el veredicto del job en fallo: un umbral
+# que solo se publica no es un control.
+jq_umbral='
+  def pct($a; $b): if $b > 0 then (($a * 1000 / $b) | round) as $p | "\($p / 10 | floor),\($p % 10) %" else "—" end;
+  def valor: if (.total // null) != null then (if .total > 0 then .medida / .total else 0 end) else .medida end;
+  def cumple_calculado: valor as $v | .umbral as $u | .comparacion as $o
+    | if $o == "<=" then $v <= $u elif $o == "<" then $v < $u elif $o == ">=" then $v >= $u elif $o == ">" then $v > $u else null end;
+  def condicion: ((.comparacion as $o | {"<=": "≤", "<": "<", ">=": "≥", ">": ">"}[$o]) // .comparacion) + " "
+    + (if (.total // null) != null then ((.umbral * 1000) | round) as $p | "\($p / 10 | floor),\($p % 10) %" else (.umbral | tostring) end);
+  def medida_txt: if (.total // null) != null then "\(.medida) de \(.total) (\(pct(.medida; .total)))" else (.medida | tostring) end;
+'
+
+# Recuentos y umbrales de una skill, bajo su tabla de tasas (sección 3).
+recuentos_y_umbrales() { # $1 = gates/evals/<skill>.json
+  jq -r "$jq_umbral"'
+    . as $inf
+    | (if (.expresiones_prohibidas_por_modelo // []) | length > 0 then
+        "Respuestas con alguna expresión prohibida, en las evals que activan la skill (`expresiones_prohibidas_por_modelo`):", "",
+        "| Modelo | Con alguna | Respuestas | Porcentaje |", "|---|---|---|---|",
+        (.expresiones_prohibidas_por_modelo[] | "| `\(.modelo)` | \(.con_alguna) | \(.respuestas) | \(pct(.con_alguna; .respuestas)) |"), ""
+       else empty end),
+      (if has("umbrales") | not then
+         "Umbrales: el informe del job no trae `umbrales` (es anterior al contrato del ADR 0029)"
+           + (if (.expresiones_prohibidas_por_modelo // []) | length > 0 then ". Ningún recuento de esta skill hace fallar el job: lo de arriba solo se publica." else "." end), ""
+       elif (.umbrales | length) == 0 then "Umbrales: el job no publica ninguno para esta skill.", ""
+       else
+         "Umbrales que publica el job (ADR 0029):", "",
+         "| Umbral | Medida | Condición | Cumple | Hace fallar el job |", "|---|---|---|---|---|",
+         (.umbrales[] | cumple_calculado as $c
+           | "| `\(.nombre)` | \(medida_txt) | \(condicion) | "
+             + (if .cumple then "sí" else "✗ **NO**" end)
+             + (if $c != null and $c != .cumple then " (INCOHERENTE: la medida da \(if $c then "sí" else "no" end))" else "" end)
+             + " | " + (if .decide then "sí" else "no: solo se publica, no es un control" end) + " |"),
+         "",
+         ([.umbrales[] | select(.decide and (.cumple | not))] | select(length > 0 and $inf.veredicto == "aprobado")
+           | "- **INCOHERENTE**: el veredicto es aprobado con " + (map("`" + .nombre + "`") | join(", ")) + " sin cumplir y haciendo fallar el job.", "")
+       end)' "$1"
+}
+
+# Una línea por skill con sus umbrales, para la sección 1.
+resumen_umbrales() {
+  ls "$g"/evals/*.json >/dev/null 2>&1 || return 0
+  jq -rs "$jq_umbral"'map(
+      .skill + ": "
+      + (if has("umbrales") | not then "el job no publica umbrales"
+         elif (.umbrales | length) == 0 then "sin umbrales"
+         else ([.umbrales[] | select((.cumple | not) or (.decide | not))]) as $mal
+           | "\(.umbrales | length) umbrales"
+             + (if ($mal | length) == 0 then ", todos cumplen y hacen fallar el job"
+                else ", **\($mal | length) sin cumplir o solo publicados** (" + ($mal | map("`" + .nombre + "`") | join(", ")) + ")" end)
+         end)
+      + (if ((.expresiones_prohibidas_por_modelo // []) | length > 0) and ((has("umbrales") | not) or (.umbrales | length) == 0)
+         then "; publica recuentos que ningún control hace cumplir (expresiones prohibidas: " + ([.expresiones_prohibidas_por_modelo[] | "\(.con_alguna)/\(.respuestas) `\(.modelo)`"] | join(", ")) + ")"
+         else "" end))
+    | join("; ")' "$g"/evals/*.json
+}
+
+# Estado de un control de «Controles de umbral» (plan.md): «ok|…», «no|…» (medido y sin
+# cumplir) o «sin|…» (declarado y no verificable: no existe, no se mide o solo se publica).
+estado_control() { # $1 = ci:<ruta>[:<Test>] | evals:<skill>:<nombre>
+  local c="$1" ruta t skill nombre f
+  case "$c" in
+    ci:*)
+      ruta=${c#ci:}; t=""
+      case "$ruta" in *:*) t=${ruta##*:}; ruta=${ruta%%:*};; esac
+      if ! git cat-file -e "HEAD:$ruta" 2>/dev/null; then echo "sin|\`$c\`: \`$ruta\` no existe en la cabeza"; return; fi
+      if [ -n "$t" ] && ! git grep -qE "^(func $t\\(|$t:)" HEAD -- "$ruta"; then echo "sin|\`$c\`: \`$t\` no está en \`$ruta\`"; return; fi
+      if [ "${ci_local:-x}" = 0 ]; then echo "ok|\`$c\`, en make ci (verde)"; else echo "sin|\`$c\`: make ci no está en verde"; fi;;
+    evals:*)
+      skill=$(printf '%s' "$c" | cut -d: -f2); nombre=$(printf '%s' "$c" | cut -d: -f3-)
+      f="$g/evals/$skill.json"
+      [ -f "$f" ] || { echo "sin|\`$c\`: no hay informe del job de evals de $skill"; return; }
+      jq -r --arg n "$nombre" --arg c "$c" "$jq_umbral"'
+        ([(.umbrales // [])[] | select(.nombre == $n)][0]) as $u
+        | if $u == null then "sin|`\($c)`: el job no publica ese umbral"
+          elif ($u | cumple_calculado) as $k | $k != null and $k != $u.cumple
+            then "sin|`\($c)`: \($u | medida_txt), \($u | condicion); INCOHERENTE: el job dice que \(if $u.cumple then "cumple" else "no cumple" end)"
+          elif ($u.decide | not) then "sin|`\($c)`: \($u | medida_txt), \($u | condicion); se publica sin hacer fallar el job"
+          elif $u.cumple then "ok|`\($c)`: \($u | medida_txt), \($u | condicion)"
+          else "no|`\($c)`: \($u | medida_txt), NO cumple \($u | condicion)" end' "$f";;
+    *) echo "sin|\`$c\`: control con forma desconocida";;
+  esac
 }
 
 # Una línea de estado por skill evaluada, para la sección 1.
@@ -227,6 +307,8 @@ capa3() {
   if [ -f "$g/grabaciones.md" ]; then echo "- Grabaciones del paso grabar_datos: \`$g/grabaciones.md\`."; fi
 }
 
+ci_local=$(tail -n 1 "$g/ci.log" 2>/dev/null | sed -n 's/^kitlegal-verificacion exit=//p' || true) # ci.log no se versiona
+
 informe() {
   echo "# Informe del hito $hito · $titulo"
   echo
@@ -237,9 +319,8 @@ informe() {
 
   echo "## 1. Estado"
   echo
-  local ci remoto ev
-  ci=$(tail -n 1 "$g/ci.log" 2>/dev/null | sed -n 's/^kitlegal-verificacion exit=//p' || true) # ci.log no se versiona
-  echo "- **make ci local**: $( [ "${ci:-x}" = 0 ] && echo "verde" || echo "ROJO (exit ${ci:-desconocido}; gates/ci.log)")."
+  local remoto ev um
+  echo "- **make ci local**: $( [ "${ci_local:-x}" = 0 ] && echo "verde" || echo "ROJO (exit ${ci_local:-desconocido}; gates/ci.log)")."
   if [ -f "$g/cierre.json" ]; then
     remoto=$(jq -r 'if .verde then "verde" else "ROJO: " + ([.checks[] | select(.workflow != "" and (.bucket == "fail" or .bucket == "cancel")) | .name] | join(", ")) end' "$g/cierre.json")
     echo "- **CI y evals remotos** sobre \`$(jq -r '.sha[0:7]' "$g/cierre.json")\`: $remoto."
@@ -248,6 +329,8 @@ informe() {
   fi
   ev=$(resumen_evals)
   [ -z "$ev" ] || echo "- **Evals por skill**: $ev (tasas en la sección 3)."
+  um=$(resumen_umbrales)
+  [ -z "$um" ] || echo "- **Umbrales del job**: $um (sección 3)."
   echo "- **Revisión final**: juez A $(veredicto "$g/revision-a.json"), juez B $(veredicto "$g/revision-b.json"), $(cat "$g/revision-rondas" 2>/dev/null || echo 0) rondas."
   local hechas cuar sin
   hechas=$(grep -cE '^[[:space:]]*- \[[Xx]\] T[0-9]+' "$d/tasks.md" || true)
@@ -281,13 +364,25 @@ informe() {
   fi
   echo
 
+  # «tareas hechas» y «comprobado» son cosas distintas (ADR 0029): que las tareas que
+  # citan un requisito estén marcadas no mide nada. Solo figura como comprobado un
+  # requisito con su fila en «Controles de umbral» de plan.md cuyo control está: un
+  # test o una comprobación de make ci que existe en la cabeza, con make ci en verde,
+  # o un umbral del job de evals publicado, cumplido y que hace fallar el job.
   echo "## 6. Trazabilidad"
   echo
-  echo "| Requisito | Tareas | Aceptación | Estado |"
-  echo "|---|---|---|---|"
-  local req tareas acept est t e
+  local filas_ctl req tareas acept est t e toks tok r ctl no sin
+  filas_ctl=$(controles_de_umbral "$d/plan.md")
+  echo "**Estado**: «tareas hechas» solo dice que las tareas que citan el requisito están marcadas; nada del run lo ha medido. «comprobado por su control» exige su fila en «Controles de umbral» de \`plan.md\` y que el control esté: un test o una comprobación de \`make ci\` que existe en la cabeza, con \`make ci\` en verde, o un umbral que el job de evals publica, cumple y hace fallar el job (ADR 0029). «UMBRAL NO CUMPLIDO» y «CONTROL SIN VERIFICAR» son lo que hay que mirar."
+  if ! grep -q '^## Controles de umbral' "$d/plan.md" 2>/dev/null; then
+    echo
+    echo "\`plan.md\` no tiene «Controles de umbral» (runs anteriores al workflow 2.2.0): ningún requisito figura como comprobado por un control."
+  fi
+  echo
+  echo "| Requisito | Tareas | Aceptación | Estado | Control de umbral |"
+  echo "|---|---|---|---|---|"
   for req in $(grep -oE '\*\*(FR|SC)-[0-9]+\*\*' "$d/spec.md" | tr -d '*' | awk '!v[$0]++'); do
-    tareas=""; est=hecho
+    tareas=""; est="tareas hechas"
     while IFS= read -r l; do
       t=$(printf '%s' "$l" | grep -oE 'T[0-9]+' | head -1)
       ids_de_linea "$l" | grep -qx "$req" || continue
@@ -296,17 +391,40 @@ informe() {
     done < <(grep -E '^[[:space:]]*- \[[ xX]\] T[0-9]+' "$d/tasks.md")
     [ -n "$tareas" ] || est="SIN TAREA"
     acept=$(grep -lwF "$req" "$d"/aceptacion/* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ' || true)
-    echo "| $req |${tareas:- —} | ${acept:-—} | $est |"
+    # Controles de las filas de «Controles de umbral» que nombran este requisito.
+    toks=""; ctl=""; no=0; sin=0
+    while IFS="$(printf '\t')" read -r celda donde; do
+      [ -n "$celda" ] || continue
+      ids_de_linea "$celda" | grep -qx "$req" || continue
+      toks="$toks $(controles_de_celda "$donde" | tr '\n' ' ')"
+      [ -n "$(controles_de_celda "$donde")" ] || { sin=1; ctl="$ctl; la fila no dice dónde vive el control"; }
+    done <<<"$filas_ctl"
+    for tok in $toks; do
+      r=$(estado_control "$tok")
+      case "${r%%|*}" in no) no=1;; sin) sin=1;; esac
+      ctl="$ctl; ${r#*|}"
+    done
+    ctl=${ctl#; }
+    if [ "$est" = "tareas hechas" ] && [ -n "$ctl" ]; then
+      if [ "$no" = 1 ]; then est="UMBRAL NO CUMPLIDO"
+      elif [ "$sin" = 1 ]; then est="CONTROL SIN VERIFICAR"
+      else est="comprobado por su control"; fi
+    fi
+    echo "| $req |${tareas:- —} | ${acept:-—} | $est | ${ctl:-—} |"
   done
   echo
 
   echo "## 7. Cambios posteriores a la revisión final"
   echo
-  local ult
+  local ult h hc s fuera
   ult=$(git log --format=%H --grep="^docs($hito): veredictos de la revisión final" -n 1 main..HEAD || true)
   if [ -n "$ult" ] && [ -n "$(git log --oneline "$ult"..HEAD)" ]; then
-    echo "Commits que ningún juez vio (correcciones del cierre y este informe):"; echo
-    git log --format='- `%h` %s' "$ult"..HEAD
+    echo "Commits posteriores a los veredictos, que ningún juez juzgó (correcciones del cierre, registros y este informe), con lo que cada uno toca fuera de \`gates/\`:"; echo
+    git log --format='%H %h %s' "$ult"..HEAD | while read -r h hc s; do
+      fuera=$(git diff-tree --no-commit-id --name-only -r "$h" | grep -v "^$d/gates/" || true)
+      if [ -z "$fuera" ]; then echo "- \`$hc\` $s: solo registros de \`gates/\`."
+      else echo "- \`$hc\` $s: $(printf '%s\n' "$fuera" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')."; fi
+    done
   else
     echo "Ninguno."
   fi
