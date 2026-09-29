@@ -2566,12 +2566,6 @@ const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueb
 const parrafoDeLaVersionUlterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n ulterior " +
 	"derivada de la grabaci\xc3\xb3n de H4.]"
 
-// parrafoDeLaVersionAnterior es el que marca como sintética la redacción de la
-// derivada lpac-a21-version-anterior, el grafo previo de la eval de la consulta
-// repetida: el último de su versión.
-const parrafoDeLaVersionAnterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n anterior " +
-	"derivada de la grabaci\xc3\xb3n de H4.]"
-
 // grabacionDerivada es una derivada con lo que dice su nombre: la carpeta en la
 // que está, el nombre de la grabación de H4 que sustituye y la comprobación de
 // que, leída con boe, solo cambia eso.
@@ -2582,13 +2576,12 @@ type grabacionDerivada struct {
 	comprueba func(t *testing.T, original, derivada string)
 }
 
-// grabacionesDerivadas son las derivadas del e2e y la del grafo previo de la eval
-// de la consulta repetida (research.md D22), cada una con lo que dice su nombre:
-// version-posterior, la fecha de vigencia 20250101 y el párrafo sintético al
-// final del texto, con la huella de ese texto; version-ulterior, lo mismo con la
-// fecha 20260101 y su párrafo; sin-eli, la url_eli vacía; eli-sin-segmento, una
-// url_eli sin el segmento eli; y lpac-a21-version-anterior, la fecha de vigencia
-// 20151002 y su párrafo sintético al final del texto, con la huella de ese texto.
+// grabacionesDerivadas son las derivadas del e2e (research.md D22), cada una con
+// lo que dice su nombre: version-posterior, la fecha de vigencia 20250101 y el
+// párrafo sintético al final del texto, con la huella de ese texto;
+// version-ulterior, lo mismo con la fecha 20260101 y su párrafo; sin-eli, la
+// url_eli vacía; y eli-sin-segmento, una url_eli sin el segmento eli. Las del
+// grafo previo de las evals no caben aquí: son las de derivadasDelGrafoPrevio.
 func grabacionesDerivadas() []grabacionDerivada {
 	return []grabacionDerivada{
 		versionDelArticulo21(filepath.Join(derivadasDelE2E, "version-posterior"), "20250101",
@@ -2617,8 +2610,6 @@ func grabacionesDerivadas() []grabacionDerivada {
 					})
 			},
 		},
-		versionDelArticulo21(filepath.Join(grafosPreviosDeLasEvals, "lpac-a21-version-anterior"), "20151002",
-			parrafoDeLaVersionAnterior),
 	}
 }
 
@@ -2678,20 +2669,23 @@ func redaccionOriginalDelArticulo118() derivadaDelGrafoPrevio {
 }
 
 // TestGrabacionesDerivadas es el control de derivación de research.md D22 (FR-090,
-// FR-095): cada derivada del e2e, y cada una del grafo previo de una eval
-// (FR-085), lleva el nombre de una grabación de H4 y, servida en su lugar, boe
-// la lee y da el mismo Articulo o los mismos metadatos que la grabación salvo
-// exactamente lo que dice su nombre (grabacionesDerivadas). Todo fichero de las
-// dos carpetas de derivadas tiene su comprobación y toda comprobación, su
-// fichero: una derivada nueva que no dijera qué cambia no pasa.
-// La premisa de cada una dice que no pasa en vacío: lo que dice su nombre cambia
-// algo de lo que da la grabación.
-//
-// Las derivadas del grafo previo de derivadasDelGrafoPrevio pasan todas por
+// FR-095) y de research.md D13 de H7.2. Cada derivada del e2e lleva el nombre de
+// una grabación de H4 y, servida en su lugar, boe la lee y da el mismo Articulo
+// o los mismos metadatos que la grabación salvo exactamente lo que dice su
+// nombre (grabacionesDerivadas); la premisa de cada una dice que no pasa en
+// vacío: lo que dice su nombre cambia algo de lo que da la grabación. Las del
+// grafo previo de las evals (derivadasDelGrafoPrevio) pasan todas por
 // compruebaLaDerivadaDelGrafoPrevio: son, byte a byte, la derivación de su
 // grabación, y dan una redacción que la grabada trae, la de su fecha (FR-010,
-// FR-011; research.md D13 de H7.2). Con -actualizar-derivadas, el test las
-// escribe antes desde su grabación.
+// FR-011). Con -actualizar-derivadas, el test las escribe antes desde su
+// grabación.
+//
+// La carpeta decide la comprobación (FR-013): los ficheros de derivadasDelE2E
+// son los de las entradas del e2e, y los de grafosPreviosDeLasEvals, los de las
+// del grafo previo, en los dos sentidos. Todo fichero tiene la comprobación de
+// su carpeta y toda comprobación, su fichero: una derivada nueva que no dijera
+// qué cambia no pasa, y una entrada del e2e con fichero en la carpeta del grafo
+// previo falla nombrada.
 func TestGrabacionesDerivadas(t *testing.T) {
 	t.Parallel()
 
@@ -2706,20 +2700,19 @@ func TestGrabacionesDerivadas(t *testing.T) {
 	}
 
 	derivadas := grabacionesDerivadas()
-	comprobadas := make([]string, 0, len(derivadas)+len(delGrafoPrevio))
 
+	delE2E := make([]string, 0, len(derivadas))
 	for _, derivada := range derivadas {
-		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta, derivada.fichero))
+		delE2E = append(delE2E, filepath.Join(derivada.carpeta, derivada.fichero))
 	}
 
+	previas := make([]string, 0, len(delGrafoPrevio))
 	for _, derivada := range delGrafoPrevio {
-		comprobadas = append(comprobadas, filepath.Join(derivada.carpeta(), derivada.fichero))
+		previas = append(previas, filepath.Join(derivada.carpeta(), derivada.fichero))
 	}
 
-	assert.ElementsMatch(t,
-		slices.Concat(ficherosDeLaCarpeta(t, derivadasDelE2E), ficherosDeLaCarpeta(t, grafosPreviosDeLasEvals)),
-		comprobadas,
-		"cada derivada del e2e y del grafo previo de una eval tiene su comprobación, y cada comprobación, su derivada")
+	compruebaLaCarpetaConSusEntradas(t, derivadasDelE2E, "del e2e", delE2E)
+	compruebaLaCarpetaConSusEntradas(t, grafosPreviosDeLasEvals, "del grafo previo", previas)
 
 	for _, derivada := range derivadas {
 		t.Run(filepath.Base(derivada.carpeta), func(t *testing.T) {
@@ -2739,6 +2732,44 @@ func TestGrabacionesDerivadas(t *testing.T) {
 			compruebaLaDerivadaDelGrafoPrevio(t, derivada)
 		})
 	}
+}
+
+// compruebaLaCarpetaConSusEntradas exige que los ficheros de la carpeta sean los
+// de las entradas de su lista, en los dos sentidos: cada entrada, con su
+// fichero en la carpeta, y cada fichero, con su entrada. Así la carpeta, y no la
+// clase de la entrada, decide la comprobación: una entrada de otra lista con
+// fichero en esta falla nombrada, como entrada sin fichero en la carpeta de su
+// lista y con su fichero sin entrada en esta (contracts/eval-y-derivada.md §3
+// de H7.2).
+func compruebaLaCarpetaConSusEntradas(t *testing.T, carpeta, lista string, entradas []string) {
+	t.Helper()
+
+	ficheros := ficherosDeLaCarpeta(t, carpeta)
+
+	assert.Empty(t, sinPareja(entradas, ficheros), "entradas %s sin fichero en %s", lista, carpeta)
+	assert.Empty(t, sinPareja(ficheros, entradas), "ficheros de %s sin entrada %s", carpeta, lista)
+}
+
+// sinPareja son las rutas que quedan de las primeras al emparejar cada una con
+// una igual de las segundas, una a una: una ruta repetida en las primeras
+// necesita otras tantas en las segundas.
+func sinPareja(primeras, segundas []string) []string {
+	pendientes := slices.Clone(segundas)
+
+	var sobran []string
+
+	for _, ruta := range primeras {
+		posicion := slices.Index(pendientes, ruta)
+		if posicion == -1 {
+			sobran = append(sobran, ruta)
+
+			continue
+		}
+
+		pendientes = slices.Delete(pendientes, posicion, posicion+1)
+	}
+
+	return sobran
 }
 
 // compruebaLaDerivadaDelGrafoPrevio es lo que TestGrabacionesDerivadas exige a
