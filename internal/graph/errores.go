@@ -123,23 +123,9 @@ func errorInutilizable(operacion, ruta string, causa error) *Error {
 	return nuevoError(schema.ClaseInesperado, operacion, ruta, motivo, causa)
 }
 
-// errorEsDirectorio es la variante de la fila 2 en que world.db es un
-// directorio (FR-010).
-func errorEsDirectorio(operacion, ruta string) *Error {
-	return nuevoError(schema.ClaseInesperado, operacion, ruta,
-		nombrar(ruta)+" es un directorio y no una base de datos utilizable; no se modifica", nil)
-}
-
-// errorDeTransaccionInterrumpida es el diario de rollback caliente que la
-// lectura en solo lectura no puede deshacer (§6, fila 3; research.md D10, V43).
-func errorDeTransaccionInterrumpida(ruta string, causa error) *Error {
-	return nuevoError(schema.ClaseInesperado, operacionLeer, ruta,
-		nombrar(ruta)+" tiene una transacción interrumpida sin deshacer; no se modifica", causa)
-}
-
 // errorDeVersionPosterior es el esquema de una versión que este binario no
-// conoce (§6, fila 4; FR-012): quien lo escribió sabía algo que aquí no se
-// sabe, y no se toca.
+// conoce (§6; FR-012): quien lo escribió sabía algo que aquí no se sabe, y no
+// se toca.
 func errorDeVersionPosterior(operacion, ruta string, encontrada, conocida int64) *Error {
 	return nuevoError(schema.ClaseInesperado, operacion, ruta, fmt.Sprintf(
 		"%s tiene el esquema en la versión %d y este binario conoce la %d: no se modifica",

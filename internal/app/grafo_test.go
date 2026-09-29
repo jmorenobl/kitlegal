@@ -438,8 +438,8 @@ type comprobacionDelGrafo struct {
 // se lee una vez por invocación y es el instante de check; los ids que no están
 // (3) y los argumentos que no valen (2); --no-graph, --offline y el nombre del
 // programa, que no cambian nada; la tabla mínima sin --json y sin texto legal;
-// --dry-run, que lee igual; el plazo agotado (4); y el reloj que falta y lo que
-// ninguna entrega guarda (1). Ningún verbo cambia un byte del directorio.
+// --dry-run, que lee igual; el plazo agotado (4); y el reloj que falta (1).
+// Ningún verbo cambia un byte del directorio.
 func TestAppletGrafo(t *testing.T) {
 	t.Parallel()
 
@@ -457,7 +457,6 @@ func TestAppletGrafo(t *testing.T) {
 		{nombre: "dry-run", comprobar: compruebaEnsayoDelGrafo},
 		{nombre: "plazo-agotado", comprobar: compruebaPlazoDelGrafo},
 		{nombre: "sin-reloj", comprobar: compruebaGrafoSinReloj},
-		{nombre: "lo-que-ninguna-entrega-guarda", comprobar: compruebaGrafoIncomprobable},
 	} {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
@@ -920,40 +919,14 @@ func compruebaGrafoSinReloj(t *testing.T) {
 	assert.Empty(t, entradas)
 }
 
-// compruebaGrafoIncomprobable fija el 1 de check sobre un world.db que se lee
-// pero que guarda lo que ninguna entrega escribe: una fecha de consulta que no
-// es RFC 3339 (research.md D15; gates/supuestos.md, T014). El mensaje nombra
-// world.db y no el id del nodo, y nada cambia. La premisa, que show lee esa base
-// y devuelve el nodo con esa fecha, dice que el fallo es de la comprobación y
-// no de una base que no se puede abrir.
-func compruebaGrafoIncomprobable(t *testing.T) {
-	t.Helper()
-
-	directorio := t.TempDir()
-	escribirFicheroDePrueba(t, filepath.Join(directorio, "world.db"), baseConUnaFechaIlegible(t))
-
-	antes := huellasDelDirectorio(t, directorio)
-	registro := registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio)
-
-	show := invocar(t, registro, argvDelGrafo("show", idDeLaNorma, "--json")...)
-	assert.Contains(t, datosFirmados(t, show, instanteDelGrafo), `"primera_observacion":"ayer"`,
-		"premisa: la base se lee")
-
-	check := invocar(t, registro, argvDelGrafo("check", "--json")...)
-	mensaje := exigirFalloDelGrafo(t, check, schema.ClaseInesperado, 1, instanteDelGrafo)
-	assert.True(t, strings.HasPrefix(mensaje, "grafo: world.db "), "el mensaje nombra world.db: %q", mensaje)
-	assert.NotContains(t, mensaje, idDeLaNorma, "ni el id del nodo, que puede ser de una Persona")
-
-	assert.Equal(t, antes, huellasDelDirectorio(t, directorio))
-}
-
 // TestCodigosDelGrafo fija los códigos de lo que no deja leer world.db, con las
 // dependencias de la raíz de producción y la regla de ubicación de la caché
-// (contracts/applet-graph.md §4; FR-010, FR-011; SC-011):
+// (contracts/applet-graph.md §4; H7 FR-011, FR-012; H7.1 FR-070, SC-011):
 //
-//   - world.db que no es una base de datos, que es un directorio o cuyo esquema
-//     es de una versión posterior: 1 en los tres verbos, con y sin --no-graph,
-//     con el mensaje que nombra su ruta y el directorio igual byte a byte;
+//   - world.db que no es una base de datos —el vehículo de la regla genérica— o
+//     cuyo esquema es de una versión posterior: 1 en los tres verbos, con y sin
+//     --no-graph, con el mensaje que nombra su ruta y el directorio igual byte a
+//     byte;
 //   - KITLEGAL_CACHE_DIR presente y vacía, o que nombra un fichero, y sin ella y
 //     sin HOME: 2 en los tres verbos, con y sin --no-graph, con el mensaje que
 //     dice que no se puede ubicar world.db.
@@ -1022,7 +995,8 @@ type casoInutilizable struct {
 	conCausa bool
 }
 
-// casosInutilizables son los tres de SC-011.
+// casosInutilizables son el de H7.1 SC-011, lo que no es una base de datos, y
+// el esquema posterior de H7 FR-012.
 func casosInutilizables() []casoInutilizable {
 	return []casoInutilizable{
 		{
@@ -1030,19 +1004,10 @@ func casosInutilizables() []casoInutilizable {
 			preparar: func(t *testing.T, ruta string) {
 				t.Helper()
 
-				escribirFicheroDePrueba(t, ruta, []byte("Este fichero no es una base de datos SQLite.\n"))
+				escribirFicheroDePrueba(t, ruta, noEsUnaBase)
 			},
 			motivo:   "no es una base de datos utilizable",
 			conCausa: true,
-		},
-		{
-			nombre: "es-un-directorio",
-			preparar: func(t *testing.T, ruta string) {
-				t.Helper()
-
-				require.NoError(t, os.Mkdir(ruta, 0o700))
-			},
-			motivo: "es un directorio y no una base de datos utilizable; no se modifica",
 		},
 		{
 			nombre: "esquema-de-una-version-posterior",
@@ -1161,12 +1126,16 @@ func sinWorldDB(t *testing.T, _ string) {
 	t.Helper()
 }
 
-// conWorldDBDirectorio pone en el lugar de world.db un directorio, que no se
-// puede leer (contracts/almacen-world-db.md §6).
-func conWorldDBDirectorio(t *testing.T, directorio string) {
+// noEsUnaBase es el contenido de un world.db que no es una base de datos
+// SQLite: el vehículo de la regla genérica (H7.1 FR-070).
+var noEsUnaBase = []byte("Este fichero no es una base de datos SQLite.\n")
+
+// conWorldDBQueNoEsUnaBase pone en el lugar de world.db un fichero que no es
+// una base de datos, que no se puede leer (contracts/almacen-world-db.md §6).
+func conWorldDBQueNoEsUnaBase(t *testing.T, directorio string) {
 	t.Helper()
 
-	require.NoError(t, os.Mkdir(filepath.Join(directorio, "world.db"), 0o700))
+	escribirFicheroDePrueba(t, filepath.Join(directorio, "world.db"), noEsUnaBase)
 }
 
 // TestSalidaDelGrafoContraSchemas es el punto 4 de la Definition of Done sobre
@@ -1314,7 +1283,7 @@ func salidasDelGrafo() []salidaDelGrafo {
 			[]string{`"clase":"fuente-no-disponible"`},
 		},
 		{
-			"fallo-1-world-db-es-un-directorio", conWorldDBDirectorio, instanteDelGrafo, 1,
+			"fallo-1-world-db-no-es-una-base", conWorldDBQueNoEsUnaBase, instanteDelGrafo, 1,
 			[]string{"stats"},
 			[]string{`"clase":"inesperado"`},
 		},
@@ -2527,34 +2496,6 @@ func baseDeUnaVersionPosterior(t *testing.T) []byte {
 			{rowid: 2, valores: []any{nil, "2026-09-02T00:00:00Z"}},
 		},
 	})
-}
-
-// baseConUnaFechaIlegible es un world.db con el esquema en la versión 1 y un
-// nodo cuya fecha de consulta, «ayer», no es RFC 3339: lo que ninguna entrega
-// escribe, porque ValidarLote la rechaza.
-func baseConUnaFechaIlegible(t *testing.T) []byte {
-	t.Helper()
-
-	// Los campos de observación de nodes y de edges, los de la migración 0001.
-	observaciones := "first_seen TEXT, first_source TEXT, first_url TEXT, last_seen TEXT, source TEXT, url TEXT," +
-		" ttl INTEGER)"
-
-	return baseSQLite(t,
-		tablaSQLite{
-			nombre:    "schema_version",
-			sentencia: sentenciaDeSchemaVersion,
-			filas:     []filaSQLite{{rowid: 1, valores: []any{nil, "2026-09-01T00:00:00Z"}}},
-		},
-		tablaSQLite{
-			nombre:    "nodes",
-			sentencia: "CREATE TABLE nodes (id TEXT, type TEXT, props TEXT, " + observaciones,
-			filas: []filaSQLite{{rowid: 1, valores: []any{
-				idDeLaNorma, grafo.TipoNorma, `{"identificador":"` + identificadorDeLaNorma + `"}`,
-				"ayer", fuenteDeLaNorma, urlDeLaNorma, "ayer", fuenteDeLaNorma, urlDeLaNorma, nil,
-			}}},
-		},
-		tablaSQLite{nombre: "edges", sentencia: "CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT, " + observaciones},
-	)
 }
 
 // baseSQLite escribe la base con las tablas dadas: la página 1 con la cabecera

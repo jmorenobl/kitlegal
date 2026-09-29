@@ -7,7 +7,6 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -39,20 +38,20 @@ type Lectura struct {
 	cerrada bool
 }
 
-// Leer abre world.db para leerlo sin dejar rastro (contracts/almacen-world-db.md
-// §3; FR-004, FR-005, FR-010, FR-012, FR-014): resuelve la ruta en este
-// instante, decide sin abrir SQLite si hay algo que abrir y con qué modo, y lo
-// abre leyendo la versión de su esquema. Sin auxiliares no cambia ni un byte de
-// nada en el directorio, pueda el proceso escribir world.db o no y también si es
-// un enlace simbólico; con auxiliares de WAL, lo único que cambia o aparece es
-// lo que SQLite escribe en ellos para leer lo confirmado —la desviación
-// declarada de research.md D10—, y world.db, el -wal y el diario quedan como
-// estaban.
+// Leer abre world.db para leerlo (contracts/almacen-world-db.md §3; H7 FR-004,
+// FR-005, FR-012, FR-014; H7.1 FR-070): resuelve la ruta en este instante,
+// decide sin abrir SQLite si hay algo que abrir y, por la existencia de
+// world.db-wal, con qué modo, y lo abre leyendo la versión de su esquema. Sobre
+// lo que dejan las entregas, sin -wal no cambia ni un byte de nada en el
+// directorio; con él, lo único que cambia o aparece es el -shm que SQLite
+// escribe para leer lo confirmado —la desviación declarada de research.md D10
+// de H7—, y world.db y el -wal quedan como estaban.
 //
 // Un fallo es un *Error con su clase: la ruta no resoluble, «argumentos»; el
-// plazo agotado, «fuente-no-disponible»; world.db que es un directorio, que no
-// es una base utilizable, que tiene una transacción interrumpida sin deshacer o
-// un esquema posterior, y la espera propia agotada, «inesperado».
+// plazo agotado, «fuente-no-disponible»; world.db con un esquema posterior o
+// que el binario no puede usar por cualquier otra causa —la regla genérica,
+// sin ninguna promesa sobre sus bytes—, y la espera propia agotada,
+// «inesperado».
 func Leer(ctx context.Context, opciones ...Opcion) (*Lectura, error) {
 	ruta, err := ubicar(operacionLeer, opciones)
 	if err != nil {
@@ -68,7 +67,7 @@ func Leer(ctx context.Context, opciones ...Opcion) (*Lectura, error) {
 		return &Lectura{ruta: ruta}, nil
 	}
 
-	base, err := abrirParaLeer(ctx, ruta, decidida)
+	base, err := abrirParaLeer(ctx, ruta, decidida.modo)
 	if err != nil {
 		return nil, err
 	}
@@ -346,9 +345,9 @@ func leerInstantanea(ctx context.Context, tx *sql.Tx) (grafo.Instantanea, error)
 				return nodo, err
 			}
 
-			nodo.Vigencia, err = vigenciaGuardada(ttl)
+			nodo.Vigencia = vigenciaGuardada(ttl)
 
-			return nodo, err
+			return nodo, nil
 		})
 	if err != nil {
 		return grafo.Instantanea{}, err
@@ -419,17 +418,13 @@ func datosGuardados(canonicos string) (map[string]any, error) {
 }
 
 // vigenciaGuardada es la vigencia de una última observación a partir de su
-// columna ttl, en segundos: sin valor, cero —no se declaró— (FR-065). Una
-// negativa, o una que no cabe en una duración, no la escribe ninguna entrega: es
-// una base dañada.
-func vigenciaGuardada(ttl sql.NullInt64) (time.Duration, error) {
+// columna ttl, en segundos: sin valor, cero —no se declaró— (FR-065). La
+// columna la escribe la entrega a partir de la vigencia del lote; lo que no se
+// puede leer como entero ya lo devuelve la lectura de la fila (H7.1 FR-070).
+func vigenciaGuardada(ttl sql.NullInt64) time.Duration {
 	if !ttl.Valid {
-		return 0, nil
+		return 0
 	}
 
-	if ttl.Int64 < 0 || ttl.Int64 > math.MaxInt64/int64(time.Second) {
-		return 0, fmt.Errorf("la vigencia guardada de %d s no es una vigencia", ttl.Int64)
-	}
-
-	return time.Duration(ttl.Int64) * time.Second, nil
+	return time.Duration(ttl.Int64) * time.Second
 }

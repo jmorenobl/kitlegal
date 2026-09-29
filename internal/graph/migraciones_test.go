@@ -211,48 +211,6 @@ func TestMigrar(t *testing.T) {
 		assert.Equal(t, int64(2), versionDe(t, base))
 	})
 
-	t.Run("una versión negativa no es una base utilizable", func(t *testing.T) {
-		t.Parallel()
-
-		ruta, base := baseEnWAL(t)
-
-		_, err := base.ExecContext(t.Context(),
-			"CREATE TABLE schema_version (version INTEGER PRIMARY KEY, aplicada_en TEXT NOT NULL);"+
-				"INSERT INTO schema_version VALUES (-1, '2030-01-01T00:00:00Z')")
-		require.NoError(t, err)
-
-		tx := empezar(t, base)
-		err = migrar(t.Context(), tx, ruta)
-		require.NoError(t, tx.Rollback())
-
-		var fallo *Error
-
-		require.ErrorAs(t, err, &fallo)
-		assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-		assert.Contains(t, fallo.Error(), "no es una base de datos utilizable")
-		assert.Equal(t, []string{"schema_version"}, tablasDe(t, base))
-	})
-
-	t.Run("una tabla schema_version ajena no es una base utilizable", func(t *testing.T) {
-		t.Parallel()
-
-		ruta, base := baseEnWAL(t)
-
-		_, err := base.ExecContext(t.Context(), "CREATE TABLE schema_version (ajena TEXT)")
-		require.NoError(t, err)
-
-		tx := empezar(t, base)
-		err = migrar(t.Context(), tx, ruta)
-		require.NoError(t, tx.Rollback())
-
-		var fallo *Error
-
-		require.ErrorAs(t, err, &fallo)
-		assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
-		assert.Equal(t, fmt.Sprintf("grafo: %q no es una base de datos utilizable: %s", ruta, fallo.Causa), fallo.Error())
-		assert.Equal(t, []string{"schema_version"}, tablasDe(t, base))
-	})
-
 	t.Run("el contexto terminado es el plazo agotado y no deja nada", func(t *testing.T) {
 		t.Parallel()
 

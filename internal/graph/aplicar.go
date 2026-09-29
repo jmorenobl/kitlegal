@@ -416,10 +416,7 @@ func leerNodo(ctx context.Context, tx *sql.Tx, llegado grafo.RegistroDeNodo) (gr
 	}
 
 	guardado.PrimeraObservacion, guardado.UltimaObservacion = historia.primera, historia.ultima
-
-	if guardado.Vigencia, err = vigenciaGuardada(historia.ttl); err != nil {
-		return grafo.RegistroDeNodo{}, false, err
-	}
+	guardado.Vigencia = vigenciaGuardada(historia.ttl)
 
 	return guardado, true, nil
 }
@@ -465,10 +462,7 @@ func leerArista(ctx context.Context, tx *sql.Tx, llegada grafo.RegistroDeArista)
 	}
 
 	guardada.PrimeraObservacion, guardada.UltimaObservacion = historia.primera, historia.ultima
-
-	if guardada.Vigencia, err = vigenciaGuardada(historia.ttl); err != nil {
-		return grafo.RegistroDeArista{}, false, err
-	}
+	guardada.Vigencia = vigenciaGuardada(historia.ttl)
 
 	return guardada, true, nil
 }

@@ -55,23 +55,6 @@ func TestErrores(t *testing.T) {
 			causa:     causa,
 		},
 		{
-			nombre:    "es un directorio",
-			fallo:     errorEsDirectorio(operacionLeer, ruta),
-			mensaje:   "grafo: " + citada + " es un directorio y no una base de datos utilizable; no se modifica",
-			clase:     schema.ClaseInesperado,
-			operacion: operacionLeer,
-			ruta:      ruta,
-		},
-		{
-			nombre:    "diario de rollback caliente al leer",
-			fallo:     errorDeTransaccionInterrumpida(ruta, causa),
-			mensaje:   "grafo: " + citada + " tiene una transacción interrumpida sin deshacer; no se modifica",
-			clase:     schema.ClaseInesperado,
-			operacion: operacionLeer,
-			ruta:      ruta,
-			causa:     causa,
-		},
-		{
 			nombre:    "esquema posterior",
 			fallo:     errorDeVersionPosterior(operacionLeer, ruta, 2, 1),
 			mensaje:   "grafo: " + citada + " tiene el esquema en la versión 2 y este binario conoce la 1: no se modifica",

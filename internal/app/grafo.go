@@ -174,7 +174,7 @@ func (a *argumentosDeCheck) Ejecutar(ctx context.Context, _ schema.Contexto, _ *
 			hallazgos, err := grafo.Comprobar(instantanea, ahora)
 			if err != nil {
 				return nil, fmt.Errorf("grafo: world.db guarda lo que ninguna entrega escribe y no se puede"+
-					" comprobar; no se modifica: %w", err)
+					" comprobar: %w", err)
 			}
 
 			return hallazgos, nil

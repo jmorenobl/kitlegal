@@ -1,24 +1,24 @@
 //go:build integration
 
 // Las pruebas de este fichero son la matriz de integración del almacén del
-// grafo del mundo por su API pública (FR-088; contracts/almacen-world-db.md §7;
-// research.md D33, V43-V49): lo que ve quien usa Nuevo, Apply, Leer y los
-// verbos de una Lectura sobre un world.db de verdad, con los permisos reales
-// del sistema de ficheros, con otras conexiones abiertas a la vez y con los
-// auxiliares que deja un escritor interrumpido.
+// grafo del mundo por su API pública (FR-088; contracts/almacen-world-db.md §7
+// de H7.1; research.md D33, V44 y V49 de H7): lo que ve quien usa Nuevo, Apply,
+// Leer y los verbos de una Lectura sobre un world.db de verdad, con otras
+// conexiones abiertas a la vez y con los auxiliares que deja un escritor
+// interrumpido.
 //
 // Lleva la etiqueta integration, como la matriz de la caché: make ci la ejecuta
 // con test-integration y el lint la alcanza con run.build-tags. Todo world.db
-// vive bajo t.TempDir(), nunca en el directorio de la cuenta, y cada permiso
-// que una prueba cambia se restaura cuando la prueba acaba, antes de que
-// t.TempDir lo retire.
+// vive bajo t.TempDir(), nunca en el directorio de la cuenta, y el permiso del
+// directorio que una prueba quita se restaura cuando la prueba acaba, antes de
+// que t.TempDir lo retire.
 //
 // Los estados se preparan con la propia API siempre que se puede —el world.db
 // que deja una entrega, el WAL que deja una entrega mientras otra invocación
 // sigue abierta— y con una conexión de SQLite de la prueba solo para lo que
-// ninguna entrega escribe: otra invocación que retiene world.db, la base de
-// otro programa, un esquema posterior o el diario de un escritor en modo
-// rollback.
+// ninguna entrega completa escribe: otra invocación que retiene world.db, un
+// esquema posterior o una creación interrumpida después de poner world.db en
+// WAL.
 //
 // Va en el paquete externo graph_test: lo que se mide es lo que ve quien usa la
 // superficie exportada.
@@ -80,11 +80,11 @@ const (
 
 	semana = 7 * 24 * time.Hour
 
-	// El nombre de la base y los sufijos con que SQLite nombra sus auxiliares.
+	// El nombre de la base y los sufijos con que SQLite nombra sus auxiliares
+	// en WAL.
 	ficheroDelGrafo         = "world.db"
 	sufijoWAL               = "-wal"
 	sufijoMemoriaCompartida = "-shm"
-	sufijoDiario            = "-journal"
 
 	// operacionLeer y operacionEscribir son los valores de graph.Error.Operacion.
 	operacionLeer     = "leer"
@@ -93,6 +93,18 @@ const (
 	// tramo es lo que cada conexión de la prueba espera dentro de SQLite, lo
 	// mismo que espera el almacén en cada intento.
 	tramo = "_pragma=busy_timeout(100)"
+
+	// lecturaSinWAL son los ajustes de la cadena con que la lectura abre un
+	// world.db sin -wal (contracts/almacen-world-db.md §3, paso 2): lee sin
+	// poder escribir y no deja ningún auxiliar al cerrar (H7.1 research.md V8).
+	lecturaSinWAL = "mode=rw&" + tramo + "&_pragma=query_only(1)"
+
+	// Las dos formas en que la otra invocación de una prueba retiene world.db:
+	// con una transacción de escritura, que no deja entregar a nadie, y además
+	// en locking_mode EXCLUSIVE, que tampoco deja abrirlo a ningún lector
+	// (H7.1 research.md D22, V10).
+	reteniendoLaEscritura = tramo + "&_txlock=immediate"
+	enExclusiva           = tramo + "&_pragma=locking_mode(EXCLUSIVE)&_txlock=immediate"
 
 	// esperaPropia es la del almacén (contracts/almacen-world-db.md §4,
 	// «Esperas»), y plazoCorto, un plazo que termina mucho antes que ella.
@@ -106,7 +118,6 @@ const (
 	permisosDeLaCuenta   fs.FileMode = 0o600
 	permisosDeDirectorio fs.FileMode = 0o700
 	permisosSinEscritura fs.FileMode = 0o500
-	permisoDeLectura     fs.FileMode = 0o400
 )
 
 // codigoDeLaClase es el código de salida con que el kernel traduce cada clase
@@ -381,24 +392,14 @@ func estadoDelArbol(t *testing.T, raiz string) map[string]string {
 	return estado
 }
 
-// describir es una entrada por su tipo y sus permisos y, además: un enlace, por
-// su destino; un fichero que se deja leer, por la huella de sus bytes; y uno
-// que no, por su tamaño, sin abrirlo.
+// describir es una entrada por su tipo y sus permisos y, si es un fichero, por
+// la huella de sus bytes.
 func describir(t *testing.T, ruta string, info fs.FileInfo) string {
 	t.Helper()
 
 	descripcion := info.Mode().String()
-
-	switch {
-	case info.Mode()&fs.ModeSymlink != 0:
-		destino, err := os.Readlink(ruta)
-		require.NoError(t, err)
-
-		return descripcion + " -> " + destino
-	case !info.Mode().IsRegular():
+	if !info.Mode().IsRegular() {
 		return descripcion
-	case info.Mode().Perm()&permisoDeLectura == 0:
-		return descripcion + " " + strconv.FormatInt(info.Size(), 10) + " bytes que no se dejan leer"
 	}
 
 	return descripcion + " " + huellaDelFichero(t, ruta)
@@ -480,12 +481,12 @@ func nombresEn(t *testing.T, directorio string) []string {
 	return nombres
 }
 
-// compruebaSinAuxiliares exige que junto a world.db no quede ninguno de sus
-// tres auxiliares.
+// compruebaSinAuxiliares exige que junto a world.db no quede ni su -wal ni su
+// -shm.
 func compruebaSinAuxiliares(t *testing.T, ruta string) {
 	t.Helper()
 
-	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida, sufijoDiario} {
+	for _, sufijo := range []string{sufijoWAL, sufijoMemoriaCompartida} {
 		require.NoFileExists(t, ruta+sufijo)
 	}
 }
@@ -554,16 +555,6 @@ func ejecutar(t *testing.T, ruta, sentencias string) {
 	require.NoError(t, base.Close())
 }
 
-// fijarDiario pone la base en el modo de diario dado y comprueba que lo está.
-func fijarDiario(t *testing.T, base *sql.DB, diario string) {
-	t.Helper()
-
-	var modo string
-
-	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode="+diario).Scan(&modo))
-	require.Equal(t, diario, modo)
-}
-
 // otraInvocacionAbierta abre sobre world.db la conexión de otra invocación, lee
 // con ella —así retiene el WAL— y la deja abierta hasta el final de la prueba.
 // Mientras siga abierta, ninguna entrega es la última conexión: la que cierra no
@@ -580,16 +571,16 @@ func otraInvocacionAbierta(t *testing.T, ruta string) *sql.DB {
 	return otra
 }
 
-// retener abre la conexión de otra invocación y empieza en ella una
-// transacción con el bloqueo dado, en la que lee, hasta que se llama a lo que
-// devuelve, que la deshace y cierra la conexión, o hasta que termina la prueba.
-// «deferred» retiene la lectura, que no deja a nadie tomar world.db en
-// exclusiva; «immediate», la escritura; y «exclusive», sobre una base en modo
-// rollback, también la lectura de los demás.
-func retener(t *testing.T, ruta, bloqueo string) (suelta func()) {
+// retener abre la conexión de otra invocación con los ajustes dados
+// —reteniendoLaEscritura o enExclusiva— y empieza en ella una transacción, en la
+// que lee, hasta que se llama a lo que devuelve, que la deshace y cierra la
+// conexión, o hasta que termina la prueba. En exclusiva, world.db no puede tener
+// abierta ninguna otra conexión: con la base en WAL, cada una conserva su
+// bloqueo compartido mientras sigue abierta.
+func retener(t *testing.T, ruta, ajustes string) (suelta func()) {
 	t.Helper()
 
-	otra := conexion(t, ruta, tramo+"&_txlock="+bloqueo)
+	otra := conexion(t, ruta, ajustes)
 
 	tx, err := otra.BeginTx(context.WithoutCancel(t.Context()), nil)
 	require.NoError(t, err, "la otra invocación toma world.db")
@@ -612,33 +603,24 @@ func retener(t *testing.T, ruta, bloqueo string) (suelta func()) {
 	return suelta
 }
 
-// enRollback saca de WAL el world.db que dejó una entrega: la misma base, con
-// el mismo grafo, en modo rollback y sin auxiliares.
-func enRollback(t *testing.T, ruta string) {
+// enWALSinTablas deja en la ruta lo que deja una creación de world.db que se
+// interrumpe después de ponerlo en WAL (contracts/almacen-world-db.md §4, pasos
+// 3 y 4; H7.1 FR-071): el fichero en WAL, sin ninguna tabla y sin auxiliares.
+func enWALSinTablas(t *testing.T, ruta string) {
 	t.Helper()
 
+	escribirFichero(t, ruta, nil)
+
 	base := conexion(t, ruta, tramo)
-	fijarDiario(t, base, "delete")
+
+	var modo string
+
+	require.NoError(t, base.QueryRowContext(t.Context(), "PRAGMA journal_mode=WAL").Scan(&modo))
+	require.Equal(t, "wal", modo)
 	require.NoError(t, base.Close())
 
 	compruebaSinAuxiliares(t, ruta)
-	require.Equal(t, []byte{1, 1}, leerFichero(t, ruta)[18:20], "premisa: world.db ya no está en WAL")
-}
-
-// baseDeFuera escribe en la ruta la base de otro programa, sin el esquema del
-// grafo, en el modo de diario dado y con las sentencias, y la cierra sin
-// dejar ningún auxiliar.
-func baseDeFuera(t *testing.T, ruta, diario, sentencias string) {
-	t.Helper()
-
-	base := conexion(t, ruta, tramo)
-	fijarDiario(t, base, diario)
-
-	_, err := base.ExecContext(t.Context(), sentencias)
-	require.NoError(t, err)
-	require.NoError(t, base.Close())
-
-	compruebaSinAuxiliares(t, ruta)
+	require.Equal(t, []byte{2, 2}, leerFichero(t, ruta)[18:20], "premisa: world.db está en WAL")
 }
 
 // columna son los valores de la única columna de la consulta, en su orden.
@@ -666,13 +648,14 @@ func columna[T any](t *testing.T, base *sql.DB, consulta string) []T {
 }
 
 // esquemaDe son las tablas de la base, por nombre, y las versiones que registra
-// su schema_version, leídas inmutable: sin crear ni cambiar ningún fichero y
-// sin leer ningún WAL (research.md V46), así que solo dicen lo que ya está en
+// su schema_version, leídas con la cadena de la lectura de un world.db sin
+// -wal, que no escribe nada ni deja ningún auxiliar al cerrar. Quien la llama
+// ya ha comprobado que no queda ningún -wal, así que dicen lo que está en
 // world.db.
 func esquemaDe(t *testing.T, ruta string) (tablas []string, versiones []int64) {
 	t.Helper()
 
-	base := conexion(t, ruta, "mode=ro&immutable=1")
+	base := conexion(t, ruta, lecturaSinWAL)
 	tablas = columna[string](t, base, `SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`)
 
 	if slices.Contains(tablas, "schema_version") {
@@ -730,69 +713,15 @@ func copiaConElWAL(t *testing.T, destino string, escribir escrituraEnElWAL, sufi
 	require.NoError(t, otra.Close())
 }
 
-// sentenciaDeRelleno añade al grafo un texto de 4000 bytes con el número de
-// vuelta en la huella: cien bastan para que un escritor con dos páginas de
-// caché vuelque páginas en world.db antes de confirmar.
-const sentenciaDeRelleno = `INSERT INTO texts (hash, body, fetched_at, source, url)
-	VALUES ('relleno:' || ?, replace(hex(zeroblob(2000)), '0', 'x'), '2026-09-28T10:00:00Z', 'relleno',
-	'https://relleno.example')`
-
-// copiaConUnDiarioCaliente deja en destino una copia de la base de origen, en
-// modo rollback, y de su diario tal como los tiene un escritor con una
-// transacción a medias que ya volcó páginas en la base: sin ningún bloqueo sobre
-// la copia, su diario está caliente (research.md V43). La transacción ejecuta
-// cien veces la sentencia, con el número de vuelta como argumento, y se deshace
-// después de copiar.
-func copiaConUnDiarioCaliente(t *testing.T, origen, destino, sentencia string) {
-	t.Helper()
-
-	confirmado := leerFichero(t, origen)
-	escritor := conexion(t, origen, tramo+"&_pragma=cache_size(2)&_txlock=immediate")
-
-	tx, err := escritor.BeginTx(context.WithoutCancel(t.Context()), nil)
-	require.NoError(t, err)
-
-	for vuelta := range 100 {
-		_, err := tx.ExecContext(t.Context(), sentencia, vuelta)
-		require.NoError(t, err)
-	}
-
-	diario := leerFichero(t, origen+sufijoDiario)
-	require.NotEmpty(t, diario, "premisa: la transacción a medias tiene su diario")
-	require.NotZero(t, diario[0], "premisa: el diario tiene su cabecera, así que está caliente")
-	require.NotEqual(t, confirmado, leerFichero(t, origen), "premisa: la transacción ya volcó páginas en la base")
-
-	copiarFicheros(t, origen, destino, "", sufijoDiario)
-
-	require.NoError(t, tx.Rollback())
-	require.NoError(t, escritor.Close())
-}
-
-// grafoConUnDiarioCaliente deja en el directorio el world.db del bloque en modo
-// rollback junto al diario caliente de un escritor que añadía textos, y
-// devuelve su ruta.
-func grafoConUnDiarioCaliente(t *testing.T, directorio string) string {
-	t.Helper()
-
-	origen := grafoEntregado(t, t.TempDir(), elBloque())
-	enRollback(t, origen)
-
-	ruta := rutaEn(directorio)
-	copiaConUnDiarioCaliente(t, origen, ruta, sentenciaDeRelleno)
-
-	return ruta
-}
-
 // ---------------------------------------------------------------------------
 // La matriz.
 
-// TestIntegracionEsquema fija la creación del esquema (FR-004, FR-013;
-// contracts/almacen-world-db.md §3, paso 1, y §4, pasos 3 a 5): la primera
-// entrega sobre un directorio que no existe crea world.db en WAL, con el
-// esquema y el lote y sin ningún auxiliar; un world.db de 0 bytes y una base sin
-// tablas se leen como el grafo vacío sin cambiar nada, y la entrega crea en ellos
-// el esquema; y el esquema es atómico: una migración que falla a medias no deja
-// ninguna de sus tablas.
+// TestIntegracionEsquema fija la creación del esquema (H7 FR-004, FR-013; H7.1
+// FR-071; contracts/almacen-world-db.md §3, paso 1, y §4, pasos 2 a 5): la
+// primera entrega sobre un directorio que no existe crea world.db en WAL, con el
+// esquema y el lote y sin ningún auxiliar; y lo que deja una creación
+// interrumpida —un world.db de 0 bytes, o en WAL y sin tablas— se lee como el
+// grafo vacío sin cambiar nada, y la entrega siguiente crea en él el esquema.
 func TestIntegracionEsquema(t *testing.T) {
 	t.Parallel()
 
@@ -814,12 +743,7 @@ func TestIntegracionEsquema(t *testing.T) {
 
 			escribirFichero(t, ruta, nil)
 		},
-		"una base sin tablas": func(t *testing.T, ruta string) {
-			t.Helper()
-
-			baseDeFuera(t, ruta, "delete", `PRAGMA user_version = 7`)
-			require.Positive(t, tamano(t, ruta), "premisa: es una base de datos, no un fichero vacío")
-		},
+		"un world.db en WAL y sin tablas": enWALSinTablas,
 	} {
 		t.Run(nombre+" se lee vacío sin cambiar y la entrega crea el esquema", func(t *testing.T) {
 			t.Parallel()
@@ -833,25 +757,6 @@ func TestIntegracionEsquema(t *testing.T) {
 			compruebaEsquemaCreado(t, directorio)
 		})
 	}
-
-	t.Run("una migración que falla a medias no deja ninguna tabla del esquema", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := rutaEn(directorio)
-		baseDeFuera(t, ruta, "wal", `CREATE TABLE nodes (x)`)
-		antes := estadoDelArbol(t, directorio)
-
-		err := almacenEn(directorio).Apply(t.Context(), elBloque())
-		compruebaFallo(t, err, operacionEscribir, schema.ClaseInesperado, "grafo: no se pudo aplicar la migraci\xc3\xb3n "+
-			`"0001_grafo.sql" en `+strconv.Quote(ruta)+": "+falloDe(t, err).Causa.Error())
-
-		tablas, versiones := esquemaDe(t, ruta)
-		assert.Equal(t, []string{"nodes"}, tablas, "schema_version, creada antes que nodes, tampoco queda")
-		assert.Empty(t, versiones)
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "una base ya en WAL queda con los mismos bytes")
-		assert.Equal(t, grafoVacio(), leerElGrafo(t, directorio))
-	})
 }
 
 // compruebaEsquemaCreado exige que en el directorio solo esté world.db, en WAL
@@ -1303,11 +1208,13 @@ func conUnEsquemaPosterior(t *testing.T, ruta string) {
 }
 
 // TestIntegracionPlazoYBloqueo fija FR-014 por la API: mientras otra invocación
-// retiene world.db, la lectura y la entrega esperan por tramos y salen, si el
-// plazo de quien llama termina antes, con «fuente-no-disponible» (código 4) sin
-// agotar la espera propia y, si no, al agotarla, con «inesperado» (código 1)
-// «bloqueada por otra invocación». Con el contexto ya terminado, ninguna de las
-// dos toca nada. En todos los casos el grafo queda como estaba.
+// retiene world.db —en exclusiva para la lectura (H7.1 research.md D22) y con
+// su escritura para la entrega—, la lectura y la entrega esperan por tramos y
+// salen, si el plazo de quien llama termina antes, con «fuente-no-disponible»
+// (código 4) sin agotar la espera propia y, si no, al agotarla, con
+// «inesperado» (código 1) «bloqueada por otra invocación». Con el contexto ya
+// terminado, ninguna de las dos toca nada. En todos los casos el grafo queda
+// como estaba.
 func TestIntegracionPlazoYBloqueo(t *testing.T) {
 	t.Parallel()
 
@@ -1328,9 +1235,8 @@ func TestIntegracionPlazoYBloqueo(t *testing.T) {
 
 			directorio := t.TempDir()
 			ruta := grafoEntregado(t, directorio, elBloque())
-			enRollback(t, ruta)
 			antes := estadoDelArbol(t, directorio)
-			suelta := retener(t, ruta, "exclusive")
+			suelta := retener(t, ruta, enExclusiva)
 
 			inicio := time.Now()
 			lectura, err := graph.Leer(contextoCon(t, caso.plazo), graph.ConDirectorio(directorio))
@@ -1349,7 +1255,7 @@ func TestIntegracionPlazoYBloqueo(t *testing.T) {
 			directorio := t.TempDir()
 			ruta := grafoEntregado(t, directorio, elBloque())
 			antes, leidoAntes := estadoDelArbol(t, directorio), leerElGrafo(t, directorio)
-			suelta := retener(t, ruta, "immediate")
+			suelta := retener(t, ruta, reteniendoLaEscritura)
 
 			inicio := time.Now()
 			err := almacenEn(directorio).Apply(contextoCon(t, caso.plazo), loteDelBloque(urlDelBloque, fechaReciente))
@@ -1468,12 +1374,12 @@ func bajoUnDirectorioSinEscritura(t *testing.T, raiz string) string {
 }
 
 // TestIntegracionLecturaConWAL fija la lectura con auxiliares de WAL
-// (contracts/almacen-world-db.md §3, pasos 4 y 6; research.md V36 D y F): con un
-// -wal huérfano —la copia de los ficheros de un escritor abierto, sin otra
-// conexión— y con un escritor abierto de verdad, los tres verbos ven lo
-// confirmado en el WAL, world.db y el -wal quedan con los mismos bytes y, al
-// terminar, world.db-shm existe: la desviación declarada de FR-004, FR-031 y
-// SC-004, y nada más.
+// (contracts/almacen-world-db.md §3, paso 2; H7.1 FR-077; research.md V36 D y F
+// de H7): con un -wal huérfano —la copia de los ficheros de un escritor
+// abierto, sin otra conexión— y con un escritor abierto de verdad, los tres
+// verbos ven lo confirmado en el WAL, world.db y el -wal quedan con los mismos
+// bytes y, al terminar, world.db-shm existe: la desviación declarada de FR-004,
+// FR-031 y SC-004, y nada más.
 func TestIntegracionLecturaConWAL(t *testing.T) {
 	t.Parallel()
 
@@ -1517,182 +1423,8 @@ func compruebaLecturaConWAL(t *testing.T, directorio string) {
 		nombresEn(t, directorio), "el -shm existe al terminar, y nada más aparece")
 }
 
-// TestIntegracionLecturaConDiario fija la lectura junto a un world.db-journal
-// (contracts/almacen-world-db.md §3, pasos 4 a 6, y §6; research.md V43, V45 c):
-// con uno caliente —la copia de los ficheros de un escritor en rollback con la
-// transacción a medias y páginas volcadas— la lectura sale con «inesperado»
-// «transacción interrumpida sin deshacer» y no cambia nada; con uno frío, uno
-// vacío, uno vacío junto a un world.db de 0 bytes o el de un escritor vivo, se
-// lee lo confirmado y ningún fichero cambia ni aparece.
-func TestIntegracionLecturaConDiario(t *testing.T) {
-	t.Parallel()
-
-	t.Run("caliente: inesperado y nada cambia", func(t *testing.T) {
-		t.Parallel()
-
-		directorio := t.TempDir()
-		ruta := grafoConUnDiarioCaliente(t, directorio)
-		antes := estadoDelArbol(t, directorio)
-
-		lectura, err := graph.Leer(t.Context(), graph.ConDirectorio(directorio))
-		assert.Nil(t, lectura)
-		compruebaFallo(t, err, operacionLeer, schema.ClaseInesperado, "grafo: "+strconv.Quote(ruta)+
-			" tiene una transacci\xc3\xb3n interrumpida sin deshacer; no se modifica")
-		assert.Equal(t, antes, estadoDelArbol(t, directorio), "world.db y el diario quedan con los mismos bytes")
-	})
-
-	casos := map[string]func(t *testing.T, ruta string) leido{
-		"frío, el que deja persist":               conUnDiarioQueQueda("persist"),
-		"vacío, el que deja truncate":             conUnDiarioQueQueda("truncate"),
-		"vacío, junto a un world.db de 0 bytes":   ceroBytesConUnDiarioVacio,
-		"el de un escritor vivo en modo rollback": conUnEscritorVivo,
-	}
-
-	for nombre, preparar := range casos {
-		t.Run(nombre+": se lee lo confirmado y nada cambia", func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			esperado := preparar(t, rutaEn(directorio))
-			require.FileExists(t, rutaEn(directorio)+sufijoDiario)
-			compruebaLecturaSinCambios(t, directorio, esperado)
-		})
-	}
-}
-
-// conUnDiarioQueQueda deja el world.db del bloque en modo rollback junto al
-// diario que el modo dado conserva al confirmar un cambio: frío —la cabecera a
-// cero— con persist, y vacío con truncate (research.md V45). Devuelve lo que
-// se lee.
-func conUnDiarioQueQueda(diario string) func(t *testing.T, ruta string) leido {
-	return func(t *testing.T, ruta string) leido {
-		t.Helper()
-
-		grafoEntregado(t, filepath.Dir(ruta), elBloque())
-		enRollback(t, ruta)
-
-		base := conexion(t, ruta, tramo)
-		fijarDiario(t, base, diario)
-
-		_, err := base.ExecContext(t.Context(), `PRAGMA user_version = 7`)
-		require.NoError(t, err)
-		require.NoError(t, base.Close())
-
-		cabecera := leerFichero(t, ruta+sufijoDiario)
-		if len(cabecera) > 0 {
-			assert.Zero(t, cabecera[0], "premisa: el diario que queda tiene la cabecera a cero, así que está frío")
-		}
-
-		return leidoTras(t, elBloque())
-	}
-}
-
-// ceroBytesConUnDiarioVacio deja un world.db de 0 bytes junto a un diario vacío:
-// se lee el grafo vacío.
-func ceroBytesConUnDiarioVacio(t *testing.T, ruta string) leido {
-	t.Helper()
-
-	escribirFichero(t, ruta, nil)
-	escribirFichero(t, ruta+sufijoDiario, nil)
-
-	return grafoVacio()
-}
-
-// conUnEscritorVivo deja el world.db del bloque en modo rollback con otra
-// invocación que escribe en él, con su transacción abierta y su diario, hasta
-// el final de la prueba. Se lee lo confirmado, sin lo que escribe.
-func conUnEscritorVivo(t *testing.T, ruta string) leido {
-	t.Helper()
-
-	grafoEntregado(t, filepath.Dir(ruta), elBloque())
-	enRollback(t, ruta)
-
-	escritor := conexion(t, ruta, tramo+"&_txlock=immediate")
-
-	tx, err := escritor.BeginTx(context.WithoutCancel(t.Context()), nil)
-	require.NoError(t, err)
-	t.Cleanup(func() { assert.NoError(t, tx.Rollback()) })
-
-	_, err = tx.ExecContext(t.Context(), sentenciaDeRelleno, 0)
-	require.NoError(t, err)
-
-	return leidoTras(t, elBloque())
-}
-
-// TestIntegracionLecturaConShmSuelto fija la lectura con un world.db-shm suelto,
-// sin -wal, en sus dos orígenes (research.md V48; gates/plan-pendiente.md, motivo
-// 2): el de un lector sobre una base limpia, sin marcos en el índice, queda
-// igual; el de un escritor con marcos en el WAL se reescribe, porque SQLite
-// reconstruye el índice del -wal que falta. En los dos se lee lo que hay en
-// world.db, world.db queda igual y aparece un world.db-wal de 0 bytes: la otra
-// parte de la desviación declarada de FR-004, FR-031 y SC-004.
-func TestIntegracionLecturaConShmSuelto(t *testing.T) {
-	t.Parallel()
-
-	casos := []struct {
-		nombre   string
-		preparar func(t *testing.T, ruta string)
-		// igual dice que el -shm queda con los mismos bytes.
-		igual bool
-	}{
-		{nombre: "el de un lector sobre una base limpia queda igual", preparar: conElShmDeUnLector, igual: true},
-		{
-			nombre: "el de un escritor con marcos se reescribe",
-			preparar: func(t *testing.T, ruta string) {
-				t.Helper()
-
-				copiaConElWAL(t, ruta, elTerritorioEnElWAL, "", sufijoMemoriaCompartida)
-			},
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			directorio := t.TempDir()
-			ruta := rutaEn(directorio)
-			caso.preparar(t, ruta)
-			require.NoFileExists(t, ruta+sufijoWAL)
-
-			antes := huellasDe(t, ruta, ruta+sufijoMemoriaCompartida)
-
-			assert.Equal(t, leidoTras(t, elBloque()), leerElGrafo(t, directorio), "lo que hay en world.db")
-
-			despues := huellasDe(t, ruta, ruta+sufijoMemoriaCompartida)
-			assert.Equal(t, antes[ruta], despues[ruta], "world.db no cambia")
-
-			if caso.igual {
-				assert.Equal(t, antes[ruta+sufijoMemoriaCompartida], despues[ruta+sufijoMemoriaCompartida])
-			} else {
-				assert.NotEqual(t, antes[ruta+sufijoMemoriaCompartida], despues[ruta+sufijoMemoriaCompartida])
-			}
-
-			assert.Zero(t, tamano(t, ruta+sufijoWAL), "aparece un -wal de 0 bytes")
-		})
-	}
-}
-
-// conElShmDeUnLector deja en la ruta el world.db del bloque, en WAL y cerrado
-// limpio, junto al -shm de una conexión que solo lo ha leído: sin marcos en el
-// índice y sin su -wal.
-func conElShmDeUnLector(t *testing.T, ruta string) {
-	t.Helper()
-
-	origen := grafoEntregado(t, t.TempDir(), elBloque())
-	lector := conexion(t, origen, tramo+"&_pragma=query_only(1)")
-
-	var nodos int
-
-	require.NoError(t, lector.QueryRowContext(t.Context(), `SELECT count(*) FROM nodes`).Scan(&nodos))
-	require.Zero(t, tamano(t, origen+sufijoWAL), "premisa: el WAL del lector no tiene marcos")
-
-	copiarFicheros(t, origen, ruta, "", sufijoMemoriaCompartida)
-	require.NoError(t, lector.Close())
-}
-
 // TestIntegracionRecuperacionDeclarada fija la fila de la recuperación de
-// contracts/almacen-world-db.md §4.1 (research.md V43, V44): la conexión de una
+// contracts/almacen-world-db.md §4.1 de H7 (research.md V44 de H7): la conexión de una
 // entrega que falla recupera lo que dejó un escritor interrumpido, como
 // cualquier escritor de SQLite. Con un -wal huérfano, el checkpoint del cierre
 // lleva a world.db lo confirmado en él y retira el -wal y el -shm, tanto si el

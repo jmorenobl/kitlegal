@@ -111,7 +111,7 @@ func grafoGuardado(t *testing.T, ruta string) grafoDePrueba {
 
 			require.NoError(t, filas.Scan(append([]any{&nodo.ID, &nodo.Tipo, &nodo.Datos}, historia.destinos()...)...))
 			nodo.PrimeraObservacion, nodo.UltimaObservacion, nodo.Vigencia = historia.primera, historia.ultima,
-				historia.vigencia(t)
+				historia.vigencia()
 
 			return nodo
 		})
@@ -127,7 +127,7 @@ func grafoGuardado(t *testing.T, ruta string) grafoDePrueba {
 			require.NoError(t, filas.Scan(append([]any{&arista.Origen, &arista.Relacion, &arista.Destino},
 				historia.destinos()...)...))
 			arista.PrimeraObservacion, arista.UltimaObservacion, arista.Vigencia = historia.primera, historia.ultima,
-				historia.vigencia(t)
+				historia.vigencia()
 
 			return arista
 		})
@@ -167,13 +167,8 @@ func (h *historiaLeida) destinos() []any {
 }
 
 // vigencia es la de la columna ttl, en segundos; NULL es cero.
-func (h historiaLeida) vigencia(t *testing.T) time.Duration {
-	t.Helper()
-
-	vigencia, err := vigenciaGuardada(h.ttl)
-	require.NoError(t, err)
-
-	return vigencia
+func (h historiaLeida) vigencia() time.Duration {
+	return vigenciaGuardada(h.ttl)
 }
 
 // filasGuardadas lee cada fila de la consulta con leer; nil si no hay ninguna,
@@ -550,7 +545,7 @@ func TestApplyRechazaElLote(t *testing.T) {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
 
-			for _, preparar := range []func(*testing.T, string) string{cacheVacia, conMuestra(diarioWAL, 0o600)} {
+			for _, preparar := range []func(*testing.T, string) string{cacheVacia, conMuestra} {
 				raiz := t.TempDir()
 				directorio := preparar(t, raiz)
 				antes := huellasDelArbol(t, raiz)
@@ -627,7 +622,7 @@ func TestApplyEnSuSitio(t *testing.T) {
 	lote := loteDelBOE(urlDelBloque, fechaDelBloque, operacionesDelBloque()...)
 
 	for nombre, preparar := range map[string]func(*testing.T, string) string{
-		"de 0 bytes":          conBase(nil, 0o600),
+		"de 0 bytes":          conBase(nil),
 		"en WAL y sin tablas": enWALSinTablas,
 	} {
 		t.Run(nombre, func(t *testing.T) {
@@ -656,7 +651,7 @@ func TestApplyEnSuSitio(t *testing.T) {
 func enWALSinTablas(t *testing.T, raiz string) string {
 	t.Helper()
 
-	directorio := conBase(nil, 0o600)(t, raiz)
+	directorio := conBase(nil)(t, raiz)
 	ruta := filepath.Join(directorio, "world.db")
 
 	base, err := abrirConexion(operacionEscribir, ruta, cadenaDeEscritura(ruta))
@@ -685,14 +680,14 @@ func TestApplyNoModifica(t *testing.T) {
 	}{
 		{
 			nombre:   "lo que no es una base de datos",
-			preparar: conBase(contenido, 0o600),
+			preparar: conBase(contenido),
 			mensaje: func(ruta string, fallo *Error) string {
 				return "grafo: " + strconv.Quote(ruta) + " no es una base de datos utilizable: " + fallo.Causa.Error()
 			},
 		},
 		{
 			nombre:   "un esquema posterior",
-			preparar: conSentencias(diarioWAL, 0o600, versionPosterior),
+			preparar: conSentencias(versionPosterior),
 			mensaje: func(ruta string, _ *Error) string {
 				return "grafo: " + strconv.Quote(ruta) +
 					" tiene el esquema en la versi\xc3\xb3n 2 y este binario conoce la 1: no se modifica"
