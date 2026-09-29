@@ -1,0 +1,19 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US3] El esquema de la lista de expresiones prohibidas con los casos que lo fijan, y **nada más** (contracts/lista-y-juicio.md §1; data-model §1; research D1, D2; plan.md paso 1): schemas/expresiones-prohibidas.yaml.json tal cual el contrato —`$schema` 2020-12, `$id` `https://kitlegal.es/schemas/expresiones-prohibidas.yaml.json`, `title`, objeto con `additionalProperties: false` y `maquinaria` y `otra_conversacion` obligatorias, cada una `$ref` a `$defs.expresiones`: lista con `minItems: 1` de cadenas con el patrón `^[^\\s*_]+( [^\\s*_]+)*$`—; en internal/evals/formato_test.go, un test del esquema publicado que lo lee de su ruta, lo compila con `skills.CompilarEsquema` y valida contra él con `skills.ValidarDocumentoYAML` documentos escritos en el test: una lista con las dos familias valida; sin `maquinaria`, sin `otra_conversacion`, con una familia vacía, con una clave de más y con una expresión con un blanco en un extremo o con `*` no validan (una lista mal formada es un fichero mal formado, FR-055); ninguna carpeta de evals lleva lista todavía y no hay código de producto (el Go que la lee llega en T002); en .golangci.yml, `conversacion` en las `ignore-rules` de `misspell`, entre `controles` y `defectos` y con su comentario, como las demás: la clave `otra_conversacion` que fija el contrato la lee misspell como «conversation», también entre guiones bajos y guiones, así que los documentos del test no pasan `make lint` sin ella, y T002 la escribe en la etiqueta YAML de `OtraConversacion`, que no se puede partir (redelimitada tras el intento 1, que lo encontró; su nota da la entrada comprobada); verificación: `make ci` en verde (`schema-check` no la compara: no sale de `--describe`) — FR-050, FR-055, FR-082; SC-006; rutas: schemas/expresiones-prohibidas.yaml.json, internal/evals/formato_test.go, .golangci.yml",
+  "intento": 2,
+  "datos": true,
+  "aceptacion": false,
+  "base": "b1fdf9d179f6f1b1df49d1165d777be47a624398",
+  "rutas": [
+    ".es/schemas/expresiones-prohibidas.yaml.json",
+    ".golangci.yml",
+    "contracts/lista-y-juicio.md",
+    "internal/evals/formato_test.go",
+    "plan.md",
+    "schemas/expresiones-prohibidas.yaml.json"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "8858867269aa0d0e991e2f05e479532bbd6e7f2e2c465151f3869fba10e2c600"
+}
