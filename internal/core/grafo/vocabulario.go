@@ -72,3 +72,9 @@ const (
 	// fecha de vigencia posterior (FR-063).
 	ClaseVersionObsoleta ClaseDeHallazgo = "version-obsoleta"
 )
+
+// MaximoDeHallazgos es cuántos hallazgos lista, como mucho, `graph check`: los
+// primeros de su orden; los totales de cada clase cuentan también los que no
+// lista (H7.1 FR-010, FR-012; research.md D10). No hay bandera que lo cambie
+// (FR-015).
+const MaximoDeHallazgos = 50

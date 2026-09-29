@@ -1541,10 +1541,10 @@ func versionesObsoletasEn(t *testing.T, directorio string) []grafo.Hallazgo {
 	ahora, err := time.Parse(time.RFC3339, fechaReciente)
 	require.NoError(t, err)
 
-	hallazgos, err := grafo.Comprobar(leerElGrafo(t, directorio).instantanea, ahora)
+	comprobacion, err := grafo.Comprobar(leerElGrafo(t, directorio).instantanea, grafo.Ambito{}, ahora)
 	require.NoError(t, err)
 
-	return slices.DeleteFunc(hallazgos, func(hallazgo grafo.Hallazgo) bool {
+	return slices.DeleteFunc(comprobacion.Hallazgos, func(hallazgo grafo.Hallazgo) bool {
 		return hallazgo.Clase != grafo.ClaseVersionObsoleta
 	})
 }

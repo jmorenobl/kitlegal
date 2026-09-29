@@ -29,7 +29,7 @@ exec kitlegal graph stats --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
 ! stderr .
 exec kitlegal graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 3'
 stdout '\A\{"ok":false,.*"data":\{"clase":"no-encontrado","mensaje":"[^\n]*ine:28074[^\n]*"\}\}\n\z'
@@ -49,7 +49,7 @@ exec kitlegal graph stats --json
 stdout '"data":\{"nodos":2,"aristas":1,"textos":0,'
 ! stderr .
 exec kitlegal graph check --json
-stdout '"data":\[\]\}\n\z'
+stdout '"data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 
 # Un id que no está: 3, clase no-encontrado, y el mensaje lo nombra.
@@ -184,7 +184,7 @@ exec kitlegal graph stats --json
 stdout '"data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
 ! stderr .
 exec kitlegal graph check --json
-stdout '"data":\[\]\}\n\z'
+stdout '"data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 exec sh -c 'kitlegal graph show ine:28074 --json; test $? -eq 3'
 stdout '"data":\{"clase":"no-encontrado",'

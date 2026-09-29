@@ -210,7 +210,7 @@ no encontrado, 4 fuente no disponible, 5 límite de ritmo de la fuente, 6 requie
 |---|---|---|
 | `kitlegal graph show <id>` | Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal. | objeto con `nodo`, `salientes`, `entrantes` |
 | `kitlegal graph stats` | Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente. | objeto con `nodos`, `aristas`, `textos`, `nodos_por_tipo`, `aristas_por_relacion` |
-| `kitlegal graph check` | Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas. | lista de objetos con `clase`, `id`, `explicacion`, `procedencia`, `fecha_vigencia`, `fecha_vigencia_reciente`, `vigencia_segundos` |
+| `kitlegal graph check [<norma> [<bloques>...]]` | Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior y consultas caducadas. | objeto con `norma`, `bloques`, `version-obsoleta`, `fuente-caducada`, `omitidos`, `hallazgos` |
 
 Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 

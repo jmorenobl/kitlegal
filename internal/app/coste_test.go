@@ -308,23 +308,24 @@ func compruebaElRecuentoDelGrafoGrande(t *testing.T, salida []byte) {
 // vigencia hace meses, y ninguna de las demás versiones, que ninguna lectura
 // vio la última vez, ni de los municipios ni de los órganos, que no la
 // declaran (H7.1 FR-030); y una versión obsoleta por bloque, la que vio su
-// penúltima lectura, superada por la de la última.
+// penúltima lectura, superada por la de la última. Los totales de su data los
+// cuentan todos, y lista los 50 primeros, que son version-obsoleta porque esa
+// clase va primero y tiene más de 50 (H7.1 FR-010 a FR-012).
 func compruebaLosHallazgosDelGrafoGrande(t *testing.T, salida []byte) {
 	t.Helper()
 
-	var hallazgos []grafo.Hallazgo
+	var comprobacion grafo.Comprobacion
 
-	require.NoError(t, json.Unmarshal(datosDelSobreDeExito(t, salida), &hallazgos))
+	require.NoError(t, json.Unmarshal(datosDelSobreDeExito(t, salida), &comprobacion))
 
-	porClase := make(map[grafo.ClaseDeHallazgo]int)
-	for _, hallazgo := range hallazgos {
-		porClase[hallazgo.Clase]++
+	assert.Equal(t, bloquesDelGrafoGrande, comprobacion.VersionObsoleta)
+	assert.Equal(t, normasDelGrafoGrande+2*bloquesDelGrafoGrande, comprobacion.FuenteCaducada)
+	assert.Equal(t, bloquesDelGrafoGrande+normasDelGrafoGrande+2*bloquesDelGrafoGrande-50, comprobacion.Omitidos)
+	require.Len(t, comprobacion.Hallazgos, 50)
+
+	for _, hallazgo := range comprobacion.Hallazgos {
+		assert.Equal(t, grafo.ClaseVersionObsoleta, hallazgo.Clase, hallazgo.ID)
 	}
-
-	assert.Equal(t, map[grafo.ClaseDeHallazgo]int{
-		grafo.ClaseFuenteCaducada:  normasDelGrafoGrande + 2*bloquesDelGrafoGrande,
-		grafo.ClaseVersionObsoleta: bloquesDelGrafoGrande,
-	}, porClase)
 }
 
 // datosDelSobreDeExito es el data de un sobre de éxito de graph.

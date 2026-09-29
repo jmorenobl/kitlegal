@@ -623,7 +623,8 @@ var contratosDeLosApplets = map[string]func() []verboDelContrato{
 // verbosDelContratoDeGrafo son los tres verbos de graph con la invocación con
 // que se describen: show exige su id por su posición y el análisis de la
 // invocación va antes que la descripción, así que sin él --describe termina en 2;
-// stats y check no tienen argumentos (contracts/applet-graph.md §1). Describir no
+// stats no tiene argumentos y los de check son opcionales (contracts/applet-graph.md
+// §1 de H7 y de H7.1). Describir no
 // valida el id ni abre world.db, de modo que el de show es el mismo con que lo
 // describe el guion grafo-applet de la suite de aceptación.
 func verbosDelContratoDeGrafo() []verboDelContrato {

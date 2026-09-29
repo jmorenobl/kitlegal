@@ -28,7 +28,7 @@ stdout '"hash_texto":"sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6be
 
 # --- Una sola versión observada: ningún hallazgo (US2.2) ---
 exec $KITLEGAL_T1_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 
 # --- B, la derivada, con la caché renovada y el mismo world.db (US2.1) ---
@@ -51,7 +51,7 @@ stdout '"hash_texto":"sha256:[0-9a-f]{64}"'
 # las traen los sobres, y la url y la fecha_consulta del sobre de B (FR-063,
 # SC-005). Con T1 ninguna consulta ha caducado todavía.
 exec $KITLEGAL_T1_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-29T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-29T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-29T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":1,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c","explicacion":"La versión de \[BOE-A-2015-10565, bloque a21\] con fecha de vigencia 20161002 está superada por la de fecha de vigencia 20250101, observada en https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 el 2026-09-29T12:00:00Z\.","procedencia":\{"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21","fecha_consulta":"2026-09-29T12:00:00Z"\},"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"\}\]\}\}\n\z'
 ! stderr .
 cp stdout obsoleta.json
 

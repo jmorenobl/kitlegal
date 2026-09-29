@@ -27,7 +27,7 @@ stdout '\Auso: graph <verbo> \[banderas\]\n'
 stdout '^verbos:$'
 stdout '^  show +Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal\.$'
 stdout '^  stats +Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente\.$'
-stdout '^  check +Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas\.$'
+stdout '^  check +Comprueba\s+lo\s+consultado\s+de\s+una\s+norma,\s+de\s+algunos\s+de\s+sus\s+bloques\s+o,\s+sin\s+argumentos,\s+todo\s+lo\s+consultado,\s+y\s+lista\s+como\s+mucho\s+50\s+hallazgos:\s+redacciones\s+que\s+han\s+cambiado\s+desde\s+la\s+lectura\s+anterior\s+y\s+consultas\s+caducadas\.$'
 stdout 'Las banderas de cada verbo, en «graph <verbo> --help»\.\n\z'
 ! stdout 'por omisión'
 ! stderr .
@@ -97,7 +97,7 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","
 cp stdout stats.json
 
 exec $KITLEGAL_T0_BIN graph check --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\[\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.graph","url":"kitlegal:applet/graph","fecha_consulta":"2026-09-28T12:00:00Z","hash":"sha256:[0-9a-f]{64}","data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 
 exec kitlegal graph stats --json

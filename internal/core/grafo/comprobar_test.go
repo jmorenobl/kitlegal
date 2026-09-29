@@ -3,6 +3,7 @@ package grafo_test
 import (
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -275,8 +276,9 @@ type casoDeComprobacion struct {
 // ha caducado estrictamente antes del instante de la comprobación, y ninguna en
 // otra BloqueVersion ni en otro tipo de nodo; y una lista nunca nula, con todas
 // las version-obsoleta antes que todas las fuente-caducada y por id dentro de
-// cada clase, que no depende del orden de la instantánea ni cambia al repetir
-// la comprobación.
+// cada clase, con el total de cada clase (FR-012), que no depende del orden de
+// la instantánea ni cambia al repetir la comprobación. La cota la fija
+// TestComprobarConLaCota.
 func TestComprobar(t *testing.T) {
 	t.Parallel()
 
@@ -484,26 +486,190 @@ func casosDeOrden() []casoDeComprobacion {
 }
 
 // exigirComprobacion exige que la comprobación del caso dé sus hallazgos, cada
-// uno con su explicación, en una lista que no es nula, y la misma lista al
-// repetirla y con la instantánea en el orden inverso (FR-011; H7 FR 060).
+// uno con su explicación, en una lista que no es nula, con el total de cada
+// clase y ninguno omitido, y la misma comprobación al repetirla y con la
+// instantánea en el orden inverso (FR-011, FR-012; H7 FR 060).
 func exigirComprobacion(t *testing.T, caso casoDeComprobacion) {
 	t.Helper()
 
-	hallazgos, err := grafo.Comprobar(caso.instantanea, caso.ahora)
+	comprobacion, err := grafo.Comprobar(caso.instantanea, grafo.Ambito{}, caso.ahora)
 	require.NoError(t, err)
-	require.NotNil(t, hallazgos)
+	require.NotNil(t, comprobacion.Hallazgos)
 
-	for _, hallazgo := range hallazgos {
+	for _, hallazgo := range comprobacion.Hallazgos {
 		assert.NotEmpty(t, hallazgo.Explicacion, hallazgo.ID)
 	}
 
-	assert.Equal(t, caso.esperados, sinExplicacion(hallazgos))
+	assert.Equal(t, caso.esperados, sinExplicacion(comprobacion.Hallazgos))
+	assert.Equal(t, contarPorClase(caso.esperados, grafo.ClaseVersionObsoleta), comprobacion.VersionObsoleta)
+	assert.Equal(t, contarPorClase(caso.esperados, grafo.ClaseFuenteCaducada), comprobacion.FuenteCaducada)
+	assert.Zero(t, comprobacion.Omitidos)
 
-	otraVez, err := grafo.Comprobar(caso.instantanea, caso.ahora)
+	otraVez, err := grafo.Comprobar(caso.instantanea, grafo.Ambito{}, caso.ahora)
 	require.NoError(t, err)
-	assert.Equal(t, hallazgos, otraVez, "otra vez")
+	assert.Equal(t, comprobacion, otraVez, "otra vez")
 
-	alReves, err := grafo.Comprobar(invertida(caso.instantanea), caso.ahora)
+	alReves, err := grafo.Comprobar(invertida(caso.instantanea), grafo.Ambito{}, caso.ahora)
 	require.NoError(t, err)
-	assert.Equal(t, hallazgos, alReves, "con la instantanea al reves")
+	assert.Equal(t, comprobacion, alReves, "con la instantanea al reves")
+}
+
+// contarPorClase es cuántos de los hallazgos son de la clase.
+func contarPorClase(hallazgos []grafo.Hallazgo, clase grafo.ClaseDeHallazgo) int {
+	cuantos := 0
+
+	for _, hallazgo := range hallazgos {
+		if hallazgo.Clase == clase {
+			cuantos++
+		}
+	}
+
+	return cuantos
+}
+
+// TestComprobarConLaCota fija la cota de `graph check` (FR-010 a FR-012;
+// data-model §5 y §6; research.md D10): Comprobar calcula todos los hallazgos,
+// los ordena —todas las version-obsoleta antes que todas las fuente-caducada y
+// por id comparando bytes dentro de cada clase— y lista los
+// grafo.MaximoDeHallazgos primeros; los totales de cada clase cuentan también
+// los que no se listan, y omitidos es su suma menos los listados.
+func TestComprobarConLaCota(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, 50, grafo.MaximoDeHallazgos, "la cota de FR-010")
+
+	casos := []struct {
+		nombre               string
+		obsoletas, caducadas int
+	}{
+		{"sin hallazgos", 0, 0},
+		{"exactamente 50: ninguno omitido", 0, grafo.MaximoDeHallazgos},
+		{"51 fuente-caducada: se omite la ultima", 0, grafo.MaximoDeHallazgos + 1},
+		{"51 version-obsoleta: se omite la ultima", grafo.MaximoDeHallazgos + 1, 0},
+		{"la cota corta dentro de las fuente-caducada", 3, 60},
+		{"la cota corta dentro de las version-obsoleta y no lista ninguna fuente-caducada", 55, 5},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			obsoletas, instantanea := bloquesQueCambiaron(caso.obsoletas)
+			caducadas := normasCaducadas(caso.caducadas)
+			instantanea = conMas(instantanea, caducadas)
+
+			var ids []string
+
+			for _, id := range slices.Sorted(slices.Values(obsoletas)) {
+				ids = append(ids, string(grafo.ClaseVersionObsoleta)+" "+id)
+			}
+
+			for _, nodo := range slices.SortedFunc(slices.Values(caducadas), porID) {
+				ids = append(ids, string(grafo.ClaseFuenteCaducada)+" "+nodo.ID)
+			}
+
+			listados := min(len(ids), grafo.MaximoDeHallazgos)
+
+			comprobacion, err := grafo.Comprobar(instantanea, grafo.Ambito{}, dentroDeUnMes)
+			require.NoError(t, err)
+
+			assert.Equal(t, caso.obsoletas, comprobacion.VersionObsoleta, "el total cuenta los omitidos")
+			assert.Equal(t, caso.caducadas, comprobacion.FuenteCaducada, "el total cuenta los omitidos")
+			assert.Equal(t, caso.obsoletas+caso.caducadas-listados, comprobacion.Omitidos)
+			assert.Equal(t, ids[:listados], clasesEIDs(comprobacion.Hallazgos), "los primeros, en orden")
+		})
+	}
+}
+
+// bloquesQueCambiaron son n bloques de la norma de ejemplo, cada uno leído el
+// lunes con una redacción y el martes con otra de fecha de vigencia posterior,
+// sin vigencia declarada: los ids de las n redacciones superadas, cada una de
+// las cuales da una version-obsoleta, y la instantánea que dejan esas lecturas.
+func bloquesQueCambiaron(n int) ([]string, grafo.Instantanea) {
+	superadas := make([]string, 0, n)
+	lecturas := make([]lecturaDeEjemplo, 0, 2*n)
+
+	for i := range n {
+		parte := "a" + strconv.Itoa(100+i)
+		superada := redaccionDeEjemplo{parte: parte, fechaVigencia: "20161002", cuerpo: "Articulo " + parte + "."}
+		reciente := redaccionDeEjemplo{parte: parte, fechaVigencia: "20250101", cuerpo: "Articulo " + parte + " cambiado."}
+
+		superadas = append(superadas, superada.id())
+		lecturas = append(lecturas,
+			lecturaDeEjemplo{redaccion: superada, fecha: lunes}, lecturaDeEjemplo{redaccion: reciente, fecha: martes})
+	}
+
+	return superadas, trasLeer(lecturas...)
+}
+
+// normasCaducadas son n normas, distintas de la de ejemplo, consultadas el
+// lunes con una hora de vigencia: cada una da una fuente-caducada dentro de un
+// mes.
+func normasCaducadas(n int) []grafo.NodoDeInstantanea {
+	normas := make([]grafo.NodoDeInstantanea, 0, n)
+
+	for i := range n {
+		numero := strconv.Itoa(20000 + i)
+		normas = append(normas, conVigenciaDe(observado("eli/es/l/2015/10/02/"+numero, grafo.TipoNorma,
+			map[string]any{grafo.DatoIdentificador: "BOE-A-2015-" + numero}, lunes), unaHora))
+	}
+
+	return normas
+}
+
+// porID ordena los nodos por su id, comparando bytes.
+func porID(a, b grafo.NodoDeInstantanea) int {
+	return strings.Compare(a.ID, b.ID)
+}
+
+// clasesEIDs son la clase y el id de cada hallazgo, en su orden; nil si no hay
+// ninguno.
+func clasesEIDs(hallazgos []grafo.Hallazgo) []string {
+	var ids []string
+
+	for _, hallazgo := range hallazgos {
+		ids = append(ids, string(hallazgo.Clase)+" "+hallazgo.ID)
+	}
+
+	return ids
+}
+
+// TestComprobarCopiaElAmbito fija que Comprobar copia en su resultado la norma y
+// los bloques del ámbito, tal como se pidieron y en su orden, y que aplica las
+// reglas a todo lo que recibe: lo que entra en el ámbito lo decide la lectura
+// acotada, no Comprobar (FR-002, FR-012; data-model §6). Los bloques del
+// resultado son una copia de los del ámbito.
+func TestComprobarCopiaElAmbito(t *testing.T) {
+	t.Parallel()
+
+	instantanea := conVigenciaEnTodos(trasLeer(leidaA, leidaB), unaSemana)
+
+	todo, err := grafo.Comprobar(instantanea, grafo.Ambito{}, dentroDeUnMes)
+	require.NoError(t, err)
+	require.NotEmpty(t, todo.Hallazgos, "premisa: la instantanea da hallazgos")
+	assert.Empty(t, todo.Norma, "sin norma, todo lo consultado")
+	assert.Empty(t, todo.Bloques)
+
+	for _, ambito := range []grafo.Ambito{
+		{Norma: identificadorLPAC},
+		{Norma: identificadorLPAC, Bloques: []string{"a21"}},
+		{Norma: identificadorLPAC, Bloques: []string{"a99", "a21"}},
+		{Norma: "BOE-A-2099-99999", Bloques: []string{"a1"}},
+	} {
+		pedidos := slices.Clone(ambito.Bloques)
+
+		comprobacion, err := grafo.Comprobar(instantanea, ambito, dentroDeUnMes)
+		require.NoError(t, err)
+
+		assert.Equal(t, ambito.Norma, comprobacion.Norma)
+		assert.Equal(t, pedidos, comprobacion.Bloques, "los bloques pedidos, en su orden")
+		assert.Equal(t, todo.Hallazgos, comprobacion.Hallazgos, "las reglas, sobre todo lo que recibe")
+		assert.Equal(t, [3]int{todo.VersionObsoleta, todo.FuenteCaducada, todo.Omitidos},
+			[3]int{comprobacion.VersionObsoleta, comprobacion.FuenteCaducada, comprobacion.Omitidos})
+
+		if len(ambito.Bloques) > 0 {
+			ambito.Bloques[0] = "cambiado"
+			assert.Equal(t, pedidos, comprobacion.Bloques, "los bloques del resultado son una copia de los del ambito")
+		}
+	}
 }

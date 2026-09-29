@@ -28,6 +28,44 @@
           ],
           "type": "object"
         },
+        "grafo.Comprobacion": {
+          "additionalProperties": false,
+          "properties": {
+            "bloques": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "fuente-caducada": {
+              "type": "integer"
+            },
+            "hallazgos": {
+              "items": {
+                "$ref": "#/$defs/grafo.Hallazgo"
+              },
+              "type": "array"
+            },
+            "norma": {
+              "type": "string"
+            },
+            "omitidos": {
+              "type": "integer"
+            },
+            "version-obsoleta": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "norma",
+            "bloques",
+            "version-obsoleta",
+            "fuente-caducada",
+            "omitidos",
+            "hallazgos"
+          ],
+          "type": "object"
+        },
         "grafo.Hallazgo": {
           "additionalProperties": false,
           "properties": {
@@ -84,13 +122,19 @@
       },
       "$id": "https://kitlegal.es/schemas/grafo.json/check",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las consultas caducadas.",
+      "description": "Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior y consultas caducadas.",
       "properties": {
         "entrada": {
           "additionalProperties": false,
           "properties": {
             "asunto": {
               "type": "string"
+            },
+            "bloques": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "describe": {
               "type": "boolean"
@@ -103,6 +147,9 @@
             },
             "no-graph": {
               "type": "boolean"
+            },
+            "norma": {
+              "type": "string"
             },
             "offline": {
               "type": "boolean"
@@ -166,10 +213,7 @@
           "then": {
             "properties": {
               "data": {
-                "items": {
-                  "$ref": "#/$defs/grafo.Hallazgo"
-                },
-                "type": "array"
+                "$ref": "#/$defs/grafo.Comprobacion"
               }
             }
           },

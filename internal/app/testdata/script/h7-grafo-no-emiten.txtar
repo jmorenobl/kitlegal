@@ -77,7 +77,7 @@ exec kitlegal graph stats --json
 stdout '"data":\{"nodos":0,"aristas":0,"textos":0,"nodos_por_tipo":\[\],"aristas_por_relacion":\[\]\}\}\n\z'
 ! stderr .
 exec kitlegal graph check --json
-stdout '"data":\[\]\}\n\z'
+stdout '"data":\{"norma":"","bloques":\[\],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":\[\]\}\}\n\z'
 ! stderr .
 exec sh -c 'kitlegal graph show eli/es/l/2015/10/01/39; test $? -eq 3'
 ! exists cache/world.db

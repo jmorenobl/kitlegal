@@ -32,33 +32,51 @@ import (
 // fuente-caducada y, dentro de cada clase, por id comparando bytes (H7.1
 // FR-011), y no dependen del orden en el que la instantánea trae los nodos, las
 // aristas y las filas: la misma instantánea en el mismo instante da siempre la
-// misma lista (FR-062).
+// misma lista (FR-062). Se calculan todos y se listan los MaximoDeHallazgos
+// primeros de ese orden; los totales de cada clase los cuentan todos (H7.1
+// FR-010, FR-012).
 
 // formatoDeFechaDeVigencia es el de la fecha de vigencia de una BloqueVersion,
 // AAAAMMDD, como la publica boe.
 const formatoDeFechaDeVigencia = "20060102"
 
-// Comprobar aplica las dos reglas de `graph check` a la instantánea en el
-// instante ahora, el del reloj de la invocación (FR-067), y devuelve sus
-// hallazgos, cada uno con su explicación (FR-061), en una lista que nunca es
-// nula (FR-060).
+// Comprobar aplica las dos reglas de `graph check` a todo lo que trae la
+// instantánea en el instante ahora, el del reloj de la invocación (FR-067), y
+// devuelve la comprobación del ámbito: su norma y sus bloques, copiados tal
+// como se pidieron, el total de hallazgos de cada clase, cuántos se omiten y
+// los MaximoDeHallazgos primeros, cada uno con su explicación (FR-061), en una
+// lista que nunca es nula (FR-060; H7.1 FR-010 a FR-012). Qué entra en el
+// ámbito no lo decide Comprobar sino la lectura acotada que da la instantánea
+// (H7.1 data-model §6).
 //
 // Una instantánea con una fecha de consulta que no es RFC 3339, que ninguna
 // entrega guarda, da un error, sin ningún hallazgo: la regla genérica (H7.1
 // research.md D21). El error no nombra el id del nodo, que puede ser de una
 // Persona.
-func Comprobar(instantanea Instantanea, ahora time.Time) ([]Hallazgo, error) {
+func Comprobar(instantanea Instantanea, ambito Ambito, ahora time.Time) (Comprobacion, error) {
 	grafoLeido, err := indexar(instantanea)
 	if err != nil {
-		return nil, err
+		return Comprobacion{}, err
 	}
 
-	hallazgos := slices.Concat(grafoLeido.versionesObsoletas(instantanea.Lecturas), grafoLeido.fuentesCaducadas(ahora))
+	obsoletas := grafoLeido.versionesObsoletas(instantanea.Lecturas)
+	caducadas := grafoLeido.fuentesCaducadas(ahora)
+
+	hallazgos := slices.Concat(obsoletas, caducadas)
 	slices.SortStableFunc(hallazgos, func(a, b Hallazgo) int {
 		return cmp.Or(cmp.Compare(rangoDeClase(a.Clase), rangoDeClase(b.Clase)), strings.Compare(a.ID, b.ID))
 	})
 
-	return listaNoNula(hallazgos), nil
+	listados := slices.Clip(hallazgos[:min(len(hallazgos), MaximoDeHallazgos)])
+
+	return Comprobacion{
+		Norma:           ambito.Norma,
+		Bloques:         slices.Clone(ambito.Bloques),
+		VersionObsoleta: len(obsoletas),
+		FuenteCaducada:  len(caducadas),
+		Omitidos:        len(hallazgos) - len(listados),
+		Hallazgos:       listaNoNula(listados),
+	}, nil
 }
 
 // rangoDeClase es la posición de la clase en la lista de hallazgos: primero

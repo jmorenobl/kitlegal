@@ -28,11 +28,12 @@ func comoElKernel(t *testing.T, valor any) string {
 }
 
 // TestSalidaDelGrafoEnJSON fija la forma JSON del data de los verbos de graph
-// (data-model §5; contracts/applet-graph.md §3; FR-053, FR-054, FR-060): las
-// claves en español y en el orden del contrato; las listas de show y de stats
-// y los datos de un nodo, nunca null, aunque lleguen nulos; las claves propias
-// de cada clase de hallazgo, solo en la suya; la url tal cual, con sus «&»; y
-// la instantánea que lee check, sin ninguna etiqueta JSON, porque no sale.
+// (data-model §5; contracts/applet-graph.md §3; FR-053, FR-054, FR-060; H7.1
+// data-model §6 y FR-012): las claves en español y en el orden del contrato; las
+// listas de show, de stats y de check y los datos de un nodo, nunca null,
+// aunque lleguen nulos; las claves propias de cada clase de hallazgo, solo en la
+// suya; la url tal cual, con sus «&»; y la instantánea que lee check, sin
+// ninguna etiqueta JSON, porque no sale.
 func TestSalidaDelGrafoEnJSON(t *testing.T) {
 	t.Parallel()
 
@@ -118,6 +119,30 @@ func TestSalidaDelGrafoEnJSON(t *testing.T) {
 			`{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002",` +
 				`"explicacion":"La version esta superada.","procedencia":` + enJSON + `,` +
 				`"fecha_vigencia":"20161002","fecha_vigencia_reciente":"20250101"}`,
+		},
+		{
+			"una comprobacion sin ambito ni hallazgos, con las listas nulas",
+			grafo.Comprobacion{},
+			`{"norma":"","bloques":[],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":[]}`,
+		},
+		{
+			"una comprobacion por su puntero",
+			&grafo.Comprobacion{},
+			`{"norma":"","bloques":[],"version-obsoleta":0,"fuente-caducada":0,"omitidos":0,"hallazgos":[]}`,
+		},
+		{
+			"una comprobacion con su ambito, sus totales y un hallazgo",
+			grafo.Comprobacion{
+				Norma: identificadorLPAC, Bloques: []string{"a21", "a99"}, VersionObsoleta: 1, FuenteCaducada: 52,
+				Omitidos: 3,
+				Hallazgos: []grafo.Hallazgo{{
+					Clase: grafo.ClaseFuenteCaducada, ID: idBloque, Explicacion: "La consulta caduco.",
+					Procedencia: procedencia, VigenciaSegundos: 604800,
+				}},
+			},
+			`{"norma":"BOE-A-2015-10565","bloques":["a21","a99"],"version-obsoleta":1,"fuente-caducada":52,` +
+				`"omitidos":3,"hallazgos":[{"clase":"fuente-caducada","id":"eli/es/l/2015/10/01/39#a21",` +
+				`"explicacion":"La consulta caduco.","procedencia":` + enJSON + `,"vigencia_segundos":604800}]}`,
 		},
 	}
 

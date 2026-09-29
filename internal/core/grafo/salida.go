@@ -12,13 +12,12 @@ import (
 // check— con las claves JSON de data-model §5 en español y en el orden de
 // contracts/applet-graph.md §3, y la instantánea que lee check, que no sale.
 //
-// Una lista de show o de stats sale como [] y los datos de un nodo como {},
-// nunca null, aunque lleguen nulos: el kernel escribe el sobre con
-// encoding/json, que escribe null para un slice o un mapa nil, y Ficha y
-// Recuento lo corrigen al escribirse (FR-053, FR-054). La lista de hallazgos de
-// check es un []Hallazgo, y no nula la devuelve Comprobar (FR-060). Las claves
-// propias de cada clase de hallazgo van con omitempty, así que no aparecen en
-// la otra.
+// Una lista de show, de stats o de check sale como [] y los datos de un nodo
+// como {}, nunca null, aunque lleguen nulos: el kernel escribe el sobre con
+// encoding/json, que escribe null para un slice o un mapa nil, y Ficha,
+// Recuento y Comprobacion lo corrigen al escribirse (FR-053, FR-054; H7.1
+// FR-012). Las claves propias de cada clase de hallazgo van con omitempty, así
+// que no aparecen en la otra.
 
 // Procedencia es de dónde y cuándo llegó una observación: la fuente, la url y
 // la fecha de consulta del sobre que la sostuvo. La fecha es el texto que
@@ -172,6 +171,39 @@ type Hallazgo struct {
 	// VigenciaSegundos es la que declaró la consulta caducada; solo en una
 	// fuente caducada.
 	VigenciaSegundos int64 `json:"vigencia_segundos,omitempty"`
+}
+
+// Comprobacion es lo que `graph check` devuelve: el ámbito pedido, el total de
+// hallazgos de cada clase en él —contando los que no se listan—, cuántos se
+// omiten y los listados, como mucho MaximoDeHallazgos, en el orden de
+// contracts/applet-graph.md §4 (H7.1 FR-010 a FR-012; data-model §6).
+type Comprobacion struct {
+	// Norma es la pedida; "", sin argumentos, todo lo consultado.
+	Norma string `json:"norma"`
+	// Bloques son los pedidos, en su orden; ninguno, todos los de la norma.
+	Bloques []string `json:"bloques"`
+	// VersionObsoleta es el total de hallazgos version-obsoleta del ámbito,
+	// contando los omitidos.
+	VersionObsoleta int `json:"version-obsoleta"`
+	// FuenteCaducada es el total de hallazgos fuente-caducada del ámbito,
+	// contando los omitidos.
+	FuenteCaducada int `json:"fuente-caducada"`
+	// Omitidos es VersionObsoleta + FuenteCaducada menos los listados.
+	Omitidos int `json:"omitidos"`
+	// Hallazgos son los listados.
+	Hallazgos []Hallazgo `json:"hallazgos"`
+}
+
+// MarshalJSON escribe la comprobación como la escribiría encoding/json sin este
+// método, salvo que unas listas nulas salen como []: nunca null (H7.1 FR-012).
+func (c Comprobacion) MarshalJSON() ([]byte, error) {
+	type sinMetodos Comprobacion
+
+	escrita := sinMetodos(c)
+	escrita.Bloques = listaNoNula(escrita.Bloques)
+	escrita.Hallazgos = listaNoNula(escrita.Hallazgos)
+
+	return codificar(escrita)
 }
 
 // Ambito es lo que se comprueba: una norma y, si se nombran, bloques suyos;

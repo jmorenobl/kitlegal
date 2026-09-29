@@ -94,25 +94,25 @@ func TestExplicaciones(t *testing.T) {
 func probarPlantillaDeVersionObsoleta(t *testing.T) {
 	t.Parallel()
 
-	hallazgos, err := grafo.Comprobar(leidaLaDerivada(grafoDelBloque(0)), elMartes)
+	comprobacion, err := grafo.Comprobar(leidaLaDerivada(grafoDelBloque(0)), grafo.Ambito{}, elMartes)
 	require.NoError(t, err)
-	require.Len(t, hallazgos, 1)
+	require.Len(t, comprobacion.Hallazgos, 1)
 	assert.Equal(t, "La versi\xc3\xb3n de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20161002 "+
 		"est\xc3\xa1 superada por la de fecha de vigencia 20250101, observada en "+
 		"https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 "+
-		"el 2026-09-29T12:00:00Z.", hallazgos[0].Explicacion)
+		"el 2026-09-29T12:00:00Z.", comprobacion.Hallazgos[0].Explicacion)
 
 	instantanea := leidaLaDerivada(grafoDelBloque(0))
 	instantanea.Nodos[3].UltimaObservacion = grafo.Procedencia{
 		Fuente: fuenteCorta, URL: urlA22 + "?a=1&b=2", FechaConsulta: "2026-09-29T14:00:00.250+02:00",
 	}
 
-	hallazgos, err = grafo.Comprobar(instantanea, elMartes)
+	comprobacion, err = grafo.Comprobar(instantanea, grafo.Ambito{}, elMartes)
 	require.NoError(t, err)
-	require.Len(t, hallazgos, 1)
+	require.Len(t, comprobacion.Hallazgos, 1)
 	assert.Equal(t, "La versi\xc3\xb3n de "+citaDelBloque+" con fecha de vigencia 20161002 est\xc3\xa1 superada "+
 		"por la de fecha de vigencia 20250101, observada en "+urlA22+"?a=1&b=2 el 2026-09-29T14:00:00.250+02:00.",
-		hallazgos[0].Explicacion)
+		comprobacion.Hallazgos[0].Explicacion)
 }
 
 // probarPlantillaDeFuenteCaducada fija la explicación de una consulta
@@ -124,12 +124,12 @@ func probarPlantillaDeVersionObsoleta(t *testing.T) {
 func probarPlantillaDeFuenteCaducada(t *testing.T) {
 	t.Parallel()
 
-	hallazgos, err := grafo.Comprobar(grafoDelBloque(unaSemana), dentroDeUnMes)
+	comprobacion, err := grafo.Comprobar(grafoDelBloque(unaSemana), grafo.Ambito{}, dentroDeUnMes)
 	require.NoError(t, err)
 
 	explicaciones := map[string]string{}
 
-	for _, hallazgo := range hallazgos {
+	for _, hallazgo := range comprobacion.Hallazgos {
 		assert.NotEqual(t, grabada.id(), hallazgo.ID, "la grabada no es la redacci\xc3\xb3n vista")
 
 		if hallazgo.Clase == grafo.ClaseFuenteCaducada {
@@ -178,11 +178,11 @@ func probarInstanteDeCaducidad(t *testing.T) {
 
 			nodo := conVigenciaDe(normaLPAC(caso.fecha), caso.vigencia)
 
-			hallazgos, err := grafo.Comprobar(deNodos(nodo), dentroDeUnMes)
+			comprobacion, err := grafo.Comprobar(deNodos(nodo), grafo.Ambito{}, dentroDeUnMes)
 			require.NoError(t, err)
-			require.Len(t, hallazgos, 1)
+			require.Len(t, comprobacion.Hallazgos, 1)
 			assert.Equal(t, consultaCaducada(identificadorLPAC, nodo.UltimaObservacion,
-				int64(caso.vigencia/time.Second), caso.caducidad), hallazgos[0].Explicacion)
+				int64(caso.vigencia/time.Second), caso.caducidad), comprobacion.Hallazgos[0].Explicacion)
 		})
 	}
 }
@@ -351,12 +351,12 @@ func sinArista(quitada schema.Arista) grafo.Instantanea {
 func exigirCitas(t *testing.T, caso casoDeCita) {
 	t.Helper()
 
-	hallazgos, err := grafo.Comprobar(caso.instantanea, dentroDeUnMes)
+	comprobacion, err := grafo.Comprobar(caso.instantanea, grafo.Ambito{}, dentroDeUnMes)
 	require.NoError(t, err)
 
 	citados := map[string]bool{}
 
-	for _, hallazgo := range hallazgos {
+	for _, hallazgo := range comprobacion.Hallazgos {
 		assert.NotContains(t, caso.sinHallazgo, hallazgo.ID, "no recibe ning\xc3\xban hallazgo")
 
 		cita, nombrado := caso.citas[hallazgo.ID]

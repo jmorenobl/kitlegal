@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // La procedencia con la que firma graph. Lee el grafo del mundo, que es local y
@@ -92,10 +95,13 @@ func (a appletGrafo) Verbos() []Verbo {
 		},
 		{
 			Nombre: "check",
-			Descripcion: "Comprueba el grafo del mundo y devuelve como hallazgos las versiones superadas y las" +
-				" consultas caducadas.",
+			// La cota, escrita desde grafo.MaximoDeHallazgos: la ayuda dice la
+			// que aplica Comprobar (H7.1 contracts/applet-graph.md §1).
+			Descripcion: fmt.Sprintf("Comprueba lo consultado de una norma, de algunos de sus bloques o, sin"+
+				" argumentos, todo lo consultado, y lista como mucho %d hallazgos: redacciones que han cambiado"+
+				" desde la lectura anterior y consultas caducadas.", grafo.MaximoDeHallazgos),
 			Argumentos: func() Argumentos { return &argumentosDeCheck{dependencias: a.dependencias} },
-			Salida:     []grafo.Hallazgo(nil),
+			Salida:     grafo.Comprobacion{},
 		},
 	}
 }
@@ -150,35 +156,72 @@ func (a *argumentosDeStats) Ejecutar(ctx context.Context, _ schema.Contexto, _ *
 		})
 }
 
-// argumentosDeCheck son los de check: ninguno, ni por su posición ni con una
-// bandera propia (FR-060).
+// argumentosDeCheck son los de check: la norma y sus bloques, por su posición y
+// los dos opcionales, como los de boe articulos, y ninguna bandera propia
+// (H7.1 FR-001, FR-015; research.md D6). La norma es un puntero para que una
+// dada vacía —la de una variable sin valor— se distinga de no darla, que es
+// comprobar todo lo consultado.
 type argumentosDeCheck struct {
+	Norma   *string  `arg:"" optional:"" name:"norma" help:"Identificador BOE de la norma, BOE-A-<año>-<número>; sin él, todo lo consultado."`
+	Bloques []string `arg:"" optional:"" name:"bloques" help:"Ids de bloque de esa norma, como a21; sin ellos, todos los suyos."`
+
 	dependencias DependenciasDeGrafo
 }
 
-// Ejecutar comprueba una instantánea del grafo en el instante del reloj de la
-// invocación y devuelve sus hallazgos, una lista vacía y no nula si no hay
-// ninguno: encontrar algo es un resultado correcto (FR-060, FR-067; ADR 0023).
+// Ejecutar comprueba el ámbito de los argumentos —una norma y, si se nombran,
+// bloques suyos; sin norma, todo lo consultado— en el instante del reloj de la
+// invocación y devuelve su comprobación: los totales de cada clase y como mucho
+// grafo.MaximoDeHallazgos hallazgos, una lista vacía y no nula si no hay
+// ninguno. Encontrar algo es un resultado correcto (FR-060, FR-067; H7.1 FR-002,
+// FR-010 a FR-012; ADR 0023). Unos argumentos que no valen son «argumentos», sin
+// abrir world.db; una norma o un bloque bien formados que el grafo no conoce no
+// traen nada (H7.1 FR-003, FR-004).
 //
 // Una instantánea con lo que ninguna entrega guarda —una fecha de consulta que
 // no es RFC 3339— no se puede comprobar: es un world.db dañado, que sale como
 // inesperado y no como una lista de hallazgos inventada ni vacía.
 func (a *argumentosDeCheck) Ejecutar(ctx context.Context, _ schema.Contexto, _ *slog.Logger) (schema.Resultado, error) {
-	return a.dependencias.responder(ctx, nil,
+	ambito, argumentos := a.ambito()
+
+	return a.dependencias.responder(ctx, argumentos,
 		func(ctx context.Context, lectura *graph.Lectura, ahora time.Time) (any, error) {
-			instantanea, err := lectura.Instantanea(ctx, grafo.Ambito{})
+			instantanea, err := lectura.Instantanea(ctx, ambito)
 			if err != nil {
 				return nil, err
 			}
 
-			hallazgos, err := grafo.Comprobar(instantanea, ahora)
+			comprobacion, err := grafo.Comprobar(instantanea, ambito, ahora)
 			if err != nil {
 				return nil, fmt.Errorf("grafo: world.db guarda lo que ninguna entrega escribe y no se puede"+
 					" comprobar: %w", err)
 			}
 
-			return hallazgos, nil
+			return comprobacion, nil
 		})
+}
+
+// ambito es el que piden los argumentos, o el fallo «argumentos» que los
+// rechaza (contracts/applet-graph.md §2 de H7.1): una norma dada, también
+// vacía, fuera de la gramática de boe.ValidarNorma —la misma de boe articulo—,
+// o un bloque vacío o de solo espacio en blanco en el sentido de
+// unicode.IsSpace. Cada mensaje nombra el valor.
+func (a *argumentosDeCheck) ambito() (grafo.Ambito, error) {
+	if a.Norma == nil {
+		return grafo.Ambito{}, nil
+	}
+
+	if err := boe.ValidarNorma(*a.Norma); err != nil {
+		return grafo.Ambito{}, fmt.Errorf("%w: %w", cli.ErrArgumentos, err)
+	}
+
+	for _, bloque := range a.Bloques {
+		if strings.TrimFunc(bloque, unicode.IsSpace) == "" {
+			return grafo.Ambito{}, fmt.Errorf("%w: el bloque %q está vacío o solo tiene espacio en blanco",
+				cli.ErrArgumentos, bloque)
+		}
+	}
+
+	return grafo.Ambito{Norma: *a.Norma, Bloques: a.Bloques}, nil
 }
 
 // Las comprobaciones en tiempo de compilación del contrato del applet.
