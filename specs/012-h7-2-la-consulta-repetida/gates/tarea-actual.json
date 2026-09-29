@@ -1,16 +1,15 @@
 {
-  "id": "T008",
-  "texto": "T008 [datos] [US2] Retirada del grafo previo de la eval 19 anterior y comparación carpeta a carpeta, y **nada más** (contracts/eval-y-derivada.md §3 y §5; data-model §8; research D13, D15; plan.md paso 7): se retira testdata/evals/grafo-previo/lpac-a21-version-anterior/ entera; en internal/app/grafo_test.go salen su entrada de `grabacionesDerivadas()` y `parrafoDeLaVersionAnterior`, y los comentarios de `grabacionesDerivadas()` y de `TestGrabacionesDerivadas` dejan de nombrarlas (`versionDelArticulo21` se queda: la usan `version-posterior` y `version-ulterior`); con ellas, `TestGrabacionesDerivadas` compara carpeta a carpeta y en los dos sentidos —los ficheros de `derivadasDelE2E` con las entradas de `grabacionesDerivadas()`, y los de `grafosPreviosDeLasEvals` con las de la lista de derivadas del grafo previo de T006—, de modo que la carpeta, y no la clase de la entrada, decide la comprobación: una entrada del e2e con carpeta de grafo previo falla nombrada (es una entrada del e2e sin fichero en su carpeta, y su fichero, uno del grafo previo sin entrada); las cuatro derivadas del e2e siguen con su clase y su comprobación sin cambios (FR-013); verificación: con una entrada del e2e apuntada un momento a una carpeta de grafo previo, `TestGrabacionesDerivadas` falla nombrándola (se retira antes de `make ci`); quickstart.md §4 da `retirada la eval`, `retirado su grafo previo` y `coincidencias: 1`; y `make ci` en verde — FR-011, FR-012, FR-013, FR-020, FR-081; SC-005, SC-007; US2.5; rutas: testdata/evals/grafo-previo/lpac-a21-version-anterior/, internal/app/grafo_test.go",
+  "id": "T009",
+  "texto": "T009 [US1] `boe-legislacion` v0.1.2: la respuesta no cuenta la comprobación ni lo dicho en otra conversación, con cada cambio trazado a la causa de raíz (contracts/skill-boe-legislacion.md §1 y §2; research «Causa de raíz del ruido» y D16; plan.md, «Cambios de `SKILL.md` trazados a la causa de raíz»): skills/boe-legislacion/SKILL.md cambia solo en C1-C9, con los textos del contrato (la redacción final puede ajustar el orden de las palabras, no lo que piden): en el paso 5, la primera viñeta sin «traslada lo que encuentre» —si da `version-obsoleta`, la forma fija de «Memoria de consultas»; si no, nada de ella— (C4), y detrás dos viñetas nuevas: «La respuesta empieza por lo que se pregunta», con su porqué (quien pregunta no ve las órdenes ni lo que devuelven) y todo lo que la respuesta no nombra salvo la forma `⚠ REDACCIÓN MODIFICADA:` —la memoria de consultas, `kitlegal graph` ni sus verbos, los códigos de salida, los hallazgos, las clases `version-obsoleta` y `fuente-caducada`, el JSON ni el sobre— (C1, C2, C3), y «Nada de otra conversación», con por qué, sin `version-obsoleta`, no se dice nada de lo consultado antes (C5); en «Memoria de consultas», la viñeta de `version-obsoleta` con las dos fechas de vigencia tal como las da el hallazgo (`AAAAMMDD`) en la misma línea que la forma, la superada y la leída (C6), y la última viñeta, que remite al paso 5 y, con otro código, a la regla 7 (C9); la regla 2 dice lo que no se pudo consultar por lo que significa para quien pregunta, sin el código (C8); la regla 7, reescrita, pide responder con el texto de `kitlegal boe` y decir, sin nombrar la memoria de consultas, `kitlegal graph` ni el código, «No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.», en un bloque de código `text` (C7); se quedan H7 FR 081, el código 0 como resultado, H7.1 FR 040, 041, 043 y 045, la forma de la cita y la de los avisos, la tabla de comandos generada, el frontmatter, los pasos 1 a 4 y las reglas 1, 3, 4, 5 y 6; menos de 300 líneas, sin nombrar evals, el job ni modelos (H5 FR 077); verificación: `make ci` con `skills-check` en verde —`avisos-de-la-skill`, `hallazgos-de-la-skill` y `expresiones-de-la-skill`, que mira ya también el bloque de la regla 7—; con `memoria de consultas` puesta un momento en ese bloque, `expresiones-de-la-skill` falla (se restaura antes de `make ci`); y `wc -l` de la skill por debajo de 300 — FR-040, FR-041, FR-042, FR-043, FR-044, FR-045, FR-046, FR-047; SC-001 (su efecto, en el job del cierre), SC-008; US1.1-US1.4, US4.1; rutas: skills/boe-legislacion/SKILL.md",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "3bfe1d86dbac56f7c23a6d14cbb5de25a3b72505",
+  "base": "33431e6ddd3d81a4fd95abf07db48261548a302b",
   "rutas": [
-    "contracts/eval-y-derivada.md",
-    "internal/app/grafo_test.go",
+    "SKILL.md",
+    "contracts/skill-boe-legislacion.md",
     "plan.md",
-    "quickstart.md",
-    "testdata/evals/grafo-previo/lpac-a21-version-anterior/"
+    "skills/boe-legislacion/SKILL.md"
   ],
   "cierre": false,
   "converger": false,

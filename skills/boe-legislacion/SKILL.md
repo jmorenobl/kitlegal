@@ -104,14 +104,23 @@ Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lug
 ### 5. Responder citando
 
 - Cuando ya no quede nada por leer, y antes de redactar la respuesta, comprueba la memoria de consultas una vez por
-  cada norma cuyos bloques vas a citar, con esa norma y los bloques de ella que has leído, y traslada lo que encuentre
-  como dice «Memoria de consultas»:
+  cada norma cuyos bloques vas a citar, con esa norma y los bloques de ella que has leído:
 
   ```bash
   kitlegal graph check BOE-A-2015-10565 a21 --json
   ```
 
-  No la pidas nunca sin argumentos ni antes de leer.
+  No la pidas nunca sin argumentos ni antes de leer. Si da `version-obsoleta`, dilo con la forma fija de «Memoria de
+  consultas»; si no, no digas nada de ella.
+- **La respuesta empieza por lo que se pregunta.** Quien pregunta no ve las órdenes que ejecutas ni lo que devuelven:
+  le sirven la norma, su texto y su cita. No cuentes lo que has hecho ni lo que ha devuelto ninguna orden, tampoco para
+  decir que no hay nada que decir ni para anunciar que vas a responder. Salvo la forma `⚠ REDACCIÓN MODIFICADA:`, la
+  respuesta no nombra la memoria de consultas, `kitlegal graph` ni ninguno de sus verbos, los códigos de salida, los
+  hallazgos, las clases del binario (`version-obsoleta`, `fuente-caducada`), el JSON ni el sobre.
+- **Nada de otra conversación.** No sabes qué se preguntó ni qué se respondió en otra conversación: no hables de ello,
+  ni para afirmarlo, ni para confirmarlo, ni para desmentirlo. Sin `version-obsoleta`, no digas nada de lo consultado
+  antes, ni que ha cambiado ni que no: la comprobación sin hallazgos no distingue un bloque leído antes y sin cambios de
+  uno que nunca se leyó.
 - Cada afirmación sobre el contenido de una norma lleva su cita, y lo citado sale del texto que devolvió `kitlegal boe`
   en esta conversación. La cita es la forma legible de la norma y del bloque seguida, en la misma línea, de
   `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
@@ -174,9 +183,9 @@ bloques, cada uno con su `clase`. De los verbos de `kitlegal graph`, el protocol
 citada, cuando ya no queda nada por leer y antes de responder (paso 5).
 
 - `version-obsoleta`: la redacción del bloque ha cambiado desde la lectura anterior. Trasládalo con su forma fija,
-  `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta `REDACCIÓN MODIFICADA` y dos puntos, en la misma línea—, con las dos
-  fechas de vigencia del hallazgo detrás: la de la redacción superada (`fecha_vigencia`) y la de la que acabas de leer
-  (`fecha_vigencia_reciente`). Por ejemplo:
+  `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta `REDACCIÓN MODIFICADA` y dos puntos—, y detrás, en la misma línea, las dos
+  fechas de vigencia tal como las da el hallazgo (`AAAAMMDD`): la de la redacción superada (`fecha_vigencia`) y la de
+  la que acabas de leer (`fecha_vigencia_reciente`). Por ejemplo:
 
   ```text
   ⚠ REDACCIÓN MODIFICADA: la redacción con fecha de vigencia 20161002, la que se consultó antes, ha sido sustituida por la de 20250101, que es la que se cita.
@@ -185,7 +194,8 @@ citada, cuando ya no queda nada por leer y antes de responder (paso 5).
   Decirlo con otras palabras no lo traslada.
 - `fuente-caducada` no se traslada: la respuesta cita el texto que acabas de leer, que la caché no sirve pasada su
   vigencia.
-- Con código 0 y sin `version-obsoleta`, no digas nada de la memoria de consultas; con otro código, la regla 7.
+- Sin `version-obsoleta`, la respuesta no dice nada de la memoria de consultas (paso 5); si `kitlegal graph check`
+  termina con otro código, la regla 7.
 
 La etiqueta de `version-obsoleta` no es la de ningún aviso de vigencia.
 
@@ -227,10 +237,11 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 1. **No concluir que algo no existe.** Una búsqueda vacía, o que una norma no esté en `references/normas.md`, no prueba
    que la norma o la regulación no existan: di «no encontrada con esta búsqueda» y propón reformular la búsqueda.
 2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla —código 3 (no encontrado), 4 (fuente no disponible) o 5
-   (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué no se pudo consultar y no suplas el
-   texto con conocimiento propio. Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada
-   bloque por separado con `kitlegal boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si `kitlegal` no
-   está en el `PATH`, di que falta instalar kitlegal.
+   (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué no se pudo consultar y por qué con lo
+   que significa para quien pregunta —que el artículo no está en la norma, que la fuente no estaba disponible, que la
+   fuente limitó las consultas—, sin el código, y no suplas el texto con conocimiento propio. Si la orden que falló
+   pedía varios bloques, dilo solo después de haber pedido cada bloque por separado con `kitlegal boe articulo`
+   (paso 3), y di cuáles no se pudieron consultar. Si `kitlegal` no está en el `PATH`, di que falta instalar kitlegal.
 3. **Trasladar la vigencia.** Traslada cada aviso de vigencia que devuelve el binario (derogada, vigencia agotada,
    consolidación no finalizada) con su forma fija —`⚠`, la etiqueta del aviso tal como la da el binario y dos puntos,
    con la frase del binario o una explicación detrás— y no presentes como vigente el texto de una norma derogada.
@@ -246,5 +257,10 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    artículo.
 7. **Una comprobación con hallazgos no es un fallo.** `kitlegal graph check` con código 0 es un resultado, con
    hallazgos o sin ellos, y nunca un fallo de la herramienta: trasládalos como dice «Memoria de consultas». Si termina
-   con otro código, responde igual con el texto de `kitlegal boe` y di que no se ha podido comprobar la memoria de
-   consultas.
+   con otro código, responde igual con el texto de `kitlegal boe` y di que no se ha podido comprobar si la redacción ha
+   cambiado desde una consulta anterior, sin afirmar que ha cambiado ni que no, y sin nombrar la memoria de consultas,
+   `kitlegal graph` ni el código:
+
+   ```text
+   No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.
+   ```
