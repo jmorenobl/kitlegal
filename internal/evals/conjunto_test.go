@@ -41,6 +41,9 @@ type entradaDeConjunto struct {
 type malFormadoEsperado struct {
 	fichero   string
 	fragmento string
+
+	// exacto dice que el fragmento es el error entero.
+	exacto bool
 }
 
 // TestLeerConjunto fija la lectura de un directorio de evals del contrato
@@ -49,6 +52,14 @@ type malFormadoEsperado struct {
 // nombre y cada una con un error que empieza por su nombre, sin que ninguna se
 // salte ni sea el error de la lectura, que queda para el directorio que no se
 // puede listar.
+//
+// Desde H7.2, fija también la lista de expresiones prohibidas de la carpeta
+// (contrato lista-y-juicio §1; FR-050, FR-055): la entrada que se llama
+// exactamente expresiones-prohibidas.yaml no es un fichero de eval; bien
+// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval; si no es un
+// fichero regular o no valida, es un fichero mal formado que la nombra y las
+// evals se leen sin lista; y una carpeta sin ella se lee como antes del hito,
+// sin lista en el conjunto ni en ninguna eval.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -59,14 +70,31 @@ func TestLeerConjunto(t *testing.T) {
 		Comandos: []ComandoEsperado{{Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a21"}},
 		Citas:    []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a21"}},
 	}
-	pregunta := "¿Cómo invierto una lista enlazada en Go?"
+	leidaDeProgramacion := Eval{
+		Fichero:  "02-no-activa-programacion.yaml",
+		Pregunta: "¿Cómo invierto una lista enlazada en Go?",
+	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
+
+	// La lista bien formada, la del test del esquema, y lo que se lee de ella.
+	lista := ExpresionesProhibidas{
+		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
+		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
+	}
+	conLista := func(eval Eval) Eval {
+		eval.Prohibidas = lista
+
+		return eval
+	}
 
 	casos := []struct {
 		nombre      string
 		entradas    []entradaDeConjunto
 		evals       []Eval
 		malFormados []malFormadoEsperado
+
+		// prohibidas es la lista que tiene que quedar en el conjunto.
+		prohibidas ExpresionesProhibidas
 	}{
 		{
 			nombre: "bien-formadas",
@@ -74,7 +102,7 @@ func TestLeerConjunto(t *testing.T) {
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
-			evals: []Eval{leidaDelArticulo21, {Fichero: "02-no-activa-programacion.yaml", Pregunta: pregunta}},
+			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
 		},
 		{
 			nombre: "con-mal-formadas",
@@ -117,7 +145,7 @@ func TestLeerConjunto(t *testing.T) {
 				{nombre: "01-extension.yml", contenido: contenidoDeProgramacion},
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
 			},
-			evals: []Eval{{Fichero: "02-no-activa-programacion.yaml", Pregunta: pregunta}},
+			evals: []Eval{leidaDeProgramacion},
 			malFormados: []malFormadoEsperado{
 				{fichero: "001-tres-cifras.yaml", fragmento: sinLaForma},
 				{fichero: "01-.yaml", fragmento: sinLaForma},
@@ -129,6 +157,68 @@ func TestLeerConjunto(t *testing.T) {
 				{fichero: "1-una-cifra.yaml", fragmento: sinLaForma},
 			},
 		},
+		{
+			nombre: "con-lista",
+			entradas: []entradaDeConjunto{
+				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals:      []Eval{conLista(leidaDelArticulo21), conLista(leidaDeProgramacion)},
+			prohibidas: lista,
+		},
+		{
+			nombre: "lista-sin-una-familia",
+			entradas: []entradaDeConjunto{
+				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "missing property 'otra_conversacion'"},
+			},
+		},
+		{
+			nombre: "lista-con-una-familia-repetida",
+			entradas: []entradaDeConjunto{
+				{
+					nombre:    ficheroDeExpresionesProhibidas,
+					contenido: maquinariaBienFormada + otraConversacionBienFormada + "maquinaria:\n  - json\n",
+				},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 8"},
+			},
+		},
+		{
+			// Con su nombre, una carpeta no es un fichero de eval sin la forma de
+			// nombre: es la lista, que no es un fichero regular.
+			nombre: "lista-que-no-es-un-fichero",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeExpresionesProhibidas, carpeta: true},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{{
+				fichero:   ficheroDeExpresionesProhibidas,
+				fragmento: ficheroDeExpresionesProhibidas + ": no es un fichero regular",
+				exacto:    true,
+			}},
+		},
+		{
+			// Solo el nombre exacto es el de la lista: con otra extensión, es un
+			// fichero de eval sin la forma de nombre.
+			nombre: "lista-con-otro-nombre",
+			entradas: []entradaDeConjunto{
+				{nombre: "expresiones-prohibidas.yml", contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals:       []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{{fichero: "expresiones-prohibidas.yml", fragmento: sinLaForma}},
+		},
 	}
 
 	for _, caso := range casos {
@@ -138,6 +228,7 @@ func TestLeerConjunto(t *testing.T) {
 			conjunto, err := LeerConjunto(crearConjunto(t, caso.entradas))
 			require.NoError(t, err, "un fichero mal formado nunca es el error de la lectura")
 			assert.Equal(t, caso.evals, conjunto.Evals)
+			assert.Equal(t, caso.prohibidas, conjunto.Prohibidas)
 
 			ficheros := make([]string, 0, len(conjunto.MalFormados))
 			for _, malFormado := range conjunto.MalFormados {
@@ -156,6 +247,10 @@ func TestLeerConjunto(t *testing.T) {
 				require.ErrorContains(t, motivo, esperado.fragmento)
 				assert.True(t, strings.HasPrefix(motivo.Error(), esperado.fichero+": "),
 					"el error empieza por el nombre del fichero: %q", motivo.Error())
+
+				if esperado.exacto {
+					require.EqualError(t, motivo, esperado.fragmento)
+				}
 			}
 		})
 	}

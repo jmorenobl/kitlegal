@@ -19,16 +19,22 @@ import (
 var formaDelNombre = regexp.MustCompile(`^[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*\.yaml$`)
 
 // Conjunto es lo que LeerConjunto lee de un directorio de evals: las evals bien
-// formadas y, aparte, las entradas que no se pueden leer como eval (contrato
-// evals-y-grabaciones §1).
+// formadas, la lista de expresiones prohibidas y, aparte, las entradas que no se
+// pueden leer como lo que su nombre dice que son (contrato evals-y-grabaciones
+// §1; contrato lista-y-juicio §1 de H7.2).
 type Conjunto struct {
 	// Evals son las bien formadas, en orden de nombre de fichero, cada una con
-	// su Fichero.
+	// su Fichero y con la lista de la carpeta en su Prohibidas.
 	Evals []Eval
 
-	// MalFormados son las entradas que no se pueden leer como eval, en orden de
-	// nombre de fichero.
+	// MalFormados son las entradas que no se pueden leer como eval, o como la
+	// lista la que lleva su nombre, en orden de nombre de fichero.
 	MalFormados []FicheroMalFormado
+
+	// Prohibidas es la lista de expresiones prohibidas de la carpeta, leída de
+	// expresiones-prohibidas.yaml; vacía si la carpeta no la tiene o si está mal
+	// formada (research D5).
+	Prohibidas ExpresionesProhibidas
 }
 
 // FicheroMalFormado es una entrada del directorio de evals que no es una eval
@@ -43,15 +49,22 @@ type FicheroMalFormado struct {
 
 // LeerConjunto lee todas las entradas del directorio antes de devolver nada y las
 // separa en evals bien formadas y ficheros mal formados, los dos en orden de
-// nombre (contrato evals-y-grabaciones §1, FR-071):
+// nombre, y la lista de expresiones prohibidas (contrato evals-y-grabaciones §1,
+// FR-071; contrato lista-y-juicio §1 de H7.2):
 //
-//  1. toda entrada es un fichero de eval: la que no es un fichero regular, o
-//     cuyo nombre no tiene la forma <nn>-<descripción>.yaml, es un
+//  1. la entrada que se llama exactamente expresiones-prohibidas.yaml es la
+//     lista, no un fichero de eval: si no es un fichero regular, no se puede
+//     leer o no valida, es un FicheroMalFormado con ese motivo; si no, va a
+//     Prohibidas;
+//  2. cualquier otra entrada es un fichero de eval: la que no es un fichero
+//     regular, o cuyo nombre no tiene la forma <nn>-<descripción>.yaml, es un
 //     FicheroMalFormado con ese motivo, nunca una entrada que se salta;
-//  2. cada fichero se lee y se pasa a LeerEval con su nombre: si no se puede
-//     leer o LeerEval devuelve un error, es un FicheroMalFormado con ese error;
-//     si no, su Eval va a Evals;
-//  3. el error queda para un directorio que no se puede listar: lo nombra y va
+//  3. cada fichero de eval se lee y se pasa a LeerEval con su nombre: si no se
+//     puede leer o LeerEval devuelve un error, es un FicheroMalFormado con ese
+//     error; si no, su Eval va a Evals;
+//  4. cada eval de Evals lleva en Prohibidas la lista de la carpeta, vacía si la
+//     carpeta no la tiene o está mal formada;
+//  5. el error queda para un directorio que no se puede listar: lo nombra y va
 //     con un Conjunto vacío. Un directorio vacío da un Conjunto vacío sin error.
 //
 // Solo lee y comprueba el formato: las reglas del conjunto son de
@@ -65,17 +78,62 @@ func LeerConjunto(dir string) (Conjunto, error) {
 	var conjunto Conjunto
 
 	for _, entrada := range entradas {
-		eval, err := leerEntrada(dir, entrada)
-		if err != nil {
+		if err := conjunto.leer(dir, entrada); err != nil {
 			conjunto.MalFormados = append(conjunto.MalFormados, FicheroMalFormado{Fichero: entrada.Name(), Error: err})
-
-			continue
 		}
+	}
 
-		conjunto.Evals = append(conjunto.Evals, eval)
+	for indice := range conjunto.Evals {
+		conjunto.Evals[indice].Prohibidas = conjunto.Prohibidas
 	}
 
 	return conjunto, nil
+}
+
+// leer lee en el conjunto una entrada del directorio: la de la lista, en
+// Prohibidas, y cualquier otra, como eval, en Evals. El error es el de la entrada
+// que no se puede leer como lo que su nombre dice que es, y empieza por su
+// nombre.
+func (c *Conjunto) leer(dir string, entrada fs.DirEntry) error {
+	if entrada.Name() == ficheroDeExpresionesProhibidas {
+		lista, err := leerLista(dir, entrada)
+		if err != nil {
+			return err
+		}
+
+		c.Prohibidas = lista
+
+		return nil
+	}
+
+	eval, err := leerEntrada(dir, entrada)
+	if err != nil {
+		return err
+	}
+
+	c.Evals = append(c.Evals, eval)
+
+	return nil
+}
+
+// motivoNoRegular es el motivo de una entrada del directorio que no es un
+// fichero regular.
+const motivoNoRegular = "no es un fichero regular"
+
+// leerLista lee la lista de expresiones prohibidas de la entrada del directorio
+// que lleva su nombre, con leerExpresionesProhibidas. Todo error empieza por ese
+// nombre.
+func leerLista(dir string, entrada fs.DirEntry) (ExpresionesProhibidas, error) {
+	if !entrada.Type().IsRegular() {
+		return ExpresionesProhibidas{}, fmt.Errorf("%s: %s", entrada.Name(), motivoNoRegular)
+	}
+
+	contenido, err := leerContenido(dir, entrada.Name())
+	if err != nil {
+		return ExpresionesProhibidas{}, err
+	}
+
+	return leerExpresionesProhibidas(contenido)
 }
 
 // leerEntrada lee como eval una entrada del directorio. Todo error empieza por
@@ -86,7 +144,7 @@ func leerEntrada(dir string, entrada fs.DirEntry) (Eval, error) {
 
 	var motivos []string
 	if !entrada.Type().IsRegular() {
-		motivos = append(motivos, "no es un fichero regular")
+		motivos = append(motivos, motivoNoRegular)
 	}
 
 	if !formaDelNombre.MatchString(nombre) {
@@ -97,15 +155,24 @@ func leerEntrada(dir string, entrada fs.DirEntry) (Eval, error) {
 		return Eval{}, fmt.Errorf("%s: %s", nombre, strings.Join(motivos, " y "))
 	}
 
-	// filepath.Clean es lo que el control de rutas reconoce como saneado antes
-	// de abrir un fichero (gosec G304); el nombre es el de una entrada del propio
-	// directorio con la forma de arriba, sin separadores de ruta.
-	contenido, err := os.ReadFile(filepath.Clean(filepath.Join(dir, nombre)))
+	contenido, err := leerContenido(dir, nombre)
 	if err != nil {
-		return Eval{}, fmt.Errorf("%s: no se puede leer: %w", nombre, err)
+		return Eval{}, err
 	}
 
 	return LeerEval(nombre, contenido)
+}
+
+// leerContenido lee entero el fichero de la entrada del directorio con ese
+// nombre, que es el de una de sus entradas, sin separadores de ruta, así que la
+// ruta no sale del directorio (leerFichero). El error empieza por el nombre.
+func leerContenido(dir, nombre string) ([]byte, error) {
+	contenido, err := leerFichero(filepath.Join(dir, nombre))
+	if err != nil {
+		return nil, fmt.Errorf("%s: no se puede leer: %w", nombre, err)
+	}
+
+	return contenido, nil
 }
 
 // NormaConocida es lo que las reglas del conjunto necesitan de una norma de

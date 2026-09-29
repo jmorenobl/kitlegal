@@ -1,19 +1,23 @@
 {
-  "id": "T001",
-  "texto": "T001 [datos] [US3] El esquema de la lista de expresiones prohibidas con los casos que lo fijan, y **nada más** (contracts/lista-y-juicio.md §1; data-model §1; research D1, D2; plan.md paso 1): schemas/expresiones-prohibidas.yaml.json tal cual el contrato —`$schema` 2020-12, `$id` `https://kitlegal.es/schemas/expresiones-prohibidas.yaml.json`, `title`, objeto con `additionalProperties: false` y `maquinaria` y `otra_conversacion` obligatorias, cada una `$ref` a `$defs.expresiones`: lista con `minItems: 1` de cadenas con el patrón `^[^\\s*_]+( [^\\s*_]+)*$`—; en internal/evals/formato_test.go, un test del esquema publicado que lo lee de su ruta, lo compila con `skills.CompilarEsquema` y valida contra él con `skills.ValidarDocumentoYAML` documentos escritos en el test: una lista con las dos familias valida; sin `maquinaria`, sin `otra_conversacion`, con una familia vacía, con una clave de más y con una expresión con un blanco en un extremo o con `*` no validan (una lista mal formada es un fichero mal formado, FR-055); ninguna carpeta de evals lleva lista todavía y no hay código de producto (el Go que la lee llega en T002); en .golangci.yml, `conversacion` en las `ignore-rules` de `misspell`, entre `controles` y `defectos` y con su comentario, como las demás: la clave `otra_conversacion` que fija el contrato la lee misspell como «conversation», también entre guiones bajos y guiones, así que los documentos del test no pasan `make lint` sin ella, y T002 la escribe en la etiqueta YAML de `OtraConversacion`, que no se puede partir (redelimitada tras el intento 1, que lo encontró; su nota da la entrada comprobada); verificación: `make ci` en verde (`schema-check` no la compara: no sale de `--describe`) — FR-050, FR-055, FR-082; SC-006; rutas: schemas/expresiones-prohibidas.yaml.json, internal/evals/formato_test.go, .golangci.yml",
-  "intento": 2,
-  "datos": true,
+  "id": "T002",
+  "texto": "T002 [US3] La lista en el formato común de eval: su lectura, su comparación y su lugar en el conjunto (contracts/lista-y-juicio.md §1 y §3; data-model §1 y §2; research D3, D5, D8; plan.md paso 2): internal/evals/prohibidas.go con `ExpresionesProhibidas{Maquinaria, OtraConversacion []string}` (`yaml:\"maquinaria\"`, `yaml:\"otra_conversacion\"`), el esquema publicado de T001 compilado una sola vez como el de eval, la lectura con el lector común de documentos YAML (`skills.ValidarDocumentoYAML`: una clave repetida es un defecto con sus dos líneas) y `ExtraerExpresionesProhibidas(texto string, lista ExpresionesProhibidas) []string` —las expresiones de la lista, en su orden (maquinaria y después otra conversación) y sin repetir, cuya expresión regular casa en algún punto del texto; `nil` si ninguna—, con cada expresión compilada una sola vez como `(?:^|[^\\p{L}\\p{N}])`, sus palabras de `strings.Fields` como `(?i:<regexp.QuoteMeta(palabra)>)` unidas por `entrePalabrasDeAviso` de internal/evals/avisos.go (la tolerancia de H5.1), y `(?:$|[^\\p{L}\\p{N}])`; internal/evals/conjunto.go: `LeerConjunto` reconoce `expresiones-prohibidas.yaml` por su nombre exacto —no es un fichero de eval—, la lee y la valida, y la deja en `Conjunto.Prohibidas` y copiada en `Eval.Prohibidas` de cada eval de la carpeta; si la entrada no es un fichero regular, no se puede leer o no valida, es un `FicheroMalFormado` cuyo error empieza por `expresiones-prohibidas.yaml`, y las evals de la carpeta se leen sin lista; internal/evals/formato.go: `Eval.Prohibidas ExpresionesProhibidas` con `yaml:\"-\"`, como `Fichero`; internal/evals/doc.go dice que el paquete lee también la lista; `Juzgar` y el informe no cambian todavía (T004, T005); tests: `TestExtraerExpresionesProhibidas` en internal/evals/prohibidas_test.go, con una lista escrita en el test, sobre cada fila de la tabla de contracts/lista-y-juicio.md §3 —mayúsculas, dos espacios, énfasis de Markdown alrededor y dentro de las palabras, `graph check` entre comillas invertidas, `(código 0)`, «te habría confirmado», «te confirmé.», la línea `⚠ REDACCIÓN MODIFICADA:` con sus dos fechas, `⚠ NORMA DEROGADA:`, «No hay avisos de vigencia sobre este bloque.» y «No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.» sin ninguna, `hallazgoss` sin ninguna y el salto de línea que parte una expresión—, el orden de la lista y sin repetir; `TestLeerConjunto` en internal/evals/conjunto_test.go con una carpeta con la lista bien formada (en `Conjunto.Prohibidas` y en cada `Eval.Prohibidas`), con una mal formada (un `FicheroMalFormado` que la nombra y evals sin lista) y sin lista (como antes del hito); verificación: `make ci` en verde con `TestEvalsDelRepositorio` sin cambios (ninguna carpeta del repositorio tiene lista todavía) — FR-050, FR-051, FR-055, FR-056, FR-082; SC-006; US3.4, US3.5, US3.9; rutas: internal/evals/prohibidas.go, internal/evals/conjunto.go, internal/evals/formato.go, internal/evals/doc.go, internal/evals/conjunto_test.go",
+  "intento": 1,
+  "datos": false,
   "aceptacion": false,
-  "base": "b1fdf9d179f6f1b1df49d1165d777be47a624398",
+  "base": "0eb429942650e3ec4bdc6a491600fadb5c70afb3",
   "rutas": [
-    ".es/schemas/expresiones-prohibidas.yaml.json",
-    ".golangci.yml",
     "contracts/lista-y-juicio.md",
-    "internal/evals/formato_test.go",
-    "plan.md",
-    "schemas/expresiones-prohibidas.yaml.json"
+    "expresiones-prohibidas.yaml",
+    "internal/evals/avisos.go",
+    "internal/evals/conjunto.go",
+    "internal/evals/conjunto_test.go",
+    "internal/evals/doc.go",
+    "internal/evals/formato.go",
+    "internal/evals/prohibidas.go",
+    "internal/evals/prohibidas_test.go",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "8858867269aa0d0e991e2f05e479532bbd6e7f2e2c465151f3869fba10e2c600"
+  "nota": "-"
 }
