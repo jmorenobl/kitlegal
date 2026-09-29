@@ -1,6 +1,7 @@
 package grafo_test
 
 import (
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -102,15 +103,81 @@ func (v versionDeEjemplo) conVigencia(vigencia time.Duration) versionDeEjemplo {
 	return v
 }
 
-// deVersiones es el grafo del bloque a21, observado el lunes y sin vigencia,
-// con estas versiones, cada una unida a él por eli:has_version.
-func deVersiones(versiones ...versionDeEjemplo) grafo.Instantanea {
-	instantanea := grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{bloqueDeLaLPAC(idBloque, "a21", lunes)}}
+// lecturaDeEjemplo es una lectura de un bloque de la norma de ejemplo: la
+// redacción que vio y la fecha de consulta del sobre que la trajo, que es la de
+// su última observación si ninguna lectura posterior la vuelve a ver.
+type lecturaDeEjemplo struct {
+	redaccion redaccionDeEjemplo
+	fecha     string
+}
 
-	for _, version := range versiones {
-		instantanea.Nodos = append(instantanea.Nodos, version.nodo())
-		instantanea.Aristas = append(instantanea.Aristas, arista(idBloque, grafo.RelacionTieneVersion, version.id()))
+// nodo es el de la redacción vista, observada por última vez en la fecha de la
+// lectura y sin vigencia.
+func (l lecturaDeEjemplo) nodo() grafo.NodoDeInstantanea {
+	return l.redaccion.vistaEl(l.fecha)
+}
+
+// trasLeer es la instantánea que dejan las lecturas, en su orden, como la lee
+// graph check de world.db (data-model §3 y §4): la norma de ejemplo; cada
+// bloque leído, con la arista eli:has_part que llega a él y su fila de
+// lecturas; y cada redacción vista, con la arista eli:has_version desde su
+// bloque y la fecha de su última lectura como última observación. La primera
+// lectura de un bloque deja su fila en (v, v) y cada una de las siguientes la
+// pasa por Leida. Nada declara vigencia.
+func trasLeer(lecturas ...lecturaDeEjemplo) grafo.Instantanea {
+	filas := map[string]grafo.LecturasDeBloque{}
+	partes := map[string]string{}
+	vistas := map[string]lecturaDeEjemplo{}
+
+	for _, lectura := range lecturas {
+		bloque, vista := lectura.redaccion.bloque(), lectura.redaccion.id()
+
+		// Un bloque sin leer parte de una fila cuya última es la que ve su
+		// primera lectura, así que Leida la deja en (v, v).
+		fila, leido := filas[bloque]
+		if !leido {
+			fila = grafo.LecturasDeBloque{Bloque: bloque, Ultima: vista}
+		}
+
+		filas[bloque] = fila.Leida(vista)
+		partes[bloque] = lectura.redaccion.parte
+		vistas[vista] = lectura
 	}
+
+	instantanea := grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{normaLPAC(lunes)}}
+
+	for _, bloque := range slices.Sorted(maps.Keys(filas)) {
+		instantanea.Nodos = append(instantanea.Nodos, bloqueDeLaLPAC(bloque, partes[bloque], lunes))
+		instantanea.Aristas = append(instantanea.Aristas, arista(idNorma, grafo.RelacionTieneParte, bloque))
+		instantanea.Lecturas = append(instantanea.Lecturas, filas[bloque])
+	}
+
+	for _, id := range slices.Sorted(maps.Keys(vistas)) {
+		instantanea.Nodos = append(instantanea.Nodos, vistas[id].nodo())
+		instantanea.Aristas = append(instantanea.Aristas,
+			arista(vistas[id].redaccion.bloque(), grafo.RelacionTieneVersion, id))
+	}
+
+	return instantanea
+}
+
+// sinFilas es la misma instantánea sin ninguna fila de lecturas: la de un
+// world.db de H7, en el que cada bloque cuenta con una sola lectura (FR-026).
+func sinFilas(instantanea grafo.Instantanea) grafo.Instantanea {
+	instantanea.Lecturas = nil
+
+	return instantanea
+}
+
+// conVigenciaEnTodos es la misma instantánea con esa vigencia declarada en la
+// última observación de cada nodo.
+func conVigenciaEnTodos(instantanea grafo.Instantanea, vigencia time.Duration) grafo.Instantanea {
+	nodos := make([]grafo.NodoDeInstantanea, 0, len(instantanea.Nodos))
+	for _, nodo := range instantanea.Nodos {
+		nodos = append(nodos, conVigenciaDe(nodo, vigencia))
+	}
+
+	instantanea.Nodos = nodos
 
 	return instantanea
 }
@@ -120,35 +187,41 @@ func deNodos(nodos ...grafo.NodoDeInstantanea) grafo.Instantanea {
 	return grafo.Instantanea{Nodos: nodos}
 }
 
-// conMas es la misma instantánea con más nodos y más aristas.
+// conMas es la misma instantánea con más nodos y más aristas, y con sus filas
+// de lecturas.
 func conMas(instantanea grafo.Instantanea, nodos []grafo.NodoDeInstantanea, aristas ...schema.Arista) grafo.Instantanea {
 	return grafo.Instantanea{
-		Nodos:   slices.Concat(instantanea.Nodos, nodos),
-		Aristas: slices.Concat(instantanea.Aristas, aristas),
+		Nodos:    slices.Concat(instantanea.Nodos, nodos),
+		Aristas:  slices.Concat(instantanea.Aristas, aristas),
+		Lecturas: slices.Clone(instantanea.Lecturas),
 	}
 }
 
-// invertida es la misma instantánea con sus nodos y sus aristas en el orden
-// inverso.
+// invertida es la misma instantánea con sus nodos, sus aristas y sus filas de
+// lecturas en el orden inverso.
 func invertida(instantanea grafo.Instantanea) grafo.Instantanea {
 	nodos := slices.Clone(instantanea.Nodos)
 	aristas := slices.Clone(instantanea.Aristas)
+	lecturas := slices.Clone(instantanea.Lecturas)
 
 	slices.Reverse(nodos)
 	slices.Reverse(aristas)
+	slices.Reverse(lecturas)
 
-	return grafo.Instantanea{Nodos: nodos, Aristas: aristas}
+	return grafo.Instantanea{Nodos: nodos, Aristas: aristas, Lecturas: lecturas}
 }
 
-// obsoleta es el hallazgo, sin la explicación, de la versión superada con la
-// procedencia y la fecha de vigencia de la más reciente (FR-063).
-func obsoleta(superada, reciente versionDeEjemplo) grafo.Hallazgo {
+// obsoleta es el hallazgo, sin la explicación, de la redacción que vio la
+// lectura anterior de su bloque, superada por la que vio la última: con la
+// fecha de vigencia de las dos y la procedencia de la última observación de la
+// reciente (FR-023; data-model §5).
+func obsoleta(superada, reciente lecturaDeEjemplo) grafo.Hallazgo {
 	return grafo.Hallazgo{
 		Clase:                 grafo.ClaseVersionObsoleta,
-		ID:                    superada.id(),
+		ID:                    superada.redaccion.id(),
 		Procedencia:           reciente.nodo().UltimaObservacion,
-		FechaVigencia:         superada.fechaVigencia,
-		FechaVigenciaReciente: reciente.fechaVigencia,
+		FechaVigencia:         superada.redaccion.fechaVigencia,
+		FechaVigenciaReciente: reciente.redaccion.fechaVigencia,
 	}
 }
 
@@ -183,19 +256,20 @@ type casoDeComprobacion struct {
 	esperados   []grafo.Hallazgo
 }
 
-// TestComprobar fija las dos reglas de `graph check` y su orden (FR-060 a
-// FR-064, FR-066, FR-067; data-model §6; research.md D15, D34): una
-// version-obsoleta por cada versión con otra de su bloque de fecha de vigencia
-// estrictamente posterior, entre las fechas de vigencia válidas, con la
-// procedencia y la fecha de la más reciente; una fuente-caducada por cada nodo
-// cuya consulta ha caducado estrictamente antes del instante de la
-// comprobación; las dos sobre el mismo nodo; una lista nunca nula, ordenada por
-// clase y por id, que no depende del orden de la instantánea ni cambia al
-// repetir la comprobación.
+// TestComprobar fija las dos reglas de `graph check` y su orden (FR-011,
+// FR-023 a FR-026; H7 FR 064, FR 066, FR 067; data-model §4 y §5; research.md
+// D5): una version-obsoleta sobre la redacción que vio la lectura anterior de
+// un bloque cuando la que vio la última tiene una fecha de vigencia válida y
+// estrictamente posterior, con la procedencia y la fecha de la reciente, y
+// ninguna sin fila de lecturas; una fuente-caducada por cada nodo cuya
+// consulta ha caducado estrictamente antes del instante de la comprobación; y
+// una lista nunca nula, con todas las version-obsoleta antes que todas las
+// fuente-caducada y por id dentro de cada clase, que no depende del orden de
+// la instantánea ni cambia al repetir la comprobación.
 func TestComprobar(t *testing.T) {
 	t.Parallel()
 
-	for _, caso := range slices.Concat(casosDeVersiones(), casosDeFechasDeVigencia(), casosDeCaducidad()) {
+	for _, caso := range slices.Concat(casosDeLecturas(), casosDeFechasDeVigencia(), casosDeCaducidad(), casosDeOrden()) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
@@ -204,78 +278,54 @@ func TestComprobar(t *testing.T) {
 	}
 }
 
-// casosDeVersiones son los de version-obsoleta con fechas de vigencia válidas.
-func casosDeVersiones() []casoDeComprobacion {
-	v2015 := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: lunes}
-	v2016 := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: martes}
-	v2017 := versionDeEjemplo{fechaVigencia: "20170101", letra: "c", consulta: miercoles}
-	// v2016Antes y v2016Despues tienen la misma fecha de vigencia y el mismo
-	// instante de consulta, con textos distintos: el de v2016Despues es mayor y
-	// su id también.
-	v2016Antes := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: lunes}
-	v2016Despues := versionDeEjemplo{fechaVigencia: "20160101", letra: "c", consulta: lunesEnMadrid}
-	// Y v2016EnMadrid y v2016Utc, al revés: el id menor lleva el texto mayor.
-	v2016EnMadrid := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: lunesEnMadrid}
-	v2016Utc := versionDeEjemplo{fechaVigencia: "20160101", letra: "c", consulta: lunes}
-	// v2016Martes es de la misma fecha de vigencia con una consulta posterior
-	// y el id mayor.
-	v2016Martes := versionDeEjemplo{fechaVigencia: "20160101", letra: "c", consulta: martes}
-	// v2015Martes es la más antigua observada la última.
-	v2015Martes := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: martes}
-	v2016Lunes := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: lunes}
+// Las lecturas del bloque a21 de la secuencia de FR-025 (data-model §4): A,
+// la grabación de H4, que sirve la fuente el lunes; B, de fecha de vigencia
+// posterior, que sirve la fuente el martes y después la caché, con la misma
+// fecha de consulta; y C, posterior a las dos, que sirve la fuente el
+// miércoles.
+var (
+	leidaA = lecturaDeEjemplo{redaccion: redaccionA, fecha: lunes}
+	leidaB = lecturaDeEjemplo{redaccion: redaccionB, fecha: martes}
+	leidaC = lecturaDeEjemplo{redaccion: redaccionC, fecha: miercoles}
+)
+
+// casosDeLecturas son los de version-obsoleta decidida por las lecturas: la
+// secuencia de FR-025 paso a paso —el paso 3, con --no-graph, no lee y deja la
+// instantánea del 2—; un bloque sin fila, que cuenta con una sola lectura
+// aunque tenga dos redacciones (FR-026); dos lecturas con la misma fecha de
+// vigencia y otra huella; y una última lectura de fecha de vigencia anterior
+// (FR-023). Ninguna consulta declara vigencia, así que no hay fuente-caducada.
+func casosDeLecturas() []casoDeComprobacion {
+	mismaFecha := lecturaDeEjemplo{
+		redaccion: redaccionDeEjemplo{parte: "a21", fechaVigencia: redaccionA.fechaVigencia, cuerpo: cuerpoA21 + " Otra huella."},
+		fecha:     martes,
+	}
 	ninguno := []grafo.Hallazgo{}
 
 	return []casoDeComprobacion{
-		{"un grafo vacio", grafo.Instantanea{}, elMartes, ninguno},
-		{"una sola version", deVersiones(v2015), elMartes, ninguno},
+		{"un grafo vacio", grafo.Instantanea{}, dentroDeUnMes, ninguno},
+		{"1: la fuente sirve A, una sola lectura", trasLeer(leidaA), dentroDeUnMes, ninguno},
 		{
-			"una vez por cada version superada, en orden de id",
-			deVersiones(v2017, v2015, v2016), elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015, v2017), obsoleta(v2016, v2017)},
+			"2: caducada la cache, la fuente sirve B: sobre A", trasLeer(leidaA, leidaB), dentroDeUnMes,
+			[]grafo.Hallazgo{obsoleta(leidaA, leidaB)},
 		},
+		{"4: la cache sirve B otra vez", trasLeer(leidaA, leidaB, leidaB), dentroDeUnMes, ninguno},
 		{
-			"empate en la fecha mas alta: un hallazgo, sobre la anterior",
-			deVersiones(v2015, v2016Antes, v2016Despues), elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015, v2016Antes)},
+			"5: caducada la cache, la fuente sirve C: sobre B", trasLeer(leidaA, leidaB, leidaB, leidaC), dentroDeUnMes,
+			[]grafo.Hallazgo{obsoleta(leidaB, leidaC)},
 		},
-		{"misma fecha y distinta huella", deVersiones(v2016Antes, v2016Martes), elMartes, ninguno},
-		{
-			"la mas reciente, a igual fecha, por la ultima observacion posterior",
-			deVersiones(v2015, v2016Antes, v2016Martes), elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015, v2016Martes)},
-		},
-		{
-			"la mas reciente, a igual instante, por el id menor y no por el texto",
-			deVersiones(v2016Utc, v2015, v2016EnMadrid), elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015, v2016EnMadrid)},
-		},
-		{
-			"la fecha de vigencia manda sobre la observacion",
-			deVersiones(v2015Martes, v2016Lunes), elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015Martes, v2016Lunes)},
-		},
-		{
-			"una version de dos bloques, una vez, por el de id menor",
-			conMas(deVersiones(v2015, v2016), []grafo.NodoDeInstantanea{bloqueDeLaLPAC(idBloqueA22, "a22", lunes), v2017.nodo()},
-				arista(idBloqueA22, grafo.RelacionTieneVersion, v2015.id()),
-				arista(idBloqueA22, grafo.RelacionTieneVersion, v2017.id())),
-			elMartes,
-			[]grafo.Hallazgo{obsoleta(v2015, v2016)},
-		},
+		{"un bloque sin fila con dos redacciones", sinFilas(trasLeer(leidaA, leidaB)), dentroDeUnMes, ninguno},
+		{"la misma fecha de vigencia y otra huella", trasLeer(leidaA, mismaFecha), dentroDeUnMes, ninguno},
+		{"una ultima lectura de fecha de vigencia anterior", trasLeer(leidaB, leidaA), dentroDeUnMes, ninguno},
 	}
 }
 
-// casosDeFechasDeVigencia son los de las versiones que no se comparan: una
-// fecha de vigencia que no es válida no recibe ni provoca un hallazgo, y solo
-// se comparan las versiones de un mismo Bloque unidas a él por eli:has_version
-// (FR-063, FR-064; research.md D34). En cada uno, la única comparación posible
-// es la de 2015 con 2017.
+// casosDeFechasDeVigencia son los de una fecha de vigencia que no es válida
+// (H7 FR 064; research.md D34 de H7): ocho cifras ASCII que nombran un día que
+// existe. Una redacción con otra fecha no provoca un hallazgo si la vio la
+// última lectura ni lo recibe si la vio la anterior, aunque la otra fecha sea
+// válida.
 func casosDeFechasDeVigencia() []casoDeComprobacion {
-	v2015 := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: lunes}
-	v2017 := versionDeEjemplo{fechaVigencia: "20170101", letra: "c", consulta: lunes}
-	unica := []grafo.Hallazgo{obsoleta(v2015, v2017)}
-	ninguno := []grafo.Hallazgo{}
-
 	noValidas := []struct{ nombre, fecha string }{
 		{"vacia", ""},
 		{"de otra longitud, corta", "2018010"},
@@ -289,71 +339,26 @@ func casosDeFechasDeVigencia() []casoDeComprobacion {
 		// Las cifras de 20180101 arábigo-índicas (U+0660-U+0669).
 		{"con cifras arabigo-indicas", "\xd9\xa2\xd9\xa0\xd9\xa1\xd9\xa8\xd9\xa0\xd9\xa1\xd9\xa0\xd9\xa1"},
 	}
+	ninguno := []grafo.Hallazgo{}
 
-	casos := make([]casoDeComprobacion, 0, len(noValidas)+7)
+	casos := make([]casoDeComprobacion, 0, 2*len(noValidas))
+
 	for _, noValida := range noValidas {
-		otra := versionDeEjemplo{fechaVigencia: noValida.fecha, letra: "z", consulta: lunes}
-		casos = append(casos, casoDeComprobacion{
-			"una fecha de vigencia " + noValida.nombre, deVersiones(v2015, otra, v2017), elMartes, unica,
-		})
+		otra := lecturaDeEjemplo{
+			redaccion: redaccionDeEjemplo{parte: "a21", fechaVigencia: noValida.fecha, cuerpo: cuerpoA21 + " Otra fecha."},
+			fecha:     martes,
+		}
+
+		casos = append(casos,
+			casoDeComprobacion{"la ultima, con una fecha " + noValida.nombre, trasLeer(leidaA, otra), dentroDeUnMes, ninguno},
+			casoDeComprobacion{"la anterior, con una fecha " + noValida.nombre, trasLeer(otra, leidaB), dentroDeUnMes, ninguno},
+		)
 	}
 
-	sinFecha := observado(idBloque+"@sin-fecha", grafo.TipoBloqueVersion, map[string]any{}, lunes)
-	numerica := observado(idBloque+"@numerica", grafo.TipoBloqueVersion,
-		map[string]any{grafo.DatoFechaVigencia: float64(20180101)}, lunes)
-	w2016 := observado(idBloqueA22+"@20160101", grafo.TipoBloqueVersion,
-		map[string]any{grafo.DatoFechaVigencia: "20160101"}, lunes)
-	noVersion := observado(idMunicipio, grafo.TipoMunicipio, map[string]any{grafo.DatoFechaVigencia: "20160101"}, lunes)
-	v2016 := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: lunes}
-	solo2015 := deVersiones(v2015)
-
-	return append(casos,
-		casoDeComprobacion{
-			"una version sin fecha de vigencia",
-			conMas(deVersiones(v2015, v2017), []grafo.NodoDeInstantanea{sinFecha},
-				arista(idBloque, grafo.RelacionTieneVersion, sinFecha.ID)),
-			elMartes, unica,
-		},
-		casoDeComprobacion{
-			"una fecha de vigencia que no es un texto",
-			conMas(deVersiones(v2015, v2017), []grafo.NodoDeInstantanea{numerica},
-				arista(idBloque, grafo.RelacionTieneVersion, numerica.ID)),
-			elMartes, unica,
-		},
-		casoDeComprobacion{
-			"versiones de dos bloques",
-			conMas(solo2015, []grafo.NodoDeInstantanea{bloqueDeLaLPAC(idBloqueA22, "a22", lunes), w2016},
-				arista(idBloqueA22, grafo.RelacionTieneVersion, w2016.ID)),
-			elMartes, ninguno,
-		},
-		casoDeComprobacion{
-			"una arista que no sale de un Bloque",
-			conMas(solo2015, []grafo.NodoDeInstantanea{normaLPAC(lunes), v2016.nodo()},
-				arista(idNorma, grafo.RelacionTieneVersion, v2016.id())),
-			elMartes, ninguno,
-		},
-		casoDeComprobacion{
-			"una arista que no llega a una BloqueVersion",
-			conMas(solo2015, []grafo.NodoDeInstantanea{noVersion},
-				arista(idBloque, grafo.RelacionTieneVersion, idMunicipio)),
-			elMartes, ninguno,
-		},
-		casoDeComprobacion{
-			"una arista de otra relacion",
-			conMas(solo2015, []grafo.NodoDeInstantanea{v2016.nodo()},
-				arista(idBloque, grafo.RelacionTieneParte, v2016.id())),
-			elMartes, ninguno,
-		},
-		casoDeComprobacion{
-			"una arista hacia un nodo que no esta",
-			conMas(solo2015, nil, arista(idBloque, grafo.RelacionTieneVersion, v2016.id())),
-			elMartes, ninguno,
-		},
-	)
+	return casos
 }
 
-// casosDeCaducidad son los de fuente-caducada, y los de las dos clases sobre
-// el mismo nodo (FR-066).
+// casosDeCaducidad son los de fuente-caducada (FR-066).
 func casosDeCaducidad() []casoDeComprobacion {
 	deUnaHora := conVigenciaDe(normaLPAC(lunes), unaHora)
 	// enMadrid es una consulta de una hora antes que lunes, escrita en otro
@@ -364,7 +369,6 @@ func casosDeCaducidad() []casoDeComprobacion {
 	v2015 := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: lunes, vigencia: unaSemana}
 	municipio := conVigenciaDe(observado(idMunicipio, grafo.TipoMunicipio, map[string]any{}, lunes), unaSemana)
 	organo := observado(idOrgano, grafo.TipoOrgano, map[string]any{}, lunes)
-	v2016 := versionDeEjemplo{fechaVigencia: "20160101", letra: "b", consulta: lunes}
 	ninguno := []grafo.Hallazgo{}
 
 	return []casoDeComprobacion{
@@ -388,19 +392,41 @@ func casosDeCaducidad() []casoDeComprobacion {
 			deNodos(municipio, organo, v2015.nodo(), bloque, norma), dentroDeUnMes,
 			[]grafo.Hallazgo{caducada(norma), caducada(bloque), caducada(v2015.nodo()), caducada(municipio)},
 		},
+	}
+}
+
+// casosDeOrden son los del orden de la lista (FR-011): todas las
+// version-obsoleta antes que todas las fuente-caducada, aunque el id de una
+// fuente-caducada sea menor, y por id comparando bytes dentro de cada clase,
+// cualquiera que sea el orden de las lecturas y de las filas.
+func casosDeOrden() []casoDeComprobacion {
+	leidaA22 := lecturaDeEjemplo{redaccion: redaccionA22, fecha: lunes}
+	leidaA22Posterior := lecturaDeEjemplo{
+		redaccion: redaccionDeEjemplo{parte: "a22", fechaVigencia: "20250101", cuerpo: redaccionA22.cuerpo + " Version posterior."},
+		fecha:     martes,
+	}
+	caducadas := conVigenciaEnTodos(trasLeer(leidaA, leidaB), unaSemana)
+
+	esperados := []grafo.Hallazgo{obsoleta(leidaA, leidaB)}
+	for _, nodo := range caducadas.Nodos {
+		esperados = append(esperados, caducada(nodo))
+	}
+
+	slices.SortFunc(esperados[1:], func(a, b grafo.Hallazgo) int { return strings.Compare(a.ID, b.ID) })
+
+	return []casoDeComprobacion{
 		{
-			"las dos clases sobre el mismo nodo, por clase y por id",
-			deVersiones(v2016.conVigencia(unaSemana), v2015), dentroDeUnMes,
-			[]grafo.Hallazgo{
-				caducada(v2015.nodo()), caducada(v2016.conVigencia(unaSemana).nodo()), obsoleta(v2015, v2016),
-			},
+			"dos bloques, por id",
+			trasLeer(leidaA22, leidaA, leidaA22Posterior, leidaB), dentroDeUnMes,
+			[]grafo.Hallazgo{obsoleta(leidaA, leidaB), obsoleta(leidaA22, leidaA22Posterior)},
 		},
+		{"las version-obsoleta antes que las fuente-caducada", caducadas, dentroDeUnMes, esperados},
 	}
 }
 
 // exigirComprobacion exige que la comprobación del caso dé sus hallazgos, cada
 // uno con su explicación, en una lista que no es nula, y la misma lista al
-// repetirla y con la instantánea en el orden inverso (FR-060, FR-062).
+// repetirla y con la instantánea en el orden inverso (FR-011; H7 FR 060).
 func exigirComprobacion(t *testing.T, caso casoDeComprobacion) {
 	t.Helper()
 

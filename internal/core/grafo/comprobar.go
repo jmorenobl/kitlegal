@@ -9,24 +9,27 @@ import (
 )
 
 // Las reglas de `graph check` sobre una instantánea del grafo del mundo
-// (data-model §6; research.md D15). Son dos:
+// (data-model §6; research.md D15; H7.1 data-model §5 y research.md D5). Son
+// dos:
 //
-//   - version-obsoleta: las versiones de un Bloque son las BloqueVersion a las
-//     que llega desde él una arista eli:has_version y cuya fecha de vigencia es
-//     un texto válido para time.Parse con «20060102» —ocho cifras ASCII que
-//     nombran un día que existe; las demás ni reciben ni provocan un hallazgo—.
-//     Cada versión con otra de su Bloque de fecha de vigencia estrictamente
-//     posterior da un hallazgo, una sola vez aunque cuelgue de varios Bloque,
-//     con la procedencia y la fecha de vigencia de la más reciente (FR-063,
-//     FR-064).
+//   - version-obsoleta: la deciden las lecturas (H7.1 FR-023, FR-024). Cada
+//     bloque con fila de lecturas (U, A) —U, la redacción que vio su última
+//     lectura; A, la que vio la anterior— da un hallazgo sobre A si las fechas
+//     de vigencia de U y de A son un texto válido para time.Parse con
+//     «20060102» —ocho cifras ASCII que nombran un día que existe (FR-064)— y la
+//     de U es estrictamente posterior, con la fecha de vigencia y la procedencia
+//     de la última observación de U. Un bloque sin fila cuenta con una sola
+//     lectura, (R, R), que no da nada (H7.1 FR-026).
 //   - fuente-caducada: cada nodo, del tipo que sea, cuya última observación
 //     declaró una vigencia y cuya fecha de consulta más esa vigencia es
 //     estrictamente anterior al instante de la comprobación, aunque también
 //     tenga una version-obsoleta (FR-066).
 //
-// Los hallazgos van ordenados por clase y después por id, comparando bytes, y
-// no dependen del orden en el que la instantánea trae los nodos y las aristas:
-// la misma instantánea en el mismo instante da siempre la misma lista (FR-062).
+// Los hallazgos van con todas las version-obsoleta antes que todas las
+// fuente-caducada y, dentro de cada clase, por id comparando bytes (H7.1
+// FR-011), y no dependen del orden en el que la instantánea trae los nodos, las
+// aristas y las filas: la misma instantánea en el mismo instante da siempre la
+// misma lista (FR-062).
 
 // formatoDeFechaDeVigencia es el de la fecha de vigencia de una BloqueVersion,
 // AAAAMMDD, como la publica boe.
@@ -47,23 +50,32 @@ func Comprobar(instantanea Instantanea, ahora time.Time) ([]Hallazgo, error) {
 		return nil, err
 	}
 
-	hallazgos := slices.Concat(grafoLeido.versionesObsoletas(), grafoLeido.fuentesCaducadas(ahora))
-	slices.SortFunc(hallazgos, func(a, b Hallazgo) int {
-		return cmp.Or(strings.Compare(string(a.Clase), string(b.Clase)), strings.Compare(a.ID, b.ID))
+	hallazgos := slices.Concat(grafoLeido.versionesObsoletas(instantanea.Lecturas), grafoLeido.fuentesCaducadas(ahora))
+	slices.SortStableFunc(hallazgos, func(a, b Hallazgo) int {
+		return cmp.Or(cmp.Compare(rangoDeClase(a.Clase), rangoDeClase(b.Clase)), strings.Compare(a.ID, b.ID))
 	})
 
 	return listaNoNula(hallazgos), nil
 }
 
+// rangoDeClase es la posición de la clase en la lista de hallazgos: primero
+// version-obsoleta y después fuente-caducada (H7.1 FR-011).
+func rangoDeClase(clase ClaseDeHallazgo) int {
+	if clase == ClaseVersionObsoleta {
+		return 0
+	}
+
+	return 1
+}
+
 // indice es la instantánea preparada para las reglas: cada nodo por su id, con
 // el instante de su última observación; los ids en orden de bytes; y, por cada
-// relación, los extremos distintos de las aristas que llegan a un nodo y de las
-// que salen de él, también en orden de bytes.
+// relación, los extremos distintos de las aristas que llegan a un nodo, también
+// en orden de bytes.
 type indice struct {
 	nodos     map[string]nodoLeido
 	ids       []string
 	entrantes map[extremo][]string
-	salientes map[extremo][]string
 }
 
 // nodoLeido es un nodo de la instantánea con el instante de su última
@@ -74,8 +86,7 @@ type nodoLeido struct {
 	instante time.Time
 }
 
-// extremo es un nodo por su id y una relación de las aristas que llegan a él o
-// que salen de él.
+// extremo es un nodo por su id y una relación de las aristas que llegan a él.
 type extremo struct {
 	relacion string
 	id       string
@@ -87,7 +98,6 @@ func indexar(instantanea Instantanea) (indice, error) {
 	leido := indice{
 		nodos:     make(map[string]nodoLeido, len(instantanea.Nodos)),
 		entrantes: map[extremo][]string{},
-		salientes: map[extremo][]string{},
 	}
 
 	for _, nodo := range instantanea.Nodos {
@@ -101,17 +111,12 @@ func indexar(instantanea Instantanea) (indice, error) {
 
 	for _, arista := range instantanea.Aristas {
 		llegada := extremo{relacion: arista.Relacion, id: arista.Destino}
-		salida := extremo{relacion: arista.Relacion, id: arista.Origen}
-
 		leido.entrantes[llegada] = append(leido.entrantes[llegada], arista.Origen)
-		leido.salientes[salida] = append(leido.salientes[salida], arista.Destino)
 	}
 
-	for _, extremos := range []map[extremo][]string{leido.entrantes, leido.salientes} {
-		for clave, ids := range extremos {
-			slices.Sort(ids)
-			extremos[clave] = slices.Compact(ids)
-		}
+	for clave, ids := range leido.entrantes {
+		slices.Sort(ids)
+		leido.entrantes[clave] = slices.Compact(ids)
 	}
 
 	leido.ids = slices.Sorted(maps.Keys(leido.nodos))
@@ -119,92 +124,69 @@ func indexar(instantanea Instantanea) (indice, error) {
 	return leido, nil
 }
 
-// versionFechada es una versión de un Bloque con su fecha de vigencia válida,
-// como texto y como fecha.
-type versionFechada struct {
+// redaccionFechada es una BloqueVersion de la instantánea con su fecha de
+// vigencia válida, como texto y como fecha.
+type redaccionFechada struct {
 	nodoLeido
 
 	vigente time.Time
 	texto   string
 }
 
-// versionesObsoletas da un hallazgo version-obsoleta por cada versión con otra
-// de su Bloque de fecha de vigencia estrictamente posterior. Los Bloque se
-// recorren por id, así que una versión que cuelga de varios lo recibe del de id
-// menor en el que está superada.
-func (i indice) versionesObsoletas() []Hallazgo {
+// versionesObsoletas da un hallazgo version-obsoleta por cada fila de
+// lecturas (U, A) en la que U y A tienen una fecha de vigencia válida y la de
+// U es estrictamente posterior: sobre A, con la fecha de vigencia y la
+// procedencia de la última observación de U (H7.1 FR-023). Una fila con la
+// misma redacción en las dos, con la misma fecha o con una anterior en U no da
+// nada. Las filas se recorren por bloque, comparando bytes, así que la lista
+// no depende de su orden en la instantánea.
+func (i indice) versionesObsoletas(lecturas []LecturasDeBloque) []Hallazgo {
 	var hallazgos []Hallazgo
 
-	superadas := map[string]bool{}
+	porBloque := slices.SortedFunc(slices.Values(lecturas), func(a, b LecturasDeBloque) int {
+		return strings.Compare(a.Bloque, b.Bloque)
+	})
 
-	for _, id := range i.ids {
-		if i.nodos[id].Tipo != TipoBloque {
+	for _, fila := range porBloque {
+		ultima, conFechaLaUltima := i.fechada(fila.Ultima)
+		anterior, conFechaLaAnterior := i.fechada(fila.Anterior)
+
+		if !conFechaLaUltima || !conFechaLaAnterior || !ultima.vigente.After(anterior.vigente) {
 			continue
 		}
 
-		versiones := i.versionesDe(id)
-		if len(versiones) == 0 {
-			continue
-		}
-
-		reciente := slices.MaxFunc(versiones, compararRecencia)
-
-		for _, version := range versiones {
-			if !version.vigente.Before(reciente.vigente) || superadas[version.ID] {
-				continue
-			}
-
-			superadas[version.ID] = true
-			hallazgos = append(hallazgos, Hallazgo{
-				Clase:                 ClaseVersionObsoleta,
-				ID:                    version.ID,
-				Explicacion:           explicarVersionObsoleta(i.citar(version.ID), version.texto, reciente.texto, reciente.UltimaObservacion),
-				Procedencia:           reciente.UltimaObservacion,
-				FechaVigencia:         version.texto,
-				FechaVigenciaReciente: reciente.texto,
-			})
-		}
+		hallazgos = append(hallazgos, Hallazgo{
+			Clase:                 ClaseVersionObsoleta,
+			ID:                    anterior.ID,
+			Explicacion:           explicarVersionObsoleta(i.citar(anterior.ID), anterior.texto, ultima.texto, ultima.UltimaObservacion),
+			Procedencia:           ultima.UltimaObservacion,
+			FechaVigencia:         anterior.texto,
+			FechaVigenciaReciente: ultima.texto,
+		})
 	}
 
 	return hallazgos
 }
 
-// versionesDe son las del Bloque: las BloqueVersion a las que llega desde él
-// una arista eli:has_version con una fecha de vigencia válida. Una fecha que
-// no es texto o que time.Parse no lee con «20060102» —vacía, de otra longitud,
-// con signo o cifras que no son ASCII, o de un día que no existe— deja la
-// versión fuera: ni se ordena ni recibe ni provoca un hallazgo (FR-064;
-// research.md D34).
-func (i indice) versionesDe(bloque string) []versionFechada {
-	var versiones []versionFechada
+// fechada es la redacción de ese id con su fecha de vigencia, si la tiene
+// válida: un texto que time.Parse lee con «20060102». Una fecha que no es
+// texto o que no se lee así —vacía, de otra longitud, con signo o cifras que
+// no son ASCII, o de un día que no existe— no es válida, y la redacción ni
+// recibe ni provoca un hallazgo (FR-064; research.md D34).
+func (i indice) fechada(id string) (redaccionFechada, bool) {
+	nodo := i.nodos[id]
 
-	for _, id := range i.salientes[extremo{relacion: RelacionTieneVersion, id: bloque}] {
-		nodo, existe := i.nodos[id]
-		if !existe || nodo.Tipo != TipoBloqueVersion {
-			continue
-		}
-
-		texto, esTexto := nodo.Datos[DatoFechaVigencia].(string)
-		if !esTexto {
-			continue
-		}
-
-		vigente, err := time.Parse(formatoDeFechaDeVigencia, texto)
-		if err != nil {
-			continue
-		}
-
-		versiones = append(versiones, versionFechada{nodoLeido: nodo, vigente: vigente, texto: texto})
+	texto, esTexto := nodo.Datos[DatoFechaVigencia].(string)
+	if !esTexto {
+		return redaccionFechada{}, false
 	}
 
-	return versiones
-}
+	vigente, err := time.Parse(formatoDeFechaDeVigencia, texto)
+	if err != nil {
+		return redaccionFechada{}, false
+	}
 
-// compararRecencia es positivo si a es más reciente que b: de fecha de
-// vigencia posterior; a igualdad, de última observación de mayor instante; y a
-// igualdad, de id menor, comparando bytes (FR-063).
-func compararRecencia(a, b versionFechada) int {
-	return cmp.Or(a.vigente.Compare(b.vigente), a.instante.Compare(b.instante), strings.Compare(b.ID, a.ID))
+	return redaccionFechada{nodoLeido: nodo, vigente: vigente, texto: texto}, true
 }
 
 // fuentesCaducadas da un hallazgo fuente-caducada por cada nodo cuya última

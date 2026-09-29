@@ -48,6 +48,16 @@ func grafoDelBloque(vigencia time.Duration) grafo.Instantanea {
 	}
 }
 
+// leidaLaDerivada es la misma instantánea con la fila de lecturas del bloque
+// a21 que dejan sus dos consultas: la primera vio la grabada y la segunda, la
+// derivada (data-model §4).
+func leidaLaDerivada(instantanea grafo.Instantanea) grafo.Instantanea {
+	primera := grafo.LecturasDeBloque{Bloque: idBloque, Ultima: grabada.id(), Anterior: grabada.id()}
+	instantanea.Lecturas = []grafo.LecturasDeBloque{primera.Leida(derivada.id())}
+
+	return instantanea
+}
+
 // consultaCaducada es la explicación de una fuente-caducada con la plantilla
 // de contracts/applet-graph.md §5, que el primer caso de
 // probarPlantillaDeFuenteCaducada escribe entera.
@@ -74,12 +84,13 @@ func TestExplicaciones(t *testing.T) {
 
 // probarPlantillaDeVersionObsoleta fija la explicación de una versión
 // superada: la cita del bloque, las dos fechas de vigencia y la url y la fecha
-// de consulta de la última observación de la versión más reciente, tal como se
-// guardaron, también con otro desplazamiento y con los «&» de la url.
+// de consulta de la última observación de la versión que vio la última
+// lectura, tal como se guardaron, también con otro desplazamiento y con los «&»
+// de la url.
 func probarPlantillaDeVersionObsoleta(t *testing.T) {
 	t.Parallel()
 
-	hallazgos, err := grafo.Comprobar(grafoDelBloque(0), elMartes)
+	hallazgos, err := grafo.Comprobar(leidaLaDerivada(grafoDelBloque(0)), elMartes)
 	require.NoError(t, err)
 	require.Len(t, hallazgos, 1)
 	assert.Equal(t, "La versi\xc3\xb3n de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20161002 "+
@@ -87,7 +98,7 @@ func probarPlantillaDeVersionObsoleta(t *testing.T) {
 		"https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21 "+
 		"el 2026-09-29T12:00:00Z.", hallazgos[0].Explicacion)
 
-	instantanea := grafoDelBloque(0)
+	instantanea := leidaLaDerivada(grafoDelBloque(0))
 	instantanea.Nodos[3].UltimaObservacion = grafo.Procedencia{
 		Fuente: fuenteCorta, URL: urlA22 + "?a=1&b=2", FechaConsulta: "2026-09-29T14:00:00.250+02:00",
 	}

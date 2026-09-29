@@ -77,6 +77,7 @@ const (
 
 	cuerpo2016 = "Texto del bloque a21 en su versi\xc3\xb3n de 2016"
 	cuerpo2025 = "Texto del bloque a21 en su versi\xc3\xb3n de 2025"
+	cuerpo2026 = "Texto del bloque a21 en su versi\xc3\xb3n de 2026"
 
 	semana = 7 * 24 * time.Hour
 
@@ -147,19 +148,32 @@ func laNorma(datos map[string]any) schema.Nodo {
 // norma, su bloque y la versión de 2016 del bloque, las dos aristas que los
 // unen y el texto de la versión.
 func loteDelBloque(url, fecha string) core.Lote {
-	huella := huellaDe(cuerpo2016)
-	version := idBloque + "@20161002:" + huella
+	return loteDeLaRedaccion(url, fecha, "20161002", cuerpo2016)
+}
+
+// loteDeLaRedaccion es el de boe articulo a21 con la url y la fecha dadas que
+// ve la redacción de esa fecha de vigencia y ese cuerpo: la norma, su bloque y
+// esa versión del bloque, las dos aristas que los unen y el texto de la
+// versión.
+func loteDeLaRedaccion(url, fecha, fechaDeVigencia, cuerpo string) core.Lote {
+	huella := huellaDe(cuerpo)
 
 	return loteDelBOE(url, fecha,
 		laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565"}),
 		schema.Nodo{ID: idBloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a21"}},
-		schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
-			grafo.DatoFechaVigencia: "20161002", grafo.DatoHashTexto: huella,
+		schema.Nodo{ID: laVersion(fechaDeVigencia, cuerpo), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huella,
 		}},
 		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: idBloque},
-		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-		schema.Texto{Huella: huella, Cuerpo: cuerpo2016},
+		schema.Arista{Origen: idBloque, Relacion: grafo.RelacionTieneVersion, Destino: laVersion(fechaDeVigencia, cuerpo)},
+		schema.Texto{Huella: huella, Cuerpo: cuerpo},
 	)
+}
+
+// laVersion es el id de la BloqueVersion del bloque a21 de esa fecha de
+// vigencia y ese cuerpo, con la forma que emite boe.
+func laVersion(fechaDeVigencia, cuerpo string) string {
+	return idBloque + "@" + fechaDeVigencia + ":" + huellaDe(cuerpo)
 }
 
 // loteDelTerritorio es el de territorio resolver Leganés con el órgano y la
@@ -1454,4 +1468,83 @@ func compruebaRecuperado(t *testing.T, ruta, antes string) {
 	assert.NoFileExists(t, ruta+sufijoWAL)
 	assert.NoFileExists(t, ruta+sufijoMemoriaCompartida)
 	assert.NotEqual(t, antes, huellaDelFichero(t, ruta), "lo confirmado en el WAL está ahora en world.db")
+}
+
+// TestIntegracionGrafoDeH7 fija H7.1 FR-026 y SC-012 (contracts/arnes-e2e.md
+// §4 de H7.1): el world.db que dejaba H7 con dos redacciones del bloque a21
+// —sin la tabla lecturas ni la versión 2 del esquema— se lee sin migrar, con el
+// mismo recuento y sin ningún version-obsoleta, porque el bloque cuenta con una
+// sola lectura, la de su redacción observada la última; una entrega que vuelve
+// a ver esa redacción lo pasa a la versión 2 y sigue sin dar ninguno; y la
+// lectura siguiente, que ve una redacción posterior, da uno sobre la que vio
+// la anterior.
+func TestIntegracionGrafoDeH7(t *testing.T) {
+	t.Parallel()
+
+	// Las fechas de consulta de las lecturas de A, de B y de C.
+	const (
+		fechaDeA = "2026-09-28T12:00:00Z"
+		fechaDeB = "2026-09-29T12:00:00Z"
+		fechaDeC = "2026-09-30T12:00:00Z"
+	)
+
+	leidaA := loteDeLaRedaccion(urlDelBloque, fechaDeA, "20161002", cuerpo2016)
+	leidaB := loteDeLaRedaccion(urlDelBloque, fechaDeB, "20250101", cuerpo2025)
+	leidaC := loteDeLaRedaccion(urlDelBloque, fechaDeC, "20260101", cuerpo2026)
+
+	directorio := t.TempDir()
+	ruta := grafoEntregado(t, directorio, leidaA, leidaB)
+	recuento := leerElGrafo(t, directorio).recuento
+	require.Len(t, versionesObsoletasEn(t, directorio), 1, "premisa: con sus lecturas, B supera a A")
+
+	comoLoDejabaH7(t, ruta)
+	assert.Equal(t, recuento, leerElGrafo(t, directorio).recuento, "el recuento de H7 no cambia")
+	assert.Empty(t, versionesObsoletasEn(t, directorio), "sin lecturas, el bloque cuenta con una sola")
+
+	tablas, versiones := esquemaDe(t, ruta)
+	assert.NotContains(t, tablas, "lecturas", "leer no migra")
+	assert.Equal(t, []int64{1}, versiones, "leer no migra")
+
+	entregar(t, directorio, leidaB)
+	assert.Empty(t, versionesObsoletasEn(t, directorio), "la primera lectura ve la redacción observada la última")
+
+	entregar(t, directorio, leidaC)
+	assert.Equal(t, []grafo.Hallazgo{{
+		Clase: grafo.ClaseVersionObsoleta,
+		ID:    laVersion("20250101", cuerpo2025),
+		Explicacion: "La versi\xc3\xb3n de [BOE-A-2015-10565, bloque a21] con fecha de vigencia 20250101 est\xc3\xa1 " +
+			"superada por la de fecha de vigencia 20260101, observada en " + urlDelBloque + " el " + fechaDeC + ".",
+		Procedencia:           grafo.Procedencia{Fuente: fuenteDelBOE, URL: urlDelBloque, FechaConsulta: fechaDeC},
+		FechaVigencia:         "20250101",
+		FechaVigenciaReciente: "20260101",
+	}}, versionesObsoletasEn(t, directorio), "la lectura de C supera a la de B")
+
+	compruebaEsquemaCreado(t, directorio)
+}
+
+// comoLoDejabaH7 devuelve el world.db de la ruta a lo que dejaba H7: sin la
+// tabla lecturas ni la fila de la versión 2 en schema_version, con el resto
+// como estaba, y sin ningún auxiliar.
+func comoLoDejabaH7(t *testing.T, ruta string) {
+	t.Helper()
+
+	ejecutar(t, ruta, `DROP TABLE lecturas`)
+	ejecutar(t, ruta, `DELETE FROM schema_version WHERE version = 2`)
+	compruebaSinAuxiliares(t, ruta)
+}
+
+// versionesObsoletasEn son los hallazgos version-obsoleta de graph check sobre
+// el world.db del directorio, leído con la API como lo lee check.
+func versionesObsoletasEn(t *testing.T, directorio string) []grafo.Hallazgo {
+	t.Helper()
+
+	ahora, err := time.Parse(time.RFC3339, fechaReciente)
+	require.NoError(t, err)
+
+	hallazgos, err := grafo.Comprobar(leerElGrafo(t, directorio).instantanea, ahora)
+	require.NoError(t, err)
+
+	return slices.DeleteFunc(hallazgos, func(hallazgo grafo.Hallazgo) bool {
+		return hallazgo.Clase != grafo.ClaseVersionObsoleta
+	})
 }

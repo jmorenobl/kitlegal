@@ -1101,9 +1101,10 @@ func compruebaCodigosDelSistema(
 
 // La versión posterior del bloque de la muestra: otra redacción, con una fecha
 // de vigencia posterior, que la misma fuente observa después, como la
-// observaría boe articulo tras el cambio. En instanteDelGrafo su consulta sigue
-// vigente y la de la versión de la muestra ha caducado, así que check da un
-// hallazgo de cada clase sobre esta última.
+// observaría boe articulo tras el cambio. Leída después de la de la muestra,
+// la supera (H7.1 FR-023); en instanteDelGrafo su consulta sigue vigente y la
+// de la versión de la muestra ha caducado, así que check da un hallazgo de cada
+// clase sobre esta última.
 const (
 	fechaDeLaVersionPosterior  = "2026-10-02T10:00:00Z"
 	fechaDeVigenciaPosterior   = "20270101"
@@ -1111,7 +1112,8 @@ const (
 )
 
 // poblarConUnaVersionPosterior entrega la muestra y, después, el lote de la
-// versión posterior al world.db del directorio.
+// versión posterior al world.db del directorio: dos lecturas sucesivas del
+// bloque, cada una en su propia entrega, la última de la versión posterior.
 func poblarConUnaVersionPosterior(t *testing.T, directorio string) {
 	t.Helper()
 
