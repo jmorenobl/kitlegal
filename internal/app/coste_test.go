@@ -53,8 +53,9 @@ const (
 // Las normas se consultaron hace meses con la vigencia de una semana de boe, y
 // cada bloque se leyó cuatro veces, una por versión y cada una en su propia
 // entrega, como cuatro consultas sucesivas de boe articulo: check tiene trabajo
-// de las dos clases, una fuente caducada por nodo de norma y una versión
-// obsoleta por bloque, la que vio su penúltima lectura (H7.1 FR-023).
+// de las dos clases, una fuente caducada por Norma, por Bloque y por la
+// redacción que vio la última lectura de cada bloque (H7.1 FR-030), y una
+// versión obsoleta por bloque, la que vio su penúltima lectura (H7.1 FR-023).
 const (
 	normasDelGrafoGrande = 70
 	bloquesPorNorma      = 25
@@ -302,10 +303,12 @@ func compruebaElRecuentoDelGrafoGrande(t *testing.T, salida []byte) {
 }
 
 // compruebaLosHallazgosDelGrafoGrande exige que graph check encuentre en el
-// grafo grande lo que tiene: una fuente caducada por cada nodo de las normas,
-// que se consultaron con vigencia hace meses, y ninguna de los municipios ni
-// de los órganos, que no la declaran; y una versión obsoleta por bloque, la
-// que vio su penúltima lectura, superada por la de la última.
+// grafo grande lo que tiene: una fuente caducada por cada Norma, cada Bloque y
+// la redacción que vio la última lectura de cada bloque, que se consultaron con
+// vigencia hace meses, y ninguna de las demás versiones, que ninguna lectura
+// vio la última vez, ni de los municipios ni de los órganos, que no la
+// declaran (H7.1 FR-030); y una versión obsoleta por bloque, la que vio su
+// penúltima lectura, superada por la de la última.
 func compruebaLosHallazgosDelGrafoGrande(t *testing.T, salida []byte) {
 	t.Helper()
 
@@ -319,7 +322,7 @@ func compruebaLosHallazgosDelGrafoGrande(t *testing.T, salida []byte) {
 	}
 
 	assert.Equal(t, map[grafo.ClaseDeHallazgo]int{
-		grafo.ClaseFuenteCaducada:  nodosDeLasNormas,
+		grafo.ClaseFuenteCaducada:  normasDelGrafoGrande + 2*bloquesDelGrafoGrande,
 		grafo.ClaseVersionObsoleta: bloquesDelGrafoGrande,
 	}, porClase)
 }

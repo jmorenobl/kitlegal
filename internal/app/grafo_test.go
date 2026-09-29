@@ -1102,11 +1102,13 @@ func compruebaCodigosDelSistema(
 // La versión posterior del bloque de la muestra: otra redacción, con una fecha
 // de vigencia posterior, que la misma fuente observa después, como la
 // observaría boe articulo tras el cambio. Leída después de la de la muestra,
-// la supera (H7.1 FR-023); en instanteDelGrafo su consulta sigue vigente y la
-// de la versión de la muestra ha caducado, así que check da un hallazgo de cada
-// clase sobre esta última.
+// la supera (H7.1 FR-023) y pasa a ser la redacción vista del bloque; en
+// instanteDelGrafo ya ha caducado su consulta, que renovó la de la Norma y la
+// del Bloque, así que check da una version-obsoleta sobre la versión de la
+// muestra y una fuente-caducada sobre la Norma, el Bloque y esta, y ninguna
+// sobre la de la muestra, que ya no es la vista (H7.1 FR-030).
 const (
-	fechaDeLaVersionPosterior  = "2026-10-02T10:00:00Z"
+	fechaDeLaVersionPosterior  = "2026-09-29T09:00:00Z"
 	fechaDeVigenciaPosterior   = "20270101"
 	cuerpoDeLaVersionPosterior = cuerpoDelBloque + "\nSu redacci\xc3\xb3n posterior de prueba a\xc3\xb1ade esta frase."
 )
@@ -1261,7 +1263,10 @@ func salidasDelGrafo() []salidaDelGrafo {
 		{
 			"check-con-hallazgos-de-las-dos-clases", poblarConUnaVersionPosterior, instanteDelGrafo, 0,
 			[]string{"check"},
-			[]string{caducada, obsoleta, `"fecha_vigencia_reciente":"` + fechaDeVigenciaPosterior + `"`},
+			[]string{
+				caducada, obsoleta, `"fecha_vigencia_reciente":"` + fechaDeVigenciaPosterior + `"`,
+				`"id":"` + idDeUnaVersion(fechaDeVigenciaPosterior, cuerpoDeLaVersionPosterior) + `"`,
+			},
 		},
 
 		{

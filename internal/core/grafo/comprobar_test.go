@@ -27,6 +27,10 @@ var (
 	// dentroDeUnMes es un instante en el que ya ha caducado cualquier consulta
 	// de ejemplo con una vigencia de una semana.
 	dentroDeUnMes = time.Date(2026, time.October, 28, 12, 0, 0, 0, time.UTC)
+	// trasCaducarElMiercoles es un instante después de que caduque una
+	// consulta del miércoles con una vigencia de una semana —y con ella las del
+	// lunes y el martes— y antes de que caduque una del jueves.
+	trasCaducarElMiercoles = time.Date(2026, time.October, 7, 12, 0, 0, 1, time.UTC)
 )
 
 // Los datos de la norma de ejemplo y el id de otro bloque suyo.
@@ -118,16 +122,19 @@ func (l lecturaDeEjemplo) nodo() grafo.NodoDeInstantanea {
 }
 
 // trasLeer es la instantánea que dejan las lecturas, en su orden, como la lee
-// graph check de world.db (data-model §3 y §4): la norma de ejemplo; cada
-// bloque leído, con la arista eli:has_part que llega a él y su fila de
-// lecturas; y cada redacción vista, con la arista eli:has_version desde su
-// bloque y la fecha de su última lectura como última observación. La primera
-// lectura de un bloque deja su fila en (v, v) y cada una de las siguientes la
-// pasa por Leida. Nada declara vigencia.
+// graph check de world.db (data-model §3 y §4): la norma de ejemplo, observada
+// por última vez en la fecha de la última lectura, que la renueva la de
+// cualquiera de sus bloques (H7.1 FR-031); cada bloque leído, con la arista
+// eli:has_part que llega a él, su fila de lecturas y la fecha de su última
+// lectura como última observación; y cada redacción vista, con la arista
+// eli:has_version desde su bloque y la fecha de su última lectura como última
+// observación. La primera lectura de un bloque deja su fila en (v, v) y cada
+// una de las siguientes la pasa por Leida. Nada declara vigencia.
 func trasLeer(lecturas ...lecturaDeEjemplo) grafo.Instantanea {
 	filas := map[string]grafo.LecturasDeBloque{}
-	partes := map[string]string{}
+	ultimas := map[string]lecturaDeEjemplo{}
 	vistas := map[string]lecturaDeEjemplo{}
+	normaLeida := lunes
 
 	for _, lectura := range lecturas {
 		bloque, vista := lectura.redaccion.bloque(), lectura.redaccion.id()
@@ -140,14 +147,16 @@ func trasLeer(lecturas ...lecturaDeEjemplo) grafo.Instantanea {
 		}
 
 		filas[bloque] = fila.Leida(vista)
-		partes[bloque] = lectura.redaccion.parte
+		ultimas[bloque] = lectura
 		vistas[vista] = lectura
+		normaLeida = lectura.fecha
 	}
 
-	instantanea := grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{normaLPAC(lunes)}}
+	instantanea := grafo.Instantanea{Nodos: []grafo.NodoDeInstantanea{normaLPAC(normaLeida)}}
 
 	for _, bloque := range slices.Sorted(maps.Keys(filas)) {
-		instantanea.Nodos = append(instantanea.Nodos, bloqueDeLaLPAC(bloque, partes[bloque], lunes))
+		instantanea.Nodos = append(instantanea.Nodos,
+			bloqueDeLaLPAC(bloque, ultimas[bloque].redaccion.parte, ultimas[bloque].fecha))
 		instantanea.Aristas = append(instantanea.Aristas, arista(idNorma, grafo.RelacionTieneParte, bloque))
 		instantanea.Lecturas = append(instantanea.Lecturas, filas[bloque])
 	}
@@ -257,19 +266,24 @@ type casoDeComprobacion struct {
 }
 
 // TestComprobar fija las dos reglas de `graph check` y su orden (FR-011,
-// FR-023 a FR-026; H7 FR 064, FR 066, FR 067; data-model §4 y §5; research.md
-// D5): una version-obsoleta sobre la redacción que vio la lectura anterior de
-// un bloque cuando la que vio la última tiene una fecha de vigencia válida y
-// estrictamente posterior, con la procedencia y la fecha de la reciente, y
-// ninguna sin fila de lecturas; una fuente-caducada por cada nodo cuya
-// consulta ha caducado estrictamente antes del instante de la comprobación; y
-// una lista nunca nula, con todas las version-obsoleta antes que todas las
-// fuente-caducada y por id dentro de cada clase, que no depende del orden de
-// la instantánea ni cambia al repetir la comprobación.
+// FR-023 a FR-026, FR-030 a FR-032; SC-004; H7 FR 064, FR 066, FR 067;
+// data-model §4 y §5; research.md D5): una version-obsoleta sobre la redacción
+// que vio la lectura anterior de un bloque cuando la que vio la última tiene
+// una fecha de vigencia válida y estrictamente posterior, con la procedencia y
+// la fecha de la reciente, y ninguna sin fila de lecturas; una fuente-caducada
+// por cada Norma, cada Bloque y la redacción vista de cada bloque cuya consulta
+// ha caducado estrictamente antes del instante de la comprobación, y ninguna en
+// otra BloqueVersion ni en otro tipo de nodo; y una lista nunca nula, con todas
+// las version-obsoleta antes que todas las fuente-caducada y por id dentro de
+// cada clase, que no depende del orden de la instantánea ni cambia al repetir
+// la comprobación.
 func TestComprobar(t *testing.T) {
 	t.Parallel()
 
-	for _, caso := range slices.Concat(casosDeLecturas(), casosDeFechasDeVigencia(), casosDeCaducidad(), casosDeOrden()) {
+	casos := slices.Concat(casosDeLecturas(), casosDeFechasDeVigencia(), casosDeCaducidad(), casosDeLoVigente(),
+		casosDeOrden())
+
+	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
@@ -358,17 +372,12 @@ func casosDeFechasDeVigencia() []casoDeComprobacion {
 	return casos
 }
 
-// casosDeCaducidad son los de fuente-caducada (FR-066).
+// casosDeCaducidad son los de cuándo caduca una consulta (FR-066).
 func casosDeCaducidad() []casoDeComprobacion {
 	deUnaHora := conVigenciaDe(normaLPAC(lunes), unaHora)
 	// enMadrid es una consulta de una hora antes que lunes, escrita en otro
 	// desplazamiento: caduca en el instante de lunes.
 	enMadrid := conVigenciaDe(normaLPAC(lunesAntesEnMadrid), unaHora)
-	norma := conVigenciaDe(normaLPAC(lunes), unaSemana)
-	bloque := conVigenciaDe(bloqueDeLaLPAC(idBloque, "a21", lunes), unaSemana)
-	v2015 := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: lunes, vigencia: unaSemana}
-	municipio := conVigenciaDe(observado(idMunicipio, grafo.TipoMunicipio, map[string]any{}, lunes), unaSemana)
-	organo := observado(idOrgano, grafo.TipoOrgano, map[string]any{}, lunes)
 	ninguno := []grafo.Hallazgo{}
 
 	return []casoDeComprobacion{
@@ -387,11 +396,62 @@ func casosDeCaducidad() []casoDeComprobacion {
 			deNodos(conVigenciaDe(normaLPAC(martes), unaHora)), elLunes, ninguno,
 		},
 		{"sin vigencia", deNodos(normaLPAC(lunes)), dentroDeUnMes, ninguno},
+	}
+}
+
+// casosDeLoVigente son los de los nodos que dan fuente-caducada (H7.1 FR-030 a
+// FR-032; SC-004; data-model §5): la Norma, el Bloque y la redacción vista de
+// cada bloque —la que vio su última lectura o, sin fila, la de
+// RedaccionVistaSinLecturas—, y nunca otra BloqueVersion ni otro tipo de nodo,
+// aunque su consulta también haya caducado. Cada lectura declara la semana de
+// vigencia de boe, que renueva la siguiente lectura del bloque.
+func casosDeLoVigente() []casoDeComprobacion {
+	// La secuencia de FR-025 hasta el paso 5 y con otra lectura, el jueves,
+	// que ve C otra vez.
+	paso5 := conVigenciaEnTodos(trasLeer(leidaA, leidaB, leidaB, leidaC), unaSemana)
+	leidaCElJueves := lecturaDeEjemplo{redaccion: redaccionC, fecha: jueves}
+	renovada := conVigenciaEnTodos(trasLeer(leidaA, leidaB, leidaB, leidaC, leidaCElJueves), unaSemana)
+
+	semanal := func(nodo grafo.NodoDeInstantanea) grafo.NodoDeInstantanea { return conVigenciaDe(nodo, unaSemana) }
+	v2015 := versionDeEjemplo{fechaVigencia: "20150101", letra: "a", consulta: lunes, vigencia: unaSemana}
+	municipio := semanal(observado(idMunicipio, grafo.TipoMunicipio, map[string]any{}, lunes))
+	organo := semanal(observado(idOrgano, grafo.TipoOrgano, map[string]any{}, lunes))
+	ninguno := []grafo.Hallazgo{}
+
+	return []casoDeComprobacion{
 		{
-			"cualquier tipo de nodo, en orden de id",
-			deNodos(municipio, organo, v2015.nodo(), bloque, norma), dentroDeUnMes,
-			[]grafo.Hallazgo{caducada(norma), caducada(bloque), caducada(v2015.nodo()), caducada(municipio)},
+			"SC-004: tras el paso 5, pasada la vigencia de la lectura de C, ninguna sobre A ni B", paso5,
+			trasCaducarElMiercoles,
+			[]grafo.Hallazgo{
+				obsoleta(leidaB, leidaC),
+				caducada(semanal(normaLPAC(miercoles))),
+				caducada(semanal(bloqueDeLaLPAC(idBloque, "a21", miercoles))),
+				caducada(semanal(leidaC.nodo())),
+			},
 		},
+		{"FR-031: otra lectura que ve C las renueva", renovada, trasCaducarElMiercoles, ninguno},
+		{
+			"un bloque sin fila, solo su redaccion vista", sinFilas(conVigenciaEnTodos(trasLeer(leidaA, leidaB), unaSemana)),
+			dentroDeUnMes,
+			[]grafo.Hallazgo{
+				caducada(semanal(normaLPAC(martes))),
+				caducada(semanal(bloqueDeLaLPAC(idBloque, "a21", martes))),
+				caducada(semanal(leidaB.nodo())),
+			},
+		},
+		{
+			"la Norma, el Bloque y su redaccion vista, en orden de id",
+			conMas(deNodos(municipio, organo, v2015.nodo(), semanal(bloqueDeLaLPAC(idBloque, "a21", lunes)),
+				semanal(normaLPAC(lunes))), nil, arista(idBloque, grafo.RelacionTieneVersion, v2015.id())),
+			dentroDeUnMes,
+			[]grafo.Hallazgo{
+				caducada(semanal(normaLPAC(lunes))),
+				caducada(semanal(bloqueDeLaLPAC(idBloque, "a21", lunes))),
+				caducada(v2015.nodo()),
+			},
+		},
+		{"una BloqueVersion que no es la redaccion vista de ningun bloque", deNodos(v2015.nodo()), dentroDeUnMes, ninguno},
+		{"un Municipio y un Organo con la vigencia pasada", deNodos(municipio, organo), dentroDeUnMes, ninguno},
 	}
 }
 
@@ -406,13 +466,12 @@ func casosDeOrden() []casoDeComprobacion {
 		fecha:     martes,
 	}
 	caducadas := conVigenciaEnTodos(trasLeer(leidaA, leidaB), unaSemana)
-
-	esperados := []grafo.Hallazgo{obsoleta(leidaA, leidaB)}
-	for _, nodo := range caducadas.Nodos {
-		esperados = append(esperados, caducada(nodo))
+	esperados := []grafo.Hallazgo{
+		obsoleta(leidaA, leidaB),
+		caducada(conVigenciaDe(normaLPAC(martes), unaSemana)),
+		caducada(conVigenciaDe(bloqueDeLaLPAC(idBloque, "a21", martes), unaSemana)),
+		caducada(conVigenciaDe(leidaB.nodo(), unaSemana)),
 	}
-
-	slices.SortFunc(esperados[1:], func(a, b grafo.Hallazgo) int { return strings.Compare(a.ID, b.ID) })
 
 	return []casoDeComprobacion{
 		{

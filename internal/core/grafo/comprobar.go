@@ -20,10 +20,13 @@ import (
 //     de U es estrictamente posterior, con la fecha de vigencia y la procedencia
 //     de la última observación de U. Un bloque sin fila cuenta con una sola
 //     lectura, (R, R), que no da nada (H7.1 FR-026).
-//   - fuente-caducada: cada nodo, del tipo que sea, cuya última observación
-//     declaró una vigencia y cuya fecha de consulta más esa vigencia es
-//     estrictamente anterior al instante de la comprobación, aunque también
-//     tenga una version-obsoleta (FR-066).
+//   - fuente-caducada: cada Norma, cada Bloque y la redacción vista de cada
+//     bloque de la instantánea —la BloqueVersion que vio su última lectura o,
+//     si no tiene fila, la de RedaccionVistaSinLecturas— cuya última
+//     observación declaró una vigencia y cuya fecha de consulta más esa
+//     vigencia es estrictamente anterior al instante de la comprobación (FR-066;
+//     H7.1 FR-030). Nunca otra BloqueVersion, que ninguna lectura vio la última
+//     vez, ni otro tipo de nodo.
 //
 // Los hallazgos van con todas las version-obsoleta antes que todas las
 // fuente-caducada y, dentro de cada clase, por id comparando bytes (H7.1
@@ -69,13 +72,16 @@ func rangoDeClase(clase ClaseDeHallazgo) int {
 }
 
 // indice es la instantánea preparada para las reglas: cada nodo por su id, con
-// el instante de su última observación; los ids en orden de bytes; y, por cada
-// relación, los extremos distintos de las aristas que llegan a un nodo, también
-// en orden de bytes.
+// el instante de su última observación; los ids en orden de bytes; por cada
+// relación, los extremos distintos de las aristas que llegan a un nodo y de
+// las que salen de él, también en orden de bytes; y los ids de las redacciones
+// vistas de los bloques.
 type indice struct {
 	nodos     map[string]nodoLeido
 	ids       []string
 	entrantes map[extremo][]string
+	salientes map[extremo][]string
+	vistas    map[string]bool
 }
 
 // nodoLeido es un nodo de la instantánea con el instante de su última
@@ -86,7 +92,8 @@ type nodoLeido struct {
 	instante time.Time
 }
 
-// extremo es un nodo por su id y una relación de las aristas que llegan a él.
+// extremo es un nodo por su id y una relación de las aristas que llegan a él o
+// que salen de él.
 type extremo struct {
 	relacion string
 	id       string
@@ -98,6 +105,7 @@ func indexar(instantanea Instantanea) (indice, error) {
 	leido := indice{
 		nodos:     make(map[string]nodoLeido, len(instantanea.Nodos)),
 		entrantes: map[extremo][]string{},
+		salientes: map[extremo][]string{},
 	}
 
 	for _, nodo := range instantanea.Nodos {
@@ -112,16 +120,79 @@ func indexar(instantanea Instantanea) (indice, error) {
 	for _, arista := range instantanea.Aristas {
 		llegada := extremo{relacion: arista.Relacion, id: arista.Destino}
 		leido.entrantes[llegada] = append(leido.entrantes[llegada], arista.Origen)
+
+		salida := extremo{relacion: arista.Relacion, id: arista.Origen}
+		leido.salientes[salida] = append(leido.salientes[salida], arista.Destino)
 	}
 
-	for clave, ids := range leido.entrantes {
-		slices.Sort(ids)
-		leido.entrantes[clave] = slices.Compact(ids)
+	for _, extremos := range []map[extremo][]string{leido.entrantes, leido.salientes} {
+		for clave, ids := range extremos {
+			slices.Sort(ids)
+			extremos[clave] = slices.Compact(ids)
+		}
 	}
 
 	leido.ids = slices.Sorted(maps.Keys(leido.nodos))
 
+	vistas, err := leido.redaccionesVistas(instantanea.Lecturas)
+	if err != nil {
+		return indice{}, err
+	}
+
+	leido.vistas = vistas
+
 	return leido, nil
+}
+
+// redaccionesVistas son los ids de la redacción vista de cada Bloque de la
+// instantánea (H7.1 data-model §3): la que vio su última lectura, si tiene fila
+// de lecturas, o, si no, la de RedaccionVistaSinLecturas entre las
+// BloqueVersion a las que llegan sus aristas eli:has_version, si llega a
+// alguna, como la calcula la entrega (FR-026).
+func (i indice) redaccionesVistas(lecturas []LecturasDeBloque) (map[string]bool, error) {
+	ultimas := make(map[string]string, len(lecturas))
+	for _, fila := range lecturas {
+		ultimas[fila.Bloque] = fila.Ultima
+	}
+
+	vistas := map[string]bool{}
+
+	for _, id := range i.ids {
+		if i.nodos[id].Tipo != TipoBloque {
+			continue
+		}
+
+		if ultima, conFila := ultimas[id]; conFila {
+			vistas[ultima] = true
+
+			continue
+		}
+
+		vista, hay, err := RedaccionVistaSinLecturas(i.versionesDe(id))
+		if err != nil {
+			return nil, err
+		}
+
+		if hay {
+			vistas[vista] = true
+		}
+	}
+
+	return vistas, nil
+}
+
+// versionesDe son las BloqueVersion de la instantánea a las que llega una
+// arista eli:has_version desde el bloque de ese id.
+func (i indice) versionesDe(bloque string) []NodoDeInstantanea {
+	var versiones []NodoDeInstantanea
+
+	for _, id := range i.salientes[extremo{relacion: RelacionTieneVersion, id: bloque}] {
+		if nodo := i.nodos[id]; nodo.Tipo == TipoBloqueVersion {
+			versiones = append(versiones, nodo.NodoDeInstantanea)
+		}
+	}
+
+	return versiones
 }
 
 // redaccionFechada es una BloqueVersion de la instantánea con su fecha de
@@ -189,16 +260,16 @@ func (i indice) fechada(id string) (redaccionFechada, bool) {
 	return redaccionFechada{nodoLeido: nodo, vigente: vigente, texto: texto}, true
 }
 
-// fuentesCaducadas da un hallazgo fuente-caducada por cada nodo cuya última
-// observación declaró una vigencia y caducó estrictamente antes de ahora: uno
-// en el límite exacto o con una fecha de consulta posterior a ahora no ha
-// caducado, y uno sin vigencia no caduca (FR-066).
+// fuentesCaducadas da un hallazgo fuente-caducada por cada nodo vigente cuya
+// última observación declaró una vigencia y caducó estrictamente antes de
+// ahora: uno en el límite exacto o con una fecha de consulta posterior a ahora
+// no ha caducado, y uno sin vigencia no caduca (FR-066; H7.1 FR-030).
 func (i indice) fuentesCaducadas(ahora time.Time) []Hallazgo {
 	var hallazgos []Hallazgo
 
 	for _, id := range i.ids {
 		nodo := i.nodos[id]
-		if nodo.Vigencia == 0 {
+		if nodo.Vigencia == 0 || !i.vigente(nodo) {
 			continue
 		}
 
@@ -217,4 +288,18 @@ func (i indice) fuentesCaducadas(ahora time.Time) []Hallazgo {
 	}
 
 	return hallazgos
+}
+
+// vigente dice si el nodo es de los que pueden dar fuente-caducada: una Norma,
+// un Bloque o la BloqueVersion que es la redacción vista de un bloque (H7.1
+// FR-030).
+func (i indice) vigente(nodo nodoLeido) bool {
+	switch nodo.Tipo {
+	case TipoNorma, TipoBloque:
+		return true
+	case TipoBloqueVersion:
+		return i.vistas[nodo.ID]
+	default:
+		return false
+	}
 }
