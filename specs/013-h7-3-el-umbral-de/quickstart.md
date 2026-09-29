@@ -1,13 +1,13 @@
 # Quickstart: validar H7.3
 
 Escenarios para comprobar la entrega una vez implementada, desde la raíz del repositorio y en la rama del hito. Los §1
-a §5 y el §7 no usan red ni modelo (el §8, `make ci`, sí red para `govulncheck`, como siempre); el §6 abre sesiones de
+a §5, el §7 y el §9 no usan red ni modelo (el §8, `make ci`, sí red para `govulncheck`, como siempre); el §6 abre sesiones de
 Claude Code con la suscripción de quien lo ejecuta y lo ejecuta la persona al leer el informe final, en un Mac sin
 strace, fuera de `make ci` y del run (FR-068, FR-070); el §7 lee el informe del job de cierre, que deja el workflow.
 
 Efectos: ninguno en el índice ni en el historial de git. En el árbol de trabajo, solo el §8 escribe `coverage.out` y
-`coverage-integration.out`, que git ignora (`/*.out`, `/coverage.*`). Los §4, §5 y §6 escriben en directorios
-temporales que borran ellos mismos (los de `make evals-sondeo`, su guion; los de las copias, la última orden del
+`coverage-integration.out`, que git ignora (`/*.out`, `/coverage.*`). Los §4, §5, §6 y §9.3 escriben en directorios
+o ficheros temporales que borran ellos mismos (los de `make evals-sondeo`, su guion; los de las copias, la última orden del
 escenario); `go` escribe en su caché de compilación, fuera del árbol. Formatos:
 [contracts/lista-de-expresiones.md](./contracts/lista-de-expresiones.md),
 [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md),
@@ -128,3 +128,55 @@ make ci
 ```
 
 Esperado: `ci: todos los controles en verde`, con `skills-check` y `schema-check` sin drift.
+
+## 9. Comprobaciones de las tareas, sin modelo
+
+Órdenes a las que remiten las verificaciones de tasks.md (T009, T012, T014 y T015). Viven aquí y no en la línea de la
+tarea porque el guardián de diff declara como ruta de una tarea toda ficha con forma de ruta de su línea: una orden sobre
+el paquete de evals, sobre el binario o sobre los artefactos de otro hito, escrita en la tarea, le daría permiso para
+tocarlos. Ninguna escribe en el árbol, en el índice ni en el historial.
+
+### 9.1 Los puntos de entrada de la etiqueta `evals` (T009, T012, T014)
+
+```bash
+go vet -tags evals ./internal/evals/
+go test -tags evals -list '.*' ./internal/evals/
+go test -list '.*' ./internal/evals/
+git grep -n -w -e 'plan.tsv' -e TestPlanDeSesiones -e TestInformeDelJob -e TestPrepararSesion -- . ':!specs' ':!docs/ROADMAP.md'; echo "código: $?"
+```
+
+Esperado: `go vet` sin salida y con 0; la lista con la etiqueta nombra `TestEjecucionDelJob` y
+`TestComprobarConsultaRepetida` (tras T012, también `TestSondeo`) y ninguno de `TestPlanDeSesiones`,
+`TestPrepararSesion` y `TestInformeDelJob`; la lista sin etiqueta nombra los tests de «Tests nuevos» de plan.md que ya
+existan; y `git grep` no imprime nada y da `código: 1` (las únicas menciones que quedan de lo retirado están en los
+artefactos de los hitos y en la hoja de ruta, que no se tocan).
+
+### 9.2 Lo que el hito no cambia (T015, punto 4)
+
+```bash
+git diff --quiet main -- specs/012-h7-2-la-consulta-repetida; echo "H7.2: $?"
+git diff --name-only main -- cmd internal ':!internal/evals'
+go list -deps ./cmd/kitlegal | grep -c '/internal/evals$'
+git diff --name-status main -- docs/adr docs/SOURCES.md testdata '*/testdata/*'
+git diff --name-status main -- schemas evals
+wc -l < skills/boe-legislacion/SKILL.md
+```
+
+Esperado: `H7.2: 0` (FR-080); la segunda, sin salida (el binario no cambia); la tercera, `0` (el binario no enlaza el
+paquete de evals); la cuarta, sin salida (ni ADR, ni fila de fuentes, ni datos de prueba ni grabaciones); la quinta,
+solo `M` del esquema de la lista y de la lista de `boe-legislacion`; y menos de 300 líneas.
+
+### 9.3 La cobertura (T015, punto 2)
+
+```bash
+go tool cover -func=coverage.out | tail -n 1
+go tool cover -func=coverage-integration.out | tail -n 1
+{ head -n 1 coverage.out; grep '/internal/core/' coverage.out; } > "${TMPDIR:-/tmp}/kitlegal-h73-core.out"
+go tool cover -func="${TMPDIR:-/tmp}/kitlegal-h73-core.out" | tail -n 1
+go tool cover -func=coverage.out | grep -E '/internal/evals/(umbrales|limites|sesiones|definicion|sondeo)\.go:'
+rm -f "${TMPDIR:-/tmp}/kitlegal-h73-core.out"
+```
+
+Sobre los perfiles que deja el `make ci` de la tarea (§8). Esperado: global ≥ 70 %; el dominio ≥ 85 % (la tercera
+orden filtra el perfil a sus paquetes en un temporal, que la última borra); y las funciones de los ficheros nuevos del
+paquete de evals, para el cierre. La misma medida, con `coverage-integration.out`, para el perfil de integración.

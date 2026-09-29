@@ -145,7 +145,8 @@ internal/evals/
 ├── sustitutos_test.go       # nuevo: los guiones sustitutos de claude, strace y go
 ├── job_test.go              # TestEjecucionDelJob, TestSondeo; fuera TestPlanDeSesiones, TestPrepararSesion, TestInformeDelJob
 ├── doc.go
-└── conjunto_test.go, formato_test.go, prohibidas_test.go, juzgar_test.go, informe_test.go, sesion_test.go
+└── conjunto_test.go, formato_test.go, prohibidas_test.go, juzgar_test.go, informe_test.go, sesion_test.go,
+    consulta_repetida_test.go
 CHANGELOG.md, CONTRIBUTING.md
 ```
 
@@ -199,6 +200,14 @@ por US4, `TestJuicioDelSondeo`, `TestSalidaDelSondeo`, `TestComprobarElSondeo`, 
   contracts/lista-de-expresiones.md §4 (FR-021; SC-003). `listaDelRepositorio` exige también `anuncio` no vacía.
 - `formato_test.go` (casos del esquema), `TestLeerConjunto`, `TestExtraerExpresionesProhibidas`,
   `TestJuzgarLasExpresionesProhibidas`: la tercera familia (FR-023, FR-024).
+- Todo test que aplica la lista del repositorio, o la del contrato de H7.2 si gana `anuncio`, a un texto con alguna de
+  las 14 expresiones de `anuncio` (hoy, la transición de la memoria de H7.1, `transicionDeLaMemoria` de
+  `juzgar_test.go` y sus variantes, que lleva «tengo todo lo necesario») gana esa expresión, detrás de las de la
+  maquinaria, en sus expresiones y motivos esperados: `TestExtraerExpresionesProhibidas` (`prohibidas_test.go`),
+  `TestJuzgarLasExpresionesProhibidas` (`juzgar_test.go`), los informes armados con `copiarLaListaDelRepositorio`
+  (`informe_test.go`) y el caso `tres-fallos-a-la-vez` de `TestCondicionesDeLaConsultaRepetida`
+  (`consulta_repetida_test.go`, que espera hoy «la primera respuesta lleva expresiones prohibidas: memoria de
+  consultas, hallazgos»). Los cambia T002, que declara esos ficheros (FR-024).
 - `informe_test.go`, `juzgar_test.go` y `sesion_test.go`: los informes y resultados esperados ganan `umbrales`,
   `duracion_de_las_sesiones`, `reintentos_por_limite_de_ritmo`, `sesiones_sin_medir`, `sin_medir`, las secciones y
   columnas nuevas de `informe.md` y el texto del error en el motivo sin terminar (`TestLeerSesion/result-con-is-error`,
@@ -329,7 +338,8 @@ cambia, y el paso `grabar_datos` no tiene nada que grabar. El calibrado usa los 
 1. **`[datos]`** `schemas/expresiones-prohibidas.yaml.json` y `evals/boe-legislacion/expresiones-prohibidas.yaml` con
    `anuncio`, `ExpresionesProhibidas.Anuncio`, `ExtraerExpresionesProhibidas` y `recontarExpresiones` con tres familias,
    `listaDelRepositorio`, y sus tests (`formato_test.go`, `prohibidas_test.go`, `juzgar_test.go`, `conjunto_test.go`
-   para `TestLeerConjunto`).
+   para `TestLeerConjunto`, e `informe_test.go` y `consulta_repetida_test.go`, que aplican la lista del repositorio a
+   la transición de la memoria de H7.1; «Tests existentes que cambian»).
 2. `expresiones-calibradas` sobre los dos informes y las tres familias.
 3. `sesion.go` (reintentos, texto del error) y `limites.go`, con sus tests.
 4. `umbrales.go` e `informe.go` (umbrales, sin medir, `SinAbrir`, reintentos, duración, `informe.md`), con sus tests.
