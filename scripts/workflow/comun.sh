@@ -69,3 +69,44 @@ aparcar_desde() {
 es_sha() {
   printf '%s' "$1" | grep -qE '^[0-9a-f]{40}$'
 }
+
+# Ids de requisito que menciona una línea, con los rangos «FR-001 a FR-008» expandidos.
+ids_de_linea() {
+  printf '%s\n' "$1" | awk '{
+    s = $0
+    while (match(s, /(FR|SC)-[0-9]+ (a|al|–|-) (FR|SC)-[0-9]+/)) {
+      r = substr(s, RSTART, RLENGTH); split(r, p, /[^A-Z0-9-]+/)
+      pre = substr(p[1], 1, 3); a = substr(p[1], 4) + 0; b = substr(p[length(p)], 4) + 0
+      if (b >= a && b - a < 200) for (i = a; i <= b; i++) printf "%s%03d\n", pre, i
+      s = substr(s, RSTART + RLENGTH)
+    }
+    t = $0
+    while (match(t, /(FR|SC)-[0-9]+/)) { print substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH) }
+  }' | sort -u
+}
+
+# Filas de la sección «## Controles de umbral» de plan.md (ADR 0029): una por cada
+# requisito con un umbral que se mide en make ci o en el cierre, con la forma
+#   | Requisito | Umbral | Control | Dónde |
+# Imprime, por fila, la celda de requisitos y la celda «Dónde» sin acentos graves,
+# separadas por un tabulador. Solo se leen la primera y la última celda: un `|`
+# dentro de las del medio no desplaza nada.
+controles_de_umbral() { # $1 = plan.md
+  [ -f "$1" ] || return 0
+  awk '
+    /^## / { dentro = ($0 ~ /^## Controles de umbral/); next }
+    dentro && /^[[:space:]]*\|/ {
+      n = split($0, c, "|"); req = c[2]; donde = c[n - 1]
+      gsub(/`/, "", donde); gsub(/^[ \t]+|[ \t]+$/, "", req); gsub(/^[ \t]+|[ \t]+$/, "", donde)
+      if (req ~ /^[ \t:-]*$/ || req == "Requisito") next # separador y cabecera
+      print req "\t" donde
+    }' "$1"
+}
+
+# Controles de una celda «Dónde»: `ci:<ruta>` o `ci:<ruta>:<Test>` (un test o una
+# comprobación que ejecuta make ci; <Test> es una función Go o un objetivo del
+# Makefile) y `evals:<skill>:<nombre>` (un umbral que el job de evals publica en
+# `umbrales` de su informe.json). Uno por línea.
+controles_de_celda() {
+  printf '%s\n' "$1" | grep -oE '(ci:[A-Za-z0-9_./-]+(:[A-Za-z0-9_-]+)?|evals:[a-z0-9-]+:[A-Za-z0-9_.:-]+)' | sed -E 's/[.:]+$//' || true
+}

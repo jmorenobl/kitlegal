@@ -50,7 +50,29 @@ case "$fase" in
     [ ! -f "$d/plan.md" ] || ! grep -q "NEEDS CLARIFICATION" "$d/plan.md" || defecto "plan.md conserva NEEDS CLARIFICATION"
     [ ! -f "$d/plan.md" ] || grep -q "## Constitution Check" "$d/plan.md" || defecto "plan.md sin '## Constitution Check'"
     [ ! -f "$d/plan.md" ] || grep -qiE 'Aceptación e2e' "$d/plan.md" \
-      || defecto "plan.md no dice qué guiones de aceptación e2e describen la entrega (o 'Aceptación e2e: no aplica' con el motivo)";;
+      || defecto "plan.md no dice qué guiones de aceptación e2e describen la entrega (o 'Aceptación e2e: no aplica' con el motivo)"
+    # Dónde vive el control de cada umbral (ADR 0029): lo lee el informe final sin
+    # modelo. Aquí solo la forma; qué umbrales faltan lo juzga el juez (criterio o).
+    if [ -f "$d/plan.md" ]; then
+      if ! grep -q '^## Controles de umbral' "$d/plan.md"; then
+        defecto "plan.md sin '## Controles de umbral': una fila '| Requisito | Umbral | Control | Dónde |' por cada umbral que se mide en make ci o en el cierre, o 'Ninguno.' con el motivo (ADR 0029)"
+      else
+        definidos=$(grep -oE '\*\*(FR|SC)-[0-9]+\*\*' "$d/spec.md" 2>/dev/null | tr -d '*' || true)
+        filas=$(controles_de_umbral "$d/plan.md")
+        if [ -z "$filas" ]; then
+          awk '/^## /{p = ($0 ~ /^## Controles de umbral/); next} p && /^Ninguno/ {f = 1} END {exit !f}' "$d/plan.md" \
+            || defecto "'## Controles de umbral' no tiene filas ni dice 'Ninguno.'"
+        fi
+        while IFS="$(printf '\t')" read -r req donde; do
+          [ -n "$req$donde" ] || continue
+          ids=$(ids_de_linea "$req")
+          [ -n "$ids" ] || defecto "Controles de umbral: la fila '$req' no nombra ningún requisito (FR-nnn o SC-nnn)"
+          for r in $ids; do printf '%s\n' "$definidos" | grep -qx "$r" || defecto "Controles de umbral: $r no está definido en spec.md"; done
+          [ -n "$(controles_de_celda "$donde")" ] \
+            || defecto "Controles de umbral: la fila '$req' no dice dónde vive el control (ci:<ruta>, ci:<ruta>:<Test> o evals:<skill>:<nombre>)"
+        done <<<"$filas"
+      fi
+    fi;;
 
   tasks)
     [ -f "$d/gates/analyze.md" ] || defecto "falta gates/analyze.md"

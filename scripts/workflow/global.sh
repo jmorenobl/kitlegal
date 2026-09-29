@@ -40,9 +40,14 @@ case "${1:?uso: global.sh base | cerrar <hito> <mensaje> [--revertir-si-rojo]}" 
       jq -n --arg p "$parche" --arg c "$causa" '{verde:false, apartado:true, parche:$p, causa:$c}'
       exit 0
     fi
-    # Sin cambios fuera del directorio del feature no hay nada que commitear con este
-    # mensaje: los registros de gates/ los versiona el paso siguiente que commitee.
-    if [ -z "$(git status --porcelain -- . ":(exclude)$d")" ]; then
+    # Sin cambios fuera de gates/ no hay nada que commitear con este mensaje: los
+    # registros del run (gates/base-global, supuestos, veredictos) los versiona el paso
+    # siguiente que commitee. Los artefactos del feature (spec.md, plan.md,
+    # quickstart.md, research.md, tasks.md…) sí son una corrección: en H7.2 la de la
+    # primera ronda de la revisión solo tocó quickstart.md y research.md, quedó sin
+    # commitear y la arrastró `publicar` como «registros del run», después de los
+    # veredictos; el informe la listó como un commit que ningún juez vio (ADR 0029).
+    if [ -z "$(git status --porcelain -- . ":(exclude)$d/gates")" ]; then
       jq -n --argjson v "$([ "$rc" -eq 0 ] && echo true || echo false)" '{verde:$v, apartado:false, sin_cambios:true}'
       exit 0
     fi
