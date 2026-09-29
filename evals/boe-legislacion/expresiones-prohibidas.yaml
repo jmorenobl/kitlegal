@@ -1,6 +1,7 @@
-# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050): la maquinaria
-# interna y lo dicho en otra conversación. Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de
-# Markdown entre palabras, delimitadas como palabras; lo dicho con otras palabras no se detecta.
+# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050; H7.3, FR-020),
+# en tres familias: la maquinaria interna, lo dicho en otra conversación y el anuncio de la respuesta o del estado de lo
+# comprobado. Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de Markdown entre palabras,
+# delimitadas como palabras; lo dicho con otras palabras no se detecta.
 maquinaria:
   - memoria de consultas
   - hallazgo
@@ -41,3 +42,18 @@ otra_conversacion:
   - te habría explicado
   - conversación anterior
   - conversaciones anteriores
+anuncio:
+  - que trasladar
+  - hace falta trasladar
+  - ya puedo responder
+  - con esto puedo responder
+  - y puedo responder
+  - tengo todo lo necesario
+  - tengo lo necesario
+  - redacto la respuesta
+  - respondo con el texto
+  - respondo con el contenido
+  - ya tengo la respuesta
+  - ya tengo el texto
+  - así que respondo
+  - sin redacciones cambiadas

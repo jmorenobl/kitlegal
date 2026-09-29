@@ -1,0 +1,22 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US1] La tercera familia en el esquema, en la lista y en el tipo que la lee, con los casos que los fijan, y **nada más** (contracts/lista-de-expresiones.md §1, §2 y §3; data-model §5; research D2; plan.md paso 1 y *Complexity Tracking*): schemas/expresiones-prohibidas.yaml.json gana `anuncio` en `required` y en `properties`, con el mismo `$ref` a la definición común `expresiones` que las otras dos (lista no vacía de expresiones de una o más palabras, sin blancos en los extremos ni `*` o `_`); `additionalProperties: false` se queda; evals/boe-legislacion/expresiones-prohibidas.yaml gana, detrás de `otra_conversacion`, la clave `anuncio` con las 14 expresiones de contracts §1 en su orden (`que trasladar`, `hace falta trasladar`, `ya puedo responder`, `con esto puedo responder`, `y puedo responder`, `tengo todo lo necesario`, `tengo lo necesario`, `redacto la respuesta`, `respondo con el texto`, `respondo con el contenido`, `ya tengo la respuesta`, `ya tengo el texto`, `así que respondo`, `sin redacciones cambiadas`), y su comentario de cabecera nombra las tres familias; las 22 de `maquinaria` y las 16 de `otra_conversacion` no cambian, y ninguna expresión nueva dice que la norma no está derogada o no tiene avisos (FR-020); internal/evals/prohibidas.go: `ExpresionesProhibidas.Anuncio []string` (`yaml:\"anuncio\"`) con su comentario —sin el campo, el lector estricto rechazaría la lista que el esquema exige—; `ExtraerExpresionesProhibidas` y `recontarExpresiones` no cambian todavía (T002); tests: en internal/evals/formato_test.go, los casos del esquema publicado —una lista con las tres familias valida; sin `anuncio`, con `anuncio: []` y con una expresión de `anuncio` con `*` no validan (una lista mal formada es un fichero mal formado, FR-023; H7.2 FR 055)—, y las listas sintéticas de los casos existentes ganan `anuncio` para seguir bien formadas; en internal/evals/conjunto_test.go, `TestLeerConjunto` con una lista de tres familias: `anuncio` queda en `Conjunto.Prohibidas.Anuncio` y en cada `Eval.Prohibidas`; las listas sintéticas de internal/evals/informe_test.go y las `ExpresionesProhibidas` literales de internal/evals/prohibidas_test.go y de internal/evals/conjunto_test.go (buscadas con `git grep -n 'otra_conversacion\\|ExpresionesProhibidas{'`) ganan `anuncio` donde el esquema la exige; verificación: `make ci` en verde con `TestEvalsDelRepositorio` sin cambios —la extracción aún no lee `anuncio`, así que el reparto calibrado sigue siendo el de H7.2— — FR-020, FR-023, FR-024; SC-003; US1-3; rutas: schemas/expresiones-prohibidas.yaml.json, evals/boe-legislacion/expresiones-prohibidas.yaml, internal/evals/prohibidas.go, internal/evals/formato_test.go, internal/evals/conjunto_test.go, internal/evals/informe_test.go",
+  "intento": 1,
+  "datos": true,
+  "aceptacion": false,
+  "base": "43eb8cb87d2e61b35f91d2daa3c6c87449646622",
+  "rutas": [
+    "contracts/lista-de-expresiones.md",
+    "evals/boe-legislacion/expresiones-prohibidas.yaml",
+    "internal/evals/conjunto_test.go",
+    "internal/evals/formato_test.go",
+    "internal/evals/informe_test.go",
+    "internal/evals/prohibidas.go",
+    "internal/evals/prohibidas_test.go",
+    "plan.md",
+    "schemas/expresiones-prohibidas.yaml.json"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}

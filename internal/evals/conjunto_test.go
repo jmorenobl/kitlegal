@@ -63,10 +63,11 @@ type malFormadoEsperado struct {
 // Desde H7.2, fija también la lista de expresiones prohibidas de la carpeta
 // (contrato lista-y-juicio §1; FR-050, FR-055): la entrada que se llama
 // exactamente expresiones-prohibidas.yaml no es un fichero de eval; bien
-// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval; si no es un
-// fichero regular o no valida, es un fichero mal formado que la nombra y las
-// evals se leen sin lista; y una carpeta sin ella se lee como antes del hito,
-// sin lista en el conjunto ni en ninguna eval.
+// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval, con sus
+// tres familias desde H7.3 (FR-023, FR-024); si no es un fichero regular o no
+// valida —también la de dos familias de H7.2, sin anuncio—, es un fichero mal
+// formado que la nombra y las evals se leen sin lista; y una carpeta sin ella se
+// lee como antes del hito, sin lista en el conjunto ni en ninguna eval.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -83,10 +84,13 @@ func TestLeerConjunto(t *testing.T) {
 	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
 
-	// La lista bien formada, la del test del esquema, y lo que se lee de ella.
+	// La lista bien formada, la del test del esquema con sus tres familias, y lo
+	// que se lee de ella.
+	listaBienFormada := maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado
 	lista := ExpresionesProhibidas{
 		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
 		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
+		Anuncio:          []string{"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
 	}
 	conLista := func(eval Eval) Eval {
 		eval.Prohibidas = lista
@@ -168,7 +172,7 @@ func TestLeerConjunto(t *testing.T) {
 			nombre: "con-lista",
 			entradas: []entradaDeConjunto{
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: listaBienFormada},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals:      []Eval{conLista(leidaDelArticulo21), conLista(leidaDeProgramacion)},
@@ -178,7 +182,7 @@ func TestLeerConjunto(t *testing.T) {
 			nombre: "lista-sin-una-familia",
 			entradas: []entradaDeConjunto{
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + anuncioBienFormado},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
@@ -187,17 +191,30 @@ func TestLeerConjunto(t *testing.T) {
 			},
 		},
 		{
+			// La lista de dos familias de H7.2, sin la de anuncio, está mal
+			// formada: las evals se leen sin lista (FR-023).
+			nombre: "lista-sin-anuncio",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "missing property 'anuncio'"},
+			},
+		},
+		{
 			nombre: "lista-con-una-familia-repetida",
 			entradas: []entradaDeConjunto{
 				{
 					nombre:    ficheroDeExpresionesProhibidas,
-					contenido: maquinariaBienFormada + otraConversacionBienFormada + "maquinaria:\n  - json\n",
+					contenido: listaBienFormada + "maquinaria:\n  - json\n",
 				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{
-				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 8"},
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 12"},
 			},
 		},
 		{
@@ -220,7 +237,7 @@ func TestLeerConjunto(t *testing.T) {
 			// fichero de eval sin la forma de nombre.
 			nombre: "lista-con-otro-nombre",
 			entradas: []entradaDeConjunto{
-				{nombre: "expresiones-prohibidas.yml", contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: "expresiones-prohibidas.yml", contenido: listaBienFormada},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals:       []Eval{leidaDelArticulo21},

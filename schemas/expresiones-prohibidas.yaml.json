@@ -4,10 +4,11 @@
   "title": "evals/<skill>/expresiones-prohibidas.yaml",
   "type": "object",
   "additionalProperties": false,
-  "required": ["maquinaria", "otra_conversacion"],
+  "required": ["maquinaria", "otra_conversacion", "anuncio"],
   "properties": {
     "maquinaria": { "$ref": "#/$defs/expresiones" },
-    "otra_conversacion": { "$ref": "#/$defs/expresiones" }
+    "otra_conversacion": { "$ref": "#/$defs/expresiones" },
+    "anuncio": { "$ref": "#/$defs/expresiones" }
   },
   "$defs": {
     "expresiones": {

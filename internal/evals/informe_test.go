@@ -808,8 +808,10 @@ const (
 	jsonEnLaRespuesta = "Si la lista llega en JSON, primero hay que leerla. "
 
 	// listaSinOtraConversacion es una lista de expresiones prohibidas mal formada:
-	// le falta la familia otra_conversacion, que el esquema exige.
-	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n"
+	// le falta la familia otra_conversacion, que el esquema exige; las otras dos
+	// están bien formadas.
+	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n" +
+		"anuncio:\n  - ya puedo responder\n"
 )
 
 // expresionesDeLaSesion son las expresiones prohibidas que el informe publica de
