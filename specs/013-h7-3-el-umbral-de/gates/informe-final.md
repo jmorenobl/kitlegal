@@ -1,18 +1,18 @@
 # Informe del hito H7.3 · El umbral de expresiones prohibidas decide, `boe-legislacion` sin el vocabulario que provoca el ruido, y evals en paralelo con un sondeo local
 
-Generado por el workflow `hito` el 2026-09-30T06:34:46Z, sobre `eb6b4c8` de `013-h7-3-el-umbral-de`.
+Generado por el workflow `hito` el 2026-09-30T08:48:42Z, sobre `196ee05` de `013-h7-3-el-umbral-de`.
 Lo escribe scripts/workflow/informe.sh sin modelo, desde los artefactos de `specs/013-h7-3-el-umbral-de/`. Fusionar (squash-merge) es una decisión humana:
 si algo de lo que sigue no es lo que se quería, se corrige la sección del hito en docs/ROADMAP.md y se relanza.
 
 ## 1. Estado
 
 - **make ci local**: verde.
-- **CI y evals remotos** sobre `eb6b4c8`: verde.
+- **CI y evals remotos** sobre `196ee05`: verde.
 - **Evals por skill**: boe-legislacion aprobado, legal-core aprobado (tasas en la sección 3).
 - **Umbrales del job**: boe-legislacion: 3 umbrales, **1 sin cumplir o solo publicados** (`expresiones_prohibidas:claude-haiku-4-5-20251001`); legal-core: sin umbrales (sección 3).
-- **Revisión final**: juez A aprobado, juez B aprobado, 2 rondas.
+- **Revisión final**: juez A aprobado, juez B aprobado, 3 rondas.
 - **Tareas**: 15 hechas, 0 en cuarentena, 0 pendientes sin cuarentena.
-- **Diff**: 21 commits; 90 files changed, 19710 insertions(+), 614 deletions(-).
+- **Diff**: 25 commits; 93 files changed, 19899 insertions(+), 614 deletions(-).
 
 ## 2. Supuestos y pendientes
 
@@ -52,25 +52,26 @@ Decisiones que el run tomó sin preguntar, ordenadas por impacto: cada paso que 
 
 ### Del propio run
 
+- sesión posterior al run (2026-09-30): el cambio de protocolo de `eb6b4c8` (`reparar_cierre`) y el arreglo de `0222c39` llegaron después de los veredictos de la ronda 2 → tercera ronda de la revisión final a mano (`scripts/paso.sh revision_juez_a|revision_juez_b H7.3`, `opus@xhigh` y `fable@xhigh`) sobre `3dda87f`, con una nota en `gates/revision-pendiente.md` que nombraba esos commits y la sección H7.3 («una vez por norma citada, después de leer y antes de responder») y FR-040 de H7.1, retirada … (entera en `specs/013-h7-3-el-umbral-de/gates/supuestos.md` o `clarify-respuestas.json`)
 
-- Observaciones de los jueces, por debajo del umbral y sin corregir: 13 en `spec-r2.json`, 6 en `plan-r2.json`, 4 en `tasks-r3.json`, 9 en `revision-a-r2.json`, 11 en `revision-b-r2.json`.
+- Observaciones de los jueces, por debajo del umbral y sin corregir: 13 en `spec-r2.json`, 6 en `plan-r2.json`, 4 en `tasks-r3.json`, 8 en `revision-a-r3.json`, 10 en `revision-b-r3.json`.
 
-### Internos (15)
+### Internos (16)
 
-Decisiones que no cambian nada observable (técnica, estructura, tests), por autor: T001 (1), T006 (3), T007 (1), T008 (1), T011 (2), T012 (2), T013 (1), T014 (2), T015 (1), barrido (1). Enteras en `specs/013-h7-3-el-umbral-de/gates/supuestos.md`.
+Decisiones que no cambian nada observable (técnica, estructura, tests), por autor: T001 (1), T006 (3), T007 (1), T008 (1), T011 (2), T012 (2), T013 (1), T014 (2), T015 (1), barrido (1), sesión posterior al run (2026-09-30) (1). Enteras en `specs/013-h7-3-el-umbral-de/gates/supuestos.md`.
 
 ## 3. Evals sobre la cabeza
 
-**boe-legislacion**: aprobado sobre `eb6b4c8`; decide `claude-sonnet-5` con 2 de 3; 19 evals, 0 nuevas, 7 informativas.
+**boe-legislacion**: aprobado sobre `196ee05`; decide `claude-sonnet-5` con 2 de 3; 19 evals, 0 nuevas, 7 informativas.
 
 | Eval | claude-sonnet-5 | claude-haiku-4-5-20251001 | Marca |
 |---|---|---|---|
 | `01-lpac-articulo-21.yaml` | 3/3 | 3/3 |  |
 | `02-lcsp-contrato-menor.yaml` | 3/3 | 3/3 |  |
-| `03-lrbrl-atribuciones-del-pleno.yaml` | 2/3 | 2/3 |  |
+| `03-lrbrl-atribuciones-del-pleno.yaml` | 3/3 | 3/3 |  |
 | `04-lgt-prescripcion.yaml` | 3/3 | 3/3 |  |
 | `05-trlrhl-impuestos-municipales.yaml` | 3/3 | 3/3 |  |
-| `06-irpf-rendimientos-del-trabajo.yaml` | 3/3 | 3/3 |  |
+| `06-irpf-rendimientos-del-trabajo.yaml` | 3/3 | 2/3 |  |
 | `07-lrjsp-principio-de-legalidad.yaml` | 3/3 | 3/3 |  |
 | `08-ltaibg-plazo-de-resolucion.yaml` | 3/3 | 3/3 |  |
 | `09-constitucion-articulo-140.yaml` | 3/3 | 3/3 |  |
@@ -78,7 +79,7 @@ Decisiones que no cambian nada observable (técnica, estructura, tests), por aut
 | `11-no-activa-programacion.yaml` | 3/3 | 3/3 |  |
 | `12-no-activa-acuerdo-entre-amigos.yaml` | 3/3 | 3/3 |  |
 | `13-lrbrl-atribuciones-por-materia.yaml` | 3/3 | — | informativa |
-| `14-trlrhl-impuestos-por-materia.yaml` | 3/3 | — | informativa |
+| `14-trlrhl-impuestos-por-materia.yaml` | 2/3 | — | informativa |
 | `15-irpf-rendimientos-por-materia.yaml` | 3/3 | — | informativa |
 | `16-lrjsp-legalidad-por-materia.yaml` | 3/3 | — | informativa |
 | `17-ltaibg-plazo-por-materia.yaml` | 3/3 | — | informativa |
@@ -89,18 +90,18 @@ Respuestas con alguna expresión prohibida, en las evals que activan la skill (`
 
 | Modelo | Con alguna | Respuestas | Porcentaje |
 |---|---|---|---|
-| `claude-sonnet-5` | 0 | 51 | 0,0 % |
+| `claude-sonnet-5` | 1 | 51 | 2,0 % |
 | `claude-haiku-4-5-20251001` | 0 | 30 | 0,0 % |
 
 Umbrales que publica el job (ADR 0029):
 
 | Umbral | Medida | Condición | Cumple | Hace fallar el job |
 |---|---|---|---|---|
-| `expresiones_prohibidas:claude-sonnet-5` | 0 de 51 (0,0 %) | ≤ 5,0 % | sí | sí |
+| `expresiones_prohibidas:claude-sonnet-5` | 1 de 51 (2,0 %) | ≤ 5,0 % | sí | sí |
 | `expresiones_prohibidas:claude-haiku-4-5-20251001` | 0 de 30 (0,0 %) | ≤ 5,0 % | sí | no: solo se publica, no es un control |
-| `duracion_de_las_sesiones` | 540 | ≤ 900 | sí | sí |
+| `duracion_de_las_sesiones` | 492 | ≤ 900 | sí | sí |
 
-**legal-core**: aprobado sobre `eb6b4c8`; decide `claude-sonnet-5` con 2 de 3; 3 evals, 0 nuevas, 0 informativas.
+**legal-core**: aprobado sobre `196ee05`; decide `claude-sonnet-5` con 2 de 3; 3 evals, 0 nuevas, 0 informativas.
 
 | Eval | claude-sonnet-5 | claude-haiku-4-5-20251001 | Marca |
 |---|---|---|---|
@@ -127,8 +128,8 @@ Ninguna.
 | Requisito | Tareas | Aceptación | Estado | Control de umbral |
 |---|---|---|---|---|
 | FR-001 | T005(hecha) | — | tareas hechas | — |
-| FR-002 | T005(hecha) T015(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 0 de 51 (0,0 %), ≤ 5,0 % |
-| FR-003 | T005(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 0 de 51 (0,0 %), ≤ 5,0 % |
+| FR-002 | T005(hecha) T015(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 1 de 51 (2,0 %), ≤ 5,0 % |
+| FR-003 | T005(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 1 de 51 (2,0 %), ≤ 5,0 % |
 | FR-004 | T005(hecha) | — | tareas hechas | — |
 | FR-005 | T005(hecha) | — | tareas hechas | — |
 | FR-006 | T005(hecha) | — | tareas hechas | — |
@@ -162,7 +163,7 @@ Ninguna.
 | FR-043 | T004(hecha) T009(hecha) | — | comprobado por su control | `ci:internal/evals/informe_test.go:TestInformeConSesionesSinMedir`, en make ci (verde) |
 | FR-044 | T004(hecha) T007(hecha) | — | tareas hechas | — |
 | FR-050 | T005(hecha) T007(hecha) T009(hecha) | — | tareas hechas | — |
-| FR-051 | T005(hecha) T008(hecha) T009(hecha) T015(hecha) | — | comprobado por su control | `evals:boe-legislacion:duracion_de_las_sesiones`: 540, ≤ 900 |
+| FR-051 | T005(hecha) T008(hecha) T009(hecha) T015(hecha) | — | comprobado por su control | `evals:boe-legislacion:duracion_de_las_sesiones`: 492, ≤ 900 |
 | FR-052 | T008(hecha) | — | tareas hechas | — |
 | FR-060 | T008(hecha) T011(hecha) T012(hecha) | — | tareas hechas | — |
 | FR-061 | T006(hecha) T009(hecha) T010(hecha) T011(hecha) | — | tareas hechas | — |
@@ -185,7 +186,7 @@ Ninguna.
 | FR-097 | T014(hecha) | — | tareas hechas | — |
 | FR-098 | — | — | SIN TAREA | — |
 | FR-099 | T015(hecha) | — | tareas hechas | — |
-| SC-001 | T004(hecha) T005(hecha) T009(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 0 de 51 (0,0 %), ≤ 5,0 %; `evals:boe-legislacion:duracion_de_las_sesiones`: 540, ≤ 900; `ci:internal/evals/informe_test.go:TestInformeConSesionesSinMedir`, en make ci (verde) |
+| SC-001 | T004(hecha) T005(hecha) T009(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5`: 1 de 51 (2,0 %), ≤ 5,0 %; `evals:boe-legislacion:duracion_de_las_sesiones`: 492, ≤ 900; `ci:internal/evals/informe_test.go:TestInformeConSesionesSinMedir`, en make ci (verde) |
 | SC-002 | — | — | SIN TAREA | — |
 | SC-003 | T001(hecha) T002(hecha) | — | comprobado por su control | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, en make ci (verde) |
 | SC-004 | T002(hecha) | — | comprobado por su control | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, en make ci (verde) |
@@ -198,11 +199,9 @@ Ninguna.
 
 ## 7. Cambios posteriores a la revisión final
 
-Commits posteriores a los veredictos, que ningún juez juzgó (correcciones del cierre, registros y este informe), con lo que cada uno toca fuera de `gates/`:
-
-- `eb6b4c8` fix(H7.3): cierre en la plataforma: `CHANGELOG.md`, `skills/boe-legislacion/SKILL.md`, `contracts/skill-boe-legislacion.md`, `plan.md`, `research.md`, `spec.md`.
+Ninguno.
 
 ## 8. Cómo comprobarlo y consumo
 
 - Escenarios manuales: `specs/013-h7-3-el-umbral-de/quickstart.md`. Suite de aceptación congelada: `specs/013-h7-3-el-umbral-de/aceptacion/` (activada en `internal/app/testdata/script/`).
-- Run `f41e85d1`: 9 h 48 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh f41e85d1`.
+- Run `f41e85d1`: 12 h 2 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh f41e85d1`.
