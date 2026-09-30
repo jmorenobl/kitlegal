@@ -62,7 +62,9 @@ type casoDelJuicioDelSondeo struct {
 // ausente, con un prohibido ejecutado, con expresiones prohibidas y la prueba de
 // red, y sin medir y sin abrir. La del caso de la traza ilegible, que el job no
 // juzga, el sondeo la juzga como el job la del caso aprobado, que tiene su mismo
-// transcript: el sondeo no lee la traza.
+// transcript: el sondeo no lee la traza. Y una sesión que el tope cortó tras su
+// respuesta, con expresiones, queda fuera del recuento en los dos y de la línea
+// del recuento de la salida del sondeo (FR-045 y FR-082 de H7.4).
 func TestJuicioDelSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -85,6 +87,45 @@ func TestJuicioDelSondeo(t *testing.T) {
 		require.Len(t, juicio.resultados, 1)
 		assert.Equal(t, juicioSinLaTraza(resultadoDeLaSesion(t, delJob, sesionDelArticulo21)), juicio.resultados[0])
 	})
+
+	t.Run("sin-terminar-fuera-del-recuento", func(t *testing.T) {
+		t.Parallel()
+
+		entradas := entradasConUnaSinTerminar(t)
+		exigirElJuicioDelJobSinLaTraza(t, entradas, "")
+
+		juicio := juicioDelSondeoDe(t, entradas)
+
+		posicion := slices.IndexFunc(juicio.resultados, func(resultado ResultadoDeEval) bool {
+			return resultado.Sesion == sesionDelArticulo21
+		})
+		require.GreaterOrEqual(t, posicion, 0, "el sondeo juzga la sesi\xc3\xb3n %s", sesionDelArticulo21)
+
+		cortada := juicio.resultados[posicion]
+		assert.False(t, cortada.SesionTerminada, "el tope cort\xc3\xb3 la sesi\xc3\xb3n tras su respuesta")
+		assert.Equal(t, expresionesDeLaTransicion, cortada.ExpresionesProhibidas,
+			"la respuesta de la sesi\xc3\xb3n sin terminar lleva sus expresiones: el caso no pasa en vac\xc3\xado")
+
+		assert.Equal(t, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0}}, juicio.recuento)
+		assert.Contains(t, juicio.salida(),
+			"\nRespuestas con alguna expresi\xc3\xb3n prohibida en las evals que activan la skill: 0 de 0 (0,0 %); ")
+	})
+}
+
+// entradasConUnaSinTerminar son las entradas del informe del job de una copia del
+// caso aprobado con la lista del repositorio en la que la sesión del art. 21
+// lleva delante de su respuesta la transición de la memoria de consultas y el
+// tope la cortó tras ella: una sesión sin terminar con expresiones, que no es
+// una respuesta medida (FR-045 y FR-082 de H7.4).
+func entradasConUnaSinTerminar(t *testing.T) InformeAEscribir {
+	t.Helper()
+
+	copia := copiaDelCasoAprobadoConLaLista(t)
+	sesion := filepath.Join(copia, "sesiones", sesionDelArticulo21)
+	anteponerALaRespuesta(t, sesion, transicionDeLaMemoria+"\n\n")
+	cortarTrasLaRespuesta(t, sesion)
+
+	return entradasDeLaCopia(t, copia)
 }
 
 // casosDelJuicioDelSondeo son los casos de TestJuicioDelSondeo: cada caso de
@@ -323,7 +364,8 @@ func entradasSinMedirYSinAbrir(t *testing.T) InformeAEscribir {
 // t.TempDir(): las dos primeras líneas; ninguna expresión prohibida de ninguna
 // sesión; la tasa de cada serie, con las informativas marcadas, la que tiene
 // alguna sesión sin medir sin tasa y la sesión que no terminó por otra causa
-// contada como no pasada; el recuento con el 5 % de referencia; las sesiones sin
+// contada como no pasada; el recuento con el 5 % de referencia, sin la sesión
+// que no terminó, que no es una respuesta medida (FR-082 de H7.4); las sesiones sin
 // medir por límite de uso, también la que no se abrió, y las que quedaron sin
 // terminar por otra causa, cada una con su motivo del job, entre ellas la de un
 // transcript que acaba en el result con is_error de una credencial que no sirve
@@ -352,7 +394,8 @@ func TestSalidaDelSondeo(t *testing.T) {
 // su respuesta la transición de la memoria de consultas; la primera de la
 // cuarta acaba con la credencial que no sirve y código 1; la segunda de la
 // quinta, con el mensaje del límite de uso; y la tercera de la quinta no se
-// abrió. Exige su salida entera.
+// abrió. Exige su salida entera: el recuento, 1 de las 12 respuestas medidas,
+// sin las dos de la quinta ni la de la cuarta, que no terminó.
 func exigirLaSalidaConLista(t *testing.T) {
 	t.Helper()
 
@@ -384,7 +427,7 @@ func exigirLaSalidaConLista(t *testing.T) {
 		"- 04-sintetica.yaml con claude-sonnet-5 (informativa): 2 de 3",
 		"- 05-sintetica.yaml con claude-sonnet-5 (informativa): sin medir",
 		"",
-		"Respuestas con alguna expresi\xc3\xb3n prohibida en las evals que activan la skill: 1 de 13 (7,7 %); "+
+		"Respuestas con alguna expresi\xc3\xb3n prohibida en las evals que activan la skill: 1 de 12 (8,3 %); "+
 			"referencia: como mucho el 5 %.",
 		"",
 		"Sesiones sin medir por l\xc3\xadmite de uso:",

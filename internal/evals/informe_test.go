@@ -1154,8 +1154,10 @@ var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", 
 // umbral, en su orden: el nombre, la medida —«<medida> de <total> (<p> %)» con un
 // decimal y coma, o la medida sola—, la condición, si se cumple y si hace fallar
 // el veredicto, con «no: solo se publica» en los que no deciden. La del contrato,
-// fila a fila, con 2 de 51, 0 de 30 y 544 s; la de los tres sin cumplir; y, sin
-// ninguno, el párrafo «ninguno». La cabecera lleva la duración de las sesiones.
+// fila a fila, con las cinco filas de contracts/informe-del-job.md §2 de H7.4 —2
+// de 54, 0 de 54 sin activar, 0 de 54 con redaccion_no_leida, 0 de 30 y 544 s—;
+// la de los cinco sin cumplir; y, sin ninguno, el párrafo «ninguno». La cabecera
+// lleva la duración de las sesiones.
 //
 // Desde H7.4, fija además las formas exigidas y la columna de cada lado de las
 // redacciones modificadas de contracts/informe-del-job.md §4 de H7.4: con evals
@@ -1171,7 +1173,7 @@ var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", 
 func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 	t.Parallel()
 
-	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 7, conHaiku: true}
+	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 8, conHaiku: true}
 
 	casos := []struct {
 		nombre    string
@@ -1188,21 +1190,26 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 		{
 			nombre: "las-filas-del-contrato",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 2}, 544, 900
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 2}, 544, 900
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5`", "2 de 51 (3,9 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "2 de 54 (3,7 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
 				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
 				{"`duracion_de_las_sesiones`", "544", "≤ 900", "sí", "sí"},
 			},
 		},
 		{
-			nombre: "los-tres-sin-cumplir",
+			nombre: "los-cinco-sin-cumplir",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 3, modeloHaiku45: 2}, 901, 900
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 3, modeloHaiku45: 2}, 901, 900
+				e.sinActivar, e.conRedaccionNoLeida = 1, 1
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5`", "3 de 51 (5,9 %)", "≤ 5,0 %", "no", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "3 de 54 (5,6 %)", "≤ 5,0 %", "no", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
 				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no", "no: solo se publica"},
 				{"`duracion_de_las_sesiones`", "901", "≤ 900", "no", "sí"},
 			},
@@ -1219,7 +1226,9 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 				prefijoDeLasRespuestas: lineaConLaCitaDel118() + "\n\n",
 			},
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5`", "0 de 6 (0,0 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
 				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 3 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
 			},
 			formas: formaDeVersionObsoleta + ", " + formaDeVersionObsoleta + " " + redaccionDelArticulo118 + ", " +

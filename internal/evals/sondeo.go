@@ -149,8 +149,9 @@ type juicioDelSondeo struct {
 	series []serieDelSondeo
 
 	// recuento es el de las respuestas con alguna expresión prohibida de su
-	// modelo, como el del informe (recontarExpresiones): nil si la skill no tiene
-	// lista.
+	// modelo, sobre sus respuestas medidas —solo las terminadas—, como el del
+	// informe (recontarExpresiones y expresionesPorModelo; FR-082 de H7.4): nil si
+	// la skill no tiene lista.
 	recuento []RecuentoDeExpresiones
 
 	// sinMedir son las sesiones que un límite de uso de la cuenta no dejó
@@ -196,6 +197,8 @@ type sesionSinTerminar struct {
 //     Juzgar sobre la eval sin sus comandos ni sus prohibidos y la sesión sin
 //     invocaciones, exigirElModeloPedido y ClasificarElLimite;
 //  2. las series con repartirEnSeries y el recuento con recontarExpresiones,
+//     solo de las respuestas terminadas, del que publica lo mismo que
+//     expresiones_prohibidas_por_modelo (expresionesPorModelo; FR-082 de H7.4),
 //     como el informe, con el plan del sondeo: las evals pedidas con su modelo
 //     como el que decide, sin modelos informativos ni prueba de red, y las
 //     sesiones que el repartidor no abrió contadas como sin medir. Sin umbral:
@@ -241,7 +244,7 @@ func juzgarElSondeo(s SondeoAJuzgar) (juicioDelSondeo, error) {
 		}
 	}
 
-	juicio.recuento = recontarExpresiones(e, s.Prohibidas, sesiones, series)
+	juicio.recuento = expresionesPorModelo(recontarExpresiones(e, s.Prohibidas, sesiones, series))
 
 	for _, juzgada := range sesiones {
 		juicio.resultados = append(juicio.resultados, juzgada.resultado)
@@ -416,7 +419,9 @@ func (s serieDelSondeo) escrita() string {
 
 // recuentoEscrito es la línea del recuento de la salida del sondeo: con la
 // medida escrita como la del umbral de las expresiones del informe, «<n> de <m>
-// (<p> %)», y el umbral del paquete como referencia; o la de la skill sin lista.
+// (<p> %)», sobre las respuestas medidas —solo las terminadas, como en el
+// informe (FR-082 de H7.4)—, y el umbral del paquete como referencia; o la de la
+// skill sin lista.
 // El sondeo tiene un solo modelo, así que su recuento tiene un solo elemento.
 func (j juicioDelSondeo) recuentoEscrito() string {
 	if len(j.recuento) == 0 {

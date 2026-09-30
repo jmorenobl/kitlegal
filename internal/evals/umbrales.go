@@ -6,21 +6,34 @@ import (
 	"strings"
 )
 
-// umbralDeExpresionesProhibidas es la proporción de las respuestas de un modelo
-// con alguna expresión prohibida que su umbral admite: el 5 % de H7.2 SC 001. Va
-// con la lista, en el paquete, y no en la definición del job, que solo da el
-// objetivo de duración (research D5 de H7.3; FR-002, FR-004).
-const umbralDeExpresionesProhibidas = 0.05
+// Las proporciones de las respuestas medidas del modelo que decide que admite
+// cada umbral de sus respuestas: el 5 % de H7.2 SC 001 con alguna expresión
+// prohibida, y ninguna sin la skill activada ni con una expresión de
+// redaccion_no_leida (FR-040 a FR-042 de H7.4). Van con la lista, en el paquete,
+// y no en la definición del job, que solo da el objetivo de duración (research
+// D5 de H7.3; FR-002, FR-004 de H7.3).
+const (
+	umbralDeExpresionesProhibidas         = 0.05
+	umbralDeRespuestasSinActivar          = 0
+	umbralDeRespuestasConRedaccionNoLeida = 0
+)
 
 // Lo que lleva cada umbral del informe (contrato informe-del-job §1 de H7.3;
-// data-model §1). El de las expresiones de un modelo se nombra con el recuento
-// que ya publica el informe seguido del modelo, y su descripción lo nombra; y la
-// única comparación de este hito es «<=», que informe.md escribe «≤».
+// contracts/informe-del-job.md §2 de H7.4; data-model §1). Los de las
+// respuestas de un modelo se nombran con lo que miden seguido del modelo, y su
+// descripción lo nombra; y la única comparación es «<=», que informe.md escribe
+// «≤».
 const (
 	prefijoDelUmbralDeExpresiones  = "expresiones_prohibidas:"
+	prefijoDelUmbralSinActivar     = "sin_activar:"
+	prefijoDelUmbralDeRedaccion    = "redaccion_no_leida:"
 	nombreDelUmbralDeLaDuracion    = "duracion_de_las_sesiones"
 	descripcionDelUmbralDeUnModelo = "Respuestas de %s con alguna expresión prohibida, sobre sus respuestas medidas en " +
 		"las evals que activan la skill"
+	descripcionDelUmbralSinActivar = "Respuestas de %s sin la skill activada, sobre sus respuestas medidas en las evals " +
+		"que la activan"
+	descripcionDelUmbralDeRedaccion = "Respuestas de %s con alguna expresión de redaccion_no_leida (una redacción que " +
+		"ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill"
 	descripcionDelUmbralDeLaDuracion = "Segundos desde que se prepara la primera sesión hasta que termina la última"
 
 	comparacionMenorOIgual = "<="
@@ -42,17 +55,19 @@ const (
 // umbrales en informe.json.
 type Umbral struct {
 	// Nombre es lo que cita el plan en evals:<skill>:<nombre>, único en el
-	// informe: expresiones_prohibidas:<modelo> o duracion_de_las_sesiones.
+	// informe: expresiones_prohibidas:<modelo>, sin_activar:<modelo>,
+	// redaccion_no_leida:<modelo> o duracion_de_las_sesiones.
 	Nombre string `json:"nombre"`
 
 	// Descripcion dice en una línea qué se mide y sobre qué respuestas.
 	Descripcion string `json:"descripcion"`
 
-	// Medida es lo medido: las respuestas con alguna expresión prohibida, o los
-	// segundos de las sesiones.
+	// Medida es lo medido: las respuestas con alguna expresión prohibida, sin la
+	// skill activada o con alguna expresión de redaccion_no_leida, o los segundos
+	// de las sesiones.
 	Medida float64 `json:"medida"`
 
-	// Total, solo en los de las expresiones, son las respuestas medidas del
+	// Total, solo en los de las respuestas, son las respuestas medidas del
 	// modelo en las evals que activan la skill: con él, lo que se compara es la
 	// proporción Medida/Total, 0 si Total es 0. Sin él, la propia Medida.
 	Total *int `json:"total,omitzero"`
@@ -72,27 +87,32 @@ type Umbral struct {
 }
 
 // umbralesDelInforme son los umbrales del informe, sin ningún caso por skill
-// (research D5 de H7.3; FR-002, FR-004 a FR-006, FR-051): uno de las
-// expresiones prohibidas por cada modelo del recuento —que solo existe si la
+// (research D5 de H7.3 y D14 de H7.4; FR-002, FR-004 a FR-006, FR-051 de H7.3;
+// FR-040 a FR-048 de H7.4), por cada modelo del recuento —que solo existe si la
 // skill tiene lista—, en su orden, el que decide delante de los informativos,
-// con las respuestas con alguna como medida y las respuestas medidas como total,
-// y que decide solo en el modelo que decide; y, detrás, el de la duración de las
-// sesiones si el job da un objetivo mayor que 0, sin total y decidiendo. Nil,
-// [] en informe.json, si no hay ninguno.
-func umbralesDelInforme(e InformeAEscribir, recuento []RecuentoDeExpresiones) []Umbral {
+// todos con sus respuestas medidas como total: el de las expresiones
+// prohibidas, con las respuestas con alguna como medida, que decide solo en el
+// modelo que decide; y, detrás de él y solo en el que decide, el de las
+// respuestas sin la skill activada y el de las que llevan alguna expresión de
+// redaccion_no_leida, que deciden con 0. Detrás de todos, el de la duración de
+// las sesiones si el job da un objetivo mayor que 0, sin total y decidiendo.
+// Nil, [] en informe.json, si no hay ninguno.
+func umbralesDelInforme(e InformeAEscribir, recuento []recuentoDeRespuestas) []Umbral {
 	var umbrales []Umbral
 
 	for _, delModelo := range recuento {
-		total := delModelo.Respuestas
+		decide := delModelo.modelo == e.ModeloQueDecide
 
-		umbrales = append(umbrales, compararUmbral(Umbral{
-			Nombre:      prefijoDelUmbralDeExpresiones + delModelo.Modelo,
-			Descripcion: fmt.Sprintf(descripcionDelUmbralDeUnModelo, delModelo.Modelo),
-			Medida:      float64(delModelo.ConAlguna),
-			Total:       &total,
-			Umbral:      umbralDeExpresionesProhibidas,
-			Decide:      delModelo.Modelo == e.ModeloQueDecide,
-		}))
+		umbrales = append(umbrales, umbralDeRespuestas(prefijoDelUmbralDeExpresiones, descripcionDelUmbralDeUnModelo,
+			delModelo, delModelo.conAlguna, umbralDeExpresionesProhibidas, decide))
+
+		if decide {
+			umbrales = append(umbrales,
+				umbralDeRespuestas(prefijoDelUmbralSinActivar, descripcionDelUmbralSinActivar,
+					delModelo, delModelo.sinActivar, umbralDeRespuestasSinActivar, true),
+				umbralDeRespuestas(prefijoDelUmbralDeRedaccion, descripcionDelUmbralDeRedaccion,
+					delModelo, delModelo.conRedaccionNoLeida, umbralDeRespuestasConRedaccionNoLeida, true))
+		}
 	}
 
 	if e.ObjetivoDeDuracion > 0 {
@@ -106,6 +126,25 @@ func umbralesDelInforme(e InformeAEscribir, recuento []RecuentoDeExpresiones) []
 	}
 
 	return umbrales
+}
+
+// umbralDeRespuestas es el umbral de las respuestas medidas de un modelo con el
+// prefijo y la descripción dados, la medida dada sobre ellas y el umbral dado,
+// ya comparado: se nombra con el prefijo seguido del modelo, y su descripción lo
+// nombra.
+func umbralDeRespuestas(
+	prefijo, descripcion string, delModelo recuentoDeRespuestas, medida int, umbral float64, decide bool,
+) Umbral {
+	total := delModelo.respuestas
+
+	return compararUmbral(Umbral{
+		Nombre:      prefijo + delModelo.modelo,
+		Descripcion: fmt.Sprintf(descripcion, delModelo.modelo),
+		Medida:      float64(medida),
+		Total:       &total,
+		Umbral:      umbral,
+		Decide:      decide,
+	})
 }
 
 // compararUmbral pone al umbral su comparación, «<=», y su resultado: su valor
