@@ -52,7 +52,7 @@ Lo que cambia; lo demás (`on`, `cambios`, la matriz, `env`, los pasos de `evals
           COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
           EJECUCION: ${{ github.run_id }}
         run: >-
-          go test -tags evals -count=1 -v -run '^TestTandaDelCommit$' ./internal/evals/
+          go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/
           -args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"
 
       - name: Esta ejecución mide el commit
@@ -76,6 +76,9 @@ Lo que cambia; lo demás (`on`, `cambios`, la matriz, `env`, los pasos de `evals
 - La `concurrency` de `evals` por commit y skill con `cancel-in-progress: false` se queda (SC-010: «como mucho una a la
   vez»).
 - `timeout-minutes: 122`: el peor caso de `boe-legislacion` con 97 sesiones es 7 285 s (research V13).
+- `-timeout 12m` en el paso `decidir` (T008): la decisión espera como mucho 10 min más sus consultas, y con los 10 min
+  de `go test` por omisión el test acabaría en pánico antes de medir tras la espera, con `tanda` en rojo (FR-070); con la
+  preparación, cabe en los 15 del trabajo.
 
 ## 2. La decisión (`internal/evals/tanda.go`)
 
@@ -135,14 +138,16 @@ Falla solo con un error (§2). No abre sesiones, no escribe fuera de `-salida` y
 pasos con su `id`, su `name`, su `if` y su `run`) y `needs` e `if` de `jobs.evals`. Subpruebas:
 
 - **`del-repositorio`** (la de hoy, más): una línea por clave que no es la del contrato:
-  `jobs.tanda.if` es el de §1; `jobs.tanda.concurrency` no está; `jobs.tanda.permissions.actions` es `read`;
+  `jobs.tanda` está; `jobs.tanda.name` no está o es `tanda` (gh da el trabajo por su `name` y, sin él, por su id, y
+  la decisión lo busca por `tanda`); `jobs.tanda.if` es el de §1; `jobs.tanda.concurrency` no está; `jobs.tanda.permissions.actions` es `read`;
   `jobs.tanda.outputs.medir` es `${{ steps.decidir.outputs.medir }}`; el paso `decidir` ejecuta
-  `-run '^TestTandaDelCommit$'` con `-commit`, `-ejecucion` y `-salida "$GITHUB_OUTPUT"`; el último paso se llama como
+  `-run '^TestTandaDelCommit$'` con `-commit`, `-ejecucion` y `-salida "$GITHUB_OUTPUT"` (su `run` entero, el de §1:
+  sin `-tags evals`, `go test` no encontraría el test y terminaría con 0 sin escribir `medir`); el último paso se llama como
   la marca de §2 y su `if` es `steps.decidir.outputs.medir == 'si'`; `jobs.evals.needs` es `[tanda]` y `jobs.evals.if`,
   `${{ !cancelled() && needs.tanda.outputs.medir == 'si' }}`; ni `concurrency` de flujo ni `cancel-in-progress: true` (hoy); y el tope cubre el
   peor caso (hoy).
 - **`sinteticas`** (la de hoy, más): cada definición que se aparta en una sola de esas claves da la línea que la nombra
-  —sin `tanda`, con `concurrency` en `tanda`, sin `actions: read`, con `evals` sin `needs: [tanda]` o con otro `if`, con
+  —sin `tanda`, con un `name` en `tanda` que no es su id, con `concurrency` en `tanda`, sin `actions: read`, con `evals` sin `needs: [tanda]` o con otro `if`, con
   la marca con otro nombre o sin su `if`, con `cancel-in-progress: true`, con `concurrency` de flujo—.
 - **`segundo-disparo`** (nueva), `decidirLaTanda` y el bucle con consultas sintéticas y sin dormir de verdad:
 

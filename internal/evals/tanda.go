@@ -1,10 +1,17 @@
 package evals
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +32,28 @@ const (
 const (
 	statusTerminado   = "completed"
 	conclusionDeExito = "success"
+)
+
+// Las órdenes de gh con las que TestTandaDelCommit consulta las ejecuciones del
+// flujo sobre el commit (contracts/tanda-del-job.md §2 de H7.4; research.md D16
+// y V12 de H7.4): constantes, con cada valor en una variable del entorno de la
+// orden y entre comillas, de modo que ningún dato entra en su texto (gosec
+// G204). exec sustituye la shell por gh, que termina con su código.
+const (
+	// ordenDeLasEjecuciones lista las ejecuciones del flujo sobre el commit de
+	// variableDelCommitEvaluado, acotadas al commit y no al historial.
+	ordenDeLasEjecuciones = `exec gh run list --workflow evals.yml --commit "$COMMIT_EVALUADO" --limit 100 ` +
+		`--json databaseId,status`
+
+	// ordenDeLosTrabajos da los trabajos de la ejecución de
+	// variableDeLaEjecucionAnterior, con sus pasos.
+	ordenDeLosTrabajos = `exec gh run view "$EJECUCION_ANTERIOR" --json jobs`
+)
+
+// Las variables del entorno con las que cada orden de gh recibe su valor.
+const (
+	variableDelCommitEvaluado     = "COMMIT_EVALUADO"
+	variableDeLaEjecucionAnterior = "EJECUCION_ANTERIOR"
 )
 
 // Las esperas de esperarLaDecision (contracts/tanda-del-job.md §2 de H7.4): la
@@ -258,4 +287,165 @@ func leerLaTandaDeLaEjecucion(contenido []byte) (estadoDeLaTanda, error) {
 	}
 
 	return tandaQueNoMide, nil
+}
+
+// ghDeLaTanda ejecuta las órdenes de gh de la tanda con el entorno dado —en
+// TestTandaDelCommit, el de la ejecución, con GH_TOKEN y GH_REPO— y el commit
+// evaluado (contracts/tanda-del-job.md §2 de H7.4).
+type ghDeLaTanda struct {
+	entorno []string
+	commit  string
+}
+
+// listar da la lista de ejecuciones del flujo sobre el commit, la de
+// ordenDeLasEjecuciones: la función listar de consultarLasEjecuciones.
+func (g ghDeLaTanda) listar(ctx context.Context) ([]byte, error) {
+	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLasEjecuciones)
+
+	return g.ejecutar(orden, variableDelCommitEvaluado+"="+g.commit)
+}
+
+// verLosTrabajos da los trabajos de la ejecución id, los de
+// ordenDeLosTrabajos: la función verLosTrabajos de consultarLasEjecuciones.
+func (g ghDeLaTanda) verLosTrabajos(ctx context.Context, id int64) ([]byte, error) {
+	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLosTrabajos)
+
+	return g.ejecutar(orden, variableDeLaEjecucionAnterior+"="+strconv.FormatInt(id, 10))
+}
+
+// ejecutar ejecuta la orden con el entorno de g y, encima, la variable dada, y
+// devuelve lo que escribió en su salida estándar. Si no termina con 0, devuelve
+// un error con la orden, la variable, cómo terminó y lo que escribió en sus dos
+// salidas.
+func (g ghDeLaTanda) ejecutar(orden *exec.Cmd, variable string) ([]byte, error) {
+	var salida, errores bytes.Buffer
+
+	orden.Env = sobreLaBase(g.entorno, []string{variable})
+	orden.Stdout = &salida
+	orden.Stderr = &errores
+
+	if err := orden.Run(); err != nil {
+		return nil, fmt.Errorf("%s, con %s: %w\n%s%s", orden, variable, err, salida.Bytes(), errores.Bytes())
+	}
+
+	return salida.Bytes(), nil
+}
+
+// String dice lo que decidió la tanda de una ejecución, para el registro de
+// TestTandaDelCommit.
+func (e estadoDeLaTanda) String() string {
+	switch e {
+	case tandaQueMide:
+		return "su tanda mide el commit"
+	case tandaQueNoMide:
+		return "su tanda no mide el commit"
+	case tandaSinDecidir:
+	}
+
+	return "su tanda aún no ha decidido"
+}
+
+// registroDeLaConsulta dice, para el registro de TestTandaDelCommit, qué
+// ejecuciones anteriores a la propia miró la consulta, en el orden de la lista,
+// y qué vio en cada una: la tanda de las que no han terminado, y que las
+// terminadas no cuentan. Las posteriores no se nombran: no cuentan.
+func registroDeLaConsulta(consulta int, propia int64, ejecuciones []ejecucionDelCommit) string {
+	var lineas []string
+
+	for _, ejecucion := range ejecuciones {
+		switch {
+		case ejecucion.id >= propia:
+		case ejecucion.terminada:
+			lineas = append(lineas, fmt.Sprintf("  %d, terminada: no cuenta, su tanda ya terminó", ejecucion.id))
+		default:
+			lineas = append(lineas, fmt.Sprintf("  %d, sin terminar: %s", ejecucion.id, ejecucion.tanda))
+		}
+	}
+
+	if len(lineas) == 0 {
+		return fmt.Sprintf("consulta %d: ninguna ejecución anterior a la %d sobre el commit", consulta, propia)
+	}
+
+	return fmt.Sprintf("consulta %d, ejecuciones anteriores a la %d sobre el commit:\n%s", consulta, propia,
+		strings.Join(lineas, "\n"))
+}
+
+// motivoDeLaDecision dice, para el registro de TestTandaDelCommit, por qué la
+// ejecución propia mide el commit o no, con las ejecuciones de la última
+// consulta: no mide porque lo mide la tanda de alguna anterior sin terminar,
+// que nombra; y mide porque ninguna anterior sin terminar lo mide o porque
+// pasó esperaMaximaDeLaDecision con alguna sin decidir, que nombra.
+func motivoDeLaDecision(propia int64, ejecuciones []ejecucionDelCommit, decision decisionTrasLaEspera) string {
+	if !decision.mide {
+		var queMiden []int64
+
+		for _, ejecucion := range ejecuciones {
+			if ejecucion.cuentaPara(propia) && ejecucion.tanda == tandaQueMide {
+				queMiden = append(queMiden, ejecucion.id)
+			}
+		}
+
+		return "no mide el commit: lo mide la tanda de estas ejecuciones anteriores sin terminar: " +
+			nombrarLasEjecuciones(queMiden)
+	}
+
+	if decision.agotada {
+		return fmt.Sprintf("mide el commit: tras %s, la tanda de estas ejecuciones anteriores sin terminar aún no "+
+			"ha decidido: %s; la concurrency del trabajo evals pone la de esta detrás de la que mida",
+			esperaMaximaDeLaDecision, nombrarLasEjecuciones(decision.pendientes))
+	}
+
+	return "mide el commit: ninguna ejecución anterior sin terminar lo mide"
+}
+
+// nombrarLasEjecuciones da los ids de las ejecuciones, separados por comas.
+func nombrarLasEjecuciones(ids []int64) string {
+	nombres := make([]string, 0, len(ids))
+	for _, id := range ids {
+		nombres = append(nombres, strconv.FormatInt(id, 10))
+	}
+
+	return strings.Join(nombres, ", ")
+}
+
+// escribirLaDecision añade a la ruta —en TestTandaDelCommit, el GITHUB_OUTPUT
+// del paso— la línea medir=si o medir=no, detrás de lo que ya tenga y
+// creándola si no existe, como >> en el paso de una definición
+// (contracts/tanda-del-job.md §3 de H7.4). El error nombra la ruta.
+func escribirLaDecision(ruta string, mide bool) error {
+	linea := "medir=no\n"
+	if mide {
+		linea = "medir=si\n"
+	}
+
+	fichero, err := os.OpenFile(filepath.Clean(ruta), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("la decisión de la tanda no se puede escribir en %s: %w", ruta, err)
+	}
+
+	if _, err := fichero.WriteString(linea); err != nil {
+		return errors.Join(fmt.Errorf("la decisión de la tanda no se puede escribir en %s: %w", ruta, err),
+			fichero.Close())
+	}
+
+	if err := fichero.Close(); err != nil {
+		return fmt.Errorf("la decisión de la tanda no se puede escribir en %s: %w", ruta, err)
+	}
+
+	return nil
+}
+
+// dormir espera la duración y vuelve sin error o, si el contexto termina
+// antes, con su error: la espera de verdad de TestTandaDelCommit entre consulta
+// y consulta.
+func dormir(ctx context.Context, duracion time.Duration) error {
+	temporizador := time.NewTimer(duracion)
+	defer temporizador.Stop()
+
+	select {
+	case <-temporizador.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
