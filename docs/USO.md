@@ -28,6 +28,75 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   alias ha cambiado. La activación de la 04 y el anuncio de lo comprobado son de la skill con el modelo nuevo: los
   arregla H7.4.
 
+### 2026-09-30 · H7.3 cumple su umbral con la lista, pero no con la lectura: la comprobación contada con otras palabras y una redacción que nadie leyó
+
+- **Qué se pidió.** Leer, respuesta a respuesta, lo que dijo `boe-legislacion` en las tres mediciones del cierre de
+  H7.3 (#85): sobre `6ab3add` (5 de 51 con la lista, 571 s), `eb6b4c8` (0 de 51, 540 s) y `196ee05` (1 de 51, 492 s;
+  `specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json`, el único versionado en `main`; los otros dos
+  siguen en los commits de la rama, fuera de `main`). Todas las cifras son de las respuestas del modelo que decide en
+  las evals que activan la skill; el modelo informativo no tiene ninguna respuesta de las dos clases de abajo en
+  ninguna medición. Las sesiones se nombran `<eval>-<sesión>`.
+- **Qué falló.**
+  - **La comprobación, contada con otras palabras (clase A).** Respuestas que dicen el estado de la comprobación de
+    la redacción o de una lectura anterior —que cambió o que no, que no hay nada que señalar, que la comprobación
+    terminó— o anuncian lo que el agente tiene o va a hacer, al principio o al final de la respuesta y en cualquier
+    idioma. En `196ee05`, 7, de las que la lista marca una (14-03): 01-02 «No hay avisos de vigencia sobre este
+    bloque ni cambios de redacción respecto a una consulta anterior.»; 05-02 «…y no consta que su redacción haya
+    cambiado desde una consulta anterior.»; 13-02 «…ni indicios de redacción posterior a la consultada.»; 13-03 «No
+    se ha detectado ningún cambio de redacción respecto a una lectura anterior de este bloque.»; 14-01 «Article 59
+    already answers the question fully, so I don't need art. 60. I have enough to respond now.»; 14-02 «Con el
+    artículo 59 tengo suficiente para responder a la pregunta completa; no necesito el artículo 60 para esto.»; y
+    14-03 «La comprobación de redacción terminó sin hallazgos, así que no hay cambios que señalar.». En `6ab3add`,
+    11 (la lista, 5; además 01-03, 03-01, 03-03 «Sin cambios de redacción respecto a lecturas anteriores. Aquí está
+    la respuesta.», 13-03 «Sin cambios desde una lectura anterior. Respondo.», 14-03 y 15-03); en `eb6b4c8`, 4 (la
+    lista, 0: 06-01, 14-01 «Este artículo ya da la respuesta completa. Sin avisos de vigencia ni cambios desde una
+    lectura anterior.», 15-02 y 17-01). Es el vocabulario de `SKILL.md` v0.1.3: «desde una lectura anterior» sale
+    seis veces en su prosa (líneas 66, 74, 83, 177, que es el título de una sección, y 270) y «lectura anterior»,
+    diez. «No hay avisos de vigencia sobre este bloque», sola, no es de esta clase: es derecho (entrada del
+    2026-09-29 sobre H7.1).
+  - **Una redacción que ninguna orden devolvió (clase B).** En la eval 19, 5 de las 9 sesiones de las tres
+    mediciones describen la redacción superada del art. 118 LCSP —qué decía o qué cambió—: 19-01 de `6ab3add`,
+    19-01 y 19-02 de `eb6b4c8`, y 19-01 y 19-02 de `196ee05`. Ninguna orden de esas sesiones la devolvió: `boe articulo BOE-A-2017-12902 a1-30` da solo la redacción vigente, con `fecha_vigencia`
+    20200206 y `norma_modificadora` `BOE-A-2020-1651`, y `graph check`, dos fechas (FR-070 de H7). Dos son falsas
+    contra la respuesta grabada, que trae las dos redacciones: 19-02 de `196ee05` dice que la anterior estuvo
+    «vigente hasta el 9 de marzo de 2018» (20180309 es cuándo entró en vigor) y que «no distinguía umbrales entre
+    obras y suministros/servicios del mismo modo» (el apartado 1 original ya fijaba 40.000 y 15.000 euros), y 19-01
+    de la misma medición, que «ya no exige tres informes separados»; 19-02 de `eb6b4c8` atribuye a la original un
+    informe «motivando la elección del contratista entre varios presupuestos» que no tenía. Es contenido legal sin
+    fuente (constitución, principio II), acierte o no. Ya pasaba en los informes versionados de H7.2 (19-01, «Si lo
+    que tenías en mente era la redacción original de 2018 (por ejemplo, sin el requisito específico de motivar…»,
+    sin marcar; y 19-02, «El cambio relevante fue que se eliminó la exigencia de un informe adicional…», marcada por
+    «hallazgo») y de H7.1 (19-01, «el contenido normativo del artículo 21 no ha cambiado por una reforma
+    posterior»). `SKILL.md` ya dice «Lo único que la respuesta dice de una lectura anterior es esa línea»: la
+    prohibición no basta.
+  - **El recuento real.** Contando las dos clases, `196ee05` da 9 de 51 (17,6 %; la lista, 1), `eb6b4c8` 6 de 51 y
+    `6ab3add` 12 de 51. Con la etiqueta de arriba, en los informes versionados llevan alguna expresión o alguna de
+    las dos clases: en H7.1, 36 de 93 (las 35 de la lista y 19-01); en H7.2, 11 de 93 (las 10 y 19-01); en H7.3
+    (`196ee05`), 9 de 93. Buscadas con `jq` las formas de las dos clases en las respuestas sin marcar de los tres,
+    no hay más.
+  - **El job juzga otra cosa que la respuesta.** En `eb6b4c8`, la sesión 03-01 lanzó `kitlegal boe buscar` en
+    segundo plano, y el último `result` del transcript, el que juzga el job (`internal/evals/sesion.go`,
+    `leerResult`), fue la réplica al aviso de esa tarea: «Esa tarea en segundo plano era solo una búsqueda
+    auxiliar… No afecta a la respuesta ya entregada…». La sesión falló por cita ausente y contó como respuesta
+    limpia en el total de 51. Y `recontarExpresiones` (`internal/evals/informe.go:762`), que usan el job y el
+    sondeo, cuenta como limpia una sesión que no terminó; en estas mediciones no hubo ninguna.
+  - **Dos ejecuciones del job por commit.** Sobre `6ab3add`, la apertura de la propuesta de cambio y la etiqueta
+    `evals` lanzaron dos ejecuciones con 4 s de diferencia (36672667544 y 36672671529): una terminó a los 12 min y
+    la otra esperó a que terminara y volvió a medir el mismo commit, 35 min después de abrirse.
+  - **El sondeo, con la traza de `go test`.** Sin `CLAUDE_CODE_OAUTH_TOKEN`, o con un argumento que no vale,
+    `TestSondeo` falla con `require.NoError` y `scripts/evals-sondeo.sh` imprime el registro entero de `go test`:
+    el mensaje llega dentro de la traza de testify.
+  - **`&&` en Windows.** La documentación de Claude Code dice que en Windows nativo la herramienta PowerShell se
+    activa sola sin Git Bash, y que con Git Bash está activada por defecto en las cuentas de claude.ai y es la
+    shell principal; busca `pwsh.exe` (PowerShell 7) y, sin él, usa `powershell.exe` (5.1)
+    (<https://code.claude.com/docs/en/tools-reference#powershell-tool>, <https://code.claude.com/docs/en/setup>).
+    Windows PowerShell 5.1 no tiene `&&`, y la orden de lectura y comprobación de `SKILL.md` lo usa. Sin medir: el
+    job corre en Linux.
+- **Qué faltó.** Que la skill deje de contar la comprobación y de describir lo que no ha leído, y que la lista mida
+  las dos clases y no sus frases; una eval que lea dos bloques de una norma con redacción cambiada; que el job juzgue
+  la respuesta a la pregunta y una sola vez por commit; y que el sondeo diga sus errores de uso sin traza.
+- **Qué se hizo.** Abrir H7.4, entre H7.3 y H20, antes de la release.
+
 ### 2026-09-29 · H7.2 no cumple su umbral: el ruido cambia de palabras, y medirlo cuesta 40 minutos
 
 - **Qué se pidió.** Verificar el cierre de H7.2 (#82) contra su SC-001: como mucho el 5 % de las respuestas de cada
