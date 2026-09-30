@@ -22,18 +22,21 @@ fi
 
 # El temporal, en TMPDIR o, sin él, en /tmp, el directorio temporal por defecto de POSIX, se borra al salir, también
 # cuando el guion termina con otro código (FR-064): todo lo que el sondeo escribe va dentro —el binario, el HOME de las
-# sesiones con sus skills, las sesiones, el registro de go test y la salida—. Su ruta es absoluta: TestSondeo la recibe
-# por bandera y go test lo ejecuta en el directorio de su paquete.
+# sesiones con sus skills, las sesiones, el registro de go test y la salida—, y su tmp/ es el TMPDIR de go test, donde
+# escriben el directorio de trabajo de go, el de go install y la preparación de cada sesión, que TestSondeo hace en
+# proceso. Fuera quedan solo las cachés de Go. Su ruta es absoluta: TestSondeo la recibe por bandera y go test lo
+# ejecuta en el directorio de su paquete.
 temporal="$(mktemp -d "${TMPDIR:-/tmp}/kitlegal-sondeo.XXXXXX")"
 trap 'rm -rf -- "$temporal"' EXIT
 temporal="$(cd "$temporal" && pwd -P)"
+mkdir "$temporal/tmp"
 
 # Sin límite de tiempo de go test: el de cada sesión es su tope, y SIGINT y SIGTERM las cierran. Las dos salidas de go
 # test van a su registro, que solo se imprime si el sondeo no ha podido abrir y juzgar sus sesiones: un argumento que no
 # vale, la credencial que falta, el binario o las skills que no se pudieron construir o instalar, o el repartidor que
 # devolvió un error (contracts/sondeo.md §6).
 codigo=0
-go test -tags evals -count=1 -timeout 0 -run '^TestSondeo$' ./internal/evals/ -args \
+TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run '^TestSondeo$' ./internal/evals/ -args \
 	-skill "$1" -evals "$2" -modelo "$3" -repeticiones "$4" -concurrencia "$5" -temporal "$temporal" \
 	> "$temporal/go-test.log" 2>&1 || codigo=$?
 

@@ -26,10 +26,13 @@ skill (4 en `boe-legislacion`, 1 en `legal-core`), leída de `.github/workflows/
 Guion de bash sin nada posterior a bash 3.2. Con cinco argumentos (si no, uso y código 1):
 
 1. crea el directorio temporal con `mktemp -d "${TMPDIR:-/tmp}/kitlegal-sondeo.XXXXXX"` y lo borra con `trap … EXIT`,
-   también cuando termina con otro código (FR-064);
-2. ejecuta `go test -tags evals -count=1 -timeout 0 -run '^TestSondeo$' ./internal/evals/ -args -skill … -evals …
-   -modelo … -repeticiones … -concurrencia … -temporal <directorio>`, con su salida estándar y de error en
-   `<directorio>/go-test.log`;
+   también cuando termina con otro código (FR-064), y dentro `tmp/`;
+2. ejecuta, con `TMPDIR=<directorio>/tmp`, `go test -tags evals -count=1 -timeout 0 -run '^TestSondeo$' ./internal/evals/
+   -args -skill … -evals … -modelo … -repeticiones … -concurrencia … -temporal <directorio>`, con su salida estándar y
+   de error en `<directorio>/go-test.log`: lo que escriben en su `TMPDIR` el directorio de trabajo de `go test` y el de
+   `go install`, y la preparación de cada sesión, que `TestSondeo` hace en proceso (copias de las grabaciones con
+   `os.MkdirTemp`), queda dentro del directorio y lo borra el `trap`, también si el proceso muere sin retirarlo; fuera
+   quedan solo las cachés de Go;
 3. si termina con 0, imprime `<directorio>/salida.txt` y sale con 0; si no, imprime el registro por la salida de error
    y sale con 1.
 
@@ -123,8 +126,8 @@ instalar las skills, el directorio de las sesiones no se pudo crear o listar, o 
 | `TestJuicioDelSondeo` | sobre sesiones sintéticas con transcript y traza, el juicio del sondeo es, eval a eval, el del job salvo `comandos_ejecutados`, `comandos_ausentes`, `comandos_prohibidos_ejecutados`, `invocaciones`, `fuera_de_lo_grabado`, `otras_fallidas`, `llegadas_a_la_red` y los motivos y el `pasa` que dependen de ellos | FR-061; US4-1 |
 | `TestSalidaDelSondeo` | la primera línea; la segunda nombra los comandos esperados y los prohibidos, las llegadas a la red y Python; ninguna expresión de ninguna sesión aparece; series, recuento con el 5 %, sin medir y no terminadas como §4, con la sesión del ejemplo leída con `LeerSesion` de un transcript que acaba en el `result` con `is_error` de research V18 y código 1: su línea lleva `código 1: result con is_error: Failed to authenticate. …`; la skill sin lista | FR-063, FR-065; US4-2 |
 | `TestComprobarElSondeo` (tabla) | cada error de §3.1, nombrando su argumento; la concurrencia por omisión, 4 y 1, leída de la definición real; sin `CLAUDE_CODE_OAUTH_TOKEN` o vacía, el error de §3.2 | FR-060, FR-063, FR-067; US4-5 |
-| `TestSondear` (tabla, con sustitutos y sin construir el binario) | todas las sesiones fallan: devuelve la salida sin error (el guion sale con 0); la sesión k da (a): no abre más, las que faltan salen sin medir y devuelve sin error; un argumento o la credencial que no valen: ningún sustituto se invoca; las sesiones no ven `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` aunque estén en la base, sí `CLAUDE_CODE_OAUTH_TOKEN`, `HOME` es el del temporal y el primer `kitlegal` del `PATH` es el de `<temporal>/bin`; el `HOME` y el `TMPDIR` de la base no cambian: nada se escribe fuera del temporal | FR-061 a FR-066; SC-009; US4-3, US4-4, US4-6 |
-| `TestGuionDelSondeo` | `scripts/evals-sondeo.sh` con un `go` sustituto en el `PATH` y `TMPDIR` temporal: si el sustituto escribe `salida.txt` y sale con 0, el guion sale con 0, su salida estándar es esa y `TMPDIR` queda vacío; si sale con 1, el guion sale con 1, su salida de error lleva el registro y `TMPDIR` queda vacío | FR-064, FR-066; SC-009; US4-4 |
+| `TestSondear` (tabla, con sustitutos y sin construir el binario) | todas las sesiones fallan: devuelve la salida sin error (el guion sale con 0); la sesión k da (a): no abre más, las que faltan salen sin medir y devuelve sin error; un argumento o la credencial que no valen: ningún sustituto se invoca; las sesiones no ven `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` aunque estén en la base, sí `CLAUDE_CODE_OAUTH_TOKEN`, `HOME` es el del temporal y el primer `kitlegal` del `PATH` es el de `<temporal>/bin`; el `HOME` y el `TMPDIR` de la base no cambian: las sesiones no escriben en el entorno de quien lo lanza. El `TMPDIR` del proceso, donde escribe la preparación de cada sesión, no lo mira: lo fija `TestGuionDelSondeo` | FR-061 a FR-066; SC-009; US4-3, US4-4, US4-6 |
+| `TestGuionDelSondeo` | `scripts/evals-sondeo.sh` con un `go` sustituto en el `PATH` y `TMPDIR` temporal: el sustituto se ejecuta con `TMPDIR` en `<directorio>/tmp` y deja en él un directorio sin borrar, como un `go test` que muere sin retirar su preparación; si escribe `salida.txt` y sale con 0, el guion sale con 0, su salida estándar es esa y `TMPDIR` queda vacío; si sale con 1, el guion sale con 1, su salida de error lleva el registro y `TMPDIR` queda vacío | FR-064, FR-066; SC-009; US4-4 |
 | `TestPrepararElArbolDelSondeo` (etiqueta `integration`) | el `go install` y el `skills install` reales: `<temporal>/bin/kitlegal` existe y `<temporal>/home/.claude/skills/boe-legislacion/SKILL.md` es la del árbol; el `HOME` de la base no gana nada fuera de la telemetría del go command (`go env GOTELEMETRYDIR`), que no se apaga desde el entorno y que el `go test` del guion escribe igual | FR-062, FR-064 |
 
 ## 8. Uso, de fuera adentro

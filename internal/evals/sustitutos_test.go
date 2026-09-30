@@ -417,17 +417,21 @@ func argumentosAnotados(t *testing.T, anotaciones string) []string {
 // sustitutoDeGo es el go que TestGuionDelSondeo pone delante en el PATH en
 // lugar del de verdad, que construiría el paquete de evals y abriría el sondeo
 // con modelo (research D18 de H7.3; FR-068): crea go/ en el directorio común,
-// que falla si ya se ejecutó, y anota en él su directorio de trabajo, sus
-// argumentos, cada uno terminado en NUL, y lo que hay en el -temporal que
-// recibe; escribe en ese temporal salida.txt con salidaDelSustitutoDeGo;
-// escribe una línea en su salida estándar y otra en la de error; y sale con el
-// código de KITLEGAL_SUSTITUTO_CODIGO. Nada de lo que escribe lleva comillas
-// simples, porque va entre ellas en el guion.
+// que falla si ya se ejecutó, y anota en él su directorio de trabajo, su
+// TMPDIR, sus argumentos, cada uno terminado en NUL, y lo que hay en el
+// -temporal que recibe; deja un directorio en su TMPDIR, como el de trabajo de
+// go y la preparación de cada sesión, y no lo borra, como cuando go test muere
+// sin llegar a hacerlo; escribe en el temporal salida.txt con
+// salidaDelSustitutoDeGo; escribe una línea en su salida estándar y otra en la
+// de error; y sale con el código de KITLEGAL_SUSTITUTO_CODIGO. Nada de lo que
+// escribe lleva comillas simples, porque va entre ellas en el guion.
 const sustitutoDeGo = `#!/bin/sh
 set -eu
 anotaciones="$KITLEGAL_SUSTITUTO_COMUN/go"
 mkdir "$anotaciones"
 pwd -P > "$anotaciones/directorio"
+printf '%s\n' "$TMPDIR" > "$anotaciones/tmpdir"
+mkdir "$TMPDIR/go-build-del-sustituto"
 printf '%s\0' "$@" > "$anotaciones/argumentos"
 temporal=
 while [ $# -gt 0 ]; do

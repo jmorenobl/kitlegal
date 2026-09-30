@@ -853,9 +853,12 @@ type casoDeSondear struct {
 // que no sea de contracts/sondeo.md §5, aunque estén en ella; ven
 // CLAUDE_CODE_OAUTH_TOKEN y las demás de §5 con su valor de la base, el PATH de
 // la base con el bin/ del temporal delante —el primer kitlegal que resuelven es
-// el de ahí— y el HOME del temporal. Nada se escribe fuera del temporal: el HOME
-// y el TMPDIR de la base quedan vacíos, y el temporal lleva solo bin/, home/ y
-// sesiones/, sin informe ni veredicto.
+// el de ahí— y el HOME del temporal. Las sesiones no escriben en el HOME ni en
+// el TMPDIR de la base, que quedan vacíos, y el temporal lleva solo bin/, home/
+// y sesiones/, sin informe ni veredicto. Lo que el proceso escribe en su propio
+// TMPDIR —la preparación de cada sesión— y lo que go install escribe en el de la
+// base no lo mira: ese TMPDIR lo pone el guion dentro de su temporal
+// (TestGuionDelSondeo).
 func TestSondear(t *testing.T) {
 	t.Parallel()
 
@@ -1116,7 +1119,7 @@ func arbolSinConstruir(preparado *bool) func(temporal string, base []string) err
 }
 
 // exigirLaBaseSinTocar exige que el HOME y el TMPDIR de la base del sondeo sigan
-// vacíos: nada se escribe fuera del temporal (FR-064).
+// vacíos: las sesiones no escriben en el entorno de quien lo lanza (FR-064).
 func (d sondeoDelTest) exigirLaBaseSinTocar(t *testing.T) {
 	t.Helper()
 
@@ -1235,14 +1238,16 @@ type casoDelGuionDelSondeo struct {
 // §7 de H7.3; FR-064, FR-066; SC-009; US4-4) con el sustituto de go delante en
 // el PATH y un TMPDIR vacío del test. Con cinco argumentos, crea en TMPDIR su
 // temporal con la plantilla kitlegal-sondeo.XXXXXX y ejecuta, en la raíz del
-// repositorio, la orden go test del punto de entrada del sondeo con los cinco
-// tras -args y -temporal con ese temporal, con sus dos salidas en su
-// go-test.log. Si go test sale con 0, el guion sale con 0, su salida estándar es
-// salida.txt y la de error queda vacía; si sale con otro código, el guion sale
-// con 1, no imprime salida.txt y su salida de error lleva lo que go test
-// escribió en sus dos salidas. Sin cinco argumentos, el uso y el código 1, sin
-// ejecutar go. En todos los casos, el TMPDIR queda vacío: el guion borra su
-// temporal (FR-064).
+// repositorio y con el tmp/ de ese temporal como TMPDIR, la orden go test del
+// punto de entrada del sondeo con los cinco tras -args y -temporal con ese
+// temporal, con sus dos salidas en su go-test.log. Si go test sale con 0, el
+// guion sale con 0, su salida estándar es salida.txt y la de error queda vacía;
+// si sale con otro código, el guion sale con 1, no imprime salida.txt y su
+// salida de error lleva lo que go test escribió en sus dos salidas. Sin cinco
+// argumentos, el uso y el código 1, sin ejecutar go. En todos los casos, el
+// TMPDIR del test queda vacío: lo que go test deja en su TMPDIR —su directorio
+// de trabajo, el de go install y la preparación de cada sesión, que el
+// sustituto no borra— está en el temporal, y el guion lo borra (FR-064).
 func TestGuionDelSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -1358,8 +1363,8 @@ func ejecutarElGuionDelSondeo(t *testing.T, orden *exec.Cmd, codigoDeGo int, com
 // exigirLaOrdenDeGo exige, si el guion ejecuta go, que el sustituto se haya
 // ejecutado en la raíz del repositorio con la orden del punto de entrada del
 // sondeo (ordenDelSondeo), con los argumentos del guion y un temporal en el
-// TMPDIR dado, con el nombre de la plantilla y que ya tenía su go-test.log; y,
-// si no, que no se haya ejecutado.
+// TMPDIR dado, con el nombre de la plantilla y que ya tenía su go-test.log y su
+// tmp/, y con ese tmp/ como TMPDIR; y, si no, que no se haya ejecutado.
 func exigirLaOrdenDeGo(t *testing.T, sinGo bool, delGuion []string, anotaciones, temporal, raiz string) {
 	t.Helper()
 
@@ -1379,7 +1384,11 @@ func exigirLaOrdenDeGo(t *testing.T, sinGo bool, delGuion []string, anotaciones,
 	assert.Regexp(t, nombreDelTemporalDelSondeo, filepath.Base(temporalDelGuion))
 	assert.Equal(t, ordenDelSondeo(delGuion, temporalDelGuion), argumentos)
 
-	for anotacion, esperada := range map[string]string{"directorio": raiz + "\n", "temporal": "go-test.log\n"} {
+	for anotacion, esperada := range map[string]string{
+		"directorio": raiz + "\n",
+		"tmpdir":     filepath.Join(temporalDelGuion, "tmp") + "\n",
+		"temporal":   "go-test.log\ntmp\n",
+	} {
 		contenido, err := leerFichero(filepath.Join(anotaciones, anotacion))
 		require.NoError(t, err)
 		assert.Equalf(t, esperada, string(contenido), "lo que el sustituto de go anota en %s", anotacion)

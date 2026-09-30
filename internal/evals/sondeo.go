@@ -473,7 +473,9 @@ type SondeoAEjecutar struct {
 	EvalsDeLasSkills string
 
 	// Temporal es el directorio del sondeo, que crea y borra su guion: todo lo
-	// que el sondeo escribe va dentro (FR-064).
+	// que el sondeo escribe va dentro (FR-064), también lo que la preparación de
+	// cada sesión y el go install escriben en el TMPDIR, que el guion pone en su
+	// tmp/.
 	Temporal string
 
 	// Guion es la ruta absoluta de scripts/evals-sesion.sh, que abre cada sesión.
