@@ -33,7 +33,11 @@ const verboArticulos = "articulos"
 // texto, el mismo con el que los presenta el informe, que en un aviso es su código,
 // en un hallazgo, su clase, y en una expresión, la de la lista (contrato de
 // formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6; contrato
-// evals-y-skill §2 de H7 y de H7.1; contrato lista-y-juicio §4 de H7.2).
+// evals-y-skill §2 de H7 y de H7.1; contrato lista-y-juicio §4 de H7.2). Desde
+// H7.4, el de una redacción modificada ausente va seguido de su texto
+// (RedaccionEsperada.texto), y el de una skill que la eval dice que no se activa,
+// que la nombra en medio, lo compone motivoDeLaQueNoSeActiva
+// (contracts/evals-y-juicio.md §2 de H7.4).
 const (
 	motivoDeSesionSinTerminar  = "la sesión no terminó: "
 	motivoDeComandoAusente     = "comando ausente: "
@@ -41,6 +45,7 @@ const (
 	motivoDeCitaAusente        = "cita ausente: "
 	motivoDeAvisoAusente       = "aviso ausente: "
 	motivoDeHallazgoAusente    = "forma de hallazgo ausente: "
+	motivoDeRedaccionAusente   = "redacción modificada ausente: "
 	motivoDeTerritorioAusente  = "territorio ausente: "
 	motivoDeExpresionProhibida = "expresión prohibida: "
 	motivoDeOtroModelo         = "la sesión no declara el modelo que se le pidió: "
@@ -107,6 +112,15 @@ type ResultadoDeEval struct {
 	HallazgosEncontrados []string `json:"hallazgos_encontrados"`
 	HallazgosAusentes    []string `json:"hallazgos_ausentes"`
 
+	// RedaccionesEncontradas y RedaccionesAusentes reparten las redacciones
+	// modificadas esperadas, en el orden de la eval, entre las que la respuesta
+	// traslada en una línea con la forma fija de version-obsoleta, la cita de su
+	// bloque y sus dos fechas en su orden (ExtraerRedaccionesModificadas), y las
+	// que no, cada una con su texto: <norma> <bloque> <fecha_vigencia>
+	// <fecha_vigencia_reciente> (data-model §4 de H7.4; FR-053).
+	RedaccionesEncontradas []string `json:"redacciones_modificadas_encontradas"`
+	RedaccionesAusentes    []string `json:"redacciones_modificadas_ausentes"`
+
 	// TerritorioEncontrado y TerritorioAusente reparten los elementos del
 	// territorio esperado, en el orden de la eval —comunidad, provincia, cada
 	// boletín y cada aspecto de cobertura— y con sus repeticiones, entre los que la
@@ -166,19 +180,23 @@ type ResultadoDeEval struct {
 
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
-	// activación que no coincide; cada comando ausente; cada comando prohibido
-	// ejecutado; cada cita ausente; cada aviso ausente; cada hallazgo ausente; cada
-	// elemento del territorio ausente; cada expresión prohibida; y el modelo que la
-	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa. La
-	// sesión sin medir lleva solo el del límite (FR-040 de H7.3).
+	// activación que no coincide; cada skill que la eval dice que no se activa y
+	// se activó; cada comando ausente; cada comando prohibido ejecutado; cada cita
+	// ausente; cada aviso ausente; cada hallazgo ausente; cada redacción
+	// modificada ausente; cada elemento del territorio ausente; cada expresión
+	// prohibida; y el modelo que la sesión declara sin ser el pedido, que pone
+	// EscribirInforme. Vacío si pasa. La sesión sin medir lleva solo el del límite
+	// (FR-040 de H7.3; contracts/evals-y-juicio.md §2 de H7.4).
 	Motivos []string `json:"motivos"`
 
-	// Pasa dice si la sesión terminó, la activación coincide, no falta ningún
-	// comando, ninguna cita, ningún aviso, ningún hallazgo ni ningún elemento del
-	// territorio esperados, no se ejecutó ningún comando prohibido y la respuesta
-	// no lleva ninguna expresión prohibida. No lo cambian FueraDeLoGrabado,
-	// OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija de un aviso o de un
-	// hallazgo que la eval no espera. Una sesión sin medir no pasa.
+	// Pasa dice si la sesión terminó, la activación coincide, no se activó
+	// ninguna skill que la eval dice que no se activa, no falta ningún comando,
+	// ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción modificada ni
+	// ningún elemento del territorio esperados, no se ejecutó ningún comando
+	// prohibido y la respuesta no lleva ninguna expresión prohibida. No lo cambian
+	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
+	// de un aviso o de un hallazgo, ni una línea de redacción modificada, que la
+	// eval no espera. Una sesión sin medir no pasa.
 	Pasa bool `json:"pasa"`
 }
 
@@ -265,6 +283,15 @@ type LlegadaALaRed struct {
 //
 // Desde H7.3, publica además los reintentos por rate_limit de la sesión, que no
 // cambian su juicio (FR-033 y FR-041 de H7.3).
+//
+// Desde H7.4, anota además, con su motivo detrás del de la activación, cada skill
+// de NoSeActivan que la sesión activó, y una activada impide pasar; y reparte las
+// redacciones modificadas esperadas entre las que la respuesta traslada
+// (ExtraerRedaccionesModificadas: la norma, el bloque y las dos fechas en su
+// orden) y las ausentes, con su motivo detrás de los de los hallazgos, y una
+// ausente impide pasar. Una eval sin esas claves deja vacías las dos listas y su
+// juicio es el de antes (contracts/evals-y-juicio.md §2 de H7.4; FR-003, FR-052,
+// FR-053).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -287,6 +314,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 		resultado.Motivos = append(resultado.Motivos, motivoDeActivacion(skill, eval.Activa))
 	}
 
+	activadasSinDeber := resultado.anotarLasQueNoSeActivan(eval.NoSeActivan, sesion)
 	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
 	resultado.anotarProhibidos(eval.Prohibidos, sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
@@ -294,6 +322,7 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 		ExtraerAvisos(sesion.Respuesta), motivoDeAvisoAusente)
 	resultado.HallazgosEncontrados, resultado.HallazgosAusentes = resultado.repartirFormas(eval.Hallazgos,
 		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
+	resultado.repartirRedacciones(eval.RedaccionesModificadas, ExtraerRedaccionesModificadas(sesion.Respuesta))
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
 	resultado.anotarExpresionesProhibidas(eval, sesion.Respuesta)
 
@@ -301,13 +330,21 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 		resultado.informar(invocacion)
 	}
 
-	resultado.Pasa = sesion.Terminada && resultado.Activa == resultado.Activada &&
-		len(resultado.ComandosAusentes) == 0 && len(resultado.ComandosProhibidosEjecutados) == 0 &&
-		len(resultado.CitasAusentes) == 0 && len(resultado.AvisosAusentes) == 0 &&
-		len(resultado.HallazgosAusentes) == 0 && len(resultado.TerritorioAusente) == 0 &&
-		len(resultado.ExpresionesProhibidas) == 0
+	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && resultado.cumpleLoEsperado()
 
 	return resultado
+}
+
+// cumpleLoEsperado dice si la activación coincide con la esperada, no falta
+// ningún comando, ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción
+// modificada ni ningún elemento del territorio esperados, no se ejecutó ningún
+// comando prohibido y la respuesta no lleva ninguna expresión prohibida.
+func (r *ResultadoDeEval) cumpleLoEsperado() bool {
+	return r.Activa == r.Activada &&
+		len(r.ComandosAusentes) == 0 && len(r.ComandosProhibidosEjecutados) == 0 &&
+		len(r.CitasAusentes) == 0 && len(r.AvisosAusentes) == 0 &&
+		len(r.HallazgosAusentes) == 0 && len(r.RedaccionesAusentes) == 0 &&
+		len(r.TerritorioAusente) == 0 && len(r.ExpresionesProhibidas) == 0
 }
 
 // exigirElModeloPedido deja de pasar, con su motivo, la sesión que declara un
@@ -353,6 +390,29 @@ func motivoDeActivacion(skill string, activa bool) string {
 	}
 
 	return fmt.Sprintf("la activación no coincide: se esperaba que la skill %s no se activara y se activó", skill)
+}
+
+// anotarLasQueNoSeActivan anota, con su motivo y en el orden de la eval, cada
+// skill que la eval dice que no se activa y que la sesión activó, y devuelve
+// cuántas son (contracts/evals-y-juicio.md §2 de H7.4; FR-003).
+func (r *ResultadoDeEval) anotarLasQueNoSeActivan(noSeActivan []string, sesion Sesion) int {
+	activadas := 0
+
+	for _, nombre := range noSeActivan {
+		if sesion.Activada(nombre) {
+			activadas++
+
+			r.Motivos = append(r.Motivos, motivoDeLaQueNoSeActiva(nombre))
+		}
+	}
+
+	return activadas
+}
+
+// motivoDeLaQueNoSeActiva es el motivo de una skill que la eval dice que no se
+// activa y que la sesión activó, que la nombra.
+func motivoDeLaQueNoSeActiva(nombre string) string {
+	return fmt.Sprintf("se activó la skill %s, que la eval dice que no se activa", nombre)
 }
 
 // repartirComandos reparte los comandos esperados entre ejecutados y ausentes,
@@ -431,6 +491,25 @@ func (r *ResultadoDeEval) repartirFormas(esperados, conSuForma []string, motivo 
 	}
 
 	return encontrados, ausentes
+}
+
+// repartirRedacciones reparte las redacciones modificadas esperadas, en su orden,
+// entre las encontradas y las ausentes según las que traslada la respuesta: una
+// está si alguna trasladada es igual, con la misma norma, el mismo bloque y las
+// mismas dos fechas en el mismo orden. Cada ausente lleva su motivo.
+func (r *ResultadoDeEval) repartirRedacciones(esperadas, trasladadas []RedaccionEsperada) {
+	for _, esperada := range esperadas {
+		texto := esperada.texto()
+
+		if slices.Contains(trasladadas, esperada) {
+			r.RedaccionesEncontradas = append(r.RedaccionesEncontradas, texto)
+
+			continue
+		}
+
+		r.RedaccionesAusentes = append(r.RedaccionesAusentes, texto)
+		r.Motivos = append(r.Motivos, motivoDeRedaccionAusente+texto)
+	}
 }
 
 // repartirTerritorio reparte los elementos del territorio esperado entre

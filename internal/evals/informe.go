@@ -82,14 +82,15 @@ const (
 )
 
 // Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
-// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3).
+// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3 y de H7.4).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
 		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
-		"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente",
+		"Hallazgos encontrados", "Hallazgos ausentes", "Redacciones modificadas encontradas",
+		"Redacciones modificadas ausentes", "Territorio encontrado", "Territorio ausente",
 		"Expresiones prohibidas", "Reintentos por límite de ritmo", "Sin medir", "Resultado",
 	}
 	encabezadosDeSinMedir     = []string{"Sesión", "Eval", "Modelo", "Motivo"}
@@ -270,8 +271,11 @@ type TasaDelInforme struct {
 	// Formas son las formas fijas que exige la eval de la serie, junto a su tasa:
 	// la de cada clase de sus hallazgos, en su orden, escrita como se enseña —la
 	// marca, un espacio, la etiqueta de grafo.EtiquetasDeHallazgo y los dos
-	// puntos—. Nunca nil: vacía si la eval no espera hallazgos o si la serie no
-	// es de ninguna eval bien formada (contrato evals-y-skill §6 de H7.1; FR-055).
+	// puntos—, y detrás, ⚠ REDACCIÓN MODIFICADA: <texto> por cada redacción
+	// modificada que espera, en su orden. Nunca nil: vacía si la eval no espera
+	// hallazgos ni redacciones o si la serie no es de ninguna eval bien formada
+	// (contrato evals-y-skill §6 de H7.1; FR-055; contracts/informe-del-job.md §4
+	// de H7.4).
 	Formas []string `json:"formas"`
 
 	// Sesiones son las que se leyeron de la serie, y Pasan, cuántas de ellas
@@ -801,7 +805,10 @@ func recontarExpresiones(
 // formasExigidas son las formas fijas que exige la eval del fichero dado entre
 // las bien formadas: la de cada clase de sus hallazgos, en su orden, escrita con
 // formaEscrita y la etiqueta de grafo.EtiquetasDeHallazgo (contrato
-// evals-y-skill §6 de H7.1). Vacía, nunca nil, si la eval no espera hallazgos o
+// evals-y-skill §6 de H7.1), y, detrás, la de version-obsoleta seguida de un
+// espacio y el texto de cada redacción modificada que espera, en su orden
+// (contracts/evals-y-juicio.md §2 y contracts/informe-del-job.md §4 de H7.4).
+// Vacía, nunca nil, si la eval no espera hallazgos ni redacciones modificadas o
 // si el fichero no es el de ninguna eval bien formada.
 func formasExigidas(evals []Eval, fichero string) []string {
 	formas := []string{}
@@ -814,6 +821,11 @@ func formasExigidas(evals []Eval, fichero string) []string {
 	etiquetas := grafo.EtiquetasDeHallazgo()
 	for _, clase := range evals[posicion].Hallazgos {
 		formas = append(formas, formaEscrita(etiquetas[grafo.ClaseDeHallazgo(clase)]))
+	}
+
+	deLaRedaccion := formaEscrita(etiquetas[grafo.ClaseVersionObsoleta])
+	for _, redaccion := range evals[posicion].RedaccionesModificadas {
+		formas = append(formas, deLaRedaccion+" "+redaccion.texto())
 	}
 
 	return formas
@@ -1211,17 +1223,19 @@ func resultadoDeLaSerie(tasa TasaDelInforme) string {
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
 // activa, activada, sesión terminada con su código, comandos ausentes, comandos
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
-// hallazgos encontrados, hallazgos ausentes, territorio encontrado, territorio
-// ausente, expresiones prohibidas, reintentos por límite de ritmo, sin medir —«no»
-// o la clase— y resultado. Los comandos prohibidos ejecutados
+// hallazgos encontrados, hallazgos ausentes, redacciones modificadas encontradas,
+// redacciones modificadas ausentes, territorio encontrado, territorio ausente,
+// expresiones prohibidas, reintentos por límite de ritmo, sin medir —«no» o la
+// clase— y resultado. Los comandos prohibidos ejecutados
 // van junto a los ausentes, cada uno con su texto (contrato evals-y-skill §2 de
 // H7); los avisos, junto a las citas, cada uno con su código (contrato de formato,
 // juicio e informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su
-// clase (contrato evals-y-skill §6 de H7.1); el territorio, detrás, cada elemento
-// con su texto (contrato de evals §2 de H6); y las expresiones prohibidas, detrás
-// del territorio, en el orden de la lista (contrato lista-y-juicio §5 de H7.2);
-// los reintentos y si quedó sin medir, detrás de las expresiones (contrato
-// informe-del-job §4 de H7.3).
+// clase (contrato evals-y-skill §6 de H7.1); las redacciones modificadas, junto a
+// los hallazgos, cada una con su texto (contracts/informe-del-job.md §4 de H7.4);
+// el territorio, detrás, cada elemento con su texto (contrato de evals §2 de H6);
+// y las expresiones prohibidas, detrás del territorio, en el orden de la lista
+// (contrato lista-y-juicio §5 de H7.2); los reintentos y si quedó sin medir,
+// detrás de las expresiones (contrato informe-del-job §4 de H7.3).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -1250,6 +1264,8 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			unidosOVacio(resultado.AvisosAusentes, ningunoEnElInforme),
 			unidosOVacio(resultado.HallazgosEncontrados, ningunoEnElInforme),
 			unidosOVacio(resultado.HallazgosAusentes, ningunoEnElInforme),
+			unidosOVacio(resultado.RedaccionesEncontradas, ningunaEnElInforme),
+			unidosOVacio(resultado.RedaccionesAusentes, ningunaEnElInforme),
 			unidosOVacio(resultado.TerritorioEncontrado, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioAusente, ningunoEnElInforme),
 			unidosOVacio(resultado.ExpresionesProhibidas, ningunaEnElInforme),

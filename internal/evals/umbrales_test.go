@@ -53,6 +53,11 @@ type ejecucionConUmbrales struct {
 	// límite de uso; vacío, ninguno.
 	sinMedir string
 
+	// anadidoALaEval es lo que se añade al final de cada eval, y
+	// prefijoDeLasRespuestas, lo que se antepone a la respuesta de cada sesión;
+	// vacíos, nada.
+	anadidoALaEval, prefijoDeLasRespuestas string
+
 	// duracion y objetivo son DuracionDeLasSesiones y ObjetivoDeDuracion.
 	duracion, objetivo int
 }
@@ -375,7 +380,7 @@ func escribirEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) 
 	for numero := 1; numero <= ejecucion.queDeciden+ejecucion.informativas; numero++ {
 		informativa := numero > ejecucion.queDeciden
 
-		contenido := eval
+		contenido := eval + ejecucion.anadidoALaEval
 		if informativa {
 			contenido += "informativa: true\n"
 		}
@@ -391,6 +396,11 @@ func escribirEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) 
 
 			for vez := 1; vez <= repeticionesConUmbrales; vez++ {
 				escribirSesionSintetica(t, copia, numero, modelo, vez, ejecucion.sinMedir == modelo)
+
+				if ejecucion.prefijoDeLasRespuestas != "" {
+					anteponerALaRespuesta(t, filepath.Join(copia, "sesiones", sesionSintetica(numero, modelo, vez)),
+						ejecucion.prefijoDeLasRespuestas)
+				}
 			}
 		}
 	}
