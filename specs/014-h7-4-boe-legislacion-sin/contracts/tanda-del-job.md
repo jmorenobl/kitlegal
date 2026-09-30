@@ -44,6 +44,8 @@ Lo que cambia; lo demás (`on`, `cambios`, la matriz, `env`, los pasos de `evals
             go.sum
             tools/*/go.sum
 
+      # -timeout 12m: la decisión espera como mucho 10 min, más sus consultas, y con los 10 min de go test por omisión
+      # el test acabaría en pánico antes de medir tras la espera; con la preparación, cabe en los 15 del trabajo.
       - name: Mirar si otra tanda mide este commit
         id: decidir
         env:
@@ -97,12 +99,29 @@ type decisionDeLaTanda struct {
 	pendientes []int64 // anteriores sin terminar que aún no han decidido
 }
 
+// decisionTrasLaEspera es la de la última consulta del bucle; agotada, si mide por agotar la espera.
+type decisionTrasLaEspera struct {
+	decisionDeLaTanda
+	agotada bool
+}
+
+func (e ejecucionDelCommit) cuentaPara(propia int64) bool // e.id < propia && !e.terminada
+
 func decidirLaTanda(propia int64, ejecuciones []ejecucionDelCommit) decisionDeLaTanda
+
+func esperarLaDecision(ctx context.Context, propia int64,
+	consultar func(context.Context) ([]ejecucionDelCommit, error), ahora func() time.Time,
+	esperar func(context.Context, time.Duration) error,
+) (decisionTrasLaEspera, error)
+
+func consultarLasEjecuciones(ctx context.Context, propia int64, listar func(context.Context) ([]byte, error),
+	verLosTrabajos func(context.Context, int64) ([]byte, error),
+) ([]ejecucionDelCommit, error)
 ```
 
 Todo sin exportar: solo lo usan `TestTandaDelCommit` y los tests del paquete.
 
-- Solo cuentan las ejecuciones con `id < propia` y sin terminar.
+- Solo cuentan (`cuentaPara`) las ejecuciones con `id < propia` y sin terminar.
 - Si alguna tiene `tandaQueMide`: no mide, sin pendientes.
 - Si no, y alguna tiene `tandaSinDecidir`: mide, con esas como pendientes (el bucle vuelve a consultar).
 - Si no: mide, sin pendientes.
@@ -110,16 +129,24 @@ Todo sin exportar: solo lo usan `TestTandaDelCommit` y los tests del paquete.
 **El estado de la tanda de una ejecución**, de su `gh run view <id> --json jobs`: `tandaQueMide` si su trabajo `tanda`
 está `completed` y su paso «Esta ejecución mide el commit» tiene `conclusion` `success`; `tandaSinDecidir` si no tiene
 trabajo `tanda` o no está `completed`; `tandaQueNoMide` en cualquier otro caso (saltado, fallido, cancelado, o la marca
-saltada). El nombre del trabajo y el del paso son constantes del paquete, las mismas que `TestDefinicionDelJob` exige
-en la definición (§4).
+saltada). La `conclusion` del trabajo no se lee: saltado, fallido o cancelado, su marca no está en `success`. El nombre
+del trabajo y el del paso son constantes del paquete (`trabajoDeLaTanda` y `marcaDeLaTanda`), las mismas que
+`TestDefinicionDelJob` exige en la definición (§4).
+
+**La consulta** (`consultarLasEjecuciones`): lee la lista de `gh run list` y, solo de las ejecuciones que cuentan
+(`cuentaPara`), el estado de su tanda de `gh run view`; la de las demás no se lee. `TestTandaDelCommit` le da las dos
+órdenes de abajo, y los tests, el JSON sintético que daría `gh`.
 
 **El bucle** (`esperarLaDecision`): consulta, decide y, con pendientes, espera 10 s (`esperaEntreConsultas`) y
-vuelve a consultar; pasados 10 min (`esperaMaximaDeLaDecision`) con alguna pendiente, mide y lo dice en el registro (la
-`concurrency` la pondría detrás de la otra, como antes de H7.4). Un error de `gh` (la orden termina con otro código que
-`0`) es un error que nombra la orden y lo que escribió: el paso falla (defecto `inesperado`).
+vuelve a consultar; pasados 10 min (`esperaMaximaDeLaDecision`, contados desde la primera consulta e inclusive: la
+consulta del minuto 10 ya no espera) con alguna pendiente, mide (`agotada`) y lo dice en el registro (la `concurrency`
+la pondría detrás de la otra, como antes de H7.4). Un error de una consulta es un error que la nombra (`la consulta <n>
+de las ejecuciones del commit`): el de `gh` (la orden termina con otro código que `0`) nombra la orden, su variable,
+cómo terminó y lo que escribió en sus dos salidas; el de unos trabajos, la ejecución; y un JSON de `gh` que no se puede
+leer también es un error. Con cualquiera, el paso falla (defecto `inesperado`).
 
 **Las órdenes** (research D16), con `exec.CommandContext(ctx, "sh", "-c", <constante>)` y los valores en el entorno de
-la orden (el de la ejecución, `os.Environ()`, más la variable de la orden):
+la orden (el de la ejecución, `os.Environ()`, más la variable de la orden, que sustituye a la del mismo nombre):
 
 ```sh
 exec gh run list --workflow evals.yml --commit "$COMMIT_EVALUADO" --limit 100 --json databaseId,status
@@ -128,13 +155,15 @@ exec gh run view "$EJECUCION_ANTERIOR" --json jobs
 
 ## 3. El punto de entrada `TestTandaDelCommit` (etiqueta `evals`, `internal/evals/job_test.go`)
 
-Banderas: `-commit` (la de hoy), `-ejecucion` y `-salida`. Consulta con las órdenes de §2, decide con el bucle, registra
-con `t.Logf` qué ejecuciones anteriores miró y por qué mide o no, y añade a `-salida` una línea `medir=si` o `medir=no`.
-Falla solo con un error (§2). No abre sesiones, no escribe fuera de `-salida` y no llega a la red salvo por `gh`.
+Banderas: `-commit` (la de hoy), `-ejecucion` y `-salida`, las tres obligatorias. Consulta con las órdenes de §2,
+decide con el bucle, registra con `t.Log` qué ejecuciones anteriores miró en cada consulta y por qué mide o no, y añade
+a `-salida` una línea `medir=si` o `medir=no` (detrás de lo que ya tenga, creándolo si no existe). Falla solo con un
+error: una bandera que falta o un `-ejecucion` que no es un entero, el de una consulta (§2) o el de escribir en
+`-salida`, que la nombra. No abre sesiones, no escribe fuera de `-salida` y no llega a la red salvo por `gh`.
 
 ## 4. `TestDefinicionDelJob` (FR-100; SC-010)
 
-`leerDefinicionDelJob` lee además `jobs.tanda` (`if`, `permissions`, `concurrency`, `outputs`, `timeout-minutes` y los
+`leerDefinicionDelJob` lee además `jobs.tanda` (`name`, `if`, `permissions`, `concurrency`, `outputs`, `timeout-minutes` y los
 pasos con su `id`, su `name`, su `if` y su `run`) y `needs` e `if` de `jobs.evals`. Subpruebas:
 
 - **`del-repositorio`** (la de hoy, más): una línea por clave que no es la del contrato:
@@ -147,9 +176,16 @@ pasos con su `id`, su `name`, su `if` y su `run`) y `needs` e `if` de `jobs.eval
   `${{ !cancelled() && needs.tanda.outputs.medir == 'si' }}`; ni `concurrency` de flujo ni `cancel-in-progress: true` (hoy); y el tope cubre el
   peor caso (hoy).
 - **`sinteticas`** (la de hoy, más): cada definición que se aparta en una sola de esas claves da la línea que la nombra
-  —sin `tanda`, con un `name` en `tanda` que no es su id, con `concurrency` en `tanda`, sin `actions: read`, con `evals` sin `needs: [tanda]` o con otro `if`, con
-  la marca con otro nombre o sin su `if`, con `cancel-in-progress: true`, con `concurrency` de flujo—.
-- **`segundo-disparo`** (nueva), `decidirLaTanda` y el bucle con consultas sintéticas y sin dormir de verdad:
+  —sin `tanda` (`sin-tanda`), con un `name` en `tanda` que no es su id (`tanda-con-nombre`), con otro `if` en `tanda`
+  (`tanda-sin-la-prueba-de-red`), con `concurrency` en `tanda` (`tanda-con-concurrency`), sin `actions: read`
+  (`tanda-sin-actions-read`), sin la salida `medir` (`tanda-sin-la-salida-medir`), con otro `run` en `decidir` o sin el
+  paso de id `decidir` (`decidir-sin-la-ejecucion`, `decidir-sin-su-id`), con la marca con otro nombre o sin su `if`
+  (`marca-con-otro-nombre`, `marca-sin-su-if`), con `evals` sin `needs: [tanda]` o con otro `if`
+  (`evals-sin-needs-tanda`, `evals-con-otro-if`), con `cancel-in-progress: true` y con `concurrency` de flujo (las de
+  hoy)—; y `tanda-con-su-id-como-nombre` (`name: tanda`) no da ninguna.
+- **`segundo-disparo`** (nueva), `esperarLaDecision` con `consultarLasEjecuciones` sobre consultas sintéticas —el JSON
+  que darían `gh run list` y `gh run view`, que recorre también sus dos lectores— y un reloj que no duerme; cada caso
+  fija la decisión, las consultas y una espera de 10 s entre cada dos:
 
 | Caso | Ejecuciones (propia = 20) | Esperado |
 |---|---|---|
@@ -161,7 +197,11 @@ pasos con su `id`, su `name`, su `if` y su `run`) y `needs` e `if` de `jobs.eval
 | `anterior-terminada` | 10 terminada, `tandaQueMide` | mide (FR-071: la etiqueta vuelve a medir) |
 | `posterior-que-mide` | 30 sin terminar, `tandaQueMide` | mide (solo cuentan las anteriores) |
 | `sola` | ninguna otra | mide |
-| `espera-agotada` | 10 sin terminar, siempre `tandaSinDecidir` | mide al agotar la espera |
+| `espera-agotada` | 10 sin terminar, siempre `tandaSinDecidir` | mide al agotar la espera: 61 consultas, con 10 pendiente |
+
+`anterior-que-mide-espera` se distingue de `anterior-que-mide-corre` por lo que los distingue en `gh`: sus trabajos
+`evals` en `pending` y no en `in_progress`. Tras la tabla, `consulta-que-falla`: una consulta que falla da un error que
+la nombra (`la consulta 1 de las ejecuciones del commit`) y envuelve el suyo.
 
 Y **`estado-de-la-tanda`**: el estado leído de un `gh run view --json jobs` sintético —con la marca en `success`; con la
 marca `skipped`; con `tanda` `in_progress`; sin `tanda`; con `tanda` `skipped`—.

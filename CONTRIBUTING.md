@@ -200,6 +200,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
+| Sondeo local de unas evals de una skill con un modelo, sin `strace` ni veredicto (`scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | La web: tipos, cada cita contra su sobre y construcción en `web/dist` ([La web](#la-web)) | `make web` | no — necesita Node y pnpm; lo ejecuta el flujo `web` |
@@ -716,9 +717,26 @@ La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no p
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
 su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. Se juzga con la lista de expresiones prohibidas
-y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo` ni en los umbrales de las expresiones: el
+y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo` ni en ningún umbral de las respuestas: el
 recuento es el mismo con la prueba de red y sin ella. Sí ocupa su sitio entre las sesiones que se abren a la vez y
 cuenta en la duración y en los reintentos.
+
+### Sondeo local
+
+`make evals-sondeo SKILL=<skill> EVALS=<nn>[,<nn>…] MODELO=<id> REPETICIONES=<n> [CONCURRENCIA=<n>]` abre, en macOS o
+en Linux y sin `strace` ni `sudo`, las sesiones de unas evals de una skill con un solo modelo —con `CONCURRENCIA`
+vacía, como mucho las que abre a la vez el job para esa skill—, con el binario y la skill del árbol de trabajo, que
+construye e instala en un directorio temporal que borra al terminar, sin la configuración de Claude Code de quien lo
+lanza y con una sola credencial, `CLAUDE_CODE_OAUTH_TOKEN`. Prepara y juzga cada sesión con el código del job, sin lo
+que el job lee de la traza —los comandos esperados y los prohibidos y las llegadas a la red—, y su salida empieza por
+«Esto es un sondeo, no un veredicto: el veredicto de la skill lo da el job de evals.»: da la tasa de cada serie, las
+respuestas con alguna expresión prohibida de las sesiones terminadas, con el 5 % como referencia, y las sesiones sin
+medir o sin terminar, con su motivo, y termina con `0` si ha podido abrir y juzgar sus sesiones. Un argumento que no
+vale, o la credencial que falta o vacía, es un error de uso: la salida de error es solo su mensaje —una línea por
+argumento que no vale, que lo nombra, o la de la credencial—, sin el registro de `go test`, la salida estándar queda
+vacía, no se abre ninguna sesión y el guion termina con `1` (`make` añade detrás su propia línea de error y termina
+con `2`); cualquier otro fallo imprime el registro entero de `go test`. Abre sesiones con modelo y consume la
+suscripción de quien lo lanza: ni `make ci` ni ningún flujo lo ejecutan.
 
 ## `make vuln` necesita red
 

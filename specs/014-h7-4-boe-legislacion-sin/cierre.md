@@ -10,7 +10,7 @@ evals y datos de prueba que toca el hito, la cobertura, el quickstart y lo que e
 Esta es la lista para la capa 3 del informe final. Recoge cada fichero de `schemas/`, de `evals/` y de cualquier
 `testdata/` que el hito crea o modifica, con la tarea que lo tocó y el motivo. Sale de `git diff --name-status main --
 schemas evals testdata '*/testdata/*'`, y la tarea de cada fila, de `git log --format=%s main..HEAD -- <fichero>`. Son
-doce ficheros: siete `M` y cinco `A`. No hay ninguna `D` ni ninguna `R`.
+doce ficheros: seis `M` y seis `A`. No hay ninguna `D` ni ninguna `R`.
 
 ### Esquemas (`schemas/`)
 

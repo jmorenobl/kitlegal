@@ -1,23 +1,11 @@
 {
-  "id": "T013",
-  "texto": "T013 Cierre de la Definition of Done, sin código de producto: specs/014-h7-4-boe-legislacion-sin/cierre.md con (1) la lista, sacada de `git diff --name-status main`, de los esquemas, las evals, la lista y los datos de prueba creados o modificados en el hito (los dos esquemas, la lista, la eval 20, las tres evals de `legal-core`, la carpeta de las dos derivadas y el caso de lectura de sesión), y que ninguna grabación ni ninguna fuente cambia, para la capa 3 del informe final; (2) la cobertura sobre `coverage.out` y `coverage-integration.out` de `make ci` con `go tool cover -func` —global ≥ 70 % y el dominio ≥ 85 % (Definition of Done §1.9; el hito no toca el dominio)— y la de los ficheros nuevos del paquete de evals, tanda.go y redacciones.go; (3) el resultado de quickstart.md §1 a §7 —§2 a §7 con `--- PASS` en cada test y subprueba nombrados, contados con `rtk proxy` para que no pase en vacío— y el de las dos primeras órdenes de §8, sin la credencial y con argumentos que no valen, que no abren ninguna sesión (la salida de error es solo el mensaje, sin nada de `go test` ni de testify, y `make` sale con 2); la tercera orden de §8, con modelo, y §9, que lee el informe del job del cierre, quedan fuera del run; (4) con `git diff --name-status main`: que no hay ADR nuevo; que los artefactos de H7.1, H7.2 y H7.3 no cambian (FR-090); que los guiones del workflow no cambian (FR-072); que el binario no cambia (nada fuera del paquete de evals salvo el test de derivadas de la aplicación); que la tabla de fuentes no cambia (ninguna fuente nueva); que la SKILL.md de `boe-legislacion` tiene menos de 300 líneas; que ningún umbral de FR-040 a FR-043 se ha rebajado, retirado ni dejado sin decidir y que la lista no ha perdido ninguna expresión (FR-047); y que plan.md tiene las cuatro filas del cierre de FR-092; si una cifra de cobertura queda bajo su umbral, se añaden los tests que faltan en los ficheros de test declarados, sin tocar código de producto; verificación: `make ci` en verde — FR-047, FR-072, FR-090, FR-091, FR-092; SC-011; rutas: specs/014-h7-4-boe-legislacion-sin/cierre.md, internal/evals/definicion_test.go, internal/evals/juzgar_test.go, internal/evals/umbrales_test.go, internal/evals/sondeo_test.go, internal/evals/prohibidas_test.go",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "95be3159a5a008283d2595d78829c9ba70c26f4c",
-  "rutas": [
-    "SKILL.md",
-    "internal/evals/definicion_test.go",
-    "internal/evals/juzgar_test.go",
-    "internal/evals/prohibidas_test.go",
-    "internal/evals/sondeo_test.go",
-    "internal/evals/umbrales_test.go",
-    "plan.md",
-    "quickstart.md",
-    "redacciones.go",
-    "specs/014-h7-4-boe-legislacion-sin/cierre.md",
-    "tanda.go"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

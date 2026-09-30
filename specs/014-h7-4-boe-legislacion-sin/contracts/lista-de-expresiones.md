@@ -62,7 +62,8 @@ formas_fijas:
   - "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior"
 ```
 
-87 expresiones (22 + 16 + 39 + 10), ≈ 2,3 KB con el comentario; fijas, no crecen con el uso.
+87 expresiones (22 + 16 + 39 + 10), 2 966 bytes (≈ 3 KB) con el comentario y las formas fijas; fijas, no crecen con el
+uso.
 
 ## 2. El esquema (tarea `[datos]`)
 
@@ -84,8 +85,12 @@ lista del repositorio, que lo cumple.
    siguiente, ese blanco incluido: en la línea de la redacción, `(?:<cita>:[ \t]+)?`. Así se quita la línea con su
    cita, la que enseña v0.1.4, y también sin ella, la que escribían v0.1.1 a v0.1.3 y la que llevan las respuestas de
    los tres informes del calibrado (§4). La lista no mide que la línea lleve su cita (FR-023): eso lo juzga la eval 20
-   (FR-052). Un `⚠` al principio admite los blancos y el énfasis de Markdown de la forma fija de los avisos (H5.1). La
-   frase de la regla 7 va sin su punto final: la respuesta puede seguirla de un paréntesis (14-01 de `196ee05`).
+   (FR-052). Una forma que empieza por `⚠` tiene cabeza: de la marca a sus primeros dos puntos, que se compila con la
+   misma expresión que la forma fija de los avisos y de los hallazgos (`patronDeEtiqueta`, compartida con
+   `ExtraerAvisos` y `ExtraerHallazgos`; H5.1) —la marca, la etiqueta sin distinguir mayúsculas y los blancos y el
+   énfasis de Markdown entre sus partes—, seguida del énfasis que la cierra (`separadorDeAviso`); lo que sigue a esos
+   dos puntos, como se acaba de decir (supuesto de T003). La frase de la regla 7 va sin su punto final: la respuesta
+   puede seguirla de un paréntesis (14-01 de `196ee05`).
 2. **Quita la marca, la etiqueta y los dos puntos de cada aviso de vigencia**, con las expresiones de `ExtraerAvisos`
    (`boe.EtiquetasDeAviso`). Lo que sigue a la etiqueta en la línea se busca.
 3. Cada tramo quitado se cambia por un salto de línea (una expresión no casa a través de un salto: sus palabras de los

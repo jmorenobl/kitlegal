@@ -10,10 +10,11 @@ eval que activa la skill, legible, no sin medir y **terminada** (`sesion_termina
 `evals`, con sus motivos, y la sin terminar sigue sin pasar en su serie; no cuentan en ningún recuento ni umbral, ni en
 la medida ni en el total.
 
-Por modelo del job (el que decide y los informativos, en su orden): `respuestas` (las medidas), `con_alguna` (con alguna
-expresión de la lista), `con_redaccion_no_leida` (con alguna de `redaccion_no_leida`) y `sin_activar` (sin la skill
-activada). `expresiones_prohibidas_por_modelo` publica, con sus claves de hoy, `modelo`, `con_alguna` y `respuestas`; los
-otros dos solo llegan a los umbrales. Sin lista, `expresiones_prohibidas_por_modelo` es `[]` como hoy.
+Por modelo del job (el que decide y los informativos, en su orden), `recontarExpresiones` da un `recuentoDeRespuestas`
+(sin exportar) con `respuestas` (las medidas), `conAlguna` (con alguna expresión de la lista), `conRedaccionNoLeida`
+(con alguna de `redaccion_no_leida`) y `sinActivar` (sin la skill activada). `expresiones_prohibidas_por_modelo`
+publica, con sus claves de hoy, `modelo`, `con_alguna` y `respuestas`; los otros dos solo llegan a los umbrales. Sin
+lista, `expresiones_prohibidas_por_modelo` es `[]` como hoy.
 
 ## 2. Los umbrales (FR-040 a FR-048)
 
@@ -23,18 +24,19 @@ objetivo es 0).
 
 | `nombre` | `descripcion` | `medida` | `total` | `umbral` | `decide` |
 |---|---|---|---|---|---|
-| `expresiones_prohibidas:<que decide>` | «Respuestas de <modelo> con alguna expresión prohibida, sobre sus respuestas medidas en las evals que activan la skill» (la de hoy) | `con_alguna` | `respuestas` | 0.05 | `true` |
-| `sin_activar:<que decide>` | «Respuestas de <modelo> sin la skill activada, sobre sus respuestas medidas en las evals que la activan» | `sin_activar` | `respuestas` | 0 | `true` |
-| `redaccion_no_leida:<que decide>` | «Respuestas de <modelo> con alguna expresión de redaccion_no_leida (una redacción que ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill» | `con_redaccion_no_leida` | `respuestas` | 0 | `true` |
-| `expresiones_prohibidas:<informativo>` | la de hoy | `con_alguna` | `respuestas` | 0.05 | `false` |
+| `expresiones_prohibidas:<que decide>` | «Respuestas de <modelo> con alguna expresión prohibida, sobre sus respuestas medidas en las evals que activan la skill» (la de hoy) | `conAlguna` | `respuestas` | 0.05 | `true` |
+| `sin_activar:<que decide>` | «Respuestas de <modelo> sin la skill activada, sobre sus respuestas medidas en las evals que la activan» | `sinActivar` | `respuestas` | 0 | `true` |
+| `redaccion_no_leida:<que decide>` | «Respuestas de <modelo> con alguna expresión de redaccion_no_leida (una redacción que ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill» | `conRedaccionNoLeida` | `respuestas` | 0 | `true` |
+| `expresiones_prohibidas:<informativo>` | la de hoy | `conAlguna` | `respuestas` | 0.05 | `false` |
 | `duracion_de_las_sesiones` | la de hoy | segundos | — | objetivo (900) | `true` |
 
 Todos con `comparacion` `"<="`; `cumple` es `medida/total <= umbral` (0 si `total` es 0) o `medida <= umbral` sin total,
 en `float64` y sin redondeos (ADR 0029). Con 54 respuestas medidas, el de las expresiones admite 2 (2/54 ≈ 0,037) y no 3
 (3/54 ≈ 0,056); los de umbral 0 admiten 0.
 
-Ejemplo de un elemento, 250 bytes (los cinco de `boe-legislacion`, ≈ 1,2 KB, fijos: no crecen con el uso ni con lo
-consultado, porque se miden de nuevo en cada job sobre su commit):
+Ejemplo de un elemento, 250 bytes en compacto (los cinco de `boe-legislacion`, ≈ 1,4 KB en compacto y algo más en
+`informe.json`, que se escribe sangrado; fijos: no crecen con el uso ni con lo consultado, porque se miden de nuevo en
+cada job sobre su commit):
 
 ```json
 {"nombre":"sin_activar:claude-sonnet-5-5","descripcion":"Respuestas de claude-sonnet-5-5 sin la skill activada, sobre sus respuestas medidas en las evals que la activan","medida":0,"total":54,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}
@@ -81,7 +83,10 @@ activan la skill (54 respuestas), cada uno con su veredicto y sus motivos espera
 | `tres-de-54-y-seis-sin-terminar` | 3 de 54 y 6 sesiones más sin terminar (tope, código 124) | `total` 54, no 60; no se cumple; las seis, publicadas con su motivo, no cuentan en `expresiones_prohibidas_por_modelo` |
 | `una-sin-activar-con-expresion` | la misma sesión sin activar y con una expresión | cuenta una vez en cada umbral |
 
-Y el de `legal-core` sigue dando `[]` (`TestUmbralesDelInforme` ya lo fija). `TestInformeMarkdownDeLosUmbrales` gana las
-columnas y las formas exigidas de §4. Los informes esperados de `informe_test.go` y `juzgar_test.go` ganan
-`redacciones_modificadas_encontradas` y `redacciones_modificadas_ausentes` (vacías) y, donde los arman con la lista del
-repositorio, los umbrales nuevos. Ninguno se desactiva ni se salta.
+Y el de `legal-core` sigue dando `[]` (`TestUmbralesDelInforme` ya lo fija, caso `sin-lista-ni-objetivo`).
+`TestInformeMarkdownDeLosUmbrales` (`informe_test.go`) gana las filas de los cinco umbrales, las columnas y las formas
+exigidas de §4 (caso `con-redacciones-modificadas`). En `informe_test.go`, las sesiones del caso aprobado escriben
+`redacciones_modificadas_encontradas` y `redacciones_modificadas_ausentes` como `[]`, nunca `null`, y
+`TestRedaccionesDelResultadoEnJSON` (`juzgar_test.go`) fija las dos claves en el JSON del resultado, vacías y con una
+de cada; los umbrales nuevos los exigen los casos que arman la ejecución con la lista del repositorio
+(`escribirEjecucionConUmbrales`). Ninguno se desactiva ni se salta.

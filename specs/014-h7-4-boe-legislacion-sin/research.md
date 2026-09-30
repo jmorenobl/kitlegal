@@ -29,10 +29,10 @@ aplica a un `SKILL.md` la extracción de párrafos de la subprueba `prosa-de-la-
 | V13 | El peor caso del trabajo de una skill es `485 s + ⌈sesiones / concurrencia⌉ × (22 s + 240 s + 10 s)`, con las sesiones del plan y la prueba de red (`internal/evals/definicion.go:184-250`); con 20 evals (60 del modelo que decide, 36 del informativo) y la prueba de red, 97 sesiones a 4: 485 + 25 × 272 = **7 285 s (121,4 min)**, más que los 120 de hoy; `legal-core`, 19 a 1: 5 653 s | fuente, cálculo |
 | V14 | El conjunto de `boe-legislacion` admite de 10 a 20 evals con exactamente 10 positivas que deciden (`internal/evals/conjunto.go:205-207`): con la eval nueva, 20 | fuente |
 | V15 | Las respuestas grabadas desde H4 del bloque `a1-30` (5,6 KB; vigencias 20180309 y 20200206) y `da-3` (15,4 KB; 20180309 y 20230101) de `BOE-A-2017-12902`, su índice (192,8 KB) y sus metadatos están en `internal/source/boe/testdata/boe.legislacion-consolidada/`, que es de `UnionDeGrabaciones` (`internal/evals/grabaciones.go:38-40`). Las derivadas del grafo previo las escribe `TestGrabacionesDerivadas -actualizar-derivadas` desde su grabación (`internal/app/grafo_test.go:2549-2556, 2653-2700`) y el mismo test comprueba cada una byte a byte y que su carpeta no tiene ficheros sin entrada (`:2714-2735, 2784-2802`) | `ls`, `grep -o fecha_vigencia`, fuente |
-| V16 | El grafo previo de una eval se prepara con su carpeta de derivadas copiada **encima** de la unión de grabaciones (`prepararGrafoPrevio`; `internal/evals/conjunto_test.go:1390-1392`): un bloque del grafo previo sin su derivada en la carpeta se leería con la grabación de H4, que da la redacción vigente. `compruebaLaSesion` exige que `graph check` dé en la sesión exactamente las clases de `hallazgos` de la eval (`:1981-1983`) | fuente |
+| V16 | El grafo previo de una eval se prepara con su carpeta de derivadas copiada **encima** de la unión de grabaciones (`prepararGrafoPrevio`, `internal/evals/preparar.go:336-355`; lo mismo hace `expresiones-en-los-bloques`, `internal/evals/conjunto_test.go:1390-1391`): un bloque del grafo previo sin su derivada en la carpeta se leería con la grabación de H4, que da la redacción vigente. `compruebaLaSesion` exige que `graph check` dé en la sesión exactamente las clases de `hallazgos` de la eval (`:1981-1983`) | fuente |
 | V17 | `TestLeerSesion` exige un directorio de `internal/evals/testdata/sesiones/leer-sesion/` por caso, y un caso por directorio (`internal/evals/sesion_test.go:192-198`) | fuente |
 | V18 | La subprueba `prosa-de-la-skill` quita los bloques delimitados, la región generada y el código en línea antes de buscar (`internal/evals/conjunto_test.go:1545-1669`); `expresiones-de-la-skill` aplica la lista, sin quitar nada, a las formas escritas de los avisos y los hallazgos y a cada bloque `text` de `SKILL.md` (`:1460-1497`): con «consulta anterior» en la lista, el bloque de la regla 7 la haría fallar | fuente |
-| V19 | `SKILL.md` v0.1.3: 270 líneas; la `description` tiene 723 caracteres (máximo 1024, `internal/skills/frontmatter.go:53, 438`); con la lista nueva, `prosa` da 9 párrafos con defecto (líneas 65, 72, 82, 120, 177, 185, 198 y 268 con «lectura anterior», y 260 con «la comprobación de la redacción»). El prototipo v0.1.4 de [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md): 294 líneas, ≈ 925 caracteres de `description` y 0 defectos; fuera de la prosa quedan «lectura anterior» en la región generada (línea 229 de v0.1.3, de `--describe`), «se consultó antes» en el bloque de la línea `⚠ REDACCIÓN MODIFICADA:` y «consulta anterior» en el bloque de la regla 7 | `prosa`, `wc` |
+| V19 | `SKILL.md` v0.1.3: 270 líneas; la `description` tiene 722 caracteres (máximo 1024, `internal/skills/frontmatter.go:53, 438`); con la lista nueva, `prosa` da 9 párrafos con defecto (líneas 65, 72, 82, 120, 177, 185, 198 y 268 con «lectura anterior», y 260 con «la comprobación de la redacción»). El prototipo v0.1.4 de [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md): 294 líneas, ≈ 925 caracteres de `description` y 0 defectos (la v0.1.4 que entra: 295 líneas, con el párrafo que cierra «Redacción modificada», que se queda, supuesto T010; y 924 caracteres); fuera de la prosa quedan «lectura anterior» en la región generada (línea 229 de v0.1.3, de `--describe`), «se consultó antes» en el bloque de la línea `⚠ REDACCIÓN MODIFICADA:` y «consulta anterior» en el bloque de la regla 7 | `prosa`, `wc` |
 | V20 | Medidas de la lista candidata con `calibrar` (formas fijas quitadas) — ver «Calibrado» | `calibrar` sobre V1 |
 | V21 | Ninguna expresión de la lista nueva aparece en las respuestas grabadas de los bloques que leen las evals (`a21`, `a1-30`, `da-3`, `a22`, `a66`, `a59`, `a17`, `a25`, `a20`, `a140`, `a38`, `a42` y la derivada de `a1-30`): `grep -i -E` de las 35 formas sobre `*texto_bloque*` de las dos carpetas y `grafo-previo/*` sale con 1 | `grep` |
 | V22 | `pwsh` y `powershell` no están en esta máquina (`which` → «not found») | `which` |
@@ -302,8 +302,10 @@ Decisión: `expresiones-calibradas` pasa a tres informes (el de H7.3 se añade) 
 `alguna`), con la tabla de «Calibrado»; `listaDelRepositorio` exige también `redaccion_no_leida` y `formas_fijas` no
 vacías; `expresiones-en-los-bloques` no cambia (ya lee los bloques de toda eval y de todo grafo previo, también los de la
 nueva); `expresiones-de-la-skill` pasa a componer una respuesta con la forma escrita de cada aviso y cada bloque `text`
-de `SKILL.md` con sus marcadores sustituidos por datos de ejemplo (`AAAAMMDD` por `20180309`, `<forma legible>
-[<identificador>, bloque <id>]` por `art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]`), y exige que no se
+de `SKILL.md` con sus marcadores sustituidos por datos de ejemplo (en cada bloque, el primer `AAAAMMDD` por
+`20180309` y los demás por `20200206`; `<forma legible> [<identificador>, bloque <id>]` por `art. 118 de la Ley 9/2017
+[BOE-A-2017-12902, bloque a1-30]`; el final de una cita, `<identificador>, bloque <id>]`, por
+`BOE-A-2015-10565, bloque a21]`), y exige que no se
 marque y que cada forma fija de la lista quite algo de ella; `prosa-de-la-skill` no cambia (aplica la lista nueva). Y
 una subprueba nueva, `ordenes-para-powershell` (D5). Alternativa rechazada: un test aparte por comprobación: las cuatro
 ya viven en `TestEvalsDelRepositorio`, que es el control que nombra FR-093.
@@ -440,16 +442,17 @@ cuando no hay otra forma; (b) un guion en `scripts/`: otro fichero para dos órd
 
 Decisión: 122 min cubren los 7 285 s del peor caso con 97 sesiones (V13); `TestDefinicionDelJob` ya lo exige
 (`fallosDelTope`). El cierre espera hasta 3 h (`scripts/workflow/cierre.sh:52`). El trabajo `tanda` lleva `timeout-minutes:
-15` (10 min de espera como mucho y la preparación). Alternativa: bajar la concurrencia o el tope de sesión: cambia la
+15` (10 min de espera como mucho y la preparación), y su paso `decidir` ejecuta `go test` con `-timeout 12m`: con los
+10 min de `go test` por omisión, el test acabaría en pánico antes de medir tras la espera agotada (supuesto T008). Alternativa: bajar la concurrencia o el tope de sesión: cambia la
 duración medida (FR-043) sin requisito.
 
 ### D18 · Los errores de uso del sondeo, sin traza (FR-080, FR-081)
 
 Decisión: `comprobarElSondeo` devuelve sus errores de argumentos y de credencial envueltos en un tipo sin exportar, `errorDeUso`;
 `TestSondeo`, con uno, escribe su mensaje con un salto de línea final en `uso.txt` del temporal y **termina sin fallar**;
-con cualquier otro error falla como hoy. `scripts/evals-sondeo.sh`, tras `go test`: si `uso.txt` no está vacío, lo
-escribe en la salida de error y sale con 1; si `go test` falló, imprime el registro y sale con 1 (como hoy); si no,
-imprime `salida.txt`. Ninguna sesión se abre (la comprobación va antes de construir nada). El código de `make` sigue
+con cualquier otro error falla como hoy. `scripts/evals-sondeo.sh`, tras `go test` y en este orden: si `go test`
+falló, imprime el registro y sale con 1 (como hoy); si no y `uso.txt` no está vacío, lo escribe en la salida de error y
+sale con 1; si no, imprime `salida.txt` (contracts/sondeo.md §3; `scripts/evals-sondeo.sh:45-57`). Ninguna sesión se abre (la comprobación va antes de construir nada). El código de `make` sigue
 siendo 2 (§6 del contrato de H7.3). Alternativas: (a) distinguir el error por el registro de `go test`: frágil; (b) un
 código de salida propio de `go test`: `go test` no lo propaga; (c) que el guion compruebe los argumentos: duplicaría la
 comprobación en bash.

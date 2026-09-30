@@ -1,7 +1,7 @@
 # Quickstart: validar H7.4
 
 Escenarios para comprobar la entrega en la rama del hito, con el hito implementado. Todos se ejecutan desde la raíz del
-repositorio. Salvo §8 y §9, ninguno usa la red ni abre una sesión con modelo. **Efectos**: `go test` y `go build`
+repositorio. Salvo el sondeo con modelo de §8 y §9, ninguno usa la red ni abre una sesión con modelo. **Efectos**: `go test` y `go build`
 escriben solo en las cachés de Go de quien los ejecuta; `make ci` deja además `coverage.out` y
 `coverage-integration.out` en la raíz, que `.gitignore` ignora; el sondeo (§8) escribe en su temporal de `TMPDIR` y lo
 borra al salir. Ningún escenario cambia el árbol de trabajo versionado, el índice ni el historial de git: se comprueba
@@ -73,7 +73,8 @@ go test -count=1 -run '^TestDefinicionDelJob$' -v ./internal/evals/
 go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/
 ```
 
-`TestDefinicionDelJob` pasa con `del-repositorio`, `sinteticas`, `segundo-disparo` y `estado-de-la-tanda`;
+`TestDefinicionDelJob` pasa con `del-repositorio`, `sinteticas`, `errores` (la de hoy), `segundo-disparo` y
+`estado-de-la-tanda`;
 `TestGrabacionesDerivadas`, con las dos derivadas de `lcsp-a1-30-y-da-3-redaccion-original`.
 
 ## 8. El sondeo: errores de uso sin traza y, con modelo, la activación (FR-080, FR-081; SC-009; S7)
@@ -93,7 +94,8 @@ Con argumentos que no valen:
 make evals-sondeo SKILL=boe-legislacion EVALS=04 MODELO= REPETICIONES=0; echo "código: $?"
 ```
 
-Solo `MODELO: está vacío` y `REPETICIONES: «0» no es un entero mayor o igual que 1`, en ese orden; `código: 2`.
+En la salida de error, solo `MODELO: está vacío` y `REPETICIONES: «0» no es un entero mayor o igual que 1`, en ese
+orden (y la línea de error de `make`), con la credencial o sin ella; la salida estándar, vacía; `código: 2`.
 
 Con modelo (lo lanza una persona, al leer el informe final; consume la suscripción y no es un veredicto): la 04, la 19
 y la 20 con el modelo que decide, tres repeticiones.

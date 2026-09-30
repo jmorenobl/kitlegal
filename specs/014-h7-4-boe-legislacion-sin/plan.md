@@ -65,8 +65,9 @@ salvo la skill empotrada (`skills.go`).
 **Performance Goals**: sesiones de `boe-legislacion` ≤ 900 s en el job (421 s con 93 sesiones en la línea de base; 96
 ahora); peor caso del trabajo ≤ 122 min (7 285 s, D17); la tanda decide en segundos.
 
-**Constraints**: ningún test de `make ci` usa la red ni abre una sesión con modelo; `SKILL.md` < 300 líneas (294 en el
-prototipo) y `description` ≤ 1024 caracteres (≈ 925); ninguna fecha `AAAAMMDD` con cifras en `SKILL.md`; ningún
+**Constraints**: ningún test de `make ci` usa la red ni abre una sesión con modelo; `SKILL.md` < 300 líneas (295 en v0.1.4:
+las 294 del prototipo y el párrafo que cierra «Redacción modificada», que se queda, supuesto T010) y `description`
+≤ 1024 caracteres (924); ninguna fecha `AAAAMMDD` con cifras en `SKILL.md`; ningún
 `//nolint`.
 
 **Scale/Scope**: 20 evals de `boe-legislacion` (97 sesiones con la prueba de red: 54 del modelo que decide y 30 del
@@ -99,7 +100,7 @@ están en Complexity Tracking.*
 | R2 · Solo `internal/httpx` importa `net/http` | Ningún fichero nuevo lo importa: `tanda.go` ejecuta `gh` con `os/exec` (research D16). |
 | R3 · Solo `cache`/`store`/`graph` importan SQLite y `database/sql` | `internal/evals` no los importa; el grafo previo se prepara con el binario en proceso, como hoy. |
 | R4 · Solo `cli` y `cmd/` llaman a `os.Exit` | Ningún `os.Exit` nuevo: los puntos de entrada son tests; el guion del sondeo sale con su código. |
-| R5 · Solo `render` escribe en stdout | Ningún `fmt.Print*`, `os.Stdout` ni `os.Stderr` nuevo en Go: `TestTandaDelCommit` escribe en el fichero de `-salida` y registra con `t.Logf`; `TestSondeo`, en `uso.txt` o `salida.txt`, que imprime el guion. |
+| R5 · Solo `render` escribe en stdout | Ningún `fmt.Print*`, `os.Stdout` ni `os.Stderr` nuevo en Go: `TestTandaDelCommit` escribe en el fichero de `-salida` y registra con `t.Log`; `TestSondeo`, en `uso.txt` o `salida.txt`, que imprime el guion. |
 | R6 · `internal/graph` no importa `source/*` ni `render` | Sin cambios. |
 
 ## Project Structure
@@ -237,7 +238,8 @@ Ninguno nuevo ni cambiado. Con más dentro: `test` (los tests nuevos de `interna
 
 ### CI
 
-`.github/workflows/evals.yml`: el trabajo `tanda`, `needs`, `if` y `timeout-minutes` de `evals` (contracts/tanda-del-job.md
+`.github/workflows/evals.yml`: el trabajo `tanda` (su paso `decidir` ejecuta `go test` con `-timeout 12m`, para que la
+espera de 10 min llegue a medir; supuesto T008), `needs`, `if` y `timeout-minutes` de `evals` (contracts/tanda-del-job.md
 §1). Lo comprueba `TestDefinicionDelJob` en `make ci`. `ci.yml` no cambia. El job de evals se ejecuta en la propuesta de
 cambio, tras la revisión final, y lo lanza el workflow (FR-102).
 
@@ -285,8 +287,8 @@ contracts/tanda-del-job.md §5 y contracts/sondeo.md §3. Resumen:
   acotadas a las ejecuciones del commit (`--commit`, `--limit 100`).
 - **La salida de error del sondeo** en un error de uso (quien lo lanza; una por lanzamiento): una línea por error, como
   mucho seis, < 1 KB.
-- **`SKILL.md`** (el modelo; una vez por conversación): 294 líneas en el prototipo; **la lista**: 87 expresiones y 2
-  formas fijas, ≈ 2,3 KB, fija.
+- **`SKILL.md`** (el modelo; una vez por conversación): 295 líneas; **la lista**: 87 expresiones y 2 formas fijas,
+  ≈ 2,9 KB con su comentario de cabecera (2 966 B), fija.
 
 ## Decisiones
 

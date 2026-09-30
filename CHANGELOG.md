@@ -290,10 +290,10 @@ sustituyen a este fichero.
   error de uso se dice sin la traza de `go test`**: con un argumento que no vale, o sin la credencial o con ella
   vacía, la salida de error es solo su mensaje —una línea por argumento, que lo nombra, en el orden `SKILL`, `EVALS`,
   `MODELO`, `REPETICIONES` y `CONCURRENCIA`, o la línea de la credencial que falta—, sin nada de `go test` ni de
-  testify, la salida estándar queda vacía, no se abre ninguna sesión y el guion termina con `1` (`make`, con `2`); un
-  fallo al leer la definición del job, construir el binario, instalar las skills, crear el directorio de las sesiones
-  o repartirlas sigue dando el registro entero de `go test`. Cada sesión se prepara y se juzga con el código del job, sin lo que el job lee de la
-  traza de strace —los comandos esperados y los prohibidos de cada eval y las llegadas a la red—, y tras el mensaje
+  testify, la salida estándar queda vacía, no se abre ninguna sesión y el guion termina con `1` (`make` añade detrás
+  su propia línea de error y termina con `2`); un fallo al leer la definición del job, construir el binario, instalar
+  las skills, crear el directorio de las sesiones o repartirlas sigue dando el registro entero de `go test`. Cada
+  sesión se prepara y se juzga con el código del job, sin lo que el job lee de la traza de strace —los comandos esperados y los prohibidos de cada eval y las llegadas a la red—, y tras el mensaje
   del límite de uso no abre ninguna más. Su salida empieza por «Esto es un sondeo, no un veredicto: el veredicto de la
   skill lo da el job de evals.», dice lo que no comprueba y da solo lo agregado: la tasa de cada serie, las respuestas
   con alguna expresión prohibida en las evals que activan la skill —solo de las sesiones terminadas, como en el job—,
@@ -308,9 +308,9 @@ sustituyen a este fichero.
 - **El job de evals decide con `claude-sonnet-5-5`** (ADR 0031, que sustituye al ADR 0016 en qué modelo decide): el id
   al que resuelve el alias `sonnet` en Claude Code 2.1.284, la versión que ahora instalan sus sesiones (antes
   `claude-sonnet-5` con 2.1.270, que no reconoce el modelo nuevo). Los dos van juntos en `.github/workflows/evals.yml`.
-  Sonnet 5 sale del job y `claude-haiku-4-5-20251001` sigue como límite inferior informativo, así que el umbral que
-  decide pasa a llamarse `expresiones_prohibidas:claude-sonnet-5-5`. Una sesión solo pasa el control del modelo si
-  declara el id pedido, tal cual o seguido de la fecha de su versión (`-AAAAMMDD`): antes bastaba con que empezara por
+  Sonnet 5 sale del job y `claude-haiku-4-5-20251001` sigue como límite inferior informativo, así que el umbral de
+  las expresiones prohibidas que decide pasa a llamarse `expresiones_prohibidas:claude-sonnet-5-5`. Una sesión solo
+  pasa el control del modelo si declara el id pedido, tal cual o seguido de la fecha de su versión (`-AAAAMMDD`): antes bastaba con que empezara por
   él, y `claude-sonnet-5-5` pasaba por `claude-sonnet-5`.
 - **`boe-legislacion` v0.1.4**: **se activa ante toda pregunta cuya respuesta dependa de lo que dice una norma** —qué
   dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una

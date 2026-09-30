@@ -2,8 +2,9 @@
 
 `skills/boe-legislacion/SKILL.md`. Cada cambio lleva el texto de v0.1.3 que sustituye, el de v0.1.4, su causa (research,
 «Causa de raíz») y su requisito. El prototipo con todos los cambios (research V19) tiene 294 líneas, una `description`
-de ≈ 925 caracteres y 0 párrafos de prosa con alguna expresión de la lista nueva o una fecha `AAAAMMDD` con cifras.
-Todo lo que no nombra este contrato queda como en v0.1.3 (§2).
+de ≈ 925 caracteres y 0 párrafos de prosa con alguna expresión de la lista nueva o una fecha `AAAAMMDD` con cifras; el
+`SKILL.md` de v0.1.4 tiene 295 líneas, porque se queda la frase que cierra «Redacción modificada» (C9), y una
+`description` de 924 caracteres. Todo lo que no nombra este contrato queda como en v0.1.3 (§2).
 
 ## 1. Cambios
 
@@ -159,6 +160,9 @@ su misma orden (paso 3): una vez por cada orden que lee bloques.
   `kitlegal graph check` termina con otro código que `0`, la regla 7.
 ````
 
+Detrás de la lista, la frase que cerraba la sección en v0.1.3, «La etiqueta `REDACCIÓN MODIFICADA` no es la de ningún
+aviso de vigencia.», se queda como estaba (supuesto de T010).
+
 Causa: la clase A (título, 185, 198) y la B (research, clase B, 1-3). La línea con la cita: research D4.
 
 ### C10 · Regla 7 (FR-021, FR-025)
@@ -184,7 +188,8 @@ de un modelo (H5 FR 077); frontmatter con `name`, `description` y `metadata` com
 - **Prosa** (`prosa-de-la-skill`, FR-021, FR-093; SC-004): ningún párrafo fuera de los bloques delimitados, del código en
   línea y de la región generada lleva una expresión de la lista, y ninguna línea lleva una fecha `AAAAMMDD` con cifras.
 - **Formas** (`expresiones-de-la-skill`, FR-033; SC-003): la respuesta compuesta con los bloques `text` de `SKILL.md` y
-  la forma escrita de cada aviso, con datos de ejemplo, no se marca una vez quitadas las formas fijas
+  la forma escrita de cada aviso y de cada clase de hallazgo, con datos de ejemplo, no se marca una vez quitadas las
+  formas fijas
   ([lista-de-expresiones.md](./lista-de-expresiones.md) §5).
 - **PowerShell** (`ordenes-para-powershell`, FR-095; SC-005): §4.
 - **Tamaño y frontmatter** (`skills-check`, FR-026; SC-011): < 300 líneas, `description` ≤ 1024 caracteres.
@@ -202,13 +207,16 @@ tests, como `defectosDeLaProsa`), sobre el texto entero de `SKILL.md`; una líne
 2. Error si no hay ninguna orden de Bash con `articulo` o ninguna con `articulos` (SC-005: 2 de 2).
 3. Por cada orden de Bash, la **siguiente** orden encontrada tiene que ser de PowerShell, con el mismo verbo, la misma
    norma y los mismos bloques, en el mismo orden; error que nombra la orden de Bash si no lo es, si falta o si es otra
-   forma (la de `&&`, sin el `if`, o con otra condición).
+   forma (la de `&&`, sin el `if`, o con otra condición). Una orden sin el `if` o con otra condición no es ninguna de
+   las dos formas y no se cuenta; la de PowerShell escrita con `&&` es otra orden de Bash, y da también su propio
+   error si no la sigue la suya (supuesto de T010).
 4. En cada orden, de las dos formas, la comprobación lleva la misma norma y los mismos bloques que la lectura; error si no.
 
 La usa la subprueba `ordenes-para-powershell` de `TestEvalsDelRepositorio` sobre `SKILL.md`; `TestOrdenesParaPowerShell`
-la fija con Markdown sintético: las dos órdenes con sus dos formas (sin error); sin la forma de PowerShell; con `&&` en
-PowerShell; sin el `if`; con otra norma o con otros bloques en la de PowerShell; con otros bloques en la comprobación;
-sin la de `articulos`.
+la fija con Markdown sintético: las dos órdenes con sus dos formas, en bloques o en código en línea (sin error); sin la
+forma de PowerShell de la primera o de la última; con `&&` en PowerShell; sin el `if`; con otra condición; con otra
+norma o con otros bloques en la de PowerShell; con otros bloques en la comprobación, en la de Bash o en la de
+PowerShell; sin argumentos en la comprobación; sin la de `articulos`; y sin ninguna orden.
 
 ## 5. Uso, de fuera adentro
 
@@ -217,7 +225,7 @@ sin la de `articulos`.
 | La respuesta | la persona; una por pregunta | lo que ocupe la norma citada; 0 líneas sobre la comprobación; una línea `⚠ REDACCIÓN MODIFICADA:` por bloque cambiado, de 221 bytes con `art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]` y 242 con `disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]` (medidos; la de H7.3, 161): 0 en la mayoría de las preguntas, 2 en la de la eval 20, como mucho k × ≈ 240 B con k bloques leídos; con cientos de normas y miles de bloques consultados, la misma, porque solo cuenta lo leído en la pregunta | la línea sale en la respuesta de la lectura que ve la redacción nueva y no en la siguiente lectura del bloque (H7.1); al cabo de un mes, solo si el BOE publica otra |
 | `kitlegal graph check <norma> <bloques…>` | la skill; una por orden que lee bloques, detrás de la lectura | ≈ 325 B sin cambios, ≈ 1 000 B por bloque cambiado (H7.3), ≤ 3 800 B con cinco; acotada por los bloques pedidos | cada señal se da una vez y la apaga la lectura siguiente (H7.1) |
 | La `description` | el agente, en cada sesión con la skill instalada | ≈ 925 caracteres (≤ 1024) | no da señales |
-| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 294 líneas en el prototipo (< 300) | no da señales |
+| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 295 líneas (< 300; 294 en el prototipo) | no da señales |
 
 ## 6. `CHANGELOG.md` (*Unreleased*) (FR-027, FR-101)
 

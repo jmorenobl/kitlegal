@@ -1,7 +1,8 @@
 # Data model: H7.4
 
 Lo que el hito añade o cambia en `internal/evals`, en los ficheros de `evals/` y en la definición del job. Nada del
-binario cambia. Los nombres de Go son los que fija el plan; los contratos dan las formas exactas.
+código del binario cambia (sí `skills/boe-legislacion/SKILL.md`, que lleva empotrado). Los nombres de Go son los que
+fija el plan; los contratos dan las formas exactas.
 
 ## 1. La lista de expresiones prohibidas (`ExpresionesProhibidas`)
 
@@ -17,14 +18,17 @@ binario cambia. Los nombres de Go son los que fija el plan; los contratos dan la
 | `FormasFijas` (`formas_fijas`) | `[]string` | — | nuevo, obligatorio en el esquema: textos con los marcadores `<cita>` (opcional) y `<fecha>` que se quitan antes de buscar |
 
 Reglas: cada expresión, una o más palabras sin blancos de más ni `*`/`_` (el patrón de hoy); cada forma fija, texto
-de una línea con al menos un carácter fuera de los marcadores. La clase B es exactamente `RedaccionNoLeida`: la
+de una línea con al menos un carácter que no es un blanco, `<` ni `>` (el patrón del esquema, que no mira los
+marcadores). La clase B es exactamente `RedaccionNoLeida`: la
 alimenta el umbral `redaccion_no_leida:<modelo>`. Una lista que no cumple el esquema es un fichero mal formado (H7.2
 FR 055). El valor cero sigue siendo el de una skill sin lista (`legal-core`).
 
 `ExtraerExpresionesProhibidas(texto, lista)`: quita del texto cada forma fija de la lista (la línea
-`⚠ REDACCIÓN MODIFICADA:`, con su cita o sin ella) y después la marca, la etiqueta y los dos puntos de cada aviso de
-vigencia (`boe.EtiquetasDeAviso`), cambiando cada tramo por un salto de línea; y devuelve las expresiones que lleva, en el orden maquinaria, otra conversación, anuncio y redacción no leída,
-sin repetir. `esDeLaClaseB(expresion)` (sin exportar) dice si una expresión de la lista es de `RedaccionNoLeida`.
+`⚠ REDACCIÓN MODIFICADA:`, con su cita o sin ella, y «No se ha podido comprobar si la redacción ha cambiado desde una
+consulta anterior») y después la marca, la etiqueta y los dos puntos de cada aviso de vigencia (`boe.EtiquetasDeAviso`),
+cambiando cada tramo por un salto de línea (`sinFormasFijas`; una lista sin formas fijas no quita nada); y devuelve las
+expresiones que lleva, en el orden maquinaria, otra conversación, anuncio y redacción no leída, sin repetir.
+`lista.esDeLaClaseB(expresion)` (método sin exportar) dice si una expresión de la lista es de `RedaccionNoLeida`.
 
 ## 2. La eval (`Eval`)
 
@@ -66,8 +70,9 @@ expresiones prohibidas se juzgan como hoy (solo en evals que activan la skill), 
 
 ## 5. El recuento de las respuestas (interno) y lo publicado
 
-`recuentoDeRespuestas`, por modelo del job (el que decide y después los informativos), sobre las sesiones juzgadas, no
-ilegibles, no sin medir, **terminadas**, de series que pide el plan y de evals que activan la skill:
+`recuentoDeRespuestas`, que da `recontarExpresiones` por modelo del job (el que decide y después los informativos), sobre
+las sesiones juzgadas, no ilegibles, no sin medir, **terminadas**, de series que pide el plan y de evals que activan la
+skill:
 
 | Campo | Qué |
 |---|---|
@@ -107,15 +112,16 @@ Entradas: el `databaseId` de la ejecución propia y, de cada ejecución del fluj
 
 Salida, `decisionDeLaTanda`: `mide` (ninguna anterior sin terminar tiene `tandaQueMide`) y `pendientes` (las anteriores
 sin terminar `tandaSinDecidir`, si ninguna mide). Solo cuentan las ejecuciones con `id` menor que la propia y sin
-terminar. El bucle de `TestTandaDelCommit` consulta, decide y, con pendientes, espera 10 s y repite, como mucho 10 min;
-agotado, mide. Escribe `medir=si` o `medir=no` en `-salida`.
+terminar (`cuentaPara`). El bucle, `esperarLaDecision`, que ejecuta `TestTandaDelCommit`, consulta, decide y, con
+pendientes, espera 10 s y repite, como mucho 10 min desde la primera consulta; agotado, mide. `TestTandaDelCommit`
+añade `medir=si` o `medir=no` a `-salida`.
 
 ## 8. El error de uso del sondeo (`errorDeUso`, sin exportar)
 
 Envuelve lo que devuelve `comprobarElSondeo` por los argumentos o la credencial (el texto de hoy, un error por línea).
 `TestSondeo` lo escribe en `uso.txt` del temporal y termina sin fallar; el guion lo imprime en la salida de error y sale
-con 1. Los errores de leer la definición del job, construir el binario, instalar las skills o repartir las sesiones no
-son de uso: `TestSondeo` falla y el guion imprime el registro, como hoy.
+con 1. Los errores de leer la definición del job, construir el binario, instalar las skills, repartir las sesiones o
+crear el directorio de sesiones no son de uso: `TestSondeo` falla y el guion imprime el registro, como hoy.
 
 ## 9. Ficheros de datos del hito
 
@@ -123,7 +129,7 @@ son de uso: `TestSondeo` falla y el guion imprime el registro, como hoy.
 |---|---|---|
 | `schemas/expresiones-prohibidas.yaml.json` | `redaccion_no_leida` y `formas_fijas`, obligatorias | `[datos]` |
 | `schemas/eval.yaml.json` | `no_se_activan` y `redacciones_modificadas` | `[datos]` |
-| `evals/boe-legislacion/expresiones-prohibidas.yaml` | las formas nuevas, `redaccion_no_leida` y `formas_fijas` | con el esquema |
+| `evals/boe-legislacion/expresiones-prohibidas.yaml` | `redaccion_no_leida` y `formas_fijas`, con el esquema; las 25 formas nuevas de `anuncio` y las demás de `redaccion_no_leida`, calibradas | `[datos]` (T001) y T010 |
 | `evals/boe-legislacion/20-lcsp-dos-bloques-redaccion-cambiada.yaml` | la eval nueva | `[datos]` (con su grafo previo) |
 | `evals/legal-core/0{1,2,3}-*.yaml` | `no_se_activan: [boe-legislacion]` | con el esquema |
 | `testdata/evals/grafo-previo/lcsp-a1-30-y-da-3-redaccion-original/` | las dos derivadas, escritas por `TestGrabacionesDerivadas -actualizar-derivadas` | `[datos]` |

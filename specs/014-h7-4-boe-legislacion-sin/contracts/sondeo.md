@@ -11,6 +11,9 @@ Lo que hoy devuelve `comprobarElSondeo` por los argumentos (los de `SKILL`, `EVA
 ahora envuelto en `errorDeUso`. No lo son: que la definición del job no se pueda leer, que el binario no se construya,
 que las skills no se instalen, que el repartidor falle o que el directorio de sesiones no se pueda crear (FR-081).
 
+La ruta de la definición del job llega en `SondeoAEjecutar.RutaDeLaDefinicionDelJob` (nuevo; `TestSondeo` le da
+`rutaDeLaDefinicionDelJob`, la de hoy), para que un test pueda darle una que no se puede leer.
+
 ## 2. `TestSondeo`
 
 Con un `errorDeUso` (`errors.As`), escribe su mensaje, con un salto de línea final, en `uso.txt` del temporal y termina
@@ -43,9 +46,15 @@ falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripción que da
 
 ## 4. Tests (FR-099; SC-009)
 
-- `TestGuionDelSondeo` (con el `go` sustituto de hoy) gana dos casos: el sustituto deja `uso.txt` con dos líneas y sale
-  con 0 → el guion sale con 1, su salida de error es exactamente esas dos líneas y su salida estándar, vacía; lo mismo
-  con la línea de la credencial. El de hoy en que el sustituto falla sigue dando el registro entero con 1 (FR-081).
-- `TestComprobarElSondeo` (hoy) comprueba además que sus errores de argumentos y de credencial son `errorDeUso` y que el
-  de una definición del job que no se puede leer no lo es.
-- `TestSondear` comprueba que, con un `errorDeUso`, no se llama a `PrepararElArbol` ni al repartidor (0 sesiones).
+- `TestGuionDelSondeo` (con el `go` sustituto de hoy, envuelto en uno que deja `uso.txt`) gana tres casos: el
+  sustituto deja `uso.txt` con dos líneas y sale con 0 (`uso-con-dos-argumentos-que-no-valen`) → el guion sale con 1,
+  su salida de error es exactamente esas dos líneas y su salida estándar, vacía, aunque haya `salida.txt`; lo mismo con
+  la línea de la credencial (`uso-sin-la-credencial`); y el sustituto deja `uso.txt` y sale con 1
+  (`go-test-sale-con-1-y-deja-uso`) → el guion sale con 1 con el registro y sin `uso.txt`, que fija el orden de §3. El
+  de hoy en que el sustituto falla sigue dando el registro entero con 1 (FR-081).
+- `TestComprobarElSondeo` (hoy) comprueba además que sus errores de argumentos y de credencial son `errorDeUso` y, en
+  la subprueba `job-ilegible`, que el de una definición del job que no se puede leer, que llega antes que un argumento
+  que no vale y que la credencial que falta, no lo es.
+- `TestSondear` comprueba que su error, en los casos de un argumento que no vale y de la credencial ausente o vacía, es
+  un `errorDeUso` y que con él no se llama a `PrepararElArbol` ni al repartidor (0 sesiones) ni se escribe en el
+  temporal.

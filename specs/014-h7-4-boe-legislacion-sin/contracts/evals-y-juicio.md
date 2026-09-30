@@ -42,7 +42,7 @@ activación, sin `fecha_vigencia_reciente`, con una fecha de siete cifras o con 
 
 Orden de los motivos de una sesión, con lo nuevo en negrita: sin terminar; la activación; **cada skill de
 `no_se_activan` que la sesión activó** («se activó la skill <nombre>, que la eval dice que no se activa»); cada comando
-ausente; cada comando prohibido; cada cita ausente; cada aviso ausente; cada hallazgo ausente; **cada redacción
+ausente; cada comando prohibido ejecutado; cada cita ausente; cada aviso ausente; cada hallazgo ausente; **cada redacción
 modificada ausente** («redacción modificada ausente: <norma> <bloque> <fecha_vigencia> <fecha_vigencia_reciente>»); cada
 elemento del territorio ausente; cada expresión prohibida; el modelo (lo pone `EscribirInforme`). `Pasa` exige además
 que no se active ninguna de `no_se_activan` y que no falte ninguna redacción esperada.
