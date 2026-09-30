@@ -1,6 +1,6 @@
 # Informe del hito H7.3 · El umbral de expresiones prohibidas decide, `boe-legislacion` sin el vocabulario que provoca el ruido, y evals en paralelo con un sondeo local
 
-Generado por el workflow `hito` el 2026-09-30T08:48:42Z, sobre `196ee05` de `013-h7-3-el-umbral-de`.
+Generado por el workflow `hito` el 2026-09-30T08:49:39Z, sobre `8f85eb9` de `013-h7-3-el-umbral-de`.
 Lo escribe scripts/workflow/informe.sh sin modelo, desde los artefactos de `specs/013-h7-3-el-umbral-de/`. Fusionar (squash-merge) es una decisión humana:
 si algo de lo que sigue no es lo que se quería, se corrige la sección del hito en docs/ROADMAP.md y se relanza.
 
@@ -12,7 +12,7 @@ si algo de lo que sigue no es lo que se quería, se corrige la sección del hito
 - **Umbrales del job**: boe-legislacion: 3 umbrales, **1 sin cumplir o solo publicados** (`expresiones_prohibidas:claude-haiku-4-5-20251001`); legal-core: sin umbrales (sección 3).
 - **Revisión final**: juez A aprobado, juez B aprobado, 3 rondas.
 - **Tareas**: 15 hechas, 0 en cuarentena, 0 pendientes sin cuarentena.
-- **Diff**: 25 commits; 93 files changed, 19899 insertions(+), 614 deletions(-).
+- **Diff**: 26 commits; 93 files changed, 19818 insertions(+), 614 deletions(-).
 
 ## 2. Supuestos y pendientes
 
@@ -52,7 +52,7 @@ Decisiones que el run tomó sin preguntar, ordenadas por impacto: cada paso que 
 
 ### Del propio run
 
-- sesión posterior al run (2026-09-30): el cambio de protocolo de `eb6b4c8` (`reparar_cierre`) y el arreglo de `0222c39` llegaron después de los veredictos de la ronda 2 → tercera ronda de la revisión final a mano (`scripts/paso.sh revision_juez_a|revision_juez_b H7.3`, `opus@xhigh` y `fable@xhigh`) sobre `3dda87f`, con una nota en `gates/revision-pendiente.md` que nombraba esos commits y la sección H7.3 («una vez por norma citada, después de leer y antes de responder») y FR-040 de H7.1, retirada … (entera en `specs/013-h7-3-el-umbral-de/gates/supuestos.md` o `clarify-respuestas.json`)
+- sesión posterior al run (2026-09-30): tercera ronda de la revisión final, a mano, sobre `3dda87f`: los dos jueces aprueban sin motivos el cambio de protocolo de `eb6b4c8` («una vez por cada orden que lee bloques» en lugar de «una vez por norma citada»: la mejor solución sin tocar el binario, registrada como decisión) y el arreglo del rojo de `ci` sobre `e3bae8d` (`0222c39`: ETXTBSY en `TestSondear`, sustitutos escritos con `syscall.ForkLock`; 50 de 50 con `-race`). Detalle: el cambio de protocol… (entera en `specs/013-h7-3-el-umbral-de/gates/supuestos.md` o `clarify-respuestas.json`)
 
 - Observaciones de los jueces, por debajo del umbral y sin corregir: 13 en `spec-r2.json`, 6 en `plan-r2.json`, 4 en `tasks-r3.json`, 8 en `revision-a-r3.json`, 10 en `revision-b-r3.json`.
 
@@ -199,9 +199,11 @@ Ninguna.
 
 ## 7. Cambios posteriores a la revisión final
 
-Ninguno.
+Commits posteriores a los veredictos, que ningún juez juzgó (correcciones del cierre, registros y este informe), con lo que cada uno toca fuera de `gates/`:
+
+- `8f85eb9` docs(H7.3): informe final del run: solo registros de `gates/`.
 
 ## 8. Cómo comprobarlo y consumo
 
 - Escenarios manuales: `specs/013-h7-3-el-umbral-de/quickstart.md`. Suite de aceptación congelada: `specs/013-h7-3-el-umbral-de/aceptacion/` (activada en `internal/app/testdata/script/`).
-- Run `f41e85d1`: 12 h 2 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh f41e85d1`.
+- Run `f41e85d1`: 12 h 3 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh f41e85d1`.
