@@ -40,7 +40,11 @@ de la sesión (`sesion.jsonl`, `sesion.err`), que abre el repartidor.
 
 ## 3. El repartidor (D7, D9, D14)
 
-`ejecutarSesiones(ctx, SesionesAEjecutar) (EjecucionDeSesiones, error)`:
+`ejecutarSesiones(interrupcion <-chan struct{}, SesionesAEjecutar) (EjecucionDeSesiones, error)`, con `interrupcion` el
+`Done()` del contexto que las entradas cancelan con `SIGINT` y `SIGTERM`. No recibe un `context.Context`: prepara en
+proceso con `PrepararSesion`, que llega a `app.Main`, y `contextcheck` marca toda función con contexto que llegue a él
+(research V59 y D14 de H5); el contexto de `exec.CommandContext` es el del tope de cada sesión. Lo que abre una sesión
+es `abrirSesion(interrupcion, SesionesAEjecutar, SesionPlanificada)` (T006; `gates/supuestos.md`):
 
 1. recorre el plan en su orden y abre una sesión cuando hay menos de `Concurrencia` abiertas;
 2. para cada una: crea su directorio con `trabajo/`, `cache/`, `traza/`, `tmp/` (0700) y `claude/skills/<entrada>`
@@ -52,8 +56,9 @@ de la sesión (`sesion.jsonl`, `sesion.err`), que abre el repartidor.
 4. al terminar cada sesión la lee con `LeerSesion`; si es de la clase (a) (data-model §3), no abre ninguna más: espera
    a las abiertas y devuelve las no abiertas en `SinAbrir` (FR-044). Tras (b) o (c), sigue;
 5. `Duracion`: desde antes de preparar la primera hasta que termina la última;
-6. un error de preparación o de E/S, o el contexto cancelado (`SIGINT`, `SIGTERM`), cierra las abiertas con la secuencia
-   del tope y devuelve el error: ninguna sesión se reintenta ni se duplica (FR-037).
+6. un error de preparación o de E/S, o `interrupcion` cerrado (`SIGINT`, `SIGTERM`), cierra las abiertas con la
+   secuencia del tope y devuelve el error —el de la interrupción es `errSesionInterrumpida`—: ninguna sesión se
+   reintenta ni se duplica (FR-037).
 
 ## 4. El entorno de cada sesión (D10, D16)
 
@@ -141,7 +146,7 @@ de la base (research D18). Nadie abre una sesión con modelo.
 | `TestEjecutarSesionesEnParalelo` | con un plan de 8 sesiones sintéticas (evals de un directorio temporal) y `Traza: true`: con `Concurrencia` 4, el máximo de sesiones abiertas a la vez que cuentan los sustitutos es ≤ 4 y ≥ 2; con 1, es 1; directorio de trabajo, `CLAUDE_CONFIG_DIR`, `TMPDIR`, `CLAUDE_CODE_TMPDIR` y `KITLEGAL_CACHE_DIR` distintos en cada sesión y dentro de su directorio; `claude/skills/` con un enlace por skill; y `informe.json` e `informe.md` iguales byte a byte con 4 y con 1, escritos con la misma duración | FR-030, FR-032, FR-094; SC-008; US3-1 |
 | `TestEjecutarSesionesTrasElLimiteDeUso` | la sesión k da el transcript (a): con `Concurrencia` 2 no se abre ninguna posterior a las ya abiertas, las abiertas terminan y `SinAbrir` son exactamente las que faltan del plan; con (b) en la sesión k, se abren todas | FR-044, FR-093; SC-007; US3-2, US3-3 |
 | `TestTopeDeLaSesion` | con un tope de 1 s y un margen de 1 s: un sustituto que duerme 5 s deja 124; uno que ignora `TERM`, 137; uno que termina antes, su código | FR-031 |
-| `TestEjecutarSesionesConElContextoCancelado` | con el contexto cancelado mientras hay sesiones abiertas (lo que hace `SIGINT` al sondeo): vuelve con el error del contexto, no abre ninguna más y ningún sustituto sigue vivo; es el mismo camino que un error de preparación | FR-037, FR-064 |
+| `TestEjecutarSesionesConElContextoCancelado` | con el contexto cuyo `Done()` es `interrupcion` cancelado mientras hay sesiones abiertas (lo que hace `SIGINT` al sondeo): vuelve con `errSesionInterrumpida`, no abre ninguna más y ningún sustituto sigue vivo; es el mismo camino que un error de preparación | FR-037, FR-064 |
 | `TestDefinicionDelJob` | §7 | FR-030, FR-034, FR-035, FR-094; SC-008; US3-6 |
 
 ## 9. Uso, de fuera adentro
