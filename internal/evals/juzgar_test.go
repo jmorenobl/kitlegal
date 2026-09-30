@@ -205,6 +205,9 @@ type juicio struct {
 // H7; una eval sin hallazgos se juzga como antes aunque la respuesta lleve la
 // forma (contrato evals-y-skill §2 de H7.1; FR-050, FR-051, FR-052, FR-094;
 // SC-008).
+//
+// Desde H7.3, el resultado lleva los reintentos por rate_limit de la sesión, que
+// no cambian su juicio (data-model §4 de H7.3; FR-033, FR-041).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -645,6 +648,23 @@ func TestJuzgar(t *testing.T) {
 		{
 			nombre:  "comprobacion-con-otra-norma-no-satisface",
 			juicios: comprobacionConOtraNorma(t),
+		},
+		{
+			// Una sesión que se recupera de sus reintentos se juzga como cualquier
+			// otra y publica los de rate_limit, no los de sobrecarga (FR-033 y
+			// FR-041 de H7.3). Juzgar no la clasifica: eso lo hace EscribirInforme.
+			nombre: "con-reintentos-por-limite-de-ritmo",
+			juicios: []juicio{{
+				eval: evalDelArticulo21(),
+				sesion: cambiada(sesionQuePasa(t), func(s *Sesion) {
+					s.Reintentos = []ReintentoDeLaAPI{
+						{Intento: 1, Maximo: 10, Error: "rate_limit"},
+						{Intento: 2, Maximo: 10, Error: "overloaded"},
+						{Intento: 3, Maximo: 10, Error: "rate_limit"},
+					}
+				}),
+				esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) { r.ReintentosPorLimiteDeRitmo = 2 }),
+			}},
 		},
 		{
 			// La eval 01 no espera hallazgos: la forma en la respuesta no cambia su

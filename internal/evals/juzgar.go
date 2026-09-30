@@ -155,12 +155,22 @@ type ResultadoDeEval struct {
 	// SesionTerminada dice si la sesión terminó.
 	SesionTerminada bool `json:"sesion_terminada"`
 
+	// ReintentosPorLimiteDeRitmo son los reintentos por rate_limit que registra
+	// el transcript de la sesión: 0 si no se pudo leer (FR-033 de H7.3).
+	ReintentosPorLimiteDeRitmo int `json:"reintentos_por_limite_de_ritmo"`
+
+	// SinMedir es vacío si la sesión se midió y, si un límite de uso de la cuenta
+	// no la dejó terminar, la descripción de su clase (LimiteDeUso). Juzgar no
+	// clasifica: lo hace EscribirInforme (data-model §3 y §4 de H7.3; FR-040).
+	SinMedir string `json:"sin_medir"`
+
 	// Motivos son las causas por las que la eval no pasa, una por causa y en este
 	// orden: la sesión ilegible, que pone EscribirInforme, o sin terminar; la
 	// activación que no coincide; cada comando ausente; cada comando prohibido
 	// ejecutado; cada cita ausente; cada aviso ausente; cada hallazgo ausente; cada
 	// elemento del territorio ausente; cada expresión prohibida; y el modelo que la
-	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa.
+	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa. La
+	// sesión sin medir lleva solo el del límite (FR-040 de H7.3).
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no falta ningún
@@ -168,7 +178,7 @@ type ResultadoDeEval struct {
 	// territorio esperados, no se ejecutó ningún comando prohibido y la respuesta
 	// no lleva ninguna expresión prohibida. No lo cambian FueraDeLoGrabado,
 	// OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija de un aviso o de un
-	// hallazgo que la eval no espera.
+	// hallazgo que la eval no espera. Una sesión sin medir no pasa.
 	Pasa bool `json:"pasa"`
 }
 
@@ -252,17 +262,21 @@ type LlegadaALaRed struct {
 // con su motivo detrás de los del territorio, y una encontrada impide pasar. Una
 // eval de no activación, o la de una skill sin lista, deja vacía la lista y su
 // juicio es el de antes (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052).
+//
+// Desde H7.3, publica además los reintentos por rate_limit de la sesión, que no
+// cambian su juicio (FR-033 y FR-041 de H7.3).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	codigo := sesion.Codigo
 
 	resultado := ResultadoDeEval{
-		Eval:             eval.Fichero,
-		Activa:           eval.Activa,
-		Activada:         sesion.Activada(skill),
-		Respuesta:        sesion.Respuesta,
-		CodigoDeLaSesion: &codigo,
-		FinDeLaSesion:    sesion.Fin,
-		SesionTerminada:  sesion.Terminada,
+		Eval:                       eval.Fichero,
+		Activa:                     eval.Activa,
+		Activada:                   sesion.Activada(skill),
+		Respuesta:                  sesion.Respuesta,
+		CodigoDeLaSesion:           &codigo,
+		FinDeLaSesion:              sesion.Fin,
+		SesionTerminada:            sesion.Terminada,
+		ReintentosPorLimiteDeRitmo: sesion.ReintentosPorLimiteDeRitmo(),
 	}
 
 	if !sesion.Terminada {

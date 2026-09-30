@@ -23,12 +23,14 @@ const (
 	LimiteCortadaDuranteReintentos
 )
 
-// Descripciones de las clases de límite que publica el informe, y el principio
+// Descripciones de las clases de límite que publica el informe, la de la sesión
+// que el repartidor no abrió tras el mensaje del límite de uso, y el principio
 // del motivo de una sesión sin medir (data-model §3 de H7.3).
 const (
 	descripcionDelMensajeDeUso       = "mensaje del límite de uso: "
 	descripcionDeReintentosAgotados  = "reintentos por rate_limit agotados"
 	descripcionDeCortadaEnReintentos = "cortada por el tope durante reintentos por rate_limit"
+	descripcionSinAbrir              = "sin abrir tras el límite de uso"
 	motivoSinMedir                   = "sin medir por límite de uso: "
 )
 
@@ -60,6 +62,22 @@ func (l LimiteDeUso) Motivo() string {
 	}
 
 	return motivoSinMedir + l.Descripcion
+}
+
+// dejarSinMedir deja sin medir el resultado de una sesión que un límite de uso
+// de la cuenta no dejó terminar: no pasa, lleva la descripción de su clase en
+// SinMedir y el motivo del límite como único motivo, porque lo que no llegó a
+// hacer no es un defecto de la skill (FR-040 de H7.3). Lo observado de la sesión
+// —la respuesta, las invocaciones, las llegadas a la red— se informa igual. Con
+// SinLimite no cambia nada.
+func (r *ResultadoDeEval) dejarSinMedir(limite LimiteDeUso) {
+	if limite.Clase == SinLimite {
+		return
+	}
+
+	r.SinMedir = limite.Descripcion
+	r.Motivos = []string{limite.Motivo()}
+	r.Pasa = false
 }
 
 // ClasificarElLimite dice, sin modelo y con lo que LeerSesion lee del

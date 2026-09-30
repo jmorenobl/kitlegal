@@ -33,8 +33,8 @@ type Veredicto string
 const (
 	// VeredictoAprobado es el de una ejecución sin ningún motivo: sin ficheros de
 	// eval mal formados, con todas las sesiones que el plan pide y legibles, con
-	// cada serie que decide llegando al umbral y sin ninguna petición llegada a la
-	// red (ADR 0016).
+	// cada serie que decide llegando al umbral, sin ninguna petición llegada a la
+	// red (ADR 0016) y sin ninguna sesión sin medir (FR-043 de H7.3).
 	VeredictoAprobado Veredicto = "aprobado"
 
 	// VeredictoFallo es el de cualquier otra ejecución.
@@ -51,6 +51,16 @@ const (
 	motivoDeLlegadaALaRed     = ": petición llegada a la red: "
 )
 
+// Motivos de la raíz que no son de la skill sino de la ejecución: empiezan por
+// el prefijo fijo, que los distingue sin modelo de los demás (FR-043 de H7.3;
+// contrato informe-del-job §2). El del límite de uso lleva cuántas sesiones
+// quedaron sin medir y, separadas por «, », cada una con su motivo entre
+// paréntesis.
+const (
+	motivoDeLaEjecucion  = "de la ejecución, no de la skill: "
+	motivoDelLimiteDeUso = "límite de uso de la cuenta: %d sesiones sin medir: %s"
+)
+
 // Textos fijos de informe.md (contrato job-de-evals §5; contrato lista-y-juicio
 // §5 de H7.2).
 const (
@@ -62,10 +72,16 @@ const (
 	sinLeer               = "sin leer"
 	vaciaEnElInforme      = "vacía"
 	sinListaDeExpresiones = "la skill no tiene lista de expresiones prohibidas"
+
+	// medidaEnElInforme es la celda «Sin medir» de una sesión que se midió, y
+	// serieSinMedir, el resultado de una serie con sesiones sin medir, con
+	// cuántas (contrato informe-del-job §4 de H7.3).
+	medidaEnElInforme = "no"
+	serieSinMedir     = "sin medir (%d)"
 )
 
 // Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
-// lista-y-juicio §5 de H7.2).
+// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
@@ -73,8 +89,9 @@ var (
 		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
 		"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente",
-		"Expresiones prohibidas", "Resultado",
+		"Expresiones prohibidas", "Reintentos por límite de ritmo", "Sin medir", "Resultado",
 	}
+	encabezadosDeSinMedir     = []string{"Sesión", "Eval", "Modelo", "Motivo"}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
 	encabezadosDeTasas        = []string{
 		"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
@@ -127,6 +144,11 @@ type InformeAEscribir struct {
 	// SinPython es la ruta de sin-python.txt: su contenido entero, byte a byte,
 	// es el sin_python del informe.
 	SinPython string
+
+	// SinAbrir son las sesiones del plan que el repartidor no abrió tras una con
+	// el mensaje del límite de uso: cuentan en su serie como sin medir (FR-044 de
+	// H7.3; data-model §4).
+	SinAbrir []SesionPlanificada
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -181,6 +203,15 @@ type Informe struct {
 	// lista (contrato lista-y-juicio §5 de H7.2; FR-053).
 	ExpresionesProhibidasPorModelo []RecuentoDeExpresiones `json:"expresiones_prohibidas_por_modelo"`
 
+	// ReintentosPorLimiteDeRitmo es la suma de los de cada sesión (FR-033 de
+	// H7.3).
+	ReintentosPorLimiteDeRitmo int `json:"reintentos_por_limite_de_ritmo"`
+
+	// SesionesSinMedir son las que un límite de uso de la cuenta no dejó
+	// terminar y las que el repartidor no abrió tras él, en orden de sesión; [] en
+	// informe.json si no hay ninguna (data-model §3 de H7.3; FR-043).
+	SesionesSinMedir []SesionSinMedir `json:"sesiones_sin_medir"`
+
 	// FueraDeLoGrabado son las invocaciones fuera de lo grabado de todas las
 	// sesiones, y Red, sus llegadas a la red, cada una con su sesión y su eval.
 	FueraDeLoGrabado []FueraDeLoGrabadoDelInforme `json:"fuera_de_lo_grabado"`
@@ -225,9 +256,12 @@ type TasaDelInforme struct {
 	Formas []string `json:"formas"`
 
 	// Sesiones son las que se leyeron de la serie, y Pasan, cuántas de ellas
-	// pasan. Pasa dice si Pasan llega al umbral.
+	// pasan. SinMedir son las de la serie que quedaron sin medir, abiertas o no
+	// (data-model §4 de H7.3). Pasa dice si Pasan llega al umbral sin ninguna
+	// sin medir: una serie con alguna ni pasa ni falla (FR-042 de H7.3).
 	Sesiones int  `json:"sesiones"`
 	Pasan    int  `json:"pasan"`
+	SinMedir int  `json:"sin_medir"`
 	Pasa     bool `json:"pasa"`
 }
 
@@ -245,6 +279,16 @@ type RecuentoDeExpresiones struct {
 	// Respuestas son las sesiones juzgadas —no las ilegibles— de las series que
 	// pide el plan con ese modelo cuya eval espera que la skill se active.
 	Respuestas int `json:"respuestas"`
+}
+
+// SesionSinMedir es una sesión que quedó sin medir por un límite de uso de la
+// cuenta, o que el repartidor no abrió tras él, con su eval, su modelo y la
+// descripción de su clase (data-model §3 de H7.3).
+type SesionSinMedir struct {
+	Sesion string `json:"sesion"`
+	Eval   string `json:"eval"`
+	Modelo string `json:"modelo"`
+	Motivo string `json:"motivo"`
 }
 
 // FueraDeLoGrabadoDelInforme es una invocación fuera de lo grabado con la sesión
@@ -275,9 +319,12 @@ type RedDelInforme struct {
 //  2. por cada entrada de e.Sesiones, en orden de nombre, lee siempre eval.txt,
 //     modelo.txt, pregunta.txt y la sesión con LeerSesion y, si LeerSesion la
 //     leyó, su traza con LeerTrazas y el corte de la sesión. Solo si todo se leyó
-//     y eval.txt nombra una eval bien formada, la juzga con Juzgar; si no, la
-//     sesión no pasa, con un motivo «sesión ilegible: <fichero>: <error>» por
-//     cada fichero que falta o no se puede leer, o por el eval.txt que no nombra
+//     y eval.txt nombra una eval bien formada, la juzga con Juzgar y la clasifica
+//     con ClasificarElLimite: la que un límite de uso de la cuenta no dejó
+//     terminar queda sin medir, con el del límite como único motivo (data-model
+//     §3 de H7.3); si no, la sesión no pasa, con un motivo «sesión ilegible:
+//     <fichero>: <error>» por cada fichero que falta o no se puede leer, o por
+//     el eval.txt que no nombra
 //     ninguna eval, en el orden eval.txt, modelo.txt, pregunta.txt, sesión y
 //     traza. Una entrada que no es un directorio no se salta: sus ficheros no se
 //     pueden leer. Lo que sí se leyó de una sesión sin juzgar —la eval que
@@ -287,18 +334,21 @@ type RedDelInforme struct {
 //  3. reparte las sesiones en series —eval, modelo y si la pregunta es la de la
 //     eval— y las compara con las que pide el plan (PlanDeEvals): cada serie
 //     lleva su tasa, y una serie que decide pasa si llegan al umbral
-//     (data-model §10.4; ADR 0016); con la lista de expresiones prohibidas de la
-//     skill, cuenta además por modelo las respuestas de las series que pide el
-//     plan cuya eval activa la skill y las que llevan alguna (recontarExpresiones;
+//     (data-model §10.4; ADR 0016) y ninguna quedó sin medir, contando como sin
+//     medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con la lista de
+//     expresiones prohibidas de la skill, cuenta además por modelo las
+//     respuestas medidas de las series que pide el plan cuya eval activa la
+//     skill y las que llevan alguna (recontarExpresiones;
 //     contrato lista-y-juicio §5 de H7.2), sin que eso cambie la regla del
 //     veredicto: una sesión con una expresión es una sesión que no pasa (FR-054);
 //  4. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
 //     sesión ilegible que no se hayan escrito ya; ninguna eval bien formada que
-//     juzgar; cada fichero mal formado; y cada petición llegada a la red. El
-//     veredicto es fallo si hay algún motivo y aprobado si no hay ninguno, de
-//     modo que los motivos son exactamente las causas del fallo.
+//     juzgar; cada fichero mal formado; cada petición llegada a la red; y, con
+//     alguna sesión sin medir, uno solo de la ejecución que las nombra (FR-043 de
+//     H7.3). El veredicto es fallo si hay algún motivo y aprobado si no hay
+//     ninguno, de modo que los motivos son exactamente las causas del fallo.
 //
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
 // o sin-python.txt, las evals o las sesiones que no se pueden leer, o un destino
@@ -385,11 +435,13 @@ type claveDeSerie struct {
 	preguntaAmpliada bool
 }
 
-// serieJuzgada es una serie con su tasa y las posiciones de sus sesiones en el
-// orden en que se leyeron.
+// serieJuzgada es una serie con su tasa, las posiciones de sus sesiones en el
+// orden en que se leyeron y cuántas de las suyas no abrió el repartidor tras el
+// mensaje del límite de uso.
 type serieJuzgada struct {
 	tasa     TasaDelInforme
 	sesiones []int
+	sinAbrir int
 }
 
 // plan es el plan de sesiones que el informe exige que se haya ejecutado, con las
@@ -475,6 +527,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		juzgada.resultado.Modelo = juzgada.clave.modelo
 		juzgada.resultado.ModeloDeLaSesion = juzgada.sesion.Modelo
 		juzgada.resultado.exigirElModeloPedido()
+		juzgada.resultado.dejarSinMedir(ClasificarElLimite(juzgada.sesion))
 
 		return juzgada
 	}
@@ -496,6 +549,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		juzgada.resultado.CodigoDeLaSesion = &codigo
 		juzgada.resultado.FinDeLaSesion = juzgada.sesion.Fin
 		juzgada.resultado.SesionTerminada = juzgada.sesion.Terminada
+		juzgada.resultado.ReintentosPorLimiteDeRitmo = juzgada.sesion.ReintentosPorLimiteDeRitmo()
 	}
 
 	for _, invocacion := range juzgada.sesion.Invocaciones {
@@ -560,6 +614,7 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
 		informe.Evals = append(informe.Evals, resultado)
+		informe.ReintentosPorLimiteDeRitmo += resultado.ReintentosPorLimiteDeRitmo
 
 		if juzgada.leida {
 			informe.ModelosDeSesion = agregarSinRepetir(informe.ModelosDeSesion, juzgada.sesion.Modelo)
@@ -580,6 +635,7 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 		}
 	}
 
+	informe.SesionesSinMedir = sesionesSinMedir(informe.Evals, e.SinAbrir)
 	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series)
 	informe.Veredicto = veredictoDelInforme(informe)
 
@@ -590,12 +646,30 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 // que pide el plan, en su orden y aunque no tengan ninguna sesión, y después las
 // observadas que el plan no pide —la de la prueba de red y la de cualquier sesión
 // de la que no se pudieran leer la eval, el modelo o la pregunta—, en el orden en
-// que aparecen. Una serie pasa si sus sesiones que pasan llegan al umbral, y
-// declara las formas que exige su eval (formasExigidas).
+// que aparecen. Cada sesión que el repartidor no abrió cuenta en su serie como
+// sin medir, igual que las que quedaron sin medir (data-model §4 de H7.3). Una
+// serie pasa si no tiene ninguna sin medir y sus sesiones que pasan llegan al
+// umbral (FR-042 de H7.3), y declara las formas que exige su eval
+// (formasExigidas).
 func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada) []serieJuzgada {
 	var series []serieJuzgada
 
 	posiciones := map[claveDeSerie]int{}
+
+	// enSeries es la posición de la serie de la clave, que se añade como una de
+	// las observadas que el plan no pide si aún no está.
+	enSeries := func(clave claveDeSerie) int {
+		posicion, esta := posiciones[clave]
+		if !esta {
+			posicion = len(series)
+			posiciones[clave] = posicion
+			series = append(series, serieJuzgada{tasa: TasaDelInforme{
+				Eval: clave.eval, Modelo: clave.modelo, PreguntaAmpliada: clave.preguntaAmpliada,
+			}})
+		}
+
+		return posicion
+	}
 
 	for _, planificada := range e.plan(evals).Series() {
 		clave := claveDeSerie{eval: planificada.Eval, modelo: planificada.Modelo}
@@ -605,27 +679,35 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 		}})
 	}
 
+	// enSeries puede añadir a series: la posición se toma antes de indexar, porque
+	// en series[enSeries(…)] el orden entre las dos cosas no está especificado.
 	for posicion, juzgada := range sesiones {
-		enSeries, esta := posiciones[juzgada.clave]
-		if !esta {
-			enSeries = len(series)
-			posiciones[juzgada.clave] = enSeries
-			series = append(series, serieJuzgada{tasa: TasaDelInforme{
-				Eval: juzgada.clave.eval, Modelo: juzgada.clave.modelo, PreguntaAmpliada: juzgada.clave.preguntaAmpliada,
-			}})
-		}
+		enLaSerie := enSeries(juzgada.clave)
+		serie := &series[enLaSerie]
+		serie.sesiones = append(serie.sesiones, posicion)
+		serie.tasa.Sesiones++
 
-		series[enSeries].sesiones = append(series[enSeries].sesiones, posicion)
-		series[enSeries].tasa.Sesiones++
-
-		if juzgada.resultado.Pasa {
-			series[enSeries].tasa.Pasan++
+		switch {
+		case juzgada.resultado.SinMedir != "":
+			serie.tasa.SinMedir++
+		case juzgada.resultado.Pasa:
+			serie.tasa.Pasan++
 		}
 	}
 
+	for _, sinAbrir := range e.SinAbrir {
+		enLaSerie := enSeries(claveDeSerie{
+			eval: sinAbrir.Fichero, modelo: sinAbrir.Modelo, preguntaAmpliada: sinAbrir.PruebaDeRed,
+		})
+		serie := &series[enLaSerie]
+		serie.sinAbrir++
+		serie.tasa.SinMedir++
+	}
+
 	for posicion := range series {
-		series[posicion].tasa.Pasa = series[posicion].tasa.Pasan >= e.Umbral
-		series[posicion].tasa.Formas = formasExigidas(evals, series[posicion].tasa.Eval)
+		tasa := &series[posicion].tasa
+		tasa.Pasa = tasa.SinMedir == 0 && tasa.Pasan >= e.Umbral
+		tasa.Formas = formasExigidas(evals, tasa.Eval)
 	}
 
 	return series
@@ -635,8 +717,9 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 // prohibida por modelo (contrato lista-y-juicio §5 de H7.2; data-model §3;
 // research D7; FR-053): un elemento por modelo del job, el que decide y después
 // los informativos en su orden, con las sesiones juzgadas —no las ilegibles, que
-// no tienen respuesta juzgada— de las series que pide el plan cuya eval espera
-// que la skill se active, y cuántas de ellas llevan alguna. Las de una serie que
+// no tienen respuesta juzgada, ni las sin medir, que no se midieron (FR-002 de
+// H7.3)— de las series que pide el plan cuya eval espera que la skill se active,
+// y cuántas de ellas llevan alguna. Las de una serie que
 // el plan no pide —la de la prueba de red o la de una sesión cuya eval, modelo o
 // pregunta no se pudieron leer— publican sus expresiones, pero no cuentan. Nil,
 // [] en informe.json, si la skill no tiene lista —si están vacías sus tres
@@ -666,7 +749,7 @@ func recontarExpresiones(
 
 		for _, posicion := range serie.sesiones {
 			juzgada := sesiones[posicion]
-			if juzgada.ilegible || !juzgada.resultado.Activa {
+			if juzgada.ilegible || juzgada.resultado.SinMedir != "" || !juzgada.resultado.Activa {
 				continue
 			}
 
@@ -714,12 +797,15 @@ func agregarSinRepetir(lista []string, valor string) []string {
 
 // motivosDelInforme son los motivos de la raíz del informe en el orden de
 // data-model §10.3, y son exactamente las causas del veredicto fallo: por serie
-// planificada, las sesiones que faltan o sobran y, si decide y no llega al umbral,
-// su tasa con los motivos de sus sesiones que no pasan; los de cada sesión
-// ilegible que no se hayan escrito ya; que no haya ninguna eval que juzgar; cada
-// fichero mal formado; y cada petición llegada a la red. Una sesión que no pasa de
-// una serie que sí llega al umbral no da ningún motivo: eso es lo que el umbral
-// absorbe (ADR 0016).
+// planificada, las sesiones que faltan o sobran —las que el repartidor no abrió
+// cuentan como de la serie— y, si decide, no llega al umbral y no tiene ninguna
+// sin medir, su tasa con los motivos de sus sesiones que no pasan; los de cada
+// sesión ilegible que no se hayan escrito ya; que no haya ninguna eval que
+// juzgar; cada fichero mal formado; cada petición llegada a la red; y, con alguna
+// sesión sin medir, uno solo de la ejecución que las nombra (FR-043 de H7.3;
+// contrato informe-del-job §2.2). Una sesión que no pasa de una serie que sí
+// llega al umbral no da ningún motivo: eso es lo que el umbral absorbe
+// (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de H7.3).
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 ) []string {
@@ -728,21 +814,7 @@ func motivosDelInforme(
 	escritas := map[string]bool{}
 
 	for _, serie := range series {
-		if serie.tasa.Planificada && serie.tasa.Sesiones != e.Repeticiones {
-			motivos = append(motivos, fmt.Sprintf("%s con %s: hay %d sesiones y el plan pide %d",
-				serie.tasa.Eval, serie.tasa.Modelo, serie.tasa.Sesiones, e.Repeticiones))
-		}
-
-		if !serie.tasa.Decide || serie.tasa.Pasa {
-			continue
-		}
-
-		motivos = append(motivos, fmt.Sprintf("%s con %s: pasan %d de %d, y el umbral es %d",
-			serie.tasa.Eval, serie.tasa.Modelo, serie.tasa.Pasan, serie.tasa.Sesiones, e.Umbral))
-
-		for _, posicion := range serie.sesiones {
-			motivos = append(motivos, motivosDeLaSesion(sesiones[posicion], escritas)...)
-		}
+		motivos = append(motivos, motivosDeLaSerie(e, serie, sesiones, escritas)...)
 	}
 
 	for _, juzgada := range sesiones {
@@ -763,7 +835,76 @@ func motivosDelInforme(
 		motivos = append(motivos, llegada.Sesion+motivoDeLlegadaALaRed+llegada.Orden+" → "+llegada.Destino)
 	}
 
+	if len(informe.SesionesSinMedir) > 0 {
+		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
+	}
+
 	return motivos
+}
+
+// motivosDeLaSerie son los motivos de la raíz que da una serie: si el plan la
+// pide, el de las sesiones que faltan o sobran, contando como suyas las que el
+// repartidor no abrió; y, si decide, no llega al umbral y no tiene ninguna sin
+// medir, su tasa seguida de los motivos de sus sesiones que no pasan que no se
+// hayan escrito ya.
+func motivosDeLaSerie(e InformeAEscribir, serie serieJuzgada, sesiones []sesionJuzgada, escritas map[string]bool) []string {
+	var motivos []string
+
+	if hay := serie.tasa.Sesiones + serie.sinAbrir; serie.tasa.Planificada && hay != e.Repeticiones {
+		motivos = append(motivos, fmt.Sprintf("%s con %s: hay %d sesiones y el plan pide %d",
+			serie.tasa.Eval, serie.tasa.Modelo, hay, e.Repeticiones))
+	}
+
+	if !serie.tasa.Decide || serie.tasa.Pasa || serie.tasa.SinMedir > 0 {
+		return motivos
+	}
+
+	motivos = append(motivos, fmt.Sprintf("%s con %s: pasan %d de %d, y el umbral es %d",
+		serie.tasa.Eval, serie.tasa.Modelo, serie.tasa.Pasan, serie.tasa.Sesiones, e.Umbral))
+
+	for _, posicion := range serie.sesiones {
+		motivos = append(motivos, motivosDeLaSesion(sesiones[posicion], escritas)...)
+	}
+
+	return motivos
+}
+
+// sesionesSinMedir son las sesiones sin medir del informe, en orden de sesión
+// (data-model §3 de H7.3): las juzgadas que un límite de uso no dejó terminar,
+// con la descripción de su clase, y las que el repartidor no abrió tras él, con
+// «sin abrir tras el límite de uso». Nil, [] en informe.json, si no hay ninguna.
+func sesionesSinMedir(resultados []ResultadoDeEval, sinAbrir []SesionPlanificada) []SesionSinMedir {
+	var sinMedir []SesionSinMedir
+
+	for _, resultado := range resultados {
+		if resultado.SinMedir != "" {
+			sinMedir = append(sinMedir, SesionSinMedir{
+				Sesion: resultado.Sesion, Eval: resultado.Eval, Modelo: resultado.Modelo, Motivo: resultado.SinMedir,
+			})
+		}
+	}
+
+	for _, planificada := range sinAbrir {
+		sinMedir = append(sinMedir, SesionSinMedir{
+			Sesion: planificada.Nombre, Eval: planificada.Fichero, Modelo: planificada.Modelo, Motivo: descripcionSinAbrir,
+		})
+	}
+
+	slices.SortStableFunc(sinMedir, func(a, b SesionSinMedir) int { return cmp.Compare(a.Sesion, b.Sesion) })
+
+	return sinMedir
+}
+
+// motivoDeLasSesionesSinMedir es el motivo de la raíz que dan las sesiones sin
+// medir: el prefijo de la ejecución, el límite de uso, cuántas son y cada una
+// con su motivo, en su orden (contrato informe-del-job §2.2 de H7.3).
+func motivoDeLasSesionesSinMedir(sinMedir []SesionSinMedir) string {
+	nombradas := make([]string, 0, len(sinMedir))
+	for _, sesion := range sinMedir {
+		nombradas = append(nombradas, sesion.Sesion+" ("+sesion.Motivo+")")
+	}
+
+	return motivoDeLaEjecucion + fmt.Sprintf(motivoDelLimiteDeUso, len(sinMedir), strings.Join(nombradas, ", "))
 }
 
 // motivosDeLaSesion son los motivos de una sesión que no pasa, precedidos de su
@@ -823,12 +964,13 @@ func retirarFichero(ruta string) error {
 }
 
 // renderizarInforme da informe.md (contrato job-de-evals §5): el título; el
-// veredicto y sus motivos; la cabecera con sus cuatro líneas; la comprobación sin
-// Python en un bloque; los ficheros mal formados, las invocaciones fuera de lo
-// grabado y las peticiones llegadas a la red; las tasas por eval; el recuento de
-// las expresiones prohibidas por modelo, o el párrafo de la skill sin lista
-// (contrato lista-y-juicio §5 de H7.2); la tabla de las sesiones; y una sección
-// por sesión.
+// veredicto y sus motivos; la cabecera, con los reintentos por límite de ritmo
+// al final (contrato informe-del-job §4 de H7.3); la comprobación sin Python en
+// un bloque; los ficheros mal formados, las invocaciones fuera de lo grabado y
+// las peticiones llegadas a la red; las tasas por eval; el recuento de las
+// expresiones prohibidas por modelo, o el párrafo de la skill sin lista
+// (contrato lista-y-juicio §5 de H7.2); las sesiones sin medir, o «ninguna»; la
+// tabla de las sesiones; y una sección por sesión.
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -846,6 +988,7 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("Modelos de las sesiones: " + unidosOVacio(informe.ModelosDeSesion, ningunoEnElInforme))
 	md.parrafo("Versiones de Claude Code: " + unidosOVacio(informe.VersionesDeClaudeCode, ningunaEnElInforme))
 	md.parrafo("Commit: " + informe.Commit)
+	md.parrafo("Reintentos por límite de ritmo: " + strconv.Itoa(informe.ReintentosPorLimiteDeRitmo))
 
 	md.parrafo("## Comprobación sin Python")
 	md.bloqueDeTexto(informe.SinPython)
@@ -878,6 +1021,9 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.tablaOVacia(encabezadosDeExpresiones, filasDeExpresiones(informe.ExpresionesProhibidasPorModelo),
 		sinListaDeExpresiones)
 
+	md.parrafo("## Sesiones sin medir")
+	md.tablaOVacia(encabezadosDeSinMedir, filasDeSinMedir(informe.SesionesSinMedir), ningunaEnElInforme)
+
 	md.parrafo("## Sesiones")
 	md.tablaOVacia(encabezadosDeSesiones, filasDeSesiones(informe.Evals), ningunaEnElInforme)
 
@@ -889,8 +1035,9 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 }
 
 // sesion añade la sección de una sesión: su eval, la pregunta, las invocaciones
-// con su código y sus conexiones, la respuesta y, si la sesión no terminó o no se
-// pudo leer, sus motivos y su salida de error.
+// con su código y sus conexiones, la respuesta y, si la sesión no terminó, no se
+// pudo leer o quedó sin medir, sus motivos de sesión ilegible, sin terminar o sin
+// medir y su salida de error.
 func (d *documento) sesion(juzgada sesionJuzgada) {
 	resultado := juzgada.resultado
 
@@ -912,14 +1059,15 @@ func (d *documento) sesion(juzgada sesionJuzgada) {
 
 	d.textoLeido("Respuesta", resultado.Respuesta, juzgada.leida)
 
-	if resultado.SesionTerminada && !juzgada.ilegible {
+	if resultado.SesionTerminada && !juzgada.ilegible && resultado.SinMedir == "" {
 		return
 	}
 
 	var motivos []string
 
 	for _, motivo := range resultado.Motivos {
-		if strings.HasPrefix(motivo, motivoDeSesionIlegible) || strings.HasPrefix(motivo, motivoDeSesionSinTerminar) {
+		if strings.HasPrefix(motivo, motivoDeSesionIlegible) || strings.HasPrefix(motivo, motivoDeSesionSinTerminar) ||
+			strings.HasPrefix(motivo, motivoSinMedir) {
 			motivos = append(motivos, motivo)
 		}
 	}
@@ -951,7 +1099,8 @@ func filasDeRed(red []RedDelInforme) [][]string {
 
 // filasDeTasas son las filas de la tabla de las series: eval, modelo, si decide,
 // si el plan la pide, las formas que exige su eval junto a la tasa (contrato
-// evals-y-skill §6 de H7.1), la tasa «<pasan> de <sesiones>» y si llega al umbral.
+// evals-y-skill §6 de H7.1), la tasa «<pasan> de <sesiones>» y si llega al umbral
+// o, con alguna sesión sin medir, cuántas (contrato informe-del-job §4 de H7.3).
 // La eval de una serie con la pregunta ampliada lleva detrás con qué se amplió,
 // que es la prueba de red.
 func filasDeTasas(tasas []TasaDelInforme) [][]string {
@@ -970,8 +1119,19 @@ func filasDeTasas(tasas []TasaDelInforme) [][]string {
 			siONo(tasa.Planificada),
 			unidosOVacio(tasa.Formas, ningunaEnElInforme),
 			strconv.Itoa(tasa.Pasan) + " de " + strconv.Itoa(tasa.Sesiones),
-			resultadoDelUmbral(tasa.Pasa),
+			resultadoDeLaSerie(tasa),
 		})
+	}
+
+	return filas
+}
+
+// filasDeSinMedir son las filas de la tabla de las sesiones sin medir: sesión,
+// eval, modelo y motivo.
+func filasDeSinMedir(sinMedir []SesionSinMedir) [][]string {
+	filas := make([][]string, 0, len(sinMedir))
+	for _, sesion := range sinMedir {
+		filas = append(filas, []string{sesion.Sesion, sesion.Eval, sesion.Modelo, sesion.Motivo})
 	}
 
 	return filas
@@ -991,26 +1151,33 @@ func filasDeExpresiones(recuento []RecuentoDeExpresiones) [][]string {
 	return filas
 }
 
-// resultadoDelUmbral dice si una serie llega al umbral.
-func resultadoDelUmbral(pasa bool) string {
-	if pasa {
+// resultadoDeLaSerie dice cuántas sesiones de la serie quedaron sin medir, si
+// alguna lo hizo, o si no, si la serie llega al umbral.
+func resultadoDeLaSerie(tasa TasaDelInforme) string {
+	switch {
+	case tasa.SinMedir > 0:
+		return fmt.Sprintf(serieSinMedir, tasa.SinMedir)
+	case tasa.Pasa:
 		return "llega al umbral"
+	default:
+		return "no llega al umbral"
 	}
-
-	return "no llega al umbral"
 }
 
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
 // activa, activada, sesión terminada con su código, comandos ausentes, comandos
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
 // hallazgos encontrados, hallazgos ausentes, territorio encontrado, territorio
-// ausente, expresiones prohibidas y resultado. Los comandos prohibidos ejecutados
+// ausente, expresiones prohibidas, reintentos por límite de ritmo, sin medir —«no»
+// o la clase— y resultado. Los comandos prohibidos ejecutados
 // van junto a los ausentes, cada uno con su texto (contrato evals-y-skill §2 de
 // H7); los avisos, junto a las citas, cada uno con su código (contrato de formato,
 // juicio e informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su
 // clase (contrato evals-y-skill §6 de H7.1); el territorio, detrás, cada elemento
 // con su texto (contrato de evals §2 de H6); y las expresiones prohibidas, detrás
-// del territorio, en el orden de la lista (contrato lista-y-juicio §5 de H7.2).
+// del territorio, en el orden de la lista (contrato lista-y-juicio §5 de H7.2);
+// los reintentos y si quedó sin medir, detrás de las expresiones (contrato
+// informe-del-job §4 de H7.3).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -1042,6 +1209,8 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			unidosOVacio(resultado.TerritorioEncontrado, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioAusente, ningunoEnElInforme),
 			unidosOVacio(resultado.ExpresionesProhibidas, ningunaEnElInforme),
+			strconv.Itoa(resultado.ReintentosPorLimiteDeRitmo),
+			cmp.Or(resultado.SinMedir, medidaEnElInforme),
 			pasa,
 		})
 	}
