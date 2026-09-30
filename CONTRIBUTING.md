@@ -443,6 +443,8 @@ evals siguen el formato común de eval:
 | `hallazgos` | no; solo si `activa` es `true`, prohibido si es `false` | Las clases de hallazgo de `graph check` cuya forma fija —`⚠`, la etiqueta que da el binario y dos puntos— debe llevar la respuesta; hoy solo `version-obsoleta` (`⚠ REDACCIÓN MODIFICADA:`), la única que el binario etiqueta |
 | `prohibidos` | no; solo si `activa` es `true`, prohibido si es `false` | Los `applet` y `verbo` que la sesión no puede invocar (`graph` `show`…); al menos uno |
 | `grafo_previo` | no; solo si `activa` es `true`, prohibido si es `false` | Lo que el grafo del mundo de la sesión ya ha observado al empezar: `grabaciones`, un directorio de `testdata/evals/grafo-previo/` con respuestas del BOE que se ponen encima de las grabadas, y `comandos`, los bloques (`applet`, `norma`, `bloque`) que se consultan contra ellas antes de la sesión, entregando lo observado al grafo de la sesión; la caché de la sesión se prepara después, como siempre y sin entregar nada |
+| `redacciones_modificadas` | no; solo si `activa` es `true`, prohibido si es `false` | Las líneas `⚠ REDACCIÓN MODIFICADA:` que debe llevar la respuesta, cada una con su `norma`, su `bloque` y sus dos fechas de vigencia `AAAAMMDD`: `fecha_vigencia`, la de la redacción superada, y `fecha_vigencia_reciente`, la de la que cita; al menos una |
+| `no_se_activan` | no | Las skills que la sesión no debe activar, por su nombre y sin repetir (`boe-legislacion` en las de `legal-core`); al menos una |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
 
@@ -458,8 +460,9 @@ configurados el boletín autonómico y el provincial, al menos una de no activac
 positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparación, en temporales, deja en el grafo un
 `BloqueVersion` por comando sin ninguna falta; después, leyendo como la sesión cada bloque de los `comandos` de la eval,
 `graph check` termina con `0` con exactamente las clases de `hallazgos` de la eval, y cada `version-obsoleta` con la
-fecha de vigencia de la redacción que dejó el grafo previo y la de la que acaba de leer (`TestEvalsDelRepositorio`,
-subprueba `grafo-previo`). Cada respuesta de un grafo previo es una derivada de la grabación de H4 que sustituye —la
+fecha de vigencia de la redacción que dejó el grafo previo y la de la que acaba de leer; y cada redacción de
+`redacciones_modificadas` es uno de esos `version-obsoleta`, de su norma y su bloque y con sus dos fechas, porque la
+eval no puede esperar unas fechas que las grabaciones no dan (`TestEvalsDelRepositorio`, subprueba `grafo-previo`). Cada respuesta de un grafo previo es una derivada de la grabación de H4 que sustituye —la
 misma respuesta sin sus redacciones posteriores a una fecha de vigencia, y nada más—: se declara en
 `derivadasDelGrafoPrevio()` de `internal/app/grafo_test.go`, la escribe
 `go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/ -args -actualizar-derivadas`, nunca una persona, y
@@ -468,31 +471,48 @@ exactamente una de las redacciones que trae la grabada, la de esa fecha.
 
 **La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
 expresiones que no lleva la respuesta de una eval que activa la skill. `make ci` la reconoce por ese nombre exacto —no
-es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: tres claves
-obligatorias, una por familia, cada una con una lista no vacía de expresiones de una o más palabras separadas por un
-espacio, sin blancos en los extremos ni `*` o `_`:
+es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: cinco claves
+obligatorias, una por cada una de las cuatro familias, con una lista no vacía de expresiones de una o más palabras
+separadas por un espacio, sin blancos en los extremos ni `*` o `_`, y `formas_fijas`. Las familias son de dos clases:
+la A, lo que la respuesta no cuenta, y la B, una redacción que la respuesta no ha leído, que tiene su propio umbral en
+el informe ([Job de evals](#job-de-evals)):
 
-| Familia | Qué recoge |
-|---|---|
-| `maquinaria` | Lo que la respuesta no cuenta de cómo trabaja la skill: la memoria de consultas, `kitlegal graph` y sus verbos, los códigos de salida, los hallazgos y sus clases, el JSON y el sobre, en formas que no chocan con el castellano corriente ni con el texto de las normas (`memoria de consultas`, `graph check`, `código 0`, `sobre de salida`…) |
-| `otra_conversacion` | Lo que atribuye a la skill algo dicho a quien pregunta en otra conversación: un verbo de decir con «te» en pretérito o en condicional compuesto, y `conversación anterior` (`te dije`, `te habría confirmado`…) |
-| `anuncio` | El anuncio de la respuesta o del estado de lo comprobado: que va a responder, que ya tiene lo que necesita o que no hay nada que trasladar (`ya puedo responder`, `tengo todo lo necesario`, `redacto la respuesta`, `que trasladar`…). Ninguna dice a quien lee que la norma no está derogada o que no tiene avisos: eso es derecho, no maquinaria |
+| Familia | Clase | Qué recoge |
+|---|---|---|
+| `maquinaria` | A | Lo que la respuesta no cuenta de cómo trabaja la skill: la memoria de consultas, `kitlegal graph` y sus verbos, los códigos de salida, los hallazgos y sus clases, el JSON y el sobre, en formas que no chocan con el castellano corriente ni con el texto de las normas (`memoria de consultas`, `graph check`, `código 0`, `sobre de salida`…) |
+| `otra_conversacion` | A | Lo que atribuye a la skill algo dicho a quien pregunta en otra conversación: un verbo de decir con «te» en pretérito o en condicional compuesto, y `conversación anterior` (`te dije`, `te habría confirmado`…) |
+| `anuncio` | A | El anuncio de la respuesta o del estado de lo comprobado —de la comprobación o de una lectura anterior, o de lo que el agente tiene, necesita o va a hacer—: que va a responder, que ya tiene lo que necesita, que no hay nada que trasladar o que la redacción no ha cambiado (`ya puedo responder`, `tengo suficiente`, `que trasladar`, `consulta anterior`, `la comprobación de la redacción`, `se consultó antes`…). Ninguna dice a quien lee que la norma no está derogada o que no tiene avisos: eso es derecho, no maquinaria |
+| `redaccion_no_leida` | B | Una redacción que ninguna orden devolvió: qué decía, hasta cuándo rigió o qué cambió respecto de ella (`ya no exige`, `vigente hasta`, `el cambio relevante`…) |
 
-Cada expresión se compara con la respuesta por la forma, sin ningún modelo y con la tolerancia de las formas fijas de
-los avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las palabras y
-alrededor; delimitada como palabra —`hallazgo` no se encuentra dentro de `hallazgos`—, sin plegar tildes y sin admitir
-un salto de línea entre dos palabras. **Lo mismo dicho con otras palabras no se detecta**: es una limitación declarada,
-y el informe publica cada respuesta para verlo. Una lista mal formada —clave desconocida o repetida, familia que falta
-o vacía, expresión con blancos en un extremo o con `*` o `_`, o una entrada con ese nombre que no es un fichero— es un
-fichero mal formado, como una eval: `make ci` falla nombrándola y las evals de la carpeta se leen sin lista. Hoy solo
-la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya: marca exactamente 35 de las 93
-respuestas del informe de evals de H7.1 y 10 de las 93 del de H7.2, los informes versionados en los directorios de
-esos hitos en `specs/`, eval por eval y familia por familia, y ninguna otra (subprueba `expresiones-calibradas`), así
-que una expresión nueva que marca una respuesta más, o una retirada que deja de marcar una, hace fallar `make ci`
-nombrando el informe, la eval y la familia; ninguna expresión casa con el texto de los bloques que leen sus evals y
-sus grafos previos (`expresiones-en-los-bloques`), ni con las formas fijas de los avisos y de los hallazgos o los
-bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir (`expresiones-de-la-skill`); y **la prosa
-de su `SKILL.md` no enseña lo que la respuesta no puede decir** (`prosa-de-la-skill`): sobre el fichero entero,
+`formas_fijas` no es una familia: son las formas que la skill enseña a escribir y que llevan palabras de la lista,
+cada una de una sola línea, con los marcadores `<cita>` —opcional: la forma casa también sin la cita— y `<fecha>`
+—ocho cifras— en lugar de sus datos (en `boe-legislacion`, la línea `⚠ REDACCIÓN MODIFICADA:` y la frase de la
+regla 7 sin su punto final). **Se quitan de la respuesta antes de buscar**, en todas sus apariciones, con varios
+blancos donde la forma lleva uno y, en una `⚠` inicial, las tolerancias de la forma fija de los avisos; y se quitan
+también la marca, la etiqueta y los dos puntos de cada aviso de vigencia. Cada tramo quitado deja un salto de línea.
+Así «la que se consultó antes» dentro de la línea no cuenta, y fuera de ella, sí.
+
+Cada expresión se compara con lo que queda de la respuesta por la forma, sin ningún modelo y con la tolerancia de las
+formas fijas de los avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las
+palabras y alrededor; delimitada como palabra —`hallazgo` no se encuentra dentro de `hallazgos`—, sin plegar tildes y
+sin admitir un salto de línea entre dos palabras; y se buscan en el orden de las familias, sin repetir.
+**Lo mismo dicho con otras palabras no se detecta**: es una limitación declarada, y el informe publica cada respuesta
+para verlo. Una lista mal formada —clave desconocida o repetida, familia o `formas_fijas` que falta o vacía, expresión
+con blancos en un extremo o con `*` o `_`, forma fija en blanco o de más de una línea, o una entrada con ese
+nombre que no es un fichero— es un fichero mal formado, como una eval: `make ci` falla nombrándola y las evals de la
+carpeta se leen sin lista. Hoy solo la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya:
+marca exactamente 36 de las 93 respuestas del informe de evals de H7.1, 11 de las 93 del de H7.2 y 9 de las 93 del de
+H7.3, los informes versionados en los directorios de esos hitos en `specs/`, eval por eval, familia por familia y en
+las que llevan alguna, y ninguna otra (subprueba `expresiones-calibradas`), así que una expresión nueva que marca una
+respuesta más, o una retirada que deja de marcar una, hace fallar `make ci` nombrando el informe, la eval y la
+familia; ninguna expresión casa con el texto de los bloques que leen sus evals y sus grafos previos
+(`expresiones-en-los-bloques`), ni con la respuesta que compone, con datos de ejemplo, la forma fija de cada aviso y
+de cada hallazgo y los bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir, una vez quitadas las
+formas fijas de la lista, y cada una de ellas quita algo de esa respuesta, de modo que la skill y la lista dicen lo
+mismo (`expresiones-de-la-skill`); cada orden de lectura y comprobación de su `SKILL.md`, la de `articulo` y la de
+`articulos`, lleva detrás su forma para PowerShell, con la misma norma y los mismos bloques
+(`ordenes-para-powershell`); y **la prosa de su `SKILL.md` no enseña lo que la respuesta no puede decir**
+(`prosa-de-la-skill`): sobre el fichero entero,
 frontmatter incluido, sin los bloques delimitados, los tramos de código en línea ni la región generada de la tabla de
 comandos, y párrafo a párrafo —partido por las líneas en blanco y por cada elemento de lista—, ninguna expresión de la
 lista, y en todo el fichero ninguna fecha `AAAAMMDD` escrita con cifras, que un ejemplo daría a copiar. Falla
@@ -500,17 +520,26 @@ nombrando la primera línea de cada párrafo que lleva alguna, con sus expresion
 skill ejecuta y lo que lee en la salida del binario va en código (`version-obsoleta`, `data.hallazgos`, `3`), y no
 cuenta; los ejemplos de una forma que lleva datos del binario usan marcadores como `AAAAMMDD`.
 
-Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
-termina, hace con éxito cada consulta de `comandos` —una comprobación la cumple una invocación de ese applet con
-`check`, y con su `norma` si la lleva, que termina con `0`—, no invoca nada de `prohibidos` —cuenta toda invocación
-que consulta de ese applet y verbo, termine como termine; la ayuda, `--describe` y `--dry-run`, no— y responde
-citando cada `norma` y `bloque` de `citas`, declarando lo que espera `territorio` —la comunidad y la provincia sin
-distinguir mayúsculas ni tildes, el código de cada boletín como palabra exacta y cada aspecto de cobertura en su forma
-fija `<aspecto>: <valor>`—, con la forma fija de cada aviso de `avisos` y de cada clase de `hallazgos` y, si la eval
-activa la skill y la skill tiene lista, sin ninguna expresión prohibida —cada una encontrada es un motivo
+Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe, no
+activa ninguna de `no_se_activan` —cada una que activa es un motivo
+`se activó la skill <nombre>, que la eval dice que no se activa`—, termina, hace con éxito cada consulta de
+`comandos` —una comprobación la cumple una invocación de ese applet con `check`, y con su `norma` si la lleva, que
+termina con `0`—, no invoca nada de `prohibidos` —cuenta toda invocación que consulta de ese applet y verbo, termine
+como termine; la ayuda, `--describe` y `--dry-run`, no— y responde citando cada `norma` y `bloque` de `citas`,
+declarando lo que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el código de
+cada boletín como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`—, con la forma fija
+de cada aviso de `avisos` y de cada clase de `hallazgos`, con una línea por cada redacción de
+`redacciones_modificadas` —una línea con la forma fija de `version-obsoleta` cuya primera cita es de esa norma y ese
+bloque y cuyas dos primeras fechas `AAAAMMDD` son las suyas, en su orden; cada una que falta es un motivo
+`redacción modificada ausente: <norma> <bloque> <fecha_vigencia> <fecha_vigencia_reciente>`— y, si la eval activa la
+skill y la skill tiene lista, sin ninguna expresión prohibida —cada una encontrada es un motivo
 `expresión prohibida: <expresión>`—; una eval de no activación, o una de una skill sin lista, no la mira. Lo juzga el
-informe sin modelo, con lo que deja la sesión: su transcript y su traza. Cada eval se abre varias veces con un mismo
-modelo, y esa serie pasa si las sesiones que pasan llegan al umbral ([Job de evals](#job-de-evals)).
+informe sin modelo, con lo que deja la sesión: su transcript y su traza. **La respuesta que se juzga es la de la
+pregunta**: el primer `result` del transcript, si termina bien (`subtype` `success` e `is_error` falso), y vacía si
+no; el aviso de una tarea en segundo plano que termina después abre otro turno, con su propio `result`, que no la
+sustituye. Si la sesión terminó se sigue leyendo de su último mensaje, y las skills activadas, de todo el transcript.
+Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
+([Job de evals](#job-de-evals)).
 
 ### Job de evals
 
@@ -567,16 +596,20 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `legal-core` |
 | `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
 
-Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones, cuatro a la vez: 36 de `claude-sonnet-5-5`
-sobre las doce que deciden, 21 sobre las siete informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que
-deciden. El tope de 120 minutos de cada trabajo (`timeout-minutes`) corta un cuelgue; no es el control de la duración,
+Con las veinte evals de `boe-legislacion`, su trabajo abre 96 sesiones, cuatro a la vez: 36 de `claude-sonnet-5-5`
+sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que
+deciden. El tope de 122 minutos de cada trabajo (`timeout-minutes`) corta un cuelgue; no es el control de la duración,
 que es un umbral del informe, porque un trabajo cancelado no escribe informe. Cubre el peor caso de cada skill —todas
 las sesiones de su plan, con la de la prueba de red, llegando a su tope, con su concurrencia, más la preparación de
 cada una, la del runner y el informe—: `485 s + ⌈N / C⌉ × (22 s + 240 s + 10 s)`, con `N` esas sesiones y `C` su
-concurrencia. `TestDefinicionDelJob` comprueba en `make ci` la definición del job —el nombre del trabajo, el grupo de
-`concurrency` y `cancel-in-progress`, que no hay `concurrency` de nivel de flujo, la concurrencia y el objetivo de cada
-skill y que el tope cubre su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval nueva
-que deja el peor caso por encima del tope la hace fallar. Se lanza de tres formas:
+concurrencia (en `boe-legislacion`, 97 sesiones a 4: 7 285 s). `TestDefinicionDelJob` comprueba en `make ci` la
+definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
+su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
+cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo de `concurrency` y
+`cancel-in-progress`, que no hay `concurrency` de nivel de flujo, la concurrencia y el objetivo de cada skill y que el
+tope cubre su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval nueva que deja el peor
+caso por encima del tope la hace fallar. Prueba también, con consultas sintéticas y sin red, cómo decide `tanda`
+(subpruebas `segundo-disparo` y `estado-de-la-tanda`). Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
@@ -589,11 +622,23 @@ BOE fijados, no medía ningún cambio. Tampoco reacciona a cada empujón (`synch
 sesiones con modelo y un hito empuja muchas veces, así que cada informe mide el commit que había cuando se abrió o se
 reabrió la propuesta, o cuando se puso la etiqueta. **Para volver a medir, la etiqueta**: una que ya está puesta no
 lanza nada, así que se quita y se vuelve a poner. Una propuesta que solo toca documentación no arranca el job, y es lo
-esperado. **Una sola tanda por commit**: el trabajo de cada skill lleva una `concurrency` por commit y skill con
-`cancel-in-progress: false`, así que un segundo disparo sobre el mismo commit mientras el primero sigue —la apertura y
-la etiqueta, por ejemplo— espera a que termine, sin cancelarse ni saltarse, y abre su tanda después; no hay
-`concurrency` de nivel de flujo, que detendría también el trabajo de la otra skill. El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
-`--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
+esperado. **Una sola tanda por commit y skill**: antes de los trabajos de las skills, y solo en una ejecución que
+quiere medir —el despacho, la etiqueta o la apertura que toca lo que las evals miden—, el trabajo `tanda` decide si
+esa ejecución mide el commit. No lo mide si una ejecución anterior del flujo sobre el mismo commit, sin terminar, ya
+lo mide; lo decide `TestTandaDelCommit` (etiqueta `evals`), que consulta con `gh run list` las ejecuciones del flujo
+sobre el commit y con `gh run view` los trabajos de cada una anterior sin terminar, y, mientras alguna no ha decidido,
+vuelve a consultar cada 10 s, como mucho 10 min: espera a que decidan las anteriores, nunca a su tanda. Deja
+`medir=si` o `medir=no` en la salida del trabajo y registra qué ejecuciones miró y por qué mide o no; el último paso,
+«Esta ejecución mide el commit», solo corre en la que mide, y es lo que leen las posteriores. Los trabajos
+`evals (<skill>)` solo corren con `medir=si`, así que un segundo disparo sobre el mismo commit mientras el primero
+sigue —la apertura y la etiqueta, por ejemplo— los salta enteros: no abre ninguna sesión ni deja una comprobación roja
+o de más, y el informe es el de la tanda que mide. La etiqueta sobre un commit cuya tanda ya terminó vuelve a medir.
+`tanda` no lleva `concurrency`, así que ni espera en cola ni se cancela; el trabajo de cada skill conserva la suya,
+por commit y skill con `cancel-in-progress: false`, de modo que, si la espera de `tanda` se agota con una anterior sin
+decidir, la ejecución mide detrás de la otra, sin cancelar ninguna. No hay `concurrency` de nivel de flujo, que
+detendría también el trabajo de la otra skill. El informe se imprime en el registro de la ejecución, entre las marcas
+`--- inicio de informe.md ---` y `--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la
+ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
 del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
 cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
 posterior obliga a repetirlas.
@@ -605,7 +650,7 @@ Cómo se lee el informe:
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
   fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas—, una petición llegada
   a la red o un umbral que decide y no se cumple
-  (`umbral expresiones_prohibidas:claude-sonnet-5-5: 3 de 51 (5,9 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
+  (`umbral expresiones_prohibidas:claude-sonnet-5-5: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
   prefijo fijo `de la ejecución, no de la skill: `, que los distingue sin modelo de los de la skill, el de las sesiones
   sin medir por un límite de uso de la cuenta y el de la duración de las sesiones por encima de su objetivo: dicen que
   el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill.
@@ -621,21 +666,26 @@ Cómo se lee el informe:
   `expresiones_prohibidas` —`[]` si ninguna o si no se le aplica la lista—, y la tabla «Sesiones» de `informe.md`, la
   columna «Expresiones prohibidas» (`ninguna` si no lleva ninguna). En la raíz de `informe.json`,
   `expresiones_prohibidas_por_modelo` da un elemento por modelo del job —el que decide y después los informativos, en
-  su orden— con `modelo`, `respuestas`, las sesiones medidas (ni las ilegibles ni las sin medir) de las series
-  planificadas cuya eval activa la skill, las informativas incluidas, y `con_alguna`, las de ellas que llevan alguna
-  expresión; `informe.md` lo da en la sección «Expresiones prohibidas por modelo», detrás de «Tasas por eval». Una
-  skill sin lista da `[]` y el párrafo «la skill no tiene lista de expresiones prohibidas»: un recuento de cero diría
-  que se buscó. Una sesión con alguna expresión no pasa, y su serie decide con el umbral de siempre si es de las que
-  deciden; además, el recuento de cada modelo es un umbral.
+  su orden— con `modelo`, `respuestas`, las sesiones medidas de las series planificadas cuya eval activa la skill, las
+  informativas incluidas —**solo las terminadas**: ni las ilegibles, ni las sin medir, ni las que no terminaron, que
+  se publican con su motivo y no pasan en su serie, pero no cuentan en ningún recuento ni umbral—, y `con_alguna`, las
+  de ellas que llevan alguna expresión; `informe.md` lo da en la sección «Expresiones prohibidas por modelo», detrás de
+  «Tasas por eval». Una skill sin lista da `[]` y el párrafo «la skill no tiene lista de expresiones prohibidas»: un
+  recuento de cero diría que se buscó. Una sesión con alguna expresión no pasa, y su serie decide con el umbral de
+  siempre si es de las que deciden; además, el recuento de cada modelo es un umbral.
 - **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
-  o de la propia `medida`, y se puede rehacer con los otros campos. Una skill con lista tiene uno por modelo del job,
-  `expresiones_prohibidas:<modelo>`, con el recuento de ese modelo y `umbral` `0.05`, que solo decide en el modelo que
-  decide: con las 51 respuestas de `claude-sonnet-5-5` en las evals de `boe-legislacion` que activan la skill, como
-  mucho 2 con alguna expresión; el de `claude-haiku-4-5-20251001` se publica con `decide: false`. Una skill con
-  objetivo de duración tiene además `duracion_de_las_sesiones`, sin `total` y con `decide: true`; `legal-core` no
-  tiene ninguno, `[]`. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no
+  o de la propia `medida`, y se puede rehacer con los otros campos. Una skill con lista tiene, con las respuestas
+  medidas de cada modelo como `total`, **tres umbrales de la respuesta del modelo que decide**, los tres con
+  `decide: true` y en este orden: `expresiones_prohibidas:<modelo>`, las que llevan alguna expresión, con `umbral`
+  `0.05`; `sin_activar:<modelo>`, las que no activan la skill, con `umbral` `0`; y `redaccion_no_leida:<modelo>`, las
+  que llevan alguna expresión de la clase B, con `umbral` `0`. Con las 54 respuestas de `claude-sonnet-5-5` en las
+  evals de `boe-legislacion` que activan la skill, el primero admite como mucho 2 con alguna expresión, y los otros
+  dos, ninguna; una respuesta sin la skill activada y con una expresión cuenta, una vez, en cada umbral que la mide.
+  Detrás, uno por modelo informativo, `expresiones_prohibidas:<modelo>`, que se publica con `decide: false` (el de
+  `claude-haiku-4-5-20251001`, sobre 30). Una skill con objetivo de duración tiene además, al final,
+  `duracion_de_las_sesiones`, sin `total` y con `decide: true`; `legal-core` no tiene ninguno, `[]`. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no
   cambia nada. `informe.md` los da en la sección «Umbrales», detrás de «Expresiones prohibidas por modelo»: la tabla
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.

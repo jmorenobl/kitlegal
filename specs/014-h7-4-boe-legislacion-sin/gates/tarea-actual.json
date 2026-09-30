@@ -1,19 +1,17 @@
 {
-  "id": "T011",
-  "texto": "T011 [US7] Los errores de uso del sondeo, sin la traza de `go test` (contracts/sondeo.md §1 a §4; data-model §8; research D18, V23, V26; plan.md paso 8; control de umbral de FR-080): internal/evals/sondeo.go: `errorDeUso`, tipo sin exportar que envuelve, con el mismo texto de hoy, lo que `comprobarElSondeo` devuelve por los argumentos (los de `SKILL`, `EVALS`, `MODELO`, `REPETICIONES` y `CONCURRENCIA`, unidos, uno por línea, en ese orden) o por la credencial (`errSinSuscripcion`); no lo son el error de leer la definición del job, construir el binario, instalar las skills, repartir las sesiones ni crear el directorio de sesiones (FR-081); con un `errorDeUso`, `sondear` no prepara el árbol ni llama al repartidor; internal/evals/job_test.go (etiqueta `evals`): `TestSondeo`, con un `errorDeUso` (`errors.As`), escribe su mensaje con un salto de línea final en `uso.txt` del temporal y termina sin fallar, sin escribir `salida.txt`; con otro error falla como hoy (`require.NoError`); sin error escribe `salida.txt` como hoy; scripts/evals-sondeo.sh, tras `go test` y en este orden: si falló, imprime `go-test.log` en la salida de error y sale con 1 (hoy); si `uso.txt` existe y no está vacío, lo imprime en la salida de error, sin nada más, y sale con 1; si no, imprime `salida.txt` (hoy); el temporal se borra al salir, con el código que sea (hoy); bash sin nada posterior a 3.2; su comentario de cabecera lo dice; tests: `TestGuionDelSondeo` (internal/evals/sondeo_test.go, con el `go` sustituto de hoy) gana dos casos —el sustituto deja en `uso.txt` las dos líneas de contracts §3 (`MODELO: está vacío` y `REPETICIONES: «0» no es un entero mayor o igual que 1`) y sale con 0: el guion sale con 1, su salida de error es exactamente esas dos líneas y la estándar está vacía; lo mismo con la línea de la credencial—, y el de hoy en que el sustituto falla sigue dando el registro entero con 1 (FR-081); `TestComprobarElSondeo` comprueba además que sus errores de argumentos y de credencial son `errorDeUso` y que el de una definición del job que no se puede leer no lo es; `TestSondear`, que con un `errorDeUso` no se prepara el árbol ni se abre ninguna sesión; verificación: `bash -n scripts/evals-sondeo.sh`; con la rama de `uso.txt` quitada un momento del guion, los dos casos nuevos de `TestGuionDelSondeo` fallan (se restaura antes de `make ci`); `go vet` con la etiqueta `evals` sobre el paquete sin salida; `make ci` en verde — FR-080, FR-081, FR-082, FR-099; SC-009; US7-1, US7-2, US7-3; rutas: internal/evals/sondeo.go, internal/evals/job_test.go, scripts/evals-sondeo.sh",
+  "id": "T012",
+  "texto": "T012 Documentación que el hito deja falsa (research D19, V25; contracts/skill-boe-legislacion.md §6; plan.md paso 9): CHANGELOG.md, *Unreleased* (H7 a H7.3 no han salido en ninguna release, así que describe el comportamiento final): en «Cambiado», la entrada de `boe-legislacion` pasa a v0.1.4 con el texto de contracts/skill-boe-legislacion.md §6 —se activa ante toda pregunta cuya respuesta dependa de lo que dice una norma, también si el modelo cree saberla; la respuesta no cuenta la comprobación ni lo que el agente va a hacer, y no describe una redacción que no ha leído (dice que cita la vigente y que la anterior no la ha leído); cada línea `⚠ REDACCIÓN MODIFICADA:` dice de qué precepto es, con su cita; y cada orden de lectura y comprobación tiene su forma para PowerShell—, y dice que sustituye a la v0.1.3, que no llegó a publicarse; y las entradas del job de evals: la lista por clases (`redaccion_no_leida`, y `formas_fijas`, que se quitan antes de buscar), los umbrales `sin_activar:<modelo>` y `redaccion_no_leida:<modelo>` que deciden con 0, la eval de dos bloques de la LCSP, el juicio sobre la respuesta a la pregunta (el primer `result`) con los recuentos solo de las sesiones terminadas, una tanda por commit y skill con el trabajo `tanda`, y los errores de uso del sondeo sin la traza (FR-027, FR-101); CONTRIBUTING.md, «Job de evals»: la tanda única en lugar de la espera del segundo disparo (research V25), la respuesta juzgada, los tres umbrales de la respuesta, la lista con `redaccion_no_leida` y `formas_fijas`, y las claves `no_se_activan` y `redacciones_modificadas` del formato de eval; internal/evals/doc.go: lo mismo en el comentario del paquete (la respuesta del primer `result`, la decisión de la tanda y el error de uso del sondeo); .github/workflows/evals.yml: los comentarios que aún describan la espera del segundo disparo o el último `result` dicen lo nuevo, sin cambiar ninguna clave; verificación: cada fichero, test, variable, clave y campo que nombran existe (`git grep` de cada uno); `TestDefinicionDelJob` sigue en verde; `make ci` en verde — FR-027, FR-101; SC-011; rutas: CHANGELOG.md, CONTRIBUTING.md, internal/evals/doc.go, .github/workflows/evals.yml",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "8ab4b5e582fb3d3fd32c04705fd7b0bb93cae2a8",
+  "base": "702784c883e778061aafab20d21f4fbbae6ff70c",
   "rutas": [
-    "contracts/sondeo.md",
-    "internal/evals/job_test.go",
-    "internal/evals/sondeo.go",
-    "internal/evals/sondeo_test.go",
-    "plan.md",
-    "salida.txt",
-    "scripts/evals-sondeo.sh",
-    "uso.txt"
+    ".github/workflows/evals.yml",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "contracts/skill-boe-legislacion.md",
+    "internal/evals/doc.go",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
