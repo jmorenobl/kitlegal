@@ -1,6 +1,8 @@
 package evals
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -57,13 +59,18 @@ var entornoDelTrabajo = map[string]string{
 // contrato; cada definición sintética que se aparta de él en una sola clave da
 // una línea que nombra esa clave, el valor encontrado y el esperado; y una
 // definición que no se puede leer, o un peor caso que no se puede obtener, es un
-// error.
+// error. Comprueba también la decisión de la tanda (contracts/tanda-del-job.md
+// §4 de H7.4; FR-070, FR-071 y FR-100 de H7.4; SC-010 de H7.4): un segundo
+// disparo no mide mientras una ejecución anterior sin terminar mide, y la
+// etiqueta sobre un commit cuya tanda terminó vuelve a medir.
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
 	t.Run("del-repositorio", probarLaDefinicionDelRepositorio)
 	t.Run("sinteticas", probarLasDefinicionesSinteticas)
 	t.Run("errores", probarLosErroresDeLaDefinicion)
+	t.Run("segundo-disparo", probarElSegundoDisparo)
+	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
 }
 
 // probarLaDefinicionDelRepositorio lee la definición real del job y falla, con
@@ -537,4 +544,339 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	leida.ModeloQueDecide = "Claude Sonnet"
 	_, err = leida.peorCaso(evalsSinteticas(t), "boe-legislacion")
 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
+}
+
+// ejecucionPropia es la ejecución que decide en segundo-disparo: las de
+// databaseId menor son anteriores y las de mayor, posteriores (research.md S2
+// de H7.4).
+const ejecucionPropia = 20
+
+// Los nombres de la definición del job con los que gh da los trabajos y los
+// pasos de una ejecución: el trabajo tanda, sin name, con su id; su paso que
+// decide y su último paso, la marca, que solo corre en la ejecución que mide
+// (contracts/tanda-del-job.md §1 de H7.4); cambios; y el trabajo evals saltado
+// por su if, con el nombre sin la skill (research.md O2 de H7.4).
+const (
+	nombreDeLaTanda  = "tanda"
+	pasoQueDecide    = "Mirar si otra tanda mide este commit"
+	pasoDeLaMarca    = "Esta ejecuci\xc3\xb3n mide el commit"
+	trabajoDeCambios = "cambios"
+	evalsSaltadas    = "evals (${{ matrix.skill }})"
+)
+
+// Los valores de status y conclusion con los que gh da una ejecución, un
+// trabajo o un paso.
+const (
+	ghTerminado = "completed"
+	ghEnCurso   = "in_progress"
+	ghEnEspera  = "pending"
+	ghConExito  = "success"
+	ghSaltado   = "skipped"
+)
+
+// Los trabajos sintéticos de una ejecución del flujo evals, como los da gh run
+// view --json jobs (research.md O1 de H7.4): un trabajo saltado por su if sale
+// terminado, con la conclusión skipped y sin pasos, y un paso saltado, con la
+// conclusión skipped. El que mide deja cambios, su tanda con la marca y un
+// trabajo evals por skill; el que no, la marca saltada y evals saltado entero.
+var (
+	cambiosTerminado      = trabajoSintetico(trabajoDeCambios, ghTerminado, ghConExito)
+	tandaQueMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
+		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghConExito))
+	tandaQueNoMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
+		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghSaltado))
+	evalsSaltadasSinteticas = trabajoSintetico(evalsSaltadas, ghTerminado, ghSaltado)
+
+	// trabajosSinDecidir son los de una ejecución que aún está en cambios: su
+	// tanda no se ha creado.
+	trabajosSinDecidir = trabajosSinteticos(trabajoSintetico(trabajoDeCambios, ghEnCurso, ""))
+
+	// trabajosQueMidenYCorren son los de una ejecución que mide y cuyas
+	// sesiones corren; trabajosQueMidenYEsperan, los de una que mide y cuyos
+	// trabajos evals esperan por su concurrency; y trabajosQueMidieron, los de
+	// una que ya midió.
+	trabajosQueMidenYCorren  = trabajosQueMiden(ghEnCurso, "")
+	trabajosQueMidenYEsperan = trabajosQueMiden(ghEnEspera, "")
+	trabajosQueMidieron      = trabajosQueMiden(ghTerminado, ghConExito)
+
+	// trabajosQueNoMiden son los de una ejecución cuya tanda decidió no medir.
+	trabajosQueNoMiden = trabajosSinteticos(cambiosTerminado, tandaQueNoMideSintetica, evalsSaltadasSinteticas)
+)
+
+// trabajosQueMiden son los trabajos de una ejecución cuya tanda mide, con los
+// trabajos evals de las dos skills en el estado y con la conclusión dados.
+func trabajosQueMiden(estadoDeEvals, conclusionDeEvals string) string {
+	return trabajosSinteticos(cambiosTerminado, tandaQueMideSintetica,
+		trabajoSintetico("evals (boe-legislacion)", estadoDeEvals, conclusionDeEvals),
+		trabajoSintetico("evals (legal-core)", estadoDeEvals, conclusionDeEvals))
+}
+
+// trabajosSinteticos es el JSON de gh run view --json jobs con los trabajos
+// dados.
+func trabajosSinteticos(trabajos ...string) string {
+	return `{"jobs":[` + strings.Join(trabajos, ",") + "]}"
+}
+
+// trabajoSintetico es un trabajo del JSON de gh run view --json jobs, con sus
+// pasos.
+func trabajoSintetico(nombre, estado, conclusion string, pasos ...string) string {
+	return fmt.Sprintf(`{"name":%q,"status":%q,"conclusion":%q,"steps":[%s]}`, nombre, estado, conclusion,
+		strings.Join(pasos, ","))
+}
+
+// pasoSintetico es un paso de un trabajo del JSON de gh run view --json jobs.
+func pasoSintetico(nombre, estado, conclusion string) string {
+	return fmt.Sprintf(`{"name":%q,"status":%q,"conclusion":%q}`, nombre, estado, conclusion)
+}
+
+// ejecucionesSinteticas es el JSON de gh run list --json databaseId,status
+// con las ejecuciones dadas.
+func ejecucionesSinteticas(ejecuciones ...string) string {
+	return "[" + strings.Join(ejecuciones, ",") + "]"
+}
+
+// ejecucionSintetica es una ejecución del JSON de gh run list --json
+// databaseId,status.
+func ejecucionSintetica(id int64, estado string) string {
+	return fmt.Sprintf(`{"databaseId":%d,"status":%q}`, id, estado)
+}
+
+// rondaSintetica es lo que gh da en una consulta: la lista de ejecuciones del
+// flujo sobre el commit y los trabajos de cada ejecución, por su databaseId.
+type rondaSintetica struct {
+	lista    string
+	trabajos map[int64]string
+}
+
+// listar da la lista de ejecuciones de la ronda, como gh run list.
+func (r rondaSintetica) listar(context.Context) ([]byte, error) {
+	return []byte(r.lista), nil
+}
+
+// verLosTrabajos da los trabajos de la ejecución id en la ronda, como gh run
+// view, y un error si la ronda no los tiene.
+func (r rondaSintetica) verLosTrabajos(_ context.Context, id int64) ([]byte, error) {
+	trabajos, estan := r.trabajos[id]
+	if !estan {
+		return nil, fmt.Errorf("la ronda no tiene los trabajos de la ejecuci\xc3\xb3n %d", id)
+	}
+
+	return []byte(trabajos), nil
+}
+
+// ghSintetico da en cada consulta lo que gh daría en su ronda, y desde la
+// última, lo mismo que en ella; y cuenta las consultas.
+type ghSintetico struct {
+	rondas    []rondaSintetica
+	consultas int
+}
+
+// consultar hace la consulta siguiente con consultarLasEjecuciones.
+func (g *ghSintetico) consultar(ctx context.Context) ([]ejecucionDelCommit, error) {
+	ronda := g.rondas[min(g.consultas, len(g.rondas)-1)]
+	g.consultas++
+
+	return consultarLasEjecuciones(ctx, ejecucionPropia, ronda.listar, ronda.verLosTrabajos)
+}
+
+// relojSintetico es un reloj que no duerme: cada espera lo adelanta lo que
+// dura y queda anotada.
+type relojSintetico struct {
+	instante time.Time
+	esperas  []time.Duration
+}
+
+// ahora es el instante del reloj.
+func (r *relojSintetico) ahora() time.Time {
+	return r.instante
+}
+
+// esperar adelanta el reloj la duración y la anota.
+func (r *relojSintetico) esperar(_ context.Context, duracion time.Duration) error {
+	r.instante = r.instante.Add(duracion)
+	r.esperas = append(r.esperas, duracion)
+
+	return nil
+}
+
+// segundoDisparo es un caso de la tabla de contracts/tanda-del-job.md §4 de
+// H7.4: lo que gh da en cada consulta, la decisión que se espera, las consultas
+// que se hacen y si se mide por agotar la espera.
+type segundoDisparo struct {
+	nombre     string
+	rondas     []rondaSintetica
+	mide       bool
+	pendientes []int64
+	consultas  int
+	agotada    bool
+}
+
+// segundosDisparos son los casos de probarElSegundoDisparo, en el orden de la
+// tabla de contracts/tanda-del-job.md §4 de H7.4.
+func segundosDisparos() []segundoDisparo {
+	propiaEnCurso := ejecucionSintetica(ejecucionPropia, ghEnCurso)
+	conLaAnteriorEnCurso := ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghEnCurso))
+
+	return []segundoDisparo{
+		{
+			nombre:    "anterior-que-mide-corre",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}}},
+			consultas: 1,
+		},
+		{
+			nombre:    "anterior-que-mide-espera",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYEsperan}}},
+			consultas: 1,
+		},
+		{
+			nombre: "anterior-sin-decidir-que-mide",
+			rondas: []rondaSintetica{
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}},
+			},
+			consultas: 2,
+		},
+		{
+			nombre: "anterior-sin-decidir-que-no-mide",
+			rondas: []rondaSintetica{
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}},
+			},
+			mide:      true,
+			consultas: 2,
+		},
+		{
+			nombre:    "anterior-que-no-mide",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			// FR-071 de H7.4: la etiqueta sobre un commit cuya tanda terminó
+			// vuelve a medir.
+			nombre: "anterior-terminada",
+			rondas: []rondaSintetica{{
+				ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghTerminado)),
+				map[int64]string{10: trabajosQueMidieron},
+			}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			nombre: "posterior-que-mide",
+			rondas: []rondaSintetica{{
+				ejecucionesSinteticas(ejecucionSintetica(30, ghEnCurso), propiaEnCurso),
+				map[int64]string{30: trabajosQueMidenYCorren},
+			}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			nombre:    "sola",
+			rondas:    []rondaSintetica{{ejecucionesSinteticas(propiaEnCurso), nil}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			// Una consulta cada 10 s desde la primera, en el segundo 0, hasta
+			// la del minuto 10, que ya no espera: 61.
+			nombre:     "espera-agotada",
+			rondas:     []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}}},
+			mide:       true,
+			pendientes: []int64{10},
+			consultas:  61,
+			agotada:    true,
+		},
+	}
+}
+
+// probarElSegundoDisparo fija la decisión de la tanda con la tabla de
+// contracts/tanda-del-job.md §4 de H7.4 (FR-070, FR-071 y FR-100 de H7.4;
+// SC-010 de H7.4): la ejecución propia consulta un gh sintético y espera con un
+// reloj que no duerme. No mide si una ejecución anterior sin terminar mide,
+// aunque sus trabajos evals esperen; espera, 10 s entre consulta y consulta, a
+// que decida la anterior que aún no lo ha hecho; y mide si ninguna anterior sin
+// terminar mide, si la que midió ya terminó, si la que mide es posterior o si
+// pasan 10 min sin que la anterior decida. Un error de la consulta es un error
+// que la nombra.
+func probarElSegundoDisparo(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range segundosDisparos() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			gh := ghSintetico{rondas: caso.rondas}
+
+			var reloj relojSintetico
+
+			decision, err := esperarLaDecision(t.Context(), ejecucionPropia, gh.consultar, reloj.ahora, reloj.esperar)
+			require.NoError(t, err)
+
+			assert.Equal(t, decisionTrasLaEspera{
+				decisionDeLaTanda: decisionDeLaTanda{mide: caso.mide, pendientes: caso.pendientes},
+				agotada:           caso.agotada,
+			}, decision)
+			assert.Equal(t, caso.consultas, gh.consultas, "consultas")
+
+			var esperas []time.Duration
+			for range caso.consultas - 1 {
+				esperas = append(esperas, 10*time.Second)
+			}
+
+			assert.Equal(t, esperas, reloj.esperas, "esperas")
+		})
+	}
+
+	t.Run("consulta-que-falla", func(t *testing.T) {
+		t.Parallel()
+
+		errDeGh := errors.New("gh run list termin\xc3\xb3 con 1")
+		fallida := func(context.Context) ([]ejecucionDelCommit, error) { return nil, errDeGh }
+
+		var reloj relojSintetico
+
+		_, err := esperarLaDecision(t.Context(), ejecucionPropia, fallida, reloj.ahora, reloj.esperar)
+		require.ErrorIs(t, err, errDeGh)
+		require.ErrorContains(t, err, "la consulta 1 de las ejecuciones del commit")
+	})
+}
+
+// probarElEstadoDeLaTanda fija el estado de la tanda de una ejecución leído
+// del JSON de sus trabajos (contracts/tanda-del-job.md §2 y §4 de H7.4;
+// research.md S4 de H7.4): mide con su trabajo tanda terminado y la marca en
+// success; no mide con la marca saltada o con la tanda saltada; y aún no ha
+// decidido con la tanda en curso o sin ella.
+func probarElEstadoDeLaTanda(t *testing.T) {
+	t.Parallel()
+
+	tandaEnCurso := trabajoSintetico(nombreDeLaTanda, ghEnCurso, "",
+		pasoSintetico(pasoQueDecide, ghEnCurso, ""), pasoSintetico(pasoDeLaMarca, ghEnEspera, ""))
+	tandaSaltada := trabajoSintetico(nombreDeLaTanda, ghTerminado, ghSaltado)
+
+	casos := []struct {
+		nombre   string
+		trabajos string
+		estado   estadoDeLaTanda
+	}{
+		{nombre: "marca-en-success", trabajos: trabajosQueMidenYCorren, estado: tandaQueMide},
+		{nombre: "marca-saltada", trabajos: trabajosQueNoMiden, estado: tandaQueNoMide},
+		{nombre: "tanda-en-curso", trabajos: trabajosSinteticos(cambiosTerminado, tandaEnCurso), estado: tandaSinDecidir},
+		{nombre: "sin-tanda", trabajos: trabajosSinDecidir, estado: tandaSinDecidir},
+		{
+			nombre:   "tanda-saltada",
+			trabajos: trabajosSinteticos(cambiosTerminado, tandaSaltada, evalsSaltadasSinteticas),
+			estado:   tandaQueNoMide,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			estado, err := leerLaTandaDeLaEjecucion([]byte(caso.trabajos))
+			require.NoError(t, err)
+			assert.Equal(t, caso.estado, estado)
+		})
+	}
 }
