@@ -1,0 +1,82 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Reproducido en un clon fuera del repositorio (/tmp/juez-a-h74/repo, cabeza 885a688): `make ci` termina con «ci: todos los controles en verde» y exit=0 (fmt, lint con 0 issues, test -race y de integración, TestMedidasDeTiempo/TestCosteDelGrafo, govulncheck, schema-check, skills-check con TestEvalsDelRepositorio, goreleaser check, gitleaks, go mod verify y tidy -diff). gates/ci.log dice lo mismo. El árbol de la rama solo tiene sin versionar gates/revision-cambios.md y gates/revision-ciclo.json, que escribe revision.sh para esta ronda."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Cada pieza nueva tiene sus tests offline: TestUmbralesDelInforme (internal/evals/umbrales_test.go:158-357, con sin-activar-una/ninguna, redaccion-no-leida-una/ninguna, tres-de-54, dos-de-54, tres-de-54-y-seis-sin-terminar y una-sin-activar-con-expresion); el caso respuesta-antes-de-una-tarea-en-segundo-plano de TestLeerSesion; segundo-disparo y estado-de-la-tanda de TestDefinicionDelJob (definicion_test.go:117-124, 985-1130); TestJuzgarLasClasesDeLaRespuesta (juzgar_test.go:1251-1360), con las frases de FR-034 comprobadas contra los informes de 196ee05, 6ab3add y eb6b4c8; TestOrdenesParaPowerShell (conjunto_test.go:2184-2318); y expresiones-calibradas, expresiones-de-la-skill, prosa-de-la-skill y ordenes-para-powershell de TestEvalsDelRepositorio (conjunto_test.go:1198-1228). Los mutantes, en un clon aparte, salen en rojo: sin el filtro de terminadas (informe.go:852) fallan tres-de-54-y-seis-sin-terminar, TestJuicioDelSondeo y TestSalidaDelSondeo; con el último result (sesion.go:448) falla TestLeerSesion; sin quitar las formas fijas (prohibidas.go:185) fallan expresiones-calibradas, expresiones-de-la-skill y nueve casos de TestExtraerExpresionesProhibidas; con cuentaPara sin «terminada» (tanda.go:118) falla segundo-disparo/anterior-terminada; sin errorDeUso en la credencial fallan TestComprobarElSondeo y TestSondear; y una orden para PowerShell sin bloques en SKILL.md hace fallar ordenes-para-powershell. «Aceptación e2e: no aplica» (plan.md:164-179, Complexity Tracking): el hito no cambia el binario y no tiene suite [aceptacion]."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ninguna línea añadida en internal/ lleva fmt.Print*, os.Exit, os.Stdout/os.Stderr, net/http, database/sql ni panic (grep del diff). tanda.go ejecuta gh con os/exec y órdenes constantes (tanda.go:45-50, 303, 311). TestTandaDelCommit escribe solo en -salida y con t.Log (job_test.go). golangci-lint lintea también la etiqueta evals (.golangci.yml:39-44) y da 0 issues; go vet -tags evals ./internal/evals/ pasa."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El binario y sus sobres no cambian, salvo la skill empotrada. TestEsquemasPublicados y schema-check en verde. Los dos esquemas que se tocan (schemas/eval.yaml.json y schemas/expresiones-prohibidas.yaml.json) no salen de --describe, y los fijan los casos de formato_test.go: la lista y las evals del repositorio validan contra ellos en TestEvalsDelRepositorio/formato."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. En internal/evals cada error lleva la orden, el fichero o el argumento; errorDeUso (sondeo.go:55-67) solo envuelve los errores de los argumentos y la credencial (sondeo.go:561, 565), y el de la definición del job no. scripts/evals-sondeo.sh:52-55 imprime uso.txt solo en stderr y sale con 1 (make, con 2), tal como dice el contrato. No hay ningún panic en rutas de usuario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased) registra boe-legislacion v0.1.4 (l. 315), la eval 20 (l. 130), la lista por clases (l. 145), los umbrales sin_activar y redaccion_no_leida (l. 234), los errores de uso del sondeo (l. 290), el juicio sobre la respuesta a la pregunta (l. 403) y la tanda única (l. 424). CONTRIBUTING.md y doc.go van al día. Sin ADR, por FR-090, y sin tocar docs/SOURCES.md, porque no hay ninguna fuente nueva. Cifras comprobadas contra el producto: SKILL.md tiene 295 líneas; la description, 924 caracteres; la lista, 87 expresiones (22+16+39+10) en 2966 B; el peor caso, 485 + ⌈97/4⌉×272 = 7285 s ≤ 122 min; el calibrado da 36, 11 y 9; y la derivada de a1-30 es byte a byte la de la eval 19 (cmp)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "No toca internal/httpx, ninguna fuente legal ni docs/SOURCES.md, y no graba nada. Las derivadas del grafo previo las escribe TestGrabacionesDerivadas desde grabaciones de H4 (internal/app/grafo_test.go:2549-2703). La única red nueva es la del trabajo tanda en CI: gh de solo lectura, con GITHUB_TOKEN, actions: read y contents: read (evals.yml:80-117). Sin secretos nuevos ni datos de persona."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún //nolint, t.Skip, TODO, «_ =» ni «|| true» en las líneas añadidas (grep del diff de internal/ y scripts/). Las líneas quitadas de los tests existentes son expectativas puestas al día (columnas de informe.md, 54 respuestas, la frase de la regla 7 con formas fijas), no aserciones retiradas: los-tres-sin-cumplir pasa a los-cinco-sin-cumplir. Las fixtures nuevas las produce el código (derivadas) o son el transcript sintético del caso nuevo. Las 27 líneas sin cubrir son ramas de error de la regla genérica (supuesto T013)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/014 toca solo lo que el plan nombra (plan.md:129-157). No cambian specs/011 a specs/013, scripts/workflow/, docs/ ni .specify (git diff --name-only vacío), ni la eval 19, las preguntas o comandos de legal-core, el binario o las formas de cita y avisos. Los supuestos [alcance] son lecturas conservadoras o arreglos registrados: legal-core intacta salvo no_se_activan; -timeout 12m, con su motivo en contracts §1; y Codecov fuera de alcance por el propio hito. Los [interno] (RutaDeLaDefinicionDelJob para probar la definición ilegible, patronDeEtiqueta compartido) son el mínimo que piden sus tests."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El binario no cambia: graph check sigue acotado por norma y bloques pedidos (≤ k señales, ≤ 50 hallazgos, H7.1) y no crece con lo acumulado. SKILL.md v0.1.4 pide lo mismo por pregunta que v0.1.3: una lectura con su graph check detrás, en la misma orden; la forma para PowerShell es la misma orden en otra shell. La línea ⚠ REDACCIÓN MODIFICADA: sale una vez por bloque cambiado y la apaga la lectura siguiente. umbrales tiene 5 elementos fijos en boe-legislacion y [] en legal-core. Las consultas de la tanda están acotadas al commit (--commit, --limit 100) y a 10 min, cada 10 s. La description ocupa 924 caracteres, fijos, ≤ 1024."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los cuatro umbrales del cierre están en umbrales con decide: true: expresiones_prohibidas:<modelo> ≤ 0.05, sin_activar:<modelo> ≤ 0 y redaccion_no_leida:<modelo> ≤ 0 (umbrales.go:15-19, 100-128), y duracion_de_las_sesiones ≤ 900. Si uno no se cumple, lleva motivo (umbrales.go:178-205) y el veredicto pasa a fallo (informe.go:1042). Mutante con los umbrales subidos (0.06/0.02/0.02): 13 subpruebas de TestUmbralesDelInforme en rojo. Las filas en make ci tienen su control, visto fallar: calibrado (sin formas fijas, rojo), PowerShell (orden sin bloques, rojo), segundo-disparo (anterior terminada, rojo), sin terminar (rojo), respuesta juzgada (rojo), sondeo (rojo). El tope de 122 min lo comprueba fallosDelTope, y el tamaño de SKILL.md, skills-check. Los nombres del informe casan con las cuatro filas evals:boe-legislacion:… de plan.md:252-258."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SKILL.md v0.1.4 cambia «lectura anterior» por «la vez anterior» (líneas 197 y 202, como prescribe contracts/skill-boe-legislacion.md:133 y 138). La lista no tiene esa forma: si la respuesta la copia para decir que la redacción cambió o no, la clase A no se detecta (FR-037). No lo exige ninguna cláusula del spec, y el calibrado no la ve.",
+    "`vigente hasta` y `aplicable hasta` son de la clase B, con umbral 0. Una respuesta legítima sobre una norma derogada (eval 18: «estuvo vigente hasta el 2 de octubre de 2016», del sobre de metadatos) o sobre una disposición transitoria quedaría marcada, lo he visto con una sonda. En las 279 respuestas calibradas no pasa ninguna vez: lo dirá la medición del cierre.",
+    "La forma fija de la línea ⚠ REDACCIÓN MODIFICADA: tolera énfasis en la etiqueta, pero no alrededor de las fechas. Con las fechas entre comillas invertidas (`20180309`), la línea no se quita y marca «se consultó antes» (sonda). La prosa de la skill escribe `AAAAMMDD` en código, aunque el bloque de ejemplo no.",
+    "`no necesito` (anuncio) marca también frases como «No necesito extenderme: …» (sonda). Si pasa, cuenta en el umbral de ≤ 2 de 54.",
+    "La tanda decide por commit, no por el tipo de disparo. Una etiqueta evals-prueba-de-red, o un despacho con prueba_de_red, mientras otra ejecución mide el mismo commit termina sin medir y sin la sesión de prueba de red. Es lo que dice FR-070 al pie de la letra; el registro de TestTandaDelCommit dice por qué.",
+    "Si la espera de tanda se agota (10 min) con tres ejecuciones sobre el mismo commit, el grupo de concurrency de evals cancela la pendiente anterior, y el cierre lee esa cancelada como roja. Hacen falta tres disparos y una tanda anterior sin decidir en 10 min.",
+    "Un error de gh en TestTandaDelCommit (límite de la API, credencial) deja tanda en rojo y los trabajos evals saltados. Cae en la regla genérica, como ya pasaba con el paso cambios.",
+    "La estimación de patch de Codecov es 92,5 % (supuesto T013). La cobertura de Codecov está fuera de alcance por el propio hito."
+  ]
+}
