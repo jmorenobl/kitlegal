@@ -20,7 +20,17 @@
 # fiarse de nadie, leer guarda la instantánea de los artefactos que juzgó (fuera del
 # historial, en el git-dir) y cambios, al empezar la ronda siguiente, escribe en
 # gates/<fase>-correccion-r<n>.diff lo que el corrector cambió desde ella. En la
-# revisión final no hace falta: cada corrección es un commit.
+# revisión final cada cambio es un commit: leer apunta en gates/revision-juzgado.json
+# la cabeza que juzgó cada ronda, y scripts/workflow/revision.sh cambios da a los
+# jueces de la ronda siguiente el rango desde ella, lo haya cambiado el corrector o
+# una reparación del cierre (ADR 0030).
+#
+# La revisión final va por ciclos (ADR 0030): el primero juzga el hito; cada uno de
+# los siguientes, lo que cambió fuera de gates/ después del último veredicto (una
+# reparación del cierre). Lo abre scripts/workflow/revision.sh pendiente en
+# gates/revision-ciclo.json, con la ronda en que empieza; las rondas se numeran
+# seguidas en todo el run (gates/revision-{a,b}-r<n>.json no se pisan) y el tope de
+# veredictos de leer cuenta dentro de cada ciclo. cerrar lo cierra.
 #
 # Ningún juez para el run (ADR 0018). La única excepción es el juez del spec, que
 # puede RECHAZAR LA ENTRADA con una lista cerrada de motivos (`entrada`:
@@ -66,6 +76,7 @@ case "$accion" in
   iniciar)
     rm -f "$rondas" "$g/$fase"-correccion-r*.diff
     rm -rf "$(dir_instantaneas)/$fase"-r*
+    [ "$fase" != revision ] || rm -f "$g/revision-ciclo.json" "$g/revision-juzgado.json" "$g/revision-cambios.md" "$g"/revision-cambios-r*.diff
     echo "rondas de $fase a cero";;
 
   cambios)
@@ -86,22 +97,34 @@ case "$accion" in
     n=$(siguiente_ronda)
     if [ "$fase" = revision ]; then
       a="$g/revision-a.json"; b="$g/revision-b.json"
+      # Ciclo en curso y ronda dentro de él: el tope de veredictos es por ciclo.
+      ciclo=$(jq -r '.ciclo // 1' "$g/revision-ciclo.json" 2>/dev/null || echo 1)
+      desde=$(jq -r '.desde_ronda // 1' "$g/revision-ciclo.json" 2>/dev/null || echo 1)
+      k=$((n - desde + 1))
       ma=$(invalido "$a" || true); mb=$(invalido "$b" || true)
       [ -z "$ma" ] && cp "$a" "$g/revision-a-r$n.json"
       [ -z "$mb" ] && cp "$b" "$g/revision-b-r$n.json"
       if [ -n "$ma$mb" ]; then
-        jq -n --argjson n "$n" --argjson max "$max" --arg m "$ma $mb" \
-          '{estado:"invalido", ronda:$n, invalido:true, seguir:($n < $max), corregir:false, motivos:["veredicto inválido: " + $m]}'
+        jq -n --argjson n "$n" --argjson k "$k" --argjson c "$ciclo" --argjson max "$max" --arg m "$ma $mb" \
+          '{estado:"invalido", ronda:$n, ciclo:$c, ronda_del_ciclo:$k, invalido:true, seguir:($k < $max), corregir:false, motivos:["veredicto inválido: " + $m]}'
         exit 0
       fi
       va=$(jq -r .veredicto "$a"); vb=$(jq -r .veredicto "$b")
+      # La cabeza que juzgó esta ronda: los jueces no commitean y todo lo de fuera de
+      # gates/ está commiteado al prepararlos (revision.sh cambios lo avisa si no). La
+      # ronda siguiente recibe el rango desde aquí, y el informe final dice de cada
+      # commit qué ronda lo vio (ADR 0030).
+      j="$g/revision-juzgado.json"
+      [ -f "$j" ] || echo '{"rondas":[]}' > "$j"
+      jq --argjson n "$n" --argjson c "$ciclo" --arg sha "$(git rev-parse HEAD)" --arg va "$va" --arg vb "$vb" \
+        '.rondas = ([.rondas[] | select(.ronda != $n)] + [{ronda:$n, ciclo:$c, sha:$sha, juez_a:$va, juez_b:$vb}])' "$j" > "$j.tmp" && mv "$j.tmp" "$j"
       # aprobado: los dos aprueban. Si no, la unión de sus motivos va al corrector: el
       # desacuerdo entre jueces mide a los jueces, no al código (ADR 0007).
       estado=corregir; [ "$va" = aprobado ] && [ "$vb" = aprobado ] && estado=aprobado
-      jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" --argjson n "$n" --argjson max "$max" \
+      jq -n --arg estado "$estado" --arg va "$va" --arg vb "$vb" --argjson n "$n" --argjson k "$k" --argjson c "$ciclo" --argjson max "$max" \
         --slurpfile a "$a" --slurpfile b "$b" \
-        '{estado:$estado, juez_a:$va, juez_b:$vb, ronda:$n, invalido:false,
-          seguir:($estado != "aprobado" and $n < $max), corregir:($estado != "aprobado" and $n < $max),
+        '{estado:$estado, juez_a:$va, juez_b:$vb, ronda:$n, ciclo:$c, ronda_del_ciclo:$k, invalido:false,
+          seguir:($estado != "aprobado" and $k < $max), corregir:($estado != "aprobado" and $k < $max),
           motivos:(($a[0].motivos // []) + ($b[0].motivos // []))}'
       exit 0
     fi
@@ -130,19 +153,31 @@ case "$accion" in
   cerrar)
     hito="${3:?uso: gate.sh cerrar <fase> <hito>}"
     if [ "$fase" = revision ]; then
-      # Los jueces dejan sus veredictos sin commitear; se versionan aquí con su historial.
-      vs=""; for f in "$g"/revision-*.json "$rondas"; do [ -f "$f" ] && vs="$vs $f"; done
-      if [ -n "$vs" ]; then
-        git add -- $vs
-        git diff --cached --quiet -- $vs || git commit -q -m "docs($hito): veredictos de la revisión final" -- $vs
-      fi
       va=$(jq -r .veredicto "$g/revision-a.json" 2>/dev/null || echo "sin veredicto")
       vb=$(jq -r .veredicto "$g/revision-b.json" 2>/dev/null || echo "sin veredicto")
-      if [ "$va" = aprobado ] && [ "$vb" = aprobado ]; then echo "revisión final aprobada por los dos jueces"; exit 0; fi
-      { printf '# Motivos de la revisión final sin resolver al agotar las rondas\n\nJuez A: %s. Juez B: %s.\n\n' "$va" "$vb"
-        jq -r '.motivos[]? | "- " + .' "$g/revision-a.json" "$g/revision-b.json" 2>/dev/null; } > "$g/revision-pendiente.md"
-      anotar_supuesto "La revisión final agotó sus rondas sin la aprobación de los dos jueces (A: $va, B: $vb); motivos en $g/revision-pendiente.md."
-      echo "revisión final sin aprobar tras $(cat "$rondas" 2>/dev/null) rondas: pendientes en $g/revision-pendiente.md; el run sigue"
+      n=$(cat "$rondas" 2>/dev/null || echo 0)
+      ciclo=$(jq -r '.ciclo // 1' "$g/revision-ciclo.json" 2>/dev/null || echo 1)
+      [ ! -f "$g/revision-ciclo.json" ] || { jq '.cerrado = true' "$g/revision-ciclo.json" > "$g/revision-ciclo.json.tmp" && mv "$g/revision-ciclo.json.tmp" "$g/revision-ciclo.json"; }
+      if [ "$va" = aprobado ] && [ "$vb" = aprobado ]; then
+        # Una aprobación posterior resuelve lo que un ciclo anterior dejó pendiente: los
+        # jueces comprueban primero los motivos de su veredicto anterior. El fichero se
+        # conserva con el número de la ronda que lo resolvió, fuera de *-pendiente.md.
+        if [ -f "$g/revision-pendiente.md" ]; then
+          mv "$g/revision-pendiente.md" "$g/revision-pendiente-resuelto-r$n.md"
+          anotar_supuesto "La ronda $n de la revisión final (ciclo $ciclo) aprobó con los dos jueces lo que quedaba en revision-pendiente.md; se conserva como $g/revision-pendiente-resuelto-r$n.md."
+        fi
+        mensaje="revisión final aprobada por los dos jueces (ciclo $ciclo, ronda $n)"
+      else
+        { printf '# Motivos de la revisión final sin resolver al agotar las rondas del ciclo %s\n\nJuez A: %s. Juez B: %s (ronda %s).\n\n' "$ciclo" "$va" "$vb" "$n"
+          jq -r '.motivos[]? | "- " + .' "$g/revision-a.json" "$g/revision-b.json" 2>/dev/null; } > "$g/revision-pendiente.md"
+        anotar_supuesto "La revisión final agotó las rondas del ciclo $ciclo sin la aprobación de los dos jueces (A: $va, B: $vb); motivos en $g/revision-pendiente.md."
+        mensaje="revisión final sin aprobar tras la ronda $n (ciclo $ciclo): pendientes en $g/revision-pendiente.md; el run sigue"
+      fi
+      # Los jueces dejan sus veredictos sin commitear; se versionan aquí con su historial,
+      # la cabeza que juzgó cada ronda, el ciclo y el rango que recibieron.
+      git add -A -- "$g/revision-*" "$rondas"
+      git diff --cached --quiet -- "$g/revision-*" "$rondas" || git commit -q -m "docs($hito): veredictos de la revisión final" -- "$g/revision-*" "$rondas"
+      echo "$mensaje"
       exit 0
     fi
     v="$g/$fase.json"

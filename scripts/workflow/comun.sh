@@ -38,6 +38,60 @@ cambiados_desde() {
   { git diff --name-only "$1"; git ls-files --others --exclude-standard; } | sort -u
 }
 
+# Lo que cambia el producto: todo lo de fuera de <feature_dir>/gates/, que son los
+# registros del run (veredictos, supuestos, mediciones). Lo que el run cambia fuera
+# de gates/ —código, tests, skill, evals, esquemas, datos, documentación o artefactos
+# del feature— lo tiene que haber visto un juez de la revisión final antes de
+# terminar, y una medición del cierre vale solo para el producto que midió (ADR 0030).
+#
+# Ficheros de fuera de gates/ que cambian entre el commit $1 y la cabeza, uno por línea.
+fuera_de_gates_entre() {
+  git diff --name-only "$1" HEAD -- . ":(exclude)$(feature_dir)/gates" | sort -u
+}
+
+# Ficheros de fuera de gates/ que tiene un commit, uno por línea.
+fuera_de_gates_en() {
+  git diff-tree --no-commit-id --name-only -r --root "$1" -- . ":(exclude)$(feature_dir)/gates"
+}
+
+# Cambios sin commitear fuera de gates/ (modificados, añadidos o sin seguimiento).
+fuera_de_gates_sin_commitear() {
+  git status --porcelain --untracked-files=all -- . ":(exclude)$(feature_dir)/gates" | cut -c4-
+}
+
+# ¿Es el árbol de ahora el mismo producto que el commit $1? Nada cambia fuera de
+# gates/, ni en commits posteriores ni sin commitear.
+producto_igual() {
+  git cat-file -e "$1^{commit}" 2>/dev/null || return 1
+  [ -z "$(fuera_de_gates_entre "$1")" ] && [ -z "$(fuera_de_gates_sin_commitear)" ]
+}
+
+# Rondas de la revisión final que emitieron veredicto, con la cabeza que juzgó
+# cada una, una por línea: «<ronda> <ciclo> <sha> <juez A> <juez B>». Salen de
+# gates/revision-juzgado.json, que escribe `gate.sh leer revision` desde el workflow
+# 2.3.0. En un run anterior salen de los commits «docs(<hito>): veredictos de la
+# revisión final»: cada uno cierra lo que juzgaron las rondas que versiona, y su
+# propio contenido fuera de gates/ es el de la última cabeza juzgada.
+rondas_juzgadas() { # $1 = hito
+  local j v
+  j="$(feature_dir)/gates/revision-juzgado.json"
+  if [ -f "$j" ]; then
+    jq -r '.rondas[] | "\(.ronda) \(.ciclo) \(.sha) \(.juez_a) \(.juez_b)"' "$j"
+    return
+  fi
+  for v in $(git log --reverse --format=%H --fixed-strings --grep="docs($1): veredictos de la revisión final" main..HEAD 2>/dev/null); do
+    printf '%s 1 %s %s %s\n' \
+      "$(git show "$v:$(feature_dir)/gates/revision-rondas" 2>/dev/null || echo '?')" "$v" \
+      "$(git show "$v:$(feature_dir)/gates/revision-a.json" 2>/dev/null | jq -r '.veredicto // "?"' 2>/dev/null || echo '?')" \
+      "$(git show "$v:$(feature_dir)/gates/revision-b.json" 2>/dev/null | jq -r '.veredicto // "?"' 2>/dev/null || echo '?')"
+  done
+}
+
+# La cabeza que juzgó el último veredicto de la revisión final, o nada si ninguno.
+ultimo_juzgado() { # $1 = hito
+  rondas_juzgadas "$1" | tail -1 | cut -d' ' -f3
+}
+
 # Aparta el trabajo hecho desde la base $1 —commits posteriores y cambios sin
 # commitear, fuera del directorio del feature— como parche en $2 y devuelve el
 # árbol y la rama a esa base. El directorio del feature (tasks.md, notas,

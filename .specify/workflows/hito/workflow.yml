@@ -2,10 +2,10 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.2.0"
+  version: "2.3.0"
   author: "kitlegal"
   integration: "claude"
-  description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos, revisión final con dos jueces, cierre en la plataforma (CI y evals sobre la cabeza) e informe final como cuerpo de la propuesta de cambio. Fusionar sigue siendo humano."
+  description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión. Fusionar sigue siendo humano."
 
 requires:
   speckit_version: ">=1.0.0"
@@ -738,135 +738,176 @@ steps:
     timeout: 1800
     run: "scripts/workflow/global.sh cerrar {{ inputs.hito }} 'docs({{ inputs.hito }}): barrido de artefactos y documentación contra el producto' --revertir-si-rojo"
 
-  # ================================================================ revisión final: dos jueces en paralelo → corrector sobre la unión (4 veredictos, 3 correcciones)
+  # ================================================================ revisión final y cierre: un solo bucle (ADR 0030)
+  # La revisión final (dos jueces en paralelo → corrector sobre la unión; hasta cuatro
+  # veredictos y tres correcciones por ciclo) y el cierre en la plataforma (CI y evals
+  # sobre la cabeza que se fusionará, lección de H5 y H6) viven en el mismo bucle, porque
+  # el cierre puede cambiar el producto: desde el ADR 0029 un umbral del job de evals
+  # decide y reparar_cierre toca código, la skill o los artefactos para ponerlo en verde.
+  # Cada vuelta: (1) pendiente_revision decide, con el estado del disco, si hay algo que
+  # juzgar —en la primera, el hito entero; en las siguientes, lo que una reparación
+  # cambió fuera de gates/ después del último veredicto—; (2) si lo hay, un ciclo de la
+  # revisión final lo juzga; (3) publicar; (4) medir la cabeza; (5) si sale en rojo y
+  # queda medición, reparar. Así cada reparación la juzgan los jueces antes de volver a
+  # medirla, y el bucle siempre termina en una medición del producto ya juzgado: una
+  # medición vale solo para el producto que midió.
+  #
+  # Todas las condiciones leen salidas de pasos que corren sin condición en la misma
+  # vuelta (pendiente_revision, leer_revision, medir_cierre): el motor conserva la
+  # última salida de cada id entre vueltas (docs/WORKFLOW.md, «Limitaciones conocidas»).
+  # Y como una reanudación vuelve a ejecutar el bucle entero desde su primer paso, todo
+  # lo que decide está en ficheros: el ciclo abierto (gates/revision-ciclo.json), la
+  # cabeza que juzgó cada ronda (gates/revision-juzgado.json), las mediciones
+  # (gates/cierre-rondas, gates/cierre.json) y las reparaciones (gates/cierre-reparaciones).
   - id: iniciar_revision
     type: shell
     timeout: 30
     run: "scripts/workflow/gate.sh iniciar revision"
 
-  - id: ronda_revision
-    type: do-while
-    max_iterations: 4
-    condition: "{{ steps.leer_revision.output.data.seguir }}"
-    steps:
-      # Los dos jueces corren a la vez (fan-out) sobre el mismo árbol y sin ver el
-      # veredicto del otro. El papel de cada uno sale de preparar_jueces; el resto del
-      # prompt (lecturas, rúbrica, formato) es común. Los modelos son inputs con enum;
-      # por eso pueden interpolarse en el shell.
-      - id: preparar_jueces
-        type: shell
-        output_format: json
-        timeout: 30
-        run: |
-          set -eu
-          papel_a=$(cat <<'EOF'
-          Eres el JUEZ A de la revisión final del hito {{ inputs.hito }} de kitlegal. Aplica la Definition of Done de docs/ROADMAP.md §1 y las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md. Partes sin hipótesis: comprueba cada criterio de la rúbrica con evidencia, ejecutando lo que haga falta para verlo con tus ojos y no dando por buena ninguna afirmación de tasks.md, del CHANGELOG ni de los contratos sin contrastarla con el código y con el binario.
-          EOF
-          )
-          papel_b=$(cat <<'EOF'
-          Eres el JUEZ B (adversarial) de la revisión final del hito {{ inputs.hito }} de kitlegal. Tu hipótesis de partida es que el hito NO cumple la Definition of Done de docs/ROADMAP.md §1 y tu trabajo es encontrar la evidencia. Busca activamente: tests que no prueban nada (sin aserciones, solo camino feliz, tautológicos), nolint o `t.Skip`, errores ignorados (`_ =`), fixtures o golden files retocados para que pase un test (compara con `git log -p -- testdata schemas`), guiones de aceptación congelados alterados (compara con gates/aceptacion-congelada.json), datos de data/ que no salen de lo grabado en evidencias/, cobertura fingida, dependencias no fijadas, código fuera del alcance del spec, violaciones de las reglas de dependencia entre paquetes, llamadas de red fuera de internal/httpx, métodos distintos de GET/HEAD, datos personales, promesas de los contratos o del CHANGELOG que el binario no cumple, y cualquier diferencia entre lo que tasks.md dice que se hizo y lo que hay en el diff. Muta el código en una copia desechable fuera del repositorio para comprobar que los tests detectan lo que dicen detectar. Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
-          Además de la rúbrica común, evalúas un criterio propio:
-            k. proporcionalidad (constitución V, YAGNI): el código es lo más simple que cumple el spec; cada mecanismo —paquete, tipo o función exportada, rama que trata un estado aparte, opción, reintento, test de un caso límite— se traza a un FR/SC que lo exige, y ninguno existe solo para un estado o una entrada que no pasa el umbral de materialidad. Lo que no se traza es motivo: retirarlo con sus tests, salvo que lo exija un guion de la suite congelada (entonces dilo, y va al informe). La evidencia es el mecanismo, sus líneas y el FR, o la falta de FR.
-          EOF
-          )
-          jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_adversario }}" --arg pa "$papel_a" --arg pb "$papel_b" \
-            '{jueces:[{id:"a", modelo:$ma, fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, fichero:"revision-b.json", papel:$pb}]}'
-
-      - id: revision_jueces
-        type: fan-out
-        items: "{{ steps.preparar_jueces.output.data.jueces }}"
-        max_concurrency: 2
-        step:
-          id: revision_juez
-          type: prompt
-          model: "{{ item.modelo }}"
-          timeout: 3600
-          prompt: |
-            {{ item.papel }}
-            Trabajas en un proceso nuevo con contexto limpio, en paralelo con el otro juez y sin acceso a su veredicto. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. No ejecutes `make ci` ni escribas nada en el árbol de trabajo, porque el otro juez corre a la vez sobre el mismo árbol: si quieres reproducir controles, compilar binarios, medir cobertura o mutar código, hazlo sobre copias en un directorio temporal fuera del repositorio.
-            Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, tasks.md, gates/ci.log, gates/supuestos.md y gates/cuarentena.json (si existen) y `git diff main...HEAD` completo (código y tests). Si existe, lee gates/revision-pendiente.md.
-            Rúbrica común a los dos jueces (cumple/no cumple con evidencia: fichero y línea; el juez B evalúa además el criterio propio de su papel):
-              a. dod_ci: `make ci` en verde (gates/ci.log, o reproducido en una copia) y árbol limpio;
-              b. dod_tests: tests offline para todo el código nuevo, que detectan la regresión que dicen detectar; la suite de aceptación congelada está activada, intacta y en verde;
-              c. dod_reglas: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados; reglas de dependencia respetadas;
-              d. dod_sobre: toda salida de applet pasa el sobre y el schema, y hay un test que valida la salida real contra el esquema que el binario emite;
-              e. dod_errores: errores tipados → exit codes; ningún panic en rutas de usuario; lo que el contrato promete sobre códigos de salida ocurre en el binario;
-              f. dod_docs: CHANGELOG (Unreleased), ADR si cambia una decisión, docs/SOURCES.md si toca una fuente; ninguna afirmación de la documentación ni de los artefactos que el producto no sostenga;
-              g. frontera_humana: HTTP solo vía internal/httpx, solo GET/HEAD, sin secretos, sin NIF de persona, rate limit y User-Agent conforme a la constitución (lo que el linter no ve); datos externos solo desde lo grabado por grabar_datos;
-              h. sin_atajos: ningún nolint sin justificación, test saltado, TODO diferido, error silenciado ni fixture ajustado para que pase un test;
-              i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas), y cada supuesto de gates/supuestos.md es una lectura conservadora coherente con el spec;
-              j. uso: de fuera adentro, para cada salida que consume una skill o una persona, lo medido en el binario: bytes por invocación con un uso realista sostenido —meses de uso diario: cientos de normas y miles de bloques consultados, la mayoría hace más de una semana; siémbralo en una copia fuera del repositorio con el propio binario sobre lo grabado y el reloj fijado como en los tests, o mide un elemento y multiplica—, invocaciones por pregunta que pide la SKILL.md, y si cada señal deja de darse con el tiempo o se repite en cada consulta sin información nueva. Una salida que crece con todo lo acumulado y no con la pregunta, o una señal que no caduca nunca, incumple aunque el spec la pida: el motivo lleva la medida y dice qué acotar;
-              l. umbrales_que_se_cumplen (la k es el criterio propio del juez B): cada umbral numérico que se mide sin persona, en `make ci` o en el cierre —las filas de "## Controles de umbral" de plan.md y cualquier otro del spec—, tiene en el código el control que lo hace cumplir, y ese control sale en rojo cuando la medida pasa del umbral: léelo y, si su lógica no lo deja claro, compruébalo con un mutante en una copia fuera del repositorio (sube la medida o baja el umbral: el test, `make ci` o el veredicto del job tienen que fallar). Un umbral del job de evals va en `umbrales` de su informe.json con `decide: true` y su incumplimiento pone el veredicto en fallo (contrato del ADR 0029); la regla de decisión por serie del ADR 0016 no sustituye a un umbral agregado. Un umbral que solo se publica incumple aunque el spec lo pida así: el motivo dice qué control añadir y dónde. No entran un umbral que solo mide una persona ni uno del repositorio cuyo control vive en configuración que el hito no toca (a observaciones).
-            UMBRAL DE MATERIALIDAD (constitución, «Gates»; ADR 0028): un defecto sobre un estado o una entrada solo es motivo si el producto puede llegar a él por una vía real —un emisor que existe o que entrega el hito; un argumento, una bandera o una variable de quien usa el kit; un estado que crea el propio binario, incluidas sus invocaciones concurrentes y la interrupción de sus propias escrituras si el hito promete atomicidad— y da un resultado observable distinto para una persona o una skill. Ficheros del kit tocados por algo que no es el binario, datos de un emisor que todavía no existe y diferencias solo internas los cubre la regla genérica (defecto `inesperado`, código 1, ADR 0023): lo que encuentres ahí es una observación.
-            Escribe <feature_dir>/gates/{{ item.fichero }} con este formato exacto:
-              {"veredicto":"aprobado"|"rechazado","criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"],"observaciones":["…"]}
-            "aprobado" solo si TODOS cumplen. Todo motivo lo aplica un corrector sin persona: si toca alcance, frontera humana, privacidad o TOS, dilo y el corrector aplicará la lectura conservadora (retirar lo dudoso). Cada motivo empieza por las letras de los criterios que incumple, p. ej. "[e][f] …", y dice qué cambiar y dónde. "observaciones" recoge, una línea cada una, lo que viste y no llega a motivo por el umbral de materialidad o por la convergencia: no cuenta para el veredicto ni llega al corrector.
-            Revisión exhaustiva dentro del umbral: evalúa cada criterio contra todo el diff y enumera en motivos todos los incumplimientos, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y dos juicios más.
-            CONVERGENCIA. Si gates/{{ item.fichero }} ya existe, es tu veredicto de la ronda anterior: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido; el que no lo esté se repite. Los motivos del otro juez en su gates/revision-*.json también fueron corregidos en esa ronda: comprueba que las correcciones no rompieron nada. La corrección es el último commit «fix({{ inputs.hito }}): motivos de la revisión final» (`git log -1 -p --grep`). Un motivo NUEVO —que no estaba en el veredicto anterior— solo cuenta si lo introdujo esa corrección o si es material: pasa el umbral de materialidad, el criterio de uso o el de umbrales (l), o sin él el hito no cumple la Definition of Done. Cualquier otro hallazgo nuevo va a observaciones.
-            Escribe en español. No preguntes; no esperes respuesta.
-
-      - id: leer_revision
-        type: shell
-        output_format: json
-        timeout: 30
-        run: "scripts/workflow/gate.sh leer revision 4"
-
-      - id: corregir_revision
-        type: if
-        condition: "{{ steps.leer_revision.output.data.corregir }}"
-        then:
-          - id: base_revision
-            type: shell
-            timeout: 30
-            run: "scripts/workflow/global.sh base"
-
-          - id: corrector_revision
-            type: prompt
-            model: "{{ inputs.modelo_implementacion }}"
-            timeout: 3600
-            prompt: |
-              Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
-              Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-a.json y gates/revision-b.json (criterios con cumple=false y motivos), spec.md, plan.md, tasks.md, gates/supuestos.md y `git diff main...HEAD`.
-              Para cada criterio incumplido corrige el código, los tests o la documentación con la mejor solución, sin atajos, aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Un motivo describe un caso de un defecto: busca la clase de error en todo el diff, no solo la línea citada, y corrígela donde pase el umbral de materialidad de la constitución («Gates»; ADR 0028), en ningún sitio más: no añadas código ni tests para estados a los que el producto no puede llegar; entre dos arreglos, el que deja el código más simple. Un motivo de uso ([j]) acota la salida a lo que necesita la pregunta, o da a cada señal la condición que la apaga, con la opción que menos comportamiento añade; un motivo de proporcionalidad ([k]) retira el mecanismo y sus tests; un motivo de umbral ([l]) añade el control que sale en rojo cuando la medida pasa del umbral —en un test de `make ci` o en el veredicto del job de evals, con su test— y nunca rebaja ni retira el umbral ni lo deja solo publicado. Las "observaciones" no se aplican. Si un motivo toca alcance, frontera humana, privacidad, términos de uso, anomalías o una decisión cerrada, aplica la lectura conservadora (retira lo dudoso); hacer cumplir un umbral que pide el hito no es alcance añadido (ADR 0029). Anota cada lectura conservadora y cada corrección de uso o de umbral en <feature_dir>/gates/supuestos.md ("- [impacto] corrector_revision: <motivo> → <decisión>", donde impacto es comportamiento —lo que ve quien usa el binario: salida, códigos, ficheros, argumentos—, alcance, skill —lo que una skill pide, dice o comprueba— o interno; si caben varios, el primero).
-              Nunca modifiques testdata/, schemas/, evidencias/, la configuración de lint, cobertura o CI, ni la suite de aceptación congelada: el workflow deshace cualquier cambio así. Si un motivo solo se arregla ahí, déjalo sin arreglar y explícalo en <feature_dir>/gates/revision-pendiente.md.
-              Ejecuta `make ci` en primer plano hasta verde. No hagas commit, push ni merge: el workflow commitea tras verificar. No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
-
-          - id: cerrar_correccion
-            type: shell
-            output_format: json
-            timeout: 1800
-            run: "scripts/workflow/global.sh cerrar {{ inputs.hito }} 'fix({{ inputs.hito }}): motivos de la revisión final'"
-
-  - id: cerrar_revision
+  - id: iniciar_cierre
     type: shell
-    timeout: 120
-    run: "scripts/workflow/gate.sh cerrar revision {{ inputs.hito }}"
+    timeout: 30
+    run: "scripts/workflow/cierre.sh iniciar {{ inputs.hito }}"
 
-  # ================================================================ cierre en la plataforma: después de la revisión, sobre la cabeza que se fusionará (lección de H5 y H6)
-  - id: publicar
-    type: shell
-    timeout: 600
-    run: "scripts/workflow/cierre.sh publicar {{ inputs.hito }}"
-
-  - id: bucle_cierre
+  # Tres vueltas como mucho: tres mediciones y dos reparaciones, cada una juzgada antes
+  # de la medición siguiente.
+  - id: bucle_final
     type: do-while
     max_iterations: 3
-    condition: "{{ not steps.medir_cierre.output.data.verde and steps.medir_cierre.output.data.ronda < 3 }}"
+    condition: "{{ steps.medir_cierre.output.data.reparar }}"
     steps:
+      - id: pendiente_revision
+        type: shell
+        output_format: json
+        timeout: 1800
+        run: "scripts/workflow/revision.sh pendiente {{ inputs.hito }}"
+
+      - id: revisar
+        type: if
+        condition: "{{ steps.pendiente_revision.output.data.revisar }}"
+        then:
+          - id: ronda_revision
+            type: do-while
+            max_iterations: 4
+            condition: "{{ steps.leer_revision.output.data.seguir }}"
+            steps:
+              # Los dos jueces corren a la vez (fan-out) sobre el mismo árbol y sin ver el
+              # veredicto del otro. El papel de cada uno sale de preparar_jueces; el resto del
+              # prompt (lecturas, rúbrica, formato) es común. Los modelos son inputs con enum;
+              # por eso pueden interpolarse en el shell.
+              - id: preparar_jueces
+                type: shell
+                output_format: json
+                timeout: 30
+                run: |
+                  set -eu
+                  # Qué juzga esta ronda: el hito entero en la primera, o el rango desde el último
+                  # veredicto, lo haya cambiado el corrector o una reparación del cierre (ADR 0030).
+                  scripts/workflow/revision.sh cambios {{ inputs.hito }} >&2
+                  papel_a=$(cat <<'EOF'
+                  Eres el JUEZ A de la revisión final del hito {{ inputs.hito }} de kitlegal. Aplica la Definition of Done de docs/ROADMAP.md §1 y las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md. Partes sin hipótesis: comprueba cada criterio de la rúbrica con evidencia, ejecutando lo que haga falta para verlo con tus ojos y no dando por buena ninguna afirmación de tasks.md, del CHANGELOG ni de los contratos sin contrastarla con el código y con el binario.
+                  EOF
+                  )
+                  papel_b=$(cat <<'EOF'
+                  Eres el JUEZ B (adversarial) de la revisión final del hito {{ inputs.hito }} de kitlegal. Tu hipótesis de partida es que el hito NO cumple la Definition of Done de docs/ROADMAP.md §1 y tu trabajo es encontrar la evidencia. Busca activamente: tests que no prueban nada (sin aserciones, solo camino feliz, tautológicos), nolint o `t.Skip`, errores ignorados (`_ =`), fixtures o golden files retocados para que pase un test (compara con `git log -p -- testdata schemas`), guiones de aceptación congelados alterados (compara con gates/aceptacion-congelada.json), datos de data/ que no salen de lo grabado en evidencias/, cobertura fingida, dependencias no fijadas, código fuera del alcance del spec, violaciones de las reglas de dependencia entre paquetes, llamadas de red fuera de internal/httpx, métodos distintos de GET/HEAD, datos personales, promesas de los contratos o del CHANGELOG que el binario no cumple, y cualquier diferencia entre lo que tasks.md dice que se hizo y lo que hay en el diff. Muta el código en una copia desechable fuera del repositorio para comprobar que los tests detectan lo que dicen detectar. Si tras buscar en serio no encuentras evidencia en contra, el criterio cumple.
+                  Además de la rúbrica común, evalúas un criterio propio:
+                    k. proporcionalidad (constitución V, YAGNI): el código es lo más simple que cumple el spec; cada mecanismo —paquete, tipo o función exportada, rama que trata un estado aparte, opción, reintento, test de un caso límite— se traza a un FR/SC que lo exige, y ninguno existe solo para un estado o una entrada que no pasa el umbral de materialidad. Lo que no se traza es motivo: retirarlo con sus tests, salvo que lo exija un guion de la suite congelada (entonces dilo, y va al informe). La evidencia es el mecanismo, sus líneas y el FR, o la falta de FR.
+                  EOF
+                  )
+                  jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_adversario }}" --arg pa "$papel_a" --arg pb "$papel_b" \
+                    '{jueces:[{id:"a", modelo:$ma, fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, fichero:"revision-b.json", papel:$pb}]}'
+
+              - id: revision_jueces
+                type: fan-out
+                items: "{{ steps.preparar_jueces.output.data.jueces }}"
+                max_concurrency: 2
+                step:
+                  id: revision_juez
+                  type: prompt
+                  model: "{{ item.modelo }}"
+                  timeout: 3600
+                  prompt: |
+                    {{ item.papel }}
+                    Trabajas en un proceso nuevo con contexto limpio, en paralelo con el otro juez y sin acceso a su veredicto. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. No ejecutes `make ci` ni escribas nada en el árbol de trabajo, porque el otro juez corre a la vez sobre el mismo árbol: si quieres reproducir controles, compilar binarios, medir cobertura o mutar código, hazlo sobre copias en un directorio temporal fuera del repositorio.
+                    Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-cambios.md, que dice qué juzga esta ronda (el hito entero en la primera; en las siguientes, el rango de commits desde tu último veredicto, con el paso que hizo cada uno y su diff fuera de gates/); spec.md, plan.md, tasks.md, gates/ci.log, gates/supuestos.md y gates/cuarentena.json (si existen) y `git diff main...HEAD` completo (código y tests). Si existe, lee gates/revision-pendiente.md.
+                    Rúbrica común a los dos jueces (cumple/no cumple con evidencia: fichero y línea; el juez B evalúa además el criterio propio de su papel):
+                      a. dod_ci: `make ci` en verde (gates/ci.log, o reproducido en una copia) y árbol limpio;
+                      b. dod_tests: tests offline para todo el código nuevo, que detectan la regresión que dicen detectar; la suite de aceptación congelada está activada, intacta y en verde;
+                      c. dod_reglas: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados; reglas de dependencia respetadas;
+                      d. dod_sobre: toda salida de applet pasa el sobre y el schema, y hay un test que valida la salida real contra el esquema que el binario emite;
+                      e. dod_errores: errores tipados → exit codes; ningún panic en rutas de usuario; lo que el contrato promete sobre códigos de salida ocurre en el binario;
+                      f. dod_docs: CHANGELOG (Unreleased), ADR si cambia una decisión, docs/SOURCES.md si toca una fuente; ninguna afirmación de la documentación ni de los artefactos que el producto no sostenga;
+                      g. frontera_humana: HTTP solo vía internal/httpx, solo GET/HEAD, sin secretos, sin NIF de persona, rate limit y User-Agent conforme a la constitución (lo que el linter no ve); datos externos solo desde lo grabado por grabar_datos;
+                      h. sin_atajos: ningún nolint sin justificación, test saltado, TODO diferido, error silenciado ni fixture ajustado para que pase un test;
+                      i. alcance: el diff no excede el spec (nada de "mejoras" no pedidas), y cada supuesto de gates/supuestos.md es una lectura conservadora coherente con el spec;
+                      j. uso: de fuera adentro, para cada salida que consume una skill o una persona, lo medido en el binario: bytes por invocación con un uso realista sostenido —meses de uso diario: cientos de normas y miles de bloques consultados, la mayoría hace más de una semana; siémbralo en una copia fuera del repositorio con el propio binario sobre lo grabado y el reloj fijado como en los tests, o mide un elemento y multiplica—, invocaciones por pregunta que pide la SKILL.md, y si cada señal deja de darse con el tiempo o se repite en cada consulta sin información nueva. Una salida que crece con todo lo acumulado y no con la pregunta, o una señal que no caduca nunca, incumple aunque el spec la pida: el motivo lleva la medida y dice qué acotar;
+                      l. umbrales_que_se_cumplen (la k es el criterio propio del juez B): cada umbral numérico que se mide sin persona, en `make ci` o en el cierre —las filas de "## Controles de umbral" de plan.md y cualquier otro del spec—, tiene en el código el control que lo hace cumplir, y ese control sale en rojo cuando la medida pasa del umbral: léelo y, si su lógica no lo deja claro, compruébalo con un mutante en una copia fuera del repositorio (sube la medida o baja el umbral: el test, `make ci` o el veredicto del job tienen que fallar). Un umbral del job de evals va en `umbrales` de su informe.json con `decide: true` y su incumplimiento pone el veredicto en fallo (contrato del ADR 0029); la regla de decisión por serie del ADR 0016 no sustituye a un umbral agregado. Un umbral que solo se publica incumple aunque el spec lo pida así: el motivo dice qué control añadir y dónde. No entran un umbral que solo mide una persona ni uno del repositorio cuyo control vive en configuración que el hito no toca (a observaciones).
+                    UMBRAL DE MATERIALIDAD (constitución, «Gates»; ADR 0028): un defecto sobre un estado o una entrada solo es motivo si el producto puede llegar a él por una vía real —un emisor que existe o que entrega el hito; un argumento, una bandera o una variable de quien usa el kit; un estado que crea el propio binario, incluidas sus invocaciones concurrentes y la interrupción de sus propias escrituras si el hito promete atomicidad— y da un resultado observable distinto para una persona o una skill. Ficheros del kit tocados por algo que no es el binario, datos de un emisor que todavía no existe y diferencias solo internas los cubre la regla genérica (defecto `inesperado`, código 1, ADR 0023): lo que encuentres ahí es una observación.
+                    Escribe <feature_dir>/gates/{{ item.fichero }} con este formato exacto:
+                      {"veredicto":"aprobado"|"rechazado","criterios":[{"id":"a","criterio":"dod_ci","cumple":true|false,"evidencia":"…"}],"motivos":["…"],"observaciones":["…"]}
+                    "aprobado" solo si TODOS cumplen. Todo motivo lo aplica un corrector sin persona: si toca alcance, frontera humana, privacidad o TOS, dilo y el corrector aplicará la lectura conservadora (retirar lo dudoso). Cada motivo empieza por las letras de los criterios que incumple, p. ej. "[e][f] …", y dice qué cambiar y dónde. "observaciones" recoge, una línea cada una, lo que viste y no llega a motivo por el umbral de materialidad o por la convergencia: no cuenta para el veredicto ni llega al corrector.
+                    Revisión exhaustiva dentro del umbral: evalúa cada criterio contra todo el diff y enumera en motivos todos los incumplimientos, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y dos juicios más.
+                    CONVERGENCIA. Si gates/{{ item.fichero }} ya existe, es tu último veredicto: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido; el que no lo esté se repite. Los motivos del otro juez en su gates/revision-*.json también se corrigieron: comprueba que las correcciones no rompieron nada. Lo que cambió desde ese veredicto es exactamente el rango de gates/revision-cambios.md, con su diff fuera de gates/ en el fichero que nombra, y todo ese rango es «la corrección», sea del corrector de la revisión o de cualquier paso posterior a tu veredicto. Un motivo NUEVO —que no estaba en el veredicto anterior— solo cuenta si lo introdujo un cambio del rango o si es material: pasa el umbral de materialidad, el criterio de uso o el de umbrales (l), o sin él el hito no cumple la Definition of Done. Cualquier otro hallazgo nuevo va a observaciones.
+                    CAMBIOS DEL CIERRE. Si el rango trae una reparación del cierre («fix({{ inputs.hito }}): cierre en la plataforma»), la hizo un paso sin juez después de que CI o las evals salieran en rojo sobre la cabeza; la medición está en gates/cierre.json, gates/cierre.log y gates/evals/*.json (con sus `umbrales`). Júzgala con la rúbrica entera, como cualquier otro cambio del hito: arreglar la medición no la exime de ningún criterio. Si se aparta de lo que piden la sección del hito, el spec o lo que decidió un hito anterior, solo cumple si es la mejor solución a la vista de esa medición y está registrada como decisión, con su evidencia, en research.md o plan.md («Decisiones») y en gates/supuestos.md con su impacto; si no, el motivo dice qué cambiar o qué registrar, y dónde. Tras esta revisión el workflow vuelve a medir la cabeza.
+                    Escribe en español. No preguntes; no esperes respuesta.
+
+              - id: leer_revision
+                type: shell
+                output_format: json
+                timeout: 30
+                run: "scripts/workflow/gate.sh leer revision 4"
+
+              - id: corregir_revision
+                type: if
+                condition: "{{ steps.leer_revision.output.data.corregir }}"
+                then:
+                  - id: base_revision
+                    type: shell
+                    timeout: 30
+                    run: "scripts/workflow/global.sh base 'fix({{ inputs.hito }}): motivos de la revisión final'"
+
+                  - id: corrector_revision
+                    type: prompt
+                    model: "{{ inputs.modelo_implementacion }}"
+                    timeout: 3600
+                    prompt: |
+                      Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
+                      Lee .specify/feature.json para localizar <feature_dir>; lee gates/revision-a.json y gates/revision-b.json (criterios con cumple=false y motivos), gates/revision-cambios.md (lo que juzgó esta ronda), spec.md, plan.md, tasks.md, gates/supuestos.md y `git diff main...HEAD`. Si un motivo trata de una reparación del cierre («fix({{ inputs.hito }}): cierre en la plataforma»), corrígelo sin deshacer lo que la reparación arreglaba: la medición que la motivó está en gates/cierre.json, gates/cierre.log y gates/evals/*.json, y el workflow vuelve a medir la cabeza después de la revisión.
+                      Para cada criterio incumplido corrige el código, los tests o la documentación con la mejor solución, sin atajos, aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Un motivo describe un caso de un defecto: busca la clase de error en todo el diff, no solo la línea citada, y corrígela donde pase el umbral de materialidad de la constitución («Gates»; ADR 0028), en ningún sitio más: no añadas código ni tests para estados a los que el producto no puede llegar; entre dos arreglos, el que deja el código más simple. Un motivo de uso ([j]) acota la salida a lo que necesita la pregunta, o da a cada señal la condición que la apaga, con la opción que menos comportamiento añade; un motivo de proporcionalidad ([k]) retira el mecanismo y sus tests; un motivo de umbral ([l]) añade el control que sale en rojo cuando la medida pasa del umbral —en un test de `make ci` o en el veredicto del job de evals, con su test— y nunca rebaja ni retira el umbral ni lo deja solo publicado. Las "observaciones" no se aplican. Si un motivo toca alcance, frontera humana, privacidad, términos de uso, anomalías o una decisión cerrada, aplica la lectura conservadora (retira lo dudoso); hacer cumplir un umbral que pide el hito no es alcance añadido (ADR 0029). Anota cada lectura conservadora y cada corrección de uso o de umbral en <feature_dir>/gates/supuestos.md ("- [impacto] corrector_revision: <motivo> → <decisión>", donde impacto es comportamiento —lo que ve quien usa el binario: salida, códigos, ficheros, argumentos—, alcance, skill —lo que una skill pide, dice o comprueba— o interno; si caben varios, el primero).
+                      Nunca modifiques testdata/, schemas/, evidencias/, la configuración de lint, cobertura o CI, ni la suite de aceptación congelada: el workflow deshace cualquier cambio así. Si un motivo solo se arregla ahí, déjalo sin arreglar y explícalo en <feature_dir>/gates/revision-pendiente.md.
+                      Ejecuta `make ci` en primer plano hasta verde. No hagas commit, push ni merge: el workflow commitea tras verificar. No modifiques gates/*.json. Escribe en español. No preguntes; no esperes respuesta.
+
+                  - id: cerrar_correccion
+                    type: shell
+                    output_format: json
+                    timeout: 1800
+                    run: "scripts/workflow/global.sh cerrar {{ inputs.hito }}"
+
+          - id: cerrar_revision
+            type: shell
+            timeout: 120
+            run: "scripts/workflow/gate.sh cerrar revision {{ inputs.hito }}"
+
+      # Cierre en la plataforma: después de la revisión, sobre la cabeza que se fusionará.
+      - id: publicar
+        type: shell
+        timeout: 600
+        run: "scripts/workflow/cierre.sh publicar {{ inputs.hito }}"
+
       - id: medir_cierre
         type: shell
         output_format: json
         timeout: 11400
-        run: "scripts/workflow/cierre.sh medir {{ inputs.hito }}"
+        run: "scripts/workflow/cierre.sh medir {{ inputs.hito }} 3"
 
       - id: reparar_cierre_si
         type: if
-        condition: "{{ not steps.medir_cierre.output.data.verde and steps.medir_cierre.output.data.ronda < 3 }}"
+        condition: "{{ steps.medir_cierre.output.data.reparar }}"
         then:
           - id: base_cierre
             type: shell
             timeout: 30
-            run: "scripts/workflow/global.sh base"
+            run: "scripts/workflow/global.sh base 'fix({{ inputs.hito }}): cierre en la plataforma'"
 
           - id: reparar_cierre
             type: prompt
@@ -875,13 +916,15 @@ steps:
             prompt: |
               La medición de cierre del hito {{ inputs.hito }} de kitlegal sale en rojo sobre la cabeza de la rama: CI o evals remotas. Lee .specify/feature.json para localizar <feature_dir>; el estado de cada comprobación está en <feature_dir>/gates/cierre.json, el final del log de cada ejecución en rojo en <feature_dir>/gates/cierre.log y el informe de cada job de evals, con sus `umbrales`, en <feature_dir>/gates/evals/<skill>.json.
               Reproduce el fallo en local si se puede (p. ej. `go test -exec 'env GOOS=linux …'` para diferencias del runner, o el guion de evals de scripts/evals.sh con `--help`) y arregla la causa raíz aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Una eval en rojo se arregla en la skill o en la herramienta, nunca en la eval; un umbral del job que no se cumple, también: nunca rebajándolo, quitándolo del veredicto ni dejándolo solo publicado (ADR 0029); una cota de tiempo que el runner no cumple se arregla midiendo lo que la cota protege, no subiéndola sin más. Nunca modifiques testdata/, schemas/, evidencias/, la configuración de lint, cobertura o CI, ni la suite de aceptación congelada.
-              Ejecuta `make ci` en primer plano hasta verde. No hagas commit ni push: el workflow commitea, empuja y vuelve a medir. No preguntes; no esperes respuesta.
+              Lo que cambies fuera de gates/ no se mide sin juez: antes de la medición siguiente vuelve a la revisión final, y los dos jueces lo juzgan con su rúbrica entera, como cualquier otro cambio del hito (ADR 0030). Si el arreglo se aparta de lo que piden la sección del hito, el spec o lo que decidió un hito anterior, regístralo como decisión con la evidencia de la medición en research.md o plan.md («Decisiones»), y añade una línea a <feature_dir>/gates/supuestos.md ("- [impacto] reparar_cierre: <motivo> → <decisión>", con impacto comportamiento, alcance, skill o interno, como define la constitución en «Criterio de decisión autónoma»).
+              Ejecuta `make ci` en primer plano hasta verde. No hagas commit ni push: el workflow commitea, lo lleva a la revisión final si cambia algo fuera de gates/, empuja y vuelve a medir. No preguntes; no esperes respuesta.
 
           - id: cerrar_cierre
             type: shell
             output_format: json
             timeout: 1800
-            run: "scripts/workflow/global.sh cerrar {{ inputs.hito }} 'fix({{ inputs.hito }}): cierre en la plataforma'"
+            run: "scripts/workflow/cierre.sh reparado {{ inputs.hito }}"
+
 
   # ================================================================ informe final: el cuerpo de la propuesta de cambio; fusionar es humano
   - id: informe_final
