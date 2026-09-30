@@ -122,13 +122,30 @@ Cómo se detecta el próximo cambio del alias:
    declaran `claude-haiku-20251001`.
 5. **Si el modelo nuevo no cumple, la elección no cambia.** Es un defecto de la skill, y lo arregla H7.4. Con las
    medidas de arriba, el job con Sonnet 5.5 da previsiblemente `fallo` por la eval 04, que decide (1 de 3 en el
-   sondeo: dos sesiones sin activar la skill). Además, las seis primeras líneas con el estado de lo comprobado son el
-   ruido que H7.4 tiene que quitar aunque la lista no las vea. La medida del job de esta propuesta de cambio, abajo,
-   es la línea de base de H7.4.
+   sondeo: dos sesiones sin activar la skill), y la ejecución de apertura lo confirma (abajo). Además, las seis
+   primeras líneas con el estado de lo comprobado son el ruido que H7.4 tiene que quitar aunque la lista no las vea.
+   La medida del job de esta propuesta de cambio es la línea de base de H7.4.
 
 ## Medición del job en la propuesta de cambio
 
-Pendiente de la ejecución de apertura.
+Ejecución de apertura 36712391835 de la PR #88, sobre `ee8e7ee` (el producto de esta decisión; los commits posteriores
+solo tocan `docs/`), con Claude Code 2.1.284:
+
+- **`boe-legislacion`: veredicto `fallo`**, por un solo motivo de la skill: la 04 con `claude-sonnet-5-5`, 1 de 3.
+  Las sesiones 01 y 03 no activan la skill, así que no leen el bloque `a66` ni lo citan. Todas las demás series de
+  Sonnet 5.5 dan 3 de 3, también la 19 y las informativas.
+- **`umbrales`, todos cumplidos**: `expresiones_prohibidas:claude-sonnet-5-5` 0 de 51 (`decide: true`);
+  `expresiones_prohibidas:claude-haiku-4-5-20251001` 0 de 30 (`decide: false`); `duracion_de_las_sesiones` 421 s de
+  900 (`decide: true`). `red` vacío, ninguna sesión sin medir y ningún reintento por límite de ritmo.
+- **Modelos de sesión**: `modelos_de_sesion` es `claude-haiku-4-5-20251001` y `claude-sonnet-5-5`. Las 57 sesiones
+  pedidas con `claude-sonnet-5-5` lo declaran en `modelo_de_la_sesion`, y las 36 de Haiku, su id.
+- **Haiku 4.5**: la 06, 2 de 3 (una sesión no lee ni cita el bloque `a17`); las demás, 3 de 3.
+- **Primera línea con el estado de lo comprobado**, fuera de la lista: 6 de 51 de Sonnet 5.5 (01, dos; 03, una; 13,
+  las tres), lo mismo que en el sondeo.
+- **`legal-core`: `aprobado`**, 198 s.
+
+Es la línea de base de H7.4: la activación de la 04 hace fallar el veredicto, y las seis primeras líneas son el ruido
+que no ve ningún control.
 
 ## Consecuencias
 
@@ -139,8 +156,7 @@ comprobarlo. H7.4 mide desde el principio con el modelo que va a recibir quien u
 
 **En contra, y asumido.**
 
-- **`main` puede quedar con el job de evals en rojo hasta H7.4**, si la ejecución de apertura confirma lo que midió el
-  sondeo. Es lo mismo que el ADR 0029 asumió con H7.2: el defecto es de la skill con el modelo del uso real, y taparlo
+- **`main` queda con el job de evals en rojo hasta H7.4**: la ejecución de apertura confirma lo que midió el sondeo. Es lo mismo que el ADR 0029 asumió con H7.2: el defecto es de la skill con el modelo del uso real, y taparlo
   midiendo con el modelo anterior sería peor. No hay release hasta H7.4.
 - **La detección depende de una persona** que ejecuta una orden antes de cada hito. Si no la ejecuta, el job sigue
   midiendo con un modelo reproducible, que solo ha dejado de ser el del uso real, y la señal de `coste-run.sh` lo
