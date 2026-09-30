@@ -27,7 +27,7 @@ inputs:
     # decisiones ya tomadas (ADR 0013, ADR 0014), que es lo que el proyecto evita.
     # Siguen siendo una lista cerrada, que es lo que protege la interpolación en
     # los pasos shell: ninguno lleva un metacarácter.
-    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H7.3","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
+    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
   # ---- modelo y esfuerzo por rol: "<modelo>" o "<modelo>@<esfuerzo>" ----
   # (Haiku 4.5 no admite esfuerzo: solo sin sufijo.)
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado

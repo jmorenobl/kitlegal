@@ -144,11 +144,12 @@ Para cuándo vuelve a medir:
    también cuentan. En la sección 1:
    - la revisión cuenta sus rondas y sus ciclos;
    - una línea dice cuántos cambios no vio ningún juez;
-   - la medición del cierre dice si es el producto de la cabeza, o qué cambió después de medir.
+   - la medición del cierre dice si es el producto de la cabeza, o qué cambió después de medir, commiteado o no.
 6. **Constitución 2.8.0**, capa 2: todo lo que cambia el producto después de un veredicto de la revisión final lo
    juzgan los dos jueces antes de que el run termine, con la misma rúbrica y un tope propio de tres correcciones;
    cada juez recibe el rango de lo cambiado desde su último veredicto; y una medición vale solo para el producto que
    midió.
+7. `H7.4` entra en el `enum` del input `hito`.
 
 **El límite del motor.** spec-kit 1.0.4 anida bucles: `ronda_revision`, un `do-while`, va dentro de un `if` dentro de
 `bucle_final`, otro `do-while`, con el fan-out de los jueces dentro. Se ha comprobado con el motor real. Lo que no hace

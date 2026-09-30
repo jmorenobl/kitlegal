@@ -356,7 +356,7 @@ informe() {
     remoto=$(jq -r 'if .verde then "verde" else "ROJO: " + ([.checks[] | select(.workflow != "" and (.bucket == "fail" or .bucket == "cancel")) | .name] | join(", ")) end' "$g/cierre.json")
     # Una medición vale solo para el producto que midió (ADR 0030).
     if producto_igual "$(jq -r '.sha' "$g/cierre.json")"; then remoto="$remoto; es el producto de la cabeza (lo posterior solo toca \`gates/\`)"
-    else remoto="$remoto; **NO es el producto de la cabeza**: después de medir cambió $(fuera_de_gates_entre "$(jq -r '.sha' "$g/cierre.json")" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"; fi
+    else remoto="$remoto; **NO es el producto de la cabeza**: después de medir cambió $( { fuera_de_gates_entre "$(jq -r '.sha' "$g/cierre.json")"; fuera_de_gates_sin_commitear; } | sort -u | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"; fi
     echo "- **CI y evals remotos** sobre \`$(jq -r '.sha[0:7]' "$g/cierre.json")\`$(jq -r 'if .ronda then " (medición \(.ronda))" else "" end' "$g/cierre.json"): $remoto."
   else
     echo "- **CI y evals remotos**: sin medir."
