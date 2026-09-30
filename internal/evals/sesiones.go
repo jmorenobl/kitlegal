@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -118,6 +119,234 @@ type EjecucionDeSesiones struct {
 	// Duracion es el tiempo desde antes de preparar la primera sesión hasta que
 	// termina la última (research.md D14 de H7.3).
 	Duracion time.Duration
+}
+
+// ejecutarSesiones abre las sesiones del plan con abrirSesion, como mucho
+// Concurrencia a la vez (contracts/ejecucion-del-job.md §3 de H7.3; research.md
+// D7, D9 y D14 de H7.3):
+//
+//  1. sigue el plan en su orden y abre la siguiente sesión cuando hay menos de
+//     Concurrencia abiertas: un canal con Concurrencia huecos es el semáforo y un
+//     sync.WaitGroup espera a las abiertas;
+//  2. al terminar cada sesión la lee con LeerSesion y, si es de la clase (a), la
+//     del mensaje del límite de uso, no abre ninguna más: espera a las abiertas
+//     y devuelve las que no abrió en SinAbrir, en su orden (FR-044 de H7.3).
+//     Tras una de la clase (b) o (c), sigue. Una sesión que LeerSesion no puede
+//     leer tampoco lo detiene: no se sabe si es de la clase (a), y el informe la
+//     juzga como ilegible, con su motivo, como cualquier otra (data-model §10.2
+//     de H5);
+//  3. Duracion va desde antes de preparar la primera sesión hasta que termina la
+//     última (research.md D14 de H7.3).
+//
+// Como abrirSesion, no recibe un contexto sino interrupcion, el Done() del que
+// las entradas cancelan con SIGINT y SIGTERM (research.md D9 de H7.3). El
+// cierre de interrupcion, o un error que impide abrir una sesión —el de su
+// directorio, el de su preparación o el de su código—, cierra las abiertas con
+// la secuencia del tope y no abre ninguna más. El error es entonces el de las sesiones que no se
+// pudieron abrir, sin el de las que se cierran por él; tras la interrupción, el
+// de las sesiones interrumpidas o, si no había ninguna abierta,
+// errSesionInterrumpida. Ninguna sesión se reintenta ni se abre dos veces
+// (FR-037 de H7.3). Una Concurrencia menor que 1 es un error antes de abrir
+// ninguna.
+func ejecutarSesiones(interrupcion <-chan struct{}, e SesionesAEjecutar) (EjecucionDeSesiones, error) {
+	if e.Concurrencia < 1 {
+		return EjecucionDeSesiones{}, fmt.Errorf(
+			"las sesiones no se pueden abrir: la concurrencia es %d y tiene que ser un entero mayor o igual que 1",
+			e.Concurrencia)
+	}
+
+	inicio := time.Now()
+	r := &repartidor{sesiones: e, cierre: make(chan struct{})}
+
+	// La vigilancia de la interrupción termina con el reparto, y el resultado
+	// no se lee hasta que ha terminado.
+	repartidas := make(chan struct{})
+	vigilada := make(chan struct{})
+
+	go func() {
+		defer close(vigilada)
+
+		r.vigilar(interrupcion, repartidas)
+	}()
+
+	huecos := make(chan struct{}, e.Concurrencia)
+
+	var (
+		abiertas  sync.WaitGroup
+		ejecucion EjecucionDeSesiones
+	)
+
+	for _, sesion := range e.Plan {
+		if !r.ocuparUnHueco(huecos) {
+			break
+		}
+
+		ejecucion.Abiertas = append(ejecucion.Abiertas, sesion.Nombre)
+
+		abiertas.Go(func() {
+			defer func() { <-huecos }()
+
+			r.abrir(sesion)
+		})
+	}
+
+	abiertas.Wait()
+	ejecucion.Duracion = time.Since(inicio)
+
+	close(repartidas)
+	<-vigilada
+
+	trasElLimite, err := r.desenlace()
+	if err != nil {
+		return EjecucionDeSesiones{}, err
+	}
+
+	if trasElLimite {
+		ejecucion.SinAbrir = slices.Clone(e.Plan[len(ejecucion.Abiertas):])
+	}
+
+	return ejecucion, nil
+}
+
+// repartidor es lo que comparten, en una ejecución de ejecutarSesiones, el
+// bucle que abre las sesiones y las gorrutinas de las abiertas.
+type repartidor struct {
+	sesiones SesionesAEjecutar
+
+	// cierre es la interrupción que recibe abrirSesion: se cierra, una sola vez,
+	// con la interrupción o con el primer error que impide abrir una sesión.
+	cierre       chan struct{}
+	cerrarUnaVez sync.Once
+
+	// mutex protege lo que sigue.
+	mutex sync.Mutex
+
+	// trasElLimite dice si alguna sesión ha terminado con el mensaje del límite
+	// de uso.
+	trasElLimite bool
+
+	// interrumpido dice si se ha cerrado la interrupción de las entradas.
+	interrumpido bool
+
+	// fallos son los errores que impidieron abrir una sesión, en el orden en
+	// que llegaron, e interrumpidas, los de las sesiones que se cerraron o no
+	// se abrieron por el cierre.
+	fallos        []error
+	interrumpidas []error
+}
+
+// vigilar espera a que se cierre interrupcion o repartidas, lo primero que
+// ocurra. Con la interrupción, cierra las abiertas.
+func (r *repartidor) vigilar(interrupcion, repartidas <-chan struct{}) {
+	select {
+	case <-interrupcion:
+		r.mutex.Lock()
+		r.interrumpido = true
+		r.mutex.Unlock()
+
+		r.cerrar()
+	case <-repartidas:
+	}
+}
+
+// cerrar cierra las abiertas, con la secuencia del tope, y el reparto.
+func (r *repartidor) cerrar() {
+	r.cerrarUnaVez.Do(func() { close(r.cierre) })
+}
+
+// ocuparUnHueco espera a que haya menos de Concurrencia sesiones abiertas y
+// ocupa el hueco que queda. Si antes, o mientras espera, se cierra el reparto o
+// una sesión termina con el mensaje del límite de uso, no lo ocupa y devuelve
+// falso. La sesión del límite lo anota antes de dejar su hueco, así que, tras
+// ella, el bucle no abre ninguna más.
+func (r *repartidor) ocuparUnHueco(huecos chan struct{}) bool {
+	select {
+	case huecos <- struct{}{}:
+	case <-r.cierre:
+		return false
+	}
+
+	if r.detenido() {
+		// El hueco se deja: ninguna sesión lo va a usar.
+		<-huecos
+
+		return false
+	}
+
+	return true
+}
+
+// detenido dice si el reparto se ha cerrado o si alguna sesión ha terminado con
+// el mensaje del límite de uso.
+func (r *repartidor) detenido() bool {
+	select {
+	case <-r.cierre:
+		return true
+	default:
+	}
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.trasElLimite
+}
+
+// abrir abre la sesión con abrirSesion y, si termina, la lee con LeerSesion y
+// anota si es de la clase (a). El error de abrirSesion cierra el reparto.
+func (r *repartidor) abrir(sesion SesionPlanificada) {
+	if err := abrirSesion(r.cierre, r.sesiones, sesion); err != nil {
+		r.fallar(err)
+
+		return
+	}
+
+	leida, err := LeerSesion(filepath.Join(r.sesiones.Sesiones, sesion.Nombre))
+
+	// Sin leerla no se sabe si es de la clase (a): el informe la juzga como
+	// ilegible y el reparto sigue (paso 2 de ejecutarSesiones).
+	if err == nil && ClasificarElLimite(leida).Clase == LimiteMensajeDeUso {
+		r.mutex.Lock()
+		r.trasElLimite = true
+		r.mutex.Unlock()
+	}
+}
+
+// fallar anota el error de una sesión que no se abrió o no terminó. El de una
+// sesión interrumpida solo llega con el reparto ya cerrado; cualquier otro lo
+// cierra.
+func (r *repartidor) fallar(err error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if errors.Is(err, errSesionInterrumpida) {
+		r.interrumpidas = append(r.interrumpidas, err)
+
+		return
+	}
+
+	r.fallos = append(r.fallos, err)
+	r.cerrar()
+}
+
+// desenlace dice, cuando ya no queda ninguna sesión abierta, si alguna terminó
+// con el mensaje del límite de uso, y el error del reparto: los fallos, si los
+// hubo; si no, tras la interrupción, los de las sesiones interrumpidas o, si no
+// había ninguna abierta, errSesionInterrumpida; y nil sin fallos ni
+// interrupción.
+func (r *repartidor) desenlace() (trasElLimite bool, err error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	switch {
+	case len(r.fallos) > 0:
+		err = errors.Join(r.fallos...)
+	case len(r.interrumpidas) > 0:
+		err = errors.Join(r.interrumpidas...)
+	case r.interrumpido:
+		err = errSesionInterrumpida
+	}
+
+	return r.trasElLimite, err
 }
 
 // abrirSesion abre una sesión del plan (contracts/ejecucion-del-job.md §3.2 y

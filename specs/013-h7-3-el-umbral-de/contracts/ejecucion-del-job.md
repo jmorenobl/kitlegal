@@ -54,11 +54,13 @@ es `abrirSesion(interrupcion, SesionesAEjecutar, SesionPlanificada)` (T006; `gat
 3. el tope: a los `Tope` (240 s) envía `TERM` al grupo y, pasados `MargenDelTope` (10 s), `KILL`; el código es 124 si
    bastó `TERM`, 137 si hizo falta `KILL`, y el del proceso si terminó antes;
 4. al terminar cada sesión la lee con `LeerSesion`; si es de la clase (a) (data-model §3), no abre ninguna más: espera
-   a las abiertas y devuelve las no abiertas en `SinAbrir` (FR-044). Tras (b) o (c), sigue;
+   a las abiertas y devuelve las no abiertas en `SinAbrir` (FR-044). Tras (b) o (c), sigue; tras una sesión que
+   `LeerSesion` no puede leer, también: el informe la juzga como ilegible, como hoy (T007; `gates/supuestos.md`);
 5. `Duracion`: desde antes de preparar la primera hasta que termina la última;
 6. un error de preparación o de E/S, o `interrupcion` cerrado (`SIGINT`, `SIGTERM`), cierra las abiertas con la
    secuencia del tope y devuelve el error —el de la interrupción es `errSesionInterrumpida`—: ninguna sesión se
-   reintenta ni se duplica (FR-037).
+   reintenta ni se duplica (FR-037). Con un error, el de las sesiones que se cierran por él no se añade; con la
+   interrupción, el error nombra cada sesión interrumpida y `errors.Is` lo reconoce como `errSesionInterrumpida`.
 
 ## 4. El entorno de cada sesión (D10, D16)
 

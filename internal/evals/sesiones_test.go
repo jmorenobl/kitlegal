@@ -1,6 +1,8 @@
 package evals
 
 import (
+	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -412,6 +414,457 @@ func exigirElEntornoDeLaSesion(t *testing.T, s sustitutos, dir, sesion string, t
 	}
 }
 
+// repeticionesDelRepartidor son las de la eval sintética en los tests del
+// repartidor: con la prueba de red, un plan de ocho sesiones
+// (contracts/ejecucion-del-job.md §8 de H7.3).
+const repeticionesDelRepartidor = 7
+
+// sesionesDelPlan son las sesiones del plan de los tests del repartidor.
+const sesionesDelPlan = repeticionesDelRepartidor + 1
+
+// duracionDelInforme son los segundos de duración con los que
+// TestEjecutarSesionesEnParalelo escribe sus dos informes: los mismos en los dos.
+const duracionDelInforme = 60
+
+// TestEjecutarSesionesEnParalelo fija el reparto de las sesiones de un plan
+// (contracts/ejecucion-del-job.md §3 y §8 de H7.3; research D7, D10 y D14 de
+// H7.3; FR-030, FR-032, FR-094; SC-008; US3-1) con los sustitutos de claude y
+// strace y un plan de ocho sesiones sintéticas con traza, en las que el
+// sustituto de claude duerme 1 s: con Concurrencia 4, el máximo de sesiones
+// abiertas a la vez que cuentan los sustitutos al llegar es como mucho 4 y al
+// menos 2, y con 1, es 1. En los dos casos se abren todas en el orden del plan;
+// la duración cubre al menos las esperas que la concurrencia no deja solapar y
+// no pasa de lo que tarda la llamada; el directorio de trabajo,
+// CLAUDE_CONFIG_DIR, TMPDIR, CLAUDE_CODE_TMPDIR y KITLEGAL_CACHE_DIR de cada
+// sesión son los suyos, dentro de su directorio, y por tanto distintos de los de
+// las demás; lo que escribe cada una en ellos no está en ningún directorio de
+// otra; y claude/skills/ lleva un enlace por skill instalada. informe.json e
+// informe.md de EscribirInforme, escritos con la misma duración, son iguales
+// byte a byte con 4 y con 1.
+func TestEjecutarSesionesEnParalelo(t *testing.T) {
+	t.Parallel()
+
+	conCuatro := ejecutarEnParalelo(t, 4, 2)
+	conUna := ejecutarEnParalelo(t, 1, 1)
+
+	assert.Equal(t, conUna.json, conCuatro.json, "informe.json con 4 sesiones a la vez y con 1")
+	assert.Equal(t, conUna.md, conCuatro.md, "informe.md con 4 sesiones a la vez y con 1")
+}
+
+// informeEscrito son informe.json e informe.md tal como los escribe
+// EscribirInforme.
+type informeEscrito struct {
+	json string
+	md   string
+}
+
+// ejecutarEnParalelo reparte el plan de ocho sesiones con traza y la
+// concurrencia dada, exige lo que TestEjecutarSesionesEnParalelo fija de cada
+// reparto, con el mínimo dado del máximo de sesiones abiertas a la vez, y
+// devuelve el informe de sus sesiones.
+func ejecutarEnParalelo(t *testing.T, concurrencia, minimo int) informeEscrito {
+	t.Helper()
+
+	s := escribirSustitutos(t)
+	ejecucion := sesionesDelRepartidor(t, s, concurrencia, 1, true)
+
+	for _, sesion := range ejecucion.Plan {
+		s.escribirTranscript(t, sesion.Nombre, transcriptTerminado)
+	}
+
+	inicio := time.Now()
+	ejecutada, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+	transcurrido := time.Since(inicio)
+	require.NoError(t, err)
+
+	assert.Equal(t, nombresDe(ejecucion.Plan), ejecutada.Abiertas, "se abren todas, en el orden del plan")
+	assert.Empty(t, ejecutada.SinAbrir)
+
+	oleadas := (sesionesDelPlan + concurrencia - 1) / concurrencia
+	assert.GreaterOrEqual(t, ejecutada.Duracion, time.Duration(oleadas)*time.Second,
+		"la duración cubre las esperas que la concurrencia no deja solapar")
+	assert.LessOrEqual(t, ejecutada.Duracion, transcurrido)
+
+	maximo := 0
+
+	for _, sesion := range ejecucion.Plan {
+		dir := filepath.Join(ejecucion.Sesiones, sesion.Nombre)
+		require.Truef(t, s.llego(t, sesion.Nombre), "el sustituto de claude se ejecuta en la sesion; sesion.err:\n%s",
+			contenidoDeLaSesion(t, dir, ficheroDeSalidaDeError))
+
+		maximo = max(maximo, s.abiertasAlLlegar(t, sesion.Nombre))
+
+		exigirLosDirectoriosDeLaSesion(t, dir, ejecucion.Skills)
+		exigirLosDirectoriosPropios(t, s, dir, sesion.Nombre)
+	}
+
+	assert.LessOrEqualf(t, maximo, concurrencia, "sesiones abiertas a la vez con concurrencia %d", concurrencia)
+	assert.GreaterOrEqualf(t, maximo, minimo, "sesiones abiertas a la vez con concurrencia %d", concurrencia)
+
+	exigirQueNingunaEscribeEnOtra(t, ejecucion)
+
+	return informeDeLasSesiones(t, ejecucion, ejecutada)
+}
+
+// exigirLosDirectoriosPropios exige que el sustituto de claude se ejecute en
+// trabajo/ de la sesión y vea CLAUDE_CONFIG_DIR, TMPDIR, CLAUDE_CODE_TMPDIR y
+// KITLEGAL_CACHE_DIR en claude/, tmp/ y cache/ de su directorio.
+func exigirLosDirectoriosPropios(t *testing.T, s sustitutos, dir, sesion string) {
+	t.Helper()
+
+	anotado := s.entorno(t, sesion)
+
+	trabajo, err := filepath.EvalSymlinks(filepath.Join(dir, "trabajo"))
+	require.NoError(t, err)
+	assert.Equal(t, trabajo, anotado[claveDelDirectorio], "el directorio de trabajo de la sesion")
+
+	propios := map[string]string{
+		"CLAUDE_CONFIG_DIR":  "claude",
+		"TMPDIR":             "tmp",
+		"CLAUDE_CODE_TMPDIR": "tmp",
+		"KITLEGAL_CACHE_DIR": "cache",
+	}
+	for variable, subdirectorio := range propios {
+		assert.Equalf(t, filepath.Join(dir, subdirectorio), anotado[variable], "la variable %s en la sesion", variable)
+	}
+}
+
+// exigirQueNingunaEscribeEnOtra exige que lo que escribe el sustituto de claude
+// de cada sesión en cada directorio en el que escribiría Claude Code esté solo
+// en cache/, claude/, tmp/ y trabajo/ de su sesión: ningún directorio lo
+// escriben dos sesiones (FR-032; SC-008).
+func exigirQueNingunaEscribeEnOtra(t *testing.T, ejecucion SesionesAEjecutar) {
+	t.Helper()
+
+	escritos := map[string][]string{}
+
+	err := filepath.WalkDir(ejecucion.Sesiones, func(ruta string, entrada fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		sesion, escrito := strings.CutPrefix(entrada.Name(), prefijoDeLoEscrito)
+		if !escrito {
+			return nil
+		}
+
+		relativa, err := filepath.Rel(ejecucion.Sesiones, filepath.Dir(ruta))
+		escritos[sesion] = append(escritos[sesion], relativa)
+
+		return err
+	})
+	require.NoError(t, err)
+
+	esperados := map[string][]string{}
+	for _, sesion := range ejecucion.Plan {
+		for _, subdirectorio := range []string{"cache", "claude", "tmp", "trabajo"} {
+			esperados[sesion.Nombre] = append(esperados[sesion.Nombre], filepath.Join(sesion.Nombre, subdirectorio))
+		}
+	}
+
+	assert.Equal(t, esperados, escritos, "lo que escribe cada sesion, por directorio")
+}
+
+// informeDeLasSesiones escribe con EscribirInforme el informe de las sesiones
+// ejecutadas, con duracionDelInforme, y devuelve informe.json e informe.md.
+func informeDeLasSesiones(t *testing.T, ejecucion SesionesAEjecutar, ejecutada EjecucionDeSesiones) informeEscrito {
+	t.Helper()
+
+	destino := t.TempDir()
+
+	informe, err := EscribirInforme(InformeAEscribir{
+		Skill:                 skillDeLasSesiones,
+		Evals:                 ejecucion.Evals,
+		Sesiones:              ejecucion.Sesiones,
+		Destino:               destino,
+		ModeloQueDecide:       modeloDeLaSesion,
+		Repeticiones:          repeticionesDelRepartidor,
+		Umbral:                1,
+		Commit:                commitEvaluado,
+		SinPython:             filepath.Join(casosDeInforme, ficheroSinPython),
+		SinAbrir:              ejecutada.SinAbrir,
+		DuracionDeLasSesiones: duracionDelInforme,
+	})
+	require.NoError(t, err)
+	require.Len(t, informe.Evals, sesionesDelPlan, "el informe juzga todas las sesiones")
+
+	return informeEscrito{
+		json: contenidoDelInforme(t, destino, ficheroDelInformeJSON),
+		md:   contenidoDelInforme(t, destino, ficheroDelInformeMD),
+	}
+}
+
+// sesionDelLimite es la posición en el plan de la sesión que da el transcript de
+// un límite en TestEjecutarSesionesTrasElLimiteDeUso: la tercera, que se abre
+// cuando termina una de las dos primeras.
+const sesionDelLimite = 2
+
+// TestEjecutarSesionesTrasElLimiteDeUso fija que el repartidor no abre ninguna
+// sesión más tras el mensaje del límite de uso, y sí tras los reintentos
+// agotados (contracts/ejecucion-del-job.md §3 de H7.3; data-model §3 de H7.3;
+// research D6 y D7 de H7.3; FR-044, FR-093; SC-007; US3-2, US3-3), con
+// Concurrencia 2 y un plan de ocho sesiones en el que la tercera da el
+// transcript del límite y termina enseguida y las demás duermen 1 s. Con el
+// mensaje del límite de uso, (a), se abren la tercera y, como mucho, la que ya
+// estaba abierta con ella: las abiertas son las primeras del plan, entre tres y
+// cuatro; todas terminan y se leen; ninguna posterior llega a abrirse ni a tener
+// directorio; y SinAbrir son exactamente las que faltan del plan, en su orden.
+// Con los reintentos agotados, (b), se abren todas y SinAbrir queda vacía.
+func TestEjecutarSesionesTrasElLimiteDeUso(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre     string
+		transcript func(t *testing.T) string
+		clase      ClaseDeLimite
+	}{
+		{
+			nombre: "mensaje-del-limite-de-uso",
+			transcript: func(t *testing.T) string {
+				t.Helper()
+
+				return mensajeInit + mensajeResultConError(t, textoDelLimiteDeSesion)
+			},
+			clase: LimiteMensajeDeUso,
+		},
+		{
+			nombre: "reintentos-agotados",
+			transcript: func(t *testing.T) string {
+				t.Helper()
+
+				return mensajeInit + mensajeDeReintento(9, 10, 429, "rate_limit") +
+					mensajeDeReintento(10, 10, 429, "rate_limit") + mensajeResultConError(t, textoDelError429)
+			},
+			clase: LimiteReintentosAgotados,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			ejecucion := sesionesDelRepartidor(t, s, 2, 1, false)
+
+			for posicion, sesion := range ejecucion.Plan {
+				transcript := transcriptTerminado
+				if posicion == sesionDelLimite {
+					transcript = caso.transcript(t)
+					s.escribirEspera(t, sesion.Nombre, 0)
+				}
+
+				s.escribirTranscript(t, sesion.Nombre, transcript)
+			}
+
+			ejecutada, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+			require.NoError(t, err)
+
+			limite, err := LeerSesion(filepath.Join(ejecucion.Sesiones, ejecucion.Plan[sesionDelLimite].Nombre))
+			require.NoError(t, err)
+			require.Equal(t, caso.clase, ClasificarElLimite(limite).Clase, "premisa: la sesion da el transcript de su clase")
+
+			abiertas := len(ejecutada.Abiertas)
+			if caso.clase == LimiteMensajeDeUso {
+				assert.GreaterOrEqual(t, abiertas, sesionDelLimite+1, "se abre la sesion del limite")
+				assert.LessOrEqual(t, abiertas, sesionDelLimite+ejecucion.Concurrencia,
+					"tras el limite solo sigue la que ya estaba abierta con ella")
+				assert.Equal(t, ejecucion.Plan[abiertas:], ejecutada.SinAbrir, "SinAbrir son las que faltan del plan")
+			} else {
+				assert.Equal(t, sesionesDelPlan, abiertas, "tras los reintentos agotados se abren todas")
+				assert.Empty(t, ejecutada.SinAbrir)
+			}
+
+			assert.Equal(t, nombresDe(ejecucion.Plan[:abiertas]), ejecutada.Abiertas, "las abiertas, en el orden del plan")
+
+			for _, sesion := range ejecucion.Plan[:abiertas] {
+				exigirTerminada(t, s, ejecucion, sesion)
+			}
+
+			exigirSinAbrir(t, s, ejecucion, ejecucion.Plan[abiertas:])
+		})
+	}
+}
+
+// exigirTerminada exige que el sustituto de claude llegue a la sesión y cumpla
+// su espera, que la sesión quede con un código que LeerSesion lee y que no
+// quede ningún proceso en su grupo.
+func exigirTerminada(t *testing.T, s sustitutos, ejecucion SesionesAEjecutar, sesion SesionPlanificada) {
+	t.Helper()
+
+	require.Truef(t, s.llego(t, sesion.Nombre), "la sesion %s se abre", sesion.Nombre)
+	assert.Truef(t, s.cumplioLaEspera(t, sesion.Nombre), "la sesion %s termina", sesion.Nombre)
+
+	_, err := LeerSesion(filepath.Join(ejecucion.Sesiones, sesion.Nombre))
+	require.NoErrorf(t, err, "la sesion %s se lee", sesion.Nombre)
+
+	exigirGrupoTerminado(t, s, sesion.Nombre)
+}
+
+// exigirCerrada exige que el sustituto de claude llegue a la sesión y la cierre
+// TERM sin que cumpla su espera, que la sesión quede sin codigo-de-la-sesion y
+// que no quede ningún proceso en su grupo.
+func exigirCerrada(t *testing.T, s sustitutos, ejecucion SesionesAEjecutar, sesion SesionPlanificada) {
+	t.Helper()
+
+	require.Truef(t, s.llego(t, sesion.Nombre), "la sesion %s se abre", sesion.Nombre)
+	assert.Truef(t, s.recibioTERM(t, sesion.Nombre), "la sesion %s recibe TERM", sesion.Nombre)
+	assert.Falsef(t, s.cumplioLaEspera(t, sesion.Nombre), "la sesion %s no cumple su espera", sesion.Nombre)
+	assert.NoFileExists(t, filepath.Join(ejecucion.Sesiones, sesion.Nombre, ficheroDelCodigo))
+
+	exigirGrupoTerminado(t, s, sesion.Nombre)
+}
+
+// exigirGrupoTerminado exige que, poco después, no quede ningún proceso en el
+// grupo del sustituto de claude de la sesión: los que el grupo deja sin esperar
+// al terminar los recoge el sistema.
+func exigirGrupoTerminado(t *testing.T, s sustitutos, sesion string) {
+	t.Helper()
+
+	grupo := s.grupoDeProcesos(t, sesion)
+	assert.Eventuallyf(t, func() bool { return grupoTerminado(grupo) }, topeSinCorte, 10*time.Millisecond,
+		"no queda ningun proceso en el grupo de la sesion %s", sesion)
+}
+
+// exigirSinAbrir exige que ninguna de las sesiones llegue al sustituto de claude
+// ni tenga directorio.
+func exigirSinAbrir(t *testing.T, s sustitutos, ejecucion SesionesAEjecutar, sesiones []SesionPlanificada) {
+	t.Helper()
+
+	for _, sesion := range sesiones {
+		assert.Falsef(t, s.llego(t, sesion.Nombre), "la sesion %s no se abre", sesion.Nombre)
+		assert.NoDirExists(t, filepath.Join(ejecucion.Sesiones, sesion.Nombre))
+	}
+}
+
+// TestEjecutarSesionesConElContextoCancelado fija la interrupción del reparto
+// (contracts/ejecucion-del-job.md §3 y §8 de H7.3; research D9 de H7.3; FR-037,
+// FR-064): con Concurrencia 2 y un plan de ocho sesiones en las que el
+// sustituto de claude duerme 5 s, cuando las dos primeras han empezado su
+// espera se cancela el contexto cuyo Done() recibe el repartidor, lo que hacen
+// SIGINT y SIGTERM en las entradas; vuelve con errSesionInterrumpida, las dos
+// abiertas reciben TERM y no cumplen su espera ni escriben su código, ninguna
+// otra llega a abrirse ni a tener directorio, y no queda ningún proceso en el
+// grupo de ninguna.
+func TestEjecutarSesionesConElContextoCancelado(t *testing.T) {
+	t.Parallel()
+
+	s := escribirSustitutos(t)
+	ejecucion := sesionesDelRepartidor(t, s, 2, 5, false)
+
+	contexto, cancelar := context.WithCancel(t.Context())
+	defer cancelar()
+
+	interrupcion := contexto.Done()
+	resultado := make(chan error, 1)
+
+	go func() {
+		_, err := ejecutarSesiones(interrupcion, ejecucion)
+		resultado <- err
+	}()
+
+	for _, sesion := range ejecucion.Plan[:ejecucion.Concurrencia] {
+		empezada := s.esperaEmpezada(sesion.Nombre)
+		require.Eventuallyf(t, func() bool {
+			_, err := os.Lstat(empezada)
+
+			return err == nil
+		}, topeSinCorte, 10*time.Millisecond, "el sustituto de claude empieza su espera en %s", sesion.Nombre)
+	}
+
+	cancelar()
+
+	require.ErrorIs(t, <-resultado, errSesionInterrumpida)
+
+	for _, sesion := range ejecucion.Plan[:ejecucion.Concurrencia] {
+		exigirCerrada(t, s, ejecucion, sesion)
+	}
+
+	exigirSinAbrir(t, s, ejecucion, ejecucion.Plan[ejecucion.Concurrencia:])
+}
+
+// TestEjecutarSesionesConUnError fija que un error que impide abrir una sesión
+// cierra las abiertas con la secuencia del tope, como la interrupción, y vuelve
+// con ese error y no con el de las sesiones que cierra
+// (contracts/ejecucion-del-job.md §3 de H7.3; research D7 de H7.3; FR-037): con
+// Concurrencia 2, la primera sesión duerme 5 s, la segunda 1 s y la tercera no
+// se puede crear porque su directorio ya tiene trabajo/. La segunda termina, la
+// tercera no llega a abrirse y la primera recibe TERM sin cumplir su espera;
+// ninguna posterior a la tercera se abre ni tiene directorio, no queda ningún
+// proceso en el grupo de ninguna, y el error nombra la tercera sesión.
+func TestEjecutarSesionesConUnError(t *testing.T) {
+	t.Parallel()
+
+	s := escribirSustitutos(t)
+	ejecucion := sesionesDelRepartidor(t, s, 2, 1, false)
+
+	primera, tercera := ejecucion.Plan[0].Nombre, ejecucion.Plan[2].Nombre
+	s.escribirEspera(t, primera, 5)
+	require.NoError(t, os.MkdirAll(filepath.Join(ejecucion.Sesiones, tercera, "trabajo"), 0o700))
+
+	_, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "la sesión "+tercera+":")
+	require.NotErrorIs(t, err, errSesionInterrumpida, "el error es el de la sesion que no se abre")
+
+	exigirCerrada(t, s, ejecucion, ejecucion.Plan[0])
+	exigirTerminada(t, s, ejecucion, ejecucion.Plan[1])
+	assert.False(t, s.llego(t, tercera), "la sesion que no se puede crear no se abre")
+	exigirSinAbrir(t, s, ejecucion, ejecucion.Plan[3:])
+}
+
+// TestEjecutarSesionesSinConcurrencia fija que una Concurrencia menor que 1 es
+// un error antes de abrir ninguna sesión (contracts/ejecucion-del-job.md §1 y §3
+// de H7.3; FR-030): el error nombra la concurrencia y el directorio de sesiones
+// queda vacío.
+func TestEjecutarSesionesSinConcurrencia(t *testing.T) {
+	t.Parallel()
+
+	for _, concurrencia := range []int{0, -1} {
+		t.Run(strconv.Itoa(concurrencia), func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			ejecucion := sesionesDelRepartidor(t, s, concurrencia, 0, false)
+
+			_, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+			require.ErrorContains(t, err, "la concurrencia es "+strconv.Itoa(concurrencia)+
+				" y tiene que ser un entero mayor o igual que 1")
+
+			entradas, err := os.ReadDir(ejecucion.Sesiones)
+			require.NoError(t, err)
+			assert.Empty(t, entradas, "no se abre ninguna sesion")
+		})
+	}
+}
+
+// sesionesDelRepartidor son las sesiones de los tests del repartidor: las ocho
+// del plan de repeticionesDelRepartidor, con la concurrencia dada, un tope que
+// no corta ninguna y la base de los sustitutos con la espera dada, en segundos,
+// para las sesiones que no tengan la suya.
+func sesionesDelRepartidor(t *testing.T, s sustitutos, concurrencia, espera int, traza bool) SesionesAEjecutar {
+	t.Helper()
+
+	ejecucion := sesionesConRepeticiones(t, s, traza, repeticionesDelRepartidor)
+	require.Len(t, ejecucion.Plan, sesionesDelPlan, "premisa: el plan tiene ocho sesiones")
+
+	ejecucion.Concurrencia = concurrencia
+	ejecucion.Tope = topeSinCorte
+	ejecucion.Entorno = s.base(variableDeEspera + "=" + strconv.Itoa(espera))
+
+	return ejecucion
+}
+
+// nombresDe son los nombres de las sesiones, en su orden.
+func nombresDe(sesiones []SesionPlanificada) []string {
+	nombres := make([]string, 0, len(sesiones))
+	for _, sesion := range sesiones {
+		nombres = append(nombres, sesion.Nombre)
+	}
+
+	return nombres
+}
+
 // sesionesDelTest son las sesiones que abre un test con los sustitutos: el plan
 // de la eval sintética del art. 21 de la LPAC con modeloDeLaSesion, una
 // repetición y la prueba de red; su directorio de sesiones y el de las skills
@@ -420,13 +873,23 @@ func exigirElEntornoDeLaSesion(t *testing.T, s sustitutos, dir, sesion string, t
 func sesionesDelTest(t *testing.T, s sustitutos, traza bool) SesionesAEjecutar {
 	t.Helper()
 
+	return sesionesConRepeticiones(t, s, traza, 1)
+}
+
+// sesionesConRepeticiones son las de sesionesDelTest con las repeticiones dadas
+// de la eval sintética.
+func sesionesConRepeticiones(t *testing.T, s sustitutos, traza bool, repeticiones int) SesionesAEjecutar {
+	t.Helper()
+
 	evals := crearConjunto(t, []entradaDeConjunto{{nombre: nombreDeEval, contenido: contenidoDelArticulo21}})
 
 	conjunto, err := LeerConjunto(evals)
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados)
 
-	plan := PlanDeEvals{Evals: conjunto.Evals, ModeloQueDecide: modeloDeLaSesion, Repeticiones: 1, PruebaDeRed: true}
+	plan := PlanDeEvals{
+		Evals: conjunto.Evals, ModeloQueDecide: modeloDeLaSesion, Repeticiones: repeticiones, PruebaDeRed: true,
+	}
 	require.NoError(t, plan.Comprobar())
 
 	guion, err := filepath.Abs(guionDeLaSesion)
