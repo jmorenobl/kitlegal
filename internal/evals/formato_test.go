@@ -806,9 +806,15 @@ func TestCompilarEsquemaDeEvalQueNoSirve(t *testing.T) {
 // extremos y sin * ni _ (contrato lista-y-juicio §1; research D2).
 const patronDeExpresion = `^[^\s*_]+( [^\s*_]+)*$`
 
-// Familias bien formadas de una lista de expresiones prohibidas, cada una con sus
-// líneas completas, para los documentos de TestEsquemaDeExpresionesProhibidas:
-// expresiones de una palabra y de varias, y con letras que no son ASCII.
+// patronDeFormaFija es el patrón de cada forma fija de la lista: una línea con
+// algún carácter que no es un blanco ni un corchete angular de los marcadores
+// (contracts/lista-de-expresiones.md §2 de H7.4).
+const patronDeFormaFija = `^[^\n]*[^\s<>][^\n]*$`
+
+// Claves bien formadas de una lista de expresiones prohibidas, cada una con sus
+// líneas completas, para los documentos de TestEsquemaDeExpresionesProhibidas y
+// de TestLeerConjunto: expresiones de una palabra y de varias, y con letras que
+// no son ASCII; y formas fijas con los dos marcadores y sin ninguno.
 const (
 	maquinariaBienFormada = "maquinaria:\n" +
 		"  - memoria de consultas\n" +
@@ -821,6 +827,17 @@ const (
 		"  - que trasladar\n" +
 		"  - ya puedo responder\n" +
 		"  - as\xc3\xad que respondo\n"
+	redaccionNoLeidaBienFormada = "redaccion_no_leida:\n" +
+		"  - ya no exige\n" +
+		"  - se elimin\xc3\xb3\n"
+	formasFijasBienFormadas = "formas_fijas:\n" +
+		"  - \"\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: <cita>: vigente desde <fecha>.\"\n" +
+		"  - \"No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado\"\n"
+
+	// listaBienFormada es la lista con sus cinco claves bien formadas, en el
+	// orden del fichero del repositorio.
+	listaBienFormada = maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado +
+		redaccionNoLeidaBienFormada + formasFijasBienFormadas
 )
 
 // TestEsquemaDeExpresionesProhibidas fija el esquema publicado de la lista de
@@ -828,12 +845,18 @@ const (
 // lista-de-expresiones §2 de H7.3; FR-050, FR-055 de H7.2 y FR-023 de H7.3): lo
 // lee de su ruta, lo compila con skills.CompilarEsquema y valida contra él, con
 // el lector común de documentos YAML, listas escritas en el test. Una lista con
-// las tres familias valida y se lee entera. Sin una familia —también sin la de
+// sus cinco claves valida y se lee entera. Sin una familia —también sin la de
 // anuncio, la lista de dos familias de H7.2—, con una familia vacía, con una
 // clave de más y con una expresión con un blanco en un extremo, con dos blancos
 // entre palabras, con * o con _ no valida, y cada rechazo es el incumplimiento
 // de ese defecto en su sitio: la lista de cada caso es la bien formada con solo
 // ese defecto, así que no la rechaza otro motivo.
+//
+// Desde H7.4 (contracts/lista-de-expresiones.md §2; FR-030, FR-031), la lista
+// tiene además la familia redaccion_no_leida, con la misma forma que las otras
+// tres, y las formas_fijas, las dos obligatorias: la lista del repositorio
+// valida; sin redaccion_no_leida o sin formas_fijas, con cualquiera de las dos
+// vacía, con una expresión suya con * y con una forma fija de dos líneas, no.
 func TestEsquemaDeExpresionesProhibidas(t *testing.T) {
 	t.Parallel()
 
@@ -847,14 +870,34 @@ func TestEsquemaDeExpresionesProhibidas(t *testing.T) {
 	esquema, err := skills.CompilarEsquema(contenido)
 	require.NoError(t, err, "el esquema publicado %s compila", rutaDelEsquema)
 
-	leida, err := skills.ValidarDocumentoYAML[map[string][]string](
-		[]byte(maquinariaBienFormada+otraConversacionBienFormada+anuncioBienFormado), esquema)
-	require.NoError(t, err, "la lista con las tres familias valida: sin eso, un rechazo no diría nada del esquema")
+	leida, err := skills.ValidarDocumentoYAML[map[string][]string]([]byte(listaBienFormada), esquema)
+	require.NoError(t, err, "la lista con sus cinco claves valida: sin eso, un rechazo no diría nada del esquema")
 	require.Equal(t, map[string][]string{
-		"maquinaria":        {"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
-		"otra_conversacion": {"te dije", "conversaci\xc3\xb3n anterior"},
-		"anuncio":           {"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
-	}, leida, "la lista con las tres familias se lee entera")
+		"maquinaria":         {"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
+		"otra_conversacion":  {"te dije", "conversaci\xc3\xb3n anterior"},
+		"anuncio":            {"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
+		"redaccion_no_leida": {"ya no exige", "se elimin\xc3\xb3"},
+		"formas_fijas": {
+			"\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: <cita>: vigente desde <fecha>.",
+			"No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado",
+		},
+	}, leida, "la lista con sus cinco claves se lee entera")
+
+	delRepositorio := filepath.Join(evalsDelRepositorio, ficheroDeExpresionesProhibidas)
+	contenidoDelRepositorio, err := leerFichero(delRepositorio)
+	require.NoError(t, err, "la lista del repositorio %s se lee", delRepositorio)
+
+	_, err = skills.ValidarDocumentoYAML[map[string][]string](contenidoDelRepositorio, esquema)
+	require.NoError(t, err, "la lista del repositorio %s cumple el esquema", delRepositorio)
+
+	// tresFamilias son las tres familias de H7.3 bien formadas; y
+	// conLasClavesDeH74, el documento de un caso de esas tres familias con las dos
+	// claves de H7.4 bien formadas detrás, para que su defecto sea el único.
+	const tresFamilias = maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado
+
+	conLasClavesDeH74 := func(documento string) string {
+		return documento + redaccionNoLeidaBienFormada + formasFijasBienFormadas
+	}
 
 	casos := []struct {
 		nombre    string
@@ -869,78 +912,123 @@ func TestEsquemaDeExpresionesProhibidas(t *testing.T) {
 	}{
 		{
 			nombre:    "sin-maquinaria",
-			documento: otraConversacionBienFormada + anuncioBienFormado,
+			documento: conLasClavesDeH74(otraConversacionBienFormada + anuncioBienFormado),
 			rechazo:   &kind.Required{Missing: []string{"maquinaria"}},
 		},
 		{
 			nombre:    "sin-otra-conversacion",
-			documento: maquinariaBienFormada + anuncioBienFormado,
+			documento: conLasClavesDeH74(maquinariaBienFormada + anuncioBienFormado),
 			rechazo:   &kind.Required{Missing: []string{"otra_conversacion"}},
 		},
 		{
 			nombre:    "sin-anuncio",
-			documento: maquinariaBienFormada + otraConversacionBienFormada,
+			documento: conLasClavesDeH74(maquinariaBienFormada + otraConversacionBienFormada),
 			rechazo:   &kind.Required{Missing: []string{"anuncio"}},
 		},
 		{
+			nombre:    "sin-redaccion-no-leida",
+			documento: tresFamilias + formasFijasBienFormadas,
+			rechazo:   &kind.Required{Missing: []string{"redaccion_no_leida"}},
+		},
+		{
+			nombre:    "sin-formas-fijas",
+			documento: tresFamilias + redaccionNoLeidaBienFormada,
+			rechazo:   &kind.Required{Missing: []string{"formas_fijas"}},
+		},
+		{
 			nombre:    "maquinaria-vacia",
-			documento: "maquinaria: []\n" + otraConversacionBienFormada + anuncioBienFormado,
+			documento: conLasClavesDeH74("maquinaria: []\n" + otraConversacionBienFormada + anuncioBienFormado),
 			ruta:      []string{"maquinaria"},
 			rechazo:   &kind.MinItems{Got: 0, Want: 1},
 		},
 		{
 			nombre:    "otra-conversacion-vacia",
-			documento: maquinariaBienFormada + "otra_conversacion: []\n" + anuncioBienFormado,
+			documento: conLasClavesDeH74(maquinariaBienFormada + "otra_conversacion: []\n" + anuncioBienFormado),
 			ruta:      []string{"otra_conversacion"},
 			rechazo:   &kind.MinItems{Got: 0, Want: 1},
 		},
 		{
 			nombre:    "anuncio-vacio",
-			documento: maquinariaBienFormada + otraConversacionBienFormada + "anuncio: []\n",
+			documento: conLasClavesDeH74(maquinariaBienFormada + otraConversacionBienFormada + "anuncio: []\n"),
 			ruta:      []string{"anuncio"},
 			rechazo:   &kind.MinItems{Got: 0, Want: 1},
 		},
 		{
-			nombre: "clave-de-mas",
-			documento: maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado +
-				"avisos:\n  - derogada\n",
-			rechazo: &kind.AdditionalProperties{Properties: []string{"avisos"}},
+			nombre:    "redaccion-no-leida-vacia",
+			documento: tresFamilias + "redaccion_no_leida: []\n" + formasFijasBienFormadas,
+			ruta:      []string{"redaccion_no_leida"},
+			rechazo:   &kind.MinItems{Got: 0, Want: 1},
 		},
 		{
-			nombre:    "blanco-al-principio",
-			documento: "maquinaria:\n  - \" hallazgos\"\n" + otraConversacionBienFormada + anuncioBienFormado,
-			ruta:      []string{"maquinaria", "0"},
-			rechazo:   &kind.Pattern{Got: " hallazgos", Want: patronDeExpresion},
+			nombre:    "formas-fijas-vacias",
+			documento: tresFamilias + redaccionNoLeidaBienFormada + "formas_fijas: []\n",
+			ruta:      []string{"formas_fijas"},
+			rechazo:   &kind.MinItems{Got: 0, Want: 1},
 		},
 		{
-			nombre:    "blanco-al-final",
-			documento: maquinariaBienFormada + "otra_conversacion:\n  - \"te dije \"\n" + anuncioBienFormado,
-			ruta:      []string{"otra_conversacion", "0"},
-			rechazo:   &kind.Pattern{Got: "te dije ", Want: patronDeExpresion},
+			nombre:    "clave-de-mas",
+			documento: conLasClavesDeH74(tresFamilias) + "avisos:\n  - derogada\n",
+			rechazo:   &kind.AdditionalProperties{Properties: []string{"avisos"}},
 		},
 		{
-			nombre:    "dos-blancos-entre-palabras",
-			documento: "maquinaria:\n  - \"memoria  de consultas\"\n" + otraConversacionBienFormada + anuncioBienFormado,
-			ruta:      []string{"maquinaria", "0"},
-			rechazo:   &kind.Pattern{Got: "memoria  de consultas", Want: patronDeExpresion},
+			nombre: "blanco-al-principio",
+			documento: conLasClavesDeH74("maquinaria:\n  - \" hallazgos\"\n" + otraConversacionBienFormada +
+				anuncioBienFormado),
+			ruta:    []string{"maquinaria", "0"},
+			rechazo: &kind.Pattern{Got: " hallazgos", Want: patronDeExpresion},
 		},
 		{
-			nombre:    "asterisco",
-			documento: maquinariaBienFormada + "otra_conversacion:\n  - \"te *dije*\"\n" + anuncioBienFormado,
-			ruta:      []string{"otra_conversacion", "0"},
-			rechazo:   &kind.Pattern{Got: "te *dije*", Want: patronDeExpresion},
+			nombre: "blanco-al-final",
+			documento: conLasClavesDeH74(maquinariaBienFormada + "otra_conversacion:\n  - \"te dije \"\n" +
+				anuncioBienFormado),
+			ruta:    []string{"otra_conversacion", "0"},
+			rechazo: &kind.Pattern{Got: "te dije ", Want: patronDeExpresion},
 		},
 		{
-			nombre:    "asterisco-en-anuncio",
-			documento: maquinariaBienFormada + otraConversacionBienFormada + "anuncio:\n  - \"ya *puedo* responder\"\n",
-			ruta:      []string{"anuncio", "0"},
-			rechazo:   &kind.Pattern{Got: "ya *puedo* responder", Want: patronDeExpresion},
+			nombre: "dos-blancos-entre-palabras",
+			documento: conLasClavesDeH74("maquinaria:\n  - \"memoria  de consultas\"\n" + otraConversacionBienFormada +
+				anuncioBienFormado),
+			ruta:    []string{"maquinaria", "0"},
+			rechazo: &kind.Pattern{Got: "memoria  de consultas", Want: patronDeExpresion},
 		},
 		{
-			nombre:    "guion-bajo",
-			documento: "maquinaria:\n  - \"_hallazgos_\"\n" + otraConversacionBienFormada + anuncioBienFormado,
-			ruta:      []string{"maquinaria", "0"},
-			rechazo:   &kind.Pattern{Got: "_hallazgos_", Want: patronDeExpresion},
+			nombre: "asterisco",
+			documento: conLasClavesDeH74(maquinariaBienFormada + "otra_conversacion:\n  - \"te *dije*\"\n" +
+				anuncioBienFormado),
+			ruta:    []string{"otra_conversacion", "0"},
+			rechazo: &kind.Pattern{Got: "te *dije*", Want: patronDeExpresion},
+		},
+		{
+			nombre: "asterisco-en-anuncio",
+			documento: conLasClavesDeH74(maquinariaBienFormada + otraConversacionBienFormada +
+				"anuncio:\n  - \"ya *puedo* responder\"\n"),
+			ruta:    []string{"anuncio", "0"},
+			rechazo: &kind.Pattern{Got: "ya *puedo* responder", Want: patronDeExpresion},
+		},
+		{
+			nombre:    "asterisco-en-redaccion-no-leida",
+			documento: tresFamilias + "redaccion_no_leida:\n  - \"ya no *exige*\"\n" + formasFijasBienFormadas,
+			ruta:      []string{"redaccion_no_leida", "0"},
+			rechazo:   &kind.Pattern{Got: "ya no *exige*", Want: patronDeExpresion},
+		},
+		{
+			nombre: "guion-bajo",
+			documento: conLasClavesDeH74("maquinaria:\n  - \"_hallazgos_\"\n" + otraConversacionBienFormada +
+				anuncioBienFormado),
+			ruta:    []string{"maquinaria", "0"},
+			rechazo: &kind.Pattern{Got: "_hallazgos_", Want: patronDeExpresion},
+		},
+		{
+			// Una forma fija partida en dos líneas: el salto, escrito con su escape
+			// en la cadena entre comillas del YAML.
+			nombre: "forma-fija-de-dos-lineas",
+			documento: tresFamilias + redaccionNoLeidaBienFormada +
+				"formas_fijas:\n  - \"No se ha podido comprobar\\nsi la redacci\xc3\xb3n ha cambiado\"\n",
+			ruta: []string{"formas_fijas", "0"},
+			rechazo: &kind.Pattern{
+				Got:  "No se ha podido comprobar\nsi la redacci\xc3\xb3n ha cambiado",
+				Want: patronDeFormaFija,
+			},
 		},
 	}
 

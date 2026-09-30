@@ -30,11 +30,14 @@ const (
 )
 
 // ExpresionesProhibidas es la lista de expresiones prohibidas de una skill, las
-// que no lleva la respuesta de una eval que la activa, en sus tres familias
-// (FR-050 de H7.2 y FR-020 de H7.3; data-model §5). Se lee de
+// que no lleva la respuesta de una eval que la activa, en sus cuatro familias,
+// con las formas fijas que se quitan de la respuesta antes de buscarlas (FR-050
+// de H7.2, FR-020 de H7.3 y FR-030 y FR-031 de H7.4; data-model §1 de H7.4). La
+// maquinaria, lo dicho en otra conversación y el anuncio son de la clase A; la
+// redacción no leída, de la clase B. Se lee de
 // evals/<skill>/expresiones-prohibidas.yaml, validada contra
-// schemas/expresiones-prohibidas.yaml.json, que exige las tres; su valor cero es
-// el de una skill sin lista.
+// schemas/expresiones-prohibidas.yaml.json, que exige las cinco claves; su valor
+// cero es el de una skill sin lista.
 type ExpresionesProhibidas struct {
 	// Maquinaria son las de la maquinaria interna —la memoria de consultas,
 	// kitlegal graph y sus verbos, los códigos de salida, los hallazgos y sus
@@ -50,6 +53,18 @@ type ExpresionesProhibidas struct {
 	// responder, que se tiene lo necesario—, en el orden del fichero. Ninguna
 	// dice que la norma no está derogada o que no tiene avisos (FR-020).
 	Anuncio []string `yaml:"anuncio"`
+
+	// RedaccionNoLeida son las de la clase B: las que cuentan de una redacción
+	// que ninguna orden devolvió qué decía, hasta cuándo rigió o qué cambió
+	// respecto de ella, en el orden del fichero (FR-011 y FR-030 de H7.4).
+	RedaccionNoLeida []string `yaml:"redaccion_no_leida"`
+
+	// FormasFijas son los textos que enseña la skill y que se quitan de la
+	// respuesta antes de buscar las expresiones, en el orden del fichero: cada
+	// uno, de una línea, con los marcadores <cita> y <fecha> donde la respuesta
+	// lleva una cita y una fecha de vigencia (FR-031 de H7.4;
+	// contracts/lista-de-expresiones.md §3 de H7.4).
+	FormasFijas []string `yaml:"formas_fijas"`
 }
 
 // esquemaDeExpresionesProhibidas compila una sola vez el esquema publicado de la

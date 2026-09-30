@@ -1,0 +1,23 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US1] La familia de la clase B y las formas fijas en el esquema de la lista, en la lista y en el tipo que la lee, con los casos que los fijan, y **nada más** (contracts/lista-de-expresiones.md §1 y §2; data-model §1; research D6, D7; plan.md, «Orden de implementación», paso 1, y *Complexity Tracking*): schemas/expresiones-prohibidas.yaml.json: `required` pasa a `[\"maquinaria\", \"otra_conversacion\", \"anuncio\", \"redaccion_no_leida\", \"formas_fijas\"]`; `redaccion_no_leida` con el mismo `$ref` a la definición común `expresiones` que las otras tres; `formas_fijas` con el tipo de contracts §2 carácter a carácter (lista de al menos una cadena de una línea con algún carácter fuera de los marcadores); `additionalProperties: false` se queda; evals/boe-legislacion/expresiones-prohibidas.yaml: el comentario de cabecera de contracts §1 (cuatro familias, las dos clases y las formas fijas que se quitan antes de buscar) y, detrás de `anuncio` y sin tocar sus 14 expresiones ni las 22 de `maquinaria` ni las 16 de `otra_conversacion`, `redaccion_no_leida` con solo su primera expresión, `ya no exige` (las otras nueve y las 25 nuevas de `anuncio` entran con la skill, en T010: con ellas, la prosa de v0.1.3 da 9 defectos, research V19), y `formas_fijas` con las dos formas definitivas de contracts §1 carácter a carácter (la línea `⚠ REDACCIÓN MODIFICADA: <cita>: …` con sus dos `<fecha>`, y la frase de la regla 7 sin su punto final); internal/evals/prohibidas.go: `ExpresionesProhibidas.RedaccionNoLeida []string` (`yaml:\"redaccion_no_leida\"`) y `ExpresionesProhibidas.FormasFijas []string` (`yaml:\"formas_fijas\"`), con su comentario —sin ellos, el lector estricto rechaza la lista que el esquema exige—; `ExtraerExpresionesProhibidas` y el recuento no cambian todavía (T003); tests: en internal/evals/formato_test.go, los casos de contracts §2 —la lista del repositorio valida; sin `redaccion_no_leida`, sin `formas_fijas`, con `formas_fijas: []` y con una forma de dos líneas no validan (una lista mal formada es un fichero mal formado, H7.2 FR 055)—; las listas sintéticas y los `ExpresionesProhibidas` literales que el esquema o el lector estricto exigen completos, buscados con `git grep -n anuncio` en los tests del paquete de evals —hoy en internal/evals/formato_test.go, internal/evals/conjunto_test.go, internal/evals/informe_test.go, internal/evals/juzgar_test.go e internal/evals/prohibidas_test.go—, ganan las dos claves, sin desactivar ningún caso; `TestLeerConjunto` (internal/evals/conjunto_test.go) con una lista de las cinco claves: las dos nuevas quedan en `Conjunto.Prohibidas` y en cada `Eval.Prohibidas`; verificación: `make ci` en verde con `TestEvalsDelRepositorio` sin cambios —la extracción aún no lee las claves nuevas, así que el calibrado sigue en 35 de 93 y 10 de 93— — FR-030, FR-031, FR-035; SC-002; US1-6; rutas: schemas/expresiones-prohibidas.yaml.json, evals/boe-legislacion/expresiones-prohibidas.yaml, internal/evals/prohibidas.go, internal/evals/formato_test.go, internal/evals/conjunto_test.go, internal/evals/informe_test.go, internal/evals/juzgar_test.go",
+  "intento": 1,
+  "datos": true,
+  "aceptacion": false,
+  "base": "919612efedab0256c140d2747d6659e33de19e4f",
+  "rutas": [
+    "contracts/lista-de-expresiones.md",
+    "evals/boe-legislacion/expresiones-prohibidas.yaml",
+    "internal/evals/conjunto_test.go",
+    "internal/evals/formato_test.go",
+    "internal/evals/informe_test.go",
+    "internal/evals/juzgar_test.go",
+    "internal/evals/prohibidas.go",
+    "internal/evals/prohibidas_test.go",
+    "plan.md",
+    "schemas/expresiones-prohibidas.yaml.json"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
