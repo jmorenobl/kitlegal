@@ -46,7 +46,8 @@ jobs:
           # data/territorio/, porque en un patrón de case * casa también las barras—, las propias evals y todo el
           # código del binario que las skills invocan desde el PATH: cmd/, internal/ (applets, dominio, kernel,
           # composición, red, caché, disco y el arnés del job) y skills.go, lo que el binario empotra. Y el fichero del
-          # job. Una ruta que no se puede leer detiene el paso, y no lo deja en «no».
+          # job y los dos guiones que lo ejecutan, el del job y el que abre cada sesión (H7.3, research.md D12). Una
+          # ruta que no se puede leer detiene el paso, y no lo deja en «no».
           cambiados=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMERO}/files" --jq '.[].filename')
           echo "ficheros cambiados:"
           printf '%s\n' "$cambiados"
@@ -54,7 +55,7 @@ jobs:
           while IFS= read -r fichero; do
             case "$fichero" in
               skills/* | evals/* | data/* | cmd/* | internal/* | skills.go | \
-              scripts/evals.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
+              scripts/evals.sh | scripts/evals-sesion.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
                 echo "toca lo que las evals miden: $fichero"
                 coincide=si
                 ;;
@@ -63,8 +64,12 @@ jobs:
           echo "coincide=$coincide" >> "$GITHUB_OUTPUT"
 
   # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
-  # de la otra, que termina y publica el suyo (SC-015; research.md D23).
+  # de la otra, que termina y publica el suyo (SC-015; research.md D23). La definición del trabajo la comprueba
+  # TestDefinicionDelJob en make ci (specs/013-h7-3-el-umbral-de/contracts/ejecucion-del-job.md §6 y §7).
   evals:
+    # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
+    # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
+    name: evals (${{ matrix.skill }})
     needs: [cambios]
     if: >-
       !cancelled() && needs.cambios.result != 'failure' && (
@@ -73,11 +78,31 @@ jobs:
         github.event.label.name == 'evals-prueba-de-red' ||
         needs.cambios.outputs.coincide == 'si'
       )
+    # Una tanda por commit y skill: un segundo disparo sobre el mismo commit —en el cierre, el de la apertura y el de la
+    # etiqueta— espera a que termine el primero, y ninguno se cancela ni se salta, así que el cierre espera a la tanda
+    # que corre y recoge su informe. Sin concurrency de nivel de flujo, que no admite matrix y detendría también el
+    # trabajo de la otra skill (FR-034 de H7.3; research.md D11 de H7.3).
+    concurrency:
+      group: evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
         skill: [boe-legislacion, legal-core]
+        # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
+        # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
+        # de H7.3; research.md D12 de H7.3).
+        include:
+          - skill: boe-legislacion
+            concurrencia: 4
+            objetivo_de_duracion: 900
+          - skill: legal-core
+            concurrencia: 1
+            objetivo_de_duracion: 0
     runs-on: ubuntu-24.04
+    # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
+    # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
+    # D13 de H7.3).
     timeout-minutes: 120
     permissions:
       contents: read
@@ -90,6 +115,10 @@ jobs:
       # Cada eval se repite con cada modelo y pasa con el umbral, en lugar de exigir una sola tirada perfecta (ADR 0016).
       REPETICIONES_DE_EVALS: 3
       UMBRAL_DE_EVALS: 2
+      # La concurrencia y el objetivo de duración de la skill del trabajo, los de su entrada de include (FR-030 y FR-051
+      # de H7.3).
+      CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
+      OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}
       # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
       VERSION_DE_CLAUDE_CODE: 2.1.270
       SKILL_EVALUADA: ${{ matrix.skill }}
