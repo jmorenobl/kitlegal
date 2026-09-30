@@ -157,13 +157,14 @@ artefactos de los hitos y en la hoja de ruta, que no se tocan).
 git diff --quiet main -- specs/012-h7-2-la-consulta-repetida; echo "H7.2: $?"
 git diff --name-only main -- cmd internal ':!internal/evals'
 go list -deps ./cmd/kitlegal | grep -c '/internal/evals$'
-git diff --name-status main -- docs/adr docs/SOURCES.md testdata '*/testdata/*'
+git diff --name-status main -- docs/ADR docs/SOURCES.md testdata '*/testdata/*'
 git diff --name-status main -- schemas evals
 wc -l < skills/boe-legislacion/SKILL.md
 ```
 
 Esperado: `H7.2: 0` (FR-080); la segunda, sin salida (el binario no cambia); la tercera, `0` (el binario no enlaza el
-paquete de evals); la cuarta, sin salida (ni ADR, ni fila de fuentes, ni datos de prueba ni grabaciones); la quinta,
+paquete de evals); la cuarta, sin salida (ni ADR, ni fila de fuentes, ni datos de prueba ni grabaciones; los ADR viven
+en `docs/ADR/`, y una ruta de git distingue mayúsculas aunque el sistema de ficheros no lo haga); la quinta,
 solo `M` del esquema de la lista y de la lista de `boe-legislacion`; y menos de 300 líneas.
 
 ### 9.3 La cobertura (T015, punto 2)
