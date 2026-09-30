@@ -319,8 +319,11 @@ sustituyen a este fichero.
   última orden, desde su primera palabra, y está hecha de la norma, su texto, su cita, sus avisos de vigencia y la
   línea `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae; **no cuenta la comprobación, lo que el agente ha hecho,
   lo que va a hacer ni lo que ha devuelto ninguna orden**, y lo que decide al mirar si le falta contexto no va en
-  ella. La prosa de la skill no enseña el vocabulario que la respuesta no puede decir: nombra cada orden por su
-  nombre, en código, y no habla de «la comprobación» ni de una lectura anterior. **No describe una redacción que no ha
+  ella. Tampoco cuenta lo que una orden no ha devuelto: un `kitlegal graph check` sin entradas, que es lo habitual, no
+  deja rastro en la respuesta, ni junto a los avisos de vigencia ni al final, porque lo que compara es lo leído en
+  otras conversaciones, que quien pregunta no conoce, y no un dato de la norma. La prosa de la skill no enseña el
+  vocabulario que la respuesta no puede decir: nombra cada orden por su nombre, en código, y no habla de «la
+  comprobación» ni de una lectura anterior. **No describe una redacción que no ha
   leído**: `kitlegal boe` da solo la vigente y `kitlegal graph check`, dos fechas, así que la respuesta no dice qué
   decía la redacción superada, ni lo resume, ni lo compara, aunque el modelo crea saberlo; dice el texto vigente con
   su cita, qué norma le dio esa redacción y desde cuándo está vigente, y, si se pregunta qué cambió, **que cita la

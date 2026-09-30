@@ -65,8 +65,10 @@ salvo la skill empotrada (`skills.go`).
 **Performance Goals**: sesiones de `boe-legislacion` ≤ 900 s en el job (421 s con 93 sesiones en la línea de base; 96
 ahora); peor caso del trabajo ≤ 122 min (7 285 s, D17); la tanda decide en segundos.
 
-**Constraints**: ningún test de `make ci` usa la red ni abre una sesión con modelo; `SKILL.md` < 300 líneas (295 en v0.1.4:
-las 294 del prototipo y el párrafo que cierra «Redacción modificada», que se queda, supuesto T010) y `description`
+**Constraints**: ningún test de `make ci` usa la red ni abre una sesión con modelo; `SKILL.md` < 300 líneas (298 en v0.1.4:
+las 294 del prototipo, el párrafo que cierra «Redacción modificada», que se quedó con T010, y la reparación del cierre,
+contracts/skill-boe-legislacion.md C11; el tope efectivo es 298, porque el mutante `dos-inicios` de
+`TestSkillsDelRepositorio` añade una línea) y `description`
 ≤ 1024 caracteres (924); ninguna fecha `AAAAMMDD` con cifras en `SKILL.md`; ningún
 `//nolint`.
 
@@ -287,7 +289,7 @@ contracts/tanda-del-job.md §5 y contracts/sondeo.md §3. Resumen:
   acotadas a las ejecuciones del commit (`--commit`, `--limit 100`).
 - **La salida de error del sondeo** en un error de uso (quien lo lanza; una por lanzamiento): una línea por error, como
   mucho seis, < 1 KB.
-- **`SKILL.md`** (el modelo; una vez por conversación): 295 líneas; **la lista**: 87 expresiones y 2 formas fijas,
+- **`SKILL.md`** (el modelo; una vez por conversación): 298 líneas; **la lista**: 87 expresiones y 2 formas fijas,
   ≈ 2,9 KB con su comentario de cabecera (2 966 B), fija.
 
 ## Decisiones
@@ -304,7 +306,11 @@ contracts/tanda-del-job.md §5 y contracts/sondeo.md §3. Resumen:
 - **La respuesta a la pregunta es el primer `result`** (D12).
 - **Una tanda por commit con un trabajo `tanda` que decide antes de `evals`** y una marca por paso que leen los
   disparos posteriores; solo se espera a que decidan las anteriores, nunca a su tanda (D15, D16).
-- Las demás, con su alternativa rechazada, en research D1-D21.
+- **Reparación del cierre: el sobre de `kitlegal graph check` sin entradas no da nada a la respuesta, dicho con la
+  razón** (contracts/skill-boe-legislacion.md C11; research D22). La medición sobre `4cb52cb` dio 15 de 54 con C1-C10,
+  14 por contar el resultado negativo de `kitlegal graph check` con las palabras de las formas fijas: la clase A no es
+  solo vocabulario, y a la prosa le faltaba el caso sin entrada, con su razón, como C9 se lo dio a la clase B.
+- Las demás, con su alternativa rechazada, en research D1-D22.
 
 ## Trazabilidad: cada mecanismo y su requisito
 
@@ -339,10 +345,12 @@ falla, error con código 1—, sin caso propio.
 
 ## Cambios de `SKILL.md` trazados a la causa de raíz (FR-002, FR-020)
 
-C1-C10 de contracts/skill-boe-legislacion.md §1, cada uno con el texto de v0.1.3, el de v0.1.4, la causa medida (research,
+C1-C11 de contracts/skill-boe-legislacion.md §1, cada uno con el texto de v0.1.3, el de v0.1.4, la causa medida (research,
 «Causa de raíz») y su requisito. En resumen: la activación (C1: la skill como comprobación opcional; la 04 pide un dato);
 «la comprobación» y «desde una lectura anterior» (C2, C3, C5, C8, C10); «si lo leído basta» (C6); «si la redacción
-cambió» (C7); y la clase B sin razón ni respuesta (C9).
+cambió» (C7); la clase B sin razón ni respuesta (C9); y, de la medición del cierre, el resultado negativo de
+`kitlegal graph check` contado como un dato de la vigencia, sin que la prosa dijera el caso sin entrada ni su razón
+(C11; research V28, D22).
 
 ## Datos externos
 

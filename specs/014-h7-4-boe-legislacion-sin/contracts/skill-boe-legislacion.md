@@ -3,8 +3,9 @@
 `skills/boe-legislacion/SKILL.md`. Cada cambio lleva el texto de v0.1.3 que sustituye, el de v0.1.4, su causa (research,
 «Causa de raíz») y su requisito. El prototipo con todos los cambios (research V19) tiene 294 líneas, una `description`
 de ≈ 925 caracteres y 0 párrafos de prosa con alguna expresión de la lista nueva o una fecha `AAAAMMDD` con cifras; el
-`SKILL.md` de v0.1.4 tiene 295 líneas, porque se queda la frase que cierra «Redacción modificada» (C9), y una
-`description` de 924 caracteres. Todo lo que no nombra este contrato queda como en v0.1.3 (§2).
+`SKILL.md` de v0.1.4 tenía 295 líneas con C1-C10, porque se quedaba la frase que cierra «Redacción modificada» (C9), y
+tiene 298 con C11, que la absorbe en una viñeta (reparación del cierre), y una `description` de 924 caracteres. Todo lo
+que no nombra este contrato queda como en v0.1.3 (§2).
 
 ## 1. Cambios
 
@@ -175,6 +176,58 @@ lectura anterior»).» → «…la orden termina ahí, sin `kitlegal graph check
 MODIFICADA:` solo va cuando `kitlegal graph check` termina con `0` y trae `version-obsoleta` («Redacción modificada»).».
 **La frase fija no cambia**: «No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.».
 
+### C11 · El sobre de `kitlegal graph check` sin entradas no da nada a la respuesta (reparación del cierre; FR-010, FR-021, FR-025)
+
+Lo añade `reparar_cierre` tras la medición sobre `4cb52cb` (research V28, D22): con C1-C10, 15 de 54 respuestas del
+modelo que decide llevan una expresión de la lista, 14 de ellas porque cuentan, casi siempre en un párrafo final de
+vigencia, que `kitlegal graph check` no encontró nada. Cinco cambios, todos en la prosa, sin tocar ninguna forma fija
+ni la región generada; 298 líneas.
+
+- **Paso 3, los dos sobres** (C3). v0.1.4 con C1-C10: «…y el de `kitlegal graph check`. Por cada entrada de clase
+  `version-obsoleta` del segundo, la respuesta lleva una línea `⚠ REDACCIÓN MODIFICADA:` («Redacción modificada»); si
+  `kitlegal graph check` termina con otro código que `0`, la regla 7.» → «…y el de `kitlegal graph check`, del que la
+  respuesta lleva una línea `⚠ REDACCIÓN MODIFICADA:` por cada entrada de clase `version-obsoleta` de su
+  `data.hallazgos`, y nada más: vacío, que es lo habitual, no da nada a la respuesta («Redacción modificada»); si
+  `kitlegal graph check` termina con otro código que `0`, la regla 7.» Lo demás del párrafo no cambia.
+- **Paso 5, lo que lleva la respuesta** (C7). «…ni lo que ha devuelto ninguna orden.» → «…ni lo que ha devuelto ninguna
+  orden; tampoco lo que una orden no ha devuelto: un `data.hallazgos` vacío no deja rastro en la respuesta.»
+- **Paso 5, los avisos de vigencia.** Entre «(más en «Cómo se cita»).» y «Recuerda que los textos consolidados…» entra:
+  «De la vigencia del bloque, la respuesta dice lo que trae el sobre de `kitlegal boe`; el de `kitlegal graph check`
+  no dice nada de ella.»
+- **«Redacción modificada»** (C9). En el párrafo de apertura, «…con la que se leyó la vez anterior, y devuelve…» →
+  «…con la que se leyó la vez anterior, en otra conversación que quien pregunta no conoce, y devuelve…». En la viñeta
+  de `version-obsoleta`, «Decirlo con otras palabras no vale: la línea va con su forma fija.» → «Decirlo con otras
+  palabras no vale, ni en lugar de la línea ni además de ella: la línea va con su forma fija y lo dice entera.» Detrás
+  de la viñeta de `fuente-caducada` entra una viñeta nueva, que absorbe la última de C9 («La línea
+  `⚠ REDACCIÓN MODIFICADA:` es todo lo que la respuesta dice de lo leído en otras conversaciones. Si `kitlegal graph
+  check` termina con otro código que `0`, la regla 7.», cuya remisión ya hace el paso 3) y la frase que cerraba la
+  sección («La etiqueta `REDACCIÓN MODIFICADA` no es la de ningún aviso de vigencia.», supuesto de T010):
+
+  ````markdown
+  - **No es un aviso de vigencia.** Un aviso es un dato de la norma, que el BOE da con el bloque, y la etiqueta
+    `REDACCIÓN MODIFICADA` no es la de ninguno: una entrada de `kitlegal graph check` es un dato de kitlegal sobre otras
+    conversaciones, que quien pregunta no conoce. Por eso un bloque sin entrada de `clase` `version-obsoleta` no da nada
+    a la respuesta: ni una línea, ni una frase junto a los avisos o a la fecha de vigencia, ni una palabra al final.
+    Mencionarlo sería contar lo que devolvió una orden y hablar de otras conversaciones: la línea es todo lo que la
+    respuesta dice de ellas y de `kitlegal graph check`.
+  ````
+
+- **Regla 7** (C10). Delante de «Si lo que falla es la lectura…» entra: «La frase es solo de ese caso: con `0`, la
+  respuesta no la lleva, ni afirmada ni negada, ni con otras palabras.»
+- **Paso 3, una línea en blanco** entre las viñetas «Una orden de `kitlegal boe articulos` falla entera…» y «Sigue las
+  remisiones…» se quita, sin cambiar el texto: con 300 líneas o más `skills-check` falla, y el mutante `dos-inicios` de
+  `TestSkillsDelRepositorio` añade una línea a la skill, así que el tope efectivo es 298.
+
+Causa: la clase A no es solo vocabulario. Con la prosa de C1-C10, el modelo que decide sigue contando el resultado
+negativo de `kitlegal graph check`, con las palabras de las dos formas fijas (que no cambian, FR-025) y de la etiqueta:
+«no se ha detectado cambio de redacción», «no consta que su redacción haya cambiado desde una consulta anterior», «la
+comprobación de cambios de redacción no encontró ninguno». La skill decía qué lleva la respuesta cuando hay una entrada
+y nunca qué pasa cuando no la hay, y el modelo trataba ese resultado como un dato de la vigencia del bloque, al lado de
+«no trae avisos de vigencia» (que sí es derecho, FR-012). C11 lo dice con la razón, como hizo C9 con la clase B (que da
+0 de 54): por qué (es un dato sobre otras conversaciones, no de la norma), qué sí (la línea por entrada) y dónde no (ni
+junto a los avisos ni al final). Ninguna frase nueva enseña una forma de la lista: `prosa-de-la-skill` y
+`expresiones-de-la-skill` siguen en verde.
+
 ## 2. Lo que se queda de v0.1.3 (FR-025, FR-026)
 
 La lectura de uno en uno, con `kitlegal graph check` detrás en la misma orden y con su misma norma y sus mismos bloques,
@@ -225,7 +278,7 @@ PowerShell; sin argumentos en la comprobación; sin la de `articulos`; y sin nin
 | La respuesta | la persona; una por pregunta | lo que ocupe la norma citada; 0 líneas sobre la comprobación; una línea `⚠ REDACCIÓN MODIFICADA:` por bloque cambiado, de 221 bytes con `art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]` y 242 con `disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]` (medidos; la de H7.3, 161): 0 en la mayoría de las preguntas, 2 en la de la eval 20, como mucho k × ≈ 240 B con k bloques leídos; con cientos de normas y miles de bloques consultados, la misma, porque solo cuenta lo leído en la pregunta | la línea sale en la respuesta de la lectura que ve la redacción nueva y no en la siguiente lectura del bloque (H7.1); al cabo de un mes, solo si el BOE publica otra |
 | `kitlegal graph check <norma> <bloques…>` | la skill; una por orden que lee bloques, detrás de la lectura | ≈ 325 B sin cambios, ≈ 1 000 B por bloque cambiado (H7.3), ≤ 3 800 B con cinco; acotada por los bloques pedidos | cada señal se da una vez y la apaga la lectura siguiente (H7.1) |
 | La `description` | el agente, en cada sesión con la skill instalada | ≈ 925 caracteres (≤ 1024) | no da señales |
-| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 295 líneas (< 300; 294 en el prototipo) | no da señales |
+| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 298 líneas (< 300; 294 en el prototipo, 295 con C1-C10) | no da señales |
 
 ## 6. `CHANGELOG.md` (*Unreleased*) (FR-027, FR-101)
 
