@@ -71,8 +71,11 @@ type Sesion struct {
 	// está entre ellas.
 	SkillsActivadas []string
 
-	// Respuesta es el campo result del último mensaje result del transcript si
-	// ese mensaje tiene subtype success e is_error falso; vacía en otro caso.
+	// Respuesta es el campo result del primer mensaje result del transcript si
+	// ese mensaje tiene subtype success e is_error falso; vacía en otro caso. Es
+	// la respuesta a la pregunta: el aviso de una tarea en segundo plano abre
+	// otro turno, con su propio result, que no la sustituye (research.md D12 y S5
+	// de H7.4).
 	Respuesta string
 
 	// Codigo es el entero de codigo-de-la-sesion. Nunca es 0 por omisión: si el
@@ -226,6 +229,10 @@ type transcriptLeido struct {
 
 	skills    []string
 	respuesta string
+
+	// conResult dice si ya se leyó un mensaje result: la respuesta es la del
+	// primero.
+	conResult bool
 
 	reintentos []ReintentoDeLaAPI
 
@@ -413,10 +420,11 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 
 // leerResult lee un mensaje result: su subtype y su is_error, que deciden el fin
 // de la sesión (research.md V47), y la respuesta, que es su result solo con
-// subtype success e is_error falso y vacía en otro caso. Cada result deja la
-// respuesta en la suya, de modo que cuenta la del último. Con is_error
-// verdadero, su result, si lo lleva, es el texto del error (research.md V3 y
-// V18 de H7.3).
+// subtype success e is_error falso y vacía en otro caso. Solo el primer result
+// deja la respuesta, de modo que cuenta la del turno que abre la pregunta y no
+// la réplica de un turno posterior; los demás se leen igual, y el último sigue
+// decidiendo el fin (research.md D12 de H7.4). Con is_error verdadero, su
+// result, si lo lleva, es el texto del error (research.md V3 y V18 de H7.3).
 func (t *transcriptLeido) leerResult(texto string) (mensaje, error) {
 	var result struct {
 		Subtype string  `json:"subtype"`
@@ -432,15 +440,17 @@ func (t *transcriptLeido) leerResult(texto string) (mensaje, error) {
 		return mensaje{}, errors.New("el mensaje result no tiene subtype e is_error")
 	}
 
-	t.respuesta = ""
-
 	if result.Subtype == subtipoSuccess && !*result.IsError {
 		if result.Result == nil {
 			return mensaje{}, errors.New("el mensaje result con subtype success e is_error falso no tiene result")
 		}
 
-		t.respuesta = *result.Result
+		if !t.conResult {
+			t.respuesta = *result.Result
+		}
 	}
+
+	t.conResult = true
 
 	leido := mensaje{tipo: mensajeResult, subtipo: result.Subtype, conError: *result.IsError}
 

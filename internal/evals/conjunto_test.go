@@ -33,6 +33,11 @@ const (
 	contenidoDeProgramacion    = "pregunta: \"¿Cómo invierto una lista enlazada en Go?\"\nactiva: false\n"
 	contenidoSinPregunta       = "activa: false\n"
 	contenidoConActivaRepetida = preguntaDelArticulo21 + "activa: true\nactiva: false\n"
+
+	// ficheroDeDosBloquesDeLaLCSP es el nombre con el que TestLeerConjunto lee
+	// evalDeDosBloquesDeLaLCSP, el de la eval de contracts/evals-y-juicio.md §3
+	// de H7.4.
+	ficheroDeDosBloquesDeLaLCSP = "20-lcsp-dos-bloques-redaccion-cambiada.yaml"
 )
 
 // entradaDeConjunto es una entrada que un test crea en el directorio de un
@@ -69,6 +74,15 @@ type malFormadoEsperado struct {
 // valida —también la de dos familias de H7.2, sin anuncio—, es un fichero mal
 // formado que la nombra y las evals se leen sin lista; y una carpeta sin ella se
 // lee como antes del hito, sin lista en el conjunto ni en ninguna eval.
+//
+// Desde H7.4 (contracts/lista-de-expresiones.md §1 y §2; FR-030, FR-031), la
+// lista bien formada tiene sus cinco claves, y la familia redaccion_no_leida y
+// las formas_fijas quedan también en Conjunto.Prohibidas y en Prohibidas de cada
+// eval; y cada lista mal formada lo está solo por su defecto. Y cada eval se lee
+// con sus claves de H7.4 (contracts/evals-y-juicio.md §1 y §5; FR-003, FR-004,
+// FR-053): las de legal-core, con la skill que no se activa en NoSeActivan, y la
+// positiva de los dos bloques de la LCSP, con sus redacciones modificadas en
+// RedaccionesModificadas.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -85,14 +99,20 @@ func TestLeerConjunto(t *testing.T) {
 	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
 
-	// La lista bien formada, la del test del esquema con sus tres familias, y lo
-	// que se lee de ella.
-	listaBienFormada := maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado
+	// Lo que se lee de listaBienFormada, la del test del esquema con sus cinco
+	// claves; y las dos claves de H7.4 bien formadas, para que la lista sin una
+	// familia de H7.3 lo esté solo por eso.
 	lista := ExpresionesProhibidas{
 		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
 		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
 		Anuncio:          []string{"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
+		RedaccionNoLeida: []string{"ya no exige", "se elimin\xc3\xb3"},
+		FormasFijas: []string{
+			"\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: <cita>: vigente desde <fecha>.",
+			"No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado",
+		},
 	}
+	clavesDeH74 := redaccionNoLeidaBienFormada + formasFijasBienFormadas
 	conLista := func(eval Eval) Eval {
 		eval.Prohibidas = lista
 
@@ -183,7 +203,10 @@ func TestLeerConjunto(t *testing.T) {
 			nombre: "lista-sin-una-familia",
 			entradas: []entradaDeConjunto{
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + anuncioBienFormado},
+				{
+					nombre:    ficheroDeExpresionesProhibidas,
+					contenido: maquinariaBienFormada + anuncioBienFormado + clavesDeH74,
+				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
@@ -196,7 +219,10 @@ func TestLeerConjunto(t *testing.T) {
 			// formada: las evals se leen sin lista (FR-023).
 			nombre: "lista-sin-anuncio",
 			entradas: []entradaDeConjunto{
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{
+					nombre:    ficheroDeExpresionesProhibidas,
+					contenido: maquinariaBienFormada + otraConversacionBienFormada + clavesDeH74,
+				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21},
@@ -215,7 +241,7 @@ func TestLeerConjunto(t *testing.T) {
 			},
 			evals: []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{
-				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 12"},
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 18"},
 			},
 		},
 		{
@@ -243,6 +269,42 @@ func TestLeerConjunto(t *testing.T) {
 			},
 			evals:       []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{{fichero: "expresiones-prohibidas.yml", fragmento: sinLaForma}},
+		},
+		{
+			// Las dos de legal-core, cada una con la skill que no se activa
+			// detrás de activa, como en el repositorio.
+			nombre: "no-se-activan-en-legal-core",
+			entradas: []entradaDeConjunto{
+				{
+					nombre: legalCoreCubierto,
+					contenido: preguntaDelMunicipio + "activa: true\n" + noSeActivaBoeLegislacion + comandoDelMunicipio +
+						"territorio:\n  comunidad: Comunidad de Madrid\n",
+				},
+				{nombre: legalCoreNoActivacion, contenido: evalDeLaReceta + noSeActivaBoeLegislacion},
+			},
+			evals: []Eval{
+				{
+					Fichero:     legalCoreCubierto,
+					Pregunta:    "¿En qué boletines se publican las normas que afectan a Leganés?",
+					Activa:      true,
+					NoSeActivan: []string{"boe-legislacion"},
+					Comandos:    []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+					Territorio:  TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
+				},
+				{
+					Fichero:     legalCoreNoActivacion,
+					Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
+					NoSeActivan: []string{"boe-legislacion"},
+				},
+			},
+		},
+		{
+			nombre: "redacciones-modificadas-de-una-positiva",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeDosBloquesDeLaLCSP, contenido: evalDeDosBloquesDeLaLCSP},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21, leidaDeDosBloquesDeLaLCSP(ficheroDeDosBloquesDeLaLCSP)},
 		},
 	}
 
@@ -986,8 +1048,15 @@ const (
 // leída (contrato eval-y-derivada §4; FR-002 de H7.2). Desde H7.3, ninguna
 // expresión de esa lista va en la prosa del SKILL.md de boe-legislacion —fuera
 // del código y de la región generada— ni el fichero lleva ninguna fecha AAAAMMDD
-// escrita con cifras (contracts/skill-boe-legislacion.md §5; FR-091, SC-005). Lee
-// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// escrita con cifras (contracts/skill-boe-legislacion.md §5; FR-091, SC-005).
+// Desde H7.4, la lista, con sus cuatro familias y sus formas fijas, marca en las
+// respuestas de H7.1, H7.2 y H7.3 el reparto calibrado de cada familia; la
+// respuesta hecha de lo que enseña la skill no lleva ninguna expresión, y cada
+// forma fija de la lista quita algo de ella; y cada orden de lectura y
+// comprobación de la skill lleva detrás su forma para PowerShell
+// (contracts/lista-de-expresiones.md §4 y §5 y contracts/skill-boe-legislacion.md
+// §4 de H7.4; FR-032, FR-033, FR-093, FR-095; SC-002, SC-003, SC-005). Lee las
+// carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1149,16 +1218,26 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		probarProsaDeLaSkill(t, listaDelRepositorio(t, conjunto))
 	})
+
+	t.Run("ordenes-para-powershell", func(t *testing.T) {
+		t.Parallel()
+
+		defectos := defectosDeLasOrdenesParaPowerShell(string(contenidoDelFichero(t, skillDelRepositorio)))
+		assert.Empty(t, defectos, "%s enseña cada orden de lectura y comprobación con su forma para PowerShell:\n%s",
+			skillDelRepositorio, strings.Join(defectos, "\n"))
+	})
 }
 
-// Los informes del job de evals de boe-legislacion en el cierre de H7.1 y de
-// H7.2, relativos al directorio de este paquete: sus respuestas son con las que
-// se calibra la lista de expresiones prohibidas (FR-021 de H7.3;
-// contracts/lista-de-expresiones.md §4). Están versionados y no se editan
-// (FR-080).
+// Los informes del job de evals de boe-legislacion en el cierre de H7.1, de
+// H7.2 y de H7.3 (el de 196ee05), relativos al directorio de este paquete: sus
+// respuestas son con las que se calibra la lista de expresiones prohibidas
+// (FR-021 de H7.3; FR-032 de H7.4; contracts/lista-de-expresiones.md §4 de
+// H7.4). Están versionados, solo se leen y no se editan (FR-080 de H7.3; FR-090
+// de H7.4).
 const (
 	informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
 	informeDeH72 = "../../specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json"
+	informeDeH73 = "../../specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json"
 )
 
 // respuestasDeCadaInforme son las sesiones de cada uno de esos informes, una
@@ -1167,8 +1246,8 @@ const respuestasDeCadaInforme = 93
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
 // evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
-// TestEvalsDelRepositorio. Tiene expresiones en sus tres familias: sin ellas, las
-// subpruebas que la aplican pasarían en vacío.
+// TestEvalsDelRepositorio. Tiene expresiones en sus cuatro familias y formas
+// fijas: sin ellas, las subpruebas que la aplican pasarían en vacío.
 func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
 	t.Helper()
 
@@ -1178,6 +1257,10 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
 		evalsDelRepositorio)
 	require.NotEmpty(t, lista.Anuncio, "%s tiene lista de expresiones prohibidas, con las del anuncio",
+		evalsDelRepositorio)
+	require.NotEmpty(t, lista.RedaccionNoLeida, "%s tiene lista de expresiones prohibidas, con las de la redacción "+
+		"no leída", evalsDelRepositorio)
+	require.NotEmpty(t, lista.FormasFijas, "%s tiene lista de expresiones prohibidas, con sus formas fijas",
 		evalsDelRepositorio)
 
 	return lista
@@ -1189,17 +1272,18 @@ type marcadasPorFamilia struct {
 	maquinaria       int
 	otraConversacion int
 	anuncio          int
+	redaccionNoLeida int
 	alguna           int
 }
 
 // columnasDelCalibrado es el nombre de cada columna de la tabla del calibrado,
-// en el orden de marcadasPorFamilia.cuentas: las tres familias, con su clave en
+// en el orden de marcadasPorFamilia.cuentas: las cuatro familias, con su clave en
 // la lista, y alguna.
-var columnasDelCalibrado = []string{"maquinaria", "otra_conversacion", "anuncio", "alguna"}
+var columnasDelCalibrado = []string{"maquinaria", "otra_conversacion", "anuncio", "redaccion_no_leida", "alguna"}
 
 // cuentas son las cuentas del reparto en el orden de columnasDelCalibrado.
 func (m marcadasPorFamilia) cuentas() []int {
-	return []int{m.maquinaria, m.otraConversacion, m.anuncio, m.alguna}
+	return []int{m.maquinaria, m.otraConversacion, m.anuncio, m.redaccionNoLeida, m.alguna}
 }
 
 // informeCalibrado es un informe versionado del job de evals con el reparto
@@ -1210,9 +1294,10 @@ type informeCalibrado struct {
 	calibrado map[string]marcadasPorFamilia
 }
 
-// informesCalibrados son los dos informes de la calibración con la tabla de
-// contracts/lista-de-expresiones.md §4: en H7.1, 35 de las 93 respuestas llevan
-// alguna, y en H7.2, 10.
+// informesCalibrados son los tres informes de la calibración con la tabla de
+// contracts/lista-de-expresiones.md §4 de H7.4: en H7.1, 36 de las 93 respuestas
+// llevan alguna; en H7.2, 11; y en H7.3, 9. La redacción no leída marca las de la
+// clase B de los tres, todas de la 19.
 var informesCalibrados = []informeCalibrado{
 	{
 		ruta: informeDeH71,
@@ -1230,7 +1315,7 @@ var informesCalibrados = []informeCalibrado{
 			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
 			"16": {maquinaria: 2, anuncio: 2, alguna: 2},
 			"17": {maquinaria: 3, anuncio: 2, alguna: 3},
-			"19": {otraConversacion: 1, alguna: 1},
+			"19": {otraConversacion: 1, anuncio: 1, redaccionNoLeida: 1, alguna: 2},
 		},
 	},
 	{
@@ -1241,21 +1326,31 @@ var informesCalibrados = []informeCalibrado{
 			"13": {maquinaria: 2, anuncio: 2, alguna: 2},
 			"14": {maquinaria: 2, anuncio: 2, alguna: 2},
 			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
-			"19": {maquinaria: 1, alguna: 1},
+			"19": {maquinaria: 1, anuncio: 1, redaccionNoLeida: 2, alguna: 2},
+		},
+	},
+	{
+		ruta: informeDeH73,
+		calibrado: map[string]marcadasPorFamilia{
+			"01": {anuncio: 1, alguna: 1},
+			"05": {anuncio: 1, alguna: 1},
+			"13": {anuncio: 2, alguna: 2},
+			"14": {maquinaria: 1, anuncio: 3, alguna: 3},
+			"19": {anuncio: 1, redaccionNoLeida: 2, alguna: 2},
 		},
 	},
 }
 
 // probarExpresionesCalibradas es la subprueba expresiones-calibradas de
-// TestEvalsDelRepositorio (contracts/lista-de-expresiones.md §4 y §6; FR-021,
-// FR-095, SC-003, US1-5): aplicada con ExtraerExpresionesProhibidas, la
-// comparación de H7.2 FR 051, a las 93 respuestas de cada informe de
-// informesCalibrados, la lista marca, por las dos cifras del fichero de la eval,
-// en cada familia y en la lista entera, exactamente las del reparto calibrado, y
-// ninguna de las demás evals. Cada diferencia nombra el informe, la eval, la
-// columna, lo contado y lo calibrado. Las evals se nombran por sus dos cifras y
-// nunca por su nombre: el de una eval retirada no se escribe en ningún test
-// (FR-020 de H7.2).
+// TestEvalsDelRepositorio (contracts/lista-de-expresiones.md §4 y §6 de H7.3 y §4
+// de H7.4; FR-021, FR-095, SC-003, US1-5 de H7.3; FR-032, FR-093, SC-002 de
+// H7.4): aplicada con ExtraerExpresionesProhibidas, la comparación de H7.2 FR 051,
+// a las 93 respuestas de cada informe de informesCalibrados, la lista marca, por
+// las dos cifras del fichero de la eval, en cada una de sus cuatro familias y en
+// la lista entera, exactamente las del reparto calibrado, y ninguna de las demás
+// evals. Cada diferencia nombra el informe, la eval, la columna, lo contado y lo
+// calibrado. Las evals se nombran por sus dos cifras y nunca por su nombre: el de
+// una eval retirada no se escribe en ningún test (FR-020 de H7.2).
 func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 	t.Helper()
 
@@ -1273,7 +1368,9 @@ func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 // marcadasEnElInforme es el reparto de las respuestas del informe versionado de
 // la ruta que marca la lista, por las dos cifras del fichero de la eval: por
 // cada familia, las que llevan alguna expresión suya, y las que llevan alguna de
-// la lista entera. El informe tiene sus 93 respuestas.
+// la lista entera; en cada cuenta, quitadas antes las formas fijas de la lista
+// (contracts/lista-de-expresiones.md §3 y §7 de H7.4). El informe tiene sus 93
+// respuestas.
 func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas) map[string]marcadasPorFamilia {
 	t.Helper()
 
@@ -1287,9 +1384,10 @@ func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas)
 	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, ruta), &informe), "%s es un informe del job de evals", ruta)
 	require.Len(t, informe.Evals, respuestasDeCadaInforme, "el informe %s tiene sus respuestas", ruta)
 
-	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria}
-	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion}
-	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio}
+	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria, FormasFijas: lista.FormasFijas}
+	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion, FormasFijas: lista.FormasFijas}
+	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio, FormasFijas: lista.FormasFijas}
+	redaccionNoLeida := ExpresionesProhibidas{RedaccionNoLeida: lista.RedaccionNoLeida, FormasFijas: lista.FormasFijas}
 	marcadas := map[string]marcadasPorFamilia{}
 
 	for _, sesion := range informe.Evals {
@@ -1300,6 +1398,7 @@ func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas)
 		reparto.maquinaria += marcadaPor(sesion.Respuesta, maquinaria)
 		reparto.otraConversacion += marcadaPor(sesion.Respuesta, otraConversacion)
 		reparto.anuncio += marcadaPor(sesion.Respuesta, anuncio)
+		reparto.redaccionNoLeida += marcadaPor(sesion.Respuesta, redaccionNoLeida)
 		reparto.alguna += marcadaPor(sesion.Respuesta, lista)
 		marcadas[numero] = reparto
 	}
@@ -1452,48 +1551,109 @@ func leerBloque(t *testing.T, registro *app.Registro, consulta Consulta) (articu
 }
 
 // probarExpresionesDeLaSkill es la subprueba expresiones-de-la-skill de
-// TestEvalsDelRepositorio (contrato lista-y-juicio §6; research D11; FR-043,
-// FR-051): ninguna expresión de la lista casa con lo que la skill enseña a
-// escribir en la respuesta —la forma escrita de cada etiqueta de aviso y de
-// hallazgo, y el contenido de cada bloque de código text del SKILL.md de
-// boe-legislacion, entre ellos el de la línea de version-obsoleta—.
+// TestEvalsDelRepositorio (contrato lista-y-juicio §6 de H7.2;
+// contracts/lista-de-expresiones.md §5 de H7.4; FR-033, FR-093, SC-003 de H7.4):
+// la respuesta hecha de lo que la skill enseña a escribir, respuestaDeLaSkill, no
+// lleva ninguna expresión de la lista, y cada forma fija de la lista quita algo de
+// ella: si la skill y la lista dejaran de decir lo mismo, la forma no quitaría
+// nada. La premisa, para que no pase en vacío: sin quitar las formas fijas, la
+// respuesta lleva se consultó antes, de la línea de la redacción modificada, y
+// consulta anterior, de la frase de la regla 7.
 func probarExpresionesDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	respuesta := respuestaDeLaSkill(t, string(contenidoDelFichero(t, skillDelRepositorio)))
+
+	sinQuitar := lista
+	sinQuitar.FormasFijas = nil
+	require.Subset(t, ExtraerExpresionesProhibidas(respuesta, sinQuitar), palabrasDeLasFormasFijas,
+		"sin quitar las formas fijas, la respuesta hecha de lo que enseña %s lleva sus palabras:\n%s",
+		skillDelRepositorio, respuesta)
+
+	for _, forma := range lista.FormasFijas {
+		assert.True(t, formasDeLasFormasFijas.forma(forma).MatchString(respuesta),
+			"la forma fija «%s» de la lista de %s quita algo de la respuesta hecha de lo que enseña %s:\n%s",
+			forma, evalsDelRepositorio, skillDelRepositorio, respuesta)
+	}
+
+	assert.Empty(t, ExtraerExpresionesProhibidas(respuesta, lista),
+		"expresiones prohibidas en la respuesta hecha de lo que enseña %s:\n%s", skillDelRepositorio, respuesta)
+}
+
+// palabrasDeLasFormasFijas son las expresiones de la lista que llevan dentro las
+// dos formas fijas de boe-legislacion: se consultó antes, la línea de la
+// redacción modificada, y consulta anterior, la frase de la regla 7
+// (contracts/lista-de-expresiones.md §5 de H7.4).
+var palabrasDeLasFormasFijas = []string{"se consult\xc3\xb3 antes", "consulta anterior"}
+
+// Los datos de ejemplo con los que respuestaDeLaSkill rellena los marcadores de
+// los bloques text de SKILL.md y la frase que sigue a cada forma escrita de un
+// aviso o de un hallazgo (contracts/lista-de-expresiones.md §5 de H7.4).
+const (
+	// marcadorDeFechaDeLaSkill es el que la skill escribe en lugar de una fecha
+	// de vigencia; fechaSuperadaDeEjemplo, la que va en el primero de un bloque,
+	// y fechaLeidaDeEjemplo, en los demás.
+	marcadorDeFechaDeLaSkill = "AAAAMMDD"
+	fechaSuperadaDeEjemplo   = "20180309"
+	fechaLeidaDeEjemplo      = "20200206"
+
+	// marcadorDeCitaDeLaSkill es el que la skill escribe en lugar de la cita
+	// entera de un bloque, y citaDeEjemplo, la que va en él.
+	marcadorDeCitaDeLaSkill = "<forma legible> [<identificador>, bloque <id>]"
+	citaDeEjemplo           = "art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]"
+
+	// marcadorDeFinDeCita es el que la skill escribe en lugar del final de una
+	// cita, y finDeCitaDeEjemplo, el que va en él.
+	marcadorDeFinDeCita = "<identificador>, bloque <id>]"
+	finDeCitaDeEjemplo  = "BOE-A-2015-10565, bloque a21]"
+
+	// fraseDeEjemplo es la que sigue a la forma escrita de un aviso o de un
+	// hallazgo.
+	fraseDeEjemplo = "esta norma ha sido derogada."
+)
+
+// respuestaDeLaSkill es la respuesta hecha de lo que el Markdown de la skill
+// enseña a escribir (contracts/lista-de-expresiones.md §5 de H7.4), una línea por
+// pieza: la forma escrita de cada aviso de vigencia y de cada clase de hallazgo
+// que etiqueta el binario, en orden de código y de clase, seguida cada una de
+// fraseDeEjemplo; y cada bloque de código text del Markdown, en su orden, con sus
+// marcadores cambiados por los datos de ejemplo —en cada bloque, el primer
+// AAAAMMDD por fechaSuperadaDeEjemplo y los demás por fechaLeidaDeEjemplo, la cita
+// entera por citaDeEjemplo y el final de una cita por finDeCitaDeEjemplo—. El
+// Markdown tiene el bloque de la línea de version-obsoleta: sin él, la respuesta no
+// llevaría la forma fija que más importa.
+func respuestaDeLaSkill(t *testing.T, markdown string) string {
 	t.Helper()
 
 	etiquetasDeAviso := boe.EtiquetasDeAviso()
 	etiquetasDeHallazgo := grafo.EtiquetasDeHallazgo()
-	bloques := bloquesDeTexto(string(contenidoDelFichero(t, skillDelRepositorio)))
+	bloques := bloquesDeTexto(markdown)
 
 	require.NotEmpty(t, etiquetasDeAviso, "el binario etiqueta algún aviso")
 	require.NotEmpty(t, etiquetasDeHallazgo, "el binario etiqueta alguna clase de hallazgo")
 	require.True(t, slices.ContainsFunc(bloques, func(bloque string) bool {
 		return slices.Contains(ExtraerHallazgos(bloque), string(grafo.ClaseVersionObsoleta))
-	}), "%s tiene bloques de código text, entre ellos el de la línea %s", skillDelRepositorio,
+	}), "el Markdown de la skill tiene bloques de código text, entre ellos el de la línea %s",
 		formaEscrita(etiquetasDeHallazgo[grafo.ClaseVersionObsoleta]))
 
-	var textos []textoAMirar
+	piezas := make([]string, 0, len(etiquetasDeAviso)+len(etiquetasDeHallazgo)+len(bloques))
 
 	for _, codigo := range slices.Sorted(maps.Keys(etiquetasDeAviso)) {
-		textos = append(textos, textoAMirar{
-			nombre: "la forma del aviso " + codigo, texto: formaEscrita(etiquetasDeAviso[codigo]),
-		})
+		piezas = append(piezas, formaEscrita(etiquetasDeAviso[codigo])+" "+fraseDeEjemplo)
 	}
 
 	for _, clase := range slices.Sorted(maps.Keys(etiquetasDeHallazgo)) {
-		textos = append(textos, textoAMirar{
-			nombre: "la forma del hallazgo " + string(clase), texto: formaEscrita(etiquetasDeHallazgo[clase]),
-		})
+		piezas = append(piezas, formaEscrita(etiquetasDeHallazgo[clase])+" "+fraseDeEjemplo)
 	}
 
-	for posicion, bloque := range bloques {
-		textos = append(textos, textoAMirar{
-			nombre: fmt.Sprintf("el bloque text %d de %s", posicion+1, skillDelRepositorio), texto: bloque,
-		})
+	for _, bloque := range bloques {
+		bloque = strings.Replace(bloque, marcadorDeFechaDeLaSkill, fechaSuperadaDeEjemplo, 1)
+		bloque = strings.ReplaceAll(bloque, marcadorDeFechaDeLaSkill, fechaLeidaDeEjemplo)
+		bloque = strings.ReplaceAll(bloque, marcadorDeCitaDeLaSkill, citaDeEjemplo)
+		piezas = append(piezas, strings.ReplaceAll(bloque, marcadorDeFinDeCita, finDeCitaDeEjemplo))
 	}
 
-	conExpresiones := expresionesEn(textos, lista)
-	assert.Empty(t, conExpresiones, "expresiones prohibidas en lo que la skill enseña a escribir:\n%s",
-		strings.Join(conExpresiones, "\n"))
+	return strings.Join(piezas, "\n")
 }
 
 // Las líneas que abren y cierran un bloque de código text de Markdown, sin la
@@ -1792,6 +1952,371 @@ func TestProsaDeLaSkill(t *testing.T) {
 	}
 }
 
+// Las palabras de una orden de lectura y comprobación de SKILL.md
+// (contracts/skill-boe-legislacion.md §4 de H7.4): la lectura con kitlegal boe
+// y uno de sus dos verbos, la comprobación con kitlegal graph check, la bandera
+// que cierra cada una, lo que las une en Bash y, en PowerShell, lo que cierra la
+// lectura, la condición y el cierre de su bloque.
+var (
+	lecturaDeLaOrden      = []string{"kitlegal", "boe"}
+	verbosDeLectura       = []string{verboArticulo, "articulos"}
+	comprobacionDeLaOrden = []string{"kitlegal", "graph", "check"}
+	condicionDePowerShell = []string{"if", "($LASTEXITCODE", "-eq", "0)", "{"}
+)
+
+const (
+	banderaDeLaOrden           = "--json"
+	unionDeBash                = "&&"
+	finDeLecturaDePowerShell   = banderaDeLaOrden + ";"
+	cierreDeBloqueDePowerShell = "}"
+)
+
+// ordenDeLectura es una orden de lectura y comprobación escrita en el código de
+// un SKILL.md, en cualquiera de sus dos formas (contracts/skill-boe-legislacion.md
+// §4 de H7.4).
+type ordenDeLectura struct {
+	// linea es el número de la línea del Markdown en que está, y texto, la orden
+	// tal como la escribe, sin la sangría.
+	linea int
+	texto string
+
+	// powershell dice que es la forma para PowerShell, con la condición en lugar
+	// de &&.
+	powershell bool
+
+	// verbo, norma y bloques son los de la lectura; normaComprobada y
+	// bloquesComprobados, los de kitlegal graph check, vacíos si no los lleva.
+	verbo              string
+	norma              string
+	bloques            []string
+	normaComprobada    string
+	bloquesComprobados []string
+}
+
+// nombre es como la nombra un defecto: su línea y su texto.
+func (o ordenDeLectura) nombre() string {
+	return fmt.Sprintf("línea %d, «%s»", o.linea, o.texto)
+}
+
+// leerOrdenDeLectura lee como orden de lectura y comprobación un tramo de código:
+// sus palabras, separadas por blancos, son kitlegal boe, articulo o articulos, la
+// norma, al menos un bloque y --json, y detrás, o && y kitlegal graph check con
+// sus argumentos y --json —la forma de Bash—, o, con --json; en lugar de --json,
+// if ($LASTEXITCODE -eq 0) { y kitlegal graph check con sus argumentos, --json y }
+// —la de PowerShell—. Cualquier otro tramo no es una orden de lectura, y conForma
+// es falso.
+func leerOrdenDeLectura(linea int, tramo string) (orden ordenDeLectura, conForma bool) {
+	palabras := strings.Fields(tramo)
+
+	resto, conLectura := sinPrefijo(palabras, lecturaDeLaOrden)
+	if !conLectura || len(resto) == 0 || !slices.Contains(verbosDeLectura, resto[0]) {
+		return ordenDeLectura{}, false
+	}
+
+	partes, conPartes := partirLaOrden(resto[1:])
+	argumentos, conComprobacion := argumentosDeLaComprobacion(partes.comprobacion)
+
+	// La lectura lleva la norma y al menos un bloque.
+	if !conPartes || !conComprobacion || len(partes.lectura) < 2 {
+		return ordenDeLectura{}, false
+	}
+
+	orden = ordenDeLectura{
+		linea: linea, texto: strings.Join(palabras, " "), powershell: partes.powershell,
+		verbo: resto[0], norma: partes.lectura[0], bloques: partes.lectura[1:],
+	}
+
+	if len(argumentos) > 0 {
+		orden.normaComprobada, orden.bloquesComprobados = argumentos[0], argumentos[1:]
+	}
+
+	return orden, true
+}
+
+// partesDeLaOrden son las palabras de una orden de lectura y comprobación
+// detrás del verbo, partidas: las de la lectura, sin su --json, y las de la
+// comprobación, sin lo que las une a la lectura ni, en PowerShell, el cierre de su
+// bloque; y si es la forma para PowerShell.
+type partesDeLaOrden struct {
+	lectura      []string
+	comprobacion []string
+	powershell   bool
+}
+
+// partirLaOrden parte las palabras que siguen al verbo por lo que une la lectura
+// a la comprobación: --json y && en Bash; en PowerShell, --json; y la condición,
+// con el cierre de su bloque al final. conPartes es falso si no las une ninguna
+// de las dos formas.
+func partirLaOrden(palabras []string) (partes partesDeLaOrden, conPartes bool) {
+	if fin := slices.Index(palabras, unionDeBash); fin > 0 && palabras[fin-1] == banderaDeLaOrden {
+		return partesDeLaOrden{lectura: palabras[:fin-1], comprobacion: palabras[fin+1:]}, true
+	}
+
+	fin := slices.Index(palabras, finDeLecturaDePowerShell)
+	if fin < 0 {
+		return partesDeLaOrden{}, false
+	}
+
+	enElBloque, conCondicion := sinPrefijo(palabras[fin+1:], condicionDePowerShell)
+	if !conCondicion || len(enElBloque) == 0 || enElBloque[len(enElBloque)-1] != cierreDeBloqueDePowerShell {
+		return partesDeLaOrden{}, false
+	}
+
+	return partesDeLaOrden{lectura: palabras[:fin], comprobacion: enElBloque[:len(enElBloque)-1], powershell: true}, true
+}
+
+// argumentosDeLaComprobacion son los argumentos de kitlegal graph check en las
+// palabras de la comprobación, sin su --json; conComprobacion es falso si no son
+// kitlegal graph check con sus argumentos y --json al final.
+func argumentosDeLaComprobacion(palabras []string) (argumentos []string, conComprobacion bool) {
+	argumentos, conComprobacion = sinPrefijo(palabras, comprobacionDeLaOrden)
+	if !conComprobacion || len(argumentos) == 0 || argumentos[len(argumentos)-1] != banderaDeLaOrden {
+		return nil, false
+	}
+
+	return argumentos[:len(argumentos)-1], true
+}
+
+// sinPrefijo son las palabras sin el prefijo, y conPrefijo dice si empezaban por
+// él.
+func sinPrefijo(palabras, prefijo []string) (resto []string, conPrefijo bool) {
+	if len(palabras) < len(prefijo) || !slices.Equal(palabras[:len(prefijo)], prefijo) {
+		return nil, false
+	}
+
+	return palabras[len(prefijo):], true
+}
+
+// ordenesDeLectura son las órdenes de lectura y comprobación del Markdown, en su
+// orden: cada línea de un bloque delimitado y cada tramo de código en línea fuera
+// de ellos que leerOrdenDeLectura lee como una. Como en CommonMark, un bloque que
+// no se cierra llega hasta el final.
+func ordenesDeLectura(markdown string) []ordenDeLectura {
+	var (
+		ordenes  []ordenDeLectura
+		numero   int
+		enBloque bool
+	)
+
+	for linea := range strings.Lines(markdown) {
+		numero++
+		recortada := strings.TrimSpace(linea)
+
+		var tramos []string
+
+		switch {
+		case strings.HasPrefix(recortada, delimitadorDeBloque):
+			enBloque = !enBloque
+		case enBloque:
+			tramos = []string{recortada}
+		default:
+			for _, codigo := range codigoEnLinea.FindAllString(recortada, -1) {
+				tramos = append(tramos, strings.Trim(codigo, "`"))
+			}
+		}
+
+		for _, tramo := range tramos {
+			if orden, conForma := leerOrdenDeLectura(numero, tramo); conForma {
+				ordenes = append(ordenes, orden)
+			}
+		}
+	}
+
+	return ordenes
+}
+
+// defectosDeLasOrdenesParaPowerShell da una línea por cada defecto de las
+// órdenes de lectura y comprobación del Markdown de un SKILL.md
+// (contracts/skill-boe-legislacion.md §4 de H7.4; FR-024, FR-095, SC-005): primero,
+// por cada verbo de lectura, si ninguna orden de Bash lo usa; después, en el orden
+// del fichero, por cada orden de Bash cuya siguiente orden no es la de PowerShell
+// con su mismo verbo, su misma norma y sus mismos bloques —porque falta, porque es
+// otra de Bash o porque lee otra cosa—, y por cada orden, de las dos formas, cuya
+// comprobación no lleva la norma y los bloques de su lectura. Una orden sin la
+// condición de PowerShell o con otra no es ninguna de las dos formas: la de Bash
+// que la precede no tiene la suya. Nil si no hay ningún defecto.
+func defectosDeLasOrdenesParaPowerShell(markdown string) []string {
+	ordenes := ordenesDeLectura(markdown)
+
+	var defectos []string
+
+	for _, verbo := range verbosDeLectura {
+		if !slices.ContainsFunc(ordenes, func(orden ordenDeLectura) bool {
+			return !orden.powershell && orden.verbo == verbo
+		}) {
+			defectos = append(defectos, fmt.Sprintf("ninguna orden de Bash lee con «kitlegal boe %s» y comprueba "+
+				"detrás con kitlegal graph check", verbo))
+		}
+	}
+
+	for posicion, orden := range ordenes {
+		if !orden.powershell && (posicion+1 == len(ordenes) || !esSuFormaParaPowerShell(orden, ordenes[posicion+1])) {
+			defectos = append(defectos, orden.nombre()+": no la sigue su forma para PowerShell, «…; if "+
+				"($LASTEXITCODE -eq 0) { … }», con el mismo verbo, la misma norma y los mismos bloques")
+		}
+
+		if orden.normaComprobada != orden.norma || !slices.Equal(orden.bloquesComprobados, orden.bloques) {
+			defectos = append(defectos, orden.nombre()+": kitlegal graph check no lleva la norma y los bloques "+
+				"de la lectura")
+		}
+	}
+
+	return defectos
+}
+
+// esSuFormaParaPowerShell dice si siguiente es la forma para PowerShell de la
+// orden de Bash: de PowerShell, con su mismo verbo, su misma norma y sus mismos
+// bloques en su orden.
+func esSuFormaParaPowerShell(bash, siguiente ordenDeLectura) bool {
+	return siguiente.powershell && siguiente.verbo == bash.verbo && siguiente.norma == bash.norma &&
+		slices.Equal(siguiente.bloques, bash.bloques)
+}
+
+// TestOrdenesParaPowerShell fija defectosDeLasOrdenesParaPowerShell, la
+// comprobación de la subprueba ordenes-para-powershell, sobre Markdown escrito
+// aquí (contracts/skill-boe-legislacion.md §4 de H7.4; FR-024, FR-095, SC-005):
+// las dos órdenes con sus dos formas, en bloques o en código en línea, no tienen
+// defectos; sin la forma de PowerShell, con && en ella, sin el if, con otra
+// condición, con otra norma o con otros bloques en la de PowerShell, cada una
+// nombra su orden de Bash; con otros bloques o sin argumentos en la comprobación,
+// nombra la orden que la lleva; y sin la orden de articulos, lo dice. El texto de
+// kitlegal boe articulo en la prosa no es una orden.
+func TestOrdenesParaPowerShell(t *testing.T) {
+	t.Parallel()
+
+	const (
+		bashDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json && " +
+			"kitlegal graph check BOE-A-2015-10565 a21 --json"
+		powershellDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { " +
+			"kitlegal graph check BOE-A-2015-10565 a21 --json }"
+		bashDeArticulos = "kitlegal boe articulos <norma> <bloques>... --json && " +
+			"kitlegal graph check <norma> <bloques>... --json"
+		powershellDeArticulos = "kitlegal boe articulos <norma> <bloques>... --json; if ($LASTEXITCODE -eq 0) { " +
+			"kitlegal graph check <norma> <bloques>... --json }"
+
+		sinSuForma = ": no la sigue su forma para PowerShell, «…; if ($LASTEXITCODE -eq 0) { … }», con el mismo " +
+			"verbo, la misma norma y los mismos bloques"
+		otraComprobacion = ": kitlegal graph check no lleva la norma y los bloques de la lectura"
+	)
+
+	// skill es un SKILL.md con la orden de articulo y la de articulos, cada una
+	// en un bloque bash seguido de uno powershell y en una lista, como las enseña
+	// la skill; las líneas de las órdenes son la 6, la 12, la 18 y la 22.
+	skill := func(articulo, powershellDeArticulo, articulos, powershellDeArticulos string) string {
+		return "## Protocolo\n\n- Lee los bloques de uno en uno con `kitlegal boe articulo`:\n\n" +
+			"  ```bash\n  " + articulo + "\n  ```\n\n" +
+			"  En PowerShell, la misma orden es:\n\n" +
+			"  ```powershell\n  " + powershellDeArticulo + "\n  ```\n\n" +
+			"  Varios bloques a la vez:\n\n" +
+			"  ```bash\n  " + articulos + "\n  ```\n\n" +
+			"  ```powershell\n  " + powershellDeArticulos + "\n  ```\n"
+	}
+	nombrada := func(linea int, orden string) string { return fmt.Sprintf("línea %d, «%s»", linea, orden) }
+
+	// La de PowerShell escrita con && es la de Bash.
+	conAmpersands := bashDeArticulo
+	sinElIf := "kitlegal boe articulo BOE-A-2015-10565 a21 --json; kitlegal graph check BOE-A-2015-10565 a21 --json"
+	otraCondicion := strings.Replace(powershellDeArticulo, "($LASTEXITCODE -eq 0)", "($?)", 1)
+	otraNorma := strings.ReplaceAll(powershellDeArticulo, "BOE-A-2015-10565", "BOE-A-2017-12902")
+	otrosBloques := strings.ReplaceAll(powershellDeArticulo, "a21", "a22")
+	otraComprobacionEnBash := strings.Replace(bashDeArticulo, "check BOE-A-2015-10565 a21",
+		"check BOE-A-2015-10565 a22", 1)
+	otraComprobacionEnPowerShell := strings.Replace(powershellDeArticulo, "check BOE-A-2015-10565 a21",
+		"check BOE-A-2015-10565 a21 a22", 1)
+	sinArgumentos := strings.Replace(bashDeArticulos, "check <norma> <bloques>... --json", "check --json", 1)
+
+	casos := []struct {
+		nombre   string
+		markdown string
+		defectos []string
+	}{
+		{
+			nombre:   "las-dos-ordenes-con-sus-dos-formas",
+			markdown: skill(bashDeArticulo, powershellDeArticulo, bashDeArticulos, powershellDeArticulos),
+		},
+		{
+			nombre: "en-codigo-en-linea",
+			markdown: "Lee con `kitlegal boe articulo` (`" + bashDeArticulo + "`; en PowerShell, `" +
+				powershellDeArticulo + "`) o con `" + bashDeArticulos + "`, en PowerShell `" +
+				powershellDeArticulos + "`.\n",
+		},
+		{
+			nombre:   "sin-la-de-powershell",
+			markdown: skill(bashDeArticulo, "", bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma},
+		},
+		{
+			nombre:   "sin-la-ultima-de-powershell",
+			markdown: skill(bashDeArticulo, powershellDeArticulo, bashDeArticulos, ""),
+			defectos: []string{nombrada(18, bashDeArticulos) + sinSuForma},
+		},
+		{
+			// La de PowerShell con && es otra de Bash: tampoco la sigue la suya.
+			nombre:   "con-ampersands-en-la-de-powershell",
+			markdown: skill(bashDeArticulo, conAmpersands, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma, nombrada(12, conAmpersands) + sinSuForma},
+		},
+		{
+			nombre:   "sin-el-if",
+			markdown: skill(bashDeArticulo, sinElIf, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma},
+		},
+		{
+			nombre:   "con-otra-condicion",
+			markdown: skill(bashDeArticulo, otraCondicion, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma},
+		},
+		{
+			nombre:   "con-otra-norma-en-la-de-powershell",
+			markdown: skill(bashDeArticulo, otraNorma, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma},
+		},
+		{
+			nombre:   "con-otros-bloques-en-la-de-powershell",
+			markdown: skill(bashDeArticulo, otrosBloques, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, bashDeArticulo) + sinSuForma},
+		},
+		{
+			nombre:   "con-otros-bloques-en-la-comprobacion-de-bash",
+			markdown: skill(otraComprobacionEnBash, powershellDeArticulo, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(6, otraComprobacionEnBash) + otraComprobacion},
+		},
+		{
+			nombre:   "con-otros-bloques-en-la-comprobacion-de-powershell",
+			markdown: skill(bashDeArticulo, otraComprobacionEnPowerShell, bashDeArticulos, powershellDeArticulos),
+			defectos: []string{nombrada(12, otraComprobacionEnPowerShell) + otraComprobacion},
+		},
+		{
+			nombre:   "sin-argumentos-en-la-comprobacion",
+			markdown: skill(bashDeArticulo, powershellDeArticulo, sinArgumentos, powershellDeArticulos),
+			defectos: []string{nombrada(18, sinArgumentos) + otraComprobacion},
+		},
+		{
+			nombre:   "sin-la-de-articulos",
+			markdown: skill(bashDeArticulo, powershellDeArticulo, "", ""),
+			defectos: []string{
+				"ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba detrás con kitlegal graph check",
+			},
+		},
+		{
+			nombre:   "sin-ninguna-orden",
+			markdown: "Lee los bloques con `kitlegal boe articulo` y `kitlegal boe articulos`.\n",
+			defectos: []string{
+				"ninguna orden de Bash lee con «kitlegal boe articulo» y comprueba detrás con kitlegal graph check",
+				"ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba detrás con kitlegal graph check",
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.defectos, defectosDeLasOrdenesParaPowerShell(caso.markdown))
+		})
+	}
+}
+
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
 // la carpeta.
 type conjuntoDeUnaSkill struct {
@@ -1922,7 +2447,11 @@ func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 // terminan en 0; las clases de los hallazgos son exactamente las de hallazgos de
 // la eval; y cada version-obsoleta es de un BloqueVersion que dejó el grafo
 // previo —de los anotados, por su id—, con la fecha de vigencia de esa versión
-// como la superada y la del bloque leído como la reciente.
+// como la superada y la del bloque leído como la reciente. Desde H7.4, cada
+// redacción de redacciones_modificadas de la eval es uno de esos version-obsoleta,
+// de su norma y su bloque, con su fecha_vigencia como la superada y su
+// fecha_vigencia_reciente como la leída: la eval no puede esperar unas fechas que
+// las grabaciones no dan (contracts/evals-y-juicio.md §4 de H7.4; research D11).
 func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, anotados map[string]bloqueVersionado) {
 	t.Helper()
 
@@ -1955,7 +2484,10 @@ func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, an
 		leidas[CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque}] = leido.FechaVigencia
 	}
 
-	var clases []string
+	var (
+		clases    []string
+		obsoletas []RedaccionEsperada
+	)
 
 	for _, norma := range normas {
 		for _, hallazgo := range comprobacionDeLaSesion(t, sesion, norma, bloquesDe[norma]).Hallazgos {
@@ -1975,12 +2507,25 @@ func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, an
 				"%s: la redacción superada de %s es la que dejó el grafo previo", ruta, hallazgo.ID)
 			assert.Equal(t, leidas[anotado.cita], hallazgo.FechaVigenciaReciente,
 				"%s: la redacción reciente de %s es la que ha leído la sesión", ruta, hallazgo.ID)
+
+			obsoletas = append(obsoletas, RedaccionEsperada{
+				Norma:                 anotado.cita.Norma,
+				Bloque:                anotado.cita.Bloque,
+				FechaVigencia:         hallazgo.FechaVigencia,
+				FechaVigenciaReciente: hallazgo.FechaVigenciaReciente,
+			})
 		}
 	}
 
 	slices.Sort(clases)
 	assert.Equal(t, slices.Sorted(slices.Values(eval.Hallazgos)), slices.Compact(clases),
 		"%s: graph check da en la sesión exactamente las clases de hallazgo que la eval espera", ruta)
+
+	for _, esperada := range eval.RedaccionesModificadas {
+		assert.Contains(t, obsoletas, esperada, "%s: la redacción modificada %s que la eval espera es un "+
+			"version-obsoleta que graph check da en la sesión, de su norma y su bloque y con sus dos fechas",
+			ruta, esperada.texto())
+	}
 }
 
 // comprobacionDeLaSesion es la data de graph check <norma> <bloques> --json con

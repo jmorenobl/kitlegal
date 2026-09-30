@@ -1,0 +1,79 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La tabla de trazabilidad lleva cada Entrega (1) a (8) del hito a sus requisitos: activación FR-001 a FR-004; clases FR-010 a FR-012; SKILL.md v0.1.4 FR-020 a FR-027; lista FR-030 a FR-037; umbrales FR-040 a FR-048; eval de dos bloques FR-050 a FR-055; juicio sobre la respuesta FR-060 a FR-062; tanda única FR-070 a FR-072; sondeo FR-080 a FR-082; CHANGELOG FR-027 y FR-101. «Relación con H7.3, H7.2, H7.1 y H5» nombra las cinco sustituciones que pide el hito (calibrado 35/10, viñeta de las paráfrasis, contrato del sondeo §2 punto 3, la elección de H7.3 FR 034, el «último result» de H5 V47) y las que se siguen de ellas. La corrección r1 no añade alcance: el caso límite nuevo (01-02 de `196ee05`) sale de la bitácora que el hito toma como verdad de referencia (docs/USO.md:43-44), y la viñeta de `legal-core` solo acota. Ningún estado por debajo del umbral se especifica caso a caso."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» transcribe las siete viñetas del hito (spec.md:400-406) y lista lo no especificado (spec.md:410-420). Corregido el motivo anterior: spec.md:413 deja fuera «Cambiar `legal-core`: su `SKILL.md`, su versión o las preguntas, comandos y juicio de sus evals, más allá de declarar en cada una que `boe-legislacion` no se activa (FR-004)», y lleva a `boe-legislacion` lo que evite su activación (FR-002, FR-003). gates/supuestos.md lo registra como supuesto de alcance. Comprobado que la frontera no choca con SC-001 («el job de `legal-core` sigue aprobado»): las tres evals de `legal-core` (01 y 02 de territorio, 03 de no activación) no piden el texto de ningún artículo, así que su paso 6 («Delegar el texto en `boe-legislacion`») no las lleva a activarla."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "gates/clarify-preguntas.json es {\"preguntas\":[]} y gates/clarify-respuestas.json {\"respuestas\": []}: no hay ninguna respuesta que reflejar ni ninguna conservadora que acotar. Las lecturas que el spec fija por su cuenta están en Assumptions con su razón: la respuesta a la pregunta es el resultado del turno que la abre; la cita va en la línea también con un solo bloque; y la conciliación de «consulta anterior» se hace quitando las formas fijas."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito, literales» transcribe Entrega, los doce Controles y la Aceptación (spec.md:39-53). A cada control le corresponde un requisito y un criterio: make ci → FR-091/SC-011; «Controles de umbral» con cuatro filas → FR-092; calibrado 36/11/9 y comprobaciones de bloques, formas y prosa → FR-093/SC-002 a SC-004; tests de Juzgar → FR-094/SC-007; formas para PowerShell → FR-095/SC-005; TestGrabacionesDerivadas → FR-096/SC-012; tests del informe → FR-097/SC-006; TestLeerSesion → FR-098/SC-008; TestGuionDelSondeo → FR-099/SC-009; TestDefinicionDelJob → FR-100/SC-010; CHANGELOG → FR-101; job en la PR → FR-102. La Aceptación es SC-001, como condición con umbrales (≤ 2 de 54, 0, 0, ≤ 900 s, eval 04, legal-core, una tanda). US1 a US7 están en Dado/Cuando/Entonces, y US1 escenario 4 recoge «No hay avisos de vigencia sobre este bloque», sin marcar."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "`<modelo>` es `claude-sonnet-5-5` (ADR 0031, spec.md:55). FR-047 y «Fuera de alcance» dejan intactos el modelo que decide, las repeticiones y la regla por serie (ADR 0016), el contrato de umbrales (ADR 0029), el binario y H20. FR-026 mantiene SKILL.md por debajo de 300 líneas, sin scripts/, con la región generada intacta y sin nombrar evals ni modelos (H5 FR 077). FR-090 no abre ADR. La viñeta nueva sobre `legal-core` no reabre nada: el hito ya dice que no se extienden a ella la lista ni los umbrales. Nada toca la frontera humana, la telemetría ni la genericidad territorial."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Corregido el motivo anterior en checklists/requirements.md. «[x] b» cita ahora la viñeta de `legal-core`, y es cierta (spec.md:413). «[x] c» dice que los dos gates/clarify-*.json existen y están vacíos, y es cierto. «[x] h» cita FR-012 acotado a la frase que solo dice que no hay avisos, con 01-02 y 14-01 como clase A, y es cierto (spec.md:239 y 218). «[x] Requirements are testable and unambiguous» ya no afirma que cada FR lleve «Comprobable»: nombra con qué se comprueba cada grupo y reconoce que FR-036, FR-072 y FR-082 no lo llevan. «Edge cases» incluye el caso nuevo, que existe en spec.md:218. Las demás marcas citan dónde se cumplen y son ciertas."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "La última viñeta de Assumptions deja al plan las familias y expresiones de la lista, la forma de la línea ⚠ REDACCIÓN MODIFICADA: con su cita, la forma para PowerShell, cómo declara el formato de eval la no activación y las líneas esperadas, cómo se reconoce el turno de la pregunta y cómo evita el job la segunda tanda (también FR-003, FR-023, FR-024, FR-030 y FR-053). Los ficheros, tests y funciones que nombra (`Juzgar`, `TestDefinicionDelJob`, `.github/workflows/evals.yml`, `internal/evals`, `leerResult`) los nombra el hito o existen en el repositorio. La corrección r1 no añade diseño."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "Corregido el motivo anterior. FR-012 (spec.md:239) dice ahora: «Una frase que solo dice que no hay avisos de vigencia o que la norma no está derogada, como «No hay avisos de vigencia sobre este bloque» sola, MUST NOT contarse como clase A […] Lo que la misma frase o línea diga además del estado de la comprobación o de una lectura o consulta anterior sí es clase A (FR-010), como en 01-02 de `196ee05` y 14-01 de `eb6b4c8` (FR-034)». Ya no choca con FR-010, FR-032 ni FR-034: las dos frases de la bitácora (docs/USO.md:43-44 y 52-53) llevan «ni cambios […] respecto a/desde una consulta/lectura anterior», que es clase A. El caso límite de spec.md:218 fija qué cuenta y qué no. El resto se deriva: umbrales con medida, total y ejemplos numéricos (FR-040 a FR-045 y Edge Cases), líneas esperadas con sus fechas (FR-052), frases concretas (FR-034) y códigos de salida del sondeo (FR-080, contrato de H7.3 §3 y §6). Los huecos que quedan están por debajo del umbral (ver observaciones)."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» (spec.md:381-394) recorre cada salida desde quien la consume, y la corrección r1 no la toca. La respuesta: una por pregunta, 0 líneas sobre la comprobación y una línea ⚠ de ≈ 200 bytes por bloque cambiado. Son 0 en la mayoría de las preguntas, 2 (≈ 400 B) en la eval nueva y ≤ k × 200 con k bloques leídos, sin depender de los miles de bloques acumulados. La línea sale en la lectura que ve la redacción nueva y la apaga la siguiente lectura del bloque (H7.1); al cabo de un mes, solo sale si el BOE publica otra. graph check: una vez por orden que lee bloques (FR-025), ≈ 325 B sin cambios y ≈ 1 000 por bloque cambiado, o sea ≈ 2 KB en la eval nueva y ≤ 3 800 B con cinco bloques, acotado por los bloques pedidos. `umbrales`: una vez por job, 5 × ≈ 250 B, tamaño fijo; `[]` en legal-core; cada job los vuelve a medir. Líneas esperadas: 2 por sesión × 3 sesiones, < 1 KB. Errores del sondeo: una línea por argumento (≤ 5) y la de la credencial, < 1 KB, y desaparecen al corregir. description ≤ 1024 caracteres y cuerpo < 300 líneas, sin señales."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "En el cierre, SC-001 dice: «Control: el job de evals de `boe-legislacion` sale en rojo, con el veredicto `fallo`» si pasan más de 2 de 54 con expresión (FR-040, ≤ 0.05), si alguna respuesta no activa la skill (FR-041, ≤ 0), si alguna lleva la clase B (FR-042, ≤ 0), si la duración pasa de 900 s (FR-043), si alguna sesión queda sin medir (H7.3 FR 043) o si una serie que decide no pasa (eval 04). FR-046 pone el veredicto en `fallo` y el job en rojo, y FR-092 da las cuatro filas. En make ci: calibrado 36/11/9 y 0 en bloques, formas y prosa → TestEvalsDelRepositorio (SC-002 a SC-004); 2 de 2 formas para PowerShell → la comprobación de FR-095 (SC-005); casos sintéticos de umbrales → tests del informe (SC-006); ≤ 1 tanda por commit y skill → TestDefinicionDelJob (SC-010); 0 líneas de go test y 0 sesiones → TestGuionDelSondeo (SC-009); < 300 líneas y description ≤ 1024 → skills-check (SC-011). El tope del trabajo sobre el peor caso de 96 sesiones (FR-054) remite a H7.3 FR 035, cuyo control es TestDefinicionDelJob. El umbral del modelo informativo queda con decide: false por decisión del hito. La corrección r1 no añade umbrales."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "checklists/requirements.md, «Requirements are testable and unambiguous»: atribuye a SC-001 la comprobación de FR-044, FR-047 y FR-048, y SC-001 no comprueba ninguno de los tres. El `decide: false` del informativo lo cubren los tests del informe de H7.3 FR 004; FR-047 lo juzga la revisión (ADR 0029); y los `umbrales: []` de legal-core, H7.3 FR 006. La marca es cierta, porque los tres se pueden comprobar; solo la cita es imprecisa.",
+    "FR-012: «Lo que la misma frase o línea diga además del estado de la comprobación» admite, al pie de la letra, la lectura «lo que diga aparte de ese estado». El caso límite de spec.md:218 («lo de los avisos no cuenta; lo de la comprobación, sí») y FR-010 fijan la lectura buena, así que un test no llega a la otra.",
+    "La viñeta de `legal-core` de «Fuera de alcance» lleva a «su description y su cuerpo» lo que evite la activación, y el antecedente es `boe-legislacion` (gates/supuestos.md lo dice así). Por su parte, FR-002 traza cada cambio de la `description` a la causa de la eval 04, y un cambio contra la activación de más se traza a FR-003. El plan conviene que lo distinga.",
+    "FR-034 presenta como «las que cita el Objetivo del hito» tres frases del modelo que decide. El Objetivo cita también la de 04-01 («El artículo 66 de la Ley 58/2003, General Tributaria, dice que prescriben a los cuatro años…»), que no es de la clase A ni de la B, porque la mide `sin_activar`.",
+    "FR-045/FR-061: no dicen si cuenta como «sesión que terminó con una respuesta a la pregunta» la que ya dio el resultado del turno de la pregunta y luego corta el tope de 240 s mientras replica al aviso de una tarea en segundo plano. Lo fija el plan al decidir cómo se reconoce el turno de la pregunta (Assumptions).",
+    "SC-005 fija «2 de 2» órdenes de lectura y comprobación, pero FR-095 vale para cada orden. Si v0.1.4 añade otra, el recuento de SC-005 deja de valer.",
+    "El escenario 5 de US1 da por hecho que la forma nueva de ⚠ REDACCIÓN MODIFICADA: sigue llevando «la que se consultó antes», y FR-023 deja esa forma al plan.",
+    "FR-021 y SC-004 excluyen «las órdenes, las formas fijas y la región generada». H7.3 FR 010 y FR 091, que el spec mantiene, excluyen todo el código, también nombres del binario como `version-obsoleta` o `--json`. Las dos cosas encajan si «prosa» es lo que queda fuera del código.",
+    "FR-052 no dice si pasa una respuesta con dos líneas ⚠ repetidas del mismo bloque. FR-053 publica solo las encontradas y las ausentes, y el plan fijará la comparación.",
+    "Comprobado en el repositorio: SKILL.md de `boe-legislacion` tiene 270 líneas, con las dos órdenes `&& kitlegal graph check` (líneas 69 y 81) y «desde una lectura anterior» en 66, 74, 83, 177 y 270, como dicen el hito y FR-020. Las frases de 01-02 de `196ee05` y 14-01 de `eb6b4c8` que cita FR-012 son las de docs/USO.md:43-44 y 52-53."
+  ],
+  "entrada": []
+}

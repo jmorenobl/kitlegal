@@ -1,0 +1,48 @@
+# Eval informativa (ADR 0016): la consulta repetida sobre dos preceptos de una misma norma que el BOE modificó de verdad.
+# El grafo de la sesión ya registró una lectura del art. 118 (bloque a1-30) y otra de la disposición adicional tercera
+# (bloque da-3) de la LCSP que vieron su redacción original (vigencia 20180309), derivadas de las respuestas grabadas
+# quitándoles solo la redacción posterior; la caché sirve las grabadas, con las vigentes (20200206, BOE-A-2020-1651;
+# 20230101, BOE-A-2022-22128). La sesión tiene que leer los dos bloques, en una orden o en dos, comprobar con kitlegal
+# graph check y la norma, no pedir graph show, citar los dos bloques y llevar una línea ⚠ REDACCIÓN MODIFICADA: por
+# bloque, cada una con su cita y sus dos fechas.
+pregunta: "Hace tiempo te pregunté qué exige la LCSP para el expediente de un contrato menor, en su artículo 118, y qué añade su disposición adicional tercera para los ayuntamientos. ¿Qué dicen ahora?"
+activa: true
+informativa: true
+grafo_previo:
+  grabaciones: lcsp-a1-30-y-da-3-redaccion-original
+  comandos:
+    - applet: boe
+      norma: BOE-A-2017-12902
+      bloque: a1-30
+    - applet: boe
+      norma: BOE-A-2017-12902
+      bloque: da-3
+comandos:
+  - applet: boe
+    norma: BOE-A-2017-12902
+    bloque: a1-30
+  - applet: boe
+    norma: BOE-A-2017-12902
+    bloque: da-3
+  - applet: graph
+    verbo: check
+    norma: BOE-A-2017-12902
+prohibidos:
+  - applet: graph
+    verbo: show
+citas:
+  - norma: BOE-A-2017-12902
+    bloque: a1-30
+  - norma: BOE-A-2017-12902
+    bloque: da-3
+hallazgos:
+  - version-obsoleta
+redacciones_modificadas:
+  - norma: BOE-A-2017-12902
+    bloque: a1-30
+    fecha_vigencia: "20180309"
+    fecha_vigencia_reciente: "20200206"
+  - norma: BOE-A-2017-12902
+    bloque: da-3
+    fecha_vigencia: "20180309"
+    fecha_vigencia_reciente: "20230101"

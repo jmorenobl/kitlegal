@@ -2546,6 +2546,18 @@ const (
 const grabacionDelArticulo118 = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_" +
 	"BOE-A-2017-12902_texto_bloque_a1-30.json"
 
+// grabacionDeLaDisposicionAdicionalTercera es la grabación de H4 del bloque da-3
+// de la LCSP, su disposición adicional tercera, con dos redacciones: la
+// original, de vigencia 20180309, y la vigente, de 20230101 (research.md V15 de
+// H7.4).
+const grabacionDeLaDisposicionAdicionalTercera = "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_" +
+	"BOE-A-2017-12902_texto_bloque_da-3.json"
+
+// fechaDeLaRedaccionOriginalDeLaLCSP es la fecha de vigencia de la redacción
+// original de los bloques de la LCSP con la que se prepara el grafo previo de
+// las evals de la consulta repetida.
+const fechaDeLaRedaccionOriginalDeLaLCSP = "20180309"
+
 // actualizarDerivadas es la bandera con la que TestGrabacionesDerivadas
 // escribe, antes de comprobarlas, las derivadas del grafo previo desde su
 // grabación con derivacionDelGrafoPrevio, como -actualizar-esquemas los
@@ -2650,21 +2662,44 @@ func (d derivadaDelGrafoPrevio) carpeta() string {
 	return filepath.Join(grafosPreviosDeLasEvals, d.subcarpeta)
 }
 
+// subprueba es el nombre de la subprueba de la derivada en
+// TestGrabacionesDerivadas: su subcarpeta y el bloque que lee, que la distingue
+// de las demás de la misma subcarpeta.
+func (d derivadaDelGrafoPrevio) subprueba() string {
+	return d.subcarpeta + "/" + d.argumentos[len(d.argumentos)-1]
+}
+
 // derivadasDelGrafoPrevio son las derivadas del grafo previo de las evals
-// (research.md D13 de H7.2), aparte de las del e2e de grabacionesDerivadas.
+// (research.md D13 de H7.2), aparte de las del e2e de grabacionesDerivadas: la
+// de la eval de la consulta repetida y, desde H7.4, las dos de la eval de los
+// dos bloques de la LCSP, cada una con la grabación de H4 de su bloque
+// (research.md D11 de H7.4; FR-051).
 func derivadasDelGrafoPrevio() []derivadaDelGrafoPrevio {
-	return []derivadaDelGrafoPrevio{redaccionOriginalDelArticulo118()}
+	const dosBloques = "lcsp-a1-30-y-da-3-redaccion-original"
+
+	return []derivadaDelGrafoPrevio{
+		redaccionOriginalDelArticulo118(),
+		redaccionOriginalDeLaLCSP(dosBloques, grabacionDelArticulo118, "a1-30"),
+		redaccionOriginalDeLaLCSP(dosBloques, grabacionDeLaDisposicionAdicionalTercera, "da-3"),
+	}
 }
 
 // redaccionOriginalDelArticulo118 es el grafo previo de la eval de la consulta
 // repetida: la grabación del art. 118 de la LCSP sin su redacción vigente, que
 // da la original, la de vigencia 20180309 (FR-010).
 func redaccionOriginalDelArticulo118() derivadaDelGrafoPrevio {
+	return redaccionOriginalDeLaLCSP("lcsp-a1-30-redaccion-original", grabacionDelArticulo118, "a1-30")
+}
+
+// redaccionOriginalDeLaLCSP es la derivada de la subcarpeta que sustituye la
+// grabación del bloque de la LCSP con la misma sin sus redacciones posteriores
+// a la original, la de vigencia 20180309, que es la que da.
+func redaccionOriginalDeLaLCSP(subcarpeta, fichero, bloque string) derivadaDelGrafoPrevio {
 	return derivadaDelGrafoPrevio{
-		subcarpeta:    "lcsp-a1-30-redaccion-original",
-		fichero:       grabacionDelArticulo118,
-		argumentos:    []string{"articulo", "BOE-A-2017-12902", "a1-30"},
-		fechaVigencia: "20180309",
+		subcarpeta:    subcarpeta,
+		fichero:       fichero,
+		argumentos:    []string{"articulo", "BOE-A-2017-12902", bloque},
+		fechaVigencia: fechaDeLaRedaccionOriginalDeLaLCSP,
 	}
 }
 
@@ -2726,7 +2761,7 @@ func TestGrabacionesDerivadas(t *testing.T) {
 	}
 
 	for _, derivada := range delGrafoPrevio {
-		t.Run(derivada.subcarpeta, func(t *testing.T) {
+		t.Run(derivada.subprueba(), func(t *testing.T) {
 			t.Parallel()
 
 			compruebaLaDerivadaDelGrafoPrevio(t, derivada)

@@ -1,0 +1,81 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Reproducido en un clon fuera del repositorio (/tmp/juez-a-h74-r2, cabeza 5fcdb6f): `make ci` termina con exit=0 (golangci-lint fmt y run con «0 issues.», test -race y con la etiqueta integration en verde en todos los paquetes, TestMedidasDeTiempo/TestCosteDelGrafo, govulncheck, schema-check, skills-check, goreleaser check, gitleaks «no leaks found», go mod verify y tidy -diff). gates/ci.log, escrito por la reparación a las 22:36 («guardián de diff ok ((global), 14 ficheros)», los 14 de 5fcdb6f), dice lo mismo: «ci: todos los controles en verde» y exit=0 (:94-96). El árbol solo tiene cambios en gates/ del propio workflow: revision-cambios.md, revision-ciclo.json, la línea [proceso] de supuestos.md, cierre-reparaciones, revision-cambios-r2.diff y base-global-pendiente borrado."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 885a688..5fcdb6f no toca código Go ni tests (git show --stat: CHANGELOG, SKILL.md, cuatro artefactos de specs/014 y gates/), así que los mutantes de la ronda 1 siguen valiendo. La prosa nueva de SKILL.md la comprueban los controles que ya existían: TestEvalsDelRepositorio en el clon da 17 PASS y 0 FAIL, entre ellos prosa-de-la-skill (ninguna expresión de la lista en la prosa nueva), expresiones-de-la-skill, ordenes-para-powershell y expresiones-calibradas. El tamaño lo fija TestSkillsDelRepositorio: con una línea más (299), en una copia, falla TestSkillsDelRepositorio/region/boe-legislacion/dos-inicios, lo que confirma el tope efectivo de 298 que alegan plan.md:68-71 y contracts C11. Sin suite [aceptacion] (plan.md, «Aceptación e2e: no aplica»)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no tiene ninguna línea Go (revision-cambios-r2.diff: CHANGELOG.md, skills/boe-legislacion/SKILL.md, cierre.md, contracts/skill-boe-legislacion.md, plan.md y research.md). Lo que evalué en la ronda 1 no cambia: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados, y lint con 0 issues en el clon."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni sobre cambia. La tabla de comandos generada de SKILL.md (líneas 237-262) no se toca y skills-check no da drift. TestEsquemasPublicados y schema-check siguen en verde en el clon."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Los códigos de salida no cambian: SKILL.md:232-235 es igual que en 885a688. La regla 7 conserva su frase fija (SKILL.md:291-293) y gana una frase que la limita al caso de otro código que 0 (:295), con el mismo sentido que antes. El paso 3 sigue remitiendo a ella (:82-83)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:319-323 (Unreleased, v0.1.4) añade lo que C11 cambia para quien usa la skill, y casa con SKILL.md:80-85, 134, 149-151, 216-221 y 295. Cifras comprobadas: SKILL.md tiene 298 líneas (wc); git diff --numstat da 77/49 frente a main y 22/19 frente a 885a688, como dice cierre.md:59-60; 295 en 885a688. El texto de C11 en contracts/skill-boe-legislacion.md:181-221 es literalmente el de SKILL.md. research V28 casa con gates/evals/boe-legislacion.json: 15 de 54 con las 15 sesiones que nombra, sin_activar 0 de 54, redaccion_no_leida 0 de 54, 450 s, Haiku 0 de 30, `red` y `sesiones_sin_medir` vacíos, y las series 04 y 07 con 1 de 3. El «27 de 51» de D22 es el de V20 (research.md:123). Sin ADR, que no hace falta (el spec no lo admite), y sin fuente nueva."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/httpx, ninguna fuente, ninguna grabación ni docs/SOURCES.md. Solo cambia prosa de la skill y documentación, sin secretos ni datos de persona."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "La reparación no toca la lista, ningún umbral, eval, test ni fixture: el diff se limita a los seis ficheros de revision-cambios.md. El umbral que falló (15 de 54, con decide: true) se ataca en la causa, la prosa de la skill, sin tocar la medida. Tampoco ensancha la lista, alternativa que D22 (a) rechaza por FR-047."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La reparación queda dentro del hito y respeta «Fuera de alcance» (spec.md:396-420): no toca el binario, la salida de graph check, la eval 04, la cita, los avisos ni la frase fija de la regla 7. De FR-025, las reglas 1 a 6 y «Nada de otra conversación» (SKILL.md:135-137) no cambian, y la frase que manda graph check detrás de la lectura sigue literal (:83-85). Lo que se aparta del contrato C1-C10 (la viñeta nueva, la frase añadida a la regla 7 y la frase de cierre de T010 absorbida) está registrado como decisión con su evidencia: research D22 (V28, alternativas a-e), plan.md «Decisiones», contracts C11 y gates/supuestos.md, línea [skill] reparar_cierre con su impacto. Es la mejor solución a la vista de la medición: 14 de las 15 respuestas cuentan el resultado vacío de graph check, y a la prosa le faltaba ese caso con su razón, como C9 hizo con la clase B (0 de 54)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "SKILL.md pasa de 295 a 298 líneas, y el modelo la lee una vez por conversación. La description sigue en 924 caracteres, sin cambios. Las órdenes por pregunta no cambian: una lectura con su graph check detrás, en la misma orden. Lo que la reparación busca es que cada respuesta pierda la frase sobre un graph check vacío, que hoy se repite en cada consulta sin información nueva (V28: 14 de 54), y no añade ninguna señal. La línea ⚠ REDACCIÓN MODIFICADA: sigue siendo una por bloque cambiado y la apaga la lectura siguiente (H7.1). graph check no cambia (acotado por bloques pedidos, ≤ 50 hallazgos)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los controles no cambian en el rango, y la medición del cierre prueba que el umbral decide en la plataforma: expresiones_prohibidas:claude-sonnet-5-5 con 15 de 54, decide: true y cumple: false pone el veredicto en «fallo» (gates/evals/boe-legislacion.json, `motivos`: «15 de 54 (27,8 %), y tiene que ser ≤ 5,0 %»), y el trabajo sale con código 2 (gates/cierre.log:151), lo que el cierre lee como rojo (gates/cierre.json, verde: false). sin_activar y redaccion_no_leida (≤ 0, decide: true) y duracion_de_las_sesiones (≤ 900) están en `umbrales`, y el del modelo informativo, con decide: false. Los umbrales de make ci (calibrado, prosa, PowerShell, tamaño de SKILL.md) están en verde, con su control visto fallar (ronda 1 y el mutante de 299 líneas de esta ronda). La siguiente medición del workflow sobre la cabeza decide si C11 basta."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La viñeta nueva «No es un aviso de vigencia» termina con «la línea es todo lo que la respuesta dice de ellas y de `kitlegal graph check`» (SKILL.md:220-221), sin la excepción de la regla 7. La viñeta retirada la tenía al lado («Si `kitlegal graph check` termina con otro código que `0`, la regla 7.»). Leída al pie de la letra, choca con la regla 7 (:287-295) cuando graph check falla, que tampoco da ninguna entrada. El paso 3 (:82-83) y la frase nueva de la regla 7 («La frase es solo de ese caso») conservan la excepción, y ninguna eval ejercita un graph check con otro código que 0, así que el job no vería una regresión. Una redacción sin la ambigüedad sería «…de `kitlegal graph check` cuando termina con `0`».",
+    "El tope efectivo de 298 líneas es real: con 299, TestSkillsDelRepositorio/region/boe-legislacion/dos-inicios falla (internal/app/skills_test.go:917-925), porque el mutante añade una línea y cruza también el límite de 300. FR-026 dice «< 300», así que una SKILL.md válida de 299 líneas pondría make ci en rojo por un motivo que su mensaje no nombra. Es un acoplamiento del test anterior al hito.",
+    "V29 (sondeo local, 0 de 33 y once series 3 de 3) no se puede reproducir a posteriori: el guion borra su temporal al salir (scripts/evals-sondeo.sh:25-31). Solo queda el resumen del agente en el log del hito (hito-H7.4-2026-09-30.log:1167). research la declara no veredicto, y lo mide el job de cierre sobre la cabeza.",
+    "La prosa nueva enseña «otras conversaciones» y «en otra conversación que quien pregunta no conoce» (SKILL.md:197, 217-220). La lista tiene «conversación anterior» y «conversaciones anteriores», pero no esas formas, igual que no tiene «la vez anterior» (:197, 202; observación de la ronda 1). Si la respuesta las copia para contar un graph check vacío, la clase A no se detecta (FR-037).",
+    "Dos simplificaciones de la prosa sin efecto observable. «que quien pregunta no conoce»: la lectura anterior puede ser de la misma persona. «Un aviso es un dato de la norma, que el BOE da con el bloque» (SKILL.md:216): los avisos los deriva kitlegal de los metadatos del BOE.",
+    "research.md mete las filas V28 y V29 entre V26 y V27. Es solo orden.",
+    "Siguen valiendo las observaciones de la ronda 1 sobre la lista y la tanda. `vigente hasta` y `aplicable hasta` (clase B, umbral 0) marcarían una respuesta legítima sobre una norma derogada (0 de 54 en V28). Con las fechas de la línea entre comillas invertidas, la forma fija no la quita. `no necesito` marca «No necesito extenderme». La tanda decide por commit y no por tipo de disparo. Tres disparos sobre el mismo commit, con la espera de 10 min agotada, dejan una ejecución cancelada. El patch de Codecov queda fuera de alcance (92,5 % estimado)."
+  ]
+}

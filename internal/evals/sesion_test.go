@@ -43,12 +43,15 @@ type ficheroIlegible struct {
 
 // TestLeerSesion fija la lectura del directorio de una sesión de data-model
 // §10.1: la activación por el tool_use Skill de la skill, y no de otra; modelo y
-// versión del init; la respuesta, solo del result success sin is_error; el
-// código leído de codigo-de-la-sesion, nunca 0 por omisión; la sesión terminada,
-// la cortada por el tope con 124 o 137 y el motivo de la que no terminó; el fin
-// con su texto fijo; y los ficheros ausentes o las líneas ilegibles como error
-// que los nombra, salvo el transcript vacío de una sesión que el tope cortó
-// antes de su primer mensaje (contrato job-de-evals §4 y §9; FR-071, FR-072).
+// versión del init; la respuesta, solo del result success sin is_error, y la del
+// primer result, la de la pregunta, aunque el aviso de una tarea en segundo
+// plano abra otro turno con su réplica (contrato evals-y-juicio §6 de H7.4;
+// FR-060); el código leído de codigo-de-la-sesion, nunca 0 por omisión; la
+// sesión terminada, la cortada por el tope con 124 o 137 y el motivo de la que
+// no terminó; el fin con su texto fijo; y los ficheros ausentes o las líneas
+// ilegibles como error que los nombra, salvo el transcript vacío de una sesión
+// que el tope cortó antes de su primer mensaje (contrato job-de-evals §4 y §9;
+// FR-071, FR-072).
 func TestLeerSesion(t *testing.T) {
 	t.Parallel()
 
@@ -68,6 +71,7 @@ func TestLeerSesion(t *testing.T) {
 		ilegible *ficheroIlegible
 	}{
 		{nombre: "activada", activada: true, sesion: activadaYTerminada},
+		{nombre: "respuesta-antes-de-una-tarea-en-segundo-plano", activada: true, sesion: activadaYTerminada},
 		{
 			nombre: "no-activada",
 			sesion: Sesion{

@@ -4,6 +4,7 @@
 # FR-080, FR-081, FR-101).
 pregunta: "¿Qué comunidad, provincia y boletines corresponden a mi ayuntamiento, el de Tordesillas?"
 activa: true
+no_se_activan: [boe-legislacion]
 comandos:
   - applet: territorio
     verbo: resolver

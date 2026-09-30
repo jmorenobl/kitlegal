@@ -3,6 +3,8 @@
 package evals
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"os"
 	"os/signal"
@@ -59,6 +61,14 @@ var (
 	banderaEvals    = flag.String("evals", "", "números de las evals del sondeo, de dos cifras y separados por comas")
 	banderaModelo   = flag.String("modelo", "", "modelo con el que se abren las sesiones del sondeo")
 	banderaTemporal = flag.String("temporal", "", "directorio del sondeo, que crea y borra su guion")
+)
+
+// Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
+// decisión de la tanda, además de -commit (contracts/tanda-del-job.md §1 y §3
+// de H7.4): su ejecución del flujo y su GITHUB_OUTPUT.
+var (
+	banderaEjecucion = flag.String("ejecucion", "", "databaseId de la ejecución del flujo evals que decide si mide")
+	banderaSalida    = flag.String("salida", "", "fichero al que se añade la línea medir=si o medir=no")
 )
 
 // Banderas con las que el quickstart invoca, tras -args, la comprobación de la
@@ -197,8 +207,13 @@ func enteroDeLaBandera(t *testing.T, nombre string) int {
 //
 // Escribe la salida en salida.txt del temporal, que su guion imprime, y ningún
 // informe ni veredicto: falla solo con un error, sean cuales sean las tasas
-// (FR-066 de H7.3). Sin -temporal falla antes de nada, porque el sondeo
-// escribiría en el directorio de este paquete. Solo lo ejecuta
+// (FR-066 de H7.3). Con un error de uso —un argumento que no vale o la
+// credencial que falta, un errorDeUso—, no falla: escribe su mensaje, con un
+// salto de línea final, en uso.txt del temporal, que su guion imprime solo en
+// la salida de error, y no escribe salida.txt (contracts/sondeo.md §2 de H7.4;
+// FR-080 de H7.4). Con cualquier otro error falla, y su guion imprime el
+// registro de go test (FR-081 de H7.4). Sin -temporal falla antes de nada,
+// porque el sondeo escribiría en el directorio de este paquete. Solo lo ejecuta
 // scripts/evals-sondeo.sh, porque abre sesiones con modelo; lo que decide lo
 // fijan TestComprobarElSondeo, TestSondear, TestJuicioDelSondeo y
 // TestSalidaDelSondeo, y la orden que lo ejecuta, TestGuionDelSondeo.
@@ -223,15 +238,73 @@ func TestSondeo(t *testing.T) {
 			Repeticiones: *banderaRepeticiones,
 			Concurrencia: *banderaConcurrencia,
 		},
-		Entorno:          os.Environ(),
-		EvalsDeLasSkills: directorioDeEvalsDeLasSkills,
-		Temporal:         *banderaTemporal,
-		Guion:            guion,
-		PrepararElArbol:  prepararElArbol,
+		Entorno:                  os.Environ(),
+		EvalsDeLasSkills:         directorioDeEvalsDeLasSkills,
+		RutaDeLaDefinicionDelJob: rutaDeLaDefinicionDelJob,
+		Temporal:                 *banderaTemporal,
+		Guion:                    guion,
+		PrepararElArbol:          prepararElArbol,
 	})
+
+	var uso *errorDeUso
+	if errors.As(err, &uso) {
+		require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDelUsoDelSondeo), []byte(uso.Error()+"\n"),
+			0o600))
+
+		return
+	}
+
 	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDeLaSalidaDelSondeo), []byte(salida), 0o600))
+}
+
+// TestTandaDelCommit decide si la ejecución del flujo evals de -ejecucion mide
+// el commit de -commit (contracts/tanda-del-job.md §2 y §3 de H7.4; research.md
+// D15 y D16 de H7.4; FR-070 y FR-071 de H7.4): consulta con gh las ejecuciones
+// del flujo sobre el commit y los trabajos de cada anterior sin terminar, decide
+// con esperarLaDecision y, mientras alguna no ha decidido, espera de verdad
+// entre consulta y consulta; registra qué ejecuciones anteriores miró en cada
+// consulta y por qué mide o no; y añade a -salida la línea medir=si o medir=no.
+// Falla solo con un error: el de una orden de gh, que la nombra con lo que
+// escribió, o el de -salida. No abre sesiones ni escribe fuera de -salida. Solo
+// lo ejecuta el paso decidir del trabajo tanda, porque consulta la API de
+// GitHub; lo que decide lo fijan las subpruebas segundo-disparo y
+// estado-de-la-tanda de TestDefinicionDelJob, y las órdenes, lo que registra y
+// lo que escribe, TestOrdenesDeLaTanda, TestRegistroDeLaTanda y
+// TestSalidaDeLaTanda.
+func TestTandaDelCommit(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "commit", "ejecucion", "salida")
+
+	propia, err := strconv.ParseInt(*banderaEjecucion, 10, 64)
+	require.NoErrorf(t, err, "la bandera -ejecucion es el databaseId de una ejecuci\xc3\xb3n")
+
+	gh := ghDeLaTanda{entorno: os.Environ(), commit: *banderaCommit}
+
+	consultas := 0
+
+	var miradas []ejecucionDelCommit
+
+	consultar := func(ctx context.Context) ([]ejecucionDelCommit, error) {
+		ejecuciones, err := consultarLasEjecuciones(ctx, propia, gh.listar, gh.verLosTrabajos)
+		if err != nil {
+			return nil, err
+		}
+
+		consultas++
+		miradas = ejecuciones
+		t.Log(registroDeLaConsulta(consultas, propia, ejecuciones))
+
+		return ejecuciones, nil
+	}
+
+	decision, err := esperarLaDecision(t.Context(), propia, consultar, time.Now, dormir)
+	require.NoError(t, err)
+
+	t.Log(motivoDeLaDecision(propia, miradas, decision))
+	require.NoError(t, escribirLaDecision(*banderaSalida, decision.mide))
 }
 
 // TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta

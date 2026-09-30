@@ -1,6 +1,8 @@
 package evals
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -34,6 +36,56 @@ const (
 	queNoEste = "que no est\xc3\xa9"
 )
 
+// Lo que TestDefinicionDelJob exige al trabajo tanda y al trabajo evals que
+// depende de él (contracts/tanda-del-job.md §1 y §4 de H7.4; research.md D15,
+// D16 y S9 de H7.4).
+const (
+	// sinCancelar es la función de estado de GitHub Actions que dice que la
+	// ejecución no se ha cancelado, negada, partida en dos literales: misspell,
+	// con locale US, lee su nombre británico como una errata.
+	sinCancelar = "!cance" + "lled()"
+
+	// condicionDeLaTanda es el if del trabajo tanda, el que llevaba evals hasta
+	// H7.3: solo corre en una ejecución que quiere medir. Es el texto del
+	// escalar plegado de la definición, que conserva los saltos de línea de las
+	// líneas más sangradas.
+	condicionDeLaTanda = sinCancelar + " && needs.cambios.result != 'failure' && (\n" +
+		"  github.event_name == 'workflow_dispatch' ||\n" +
+		"  github.event.label.name == 'evals' ||\n" +
+		"  github.event.label.name == 'evals-prueba-de-red' ||\n" +
+		"  needs.cambios.outputs.coincide == 'si'\n" +
+		")"
+
+	// permisoDeLasEjecuciones es el de actions: con él lee gh las ejecuciones
+	// del flujo y sus trabajos.
+	permisoDeLasEjecuciones = "read"
+
+	// salidaDeLaTanda es su output medir, el del paso que decide.
+	salidaDeLaTanda = "${{ steps.decidir.outputs.medir }}"
+
+	// ordenDelPasoQueDecide es el run del paso que decide, el de id decidir:
+	// TestTandaDelCommit con el commit evaluado, la ejecución y el
+	// GITHUB_OUTPUT del paso. El -timeout supera los 10 min que la decisión
+	// espera como mucho, más sus consultas, y cabe con la preparación en los 15
+	// del trabajo: con los 10 de go test por omisión, el test acabaría en pánico
+	// antes de medir tras la espera, y el trabajo, en rojo.
+	ordenDelPasoQueDecide = `go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/ ` +
+		`-args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"`
+
+	// condicionDeLaMarca es el if de la marca: solo corre si el paso que
+	// decide dice que la ejecución mide.
+	condicionDeLaMarca = "steps.decidir.outputs.medir == 'si'"
+
+	// condicionDelTrabajo es el if del trabajo evals: sin medir=si de la
+	// tanda, se salta entero. La función de estado quita el success()
+	// implícito, que podría saltarlo por cambios, saltado en la etiqueta y en
+	// el despacho (research.md S9 de H7.4).
+	condicionDelTrabajo = "${{ " + sinCancelar + " && needs.tanda.outputs.medir == 'si' }}"
+)
+
+// dependenciasDelTrabajo son las de su needs: solo la tanda.
+var dependenciasDelTrabajo = []string{trabajoDeLaTanda}
+
 // skillsDelTrabajo son las skills de su matriz, en su orden.
 var skillsDelTrabajo = []string{"boe-legislacion", "legal-core"}
 
@@ -57,13 +109,19 @@ var entornoDelTrabajo = map[string]string{
 // contrato; cada definición sintética que se aparta de él en una sola clave da
 // una línea que nombra esa clave, el valor encontrado y el esperado; y una
 // definición que no se puede leer, o un peor caso que no se puede obtener, es un
-// error.
+// error. Comprueba también la tanda (contracts/tanda-del-job.md §4 de H7.4;
+// FR-054, FR-070, FR-071 y FR-100 de H7.4; SC-010 de H7.4): el trabajo tanda y
+// la dependencia del trabajo evals de él son los del contrato, un segundo
+// disparo no mide mientras una ejecución anterior sin terminar mide, y la
+// etiqueta sobre un commit cuya tanda terminó vuelve a medir.
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
 	t.Run("del-repositorio", probarLaDefinicionDelRepositorio)
 	t.Run("sinteticas", probarLasDefinicionesSinteticas)
 	t.Run("errores", probarLosErroresDeLaDefinicion)
+	t.Run("segundo-disparo", probarElSegundoDisparo)
+	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
 }
 
 // probarLaDefinicionDelRepositorio lee la definición real del job y falla, con
@@ -76,23 +134,123 @@ func probarLaDefinicionDelRepositorio(t *testing.T) {
 	require.NoError(t, err)
 
 	if fallos := comprobarLaDefinicion(leida, directorioDeEvals); len(fallos) > 0 {
-		t.Fatalf("la definici\xc3\xb3n del job no es la de contracts/ejecucion-del-job.md \xc2\xa77 de H7.3:\n%s",
-			strings.Join(fallos, "\n"))
+		t.Fatalf("la definici\xc3\xb3n del job no es la de contracts/tanda-del-job.md \xc2\xa74 de H7.4 y "+
+			"contracts/ejecucion-del-job.md \xc2\xa77 de H7.3:\n%s", strings.Join(fallos, "\n"))
 	}
 }
 
-// comprobarLaDefinicion devuelve una línea por cada clave del trabajo evals que
-// no es la de contracts/ejecucion-del-job.md §7 de H7.3, en el orden del
-// contrato, y una por cada skill de la matriz cuyo peor caso, con las evals de
+// comprobarLaDefinicion devuelve una línea por cada clave del trabajo tanda y
+// de la dependencia del trabajo evals de él que no es la de
+// contracts/tanda-del-job.md §4 de H7.4, y por cada clave del trabajo evals que
+// no es la de contracts/ejecucion-del-job.md §7 de H7.3, en el orden de los
+// contratos, y una por cada skill de la matriz cuyo peor caso, con las evals de
 // su carpeta dentro de evals, no cubre timeout-minutes o no se puede obtener.
-// Sin ninguna línea, la definición es la del contrato.
+// Sin ninguna línea, la definición es la de los contratos.
 func comprobarLaDefinicion(leida DefinicionDelJob, evals string) []string {
 	var fallos []string
 
+	fallos = append(fallos, fallosDeLaTanda(leida.Tanda)...)
+	fallos = append(fallos, fallosDeLaDependencia(leida)...)
 	fallos = append(fallos, fallosDeLaConcurrencia(leida)...)
 	fallos = append(fallos, fallosDeLaMatriz(leida)...)
 	fallos = append(fallos, fallosDelEntorno(leida)...)
 	fallos = append(fallos, fallosDelTope(leida, evals)...)
+
+	return fallos
+}
+
+// fallosDeLaTanda comprueba el trabajo tanda de contracts/tanda-del-job.md §4
+// de H7.4: que está; que un name no cambia el nombre con el que gh lo da, su
+// id, que es el que busca la decisión; su if; que no tiene concurrency; su
+// permiso de actions; su salida medir; y sus pasos. Sin el trabajo, solo esa
+// línea.
+func fallosDeLaTanda(tanda *TrabajoDeLaTanda) []string {
+	if tanda == nil {
+		return []string{fallo("jobs."+trabajoDeLaTanda, noEsta,
+			"el trabajo que decide si la ejecuci\xc3\xb3n mide el commit")}
+	}
+
+	var fallos []string
+
+	if tanda.Nombre != "" && tanda.Nombre != trabajoDeLaTanda {
+		fallos = append(fallos, fallo("jobs.tanda.name", presentarTexto(tanda.Nombre),
+			queNoEste+": gh da el trabajo por su id, tanda, que es por el que lo busca la decisi\xc3\xb3n"))
+	}
+
+	if tanda.Condicion != condicionDeLaTanda {
+		fallos = append(fallos, fallo("jobs.tanda.if", presentarTexto(tanda.Condicion),
+			strconv.Quote(condicionDeLaTanda)))
+	}
+
+	if tanda.ConConcurrencia {
+		fallos = append(fallos, fallo("jobs.tanda.concurrency", "est\xc3\xa1",
+			queNoEste+": la tanda ni espera ni se cancela, y no deja una comprobaci\xc3\xb3n roja por decidir no medir"))
+	}
+
+	if permiso := tanda.Permisos["actions"]; permiso != permisoDeLasEjecuciones {
+		fallos = append(fallos, fallo("jobs.tanda.permissions.actions", presentarTexto(permiso),
+			strconv.Quote(permisoDeLasEjecuciones)))
+	}
+
+	if salida := tanda.Salidas["medir"]; salida != salidaDeLaTanda {
+		fallos = append(fallos, fallo("jobs.tanda.outputs.medir", presentarTexto(salida), strconv.Quote(salidaDeLaTanda)))
+	}
+
+	return append(fallos, fallosDeLosPasosDeLaTanda(tanda.Pasos)...)
+}
+
+// fallosDeLosPasosDeLaTanda comprueba los pasos del trabajo tanda de
+// contracts/tanda-del-job.md §4 de H7.4: el run del paso que decide, el de id
+// decidir, y el name y el if del último, la marca que leen las ejecuciones
+// posteriores.
+func fallosDeLosPasosDeLaTanda(pasos []PasoDelTrabajo) []string {
+	var fallos []string
+
+	var decide, ultimo PasoDelTrabajo
+
+	if indice := slices.IndexFunc(pasos, func(paso PasoDelTrabajo) bool { return paso.ID == "decidir" }); indice >= 0 {
+		decide = pasos[indice]
+	}
+
+	if len(pasos) > 0 {
+		ultimo = pasos[len(pasos)-1]
+	}
+
+	if decide.Orden != ordenDelPasoQueDecide {
+		fallos = append(fallos, fallo("jobs.tanda.steps, id decidir, run", presentarTexto(decide.Orden),
+			strconv.Quote(ordenDelPasoQueDecide)))
+	}
+
+	if ultimo.Nombre != marcaDeLaTanda {
+		fallos = append(fallos, fallo("jobs.tanda.steps, el \xc3\xbaltimo, name", presentarTexto(ultimo.Nombre),
+			strconv.Quote(marcaDeLaTanda)))
+	}
+
+	if ultimo.Condicion != condicionDeLaMarca {
+		fallos = append(fallos, fallo("jobs.tanda.steps, el \xc3\xbaltimo, if", presentarTexto(ultimo.Condicion),
+			strconv.Quote(condicionDeLaMarca)))
+	}
+
+	return fallos
+}
+
+// fallosDeLaDependencia comprueba la dependencia del trabajo evals de la tanda
+// de contracts/tanda-del-job.md §4 de H7.4: su needs y su if.
+func fallosDeLaDependencia(leida DefinicionDelJob) []string {
+	var fallos []string
+
+	if !slices.Equal(leida.Dependencias, dependenciasDelTrabajo) {
+		encontradas := noEsta
+		if leida.Dependencias != nil {
+			encontradas = "vale " + presentarLista(leida.Dependencias)
+		}
+
+		fallos = append(fallos, fallo("jobs.evals.needs", encontradas, presentarLista(dependenciasDelTrabajo)))
+	}
+
+	if leida.Condicion != condicionDelTrabajo {
+		fallos = append(fallos, fallo("jobs.evals.if", presentarTexto(leida.Condicion), strconv.Quote(condicionDelTrabajo)))
+	}
 
 	return fallos
 }
@@ -247,20 +405,52 @@ func presentarAjustes(ajustes AjustesDeSkill) string {
 		ajustes.ObjetivoDeDuracion)
 }
 
-// definicionDelContrato es una definición sintética del job con las claves del
-// contrato y el env de hoy (contracts/ejecucion-del-job.md §6 de H7.3). Con las
-// evals de evalsSinteticas, cada skill tiene 7 sesiones —la eval con el modelo
-// que decide y con el de Haiku, tres veces con cada uno, y la prueba de red—, así que
-// el peor caso es de 1029 s en boe-legislacion (⌈7 / 4⌉ = 2 tandas) y de 2389 s en
-// legal-core (7 tandas): 120 minutos los cubren.
+// trabajoDeLaTandaDelContrato es el trabajo tanda de definicionDelContrato, el
+// de contracts/tanda-del-job.md §1 de H7.4 sin sus comentarios ni los pasos que
+// no se comprueban.
+const trabajoDeLaTandaDelContrato = `  tanda:
+    needs: [cambios]
+    if: >-
+      ` + sinCancelar + ` && needs.cambios.result != 'failure' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.label.name == 'evals' ||
+        github.event.label.name == 'evals-prueba-de-red' ||
+        needs.cambios.outputs.coincide == 'si'
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      medir: ${{ steps.decidir.outputs.medir }}
+    steps:
+      - name: Mirar si otra tanda mide este commit
+        id: decidir
+        run: >-
+          go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/
+          -args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"
+      - name: ` + pasoDeLaMarca + `
+        if: steps.decidir.outputs.medir == 'si'
+        run: echo mide
+`
+
+// definicionDelContrato es una definición sintética del job con las claves de
+// los contratos y el env de hoy (contracts/ejecucion-del-job.md §6 de H7.3;
+// contracts/tanda-del-job.md §1 de H7.4). Con las evals de evalsSinteticas,
+// cada skill tiene 7 sesiones —la eval con el modelo que decide y con el de
+// Haiku, tres veces con cada uno, y la prueba de red—, así que el peor caso es
+// de 1029 s en boe-legislacion (⌈7 / 4⌉ = 2 tandas) y de 2389 s en legal-core
+// (7 tandas): 120 minutos los cubren.
 const definicionDelContrato = `name: evals
 on:
   pull_request:
     types: [opened, reopened, labeled]
 jobs:
-  evals:
+` + trabajoDeLaTandaDelContrato + `  evals:
     name: evals (${{ matrix.skill }})
-    needs: [cambios]
+    needs: [tanda]
+    if: ` + condicionDelTrabajo + `
     concurrency:
       group: evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}
       cancel-in-progress: false
@@ -349,10 +539,90 @@ func definicionesSinteticas() []definicionSintetica {
 		ajustesDeLegal   = "{concurrencia: 1, objetivo_de_duracion: 0}"
 		peorCasoDeLegal  = "2389 s = 485 s + \xe2\x8c\x887 / 1\xe2\x8c\x89 \xc3\x97 (22 s + 240 s + 10 s)"
 		esperadoDelGrupo = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
+		pruebaDeRed      = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
+		ejecucionDeGh    = ` -ejecucion "$EJECUCION"`
+		topeDeLaTanda    = "    timeout-minutes: 15\n"
+		elUltimo         = "jobs.tanda.steps, el \xc3\xbaltimo, "
 	)
 
 	return []definicionSintetica{
 		{nombre: "la-del-contrato"},
+		{
+			nombre:  "sin-tanda",
+			cambios: []cambioDeLaDefinicion{{trabajoDeLaTandaDelContrato, ""}},
+			fallos: []string{"jobs.tanda: no est\xc3\xa1, y lo esperado es el trabajo que decide si la ejecuci\xc3\xb3n " +
+				"mide el commit"},
+		},
+		{
+			nombre:  "tanda-con-nombre",
+			cambios: []cambioDeLaDefinicion{{"  tanda:\n", "  tanda:\n    name: Decidir la tanda\n"}},
+			fallos: []string{`jobs.tanda.name: vale "Decidir la tanda", y lo esperado es que no est` + "\xc3\xa9: gh da " +
+				"el trabajo por su id, tanda, que es por el que lo busca la decisi\xc3\xb3n"},
+		},
+		{
+			// Un name igual a su id no cambia el nombre con el que gh lo da.
+			nombre:  "tanda-con-su-id-como-nombre",
+			cambios: []cambioDeLaDefinicion{{"  tanda:\n", "  tanda:\n    name: tanda\n"}},
+		},
+		{
+			nombre:  "tanda-sin-la-prueba-de-red",
+			cambios: []cambioDeLaDefinicion{{"      " + pruebaDeRed, ""}},
+			fallos: []string{"jobs.tanda.if: vale " + strconv.Quote(strings.Replace(condicionDeLaTanda, pruebaDeRed, "", 1)) +
+				", y lo esperado es " + strconv.Quote(condicionDeLaTanda)},
+		},
+		{
+			nombre:  "tanda-con-concurrency",
+			cambios: []cambioDeLaDefinicion{{topeDeLaTanda, topeDeLaTanda + "    concurrency: tanda-${{ github.sha }}\n"}},
+			fallos: []string{"jobs.tanda.concurrency: est\xc3\xa1, y lo esperado es que no est\xc3\xa9: la tanda ni espera " +
+				"ni se cancela, y no deja una comprobaci\xc3\xb3n roja por decidir no medir"},
+		},
+		{
+			nombre:  "tanda-sin-actions-read",
+			cambios: []cambioDeLaDefinicion{{"      actions: read\n", ""}},
+			fallos:  []string{`jobs.tanda.permissions.actions: no est` + "\xc3\xa1" + `, y lo esperado es "read"`},
+		},
+		{
+			nombre:  "tanda-sin-la-salida-medir",
+			cambios: []cambioDeLaDefinicion{{"    outputs:\n      medir: ${{ steps.decidir.outputs.medir }}\n", ""}},
+			fallos: []string{`jobs.tanda.outputs.medir: no est` + "\xc3\xa1" + `, y lo esperado es ` +
+				`"${{ steps.decidir.outputs.medir }}"`},
+		},
+		{
+			nombre:  "decidir-sin-la-ejecucion",
+			cambios: []cambioDeLaDefinicion{{ejecucionDeGh, ""}},
+			fallos: []string{"jobs.tanda.steps, id decidir, run: vale " +
+				strconv.Quote(strings.Replace(ordenDelPasoQueDecide, ejecucionDeGh, "", 1)) + ", y lo esperado es " +
+				strconv.Quote(ordenDelPasoQueDecide)},
+		},
+		{
+			nombre:  "decidir-sin-su-id",
+			cambios: []cambioDeLaDefinicion{{"        id: decidir\n", ""}},
+			fallos: []string{"jobs.tanda.steps, id decidir, run: no est\xc3\xa1, y lo esperado es " +
+				strconv.Quote(ordenDelPasoQueDecide)},
+		},
+		{
+			nombre:  "marca-con-otro-nombre",
+			cambios: []cambioDeLaDefinicion{{"      - name: " + pasoDeLaMarca + "\n", "      - name: Mide el commit\n"}},
+			fallos: []string{elUltimo + `name: vale "Mide el commit", y lo esperado es "Esta ejecuci` + "\xc3\xb3" +
+				`n mide el commit"`},
+		},
+		{
+			nombre:  "marca-sin-su-if",
+			cambios: []cambioDeLaDefinicion{{"        if: steps.decidir.outputs.medir == 'si'\n", ""}},
+			fallos: []string{elUltimo + `if: no est` + "\xc3\xa1" + `, y lo esperado es ` +
+				`"steps.decidir.outputs.medir == 'si'"`},
+		},
+		{
+			nombre:  "evals-sin-needs-tanda",
+			cambios: []cambioDeLaDefinicion{{"needs: [tanda]", "needs: [cambios]"}},
+			fallos:  []string{"jobs.evals.needs: vale [cambios], y lo esperado es [tanda]"},
+		},
+		{
+			nombre:  "evals-con-otro-if",
+			cambios: []cambioDeLaDefinicion{{condicionDelTrabajo, "${{ " + sinCancelar + " }}"}},
+			fallos: []string{`jobs.evals.if: vale "${{ ` + sinCancelar + ` }}", y lo esperado es ` +
+				`"${{ ` + sinCancelar + ` && needs.tanda.outputs.medir == 'si' }}"`},
+		},
 		{
 			nombre:  "grupo-sin-la-cabeza-del-evento",
 			cambios: []cambioDeLaDefinicion{{grupoPorCommit, "group: evals-${{ github.sha }}-${{ matrix.skill }}"}},
@@ -537,4 +807,339 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	leida.ModeloQueDecide = "Claude Sonnet"
 	_, err = leida.peorCaso(evalsSinteticas(t), "boe-legislacion")
 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
+}
+
+// ejecucionPropia es la ejecución que decide en segundo-disparo: las de
+// databaseId menor son anteriores y las de mayor, posteriores (research.md S2
+// de H7.4).
+const ejecucionPropia = 20
+
+// Los nombres de la definición del job con los que gh da los trabajos y los
+// pasos de una ejecución: el trabajo tanda, sin name, con su id; su paso que
+// decide y su último paso, la marca, que solo corre en la ejecución que mide
+// (contracts/tanda-del-job.md §1 de H7.4); cambios; y el trabajo evals saltado
+// por su if, con el nombre sin la skill (research.md O2 de H7.4).
+const (
+	nombreDeLaTanda  = "tanda"
+	pasoQueDecide    = "Mirar si otra tanda mide este commit"
+	pasoDeLaMarca    = "Esta ejecuci\xc3\xb3n mide el commit"
+	trabajoDeCambios = "cambios"
+	evalsSaltadas    = "evals (${{ matrix.skill }})"
+)
+
+// Los valores de status y conclusion con los que gh da una ejecución, un
+// trabajo o un paso.
+const (
+	ghTerminado = "completed"
+	ghEnCurso   = "in_progress"
+	ghEnEspera  = "pending"
+	ghConExito  = "success"
+	ghSaltado   = "skipped"
+)
+
+// Los trabajos sintéticos de una ejecución del flujo evals, como los da gh run
+// view --json jobs (research.md O1 de H7.4): un trabajo saltado por su if sale
+// terminado, con la conclusión skipped y sin pasos, y un paso saltado, con la
+// conclusión skipped. El que mide deja cambios, su tanda con la marca y un
+// trabajo evals por skill; el que no, la marca saltada y evals saltado entero.
+var (
+	cambiosTerminado      = trabajoSintetico(trabajoDeCambios, ghTerminado, ghConExito)
+	tandaQueMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
+		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghConExito))
+	tandaQueNoMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
+		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghSaltado))
+	evalsSaltadasSinteticas = trabajoSintetico(evalsSaltadas, ghTerminado, ghSaltado)
+
+	// trabajosSinDecidir son los de una ejecución que aún está en cambios: su
+	// tanda no se ha creado.
+	trabajosSinDecidir = trabajosSinteticos(trabajoSintetico(trabajoDeCambios, ghEnCurso, ""))
+
+	// trabajosQueMidenYCorren son los de una ejecución que mide y cuyas
+	// sesiones corren; trabajosQueMidenYEsperan, los de una que mide y cuyos
+	// trabajos evals esperan por su concurrency; y trabajosQueMidieron, los de
+	// una que ya midió.
+	trabajosQueMidenYCorren  = trabajosQueMiden(ghEnCurso, "")
+	trabajosQueMidenYEsperan = trabajosQueMiden(ghEnEspera, "")
+	trabajosQueMidieron      = trabajosQueMiden(ghTerminado, ghConExito)
+
+	// trabajosQueNoMiden son los de una ejecución cuya tanda decidió no medir.
+	trabajosQueNoMiden = trabajosSinteticos(cambiosTerminado, tandaQueNoMideSintetica, evalsSaltadasSinteticas)
+)
+
+// trabajosQueMiden son los trabajos de una ejecución cuya tanda mide, con los
+// trabajos evals de las dos skills en el estado y con la conclusión dados.
+func trabajosQueMiden(estadoDeEvals, conclusionDeEvals string) string {
+	return trabajosSinteticos(cambiosTerminado, tandaQueMideSintetica,
+		trabajoSintetico("evals (boe-legislacion)", estadoDeEvals, conclusionDeEvals),
+		trabajoSintetico("evals (legal-core)", estadoDeEvals, conclusionDeEvals))
+}
+
+// trabajosSinteticos es el JSON de gh run view --json jobs con los trabajos
+// dados.
+func trabajosSinteticos(trabajos ...string) string {
+	return `{"jobs":[` + strings.Join(trabajos, ",") + "]}"
+}
+
+// trabajoSintetico es un trabajo del JSON de gh run view --json jobs, con sus
+// pasos.
+func trabajoSintetico(nombre, estado, conclusion string, pasos ...string) string {
+	return fmt.Sprintf(`{"name":%q,"status":%q,"conclusion":%q,"steps":[%s]}`, nombre, estado, conclusion,
+		strings.Join(pasos, ","))
+}
+
+// pasoSintetico es un paso de un trabajo del JSON de gh run view --json jobs.
+func pasoSintetico(nombre, estado, conclusion string) string {
+	return fmt.Sprintf(`{"name":%q,"status":%q,"conclusion":%q}`, nombre, estado, conclusion)
+}
+
+// ejecucionesSinteticas es el JSON de gh run list --json databaseId,status
+// con las ejecuciones dadas.
+func ejecucionesSinteticas(ejecuciones ...string) string {
+	return "[" + strings.Join(ejecuciones, ",") + "]"
+}
+
+// ejecucionSintetica es una ejecución del JSON de gh run list --json
+// databaseId,status.
+func ejecucionSintetica(id int64, estado string) string {
+	return fmt.Sprintf(`{"databaseId":%d,"status":%q}`, id, estado)
+}
+
+// rondaSintetica es lo que gh da en una consulta: la lista de ejecuciones del
+// flujo sobre el commit y los trabajos de cada ejecución, por su databaseId.
+type rondaSintetica struct {
+	lista    string
+	trabajos map[int64]string
+}
+
+// listar da la lista de ejecuciones de la ronda, como gh run list.
+func (r rondaSintetica) listar(context.Context) ([]byte, error) {
+	return []byte(r.lista), nil
+}
+
+// verLosTrabajos da los trabajos de la ejecución id en la ronda, como gh run
+// view, y un error si la ronda no los tiene.
+func (r rondaSintetica) verLosTrabajos(_ context.Context, id int64) ([]byte, error) {
+	trabajos, estan := r.trabajos[id]
+	if !estan {
+		return nil, fmt.Errorf("la ronda no tiene los trabajos de la ejecuci\xc3\xb3n %d", id)
+	}
+
+	return []byte(trabajos), nil
+}
+
+// ghSintetico da en cada consulta lo que gh daría en su ronda, y desde la
+// última, lo mismo que en ella; y cuenta las consultas.
+type ghSintetico struct {
+	rondas    []rondaSintetica
+	consultas int
+}
+
+// consultar hace la consulta siguiente con consultarLasEjecuciones.
+func (g *ghSintetico) consultar(ctx context.Context) ([]ejecucionDelCommit, error) {
+	ronda := g.rondas[min(g.consultas, len(g.rondas)-1)]
+	g.consultas++
+
+	return consultarLasEjecuciones(ctx, ejecucionPropia, ronda.listar, ronda.verLosTrabajos)
+}
+
+// relojSintetico es un reloj que no duerme: cada espera lo adelanta lo que
+// dura y queda anotada.
+type relojSintetico struct {
+	instante time.Time
+	esperas  []time.Duration
+}
+
+// ahora es el instante del reloj.
+func (r *relojSintetico) ahora() time.Time {
+	return r.instante
+}
+
+// esperar adelanta el reloj la duración y la anota.
+func (r *relojSintetico) esperar(_ context.Context, duracion time.Duration) error {
+	r.instante = r.instante.Add(duracion)
+	r.esperas = append(r.esperas, duracion)
+
+	return nil
+}
+
+// segundoDisparo es un caso de la tabla de contracts/tanda-del-job.md §4 de
+// H7.4: lo que gh da en cada consulta, la decisión que se espera, las consultas
+// que se hacen y si se mide por agotar la espera.
+type segundoDisparo struct {
+	nombre     string
+	rondas     []rondaSintetica
+	mide       bool
+	pendientes []int64
+	consultas  int
+	agotada    bool
+}
+
+// segundosDisparos son los casos de probarElSegundoDisparo, en el orden de la
+// tabla de contracts/tanda-del-job.md §4 de H7.4.
+func segundosDisparos() []segundoDisparo {
+	propiaEnCurso := ejecucionSintetica(ejecucionPropia, ghEnCurso)
+	conLaAnteriorEnCurso := ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghEnCurso))
+
+	return []segundoDisparo{
+		{
+			nombre:    "anterior-que-mide-corre",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}}},
+			consultas: 1,
+		},
+		{
+			nombre:    "anterior-que-mide-espera",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYEsperan}}},
+			consultas: 1,
+		},
+		{
+			nombre: "anterior-sin-decidir-que-mide",
+			rondas: []rondaSintetica{
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}},
+			},
+			consultas: 2,
+		},
+		{
+			nombre: "anterior-sin-decidir-que-no-mide",
+			rondas: []rondaSintetica{
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
+				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}},
+			},
+			mide:      true,
+			consultas: 2,
+		},
+		{
+			nombre:    "anterior-que-no-mide",
+			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			// FR-071 de H7.4: la etiqueta sobre un commit cuya tanda terminó
+			// vuelve a medir.
+			nombre: "anterior-terminada",
+			rondas: []rondaSintetica{{
+				ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghTerminado)),
+				map[int64]string{10: trabajosQueMidieron},
+			}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			nombre: "posterior-que-mide",
+			rondas: []rondaSintetica{{
+				ejecucionesSinteticas(ejecucionSintetica(30, ghEnCurso), propiaEnCurso),
+				map[int64]string{30: trabajosQueMidenYCorren},
+			}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			nombre:    "sola",
+			rondas:    []rondaSintetica{{ejecucionesSinteticas(propiaEnCurso), nil}},
+			mide:      true,
+			consultas: 1,
+		},
+		{
+			// Una consulta cada 10 s desde la primera, en el segundo 0, hasta
+			// la del minuto 10, que ya no espera: 61.
+			nombre:     "espera-agotada",
+			rondas:     []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}}},
+			mide:       true,
+			pendientes: []int64{10},
+			consultas:  61,
+			agotada:    true,
+		},
+	}
+}
+
+// probarElSegundoDisparo fija la decisión de la tanda con la tabla de
+// contracts/tanda-del-job.md §4 de H7.4 (FR-070, FR-071 y FR-100 de H7.4;
+// SC-010 de H7.4): la ejecución propia consulta un gh sintético y espera con un
+// reloj que no duerme. No mide si una ejecución anterior sin terminar mide,
+// aunque sus trabajos evals esperen; espera, 10 s entre consulta y consulta, a
+// que decida la anterior que aún no lo ha hecho; y mide si ninguna anterior sin
+// terminar mide, si la que midió ya terminó, si la que mide es posterior o si
+// pasan 10 min sin que la anterior decida. Un error de la consulta es un error
+// que la nombra.
+func probarElSegundoDisparo(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range segundosDisparos() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			gh := ghSintetico{rondas: caso.rondas}
+
+			var reloj relojSintetico
+
+			decision, err := esperarLaDecision(t.Context(), ejecucionPropia, gh.consultar, reloj.ahora, reloj.esperar)
+			require.NoError(t, err)
+
+			assert.Equal(t, decisionTrasLaEspera{
+				decisionDeLaTanda: decisionDeLaTanda{mide: caso.mide, pendientes: caso.pendientes},
+				agotada:           caso.agotada,
+			}, decision)
+			assert.Equal(t, caso.consultas, gh.consultas, "consultas")
+
+			var esperas []time.Duration
+			for range caso.consultas - 1 {
+				esperas = append(esperas, 10*time.Second)
+			}
+
+			assert.Equal(t, esperas, reloj.esperas, "esperas")
+		})
+	}
+
+	t.Run("consulta-que-falla", func(t *testing.T) {
+		t.Parallel()
+
+		errDeGh := errors.New("gh run list termin\xc3\xb3 con 1")
+		fallida := func(context.Context) ([]ejecucionDelCommit, error) { return nil, errDeGh }
+
+		var reloj relojSintetico
+
+		_, err := esperarLaDecision(t.Context(), ejecucionPropia, fallida, reloj.ahora, reloj.esperar)
+		require.ErrorIs(t, err, errDeGh)
+		require.ErrorContains(t, err, "la consulta 1 de las ejecuciones del commit")
+	})
+}
+
+// probarElEstadoDeLaTanda fija el estado de la tanda de una ejecución leído
+// del JSON de sus trabajos (contracts/tanda-del-job.md §2 y §4 de H7.4;
+// research.md S4 de H7.4): mide con su trabajo tanda terminado y la marca en
+// success; no mide con la marca saltada o con la tanda saltada; y aún no ha
+// decidido con la tanda en curso o sin ella.
+func probarElEstadoDeLaTanda(t *testing.T) {
+	t.Parallel()
+
+	tandaEnCurso := trabajoSintetico(nombreDeLaTanda, ghEnCurso, "",
+		pasoSintetico(pasoQueDecide, ghEnCurso, ""), pasoSintetico(pasoDeLaMarca, ghEnEspera, ""))
+	tandaSaltada := trabajoSintetico(nombreDeLaTanda, ghTerminado, ghSaltado)
+
+	casos := []struct {
+		nombre   string
+		trabajos string
+		estado   estadoDeLaTanda
+	}{
+		{nombre: "marca-en-success", trabajos: trabajosQueMidenYCorren, estado: tandaQueMide},
+		{nombre: "marca-saltada", trabajos: trabajosQueNoMiden, estado: tandaQueNoMide},
+		{nombre: "tanda-en-curso", trabajos: trabajosSinteticos(cambiosTerminado, tandaEnCurso), estado: tandaSinDecidir},
+		{nombre: "sin-tanda", trabajos: trabajosSinDecidir, estado: tandaSinDecidir},
+		{
+			nombre:   "tanda-saltada",
+			trabajos: trabajosSinteticos(cambiosTerminado, tandaSaltada, evalsSaltadasSinteticas),
+			estado:   tandaQueNoMide,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			estado, err := leerLaTandaDeLaEjecucion([]byte(caso.trabajos))
+			require.NoError(t, err)
+			assert.Equal(t, caso.estado, estado)
+		})
+	}
 }

@@ -1,0 +1,82 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Reproducido en un clon fuera del repositorio (/tmp/juez-a-h74-r3/clon, cabeza 53dfec5): `make -C … ci` termina con exit=0. golangci-lint da «0 issues.», y test -race y con la etiqueta integration pasan en verde en todos los paquetes (internal/evals 97,2 % y 98,1 %, internal/skills 98,5 %, internal/app 96,3 %). También pasan TestMedidasDeTiempo/TestCosteDelGrafo, y gitleaks da «no leaks found». gates/ci.log, escrito por la reparación a las 23:20, antes del commit de las 23:21:08, dice lo mismo: «guardián de diff ok ((global), 14 ficheros)» (los 14 de 53dfec5), «ci: todos los controles en verde» y exit=0 (:1, :94-96). En el árbol solo cambian cosas de gates/ que escribe el propio workflow: revision-cambios.md, revision-ciclo.json, la línea [proceso] del ciclo 3 en supuestos.md, cierre-reparaciones, revision-cambios-r3.diff y el borrado de base-global-pendiente."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 5fcdb6f..53dfec5 no toca ni Go ni tests. Fuera de gates/, `git diff --name-only` da solo CHANGELOG.md, skills/boe-legislacion/SKILL.md, cierre.md, contracts/skill-boe-legislacion.md, plan.md y research.md, así que los mutantes de las rondas 1 y 2 siguen valiendo. La prosa nueva la comprueban controles que ya existían y que pasan en el clon: prosa-de-la-skill, expresiones-de-la-skill y ordenes-para-powershell (internal/evals ok), y el tamaño, TestSkillsDelRepositorio (internal/app ok). Quitar dos líneas en blanco entre el cierre de un bloque delimitado y la viñeta siguiente (SKILL.md:62-63 y :108-109) no saca prosa del control: parrafosDeLaProsa cierra el bloque con su delimitador y abre párrafo con cada elemento de lista (internal/evals/conjunto_test.go:1800-1822). No hay suite [aceptacion] (plan.md, «Aceptación e2e: no aplica»)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no tiene ninguna línea Go (revision-cambios-r3.diff). Lo evaluado en las rondas 1 y 2 no cambia: sin net/http, os.Exit ni fmt.Print* fuera de los paquetes autorizados, y lint con 0 issues en el clon."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No cambia ningún applet, sobre ni esquema. La región generada de SKILL.md (:237-262) no se toca, y skills-check y TestEsquemasPublicados pasan en el clon. Lo que C12 afirma de los sobres lo sostienen los esquemas publicados: boe articulo trae fecha_version y fecha_vigencia sin fecha de fin (schemas/bloque.json:43-81); boe.Metadatos trae estatus_derogacion sin fecha (schemas/norma.json:649-706, additionalProperties false); y boe.ReferenciaPosterior trae solo relacion y norma (schemas/norma.json:97-112; su texto no se lee, internal/source/boe/analisis.go:161-176)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Los códigos de salida y la regla 7 no cambian en el rango: SKILL.md:232-235 y :287-298 son iguales que en 5fcdb6f. El paso 3 sigue remitiendo a la regla 7 cuando graph check termina con otro código que 0 (:81-82)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Casi todo lo que el rango escribe está respaldado. CHANGELOG.md:329-330 (Unreleased, v0.1.4) dice lo mismo que SKILL.md:147-151 y :225-226. C12 (contracts/skill-boe-legislacion.md:231-259) coincide literalmente con SKILL.md. Las cifras de cierre.md y plan.md cuadran: wc -l da 298 y `git diff --numstat main` da 79/51. V30 casa con gates/evals/boe-legislacion.json (commit ad68a70): fallo solo por redaccion_no_leida:claude-sonnet-5-5 1 de 54, la 18-01 con «Su redacción vigente hasta la derogación es la de la Ley 4/1999»; la 18-02 y la 18-03 no llevan la forma; Haiku 05-03 lleva `código 5`; 451 s; `red` y sesiones_sin_medir vacíos; legal-core aprobado. Las citas de H7.1 (18-02, «la última redacción vigente (fecha de vigencia 1999-04-14) antes de la derogación») y de la 19-02 de H7.3 («vigente hasta el 9 de marzo de 2018») están en sus informes. Lo que falla: research.md D23 (:538) termina con «antes, el sondeo local con el modelo que decide sobre las evals 18, 19 y 20 (V31)», y V31 no existe. `grep V31` solo da esa línea, y la tabla de verificaciones acaba en V30. El log del hito muestra que la sesión de reparar_cierre terminó con el sondeo en segundo plano («En cuanto termine el sondeo, registro V31 en research.md», hito-H7.4-2026-09-30.log:1204). ~/Library/Logs/kitlegal/sondeo-c12.log está vacío, en /tmp/kitlegal-sondeo-c12 no hay salida.txt, y solo 5 de sus 9 sesiones tienen `result`: las de 20 y la 19-03 quedaron cortadas. No hace falta ADR ni docs/SOURCES.md."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/httpx, ninguna fuente, ninguna grabación ni docs/SOURCES.md. Solo cambia prosa de la skill y documentación, sin secretos ni datos de persona."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "La reparación no toca la lista (evals/boe-legislacion/expresiones-prohibidas.yaml:88-98 sigue con `vigente hasta`), ni ningún umbral, eval, test o fixture. El umbral que falló (redaccion_no_leida, 1 de 54, umbral 0, decide: true) se ataca en su causa, la prosa. Tampoco quita ni acota la forma, alternativa (a) de D23, que FR-047 y el calibrado impiden."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "C12 se aparta del contrato C1-C11 y está registrado como decisión, con su evidencia: research D23 con V30 y las alternativas a-d, plan.md «Decisiones» (:313-318), contracts C12 y gates/supuestos.md, en la segunda línea [skill] reparar_cierre con su impacto. Respeta FR-025. La regla 3 (SKILL.md:275-278), la forma de los avisos (:178-191), las formas fijas (:209, :292) y la región generada no cambian. El texto de la lectura de uno en uno (paso 3) tampoco: solo se quitan dos líneas en blanco. Casa con FR-011, que enumera lo que sí se dice, la norma modificadora y la fecha de vigencia, sin el fin. Es la mejor solución a la vista de la medición: la única respuesta marcada convierte la fecha de inicio en un intervalo, a la prosa le faltaba decir qué no trae ningún sobre, y quitar la forma no es posible (FR-047)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "SKILL.md sigue en 298 líneas (5 añadidas y 5 quitadas frente a 5fcdb6f) y el modelo la lee una vez por conversación. La description no cambia. Las órdenes por pregunta tampoco: una lectura con su graph check detrás, en la misma orden. C12 no añade ninguna señal. Evita que la respuesta invente un dato, el fin de una redacción. La línea ⚠ REDACCIÓN MODIFICADA: sigue siendo una por bloque cambiado, y la apaga la lectura siguiente (H7.1). graph check no cambia: acotado a los bloques pedidos y con 50 hallazgos como mucho."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los controles no cambian en el rango, y esta medición prueba que el umbral nuevo decide en la plataforma. redaccion_no_leida:claude-sonnet-5-5, con 1 de 54, decide: true y cumple: false, pone el veredicto en «fallo» (gates/evals/boe-legislacion.json, motivos: «1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %»). El trabajo sale con código 2 (gates/cierre.log, «Process completed with exit code 2») y el cierre lo lee como rojo (gates/cierre.json, verde: false, sha ad68a70). Los demás umbrales siguen en `umbrales` con decide: true: expresiones_prohibidas 1 de 54 ≤ 5 %, sin_activar 0 de 54 ≤ 0 y duracion_de_las_sesiones 451 ≤ 900. El del modelo informativo va con decide: false. Los umbrales de make ci (calibrado, prosa, PowerShell, tamaño) están en verde en el clon, con su control visto fallar en las rondas 1 y 2."
+    }
+  ],
+  "motivos": [
+    "[f] research.md D23, línea 538: termina con «antes, el sondeo local con el modelo que decide sobre las evals 18, 19 y 20 (V31)», pero V31 no existe en la tabla de verificaciones de research.md, que acaba en V30 (:45), y ese sondeo no tiene resultado. La sesión de reparar_cierre terminó con el sondeo en segundo plano (hito-H7.4-2026-09-30.log:1204). ~/Library/Logs/kitlegal/sondeo-c12.log está vacío, /tmp/kitlegal-sondeo-c12 no tiene salida.txt y solo 5 de sus 9 sesiones llegaron a `result`. Quitar de D23 esa remisión al sondeo, de modo que la frase acabe en «Lo mide el job de cierre sobre la cabeza que lleve C12 (SC-001).». Si se quiere conservar, V31 tiene que existir como fila de la tabla con las cifras de un sondeo terminado sobre C12 y declararse no veredicto, como V29. Ningún otro artefacto nombra ese sondeo."
+  ],
+  "observaciones": [
+    "La fuente sí da el fin: la respuesta de metadatos del BOE para BOE-A-1992-26318 trae \"fecha_derogacion\": \"20210402\" (internal/source/boe/testdata/…BOE-A-1992-26318_metadatos.json:53), y kitlegal no lo expone (boe.Metadatos no tiene ese campo). «Ningún sobre trae el fin de una redacción» (SKILL.md:149-150) es cierto de los sobres de kitlegal, no de la fuente. Si un hito futuro expone fecha_derogacion, habrá que revisar esa frase y C12 (H20 lee redacciones a una fecha).",
+    "D23 (d) dice que «vigente hasta la derogación» no es falso positivo. Es discutible: la derogación la trae el aviso `derogada`, y la frase no da ninguna fecha. Con FR-047 y el umbral 0, cambiar la prosa es la única vía, así que no cambia el juicio.",
+    "«desde cuándo rige» (SKILL.md:149, :226) está en presente también para la redacción de una norma derogada, que ya no rige. Las respuestas de la 18 lo adaptan («con vigencia desde el 14/04/1999»), y la regla 3 sigue prohibiendo presentarla como vigente.",
+    "«Hasta cuándo, nunca» podría inhibir que se diga un término que la propia norma da en su texto o en las notas de `kitlegal boe analisis` (una norma temporal). Ninguna eval lo ejercita, y el efecto sería omitir, no inventar.",
+    "Sigue la observación de la ronda 2: la viñeta «No es un aviso de vigencia» termina con «la línea es todo lo que la respuesta dice de ellas y de `kitlegal graph check`» (SKILL.md:220-221), sin la excepción de la regla 7. El paso 3 (:81-82) y la regla 7 (:295) la conservan.",
+    "Siguen las observaciones de las rondas 1 y 2. Tope efectivo de 298 líneas por el mutante dos-inicios. «otras conversaciones» y «la vez anterior» no están en la lista. `vigente hasta` y `aplicable hasta` marcarían una respuesta legítima. La tanda decide por commit. El patch de Codecov queda fuera de alcance."
+  ]
+}

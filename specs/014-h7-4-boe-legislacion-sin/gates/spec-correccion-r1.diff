@@ -1,0 +1,62 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-09-30 15:15:28
++++ ahora/checklists/requirements.md	2026-09-30 15:16:28
+@@ -14,11 +14,11 @@
+ ## Requirement Completeness
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — ninguno; las dos lecturas que había que fijar (la respuesta a la pregunta y la cita en la línea con un solo bloque) salen del hito y están en Assumptions.
+-- [x] Requirements are testable and unambiguous — cada FR lleva «Comprobable» o un control de FR-091 a FR-102.
++- [x] Requirements are testable and unambiguous — cada FR tiene con qué comprobarse, pero no todos lo dicen igual. Unos llevan «Comprobable» o remiten a un control de FR-091 a FR-102. La activación y los umbrales (FR-001, FR-003, FR-040 a FR-048) los comprueba SC-001 en el job de cierre. La lista, sus clases y las formas fijas (FR-010 a FR-012, FR-030 a FR-037) los comprueban SC-002, SC-003 y SC-007. La eval nueva (FR-050 a FR-055) la comprueban SC-001 y SC-012. FR-036 y FR-082 no llevan ninguna de las dos cosas: se comprueban con los tests de `Juzgar`, del informe y de `TestLeerSesion` (FR-094, FR-097, FR-098), porque el job y el sondeo comparten el juicio (FR-060). FR-072 tampoco las lleva: se comprueba en la revisión, que ve si el diff toca `scripts/workflow/`. FR-012 ya no choca con FR-010 ni con FR-034: solo excluye la frase que dice únicamente que no hay avisos o que la norma no está derogada.
+ - [x] Success criteria are measurable — SC-001 a SC-012 con recuentos, proporciones o segundos.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden respuestas, umbrales, tandas y salidas; los controles nombran la comprobación que falla, como exige el ADR 0029.
+ - [x] All acceptance scenarios are defined — US1 a US7, en forma Dado/Cuando/Entonces.
+-- [x] Edge cases are identified — «Edge Cases»: 3 de 54 frente a 2 de 54, total 0, sesiones sin terminar, una orden o dos, formas fijas junto a texto libre, prueba de red, réplica a una tarea en segundo plano.
++- [x] Edge cases are identified — «Edge Cases»: 3 de 54 frente a 2 de 54, total 0, sesiones sin terminar, una orden o dos, formas fijas junto a texto libre, «no hay avisos» en la misma frase que el estado de la comprobación, prueba de red, réplica a una tarea en segundo plano.
+ - [x] Scope is clearly bounded — «Fuera de alcance», literal del hito y lo no especificado.
+ - [x] Dependencies and assumptions identified — «Assumptions» y «Relación con H7.3, H7.2, H7.1 y H5».
+ 
+@@ -32,13 +32,13 @@
+ ## Criterios del juez del spec (workflow `hito`, `juez_spec`)
+ 
+ - [x] a. Alcance: cubre Entrega (1) a (8) y nada más (tabla de trazabilidad).
+-- [x] b. Fuera de alcance: literal del hito y lo no especificado.
+-- [x] c. Clarificaciones: aún no hay `gates/clarify-*.json`.
++- [x] b. Fuera de alcance: las siete viñetas literales del hito y, de lo no especificado, también cambiar `legal-core` más allá de declarar en sus evals que `boe-legislacion` no se activa (FR-004).
++- [x] c. Clarificaciones: `gates/clarify-preguntas.json` y `gates/clarify-respuestas.json` existen y están vacíos, así que no hay respuestas que reflejar. Las lecturas que fija el spec están en Assumptions.
+ - [x] d. Aceptación: «Criterios del hito, literales» con Aceptación y Controles transcritos; SC-001 a SC-012.
+ - [x] e. Decisiones cerradas: ni modelo, ni repeticiones, ni regla por serie, ni binario (FR-047, «Fuera de alcance»).
+ - [x] f. Checklist veraz: cada marca cita dónde se cumple.
+ - [x] g. Sin implementación: las formas concretas son del plan.
+-- [x] h. Derivable: umbrales con medida y total (FR-040 a FR-045), líneas esperadas con fechas (FR-052), frases concretas (FR-034) y códigos de salida (FR-080).
++- [x] h. Derivable: FR-012 excluye solo la frase que dice únicamente que no hay avisos o que la norma no está derogada, y lo que la misma frase dice además del estado de la comprobación es clase A, como en 01-02 y 14-01 (FR-034, Edge Cases); umbrales con medida y total (FR-040 a FR-045), líneas esperadas con fechas (FR-052), frases concretas (FR-034) y códigos de salida (FR-080).
+ - [x] i. Uso: «Uso, de fuera adentro», con quién pide cada salida, su tamaño y cuándo deja de darse cada señal.
+ - [x] j. Umbral con control: SC-001 nombra el job en rojo por cada umbral (FR-040 a FR-043, FR-046); SC-002 a SC-012 nombran su test en `make ci`; FR-092 fija las cuatro filas de «Controles de umbral».
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-09-30 15:15:28
++++ ahora/spec.md	2026-09-30 15:15:52
+@@ -215,6 +215,7 @@
+ - **Una sola línea `⚠ REDACCIÓN MODIFICADA:` en la eval nueva, o dos sin su bloque, o con las fechas cambiadas**: la sesión no pasa (FR-052).
+ - **Quien pregunta quiere saber qué cambió**: la respuesta dice que cita la redacción vigente y que no ha leído la anterior (FR-022). Eso no es clase B ni se marca (FR-034); describir qué decía la anterior, sí.
+ - **Palabras de la lista dentro de una forma fija y fuera de ella en la misma línea**: lo de la forma no cuenta; lo de fuera, sí (FR-031).
++- **Que no hay avisos y, en la misma frase, el estado de la comprobación** («No hay avisos de vigencia sobre este bloque ni cambios de redacción respecto a una consulta anterior.», 01-02 de `196ee05`): lo de los avisos no cuenta; lo de la comprobación, sí, y la respuesta se marca en la clase A (FR-012).
+ - **La sesión de la prueba de red**: no entra en ninguna medida ni total de los umbrales de la lista ni en `sin_activar` (H7.2 FR 053); sí en la duración (H7.3 FR 050).
+ - **Una tarea en segundo plano cuya réplica llega antes de la respuesta a la pregunta**: lo que se juzga sigue siendo la respuesta del turno de la pregunta (FR-060).
+ - **Lo dicho con palabras que ninguna forma de la lista recoge**: no se detecta, y queda a la vista en el informe, que publica cada respuesta (FR-037).
+@@ -235,7 +236,7 @@
+ 
+ - **FR-010**: Salvo las formas fijas que enseña la skill (FR-031), la respuesta MUST NOT llevar, en ninguna parte ni en ningún idioma, la **clase A**: el estado de la comprobación o su anuncio. Es decir, que la redacción cambió o no respecto de una lectura o consulta anterior, que no hay nada que señalar, que la comprobación terminó, o lo que el agente tiene, necesita o va a hacer («tengo suficiente para responder», «no necesito el artículo 60»). Lo mide la lista (FR-030) en el umbral de FR-040.
+ - **FR-011**: La respuesta MUST NOT llevar la **clase B**: una redacción que ninguna orden de la sesión devolvió, es decir, qué decía o qué cambió respecto de ella. Sí puede decir lo que devuelven las órdenes: la norma modificadora y la fecha de vigencia de la redacción vigente, y las dos fechas de la línea `⚠ REDACCIÓN MODIFICADA:`. Lo mide la lista (FR-030) en los umbrales de FR-040 y FR-042.
+-- **FR-012**: «No hay avisos de vigencia sobre este bloque», sola, y cualquier frase que diga a quien lee que la norma no está derogada o que no tiene avisos, MUST NOT contarse como clase A: es derecho (H7.3 FR 020).
++- **FR-012**: Una frase que solo dice que no hay avisos de vigencia o que la norma no está derogada, como «No hay avisos de vigencia sobre este bloque» sola, MUST NOT contarse como clase A: es derecho (H7.3 FR 020). La lista no gana formas que casen con eso. Lo que la misma frase o línea diga además del estado de la comprobación o de una lectura o consulta anterior sí es clase A (FR-010), como en 01-02 de `196ee05` y 14-01 de `eb6b4c8` (FR-034).
+ 
+ #### `boe-legislacion` v0.1.4
+ 
+@@ -409,6 +410,7 @@
+ - Cambiar el workflow `hito`, `scripts/workflow/` (también `cierre.sh`) o el informe final. Si la tanda única no se consigue en el job, queda como supuesto y va en su propia rama (FR-072).
+ - `sin_activar` o `redaccion_no_leida` del modelo informativo, publicados o que decidan.
+ - Que el sondeo publique `sin_activar`, `redaccion_no_leida` o recuentos por clase: su salida es la de H7.3, con el recuento de FR-082.
++- Cambiar `legal-core`: su `SKILL.md`, su versión o las preguntas, comandos y juicio de sus evals, más allá de declarar en cada una que `boe-legislacion` no se activa (FR-004). Lo que evite que `boe-legislacion` se active en ellas va a su `description` y a su cuerpo (FR-002, FR-003).
+ - Cambiar la eval 19: su pregunta, sus comandos o la forma de su hallazgo esperado. Conserva su juicio (FR-053).
+ - Declarar líneas `⚠ REDACCIÓN MODIFICADA:` esperadas en otras evals que la nueva.
+ - Cambiar la cita, los avisos de vigencia o la frase fija de la regla 7 (FR-025).

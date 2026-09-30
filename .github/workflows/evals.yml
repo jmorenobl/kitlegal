@@ -63,13 +63,12 @@ jobs:
           done <<< "$cambiados"
           echo "coincide=$coincide" >> "$GITHUB_OUTPUT"
 
-  # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
-  # de la otra, que termina y publica el suyo (SC-015; research.md D23). La definición del trabajo la comprueba
-  # TestDefinicionDelJob en make ci (specs/013-h7-3-el-umbral-de/contracts/ejecucion-del-job.md §6 y §7).
-  evals:
-    # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
-    # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
-    name: evals (${{ matrix.skill }})
+  # Una tanda por commit (FR-070 y FR-071 de H7.4): solo corre en una ejecución que quiere medir —el despacho, la
+  # etiqueta evals o evals-prueba-de-red, o la apertura que toca lo que las evals miden— y decide si mide: no mide si una
+  # ejecución anterior del flujo sobre el mismo commit, sin terminar, ya mide. Espera, como mucho unos segundos, a que
+  # decidan las anteriores; nunca a su tanda. Su último paso es la marca que leen las posteriores. Sin concurrency: ni
+  # queda en espera ni se cancela, y no deja nunca una comprobación roja por decidir no medir.
+  tanda:
     needs: [cambios]
     if: >-
       !cancelled() && needs.cambios.result != 'failure' && (
@@ -78,10 +77,62 @@ jobs:
         github.event.label.name == 'evals-prueba-de-red' ||
         needs.cambios.outputs.coincide == 'si'
       )
-    # Una tanda por commit y skill: un segundo disparo sobre el mismo commit —en el cierre, el de la apertura y el de la
-    # etiqueta— espera a que termine el primero, y ninguno se cancela ni se salta, así que el cierre espera a la tanda
-    # que corre y recoge su informe. Sin concurrency de nivel de flujo, que no admite matrix y detendría también el
-    # trabajo de la otra skill (FR-034 de H7.3; research.md D11 de H7.3).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      medir: ${{ steps.decidir.outputs.medir }}
+    steps:
+      - name: Obtener el código del commit evaluado
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      # -timeout 12m: la decisión espera como mucho 10 min, más sus consultas, y con los 10 min de go test por omisión
+      # el test acabaría en pánico antes de medir tras la espera; con la preparación, cabe en los 15 del trabajo.
+      - name: Mirar si otra tanda mide este commit
+        id: decidir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
+          EJECUCION: ${{ github.run_id }}
+        run: >-
+          go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/
+          -args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"
+
+      - name: Esta ejecución mide el commit
+        if: steps.decidir.outputs.medir == 'si'
+        run: echo "La tanda de este commit la mide esta ejecución."
+
+  # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
+  # de la otra, que termina y publica el suyo (SC-015; research.md D23). La definición del trabajo la comprueba
+  # TestDefinicionDelJob en make ci (specs/013-h7-3-el-umbral-de/contracts/ejecucion-del-job.md §6 y §7).
+  evals:
+    # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
+    # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
+    name: evals (${{ matrix.skill }})
+    needs: [tanda]
+    # !cancelled(): sin una función de estado, el if lleva un success() implícito que podría saltar el trabajo por
+    # cambios, saltado en la etiqueta y en el despacho (research S9; el mismo motivo que el if de hoy, H5).
+    if: ${{ !cancelled() && needs.tanda.outputs.medir == 'si' }}
+    # Como mucho una tanda a la vez por commit y skill (SC-010 de H7.4): un segundo disparo sobre el mismo commit —en el
+    # cierre, el de la apertura y el de la etiqueta— no llega a este grupo, porque tanda decide que no mide y el trabajo
+    # se salta entero, sin abrir sesiones; el cierre espera a la tanda que corre y recoge su informe. Solo si la espera
+    # de tanda se agota con una anterior sin decidir mide también, y este grupo la pone detrás de la otra, sin cancelar
+    # ninguna. Sin concurrency de nivel de flujo, que no admite matrix y detendría también el trabajo de la otra skill
+    # (FR-034 de H7.3; research.md D11 de H7.3; FR-070 de H7.4).
     concurrency:
       group: evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}
       cancel-in-progress: false
@@ -102,8 +153,9 @@ jobs:
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
     # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
-    # D13 de H7.3).
-    timeout-minutes: 120
+    # D13 de H7.3). 122 minutos: el peor caso de boe-legislacion con 20 evals y 97 sesiones es de 7285 s (research.md
+    # V13 de H7.4).
+    timeout-minutes: 122
     permissions:
       contents: read
     env:

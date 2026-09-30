@@ -1,7 +1,10 @@
-# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050; H7.3, FR-020),
-# en tres familias: la maquinaria interna, lo dicho en otra conversación y el anuncio de la respuesta o del estado de lo
-# comprobado. Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de Markdown entre palabras,
-# delimitadas como palabras; lo dicho con otras palabras no se detecta.
+# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050; H7.3, FR-020;
+# H7.4, FR-030), en cuatro familias. Clase A: la maquinaria interna, lo dicho en otra conversación y el anuncio de la
+# respuesta o del estado de lo comprobado (de la comprobación o de una lectura anterior, o de lo que el agente tiene,
+# necesita o va a hacer). Clase B, redaccion_no_leida: una redacción que ninguna orden devolvió (qué decía, hasta cuándo
+# rigió o qué cambió respecto de ella). Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de
+# Markdown entre palabras, delimitadas como palabras, después de quitar las formas fijas que enseña la skill;
+# lo dicho con otras palabras no se detecta.
 maquinaria:
   - memoria de consultas
   - hallazgo
@@ -57,3 +60,42 @@ anuncio:
   - ya tengo el texto
   - así que respondo
   - sin redacciones cambiadas
+  - lectura anterior
+  - lecturas anteriores
+  - consulta anterior
+  - consultas anteriores
+  - cambio de redacción
+  - cambios de redacción
+  - cambio en la redacción
+  - cambios en la redacción
+  - la comprobación de redacción
+  - la comprobación de la redacción
+  - la comprobación de cambios
+  - la comprobación no
+  - redacción posterior
+  - posterior a la consultada
+  - haya cambiado desde
+  - se consultó antes
+  - tengo suficiente
+  - no necesito
+  - i have enough
+  - i don't need
+  - i don’t need
+  - respond now
+  - respondo de memoria
+  - contesto de memoria
+  - extracto fiel
+redaccion_no_leida:
+  - ya no exige
+  - ya no se exige
+  - se eliminó
+  - vigente hasta
+  - aplicable hasta
+  - el cambio relevante
+  - el cambio más relevante
+  - artículo cambió
+  - no ha cambiado por
+  - esa versión ya no
+formas_fijas:
+  - "⚠ REDACCIÓN MODIFICADA: <cita>: la redacción con fecha de vigencia <fecha>, la que se consultó antes, ha sido sustituida por la de <fecha>, que es la que se cita."
+  - "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior"

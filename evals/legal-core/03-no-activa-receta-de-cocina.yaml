@@ -1,3 +1,4 @@
 # Eval de no activación: pregunta que no es de territorio ni de derecho, sin comandos ni esperado (FR-082).
 pregunta: "¿Cómo se hace una tortilla de patatas jugosa?"
 activa: false
+no_se_activan: [boe-legislacion]

@@ -1,0 +1,246 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2940b7f..6ab2980 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -326,7 +326,8 @@ sustituyen a este fichero.
+   comprobación» ni de una lectura anterior. **No describe una redacción que no ha
+   leído**: `kitlegal boe` da solo la vigente y `kitlegal graph check`, dos fechas, así que la respuesta no dice qué
+   decía la redacción superada, ni lo resume, ni lo compara, aunque el modelo crea saberlo; dice el texto vigente con
+-  su cita, qué norma le dio esa redacción y desde cuándo está vigente, y, si se pregunta qué cambió, **que cita la
++  su cita, qué norma le dio esa redacción y desde cuándo rige, nunca hasta cuándo —ningún sobre trae el fin de una
++  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha—, y, si se pregunta qué cambió, **que cita la
+   redacción vigente y que la anterior no la ha leído**. Lee cada bloque una sola vez por pregunta y comprueba si su
+   redacción ha cambiado **en la misma orden que lo lee**, detrás de la lectura y con su misma norma y sus mismos
+   bloques (`kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json`):
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index 5881b04..feaa8fe 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -60,7 +60,6 @@ menudo; no es exhaustiva.
+   ```bash
+   kitlegal boe indice BOE-A-2015-10565 --json
+   ```
+-
+ - Copia el id de la entrada del índice cuyo `titulo` es el artículo que buscas; nunca lo compongas a partir del número
+   del artículo, porque en muchas normas los ids no son `a<número>`. En la Ley 9/2017, la entrada con `titulo`
+   «Artículo 118» tiene el id `a1-30`, y `a118` no está en su índice.
+@@ -107,7 +106,6 @@ menudo; no es exhaustiva.
+   kitlegal boe metadatos BOE-A-2017-12902 --json
+   kitlegal boe analisis BOE-A-2017-12902 --json
+   ```
+-
+ - No pidas nunca un id de bloque que no salga del índice o de la propia pregunta. Si `kitlegal boe` termina con `3`
+   (no encontrado), vuelve al índice en lugar de probar otros ids; si el artículo no existe en la norma, dilo.
+ 
+@@ -147,8 +145,10 @@ paso no va en la respuesta: quien pregunta no ve los pasos.
+   locales, di que no están en esta fuente.
+ - Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la etiqueta del aviso tal como la da el binario y
+   dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). De la vigencia del bloque,
+-  la respuesta dice lo que trae el sobre de `kitlegal boe`; el de `kitlegal graph check` no dice nada de ella. Recuerda
+-  que los textos consolidados del BOE tienen carácter informativo.
++  la respuesta dice lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué norma la dio
++  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre trae el fin de una
++  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente. El de
++  `kitlegal graph check` no dice nada de ella. Recuerda que los textos consolidados del BOE tienen carácter informativo.
+ - Repasa cada cita de la respuesta: sus corchetes se abren y se cierran en la misma línea y terminan en
+   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
+   corchetes va además la forma legible, va delante del identificador.
+@@ -223,7 +223,7 @@ solo usa `check`, y siempre detrás de una lectura, en su misma orden (paso 3):
+   `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada ni en qué se
+   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
+   legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción
+-  (`norma_modificadora`) y desde cuándo está vigente (`fecha_vigencia`).
++  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).
+ - Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
+   no la ha leído.
+ 
+diff --git a/specs/014-h7-4-boe-legislacion-sin/cierre.md b/specs/014-h7-4-boe-legislacion-sin/cierre.md
+index 08eea68..aadc709 100644
+--- a/specs/014-h7-4-boe-legislacion-sin/cierre.md
++++ b/specs/014-h7-4-boe-legislacion-sin/cierre.md
+@@ -55,9 +55,9 @@ doce ficheros: seis `M` y seis `A`. No hay ninguna `D` ni ninguna `R`.
+ 
+ ### Lo que no está en la lista
+ 
+-- **`skills/boe-legislacion/SKILL.md`** (M, T010 y la reparación del cierre, contracts/skill-boe-legislacion.md C11)
+-  está fuera de esos árboles. Es la skill v0.1.4, con **298 líneas** (270 en `main`; 77 añadidas y 49 quitadas; 295 con
+-  T010). Su prosa la comprueban `prosa-de-la-skill` y `ordenes-para-powershell`,
++- **`skills/boe-legislacion/SKILL.md`** (M, T010 y las dos reparaciones del cierre, contracts/skill-boe-legislacion.md
++  C11 y C12) está fuera de esos árboles. Es la skill v0.1.4, con **298 líneas** (270 en `main`; 79 añadidas y 51
++  quitadas; 295 con T010, 298 con C11 y con C12). Su prosa la comprueban `prosa-de-la-skill` y `ordenes-para-powershell`,
+   y su tamaño y su `description`, `TestSkillsDelRepositorio` en `skills-check` (§3).
+ - **`internal/app/grafo_test.go`** (M, T009): `derivadasDelGrafoPrevio()` gana las dos entradas de las derivadas de
+   arriba. Es el único fichero de `cmd/` o de `internal/` fuera del paquete de evals que cambia (§4).
+@@ -141,7 +141,7 @@ modifica antes de la tarea. Tampoco quedaba ningún `kitlegal-sondeo.*` en el `T
+ | §1. `make ci` | En primer plano: `ci: todos los controles en verde`. `0 issues.` de `golangci-lint`, `ok` en todos los paquetes con `-race` y con la etiqueta `integration`, `ok` en `TestMedidasDeTiempo` y `TestCosteDelGrafo`, `No vulnerabilities found.`, `ok` en `TestEsquemasPublicados` (`schema-check`, sin drift) y en los siete tests de `skills-check` (`ok` en `internal/app`, `internal/skills` e `internal/evals`, sin drift), `no leaks found`, `all modules verified` y `go mod tidy -diff` sin salida. Es el `make ci` del que salen los perfiles del §2 y también la verificación de esta tarea. |
+ | §2. La lista, su calibrado y las formas de la skill | Primera orden: `ok`, y con `-v`, **17 `--- PASS`, ningún `--- FAIL`**. Son `TestEvalsDelRepositorio` y sus 16 subpruebas: `expresiones-calibradas`, `expresiones-en-los-bloques`, `expresiones-de-la-skill`, `prosa-de-la-skill`, `ordenes-para-powershell`, `grafo-previo`, `grabado`, `formato`, `conjunto`, `conjunto-legal-core`, `normas-conocidas`, `cobertura-del-esquema`, `avisos-del-esquema`, `avisos-de-la-skill`, `hallazgos-del-esquema` y `hallazgos-de-la-skill`. Segunda orden (`-v`): **5 `--- PASS`, ningún `--- FAIL`**: el test y las cuatro subpruebas que nombra. El reparto del calibrado lo comprueba la propia subprueba contra la tabla de contracts/lista-de-expresiones.md §4 (36, 11 y 9 de 93), eval por eval y columna por columna. |
+ | §3. El juicio de las dos clases y de la eval 20 | `ok`, y con `-v`, **146 `--- PASS`, ningún `--- FAIL`**. `TestJuzgarLasClasesDeLaRespuesta`, 28: el test y 27 frases. Cada frase de la bitácora va marcada en su clase, y quedan sin marcar la respuesta compuesta (`-_skill`), `-_sin-avisos` y `-_fr-022`, mientras que se marcan `-_la-linea-fuera-de-su-forma` y `-_las-dos-fuera-de-su-forma`. `TestExtraerExpresionesProhibidas`, 39: el test y 38, entre ellas `redaccion-modificada-con-cita`, `-con-enfasis`, `-con-otra-cita` y `-sin-cita`, `la-que-se-consulto-antes-fuera-de-la-forma`, `las-palabras-de-las-dos-formas-fuera-de-ellas`, `cuatro-familias`, `clase-b` y `sin-formas-fijas`. `TestJuzgar`, 64: el test y 63, entre ellas `no-se-activan` y `no-se-activan-detras-del-motivo-de-legal-core` (la sesión de `legal-core` que activa `boe-legislacion` no pasa), y los casos de la eval 20: `redacciones-modificadas-una-por-bloque`, `-leidas-en-dos-ordenes`, `redaccion-modificada-una-sola`, `-sin-cita`, `-con-la-cita-de-un-bloque-y-las-fechas-del-otro`, `-con-las-fechas-en-otro-orden`, `-en-una-sola-linea`, `-ausentes-detras-del-hallazgo` y `sin-redacciones-modificadas-el-juicio-de-antes`. El patrón no lleva `$`, así que ejecuta además `TestJuzgarLasExpresionesProhibidas` (14) y `TestJuzgarLasEvalsSinHallazgos` (1), que también pasan. |
+-| §4. `boe-legislacion` v0.1.4 | `make skills-check`, código 0, con `ok` en `internal/app`, `internal/skills` e `internal/evals`. `wc -l`: **295** en T013 y **298** tras la reparación del cierre (C11), por debajo de 300. La tercera orden da `ok`, y con `-v`, **32 `--- PASS`, ningún `--- FAIL`**: `TestEvalsDelRepositorio` con sus 16 subpruebas, entre ellas `ordenes-para-powershell` (las dos órdenes de lectura y comprobación con su forma para PowerShell), y `TestOrdenesParaPowerShell` con 14. Esas 14 son `las-dos-ordenes-con-sus-dos-formas`, `sin-la-de-powershell`, `con-ampersands-en-la-de-powershell`, `sin-el-if`, `con-otra-condicion`, `con-otra-norma-en-la-de-powershell`, `con-otros-bloques-en-la-de-powershell`, `con-otros-bloques-en-la-comprobacion-de-bash`, `con-otros-bloques-en-la-comprobacion-de-powershell`, `sin-la-de-articulos`, `sin-la-ultima-de-powershell`, `sin-argumentos-en-la-comprobacion`, `en-codigo-en-linea` y `sin-ninguna-orden`. |
++| §4. `boe-legislacion` v0.1.4 | `make skills-check`, código 0, con `ok` en `internal/app`, `internal/skills` e `internal/evals`. `wc -l`: **295** en T013 y **298** tras cada reparación del cierre (C11 y C12), por debajo de 300. La tercera orden da `ok`, y con `-v`, **32 `--- PASS`, ningún `--- FAIL`**: `TestEvalsDelRepositorio` con sus 16 subpruebas, entre ellas `ordenes-para-powershell` (las dos órdenes de lectura y comprobación con su forma para PowerShell), y `TestOrdenesParaPowerShell` con 14. Esas 14 son `las-dos-ordenes-con-sus-dos-formas`, `sin-la-de-powershell`, `con-ampersands-en-la-de-powershell`, `sin-el-if`, `con-otra-condicion`, `con-otra-norma-en-la-de-powershell`, `con-otros-bloques-en-la-de-powershell`, `con-otros-bloques-en-la-comprobacion-de-bash`, `con-otros-bloques-en-la-comprobacion-de-powershell`, `sin-la-de-articulos`, `sin-la-ultima-de-powershell`, `sin-argumentos-en-la-comprobacion`, `en-codigo-en-linea` y `sin-ninguna-orden`. |
+ | §5. Los umbrales y los recuentos | **27 `--- PASS`, ningún `--- FAIL`**. `TestUmbralesDelInforme`, 16: el test y 15, con los casos de contracts/informe-del-job.md §6. Son `sin-activar-una`, `sin-activar-ninguna`, `redaccion-no-leida-una`, `redaccion-no-leida-ninguna`, `tres-de-54`, `dos-de-54`, `tres-de-54-y-seis-sin-terminar` y `una-sin-activar-con-expresion`, más los de antes: `900-s-con-objetivo-900`, `901-s-con-objetivo-900`, `dos-de-30-de-haiku-4-5`, `sin-lista-ni-objetivo`, `objetivo-negativo`, `todas-las-de-sonnet-5-5-sin-medir` y `los-tres-motivos-en-su-orden`. `TestInformeMarkdownDeLosUmbrales`, 5: `las-filas-del-contrato`, `los-cinco-sin-cumplir`, `con-redacciones-modificadas` y `sin-umbrales`. `TestInformeConSesionesSinMedir`, 6: `mensaje-del-limite-de-uso`, `reintentos-agotados`, `cortada-durante-reintentos`, `sin-abrir-tras-el-limite-de-uso` y `reintentos-de-los-que-se-recupera`. |
+ | §6. La respuesta a la pregunta | **2 `--- PASS`, ningún `--- FAIL`**: `TestLeerSesion` y `TestLeerSesion/respuesta-antes-de-una-tarea-en-segundo-plano`. |
+ | §7. La tanda única y la eval 20 en el job | Primera orden (`-v`): **53 `--- PASS`, ningún `--- FAIL`**. `TestDefinicionDelJob` tiene cinco subpruebas de primer nivel: `del-repositorio`, `sinteticas`, `errores`, `segundo-disparo` y `estado-de-la-tanda`. `segundo-disparo` lleva `anterior-que-mide-corre`, `anterior-que-mide-espera`, `anterior-sin-decidir-que-mide`, `anterior-sin-decidir-que-no-mide`, `anterior-que-no-mide`, `anterior-terminada`, `posterior-que-mide`, `sola`, `espera-agotada` y `consulta-que-falla`. `estado-de-la-tanda` lleva `marca-en-success`, `marca-saltada`, `tanda-en-curso`, `sin-tanda` y `tanda-saltada`. Segunda orden: `ok`, y con `-v`, **8 `--- PASS`, ningún `--- FAIL`**: `TestGrabacionesDerivadas` con 7, entre ellas `lcsp-a1-30-y-da-3-redaccion-original/a1-30` y `lcsp-a1-30-y-da-3-redaccion-original/da-3`. |
+@@ -171,7 +171,7 @@ Todo sale de `git diff --name-status main` sobre `95be315`.
+   hito (plan.md, «Structure Decision»). Sus `references/` no cambian.
+ - **La tabla de fuentes no cambia** (ninguna fuente nueva): `git diff --name-status main -- docs/SOURCES.md evidencias
+   data web README.md` no imprime nada.
+-- **`skills/boe-legislacion/SKILL.md` tiene 298 líneas** (295 en T013), menos de 300 (FR-026; SC-011). También la comprueba
++- **`skills/boe-legislacion/SKILL.md` tiene 298 líneas** (295 en T013; 298 con C11 y con C12), menos de 300 (FR-026; SC-011). También la comprueba
+   `TestSkillsDelRepositorio` en `skills-check`, que falla con 300 o más o con la `description` por encima de 1024
+   caracteres.
+ - **Ningún umbral de FR-040 a FR-043 se ha rebajado, retirado ni dejado sin decidir** (FR-047):
+diff --git a/specs/014-h7-4-boe-legislacion-sin/contracts/skill-boe-legislacion.md b/specs/014-h7-4-boe-legislacion-sin/contracts/skill-boe-legislacion.md
+index 58e0bbb..c244e96 100644
+--- a/specs/014-h7-4-boe-legislacion-sin/contracts/skill-boe-legislacion.md
++++ b/specs/014-h7-4-boe-legislacion-sin/contracts/skill-boe-legislacion.md
+@@ -4,8 +4,8 @@
+ «Causa de raíz») y su requisito. El prototipo con todos los cambios (research V19) tiene 294 líneas, una `description`
+ de ≈ 925 caracteres y 0 párrafos de prosa con alguna expresión de la lista nueva o una fecha `AAAAMMDD` con cifras; el
+ `SKILL.md` de v0.1.4 tenía 295 líneas con C1-C10, porque se quedaba la frase que cierra «Redacción modificada» (C9), y
+-tiene 298 con C11, que la absorbe en una viñeta (reparación del cierre), y una `description` de 924 caracteres. Todo lo
+-que no nombra este contrato queda como en v0.1.3 (§2).
++tiene 298 con C11, que la absorbe en una viñeta (reparación del cierre), sigue en 298 con C12 (segunda reparación del
++cierre), y tiene una `description` de 924 caracteres. Todo lo que no nombra este contrato queda como en v0.1.3 (§2).
+ 
+ ## 1. Cambios
+ 
+@@ -228,6 +228,36 @@ y nunca qué pasa cuando no la hay, y el modelo trataba ese resultado como un da
+ junto a los avisos ni al final). Ninguna frase nueva enseña una forma de la lista: `prosa-de-la-skill` y
+ `expresiones-de-la-skill` siguen en verde.
+ 
++### C12 · El fin de una redacción no lo trae ningún sobre (segunda reparación del cierre; FR-011, FR-020, FR-022)
++
++Lo añade `reparar_cierre` tras la medición sobre `ad68a70` (research V30, D23): con C1-C11, `redaccion_no_leida` da 1 de
++54 (umbral 0), la 18-01, que presenta la última redacción del art. 42 de la Ley 30/1992, derogada, como «Su redacción
++vigente hasta la derogación es la de la Ley 4/1999 (vigencia desde 14/04/1999)». Dos cambios en la prosa, sin tocar
++ninguna forma fija, la regla 3, la forma de los avisos ni la región generada; 298 líneas.
++
++- **Paso 5, los avisos de vigencia** (C11). «De la vigencia del bloque, la respuesta dice lo que trae el sobre de
++  `kitlegal boe`; el de `kitlegal graph check` no dice nada de ella.» → «De la vigencia del bloque, la respuesta dice
++  lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué norma la dio (`norma_modificadora`)
++  y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre trae el fin de una redacción, tampoco en
++  una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente. El de `kitlegal graph check` no
++  dice nada de ella.» Lo demás de la viñeta no cambia.
++- **«Redacción modificada», la viñeta «La redacción superada no la has leído»** (C9). «…qué norma le dio esa redacción
++  (`norma_modificadora`) y desde cuándo está vigente (`fecha_vigencia`).» → «…qué norma le dio esa redacción
++  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).»
++- **Paso 3, dos líneas en blanco** entre el cierre de un bloque de código y la viñeta siguiente (la de `indice` y la de
++  `metadatos`) se quitan, sin cambiar el texto, como ya iba la de `articulos` con «Lee cada bloque una sola vez»: con
++  las dos líneas que gana el paso 5, la skill se queda en 298, el tope efectivo (C11).
++
++Causa: la prosa decía qué se dice de una redacción —la norma que la dio y «desde cuándo está vigente»— y la regla 3,
++que no se presente como vigente el texto de una norma derogada; con una norma derogada, el modelo concilia las dos
++convirtiendo la fecha de inicio en un intervalo cuyo fin ningún sobre da: `kitlegal boe articulo` trae `fecha_vigencia`
++y `norma_modificadora`, `kitlegal boe metadatos` trae `estatus_derogacion` sin fecha, y el aviso `derogada` dice que lo
++está, sin cuándo. Es la clase B por la definición de la lista (§1 de su cabecera: «hasta cuándo rigió»), y la forma
++`vigente hasta` no puede salir de la lista ni acotarse: es la única de la clase B que marca la 19-02 de `196ee05` en el
++calibrado (FR-032, FR-047). Ya en H7.1 la 18-02 razonaba igual sin caer en una forma («la última redacción vigente
++(fecha de vigencia 1999-04-14) antes de la derogación»). C12 lo dice con la razón, como C9 y C11: qué sí (la norma y
++desde cuándo) y por qué no el fin (ningún sobre lo trae; sería texto legal sin fuente).
++
+ ## 2. Lo que se queda de v0.1.3 (FR-025, FR-026)
+ 
+ La lectura de uno en uno, con `kitlegal graph check` detrás en la misma orden y con su misma norma y sus mismos bloques,
+@@ -278,7 +308,7 @@ PowerShell; sin argumentos en la comprobación; sin la de `articulos`; y sin nin
+ | La respuesta | la persona; una por pregunta | lo que ocupe la norma citada; 0 líneas sobre la comprobación; una línea `⚠ REDACCIÓN MODIFICADA:` por bloque cambiado, de 221 bytes con `art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]` y 242 con `disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]` (medidos; la de H7.3, 161): 0 en la mayoría de las preguntas, 2 en la de la eval 20, como mucho k × ≈ 240 B con k bloques leídos; con cientos de normas y miles de bloques consultados, la misma, porque solo cuenta lo leído en la pregunta | la línea sale en la respuesta de la lectura que ve la redacción nueva y no en la siguiente lectura del bloque (H7.1); al cabo de un mes, solo si el BOE publica otra |
+ | `kitlegal graph check <norma> <bloques…>` | la skill; una por orden que lee bloques, detrás de la lectura | ≈ 325 B sin cambios, ≈ 1 000 B por bloque cambiado (H7.3), ≤ 3 800 B con cinco; acotada por los bloques pedidos | cada señal se da una vez y la apaga la lectura siguiente (H7.1) |
+ | La `description` | el agente, en cada sesión con la skill instalada | ≈ 925 caracteres (≤ 1024) | no da señales |
+-| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 298 líneas (< 300; 294 en el prototipo, 295 con C1-C10) | no da señales |
++| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 298 líneas (< 300; 294 en el prototipo, 295 con C1-C10, 298 con C11 y con C12) | no da señales |
+ 
+ ## 6. `CHANGELOG.md` (*Unreleased*) (FR-027, FR-101)
+ 
+diff --git a/specs/014-h7-4-boe-legislacion-sin/plan.md b/specs/014-h7-4-boe-legislacion-sin/plan.md
+index e0e63b3..52e56b2 100644
+--- a/specs/014-h7-4-boe-legislacion-sin/plan.md
++++ b/specs/014-h7-4-boe-legislacion-sin/plan.md
+@@ -66,8 +66,8 @@ salvo la skill empotrada (`skills.go`).
+ ahora); peor caso del trabajo ≤ 122 min (7 285 s, D17); la tanda decide en segundos.
+ 
+ **Constraints**: ningún test de `make ci` usa la red ni abre una sesión con modelo; `SKILL.md` < 300 líneas (298 en v0.1.4:
+-las 294 del prototipo, el párrafo que cierra «Redacción modificada», que se quedó con T010, y la reparación del cierre,
+-contracts/skill-boe-legislacion.md C11; el tope efectivo es 298, porque el mutante `dos-inicios` de
++las 294 del prototipo, el párrafo que cierra «Redacción modificada», que se quedó con T010, y las dos reparaciones del
++cierre, contracts/skill-boe-legislacion.md C11 y C12; el tope efectivo es 298, porque el mutante `dos-inicios` de
+ `TestSkillsDelRepositorio` añade una línea) y `description`
+ ≤ 1024 caracteres (924); ninguna fecha `AAAAMMDD` con cifras en `SKILL.md`; ningún
+ `//nolint`.
+@@ -310,7 +310,12 @@ contracts/tanda-del-job.md §5 y contracts/sondeo.md §3. Resumen:
+   razón** (contracts/skill-boe-legislacion.md C11; research D22). La medición sobre `4cb52cb` dio 15 de 54 con C1-C10,
+   14 por contar el resultado negativo de `kitlegal graph check` con las palabras de las formas fijas: la clase A no es
+   solo vocabulario, y a la prosa le faltaba el caso sin entrada, con su razón, como C9 se lo dio a la clase B.
+-- Las demás, con su alternativa rechazada, en research D1-D22.
++- **Segunda reparación del cierre: el fin de una redacción no lo trae ningún sobre, dicho con la razón**
++  (contracts/skill-boe-legislacion.md C12; research D23). La medición sobre `ad68a70` dio 1 de 54 en
++  `redaccion_no_leida` con C1-C11: la 18-01 presenta la última redacción de una norma derogada como «vigente hasta la
++  derogación», porque la prosa enseñaba «desde cuándo está vigente» sin decir que ningún sobre trae hasta cuándo. La
++  forma `vigente hasta` no sale de la lista (FR-047; es la que marca la 19-02 del calibrado).
++- Las demás, con su alternativa rechazada, en research D1-D23.
+ 
+ ## Trazabilidad: cada mecanismo y su requisito
+ 
+@@ -345,12 +350,13 @@ falla, error con código 1—, sin caso propio.
+ 
+ ## Cambios de `SKILL.md` trazados a la causa de raíz (FR-002, FR-020)
+ 
+-C1-C11 de contracts/skill-boe-legislacion.md §1, cada uno con el texto de v0.1.3, el de v0.1.4, la causa medida (research,
++C1-C12 de contracts/skill-boe-legislacion.md §1, cada uno con el texto de v0.1.3, el de v0.1.4, la causa medida (research,
+ «Causa de raíz») y su requisito. En resumen: la activación (C1: la skill como comprobación opcional; la 04 pide un dato);
+ «la comprobación» y «desde una lectura anterior» (C2, C3, C5, C8, C10); «si lo leído basta» (C6); «si la redacción
+-cambió» (C7); la clase B sin razón ni respuesta (C9); y, de la medición del cierre, el resultado negativo de
++cambió» (C7); la clase B sin razón ni respuesta (C9); de la medición del cierre, el resultado negativo de
+ `kitlegal graph check` contado como un dato de la vigencia, sin que la prosa dijera el caso sin entrada ni su razón
+-(C11; research V28, D22).
++(C11; research V28, D22); y, de la segunda, el fin de una redacción dado como «vigente hasta la derogación» en una norma
++derogada, sin que la prosa dijera que ningún sobre lo trae (C12; research V30, D23).
+ 
+ ## Datos externos
+ 
+diff --git a/specs/014-h7-4-boe-legislacion-sin/research.md b/specs/014-h7-4-boe-legislacion-sin/research.md
+index e35cd24..11dce32 100644
+--- a/specs/014-h7-4-boe-legislacion-sin/research.md
++++ b/specs/014-h7-4-boe-legislacion-sin/research.md
+@@ -42,6 +42,7 @@ aplica a un `SKILL.md` la extracción de párrafos de la subprueba `prosa-de-la-
+ | V26 | GNU Make (3.81 en esta máquina) sale con 2 si hay algún error, también el de una receta (`man make`, «EXIT STATUS»): `make evals-sondeo` da 2 cuando el guion sale con 1. `env -u <nombre>` quita una variable del entorno en el `env` de macOS (`man env`) | `man make`, `man env` |
+ | V28 | La medición del cierre sobre `4cb52cb` (C1-C10; `gates/evals/boe-legislacion.json`, ejecución 36769593099): `fallo`; `expresiones_prohibidas:claude-sonnet-5-5` **15 de 54** (27,8 %), `sin_activar` 0 de 54, `redaccion_no_leida` 0 de 54, 450 s, Haiku 4.5 0 de 30, `red` vacío, ninguna sin medir; las series 04 y 07 pasan 1 de 3, las dos por expresiones. Las 15: 01-01, 04-01, 04-02, 06-02, 07-01, 07-03, 08-01, 10-03, 14-01, 14-03, 16-02, 16-03, 17-02, 18-03 y 20-01. Catorce cuentan el resultado negativo de `kitlegal graph check`, trece en el párrafo de vigencia con que cierran («**Vigencia:** el bloque no trae avisos de vigencia. … No se ha detectado ninguna redacción modificada respecto de consultas anteriores.», 01-01; «El artículo no lleva avisos de vigencia ni se ha detectado cambio de redacción.», 04-01; «no consta que su redacción haya cambiado desde una consulta anterior», 08-01 y 16-02; «la comprobación de cambios de redacción no encontró ninguno», 07-03, 10-03 y 14-03; «ni cambios de redacción respecto a consultas anteriores», 14-01; 18-03 lo dice en su propio párrafo). La 20-01 repite las dos líneas `⚠ REDACCIÓN MODIFICADA:` con sus palabras («Ambos bloques tienen hoy una redacción distinta de la que se consultó antes.»). Las formas marcadas —`consulta(s) anterior(es)` en 7, `cambio(s) de redacción` en 8, `la comprobación de …` en 4, `haya cambiado desde` en 1, `se consultó antes` en 1— son las palabras de las dos formas fijas y de la etiqueta: «lectura anterior», que la prosa de v0.1.3 enseñaba, no aparece en ninguna. Las 39 respuestas limpias del modelo que decide cierran con el mismo párrafo de vigencia sin nombrar `kitlegal graph check` («El bloque no trae avisos de vigencia. Su redacción vigente es de …, dada por …», 03-01, 06-01, 09-01…) | `jq` sobre el informe del cierre |
+ | V29 | Sondeo local con C11 (`make evals-sondeo SKILL=boe-legislacion EVALS=01,04,06,07,08,10,14,16,17,18,20 MODELO=claude-sonnet-5-5 REPETICIONES=3`, las once evals con alguna respuesta marcada en V28): las once series **3 de 3**, **0 de 33** respuestas con alguna expresión de la lista (V28: 15 de esas 33 posiciones), ninguna sin medir ni sin terminar, código 0. No es un veredicto (no lee la traza): el veredicto es el job de cierre sobre la cabeza con C11 | `scripts/evals-sondeo.sh` |
++| V30 | La medición del cierre sobre `ad68a70` (C1-C11; `gates/evals/boe-legislacion.json`, ejecución 36774880631): `fallo` solo por `redaccion_no_leida:claude-sonnet-5-5` **1 de 54** (1,9 %; umbral 0); `expresiones_prohibidas:claude-sonnet-5-5` 1 de 54 (la misma respuesta; cumple), `sin_activar` 0 de 54, 451 s, Haiku 4.5 1 de 30 (05-03, `código 5`, sin leer el bloque; informativo), `red` vacío, ninguna sin medir, todas las series que deciden 3 de 3, `legal-core` aprobado. La única es la 18-01 (norma derogada, informativa; la serie pasa 2 de 3), con la forma `vigente hasta`: «**Art. 42 de la Ley 30/1992, «Obligación de resolver»** [BOE-A-1992-26318, bloque a42]. Su redacción vigente hasta la derogación es la de la Ley 4/1999 (vigencia desde 14/04/1999).», con sus dos avisos y su cita bien. Las otras dos lo dicen sin la forma: «Fue modificado por la Ley 4/1999 (BOE-A-1999-847), con vigencia desde el 14/04/1999.» (18-02) y «El artículo quedó redactado por el art. 1.10 de la Ley 4/1999 (BOE-A-1999-847), con vigencia desde el 14/04/1999.» (18-03). El mismo razonamiento, sin forma, ya estaba en la 18-02 del informe de H7.1 («siendo esa la última redacción vigente (fecha de vigencia 1999-04-14) antes de la derogación»). En el calibrado, `vigente hasta` es la única forma de la clase B que marca la 19-02 de `196ee05` («…es distinta de la que se consultó antes (vigente hasta el 9 de marzo de 2018)…»); la 19-01 la marca `ya no exige` | `jq` sobre el informe del cierre y sobre los de H7.1 y H7.3 |
+ | V27 | Los textos sintéticos de los tests de hoy con alguna forma nueva de la lista: `internal/evals/juzgar_test.go:642` («La redacción ha cambiado desde la consulta anterior.») y `internal/evals/prohibidas_test.go:174` (la frase de la regla 7); `hallazgos_test.go:141` lleva la primera, pero `ExtraerHallazgos` no aplica la lista. Con `se consultó antes`: la línea de la redacción sin cita, entera, en `juzgar_test.go:111-112` y `:136-137`, `prohibidas_test.go:156-157` y `hallazgos_test.go:82-83` (la forma fija la quita: no cambian), y fuera de esa forma en dos casos de `TestCondicionesDeLaConsultaRepetida`, que aplica la lista del repositorio: `consulta_repetida_test.go:73-74` («…la redacción que se consultó antes ha sido sustituida.») y `:90-91` (la línea con fechas de nueve cifras, que la forma no casa) | `grep -i -F` de las 35 formas, escritas en UTF-8 y con escapes `\x`, sobre `internal/evals/*_test.go` |
+ 
+ Observaciones en la plataforma (lectura con `gh`, sin escribir nada), que respaldan supuestos sin ser comprobación local:
+@@ -503,3 +504,35 @@ el párrafo en que lo cuenta: FR-012 lo tiene por derecho, y 39 respuestas limpi
+ prohibición más sin la razón: FR-020 la descarta, y D3 muestra que la razón es lo que funciona. Lo mide el job de
+ cierre, sobre la cabeza que lleve C11 (SC-001); antes, el sondeo local con el modelo que decide sobre las once evals
+ de V28 da 0 de 33 y las once series 3 de 3 (V29).
++
++### D23 · Segunda reparación del cierre: el fin de una redacción no lo trae ningún sobre (FR-011, FR-020, FR-022)
++
++Lo decide `reparar_cierre` con la medición de V30: con C1-C11, la clase A queda en 0 de 54 y la B da 1 de 54, la 18-01,
++frente al umbral 0 de `redaccion_no_leida` (FR-042). **Causa.** La respuesta presenta la última redacción del art. 42
++de la Ley 30/1992, derogada, como «vigente hasta la derogación (vigencia desde 14/04/1999)». Es lo que la prosa
++enseñaba, conciliado con la regla 3: «Redacción modificada» decía que de una redacción se dice qué norma la dio y
++«desde cuándo está vigente», y la regla 3, que no se presente como vigente el texto de una norma derogada; con una norma
++derogada, «vigente» y «derogada» se juntan en «vigente hasta la derogación», que convierte la fecha de inicio de la
++redacción en un intervalo cuyo fin ningún sobre da. `kitlegal boe articulo` trae `fecha_vigencia` y
++`norma_modificadora`; `kitlegal boe metadatos`, `estatus_derogacion` sin fecha; y el aviso `derogada` dice que lo está,
++sin cuándo (V30). La prosa nunca decía que el sobre trae el principio de una redacción y no su fin, ni qué se dice de la
++redacción de una norma derogada. Es la clase B por la definición de la lista («hasta cuándo rigió») y por FR-011, que
++enumera lo que sí se puede decir: la norma modificadora y la fecha de vigencia, no el fin. La 18-02 del informe de H7.1
++ya razonaba igual sin caer en una forma («la última redacción vigente (fecha de vigencia 1999-04-14) antes de la
++derogación»): el hueco es de la skill, no de esta medición.
++
++**Decisión** (contracts/skill-boe-legislacion.md C12): la prosa lo dice con la razón, como C9 y C11, en los dos sitios
++que enseñan qué se dice de una redacción: el paso 5 (de la vigencia del bloque, sus avisos y, de la redacción leída,
++qué norma la dio y desde cuándo rige; hasta cuándo, nunca, tampoco en una norma derogada, cuyo aviso no lleva fecha,
++porque ningún sobre trae el fin de una redacción y darlo sería texto legal sin fuente) y «Redacción modificada» («desde
++cuándo rige; hasta cuándo, nunca»). Sin ninguna forma de la lista en la prosa (`prosa-de-la-skill`), sin tocar las
++formas fijas, la regla 3, la forma de los avisos ni la región generada, y en 298 líneas: las dos líneas que gana el
++paso 5 las dan dos líneas en blanco del paso 3 entre un bloque de código y la viñeta siguiente, como ya iba la de
++`articulos`. Alternativas rechazadas: (a) quitar `vigente hasta` de la lista o acotarla («vigente hasta el»): FR-047 y
++el ADR 0029 (la lista no pierde expresiones ni se recorta para cumplir un umbral), y el calibrado la exige, porque es
++la única forma de la clase B que marca la 19-02 de `196ee05` (FR-032; `expresiones-calibradas` fallaría); (b) decirlo
++en la regla 3 o en la forma de los avisos de «Cómo se cita»: FR-025 los deja como en v0.1.3, y el paso 5 es donde se
++compone la respuesta; (c) una prohibición más sin la razón: FR-020; (d) darlo por falso positivo y no cambiar nada:
++el umbral es 0 y decide (FR-042), y no es falso positivo: el fin de una redacción es un dato que ninguna orden
++devolvió, con fecha o sin ella. Lo mide el job de cierre sobre la cabeza que lleve C12 (SC-001); antes, el sondeo
++local con el modelo que decide sobre las evals 18, 19 y 20 (V31).

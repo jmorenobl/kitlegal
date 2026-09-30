@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
@@ -124,6 +125,8 @@ type resultadoCrudo struct {
 	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
 	HallazgosEncontrados         jsontext.Value    `json:"hallazgos_encontrados"`
 	HallazgosAusentes            jsontext.Value    `json:"hallazgos_ausentes"`
+	RedaccionesEncontradas       jsontext.Value    `json:"redacciones_modificadas_encontradas"`
+	RedaccionesAusentes          jsontext.Value    `json:"redacciones_modificadas_ausentes"`
 	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
 	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
 	ExpresionesProhibidas        jsontext.Value    `json:"expresiones_prohibidas"`
@@ -139,17 +142,28 @@ const columnaDeExpresiones = "Expresiones prohibidas"
 // encabezadosDeLaTablaDeSesiones son los de la tabla de las sesiones de
 // informe.md, con los comandos prohibidos ejecutados junto a los comandos
 // ausentes (contrato evals-y-skill §2 de H7), los avisos junto a las citas, los
-// hallazgos junto a los avisos (contrato evals-y-skill §6 de H7.1), el
-// territorio detrás (contrato de evals §2 de H6), entre el territorio ausente y
-// el resultado, las expresiones prohibidas (contrato lista-y-juicio §5 de H7.2) y,
-// detrás de ellas, los reintentos por límite de ritmo y si la sesión quedó sin
-// medir (contrato informe-del-job §4 de H7.3).
+// hallazgos junto a los avisos (contrato evals-y-skill §6 de H7.1), las
+// redacciones modificadas detrás de los hallazgos (contracts/informe-del-job.md
+// §4 de H7.4), el territorio detrás (contrato de evals §2 de H6), entre el
+// territorio ausente y el resultado, las expresiones prohibidas (contrato
+// lista-y-juicio §5 de H7.2) y, detrás de ellas, los reintentos por límite de
+// ritmo y si la sesión quedó sin medir (contrato informe-del-job §4 de H7.3).
 var encabezadosDeLaTablaDeSesiones = []string{
 	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 	"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
-	"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente",
-	columnaDeExpresiones, columnaDeReintentos, columnaSinMedir, "Resultado",
+	"Hallazgos encontrados", "Hallazgos ausentes", columnaDeRedaccionesEncontradas, columnaDeRedaccionesAusentes,
+	"Territorio encontrado", "Territorio ausente", columnaDeExpresiones, columnaDeReintentos, columnaSinMedir,
+	"Resultado",
 }
+
+// columnaDeRedaccionesEncontradas es la columna de la tabla de las sesiones de
+// informe.md con las redacciones modificadas esperadas que la respuesta lleva, y
+// columnaDeRedaccionesAusentes, la de las que no lleva
+// (contracts/informe-del-job.md §4 de H7.4).
+const (
+	columnaDeRedaccionesEncontradas = "Redacciones modificadas encontradas"
+	columnaDeRedaccionesAusentes    = "Redacciones modificadas ausentes"
+)
 
 // columnaDeReintentos es la columna de la tabla de las sesiones de informe.md con
 // los reintentos por límite de ritmo de cada sesión, y columnaSinMedir, la que
@@ -519,10 +533,10 @@ func TestInformeConAvisos(t *testing.T) {
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno",
-					"ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
+					"ninguna", "ninguna", "ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-					"ninguna", "0", "no", "pasa"))
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+					"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
 				"la sección de la sesión publica la respuesta con la forma fija")
@@ -638,11 +652,11 @@ func TestInformeConProhibidos(t *testing.T) {
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "0", "no", "no pasa"),
+			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+			"ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "0", "no", "pasa"))
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
 		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones"))
@@ -681,6 +695,15 @@ const (
 	// formaDeVersionObsoleta es la forma fija que el informe declara que exige esa
 	// eval: la marca, un espacio, la etiqueta del binario y los dos puntos.
 	formaDeVersionObsoleta = "⚠ REDACCIÓN MODIFICADA:"
+
+	// redaccionesModificadasDeLaEval20 es lo que se añade al final de una eval
+	// para que espere las dos redacciones modificadas de la eval 20
+	// (contracts/evals-y-juicio.md §3 de H7.4).
+	redaccionesModificadasDeLaEval20 = "redacciones_modificadas:\n" +
+		"  - norma: BOE-A-2017-12902\n    bloque: a1-30\n" +
+		"    fecha_vigencia: \"20180309\"\n    fecha_vigencia_reciente: \"20200206\"\n" +
+		"  - norma: BOE-A-2017-12902\n    bloque: da-3\n" +
+		"    fecha_vigencia: \"20180309\"\n    fecha_vigencia_reciente: \"20230101\"\n"
 )
 
 // TestInformeConHallazgos fija lo que EscribirInforme publica de los hallazgos
@@ -800,11 +823,11 @@ func TestInformeConHallazgos(t *testing.T) {
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", caso.encontrados, caso.ausentes, "ninguno",
-					"ninguno", "ninguna", "0", "no", caso.resultado),
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", caso.encontrados, caso.ausentes, "ninguna",
+					"ninguna", "ninguno", "ninguno", "ninguna", "0", "no", caso.resultado),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-					"ninguna", "0", "no", "pasa"))
+					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+					"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
 				caso.prefijo+respuestaConCita, "la sección de la sesión publica la respuesta")
@@ -841,9 +864,11 @@ const (
 
 	// listaSinOtraConversacion es una lista de expresiones prohibidas mal formada:
 	// le falta la familia otra_conversacion, que el esquema exige; las otras dos
-	// están bien formadas.
+	// familias de H7.3 y las dos claves de H7.4 están bien formadas.
 	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n" +
-		"anuncio:\n  - ya puedo responder\n"
+		"anuncio:\n  - ya puedo responder\n" +
+		"redaccion_no_leida:\n  - ya no exige\n" +
+		"formas_fijas:\n  - No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado\n"
 )
 
 // expresionesDeLaSesion son las expresiones prohibidas que el informe publica de
@@ -1129,12 +1154,26 @@ var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", 
 // umbral, en su orden: el nombre, la medida —«<medida> de <total> (<p> %)» con un
 // decimal y coma, o la medida sola—, la condición, si se cumple y si hace fallar
 // el veredicto, con «no: solo se publica» en los que no deciden. La del contrato,
-// fila a fila, con 2 de 51, 0 de 30 y 544 s; la de los tres sin cumplir; y, sin
-// ninguno, el párrafo «ninguno». La cabecera lleva la duración de las sesiones.
+// fila a fila, con las cinco filas de contracts/informe-del-job.md §2 de H7.4 —2
+// de 54, 0 de 54 sin activar, 0 de 54 con redaccion_no_leida, 0 de 30 y 544 s—;
+// la de los cinco sin cumplir; y, sin ninguno, el párrafo «ninguno». La cabecera
+// lleva la duración de las sesiones.
+//
+// Desde H7.4, fija además las formas exigidas y la columna de cada lado de las
+// redacciones modificadas de contracts/informe-del-job.md §4 de H7.4: con evals
+// que esperan version-obsoleta y las dos redacciones modificadas de la eval 20,
+// la columna «Formas exigidas» de cada serie de «Tasas por eval» lleva, detrás
+// de la forma del hallazgo, «⚠ REDACCIÓN MODIFICADA: <texto>» por cada
+// redacción, en su orden; y la tabla de las sesiones, detrás de «Hallazgos
+// ausentes», «Redacciones modificadas encontradas» y «Redacciones modificadas
+// ausentes», con la del art. 118, que cada respuesta traslada con su línea, en
+// la primera, y la de la disposición adicional tercera, que no traslada ninguna,
+// en la segunda. Las líneas con su cita no cuentan como expresión prohibida. Sin
+// redacciones esperadas, las tres celdas dicen «ninguna».
 func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 	t.Parallel()
 
-	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 7, conHaiku: true}
+	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 8, conHaiku: true}
 
 	casos := []struct {
 		nombre    string
@@ -1142,25 +1181,35 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 
 		// filas son las de la tabla, sin los encabezados; nil, sin tabla.
 		filas [][]string
+
+		// formas es la celda «Formas exigidas» de cada serie de «Tasas por eval»;
+		// encontradas y ausentes, las celdas de las redacciones modificadas de cada
+		// sesión de «Sesiones». Vacías, «ninguna».
+		formas, encontradas, ausentes string
 	}{
 		{
 			nombre: "las-filas-del-contrato",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 2}, 544, 900
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 2}, 544, 900
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5`", "2 de 51 (3,9 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "2 de 54 (3,7 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
 				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
 				{"`duracion_de_las_sesiones`", "544", "≤ 900", "sí", "sí"},
 			},
 		},
 		{
-			nombre: "los-tres-sin-cumplir",
+			nombre: "los-cinco-sin-cumplir",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 3, modeloHaiku45: 2}, 901, 900
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 3, modeloHaiku45: 2}, 901, 900
+				e.sinActivar, e.conRedaccionNoLeida = 1, 1
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5`", "3 de 51 (5,9 %)", "≤ 5,0 %", "no", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "3 de 54 (5,6 %)", "≤ 5,0 %", "no", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
 				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no", "no: solo se publica"},
 				{"`duracion_de_las_sesiones`", "901", "≤ 900", "no", "sí"},
 			},
@@ -1168,6 +1217,24 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 		{
 			nombre:    "sin-umbrales",
 			ejecucion: ejecucionConUmbrales{queDeciden: 1, sinLista: true, duracion: 544},
+		},
+		{
+			nombre: "con-redacciones-modificadas",
+			ejecucion: ejecucionConUmbrales{
+				queDeciden: 1, informativas: 1, conHaiku: true, duracion: 544,
+				anadidoALaEval:         hallazgosDeLaEval01 + redaccionesModificadasDeLaEval20,
+				prefijoDeLasRespuestas: lineaConLaCitaDel118() + "\n\n",
+			},
+			filas: [][]string{
+				{"`expresiones_prohibidas:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 3 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
+			},
+			formas: formaDeVersionObsoleta + ", " + formaDeVersionObsoleta + " " + redaccionDelArticulo118 + ", " +
+				formaDeVersionObsoleta + " " + redaccionDeLaDA3,
+			encontradas: redaccionDelArticulo118,
+			ausentes:    redaccionDeLaDA3,
 		},
 	}
 
@@ -1179,6 +1246,13 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
 				"Duración de las sesiones: "+strconv.Itoa(caso.ejecucion.duracion)+" s")
+
+			exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Tasas por eval"), encabezadosDeLaTablaDeTasas,
+				"Formas exigidas", cmp.Or(caso.formas, "ninguna"))
+			exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Sesiones"), encabezadosDeLaTablaDeSesiones,
+				columnaDeRedaccionesEncontradas, cmp.Or(caso.encontradas, "ninguna"))
+			exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Sesiones"), encabezadosDeLaTablaDeSesiones,
+				columnaDeRedaccionesAusentes, cmp.Or(caso.ausentes, "ninguna"))
 
 			if caso.filas == nil {
 				exigirSinUmbrales(t, leido)
@@ -1847,9 +1921,9 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	assert.Contains(t, seccion, respuestaConCita)
 
 	// Ninguna de las dos evals del caso prohíbe comandos ni espera avisos,
-	// hallazgos ni territorio: cada sesión los escribe como listas vacías, no como
-	// null (FR-040 de H5.1; contrato de evals §2 de H6; contrato evals-y-skill §2
-	// de H7 y §6 de H7.1).
+	// hallazgos, redacciones modificadas ni territorio: cada sesión los escribe
+	// como listas vacías, no como null (FR-040 de H5.1; contrato de evals §2 de H6;
+	// contrato evals-y-skill §2 de H7 y §6 de H7.1; data-model §4 de H7.4).
 	require.Len(t, leido.crudo.Evals, 2, "informe.json tiene las dos sesiones del caso")
 
 	for _, resultado := range leido.crudo.Evals {
@@ -1863,6 +1937,10 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 			"hallazgos_encontrados de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.HallazgosAusentes),
 			"hallazgos_ausentes de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.RedaccionesEncontradas),
+			"redacciones_modificadas_encontradas de %s es una lista vacía, no null", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.RedaccionesAusentes),
+			"redacciones_modificadas_ausentes de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.TerritorioEncontrado),
 			"territorio_encontrado de %s es una lista vacía, no null", resultado.Sesion)
 		assert.Equal(t, "[]", string(resultado.TerritorioAusente),
@@ -1887,17 +1965,19 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 
 	// Los comandos prohibidos ejecutados van en la tabla de las sesiones detrás
 	// de los comandos ausentes, los hallazgos encontrados y los ausentes, detrás de
-	// los avisos, el territorio encontrado y el ausente, detrás de los hallazgos, y
-	// las expresiones prohibidas, detrás del territorio, vacíos en las dos.
+	// los avisos, las redacciones modificadas encontradas y las ausentes, detrás de
+	// los hallazgos, el territorio encontrado y el ausente, detrás de las
+	// redacciones, y las expresiones prohibidas, detrás del territorio, vacíos en
+	// las dos.
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "0", "no", "pasa"),
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
-			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "0", "no", "pasa"))
+			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
+			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
 	// Ninguna sesión reintenta ni queda sin medir: cada una escribe sus
 	// reintentos por rate_limit, 0, y sin_medir vacío; cada serie, sin_medir 0;
@@ -2631,6 +2711,26 @@ func celdaDeLaSesion(t *testing.T, md, sesion, columna string) string {
 		sesion, fila)
 
 	return celdas[posicion]
+}
+
+// exigirCadaCelda exige que la tabla de informe.md, con los encabezados dados,
+// tenga alguna fila y que en cada una la celda de la columna dada sea la
+// esperada.
+func exigirCadaCelda(t *testing.T, tabla string, encabezados []string, columna, esperada string) {
+	t.Helper()
+
+	posicion := slices.Index(encabezados, columna)
+	require.GreaterOrEqual(t, posicion, 0, "la tabla tiene la columna %s", columna)
+
+	lineas := strings.Split(tabla, "\n")
+	require.Greater(t, len(lineas), 2, "la tabla tiene alguna fila:\n%s", tabla)
+	require.Equal(t, filaDeTabla(encabezados...), lineas[0], "la tabla empieza por sus encabezados")
+
+	for _, fila := range lineas[2:] {
+		celdas := strings.Split(strings.TrimSuffix(strings.TrimPrefix(fila, "| "), " |"), " | ")
+		require.Len(t, celdas, len(encabezados), "la fila tiene una celda por columna: %s", fila)
+		assert.Equal(t, esperada, celdas[posicion], "la celda %s de la fila %s", columna, fila)
+	}
 }
 
 // exigirLineas exige que el texto tenga cada una de las líneas, enteras.

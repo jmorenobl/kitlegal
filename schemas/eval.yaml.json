@@ -8,6 +8,10 @@
   "properties": {
     "pregunta": { "type": "string", "minLength": 1 },
     "activa": { "type": "boolean" },
+    "no_se_activan": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    },
     "reproduce": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
     "informativa": { "type": "boolean" },
     "comandos": {
@@ -50,6 +54,10 @@
       "type": "array", "minItems": 1,
       "items": { "$ref": "#/$defs/clase-de-hallazgo" }
     },
+    "redacciones_modificadas": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/redaccion-modificada" }
+    },
     "territorio": {
       "type": "object",
       "additionalProperties": false,
@@ -72,7 +80,7 @@
       "anyOf": [
         { "required": ["comandos"] }, { "required": ["prohibidos"] }, { "required": ["grafo_previo"] },
         { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["hallazgos"] },
-        { "required": ["territorio"] }
+        { "required": ["redacciones_modificadas"] }, { "required": ["territorio"] }
       ]
     }
   },
@@ -159,6 +167,18 @@
         "norma": { "$ref": "#/$defs/norma" },
         "bloque": { "$ref": "#/$defs/bloque" }
       }
-    }
+    },
+    "redaccion-modificada": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["norma", "bloque", "fecha_vigencia", "fecha_vigencia_reciente"],
+      "properties": {
+        "norma": { "$ref": "#/$defs/norma" },
+        "bloque": { "$ref": "#/$defs/bloque" },
+        "fecha_vigencia": { "$ref": "#/$defs/fecha" },
+        "fecha_vigencia_reciente": { "$ref": "#/$defs/fecha" }
+      }
+    },
+    "fecha": { "type": "string", "pattern": "^[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$" }
   }
 }

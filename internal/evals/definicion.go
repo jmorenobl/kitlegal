@@ -44,8 +44,9 @@ const (
 )
 
 // DefinicionDelJob es lo que se lee de la definición del job de evals, trabajo
-// evals, para comprobarla y para dar al sondeo la concurrencia de cada skill
-// (data-model §6 de H7.3; research.md D15 de H7.3).
+// evals y trabajo tanda, para comprobarla y para dar al sondeo la concurrencia
+// de cada skill (data-model §6 de H7.3; research.md D15 de H7.3;
+// contracts/tanda-del-job.md §4 de H7.4).
 type DefinicionDelJob struct {
 	// Nombre es el name del trabajo, o vacío si no lo tiene.
 	Nombre string
@@ -77,6 +78,52 @@ type DefinicionDelJob struct {
 	ModeloQueDecide     string
 	ModelosInformativos []string
 	Repeticiones        int
+
+	// Dependencias es su needs, o nil si no lo tiene.
+	Dependencias []string
+
+	// Condicion es su if, o vacío si no lo tiene.
+	Condicion string
+
+	// Tanda es el trabajo tanda del flujo, el que decide si la ejecución mide
+	// el commit, o nil si el flujo no lo tiene (contracts/tanda-del-job.md §1 y
+	// §4 de H7.4).
+	Tanda *TrabajoDeLaTanda
+}
+
+// TrabajoDeLaTanda es lo que se lee del trabajo tanda de la definición del job
+// para comprobarlo (contracts/tanda-del-job.md §4 de H7.4).
+type TrabajoDeLaTanda struct {
+	// Nombre es su name, o vacío si no lo tiene: gh da el trabajo por su name
+	// y, sin él, por su id.
+	Nombre string
+
+	// Condicion es su if, o vacío si no lo tiene.
+	Condicion string
+
+	// Permisos son los de su permissions, por ámbito.
+	Permisos map[string]string
+
+	// ConConcurrencia dice si tiene concurrency.
+	ConConcurrencia bool
+
+	// Salidas son las de su outputs, con su expresión.
+	Salidas map[string]string
+
+	// TopeEnMinutos es su timeout-minutes, o 0 si no lo tiene.
+	TopeEnMinutos int
+
+	// Pasos son los suyos, en su orden.
+	Pasos []PasoDelTrabajo
+}
+
+// PasoDelTrabajo es lo que se lee de un paso de un trabajo: su id, su name, su
+// if y su run, cada uno vacío si no lo tiene.
+type PasoDelTrabajo struct {
+	ID        string `yaml:"id"`
+	Nombre    string `yaml:"name"`
+	Condicion string `yaml:"if"`
+	Orden     string `yaml:"run"`
 }
 
 // AjustesDeSkill son lo que la entrada de include de una skill añade a su
@@ -98,13 +145,33 @@ type flujoDelJob struct {
 	Concurrencia any `yaml:"concurrency"`
 
 	Trabajos struct {
-		Evals trabajoDeEvals `yaml:"evals"`
+		// Tanda es el trabajo de id trabajoDeLaTanda: la etiqueta no admite la
+		// constante.
+		Tanda *clavesDeLaTanda `yaml:"tanda"`
+		Evals trabajoDeEvals   `yaml:"evals"`
 	} `yaml:"jobs"`
+}
+
+// clavesDeLaTanda son las claves del trabajo tanda que lee
+// leerDefinicionDelJob.
+type clavesDeLaTanda struct {
+	Nombre    string            `yaml:"name"`
+	Condicion string            `yaml:"if"`
+	Permisos  map[string]string `yaml:"permissions"`
+
+	// Concurrencia es su concurrency: un texto o un mapa si está, nil si no.
+	Concurrencia any `yaml:"concurrency"`
+
+	Salidas       map[string]string `yaml:"outputs"`
+	TopeEnMinutos int               `yaml:"timeout-minutes"`
+	Pasos         []PasoDelTrabajo  `yaml:"steps"`
 }
 
 // trabajoDeEvals son las claves del trabajo evals que lee leerDefinicionDelJob.
 type trabajoDeEvals struct {
-	Nombre string `yaml:"name"`
+	Nombre       string   `yaml:"name"`
+	Dependencias []string `yaml:"needs"`
+	Condicion    string   `yaml:"if"`
 
 	Concurrencia struct {
 		Grupo            string `yaml:"group"`
@@ -154,6 +221,20 @@ func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 		PorSkill:            map[string]AjustesDeSkill{},
 		ModeloQueDecide:     trabajo.Env[variableDelModeloQueDecide],
 		ModelosInformativos: separarLosModelos(trabajo.Env[variableDeLosModelosInformativos]),
+		Dependencias:        trabajo.Dependencias,
+		Condicion:           trabajo.Condicion,
+	}
+
+	if tanda := flujo.Trabajos.Tanda; tanda != nil {
+		leida.Tanda = &TrabajoDeLaTanda{
+			Nombre:          tanda.Nombre,
+			Condicion:       tanda.Condicion,
+			Permisos:        tanda.Permisos,
+			ConConcurrencia: tanda.Concurrencia != nil,
+			Salidas:         tanda.Salidas,
+			TopeEnMinutos:   tanda.TopeEnMinutos,
+			Pasos:           tanda.Pasos,
+		}
 	}
 
 	for _, entrada := range trabajo.Estrategia.Matriz.Include {

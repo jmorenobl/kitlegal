@@ -112,6 +112,67 @@ const (
 		"la que se consult\xc3\xb3 antes, ha sido sustituida por la de 20250101, que es la que se cita."
 )
 
+// Lo que juzgan la eval de los dos bloques, sintética con las dos redacciones
+// modificadas de la eval 20 de boe-legislacion, y sus sesiones de TestJuzgar,
+// construidas en memoria (contracts/evals-y-juicio.md §2 y §3 de H7.4).
+const (
+	ficheroDeLosDosBloques = "20-lcsp-dos-bloques-redaccion-cambiada.yaml"
+
+	// bloqueDeLaDA3 es el otro bloque que lee y cita esa eval, la disposición
+	// adicional tercera de la LCSP; textoDelComandoDA3 y textoDeLaCitaDA3, su
+	// comando esperado y su cita esperada, con el texto con el que los presenta el
+	// informe.
+	bloqueDeLaDA3      = "da-3"
+	textoDelComandoDA3 = "bloque boe BOE-A-2017-12902 da-3"
+	textoDeLaCitaDA3   = "BOE-A-2017-12902 da-3"
+
+	// ordenDeLosDosBloques es la orden de la skill que lee los dos bloques de una
+	// vez, y ordenDeLaComprobacionDeLosDosBloques, la que comprueba la memoria de
+	// la norma con los dos.
+	ordenDeLosDosBloques                 = "boe articulos BOE-A-2017-12902 a1-30 da-3 --json"
+	ordenDeLaComprobacionDeLosDosBloques = "graph check BOE-A-2017-12902 a1-30 da-3 --json"
+
+	// fechaDeLaRedaccionOriginal es la fecha de vigencia de la redacción original
+	// de los dos bloques, la superada; fechaDelArticulo118Vigente y
+	// fechaDeLaDA3Vigente, las de la redacción vigente de cada uno, la leída.
+	fechaDeLaRedaccionOriginal = "20180309"
+	fechaDelArticulo118Vigente = "20200206"
+	fechaDeLaDA3Vigente        = "20230101"
+
+	// redaccionDelArticulo118 y redaccionDeLaDA3 son las dos redacciones
+	// modificadas que espera la eval, con el texto con el que las presentan el
+	// informe y los motivos: la norma, el bloque y las dos fechas.
+	redaccionDelArticulo118 = "BOE-A-2017-12902 a1-30 20180309 20200206"
+	redaccionDeLaDA3        = "BOE-A-2017-12902 da-3 20180309 20230101"
+
+	// citaDelArticulo118 y citaDeLaDA3 son las citas de los dos bloques con la
+	// forma de «Cómo se cita», la que va detrás de la etiqueta de la línea
+	// (research D4 de H7.4).
+	citaDelArticulo118 = "art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]"
+	citaDeLaDA3        = "disposici\xc3\xb3n adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]"
+
+	// cuerpoConLasDosCitas es el cuerpo de la respuesta, con la cita de los dos
+	// bloques fuera de toda línea ⚠ REDACCIÓN MODIFICADA:.
+	cuerpoConLasDosCitas = "El art\xc3\xadculo 118 de la LCSP regula el expediente del contrato menor " +
+		"[BOE-A-2017-12902, bloque a1-30], y su disposici\xc3\xb3n adicional tercera, las normas espec\xc3\xadficas " +
+		"de contrataci\xc3\xb3n en las entidades locales [BOE-A-2017-12902, bloque da-3]."
+
+	// principioDeRedaccionAusente es el principio del motivo de una redacción
+	// modificada ausente, al que sigue su texto, escrito a mano.
+	principioDeRedaccionAusente = "redacci\xc3\xb3n modificada ausente: "
+)
+
+// Lo que juzgan la eval de legal-core que declara que boe-legislacion no se
+// activa y sus sesiones de TestJuzgar (contracts/evals-y-juicio.md §2 y §5 de
+// H7.4; FR-003, FR-004, FR-094).
+const (
+	// skillQueNoSeActiva es la skill que declaran las evals de legal-core en
+	// no_se_activan, y motivoDeBoeLegislacionActivada, el motivo de la sesión
+	// que la activa, escrito a mano.
+	skillQueNoSeActiva             = "boe-legislacion"
+	motivoDeBoeLegislacionActivada = "se activ\xc3\xb3 la skill boe-legislacion, que la eval dice que no se activa"
+)
+
 // Lo que juzga TestJuzgarLasExpresionesProhibidas con la lista de
 // boe-legislacion (contrato lista-y-juicio §3 y §4 de H7.2;
 // contracts/lista-de-expresiones.md §6 de H7.3).
@@ -208,10 +269,26 @@ type juicio struct {
 //
 // Desde H7.3, el resultado lleva los reintentos por rate_limit de la sesión, que
 // no cambian su juicio (data-model §4 de H7.3; FR-033, FR-041).
+//
+// Desde H7.4, con una eval sintética con las dos redacciones modificadas de la
+// eval 20, cada redacción esperada está solo si una línea con la forma fija de
+// version-obsoleta lleva, como primera cita, la de su bloque y, como primeras
+// fechas, las suyas en su orden: con una línea por bloque, leídos en una orden o
+// en dos, pasa; con una sola, con las dos sin cita, con la cita de un bloque y las
+// fechas del otro, con las fechas en otro orden o con las dos en una sola línea,
+// no pasa, y cada ausente va a las ausentes con su motivo, detrás del de los
+// hallazgos y delante del de las expresiones; una eval sin redacciones esperadas
+// se juzga como antes aunque la respuesta lleve las líneas. Y una sesión que
+// activa una skill de no_se_activan no pasa, con un motivo que la nombra detrás
+// del de la activación y delante del de los comandos, en una eval de legal-core
+// que activa la skill y en una de no activación; sin activarla, o si la eval no la
+// declara, se juzga como antes (contracts/evals-y-juicio.md §2 de H7.4; FR-003,
+// FR-004, FR-023, FR-052, FR-053, FR-094; SC-007).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
 	derogada := []string{"derogada"}
+	lasDosRedacciones := []string{redaccionDelArticulo118, redaccionDeLaDA3}
 
 	casos := []struct {
 		nombre  string
@@ -667,6 +744,81 @@ func TestJuzgar(t *testing.T) {
 			}},
 		},
 		{
+			nombre:  "redacciones-modificadas-una-por-bloque",
+			juicios: []juicio{conLasLineas(t, []string{lineaConLaCitaDel118(), lineaConLaCitaDeLaDA3()}, lasDosRedacciones, nil)},
+		},
+		{
+			// Leer los dos bloques en dos órdenes satisface los dos, como en una.
+			nombre:  "redacciones-modificadas-leidas-en-dos-ordenes",
+			juicios: []juicio{losDosBloquesEnDosOrdenes(t)},
+		},
+		{
+			nombre: "redaccion-modificada-una-sola",
+			juicios: []juicio{conLasLineas(t, []string{lineaConLaCitaDel118()},
+				[]string{redaccionDelArticulo118}, []string{redaccionDeLaDA3})},
+		},
+		{
+			nombre: "redacciones-modificadas-sin-cita",
+			juicios: []juicio{conLasLineas(t, []string{
+				lineaDeRedaccion("", fechaDeLaRedaccionOriginal, fechaDelArticulo118Vigente),
+				lineaDeRedaccion("", fechaDeLaRedaccionOriginal, fechaDeLaDA3Vigente),
+			}, nil, lasDosRedacciones)},
+		},
+		{
+			nombre: "redacciones-modificadas-con-la-cita-de-un-bloque-y-las-fechas-del-otro",
+			juicios: []juicio{conLasLineas(t, []string{
+				lineaDeRedaccion(citaDelArticulo118, fechaDeLaRedaccionOriginal, fechaDeLaDA3Vigente),
+				lineaDeRedaccion(citaDeLaDA3, fechaDeLaRedaccionOriginal, fechaDelArticulo118Vigente),
+			}, nil, lasDosRedacciones)},
+		},
+		{
+			nombre: "redacciones-modificadas-con-las-fechas-en-otro-orden",
+			juicios: []juicio{conLasLineas(t, []string{
+				lineaDeRedaccion(citaDelArticulo118, fechaDelArticulo118Vigente, fechaDeLaRedaccionOriginal),
+				lineaDeRedaccion(citaDeLaDA3, fechaDeLaDA3Vigente, fechaDeLaRedaccionOriginal),
+			}, nil, lasDosRedacciones)},
+		},
+		{
+			nombre: "redacciones-modificadas-en-una-sola-linea",
+			juicios: []juicio{conLasLineas(t, []string{lineaConLaCitaDel118() + " " + lineaConLaCitaDeLaDA3()},
+				[]string{redaccionDelArticulo118}, []string{redaccionDeLaDA3})},
+		},
+		{
+			nombre:  "redacciones-modificadas-ausentes-detras-del-hallazgo",
+			juicios: []juicio{redaccionesDetrasDelHallazgo(t)},
+		},
+		{
+			// La eval 19 no espera redacciones modificadas: las dos líneas, con su
+			// cita y sus fechas, no cambian su juicio.
+			nombre: "sin-redacciones-modificadas-el-juicio-de-antes",
+			juicios: []juicio{conHallazgo(t,
+				lineaConLaCitaDel118()+"\n\n"+lineaConLaCitaDeLaDA3()+"\n\n"+respuestaConLaCita118, func(r *ResultadoDeEval) {
+					r.HallazgosEncontrados = []string{versionObsoleta}
+				})},
+		},
+		{
+			// La sesión de la eval de legal-core activa también boe-legislacion: no
+			// pasa, con el motivo que la nombra; sin activarla, pasa.
+			nombre:  "no-se-activan",
+			juicios: seActivaLaQueNoSeActiva(t),
+		},
+		{
+			nombre:  "no-se-activan-detras-del-motivo-de-legal-core",
+			juicios: []juicio{laQueNoSeActivaDetrasDeLaActivacion(t)},
+		},
+		{
+			// La eval 01 no declara no_se_activan: otra skill activada no cambia su
+			// juicio.
+			nombre: "sin-no-se-activan-el-juicio-de-antes",
+			juicios: []juicio{{
+				eval: evalDelArticulo21(),
+				sesion: cambiada(sesionQuePasa(t), func(s *Sesion) {
+					s.SkillsActivadas = []string{skillDeTerritorio, skillDeLasSesiones}
+				}),
+				esperado: resultadoQuePasa(),
+			}},
+		},
+		{
 			// La eval 01 no espera hallazgos: la forma en la respuesta no cambia su
 			// juicio.
 			nombre: "sin-hallazgos-el-juicio-de-antes",
@@ -782,6 +934,59 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 			require.NoError(t, json.Unmarshal(codificado, &crudo))
 			assert.Equal(t, caso.encontrados, string(crudo.Encontrados))
 			assert.Equal(t, caso.ausentes, string(crudo.Ausentes))
+		})
+	}
+}
+
+// TestRedaccionesDelResultadoEnJSON fija que el resultado de una sesión escribe,
+// detrás de hallazgos_ausentes, redacciones_modificadas_encontradas y
+// redacciones_modificadas_ausentes como listas, nunca null, codificado como lo
+// codifica EscribirInforme (data-model §4 de H7.4; contracts/evals-y-juicio.md §2;
+// FR-053): vacías con una eval que no espera redacciones, y con el texto de cada
+// una en la que corresponde con la eval de los dos bloques y una sola línea.
+func TestRedaccionesDelResultadoEnJSON(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre      string
+		juicio      juicio
+		encontradas string
+		ausentes    string
+	}{
+		{
+			nombre:      "sin-redacciones",
+			juicio:      juicio{eval: evalDelArticulo21(), sesion: sesionQuePasa(t)},
+			encontradas: "[]",
+			ausentes:    "[]",
+		},
+		{
+			nombre: "una-encontrada-y-una-ausente",
+			juicio: conLasLineas(t, []string{lineaConLaCitaDel118()},
+				[]string{redaccionDelArticulo118}, []string{redaccionDeLaDA3}),
+			encontradas: `["` + redaccionDelArticulo118 + `"]`,
+			ausentes:    `["` + redaccionDeLaDA3 + `"]`,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+			require.NoError(t, err)
+
+			var crudo struct {
+				Encontradas jsontext.Value `json:"redacciones_modificadas_encontradas"`
+				Ausentes    jsontext.Value `json:"redacciones_modificadas_ausentes"`
+			}
+
+			require.NoError(t, json.Unmarshal(codificado, &crudo))
+			assert.Equal(t, caso.encontradas, string(crudo.Encontradas))
+			assert.Equal(t, caso.ausentes, string(crudo.Ausentes))
+
+			assert.Equal(t, "redacciones_modificadas_encontradas", claveDetras(t, string(codificado), "hallazgos_ausentes"))
+			assert.Equal(t, "redacciones_modificadas_ausentes",
+				claveDetras(t, string(codificado), "redacciones_modificadas_encontradas"))
 		})
 	}
 }
@@ -1010,6 +1215,161 @@ func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 
 		ahora.Respuesta = antes.Respuesta
 		assert.Equal(t, antes, ahora, "%s se juzga igual con expresiones de la lista en la respuesta", caso.eval.Fichero)
+	}
+}
+
+// Las clases de lo que la lista marca en una respuesta
+// (contracts/lista-de-expresiones.md §6 de H7.4): la A, alguna expresión y
+// ninguna de la redacción no leída; la B, alguna de la redacción no leída; y
+// ninguna, sin marcar.
+const (
+	claseA    = "A"
+	claseB    = "B"
+	sinMarcar = "sin marcar"
+)
+
+// El origen de las frases de TestJuzgarLasClasesDeLaRespuesta que no salen de
+// un informe con su commit: las de la ejecución de la línea de base, y las
+// escritas aquí.
+const (
+	origenDeBase    = "l\xc3\xadnea de base"
+	origenSinSesion = "-"
+)
+
+// TestJuzgarLasClasesDeLaRespuesta fija el juicio de las dos clases de la
+// respuesta con la lista de expresiones prohibidas del repositorio
+// (contracts/lista-de-expresiones.md §6 de H7.4; FR-010, FR-011, FR-012, FR-022,
+// FR-031, FR-034, FR-094; SC-007): con la eval 01 del repositorio, que activa la
+// skill, y la sesión que la pasa, cada frase de la tabla, entera y delante de la
+// respuesta con su cita, se marca en su clase y la eval no pasa: las de la
+// bitácora que cuentan la comprobación o anuncian lo que el agente tiene o va a
+// hacer, en la A; las que describen una redacción que ninguna orden devolvió, en
+// la B; y las palabras de las formas fijas fuera de ellas, en la A. Sin marcar, y
+// la eval pasa: la respuesta hecha de lo que enseña la skill, respuestaDeLaSkill,
+// la que dice que no hay avisos y las dos que dicen que la redacción anterior no se
+// ha leído.
+func TestJuzgarLasClasesDeLaRespuesta(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	lista := listaDelRepositorio(t, conjunto)
+	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
+	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
+	require.Equal(t, lista, positiva.Prohibidas, "%s lleva la lista de su carpeta", ficheroDeLaEval01)
+
+	// Cada frase va entera, como la escribió la sesión. Dos llevan una palabra que
+	// el diccionario inglés de misspell toma por una errata, y se escriben partidas
+	// en dos literales que Go junta: «pro» + «cede» y «ext» + «racto».
+	frases := []struct {
+		origen, sesion, clase, frase string
+	}{
+		{"196ee05", "01-02", claseA, "No hay avisos de vigencia sobre este bloque ni cambios de redacci\xc3\xb3n " +
+			"respecto a una consulta anterior."},
+		{"196ee05", "05-02", claseA, "No se encontraron avisos de vigencia sobre este bloque, y no consta que su " +
+			"redacci\xc3\xb3n haya cambiado desde una consulta anterior."},
+		{"196ee05", "13-02", claseA, "Este art\xc3\xadculo ha sido modificado en varias ocasiones (\xc3\xbaltima " +
+			"modificaci\xc3\xb3n por el Real Decreto Legislativo 7/2015, con vigencia desde el 31/10/2015); no " +
+			"presenta avisos de vigencia adicionales ni indicios de redacci\xc3\xb3n posterior a la consultada."},
+		{"196ee05", "13-03", claseA, "No se ha detectado ning\xc3\xban cambio de redacci\xc3\xb3n respecto a una " +
+			"lectura anterior de este bloque."},
+		{"196ee05", "14-01", claseA, "Article 59 already answers the question fully, so I don't need art. 60. " +
+			"I have enough to respond now."},
+		{"196ee05", "14-02", claseA, "Con el art\xc3\xadculo 59 tengo suficiente para responder a la pregunta " +
+			"completa; no necesito el art\xc3\xadculo 60 para esto."},
+		{"196ee05", "14-03", claseA, "El art\xc3\xadculo 59 responde directamente a la pregunta. La " +
+			"comprobaci\xc3\xb3n de redacci\xc3\xb3n termin\xc3\xb3 sin hallazgos, as\xc3\xad que no hay cambios que " +
+			"se\xc3\xb1alar."},
+		{"196ee05", "19-01", claseB, "El art\xc3\xadculo cambi\xc3\xb3 porque el Real Decreto-ley 3/2020, de 4 de " +
+			"febrero, modific\xc3\xb3 el art. 118 de la LCSP (entrada en vigor el 20180206... correcci\xc3\xb3n: el " +
+			"20200206). Esto elev\xc3\xb3 el umbral de los contratos menores de obras de 40.000 \xe2\x82\xac (ya " +
+			"estaba as\xc3\xad) pero, sobre todo, cambi\xc3\xb3 el apartado 2: ya no exige tres informes separados, " +
+			"sino que ahora basta con un \xc3\xbanico informe del \xc3\xb3rgano de contrataci\xc3\xb3n."},
+		{"196ee05", "19-02", claseB, "Esta redacci\xc3\xb3n pro" + "cede de la modificaci\xc3\xb3n del Real " +
+			"Decreto-ley 3/2020, de 4 de febrero (disposici\xc3\xb3n final 1.1) [BOE-A-2020-1651], vigente desde el 6 " +
+			"de febrero de 2020, y es distinta de la que se consult\xc3\xb3 antes (vigente hasta el 9 de marzo de " +
+			"2018): esa versi\xc3\xb3n anterior no distingu\xc3\xada umbrales entre obras y suministros/servicios " +
+			"del mismo modo ni inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 sobre anticipos de caja fija."},
+		{"6ab3add", "03-03", claseA, "Sin cambios de redacci\xc3\xb3n respecto a lecturas anteriores. " +
+			"Aqu\xc3\xad est\xc3\xa1 la respuesta."},
+		{"6ab3add", "13-03", claseA, "Sin cambios desde una lectura anterior. Respondo."},
+		{"6ab3add", "19-01", claseB, "Esta es la redacci\xc3\xb3n vigente hoy; la versi\xc3\xb3n anterior, " +
+			"aplicable hasta el 5 de febrero de 2020, no inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 ni la " +
+			"obligaci\xc3\xb3n de motivar que no se fracciona el objeto para eludir el umbral, entre otras " +
+			"diferencias de redacci\xc3\xb3n."},
+		{"eb6b4c8", "14-01", claseA, "Este art\xc3\xadculo ya da la respuesta completa. Sin avisos de vigencia ni " +
+			"cambios desde una lectura anterior."},
+		{"eb6b4c8", "19-01", claseB, "Este art\xc3\xadculo cambi\xc3\xb3 respecto a su redacci\xc3\xb3n original de " +
+			"2017: hasta el 5 de febrero de 2020, el apartado 2 exig\xc3\xada justificar solo la necesidad del " +
+			"contrato (sin el requisito de no fraccionamiento) y no exist\xc3\xada la excepci\xc3\xb3n del apartado " +
+			"5 para anticipos de caja fija; ambos elementos los introdujo el Real Decreto-ley 3/2020."},
+		{"eb6b4c8", "19-02", claseB, "Esta redacci\xc3\xb3n proviene de la modificaci\xc3\xb3n introducida por el " +
+			"Real Decreto-ley 3/2020, de 4 de febrero, vigente desde el 6 de febrero de 2020 \xe2\x80\x94 distinta " +
+			"de la versi\xc3\xb3n (vigente hasta el 9 de marzo de 2018) que pudiste haber consultado anteriormente. " +
+			"El cambio m\xc3\xa1s relevante respecto a versiones anteriores es que ya no exige un informe del " +
+			"\"\xc3\xb3rgano de contrataci\xc3\xb3n\" motivando la elecci\xc3\xb3n del contratista entre varios " +
+			"presupuestos (esa exigencia de comparar ofertas se elimin\xc3\xb3); ahora el foco est\xc3\xa1 en " +
+			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para evitar los umbrales."},
+		{"H7.1", "19-01", claseB, "Es decir, lo que se consult\xc3\xb3 antes era la versi\xc3\xb3n previa a su " +
+			"entrada en vigor, y lo que ahora se cita es la versi\xc3\xb3n ya en vigor \xe2\x80\x94 el contenido " +
+			"normativo del art\xc3\xadculo 21 no ha cambiado por una reforma posterior, simplemente la versi\xc3\xb3n " +
+			"indexada pas\xc3\xb3 a ser la vigente desde la entrada en vigor de la ley."},
+		{"H7.2", "19-01", claseB, "Si lo que ten\xc3\xadas en mente era la redacci\xc3\xb3n original de 2018 (por " +
+			"ejemplo, sin el requisito espec\xc3\xadfico de motivar la no alteraci\xc3\xb3n del objeto contra el " +
+			"fraccionamiento en los t\xc3\xa9rminos actuales, y con otro r\xc3\xa9gimen sobre la " +
+			"publicaci\xc3\xb3n/aprobaci\xc3\xb3n previa del gasto), esa versi\xc3\xb3n ya no est\xc3\xa1 vigente."},
+		{"H7.2", "19-02", claseB, "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n con fecha de " +
+			"vigencia 20180309, que es la que probablemente se consult\xc3\xb3 en aquella ocasi\xc3\xb3n anterior, ha " +
+			"sido sustituida por la de fecha de vigencia 20200206, que es la que se cita aqu\xc3\xad. El cambio " +
+			"relevante fue que se elimin\xc3\xb3 la exigencia de un informe adicional del \xc3\xb3rgano de " +
+			"contrataci\xc3\xb3n acreditando que el contratista no hab\xc3\xada suscrito otros contratos menores por " +
+			"importe superior, individual o en conjunto, al umbral \xe2\x80\x94ese control de acumulaci\xc3\xb3n " +
+			"desapareci\xc3\xb3 de la ley en esta redacci\xc3\xb3n; ahora el informe del apartado 2 solo debe " +
+			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para eludir umbrales."},
+		{origenDeBase, "07-03", claseA, "La comprobaci\xc3\xb3n de redacci\xc3\xb3n no detecta cambios desde una " +
+			"lectura anterior."},
+		{origenDeBase, "01-03", claseA, "Es un ext" + "racto fiel del texto consolidado. Aqu\xc3\xad va apartado por " +
+			"apartado."},
+		{origenDeBase, "04-01", claseA, "Respondo de memoria, sin haber consultado el texto consolidado del BOE."},
+		{origenDeBase, "19-02", sinMarcar, "No puedo decirte qu\xc3\xa9 conten\xc3\xada la redacci\xc3\xb3n anterior."},
+		{origenSinSesion, "skill", sinMarcar, respuestaDeLaSkill(t, string(contenidoDelFichero(t, skillDelRepositorio)))},
+		{origenSinSesion, "sin-avisos", sinMarcar, "No hay avisos de vigencia sobre este bloque."},
+		{origenSinSesion, "fr-022", sinMarcar, "Cito la redacci\xc3\xb3n vigente; la que hab\xc3\xada antes no la he " +
+			"le\xc3\xaddo, as\xc3\xad que no puedo decir qu\xc3\xa9 ha cambiado."},
+		{origenSinSesion, "la-linea-fuera-de-su-forma", claseA, "Esta redacci\xc3\xb3n es distinta de la que se " +
+			"consult\xc3\xb3 antes."},
+		{origenSinSesion, "las-dos-fuera-de-su-forma", claseA, "La redacci\xc3\xb3n es la misma que la que se " +
+			"consult\xc3\xb3 antes y no ha cambiado desde una consulta anterior."},
+	}
+
+	for _, caso := range frases {
+		t.Run(caso.origen+" "+caso.sesion, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta := caso.frase + "\n\n" + respuestaConCita
+			sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta })
+			resultado := Juzgar(positiva, sesion, skillDeLasSesiones)
+
+			assert.Equal(t, caso.clase, claseDeLoMarcado(lista, resultado.ExpresionesProhibidas),
+				"la frase de %s %s, con las expresiones %v", caso.origen, caso.sesion, resultado.ExpresionesProhibidas)
+			assert.Equal(t, caso.clase == sinMarcar, resultado.Pasa,
+				"%s pasa solo con la respuesta sin marcar: %v", ficheroDeLaEval01, resultado.Motivos)
+		})
+	}
+}
+
+// claseDeLoMarcado es la clase de las expresiones que la lista encuentra en una
+// respuesta: la B si alguna es de la redacción no leída; la A si hay alguna y
+// ninguna lo es; y sin marcar si no hay ninguna.
+func claseDeLoMarcado(lista ExpresionesProhibidas, encontradas []string) string {
+	switch {
+	case slices.ContainsFunc(encontradas, lista.esDeLaClaseB):
+		return claseB
+	case len(encontradas) > 0:
+		return claseA
+	default:
+		return sinMarcar
 	}
 }
 
@@ -1825,6 +2185,270 @@ func evalDeLaRedaccionCambiada() Eval {
 	eval.Hallazgos = []string{versionObsoleta}
 
 	return eval
+}
+
+// evalDeLosDosBloques es la eval 20 de contracts/evals-y-juicio.md §3 de H7.4: el
+// grafo previo con la redacción original del art. 118 y de la disposición
+// adicional tercera de la LCSP, la lectura de los dos bloques y la comprobación
+// de la memoria con su norma, graph show prohibido, la cita de los dos bloques, el
+// hallazgo version-obsoleta y las dos redacciones modificadas.
+func evalDeLosDosBloques() Eval {
+	articulo118 := ComandoEsperado{Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}
+	da3 := ComandoEsperado{Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDeLaDA3}
+
+	return Eval{
+		Fichero: ficheroDeLosDosBloques,
+		Pregunta: "Hace tiempo te pregunt\xc3\xa9 qu\xc3\xa9 exige la LCSP para el expediente de un contrato menor, " +
+			"en su art\xc3\xadculo 118, y qu\xc3\xa9 a\xc3\xb1ade su disposici\xc3\xb3n adicional tercera para los " +
+			"ayuntamientos. \xc2\xbfQu\xc3\xa9 dicen ahora?",
+		Activa:      true,
+		Informativa: true,
+		GrafoPrevio: GrafoPrevio{
+			Grabaciones: "lcsp-a1-30-y-da-3-redaccion-original", Comandos: []ComandoEsperado{articulo118, da3},
+		},
+		Comandos:   []ComandoEsperado{articulo118, da3, {Applet: "graph", Verbo: "check", Norma: normaDeLaLCSP}},
+		Prohibidos: []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+		Citas: []CitaEsperada{
+			{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}, {Norma: normaDeLaLCSP, Bloque: bloqueDeLaDA3},
+		},
+		Hallazgos: []string{versionObsoleta},
+		RedaccionesModificadas: []RedaccionEsperada{
+			{
+				Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118,
+				FechaVigencia: fechaDeLaRedaccionOriginal, FechaVigenciaReciente: fechaDelArticulo118Vigente,
+			},
+			{
+				Norma: normaDeLaLCSP, Bloque: bloqueDeLaDA3,
+				FechaVigencia: fechaDeLaRedaccionOriginal, FechaVigenciaReciente: fechaDeLaDA3Vigente,
+			},
+		},
+	}
+}
+
+// resultadoDeLosDosBloques es el resultado de la eval de los dos bloques con una
+// sesión terminada y activada que lee los dos bloques en una orden, comprueba la
+// memoria de la norma con los dos y responde con la respuesta dada, con las dos
+// citas, la forma de version-obsoleta y las dos redacciones: pasa.
+func resultadoDeLosDosBloques(respuesta string) ResultadoDeEval {
+	return ResultadoDeEval{
+		Eval:                   ficheroDeLosDosBloques,
+		Activa:                 true,
+		Activada:               true,
+		ComandosEjecutados:     []string{textoDelComando118, textoDelComandoDA3, textoDeLaComprobacionDeLaNorma},
+		CitasEncontradas:       []string{textoDeLaCita118, textoDeLaCitaDA3},
+		HallazgosEncontrados:   []string{versionObsoleta},
+		RedaccionesEncontradas: []string{redaccionDelArticulo118, redaccionDeLaDA3},
+		Invocaciones: []InvocacionInformada{
+			{Orden: ordenDeLosDosBloques, Codigo: codigoDeSalida(0)},
+			{Orden: ordenDeLaComprobacionDeLosDosBloques, Codigo: codigoDeSalida(0)},
+		},
+		Respuesta:        respuesta,
+		CodigoDeLaSesion: codigoDeSalida(0),
+		FinDeLaSesion:    "result success",
+		SesionTerminada:  true,
+		Pasa:             true,
+	}
+}
+
+// conLasLineas es el juicio de la eval de los dos bloques con la sesión de
+// resultadoDeLosDosBloques cuya respuesta son las líneas dadas, cada una en su
+// párrafo, y detrás el cuerpo con las dos citas: su resultado esperado reparte
+// las redacciones entre las encontradas y las ausentes dadas y, con alguna
+// ausente, lleva su motivo por cada una y no pasa.
+func conLasLineas(t *testing.T, lineas, encontradas, ausentes []string) juicio {
+	t.Helper()
+
+	respuesta := strings.Join(slices.Concat(lineas, []string{cuerpoConLasDosCitas}), "\n\n")
+
+	return juicio{
+		eval:   evalDeLosDosBloques(),
+		sesion: sesionTerminada(true, respuesta, leeLosDosBloques(t), compruebaLosDosBloques(t)),
+		esperado: cambiado(resultadoDeLosDosBloques(respuesta), func(r *ResultadoDeEval) {
+			r.RedaccionesEncontradas, r.RedaccionesAusentes = encontradas, ausentes
+
+			if len(ausentes) > 0 {
+				r.Motivos = prefijados(principioDeRedaccionAusente, ausentes)
+				r.Pasa = false
+			}
+		}),
+	}
+}
+
+// losDosBloquesEnDosOrdenes es el juicio de la eval de los dos bloques con una
+// sesión que lee cada bloque en su orden y responde con una línea por bloque:
+// los dos comandos de bloque quedan ejecutados, como con una orden, y pasa.
+func losDosBloquesEnDosOrdenes(t *testing.T) juicio {
+	t.Helper()
+
+	const ordenDeLaDA3 = "boe articulo BOE-A-2017-12902 da-3 --json"
+
+	respuesta := lineaConLaCitaDel118() + "\n\n" + lineaConLaCitaDeLaDA3() + "\n\n" + cuerpoConLasDosCitas
+
+	return juicio{
+		eval: evalDeLosDosBloques(),
+		sesion: sesionTerminada(true, respuesta,
+			leeElArticulo118(t),
+			invocada(t, codigoDeSalida(0), deLaSkill(strings.Fields(ordenDeLaDA3)[1:]...)),
+			compruebaLosDosBloques(t)),
+		esperado: cambiado(resultadoDeLosDosBloques(respuesta), func(r *ResultadoDeEval) {
+			r.Invocaciones = []InvocacionInformada{
+				{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
+				{Orden: ordenDeLaDA3, Codigo: codigoDeSalida(0)},
+				{Orden: ordenDeLaComprobacionDeLosDosBloques, Codigo: codigoDeSalida(0)},
+			}
+		}),
+	}
+}
+
+// redaccionesDetrasDelHallazgo es el juicio de la eval de los dos bloques con una
+// lista que prohíbe «ya puedo responder» y la sesión de conLasLineas cuya
+// respuesta lo anuncia sin ninguna línea: los motivos van en su orden, el del
+// hallazgo ausente, el de cada redacción ausente, en el orden de la eval, y el de
+// la expresión.
+func redaccionesDetrasDelHallazgo(t *testing.T) juicio {
+	t.Helper()
+
+	caso := conLasLineas(t, []string{elAnuncioDeLaRespuesta}, nil, nil)
+	caso.eval.Prohibidas = ExpresionesProhibidas{Anuncio: []string{"ya puedo responder"}}
+	caso.esperado = cambiado(caso.esperado, func(r *ResultadoDeEval) {
+		r.HallazgosEncontrados = nil
+		r.HallazgosAusentes = []string{versionObsoleta}
+		r.RedaccionesAusentes = []string{redaccionDelArticulo118, redaccionDeLaDA3}
+		r.ExpresionesProhibidas = []string{"ya puedo responder"}
+		r.Motivos = []string{
+			motivoDeVersionObsoleta,
+			principioDeRedaccionAusente + redaccionDelArticulo118,
+			principioDeRedaccionAusente + redaccionDeLaDA3,
+			"expresi\xc3\xb3n prohibida: ya puedo responder",
+		}
+		r.Pasa = false
+	})
+
+	return caso
+}
+
+// lineaDeRedaccion es la línea ⚠ REDACCIÓN MODIFICADA: de research D4 de H7.4 con
+// la cita dada detrás de la etiqueta y las dos fechas dadas; sin cita, si es
+// vacía, la línea de H7.3.
+func lineaDeRedaccion(cita, superada, leida string) string {
+	etiqueta := "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: "
+	if cita != "" {
+		etiqueta += cita + ": "
+	}
+
+	return etiqueta + "la redacci\xc3\xb3n con fecha de vigencia " + superada + ", la que se consult\xc3\xb3 antes, " +
+		"ha sido sustituida por la de " + leida + ", que es la que se cita."
+}
+
+// lineaConLaCitaDel118 y lineaConLaCitaDeLaDA3 son las líneas ⚠ REDACCIÓN
+// MODIFICADA: de cada bloque de la eval de los dos bloques, con su cita y sus dos
+// fechas.
+func lineaConLaCitaDel118() string {
+	return lineaDeRedaccion(citaDelArticulo118, fechaDeLaRedaccionOriginal, fechaDelArticulo118Vigente)
+}
+
+func lineaConLaCitaDeLaDA3() string {
+	return lineaDeRedaccion(citaDeLaDA3, fechaDeLaRedaccionOriginal, fechaDeLaDA3Vigente)
+}
+
+// leeLosDosBloques es la invocación de la skill que lee en una orden los dos
+// bloques de la eval de los dos bloques y termina con código 0, y
+// compruebaLosDosBloques, la que comprueba con los dos la memoria de su norma.
+func leeLosDosBloques(t *testing.T) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigoDeSalida(0), deLaSkill(strings.Fields(ordenDeLosDosBloques)[1:]...))
+}
+
+func compruebaLosDosBloques(t *testing.T) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ordenDeLaComprobacionDeLosDosBloques)...))
+}
+
+// evalDeLegalCoreSinBoeLegislacion es la eval del municipio cubierto que declara,
+// como las de legal-core del repositorio, que boe-legislacion no se activa.
+func evalDeLegalCoreSinBoeLegislacion() Eval {
+	eval := evalDelMunicipioCubierto()
+	eval.NoSeActivan = []string{skillQueNoSeActiva}
+
+	return eval
+}
+
+// seActivaLaQueNoSeActiva son los juicios de las evals de legal-core que declaran
+// que boe-legislacion no se activa: la del municipio cubierto, con la sesión que
+// lo resuelve, declara su territorio y activa legal-core y boe-legislacion, no
+// pasa, con el motivo que nombra boe-legislacion, y con la misma sin activar
+// boe-legislacion, pasa; y la de no activación, con una sesión que activa solo
+// boe-legislacion —la activación de legal-core coincide—, no pasa, con ese motivo.
+func seActivaLaQueNoSeActiva(t *testing.T) []juicio {
+	t.Helper()
+
+	sinActivarla := sesionDeTerritorio(respuestaDelMunicipio, resuelveLeganes(t))
+	activandola := cambiada(sinActivarla, func(s *Sesion) {
+		s.SkillsActivadas = []string{skillDeTerritorio, skillQueNoSeActiva}
+	})
+
+	deNoActivacion := evalDeNoActivacion()
+	deNoActivacion.NoSeActivan = []string{skillQueNoSeActiva}
+
+	return []juicio{
+		{
+			eval:   evalDeLegalCoreSinBoeLegislacion(),
+			sesion: activandola,
+			skill:  skillDeTerritorio,
+			esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+				r.Motivos = []string{motivoDeBoeLegislacionActivada}
+				r.Pasa = false
+			}),
+		},
+		{
+			eval:     evalDeLegalCoreSinBoeLegislacion(),
+			sesion:   sinActivarla,
+			skill:    skillDeTerritorio,
+			esperado: resultadoDelMunicipioQuePasa(),
+		},
+		{
+			eval:   deNoActivacion,
+			sesion: sesionTerminada(true, respuestaSinSkill),
+			skill:  skillDeTerritorio,
+			esperado: ResultadoDeEval{
+				Eval:             ficheroDeNoActivacion,
+				Respuesta:        respuestaSinSkill,
+				CodigoDeLaSesion: codigoDeSalida(0),
+				FinDeLaSesion:    "result success",
+				SesionTerminada:  true,
+				Motivos:          []string{motivoDeBoeLegislacionActivada},
+			},
+		},
+	}
+}
+
+// laQueNoSeActivaDetrasDeLaActivacion es el juicio de la eval del municipio
+// cubierto que declara que boe-legislacion no se activa con una sesión que activa
+// solo boe-legislacion, no resuelve el municipio y declara su territorio: los
+// motivos van en su orden, el de la activación de legal-core, el de
+// boe-legislacion y el del comando ausente.
+func laQueNoSeActivaDetrasDeLaActivacion(t *testing.T) juicio {
+	t.Helper()
+
+	return juicio{
+		eval:   evalDeLegalCoreSinBoeLegislacion(),
+		sesion: sesionTerminada(true, respuestaDelMunicipio),
+		skill:  skillDeTerritorio,
+		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Activada = false
+			r.ComandosEjecutados = nil
+			r.ComandosAusentes = []string{textoDelComandoDeLeganes}
+			r.Invocaciones = nil
+			r.Motivos = []string{
+				"la activaci\xc3\xb3n no coincide: se esperaba que la skill legal-core se activara y no se activ\xc3\xb3",
+				motivoDeBoeLegislacionActivada,
+				"comando ausente: " + textoDelComandoDeLeganes,
+			}
+			r.Pasa = false
+		}),
+	}
 }
 
 // conHallazgo es el juicio de la eval de la redacción cambiada con la sesión
