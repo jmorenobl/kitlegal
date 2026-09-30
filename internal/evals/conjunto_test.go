@@ -1990,7 +1990,11 @@ func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 // terminan en 0; las clases de los hallazgos son exactamente las de hallazgos de
 // la eval; y cada version-obsoleta es de un BloqueVersion que dejó el grafo
 // previo —de los anotados, por su id—, con la fecha de vigencia de esa versión
-// como la superada y la del bloque leído como la reciente.
+// como la superada y la del bloque leído como la reciente. Desde H7.4, cada
+// redacción de redacciones_modificadas de la eval es uno de esos version-obsoleta,
+// de su norma y su bloque, con su fecha_vigencia como la superada y su
+// fecha_vigencia_reciente como la leída: la eval no puede esperar unas fechas que
+// las grabaciones no dan (contracts/evals-y-juicio.md §4 de H7.4; research D11).
 func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, anotados map[string]bloqueVersionado) {
 	t.Helper()
 
@@ -2023,7 +2027,10 @@ func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, an
 		leidas[CitaEsperada{Norma: comando.Norma, Bloque: comando.Bloque}] = leido.FechaVigencia
 	}
 
-	var clases []string
+	var (
+		clases    []string
+		obsoletas []RedaccionEsperada
+	)
 
 	for _, norma := range normas {
 		for _, hallazgo := range comprobacionDeLaSesion(t, sesion, norma, bloquesDe[norma]).Hallazgos {
@@ -2043,12 +2050,25 @@ func compruebaLaSesion(t *testing.T, ruta string, eval Eval, dirCache string, an
 				"%s: la redacción superada de %s es la que dejó el grafo previo", ruta, hallazgo.ID)
 			assert.Equal(t, leidas[anotado.cita], hallazgo.FechaVigenciaReciente,
 				"%s: la redacción reciente de %s es la que ha leído la sesión", ruta, hallazgo.ID)
+
+			obsoletas = append(obsoletas, RedaccionEsperada{
+				Norma:                 anotado.cita.Norma,
+				Bloque:                anotado.cita.Bloque,
+				FechaVigencia:         hallazgo.FechaVigencia,
+				FechaVigenciaReciente: hallazgo.FechaVigenciaReciente,
+			})
 		}
 	}
 
 	slices.Sort(clases)
 	assert.Equal(t, slices.Sorted(slices.Values(eval.Hallazgos)), slices.Compact(clases),
 		"%s: graph check da en la sesión exactamente las clases de hallazgo que la eval espera", ruta)
+
+	for _, esperada := range eval.RedaccionesModificadas {
+		assert.Contains(t, obsoletas, esperada, "%s: la redacción modificada %s que la eval espera es un "+
+			"version-obsoleta que graph check da en la sesión, de su norma y su bloque y con sus dos fechas",
+			ruta, esperada.texto())
+	}
 }
 
 // comprobacionDeLaSesion es la data de graph check <norma> <bloques> --json con
