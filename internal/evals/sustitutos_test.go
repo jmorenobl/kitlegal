@@ -205,7 +205,7 @@ func escribirSustitutos(t *testing.T) sustitutos {
 
 	guiones := map[string]string{sustitutoClaude: sustitutoDeClaude, sustitutoStrace: sustitutoDeStrace}
 	for programa, guion := range guiones {
-		require.NoError(t, raiz.WriteFile(programa, []byte(guion), 0o755))
+		require.NoError(t, escribirEjecutable(raiz, programa, guion))
 		calentar(t, filepath.Join(bin, programa))
 	}
 
@@ -215,6 +215,23 @@ func escribirSustitutos(t *testing.T) sustitutos {
 	}
 
 	return sustitutos{bin: bin, comun: comun, transcripts: t.TempDir()}
+}
+
+// escribirEjecutable escribe, a través de la raíz dada, el ejecutable del
+// nombre dado con el guion dado, con syscall.ForkLock tomado para lectura. Un
+// proceso que otro test en paralelo crea hereda, entre su fork y su exec, una
+// copia de cada descriptor abierto, también el de un ejecutable a medio
+// escribir; y en Linux, ejecutar un fichero que algún proceso tiene abierto
+// para escribir falla con ETXTBSY, «text file busy» (golang/go#22315): el
+// calentar que sigue fallaba así en 11 de 50 ejecuciones del paquete. Go toma
+// ForkLock para escritura en cada fork, así que con él tomado para lectura
+// ningún fork ocurre mientras el descriptor está abierto, y cerrado ya no lo
+// hereda ningún proceso.
+func escribirEjecutable(raiz *os.Root, nombre, guion string) error {
+	syscall.ForkLock.RLock()
+	defer syscall.ForkLock.RUnlock()
+
+	return raiz.WriteFile(nombre, []byte(guion), 0o755)
 }
 
 // calentar ejecuta una vez el sustituto de la ruta dada con variableDeCalentar,
@@ -281,8 +298,8 @@ func (s sustitutos) escribirElClaudeDelSondeo(t *testing.T, variables ...string)
 
 	fmt.Fprintf(&guion, "exec %s \"$@\"\n", entreComillasSimples(filepath.Join(s.bin, sustitutoClaude)))
 
-	require.NoError(t, raiz.WriteFile(sustitutoClaude, []byte(guion.String()), 0o755))
-	require.NoError(t, raiz.WriteFile(programaDeLasConsultas, []byte(kitlegalQueNoHaceNada), 0o755))
+	require.NoError(t, escribirEjecutable(raiz, sustitutoClaude, guion.String()))
+	require.NoError(t, escribirEjecutable(raiz, programaDeLasConsultas, kitlegalQueNoHaceNada))
 	calentar(t, filepath.Join(dir, sustitutoClaude))
 
 	return dir
@@ -473,7 +490,7 @@ func escribirElGoDelSondeo(t *testing.T) string {
 
 	defer func() { require.NoError(t, raiz.Close()) }()
 
-	require.NoError(t, raiz.WriteFile(sustitutoGo, []byte(sustitutoDeGo), 0o755))
+	require.NoError(t, escribirEjecutable(raiz, sustitutoGo, sustitutoDeGo))
 
 	return bin
 }

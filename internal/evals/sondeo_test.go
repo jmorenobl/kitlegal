@@ -1112,7 +1112,7 @@ func arbolSinConstruir(preparado *bool) func(temporal string, base []string) err
 
 		return errors.Join(
 			raiz.Mkdir("bin", 0o700),
-			raiz.WriteFile(filepath.Join("bin", programaDeLasConsultas), []byte(kitlegalQueNoHaceNada), 0o755),
+			escribirEjecutable(raiz, filepath.Join("bin", programaDeLasConsultas), kitlegalQueNoHaceNada),
 			raiz.MkdirAll(filepath.Join("home", ".claude", "skills", skillQueSondea), 0o700),
 		)
 	}
