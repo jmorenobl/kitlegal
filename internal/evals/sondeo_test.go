@@ -3,6 +3,7 @@ package evals
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -590,7 +591,10 @@ type casoDeComprobarElSondeo struct {
 // orden; la concurrencia por omisión, la del job para la skill, 4 y 1; la
 // pedida, si la hay; y las evals pedidas en el orden en que se piden. Sin
 // CLAUDE_CODE_OAUTH_TOKEN, o con la variable vacía, el error de §3.2, que no
-// llega si un argumento no vale.
+// llega si un argumento no vale. Los errores de los argumentos y el de la
+// credencial son errores de uso (errorDeUso); el de una definición del job que
+// no se puede leer, que llega antes, no lo es (contracts/sondeo.md §1 y §4 de
+// H7.4; FR-080, FR-081 de H7.4).
 func TestComprobarElSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -606,6 +610,9 @@ func TestComprobarElSondeo(t *testing.T) {
 			if len(caso.errores) > 0 {
 				require.EqualError(t, err, strings.Join(caso.errores, "\n"))
 
+				var uso *errorDeUso
+				assert.ErrorAs(t, err, &uso, "un argumento que no vale o la credencial que falta es un error de uso")
+
 				return
 			}
 
@@ -613,6 +620,23 @@ func TestComprobarElSondeo(t *testing.T) {
 			exigirLoComprobado(t, sondeo, caso, comprobado)
 		})
 	}
+
+	t.Run("job-ilegible", func(t *testing.T) {
+		t.Parallel()
+
+		// Sin la definición del job, y con un argumento que no vale y sin la
+		// credencial: su error llega antes que los de uso.
+		sondeo := sondeoAComprobar()
+		sondeo.RutaDeLaDefinicionDelJob = filepath.Join(t.TempDir(), "evals.yml")
+		sondeo.Argumentos.Modelo, sondeo.Entorno = "", nil
+
+		_, err := comprobarElSondeo(sondeo)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, "la definici\xc3\xb3n del job no se puede leer: ")
+
+		var uso *errorDeUso
+		assert.NotErrorAs(t, err, &uso, "una definición del job que no se puede leer no es un error de uso")
+	})
 }
 
 // sondeoAComprobar es el sondeo que comprueba sin error: la skill del
@@ -623,8 +647,9 @@ func sondeoAComprobar() SondeoAEjecutar {
 		Argumentos: ArgumentosDelSondeo{
 			Skill: skillQueSondea, Evals: "14,03", Modelo: modeloSonnet5, Repeticiones: "3",
 		},
-		Entorno:          []string{variableDeLaSuscripcion + "=" + valorDeLaSuscripcion},
-		EvalsDeLasSkills: directorioDeEvals,
+		Entorno:                  []string{variableDeLaSuscripcion + "=" + valorDeLaSuscripcion},
+		EvalsDeLasSkills:         directorioDeEvals,
+		RutaDeLaDefinicionDelJob: rutaDeLaDefinicionDelJob,
 	}
 }
 
@@ -890,18 +915,19 @@ type casoDeSondear struct {
 // primera da el mensaje del límite de uso mientras la segunda sigue abierta,
 // devuelve su salida sin error: en el segundo caso no abre ninguna más, la
 // segunda termina y se juzga y las que faltan salen sin medir. Con un argumento
-// o una credencial que no valen, devuelve el error sin preparar el árbol, sin
-// abrir ninguna sesión y sin escribir nada en el temporal. Las sesiones no ven
-// ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN ni ninguna otra variable de la base
-// que no sea de contracts/sondeo.md §5, aunque estén en ella; ven
-// CLAUDE_CODE_OAUTH_TOKEN y las demás de §5 con su valor de la base, el PATH de
-// la base con el bin/ del temporal delante —el primer kitlegal que resuelven es
-// el de ahí— y el HOME del temporal. Las sesiones no escriben en el HOME ni en
-// el TMPDIR de la base, que quedan vacíos, y el temporal lleva solo bin/, home/
-// y sesiones/, sin informe ni veredicto. Lo que el proceso escribe en su propio
-// TMPDIR —la preparación de cada sesión— y lo que go install escribe en el de la
-// base no lo mira: ese TMPDIR lo pone el guion dentro de su temporal
-// (TestGuionDelSondeo).
+// o una credencial que no valen, devuelve el error, que es un error de uso
+// (errorDeUso), sin preparar el árbol, sin abrir ninguna sesión y sin escribir
+// nada en el temporal (contracts/sondeo.md §4 de H7.4; FR-080 de H7.4). Las
+// sesiones no ven ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN ni ninguna otra
+// variable de la base que no sea de contracts/sondeo.md §5, aunque estén en
+// ella; ven CLAUDE_CODE_OAUTH_TOKEN y las demás de §5 con su valor de la base,
+// el PATH de la base con el bin/ del temporal delante —el primer kitlegal que
+// resuelven es el de ahí— y el HOME del temporal. Las sesiones no escriben en
+// el HOME ni en el TMPDIR de la base, que quedan vacíos, y el temporal lleva
+// solo bin/, home/ y sesiones/, sin informe ni veredicto. Lo que el proceso
+// escribe en su propio TMPDIR —la preparación de cada sesión— y lo que go
+// install escribe en el de la base no lo mira: ese TMPDIR lo pone el guion
+// dentro de su temporal (TestGuionDelSondeo).
 func TestSondear(t *testing.T) {
 	t.Parallel()
 
@@ -917,6 +943,9 @@ func TestSondear(t *testing.T) {
 
 			if caso.error != "" {
 				require.EqualError(t, err, caso.error)
+
+				var uso *errorDeUso
+				require.ErrorAs(t, err, &uso, "el error del caso es un error de uso")
 				sondeo.exigirQueNoSondea(t)
 
 				return
@@ -1088,9 +1117,10 @@ func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 		}, sondeo.queVen), accesosDeClaudeCode...),
 		EvalsDeLasSkills: carpetasDeEvals(t, skillQueSondea,
 			entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21}),
-		Temporal:        t.TempDir(),
-		Guion:           guion,
-		PrepararElArbol: arbolSinConstruir(sondeo.arbolPreparado),
+		RutaDeLaDefinicionDelJob: rutaDeLaDefinicionDelJob,
+		Temporal:                 t.TempDir(),
+		Guion:                    guion,
+		PrepararElArbol:          arbolSinConstruir(sondeo.arbolPreparado),
 	}
 
 	if caso.ajustar != nil {
@@ -1256,20 +1286,68 @@ const guionDelSondeo = "../../scripts/evals-sondeo.sh"
 // §2 y §3 de H7.3).
 const ficheroDeLaSalidaDelSondeo = "salida.txt"
 
+// ficheroDelUsoDelSondeo es el fichero del temporal del sondeo en el que
+// TestSondeo deja el mensaje de un error de uso y del que lo imprime su guion
+// (contracts/sondeo.md §2 y §3 de H7.4).
+const ficheroDelUsoDelSondeo = "uso.txt"
+
+// Las variables con las que TestGuionDelSondeo da al go que deja el uso
+// (goQueDejaElUso) el sustituto de go que ejecuta y lo que escribe en uso.txt.
+const (
+	variableDelGoSustituido = "KITLEGAL_SUSTITUTO_GO"
+	variableDelUso          = "KITLEGAL_SUSTITUTO_USO"
+)
+
+// goQueDejaElUso es el go que TestGuionDelSondeo pone delante del sustituto de
+// go en el PATH en los casos de un error de uso: ejecuta el sustituto de go de
+// KITLEGAL_SUSTITUTO_GO con sus argumentos, con lo que el guion lo ve entero
+// —sus anotaciones, su salida.txt y su registro—, y, cuando termina, deja en
+// uso.txt del -temporal que recibe el valor de KITLEGAL_SUSTITUTO_USO, como
+// TestSondeo con un errorDeUso, y sale con el código del sustituto.
+const goQueDejaElUso = `#!/bin/sh
+set -eu
+codigo=0
+"$` + variableDelGoSustituido + `" "$@" || codigo=$?
+temporal=
+while [ $# -gt 0 ]; do
+	case $1 in
+	-temporal) temporal=$2; shift 2 ;;
+	*) shift ;;
+	esac
+done
+printf '%s' "$` + variableDelUso + `" > "$temporal/` + ficheroDelUsoDelSondeo + `"
+exit "$codigo"
+`
+
+// Lo que el go que deja el uso escribe en uso.txt en los casos de
+// TestGuionDelSondeo, con el salto de línea final con el que lo escribe
+// TestSondeo (contracts/sondeo.md §3 de H7.4): los errores de MODELO vacío y
+// REPETICIONES=0, uno por línea y en el orden de la orden, y el de la
+// credencial que falta.
+const (
+	usoConDosArgumentos = "MODELO: est\xc3\xa1 vac\xc3\xado\n" +
+		"REPETICIONES: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1\n"
+	usoSinLaCredencial = "falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripci\xc3\xb3n que da " +
+		"claude setup-token, no est\xc3\xa1 en el entorno o est\xc3\xa1 vac\xc3\xada\n"
+)
+
 // nombreDelTemporalDelSondeo es el del directorio que el guion del sondeo crea
 // en TMPDIR: la plantilla de mktemp, kitlegal-sondeo.XXXXXX, con sus seis
 // caracteres sustituidos.
 var nombreDelTemporalDelSondeo = regexp.MustCompile(`^kitlegal-sondeo\.[A-Za-z0-9]{6}$`)
 
 // casoDelGuionDelSondeo es un caso de TestGuionDelSondeo: la orden que ejecuta
-// el guion de la ruta dada, escrita entera con constantes (gosec G204), y el
-// código con el que sale el sustituto de go; y lo que se espera del guion: su
-// código, su salida estándar, los fragmentos de su salida de error, que sin
-// ninguno queda vacía, y si no ejecuta go.
+// el guion de la ruta dada, escrita entera con constantes (gosec G204), el
+// código con el que sale el sustituto de go y lo que deja en uso.txt, si deja
+// algo, con goQueDejaElUso; y lo que se espera del guion: su código, su salida
+// estándar, los fragmentos de su salida de error —que sin ninguno es
+// exactamente lo que se dejó en uso.txt, vacía si no se dejó nada— y si no
+// ejecuta go.
 type casoDelGuionDelSondeo struct {
 	nombre     string
 	orden      func(ctx context.Context, guion string) *exec.Cmd
 	codigoDeGo int
+	uso        string
 
 	codigo  int
 	salida  string
@@ -1286,11 +1364,17 @@ type casoDelGuionDelSondeo struct {
 // temporal, con sus dos salidas en su go-test.log. Si go test sale con 0, el
 // guion sale con 0, su salida estándar es salida.txt y la de error queda vacía;
 // si sale con otro código, el guion sale con 1, no imprime salida.txt y su
-// salida de error lleva lo que go test escribió en sus dos salidas. Sin cinco
-// argumentos, el uso y el código 1, sin ejecutar go. En todos los casos, el
-// TMPDIR del test queda vacío: lo que go test deja en su TMPDIR —su directorio
-// de trabajo, el de go install y la preparación de cada sesión, que el
-// sustituto no borra— está en el temporal, y el guion lo borra (FR-064).
+// salida de error lleva lo que go test escribió en sus dos salidas (FR-081 de
+// H7.4). Si go test sale con 0 y deja uso.txt, con dos errores de argumentos o
+// con el de la credencial, el guion sale con 1, su salida estándar queda vacía
+// aunque haya salida.txt y la de error es exactamente uso.txt, sin nada de go
+// test (contracts/sondeo.md §3 y §4 de H7.4; FR-080, FR-099 de H7.4; SC-009 de
+// H7.4); si go test falla, aunque deje uso.txt, lo que se imprime es su
+// registro, que va primero (FR-081 de H7.4). Sin cinco argumentos, el uso y el
+// código 1, sin ejecutar go. En todos los casos, el TMPDIR del test queda
+// vacío: lo que go test deja en su TMPDIR —su directorio de trabajo, el de go
+// install y la preparación de cada sesión, que el sustituto no borra— está en
+// el temporal, y el guion lo borra (FR-064).
 func TestGuionDelSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -1307,18 +1391,11 @@ func TestGuionDelSondeo(t *testing.T) {
 			comun, temporal := t.TempDir(), t.TempDir()
 			orden := caso.orden(t.Context(), guion)
 
-			codigo, salida, deError := ejecutarElGuionDelSondeo(t, orden, caso.codigoDeGo, comun, temporal)
+			codigo, salida, deError := ejecutarElGuionDelSondeo(t, orden, caso, comun, temporal)
 
 			assert.Equalf(t, caso.codigo, codigo, "el código del guion, con esta salida de error:\n%s", deError)
 			assert.Equal(t, caso.salida, salida, "la salida estándar del guion")
-
-			for _, fragmento := range caso.deError {
-				assert.Contains(t, deError, fragmento, "la salida de error del guion")
-			}
-
-			if len(caso.deError) == 0 {
-				assert.Empty(t, deError, "la salida de error del guion")
-			}
+			exigirLaSalidaDeErrorDelGuion(t, caso, deError)
 
 			entradas, err := os.ReadDir(temporal)
 			require.NoError(t, err)
@@ -1329,9 +1406,33 @@ func TestGuionDelSondeo(t *testing.T) {
 	}
 }
 
+// exigirLaSalidaDeErrorDelGuion exige que la salida de error del guion del
+// sondeo lleve los fragmentos del caso y no lo que se dejó en uso.txt, si se
+// dejó algo; o, si el caso no tiene fragmentos, que sea exactamente lo que se
+// dejó en uso.txt, sin nada más, y vacía si no se dejó nada.
+func exigirLaSalidaDeErrorDelGuion(t *testing.T, caso casoDelGuionDelSondeo, deError string) {
+	t.Helper()
+
+	if len(caso.deError) == 0 {
+		assert.Equal(t, caso.uso, deError, "la salida de error del guion es solo uso.txt, o nada sin él")
+
+		return
+	}
+
+	for _, fragmento := range caso.deError {
+		assert.Contains(t, deError, fragmento, "la salida de error del guion")
+	}
+
+	if caso.uso != "" {
+		assert.NotContains(t, deError, caso.uso, "con go test fallido, el guion no imprime uso.txt")
+	}
+}
+
 // casosDelGuionDelSondeo son los casos de TestGuionDelSondeo: go test sale con
 // 0, con la concurrencia vacía; sale con 1 y con 2, con una concurrencia
-// pedida; y el guion recibe cuatro argumentos.
+// pedida; sale con 0 y deja uso.txt, con los errores de MODELO vacío y
+// REPETICIONES=0 o con el de la credencial que falta; sale con 1 y deja
+// uso.txt; y el guion recibe cuatro argumentos.
 func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
 	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
 
@@ -1363,6 +1464,32 @@ func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
 			deError:    registro,
 		},
 		{
+			nombre: "uso-con-dos-argumentos-que-no-valen",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03", "", "0", "")
+			},
+			uso:    usoConDosArgumentos,
+			codigo: 1,
+		},
+		{
+			nombre: "uso-sin-la-credencial",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03", modeloSonnet5, "1", "")
+			},
+			uso:    usoSinLaCredencial,
+			codigo: 1,
+		},
+		{
+			nombre: "go-test-sale-con-1-y-deja-uso",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03", "", "0", "")
+			},
+			codigoDeGo: 1,
+			uso:        usoConDosArgumentos,
+			codigo:     1,
+			deError:    registro,
+		},
+		{
 			nombre: "sin-cinco-argumentos",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, skillQueSondea, "03", modeloSonnet5, "3")
@@ -1375,18 +1502,37 @@ func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
 }
 
 // ejecutarElGuionDelSondeo ejecuta la orden del guion del sondeo con el
-// sustituto de go delante en el PATH, el TMPDIR y el directorio común dados y
-// el código de go dado, y devuelve su código y sus dos salidas.
-func ejecutarElGuionDelSondeo(t *testing.T, orden *exec.Cmd, codigoDeGo int, comun, temporal string,
+// sustituto de go delante en el PATH —con goQueDejaElUso delante de él si el
+// caso deja algo en uso.txt—, el TMPDIR y el directorio común dados y el
+// código de go del caso, y devuelve su código y sus dos salidas.
+func ejecutarElGuionDelSondeo(t *testing.T, orden *exec.Cmd, caso casoDelGuionDelSondeo, comun, temporal string,
 ) (codigo int, salida, deError string) {
 	t.Helper()
 
-	orden.Env = sobreLaBase(os.Environ(), []string{
-		"PATH=" + escribirElGoDelSondeo(t) + string(os.PathListSeparator) + os.Getenv("PATH"),
+	goDelSondeo := escribirElGoDelSondeo(t)
+	delante := []string{goDelSondeo}
+
+	entorno := []string{
 		"TMPDIR=" + temporal,
 		variableDelComun + "=" + comun,
-		variableDeCodigo + "=" + strconv.Itoa(codigoDeGo),
-	})
+		variableDeCodigo + "=" + strconv.Itoa(caso.codigoDeGo),
+	}
+
+	if caso.uso != "" {
+		bin := t.TempDir()
+
+		raiz, err := os.OpenRoot(bin)
+		require.NoError(t, err)
+		require.NoError(t, escribirEjecutable(raiz, sustitutoGo, goQueDejaElUso))
+		require.NoError(t, raiz.Close())
+
+		delante = []string{bin, goDelSondeo}
+		entorno = append(entorno,
+			variableDelGoSustituido+"="+filepath.Join(goDelSondeo, sustitutoGo), variableDelUso+"="+caso.uso)
+	}
+
+	ruta := strings.Join(append(delante, os.Getenv("PATH")), string(os.PathListSeparator))
+	orden.Env = sobreLaBase(os.Environ(), append(entorno, "PATH="+ruta))
 
 	var estandar, deErr strings.Builder
 

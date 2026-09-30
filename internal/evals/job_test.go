@@ -4,6 +4,7 @@ package evals
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"os/signal"
@@ -206,8 +207,13 @@ func enteroDeLaBandera(t *testing.T, nombre string) int {
 //
 // Escribe la salida en salida.txt del temporal, que su guion imprime, y ningún
 // informe ni veredicto: falla solo con un error, sean cuales sean las tasas
-// (FR-066 de H7.3). Sin -temporal falla antes de nada, porque el sondeo
-// escribiría en el directorio de este paquete. Solo lo ejecuta
+// (FR-066 de H7.3). Con un error de uso —un argumento que no vale o la
+// credencial que falta, un errorDeUso—, no falla: escribe su mensaje, con un
+// salto de línea final, en uso.txt del temporal, que su guion imprime solo en
+// la salida de error, y no escribe salida.txt (contracts/sondeo.md §2 de H7.4;
+// FR-080 de H7.4). Con cualquier otro error falla, y su guion imprime el
+// registro de go test (FR-081 de H7.4). Sin -temporal falla antes de nada,
+// porque el sondeo escribiría en el directorio de este paquete. Solo lo ejecuta
 // scripts/evals-sondeo.sh, porque abre sesiones con modelo; lo que decide lo
 // fijan TestComprobarElSondeo, TestSondear, TestJuicioDelSondeo y
 // TestSalidaDelSondeo, y la orden que lo ejecuta, TestGuionDelSondeo.
@@ -232,12 +238,22 @@ func TestSondeo(t *testing.T) {
 			Repeticiones: *banderaRepeticiones,
 			Concurrencia: *banderaConcurrencia,
 		},
-		Entorno:          os.Environ(),
-		EvalsDeLasSkills: directorioDeEvalsDeLasSkills,
-		Temporal:         *banderaTemporal,
-		Guion:            guion,
-		PrepararElArbol:  prepararElArbol,
+		Entorno:                  os.Environ(),
+		EvalsDeLasSkills:         directorioDeEvalsDeLasSkills,
+		RutaDeLaDefinicionDelJob: rutaDeLaDefinicionDelJob,
+		Temporal:                 *banderaTemporal,
+		Guion:                    guion,
+		PrepararElArbol:          prepararElArbol,
 	})
+
+	var uso *errorDeUso
+	if errors.As(err, &uso) {
+		require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDelUsoDelSondeo), []byte(uso.Error()+"\n"),
+			0o600))
+
+		return
+	}
+
 	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDeLaSalidaDelSondeo), []byte(salida), 0o600))

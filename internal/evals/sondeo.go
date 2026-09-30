@@ -45,6 +45,27 @@ const variableDeLaSuscripcion = "CLAUDE_CODE_OAUTH_TOKEN"
 var errSinSuscripcion = errors.New("falta la credencial: " + variableDeLaSuscripcion +
 	", el token de la suscripción que da claude setup-token, no está en el entorno o está vacía")
 
+// errorDeUso es un error del sondeo que comete quien lo lanza: los de sus
+// argumentos, unidos, uno por línea, o errSinSuscripcion, con el mismo texto
+// (contracts/sondeo.md §1 de H7.4; research D18 de H7.4; FR-080). TestSondeo
+// deja su mensaje en uso.txt y su guion lo imprime solo, sin el registro de go
+// test. No lo son el de leer la definición del job, construir el binario,
+// instalar las skills, repartir las sesiones ni crear el directorio de
+// sesiones, que necesitan ese registro (FR-081).
+type errorDeUso struct {
+	causa error
+}
+
+// Error es el texto del error que envuelve.
+func (e *errorDeUso) Error() string {
+	return e.causa.Error()
+}
+
+// Unwrap devuelve el error que envuelve.
+func (e *errorDeUso) Unwrap() error {
+	return e.causa
+}
+
 // variablesQueVenLasSesionesDelSondeo son las variables de quien lanza el sondeo
 // que ven sus sesiones, además del PATH, que ven con el bin/ del temporal
 // delante (contracts/sondeo.md §5 de H7.3; research D16; FR-063): ninguna otra,
@@ -477,6 +498,11 @@ type SondeoAEjecutar struct {
 	// EvalsDeLasSkills es el directorio con la carpeta de evals de cada skill.
 	EvalsDeLasSkills string
 
+	// RutaDeLaDefinicionDelJob es la de la definición del job de evals, que dice
+	// qué skills ejecuta y con qué concurrencia: rutaDeLaDefinicionDelJob en el
+	// punto de entrada.
+	RutaDeLaDefinicionDelJob string
+
 	// Temporal es el directorio del sondeo, que crea y borra su guion: todo lo
 	// que el sondeo escribe va dentro (FR-064), también lo que la preparación de
 	// cada sesión y el go install escriben en el TMPDIR, que el guion pone en su
@@ -520,19 +546,23 @@ type sondeoComprobado struct {
 //  2. la credencial: CLAUDE_CODE_OAUTH_TOKEN en el entorno y no vacía, o
 //     errSinSuscripcion. Sin llamar al servicio ni ninguna otra comprobación: una
 //     credencial caducada se ve en la primera sesión.
+//
+// Los errores de los argumentos y el de la credencial van envueltos en
+// errorDeUso, con su mismo texto (FR-080 de H7.4); el de una definición del job
+// que no se puede leer, no (FR-081 de H7.4).
 func comprobarElSondeo(s SondeoAEjecutar) (sondeoComprobado, error) {
-	job, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	job, err := leerDefinicionDelJob(s.RutaDeLaDefinicionDelJob)
 	if err != nil {
 		return sondeoComprobado{}, err
 	}
 
 	comprobado, err := s.Argumentos.comprobar(s.EvalsDeLasSkills, job)
 	if err != nil {
-		return sondeoComprobado{}, err
+		return sondeoComprobado{}, &errorDeUso{causa: err}
 	}
 
 	if valorEnElEntorno(s.Entorno, variableDeLaSuscripcion) == "" {
-		return sondeoComprobado{}, errSinSuscripcion
+		return sondeoComprobado{}, &errorDeUso{causa: errSinSuscripcion}
 	}
 
 	return comprobado, nil
@@ -789,7 +819,10 @@ func entornoDelSondeo(base []string, temporal string) []string {
 // Vuelve sin error sean cuales sean las tasas y aunque la cuenta no deje abrir
 // todas las sesiones: no escribe informe ni veredicto (FR-066). El error es el
 // de la comprobación, el del árbol, el del repartidor —también tras la
-// interrupción, con interrupcion cerrado— o el del directorio de sesiones.
+// interrupción, con interrupcion cerrado— o el del directorio de sesiones. Solo
+// el de la comprobación de los argumentos o de la credencial es un errorDeUso,
+// y con él no prepara el árbol ni llama al repartidor (FR-080 y FR-081 de
+// H7.4).
 func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
 	comprobado, err := comprobarElSondeo(s)
 	if err != nil {
