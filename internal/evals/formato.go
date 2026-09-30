@@ -33,6 +33,13 @@ type Eval struct {
 	// Activa dice si la skill debe activarse con la pregunta.
 	Activa bool `yaml:"activa"`
 
+	// NoSeActivan son los nombres de las skills que la sesión no puede activar,
+	// en el orden del fichero y sin repetir; vacío si la eval no los declara. Los
+	// admite cualquier eval, también una de no activación: las de legal-core
+	// declaran boe-legislacion, que sus sesiones también ven instalada
+	// (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003, FR-004).
+	NoSeActivan []string `yaml:"no_se_activan"`
+
 	// Reproduce es el nombre de la skill cuya consulta reproduce la eval, o
 	// vacío si no reproduce ninguna (FR-064).
 	Reproduce string `yaml:"reproduce"`
@@ -72,6 +79,13 @@ type Eval struct {
 	// del fichero; vacío si la eval no los espera. Solo los admite una eval que activa la skill, como los avisos, y sus
 	// valores son las clases de grafo.EtiquetasDeHallazgo (contrato evals-y-skill §1 de H7.1; FR-054).
 	Hallazgos []string `yaml:"hallazgos"`
+
+	// RedaccionesModificadas son las redacciones modificadas que la respuesta
+	// tiene que trasladar, cada una en su línea ⚠ REDACCIÓN MODIFICADA:, en el
+	// orden del fichero; vacío si la eval no las espera. Solo las admite una eval
+	// que activa la skill, como los hallazgos (contracts/evals-y-juicio.md §1 de
+	// H7.4; FR-053).
+	RedaccionesModificadas []RedaccionEsperada `yaml:"redacciones_modificadas"`
 
 	// Territorio es lo que la respuesta tiene que declarar del territorio del
 	// municipio, cada elemento por su forma fija (ExtraerTerritorio); vacío si la
@@ -200,6 +214,28 @@ type CitaEsperada struct {
 
 	// Bloque es el id del bloque citado.
 	Bloque string `yaml:"bloque"`
+}
+
+// RedaccionEsperada es una redacción modificada que la respuesta tiene que
+// trasladar: el bloque de la norma cuya redacción cambió entre dos lecturas, con
+// la fecha de vigencia de cada una, con los nombres de los campos del hallazgo
+// version-obsoleta de graph check (data-model §2 de H7.4; research D9). Su texto,
+// en los motivos y en el informe, es <norma> <bloque> <fecha_vigencia>
+// <fecha_vigencia_reciente>.
+type RedaccionEsperada struct {
+	// Norma es el identificador de la norma, BOE-A-….
+	Norma string `yaml:"norma"`
+
+	// Bloque es el id del bloque cuya redacción cambió.
+	Bloque string `yaml:"bloque"`
+
+	// FechaVigencia es la fecha de vigencia de la redacción superada, la de la
+	// lectura anterior, en la forma AAAAMMDD.
+	FechaVigencia string `yaml:"fecha_vigencia"`
+
+	// FechaVigenciaReciente es la fecha de vigencia de la redacción leída, la
+	// vigente, en la forma AAAAMMDD.
+	FechaVigenciaReciente string `yaml:"fecha_vigencia_reciente"`
 }
 
 // TerritorioEsperado es lo que la respuesta tiene que declarar del territorio de

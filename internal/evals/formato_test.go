@@ -87,6 +87,71 @@ const (
 		"  - version-obsoleta\n"
 )
 
+// Trozos de las evals sintéticas del formato de H7.4 de TestLeerEval y
+// TestLeerConjunto, cada uno con sus líneas completas: una eval de no activación
+// y la skill que la sesión no puede activar, para ir detrás de activa, como en
+// las evals de legal-core (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003,
+// FR-004); y la eval de los dos bloques de la LCSP de contracts §3, sin su
+// comentario, con las dos redacciones modificadas que la respuesta tiene que
+// llevar, cada una con la fecha de la redacción superada y la de la leída
+// (FR-053).
+const (
+	evalDeLaReceta                 = "pregunta: \"¿Cómo se hace una tortilla de patatas jugosa?\"\nactiva: false\n"
+	noSeActivaBoeLegislacion       = "no_se_activan: [boe-legislacion]\n"
+	redaccionesModificadasDeLaLCSP = "redacciones_modificadas:\n" +
+		"  - norma: BOE-A-2017-12902\n" +
+		"    bloque: a1-30\n" +
+		"    fecha_vigencia: \"20180309\"\n" +
+		"    fecha_vigencia_reciente: \"20200206\"\n" +
+		"  - norma: BOE-A-2017-12902\n" +
+		"    bloque: da-3\n" +
+		"    fecha_vigencia: \"20180309\"\n" +
+		"    fecha_vigencia_reciente: \"20230101\"\n"
+	evalDeDosBloquesDeLaLCSP = "pregunta: \"¿Qué dicen ahora el artículo 118 y la disposición adicional tercera de la LCSP?\"\n" +
+		"activa: true\n" +
+		"informativa: true\n" +
+		"grafo_previo:\n" +
+		"  grabaciones: lcsp-a1-30-y-da-3-redaccion-original\n" +
+		"  comandos:\n" +
+		"    - applet: boe\n      norma: BOE-A-2017-12902\n      bloque: a1-30\n" +
+		"    - applet: boe\n      norma: BOE-A-2017-12902\n      bloque: da-3\n" +
+		"comandos:\n" +
+		"  - applet: boe\n    norma: BOE-A-2017-12902\n    bloque: a1-30\n" +
+		"  - applet: boe\n    norma: BOE-A-2017-12902\n    bloque: da-3\n" +
+		"  - applet: graph\n    verbo: check\n    norma: BOE-A-2017-12902\n" +
+		prohibidoGraphShow +
+		"citas:\n" +
+		"  - norma: BOE-A-2017-12902\n    bloque: a1-30\n" +
+		"  - norma: BOE-A-2017-12902\n    bloque: da-3\n" +
+		hallazgoDeVersionObsoleta + redaccionesModificadasDeLaLCSP
+)
+
+// leidaDeDosBloquesDeLaLCSP es lo que se lee de evalDeDosBloquesDeLaLCSP con el
+// nombre de fichero dado: sus dos bloques en el grafo previo y en los comandos,
+// la comprobación de la norma, graph show prohibido, las dos citas, el hallazgo
+// version-obsoleta y las dos redacciones modificadas, en el orden del fichero.
+func leidaDeDosBloquesDeLaLCSP(fichero string) Eval {
+	const lcsp = "BOE-A-2017-12902"
+
+	bloques := []ComandoEsperado{{Applet: "boe", Norma: lcsp, Bloque: "a1-30"}, {Applet: "boe", Norma: lcsp, Bloque: "da-3"}}
+
+	return Eval{
+		Fichero:     fichero,
+		Pregunta:    "¿Qué dicen ahora el artículo 118 y la disposición adicional tercera de la LCSP?",
+		Activa:      true,
+		Informativa: true,
+		GrafoPrevio: GrafoPrevio{Grabaciones: "lcsp-a1-30-y-da-3-redaccion-original", Comandos: bloques},
+		Comandos:    slices.Concat(bloques, []ComandoEsperado{{Applet: "graph", Verbo: "check", Norma: lcsp}}),
+		Prohibidos:  []ComandoProhibido{{Applet: "graph", Verbo: "show"}},
+		Citas:       []CitaEsperada{{Norma: lcsp, Bloque: "a1-30"}, {Norma: lcsp, Bloque: "da-3"}},
+		Hallazgos:   []string{"version-obsoleta"},
+		RedaccionesModificadas: []RedaccionEsperada{
+			{Norma: lcsp, Bloque: "a1-30", FechaVigencia: "20180309", FechaVigenciaReciente: "20200206"},
+			{Norma: lcsp, Bloque: "da-3", FechaVigencia: "20180309", FechaVigenciaReciente: "20230101"},
+		},
+	}
+}
+
 // TestLeerEval fija la lectura de una eval del contrato evals-y-grabaciones §1 y
 // de sus avisos (contrato de formato, juicio e informe §6): las tres formas de
 // comando, con y sin reproduce, la que espera avisos, informativa o no, y la de no
@@ -120,6 +185,15 @@ const (
 // ninguna skill traslada con forma fija— o en una eval de no activación se
 // rechazan, como los avisos (contrato evals-y-skill §1 y §5 de H7.1; FR-050,
 // FR-054).
+//
+// Desde H7.4, las skills que la sesión no puede activar se leen en NoSeActivan,
+// en una eval que activa la skill y en una de no activación; y las redacciones
+// modificadas esperadas, en RedaccionesModificadas, en la eval de los dos
+// bloques de la LCSP entera. Unas skills que no se activan vacías, con un nombre
+// que no es de skill o con uno repetido, unas redacciones modificadas en una
+// eval de no activación, y una sin fecha_vigencia_reciente, con una fecha de
+// siete cifras o con el mes 13 se rechazan: cada documento es el bien formado
+// con solo ese defecto (contracts/evals-y-juicio.md §1; FR-003, FR-004, FR-053).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -130,12 +204,29 @@ func TestLeerEval(t *testing.T) {
 	positivaDelMunicipio := preguntaDelMunicipio + "activa: true\n" + comandoDelMunicipio
 	preguntaDelMunicipioLeida := "¿En qué boletines se publican las normas que afectan a Leganés?"
 	comandoDelMunicipioLeido := []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}}
+	territorioDelMunicipioLeido := TerritorioEsperado{
+		Comunidad: "Comunidad de Madrid",
+		Provincia: "Madrid",
+		Boletines: []string{"BOCM"},
+		Cobertura: []string{"boletin_autonomico: configurado", "dir3: verificado"},
+	}
+
+	// patronDeFecha es el de una fecha AAAAMMDD de una redacción modificada, tal
+	// como lo cita el rechazo (contracts/evals-y-juicio.md §1 de H7.4).
+	const patronDeFecha = "'^[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'"
 
 	// La positiva del art. 21, sin avisos, y lo que se lee de su comando y de su
 	// cita: los casos de avisos le añaden líneas al final.
 	positivaDelArticulo21 := preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21 + citaDelArticulo21
 	comandoDelArticulo21Leido := []ComandoEsperado{{Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a21"}}
 	citaDelArticulo21Leida := []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a21"}}
+
+	// La eval de territorio del municipio cubierto con las skills que no se
+	// activan en la línea que se le pase, detrás de activa, como en las evals de
+	// legal-core: esa línea es la 3.
+	municipioQueNoActiva := func(noSeActivan string) string {
+		return preguntaDelMunicipio + "activa: true\n" + noSeActivan + comandoDelMunicipio + territorioDelMunicipio
+	}
 
 	casos := []struct {
 		nombre     string
@@ -341,16 +432,11 @@ func TestLeerEval(t *testing.T) {
 			nombre:    "comando-de-territorio",
 			documento: positivaDelMunicipio + territorioDelMunicipio,
 			leida: Eval{
-				Fichero:  nombreDeEval,
-				Pregunta: preguntaDelMunicipioLeida,
-				Activa:   true,
-				Comandos: comandoDelMunicipioLeido,
-				Territorio: TerritorioEsperado{
-					Comunidad: "Comunidad de Madrid",
-					Provincia: "Madrid",
-					Boletines: []string{"BOCM"},
-					Cobertura: []string{"boletin_autonomico: configurado", "dir3: verificado"},
-				},
+				Fichero:    nombreDeEval,
+				Pregunta:   preguntaDelMunicipioLeida,
+				Activa:     true,
+				Comandos:   comandoDelMunicipioLeido,
+				Territorio: territorioDelMunicipioLeido,
 			},
 		},
 		{
@@ -571,6 +657,71 @@ func TestLeerEval(t *testing.T) {
 			documento: preguntaDelArticulo21 + "activa: false\nhallazgos:\n  - version-obsoleta\n",
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
+		{
+			nombre:    "no-se-activan",
+			documento: municipioQueNoActiva(noSeActivaBoeLegislacion),
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    preguntaDelMunicipioLeida,
+				Activa:      true,
+				NoSeActivan: []string{"boe-legislacion"},
+				Comandos:    comandoDelMunicipioLeido,
+				Territorio:  territorioDelMunicipioLeido,
+			},
+		},
+		{
+			nombre:    "no-activa-con-no-se-activan",
+			documento: evalDeLaReceta + noSeActivaBoeLegislacion,
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
+				NoSeActivan: []string{"boe-legislacion"},
+			},
+		},
+		{
+			nombre:    "no-se-activan-vacio",
+			documento: municipioQueNoActiva("no_se_activan: []\n"),
+			error:     nombreDeEval + ": no_se_activan, línea 3: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "no-se-activan-con-un-nombre-que-no-es-de-skill",
+			documento: municipioQueNoActiva("no_se_activan: [Boe-Legislacion]\n"),
+			error: nombreDeEval + ": no_se_activan/0, línea 3: " +
+				"'Boe-Legislacion' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+		},
+		{
+			nombre:    "no-se-activan-con-un-nombre-repetido",
+			documento: municipioQueNoActiva("no_se_activan: [boe-legislacion, boe-legislacion]\n"),
+			error:     nombreDeEval + ": no_se_activan, línea 3: items at 0 and 1 are equal",
+		},
+		{
+			// La eval de contracts/evals-y-juicio.md §3 de H7.4, sin su comentario.
+			nombre:    "redacciones-modificadas",
+			documento: evalDeDosBloquesDeLaLCSP,
+			leida:     leidaDeDosBloquesDeLaLCSP(nombreDeEval),
+		},
+		{
+			nombre:    "no-activa-con-redacciones-modificadas",
+			documento: preguntaDelArticulo21 + "activa: false\n" + redaccionesModificadasDeLaLCSP,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "redaccion-modificada-sin-fecha-vigencia-reciente",
+			documento: strings.Replace(evalDeDosBloquesDeLaLCSP, "    fecha_vigencia_reciente: \"20200206\"\n", "", 1),
+			error:     nombreDeEval + ": redacciones_modificadas/0, línea 34: missing property 'fecha_vigencia_reciente'",
+		},
+		{
+			nombre:    "redaccion-modificada-con-una-fecha-de-siete-cifras",
+			documento: strings.Replace(evalDeDosBloquesDeLaLCSP, "\"20180309\"", "\"2018039\"", 1),
+			error: nombreDeEval + ": redacciones_modificadas/0/fecha_vigencia, línea 36: " +
+				"'2018039' does not match pattern " + patronDeFecha,
+		},
+		{
+			nombre:    "redaccion-modificada-con-el-mes-13",
+			documento: strings.Replace(evalDeDosBloquesDeLaLCSP, "\"20200206\"", "\"20201306\"", 1),
+			error: nombreDeEval + ": redacciones_modificadas/0/fecha_vigencia_reciente, línea 37: " +
+				"'20201306' does not match pattern " + patronDeFecha,
+		},
 	}
 
 	for _, caso := range casos {
@@ -690,6 +841,9 @@ func TestFormaDelComando(t *testing.T) {
 // Desde H7.1, la que no escribe hallazgos se lee sin hallazgos, y el comando de
 // comprobación que no escribe la norma, sin Norma: se leen igual que en H7
 // (contrato evals-y-skill §1 de H7.1; FR-050, FR-054).
+//
+// Desde H7.4, la que no escribe no_se_activan ni redacciones_modificadas se lee
+// sin ellas, así que su juicio no cambia (contracts/evals-y-juicio.md §1; FR-053).
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
@@ -722,6 +876,14 @@ func TestEsquemaDeEval(t *testing.T) {
 
 			if _, escribe := claves["hallazgos"]; !escribe {
 				assert.Nil(t, eval.Hallazgos, "%s no escribe hallazgos y se lee sin ellos", ruta)
+			}
+
+			if _, escribe := claves["no_se_activan"]; !escribe {
+				assert.Nil(t, eval.NoSeActivan, "%s no escribe no_se_activan y se lee sin ellas", ruta)
+			}
+
+			if _, escribe := claves["redacciones_modificadas"]; !escribe {
+				assert.Nil(t, eval.RedaccionesModificadas, "%s no escribe redacciones_modificadas y se lee sin ellas", ruta)
 			}
 
 			for posicion, comando := range eval.Comandos {
@@ -1117,8 +1279,8 @@ func evalPositiva(comando, cita map[string]any) map[string]any {
 // boe.ValidarNorma y boe.ValidarBloque sobre los casos límite de data-model
 // (cabecera; control 10 del plan). En eval.yaml.json lo comprueba en cada sitio
 // del formato donde va el valor —el comando de bloque, el de consulta de norma,
-// desde H7.1 el de comprobación, y la cita—, con una eval que solo puede fallar
-// por ese valor: la misma eval con
+// desde H7.1 el de comprobación, la cita y, desde H7.4, la redacción
+// modificada—, con una eval que solo puede fallar por ese valor: la misma eval con
 // un valor válido se lee sin error. En normas.yaml.json lo comprueba en el único
 // sitio donde va una norma, el nombre de cada entrada de normas, con una tabla
 // que solo puede fallar por ese nombre, y exige que cada rechazo sea el defecto
@@ -1137,6 +1299,14 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 		}
 		cita := func(norma, bloque string) map[string]any {
 			return map[string]any{"norma": norma, "bloque": bloque}
+		}
+		conRedaccionModificada := func(norma, bloque string) map[string]any {
+			documento := evalPositiva(comandoDeBloque(normaValida, bloqueValido), cita(normaValida, bloqueValido))
+			documento["redacciones_modificadas"] = []any{map[string]any{
+				"norma": norma, "bloque": bloque, "fecha_vigencia": "20180309", "fecha_vigencia_reciente": "20200206",
+			}}
+
+			return documento
 		}
 
 		gramaticas := []struct {
@@ -1166,6 +1336,9 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 					{nombre: "cita", documento: func(valor string) map[string]any {
 						return evalPositiva(comandoDeBloque(normaValida, bloqueValido), cita(valor, bloqueValido))
 					}},
+					{nombre: "redacción modificada", documento: func(valor string) map[string]any {
+						return conRedaccionModificada(valor, bloqueValido)
+					}},
 				},
 			},
 			{
@@ -1179,6 +1352,9 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 					}},
 					{nombre: "cita", documento: func(valor string) map[string]any {
 						return evalPositiva(comandoDeBloque(normaValida, bloqueValido), cita(normaValida, valor))
+					}},
+					{nombre: "redacción modificada", documento: func(valor string) map[string]any {
+						return conRedaccionModificada(normaValida, valor)
 					}},
 				},
 			},

@@ -33,6 +33,11 @@ const (
 	contenidoDeProgramacion    = "pregunta: \"¿Cómo invierto una lista enlazada en Go?\"\nactiva: false\n"
 	contenidoSinPregunta       = "activa: false\n"
 	contenidoConActivaRepetida = preguntaDelArticulo21 + "activa: true\nactiva: false\n"
+
+	// ficheroDeDosBloquesDeLaLCSP es el nombre con el que TestLeerConjunto lee
+	// evalDeDosBloquesDeLaLCSP, el de la eval de contracts/evals-y-juicio.md §3
+	// de H7.4.
+	ficheroDeDosBloquesDeLaLCSP = "20-lcsp-dos-bloques-redaccion-cambiada.yaml"
 )
 
 // entradaDeConjunto es una entrada que un test crea en el directorio de un
@@ -73,7 +78,11 @@ type malFormadoEsperado struct {
 // Desde H7.4 (contracts/lista-de-expresiones.md §1 y §2; FR-030, FR-031), la
 // lista bien formada tiene sus cinco claves, y la familia redaccion_no_leida y
 // las formas_fijas quedan también en Conjunto.Prohibidas y en Prohibidas de cada
-// eval; y cada lista mal formada lo está solo por su defecto.
+// eval; y cada lista mal formada lo está solo por su defecto. Y cada eval se lee
+// con sus claves de H7.4 (contracts/evals-y-juicio.md §1 y §5; FR-003, FR-004,
+// FR-053): las de legal-core, con la skill que no se activa en NoSeActivan, y la
+// positiva de los dos bloques de la LCSP, con sus redacciones modificadas en
+// RedaccionesModificadas.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -260,6 +269,42 @@ func TestLeerConjunto(t *testing.T) {
 			},
 			evals:       []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{{fichero: "expresiones-prohibidas.yml", fragmento: sinLaForma}},
+		},
+		{
+			// Las dos de legal-core, cada una con la skill que no se activa
+			// detrás de activa, como en el repositorio.
+			nombre: "no-se-activan-en-legal-core",
+			entradas: []entradaDeConjunto{
+				{
+					nombre: legalCoreCubierto,
+					contenido: preguntaDelMunicipio + "activa: true\n" + noSeActivaBoeLegislacion + comandoDelMunicipio +
+						"territorio:\n  comunidad: Comunidad de Madrid\n",
+				},
+				{nombre: legalCoreNoActivacion, contenido: evalDeLaReceta + noSeActivaBoeLegislacion},
+			},
+			evals: []Eval{
+				{
+					Fichero:     legalCoreCubierto,
+					Pregunta:    "¿En qué boletines se publican las normas que afectan a Leganés?",
+					Activa:      true,
+					NoSeActivan: []string{"boe-legislacion"},
+					Comandos:    []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
+					Territorio:  TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
+				},
+				{
+					Fichero:     legalCoreNoActivacion,
+					Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
+					NoSeActivan: []string{"boe-legislacion"},
+				},
+			},
+		},
+		{
+			nombre: "redacciones-modificadas-de-una-positiva",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeDosBloquesDeLaLCSP, contenido: evalDeDosBloquesDeLaLCSP},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21, leidaDeDosBloquesDeLaLCSP(ficheroDeDosBloquesDeLaLCSP)},
 		},
 	}
 
