@@ -1,0 +1,359 @@
+diff antes/contracts/lista-de-expresiones.md ahora/contracts/lista-de-expresiones.md
+--- antes/contracts/lista-de-expresiones.md	2026-09-30 16:31:15
++++ ahora/contracts/lista-de-expresiones.md	2026-09-30 16:41:52
+@@ -36,6 +36,7 @@
+   - redacción posterior
+   - posterior a la consultada
+   - haya cambiado desde
++  - se consultó antes
+   - tengo suficiente
+   - no necesito
+   - i have enough
+@@ -61,7 +62,7 @@
+   - "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior"
+ ```
+ 
+-86 expresiones (22 + 16 + 38 + 10), ≈ 2,3 KB con el comentario; fijas, no crecen con el uso.
++87 expresiones (22 + 16 + 39 + 10), ≈ 2,3 KB con el comentario; fijas, no crecen con el uso.
+ 
+ ## 2. El esquema (tarea `[datos]`)
+ 
+@@ -77,11 +78,14 @@
+ `ExtraerExpresionesProhibidas(texto, lista)`:
+ 
+ 1. **Quita cada forma fija de la lista**, en su orden, en todas sus apariciones. Una forma compila a una expresión
+-   regular: su texto con `regexp.QuoteMeta`, cada blanco como `[ \t]+`, `<cita>` como `[^\[\n]*\[[^\]\n]*,[ \t]*bloque[
+-   \t]+[^\]\n]+\]` (de lo que haya tras el texto anterior al corchete de cierre de una cita, en la misma línea) y
+-   `<fecha>` como `[0-9]{8}`; y un `⚠` al principio admite los blancos y el énfasis de Markdown de la forma fija de los
+-   avisos (H5.1). La frase de la regla 7 va sin su punto final: la respuesta puede seguirla de un paréntesis (14-01 de
+-   `196ee05`).
++   regular: su texto con `regexp.QuoteMeta`, cada blanco como `[ \t]+`, `<fecha>` como `[0-9]{8}`, y `<cita>` como un
++   grupo **opcional** con la cita, `[^\[\n]*\[[^\]\n]*,[ \t]*bloque[ \t]+[^\]\n]+\]` (de lo que haya tras el texto
++   anterior al corchete de cierre de una cita, en la misma línea), y lo que la sigue en la forma hasta el blanco
++   siguiente, ese blanco incluido: en la línea de la redacción, `(?:<cita>:[ \t]+)?`. Así se quita la línea con su
++   cita, la que enseña v0.1.4, y también sin ella, la que escribían v0.1.1 a v0.1.3 y la que llevan las respuestas de
++   los tres informes del calibrado (§4). La lista no mide que la línea lleve su cita (FR-023): eso lo juzga la eval 20
++   (FR-052). Un `⚠` al principio admite los blancos y el énfasis de Markdown de la forma fija de los avisos (H5.1). La
++   frase de la regla 7 va sin su punto final: la respuesta puede seguirla de un paréntesis (14-01 de `196ee05`).
+ 2. **Quita la marca, la etiqueta y los dos puntos de cada aviso de vigencia**, con las expresiones de `ExtraerAvisos`
+    (`boe.EtiquetasDeAviso`). Lo que sigue a la etiqueta en la línea se busca.
+ 3. Cada tramo quitado se cambia por un salto de línea (una expresión no casa a través de un salto: sus palabras de los
+@@ -89,9 +93,9 @@
+ 4. **Busca** como hoy, en el orden `maquinaria`, `otra_conversacion`, `anuncio`, `redaccion_no_leida`, sin repetir.
+ 
+ Así, «la que se consultó antes» de la línea y «desde una consulta anterior» de la regla 7 no cuentan dentro de sus
+-formas; las mismas palabras fuera de ellas, o en otra redacción de la línea, sí. `ExpresionesProhibidas.esDeLaClaseB` (sin exportar)
+-dice si una expresión encontrada es de `redaccion_no_leida`. Una lista sin familias (la de una skill sin lista) no quita
+-nada ni encuentra nada.
++formas; las mismas palabras fuera de ellas, o en otra redacción de la línea, sí: `se consultó antes` y `consulta
++anterior`, de `anuncio`. `ExpresionesProhibidas.esDeLaClaseB` (sin exportar) dice si una expresión encontrada es de
++`redaccion_no_leida`. Una lista sin familias (la de una skill sin lista) no quita nada ni encuentra nada.
+ 
+ ## 4. El calibrado (`expresiones-calibradas`, FR-032, FR-093; SC-002)
+ 
+@@ -114,12 +118,17 @@
+ | 15 | maq 3, anu 3, alg 3 | maq 3, anu 3, alg 3 | — |
+ | 16 | maq 2, anu 2, alg 2 | — | — |
+ | 17 | maq 3, anu 2, alg 3 | — | — |
+-| 19 | otra 1, red 1, alg 2 | maq 1, red 2, alg 2 | red 2, alg 2 |
++| 19 | otra 1, anu 1, red 1, alg 2 | maq 1, anu 1, red 2, alg 2 | anu 1, red 2, alg 2 |
+ 
+ Informes: `specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json`,
+ `specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json` y
+ `specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json`. Cada diferencia nombra el informe, la eval, la columna,
+-lo contado y lo calibrado, como hoy. Medido con el prototipo (research V20).
++lo contado y lo calibrado, como hoy. Medido con el prototipo (research V20). El `anu 1` de la 19 es `se consultó antes`
++fuera de la línea: la 19-01 de H7.1 («lo que se consultó antes era la versión previa»), la 19-02 de H7.2 y la 19-02 de
++`196ee05` («es distinta de la que se consultó antes»), las tres ya marcadas por otra familia, así que `alguna` no
++cambia. La línea de la redacción de esos informes va sin cita (v0.1.1 a v0.1.3) y se quita porque `<cita>` es opcional
++(§3); con la cita obligatoria, `se consultó antes` marcaría en cada informe una respuesta más de la 19, que no lleva
++otra expresión que la de esa línea: 37, 12 y 10.
+ 
+ ## 5. Las formas de la skill y los bloques (FR-033; SC-003)
+ 
+@@ -132,7 +141,7 @@
+   `<identificador>, bloque <id>]` → `BOE-A-2015-10565, bloque a21]`). Exige que `ExtraerExpresionesProhibidas` no
+   encuentre ninguna y que **cada** forma fija de la lista quite algo de esa respuesta (si la skill y la lista dejaran de
+   decir lo mismo, la forma no quitaría nada). La premisa: sin quitar las formas fijas, la respuesta sí lleva alguna
+-  (`consulta anterior`, de la regla 7).
++  (`se consultó antes`, de la línea de la redacción, y `consulta anterior`, de la regla 7).
+ 
+ ## 6. Los tests de `Juzgar` (FR-034, FR-094; SC-007)
+ 
+@@ -167,13 +176,16 @@
+ Sin marcar (0 expresiones): la respuesta compuesta de §5; «No hay avisos de vigencia sobre este bloque.»; la 19-02 de la
+ línea de base, «No puedo decirte qué contenía la redacción anterior.»; y la frase que enseña v0.1.4, en la forma en que
+ la diría la respuesta: «Cito la redacción vigente; la que había antes no la he leído, así que no puedo decir qué ha
+-cambiado.». Y las mismas palabras fuera de sus formas, marcadas: «La redacción es la misma que la que se consultó antes
+-y no ha cambiado desde una consulta anterior.» (A, `consulta anterior`).
++cambiado.». Y las mismas palabras fuera de sus formas, marcadas en la clase A: «Esta redacción es distinta de la que se
++consultó antes.» (`se consultó antes`, sola) y «La redacción es la misma que la que se consultó antes y no ha cambiado
++desde una consulta anterior.» (`se consultó antes` y `consulta anterior`).
+ 
+-`TestExtraerExpresionesProhibidas` gana los casos de §3: la forma de la línea con su cita, con énfasis y con otra cita;
+-la frase de la regla 7 con punto, sin él y seguida de un paréntesis; una etiqueta de aviso seguida de una expresión en
+-la misma línea (se encuentra); la línea de la redacción escrita con otras palabras (se busca entera); y una lista sin
+-formas fijas, que no quita nada.
++`TestExtraerExpresionesProhibidas` gana los casos de §3: la forma de la línea con su cita, con énfasis, con otra cita y
++sin cita (la de v0.1.3), que se quita en los cuatro; la frase de la regla 7 con punto, sin él y seguida de un
++paréntesis; una etiqueta de aviso seguida de una expresión en la misma línea (se encuentra); la línea de la redacción
++escrita con otras palabras, que se busca entera («⚠ REDACCIÓN MODIFICADA: la redacción que se consultó antes ha sido
++sustituida.» da `se consultó antes`); «la que se consultó antes» sola, fuera de la forma (da `se consultó antes`); y una
++lista sin formas fijas, que no quita nada.
+ 
+ ## 7. Dónde se aplica (FR-036)
+ 
+diff antes/contracts/tanda-del-job.md ahora/contracts/tanda-del-job.md
+--- antes/contracts/tanda-del-job.md	2026-09-30 16:31:15
++++ ahora/contracts/tanda-del-job.md	2026-09-30 16:39:19
+@@ -112,8 +112,8 @@
+ 
+ **El bucle** (`esperarLaDecision`): consulta, decide y, con pendientes, espera 10 s (`esperaEntreConsultas`) y
+ vuelve a consultar; pasados 10 min (`esperaMaximaDeLaDecision`) con alguna pendiente, mide y lo dice en el registro (la
+-`concurrency` la pondría detrás de la otra, como antes de H7.4). Un error de `gh` o una respuesta que no se puede leer es
+-un error que nombra la orden y lo que escribió: el paso falla (defecto `inesperado`).
++`concurrency` la pondría detrás de la otra, como antes de H7.4). Un error de `gh` (la orden termina con otro código que
++`0`) es un error que nombra la orden y lo que escribió: el paso falla (defecto `inesperado`).
+ 
+ **Las órdenes** (research D16), con `exec.CommandContext(ctx, "sh", "-c", <constante>)` y los valores en el entorno de
+ la orden (el de la ejecución, `os.Environ()`, más la variable de la orden):
+@@ -159,7 +159,7 @@
+ | `espera-agotada` | 10 sin terminar, siempre `tandaSinDecidir` | mide al agotar la espera |
+ 
+ Y **`estado-de-la-tanda`**: el estado leído de un `gh run view --json jobs` sintético —con la marca en `success`; con la
+-marca `skipped`; con `tanda` `in_progress`; sin `tanda`; con `tanda` `skipped`—, y un JSON que no se puede leer, error.
++marca `skipped`; con `tanda` `in_progress`; sin `tanda`; con `tanda` `skipped`—.
+ 
+ ## 5. Uso, de fuera adentro
+ 
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-09-30 16:31:15
++++ ahora/data-model.md	2026-09-30 16:40:02
+@@ -12,18 +12,18 @@
+ |---|---|---|---|
+ | `Maquinaria` (`maquinaria`) | `[]string` | A | sin cambios |
+ | `OtraConversacion` (`otra_conversacion`) | `[]string` | A | sin cambios |
+-| `Anuncio` (`anuncio`) | `[]string` | A | gana las 24 formas de la clase A (research D6) |
++| `Anuncio` (`anuncio`) | `[]string` | A | gana las 25 formas de la clase A (research D6) |
+ | `RedaccionNoLeida` (`redaccion_no_leida`) | `[]string` | **B** | nuevo, obligatorio en el esquema |
+-| `FormasFijas` (`formas_fijas`) | `[]string` | — | nuevo, obligatorio en el esquema: textos con los marcadores `<cita>` y `<fecha>` que se quitan antes de buscar |
++| `FormasFijas` (`formas_fijas`) | `[]string` | — | nuevo, obligatorio en el esquema: textos con los marcadores `<cita>` (opcional) y `<fecha>` que se quitan antes de buscar |
+ 
+ Reglas: cada expresión, una o más palabras sin blancos de más ni `*`/`_` (el patrón de hoy); cada forma fija, texto
+ de una línea con al menos un carácter fuera de los marcadores. La clase B es exactamente `RedaccionNoLeida`: la
+ alimenta el umbral `redaccion_no_leida:<modelo>`. Una lista que no cumple el esquema es un fichero mal formado (H7.2
+ FR 055). El valor cero sigue siendo el de una skill sin lista (`legal-core`).
+ 
+-`ExtraerExpresionesProhibidas(texto, lista)`: quita del texto cada forma fija de la lista y después la marca, la
+-etiqueta y los dos puntos de cada aviso de vigencia (`boe.EtiquetasDeAviso`), cambiando cada tramo por un salto de
+-línea; y devuelve las expresiones que lleva, en el orden maquinaria, otra conversación, anuncio y redacción no leída,
++`ExtraerExpresionesProhibidas(texto, lista)`: quita del texto cada forma fija de la lista (la línea
++`⚠ REDACCIÓN MODIFICADA:`, con su cita o sin ella) y después la marca, la etiqueta y los dos puntos de cada aviso de
++vigencia (`boe.EtiquetasDeAviso`), cambiando cada tramo por un salto de línea; y devuelve las expresiones que lleva, en el orden maquinaria, otra conversación, anuncio y redacción no leída,
+ sin repetir. `esDeLaClaseB(expresion)` (sin exportar) dice si una expresión de la lista es de `RedaccionNoLeida`.
+ 
+ ## 2. La eval (`Eval`)
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-09-30 16:31:15
++++ ahora/plan.md	2026-09-30 16:41:12
+@@ -21,10 +21,10 @@
+    se describe la redacción superada, qué sí se dice y qué responder si se pregunta qué cambió; cada línea
+    `⚠ REDACCIÓN MODIFICADA:` lleva la cita de su bloque; y cada orden de lectura y comprobación lleva su forma para
+    PowerShell (`…; if ($LASTEXITCODE -eq 0) { … }`).
+-2. **La lista por clases** (D6-D8): `anuncio` gana 24 formas de la clase A y la familia nueva `redaccion_no_leida`
++2. **La lista por clases** (D6-D8): `anuncio` gana 25 formas de la clase A y la familia nueva `redaccion_no_leida`
+    tiene 10 de la clase B; antes de buscar se quitan las `formas_fijas` que declara la lista (la línea
+-   `⚠ REDACCIÓN MODIFICADA:` y la frase de la regla 7) y las etiquetas de los avisos. Marca exactamente 36, 11 y 9 en los
+-   tres informes versionados, eval por eval (medido).
++   `⚠ REDACCIÓN MODIFICADA:`, con su cita o sin ella, y la frase de la regla 7) y las etiquetas de los avisos. Marca
++   exactamente 36, 11 y 9 en los tres informes versionados, eval por eval (medido).
+ 3. **Dos umbrales nuevos que deciden** (D13, D14): `sin_activar:claude-sonnet-5-5` y
+    `redaccion_no_leida:claude-sonnet-5-5`, los dos `<=` 0; con `expresiones_prohibidas:` (≤ 0,05) y la duración (≤ 900 s),
+    cuatro que deciden. Los recuentos y los umbrales cuentan solo las sesiones terminadas.
+@@ -70,7 +70,7 @@
+ `//nolint`.
+ 
+ **Scale/Scope**: 20 evals de `boe-legislacion` (97 sesiones con la prueba de red: 54 del modelo que decide y 30 del
+-informativo en evals que activan la skill) y 3 de `legal-core`; una lista de 86 expresiones y 2 formas fijas.
++informativo en evals que activan la skill) y 3 de `legal-core`; una lista de 87 expresiones y 2 formas fijas.
+ 
+ ## Constitution Check
+ 
+@@ -128,7 +128,7 @@
+ ```text
+ schemas/expresiones-prohibidas.yaml.json            # redaccion_no_leida, formas_fijas [datos]
+ schemas/eval.yaml.json                              # no_se_activan, redacciones_modificadas [datos]
+-evals/boe-legislacion/expresiones-prohibidas.yaml   # anuncio +24, redaccion_no_leida, formas_fijas
++evals/boe-legislacion/expresiones-prohibidas.yaml   # anuncio +25, redaccion_no_leida, formas_fijas
+ evals/boe-legislacion/20-lcsp-dos-bloques-redaccion-cambiada.yaml   # nueva [datos]
+ evals/legal-core/01-…yaml, 02-…yaml, 03-…yaml       # no_se_activan: [boe-legislacion]
+ testdata/evals/grafo-previo/lcsp-a1-30-y-da-3-redaccion-original/   # dos derivadas [datos]
+@@ -208,11 +208,15 @@
+ - `TestGrabacionesDerivadas` (`internal/app/grafo_test.go`): dos entradas más (FR-096; SC-012).
+ - `formato_test.go`: los casos de los dos esquemas (contracts/lista-de-expresiones.md §2, contracts/evals-y-juicio.md
+   §1). `TestLeerConjunto`, si arma la lista del repositorio.
+-- Todo test cuyo texto sintético lleve una forma nueva y que aplique la lista del repositorio o una con esas formas:
+-  hoy, el caso de `juzgar_test.go:642` («La redacción ha cambiado desde la consulta anterior.», que gana `consulta
+-  anterior` en sus expresiones y motivos esperados) y el de `prohibidas_test.go:174` (la frase de la regla 7, que con una
+-  lista con `formas_fijas` no se marca). La tarea que cambia la lista busca antes, en `internal/evals/*_test.go`, las 34
+-  formas nuevas (la orden de research V21) y declara cada fichero que las lleva.
++- Todo test cuyo texto sintético lleve una forma nueva y que aplique la lista del repositorio o una con esas formas
++  (research V27): hoy, el caso de `juzgar_test.go:642` («La redacción ha cambiado desde la consulta anterior.», que gana
++  `consulta anterior` en sus expresiones y motivos esperados), el de `prohibidas_test.go:174` (la frase de la regla 7,
++  que con una lista con `formas_fijas` no se marca) y dos casos de `TestCondicionesDeLaConsultaRepetida`
++  (`consulta_repetida_test.go:73-74` y `:90-91`, la línea escrita con otras palabras o con fechas de nueve cifras, que
++  ganan la línea de `se consultó antes` en las esperadas). La línea sin cita entera (`juzgar_test.go:111-112` y
++  `:136-137`, `prohibidas_test.go:156-157`) no cambia: la quita su forma fija. La tarea que cambia la lista busca antes,
++  en `internal/evals/*_test.go`, las 35 formas nuevas, escritas en UTF-8 y con escapes `\x` (la orden de research V27), y
++  declara cada fichero que las lleva.
+ - `informe_test.go`, `juzgar_test.go`, `sesion_test.go`, `umbrales_test.go`: los resultados e informes esperados ganan
+   `redacciones_modificadas_encontradas`/`…_ausentes`, los umbrales nuevos donde hay lista, las columnas de
+   `informe.md` y las respuestas medidas sin las sesiones sin terminar. Ninguno se desactiva ni se salta.
+@@ -281,7 +285,7 @@
+   acotadas a las ejecuciones del commit (`--commit`, `--limit 100`).
+ - **La salida de error del sondeo** en un error de uso (quien lo lanza; una por lanzamiento): una línea por error, como
+   mucho seis, < 1 KB.
+-- **`SKILL.md`** (el modelo; una vez por conversación): 294 líneas en el prototipo; **la lista**: 86 expresiones y 2
++- **`SKILL.md`** (el modelo; una vez por conversación): 294 líneas en el prototipo; **la lista**: 87 expresiones y 2
+   formas fijas, ≈ 2,3 KB, fija.
+ 
+ ## Decisiones
+@@ -291,7 +295,8 @@
+ - **La clase A va a `anuncio`; la B, a una familia nueva `redaccion_no_leida`**, y la lista no gana las formas que
+   nombran la redacción anterior, para no marcar la respuesta honrada de FR-022 (D2, D6).
+ - **Las formas fijas las declara la lista** (`formas_fijas`, con `<cita>` y `<fecha>`), y `expresiones-de-la-skill`
+-  comprueba que la lista y la skill dicen lo mismo (D7, D8).
++  comprueba que la lista y la skill dicen lo mismo (D7, D8). `<cita>` es opcional: la línea sin cita de los informes del
++  calibrado también se quita, y `se consultó antes`, en `anuncio`, marca esas palabras fuera de la línea (D6, D7).
+ - **La línea `⚠ REDACCIÓN MODIFICADA:` lleva la cita detrás de la etiqueta** (D4); **PowerShell**,
+   `…; if ($LASTEXITCODE -eq 0) { … }` (D5).
+ - **La respuesta a la pregunta es el primer `result`** (D12).
+@@ -308,8 +313,8 @@
+ | «Redacción modificada»: por qué, qué sí, qué responder (C9) | FR-011, FR-020, FR-022 |
+ | Línea `⚠ REDACCIÓN MODIFICADA:` con la cita (C9) | FR-023 |
+ | Formas para PowerShell (C2, C4) y `defectosDeLasOrdenesParaPowerShell` (en `conjunto_test.go`) | FR-024, FR-095 |
+-| `anuncio` +24, `RedaccionNoLeida`, `esDeLaClaseB` | FR-010, FR-011, FR-030, FR-036, FR-042 |
+-| `FormasFijas` y su supresión en `ExtraerExpresionesProhibidas` (con las etiquetas de aviso) | FR-012, FR-031, FR-033 |
++| `anuncio` +25, `RedaccionNoLeida`, `esDeLaClaseB` | FR-010, FR-011, FR-030, FR-031, FR-036, FR-042 |
++| `FormasFijas` y su supresión en `ExtraerExpresionesProhibidas` (con las etiquetas de aviso; `<cita>` opcional) | FR-012, FR-031, FR-032, FR-033 |
+ | Esquema de la lista | FR-035 |
+ | Calibrado de tres informes y cinco columnas | FR-032, FR-093 |
+ | `expresiones-de-la-skill` con la respuesta compuesta | FR-033, FR-093 |
+@@ -350,7 +355,7 @@
+    `Eval` (`NoSeActivan`, `RedaccionesModificadas`) y las tres evals de `legal-core` con `no_se_activan`. La lista del
+    repositorio gana en esta tarea sus `formas_fijas` (las dos, definitivas) y la primera forma de `redaccion_no_leida`
+    (`ya no exige`), que no marca ninguna respuesta de los informes de H7.1 y H7.2 (research V20): el esquema se cumple y
+-   el calibrado de hoy no cambia. Las otras nueve formas de `redaccion_no_leida` y las 24 de `anuncio` entran en el paso
++   el calibrado de hoy no cambia. Las otras nueve formas de `redaccion_no_leida` y las 25 de `anuncio` entran en el paso
+    6, con `SKILL.md` v0.1.4: con ellas, la prosa de v0.1.3 da 9 defectos (research V19).
+ 2. `redacciones.go` y el juicio de `Juzgar` (`no_se_activan`, redacciones esperadas), con sus tests.
+ 3. `sesion.go` (el primer `result`) con su caso **`[datos]`** de `TestLeerSesion`.
+@@ -359,7 +364,7 @@
+ 5. **`[datos]`** la eval 20, las dos entradas de `derivadasDelGrafoPrevio`, las derivadas escritas por
+    `TestGrabacionesDerivadas -actualizar-derivadas` y la comprobación de `compruebaLaSesion`; y `timeout-minutes: 122`
+    en `evals.yml` (sin él, `TestDefinicionDelJob` falla con 20 evals).
+-6. `skills/boe-legislacion/SKILL.md` v0.1.4 con la lista entera (`anuncio` +24 y `redaccion_no_leida` con sus 10), el
++6. `skills/boe-legislacion/SKILL.md` v0.1.4 con la lista entera (`anuncio` +25 y `redaccion_no_leida` con sus 10), el
+    calibrado de tres informes y cinco columnas, `expresiones-de-la-skill`, `ordenes-para-powershell` y
+    `TestOrdenesParaPowerShell`, `TestJuzgarLasClasesDeLaRespuesta` y los tests con textos que llevan formas nuevas, en
+    la misma tarea: con la lista nueva, `prosa-de-la-skill` da 9 defectos en v0.1.3 (research V19).
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-09-30 16:31:15
++++ ahora/quickstart.md	2026-09-30 16:41:19
+@@ -34,7 +34,8 @@
+ go test -count=1 -run '^(TestJuzgarLasClasesDeLaRespuesta|TestExtraerExpresionesProhibidas|TestJuzgar)' ./internal/evals/
+ ```
+ 
+-Pasa: cada frase de la bitácora marcada en su clase, las formas fijas y la respuesta de FR-022 sin marcar, la sesión de
++Pasa: cada frase de la bitácora marcada en su clase, las formas fijas y la respuesta de FR-022 sin marcar, las mismas
++palabras de las formas fijas fuera de ellas marcadas («la que se consultó antes», `se consultó antes`), la sesión de
+ `legal-core` que activa `boe-legislacion` sin pasar, y las dos líneas `⚠ REDACCIÓN MODIFICADA:` de la eval 20 juzgadas
+ por su bloque y sus fechas.
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-09-30 16:31:15
++++ ahora/research.md	2026-09-30 16:41:57
+@@ -32,15 +32,15 @@
+ | V16 | El grafo previo de una eval se prepara con su carpeta de derivadas copiada **encima** de la unión de grabaciones (`prepararGrafoPrevio`; `internal/evals/conjunto_test.go:1390-1392`): un bloque del grafo previo sin su derivada en la carpeta se leería con la grabación de H4, que da la redacción vigente. `compruebaLaSesion` exige que `graph check` dé en la sesión exactamente las clases de `hallazgos` de la eval (`:1981-1983`) | fuente |
+ | V17 | `TestLeerSesion` exige un directorio de `internal/evals/testdata/sesiones/leer-sesion/` por caso, y un caso por directorio (`internal/evals/sesion_test.go:192-198`) | fuente |
+ | V18 | La subprueba `prosa-de-la-skill` quita los bloques delimitados, la región generada y el código en línea antes de buscar (`internal/evals/conjunto_test.go:1545-1669`); `expresiones-de-la-skill` aplica la lista, sin quitar nada, a las formas escritas de los avisos y los hallazgos y a cada bloque `text` de `SKILL.md` (`:1460-1497`): con «consulta anterior» en la lista, el bloque de la regla 7 la haría fallar | fuente |
+-| V19 | `SKILL.md` v0.1.3: 270 líneas; la `description` tiene 723 caracteres (máximo 1024, `internal/skills/frontmatter.go:53, 438`); con la lista nueva, `prosa` da 9 párrafos con defecto (líneas 65, 72, 82, 120, 177, 185, 198 y 268 con «lectura anterior», y 260 con «la comprobación de la redacción»). El prototipo v0.1.4 de [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md): 294 líneas, ≈ 925 caracteres de `description` y 0 defectos; fuera de la prosa quedan «lectura anterior» en la región generada (línea 229 de v0.1.3, de `--describe`) y «consulta anterior» en el bloque de la regla 7 | `prosa`, `wc` |
++| V19 | `SKILL.md` v0.1.3: 270 líneas; la `description` tiene 723 caracteres (máximo 1024, `internal/skills/frontmatter.go:53, 438`); con la lista nueva, `prosa` da 9 párrafos con defecto (líneas 65, 72, 82, 120, 177, 185, 198 y 268 con «lectura anterior», y 260 con «la comprobación de la redacción»). El prototipo v0.1.4 de [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md): 294 líneas, ≈ 925 caracteres de `description` y 0 defectos; fuera de la prosa quedan «lectura anterior» en la región generada (línea 229 de v0.1.3, de `--describe`), «se consultó antes» en el bloque de la línea `⚠ REDACCIÓN MODIFICADA:` y «consulta anterior» en el bloque de la regla 7 | `prosa`, `wc` |
+ | V20 | Medidas de la lista candidata con `calibrar` (formas fijas quitadas) — ver «Calibrado» | `calibrar` sobre V1 |
+-| V21 | Ninguna expresión de la lista nueva aparece en las respuestas grabadas de los bloques que leen las evals (`a21`, `a1-30`, `da-3`, `a22`, `a66`, `a59`, `a17`, `a25`, `a20`, `a140`, `a38`, `a42` y la derivada de `a1-30`): `grep -i -E` de las 34 formas sobre `*texto_bloque*` de las dos carpetas y `grafo-previo/*` sale con 1 | `grep` |
++| V21 | Ninguna expresión de la lista nueva aparece en las respuestas grabadas de los bloques que leen las evals (`a21`, `a1-30`, `da-3`, `a22`, `a66`, `a59`, `a17`, `a25`, `a20`, `a140`, `a38`, `a42` y la derivada de `a1-30`): `grep -i -E` de las 35 formas sobre `*texto_bloque*` de las dos carpetas y `grafo-previo/*` sale con 1 | `grep` |
+ | V22 | `pwsh` y `powershell` no están en esta máquina (`which` → «not found») | `which` |
+ | V23 | El sondeo comprueba los argumentos y la credencial antes de construir nada (`comprobarElSondeo`, `internal/evals/sondeo.go:509-534`), con los errores de los argumentos unidos, uno por línea (`:547-574`), y `errSinSuscripcion` (`:45-46`); `TestSondeo` falla con `require.NoError` (`internal/evals/job_test.go:218-232`) y `scripts/evals-sondeo.sh` imprime entero `go-test.log` a la salida de error y sale con 1 si `go test` falla (`:37-45`) | fuente |
+ | V24 | La definición del job hoy: `cambios` solo en `pull_request` que no es `labeled`; `evals` con `needs: [cambios]`, `concurrency` por commit y skill con `cancel-in-progress: false`, matriz de dos skills y `timeout-minutes: 120`; `TestDefinicionDelJob` la lee con `leerDefinicionDelJob` y comprueba claves (`internal/evals/definicion.go:93-172`, `definicion_test.go:61-221`). El `-commit` ya es una bandera de los puntos de entrada (`internal/evals/job_test.go:48`) | fuente |
+ | V25 | `CONTRIBUTING.md:592-594` dice que un segundo disparo «espera a que termine […] y abre su tanda después», y `:655` que el motivo lleva el texto «del último `result` con `is_error`»: el hito deja falsa la primera | `grep` |
+ | V26 | GNU Make (3.81 en esta máquina) sale con 2 si hay algún error, también el de una receta (`man make`, «EXIT STATUS»): `make evals-sondeo` da 2 cuando el guion sale con 1. `env -u <nombre>` quita una variable del entorno en el `env` de macOS (`man env`) | `man make`, `man env` |
+-| V27 | Los textos sintéticos de los tests de hoy con alguna forma nueva de la lista: `internal/evals/juzgar_test.go:642` («La redacción ha cambiado desde la consulta anterior.») y `internal/evals/prohibidas_test.go:174` (la frase de la regla 7); `hallazgos_test.go:141` lleva la primera, pero `ExtraerHallazgos` no aplica la lista | `grep -i -E` de las 34 formas sobre `internal/evals/*_test.go` |
++| V27 | Los textos sintéticos de los tests de hoy con alguna forma nueva de la lista: `internal/evals/juzgar_test.go:642` («La redacción ha cambiado desde la consulta anterior.») y `internal/evals/prohibidas_test.go:174` (la frase de la regla 7); `hallazgos_test.go:141` lleva la primera, pero `ExtraerHallazgos` no aplica la lista. Con `se consultó antes`: la línea de la redacción sin cita, entera, en `juzgar_test.go:111-112` y `:136-137`, `prohibidas_test.go:156-157` y `hallazgos_test.go:82-83` (la forma fija la quita: no cambian), y fuera de esa forma en dos casos de `TestCondicionesDeLaConsultaRepetida`, que aplica la lista del repositorio: `consulta_repetida_test.go:73-74` («…la redacción que se consultó antes ha sido sustituida.») y `:90-91` (la línea con fechas de nueve cifras, que la forma no casa) | `grep -i -F` de las 35 formas, escritas en UTF-8 y con escapes `\x`, sobre `internal/evals/*_test.go` |
+ 
+ Observaciones en la plataforma (lectura con `gh`, sin escribir nada), que respaldan supuestos sin ser comprobación local:
+ 
+@@ -185,15 +185,18 @@
+ 
+ | Informe | Marcadas | Reparto por eval |
+ |---|---|---|
+-| H7.1 | **36 de 93** (las 35 de hoy y la 19-01) | 02 {maq 1, alg 1}; 03 {maq 3, anu 3, alg 3}; 04 {maq 3, anu 3, alg 3}; 05 {maq 3, anu 1, alg 3}; 06 {maq 3, anu 2, alg 3}; 07 {maq 3, anu 2, alg 3}; 08 {maq 2, anu 1, alg 2}; 09 {maq 2, anu 1, alg 2}; 13 {maq 3, anu 2, alg 3}; 14 {maq 3, anu 2, alg 3}; 15 {maq 3, anu 3, alg 3}; 16 {maq 2, anu 2, alg 2}; 17 {maq 3, anu 2, alg 3}; 19 {otra 1, red 1, alg 2} |
+-| H7.2 | **11 de 93** (las 10 de hoy y la 19-01) | 03 {maq 1, anu 1, alg 1}; 06 {maq 1, anu 1, alg 1}; 13 {maq 2, anu 2, alg 2}; 14 {maq 2, anu 2, alg 2}; 15 {maq 3, anu 3, alg 3}; 19 {maq 1, red 2, alg 2} |
+-| H7.3 (`196ee05`) | **9 de 93** | 01 {anu 1, alg 1}; 05 {anu 1, alg 1}; 13 {anu 2, alg 2}; 14 {maq 1, anu 3, alg 3}; 19 {red 2, alg 2} |
++| H7.1 | **36 de 93** (las 35 de hoy y la 19-01) | 02 {maq 1, alg 1}; 03 {maq 3, anu 3, alg 3}; 04 {maq 3, anu 3, alg 3}; 05 {maq 3, anu 1, alg 3}; 06 {maq 3, anu 2, alg 3}; 07 {maq 3, anu 2, alg 3}; 08 {maq 2, anu 1, alg 2}; 09 {maq 2, anu 1, alg 2}; 13 {maq 3, anu 2, alg 3}; 14 {maq 3, anu 2, alg 3}; 15 {maq 3, anu 3, alg 3}; 16 {maq 2, anu 2, alg 2}; 17 {maq 3, anu 2, alg 3}; 19 {otra 1, anu 1, red 1, alg 2} |
++| H7.2 | **11 de 93** (las 10 de hoy y la 19-01) | 03 {maq 1, anu 1, alg 1}; 06 {maq 1, anu 1, alg 1}; 13 {maq 2, anu 2, alg 2}; 14 {maq 2, anu 2, alg 2}; 15 {maq 3, anu 3, alg 3}; 19 {maq 1, anu 1, red 2, alg 2} |
++| H7.3 (`196ee05`) | **9 de 93** | 01 {anu 1, alg 1}; 05 {anu 1, alg 1}; 13 {anu 2, alg 2}; 14 {maq 1, anu 3, alg 3}; 19 {anu 1, red 2, alg 2} |
+ 
+ Las respuestas de la clase B de los tres (19-01 de H7.1; 19-01 y 19-02 de H7.2; 19-01 y 19-02 de `196ee05`) las marca
+-`redaccion_no_leida`, y ninguna de la clase A la marca `redaccion_no_leida`. Ninguna del modelo informativo se marca.
+-Fuera del calibrado exigible: `6ab3add` da 14 de 93 (las 11 de la clase A de la bitácora, la 19-01 de la B y la 19-02 y
+-19-03, que dicen «el cambio de redacción», clase A que la bitácora no contó); `eb6b4c8`, 6 (las 4 y las 2 de la
+-bitácora); la línea de base, 29 de 51 (27 de la clase A y las 2 de la 04), frente a las 28 de la lectura del hito.
++`redaccion_no_leida`, y ninguna de la clase A la marca `redaccion_no_leida`. El `anu 1` de la 19 es `se consultó antes`
++fuera de la línea de la redacción (19-01 de H7.1, 19-02 de H7.2 y 19-02 de `196ee05`), en respuestas que ya marca otra
++familia; la línea misma, que en los tres informes va sin cita, la quita su forma fija (D7). Ninguna del modelo
++informativo se marca. Fuera del calibrado exigible, y sin cambio con `se consultó antes`: `6ab3add` da 14 de 93 (las 11
++de la clase A de la bitácora, la 19-01 de la B y la 19-02 y 19-03, que dicen «el cambio de redacción», clase A que la
++bitácora no contó); `eb6b4c8`, 6 (las 4 y las 2 de la bitácora); la línea de base, 29 de 51 (27 de la clase A y las 2 de
++la 04), frente a las 28 de la lectura del hito.
+ 
+ **La respuesta de FR-022 no se marca.** La 19-02 de la línea de base («No puedo decirte qué contenía la redacción
+ anterior.») y la frase que enseña v0.1.4 no llevan ninguna forma: por eso la clase B no gana «redacción anterior»,
+@@ -256,7 +259,9 @@
+   anteriores`, `cambio de redacción`, `cambios de redacción`, `cambio en la redacción`, `cambios en la redacción`,
+   `la comprobación de redacción`, `la comprobación de la redacción`, `la comprobación de cambios`, `la comprobación
+   no`, `redacción posterior`, `posterior a la consultada`, `haya cambiado desde` (el estado de la comprobación o de una
+-  lectura anterior); `tengo suficiente`, `no necesito`, `i have enough`, `i don't need`, `i don’t need`, `respond
++  lectura anterior); `se consultó antes` (la lectura anterior con las palabras de la línea `⚠ REDACCIÓN MODIFICADA:`,
++  fuera de ella: «es distinta de la que se consultó antes», 19-02 de `196ee05`; «lo que se consultó antes era la
++  versión previa», 19-01 de H7.1; FR-031); `tengo suficiente`, `no necesito`, `i have enough`, `i don't need`, `i don’t need`, `respond
+   now`, `respondo de memoria`, `contesto de memoria`, `extracto fiel` (lo que el agente tiene, necesita, va a hacer o
+   anuncia).
+ - `redaccion_no_leida`: `ya no exige`, `ya no se exige`, `se eliminó`, `vigente hasta`, `aplicable hasta`, `el cambio
+@@ -275,14 +280,21 @@
+ `formas_fijas` de la lista —un texto con dos marcadores, `<cita>` (lo que va de la etiqueta al corchete de cierre de
+ una cita, en la misma línea) y `<fecha>` (ocho cifras)— y (2) la marca, la etiqueta y los dos puntos de cada aviso de
+ vigencia (`boe.EtiquetasDeAviso`, las mismas de `ExtraerAvisos`); cada tramo quitado se cambia por un salto de línea,
+-para que las palabras de sus lados no formen una expresión. La lista de `boe-legislacion` declara dos formas: la línea
+-`⚠ REDACCIÓN MODIFICADA:` de D4 y la frase de la regla 7 sin su punto final (196ee05 14-01 la escribe seguida de un
+-paréntesis). Alternativas: (a) constantes en Go con el texto de la skill: pondría texto de `boe-legislacion` en el
++para que las palabras de sus lados no formen una expresión. `<cita>` es opcional, con lo que la sigue en la forma hasta
++el blanco siguiente (en la línea, `(?:<cita>:[ \t]+)?`): la forma quita la línea de v0.1.4, con su cita, y la de
++v0.1.1 a v0.1.3, sin ella, que es la que llevan las respuestas de los tres informes del calibrado (FR-032). La lista no
++mide la cita de la línea (FR-023): la juzga la eval 20 (FR-052, D10). La lista de `boe-legislacion` declara dos formas:
++la línea `⚠ REDACCIÓN MODIFICADA:` de D4 y la frase de la regla 7 sin su punto final (196ee05 14-01 la escribe seguida
++de un paréntesis). Alternativas: (a) constantes en Go con el texto de la skill: pondría texto de `boe-legislacion` en el
+ paquete común de las evals; (b) expresiones regulares en el YAML: ilegibles y fáciles de romper; (c) leer las formas de
+ los bloques `text` de `SKILL.md`: acopla el juicio a la maquetación de la skill; (d) quitar solo la etiqueta de la línea
+-de redacción: dejaría «la que se consultó antes» (FR-031). El control de que la lista y la skill dicen lo mismo es
+-`expresiones-de-la-skill` (D8): una respuesta hecha de los bloques `text` de `SKILL.md` con datos de ejemplo no se marca,
+-y cada forma fija de la lista quita algo de ella.
++de redacción: dejaría «la que se consultó antes», que `anuncio` marca (`se consultó antes`, D6), en cada respuesta que
++traslada un cambio (FR-031); (e) `<cita>` obligatoria: la línea sin cita de los informes del calibrado se buscaría
++entera y `se consultó antes` marcaría una respuesta más de la 19 en cada uno, 37, 12 y 10 (FR-032, «Calibrado»); (f) la
++línea sin cita como una tercera forma fija: la skill ya no la enseña, así que no quitaría nada de la respuesta de
++`expresiones-de-la-skill`, que exige que cada forma quite algo (D8). El control de que la lista y la skill dicen lo
++mismo es `expresiones-de-la-skill` (D8): una respuesta hecha de los bloques `text` de `SKILL.md` con datos de ejemplo no
++se marca, y cada forma fija de la lista quita algo de ella.
+ 
+ ### D8 · Las comprobaciones de `TestEvalsDelRepositorio` (FR-032, FR-033, FR-021, FR-093)
+ 
