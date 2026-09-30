@@ -26,13 +26,15 @@ const casosDeInforme = "testdata/sesiones/informe"
 const (
 	// modeloQueDecide y commitEvaluado son el modelo que el job pide y el commit
 	// evaluado. El modelo es a propósito distinto del que declaran los
-	// transcripts sintéticos, modeloDeLosTranscripts, del que es prefijo: así no
-	// pasan ni el modelo tomado de las sesiones ni los modelos de las sesiones
-	// tomados del job, y el alias que el proveedor resuelve a una versión con
-	// fecha sigue siendo el modelo que se pidió (contrato job-de-evals §4).
+	// transcripts sintéticos, modeloDeLosTranscripts, que es el pedido con la
+	// fecha de su versión detrás: así no pasan ni el modelo tomado de las
+	// sesiones ni los modelos de las sesiones tomados del job, y el alias que el
+	// proveedor resuelve a una versión con fecha sigue siendo el modelo que se
+	// pidió (contrato job-de-evals §4). Detrás del pedido va solo la fecha: con
+	// otro sufijo sería otro modelo (ADR 0031).
 	modeloQueDecide        = "claude-haiku"
 	commitEvaluado         = "0123456789abcdef0123456789abcdef01234567"
-	modeloDeLosTranscripts = "claude-haiku-4-5"
+	modeloDeLosTranscripts = "claude-haiku-20251001"
 
 	// modeloInformativoDelCaso es el de los modelos informativos de los casos que
 	// los llevan, y el que se pide en el caso del modelo distinto.

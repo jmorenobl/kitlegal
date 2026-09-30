@@ -315,16 +315,34 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 // de un modelo lo que hizo otro (contrato job-de-evals §4; ADR 0016). El motivo va
 // detrás de los de Juzgar, porque no es un defecto de la skill sino de la
 // ejecución. El id declarado puede llevar detrás la fecha de la versión, porque el
-// proveedor resuelve el alias que se pidió, así que basta con que empiece por el
-// pedido; una sesión que no llegó a declarar ninguno no tiene modelo que comparar
-// y ya no terminó.
+// proveedor resuelve el alias que se pidió, pero nada más: claude-sonnet-5 es
+// prefijo de claude-sonnet-5-5, que es otro modelo (ADR 0031). Una sesión que no
+// llegó a declarar ninguno no tiene modelo que comparar y ya no terminó.
 func (r *ResultadoDeEval) exigirElModeloPedido() {
-	if r.ModeloDeLaSesion == "" || strings.HasPrefix(r.ModeloDeLaSesion, r.Modelo) {
+	if r.ModeloDeLaSesion == "" || esElModeloPedido(r.ModeloDeLaSesion, r.Modelo) {
 		return
 	}
 
 	r.Motivos = append(r.Motivos, motivoDeOtroModelo+r.ModeloDeLaSesion+", y se pidió "+r.Modelo)
 	r.Pasa = false
+}
+
+// digitosDeLaFechaDelModelo son los de la fecha de la versión que el proveedor
+// añade al id de un modelo, AAAAMMDD: claude-haiku-4-5-20251001.
+const digitosDeLaFechaDelModelo = 8
+
+// esElModeloPedido dice si el id que declara una sesión es el pedido, tal cual o
+// seguido de un guion y la fecha de su versión.
+func esElModeloPedido(declarado, pedido string) bool {
+	fecha, conPrefijo := strings.CutPrefix(declarado, pedido)
+	if !conPrefijo || fecha == "" {
+		return conPrefijo
+	}
+
+	fecha, conGuion := strings.CutPrefix(fecha, "-")
+
+	return conGuion && len(fecha) == digitosDeLaFechaDelModelo &&
+		strings.IndexFunc(fecha, func(r rune) bool { return r < '0' || r > '9' }) == -1
 }
 
 // motivoDeActivacion es el motivo de una activación que no coincide con la que la

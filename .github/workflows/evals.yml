@@ -107,9 +107,10 @@ jobs:
     permissions:
       contents: read
     env:
-      # El modelo que decide el veredicto: el del uso real de la skill, fijado aquí por su id; cambiarlo es un cambio de
-      # este fichero (FR-070, ADR 0016).
-      MODELO_DE_EVALS: claude-sonnet-5
+      # El modelo que decide el veredicto: el del uso real de la skill, el id al que resuelve el alias sonnet en
+      # VERSION_DE_CLAUDE_CODE, fijado aquí por su id; los dos cambian juntos, en este fichero (ADR 0031, que sustituye
+      # en esto al ADR 0016).
+      MODELO_DE_EVALS: claude-sonnet-5-5
       # Los modelos que se ejecutan y se publican como límite inferior, sin decidir el veredicto, separados por comas.
       MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
       # Cada eval se repite con cada modelo y pasa con el umbral, en lugar de exigir una sola tirada perfecta (ADR 0016).
@@ -119,8 +120,9 @@ jobs:
       # de H7.3).
       CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
       OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}
-      # La versión de Claude Code cuyo comportamiento se comprobó al planificar (research.md, verificación V1-V13).
-      VERSION_DE_CLAUDE_CODE: 2.1.270
+      # La versión de Claude Code de las sesiones: la primera en la que el alias sonnet resuelve a MODELO_DE_EVALS, que
+      # la anterior del job, 2.1.270, no reconoce (ADR 0031); su comportamiento es el de research.md de H5, V1-V13.
+      VERSION_DE_CLAUDE_CODE: 2.1.284
       SKILL_EVALUADA: ${{ matrix.skill }}
       COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
       # La prueba de red es solo de boe-legislacion: su texto invoca el applet boe para provocar dos invocaciones fuera
