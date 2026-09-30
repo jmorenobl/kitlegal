@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -23,16 +24,23 @@ import (
 const directorioDeEvalsDeLasSkills = "../../evals"
 
 // Banderas con las que scripts/evals.sh invoca, tras -args, la ejecución del job
-// (contracts/ejecucion-del-job.md §1 y §5 de H7.3).
+// (contracts/ejecucion-del-job.md §1 y §5 de H7.3). -skill, -repeticiones y
+// -concurrencia son también del sondeo, que recibe las dos últimas tal como las
+// escribe quien lo lanza, sin comprobar, y la concurrencia vacía para la del
+// job: por eso son texto. Con una bandera entera, un valor que no lo es haría
+// fallar go test antes del sondeo, sin el error que nombra su argumento de make
+// (FR-067 de H7.3); el job las convierte, porque scripts/evals.sh ya las ha
+// comprobado.
 var (
 	banderaSkill        = flag.String("skill", "", "skill evaluada")
 	banderaQueDecide    = flag.String("modelo-que-decide", "", "modelo del job cuyas sesiones deciden el veredicto")
 	banderaInformativos = flag.String("modelos-informativos", "",
 		"modelos informativos del job, separados por comas; vacío si no hay ninguno")
-	banderaRepeticiones = flag.Int("repeticiones", 0, "sesiones que se abren de cada eval con cada modelo")
+	banderaRepeticiones = flag.String("repeticiones", "", "sesiones que se abren de cada eval con cada modelo")
 	banderaUmbral       = flag.Int("umbral", 0, "sesiones de una serie que tienen que pasar para que la serie pase")
-	banderaConcurrencia = flag.Int("concurrencia", 0, "sesiones que se abren a la vez como mucho")
-	banderaPruebaDeRed  = flag.Bool("prueba-de-red", false,
+	banderaConcurrencia = flag.String("concurrencia", "",
+		"sesiones que se abren a la vez como mucho; en el sondeo, vacía es la del job para la skill")
+	banderaPruebaDeRed = flag.Bool("prueba-de-red", false,
 		"añade la sesión de la primera eval con el texto de la prueba de red")
 	banderaObjetivo = flag.Int("objetivo-de-duracion", 0,
 		"segundos que el job admite para sus sesiones; 0, sin objetivo")
@@ -41,6 +49,16 @@ var (
 	banderaSinPython = flag.String("sin-python", "", "ruta de sin-python.txt")
 	banderaSesiones  = flag.String("sesiones", "", "directorio en el que se crea el de cada sesión")
 	banderaInforme   = flag.String("informe", "", "directorio en el que se escriben informe.md e informe.json")
+)
+
+// Banderas con las que scripts/evals-sondeo.sh invoca, tras -args, el sondeo,
+// además de -skill, -repeticiones y -concurrencia (contracts/sondeo.md §2 y §3
+// de H7.3; data-model §8 de H7.3): las evals y el modelo, tal como los escribe
+// quien lo lanza, y el temporal que crea el guion.
+var (
+	banderaEvals    = flag.String("evals", "", "números de las evals del sondeo, de dos cifras y separados por comas")
+	banderaModelo   = flag.String("modelo", "", "modelo con el que se abren las sesiones del sondeo")
+	banderaTemporal = flag.String("temporal", "", "directorio del sondeo, que crea y borra su guion")
 )
 
 // Banderas con las que el quickstart invoca, tras -args, la comprobación de la
@@ -85,6 +103,9 @@ func TestEjecucionDelJob(t *testing.T) {
 	exigirBanderas(t, "skill", "modelo-que-decide", "repeticiones", "umbral", "concurrencia", "skills", "commit",
 		"sin-python", "sesiones", "informe")
 
+	repeticiones := enteroDeLaBandera(t, "repeticiones")
+	concurrencia := enteroDeLaBandera(t, "concurrencia")
+
 	evals := filepath.Join(directorioDeEvalsDeLasSkills, *banderaSkill)
 
 	conjunto, err := LeerConjunto(evals)
@@ -95,7 +116,7 @@ func TestEjecucionDelJob(t *testing.T) {
 		Evals:               conjunto.Evals,
 		ModeloQueDecide:     *banderaQueDecide,
 		ModelosInformativos: separarLosModelos(*banderaInformativos),
-		Repeticiones:        *banderaRepeticiones,
+		Repeticiones:        repeticiones,
 		PruebaDeRed:         *banderaPruebaDeRed,
 	}
 	require.NoError(t, plan.Comprobar())
@@ -110,7 +131,7 @@ func TestEjecucionDelJob(t *testing.T) {
 
 	ejecucion, err := ejecutarSesiones(senales.Done(), SesionesAEjecutar{
 		Plan:          plan.Sesiones(),
-		Concurrencia:  *banderaConcurrencia,
+		Concurrencia:  concurrencia,
 		Evals:         evals,
 		Sesiones:      *banderaSesiones,
 		Skills:        *banderaSkills,
@@ -129,7 +150,7 @@ func TestEjecucionDelJob(t *testing.T) {
 		Destino:               *banderaInforme,
 		ModeloQueDecide:       *banderaQueDecide,
 		ModelosInformativos:   plan.ModelosInformativos,
-		Repeticiones:          *banderaRepeticiones,
+		Repeticiones:          repeticiones,
 		Umbral:                *banderaUmbral,
 		Commit:                *banderaCommit,
 		SinPython:             *banderaSinPython,
@@ -146,6 +167,71 @@ func TestEjecucionDelJob(t *testing.T) {
 // de H7.3).
 func segundosHaciaArriba(duracion time.Duration) int {
 	return int((duracion + time.Second - 1) / time.Second)
+}
+
+// enteroDeLaBandera es el entero del valor de la bandera de la ejecución del
+// job, que scripts/evals.sh ha comprobado antes de invocarla.
+func enteroDeLaBandera(t *testing.T, nombre string) int {
+	t.Helper()
+
+	entero, err := strconv.Atoi(flag.Lookup(nombre).Value.String())
+	require.NoErrorf(t, err, "la bandera -%s es un entero", nombre)
+
+	return entero
+}
+
+// TestSondeo es el sondeo local de unas evals de una skill, entero y en una sola
+// orden (contracts/sondeo.md §2, §3 y §6 de H7.3; research.md D16 de H7.3):
+// con sondear,
+//
+//  1. comprueba, antes de construir nada, los argumentos de -skill, -evals,
+//     -modelo, -repeticiones y -concurrencia, con los errores que nombran su
+//     argumento de make, y CLAUDE_CODE_OAUTH_TOKEN (FR-063 y FR-067 de H7.3);
+//  2. construye el binario del árbol de trabajo e instala sus skills en el
+//     temporal de -temporal, con prepararElArbol (FR-062 de H7.3);
+//  3. abre las sesiones de las evals pedidas con el repartidor, sin traza, con
+//     scripts/evals-sesion.sh y el entorno de quien lo lanza que ven las
+//     sesiones del sondeo. SIGINT y SIGTERM cierran las abiertas con la
+//     secuencia del tope, y el test falla con el error que nombra cada una;
+//  4. las juzga con el código del job, sin lo que el job lee de la traza.
+//
+// Escribe la salida en salida.txt del temporal, que su guion imprime, y ningún
+// informe ni veredicto: falla solo con un error, sean cuales sean las tasas
+// (FR-066 de H7.3). Sin -temporal falla antes de nada, porque el sondeo
+// escribiría en el directorio de este paquete. Solo lo ejecuta
+// scripts/evals-sondeo.sh, porque abre sesiones con modelo; lo que decide lo
+// fijan TestComprobarElSondeo, TestSondear, TestJuicioDelSondeo y
+// TestSalidaDelSondeo, y la orden que lo ejecuta, TestGuionDelSondeo.
+func TestSondeo(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "temporal")
+
+	// El repartidor ejecuta el guion en el directorio de trabajo de cada sesión:
+	// su ruta relativa a este paquete no le serviría.
+	guion, err := filepath.Abs(guionDeLaSesion)
+	require.NoError(t, err)
+
+	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
+	defer dejarDeEscuchar()
+
+	salida, err := sondear(senales.Done(), SondeoAEjecutar{
+		Argumentos: ArgumentosDelSondeo{
+			Skill:        *banderaSkill,
+			Evals:        *banderaEvals,
+			Modelo:       *banderaModelo,
+			Repeticiones: *banderaRepeticiones,
+			Concurrencia: *banderaConcurrencia,
+		},
+		Entorno:          os.Environ(),
+		EvalsDeLasSkills: directorioDeEvalsDeLasSkills,
+		Temporal:         *banderaTemporal,
+		Guion:            guion,
+		PrepararElArbol:  prepararElArbol,
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDeLaSalidaDelSondeo), []byte(salida), 0o600))
 }
 
 // TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta

@@ -398,12 +398,80 @@ func existe(t *testing.T, ruta string) bool {
 func (s sustitutos) argumentos(t *testing.T, programa, sesion string) []string {
 	t.Helper()
 
-	contenido, err := leerFichero(filepath.Join(s.comun, programa, sesion, "argumentos"))
+	return argumentosAnotados(t, filepath.Join(s.comun, programa, sesion))
+}
+
+// argumentosAnotados son los que un sustituto anotó en el directorio de sus
+// anotaciones, cada uno terminado en NUL, en su orden.
+func argumentosAnotados(t *testing.T, anotaciones string) []string {
+	t.Helper()
+
+	contenido, err := leerFichero(filepath.Join(anotaciones, "argumentos"))
 	require.NoError(t, err)
 	require.NotEmpty(t, contenido)
 	require.Equal(t, byte(0), contenido[len(contenido)-1], "cada argumento termina en NUL")
 
 	return strings.Split(strings.TrimSuffix(string(contenido), "\x00"), "\x00")
+}
+
+// sustitutoDeGo es el go que TestGuionDelSondeo pone delante en el PATH en
+// lugar del de verdad, que construiría el paquete de evals y abriría el sondeo
+// con modelo (research D18 de H7.3; FR-068): crea go/ en el directorio común,
+// que falla si ya se ejecutó, y anota en él su directorio de trabajo, sus
+// argumentos, cada uno terminado en NUL, y lo que hay en el -temporal que
+// recibe; escribe en ese temporal salida.txt con salidaDelSustitutoDeGo;
+// escribe una línea en su salida estándar y otra en la de error; y sale con el
+// código de KITLEGAL_SUSTITUTO_CODIGO. Nada de lo que escribe lleva comillas
+// simples, porque va entre ellas en el guion.
+const sustitutoDeGo = `#!/bin/sh
+set -eu
+anotaciones="$KITLEGAL_SUSTITUTO_COMUN/go"
+mkdir "$anotaciones"
+pwd -P > "$anotaciones/directorio"
+printf '%s\0' "$@" > "$anotaciones/argumentos"
+temporal=
+while [ $# -gt 0 ]; do
+	case $1 in
+	-temporal) temporal=$2; shift 2 ;;
+	*) shift ;;
+	esac
+done
+ls "$temporal" > "$anotaciones/temporal"
+printf '%s' '` + salidaDelSustitutoDeGo + `' > "$temporal/` + ficheroDeLaSalidaDelSondeo + `"
+echo '` + registroDeGoEnSuSalida + `'
+echo '` + registroDeGoEnLaDeError + `' >&2
+exit "${KITLEGAL_SUSTITUTO_CODIGO:-0}"
+`
+
+// Lo que escribe el sustituto de go: la salida del sondeo, en salida.txt del
+// temporal, y una línea en cada una de sus dos salidas, que son el registro de
+// go test.
+const (
+	salidaDelSustitutoDeGo  = "Salida del sondeo que deja el sustituto de go\n- una serie: 3 de 3\n"
+	registroDeGoEnSuSalida  = "go test escribe esto en su salida"
+	registroDeGoEnLaDeError = "go test escribe esto en su salida de error"
+)
+
+// sustitutoGo es el nombre del go que sustituye sustitutoDeGo, el suyo en el
+// PATH y en el directorio común.
+const sustitutoGo = "go"
+
+// escribirElGoDelSondeo escribe el sustituto de go, ejecutable, en un
+// directorio temporal del test, a través de un os.Root, y devuelve ese
+// directorio, que va delante en el PATH del guion del sondeo.
+func escribirElGoDelSondeo(t *testing.T) string {
+	t.Helper()
+
+	bin := t.TempDir()
+
+	raiz, err := os.OpenRoot(bin)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, raiz.WriteFile(sustitutoGo, []byte(sustitutoDeGo), 0o755))
+
+	return bin
 }
 
 // entorno es lo que el sustituto de claude anotó que ve en la sesión, por

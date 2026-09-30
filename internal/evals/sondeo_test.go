@@ -1,9 +1,12 @@
 package evals
 
 import (
+	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -1196,4 +1199,200 @@ func (d sondeoDelTest) exigirElEntornoDeLaSesion(t *testing.T, sesion string) {
 	assert.Equal(t, "no", anotado["ve-ANTHROPIC_API_KEY"], "la sesión no ve ANTHROPIC_API_KEY")
 	assert.Equal(t, "no", anotado["ve-ANTHROPIC_AUTH_TOKEN"], "la sesión no ve ANTHROPIC_AUTH_TOKEN")
 	assert.NotContains(t, anotado, "OTRA_DE_LA_BASE", "la sesión no ve otras variables de la base")
+}
+
+// guionDelSondeo es scripts/evals-sondeo.sh, relativo al directorio de este
+// paquete, que es donde go test ejecuta los tests.
+const guionDelSondeo = "../../scripts/evals-sondeo.sh"
+
+// ficheroDeLaSalidaDelSondeo es el fichero del temporal del sondeo en el que
+// TestSondeo deja la salida y del que la imprime su guion (contracts/sondeo.md
+// §2 y §3 de H7.3).
+const ficheroDeLaSalidaDelSondeo = "salida.txt"
+
+// nombreDelTemporalDelSondeo es el del directorio que el guion del sondeo crea
+// en TMPDIR: la plantilla de mktemp, kitlegal-sondeo.XXXXXX, con sus seis
+// caracteres sustituidos.
+var nombreDelTemporalDelSondeo = regexp.MustCompile(`^kitlegal-sondeo\.[A-Za-z0-9]{6}$`)
+
+// casoDelGuionDelSondeo es un caso de TestGuionDelSondeo: la orden que ejecuta
+// el guion de la ruta dada, escrita entera con constantes (gosec G204), y el
+// código con el que sale el sustituto de go; y lo que se espera del guion: su
+// código, su salida estándar, los fragmentos de su salida de error, que sin
+// ninguno queda vacía, y si no ejecuta go.
+type casoDelGuionDelSondeo struct {
+	nombre     string
+	orden      func(ctx context.Context, guion string) *exec.Cmd
+	codigoDeGo int
+
+	codigo  int
+	salida  string
+	deError []string
+	sinGo   bool
+}
+
+// TestGuionDelSondeo fija scripts/evals-sondeo.sh (contracts/sondeo.md §2, §6 y
+// §7 de H7.3; FR-064, FR-066; SC-009; US4-4) con el sustituto de go delante en
+// el PATH y un TMPDIR vacío del test. Con cinco argumentos, crea en TMPDIR su
+// temporal con la plantilla kitlegal-sondeo.XXXXXX y ejecuta, en la raíz del
+// repositorio, la orden go test del punto de entrada del sondeo con los cinco
+// tras -args y -temporal con ese temporal, con sus dos salidas en su
+// go-test.log. Si go test sale con 0, el guion sale con 0, su salida estándar es
+// salida.txt y la de error queda vacía; si sale con otro código, el guion sale
+// con 1, no imprime salida.txt y su salida de error lleva lo que go test
+// escribió en sus dos salidas. Sin cinco argumentos, el uso y el código 1, sin
+// ejecutar go. En todos los casos, el TMPDIR queda vacío: el guion borra su
+// temporal (FR-064).
+func TestGuionDelSondeo(t *testing.T) {
+	t.Parallel()
+
+	guion, err := filepath.Abs(guionDelSondeo)
+	require.NoError(t, err)
+
+	raiz, err := filepath.EvalSymlinks(filepath.Dir(filepath.Dir(guion)))
+	require.NoError(t, err)
+
+	for _, caso := range casosDelGuionDelSondeo() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comun, temporal := t.TempDir(), t.TempDir()
+			orden := caso.orden(t.Context(), guion)
+
+			codigo, salida, deError := ejecutarElGuionDelSondeo(t, orden, caso.codigoDeGo, comun, temporal)
+
+			assert.Equalf(t, caso.codigo, codigo, "el código del guion, con esta salida de error:\n%s", deError)
+			assert.Equal(t, caso.salida, salida, "la salida estándar del guion")
+
+			for _, fragmento := range caso.deError {
+				assert.Contains(t, deError, fragmento, "la salida de error del guion")
+			}
+
+			if len(caso.deError) == 0 {
+				assert.Empty(t, deError, "la salida de error del guion")
+			}
+
+			entradas, err := os.ReadDir(temporal)
+			require.NoError(t, err)
+			assert.Empty(t, entradas, "el guion borra su temporal y el TMPDIR queda vacío")
+
+			exigirLaOrdenDeGo(t, caso.sinGo, orden.Args[1:], filepath.Join(comun, sustitutoGo), temporal, raiz)
+		})
+	}
+}
+
+// casosDelGuionDelSondeo son los casos de TestGuionDelSondeo: go test sale con
+// 0, con la concurrencia vacía; sale con 1 y con 2, con una concurrencia
+// pedida; y el guion recibe cuatro argumentos.
+func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
+	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
+
+	return []casoDelGuionDelSondeo{
+		{
+			nombre: "go-test-sale-con-0",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03,14", modeloSonnet5, "3", "")
+			},
+			codigo: 0,
+			salida: salidaDelSustitutoDeGo,
+		},
+		{
+			nombre: "go-test-sale-con-1",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03", modeloSonnet5, "1", "2")
+			},
+			codigoDeGo: 1,
+			codigo:     1,
+			deError:    registro,
+		},
+		{
+			nombre: "go-test-sale-con-2",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, otraSkillQueSondea, "01,03", modeloSonnet5, "2", "1")
+			},
+			codigoDeGo: 2,
+			codigo:     1,
+			deError:    registro,
+		},
+		{
+			nombre: "sin-cinco-argumentos",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "03", modeloSonnet5, "3")
+			},
+			codigo:  1,
+			deError: []string{"uso: scripts/evals-sondeo.sh"},
+			sinGo:   true,
+		},
+	}
+}
+
+// ejecutarElGuionDelSondeo ejecuta la orden del guion del sondeo con el
+// sustituto de go delante en el PATH, el TMPDIR y el directorio común dados y
+// el código de go dado, y devuelve su código y sus dos salidas.
+func ejecutarElGuionDelSondeo(t *testing.T, orden *exec.Cmd, codigoDeGo int, comun, temporal string,
+) (codigo int, salida, deError string) {
+	t.Helper()
+
+	orden.Env = sobreLaBase(os.Environ(), []string{
+		"PATH=" + escribirElGoDelSondeo(t) + string(os.PathListSeparator) + os.Getenv("PATH"),
+		"TMPDIR=" + temporal,
+		variableDelComun + "=" + comun,
+		variableDeCodigo + "=" + strconv.Itoa(codigoDeGo),
+	})
+
+	var estandar, deErr strings.Builder
+
+	orden.Stdout, orden.Stderr = &estandar, &deErr
+
+	var terminada *exec.ExitError
+
+	if err := orden.Run(); errors.As(err, &terminada) {
+		codigo = terminada.ExitCode()
+	} else {
+		require.NoError(t, err)
+	}
+
+	return codigo, estandar.String(), deErr.String()
+}
+
+// exigirLaOrdenDeGo exige, si el guion ejecuta go, que el sustituto se haya
+// ejecutado en la raíz del repositorio con la orden del punto de entrada del
+// sondeo (ordenDelSondeo), con los argumentos del guion y un temporal en el
+// TMPDIR dado, con el nombre de la plantilla y que ya tenía su go-test.log; y,
+// si no, que no se haya ejecutado.
+func exigirLaOrdenDeGo(t *testing.T, sinGo bool, delGuion []string, anotaciones, temporal, raiz string) {
+	t.Helper()
+
+	if sinGo {
+		assert.NoDirExists(t, anotaciones, "sin cinco argumentos, el guion no ejecuta go")
+
+		return
+	}
+
+	argumentos := argumentosAnotados(t, anotaciones)
+	temporalDelGuion := argumentos[len(argumentos)-1]
+
+	fisico, err := filepath.EvalSymlinks(temporal)
+	require.NoError(t, err)
+
+	assert.Equal(t, fisico, filepath.Dir(temporalDelGuion), "el temporal del guion está en TMPDIR")
+	assert.Regexp(t, nombreDelTemporalDelSondeo, filepath.Base(temporalDelGuion))
+	assert.Equal(t, ordenDelSondeo(delGuion, temporalDelGuion), argumentos)
+
+	for anotacion, esperada := range map[string]string{"directorio": raiz + "\n", "temporal": "go-test.log\n"} {
+		contenido, err := leerFichero(filepath.Join(anotaciones, anotacion))
+		require.NoError(t, err)
+		assert.Equalf(t, esperada, string(contenido), "lo que el sustituto de go anota en %s", anotacion)
+	}
+}
+
+// ordenDelSondeo son los argumentos de go de la orden del punto de entrada del
+// sondeo (contracts/sondeo.md §2 de H7.3), con los cinco del guion, en su
+// orden, y su temporal.
+func ordenDelSondeo(argumentos []string, temporal string) []string {
+	return []string{
+		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestSondeo$", "./internal/evals/", "-args",
+		"-skill", argumentos[0], "-evals", argumentos[1], "-modelo", argumentos[2], "-repeticiones", argumentos[3],
+		"-concurrencia", argumentos[4], "-temporal", temporal,
+	}
 }
