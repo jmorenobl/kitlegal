@@ -1,151 +1,151 @@
-== https://github.com/jmorenobl/kitlegal/actions/runs/36769593099/job/110072601328
-2026-09-30T20:13:29.6265219Z     {
-2026-09-30T20:13:29.6265685Z       "sesion": "20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-02",
-2026-09-30T20:13:29.6265940Z       "eval": "20-lcsp-dos-bloques-redaccion-cambiada.yaml",
-2026-09-30T20:13:29.6266094Z       "modelo": "claude-sonnet-5-5",
-2026-09-30T20:13:29.6266290Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
-2026-09-30T20:13:29.6266412Z       "decide": false,
-2026-09-30T20:13:29.6266522Z       "activa": true,
-2026-09-30T20:13:29.6266642Z       "activada": true,
-2026-09-30T20:13:29.6266782Z       "comandos_ejecutados": [
-2026-09-30T20:13:29.6266963Z         "bloque boe BOE-A-2017-12902 a1-30",
-2026-09-30T20:13:29.6267262Z         "bloque boe BOE-A-2017-12902 da-3",
-2026-09-30T20:13:29.6267432Z         "graph check BOE-A-2017-12902"
-2026-09-30T20:13:29.6267523Z       ],
-2026-09-30T20:13:29.6267665Z       "comandos_ausentes": [],
-2026-09-30T20:13:29.6267839Z       "comandos_prohibidos_ejecutados": [],
-2026-09-30T20:13:29.6267969Z       "citas_encontradas": [
-2026-09-30T20:13:29.6268119Z         "BOE-A-2017-12902 a1-30",
-2026-09-30T20:13:29.6268263Z         "BOE-A-2017-12902 da-3"
-2026-09-30T20:13:29.6268347Z       ],
-2026-09-30T20:13:29.6268475Z       "citas_ausentes": [],
-2026-09-30T20:13:29.6268618Z       "avisos_encontrados": [],
-2026-09-30T20:13:29.6268745Z       "avisos_ausentes": [],
-2026-09-30T20:13:29.6268891Z       "hallazgos_encontrados": [
-2026-09-30T20:13:29.6269033Z         "version-obsoleta"
-2026-09-30T20:13:29.6269117Z       ],
-2026-09-30T20:13:29.6269257Z       "hallazgos_ausentes": [],
-2026-09-30T20:13:29.6269446Z       "redacciones_modificadas_encontradas": [
-2026-09-30T20:13:29.6269644Z         "BOE-A-2017-12902 a1-30 20180309 20200206",
-2026-09-30T20:13:29.6269840Z         "BOE-A-2017-12902 da-3 20180309 20230101"
-2026-09-30T20:13:29.6269932Z       ],
-2026-09-30T20:13:29.6270105Z       "redacciones_modificadas_ausentes": [],
-2026-09-30T20:13:29.6270259Z       "territorio_encontrado": [],
-2026-09-30T20:13:29.6270400Z       "territorio_ausente": [],
-2026-09-30T20:13:29.6270550Z       "expresiones_prohibidas": [],
-2026-09-30T20:13:29.6270675Z       "invocaciones": [
-2026-09-30T20:13:29.6270767Z         {
-2026-09-30T20:13:29.6271016Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6271150Z           "codigo": 1,
-2026-09-30T20:13:29.6271295Z           "conexiones": []
-2026-09-30T20:13:29.6271385Z         },
-2026-09-30T20:13:29.6271477Z         {
-2026-09-30T20:13:29.6271723Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6271848Z           "codigo": 0,
-2026-09-30T20:13:29.6271992Z           "conexiones": []
-2026-09-30T20:13:29.6272085Z         },
-2026-09-30T20:13:29.6272176Z         {
-2026-09-30T20:13:29.6272419Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6272552Z           "codigo": 0,
-2026-09-30T20:13:29.6272691Z           "conexiones": []
-2026-09-30T20:13:29.6272785Z         },
-2026-09-30T20:13:29.6272876Z         {
-2026-09-30T20:13:29.6273190Z           "orden": "boe articulos BOE-A-2017-12902 a1-30 da-3 --json",
-2026-09-30T20:13:29.6273321Z           "codigo": 0,
-2026-09-30T20:13:29.6273466Z           "conexiones": []
-2026-09-30T20:13:29.6273554Z         },
-2026-09-30T20:13:29.6273646Z         {
-2026-09-30T20:13:29.6273955Z           "orden": "graph check BOE-A-2017-12902 a1-30 da-3 --json",
-2026-09-30T20:13:29.6274081Z           "codigo": 0,
-2026-09-30T20:13:29.6274224Z           "conexiones": []
-2026-09-30T20:13:29.6274316Z         }
-2026-09-30T20:13:29.6274399Z       ],
-2026-09-30T20:13:29.6274541Z       "fuera_de_lo_grabado": [],
-2026-09-30T20:13:29.6274673Z       "otras_fallidas": [
-2026-09-30T20:13:29.6274760Z         {
-2026-09-30T20:13:29.6275008Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6275139Z           "codigo": 1
-2026-09-30T20:13:29.6275340Z         }
-2026-09-30T20:13:29.6275430Z       ],
-2026-09-30T20:13:29.6275676Z       "llegadas_a_la_red": [],
-2026-09-30T20:13:29.6299443Z       "respuesta": "⚠ REDACCIÓN MODIFICADA: art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20200206, que es la que se cita.\n\n⚠ REDACCIÓN MODIFICADA: disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20230101, que es la que se cita.\n\nCito la redacción vigente de ambos bloques. La que había antes no la he leído, así que no puedo decir en qué se diferencia. El art. 118 lo modificó el Real Decreto-ley 3/2020 [BOE-A-2020-1651] y está vigente desde el 6/2/2020. La disposición adicional tercera, en su apartado 3, la modificó la Ley 31/2022 [BOE-A-2022-22128] y está vigente desde el 1/1/2023. Los textos consolidados del BOE son informativos.\n\n## Art. 118 LCSP: expediente de contratación en contratos menores\n\nEs un artículo de la Ley 9/2017, de Contratos del Sector Público (LCSP) [BOE-A-2017-12902, bloque a1-30]. Fija lo siguiente:\n\n- **Concepto (apdo. 1):** son contratos menores los de valor estimado inferior a 40.000 € en obras, o a 15.000 € en suministros y servicios. Se aplica sin perjuicio del art. 229 en las obras, servicios y suministros centralizados en el ámbito estatal.\n- **Informe del órgano de contratación (apdo. 2):** debe justificar de forma motivada la necesidad del contrato y que no se altera su objeto para evitar los umbrales del apartado 1.\n- **Gasto y factura (apdo. 3):** se requiere aprobar el gasto e incorporar la factura. La factura debe reunir los requisitos que fijen las normas de desarrollo de la Ley.\n- **Obras (apdo. 4):** hay que añadir el presupuesto de las obras. Debe existir proyecto cuando lo exijan las disposiciones vigentes. Si el trabajo afecta a la estabilidad, seguridad o estanqueidad de la obra, se solicita además el informe de las oficinas o unidades de supervisión del art. 235.\n- **Excepción (apdo. 5):** el informe del apartado 2 no se exige en los contratos que se pagan por anticipos de caja fija u otro sistema similar para pagos menores. El valor estimado no puede pasar de 5.000 €.\n- **Publicidad (apdo. 6):** los contratos menores se publican en la forma del art. 63.4.\n\n## Disposición adicional tercera LCSP: entidades locales\n\nEs una disposición de la misma ley [BOE-A-2017-12902, bloque da-3]. Las Administraciones locales aplican la LCSP con las especialidades de la disposición adicional segunda y de esta (apdo. 1). Las que afectan al expediente, sobre todo al del contrato menor, son estas:\n\n- **Fiscalización (apdo. 3):** la ejerce el órgano Interventor. Incluye la valoración de las repercusiones del contrato en la estabilidad presupuestaria y la sostenibilidad financiera (art. 7.3 de la LO 2/2012). Los contratos menores quedan excluidos de esa valoración.\n- **Municipios de menos de 5.000 habitantes (apdo. 4):** la aprobación del gasto puede sustituirse por una certificación de existencia de crédito. La expide el Secretario Interventor o, en su caso, el Interventor. Como el art. 118.3 exige aprobar el gasto, esta es la especialidad local más directa para el expediente del contrato menor.\n- **Informe jurídico (apdo. 8):**\n  - Los informes que la Ley asigna a los servicios jurídicos los evacua el Secretario.\n  - Su informe es preceptivo para aprobar expedientes de contratación, modificar contratos, revisar precios, prorrogar, mantener el equilibrio económico, interpretar y resolver.\n  - Este listado no menciona expresamente los contratos menores.\n  - En los municipios de gran población (Título X de la Ley 7/1985), los informes del Secretario corresponden al titular de la asesoría jurídica.\n\nEl resto de la disposición regula otras materias:\n\n- Tramitación anticipada (apdo. 2).\n- Concesiones (apdo. 5).\n- Supervisión de proyectos de obras (apdo. 6).\n- Proyectos independientes en municipios de menos de 5.000 habitantes (apdo. 7).\n- Aplazamiento en la adquisición de inmuebles (apdo. 9).\n- Adhesión a centrales de contratación (apdo. 10).\n- Contratos de concesión de servicios que agrupan dos o más servicios en municipios de menos de 20.000 habitantes (apdo. 11).\n\nLas ordenanzas, las bases de ejecución del presupuesto y las instrucciones internas de cada ayuntamiento no están en esta fuente. Tampoco lo está la normativa autonómica que pueda desarrollar la materia. Ambas pueden añadir requisitos.",
-2026-09-30T20:13:29.6299898Z       "codigo_de_la_sesion": 0,
-2026-09-30T20:13:29.6300071Z       "fin_de_la_sesion": "result success",
-2026-09-30T20:13:29.6300209Z       "sesion_terminada": true,
-2026-09-30T20:13:29.6300380Z       "reintentos_por_limite_de_ritmo": 0,
-2026-09-30T20:13:29.6300499Z       "sin_medir": "",
-2026-09-30T20:13:29.6300732Z       "motivos": [],
-2026-09-30T20:13:29.6300843Z       "pasa": true
-2026-09-30T20:13:29.6300931Z     },
-2026-09-30T20:13:29.6301011Z     {
-2026-09-30T20:13:29.6301364Z       "sesion": "20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-03",
-2026-09-30T20:13:29.6301618Z       "eval": "20-lcsp-dos-bloques-redaccion-cambiada.yaml",
-2026-09-30T20:13:29.6301774Z       "modelo": "claude-sonnet-5-5",
-2026-09-30T20:13:29.6301969Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
-2026-09-30T20:13:29.6302089Z       "decide": false,
-2026-09-30T20:13:29.6302199Z       "activa": true,
-2026-09-30T20:13:29.6302319Z       "activada": true,
-2026-09-30T20:13:29.6302460Z       "comandos_ejecutados": [
-2026-09-30T20:13:29.6302643Z         "bloque boe BOE-A-2017-12902 a1-30",
-2026-09-30T20:13:29.6302822Z         "bloque boe BOE-A-2017-12902 da-3",
-2026-09-30T20:13:29.6302990Z         "graph check BOE-A-2017-12902"
-2026-09-30T20:13:29.6303076Z       ],
-2026-09-30T20:13:29.6303215Z       "comandos_ausentes": [],
-2026-09-30T20:13:29.6303393Z       "comandos_prohibidos_ejecutados": [],
-2026-09-30T20:13:29.6303523Z       "citas_encontradas": [
-2026-09-30T20:13:29.6303677Z         "BOE-A-2017-12902 a1-30",
-2026-09-30T20:13:29.6303821Z         "BOE-A-2017-12902 da-3"
-2026-09-30T20:13:29.6303906Z       ],
-2026-09-30T20:13:29.6304036Z       "citas_ausentes": [],
-2026-09-30T20:13:29.6304190Z       "avisos_encontrados": [],
-2026-09-30T20:13:29.6304317Z       "avisos_ausentes": [],
-2026-09-30T20:13:29.6304463Z       "hallazgos_encontrados": [
-2026-09-30T20:13:29.6304604Z         "version-obsoleta"
-2026-09-30T20:13:29.6304688Z       ],
-2026-09-30T20:13:29.6304826Z       "hallazgos_ausentes": [],
-2026-09-30T20:13:29.6305014Z       "redacciones_modificadas_encontradas": [
-2026-09-30T20:13:29.6305210Z         "BOE-A-2017-12902 a1-30 20180309 20200206",
-2026-09-30T20:13:29.6305400Z         "BOE-A-2017-12902 da-3 20180309 20230101"
-2026-09-30T20:13:29.6305604Z       ],
-2026-09-30T20:13:29.6305782Z       "redacciones_modificadas_ausentes": [],
-2026-09-30T20:13:29.6305943Z       "territorio_encontrado": [],
-2026-09-30T20:13:29.6306083Z       "territorio_ausente": [],
-2026-09-30T20:13:29.6306235Z       "expresiones_prohibidas": [],
-2026-09-30T20:13:29.6306360Z       "invocaciones": [
-2026-09-30T20:13:29.6306456Z         {
-2026-09-30T20:13:29.6306703Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6306835Z           "codigo": 0,
-2026-09-30T20:13:29.6306979Z           "conexiones": []
-2026-09-30T20:13:29.6307069Z         },
-2026-09-30T20:13:29.6307160Z         {
-2026-09-30T20:13:29.6307405Z           "orden": "boe indice BOE-A-2017-12902 --json",
-2026-09-30T20:13:29.6307531Z           "codigo": 0,
-2026-09-30T20:13:29.6307679Z           "conexiones": []
-2026-09-30T20:13:29.6307773Z         },
-2026-09-30T20:13:29.6307859Z         {
-2026-09-30T20:13:29.6308179Z           "orden": "boe articulos BOE-A-2017-12902 a1-30 da-3 --json",
-2026-09-30T20:13:29.6308311Z           "codigo": 0,
-2026-09-30T20:13:29.6308455Z           "conexiones": []
-2026-09-30T20:13:29.6308548Z         },
-2026-09-30T20:13:29.6308634Z         {
-2026-09-30T20:13:29.6308938Z           "orden": "graph check BOE-A-2017-12902 a1-30 da-3 --json",
-2026-09-30T20:13:29.6309190Z           "codigo": 0,
-2026-09-30T20:13:29.6309329Z           "conexiones": []
-2026-09-30T20:13:29.6309419Z         }
-2026-09-30T20:13:29.6309506Z       ],
-2026-09-30T20:13:29.6309643Z       "fuera_de_lo_grabado": [],
-2026-09-30T20:13:29.6309773Z       "otras_fallidas": [],
-2026-09-30T20:13:29.6309907Z       "llegadas_a_la_red": [],
-2026-09-30T20:13:29.6337373Z       "respuesta": "⚠ REDACCIÓN MODIFICADA: art. 118 de la Ley 9/2017 (LCSP) [BOE-A-2017-12902, bloque a1-30]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20200206, que es la que se cita.\n\n⚠ REDACCIÓN MODIFICADA: disposición adicional tercera de la Ley 9/2017 (LCSP) [BOE-A-2017-12902, bloque da-3]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20230101, que es la que se cita.\n\nCito la redacción vigente de ambos bloques. La que había antes no la he leído, así que no puedo decir qué cambió. Sí puedo decir que el art. 118 lo redactó el Real Decreto-ley 3/2020 (BOE-A-2020-1651) y que la disposición adicional tercera, en su apartado 3, la modificó la Ley 31/2022 (BOE-A-2022-22128).\n\n## Art. 118 LCSP: expediente de los contratos menores\nVigente desde el 6 de febrero de 2020 [BOE-A-2017-12902, bloque a1-30]. Es una ley estatal, y los avisos de vigencia vienen vacíos.\n\n- **Qué es un contrato menor (apartado 1).** Son los de valor estimado inferior a 40.000 euros en obras, o a 15.000 euros en suministros y servicios. Se entiende sin perjuicio del art. 229 para las obras, servicios y suministros centralizados en el ámbito estatal. Cita: art. 118.1 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n- **Informe del órgano de contratación (apartado 2).** La tramitación exige un informe que justifique de manera motivada la necesidad del contrato. También debe justificar que no se está alterando su objeto para evitar los umbrales del apartado 1. Cita: art. 118.2 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n- **Gasto y factura (apartado 3).** Se requiere la aprobación del gasto y la incorporación de la factura correspondiente. La factura debe reunir los requisitos que fijen las normas de desarrollo de la ley. Cita: art. 118.3 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n- **Contrato menor de obras (apartado 4).**\n  - Se añade el presupuesto de las obras.\n  - Debe existir proyecto cuando lo exijan las disposiciones vigentes.\n  - Debe solicitarse el informe de las oficinas o unidades de supervisión del art. 235 cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra.\n\n  Cita: art. 118.4 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n- **Excepción (apartado 5).** El informe del apartado 2 no se exige en los contratos cuyo pago se haga por anticipos de caja fija u otro sistema similar para pagos menores. Solo vale si el valor estimado no excede de 5.000 euros. Cita: art. 118.5 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n- **Publicidad (apartado 6).** Los contratos menores se publican en la forma prevista en el art. 63.4. Cita: art. 118.6 de la LCSP [BOE-A-2017-12902, bloque a1-30]\n\n## Disposición adicional tercera LCSP: entidades locales\nVigente desde el 1 de enero de 2023 [BOE-A-2017-12902, bloque da-3]. Su título es «Normas específicas de contratación pública en las Entidades Locales». Lo que añade para los ayuntamientos en relación con el contrato menor y su expediente:\n\n- **Regla general (apartado 1).** Las Administraciones locales aplican la LCSP con las especialidades de la disposición adicional segunda y de esta. Cita: disp. adic. 3.ª, apartado 1, de la LCSP [BOE-A-2017-12902, bloque da-3]\n- **Fiscalización (apartado 3).** El órgano Interventor de la Entidad local ejerce la fiscalización. Esta alcanza también a la valoración incorporada al expediente sobre las repercusiones de cada nuevo contrato en la estabilidad presupuestaria y la sostenibilidad financiera (art. 7.3 de la Ley Orgánica 2/2012). Los contratos menores quedan excluidos de esa valoración. Cita: disp. adic. 3.ª, apartado 3, de la LCSP [BOE-A-2017-12902, bloque da-3]\n- **Municipios de menos de 5.000 habitantes (apartado 4).** La aprobación del gasto puede sustituirse por una certificación de existencia de crédito. La expide el Secretario Interventor o, en su caso, el Interventor. Esto permite sustituir el trámite de aprobación del gasto que exige el art. 118.3. Cita: disp. adic. 3.ª, apartado 4, de la LCSP [BOE-A-2017-12902, bloque da-3]\n- **Informes jurídicos (apartado 8).** Los informes que la ley asigna a los servicios jurídicos los emite el Secretario. En los municipios de gran población del Título X de la Ley 7/1985 los emite el titular de la asesoría jurídica. Es preceptivo el informe jurídico del Secretario en la aprobación de expedientes de contratación. Cita: disp. adic. 3.ª, apartado 8, de la LCSP [BOE-A-2017-12902, bloque da-3]\n\nEl resto de apartados de la disposición adicional tercera regulan otras cuestiones. Son la tramitación anticipada, las concesiones, la supervisión de proyectos, los proyectos independientes en municipios pequeños, el aplazamiento en la compra de inmuebles, las centrales de contratación y la concesión conjunta de servicios. No los he desarrollado porque no afectan específicamente al contrato menor.\n\nLas ordenanzas y demás normas locales no están en esta fuente, y la normativa autonómica puede desarrollar esta materia. Los textos consolidados del BOE tienen carácter informativo y esto no sustituye el asesoramiento de un profesional.",
-2026-09-30T20:13:29.6337915Z       "codigo_de_la_sesion": 0,
-2026-09-30T20:13:29.6338087Z       "fin_de_la_sesion": "result success",
-2026-09-30T20:13:29.6338223Z       "sesion_terminada": true,
-2026-09-30T20:13:29.6338393Z       "reintentos_por_limite_de_ritmo": 0,
-2026-09-30T20:13:29.6338510Z       "sin_medir": "",
-2026-09-30T20:13:29.6338619Z       "motivos": [],
-2026-09-30T20:13:29.6338740Z       "pasa": true
-2026-09-30T20:13:29.6338817Z     }
-2026-09-30T20:13:29.6338888Z   ]
-2026-09-30T20:13:29.6338970Z }
-2026-09-30T20:13:29.6339081Z --- fin de informe.json ---
-2026-09-30T20:13:29.6349556Z ##[error]Process completed with exit code 2.
+== https://github.com/jmorenobl/kitlegal/actions/runs/36774880631/job/110090426198
+2026-09-30T20:58:18.2234886Z     {
+2026-09-30T20:58:18.2235241Z       "sesion": "20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-02",
+2026-09-30T20:58:18.2235493Z       "eval": "20-lcsp-dos-bloques-redaccion-cambiada.yaml",
+2026-09-30T20:58:18.2235656Z       "modelo": "claude-sonnet-5-5",
+2026-09-30T20:58:18.2235856Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
+2026-09-30T20:58:18.2235970Z       "decide": false,
+2026-09-30T20:58:18.2236087Z       "activa": true,
+2026-09-30T20:58:18.2236207Z       "activada": true,
+2026-09-30T20:58:18.2236346Z       "comandos_ejecutados": [
+2026-09-30T20:58:18.2236540Z         "bloque boe BOE-A-2017-12902 a1-30",
+2026-09-30T20:58:18.2236726Z         "bloque boe BOE-A-2017-12902 da-3",
+2026-09-30T20:58:18.2236895Z         "graph check BOE-A-2017-12902"
+2026-09-30T20:58:18.2236987Z       ],
+2026-09-30T20:58:18.2237130Z       "comandos_ausentes": [],
+2026-09-30T20:58:18.2237305Z       "comandos_prohibidos_ejecutados": [],
+2026-09-30T20:58:18.2237442Z       "citas_encontradas": [
+2026-09-30T20:58:18.2237597Z         "BOE-A-2017-12902 a1-30",
+2026-09-30T20:58:18.2237739Z         "BOE-A-2017-12902 da-3"
+2026-09-30T20:58:18.2237830Z       ],
+2026-09-30T20:58:18.2237963Z       "citas_ausentes": [],
+2026-09-30T20:58:18.2238101Z       "avisos_encontrados": [],
+2026-09-30T20:58:18.2238235Z       "avisos_ausentes": [],
+2026-09-30T20:58:18.2238387Z       "hallazgos_encontrados": [
+2026-09-30T20:58:18.2238526Z         "version-obsoleta"
+2026-09-30T20:58:18.2238617Z       ],
+2026-09-30T20:58:18.2238757Z       "hallazgos_ausentes": [],
+2026-09-30T20:58:18.2239165Z       "redacciones_modificadas_encontradas": [
+2026-09-30T20:58:18.2239371Z         "BOE-A-2017-12902 a1-30 20180309 20200206",
+2026-09-30T20:58:18.2239568Z         "BOE-A-2017-12902 da-3 20180309 20230101"
+2026-09-30T20:58:18.2239654Z       ],
+2026-09-30T20:58:18.2239835Z       "redacciones_modificadas_ausentes": [],
+2026-09-30T20:58:18.2239994Z       "territorio_encontrado": [],
+2026-09-30T20:58:18.2240132Z       "territorio_ausente": [],
+2026-09-30T20:58:18.2240286Z       "expresiones_prohibidas": [],
+2026-09-30T20:58:18.2240413Z       "invocaciones": [
+2026-09-30T20:58:18.2240502Z         {
+2026-09-30T20:58:18.2240759Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2240894Z           "codigo": 1,
+2026-09-30T20:58:18.2241035Z           "conexiones": []
+2026-09-30T20:58:18.2241131Z         },
+2026-09-30T20:58:18.2241219Z         {
+2026-09-30T20:58:18.2241470Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2241605Z           "codigo": 0,
+2026-09-30T20:58:18.2241754Z           "conexiones": []
+2026-09-30T20:58:18.2241849Z         },
+2026-09-30T20:58:18.2241942Z         {
+2026-09-30T20:58:18.2242263Z           "orden": "boe articulos BOE-A-2017-12902 a1-30 da-3 --json",
+2026-09-30T20:58:18.2242401Z           "codigo": 0,
+2026-09-30T20:58:18.2242689Z           "conexiones": []
+2026-09-30T20:58:18.2242781Z         },
+2026-09-30T20:58:18.2242876Z         {
+2026-09-30T20:58:18.2243181Z           "orden": "graph check BOE-A-2017-12902 a1-30 da-3 --json",
+2026-09-30T20:58:18.2243319Z           "codigo": 0,
+2026-09-30T20:58:18.2243468Z           "conexiones": []
+2026-09-30T20:58:18.2243561Z         }
+2026-09-30T20:58:18.2243650Z       ],
+2026-09-30T20:58:18.2243796Z       "fuera_de_lo_grabado": [],
+2026-09-30T20:58:18.2243927Z       "otras_fallidas": [
+2026-09-30T20:58:18.2244015Z         {
+2026-09-30T20:58:18.2244271Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2244402Z           "codigo": 1
+2026-09-30T20:58:18.2244490Z         }
+2026-09-30T20:58:18.2244584Z       ],
+2026-09-30T20:58:18.2244724Z       "llegadas_a_la_red": [],
+2026-09-30T20:58:18.2270576Z       "respuesta": "⚠ REDACCIÓN MODIFICADA: art. 118 de la LCSP [BOE-A-2017-12902, bloque a1-30]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20200206, que es la que se cita.\n\n⚠ REDACCIÓN MODIFICADA: disposición adicional tercera de la LCSP [BOE-A-2017-12902, bloque da-3]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20230101, que es la que se cita.\n\nCito la redacción vigente de ambos bloques. La que había antes no la he leído, así que no puedo decir en qué se diferencia de la actual.\n\n## Artículo 118 de la LCSP: expediente en contratos menores\n\nSu redacción vigente desde el 6 de febrero de 2020 la dio el Real Decreto-ley 3/2020 (BOE-A-2020-1651), disposición final 1.1. Exige lo siguiente [art. 118 de la Ley 9/2017, BOE-A-2017-12902, bloque a1-30]:\n\n- **Qué es un contrato menor (apdo. 1).** Es el de valor estimado inferior a 40.000 euros en obras, o a 15.000 euros en suministros o servicios.\n- **Informe del órgano de contratación (apdo. 2).** Debe justificar de manera motivada la necesidad del contrato y que no se altera su objeto para evitar los umbrales del apartado 1.\n- **Gasto y factura (apdo. 3).** Se requiere la aprobación del gasto y la incorporación de la factura, que debe reunir los requisitos que fijen las normas de desarrollo de la Ley.\n- **Contrato menor de obras (apdo. 4).**\n  - Hay que añadir el presupuesto de las obras.\n  - Debe existir proyecto cuando las disposiciones vigentes lo requieran.\n  - Debe solicitarse el informe de la oficina o unidad de supervisión del art. 235 cuando el trabajo afecte a la estabilidad, seguridad o estanqueidad de la obra.\n- **Excepción (apdo. 5).** El informe del apartado 2 no se exige cuando el pago se hace por anticipos de caja fija u otro sistema similar para pagos menores y el valor estimado no excede de 5.000 euros.\n- **Publicidad (apdo. 6).** Los contratos menores se publican en la forma prevista en el art. 63.4.\n\n## Disposición adicional tercera: especialidades para las Entidades Locales\n\nSu redacción vigente desde el 1 de enero de 2023 procede de la Ley 31/2022 (BOE-A-2022-22128), disposición final 27.13, que modificó el apartado 3. Añade lo siguiente [disposición adicional tercera de la Ley 9/2017, BOE-A-2017-12902, bloque da-3]:\n\n- **Regla general (apdo. 1).** Las Administraciones locales aplican la Ley con las especialidades de la disposición adicional segunda y de esta.\n- **Tramitación anticipada (apdo. 2).** Es posible para contratos cuya ejecución material comience en el ejercicio siguiente o cuya financiación dependa de un préstamo, crédito o subvención solicitados a otra entidad. La adjudicación queda sometida a la condición suspensiva de que se consoliden los recursos.\n- **Fiscalización (apdo. 3).**\n  - La ejerce el órgano Interventor de la Entidad local.\n  - Recae también sobre la valoración de las repercusiones del contrato en la estabilidad presupuestaria y la sostenibilidad financiera, **excepto los contratos menores**.\n  - El órgano interventor realiza la comprobación material de la inversión y puede aplicar técnicas de muestreo para designar representante.\n- **Municipios de menos de 5.000 habitantes (apdo. 4).** La aprobación del gasto puede sustituirse por una certificación de existencia de crédito del Secretario Interventor o del Interventor. Esto enlaza con el apartado 3 del art. 118.\n- **Informes jurídicos (apdo. 8).** Los informes que la Ley asigna a los servicios jurídicos los emite el Secretario. Su informe jurídico es además preceptivo en la aprobación de expedientes de contratación, modificaciones, revisión de precios, prórrogas, equilibrio económico, interpretación y resolución. En los municipios de gran población (Título X de la LRBRL), los emite el titular de la asesoría jurídica.\n- **Otras especialidades locales.**\n  - Concesiones: el expediente de conveniencia y oportunidad del art. 86.1 LRBRL se tramita junto con el estudio de viabilidad (apdo. 5).\n  - Obras: rige la supervisión de proyectos del art. 235, con apoyo de la Diputación en los municipios sin oficinas propias (apdo. 6).\n  - Menos de 5.000 habitantes: pueden redactarse proyectos independientes para obras que excedan de un presupuesto anual (apdo. 7).\n  - Adquisición de inmuebles: el pago puede aplazarse hasta cuatro años (apdo. 9).\n  - Adhesión a centrales de contratación (apdo. 10).\n  - Menos de 20.000 habitantes: pueden licitar concesiones de dos o más servicios, con anualidad media de hasta 200.000 euros (apdo. 11).\n\nLos textos consolidados del BOE tienen carácter informativo. Las ordenanzas, instrucciones internas y bases de ejecución del presupuesto de cada ayuntamiento no están en esta fuente. Tampoco lo está el posible desarrollo autonómico.",
+2026-09-30T20:58:18.2271114Z       "codigo_de_la_sesion": 0,
+2026-09-30T20:58:18.2271291Z       "fin_de_la_sesion": "result success",
+2026-09-30T20:58:18.2271438Z       "sesion_terminada": true,
+2026-09-30T20:58:18.2271617Z       "reintentos_por_limite_de_ritmo": 0,
+2026-09-30T20:58:18.2271738Z       "sin_medir": "",
+2026-09-30T20:58:18.2271853Z       "motivos": [],
+2026-09-30T20:58:18.2271969Z       "pasa": true
+2026-09-30T20:58:18.2272067Z     },
+2026-09-30T20:58:18.2272141Z     {
+2026-09-30T20:58:18.2272500Z       "sesion": "20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-03",
+2026-09-30T20:58:18.2272756Z       "eval": "20-lcsp-dos-bloques-redaccion-cambiada.yaml",
+2026-09-30T20:58:18.2272914Z       "modelo": "claude-sonnet-5-5",
+2026-09-30T20:58:18.2273114Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
+2026-09-30T20:58:18.2273237Z       "decide": false,
+2026-09-30T20:58:18.2273355Z       "activa": true,
+2026-09-30T20:58:18.2273485Z       "activada": true,
+2026-09-30T20:58:18.2273630Z       "comandos_ejecutados": [
+2026-09-30T20:58:18.2273815Z         "bloque boe BOE-A-2017-12902 a1-30",
+2026-09-30T20:58:18.2274000Z         "bloque boe BOE-A-2017-12902 da-3",
+2026-09-30T20:58:18.2274257Z         "graph check BOE-A-2017-12902"
+2026-09-30T20:58:18.2274345Z       ],
+2026-09-30T20:58:18.2274485Z       "comandos_ausentes": [],
+2026-09-30T20:58:18.2274662Z       "comandos_prohibidos_ejecutados": [],
+2026-09-30T20:58:18.2274795Z       "citas_encontradas": [
+2026-09-30T20:58:18.2274955Z         "BOE-A-2017-12902 a1-30",
+2026-09-30T20:58:18.2275102Z         "BOE-A-2017-12902 da-3"
+2026-09-30T20:58:18.2275190Z       ],
+2026-09-30T20:58:18.2275325Z       "citas_ausentes": [],
+2026-09-30T20:58:18.2275470Z       "avisos_encontrados": [],
+2026-09-30T20:58:18.2275600Z       "avisos_ausentes": [],
+2026-09-30T20:58:18.2275750Z       "hallazgos_encontrados": [
+2026-09-30T20:58:18.2275897Z         "version-obsoleta"
+2026-09-30T20:58:18.2275984Z       ],
+2026-09-30T20:58:18.2276124Z       "hallazgos_ausentes": [],
+2026-09-30T20:58:18.2276316Z       "redacciones_modificadas_encontradas": [
+2026-09-30T20:58:18.2276518Z         "BOE-A-2017-12902 a1-30 20180309 20200206",
+2026-09-30T20:58:18.2276718Z         "BOE-A-2017-12902 da-3 20180309 20230101"
+2026-09-30T20:58:18.2276809Z       ],
+2026-09-30T20:58:18.2276987Z       "redacciones_modificadas_ausentes": [],
+2026-09-30T20:58:18.2277144Z       "territorio_encontrado": [],
+2026-09-30T20:58:18.2277380Z       "territorio_ausente": [],
+2026-09-30T20:58:18.2277532Z       "expresiones_prohibidas": [],
+2026-09-30T20:58:18.2277659Z       "invocaciones": [
+2026-09-30T20:58:18.2277756Z         {
+2026-09-30T20:58:18.2278006Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2278142Z           "codigo": 1,
+2026-09-30T20:58:18.2278295Z           "conexiones": []
+2026-09-30T20:58:18.2278387Z         },
+2026-09-30T20:58:18.2278481Z         {
+2026-09-30T20:58:18.2278729Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2278982Z           "codigo": 0,
+2026-09-30T20:58:18.2279135Z           "conexiones": []
+2026-09-30T20:58:18.2279231Z         },
+2026-09-30T20:58:18.2279320Z         {
+2026-09-30T20:58:18.2279650Z           "orden": "boe articulos BOE-A-2017-12902 a1-30 da-3 --json",
+2026-09-30T20:58:18.2279783Z           "codigo": 0,
+2026-09-30T20:58:18.2279925Z           "conexiones": []
+2026-09-30T20:58:18.2280019Z         },
+2026-09-30T20:58:18.2280114Z         {
+2026-09-30T20:58:18.2280416Z           "orden": "graph check BOE-A-2017-12902 a1-30 da-3 --json",
+2026-09-30T20:58:18.2280550Z           "codigo": 0,
+2026-09-30T20:58:18.2280697Z           "conexiones": []
+2026-09-30T20:58:18.2280786Z         }
+2026-09-30T20:58:18.2280876Z       ],
+2026-09-30T20:58:18.2281023Z       "fuera_de_lo_grabado": [],
+2026-09-30T20:58:18.2281147Z       "otras_fallidas": [
+2026-09-30T20:58:18.2281241Z         {
+2026-09-30T20:58:18.2281492Z           "orden": "boe indice BOE-A-2017-12902 --json",
+2026-09-30T20:58:18.2281617Z           "codigo": 1
+2026-09-30T20:58:18.2281712Z         }
+2026-09-30T20:58:18.2281804Z       ],
+2026-09-30T20:58:18.2281938Z       "llegadas_a_la_red": [],
+2026-09-30T20:58:18.2303915Z       "respuesta": "**Contrato menor: art. 118 de la LCSP (Ley 9/2017)**\n\n⚠ REDACCIÓN MODIFICADA: art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20200206, que es la que se cita.\n\nLa redacción vigente del art. 118 la dio el Real Decreto-ley 3/2020 (BOE-A-2020-1651), con vigencia desde el 6 de febrero de 2020. Sobre la redacción anterior solo tengo las fechas, porque no he leído su texto. Por eso no puedo decir qué cambió.\n\nSegún el art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30], el expediente exige lo siguiente:\n- **Informe del órgano de contratación (apdo. 2).** Debe justificar de forma motivada la necesidad del contrato y que no se altera su objeto para evitar los umbrales. Esos umbrales son 40.000 € en obras y 15.000 € en suministros y servicios (apdo. 1).\n- **Aprobación del gasto y factura (apdo. 3).** Se incorpora la factura, que debe reunir los requisitos que fijen las normas de desarrollo de la Ley.\n- **Contrato menor de obras (apdo. 4).** Se añade el presupuesto de las obras, y el proyecto cuando lo exijan las disposiciones vigentes. También se solicita el informe de la oficina o unidad de supervisión del art. 235 si el trabajo afecta a la estabilidad, seguridad o estanqueidad de la obra.\n- **Excepción (apdo. 5).** El informe del apdo. 2 no se exige en los contratos pagados por anticipos de caja fija u otro sistema similar de pagos menores, si el valor estimado no excede de 5.000 €.\n- **Publicidad (apdo. 6).** Los contratos menores se publican como prevé el art. 63.4.\n\n**Entidades locales: disposición adicional tercera de la LCSP**\n\n⚠ REDACCIÓN MODIFICADA: disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]: la redacción con fecha de vigencia 20180309, la que se consultó antes, ha sido sustituida por la de 20230101, que es la que se cita.\n\nLa redacción vigente de la disposición adicional tercera la dio la Ley 31/2022 (BOE-A-2022-22128), con vigencia desde el 1 de enero de 2023. Modificó el apartado 3. Tampoco he leído la redacción anterior.\n\nSegún la disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3], para las entidades locales se añade lo siguiente:\n- **Fiscalización (apdo. 3).** La ejerce el órgano interventor. Recae también sobre la valoración de las repercusiones de cada nuevo contrato en la estabilidad presupuestaria y la sostenibilidad financiera, **excepto los contratos menores**. El interventor realiza además la comprobación material de la inversión.\n- **Municipios de menos de 5.000 habitantes (apdo. 4).** La aprobación del gasto puede sustituirse por una certificación de existencia de crédito, expedida por el Secretario Interventor o, en su caso, por el Interventor.\n- **Informes jurídicos (apdo. 8).** Los informes que la Ley asigna a los servicios jurídicos los emite el Secretario. Es preceptivo su informe jurídico en la aprobación de expedientes de contratación, modificaciones, revisión de precios, prórrogas, equilibrio económico, interpretación y resolución. En los municipios de gran población del Título X de la LRBRL, esos informes corresponden al titular de la asesoría jurídica.\n- **Tramitación anticipada (apdo. 2).** Es posible en los casos que enumera, con la adjudicación sujeta a condición suspensiva.\n- **Supervisión de proyectos de obras (apdo. 6).** Se aplica el art. 235. Los municipios sin oficina propia pueden acudir a la Diputación provincial.\n- **Otras especialidades locales (apdos. 5, 7, 9, 10 y 11).** Afectan sobre todo a concesiones, proyectos por partes, aplazamiento en la compra de inmuebles, centrales de contratación y municipios de menos de 20.000 habitantes.\n\nLas ordenanzas, las bases de ejecución del presupuesto y las instrucciones internas de cada ayuntamiento pueden concretar estos trámites. No están en esta fuente. La normativa autonómica también puede incidir en la materia.\n\nLos textos consolidados del BOE tienen carácter informativo. Esta respuesta no es asesoramiento jurídico.",
+2026-09-30T20:58:18.2304411Z       "codigo_de_la_sesion": 0,
+2026-09-30T20:58:18.2304581Z       "fin_de_la_sesion": "result success",
+2026-09-30T20:58:18.2304723Z       "sesion_terminada": true,
+2026-09-30T20:58:18.2304898Z       "reintentos_por_limite_de_ritmo": 0,
+2026-09-30T20:58:18.2305022Z       "sin_medir": "",
+2026-09-30T20:58:18.2305139Z       "motivos": [],
+2026-09-30T20:58:18.2305248Z       "pasa": true
+2026-09-30T20:58:18.2305330Z     }
+2026-09-30T20:58:18.2305408Z   ]
+2026-09-30T20:58:18.2305485Z }
+2026-09-30T20:58:18.2305593Z --- fin de informe.json ---
+2026-09-30T20:58:18.2317579Z ##[error]Process completed with exit code 2.

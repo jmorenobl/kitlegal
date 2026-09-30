@@ -326,7 +326,8 @@ sustituyen a este fichero.
   comprobación» ni de una lectura anterior. **No describe una redacción que no ha
   leído**: `kitlegal boe` da solo la vigente y `kitlegal graph check`, dos fechas, así que la respuesta no dice qué
   decía la redacción superada, ni lo resume, ni lo compara, aunque el modelo crea saberlo; dice el texto vigente con
-  su cita, qué norma le dio esa redacción y desde cuándo está vigente, y, si se pregunta qué cambió, **que cita la
+  su cita, qué norma le dio esa redacción y desde cuándo rige, nunca hasta cuándo —ningún sobre trae el fin de una
+  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha—, y, si se pregunta qué cambió, **que cita la
   redacción vigente y que la anterior no la ha leído**. Lee cada bloque una sola vez por pregunta y comprueba si su
   redacción ha cambiado **en la misma orden que lo lee**, detrás de la lectura y con su misma norma y sus mismos
   bloques (`kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json`):

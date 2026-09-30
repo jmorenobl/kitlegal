@@ -60,7 +60,6 @@ menudo; no es exhaustiva.
   ```bash
   kitlegal boe indice BOE-A-2015-10565 --json
   ```
-
 - Copia el id de la entrada del índice cuyo `titulo` es el artículo que buscas; nunca lo compongas a partir del número
   del artículo, porque en muchas normas los ids no son `a<número>`. En la Ley 9/2017, la entrada con `titulo`
   «Artículo 118» tiene el id `a1-30`, y `a118` no está en su índice.
@@ -107,7 +106,6 @@ menudo; no es exhaustiva.
   kitlegal boe metadatos BOE-A-2017-12902 --json
   kitlegal boe analisis BOE-A-2017-12902 --json
   ```
-
 - No pidas nunca un id de bloque que no salga del índice o de la propia pregunta. Si `kitlegal boe` termina con `3`
   (no encontrado), vuelve al índice en lugar de probar otros ids; si el artículo no existe en la norma, dilo.
 
@@ -147,8 +145,10 @@ paso no va en la respuesta: quien pregunta no ve los pasos.
   locales, di que no están en esta fuente.
 - Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la etiqueta del aviso tal como la da el binario y
   dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). De la vigencia del bloque,
-  la respuesta dice lo que trae el sobre de `kitlegal boe`; el de `kitlegal graph check` no dice nada de ella. Recuerda
-  que los textos consolidados del BOE tienen carácter informativo.
+  la respuesta dice lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué norma la dio
+  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre trae el fin de una
+  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente. El de
+  `kitlegal graph check` no dice nada de ella. Recuerda que los textos consolidados del BOE tienen carácter informativo.
 - Repasa cada cita de la respuesta: sus corchetes se abren y se cierran en la misma línea y terminan en
   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
   corchetes va además la forma legible, va delante del identificador.
@@ -223,7 +223,7 @@ solo usa `check`, y siempre detrás de una lectura, en su misma orden (paso 3): 
   `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada ni en qué se
   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
   legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción
-  (`norma_modificadora`) y desde cuándo está vigente (`fecha_vigencia`).
+  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).
 - Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
   no la ha leído.
 

@@ -4,8 +4,8 @@
 «Causa de raíz») y su requisito. El prototipo con todos los cambios (research V19) tiene 294 líneas, una `description`
 de ≈ 925 caracteres y 0 párrafos de prosa con alguna expresión de la lista nueva o una fecha `AAAAMMDD` con cifras; el
 `SKILL.md` de v0.1.4 tenía 295 líneas con C1-C10, porque se quedaba la frase que cierra «Redacción modificada» (C9), y
-tiene 298 con C11, que la absorbe en una viñeta (reparación del cierre), y una `description` de 924 caracteres. Todo lo
-que no nombra este contrato queda como en v0.1.3 (§2).
+tiene 298 con C11, que la absorbe en una viñeta (reparación del cierre), sigue en 298 con C12 (segunda reparación del
+cierre), y tiene una `description` de 924 caracteres. Todo lo que no nombra este contrato queda como en v0.1.3 (§2).
 
 ## 1. Cambios
 
@@ -228,6 +228,36 @@ y nunca qué pasa cuando no la hay, y el modelo trataba ese resultado como un da
 junto a los avisos ni al final). Ninguna frase nueva enseña una forma de la lista: `prosa-de-la-skill` y
 `expresiones-de-la-skill` siguen en verde.
 
+### C12 · El fin de una redacción no lo trae ningún sobre (segunda reparación del cierre; FR-011, FR-020, FR-022)
+
+Lo añade `reparar_cierre` tras la medición sobre `ad68a70` (research V30, D23): con C1-C11, `redaccion_no_leida` da 1 de
+54 (umbral 0), la 18-01, que presenta la última redacción del art. 42 de la Ley 30/1992, derogada, como «Su redacción
+vigente hasta la derogación es la de la Ley 4/1999 (vigencia desde 14/04/1999)». Dos cambios en la prosa, sin tocar
+ninguna forma fija, la regla 3, la forma de los avisos ni la región generada; 298 líneas.
+
+- **Paso 5, los avisos de vigencia** (C11). «De la vigencia del bloque, la respuesta dice lo que trae el sobre de
+  `kitlegal boe`; el de `kitlegal graph check` no dice nada de ella.» → «De la vigencia del bloque, la respuesta dice
+  lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué norma la dio (`norma_modificadora`)
+  y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre trae el fin de una redacción, tampoco en
+  una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente. El de `kitlegal graph check` no
+  dice nada de ella.» Lo demás de la viñeta no cambia.
+- **«Redacción modificada», la viñeta «La redacción superada no la has leído»** (C9). «…qué norma le dio esa redacción
+  (`norma_modificadora`) y desde cuándo está vigente (`fecha_vigencia`).» → «…qué norma le dio esa redacción
+  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).»
+- **Paso 3, dos líneas en blanco** entre el cierre de un bloque de código y la viñeta siguiente (la de `indice` y la de
+  `metadatos`) se quitan, sin cambiar el texto, como ya iba la de `articulos` con «Lee cada bloque una sola vez»: con
+  las dos líneas que gana el paso 5, la skill se queda en 298, el tope efectivo (C11).
+
+Causa: la prosa decía qué se dice de una redacción —la norma que la dio y «desde cuándo está vigente»— y la regla 3,
+que no se presente como vigente el texto de una norma derogada; con una norma derogada, el modelo concilia las dos
+convirtiendo la fecha de inicio en un intervalo cuyo fin ningún sobre da: `kitlegal boe articulo` trae `fecha_vigencia`
+y `norma_modificadora`, `kitlegal boe metadatos` trae `estatus_derogacion` sin fecha, y el aviso `derogada` dice que lo
+está, sin cuándo. Es la clase B por la definición de la lista (§1 de su cabecera: «hasta cuándo rigió»), y la forma
+`vigente hasta` no puede salir de la lista ni acotarse: es la única de la clase B que marca la 19-02 de `196ee05` en el
+calibrado (FR-032, FR-047). Ya en H7.1 la 18-02 razonaba igual sin caer en una forma («la última redacción vigente
+(fecha de vigencia 1999-04-14) antes de la derogación»). C12 lo dice con la razón, como C9 y C11: qué sí (la norma y
+desde cuándo) y por qué no el fin (ningún sobre lo trae; sería texto legal sin fuente).
+
 ## 2. Lo que se queda de v0.1.3 (FR-025, FR-026)
 
 La lectura de uno en uno, con `kitlegal graph check` detrás en la misma orden y con su misma norma y sus mismos bloques,
@@ -278,7 +308,7 @@ PowerShell; sin argumentos en la comprobación; sin la de `articulos`; y sin nin
 | La respuesta | la persona; una por pregunta | lo que ocupe la norma citada; 0 líneas sobre la comprobación; una línea `⚠ REDACCIÓN MODIFICADA:` por bloque cambiado, de 221 bytes con `art. 118 de la Ley 9/2017 [BOE-A-2017-12902, bloque a1-30]` y 242 con `disposición adicional tercera de la Ley 9/2017 [BOE-A-2017-12902, bloque da-3]` (medidos; la de H7.3, 161): 0 en la mayoría de las preguntas, 2 en la de la eval 20, como mucho k × ≈ 240 B con k bloques leídos; con cientos de normas y miles de bloques consultados, la misma, porque solo cuenta lo leído en la pregunta | la línea sale en la respuesta de la lectura que ve la redacción nueva y no en la siguiente lectura del bloque (H7.1); al cabo de un mes, solo si el BOE publica otra |
 | `kitlegal graph check <norma> <bloques…>` | la skill; una por orden que lee bloques, detrás de la lectura | ≈ 325 B sin cambios, ≈ 1 000 B por bloque cambiado (H7.3), ≤ 3 800 B con cinco; acotada por los bloques pedidos | cada señal se da una vez y la apaga la lectura siguiente (H7.1) |
 | La `description` | el agente, en cada sesión con la skill instalada | ≈ 925 caracteres (≤ 1024) | no da señales |
-| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 298 líneas (< 300; 294 en el prototipo, 295 con C1-C10) | no da señales |
+| El cuerpo de `SKILL.md` | el modelo, una vez por conversación en que se activa; la orden de PowerShell, en cada lectura en Windows con PowerShell | 298 líneas (< 300; 294 en el prototipo, 295 con C1-C10, 298 con C11 y con C12) | no da señales |
 
 ## 6. `CHANGELOG.md` (*Unreleased*) (FR-027, FR-101)
 
