@@ -67,17 +67,29 @@ func formasFijas[Clave ~string](etiquetas map[Clave]string) map[string]*regexp.R
 // etiqueta no tiene palabras. Las piezas son fijas y cada palabra pasa por
 // regexp.QuoteMeta, así que la compilación no puede fallar.
 func formaFija(etiqueta string) *regexp.Regexp {
+	patron := patronDeEtiqueta(etiqueta)
+	if patron == "" {
+		return nil
+	}
+
+	return regexp.MustCompile(patron)
+}
+
+// patronDeEtiqueta es el texto de la expresión de formaFija, que también
+// compila la cabeza de una forma fija de la lista de expresiones prohibidas
+// (formaDeFormaFija); vacío si la etiqueta no tiene palabras.
+func patronDeEtiqueta(etiqueta string) string {
 	palabras := strings.Fields(etiqueta)
 	if len(palabras) == 0 {
-		return nil
+		return ""
 	}
 
 	for i, palabra := range palabras {
 		palabras[i] = `(?i:` + regexp.QuoteMeta(palabra) + `)`
 	}
 
-	return regexp.MustCompile(marcaDeAviso + separadorDeAviso +
-		strings.Join(palabras, entrePalabrasDeAviso) + separadorDeAviso + finalDeAviso)
+	return marcaDeAviso + separadorDeAviso + strings.Join(palabras, entrePalabrasDeAviso) + separadorDeAviso +
+		finalDeAviso
 }
 
 // formaEscrita es la forma fija de una etiqueta tal como se enseña y como la

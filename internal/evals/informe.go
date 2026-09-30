@@ -756,13 +756,13 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 // y cuántas de ellas llevan alguna. Las de una serie que
 // el plan no pide —la de la prueba de red o la de una sesión cuya eval, modelo o
 // pregunta no se pudieron leer— publican sus expresiones, pero no cuentan. Nil,
-// [] en informe.json, si la skill no tiene lista —si están vacías sus tres
-// familias (contracts/lista-de-expresiones.md §3 de H7.3)—: un recuento de cero
-// diría que se buscó.
+// [] en informe.json, si la skill no tiene lista —si están vacías sus cuatro
+// familias (contracts/lista-de-expresiones.md §3 de H7.3 y de H7.4)—: un
+// recuento de cero diría que se buscó.
 func recontarExpresiones(
 	e InformeAEscribir, lista ExpresionesProhibidas, sesiones []sesionJuzgada, series []serieJuzgada,
 ) []RecuentoDeExpresiones {
-	if len(lista.Maquinaria) == 0 && len(lista.OtraConversacion) == 0 && len(lista.Anuncio) == 0 {
+	if len(lista.expresiones()) == 0 {
 		return nil
 	}
 

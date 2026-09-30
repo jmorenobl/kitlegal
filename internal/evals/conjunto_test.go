@@ -1229,8 +1229,8 @@ const respuestasDeCadaInforme = 93
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
 // evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
-// TestEvalsDelRepositorio. Tiene expresiones en sus tres familias: sin ellas, las
-// subpruebas que la aplican pasarían en vacío.
+// TestEvalsDelRepositorio. Tiene expresiones en sus cuatro familias y formas
+// fijas: sin ellas, las subpruebas que la aplican pasarían en vacío.
 func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
 	t.Helper()
 
@@ -1240,6 +1240,10 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
 		evalsDelRepositorio)
 	require.NotEmpty(t, lista.Anuncio, "%s tiene lista de expresiones prohibidas, con las del anuncio",
+		evalsDelRepositorio)
+	require.NotEmpty(t, lista.RedaccionNoLeida, "%s tiene lista de expresiones prohibidas, con las de la redacción "+
+		"no leída", evalsDelRepositorio)
+	require.NotEmpty(t, lista.FormasFijas, "%s tiene lista de expresiones prohibidas, con sus formas fijas",
 		evalsDelRepositorio)
 
 	return lista
@@ -1335,7 +1339,9 @@ func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 // marcadasEnElInforme es el reparto de las respuestas del informe versionado de
 // la ruta que marca la lista, por las dos cifras del fichero de la eval: por
 // cada familia, las que llevan alguna expresión suya, y las que llevan alguna de
-// la lista entera. El informe tiene sus 93 respuestas.
+// la lista entera; en cada cuenta, quitadas antes las formas fijas de la lista
+// (contracts/lista-de-expresiones.md §3 y §7 de H7.4). El informe tiene sus 93
+// respuestas.
 func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas) map[string]marcadasPorFamilia {
 	t.Helper()
 
@@ -1349,9 +1355,9 @@ func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas)
 	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, ruta), &informe), "%s es un informe del job de evals", ruta)
 	require.Len(t, informe.Evals, respuestasDeCadaInforme, "el informe %s tiene sus respuestas", ruta)
 
-	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria}
-	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion}
-	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio}
+	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria, FormasFijas: lista.FormasFijas}
+	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion, FormasFijas: lista.FormasFijas}
+	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio, FormasFijas: lista.FormasFijas}
 	marcadas := map[string]marcadasPorFamilia{}
 
 	for _, sesion := range informe.Evals {
