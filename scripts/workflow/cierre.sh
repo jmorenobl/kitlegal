@@ -2,9 +2,22 @@
 # Cierre del hito en la plataforma remota (ADR 0018): lo hace el workflow, sin modelo,
 # DESPUÉS de la revisión final, sobre la cabeza que se va a fusionar.
 #
-#   scripts/workflow/cierre.sh publicar <hito>   # empuja la rama y abre la propuesta si no existe
-#   scripts/workflow/cierre.sh medir <hito>      # vuelve a medir: CI y evals sobre la cabeza → JSON
-#   scripts/workflow/cierre.sh evals <hito>      # solo recoge los informes de evals de la última medición
+#   scripts/workflow/cierre.sh iniciar <hito>          # antes del bucle de revisión y cierre: contadores a cero
+#   scripts/workflow/cierre.sh publicar <hito>         # empuja la rama y abre la propuesta si no existe
+#   scripts/workflow/cierre.sh medir <hito> <max>      # CI y evals sobre la cabeza → JSON {verde, ronda, reparar, …}
+#   scripts/workflow/cierre.sh reparado <hito>         # tras reparar_cierre: verifica, commitea y cuenta la reparación → JSON
+#   scripts/workflow/cierre.sh evals <hito>            # solo recoge los informes de evals de la última medición
+#
+# Una medición vale solo para el producto que midió (ADR 0030). `medir` la repite en
+# cada vuelta del bucle, salvo en un caso: si desde la última nada ha cambiado fuera
+# de gates/ y ninguna reparación ha terminado (gates/cierre-reparaciones, que cuenta
+# `reparado`), la medición sigue siendo la de este producto y se reutiliza sin contar
+# otra. Es lo que pasa al reanudar un run interrumpido entre la medición y el final de
+# su reparación: se retoma la reparación en lugar de gastar una de las mediciones en
+# medir otra vez lo mismo. Tras una reparación terminada se mide siempre, aunque no
+# cambiara nada: un rojo de la plataforma (una ejecución cancelada, un runner caído)
+# solo se aclara volviendo a medir. `reparar` dice si queda medición para la vuelta
+# siguiente (ronda < <max>) y la medición es roja: es la condición del bucle.
 #
 # Tras medir, cada trabajo del flujo `evals` que terminó deja su informe.json en
 # gates/evals/<skill>.json: el job lo imprime entero en su registro entre las marcas
@@ -16,8 +29,10 @@
 #
 # En H5 y H6 la ejecución de cierre de las evals era una tarea [plataforma] dentro
 # del bucle, antes de la revisión final: cada corrección de la revisión la dejaba
-# sin cubrir la cabeza y hubo que repetirla ronda tras ronda. Aquí va una sola vez
-# al final, y si sale en rojo el reparador del cierre arregla y se vuelve a medir.
+# sin cubrir la cabeza y hubo que repetirla ronda tras ronda. Aquí va al final, en el
+# mismo bucle que la revisión final (bucle_final): si sale en rojo, el reparador del
+# cierre arregla, los dos jueces juzgan lo que cambió fuera de gates/ y se vuelve a
+# medir (ADR 0030).
 #
 # `medir` pone la etiqueta `evals` (el botón de «vuelve a medir» del job,
 # .github/workflows/evals.yml), espera a que terminen todas las comprobaciones de
@@ -30,8 +45,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 . scripts/workflow/comun.sh
 
-sub="${1:?uso: cierre.sh publicar|medir|evals <hito>}"
-hito="${2:?uso: cierre.sh publicar|medir|evals <hito>}"
+sub="${1:?uso: cierre.sh iniciar|publicar|medir|reparado|evals <hito>}"
+hito="${2:?uso: cierre.sh iniciar|publicar|medir|reparado|evals <hito>}"
 d=$(feature_dir)
 rama=$(git branch --show-current)
 espera_max="${KITLEGAL_CIERRE_ESPERA_MAX:-10800}" # 3 h: el job de evals tiene un tope de 120 min por skill
@@ -68,11 +83,21 @@ recoger_evals() {
   done
 }
 
-if [ "$sub" = evals ]; then
-  [ -f "$d/gates/cierre.json" ] || { echo "evals: no hay gates/cierre.json; el cierre no ha medido" >&2; exit 1; }
-  command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 || { echo "evals: gh no tiene sesión" >&2; exit 1; }
-  recoger_evals; exit 0
-fi
+case "$sub" in
+  evals)
+    [ -f "$d/gates/cierre.json" ] || { echo "evals: no hay gates/cierre.json; el cierre no ha medido" >&2; exit 1; }
+    command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 || { echo "evals: gh no tiene sesión" >&2; exit 1; }
+    recoger_evals; exit 0;;
+  iniciar)
+    rm -f "$d/gates/cierre-rondas" "$d/gates/cierre-reparaciones" "$d/gates/cierre.json"
+    echo "cierre: mediciones y reparaciones a cero"; exit 0;;
+  reparado)
+    # Una reparación terminada, se haya commiteado, apartado o no haya cambiado nada:
+    # la medición siguiente vuelve a medir aunque el producto sea el mismo.
+    r=$(scripts/workflow/global.sh cerrar "$hito")
+    echo $(( $(cat "$d/gates/cierre-reparaciones" 2>/dev/null || echo 0) + 1 )) > "$d/gates/cierre-reparaciones"
+    printf '%s\n' "$r"; exit 0;;
+esac
 
 [ "$rama" != main ] || dossier "rama equivocada" "La rama actual es main; el cierre nunca empuja main."
 command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 \
@@ -80,7 +105,6 @@ command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 \
 
 case "$sub" in
   publicar)
-    rm -f "$d/gates/cierre-rondas" # la medición cuenta sus rondas desde la publicación
     # Los registros del run (supuestos, cuarentena, veredictos) viven en el directorio del
     # feature y algunos pasos los dejan sin commitear: se versionan antes de publicar.
     git add -A -- "$d"
@@ -99,6 +123,17 @@ case "$sub" in
     echo "propuesta abierta: $(gh pr view "$rama" --json url --jq .url)";;
 
   medir)
+    max="${3:?uso: cierre.sh medir <hito> <max>}"
+    reparaciones=$(cat "$d/gates/cierre-reparaciones" 2>/dev/null || echo 0)
+    n=$(cat "$d/gates/cierre-rondas" 2>/dev/null || echo 0)
+    if [ -f "$d/gates/cierre.json" ] && [ "$(jq -r '.reparaciones // -1' "$d/gates/cierre.json")" = "$reparaciones" ] \
+       && producto_igual "$(jq -r '.sha // ""' "$d/gates/cierre.json")"; then
+      echo "medir: el producto no ha cambiado desde la medición de $(jq -r '.sha[0:7]' "$d/gates/cierre.json") y ninguna reparación ha terminado; se reutiliza" >&2
+      jq -c --argjson n "$n" --argjson max "$max" \
+        '{sha, verde, ronda:$n, reutilizada:true, reparar:((.verde | not) and $n < $max),
+          rojos:[.checks[] | select(.workflow != "" and (.bucket == "fail" or .bucket == "cancel")) | .name]}' "$d/gates/cierre.json"
+      exit 0
+    fi
     git add -A -- "$d"
     git diff --cached --quiet || git commit -q -m "docs($hito): registros del run" -- "$d"
     sha=$(git rev-parse HEAD)
@@ -120,8 +155,10 @@ case "$sub" in
     done
     rojos=$(jq -c '[.[] | select(.workflow != "" and (.bucket == "fail" or .bucket == "cancel"))]' <<<"$checks")
     verde=true; [ "$(jq length <<<"$rojos")" -eq 0 ] || verde=false
+    n=$((n + 1)); echo "$n" > "$d/gates/cierre-rondas"
     jq -n --arg sha "$sha" --argjson verde "$verde" --argjson checks "$checks" --arg fecha "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      '{sha:$sha, verde:$verde, fecha:$fecha, checks:$checks}' > "$d/gates/cierre.json"
+      --argjson n "$n" --argjson rep "$reparaciones" \
+      '{sha:$sha, verde:$verde, fecha:$fecha, ronda:$n, reparaciones:$rep, checks:$checks}' > "$d/gates/cierre.json"
     : > "$d/gates/cierre.log"
     for link in $(jq -r '.[].link' <<<"$rojos"); do
       run=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/([0-9]+).*#\1#p')
@@ -130,8 +167,8 @@ case "$sub" in
       { echo "== $link"; gh run view "$run" --log-failed 2>&1 | cut -f3- | tail -150; } >> "$d/gates/cierre.log"
     done
     recoger_evals
-    n=$(( $(cat "$d/gates/cierre-rondas" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$d/gates/cierre-rondas"
-    jq -n --arg sha "$sha" --argjson verde "$verde" --argjson rojos "$rojos" --argjson n "$n" '{sha:$sha, verde:$verde, ronda:$n, rojos:[$rojos[].name]}';;
+    jq -n --arg sha "$sha" --argjson verde "$verde" --argjson rojos "$rojos" --argjson n "$n" --argjson max "$max" \
+      '{sha:$sha, verde:$verde, ronda:$n, reutilizada:false, reparar:(($verde | not) and $n < $max), rojos:[$rojos[].name]}';;
 
   *) echo "subcomando desconocido: $sub" >&2; exit 2;;
 esac

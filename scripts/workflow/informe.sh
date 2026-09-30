@@ -25,8 +25,9 @@
 #   6. trazabilidad: cada FR/SC del spec → tareas (y su estado) → guiones de aceptación,
 #      y su control de umbral (la sección «Controles de umbral» de plan.md): «tareas
 #      hechas» no es «comprobado por su control» (ADR 0029);
-#   7. commits posteriores a la revisión final, que ningún juez vio, con lo que toca
-#      cada uno fuera de gates/;
+#   7. commits posteriores a la primera ronda de la revisión final, cada uno con la
+#      ronda que lo vio y su veredicto, y aparte los que cambian algo fuera de gates/ y
+#      ningún juez vio (ADR 0030): en un run sano esa lista está vacía;
 #   8. cómo comprobarlo y duración del run.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -307,6 +308,36 @@ capa3() {
   if [ -f "$g/grabaciones.md" ]; then echo "- Grabaciones del paso grabar_datos: \`$g/grabaciones.md\`."; fi
 }
 
+# Commits posteriores a lo que juzgó la primera ronda de la revisión final, en orden,
+# uno por línea: «<sha> <sha corto> <ronda que lo vio|-> <juez A> <juez B> <asunto>».
+# Un commit lo vio la primera ronda cuya cabeza juzgada lo contiene; «-» si ninguna.
+# Los que solo tocan gates/ se marcan con ronda «g» (registros del run).
+commits_posteriores() {
+  local rondas primera h hc s r c sha va vb visto
+  rondas=$(rondas_juzgadas "$hito")
+  [ -n "$rondas" ] || return 0
+  primera=$(awk 'NR == 1 {print $3}' <<<"$rondas")
+  git log --reverse --format='%H%x09%h%x09%s' "$primera"..HEAD | while IFS="$(printf '\t')" read -r h hc s; do
+    if [ -z "$(fuera_de_gates_en "$h")" ]; then printf '%s %s g - - %s\n' "$h" "$hc" "$s"; continue; fi
+    visto="- - -"
+    while read -r r c sha va vb; do
+      if git merge-base --is-ancestor "$h" "$sha" 2>/dev/null; then visto="$r $va $vb"; break; fi
+    done <<<"$rondas"
+    printf '%s %s %s %s\n' "$h" "$hc" "$visto" "$s"
+  done
+}
+
+# Commits que cambian algo fuera de gates/ sin que ningún juez los viera, y cambios sin
+# commitear fuera de gates/: una línea por cada uno. Vacío en un run sano (ADR 0030).
+sin_juez() {
+  local h hc r va vb s sucio
+  commits_posteriores | while read -r h hc r va vb s; do
+    [ "$r" != - ] || printf -- '- **`%s` %s**: %s.\n' "$hc" "$s" "$(fuera_de_gates_en "$h" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"
+  done
+  sucio=$(fuera_de_gates_sin_commitear)
+  [ -z "$sucio" ] || printf -- '- **Cambios sin commitear**: %s.\n' "$(printf '%s\n' "$sucio" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"
+}
+
 ci_local=$(tail -n 1 "$g/ci.log" 2>/dev/null | sed -n 's/^kitlegal-verificacion exit=//p' || true) # ci.log no se versiona
 
 informe() {
@@ -323,7 +354,10 @@ informe() {
   echo "- **make ci local**: $( [ "${ci_local:-x}" = 0 ] && echo "verde" || echo "ROJO (exit ${ci_local:-desconocido}; gates/ci.log)")."
   if [ -f "$g/cierre.json" ]; then
     remoto=$(jq -r 'if .verde then "verde" else "ROJO: " + ([.checks[] | select(.workflow != "" and (.bucket == "fail" or .bucket == "cancel")) | .name] | join(", ")) end' "$g/cierre.json")
-    echo "- **CI y evals remotos** sobre \`$(jq -r '.sha[0:7]' "$g/cierre.json")\`: $remoto."
+    # Una medición vale solo para el producto que midió (ADR 0030).
+    if producto_igual "$(jq -r '.sha' "$g/cierre.json")"; then remoto="$remoto; es el producto de la cabeza (lo posterior solo toca \`gates/\`)"
+    else remoto="$remoto; **NO es el producto de la cabeza**: después de medir cambió $( { fuera_de_gates_entre "$(jq -r '.sha' "$g/cierre.json")"; fuera_de_gates_sin_commitear; } | sort -u | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"; fi
+    echo "- **CI y evals remotos** sobre \`$(jq -r '.sha[0:7]' "$g/cierre.json")\`$(jq -r 'if .ronda then " (medición \(.ronda))" else "" end' "$g/cierre.json"): $remoto."
   else
     echo "- **CI y evals remotos**: sin medir."
   fi
@@ -331,7 +365,12 @@ informe() {
   [ -z "$ev" ] || echo "- **Evals por skill**: $ev (tasas en la sección 3)."
   um=$(resumen_umbrales)
   [ -z "$um" ] || echo "- **Umbrales del job**: $um (sección 3)."
-  echo "- **Revisión final**: juez A $(veredicto "$g/revision-a.json"), juez B $(veredicto "$g/revision-b.json"), $(cat "$g/revision-rondas" 2>/dev/null || echo 0) rondas."
+  local ciclos nsj
+  ciclos=$(jq '[.rondas[].ciclo] | unique | length' "$g/revision-juzgado.json" 2>/dev/null || echo 1)
+  echo "- **Revisión final**: juez A $(veredicto "$g/revision-a.json"), juez B $(veredicto "$g/revision-b.json"), $(n=$(cat "$g/revision-rondas" 2>/dev/null || echo 0); [ "$n" = 1 ] && echo "1 ronda" || echo "$n rondas")$( [ "${ciclos:-1}" -gt 1 ] && echo " en $ciclos ciclos (el primero juzga el hito; cada uno de los siguientes, lo que cambió después del último veredicto)")."
+  nsj=$(sin_juez | grep -c . || true)
+  if [ "$nsj" -eq 0 ]; then echo "- **Cambios que ningún juez vio**: ninguno."
+  else echo "- **Cambios que ningún juez vio: $nsj** (sección 7). El producto que se fusionaría no lo ha juzgado entero ningún juez."; fi
   local hechas cuar sin
   hechas=$(grep -cE '^[[:space:]]*- \[[Xx]\] T[0-9]+' "$d/tasks.md" || true)
   cuar=$(jq '.tareas | length' "$g/cuarentena.json" 2>/dev/null || echo 0)
@@ -416,17 +455,31 @@ informe() {
 
   echo "## 7. Cambios posteriores a la revisión final"
   echo
-  local ult h hc s fuera
-  ult=$(git log --format=%H --grep="^docs($hito): veredictos de la revisión final" -n 1 main..HEAD || true)
-  if [ -n "$ult" ] && [ -n "$(git log --oneline "$ult"..HEAD)" ]; then
-    echo "Commits posteriores a los veredictos, que ningún juez juzgó (correcciones del cierre, registros y este informe), con lo que cada uno toca fuera de \`gates/\`:"; echo
-    git log --format='%H %h %s' "$ult"..HEAD | while read -r h hc s; do
-      fuera=$(git diff-tree --no-commit-id --name-only -r "$h" | grep -v "^$d/gates/" || true)
-      if [ -z "$fuera" ]; then echo "- \`$hc\` $s: solo registros de \`gates/\`."
-      else echo "- \`$hc\` $s: $(printf '%s\n' "$fuera" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')."; fi
-    done
+  local post primera h hc r va vb asunto nsin
+  post=$(commits_posteriores)
+  primera=$(rondas_juzgadas "$hito"); primera=$(awk 'NR == 1 {print $3}' <<<"$primera")
+  if [ -z "$primera" ]; then
+    echo "La revisión final no emitió ningún veredicto válido."
+  elif [ -z "$post" ]; then
+    echo "Ninguno: la cabeza es lo que juzgó la primera ronda de la revisión final."
   else
-    echo "Ninguno."
+    echo "Cada commit posterior a lo que juzgó la primera ronda de la revisión final (\`$(printf '%s' "$primera" | cut -c1-7)\`), con la ronda que lo vio y su veredicto, y lo que toca fuera de \`gates/\` (ADR 0030):"; echo
+    printf '%s\n' "$post" | while read -r h hc r va vb asunto; do
+      case "$r" in
+        g) echo "- \`$hc\` $asunto: solo registros de \`gates/\`.";;
+        -) echo "- \`$hc\` $asunto: **ningún juez lo vio**.";;
+        *) echo "- \`$hc\` $asunto: lo vio la ronda $r (juez A: $va; juez B: $vb). Toca $(fuera_de_gates_en "$h" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g').";;
+      esac
+    done
+  fi
+  echo
+  echo "### Cambios que ningún juez vio"
+  echo
+  nsin=$(sin_juez)
+  if [ -z "$nsin" ]; then echo "Ninguno."
+  else
+    echo "**Anomalía**: cambian el producto después del último veredicto y ningún juez los ha juzgado. Desde el workflow 2.3.0 el propio bucle de revisión y cierre los lleva a los jueces antes de volver a medir: si están aquí, el run es anterior, se interrumpió o alguien los añadió a mano."; echo
+    printf '%s\n' "$nsin"
   fi
   echo
 
