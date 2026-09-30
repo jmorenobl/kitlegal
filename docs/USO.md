@@ -10,6 +10,24 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-09-30 · El alias `sonnet` ya es Sonnet 5.5 y el job de evals sigue midiendo Sonnet 5
+
+- **Qué se vio.** Claude Code 2.1.284 resuelve el alias `sonnet` a `claude-sonnet-5-5` (2.1.283 y anteriores, a
+  `claude-sonnet-5`), y la resolución es del cliente: la misma orden con 2.1.270, la versión del job, sigue dando
+  Sonnet 5, y 2.1.270 avisa `[claude-code:unrecognized_model]` si se le pide el id nuevo. El job decidía con
+  `claude-sonnet-5`, que ya no es el modelo del uso real (ADR 0016). Además, su control del modelo de la sesión
+  aceptaba cualquier id que empezara por el pedido, así que no distinguía `claude-sonnet-5` de `claude-sonnet-5-5`.
+- **Qué se midió.** Sondeo comparado sobre `941b24f` con 2.1.284, las 19 evals de `boe-legislacion` y las 3 de
+  `legal-core`, tres repeticiones (ADR 0031, «Medidas»):
+  - **Sonnet 5**: todas las series que deciden 3 de 3; 3 de 51 respuestas con expresión prohibida; 296 s.
+  - **Sonnet 5.5**: la 04 (LGT, art. 66), que decide, 1 de 3, porque dos sesiones no activan la skill y responden de
+    memoria; 0 de 51 con expresión prohibida, pero 6 de 51 primeras líneas dicen el estado de lo comprobado con
+    palabras que la lista no tiene («no trae avisos de vigencia», «Lo he leído en el BOE consolidado»); 217 s.
+- **Qué se hizo.** ADR 0031: decide `claude-sonnet-5-5` con Claude Code 2.1.284, fijados juntos; Sonnet 5 sale del
+  job; el control del modelo exige el id pedido o ese id con su fecha; y antes de cada hito una orden comprueba si el
+  alias ha cambiado. La activación de la 04 y el anuncio de lo comprobado son de la skill con el modelo nuevo: los
+  arregla H7.4.
+
 ### 2026-09-29 · H7.2 no cumple su umbral: el ruido cambia de palabras, y medirlo cuesta 40 minutos
 
 - **Qué se pidió.** Verificar el cierre de H7.2 (#82) contra su SC-001: como mucho el 5 % de las respuestas de cada
@@ -238,7 +256,8 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   sola tirada y que se ejecute cuando hay algo que medir.
 - **Qué se hizo.** Decisión de Jorge (2026-09-15), pieza aparte tras fusionar H5 (#27), como ADR con enmienda
   de Q5, FR-070, SC-003 y research D13, y del roadmap:
-  1. **Decide Sonnet 5** (`claude-sonnet-5`): si funciona con Sonnet funciona con Opus, y gasta menos
+  1. **Decide Sonnet 5** (`claude-sonnet-5`) [enmienda 2026-09-30, ADR 0031: decide el id al que resuelve `sonnet`
+     en la versión de Claude Code del job, hoy `claude-sonnet-5-5`]: si funciona con Sonnet funciona con Opus, y gasta menos
      suscripción que Opus. La elección es de calidad, no de coste por token (la suscripción no se factura por
      llamada).
   2. **Haiku 4.5 queda informativo**: se ejecuta y se publica en el informe como límite inferior, pero no

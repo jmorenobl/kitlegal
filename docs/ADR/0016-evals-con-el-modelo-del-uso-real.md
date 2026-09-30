@@ -1,6 +1,8 @@
 # 0016 · Las evals deciden con el modelo del uso real, por repeticiones y cuando hay algo que medir
 
-- **Estado**: aceptada
+- **Estado**: aceptada; sustituida en parte por el ADR 0031 (qué modelo decide y qué modelos informan: decide el id al
+  que resuelve `sonnet` en la versión de Claude Code del job, hoy `claude-sonnet-5-5`, y Sonnet 5 sale del job). Siguen
+  vigentes las repeticiones y el umbral por serie, las evals informativas, la extracción de la cita y el disparador.
 - **Fecha**: 2026-09-16
 - **Hito**: pieza aparte tras H5; enmienda la clarificación Q5, FR-070 y SC-003 del spec de H5, su research D13 y la
   tabla de controles de `docs/ROADMAP.md` §4, sin tocar el contrato `Applet` (ADR 0005) ni el binario distribuido

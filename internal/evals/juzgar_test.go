@@ -2125,3 +2125,46 @@ func describeYDryRunFalsos(t *testing.T) juicio {
 		}),
 	}
 }
+
+// TestExigirElModeloPedido comprueba que una sesión pasa el control del modelo si
+// declara el id pedido, tal cual o con la fecha de su versión detrás, o si no
+// declaró ninguno; y que un id más largo que empieza por el pedido es otro modelo
+// —claude-sonnet-5-5 no es claude-sonnet-5 (ADR 0031)—, que no pasa y da su
+// motivo.
+func TestExigirElModeloPedido(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre, pedido, declarado string
+		pasa                      bool
+	}{
+		{nombre: "el-mismo-id", pedido: "claude-sonnet-5-5", declarado: "claude-sonnet-5-5", pasa: true},
+		{nombre: "con-la-fecha", pedido: "claude-haiku-4-5", declarado: "claude-haiku-4-5-20251001", pasa: true},
+		{nombre: "sin-declarar", pedido: "claude-sonnet-5-5", declarado: "", pasa: true},
+		{nombre: "otra-version-del-mismo-nombre", pedido: "claude-sonnet-5", declarado: "claude-sonnet-5-5"},
+		{nombre: "la-anterior", pedido: "claude-sonnet-5-5", declarado: "claude-sonnet-5"},
+		{nombre: "fecha-corta", pedido: "claude-haiku-4-5", declarado: "claude-haiku-4-5-2025100"},
+		{nombre: "fecha-no-numerica", pedido: "claude-haiku-4-5", declarado: "claude-haiku-4-5-2025100a"},
+		{nombre: "fecha-sin-guion", pedido: "claude-haiku-4-5", declarado: "claude-haiku-4-520251001"},
+		{nombre: "otro-modelo", pedido: "claude-sonnet-5-5", declarado: "claude-opus-5-5"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			resultado := ResultadoDeEval{Modelo: caso.pedido, ModeloDeLaSesion: caso.declarado, Pasa: true}
+			resultado.exigirElModeloPedido()
+
+			assert.Equal(t, caso.pasa, resultado.Pasa)
+			if caso.pasa {
+				assert.Empty(t, resultado.Motivos)
+
+				return
+			}
+
+			assert.Equal(t, []string{motivoDeOtroModelo + caso.declarado + ", y se pidió " + caso.pedido},
+				resultado.Motivos)
+		})
+	}
+}

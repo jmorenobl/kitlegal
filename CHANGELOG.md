@@ -249,6 +249,13 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El job de evals decide con `claude-sonnet-5-5`** (ADR 0031, que sustituye al ADR 0016 en qué modelo decide): el id
+  al que resuelve el alias `sonnet` en Claude Code 2.1.284, la versión que ahora instalan sus sesiones (antes
+  `claude-sonnet-5` con 2.1.270, que no reconoce el modelo nuevo). Los dos van juntos en `.github/workflows/evals.yml`.
+  Sonnet 5 sale del job y `claude-haiku-4-5-20251001` sigue como límite inferior informativo, así que el umbral que
+  decide pasa a llamarse `expresiones_prohibidas:claude-sonnet-5-5`. Una sesión solo pasa el control del modelo si
+  declara el id pedido, tal cual o seguido de la fecha de su versión (`-AAAAMMDD`): antes bastaba con que empezara por
+  él, y `claude-sonnet-5-5` pasaba por `claude-sonnet-5`.
 - **`boe-legislacion` v0.1.3**: la respuesta empieza por la norma sin el estado de la comprobación delante; la skill
   ya no enseña con su prosa el vocabulario que la respuesta no puede decir, la regla 7 dice solo qué hacer si la
   comprobación de la redacción falla y cuándo va `⚠ REDACCIÓN MODIFICADA:`, y el ejemplo de esa línea lleva

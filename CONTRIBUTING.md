@@ -548,20 +548,26 @@ repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral 
 (`UMBRAL_DE_EVALS`); y, para cada skill en la entrada `include` de su matriz, cuántas sesiones abre a la vez
 (`CONCURRENCIA_DE_EVALS`) y el objetivo de duración de sus sesiones, en segundos (`OBJETIVO_DE_DURACION_DE_EVALS`; `0`
 es no tener objetivo). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero, y
-subir o bajar la concurrencia, también, con los reintentos por límite de ritmo del informe como dato. Usa
+subir o bajar la concurrencia, también, con los reintentos por límite de ritmo del informe como dato. El modelo que
+decide es el id al que resuelve el alias `sonnet` en la versión de Claude Code de las sesiones (`VERSION_DE_CLAUDE_CODE`),
+y los dos cambian juntos (ADR 0031): lo comprueba la clave `claude-sonnet-*` de `modelUsage` en
+`npx -y @anthropic-ai/claude-code@<VERSION_DE_CLAUDE_CODE> -p --model sonnet --output-format json 'Responde solo: ok'`.
+Antes de lanzar un hito, la misma orden sin `npx`, con el Claude Code de quien lo lanza, dice si el alias ha cambiado;
+si no da `MODELO_DE_EVALS`, el hito espera a una propuesta de cambio que suba los dos, con un sondeo comparado. Usa
 el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token`
 (el proyecto no usa una clave de API de pago por uso). Hoy fija:
 
 | Variable | Valor |
 |---|---|
-| `MODELO_DE_EVALS` | `claude-sonnet-5` |
+| `MODELO_DE_EVALS` | `claude-sonnet-5-5` |
 | `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
 | `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion`; `1` en `legal-core` |
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `legal-core` |
+| `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
 
-Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones, cuatro a la vez: 36 de `claude-sonnet-5`
+Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones, cuatro a la vez: 36 de `claude-sonnet-5-5`
 sobre las doce que deciden, 21 sobre las siete informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que
 deciden. El tope de 120 minutos de cada trabajo (`timeout-minutes`) corta un cuelgue; no es el control de la duración,
 que es un umbral del informe, porque un trabajo cancelado no escribe informe. Cubre el peor caso de cada skill —todas
@@ -599,7 +605,7 @@ Cómo se lee el informe:
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
   fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas—, una petición llegada
   a la red o un umbral que decide y no se cumple
-  (`umbral expresiones_prohibidas:claude-sonnet-5: 3 de 51 (5,9 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
+  (`umbral expresiones_prohibidas:claude-sonnet-5-5: 3 de 51 (5,9 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
   prefijo fijo `de la ejecución, no de la skill: `, que los distingue sin modelo de los de la skill, el de las sesiones
   sin medir por un límite de uso de la cuenta y el de la duración de las sesiones por encima de su objetivo: dicen que
   el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill.
@@ -626,7 +632,7 @@ Cómo se lee el informe:
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
   o de la propia `medida`, y se puede rehacer con los otros campos. Una skill con lista tiene uno por modelo del job,
   `expresiones_prohibidas:<modelo>`, con el recuento de ese modelo y `umbral` `0.05`, que solo decide en el modelo que
-  decide: con las 51 respuestas de `claude-sonnet-5` en las evals de `boe-legislacion` que activan la skill, como
+  decide: con las 51 respuestas de `claude-sonnet-5-5` en las evals de `boe-legislacion` que activan la skill, como
   mucho 2 con alguna expresión; el de `claude-haiku-4-5-20251001` se publica con `decide: false`. Una skill con
   objetivo de duración tiene además `duracion_de_las_sesiones`, sin `total` y con `decide: true`; `legal-core` no
   tiene ninguno, `[]`. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no
