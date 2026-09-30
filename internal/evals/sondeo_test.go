@@ -1,9 +1,11 @@
 package evals
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -507,4 +509,691 @@ func sesionDelSondeo(copia string, numero, vez int) string {
 // lineasDeLaSalida son las líneas dadas, cada una terminada en un salto de línea.
 func lineasDeLaSalida(lineas ...string) string {
 	return strings.Join(lineas, "\n") + "\n"
+}
+
+// valorDeLaSuscripcion es el de CLAUDE_CODE_OAUTH_TOKEN en los entornos de los
+// tests del sondeo: basta con que no esté vacío, y ninguna sesión lo usa.
+const valorDeLaSuscripcion = "de-la-base"
+
+// Las skills del repositorio que los tests del sondeo piden: las dos de la
+// matriz del job, con 4 y 1 sesiones a la vez (contracts/ejecucion-del-job.md
+// §7 de H7.3).
+const (
+	skillQueSondea     = "boe-legislacion"
+	otraSkillQueSondea = "legal-core"
+)
+
+// casoDeComprobarElSondeo es un caso de TestComprobarElSondeo: cómo cambia el
+// sondeo que comprueba sin error y, o bien las líneas de su error, en su orden,
+// o bien, sin error, lo comprobado: las evals pedidas, en su orden, y la
+// concurrencia.
+type casoDeComprobarElSondeo struct {
+	nombre       string
+	ajustar      func(t *testing.T, s *SondeoAEjecutar)
+	errores      []string
+	pedidas      []string
+	concurrencia int
+}
+
+// TestComprobarElSondeo fija la comprobación de los argumentos y de la
+// credencial del sondeo, antes de construir nada (contracts/sondeo.md §3.1,
+// §3.2 y §7 de H7.3; research D16; FR-060, FR-063, FR-067; US4-5), sobre las
+// evals del repositorio y la definición real del job, o sobre carpetas de evals
+// escritas en t.TempDir(): cada error de §3.1, nombrando su argumento de make,
+// con los de varios argumentos a la vez, uno por línea y en el orden de la
+// orden; la concurrencia por omisión, la del job para la skill, 4 y 1; la
+// pedida, si la hay; y las evals pedidas en el orden en que se piden. Sin
+// CLAUDE_CODE_OAUTH_TOKEN, o con la variable vacía, el error de §3.2, que no
+// llega si un argumento no vale.
+func TestComprobarElSondeo(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range slices.Concat(casosDeLosArgumentos(), casosDeLasEvals(), casosDeLosEnteros(),
+		casosDeLaSuscripcion()) {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sondeo := sondeoAComprobar()
+			caso.ajustar(t, &sondeo)
+
+			comprobado, err := comprobarElSondeo(sondeo)
+			if len(caso.errores) > 0 {
+				require.EqualError(t, err, strings.Join(caso.errores, "\n"))
+
+				return
+			}
+
+			require.NoError(t, err)
+			exigirLoComprobado(t, sondeo, caso, comprobado)
+		})
+	}
+}
+
+// sondeoAComprobar es el sondeo que comprueba sin error: la skill del
+// repositorio con sus evals 14 y 03, en ese orden, Sonnet 5, tres repeticiones,
+// la concurrencia del job y la credencial en su entorno.
+func sondeoAComprobar() SondeoAEjecutar {
+	return SondeoAEjecutar{
+		Argumentos: ArgumentosDelSondeo{
+			Skill: skillQueSondea, Evals: "14,03", Modelo: modeloSonnet5, Repeticiones: "3",
+		},
+		Entorno:          []string{variableDeLaSuscripcion + "=" + valorDeLaSuscripcion},
+		EvalsDeLasSkills: directorioDeEvals,
+	}
+}
+
+// exigirLoComprobado exige que lo comprobado sea lo del sondeo sin error: su
+// skill, la carpeta de sus evals, las evals pedidas del caso, en su orden, con la
+// lista de la carpeta, su modelo, sus repeticiones y la concurrencia del caso.
+func exigirLoComprobado(t *testing.T, sondeo SondeoAEjecutar, caso casoDeComprobarElSondeo, comprobado sondeoComprobado) {
+	t.Helper()
+
+	evals := filepath.Join(sondeo.EvalsDeLasSkills, sondeo.Argumentos.Skill)
+
+	conjunto, err := LeerConjunto(evals)
+	require.NoError(t, err)
+
+	pedidas := make([]Eval, 0, len(caso.pedidas))
+	for _, fichero := range caso.pedidas {
+		posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == fichero })
+		require.GreaterOrEqualf(t, posicion, 0, "la eval %s está en %s", fichero, evals)
+
+		pedidas = append(pedidas, conjunto.Evals[posicion])
+	}
+
+	assert.Equal(t, sondeoComprobado{
+		skill: sondeo.Argumentos.Skill, evals: evals, pedidas: pedidas, prohibidas: conjunto.Prohibidas,
+		modelo: sondeo.Argumentos.Modelo, repeticiones: 3, concurrencia: caso.concurrencia,
+	}, comprobado)
+}
+
+// casosDeLosArgumentos son los casos de TestComprobarElSondeo de la skill y del
+// modelo, los de varios argumentos a la vez y los que comprueban sin error.
+func casosDeLosArgumentos() []casoDeComprobarElSondeo {
+	return []casoDeComprobarElSondeo{
+		{
+			nombre:       "concurrencia-del-job-en-" + skillQueSondea,
+			ajustar:      func(*testing.T, *SondeoAEjecutar) {},
+			pedidas:      []string{"14-trlrhl-impuestos-por-materia.yaml", "03-lrbrl-atribuciones-del-pleno.yaml"},
+			concurrencia: 4,
+		},
+		{
+			nombre: "concurrencia-del-job-en-" + otraSkillQueSondea,
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Argumentos.Skill, s.Argumentos.Evals = otraSkillQueSondea, "03,01"
+			},
+			pedidas:      []string{"03-no-activa-receta-de-cocina.yaml", "01-territorio-municipio-cubierto.yaml"},
+			concurrencia: 1,
+		},
+		{
+			nombre:       "concurrencia-pedida",
+			ajustar:      func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Concurrencia = "2" },
+			pedidas:      []string{"14-trlrhl-impuestos-por-materia.yaml", "03-lrbrl-atribuciones-del-pleno.yaml"},
+			concurrencia: 2,
+		},
+		{
+			nombre:  "skill-sin-la-forma-de-un-nombre",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Skill = "Boe-Legislacion" },
+			errores: []string{"SKILL: \xc2\xabBoe-Legislacion\xc2\xbb no es ninguna skill con evals"},
+		},
+		{
+			nombre:  "skill-sin-carpeta-de-evals",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Skill = "no-existe" },
+			errores: []string{"SKILL: \xc2\xabno-existe\xc2\xbb no es ninguna skill con evals"},
+		},
+		{
+			nombre: "skill-con-un-fichero-mal-formado",
+			ajustar: func(t *testing.T, s *SondeoAEjecutar) {
+				t.Helper()
+
+				s.EvalsDeLasSkills = carpetasDeEvals(t, skillQueSondea,
+					entradaDeConjunto{nombre: "14-bien-formada.yaml", contenido: contenidoDelArticulo21},
+					entradaDeConjunto{nombre: "03-sin-pregunta.yaml", contenido: contenidoSinPregunta})
+			},
+			errores: []string{"SKILL: \xc2\xabboe-legislacion\xc2\xbb no es ninguna skill con evals"},
+		},
+		{
+			nombre: "skill-que-el-job-no-ejecuta",
+			ajustar: func(t *testing.T, s *SondeoAEjecutar) {
+				t.Helper()
+
+				s.EvalsDeLasSkills = carpetasDeEvals(t, "otra-skill",
+					entradaDeConjunto{nombre: "14-bien-formada.yaml", contenido: contenidoDelArticulo21},
+					entradaDeConjunto{nombre: "03-bien-formada.yaml", contenido: contenidoDelArticulo21})
+				s.Argumentos.Skill = "otra-skill"
+			},
+			errores: []string{"SKILL: el job de evals no ejecuta \xc2\xabotra-skill\xc2\xbb"},
+		},
+		{
+			nombre:  "modelo-vacio",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Modelo = "" },
+			errores: []string{"MODELO: est\xc3\xa1 vac\xc3\xado"},
+		},
+		{
+			nombre:  "modelo-sin-la-forma-de-un-id",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Modelo = "Claude Sonnet 5" },
+			errores: []string{"MODELO: \xc2\xabClaude Sonnet 5\xc2\xbb no tiene la forma de un id de modelo"},
+		},
+		{
+			nombre: "varios-argumentos-a-la-vez",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Argumentos = ArgumentosDelSondeo{
+					Skill: skillQueSondea, Evals: "3", Modelo: "", Repeticiones: "0", Concurrencia: "0",
+				}
+			},
+			errores: []string{
+				"EVALS: \xc2\xab3\xc2\xbb no es una lista de n\xc3\xbameros de eval de dos cifras separados por comas",
+				"MODELO: est\xc3\xa1 vac\xc3\xado",
+				"REPETICIONES: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1",
+				"CONCURRENCIA: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1",
+			},
+		},
+		{
+			nombre: "skill-y-evals-que-no-valen",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Argumentos.Skill, s.Argumentos.Evals = "no-existe", "3"
+			},
+			errores: []string{
+				"SKILL: \xc2\xabno-existe\xc2\xbb no es ninguna skill con evals",
+				"EVALS: \xc2\xab3\xc2\xbb no es una lista de n\xc3\xbameros de eval de dos cifras separados por comas",
+			},
+		},
+	}
+}
+
+// casosDeLasEvals son los casos de TestComprobarElSondeo del argumento EVALS:
+// las listas que no tienen su forma —también la que repite un número— y los
+// números que no son de ninguna eval de la skill, uno por línea. Con una skill
+// que no vale, solo se comprueba la forma: sin sus evals, sus números no se
+// pueden buscar.
+func casosDeLasEvals() []casoDeComprobarElSondeo {
+	sinLaForma := map[string]string{
+		"una-cifra":         "3",
+		"tres-cifras":       "003",
+		"coma-al-final":     "03,",
+		"con-un-espacio":    "03, 14",
+		"vacia":             "",
+		"otro-separador":    "03;14",
+		"numero-repetido":   "03,14,03",
+		"nombre-de-la-eval": "03-lrbrl-atribuciones-del-pleno.yaml",
+	}
+
+	casos := make([]casoDeComprobarElSondeo, 0, len(sinLaForma)+2)
+
+	for nombre, valor := range sinLaForma {
+		casos = append(casos, casoDeComprobarElSondeo{
+			nombre:  "evals-" + nombre,
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Evals = valor },
+			errores: []string{"EVALS: \xc2\xab" + valor + "\xc2\xbb no es una lista de n\xc3\xbameros de eval de dos cifras " +
+				"separados por comas"},
+		})
+	}
+
+	return append(casos,
+		casoDeComprobarElSondeo{
+			nombre:  "evals-que-no-son-de-la-skill",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Evals = "03,98,14,99" },
+			errores: []string{
+				"EVALS: 98 no es ninguna eval de " + skillQueSondea,
+				"EVALS: 99 no es ninguna eval de " + skillQueSondea,
+			},
+		},
+		casoDeComprobarElSondeo{
+			nombre: "evals-de-otra-skill",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Argumentos.Skill, s.Argumentos.Evals = otraSkillQueSondea, "01,19"
+			},
+			errores: []string{"EVALS: 19 no es ninguna eval de " + otraSkillQueSondea},
+		},
+	)
+}
+
+// casosDeLosEnteros son los casos de TestComprobarElSondeo de REPETICIONES y
+// CONCURRENCIA con un valor que no es un entero mayor o igual que 1; la
+// concurrencia vacía no es un error, sino la del job.
+func casosDeLosEnteros() []casoDeComprobarElSondeo {
+	var casos []casoDeComprobarElSondeo
+
+	for _, valor := range []string{"0", "-1", "tres", "2.5", "1e3", "99999999999999999999"} {
+		casos = append(casos,
+			casoDeComprobarElSondeo{
+				nombre:  "repeticiones-" + valor,
+				ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Repeticiones = valor },
+				errores: []string{"REPETICIONES: \xc2\xab" + valor + "\xc2\xbb no es un entero mayor o igual que 1"},
+			},
+			casoDeComprobarElSondeo{
+				nombre:  "concurrencia-" + valor,
+				ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Concurrencia = valor },
+				errores: []string{"CONCURRENCIA: \xc2\xab" + valor + "\xc2\xbb no es un entero mayor o igual que 1"},
+			})
+	}
+
+	return append(casos, casoDeComprobarElSondeo{
+		nombre:  "repeticiones-vacias",
+		ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Repeticiones = "" },
+		errores: []string{"REPETICIONES: \xc2\xab\xc2\xbb no es un entero mayor o igual que 1"},
+	})
+}
+
+// casosDeLaSuscripcion son los casos de TestComprobarElSondeo de la credencial:
+// sin CLAUDE_CODE_OAUTH_TOKEN o con la variable vacía, el error de
+// contracts/sondeo.md §3.2, que nombra la variable; y, si además un argumento no
+// vale, solo el del argumento, que se comprueba antes.
+func casosDeLaSuscripcion() []casoDeComprobarElSondeo {
+	faltaLaSuscripcion := []string{"falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripci\xc3\xb3n que da " +
+		"claude setup-token, no est\xc3\xa1 en el entorno o est\xc3\xa1 vac\xc3\xada"}
+
+	return []casoDeComprobarElSondeo{
+		{
+			nombre:  "sin-la-variable",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Entorno = []string{"OTRA_DE_LA_BASE=si"} },
+			errores: faltaLaSuscripcion,
+		},
+		{
+			nombre:  "con-la-variable-vacia",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Entorno = []string{variableDeLaSuscripcion + "="} },
+			errores: faltaLaSuscripcion,
+		},
+		{
+			nombre: "sin-la-variable-y-con-un-argumento-que-no-vale",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Entorno, s.Argumentos.Modelo = nil, ""
+			},
+			errores: []string{"MODELO: est\xc3\xa1 vac\xc3\xado"},
+		},
+	}
+}
+
+// carpetasDeEvals crea en un directorio temporal del test la carpeta de evals de
+// la skill, con las entradas dadas, y devuelve el directorio: el de las evals de
+// las skills de un sondeo.
+func carpetasDeEvals(t *testing.T, skill string, entradas ...entradaDeConjunto) string {
+	t.Helper()
+
+	raiz := t.TempDir()
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, skill), os.DirFS(crearConjunto(t, entradas))))
+
+	return raiz
+}
+
+// casoDeSondear es un caso de TestSondear: cómo cambia el sondeo del test —sus
+// repeticiones y su concurrencia son las del caso—, el código con el que sale
+// el sustituto de claude en todas las sesiones, el transcript y la espera de
+// cada una, por su posición en el plan, y, o bien su error, o bien las sesiones
+// del plan que se abren, desde la primera, y su salida.
+type casoDeSondear struct {
+	nombre       string
+	repeticiones string
+	concurrencia string
+	ajustar      func(s *SondeoAEjecutar)
+	codigo       int
+	transcripts  func(t *testing.T) map[int]string
+	esperas      map[int]int
+	error        string
+	abiertas     int
+	salida       func(plan []SesionPlanificada) string
+}
+
+// TestSondear fija el sondeo desde sus argumentos hasta su salida
+// (contracts/sondeo.md §3, §5, §6 y §7 de H7.3; research D10 y D16; FR-061 a
+// FR-066; SC-009; US4-3, US4-4, US4-6), con los sustitutos de claude, una eval
+// sintética del art. 21 de la LPAC en la carpeta de la skill del repositorio que
+// el job ejecuta y un árbol que no construye nada: un kitlegal que no hace nada
+// en el bin/ del temporal y una skill en el directorio de Claude Code de su
+// HOME. Si todas las sesiones terminan sin terminar por otra causa, o si la
+// primera da el mensaje del límite de uso mientras la segunda sigue abierta,
+// devuelve su salida sin error: en el segundo caso no abre ninguna más, la
+// segunda termina y se juzga y las que faltan salen sin medir. Con un argumento
+// o una credencial que no valen, devuelve el error sin preparar el árbol, sin
+// abrir ninguna sesión y sin escribir nada en el temporal. Las sesiones no ven
+// ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN ni ninguna otra variable de la base
+// que no sea de contracts/sondeo.md §5, aunque estén en ella; ven
+// CLAUDE_CODE_OAUTH_TOKEN y las demás de §5 con su valor de la base, el PATH de
+// la base con el bin/ del temporal delante —el primer kitlegal que resuelven es
+// el de ahí— y el HOME del temporal. Nada se escribe fuera del temporal: el HOME
+// y el TMPDIR de la base quedan vacíos, y el temporal lleva solo bin/, home/ y
+// sesiones/, sin informe ni veredicto.
+func TestSondear(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeSondear() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sondeo := nuevoSondeoDelTest(t, caso)
+
+			salida, err := sondear(t.Context().Done(), sondeo.ejecutar)
+
+			sondeo.exigirLaBaseSinTocar(t)
+
+			if caso.error != "" {
+				require.EqualError(t, err, caso.error)
+				sondeo.exigirQueNoSondea(t)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.salida(sondeo.plan), salida)
+			sondeo.exigirLasSesiones(t, caso.abiertas)
+		})
+	}
+}
+
+// casosDeSondear son los casos de TestSondear.
+func casosDeSondear() []casoDeSondear {
+	faltaLaSuscripcion := "falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripci\xc3\xb3n que da " +
+		"claude setup-token, no est\xc3\xa1 en el entorno o est\xc3\xa1 vac\xc3\xada"
+
+	return []casoDeSondear{
+		{
+			nombre: "todas-las-sesiones-fallan", repeticiones: "2", codigo: 1,
+			transcripts: func(t *testing.T) map[int]string {
+				t.Helper()
+
+				credencial := mensajeInit + mensajeResultConError(t, textoDeLaCredencial)
+
+				return map[int]string{0: credencial, 1: credencial}
+			},
+			abiertas: 2,
+			salida:   salidaConTodasLasSesionesFallidas,
+		},
+		{
+			nombre: "limite-de-uso-en-la-primera", repeticiones: "4", concurrencia: "2",
+			transcripts: func(t *testing.T) map[int]string {
+				t.Helper()
+
+				return map[int]string{
+					0: mensajeInit + mensajeResultConError(t, textoDelLimiteDeSesion),
+					1: transcriptTerminado, 2: transcriptTerminado, 3: transcriptTerminado,
+				}
+			},
+			esperas:  map[int]int{1: esperaDeLaAbierta},
+			abiertas: 2,
+			salida:   salidaTrasElLimiteDeUso,
+		},
+		{
+			nombre: "un-argumento-que-no-vale", repeticiones: "0",
+			error: "REPETICIONES: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1",
+		},
+		{
+			nombre: "sin-la-credencial", repeticiones: "1",
+			ajustar: func(s *SondeoAEjecutar) { s.Entorno = sobreLaBase(s.Entorno, nil, variableDeLaSuscripcion) },
+			error:   faltaLaSuscripcion,
+		},
+		{
+			nombre: "con-la-credencial-vacia", repeticiones: "1",
+			ajustar: func(s *SondeoAEjecutar) {
+				s.Entorno = sobreLaBase(s.Entorno, []string{variableDeLaSuscripcion + "="})
+			},
+			error: faltaLaSuscripcion,
+		},
+	}
+}
+
+// esperaDeLaAbierta son los segundos que duerme en TestSondear la sesión que
+// sigue abierta cuando la primera da el mensaje del límite de uso, que no
+// duerme: con ellos de margen, la primera termina antes aunque la máquina vaya
+// cargada.
+const esperaDeLaAbierta = 3
+
+// salidaConTodasLasSesionesFallidas es la salida del sondeo de TestSondear en el
+// que todas las sesiones acaban con la credencial que no sirve y código 1: su
+// serie no pasa ninguna y cada una sale entre las que quedaron sin terminar, con
+// su motivo del job.
+func salidaConTodasLasSesionesFallidas(plan []SesionPlanificada) string {
+	lineas := []string{
+		primeraLineaDelSondeoEsperada, segundaLineaDelSondeoEsperada, "",
+		"Tasa de cada serie (sesiones que pasan de las medidas):",
+		"- " + nombreDeEval + " con " + modeloDeLaSesion + ": 0 de 2",
+		"",
+		"Respuestas con alguna expresi\xc3\xb3n prohibida: " + parrafoDeLaSkillSinLista + ".",
+		"",
+		"Sesiones sin medir por l\xc3\xadmite de uso: ninguna.",
+		"",
+		tituloSinTerminarEsperado + ":",
+	}
+
+	for _, sesion := range plan {
+		lineas = append(lineas, "- "+sesion.Nombre+": la sesi\xc3\xb3n no termin\xc3\xb3: c\xc3\xb3digo 1: "+
+			"result con is_error: "+textoDeLaCredencial)
+	}
+
+	return lineasDeLaSalida(lineas...)
+}
+
+// salidaTrasElLimiteDeUso es la salida del sondeo de TestSondear en el que la
+// primera sesión da el mensaje del límite de uso: su serie queda sin medir, y
+// salen sin medir la primera, con el mensaje, y las dos que no se abrieron.
+func salidaTrasElLimiteDeUso(plan []SesionPlanificada) string {
+	return lineasDeLaSalida(
+		primeraLineaDelSondeoEsperada, segundaLineaDelSondeoEsperada, "",
+		"Tasa de cada serie (sesiones que pasan de las medidas):",
+		"- "+nombreDeEval+" con "+modeloDeLaSesion+": sin medir",
+		"",
+		"Respuestas con alguna expresi\xc3\xb3n prohibida: "+parrafoDeLaSkillSinLista+".",
+		"",
+		"Sesiones sin medir por l\xc3\xadmite de uso:",
+		"- "+plan[0].Nombre+": "+sinMedirPorElMensaje,
+		"- "+plan[2].Nombre+": "+sinAbrirTrasElLimite,
+		"- "+plan[3].Nombre+": "+sinAbrirTrasElLimite,
+		"",
+		tituloSinTerminarEsperado+": ninguna.",
+	)
+}
+
+// sondeoDelTest es un sondeo de TestSondear con lo que el test mira después:
+// sus sustitutos, su plan, el PATH de su base y las variables de §5 que se le
+// dan, el HOME y el TMPDIR de su base, y si se preparó su árbol.
+type sondeoDelTest struct {
+	ejecutar   SondeoAEjecutar
+	sustitutos sustitutos
+	plan       []SesionPlanificada
+
+	rutaDeLaBase string
+	queVen       []string
+
+	personalDeLaBase string
+	temporalDeLaBase string
+
+	arbolPreparado *bool
+}
+
+// nuevoSondeoDelTest arma el sondeo de un caso de TestSondear: los sustitutos,
+// con el claude del sondeo delante en el PATH de la base y el código del caso;
+// la eval sintética del art. 21 en la carpeta de la skill; los argumentos del
+// caso con modeloDeLaSesion; el guion de la sesión; el árbol que no construye
+// nada; y la base: la del proceso sin sus credenciales de Claude Code, con un
+// HOME y un TMPDIR vacíos, las variables de §5 con valores propios del test,
+// CLAUDE_CODE_OAUTH_TOKEN y las que las sesiones no tienen que ver. Deja los
+// transcripts y las esperas del caso, y el ajuste del caso, si lo hay.
+func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
+	t.Helper()
+
+	s := escribirSustitutos(t)
+	claude := s.escribirElClaudeDelSondeo(t, variableDeEspera+"=0", variableDeCodigo+"="+strconv.Itoa(caso.codigo))
+
+	guion, err := filepath.Abs(guionDeLaSesion)
+	require.NoError(t, err)
+
+	sondeo := sondeoDelTest{
+		sustitutos:       s,
+		rutaDeLaBase:     claude + string(os.PathListSeparator) + os.Getenv("PATH"),
+		personalDeLaBase: t.TempDir(),
+		temporalDeLaBase: t.TempDir(),
+		arbolPreparado:   new(bool),
+		queVen: []string{
+			"LANG=C", "LC_ALL=C", "LC_CTYPE=C", "LC_MESSAGES=C", "TERM=dumb", "USER=persona-de-la-base",
+			"LOGNAME=persona-de-la-base", "SHELL=/bin/sh", "TZ=UTC", variableDeLaSuscripcion + "=" + valorDeLaSuscripcion,
+		},
+	}
+
+	sondeo.ejecutar = SondeoAEjecutar{
+		Argumentos: ArgumentosDelSondeo{
+			Skill: skillQueSondea, Evals: "01", Modelo: modeloDeLaSesion, Repeticiones: caso.repeticiones,
+			Concurrencia: caso.concurrencia,
+		},
+		Entorno: sobreLaBase(os.Environ(), slices.Concat([]string{
+			"PATH=" + sondeo.rutaDeLaBase, "HOME=" + sondeo.personalDeLaBase, "TMPDIR=" + sondeo.temporalDeLaBase,
+			"ANTHROPIC_API_KEY=de-la-base", "ANTHROPIC_AUTH_TOKEN=de-la-base", "OTRA_DE_LA_BASE=si",
+		}, sondeo.queVen), accesosDeClaudeCode...),
+		EvalsDeLasSkills: carpetasDeEvals(t, skillQueSondea,
+			entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21}),
+		Temporal:        t.TempDir(),
+		Guion:           guion,
+		PrepararElArbol: arbolSinConstruir(sondeo.arbolPreparado),
+	}
+
+	if caso.ajustar != nil {
+		caso.ajustar(&sondeo.ejecutar)
+	}
+
+	sondeo.plan = planDelSondeoDelTest(t, sondeo.ejecutar, caso.repeticiones)
+	sondeo.escribirLasSesiones(t, caso)
+
+	return sondeo
+}
+
+// planDelSondeoDelTest es el plan que abre el sondeo del test si sus argumentos
+// valen: la eval sintética con modeloDeLaSesion y las repeticiones del caso.
+// Con unas repeticiones que no valen, ninguno.
+func planDelSondeoDelTest(t *testing.T, sondeo SondeoAEjecutar, repeticiones string) []SesionPlanificada {
+	t.Helper()
+
+	veces, err := strconv.Atoi(repeticiones)
+	if err != nil || veces < 1 {
+		return nil
+	}
+
+	conjunto, err := LeerConjunto(filepath.Join(sondeo.EvalsDeLasSkills, skillQueSondea))
+	require.NoError(t, err)
+
+	return PlanDeEvals{Evals: conjunto.Evals, ModeloQueDecide: modeloDeLaSesion, Repeticiones: veces}.Sesiones()
+}
+
+// escribirLasSesiones deja el transcript y la espera de cada sesión del plan
+// que el caso da, por su posición.
+func (d sondeoDelTest) escribirLasSesiones(t *testing.T, caso casoDeSondear) {
+	t.Helper()
+
+	if caso.transcripts == nil {
+		return
+	}
+
+	for posicion, transcript := range caso.transcripts(t) {
+		d.sustitutos.escribirTranscript(t, d.plan[posicion].Nombre, transcript)
+	}
+
+	for posicion, segundos := range caso.esperas {
+		d.sustitutos.escribirEspera(t, d.plan[posicion].Nombre, segundos)
+	}
+}
+
+// arbolSinConstruir es el árbol del sondeo de TestSondear, que no construye ni
+// instala nada: deja, a través de un os.Root, un kitlegal que no hace nada en el
+// bin/ del temporal y una skill vacía en el directorio de skills de Claude Code
+// de su HOME, y anota que se preparó.
+func arbolSinConstruir(preparado *bool) func(temporal string, base []string) error {
+	return func(temporal string, _ []string) (err error) {
+		*preparado = true
+
+		raiz, err := os.OpenRoot(temporal)
+		if err != nil {
+			return err
+		}
+
+		defer func() { err = errors.Join(err, raiz.Close()) }()
+
+		return errors.Join(
+			raiz.Mkdir("bin", 0o700),
+			raiz.WriteFile(filepath.Join("bin", programaDeLasConsultas), []byte(kitlegalQueNoHaceNada), 0o755),
+			raiz.MkdirAll(filepath.Join("home", ".claude", "skills", skillQueSondea), 0o700),
+		)
+	}
+}
+
+// exigirLaBaseSinTocar exige que el HOME y el TMPDIR de la base del sondeo sigan
+// vacíos: nada se escribe fuera del temporal (FR-064).
+func (d sondeoDelTest) exigirLaBaseSinTocar(t *testing.T) {
+	t.Helper()
+
+	for _, dir := range []string{d.personalDeLaBase, d.temporalDeLaBase} {
+		entradas, err := os.ReadDir(dir)
+		require.NoError(t, err)
+		assert.Emptyf(t, entradas, "nada se escribe en %s, de la base", dir)
+	}
+}
+
+// exigirQueNoSondea exige que el sondeo no haya preparado el árbol, ni abierto
+// ninguna sesión, ni escrito nada en el temporal.
+func (d sondeoDelTest) exigirQueNoSondea(t *testing.T) {
+	t.Helper()
+
+	assert.False(t, *d.arbolPreparado, "no se prepara el árbol")
+
+	for _, dir := range []string{filepath.Join(d.sustitutos.comun, sustitutoClaude), d.ejecutar.Temporal} {
+		entradas, err := os.ReadDir(dir)
+		require.NoError(t, err)
+		assert.Emptyf(t, entradas, "no se abre ninguna sesión ni se escribe nada: %s", dir)
+	}
+}
+
+// exigirLasSesiones exige que el sondeo haya preparado el árbol y abierto las
+// primeras sesiones del plan, cada una con el entorno de contracts/sondeo.md §5
+// y terminada; que no haya abierto ninguna más; y que el temporal lleve solo
+// bin/, home/ y sesiones/.
+func (d sondeoDelTest) exigirLasSesiones(t *testing.T, abiertas int) {
+	t.Helper()
+
+	assert.True(t, *d.arbolPreparado, "se prepara el árbol")
+
+	for _, sesion := range d.plan[:abiertas] {
+		require.Truef(t, d.sustitutos.llego(t, sesion.Nombre), "la sesión %s se abre", sesion.Nombre)
+		assert.Truef(t, d.sustitutos.cumplioLaEspera(t, sesion.Nombre), "la sesión %s termina", sesion.Nombre)
+
+		d.exigirElEntornoDeLaSesion(t, sesion.Nombre)
+	}
+
+	for _, sesion := range d.plan[abiertas:] {
+		assert.Falsef(t, d.sustitutos.llego(t, sesion.Nombre), "la sesión %s no se abre", sesion.Nombre)
+	}
+
+	entradas, err := os.ReadDir(d.ejecutar.Temporal)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(entradas))
+	for _, entrada := range entradas {
+		nombres = append(nombres, entrada.Name())
+	}
+
+	assert.Equal(t, []string{"bin", "home", "sesiones"}, nombres, "el temporal, sin informe ni veredicto")
+}
+
+// exigirElEntornoDeLaSesion exige que el sustituto de claude haya visto en la
+// sesión el entorno de contracts/sondeo.md §5 de H7.3: el kitlegal del bin/ del
+// temporal, el HOME del temporal —donde escribe, y no en el de la base—, el PATH
+// de la base con ese bin/ delante, CLAUDE_CODE_OAUTH_TOKEN y las demás variables
+// de §5 con su valor de la base; y no ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN
+// ni OTRA_DE_LA_BASE, que están en la base.
+func (d sondeoDelTest) exigirElEntornoDeLaSesion(t *testing.T, sesion string) {
+	t.Helper()
+
+	anotado := d.sustitutos.entorno(t, sesion)
+	binarios := filepath.Join(d.ejecutar.Temporal, "bin")
+	personal := filepath.Join(d.ejecutar.Temporal, "home")
+
+	assert.Equal(t, filepath.Join(binarios, programaDeLasConsultas), anotado["kitlegal"],
+		"el primer kitlegal del PATH es el del temporal")
+	assert.Equal(t, personal, anotado["HOME"])
+	assert.FileExists(t, filepath.Join(personal, prefijoDeLoEscrito+sesion), "la sesión escribe en el HOME del temporal")
+	assert.Equal(t, binarios+string(os.PathListSeparator)+d.rutaDeLaBase, anotado["PATH"])
+
+	for _, variable := range d.queVen {
+		nombre, valor, _ := strings.Cut(variable, "=")
+		assert.Equalf(t, valor, anotado[nombre], "la sesión ve %s con su valor de la base", nombre)
+	}
+
+	assert.Equal(t, "no", anotado["ve-ANTHROPIC_API_KEY"], "la sesión no ve ANTHROPIC_API_KEY")
+	assert.Equal(t, "no", anotado["ve-ANTHROPIC_AUTH_TOKEN"], "la sesión no ve ANTHROPIC_AUTH_TOKEN")
+	assert.NotContains(t, anotado, "OTRA_DE_LA_BASE", "la sesión no ve otras variables de la base")
 }

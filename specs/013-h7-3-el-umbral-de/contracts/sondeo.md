@@ -42,17 +42,22 @@ En este orden, y sin abrir ninguna sesión hasta el paso 4:
    | Argumento | Error |
    |---|---|
    | `SKILL` | `SKILL: «<valor>» no es ninguna skill con evals` (forma de `name` y carpeta `evals/<skill>/` legible sin ficheros mal formados); `SKILL: el job de evals no ejecuta «<valor>»` (no está en la matriz) |
-   | `EVALS` | `EVALS: «<valor>» no es una lista de números de eval de dos cifras separados por comas`; `EVALS: <nn> no es ninguna eval de <skill>` |
+   | `EVALS` | `EVALS: «<valor>» no es una lista de números de eval de dos cifras separados por comas` (también con un número repetido); `EVALS: <nn> no es ninguna eval de <skill>`, una línea por número |
    | `MODELO` | `MODELO: está vacío`; `MODELO: «<valor>» no tiene la forma de un id de modelo` |
    | `REPETICIONES` | `REPETICIONES: «<valor>» no es un entero mayor o igual que 1` |
    | `CONCURRENCIA` | `CONCURRENCIA: «<valor>» no es un entero mayor o igual que 1` (vacía no es error) |
 
+   Un entero mayor o igual que 1 tiene la forma `^[1-9][0-9]*$`, como `CONCURRENCIA_DE_EVALS` en `scripts/evals.sh`.
+   Los errores de varios argumentos salen juntos, uno por línea y en el orden de la tabla; con un `SKILL` que no vale,
+   de `EVALS` solo se comprueba la forma.
+
 2. **Credencial** (FR-063): si `CLAUDE_CODE_OAUTH_TOKEN` no está en el entorno o está vacía,
    `falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripción que da claude setup-token, no está en el
    entorno o está vacía`. Sin llamar al servicio y sin ninguna otra comprobación de la credencial.
-3. **El árbol de trabajo** (FR-062): `go install -trimpath ./cmd/kitlegal` en la raíz del repositorio, con
-   `GOBIN=<temporal>/bin` y `CGO_ENABLED=0`; y `<temporal>/bin/kitlegal skills install -g --host claude` con
-   `HOME=<temporal>/home`. Las skills quedan en `<temporal>/home/.claude/skills/`, como las deja `make install`.
+3. **El árbol de trabajo** (FR-062): `go install -trimpath ./cmd/kitlegal` en la raíz del repositorio, con el entorno
+   de quien lo lanza, `GOBIN=<temporal>/bin` y `CGO_ENABLED=0`; y `<temporal>/bin/kitlegal skills install -g --host
+   claude` con el entorno de §5, que lleva `HOME=<temporal>/home`. Las skills quedan en
+   `<temporal>/home/.claude/skills/`, como las deja `make install`.
 4. **Las sesiones**: el plan de `PlanDeEvals` con las evals pedidas en su orden, `MODELO` como modelo que decide, sin
    modelos informativos, `REPETICIONES` y sin prueba de red; el repartidor ([ejecucion-del-job.md](./ejecucion-del-job.md)
    §3) con esa concurrencia, `Traza: false`, `Skills` `<temporal>/home/.claude/skills`, sesiones en
@@ -120,7 +125,7 @@ instalar las skills, o el repartidor devolvió un error; y con el código de `ma
 | `TestComprobarElSondeo` (tabla) | cada error de §3.1, nombrando su argumento; la concurrencia por omisión, 4 y 1, leída de la definición real; sin `CLAUDE_CODE_OAUTH_TOKEN` o vacía, el error de §3.2 | FR-060, FR-063, FR-067; US4-5 |
 | `TestSondear` (tabla, con sustitutos y sin construir el binario) | todas las sesiones fallan: devuelve la salida sin error (el guion sale con 0); la sesión k da (a): no abre más, las que faltan salen sin medir y devuelve sin error; un argumento o la credencial que no valen: ningún sustituto se invoca; las sesiones no ven `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` aunque estén en la base, sí `CLAUDE_CODE_OAUTH_TOKEN`, `HOME` es el del temporal y el primer `kitlegal` del `PATH` es el de `<temporal>/bin`; el `HOME` y el `TMPDIR` de la base no cambian: nada se escribe fuera del temporal | FR-061 a FR-066; SC-009; US4-3, US4-4, US4-6 |
 | `TestGuionDelSondeo` | `scripts/evals-sondeo.sh` con un `go` sustituto en el `PATH` y `TMPDIR` temporal: si el sustituto escribe `salida.txt` y sale con 0, el guion sale con 0, su salida estándar es esa y `TMPDIR` queda vacío; si sale con 1, el guion sale con 1, su salida de error lleva el registro y `TMPDIR` queda vacío | FR-064, FR-066; SC-009; US4-4 |
-| `TestPrepararElArbolDelSondeo` (etiqueta `integration`) | el `go install` y el `skills install` reales: `<temporal>/bin/kitlegal` existe y `<temporal>/home/.claude/skills/boe-legislacion/SKILL.md` es la del árbol; el `HOME` de la base no cambia | FR-062, FR-064 |
+| `TestPrepararElArbolDelSondeo` (etiqueta `integration`) | el `go install` y el `skills install` reales: `<temporal>/bin/kitlegal` existe y `<temporal>/home/.claude/skills/boe-legislacion/SKILL.md` es la del árbol; el `HOME` de la base no gana nada fuera de la telemetría del go command (`go env GOTELEMETRYDIR`), que no se apaga desde el entorno y que el `go test` del guion escribe igual | FR-062, FR-064 |
 
 ## 8. Uso, de fuera adentro
 

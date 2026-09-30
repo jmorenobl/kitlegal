@@ -1,12 +1,84 @@
 package evals
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
+
+// Los argumentos de make evals-sondeo, por su nombre, que es con lo que empieza
+// cada error de su comprobación (contracts/sondeo.md §3.1 de H7.3; FR-067).
+const (
+	argumentoSkill        = "SKILL"
+	argumentoEvals        = "EVALS"
+	argumentoModelo       = "MODELO"
+	argumentoRepeticiones = "REPETICIONES"
+	argumentoConcurrencia = "CONCURRENCIA"
+)
+
+// Las formas de los argumentos del sondeo que no se comprueban con otra
+// (contracts/sondeo.md §3.1 de H7.3): la de EVALS, números de eval de dos
+// cifras separados por comas; y la de REPETICIONES y CONCURRENCIA, un entero
+// mayor o igual que 1 escrito sin nada más, como exige scripts/evals.sh a la
+// concurrencia del job. La skill tiene la forma de un nombre de skill, que es la
+// del id de un modelo (formaDelModelo).
+var (
+	formaDeLasEvalsPedidas  = regexp.MustCompile(`^[0-9]{2}(,[0-9]{2})*$`)
+	formaDeUnEnteroPositivo = regexp.MustCompile(`^[1-9][0-9]*$`)
+)
+
+// variableDeLaSuscripcion es la del token de la suscripción de Claude que da
+// claude setup-token, la única credencial que acepta el sondeo y que pasa a sus
+// sesiones (FR-063 de H7.3). El nombre no dice «token» ni «credencial»: gosec
+// (G101) toma por secreto lo que se llama así.
+const variableDeLaSuscripcion = "CLAUDE_CODE_OAUTH_TOKEN"
+
+// errSinSuscripcion es el error del sondeo sin la credencial en el entorno, o
+// con ella vacía (contracts/sondeo.md §3.2 de H7.3; FR-063).
+var errSinSuscripcion = errors.New("falta la credencial: " + variableDeLaSuscripcion +
+	", el token de la suscripción que da claude setup-token, no está en el entorno o está vacía")
+
+// variablesQueVenLasSesionesDelSondeo son las variables de quien lanza el sondeo
+// que ven sus sesiones, además del PATH, que ven con el bin/ del temporal
+// delante (contracts/sondeo.md §5 de H7.3; research D16; FR-063): ninguna otra,
+// ni ANTHROPIC_API_KEY ni ANTHROPIC_AUTH_TOKEN, que tendrían prioridad sobre la
+// suscripción (research V5).
+var variablesQueVenLasSesionesDelSondeo = []string{
+	"LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "TERM", "USER", "LOGNAME", "SHELL", "TZ", variableDeLaSuscripcion,
+}
+
+// El árbol de trabajo que el sondeo construye e instala (contracts/sondeo.md
+// §3.3 de H7.3; data-model §8 de H7.3; FR-062).
+const (
+	// raizDelRepositorio es la del árbol de trabajo, relativa al directorio de
+	// este paquete, que es donde go test ejecuta el punto de entrada del sondeo.
+	raizDelRepositorio = "../.."
+
+	// paqueteDelBinario es el paquete principal del binario, relativo a la raíz
+	// del repositorio.
+	paqueteDelBinario = "./cmd/kitlegal"
+
+	// Las carpetas del temporal del sondeo: la de su binario, que es el GOBIN
+	// del go install; la de su HOME, en la que el skills install deja las
+	// skills; y la de sus sesiones.
+	carpetaDeBinarios = "bin"
+	carpetaPersonal   = "home"
+	carpetaDeSesiones = "sesiones"
+
+	// carpetaDeClaudeCode es, dentro de un HOME, la de Claude Code, en la que
+	// skills install --host claude enlaza las skills.
+	carpetaDeClaudeCode = ".claude"
+)
+
+// variableDeLaRuta es la de las carpetas en las que se buscan los ejecutables.
+const variableDeLaRuta = "PATH"
 
 // Textos fijos de la salida del sondeo (contracts/sondeo.md §4 de H7.3; FR-065):
 // las dos primeras líneas, siempre las mismas, que dicen que no es un veredicto y
@@ -373,4 +445,397 @@ func apartadoDelSondeo(titulo string, sesiones []string) []string {
 	}
 
 	return lineas
+}
+
+// ArgumentosDelSondeo son los de make evals-sondeo tal como los escribe quien
+// lo lanza, sin interpretar (contracts/sondeo.md §1 y §3.1 de H7.3; data-model
+// §8 de H7.3): la skill, los números de sus evals separados por comas, el id
+// del modelo, las repeticiones y la concurrencia, vacía para la del job.
+type ArgumentosDelSondeo struct {
+	Skill        string
+	Evals        string
+	Modelo       string
+	Repeticiones string
+	Concurrencia string
+}
+
+// SondeoAEjecutar es lo que sondear necesita para abrir y juzgar las sesiones de
+// un sondeo (contracts/sondeo.md §3 de H7.3; data-model §8 de H7.3).
+type SondeoAEjecutar struct {
+	// Argumentos son los de make, sin comprobar.
+	Argumentos ArgumentosDelSondeo
+
+	// Entorno es el de quien lanza el sondeo: de él salen la credencial, el
+	// entorno del go install y lo poco que ven las sesiones.
+	Entorno []string
+
+	// EvalsDeLasSkills es el directorio con la carpeta de evals de cada skill.
+	EvalsDeLasSkills string
+
+	// Temporal es el directorio del sondeo, que crea y borra su guion: todo lo
+	// que el sondeo escribe va dentro (FR-064).
+	Temporal string
+
+	// Guion es la ruta absoluta de scripts/evals-sesion.sh, que abre cada sesión.
+	Guion string
+
+	// PrepararElArbol deja en el temporal, que recibe con su ruta absoluta, el
+	// binario del árbol de trabajo en bin/ y sus skills en el directorio de
+	// Claude Code de home/, con el entorno de quien lanza el sondeo como base:
+	// prepararElArbol en el punto de entrada, y en los tests, un árbol que no
+	// construye nada.
+	PrepararElArbol func(temporal string, base []string) error
+}
+
+// sondeoComprobado es un sondeo cuyos argumentos y credencial valen, con sus
+// argumentos ya interpretados.
+type sondeoComprobado struct {
+	// skill es la skill sondeada, y evals, la carpeta de sus evals.
+	skill string
+	evals string
+
+	// pedidas son las evals de EVALS, en su orden, y prohibidas, la lista de
+	// expresiones prohibidas de la carpeta.
+	pedidas    []Eval
+	prohibidas ExpresionesProhibidas
+
+	modelo       string
+	repeticiones int
+	concurrencia int
+}
+
+// comprobarElSondeo comprueba el sondeo antes de construir nada, en este orden
+// (contracts/sondeo.md §3.1 y §3.2 de H7.3; FR-063, FR-067):
+//
+//  1. los argumentos, con la definición del job de evals del repositorio, que
+//     dice qué skills ejecuta y con qué concurrencia (comprobar): con alguno que
+//     no vale, el error nombra cada uno, uno por línea;
+//  2. la credencial: CLAUDE_CODE_OAUTH_TOKEN en el entorno y no vacía, o
+//     errSinSuscripcion. Sin llamar al servicio ni ninguna otra comprobación: una
+//     credencial caducada se ve en la primera sesión.
+func comprobarElSondeo(s SondeoAEjecutar) (sondeoComprobado, error) {
+	job, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	if err != nil {
+		return sondeoComprobado{}, err
+	}
+
+	comprobado, err := s.Argumentos.comprobar(s.EvalsDeLasSkills, job)
+	if err != nil {
+		return sondeoComprobado{}, err
+	}
+
+	if valorEnElEntorno(s.Entorno, variableDeLaSuscripcion) == "" {
+		return sondeoComprobado{}, errSinSuscripcion
+	}
+
+	return comprobado, nil
+}
+
+// comprobar comprueba los argumentos del sondeo con la carpeta de evals de cada
+// skill en evalsDeLasSkills y la definición del job (contracts/sondeo.md §3.1 de
+// H7.3; research D16; FR-060, FR-067): SKILL, la forma de un nombre de skill,
+// una carpeta de evals legible y sin ficheros mal formados, y en la matriz del
+// job; EVALS, números de dos cifras separados por comas, sin repetir, cada uno
+// el de una eval de la skill; MODELO, no vacío y con la forma de un id de
+// modelo; REPETICIONES, un entero mayor o igual que 1; y CONCURRENCIA, vacía,
+// la del job para la skill, o un entero mayor o igual que 1. Con una skill que
+// no vale, de EVALS solo se comprueba la forma. Los errores de todos los
+// argumentos van juntos, uno por línea y en ese orden, para que quien lanza la
+// orden los corrija de una vez.
+func (a ArgumentosDelSondeo) comprobar(evalsDeLasSkills string, job DefinicionDelJob) (sondeoComprobado, error) {
+	comprobado := sondeoComprobado{skill: a.Skill, evals: filepath.Join(evalsDeLasSkills, a.Skill), modelo: a.Modelo}
+
+	conjunto, errDeLaSkill := conjuntoDeLaSkill(a.Skill, comprobado.evals, job)
+
+	numeros, errDeLasEvals := numerosDeLasEvals(a.Evals)
+	if errDeLaSkill == nil && errDeLasEvals == nil {
+		comprobado.pedidas, errDeLasEvals = evalsPedidas(numeros, a.Skill, conjunto)
+	}
+
+	comprobado.prohibidas = conjunto.Prohibidas
+
+	var errDeLasRepeticiones, errDeLaConcurrencia error
+
+	comprobado.repeticiones, errDeLasRepeticiones = enteroDelArgumento(argumentoRepeticiones, a.Repeticiones)
+
+	comprobado.concurrencia = job.PorSkill[a.Skill].Concurrencia
+	if a.Concurrencia != "" {
+		comprobado.concurrencia, errDeLaConcurrencia = enteroDelArgumento(argumentoConcurrencia, a.Concurrencia)
+	}
+
+	if err := errors.Join(errDeLaSkill, errDeLasEvals, comprobarElModelo(a.Modelo), errDeLasRepeticiones,
+		errDeLaConcurrencia); err != nil {
+		return sondeoComprobado{}, err
+	}
+
+	return comprobado, nil
+}
+
+// conjuntoDeLaSkill es el conjunto de evals de la skill, de su carpeta evals, si
+// la skill tiene la forma de un nombre de skill, su carpeta se puede leer y no
+// tiene ficheros mal formados y el job de evals la ejecuta.
+func conjuntoDeLaSkill(skill, evals string, job DefinicionDelJob) (Conjunto, error) {
+	sinEvals := fmt.Errorf("%s: «%s» no es ninguna skill con evals", argumentoSkill, skill)
+
+	if !formaDelModelo.MatchString(skill) {
+		return Conjunto{}, sinEvals
+	}
+
+	conjunto, err := LeerConjunto(evals)
+	if err != nil || len(conjunto.MalFormados) > 0 {
+		return Conjunto{}, sinEvals
+	}
+
+	if !slices.Contains(job.Skills, skill) {
+		return Conjunto{}, fmt.Errorf("%s: el job de evals no ejecuta «%s»", argumentoSkill, skill)
+	}
+
+	return conjunto, nil
+}
+
+// numerosDeLasEvals son los números de eval de EVALS, en su orden, si tiene la
+// forma de números de dos cifras separados por comas y ninguno se repite: uno
+// repetido abriría dos veces las mismas sesiones.
+func numerosDeLasEvals(valor string) ([]string, error) {
+	numeros := strings.Split(valor, ",")
+	repetido := len(slices.Compact(slices.Sorted(slices.Values(numeros)))) < len(numeros)
+
+	if !formaDeLasEvalsPedidas.MatchString(valor) || repetido {
+		return nil, fmt.Errorf("%s: «%s» no es una lista de números de eval de dos cifras separados por comas",
+			argumentoEvals, valor)
+	}
+
+	return numeros, nil
+}
+
+// evalsPedidas son las evals del conjunto cuyo fichero empieza por cada número
+// y un guion, en el orden de los números. Un número que no es el de ninguna es
+// un error que lo nombra, uno por número.
+func evalsPedidas(numeros []string, skill string, conjunto Conjunto) ([]Eval, error) {
+	pedidas := make([]Eval, 0, len(numeros))
+
+	var faltan []error
+
+	for _, numero := range numeros {
+		posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool {
+			return strings.HasPrefix(eval.Fichero, numero+"-")
+		})
+		if posicion < 0 {
+			faltan = append(faltan, fmt.Errorf("%s: %s no es ninguna eval de %s", argumentoEvals, numero, skill))
+
+			continue
+		}
+
+		pedidas = append(pedidas, conjunto.Evals[posicion])
+	}
+
+	return pedidas, errors.Join(faltan...)
+}
+
+// comprobarElModelo exige un MODELO no vacío y con la forma de un id de modelo.
+func comprobarElModelo(modelo string) error {
+	switch {
+	case modelo == "":
+		return fmt.Errorf("%s: está vacío", argumentoModelo)
+	case !formaDelModelo.MatchString(modelo):
+		return fmt.Errorf("%s: «%s» no tiene la forma de un id de modelo", argumentoModelo, modelo)
+	default:
+		return nil
+	}
+}
+
+// enteroDelArgumento es el entero del valor del argumento, si es un entero
+// mayor o igual que 1 escrito sin nada más y cabe en un int.
+func enteroDelArgumento(argumento, valor string) (int, error) {
+	entero, err := strconv.Atoi(valor)
+	if err != nil || !formaDeUnEnteroPositivo.MatchString(valor) {
+		return 0, fmt.Errorf("%s: «%s» no es un entero mayor o igual que 1", argumento, valor)
+	}
+
+	return entero, nil
+}
+
+// valorEnElEntorno es el valor de la variable en el entorno, nombre=valor, o
+// vacío si no está. Si está más de una vez, vale la última, como en el entorno
+// que exec da a un proceso.
+func valorEnElEntorno(entorno []string, nombre string) string {
+	valor := ""
+
+	for _, variable := range entorno {
+		if n, v, _ := strings.Cut(variable, "="); n == nombre {
+			valor = v
+		}
+	}
+
+	return valor
+}
+
+// prepararElArbol deja en el temporal del sondeo, que recibe con su ruta
+// absoluta, el binario y las skills del árbol de trabajo, no los que tenga
+// instalados quien lo lanza (contracts/sondeo.md §3.3 de H7.3; research D8 y
+// D16; FR-062):
+//
+//  1. go install -trimpath del paquete principal del binario, en la raíz del
+//     repositorio, con el entorno de la base, el GOBIN en bin/ del temporal y
+//     CGO_ENABLED=0: las cachés de Go son las de quien lo lanza (FR-064);
+//  2. skills install -g --host claude con el kitlegal recién construido, con el
+//     entorno de las sesiones del sondeo (entornoDelSondeo), que tiene el HOME
+//     en home/ del temporal: las skills quedan en su .claude/skills, como las
+//     deja make install, y nada del binario sale del temporal.
+//
+// Cada orden la construye una función que recibe su ruta (research D8). El
+// error nombra lo que no se pudo hacer, con la orden y lo que escribió.
+func prepararElArbol(temporal string, base []string) error {
+	binarios := filepath.Join(temporal, carpetaDeBinarios)
+
+	construir := ordenDeConstruirElBinario(raizDelRepositorio)
+	construir.Env = sobreLaBase(base, []string{"GOBIN=" + binarios, "CGO_ENABLED=0"})
+
+	if err := ejecutarLaOrdenDelArbol(construir); err != nil {
+		return fmt.Errorf("el binario del sondeo no se pudo construir: %w", err)
+	}
+
+	personal := filepath.Join(temporal, carpetaPersonal)
+	if err := os.Mkdir(personal, permisosDeLaSesion); err != nil {
+		return fmt.Errorf("el HOME del sondeo %s no se puede crear: %w", personal, err)
+	}
+
+	instalar := ordenDeInstalarLasSkills(filepath.Join(binarios, programaDeLasConsultas))
+	instalar.Env = entornoDelSondeo(base, temporal)
+
+	if err := ejecutarLaOrdenDelArbol(instalar); err != nil {
+		return fmt.Errorf("las skills del sondeo no se pudieron instalar: %w", err)
+	}
+
+	return nil
+}
+
+// ordenDeConstruirElBinario es go install -trimpath del paquete principal del
+// binario en la raíz dada, toda con constantes (gosec G204).
+func ordenDeConstruirElBinario(raiz string) *exec.Cmd {
+	orden := exec.CommandContext(context.Background(), "go", "install", "-trimpath", paqueteDelBinario)
+	orden.Dir = raiz
+
+	return orden
+}
+
+// ordenDeInstalarLasSkills es skills install -g --host claude con el kitlegal
+// de la ruta dada, el único argumento que no es constante (gosec G204).
+func ordenDeInstalarLasSkills(kitlegal string) *exec.Cmd {
+	return exec.CommandContext(context.Background(), kitlegal, "skills", "install", "-g", "--host", "claude")
+}
+
+// ejecutarLaOrdenDelArbol ejecuta la orden y, si no termina con 0, devuelve un
+// error con la orden, cómo terminó y lo que escribió en sus dos salidas.
+func ejecutarLaOrdenDelArbol(orden *exec.Cmd) error {
+	salida, err := orden.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %w\n%s", orden, err, salida)
+	}
+
+	return nil
+}
+
+// entornoDelSondeo es el entorno de quien lanza el sondeo que ven sus sesiones y
+// su skills install (contracts/sondeo.md §5 de H7.3; research D16; FR-063): de
+// la base, solo las variables de variablesQueVenLasSesionesDelSondeo, en su
+// orden, y detrás el PATH de la base con el bin/ del temporal delante —solo ese
+// bin/ si la base no tiene PATH— y el HOME en home/ del temporal. Lo de cada
+// sesión va encima (entornoDeLaSesion).
+func entornoDelSondeo(base []string, temporal string) []string {
+	binarios := filepath.Join(temporal, carpetaDeBinarios)
+	ruta := binarios
+
+	var entorno []string
+
+	for _, variable := range base {
+		nombre, valor, _ := strings.Cut(variable, "=")
+
+		switch {
+		case nombre == variableDeLaRuta:
+			ruta = binarios + string(os.PathListSeparator) + valor
+		case slices.Contains(variablesQueVenLasSesionesDelSondeo, nombre):
+			entorno = append(entorno, variable)
+		}
+	}
+
+	return append(entorno, variableDeLaRuta+"="+ruta, "HOME="+filepath.Join(temporal, carpetaPersonal))
+}
+
+// sondear abre y juzga las sesiones de un sondeo, y devuelve su salida
+// (contracts/sondeo.md §3 y §4 de H7.3; research D10, D16 y D17; FR-060 a
+// FR-066):
+//
+//  1. comprueba los argumentos y la credencial (comprobarElSondeo), antes de
+//     construir nada;
+//  2. prepara el árbol de trabajo en el temporal con PrepararElArbol;
+//  3. abre con el repartidor, en sesiones/ del temporal, el plan de las evals
+//     pedidas en su orden, con MODELO como el modelo que decide, sin modelos
+//     informativos ni prueba de red, y las repeticiones y la concurrencia
+//     comprobadas: sin traza, con las skills que el árbol deja en el directorio
+//     de Claude Code de home/, el entorno de entornoDelSondeo debajo del de cada
+//     sesión y el tope de 240 s con su margen de 10 s. Tras una sesión con el
+//     mensaje del límite de uso, el repartidor no abre ninguna más;
+//  4. juzga las sesiones con juzgarElSondeo, con las que no se abrieron como sin
+//     medir, y compone la salida.
+//
+// Vuelve sin error sean cuales sean las tasas y aunque la cuenta no deje abrir
+// todas las sesiones: no escribe informe ni veredicto (FR-066). El error es el
+// de la comprobación, el del árbol, el del repartidor —también tras la
+// interrupción, con interrupcion cerrado— o el del directorio de sesiones.
+func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
+	comprobado, err := comprobarElSondeo(s)
+	if err != nil {
+		return "", err
+	}
+
+	temporal, err := filepath.Abs(s.Temporal)
+	if err != nil {
+		return "", fmt.Errorf("el temporal del sondeo %s no tiene ruta absoluta: %w", s.Temporal, err)
+	}
+
+	if err := s.PrepararElArbol(temporal, s.Entorno); err != nil {
+		return "", err
+	}
+
+	sesiones := filepath.Join(temporal, carpetaDeSesiones)
+	if err := os.Mkdir(sesiones, permisosDeLaSesion); err != nil {
+		return "", fmt.Errorf("el directorio de sesiones del sondeo %s no se puede crear: %w", sesiones, err)
+	}
+
+	plan := PlanDeEvals{
+		Evals: comprobado.pedidas, ModeloQueDecide: comprobado.modelo, Repeticiones: comprobado.repeticiones,
+	}
+
+	ejecucion, err := ejecutarSesiones(interrupcion, SesionesAEjecutar{
+		Plan:          plan.Sesiones(),
+		Concurrencia:  comprobado.concurrencia,
+		Evals:         comprobado.evals,
+		Sesiones:      sesiones,
+		Skills:        filepath.Join(temporal, carpetaPersonal, carpetaDeClaudeCode, directorioDeSkills),
+		Guion:         s.Guion,
+		Entorno:       entornoDelSondeo(s.Entorno, temporal),
+		Traza:         false,
+		Tope:          topeDeUnaSesion,
+		MargenDelTope: margenDelTopeDeUnaSesion,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	juicio, err := juzgarElSondeo(SondeoAJuzgar{
+		Skill:        comprobado.skill,
+		Evals:        comprobado.evals,
+		Pedidas:      comprobado.pedidas,
+		Prohibidas:   comprobado.prohibidas,
+		Sesiones:     sesiones,
+		Modelo:       comprobado.modelo,
+		Repeticiones: comprobado.repeticiones,
+		SinAbrir:     ejecucion.SinAbrir,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return juicio.salida(), nil
 }

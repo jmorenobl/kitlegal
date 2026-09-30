@@ -2,10 +2,12 @@ package evals
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -23,10 +25,11 @@ import (
 // cuenta en abiertas/ nada más llegar, la suya incluida; anota su pid, que
 // encabeza su grupo de procesos, sus argumentos, cada uno terminado en NUL, y lo
 // que ve —su directorio de trabajo, el kitlegal que resuelve, si ve
-// ANTHROPIC_API_KEY y cada variable de su lista que está definida—; escribe
-// escrito-por-<sesión> en cada directorio en el que escribiría Claude Code —el
-// de trabajo, CLAUDE_CONFIG_DIR, TMPDIR, CLAUDE_CODE_TMPDIR y
-// KITLEGAL_CACHE_DIR—; escribe en la salida estándar el transcript
+// ANTHROPIC_API_KEY y ANTHROPIC_AUTH_TOKEN y cada variable de su lista que está
+// definida—; escribe escrito-por-<sesión> en cada directorio en el que
+// escribiría Claude Code —el de trabajo, CLAUDE_CONFIG_DIR, TMPDIR,
+// CLAUDE_CODE_TMPDIR y KITLEGAL_CACHE_DIR— y, con variableDeEscribirEnHome, en
+// HOME; escribe en la salida estándar el transcript
 // <sesión>.jsonl del directorio de transcripts, si lo hay; y, con la espera
 // anotada al empezarla y al cumplirla, duerme, se envía una señal y sale con el
 // código que le digan las variables KITLEGAL_SUSTITUTO_*. La espera de una
@@ -52,14 +55,17 @@ mkdir "$abierta"
 ls "$KITLEGAL_SUSTITUTO_COMUN/abiertas" | wc -l | tr -d ' ' > "$anotaciones/abiertas-al-llegar"
 printf '%s\n' "$$" > "$anotaciones/pid"
 printf '%s\0' "$@" > "$anotaciones/argumentos"
-if [ -n "${ANTHROPIC_API_KEY+x}" ]; then clave=si; else clave=no; fi
 {
 	printf 'directorio=%s\n' "$(pwd -P)"
 	printf 'kitlegal=%s\n' "$(command -v kitlegal || true)"
-	printf 've-ANTHROPIC_API_KEY=%s\n' "$clave"
+	for nombre in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN; do
+		eval "definida=\${$nombre+si}"
+		printf 've-%s=%s\n' "$nombre" "${definida:-no}"
+	done
 	for nombre in KITLEGAL_CACHE_DIR HTTP_PROXY HTTPS_PROXY http_proxy https_proxy NO_PROXY no_proxy \
 		CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC CLAUDE_CODE_SUBPROCESS_ENV_SCRUB CLAUDE_CONFIG_DIR TMPDIR \
-		CLAUDE_CODE_TMPDIR KITLEGAL_EVALS_TRAZA HOME; do
+		CLAUDE_CODE_TMPDIR KITLEGAL_EVALS_TRAZA HOME PATH LANG LC_ALL LC_CTYPE LC_MESSAGES TERM USER LOGNAME SHELL TZ \
+		CLAUDE_CODE_OAUTH_TOKEN OTRA_DE_LA_BASE; do
 		eval "definida=\${$nombre+si}"
 		if [ "$definida" = si ]; then
 			eval "valor=\$$nombre"
@@ -70,6 +76,7 @@ if [ -n "${ANTHROPIC_API_KEY+x}" ]; then clave=si; else clave=no; fi
 for escrito in . "$CLAUDE_CONFIG_DIR" "$TMPDIR" "$CLAUDE_CODE_TMPDIR" "$KITLEGAL_CACHE_DIR"; do
 	: >> "$escrito/escrito-por-$sesion"
 done
+if [ "${KITLEGAL_SUSTITUTO_ESCRIBE_EN_HOME:-no}" = si ]; then : >> "$HOME/escrito-por-$sesion"; fi
 transcript="$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.jsonl"
 if [ -f "$transcript" ]; then cat "$transcript"; fi
 espera="${KITLEGAL_SUSTITUTO_ESPERA:-0}"
@@ -137,13 +144,20 @@ const (
 // Variables con las que un test gobierna el sustituto de claude, además de las
 // que le dicen dónde anotar y de dónde tomar el transcript.
 const (
-	variableDeEspera      = "KITLEGAL_SUSTITUTO_ESPERA"
-	variableDeCodigo      = "KITLEGAL_SUSTITUTO_CODIGO"
-	variableDeIgnorarTERM = "KITLEGAL_SUSTITUTO_IGNORA_TERM"
-	variableDeSenal       = "KITLEGAL_SUSTITUTO_SENAL"
-	variableDelComun      = "KITLEGAL_SUSTITUTO_COMUN"
-	variableDeTranscripts = "KITLEGAL_SUSTITUTO_TRANSCRIPTS"
+	variableDeEspera         = "KITLEGAL_SUSTITUTO_ESPERA"
+	variableDeCodigo         = "KITLEGAL_SUSTITUTO_CODIGO"
+	variableDeIgnorarTERM    = "KITLEGAL_SUSTITUTO_IGNORA_TERM"
+	variableDeSenal          = "KITLEGAL_SUSTITUTO_SENAL"
+	variableDelComun         = "KITLEGAL_SUSTITUTO_COMUN"
+	variableDeTranscripts    = "KITLEGAL_SUSTITUTO_TRANSCRIPTS"
+	variableDeEscribirEnHome = "KITLEGAL_SUSTITUTO_ESCRIBE_EN_HOME"
 )
+
+// accesosDeClaudeCode son las variables con las credenciales de Claude Code que
+// un proceso de test puede tener en su entorno: la base de los sustitutos no las
+// lleva, para que ningún sustituto anote la de quien ejecuta los tests. El
+// nombre no dice «credencial»: gosec (G101) toma por secreto lo que se llama así.
+var accesosDeClaudeCode = []string{variableDeLaSuscripcion, "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}
 
 // variableDeCalentar, con el valor si, hace que los sustitutos terminen con 0
 // sin hacer nada: escribirSustitutos los ejecuta así una vez. En macOS, la
@@ -215,16 +229,70 @@ func calentar(t *testing.T, sustituto string) {
 	require.NoErrorf(t, err, "el sustituto %s se ejecuta sin hacer nada: %s", sustituto, salida)
 }
 
-// base es el entorno base del repartidor en un test: el del proceso, con el
-// directorio de los sustitutos delante en el PATH, las rutas del común y de los
-// transcripts y las variables dadas, que sustituyen a las que el proceso tenga
-// con el mismo nombre.
+// base es el entorno base del repartidor en un test: el del proceso sin sus
+// credenciales de Claude Code, con el directorio de los sustitutos delante en el
+// PATH, las rutas del común y de los transcripts y las variables dadas, que
+// sustituyen a las que el proceso tenga con el mismo nombre.
 func (s sustitutos) base(variables ...string) []string {
 	return sobreLaBase(os.Environ(), append([]string{
 		"PATH=" + s.bin + string(os.PathListSeparator) + os.Getenv("PATH"),
 		variableDelComun + "=" + s.comun,
 		variableDeTranscripts + "=" + s.transcripts,
-	}, variables...))
+	}, variables...), accesosDeClaudeCode...)
+}
+
+// kitlegalQueNoHaceNada es un kitlegal que termina con 0 sin hacer nada: el que
+// los tests del sondeo ponen en su lugar sin construir el binario, y el de la
+// base, que las sesiones del sondeo no tienen que resolver.
+const kitlegalQueNoHaceNada = "#!/bin/sh\nexit 0\n"
+
+// escribirElClaudeDelSondeo escribe, en un directorio temporal del test y a
+// través de un os.Root, el claude que ven las sesiones del sondeo en los tests
+// de sondear y un kitlegal que no hace nada, y devuelve ese directorio, que va
+// delante en el PATH de la base. Las sesiones del sondeo solo ven las variables
+// de contracts/sondeo.md §5 de H7.3, y no las que dicen al sustituto de claude
+// dónde anotar ni de dónde tomar el transcript: este claude las pone —las del
+// común y los transcripts, la de escribir también en HOME y las dadas,
+// nombre=valor—, con los valores que lleva escritos, y ejecuta con exec el de
+// los sustitutos. Lo ejecuta una vez con variableDeCalentar, como
+// escribirSustitutos.
+func (s sustitutos) escribirElClaudeDelSondeo(t *testing.T, variables ...string) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	raiz, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	var guion strings.Builder
+
+	guion.WriteString("#!/bin/sh\n")
+
+	for _, variable := range slices.Concat([]string{
+		variableDelComun + "=" + s.comun,
+		variableDeTranscripts + "=" + s.transcripts,
+		variableDeEscribirEnHome + "=si",
+	}, variables) {
+		nombre, valor, _ := strings.Cut(variable, "=")
+		fmt.Fprintf(&guion, "%s=%s\nexport %s\n", nombre, entreComillasSimples(valor), nombre)
+	}
+
+	fmt.Fprintf(&guion, "exec %s \"$@\"\n", entreComillasSimples(filepath.Join(s.bin, sustitutoClaude)))
+
+	require.NoError(t, raiz.WriteFile(sustitutoClaude, []byte(guion.String()), 0o755))
+	require.NoError(t, raiz.WriteFile(programaDeLasConsultas, []byte(kitlegalQueNoHaceNada), 0o755))
+	calentar(t, filepath.Join(dir, sustitutoClaude))
+
+	return dir
+}
+
+// entreComillasSimples es el valor entre comillas simples, como lo lee sh
+// literalmente, con cada comilla simple que lleve cerrada, escapada y vuelta a
+// abrir.
+func entreComillasSimples(valor string) string {
+	return "'" + strings.ReplaceAll(valor, "'", `'\''`) + "'"
 }
 
 // escribirTranscript deja el transcript que el sustituto de claude escribe en
@@ -340,7 +408,8 @@ func (s sustitutos) argumentos(t *testing.T, programa, sesion string) []string {
 
 // entorno es lo que el sustituto de claude anotó que ve en la sesión, por
 // clave: el directorio de trabajo, el kitlegal que resuelve, si ve
-// ANTHROPIC_API_KEY y cada variable de su lista que está definida.
+// ANTHROPIC_API_KEY y ANTHROPIC_AUTH_TOKEN (ve-<variable>, si o no) y cada
+// variable de su lista que está definida.
 func (s sustitutos) entorno(t *testing.T, sesion string) map[string]string {
 	t.Helper()
 
