@@ -60,8 +60,42 @@ anuncio:
   - ya tengo el texto
   - así que respondo
   - sin redacciones cambiadas
+  - lectura anterior
+  - lecturas anteriores
+  - consulta anterior
+  - consultas anteriores
+  - cambio de redacción
+  - cambios de redacción
+  - cambio en la redacción
+  - cambios en la redacción
+  - la comprobación de redacción
+  - la comprobación de la redacción
+  - la comprobación de cambios
+  - la comprobación no
+  - redacción posterior
+  - posterior a la consultada
+  - haya cambiado desde
+  - se consultó antes
+  - tengo suficiente
+  - no necesito
+  - i have enough
+  - i don't need
+  - i don’t need
+  - respond now
+  - respondo de memoria
+  - contesto de memoria
+  - extracto fiel
 redaccion_no_leida:
   - ya no exige
+  - ya no se exige
+  - se eliminó
+  - vigente hasta
+  - aplicable hasta
+  - el cambio relevante
+  - el cambio más relevante
+  - artículo cambió
+  - no ha cambiado por
+  - esa versión ya no
 formas_fijas:
   - "⚠ REDACCIÓN MODIFICADA: <cita>: la redacción con fecha de vigencia <fecha>, la que se consultó antes, ha sido sustituida por la de <fecha>, que es la que se cita."
   - "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior"

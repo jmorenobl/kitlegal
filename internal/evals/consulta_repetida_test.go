@@ -52,6 +52,11 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 	primeraSinTerminar := sinTerminar(transicionDeLaMemoria + "\n\n" + respuestaConLaCita118)
 	segundaSinTerminar := sinTerminar(redaccionModificadaDeLaLCSP + "\n\n" + loDichoEnOtraConversacion)
 
+	// Desde H7.4, las palabras de la forma fija de la línea fuera de ella son de
+	// la lista (contracts/lista-de-expresiones.md §1 y §3 de H7.4): la línea con
+	// otras palabras, o con unas fechas que no son las de la forma, las lleva.
+	conLaLineaFueraDeSuForma := "la primera respuesta lleva expresiones prohibidas: se consult\xc3\xb3 antes"
+
 	casos := []struct {
 		nombre           string
 		primera, segunda Sesion
@@ -74,7 +79,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 				"consult\xc3\xb3 antes ha sido sustituida.\nLa de 20180309 ha pasado a ser la de 20200206.\n\n"+
 				respuestaConLaCita118),
 			segunda: sesionTerminada(true, segundaBuena),
-			lineas:  []string{primeraSinLaForma},
+			lineas:  []string{primeraSinLaForma, conLaLineaFueraDeSuForma},
 		},
 		{
 			nombre: "la-forma-con-una-sola-fecha-en-su-linea",
@@ -91,7 +96,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 				"fecha de vigencia 201803091, la que se consult\xc3\xb3 antes, ha sido sustituida por la de "+
 				"202002060, que es la que se cita.\n\n"+respuestaConLaCita118),
 			segunda: sesionTerminada(true, segundaBuena),
-			lineas:  []string{primeraSinLaForma},
+			lineas:  []string{primeraSinLaForma, conLaLineaFueraDeSuForma},
 		},
 		{
 			nombre:  "la-segunda-con-la-forma",

@@ -1218,6 +1218,161 @@ func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 	}
 }
 
+// Las clases de lo que la lista marca en una respuesta
+// (contracts/lista-de-expresiones.md §6 de H7.4): la A, alguna expresión y
+// ninguna de la redacción no leída; la B, alguna de la redacción no leída; y
+// ninguna, sin marcar.
+const (
+	claseA    = "A"
+	claseB    = "B"
+	sinMarcar = "sin marcar"
+)
+
+// El origen de las frases de TestJuzgarLasClasesDeLaRespuesta que no salen de
+// un informe con su commit: las de la ejecución de la línea de base, y las
+// escritas aquí.
+const (
+	origenDeBase    = "l\xc3\xadnea de base"
+	origenSinSesion = "-"
+)
+
+// TestJuzgarLasClasesDeLaRespuesta fija el juicio de las dos clases de la
+// respuesta con la lista de expresiones prohibidas del repositorio
+// (contracts/lista-de-expresiones.md §6 de H7.4; FR-010, FR-011, FR-012, FR-022,
+// FR-031, FR-034, FR-094; SC-007): con la eval 01 del repositorio, que activa la
+// skill, y la sesión que la pasa, cada frase de la tabla, entera y delante de la
+// respuesta con su cita, se marca en su clase y la eval no pasa: las de la
+// bitácora que cuentan la comprobación o anuncian lo que el agente tiene o va a
+// hacer, en la A; las que describen una redacción que ninguna orden devolvió, en
+// la B; y las palabras de las formas fijas fuera de ellas, en la A. Sin marcar, y
+// la eval pasa: la respuesta hecha de lo que enseña la skill, respuestaDeLaSkill,
+// la que dice que no hay avisos y las dos que dicen que la redacción anterior no se
+// ha leído.
+func TestJuzgarLasClasesDeLaRespuesta(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	lista := listaDelRepositorio(t, conjunto)
+	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
+	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
+	require.Equal(t, lista, positiva.Prohibidas, "%s lleva la lista de su carpeta", ficheroDeLaEval01)
+
+	// Cada frase va entera, como la escribió la sesión. Dos llevan una palabra que
+	// el diccionario inglés de misspell toma por una errata, y se escriben partidas
+	// en dos literales que Go junta: «pro» + «cede» y «ext» + «racto».
+	frases := []struct {
+		origen, sesion, clase, frase string
+	}{
+		{"196ee05", "01-02", claseA, "No hay avisos de vigencia sobre este bloque ni cambios de redacci\xc3\xb3n " +
+			"respecto a una consulta anterior."},
+		{"196ee05", "05-02", claseA, "No se encontraron avisos de vigencia sobre este bloque, y no consta que su " +
+			"redacci\xc3\xb3n haya cambiado desde una consulta anterior."},
+		{"196ee05", "13-02", claseA, "Este art\xc3\xadculo ha sido modificado en varias ocasiones (\xc3\xbaltima " +
+			"modificaci\xc3\xb3n por el Real Decreto Legislativo 7/2015, con vigencia desde el 31/10/2015); no " +
+			"presenta avisos de vigencia adicionales ni indicios de redacci\xc3\xb3n posterior a la consultada."},
+		{"196ee05", "13-03", claseA, "No se ha detectado ning\xc3\xban cambio de redacci\xc3\xb3n respecto a una " +
+			"lectura anterior de este bloque."},
+		{"196ee05", "14-01", claseA, "Article 59 already answers the question fully, so I don't need art. 60. " +
+			"I have enough to respond now."},
+		{"196ee05", "14-02", claseA, "Con el art\xc3\xadculo 59 tengo suficiente para responder a la pregunta " +
+			"completa; no necesito el art\xc3\xadculo 60 para esto."},
+		{"196ee05", "14-03", claseA, "El art\xc3\xadculo 59 responde directamente a la pregunta. La " +
+			"comprobaci\xc3\xb3n de redacci\xc3\xb3n termin\xc3\xb3 sin hallazgos, as\xc3\xad que no hay cambios que " +
+			"se\xc3\xb1alar."},
+		{"196ee05", "19-01", claseB, "El art\xc3\xadculo cambi\xc3\xb3 porque el Real Decreto-ley 3/2020, de 4 de " +
+			"febrero, modific\xc3\xb3 el art. 118 de la LCSP (entrada en vigor el 20180206... correcci\xc3\xb3n: el " +
+			"20200206). Esto elev\xc3\xb3 el umbral de los contratos menores de obras de 40.000 \xe2\x82\xac (ya " +
+			"estaba as\xc3\xad) pero, sobre todo, cambi\xc3\xb3 el apartado 2: ya no exige tres informes separados, " +
+			"sino que ahora basta con un \xc3\xbanico informe del \xc3\xb3rgano de contrataci\xc3\xb3n."},
+		{"196ee05", "19-02", claseB, "Esta redacci\xc3\xb3n pro" + "cede de la modificaci\xc3\xb3n del Real " +
+			"Decreto-ley 3/2020, de 4 de febrero (disposici\xc3\xb3n final 1.1) [BOE-A-2020-1651], vigente desde el 6 " +
+			"de febrero de 2020, y es distinta de la que se consult\xc3\xb3 antes (vigente hasta el 9 de marzo de " +
+			"2018): esa versi\xc3\xb3n anterior no distingu\xc3\xada umbrales entre obras y suministros/servicios " +
+			"del mismo modo ni inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 sobre anticipos de caja fija."},
+		{"6ab3add", "03-03", claseA, "Sin cambios de redacci\xc3\xb3n respecto a lecturas anteriores. " +
+			"Aqu\xc3\xad est\xc3\xa1 la respuesta."},
+		{"6ab3add", "13-03", claseA, "Sin cambios desde una lectura anterior. Respondo."},
+		{"6ab3add", "19-01", claseB, "Esta es la redacci\xc3\xb3n vigente hoy; la versi\xc3\xb3n anterior, " +
+			"aplicable hasta el 5 de febrero de 2020, no inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 ni la " +
+			"obligaci\xc3\xb3n de motivar que no se fracciona el objeto para eludir el umbral, entre otras " +
+			"diferencias de redacci\xc3\xb3n."},
+		{"eb6b4c8", "14-01", claseA, "Este art\xc3\xadculo ya da la respuesta completa. Sin avisos de vigencia ni " +
+			"cambios desde una lectura anterior."},
+		{"eb6b4c8", "19-01", claseB, "Este art\xc3\xadculo cambi\xc3\xb3 respecto a su redacci\xc3\xb3n original de " +
+			"2017: hasta el 5 de febrero de 2020, el apartado 2 exig\xc3\xada justificar solo la necesidad del " +
+			"contrato (sin el requisito de no fraccionamiento) y no exist\xc3\xada la excepci\xc3\xb3n del apartado " +
+			"5 para anticipos de caja fija; ambos elementos los introdujo el Real Decreto-ley 3/2020."},
+		{"eb6b4c8", "19-02", claseB, "Esta redacci\xc3\xb3n proviene de la modificaci\xc3\xb3n introducida por el " +
+			"Real Decreto-ley 3/2020, de 4 de febrero, vigente desde el 6 de febrero de 2020 \xe2\x80\x94 distinta " +
+			"de la versi\xc3\xb3n (vigente hasta el 9 de marzo de 2018) que pudiste haber consultado anteriormente. " +
+			"El cambio m\xc3\xa1s relevante respecto a versiones anteriores es que ya no exige un informe del " +
+			"\"\xc3\xb3rgano de contrataci\xc3\xb3n\" motivando la elecci\xc3\xb3n del contratista entre varios " +
+			"presupuestos (esa exigencia de comparar ofertas se elimin\xc3\xb3); ahora el foco est\xc3\xa1 en " +
+			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para evitar los umbrales."},
+		{"H7.1", "19-01", claseB, "Es decir, lo que se consult\xc3\xb3 antes era la versi\xc3\xb3n previa a su " +
+			"entrada en vigor, y lo que ahora se cita es la versi\xc3\xb3n ya en vigor \xe2\x80\x94 el contenido " +
+			"normativo del art\xc3\xadculo 21 no ha cambiado por una reforma posterior, simplemente la versi\xc3\xb3n " +
+			"indexada pas\xc3\xb3 a ser la vigente desde la entrada en vigor de la ley."},
+		{"H7.2", "19-01", claseB, "Si lo que ten\xc3\xadas en mente era la redacci\xc3\xb3n original de 2018 (por " +
+			"ejemplo, sin el requisito espec\xc3\xadfico de motivar la no alteraci\xc3\xb3n del objeto contra el " +
+			"fraccionamiento en los t\xc3\xa9rminos actuales, y con otro r\xc3\xa9gimen sobre la " +
+			"publicaci\xc3\xb3n/aprobaci\xc3\xb3n previa del gasto), esa versi\xc3\xb3n ya no est\xc3\xa1 vigente."},
+		{"H7.2", "19-02", claseB, "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n con fecha de " +
+			"vigencia 20180309, que es la que probablemente se consult\xc3\xb3 en aquella ocasi\xc3\xb3n anterior, ha " +
+			"sido sustituida por la de fecha de vigencia 20200206, que es la que se cita aqu\xc3\xad. El cambio " +
+			"relevante fue que se elimin\xc3\xb3 la exigencia de un informe adicional del \xc3\xb3rgano de " +
+			"contrataci\xc3\xb3n acreditando que el contratista no hab\xc3\xada suscrito otros contratos menores por " +
+			"importe superior, individual o en conjunto, al umbral \xe2\x80\x94ese control de acumulaci\xc3\xb3n " +
+			"desapareci\xc3\xb3 de la ley en esta redacci\xc3\xb3n; ahora el informe del apartado 2 solo debe " +
+			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para eludir umbrales."},
+		{origenDeBase, "07-03", claseA, "La comprobaci\xc3\xb3n de redacci\xc3\xb3n no detecta cambios desde una " +
+			"lectura anterior."},
+		{origenDeBase, "01-03", claseA, "Es un ext" + "racto fiel del texto consolidado. Aqu\xc3\xad va apartado por " +
+			"apartado."},
+		{origenDeBase, "04-01", claseA, "Respondo de memoria, sin haber consultado el texto consolidado del BOE."},
+		{origenDeBase, "19-02", sinMarcar, "No puedo decirte qu\xc3\xa9 conten\xc3\xada la redacci\xc3\xb3n anterior."},
+		{origenSinSesion, "skill", sinMarcar, respuestaDeLaSkill(t, string(contenidoDelFichero(t, skillDelRepositorio)))},
+		{origenSinSesion, "sin-avisos", sinMarcar, "No hay avisos de vigencia sobre este bloque."},
+		{origenSinSesion, "fr-022", sinMarcar, "Cito la redacci\xc3\xb3n vigente; la que hab\xc3\xada antes no la he " +
+			"le\xc3\xaddo, as\xc3\xad que no puedo decir qu\xc3\xa9 ha cambiado."},
+		{origenSinSesion, "la-linea-fuera-de-su-forma", claseA, "Esta redacci\xc3\xb3n es distinta de la que se " +
+			"consult\xc3\xb3 antes."},
+		{origenSinSesion, "las-dos-fuera-de-su-forma", claseA, "La redacci\xc3\xb3n es la misma que la que se " +
+			"consult\xc3\xb3 antes y no ha cambiado desde una consulta anterior."},
+	}
+
+	for _, caso := range frases {
+		t.Run(caso.origen+" "+caso.sesion, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta := caso.frase + "\n\n" + respuestaConCita
+			sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta })
+			resultado := Juzgar(positiva, sesion, skillDeLasSesiones)
+
+			assert.Equal(t, caso.clase, claseDeLoMarcado(lista, resultado.ExpresionesProhibidas),
+				"la frase de %s %s, con las expresiones %v", caso.origen, caso.sesion, resultado.ExpresionesProhibidas)
+			assert.Equal(t, caso.clase == sinMarcar, resultado.Pasa,
+				"%s pasa solo con la respuesta sin marcar: %v", ficheroDeLaEval01, resultado.Motivos)
+		})
+	}
+}
+
+// claseDeLoMarcado es la clase de las expresiones que la lista encuentra en una
+// respuesta: la B si alguna es de la redacción no leída; la A si hay alguna y
+// ninguna lo es; y sin marcar si no hay ninguna.
+func claseDeLoMarcado(lista ExpresionesProhibidas, encontradas []string) string {
+	switch {
+	case slices.ContainsFunc(encontradas, lista.esDeLaClaseB):
+		return claseB
+	case len(encontradas) > 0:
+		return claseA
+	default:
+		return sinMarcar
+	}
+}
+
 // codificarLasExpresionesDelResultado codifica, como lo codifica
 // EscribirInforme, el resultado de la eval positiva con la sesión que la pasa, sin
 // expresiones y con la transición de la memoria: expresiones_prohibidas va detrás
