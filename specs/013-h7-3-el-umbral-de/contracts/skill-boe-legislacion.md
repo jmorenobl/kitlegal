@@ -2,7 +2,8 @@
 
 FR-010 a FR-018, FR-091; SC-001, SC-005, SC-010. Causa en [research.md](../research.md) («Causa de raíz del ruido en
 v0.1.2»); decisión en D1 y, para la comprobación de la prosa, D4. Las líneas son las de `skills/boe-legislacion/SKILL.md`
-v0.1.2 en `main`.
+v0.1.2 en `main`. El cierre del hito (2026-09-30) rehace C4 y C5 y cambia de sitio la comprobación: §8, que prevalece
+sobre §1 donde difieren; §2, §3, §6 y §7 ya llevan el texto del cierre.
 
 ## 1. Cambios, cada uno con su causa
 
@@ -30,8 +31,8 @@ El texto nuevo es el que se escribe; donde dice «…», el de v0.1.2 sin cambio
 `kitlegal` recuerda en local los bloques que ha leído con `kitlegal boe articulo` o `articulos` y qué redacción vio
 cada lectura. `kitlegal graph check <norma> <bloques>... --json` compara, para esa norma y esos bloques, la redacción de
 la última lectura con la de la anterior, y devuelve en `data.hallazgos` una entrada por cada bloque en que encuentra
-algo, con su `clase`. De `kitlegal graph`, el protocolo solo usa `check`: una vez por norma citada, después de la última
-lectura y antes de la respuesta (paso 5).
+algo, con su `clase`. De `kitlegal graph`, el protocolo solo usa `check`, y siempre detrás de una lectura, en su misma
+orden (paso 3): una vez por cada orden que lee bloques, que en la mayoría de las preguntas es una por norma citada.
 
 - Una entrada de `clase` `version-obsoleta` dice que la redacción de ese bloque ha cambiado desde la lectura anterior.
   La respuesta lo dice con su forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta `REDACCIÓN MODIFICADA` y dos
@@ -55,19 +56,21 @@ La etiqueta `REDACCIÓN MODIFICADA` no es la de ningún aviso de vigencia.
 ## 3. La regla 7 (C11)
 
 ```markdown
-7. **Si la comprobación de la redacción no termina con `0`.** Si `kitlegal graph check` termina con otro código, la
-   respuesta cita igual el texto leído con `kitlegal boe` y lleva esta frase, sin afirmar que la redacción ha cambiado
-   ni que no:
+7. **Si la comprobación de la redacción no termina con `0`.** Si la orden devuelve el texto del bloque y, detrás,
+   `kitlegal graph check` termina con otro código, la respuesta cita igual el texto leído con `kitlegal boe` y lleva
+   esta frase, sin afirmar que la redacción ha cambiado ni que no:
 
    ```text
    No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.
    ```
 
-   La línea `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`
+   Si lo que falla es la lectura, la orden termina ahí, sin comprobación, y vale la regla 2. La línea
+   `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`
    («Redacción modificada desde una lectura anterior»).
 ```
 
-(a) y (b) de FR-012; no nombra el resultado vacío ni lo empareja con ninguna acción.
+(a) y (b) de FR-012; no nombra el resultado vacío ni lo empareja con ninguna acción. Desde el cierre (§8, C17) dice
+además cuál de las dos mitades de la orden ha fallado: con `&&`, una lectura fallida no llega a la comprobación.
 
 ## 4. Lo que se queda (FR-016, FR-017)
 
@@ -103,9 +106,11 @@ y `123456789` no.
 
 ## 6. Uso, de fuera adentro
 
-- **Quién pide y cuántas veces**: el modelo carga `SKILL.md` una vez por conversación en que se activa la skill. Las
-  órdenes por pregunta no cambian: cada bloque una vez con `kitlegal boe articulo` o `articulos`, y una
-  `kitlegal graph check <norma> <bloques>... --json` por norma citada, después de leer.
+- **Quién pide y cuántas veces**: el modelo carga `SKILL.md` una vez por conversación en que se activa la skill. Cada
+  bloque se lee una vez con `kitlegal boe articulo` o `articulos`, y cada orden de lectura lleva detrás, en la misma
+  orden, una `kitlegal graph check <norma> <bloques>... --json` con los bloques que lee (§8, C12): una por norma citada
+  en la mayoría de las preguntas —un bloque, o varios pedidos juntos—, y una más por cada lectura posterior a la que
+  lleve una remisión. Cada bloque se comprueba una sola vez.
 - **Tamaño**: `SKILL.md` < 300 líneas. La salida de la comprobación la acota H7.1 a la pregunta —≈ 300 B sin nada que
   decir, ≤ 3 800 B con cinco bloques cambiados, ≤ 50 entradas—, con cientos de normas y miles de bloques consultados
   igual que con uno: no crece con lo acumulado.
@@ -122,4 +127,38 @@ y `123456789` no.
 En *Unreleased*, «Cambiado»: «**`boe-legislacion` v0.1.3**: la respuesta empieza por la norma sin el estado de la
 comprobación delante; la skill ya no enseña con su prosa el vocabulario que la respuesta no puede decir, la regla 7
 dice solo qué hacer si la comprobación de la redacción falla y cuándo va `⚠ REDACCIÓN MODIFICADA:`, y el ejemplo de esa
-línea lleva `AAAAMMDD` en lugar de fechas que copiar» (FR-018).
+línea lleva `AAAAMMDD` en lugar de fechas que copiar» (FR-018). Desde el cierre, la entrada dice además que la
+comprobación va en la misma orden que la lectura y que la respuesta es todo lo escrito tras la última orden (§8).
+
+## 8. Cierre (2026-09-30): la comprobación, en la orden de la lectura
+
+El job de cierre sobre `6ab3add` dio 5 de 51 respuestas de Sonnet 5 con una expresión de la lista y 8 de 51 con el
+párrafo de transición (research, «Cierre (2026-09-30)…»). Seis cambios sobre el texto de T013, cada uno con su medida:
+
+| Cambio | v0.1.3 de T013 | v0.1.3 del cierre | Causa (research, «Cierre», punto) | Requisito |
+|---|---|---|---|---|
+| C12 | Paso 3: «Lee los bloques de uno en uno con `kitlegal boe articulo`:» y el bloque `bash` con la lectura sola. Paso 5, primera viñeta: la comprobación, sola, «después de la última lectura y antes de la respuesta: una vez por cada norma…» (C4) | Paso 3: «Lee los bloques de uno en uno con `kitlegal boe articulo`. La orden que lee un bloque comprueba también, detrás de la lectura, si su redacción ha cambiado desde una lectura anterior:», con el bloque `bash` `kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json`; «La comprobación va siempre así, detrás de la lectura, en su misma orden y con su misma norma y sus mismos bloques: no la pidas nunca sin argumentos ni antes de leer, y si un bloque se ha leído sin ella, pídela a continuación con esa norma y ese bloque.» (para que ningún bloque citado quede sin comprobar si el agente lo lee con la orden sola); y `articulos` «con la comprobación de esos mismos bloques detrás», con la forma de la orden en código y marcadores (`<norma>`, `<bloques>...`), sin ids que copiar | 3: la última orden era una comprobación sin nada que citar, colocada como puerta antes de la respuesta (8 de 8 párrafos cuentan su estado; 0 de 18 en `legal-core`, 0 de 6 en las evals 18 y 19) | FR-014, FR-015 |
+| C13 | Paso 5, primera viñeta: «Por cada entrada de `data.hallazgos` con la clase `version-obsoleta`, la respuesta lleva la línea…; si termina con otro código que `0`, la regla 7.» | La misma condición, en el paso 3, donde se lee la salida («Devuelve dos sobres. El primero trae el texto del bloque y sus avisos de vigencia. El segundo es el de la comprobación: por cada entrada que traiga con la clase `version-obsoleta`, la respuesta lleva la línea…; si la comprobación termina con otro código que `0`, la regla 7.»), sin `data.hallazgos`, que queda solo en la sección, donde se explica la salida; el paso 5 ya no empieza por la comprobación | 2 y 3: la condición se evaluaba en voz alta al ir a responder («La comprobación termina en `0` sin hallazgos, así que no hay aviso…», 06-01) | FR-011, FR-014 |
+| C14 | C5: «Quien pregunta no ve las órdenes que ejecutas ni lo que devuelven: le sirven… La respuesta está hecha de eso: no cuentes lo que has hecho ni lo que ha devuelto ninguna orden, ni anuncies que vas a responder.» | «**La respuesta empieza por lo que se pregunta.** La respuesta es todo lo que escribes después de la última orden, desde su primera palabra: quien pregunta lo lee entero, y no ve las órdenes que ejecutas ni lo que devuelven. Le sirven… La respuesta está hecha de eso: no cuentes lo que has hecho ni lo que ha devuelto ninguna orden.» | 4: las 8 terminan el párrafo anunciando la respuesta, así que para el modelo el párrafo no es la respuesta y ninguna regla le alcanza; 5: «ni anuncies que vas a responder» lleva el verbo de 6 de los 8 anuncios y no los ha reducido | FR-011, FR-014 |
+| C15 | Paso 4: «Antes de responder, comprueba si lo leído basta:». Paso 5, última viñeta: «Antes de responder, repasa cada cita:…» | «Comprueba si lo leído basta:» y «Repasa cada cita de la respuesta:…»; lo que piden no cambia | 5: «Antes de responder» → «Ya puedo responder.» (4 de 8), «Ahora respondo.», «Respondo.» | FR-014 |
+| C16 | Sección (§2): «…solo usa `check`: una vez por norma citada, después de la última lectura y antes de la respuesta (paso 5).» | «…solo usa `check`, y siempre detrás de una lectura, en su misma orden (paso 3): una vez por cada orden que lee bloques, que en la mayoría de las preguntas es una por norma citada.» | 3 y 5 («antes de la respuesta») | FR-015 |
+| C17 | Regla 7 (§3): «Si `kitlegal graph check` termina con otro código…» | «Si la orden devuelve el texto del bloque y, detrás, `kitlegal graph check` termina con otro código…» y «Si lo que falla es la lectura, la orden termina ahí, sin comprobación, y vale la regla 2.»; título, frase fija y (b), iguales | con C12 la orden tiene dos mitades y el código es el de la que falla | FR-012 |
+
+Lo que se queda de H7.1 (FR-015): la comprobación va después de leer —el `&&` solo la ejecuta si la lectura termina con
+`0`, cuando ya ha entregado al grafo—, antes de responder, con la norma y los bloques leídos, nunca sin argumentos ni
+antes de leer, y cada bloque se lee una sola vez. Lo que cambia: «una vez por norma citada» pasa a «una vez por cada
+orden que lee bloques»; es lo mismo con un bloque o con varios pedidos juntos, y una comprobación más cuando una
+remisión lleva a leer después otro bloque de la misma norma. Cada bloque se comprueba una vez, así que la cota de H7.1
+(≤ k señales con k bloques leídos) no cambia. Queda como supuesto `[skill]` en `gates/supuestos.md`.
+
+Se quedan también el protocolo de cinco pasos y su orden, las formas y las frases fijas, «Nada de otra conversación» y
+las reglas 1 a 6 (FR-016); ninguna frase nombra el caso en que la comprobación no tiene nada que decir (FR-011);
+`SKILL.md` tiene 270 líneas (FR-017) y `prosa-de-la-skill`, `expresiones-de-la-skill`, `avisos-de-la-skill`,
+`hallazgos-de-la-skill` y `make skills-check` siguen en verde. La lista de expresiones no cambia: las tres respuestas
+del cierre con el párrafo dicho con palabras que no recoge (03-03, 13-03, 14-03) son la limitación declarada de H7.2.
+
+Comprobado sin modelo, con el binario del árbol y la sesión de la eval 19 preparada con `PrepararSesion` fuera del
+repositorio: la orden encadenada devuelve el sobre del bloque `a1-30` y, detrás, el de la comprobación con la entrada
+`version-obsoleta` (20180309 y 20200206); con la lectura fallida (`--offline` sin caché) termina con `4` y sin
+comprobación; con un `world.db` ilegible devuelve el texto y termina con `1`. El efecto sobre las respuestas lo mide el
+job de la ronda siguiente del cierre (SC-001).

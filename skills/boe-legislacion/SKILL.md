@@ -62,14 +62,23 @@ menudo; no es exhaustiva.
 - Copia el id de la entrada del índice cuyo `titulo` es el artículo que buscas; nunca lo compongas a partir del número
   del artículo, porque en muchas normas los ids no son `a<número>`. En la Ley 9/2017, la entrada con `titulo`
   «Artículo 118» tiene el id `a1-30`, y `a118` no está en su índice.
-- Lee los bloques de uno en uno con `kitlegal boe articulo`:
+- Lee los bloques de uno en uno con `kitlegal boe articulo`. La orden que lee un bloque comprueba también, detrás de
+  la lectura, si su redacción ha cambiado desde una lectura anterior:
 
   ```bash
-  kitlegal boe articulo BOE-A-2015-10565 a21 --json
+  kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json
   ```
 
+  Devuelve dos sobres. El primero trae el texto del bloque y sus avisos de vigencia. El segundo es el de la
+  comprobación: por cada entrada que traiga con la clase `version-obsoleta`, la respuesta lleva la línea
+  `⚠ REDACCIÓN MODIFICADA:` de «Redacción modificada desde una lectura anterior»; si la comprobación termina con otro
+  código que `0`, la regla 7. La comprobación va siempre así, detrás de la lectura, en su misma orden y con su misma
+  norma y sus mismos bloques: no la pidas nunca sin argumentos ni antes de leer, y si un bloque se ha leído sin ella,
+  pídela a continuación con esa norma y ese bloque.
+
   Usa `kitlegal boe articulos`, que los devuelve en el orden pedido, solo cuando necesites varios bloques a la vez y
-  todos salgan del índice.
+  todos salgan del índice, con la comprobación de esos mismos bloques detrás
+  (`kitlegal boe articulos <norma> <bloques>... --json && kitlegal graph check <norma> <bloques>... --json`).
 - Lee cada bloque una sola vez por pregunta: una segunda lectura del mismo bloque apagaría el aviso de que su redacción
   ha cambiado desde una lectura anterior (más en «Redacción modificada desde una lectura anterior»).
 - Una orden de `kitlegal boe articulos` falla entera en cuanto falla uno de sus bloques. Si una orden con varios bloques
@@ -90,7 +99,7 @@ menudo; no es exhaustiva.
 
 ### 4. Evaluar si falta contexto
 
-Antes de responder, comprueba si lo leído basta:
+Comprueba si lo leído basta:
 
 - **Remisiones**: si el bloque remite a otro artículo, a otra ley o a un reglamento que cambia la respuesta, léelo
   (paso 3).
@@ -103,21 +112,11 @@ Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lug
 
 ### 5. Responder citando
 
-- La comprobación de la redacción va después de la última lectura y antes de la respuesta: una vez por cada norma
-  cuyos bloques vas a citar, con esa norma y los bloques de ella que has leído, comprueba si su redacción ha cambiado
-  desde una lectura anterior:
-
-  ```bash
-  kitlegal graph check BOE-A-2015-10565 a21 --json
-  ```
-
-  No la pidas nunca sin argumentos ni antes de leer. Por cada entrada de `data.hallazgos` con la clase
-  `version-obsoleta`, la respuesta lleva la línea `⚠ REDACCIÓN MODIFICADA:` de «Redacción modificada desde una lectura
-  anterior»; si termina con otro código que `0`, la regla 7.
-- **La respuesta empieza por lo que se pregunta.** Quien pregunta no ve las órdenes que ejecutas ni lo que devuelven:
-  le sirven la norma, su texto, su cita, sus avisos de vigencia y, si la redacción cambió, la línea
+- **La respuesta empieza por lo que se pregunta.** La respuesta es todo lo que escribes después de la última orden,
+  desde su primera palabra: quien pregunta lo lee entero, y no ve las órdenes que ejecutas ni lo que devuelven. Le
+  sirven la norma, su texto, su cita, sus avisos de vigencia y, si la redacción cambió, la línea
   `⚠ REDACCIÓN MODIFICADA:`. La respuesta está hecha de eso: no cuentes lo que has hecho ni lo que ha devuelto ninguna
-  orden, ni anuncies que vas a responder.
+  orden.
 - **Nada de otra conversación.** No sabes qué se preguntó ni qué se respondió en otra conversación: no hables de ello,
   ni para afirmarlo, ni para confirmarlo, ni para desmentirlo. Lo único que la respuesta dice de una lectura anterior es
   la línea `⚠ REDACCIÓN MODIFICADA:` de un bloque cuya redacción ha cambiado.
@@ -134,7 +133,7 @@ Si falta algo que no puedes leer con `kitlegal boe`, dilo en la respuesta en lug
 - Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la etiqueta del aviso tal como la da el binario y
   dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). Recuerda que los textos
   consolidados del BOE tienen carácter informativo.
-- Antes de responder, repasa cada cita: sus corchetes se abren y se cierran en la misma línea y terminan en
+- Repasa cada cita de la respuesta: sus corchetes se abren y se cierran en la misma línea y terminan en
   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
   corchetes va además la forma legible, va delante del identificador.
 
@@ -180,8 +179,8 @@ del binario o de una explicación:
 `kitlegal` recuerda en local los bloques que ha leído con `kitlegal boe articulo` o `articulos` y qué redacción vio
 cada lectura. `kitlegal graph check <norma> <bloques>... --json` compara, para esa norma y esos bloques, la redacción de
 la última lectura con la de la anterior, y devuelve en `data.hallazgos` una entrada por cada bloque en que encuentra
-algo, con su `clase`. De `kitlegal graph`, el protocolo solo usa `check`: una vez por norma citada, después de la última
-lectura y antes de la respuesta (paso 5).
+algo, con su `clase`. De `kitlegal graph`, el protocolo solo usa `check`, y siempre detrás de una lectura, en su misma
+orden (paso 3): una vez por cada orden que lee bloques, que en la mayoría de las preguntas es una por norma citada.
 
 - Una entrada de `clase` `version-obsoleta` dice que la redacción de ese bloque ha cambiado desde la lectura anterior.
   La respuesta lo dice con su forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta `REDACCIÓN MODIFICADA` y dos
@@ -258,13 +257,14 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** El texto citado sale siempre de
    `kitlegal boe articulo` o `kitlegal boe articulos`. Nunca cites, parafrasees ni reconstruyas texto a partir de la
    salida de un verbo de `kitlegal graph`: lo que devuelve dice qué hay que volver a comprobar, no qué dice el artículo.
-7. **Si la comprobación de la redacción no termina con `0`.** Si `kitlegal graph check` termina con otro código, la
-   respuesta cita igual el texto leído con `kitlegal boe` y lleva esta frase, sin afirmar que la redacción ha cambiado
-   ni que no:
+7. **Si la comprobación de la redacción no termina con `0`.** Si la orden devuelve el texto del bloque y, detrás,
+   `kitlegal graph check` termina con otro código, la respuesta cita igual el texto leído con `kitlegal boe` y lleva
+   esta frase, sin afirmar que la redacción ha cambiado ni que no:
 
    ```text
    No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior.
    ```
 
-   La línea `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`
+   Si lo que falla es la lectura, la orden termina ahí, sin comprobación, y vale la regla 2. La línea
+   `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`
    («Redacción modificada desde una lectura anterior»).

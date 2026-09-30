@@ -93,6 +93,77 @@ que cambia es que la orden ya no va unida a «antes de redactar la respuesta», 
 rechazada: moverla al final del paso 3; con varias normas seguiría siendo la última orden, y una lectura posterior a la
 comprobación apagaría `version-obsoleta` (H7.1 FR 024) sin evidencia de que el sitio cause el ruido.
 
+### Cierre (2026-09-30): con la prosa limpia el párrafo sigue, y la causa es el sitio (FR-014, FR-015)
+
+Las dos conclusiones de arriba no aguantaron la primera medida con modelo. El job de cierre sobre `6ab3add`
+(`gates/evals/boe-legislacion.json`) dio `expresiones_prohibidas:claude-sonnet-5` 5 de 51 (9,8 %), la serie de la eval
+06 con 1 de 3 y el veredicto `fallo`. Leídas las 51 respuestas de Sonnet 5 en las evals que activan la skill:
+
+| Medida del cierre de H7.3 (v0.1.3 de T013) | Sonnet 5 | Haiku 4.5 |
+|---|---|---|
+| Última invocación: `graph check` | 51 de 51 | — |
+| Con alguna expresión de la lista | 5 (05-01, 06-01, 06-02, 07-01, 17-03) | 0 de 30 |
+| Con el párrafo de transición, con palabras de la lista o sin ellas | 8 (las 5 y 03-03, 13-03, 14-03) | 0 de 30 |
+| … que cuenta el estado de la comprobación («Sin cambios de redacción desde una lectura anterior.», «La comprobación terminó sin hallazgos…») | 8 de 8 | — |
+| … que termina anunciando la respuesta («Ya puedo responder.» en 4, «Ahora respondo.», «Respondo.», «Aquí está la respuesta.», «Con esto tengo la respuesta completa.») | 8 de 8 | — |
+| … con «hallazgos» | 3 (05-01, 06-01, 06-02) | — |
+| Respuestas de la eval 18 (avisos que trasladar) y de la 19 (redacción cambiada) con el párrafo | 0 de 6 | — |
+| `legal-core`, cuya última orden devuelve lo que la respuesta cita: respuestas con el párrafo en los cierres de H7.1, H7.2 y H7.3 | 0 de 18 (6 por cierre) | — |
+
+Lo que dicen esas medidas:
+
+1. **Quitar el vocabulario cambió las palabras, no el párrafo.** De 10 de 51 (H7.2) a 8 de 51: el mismo párrafo, ahora
+   con las palabras que C4 dejó en la prosa porque «la respuesta puede usarlas» («si su redacción ha cambiado desde una
+   lectura anterior» → «Sin cambios de redacción desde una lectura anterior.»: «cambio de redacción» o «lectura
+   anterior» en 6 de 8, y «redacción modificada» en las otras 2).
+2. **Con la prosa limpia, el modelo toma la palabra de la salida** (FR-014, su segunda rama). «hallazgos» ya no está
+   en la prosa y sigue en 3 de 8: sale de la clave `hallazgos` de la salida de `graph check` y de `data.hallazgos`, en
+   código. El cambio va entonces a cómo la skill pide y lee esa salida, sin tocar el binario.
+3. **El sitio sí es la causa** (FR-015). Que la última orden sea `graph check` también en las respuestas limpias no lo
+   descartaba: es la condición sin la que el párrafo no se da. En los cuatro cierres (H7, H7.1, H7.2, H7.3) lo único
+   que no ha cambiado es que la última orden antes de responder es una comprobación que no devuelve nada que citar y
+   que el protocolo coloca «antes de la respuesta»: una puerta, cuyo paso el modelo cuenta («Sin cambios…») y cierra
+   («Ya puedo responder.»). Donde la última orden trae lo que se cita (`legal-core`, 0 de 18) o la comprobación trae
+   algo que la respuesta lleva (evals 18 y 19, 0 de 6), el párrafo no aparece.
+4. **El anuncio marca que el párrafo no es, para el modelo, parte de la respuesta.** Las 8 lo terminan anunciándola.
+   Todas las reglas de v0.1.2 y v0.1.3 hablan de «la respuesta» («empieza por lo que se pregunta», «no dice…»), y el
+   modelo las cumple a partir del anuncio: ninguna dice que lo escrito tras la última orden ya es la respuesta.
+5. **La prosa sigue enseñando la puerta.** «Antes de responder» (primera línea del paso 4 y última viñeta del paso 5),
+   «antes de la respuesta» (primera viñeta del paso 5 y la sección) y «ni anuncies que vas a responder» (C5) llevan el
+   verbo de 6 de los 8 anuncios («Ya puedo responder.», «Ahora respondo.», «Respondo.»), como «antes de redactar la
+   respuesta» daba «Redacto la respuesta.» en H7.2. La prohibición del anuncio no lo ha reducido: 22 de 34 párrafos lo
+   llevaban en H7.1, sin ella; 7 de 9 en H7.2 y 8 de 8 en H7.3, con ella.
+
+**Decisión del cierre: la comprobación cambia de sitio** (sustituye a «la comprobación no cambia de sitio»). Va en la
+misma orden que la lectura, detrás de ella y con su misma norma y sus mismos bloques
+(`kitlegal boe articulo <norma> <bloque> --json && kitlegal graph check <norma> <bloque> --json`): la última orden antes
+de la respuesta es la que trae el texto que se cita, y ya no hay una comprobación suelta entre la lectura y la
+respuesta. De lo que decidió H7.1 se quedan «después de leer» (el `&&` la ejecuta solo si la lectura termina con `0`,
+cuando ya ha entregado al grafo), «antes de responder», «nunca sin argumentos ni antes de leer» y «cada bloque, una sola
+lectura»; «una vez por norma citada» pasa a «una vez por cada orden que lee bloques», que es lo mismo en la mayoría de
+las preguntas (un bloque, o varios pedidos juntos con `articulos`) y una comprobación más cuando una remisión lleva a
+leer después otro bloque de la misma norma. Cada bloque se comprueba una sola vez, así que la cota de H7.1 no cambia
+(≤ k señales con k bloques leídos; ≈ 300 B por comprobación sin nada que decir). Comprobado sin modelo con el binario
+del árbol y la caché y el grafo previo de la eval 19 (`PrepararSesion`): la orden encadenada devuelve el bloque y, detrás,
+la entrada `version-obsoleta` con 20180309 y 20200206; con la lectura fallida termina con el código de la lectura, sin
+comprobación; con un `world.db` ilegible, con `1` tras devolver el texto. La salida encadenada más larga de las evals
+(art. 17 LIRPF) ocupa 9,7 KB.
+
+Con ella, cuatro cambios más de la prosa, cada uno con su medida (contrato §8): la condición de
+`⚠ REDACCIÓN MODIFICADA:` se lee donde se lee la salida (paso 3) y el paso 5 deja de empezar por la comprobación; la
+respuesta se define por su posición —todo lo escrito tras la última orden, desde la primera palabra— (punto 4); salen
+«Antes de responder», «antes de la respuesta» y «ni anuncies que vas a responder» (punto 5); y la regla 7 distingue la
+lectura fallida de la comprobación fallida dentro de la misma orden.
+
+Alternativas rechazadas: **otra ronda solo de prosa** (tres rondas han dado 67 %, 20 % y 16 %, y FR-014 ya decía que
+una prohibición más no lo corrige); **ampliar la lista con las formas nuevas** (mediría mejor, pero no arregla la skill,
+y el arreglo de una eval en rojo no va a la eval; las tres respuestas que la lista no marca quedan dichas aquí y en
+`gates/supuestos.md`); **la comprobación solo en la orden del último bloque de cada norma**, que conservaría «una vez
+por norma» al pie de la letra (obliga al modelo a saber cuál es el último antes de leerlo, y un bloque puede quedarse
+sin comprobar si el plan cambia); **pedir al modelo que no escriba nada entre órdenes** (otra prohibición, y cambia lo
+que ve quien usa la skill en una conversación); y **cambiar la salida de `graph check`** (fuera de alcance). El efecto
+no se puede medir sin modelo (S7, FR-068): lo mide el job de la siguiente ronda del cierre.
+
 ## Decisiones
 
 ### D1 · `SKILL.md` v0.1.3: quitar el vocabulario, no añadir prohibiciones (FR-010 a FR-017)

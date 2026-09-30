@@ -259,10 +259,11 @@ Detalle, con ejemplos y bytes, en contracts/skill-boe-legislacion.md §6, contra
 contracts/ejecucion-del-job.md §9 y contracts/sondeo.md §4 y §8. Resumen:
 
 - **La respuesta de la skill** (la persona; una por pregunta): lo que ocupa la norma y 0 líneas sobre la comprobación;
-  161 B por bloque cuya redacción cambió (0 en la mayoría, como mucho k × 161 B), 83 B si la comprobación falla. Las
-  órdenes por pregunta no cambian: cada bloque una vez y una `graph check` por norma citada, acotada a la pregunta
-  (H7.1: ≈ 300 B sin nada, ≤ 3 800 B con cinco bloques cambiados), con cientos de normas y miles de bloques consultados
-  igual que con uno. La línea se apaga con la lectura siguiente del bloque (H7.1 FR 024).
+  161 B por bloque cuya redacción cambió (0 en la mayoría, como mucho k × 161 B), 83 B si la comprobación falla. Cada
+  bloque se lee una vez y cada orden de lectura lleva detrás una `graph check` con sus bloques (desde el cierre; una por
+  norma citada en la mayoría de las preguntas), acotada a la pregunta (H7.1: ≈ 300 B sin nada, ≤ 3 800 B con cinco
+  bloques cambiados), con cientos de normas y miles de bloques consultados igual que con uno. La línea se apaga con la
+  lectura siguiente del bloque (H7.1 FR 024).
 - **`umbrales`** (el job, el informe final, la persona; una vez por job y skill): ≈ 1 KB en `boe-legislacion`, `[]` en
   `legal-core`; se miden de nuevo en cada job.
 - **Sesiones sin medir, reintentos, duración** (el job y quien ajusta la concurrencia; una vez por job): `[]`, 0 y un
@@ -274,15 +275,24 @@ contracts/ejecucion-del-job.md §9 y contracts/sondeo.md §4 y §8. Resumen:
 
 ## Decisiones
 
-- **La comprobación de la redacción no cambia de sitio (FR-015).** `graph check` es la última orden en 51 de 51 sesiones
-  de Sonnet 5 del cierre de H7.2 —en las 41 sin ruido igual que en las 10 con él— y en 30 de 30 de Haiku 4.5, que no lo
-  escribe nunca: el sitio es común a las respuestas limpias y a las que tienen ruido, y lo que distingue a estas es el
-  vocabulario de la prosa (research, «Causa de raíz»). Se queda lo que decidió H7.1 —una vez por norma citada, después
-  de leer sus bloques y antes de la respuesta—; lo que cambia es que la orden ya no va unida a «antes de redactar la
-  respuesta» (C4). Rechazado moverla al final del paso 3: con varias normas seguiría siendo la última orden, y una
-  lectura posterior apagaría `version-obsoleta`.
-- **El modelo repite la prosa, no la salida del binario (FR-014)**: el cambio va a `SKILL.md`, no a cómo se lee `graph
-  check`, cuya clave `data.hallazgos` se queda en código (research, «Causa de raíz»; D1).
+- **La comprobación de la redacción cambia de sitio: va en la misma orden que la lectura (FR-015; decisión del cierre,
+  2026-09-30, que sustituye a «no cambia de sitio»).** El plan la dejó donde estaba porque `graph check` era la última
+  orden también en las respuestas limpias del cierre de H7.2. El job de cierre de H7.3 lo desmiente: con la prosa ya
+  sin el vocabulario, 8 de 51 respuestas de Sonnet 5 siguen empezando por el estado de la comprobación y el anuncio de
+  la respuesta (5 con expresiones de la lista: 9,8 %), mientras que donde la última orden trae lo que se cita no hay
+  ninguna (`legal-core`, 0 de 18 en tres cierres; evals 18 y 19, 0 de 6). La lectura y su comprobación van en una orden
+  (`kitlegal boe articulo … --json && kitlegal graph check … --json`): después de leer, antes de responder, con la
+  norma y los bloques leídos, nunca sin argumentos ni antes de leer, como decidió H7.1; «una vez por norma citada» pasa
+  a «una vez por cada orden que lee bloques», que es lo mismo en la mayoría de las preguntas (supuesto `[skill]`).
+  Rechazadas: otra ronda solo de prosa (67 %, 20 % y 16 % en tres rondas), la comprobación solo en la orden del último
+  bloque de cada norma (un bloque puede quedarse sin comprobar), ampliar la lista y cambiar el binario (research,
+  «Cierre (2026-09-30)…»; contracts/skill-boe-legislacion.md §8).
+- **El modelo repite la prosa y, sin ella, la salida del binario (FR-014; decisión del cierre).** T013 quitó el
+  vocabulario de la prosa (research, «Causa de raíz»; D1) y «hallazgos» sigue en 3 de las 8 respuestas: sale de la
+  salida de `graph check`. El cambio va entonces también a cómo la skill pide y lee esa salida —en la orden de la
+  lectura, con su condición en el paso 3—, sin tocar el binario; la respuesta se define por su posición, todo lo
+  escrito tras la última orden, y salen de la prosa «Antes de responder», «antes de la respuesta» y «ni anuncies que
+  vas a responder» (contrato §8, C12 a C17).
 - **Una tanda por commit: el segundo disparo espera** (FR-034; research D11).
 - **La preparación de `TestPrepararSesion`, en proceso (FR-061).** Lo que prepara `TestPrepararSesion` es
   `PrepararSesion` con las evals de la skill y `UnionDeGrabaciones()`; el repartidor lo llama igual, justo antes de

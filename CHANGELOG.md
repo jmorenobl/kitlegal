@@ -252,13 +252,16 @@ sustituyen a este fichero.
 - **`boe-legislacion` v0.1.3**: la respuesta empieza por la norma sin el estado de la comprobación delante; la skill
   ya no enseña con su prosa el vocabulario que la respuesta no puede decir, la regla 7 dice solo qué hacer si la
   comprobación de la redacción falla y cuándo va `⚠ REDACCIÓN MODIFICADA:`, y el ejemplo de esa línea lleva
-  `AAAAMMDD` en lugar de fechas que copiar. Lee cada bloque una sola vez por pregunta y, después de la última lectura
-  y antes de la respuesta, comprueba si la redacción de lo leído ha cambiado desde una lectura anterior **una vez por
-  cada norma cuyos bloques cita**, con esa norma y los bloques leídos de ella
-  (`kitlegal graph check BOE-A-2015-10565 a21 --json`); nunca antes de leer ni sin argumentos. La respuesta está
+  `AAAAMMDD` en lugar de fechas que copiar. Lee cada bloque una sola vez por pregunta y comprueba si su redacción ha
+  cambiado desde una lectura anterior **en la misma orden que lo lee**, detrás de la lectura y con su misma norma y
+  sus mismos bloques
+  (`kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json`): una
+  comprobación por cada orden de lectura —una por norma citada en la mayoría de las preguntas—, nunca antes de leer
+  ni sin argumentos, de modo que la última orden antes de la respuesta es la que trae el texto y no una comprobación
+  suelta. La respuesta es todo lo que el agente escribe después de la última orden, desde su primera palabra, y está
   hecha de la norma, su texto, su cita, sus avisos de vigencia y, si la redacción cambió, la línea
-  `⚠ REDACCIÓN MODIFICADA:`: no cuenta lo que ha hecho ni lo que ha devuelto ninguna orden, ni anuncia que va a
-  responder. Por cada `version-obsoleta` lleva esa forma fija —`⚠`, la etiqueta que da el binario y dos puntos—,
+  `⚠ REDACCIÓN MODIFICADA:`: no cuenta lo que ha hecho ni lo que ha devuelto ninguna orden. Por cada
+  `version-obsoleta` lleva esa forma fija —`⚠`, la etiqueta que da el binario y dos puntos—,
   seguida en la misma línea de las dos fechas de vigencia tal como las da la comprobación (`AAAAMMDD`), la de la
   redacción superada y la de la que cita; decirlo con otras palabras no vale, y la etiqueta no es la de ningún aviso
   de vigencia. No lleva `fuente-caducada`, porque cita siempre lo que acaba de leer. **No habla de lo dicho en otra
@@ -273,8 +276,8 @@ sustituyen a este fichero.
   posición opcionales como la ayuda del binario. La forma de la cita y la de los avisos de vigencia no cambian.
   Sustituye a la v0.1.2 de H7.2, que no llegó a publicarse: su prosa enumeraba lo que la respuesta no podía nombrar
   —la memoria de consultas, los códigos de salida, los hallazgos—, trataba el caso en que la comprobación no tenía
-  nada que decir, unía la comprobación a «antes de redactar la respuesta» y el ejemplo de la línea llevaba dos fechas
-  que copiar; a la v0.1.1 de H7.1, que tampoco llegó a publicarse: contaba la comprobación en la respuesta, no fijaba
+  nada que decir, pedía la comprobación sola, como última orden y unida a «antes de redactar la respuesta», y el
+  ejemplo de la línea llevaba dos fechas que copiar; a la v0.1.1 de H7.1, que tampoco llegó a publicarse: contaba la comprobación en la respuesta, no fijaba
   cómo se escriben las fechas de la forma, decía que no había podido comprobar la memoria de consultas cuando
   `graph check` fallaba y no prohibía el código cuando fallaba `kitlegal boe`; y a la v0.1 de H7, que tampoco llegó a
   publicarse: comprobaba dos veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también
