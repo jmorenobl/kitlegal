@@ -34,7 +34,8 @@ const (
 	// VeredictoAprobado es el de una ejecución sin ningún motivo: sin ficheros de
 	// eval mal formados, con todas las sesiones que el plan pide y legibles, con
 	// cada serie que decide llegando al umbral, sin ninguna petición llegada a la
-	// red (ADR 0016) y sin ninguna sesión sin medir (FR-043 de H7.3).
+	// red (ADR 0016), con cada umbral que decide cumplido (FR-003 y FR-051 de
+	// H7.3) y sin ninguna sesión sin medir (FR-043 de H7.3).
 	VeredictoAprobado Veredicto = "aprobado"
 
 	// VeredictoFallo es el de cualquier otra ejecución.
@@ -99,6 +100,7 @@ var (
 	encabezadosDeExpresiones = []string{
 		"Modelo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
 	}
+	encabezadosDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
 )
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
@@ -149,6 +151,14 @@ type InformeAEscribir struct {
 	// el mensaje del límite de uso: cuentan en su serie como sin medir (FR-044 de
 	// H7.3; data-model §4).
 	SinAbrir []SesionPlanificada
+
+	// DuracionDeLasSesiones son los segundos que midió el repartidor, desde que
+	// empezó a preparar la primera sesión hasta que terminó la última, y
+	// ObjetivoDeDuracion, los que el job admite: con 0, la skill no tiene
+	// objetivo ni umbral de la duración; uno negativo impide escribir el informe
+	// (contrato informe-del-job §5 de H7.3; FR-050, FR-051).
+	DuracionDeLasSesiones int
+	ObjetivoDeDuracion    int
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -202,6 +212,15 @@ type Informe struct {
 	// informativos, en su orden. Vacío, [] en informe.json, si la skill no tiene
 	// lista (contrato lista-y-juicio §5 de H7.2; FR-053).
 	ExpresionesProhibidasPorModelo []RecuentoDeExpresiones `json:"expresiones_prohibidas_por_modelo"`
+
+	// Umbrales son los del contrato del ADR 0029, en el orden de
+	// umbralesDelInforme: nil, [] en informe.json, si la skill no tiene lista ni
+	// objetivo de duración (contrato informe-del-job §1 de H7.3; FR-001, FR-006).
+	Umbrales []Umbral `json:"umbrales"`
+
+	// DuracionDeLasSesiones son los segundos recibidos, tal cual (FR-050 de
+	// H7.3).
+	DuracionDeLasSesiones int `json:"duracion_de_las_sesiones"`
 
 	// ReintentosPorLimiteDeRitmo es la suma de los de cada sesión (FR-033 de
 	// H7.3).
@@ -341,18 +360,25 @@ type RedDelInforme struct {
 //     skill y las que llevan alguna (recontarExpresiones;
 //     contrato lista-y-juicio §5 de H7.2), sin que eso cambie la regla del
 //     veredicto: una sesión con una expresión es una sesión que no pasa (FR-054);
-//  4. los motivos de la raíz van en el orden de data-model §10.3: por serie
+//  4. con el recuento, compone los umbrales (umbralesDelInforme): uno de las
+//     expresiones por modelo si la skill tiene lista y el de la duración si hay
+//     objetivo (contrato informe-del-job §1 de H7.3);
+//  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
 //     sesión ilegible que no se hayan escrito ya; ninguna eval bien formada que
-//     juzgar; cada fichero mal formado; cada petición llegada a la red; y, con
-//     alguna sesión sin medir, uno solo de la ejecución que las nombra (FR-043 de
-//     H7.3). El veredicto es fallo si hay algún motivo y aprobado si no hay
-//     ninguno, de modo que los motivos son exactamente las causas del fallo.
+//     juzgar; cada fichero mal formado; cada petición llegada a la red; el de
+//     cada umbral que decide y no se cumple, salvo el de la duración (FR-003 de
+//     H7.3); con alguna sesión sin medir, uno solo de la ejecución que las nombra
+//     (FR-043 de H7.3); y, si decide y no se cumple, el de la duración, también
+//     de la ejecución (FR-051 de H7.3). El veredicto es fallo si hay algún motivo
+//     y aprobado si no hay ninguno, de modo que los motivos son exactamente las
+//     causas del fallo, y un umbral que decide y no se cumple lo pone en fallo.
 //
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
-// o sin-python.txt, las evals o las sesiones que no se pueden leer, o un destino
-// en el que no se puede escribir— y nombra el fichero o el directorio. Todo se lee
+// un objetivo de duración negativo, o sin-python.txt, las evals o las sesiones
+// que no se pueden leer, o un destino en el que no se puede escribir— y nombra el
+// fichero, el directorio o el valor. Todo se lee
 // antes de escribir nada y, con cualquiera de esos errores, en el destino no queda
 // ni informe.md ni informe.json, de modo que un sin_python vacío o a medias no
 // llega nunca a un informe (FR-081).
@@ -365,6 +391,12 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 		return Informe{}, fmt.Errorf(
 			"el informe no se puede escribir: el umbral es %d y tiene que estar entre 1 y las %d repeticiones",
 			e.Umbral, e.Repeticiones)
+	}
+
+	if e.ObjetivoDeDuracion < 0 {
+		return Informe{}, fmt.Errorf(
+			"el informe no se puede escribir: el objetivo de duración es %d s y no puede ser negativo (0 es sin objetivo)",
+			e.ObjetivoDeDuracion)
 	}
 
 	sinPython, err := leerFichero(e.SinPython)
@@ -586,13 +618,14 @@ func leerEvalDeLaSesion(dir, directorioDeEvals string, evals []Eval) (string, Ev
 // veredicto.
 func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada) Informe {
 	informe := Informe{
-		Skill:               e.Skill,
-		ModeloQueDecide:     e.ModeloQueDecide,
-		ModelosInformativos: e.ModelosInformativos,
-		Repeticiones:        e.Repeticiones,
-		Umbral:              e.Umbral,
-		Commit:              e.Commit,
-		SinPython:           sinPython,
+		Skill:                 e.Skill,
+		ModeloQueDecide:       e.ModeloQueDecide,
+		ModelosInformativos:   e.ModelosInformativos,
+		Repeticiones:          e.Repeticiones,
+		Umbral:                e.Umbral,
+		Commit:                e.Commit,
+		SinPython:             sinPython,
+		DuracionDeLasSesiones: e.DuracionDeLasSesiones,
 	}
 
 	for _, malFormado := range conjunto.MalFormados {
@@ -610,6 +643,7 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 	}
 
 	informe.ExpresionesProhibidasPorModelo = recontarExpresiones(e, conjunto.Prohibidas, sesiones, series)
+	informe.Umbrales = umbralesDelInforme(e, informe.ExpresionesProhibidasPorModelo)
 
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
@@ -801,10 +835,13 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // cuentan como de la serie— y, si decide, no llega al umbral y no tiene ninguna
 // sin medir, su tasa con los motivos de sus sesiones que no pasan; los de cada
 // sesión ilegible que no se hayan escrito ya; que no haya ninguna eval que
-// juzgar; cada fichero mal formado; cada petición llegada a la red; y, con alguna
-// sesión sin medir, uno solo de la ejecución que las nombra (FR-043 de H7.3;
-// contrato informe-del-job §2.2). Una sesión que no pasa de una serie que sí
-// llega al umbral no da ningún motivo: eso es lo que el umbral absorbe
+// juzgar; cada fichero mal formado; cada petición llegada a la red; el de cada
+// umbral que decide y no se cumple, salvo el de la duración (FR-003 de H7.3;
+// contrato informe-del-job §2.1); con alguna sesión sin medir, uno solo de la
+// ejecución que las nombra (FR-043 de H7.3; contrato informe-del-job §2.2); y el
+// de la duración, también de la ejecución, si decide y no se cumple (FR-051 de
+// H7.3; contrato informe-del-job §2.3). Una sesión que no pasa de una serie que
+// sí llega al umbral no da ningún motivo: eso es lo que el umbral absorbe
 // (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de H7.3).
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
@@ -835,11 +872,13 @@ func motivosDelInforme(
 		motivos = append(motivos, llegada.Sesion+motivoDeLlegadaALaRed+llegada.Orden+" → "+llegada.Destino)
 	}
 
+	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales)...)
+
 	if len(informe.SesionesSinMedir) > 0 {
 		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
 	}
 
-	return motivos
+	return append(motivos, motivoDeLaDuracionDeLasSesiones(informe.Umbrales)...)
 }
 
 // motivosDeLaSerie son los motivos de la raíz que da una serie: si el plan la
@@ -964,13 +1003,14 @@ func retirarFichero(ruta string) error {
 }
 
 // renderizarInforme da informe.md (contrato job-de-evals §5): el título; el
-// veredicto y sus motivos; la cabecera, con los reintentos por límite de ritmo
-// al final (contrato informe-del-job §4 de H7.3); la comprobación sin Python en
-// un bloque; los ficheros mal formados, las invocaciones fuera de lo grabado y
-// las peticiones llegadas a la red; las tasas por eval; el recuento de las
-// expresiones prohibidas por modelo, o el párrafo de la skill sin lista
-// (contrato lista-y-juicio §5 de H7.2); las sesiones sin medir, o «ninguna»; la
-// tabla de las sesiones; y una sección por sesión.
+// veredicto y sus motivos; la cabecera, con la duración de las sesiones y los
+// reintentos por límite de ritmo al final (contrato informe-del-job §4 de H7.3);
+// la comprobación sin Python en un bloque; los ficheros mal formados, las
+// invocaciones fuera de lo grabado y las peticiones llegadas a la red; las tasas
+// por eval; el recuento de las expresiones prohibidas por modelo, o el párrafo de
+// la skill sin lista (contrato lista-y-juicio §5 de H7.2); junto a él, los
+// umbrales, o «ninguno»; las sesiones sin medir, o «ninguna»; la tabla de las
+// sesiones; y una sección por sesión.
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -988,6 +1028,7 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("Modelos de las sesiones: " + unidosOVacio(informe.ModelosDeSesion, ningunoEnElInforme))
 	md.parrafo("Versiones de Claude Code: " + unidosOVacio(informe.VersionesDeClaudeCode, ningunaEnElInforme))
 	md.parrafo("Commit: " + informe.Commit)
+	md.parrafo("Duración de las sesiones: " + strconv.Itoa(informe.DuracionDeLasSesiones) + " s")
 	md.parrafo("Reintentos por límite de ritmo: " + strconv.Itoa(informe.ReintentosPorLimiteDeRitmo))
 
 	md.parrafo("## Comprobación sin Python")
@@ -1020,6 +1061,9 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("## Expresiones prohibidas por modelo")
 	md.tablaOVacia(encabezadosDeExpresiones, filasDeExpresiones(informe.ExpresionesProhibidasPorModelo),
 		sinListaDeExpresiones)
+
+	md.parrafo("## Umbrales")
+	md.tablaOVacia(encabezadosDeUmbrales, filasDeUmbrales(informe.Umbrales), ningunoEnElInforme)
 
 	md.parrafo("## Sesiones sin medir")
 	md.tablaOVacia(encabezadosDeSinMedir, filasDeSinMedir(informe.SesionesSinMedir), ningunaEnElInforme)
