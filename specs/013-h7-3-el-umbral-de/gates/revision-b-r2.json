@@ -1,0 +1,91 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ronda 2. gates/ci.log (mtime 07:06:37, el segundo del commit 05a01e7; «guardián de diff ok ((global), 13 ficheros)», los 13 de la corrección): lint «0 issues», go test -race y test-integration en verde, TestMedidasDeTiempo/TestCosteDelGrafo, govulncheck, TestEsquemasPublicados, skills-check, goreleaser check, gitleaks «no leaks found», mod verify, tidy -diff y «ci: todos los controles en verde». Reproducido entero en un clon de 05a01e7 fuera del repositorio (/tmp/juezB-h73-r2.*/kitlegal, `make ci`, exit 0): «0 issues», internal/evals 97,2 % y 98,3 %, «ci: todos los controles en verde», y git status del clon vacío. Árbol de trabajo del repositorio limpio en HEAD 05a01e7 (git status --porcelain sin salida al empezar y al terminar)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Lo de la ronda 1 sigue (mutantes muertos en umbrales, sesiones, informe, sondeo, guion, calibrado, definición y prosa; sin suite [aceptacion] porque el binario no cambia, plan.md «Aceptación e2e: no aplica»). La corrección arregla el único motivo del juez A y su control detecta ahora lo que dice: en una copia de 05a01e7 con scripts/evals-sondeo.sh de 8dcf9d0 (sin `mkdir \"$temporal/tmp\"` ni `TMPDIR=\"$temporal/tmp\"`), TestGuionDelSondeo cae en sus tres subpruebas con go: «Should be empty, but was [d go-build-del-sustituto/]» (sondeo_test.go:1282, el directorio que el sustituto deja en su TMPDIR, sustitutos_test.go:434), la anotación tmpdir (esperado <temporal>/tmp, real el TMPDIR del test) y el listado del temporal sin tmp/ (sondeo_test.go:1394). Con el guion corregido, TestGuionDelSondeo, TestSondear y TestPrepararElArbolDelSondeo en verde (make ci del clon). TestSondeo pasa a sondear os.Environ() (job_test.go:226), así que el go install (sondeo.go:694, sobreLaBase) y os.MkdirTemp(\"\") de PrepararSesion (preparar.go:148, 182, 340, 347) usan el TMPDIR que el guion pone en <temporal>/tmp; go vet -tags evals ./internal/evals/ sin salida. Ningún test se desactiva ni se salta en la corrección (diff de 05a01e7: comentarios, el sustituto de go y las exigencias nuevas)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "La corrección no toca ningún import: sondeo.go solo cambia un comentario (líneas 475-478). Sigue sin net/http, database/sql, SQLite, os.Exit, fmt.Print*, os.Stdout ni os.Stderr nuevos en internal/evals (grep sobre el paquete); la salida del sondeo la imprime scripts/evals-sondeo.sh:48 desde salida.txt. depguard/forbidigo en verde («0 issues», clon y ci.log). R1-R6 de plan.md:91-100: internal/core, httpx, cache, store, graph y render sin cambios (git diff --stat main...HEAD)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Sin cambio desde la ronda 1: el diff no toca cmd/ ni internal/ fuera de internal/evals; schemas/ solo gana «anuncio» en schemas/expresiones-prohibidas.yaml.json, que no sale de --describe; TestEsquemasPublicados y schema-check en verde (ci.log y clon). La corrección no toca ningún esquema ni salida."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambio en los códigos del binario. El guion corregido conserva sus códigos: uso y 1 sin cinco argumentos (línea 18-21, antes de crear el temporal), 1 si go test no sale con 0 con el registro por la salida de error (43-46), 0 con salida.txt (48); `mkdir \"$temporal/tmp\"` y el prefijo TMPDIR van bajo set -euo pipefail y no añaden ninguna rama. TestGuionDelSondeo fija los cuatro casos (go-test-sale-con-0, -1, -2, sin-cinco-argumentos). El job sigue saliendo en rojo por veredicto fallo (job_test.go:162; evals.sh:163)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "La corrección alinea todo lo que afirmaba lo que el producto no sostenía: scripts/evals-sondeo.sh:23-28 (el tmp/ como TMPDIR de go test; fuera quedan las cachés de Go), el comentario de SondeoAEjecutar.Temporal (sondeo.go:475-478), los de TestSondear (sondeo_test.go:853-862) y TestGuionDelSondeo (1237-1250), contracts/sondeo.md §2 (líneas 28-35) y §7 (filas de TestSondear y TestGuionDelSondeo, 129-130), la fila FR-064/SC-009 de plan.md:251 y el supuesto [comportamiento] corrector_revision de gates/supuestos.md:30. Búsqueda de «fuera del temporal», «nada se escribe», «no escribe nada» y «no deja nada» en CHANGELOG.md, CONTRIBUTING.md, Makefile, scripts/, internal/evals y specs/013: ninguna afirmación queda desalineada; CHANGELOG.md:232-248 dice «borra su directorio temporal al terminar, con el código que sea», que es cierto; CONTRIBUTING.md no documenta el sondeo (research D20); quickstart.md:8-11 dice que el §6 escribe en temporales que borra su guion. Sin ADR nuevo (FR-080) y docs/SOURCES.md intacto: sin fuente ni grabación."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambio: ninguna petición HTTP nueva; cada sesión con HTTP(S)_PROXY=http://127.0.0.1:9 y NO_PROXY=api.anthropic.com (sesiones.go:484-497); el sondeo pasa a sus sesiones solo PATH, LANG, LC_*, TERM, USER, LOGNAME, SHELL, TZ y CLAUDE_CODE_OAUTH_TOKEN (sondeo.go:53-55, 747-765), nunca ANTHROPIC_API_KEY ni ANTHROPIC_AUTH_TOKEN (TestSondear). El TMPDIR de go test que añade la corrección no llega a las sesiones: entornoDelSondeo no lo copia y entornoDeLaSesion pone el suyo (sesiones.go:495-496). Ningún dato externo, ningún NIF, gitleaks sin fugas (ci.log:78 y clon)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep de nolint, t.Skip, TODO, FIXME, «_ =» y panic( en el diff de código: ninguna línea añadida, tampoco en la corrección. Ningún fixture ni golden cambia (git diff --name-status main...HEAD -- testdata '*/testdata/*' vacío); specs/012 intacto. El sustituto de go escribe un directorio de verdad en su TMPDIR y el test exige que desaparezca: el control no se ajusta al guion, el guion se ajusta al control (el mutante lo prueba)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La corrección toca exactamente lo que pedía el motivo del juez A y nada más: scripts/evals-sondeo.sh (+6 −3), sondeo.go (comentario), sondeo_test.go y sustitutos_test.go (las exigencias y el sustituto), contracts/sondeo.md, plan.md (la fila) y gates/. internal/evals/preparar.go no cambia, como dice el supuesto. El diff entero sigue dentro de plan.md «Source Code» más CHANGELOG, CONTRIBUTING y doc.go; ni cmd/, ni data/, ni web/, ni docs/. Los 31 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec; el nuevo (línea 30) implementa FR-064 sin añadir comportamiento."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Sin cambio: nada de lo entregado depende de lo acumulado en el grafo (cada sesión parte de una caché y un grafo preparados, sesiones.go:391-398; la respuesta de la skill pide una graph check por norma citada, acotada a la pregunta). umbrales ≤ 3 elementos de ≈ 250-350 B por informe; sesiones sin medir, reintentos y duración crecen con el plan (≤ 94), no con el uso, y se miden de nuevo en cada job; la salida del sondeo son 2 líneas fijas, una por serie pedida, el recuento y a lo sumo una por sesión (sondeo.go:377-448), sin fichero ni veredicto, y ahora todo lo que escribe el sondeo —también la preparación de cada sesión y el trabajo de go— vive y muere en <temporal> (evals-sondeo.sh:29-41). Invocaciones por pregunta de la skill: sin cambio."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "La corrección añade lo mínimo que cumple FR-064: un `mkdir \"$temporal/tmp\"` y un prefijo `TMPDIR=` en la única orden del guion (evals-sondeo.sh:32, 39), sin variable, opción ni rama nuevas; en los tests, un `mkdir` y una anotación en el sustituto de go (sustitutos_test.go:433-434) y dos exigencias más en exigirLaOrdenDeGo (sondeo_test.go:1387-1391). Rechazó con razón tocar preparar.go o TestSondear (que mira la base que recibe sondear, no el TMPDIR del proceso). El resto de mecanismos ya se trazaron uno a uno en la ronda 1 (plan.md:294-322): Umbral y umbralesDelInforme (FR-002 a FR-006, FR-051), ClasificarElLimite (FR-040), el repartidor con canal-semáforo (FR-030, FR-044), el tope en Go con grupo de procesos (FR-031, FR-062), leerDefinicionDelJob (FR-034, FR-035, FR-060), el juicio del sondeo sin juez propio (FR-061), los sustitutos como constantes de test (D18). Ninguno existe para un estado sin vía real."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las diez filas de plan.md:241-252 siguen con su control en rojo al pasar la medida (mutantes de la ronda 1: 0.06 en umbralDeExpresionesProhibidas, Decide: false en la duración, semáforo de 64 huecos, sin trasElLimite, sin dejarSinMedir, SKILL.md de main, timeout-minutes 100…); evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5 y duracion_de_las_sesiones con decide: true, motivo y veredicto fallo (umbrales.go:88-106, informe.go:872-881), job en rojo por job_test.go:162. La fila FR-064/SC-009, la única que la ronda 1 dejó con un control que no veía la medida, tiene ahora el control en el sitio: TestGuionDelSondeo exige que go test corra con TMPDIR en <temporal>/tmp y que lo que el sustituto deja allí sin borrar no quede al terminar (sondeo_test.go:1280-1282, 1387-1391); con el guion anterior sale en rojo (mutante, criterio b). La regla por serie del ADR 0016 sigue intacta y no sustituye al agregado (UMBRAL_DE_EVALS 2, REPETICIONES 3; informe.go aplica los dos por separado)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El comentario de scripts/evals-sondeo.sh:27 («Fuera quedan solo las cachés de Go») y contracts/sondeo.md §2 no nombran la telemetría del go command, que go test y go install escriben en el HOME de quien lanza el sondeo (contracts §7 y supuesto T011 la asimilan a las cachés). Es la misma excepción con otra palabra; no llega a motivo.",
+    "En macOS, Claude Code guarda credenciales en el llavero de la cuenta bajo un servicio ligado a CLAUDE_CONFIG_DIR (research V5). Con CLAUDE_CODE_OAUTH_TOKEN en el entorno no tiene por qué escribir en él, pero no se puede comprobar sin abrir una sesión, y ningún test lo mira: si escribiera, quedaría una entrada en el llavero fuera del temporal. No la introduce la corrección.",
+    "Con SIGKILL al guion del sondeo, o SIGHUP con go test en marcha, el trap EXIT no corre y <temporal> se queda; desde la corrección todo lo del sondeo está dentro de ese único directorio kitlegal-sondeo.*, que la persona puede borrar de una vez. El spec no pide más.",
+    "El sondeo no lista en su salida una sesión que LeerSesion no puede leer (supuesto T010): cuenta como no pasada en su serie y, como el guion borra el temporal, la persona ve «2 de 3» sin saber por qué. Queda dentro de «solo lo agregado» de FR-065.",
+    "juzgarSesionDelSondeo (sondeo.go:265-320) repite unas 45 líneas de juzgarSesion (informe.go): leer eval.txt, modelo.txt, pregunta.txt, la sesión y montar la ilegible. Duplicación, no mecanismo; no cambia el resultado.",
+    "El paso «Retirar Python del runner» de .github/workflows/evals.yml:191 sigue exigiendo que exista timeout entre las órdenes que el job usa, aunque scripts/evals.sh ya no lo necesita. En ubuntu-24.04 existe y no cambia nada.",
+    "Con cancel-in-progress: false, un tercer disparo del flujo sobre el mismo commit cancelaría al segundo mientras espera (research V6). En el run solo hay dos (apertura y etiqueta), como argumenta D11.",
+    "En ocuparUnHueco (sesiones.go:262-277) hay una ventana entre detenido() y abiertas.Go en la que una sesión podría abrirse justo después de que la del mensaje del límite haya anotado trasElLimite; el efecto es una sesión más de la cuenta, no una tanda (el test admite abiertas ≤ k + Concurrencia).",
+    "prepararElArbol (sondeo.go:717-722) construye el binario con go install -trimpath sin los -ldflags de make install: el kitlegal del sondeo no lleva versión, commit ni fecha. No afecta a las skills ni al manifiesto.",
+    "La estimación local de cobertura del diff da 93,98 % frente a 97,5 % de la base (cierre.md §2; supuesto T015): es probable que codecov/patch salga por debajo de su objetivo. Los umbrales de la Definition of Done (≥ 70 % global, ≥ 85 % core) se cumplen (97,4 % y 98,6 %).",
+    "FR-061 sigue diciendo «MUST prepararse con TestPrepararSesion», entrada que el hito retira (research D19; supuesto «barrido»): la preparación es la misma (PrepararSesion en proceso, sesiones.go:391-398), pero el spec conserva un nombre que ya no existe."
+  ]
+}

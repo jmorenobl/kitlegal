@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Ejecuta las evals de una skill con Claude Code y escribe su informe (FR-070, FR-071; contracts/job-de-evals.md §3 de
-# H5). Antes de la primera sesión comprueba todo lo que la evaluación necesita: Linux con strace, claude y timeout; que
-# no hay Python accesible; que el proxy de las sesiones rechaza; que los ficheros de eval están bien formados y que lo
-# grabado sirve sin red cada consulta que necesitan; y que la skill está instalada y kitlegal en el PATH. Después abre
-# las sesiones que pide el plan —cada eval con el modelo que decide y con cada modelo informativo, repetida
-# REPETICIONES_DE_EVALS veces—, con la skill tal como la deja make install, sin red de ninguna fuente y bajo strace, y
-# las juzga todas en el informe.
+# H5; contracts/ejecucion-del-job.md §1 de H7.3). Antes de la primera sesión comprueba todo lo que la evaluación
+# necesita: Linux con strace y claude; que no hay Python accesible; que el proxy de las sesiones rechaza; que los
+# ficheros de eval están bien formados y que lo grabado sirve sin red cada consulta que necesitan; y que la skill está
+# instalada y kitlegal en el PATH. Después, una sola orden de Go, TestEjecucionDelJob, abre las sesiones que pide el
+# plan —cada eval con el modelo que decide y con cada modelo informativo, repetida REPETICIONES_DE_EVALS veces—, como
+# mucho CONCURRENCIA_DE_EVALS a la vez, cada una con scripts/evals-sesion.sh, preparada justo antes, en su propio
+# directorio y con su tope de 240 s, con la skill tal como la deja make install, sin red de ninguna fuente y bajo
+# strace; no abre ninguna más tras el mensaje del límite de uso de la cuenta; mide su duración; y las juzga todas en el
+# informe, con los umbrales que deciden (FR-030, FR-031, FR-044, FR-050 y FR-051 de H7.3).
 #
 #   make evals SKILL=<skill>
 #
@@ -16,9 +19,11 @@
 # Variables obligatorias, todas fijadas en la definición del job: MODELO_DE_EVALS, el modelo que decide el veredicto;
 # MODELOS_INFORMATIVOS_DE_EVALS, separados por comas, que se ejecutan y se publican como límite inferior sin decidir;
 # REPETICIONES_DE_EVALS y UMBRAL_DE_EVALS, las sesiones que se abren de cada eval con cada modelo y cuántas tienen que
-# pasar (ADR 0016); y COMMIT_EVALUADO. Opcionales: PRUEBA_DE_RED, que con el valor true añade la sesión de prueba de red
-# de la primera eval (§6); CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde vive la carpeta
-# de salida kitlegal-evals-<skill>.
+# pasar (ADR 0016); CONCURRENCIA_DE_EVALS, cuántas sesiones se abren a la vez como mucho; y COMMIT_EVALUADO.
+# Opcionales: OBJETIVO_DE_DURACION_DE_EVALS, los segundos que el job admite para sus sesiones, 0 si no está, que es no
+# tener objetivo; PRUEBA_DE_RED, que con el valor true añade la sesión de prueba de red de la primera eval (§6);
+# CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde vive la carpeta de salida
+# kitlegal-evals-<skill>.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -50,19 +55,26 @@ if [[ ! "$REPETICIONES_DE_EVALS" =~ $forma_de_entero ]] || [[ ! "$UMBRAL_DE_EVAL
 	exit 1
 fi
 
+# La concurrencia, también obligatoria, es un entero con al menos una sesión a la vez (FR-030 de H7.3): sin ella, o con
+# un valor que no lo es, el repartidor no abriría ninguna.
+if [[ ! "${CONCURRENCIA_DE_EVALS:-}" =~ $forma_de_entero ]]; then
+	echo "evals: la concurrencia ${CONCURRENCIA_DE_EVALS:-} tiene que ser un entero mayor o igual que 1" >&2
+	exit 1
+fi
+
 # La carpeta de salida se vacía al empezar, de modo que ningún fichero de una ejecución anterior —un sin-python.txt, un
-# informe— pase por uno de esta. Su ruta es absoluta: los tests la reciben por bandera y go test los ejecuta en el
-# directorio de su paquete, y cada sesión cambia al suyo. Sin RUNNER_TEMP ni TMPDIR, /tmp, el directorio temporal por
-# defecto de POSIX.
+# informe— pase por uno de esta. Su ruta es absoluta: TestEjecucionDelJob la recibe por bandera y go test lo ejecuta en
+# el directorio de su paquete, y cada sesión cambia al suyo. Sin RUNNER_TEMP ni TMPDIR, /tmp, el directorio temporal
+# por defecto de POSIX.
 temporal="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 rm -rf -- "$temporal/kitlegal-evals-$skill"
 mkdir -p "$temporal/kitlegal-evals-$skill/sesiones"
 salida="$(cd "$temporal/kitlegal-evals-$skill" && pwd -P)"
 
-# 2. Linux, que es donde hay strace, y las tres órdenes de la sesión.
-if [[ "$(uname -s)" != Linux ]] || ! command -v strace >/dev/null || ! command -v claude >/dev/null ||
-	! command -v timeout >/dev/null; then
-	echo "evals: necesita Linux con strace, claude y timeout" >&2
+# 2. Linux, que es donde hay strace, y las dos órdenes de la sesión. El tope de cada sesión lo pone el repartidor, en
+# Go, sin timeout (research.md D9 de H7.3).
+if [[ "$(uname -s)" != Linux ]] || ! command -v strace >/dev/null || ! command -v claude >/dev/null; then
+	echo "evals: necesita Linux con strace y claude" >&2
 	exit 1
 fi
 
@@ -111,86 +123,20 @@ if ! command -v kitlegal >/dev/null; then
 	exit 1
 fi
 
-# Sesiones (§3.2). sesion <nombre> <fichero de eval> <modelo> [-prueba-de-red] prepara el directorio de la sesión y la
-# ejecuta.
-# La preparación y la sesión no se reintentan. Una falta en la preparación termina el guion con código 1; un código de la
-# sesión distinto de 0 no lo detiene, pero se escribe siempre, también 0, y el informe no deja pasar la sesión que no
-# terminó (§4).
-sesion() {
-	local nombre="$1" fichero="$2" modelo="$3"
-	shift 3
-
-	local d="$salida/sesiones/$nombre"
-	mkdir -p "$d/trabajo" "$d/cache" "$d/traza"
-
-	# Preparación (research.md D14): llena cache/ con las consultas necesarias de todas las evals de la skill, justo
-	# antes de la sesión porque buscar y metadatos caducan a los 300 s, y escribe pregunta.txt, eval.txt y modelo.txt.
-	if ! go test -tags evals -count=1 -run '^TestPrepararSesion$' ./internal/evals/ -args -skill "$skill" -eval "$fichero" -modelo "$modelo" -sesion "$d" "$@"; then
-		echo "evals: no se pudo preparar la sesión $nombre" >&2
-		exit 1
-	fi
-
-	# Sesión: la caché preparada, un proxy que rechaza toda petición salvo la del modelo, sin tráfico no esencial, con el
-	# tope de 240 s y bajo strace, en un directorio de trabajo vacío fuera del repositorio y solo con la configuración y
-	# las skills de la cuenta (tabla del §3.2; research.md D12, D13 y D16). La traza lleva entera cada cadena de un execve:
-	# -s 131072 es el tamaño máximo de un argumento en Linux, y con -s 4096 la instantánea de shell que Claude Code crea
-	# antes de la primera orden de Bash sale cortada y deja ilegible la traza (research.md V61 y V62). Sin el aislamiento
-	# de subprocesos de Claude Code, que en Linux ejecuta cada orden dentro de bwrap, con un espacio de nombres de PID que
-	# deja la traza sin atribuir y el disco de solo lectura; Claude Code sigue sin pasar la credencial del modelo al entorno
-	# de las órdenes (research.md V12, V61 y D13).
-	local codigo=0
-	(
-		cd "$d/trabajo"
-		env \
-			KITLEGAL_CACHE_DIR="$d/cache" \
-			HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
-			http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 \
-			NO_PROXY=api.anthropic.com no_proxy=api.anthropic.com \
-			CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
-			CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 \
-			timeout --kill-after=10s 240s \
-			strace -ff -e trace=execve,connect,clone,clone3,fork,vfork -s 131072 -o "$d/traza/t" -- \
-			claude -p "$(cat "$d/pregunta.txt")" \
-			--model "$modelo" \
-			--output-format stream-json --verbose \
-			--max-turns 30 \
-			--no-session-persistence \
-			--setting-sources user \
-			--settings '{"sandbox":{"enabled":false}}' \
-			--permission-mode bypassPermissions \
-			--disallowedTools WebFetch WebSearch \
-			> "$d/sesion.jsonl" 2> "$d/sesion.err"
-	) || codigo=$?
-	printf '%s\n' "$codigo" > "$d/codigo-de-la-sesion"
-}
-
-# El plan de sesiones lo calcula Go y lo escribe en plan.tsv: una línea por sesión con su nombre, su fichero de eval, su
-# modelo y si lleva el texto de la prueba de red, separados por tabuladores (§3.2). El guion solo lo ejecuta; el informe
-# vuelve a calcular las mismas series y exige que estén todas, así que el plan no se escribe dos veces (ADR 0016).
-if ! go test -tags evals -count=1 -run '^TestPlanDeSesiones$' ./internal/evals/ -args \
-	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
-	-repeticiones "$REPETICIONES_DE_EVALS" -prueba-de-red="${PRUEBA_DE_RED:-false}" -plan "$salida/plan.tsv"; then
-	echo "evals: no se pudo planificar las sesiones" >&2
-	exit 1
-fi
-
-# Una sesión por línea del plan, en su orden. La lectura va por un descriptor propio: la sesión lee su pregunta de un
-# fichero, pero claude hereda la entrada estándar y se comería el resto del plan.
-while IFS=$'\t' read -r nombre fichero modelo prueba_de_red <&3; do
-	if [[ "$prueba_de_red" == sí ]]; then
-		sesion "$nombre" "$fichero" "$modelo" -prueba-de-red
-	else
-		sesion "$nombre" "$fichero" "$modelo"
-	fi
-done 3< "$salida/plan.tsv"
-
-# Informe (§3.3): TestInformeDelJob juzga cada sesión y escribe informe.md e informe.json; falla con el veredicto fallo.
+# Sesiones e informe (contracts/ejecucion-del-job.md §1, §3 y §5 de H7.3): TestEjecucionDelJob compone el plan, reparte
+# sus sesiones y escribe informe.md e informe.json con la duración de las sesiones. Cada sesión se prepara justo antes
+# de abrirla, porque buscar y metadatos caducan a los 300 s, y ninguna se reintenta; el informe no deja pasar la que no
+# terminó. La orden falla con un error —una falta en la preparación, una interrupción con SIGINT o SIGTERM—, sin
+# escribir el informe, o con el veredicto fallo: por una serie que no pasa, por un umbral que decide y no se cumple, por
+# la duración o por sesiones sin medir (FR-037 y FR-043 de H7.3). Sin límite de tiempo de go test: el de la ejecución
+# es el tope de la definición del job.
 codigo_del_informe=0
-go test -tags evals -count=1 -run '^TestInformeDelJob$' ./internal/evals/ -args \
-	-skill "$skill" -sesiones "$salida/sesiones" -informe "$salida" \
-	-modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
-	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" \
-	-commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt" ||
+go test -tags evals -count=1 -timeout 0 -run '^TestEjecucionDelJob$' ./internal/evals/ -args \
+	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
+	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" -concurrencia "$CONCURRENCIA_DE_EVALS" \
+	-prueba-de-red="${PRUEBA_DE_RED:-false}" -objetivo-de-duracion "${OBJETIVO_DE_DURACION_DE_EVALS:-0}" \
+	-skills "$HOME/.claude/skills" -commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt" \
+	-sesiones "$salida/sesiones" -informe "$salida" ||
 	codigo_del_informe=$?
 
 # La carpeta se vació al empezar: un informe que falta es que el test no lo escribió en esta ejecución.

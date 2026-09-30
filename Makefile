@@ -56,7 +56,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals skills-sync secrets mod-verify mod-tidy-check \
+	vuln schema-check skills-check verify-sources evals evals-sondeo skills-sync secrets mod-verify mod-tidy-check \
 	goreleaser-check release snapshot-check web web-dev web-citas check-web-tools check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
@@ -132,6 +132,14 @@ verify-sources: check-tools
 ## evals: ejecuta las evals de una skill con Claude Code (Linux con strace, como root o con sudo; red solo del modelo; fuera de ci)
 evals: check-tools
 	scripts/evals.sh "$(SKILL)"
+
+# El sondeo no es un veredicto: el de una skill lo da el job de evals. SKILL,
+# EVALS, MODELO y REPETICIONES no tienen valor por defecto, porque cada uno
+# cambia lo que se mide; CONCURRENCIA vacía es la del job para la skill, que el
+# sondeo lee de .github/workflows/evals.yml (specs/013-h7-3-el-umbral-de/research.md D16).
+## evals-sondeo: sondeo local de unas evals de una skill con Claude Code, sin strace ni veredicto (macOS o Linux; consume la suscripción; CLAUDE_CODE_OAUTH_TOKEN)
+evals-sondeo: check-tools
+	@scripts/evals-sondeo.sh "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
 
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools

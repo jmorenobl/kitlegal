@@ -113,16 +113,22 @@ const (
 )
 
 // Lo que juzga TestJuzgarLasExpresionesProhibidas con la lista de
-// boe-legislacion (contrato lista-y-juicio §3 y §4 de H7.2).
+// boe-legislacion (contrato lista-y-juicio §3 y §4 de H7.2;
+// contracts/lista-de-expresiones.md §6 de H7.3).
 const (
 	// transicionDeLaMemoria es la frase de transición de las respuestas de H7.1
 	// que cuentan la comprobación (research, «Causa de raíz del ruido»): lleva
-	// memoria de consultas y hallazgos.
+	// memoria de consultas y hallazgos, de la maquinaria, y tengo todo lo
+	// necesario, del anuncio.
 	transicionDeLaMemoria = "Sin hallazgos en la memoria de consultas. Ya tengo todo lo necesario para responder."
 
 	// loDichoEnOtraConversacion atribuye a la skill algo dicho en otra
 	// conversación: lleva te confirmé.
 	loDichoEnOtraConversacion = "Como te confirmé, el plazo máximo para resolver es de tres meses."
+
+	// elAnuncioDeLaRespuesta anuncia la respuesta que viene: lleva ya puedo
+	// responder, del anuncio, y ninguna otra expresión de la lista.
+	elAnuncioDeLaRespuesta = "Ya puedo responder."
 
 	// redaccionModificadaDeLaLCSP es la línea con la que la skill traslada
 	// version-obsoleta, con sus dos fechas: la del ejemplo del contrato
@@ -199,6 +205,9 @@ type juicio struct {
 // H7; una eval sin hallazgos se juzga como antes aunque la respuesta lleve la
 // forma (contrato evals-y-skill §2 de H7.1; FR-050, FR-051, FR-052, FR-094;
 // SC-008).
+//
+// Desde H7.3, el resultado lleva los reintentos por rate_limit de la sesión, que
+// no cambian su juicio (data-model §4 de H7.3; FR-033, FR-041).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -641,6 +650,23 @@ func TestJuzgar(t *testing.T) {
 			juicios: comprobacionConOtraNorma(t),
 		},
 		{
+			// Una sesión que se recupera de sus reintentos se juzga como cualquier
+			// otra y publica los de rate_limit, no los de sobrecarga (FR-033 y
+			// FR-041 de H7.3). Juzgar no la clasifica: eso lo hace EscribirInforme.
+			nombre: "con-reintentos-por-limite-de-ritmo",
+			juicios: []juicio{{
+				eval: evalDelArticulo21(),
+				sesion: cambiada(sesionQuePasa(t), func(s *Sesion) {
+					s.Reintentos = []ReintentoDeLaAPI{
+						{Intento: 1, Maximo: 10, Error: "rate_limit"},
+						{Intento: 2, Maximo: 10, Error: "overloaded"},
+						{Intento: 3, Maximo: 10, Error: "rate_limit"},
+					}
+				}),
+				esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) { r.ReintentosPorLimiteDeRitmo = 2 }),
+			}},
+		},
+		{
 			// La eval 01 no espera hallazgos: la forma en la respuesta no cambia su
 			// juicio.
 			nombre: "sin-hallazgos-el-juicio-de-antes",
@@ -763,10 +789,12 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 // TestJuzgarLasExpresionesProhibidas fija el juicio con la lista de expresiones
 // prohibidas de boe-legislacion, la del repositorio leída con LeerConjunto
 // (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052, FR-054, FR-083; SC-006;
-// US3.1 a US3.6): con la eval 01 del repositorio y una sesión que cumple todo lo
-// demás, cada expresión que lleva la respuesta, en el orden de la lista y con
-// las tolerancias de la forma fija de los avisos, va a las expresiones
-// prohibidas con su motivo y la eval no pasa; sin ninguna, o con la línea
+// US3.1 a US3.6; y contracts/lista-de-expresiones.md §6 de H7.3, FR-024 y
+// US1-3): con la eval 01 del repositorio y una sesión que cumple todo lo demás,
+// cada expresión que lleva la respuesta, de cualquiera de las tres familias, en
+// el orden de la lista y con las tolerancias de la forma fija de los avisos, va
+// a las expresiones prohibidas con su motivo y la eval no pasa; sin ninguna, o
+// con la línea
 // ⚠ REDACCIÓN MODIFICADA: con sus dos fechas, pasa y la lista queda vacía. Los
 // motivos van detrás de los de Juzgar y delante del del modelo; una eval de no
 // activación y una de una skill sin lista se juzgan como antes del hito aunque
@@ -777,8 +805,8 @@ func TestJuzgarLasExpresionesProhibidas(t *testing.T) {
 
 	conjunto, err := LeerConjunto(evalsDelRepositorio)
 	require.NoError(t, err)
-	require.NotEmpty(t, slices.Concat(conjunto.Prohibidas.Maquinaria, conjunto.Prohibidas.OtraConversacion),
-		"%s tiene su lista de expresiones prohibidas", evalsDelRepositorio)
+	require.NotEmpty(t, slices.Concat(conjunto.Prohibidas.Maquinaria, conjunto.Prohibidas.OtraConversacion,
+		conjunto.Prohibidas.Anuncio), "%s tiene su lista de expresiones prohibidas", evalsDelRepositorio)
 
 	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
 	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
@@ -812,8 +840,12 @@ func TestJuzgarLasExpresionesProhibidas(t *testing.T) {
 func juzgarLaPositivaConLaLista(t *testing.T, positiva Eval) {
 	t.Helper()
 
-	encontradasEnLaTransicion := []string{"memoria de consultas", "hallazgos"}
-	motivosDeLaTransicion := []string{"expresión prohibida: memoria de consultas", "expresión prohibida: hallazgos"}
+	encontradasEnLaTransicion := []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"}
+	motivosDeLaTransicion := []string{
+		"expresión prohibida: memoria de consultas",
+		"expresión prohibida: hallazgos",
+		"expresión prohibida: tengo todo lo necesario",
+	}
 
 	casos := []struct {
 		nombre      string
@@ -833,6 +865,12 @@ func juzgarLaPositivaConLaLista(t *testing.T, positiva Eval) {
 			antes:       loDichoEnOtraConversacion,
 			encontradas: []string{"te confirmé"},
 			motivos:     []string{"expresión prohibida: te confirmé"},
+		},
+		{
+			nombre:      "anuncio",
+			antes:       elAnuncioDeLaRespuesta,
+			encontradas: []string{"ya puedo responder"},
+			motivos:     []string{"expresión prohibida: ya puedo responder"},
 		},
 		{
 			nombre:      "otras-mayusculas",
@@ -906,10 +944,12 @@ func juzgarLosMotivosEnSuOrden(t *testing.T, lista ExpresionesProhibidas) {
 	resultado.Modelo, resultado.ModeloDeLaSesion = modeloInformativoDelCaso, modeloDeLasSesiones
 	resultado.exigirElModeloPedido()
 
-	assert.Equal(t, []string{"memoria de consultas", "hallazgos"}, resultado.ExpresionesProhibidas)
+	assert.Equal(t, []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"},
+		resultado.ExpresionesProhibidas)
 	assert.Equal(t, slices.Concat(antes.Motivos, []string{
 		"expresión prohibida: memoria de consultas",
 		"expresión prohibida: hallazgos",
+		"expresión prohibida: tengo todo lo necesario",
 		motivoDeOtroModelo + modeloDeLasSesiones + ", y se pidió " + modeloInformativoDelCaso,
 	}), resultado.Motivos)
 	assert.False(t, resultado.Pasa)
@@ -918,7 +958,7 @@ func juzgarLosMotivosEnSuOrden(t *testing.T, lista ExpresionesProhibidas) {
 // juzgarComoAntesDelHito juzga la eval de no activación del conjunto, que lleva
 // la lista de su carpeta, y la del municipio cubierto de legal-core, cuya carpeta
 // no tiene lista, con una sesión que cumple lo que esperan y con la misma sesión
-// con expresiones de las dos familias detrás de la respuesta: el resultado es el
+// con expresiones de las tres familias detrás de la respuesta: el resultado es el
 // mismo salvo la respuesta, sin ninguna expresión, y pasa.
 func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 	t.Helper()
@@ -987,7 +1027,8 @@ func codificarLasExpresionesDelResultado(t *testing.T, positiva Eval) {
 		{respuesta: respuestaConCita, clave: `"territorio_ausente":[],"expresiones_prohibidas":[],`},
 		{
 			respuesta: transicionDeLaMemoria + "\n\n" + respuestaConCita,
-			clave:     `"territorio_ausente":[],"expresiones_prohibidas":["memoria de consultas","hallazgos"],`,
+			clave: `"territorio_ausente":[],` +
+				`"expresiones_prohibidas":["memoria de consultas","hallazgos","tengo todo lo necesario"],`,
 		},
 	}
 

@@ -9,6 +9,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -63,10 +64,11 @@ type malFormadoEsperado struct {
 // Desde H7.2, fija también la lista de expresiones prohibidas de la carpeta
 // (contrato lista-y-juicio §1; FR-050, FR-055): la entrada que se llama
 // exactamente expresiones-prohibidas.yaml no es un fichero de eval; bien
-// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval; si no es un
-// fichero regular o no valida, es un fichero mal formado que la nombra y las
-// evals se leen sin lista; y una carpeta sin ella se lee como antes del hito,
-// sin lista en el conjunto ni en ninguna eval.
+// formada, queda en Conjunto.Prohibidas y en Prohibidas de cada eval, con sus
+// tres familias desde H7.3 (FR-023, FR-024); si no es un fichero regular o no
+// valida —también la de dos familias de H7.2, sin anuncio—, es un fichero mal
+// formado que la nombra y las evals se leen sin lista; y una carpeta sin ella se
+// lee como antes del hito, sin lista en el conjunto ni en ninguna eval.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -83,10 +85,13 @@ func TestLeerConjunto(t *testing.T) {
 	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
 
-	// La lista bien formada, la del test del esquema, y lo que se lee de ella.
+	// La lista bien formada, la del test del esquema con sus tres familias, y lo
+	// que se lee de ella.
+	listaBienFormada := maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado
 	lista := ExpresionesProhibidas{
 		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
 		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
+		Anuncio:          []string{"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
 	}
 	conLista := func(eval Eval) Eval {
 		eval.Prohibidas = lista
@@ -168,7 +173,7 @@ func TestLeerConjunto(t *testing.T) {
 			nombre: "con-lista",
 			entradas: []entradaDeConjunto{
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: listaBienFormada},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals:      []Eval{conLista(leidaDelArticulo21), conLista(leidaDeProgramacion)},
@@ -178,7 +183,7 @@ func TestLeerConjunto(t *testing.T) {
 			nombre: "lista-sin-una-familia",
 			entradas: []entradaDeConjunto{
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
-				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada},
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + anuncioBienFormado},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21, leidaDeProgramacion},
@@ -187,17 +192,30 @@ func TestLeerConjunto(t *testing.T) {
 			},
 		},
 		{
+			// La lista de dos familias de H7.2, sin la de anuncio, está mal
+			// formada: las evals se leen sin lista (FR-023).
+			nombre: "lista-sin-anuncio",
+			entradas: []entradaDeConjunto{
+				{nombre: ficheroDeExpresionesProhibidas, contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "missing property 'anuncio'"},
+			},
+		},
+		{
 			nombre: "lista-con-una-familia-repetida",
 			entradas: []entradaDeConjunto{
 				{
 					nombre:    ficheroDeExpresionesProhibidas,
-					contenido: maquinariaBienFormada + otraConversacionBienFormada + "maquinaria:\n  - json\n",
+					contenido: listaBienFormada + "maquinaria:\n  - json\n",
 				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals: []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{
-				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 8"},
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 12"},
 			},
 		},
 		{
@@ -220,7 +238,7 @@ func TestLeerConjunto(t *testing.T) {
 			// fichero de eval sin la forma de nombre.
 			nombre: "lista-con-otro-nombre",
 			entradas: []entradaDeConjunto{
-				{nombre: "expresiones-prohibidas.yml", contenido: maquinariaBienFormada + otraConversacionBienFormada},
+				{nombre: "expresiones-prohibidas.yml", contenido: listaBienFormada},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
 			evals:       []Eval{leidaDelArticulo21},
@@ -965,8 +983,11 @@ const (
 // escribir (contrato lista-y-juicio §6; FR-043, FR-084, FR-085 de H7.2); y, sobre
 // cada grafo previo, la lectura de los bloques de la eval y graph check dan los
 // hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
-// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Lee las carpetas enteras,
-// así que ningún fichero de eval se nombra aquí.
+// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Desde H7.3, ninguna
+// expresión de esa lista va en la prosa del SKILL.md de boe-legislacion —fuera
+// del código y de la región generada— ni el fichero lleva ninguna fecha AAAAMMDD
+// escrita con cifras (contracts/skill-boe-legislacion.md §5; FR-091, SC-005). Lee
+// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1122,20 +1143,31 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		probarExpresionesDeLaSkill(t, listaDelRepositorio(t, conjunto))
 	})
+
+	t.Run("prosa-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		probarProsaDeLaSkill(t, listaDelRepositorio(t, conjunto))
+	})
 }
 
-// informeDeH71 es el informe del job de evals de boe-legislacion en H7.1,
-// relativo al directorio de este paquete: sus respuestas son con las que se
-// calibra la lista de expresiones prohibidas (FR-084; research D9). Está
-// versionado y no se edita (FR-070).
-const informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
+// Los informes del job de evals de boe-legislacion en el cierre de H7.1 y de
+// H7.2, relativos al directorio de este paquete: sus respuestas son con las que
+// se calibra la lista de expresiones prohibidas (FR-021 de H7.3;
+// contracts/lista-de-expresiones.md §4). Están versionados y no se editan
+// (FR-080).
+const (
+	informeDeH71 = "../../specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json"
+	informeDeH72 = "../../specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json"
+)
 
-// respuestasDeH71 son las sesiones de ese informe, una respuesta cada una.
-const respuestasDeH71 = 93
+// respuestasDeCadaInforme son las sesiones de cada uno de esos informes, una
+// respuesta cada una.
+const respuestasDeCadaInforme = 93
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
 // evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
-// TestEvalsDelRepositorio. Tiene expresiones en sus dos familias: sin ellas, las
+// TestEvalsDelRepositorio. Tiene expresiones en sus tres familias: sin ellas, las
 // subpruebas que la aplican pasarían en vacío.
 func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
 	t.Helper()
@@ -1145,44 +1177,105 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 		evalsDelRepositorio)
 	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
 		evalsDelRepositorio)
+	require.NotEmpty(t, lista.Anuncio, "%s tiene lista de expresiones prohibidas, con las del anuncio",
+		evalsDelRepositorio)
 
 	return lista
 }
 
 // marcadasPorFamilia son, de las respuestas de una eval, cuántas llevan alguna
-// expresión de cada familia de la lista.
+// expresión de cada familia de la lista y cuántas alguna de la lista entera.
 type marcadasPorFamilia struct {
 	maquinaria       int
 	otraConversacion int
+	anuncio          int
+	alguna           int
+}
+
+// columnasDelCalibrado es el nombre de cada columna de la tabla del calibrado,
+// en el orden de marcadasPorFamilia.cuentas: las tres familias, con su clave en
+// la lista, y alguna.
+var columnasDelCalibrado = []string{"maquinaria", "otra_conversacion", "anuncio", "alguna"}
+
+// cuentas son las cuentas del reparto en el orden de columnasDelCalibrado.
+func (m marcadasPorFamilia) cuentas() []int {
+	return []int{m.maquinaria, m.otraConversacion, m.anuncio, m.alguna}
+}
+
+// informeCalibrado es un informe versionado del job de evals con el reparto
+// calibrado de sus respuestas, por las dos cifras del fichero de la eval; las
+// evals que no están en él, ninguna en ninguna columna.
+type informeCalibrado struct {
+	ruta      string
+	calibrado map[string]marcadasPorFamilia
+}
+
+// informesCalibrados son los dos informes de la calibración con la tabla de
+// contracts/lista-de-expresiones.md §4: en H7.1, 35 de las 93 respuestas llevan
+// alguna, y en H7.2, 10.
+var informesCalibrados = []informeCalibrado{
+	{
+		ruta: informeDeH71,
+		calibrado: map[string]marcadasPorFamilia{
+			"02": {maquinaria: 1, alguna: 1},
+			"03": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"04": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"05": {maquinaria: 3, anuncio: 1, alguna: 3},
+			"06": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"07": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"08": {maquinaria: 2, anuncio: 1, alguna: 2},
+			"09": {maquinaria: 2, anuncio: 1, alguna: 2},
+			"13": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"14": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"16": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"17": {maquinaria: 3, anuncio: 2, alguna: 3},
+			"19": {otraConversacion: 1, alguna: 1},
+		},
+	},
+	{
+		ruta: informeDeH72,
+		calibrado: map[string]marcadasPorFamilia{
+			"03": {maquinaria: 1, anuncio: 1, alguna: 1},
+			"06": {maquinaria: 1, anuncio: 1, alguna: 1},
+			"13": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"14": {maquinaria: 2, anuncio: 2, alguna: 2},
+			"15": {maquinaria: 3, anuncio: 3, alguna: 3},
+			"19": {maquinaria: 1, alguna: 1},
+		},
+	},
 }
 
 // probarExpresionesCalibradas es la subprueba expresiones-calibradas de
-// TestEvalsDelRepositorio (contrato lista-y-juicio §6; FR-084, SC-003, US4.2):
-// aplicada con ExtraerExpresionesProhibidas, la comparación de FR-051, a las 93
-// respuestas del informe de H7.1, la lista marca, por las dos cifras del fichero
-// de la eval y por familia, exactamente las del reparto calibrado —34 por la
-// maquinaria y la de «te habría confirmado» por lo dicho en otra conversación— y
-// ninguna de las otras 58. Las evals se nombran por sus dos cifras y nunca por su
-// nombre: el de una eval retirada no se escribe en ningún test (FR-020).
+// TestEvalsDelRepositorio (contracts/lista-de-expresiones.md §4 y §6; FR-021,
+// FR-095, SC-003, US1-5): aplicada con ExtraerExpresionesProhibidas, la
+// comparación de H7.2 FR 051, a las 93 respuestas de cada informe de
+// informesCalibrados, la lista marca, por las dos cifras del fichero de la eval,
+// en cada familia y en la lista entera, exactamente las del reparto calibrado, y
+// ninguna de las demás evals. Cada diferencia nombra el informe, la eval, la
+// columna, lo contado y lo calibrado. Las evals se nombran por sus dos cifras y
+// nunca por su nombre: el de una eval retirada no se escribe en ningún test
+// (FR-020 de H7.2).
 func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 	t.Helper()
 
-	calibrado := map[string]marcadasPorFamilia{
-		"02": {maquinaria: 1},
-		"03": {maquinaria: 3},
-		"04": {maquinaria: 3},
-		"05": {maquinaria: 3},
-		"06": {maquinaria: 3},
-		"07": {maquinaria: 3},
-		"08": {maquinaria: 2},
-		"09": {maquinaria: 2},
-		"13": {maquinaria: 3},
-		"14": {maquinaria: 3},
-		"15": {maquinaria: 3},
-		"16": {maquinaria: 2},
-		"17": {maquinaria: 3},
-		"19": {otraConversacion: 1},
+	var distintas []string
+
+	for _, informe := range informesCalibrados {
+		marcadas := marcadasEnElInforme(t, informe.ruta, lista)
+		distintas = append(distintas, distintasDelCalibrado(informe, marcadas)...)
 	}
+
+	assert.Empty(t, distintas, "respuestas de los informes calibrados que la lista de %s marca con otro reparto "+
+		"que el calibrado:\n%s", evalsDelRepositorio, strings.Join(distintas, "\n"))
+}
+
+// marcadasEnElInforme es el reparto de las respuestas del informe versionado de
+// la ruta que marca la lista, por las dos cifras del fichero de la eval: por
+// cada familia, las que llevan alguna expresión suya, y las que llevan alguna de
+// la lista entera. El informe tiene sus 93 respuestas.
+func marcadasEnElInforme(t *testing.T, ruta string, lista ExpresionesProhibidas) map[string]marcadasPorFamilia {
+	t.Helper()
 
 	// De cada sesión del informe, lo que la calibración necesita.
 	var informe struct {
@@ -1191,45 +1284,60 @@ func probarExpresionesCalibradas(t *testing.T, lista ExpresionesProhibidas) {
 			Respuesta string `json:"respuesta"`
 		} `json:"evals"`
 	}
-	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, informeDeH71), &informe),
-		"%s es un informe del job de evals", informeDeH71)
-	require.Len(t, informe.Evals, respuestasDeH71, "el informe %s tiene las respuestas de H7.1", informeDeH71)
+	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, ruta), &informe), "%s es un informe del job de evals", ruta)
+	require.Len(t, informe.Evals, respuestasDeCadaInforme, "el informe %s tiene sus respuestas", ruta)
 
 	maquinaria := ExpresionesProhibidas{Maquinaria: lista.Maquinaria}
 	otraConversacion := ExpresionesProhibidas{OtraConversacion: lista.OtraConversacion}
+	anuncio := ExpresionesProhibidas{Anuncio: lista.Anuncio}
 	marcadas := map[string]marcadasPorFamilia{}
 
 	for _, sesion := range informe.Evals {
-		require.Regexp(t, `^[0-9]{2}-`, sesion.Eval, "el fichero de cada eval del informe empieza por sus dos cifras")
+		require.Regexp(t, `^[0-9]{2}-`, sesion.Eval, "el fichero de cada eval de %s empieza por sus dos cifras", ruta)
 		numero := sesion.Eval[:2]
 
 		reparto := marcadas[numero]
-		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, maquinaria)) > 0 {
-			reparto.maquinaria++
-		}
-
-		if len(ExtraerExpresionesProhibidas(sesion.Respuesta, otraConversacion)) > 0 {
-			reparto.otraConversacion++
-		}
-
+		reparto.maquinaria += marcadaPor(sesion.Respuesta, maquinaria)
+		reparto.otraConversacion += marcadaPor(sesion.Respuesta, otraConversacion)
+		reparto.anuncio += marcadaPor(sesion.Respuesta, anuncio)
+		reparto.alguna += marcadaPor(sesion.Respuesta, lista)
 		marcadas[numero] = reparto
 	}
 
-	numeros := slices.Concat(slices.Collect(maps.Keys(marcadas)), slices.Collect(maps.Keys(calibrado)))
+	return marcadas
+}
+
+// marcadaPor es 1 si la respuesta lleva alguna expresión de la lista, y 0 si no.
+func marcadaPor(respuesta string, lista ExpresionesProhibidas) int {
+	if len(ExtraerExpresionesProhibidas(respuesta, lista)) > 0 {
+		return 1
+	}
+
+	return 0
+}
+
+// distintasDelCalibrado da una línea por cada eval y columna en que el reparto
+// marcado en el informe no es el calibrado, con el informe, la eval, la columna,
+// lo contado y lo calibrado, en orden de eval y de columna; o nil si no hay
+// ninguna.
+func distintasDelCalibrado(informe informeCalibrado, marcadas map[string]marcadasPorFamilia) []string {
+	numeros := slices.Concat(slices.Collect(maps.Keys(marcadas)), slices.Collect(maps.Keys(informe.calibrado)))
 	slices.Sort(numeros)
 
 	var distintas []string
 
 	for _, numero := range slices.Compact(numeros) {
-		if marcadas[numero] != calibrado[numero] {
-			distintas = append(distintas, fmt.Sprintf("eval %s: marca %d respuestas por la maquinaria y %d por otra "+
-				"conversación, y las calibradas son %d y %d", numero, marcadas[numero].maquinaria,
-				marcadas[numero].otraConversacion, calibrado[numero].maquinaria, calibrado[numero].otraConversacion))
+		contadas, calibradas := marcadas[numero].cuentas(), informe.calibrado[numero].cuentas()
+
+		for posicion, columna := range columnasDelCalibrado {
+			if contadas[posicion] != calibradas[posicion] {
+				distintas = append(distintas, fmt.Sprintf("%s, eval %s, columna %s: marca %d respuestas, y las "+
+					"calibradas son %d", informe.ruta, numero, columna, contadas[posicion], calibradas[posicion]))
+			}
 		}
 	}
 
-	assert.Empty(t, distintas, "evals de %s cuyas respuestas marca la lista de %s con otro reparto que el calibrado:\n%s",
-		informeDeH71, evalsDelRepositorio, strings.Join(distintas, "\n"))
+	return distintas
 }
 
 // textoAMirar es un texto que no puede llevar ninguna expresión prohibida, con
@@ -1425,6 +1533,263 @@ func bloquesDeTexto(markdown string) []string {
 	}
 
 	return bloques
+}
+
+// probarProsaDeLaSkill es la subprueba prosa-de-la-skill de
+// TestEvalsDelRepositorio (contracts/skill-boe-legislacion.md §5; research D4;
+// FR-010, FR-013, FR-091, SC-005): con defectosDeLaProsa, ningún párrafo de la
+// prosa del SKILL.md de boe-legislacion, frontmatter incluido, lleva ninguna
+// expresión de la lista, y ninguna línea del fichero lleva una fecha AAAAMMDD
+// escrita con cifras. El fichero tiene prosa: sin ella, la subprueba pasaría en
+// vacío.
+func probarProsaDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	skill := string(contenidoDelFichero(t, skillDelRepositorio))
+	require.NotEmpty(t, parrafosDeLaProsa(skill), "%s tiene prosa fuera del código y de la región generada",
+		skillDelRepositorio)
+
+	defectos := defectosDeLaProsa(skill, lista)
+	assert.Empty(t, defectos, "%s enseña con su prosa expresiones que la respuesta no lleva, o escribe con cifras "+
+		"una fecha AAAAMMDD:\n%s", skillDelRepositorio, strings.Join(defectos, "\n"))
+}
+
+// Lo que la prosa de un SKILL.md no es (contracts/skill-boe-legislacion.md §5):
+// cada bloque delimitado, de la línea que empieza, tras la sangría, por su
+// delimitador a la siguiente que empieza por él, y la región generada, de la
+// línea que empieza por su marca de inicio a la que es su marca de fin. Esas
+// líneas, marcas incluidas, parten la prosa en párrafos.
+const (
+	delimitadorDeBloque      = "```"
+	inicioDeLaRegionGenerada = "<!-- inicio de la tabla de comandos"
+	finDeLaRegionGenerada    = "<!-- fin de la tabla de comandos -->"
+)
+
+var (
+	// elementoDeLista casa con la línea que abre un elemento de lista, `- `,
+	// `* ` o `<n>. ` tras la sangría: empieza otro párrafo.
+	elementoDeLista = regexp.MustCompile(`^[ \t]*(?:[-*]|[0-9]+\.) `)
+
+	// codigoEnLinea casa con un tramo de código en línea, que en la prosa se
+	// cambia por un espacio para que no junte las palabras de sus lados.
+	codigoEnLinea = regexp.MustCompile("`[^`]*`")
+
+	// fechaConCifras casa con una fecha AAAAMMDD escrita con cifras: ocho
+	// cifras, sin otra delante ni detrás, con un mes de 01 a 12 y un día de 01 a
+	// 31 (FR-013). El grupo es la fecha.
+	fechaConCifras = regexp.MustCompile(`(?:^|[^0-9])([0-9]{4}(?:0[1-9]|1[0-2])(?:0[1-9]|[12][0-9]|3[01]))(?:$|[^0-9])`)
+)
+
+// defectosDeLaProsa da una línea por cada párrafo de la prosa del Markdown
+// (parrafosDeLaProsa) que lleva alguna expresión de la lista, con el número de
+// su primera línea y las expresiones, en el orden del fichero, y detrás una por
+// cada línea del fichero entero, sin quitar nada, que lleva una fecha AAAAMMDD
+// escrita con cifras, con su número y sus fechas; o nil si no hay ninguna.
+func defectosDeLaProsa(markdown string, lista ExpresionesProhibidas) []string {
+	defectos := expresionesEn(parrafosDeLaProsa(markdown), lista)
+
+	numero := 0
+	for linea := range strings.Lines(markdown) {
+		numero++
+
+		var fechas []string
+		for _, casada := range fechaConCifras.FindAllStringSubmatch(linea, -1) {
+			fechas = append(fechas, casada[1])
+		}
+
+		if len(fechas) > 0 {
+			defectos = append(defectos, fmt.Sprintf("línea %d: fecha escrita con cifras %s", numero,
+				strings.Join(fechas, ", ")))
+		}
+	}
+
+	return defectos
+}
+
+// parrafosDeLaProsa son los párrafos de la prosa del Markdown entero,
+// frontmatter incluido, en su orden, cada uno nombrado por el número de su
+// primera línea (contracts/skill-boe-legislacion.md §5): sin los bloques
+// delimitados ni la región generada, partido en párrafos por las líneas en
+// blanco, por las de esos bloques y de esa región y por cada línea que abre un
+// elemento de lista, con las líneas de cada párrafo juntas con un espacio, sin su
+// sangría, y cada tramo de código en línea cambiado por un espacio. Como en
+// CommonMark, un bloque o una región que no se cierran llegan hasta el final.
+func parrafosDeLaProsa(markdown string) []textoAMirar {
+	var (
+		parrafos           []textoAMirar
+		lineas             []string
+		primera, numero    int
+		enBloque, enRegion bool
+	)
+
+	cerrarElParrafo := func() {
+		if len(lineas) > 0 {
+			parrafos = append(parrafos, textoAMirar{
+				nombre: fmt.Sprintf("párrafo de la línea %d", primera),
+				texto:  codigoEnLinea.ReplaceAllString(strings.Join(lineas, " "), " "),
+			})
+		}
+
+		lineas = nil
+	}
+
+	for linea := range strings.Lines(markdown) {
+		numero++
+		recortada := strings.TrimSpace(linea)
+
+		switch {
+		case enRegion:
+			enRegion = recortada != finDeLaRegionGenerada
+		case enBloque:
+			enBloque = !strings.HasPrefix(recortada, delimitadorDeBloque)
+		case strings.HasPrefix(recortada, inicioDeLaRegionGenerada):
+			cerrarElParrafo()
+			enRegion = true
+		case strings.HasPrefix(recortada, delimitadorDeBloque):
+			cerrarElParrafo()
+			enBloque = true
+		case recortada == "":
+			cerrarElParrafo()
+		default:
+			if elementoDeLista.MatchString(linea) {
+				cerrarElParrafo()
+			}
+
+			if len(lineas) == 0 {
+				primera = numero
+			}
+
+			lineas = append(lineas, recortada)
+		}
+	}
+
+	cerrarElParrafo()
+
+	return parrafos
+}
+
+// TestProsaDeLaSkill fija la extracción de la subprueba prosa-de-la-skill,
+// defectosDeLaProsa, sobre Markdown escrito aquí (contracts/skill-boe-legislacion.md
+// §5; FR-091, SC-005): una expresión en un tramo de código, en un bloque
+// delimitado —también con sangría— o en la región generada no cuenta; partida
+// por un salto de línea dentro de un párrafo o de un elemento de lista, sí; en el
+// frontmatter, sí; dos párrafos no se juntan, y los parten una línea en blanco,
+// la que abre un elemento de lista, un bloque delimitado y las marcas de la
+// región; cada párrafo se nombra por su primera línea y lleva sus expresiones en
+// el orden de la lista. Una fecha AAAAMMDD con cifras cuenta en cualquier parte
+// del fichero, también dentro de un bloque; AAAAMMDD, un identificador BOE-A-…,
+// nueve cifras o un mes o un día imposibles, no.
+func TestProsaDeLaSkill(t *testing.T) {
+	t.Parallel()
+
+	lista := ExpresionesProhibidas{
+		Maquinaria:       []string{"memoria de consultas", "hallazgos", "graph check"},
+		OtraConversacion: []string{"te dije"},
+		Anuncio:          []string{"redacto la respuesta"},
+	}
+	region := "<!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->\n"
+	finDeLaRegion := "<!-- fin de la tabla de comandos -->\n"
+
+	casos := []struct {
+		nombre   string
+		markdown string
+		defectos []string
+	}{
+		{
+			nombre:   "en-un-tramo-de-codigo",
+			markdown: "Comprueba con `kitlegal graph check` y lee `data.hallazgos`.\n",
+		},
+		{
+			nombre: "en-un-bloque-delimitado",
+			markdown: "Por ejemplo:\n\n```text\nSin hallazgos en la memoria de consultas.\n```\n\n" +
+				"Y nada más.\n",
+		},
+		{
+			nombre:   "en-un-bloque-delimitado-con-sangria",
+			markdown: "- Comprueba:\n\n  ```bash\n  kitlegal graph check BOE-A-2015-10565 a21 --json\n  ```\n",
+		},
+		{
+			nombre:   "en-la-region-generada",
+			markdown: "Antes.\n\n" + region + "\n| kitlegal graph check | hallazgos |\n\n" + finDeLaRegion + "\nDespués.\n",
+		},
+		{
+			nombre:   "partida-dentro-de-un-parrafo",
+			markdown: "Una segunda lectura apagaría lo que la memoria de\nconsultas tiene que decirte.\n",
+			defectos: []string{"párrafo de la línea 1: memoria de consultas"},
+		},
+		{
+			nombre:   "partida-dentro-de-un-elemento-de-lista",
+			markdown: "Lee cada bloque:\n\n- una segunda lectura apagaría la memoria de\n  consultas.\n",
+			defectos: []string{"párrafo de la línea 3: memoria de consultas"},
+		},
+		{
+			nombre: "en-el-frontmatter",
+			markdown: "---\nname: boe-legislacion\ndescription: >-\n  Traslada los hallazgos.\n---\n\n" +
+				"# Consultar\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos"},
+		},
+		{
+			nombre:   "dos-parrafos-no-se-juntan",
+			markdown: "Lo que la memoria de\n\nconsultas dice.\n",
+		},
+		{
+			nombre:   "dos-elementos-de-lista-no-se-juntan",
+			markdown: "- lo que la memoria de\n* consultas dice\n7. redacto la\n  8. respuesta\n",
+		},
+		{
+			nombre:   "un-bloque-delimitado-parte-el-parrafo",
+			markdown: "Lo que la memoria de\n```text\nnada\n```\nconsultas dice.\n",
+		},
+		{
+			nombre:   "las-marcas-de-la-region-parten-el-parrafo",
+			markdown: "Lo que la memoria de\n" + region + finDeLaRegion + "consultas dice.\n",
+		},
+		{
+			nombre: "cada-parrafo-con-sus-expresiones",
+			markdown: "Primero.\n\nSin hallazgos en la memoria de consultas; te dije. Redacto la\nrespuesta.\n\n" +
+				"Luego, graph check.\n",
+			defectos: []string{
+				"párrafo de la línea 3: memoria de consultas, hallazgos, te dije, redacto la respuesta",
+				"párrafo de la línea 6: graph check",
+			},
+		},
+		{
+			nombre:   "el-codigo-deja-un-espacio",
+			markdown: "Sin`--json`hallazgos.\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos"},
+		},
+		{
+			nombre:   "una-fecha-con-cifras",
+			markdown: "Sustituida por la de 20250101, que es la que se cita.\n",
+			defectos: []string{"línea 1: fecha escrita con cifras 20250101"},
+		},
+		{
+			nombre:   "una-fecha-en-un-bloque-o-en-codigo",
+			markdown: "Por ejemplo:\n\n```text\nla de 20161002 y la de 20250101\n```\n\nO `20180309`.\n",
+			defectos: []string{
+				"línea 4: fecha escrita con cifras 20161002, 20250101",
+				"línea 7: fecha escrita con cifras 20180309",
+			},
+		},
+		{
+			nombre:   "expresiones-y-fechas",
+			markdown: "Los hallazgos de\n\n20200206.\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos", "línea 3: fecha escrita con cifras 20200206"},
+		},
+		{
+			nombre: "no-son-fechas",
+			markdown: "Las fechas van como `AAAAMMDD` o AAAAMMDD, en BOE-A-2015-10565, no 123456789, " +
+				"20251301 ni 20250132.\n",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.defectos, defectosDeLaProsa(caso.markdown, lista))
+		})
+	}
 }
 
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con

@@ -1,0 +1,90 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ronda 3, sobre la cabeza 3dda87f (los commits de gates/revision-pendiente.md: eb6b4c8 y 0222c39). gates/ci.log: «guardián de diff ok ((global), 16 ficheros)», lint «0 issues», go test -race y test-integration en verde, TestEsquemasPublicados, skills-check, goreleaser check, gitleaks «no leaks found» (9:57, tras 0222c39), mod verify, tidy -diff, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido entero en un clon de 3dda87f fuera del repositorio (/tmp/juezB-h73-r3/kitlegal, `make ci`, exit 0: «0 issues», internal/evals 97,2 % y 98,3 %, sin fugas) y git status del clon vacío. Árbol del repositorio limpio en 3dda87f al empezar (git status --porcelain sin salida)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "0222c39 arregla la causa y no la tapa. Reproducido en Linux (contenedor ubuntu:24.04 arm64, binario de test cruzado, -shuffle=on): con e3bae8d, 14 de 100 ejecuciones caen con «fork/exec …: text file busy» (TestSondear 8 de 25, TestEjecutarSesionesSinConcurrencia 4 de 25, TestEjecutarSesionesConUnError 2 de 25); con 0222c39, 0 de 100 en la misma tanda (esos tres y TestGuionDelSondeo, 25 veces cada uno) y 0 de 50 en diez tests del repartidor y del sondeo, cinco veces cada uno (los cinco TestEjecutarSesiones*, TestTopeDeLaSesion, TestInterrumpirLaSesion, TestAbrirUnaSesion, TestSesionQueNoSePuedePreparar y TestSondear). En macOS, `go test -race -shuffle=on -count=5 ./internal/evals/` ok. escribirEjecutable (sustitutos_test.go:230-235) escribe con syscall.ForkLock para lectura, y es el único sitio que escribe un ejecutable (grep de 0o755 en los tests: solo esa línea); sin reintentos, sin tests secuenciales y sin ninguno saltado. Los controles siguen mordiendo en la cabeza (mutantes en una copia): con umbralDeExpresionesProhibidas a 0.06 caen TestUmbralesDelInforme (7 subpruebas, entre ellas tres-de-51 y dos-de-51), TestInformeConExpresionesProhibidas, TestInformeMarkdownDeLosUmbrales y TestSalidaDelSondeo; con «hallazgos» y 20200206 escritos en el párrafo nuevo del paso 3 de SKILL.md, TestEvalsDelRepositorio/prosa-de-la-skill da «párrafo de la línea 72: hallazgos» y «línea 73: fecha escrita con cifras 20200206». Sin suite [aceptacion] (plan.md:159: el binario no cambia). eb6b4c8 no toca ningún test, ninguna eval ni la lista."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "eb6b4c8 no trae Go. 0222c39 solo añade `syscall` a sustitutos_test.go. Barrido de las líneas añadidas de `git diff main...HEAD` en .go, .sh, .yml y Makefile: ni net/http, ni database/sql, ni os.Exit, ni fmt.Print*, ni os.Stdout/os.Stderr nuevos. depguard y forbidigo en verde («0 issues», ci.log y clon). cmd/ e internal/ fuera de internal/evals sin cambios; `go list -deps ./cmd/kitlegal` no enlaza internal/evals (0)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El binario no cambia (`git diff --name-only main...HEAD -- cmd internal ':!internal/evals'` vacío); schemas/ solo gana `anuncio` en expresiones-prohibidas.yaml.json, que no sale de --describe; TestEsquemasPublicados y schema-check en verde. La orden encadenada que ahora pide SKILL.md:69, ejecutada con el binario de la cabeza sobre la sesión de la eval 19 preparada con PrepararSesion fuera del repositorio, devuelve dos sobres completos (ok, fuente, url, fecha_consulta, hash, data): el del bloque (2 525 B) y el de la comprobación (1 047 B con la entrada version-obsoleta, 20180309 y 20200206)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Lo que SKILL.md dice ahora de los códigos de la orden encadenada ocurre en el binario (medido fuera del repositorio): con la lectura fallida (`--offline` sin entrada) la orden termina con 4 y la comprobación no se ejecuta (regla 7, SKILL.md:268: «la orden termina ahí, sin comprobación, y vale la regla 2»); con un world.db que no es una base de datos, la lectura devuelve el texto (2 525 B) y termina con 0 avisando por la salida de error, y `graph check` termina con 1 y clase `inesperado` (regla 7, SKILL.md:260-266); sin fallos, 0. El job sale en rojo por un umbral que decide: el primer cierre, sobre 6ab3add, dio veredicto `fallo` con el motivo «umbral expresiones_prohibidas:claude-sonnet-5: 5 de 51 (9,8 %), y tiene que ser ≤ 5,0 %» (git show eb6b4c8:…/gates/evals/boe-legislacion.json) y reparar_cierre se ejecutó."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "eb6b4c8 alinea lo que el cambio de protocolo dejaba falso: CHANGELOG.md:252-283 (*Unreleased*, «en la misma orden que lo lee», con la orden encadenada y «una comprobación por cada orden de lectura»), contracts/skill-boe-legislacion.md (cabecera, §2, §3, §6 y el §8 nuevo, 133-164, con C12 a C17 y sus causas), plan.md «Uso» (261-266) y «Decisiones» (278-295), research.md «Cierre (2026-09-30)…» (96-165), spec.md «Clarifications», cierre (43-45) y gates/supuestos.md:31-33. Lo que afirman y he medido se sostiene: 270 líneas de SKILL.md; la salida encadenada más larga de las evals (art. 17 LIRPF), 9 668 B (research dice 9,7 KB); la entrada version-obsoleta con 20180309 y 20200206; 4 con la lectura fallida y 1 con world.db ilegible; 8 respuestas con el párrafo al principio en el primer cierre. Búsqueda de «una vez por norma», «después de la última lectura», «antes de la respuesta» y «no cambia de sitio» en SKILL.md, CHANGELOG, CONTRIBUTING, README, web/ e internal/evals: solo queda plan.md:23 (a observaciones, como las líneas desfasadas de las rondas anteriores: «Decisiones», a la que remite, dice lo contrario y que lo sustituye). README.md:123-126 sigue siendo cierto. Sin ADR nuevo (FR-080) y docs/SOURCES.md intacto."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin cambio: ninguna petición HTTP nueva, ningún método, ningún dato externo ni NIF; gitleaks sin fugas. Las órdenes que SKILL.md manda ejecutar siguen siendo solo `kitlegal boe` y `kitlegal graph check`, y la comprobación no pide nada a la red (lee world.db). Las sesiones del job siguen con el proxy que rechaza (en el cierre, `red` vacío; las `boe buscar` de las sesiones terminan con 5 contra 127.0.0.1:9)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ninguna línea añadida con nolint, t.Skip, TODO, FIXME, «_ =» ni panic( en todo el diff. El cierre en rojo se arregló en la skill y no en el instrumento: `git diff --name-only 6ab3add..HEAD` fuera de gates/ da solo CHANGELOG.md, SKILL.md, dos _test.go y los artefactos del hito; ni la lista, ni su esquema, ni las evals, ni umbrales.go, ni evals.yml, ni testdata cambian, y ningún umbral se rebaja ni pasa a `decide: false` (FR-008). El test inestable se arregla en su causa (el descriptor heredado entre fork y exec), sin reintento."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El cambio de protocolo de eb6b4c8 entra por las dos puertas que abre la sección H7.3: «el cambio va a cómo la skill pide y lee esa salida, sin tocar el binario» (ROADMAP.md:336; FR-014) y «el plan decide con esa evidencia si cambia su sitio» (ROADMAP.md:339; FR-015). De lo que decidió H7.1 (FR 040 y FR 041 de specs/011) mantiene: después de leer (el `&&` solo comprueba si la lectura terminó con 0), antes de responder, con la norma y los bloques leídos, nunca sin argumentos ni antes de leer (SKILL.md:75-77) y cada bloque una sola lectura (82-83). Se desvía en una cláusula, «una vez por norma citada»: pasa a una por orden de lectura (SKILL.md:182-183), que solo difiere cuando una remisión lleva a leer después otro bloque de la misma norma. En lo medido no difiere: en las 80 sesiones del cierre que leen un bloque hay exactamente una `graph check` (51 de Sonnet 5 y 29 de Haiku 4.5; ninguna con dos). La desviación es la mejor de las que no tocan el binario: la alternativa que conserva la letra (comprobar solo en la orden del último bloque de cada norma) puede dejar un bloque citado sin comprobar, que es peor que 325 B de más; y su efecto está medido (expresiones de la lista, 5 de 51 → 0 de 51; la serie de la eval 06, 1 de 3 → 3 de 3). Está registrada como decisión con su evidencia y sus alternativas rechazadas en research.md:96-165, en gates/supuestos.md:31 con la etiqueta `[skill]` (el informe final la imprime entera), en plan.md:278-289, en spec.md:45 y en contracts §8. Los supuestos 32 (la lista no se amplía en el cierre) y 33 (el sondeo no se ejecuta, FR-068) son lecturas conservadoras coherentes con FR-020, FR-021 y FR-068. Nada más entra: ni binario, ni data/, ni docs/, ni web/."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido con el binario de la cabeza sobre sesiones preparadas fuera del repositorio. La orden encadenada devuelve el bloque y la comprobación: 2 525 + 325 B (art. 118 LCSP, sin cambios), 9 344 + 324 B (art. 17 LIRPF, la más larga de las evals), 2 525 + 1 047 B con un bloque cuya redacción cambió. La comprobación no crece con lo acumulado: 324 B con once normas leídas en el grafo igual que con una, porque va acotada a la norma y al bloque de la orden (H7.1; el binario no cambia). La señal se apaga: la misma orden repetida da 1 047 B la primera vez y 325 B la segunda, sin entrada. Invocaciones por pregunta que pide SKILL.md: una orden de herramienta por lectura en lugar de dos (lectura y comprobación aparte), y una comprobación por orden de lectura; en el cierre, una por sesión en 80 de 80. Con k bloques de una norma leídos de uno en uno son k comprobaciones de ≈ 325 B (≈ 1 KB cada una si cambió) en lugar de una: acotado por la pregunta, y cada bloque se comprueba una vez (≤ k señales con k bloques). Lo demás del hito (umbrales, sesiones sin medir, salida del sondeo) no cambia desde la ronda 2."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "eb6b4c8 no añade código: SKILL.md cambia en el paso 3 (65-81), una línea del paso 4 (102), dos viñetas del paso 5 (115-119, 136), la sección (182-183) y la regla 7 (260-270), y se queda en 270 líneas; cada cambio se traza a su medida y a su requisito en contracts §8 (C12 a C17: FR-011, FR-012, FR-014, FR-015). La única rama nueva de la prosa, «si un bloque se ha leído sin ella, pídela a continuación» (SKILL.md:76-77), atiende una vía real (el agente que lee con la orden sola) y sostiene que todo bloque citado se comprueba (H7.1 FR 040). 0222c39 añade una función de test de cinco líneas para un rojo real de ci (ejecución 36678988453), sin opción, reintento ni caso aparte. El resto de mecanismos quedó trazado en las rondas 1 y 2 (plan.md:304-332)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las diez filas de plan.md:241-252 conservan su control, y ninguno cambia desde la ronda 2 (umbrales.go, informe.go, definicion.go y evals.yml sin tocar en 6ab3add..HEAD). Los dos umbrales del job deciden y ponen el veredicto en fallo: umbrales.go:88-106 (`decide: true` para el modelo que decide y para la duración), motivos en informe.go:875-881, y el job falla en job_test.go:162. Visto en rojo de verdad: el primer cierre, sobre 6ab3add, publicó expresiones_prohibidas:claude-sonnet-5 con 5 de 51, `cumple: false`, veredicto `fallo` y job en rojo; y con mutante (0.06) caen los tests del umbral. El segundo cierre, sobre eb6b4c8 (la misma SKILL.md que la cabeza), publica 0 de 51 con `decide: true` y `cumple: true`, el de Haiku 4.5 con 0 de 30 y `decide: false`, duracion_de_las_sesiones 540 ≤ 900 con `decide: true`, `sesiones_sin_medir` y `red` vacíos y veredicto aprobado. La fila de la prosa (FR-091) sale en rojo con el mutante del criterio b. La regla por serie del ADR 0016 sigue aparte. Lo que el control mide es la lista, como fija el spec (FR-002; «Edge Cases»: lo dicho con otras palabras no se detecta); lo que la lista no ve en este cierre va en la primera observación."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "PARA QUIEN DECIDE LA FUSIÓN. El 0 de 51 del cierre es la medida de la lista; leídas las 51 respuestas de Sonnet 5 del informe sobre eb6b4c8, 4 (7,8 %) cuentan la comprobación sin nada que decir con palabras que la lista no recoge: al principio, 14-01 («Este artículo ya da la respuesta completa. Sin avisos de vigencia ni cambios desde una lectura anterior.») y 17-01 («Sin avisos de vigencia ni cambios de redacción desde una lectura anterior.»); al final, 06-01 («…y la comprobación no detectó cambios de redacción desde una lectura anterior.») y 15-02 («La comprobación de redacción no detectó variación respecto a una lectura anterior en esta conversación.»). Con la misma lectura, el primer cierre (6ab3add) daba 11 de 51 (8 al principio; la lista, 5) y Haiku 4.5, 0 de 30 en los dos. El cambio de sitio lo reduce, pero por lectura sigue por encima de 2 de 51; no es motivo porque el spec mide con la lista y declara la paráfrasis como limitación («Edge Cases»; «Fuera de alcance»), y ampliar la lista no es una corrección sin persona: «lectura anterior» y «la comprobación» están en la prosa de SKILL.md (FR-010) y «cambio de redacción» en respuestas correctas de la eval 19. Las palabras salen del sobre vacío de `graph check` (324 B en cada lectura), que el hito no puede tocar.",
+    "Eval 19, sesión 02 de Sonnet 5: tras la línea `⚠ REDACCIÓN MODIFICADA:` correcta, la respuesta añade que la versión anterior estaba «vigente hasta el 9 de marzo de 2018» (20180309 es su fecha de entrada en vigor) y qué exigía («motivando la elección del contratista entre varios presupuestos»), texto que ninguna orden devolvió: el binario solo da la redacción vigente y dos fechas. La eval no lo comprueba (fuera de alcance: las fechas de esa línea) y la lista no lo ve; 1 de 3.",
+    "Eval 03, sesión 01 de Sonnet 5: la `respuesta` que juzga el job es el mensaje posterior al aviso de una búsqueda lanzada en segundo plano («Esa tarea en segundo plano era solo una búsqueda auxiliar…»), no la respuesta ya entregada; falla por «cita ausente» y cuenta como limpia en el total de 51. Es cómo lee el job el final de la sesión, anterior al hito.",
+    "plan.md:23 («La comprobación no cambia de sitio (§ Decisiones)») contradice desde eb6b4c8 a «Decisiones» (plan.md:278), que dice que cambia y que lo sustituye; plan.md:22, 327 y 334-339 siguen trazando solo C1-C11, y los seis cambios del cierre (C12 a C17) están trazados en contracts/skill-boe-legislacion.md §8.",
+    "Ninguna eval lee dos bloques de una misma norma en órdenes distintas: el caso en que «una por orden de lectura» difiere de «una por norma citada» no tiene medida con modelo. Sin modelo, cada comprobación da 324-325 B sin cambios y ≈ 1 KB por bloque cambiado, así que cinco bloques cambiados leídos de uno en uno son ≈ 5,2 KB frente a los ≤ 3 800 B de una sola comprobación con los cinco (H7.1 SC 005).",
+    "Ningún test de `make ci` ejecuta la orden encadenada de SKILL.md:69 y 81: TestOrdenesDeLasSkillsEmpotradas solo mira la región generada (internal/app/skills_test.go:282). Que funciona lo he comprobado a mano con el binario; la mide el job de evals.",
+    "La orden encadenada usa `&&`, que Windows PowerShell 5.1 no admite; con él, el agente tendría que partirla, que es lo que prevé SKILL.md:76-77 («si un bloque se ha leído sin ella, pídela a continuación»). Sin medir.",
+    "gates/cierre.json y gates/informe-final.md son de eb6b4c8: no recogen 0222c39 ni esta ronda («2 rondas», «sobre eb6b4c8»), y el rojo de ci sobre e3bae8d solo consta en gates/supuestos.md:34. informe-final.md:207 nombra una suite de aceptación congelada en specs/013-h7-3-el-umbral-de/aceptacion/ que no existe (el hito no tiene tareas [aceptacion]); lo escribe scripts/workflow/informe.sh, fuera del hito.",
+    "CHANGELOG.md:279 quedó con una línea de más de 120 columnas tras el cierre; solo formato.",
+    "Siguen vigentes las observaciones de la ronda 2 que no toca esta (gates/revision-b-r2.json): la sesión ilegible que el sondeo no lista, la duplicación de juzgarSesionDelSondeo, `timeout` en el paso «Retirar Python», el tercer disparo con cancel-in-progress: false, la ventana de ocuparUnHueco, el binario del sondeo sin -ldflags, codecov/patch estimado en 93,98 % y FR-061 con el nombre de TestPrepararSesion."
+  ]
+}

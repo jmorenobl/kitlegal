@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -152,7 +153,8 @@ func TestLeerSesion(t *testing.T) {
 				Modelo:              modeloDeLasSesiones,
 				VersionDeClaudeCode: versionDeLasSesiones,
 				Fin:                 "result success con is_error",
-				MotivoSinTerminar:   "result con is_error",
+				MotivoSinTerminar:   "result con is_error: " + textoDelError529,
+				ErrorDelResultado:   textoDelError529,
 			},
 		},
 		{
@@ -368,16 +370,234 @@ func TestLeerSesionConVariosMensajesSystem(t *testing.T) {
 	}, sesion)
 }
 
+// Textos de error de la API con los que Claude Code cierra una sesión en un
+// result con is_error: el de la sobrecarga del transcript versionado de
+// result-con-is-error y el de una credencial que no sirve (research.md V18).
+const (
+	textoDelError529      = `API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}`
+	textoDeLaCredencial   = "Failed to authenticate. API Error: 401 OAuth access token is invalid."
+	mensajeResultCorrecto = `{"type":"result","subtype":"success","is_error":false,"result":"Hecho."}` + "\n"
+)
+
+// TestLeerSesionConReintentos fija, sobre transcripts que el propio test escribe
+// en t.TempDir(), lo que LeerSesion toma de los límites (data-model §2; research
+// D6, V2, V3 y V18; FR-033, FR-040, FR-063, FR-065): cada mensaje
+// system/api_retry, en su orden, con su attempt, su max_retries y su error, y
+// los que son de rate_limit; si el último mensaje es uno de ellos; y el texto de
+// un último result con is_error, en ErrorDelResultado y en el motivo sin
+// terminar, sea cual sea el código de la sesión, salvo con los del tope, cuyo
+// motivo no cambia. Un api_retry sin alguno de sus tres campos, o con uno de otro
+// tipo, hace la sesión ilegible nombrando su línea.
+func TestLeerSesionConReintentos(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre           string
+		transcript       string
+		codigo           int
+		sesion           Sesion
+		porLimiteDeRitmo int
+		linea            int
+		ilegible         string
+	}{
+		{
+			nombre: "reintentos-en-orden",
+			transcript: mensajeInit + mensajeDeReintento(1, 10, 429, "rate_limit") +
+				mensajeDeReintento(2, 10, 529, "overloaded") + mensajeDeReintento(3, 10, 429, "rate_limit") +
+				mensajeResultCorrecto,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Respuesta:           "Hecho.",
+				Fin:                 "result success",
+				Terminada:           true,
+				Reintentos: []ReintentoDeLaAPI{
+					{Intento: 1, Maximo: 10, Error: "rate_limit"},
+					{Intento: 2, Maximo: 10, Error: "overloaded"},
+					{Intento: 3, Maximo: 10, Error: "rate_limit"},
+				},
+			},
+			porLimiteDeRitmo: 2,
+		},
+		{
+			nombre:     "termina-en-reintento",
+			transcript: mensajeInit + mensajeDeReintento(1, 10, 429, "rate_limit") + mensajeDeReintento(2, 10, 429, "rate_limit"),
+			codigo:     124,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Codigo:              124,
+				Fin:                 "system",
+				Cortada:             true,
+				MotivoSinTerminar:   "tope de 240 s agotado (código 124)",
+				Reintentos: []ReintentoDeLaAPI{
+					{Intento: 1, Maximo: 10, Error: "rate_limit"},
+					{Intento: 2, Maximo: 10, Error: "rate_limit"},
+				},
+				TerminaEnReintento: true,
+			},
+			porLimiteDeRitmo: 2,
+		},
+		{
+			nombre:     "result-con-is-error-y-codigo-0",
+			transcript: mensajeInit + mensajeResultConError(t, textoDelError529),
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Fin:                 "result success con is_error",
+				MotivoSinTerminar:   "result con is_error: " + textoDelError529,
+				ErrorDelResultado:   textoDelError529,
+			},
+		},
+		{
+			nombre:     "result-con-is-error-y-codigo-1",
+			transcript: mensajeInit + mensajeResultConError(t, textoDeLaCredencial),
+			codigo:     1,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Codigo:              1,
+				Fin:                 "result success con is_error",
+				MotivoSinTerminar:   "código 1: result con is_error: Failed to authenticate. API Error: 401 OAuth access token is invalid.",
+				ErrorDelResultado:   textoDeLaCredencial,
+			},
+		},
+		{
+			nombre:     "codigo-1-sin-result-con-is-error",
+			transcript: mensajeInit + mensajeResultCorrecto,
+			codigo:     1,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Respuesta:           "Hecho.",
+				Codigo:              1,
+				Fin:                 "result success",
+				MotivoSinTerminar:   "código 1",
+			},
+		},
+		{
+			nombre:     "result-con-is-error-y-el-tope",
+			transcript: mensajeInit + mensajeResultConError(t, textoDelError529),
+			codigo:     137,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Codigo:              137,
+				Fin:                 "result success con is_error",
+				Cortada:             true,
+				MotivoSinTerminar:   "terminada por señal tras el tope (código 137)",
+				ErrorDelResultado:   textoDelError529,
+			},
+		},
+		{
+			nombre: "result-con-is-error-que-no-es-el-ultimo",
+			transcript: mensajeInit + mensajeResultConError(t, textoDelError529) +
+				`{"type":"system","subtype":"compact_boundary"}` + "\n",
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Fin:                 "system",
+				MotivoSinTerminar:   "sin mensaje result",
+			},
+		},
+		{
+			nombre:     "result-con-is-error-sin-result",
+			transcript: mensajeInit + `{"type":"result","subtype":"error_during_execution","is_error":true}` + "\n",
+			codigo:     1,
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				Codigo:              1,
+				Fin:                 "result error_during_execution con is_error",
+				MotivoSinTerminar:   "código 1",
+			},
+		},
+		{
+			nombre:     "reintento-sin-attempt",
+			transcript: mensajeInit + `{"type":"system","subtype":"api_retry","max_retries":10,"error":"rate_limit"}` + "\n",
+			linea:      2,
+			ilegible:   "el mensaje system/api_retry no tiene attempt, max_retries y error",
+		},
+		{
+			nombre: "reintento-sin-max-retries",
+			transcript: mensajeInit + mensajeDeReintento(1, 10, 429, "rate_limit") +
+				`{"type":"system","subtype":"api_retry","attempt":2,"error":"rate_limit"}` + "\n",
+			linea:    3,
+			ilegible: "el mensaje system/api_retry no tiene attempt, max_retries y error",
+		},
+		{
+			nombre:     "reintento-sin-error",
+			transcript: mensajeInit + `{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"error_status":429}` + "\n",
+			linea:      2,
+			ilegible:   "el mensaje system/api_retry no tiene attempt, max_retries y error",
+		},
+		{
+			nombre:     "reintento-con-attempt-que-no-es-un-entero",
+			transcript: mensajeInit + `{"type":"system","subtype":"api_retry","attempt":"1","max_retries":10,"error":"rate_limit"}` + "\n",
+			linea:      2,
+			ilegible:   "el mensaje system/api_retry no tiene la forma de stream-json",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			dir := escribirSesionConCodigo(t, caso.transcript, caso.codigo)
+
+			sesion, err := LeerSesion(dir)
+
+			if caso.ilegible == "" {
+				require.NoError(t, err)
+				assert.Equal(t, caso.sesion, sesion)
+				assert.Equal(t, caso.porLimiteDeRitmo, sesion.ReintentosPorLimiteDeRitmo())
+
+				return
+			}
+
+			require.Error(t, err)
+			assert.Zero(t, sesion, "una sesión ilegible no devuelve ningún dato, tampoco el código 0")
+			require.ErrorContains(t, err,
+				fmt.Sprintf("sesion.jsonl: %s, línea %d: %s", filepath.Join(dir, "sesion.jsonl"), caso.linea, caso.ilegible))
+		})
+	}
+}
+
+// mensajeDeReintento es un mensaje system/api_retry con la forma que le da
+// Claude Code 2.1.270 (research.md V2) y su salto de línea: el intento, el
+// máximo de reintentos, el estado HTTP y la clase del error.
+func mensajeDeReintento(intento, maximo, estado int, clase string) string {
+	return fmt.Sprintf(`{"type":"system","subtype":"api_retry","attempt":%d,"max_retries":%d,"retry_delay_ms":%d,`+
+		`"error_status":%d,"error":"%s","session_id":"00000000-0000-4000-8000-000000000020"}`+"\n",
+		intento, maximo, 500*intento, estado, clase)
+}
+
+// mensajeResultConError es el result con is_error y el texto dado en result con
+// que Claude Code cierra una sesión tras un error de la API (research.md V3), y
+// su salto de línea.
+func mensajeResultConError(t *testing.T, texto string) string {
+	t.Helper()
+
+	return `{"type":"result","subtype":"success","is_error":true,"num_turns":1,"result":` + cadenaJSON(t, texto) + `}` + "\n"
+}
+
 // escribirSesion crea en un directorio temporal del test los tres ficheros que el
 // guion escribe siempre en el de una sesión: el transcript dado, el código 0 y la
 // salida de error vacía. Devuelve su ruta.
 func escribirSesion(t *testing.T, transcript string) string {
 	t.Helper()
 
+	return escribirSesionConCodigo(t, transcript, 0)
+}
+
+// escribirSesionConCodigo es escribirSesion con el código de la sesión dado.
+func escribirSesionConCodigo(t *testing.T, transcript string, codigo int) string {
+	t.Helper()
+
 	dir := t.TempDir()
 
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "sesion.jsonl"), []byte(transcript), 0o600))
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "codigo-de-la-sesion"), []byte("0\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "codigo-de-la-sesion"), []byte(strconv.Itoa(codigo)+"\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "sesion.err"), nil, 0o600))
 
 	return dir

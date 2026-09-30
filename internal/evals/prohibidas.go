@@ -30,10 +30,11 @@ const (
 )
 
 // ExpresionesProhibidas es la lista de expresiones prohibidas de una skill, las
-// que no lleva la respuesta de una eval que la activa, en sus dos familias
-// (FR-050; data-model §1). Se lee de evals/<skill>/expresiones-prohibidas.yaml,
-// validada contra schemas/expresiones-prohibidas.yaml.json; su valor cero es el
-// de una skill sin lista.
+// que no lleva la respuesta de una eval que la activa, en sus tres familias
+// (FR-050 de H7.2 y FR-020 de H7.3; data-model §5). Se lee de
+// evals/<skill>/expresiones-prohibidas.yaml, validada contra
+// schemas/expresiones-prohibidas.yaml.json, que exige las tres; su valor cero es
+// el de una skill sin lista.
 type ExpresionesProhibidas struct {
 	// Maquinaria son las de la maquinaria interna —la memoria de consultas,
 	// kitlegal graph y sus verbos, los códigos de salida, los hallazgos y sus
@@ -43,6 +44,12 @@ type ExpresionesProhibidas struct {
 	// OtraConversacion son las que atribuyen a la skill algo dicho a quien
 	// pregunta en otra conversación, en el orden del fichero.
 	OtraConversacion []string `yaml:"otra_conversacion"`
+
+	// Anuncio son las que anuncian a quien pregunta la respuesta que viene o el
+	// estado de lo comprobado —que no hay nada que trasladar, que ya se puede
+	// responder, que se tiene lo necesario—, en el orden del fichero. Ninguna
+	// dice que la norma no está derogada o que no tiene avisos (FR-020).
+	Anuncio []string `yaml:"anuncio"`
 }
 
 // esquemaDeExpresionesProhibidas compila una sola vez el esquema publicado de la
@@ -71,17 +78,18 @@ func leerExpresionesProhibidas(contenido []byte) (ExpresionesProhibidas, error) 
 }
 
 // ExtraerExpresionesProhibidas devuelve las expresiones de la lista que lleva el
-// texto, en el orden de la lista —la maquinaria y después lo dicho en otra
-// conversación— y sin repetir, o nil si no lleva ninguna. Una expresión se
+// texto, en el orden de la lista —la maquinaria, lo dicho en otra conversación y
+// el anuncio— y sin repetir, o nil si no lleva ninguna. Una expresión se
 // encuentra si su forma casa en algún punto del texto: sus palabras en su orden,
 // cada una sin distinguir mayúsculas, con los blancos y el énfasis de Markdown
 // entre dos que tolera la forma fija de los avisos (H5.1), y sin letra ni cifra a
 // los lados. No pliega tildes ni admite un salto de línea entre dos palabras
-// (FR-051; contrato lista-y-juicio §3; research D3).
+// (FR-051 de H7.2 y FR-024 de H7.3; contratos lista-y-juicio §3 de H7.2 y
+// lista-de-expresiones §3 de H7.3; research D3).
 func ExtraerExpresionesProhibidas(texto string, lista ExpresionesProhibidas) []string {
 	var encontradas []string
 
-	for _, expresion := range slices.Concat(lista.Maquinaria, lista.OtraConversacion) {
+	for _, expresion := range slices.Concat(lista.Maquinaria, lista.OtraConversacion, lista.Anuncio) {
 		if !slices.Contains(encontradas, expresion) && formasDeExpresiones.forma(expresion).MatchString(texto) {
 			encontradas = append(encontradas, expresion)
 		}

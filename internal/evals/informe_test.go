@@ -86,27 +86,35 @@ type informeLeido struct {
 
 // informeCrudo es lo que se lee de informe.json sin convertirlo a un tipo de Go,
 // para distinguir null de una lista vacía: los motivos de la raíz, las formas
-// exigidas de cada serie, el recuento de las expresiones prohibidas por modelo y,
-// de cada sesión, sus avisos encontrados y ausentes, sus expresiones prohibidas y,
-// de cada una de sus invocaciones, su código y sus conexiones.
+// exigidas de cada serie, el recuento de las expresiones prohibidas por modelo, los
+// umbrales, la duración de las sesiones, los reintentos por límite de ritmo y las
+// sesiones sin medir de la raíz y, de cada sesión, sus avisos encontrados y
+// ausentes, sus expresiones prohibidas, sus reintentos, si quedó sin medir y, de
+// cada una de sus invocaciones, su código y sus conexiones.
 type informeCrudo struct {
 	Motivos                        jsontext.Value   `json:"motivos"`
 	Tasas                          []tasaCruda      `json:"tasas"`
 	ExpresionesProhibidasPorModelo jsontext.Value   `json:"expresiones_prohibidas_por_modelo"`
+	Umbrales                       jsontext.Value   `json:"umbrales"`
+	DuracionDeLasSesiones          jsontext.Value   `json:"duracion_de_las_sesiones"`
+	ReintentosPorLimiteDeRitmo     jsontext.Value   `json:"reintentos_por_limite_de_ritmo"`
+	SesionesSinMedir               jsontext.Value   `json:"sesiones_sin_medir"`
 	Evals                          []resultadoCrudo `json:"evals"`
 }
 
-// tasaCruda es una serie de informe.json con sus formas exigidas tal como están
-// escritas.
+// tasaCruda es una serie de informe.json con sus formas exigidas y sus sesiones
+// sin medir tal como están escritas.
 type tasaCruda struct {
-	Eval   string         `json:"eval"`
-	Modelo string         `json:"modelo"`
-	Formas jsontext.Value `json:"formas"`
+	Eval     string         `json:"eval"`
+	Modelo   string         `json:"modelo"`
+	Formas   jsontext.Value `json:"formas"`
+	SinMedir jsontext.Value `json:"sin_medir"`
 }
 
 // resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
 // prohibidos ejecutados, sus avisos, sus hallazgos, su territorio, sus expresiones
-// prohibidas y sus invocaciones tal como están escritos.
+// prohibidas, sus reintentos por límite de ritmo, si quedó sin medir y sus
+// invocaciones tal como están escritos.
 type resultadoCrudo struct {
 	Sesion                       string            `json:"sesion"`
 	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
@@ -117,6 +125,8 @@ type resultadoCrudo struct {
 	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
 	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
 	ExpresionesProhibidas        jsontext.Value    `json:"expresiones_prohibidas"`
+	ReintentosPorLimiteDeRitmo   jsontext.Value    `json:"reintentos_por_limite_de_ritmo"`
+	SinMedir                     jsontext.Value    `json:"sin_medir"`
 	Invocaciones                 []invocacionCruda `json:"invocaciones"`
 }
 
@@ -128,14 +138,29 @@ const columnaDeExpresiones = "Expresiones prohibidas"
 // informe.md, con los comandos prohibidos ejecutados junto a los comandos
 // ausentes (contrato evals-y-skill §2 de H7), los avisos junto a las citas, los
 // hallazgos junto a los avisos (contrato evals-y-skill §6 de H7.1), el
-// territorio detrás (contrato de evals §2 de H6) y, entre el territorio ausente y
-// el resultado, las expresiones prohibidas (contrato lista-y-juicio §5 de H7.2).
+// territorio detrás (contrato de evals §2 de H6), entre el territorio ausente y
+// el resultado, las expresiones prohibidas (contrato lista-y-juicio §5 de H7.2) y,
+// detrás de ellas, los reintentos por límite de ritmo y si la sesión quedó sin
+// medir (contrato informe-del-job §4 de H7.3).
 var encabezadosDeLaTablaDeSesiones = []string{
 	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 	"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
 	"Hallazgos encontrados", "Hallazgos ausentes", "Territorio encontrado", "Territorio ausente",
-	columnaDeExpresiones, "Resultado",
+	columnaDeExpresiones, columnaDeReintentos, columnaSinMedir, "Resultado",
 }
+
+// columnaDeReintentos es la columna de la tabla de las sesiones de informe.md con
+// los reintentos por límite de ritmo de cada sesión, y columnaSinMedir, la que
+// dice «no» o la clase por la que quedó sin medir (contrato informe-del-job §4 de
+// H7.3).
+const (
+	columnaDeReintentos = "Reintentos por límite de ritmo"
+	columnaSinMedir     = "Sin medir"
+)
+
+// encabezadosDeLaTablaSinMedir son los de la tabla de la sección «Sesiones sin
+// medir» de informe.md (contrato informe-del-job §4 de H7.3).
+var encabezadosDeLaTablaSinMedir = []string{"Sesión", "Eval", "Modelo", "Motivo"}
 
 // encabezadosDeLaTablaDeExpresiones son los de la tabla de la sección «Expresiones
 // prohibidas por modelo» de informe.md (contrato lista-y-juicio §5 de H7.2).
@@ -188,6 +213,10 @@ type invocacionCruda struct {
 // (exigirSinListaDeExpresiones); lo que publica una con lista lo fijan
 // TestInformeConExpresionesProhibidas, TestInformeConExpresionesEnUnaSerie y
 // TestInformeConListaMalFormada.
+//
+// Desde H7.3, sin lista ni objetivo de duración, ningún caso tiene umbrales
+// (exigirSinUmbrales); los que tiene una skill con lista o con objetivo los
+// fijan TestUmbralesDelInforme y TestInformeMarkdownDeLosUmbrales.
 func TestInforme(t *testing.T) {
 	t.Parallel()
 
@@ -264,6 +293,7 @@ func TestInforme(t *testing.T) {
 
 			caso.comprobar(t, leido)
 			exigirSinListaDeExpresiones(t, leido)
+			exigirSinUmbrales(t, leido)
 		})
 	}
 }
@@ -487,10 +517,10 @@ func TestInformeConAvisos(t *testing.T) {
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno",
-					"ninguno", "ninguno", "ninguna", "no pasa"),
+					"ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-					"ninguna", "pasa"))
+					"ninguna", "0", "no", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21), caso.respuesta,
 				"la sección de la sesión publica la respuesta con la forma fija")
@@ -607,10 +637,10 @@ func TestInformeConProhibidos(t *testing.T) {
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "no pasa"),
+			"ninguna", "0", "no", "no pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "pasa"))
+			"ninguna", "0", "no", "pasa"))
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
 		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones"))
@@ -769,10 +799,10 @@ func TestInformeConHallazgos(t *testing.T) {
 				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", caso.encontrados, caso.ausentes, "ninguno",
-					"ninguno", "ninguna", caso.resultado),
+					"ninguno", "ninguna", "0", "no", caso.resultado),
 				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-					"ninguna", "pasa"))
+					"ninguna", "0", "no", "pasa"))
 
 			assert.Contains(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
 				caso.prefijo+respuestaConCita, "la sección de la sesión publica la respuesta")
@@ -808,8 +838,10 @@ const (
 	jsonEnLaRespuesta = "Si la lista llega en JSON, primero hay que leerla. "
 
 	// listaSinOtraConversacion es una lista de expresiones prohibidas mal formada:
-	// le falta la familia otra_conversacion, que el esquema exige.
-	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n"
+	// le falta la familia otra_conversacion, que el esquema exige; las otras dos
+	// están bien formadas.
+	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n" +
+		"anuncio:\n  - ya puedo responder\n"
 )
 
 // expresionesDeLaSesion son las expresiones prohibidas que el informe publica de
@@ -823,8 +855,9 @@ type expresionesDeLaSesion struct {
 // expresiones prohibidas (contrato lista-y-juicio §5 de H7.2; research D7;
 // FR-053, SC-001; US3.7, US3.8): sobre una copia del caso aprobado con la lista
 // del repositorio y con modeloInformativoDelCaso entre los modelos informativos,
-// cuya sesión del art. 21 con el modelo que decide lleva dos expresiones de la
-// maquinaria, la del art. 21 con el otro modelo ninguna y las dos de la eval de
+// cuya sesión del art. 21 con el modelo que decide lleva las de la transición de
+// la memoria —dos de la maquinaria y una del anuncio—, la del art. 21 con el
+// otro modelo ninguna y las dos de la eval de
 // no activación json, informe.json publica en cada sesión las que lleva —las de
 // la eval de no activación no se juzgan: lista vacía— y la tabla de las sesiones
 // de informe.md, en su columna; el recuento por modelo, primero el que decide,
@@ -876,15 +909,15 @@ func TestInformeConExpresionesProhibidas(t *testing.T) {
 // TestInformeConExpresionesProhibidas, con la sesión de la prueba de red o sin
 // ella, y exige lo que publica: las expresiones de cada sesión, el recuento por
 // modelo, igual en los dos casos, y los motivos de la raíz, que son los de la
-// serie del art. 21 con el modelo que decide.
+// serie del art. 21 con el modelo que decide y, detrás, el de su umbral de las
+// expresiones, que con 1 de 1 no se cumple (contrato informe-del-job §2 de H7.3).
 func exigirExpresionesDelCaso(t *testing.T, pruebaDeRed bool) {
 	t.Helper()
 
 	leido := informeDeLaCopia(t, copiaConExpresiones(t, true, pruebaDeRed), conElModeloInformativo)
 
-	memoriaYHallazgos := []string{"memoria de consultas", "hallazgos"}
 	esperadas := []expresionesDeLaSesion{
-		{sesion: sesionDelArticulo21, encontradas: memoriaYHallazgos},
+		{sesion: sesionDelArticulo21, encontradas: expresionesDeLaTransicion},
 		{sesion: sesionDelArticulo21ConOpus},
 		{sesion: sesionDeNoActivacion},
 		{sesion: sesionDeNoActivacionConOpus},
@@ -908,10 +941,27 @@ func exigirExpresionesDelCaso(t *testing.T, pruebaDeRed bool) {
 	}, `[{"modelo":"`+modeloQueDecide+`","con_alguna":1,"respuestas":1},`+
 		`{"modelo":"`+modeloInformativoDelCaso+`","con_alguna":0,"respuestas":1}]`)
 
-	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
-		sesionDelArticulo21+": expresión prohibida: memoria de consultas",
-		sesionDelArticulo21+": expresión prohibida: hallazgos")
+	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1)},
+		motivosDeLaTransicion(sesionDelArticulo21),
+		[]string{"umbral expresiones_prohibidas:" + modeloQueDecide + ": 1 de 1 (100,0 %), y tiene que ser ≤ 5,0 %"})...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// expresionesDeLaTransicion son las expresiones de la lista del repositorio que
+// lleva transicionDeLaMemoria, en el orden de la lista: dos de la maquinaria y
+// una del anuncio.
+var expresionesDeLaTransicion = []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"}
+
+// motivosDeLaTransicion son los motivos de la raíz que da la sesión dada por las
+// expresiones de la transición de la memoria que lleva su respuesta, en su orden.
+func motivosDeLaTransicion(sesion string) []string {
+	motivos := make([]string, 0, len(expresionesDeLaTransicion))
+	for _, expresion := range expresionesDeLaTransicion {
+		motivos = append(motivos, sesion+": expresión prohibida: "+expresion)
+	}
+
+	return motivos
 }
 
 // exigirExpresionesConUnaSesionIlegible escribe el informe de la copia con la
@@ -946,15 +996,17 @@ func exigirExpresionesConUnaSesionIlegible(t *testing.T) {
 }
 
 // TestInformeConExpresionesEnUnaSerie fija que las expresiones prohibidas no
-// cambian la regla del veredicto (FR-054; contrato lista-y-juicio §5 de H7.2;
-// ADR 0016): con tres repeticiones y umbral 2, en una copia del caso aprobado con
-// la lista del repositorio y solo la eval del art. 21, cuya serie tiene tres
-// sesiones que pasan salvo porque dos llevan alguna expresión, la serie de la eval
-// que decide no llega al umbral y el veredicto es fallo, con su tasa y los motivos
-// de las dos sesiones; y la misma serie de la eval informativa publica su tasa sin
-// decidir, con el veredicto aprobado. En los dos, el recuento del modelo que
-// decide cuenta las tres respuestas y las dos con alguna: las evals informativas
-// también activan la skill. Nada se escribe bajo testdata/.
+// cambian la regla por serie (FR-054; contrato lista-y-juicio §5 de H7.2;
+// ADR 0016; FR-007 de H7.3): con tres repeticiones y umbral 2, en una copia del
+// caso aprobado con la lista del repositorio y solo la eval del art. 21, cuya
+// serie tiene tres sesiones que pasan salvo porque dos llevan alguna expresión, la
+// serie de la eval que decide no llega al umbral, con su tasa y los motivos de las
+// dos sesiones; y la misma serie de la eval informativa publica su tasa sin
+// decidir y sin motivos. En los dos, el recuento del modelo que decide cuenta las
+// tres respuestas y las dos con alguna —las evals informativas también activan la
+// skill—, y su umbral de las expresiones, con 2 de 3, no se cumple: su motivo va
+// detrás de los de la serie y el veredicto es fallo también con la eval
+// informativa (FR-002 y FR-003 de H7.3). Nada se escribe bajo testdata/.
 func TestInformeConExpresionesEnUnaSerie(t *testing.T) {
 	t.Parallel()
 
@@ -999,23 +1051,25 @@ func exigirLaSerieConExpresiones(t *testing.T, informativa bool) {
 
 	exigirExpresionesPorSesion(t, leido, []expresionesDeLaSesion{
 		{sesion: sesionDeLaSerie(1)},
-		{sesion: sesionDeLaSerie(2), encontradas: []string{"memoria de consultas", "hallazgos"}},
+		{sesion: sesionDeLaSerie(2), encontradas: expresionesDeLaTransicion},
 		{sesion: sesionDeLaSerie(3), encontradas: []string{"te confirmé"}},
 	})
 	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 2, Respuestas: 3}},
 		`[{"modelo":"`+modeloQueDecide+`","con_alguna":2,"respuestas":3}]`)
 
+	delUmbral := "umbral expresiones_prohibidas:" + modeloQueDecide + ": 2 de 3 (66,7 %), y tiene que ser ≤ 5,0 %"
+
 	if informativa {
-		exigirMotivosDeLaRaiz(t, leido)
-		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+		exigirMotivosDeLaRaiz(t, leido, delUmbral)
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 
 		return
 	}
 
-	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 1, 3, 2),
-		sesionDeLaSerie(2)+": expresión prohibida: memoria de consultas",
-		sesionDeLaSerie(2)+": expresión prohibida: hallazgos",
-		sesionDeLaSerie(3)+": expresión prohibida: te confirmé")
+	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 1, 3, 2)},
+		motivosDeLaTransicion(sesionDeLaSerie(2)),
+		[]string{sesionDeLaSerie(3) + ": expresión prohibida: te confirmé", delUmbral})...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
@@ -1059,6 +1113,452 @@ func TestInformeConListaMalFormada(t *testing.T) {
 	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Pasa,
 		"las evals de la carpeta se juzgan sin lista")
 	exigirSinListaDeExpresiones(t, leido)
+}
+
+// encabezadosDeLaTablaDeUmbrales son los de la tabla de la sección «Umbrales» de
+// informe.md (contrato informe-del-job §4 de H7.3).
+var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+
+// TestInformeMarkdownDeLosUmbrales fija la sección «Umbrales» de informe.md
+// (contrato informe-del-job §4 de H7.3; FR-001; US2-6), sobre ejecuciones
+// sintéticas de ejecucionConUmbrales: junto al recuento de las expresiones
+// prohibidas por modelo —detrás de él y delante de las sesiones sin medir, lo
+// que leerInformeEscrito exige en todo informe—, una tabla con una fila por
+// umbral, en su orden: el nombre, la medida —«<medida> de <total> (<p> %)» con un
+// decimal y coma, o la medida sola—, la condición, si se cumple y si hace fallar
+// el veredicto, con «no: solo se publica» en los que no deciden. La del contrato,
+// fila a fila, con 2 de 51, 0 de 30 y 544 s; la de los tres sin cumplir; y, sin
+// ninguno, el párrafo «ninguno». La cabecera lleva la duración de las sesiones.
+func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
+	t.Parallel()
+
+	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 7, conHaiku: true}
+
+	casos := []struct {
+		nombre    string
+		ejecucion ejecucionConUmbrales
+
+		// filas son las de la tabla, sin los encabezados; nil, sin tabla.
+		filas [][]string
+	}{
+		{
+			nombre: "las-filas-del-contrato",
+			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 2}, 544, 900
+			}),
+			filas: [][]string{
+				{"`expresiones_prohibidas:claude-sonnet-5`", "2 de 51 (3,9 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
+				{"`duracion_de_las_sesiones`", "544", "≤ 900", "sí", "sí"},
+			},
+		},
+		{
+			nombre: "los-tres-sin-cumplir",
+			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
+				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet5: 3, modeloHaiku45: 2}, 901, 900
+			}),
+			filas: [][]string{
+				{"`expresiones_prohibidas:claude-sonnet-5`", "3 de 51 (5,9 %)", "≤ 5,0 %", "no", "sí"},
+				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no", "no: solo se publica"},
+				{"`duracion_de_las_sesiones`", "901", "≤ 900", "no", "sí"},
+			},
+		},
+		{
+			nombre:    "sin-umbrales",
+			ejecucion: ejecucionConUmbrales{queDeciden: 1, sinLista: true, duracion: 544},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leido := escribirEjecucionConUmbrales(t, caso.ejecucion)
+
+			exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
+				"Duración de las sesiones: "+strconv.Itoa(caso.ejecucion.duracion)+" s")
+
+			if caso.filas == nil {
+				exigirSinUmbrales(t, leido)
+
+				return
+			}
+
+			filas := []string{
+				filaDeTabla(encabezadosDeLaTablaDeUmbrales...),
+				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeUmbrales))...),
+			}
+			for _, fila := range caso.filas {
+				filas = append(filas, filaDeTabla(fila...))
+			}
+
+			assert.Equal(t, strings.Join(filas, "\n"), seccionDelInforme(t, leido.md, "Umbrales"))
+		})
+	}
+}
+
+// exigirSinUmbrales exige lo que publica el informe de una skill sin lista de
+// expresiones prohibidas ni objetivo de duración (FR-006 de H7.3): umbrales es
+// una lista vacía, no null, y su sección de informe.md, el párrafo «ninguno».
+func exigirSinUmbrales(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	assert.Empty(t, leido.informe.Umbrales)
+	assert.Equal(t, "[]", compacto(t, leido.crudo.Umbrales), "umbrales es una lista vacía, no null")
+	assert.Equal(t, "ninguno", seccionDelInforme(t, leido.md, "Umbrales"))
+}
+
+// Las clases con que una sesión queda sin medir tal como las publica el informe,
+// en sin_medir de la sesión y en el motivo de sesiones_sin_medir (data-model §3
+// de H7.3; contrato informe-del-job §3).
+const (
+	sinMedirPorElMensaje = "mensaje del límite de uso: " + textoDelLimiteDeSesion
+	sinMedirPorAgotados  = "reintentos por rate_limit agotados"
+	sinMedirPorElTope    = "cortada por el tope durante reintentos por rate_limit"
+	sinAbrirTrasElLimite = "sin abrir tras el límite de uso"
+)
+
+// TestInformeConSesionesSinMedir fija lo que EscribirInforme hace con las
+// sesiones que un límite de uso de la cuenta no dejó terminar (contrato
+// informe-del-job §2.2, §3, §4 y §6 de H7.3; data-model §3 y §4; research D6;
+// FR-033, FR-040 a FR-044, FR-093; SC-001, SC-007; US3-2 a US3-4), sobre copias
+// del caso aprobado con la lista del repositorio armadas en t.TempDir(), sin
+// tocar las versionadas: una sesión con el mensaje del límite de uso (a), con los
+// reintentos por rate_limit agotados (b) o cortada por el tope durante ellos (c)
+// no pasa ni falla: lleva su clase en sin_medir y como único motivo «sin medir
+// por límite de uso: <clase>», queda fuera del recuento de las expresiones y deja
+// su serie sin medir, sin el motivo de su tasa. Las sesiones que el repartidor no
+// abrió tras el límite cuentan en su serie como sin medir, sin el motivo de las
+// sesiones que faltan, que queda para las que faltan por otra causa. Con alguna
+// sin medir, el veredicto es fallo con un solo motivo de la ejecución, detrás de
+// los de siempre, que nombra el límite y las sesiones. Una sesión que se recupera
+// de sus reintentos por rate_limit se mide como cualquier otra y publica sus
+// reintentos, en la sesión y, sumados, en la raíz.
+func TestInformeConSesionesSinMedir(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// codigo y trasElInit son el código de la sesión del art. 21 y lo que
+		// sigue en su transcript al mensaje system/init; clase es aquella por la
+		// que queda sin medir, y reintentos, los suyos por rate_limit.
+		codigo     int
+		trasElInit string
+		clase      string
+		reintentos int
+	}{
+		{
+			nombre:     "mensaje-del-limite-de-uso",
+			codigo:     1,
+			trasElInit: mensajeResultConError(t, textoDelLimiteDeSesion),
+			clase:      sinMedirPorElMensaje,
+		},
+		{
+			nombre: "reintentos-agotados",
+			codigo: 1,
+			trasElInit: mensajeDeReintento(9, 10, 429, "rate_limit") + mensajeDeReintento(10, 10, 429, "rate_limit") +
+				mensajeResultConError(t, textoDelError429),
+			clase:      sinMedirPorAgotados,
+			reintentos: 2,
+		},
+		{
+			nombre:     "cortada-durante-reintentos",
+			codigo:     124,
+			trasElInit: mensajeDeReintento(1, 10, 429, "rate_limit") + mensajeDeReintento(2, 10, 429, "rate_limit"),
+			clase:      sinMedirPorElTope,
+			reintentos: 2,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+			exigirUnaSesionSinMedir(t, caso.codigo, caso.trasElInit, caso.clase, caso.reintentos)
+		})
+	}
+
+	t.Run("sin-abrir-tras-el-limite-de-uso", func(t *testing.T) {
+		t.Parallel()
+		exigirLasSesionesSinAbrir(t)
+	})
+
+	t.Run("reintentos-de-los-que-se-recupera", func(t *testing.T) {
+		t.Parallel()
+		exigirLosReintentosRecuperados(t)
+	})
+}
+
+// exigirUnaSesionSinMedir escribe el informe de una copia del caso aprobado con
+// la lista del repositorio en la que la sesión del art. 21 termina con el código
+// dado y su transcript sigue a su mensaje system/init con lo dado, y exige que
+// quede sin medir por la clase dada, con sus reintentos por rate_limit en la
+// sesión y en la raíz; que su serie quede sin medir, sin el motivo de su tasa;
+// que no entre en el recuento; y el veredicto fallo con el único motivo de la
+// ejecución, que la nombra.
+func exigirUnaSesionSinMedir(t *testing.T, codigo int, trasElInit, clase string, reintentos int) {
+	t.Helper()
+
+	copia := copiaDelCasoAprobadoConLaLista(t)
+	cambiarElFinalDeLaSesion(t, filepath.Join(copia, "sesiones", sesionDelArticulo21), codigo, trasElInit)
+
+	leido := informeDeLaCopia(t, copia, nil)
+
+	exigirSesionSinMedir(t, leido, sesionDelArticulo21, clase, reintentos)
+	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDeNoActivacion).Pasa)
+
+	exigirTasaSinMedir(t, leido, TasaDelInforme{
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0, SinMedir: 1,
+	})
+
+	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0}},
+		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":0}]`)
+
+	sinMedir := SesionSinMedir{Sesion: sesionDelArticulo21, Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Motivo: clase}
+	exigirSesionesSinMedir(t, leido, sinMedir)
+	exigirMotivosDeLaRaiz(t, leido, motivoEsperadoDelLimite(sinMedir))
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	assert.Equal(t, reintentos, leido.informe.ReintentosPorLimiteDeRitmo)
+	assert.Equal(t, strconv.Itoa(reintentos), string(leido.crudo.ReintentosPorLimiteDeRitmo))
+}
+
+// exigirLasSesionesSinAbrir escribe, con tres repeticiones y umbral 2, el informe
+// de una copia del caso aprobado con la lista del repositorio en la que la serie
+// del art. 21 tiene una sesión que pasa, otra con el mensaje del límite de uso y
+// la tercera sin abrir tras el límite, y la de no activación, una sola sesión, que
+// pasa, sin ninguna sin abrir. Exige que la serie del art. 21 cuente como sin
+// medir la que tiene el mensaje y la que no se abrió, sin el motivo de su tasa ni
+// el de las sesiones que faltan; que la de no activación dé los dos, porque sus
+// sesiones faltan por otra causa; que el recuento cuente solo la sesión medida; y
+// que el motivo de la ejecución nombre las dos sesiones sin medir, en orden de
+// sesión, detrás de los de siempre.
+func exigirLasSesionesSinAbrir(t *testing.T) {
+	t.Helper()
+
+	copia := copiaDelCasoAprobadoConLaLista(t)
+	sesiones := filepath.Join(copia, "sesiones")
+
+	require.NoError(t, os.Rename(filepath.Join(sesiones, sesionDelArticulo21), filepath.Join(sesiones, sesionDeLaSerie(1))))
+
+	conElMensaje := filepath.Join(sesiones, sesionDeLaSerie(2))
+	require.NoError(t, os.CopyFS(conElMensaje, os.DirFS(filepath.Join(casosDeInforme, casoAprobado, "sesiones",
+		sesionDelArticulo21))))
+	cambiarElFinalDeLaSesion(t, conElMensaje, 1, mensajeResultConError(t, textoDelLimiteDeSesion))
+
+	leido := informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
+		entradas.Repeticiones, entradas.Umbral = 3, 2
+		entradas.SinAbrir = []SesionPlanificada{
+			{Nombre: sesionDeLaSerie(3), Fichero: ficheroDeLaEval01, Modelo: modeloQueDecide},
+		}
+	})
+
+	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDeLaSerie(1)).Pasa)
+	exigirSesionSinMedir(t, leido, sesionDeLaSerie(2), sinMedirPorElMensaje, 0)
+	assert.Len(t, leido.informe.Evals, 3, "la sesión que no se abrió no tiene resultado")
+
+	exigirTasaSinMedir(t, leido, TasaDelInforme{
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Formas: sinFormasExigidas, Sesiones: 2, Pasan: 1, SinMedir: 2,
+	})
+	assert.Equal(t, TasaDelInforme{
+		Eval: ficheroDeNoActivacion, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 1,
+	}, tasaDeLaSerie(t, leido.informe, ficheroDeNoActivacion, modeloQueDecide))
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "no llega al umbral"))
+
+	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 1}},
+		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":1}]`)
+
+	sinMedir := []SesionSinMedir{
+		{Sesion: sesionDeLaSerie(2), Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Motivo: sinMedirPorElMensaje},
+		{Sesion: sesionDeLaSerie(3), Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Motivo: sinAbrirTrasElLimite},
+	}
+	exigirSesionesSinMedir(t, leido, sinMedir...)
+	exigirMotivosDeLaRaiz(t, leido,
+		motivoDeLasSesionesQueFaltan(ficheroDeNoActivacion, modeloQueDecide, 1, 3),
+		motivoDeLaTasa(ficheroDeNoActivacion, modeloQueDecide, 1, 1, 2),
+		motivoEsperadoDelLimite(sinMedir...))
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// exigirLosReintentosRecuperados escribe el informe de una copia del caso
+// aprobado con la lista del repositorio en la que la sesión del art. 21 reintenta
+// dos veces por rate_limit y una por sobrecarga, y la de no activación una por
+// rate_limit, antes de terminar como en el caso aprobado. Exige que las dos se
+// midan y pasen, cada una con sus reintentos por rate_limit en informe.json y en
+// su fila de informe.md, y la raíz con su suma, sin ninguna sesión sin medir y
+// con el veredicto aprobado (FR-033, FR-041).
+func exigirLosReintentosRecuperados(t *testing.T) {
+	t.Helper()
+
+	copia := copiaDelCasoAprobadoConLaLista(t)
+	insertarTrasElInit(t, filepath.Join(copia, "sesiones", sesionDelArticulo21),
+		mensajeDeReintento(1, 10, 429, "rate_limit")+mensajeDeReintento(2, 10, 529, "overloaded")+
+			mensajeDeReintento(3, 10, 429, "rate_limit"))
+	insertarTrasElInit(t, filepath.Join(copia, "sesiones", sesionDeNoActivacion),
+		mensajeDeReintento(1, 10, 429, "rate_limit"))
+
+	leido := informeDeLaCopia(t, copia, nil)
+
+	for sesion, reintentos := range map[string]int{sesionDelArticulo21: 2, sesionDeNoActivacion: 1} {
+		resultado := resultadoDeLaSesion(t, leido.informe, sesion)
+		assert.True(t, resultado.Pasa, "%s se mide y pasa", sesion)
+		assert.Empty(t, resultado.SinMedir, "%s no queda sin medir", sesion)
+		assert.Equal(t, reintentos, resultado.ReintentosPorLimiteDeRitmo, "reintentos de %s", sesion)
+
+		escrito := resultadoEscrito(t, leido, sesion)
+		assert.Equal(t, strconv.Itoa(reintentos), string(escrito.ReintentosPorLimiteDeRitmo),
+			"reintentos_por_limite_de_ritmo de %s", sesion)
+		assert.JSONEq(t, `""`, string(escrito.SinMedir), "sin_medir de %s", sesion)
+
+		assert.Equal(t, strconv.Itoa(reintentos), celdaDeLaSesion(t, leido.md, sesion, columnaDeReintentos))
+		assert.Equal(t, "no", celdaDeLaSesion(t, leido.md, sesion, columnaSinMedir))
+		assert.Equal(t, "pasa", celdaDeLaSesion(t, leido.md, sesion, "Resultado"))
+	}
+
+	assert.Equal(t, 3, leido.informe.ReintentosPorLimiteDeRitmo)
+	assert.Equal(t, "3", string(leido.crudo.ReintentosPorLimiteDeRitmo))
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"), "Reintentos por límite de ritmo: 3")
+
+	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 1}},
+		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":1}]`)
+	exigirSesionesSinMedir(t, leido)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+}
+
+// exigirSesionSinMedir exige que la sesión haya quedado sin medir por la clase
+// dada, con sus reintentos por rate_limit: no pasa y su único motivo es el del
+// límite, en informe.json, en su fila de la tabla de las sesiones y en su
+// sección de informe.md.
+func exigirSesionSinMedir(t *testing.T, leido informeLeido, sesion, clase string, reintentos int) {
+	t.Helper()
+
+	motivo := "sin medir por límite de uso: " + clase
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sesion)
+	assert.False(t, resultado.Pasa, "%s no pasa", sesion)
+	assert.Equal(t, clase, resultado.SinMedir)
+	assert.Equal(t, reintentos, resultado.ReintentosPorLimiteDeRitmo)
+	assert.Equal(t, []string{motivo}, resultado.Motivos, "el único motivo de %s es el del límite", sesion)
+
+	escrito := resultadoEscrito(t, leido, sesion)
+	assert.JSONEq(t, cadenaJSON(t, clase), string(escrito.SinMedir), "sin_medir de %s", sesion)
+	assert.Equal(t, strconv.Itoa(reintentos), string(escrito.ReintentosPorLimiteDeRitmo),
+		"reintentos_por_limite_de_ritmo de %s", sesion)
+
+	assert.Equal(t, clase, celdaDeLaSesion(t, leido.md, sesion, columnaSinMedir))
+	assert.Equal(t, strconv.Itoa(reintentos), celdaDeLaSesion(t, leido.md, sesion, columnaDeReintentos))
+	assert.Equal(t, "no pasa", celdaDeLaSesion(t, leido.md, sesion, "Resultado"))
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesion), "Motivos de la sesión:", "- "+motivo)
+}
+
+// exigirTasaSinMedir exige la tasa de una serie sin medir: la del Informe, que
+// no pasa, sus sesiones sin medir escritas en informe.json, y su fila de la tabla
+// de las series de informe.md, que lo dice en su resultado.
+func exigirTasaSinMedir(t *testing.T, leido informeLeido, esperada TasaDelInforme) {
+	t.Helper()
+
+	assert.Equal(t, esperada, tasaDeLaSerie(t, leido.informe, esperada.Eval, esperada.Modelo))
+
+	posicion := slices.IndexFunc(leido.crudo.Tasas, func(tasa tasaCruda) bool {
+		return tasa.Eval == esperada.Eval && tasa.Modelo == esperada.Modelo
+	})
+	require.GreaterOrEqual(t, posicion, 0, "informe.json tiene la tasa de %s con %s", esperada.Eval, esperada.Modelo)
+	assert.Equal(t, strconv.Itoa(esperada.SinMedir), string(leido.crudo.Tasas[posicion].SinMedir))
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+		filaDeTabla(esperada.Eval, esperada.Modelo, siONo(esperada.Decide), siONo(esperada.Planificada), "ninguna",
+			fmt.Sprintf("%d de %d", esperada.Pasan, esperada.Sesiones), fmt.Sprintf("sin medir (%d)", esperada.SinMedir)))
+}
+
+// exigirSesionesSinMedir exige las sesiones sin medir de la raíz: las del
+// Informe, las escritas en informe.json, con sus cuatro claves y una lista vacía,
+// no null, si no hay ninguna, y la sección de informe.md, que es su tabla, con una
+// fila por sesión y en su orden, o «ninguna».
+func exigirSesionesSinMedir(t *testing.T, leido informeLeido, esperadas ...SesionSinMedir) {
+	t.Helper()
+
+	if len(esperadas) == 0 {
+		assert.Empty(t, leido.informe.SesionesSinMedir)
+		assert.Equal(t, "[]", string(leido.crudo.SesionesSinMedir), "sesiones_sin_medir es una lista vacía, no null")
+		assert.Equal(t, "ninguna", seccionDelInforme(t, leido.md, "Sesiones sin medir"))
+
+		return
+	}
+
+	assert.Equal(t, esperadas, leido.informe.SesionesSinMedir)
+
+	escritas := make([]string, 0, len(esperadas))
+	filas := []string{
+		filaDeTabla(encabezadosDeLaTablaSinMedir...),
+		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaSinMedir))...),
+	}
+
+	for _, sinMedir := range esperadas {
+		escritas = append(escritas, fmt.Sprintf(`{"sesion":%s,"eval":%s,"modelo":%s,"motivo":%s}`,
+			cadenaJSON(t, sinMedir.Sesion), cadenaJSON(t, sinMedir.Eval), cadenaJSON(t, sinMedir.Modelo),
+			cadenaJSON(t, sinMedir.Motivo)))
+		filas = append(filas, filaDeTabla(sinMedir.Sesion, sinMedir.Eval, sinMedir.Modelo, sinMedir.Motivo))
+	}
+
+	assert.JSONEq(t, "["+strings.Join(escritas, ",")+"]", string(leido.crudo.SesionesSinMedir))
+	assert.Equal(t, strings.Join(filas, "\n"), seccionDelInforme(t, leido.md, "Sesiones sin medir"))
+}
+
+// motivoEsperadoDelLimite es el motivo de la raíz que dan las sesiones sin medir
+// dadas, cada una con su motivo y en su orden, escrito como lo fija el contrato
+// informe-del-job §2.2 de H7.3.
+func motivoEsperadoDelLimite(sesiones ...SesionSinMedir) string {
+	nombradas := make([]string, 0, len(sesiones))
+	for _, sinMedir := range sesiones {
+		nombradas = append(nombradas, sinMedir.Sesion+" ("+sinMedir.Motivo+")")
+	}
+
+	return fmt.Sprintf("de la ejecución, no de la skill: límite de uso de la cuenta: %d sesiones sin medir: %s",
+		len(sesiones), strings.Join(nombradas, ", "))
+}
+
+// copiaDelCasoAprobadoConLaLista copia el caso aprobado de TestInforme en un
+// directorio temporal del test, con la lista del repositorio en su carpeta de
+// evals, y devuelve su ruta.
+func copiaDelCasoAprobadoConLaLista(t *testing.T) string {
+	t.Helper()
+
+	copia := t.TempDir()
+	require.NoError(t, os.CopyFS(copia, os.DirFS(filepath.Join(casosDeInforme, casoAprobado))))
+	copiarLaListaDelRepositorio(t, filepath.Join(copia, "evals"))
+
+	return copia
+}
+
+// cambiarElFinalDeLaSesion deja en el transcript de la sesión del directorio su
+// mensaje system/init, que es su primera línea, seguido de lo dado, y le pone el
+// código dado.
+func cambiarElFinalDeLaSesion(t *testing.T, dir string, codigo int, trasElInit string) {
+	t.Helper()
+
+	init, _, hay := strings.Cut(contenidoDeLaSesion(t, dir, "sesion.jsonl"), "\n")
+	require.True(t, hay, "el transcript de %s tiene más de una línea", dir)
+	require.Contains(t, init, `"subtype":"init"`, "la primera línea del transcript de %s es system/init", dir)
+
+	escribirEnLaCopia(t, dir, "sesion.jsonl", init+"\n"+trasElInit)
+	escribirEnLaCopia(t, dir, "codigo-de-la-sesion", strconv.Itoa(codigo)+"\n")
+}
+
+// insertarTrasElInit mete lo dado en el transcript de la sesión del directorio
+// detrás de su mensaje system/init, que es su primera línea.
+func insertarTrasElInit(t *testing.T, dir, lineas string) {
+	t.Helper()
+
+	init, resto, hay := strings.Cut(contenidoDeLaSesion(t, dir, "sesion.jsonl"), "\n")
+	require.True(t, hay, "el transcript de %s tiene más de una línea", dir)
+	require.Contains(t, init, `"subtype":"init"`, "la primera línea del transcript de %s es system/init", dir)
+
+	escribirEnLaCopia(t, dir, "sesion.jsonl", init+"\n"+lineas+resto)
 }
 
 // conElModeloInformativo pone en las entradas los modelos informativos de los
@@ -1392,10 +1892,26 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
 		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "pasa"),
+			"ninguna", "0", "no", "pasa"),
 		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno", "ninguno",
-			"ninguna", "pasa"))
+			"ninguna", "0", "no", "pasa"))
+
+	// Ninguna sesión reintenta ni queda sin medir: cada una escribe sus
+	// reintentos por rate_limit, 0, y sin_medir vacío; cada serie, sin_medir 0;
+	// y la raíz, 0 reintentos y ninguna sesión sin medir, con «ninguna» en su
+	// sección de informe.md (contrato informe-del-job §3 y §4 de H7.3).
+	for _, resultado := range leido.crudo.Evals {
+		assert.Equal(t, "0", string(resultado.ReintentosPorLimiteDeRitmo),
+			"reintentos_por_limite_de_ritmo de %s", resultado.Sesion)
+		assert.JSONEq(t, `""`, string(resultado.SinMedir), "sin_medir de %s", resultado.Sesion)
+	}
+
+	for _, tasa := range leido.crudo.Tasas {
+		assert.Equal(t, "0", string(tasa.SinMedir), "sin_medir de %s con %s", tasa.Eval, tasa.Modelo)
+	}
+
+	exigirSesionesSinMedir(t, leido)
 }
 
 // comprobarFueraDeLoGrabado exige las dos invocaciones de a9998 de la sesión de
@@ -1863,9 +2379,15 @@ func tasaDeLaSerie(t *testing.T, informe Informe, eval, modelo string) TasaDelIn
 // final; informe.json igual al Informe devuelto; la cabecera, con la skill, el
 // modelo y el commit recibidos y la comprobación sin Python byte a byte, en
 // informe.json y en informe.md, que empieza por su título y lleva el veredicto de
-// informe.json; y el recuento de las expresiones prohibidas por modelo detrás de
+// informe.json; el recuento de las expresiones prohibidas por modelo detrás de
 // las tasas, en informe.json, y su sección detrás de la de las tasas, en
-// informe.md (contrato lista-y-juicio §5 de H7.2).
+// informe.md (contrato lista-y-juicio §5 de H7.2); los umbrales detrás del
+// recuento, seguidos de la duración de las sesiones, los reintentos por límite de
+// ritmo y las sesiones sin medir, en informe.json, con los umbrales siempre como
+// lista y cumpliendo los invariantes del ADR 0029, y, en informe.md, la sección
+// de los umbrales detrás de la del recuento, la de las sesiones sin medir detrás
+// de ella y la duración y los reintentos en la cabecera (contrato
+// informe-del-job §1, §3 y §4 de H7.3).
 func leerInformeEscrito(t *testing.T, destino string, devuelto Informe) informeLeido {
 	t.Helper()
 
@@ -1879,10 +2401,29 @@ func leerInformeEscrito(t *testing.T, destino string, devuelto Informe) informeL
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.informe))
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.crudo))
 
-	assert.Equal(t, "expresiones_prohibidas_por_modelo", claveDetras(t, escrito, "tasas"),
-		"en informe.json, el recuento por modelo va detrás de las tasas")
-	assert.Equal(t, "Expresiones prohibidas por modelo", seccionDetras(t, leido.md, "Tasas por eval"),
-		"en informe.md, la sección del recuento por modelo va detrás de la de las tasas")
+	for anterior, siguiente := range map[string]string{
+		"tasas":                             "expresiones_prohibidas_por_modelo",
+		"expresiones_prohibidas_por_modelo": "umbrales",
+		"umbrales":                          "duracion_de_las_sesiones",
+		"duracion_de_las_sesiones":          "reintentos_por_limite_de_ritmo",
+		"reintentos_por_limite_de_ritmo":    "sesiones_sin_medir",
+	} {
+		assert.Equal(t, siguiente, claveDetras(t, escrito, anterior), "en informe.json, %s va detrás de %s",
+			siguiente, anterior)
+	}
+
+	for anterior, siguiente := range map[string]string{
+		"Tasas por eval":                    "Expresiones prohibidas por modelo",
+		"Expresiones prohibidas por modelo": "Umbrales",
+		"Umbrales":                          "Sesiones sin medir",
+	} {
+		assert.Equal(t, siguiente, seccionDetras(t, leido.md, anterior), "en informe.md, la sección %s va detrás de %s",
+			siguiente, anterior)
+	}
+
+	assert.True(t, strings.HasPrefix(compacto(t, leido.crudo.Umbrales), "["), "umbrales es una lista, nunca null")
+	assert.Equal(t, strconv.Itoa(leido.informe.DuracionDeLasSesiones), string(leido.crudo.DuracionDeLasSesiones))
+	exigirLosInvariantesDeLosUmbrales(t, leido)
 
 	sinPython := contenidoDeLaSesion(t, casosDeInforme, ficheroSinPython)
 
@@ -1897,7 +2438,9 @@ func leerInformeEscrito(t *testing.T, destino string, devuelto Informe) informeL
 		"Modelo que decide: "+leido.informe.ModeloQueDecide,
 		"Repeticiones por eval: "+strconv.Itoa(leido.informe.Repeticiones),
 		"Umbral: "+strconv.Itoa(leido.informe.Umbral),
-		"Commit: "+commitEvaluado)
+		"Commit: "+commitEvaluado,
+		"Duración de las sesiones: "+strconv.Itoa(leido.informe.DuracionDeLasSesiones)+" s",
+		"Reintentos por límite de ritmo: "+strconv.Itoa(leido.informe.ReintentosPorLimiteDeRitmo))
 	assert.Equal(t, "```text\n"+sinPython+"```", seccionDelInforme(t, leido.md, "Comprobación sin Python"))
 
 	return leido

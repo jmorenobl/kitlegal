@@ -124,7 +124,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 			lineas:  []string{"la segunda conversaci\xc3\xb3n no termin\xc3\xb3: tope de 240 s agotado (c\xc3\xb3digo 124)"},
 		},
 		{
-			// La primera sin la forma y con dos expresiones, separadas por «, »,
+			// La primera sin la forma y con tres expresiones, separadas por «, »,
 			// y la segunda con la forma: las líneas van por condición, no por
 			// conversación.
 			nombre:  "tres-fallos-a-la-vez",
@@ -133,7 +133,8 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 			lineas: []string{
 				primeraSinLaForma,
 				segundaConLaForma,
-				"la primera respuesta lleva expresiones prohibidas: memoria de consultas, hallazgos",
+				"la primera respuesta lleva expresiones prohibidas: memoria de consultas, hallazgos, " +
+					"tengo todo lo necesario",
 			},
 		},
 	}

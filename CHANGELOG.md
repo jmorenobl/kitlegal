@@ -106,32 +106,6 @@ sustituyen a este fichero.
   se puede crear, o un lote rechazado—, la invocación escribe en la salida de error exactamente
   `kitlegal: lo observado no ha llegado al grafo del mundo: <causa>`, con la causa en una sola línea, y termina con el
   mismo código y la misma salida estándar que habría dado sin grafo. No se reintenta ni se guarda para después.
-- **`boe-legislacion` v0.1.2 empieza por lo que se pregunta y dice que la redacción ha cambiado desde la consulta
-  anterior.** Lee cada bloque una sola vez por pregunta y, cuando ya no queda nada por leer y antes de redactar,
-  comprueba la memoria de consultas **una vez por cada norma cuyos bloques cita**, con esa norma y los bloques leídos
-  de ella (`kitlegal graph check BOE-A-2015-10565 a21 --json`); nunca antes de leer ni sin argumentos. **La respuesta
-  no cuenta esa comprobación**: empieza por lo que se pregunta —la norma, su texto y su cita— y no nombra la memoria
-  de consultas, `kitlegal graph` ni ninguno de sus verbos, los códigos de salida, los hallazgos, las clases
-  `version-obsoleta` y `fuente-caducada`, el JSON ni el sobre, tampoco para decir que no hay nada que decir. Lo único
-  que dice de ella es cada `version-obsoleta`, con una forma fija, `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la etiqueta que da
-  el binario y dos puntos—, seguida en la misma línea de las dos fechas de vigencia tal como las da el hallazgo
-  (`AAAAMMDD`), la de la redacción superada y la de la que cita; decirlo con otras palabras no lo traslada, y la
-  etiqueta no es la de ningún aviso de vigencia. No traslada `fuente-caducada`, porque cita siempre lo que acaba de
-  leer. **No habla de lo dicho en otra conversación**, ni para afirmarlo, ni para confirmarlo, ni para desmentirlo, y
-  sin `version-obsoleta` no dice nada de lo consultado antes, ni que ha cambiado ni que no: la comprobación sin
-  hallazgos no distingue un bloque leído antes y sin cambios de uno que nunca se leyó. El texto que cita sale siempre
-  de `kitlegal boe articulo` o `articulos`, nunca de la salida de `graph`, y una comprobación con hallazgos no es un
-  fallo. Si `graph check` falla, responde igual con el texto leído y dice «No se ha podido comprobar si la redacción
-  ha cambiado desde una consulta anterior.», sin afirmar que ha cambiado ni que no; si falla `kitlegal boe`, dice qué
-  no pudo consultar por lo que significa para quien pregunta —que el artículo no está en la norma, que la fuente no
-  estaba disponible o que limitó las consultas—, sin el código, y no suple el texto. Su frontmatter declara
-  `kitlegal-applets: boe graph` y su tabla de comandos gana `kitlegal graph` (`show`, `stats` y
-  `check [<norma> [<bloques>...]]`), generada con `make skills-sync`, que escribe los argumentos de posición
-  opcionales como la ayuda del binario. La forma de la cita y la de los avisos de vigencia no cambian. Sustituye a la
-  v0.1.1 de H7.1, que no llegó a publicarse: contaba la comprobación en la respuesta, no fijaba cómo se escriben las
-  fechas de la forma, decía que no había podido comprobar la memoria de consultas cuando `graph check` fallaba y no
-  prohibía el código cuando fallaba `kitlegal boe`; y a la v0.1 de H7, que tampoco llegó a publicarse: comprobaba dos
-  veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también `fuente-caducada`.
 - **Eval informativa de la consulta repetida** (`evals/boe-legislacion/19-lcsp-contrato-menor-redaccion-cambiada.yaml`),
   sobre un artículo que el BOE modificó de verdad, el 118 de la LCSP (expediente de los contratos menores): el grafo de
   la sesión ya registró una lectura del bloque `a1-30` de `BOE-A-2017-12902` que vio su redacción original (vigencia
@@ -155,28 +129,39 @@ sustituyen a este fichero.
   de vigencia y un párrafo que la respuesta grabada no trae.
 - **Lista de expresiones prohibidas en el formato común de eval.** Una skill puede tener, junto a sus evals,
   `evals/<skill>/expresiones-prohibidas.yaml`, validada contra `schemas/expresiones-prohibidas.yaml.json`: las
-  expresiones que no lleva la respuesta de una eval que activa la skill, en dos familias, `maquinaria` y
-  `otra_conversacion`. Hoy solo la tiene `boe-legislacion`, con 38: 22 de la maquinaria interna
+  expresiones que no lleva la respuesta de una eval que activa la skill, en tres familias obligatorias, `maquinaria`,
+  `otra_conversacion` y `anuncio`. Hoy solo la tiene `boe-legislacion`, con 52: 22 de la maquinaria interna
   —`memoria de consultas`, `hallazgo`, `hallazgos`, `graph check`, `graph show`, `graph stats`, `kitlegal graph`,
   `version-obsoleta`, `fuente-caducada`, `código de salida`, `códigos de salida`, de `código 0` a `código 7`,
-  `exit code`, `json` y `sobre de salida`— y 16 de lo dicho en otra conversación —`te dije`, `te confirmé`,
+  `exit code`, `json` y `sobre de salida`—, 16 de lo dicho en otra conversación —`te dije`, `te confirmé`,
   `te habría confirmado` y los demás verbos de decir con «te», `conversación anterior` y
-  `conversaciones anteriores`—. Se comparan por la forma, sin ningún modelo, con la tolerancia de las formas fijas de
+  `conversaciones anteriores`— y 14 del anuncio. **La tercera familia, `anuncio`, es el anuncio de la respuesta o del
+  estado de lo comprobado**, con las formas que llevaban las respuestas de los cierres de H7.1 y H7.2: `que trasladar`,
+  `hace falta trasladar`, `ya puedo responder`, `con esto puedo responder`, `y puedo responder`,
+  `tengo todo lo necesario`, `tengo lo necesario`, `redacto la respuesta`, `respondo con el texto`,
+  `respondo con el contenido`, `ya tengo la respuesta`, `ya tengo el texto`, `así que respondo` y
+  `sin redacciones cambiadas`; ninguna dice a quien lee que la norma no está derogada o que no tiene avisos, que es
+  derecho y no maquinaria. Se comparan por la forma, sin ningún modelo, con la tolerancia de las formas fijas de
   los avisos —sin distinguir mayúsculas, con blancos y énfasis de Markdown entre las palabras y alrededor— y
-  delimitadas como palabras; lo mismo dicho con otras palabras no se detecta, y el informe publica cada respuesta. `Juzgar` la aplica a cada sesión de las evals de
+  delimitadas como palabras; lo mismo dicho con otras palabras no se detecta, y el informe publica cada respuesta. `Juzgar` la aplica, con sus tres familias, a cada sesión de las evals de
   `boe-legislacion` que activan la skill, con todos los modelos: cada expresión encontrada es un motivo
   `expresión prohibida: <expresión>` y la sesión no pasa, así que **decide en las evals que deciden**, con el umbral
-  del ADR 0016 y sin cambiar la regla del veredicto, y cuenta en la tasa de las informativas sin decidir. Las evals de
+  del ADR 0016 y la regla por serie de siempre, y cuenta en la tasa de las informativas sin decidir; cada respuesta
+  cuenta además en el umbral de las expresiones prohibidas de su modelo (`umbrales`, abajo). Las evals de
   no activación y las de una skill sin lista se juzgan como antes. El informe publica, por sesión,
   `expresiones_prohibidas` en `informe.json` y la columna «Expresiones prohibidas» en la tabla de sesiones de
   `informe.md`, y, por modelo, `expresiones_prohibidas_por_modelo` —`con_alguna` sobre `respuestas`, las sesiones
-  juzgadas de las series planificadas cuya eval activa la skill— y la sección «Expresiones prohibidas por modelo»; la
-  sesión de la prueba de red se juzga con la lista y publica sus expresiones, pero no entra en el recuento. Una lista
-  mal formada es un fichero mal formado: `make ci` falla nombrándola, y el informe la lista y da `fallo`.
-  `make skills-check` comprueba además que la lista de `boe-legislacion` marca, de las 93 respuestas del informe de
-  evals de H7.1, exactamente las 35 que llevaban la maquinaria o lo dicho en otra conversación, eval por eval, y
-  ninguna otra; y que no está en el texto de ningún bloque que leen sus evals ni en las formas fijas de los avisos y
-  de los hallazgos ni en los textos que su `SKILL.md` enseña a escribir.
+  medidas de las series planificadas cuya eval activa la skill, sin las ilegibles ni las sin medir por límite de
+  uso— y la sección «Expresiones prohibidas por modelo»; la sesión de la prueba de red se juzga con la lista y
+  publica sus expresiones, pero no entra en el recuento. Una lista mal formada —también una sin alguna de las tres
+  familias, o con una vacía— es un fichero mal formado: `make ci` falla nombrándola, y el informe la lista y da `fallo`.
+  `make skills-check` comprueba además que la lista de `boe-legislacion` marca exactamente 35 de las 93 respuestas
+  del informe de evals de H7.1 y 10 de las 93 del de H7.2, eval por eval y familia por familia, y ninguna otra; que
+  no está en el texto de ningún bloque que leen sus evals ni en las formas fijas de los avisos y de los hallazgos ni
+  en los textos que su `SKILL.md` enseña a escribir; y que **la prosa de su `SKILL.md`** —el fichero entero,
+  frontmatter incluido, sin los bloques delimitados, los tramos de código en línea ni la tabla de comandos generada,
+  párrafo a párrafo— no lleva ninguna expresión de la lista y el fichero ninguna fecha `AAAAMMDD` escrita con cifras:
+  falla nombrando la primera línea de cada párrafo que lleva alguna, con sus expresiones, y cada línea con una fecha.
 - **El formato común de eval gana cuatro piezas**, opcionales y solo en una eval que activa la skill; las evals que
   ya había se leen y se juzgan igual. `comandos` admite una quinta forma, la comprobación (`applet` y `verbo` `check`,
   y, si se da, `norma`), que la cumple una invocación de ese applet con `check` —y con esa norma, si la eval la
@@ -197,9 +182,106 @@ sustituyen a este fichero.
   directorio encima para dejar su observación en el grafo de la sesión; la caché de la sesión se prepara después, como
   siempre. `schemas/eval.yaml.json` los valida y `make skills-check` comprueba que cada grafo previo nombrado existe y
   se prepara sin ninguna falta.
+- **`umbrales` en el informe del job de evals, y el de las expresiones prohibidas de Sonnet 5 decide el veredicto.**
+  `informe.json` lleva siempre `umbrales`, detrás de `expresiones_prohibidas_por_modelo`, con el contrato del
+  ADR 0029: cada elemento con `nombre`, `descripcion`, `medida`, `total` —solo si lo que se compara es una
+  proporción—, `comparacion` (`"<="`), `umbral`, `cumple` —la comparación en coma flotante de doble precisión y sin
+  redondeos, de `medida` entre `total` (0 si `total` es 0) o de la propia `medida`— y `decide`. Una skill con lista de
+  expresiones prohibidas tiene uno por modelo del job, `expresiones_prohibidas:<modelo>` —el que decide y después los
+  informativos, en su orden—, con la `medida` y el `total` de su recuento y el `umbral` `0.05`: en `boe-legislacion`,
+  `expresiones_prohibidas:claude-sonnet-5`, con `decide: true` —con sus 51 respuestas en las evals que activan la
+  skill, como mucho 2 con alguna expresión—, y `expresiones_prohibidas:claude-haiku-4-5-20251001`, sobre 30 y con
+  `decide: false`, que solo se publica. Entran las respuestas de las evals informativas que activan la skill, y no la
+  de la prueba de red ni las de las sesiones sin medir. Un umbral con `decide: true` que no se cumple pone el veredicto
+  en `fallo` con el motivo `umbral <nombre>: <medida> de <total> (<p> %), y tiene que ser ≤ <u> %`, con un decimal y
+  coma (`umbral expresiones_prohibidas:claude-sonnet-5: 3 de 51 (5,9 %), y tiene que ser ≤ 5,0 %`), y el job sale en
+  rojo; uno que se cumple, o que no decide, no cambia el veredicto, y la regla por serie del ADR 0016 no cambia.
+  `informe.md` gana la sección «Umbrales», detrás de «Expresiones prohibidas por modelo», con la tabla
+  `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` —`no: solo se publica` en los que no deciden— o el
+  párrafo `ninguno`. `legal-core`, sin lista y sin objetivo de duración, da `umbrales: []`.
+- **Sesiones sin medir por límite de uso.** Una sesión que un límite de la cuenta no dejó terminar no es una eval
+  fallida: el informe la clasifica sin modelo, con lo que registra su transcript, en una de tres clases —(a) el
+  mensaje del límite de uso de Claude Code en su resultado (el que empieza por `You've hit your`,
+  `You've reached your` o `You're out of`), (b) reintentos por `rate_limit` hasta agotarlos o (c) reintentos por
+  `rate_limit` hasta que la corta el tope— y la deja **sin medir**: no pasa ni falla, lleva como único motivo
+  `sin medir por límite de uso: <clase>`, no entra en el recuento de expresiones prohibidas ni en los umbrales, y su
+  serie queda sin medir, sin pasar y sin el motivo «pasan N de M». Otros reintentos, como los de la sobrecarga, no
+  son un límite de la cuenta, y una sesión que se recupera de sus reintentos se mide como cualquier otra. Tras una
+  sesión de la clase (a), que no se repone dentro del job, el job no abre ninguna más: las abiertas terminan y se
+  juzgan, y las que faltaban del plan cuentan en su serie como sin medir, `sin abrir tras el límite de uso`, sin el
+  motivo de las sesiones que faltan; tras (b) o (c), sigue abriéndolas. Con alguna sesión sin medir, el veredicto es
+  `fallo` con un solo motivo propio, que se distingue sin modelo de los de la skill,
+  `de la ejecución, no de la skill: límite de uso de la cuenta: <n> sesiones sin medir: <sesión> (<clase>), …`, y el
+  job sale en rojo. `informe.json` gana `sesiones_sin_medir` —`sesion`, `eval`, `modelo` y `motivo`, en orden de
+  sesión; `[]` si ninguna—, `sin_medir` en cada sesión (la clase, o `""` si se midió) y en cada tasa (cuántas); e
+  `informe.md`, la sección «Sesiones sin medir» detrás de «Umbrales» (o `ninguna`), `sin medir (<n>)` en la columna
+  «Resultado» de la serie y la columna «Sin medir» en «Sesiones». El motivo de una sesión que no terminó lleva además
+  el texto del último `result` con `is_error` de su transcript, con el código 0 o con otro que no es el del tope
+  (`código 1: result con is_error: Failed to authenticate. …`).
+- **Reintentos por límite de ritmo.** El informe publica los reintentos por `rate_limit` que registra el transcript
+  de cada sesión (`system/api_retry`): en `reintentos_por_limite_de_ritmo` de cada sesión y, sumados, en la raíz de
+  `informe.json`, y en la línea `Reintentos por límite de ritmo: <n>` de la cabecera de `informe.md` y en la columna
+  del mismo nombre de «Sesiones». Son el dato con el que se ajusta la concurrencia del job.
+- **La duración de las sesiones, con su objetivo de 900 s en `boe-legislacion`.** El informe publica
+  `duracion_de_las_sesiones`, los segundos desde que se prepara la primera sesión hasta que termina la última,
+  redondeados hacia arriba y sin la preparación del runner, y la línea `Duración de las sesiones: <s> s` en la
+  cabecera de `informe.md`. Con un objetivo mayor que 0 (`OBJETIVO_DE_DURACION_DE_EVALS`: 900 en `boe-legislacion`;
+  `legal-core` no tiene), `umbrales` lleva `duracion_de_las_sesiones`, sin `total` y con `decide: true`: por encima,
+  el veredicto es `fallo` con el motivo
+  `de la ejecución, no de la skill: duracion_de_las_sesiones: <s> s, y tiene que ser ≤ 900 s`, y el job sale en rojo.
+- **Sondeo local, `make evals-sondeo`, que no es un veredicto.**
+  `make evals-sondeo SKILL=<skill> EVALS=<nn>[,<nn>…] MODELO=<id> REPETICIONES=<n> [CONCURRENCIA=<n>]` abre a la vez,
+  en macOS o en Linux y sin strace ni `sudo`, las sesiones de unas evals de una skill con un solo modelo —con
+  `CONCURRENCIA` vacía, como mucho las que abre a la vez el job para esa skill—, con el binario y la skill del árbol
+  de trabajo, que
+  construye e instala en un directorio temporal, sin la configuración de Claude Code de quien lo lanza y con una sola
+  credencial, `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción que da `claude setup-token`: sin ella, o vacía,
+  dice que falta y termina con error sin abrir ninguna sesión, como con un argumento que no vale, que nombra. Cada
+  sesión se prepara y se juzga con el código del job, sin lo que el job lee de la traza de strace —los comandos
+  esperados y los prohibidos de cada eval y las llegadas a la red—, y tras el mensaje del límite de uso no abre
+  ninguna más. Su salida empieza por «Esto es un sondeo, no un veredicto: el veredicto de la skill lo da el job de
+  evals.», dice lo que no comprueba y da solo lo agregado: la tasa de cada serie, las respuestas con alguna expresión
+  prohibida en las evals que activan la skill, con el 5 % como referencia, y las sesiones sin medir y las que no
+  llegaron a terminar por otra causa, con su motivo. No escribe `informe.json` ni ningún veredicto, termina con `0` si
+  ha podido abrir y juzgar sus sesiones, sean cuales sean sus tasas, y borra su directorio temporal al terminar, con
+  el código que sea. Abre sesiones con modelo y consume la suscripción de quien lo lanza: ni `make ci` ni ningún
+  flujo lo ejecutan.
 
 ### Cambiado
 
+- **`boe-legislacion` v0.1.3**: la respuesta empieza por la norma sin el estado de la comprobación delante; la skill
+  ya no enseña con su prosa el vocabulario que la respuesta no puede decir, la regla 7 dice solo qué hacer si la
+  comprobación de la redacción falla y cuándo va `⚠ REDACCIÓN MODIFICADA:`, y el ejemplo de esa línea lleva
+  `AAAAMMDD` en lugar de fechas que copiar. Lee cada bloque una sola vez por pregunta y comprueba si su redacción ha
+  cambiado desde una lectura anterior **en la misma orden que lo lee**, detrás de la lectura y con su misma norma y
+  sus mismos bloques
+  (`kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json`): una
+  comprobación por cada orden de lectura —una por norma citada en la mayoría de las preguntas—, nunca antes de leer
+  ni sin argumentos, de modo que la última orden antes de la respuesta es la que trae el texto y no una comprobación
+  suelta. La respuesta es todo lo que el agente escribe después de la última orden, desde su primera palabra, y está
+  hecha de la norma, su texto, su cita, sus avisos de vigencia y, si la redacción cambió, la línea
+  `⚠ REDACCIÓN MODIFICADA:`: no cuenta lo que ha hecho ni lo que ha devuelto ninguna orden. Por cada
+  `version-obsoleta` lleva esa forma fija —`⚠`, la etiqueta que da el binario y dos puntos—,
+  seguida en la misma línea de las dos fechas de vigencia tal como las da la comprobación (`AAAAMMDD`), la de la
+  redacción superada y la de la que cita; decirlo con otras palabras no vale, y la etiqueta no es la de ningún aviso
+  de vigencia. No lleva `fuente-caducada`, porque cita siempre lo que acaba de leer. **No habla de lo dicho en otra
+  conversación**, ni para afirmarlo, ni para confirmarlo, ni para desmentirlo, y lo único que dice de una lectura
+  anterior es esa línea. El texto que cita sale siempre de `kitlegal boe articulo` o `articulos`, nunca de la salida
+  de `graph`. Si `graph check` termina con otro código que `0`, responde igual con el texto leído y dice «No se ha
+  podido comprobar si la redacción ha cambiado desde una consulta anterior.», sin afirmar que ha cambiado ni que no;
+  si falla `kitlegal boe`, dice qué no pudo consultar por lo que significa para quien pregunta —que el artículo no
+  está en la norma, que la fuente no estaba disponible o que limitó las consultas—, sin el código, y no suple el
+  texto. Su frontmatter declara `kitlegal-applets: boe graph` y su tabla de comandos gana `kitlegal graph` (`show`,
+  `stats` y `check [<norma> [<bloques>...]]`), generada con `make skills-sync`, que escribe los argumentos de
+  posición opcionales como la ayuda del binario. La forma de la cita y la de los avisos de vigencia no cambian.
+  Sustituye a la v0.1.2 de H7.2, que no llegó a publicarse: su prosa enumeraba lo que la respuesta no podía nombrar
+  —la memoria de consultas, los códigos de salida, los hallazgos—, trataba el caso en que la comprobación no tenía
+  nada que decir, pedía la comprobación sola, como última orden y unida a «antes de redactar la respuesta», y el
+  ejemplo de la línea llevaba dos fechas que copiar; a la v0.1.1 de H7.1, que tampoco llegó a publicarse: contaba la comprobación en la respuesta, no fijaba
+  cómo se escriben las fechas de la forma, decía que no había podido comprobar la memoria de consultas cuando
+  `graph check` fallaba y no prohibía el código cuando fallaba `kitlegal boe`; y a la v0.1 de H7, que tampoco llegó a
+  publicarse: comprobaba dos veces por pregunta, antes y después de leer y sin argumentos, y trasladaba también
+  `fuente-caducada`.
 - **`--no-graph` tiene efecto**: la invocación no entrega nada al grafo, ni resuelve la ruta de `world.db` ni lo
   abre, y su ayuda dice «No entrega al grafo del mundo nada de lo que observa la invocación.», en lugar de «Declara
   que la ejecución no altera el grafo.». La salida estándar y el código son los mismos con la bandera y sin ella.
@@ -238,6 +320,31 @@ sustituyen a este fichero.
 - **Con 19 evals, el trabajo de `boe-legislacion` del job de evals abre 93 sesiones**: 57 de `claude-sonnet-5` —36
   sobre las doce que deciden y 21 sobre las siete informativas— y 36 de `claude-haiku-4-5-20251001` sobre las doce que
   deciden.
+- **El job de evals abre las sesiones de una skill a la vez, de cuatro en cuatro en `boe-legislacion`, con una sola
+  tanda por commit**, y con lo que garantiza cada sesión sin cambiar. `scripts/evals.sh` exige `CONCURRENCIA_DE_EVALS`,
+  cuántas sesiones abre a la vez como mucho —un valor que no es un entero mayor o igual que 1 lo termina con `1` antes
+  de la primera sesión, como las repeticiones—, lee `OBJETIVO_DE_DURACION_DE_EVALS`, opcional (`0`, sin objetivo), y
+  ya no necesita `timeout`. Tras las comprobaciones de siempre ejecuta una sola orden de Go, `TestEjecucionDelJob`
+  (etiqueta `evals`), que compone el plan, reparte sus sesiones, las juzga y escribe el informe con la duración, y que
+  falla con un error o con el veredicto `fallo`, en lugar del plan en un fichero, el bucle de sesiones en bash y las
+  tres entradas de Go que planificaban, preparaban cada sesión y escribían el informe, que se retiran. Cada sesión se
+  prepara justo antes de abrirla, en
+  su propio directorio —el de trabajo, su caché y su grafo, el estado de Claude Code (`CLAUDE_CONFIG_DIR`) con las
+  skills tal como las deja `make install`, y su temporal—, sin escribir en nada de otra; la abre el guion nuevo
+  `scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con el proxy que rechaza toda petición
+  salvo la del modelo, en su propio grupo de procesos, y el tope de 240 s lo pone el repartidor, en Go: `TERM` al
+  grupo y, 10 s después, `KILL`, con los códigos 124 y 137 de siempre. Ninguna sesión se reintenta ni se abre dos
+  veces, `SIGINT` o `SIGTERM` cierran las abiertas y, sin límites de uso, el informe es el mismo que en serie, salvo
+  los tiempos. En `.github/workflows/evals.yml`, la matriz da a `boe-legislacion` `concurrencia` 4 y
+  `objetivo_de_duracion` 900, y a `legal-core` 1 y 0, que el trabajo pasa en esas dos variables; el trabajo se llama
+  `evals (<skill>)`; su `concurrency`, por commit y skill con `cancel-in-progress: false`, hace que un segundo disparo
+  sobre el mismo commit —el de la apertura y el de la etiqueta— espere a que termine el primero, sin cancelarse ni
+  saltarse; `timeout-minutes: 120` es el tope de un cuelgue, que cubre el peor caso de cada skill, y no el control de
+  la duración; y el filtro de lo que las evals miden gana `scripts/evals-sesion.sh`. `TestDefinicionDelJob` comprueba
+  esa definición en `make ci` —el grupo, `cancel-in-progress`, el nombre, la concurrencia y el objetivo de cada skill,
+  y que `timeout-minutes` cubre su peor caso, `485 s + ⌈N / C⌉ × (22 s + 240 s + 10 s)`, con `N` las sesiones de su
+  plan con la de la prueba de red y `C` su concurrencia—, y los tests del repartidor, con sustitutos de `claude` y
+  `strace`, lo prueban sin modelo, también en macOS.
 
 El contenido del grafo es solo lo que se ha dicho. De los **bytes** de `world.db` y de los ficheros auxiliares que
 SQLite pone junto a él se promete solo esto, y solo de lo que deja el propio binario

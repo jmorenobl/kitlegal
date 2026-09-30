@@ -468,7 +468,7 @@ exactamente una de las redacciones que trae la grabada, la de esa fecha.
 
 **La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
 expresiones que no lleva la respuesta de una eval que activa la skill. `make ci` la reconoce por ese nombre exacto —no
-es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: dos claves
+es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: tres claves
 obligatorias, una por familia, cada una con una lista no vacía de expresiones de una o más palabras separadas por un
 espacio, sin blancos en los extremos ni `*` o `_`:
 
@@ -476,6 +476,7 @@ espacio, sin blancos en los extremos ni `*` o `_`:
 |---|---|
 | `maquinaria` | Lo que la respuesta no cuenta de cómo trabaja la skill: la memoria de consultas, `kitlegal graph` y sus verbos, los códigos de salida, los hallazgos y sus clases, el JSON y el sobre, en formas que no chocan con el castellano corriente ni con el texto de las normas (`memoria de consultas`, `graph check`, `código 0`, `sobre de salida`…) |
 | `otra_conversacion` | Lo que atribuye a la skill algo dicho a quien pregunta en otra conversación: un verbo de decir con «te» en pretérito o en condicional compuesto, y `conversación anterior` (`te dije`, `te habría confirmado`…) |
+| `anuncio` | El anuncio de la respuesta o del estado de lo comprobado: que va a responder, que ya tiene lo que necesita o que no hay nada que trasladar (`ya puedo responder`, `tengo todo lo necesario`, `redacto la respuesta`, `que trasladar`…). Ninguna dice a quien lee que la norma no está derogada o que no tiene avisos: eso es derecho, no maquinaria |
 
 Cada expresión se compara con la respuesta por la forma, sin ningún modelo y con la tolerancia de las formas fijas de
 los avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las palabras y
@@ -484,11 +485,20 @@ un salto de línea entre dos palabras. **Lo mismo dicho con otras palabras no se
 y el informe publica cada respuesta para verlo. Una lista mal formada —clave desconocida o repetida, familia que falta
 o vacía, expresión con blancos en un extremo o con `*` o `_`, o una entrada con ese nombre que no es un fichero— es un
 fichero mal formado, como una eval: `make ci` falla nombrándola y las evals de la carpeta se leen sin lista. Hoy solo
-la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya: marca exactamente las 35 respuestas
-con la maquinaria o con lo dicho en otra conversación del informe de evals de H7.1, eval por eval y familia por
-familia (subprueba `expresiones-calibradas`); ninguna expresión casa con el texto de los bloques que leen sus evals y
+la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya: marca exactamente 35 de las 93
+respuestas del informe de evals de H7.1 y 10 de las 93 del de H7.2, los informes versionados en los directorios de
+esos hitos en `specs/`, eval por eval y familia por familia, y ninguna otra (subprueba `expresiones-calibradas`), así
+que una expresión nueva que marca una respuesta más, o una retirada que deja de marcar una, hace fallar `make ci`
+nombrando el informe, la eval y la familia; ninguna expresión casa con el texto de los bloques que leen sus evals y
 sus grafos previos (`expresiones-en-los-bloques`), ni con las formas fijas de los avisos y de los hallazgos o los
-bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir (`expresiones-de-la-skill`).
+bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir (`expresiones-de-la-skill`); y **la prosa
+de su `SKILL.md` no enseña lo que la respuesta no puede decir** (`prosa-de-la-skill`): sobre el fichero entero,
+frontmatter incluido, sin los bloques delimitados, los tramos de código en línea ni la región generada de la tabla de
+comandos, y párrafo a párrafo —partido por las líneas en blanco y por cada elemento de lista—, ninguna expresión de la
+lista, y en todo el fichero ninguna fecha `AAAAMMDD` escrita con cifras, que un ejemplo daría a copiar. Falla
+nombrando la primera línea de cada párrafo que lleva alguna, con sus expresiones, y cada línea con una fecha. Lo que la
+skill ejecuta y lo que lee en la salida del binario va en código (`version-obsoleta`, `data.hallazgos`, `3`), y no
+cuenta; los ejemplos de una forma que lleva datos del binario usan marcadores como `AAAAMMDD`.
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe,
 termina, hace con éxito cada consulta de `comandos` —una comprobación la cumple una invocación de ese applet con
@@ -506,25 +516,39 @@ modelo, y esa serie pasa si las sesiones que pasan llegan al umbral ([Job de eva
 
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
-ningún Python accesible. Antes de la primera sesión comprueba todo eso, que ninguna eval ni la lista de expresiones
-prohibidas están mal formadas, que lo que necesitan está grabado, que la skill está instalada y que `kitlegal` está en
-el `PATH`, y termina con `1` si algo falla. Después abre las sesiones de
-Claude Code del plan, cada una bajo `strace` y con la red cerrada salvo la del modelo: cada eval, tantas veces como
-repeticiones, con el modelo que decide y, si no es informativa, otras tantas con cada modelo informativo. Juzga cada
-sesión y agrupa las de cada eval con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan. El informe
-publica la tasa de cada serie y da un veredicto global que falla si una serie que decide —la de una eval que no es
-informativa con el modelo que decide— no llega al umbral, una serie no tiene exactamente las sesiones que pide el
-plan, una sesión es ilegible, un fichero está mal formado, no hay ninguna eval bien formada que juzgar o una petición
-llega a la red (ADR 0016).
+ningún Python accesible. Antes de la primera sesión comprueba todo eso, las variables del job —también que
+`CONCURRENCIA_DE_EVALS` es un entero mayor o igual que 1—, que ninguna eval ni la lista de expresiones prohibidas
+están mal formadas, que lo que necesitan está grabado, que la skill está instalada y que `kitlegal` está en el `PATH`,
+y termina con `1` si algo falla. Después, una sola orden de Go, `TestEjecucionDelJob` (etiqueta `evals`, en
+`internal/evals/job_test.go`), compone el plan —cada eval, tantas veces como repeticiones, con el modelo que decide y,
+si no es informativa, otras tantas con cada modelo informativo— y abre sus sesiones de Claude Code en ese orden,
+**como mucho `CONCURRENCIA_DE_EVALS` a la vez**. Cada sesión se prepara justo antes de abrirla, en su propio
+directorio: el de trabajo, su caché y su grafo, el estado de Claude Code (`CLAUDE_CONFIG_DIR`), con un enlace a cada
+skill tal como la deja `make install`, y su temporal (`TMPDIR`); ninguna escribe en nada de otra. La abre
+`scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con la red cerrada salvo la del modelo,
+en su propio grupo de procesos, y el tope lo pone el repartidor de `internal/evals`: a los 240 s envía `TERM` al grupo
+y, 10 s después, `KILL` (la sesión queda con el código 124 o 137). Ninguna sesión se reintenta ni se abre dos veces, y
+`SIGINT` o `SIGTERM` cierran las abiertas y dejan la orden sin informe. Juzga cada sesión y agrupa las de cada eval
+con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan; sin límites de uso, el informe es el mismo
+que abriéndolas una tras otra, salvo los tiempos. El informe publica la tasa de cada serie y da un veredicto global
+que falla si una serie que decide —la de una eval que no es informativa con el modelo que decide— no llega al umbral,
+una serie no tiene exactamente las sesiones que pide el plan, una sesión es ilegible, un fichero está mal formado, no
+hay ninguna eval bien formada que juzgar o una petición llega a la red (ADR 0016); y también si un umbral que decide
+no se cumple, si alguna sesión queda sin medir por un límite de uso de la cuenta o si la duración de las sesiones
+pasa de su objetivo (abajo). Con `fallo`, la orden y el trabajo terminan en rojo.
 
 Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
-ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro.
+ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro; el
+de cada skill se llama `evals (<skill>)`, que es por donde el cierre del workflow lee su informe.
 Cada trabajo instala con `make install` y añade al `PATH` el directorio donde `go install` deja el binario, de modo que
 las sesiones invocan `kitlegal` igual que quien lo usa.
 Fija en su definición, cada uno en su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
 (`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
 repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
-(`UMBRAL_DE_EVALS`). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero. Usa
+(`UMBRAL_DE_EVALS`); y, para cada skill en la entrada `include` de su matriz, cuántas sesiones abre a la vez
+(`CONCURRENCIA_DE_EVALS`) y el objetivo de duración de sus sesiones, en segundos (`OBJETIVO_DE_DURACION_DE_EVALS`; `0`
+es no tener objetivo). Los modelos van por su identificador completo: cambiar de modelo es un cambio de ese fichero, y
+subir o bajar la concurrencia, también, con los reintentos por límite de ritmo del informe como dato. Usa
 el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción de Claude que da `claude setup-token`
 (el proyecto no usa una clave de API de pago por uso). Hoy fija:
 
@@ -534,15 +558,24 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
+| `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion`; `1` en `legal-core` |
+| `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `legal-core` |
 
-Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones: 36 de `claude-sonnet-5` sobre las doce
-que deciden, 21 sobre las siete informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que deciden, dentro
-del tope de 120 minutos del job (`timeout-minutes`). Se lanza de tres formas:
+Con las diecinueve evals de `boe-legislacion`, su trabajo abre 93 sesiones, cuatro a la vez: 36 de `claude-sonnet-5`
+sobre las doce que deciden, 21 sobre las siete informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que
+deciden. El tope de 120 minutos de cada trabajo (`timeout-minutes`) corta un cuelgue; no es el control de la duración,
+que es un umbral del informe, porque un trabajo cancelado no escribe informe. Cubre el peor caso de cada skill —todas
+las sesiones de su plan, con la de la prueba de red, llegando a su tope, con su concurrencia, más la preparación de
+cada una, la del runner y el informe—: `485 s + ⌈N / C⌉ × (22 s + 240 s + 10 s)`, con `N` esas sesiones y `C` su
+concurrencia. `TestDefinicionDelJob` comprueba en `make ci` la definición del job —el nombre del trabajo, el grupo de
+`concurrency` y `cancel-in-progress`, que no hay `concurrency` de nivel de flujo, la concurrencia y el objetivo de cada
+skill y que el tope cubre su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval nueva
+que deja el peor caso por encima del tope la hace fallar. Se lanza de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
 | Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`— y `skills.go`), `scripts/evals.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`— y `skills.go`), `scripts/evals.sh`, `scripts/evals-sesion.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
 | Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del
@@ -550,7 +583,10 @@ BOE fijados, no medía ningún cambio. Tampoco reacciona a cada empujón (`synch
 sesiones con modelo y un hito empuja muchas veces, así que cada informe mide el commit que había cuando se abrió o se
 reabrió la propuesta, o cuando se puso la etiqueta. **Para volver a medir, la etiqueta**: una que ya está puesta no
 lanza nada, así que se quita y se vuelve a poner. Una propuesta que solo toca documentación no arranca el job, y es lo
-esperado. El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
+esperado. **Una sola tanda por commit**: el trabajo de cada skill lleva una `concurrency` por commit y skill con
+`cancel-in-progress: false`, así que un segundo disparo sobre el mismo commit mientras el primero sigue —la apertura y
+la etiqueta, por ejemplo— espera a que termine, sin cancelarse ni saltarse, y abre su tanda después; no hay
+`concurrency` de nivel de flujo, que detendría también el trabajo de la otra skill. El informe se imprime en el registro de la ejecución, entre las marcas `--- inicio de informe.md ---` y
 `--- fin de informe.md ---` (y las mismas de `informe.json`), y en el resumen de la ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en verde sobre un commit
 del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
 cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
@@ -561,8 +597,12 @@ Cómo se lee el informe:
 - **El veredicto** es `aprobado` o `fallo`, y los motivos son exactamente las causas del fallo: una serie que decide y
   no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
-  fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas— o una petición llegada
-  a la red.
+  fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas—, una petición llegada
+  a la red o un umbral que decide y no se cumple
+  (`umbral expresiones_prohibidas:claude-sonnet-5: 3 de 51 (5,9 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
+  prefijo fijo `de la ejecución, no de la skill: `, que los distingue sin modelo de los de la skill, el de las sesiones
+  sin medir por un límite de uso de la cuenta y el de la duración de las sesiones por encima de su objetivo: dicen que
+  el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill.
 - **La tabla «Tasas por eval»** tiene una fila por serie, con si decide, si la pide el plan, la tasa
   (`<pasan> de <sesiones>`) y si llega al umbral. Se publica también la de las series que pasan: un `2 de 3` es verde,
   pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado no se ve en el veredicto; se
@@ -570,24 +610,59 @@ Cómo se lee el informe:
 - **Una serie informativa** —la de un modelo informativo, o la de una eval `informativa: true` con el modelo que
   decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
   tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
-  ilegible o una petición llegada a la red hacen fallar el veredicto igual.
+  ilegible, una sin medir o una petición llegada a la red hacen fallar el veredicto igual.
 - **Las expresiones prohibidas**: cada sesión publica en `informe.json` las de la lista que lleva su respuesta,
   `expresiones_prohibidas` —`[]` si ninguna o si no se le aplica la lista—, y la tabla «Sesiones» de `informe.md`, la
   columna «Expresiones prohibidas» (`ninguna` si no lleva ninguna). En la raíz de `informe.json`,
   `expresiones_prohibidas_por_modelo` da un elemento por modelo del job —el que decide y después los informativos, en
-  su orden— con `modelo`, `respuestas`, las sesiones juzgadas (no las ilegibles) de las series planificadas cuya eval
-  activa la skill, y `con_alguna`, las de ellas que llevan alguna expresión; `informe.md` lo da en la sección
-  «Expresiones prohibidas por modelo», detrás de «Tasas por eval». Una skill sin lista da `[]` y el párrafo «la skill
-  no tiene lista de expresiones prohibidas»: un recuento de cero diría que se buscó. Una sesión con alguna expresión
-  no pasa, y su serie decide con el umbral de siempre si es de las que deciden; la regla del veredicto no cambia.
+  su orden— con `modelo`, `respuestas`, las sesiones medidas (ni las ilegibles ni las sin medir) de las series
+  planificadas cuya eval activa la skill, las informativas incluidas, y `con_alguna`, las de ellas que llevan alguna
+  expresión; `informe.md` lo da en la sección «Expresiones prohibidas por modelo», detrás de «Tasas por eval». Una
+  skill sin lista da `[]` y el párrafo «la skill no tiene lista de expresiones prohibidas»: un recuento de cero diría
+  que se buscó. Una sesión con alguna expresión no pasa, y su serie decide con el umbral de siempre si es de las que
+  deciden; además, el recuento de cada modelo es un umbral.
+- **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
+  `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
+  `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
+  o de la propia `medida`, y se puede rehacer con los otros campos. Una skill con lista tiene uno por modelo del job,
+  `expresiones_prohibidas:<modelo>`, con el recuento de ese modelo y `umbral` `0.05`, que solo decide en el modelo que
+  decide: con las 51 respuestas de `claude-sonnet-5` en las evals de `boe-legislacion` que activan la skill, como
+  mucho 2 con alguna expresión; el de `claude-haiku-4-5-20251001` se publica con `decide: false`. Una skill con
+  objetivo de duración tiene además `duracion_de_las_sesiones`, sin `total` y con `decide: true`; `legal-core` no
+  tiene ninguno, `[]`. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no
+  cambia nada. `informe.md` los da en la sección «Umbrales», detrás de «Expresiones prohibidas por modelo»: la tabla
+  `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
+  `ninguno`.
+- **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe
+  la reconoce sin modelo por su transcript —(a) su resultado es el mensaje del límite de uso de Claude Code, el que
+  empieza por `You've hit your`, `You've reached your` o `You're out of`; (b) agotó los reintentos por `rate_limit`;
+  (c) la cortó el tope durante reintentos por `rate_limit`— y la deja sin medir: no pasa ni falla, lleva como único
+  motivo `sin medir por límite de uso: <clase>` y no cuenta en `respuestas` ni en `con_alguna`, así que tampoco en los
+  umbrales. Su serie queda sin medir —`sin medir (<n>)` en la columna «Resultado» de «Tasas por eval», sin pasar y sin
+  el motivo «pasan N de M»—. Los reintentos por otra causa, como la sobrecarga, no son un límite de la cuenta, y una
+  sesión que se recupera de sus reintentos se mide como cualquier otra. Tras una de la clase (a), que no se repone
+  dentro del job, el job no abre ninguna sesión más: las abiertas terminan y se juzgan, y las que faltaban del plan
+  cuentan en su serie como sin medir, `sin abrir tras el límite de uso`; tras (b) o (c), sigue. `informe.json` las
+  lista en `sesiones_sin_medir` (`sesion`, `eval`, `modelo` y `motivo`), y `informe.md`, en la sección «Sesiones sin
+  medir», detrás de «Umbrales», y en la columna «Sin medir» de «Sesiones». Con alguna, el veredicto es `fallo` por la
+  ejecución, no por la skill: no pide cambiarla. El motivo de una sesión que no terminó por otra causa lleva el texto
+  del último `result` con `is_error` de su transcript (`código 1: result con is_error: Failed to authenticate. …`, el
+  de una credencial que no sirve).
+- **Los reintentos y la duración**: `reintentos_por_limite_de_ritmo`, en cada sesión y sumados en la raíz, cuenta los
+  reintentos por `rate_limit` de su transcript; es el dato para ajustar la concurrencia. `duracion_de_las_sesiones`
+  son los segundos desde que se prepara la primera sesión hasta que termina la última, sin la preparación del runner.
+  La cabecera de `informe.md` lleva `Duración de las sesiones: <s> s` y `Reintentos por límite de ritmo: <n>`, y la
+  tabla «Sesiones», la columna «Reintentos por límite de ritmo». En `boe-legislacion`, más de 900 s da `fallo` con el
+  motivo `de la ejecución, no de la skill: duracion_de_las_sesiones: <s> s, y tiene que ser ≤ 900 s`.
 
 La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no puede pedir nada a la red, así que el de
 `legal-core` no la lleva—, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
 su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. Se juzga con la lista de expresiones prohibidas
-y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo`: el recuento es el mismo con la prueba de
-red y sin ella.
+y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo` ni en los umbrales de las expresiones: el
+recuento es el mismo con la prueba de red y sin ella. Sí ocupa su sitio entre las sesiones que se abren a la vez y
+cuenta en la duración y en los reintentos.
 
 ## `make vuln` necesita red
 

@@ -1,0 +1,146 @@
+diff antes/contracts/informe-del-job.md ahora/contracts/informe-del-job.md
+--- antes/contracts/informe-del-job.md	2026-09-30 00:31:08
++++ ahora/contracts/informe-del-job.md	2026-09-30 00:48:47
+@@ -130,7 +130,7 @@
+ | `TestUmbralesDelInforme` (`umbrales_test.go`, tabla, sesiones sintéticas escritas con `EscribirInforme`) | 3 de 51 de Sonnet 5 con todas las series que deciden pasando → `cumple: false`, `decide: true`, `fallo` con el motivo de §2.1; 2 de 51 → `cumple: true` y el mismo veredicto y motivos que sin umbral; 2 de 30 de Haiku 4.5 → `cumple: false`, `decide: false`, veredicto sin cambiar; skill sin lista y sin objetivo → `umbrales: []`; duración 901 con objetivo 900 → `fallo` con el motivo de §2.3; 900 → sin cambiar; con todas las de un modelo sin medir → `total: 0` y `cumple: true`; en todos, rehacer la comparación de cada elemento da su `cumple` | FR-001 a FR-006, FR-051, FR-092; SC-006; US2-1 a US2-5, US3-5 |
+ | `TestInformeMarkdownDeLosUmbrales` (`informe_test.go`) | la sección «Umbrales» junto al recuento, con las filas de §4; «ninguno» sin umbrales | FR-001; US2-6 |
+ | `TestInformeConSesionesSinMedir` (`informe_test.go`) | sesión (a) → sin medir, su serie sin medir y sin el motivo de la tasa, fuera del recuento, `fallo` con el motivo de §2.2 que nombra el límite y las sesiones; `SinAbrir` → listadas, contadas en su serie, sin el motivo de sesiones que faltan; (b) y (c) → sin medir con su clase; una sesión con 429 recuperado → medida, con sus reintentos en la sesión y en el total | FR-033, FR-040 a FR-043, FR-093; SC-007; US3-2 a US3-4 |
+-| `TestLeerSesionConReintentos` (`sesion_test.go`) | los `api_retry` en orden con `attempt`, `max_retries` y `error`; uno sin esos campos → ilegible nombrando la línea; `TerminaEnReintento`; el texto de un `result` con `is_error` en `ErrorDelResultado` y en el motivo sin terminar | FR-033, FR-040 |
++| `TestLeerSesionConReintentos` (`sesion_test.go`) | los `api_retry` en orden con `attempt`, `max_retries` y `error`; uno sin esos campos → ilegible nombrando la línea; `TerminaEnReintento`; el texto de un último `result` con `is_error` en `ErrorDelResultado` y en el motivo sin terminar, con código 0 (`result con is_error: <texto>`) y con código 1 (`código 1: result con is_error: Failed to authenticate. API Error: 401 OAuth access token is invalid.`, el caso de research V18); sin `result` con `is_error`, `código 1` como hoy | FR-033, FR-040, FR-063, FR-065 |
+ | `TestClasificarElLimite` (`limites_test.go`, tabla) | (a) con cada uno de los tres principios; `API Error: Server is temporarily limiting requests (not your usage limit)` → no es (a); (b) con `attempt = max_retries`, y no con `attempt < max_retries`; (c) cortada con el último mensaje `api_retry` `rate_limit`, y no con `overloaded`; una sesión terminada tras reintentos → medida | FR-040, FR-041, FR-093; SC-007 |
+ 
+ ## 7. Uso, de fuera adentro
+diff antes/contracts/sondeo.md ahora/contracts/sondeo.md
+--- antes/contracts/sondeo.md	2026-09-30 00:31:08
++++ ahora/contracts/sondeo.md	2026-09-30 00:48:24
+@@ -84,12 +84,14 @@
+ - 15-irpf-rendimientos-por-materia-claude-sonnet-5-03: sin abrir tras el límite de uso
+ 
+ Sesiones que no terminaron por otra causa:
+-- 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01: la sesión no terminó: result con is_error: OAuth token has expired
++- 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01: la sesión no terminó: código 1: result con is_error: Failed to authenticate. API Error: 401 OAuth access token is invalid.
+ ```
+ 
+ Reglas: la primera línea es siempre la del ejemplo; la segunda, siempre esa. Una serie con alguna sesión sin medir dice
+ `sin medir`; las demás, `<pasan> de <sesiones>`, con las que no terminaron por otra causa como no pasadas, igual que el
+-job. El recuento es el de `recontarExpresiones` (sin las sesiones sin medir), con el porcentaje con un decimal y coma;
++job. El motivo de una sesión que no terminó es el del job (`la sesión no terminó: ` y `MotivoSinTerminar`, data-model
++§2): con un `result` con `is_error` al final, lleva su texto también cuando `claude -p` sale con un código distinto de 0,
++como con la credencial del ejemplo (research V18). El recuento es el de `recontarExpresiones` (sin las sesiones sin medir), con el porcentaje con un decimal y coma;
+ una skill sin lista dice `Respuestas con alguna expresión prohibida: la skill no tiene lista de expresiones
+ prohibidas.`. Sin sesiones en un apartado, `ninguna.` en su línea (`Sesiones sin medir por límite de uso: ninguna.`).
+ Tamaño: 2 líneas fijas, una por serie (≤ 19 evals; un modelo por sondeo), el recuento y, a lo sumo, una por sesión
+@@ -114,7 +116,7 @@
+ | Test | Qué comprueba | Requisito |
+ |---|---|---|
+ | `TestJuicioDelSondeo` | sobre sesiones sintéticas con transcript y traza, el juicio del sondeo es, eval a eval, el del job salvo `comandos_ejecutados`, `comandos_ausentes`, `comandos_prohibidos_ejecutados`, `invocaciones`, `fuera_de_lo_grabado`, `otras_fallidas`, `llegadas_a_la_red` y los motivos y el `pasa` que dependen de ellos | FR-061; US4-1 |
+-| `TestSalidaDelSondeo` | la primera línea; la segunda nombra los comandos esperados y los prohibidos, las llegadas a la red y Python; ninguna expresión de ninguna sesión aparece; series, recuento con el 5 %, sin medir y no terminadas como §4; la skill sin lista | FR-065; US4-2 |
++| `TestSalidaDelSondeo` | la primera línea; la segunda nombra los comandos esperados y los prohibidos, las llegadas a la red y Python; ninguna expresión de ninguna sesión aparece; series, recuento con el 5 %, sin medir y no terminadas como §4, con la sesión del ejemplo leída con `LeerSesion` de un transcript que acaba en el `result` con `is_error` de research V18 y código 1: su línea lleva `código 1: result con is_error: Failed to authenticate. …`; la skill sin lista | FR-063, FR-065; US4-2 |
+ | `TestComprobarElSondeo` (tabla) | cada error de §3.1, nombrando su argumento; la concurrencia por omisión, 4 y 1, leída de la definición real; sin `CLAUDE_CODE_OAUTH_TOKEN` o vacía, el error de §3.2 | FR-060, FR-063, FR-067; US4-5 |
+ | `TestSondear` (tabla, con sustitutos y sin construir el binario) | todas las sesiones fallan: devuelve la salida sin error (el guion sale con 0); la sesión k da (a): no abre más, las que faltan salen sin medir y devuelve sin error; un argumento o la credencial que no valen: ningún sustituto se invoca; las sesiones no ven `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` aunque estén en la base, sí `CLAUDE_CODE_OAUTH_TOKEN`, `HOME` es el del temporal y el primer `kitlegal` del `PATH` es el de `<temporal>/bin`; el `HOME` y el `TMPDIR` de la base no cambian: nada se escribe fuera del temporal | FR-061 a FR-066; SC-009; US4-3, US4-4, US4-6 |
+ | `TestGuionDelSondeo` | `scripts/evals-sondeo.sh` con un `go` sustituto en el `PATH` y `TMPDIR` temporal: si el sustituto escribe `salida.txt` y sale con 0, el guion sale con 0, su salida estándar es esa y `TMPDIR` queda vacío; si sale con 1, el guion sale con 1, su salida de error lleva el registro y `TMPDIR` queda vacío | FR-064, FR-066; SC-009; US4-4 |
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-09-30 00:31:08
++++ ahora/data-model.md	2026-09-30 00:48:13
+@@ -30,8 +30,8 @@
+ |---|---|
+ | `Reintentos []ReintentoDeLaAPI` | cada mensaje `system` con `subtype` `api_retry`, en su orden: `Intento` (`attempt`), `Maximo` (`max_retries`), `Error` (`error`: `rate_limit`, `overloaded`…); uno sin esos tres campos hace la sesión ilegible |
+ | `TerminaEnReintento bool` | el último mensaje del transcript es un `api_retry` |
+-| `ErrorDelResultado string` | el `result` del último mensaje `result` si lleva `is_error` verdadero; vacío si no |
+-| `MotivoSinTerminar` | igual que antes, salvo que «result con is_error» va seguido de `: <ErrorDelResultado>` si lo hay |
++| `ErrorDelResultado string` | el `result` del último mensaje del transcript si es un `result` con `is_error` verdadero, sea cual sea el código de la sesión; vacío si no |
++| `MotivoSinTerminar` | el de antes y, si `ErrorDelResultado` no está vacío, con su texto: `result con is_error` (código 0) pasa a `result con is_error: <ErrorDelResultado>`, y `código <n>` (un código que no es del tope) pasa a `código <n>: result con is_error: <ErrorDelResultado>`, p. ej. `código 1: result con is_error: Failed to authenticate. API Error: 401 OAuth access token is invalid.` (research V18); los del tope no cambian |
+ 
+ `ReintentosPorLimiteDeRitmo()`: los de `Reintentos` con `Error` `rate_limit`.
+ 
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-09-30 00:31:08
++++ ahora/plan.md	2026-09-30 00:48:55
+@@ -106,7 +106,7 @@
+ ```text
+ specs/013-h7-3-el-umbral-de/
+ ├── plan.md                  # este fichero
+-├── research.md              # V1-V17, S1-S7, causa de raíz, D1-D22
++├── research.md              # V1-V18, S1-S7, causa de raíz, D1-D22
+ ├── data-model.md            # umbral, sesión leída, sin medir, informe, lista, definición, repartidor, sondeo
+ ├── quickstart.md            # §1-§8; §6, el sondeo con modelo; §7, el job de cierre
+ ├── contracts/
+@@ -185,7 +185,7 @@
+ | `TestUmbralesDelInforme` | `umbrales_test.go` | FR-001 a FR-006, FR-051, FR-092; SC-006 |
+ | `TestInformeMarkdownDeLosUmbrales` | `informe_test.go` | FR-001 |
+ | `TestInformeConSesionesSinMedir` | `informe_test.go` | FR-033, FR-040 a FR-044, FR-093; SC-007 |
+-| `TestLeerSesionConReintentos` | `sesion_test.go` | FR-033, FR-040, FR-065 |
++| `TestLeerSesionConReintentos` | `sesion_test.go` | FR-033, FR-040, FR-063, FR-065 |
+ | `TestClasificarElLimite` | `limites_test.go` | FR-040, FR-041, FR-093 |
+ | `TestEjecutarSesionesEnParalelo`, `TestEjecutarSesionesTrasElLimiteDeUso`, `TestEjecutarSesionesConElContextoCancelado`, `TestTopeDeLaSesion` | `sesiones_test.go` | FR-030 a FR-032, FR-036, FR-037, FR-044, FR-064, FR-094; SC-007, SC-008 |
+ | `TestDefinicionDelJob` | `definicion_test.go` | FR-030, FR-034, FR-035, FR-051, FR-094; SC-008 |
+@@ -201,7 +201,9 @@
+   `TestJuzgarLasExpresionesProhibidas`: la tercera familia (FR-023, FR-024).
+ - `informe_test.go`, `juzgar_test.go` y `sesion_test.go`: los informes y resultados esperados ganan `umbrales`,
+   `duracion_de_las_sesiones`, `reintentos_por_limite_de_ritmo`, `sesiones_sin_medir`, `sin_medir`, las secciones y
+-  columnas nuevas de `informe.md` y el texto del error en el motivo sin terminar. Ninguno se desactiva ni se salta.
++  columnas nuevas de `informe.md` y el texto del error en el motivo sin terminar (`TestLeerSesion/result-con-is-error`,
++  el único transcript versionado con un `result` con `is_error`, pasa a `result con is_error: API Error: 529 …`;
++  research V18). Ninguno se desactiva ni se salta.
+ 
+ ### Puntos de entrada fuera de `make ci` (etiqueta `evals`)
+ 
+@@ -286,7 +288,7 @@
+ |---|---|
+ | `Umbral`, su construcción por modelo y por objetivo, su comparación, `Informe.Umbrales` siempre presente, sección «Umbrales» de `informe.md`; la regla por serie, sin cambios | FR-001 a FR-007, FR-051 |
+ | Motivo de umbral y motivos «de la ejecución, no de la skill» | FR-003, FR-043, FR-051 |
+-| `Sesion.Reintentos`, `TerminaEnReintento`, `ErrorDelResultado` y el texto en el motivo sin terminar | FR-033, FR-040, FR-065 |
++| `Sesion.Reintentos`, `TerminaEnReintento`, `ErrorDelResultado` y el texto en el motivo sin terminar, sea cual sea el código (research D6, V18) | FR-033, FR-040, FR-063, FR-065 |
+ | Clasificación (a) (b) (c) | FR-040 a FR-042 |
+ | `ResultadoDeEval.SinMedir` y `ReintentosPorLimiteDeRitmo`; `TasaDelInforme.SinMedir`; `Informe.SesionesSinMedir`, `ReintentosPorLimiteDeRitmo`, `DuracionDeLasSesiones`; recuento sin las sin medir | FR-002, FR-033, FR-042, FR-043, FR-050 |
+ | `InformeAEscribir.SinAbrir`, `ObjetivoDeDuracion`, `DuracionDeLasSesiones` | FR-044, FR-050, FR-051 |
+@@ -371,7 +373,8 @@
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos (G204 se resuelve con el guion de la
+   sesión, D8).
+ - h · Mejor alternativa: cada decisión con la rechazada (D1-D22).
+-- i · Afirmaciones verificadas: V1-V17 con fichero, offset u orden; S1-S7 como supuestos.
++- i · Afirmaciones verificadas: V1-V18 con fichero, offset u orden; S1-S7 como supuestos. El motivo de una sesión sin
++  terminar lleva el texto del `result` con `is_error` también con código 1, el que da una credencial que no sirve (V18).
+ - j · Quickstart ejecutable: cada escenario con órdenes y nombres de test reales; las copias salen de `git archive` y se
+   borran; lo que escribe en el árbol, declarado (§8, ficheros ignorados).
+ - k · Datos externos: ninguno.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-09-30 00:31:08
++++ ahora/research.md	2026-09-30 00:48:40
+@@ -27,6 +27,7 @@
+ | V15 | El cierre: `recoger_evals` toma el informe de cada comprobación de `evals` con `bucket` `pass` o `fail` cuyo nombre casa `^evals \(([a-z0-9-]+)\)$`; `medir` espera mientras haya alguna `pending` y cuenta `fail` y `cancel` como rojas | `scripts/workflow/cierre.sh:49-68, 112-122` |
+ | V16 | `release_test.go` lee los flujos con `go.yaml.in/yaml/v3`; solo `ci.yml` y `release.yml` se leen en estricto: `evals.yml` puede ganar claves sin romperlo | `release_test.go:18, 554-558, 1070-1165` (agente de búsqueda) |
+ | V17 | Medidas de los informes versionados de H7.1 y H7.2 con la comparación de `ExtraerExpresionesProhibidas` (misma expresión regular, prototipo fuera del repositorio, `/tmp/h73-proto/`), y de la prosa de `SKILL.md` con el algoritmo de D4 (`/tmp/h73-proto/prosa/`): v0.1.2, 14 párrafos y la fecha de la línea 191; una copia de `SKILL.md` con los cambios C1-C11 escritos como dice [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md) (`/tmp/h73-proto/SKILL-v013.md`), 0 párrafos, 0 fechas y 270 líneas | ver «Causa de raíz» y D2 |
++| V18 | Una credencial que no sirve **no** sale con 0: con Claude Code 2.1.270 y un `CLAUDE_CODE_OAUTH_TOKEN` inválido, la orden de la sesión deja como último mensaje un `result` con `is_error` y «Failed to authenticate. API Error: 401 OAuth access token is invalid.», y `claude -p` sale con **código 1** (H5, V61, casos (2) y (4)). Hoy `motivoSinTerminar` devuelve `código 1` antes de mirar el `result` (`internal/evals/sesion.go:386-403`), así que ese texto no llega al motivo. El único transcript versionado con un `result` con `is_error` (`internal/evals/testdata/sesiones/leer-sesion/result-con-is-error/`, «API Error: 529 …») es de una sesión con código 0. En 2.1.284, el mensaje de un modelo que no existe es «There's an issue with the selected model (<id>). It may not exist or you may not have access to it.», que se construye con `Qo({content:…,error:"model_not_found"})`, la función de los mensajes de error de la API (`function Qo({content:e,apiError:n,…,error:h,…})`, que pone `isApiErrorMessage:!0`): llega, como el de la credencial, en un `result` con `is_error` (V3) | `specs/006-h5-skill-boe-legislacion/research.md` V61; `internal/evals/sesion.go`; `grep -r '"is_error":true' internal/evals/testdata`; binario 2.1.284, `grep -a -o` de las dos cadenas |
+ 
+ Supuestos no verificados:
+ 
+@@ -177,7 +178,8 @@
+ 
+ `LeerSesion` lee además cada mensaje `system` con `subtype` `api_retry` (`attempt`, `max_retries`, `error`; uno sin esos
+ campos hace la sesión ilegible, como cualquier mensaje sin su forma), si el último mensaje es uno de ellos, y el texto
+-de un `result` con `is_error` (V2, V3). Con eso, sin modelo y en este orden:
++del último mensaje si es un `result` con `is_error`, sea cual sea el código de la sesión (V2, V3, V18). Con eso, sin
++modelo y en este orden:
+ 
+ - **(a) mensaje del límite de uso**: el último mensaje es `result` con `is_error` y su texto empieza por
+   `You've hit your`, `You've reached your` o `You're out of` —los principios de la lista propia de Claude Code para la
+@@ -190,9 +192,15 @@
+ `rate_limit` se cuentan por sesión y en total. Con alguna sesión sin medir, el veredicto es `fallo` con un solo motivo
+ que empieza por el prefijo fijo `de la ejecución, no de la skill: ` —el mismo que el de la duración—, que se distingue
+ sin modelo de los de la skill (FR-043). Tras (a) el repartidor no abre ninguna sesión más (D7); las que no abrió se
+-publican sin medir con «sin abrir tras el límite de uso». El texto del error de un `result` con `is_error` pasa también
+-al motivo de la sesión sin terminar («result con is_error: <texto>»), que es lo que la salida del sondeo da de una
+-credencial caducada o de un modelo que no existe «como el job» (FR-065).
++publican sin medir con «sin abrir tras el límite de uso».
++
++El texto de ese `result` pasa también al motivo de la sesión sin terminar, **sea cual sea el código**: con 0, el motivo
++`result con is_error` pasa a `result con is_error: <texto>`; con un código que no es del tope, `código <n>` pasa a
++`código <n>: result con is_error: <texto>`; los del tope no cambian. Es lo que hace ver en el informe del job y en la
++salida del sondeo una credencial caducada o revocada, o un modelo que no existe (FR-063, FR-065): con un token que no
++sirve, `claude -p` sale con 1 y el `result` dice «Failed to authenticate. API Error: 401 OAuth access token is invalid.»
++(V18), y el motivo de hoy, `código 1`, no dice la causa. Alternativa rechazada: añadir el texto solo con código 0 (el
++caso medido de la credencial, con código 1, no lo llevaría nunca).
+ 
+ Alternativas rechazadas: **clasificar por `api_error_status` 429** (no distingue el límite de la cuenta del límite
+ temporal, que sí se reintenta y dice «not your usage limit», V3); **reintentar la sesión** o **esperar a que se reponga**

@@ -1,0 +1,89 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-96: guardián de diff ok, lint «0 issues» (línea 9), go test -race, test-integration, test-tiempos, govulncheck, schema-check, skills-check, goreleaser, gitleaks, mod verify y «ci: todos los controles en verde» (línea 94). Árbol limpio al empezar (git status sin cambios sobre 8dcf9d0; solo aparece después el veredicto del otro juez, que no he leído). Reproducido en una copia de HEAD fuera del repositorio (git worktree en /tmp): go test -count=1 ./internal/evals/ → ok (14,3 s); go vet -tags evals ./internal/evals/ sin salida; go test -tags integration -run TestPrepararElArbolDelSondeo → PASS (1,8 s, construye el binario e instala las skills de verdad en un temporal)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene tests offline con sesiones sintéticas y sustitutos POSIX de claude, strace y go escritos en t.TempDir() (internal/evals/sustitutos_test.go:47-128, 426-444): umbrales_test.go:82 (TestUmbralesDelInforme, valores escritos a mano, 0.05 y no la constante), limites_test.go:35, sesion_test.go (TestLeerSesionConReintentos), informe_test.go:1237 (TestInformeConSesionesSinMedir), sesiones_test.go:56-839 (tope 124/137, interrupción, reparto, límite, error, concurrencia < 1), definicion_test.go:61 (definición real + 18 sintéticas), conjunto_test.go (prosa-de-la-skill, TestProsaDeLaSkill, calibrado sobre H7.1 y H7.2), sondeo_test.go:66-1399 (juicio, salida, argumentos, sondear, guion) y sondeo_integracion_test.go:37. Detectan lo que dicen: en la copia, con umbralDeExpresionesProhibidas = 0.06 cae TestUmbralesDelInforme/tres-de-51-de-sonnet-5; con Decide: false en la duración cae 901-s-con-objetivo-900; con el semáforo de 64 huecos cae TestEjecutarSesionesEnParalelo; sin r.trasElLimite = true cae TestEjecutarSesionesTrasElLimiteDeUso/mensaje-del-limite-de-uso; sin dejarSinMedir en juzgarSesion caen los 4 casos de TestInformeConSesionesSinMedir; con las sin medir dentro de recontarExpresiones caen esos casos y todas-las-de-sonnet-5-sin-medir; con sinLoQueSaleDeLaTraza sin vaciar comandos caen 17 subpruebas de TestJuicioDelSondeo; con entornoDelSondeo dejando pasar toda la base cae TestSondear (ve ANTHROPIC_API_KEY); sin el trap del guion cae TestGuionDelSondeo (TMPDIR no vacío); sin «ya puedo responder» en la lista cae expresiones-calibradas; con timeout-minutes: 100 cae TestDefinicionDelJob/del-repositorio; con la SKILL.md de main cae prosa-de-la-skill con exactamente los 14 párrafos (líneas 73, 75, 88, 106, 113, 115, 120, 178, 185, 197, 204, 239, 254, 258) y la fecha de la línea 191 que fija contracts/skill-boe-legislacion.md §5. No hay suite de aceptación congelada que activar: el binario no cambia (git diff --stat main...HEAD no toca cmd/ ni internal/ fuera de internal/evals) y el plan lo declara («Aceptación e2e: no aplica», research D21)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ningún fichero nuevo importa net/http, database/sql ni SQLite: internal/evals/sesiones.go:3-19 usa os/exec, syscall y internal/cache (solo la constante VariableDirectorio); sondeo.go:3-14 y definicion.go:3-11 (internal/skills, el lector YAML común). Ni os.Exit ni fmt.Print*, os.Stdout u os.Stderr nuevos en Go: la salida del sondeo la imprime scripts/evals-sondeo.sh:45 desde salida.txt (research D16, V9); orden.Stdout en sesiones.go:572 es el fichero de la sesión. depguard/forbidigo en verde (gates/ci.log:6-9). Las reglas R1-R6 de plan.md:91-100 se cumplen: internal/core, httpx, cache, store, graph y render sin cambios."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia: el diff no toca cmd/ ni internal/ fuera de internal/evals, y schemas/ solo gana «anuncio» en schemas/expresiones-prohibidas.yaml.json:4-10, que no sale de --describe. TestEsquemasPublicados y schema-check en verde (gates/ci.log:68-69). El esquema nuevo lo validan los casos de formato_test.go (sin-anuncio → Required, anuncio-vacio → MinItems, asterisco-en-anuncio → Pattern) contra el fichero publicado."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Los códigos del binario no cambian. Lo que el contrato promete ocurre: el job sale en rojo con fallo porque TestEjecucionDelJob exige VeredictoAprobado (job_test.go:162) y scripts/evals.sh:133-163 sale con el código de la orden; el sondeo sale con 1 con cualquier error de sondear y con 0 con cualquier tasa (scripts/evals-sondeo.sh:35-45; TestSondear/todas-las-sesiones-fallan, TestGuionDelSondeo). Errores con el fichero o el argumento delante y sin panic en rutas alcanzables: sesiones.go:151-209 (concurrencia < 1, errors.Join de los fallos, errSesionInterrumpida), sondeo.go:516-656 (cada argumento nombrado), definicion.go:133-172; los índices de sondeo.go:426-427 y sesiones.go:205 están acotados (len(recuento) > 0; Abiertas ≤ Plan)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased): «Añadido» con umbrales (contrato ADR 0029), sesiones sin medir, reintentos, duración con objetivo 900 s y el sondeo; «Cambiado» con boe-legislacion v0.1.3 y el job en paralelo con una tanda por commit. CONTRIBUTING.md:468-535, 516-635 describe las tres familias, la prosa, CONCURRENCIA_DE_EVALS, OBJETIVO_DE_DURACION_DE_EVALS, los umbrales, las sesiones sin medir y el tope; internal/evals/doc.go actualizado. Sin ADR nuevo, coherente con FR-080 (no cambia ninguna decisión: ADR 0016 y 0029 se aplican), y docs/SOURCES.md intacto porque no hay fuente ni grabación (git diff --name-status main...HEAD -- docs testdata evidencias sin salida). Cada afirmación comprobada contra el producto: los tests, guiones, variables y campos que nombran existen (go test -list con y sin -tags evals), y la búsqueda de «una tras otra», plan.tsv y las tres entradas retiradas fuera de specs/ y de la hoja de ruta solo da la entrada histórica de docs/USO.md:39 y la frase de CONTRIBUTING.md:533 que dice justo lo contrario."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva: el repartidor ejecuta procesos (sesiones.go:569-575) con el proxy que rechaza toda petición salvo la del modelo (sesiones.go:481-503: HTTP_PROXY…=http://127.0.0.1:9, NO_PROXY=api.anthropic.com, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1), igual que el job de H5. El sondeo pasa a sus sesiones solo PATH, LANG, LC_*, TERM, USER, LOGNAME, SHELL, TZ y CLAUDE_CODE_OAUTH_TOKEN (sondeo.go:53-55, 745-763), nunca ANTHROPIC_API_KEY ni ANTHROPIC_AUTH_TOKEN (TestSondear lo exige, sondeo_test.go:1199-1201); sin comprobación previa contra el servicio (sondeo.go:516-532). Los tests quitan las credenciales reales de la base (sustitutos_test.go:160, 236-242) y TestPrepararElArbolDelSondeo usa GOPROXY=off. Sin secretos, sin NIF ni datos personales; ningún dato externo nuevo (plan.md «Datos externos»: ninguno; cierre.md §1)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep en el diff de código (internal/, scripts/, Makefile, .github, skills, evals, schemas) de nolint, t.Skip, TODO, FIXME, «_ =» y panic( → ninguna línea añadida. Ningún fixture ni golden cambia (git diff --name-status main...HEAD -- testdata '*/testdata/*' vacío; informes de H7.1 y H7.2 intactos: git diff --quiet main...HEAD -- specs/012-h7-2-la-consulta-repetida sale con 0). Los valores esperados de los tests están escritos a mano (umbrales_test.go:78-79, 233-259; definicion_test.go:256-287; sondeo_test.go:30-41) y no derivados del código. G204 se resuelve con el guion como único ejecutable y órdenes constantes (sesiones.go:569, sondeo.go:715-726), no con una exclusión."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff toca exactamente los ficheros de plan.md «Source Code» (schema, lista, SKILL.md, evals.yml, Makefile, scripts/evals*.sh, internal/evals) más CHANGELOG, CONTRIBUTING y doc.go; ni cmd/, ni el resto de internal/, ni data/, ni web/, ni docs/. Las retiradas de TestPlanDeSesiones, TestPrepararSesion, TestInformeDelJob y plan.tsv son consecuencia directa del repartidor en Go (research D19) y su lógica (PlanDeEvals, PrepararSesion) se queda. Los 30 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: cada uno implementa menos (ErrorDelResultado vacío sin clave result; la sesión ilegible no detiene el reparto; el sondeo no lista las ilegibles; EVALS repetida no vale; el canal de interrupción en lugar del contexto por contextcheck; la telemetría del go command como estado del propio go, exigida por TestPrepararElArbolDelSondeo), y ninguno rebaja un umbral ni añade comportamiento no pedido."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada de lo entregado depende de lo acumulado en el grafo: cada sesión parte de una caché y un grafo preparados (sesiones.go:391-398) y la respuesta de la skill sigue pidiendo una graph check por norma citada, acotada a la pregunta (SKILL.md:107-116; H7.1). Medido en el código: umbrales son ≤ 3 elementos de ≈ 250-350 B por informe (umbrales.go:82-109, uno por modelo del recuento más el de duración); sesiones_sin_medir y reintentos crecen con el plan (≤ 94 sesiones), no con el uso, y se miden de nuevo en cada job (informe.go: se recalculan desde las sesiones del directorio, sin estado); la salida del sondeo son 2 líneas fijas, una por serie pedida (≤ 19 evals × 1 modelo), el recuento y a lo sumo una por sesión pedida (sondeo.go:377-448; con 5 evals × 3, ≤ 22 líneas, < 3 KB), y no deja fichero ni veredicto (evals-sondeo.sh:28). Invocaciones por pregunta de la skill: sin cambio (cada bloque una vez, una comprobación por norma). Señales que caducan: la línea ⚠ REDACCIÓN MODIFICADA: se apaga con la lectura siguiente (H7.1), y las del informe solo viven en su job."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un requisito (plan.md:294-322) y lo he comprobado uno a uno: Umbral y umbralesDelInforme sin caso por skill (umbrales.go:82-109; FR-002 a FR-006, FR-051); ClasificarElLimite con las tres clases medidas en Claude Code 2.1.270 (limites.go:90-114; FR-040, research V2-V3); el repartidor con canal-semáforo y WaitGroup sin dependencia nueva (sesiones.go:151-209; FR-030, FR-044; go.mod sin cambios); el tope en Go con grupo de procesos, único para job y sondeo en lugar de timeout más otro camino (sesiones.go:578-673; FR-031, FR-062, V12); leerDefinicionDelJob compartido por TestDefinicionDelJob y el sondeo (definicion.go; FR-034, FR-035, FR-060); el juicio del sondeo reutiliza Juzgar, repartirEnSeries y recontarExpresiones sin juez propio (sondeo.go:207-254, 336-345; FR-061); los sustitutos son constantes de test sin testdata (D18). Ningún mecanismo existe para un estado sin vía real: el objetivo negativo (informe.go:396) sigue el precedente del umbral de series fuera de rango y lo alcanza una variable del job; la sesión ilegible y la definición ilegible siguen la regla genérica. Lo único que sobra es duplicación, no mecanismo (ver observaciones)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las diez filas de plan.md:241-252 tienen su control en el código y cada uno sale en rojo al pasar la medida del umbral (mutantes en la copia, criterio b): evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5 → Umbral{Decide: modelo == e.ModeloQueDecide, Umbral: 0.05} (umbrales.go:13, 88-95), motivo en motivosDeLosUmbrales y veredicto fallo si hay motivos (informe.go:872-880), job en rojo por job_test.go:162; el de Haiku 4.5 queda con decide: false (umbrales_test.go:118-125, «no cambia el veredicto»); evals:boe-legislacion:duracion_de_las_sesiones → umbrales.go:98-106 con Decide: true y motivo de la ejecución (umbrales.go:157-166), objetivo 900 fijado por evals.yml:96-98 y exigido por TestDefinicionDelJob; ninguna sin medir → motivo de la ejecución y fallo (informe.go:874-876); 35 y 10 → expresiones-calibradas compara las cuatro columnas de cada eval de los dos informes (conjunto_test.go, informesCalibrados); 0 en bloques y formas → subpruebas existentes con la lista de tres familias (listaDelRepositorio exige anuncio no vacía); 0 en la prosa y 0 fechas → prosa-de-la-skill; ≤ CONCURRENCIA_DE_EVALS → TestEjecutarSesionesEnParalelo (máximo contado por los sustitutos ≤ 4 y ≥ 2); concurrencia 4 y 1, tope ≥ peor caso (7 013 s y 5 653 s < 7 200 s), una tanda por commit → TestDefinicionDelJob sobre el fichero real; 0 fuera del temporal → TestSondear, TestGuionDelSondeo y TestPrepararElArbolDelSondeo; SKILL.md < 300 → 270 líneas y TestSkillsDelRepositorio. La regla por serie del ADR 0016 sigue intacta (UMBRAL_DE_EVALS 2, REPETICIONES 3) y no sustituye al agregado: informe.go:485 y 872 los aplican por separado."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El sondeo no lista en su salida una sesión que LeerSesion no puede leer (supuesto T010): cuenta como no pasada en su serie y, como el guion borra el temporal, la persona ve «2 de 3» sin saber por qué. La vía real es una sesión que el tope corta a mitad de línea; queda dentro de «solo lo agregado» de FR-065, pero una línea «sesión ilegible: <motivo>» en el apartado de las que no terminaron ahorraría repetir el sondeo a ciegas.",
+    "juzgarSesionDelSondeo (sondeo.go:265-320) repite unas 45 líneas de juzgarSesion (informe.go:~500-592): leer eval.txt, modelo.txt, pregunta.txt, la sesión y montar la ilegible con lo observado. Un solo lector con «sin traza» como parámetro sería más simple; no es un mecanismo sin requisito y no cambia el resultado, así que no llega a motivo.",
+    "El paso «Retirar Python del runner» de .github/workflows/evals.yml:191 sigue exigiendo que exista timeout entre las órdenes que el job usa, aunque scripts/evals.sh ya no lo necesita (CHANGELOG lo dice). En ubuntu-24.04 existe y no cambia nada; es una lista desactualizada.",
+    "Con cancel-in-progress: false, un tercer disparo del flujo sobre el mismo commit cancelaría al segundo mientras espera (research V6). En el run solo hay dos (apertura y etiqueta), como argumenta D11; un tercer disparo manual sobre la misma cabeza dejaría una comprobación cancel que el cierre contaría como roja.",
+    "En ocuparUnHueco (sesiones.go:262-277) hay una ventana de microsegundos entre detenido() y abiertas.Go en la que una sesión podría abrirse justo después de que la del mensaje del límite haya anotado trasElLimite; el test lo admite (abiertas ≤ k + Concurrencia) y el efecto es una sesión más de la cuenta, no una tanda.",
+    "fechaConCifras (conjunto_test.go) casa fechas sin solapar: en una línea con dos fechas separadas por un solo carácter no numérico solo lista la primera. La línea se marca igual, así que el control no deja pasar nada; solo el listado es incompleto.",
+    "prepararElArbol (sondeo.go:715-720) construye el binario con go install -trimpath sin los -ldflags de make install: el kitlegal del sondeo no lleva versión, commit ni fecha. No afecta a las skills ni al manifiesto (el mismo binario instala y ejecuta), pero «como make install» no es literal.",
+    "La estimación local de cobertura del diff da 93,98 % frente a 97,5 % de la base (cierre.md §2; supuesto T015): es probable que el estado codecov/patch de la propuesta salga por debajo de su objetivo. Los umbrales de la Definition of Done (global ≥ 70 %, core ≥ 85 %) se cumplen (97,4 % y 98,6 %); las líneas sin ejecutar son ramas de error de la regla genérica en sesiones.go y sondeo.go.",
+    "FR-061 sigue diciendo «MUST prepararse con TestPrepararSesion», entrada que el hito retira (research D19; supuesto «barrido»): la preparación es la misma (PrepararSesion en proceso, sesiones.go:391-398), pero el spec conserva un nombre que ya no existe."
+  ]
+}

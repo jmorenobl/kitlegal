@@ -48,6 +48,7 @@ const (
 	mensajeAssistant = "assistant"
 	mensajeResult    = "result"
 	subtipoInit      = "init"
+	subtipoAPIRetry  = "api_retry"
 	subtipoSuccess   = "success"
 	bloqueToolUse    = "tool_use"
 	herramientaSkill = "Skill"
@@ -92,7 +93,10 @@ type Sesion struct {
 	Cortada bool
 
 	// MotivoSinTerminar es por qué no terminó la sesión, con el primero que
-	// aplica de data-model §10.1; vacío si terminó.
+	// aplica de data-model §10.1; vacío si terminó. Con ErrorDelResultado, el
+	// motivo «result con is_error» y el de un código que no es del tope llevan su
+	// texto: «result con is_error: <texto>» y «código <n>: result con is_error:
+	// <texto>» (data-model §2 de H7.3).
 	MotivoSinTerminar string
 
 	// SalidaDeError es el contenido entero de sesion.err.
@@ -102,13 +106,59 @@ type Sesion struct {
 	// no lee la traza y la deja vacía: la lee LeerTrazas con Cortada, y quien
 	// juzga la sesión se las pone (contrato job-de-evals §3.3).
 	Invocaciones []Invocacion
+
+	// Reintentos son los mensajes system/api_retry del transcript, en su orden
+	// (data-model §2 de H7.3; research.md V2 de H7.3).
+	Reintentos []ReintentoDeLaAPI
+
+	// TerminaEnReintento dice si el último mensaje del transcript es un
+	// system/api_retry.
+	TerminaEnReintento bool
+
+	// ErrorDelResultado es el result del último mensaje del transcript si es un
+	// result con is_error verdadero, sea cual sea el código de la sesión; vacío
+	// si no lo es o si no lleva result (research.md V3 y V18 de H7.3).
+	ErrorDelResultado string
 }
+
+// ReintentoDeLaAPI es un mensaje system/api_retry del transcript: Claude Code lo
+// emite antes de repetir una llamada a la API que ha fallado (research.md V2 de
+// H7.3).
+type ReintentoDeLaAPI struct {
+	// Intento es su attempt: el número de este reintento, desde 1.
+	Intento int
+
+	// Maximo es su max_retries: los reintentos que Claude Code hará como mucho.
+	Maximo int
+
+	// Error es su error: la clase del fallo, rate_limit para un 429 y
+	// overloaded para un 529, entre otras.
+	Error string
+}
+
+// errorDeLimiteDeRitmo es el error de un reintento por un 429 (research.md V2 de
+// H7.3).
+const errorDeLimiteDeRitmo = "rate_limit"
 
 // Activada dice si la sesión activó la skill: algún bloque tool_use de la
 // herramienta Skill lleva su nombre en input.skill. La activación de otra skill
 // no cuenta (data-model §10.1).
 func (s Sesion) Activada(skill string) bool {
 	return slices.Contains(s.SkillsActivadas, skill)
+}
+
+// ReintentosPorLimiteDeRitmo son los reintentos de la sesión con error
+// rate_limit (FR-033 de H7.3).
+func (s Sesion) ReintentosPorLimiteDeRitmo() int {
+	n := 0
+
+	for _, reintento := range s.Reintentos {
+		if reintento.Error == errorDeLimiteDeRitmo {
+			n++
+		}
+	}
+
+	return n
 }
 
 // LeerSesion lee del directorio de una sesión de evals sesion.jsonl,
@@ -141,7 +191,12 @@ func LeerSesion(dir string) (Sesion, error) {
 		return Sesion{}, err
 	}
 
-	motivo := motivoSinTerminar(codigo, leido.ultimo)
+	errorDelResultado := ""
+	if leido.ultimo != nil {
+		errorDelResultado = leido.ultimo.errorDelResultado
+	}
+
+	motivo := motivoSinTerminar(codigo, leido.ultimo, errorDelResultado)
 
 	return Sesion{
 		Modelo:              leido.modelo,
@@ -154,6 +209,9 @@ func LeerSesion(dir string) (Sesion, error) {
 		Cortada:             codigo == codigoDelTope || codigo == codigoDeKillTrasElTope,
 		MotivoSinTerminar:   motivo,
 		SalidaDeError:       string(salidaDeError),
+		Reintentos:          leido.reintentos,
+		TerminaEnReintento:  leido.ultimo != nil && leido.ultimo.tipo == mensajeSystem && leido.ultimo.subtipo == subtipoAPIRetry,
+		ErrorDelResultado:   errorDelResultado,
 	}, nil
 }
 
@@ -169,16 +227,20 @@ type transcriptLeido struct {
 	skills    []string
 	respuesta string
 
+	reintentos []ReintentoDeLaAPI
+
 	// ultimo es el último mensaje leído; nil si el transcript no tiene ninguno.
 	ultimo *mensaje
 }
 
 // mensaje es lo que decide el fin de la sesión de un mensaje del transcript: su
-// type y, si es result, su subtype e is_error.
+// type y, si es system o result, su subtype; si es result, además su is_error
+// y, con is_error verdadero, su result.
 type mensaje struct {
-	tipo     string
-	subtipo  string
-	conError bool
+	tipo              string
+	subtipo           string
+	conError          bool
+	errorDelResultado string
 }
 
 // bloqueDeContenido es un bloque del message.content de un mensaje assistant,
@@ -234,7 +296,7 @@ func (t *transcriptLeido) leerMensaje(texto string) error {
 
 	switch cabecera.Type {
 	case mensajeSystem:
-		err = t.leerSystem(texto)
+		leido, err = t.leerSystem(texto)
 	case mensajeAssistant:
 		err = t.leerAssistant(texto)
 	case mensajeResult:
@@ -251,8 +313,9 @@ func (t *transcriptLeido) leerMensaje(texto string) error {
 }
 
 // leerSystem lee del mensaje system/init el modelo y la versión de Claude Code
-// (research.md V7); de los demás mensajes system no se lee nada.
-func (t *transcriptLeido) leerSystem(texto string) error {
+// (research.md V7) y de cada system/api_retry, el reintento (research.md V2 de
+// H7.3); de los demás mensajes system no se lee nada más que su subtype.
+func (t *transcriptLeido) leerSystem(texto string) (mensaje, error) {
 	var system struct {
 		Subtype           string  `json:"subtype"`
 		Model             *string `json:"model"`
@@ -260,18 +323,48 @@ func (t *transcriptLeido) leerSystem(texto string) error {
 	}
 
 	if err := json.Unmarshal([]byte(texto), &system); err != nil {
-		return fmt.Errorf("el mensaje system no tiene la forma de stream-json: %w", err)
+		return mensaje{}, fmt.Errorf("el mensaje system no tiene la forma de stream-json: %w", err)
 	}
 
-	if system.Subtype != subtipoInit || t.conInit {
-		return nil
+	leido := mensaje{tipo: mensajeSystem, subtipo: system.Subtype}
+
+	switch {
+	case system.Subtype == subtipoAPIRetry:
+		if err := t.leerReintento(texto); err != nil {
+			return mensaje{}, err
+		}
+
+		return leido, nil
+	case system.Subtype != subtipoInit || t.conInit:
+		return leido, nil
+	case system.Model == nil || system.ClaudeCodeVersion == nil:
+		return mensaje{}, errors.New("el mensaje system/init no tiene model y claude_code_version")
+	default:
+		t.modelo, t.version, t.conInit = *system.Model, *system.ClaudeCodeVersion, true
+
+		return leido, nil
+	}
+}
+
+// leerReintento anota el reintento de un mensaje system/api_retry, que tiene que
+// llevar su attempt, su max_retries y su error (research.md V2 de H7.3).
+func (t *transcriptLeido) leerReintento(texto string) error {
+	var reintento struct {
+		Attempt    *int    `json:"attempt"`
+		MaxRetries *int    `json:"max_retries"`
+		Error      *string `json:"error"`
 	}
 
-	if system.Model == nil || system.ClaudeCodeVersion == nil {
-		return errors.New("el mensaje system/init no tiene model y claude_code_version")
+	if err := json.Unmarshal([]byte(texto), &reintento); err != nil {
+		return fmt.Errorf("el mensaje system/%s no tiene la forma de stream-json: %w", subtipoAPIRetry, err)
 	}
 
-	t.modelo, t.version, t.conInit = *system.Model, *system.ClaudeCodeVersion, true
+	if reintento.Attempt == nil || reintento.MaxRetries == nil || reintento.Error == nil {
+		return fmt.Errorf("el mensaje system/%s no tiene attempt, max_retries y error", subtipoAPIRetry)
+	}
+
+	t.reintentos = append(t.reintentos,
+		ReintentoDeLaAPI{Intento: *reintento.Attempt, Maximo: *reintento.MaxRetries, Error: *reintento.Error})
 
 	return nil
 }
@@ -321,7 +414,9 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 // leerResult lee un mensaje result: su subtype y su is_error, que deciden el fin
 // de la sesión (research.md V47), y la respuesta, que es su result solo con
 // subtype success e is_error falso y vacía en otro caso. Cada result deja la
-// respuesta en la suya, de modo que cuenta la del último.
+// respuesta en la suya, de modo que cuenta la del último. Con is_error
+// verdadero, su result, si lo lleva, es el texto del error (research.md V3 y
+// V18 de H7.3).
 func (t *transcriptLeido) leerResult(texto string) (mensaje, error) {
 	var result struct {
 		Subtype string  `json:"subtype"`
@@ -347,7 +442,13 @@ func (t *transcriptLeido) leerResult(texto string) (mensaje, error) {
 		t.respuesta = *result.Result
 	}
 
-	return mensaje{tipo: mensajeResult, subtipo: result.Subtype, conError: *result.IsError}, nil
+	leido := mensaje{tipo: mensajeResult, subtipo: result.Subtype, conError: *result.IsError}
+
+	if leido.conError && result.Result != nil {
+		leido.errorDelResultado = *result.Result
+	}
+
+	return leido, nil
 }
 
 // leerCodigo lee de codigo-de-la-sesion el código de la sesión: un entero en una
@@ -382,19 +483,30 @@ func leerFicheroDeSesion(dir, nombre string) ([]byte, error) {
 }
 
 // motivoSinTerminar es por qué no terminó una sesión, con el primero que aplica
-// en el orden de data-model §10.1, o vacío si terminó.
-func motivoSinTerminar(codigo int, ultimo *mensaje) string {
+// en el orden de data-model §10.1, o vacío si terminó. Si el último mensaje es
+// un result con is_error y un texto, ese texto va en el motivo del código que no
+// es del tope y en el del result con is_error (data-model §2 de H7.3).
+func motivoSinTerminar(codigo int, ultimo *mensaje, errorDelResultado string) string {
+	conTexto := ""
+	if errorDelResultado != "" {
+		conTexto = motivoResultConError + ": " + errorDelResultado
+	}
+
 	switch {
 	case codigo == codigoDelTope:
 		return motivoDelTope
 	case codigo == codigoDeKillTrasElTope:
 		return motivoDeKillTrasElTope
+	case codigo != 0 && conTexto != "":
+		return fmt.Sprintf("código %d: %s", codigo, conTexto)
 	case codigo != 0:
 		return fmt.Sprintf("código %d", codigo)
 	case ultimo == nil || ultimo.tipo != mensajeResult:
 		return motivoSinResult
 	case ultimo.subtipo != subtipoSuccess:
 		return "result con subtype " + ultimo.subtipo
+	case ultimo.conError && conTexto != "":
+		return conTexto
 	case ultimo.conError:
 		return motivoResultConError
 	default:

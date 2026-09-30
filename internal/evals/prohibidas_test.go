@@ -7,8 +7,9 @@ import (
 )
 
 // listaDelContrato es, nueva en cada llamada, la lista de expresiones prohibidas
-// de contracts/lista-y-juicio.md §2 escrita en el test, con la que se leen las
-// filas de la tabla de §3.
+// escrita en el test —la de contracts/lista-y-juicio.md §2 de H7.2 con la familia
+// del anuncio de contracts/lista-de-expresiones.md §1 de H7.3—, con la que se
+// leen las filas de la tabla de §3 de H7.2 y los casos del anuncio.
 func listaDelContrato() ExpresionesProhibidas {
 	return ExpresionesProhibidas{
 		Maquinaria: []string{
@@ -53,18 +54,36 @@ func listaDelContrato() ExpresionesProhibidas {
 			"conversaci\xc3\xb3n anterior",
 			"conversaciones anteriores",
 		},
+		Anuncio: []string{
+			"que trasladar",
+			"hace falta trasladar",
+			"ya puedo responder",
+			"con esto puedo responder",
+			"y puedo responder",
+			"tengo todo lo necesario",
+			"tengo lo necesario",
+			"redacto la respuesta",
+			"respondo con el texto",
+			"respondo con el contenido",
+			"ya tengo la respuesta",
+			"ya tengo el texto",
+			"as\xc3\xad que respondo",
+			"sin redacciones cambiadas",
+		},
 	}
 }
 
 // TestExtraerExpresionesProhibidas fija la comparación de la lista de
-// expresiones prohibidas con una respuesta (contrato lista-y-juicio §3; FR-051;
-// research D3): cada fila de la tabla de §3 con la lista de §2 escrita en el
+// expresiones prohibidas con una respuesta (contrato lista-y-juicio §3 y FR-051
+// de H7.2; contracts/lista-de-expresiones.md §3 y §6, FR-020 y FR-024 de H7.3;
+// research D3): cada fila de la tabla de §3 de H7.2 con la lista escrita en el
 // test —la tolerancia de H5.1 a mayúsculas, blancos y énfasis de Markdown, los
 // extremos de palabra, y las formas de los avisos y de los hallazgos, que no
-// llevan ninguna—; que las encontradas van en el orden de la lista, la
-// maquinaria y después lo dicho en otra conversación, y no en el del texto, sin
-// repetir aunque el texto o la lista repitan una; y que cada expresión se
-// compila una sola vez.
+// llevan ninguna—; el anuncio de lo que viene, que la familia del anuncio
+// encuentra, y el de que no hay avisos, que no encuentra; que las encontradas van
+// en el orden de la lista, la maquinaria, lo dicho en otra conversación y el
+// anuncio, y no en el del texto, sin repetir aunque el texto o la lista repitan
+// una; y que cada expresión se compila una sola vez.
 func TestExtraerExpresionesProhibidas(t *testing.T) {
 	t.Parallel()
 
@@ -82,7 +101,13 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 			nombre:      "memoria-de-consultas-y-hallazgos",
 			texto:       "Sin hallazgos en la memoria de consultas. Ya tengo todo lo necesario para responder.",
 			lista:       delContrato,
-			encontradas: []string{"memoria de consultas", "hallazgos"},
+			encontradas: []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"},
+		},
+		{
+			nombre:      "nada-que-trasladar",
+			texto:       "Nada que trasladar. Ya puedo responder.",
+			lista:       delContrato,
+			encontradas: []string{"que trasladar", "ya puedo responder"},
 		},
 		{
 			nombre:      "mayusculas",
@@ -138,6 +163,8 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 			lista:  delContrato,
 		},
 		{
+			// Decir que no hay avisos no es anunciar el estado de lo comprobado:
+			// ninguna expresión del anuncio lo dice (FR-020).
 			nombre: "sin-avisos-de-vigencia",
 			texto:  "No hay avisos de vigencia sobre este bloque.",
 			lista:  delContrato,
@@ -168,17 +195,26 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 			encontradas: []string{"memoria de consultas", "hallazgos", "te dije"},
 		},
 		{
+			// En el texto, primero el anuncio, después lo dicho en otra
+			// conversación y al final la maquinaria; en la lista, al revés.
+			nombre:      "maquinaria-otra-conversacion-y-anuncio",
+			texto:       "Ya puedo responder: como te dije, no hay hallazgos.",
+			lista:       delContrato,
+			encontradas: []string{"hallazgos", "te dije", "ya puedo responder"},
+		},
+		{
 			nombre: "lista-con-repeticiones",
-			texto:  "Los hallazgos, en json: te dije.",
+			texto:  "Los hallazgos, en json: te dije. Ya puedo responder.",
 			lista: ExpresionesProhibidas{
 				Maquinaria:       []string{"json", "hallazgos", "json"},
 				OtraConversacion: []string{"hallazgos", "te dije"},
+				Anuncio:          []string{"te dije", "ya puedo responder", "json", "ya puedo responder"},
 			},
-			encontradas: []string{"json", "hallazgos", "te dije"},
+			encontradas: []string{"json", "hallazgos", "te dije", "ya puedo responder"},
 		},
 		{
 			nombre: "sin-lista",
-			texto:  "Sin hallazgos en la memoria de consultas; te dije.",
+			texto:  "Sin hallazgos en la memoria de consultas; te dije. Ya puedo responder.",
 		},
 	}
 
