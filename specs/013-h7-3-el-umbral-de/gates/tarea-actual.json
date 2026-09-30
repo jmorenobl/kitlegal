@@ -1,21 +1,11 @@
 {
-  "id": "T015",
-  "texto": "T015 Cierre de la Definition of Done, sin código de producto: specs/013-h7-3-el-umbral-de/cierre.md con (1) la lista, sacada de `git diff --name-status main`, del esquema y de los datos de evals creados o modificados en el hito (el esquema de la lista y la lista con `anuncio`), y que ningún fichero de datos de prueba ni ninguna grabación cambia, para la capa 3 del informe final; (2) la cobertura sobre `coverage.out` y `coverage-integration.out` de `make ci` con `go tool cover -func` con las órdenes de quickstart.md §9.3 —global ≥ 70 % y el dominio ≥ 85 %— y la de los ficheros nuevos del paquete de evals; (3) el resultado de quickstart.md §1 a §5, §8 y §9.1 —§1, §2, §3 y §5 con `--- PASS` en cada test y subprueba nombrados, contados con `rtk proxy` para que no pase en vacío; §4 con el `FAIL` que nombra `cancel-in-progress` en la copia temporal, que se borra—, sin la última orden de §5 ni §6, que lanzan el sondeo y ninguna tarea lo ejecuta (FR-068), ni §7, que lee el informe del job de cierre, posterior al run; con la comprobación de que las órdenes de §5 y §6 nombran lo que existe: el objetivo `evals-sondeo` en `make help`, sus cinco argumentos en el guion del sondeo, las evals 03, 06, 13, 14 y 15 de `boe-legislacion` y `TestSondeo` en la lista de tests con la etiqueta `evals` de §9.1 (FR-070); (4) con las órdenes de quickstart.md §9.2: que no hay ADR nuevo, que los artefactos de H7.2 no cambian (FR-080), que el binario no cambia ni enlaza el paquete de evals, que no hay fuente ni grabación nuevas para la tabla de fuentes, que la `SKILL.md` de `boe-legislacion` tiene menos de 300 líneas, que ningún umbral de FR-002 o FR-051 se ha rebajado, retirado ni dejado sin decidir (FR-008), y que plan.md tiene las dos filas del cierre de FR-099; si una cifra de cobertura queda bajo su umbral, se añaden los tests que faltan en los ficheros de test declarados, sin tocar código de producto; verificación: `make ci` en verde — FR-008, FR-068, FR-070, FR-080, FR-090, FR-099; SC-010; rutas: specs/013-h7-3-el-umbral-de/cierre.md, internal/evals/umbrales_test.go, internal/evals/limites_test.go, internal/evals/sesiones_test.go, internal/evals/definicion_test.go, internal/evals/sondeo_test.go",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "b9438b249980626cc1efe495f7f5a6ff6ddf0ef6",
-  "rutas": [
-    "SKILL.md",
-    "internal/evals/definicion_test.go",
-    "internal/evals/limites_test.go",
-    "internal/evals/sesiones_test.go",
-    "internal/evals/sondeo_test.go",
-    "internal/evals/umbrales_test.go",
-    "plan.md",
-    "quickstart.md",
-    "specs/013-h7-3-el-umbral-de/cierre.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

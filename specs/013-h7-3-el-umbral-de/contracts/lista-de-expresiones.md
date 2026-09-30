@@ -30,7 +30,7 @@ anuncio:
   - sin redacciones cambiadas
 ```
 
-52 expresiones en total (≈ 1,3 KB). Ninguna de la familia dice a quien lee que la norma no está derogada o que no tiene
+52 expresiones en total (≈ 1,5 KB el fichero, con su comentario de cabecera). Ninguna de la familia dice a quien lee que la norma no está derogada o que no tiene
 avisos (FR-020).
 
 ## 2. El esquema (tarea `[datos]`)

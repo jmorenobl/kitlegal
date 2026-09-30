@@ -61,7 +61,7 @@ En este orden, y sin abrir ninguna sesión hasta el paso 4:
 4. **Las sesiones**: el plan de `PlanDeEvals` con las evals pedidas en su orden, `MODELO` como modelo que decide, sin
    modelos informativos, `REPETICIONES` y sin prueba de red; el repartidor ([ejecucion-del-job.md](./ejecucion-del-job.md)
    §3) con esa concurrencia, `Traza: false`, `Skills` `<temporal>/home/.claude/skills`, sesiones en
-   `<temporal>/sesiones` y el entorno de §5. Contexto cancelado con `SIGINT` y `SIGTERM`.
+   `<temporal>/sesiones` y el entorno de §5. La interrupción es el `Done()` del contexto que cancelan `SIGINT` y `SIGTERM`.
 5. **El juicio** (FR-061; research D17): cada sesión con `LeerSesion`, `Juzgar` sobre la eval sin `comandos` ni
    `prohibidos` y la sesión sin invocaciones, `exigirElModeloPedido` y la clasificación de límites; series y recuento
    con `repartirEnSeries` y `recontarExpresiones`, como el informe.
@@ -114,7 +114,7 @@ las skills de la persona, y el servicio del llavero que consulta Claude Code no 
 
 `make evals-sondeo` sale con 0 si ha podido abrir y juzgar las sesiones, sean cuales sean las tasas, el recuento o las
 sesiones sin medir (FR-066); con 1 si un argumento no vale, falta la credencial, no se pudo construir el binario o
-instalar las skills, o el repartidor devolvió un error; y con el código de `make` (2) detrás.
+instalar las skills, el directorio de las sesiones no se pudo crear o listar, o el repartidor devolvió un error; y con el código de `make` (2) detrás.
 
 ## 7. Tests (en `make ci`; FR-096)
 

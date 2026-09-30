@@ -188,7 +188,7 @@ por US4, `TestJuicioDelSondeo`, `TestSalidaDelSondeo`, `TestComprobarElSondeo`, 
 | `TestInformeConSesionesSinMedir` | `informe_test.go` | FR-033, FR-040 a FR-044, FR-093; SC-007 |
 | `TestLeerSesionConReintentos` | `sesion_test.go` | FR-033, FR-040, FR-063, FR-065 |
 | `TestClasificarElLimite` | `limites_test.go` | FR-040, FR-041, FR-093 |
-| `TestEjecutarSesionesEnParalelo`, `TestEjecutarSesionesTrasElLimiteDeUso`, `TestEjecutarSesionesConElContextoCancelado`, `TestTopeDeLaSesion` | `sesiones_test.go` | FR-030 a FR-032, FR-036, FR-037, FR-044, FR-064, FR-094; SC-007, SC-008 |
+| `TestEjecutarSesionesEnParalelo`, `TestEjecutarSesionesTrasElLimiteDeUso`, `TestEjecutarSesionesConElContextoCancelado`, `TestEjecutarSesionesConUnError`, `TestEjecutarSesionesSinConcurrencia`, `TestTopeDeLaSesion`, `TestInterrumpirLaSesion`, `TestSesionQueNoSePuedePreparar`, `TestAbrirUnaSesion` | `sesiones_test.go` | FR-030 a FR-032, FR-036, FR-037, FR-044, FR-064, FR-094; SC-007, SC-008 |
 | `TestDefinicionDelJob` | `definicion_test.go` | FR-030, FR-034, FR-035, FR-051, FR-094; SC-008 |
 | `TestJuicioDelSondeo`, `TestSalidaDelSondeo`, `TestComprobarElSondeo`, `TestSondear`, `TestGuionDelSondeo` | `sondeo_test.go` | FR-060 a FR-068, FR-096; SC-009 |
 | `TestPrepararElArbolDelSondeo` (etiqueta `integration`) | `sondeo_integracion_test.go` | FR-062, FR-064 |
@@ -270,7 +270,7 @@ contracts/ejecucion-del-job.md §9 y contracts/sondeo.md §4 y §8. Resumen:
 - **La salida del sondeo** (quien ajusta `SKILL.md`; una por sondeo): ≈ 0,9 KB con 5 evals, < 3 KB con todas sus sesiones
   listadas; no deja nada tras de sí.
 - **`SKILL.md`** (el modelo; una vez por conversación): < 300 líneas (270 en el prototipo, research V17). **La lista**:
-  52 expresiones, ≈ 1,3 KB, fija.
+  52 expresiones, ≈ 1,5 KB con su comentario de cabecera, fija.
 
 ## Decisiones
 

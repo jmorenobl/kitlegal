@@ -27,7 +27,7 @@ research lo hace una persona a mitad del run.
 | V15 | El cierre: `recoger_evals` toma el informe de cada comprobación de `evals` con `bucket` `pass` o `fail` cuyo nombre casa `^evals \(([a-z0-9-]+)\)$`; `medir` espera mientras haya alguna `pending` y cuenta `fail` y `cancel` como rojas | `scripts/workflow/cierre.sh:49-68, 112-122` |
 | V16 | `release_test.go` lee los flujos con `go.yaml.in/yaml/v3`; solo `ci.yml` y `release.yml` se leen en estricto: `evals.yml` puede ganar claves sin romperlo | `release_test.go:18, 554-558, 1070-1165` (agente de búsqueda) |
 | V17 | Medidas de los informes versionados de H7.1 y H7.2 con la comparación de `ExtraerExpresionesProhibidas` (misma expresión regular, prototipo fuera del repositorio, `/tmp/h73-proto/`), y de la prosa de `SKILL.md` con el algoritmo de D4 (`/tmp/h73-proto/prosa/`): v0.1.2, 14 párrafos y la fecha de la línea 191; una copia de `SKILL.md` con los cambios C1-C11 escritos como dice [contracts/skill-boe-legislacion.md](./contracts/skill-boe-legislacion.md) (`/tmp/h73-proto/SKILL-v013.md`), 0 párrafos, 0 fechas y 270 líneas | ver «Causa de raíz» y D2 |
-| V18 | Una credencial que no sirve **no** sale con 0: con Claude Code 2.1.270 y un `CLAUDE_CODE_OAUTH_TOKEN` inválido, la orden de la sesión deja como último mensaje un `result` con `is_error` y «Failed to authenticate. API Error: 401 OAuth access token is invalid.», y `claude -p` sale con **código 1** (H5, V61, casos (2) y (4)). Hoy `motivoSinTerminar` devuelve `código 1` antes de mirar el `result` (`internal/evals/sesion.go:386-403`), así que ese texto no llega al motivo. El único transcript versionado con un `result` con `is_error` (`internal/evals/testdata/sesiones/leer-sesion/result-con-is-error/`, «API Error: 529 …») es de una sesión con código 0. En 2.1.284, el mensaje de un modelo que no existe es «There's an issue with the selected model (<id>). It may not exist or you may not have access to it.», que se construye con `Qo({content:…,error:"model_not_found"})`, la función de los mensajes de error de la API (`function Qo({content:e,apiError:n,…,error:h,…})`, que pone `isApiErrorMessage:!0`): llega, como el de la credencial, en un `result` con `is_error` (V3) | `specs/006-h5-skill-boe-legislacion/research.md` V61; `internal/evals/sesion.go`; `grep -r '"is_error":true' internal/evals/testdata`; binario 2.1.284, `grep -a -o` de las dos cadenas |
+| V18 | Una credencial que no sirve **no** sale con 0: con Claude Code 2.1.270 y un `CLAUDE_CODE_OAUTH_TOKEN` inválido, la orden de la sesión deja como último mensaje un `result` con `is_error` y «Failed to authenticate. API Error: 401 OAuth access token is invalid.», y `claude -p` sale con **código 1** (H5, V61, casos (2) y (4)). En `main`, antes de H7.3, `motivoSinTerminar` devolvía `código 1` antes de mirar el `result` (`internal/evals/sesion.go:386-403` de `main`), así que ese texto no llegaba al motivo; desde T003 lo lleva. El único transcript versionado con un `result` con `is_error` (`internal/evals/testdata/sesiones/leer-sesion/result-con-is-error/`, «API Error: 529 …») es de una sesión con código 0. En 2.1.284, el mensaje de un modelo que no existe es «There's an issue with the selected model (<id>). It may not exist or you may not have access to it.», que se construye con `Qo({content:…,error:"model_not_found"})`, la función de los mensajes de error de la API (`function Qo({content:e,apiError:n,…,error:h,…})`, que pone `isApiErrorMessage:!0`): llega, como el de la credencial, en un `result` con `is_error` (V3) | `specs/006-h5-skill-boe-legislacion/research.md` V61; `internal/evals/sesion.go`; `grep -r '"is_error":true' internal/evals/testdata`; binario 2.1.284, `grep -a -o` de las dos cadenas |
 
 Supuestos no verificados:
 
@@ -212,9 +212,12 @@ nada que adivinar).
 `internal/evals` gana un repartidor: abre las sesiones del plan en su orden, como mucho `Concurrencia` a la vez; cada
 una se prepara justo antes con `PrepararSesion` (lo que ejecutaba `TestPrepararSesion`: las evals de la skill y
 `UnionDeGrabaciones()`), se abre con el guion de la sesión (D8) y, al terminar, se lee con `LeerSesion`; tras una de
-tipo (a), no abre más y espera a las abiertas. Mide la duración (D14). Un error de preparación o de E/S cancela el
-contexto, cierra las abiertas con el tope (D9) y vuelve con el error: el guion sale con 1, como hoy con una falta en la
-preparación.
+tipo (a), no abre más y espera a las abiertas. Mide la duración (D14). Un error que impide abrir una sesión —de
+preparación o de E/S— cierra el reparto, cierra las abiertas con el tope (D9) y vuelve con el error: el guion sale con
+1, como hoy con una falta en la preparación. Una sesión que `LeerSesion` no puede leer no es ese error: el reparto
+sigue y el informe la juzga como ilegible (T007; `gates/supuestos.md`). Lo que recibe el repartidor no es un contexto
+sino un canal de interrupción, el `Done()` del contexto que las entradas cancelan con `SIGINT` y `SIGTERM` (T006;
+`gates/supuestos.md`).
 
 Alternativas rechazadas: **bash con `xargs -P` o `wait -n`** (no hay `wait -n` en bash 3.2, S5; la regla de parar tras
 (a) necesita leer el transcript con el mismo código que el informe; y no se podría probar en `make ci` en macOS sin el
@@ -334,7 +337,7 @@ el peor caso de D13 de cada skill. El mismo lector da al sondeo la concurrencia 
   `HOME` en el temporal (como `make install`, FR-062); abre el plan (las evals pedidas, ese modelo, esas repeticiones,
   sin modelos informativos ni prueba de red) con el repartidor sin traza; juzga cada sesión (D17); y escribe
   `salida.txt`.
-- **Entorno de sus sesiones**: `PATH` (con `bin/` del temporal delante), `LANG`, `LC_*`, `TERM`, `USER`, `LOGNAME`,
+- **Entorno de sus sesiones**: `PATH` (con `bin/` del temporal delante), `LANG`, `LC_ALL`, `LC_CTYPE`, `LC_MESSAGES`, `TERM`, `USER`, `LOGNAME`,
   `SHELL`, `TZ` y `CLAUDE_CODE_OAUTH_TOKEN` de quien lo lanza; `HOME` en el temporal; y lo de cada sesión (D10, proxy
   cerrado, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`). Ninguna otra variable:
   `ANTHROPIC_API_KEY` y `ANTHROPIC_AUTH_TOKEN` tendrían prioridad sobre la suscripción (V5). El job conserva su entorno
@@ -361,8 +364,9 @@ informe. Sin un juez propio.
 Guiones POSIX escritos por los tests en `t.TempDir()` (constantes del test, sin `testdata/`): `claude` elige su
 transcript por el nombre de la sesión (`basename` de `..`) en un directorio que le da el test, anota lo que ve
 —directorio de trabajo, `CLAUDE_CONFIG_DIR`, `TMPDIR`, `CLAUDE_CODE_TMPDIR`, `KITLEGAL_CACHE_DIR`, `HOME`, el
-`kitlegal` que resuelve y si ve `ANTHROPIC_API_KEY`—, marca su llegada con un `mkdir` en un directorio común y cuenta
-cuántos hay (el número de sesiones abiertas a la vez), espera 1 s, y sale con el código que le digan; `strace` escribe
+`kitlegal` que resuelve y si ve `ANTHROPIC_API_KEY`—, marca su llegada con un `mkdir` en un directorio común, marca
+que está abierta con otro en un segundo directorio, que retira al terminar, y anota cuántas abiertas cuenta al llegar
+(el número de sesiones abiertas a la vez), duerme lo que le digan (0 s por omisión), y sale con el código que le digan; `strace` escribe
 una traza fija de un solo proceso en su `-o` y ejecuta lo que va tras `--`; y `go`, en el test del guion del sondeo,
 escribe `salida.txt` en el `-temporal` que recibe y sale con el código que le digan. Se escriben con
 `os.OpenRoot(t.TempDir())` y `root.WriteFile(…, 0o755)` (V8b). Nadie abre una sesión con modelo en `make ci`. Alternativas rechazadas: el binario de test como sustituto (necesita `os.Exit` y `os.Stdout`, V9); un programa en

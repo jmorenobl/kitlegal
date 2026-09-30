@@ -59,8 +59,10 @@ es `abrirSesion(interrupcion, SesionesAEjecutar, SesionPlanificada)` (T006; `gat
 5. `Duracion`: desde antes de preparar la primera hasta que termina la última;
 6. un error de preparación o de E/S, o `interrupcion` cerrado (`SIGINT`, `SIGTERM`), cierra las abiertas con la
    secuencia del tope y devuelve el error —el de la interrupción es `errSesionInterrumpida`—: ninguna sesión se
-   reintenta ni se duplica (FR-037). Con un error, el de las sesiones que se cierran por él no se añade; con la
-   interrupción, el error nombra cada sesión interrumpida y `errors.Is` lo reconoce como `errSesionInterrumpida`.
+   reintenta ni se duplica (FR-037). Con uno o varios errores, devuelve todos unidos con `errors.Join`, sin el de las
+   sesiones que se cierran por ellos; con la interrupción, el de cada sesión interrumpida, que la nombra y que
+   `errors.Is` reconoce como `errSesionInterrumpida`, o `errSesionInterrumpida` a secas si no había ninguna abierta
+   (T007; `gates/supuestos.md`).
 
 ## 4. El entorno de cada sesión (D10, D16)
 
@@ -126,8 +128,10 @@ Lee `.github/workflows/evals.yml` con `leerDefinicionDelJob` y falla, nombrando 
 
 1. el trabajo `evals` no tiene `concurrency.group` igual a
    `evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}`, o `cancel-in-progress` no está
-   y vale `false`, o el flujo tiene `concurrency` de nivel de flujo (FR-034);
-2. `name` no es `evals (${{ matrix.skill }})` (el nombre por el que el cierre lee cada informe; FR-034);
+   o no vale `false`, o el flujo tiene `concurrency` de nivel de flujo (FR-034);
+2. `name` no es `evals (${{ matrix.skill }})` (el nombre por el que el cierre lee cada informe; FR-034), o
+   `strategy.matrix.skill` no es `[boe-legislacion, legal-core]`, con las que se recorre el peor caso del punto 4
+   (T008; `gates/supuestos.md`);
 3. `include` no da `concurrencia` 4 a `boe-legislacion` y 1 a `legal-core`, u `objetivo_de_duracion` 900 y 0, o `env` no
    pasa `CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}` y `OBJETIVO_DE_DURACION_DE_EVALS: ${{
    matrix.objetivo_de_duracion }}` (FR-030, FR-051);
@@ -149,6 +153,9 @@ de la base (research D18). Nadie abre una sesión con modelo.
 | `TestEjecutarSesionesTrasElLimiteDeUso` | la sesión k da el transcript (a): con `Concurrencia` 2 no se abre ninguna posterior a las ya abiertas, las abiertas terminan y `SinAbrir` son exactamente las que faltan del plan; con (b) en la sesión k, se abren todas | FR-044, FR-093; SC-007; US3-2, US3-3 |
 | `TestTopeDeLaSesion` | con un tope de 1 s y un margen de 1 s: un sustituto que duerme 5 s deja 124; uno que ignora `TERM`, 137; uno que termina antes, su código | FR-031 |
 | `TestEjecutarSesionesConElContextoCancelado` | con el contexto cuyo `Done()` es `interrupcion` cancelado mientras hay sesiones abiertas (lo que hace `SIGINT` al sondeo): vuelve con `errSesionInterrumpida`, no abre ninguna más y ningún sustituto sigue vivo; es el mismo camino que un error de preparación | FR-037, FR-064 |
+| `TestEjecutarSesionesConUnError` | con `Concurrencia` 2, una sesión cuyo directorio no se puede crear: cierra las abiertas con la secuencia del tope, no abre ninguna posterior y vuelve con el error que nombra esa sesión | FR-037 |
+| `TestEjecutarSesionesSinConcurrencia` | una `Concurrencia` menor que 1 (`0`, `-1`) es un error antes de abrir ninguna sesión | FR-030 |
+| `TestInterrumpirLaSesion`, `TestSesionQueNoSePuedePreparar`, `TestAbrirUnaSesion` | una sola sesión: la interrupción antes y después de abrirla (`errSesionInterrumpida`, sin `codigo-de-la-sesion`); la preparación con faltas, que no la abre; y su directorio, su orden, su entorno de §4 y su traza | FR-031, FR-032, FR-037 |
 | `TestDefinicionDelJob` | §7 | FR-030, FR-034, FR-035, FR-094; SC-008; US3-6 |
 
 ## 9. Uso, de fuera adentro

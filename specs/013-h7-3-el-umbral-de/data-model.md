@@ -94,7 +94,8 @@ queda para las que faltan por otra causa.
 | `env.OBJETIVO_DE_DURACION_DE_EVALS` | `${{ matrix.objetivo_de_duracion }}` |
 
 Lector Go: `leerDefinicionDelJob(ruta) (DefinicionDelJob, error)`, con `Nombre`, `Grupo`, `CancelaLaEnCurso *bool`,
-`ConcurrenciaDeFlujo bool`, `TopeEnMinutos int`, `Env map[string]string`, `PorSkill map[string]AjustesDeSkill{Concurrencia,
+`ConcurrenciaDeFlujo bool`, `TopeEnMinutos int`, `Env map[string]string`, `Skills []string` (las de la matriz, en su
+orden), `PorSkill map[string]AjustesDeSkill{Concurrencia,
 ObjetivoDeDuracion int}`, y los modelos, repeticiones del `env`. Lo usan `TestDefinicionDelJob` y el sondeo.
 
 ## 7. Ejecución de las sesiones (repartidor; FR-030 a FR-032, FR-037, FR-044, FR-050)
