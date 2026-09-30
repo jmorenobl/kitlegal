@@ -9,6 +9,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -982,8 +983,11 @@ const (
 // escribir (contrato lista-y-juicio §6; FR-043, FR-084, FR-085 de H7.2); y, sobre
 // cada grafo previo, la lectura de los bloques de la eval y graph check dan los
 // hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
-// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Lee las carpetas enteras,
-// así que ningún fichero de eval se nombra aquí.
+// leída (contrato eval-y-derivada §4; FR-002 de H7.2). Desde H7.3, ninguna
+// expresión de esa lista va en la prosa del SKILL.md de boe-legislacion —fuera
+// del código y de la región generada— ni el fichero lleva ninguna fecha AAAAMMDD
+// escrita con cifras (contracts/skill-boe-legislacion.md §5; FR-091, SC-005). Lee
+// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1138,6 +1142,12 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		t.Parallel()
 
 		probarExpresionesDeLaSkill(t, listaDelRepositorio(t, conjunto))
+	})
+
+	t.Run("prosa-de-la-skill", func(t *testing.T) {
+		t.Parallel()
+
+		probarProsaDeLaSkill(t, listaDelRepositorio(t, conjunto))
 	})
 }
 
@@ -1523,6 +1533,263 @@ func bloquesDeTexto(markdown string) []string {
 	}
 
 	return bloques
+}
+
+// probarProsaDeLaSkill es la subprueba prosa-de-la-skill de
+// TestEvalsDelRepositorio (contracts/skill-boe-legislacion.md §5; research D4;
+// FR-010, FR-013, FR-091, SC-005): con defectosDeLaProsa, ningún párrafo de la
+// prosa del SKILL.md de boe-legislacion, frontmatter incluido, lleva ninguna
+// expresión de la lista, y ninguna línea del fichero lleva una fecha AAAAMMDD
+// escrita con cifras. El fichero tiene prosa: sin ella, la subprueba pasaría en
+// vacío.
+func probarProsaDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	skill := string(contenidoDelFichero(t, skillDelRepositorio))
+	require.NotEmpty(t, parrafosDeLaProsa(skill), "%s tiene prosa fuera del código y de la región generada",
+		skillDelRepositorio)
+
+	defectos := defectosDeLaProsa(skill, lista)
+	assert.Empty(t, defectos, "%s enseña con su prosa expresiones que la respuesta no lleva, o escribe con cifras "+
+		"una fecha AAAAMMDD:\n%s", skillDelRepositorio, strings.Join(defectos, "\n"))
+}
+
+// Lo que la prosa de un SKILL.md no es (contracts/skill-boe-legislacion.md §5):
+// cada bloque delimitado, de la línea que empieza, tras la sangría, por su
+// delimitador a la siguiente que empieza por él, y la región generada, de la
+// línea que empieza por su marca de inicio a la que es su marca de fin. Esas
+// líneas, marcas incluidas, parten la prosa en párrafos.
+const (
+	delimitadorDeBloque      = "```"
+	inicioDeLaRegionGenerada = "<!-- inicio de la tabla de comandos"
+	finDeLaRegionGenerada    = "<!-- fin de la tabla de comandos -->"
+)
+
+var (
+	// elementoDeLista casa con la línea que abre un elemento de lista, `- `,
+	// `* ` o `<n>. ` tras la sangría: empieza otro párrafo.
+	elementoDeLista = regexp.MustCompile(`^[ \t]*(?:[-*]|[0-9]+\.) `)
+
+	// codigoEnLinea casa con un tramo de código en línea, que en la prosa se
+	// cambia por un espacio para que no junte las palabras de sus lados.
+	codigoEnLinea = regexp.MustCompile("`[^`]*`")
+
+	// fechaConCifras casa con una fecha AAAAMMDD escrita con cifras: ocho
+	// cifras, sin otra delante ni detrás, con un mes de 01 a 12 y un día de 01 a
+	// 31 (FR-013). El grupo es la fecha.
+	fechaConCifras = regexp.MustCompile(`(?:^|[^0-9])([0-9]{4}(?:0[1-9]|1[0-2])(?:0[1-9]|[12][0-9]|3[01]))(?:$|[^0-9])`)
+)
+
+// defectosDeLaProsa da una línea por cada párrafo de la prosa del Markdown
+// (parrafosDeLaProsa) que lleva alguna expresión de la lista, con el número de
+// su primera línea y las expresiones, en el orden del fichero, y detrás una por
+// cada línea del fichero entero, sin quitar nada, que lleva una fecha AAAAMMDD
+// escrita con cifras, con su número y sus fechas; o nil si no hay ninguna.
+func defectosDeLaProsa(markdown string, lista ExpresionesProhibidas) []string {
+	defectos := expresionesEn(parrafosDeLaProsa(markdown), lista)
+
+	numero := 0
+	for linea := range strings.Lines(markdown) {
+		numero++
+
+		var fechas []string
+		for _, casada := range fechaConCifras.FindAllStringSubmatch(linea, -1) {
+			fechas = append(fechas, casada[1])
+		}
+
+		if len(fechas) > 0 {
+			defectos = append(defectos, fmt.Sprintf("línea %d: fecha escrita con cifras %s", numero,
+				strings.Join(fechas, ", ")))
+		}
+	}
+
+	return defectos
+}
+
+// parrafosDeLaProsa son los párrafos de la prosa del Markdown entero,
+// frontmatter incluido, en su orden, cada uno nombrado por el número de su
+// primera línea (contracts/skill-boe-legislacion.md §5): sin los bloques
+// delimitados ni la región generada, partido en párrafos por las líneas en
+// blanco, por las de esos bloques y de esa región y por cada línea que abre un
+// elemento de lista, con las líneas de cada párrafo juntas con un espacio, sin su
+// sangría, y cada tramo de código en línea cambiado por un espacio. Como en
+// CommonMark, un bloque o una región que no se cierran llegan hasta el final.
+func parrafosDeLaProsa(markdown string) []textoAMirar {
+	var (
+		parrafos           []textoAMirar
+		lineas             []string
+		primera, numero    int
+		enBloque, enRegion bool
+	)
+
+	cerrarElParrafo := func() {
+		if len(lineas) > 0 {
+			parrafos = append(parrafos, textoAMirar{
+				nombre: fmt.Sprintf("párrafo de la línea %d", primera),
+				texto:  codigoEnLinea.ReplaceAllString(strings.Join(lineas, " "), " "),
+			})
+		}
+
+		lineas = nil
+	}
+
+	for linea := range strings.Lines(markdown) {
+		numero++
+		recortada := strings.TrimSpace(linea)
+
+		switch {
+		case enRegion:
+			enRegion = recortada != finDeLaRegionGenerada
+		case enBloque:
+			enBloque = !strings.HasPrefix(recortada, delimitadorDeBloque)
+		case strings.HasPrefix(recortada, inicioDeLaRegionGenerada):
+			cerrarElParrafo()
+			enRegion = true
+		case strings.HasPrefix(recortada, delimitadorDeBloque):
+			cerrarElParrafo()
+			enBloque = true
+		case recortada == "":
+			cerrarElParrafo()
+		default:
+			if elementoDeLista.MatchString(linea) {
+				cerrarElParrafo()
+			}
+
+			if len(lineas) == 0 {
+				primera = numero
+			}
+
+			lineas = append(lineas, recortada)
+		}
+	}
+
+	cerrarElParrafo()
+
+	return parrafos
+}
+
+// TestProsaDeLaSkill fija la extracción de la subprueba prosa-de-la-skill,
+// defectosDeLaProsa, sobre Markdown escrito aquí (contracts/skill-boe-legislacion.md
+// §5; FR-091, SC-005): una expresión en un tramo de código, en un bloque
+// delimitado —también con sangría— o en la región generada no cuenta; partida
+// por un salto de línea dentro de un párrafo o de un elemento de lista, sí; en el
+// frontmatter, sí; dos párrafos no se juntan, y los parten una línea en blanco,
+// la que abre un elemento de lista, un bloque delimitado y las marcas de la
+// región; cada párrafo se nombra por su primera línea y lleva sus expresiones en
+// el orden de la lista. Una fecha AAAAMMDD con cifras cuenta en cualquier parte
+// del fichero, también dentro de un bloque; AAAAMMDD, un identificador BOE-A-…,
+// nueve cifras o un mes o un día imposibles, no.
+func TestProsaDeLaSkill(t *testing.T) {
+	t.Parallel()
+
+	lista := ExpresionesProhibidas{
+		Maquinaria:       []string{"memoria de consultas", "hallazgos", "graph check"},
+		OtraConversacion: []string{"te dije"},
+		Anuncio:          []string{"redacto la respuesta"},
+	}
+	region := "<!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->\n"
+	finDeLaRegion := "<!-- fin de la tabla de comandos -->\n"
+
+	casos := []struct {
+		nombre   string
+		markdown string
+		defectos []string
+	}{
+		{
+			nombre:   "en-un-tramo-de-codigo",
+			markdown: "Comprueba con `kitlegal graph check` y lee `data.hallazgos`.\n",
+		},
+		{
+			nombre: "en-un-bloque-delimitado",
+			markdown: "Por ejemplo:\n\n```text\nSin hallazgos en la memoria de consultas.\n```\n\n" +
+				"Y nada más.\n",
+		},
+		{
+			nombre:   "en-un-bloque-delimitado-con-sangria",
+			markdown: "- Comprueba:\n\n  ```bash\n  kitlegal graph check BOE-A-2015-10565 a21 --json\n  ```\n",
+		},
+		{
+			nombre:   "en-la-region-generada",
+			markdown: "Antes.\n\n" + region + "\n| kitlegal graph check | hallazgos |\n\n" + finDeLaRegion + "\nDespués.\n",
+		},
+		{
+			nombre:   "partida-dentro-de-un-parrafo",
+			markdown: "Una segunda lectura apagaría lo que la memoria de\nconsultas tiene que decirte.\n",
+			defectos: []string{"párrafo de la línea 1: memoria de consultas"},
+		},
+		{
+			nombre:   "partida-dentro-de-un-elemento-de-lista",
+			markdown: "Lee cada bloque:\n\n- una segunda lectura apagaría la memoria de\n  consultas.\n",
+			defectos: []string{"párrafo de la línea 3: memoria de consultas"},
+		},
+		{
+			nombre: "en-el-frontmatter",
+			markdown: "---\nname: boe-legislacion\ndescription: >-\n  Traslada los hallazgos.\n---\n\n" +
+				"# Consultar\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos"},
+		},
+		{
+			nombre:   "dos-parrafos-no-se-juntan",
+			markdown: "Lo que la memoria de\n\nconsultas dice.\n",
+		},
+		{
+			nombre:   "dos-elementos-de-lista-no-se-juntan",
+			markdown: "- lo que la memoria de\n* consultas dice\n7. redacto la\n  8. respuesta\n",
+		},
+		{
+			nombre:   "un-bloque-delimitado-parte-el-parrafo",
+			markdown: "Lo que la memoria de\n```text\nnada\n```\nconsultas dice.\n",
+		},
+		{
+			nombre:   "las-marcas-de-la-region-parten-el-parrafo",
+			markdown: "Lo que la memoria de\n" + region + finDeLaRegion + "consultas dice.\n",
+		},
+		{
+			nombre: "cada-parrafo-con-sus-expresiones",
+			markdown: "Primero.\n\nSin hallazgos en la memoria de consultas; te dije. Redacto la\nrespuesta.\n\n" +
+				"Luego, graph check.\n",
+			defectos: []string{
+				"párrafo de la línea 3: memoria de consultas, hallazgos, te dije, redacto la respuesta",
+				"párrafo de la línea 6: graph check",
+			},
+		},
+		{
+			nombre:   "el-codigo-deja-un-espacio",
+			markdown: "Sin`--json`hallazgos.\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos"},
+		},
+		{
+			nombre:   "una-fecha-con-cifras",
+			markdown: "Sustituida por la de 20250101, que es la que se cita.\n",
+			defectos: []string{"línea 1: fecha escrita con cifras 20250101"},
+		},
+		{
+			nombre:   "una-fecha-en-un-bloque-o-en-codigo",
+			markdown: "Por ejemplo:\n\n```text\nla de 20161002 y la de 20250101\n```\n\nO `20180309`.\n",
+			defectos: []string{
+				"línea 4: fecha escrita con cifras 20161002, 20250101",
+				"línea 7: fecha escrita con cifras 20180309",
+			},
+		},
+		{
+			nombre:   "expresiones-y-fechas",
+			markdown: "Los hallazgos de\n\n20200206.\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos", "línea 3: fecha escrita con cifras 20200206"},
+		},
+		{
+			nombre: "no-son-fechas",
+			markdown: "Las fechas van como `AAAAMMDD` o AAAAMMDD, en BOE-A-2015-10565, no 123456789, " +
+				"20251301 ni 20250132.\n",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.defectos, defectosDeLaProsa(caso.markdown, lista))
+		})
+	}
 }
 
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
