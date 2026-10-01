@@ -1,0 +1,182 @@
+# Una llamada a una herramienta es una invocación del kernel: devuelve el
+# mismo sobre que la orden de su verbo con --json para la misma entrada y el
+# mismo estado, y entrega al grafo del mundo lo que observó antes de que el
+# cliente pueda enviar la llamada siguiente. Con mcp serve --no-graph y el
+# grafo vacío, graph_show no ve el bloque que boe_articulo acaba de leer, y
+# falla con no-encontrado; sin la bandera, lo ve. Para cada una de las diez
+# herramientas de producción, la orden y después la llamada, sobre la misma
+# caché, dan el mismo sobre byte a byte; territorio_resolver, con un municipio
+# cubierto (Leganés) y con uno que no lo está (Tordesillas). Y con una lectura
+# anterior de otra redacción, boe_articulo y después graph_check con esa norma
+# y ese bloque dan los dos un resultado: el sobre de graph_check lleva ok
+# verdadero y su hallazgo version-obsoleta, que no es un error.
+#
+# Cubre: US1.1, US1.5, US1.6, US6 · FR-010, FR-012, FR-013, FR-020 · SC-004;
+# constitución IX (matriz territorial).
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3: mcp-<n>.json es el texto del bloque de texto del
+# resultado y un salto de línea, comparable con la salida de la orden; la orden
+# comprueba por su cuenta que structuredContent es ese mismo documento. Todo va
+# con el reloj T0 (2026-09-28T12:00:00Z; contracts/arnes-e2e.md §2 de H7), que
+# fecha lo que boe pide a la reproducción y cada invocación de graph: la
+# segunda lectura de boe la sirve la caché con la fecha de la primera. Las
+# herramientas de graph leen el grafo, así que entre su orden y su llamada no
+# hay ninguna lectura de boe. La norma, los bloques y los términos son los de
+# boe-verbos.txtar; los municipios, los de h7-grafo-matriz-territorial.txtar;
+# y la otra redacción, la derivada version-posterior de
+# h7-grafo-version-obsoleta.txtar (fecha_vigencia 20250101), puesta en la
+# reproducción con la caché retirada y el mismo world.db.
+
+# Precondición: el binario registra el applet mcp (FR-001).
+exec kitlegal --help
+stdout '^\s+mcp\s'
+
+# --- Con --no-graph y el grafo vacío, graph_show no ve el bloque (US1.6, FR-013, FR-020) ---
+#
+# La bandera se da a mcp serve y vale para todas sus llamadas: la lectura
+# termina bien y no entrega nada.
+! exists cache
+mcp bloque.txt $KITLEGAL_T0_BIN mcp serve --no-graph
+cmp stdout sin-grafo.salida
+grep '^\{"ok":false,' mcp-2.json
+grep '"data":\{"clase":"no-encontrado",' mcp-2.json
+! exists cache/world.db
+
+# --- Sin ella, tras boe_articulo, graph_show ve el bloque (US1.6, FR-013) ---
+#
+# Ninguna orden ha leído nada todavía: lo que graph_show enseña lo entregó la
+# llamada anterior del mismo servidor.
+mcp bloque.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout con-grafo.salida
+grep '^\{"ok":true,' mcp-2.json
+grep '"data":\{"nodo":\{"id":"eli/es/l/2015/10/01/39#a21","tipo":"Bloque",' mcp-2.json
+exists cache/world.db
+
+# --- Las de boe y territorio: el sobre de su orden (US1.1, US6, FR-010, SC-004) ---
+exec $KITLEGAL_T0_BIN boe buscar procedimiento administrativo común --json
+cp stdout buscar.json
+exec $KITLEGAL_T0_BIN boe indice BOE-A-2015-10565 --json
+cp stdout indice.json
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+cp stdout articulo.json
+exec $KITLEGAL_T0_BIN boe articulos BOE-A-2015-10565 a21 a22 a23 --json
+cp stdout articulos.json
+exec $KITLEGAL_T0_BIN boe metadatos BOE-A-2015-10565 --json
+cp stdout metadatos.json
+exec $KITLEGAL_T0_BIN boe analisis BOE-A-2015-10565 --json
+cp stdout analisis.json
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --json
+cp stdout leganes.json
+exec $KITLEGAL_T0_BIN territorio resolver Tordesillas --json
+cp stdout tordesillas.json
+
+mcp consultas.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout consultas.salida
+cmp mcp-1.json buscar.json
+cmp mcp-2.json indice.json
+cmp mcp-3.json articulo.json
+cmp mcp-4.json articulos.json
+cmp mcp-5.json metadatos.json
+cmp mcp-6.json analisis.json
+cmp mcp-7.json leganes.json
+cmp mcp-8.json tordesillas.json
+
+# La matriz territorial: el municipio cubierto y el que no lo está, con su
+# cobertura declarada en data (constitución IX).
+grep '"cobertura":\{"boletin_autonomico":"configurado","boletin_provincial":"configurado","dir3":"verificado"\}' mcp-7.json
+grep '"cobertura":\{"boletin_autonomico":"no-configurado","boletin_provincial":"no-configurado","dir3":"verificado"\}' mcp-8.json
+
+# --- Las de graph: el sobre de su orden, sobre el mismo grafo (US1.1, US6, FR-010, SC-004) ---
+#
+# Las tres órdenes y, sin ninguna lectura de boe entre medias, las tres
+# llamadas.
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/2015/10/01/39#a21' --json
+cp stdout show.json
+exec $KITLEGAL_T0_BIN graph stats --json
+cp stdout stats.json
+exec $KITLEGAL_T0_BIN graph check BOE-A-2015-10565 a21 --json
+cp stdout check.json
+
+mcp grafo.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout grafo.salida
+cmp mcp-1.json show.json
+cmp mcp-2.json stats.json
+cmp mcp-3.json check.json
+
+# Hasta aquí, todas las lecturas de a21 han visto la misma redacción: ningún
+# hallazgo.
+grep '"version-obsoleta":0,' mcp-3.json
+
+# --- graph_check con hallazgos no es un error (US1.5, FR-012, FR-013) ---
+#
+# La fuente sirve ahora otra redacción de a21. La lectura la ve y la entrega, y
+# graph_check, pedida después de recibir su resultado, compara esa lectura con
+# la anterior: un resultado, con ok verdadero y el hallazgo en data.
+cp derivadas/version-posterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json reproduccion/boe.legislacion-consolidada/
+rm cache/cache.db
+exists cache/world.db
+
+mcp redaccion.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout redaccion.salida
+grep '"fecha_vigencia":"20250101"' mcp-1.json
+grep '^\{"ok":true,' mcp-2.json
+grep '"version-obsoleta":1,' mcp-2.json
+grep '"hallazgos":\[\{"clase":"version-obsoleta","id":"eli/es/l/2015/10/01/39#a21@20161002:' mcp-2.json
+
+-- bloque.txt --
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+graph_show {"id":"eli/es/l/2015/10/01/39#a21"}
+-- sin-grafo.salida --
+protocolo 2026-07-28
+capacidades tools
+1 boe_articulo resultado
+2 graph_show error no-encontrado
+salida 0
+-- con-grafo.salida --
+protocolo 2026-07-28
+capacidades tools
+1 boe_articulo resultado
+2 graph_show resultado
+salida 0
+-- consultas.txt --
+boe_buscar {"texto":["procedimiento","administrativo","común"]}
+boe_indice {"norma":"BOE-A-2015-10565"}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+boe_articulos {"norma":"BOE-A-2015-10565","bloques":["a21","a22","a23"]}
+boe_metadatos {"norma":"BOE-A-2015-10565"}
+boe_analisis {"norma":"BOE-A-2015-10565"}
+territorio_resolver {"consulta":"Leganés"}
+territorio_resolver {"consulta":"Tordesillas"}
+-- consultas.salida --
+protocolo 2026-07-28
+capacidades tools
+1 boe_buscar resultado
+2 boe_indice resultado
+3 boe_articulo resultado
+4 boe_articulos resultado
+5 boe_metadatos resultado
+6 boe_analisis resultado
+7 territorio_resolver resultado
+8 territorio_resolver resultado
+salida 0
+-- grafo.txt --
+graph_show {"id":"eli/es/l/2015/10/01/39#a21"}
+graph_stats {}
+graph_check {"norma":"BOE-A-2015-10565","bloques":["a21"]}
+-- grafo.salida --
+protocolo 2026-07-28
+capacidades tools
+1 graph_show resultado
+2 graph_stats resultado
+3 graph_check resultado
+salida 0
+-- redaccion.txt --
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+graph_check {"norma":"BOE-A-2015-10565","bloques":["a21"]}
+-- redaccion.salida --
+protocolo 2026-07-28
+capacidades tools
+1 boe_articulo resultado
+2 graph_check resultado
+salida 0
