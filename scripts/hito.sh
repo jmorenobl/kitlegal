@@ -30,7 +30,8 @@
 #
 #   limite       la sesión de Claude murió por límite de uso o error de la API →
 #                cambia de familia de modelo (KITLEGAL_MODELO_FALLBACK, por
-#                defecto fable=opus,opus=sonnet) en todos los roles que usaban la
+#                defecto fable=claude-opus-5-5,opus=claude-sonnet-5-5: el id
+#                completo, como los roles; ADR 0033) en todos los roles que usaban la
 #                familia que falló, espera KITLEGAL_ESPERA_LIMITE segundos (60) y
 #                reanuda; sin repuesto, espera KITLEGAL_ESPERA_SIN_REPUESTO (1800)
 #                y reanuda con los mismos modelos. No consume reanudaciones: lo
@@ -61,7 +62,7 @@ export SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE="${SPECKIT_INTEGRATION_CLAUDE_EXECU
 
 runs=.specify/workflows/runs
 max_reanudaciones="${KITLEGAL_MAX_REANUDACIONES:-8}"
-fallback="${KITLEGAL_MODELO_FALLBACK:-fable=opus,opus=sonnet}"
+fallback="${KITLEGAL_MODELO_FALLBACK:-fable=claude-opus-5-5,opus=claude-sonnet-5-5}"
 espera_limite="${KITLEGAL_ESPERA_LIMITE:-60}"
 espera_sin_repuesto="${KITLEGAL_ESPERA_SIN_REPUESTO:-1800}"
 tiempo_maximo="${KITLEGAL_TIEMPO_MAXIMO:-172800}"
@@ -130,7 +131,7 @@ sys.exit(1)
 PYEOF
 }
 
-# fable@xhigh → fable · claude-opus-5 → opus · claude-haiku-4-5 → haiku
+# claude-opus-5-5@xhigh → opus · fable@xhigh → fable · claude-haiku-4-5 → haiku
 familia() { printf '%s' "$1" | sed -E 's/@.*$//; s/^claude-//; s/-[0-9].*$//'; }
 sustituto() { printf '%s' "$fallback" | tr ',' '\n' | awk -F= -v f="$1" '$1 == f {print $2}' | head -1; }
 
@@ -142,7 +143,7 @@ inputs_fallback() {
     while IFS='=' read -r rol val; do
       [ "$(familia "$val")" = "$fam" ] || continue
       esf=""; case "$val" in *@*) esf="@${val#*@}";; esac
-      [ "$nuevo" = haiku ] && esf=""
+      [ "$(familia "$nuevo")" = haiku ] && esf=""
       printf -- '--input\n%s=%s%s\n' "$rol" "$nuevo" "$esf"
     done
 }

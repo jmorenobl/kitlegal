@@ -10,7 +10,8 @@
 # del log del run en cuyo intervalo empezó, y el rol sale del `model:` de ese
 # paso en la copia congelada del workflow del run. Las sesiones headless que
 # empiezan después del run y fuera de todo paso son rondas a mano con
-# scripts/paso.sh y se agrupan en la fila «manual (paso.sh)».
+# scripts/paso.sh y se agrupan en la fila «manual (paso.sh)». El run acaba donde
+# empieza el siguiente: lo que viene después es de ese otro run.
 #
 # El coste es una estimación a precio de lista de la API (tabla PRECIOS); con
 # suscripción, léase como proporción entre pasos. Transcripts en otra ruta:
@@ -35,18 +36,24 @@ run_dir, run_id = sys.argv[1:3]
 
 # USD por millón de tokens: entrada, salida, lectura de caché. La escritura de
 # caché cuesta 1,25× la entrada (TTL 5 min) o 2× (TTL 1 h, el de Claude Code).
+# De https://platform.claude.com/docs/en/about-claude/pricing, leída el 2026-10-01.
+# La lectura de caché no es una proporción fija de la entrada: 0,1× en general,
+# 0,05× en Opus 5.5 y 0,025× en Fable 5.1.
 PRECIOS = {
     "claude-fable-5-1": (10.0, 50.0, 0.25),
+    "claude-opus-5-5": (4.0, 20.0, 0.20),
     "claude-opus-5": (5.0, 25.0, 0.50),
+    "claude-sonnet-5-5": (2.0, 10.0, 0.20),
     "claude-sonnet-5": (2.0, 10.0, 0.20),
     "claude-haiku-4-5": (1.0, 5.0, 0.10),
 }
 
 def precio(modelo):
-    for k, p in PRECIOS.items():
-        if modelo.startswith(k):
-            return p
-    return None
+    # El id tal cual o seguido de la fecha de la versión (claude-haiku-4-5-20251001),
+    # y nada más: `claude-opus-5` es prefijo de `claude-opus-5-5`, que tiene otro
+    # precio (el mismo defecto que el ADR 0031 cerró en el control de las evals).
+    # Un modelo que no está en la tabla sale «sin precio», no con el de otro.
+    return PRECIOS.get(re.sub(r"-[0-9]{8}$", "", modelo))
 
 def ts(s):
     return datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
@@ -104,11 +111,25 @@ for e in eventos:
         abiertos[sid] = ts(e["timestamp"])
     elif sid in abiertos and e["event"] != "step_started":
         intervalos.append((abiertos.pop(sid), ts(e["timestamp"]), nombre(sid)))
-fin_abierto = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
-intervalos += [(t0, fin_abierto, nombre(sid)) for sid, t0 in abiertos.items()]
-if not intervalos:
+if not intervalos and not abiertos:
     sys.exit(f"el run {run_id} aún no ha ejecutado ningún paso con modelo")
-ini_run = min(i[0] for i in intervalos)
+ini_run = min([i[0] for i in intervalos] + list(abiertos.values()))
+
+# El run acaba donde empieza el siguiente (hay un candado de sesión única: los runs
+# no se solapan). Sin ese tope, un paso que quedó abierto y la fila «manual» se
+# llevaban todas las sesiones de los runs posteriores.
+fin_run = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+for otro in glob.glob(os.path.join(os.path.dirname(run_dir), "*", "log.jsonl")):
+    if os.path.dirname(otro) == run_dir:
+        continue
+    with open(otro) as fh:
+        for l in fh:
+            e = json.loads(l) if l.strip() else {}
+            if e.get("event") == "step_started" and e.get("type") in ("command", "prompt"):
+                if ini_run < ts(e["timestamp"]) < fin_run:
+                    fin_run = ts(e["timestamp"])
+                break
+intervalos += [(t0, fin_run, nombre(sid)) for sid, t0 in abiertos.items()]
 
 # ---- sesiones headless y su consumo
 proyecto = os.path.abspath(".")
@@ -144,7 +165,7 @@ for f in glob.glob(os.path.join(tdir, "*.jsonl")):
                 inicio = ts(e["timestamp"])
                 headless = e.get("entrypoint") in entrypoints and (e.get("origin") or {}).get("kind") != "human"
                 break
-    if not inicio or not headless or inicio < ini_run:
+    if not inicio or not headless or inicio < ini_run or inicio >= fin_run:
         continue
     candidatos = [n for a, b, n in intervalos if a <= inicio <= b]
     # Sesión headless posterior al inicio del run y fuera de todo paso: una ronda
@@ -195,8 +216,8 @@ for paso, f in sorted(filas.items(), key=lambda kv: -kv[1]["coste"]):
     aviso = " (sin precio)" if f["sin_precio"] else ""
     print(f"{paso:28} {rol:22} {modelo:18} {f['ses']:3d} {f['turnos']:6d} {f['out'] // 1000:6d}k "
           f"{f['coste']:8.2f} {100 * f['coste'] / total:5.1f}{aviso}")
-print(f"\n{'rol':22} {'valor en el run':18} {'coste':>8} {'%':>5}")
+print(f"\n{'rol':22} {'valor en el run':22} {'coste':>8} {'%':>5}")
 for rol, c in por_rol.most_common():
     valor = "scripts/paso.sh" if rol == "manual" else str(inputs.get(rol, "?"))
-    print(f"{rol:22} {valor:18} {c:8.2f} {100 * c / total:5.1f}")
+    print(f"{rol:22} {valor:22} {c:8.2f} {100 * c / total:5.1f}")
 PYEOF
