@@ -14,6 +14,7 @@
 # job para la skill, y los que no valen los nombra TestSondeo (FR-067). Abre sesiones con modelo y consume la
 # suscripción de quien lo lanza, con CLAUDE_CODE_OAUTH_TOKEN: lo ejecuta una persona; ni make ci, ni los ganchos, ni el
 # job, ni ninguna tarea del workflow (FR-068). No es un veredicto: el veredicto de una skill lo da el job de evals.
+# La credencial se la pone en el entorno scripts/evals-sondeo-llavero.sh, que es lo que ejecuta make (ADR 0032).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

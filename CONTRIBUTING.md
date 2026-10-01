@@ -200,7 +200,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
-| Sondeo local de unas evals de una skill con un modelo, sin `strace` ni veredicto (`scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto |
+| Sondeo local de unas evals de una skill con un modelo, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | La web: tipos, cada cita contra su sobre y construcción en `web/dist` ([La web](#la-web)) | `make web` | no — necesita Node y pnpm; lo ejecuta el flujo `web` |
@@ -737,6 +737,27 @@ argumento que no vale, que lo nombra, o la de la credencial—, sin el registro 
 vacía, no se abre ninguna sesión y el guion termina con `1` (`make` añade detrás su propia línea de error y termina
 con `2`); cualquier otro fallo imprime el registro entero de `go test`. Abre sesiones con modelo y consume la
 suscripción de quien lo lanza: ni `make ci` ni ningún flujo lo ejecutan.
+
+**La credencial no vive en un fichero** (ADR 0032). `make evals-sondeo` pasa por `scripts/evals-sondeo-llavero.sh`,
+que, si `CLAUDE_CODE_OAUTH_TOKEN` no está ya en el entorno, la lee en macOS de un llavero propio —no el de inicio de
+sesión— que está bloqueado: el sistema abre un diálogo que pide la contraseña del llavero, y el guion lo vuelve a
+bloquear en cuanto tiene el valor, de modo que cada sondeo la pide y sin una persona delante no hay credencial. En el
+diálogo se escribe la contraseña del llavero, nada más. El llavero se crea una vez, en un terminal:
+
+```bash
+security create-keychain ~/Library/Keychains/kitlegal-sondeo.keychain-db    # pide una contraseña nueva, que no sea la del equipo
+security set-keychain-settings -l -u -t 60 ~/Library/Keychains/kitlegal-sondeo.keychain-db   # se bloquea solo al minuto y al reposar
+printf 'Token de claude setup-token: '; read -rs token; echo                 # se pega sin que se vea ni quede en el historial
+security add-generic-password -a kitlegal -s kitlegal-claude-oauth-token -w "$token" ~/Library/Keychains/kitlegal-sondeo.keychain-db
+unset token
+security lock-keychain ~/Library/Keychains/kitlegal-sondeo.keychain-db
+```
+
+Otra ruta, con `KITLEGAL_LLAVERO`. En Linux, o quien prefiera no tener llavero, pone `CLAUDE_CODE_OAUTH_TOKEN` en el
+entorno de esa orden y de ninguna otra. El token no se guarda en un fichero: una sesión de un agente lo lee con un
+`cat` aunque una regla de permisos le niegue la herramienta de lectura, y así abrió el run de H7.4 42 sesiones que
+nadie había pedido. Por eso el guion no se ejecuta dentro de un paso del workflow `hito` ni con un run vivo sobre el
+árbol, y `scripts/hito.sh` no arranca si encuentra el token en el entorno o en `~/.config/kitlegal/claude-oauth-token`.
 
 ## `make vuln` necesita red
 
