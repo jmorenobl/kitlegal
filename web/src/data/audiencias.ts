@@ -16,6 +16,9 @@ export interface Audiencia {
   titulo: string;
   descripcion: string;
   imagen: string;
+  // La fotografía de la cabecera (src/assets/ilustraciones/) y la parte de ella
+  // que se conserva al recortarla, como clase de `object-position`.
+  ilustracion: { nombre: string; alt: string; foco: string };
   insignia: string;
   h1: string;
   subtitulo: string;
@@ -70,6 +73,11 @@ export const ciudadania: Audiencia = {
   descripcion:
     "Pregunta a tu asistente de IA por un plazo, un recurso, tu alquiler o tu trabajo y recibe la respuesta con el texto vigente del BOE y su cita. Gratis.",
   imagen: "inicio",
+  ilustracion: {
+    nombre: "portada-ciudadania",
+    alt: "Una persona de espaldas, sentada a la mesa de la cocina con un portátil y un sobre.",
+    foco: "object-[72%_50%]",
+  },
   insignia: "Legislación española · La ley vigente, con su cita",
   h1: "Pregunta por tu plazo, tu alquiler o tu trabajo y recibe la ley vigente, con su cita.",
   subtitulo:
@@ -195,6 +203,11 @@ export const despachos: Audiencia = {
   descripcion:
     "Gratis, para Claude Code, Codex y Antigravity: tu asistente cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Para despachos en España.",
   imagen: "despachos",
+  ilustracion: {
+    nombre: "portada-despachos",
+    alt: "Un escritorio de despacho con un portátil, un libro abierto con un marcapáginas ámbar y una lámpara.",
+    foco: "object-[78%_50%]",
+  },
   insignia: "Para despachos en España · Software libre y gratuito",
   h1: "Usa IA en tu despacho con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
