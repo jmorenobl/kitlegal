@@ -388,7 +388,20 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               </li>
             ))}
           </ul>
-          <p class="mb-3 border-t border-linea pt-5 text-sm leading-relaxed text-tinta">{contacto.todavia}</p>
+          <h3 class="mb-3 border-t border-linea pt-5 font-serif text-lg font-semibold text-tinta">Lo que hoy no hace</h3>
+          <ul class="mb-3 space-y-3 text-sm leading-relaxed text-tenue">
+            {contacto.todavia.map((frase) => (
+              <li class="flex items-start gap-2.5">
+                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
+                <span>{frase}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mb-5 text-sm">
+            <a href={contacto.detalle.destino} class="font-semibold text-agente underline underline-offset-2">
+              {contacto.detalle.texto}
+            </a>
+          </p>
           <p class="text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
         </div>
       </div>

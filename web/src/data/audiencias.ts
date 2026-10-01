@@ -3,7 +3,7 @@
 // es la portada del sitio. Las citas se nombran por su id de citas.yaml: el
 // texto de la norma nunca se escribe aquí.
 
-import { formatoEntero, numeroDeMunicipios } from "../lib/proyecto";
+import { formatoEntero, numeroDeMunicipios, REPOSITORIO } from "../lib/proyecto";
 
 export type Tono = "sello" | "derogada" | "agente" | "vigente";
 
@@ -50,7 +50,10 @@ export interface Audiencia {
     titulo: string;
     texto: string;
     peticiones: string[];
-    todavia: string;
+    // Lo que hoy no hace, y por qué: una frase por cosa. `detalle` enlaza la
+    // explicación larga.
+    todavia: string[];
+    detalle: { texto: string; destino: string };
     aviso: string;
     asunto: string;
   };
@@ -311,7 +314,12 @@ export const despachos: Audiencia = {
       "Una fuente que echas de menos: jurisprudencia, consultas de la DGT, convenios colectivos, boletines autonómicos.",
       "Lo que te frena para usarlo: la instalación, la confidencialidad, la forma de la respuesta.",
     ],
-    todavia: "Lo que hoy no hace: no consulta ni comprueba jurisprudencia, y no redacta escritos.",
+    todavia: [
+      "No redacta escritos todavía. Lo hará: está en el plan.",
+      "No consulta jurisprudencia. La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
+      "Lo que sí puede llegar, por vías que lo permiten: las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE, y la jurisprudencia europea.",
+    ],
+    detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
     aviso:
       "No incluyas datos de clientes ni de asuntos. Leemos tu mensaje solo para responderte y para decidir qué mejorar.",
     asunto: "kitlegal para despachos",

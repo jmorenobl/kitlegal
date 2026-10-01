@@ -159,7 +159,7 @@ export const consultas: Consulta[] = [
       {
         titulo: "De cuándo es esta redacción",
         texto:
-          "El apartado 5 se modificó y el 7 se añadió con el Real Decreto-ley 26/2026, de 29 de septiembre. Es una reforma muy reciente, y el BOE acompaña hoy esta norma de un aviso: su consolidación no ha terminado.",
+          "El apartado 5 se modificó y el 7 se añadió con el Real Decreto-ley 26/2026, de 29 de septiembre. Es una reforma muy reciente.",
         cita: "lau-36-nota",
       },
     ],
