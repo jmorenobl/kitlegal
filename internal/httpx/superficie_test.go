@@ -55,15 +55,20 @@ var tiposVetados = []string{"Client", "RoundTripper", "Request", "Response"}
 
 // superficieDelCliente son las declaraciones que la revisión tiene que haber
 // recorrido de verdad: la operación de red y los dos constructores, más los dos
-// tipos que van y vienen por ellos (contrato §1, D1). Sin esta comprobación el
-// test pasaría en vacío el día que la revisión dejara de encontrar nada, que es
-// la única forma de que la garantía quedara sin vigilar sin que nadie lo notara.
+// tipos que van y vienen por ellos (contrato §1, D1), y el ritmo común a más de
+// un cliente, con su constructor y su opción (contrato servidor-mcp §7 de H21).
+// Sin esta comprobación el test pasaría en vacío el día que la revisión dejara
+// de encontrar nada, que es la única forma de que la garantía quedara sin
+// vigilar sin que nadie lo notara.
 var superficieDelCliente = []string{
+	"func ConRitmo",
 	"func New",
+	"func NuevoRitmo",
 	"func Replay",
 	"método Cliente.Pedir",
 	"tipo Cliente",
 	"tipo Respuesta",
+	"tipo Ritmo",
 }
 
 // TestSuperficieExportada es el control de FR-002 sobre el paquete entero, y
