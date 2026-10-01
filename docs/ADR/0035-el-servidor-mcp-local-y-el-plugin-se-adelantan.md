@@ -38,9 +38,27 @@ Lo que dice la documentación de cada programa, leída el 2026-10-01:
 | SDK de Go | `modelcontextprotocol/go-sdk` v1.8.0: servidor por stdio, herramientas con esquemas propios de entrada y de salida, `structuredContent`, `instructions`; atiende la especificación 2026-07-28 y las anteriores en el mismo proceso. Sin cgo. | github.com/modelcontextprotocol/go-sdk |
 | goreleaser (edición libre) | No produce un `.mcpb` con `archives` (formatos cerrados, sin contenido por plantilla): hace falta un paso propio. Sí produce el binario universal de macOS y adjunta ficheros ya hechos a la release. Notariza en macOS sin un Mac (quill), con una cuenta de Apple Developer. | goreleaser.com |
 
-Sin comprobar, porque la documentación no lo dice: si macOS deja ejecutar el binario sin notarizar que llega
-dentro de un `.mcpb`; si Cowork acepta el `.mcpb` del plugin por ruta igual que Claude Code; y qué ve el servidor
-desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
+La documentación no decía si macOS deja ejecutar el binario sin notarizar que llega dentro de un `.mcpb`, si
+Cowork acepta el `.mcpb` del plugin por ruta igual que Claude Code, ni qué ve el servidor desde una sesión de
+Cowork. Se comprobó a mano el mismo día, con un plugin de prueba hecho fuera del repositorio: una skill y un
+`.mcpb` con un servidor mínimo en Go —binario universal de macOS, firmado solo por el enlazador, sin notarizar—
+que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.cache`. En la app de Claude
+2.16120.0 para macOS:
+
+- **El chat y Cowork son ya un solo modo**, y el otro es Code. Los plugins se instalan por modo: el zip subido
+  estando en Code queda en `~/.claude/plugins/` y una conversación de chat no ve ni su skill ni su servidor.
+- **Subido en el modo de chat, el plugin funciona en una conversación normal**: la app extrae el `.mcpb`, arranca
+  el binario en el equipo y anuncia sus herramientas a la conversación; la skill las llama. El servidor leyó el
+  BOE (200) y escribió y leyó en `~/.cache` del equipo. Lo que la documentación llama «chat» y da por incapaz de
+  usar un servidor local es, en la app de escritorio, este mismo modo: quedan sin servidor la web y el móvil.
+- **macOS no puso reparos**: el binario extraído no lleva el atributo de cuarentena. El zip no venía de un
+  navegador.
+- **Al instalar, la app avisa** en rojo de que el plugin «otorgará acceso a todo en tu computadora», y hay que
+  aceptar.
+- **Lo que el servidor encuentra**: su directorio de trabajo es `/`; el ejecutable vive en un directorio de la app
+  que cambia en cada arranque de esta; y la app negocia la versión 2025-11-25 del protocolo, no la vigente.
+- **Una frase ambigua no activa la skill**: «prueba kitlegal» se entendió como «pasa los tests de kitlegal», por
+  lo que la cuenta recuerda del proyecto. Invocada con `/`, respondió.
 
 ## Opciones consideradas
 
@@ -53,7 +71,7 @@ desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
 
 **Dónde corre.**
 
-1. **Un servidor remoto de kitlegal.** Es lo único que llega a ChatGPT en la web y en el móvil y al chat de Claude.
+1. **Un servidor remoto de kitlegal.** Es lo único que llega a ChatGPT y a Claude en la web y en el móvil.
    Aplazada por Jorge, que quiere pensarlo: kitlegal pasaría a recibir las preguntas de quien lo usa, lo que
    sustituye la promesa del ADR 0027 y lo convierte en responsable de ese tratamiento; y pagaría un servidor que
    otros consumen sin coste. No es una opción descartada: es otra decisión, con su ADR.
@@ -62,10 +80,11 @@ desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
 
 **Un hito o dos.**
 
-1. **Uno, con el servidor, el paquete y el plugin.** Rechazada: el empaquetado depende de tres cosas que solo se
-   comprueban a mano con el servidor ya hecho, y el servidor sirve por sí solo a quien ya tiene el binario.
+1. **Uno, con el servidor, el paquete y el plugin.** Rechazada: son dos entregas que se miden distinto —la
+   primera, con las evals en los dos modos; la segunda, con una instalación a mano—, y el servidor sirve por sí
+   solo a quien ya tiene el binario.
 2. **Dos**: H21, el servidor con las skills y las evals en los dos modos; H22, la instalación sin terminal.
-   Elegida. La sección de H22 se detalla cuando esas comprobaciones estén hechas.
+   Elegida. La sección de H22 se detalla al cerrar H21.
 
 **Cómo llega el binario a quien no abre una terminal** (H22).
 
@@ -74,8 +93,8 @@ desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
    terminal. Sirve a quien ya lo tiene, no a la audiencia.
 3. **El `.mcpb` suelto, con doble clic.** Lleva las herramientas y no las skills: el protocolo, que es el producto
    (principio VIII), no llega.
-4. **Un plugin con las skills y el `.mcpb` dentro**, generados de la misma etiqueta. Elegida, pendiente de las
-   comprobaciones a mano.
+4. **Un plugin con las skills y el `.mcpb` dentro**, generados de la misma etiqueta. Elegida: es lo que la prueba
+   a mano dio por bueno.
 
 **Cómo conviven la orden y la herramienta en una skill.**
 
@@ -97,18 +116,20 @@ desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
   servidor dentro, y quien no usa la terminal lo instala desde *Customize > Plugins*.
 - **Todo corre en el equipo.** Ningún transporte de red, ningún servidor de kitlegal. La promesa del ADR 0027 no
   cambia.
-- **Una skill sin herramienta ni orden lo dice.** En el chat de Claude las skills del plugin cargan y el servidor
-  no: la respuesta dice que no ha podido consultar el BOE y cómo se instala, con una forma fija, y no afirma nada
-  de memoria.
+- **Una skill sin herramienta ni orden lo dice.** En la web y en el móvil de Claude las skills de un plugin de
+  la cuenta cargan y el servidor no: la respuesta dice que no ha podido consultar el BOE y cómo se instala, con
+  una forma fija, y no afirma nada de memoria.
+- **El servidor no depende de dónde arranca**: ni del directorio de trabajo ni de la ruta de su ejecutable. La
+  caché y el grafo siguen en `~/.cache/kitlegal/`.
 - **Principio VIII, constitución 2.10.0**: la tabla de comandos nombra cada operación como orden
   (`kitlegal <applet> <verbo>`) y como herramienta (`<applet>_<verbo>`).
 
 ## Consecuencias
 
 - H20, H8 y H9 se retrasan dos hitos. Nacen ya con su herramienta MCP, porque las herramientas salen del registro.
-- La web y el README pueden decir con qué funciona: Claude Cowork y Claude Code; la app de escritorio de ChatGPT y
-  Antigravity, con el binario instalado; y que ChatGPT en la web y en el móvil y el chat de Claude no son
-  compatibles, porque solo admiten servidores remotos. Los textos de la web los cambia la persona (ADR 0024).
+- La web y el README pueden decir con qué funciona: la app de escritorio de Claude y Claude Code; la app de
+  escritorio de ChatGPT y Antigravity, con el binario instalado; y que ChatGPT y Claude en la web y en el móvil no
+  son compatibles, porque solo admiten servidores remotos. Los textos de la web los cambia la persona (ADR 0024).
 - El job de evals mide cada eval dos veces, una por modo, y los umbrales del ADR 0029 se cumplen en cada uno.
 - Entra la dependencia `modelcontextprotocol/go-sdk`, ya prevista en el principio V para la distribución.
 - Quien instale el plugin en su cuenta lo recibe también en Claude Code; si además tiene las skills instaladas con
@@ -118,10 +139,10 @@ desde una sesión de Cowork (la caché del equipo, la red hacia el BOE).
 
 ## Pendiente de verificar (antes de detallar H22)
 
-Con el binario de H21, a mano y en un Mac sin kitlegal instalado:
-
-1. Que macOS ejecuta el binario que llega dentro del `.mcpb`. Si lo bloquea, hace falta notarizarlo: una cuenta
-   de Apple Developer, que es una credencial y una decisión de la persona.
-2. Que Cowork arranca el servidor de un plugin subido como zip con el `.mcpb` dentro.
-3. Que, desde una sesión de Cowork, el servidor lee el BOE y escribe la caché y el grafo en el equipo.
-4. Qué responde el chat de Claude con el plugin instalado, donde hay skill y no hay herramienta.
+1. Que macOS ejecuta el binario cuando el zip del plugin se ha descargado con un navegador y lleva, él sí, el
+   atributo de cuarentena. Si lo bloquea, hace falta notarizarlo: una cuenta de Apple Developer, que es una
+   credencial y una decisión de la persona.
+2. Qué responde Claude en la web y en el móvil, donde puede haber skill y no hay herramienta, y si un plugin
+   subido desde la app de escritorio llega a la cuenta.
+3. Lo mismo en Windows, donde nadie lo ha probado.
+4. Cómo se actualiza un plugin subido como zip, y si un marketplace lo hace solo.

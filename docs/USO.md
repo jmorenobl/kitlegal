@@ -20,20 +20,23 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 - **Qué faltó.**
   - **Un servidor MCP local.** Es lo que cruza esa frontera: el programa corre en el equipo y el agente recibe sus
     operaciones como herramientas. La documentación de Claude dice que el servidor local de un plugin carga en
-    Cowork cuando la sesión corre en el equipo, y que el chat lo ignora.
+    Cowork cuando la sesión corre en el equipo.
   - **Skills que sepan usar herramientas.** Las dos están escritas para un shell (`… && kitlegal graph check …`,
     códigos de salida) y las evals solo miden órdenes.
   - **Una instalación sin terminal.** Un plugin puede llevar las skills y un paquete `.mcpb` con el binario dentro,
-    y se instala desde *Customize > Plugins*. Sin comprobar: si macOS ejecuta ese binario sin notarizar y si Cowork
-    lo arranca desde un plugin subido como zip.
+    y se instala desde *Customize > Plugins*. Probado a mano el mismo día con un plugin de prueba, en la app de
+    Claude para macOS: subido como zip en el modo de chat —que ya es el mismo que Cowork—, la app arranca el
+    binario sin notarizar en el equipo, el servidor lee el BOE y escribe en `~/.cache`, y la skill lo usa. Subido
+    estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
+    en tu computadora». Y «prueba kitlegal» no activó la skill: Claude entendió que había que pasar los tests del
+    proyecto.
   - **ChatGPT.** En la web y en el móvil solo admite servidores remotos. La app de escritorio sí admite servidores
     locales por stdio, con el binario instalado.
 - **Qué se hizo.** Decisión de Jorge: todo en el equipo, con todas las funciones, y el servidor MCP por delante de
   H20. El servidor remoto queda aplazado: tiene que pensarlo, porque kitlegal pasaría a recibir las preguntas de
   quien lo usa (ADR 0027) y pagaría un servidor que otros consumen sin coste; donde un servidor local no llega se
   dice que no es compatible. ADR 0035: H21 (`kitlegal mcp serve`, las skills con orden y herramienta, las evals en
-  los dos modos) y H22 (el plugin con las skills y el servidor dentro), que se detalla tras cuatro comprobaciones a
-  mano con el binario de H21.
+  los dos modos) y H22 (el plugin con las skills y el servidor dentro), que se detalla al cerrar H21.
 
 ### 2026-10-01 · La web no respondía a nada que la gente busque, y ninguna de sus dos audiencias usa una terminal
 
