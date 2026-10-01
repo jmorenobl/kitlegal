@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-01
+
 ### Añadido
 
 - **El grafo del mundo** (ADR 0014, pieza G0): el binario recuerda lo que observa de las fuentes, con su procedencia,
