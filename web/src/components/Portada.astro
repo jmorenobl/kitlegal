@@ -7,6 +7,7 @@ import { fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
+import Ilustracion from "./Ilustracion.astro";
 
 interface Props {
   audiencia: Audiencia;
@@ -30,6 +31,15 @@ const icono: Record<Tono, string> = {
   vigente: "text-vigente",
 };
 
+// Lo que ocurre entre la pregunta y la respuesta, en orden.
+const pasos = [
+  { icono: "chat", texto: "Preguntas con tus palabras" },
+  { icono: "smart-toy", texto: "Tu asistente llama a kitlegal" },
+  { icono: "menu-book", texto: "kitlegal lee la norma en el BOE" },
+  { icono: "history-toggle-off", texto: "Comprueba si sigue en vigor" },
+  { icono: "verified", texto: "Recibes la respuesta con su cita" },
+];
+
 // La respuesta de memoria, partida alrededor de las marcas del error.
 const expresion = new RegExp(`(${comparativa.marcas.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
 const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
@@ -39,14 +49,16 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 ---
 
 <section class="relative overflow-hidden border-b border-linea/50 bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-24 md:pt-28 md:pb-32">
-  <div class="mx-auto max-w-5xl px-4 text-center sm:px-10">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
+   <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+    <div class="text-center lg:text-left">
     <p class="mb-8 inline-flex items-center gap-2 rounded-md border border-linea bg-white px-3.5 py-1.5 shadow-xs">
       <span class="font-mono text-estampa font-semibold uppercase text-tinta">
         {audiencia.insignia}
       </span>
     </p>
 
-    <nav aria-label="Audiencia" class="mb-8 flex justify-center">
+    <nav aria-label="Audiencia" class="mb-8 flex justify-center lg:justify-start">
       <ul class="grid w-full max-w-md grid-cols-2 gap-1 rounded-lg border border-linea/80 bg-panel p-1 sm:inline-flex sm:w-auto sm:max-w-none">
         {
           audiencias.map(({ ruta, nombre: texto, icono: nombre }) => {
@@ -73,12 +85,12 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </ul>
     </nav>
 
-    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl md:text-[3.5rem]">
+    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl lg:mx-0 lg:text-[2.75rem]">
       {audiencia.h1}
     </h1>
-    <p class="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-tenue md:text-xl">{audiencia.subtitulo}</p>
+    <p class="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-tenue lg:mx-0">{audiencia.subtitulo}</p>
 
-    <div class="mb-20 flex flex-col items-center justify-center gap-4 sm:flex-row">
+    <div class="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
       <a
         href="#diferencia"
         class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
@@ -94,8 +106,18 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         {audiencia.secundario.texto}
       </a>
     </div>
+    </div>
 
-    <dl class="grid grid-cols-2 gap-6 border-t border-linea/80 pt-12 text-left md:grid-cols-4">
+    <Ilustracion
+      nombre={audiencia.ilustracion.nombre}
+      alt={audiencia.ilustracion.alt}
+      sizes="(min-width: 1024px) 560px, 100vw"
+      prioritaria
+      class:list={["aspect-[4/3] w-full rounded-xl border border-linea object-cover shadow-lg", audiencia.ilustracion.foco]}
+    />
+   </div>
+
+    <dl class="mt-20 grid grid-cols-2 gap-6 border-t border-linea/80 pt-12 text-left md:grid-cols-4">
       {
         audiencia.metricas.map(({ etiqueta, valor, texto, tono }) => (
           <div class="flex flex-col">
@@ -121,6 +143,25 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         asistente lee el texto consolidado del BOE antes de responder y te dice de dónde sale cada frase.
       </p>
     </div>
+
+    <ol class="mb-16 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:gap-0" aria-label="Cómo funciona, paso a paso">
+      {
+        pasos.map(({ icono: nombre, texto }, indice) => (
+          <li class="relative flex items-center gap-4 rounded-lg border border-linea bg-white p-4 shadow-xs sm:mx-2 sm:flex-col sm:gap-3 sm:p-5 sm:text-center">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-panel text-agente">
+              <Icono nombre={nombre} class="size-6" />
+            </span>
+            <span class="text-sm leading-snug font-medium text-tinta">{texto}</span>
+            {indice < pasos.length - 1 && (
+              <Icono
+                nombre="arrow-forward"
+                class="absolute top-1/2 -right-[1.1rem] z-10 hidden size-5 -translate-y-1/2 rounded-full bg-lienzo text-sello sm:block"
+              />
+            )}
+          </li>
+        ))
+      }
+    </ol>
 
     <div class="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2">
       <article

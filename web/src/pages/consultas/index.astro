@@ -1,5 +1,6 @@
 ---
 import Icono from "../../components/Icono.astro";
+import Ilustracion from "../../components/Ilustracion.astro";
 import { consultas } from "../../data/consultas";
 import { consultas as pagina } from "../../data/paginas";
 import Base from "../../layouts/Base.astro";
@@ -14,7 +15,8 @@ import { migas } from "../../lib/estructurados";
 >
   <article class="bg-lienzo">
     <header class="border-b border-linea/60 bg-gradient-to-b from-lienzo to-panel/40 py-16 md:py-24">
-      <div class="mx-auto max-w-5xl px-4 sm:px-10">
+      <div class="mx-auto grid max-w-5xl items-center gap-10 px-4 sm:px-10 lg:grid-cols-[3fr_2fr]">
+       <div>
         <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">Consultas</p>
         <h1 class="text-balance mt-2 mb-6 font-serif text-4xl leading-tight font-semibold tracking-tight text-tinta md:text-5xl">
           Consultas habituales, con su cita
@@ -23,17 +25,32 @@ import { migas } from "../../lib/estructurados";
           La pregunta tal como se suele hacer y lo que dice la norma vigente, punto por punto. Cada afirmación va con
           el fragmento literal del BOE que la sostiene, tal como lo devuelve kitlegal.
         </p>
+       </div>
+       <Ilustracion
+         nombre="consultas"
+         alt="Una persona sentada a un escritorio junto a una ventana, con un cuaderno abierto."
+         sizes="(min-width: 1024px) 380px, 100vw"
+         prioritaria
+         class="aspect-[4/3] w-full rounded-xl border border-linea object-cover object-[80%_50%] shadow-lg"
+       />
       </div>
     </header>
     <div class="mx-auto max-w-5xl px-4 py-16 sm:px-10">
       <ul class="grid grid-cols-1 gap-6 md:grid-cols-2">
         {
-          consultas.map(({ slug, etiqueta, icono, pregunta, respuesta }) => (
+          consultas.map(({ slug, etiqueta, icono, ilustracion, alt, pregunta, respuesta }) => (
             <li class="flex">
               <a
                 href={`/consultas/${slug}/`}
-                class="flex w-full flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8"
+                class="flex w-full flex-col overflow-hidden rounded-lg border border-linea bg-white shadow-xs transition-shadow hover:shadow-md"
               >
+                <Ilustracion
+                  nombre={ilustracion}
+                  alt={alt}
+                  sizes="(min-width: 768px) 470px, 100vw"
+                  class="aspect-[16/9] w-full object-cover"
+                />
+                <div class="flex flex-1 flex-col p-6 sm:p-8">
                 <p class="mb-3 flex items-center gap-2">
                   <Icono nombre={icono} class="size-[18px] text-sello" />
                   <span class="font-mono text-estampa font-bold uppercase text-sello-tinta">{etiqueta}</span>
@@ -44,6 +61,7 @@ import { migas } from "../../lib/estructurados";
                   Ver la respuesta, con su cita
                   <Icono nombre="arrow-forward" class="size-4" />
                 </span>
+                </div>
               </a>
             </li>
           ))

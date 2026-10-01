@@ -1,13 +1,17 @@
 ---
 // El marco de las páginas de texto: una cabecera con etiqueta, título y
-// entradilla, y el cuerpo con el estilo de lectura de DESIGN.md.
+// entradilla, y el cuerpo con el estilo de lectura de DESIGN.md. Si la página
+// tiene fotografía, abre el cuerpo.
+import Ilustracion from "./Ilustracion.astro";
+
 interface Props {
   etiqueta: string;
   titulo: string;
   entradilla: string;
+  ilustracion?: { nombre: string; alt: string };
 }
 
-const { etiqueta, titulo, entradilla } = Astro.props;
+const { etiqueta, titulo, entradilla, ilustracion } = Astro.props;
 ---
 
 <article class="bg-lienzo">
@@ -23,6 +27,17 @@ const { etiqueta, titulo, entradilla } = Astro.props;
   <div
     class="mx-auto max-w-3xl space-y-6 px-4 py-16 leading-relaxed text-tinta sm:px-10 [&>h2:first-child]:mt-0 [&_a]:text-agente [&_a]:underline [&_a]:underline-offset-2 [&_h2]:mt-14 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-8 [&_h3]:font-serif [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_p>code]:rounded-sm [&_p>code]:bg-panel-2 [&_p>code]:px-1.5 [&_p>code]:py-0.5 [&_p>code]:font-mono [&_p>code]:text-[0.85em] [&_li>code]:rounded-sm [&_li>code]:bg-panel-2 [&_li>code]:px-1.5 [&_li>code]:py-0.5 [&_li>code]:font-mono [&_li>code]:text-[0.85em] [&_ul]:space-y-2"
   >
+    {
+      ilustracion && (
+        <Ilustracion
+          nombre={ilustracion.nombre}
+          alt={ilustracion.alt}
+          sizes="(min-width: 768px) 688px, 100vw"
+          prioritaria
+          class="aspect-[2/1] w-full rounded-xl border border-linea object-cover shadow-sm"
+        />
+      )
+    }
     <slot />
   </div>
 </article>

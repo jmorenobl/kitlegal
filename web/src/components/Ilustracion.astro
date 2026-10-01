@@ -1,0 +1,31 @@
+---
+// Una fotografía de src/assets/ilustraciones/, servida en AVIF y WebP y a
+// varios anchos. `sizes` dice cuánto ocupa en la página; `prioritaria`, que
+// es lo primero que se ve y no debe esperar.
+import { Picture } from "astro:assets";
+import { ilustracion } from "../lib/ilustraciones";
+
+interface Props {
+  nombre: string;
+  alt: string;
+  sizes: string;
+  class?: string;
+  prioritaria?: boolean;
+}
+
+const { nombre, alt, sizes, class: clase, prioritaria = false } = Astro.props;
+const imagen = ilustracion(nombre);
+const anchos = [480, 720, 960, imagen.width].filter((ancho) => ancho <= imagen.width);
+---
+
+<Picture
+  src={imagen}
+  alt={alt}
+  formats={["avif", "webp"]}
+  widths={anchos}
+  sizes={sizes}
+  loading={prioritaria ? "eager" : "lazy"}
+  fetchpriority={prioritaria ? "high" : undefined}
+  class={clase}
+  pictureAttributes={{ class: "block" }}
+/>

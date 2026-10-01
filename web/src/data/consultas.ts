@@ -13,6 +13,9 @@ export interface Consulta {
   descripcion: string;
   etiqueta: string;
   icono: string;
+  // La fotografía de la consulta (src/assets/ilustraciones/) y su descripción.
+  ilustracion: string;
+  alt: string;
   pregunta: string;
   // La respuesta corta, sostenida por `cita`.
   respuesta: string;
@@ -38,6 +41,8 @@ export const consultas: Consulta[] = [
       "Un mes para recurrir en alzada una resolución expresa. Cómo se cuenta, qué pasa si no te contestaron y cuánto tarda la respuesta, con el texto vigente del BOE.",
     etiqueta: "Recursos administrativos",
     icono: "schedule",
+    ilustracion: "consulta-recurso-de-alzada",
+    alt: "Unas manos abren un sobre con un abrecartas; al fondo, un reloj de mesa.",
     pregunta: "¿Qué plazo tengo para presentar un recurso de alzada?",
     respuesta:
       "Un mes, si la resolución que recurres es expresa. Si dejas pasar ese mes sin recurrir, la resolución queda firme.",
@@ -86,6 +91,8 @@ export const consultas: Consulta[] = [
       "Si la Administración no responde a tu solicitud en plazo, la regla general es que se entiende estimada, con excepciones. Art. 24 de la Ley 39/2015, vigente.",
     etiqueta: "Trámites con la Administración",
     icono: "account-balance",
+    ilustracion: "consulta-silencio-administrativo",
+    alt: "Una ventanilla de atención al ciudadano con la persiana a medio bajar y una silla vacía delante.",
     pregunta: "Presenté una solicitud y la Administración no contesta. ¿Qué pasa?",
     respuesta:
       "Si vence el plazo máximo sin que te notifiquen una resolución, la regla general es que puedes entender tu solicitud estimada por silencio administrativo, salvo que una ley o una norma europea o internacional diga lo contrario.",
@@ -133,6 +140,8 @@ export const consultas: Consulta[] = [
       "Pasado un mes desde que entregas las llaves, la fianza que te deban devolver genera el interés legal. Art. 36 de la Ley de Arrendamientos Urbanos, vigente.",
     etiqueta: "Alquiler y vivienda",
     icono: "home",
+    ilustracion: "consulta-fianza-alquiler",
+    alt: "Una mano deja unas llaves sobre una mesa, junto a una casita de madera y unas monedas.",
     pregunta: "Mi casero no me devuelve la fianza. ¿Qué dice la ley?",
     respuesta:
       "Que el saldo de la fianza que te tenga que devolver genera el interés legal cuando ha pasado un mes desde que entregaste las llaves sin que te lo haya devuelto.",
@@ -178,6 +187,8 @@ export const consultas: Consulta[] = [
       "El Estatuto de los Trabajadores no fija los días de preaviso para dejar tu trabajo: remite a tu convenio o a la costumbre del lugar. Art. 49.1.d), vigente.",
     etiqueta: "Trabajo",
     icono: "badge",
+    ilustracion: "consulta-preaviso-baja-voluntaria",
+    alt: "Una caja de cartón con una planta sobre una mesa de oficina, junto a una silla vacía.",
     pregunta: "Quiero dejar mi trabajo. ¿Cuánto preaviso tengo que dar?",
     respuesta:
       "El Estatuto de los Trabajadores no fija un número de días: dice que debes dar el preaviso que señale tu convenio colectivo o la costumbre del lugar.",
@@ -209,6 +220,8 @@ export const consultas: Consulta[] = [
       "Hacienda tiene cuatro años para liquidar una deuda tributaria y cuatro para cobrarla, pero el plazo se interrumpe y vuelve a empezar. Arts. 66 a 68 de la LGT.",
     etiqueta: "Hacienda",
     icono: "receipt-long",
+    ilustracion: "consulta-deudas-hacienda",
+    alt: "Un reloj de arena sobre una mesa, junto a un taco de papel y unas monedas.",
     pregunta: "¿Cuánto tiempo tiene Hacienda para reclamarme una deuda?",
     respuesta:
       "Cuatro años. Es el plazo de prescripción del derecho de la Administración a determinar la deuda tributaria con una liquidación, y también del derecho a exigir el pago de las deudas ya liquidadas o autoliquidadas.",
@@ -247,6 +260,8 @@ export const consultas: Consulta[] = [
       "Hasta 1.200 euros al año por cada hijo menor de tres años, y hasta 1.000 más por gastos de guardería. Requisitos del art. 81 de la Ley del IRPF, texto vigente.",
     etiqueta: "Impuestos y familia",
     icono: "child-friendly",
+    ilustracion: "consulta-deduccion-maternidad",
+    alt: "Una cuna de madera con una manta de punto, un conejo de peluche y una hucha.",
     pregunta: "¿Qué deducción por maternidad recoge el IRPF?",
     respuesta:
       "Hasta 1.200 euros al año por cada hijo menor de tres años. Es para las mujeres con derecho al mínimo por descendientes que, al nacer el menor, cobren una prestación por desempleo o estén de alta en la Seguridad Social o en una mutualidad, o que se den de alta después y lleguen a 30 días cotizados.",

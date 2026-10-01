@@ -43,11 +43,15 @@ const sitioWeb = {
 
 // Todo lo de la página es del propio sitio: ni scripts, ni estilos en línea, ni
 // fuentes o imágenes de terceros. GitHub Pages no deja fijar cabeceras, así que
-// la política va en un meta.
+// la política va en un meta. En desarrollo (`make web-dev`) Astro sirve los
+// estilos en línea y los recarga con scripts y un WebSocket: ahí se admiten,
+// o la página sale sin diseño. Lo que se publica es siempre la política
+// estricta.
 const politica = [
   "default-src 'self'",
-  "script-src 'none'",
-  "style-src 'self'",
+  import.meta.env.DEV ? "script-src 'self' 'unsafe-inline'" : "script-src 'none'",
+  import.meta.env.DEV ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'",
+  ...(import.meta.env.DEV ? ["connect-src 'self' ws: wss:"] : []),
   "img-src 'self' data:",
   "font-src 'self'",
   "base-uri 'self'",

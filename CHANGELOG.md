@@ -12,6 +12,14 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **La web lleva fotografías**: una en la cabecera de cada portada, una en cada consulta de `/consultas/` y en su
+  índice, y una en `/instalar/`, más los cinco pasos de «cómo funciona» sobre la comparación de las portadas. Las
+  fotografías están generadas con IA —el pie lo dice— y ninguna enseña texto legible, marcas ni logotipos de una
+  institución. Viven en `web/src/assets/ilustraciones/` y Astro las sirve en AVIF y WebP a varios anchos; la web
+  pasa a depender de `sharp`. No cambia el binario ni las skills.
+
 ### Cambiado
 
 - **La web habla a quien tiene el asunto** (ADR 0034): la portada de https://kitlegal.es es la de la ciudadanía y
