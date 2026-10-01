@@ -10,6 +10,35 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-01 · Usar kitlegal desde Claude Cowork: hoy no se puede
+
+- **Qué se pidió.** El 2026-09-28: cómo usar kitlegal desde Claude Cowork, y si hacía falta un servidor MCP.
+  Después, si poner un servidor propio para llegar a ChatGPT y si habría que cobrarlo.
+- **Qué falló.** Nada del producto: en Cowork no hay forma de usarlo. Cowork carga las skills y los plugins de la
+  cuenta, no los del disco, así que `kitlegal skills install` no le llega; y aunque la skill llegara, dice «ejecuta
+  `kitlegal boe articulo …`» y el shell de Cowork es una máquina virtual donde el binario del equipo no está.
+- **Qué faltó.**
+  - **Un servidor MCP local.** Es lo que cruza esa frontera: el programa corre en el equipo y el agente recibe sus
+    operaciones como herramientas. La documentación de Claude dice que el servidor local de un plugin carga en
+    Cowork cuando la sesión corre en el equipo.
+  - **Skills que sepan usar herramientas.** Las dos están escritas para un shell (`… && kitlegal graph check …`,
+    códigos de salida) y las evals solo miden órdenes.
+  - **Una instalación sin terminal.** Un plugin puede llevar las skills y un paquete `.mcpb` con el binario dentro,
+    y se instala desde *Customize > Plugins*. Probado a mano el mismo día con un plugin de prueba, en la app de
+    Claude para macOS: subido como zip en el modo de chat —que ya es el mismo que Cowork—, la app arranca el
+    binario sin notarizar en el equipo, el servidor lee el BOE y escribe en `~/.cache`, y la skill lo usa en una
+    conversación que tiene elegida una carpeta del equipo. Sin carpeta, la conversación recibe la skill y no las
+    herramientas; con el mismo `.mcpb` instalado suelto, con doble clic, sí las recibe. Subido estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
+    en tu computadora». Y «prueba kitlegal» no activó la skill: Claude entendió que había que pasar los tests del
+    proyecto.
+  - **ChatGPT.** En la web y en el móvil solo admite servidores remotos. La app de escritorio sí admite servidores
+    locales por stdio, con el binario instalado.
+- **Qué se hizo.** Decisión de Jorge: todo en el equipo, con todas las funciones, y el servidor MCP por delante de
+  H20. El servidor remoto queda aplazado: tiene que pensarlo, porque kitlegal pasaría a recibir las preguntas de
+  quien lo usa (ADR 0027) y pagaría un servidor que otros consumen sin coste; donde un servidor local no llega se
+  dice que no es compatible. ADR 0035: H21 (`kitlegal mcp serve`, las skills con orden y herramienta, las evals en
+  los dos modos) y H22 (la extensión de escritorio con el servidor y el plugin con las skills), que se detalla al cerrar H21.
+
 ### 2026-10-01 · La web no respondía a nada que la gente busque, y ninguna de sus dos audiencias usa una terminal
 
 - **Qué se pidió.** Analizar cómo busca el usuario tipo de kitlegal para enfocar el mensaje de la web, sin tocar el
