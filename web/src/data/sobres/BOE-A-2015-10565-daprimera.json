@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "fuente": "boe.legislacion-consolidada",
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/daprimera",
+  "fecha_consulta": "2026-10-01T10:10:44.143074+02:00",
+  "hash": "sha256:861f99904a95be69034c2cffcaa6fb41854e39413bb4b7a6a42ab9b0670c7297",
+  "data": {
+    "norma": "BOE-A-2015-10565",
+    "bloque": "daprimera",
+    "titulo": "Disposición adicional primera",
+    "tipo": "precepto",
+    "fecha_version": "20151002",
+    "fecha_vigencia": "20161002",
+    "norma_modificadora": "BOE-A-2015-10565",
+    "texto": "Disposición adicional primera. Especialidades por razón de materia.\n1. Los procedimientos administrativos regulados en leyes especiales por razón de la materia que no exijan alguno de los trámites previstos en esta Ley o regulen trámites adicionales o distintos se regirán, respecto a éstos, por lo dispuesto en dichas leyes especiales.\n2. Las siguientes actuaciones y procedimientos se regirán por su normativa específica y supletoriamente por lo dispuesto en esta Ley:\na) Las actuaciones y procedimientos de aplicación de los tributos en materia tributaria y aduanera, así como su revisión en vía administrativa.\nb) Las actuaciones y procedimientos de gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y Desempleo.\nc) Las actuaciones y procedimientos sancionadores en materia tributaria y aduanera, en el orden social, en materia de tráfico y seguridad vial y en materia de extranjería.\nd) Las actuaciones y procedimientos en materia de extranjería y asilo.",
+    "hash_texto": "sha256:22edddfd43f1e630e03ec69e729d30e0f493324d37def3176cd23dfe9706214e",
+    "avisos": [],
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565#daprimera",
+    "url_eli": "https://www.boe.es/eli/es/l/2015/10/01/39"
+  }
+}

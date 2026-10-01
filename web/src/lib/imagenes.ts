@@ -12,6 +12,12 @@ function fuente(ruta: string): Buffer {
   return readFileSync(resolve(MODULOS, ruta));
 }
 
+// imagenDeConsulta es el nombre de la imagen para compartir de una página de
+// /consultas/.
+export function imagenDeConsulta(slug: string): string {
+  return `consulta-${slug}`;
+}
+
 export const ICONO = readFileSync(resolve(process.cwd(), "public/favicon.svg"), "utf8");
 
 function png(svg: string, ancho: number): Uint8Array<ArrayBuffer> {

@@ -1,0 +1,127 @@
+---
+// Una consulta de consultas.ts: la pregunta, la respuesta corta y cada punto
+// con la cita que lo sostiene.
+import type { GetStaticPaths } from "astro";
+import CitaArticulo from "../../components/CitaArticulo.astro";
+import Icono from "../../components/Icono.astro";
+import { type Consulta, consultas } from "../../data/consultas";
+import { consultas as indice } from "../../data/paginas";
+import Base from "../../layouts/Base.astro";
+import { migas, pregunta } from "../../lib/estructurados";
+import { imagenDeConsulta } from "../../lib/imagenes";
+
+export const getStaticPaths: GetStaticPaths = () =>
+  consultas.map((consulta) => ({ params: { consulta: consulta.slug }, props: { consulta } }));
+
+interface Props {
+  consulta: Consulta;
+}
+
+const { consulta } = Astro.props;
+const ruta = `/consultas/${consulta.slug}/`;
+const otras = consultas.filter(({ slug }) => slug !== consulta.slug);
+---
+
+<Base
+  titulo={consulta.titulo}
+  descripcion={consulta.descripcion}
+  imagen={imagenDeConsulta(consulta.slug)}
+  datos={[
+    ...migas({ nombre: "Consultas", ruta: indice.ruta }, { nombre: consulta.pregunta, ruta }),
+    ...pregunta(consulta.pregunta, consulta.respuesta),
+  ]}
+>
+  <article class="bg-lienzo">
+    <header class="border-b border-linea/60 bg-gradient-to-b from-lienzo to-panel/40 py-16 md:py-24">
+      <div class="mx-auto max-w-3xl px-4 sm:px-10">
+        <p class="flex items-center gap-2 font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
+          <a href={indice.ruta} class="underline-offset-2 hover:underline">Consultas</a>
+          <span aria-hidden="true">·</span>
+          {consulta.etiqueta}
+        </p>
+        <h1 class="text-balance mt-2 mb-6 font-serif text-4xl leading-tight font-semibold tracking-tight text-tinta md:text-5xl">
+          {consulta.pregunta}
+        </h1>
+        <p class="text-xl leading-relaxed text-tinta">{consulta.respuesta}</p>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-3xl space-y-16 px-4 py-16 sm:px-10">
+      <section aria-labelledby="titulo-cita">
+        <h2 id="titulo-cita" class="mb-5 font-serif text-2xl font-semibold text-tinta">Lo que dice la norma</h2>
+        <div class="rounded-lg border-2 border-vigente/40 bg-white p-6 shadow-[0_4px_20px_rgba(16,185,129,0.08)] sm:p-8">
+          <CitaArticulo id={consulta.cita} variante="destacada" />
+        </div>
+      </section>
+
+      <section aria-labelledby="titulo-puntos">
+        <h2 id="titulo-puntos" class="mb-5 font-serif text-2xl font-semibold text-tinta">Lo que conviene saber</h2>
+        <div class="space-y-6">
+          {
+            consulta.puntos.map(({ titulo, texto, cita }) => (
+              <article class="rounded-lg border border-linea bg-white p-6 shadow-xs sm:p-8">
+                <h3 class="mb-2 font-serif text-lg font-semibold text-tinta">{titulo}</h3>
+                <p class="mb-5 leading-relaxed text-tinta">{texto}</p>
+                <CitaArticulo id={cita} />
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
+      <section aria-labelledby="titulo-limites" class="rounded-lg border border-linea bg-panel/60 p-6 sm:p-8">
+        <h2 id="titulo-limites" class="mb-4 font-serif text-xl font-semibold text-tinta">Lo que esta página no te dice</h2>
+        <ul class="space-y-3 text-sm leading-relaxed text-tenue">
+          {
+            consulta.limites.map((limite) => (
+              <li class="flex items-start gap-2.5">
+                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
+                <span>{limite}</span>
+              </li>
+            ))
+          }
+          <li class="flex items-start gap-2.5">
+            <Icono nombre="gavel" class="mt-0.5 size-[18px] text-sello" />
+            <span>
+              No es asesoramiento jurídico: cita la norma, no valora tu caso. Para una decisión con consecuencias, acude
+              a un profesional.
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="titulo-asistente" class="rounded-lg bg-noche p-6 text-white sm:p-10">
+        <h2 id="titulo-asistente" class="mb-3 font-serif text-2xl font-semibold">Pregúntaselo a tu asistente, con tu caso</h2>
+        <p class="mb-5 leading-relaxed text-sobre-noche">
+          Con kitlegal instalado, tu asistente de IA lee estos artículos en el BOE en el momento en que preguntas y te
+          responde con la cita. Por ejemplo:
+        </p>
+        <p class="mb-6 rounded-sm border border-codigo-borde bg-noche-2 p-4 font-serif text-white italic">
+          «{consulta.ejemplo}»
+        </p>
+        <a
+          href="/instalar/"
+          class="inline-flex items-center justify-center gap-2 rounded-sm bg-sello px-7 py-3.5 text-sm font-semibold text-noche transition-colors hover:bg-sello/90"
+        >
+          <Icono nombre="download" class="size-[18px]" />
+          Instalar kitlegal, paso a paso
+        </a>
+      </section>
+
+      <nav aria-labelledby="titulo-otras">
+        <h2 id="titulo-otras" class="mb-4 font-serif text-xl font-semibold text-tinta">Otras consultas</h2>
+        <ul class="space-y-2">
+          {
+            otras.map(({ slug, pregunta: otra }) => (
+              <li>
+                <a href={`/consultas/${slug}/`} class="text-agente underline underline-offset-2">
+                  {otra}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </article>
+</Base>

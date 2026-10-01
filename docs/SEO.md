@@ -84,8 +84,9 @@ Estas tres cosas se hacen a mano, en la web de Search Console, y solo una vez:
 
 1. **Sitemaps**: el sitemap de la web es `https://kitlegal.es/sitemap-index.xml` (lo declara `robots.txt`). Si en
    **Sitemaps** figura `sitemap.xml`, bórralo y envía `sitemap-index.xml`; `sitemap.xml` no existe y da 404.
-2. **Inspección de URL**: pega cada página de la web (la portada, `/instalar/`, `/ciudadania/`, `/bot/`) y pulsa
-   **Solicitar indexación**. Google tardaría semanas en llegar solo; así tarda días.
+2. **Inspección de URL**: pega cada página de la web (la portada, `/despachos/`, `/instalar/`, `/consultas/` y cada
+   consulta, `/bot/`) y pulsa **Solicitar indexación**. Google tardaría semanas en llegar solo; así tarda días. Lo
+   mismo cada vez que se añade una consulta.
 3. **`/llms.txt`**: comprueba en el navegador que https://kitlegal.es/llms.txt responde. Lo genera la web en cada
    despliegue; si da 404, el despliegue de `main` no ha terminado o ha fallado (`.github/workflows/web.yml`).
 
@@ -108,25 +109,27 @@ Una vez al mes, o cuando cambie la web de forma visible, una auditoría de fondo
 
 ## Lo que de verdad da visibilidad
 
-Las herramientas miden; la visibilidad la dan cuatro cosas, por orden de efecto. Las dos últimas ya están hechas.
+Las herramientas miden; la visibilidad la dan tres cosas, por orden de efecto. Las dos últimas ya están hechas.
 
-1. **Una página por consulta jurídica.** Las preguntas de la portada («¿Cuál es el límite de un contrato menor?»,
-   «¿Cuándo prescribe una deuda tributaria?»…) son lo que un abogado escribe en Google. Cada una merece su propia
-   URL, con la cita del BOE tal como la devuelve el binario (regla de ADR 0024: ninguna cita a mano) y el enlace a
-   instalar. Con veinte o treinta de estas, la web deja de ser una portada y pasa a ser una referencia. Es el trabajo
-   que más visibilidad da y el único que no se acaba nunca; `/seo-semanal` dirá qué consultas piden página.
-2. **Estar donde miran los desarrolladores de agentes.** Quien instala skills en Claude Code o Codex hoy busca en los
-   directorios y las listas de la comunidad tanto como en Google, y los modelos de IA aprenden de ellos que kitlegal
-   existe: el directorio del estándar Agent Skills (agentskills.io), los registros de skills instalables por línea de
-   órdenes, las listas «awesome» de Claude Code y Codex, y los *topics* del repositorio en GitHub (`claude-code`,
-   `agent-skills`, `legaltech`, `boe`, `spain`). Un alta en cada uno, una vez.
-3. **`/llms.txt`**: el índice de la web para los agentes de IA. Hecho (#72); se genera desde la versión publicada.
-4. **Datos estructurados (JSON-LD)**: `SoftwareApplication` y `SoftwareSourceCode` en la portada y en `/ciudadania/`,
-   migas en `/instalar/` y `/bot/`. Hecho (`web/src/lib/estructurados.ts`).
+1. **Una página por consulta.** La gente no busca la ley: busca lo que le pasa («mi casero no me devuelve la fianza»,
+   «plazo recurso de alzada», «cuánto tiempo tiene Hacienda para reclamar una deuda»). Cada consulta tiene su URL en
+   `/consultas/<slug>/` (`web/src/data/consultas.ts`), con la pregunta como se escribe en el buscador, la respuesta
+   corta y cada punto con la cita del BOE que lo sostiene, tal como la devuelve el binario (ADR 0024 y 0034: ninguna
+   cita a mano y ninguna afirmación sin su cita al lado). Hay seis; con veinte o treinta, la web deja de ser una
+   portada y pasa a ser una referencia. Es el trabajo que más visibilidad da y el único que no se acaba nunca:
+   `/seo-semanal` dirá qué consultas piden página, y hasta que haya datos sirve el autocompletado de Google (las
+   sugerencias de una búsqueda son las búsquedas que la gente hace).
+2. **`/llms.txt`**: el índice de la web para los agentes de IA. Hecho (#72); se genera desde la versión publicada y
+   lista las consultas.
+3. **Datos estructurados (JSON-LD)**: `SoftwareApplication` y `SoftwareSourceCode` en las dos portadas, migas en las
+   demás páginas y `FAQPage` en cada consulta. Hecho (`web/src/lib/estructurados.ts`).
 
-Dos públicos, dos caminos: la web habla a despachos, pero quien instala skills es un desarrollador. Las páginas de
-consultas traen al abogado; los directorios y `/llms.txt`, al desarrollador. Search Console dirá en dos meses cuál
-responde más; hasta entonces, los dos.
+Dos públicos, los dos de usuario final (ADR 0034): la ciudadanía, en la portada, y los despachos, en `/despachos/`.
+La web no habla al perfil técnico —que se lo monta solo o llega como ciudadano— ni a las administraciones públicas,
+así que los directorios de skills y de servidores MCP y las listas para desarrolladores no son una vía de la web.
+Las consultas traen a los dos públicos; el título y la descripción de `/despachos/` llevan lo que un abogado escribe
+(«IA para abogados», «España», «gratis», el asistente con el que funciona). Search Console dirá en dos meses qué
+consultas responden.
 
 ## Si algo falla
 

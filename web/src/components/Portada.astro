@@ -1,9 +1,10 @@
 ---
 // La portada de una audiencia: las secciones de la maqueta de Stitch con los
 // datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
-import type { Audiencia, Tono } from "../data/audiencias";
+import { type Audiencia, audiencias, type Tono } from "../data/audiencias";
+import { rutaDeConsulta } from "../data/consultas";
 import { fechaCorta, huellaCorta, norma } from "../lib/citas";
-import { formatoEntero, numeroDeMunicipios, REPOSITORIO } from "../lib/proyecto";
+import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
 
@@ -12,10 +13,9 @@ interface Props {
 }
 
 const { audiencia } = Astro.props;
-const { comparativa } = audiencia;
+const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
-const municipios = formatoEntero(numeroDeMunicipios());
 
 const tinta: Record<Tono, string> = {
   sello: "text-sello-tinta",
@@ -30,60 +30,26 @@ const icono: Record<Tono, string> = {
   vigente: "text-vigente",
 };
 
-const audiencias = [
-  { ruta: "/", texto: "Para despachos y abogados", icono: "balance" },
-  { ruta: "/ciudadania/", texto: "Para ciudadanos y trámites", icono: "person-outline" },
-];
-
 // La respuesta de memoria, partida alrededor de las marcas del error.
 const expresion = new RegExp(`(${comparativa.marcas.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
 const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   texto: trozo,
   marcado: comparativa.marcas.includes(trozo),
 }));
-
-const pilares = [
-  {
-    icono: "menu-book",
-    tono: "sello" as Tono,
-    fondo: "bg-panel",
-    titulo: "Cotejo contra el BOE",
-    texto:
-      "Tu asistente no responde de memoria: kitlegal descarga el texto consolidado oficial, lo guarda en una caché de tu equipo y la respuesta se apoya en esa redacción.",
-    pie: "Texto consolidado oficial",
-  },
-  {
-    icono: "history-toggle-off",
-    tono: "derogada" as Tono,
-    fondo: "bg-derogada-fondo",
-    titulo: "Avisos de vigencia",
-    texto:
-      "kitlegal lee los metadatos del BOE y avisa si una norma está derogada, si su vigencia se ha agotado o si su consolidación no ha terminado.",
-    pie: "Antes de citar",
-  },
-  {
-    icono: "location-city",
-    tono: "agente" as Tono,
-    fondo: "bg-panel",
-    titulo: "Territorio real",
-    texto: `Sitúa los ${municipios} municipios del INE en su provincia y su comunidad, con el código INE y el DIR3 del ayuntamiento, distingue régimen común y foral y dice qué boletines tiene configurados y cuáles no.`,
-    pie: `${municipios} municipios del INE`,
-  },
-];
 ---
 
 <section class="relative overflow-hidden border-b border-linea/50 bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-24 md:pt-28 md:pb-32">
   <div class="mx-auto max-w-5xl px-4 text-center sm:px-10">
     <p class="mb-8 inline-flex items-center gap-2 rounded-md border border-linea bg-white px-3.5 py-1.5 shadow-xs">
       <span class="font-mono text-estampa font-semibold uppercase text-tinta">
-        Legislación española · Agent skills para el BOE
+        {audiencia.insignia}
       </span>
     </p>
 
     <nav aria-label="Audiencia" class="mb-8 flex justify-center">
       <ul class="grid w-full max-w-md grid-cols-2 gap-1 rounded-lg border border-linea/80 bg-panel p-1 sm:inline-flex sm:w-auto sm:max-w-none">
         {
-          audiencias.map(({ ruta, texto, icono: nombre }) => {
+          audiencias.map(({ ruta, nombre: texto, icono: nombre }) => {
             const actual = ruta === audiencia.ruta;
             return (
               <li class="flex">
@@ -121,11 +87,11 @@ const pilares = [
         Ver cómo funciona
       </a>
       <a
-        href={REPOSITORIO}
+        href={audiencia.secundario.destino}
         class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-linea bg-white px-7 py-3.5 text-sm font-semibold text-tinta shadow-sm transition-colors hover:border-linea-2 hover:bg-papel sm:w-auto"
       >
-        <Icono nombre="code" class="size-[18px] text-tenue" />
-        Explorar en GitHub (EUPL-1.2)
+        <Icono nombre={audiencia.secundario.icono} class="size-[18px] text-tenue" />
+        {audiencia.secundario.texto}
       </a>
     </div>
 
@@ -261,18 +227,15 @@ const pilares = [
 <section id="pilares" aria-labelledby="titulo-pilares" class="border-y border-linea bg-panel/50 py-24 md:py-32">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">Arquitectura de confianza</p>
+      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">{garantias.antetitulo}</p>
       <h2 id="titulo-pilares" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        Tres garantías que da el programa, no el modelo
+        {garantias.titulo}
       </h2>
-      <p class="leading-relaxed text-tenue">
-        Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y
-        situar el territorio. El modelo razona sobre lo que el programa le devuelve.
-      </p>
+      <p class="leading-relaxed text-tenue">{garantias.texto}</p>
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
       {
-        pilares.map(({ icono: nombre, tono, fondo, titulo, texto, pie }) => (
+        garantias.pilares.map(({ icono: nombre, tono, fondo, titulo, texto, pie }) => (
           <div class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
             <div class="space-y-4">
               <div class:list={["flex size-12 items-center justify-center rounded-lg", fondo, icono[tono]]}>
@@ -305,7 +268,7 @@ const pilares = [
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
       {
-        audiencia.casos.map(({ icono: nombre, tono, etiqueta, pregunta, cita }) => (
+        audiencia.casos.map(({ icono: nombre, tono, etiqueta, pregunta, cita, consulta }) => (
           <article class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
@@ -315,6 +278,15 @@ const pilares = [
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
             <CitaArticulo id={cita} />
+            {consulta && (
+              <a
+                href={rutaDeConsulta(consulta)}
+                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
+              >
+                Ver la respuesta, punto por punto
+                <Icono nombre="arrow-forward" class="size-4" />
+              </a>
+            )}
           </article>
         ))
       }
@@ -325,12 +297,13 @@ const pilares = [
 <section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
   <div class="mx-auto max-w-5xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">Sin barreras técnicas</p>
+      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">Qué necesitas</p>
       <h2 id="titulo-integracion" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        Cómo se integra en tu asistente
+        Se instala una vez y se usa preguntando
       </h2>
       <p class="leading-relaxed text-tenue">
-        La terminal solo hace falta para instalarlo. Después, todo ocurre en el asistente que ya usas.
+        Hace falta un asistente de IA de los que trabajan en tu ordenador: hoy, Claude Code, Codex o Antigravity.
+        Con los chats del navegador o del móvil (ChatGPT, el chat de Claude, Gemini) todavía no funciona.
       </p>
     </div>
     <ol class="mb-14 grid grid-cols-1 items-stretch gap-8 md:grid-cols-2">
@@ -342,16 +315,18 @@ const pilares = [
             </span>
             <span class="font-mono text-xs font-semibold text-tenue uppercase">Una sola vez</span>
           </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal y sus skills</h3>
+          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Con una línea en la terminal o el gestor de paquetes de tu sistema. Después, <code
-              class="rounded-sm bg-panel-2 px-1.5 py-0.5 font-mono text-xs">kitlegal skills install</code
-            > deja las skills en <code class="rounded-sm bg-panel-2 px-1.5 py-0.5 font-mono text-xs">.agents/skills/</code>
-            del proyecto, donde las leen Codex y Antigravity, y las enlaza para Claude Code.
+            Son dos líneas que se copian y se pegan en la terminal de tu ordenador: una instala el programa y la otra
+            enseña a tu asistente a usarlo. No hace falta saber programar, y la guía lo explica paso a paso.
           </p>
         </div>
-        <a href="/instalar/" class="block rounded-sm bg-noche p-3 font-mono text-xs text-cian hover:bg-noche-2">
-          <span class="text-sobre-noche select-none">$ </span>kitlegal skills install
+        <a
+          href="/instalar/"
+          class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-4 py-3 text-sm font-semibold text-white hover:bg-noche-2"
+        >
+          <Icono nombre="download" class="size-4 text-sello" />
+          Ver la guía de instalación
         </a>
       </li>
       <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
@@ -362,7 +337,7 @@ const pilares = [
             </span>
             <span class="font-mono text-xs font-semibold text-vigente-tinta uppercase">En tu día a día</span>
           </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Preguntas en lenguaje natural</h3>
+          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Preguntas con tus palabras</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
             Escribes en tu asistente como siempre. Él ejecuta kitlegal, lee el BOE y te responde con la cita: la norma,
             el artículo y la fecha de consulta.
@@ -376,12 +351,63 @@ const pilares = [
     <div class="flex flex-col items-center justify-between gap-4 rounded-lg border border-linea bg-white p-5 font-mono text-estampa text-tenue sm:flex-row">
       <p class="flex items-center gap-2">
         <Icono nombre="verified-user" class="size-[18px] text-vigente" />
-        Skills en el estándar Agent Skills: Claude Code, Codex, Antigravity
+        Funciona con Claude Code, Codex y Antigravity
       </p>
       <p class="text-tinta">kitlegal no envía tus consultas a ningún servidor propio</p>
     </div>
   </div>
 </section>
+
+{
+  contacto && (
+    <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-lienzo py-24 md:py-32">
+      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
+        <div>
+          <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
+            {contacto.antetitulo}
+          </p>
+          <h2 id="titulo-contacto" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+            {contacto.titulo}
+          </h2>
+          <p class="mb-8 leading-relaxed text-tenue">{contacto.texto}</p>
+          <a
+            href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`}
+            class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
+          >
+            <Icono nombre="mail" class="size-[18px] text-sello" />
+            {CORREO}
+          </a>
+        </div>
+        <div class="rounded-lg border border-linea bg-white p-6 shadow-sm sm:p-8">
+          <h3 class="mb-4 font-serif text-xl font-semibold text-tinta">Lo que más nos ayuda saber</h3>
+          <ul class="mb-6 space-y-3 text-sm leading-relaxed text-tenue">
+            {contacto.peticiones.map((peticion) => (
+              <li class="flex items-start gap-2.5">
+                <Icono nombre="check-circle" class="mt-0.5 size-[18px] text-vigente" />
+                <span>{peticion}</span>
+              </li>
+            ))}
+          </ul>
+          <h3 class="mb-3 border-t border-linea pt-5 font-serif text-lg font-semibold text-tinta">Lo que hoy no hace</h3>
+          <ul class="mb-3 space-y-3 text-sm leading-relaxed text-tenue">
+            {contacto.todavia.map((frase) => (
+              <li class="flex items-start gap-2.5">
+                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
+                <span>{frase}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mb-5 text-sm">
+            <a href={contacto.detalle.destino} class="font-semibold text-agente underline underline-offset-2">
+              {contacto.detalle.texto}
+            </a>
+          </p>
+          <p class="text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 <section aria-labelledby="titulo-cta" class="relative overflow-hidden bg-noche py-24 text-white md:py-32">
   <div class="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-10">
@@ -395,8 +421,8 @@ const pilares = [
         href="/instalar/"
         class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-sello px-8 py-3.5 text-sm font-semibold text-noche shadow-lg transition-colors hover:bg-sello/90 sm:w-auto"
       >
-        <Icono nombre="extension" class="size-[18px]" />
-        Instalar las skills en tu agente
+        <Icono nombre="download" class="size-[18px]" />
+        Instalar kitlegal, paso a paso
       </a>
       <a
         href={`${REPOSITORIO}#readme`}

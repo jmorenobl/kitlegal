@@ -1,9 +1,19 @@
 ---
-import { LICENCIA, REPOSITORIO } from "../lib/proyecto";
+import { audiencias } from "../data/audiencias";
+import { CORREO, LICENCIA, REPOSITORIO } from "../lib/proyecto";
 import Icono from "./Icono.astro";
 import Logo from "./Logo.astro";
 
 const columnas = [
+  {
+    titulo: "kitlegal",
+    enlaces: [
+      ...audiencias.map(({ nombre, ruta }) => ({ texto: nombre, destino: ruta })),
+      { texto: "Consultas con su cita", destino: "/consultas/" },
+      { texto: "Instalar", destino: "/instalar/" },
+      { texto: CORREO, destino: `mailto:${CORREO}` },
+    ],
+  },
   {
     titulo: "Fuentes oficiales",
     enlaces: [
@@ -37,7 +47,7 @@ const anio = new Date().getFullYear();
 
 <footer class="border-t border-linea bg-panel/70 py-16">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
-    <div class="grid grid-cols-1 gap-12 border-b border-linea pb-14 md:grid-cols-2 lg:grid-cols-5">
+    <div class="grid grid-cols-1 gap-12 border-b border-linea pb-14 md:grid-cols-2 lg:grid-cols-6">
       <div class="space-y-4 lg:col-span-2">
         <Logo tamano="pequeno" />
         <p class="max-w-sm text-sm leading-relaxed text-tenue">

@@ -15,18 +15,24 @@ interface Sobre<T> {
   data: T;
 }
 
+interface Aviso {
+  codigo: string;
+  texto: string;
+}
+
 interface Bloque {
   norma: string;
   bloque: string;
   texto: string;
   fecha_version?: string;
+  avisos?: Aviso[];
 }
 
 interface Metadatos {
   norma: string;
   titulo: string;
   url_eli?: string;
-  avisos?: { codigo: string; texto: string }[];
+  avisos?: Aviso[];
 }
 
 // Cómo se une un fragmento con el anterior: en la misma línea o en otra si en
@@ -36,10 +42,16 @@ export type Union = "espacio" | "linea" | "elision";
 export interface Articulo {
   norma: string;
   bloque: string;
+  // La versión del bloque (AAAAMMDD, la `fecha_version` del sobre) con la que
+  // se escribió la cita y lo que la página dice de ella con otras palabras.
+  version: string;
   referencia: string;
   fragmentos: string[];
   uniones: Union[];
   destacado?: string;
+  // Los avisos de vigencia que el sobre trae con el artículo: la página los
+  // muestra con la cita, como hace el agente antes de citar.
+  avisos: Aviso[];
   enlace: string;
   fechaConsulta: Date;
   fechaVersion?: Date;
@@ -50,7 +62,7 @@ export interface Norma {
   norma: string;
   referencia: string;
   titulo: string;
-  avisos: { codigo: string; texto: string }[];
+  avisos: Aviso[];
   enlace: string;
   fechaConsulta: Date;
   hash: string;
@@ -114,7 +126,10 @@ function enlaceAlBoe(norma: string, bloque?: string): string {
 
 function cargar() {
   const declaradas = parse(readFileSync(resolve(DATOS, "citas.yaml"), "utf8")) as {
-    articulos: Record<string, Omit<Articulo, "uniones" | "enlace" | "fechaConsulta" | "fechaVersion" | "hash">>;
+    articulos: Record<
+      string,
+      Omit<Articulo, "uniones" | "avisos" | "enlace" | "fechaConsulta" | "fechaVersion" | "hash">
+    >;
     normas: Record<string, { norma: string; referencia: string }>;
   };
   const usados = new Set<string>();
@@ -125,13 +140,23 @@ function cargar() {
     if (sobre.data.norma !== cita.norma || sobre.data.bloque !== cita.bloque) {
       throw new Error(`citas: el sobre de ${id} es de ${sobre.data.norma} ${sobre.data.bloque}`);
     }
+    // Si el BOE trae otra versión del bloque, los fragmentos pueden seguir
+    // estando y lo que la web dice de ellos haber quedado corto: alguien tiene
+    // que releerlo antes de publicar.
+    if (String(cita.version) !== sobre.data.fecha_version) {
+      throw new Error(
+        `citas: ${id} se escribió con la versión ${cita.version} de ${cita.norma} ${cita.bloque} y el sobre trae la ${sobre.data.fecha_version}; relee lo que la web dice de ese bloque y actualiza version en citas.yaml`,
+      );
+    }
     const unidas = uniones(id, sobre.data.texto, cita.fragmentos);
     if (cita.destacado && !cita.fragmentos.some((f) => f.includes(cita.destacado!))) {
       throw new Error(`citas: ${id}: el destacado «${cita.destacado}» no está en ningún fragmento`);
     }
     articulos[id] = {
       ...cita,
+      version: String(cita.version),
       uniones: unidas,
+      avisos: sobre.data.avisos ?? [],
       enlace: enlaceAlBoe(cita.norma, cita.bloque),
       fechaConsulta: new Date(sobre.fecha_consulta),
       fechaVersion: fechaDelBoe(sobre.data.fecha_version),

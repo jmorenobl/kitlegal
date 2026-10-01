@@ -10,7 +10,7 @@ export function aplicacion(descripcion: string): Record<string, unknown>[] {
       name: "kitlegal",
       description: descripcion,
       url: `${SITIO}/`,
-      applicationCategory: "DeveloperApplication",
+      applicationCategory: "ReferenceApplication",
       operatingSystem: "macOS, Linux, Windows",
       softwareVersion: version.replace(/^v/, ""),
       downloadUrl: `${REPOSITORIO}/releases/tag/${version}`,
@@ -31,14 +31,38 @@ export function aplicacion(descripcion: string): Record<string, unknown>[] {
   ];
 }
 
-export function migas(pagina: { nombre: string; ruta: string }): Record<string, unknown>[] {
+// migas da el camino desde la portada hasta la página: cada argumento, un nivel.
+export function migas(...paginas: { nombre: string; ruta: string }[]): Record<string, unknown>[] {
   return [
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "kitlegal", item: `${SITIO}/` },
-        { "@type": "ListItem", position: 2, name: pagina.nombre, item: `${SITIO}${pagina.ruta}` },
+        ...paginas.map(({ nombre, ruta }, indice) => ({
+          "@type": "ListItem",
+          position: indice + 2,
+          name: nombre,
+          item: `${SITIO}${ruta}`,
+        })),
+      ],
+    },
+  ];
+}
+
+// pregunta describe una página que responde a una pregunta.
+export function pregunta(enunciado: string, respuesta: string): Record<string, unknown>[] {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      inLanguage: "es-ES",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: enunciado,
+          acceptedAnswer: { "@type": "Answer", text: respuesta },
+        },
       ],
     },
   ];

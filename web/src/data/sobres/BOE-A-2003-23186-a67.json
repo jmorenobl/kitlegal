@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "fuente": "boe.legislacion-consolidada",
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a67",
+  "fecha_consulta": "2026-10-01T10:10:50.463245+02:00",
+  "hash": "sha256:09cf55ddb7c495d2d90fbdb1ccbadcccdeadabdd14c9ff4bc6af8e0cadbd665d",
+  "data": {
+    "norma": "BOE-A-2003-23186",
+    "bloque": "a67",
+    "titulo": "Artículo 67",
+    "tipo": "precepto",
+    "fecha_version": "20150922",
+    "fecha_vigencia": "20151012",
+    "norma_modificadora": "BOE-A-2015-10143",
+    "texto": "Artículo 67. Cómputo de los plazos de prescripción.\n1. El plazo de prescripción comenzará a contarse en los distintos casos a los que se refiere el artículo 66 de esta Ley conforme a las siguientes reglas:\nEn el caso a), desde el día siguiente a aquel en que finalice el plazo reglamentario para presentar la correspondiente declaración o autoliquidación.\nEn los tributos de cobro periódico por recibo, cuando para determinar la deuda tributaria mediante la oportuna liquidación no sea necesaria la presentación de declaración o autoliquidación, el plazo de prescripción comenzará el día de devengo del tributo.\nEn el caso b), desde el día siguiente a aquel en que finalice el plazo de pago en período voluntario, sin perjuicio de lo dispuesto en el apartado 2 de este artículo.\nEn el caso c), desde el día siguiente a aquel en que finalice el plazo para solicitar la correspondiente devolución derivada de la normativa de cada tributo o, en defecto de plazo, desde el día siguiente a aquel en que dicha devolución pudo solicitarse; desde el día siguiente a aquel en que se realizó el ingreso indebido o desde el día siguiente a la finalización del plazo para presentar la autoliquidación si el ingreso indebido se realizó dentro de dicho plazo; o desde el día siguiente a aquel en que adquiera firmeza la sentencia o resolución administrativa que declare total o parcialmente improcedente el acto impugnado.\nEn el supuesto de tributos que graven una misma operación y que sean incompatibles entre sí, el plazo de prescripción para solicitar la devolución del ingreso indebido del tributo improcedente comenzará a contarse desde la resolución del órgano específicamente previsto para dirimir cuál es el tributo procedente.\nEn el caso d), desde el día siguiente a aquel en que finalicen los plazos establecidos para efectuar las devoluciones derivadas de la normativa de cada tributo o desde el día siguiente a la fecha de notificación del acuerdo donde se reconozca el derecho a percibir la devolución o el reembolso del coste de las garantías.\n2. El plazo de prescripción para exigir la obligación de pago a los responsables solidarios comenzará a contarse desde el día siguiente a la finalización del plazo de pago en periodo voluntario del deudor principal.\nNo obstante, en el caso de que los hechos que constituyan el presupuesto de la responsabilidad se produzcan con posterioridad al plazo fijado en el párrafo anterior, dicho plazo de prescripción se iniciará a partir del momento en que tales hechos hubieran tenido lugar.\nTratándose de responsables subsidiarios, el plazo de prescripción comenzará a computarse desde la notificación de la última actuación recaudatoria practicada al deudor principal o a cualquiera de los responsables solidarios.\nSe modifica el apartado 1 por el art. único.9 de la Ley 34/2015, de 21 de septiembre. Ref. BOE-A-2015-10143#aunico.\nSe modifica el apartado 2 por el art. 1.5 de la Ley 7/2012, de 29 de octubre. Ref. BOE-A-2012-13416.",
+    "hash_texto": "sha256:558c63df783253905d88040737a885cc6d122813d33988fb52e24abd5615111e",
+    "avisos": [],
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a67",
+    "url_eli": "https://www.boe.es/eli/es/l/2003/12/17/58"
+  }
+}
