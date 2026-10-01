@@ -1,6 +1,7 @@
 // Los textos de las dos portadas: una URL por audiencia, cada una con su
-// título, su descripción y sus ejemplos (ADR 0024). Las citas se nombran por su
-// id de citas.yaml: el texto de la norma nunca se escribe aquí.
+// título, su descripción y sus ejemplos (ADR 0024 y 0034). La de la ciudadanía
+// es la portada del sitio. Las citas se nombran por su id de citas.yaml: el
+// texto de la norma nunca se escribe aquí.
 
 import { formatoEntero, numeroDeMunicipios } from "../lib/proyecto";
 
@@ -8,11 +9,19 @@ export type Tono = "sello" | "derogada" | "agente" | "vigente";
 
 export interface Audiencia {
   ruta: string;
+  // Cómo se nombra la audiencia en el selector de las portadas, en el pie y en
+  // la imagen para compartir.
+  nombre: string;
+  icono: string;
   titulo: string;
   descripcion: string;
   imagen: string;
+  insignia: string;
   h1: string;
   subtitulo: string;
+  // El segundo botón de la cabecera de la portada: lo que esa audiencia hace
+  // después de ver cómo funciona.
+  secundario: { texto: string; destino: string; icono: string };
   metricas: { etiqueta: string; valor: string; texto: string; tono: Tono }[];
   comparativa: {
     consulta: string;
@@ -24,105 +33,45 @@ export interface Audiencia {
     pieMalo: string;
     cita: string;
   };
-  casos: { icono: string; tono: Tono; etiqueta: string; pregunta: string; cita: string }[];
+  garantias: {
+    antetitulo: string;
+    titulo: string;
+    texto: string;
+    pilares: { icono: string; tono: Tono; fondo: string; titulo: string; texto: string; pie: string }[];
+  };
+  // `consulta` es el slug de la página de consultas.ts que desarrolla la
+  // respuesta, si la hay.
+  casos: { icono: string; tono: Tono; etiqueta: string; pregunta: string; cita: string; consulta?: string }[];
+  // La invitación a escribir al buzón del proyecto: kitlegal no recoge datos de
+  // uso (ADR 0027), así que lo que le falta a una audiencia solo se sabe si lo
+  // cuenta.
+  contacto?: {
+    antetitulo: string;
+    titulo: string;
+    texto: string;
+    peticiones: string[];
+    todavia: string;
+    aviso: string;
+    asunto: string;
+  };
   cta: { titulo: string; texto: string };
 }
 
 const municipios = formatoEntero(numeroDeMunicipios());
 
-export const despachos: Audiencia = {
-  ruta: "/",
-  titulo: "kitlegal: IA para despachos con la ley vigente del BOE",
-  descripcion:
-    "Skills para Claude Code, Codex o Antigravity que responden con el texto consolidado del BOE: artículo exacto, aviso de vigencia y fuente verificable.",
-  imagen: "inicio",
-  h1: "Usa IA en tu despacho sin miedo a normas derogadas ni artículos inventados.",
-  subtitulo:
-    "kitlegal conecta tu asistente de IA (Claude Code, Codex, Antigravity) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para comprobarla.",
-  metricas: [
-    {
-      etiqueta: "Nada sin cita",
-      valor: "Norma, bloque y huella",
-      texto: "Cada artículo llega con su identificador del BOE, la fecha de consulta y una huella del texto.",
-      tono: "sello",
-    },
-    {
-      etiqueta: "Vigencia",
-      valor: "Aviso antes de citar",
-      texto: "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente lo dice primero.",
-      tono: "derogada",
-    },
-    {
-      etiqueta: "Territorio",
-      valor: `${municipios} municipios`,
-      texto: "Sitúa cualquier municipio del INE en su provincia, su comunidad y su régimen.",
-      tono: "agente",
-    },
-    {
-      etiqueta: "Software libre",
-      valor: "EUPL-1.2",
-      texto: "El programa corre en tu equipo: sin cuentas y sin servidores de kitlegal entre tú y el BOE.",
-      tono: "vigente",
-    },
-  ],
-  comparativa: {
-    consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
-    respuesta:
-      "«Con carácter general, el plazo para resolver es de seis meses, según la Ley 30/1992 de Régimen Jurídico de las Administraciones Públicas.»",
-    marcas: ["seis meses", "Ley 30/1992"],
-    insignia: "Norma derogada · plazo erróneo",
-    alertaTitulo: "Dos errores en una frase",
-    alertaTexto:
-      "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento, salvo que una ley o el Derecho de la Unión Europea prevean más: si no fija ninguno, el plazo es de tres meses.",
-    pieMalo: "Sin fuente",
-    cita: "lpacap-21",
-  },
-  casos: [
-    {
-      icono: "gavel",
-      tono: "sello",
-      etiqueta: "Contratación pública",
-      pregunta: "¿Cuál es el límite de un contrato menor?",
-      cita: "lcsp-118",
-    },
-    {
-      icono: "receipt-long",
-      tono: "vigente",
-      etiqueta: "Derecho tributario",
-      pregunta: "¿Cuándo prescribe una deuda tributaria?",
-      cita: "lgt-66",
-    },
-    {
-      icono: "account-balance",
-      tono: "agente",
-      etiqueta: "Régimen local",
-      pregunta: "¿Qué atribuciones corresponden al Pleno municipal?",
-      cita: "lbrl-22",
-    },
-    {
-      icono: "schedule",
-      tono: "sello",
-      etiqueta: "Procedimiento administrativo",
-      pregunta: "¿Qué efecto tiene el silencio en un procedimiento iniciado a solicitud?",
-      cita: "lpacap-24",
-    },
-  ],
-  cta: {
-    titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto:
-      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree. Software libre para juristas exigentes.",
-  },
-};
-
 export const ciudadania: Audiencia = {
-  ruta: "/ciudadania/",
-  titulo: "kitlegal: consulta tus derechos con la ley vigente del BOE",
+  ruta: "/",
+  nombre: "Para ciudadanos y trámites",
+  icono: "person-outline",
+  titulo: "kitlegal: tus derechos y plazos, con la ley vigente del BOE",
   descripcion:
-    "Pregunta a tu asistente de IA por plazos, multas, alquiler o impuestos y recibe la respuesta con el texto vigente del BOE y la cita para comprobarla.",
-  imagen: "ciudadania",
-  h1: "Consulta tus derechos y trámites ante la Administración con la ley real en la mano.",
+    "Pregunta a tu asistente de IA por un plazo, un recurso, tu alquiler o tu trabajo y recibe la respuesta con el texto vigente del BOE y su cita. Gratis.",
+  imagen: "inicio",
+  insignia: "Legislación española · La ley vigente, con su cita",
+  h1: "Pregunta por tu plazo, tu alquiler o tu trabajo y recibe la ley vigente, con su cita.",
   subtitulo:
-    "Pregunta a tu asistente de IA por plazos de recursos, multas, alquileres o impuestos sabiendo que responde con el texto vigente del BOE, y con la cita para que lo compruebes.",
+    "kitlegal hace que tu asistente de IA lea el texto vigente del BOE antes de contestarte: sabrás qué artículo lo dice, si la norma sigue en vigor y dónde comprobarlo. Es gratis y funciona en tu ordenador.",
+  secundario: { texto: "Ver consultas con su cita", destino: "/consultas/", icono: "menu-book" },
   metricas: [
     {
       etiqueta: "Nada sin cita",
@@ -137,9 +86,9 @@ export const ciudadania: Audiencia = {
       tono: "derogada",
     },
     {
-      etiqueta: "Tu municipio",
-      valor: `${municipios} municipios`,
-      texto: "Sitúa tu municipio en su provincia y su comunidad con los datos del INE.",
+      etiqueta: "Precio",
+      valor: "Gratis",
+      texto: "Software libre: se instala y se usa sin pagar y sin registrarse.",
       tono: "agente",
     },
     {
@@ -160,39 +109,219 @@ export const ciudadania: Audiencia = {
     pieMalo: "Recurso fuera de plazo",
     cita: "lpacap-122",
   },
+  garantias: {
+    antetitulo: "Por qué fiarte",
+    titulo: "Tres comprobaciones que hace un programa, no la memoria de la IA",
+    texto:
+      "Leer la ley, comprobar que sigue en vigor y situar tu municipio no se dejan a lo que la IA recuerde: lo hace un programa, siempre de la misma manera. Tu asistente razona sobre lo que el programa le devuelve.",
+    pilares: [
+      {
+        icono: "menu-book",
+        tono: "sello",
+        fondo: "bg-panel",
+        titulo: "Lee la ley en el BOE",
+        texto:
+          "Tu asistente no contesta de memoria: kitlegal descarga el texto oficial y actualizado de la norma, y la respuesta se apoya en esa redacción.",
+        pie: "Texto consolidado oficial",
+      },
+      {
+        icono: "history-toggle-off",
+        tono: "derogada",
+        fondo: "bg-derogada-fondo",
+        titulo: "Te avisa si ya no está en vigor",
+        texto:
+          "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente te lo dice antes de citarla.",
+        pie: "Antes de citar",
+      },
+      {
+        icono: "location-city",
+        tono: "agente",
+        fondo: "bg-panel",
+        titulo: "Sabe de qué municipio hablas",
+        texto: `Sitúa cualquiera de los ${municipios} municipios de España en su provincia y su comunidad, y te dice qué boletines oficiales tiene configurados y cuáles todavía no.`,
+        pie: `${municipios} municipios del INE`,
+      },
+    ],
+  },
   casos: [
-    {
-      icono: "badge",
-      tono: "vigente",
-      etiqueta: "Trabajo",
-      pregunta: "¿Cuánto preaviso tengo que dar si dejo mi trabajo?",
-      cita: "et-49",
-    },
     {
       icono: "home",
       tono: "sello",
       etiqueta: "Alquiler y vivienda",
-      pregunta: "¿Qué pasa si el casero tarda en devolverme la fianza?",
+      pregunta: "Mi casero no me devuelve la fianza. ¿Qué dice la ley?",
       cita: "lau-36",
+      consulta: "devolucion-fianza-alquiler",
     },
     {
       icono: "account-balance",
       tono: "agente",
       etiqueta: "Trámites con la Administración",
-      pregunta: "Si la Administración no contesta a mi solicitud, ¿se entiende concedida?",
+      pregunta: "Presenté una solicitud y la Administración no contesta. ¿Se entiende concedida?",
       cita: "lpacap-24",
+      consulta: "silencio-administrativo",
     },
     {
-      icono: "child-friendly",
+      icono: "badge",
+      tono: "vigente",
+      etiqueta: "Trabajo",
+      pregunta: "Quiero dejar mi trabajo. ¿Cuánto preaviso tengo que dar?",
+      cita: "et-49",
+      consulta: "preaviso-baja-voluntaria",
+    },
+    {
+      icono: "receipt-long",
       tono: "sello",
-      etiqueta: "Impuestos y familia",
-      pregunta: "¿Qué deducción por maternidad recoge el IRPF?",
-      cita: "lirpf-81",
+      etiqueta: "Hacienda",
+      pregunta: "¿Cuánto tiempo tiene Hacienda para reclamarme una deuda?",
+      cita: "lgt-66",
+      consulta: "prescripcion-deudas-hacienda",
     },
   ],
   cta: {
-    titulo: "Empieza a consultar tus derechos con la ley vigente.",
+    titulo: "Empieza a preguntar con la ley vigente delante.",
     texto:
       "Ten a mano la legislación del BOE en tus gestiones con la Administración, en el trabajo o con tu vivienda. Software libre y gratuito.",
   },
 };
+
+export const despachos: Audiencia = {
+  ruta: "/despachos/",
+  nombre: "Para despachos y abogados",
+  icono: "balance",
+  titulo: "IA para abogados: cada cita, comprobada en el BOE | kitlegal",
+  descripcion:
+    "Gratis, para Claude Code, Codex y Antigravity: tu asistente cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Para despachos en España.",
+  imagen: "despachos",
+  insignia: "Para despachos en España · Software libre y gratuito",
+  h1: "Usa IA en tu despacho con cada artículo comprobado en el BOE antes de citarlo.",
+  subtitulo:
+    "kitlegal conecta tu asistente de IA (Claude Code, Codex, Antigravity) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
+  secundario: { texto: "Cuéntanos qué necesita tu despacho", destino: "#contacto", icono: "mail" },
+  metricas: [
+    {
+      etiqueta: "Nada sin cita",
+      valor: "Norma, bloque y huella",
+      texto: "Cada artículo llega con su identificador del BOE, la fecha de consulta y una huella del texto.",
+      tono: "sello",
+    },
+    {
+      etiqueta: "Vigencia",
+      valor: "Aviso antes de citar",
+      texto: "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente lo dice primero.",
+      tono: "derogada",
+    },
+    {
+      etiqueta: "Alcance",
+      valor: "Legislación, no sentencias",
+      texto: "Lee la legislación consolidada del BOE. Hoy no consulta ni comprueba jurisprudencia.",
+      tono: "agente",
+    },
+    {
+      etiqueta: "Gratis y libre",
+      valor: "EUPL-1.2",
+      texto: "El programa corre en tu equipo: sin cuotas, sin cuentas y sin servidores de kitlegal entre tú y el BOE.",
+      tono: "vigente",
+    },
+  ],
+  comparativa: {
+    consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
+    respuesta:
+      "«Con carácter general, el plazo para resolver es de seis meses, según la Ley 30/1992 de Régimen Jurídico de las Administraciones Públicas.»",
+    marcas: ["seis meses", "Ley 30/1992"],
+    insignia: "Norma derogada · plazo erróneo",
+    alertaTitulo: "Dos errores en una frase",
+    alertaTexto:
+      "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento, salvo que una ley o el Derecho de la Unión Europea prevean más: si no fija ninguno, el plazo es de tres meses.",
+    pieMalo: "Sin fuente",
+    cita: "lpacap-21",
+  },
+  garantias: {
+    antetitulo: "Arquitectura de confianza",
+    titulo: "Tres garantías que da el programa, no el modelo",
+    texto:
+      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y situar el territorio. El modelo razona sobre lo que el programa le devuelve.",
+    pilares: [
+      {
+        icono: "menu-book",
+        tono: "sello",
+        fondo: "bg-panel",
+        titulo: "Cotejo contra el BOE",
+        texto:
+          "Tu asistente no responde de memoria: kitlegal descarga el texto consolidado oficial, lo guarda en una caché de tu equipo y la respuesta se apoya en esa redacción.",
+        pie: "Texto consolidado oficial",
+      },
+      {
+        icono: "history-toggle-off",
+        tono: "derogada",
+        fondo: "bg-derogada-fondo",
+        titulo: "Avisos de vigencia",
+        texto:
+          "kitlegal lee los metadatos del BOE y avisa si una norma está derogada, si su vigencia se ha agotado o si su consolidación no ha terminado.",
+        pie: "Antes de citar",
+      },
+      {
+        icono: "location-city",
+        tono: "agente",
+        fondo: "bg-panel",
+        titulo: "Territorio real",
+        texto: `Sitúa los ${municipios} municipios del INE en su provincia y su comunidad, con el código INE y el DIR3 del ayuntamiento, distingue régimen común y foral y dice qué boletines tiene configurados y cuáles no.`,
+        pie: `${municipios} municipios del INE`,
+      },
+    ],
+  },
+  casos: [
+    {
+      icono: "gavel",
+      tono: "sello",
+      etiqueta: "Contratación pública",
+      pregunta: "¿Cuál es el límite de un contrato menor?",
+      cita: "lcsp-118",
+    },
+    {
+      icono: "receipt-long",
+      tono: "vigente",
+      etiqueta: "Derecho tributario",
+      pregunta: "¿Cuándo prescribe una deuda tributaria?",
+      cita: "lgt-66",
+      consulta: "prescripcion-deudas-hacienda",
+    },
+    {
+      icono: "account-balance",
+      tono: "agente",
+      etiqueta: "Régimen local",
+      pregunta: "¿Qué atribuciones corresponden al Pleno municipal?",
+      cita: "lbrl-22",
+    },
+    {
+      icono: "schedule",
+      tono: "sello",
+      etiqueta: "Procedimiento administrativo",
+      pregunta: "¿Qué efecto tiene el silencio en un procedimiento iniciado a solicitud?",
+      cita: "lpacap-24",
+      consulta: "silencio-administrativo",
+    },
+  ],
+  contacto: {
+    antetitulo: "Hecho con quien lo usa",
+    titulo: "¿Qué le falta para tu despacho?",
+    texto:
+      "kitlegal ya sirve para consultar y citar la legislación consolidada del BOE. Estamos trabajando para que sirva al trabajo diario de un despacho y, como no recoge ningún dato de uso, la única forma de saber qué necesitas es que nos lo cuentes.",
+    peticiones: [
+      "Una consulta que tu asistente no supo responder, o que respondió mal.",
+      "Una fuente que echas de menos: jurisprudencia, consultas de la DGT, convenios colectivos, boletines autonómicos.",
+      "Lo que te frena para usarlo: la instalación, la confidencialidad, la forma de la respuesta.",
+    ],
+    todavia: "Lo que hoy no hace: no consulta ni comprueba jurisprudencia, y no redacta escritos.",
+    aviso:
+      "No incluyas datos de clientes ni de asuntos. Leemos tu mensaje solo para responderte y para decidir qué mejorar.",
+    asunto: "kitlegal para despachos",
+  },
+  cta: {
+    titulo: "Dota a tu despacho de la ley vigente, con su cita.",
+    texto:
+      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree. Software libre y gratuito, para juristas exigentes.",
+  },
+};
+
+// Las audiencias en el orden en que se ofrecen: la portada del sitio, primero.
+export const audiencias = [ciudadania, despachos];

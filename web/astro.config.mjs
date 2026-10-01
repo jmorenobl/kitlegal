@@ -9,6 +9,9 @@ export default defineConfig({
   // GitHub Pages sirve /ruta/ desde ruta/index.html y redirige /ruta a
   // /ruta/: la URL canónica lleva siempre la barra final.
   trailingSlash: "always",
+  // La portada de la ciudadanía fue /ciudadania/ hasta que pasó a ser la del
+  // sitio (ADR 0034): la dirección antigua lleva a la nueva.
+  redirects: { "/ciudadania": "/" },
   build: {
     format: "directory",
     // Ninguna hoja de estilos en línea: la política de seguridad de contenido

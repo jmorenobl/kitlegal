@@ -10,6 +10,8 @@ import { parse } from "yaml";
 export const SITIO = "https://kitlegal.es";
 export const REPOSITORIO = "https://github.com/jmorenobl/kitlegal";
 export const LICENCIA = "https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12";
+// El buzón del proyecto: el único contacto que no pasa por GitHub.
+export const CORREO = "info@kitlegal.es";
 
 // La web se construye desde web/ (make web, el flujo de la web); la raíz del
 // repositorio es su padre. Si no lo es, la construcción falla aquí y no más

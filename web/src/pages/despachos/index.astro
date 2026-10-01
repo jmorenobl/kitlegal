@@ -1,15 +1,15 @@
 ---
 import Portada from "../../components/Portada.astro";
-import { ciudadania as audiencia } from "../../data/audiencias";
+import { despachos as audiencia } from "../../data/audiencias";
 import Base from "../../layouts/Base.astro";
-import { aplicacion } from "../../lib/estructurados";
+import { aplicacion, migas } from "../../lib/estructurados";
 ---
 
 <Base
   titulo={audiencia.titulo}
   descripcion={audiencia.descripcion}
   imagen={audiencia.imagen}
-  datos={aplicacion(audiencia.descripcion)}
+  datos={[...aplicacion(audiencia.descripcion), ...migas({ nombre: "Despachos", ruta: audiencia.ruta })]}
   inicio={audiencia.ruta}
 >
   <Portada audiencia={audiencia} />

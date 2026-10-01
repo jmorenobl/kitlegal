@@ -7,12 +7,16 @@
 # regeneran con `make web-citas`, que ejecuta el binario contra el BOE.
 #
 # Un artículo se muestra con sus fragmentos unidos por « […] ». `destacado`,
-# si lo hay, es una parte de un fragmento que la página resalta.
+# si lo hay, es una parte de un fragmento que la página resalta. `version` es
+# la versión del bloque (la `fecha_version` del sobre) con la que se escribió la
+# cita: si `make web-citas` trae otra, la construcción falla hasta que alguien
+# relee lo que la web dice de ese bloque y actualiza la versión aquí.
 
 articulos:
   lpacap-21:
     norma: BOE-A-2015-10565
     bloque: a21
+    version: "20151002"
     referencia: Art. 21.2 y 21.3 Ley 39/2015 (LPACAP)
     fragmentos:
       - 2. El plazo máximo en el que debe notificarse la resolución expresa será el fijado por la norma reguladora del correspondiente procedimiento.
@@ -23,6 +27,7 @@ articulos:
   lpacap-122:
     norma: BOE-A-2015-10565
     bloque: a122
+    version: "20151002"
     referencia: Art. 122.1 Ley 39/2015 (LPACAP)
     fragmentos:
       - El plazo para la interposición del recurso de alzada será de un mes, si el acto fuera expreso. Transcurrido dicho plazo sin haberse interpuesto el recurso, la resolución será firme a todos los efectos.
@@ -31,6 +36,7 @@ articulos:
   lpacap-24:
     norma: BOE-A-2015-10565
     bloque: a24
+    version: "20151002"
     referencia: Art. 24.1 Ley 39/2015 (LPACAP)
     fragmentos:
       - En los procedimientos iniciados a solicitud del interesado, sin perjuicio de la resolución que la Administración debe dictar en la forma prevista en el apartado 3 de este artículo, el vencimiento del plazo máximo sin haberse notificado resolución expresa, legitima al interesado o interesados para entenderla estimada por silencio administrativo, excepto en los supuestos en los que una norma con rango de ley o una norma de Derecho de la Unión Europea o de Derecho internacional aplicable en España establezcan lo contrario.
@@ -38,6 +44,7 @@ articulos:
   lcsp-118:
     norma: BOE-A-2017-12902
     bloque: a1-30
+    version: "20200205"
     referencia: Art. 118.1 Ley 9/2017 (LCSP)
     fragmentos:
       - Se consideran contratos menores los contratos de valor estimado inferior a 40.000 euros, cuando se trate de contratos de obras, o a 15.000 euros, cuando se trate de contratos de suministro o de servicios, sin perjuicio de lo dispuesto en el artículo 229 en relación con las obras, servicios y suministros centralizados en el ámbito estatal.
@@ -45,6 +52,7 @@ articulos:
   lgt-66:
     norma: BOE-A-2003-23186
     bloque: a66
+    version: "20031218"
     referencia: Art. 66 Ley 58/2003 (LGT)
     fragmentos:
       - "Prescribirán a los cuatro años los siguientes derechos:"
@@ -54,6 +62,7 @@ articulos:
   lbrl-22:
     norma: BOE-A-1985-5392
     bloque: a22
+    version: "20151031"
     referencia: Art. 22.2 Ley 7/1985 (LBRL)
     fragmentos:
       - "Corresponden, en todo caso, al Pleno municipal en los Ayuntamientos, y a la Asamblea vecinal en el régimen de Concejo Abierto, las siguientes atribuciones:"
@@ -63,6 +72,7 @@ articulos:
   et-49:
     norma: BOE-A-2015-11430
     bloque: a49
+    version: "20250430"
     referencia: Art. 49.1.d) Real Decreto Legislativo 2/2015 (ET)
     fragmentos:
       - d) Por dimisión del trabajador, debiendo mediar el preaviso que señalen los convenios colectivos o la costumbre del lugar.
@@ -70,6 +80,7 @@ articulos:
   lau-36:
     norma: BOE-A-1994-26003
     bloque: a36
+    version: "20260930"
     referencia: Art. 36.4 Ley 29/1994 (LAU)
     fragmentos:
       - El saldo de la fianza en metálico que deba ser restituido al arrendatario al final del arriendo, devengará el interés legal, transcurrido un mes desde la entrega de las llaves por el mismo sin que se hubiere hecho efectiva dicha restitución.
@@ -77,10 +88,208 @@ articulos:
   lirpf-81:
     norma: BOE-A-2006-20764
     bloque: a81
+    version: "20221224"
     referencia: Art. 81.1 Ley 35/2006 (LIRPF)
     fragmentos:
       - Las mujeres con hijos menores de tres años con derecho a la aplicación del mínimo por descendientes previsto en el artículo 58 de esta ley,
       - podrán minorar la cuota diferencial de este Impuesto hasta en 1.200 euros anuales por cada hijo menor de tres años hasta que el menor alcance los tres años de edad.
+
+  # Las páginas de /consultas/ (src/data/consultas.ts): cada punto de la
+  # respuesta va con el fragmento que lo sostiene. Un mismo sobre sirve a varias
+  # citas.
+  lpacap-122-presunto:
+    norma: BOE-A-2015-10565
+    bloque: a122
+    version: "20151002"
+    referencia: Art. 122.1, segundo párrafo, Ley 39/2015 (LPACAP)
+    fragmentos:
+      - Si el acto no fuera expreso el solicitante y otros posibles interesados podrán interponer recurso de alzada en cualquier momento a partir del día siguiente a aquel en que, de acuerdo con su normativa específica, se produzcan los efectos del silencio administrativo.
+
+  lpacap-122-resolucion:
+    norma: BOE-A-2015-10565
+    bloque: a122
+    version: "20151002"
+    referencia: Art. 122.2 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 2. El plazo máximo para dictar y notificar la resolución será de tres meses. Transcurrido este plazo sin que recaiga resolución, se podrá entender desestimado el recurso, salvo en el supuesto previsto en el artículo 24.1, tercer párrafo.
+    destacado: tres meses
+
+  lpacap-121:
+    norma: BOE-A-2015-10565
+    bloque: a121
+    version: "20151002"
+    referencia: Art. 121.1 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 1. Las resoluciones y actos a que se refiere el artículo 112.1, cuando no pongan fin a la vía administrativa, podrán ser recurridos en alzada ante el órgano superior jerárquico del que los dictó.
+
+  lpacap-30:
+    norma: BOE-A-2015-10565
+    bloque: a30
+    version: "20151002"
+    referencia: Art. 30.4 y 30.5 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 4. Si el plazo se fija en meses o años, éstos se computarán a partir del día siguiente a aquel en que tenga lugar la notificación o publicación del acto de que se trate, o desde el siguiente a aquel en que se produzca la estimación o desestimación por silencio administrativo.
+      - El plazo concluirá el mismo día en que se produjo la notificación, publicación o silencio administrativo en el mes o el año de vencimiento.
+      - 5. Cuando el último día del plazo sea inhábil, se entenderá prorrogado al primer día hábil siguiente.
+
+  lpacap-da1:
+    norma: BOE-A-2015-10565
+    bloque: daprimera
+    version: "20151002"
+    referencia: Disposición adicional primera, apartado 2, Ley 39/2015 (LPACAP)
+    fragmentos:
+      - "2. Las siguientes actuaciones y procedimientos se regirán por su normativa específica y supletoriamente por lo dispuesto en esta Ley:"
+      - a) Las actuaciones y procedimientos de aplicación de los tributos en materia tributaria y aduanera, así como su revisión en vía administrativa.
+      - b) Las actuaciones y procedimientos de gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y Desempleo.
+      - c) Las actuaciones y procedimientos sancionadores en materia tributaria y aduanera, en el orden social, en materia de tráfico y seguridad vial y en materia de extranjería.
+      - d) Las actuaciones y procedimientos en materia de extranjería y asilo.
+
+  lpacap-21-computo:
+    norma: BOE-A-2015-10565
+    bloque: a21
+    version: "20151002"
+    referencia: Art. 21.2 y 21.3 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 2. El plazo máximo en el que debe notificarse la resolución expresa será el fijado por la norma reguladora del correspondiente procedimiento.
+      - 3. Cuando las normas reguladoras de los procedimientos no fijen el plazo máximo, éste será de tres meses.
+      - "Este plazo y los previstos en el apartado anterior se contarán:"
+      - b) En los iniciados a solicitud del interesado, desde la fecha en que la solicitud haya tenido entrada en el registro electrónico de la Administración u Organismo competente para su tramitación.
+    destacado: tres meses
+
+  lpacap-24-desestimatorio:
+    norma: BOE-A-2015-10565
+    bloque: a24
+    version: "20151002"
+    referencia: Art. 24.1, segundo y tercer párrafos, Ley 39/2015 (LPACAP)
+    fragmentos:
+      - El silencio tendrá efecto desestimatorio en los procedimientos relativos al ejercicio del derecho de petición, a que se refiere el artículo 29 de la Constitución, aquellos cuya estimación tuviera como consecuencia que se transfirieran al solicitante o a terceros facultades relativas al dominio público o al servicio público, impliquen el ejercicio de actividades que puedan dañar el medio ambiente y en los procedimientos de responsabilidad patrimonial de las Administraciones Públicas.
+      - El sentido del silencio también será desestimatorio en los procedimientos de impugnación de actos y disposiciones y en los de revisión de oficio iniciados a solicitud de los interesados.
+
+  lpacap-24-efectos:
+    norma: BOE-A-2015-10565
+    bloque: a24
+    version: "20151002"
+    referencia: Art. 24.2 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 2. La estimación por silencio administrativo tiene a todos los efectos la consideración de acto administrativo finalizador del procedimiento. La desestimación por silencio administrativo tiene los solos efectos de permitir a los interesados la interposición del recurso administrativo o contencioso-administrativo que resulte procedente.
+
+  lpacap-24-certificado:
+    norma: BOE-A-2015-10565
+    bloque: a24
+    version: "20151002"
+    referencia: Art. 24.4 Ley 39/2015 (LPACAP)
+    fragmentos:
+      - 4. Los actos administrativos producidos por silencio administrativo se podrán hacer valer tanto ante la Administración como ante cualquier persona física o jurídica, pública o privada.
+      - su existencia puede ser acreditada por cualquier medio de prueba admitido en Derecho, incluido el certificado acreditativo del silencio producido. Este certificado se expedirá de oficio por el órgano competente para resolver en el plazo de quince días desde que expire el plazo máximo para resolver el procedimiento. Sin perjuicio de lo anterior, el interesado podrá pedirlo en cualquier momento, computándose el plazo indicado anteriormente desde el día siguiente a aquél en que la petición tuviese entrada en el registro electrónico de la Administración u Organismo competente para resolver.
+    destacado: quince días
+
+  lgt-67:
+    norma: BOE-A-2003-23186
+    bloque: a67
+    version: "20150922"
+    referencia: Art. 67.1 Ley 58/2003 (LGT)
+    fragmentos:
+      - "1. El plazo de prescripción comenzará a contarse en los distintos casos a los que se refiere el artículo 66 de esta Ley conforme a las siguientes reglas:"
+      - En el caso a), desde el día siguiente a aquel en que finalice el plazo reglamentario para presentar la correspondiente declaración o autoliquidación.
+      - En el caso b), desde el día siguiente a aquel en que finalice el plazo de pago en período voluntario, sin perjuicio de lo dispuesto en el apartado 2 de este artículo.
+
+  lgt-68:
+    norma: BOE-A-2003-23186
+    bloque: a68
+    version: "20150922"
+    referencia: Art. 68.2 y 68.6 Ley 58/2003 (LGT)
+    fragmentos:
+      - "2. El plazo de prescripción del derecho a que se refiere el párrafo b) del artículo 66 de esta ley se interrumpe:"
+      - a) Por cualquier acción de la Administración tributaria, realizada con conocimiento formal del obligado tributario, dirigida de forma efectiva a la recaudación de la deuda tributaria.
+      - 6. Producida la interrupción, se iniciará de nuevo el cómputo del plazo de prescripción, salvo lo establecido en el apartado siguiente.
+
+  lgt-66-devoluciones:
+    norma: BOE-A-2003-23186
+    bloque: a66
+    version: "20031218"
+    referencia: Art. 66 Ley 58/2003 (LGT)
+    fragmentos:
+      - "Prescribirán a los cuatro años los siguientes derechos:"
+      - c) El derecho a solicitar las devoluciones derivadas de la normativa de cada tributo, las devoluciones de ingresos indebidos y el reembolso del coste de las garantías.
+
+  lau-36-cuantia:
+    norma: BOE-A-1994-26003
+    bloque: a36
+    version: "20260930"
+    referencia: Art. 36.1 Ley 29/1994 (LAU)
+    fragmentos:
+      - 1. A la celebración del contrato será obligatoria la exigencia y prestación de fianza en metálico en cantidad equivalente a una mensualidad de renta en el arrendamiento de viviendas y de dos en el arrendamiento para uso distinto del de vivienda.
+    destacado: una mensualidad de renta
+
+  lau-36-garantia:
+    norma: BOE-A-1994-26003
+    bloque: a36
+    version: "20260930"
+    referencia: Art. 36.5 Ley 29/1994 (LAU)
+    fragmentos:
+      - 5. Las partes podrán pactar una garantía del cumplimiento por el arrendatario de sus obligaciones arrendaticias adicional a la fianza en metálico.
+      - En ningún caso podrá exigirse al arrendatario la contratación de seguros de impago de renta u otras coberturas análogas.
+      - En el caso del arrendamiento de vivienda, en contratos de hasta cinco años de duración, o de hasta siete años si el arrendador fuese persona jurídica, el valor de esta garantía adicional no podrá exceder de dos mensualidades de renta. En el caso de los arrendamientos temporales el valor de esta garantía no podrá exceder de una mensualidad de la renta.
+
+  lau-36-finalizacion:
+    norma: BOE-A-1994-26003
+    bloque: a36
+    version: "20260930"
+    referencia: Art. 36.7 Ley 29/1994 (LAU)
+    fragmentos:
+      - 7. A la finalización del contrato, las partes deberán dejar constancia por escrito del estado de la vivienda en el momento de entrega de la posesión mediante un documento de finalización del arrendamiento firmado por ambas partes.
+      - En caso de no suscribirse el documento de finalización, o de que no se refleje en él desperfecto alguno, se presumirá, salvo prueba en contrario, que la vivienda fue entregada en estado adecuado de conservación.
+
+  lau-36-nota:
+    norma: BOE-A-1994-26003
+    bloque: a36
+    version: "20260930"
+    referencia: Nota del BOE al art. 36 Ley 29/1994 (LAU)
+    fragmentos:
+      - Se modifica el apartado 5 y se añade el 7 por el art. 3.17 y 18 del Real Decreto-ley 26/2026, de 29 de septiembre.
+
+  et-49-denuncia:
+    norma: BOE-A-2015-11430
+    bloque: a49
+    version: "20250430"
+    referencia: Art. 49.1.c) Real Decreto Legislativo 2/2015 (ET)
+    fragmentos:
+      - Si el contrato de trabajo de duración determinada es superior a un año, la parte del contrato que formule la denuncia está obligada a notificar a la otra la terminación del mismo con una antelación mínima de quince días.
+    destacado: quince días
+
+  et-49-finiquito:
+    norma: BOE-A-2015-11430
+    bloque: a49
+    version: "20250430"
+    referencia: Art. 49.2, segundo párrafo, Real Decreto Legislativo 2/2015 (ET)
+    fragmentos:
+      - El trabajador podrá solicitar la presencia de un representante legal de los trabajadores en el momento de proceder a la firma del recibo del finiquito, haciéndose constar en el mismo el hecho de su firma en presencia de un representante legal de los trabajadores, o bien que el trabajador no ha hecho uso de esta posibilidad.
+
+  lirpf-81-completo:
+    norma: BOE-A-2006-20764
+    bloque: a81
+    version: "20221224"
+    referencia: Art. 81.1 Ley 35/2006 (LIRPF)
+    fragmentos:
+      - Las mujeres con hijos menores de tres años con derecho a la aplicación del mínimo por descendientes previsto en el artículo 58 de esta ley, que en el momento del nacimiento del menor perciban prestaciones contributivas o asistenciales del sistema de protección de desempleo, o que en dicho momento o en cualquier momento posterior estén dadas de alta en el régimen correspondiente de la Seguridad Social o mutualidad con un período mínimo, en este último caso, de 30 días cotizados, podrán minorar la cuota diferencial de este Impuesto hasta en 1.200 euros anuales por cada hijo menor de tres años hasta que el menor alcance los tres años de edad.
+    destacado: 1.200 euros anuales
+
+  lirpf-81-guarderia:
+    norma: BOE-A-2006-20764
+    bloque: a81
+    version: "20221224"
+    referencia: Art. 81.2 Ley 35/2006 (LIRPF)
+    fragmentos:
+      - 2. El importe de la deducción a que se refiere el apartado 1 anterior se podrá incrementar hasta en 1.000 euros adicionales cuando el contribuyente que tenga derecho a la misma hubiera satisfecho en el período impositivo gastos de custodia del hijo menor de tres años en guarderías o centros de educación infantil autorizados.
+    destacado: 1.000 euros adicionales
+
+  lirpf-81-anticipo:
+    norma: BOE-A-2006-20764
+    bloque: a81
+    version: "20221224"
+    referencia: Art. 81.4 Ley 35/2006 (LIRPF)
+    fragmentos:
+      - 4. Se podrá solicitar a la Agencia Estatal de Administración Tributaria el abono del importe de la deducción previsto en el apartado 1 anterior de forma anticipada. En estos supuestos, no se minorará la cuota diferencial del impuesto.
 
 # Normas de las que la web muestra los avisos de vigencia, tal como los da
 # `kitlegal boe metadatos`.

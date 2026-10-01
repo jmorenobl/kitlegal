@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "fuente": "boe.legislacion-consolidada",
+  "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a121",
+  "fecha_consulta": "2026-10-01T10:10:44.143074+02:00",
+  "hash": "sha256:b596391aaaee7c727ee4091be4324afd5504742b6edaddfb53b458756aa4889e",
+  "data": {
+    "norma": "BOE-A-2015-10565",
+    "bloque": "a121",
+    "titulo": "Artículo 121",
+    "tipo": "precepto",
+    "fecha_version": "20151002",
+    "fecha_vigencia": "20161002",
+    "norma_modificadora": "BOE-A-2015-10565",
+    "texto": "Artículo 121. Objeto.\n1. Las resoluciones y actos a que se refiere el artículo 112.1, cuando no pongan fin a la vía administrativa, podrán ser recurridos en alzada ante el órgano superior jerárquico del que los dictó. A estos efectos, los Tribunales y órganos de selección del personal al servicio de las Administraciones Públicas y cualesquiera otros que, en el seno de éstas, actúen con autonomía funcional, se considerarán dependientes del órgano al que estén adscritos o, en su defecto, del que haya nombrado al presidente de los mismos.\n2. El recurso podrá interponerse ante el órgano que dictó el acto que se impugna o ante el competente para resolverlo.\nSi el recurso se hubiera interpuesto ante el órgano que dictó el acto impugnado, éste deberá remitirlo al competente en el plazo de diez días, con su informe y con una copia completa y ordenada del expediente.\nEl titular del órgano que dictó el acto recurrido será responsable directo del cumplimiento de lo previsto en el párrafo anterior.",
+    "hash_texto": "sha256:08c867c6eb6d35e755a7ccef97f76054b29b52a90c7d1f1800ba8e0c8ca6e46e",
+    "avisos": [],
+    "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-10565#a121",
+    "url_eli": "https://www.boe.es/eli/es/l/2015/10/01/39"
+  }
+}

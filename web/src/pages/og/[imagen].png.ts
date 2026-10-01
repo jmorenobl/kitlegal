@@ -1,13 +1,20 @@
 // La imagen de cada página al compartirla: /og/<imagen>.png, con el titular de
 // la propia página.
 import type { APIRoute, GetStaticPaths } from "astro";
-import { ciudadania, despachos } from "../../data/audiencias";
-import { imagenParaCompartir } from "../../lib/imagenes";
+import { audiencias } from "../../data/audiencias";
+import { consultas } from "../../data/consultas";
+import { imagenDeConsulta, imagenParaCompartir } from "../../lib/imagenes";
 
-const imagenes = {
-  inicio: { titulo: despachos.h1, subtitulo: "Para despachos y abogados" },
-  ciudadania: { titulo: ciudadania.h1, subtitulo: "Para ciudadanos y trámites" },
-  instalar: { titulo: "Instalar kitlegal", subtitulo: "Dos órdenes: el programa y sus skills, en macOS, Linux y Windows" },
+const imagenes: Record<string, { titulo: string; subtitulo: string }> = {
+  ...Object.fromEntries(audiencias.map(({ imagen, h1, nombre }) => [imagen, { titulo: h1, subtitulo: nombre }])),
+  instalar: { titulo: "Instalar kitlegal", subtitulo: "Paso a paso, en macOS, Linux y Windows" },
+  consultas: { titulo: "Consultas habituales, con su cita", subtitulo: "La pregunta y el artículo vigente del BOE que la responde" },
+  ...Object.fromEntries(
+    consultas.map(({ slug, pregunta, etiqueta }) => [
+      imagenDeConsulta(slug),
+      { titulo: pregunta, subtitulo: `${etiqueta} · con la cita del BOE` },
+    ]),
+  ),
   bot: { titulo: "El rastreador de kitlegal", subtitulo: "Qué es, cómo se comporta con tu sitio y cómo limitarlo" },
 };
 

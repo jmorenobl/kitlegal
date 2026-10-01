@@ -10,6 +10,44 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-01 · La web no respondía a nada que la gente busque, y ninguna de sus dos audiencias usa una terminal
+
+- **Qué se pidió.** Analizar cómo busca el usuario tipo de kitlegal para enfocar el mensaje de la web, sin tocar el
+  repositorio; y después, aplicar lo que saliera antes de seguir con el siguiente hito.
+- **Qué falló.** Search Console no daba ni una impresión en 28 días con las cuatro páginas indexadas, así que no
+  había datos propios. Con el autocompletado de Google en España (unas 200 búsquedas de arranque) y los estudios
+  publicados entre 2024 y 2026 salió que la web contaba lo que hace el producto y la gente busca lo que le pasa: el
+  plazo («cuánto tiempo tengo para…»), el problema en primera persona («mi casero no me devuelve la fianza», «el
+  ayuntamiento no contesta a un escrito») y el siguiente paso («modelo recurso de alzada»). Los despachos, que son de
+  una a tres personas (Libro Blanco del CGAE, 2026), buscan «ia para abogados gratis», «… españa» y «claude para
+  abogados»; las multas de los tribunales han sido por jurisprudencia inventada, que kitlegal no comprueba, y no por
+  normas derogadas, que era el titular de la portada. Y la sección «Sin barreras técnicas» no era verdad para
+  ninguna de las dos audiencias.
+- **Qué faltó.**
+  - **Una instalación sin terminal.** Menos del 2 % de la población usa Claude con frecuencia (Funcas, enero de
+    2026) y los abogados buscan «claude cowork abogados», no Claude Code. Un servidor MCP local no lo arregla por sí
+    solo, porque sigue haciendo falta el binario: lo que quitaría la terminal es un paquete de un clic con el binario
+    dentro, sin comprobar todavía (firma en macOS). Es la mayor distancia entre la web y quien la lee, y no se
+    arregla con texto.
+  - **Comprobar cada noche que las citas de la web siguen vigentes.** Al regenerar los sobres, el artículo 36 de
+    la Ley de Arrendamientos Urbanos tenía una versión del 30 de septiembre de 2026 (Real Decreto-ley 26/2026) con
+    un apartado 7 nuevo, y la web publicada seguía con la de 2019. Los sobres solo se regeneran cuando alguien
+    ejecuta `make web-citas`.
+  - **El último día de un plazo.** Las consultas más buscadas piden una fecha («hasta qué día tengo»), y hoy la
+    web solo puede decir cómo se cuenta: es H9 (`plazos`).
+  - **El escrito.** «Modelo recurso de alzada» y «modelo recurso de reposición» están entre las sugerencias más
+    repetidas: es H11.
+  - **Las multas de tráfico.** Recurrir una multa (ZBE, SER, DGT) es lo más buscado como acción y queda fuera de la
+    base por la disposición adicional primera de la Ley 39/2015 (ADR 0027): la web no lo ofrece. Si el uso lo pide,
+    es la vertical de tráfico.
+- **Qué se hizo.** Decisión de Jorge, en sesión interactiva y fuera del workflow `hito` (ADR 0034): la web habla al
+  usuario final, ciudadanía y despachos, no al perfil técnico ni a las administraciones públicas; la portada del
+  sitio es la de la ciudadanía y despachos pasa a `/despachos/`, con una invitación a escribir a `info@kitlegal.es`
+  y lo que hoy no hace dicho ahí; seis páginas en `/consultas/` con la pregunta como se busca y cada afirmación con
+  su cita al lado; cada cita muestra los avisos de su sobre y declara la versión del bloque con la que se escribió,
+  y la construcción falla si el BOE trae otra; `/instalar/` pasa a ser una guía paso a paso; y `docs/SEO.md` deja
+  los directorios para desarrolladores.
+
 ### 2026-09-30 · El alias `sonnet` ya es Sonnet 5.5 y el job de evals sigue midiendo Sonnet 5
 
 - **Qué se vio.** Claude Code 2.1.284 resuelve el alias `sonnet` a `claude-sonnet-5-5` (2.1.283 y anteriores, a

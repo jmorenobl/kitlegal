@@ -12,6 +12,19 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **La web habla a quien tiene el asunto** (ADR 0034): la portada de https://kitlegal.es es la de la ciudadanía y
+  la de despachos pasa a `/despachos/` (`/ciudadania/` redirige a la portada). Seis **consultas con su cita** en
+  `/consultas/` —plazo del recurso de alzada, silencio administrativo, devolución de la fianza, preaviso de la baja
+  voluntaria, prescripción de las deudas con Hacienda y deducción por maternidad—, cada una con la pregunta como se
+  busca y cada afirmación con el fragmento del BOE que la sostiene al lado. Cada cita muestra los avisos de
+  vigencia de su sobre y declara en `citas.yaml` la versión del bloque con la que se escribió: si `make web-citas`
+  trae otra, la construcción falla hasta que alguien relee lo que la web dice de él. `/instalar/` es una guía paso a
+  paso para quien no ha usado nunca una terminal, la portada de despachos dice lo que hoy no hace (jurisprudencia,
+  escritos) e invita a escribir a `info@kitlegal.es`, y ninguna página dice ya que no haya barreras técnicas. No
+  cambia el binario ni las skills.
+
 ## [0.3.2] - 2026-10-01
 
 ### Añadido

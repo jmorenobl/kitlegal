@@ -1,7 +1,7 @@
 ---
 // Un fragmento literal de una norma, con la procedencia que exige el sobre de
 // kitlegal: norma, bloque, fecha de consulta y huella, y el enlace al texto
-// consolidado en el BOE.
+// consolidado en el BOE. Si el sobre trae avisos de vigencia, van con la cita.
 import { articulo, fechaCorta, huellaCorta } from "../lib/citas";
 
 interface Props {
@@ -74,5 +74,12 @@ const partes = cita.fragmentos.map((fragmento, indice) => {
         cita.fechaVersion && <> · versión del {fechaCorta(cita.fechaVersion)}</>
       } · <span title={cita.hash}>{huellaCorta(cita.hash)}</span>
     </p>
+    {
+      cita.avisos.map(({ texto }) => (
+        <p role="note" class="mt-2 rounded-sm border border-sello/30 bg-sello/5 px-2 py-1.5 text-sello-tinta">
+          {texto}
+        </p>
+      ))
+    }
   </figcaption>
 </figure>
