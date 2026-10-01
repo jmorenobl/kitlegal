@@ -1,12 +1,13 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
 // binario que se publica— con los applets de ejemplo y los applets boe, graph,
-// skills y territorio. Lo único que cambia entre este binario y el distribuido
-// es la composición: qué applets se registran, de dónde responde boe, que aquí
-// es la reproducción de sus grabaciones y nunca la red, y, si la construcción lo
-// elige, un creador de enlaces de skills que siempre falla y un reloj fijo para
-// boe y graph (FR-009, FR-024, FR-114, contracts/registro-y-describe.md §3;
-// contrato puerto-y-applet §5 de H4; contracts/arnes-e2e.md §2 de H19 y de H7).
+// mcp, skills y territorio. Lo único que cambia entre este binario y el
+// distribuido es la composición: qué applets se registran, de dónde responde boe,
+// que aquí es la reproducción de sus grabaciones y nunca la red, y, si la
+// construcción lo elige, un creador de enlaces de skills que siempre falla y un
+// reloj fijo para boe y graph (FR-009, FR-024, FR-114,
+// contracts/registro-y-describe.md §3; contrato puerto-y-applet §5 de H4;
+// contracts/arnes-e2e.md §2 de H19, de H7 y de H21).
 //
 // Es la segunda —y última— raíz de composición del proyecto, y por eso es uno de
 // los dos únicos sitios del árbol donde se nombran os.Exit, os.Stdout y
@@ -105,13 +106,15 @@ func main() {
 
 // registroDeE2E construye el registro de este binario: los applets de ejemplo,
 // boe sobre la reproducción, graph con las mismas dependencias del sistema que
-// el binario distribuido, skills con las mismas dependencias del sistema que el
-// binario distribuido —la versión de este binario, lo empotrado y el creador de
-// enlaces de internal/disco, salvo que la construcción eligiera el que falla— y
-// territorio con los mismos ficheros embebidos, que no dependen del entorno
-// (contrato del applet territorio §7); boe y graph, con el reloj del sistema
-// salvo que la construcción fijara el suyo. Construirlo no pide nada ni abre
-// nada. Un registro que no se construye —también el de una construcción con un
+// el binario distribuido, mcp con las mismas dependencias del sistema que el
+// binario distribuido —la entrada estándar del proceso y la versión de este
+// binario (contracts/arnes-e2e.md §2 de H21)—, skills con las mismas
+// dependencias del sistema que el binario distribuido —la versión de este
+// binario, lo empotrado y el creador de enlaces de internal/disco, salvo que la
+// construcción eligiera el que falla— y territorio con los mismos ficheros
+// embebidos, que no dependen del entorno (contrato del applet territorio §7);
+// boe y graph, con el reloj del sistema salvo que la construcción fijara el
+// suyo. Construirlo no pide nada ni abre nada. Un registro que no se construye —también el de una construcción con un
 // enlazador o un reloj que no elige nada— es un defecto de quien escribió un
 // applet o esta composición, y app.Arrancar lo convierte en el fallo inesperado
 // antes de atender ninguna invocación: nunca en un código de salida de usuario
@@ -146,6 +149,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 	applets := []app.Applet{
 		app.AppletBoe(deBoe),
 		app.AppletGrafo(delGrafo),
+		app.AppletMCP(app.DependenciasDeMCPDelSistema(version)),
 		app.AppletSkills(skills),
 		app.AppletTerritorio(fuentes),
 	}

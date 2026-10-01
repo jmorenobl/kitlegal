@@ -40,25 +40,42 @@ func (v verboConHerramienta) herramienta() string {
 	return v.applet.Nombre() + "_" + v.verbo.Nombre
 }
 
-// registroDeProduccionLocal es un registro local del test con los applets de
-// producción y, si se piden, los de ejemplo, sin almacén al que entregar: el
-// test no llama a ninguna herramienta, y ninguno escribe en el world.db de la
-// cuenta de quien lo ejecuta. El applet mcp lo registra arrancarElServidor.
-func registroDeProduccionLocal(t *testing.T, conLosDeEjemplo bool) *app.Registro {
+// appletDelServidor es el applet que sirve, que el registro de producción trae
+// y que estos tests componen sobre su tubería.
+const appletDelServidor = "mcp"
+
+// registroParaServir es el registro sobre el que el test arranca el servidor:
+// los applets del registro de producción, los mismos valores, salvo mcp, y, si
+// se piden, los de ejemplo. El mcp de producción lee de la entrada estándar del
+// proceso, a la que un test en proceso no puede hablar, así que el de este
+// registro lo registra arrancarElServidor sobre su tubería: es el mismo applet
+// con otra entrada. Es un registro local, sin almacén al que entregar: el test
+// no llama a ninguna herramienta, y ninguno escribe en el world.db de la cuenta
+// de quien lo ejecuta.
+func registroParaServir(t *testing.T, distribuido *app.Registro, conLosDeEjemplo bool) *app.Registro {
 	t.Helper()
 
-	registro, err := app.RegistroDeProduccion("")
-	require.NoError(t, err)
+	require.Contains(t, distribuido.Nombres(), appletDelServidor,
+		"el registro de producción trae el applet %s (FR-001)", appletDelServidor)
 
-	registro.EntregarAlGrafo(nil)
+	var applets []app.Applet
 
-	if conLosDeEjemplo {
-		for _, applet := range ejemplo.Applets() {
-			require.NoError(t, registro.Registrar(applet))
+	for _, nombre := range distribuido.Nombres() {
+		if nombre == appletDelServidor {
+			continue
 		}
+
+		applet, registrado := distribuido.Buscar(nombre)
+		require.True(t, registrado, nombre)
+
+		applets = append(applets, applet)
 	}
 
-	return registro
+	if conLosDeEjemplo {
+		applets = append(applets, ejemplo.Applets()...)
+	}
+
+	return registroCon(t, applets...)
 }
 
 // verbosConHerramienta son los verbos del registro menos los de los applets
@@ -92,14 +109,19 @@ func verbosConHerramienta(t *testing.T, registro *app.Registro) map[string]verbo
 
 // TestHerramientasDelServidor es el control de conformidad de FR-070 de H21,
 // con el servidor arrancado en proceso y el cliente de prueba de cada
-// especificación, sobre un registro con los applets de producción y sobre otro
-// que lleva además los de ejemplo (FR-004): el conjunto anunciado es el de los verbos del registro
-// menos los excluidos —diez y trece—; cada nombre, cada descripción y cada par
-// de esquemas es el de `--describe` de su verbo, el de entrada sin las ocho
-// banderas globales; cada `$ref` resuelve en su esquema; todas se anuncian de
-// solo lectura; las capacidades son `{"tools":{}}`; y el tipo JSON que
-// cli.LineaDeLlamada exige de cada argumento es el que declara su esquema
-// (FR-002, FR-003, FR-005, FR-008, FR-020; SC-003).
+// especificación, sobre los applets del registro de producción y sobre un
+// registro local que lleva además los de ejemplo (FR-004): el conjunto
+// anunciado es el de los verbos del registro menos los excluidos —diez y
+// trece—; cada nombre, cada descripción y cada par de esquemas es el de
+// `--describe` de su verbo, el de entrada sin las ocho banderas globales; cada
+// `$ref` resuelve en su esquema; todas se anuncian de solo lectura; las
+// capacidades son `{"tools":{}}`; y el tipo JSON que cli.LineaDeLlamada exige
+// de cada argumento es el que declara su esquema (FR-002, FR-003, FR-005,
+// FR-008, FR-020; SC-003).
+//
+// Lo esperado —los verbos, sus descripciones y sus documentos de `--describe`—
+// sale del registro de producción tal cual, que ya trae el applet mcp; con los
+// applets de ejemplo, que producción no tiene, del registro local.
 func TestHerramientasDelServidor(t *testing.T) {
 	t.Parallel()
 
@@ -125,8 +147,20 @@ func TestHerramientasDelServidor(t *testing.T) {
 			t.Run(caso.nombre+", "+cliente.nombre, func(t *testing.T) {
 				t.Parallel()
 
-				registro := registroDeProduccionLocal(t, caso.conLosDeEjemplo)
-				servidor := arrancarElServidor(t, registro, cliente.anterior)
+				distribuido, err := app.RegistroDeProduccion("")
+				require.NoError(t, err)
+
+				servido := registroParaServir(t, distribuido, caso.conLosDeEjemplo)
+				servidor := arrancarElServidor(t, servido, cliente.anterior)
+
+				registro := servido
+				if !caso.conLosDeEjemplo {
+					require.Equal(t, distribuido.Nombres(), servido.Nombres(),
+						"el servidor se arranca sobre los applets del registro de producción, y ninguno más")
+
+					registro = distribuido
+				}
+
 				esperados := verbosConHerramienta(t, registro)
 
 				anunciadas, err := servidor.sesion.Herramientas(t.Context())

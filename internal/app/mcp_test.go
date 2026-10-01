@@ -895,6 +895,11 @@ func TestServirConUnDefectoDeComposicion(t *testing.T) {
 // por omisión y el fallo enumera `serve`; la ayuda del applet y la del verbo
 // salen con 0; y --describe da el documento del verbo, que no declara ningún
 // argumento propio ni la forma de su data. Ninguna lee de la entrada.
+//
+// Lo que responde es lo del registro de producción tal cual, que ya trae el
+// applet. Que no lee de la entrada se comprueba antes, con la misma orden
+// sobre un registro local cuyo mcp lee de una tubería abierta y contada: la
+// de producción es la entrada estándar del proceso, que el test no ve.
 func TestOrdenesDelAppletMCP(t *testing.T) {
 	t.Parallel()
 
@@ -903,13 +908,18 @@ func TestOrdenesDelAppletMCP(t *testing.T) {
 		delVerbo  = "Atiende el protocolo MCP por la entrada y la salida estándar hasta que la entrada se cierra."
 	)
 
-	invocar := func(t *testing.T, orden ...string) invocacionSinServir {
+	distribuido, err := app.RegistroDeProduccion("")
+	require.NoError(t, err)
+
+	invocar := func(t *testing.T, orden ...string) invocacion {
 		t.Helper()
 
-		res := invocarSinCliente(t, app.DependenciasDeMCP{Entrada: entradaAbierta(t)}, nil, orden...)
-		assert.Zero(t, res.lecturas, "%q no lee de la entrada", orden)
+		// Una orden que sirviera no volvería de aquí, y la de producción, que
+		// leería de la entrada estándar del proceso, no llega a ejecutarse.
+		local := invocarSinCliente(t, app.DependenciasDeMCP{Entrada: entradaAbierta(t)}, nil, orden...)
+		require.Zero(t, local.lecturas, "%q no lee de la entrada", orden)
 
-		return res
+		return invocarCon(t, distribuido, orden...)
 	}
 
 	t.Run("la ayuda del binario lista el applet", func(t *testing.T) {
