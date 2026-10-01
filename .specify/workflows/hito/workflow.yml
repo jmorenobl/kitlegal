@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.4.0"
+  version: "2.5.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
@@ -35,55 +35,61 @@ inputs:
   # `claude` rechaza el valor. Criterio de asignación en docs/WORKFLOW.md.
   # Fable 5.1 solo donde la estructura lo pide: el juez adversarial de la revisión
   # final (otra familia que el juez A) y lo que ya falló con Opus (escalada).
+  # Los valores por defecto llevan el id completo, no el alias (ADR 0033): a qué
+  # modelo resuelve un alias lo decide la versión de Claude Code de quien lanza, y
+  # con el id el modelo de un rol solo cambia con un diff de este fichero. Los
+  # alias siguen en la lista para sobrescribir un run (KITLEGAL_MODELO_<ROL>).
   modelo_decision:
     type: string
-    default: "opus@xhigh"
+    default: "claude-opus-5-5@xhigh"
     enum: &modelos [
       "fable", "fable@low", "fable@medium", "fable@high", "fable@xhigh", "fable@max",
       "opus", "opus@low", "opus@medium", "opus@high", "opus@xhigh", "opus@max",
       "sonnet", "sonnet@low", "sonnet@medium", "sonnet@high", "sonnet@xhigh", "sonnet@max",
       "haiku",
       "claude-fable-5-1", "claude-fable-5-1@low", "claude-fable-5-1@medium", "claude-fable-5-1@high", "claude-fable-5-1@xhigh", "claude-fable-5-1@max",
+      "claude-opus-5-5", "claude-opus-5-5@low", "claude-opus-5-5@medium", "claude-opus-5-5@high", "claude-opus-5-5@xhigh", "claude-opus-5-5@max",
       "claude-opus-5", "claude-opus-5@low", "claude-opus-5@medium", "claude-opus-5@high", "claude-opus-5@xhigh", "claude-opus-5@max",
+      "claude-sonnet-5-5", "claude-sonnet-5-5@low", "claude-sonnet-5-5@medium", "claude-sonnet-5-5@high", "claude-sonnet-5-5@xhigh", "claude-sonnet-5-5@max",
       "claude-sonnet-5", "claude-sonnet-5@low", "claude-sonnet-5@medium", "claude-sonnet-5@high", "claude-sonnet-5@xhigh", "claude-sonnet-5@max",
       "claude-haiku-4-5"
     ]
     prompt: "Decisiones con más consecuencias aguas abajo: resolver clarificaciones, plan y corrector del plan"
   modelo_juez:
     type: string
-    default: "opus@xhigh"
+    default: "claude-opus-5-5@xhigh"
     enum: *modelos
-    prompt: "Jueces de spec, plan y tasks"
+    prompt: "Jueces de spec, plan y tasks, y converge (qué falta por construir frente al spec)"
   modelo_revisor:
     type: string
-    default: "opus@xhigh"
+    default: "claude-opus-5-5@xhigh"
     enum: *modelos
     prompt: "Juez A de la revisión final (rúbrica DoD)"
   modelo_adversario:
     type: string
-    default: "fable@xhigh"
+    default: "claude-fable-5-1@xhigh"
     enum: *modelos
     prompt: "Juez B (adversarial) de la revisión final; otra familia que modelo_revisor para que los dos votos no fallen a la vez"
   modelo_redaccion:
     type: string
-    default: "opus@high"
+    default: "claude-opus-5-5@high"
     enum: *modelos
     prompt: "specify, formular preguntas de clarify, tasks, correctores de spec y tasks y barrido de artefactos"
   modelo_implementacion:
     type: string
-    default: "opus@xhigh"
+    default: "claude-opus-5-5@xhigh"
     enum: *modelos
     prompt: "Primer intento de cada tarea y corrector de la revisión final"
   modelo_escalada:
     type: string
-    default: "fable@xhigh"
+    default: "claude-fable-5-1@xhigh"
     enum: *modelos
     prompt: "Lo que ya falló con modelo_implementacion: reintentos de tarea y reparaciones de CI y del cierre"
   modelo_analisis:
     type: string
-    default: "sonnet@high"
+    default: "claude-sonnet-5-5@high"
     enum: *modelos
-    prompt: "Pasos de lectura y transformación: integrar clarificaciones, analyze y converge"
+    prompt: "Pasos de lectura y transformación: integrar clarificaciones y analyze"
 
 steps:
   # ================================================================ entrada: la sección del hito es lo único que escribe la persona
@@ -533,13 +539,15 @@ steps:
 
       # Sin tareas pendientes, una sola vez: converge compara el código con los artefactos
       # y añade a tasks.md lo que falte, que el bucle ejecuta después con las mismas reglas.
+      # Decide si a la implementación le falta algo, así que va con el modelo del juez,
+      # al menos tan capaz como el que implementa (ADR 0033).
       - id: converger
         type: if
         condition: "{{ steps.siguiente_tarea.output.data.converger }}"
         then:
           - id: converge
             command: speckit.converge
-            model: "{{ inputs.modelo_analisis }}"
+            model: "{{ inputs.modelo_juez }}"
             input:
               args: |
                 MODO AUTÓNOMO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md, con el formato "- [ ] Tnnn … rutas" (ids correlativos, [datos] si toca testdata/ o schemas/), solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec. Las tareas de <feature_dir>/gates/cuarentena.json no se tocan ni se duplican: su trabajo está en cuarentena por una causa que su nota explica. Ninguna tarea nueva publica, mide la plataforma remota ni depende de una persona. Es un paso de lectura: no ejecutes `make ci` (su última salida está en <feature_dir>/gates/ci.log), no uses `gh` ni `git push`, no lances subagentes ni esperas programadas; lee el código y los artefactos y escribe las tareas que falten.
