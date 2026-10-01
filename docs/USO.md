@@ -26,8 +26,9 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   - **Una instalación sin terminal.** Un plugin puede llevar las skills y un paquete `.mcpb` con el binario dentro,
     y se instala desde *Customize > Plugins*. Probado a mano el mismo día con un plugin de prueba, en la app de
     Claude para macOS: subido como zip en el modo de chat —que ya es el mismo que Cowork—, la app arranca el
-    binario sin notarizar en el equipo, el servidor lee el BOE y escribe en `~/.cache`, y la skill lo usa. Subido
-    estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
+    binario sin notarizar en el equipo, el servidor lee el BOE y escribe en `~/.cache`, y la skill lo usa en una
+    conversación que tiene elegida una carpeta del equipo. Sin carpeta, la conversación recibe la skill y no las
+    herramientas. Subido estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
     en tu computadora». Y «prueba kitlegal» no activó la skill: Claude entendió que había que pasar los tests del
     proyecto.
   - **ChatGPT.** En la web y en el móvil solo admite servidores remotos. La app de escritorio sí admite servidores
