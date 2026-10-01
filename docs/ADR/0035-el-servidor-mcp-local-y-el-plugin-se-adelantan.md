@@ -56,6 +56,8 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
   app, que en todas tenía el servidor en marcha y anunciado. Es lo que la documentación dice con «cuando la
   sesión corre en tu equipo». Hubo una excepción sin explicar: una conversación, al parecer abierta antes de
   instalar el plugin, las recibió sin carpeta, también las de un plugin instalado después.
+- **El mismo `.mcpb`, instalado suelto con doble clic, sí llega a todas**: queda como extensión de escritorio,
+  y una conversación nueva sin carpeta recibe sus herramientas y la skill del plugin las usa.
 - **Sin herramientas, la regla aguanta**: la skill de prueba pedía una línea fija y no responder de memoria, y
   Claude la escribió sin buscar en la web ni usar el shell, que tenía a mano.
 - **macOS no puso reparos**: el binario extraído no lleva el atributo de cuarentena, tampoco cuando el zip subido
@@ -101,8 +103,11 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
    terminal. Sirve a quien ya lo tiene, no a la audiencia.
 3. **El `.mcpb` suelto, con doble clic.** Lleva las herramientas y no las skills: el protocolo, que es el producto
    (principio VIII), no llega.
-4. **Un plugin con las skills y el `.mcpb` dentro**, generados de la misma etiqueta. Elegida, con el límite que
-   dejó ver la prueba a mano: sirve en las conversaciones que tienen una carpeta.
+4. **Un plugin con las skills y el `.mcpb` dentro.** Un solo paso, pero la prueba a mano dejó ver que sus
+   herramientas solo llegan a las conversaciones que tienen una carpeta: una pregunta suelta se queda sin ellas.
+5. **Dos piezas de la misma etiqueta**: el `.mcpb` suelto, que da las herramientas a cualquier conversación, y un
+   plugin solo con las skills. Elegida. El plugin no lleva el servidor, para que quien instale las dos no lo
+   tenga dos veces en una conversación con carpeta.
 
 **Cómo conviven la orden y la herramienta en una skill.**
 
@@ -120,13 +125,13 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
 - **H21: `kitlegal mcp serve`.** Un servidor MCP por stdio, único transporte, con una herramienta por cada verbo
   de consulta del registro, sus esquemas de `--describe` y el mismo sobre como resultado. Las dos skills nombran
   cada operación como herramienta y como orden, y las evals deciden en los dos modos.
-- **H22: instalar sin terminal.** Cada release publica el `.mcpb` y el plugin de Claude con las skills y el
-  servidor dentro, y quien no usa la terminal lo instala desde *Customize > Plugins*.
+- **H22: instalar sin terminal.** Cada release publica el `.mcpb`, que se instala con doble clic, y el plugin de
+  Claude con las skills, que se instala desde *Customize > Plugins*. Son dos pasos y ninguno pide la terminal.
 - **Todo corre en el equipo.** Ningún transporte de red, ningún servidor de kitlegal. La promesa del ADR 0027 no
   cambia.
-- **Una skill sin herramienta ni orden lo dice.** En una conversación sin carpeta de la app de Claude, y en la
-  web y en el móvil, las skills de un plugin de la cuenta cargan y el servidor no: la respuesta dice que no ha
-  podido consultar el BOE y cómo se arregla, con una forma fija, y no afirma nada de memoria.
+- **Una skill sin herramienta ni orden lo dice.** Donde hay skill y no hay servidor —el plugin sin la extensión,
+  la web y el móvil—, la respuesta dice que no ha podido consultar el BOE y cómo se arregla, con una forma fija,
+  y no afirma nada de memoria.
 - **El servidor no depende de dónde arranca**: ni del directorio de trabajo ni de la ruta de su ejecutable. La
   caché y el grafo siguen en `~/.cache/kitlegal/`.
 - **Principio VIII, constitución 2.10.0**: la tabla de comandos nombra cada operación como orden
@@ -135,10 +140,9 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
 ## Consecuencias
 
 - H20, H8 y H9 se retrasan dos hitos. Nacen ya con su herramienta MCP, porque las herramientas salen del registro.
-- La web y el README pueden decir con qué funciona: la app de escritorio de Claude, en una conversación con una
-  carpeta, y Claude Code; la app de escritorio de ChatGPT y Antigravity, con el binario instalado; y que ChatGPT
-  y Claude en la web y en el móvil no son compatibles, porque solo admiten servidores remotos. Los textos de la
-  web los cambia la persona (ADR 0024).
+- La web y el README pueden decir con qué funciona: la app de escritorio de Claude y Claude Code; la app de
+  escritorio de ChatGPT y Antigravity, con el binario instalado; y que ChatGPT y Claude en la web y en el móvil no
+  son compatibles, porque solo admiten servidores remotos. Los textos de la web los cambia la persona (ADR 0024).
 - El job de evals mide cada eval dos veces, una por modo, y los umbrales del ADR 0029 se cumplen en cada uno.
 - Entra la dependencia `modelcontextprotocol/go-sdk`, ya prevista en el principio V para la distribución.
 - Quien instale el plugin en su cuenta lo recibe también en Claude Code; si además tiene las skills instaladas con
@@ -148,12 +152,10 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
 
 ## Pendiente de verificar (antes de detallar H22)
 
-1. Si el `.mcpb` instalado suelto, como extensión de escritorio, da las herramientas a las conversaciones sin
-   carpeta, como hacen las demás extensiones. De ser así, H22 publica las dos piezas y la guía las instala en
-   dos pasos.
-2. Un zip descargado de verdad con un navegador, en un Mac distinto del que compiló el binario. Si macOS lo
-   bloquea, hace falta notarizarlo: una cuenta de Apple Developer, que es una credencial y una decisión de la
-   persona.
+1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si
+   macOS lo bloquea, hace falta notarizarlo: una cuenta de Apple Developer, que es una credencial y una decisión
+   de la persona.
+2. Cómo se actualizan una extensión instalada desde un fichero y un plugin subido como zip, y si un marketplace
+   actualiza el plugin solo.
 3. Qué responde Claude en la web y en el móvil, donde puede haber skill y no hay herramienta.
 4. Lo mismo en Windows, donde nadie lo ha probado.
-5. Cómo se actualiza un plugin subido como zip, y si un marketplace lo hace solo.

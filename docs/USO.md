@@ -28,7 +28,7 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
     Claude para macOS: subido como zip en el modo de chat —que ya es el mismo que Cowork—, la app arranca el
     binario sin notarizar en el equipo, el servidor lee el BOE y escribe en `~/.cache`, y la skill lo usa en una
     conversación que tiene elegida una carpeta del equipo. Sin carpeta, la conversación recibe la skill y no las
-    herramientas. Subido estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
+    herramientas; con el mismo `.mcpb` instalado suelto, con doble clic, sí las recibe. Subido estando en el modo Code, el chat no lo ve. Al instalarlo, la app avisa en rojo de que «otorgará acceso a todo
     en tu computadora». Y «prueba kitlegal» no activó la skill: Claude entendió que había que pasar los tests del
     proyecto.
   - **ChatGPT.** En la web y en el móvil solo admite servidores remotos. La app de escritorio sí admite servidores
@@ -37,7 +37,7 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   H20. El servidor remoto queda aplazado: tiene que pensarlo, porque kitlegal pasaría a recibir las preguntas de
   quien lo usa (ADR 0027) y pagaría un servidor que otros consumen sin coste; donde un servidor local no llega se
   dice que no es compatible. ADR 0035: H21 (`kitlegal mcp serve`, las skills con orden y herramienta, las evals en
-  los dos modos) y H22 (el plugin con las skills y el servidor dentro), que se detalla al cerrar H21.
+  los dos modos) y H22 (la extensión de escritorio con el servidor y el plugin con las skills), que se detalla al cerrar H21.
 
 ### 2026-10-01 · La web no respondía a nada que la gente busque, y ninguna de sus dos audiencias usa una terminal
 
