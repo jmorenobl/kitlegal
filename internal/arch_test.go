@@ -28,6 +28,8 @@
 // instala las skills y da el aviso no alcanza la red (H19 research.md D32). Y
 // desde H7, una cuarta regla de importación, R6: el adaptador del grafo del
 // mundo no alcanza las fuentes ni la presentación (H7 FR-092, research.md D30).
+// Y desde H21, una quinta, R7: el SDK de MCP solo lo importa el adaptador del
+// protocolo (H21 FR-026, FR-079; research.md D2).
 package internal_test
 
 import (
@@ -61,10 +63,10 @@ const raizDelModulo = ".."
 // transitivo del que parte este test.
 const plantillaDeListado = "{{.ImportPath}}\t{{join .Imports \" \"}}"
 
-// TestArquitectura comprueba las tres reglas de importación, R6 de H7 y la
-// garantía sin red de H19 sobre el grafo transitivo real del módulo, más un
-// control del recorrido que comparten R1, R6 y la garantía sin red. Es el test
-// que el escenario 8 de quickstart.md invoca por su nombre.
+// TestArquitectura comprueba las tres reglas de importación, R6 de H7, R7 de
+// H21 y la garantía sin red de H19 sobre el grafo transitivo real del módulo,
+// más un control del recorrido que comparten R1, R6 y la garantía sin red. Es
+// el test que el escenario 8 de quickstart.md invoca por su nombre.
 func TestArquitectura(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +122,22 @@ func TestArquitectura(t *testing.T) {
 		t.Parallel()
 
 		compruebaAdaptadorDelGrafo(t, grafo)
+	})
+
+	t.Run("R7 · solo el paquete del servidor importa el SDK de MCP", func(t *testing.T) {
+		t.Parallel()
+
+		compruebaImportacionExclusiva(t, grafo, reglaExclusiva{
+			nombre: "R7",
+			razon: "el protocolo MCP se habla desde internal/mcp, el adaptador que sirve las herramientas " +
+				"que recibe ya hechas; el resto del árbol no sabe con qué se sirven (H21 FR-026, FR-079; " +
+				"research.md D2)",
+			duenos: []string{grafo.modulo + "/internal/mcp"},
+			// El módulo entero del SDK, por prefijo: su paquete mcp y los que
+			// publique a su lado.
+			denegados:        []string{"github.com/modelcontextprotocol/go-sdk"},
+			duenoObligatorio: true,
+		})
 	})
 
 	t.Run("sin red · instalacion, disco, el paquete raíz y los ficheros del applet skills y del aviso no alcanzan net, "+
@@ -460,7 +478,7 @@ func (g grafo) paquetesBajo(prefijo string) []string {
 }
 
 // reglaExclusiva describe una regla de la forma «solo estos paquetes importan
-// esto»: R2 y R3. R1 y R6 son de la otra forma, «estos paquetes no alcanzan
+// esto»: R2, R3 y R7. R1 y R6 son de la otra forma, «estos paquetes no alcanzan
 // esto», y van por grafo.alcanza.
 type reglaExclusiva struct {
 	// nombre es la etiqueta con la que el fallo nombra la regla violada
@@ -748,7 +766,7 @@ func (g grafo) alcanza(origen string, prefijos, exactos []string) []violacion {
 	return violaciones
 }
 
-// compruebaImportacionExclusiva hace cumplir R2 y R3: las importaciones que
+// compruebaImportacionExclusiva hace cumplir R2, R3 y R7: las importaciones que
 // reservan pertenecen a sus dueños y a nadie más.
 //
 // Aquí no hace falta recorrer cadenas, y hacerlo daría falsos positivos: todo
@@ -817,11 +835,12 @@ func exigeDueno(t *testing.T, g grafo, regla reglaExclusiva) {
 		regla.nombre, strings.Join(regla.duenos, ", "), reservado)
 }
 
-// paquetesInternos son los nueve paquetes de internal/ que el dominio no puede
+// paquetesInternos son los diez paquetes de internal/ que el dominio no puede
 // alcanzar: la dependencia va siempre hacia dentro, nunca al revés. disco, el
-// adaptador del sistema de ficheros, entra en H19 (research.md D32).
+// adaptador del sistema de ficheros, entra en H19 (research.md D32); mcp, el
+// del protocolo MCP, en H21 (plan.md, regla R1).
 var paquetesInternos = []string{
-	"app", "cache", "cli", "disco", "graph", "httpx", "render", "source", "store",
+	"app", "cache", "cli", "disco", "graph", "httpx", "mcp", "render", "source", "store",
 }
 
 // entradaYSalidaEstandar son los paquetes de entrada y salida de la biblioteca

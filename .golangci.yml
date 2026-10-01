@@ -83,16 +83,19 @@ linters:
       # delante exceptúa.
       #
       # Esta configuración no es la única garantía: internal/arch_test.go
-      # comprueba las mismas reglas —las tres de importación y, desde H7, R6—
-      # sobre el grafo transitivo real, de modo que borrar estas listas no
-      # basta para que una violación pase (FR-051).
+      # comprueba las mismas reglas —las tres de importación, desde H7, R6, y
+      # desde H21, R7— sobre el grafo transitivo real, de modo que borrar estas
+      # listas no basta para que una violación pase (FR-051).
       rules:
-        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los nueve
+        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los diez
         # paquetes de internal/ —la dependencia va siempre hacia dentro—, el
         # paquete raíz del módulo, con lo empotrado, y los paquetes de entrada y
         # salida de la biblioteca estándar, que es lo que impide que un
         # *slog.Logger o un io.Writer se instalen en internal/core sin que ningún
         # control diga nada (research.md D2, D18).
+        #
+        # internal/mcp, el adaptador del protocolo MCP, entra en H21, en la
+        # misma tarea que lo crea (H21 plan.md, regla R1).
         #
         # internal/disco y el paquete raíz entran en H19, en la misma tarea que
         # crea el adaptador y antes de que exista ningún test que pudiera
@@ -123,6 +126,8 @@ linters:
               desc: "R1: el dominio no importa adaptadores; el grafo se alimenta desde el applet, con GraphOp"
             - pkg: github.com/jmorenobl/kitlegal/internal/httpx
               desc: "R1: el dominio no importa adaptadores; la red vive en internal/httpx"
+            - pkg: github.com/jmorenobl/kitlegal/internal/mcp
+              desc: "R1: el dominio no importa adaptadores; el protocolo MCP lo sirve internal/mcp con las herramientas que compone internal/app"
             - pkg: github.com/jmorenobl/kitlegal/internal/render
               desc: "R1: el dominio no presenta nada; la presentación se inyecta desde la raíz de composición"
             - pkg: github.com/jmorenobl/kitlegal/internal/source
@@ -196,6 +201,24 @@ linters:
               desc: "R6: internal/graph no importa las fuentes; lo observado le llega en el lote que construye el kernel, con la procedencia del sobre"
             - pkg: github.com/jmorenobl/kitlegal/internal/render
               desc: "R6: internal/graph no presenta nada; lo que lee lo devuelve al applet graph y lo presenta el kernel"
+
+        # R7 · el SDK de MCP es del árbol de internal/mcp y de nadie más: es el
+        # adaptador del protocolo, y el resto del módulo le entrega las
+        # herramientas ya hechas y no sabe con qué se sirven. Vale también para
+        # los `_test.go`: los de fuera de ese árbol tampoco lo importan. La
+        # denegación es de prefijo y cubre todos los paquetes del módulo del SDK.
+        # internal/arch_test.go comprueba lo mismo sobre el cierre transitivo
+        # real y exige que el dueño esté en el grafo y sea él quien lo importa,
+        # de modo que la regla no pase en vacío (H21 FR-026, FR-079; research.md
+        # D2).
+        mcp:
+          list-mode: original
+          files:
+            - "**"
+            - "!**/internal/mcp/**"
+          deny:
+            - pkg: github.com/modelcontextprotocol/go-sdk
+              desc: "R7: el SDK de MCP solo se importa desde internal/mcp, el adaptador del protocolo; el resto del árbol le entrega las herramientas ya hechas"
 
         # Los applets de ejemplo son la implementación de referencia, no
         # funcionalidad del binario distribuido. Viven en un paquete normal del
