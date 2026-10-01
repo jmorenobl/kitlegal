@@ -125,6 +125,19 @@ func (r *Registro) EntregarAlGrafo(almacen core.GraphStore) {
 	r.almacen = almacen
 }
 
+// sinAvisador es una copia del registro que no da el aviso de versión: los
+// mismos applets y el mismo almacén, sin avisador. Con ella resuelve el
+// servidor MCP cada llamada a una herramienta, que es una invocación del
+// kernel: el aviso lo da el kernel una vez, al arrancar `mcp serve`, y no una
+// por llamada (H21 FR-023; research.md D3 de H21). El registro del que sale no
+// cambia.
+func (r *Registro) sinAvisador() *Registro {
+	copia := *r
+	copia.avisador = nil
+
+	return &copia
+}
+
 // aviso es la línea del aviso registrado y si hay que darla. Sin avisador no
 // hay ninguna.
 func (r *Registro) aviso() (string, bool) {

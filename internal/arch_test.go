@@ -163,7 +163,9 @@ func TestArquitectura(t *testing.T) {
 // internal/httpx e internal/cache, en gates/pr-h4.md (FR-060, FR-124;
 // research.md D14 de H4); el que entra en H6, cuando el applet territorio
 // enlaza internal/core/territorio, en plan.md de H6 (Complexity Tracking) y en
-// gates/pr-h6.md. Lo que importa cada uno lo mide `go list -deps` sobre
+// gates/pr-h6.md; los siete que entran en H21, cuando el applet mcp enlaza
+// internal/mcp y con él el SDK del protocolo, en plan.md de H21 (Complexity
+// Tracking) y en research.md V4 de H21. Lo que importa cada uno lo mide `go list -deps` sobre
 // el binario de cada una de plataformasDeDistribucion; el que no llega a todas
 // lo dice en su línea.
 //
@@ -181,21 +183,39 @@ var modulosDelBinario = []string{
 	// H4: lo importa modernc.org/libc, el entorno de C traducido a Go sobre el
 	// que corre el controlador de SQLite de internal/cache.
 	"github.com/dustin/go-humanize",
+	// H21: lo importa github.com/modelcontextprotocol/go-sdk, que describe con
+	// él los esquemas de sus herramientas.
+	"github.com/google/jsonschema-go",
 	// H4: lo importa modernc.org/libc en darwin y linux; no llega a windows.
 	"github.com/google/uuid",
 	// §V, H1: el esquema de entrada y salida de --describe, en internal/cli.
 	"github.com/invopop/jsonschema",
 	// H4: lo importa modernc.org/libc en darwin y windows; no llega a linux.
 	"github.com/mattn/go-isatty",
+	// §V, H21: el SDK del protocolo MCP, con el que internal/mcp sirve las
+	// herramientas del binario (regla R7). Entra por internal/app, cuyas
+	// importaciones sigue `go list -deps` todas, en cuanto la raíz de composición
+	// importa el adaptador, esté o no registrado el applet mcp (research.md V4 de
+	// H21).
+	"github.com/modelcontextprotocol/go-sdk",
 	// H4: lo importa modernc.org/libc en darwin y windows; no llega a linux.
 	"github.com/ncruces/go-strftime",
 	// H1: lo importa github.com/invopop/jsonschema para las propiedades en orden.
 	"github.com/pb33f/ordered-map/v2",
 	// H4: lo importa modernc.org/mathutil, que llega con modernc.org/libc.
 	"github.com/remyoudompheng/bigfft",
+	// H21: lo importa github.com/segmentio/encoding, para la base64 de su JSON.
+	"github.com/segmentio/asm",
+	// H21: lo importa github.com/modelcontextprotocol/go-sdk, que serializa con
+	// él los mensajes del protocolo.
+	"github.com/segmentio/encoding",
 	// §V, H4: internal/httpx interpreta con él el robots.txt de cada sitio antes
 	// de pedirle nada.
 	"github.com/temoto/robotstxt",
+	// H21: lo importa github.com/modelcontextprotocol/go-sdk para las plantillas
+	// de URI de sus recursos, que el paquete del SDK trae junto a las
+	// herramientas y kitlegal no sirve.
+	"github.com/yosida95/uritemplate/v3",
 	// §V, H6: internal/core/territorio analiza con él los ficheros congelados de
 	// data/territorio/, que son YAML como todo data/ (docs/ROADMAP.md §2). Entra
 	// por internal/app, cuyas importaciones sigue `go list -deps` todas, en cuanto
@@ -205,6 +225,13 @@ var modulosDelBinario = []string{
 	"go.yaml.in/yaml/v3",
 	// H1: lo importa github.com/pb33f/ordered-map/v2.
 	"go.yaml.in/yaml/v4",
+	// H21: lo importa github.com/modelcontextprotocol/go-sdk para la
+	// autorización de sus transportes HTTP, que van en el mismo paquete que el de
+	// la entrada y la salida estándar y kitlegal no usa (plan.md de H21,
+	// Complexity Tracking).
+	"golang.org/x/oauth2",
+	// H21: lo importa github.com/modelcontextprotocol/go-sdk (errgroup).
+	"golang.org/x/sync",
 	// H4: lo importan modernc.org/sqlite, modernc.org/libc, modernc.org/memory y
 	// github.com/mattn/go-isatty, para las llamadas al sistema.
 	"golang.org/x/sys",
