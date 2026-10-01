@@ -137,9 +137,11 @@ evals: check-tools
 # EVALS, MODELO y REPETICIONES no tienen valor por defecto, porque cada uno
 # cambia lo que se mide; CONCURRENCIA vacía es la del job para la skill, que el
 # sondeo lee de .github/workflows/evals.yml (specs/013-h7-3-el-umbral-de/research.md D16).
-## evals-sondeo: sondeo local de unas evals de una skill con Claude Code, sin strace ni veredicto (macOS o Linux; consume la suscripción; CLAUDE_CODE_OAUTH_TOKEN)
+# La credencial la toma scripts/evals-sondeo-llavero.sh: en macOS, de un llavero que pide su contraseña a la persona
+# en cada sondeo; ningún paso del workflow `hito` puede lanzarlo (docs/ADR/0032).
+## evals-sondeo: sondeo local de unas evals de una skill con Claude Code, sin strace ni veredicto (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN)
 evals-sondeo: check-tools
-	@scripts/evals-sondeo.sh "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
+	@scripts/evals-sondeo-llavero.sh "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
 
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools

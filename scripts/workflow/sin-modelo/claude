@@ -1,0 +1,7 @@
+#!/bin/sh
+# El `claude` que encuentra en el PATH una sesión de un paso del workflow, y todo lo que
+# esa sesión ejecuta: scripts/claude-modelo.sh pone este directorio delante (ADR 0032).
+# Un paso del workflow no abre sesiones con modelo: en H7.4 `reparar_cierre` lanzó por su
+# cuenta 42 con el sondeo local. Los tests ponen su propio sustituto delante de este.
+echo "claude: un paso del workflow no abre sesiones con modelo (constitución, «Reglas del modo desatendido»; ADR 0032). Lo que no se pueda medir sin ellas lo mide el job de cierre." >&2
+exit 1

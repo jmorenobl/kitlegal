@@ -13,8 +13,11 @@
 #
 # Claude se ejecuta en modo headless (`claude -p`). Los permisos de herramientas
 # vienen de .claude/settings.json; aquí solo se aceptan las ediciones de
-# ficheros. Para un entorno aislado (contenedor/VM) puede sustituirse por
-# --dangerously-skip-permissions.
+# ficheros. Lo que una sesión del run no puede hacer —leer credenciales, abrir
+# sesiones con modelo, dejar nada en segundo plano, escribir fuera del repositorio
+# y del directorio temporal— lo impiden scripts/claude-modelo.sh, el gancho de
+# scripts/workflow/politica-paso.sh y las comprobaciones de `comprobar_entorno`
+# (ADR 0032), no los prompts.
 #
 # Una sola sesión por run: al arrancar toma el candado del árbol de trabajo
 # (scripts/workflow/sesion-unica.sh) y exporta su testigo; mientras vive, ninguna
@@ -281,6 +284,37 @@ comprobar_credenciales() {
   git ls-remote --exit-code origin HEAD >/dev/null 2>&1 || { log "no se puede leer origin: el cierre no podría empujar la rama"; exit 3; }
 }
 
+# Lo que dejaría a una sesión del run usar una credencial que no es suya o escribir
+# fuera de lo que el workflow declara (ADR 0032): en H7.4 `reparar_cierre` leyó de un
+# fichero el token de la suscripción de quien lanzó el run y abrió con él 42 sesiones
+# con modelo. Se comprueba antes de tomar el candado, y también al reanudar:
+#   · ninguna credencial de Claude en el entorno, que heredarían las sesiones y todo
+#     lo que ejecutan: el run usa la sesión de `claude` de quien lo lanza;
+#   · el token del sondeo no está en un fichero: vive en su llavero, que pide su
+#     contraseña a la persona cada vez (scripts/evals-sondeo-llavero.sh);
+#   · ningún directorio adicional en los settings que leen las sesiones del run
+#     (el del proyecto y el de la cuenta; .claude/settings.local.json no lo leen);
+#   · la política de las sesiones deniega lo que tiene que denegar.
+comprobar_entorno() {
+  local v f
+  for v in CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN; do
+    if [ -n "${!v:-}" ]; then
+      log "$v está en el entorno y la heredarían las sesiones del run: lanza el hito sin ella (unset $v)"; exit 1
+    fi
+  done
+  if [ -e "$HOME/.config/kitlegal/claude-oauth-token" ]; then
+    log "el token del sondeo está en un fichero que cualquier sesión puede leer ($HOME/.config/kitlegal/claude-oauth-token): guárdalo en su llavero y borra el fichero (docs/WORKFLOW.md, «Lo que una sesión de un paso no puede hacer»)"; exit 1
+  fi
+  for f in .claude/settings.json "$HOME/.claude/settings.json"; do
+    [ -f "$f" ] || continue
+    if [ "$(jq -r '(.permissions.additionalDirectories // []) | length' "$f")" != 0 ]; then
+      log "$f da a las sesiones del run directorios adicionales (permissions.additionalDirectories): el run solo escribe en el repositorio y en el directorio temporal; quítalos antes de lanzar"; exit 1
+    fi
+  done
+  scripts/workflow/politica-paso.sh prueba >/dev/null \
+    || { log "la política de las sesiones del run no deniega lo que debe (scripts/workflow/politica-paso.sh prueba)"; exit 1; }
+}
+
 # ---------------------------------------------------------------- entrada
 case "${1:-}" in
   --clasificar)
@@ -290,6 +324,7 @@ case "${1:-}" in
     args=()
     for kv in "$@"; do args+=(--input "$kv"); done
     comprobar_credenciales
+    comprobar_entorno
     tomar_candado
     supervisar "$run_id" ${args[@]+"${args[@]}"}; exit $?;;
 esac
@@ -309,6 +344,7 @@ if [ "$(git branch --show-current)" != "main" ]; then
   exit 1
 fi
 comprobar_credenciales
+comprobar_entorno
 tomar_candado
 
 # Modelo y esfuerzo por rol (<alias o nombre completo>[@esfuerzo]; roles en

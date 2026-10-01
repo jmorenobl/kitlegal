@@ -14,6 +14,9 @@
 # cualquier otra sesión de Claude Code las ediciones y las órdenes que cambian el
 # árbol o el historial; leer sigue permitido. Un candado cuyo PID ya no existe
 # (hito.sh murió sin soltarlo) se ignora y se recupera.
+#
+# El mismo gancho entrega a scripts/workflow/politica-paso.sh las llamadas de las
+# sesiones de un paso del workflow, que llevan KITLEGAL_PASO_DE_WORKFLOW (ADR 0032).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -48,6 +51,9 @@ case "${1:?uso: sesion-unica.sh tomar | soltar <testigo> | comprobar | gancho}" 
     fi;;
 
   gancho)
+    # Una sesión de un paso del workflow —de un run o de scripts/paso.sh, que es lo que
+    # lanza scripts/claude-modelo.sh— tiene su propia política (ADR 0032).
+    if [ -n "${KITLEGAL_PASO_DE_WORKFLOW:-}" ]; then exec scripts/workflow/politica-paso.sh gancho; fi
     vivo || exit 0
     [ "${KITLEGAL_RUN_TESTIGO:-}" = "$(cat "$candado/testigo" 2>/dev/null)" ] && exit 0
     entrada=$(cat)

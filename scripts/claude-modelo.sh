@@ -9,6 +9,10 @@
 #   --model fable@xhigh   →  --model fable --effort xhigh
 #   --model opus          →  --model opus               (esfuerzo por defecto)
 #
+# Es además la única puerta por la que el workflow y scripts/paso.sh abren una
+# sesión con modelo, así que aquí se pone lo que esa sesión no puede hacer
+# (ADR 0032; al final del fichero).
+#
 # El valor llega a argv desde los inputs del workflow: se valida con una
 # expresión estricta y cualquier otro formato aborta con exit 2. El prompt
 # (argumento de -p) se copia sin interpretarlo.
@@ -47,4 +51,23 @@ done
 # el transcript diga lo mismo se lance el hito desde donde se lance.
 export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 
-exec "${KITLEGAL_CLAUDE_BIN:-claude}" ${args[@]+"${args[@]}"}
+# Lo que una sesión de un paso no puede hacer lo impide algo que no es su prompt
+# (ADR 0032; docs/WORKFLOW.md «Lo que una sesión de un paso no puede hacer»). En H7.4
+# `reparar_cierre` leyó el token de la suscripción de quien lanzó el run y dejó en
+# segundo plano un sondeo con modelo. Todo se pone aquí, en la única puerta por la
+# que el workflow (scripts/hito.sh) y scripts/paso.sh abren una sesión:
+#   · la marca con la que el gancho PreToolUse le aplica scripts/workflow/politica-paso.sh;
+#   · sin segundo plano: Claude Code no ofrece `run_in_background` ni pasa una orden
+#     al fondo cuando vence su plazo;
+#   · el `claude` de su PATH, y del de todo lo que ejecute, es el de
+#     scripts/workflow/sin-modelo/, que no abre ninguna sesión;
+#   · no lee .claude/settings.local.json: los permisos y los directorios adicionales
+#     de la sesión interactiva de quien lanza el run no llegan a las del run.
+raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
+claude="$(command -v "${KITLEGAL_CLAUDE_BIN:-claude}")" \
+  || { echo "claude-modelo: no encuentro '${KITLEGAL_CLAUDE_BIN:-claude}' en el PATH" >&2; exit 2; }
+export KITLEGAL_PASO_DE_WORKFLOW=1
+export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
+export PATH="$raiz/scripts/workflow/sin-modelo:$PATH"
+
+exec "$claude" ${args[@]+"${args[@]}"} --setting-sources user,project
