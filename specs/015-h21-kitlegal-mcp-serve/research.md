@@ -300,7 +300,10 @@ anterior* interceptando `server/discover`: depende de un detalle interno de su n
 `TestHerramientasDelServidor` (FR-070) y `TestLlamadasSimultaneas` (FR-074) arrancan `Main` con `mcp serve` en una
 gorrutina, con tuberías como entrada y salida, y hablan con él con `mcptest`: así corren con `-race` sobre el código del
 servidor, que en un subproceso el detector no ve. La conformidad se ejerce con el registro de producción (diez
-herramientas) y con uno que lleva además los applets de ejemplo (FR-004).
+herramientas) y con uno que lleva además los applets de ejemplo (FR-004). Del mismo modo, `TestPlazoDeCadaLlamada`
+(FR-020) arranca `mcp serve --timeout=<plazo corto>` con un registro que lleva un verbo del test que espera a su
+contexto: es lo que ve fallar un servidor que heredara el plazo que el kernel pone a todo verbo (V22, D4) o una llamada
+a la que no le llegara (D9); en un guion no cabe, porque ningún verbo del binario de e2e se queda esperando.
 
 ### D14 · La tabla de comandos: una columna más
 

@@ -116,7 +116,7 @@ Otros casos:
 | Caso | Resultado |
 |---|---|
 | Hallazgos en `graph_check` | sobre con `ok` verdadero y los hallazgos en `data`; no es un error (FR-012) |
-| El plazo de `--timeout` vence | sobre de fallo con `clase` `fuente-no-disponible` y `isError` |
+| El plazo de `--timeout` vence | sobre de fallo con `clase` `fuente-no-disponible` y `isError`. El plazo es de esa llamada: el servidor no tiene ninguno y atiende las siguientes, también pasado ese tiempo desde su arranque (FR-020) |
 | `--offline` con la caché vacía | `fuente-no-disponible`; `territorio_resolver` y las de `graph` responden igual que sin él |
 | Una herramienta que el servidor no anuncia (`skills_install`, `mcp_serve`, `version`) | error del protocolo `-32602`, `unknown tool "<nombre>"`, sin sobre (V17) |
 | Varias llamadas a la vez | cada una, su resultado (V18); las que piden al BOE esperan turno en el mismo ritmo por sitio: una petición por intervalo entre todas, el `robots.txt` de cada una incluido (D8) |
@@ -228,6 +228,7 @@ nada propio y cada sobre es el de su orden.
 | `TestHerramientasDelServidor` | `internal/app/herramientas_test.go` | conformidad (FR-070): con el registro de producción y con uno que lleva además los applets de ejemplo, el conjunto anunciado es el de los verbos menos los excluidos; cada nombre, descripción y par de esquemas es el de `--describe` de su verbo, el de entrada sin las ocho banderas; cada `$ref` de un esquema resuelve en él; todas de solo lectura; `capabilities` es `{"tools":{}}`; y el tipo JSON que `LineaDeLlamada` exige de cada argumento es el que declara su esquema |
 | `TestLlamadasSimultaneas` | `internal/app/mcp_test.go` | FR-074: N llamadas a la vez a la misma herramienta y a otras, sobre la reproducción; cada una, el sobre de su entrada; `-race` |
 | `TestServirSinEntrada`, `TestServirEnEnsayo` | `internal/app/mcp_test.go` | la entrada que se cierra con una llamada en curso da 0; `--dry-run` con la entrada abierta vuelve sin leerla |
+| `TestPlazoDeCadaLlamada` | `internal/app/mcp_test.go` | FR-020: con `mcp serve --timeout=<plazo corto>` y un registro del test con un verbo que espera a que termine su contexto y otro que vuelve en el acto, la llamada al primero devuelve el sobre de `fuente-no-disponible` con `isError` (§3, «Otros casos»); la llamada al segundo, hecha después y con ese plazo ya vencido desde el arranque, recibe su resultado; y el servidor termina con 0 al cerrarse la entrada |
 | `TestLineaDeLlamada`, `TestEsquemasDeHerramienta` | `internal/cli/herramienta_test.go` | los casos de §3 y el orden de los posicionales |
 | `TestInstrucciones` | `internal/mcp/instrucciones_test.go` | las cinco frases y los 512 bytes (FR-077) |
 | `TestServir` | `internal/mcp/servir_test.go` | lo que se anuncia, el resultado de una llamada y su `isError`, y el final con la entrada cerrada |

@@ -175,7 +175,7 @@ internal/app/
 ├── registro.go              # RegistroDeProduccion registra AppletMCP
 ├── boe.go                   # DependenciasDeRed: un Ritmo por proceso y un cliente por invocación
 ├── ejemplo/kitlegal-e2e/main.go                 # el registro de e2e registra AppletMCP
-├── mcp_test.go              # NUEVO: TestLlamadasSimultaneas, TestServirSinEntrada, TestServirEnEnsayo
+├── mcp_test.go              # NUEVO: TestLlamadasSimultaneas, TestServirSinEntrada, TestServirEnEnsayo, TestPlazoDeCadaLlamada
 ├── herramientas_test.go     # NUEVO: TestHerramientasDelServidor
 ├── e2e_test.go              # la orden `mcp` del arnés
 ├── boe_test.go, skills_test.go, esquemas_test.go, registro_test.go, ejemplo/kitlegal-e2e/main_test.go
@@ -235,7 +235,9 @@ la documentación— y no tienen guion. Las fijan, en `make ci`: US2, `skills-ch
 `TestRenderizarTabla` (FR-030, FR-031, FR-036; SC-009); US3, `TestJuzgarSinBinarioNiServidor` y la subprueba
 `linea-sin-consulta` (FR-035, FR-047; SC-012); US5, `TestUmbralesDelInforme`, `TestInformeEnDosModos` y
 `TestJuzgarLasLlamadas` (FR-042 a FR-045, FR-080, FR-081; SC-011, SC-012); US4.8, `TestLlamadasSimultaneas` (FR-074;
-SC-007). Y, en el cierre, el job de evals (SC-001). Las dos evals nuevas no las escribe la tarea `[aceptacion]`: su
+SC-007). El plazo de cada llamada (`--timeout`, FR-020 y su caso límite) tampoco tiene guion, porque la orden `mcp` del
+arnés no tiene esperas y ningún verbo del binario de e2e se queda esperando: lo fija `TestPlazoDeCadaLlamada`, en
+proceso y con un verbo del propio test. Y, en el cierre, el job de evals (SC-001). Las dos evals nuevas no las escribe la tarea `[aceptacion]`: su
 clave no existe en el formato hasta la tarea que cambia `schemas/eval.yaml.json`, y antes dejarían `make ci` en rojo;
 entran con esa tarea, antes que el texto de las skills (paso 6).
 
@@ -255,6 +257,7 @@ las herramientas de la tabla, la línea `⚠ SIN CONSULTA AL BOE:` y las reglas 
 | `TestHerramientasDelServidor` | `internal/app/herramientas_test.go` | FR-002 a FR-005, FR-008, FR-020, FR-070; SC-003 |
 | `TestLlamadasSimultaneas` | `internal/app/mcp_test.go` | FR-014, FR-074; SC-007 |
 | `TestServirSinEntrada`, `TestServirEnEnsayo` | `internal/app/mcp_test.go` | FR-022, FR-024 |
+| `TestPlazoDeCadaLlamada` | `internal/app/mcp_test.go` | FR-020 (`--timeout`): con `mcp serve --timeout=<plazo corto>` y un verbo del test que espera a su contexto, la llamada da `fuente-no-disponible` como error de herramienta; la siguiente, hecha con ese plazo ya vencido desde el arranque, recibe su resultado, y el servidor termina con 0 al cerrarse la entrada |
 | `TestEsquemasDeHerramienta`, `TestLineaDeLlamada` | `internal/cli/herramienta_test.go` | FR-003, FR-011, FR-020 |
 | `TestRitmoCompartido` | `internal/httpx/ritmo_test.go` | FR-014 (dos clientes con el mismo `Ritmo`: ninguna llegada se adelanta a su turno), FR-010 (un `robots.txt` que falla una vez y responde después: el primer cliente no lee y el segundo sí) |
 | `TestInstrucciones` | `internal/mcp/instrucciones_test.go` | FR-006, FR-077; SC-010 |
@@ -421,7 +424,7 @@ Detalle, con ejemplos y bytes, en [contracts/servidor-mcp.md §8](./contracts/se
 | `herramientasDe` (del registro, menos `skills` y `mcp`) | FR-002, FR-004 |
 | La llamada como invocación del kernel; `emitir` compartido | FR-010, FR-012, FR-013, FR-015 |
 | Registro sin avisador para las llamadas | FR-023 |
-| Interfaz `servidor` en `ejecutarVerbo` | FR-020 (sin plazo de vida), FR-022, FR-023 |
+| Interfaz `servidor` en `ejecutarVerbo`; `--timeout=<plazo>` en la invocación de cada llamada; `TestPlazoDeCadaLlamada` | FR-020 (sin plazo de vida, y el plazo en cada llamada), FR-022, FR-023 |
 | `AppletMCP`, `DependenciasDeMCP`, `DependenciasDeMCPDelSistema` | FR-001, FR-021, FR-022, FR-025 |
 | `httpx.Ritmo`, `NuevoRitmo` y `ConRitmo`; `DependenciasDeRed` con un `Ritmo` por proceso y un cliente por invocación; `TestRitmoCompartido` | FR-014 (el ritmo por sitio, entre todas las llamadas); FR-010 (el `robots.txt` de cada llamada, como el de su orden) |
 | `schemas/servidor.json` y su fila | FR-022 (`--describe`), FR-079 (`schema-check`) |
@@ -468,7 +471,7 @@ que es la red de las herramientas de Go, no una fuente.
 5. `internal/app`: primero el cuerpo —la interfaz `servidor` en `ejecutarVerbo`, `emitir`, `herramientasDe`, la llamada,
    `AppletMCP` y sus dependencias, el `Ritmo` del proceso en `DependenciasDeRed`—, probado sobre un registro local del
    test (`TestHerramientasDelServidor`, `TestLlamadasSimultaneas`, `TestServirSinEntrada`, `TestServirEnEnsayo`,
-   `TestDependenciasDeRed`), sin registrarlo. Después, **`[datos]`** e indivisible, su registro y su contrato publicado:
+   `TestPlazoDeCadaLlamada`, `TestDependenciasDeRed`), sin registrarlo. Después, **`[datos]`** e indivisible, su registro y su contrato publicado:
    `RegistroDeProduccion` y el registro de e2e, `schemas/servidor.json` generado con `-actualizar-esquemas`, la fila de
    `esquemas_test.go`, las cuatro listas literales de applets (`argumentos.txtar` entre ellas) y `modulosDelBinario`.
    Y la orden `mcp` del arnés en `e2e_test.go`.

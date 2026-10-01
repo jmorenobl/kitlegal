@@ -76,16 +76,17 @@ Pasan: con el registro de producción, diez herramientas; con el que lleva los a
 el nombre, la descripción y los dos esquemas de `--describe` de su verbo y de solo lectura; `capabilities` es
 `{"tools":{}}`; y `schemas/servidor.json` es el de `mcp serve --describe`.
 
-## 4. Llamadas simultáneas, el cierre y el ensayo (FR-014, FR-022, FR-024, FR-074; SC-007)
+## 4. Llamadas simultáneas, el cierre, el ensayo y el plazo de cada llamada (FR-014, FR-020, FR-022, FR-024, FR-074; SC-007)
 
 ```sh
-go test -race -count=1 -run '^(TestLlamadasSimultaneas|TestServirSinEntrada|TestServirEnEnsayo|TestDependenciasDeRed)$' ./internal/app/
+go test -race -count=1 -run '^(TestLlamadasSimultaneas|TestServirSinEntrada|TestServirEnEnsayo|TestPlazoDeCadaLlamada|TestDependenciasDeRed)$' ./internal/app/
 go test -race -count=1 ./internal/mcp/...
 go test -race -count=1 -run '^TestRitmoCompartido$' ./internal/httpx/
 ```
 
 Pasan, sin carreras: cada llamada recibe el sobre de su entrada; la entrada que se cierra con una llamada en curso da 0;
-`--dry-run` vuelve sin leer la entrada; dos invocaciones reciben cada una su cliente de red y los dos esperan turno en
+`--dry-run` vuelve sin leer la entrada; con `--timeout`, la llamada que agota su plazo devuelve `fuente-no-disponible`
+como error de herramienta y el servidor sigue respondiendo pasado ese plazo desde su arranque; dos invocaciones reciben cada una su cliente de red y los dos esperan turno en
 el mismo ritmo por sitio; y un `robots.txt` que falla para un cliente se vuelve a pedir con el siguiente.
 
 ## 5. A mano: listar y llamar con el binario distribuido (US1, US4, US6; FR-002, FR-005, FR-006, FR-010, FR-011)
