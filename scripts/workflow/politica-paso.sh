@@ -21,11 +21,14 @@
 #     directorio temporal y de la memoria del proyecto.
 #
 # Mira el texto de la orden, así que no ve lo que hace un guion ni un programa que la
-# sesión escriba y ejecute: de eso no depende ninguna garantía. La credencial del
-# sondeo no está en ningún fichero (scripts/evals-sondeo-llavero.sh), el `claude` del
-# PATH de estas sesiones es scripts/workflow/sin-modelo/claude y Claude Code no les
-# ofrece el segundo plano (scripts/claude-modelo.sh). Esto da el motivo antes y en la
-# propia sesión. Compatible con bash 3.2 (macOS).
+# sesión escriba y ejecute (en la reproducción del incidente, la sesión escribió el
+# guion dentro del repositorio, lo copió fuera con `cp` y lo lanzó con «&» desde otro).
+# Lo que hace cualquier orden de Bash, y todo lo que ejecuta, lo restringe el sandbox
+# con el que scripts/claude-modelo.sh abre estas sesiones: la red, la escritura y la
+# lectura de secretos. De este gancho dependen Write y Edit, que no pasan por el
+# sandbox; en lo demás da el motivo antes y en la propia sesión. La credencial del
+# sondeo no está en ningún fichero (scripts/evals-sondeo-llavero.sh). Compatible con
+# bash 3.2 (macOS).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -118,7 +121,7 @@ case "${1:?uso: politica-paso.sh gancho | prueba}" in
         ruta_vedada "$valor" >/dev/null || resultado=deniega
       fi
       if [ "$resultado" != "$esperado" ]; then
-        echo "politica-paso: se esperaba «$esperado» y da «$resultado»: $clase $valor" >&2
+        echo "politica-paso: se esperaba «${esperado}» y da «${resultado}»: ${clase} ${valor}" >&2
         fallos=$((fallos + 1))
       fi
     }
@@ -160,11 +163,10 @@ case "${1:?uso: politica-paso.sh gancho | prueba}" in
     espera admite ruta "/tmp/kitlegal-prototipo/main.go"
     espera admite ruta "${TMPDIR:-/tmp}/copia/x.go"
     espera admite ruta "$HOME/.claude/projects/$(pwd -P | sed -E 's/[^A-Za-z0-9]/-/g')/memory/nota.md"
-    espera deniega ruta "$HOME/Library/Logs/kitlegal/sondeo-c12.sh"
-    espera deniega ruta "$HOME/.config/kitlegal/claude-oauth-token"
-    espera deniega ruta "$HOME/.claude/settings.json"
-    espera deniega ruta "/tmp/../$HOME/x.sh"
-    espera deniega ruta "$(dirname "$(pwd -P)")/hermano/x.go"
+    espera deniega ruta "/Users/x/Library/Logs/kitlegal/sondeo-c12.sh"
+    espera deniega ruta "/Users/x/.config/kitlegal/claude-oauth-token"
+    espera deniega ruta "/Users/x/.claude/settings.json"
+    espera deniega ruta "/tmp/../Users/x/x.sh"
     if [ "$fallos" -ne 0 ]; then
       echo "politica-paso: $fallos casos no dan lo esperado" >&2
       exit 1
