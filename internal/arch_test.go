@@ -269,6 +269,32 @@ func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 	}
 }
 
+// TestElBinarioNoEnlazaElPaso comprueba que el paso que empaqueta la extensión
+// de escritorio y el plugin no llega al binario distribuido: es un programa de
+// construcción del repositorio, que ni es un applet ni se instala (H22 FR-001;
+// research.md D17 de H22). Como en TestElBinarioNoEnlazaLosEjemplos, lo que lo
+// impide es esta comprobación sobre el cierre transitivo real de cmd/kitlegal.
+//
+// La misma medida ve el paquete donde sí está, en el cierre del programa del
+// paso: sin eso, el test pasaría en vacío el día que el paquete se mudara o
+// `go list` dejara de nombrarlo como aquí se espera.
+func TestElBinarioNoEnlazaElPaso(t *testing.T) {
+	t.Parallel()
+
+	modulo := rutaDelModulo(t)
+	paso := paqueteDelPaso(modulo)
+
+	require.Contains(t, cierreDe(t, programaDelPaso), paso,
+		"el cierre de %s no contiene %s: la comprobación sobre el binario distribuido no vigilaría nada",
+		programaDelPaso, paso)
+
+	for _, paquete := range paquetesDelBinario(t, modulo) {
+		assert.False(t, cuelgaDe(paquete, paso),
+			"el binario distribuido enlaza %s: el paso que empaqueta es un programa de construcción, que solo "+
+				"enlaza %s (H22 FR-001)", paquete, programaDelPaso)
+	}
+}
+
 // plataformasDeDistribucion son las plataformas para las que se entrega el
 // binario, sin cgo: darwin, linux y windows sobre amd64 y arm64 (ADR 0002;
 // docs/ROADMAP.md, entrega). Los módulos que enlaza dependen de la plataforma,
@@ -862,12 +888,13 @@ func exigeDueno(t *testing.T, g grafo, regla reglaExclusiva) {
 		regla.nombre, strings.Join(regla.duenos, ", "), reservado)
 }
 
-// paquetesInternos son los diez paquetes de internal/ que el dominio no puede
+// paquetesInternos son los once paquetes de internal/ que el dominio no puede
 // alcanzar: la dependencia va siempre hacia dentro, nunca al revés. disco, el
 // adaptador del sistema de ficheros, entra en H19 (research.md D32); mcp, el
-// del protocolo MCP, en H21 (plan.md, regla R1).
+// del protocolo MCP, en H21 (plan.md, regla R1); empaquetado, el paso que
+// empaqueta la extensión de escritorio y el plugin, en H22 (plan.md, regla R1).
 var paquetesInternos = []string{
-	"app", "cache", "cli", "disco", "graph", "httpx", "mcp", "render", "source", "store",
+	"app", "cache", "cli", "disco", "empaquetado", "graph", "httpx", "mcp", "render", "source", "store",
 }
 
 // entradaYSalidaEstandar son los paquetes de entrada y salida de la biblioteca
@@ -914,24 +941,46 @@ func paqueteDeEjemplo(modulo string) string {
 	return modulo + "/internal/app/ejemplo"
 }
 
+// programaDelPaso es el punto de entrada del paso que empaqueta la extensión de
+// escritorio y el plugin, como lo nombra `go list` desde la raíz del módulo: el
+// único programa que enlaza su paquete (H22 FR-001).
+const programaDelPaso = "./cmd/empaquetar"
+
+// paqueteDelPaso es la ruta de importación del paquete con la lógica del paso
+// que empaqueta: un programa de construcción, sujeto a las mismas reglas que el
+// resto del árbol y a una más, la de no enlazarse en el binario distribuido.
+func paqueteDelPaso(modulo string) string {
+	return modulo + "/internal/empaquetado"
+}
+
 // paquetesDelBinario devuelve el cierre transitivo real del binario
 // distribuido, que es lo que acaba enlazado en el ejecutable. Comprueba de paso
-// que la lista trae su propio punto de entrada: sin eso, las dos comprobaciones
+// que la lista trae su propio punto de entrada: sin eso, las comprobaciones
 // que parten de ella pasarían en vacío el día que `go list` dejara de devolver
 // lo que se le pide.
 func paquetesDelBinario(t *testing.T, modulo string) []string {
 	t.Helper()
 
+	paquetes := cierreDe(t, "./cmd/kitlegal")
+
+	require.Contains(t, paquetes, modulo+"/cmd/kitlegal",
+		"el cierre del binario no contiene ni siquiera su propio punto de entrada")
+
+	return paquetes
+}
+
+// cierreDe devuelve el cierre transitivo real de un programa del módulo: él
+// mismo y todo paquete del que depende, que es lo que `go list -deps` enumera.
+func cierreDe(t *testing.T, programa string) []string {
+	t.Helper()
+
 	var paquetes []string
 
-	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", "./cmd/kitlegal"), "\n") {
+	for linea := range strings.SplitSeq(ejecutaGo(t, "list", "-deps", programa), "\n") {
 		if paquete := strings.TrimSpace(linea); paquete != "" {
 			paquetes = append(paquetes, paquete)
 		}
 	}
-
-	require.Contains(t, paquetes, modulo+"/cmd/kitlegal",
-		"el cierre del binario no contiene ni siquiera su propio punto de entrada")
 
 	return paquetes
 }

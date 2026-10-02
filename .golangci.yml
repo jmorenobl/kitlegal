@@ -87,12 +87,16 @@ linters:
       # desde H21, R7— sobre el grafo transitivo real, de modo que borrar estas
       # listas no basta para que una violación pase (FR-051).
       rules:
-        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los diez
+        # R1 · el dominio es puro. Acotada al árbol del dominio, deniega los once
         # paquetes de internal/ —la dependencia va siempre hacia dentro—, el
         # paquete raíz del módulo, con lo empotrado, y los paquetes de entrada y
         # salida de la biblioteca estándar, que es lo que impide que un
         # *slog.Logger o un io.Writer se instalen en internal/core sin que ningún
         # control diga nada (research.md D2, D18).
+        #
+        # internal/empaquetado, el paso que empaqueta la extensión de escritorio
+        # y el plugin, entra en H22, en la misma tarea que lo crea (H22 plan.md,
+        # regla R1).
         #
         # internal/mcp, el adaptador del protocolo MCP, entra en H21, en la
         # misma tarea que lo crea (H21 plan.md, regla R1).
@@ -122,6 +126,8 @@ linters:
               desc: "R1: el dominio no importa el kernel; es el kernel quien depende del dominio"
             - pkg: github.com/jmorenobl/kitlegal/internal/disco
               desc: "R1: el dominio no importa adaptadores; el disco llega por los puertos que define internal/core/instalacion"
+            - pkg: github.com/jmorenobl/kitlegal/internal/empaquetado
+              desc: "R1: el dominio no importa el paso que empaqueta; es un programa de construcción, que compone con el kernel y no viaja en el binario"
             - pkg: github.com/jmorenobl/kitlegal/internal/graph
               desc: "R1: el dominio no importa adaptadores; el grafo se alimenta desde el applet, con GraphOp"
             - pkg: github.com/jmorenobl/kitlegal/internal/httpx
