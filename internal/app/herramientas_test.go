@@ -113,7 +113,8 @@ func verbosConHerramienta(t *testing.T, registro *app.Registro) map[string]verbo
 // registro local que lleva además los de ejemplo (FR-004): el conjunto
 // anunciado es el de los verbos del registro menos los excluidos —diez y
 // trece—; cada nombre, cada descripción y cada par de esquemas es el de
-// `--describe` de su verbo, el de entrada sin las ocho banderas globales; cada
+// `--describe` de su verbo, el de entrada sin las ocho banderas globales; los
+// nombres que da app.NombresDeHerramientas son los anunciados; cada
 // `$ref` resuelve en su esquema; todas se anuncian de solo lectura; las
 // capacidades son `{"tools":{}}`; y el tipo JSON que cli.LineaDeLlamada exige
 // de cada argumento es el que declara su esquema (FR-002, FR-003, FR-005,
@@ -167,6 +168,9 @@ func TestHerramientasDelServidor(t *testing.T) {
 				require.NoError(t, err)
 
 				compruebaElConjuntoAnunciado(t, anunciadas, esperados, caso.herramientas)
+				assert.ElementsMatch(t, slices.Collect(maps.Keys(esperados)), app.NombresDeHerramientas(registro),
+					"los nombres que el paquete da a quien lee las llamadas de una sesión son los de las "+
+						"herramientas que el servidor anuncia, sin las de %s", strings.Join(appletsSinHerramientas, " ni "))
 
 				for _, anunciada := range anunciadas {
 					verbo, esperada := esperados[anunciada.Nombre]

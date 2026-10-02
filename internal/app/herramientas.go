@@ -37,6 +37,57 @@ const (
 // que cada nombre esté escrito en un solo sitio.
 var appletsSinHerramientas = []string{appletMCP{}.Nombre(), appletSkills{}.Nombre()}
 
+// verboAnunciado es un verbo del registro del que sale una herramienta: el
+// applet que lo ofrece, el verbo y el nombre de la herramienta.
+type verboAnunciado struct {
+	herramienta string
+	applet      Applet
+	verbo       Verbo
+}
+
+// verbosAnunciados son los verbos del registro de los que sale una herramienta
+// del servidor MCP: los de cada applet, en el orden de sus nombres y en el de
+// su catálogo, salvo los de appletsSinHerramientas, cada uno con el nombre
+// `<applet>_<verbo>`. Es el único sitio que dice qué verbos dan herramienta y
+// cómo se llama cada una (H21 FR-002, FR-003).
+func verbosAnunciados(registro *Registro) []verboAnunciado {
+	var anunciados []verboAnunciado
+
+	for _, nombre := range registro.Nombres() {
+		if slices.Contains(appletsSinHerramientas, nombre) {
+			continue
+		}
+
+		applet, _ := registro.Buscar(nombre)
+
+		for _, verbo := range applet.Verbos() {
+			anunciados = append(anunciados, verboAnunciado{
+				herramienta: nombre + separadorDeHerramienta + verbo.Nombre,
+				applet:      applet,
+				verbo:       verbo,
+			})
+		}
+	}
+
+	return anunciados
+}
+
+// NombresDeHerramientas son los nombres de las herramientas que el servidor MCP
+// anuncia con ese registro: las de herramientasDe, en su orden. Es lo que lee
+// quien tiene que reconocer una llamada a una de ellas sin arrancar el servidor
+// —el job de evals, en el transcript de una sesión— y sin repetir qué applets no
+// dan herramientas (H21 FR-002, FR-042; contracts/evals-en-dos-modos.md §3 de
+// H21).
+func NombresDeHerramientas(registro *Registro) []string {
+	var nombres []string
+
+	for _, anunciado := range verbosAnunciados(registro) {
+		nombres = append(nombres, anunciado.herramienta)
+	}
+
+	return nombres
+}
+
 // herramientasDe da las herramientas del servidor MCP: una por cada verbo de
 // cada applet del registro, salvo los de appletsSinHerramientas, con el nombre
 // `<applet>_<verbo>`, la descripción del verbo y los dos esquemas que salen del
@@ -62,48 +113,39 @@ func herramientasDe(
 
 	var herramientas []mcp.Herramienta
 
-	for _, nombre := range registro.Nombres() {
-		if slices.Contains(appletsSinHerramientas, nombre) {
-			continue
+	for _, anunciado := range verbosAnunciados(registro) {
+		argumentos, err := argumentosDelVerbo(anunciado.applet, anunciado.verbo)
+		if err != nil {
+			return nil, err
 		}
 
-		applet, _ := registro.Buscar(nombre)
+		// Los argumentos de la fábrica solo se reflejan, aquí y en cada
+		// llamada: quien los rellena es la gramática de cada invocación, que
+		// pide los suyos.
+		descrito := verboDescrito(anunciado.applet, anunciado.verbo, argumentos.Addr().Interface())
 
-		for _, verbo := range applet.Verbos() {
-			argumentos, err := argumentosDelVerbo(applet, verbo)
-			if err != nil {
-				return nil, err
-			}
-
-			// Los argumentos de la fábrica solo se reflejan, aquí y en cada
-			// llamada: quien los rellena es la gramática de cada invocación,
-			// que pide los suyos.
-			descrito := verboDescrito(applet, verbo, argumentos.Addr().Interface())
-			herramienta := nombre + separadorDeHerramienta + verbo.Nombre
-
-			entrada, salida, err := cli.EsquemasDeHerramienta(descrito)
-			if err != nil {
-				return nil, fmt.Errorf("app: los esquemas de la herramienta %s no se pueden construir: %w",
-					herramienta, err)
-			}
-
-			llamada := llamadaDeHerramienta{
-				applet:      applet,
-				verbo:       descrito,
-				banderas:    banderas,
-				registro:    deLasLlamadas,
-				registrador: registrador,
-				errores:     errores,
-			}
-
-			herramientas = append(herramientas, mcp.Herramienta{
-				Nombre:      herramienta,
-				Descripcion: verbo.Descripcion,
-				Entrada:     entrada,
-				Salida:      salida,
-				Llamar:      llamada.atender,
-			})
+		entrada, salida, err := cli.EsquemasDeHerramienta(descrito)
+		if err != nil {
+			return nil, fmt.Errorf("app: los esquemas de la herramienta %s no se pueden construir: %w",
+				anunciado.herramienta, err)
 		}
+
+		llamada := llamadaDeHerramienta{
+			applet:      anunciado.applet,
+			verbo:       descrito,
+			banderas:    banderas,
+			registro:    deLasLlamadas,
+			registrador: registrador,
+			errores:     errores,
+		}
+
+		herramientas = append(herramientas, mcp.Herramienta{
+			Nombre:      anunciado.herramienta,
+			Descripcion: anunciado.verbo.Descripcion,
+			Entrada:     entrada,
+			Salida:      salida,
+			Llamar:      llamada.atender,
+		})
 	}
 
 	return herramientas, nil
