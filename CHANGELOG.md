@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-02
+
 ### Añadido
 
 - **`kitlegal mcp serve`, el servidor MCP de kitlegal** (ADR 0035): el applet `mcp`, registrado en el binario
