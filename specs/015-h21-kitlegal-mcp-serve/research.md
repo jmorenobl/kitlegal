@@ -357,7 +357,7 @@ atribuyen a ella, de modo que una petición que llegue a la red sigue poniendo e
 
 ### D18 · Una orden de `kitlegal` en una sesión que no debía tenerlo
 
-En una sesión del modo herramienta o sin binario ni servidor, una invocación de applet en la traza que no sea `mcp serve`
+En una sesión del modo herramienta o sin binario ni servidor, una invocación de la traza de otro applet que `mcp`
 deja la sesión sin pasar, con su motivo. Es lo que hace cierta la definición del modo (FR-040, FR-046) sin depender del
 perfil del runner (S8). La vía es real: `servidor.json`, que está en el directorio de la sesión, lleva la ruta absoluta
 del binario, y una sesión que la lea puede ejecutarlo sin el `PATH`; sin esta regla, sus órdenes satisfarían los

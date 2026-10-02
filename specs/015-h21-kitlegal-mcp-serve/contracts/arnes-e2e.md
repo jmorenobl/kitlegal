@@ -35,7 +35,12 @@ las operaciones de `<llamadas>` esperando cada respuesta, cierra la entrada y es
   su número, desde 1:
   - `herramientas`: lista las herramientas;
   - `<herramienta> <objeto JSON>`: llama a la herramienta con esos argumentos;
-  - `<herramienta>`: la llama sin `arguments`.
+  - `<herramienta>`: la llama sin `arguments`. Con `-anterior` no se envían; el cliente del SDK no puede no enviarlos
+    y manda `{}`.
+
+`<programa>` se da por su ruta absoluta: la orden no lo busca en ningún `PATH`, y otra cosa es un error de uso. La
+conversación entera tiene un tope de un minuto; al agotarse, la orden interrumpe el programa y el guion falla. La orden
+no retira lo que dejó otra ejecución suya en el mismo guion.
 
 **Lo que escribe en su salida estándar** (la que el guion lee con `stdout` o `cmp stdout`), una línea por cosa:
 
@@ -112,4 +117,6 @@ Las comprobaciones de §3 las hacen los clientes de `internal/mcp/mcptest`, y ah
 dan `Protocolo`, `Capacidades`, `Herramientas` y `Llamar` con los dos clientes, y el error con un `structuredContent` que
 no es el del texto, con `isError` contrario a `ok`, con una línea que no es del protocolo (cliente anterior) y con la
 conexión que se cierra antes del saludo. La forma de la salida y de los ficheros de la orden la fijan los propios guiones,
-que la comparan con `cmp`. `TestVariablesDeLosGuiones` no cambia: la orden no añade variables.
+que la comparan con `cmp`. Lo que un guion no puede ejercer —el uso de la orden, qué deja pasar `!`, el programa que no
+termina tras cerrarle la entrada o que ni saluda ni termina— lo fija `TestOrdenMCP` (`internal/app/e2e_test.go`), con
+sustitutos del servidor. `TestVariablesDeLosGuiones` no cambia: la orden no añade variables.

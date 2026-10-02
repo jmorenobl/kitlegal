@@ -370,7 +370,7 @@ Detalle, con ejemplos y bytes, en [contracts/servidor-mcp.md §8](./contracts/se
   norma y el bloque pedidos, y el servidor no guarda nada propio.
 - **`graph_check`** (la skill; una por lectura de bloques, con su norma y sus bloques): ≈ 325 B sin nada y ≈ 1 000 B por
   bloque cambiado (H7.1). Cada señal la apaga la siguiente lectura del bloque.
-- **El error de herramienta** (la skill; cuando una llamada falla): el sobre de fallo, 300-400 B. Ninguna llamada hereda
+- **El error de herramienta** (la skill; cuando una llamada falla): el sobre de fallo, de 277 a 478 B en los medidos. Ninguna llamada hereda
   el fallo de otra: cada una vuelve a pedir lo que le falta, su `robots.txt` incluido (D8), así que deja de darse en la
   primera llamada que se hace cuando su causa ha cesado —la fuente vuelve a responder, el argumento se corrige—, como
   con la orden.
@@ -492,7 +492,9 @@ que es la red de las herramientas de Go, no una fuente.
 11. README, CONTRIBUTING, `CHANGELOG.md` e `internal/evals/doc.go`.
 
 **Obligaciones para `tasks.md`**: exactamente una tarea `[aceptacion]`, la primera; cada tarea deja `make ci` en verde;
-las tareas `[datos]` son las de los pasos 5, 6, 8 y 9, con las rutas de este plan; cada fila de «Controles de umbral»
+las tareas `[datos]` son las de los pasos 5, 6, 8 y 9, con las rutas de este plan (en `tasks.md` quedaron en tres,
+T008, T010 y T014: el paso 8 no llegó a tocar ningún `testdata/`, porque sus sesiones las crea el repartidor en
+`t.TempDir()`, y los datos de los pasos 8 y 9 van juntos en T014); cada fila de «Controles de umbral»
 tiene la tarea que construye su control, con un test que lo ve fallar; ninguna tarea ni corrección cumple un umbral de
 FR-043 rebajándolo, dejándolo en `decide: false`, sacando evals o un modo del total, sumando los modos o recortando la
 lista (FR-049); ninguna tarea edita un spec, un plan o una suite congelada de un hito anterior, ni `scripts/workflow/`

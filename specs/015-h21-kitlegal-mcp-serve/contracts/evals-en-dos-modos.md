@@ -66,7 +66,8 @@ Las respuestas que cuentan en los umbrales de cada modo siguen siendo 54 del mod
 
 ### 2.2 El repartidor
 
-`TestEjecucionDelJob` llama a `ejecutarSesiones` una vez por tanda, con la concurrencia de la skill, y mide cada una: la
+`TestEjecucionDelJob` llama a `ejecutarSesiones` una vez por tanda —con `ejecutarPorTandas`, de `informe.go`, que
+`TestEjecutarPorTandas` fija en `make ci`—, con la concurrencia de la skill, y mide cada una: la
 duración de un modo es la de su tanda, de la preparación de su primera sesión al final de la última. Si una tanda acaba
 con sesiones sin abrir por el mensaje del límite de uso, las tandas siguientes no se abren y todas sus sesiones cuentan
 como sin abrir.
@@ -238,7 +239,7 @@ salida 1 (`make`, 2).
 | `TestJuzgarLasLlamadas` | `juzgar_test.go` | el comando satisfecho por su herramienta; no por otra norma u otro bloque; no por la correcta con resultado de error; el prefijo del agente; el prohibido por herramienta; la orden en una sesión sin binario | FR-042, FR-081 |
 | `TestJuzgarSinBinarioNiServidor` | `juzgar_test.go` | la línea y sin citas, pasa; sin la línea, con la etiqueta y sin la dirección en su línea, y con la línea y una cita, no | FR-047, FR-081 |
 | `TestUmbralesDelInforme`, casos nuevos | `umbrales_test.go` | cada umbral incumplido en un solo modo, `fallo` con su nombre; 2 de 54 en los dos, se cumplen; 3 de 54 y 0 de 54, no; las sesiones sin binario ni servidor fuera de toda medida | FR-043, FR-044, FR-047, FR-080 |
-| `TestInformeEnDosModos` | `informe_test.go` | una serie que decide y falla solo en un modo, `fallo`; `legal-core` con `[]`; ninguna pareja de fila y `modelo` repetida en `tasas` según la regla de `scripts/workflow/informe.sh`, cuyas cuatro líneas se comprueban en el guion; un recuento por modelo y modo | FR-044, FR-045, FR-048, FR-080 |
+| `TestInformeEnDosModos` | `informe_test.go` | una serie que decide y falla solo en un modo, `fallo`; `legal-core` con `[]`; ninguna pareja de fila y `modelo` repetida en `tasas` según la regla de `scripts/workflow/informe.sh`, cuyas siete líneas —seis del programa de `seccion_evals` y una del de `recuentos_y_umbrales`— se comprueban en el guion; un recuento por modelo y modo | FR-044, FR-045, FR-048, FR-080 |
 | `TestDefinicionDelJob` | `definicion_test.go` | el tope de 240 y el peor caso por tandas | FR-083 |
 | `TestComprobarElSondeo`, `TestSondear`, `TestGuionDelSondeo` | `sondeo_test.go` | la eval sin binario ni servidor sola, con otras que sí se miden y dos de ellas en su orden; lo de hoy, igual | FR-084 |
 

@@ -45,8 +45,10 @@ Ejemplo, `boe_articulo` (`inputSchema`, 144 B; `outputSchema`, 1 708 B; V25):
 ```
 
 ```json
-{"if":{"properties":{"ok":{"const":true}}},"then":{"properties":{"data":{"$ref":"#/$defs/boe.Articulo"}}},"else":{"properties":{"data":{"$ref":"#/$defs/DatosError"}}},"properties":{"ok":{"type":"boolean"},"fuente":{"type":"string","minLength":1},"url":{"type":"string","minLength":1,"format":"uri"},"fecha_consulta":{"type":"string","format":"date-time"},"hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"data":true},"additionalProperties":false,"type":"object","required":["ok","fuente","url","fecha_consulta","hash","data"],"$defs":{"DatosError":{…},"boe.Articulo":{…},"boe.Aviso":{…}}}
+{"$defs":{"DatosError":{…},"boe.Articulo":{…},"boe.Aviso":{…}},"if":{"properties":{"ok":{"const":true}}},"then":{"properties":{"data":{"$ref":"#/$defs/boe.Articulo"}}},"else":{"properties":{"data":{"$ref":"#/$defs/DatosError"}}},"properties":{"ok":{"type":"boolean"},"fuente":{"type":"string","minLength":1},"url":{"type":"string","minLength":1,"format":"uri"},"fecha_consulta":{"type":"string","format":"date-time"},"hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"data":true},"additionalProperties":false,"type":"object","required":["ok","fuente","url","fecha_consulta","hash","data"]}
 ```
+
+`$defs` va delante: es el orden en que el generador de `--describe` escribe las claves.
 
 Lo que el esquema de entrada de cada herramienta de hoy declara (V25):
 
@@ -82,7 +84,7 @@ cable, unos 3 KB):
 {"content":[{"type":"text","text":"{\"ok\":true,\"fuente\":\"kitlegal.territorio\",\"url\":\"kitlegal:applet/territorio\",\"fecha_consulta\":\"2026-02-04T00:00:00Z\",\"hash\":\"sha256:3f71…66a2\",\"data\":{\"municipio\":{\"nombre\":\"Leganés\",…}}}"}],"structuredContent":{"ok":true,"fuente":"kitlegal.territorio","url":"kitlegal:applet/territorio","fecha_consulta":"2026-02-04T00:00:00Z","hash":"sha256:3f71…66a2","data":{"municipio":{"nombre":"Leganés",…}}}}
 ```
 
-**Ejemplo que falla**, `boe_articulo` con `{"norma":"BOE-A-2015-10565"}` (unos 330 B de sobre):
+**Ejemplo que falla**, `boe_articulo` con `{"norma":"BOE-A-2015-10565"}` (277 B de sobre):
 
 ```json
 {"content":[{"type":"text","text":"{\"ok\":false,\"fuente\":\"kitlegal.cli\",\"url\":\"kitlegal:cli\",\"fecha_consulta\":\"…\",\"hash\":\"sha256:…\",\"data\":{\"clase\":\"argumentos\",\"mensaje\":\"argumentos inválidos: expected \\\"<bloque>\\\"\"}}"}],"structuredContent":{"ok":false,"fuente":"kitlegal.cli","url":"kitlegal:cli","fecha_consulta":"…","hash":"sha256:…","data":{"clase":"argumentos","mensaje":"argumentos inválidos: expected \"<bloque>\""}},"isError":true}
@@ -212,7 +214,7 @@ clase `argumentos` al construir el cliente, y `Replay` la rechaza como rechaza `
 | `tools/list` | el agente, una vez por conexión | diez herramientas: 1 190 B de esquemas de entrada + 19 289 B de salida + 971 B de descripciones + unos 150 B de nombre, anotaciones y claves por herramienta ≈ 23 KB. Al modelo le llegan el nombre, la descripción y el esquema de entrada: unos 2,3 KB. Crece con los verbos (≈ 2,3 KB por verbo), no con el uso | no da señales |
 | Resultado de una llamada | la skill, las veces que hoy la orden (§1 de [skills.md](./skills.md)) | el sobre, dos veces en el mensaje. Art. 21 de la Ley 39/2015: 4 433 B de sobre, ≈ 9 KB en el cable. Índice de la LCSP: 34 720 B, ≈ 70 KB. Lo acotan la norma y el bloque pedidos | cada llamada es independiente |
 | `graph_check` | la skill, una vez por lectura de bloques, con su norma y sus bloques | ≈ 325 B sin nada; ≈ 1 000 B por bloque cambiado (H7.1) | la señal de un bloque se apaga con su siguiente lectura (H7.1) |
-| Error de herramienta | la skill, cuando una llamada falla | sobre de fallo, 300-400 B | en la primera llamada que se hace cuando su causa ha cesado: ninguna hereda el fallo de otra, tampoco el de `robots.txt`, que cada llamada vuelve a pedir (D8) |
+| Error de herramienta | la skill, cuando una llamada falla | sobre de fallo: de 277 B (falta un argumento) a 478 B (un bloque que no existe, con su dirección) en los medidos | en la primera llamada que se hace cuando su causa ha cesado: ninguna hereda el fallo de otra, tampoco el de `robots.txt`, que cada llamada vuelve a pedir (D8) |
 | `instructions` | el agente, una vez por conexión | 485 B | no da señales |
 | Aviso de versión, en la salida de error | quien mira el registro de su agente, una vez por arranque | una línea | al reinstalar las skills |
 | Eventos, en la salida de error | quien depura; sin `--verbose`, solo las llamadas que fallan | ≈ 150 B por línea | no es una señal para la skill |
