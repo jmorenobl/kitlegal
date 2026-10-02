@@ -174,9 +174,9 @@ HTTPS con su `sha256`— y dice que quien lo añade recibe una versión nueva cu
 
 La mitad de la aceptación de H21 en la app de escritorio de ChatGPT no se ha hecho, y Jorge decidió ese mismo día no
 esperarla: lo que se da por soportado es lo que se puede probar, que hoy es la app de escritorio de Claude en macOS.
-Lo demás —Windows, la app de ChatGPT, Codex, Antigravity— se documenta como «así se haría, sin probar», pidiendo a
-quien lo intente que cuente si funciona, y pasa a soportado cuando alguien lo prueba. El `.mcpb` de H22 lleva solo el
-binario de macOS. El marketplace del plugin vive en `jmorenobl/kitlegal-plugins`, un catálogo por agente que no
+Lo demás —la extensión en Windows, la app de ChatGPT, Codex, Antigravity— se entrega o se documenta como «así se
+haría, sin probar», pidiendo a quien lo intente que cuente si funciona, y pasa a soportado cuando alguien lo prueba.
+El `.mcpb` de H22 lleva el binario de macOS y el de Windows, este sin probar. El marketplace del plugin vive en `jmorenobl/kitlegal-plugins`, un catálogo por agente que no
 guarda ficheros de release.
 
 ## Pendiente de verificar (pasa a la aceptación humana de H22)
@@ -187,5 +187,5 @@ guarda ficheros de release.
 2. Cómo se actualizan una extensión instalada desde un fichero y un plugin subido como zip, y si un marketplace
    actualiza el plugin solo.
 3. Qué responde Claude en la web y en el móvil, donde puede haber skill y no hay herramienta.
-4. Lo mismo en Windows, donde nadie lo ha probado: fuera de H22 hasta que alguien pueda.
+4. Lo mismo en Windows, donde nadie lo ha probado: el `.mcpb` lleva su binario para que alguien pueda.
 5. Si la app de Claude admite añadir un marketplace cuya entrada es de fuente `archive`.
