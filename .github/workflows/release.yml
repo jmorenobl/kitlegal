@@ -2,13 +2,19 @@
 # research.md D30).
 #
 # Solo lo dispara una etiqueta v* que empuja una persona: etiquetar y publicar son humanos, y ninguna tarea ni ningún
-# otro flujo lo ejecuta (FR-110, FR-115). Dos trabajos, cada uno con sus permisos y ninguno heredado del flujo:
+# otro flujo lo ejecuta (FR-110, FR-115). Tres trabajos, cada uno con sus permisos y ninguno heredado del flujo:
 #
 #   - `publicar` construye con el goreleaser de tools/ —el mismo módulo de herramienta que `make release`, sin
 #     --snapshot—, genera los SBOM con syft, firma checksums.txt con cosign sin clave, publica la release, el cask del
-#     tap y el manifiesto del bucket, y atesta la procedencia de los seis archivos y de checksums.txt (FR-111, FR-112).
+#     tap y el manifiesto del bucket, y atesta la procedencia de los seis archivos y de checksums.txt (FR-111, FR-112)
+#     y, desde H22, de la extensión de escritorio y del plugin, que el propio goreleaser empaqueta (H22 FR-003).
 #   - `humo` comprueba lo publicado como lo recibe quien lo instala: sin el código del repositorio, descarga el archivo
-#     linux/amd64 de la release, verifica su huella y su atestación y ejecuta el binario (FR-113).
+#     linux/amd64 de la release, verifica su huella y su atestación y ejecuta el binario (FR-113). Desde H22 comprueba
+#     también la extensión y el plugin: su huella, su atestación, el manifiesto y los binarios de la extensión, y que
+#     el servidor MCP lista las herramientas del manifiesto (H22 FR-040 a FR-043).
+#   - `catalogo` solo corre si `humo` sale en verde: compone el catálogo de la etiqueta y lo escribe en
+#     jmorenobl/kitlegal-plugins. No puede escribir en este repositorio (H22 FR-031, FR-032;
+#     specs/016-h22-instalar-sin-terminal/contracts/release.md §6).
 #
 # Las acciones van fijadas por su etiqueta mayor, como en el resto de flujos, y las mantiene Dependabot (research.md
 # V36). Las mayores de syft, cosign y la atestación no se pueden comprobar sin red (research.md S2).
@@ -60,7 +66,8 @@ jobs:
           PUBLISHER_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
         run: go tool -modfile=tools/goreleaser/go.mod goreleaser release --clean
 
-      # La procedencia SLSA de los seis archivos y de checksums.txt, tal como quedan en dist/ (FR-112).
+      # La procedencia SLSA de los seis archivos y de checksums.txt, tal como quedan en dist/ (FR-112), y de las dos
+      # piezas de H22, la extensión de escritorio y el plugin: nueve sujetos (H22 FR-003).
       - name: Atestar la procedencia
         uses: actions/attest-build-provenance@v4
         with:
@@ -72,6 +79,8 @@ jobs:
             dist/kitlegal_windows_amd64.zip
             dist/kitlegal_windows_arm64.zip
             dist/checksums.txt
+            dist/kitlegal.mcpb
+            dist/kitlegal-plugin.zip
 
   # La release publicada, comprobada desde fuera (FR-113). Ningún paso obtiene el código ni usa una acción: todo
   # ocurre en el directorio temporal del runner, con lo publicado y nada más. Una comprobación por paso, para que el
@@ -149,3 +158,170 @@ jobs:
             echo "skills install no deja .agents/skills/boe-legislacion/SKILL.md" >&2
             exit 1
           fi
+
+      # Desde aquí, las seis comprobaciones de H22 sobre la extensión de escritorio y el plugin (H22 FR-040 a FR-042),
+      # con las reglas de las de arriba: ninguna acción, sin el código del repositorio y sin ningún secreto (H22
+      # FR-043). Sus guiones son los que se midieron contra un snapshot (H22 research.md V20), y
+      # TestConfiguracionDeLaRelease los fija enteros: se cambian a la vez que el test.
+      #
+      # Los tres archivos se descargan porque llevan los binarios con los que se comparan los de la extensión.
+      - name: Descargar la extensión, el plugin y los archivos de sus binarios
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern kitlegal.mcpb --pattern kitlegal-plugin.zip --pattern kitlegal_darwin_amd64.tar.gz --pattern kitlegal_darwin_arm64.tar.gz --pattern kitlegal_windows_amd64.zip
+
+      # Cinco líneas, una por fichero, del checksums.txt que descargó el primer paso: con una de menos, sha256sum daría
+      # por buenas las que hay.
+      - name: Comprobar las huellas de la extensión, del plugin y de los tres archivos
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          awk '$2 == "kitlegal.mcpb" || $2 == "kitlegal-plugin.zip" || $2 == "kitlegal_darwin_amd64.tar.gz" || $2 == "kitlegal_darwin_arm64.tar.gz" || $2 == "kitlegal_windows_amd64.zip"' checksums.txt > huellas.txt
+          if [ "$(wc -l < huellas.txt)" -ne 5 ]; then
+            echo "checksums.txt no lleva la huella de la extensión, del plugin y de los tres archivos" >&2
+            exit 1
+          fi
+          sha256sum --check --strict huellas.txt
+
+      - name: Verificar la atestación de la extensión y del plugin
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          gh attestation verify kitlegal.mcpb --repo jmorenobl/kitlegal
+          gh attestation verify kitlegal-plugin.zip --repo jmorenobl/kitlegal
+
+      # La versión es la etiqueta sin su v; los demás campos son fijos, y user_config no existe. La extensión no se
+      # ejecuta: no lleva binario de Linux.
+      - name: Comprobar el manifiesto de la extensión
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          unzip -q kitlegal.mcpb -d extension
+          if ! jq -e --arg version "${GITHUB_REF_NAME#v}" '.manifest_version == "0.3" and .name == "kitlegal" and .version == $version and .homepage == "https://kitlegal.es" and .license == "EUPL-1.2" and .icon == "icon.png" and .server.type == "binary" and .server.entry_point == "server/kitlegal" and .server.mcp_config == {"command": "${__dirname}/server/kitlegal", "args": ["mcp", "serve"], "platform_overrides": {"win32": {"command": "${__dirname}/server/kitlegal.exe"}}} and .compatibility == {"platforms": ["darwin", "win32"]} and (has("user_config") | not)' extension/manifest.json > /dev/null; then
+            echo "el manifiesto de kitlegal.mcpb no lleva la versión ${GITHUB_REF_NAME#v} o sus campos fijos" >&2
+            exit 1
+          fi
+
+      # La cabecera del universal son enteros de 32 bits en big-endian: la magia (0xcafebabe, 3405691582), el número de
+      # arquitecturas y, desde el byte 8, veinte bytes por arquitectura: CPU, subtipo, desplazamiento, tamaño y
+      # alineación. 16777223 y 16777228 son los tipos de CPU de amd64 y de arm64: cada arquitectura se reconoce por el
+      # suyo, no por su posición. awk 'NF == 4', porque algún od añade una línea en blanco; y head | tail y no
+      # tail | head, que bajo pipefail hace fallar el paso, porque head cierra la tubería.
+      - name: Comprobar que los binarios de la extensión son los de los archivos
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          campo() { od -An -tu1 -j "$1" -N 4 extension/server/kitlegal | awk 'NF == 4 { print (($1 * 256 + $2) * 256 + $3) * 256 + $4 }'; }
+          if [ "$(campo 0)" -ne 3405691582 ] || [ "$(campo 4)" -ne 2 ]; then
+            echo "server/kitlegal no es un binario universal de dos arquitecturas" >&2
+            exit 1
+          fi
+          vistas=""
+          for base in 8 28; do
+            case "$(campo "$base")" in
+              16777223) arquitectura=amd64 ;;
+              16777228) arquitectura=arm64 ;;
+              *) echo "server/kitlegal lleva una arquitectura que no es amd64 ni arm64" >&2; exit 1 ;;
+            esac
+            hasta=$(($(campo $((base + 8))) + $(campo $((base + 12)))))
+            del_universal=$(head -c "$hasta" extension/server/kitlegal | tail -c "$(campo $((base + 12)))" | sha256sum | cut -d ' ' -f 1)
+            del_archivo=$(tar -xzOf "kitlegal_darwin_${arquitectura}.tar.gz" kitlegal | sha256sum | cut -d ' ' -f 1)
+            if [ "$del_universal" != "$del_archivo" ]; then
+              echo "la arquitectura ${arquitectura} de server/kitlegal no es el binario de kitlegal_darwin_${arquitectura}.tar.gz" >&2
+              exit 1
+            fi
+            vistas="${vistas}${arquitectura} "
+          done
+          if [ "$vistas" != "amd64 arm64 " ] && [ "$vistas" != "arm64 amd64 " ]; then
+            echo "server/kitlegal no lleva una arquitectura amd64 y una arm64: ${vistas}" >&2
+            exit 1
+          fi
+          de_la_extension=$(sha256sum < extension/server/kitlegal.exe | cut -d ' ' -f 1)
+          del_archivo=$(unzip -p kitlegal_windows_amd64.zip kitlegal.exe | sha256sum | cut -d ' ' -f 1)
+          if [ "$de_la_extension" != "$del_archivo" ]; then
+            echo "server/kitlegal.exe no es el binario de kitlegal_windows_amd64.zip" >&2
+            exit 1
+          fi
+
+      # ./kitlegal es el binario de Linux de la release, que el cuarto paso ya extrajo. El cliente lee cada respuesta de
+      # la tubería con nombre antes de enviar lo siguiente y antes de cerrar la entrada del servidor, sin esperas ni
+      # procesos en segundo plano; si el servidor termina sin responder, read falla y con él el paso.
+      - name: Arrancar el servidor y comprobar que lista las herramientas del manifiesto
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          mkfifo respuestas
+          cache=$(mktemp -d)
+          {
+            exec 4< respuestas
+            printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"humo","version":"0"}}}'
+            IFS= read -r saludo <&4
+            printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+            IFS= read -r lista <&4
+            printf '%s\n' "$lista" > lista.json
+          } | KITLEGAL_CACHE_DIR="$cache" ./kitlegal mcp serve > respuestas
+          jq -r '.result.tools[].name' lista.json | sort > anunciadas.txt
+          jq -r '.tools[].name' extension/manifest.json | sort > del-manifiesto.txt
+          if [ ! -s anunciadas.txt ] || ! cmp anunciadas.txt del-manifiesto.txt; then
+            echo "las herramientas que lista el servidor no son las de tools del manifiesto" >&2
+            exit 1
+          fi
+
+  # El catálogo del plugin, en jmorenobl/kitlegal-plugins, pasa a apuntar a esta etiqueta solo si `humo` sale en verde:
+  # si no, sigue en la anterior (H22 FR-031). El catálogo no guarda ningún fichero: el plugin sigue en la release de
+  # este repositorio, con su huella bajo la firma (H22 FR-032). Si el último paso no puede escribir, falla y este
+  # trabajo sale en rojo, sin afectar a los otros dos; volver a ejecutarlo escribe lo mismo.
+  catalogo:
+    needs: [humo]
+    runs-on: ubuntu-latest
+    # Solo leer este repositorio: lo que escribe está en otro, y lo escribe con PUBLISHER_TOKEN.
+    permissions:
+      contents: read
+    steps:
+      # El código de la etiqueta, por el paso que compone el catálogo. La credencial no se queda en el clon.
+      - name: Obtener el código de la etiqueta
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      # La versión es la etiqueta sin su v, y la huella, la que el checksums.txt publicado da para el plugin: sin esa
+      # línea la huella queda vacía, y el paso que empaqueta la rechaza. Con el token de la ejecución, que solo lee.
+      - name: Componer el catálogo de la etiqueta
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --dir "$RUNNER_TEMP"
+          huella=$(awk '$2 == "kitlegal-plugin.zip" { print $1 }' "$RUNNER_TEMP/checksums.txt")
+          go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -sha256 "$huella" -salida "$RUNNER_TEMP/marketplace.json"
+
+      # PUBLISHER_TOKEN, solo en el entorno de este paso. Escribe un único fichero, .claude-plugin/marketplace.json, con
+      # la API de contenidos, y lo sustituye entero: con el sha del que hay, si lo hay.
+      - name: Publicar el catálogo
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
+        run: |
+          set -euo pipefail
+          destino=repos/jmorenobl/kitlegal-plugins/contents/.claude-plugin/marketplace.json
+          contenido=$(base64 < "$RUNNER_TEMP/marketplace.json" | tr -d '\n')
+          if anterior=$(gh api "$destino" --jq .sha); then
+            cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" --arg sha "$anterior" '{message: $message, content: $content, sha: $sha}')
+          else
+            cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" '{message: $message, content: $content}')
+          fi
+          gh api --method PUT "$destino" --silent --input - <<< "$cuerpo"

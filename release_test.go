@@ -560,7 +560,13 @@ type laRelease struct {
 // FR-002, FR-006, FR-068). Y lo que sus §2 y §5 dicen de la validación del
 // plugin: el objetivo plugin-check, con su receta y su línea de ayuda y fuera
 // de ci, y los dos pasos que el trabajo snapshot gana para ejecutarlo, con
-// Claude Code en la versión que fija el job de evals (H22 FR-065).
+// Claude Code en la versión que fija el job de evals (H22 FR-065). Y lo que su
+// §6 dice de release.yml: tres trabajos; nueve sujetos atestados, con las dos
+// piezas; doce pasos en el humo, los seis nuevos con su guion entero; y el
+// trabajo catalogo, que depende del humo, no puede escribir en este
+// repositorio y publica el catálogo con PUBLISHER_TOKEN, que solo ven el paso
+// de goreleaser y ese (H22 FR-003, FR-031, FR-040 a FR-043, FR-068). Ningún
+// guion de release.yml se ejecuta aquí: se comprueba su definición.
 func TestConfiguracionDeLaRelease(t *testing.T) {
 	t.Parallel()
 
@@ -591,6 +597,7 @@ func TestConfiguracionDeLaRelease(t *testing.T) {
 		{"tokens-de-la-publicacion", probarTokensDeLaPublicacion},
 		{"atestacion", probarAtestacion},
 		{"humo", probarHumo},
+		{"catalogo", probarCatalogo},
 		{"trabajo-de-snapshot", probarTrabajoDeSnapshot},
 	}
 
@@ -1067,14 +1074,16 @@ const (
 	flujoDeLaRelease = ".github/workflows/release.yml"
 
 	// trabajoDeCI es el de make ci, cuya preparación de Go repite el trabajo
-	// snapshot; trabajoDePublicacion y trabajoDeHumo son los de release.yml.
+	// snapshot; trabajoDePublicacion, trabajoDeHumo y trabajoDelCatalogo son los
+	// de release.yml, el último desde H22 (H22 FR-031).
 	trabajoDeCI          = "ci"
 	trabajoDeSnapshot    = "snapshot"
 	trabajoDePublicacion = "publicar"
 	trabajoDeHumo        = "humo"
+	trabajoDelCatalogo   = "catalogo"
 
-	// runnerDeLosFlujos es el de los tres trabajos: linux/amd64, el binario que
-	// ejecutan TestSnapshot y el humo (research.md S15).
+	// runnerDeLosFlujos es el de los cuatro trabajos: linux/amd64, el binario
+	// que ejecutan TestSnapshot y el humo (research.md S15).
 	runnerDeLosFlujos = "ubuntu-latest"
 
 	// accionDeCheckout, accionDeSetupGo, accionDeSyft, accionDeCosign y
@@ -1115,8 +1124,11 @@ const (
 	accesoDelFlujo    = "github.token"
 
 	// variableDeLaRelease es la del token con el que goreleaser publica la
-	// release en GitHub.
+	// release en GitHub, y variableDeGH, la del token que lee gh: el del flujo
+	// en el humo y al componer el catálogo, y el del publicador solo en el paso
+	// que lo escribe (H22 FR-031).
 	variableDeLaRelease = "GITHUB_TOKEN"
+	variableDeGH        = "GH_TOKEN"
 
 	// repositorioDelProyecto es el de la release, contra el que el humo la
 	// descarga y verifica su atestación.
@@ -1131,13 +1143,19 @@ const (
 	// archivoDelHumo es el archivo publicado para el runner del humo.
 	archivoDelHumo = "kitlegal_linux_amd64.tar.gz"
 
-	// shellDelHumo, directorioDelHumo y opcionesDelHumo son el shell de cada paso
-	// del humo, el directorio temporal del runner en el que se ejecuta, que se lee
-	// con expresion, y su primera orden: una orden que falla, una variable sin
-	// valor o una tubería rota detienen el paso.
-	shellDelHumo      = "bash"
-	directorioDelHumo = "runner.temp"
-	opcionesDelHumo   = "set -euo pipefail"
+	// shellDeLosGuiones y opcionesDeLosGuiones son el shell de cada paso de
+	// release.yml que ejecuta un guion —los del humo y los dos del catálogo— y
+	// su primera orden: una orden que falla, una variable sin valor o una tubería
+	// rota detienen el paso. directorioDelHumo es el directorio temporal del
+	// runner, en el que se ejecuta cada paso del humo, y se lee con expresion.
+	shellDeLosGuiones    = "bash"
+	opcionesDeLosGuiones = "set -euo pipefail"
+	directorioDelHumo    = "runner.temp"
+
+	// escrituraDelCatalogo es la orden que escribe el catálogo: un PUT a la API
+	// de contenidos de GitHub, que falla, y con él su paso, si no puede escribir
+	// (H22 FR-031; contracts/release.md §6.3 de H22).
+	escrituraDelCatalogo = `gh api --method PUT "$destino" --silent --input - <<< "$cuerpo"`
 )
 
 // archivosDeLaRelease son los seis archivos que la release publica y atesta
@@ -1152,47 +1170,185 @@ var archivosDeLaRelease = []string{
 	"kitlegal_windows_arm64.zip",
 }
 
-// comprobacionesDelHumo son, en orden y un paso cada una, las seis
+// piezasDeLaRelease son los dos ficheros de H22 que la release publica y atesta
+// junto a los seis archivos y checksums.txt: la extensión de escritorio y el
+// plugin de Claude (H22 FR-003).
+var piezasDeLaRelease = []string{path.Base(extensionEnLaRelease), path.Base(pluginEnLaRelease)}
+
+// comprobacionDelHumo es una comprobación del trabajo humo, que es un paso: su
+// nombre, las órdenes que el guion de su paso tiene que llevar, cada una como
+// una línea entera, y si esas órdenes son el guion entero, en orden y sin
+// ninguna más detrás de sus opciones de shell.
+type comprobacionDelHumo struct {
+	nombre  string
+	ordenes []string
+	entero  bool
+}
+
+// comprobacionesDelHumo son, en orden y un paso cada una, las doce
 // comprobaciones del trabajo humo, con las órdenes que el guion de su paso
 // tiene que llevar, cada una como una línea entera: una orden comentada,
 // precedida de un echo o seguida de un || true ya no comprueba nada
 // (contracts/release.md §6; FR-113).
-var comprobacionesDelHumo = []struct {
-	nombre  string
-	ordenes []string
-}{
-	{"descarga", []string{
+//
+// Las seis primeras son las de H19, sobre el archivo linux/amd64. Las seis de
+// detrás son las de H22, sobre la extensión de escritorio y el plugin: su guion
+// se fija entero, con las órdenes de contracts/release.md §6.2 de H22 tal cual,
+// porque son los cuerpos que se midieron (H22 FR-040 a FR-043; research.md V20
+// de H22). Ninguna se ejecuta aquí contra una release: se comprueba su
+// definición.
+var comprobacionesDelHumo = []comprobacionDelHumo{
+	{nombre: "descarga", ordenes: []string{
 		`gh release download "$GITHUB_REF_NAME" --repo ` + repositorioDelProyecto +
 			" --pattern " + archivoDelHumo + " --pattern " + checksumsDeLaRelease,
 	}},
-	{"huella", []string{
+	{nombre: "huella", ordenes: []string{
 		`awk '$2 == "` + archivoDelHumo + `"' ` + checksumsDeLaRelease + " > huella.txt",
 		"sha256sum --check --strict huella.txt",
 	}},
-	{"atestacion", []string{
+	{nombre: "atestacion", ordenes: []string{
 		"gh attestation verify " + archivoDelHumo + " --repo " + repositorioDelProyecto,
 	}},
-	{"version", []string{
+	{nombre: "version", ordenes: []string{
 		"tar -xzf " + archivoDelHumo + " " + nombreDelProyecto,
 		"salida=$(./kitlegal version)",
 		`primera=$(head -n 1 <<< "$salida")`,
 		`if [ "$primera" != "kitlegal $GITHUB_REF_NAME" ]; then`,
 		"exit 1",
 	}},
-	{"boe-sin-red", []string{
+	{nombre: "boe-sin-red", ordenes: []string{
 		"cache=$(mktemp -d)",
 		`KITLEGAL_CACHE_DIR="$cache" ./kitlegal boe articulo BOE-A-2015-10565 a21 --offline || codigo=$?`,
 		`if [ "$codigo" -ne 4 ]; then`,
 		"exit 1",
 	}},
-	{"skills-install", []string{
+	{nombre: "skills-install", ordenes: []string{
 		"proyecto=$(mktemp -d)",
 		`cd "$proyecto"`,
 		`"$RUNNER_TEMP/kitlegal" skills install`,
 		"if [ ! -f .agents/skills/boe-legislacion/SKILL.md ]; then",
 		"exit 1",
 	}},
+
+	// La extensión, el plugin y los tres archivos que llevan los binarios de la
+	// extensión (H22 FR-040, FR-041).
+	{nombre: "descarga-de-las-piezas", entero: true, ordenes: ordenesDelGuion(`
+		gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern kitlegal.mcpb --pattern kitlegal-plugin.zip --pattern kitlegal_darwin_amd64.tar.gz --pattern kitlegal_darwin_arm64.tar.gz --pattern kitlegal_windows_amd64.zip
+	`)},
+
+	// Las cinco huellas, contra el checksums.txt que descargó el primer paso
+	// (H22 FR-040, FR-041).
+	{nombre: "huellas-de-las-piezas", entero: true, ordenes: ordenesDelGuion(`
+		awk '$2 == "kitlegal.mcpb" || $2 == "kitlegal-plugin.zip" || $2 == "kitlegal_darwin_amd64.tar.gz" || $2 == "kitlegal_darwin_arm64.tar.gz" || $2 == "kitlegal_windows_amd64.zip"' checksums.txt > huellas.txt
+		if [ "$(wc -l < huellas.txt)" -ne 5 ]; then
+		  echo "checksums.txt no lleva la huella de la extensión, del plugin y de los tres archivos" >&2
+		  exit 1
+		fi
+		sha256sum --check --strict huellas.txt
+	`)},
+
+	// La procedencia de las dos piezas (H22 FR-040).
+	{nombre: "atestacion-de-las-piezas", entero: true, ordenes: ordenesDelGuion(`
+		gh attestation verify kitlegal.mcpb --repo jmorenobl/kitlegal
+		gh attestation verify kitlegal-plugin.zip --repo jmorenobl/kitlegal
+	`)},
+
+	// El manifiesto: la versión de la etiqueta sin su v, los campos fijos y
+	// ningún user_config (H22 FR-041).
+	{nombre: "manifiesto-de-la-extension", entero: true, ordenes: ordenesDelGuion(`
+		unzip -q kitlegal.mcpb -d extension
+		if ! jq -e --arg version "${GITHUB_REF_NAME#v}" '.manifest_version == "0.3" and .name == "kitlegal" and .version == $version and .homepage == "https://kitlegal.es" and .license == "EUPL-1.2" and .icon == "icon.png" and .server.type == "binary" and .server.entry_point == "server/kitlegal" and .server.mcp_config == {"command": "${__dirname}/server/kitlegal", "args": ["mcp", "serve"], "platform_overrides": {"win32": {"command": "${__dirname}/server/kitlegal.exe"}}} and .compatibility == {"platforms": ["darwin", "win32"]} and (has("user_config") | not)' extension/manifest.json > /dev/null; then
+		  echo "el manifiesto de kitlegal.mcpb no lleva la versión ${GITHUB_REF_NAME#v} o sus campos fijos" >&2
+		  exit 1
+		fi
+	`)},
+
+	// Las dos arquitecturas del universal, leídas de su cabecera y reconocidas
+	// por su tipo de CPU, y el .exe, cada binario con la huella del de su
+	// archivo (H22 FR-041).
+	{nombre: "binarios-de-la-extension", entero: true, ordenes: ordenesDelGuion(`
+		campo() { od -An -tu1 -j "$1" -N 4 extension/server/kitlegal | awk 'NF == 4 { print (($1 * 256 + $2) * 256 + $3) * 256 + $4 }'; }
+		if [ "$(campo 0)" -ne 3405691582 ] || [ "$(campo 4)" -ne 2 ]; then
+		  echo "server/kitlegal no es un binario universal de dos arquitecturas" >&2
+		  exit 1
+		fi
+		vistas=""
+		for base in 8 28; do
+		  case "$(campo "$base")" in
+		    16777223) arquitectura=amd64 ;;
+		    16777228) arquitectura=arm64 ;;
+		    *) echo "server/kitlegal lleva una arquitectura que no es amd64 ni arm64" >&2; exit 1 ;;
+		  esac
+		  hasta=$(($(campo $((base + 8))) + $(campo $((base + 12)))))
+		  del_universal=$(head -c "$hasta" extension/server/kitlegal | tail -c "$(campo $((base + 12)))" | sha256sum | cut -d ' ' -f 1)
+		  del_archivo=$(tar -xzOf "kitlegal_darwin_${arquitectura}.tar.gz" kitlegal | sha256sum | cut -d ' ' -f 1)
+		  if [ "$del_universal" != "$del_archivo" ]; then
+		    echo "la arquitectura ${arquitectura} de server/kitlegal no es el binario de kitlegal_darwin_${arquitectura}.tar.gz" >&2
+		    exit 1
+		  fi
+		  vistas="${vistas}${arquitectura} "
+		done
+		if [ "$vistas" != "amd64 arm64 " ] && [ "$vistas" != "arm64 amd64 " ]; then
+		  echo "server/kitlegal no lleva una arquitectura amd64 y una arm64: ${vistas}" >&2
+		  exit 1
+		fi
+		de_la_extension=$(sha256sum < extension/server/kitlegal.exe | cut -d ' ' -f 1)
+		del_archivo=$(unzip -p kitlegal_windows_amd64.zip kitlegal.exe | sha256sum | cut -d ' ' -f 1)
+		if [ "$de_la_extension" != "$del_archivo" ]; then
+		  echo "server/kitlegal.exe no es el binario de kitlegal_windows_amd64.zip" >&2
+		  exit 1
+		fi
+	`)},
+
+	// El servidor, arrancado desde el binario de Linux que extrajo el cuarto
+	// paso, con un cliente que lee cada respuesta de una tubería con nombre
+	// antes de enviar lo siguiente: los nombres que lista son los de tools del
+	// manifiesto (H22 FR-042; research.md D11 de H22).
+	{nombre: "servidor", entero: true, ordenes: ordenesDelGuion(`
+		mkfifo respuestas
+		cache=$(mktemp -d)
+		{
+		  exec 4< respuestas
+		  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"humo","version":"0"}}}'
+		  IFS= read -r saludo <&4
+		  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+		  IFS= read -r lista <&4
+		  printf '%s\n' "$lista" > lista.json
+		} | KITLEGAL_CACHE_DIR="$cache" ./kitlegal mcp serve > respuestas
+		jq -r '.result.tools[].name' lista.json | sort > anunciadas.txt
+		jq -r '.tools[].name' extension/manifest.json | sort > del-manifiesto.txt
+		if [ ! -s anunciadas.txt ] || ! cmp anunciadas.txt del-manifiesto.txt; then
+		  echo "las herramientas que lista el servidor no son las de tools del manifiesto" >&2
+		  exit 1
+		fi
+	`)},
 }
+
+var (
+	// ordenesDeComponerElCatalogo son, enteras y en orden, las del paso que
+	// compone el catálogo de la etiqueta: la versión es la etiqueta sin su v, y la
+	// huella, la que el checksums.txt publicado da para el plugin (H22 FR-031;
+	// contracts/release.md §6.3 de H22).
+	ordenesDeComponerElCatalogo = ordenesDelGuion(`
+		gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --dir "$RUNNER_TEMP"
+		huella=$(awk '$2 == "kitlegal-plugin.zip" { print $1 }' "$RUNNER_TEMP/checksums.txt")
+		go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -sha256 "$huella" -salida "$RUNNER_TEMP/marketplace.json"
+	`)
+
+	// ordenesDePublicarElCatalogo son, enteras y en orden, las del paso que lo
+	// publica: solo escribe el marketplace.json del repositorio del catálogo, y lo
+	// sustituye entero, con el sha del que hay si lo hay (H22 FR-031, FR-032;
+	// contracts/release.md §6.3 de H22).
+	ordenesDePublicarElCatalogo = append(ordenesDelGuion(`
+		destino=repos/jmorenobl/kitlegal-plugins/contents/.claude-plugin/marketplace.json
+		contenido=$(base64 < "$RUNNER_TEMP/marketplace.json" | tr -d '\n')
+		if anterior=$(gh api "$destino" --jq .sha); then
+		  cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" --arg sha "$anterior" '{message: $message, content: $content, sha: $sha}')
+		else
+		  cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" '{message: $message, content: $content}')
+		fi
+	`), escrituraDelCatalogo)
+)
 
 // etiquetaDeAccion es como los flujos fijan una acción: por su etiqueta mayor,
 // como el resto de flujos del repositorio (research.md V36), o por su versión
@@ -1379,7 +1535,7 @@ func ordenesDelGuion(guion string) []string {
 // probarFlujoDeLaRelease: release.yml solo se dispara al empujar una etiqueta
 // v*, con ningún otro evento (FR-110, FR-115); no da permisos a nivel de flujo,
 // de modo que cada trabajo tiene solo los que declara (FR-111); y sus trabajos
-// son publicar y humo.
+// son tres: publicar, humo y, desde H22, catalogo (H22 FR-031, FR-068).
 func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1388,7 +1544,8 @@ func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
 	assert.Equal(t, map[string]*eventoDelFlujo{"push": {Tags: []string{"v*"}}}, flujo.On,
 		"%s se dispara solo al empujar una etiqueta v* (FR-110)", flujo.ruta)
 	assert.Nil(t, flujo.Permissions, "%s no da permisos a nivel de flujo (contracts/release.md §6)", flujo.ruta)
-	assert.ElementsMatch(t, []string{trabajoDePublicacion, trabajoDeHumo}, slices.Collect(maps.Keys(flujo.Jobs)))
+	assert.ElementsMatch(t, []string{trabajoDePublicacion, trabajoDeHumo, trabajoDelCatalogo},
+		slices.Collect(maps.Keys(flujo.Jobs)), "los trabajos de %s (H22 FR-031, FR-068)", flujo.ruta)
 }
 
 // probarTrabajoDePublicacion: publicar corre en ubuntu-latest con contents,
@@ -1422,22 +1579,44 @@ func probarTrabajoDePublicacion(t *testing.T, release laRelease) {
 	}, pasos[ordenDePublicacion].Env, "el entorno del paso que publica (FR-097, FR-114)")
 }
 
-// probarTokensDeLaPublicacion: de todos los flujos, solo el paso que publica
-// nombra PUBLISHER_TOKEN (FR-097, FR-114), y release.yml no lee ningún secreto
-// fuera del entorno de ese paso.
+// probarTokensDeLaPublicacion: de todos los flujos, PUBLISHER_TOKEN se nombra
+// en dos sitios, los entornos de los dos pasos que publican con él —el de
+// goreleaser en publicar, como en H19 (FR-097, FR-114), y el que escribe el
+// catálogo—, y release.yml no lee ningún secreto fuera de esos dos entornos: ni
+// en el humo ni en el entorno de un trabajo (H22 FR-031, FR-068).
 func probarTokensDeLaPublicacion(t *testing.T, release laRelease) {
 	t.Helper()
 
 	publicar := leerTrabajo(t, release.publicacion, trabajoDePublicacion)
-	entorno := fmt.Sprintf("jobs.%s.steps[%d].env.", trabajoDePublicacion,
-		indiceDelPaso(t, publicar, ordenDePublicacion))
+	catalogo := leerTrabajo(t, release.publicacion, trabajoDelCatalogo)
 
-	assert.Equal(t, []string{flujoDeLaRelease + ": " + entorno + variableDelPublicador},
-		rutasEnLosFlujos(release.flujos, variableDelPublicador),
-		"%s solo se usa en el paso que publica (FR-097, FR-114)", variableDelPublicador)
-	assert.ElementsMatch(t, []string{entorno + variableDeLaRelease, entorno + variableDelPublicador},
+	deLaRelease := fmt.Sprintf("jobs.%s.steps[%d].env.", trabajoDePublicacion,
+		indiceDelPaso(t, publicar, ordenDePublicacion))
+	delCatalogo := fmt.Sprintf("jobs.%s.steps[%d].env.%s", trabajoDelCatalogo,
+		indiceDelGuion(t, catalogo, escrituraDelCatalogo), variableDeGH)
+
+	assert.ElementsMatch(t, []string{
+		flujoDeLaRelease + ": " + deLaRelease + variableDelPublicador,
+		flujoDeLaRelease + ": " + delCatalogo,
+	}, rutasEnLosFlujos(release.flujos, variableDelPublicador),
+		"%s solo se usa en el paso de goreleaser y en el que publica el catálogo (FR-097, FR-114; H22 FR-031)",
+		variableDelPublicador)
+	assert.ElementsMatch(t, []string{deLaRelease + variableDeLaRelease, deLaRelease + variableDelPublicador, delCatalogo},
 		rutasQueNombran(release.flujos[flujoDeLaRelease], lecturaDeSecretos, ""),
-		"%s solo lee un secreto en el entorno del paso que publica (FR-114)", flujoDeLaRelease)
+		"%s solo lee un secreto en el entorno de esos dos pasos (FR-114; H22 FR-031)", flujoDeLaRelease)
+}
+
+// indiceDelGuion es la posición del paso cuyo guion lleva la orden como una
+// línea entera (ordenesDelGuion).
+func indiceDelGuion(t *testing.T, trabajo trabajoDelFlujo, orden string) int {
+	t.Helper()
+
+	indice := slices.IndexFunc(trabajo.Steps, func(paso pasoDelFlujo) bool {
+		return slices.Contains(ordenesDelGuion(paso.Run), orden)
+	})
+	require.GreaterOrEqualf(t, indice, 0, "ningún paso ejecuta %s", orden)
+
+	return indice
 }
 
 // expresion es como un flujo lee un valor de un contexto de GitHub Actions:
@@ -1447,8 +1626,9 @@ func expresion(valor string) string {
 }
 
 // probarAtestacion: tras publicar, attest-build-provenance atesta la procedencia
-// de exactamente los seis archivos y checksums.txt de dist/, y ningún otro flujo
-// la usa (FR-112).
+// de exactamente nueve sujetos de dist/ —los seis archivos y checksums.txt
+// (FR-112) y, desde H22, la extensión y el plugin (H22 FR-003, FR-068)—, y
+// ningún otro flujo la usa.
 func probarAtestacion(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1458,7 +1638,7 @@ func probarAtestacion(t *testing.T, release laRelease) {
 	assert.Greater(t, indice, indiceDelPaso(t, publicar, ordenDePublicacion), "la atestación va tras publicar")
 
 	var sujetos []string
-	for _, fichero := range append(slices.Clone(archivosDeLaRelease), checksumsDeLaRelease) {
+	for _, fichero := range slices.Concat(archivosDeLaRelease, []string{checksumsDeLaRelease}, piezasDeLaRelease) {
 		sujetos = append(sujetos, path.Join(carpetaDeLaRelease, fichero))
 	}
 
@@ -1466,16 +1646,17 @@ func probarAtestacion(t *testing.T, release laRelease) {
 
 	assert.Equal(t, []string{"subject-path"}, slices.Collect(maps.Keys(atestacion.With)))
 	assert.ElementsMatch(t, sujetos, strings.Fields(atestacion.With["subject-path"]),
-		"los seis archivos y %s (FR-112)", checksumsDeLaRelease)
+		"los seis archivos, %s y las dos piezas de H22: nueve sujetos (FR-112; H22 FR-003)", checksumsDeLaRelease)
 	assert.Equal(t, []string{fmt.Sprintf("%s: jobs.%s.steps[%d].uses", flujoDeLaRelease, trabajoDePublicacion, indice)},
 		rutasEnLosFlujos(release.flujos, accionDeAtestacion), "solo release.yml atesta (FR-112)")
 }
 
 // probarHumo: humo espera a publicar y corre en ubuntu-latest, con permiso para
-// leer el contenido y las atestaciones y el token del flujo para gh; hace las
-// seis comprobaciones de contracts/release.md §6, un paso cada una y en orden,
-// ninguno con una acción, de modo que no obtiene el código del repositorio
-// (FR-113).
+// leer el contenido y las atestaciones —y ninguno más— y el token del flujo
+// para gh; hace las doce comprobaciones de comprobacionesDelHumo —las seis de
+// contracts/release.md §6 (FR-113) y, detrás, las seis de su §6.2 de H22 (H22
+// FR-040 a FR-042)—, un paso cada una y en orden, ninguno con una acción, de
+// modo que sigue sin obtener el código del repositorio (H22 FR-043).
 func probarHumo(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1485,41 +1666,119 @@ func probarHumo(t *testing.T, release laRelease) {
 	assert.Equal(t, runnerDeLosFlujos, humo.RunsOn)
 	assert.Equal(t, map[string]string{"contents": "read", "attestations": "read"}, humo.Permissions,
 		"los permisos de %s (contracts/release.md §6)", trabajoDeHumo)
-	assert.Equal(t, map[string]string{"GH_TOKEN": expresion(accesoDelFlujo)}, humo.Env,
+	assert.Equal(t, map[string]string{variableDeGH: expresion(accesoDelFlujo)}, humo.Env,
 		"gh usa el token de la ejecución, con los permisos de %s", trabajoDeHumo)
-	require.Len(t, humo.Steps, len(comprobacionesDelHumo), "un paso por comprobación del humo (FR-113)")
+	require.Len(t, humo.Steps, len(comprobacionesDelHumo),
+		"un paso por comprobación del humo (FR-113; H22 FR-040 a FR-042)")
 
 	for indice, comprobacion := range comprobacionesDelHumo {
-		probarPasoDelHumo(t, humo.Steps[indice], comprobacion.nombre, comprobacion.ordenes)
+		probarPasoDelHumo(t, humo.Steps[indice], comprobacion)
 	}
 }
 
-// probarPasoDelHumo: el paso de una comprobación no usa ninguna acción, corre con
-// bash en el directorio temporal del runner, empieza fijando sus opciones de
-// shell, lleva cada orden de la comprobación como una línea entera fuera de sus
-// comentarios y bash lo lee sin errores de sintaxis, sin ejecutarlo.
-func probarPasoDelHumo(t *testing.T, paso pasoDelFlujo, comprobacion string, esperadas []string) {
+// probarPasoDelHumo: el paso de una comprobación corre en el directorio temporal
+// del runner, cumple lo que ordenesDelPaso exige de un paso con guion y lleva
+// cada orden de la comprobación como una línea entera fuera de sus comentarios;
+// si la comprobación fija el guion entero, esas órdenes, en orden, y ninguna
+// más.
+func probarPasoDelHumo(t *testing.T, paso pasoDelFlujo, comprobacion comprobacionDelHumo) {
 	t.Helper()
 
-	assert.Emptyf(t, paso.Uses, "el paso %q del humo usa una acción", comprobacion)
-	assert.Equalf(t, shellDelHumo, paso.Shell, "el shell del paso %q del humo", comprobacion)
-	assert.Equalf(t, expresion(directorioDelHumo), paso.WorkingDirectory, "el directorio del paso %q del humo",
-		comprobacion)
+	nombre := fmt.Sprintf("%q del humo", comprobacion.nombre)
 
-	ordenes := ordenesDelGuion(paso.Run)
-	require.NotEmptyf(t, ordenes, "el paso %q del humo no ejecuta nada", comprobacion)
-	assert.Equalf(t, opcionesDelHumo, ordenes[0], "el paso %q del humo no empieza fijando sus opciones", comprobacion)
+	assert.Equalf(t, expresion(directorioDelHumo), paso.WorkingDirectory, "el directorio del paso %s", nombre)
 
-	for _, orden := range esperadas {
-		assert.Containsf(t, ordenes, orden, "el paso %q del humo no hace lo que fija contracts/release.md §6 (FR-113)",
-			comprobacion)
+	ordenes := ordenesDelPaso(t, paso, nombre)
+
+	if comprobacion.entero {
+		assert.Equalf(t, comprobacion.ordenes, ordenes,
+			"el guion del paso %s no es el de contracts/release.md §6.2 de H22 (H22 FR-040 a FR-042)", nombre)
+
+		return
 	}
 
-	sintaxis := exec.CommandContext(t.Context(), shellDelHumo, "-n")
+	for _, orden := range comprobacion.ordenes {
+		assert.Containsf(t, ordenes, orden, "el paso %s no hace lo que fija contracts/release.md §6 (FR-113)", nombre)
+	}
+}
+
+// ordenesDelPaso exige de un paso que ejecuta un guion que no use ninguna
+// acción, que corra con bash, que empiece fijando sus opciones de shell y que
+// bash lo lea sin errores de sintaxis, sin ejecutarlo; y da las órdenes del
+// guion (ordenesDelGuion) que van detrás de esas opciones.
+func ordenesDelPaso(t *testing.T, paso pasoDelFlujo, nombre string) []string {
+	t.Helper()
+
+	assert.Emptyf(t, paso.Uses, "el paso %s usa una acción", nombre)
+	assert.Equalf(t, shellDeLosGuiones, paso.Shell, "el shell del paso %s", nombre)
+
+	ordenes := ordenesDelGuion(paso.Run)
+	require.NotEmptyf(t, ordenes, "el paso %s no ejecuta nada", nombre)
+	assert.Equalf(t, opcionesDeLosGuiones, ordenes[0], "el paso %s no empieza fijando sus opciones", nombre)
+
+	sintaxis := exec.CommandContext(t.Context(), shellDeLosGuiones, "-n")
 	sintaxis.Stdin = strings.NewReader(paso.Run)
 
 	salida, err := sintaxis.CombinedOutput()
-	assert.NoErrorf(t, err, "bash no lee el paso %q del humo: %s", comprobacion, salida)
+	assert.NoErrorf(t, err, "bash no lee el paso %s: %s", nombre, salida)
+
+	return ordenes[1:]
+}
+
+// probarCatalogo: catalogo espera al humo, de modo que solo corre si sale en
+// verde, y corre en ubuntu-latest, con permiso para leer el contenido y ninguno
+// más —no puede escribir en este repositorio— y sin entorno propio; son cuatro
+// pasos, en orden: obtiene el código sin dejar la credencial en el clon, instala
+// Go de go.mod sin restaurar ninguna caché, compone el catálogo de la etiqueta
+// con el token del flujo y lo publica con PUBLISHER_TOKEN, que solo está en el
+// entorno de ese paso (H22 FR-031, FR-032, FR-068; contracts/release.md §6.3 y
+// §7 de H22).
+func probarCatalogo(t *testing.T, release laRelease) {
+	t.Helper()
+
+	catalogo := leerTrabajo(t, release.publicacion, trabajoDelCatalogo)
+
+	assert.Equal(t, []string{trabajoDeHumo}, catalogo.Needs,
+		"%s solo corre si %s sale en verde: si no, el catálogo sigue en la etiqueta anterior (H22 FR-031)",
+		trabajoDelCatalogo, trabajoDeHumo)
+	assert.Equal(t, runnerDeLosFlujos, catalogo.RunsOn)
+	assert.Equal(t, map[string]string{"contents": "read"}, catalogo.Permissions,
+		"%s no tiene permiso de escritura sobre este repositorio (H22 FR-031)", trabajoDelCatalogo)
+	assert.Empty(t, catalogo.Env, "%s no tiene entorno propio: cada token va en el paso que lo usa (H22 FR-031)",
+		trabajoDelCatalogo)
+	require.Len(t, catalogo.Steps, 4, "los pasos de %s (contracts/release.md §6.3 de H22)", trabajoDelCatalogo)
+
+	obtener, instalar, componer, publicar := catalogo.Steps[0], catalogo.Steps[1], catalogo.Steps[2], catalogo.Steps[3]
+
+	assert.Equal(t, []string{accionDeCheckout, accionDeSetupGo}, secuencia(t, catalogo.Steps[:2]),
+		"los dos primeros pasos de %s obtienen el código e instalan Go", trabajoDelCatalogo)
+	assert.Equal(t, map[string]string{"persist-credentials": "false"}, obtener.With,
+		"el código de la etiqueta, sin la credencial en el clon")
+	assert.Equal(t, map[string]string{"go-version-file": "go.mod", "cache": "false"}, instalar.With,
+		"Go de go.mod, sin restaurar nada de otra ejecución")
+	assert.Empty(t, obtener.Env, "el paso que obtiene el código no tiene entorno")
+	assert.Empty(t, instalar.Env, "el paso que instala Go no tiene entorno")
+
+	probarGuionDelCatalogo(t, componer, "componer", accesoDelFlujo, ordenesDeComponerElCatalogo)
+	probarGuionDelCatalogo(t, publicar, "publicar", lecturaDeSecretos+"."+variableDelPublicador,
+		ordenesDePublicarElCatalogo)
+}
+
+// probarGuionDelCatalogo: un paso con guion del trabajo catalogo cumple lo que
+// ordenesDelPaso exige, corre en el espacio de trabajo —donde el primer paso
+// dejó el código, con el paso que empaqueta—, no tiene en su entorno más que el
+// token de gh, que es el que se lee del contexto dado, y su guion es el de
+// contracts/release.md §6.3 de H22: esas órdenes, en orden, y ninguna más.
+func probarGuionDelCatalogo(t *testing.T, paso pasoDelFlujo, comprobacion, token string, esperadas []string) {
+	t.Helper()
+
+	nombre := fmt.Sprintf("%q del catálogo", comprobacion)
+
+	assert.Emptyf(t, paso.WorkingDirectory, "el paso %s corre en el espacio de trabajo", nombre)
+	assert.Equalf(t, map[string]string{variableDeGH: expresion(token)}, paso.Env,
+		"el entorno del paso %s (H22 FR-031)", nombre)
+	assert.Equalf(t, esperadas, ordenesDelPaso(t, paso, nombre),
+		"el guion del paso %s no es el de contracts/release.md §6.3 de H22 (H22 FR-031)", nombre)
 }
 
 // probarTrabajoDeSnapshot: ci.yml se dispara en cada propuesta de cambio y en
