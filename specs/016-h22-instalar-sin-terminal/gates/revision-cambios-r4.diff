@@ -1,0 +1,138 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 1df72ce..16c5fe9 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -104,15 +104,19 @@ sustituyen a este fichero.
+   pide cada paso del protocolo, ni la `description`, la forma de la cita, la de los avisos de vigencia, la de
+   `⚠ REDACCIÓN MODIFICADA:` ni las órdenes para PowerShell. Sustituyen a `boe-legislacion` v0.1.4 y a `legal-core`
+   v0.
+-- **`boe-legislacion` v0.1.6: se activa también antes de llamar a una herramienta.** La `description` de la skill
+-  —lo que el agente lee para decidir si la activa— solo hablaba del binario: «sin leer la norma con el binario, la
+-  respuesta no tiene cita». Un agente con las herramientas del servidor MCP podía leer el bloque con `boe_articulo`
+-  sin activar la skill y responder sin su protocolo: sin pedir después `graph_check`, y por tanto sin la línea
+-  `⚠ REDACCIÓN MODIFICADA:` cuando la redacción hubiera cambiado. Ahora dice «sin leer la norma con kitlegal, la
+-  respuesta no tiene cita», añade «Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y
+-  cómo citar lo dice la skill» y termina con «Lee el índice y los artículos con kitlegal» en lugar de «con el
+-  binario kitlegal». No cambia nada del cuerpo de `SKILL.md`, ni `legal-core`, ni el servidor ni sus `instructions`.
+-  Sustituye a `boe-legislacion` v0.1.5.
++- **`boe-legislacion` v0.1.6: la `description` pide activarla antes de llamar a una herramienta de `boe`.** La
++  `description` de la skill —lo que el agente lee para decidir si la activa— solo hablaba del binario: «sin leer la
++  norma con el binario, la respuesta no tiene cita». Un agente con las herramientas del servidor MCP podía leer el
++  bloque con `boe_articulo` sin activar la skill y responder sin su protocolo: sin pedir después `graph_check`, y por
++  tanto sin la línea `⚠ REDACCIÓN MODIFICADA:` cuando la redacción hubiera cambiado. Ahora dice «sin leer la norma
++  con kitlegal, la respuesta no tiene cita», añade «Actívala antes de llamar a boe_articulo u otra herramienta
++  boe_…: qué pedir y cómo citar lo dice la skill» y termina con «Lee el índice y los artículos con kitlegal» en
++  lugar de «con el binario kitlegal». La frase nueva nombra solo las herramientas con las que se lee una norma, las
++  seis de `boe` (`boe_buscar`, `boe_indice`, `boe_articulo`, `boe_articulos`, `boe_metadatos` y `boe_analisis`): no
++  las de `territorio`, que son de `legal-core`, ni las de `graph`. La `description` mide 1 018 caracteres (el máximo
++  es 1 024; medía 924) y `SKILL.md`, 298 líneas (el máximo es 299; tenía 297) y 24 045 bytes (tenía 23 944); los
++  cinco ficheros de las dos skills suman 44 338 bytes (sumaban 44 237). No cambia nada del cuerpo de `SKILL.md`, ni
++  `legal-core`, ni el servidor ni sus `instructions`. Sustituye a `boe-legislacion` v0.1.5.
+ - **La tabla de comandos de cada skill gana la columna «Herramienta»**: `make skills-sync` genera
+   ``| Orden | Herramienta | Qué hace | Qué devuelve en `data` |``, con la herramienta de cada orden en su fila
+   (`kitlegal boe articulo <norma> <bloque>` y `boe_articulo`), y la cierra con «La orden y la herramienta de cada
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index 6e1a35c..6291235 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -6,7 +6,7 @@ description: >-
+   público, transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué
+   dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una
+   materia—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita.
+-  Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y cómo citar lo dice la skill.
++  Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill.
+   La norma puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura
+   (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma
+   estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con kitlegal y responde citando
+diff --git a/specs/016-h22-instalar-sin-terminal/plan.md b/specs/016-h22-instalar-sin-terminal/plan.md
+index 7632bba..a2dcbb4 100644
+--- a/specs/016-h22-instalar-sin-terminal/plan.md
++++ b/specs/016-h22-instalar-sin-terminal/plan.md
+@@ -326,9 +326,11 @@ consultado. Lo que sí crece con el uso, la caché y el grafo de `~/.cache/kitle
+ - **`tools` se compara como conjunto** (D15). **El paso no escribe en la salida estándar** (D16).
+ - **Un test fija que el binario no enlaza el paso** (D17). **Datos externos: ninguno** (D18).
+ - Las demás, con su alternativa rechazada, en research D1-D20.
+-- **Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas** (v0.1.6), y se aparta de
+-  «las dos skills, byte a byte»: la medición sobre `4b350fa` dio una respuesta de 54 sin la skill activada en el modo
+-  herramienta, con umbral 0 (D21). Su efecto lo mide el job de la medición siguiente.
++- **Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas de `boe`** (v0.1.6), y se
++  aparta de «las dos skills, byte a byte»: la medición sobre `4b350fa` dio una respuesta de 54 sin la skill activada
++  en el modo herramienta, con umbral 0 (D21). Nombra solo las `boe_…`, con las que se lee una norma, y no las de
++  `territorio` ni las de `graph` (revisión final, ronda 3). Su efecto lo mide el job de la medición siguiente, en
++  `boe-legislacion` y en `legal-core`.
+ 
+ ## Trazabilidad: cada mecanismo y su requisito
+ 
+diff --git a/specs/016-h22-instalar-sin-terminal/research.md b/specs/016-h22-instalar-sin-terminal/research.md
+index 3a5b44c..f13afe7 100644
+--- a/specs/016-h22-instalar-sin-terminal/research.md
++++ b/specs/016-h22-instalar-sin-terminal/research.md
+@@ -328,7 +328,7 @@ versionado.
+ **Por qué**: SC-009 pide un test que falle «con 121 caracteres o con un icono de otro tamaño». El paso lee el icono de
+ todos modos: mirarle la cabecera no añade ninguna entrada.
+ 
+-### D21 · Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas (v0.1.6)
++### D21 · Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas de `boe` (v0.1.6)
+ 
+ **La medición** (cierre, ronda 1, sobre `4b350fa`; `gates/cierre.json` y `gates/evals/boe-legislacion.json`): `ci`,
+ `snapshot`, `construir` y `evals (legal-core)` en verde; `evals (boe-legislacion)` en rojo, con el veredicto `fallo` y
+@@ -360,13 +360,34 @@ protege.
+ 
+ 1. «sin leer la norma con el binario, la respuesta no tiene cita» pasa a «sin leer la norma con kitlegal, la respuesta
+    no tiene cita»: la razón de H7.4, cierta en los dos modos.
+-2. Detrás, una frase nueva: «Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y cómo
+-   citar lo dice la skill.» Da la razón y no una prohibición, como la de H7.4 (research D1 de H7.4, alternativa c).
++2. Detrás, una frase nueva: «Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar
++   lo dice la skill.» Da la razón y no una prohibición, como la de H7.4 (research D1 de H7.4, alternativa c). Nombra
++   solo las herramientas con las que se lee una norma: `boe_articulo`, la de la sesión medida, y las demás del applet
++   `boe` por su prefijo (`boe_buscar`, `boe_indice`, `boe_articulos`, `boe_metadatos` y `boe_analisis`), con la forma
++   que la `description` ya usa para «su identificador BOE-A-…». No nombra `territorio_resolver`, que es de
++   `legal-core`, ni las de `graph`: `graph_check` la pide el protocolo después de leer, con la skill ya activada.
+ 3. «Lee el índice y los artículos con el binario kitlegal» pasa a «con kitlegal».
+ 
+-Es `boe-legislacion` v0.1.6 (`CHANGELOG.md`, *Unreleased*). Medido en esta sesión: la `description` tiene 1 021
+-caracteres (máximo 1 024; tenía 924), `SKILL.md` 298 líneas (máximo 299; tenía 297) y 24 049 bytes (tenía 23 944), y
+-los cinco ficheros de las dos skills suman 44 342 bytes (44 237 en `main`); `make skills-check` y `make ci`, en verde.
++La reparación escribió primero la frase del punto 2 como «Actívala también antes de llamar a sus herramientas
++(boe_articulo…): qué pedir y cómo citar lo dice la skill.», y la revisión final la acotó (ronda 3, motivo [i]): «sus»
++va detrás de «con kitlegal» y la lista quedaba abierta, de modo que podía leerse como las diez herramientas del
++servidor, y la medición solo pide la activación antes de leer una norma con `boe_articulo`.
++
++Es `boe-legislacion` v0.1.6 (`CHANGELOG.md`, *Unreleased*). Medido sobre el texto que queda, en la sesión que lo acotó:
++la `description` tiene 1 018 caracteres (máximo 1 024; tenía 924), `SKILL.md` 298 líneas (máximo 299; tenía 297) y
++24 045 bytes (tenía 23 944), y los cinco ficheros de las dos skills suman 44 338 bytes (44 237 en `main`);
++`make skills-check` y `make ci`, en verde.
++
++**Por qué no contradice FR-003 de H7.4** («La skill MUST NOT activarse con lo que no es de su ámbito»,
++`specs/014-h7-4-boe-legislacion-sin/spec.md`): H7.4 sostuvo ese requisito en que el ámbito de la `description` es lo
++que dice una norma consolidada del BOE (su research, «La activación»: «Contra la sobreactivación»). La frase nueva no
++sale de ahí: las seis herramientas `boe_…` consultan la legislación consolidada del BOE y nada más, así que quien va a
++llamar a una va a leer una norma, que es el ámbito de la skill. Las preguntas de `legal-core` no pasan por ellas: en
++`gates/evals/legal-core.json`, de 42 sesiones, las 12 llamadas a una herramienta son a `territorio_resolver` (las
++evals 01 y 02 en el modo herramienta) y ninguna a una `boe_…`; y `legal-core` no lee artículos, delega su texto en
++`boe-legislacion` (su paso 6). Sus cuatro evals declaran `no_se_activan: [boe-legislacion]`, y una sesión que la
++active no pasa (`internal/evals/juzgar.go`, `anotarLasQueNoSeActivan`): es el control de FR-003, y este cambio no lo
++toca.
+ 
+ **De qué se aparta**: el spec deja las dos skills como están —«Se queda: … las dos skills, byte a byte; el job de evals
+ y sus umbrales» («Relación con H19 y H21»), «las skills no cambian» («Fuera de alcance») y «Este hito no toca las
+@@ -392,8 +413,14 @@ sea (`TestPiezas`, `skills-del-plugin`).
+ - *Relanzar la medición sin cambiar nada*, como una fluctuación de 1 entre 108: el umbral es 0, la sesión responde sin
+   el protocolo y la `description` dejaba el hueco. Y *rebajar el umbral, sacarlo del veredicto o tocar la eval 01*: no
+   se arregla ahí (ADR 0029).
+-
+-**Lo que no se ha medido**: el efecto del cambio en la activación, en ninguno de los dos modos. Este paso no abre
+-sesiones con modelo (ADR 0032), así que no hay sondeo ni ninguna otra medida del texto nuevo: lo mide el job de evals
+-en la medición siguiente del cierre, después de que los dos jueces lo juzguen (ADR 0030). La `description` cambia
+-también lo que lee el modo orden, que estaba en 0 de 108: eso lo mide el mismo job.
++- *Otras formas de la frase del punto 2*: los seis nombres de `boe`, uno a uno, no caben (la frase mediría 150
++  caracteres y la `description`, 1 062); con «Actívala también antes de…» la `description` mediría 1 026; y nombrar
++  también las de `graph`, los dos applets de la skill, es más de lo que pide la medición (lectura conservadora).
++
++**Lo que no se ha medido**: el efecto del cambio en la activación, en ninguno de los dos modos. Ni el paso que reparó
++el cierre ni el que acotó la frase abren sesiones con modelo (ADR 0032), así que no hay sondeo ni ninguna otra medida
++del texto nuevo: lo mide el job de evals en la medición siguiente del cierre, después de que los dos jueces lo juzguen
++(ADR 0030). La `description` cambia también lo que lee el modo orden, que estaba en 0 de 108: eso lo mide el mismo job.
++Y tampoco se ha medido si `boe-legislacion` se activa de más en una pregunta de territorio: las sesiones de las evals de
++`legal-core` la ven instalada, así que el job de `legal-core` de esa misma medición también mide este cambio, con
++`no_se_activan` en sus cuatro evals, y la 01, la 02 y la 03, en los dos modos.
