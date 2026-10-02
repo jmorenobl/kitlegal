@@ -326,6 +326,9 @@ consultado. Lo que sí crece con el uso, la caché y el grafo de `~/.cache/kitle
 - **`tools` se compara como conjunto** (D15). **El paso no escribe en la salida estándar** (D16).
 - **Un test fija que el binario no enlaza el paso** (D17). **Datos externos: ninguno** (D18).
 - Las demás, con su alternativa rechazada, en research D1-D20.
+- **Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas** (v0.1.6), y se aparta de
+  «las dos skills, byte a byte»: la medición sobre `4b350fa` dio una respuesta de 54 sin la skill activada en el modo
+  herramienta, con umbral 0 (D21). Su efecto lo mide el job de la medición siguiente.
 
 ## Trazabilidad: cada mecanismo y su requisito
 

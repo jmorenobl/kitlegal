@@ -327,3 +327,73 @@ versionado.
 
 **Por qué**: SC-009 pide un test que falle «con 121 caracteres o con un icono de otro tamaño». El paso lee el icono de
 todos modos: mirarle la cabecera no añade ninguna entrada.
+
+### D21 · Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas (v0.1.6)
+
+**La medición** (cierre, ronda 1, sobre `4b350fa`; `gates/cierre.json` y `gates/evals/boe-legislacion.json`): `ci`,
+`snapshot`, `construir` y `evals (legal-core)` en verde; `evals (boe-legislacion)` en rojo, con el veredicto `fallo` y
+un solo motivo: `sin_activar:claude-sonnet-5-5:herramienta`, 1 de 54 (tiene que ser 0). Los otros nueve umbrales se
+cumplen (expresiones prohibidas y redacción no leída, 0 de 54 en cada modo; `sin_activar` en el modo orden, 0 de 54;
+452 s y 458 s) y toda serie que decide pasa. Leído en el informe:
+
+- La sesión es `01-lpac-articulo-21-herramienta-claude-sonnet-5-5-01` («¿qué dice el art. 21 de la Ley 39/2015?»): no
+  activó la skill, llamó a `boe_articulo BOE-A-2015-10565 a21` y a nada más —no a `graph_check`—, y respondió con la
+  cita en su forma. Las otras 53 sesiones del modelo que decide en el modo herramienta activaron la skill, y todas
+  llaman a `graph_check` después de leer; las otras dos de la eval 01, también.
+- El hito no cambia nada de lo que el job mide: `git diff main HEAD` sobre `skills/`, `internal/mcp`, `internal/evals`,
+  `evals/`, `data/` y `evals.yml` no da nada. El cierre de H21, con la misma skill y el mismo servidor (`faae2e6`,
+  `specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json`), dio 0 de 54 en cada modo. Entre las dos
+  mediciones: 1 de 108 en el modo herramienta y 0 de 108 en el modo orden.
+
+**La causa**, leída en los textos y en esa sesión, no medida: la `description` —lo que el modelo lee para decidir si
+activa la skill, antes de cargar el cuerpo (H7.4, research D1)— solo habla del binario. Da como razón «sin leer la
+norma con el binario, la respuesta no tiene cita» y termina con «Lee el índice y los artículos con el binario
+kitlegal». H21 dio al cuerpo las dos formas de pedir cada operación y dejó la `description` como estaba (`CHANGELOG.md`,
+`boe-legislacion` v0.1.5: «No cambia … la `description`»). Con el servidor conectado esa razón no obliga: el modelo
+puede leer la norma con `boe_articulo` sin la skill, y las `instructions` del servidor le dan la forma de la cita, con
+un ejemplo que es la norma y el bloque de la eval 01 (`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`). Lo
+que se pierde sin la skill es el protocolo: en esa sesión, `graph_check`, y con él la línea `⚠ REDACCIÓN MODIFICADA:`
+cuando la redacción ha cambiado. No es ruido del umbral: es una respuesta sin el protocolo, que es lo que el umbral
+protege.
+
+**Decisión**: tres cambios en la `description` de `skills/boe-legislacion/SKILL.md`, y ninguno en su cuerpo:
+
+1. «sin leer la norma con el binario, la respuesta no tiene cita» pasa a «sin leer la norma con kitlegal, la respuesta
+   no tiene cita»: la razón de H7.4, cierta en los dos modos.
+2. Detrás, una frase nueva: «Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y cómo
+   citar lo dice la skill.» Da la razón y no una prohibición, como la de H7.4 (research D1 de H7.4, alternativa c).
+3. «Lee el índice y los artículos con el binario kitlegal» pasa a «con kitlegal».
+
+Es `boe-legislacion` v0.1.6 (`CHANGELOG.md`, *Unreleased*). Medido en esta sesión: la `description` tiene 1 021
+caracteres (máximo 1 024; tenía 924), `SKILL.md` 298 líneas (máximo 299; tenía 297) y 24 049 bytes (tenía 23 944), y
+los cinco ficheros de las dos skills suman 44 342 bytes (44 237 en `main`); `make skills-check` y `make ci`, en verde.
+
+**De qué se aparta**: el spec deja las dos skills como están —«Se queda: … las dos skills, byte a byte; el job de evals
+y sus umbrales» («Relación con H19 y H21»), «las skills no cambian» («Fuera de alcance») y «Este hito no toca las
+skills» («Assumptions»)—, y lo repiten plan.md («Uso, de fuera adentro») y contracts/paso.md §8. El mismo spec pide que el job del cierre siga en
+verde como en H21, y un umbral que no se cumple se arregla en la skill o en la herramienta, no en el umbral (ADR 0029):
+entre las dos cosas, cambia la skill. Las cifras de tamaño de spec.md («Uso, de fuera adentro»), V14 y
+contracts/paso.md §3 y §8 son las de su medición, sobre `main` y sobre el prototipo, y no se reescriben: las de la
+cabeza son las de arriba. Sigue siendo cierto FR-020: el plugin lleva lo empotrado en el binario, byte a byte, sea cual
+sea (`TestPiezas`, `skills-del-plugin`).
+
+**Alternativas rechazadas**:
+
+- *Cambiar las `instructions` del servidor* —que su última frase mande activar la skill, o darles otro ejemplo—: su
+  texto está en la suite de aceptación congelada de H21 (`internal/app/testdata/script/h21-mcp-herramientas.txtar`,
+  en `specs/015-h21-kitlegal-mcp-serve/gates/aceptacion-congelada.json`), que este paso no puede tocar; caben en 512
+  bytes y miden 485; y son lo único que tiene quien instala la extensión sin el plugin, a quien no se le puede mandar
+  activar una skill que no tiene. Cambiar el ejemplo para que no coincida con la eval 01 sería esquivar la eval.
+- *Una regla en el cuerpo de `SKILL.md`*: el cuerpo se carga cuando la skill ya se activó (H7.4, research D1,
+  alternativa b).
+- *El mismo cambio en `legal-core`*: su `description` también nombra solo el binario, pero su informe no da ninguna
+  sesión sin activar (0 de 6 con cada modelo en cada modo) y su veredicto es aprobado. Sin medición que lo pida, no se
+  toca (lectura conservadora); si un cierre posterior lo mide, el arreglo es este mismo.
+- *Relanzar la medición sin cambiar nada*, como una fluctuación de 1 entre 108: el umbral es 0, la sesión responde sin
+  el protocolo y la `description` dejaba el hueco. Y *rebajar el umbral, sacarlo del veredicto o tocar la eval 01*: no
+  se arregla ahí (ADR 0029).
+
+**Lo que no se ha medido**: el efecto del cambio en la activación, en ninguno de los dos modos. Este paso no abre
+sesiones con modelo (ADR 0032), así que no hay sondeo ni ninguna otra medida del texto nuevo: lo mide el job de evals
+en la medición siguiente del cierre, después de que los dos jueces lo juzguen (ADR 0030). La `description` cambia
+también lo que lee el modo orden, que estaba en 0 de 108: eso lo mide el mismo job.

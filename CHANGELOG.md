@@ -104,6 +104,15 @@ sustituyen a este fichero.
   pide cada paso del protocolo, ni la `description`, la forma de la cita, la de los avisos de vigencia, la de
   `⚠ REDACCIÓN MODIFICADA:` ni las órdenes para PowerShell. Sustituyen a `boe-legislacion` v0.1.4 y a `legal-core`
   v0.
+- **`boe-legislacion` v0.1.6: se activa también antes de llamar a una herramienta.** La `description` de la skill
+  —lo que el agente lee para decidir si la activa— solo hablaba del binario: «sin leer la norma con el binario, la
+  respuesta no tiene cita». Un agente con las herramientas del servidor MCP podía leer el bloque con `boe_articulo`
+  sin activar la skill y responder sin su protocolo: sin pedir después `graph_check`, y por tanto sin la línea
+  `⚠ REDACCIÓN MODIFICADA:` cuando la redacción hubiera cambiado. Ahora dice «sin leer la norma con kitlegal, la
+  respuesta no tiene cita», añade «Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y
+  cómo citar lo dice la skill» y termina con «Lee el índice y los artículos con kitlegal» en lugar de «con el
+  binario kitlegal». No cambia nada del cuerpo de `SKILL.md`, ni `legal-core`, ni el servidor ni sus `instructions`.
+  Sustituye a `boe-legislacion` v0.1.5.
 - **La tabla de comandos de cada skill gana la columna «Herramienta»**: `make skills-sync` genera
   ``| Orden | Herramienta | Qué hace | Qué devuelve en `data` |``, con la herramienta de cada orden en su fila
   (`kitlegal boe articulo <norma> <bloque>` y `boe_articulo`), y la cierra con «La orden y la herramienta de cada
