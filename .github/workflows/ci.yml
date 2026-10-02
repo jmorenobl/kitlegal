@@ -15,7 +15,10 @@
 # El trabajo `snapshot` construye la release sin publicarla y la comprueba con
 # dos órdenes del Makefile, las mismas que en local, que quedan fuera de
 # `make ci` porque construyen las seis plataformas y leen dist/
-# (specs/009-h19-instalar-sin-clonar/contracts/release.md §3 y §5).
+# (specs/009-h19-instalar-sin-clonar/contracts/release.md §3 y §5). Desde H22
+# valida además, con una tercera, el plugin del snapshot y el catálogo de su
+# versión con Claude Code, del que `make ci` no depende
+# (specs/016-h22-instalar-sin-terminal/contracts/release.md §2, §4 y §5).
 name: ci
 
 on:
@@ -140,3 +143,17 @@ jobs:
       # ese dist/, sin red (FR-108, SC-016, SC-017).
       - name: Comprobar el snapshot
         run: make snapshot-check
+
+      # La versión es la de jobs.evals.env de evals.yml, la única que el
+      # repositorio fija: TestConfiguracionDeLaRelease, en make ci, falla si las
+      # dos difieren (H22 FR-065; contracts/release.md §5 y §7 de H22).
+      - name: Instalar Claude Code
+        env:
+          VERSION_DE_CLAUDE_CODE: 2.1.284
+        run: npm install -g "@anthropic-ai/claude-code@${VERSION_DE_CLAUDE_CODE}"
+
+      # TestPluginValido sobre dist/: `claude plugin validate` sobre el plugin
+      # extraído y sobre el catálogo de la versión del snapshot, sin sesión con
+      # modelo y sin credencial, que este trabajo no tiene (H22 FR-065, SC-008).
+      - name: Validar el plugin y el catálogo
+        run: make plugin-check

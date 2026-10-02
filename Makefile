@@ -57,7 +57,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
 	vuln schema-check skills-check verify-sources evals evals-sondeo skills-sync secrets mod-verify mod-tidy-check \
-	goreleaser-check release snapshot-check web web-dev web-citas check-web-tools check-tools hooks ci help
+	goreleaser-check release snapshot-check plugin-check web web-dev web-citas check-web-tools check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
 build: check-tools
@@ -171,7 +171,10 @@ goreleaser-check: check-tools
 # continua lo construye con este objetivo. --snapshot ya no publica; --skip lo
 # repite y omite además la firma y el SBOM, cuyas herramientas solo instala el
 # flujo de la release (FR-095 de H19; specs/009-h19-instalar-sin-clonar/research.md D29).
-## release: construye el snapshot local en dist/ para las seis plataformas; no publica, no firma ni genera SBOM
+# Desde H22 goreleaser ejecuta además el paso que empaqueta, que deja en dist/
+# la extensión de escritorio y el plugin de Claude, con su huella en
+# checksums.txt (specs/016-h22-instalar-sin-terminal/contracts/release.md §1 y §2).
+## release: construye el snapshot local en dist/ para las seis plataformas, con kitlegal.mcpb y kitlegal-plugin.zip; no publica, no firma ni genera SBOM
 release: check-tools
 	$(GORELEASER) release --snapshot --clean --skip=publish,sign,sbom
 
@@ -183,6 +186,16 @@ release: check-tools
 snapshot-check: check-tools
 	go test -count=1 -tags=snapshot -run '^TestSnapshot$$' .
 	KITLEGAL_DIST=$(CURDIR)/dist go test -count=1 -run '^TestEntregaDelHito$$/instalador-' ./internal/app/
+
+# Sobre el dist/ de make release, fuera de ci y aparte de snapshot-check, porque
+# es el único objetivo que necesita Claude Code: TestPluginValido ejecuta
+# `claude plugin validate`, sin sesión con modelo ni credencial, y falla si
+# claude no está en el PATH. Lo ejecuta el trabajo snapshot de la integración
+# continua, que instala Claude Code en la versión del job de evals
+# (specs/016-h22-instalar-sin-terminal/contracts/release.md §2 y §4; research.md D10).
+## plugin-check: valida con claude plugin validate el plugin del snapshot y el catálogo de su versión (requiere Claude Code y el dist/ de make release; fuera de ci)
+plugin-check: check-tools
+	go test -count=1 -tags=snapshot -run '^TestPluginValido$$' .
 
 # La web (ADR 0024) se construye con Node y pnpm, en web/, y queda fuera de
 # make ci: comprobar el producto no exige Node. La comprueba y la publica su

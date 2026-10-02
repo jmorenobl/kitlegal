@@ -37,8 +37,10 @@ import (
 // piezas con las que kitlegal se instala sin terminal —kitlegal.mcpb, la
 // extensión de escritorio, y kitlegal-plugin.zip, el plugin de Claude— contra
 // el binario real del snapshot (H22 contracts/release.md §3; research.md D9).
-// El paquete del paso se importa como `paso` porque release_test.go ya declara
-// un tipo empaquetado (research.md D19).
+// Y, fuera de TestSnapshot, TestPluginValido, que valida con Claude Code el
+// plugin y el catálogo de su versión (H22 contracts/release.md §4; research.md
+// D10). El paquete del paso se importa como `paso` porque release_test.go ya
+// declara un tipo empaquetado (research.md D19).
 
 // Lo que el contrato fija de las dos piezas, escrito aquí como lo escriben
 // data-model §2 a §4 de H22 y no leído del paquete del paso: es contra lo que
@@ -58,6 +60,11 @@ const (
 	// fichaDelPlugin es la entrada del plugin que no es de ninguna skill
 	// (FR-020).
 	fichaDelPlugin = ".claude-plugin/plugin.json"
+
+	// catalogoDelPlugin es el catálogo desde el que se instala el plugin, con
+	// la ruta que tiene en su repositorio y en la que `claude plugin validate`
+	// lo busca dentro de una carpeta (FR-030; research.md V12 de H22).
+	catalogoDelPlugin = ".claude-plugin/marketplace.json"
 
 	// paginaDeLasPiezas es la web que declaran el manifiesto y plugin.json, que
 	// no es la página del repositorio que declaran el cask, el bucket y los
@@ -742,4 +749,125 @@ func skillsQueInstala(t *testing.T, binario string) map[string][]byte {
 	}
 
 	return instaladas
+}
+
+// TestPluginValido valida con Claude Code lo que kitlegal publica para el
+// marketplace (H22 contracts/release.md §4; FR-023, FR-030, FR-065; SC-008): el
+// plugin del snapshot, extraído, y el catálogo de la versión del snapshot, cada
+// uno en su carpeta —con los dos en la misma, `claude plugin validate` solo
+// mira el catálogo (research.md V12 de H22)—. Falla, con lo que la orden
+// escribió, si `claude` no está en el PATH o no da por válido alguno de los
+// dos. No abre ninguna sesión con modelo ni usa ninguna credencial.
+//
+// Va fuera de TestSnapshot porque es lo único del snapshot que necesita Claude
+// Code: lo ejecuta make plugin-check, y no make snapshot-check ni make ci
+// (research.md D10 de H22).
+func TestPluginValido(t *testing.T) {
+	t.Parallel()
+
+	snapshot := leerSnapshot(t, os.DirFS("."))
+
+	casos := []struct {
+		nombre   string
+		preparar func(*testing.T, snapshotLeido) string
+	}{
+		{"plugin", extraerElPlugin},
+		{"catalogo", escribirElCatalogo},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			validarConClaude(t, caso.preparar(t, snapshot))
+		})
+	}
+}
+
+// extraerElPlugin extrae el plugin del snapshot en una carpeta temporal, con el
+// modo de un fichero cualquiera —nada de él se ejecuta—, y devuelve su ruta.
+func extraerElPlugin(t *testing.T, snapshot snapshotLeido) string {
+	t.Helper()
+
+	plugin := abrirZip(t, snapshot, pluginDelSnapshot)
+	carpeta := t.TempDir()
+
+	raiz, err := os.OpenRoot(carpeta)
+	require.NoError(t, err)
+
+	defer func() { assert.NoError(t, raiz.Close()) }()
+
+	for _, entrada := range plugin.entradas() {
+		require.NoError(t, raiz.MkdirAll(path.Dir(entrada), 0o700))
+		require.NoError(t, raiz.WriteFile(entrada, plugin.leer(t, entrada), 0o600))
+	}
+
+	return carpeta
+}
+
+// escribirElCatalogo escribe en una carpeta temporal el catálogo que da la
+// orden catalogo del paso para la versión de metadata.json y la huella que
+// checksums.txt da para el plugin —la orden con la que la release compone el
+// de cada etiqueta (H22 contracts/release.md §6.3)—, y devuelve la ruta de la
+// carpeta. La versión del snapshot no lleva la `v` de una etiqueta.
+func escribirElCatalogo(t *testing.T, snapshot snapshotLeido) string {
+	t.Helper()
+
+	carpeta := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(carpeta, path.Dir(catalogoDelPlugin)), 0o700))
+
+	var errores bytes.Buffer
+
+	codigo := paso.Ejecutar([]string{
+		"catalogo",
+		"-version", snapshot.metadatos.Version,
+		"-sha256", huellaEnChecksums(t, snapshot, pluginDelSnapshot),
+		"-salida", filepath.Join(carpeta, filepath.FromSlash(catalogoDelPlugin)),
+	}, &errores)
+	require.Zerof(t, codigo, "la orden catalogo del paso no escribe el catálogo de la versión del snapshot (FR-030):\n%s",
+		errores.String())
+
+	return carpeta
+}
+
+// huellaEnChecksums es la huella que checksums.txt da para ese fichero del
+// snapshot, que tiene que tener su línea `<sha256>  <nombre>`. Es la que lee
+// quien instala, y no la calculada sobre el fichero: que las dos coinciden lo
+// fija dos-piezas.
+func huellaEnChecksums(t *testing.T, snapshot snapshotLeido, nombre string) string {
+	t.Helper()
+
+	ruta := path.Join(carpetaDelSnapshot, checksumsDelSnapshot)
+
+	contenido, err := fs.ReadFile(snapshot.raiz, ruta)
+	require.NoError(t, err)
+
+	for linea := range strings.Lines(string(contenido)) {
+		huella, deQuien, _ := strings.Cut(strings.TrimSuffix(linea, "\n"), separadorDeChecksums)
+		if deQuien == nombre {
+			return huella
+		}
+	}
+
+	require.Failf(t, "falta una línea de checksums.txt", "%s no lleva la línea de %s", ruta, nombre)
+
+	return ""
+}
+
+// validarConClaude ejecuta `claude plugin validate .` en la carpeta y falla,
+// con lo que la orden escribió, si claude no está en el PATH o sale con un
+// código distinto de 0. La orden solo lee lo que hay en la carpeta, sin abrir
+// ninguna sesión con modelo; y su entorno son solo el PATH —con el que da con
+// su intérprete— y un HOME temporal y vacío, de modo que no recibe ninguna
+// credencial ni la configuración de quien ejecuta el test (FR-065).
+func validarConClaude(t *testing.T, carpeta string) {
+	t.Helper()
+
+	validacion := exec.CommandContext(t.Context(), "claude", "plugin", "validate", ".")
+	validacion.Dir = carpeta
+	validacion.Env = []string{"HOME=" + t.TempDir(), "PATH=" + os.Getenv("PATH")}
+
+	salida, err := validacion.CombinedOutput()
+	require.NoErrorf(t, err,
+		"`claude plugin validate .` no está en el PATH o no da por válido lo que kitlegal publica (FR-065):\n%s", salida)
 }

@@ -278,10 +278,13 @@ var ficherosExtraDeLaRelease = []ficheroExtra{
 }
 
 // recetasDeLaRelease son, por objetivo, las recetas de contracts/release.md §3,
-// línea a línea como las escribe el Makefile.
+// línea a línea como las escribe el Makefile, y la de plugin-check, que es de
+// H22: solo TestPluginValido, que ejecuta `claude plugin validate` (H22
+// FR-065; contracts/release.md §2 de H22).
 var recetasDeLaRelease = map[string][]string{
 	"goreleaser-check": {"$(GORELEASER) check"},
 	"release":          {"$(GORELEASER) release --snapshot --clean --skip=publish,sign,sbom"},
+	"plugin-check":     {"go test -count=1 -tags=snapshot -run '^TestPluginValido$$' ."},
 	"snapshot-check": {
 		"go test -count=1 -tags=snapshot -run '^TestSnapshot$$' .",
 		"KITLEGAL_DIST=$(CURDIR)/dist go test -count=1 -run '^TestEntregaDelHito$$/instalador-' ./internal/app/",
@@ -294,21 +297,28 @@ var recetasDeLaRelease = map[string][]string{
 
 // controlesDeCI son los prerrequisitos de ci, en orden: goreleaser-check entra
 // (FR-094) y ni release ni snapshot-check, que construyen y leen dist/
-// (contracts/release.md §3).
+// (contracts/release.md §3), ni plugin-check, que además necesita Claude Code
+// (H22 FR-065).
 var controlesDeCI = []string{
 	"fmt-check", "lint", "test", "test-integration", "test-tiempos", "vuln", "schema-check", "skills-check", "goreleaser-check",
 	"secrets", "mod-verify", "mod-tidy-check",
 }
 
-// ayudaDeLosObjetivos es, por objetivo, un fragmento que su línea de make help
-// tiene que llevar para describir lo que hace ahora (FR-121; contracts/release.md
-// §3).
-var ayudaDeLosObjetivos = map[string]string{
-	"goreleaser-check": "goreleaser check",
-	"install":          "skills install -g --host claude",
-	"release":          "no publica",
-	"skills-sync":      "scripts/",
-	"snapshot-check":   "instalador-",
+// ayudaDeLosObjetivos son, por objetivo, los fragmentos que su línea de make
+// help tiene que llevar para describir lo que hace ahora (FR-121;
+// contracts/release.md §3). Desde H22, la de release nombra las dos piezas que
+// el snapshot deja además, y la de plugin-check es la de su contrato, entera
+// (contracts/release.md §2 de H22).
+var ayudaDeLosObjetivos = map[string][]string{
+	"goreleaser-check": {"goreleaser check"},
+	"install":          {"skills install -g --host claude"},
+	"plugin-check": {
+		"valida con claude plugin validate el plugin del snapshot y el catálogo de su versión " +
+			"(requiere Claude Code y el dist/ de make release; fuera de ci)",
+	},
+	"release":        {"no publica", path.Base(extensionEnLaRelease), path.Base(pluginEnLaRelease)},
+	"skills-sync":    {"scripts/"},
+	"snapshot-check": {"instalador-"},
 }
 
 // commitsDeEjemplo son mensajes de commit y el grupo de changelog.groups que
@@ -547,7 +557,10 @@ type laRelease struct {
 // propio, sin sustituir a los dos binarios de macOS y con el paso que empaqueta
 // como único gancho—, los archivos acotados a la construcción y las dos piezas,
 // kitlegal.mcpb y kitlegal-plugin.zip, en checksums.txt y en la release (H22
-// FR-002, FR-006, FR-068).
+// FR-002, FR-006, FR-068). Y lo que sus §2 y §5 dicen de la validación del
+// plugin: el objetivo plugin-check, con su receta y su línea de ayuda y fuera
+// de ci, y los dos pasos que el trabajo snapshot gana para ejecutarlo, con
+// Claude Code en la versión que fija el job de evals (H22 FR-065).
 func TestConfiguracionDeLaRelease(t *testing.T) {
 	t.Parallel()
 
@@ -997,7 +1010,8 @@ func rutasQueNombran(nodo *yaml.Node, texto, ruta string) []string {
 // probarObjetivosDelMakefile: GORELEASER invoca el goreleaser de tools/, y
 // goreleaser-check, release, snapshot-check e install tienen las recetas de
 // contracts/release.md §3 y están en .PHONY (FR-094, FR-095, FR-096, FR-120,
-// FR-125).
+// FR-125); y plugin-check, la de contracts/release.md §2 de H22, también en
+// .PHONY (H22 FR-065).
 func probarObjetivosDelMakefile(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1015,24 +1029,31 @@ func probarObjetivosDelMakefile(t *testing.T, release laRelease) {
 }
 
 // probarCI: ci ejecuta goreleaser-check con los demás controles, y no release
-// ni snapshot-check (FR-094; contracts/release.md §3).
+// ni snapshot-check (FR-094; contracts/release.md §3) ni plugin-check, que
+// depende de Claude Code (H22 FR-065).
 func probarCI(t *testing.T, release laRelease) {
 	t.Helper()
 
 	actual, existe := release.makefile.reglas[objetivoDeCI]
 	require.True(t, existe, "el Makefile no tiene el objetivo %s", objetivoDeCI)
 
-	assert.Equal(t, controlesDeCI, actual.prerrequisitos)
+	assert.Equal(t, controlesDeCI, actual.prerrequisitos,
+		"los prerrequisitos de %s: ni release, ni snapshot-check ni plugin-check, que leen dist/ (FR-094; H22 FR-065)",
+		objetivoDeCI)
 }
 
 // probarAyuda: make help describe cada objetivo de la release, install y
-// skills-sync con lo que hacen ahora (FR-121).
+// skills-sync con lo que hacen ahora (FR-121), y plugin-check con la línea de
+// su contrato (H22 FR-065).
 func probarAyuda(t *testing.T, release laRelease) {
 	t.Helper()
 
 	for _, objetivo := range slices.Sorted(maps.Keys(ayudaDeLosObjetivos)) {
-		assert.Containsf(t, release.makefile.ayudas[objetivo], ayudaDeLosObjetivos[objetivo],
-			"la línea de make help de %s no describe lo que hace (FR-121)", objetivo)
+		for _, fragmento := range ayudaDeLosObjetivos[objetivo] {
+			assert.Containsf(t, release.makefile.ayudas[objetivo], fragmento,
+				"la línea de make help de %s no describe lo que hace (FR-121; H22 contracts/release.md §2)", objetivo)
+		}
+
 		assert.Containsf(t, release.makefile.reglas, objetivo, "make help describe %s, que no es un objetivo", objetivo)
 	}
 }
@@ -1073,6 +1094,19 @@ const (
 	// snapshot: construirlo y comprobarlo (FR-120).
 	ordenDelSnapshot      = "make release"
 	ordenDeSuComprobacion = "make snapshot-check"
+
+	// trabajoDeEvals es el trabajo de evals.yml que fija, en su entorno y con
+	// variableDeClaudeCode, la versión de Claude Code de las sesiones de las
+	// evals (ADR 0031).
+	trabajoDeEvals       = "evals"
+	variableDeClaudeCode = "VERSION_DE_CLAUDE_CODE"
+
+	// ordenDeClaudeCode y ordenDeLaValidacion son las dos órdenes que H22 añade
+	// al trabajo snapshot, detrás de las de H19: instalar Claude Code en la
+	// versión de variableDeClaudeCode y validar con él el plugin del snapshot y
+	// el catálogo de su versión (H22 FR-065; contracts/release.md §5 de H22).
+	ordenDeClaudeCode   = `npm install -g "@anthropic-ai/claude-code@${` + variableDeClaudeCode + `}"`
+	ordenDeLaValidacion = "make plugin-check"
 
 	// lecturaDeSecretos es el contexto del que un flujo lee un secreto, y
 	// accesoDelFlujo, el token que la plataforma da a cada ejecución con los
@@ -1493,8 +1527,10 @@ func probarPasoDelHumo(t *testing.T, paso pasoDelFlujo, comprobacion string, esp
 // esos eventos sin condición ni espera, en ubuntu-latest, solo con permiso para
 // leer el contenido —sin id-token— y sin ningún secreto ni el token del flujo;
 // obtiene el código con toda su historia, prepara Go y la caché como el trabajo
-// ci, y ejecuta make release y make snapshot-check, y nada más (FR-120;
-// contracts/release.md §5).
+// ci, y ejecuta make release y make snapshot-check (FR-120;
+// contracts/release.md §5). Desde H22 son seis pasos: detrás instala Claude
+// Code, en la versión que fija el job de evals, y ejecuta make plugin-check, y
+// nada más (H22 FR-065; contracts/release.md §5 y §7 de H22).
 func probarTrabajoDeSnapshot(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1514,10 +1550,15 @@ func probarTrabajoDeSnapshot(t *testing.T, release laRelease) {
 			"%s no usa ningún secreto (FR-097, FR-120)", trabajoDeSnapshot)
 	}
 
-	pasos := pasosEnOrden(t, snapshot.Steps, accionDeCheckout, accionDeSetupGo, ordenDelSnapshot, ordenDeSuComprobacion)
+	pasos := pasosEnOrden(t, snapshot.Steps, accionDeCheckout, accionDeSetupGo, ordenDelSnapshot, ordenDeSuComprobacion,
+		ordenDeClaudeCode, ordenDeLaValidacion)
 
 	assert.Equal(t, map[string]string{"fetch-depth": "0"}, pasos[accionDeCheckout].With,
 		"el código con toda su historia, de la que sale la versión del snapshot (research.md D30)")
+	assert.Equalf(t, map[string]string{variableDeClaudeCode: versionDeClaudeCodeDeLasEvals(t, release)},
+		pasos[ordenDeClaudeCode].Env,
+		"el entorno del paso que instala Claude Code: solo %s, con la versión de jobs.%s.env de %s (H22 FR-065)",
+		variableDeClaudeCode, trabajoDeEvals, flujoDeEvals)
 
 	// El trabajo ci se lee tal cual, sin exigirle nada más: lo fija su propio
 	// contrato, y aquí solo importa su preparación de Go.
@@ -1534,4 +1575,34 @@ func probarTrabajoDeSnapshot(t *testing.T, release laRelease) {
 	assert.Equal(t, delCI.Steps[indice].Uses, pasos[accionDeSetupGo].Uses)
 	assert.Equal(t, delCI.Steps[indice].With, pasos[accionDeSetupGo].With,
 		"la preparación de Go y la caché del trabajo %s (contracts/release.md §5)", trabajoDeCI)
+}
+
+// entornoDeLosTrabajos es lo único que el test lee de un flujo que no fija: el
+// entorno de cada uno de sus trabajos.
+type entornoDeLosTrabajos struct {
+	Jobs map[string]struct {
+		Env map[string]string `yaml:"env"`
+	} `yaml:"jobs"`
+}
+
+// versionDeClaudeCodeDeLasEvals es la versión de Claude Code que fija el job de
+// evals, en jobs.evals.env de evals.yml: la única escrita en el repositorio, y
+// la que el trabajo snapshot tiene que repetir (H22 FR-065; research.md V26 de
+// H22). Tiene que estar: sin ella, compararla con la del trabajo snapshot
+// pasaría en vacío.
+func versionDeClaudeCodeDeLasEvals(t *testing.T, release laRelease) string {
+	t.Helper()
+
+	documento, leido := release.flujos[flujoDeEvals]
+	require.Truef(t, leido, "falta %s, que fija la versión de Claude Code", flujoDeEvals)
+
+	var evals entornoDeLosTrabajos
+
+	require.NoErrorf(t, documento.Decode(&evals), "el entorno de los trabajos de %s no se puede leer", flujoDeEvals)
+
+	version := evals.Jobs[trabajoDeEvals].Env[variableDeClaudeCode]
+	require.NotEmptyf(t, version, "jobs.%s.env de %s no fija %s: la comparación pasaría en vacío",
+		trabajoDeEvals, flujoDeEvals, variableDeClaudeCode)
+
+	return version
 }
