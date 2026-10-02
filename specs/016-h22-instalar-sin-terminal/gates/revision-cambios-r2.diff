@@ -1,0 +1,87 @@
+diff --git a/internal/empaquetado/catalogo.go b/internal/empaquetado/catalogo.go
+index 9c86cc5..6534a86 100644
+--- a/internal/empaquetado/catalogo.go
++++ b/internal/empaquetado/catalogo.go
+@@ -2,7 +2,6 @@ package empaquetado
+ 
+ import (
+ 	"bytes"
+-	"errors"
+ 	"fmt"
+ 	"path/filepath"
+ 	"regexp"
+@@ -65,13 +64,9 @@ type fuenteDelCatalogo struct {
+ // textos de textos.go (contracts/paso.md §4 de H22; H22 FR-030, FR-031). La
+ // versión llega sin `v`; la dirección lleva la etiqueta, que la tiene.
+ //
+-// Rechaza una versión vacía y una huella que no tiene su forma: un catálogo
+-// con cualquiera de las dos apuntaría a un plugin que nadie puede instalar.
++// Rechaza una huella que no tiene su forma: un catálogo con ella apuntaría a
++// un plugin que nadie puede instalar.
+ func documentoDelCatalogo(version, huella string) ([]byte, error) {
+-	if version == "" {
+-		return nil, errors.New("la versión del catálogo está vacía")
+-	}
+-
+ 	if !formaDeLaHuella.MatchString(huella) {
+ 		return nil, fmt.Errorf("«%s» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas", huella)
+ 	}
+diff --git a/internal/empaquetado/catalogo_test.go b/internal/empaquetado/catalogo_test.go
+index 2f2de34..c2cbe63 100644
+--- a/internal/empaquetado/catalogo_test.go
++++ b/internal/empaquetado/catalogo_test.go
+@@ -47,7 +47,7 @@ type fuenteLeida struct {
+ // huella, el documento, leído de forma estricta, lleva una sola entrada,
+ // `kitlegal`, de fuente `archive`, con la dirección de la release de esa
+ // versión y no la de la última, la huella, la versión y los textos de su único
+-// sitio; sin versión, o con una huella que no tiene su forma, error.
++// sitio; con una huella que no tiene su forma, error.
+ func TestCatalogo(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -107,11 +107,6 @@ func TestCatalogo(t *testing.T) {
+ 		huella  string
+ 		mensaje string
+ 	}{
+-		{
+-			nombre:  "sin versión",
+-			huella:  huellaDePrueba,
+-			mensaje: "la versión del catálogo está vacía",
+-		},
+ 		{
+ 			nombre:  "con una huella de 63 dígitos",
+ 			version: "0.4.0",
+@@ -157,7 +152,7 @@ func TestCatalogo(t *testing.T) {
+ 			escrito, err := empaquetado.DocumentoDelCatalogo(caso.version, caso.huella)
+ 
+ 			require.EqualError(t, err, caso.mensaje)
+-			assert.Empty(t, escrito, "sin versión o sin huella no hay catálogo")
++			assert.Empty(t, escrito, "sin una huella con su forma no hay catálogo")
+ 		})
+ 	}
+ }
+diff --git a/internal/empaquetado/export_test.go b/internal/empaquetado/export_test.go
+index eadd8aa..ad84c7a 100644
+--- a/internal/empaquetado/export_test.go
++++ b/internal/empaquetado/export_test.go
+@@ -11,6 +11,5 @@ type PiezasAEscribir = piezasAEscribir
+ var EscribirPiezas = escribirPiezas
+ 
+ // DocumentoDelCatalogo es documentoDelCatalogo para los tests del paquete
+-// externo: con él leen el catálogo de una versión y una huella, y fijan el
+-// error de una versión vacía, que las banderas de Ejecutar no dejan pasar.
++// externo: con él leen el catálogo de una versión y una huella.
+ var DocumentoDelCatalogo = documentoDelCatalogo
+diff --git a/specs/016-h22-instalar-sin-terminal/contracts/paso.md b/specs/016-h22-instalar-sin-terminal/contracts/paso.md
+index 795f0bc..e5ef8a6 100644
+--- a/specs/016-h22-instalar-sin-terminal/contracts/paso.md
++++ b/specs/016-h22-instalar-sin-terminal/contracts/paso.md
+@@ -257,7 +257,7 @@ Todos offline, con binarios de prueba (unos bytes cualesquiera) y carpetas de `t
+ | `TestPiezasSinEntrada` | `internal/empaquetado/piezas_test.go` | Sin el binario de macOS, sin el de Windows, sin el icono, con una carpeta de salida que no existe y con una carpeta donde va el plugin: error que nombra lo que falta o lo que falló, con su ruta una sola vez y la causa del sistema. También con un árbol de skills sin su carpeta y con una skill cuya ruta no cabe en un zip, que lo empotrado no da nunca; en este último, además, la carpeta de salida queda vacía. FR-005 |
+ | `TestIcono` | `internal/empaquetado/piezas_test.go` | `mcp/icon.png` del árbol es un PNG de 512 × 512 px y el paso lo acepta; uno de 256 × 256, uno de 512 × 256, uno de 256 × 512 y unos bytes que no son un PNG, creados en el test, lo hacen fallar. FR-016, FR-066 |
+ | `TestDescripcionCorta` | `internal/empaquetado/textos_test.go` | `Descripcion` tiene 120 caracteres como mucho; una de 120 pasa y una de 121 falla, contando caracteres y no bytes. FR-015, FR-066 |
+-| `TestCatalogo` | `internal/empaquetado/catalogo_test.go` | Con una versión —la de una etiqueta y la de un snapshot— y una huella: una sola entrada, `kitlegal`, de fuente `archive`, con la dirección de la release de esa versión, la huella, la versión y los textos, leído de forma estricta y con la forma de §5. Sin versión, sin huella, o con una huella de 63 o de 65 dígitos, en mayúsculas, con un dígito que no es hexadecimal o seguida de un salto de línea, error y ningún documento. FR-030, FR-031 |
++| `TestCatalogo` | `internal/empaquetado/catalogo_test.go` | Con una versión —la de una etiqueta y la de un snapshot— y una huella: una sola entrada, `kitlegal`, de fuente `archive`, con la dirección de la release de esa versión, la huella, la versión y los textos, leído de forma estricta y con la forma de §5. Sin huella, o con una huella de 63 o de 65 dígitos, en mayúsculas, con un dígito que no es hexadecimal o seguida de un salto de línea, error y ningún documento. FR-030, FR-031 |
+ | `TestEjecutar` | `internal/empaquetado/ejecutar_test.go` | `piezas`, con la composición de producción y binarios de prueba: código 0, nada en la salida de error, `tools` igual a `app.HerramientasAnunciadas` del registro de producción —que contiene las diez de hoy, escritas en el test— y `skills/` igual a `kitlegal.Skills()`, sin un fichero de más ni de menos. `catalogo`: el documento en el fichero de salida, y solo él en su carpeta, y código 0. Sin orden, con una desconocida, con una bandera que el paso no tiene, sin su valor o vacía, con un argumento de más, pidiendo la ayuda, sin cada una de las banderas de las dos órdenes, sin un binario, con una huella sin su forma y con una salida en una carpeta que no existe: código 1 y una sola línea `empaquetar: …` en la salida de error, la de §1. Con la salida de error rota, el código sigue siendo 1. FR-001, FR-005, FR-014, FR-020, FR-070 |
+ | `TestHerramientasAnunciadas` | `internal/app/herramientas_test.go` | Con el servidor en proceso y los dos clientes de `mcptest` —el de la especificación vigente y el de la anterior—, sobre los applets de producción y con los de ejemplo añadidos: el nombre y la descripción de cada herramienta que el servidor lista son, como conjunto, los que da `app.HerramientasAnunciadas`. FR-014 |
+ | `TestElBinarioNoEnlazaElPaso` | `internal/arch_test.go` | El cierre de `./cmd/kitlegal` no contiene `internal/empaquetado`. FR-001 |

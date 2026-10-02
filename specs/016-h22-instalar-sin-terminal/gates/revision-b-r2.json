@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log está en rojo («kitlegal-verificacion exit=2»): fmt, lint («0 issues.») y `make test` pasan, y `make test-integration` falla en TestIntegracionConcurrencia (internal/graph/integracion_test.go:1099: quedan world.db-shm y world.db-wal), en un paquete que el hito no toca (`git diff --name-only main...HEAD -- internal/graph internal/cache internal/core/grafo` no da nada; el rango 874d502..HEAD solo toca internal/empaquetado y contracts/paso.md). Reproducido en esta sesión en un clon de a9c64f9 bajo $TMPDIR, con los doce prerrequisitos de `ci` (Makefile:253-254) en dos órdenes: `make fmt-check lint test`, código 0, «0 issues.», 23 paquetes `ok` y ningún FAIL; y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check`, código 0, internal/graph `ok` con la etiqueta integration, «No vulnerabilities found.», «1 configuration file(s) validated», «no leaks found», «all modules verified», y `git status --porcelain` del clon vacío al terminar. Ese verde es del segundo intento: el primero de `make fmt-check lint test` salió en rojo en otro test ajeno al hito (TestTopeDeLaSesion/hace-falta-kill, internal/evals/sesiones_test.go:121, 124 en vez de 137) con la máquina a carga 33, mientras el otro juez trabajaba; va a observaciones. El test del registro pasa 346 veces seguidas en el clon (40 solo, 6 con todo el paquete y 300 solo, con -race y -tags=integration). Árbol: `git status --porcelain` del repositorio solo da ficheros de gates/ (base-global-pendiente, revision-cambios.md, supuestos.md y revision-cambios-r2.diff), que son de esta revisión."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "La corrección solo quita una rama y su caso de test. En el clon, sobre a9c64f9: `go test -race -count=1 -cover ./internal/empaquetado/` en verde con 98,3 %; con `-v`, 53 líneas `--- PASS`, ninguna FAIL ni SKIP, y TestCatalogo con ocho subpruebas (las dos versiones y las seis huellas sin su forma). Mutante en el clon tras la corrección: con `if huella == \"\"` en lugar de la expresión regular (catalogo.go:70), salen en rojo cinco subpruebas de TestCatalogo (63 y 65 dígitos, mayúsculas, dígito no hexadecimal, salto de línea) y TestEjecutar/catalogo_con_una_huella_sin_su_forma; el fichero se restauró después. `make release` y `make snapshot-check` en el clon, código 0 los dos. Los demás mutantes son los de la ronda 1, sobre código que el rango no toca. Suite congelada: H22 no tiene (plan.md, «Aceptación e2e: no aplica»); el diff sigue sin tocar internal/app/testdata ni ningún gates/aceptacion-congelada.json, e internal/app pasa en las dos mitades de `make ci` del clon."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD` fuera de specs/: en las líneas añadidas no hay `net/http`, `fmt.Print*` ni `panic(`; el único `os.Exit` es cmd/empaquetar/main.go:20, bajo cmd/ (R4). La corrección quita el import `errors` de catalogo.go, que queda con bytes, fmt, path/filepath y regexp. Lint «0 issues.» en el clon sobre a9c64f9, con la etiqueta snapshot; internal (TestArquitectura, TestElBinarioNoEnlazaElPaso) `ok` en `make test`. go.mod y go.sum no están en el diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, verbo ni esquema: schemas/, testdata/ y data/ no están en el diff del hito. `make schema-check` y `make skills-check` en verde en el clon sobre a9c64f9. El paso no es un applet y no emite sobre (FR-001)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ejecutado en el clon con `go run ./cmd/empaquetar` sobre a9c64f9: `catalogo -version= -sha256 <64 hex> -salida …` escribe «empaquetar: falta -version» y sale con 1, sin crear el fichero, igual que antes de quitar la rama; `catalogo -version 0.4.0 -sha256 ABC …`, «empaquetar: «ABC» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas» y 1; con una huella de 64 dígitos, código 0 y un catálogo de 619 bytes. Es lo que promete contracts/paso.md §1. Ningún panic nuevo: el rango solo quita código."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "La fila de TestCatalogo de contracts/paso.md §7 ya no dice «Sin versión,» y coincide con el test (catalogo_test.go:104-146: seis casos, todos de la huella); el comentario de documentoDelCatalogo (catalogo.go:67-68) y el de export_test.go:13-14 hablan solo de lo que queda. Fuera de gates/ y de tasks.md, ningún artefacto de specs/016 ni CONTRIBUTING, README o CHANGELOG nombra el error de la versión vacía (grep en esta sesión). CHANGELOG, README y CONTRIBUTING no cambian en el rango: vale lo comprobado en la ronda 1. Sin fuente ni decisión nueva: docs/SOURCES.md y docs/ADR sin cambios."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade ninguna llamada, secreto ni dato: quita una comprobación de un argumento. Lo demás es lo de la ronda 1 (el paso no pide nada a la red; PUBLISHER_TOKEN solo en el entorno de dos pasos de release.yml; autoría «kitlegal»). gitleaks «no leaks found» en el clon sobre a9c64f9; govulncheck, 0 vulnerabilidades alcanzables."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD` fuera de specs/, líneas añadidas: ningún `nolint`, `t.Skip`, TODO, FIXME ni XXX; el único error descartado sigue siendo `_, _ = fmt.Fprintf(errores, …)` de ejecutar.go, razonado y con su test. La corrección retira el caso «sin versión» junto con la rama que probaba, que es lo que pedía el motivo, y no toca ningún otro test ni fixture; `go test -v ./internal/empaquetado/` en el clon no da ninguna línea SKIP. El rojo de gates/ci.log no se ha tapado: está en el registro y en gates/supuestos.md («make ci sigue en rojo»), y ningún test se ha cambiado para esquivarlo."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango 874d502..HEAD fuera de gates/ son 23 líneas en cuatro ficheros (catalogo.go, catalogo_test.go, export_test.go y contracts/paso.md), todas del motivo [k] de la ronda 1 y ninguna de más: la forma de la huella y el caso de TestEjecutar que da «falta -version» se quedan. `git diff --name-status main...HEAD` fuera de specs/016 da los mismos 25 ficheros de la ronda 1. La línea nueva de gates/supuestos.md es un registro del proceso, no un supuesto del producto."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada de lo que consume una persona o una skill cambia en el rango: el binario distribuido no enlaza el paso y `catalogo` da el mismo documento. Medido en el clon sobre a9c64f9: el catálogo de una versión, 619 bytes y una entrada; con `make release`, kitlegal.mcpb, 42 745 219 bytes, y kitlegal-plugin.zip, 17 738 bytes, con `make snapshot-check` en verde. Ninguna de esas salidas depende de lo consultado ni da señales; las invocaciones por pregunta son las de H21."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 1 está corregido: documentoDelCatalogo ya no tiene la rama de la versión vacía (catalogo.go:69-72 solo comprueba la forma de la huella), ni el import `errors`, ni el caso «sin versión» de TestCatalogo, ni la cola del comentario de export_test.go. `empaquetar catalogo -version=` sigue dando «falta -version» y 1 (medido en el clon), por analizar (ejecutar.go). El rango no añade ningún mecanismo. El resto del paso se traza en plan.md, «Trazabilidad», como en la ronda 1."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún umbral ni su control: textos.go, piezas.go, sus tests, release_test.go, snapshot_piezas_test.go, .goreleaser.yaml y los flujos quedan como en la ronda 1, donde cada fila de plan.md, «Controles de umbral», se vio en rojo con su mutante. En el clon sobre a9c64f9 pasan TestDescripcionCorta, TestIcono, TestPiezas, TestPiezasReproducibles, TestEjecutar, TestHerramientasAnunciadas, TestElBinarioNoEnlazaElPaso y TestConfiguracionDeLaRelease dentro de `make test` (sus paquetes dan `ok`), y `make release` y `make snapshot-check` salen con código 0. No hay umbral nuevo del job de evals."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "gates/ci.log queda en rojo en el repositorio: TestIntegracionConcurrencia (internal/graph/integracion_test.go:1099, de H7) vio world.db-shm y world.db-wal tras ocho entregas a la vez. No lo he reproducido: 346 repeticiones en verde en el clon y `make test-integration` entero en verde. El hito no toca internal/graph, así que es un fallo intermitente del repositorio; si esas entregas simultáneas pueden dejar de verdad los auxiliares, es un asunto de H7 (SC-009, FR-014) que decide la persona fuera de este hito.",
+    "TestTopeDeLaSesion/hace-falta-kill (internal/evals/sesiones_test.go:121, de H7.3) falló una vez en el clon, 124 en lugar de 137, con la máquina a carga 33 mientras el otro juez trabajaba; con carga 16 pasó. Es otro test sensible a la carga que el hito no toca.",
+    "cierre.md es el cierre de T007 sobre 94fce58 y sus cifras son de ese commit: «TestCatalogo (9)», 54 líneas `--- PASS` y «173 de 176» sentencias. En la cabeza son 8 subpruebas y 53 líneas; el porcentaje, 98,3 %, es el mismo. No he contado las sentencias de la cabeza.",
+    "tasks.md T002 sigue describiendo el error de la versión vacía y el caso «sin versión» de TestCatalogo: es el registro del run, y el motivo de la ronda 1 pedía no tocarlo.",
+    "En esta ronda no he repetido los mutantes de la ronda 1 salvo el de la huella, ni `make plugin-check`: `claude plugin validate` sigue sin ejecutarse en el run y en la revisión, y lo mide por primera vez el trabajo snapshot del cierre.",
+    "Los guiones nuevos de `humo` y de `catalogo` de release.yml siguen sin ejecutarse fuera de `bash -n`: su primera ejecución real es la primera release (research S1, S2).",
+    "Los enlaces del README a releases/latest/download/kitlegal.mcpb y kitlegal-plugin.zip no existen hasta que una persona publique la primera release con H22."
+  ]
+}

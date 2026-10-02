@@ -1,0 +1,91 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0»: `golangci-lint run ./...` con «0 issues» (con la etiqueta `snapshot` en build-tags, .golangci.yml:39-44), tests con -race, test-integration, test-tiempos, govulncheck sin vulnerabilidades alcanzables, schema-check, skills-check, `goreleaser check`, gitleaks y módulos. El commit posterior (874d502, el barrido) solo toca specs/016. `git status --porcelain` solo da gates/revision-cambios.md y gates/revision-ciclo.json, que son de esta revisión. Reproducido en un clon bajo $TMPDIR en 874d502: `go test ./internal/empaquetado/`, TestHerramientasAnunciadas, TestElBinarioNoEnlazaElPaso con TestArquitectura y TestConfiguracionDeLaRelease en verde; `make release` (el gancho ejecuta el paso y deja las dos piezas) y `make snapshot-check` (TestSnapshot y los guiones instalador-) en verde. No he ejecutado `make ci` entero en el clon."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene tests offline (internal/empaquetado/*_test.go, internal/app/herramientas_test.go, internal/arch_test.go, release_test.go; cobertura del paso 98,3 % en ci.log). Mutantes en el clon, todos detectados: límite de 120 a 121 y `Descripcion` de más de 120 caracteres (TestDescripcionCorta, TestEjecutar); icono comprobando solo el ancho (TestIcono, caso 512×256); fecha `time.Now()`, modo 0644 en los binarios, SetEscapeHTML(true), una quinta entrada y un fichero de skill omitido (TestPiezas, TestEjecutar); versión con un valor distinto en cada ejecución (TestPiezasReproducibles); dirección de «latest» en el catálogo (TestCatalogo); `tools` sin la primera herramienta (TestEjecutar); sin la comprobación de argumentos de más (TestEjecutar/piezas_con_un_argumento_de_más); HerramientasAnunciadas con otra descripción o sin una herramienta (TestHerramientasAnunciadas, cuatro subpruebas); `cmd/kitlegal` importando el paso (TestElBinarioNoEnlazaElPaso). Sobre el snapshot real, con cinco mutantes y `make release` de nuevo: manifiesto-de-la-extension (versión), servidor-de-la-extension (una herramienta menos), skills-del-plugin (un fichero menos) y binarios-de-la-extension (sin bit de ejecución, `.exe` de arm64) salen en rojo. Suite congelada: H22 no tiene (plan.md, «Aceptación e2e: no aplica», registrado en gates/supuestos.md); el diff no toca internal/app/testdata/script ni ningún gates/aceptacion-congelada.json de hitos anteriores, y TestEntregaDelHito está en verde en ci.log."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En el diff fuera de specs/ no hay `net/http` ni `fmt.Print*`; el único `os.Exit` nuevo es cmd/empaquetar/main.go:20, bajo cmd/ (R4). internal/empaquetado entra en la lista core de depguard (.golangci.yml:129-130) y en paquetesInternos (internal/arch_test.go:896-898); TestElBinarioNoEnlazaElPaso (internal/arch_test.go:281-296) fija que el binario distribuido no lo enlaza, y el mutante lo ve. go.mod y go.sum no cambian. Lint con 0 issues en ci.log."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet, verbo ni esquema cambia: el diff no toca schemas/, testdata/ ni internal/app salvo HerramientasAnunciadas (internal/app/herramientas.go:91-116), que solo lee verbosAnunciados. `make schema-check` (TestEsquemasPublicados) y skills-check en verde en ci.log. El paso no es un applet (FR-001) y no emite sobre: escribe ficheros."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El contrato del paso (contracts/paso.md §1) promete 0 o 1 y una línea `empaquetar: …`. Ejecutado en el clon con `go run ./cmd/empaquetar`: sin el binario de Windows, «empaquetar: falta el binario de Windows: open dist/no-existe/kitlegal.exe: no such file or directory» y código 1; `catalogo -sha256 \"\"`, «empaquetar: falta -sha256» y 1; `catalogo -version \"\"`, «empaquetar: falta -version» y 1; y con todo en su sitio, 0 dentro de `make release`. Ningún panic: cada fallo vuelve como error (internal/empaquetado/ejecutar.go:68-75, piezas.go). Los códigos del ADR 0023 no cambian."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md, Unreleased, «Añadido», con las tres entradas (líneas 65-84). README: «Instalar sin terminal» con los ocho contenidos de FR-050 y las direcciones fijas de la última release, «Instalar con la terminal» y «Otras instalaciones, sin probar» con Windows, ChatGPT, Codex, Antigravity y dónde contarlo; ya no dice «todavía no» ni anuncia el plugin en «Lo que viene» (FR-052); la actualización y el marketplace van como no probados. Lo que afirma lo sostiene el producto: la caché en `~/.cache/kitlegal/` (internal/cache/ruta.go:93), la línea `⚠ SIN CONSULTA AL BOE:` tal cual en las dos SKILL.md (boe-legislacion:296, legal-core:189), y el aviso rojo y el modo de chat, de docs/USO.md y del ADR 0035. CONTRIBUTING explica el paso, las cuatro órdenes, las seis subpruebas, los tres trabajos y PUBLISHER_TOKEN (FR-053). docs/SOURCES.md sin cambios y sin ADR nuevo, como pide el spec."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El módulo no gana ninguna llamada HTTP: el paso solo lee los ficheros que se le nombran y lo empotrado, y escribe con os.OpenRoot (internal/empaquetado/piezas.go:432-445). Lo único que escribe fuera es release.yml, con `gh api --method PUT` sobre el repositorio del catálogo y con PUBLISHER_TOKEN solo en el entorno de ese paso (release.yml:314-327), disparado por una etiqueta que empuja una persona: no es una sede ni una identidad de quien usa el kit. `humo` sigue sin secretos y sin el código; `catalogo` con `contents: read`. La autoría es «kitlegal», sin nombre ni correo (textos.go:35). gitleaks sin hallazgos en ci.log. Ningún dato externo ni fichero en data/, testdata/ ni evidencias/."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En el diff fuera de specs/ no hay `nolint`, `t.Skip`, TODO ni FIXME. El único error descartado es `_, _ = fmt.Fprintf(errores, …)` (internal/empaquetado/ejecutar.go:70), con su motivo en el comentario de Ejecutar y el código 1 devuelto igualmente; es el patrón de `_ = p.Aviso(…)` de internal/app/main.go:440. TestPluginValido falla, y no se salta, si `claude` no está en el PATH (snapshot_piezas_test.go:866-872). Ningún fixture ni esquema tocado."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "`git diff --name-status main...HEAD` fuera de specs/016: los dos flujos, .golangci.yml (una entrada de depguard), .goreleaser.yaml, Makefile, CHANGELOG, CONTRIBUTING, README, cmd/empaquetar, internal/empaquetado, internal/app/herramientas.go con su test, internal/arch_test.go y los tres tests de la raíz. Nada en skills/, evals/, data/, schemas/, testdata/, web/, docs/ ni scripts/workflow/. Los supuestos de gates/supuestos.md son lecturas conservadoras: la plantilla del catálogo como código, el esquema oficial sin versionar, la versión del manifiesto comparada con el binario de la plataforma, y el primer párrafo del README sin tocar."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna salida del hito depende de lo consultado: las dos piezas, la ficha y el catálogo dependen de la versión, de los verbos y de las skills. Medido en el clon con `make release`: kitlegal.mcpb, 40,8 MiB, y kitlegal-plugin.zip, 17,3 KiB (`ls -l` de dist/), con sus dos líneas en checksums.txt. Las invocaciones por pregunta son las de H21, porque las skills van byte a byte (subprueba skills-del-plugin, en verde) y las herramientas son las del servidor (servidor-de-la-extension, en verde). El paso no da señales: una línea de error que deja de darse cuando la entrada está. No he medido los bytes de manifest.json ni de `tools`: las cifras de contracts/paso.md (2 939 y 1 383) son las del run."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": false,
+      "evidencia": "internal/empaquetado/catalogo.go:71-73 rechaza una versión vacía en documentoDelCatalogo con «la versión del catálogo está vacía». El binario no llega nunca a esa rama: ejecutarCatalogo pasa antes por analizar, que rechaza toda bandera vacía (ejecutar.go:172-176). Medido en el clon: `go run ./cmd/empaquetar catalogo -version \"\" -sha256 <64 hex> -salida …` escribe «empaquetar: falta -version» y sale con 1. La rama solo la alcanza el test, por export_test.go:13-16, cuyo comentario lo dice («que las banderas de Ejecutar no dejan pasar»), con el caso «sin versión» de catalogo_test.go:110-114. Ningún FR la exige: FR-030 y FR-031 fijan lo que el catálogo lleva, y lo que falta en la orden ya lo nombra `falta -version` (FR-005). El resto del paso sí se traza: plan.md, «Trazabilidad»."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de plan.md, «Controles de umbral», tiene su control y lo he visto en rojo con un mutante en el clon: 120 caracteres (TestDescripcionCorta), 512 px (TestIcono), 0 bytes entre dos ejecuciones (TestPiezasReproducibles), 4 entradas (TestPiezas), `tools` exacto (TestEjecutar, TestHerramientasAnunciadas), 0 ficheros distintos en skills/ (TestPiezas, TestEjecutar), manifiesto estricto (TestPiezas), 0 paquetes del paso en el binario (TestElBinarioNoEnlazaElPaso), y la definición de la release —`replace: true`, `archives.ids` con el universal, un sujeto atestado de menos, `catalogo` con `needs: [publicar]`, con `contents: write`, con PUBLISHER_TOKEN al componer o con la credencial en el clon, un `if` del guion de los binarios de `humo` vaciado, otra versión de Claude Code en ci.yml y plugin-check entre los prerrequisitos de ci— (TestConfiguracionDeLaRelease, subpruebas universal, archivos, atestacion, catalogo, tokens-de-la-publicacion, humo, trabajo-de-snapshot y ci). Las cinco medidas sobre el snapshot real las controla el trabajo `snapshot` (`make snapshot-check` y `make plugin-check`, ci.yml:143-159), y scripts/workflow/cierre.sh:160 cuenta todo check en rojo. No hay umbral del job de evals nuevo."
+    }
+  ],
+  "motivos": [
+    "[k] Retirar de internal/empaquetado/catalogo.go la rama de la versión vacía de documentoDelCatalogo (líneas 71-73: `if version == \"\" { return nil, errors.New(\"la versión del catálogo está vacía\") }`), que ningún FR pide y a la que el binario no llega: `empaquetar catalogo -version \"\"` ya termina con 1 y «empaquetar: falta -version», porque analizar rechaza antes toda bandera vacía (ejecutar.go:172-176; medido en una copia). Con ella: el import `errors` de catalogo.go si queda sin uso; la frase «Rechaza una versión vacía y…» de su comentario (catalogo.go:68-69), que pasa a hablar solo de la huella; el caso «sin versión» de TestCatalogo (catalogo_test.go:110-114), con el comentario de la línea 50 y el mensaje de la línea 160 al día; la cola «y fijan el error de una versión vacía, que las banderas de Ejecutar no dejan pasar» del comentario de export_test.go:13-15; y «Sin versión,» de la fila de TestCatalogo de specs/016-h22-instalar-sin-terminal/contracts/paso.md §7. No se toca nada más: la comprobación de la forma de la huella se queda (a ella sí llega un `-sha256` con otra forma), el caso de TestEjecutar que da «falta -version» se queda, y tasks.md es el registro del run. `make ci` en verde."
+  ],
+  "observaciones": [
+    "Los seis guiones nuevos de `humo` y los dos de `catalogo` (release.yml:167-327) los he leído y no los he podido ejecutar: mi intento de correrlos contra el snapshot del clon pedía una aprobación que esta sesión no tiene. Su definición está fijada entera por TestConfiguracionDeLaRelease; que funcionen en ubuntu-latest y con el `gh` de verdad sigue siendo un supuesto (research S1, S2) hasta la primera release.",
+    "`claude plugin validate` no se ha ejecutado en el run ni en esta revisión: que acepte el plugin y un catálogo con una entrada de fuente `archive` lo mide por primera vez el trabajo `snapshot` del cierre (make plugin-check).",
+    "Los enlaces del README a releases/latest/download/kitlegal.mcpb y kitlegal-plugin.zip no existen hasta que una persona publique la primera release con H22: la última, v0.3.2, no lleva las dos piezas. Lo pide FR-050; va al informe final.",
+    "TestPiezasSinEntrada prueba dos estados que lo empotrado no da nunca (un árbol sin su carpeta skills y una ruta que no cabe en un zip). Cubren ramas de error que el lenguaje obliga a tener (fs.WalkDir, zip.CreateHeader), no un mecanismo propio: no es motivo.",
+    "El caso «sin huella» de TestCatalogo (catalogo_test.go:146-150) tampoco es alcanzable por el binario, que da antes «falta -sha256», pero no tiene rama propia: lo rechaza la misma expresión regular de la forma de la huella.",
+    "El caso «con la salida de error rota» de TestEjecutar (ejecutar_test.go:61, 259-265) fija la decisión de descartar el error de escritura de la línea; se alcanza con `2>&-` y el código observable es 1: no es motivo.",
+    "TestHerramientasAnunciadas compara la función con lo que lista el servidor: un cambio idéntico en los dos lados (herramientas.go:112 y 172 a la vez) lo deja en verde, como es de esperar en un test de coherencia; las descripciones en sí las fijan los tests de H21.",
+    "manifiesto-de-la-extension compara `version` con el binario de la plataforma del test y no con los dos del .mcpb; lo cubren juntas esa subprueba y binarios-de-la-extension, y está en gates/supuestos.md.",
+    "comprobarDescripcion se ejecuta en cada `piezas` sobre una constante: en producción solo puede fallar si alguien cambia textos.go, y entonces falla también TestDescripcionCorta en make ci. Es el control del umbral de FR-015, no un caso aparte."
+  ]
+}

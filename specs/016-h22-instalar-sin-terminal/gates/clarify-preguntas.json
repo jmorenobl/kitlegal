@@ -1,0 +1,67 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Integración y dependencias externas: qué publica la release (FR-006, FR-011, FR-041, FR-062)",
+      "pregunta": "¿Contra qué se compara `server/kitlegal`, el binario universal de macOS del `.mcpb`, en `make snapshot-check` y en `humo`: contra un archivo nuevo de la release que lleve ese binario universal, o contra los seis archivos de hoy, sin publicar ninguno más? (FR-006)",
+      "por_que_importa": "El hito pide que los dos binarios del `.mcpb` sean «los de los archivos» del snapshot y de la release, pero hoy ningún archivo lleva un binario universal: `.goreleaser.yaml` compila darwin/amd64 y darwin/arm64 por separado, `release_test.go` fija en seis los archivos que la release publica y atesta, y `release.yml` atesta esos seis por su nombre. De la respuesta dependen el número de archivos de la release, lo que cambia en `TestSnapshot` y en la comprobación estricta de la definición de la release, y qué puede comprobar `humo`, que no ejecuta macOS ni obtiene el código del repositorio.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La release publica un séptimo archivo con el binario universal de macOS, junto a los seis de hoy, con su línea en `checksums.txt`, su SBOM y su atestación. `make snapshot-check` y `humo` comparan `server/kitlegal` con el binario de ese archivo. Los archivos de la release pasan de seis a siete, y cambia lo que H19 fijó como «exactamente seis» en `TestSnapshot`, en la atestación de `publicar` y en la comprobación de la definición de la release."
+        },
+        {
+          "id": "B",
+          "texto": "Los archivos siguen siendo los seis de hoy y el binario universal solo existe dentro del `.mcpb`. `make snapshot-check` compara `server/kitlegal` con el binario universal que goreleaser deja en `dist/` fuera de todo archivo. `humo` compara por su huella solo `server/kitlegal.exe` con el del archivo de Windows `amd64`; de `server/kitlegal` no comprueba nada más que lo que ya cubren la huella y la atestación del propio `.mcpb`."
+        },
+        {
+          "id": "C",
+          "texto": "Los archivos siguen siendo los seis de hoy y el binario universal solo existe dentro del `.mcpb`. `make snapshot-check` y `humo` separan las dos arquitecturas del binario universal y comparan cada una, byte a byte o por su huella, con el binario de `kitlegal_darwin_amd64.tar.gz` y con el de `kitlegal_darwin_arm64.tar.gz`. No hay archivo nuevo; los dos controles ganan el código que separa las arquitecturas de un binario universal, y `humo` lo tiene que hacer sin el código del repositorio."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    },
+    {
+      "id": "Q2",
+      "categoria": "Restricciones y señales de finalización: cómo llega el esquema del manifiesto 0.3 a `testdata/` (FR-017, FR-061, SC-004)",
+      "pregunta": "¿Cómo llega a `testdata/` el esquema JSON de la versión `0.3` del manifiesto de MCP Bundle dentro del run, y qué comprueba el control del manifiesto si no puede llegar? (FR-017)",
+      "por_que_importa": "El control de SC-004 valida el manifiesto contra ese esquema, que hoy no está en el repositorio (`testdata/` solo tiene `evals/`). Las sesiones del run no tienen red; `grabar_datos` solo graba una fuente con fila revisada en `docs/SOURCES.md` de `main`, y sin ella la tarea `[datos]` es un rojo que acaba en cuarentena (`scripts/workflow/grabar-datos.sh`); `docs/SOURCES.md` no tiene fila para `github.com/modelcontextprotocol/mcpb`, y el hito dice que queda sin cambios. De la respuesta depende si el run puede dejar SC-004 y SC-001 en verde, qué tarea escribe el esquema y qué queda para la persona.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "El esquema lo graba `grabar_datos` con una tarea `[datos]`, de la fuente del ADR 0035. Exige una fila revisada para esa fuente en `docs/SOURCES.md` de `main`, que hoy no existe y que el hito dice que no se añade: sin ella la tarea queda en cuarentena, el esquema no llega y el control de FR-061 que lo usa queda sin cumplir en el run, anotado en el informe final."
+        },
+        {
+          "id": "B",
+          "texto": "El run no versiona el esquema de la fuente. El control de FR-061 comprueba el manifiesto contra los campos y los valores que FR-012 enumera, con una comprobación propia del repositorio, además de `version` y `tools`. Versionar el esquema oficial en `testdata/` y validar contra él queda como pendiente para la persona, fuera del run, y SC-004 deja de decir «cumple el esquema de la versión `0.3`» hasta entonces."
+        },
+        {
+          "id": "C",
+          "texto": "El control de FR-061 se escribe contra una ruta fija de `testdata/` y falla si el esquema no está. El run no escribe ese fichero: lo añade la persona a la rama, descargado de la fuente del ADR 0035, antes de fusionar. Hasta entonces `make snapshot-check` y el trabajo `snapshot` de la propuesta de cambio salen en rojo, y el cierre del run cuenta ese rojo."
+        },
+        {
+          "id": "D",
+          "texto": "Una tarea del run escribe en `testdata/` un esquema JSON propio, redactado a partir de lo que el hito y el ADR 0035 dicen de la versión `0.3`, y el control de FR-061 valida contra él. El control queda en verde dentro del run; el fichero no es el de la fuente del ADR 0035, y el informe final lo dice para que la persona lo sustituya por el oficial."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Casos límite y fallos: orden entre la publicación del catálogo y `humo` (FR-031, FR-040 a FR-043)",
+      "pregunta": "¿El catálogo de `jmorenobl/kitlegal-plugins` pasa a apuntar a la etiqueta nueva antes de que `humo` compruebe lo publicado, o solo después de que `humo` salga en verde? (FR-031)",
+      "por_que_importa": "Quien añadió el marketplace recibe la versión nueva cuando cambia `version` en el catálogo. Si `humo` falla en una release —huella, atestación, manifiesto o herramientas—, la respuesta decide si esas personas reciben igualmente el plugin de esa etiqueta. También decide en qué trabajo de `release.yml` vive el paso que ve `PUBLISHER_TOKEN`, y por tanto qué fija la comprobación estricta de la definición de la release (FR-068). El spec lo deja hoy al plan.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Antes de `humo`, en el trabajo `publicar`, a continuación de publicar la release: el catálogo se actualiza en el mismo trabajo y con el mismo secreto que el tap y el bucket. Si `humo` falla después, el catálogo ya apunta a esa etiqueta, igual que el tap y el bucket."
+        },
+        {
+          "id": "B",
+          "texto": "Después de `humo` y solo si sale en verde, en un trabajo aparte que depende de él: si `humo` falla, el catálogo sigue apuntando a la etiqueta anterior, mientras el tap y el bucket ya apuntan a la nueva. `PUBLISHER_TOKEN` pasa a verlo un segundo trabajo de `release.yml`, y `humo` sigue sin secretos y con permisos de solo lectura."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    }
+  ]
+}

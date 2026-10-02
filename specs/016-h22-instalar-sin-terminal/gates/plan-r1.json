@@ -1,0 +1,106 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I a IX) y por regla (R1 a R7), más las tres capas de gates. Cotejado con el repositorio: `paquetesInternos` son hoy diez (internal/arch_test.go:869-871) y la lista `core` de depguard deniega esos diez (.golangci.yml:108-136), así que «once paquetes» es cierto; forbidigo exceptúa `^cmd/` para `os.Exit` y `os.Stderr` (.golangci.yml:420 y 424); `RegistroDeProduccion` «no pide nada ni abre nada» (internal/app/registro.go:223-226); el módulo no gana ninguna llamada HTTP (el `PUT` del catálogo lo hace `gh` en el flujo, como goreleaser con el tap). `precheck` del plan sin defectos (gates/plan-precheck.txt vacío)."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: el paso usa `archive/zip`, `encoding/json`, `image/png`, `flag` y `os`; los tests, `debug/macho`, `archive/tar`, `compress/gzip`, testify y `internal/mcp/mcptest`, que existe (internal/mcp/mcptest/sesion.go:160 `Abrir`). goreleaser sigue en v2.18.1 (tools/goreleaser/go.mod:185). Complexity Tracking no declara ninguna dependencia porque no la hay."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "`os.Exit` y `os.Stderr` solo en `cmd/empaquetar/main.go`; `internal/empaquetado` no importa `net/http`, SQLite ni escribe en la salida estándar (contracts/paso.md §1 y §6; research D16). Importa `internal/app` y el paquete raíz, como `cmd/kitlegal`: R2, R3 y R7 de `TestArquitectura` miden la importación exclusiva por dueño (internal/arch_test.go:81-135), y R1 solo acota `internal/core`, que no cambia. Los tests de la raíz hablan MCP por `internal/mcp/mcptest`, no por el SDK (R7). `TestElBinarioNoEnlazaElPaso` fija que el binario distribuido no enlaza el paso."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "El contrato de resultados del binario (ADR 0023) no cambia: ningún applet, verbo ni código nuevo (FR-001, FR-080). El paso no es un applet: sale con 0 o con 1 y una línea `empaquetar: …` por fallo, con la tabla de fallos en contracts/paso.md §1 y la decisión en research D14; FR-005 pide «un código distinto de 0» y quien lo consume (goreleaser, un paso de un flujo) solo distingue 0 del resto. Ningún `panic`: cada fallo vuelve como error."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "plan.md «Aceptación e2e: no aplica», con motivo (FR-001 y FR-080 prohíben cambiar el comportamiento del binario; lo entregado son dos ficheros de la release, dos flujos y documentación) y con la tabla de qué hace de aceptación en el run; hay precedente en H7.2 a H7.4. Nombra los nueve tests de `make ci` con su fichero, las seis subpruebas de `TestSnapshot` y `TestPluginValido`, los tests que cambian (`TestConfiguracionDeLaRelease`, `TestSnapshot`, `TestArquitectura`), ningún fixture, y el orden rojo-primero de las subpruebas del snapshot antes de `.goreleaser.yaml` («Orden de implementación», paso 3)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza se traza a un FR en «Trazabilidad». No toca las skills, `web/`, `docs/SOURCES.md`, `testdata/`, `schemas/` ni `data/`; no versiona el esquema oficial (FR-017); no añade applet, verbo ni bandera; los archivos siguen siendo seis (`archives[0].ids`). La partición del README en tres apartados y el catálogo como código están anotados como supuestos en gates/supuestos.md."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`: la escritura va con `os.Root` porque `os.WriteFile` con `0644` es hallazgo de gosec (research V21, D16). `TestPluginValido` falla, y no se salta, si `claude` no está en el `PATH` (contracts/release.md §4). Ningún `t.Skip`, TODO ni error silenciado previsto; lo que no se pudo medir figura como supuesto S1 a S11."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research D1 a D20, cada decisión con su alternativa rechazada (módulo en `tools/`, guion de shell, arrancar el binario para `tools`, plantilla JSON con marcadores, `before.hooks`, gancho de `builds`, orden tras goreleaser, `git push` para el catálogo). Comprobado que el gancho `post` de `universal_binaries` es el único punto entre `build` y `checksums` con todos los binarios ya escritos (goreleaser v2.18.1, internal/pipeline/pipeline.go:82-175 e internal/pipe/universalbinary/universalbinary.go)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "research V1 a V32 con fichero, línea u orden, y S1 a S11 como supuestos. Comprobado en esta sesión: el orden de fases, el gancho sin shell y con el entorno del proceso, la cabecera big-endian del universal, su ruta `dist/<id>_darwin_all/` y su modo `0755`, el filtro `ByIDs` de `archives`, los `extra_files` resueltos al calcular las huellas y el universal fuera de los tipos que se suben (pipeline.go, universalbinary.go, shell.go, archive.go:117-127, checksums.go:187-200, artifact.go:136-154); `goreleaser check` sobre una configuración de prueba en el temporal con las secciones nuevas: «1 configuration file(s) validated», código 0; un snapshot de prueba con `dist` en el temporal y ganchos `cp`: los seis binarios compilados antes del gancho, `.Version` `0.3.2-SNAPSHOT-751b76e`, `.Path` `…/kitlegal-universal_darwin_all/kitlegal`, `kitlegal_windows_amd64_v1/kitlegal.exe` ya existente al ejecutarse el gancho, seis archivos y ningún `darwin_all`; el esquema `mcpb-manifest-v0.3.schema.json` de la caché de npx, que el manifiesto del contrato cumple campo a campo; en el binario de Claude Code 2.1.284, la fuente `archive` con `url` HTTPS y `sha256` opcional verificado en cada descarga, y «Validate a plugin or marketplace manifest»; scripts/workflow/informe.sh:249-258; evals.yml:179 y 210; internal/app/herramientas.go; `mcp/icon.png` 512 × 512, 20 539 bytes. No pude medir: las líneas de `checksums.txt` (con `dist` fuera del árbol el glob de `extra_files` falla; lo leído en checksums.go lo sostiene), V15 a V20 y V30 a V32 (el prototipo está retirado) y V22 (la configuración de `gh` está vetada a la sesión)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "No se puede ejecutar hoy: el código no existe, y el plan dice que §2 a §5 se ejecutaron con el prototipo (research V31), que no pude repetir. Cotejado orden a orden con los contratos: los nombres de test y de paquete son los del plan; §2 espera `0.0.0-prueba`, `10` y `71`, y el manifiesto del contrato da 10 herramientas y 71 caracteres (recalculado con `jq`); §5 lista los seis archivos más `kitlegal-plugin.zip`; `snapshot-check` solo ejecuta `^TestSnapshot$` (Makefile:184), así que no lanza `claude`. Efectos declarados: el temporal, que §4 retira, y `dist/`, que retira §9; `make ci` declara la red de las herramientas de Go."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguno (plan «Datos externos»; research D18): ni grabación, ni fila nueva en docs/SOURCES.md, ni fichero en `testdata/`, `schemas/` o `data/`. El esquema oficial se leyó en local y no se copia (FR-017); `tools` sale del registro, las skills de lo empotrado, y el icono ya está versionado."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "«Obligaciones para tasks.md»: ninguna tarea ejecuta `claude`, `make plugin-check`, `make evals` ni `release.yml`, ni etiqueta, publica o mide en la plataforma; quickstart §10 separa lo que hacen la persona y el workflow. `ci.yml`, `release.yml` y `.golangci.yml` cambian en tareas que los declaran, que es lo que admite el guardián en modo tarea (scripts/workflow/guardian-diff.sh)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "contracts/paso.md §2 a §4 dan la forma y un ejemplo entero de cada salida, y §8 quién la pide, cuántas veces, su tamaño y cuándo se apaga. Cálculo rehecho: `manifest.json` 2 939 bytes, descripción de 71 caracteres, párrafo de 491, 10 herramientas, `tools` compacto 1 383 bytes; `plugin.json` 260; catálogo 619; las cinco entradas de `skills/` 44 237 bytes (23 944 + 3 413 + 12 716 + 1 543 + 2 621, `wc -c`); dos líneas de `checksums.txt` 80 + 86 = 166 bytes. Ninguna depende de lo consultado: con cientos de normas y miles de bloques miden lo mismo, y cada etiqueta sustituye el catálogo entero. Las invocaciones por pregunta son las de la SKILL.md de `boe-legislacion`, sin cambios (`boe_articulo` y `graph_check` por bloque, líneas 66-86), con las señales de H21 y H7.1; el hito no añade ninguna señal."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad» lleva cada mecanismo a su FR, y Complexity Tracking justifica con FR las tres duplicidades (`make ci` y snapshot: FR-066, FR-067, FR-070 frente a FR-060 a FR-064; `humo` en shell: FR-043; Go en `catalogo`: FR-015 y FR-030). El paso copia los binarios sin mirarlos y no promete nada de una salida a medio escribir, de un `dist/` tocado a mano ni de un zip alterado: remite a las huellas, al snapshot y a `humo`."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Catorce filas, que recogen los seis umbrales de FR-070 y los de SC-003 a SC-010, FR-006, FR-001 y FR-068. Recorrido rehecho. En `make ci` (lo ve `verificar`): descripción de 121 caracteres, `TestDescripcionCorta`; icono de otro tamaño o que no es PNG, `TestIcono`; un byte de diferencia entre dos ejecuciones, `TestPiezasReproducibles`; una entrada de más o un campo de más en el manifiesto, `TestPiezas`; `tools` distinto de lo que el servidor lista, `TestEjecutar` con `TestHerramientasAnunciadas`; un fichero de `skills/` distinto, de menos o de más, `TestEjecutar`; el paso enlazado en el binario, `TestElBinarioNoEnlazaElPaso`; trabajos, tokens, sujetos y pasos de `humo`, `TestConfiguracionDeLaRelease`. En el cierre (lo ve `medir_cierre`): los bytes de las arquitecturas, los dos ficheros en `dist/`, los seis archivos, el servidor arrancado desde el `.mcpb` y `claude plugin validate` ponen en rojo el trabajo `snapshot` de la propuesta de cambio, y `cierre.sh` cuenta todo check en rojo de un flujo (líneas 152-161). Ningún control solo publica, y ninguno queda para la persona salvo SC-002 y SC-012, que el spec ya declara sin umbral mecánico."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[o] En cinco filas (FR-002/FR-060, FR-011/FR-062, FR-006, FR-064 y FR-065) la columna «Dónde» nombra un test de `make ci` que no mide ese umbral: el control que sale en rojo es el trabajo `snapshot` en el cierre, como dice la columna «Control». El informe final los dará por comprobados «en make ci (verde)» (informe.sh:249-258); el formato de «Dónde» no tiene forma para un control del cierre que no sea de evals.",
+    "[i] En `publicar`, el gancho `go run ./cmd/empaquetar` hereda el entorno del proceso de goreleaser (shell.go: `cmd.Env = env`; pkg/context/context.go:141, `os.Environ()`), con `GITHUB_TOKEN` y `PUBLISHER_TOKEN`: FR-031 se cumple a la letra, porque es el mismo paso del flujo, pero el plan no lo dice; el paso y el cierre de dependencias de `internal/app` se ejecutan con esos dos tokens a la vista.",
+    "[i] S1, no medido en Linux: en el paso 11 de `humo` la magia 3 405 691 582 es el único entero mayor que 2^31−1 que pasa por `awk`, y el `awk` por omisión de Ubuntu es mawk; si lo imprimiera en notación exponencial, la primera comparación fallaría. No lo pude medir en esta sesión: su primera ejecución real es la primera release.",
+    "[l] Si `claude plugin validate` o `npm install` fallan en el trabajo `snapshot` del cierre por algo de `ci.yml` (S3, S4), `reparar_cierre` no puede tocar `.github/` (guardián en modo global): quedaría como motivo pendiente del informe final.",
+    "[n] La validación de la forma de `-sha256` (63 dígitos, mayúsculas) no la exige ningún FR, y la única vía es quien ejecute `empaquetar catalogo` a mano: `awk` sobre `checksums.txt` siempre da 64 dígitos en minúsculas o nada, y sin valor ya responde `falta -sha256`.",
+    "[m] `tools` compacto mide 1 383 bytes recalculado con `jq`, y el plan dice 1 384 (cuenta el salto de línea): no cambia el diseño.",
+    "[f] La descripción corta queda escrita en cuatro sitios (tres en `.goreleaser.yaml` y `textos.go`); FR-015 solo pide un sitio para el manifiesto y `plugin.json`, que se cumple.",
+    "[f] `kitlegal.mcpb` y `kitlegal-plugin.zip` no llevan el fichero de la licencia, que los seis archivos sí llevan; lo fija el spec (FR-010, FR-020), y el manifiesto y `plugin.json` declaran `EUPL-1.2`."
+  ]
+}

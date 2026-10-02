@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log de la cabeza b960a9b termina en verde («ci: todos los controles en verde», «kitlegal-verificacion exit=0»); el fichero es de las 19:11:38, la hora del commit, y posterior a skills/boe-legislacion/SKILL.md (19:01:26). Reproducido en esta sesión en un clon de b960a9b bajo $TMPDIR, en dos órdenes que suman los doce prerrequisitos de `ci` (Makefile:253-254) y al primer intento: `make fmt-check lint test` («0 issues.»; los 23 paquetes con tests `ok` con -race, ninguna línea FAIL) y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check` (todos `ok`; «No vulnerabilities found.»; «1 configuration file(s) validated»; «no leaks found»; «all modules verified»; `go mod tidy -diff` sin salida). `git status --porcelain` del clon, vacío al terminar. Árbol de trabajo: `git status --porcelain` solo da registros de gates/ que escribe el workflow (base-global-pendiente, revision-cambios.md y revision-cambios-r4.diff)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 41ff279..b960a9b no añade código ni tests: fuera de gates/ toca CHANGELOG.md, skills/boe-legislacion/SKILL.md (una línea del frontmatter, la 9), plan.md y research.md; gates/revision-cambios-r4.diff es, byte a byte, `git diff 41ff279..HEAD` sin gates/ (mismo `git hash-object`, 3b064b2). Lo que cambia tiene control que detecta lo que dice: en el clon, con siete caracteres más en la `description` (1 025), `make skills-check` cae en TestSkillsDelRepositorio con «boe-legislacion: description de 1025 caracteres (máximo 1024)» (internal/app/skills_test.go:100); restaurado con `git checkout`, el clon vuelve a estar limpio. Que el plugin lleva lo empotrado lo sigue fijando TestPiezas (internal/empaquetado `ok`), y lo he visto: `go run ./cmd/empaquetar piezas -version 0.4.0 …` sobre la cabeza termina con 0 y deja un kitlegal-plugin.zip cuyos cinco ficheros de skills/ son iguales byte a byte a los del árbol (comparados con una prueba temporal en el clon, retirada después). Suite de aceptación: «no aplica» en H22 (plan.md, D13; supuestos.md:5); las congeladas de los hitos anteriores no están en el diff del hito (`git diff --stat main...HEAD` fuera de specs/016 da 26 ficheros, ninguno de internal/app/testdata, testdata, schemas, data, evidencias ni evals) e internal/app pasa, unitarios y de integración. No repetido en esta ronda: `make release` y `make snapshot-check` sobre el snapshot real; el rango no toca el paso, .goreleaser.yaml, el Makefile ni sus tests."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún fichero .go, go.mod ni go.sum (`git diff --name-only 41ff279..HEAD` fuera de gates/: CHANGELOG.md, SKILL.md, plan.md y research.md). golangci-lint «0 issues.» y el paquete internal (reglas de arquitectura) `ok` en el clon de la cabeza. Lo demás, como en las rondas 1 a 3."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet, verbo ni esquema cambia en el rango. `make schema-check` (TestEsquemasPublicados) y `make skills-check` (TestSkillsDelRepositorio, TestOrdenesDeLasSkillsEmpotradas, TestEvalsDelRepositorio…) en verde en el clon. La tabla de comandos generada de la skill no cambia: el diff de SKILL.md es una línea del frontmatter."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El rango no cambia código ni contrato de códigos de salida, ni del binario ni del paso. El paso de la cabeza, ejecutado en esta sesión con `piezas -version 0.4.0` y sus cinco banderas sobre dos binarios compilados del clon (macOS y Windows amd64), termina con 0 y deja kitlegal.mcpb (cuatro entradas) y kitlegal-plugin.zip (seis). Lo medido sobre las filas de contracts/paso.md §1 es lo de la ronda 2 (gates/revision-a-r2.json, criterio e)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Contrastado, cifra a cifra, lo que el corrector escribió en CHANGELOG.md:107-119 (Unreleased, «Cambiado»), research.md D21 (331-426), plan.md:329-333 y gates/supuestos.md:29. La frase citada es la de skills/boe-legislacion/SKILL.md:9, literal. Medido en el clon con el analizador del repositorio (LeerFrontmatter, prueba temporal retirada): `description` de 1 018 caracteres; `wc`: SKILL.md 298 líneas y 24 045 bytes, y 44 338 bytes los cinco ficheros de las dos skills; en main, 297 líneas y 23 944 bytes (`git cat-file -s`), de donde salen los 44 237 y, por la cuenta de los tres cambios, los 924. Las seis herramientas de `boe` que nombra el CHANGELOG son las que anuncia el manifiesto compuesto por el paso de la cabeza (boe_buscar, boe_indice, boe_articulo, boe_articulos, boe_metadatos, boe_analisis; con graph_show, graph_stats, graph_check y territorio_resolver, diez). Las alternativas de D21: la frase con los seis nombres mide 150 caracteres (`wc -m`) y daría 1 062; con «también», 1 026 (la frase actual mide 106). «Por qué no contradice FR-003»: la cita es la de specs/014-h7-4-boe-legislacion-sin/spec.md:232 y «Contra la sobreactivación» está en su research.md:116-119; en gates/evals/legal-core.json hay 42 sesiones y las 12 invocaciones con `llamada: true` son `territorio_resolver` (6 a Leganés y 6 a Tordesillas, evals 01 y 02 en el modo herramienta), ninguna `boe_…`; las cuatro evals de legal-core declaran `no_se_activan: [boe-legislacion]` (evals/legal-core/01…:6, 02…:7, 03…:4, 04…:5); `anotarLasQueNoSeActivan` está en internal/evals/juzgar.go:695; la 01, la 02 y la 03 tienen sesiones en los dos modos y la 04 en uno; y skills/legal-core/SKILL.md no nombra ninguna herramienta `boe_…` y delega el texto en su paso 6 (línea 115). El título de la entrada del CHANGELOG dice ya lo que la `description` pide y no un efecto. Ningún ADR cambia y docs/SOURCES.md no aplica. D21 sigue diciendo sin rodeos lo que no se ha medido, y añade la sobreactivación en una pregunta de territorio."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade red, secretos ni datos externos: una línea de una `description` y documentación; ningún fichero de testdata/, data/, schemas/ ni evidencias/, ni código. gitleaks «no leaks found» y govulncheck sin vulnerabilidades alcanzables en el clon de la cabeza. Ningún dato de persona en la `description`. El corrector no abrió sesiones con modelo: D21 y supuestos.md:29 no citan ninguna medida del efecto del texto nuevo, y lo dicen."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Leído entero el diff del rango (81 líneas): ninguna línea añadida con nolint, t.Skip, TODO, FIXME ni XXX, y ningún fixture. La corrección no rebaja ningún umbral ni toca las evals, la lista de expresiones prohibidas, internal/evals, .github/workflows/evals.yml ni la suite congelada de H21: `git diff --stat main...HEAD` da, de todo eso, solo skills/boe-legislacion/SKILL.md (3 líneas añadidas y 2 quitadas en el hito). La `description` cabe en su límite acortando la frase, no tocando el control: `maximoDeLaDescripcion = 1024` (internal/skills/frontmatter.go:53) y `maximoDeLineas = 299` (sincronia.go:27) no cambian."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El motivo [i] del juez B en la ronda 3 está corregido en sus tres partes, y nada más cambia. (1) SKILL.md:9 dice «Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill.»: ya no hay «sus herramientas» tras «con kitlegal» ni una lista abierta que alcance a las diez del servidor; nombra las del applet `boe`, que es con lo que se lee una norma y lo que pide la medición (una sesión que llamó a `boe_articulo` sin la skill), y deja fuera `territorio_resolver` y las de `graph`. Es la lectura conservadora: de las dos que el juez B admitía (las de `boe` o, como mucho, las de los dos applets de la skill), la más estrecha. (2) La frase literal y sus medidas están en CHANGELOG.md:112-118 y en research D21 («Decisión», punto 2, y la línea de lo medido), y gates/supuestos.md:29 lleva la línea `[skill]` con la frase que queda y las alternativas rechazadas. (3) D21 gana «Por qué no contradice FR-003 de H7.4» y, en «Lo que no se ha medido», que el job de `legal-core` también mide este cambio con `no_se_activan`. La desviación del spec («las dos skills, byte a byte», spec.md:76) sigue registrada como decisión en plan.md:329-333, research D21 y supuestos.md:27 y 29. No se tocan el cuerpo de la skill, `legal-core`, las evals, el umbral, internal/evals ni las `instructions`. Fuera de specs/016 el diff del hito son los mismos 26 ficheros de la ronda 3."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en esta sesión sobre la cabeza. La `description` de boe-legislacion, que el agente lee una vez por conversación en la lista de skills: 1 018 caracteres y 1 049 bytes (la de legal-core, 848 y 873); no depende de lo consultado. SKILL.md, una vez por conversación en que la skill se activa: 24 045 bytes y 298 líneas (+101 bytes sobre main). El plugin compuesto por el paso de la cabeza: kitlegal-plugin.zip de 17 767 bytes y seis entradas, 44 581 sin comprimir (plugin.json 243; los cinco ficheros de las skills, 44 338), con el SKILL.md nuevo dentro. Invocaciones por pregunta: las de H21, porque el cuerpo no cambia —por bloque, `boe_articulo` y `graph_check`—. Ninguna señal nueva y ninguna salida que crezca con lo acumulado: el binario distribuido no cambia en el rango. El coste de una activación de más en una pregunta de territorio (24 045 bytes) no lo he podido medir, porque no abro sesiones con modelo; la frase ya no nombra la herramienta de esas preguntas, y lo mide el job de `legal-core`."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún control. Los dos límites que roza el texto tienen el suyo en `make ci`: 1 024 caracteres de `description` (internal/skills/frontmatter.go:53 y 438, contados con utf8.RuneCountInString; visto en rojo en esta sesión con el mutante de 1 025 del criterio b) y 299 líneas de SKILL.md (internal/skills/sincronia.go:27; la cabeza tiene 298 e internal/skills pasa). El umbral que motivó la reparación sigue con su control, y se le vio en rojo de verdad: en gates/evals/boe-legislacion.json (sobre 4b350fa), `sin_activar:claude-sonnet-5-5:herramienta` lleva medida 1, total 54, umbral 0, `cumple: false` y `decide: true`, y el veredicto es `fallo` con ese único motivo; los otros siete umbrales que deciden y los dos informativos de Haiku cumplen (452 s y 458 s de 900). El control de la sobreactivación es de serie (`no_se_activan`, internal/evals/juzgar.go:431 y 695) y no un umbral agregado; el hito no lo toca. Las filas de plan.md «Controles de umbral» no cambian en el rango: ni código, ni tests, ni Makefile, ni flujos, y `make test` pasa en el clon."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El efecto de la `description` nueva sigue sin medir, y D21 lo dice: lo mide el job de la medición siguiente, con `sin_activar` en los dos modos (umbral 0) y con `no_se_activan` en las evals de legal-core. Con 1 de 108 entre las dos mediciones anteriores, un 0 de 54 no distingue el arreglo de la fluctuación; lo que esa medición sí puede ver es una regresión.",
+    "Márgenes: la `description` tiene 1 018 de 1 024 caracteres y SKILL.md 298 de 299 líneas; cualquier añadido pide recortar antes. En bytes la `description` mide 1 049: el control del repositorio cuenta caracteres, y cómo cuenta `claude plugin validate` lo dirá `make plugin-check` en el trabajo `snapshot` de la propuesta de cambio, que no se ha ejecutado en esta sesión (el snapshot de la medición sobre 4b350fa pasó con la `description` de main, de 924).",
+    "CHANGELOG.md:72, en la entrada de `kitlegal.mcpb`, dice «No cambia el binario ni las skills», y el mismo Unreleased lleva `boe-legislacion` v0.1.6 (líneas 107-119). Leída como lo que cambia esa entrada, es cierta; no la introdujo este rango.",
+    "Cifras anteriores a la reparación que quedan en los artefactos, y que D21 nombra como tales: spec.md:275 y 281 (44 237 bytes), plan.md:294-296 (plugin de 17 739 bytes; «las de hoy, byte a byte») y contracts/paso.md §3 y §8 (23 944 bytes). En la cabeza: 24 045 bytes de SKILL.md, 44 338 los cinco ficheros y 17 767 el zip del plugin.",
+    "spec.md:76, 315 y 330, tasks.md y cierre.md siguen diciendo que las skills no cambian: son el encargo y el registro fechado de las tareas. La desviación está en plan.md «Decisiones», research D21 y gates/supuestos.md:27 y 29, que es lo que lleva el informe final.",
+    "gates/supuestos.md:27 conserva la frase que escribió la reparación del cierre («Actívala también antes de llamar a sus herramientas…», 1 021 caracteres): es el registro de ese paso; la que queda está en la línea 29. research D21:343-344 («`git diff main HEAD` sobre skills/… no da nada») describe el commit medido, 4b350fa; en la cabeza da SKILL.md.",
+    "La `description` de legal-core sigue nombrando solo el binario (848 caracteres); su informe da 0 sesiones sin activar. No se toca por lectura conservadora, registrada en D21.",
+    "No repetido en esta ronda: `make release`, `make snapshot-check`, `make plugin-check` y los guiones de `humo` y `catalogo` de release.yml. El rango no toca nada de eso; el contenido del plugin sí cambia, y lo he comprobado componiéndolo con el paso de la cabeza.",
+    "Los dos tests sensibles a la carga de la ronda 2 (TestIntegracionConcurrencia de internal/graph y TestTopeDeLaSesion de internal/evals) no han fallado en esta sesión.",
+    "El directorio temporal de esta revisión, /tmp/claude-501/juez-a-r4 (el clon, dos binarios y las dos piezas), queda sin borrar: el sandbox denegó `rm -rf`. Está fuera del repositorio."
+  ]
+}

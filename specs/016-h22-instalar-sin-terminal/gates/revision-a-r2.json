@@ -1,0 +1,81 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log de la cabeza a9c64f9 termina en ROJO («kitlegal-verificacion exit=2»): fmt-check, lint («0 issues.») y test pasan, y `make test-integration` cae en internal/graph, TestIntegracionConcurrencia (integracion_test.go:1099, «ningún auxiliar queda»: junto a world.db quedaron world.db-shm y world.db-wal); make se detuvo ahí y los ocho controles siguientes no corrieron en esa verificación. Ese paquete no es del hito ni del rango: `git diff --name-only main...HEAD -- internal/graph internal/cache internal/core` da 0 ficheros, y el rango 874d502..a9c64f9 solo toca internal/empaquetado/{catalogo.go,catalogo_test.go,export_test.go} y contracts/paso.md. Cumple por la reproducción: en un clon de a9c64f9 bajo $TMPDIR, en dos órdenes que suman los doce prerrequisitos de ci, `make fmt-check lint test` (código 0; «0 issues.»; todos los paquetes ok, internal/graph incluido; internal/empaquetado 98,3 %) y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check` (código 0; internal/graph ok en 10,9 s; «No vulnerabilities found.»; «1 configuration file(s) validated»; «no leaks found»; «all modules verified»; `go mod tidy -diff` sin salida), y el clon queda limpio. El test que cayó en ci.log, repetido en el clon con -race -tags=integration: 20 de 20 aislado, 8 de 8 con el paquete entero y 6 de 6 con otros cinco paquetes a la vez; no he reproducido el rojo (primera observación). Árbol: `git status --porcelain` solo da registros de gates/ (base-global-pendiente, revision-cambios.md, supuestos.md, revision-cambios-r2.diff y el veredicto del otro juez, que no he leído)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "La corrección retira el caso «sin versión» de TestCatalogo junto con la rama que solo él ejercía; lo que queda detecta lo que dice. En el clon, con la comprobación de la forma de la huella anulada (catalogo.go:70), caen las seis subpruebas de huella de TestCatalogo y TestEjecutar/catalogo_con_una_huella_sin_su_forma; restaurado, `go test -count=1 -v ./internal/empaquetado/` da 53 líneas `--- PASS`, ninguna FAIL ni SKIP, TestCatalogo con ocho subpruebas, y 98,3 % con las mismas tres funciones por debajo de 100 (ejecutarPiezas, pluginDe, comprimir). Lo que hace una versión vacía lo sigue fijando TestEjecutar por la orden: «piezas con una bandera vacía» (ejecutar_test.go:333-340) y «catalogo sin -version» (385-394), sobre el mismo analizar. Todos los paquetes en verde con -race en el clon, unitarios y de integración, con TestHerramientasAnunciadas, TestElBinarioNoEnlazaElPaso, TestArquitectura y TestConfiguracionDeLaRelease dentro. Suite de aceptación: «Aceptación e2e: no aplica» (plan.md:172-175) y no hay suite de H22; las congeladas de los hitos anteriores no están en el diff y pasan (internal/app ok, con TestEntregaDelHito). No repetido en esta ronda: `make release`, `make snapshot-check` y los mutantes sobre el snapshot real, que están en gates/revision-a-r1.json; el rango no toca piezas.go, .goreleaser.yaml, el Makefile ni los tests del snapshot."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de `git diff main...HEAD` fuera de specs/, la única coincidencia de net/http, os.Exit, fmt.Print* o panic( sigue siendo `os.Exit(empaquetado.Ejecutar(os.Args[1:], os.Stderr))` de cmd/empaquetar/main.go:20, que R4 admite en cmd/. La corrección quita el import `errors` de catalogo.go, que queda con bytes, fmt, path/filepath y regexp (catalogo.go:3-8). golangci-lint «0 issues.» en el clon; el paquete internal (TestArquitectura, TestElBinarioNoEnlazaElPaso) en verde. go.mod y go.sum fuera del diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, verbo ni esquema: `make schema-check` (TestEsquemasPublicados) y `make skills-check` en verde en el clon. El paso no es un applet y no lleva sobre (contracts/paso.md §1, líneas 14-16). Su catálogo se sigue leyendo de forma estricta y con la forma del contrato en TestCatalogo (catalogo_test.go:92-100), y el que escribe el paso compilado de la cabeza con `-version 0.4.0` y una huella válida tiene 619 bytes y una sola entrada, `kitlegal`, de fuente `archive`, con la dirección de la release v0.4.0."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Lo que el contrato promete tras la corrección ocurre en el paso, compilado de a9c64f9 en el clon y ejecutado en esta sesión: `catalogo -version \"\" -sha256 <64 hex> -salida …` da «empaquetar: falta -version» y código 1; sin `-version`, lo mismo; `-sha256 \"\"`, «empaquetar: falta -sha256» y 1; `-sha256 ABC`, «empaquetar: «ABC» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas» y 1, sin ningún fichero en la carpeta de salida; con valores válidos, código 0 y 0 bytes en la salida estándar y en la de error. Son las filas de contracts/paso.md §1 (líneas 29-40). Retirar la rama no abre ningún estado: analizar rechaza toda bandera vacía antes de componer (ejecutar.go:172-176) y documentoDelCatalogo solo se llama desde escribirCatalogo (catalogo.go:102-103), detrás de ejecutarCatalogo (ejecutar.go:130-142). Ningún panic. El contrato de resultados del binario distribuido no cambia."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "La fila de TestCatalogo de contracts/paso.md §7 (línea 260) ya no dice «Sin versión,» y describe lo que el test hace; los comentarios de catalogo.go:67-68, catalogo_test.go:45-50 y export_test.go:13-14 dicen lo que queda. Ninguna otra afirmación cae con la corrección: contracts/paso.md §1 (líneas 32 y 40) ya daba `falta -<bandera>` para una bandera vacía, y la regla «versión no vacía» de data-model.md:119 la sigue sosteniendo la orden (medido en e). README, CONTRIBUTING y CHANGELOG no hablan de esa rama (grep de «versión vacía», «sin versión» y «falta -» sin coincidencias que la nombren) y el rango no los toca: CHANGELOG (Unreleased), README, CONTRIBUTING, docs/SOURCES.md y ADR quedan como en la ronda 1 (gates/revision-a-r1.json, criterio f)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade red, secretos ni datos: cuatro ficheros, ninguno de testdata/, data/, schemas/ ni evidencias/, y el paso sigue sin importar net/http ni internal/httpx (catalogo.go:3-8). gitleaks «no leaks found» en el clon. .github/workflows/release.yml, releído entero en esta ronda: PUBLISHER_TOKEN solo en el entorno de «Publicar la release» (línea 66) y de «Publicar el catálogo» (línea 317); `catalogo` con `permissions: contents: read` y `persist-credentials: false` (285-292); `humo` sin secretos ni código. Lo único que se escribe fuera es marketplace.json en el repositorio del catálogo, desde el flujo que dispara una etiqueta que empuja una persona (ADR 0020): no es una sede ni usa la identidad de quien usa el kit. Ningún dato de persona."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD` fuera de specs/: 0 líneas añadidas con nolint, t.Skip, TODO, FIXME o XXX. La corrección no silencia un error ni ajusta un test para que pase: retira una rama sin vía desde el binario y el único caso que la ejercía, y las otras seis filas de la tabla de TestCatalogo quedan como estaban (catalogo_test.go:104-146). Ningún fixture: el rango no toca testdata/."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente el motivo [k] del juez B, elemento a elemento: la rama de la versión vacía y el import `errors` (catalogo.go), la frase de su comentario, el caso «sin versión» con su comentario y su mensaje (catalogo_test.go), la cola del comentario de export_test.go y «Sin versión,» de contracts/paso.md §7; 23 líneas y nada más (gates/revision-cambios-r2.diff). La comprobación de la forma de la huella y el caso de TestEjecutar que da «falta -version» se quedan, como pedía. El diff del hito fuera de specs/016 siguen siendo los 25 ficheros de la ronda 1 (`git diff --name-status main...HEAD`), sin skills/, evals/, data/, schemas/, testdata/, web/, docs/, scripts/ ni .specify/. gates/supuestos.md solo gana una línea [proceso], «make ci sigue en rojo», que es un hecho del run y no una lectura del spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en esta ronda con el paso de a9c64f9: el catálogo de una versión, 619 bytes y una entrada (la cifra de plan.md:300 y de la ronda 1); `piezas` sobre dos binarios de prueba, dos ejecuciones con las mismas huellas en los dos ficheros (57cac608… el .mcpb, 670327fb… el plugin); el .mcpb con cuatro entradas (manifest.json, 2 922 bytes con la versión 0.4.0; icon.png, 20 539) y el plugin con seis (17 720 bytes el zip: plugin.json, 243, y los cinco ficheros de las dos skills, 44 237). Ninguna depende de lo consultado ni crece con el uso: salen de la versión, del registro y de lo empotrado. La línea de fallo es una y deja de darse cuando la bandera está. El binario distribuido no cambia en el rango, así que los bytes por llamada, las invocaciones por pregunta y las señales son los de H21. El tamaño del .mcpb con los binarios reales (42 745 220 bytes) es el de la ronda 1 y no se ha vuelto a medir."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún control de las catorce filas de plan.md «Controles de umbral» (líneas 256-271): TestCatalogo no es uno de ellos, y TestDescripcionCorta, TestIcono, TestPiezas, TestPiezasReproducibles, TestEjecutar, TestHerramientasAnunciadas, TestElBinarioNoEnlazaElPaso y TestConfiguracionDeLaRelease no cambian desde 874d502 y pasan en el clon. Cada uno se vio en rojo con su mutante en la ronda 1 (gates/revision-a-r1.json, criterio l); en esta he visto en rojo el del catálogo, que no es un umbral. Las cinco medidas sobre el snapshot real siguen en el trabajo `snapshot` de ci.yml (make release, make snapshot-check, make plugin-check), que el cierre cuenta. El job de evals no gana umbrales: las skills no cambian."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "gates/ci.log de a9c64f9 está en rojo por TestIntegracionConcurrencia (internal/graph/integracion_test.go:1099): tras ocho entregas simultáneas quedaron world.db-wal y world.db-shm. El test es de H7 (su fichero no cambia desde cc9d25e) y el hito no toca internal/graph. No lo he reproducido: 0 rojos en 35 ejecuciones en el clon (20 aislado, 8 con el paquete, 6 con carga y 1 en make test-integration). La causa queda sin comprobar; como hipótesis, dos conexiones que cierran a la vez y ninguna hace el checkpoint final de SQLite. La aserción que cayó es la de los auxiliares, que SC-009 de H7 no pide (specs/010-h7-internal-graph-grafo/spec.md:314). Arreglarlo es un cambio en internal/graph, fuera de este hito: va al informe final, para una propuesta aparte. La CI de la propuesta de cambio puede caer por lo mismo sin que el hito lo cause.",
+    "cierre.md da cifras de 94fce58 y lo dice en su línea 3: «TestCatalogo (9)» y 54 líneas PASS (línea 153-155), «173 de 176» (línea 106), +114 y +163 líneas de catalogo.go y su test (líneas 31-32). En la cabeza son ocho subpruebas y 53 líneas PASS, y el porcentaje sigue en 98,3 %. Es el registro fechado de T007, no una afirmación sobre la cabeza.",
+    "tasks.md:107 (T002) sigue pidiendo «error si la versión está vacía» y el caso «sin versión» de TestCatalogo: es el registro de lo que la tarea pidió, y la orden sigue rechazando una versión vacía con «falta -version».",
+    "contracts/release.md:281 explica el fallo sin la línea de checksums.txt como «la huella vacía no tiene su forma»; lo que el paso escribe es «falta -sha256» (contracts/paso.md:40 lo dice bien). El resultado es el mismo, código 1 y el trabajo en rojo; no es del rango.",
+    "No medido en esta sesión: los seis guiones nuevos de `humo` y los dos de `catalogo` (release.yml:168-327). Los he releído enteros —cabecera del universal, tubería con nombre, `gh api` con y sin `sha`— y no veo un fallo, pero extraer el .mcpb con unzip para pasarle el `jq` del manifiesto pedía una aprobación que la sesión no tiene. Su primera ejecución real es la primera release (research S1, S2).",
+    "No medido en el run ni aquí: `claude plugin validate` sobre el plugin y sobre el catálogo de fuente `archive` (SC-008). Lo mide por primera vez `make plugin-check` en el trabajo `snapshot` de la propuesta de cambio, y decide el cierre.",
+    "TestEjecutar fija la bandera vacía con `piezas` («piezas con una bandera vacía») y no con `catalogo`; las dos órdenes pasan por el mismo analizar, y `catalogo -version \"\"` lo he visto dar «falta -version» y 1 en el paso compilado."
+  ]
+}
