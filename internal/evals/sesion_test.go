@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 // casosDeLeerSesion es el directorio de los casos de TestLeerSesion: cada
@@ -231,6 +234,382 @@ func TestLeerSesion(t *testing.T) {
 	}
 }
 
+// casosDeLeerLasLlamadas es el directorio de los casos de TestLeerLasLlamadas:
+// cada subdirectorio es el de una sesión (contracts/evals-en-dos-modos.md §3 y
+// §8 de H21).
+const casosDeLeerLasLlamadas = "testdata/sesiones/leer-llamadas"
+
+// Lo que declaran los transcripts sintéticos de leer-llamadas; la skill del que
+// llama a territorio_resolver es skillDeTerritorio.
+const (
+	argumentosDelArticulo21 = `{"norma":"BOE-A-2015-10565","bloque":"a21"}`
+	argumentosDelArticulo24 = `{"norma":"BOE-A-2015-10565","bloque":"a24"}`
+	argumentosDelMunicipio  = `{"consulta":"Villainexistente"}`
+
+	respuestaDelArticulo24 = "El artículo 24 de la Ley 39/2015 regula el silencio administrativo en " +
+		"procedimientos iniciados a solicitud del interesado.\n\n[BOE-A-2015-10565, bloque a24]"
+	respuestaSinMunicipio = "La relación de municipios no tiene ninguno que se llame Villainexistente."
+	respuestaSinFuente    = "No he podido leer el artículo 21 de la Ley 39/2015: la fuente no está disponible."
+	respuestaSinLlamada   = "No tengo ninguna herramienta que liste las skills instaladas."
+)
+
+// TestLeerLasLlamadas fija lo que LeerSesion toma de las llamadas a las
+// herramientas del servidor MCP de kitlegal y el modo que da el directorio de
+// una sesión (contracts/evals-en-dos-modos.md §3 de H21; data-model §6 y §8 de
+// H21; research.md D17 y S5 de H21; FR-041, FR-042), con una sesión sintética
+// por caso: la herramienta sin el prefijo que le pone el agente, y la misma
+// cuando el agente no le pone ninguno; sus argumentos, que son su input; el
+// resultado que es un error por su is_error y el que lo es solo porque su
+// contenido es un sobre con ok falso, cada uno con la clase de su sobre, venga
+// el contenido como texto o como lista de bloques; la llamada de una sesión que
+// se cortó antes de su resultado; y ninguna llamada de un tool_use que no es de
+// una herramienta del registro, sea la de un verbo de un applet que el servidor
+// no anuncia o Bash, aunque su resultado sea un sobre. El modo es herramienta
+// en las sesiones cuyo directorio tiene servidor.json y orden en las demás.
+func TestLeerLasLlamadas(t *testing.T) {
+	t.Parallel()
+
+	conLlamada := func(skill, respuesta string, llamada Llamada) Sesion {
+		return Sesion{
+			Modelo:              modeloDeLasSesiones,
+			VersionDeClaudeCode: versionDeLasSesiones,
+			SkillsActivadas:     []string{skill},
+			Respuesta:           respuesta,
+			Fin:                 "result success",
+			Terminada:           true,
+			Llamadas:            []Llamada{llamada},
+		}
+	}
+
+	sinLlamadas := func(respuesta string) Sesion {
+		return Sesion{
+			Modelo:              modeloDeLasSesiones,
+			VersionDeClaudeCode: versionDeLasSesiones,
+			SkillsActivadas:     []string{skillDeLasSesiones},
+			Respuesta:           respuesta,
+			Fin:                 "result success",
+			Terminada:           true,
+		}
+	}
+
+	casos := []struct {
+		nombre string
+		sesion Sesion
+		modo   Modo
+	}{
+		{
+			nombre: "con-prefijo",
+			sesion: conLlamada(skillDeLasSesiones, respuestaConCita, Llamada{
+				Herramienta:  "boe_articulo",
+				Argumentos:   json.RawMessage(argumentosDelArticulo21),
+				ConResultado: true,
+			}),
+			modo: ModoHerramienta,
+		},
+		{
+			nombre: "sin-prefijo",
+			sesion: conLlamada(skillDeLasSesiones, respuestaDelArticulo24, Llamada{
+				Herramienta:  "boe_articulo",
+				Argumentos:   json.RawMessage(argumentosDelArticulo24),
+				ConResultado: true,
+			}),
+			modo: ModoHerramienta,
+		},
+		{
+			nombre: "error-por-is-error",
+			sesion: conLlamada(skillDeTerritorio, respuestaSinMunicipio, Llamada{
+				Herramienta:  "territorio_resolver",
+				Argumentos:   json.RawMessage(argumentosDelMunicipio),
+				ConResultado: true,
+				Error:        true,
+				Clase:        schema.ClaseNoEncontrado,
+			}),
+			modo: ModoOrden,
+		},
+		{
+			nombre: "error-por-ok-falso",
+			sesion: conLlamada(skillDeLasSesiones, respuestaSinFuente, Llamada{
+				Herramienta:  "boe_articulo",
+				Argumentos:   json.RawMessage(argumentosDelArticulo21),
+				ConResultado: true,
+				Error:        true,
+				Clase:        schema.ClaseFuenteNoDisponible,
+			}),
+			modo: ModoOrden,
+		},
+		{
+			nombre: "sin-resultado",
+			sesion: Sesion{
+				Modelo:              modeloDeLasSesiones,
+				VersionDeClaudeCode: versionDeLasSesiones,
+				SkillsActivadas:     []string{skillDeLasSesiones},
+				Codigo:              124,
+				Fin:                 "assistant",
+				Cortada:             true,
+				MotivoSinTerminar:   "tope de 240 s agotado (código 124)",
+				SalidaDeError:       "salida de error sintética: la sesión se cortó a los 240 s\n",
+				Llamadas: []Llamada{
+					{Herramienta: "boe_articulo", Argumentos: json.RawMessage(argumentosDelArticulo21)},
+				},
+			},
+			modo: ModoOrden,
+		},
+		{nombre: "herramienta-ajena", sesion: sinLlamadas(respuestaSinLlamada), modo: ModoOrden},
+		{nombre: "modo-orden", sesion: sinLlamadas(respuestaConCita), modo: ModoOrden},
+	}
+
+	nombres := make([]string, 0, len(casos))
+	for _, caso := range casos {
+		nombres = append(nombres, caso.nombre)
+	}
+
+	assert.Equal(t, directoriosDeLosCasos(t, casosDeLeerLasLlamadas), slices.Sorted(slices.Values(nombres)),
+		"cada directorio de %s es un caso de TestLeerLasLlamadas, y cada caso tiene el suyo", casosDeLeerLasLlamadas)
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			dir := filepath.Join(casosDeLeerLasLlamadas, caso.nombre)
+
+			sesion, err := LeerSesion(dir)
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.sesion, sesion)
+
+			modo, err := modoDeLaSesion(dir, Eval{})
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.modo, modo, "el modo lo da servidor.json, y no las llamadas de la sesión")
+		})
+	}
+}
+
+// TestLeerLasLlamadasDeVariosMensajes fija, sobre transcripts que el propio test
+// escribe en t.TempDir(), lo que los siete casos de TestLeerLasLlamadas, con una
+// llamada cada uno, no pueden ver (contracts/evals-en-dos-modos.md §3 de H21;
+// data-model §8 de H21): las llamadas quedan en el orden de sus tool_use, cada
+// una con el tool_result de su tool_use_id aunque los resultados lleguen en
+// otro orden o en un mismo mensaje; la clase se lee solo de un sobre con ok
+// falso; un mensaje user sin bloques tool_result, el de un turno de texto, no
+// aporta nada; y un resultado del que no se lee ningún sobre —un texto que no
+// lo es, un bloque que no es de texto o ningún content— es un error solo por su
+// is_error, sin clase, como queda sin clase el sobre de fallo que no la lleva.
+func TestLeerLasLlamadasDeVariosMensajes(t *testing.T) {
+	t.Parallel()
+
+	const (
+		sobreCorrecto = `{"ok":true,"fuente":"kitlegal.territorio","data":{"clase":"no-encontrado"}}`
+		sobreDeLimite = `{"ok":false,"fuente":"boe.legislacion-consolidada","data":{"clase":"limite-o-tos","mensaje":"límite"}}`
+		sobreSinClase = `{"ok":false,"fuente":"boe.legislacion-consolidada","data":"sin forma"}`
+	)
+
+	articulo := func(argumentos string, conResultado, conError bool, clase schema.Clase) Llamada {
+		return Llamada{
+			Herramienta:  "boe_articulo",
+			Argumentos:   json.RawMessage(argumentos),
+			ConResultado: conResultado,
+			Error:        conError,
+			Clase:        clase,
+		}
+	}
+
+	casos := []struct {
+		nombre     string
+		transcript string
+		llamadas   []Llamada
+	}{
+		{
+			nombre: "resultados-en-otro-orden",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21},
+				usoDeHerramienta{id: "toolu_02", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo24},
+				usoDeHerramienta{id: "toolu_03", nombre: "mcp__kitlegal__territorio_resolver", entrada: argumentosDelMunicipio},
+			) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, sobreCorrecto)}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobreDeLimite)}),
+			llamadas: []Llamada{
+				articulo(argumentosDelArticulo21, true, true, schema.ClaseLimiteOTos),
+				articulo(argumentosDelArticulo24, false, false, ""),
+				{Herramienta: "territorio_resolver", Argumentos: json.RawMessage(argumentosDelMunicipio), ConResultado: true},
+			},
+		},
+		{
+			nombre: "resultados-en-un-mismo-mensaje",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "boe_articulo", entrada: argumentosDelArticulo21},
+				usoDeHerramienta{id: "toolu_02", nombre: "boe_articulo", entrada: argumentosDelArticulo24},
+			) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, sobreDeLimite)},
+					resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobreCorrecto)},
+				),
+			llamadas: []Llamada{
+				articulo(argumentosDelArticulo21, true, false, ""),
+				articulo(argumentosDelArticulo24, true, true, schema.ClaseLimiteOTos),
+			},
+		},
+		{
+			nombre: "turno-de-texto",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "boe_articulo", entrada: argumentosDelArticulo21}) +
+				`{"type":"user","message":{"role":"user","content":"¿Y el artículo 24?"}}` + "\n" +
+				`{"type":"user","message":{"role":"user","content":[{"type":"text","text":"¿Y el 30?"}]}}` + "\n",
+			llamadas: []Llamada{articulo(argumentosDelArticulo21, false, false, "")},
+		},
+		{
+			nombre: "error-sin-sobre",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "boe_articulo", entrada: argumentosDelArticulo21},
+				usoDeHerramienta{id: "toolu_02", nombre: "boe_articulo", entrada: argumentosDelArticulo24},
+				usoDeHerramienta{id: "toolu_03", nombre: "territorio_resolver", entrada: argumentosDelMunicipio},
+			) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_01", contenido: `"MCP error -32000: Connection closed"`, conError: true},
+					resultadoDeHerramienta{id: "toolu_02", contenido: `[{"type":"image","source":{"type":"base64"}}]`, conError: true},
+					resultadoDeHerramienta{id: "toolu_03", conError: true},
+				),
+			llamadas: []Llamada{
+				articulo(argumentosDelArticulo21, true, true, ""),
+				articulo(argumentosDelArticulo24, true, true, ""),
+				{Herramienta: "territorio_resolver", Argumentos: json.RawMessage(argumentosDelMunicipio), ConResultado: true, Error: true},
+			},
+		},
+		{
+			nombre: "resultado-sin-contenido",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "boe_articulo", entrada: argumentosDelArticulo21}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_01"}),
+			llamadas: []Llamada{articulo(argumentosDelArticulo21, true, false, "")},
+		},
+		{
+			nombre: "sobre-de-fallo-sin-clase",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "boe_articulo", entrada: argumentosDelArticulo21}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{
+					id: "toolu_01",
+					contenido: `[{"type":"text","text":"aviso"},{"type":"text","text":"{\"aviso\":true}"},` +
+						`{"type":"text","text":` + cadenaJSON(t, sobreSinClase) + `}]`,
+				}),
+			llamadas: []Llamada{articulo(argumentosDelArticulo21, true, true, "")},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sesion, err := LeerSesion(escribirSesion(t, mensajeInit+caso.transcript+mensajeResultCorrecto))
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.llamadas, sesion.Llamadas)
+		})
+	}
+}
+
+// usoDeHerramienta es un bloque tool_use de un mensaje assistant: su id, el
+// nombre de la herramienta y su input, que es un documento JSON.
+type usoDeHerramienta struct {
+	id      string
+	nombre  string
+	entrada string
+}
+
+// mensajeDeLlamadas es un mensaje assistant con un bloque tool_use por cada uso
+// dado, en su orden, y su salto de línea.
+func mensajeDeLlamadas(t *testing.T, usos ...usoDeHerramienta) string {
+	t.Helper()
+
+	bloques := make([]string, 0, len(usos))
+	for _, uso := range usos {
+		bloques = append(bloques, `{"type":"tool_use","id":`+cadenaJSON(t, uso.id)+
+			`,"name":`+cadenaJSON(t, uso.nombre)+`,"input":`+uso.entrada+`}`)
+	}
+
+	return `{"type":"assistant","message":{"role":"assistant","content":[` + strings.Join(bloques, ",") + `]}}` + "\n"
+}
+
+// resultadoDeHerramienta es un bloque tool_result de un mensaje user: el id de
+// su tool_use; su content, que es un documento JSON, y sin él el bloque no
+// lleva content; y si lleva is_error verdadero, y sin él no lleva is_error.
+type resultadoDeHerramienta struct {
+	id        string
+	contenido string
+	conError  bool
+}
+
+// mensajeDeResultados es un mensaje user con un bloque tool_result por cada
+// resultado dado, en su orden, y su salto de línea.
+func mensajeDeResultados(t *testing.T, resultados ...resultadoDeHerramienta) string {
+	t.Helper()
+
+	bloques := make([]string, 0, len(resultados))
+
+	for _, resultado := range resultados {
+		bloque := `{"tool_use_id":` + cadenaJSON(t, resultado.id) + `,"type":"tool_result"`
+
+		if resultado.contenido != "" {
+			bloque += `,"content":` + resultado.contenido
+		}
+
+		if resultado.conError {
+			bloque += `,"is_error":true`
+		}
+
+		bloques = append(bloques, bloque+`}`)
+	}
+
+	return `{"type":"user","message":{"role":"user","content":[` + strings.Join(bloques, ",") + `]}}` + "\n"
+}
+
+// TestModoDeLaSesion fija el modo que da el directorio de una sesión (data-model
+// §6 de H21; contracts/evals-en-dos-modos.md §3 de H21; research.md D16 de H21):
+// herramienta si tiene servidor.json; ninguno si no lo tiene y su eval es sin
+// binario ni servidor; y orden en otro caso. Si no se puede saber si lo tiene,
+// es un error que empieza por servidor.json y nombra su ruta, y no el modo orden.
+func TestModoDeLaSesion(t *testing.T) {
+	t.Parallel()
+
+	sinBinarioNiServidor := Eval{SinBinarioNiServidor: true}
+
+	casos := []struct {
+		nombre string
+		dir    string
+		eval   Eval
+		modo   Modo
+	}{
+		{nombre: "con servidor.json", dir: "con-prefijo", modo: ModoHerramienta},
+		{nombre: "sin servidor.json", dir: "modo-orden", modo: ModoOrden},
+		{nombre: "sin servidor.json y de una eval sin binario ni servidor", dir: "modo-orden", eval: sinBinarioNiServidor},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			modo, err := modoDeLaSesion(filepath.Join(casosDeLeerLasLlamadas, caso.dir), caso.eval)
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.modo, modo)
+		})
+	}
+
+	t.Run("sin poder saber si tiene servidor.json", func(t *testing.T) {
+		t.Parallel()
+
+		// Un fichero donde se espera el directorio de la sesión: lo que hay
+		// debajo no «no existe», sino que no se puede mirar.
+		dir := filepath.Join(casosDeLeerLasLlamadas, "modo-orden", "sesion.jsonl")
+
+		modo, err := modoDeLaSesion(dir, Eval{})
+
+		require.Error(t, err)
+		assert.Empty(t, modo)
+		assert.True(t, strings.HasPrefix(err.Error(), "servidor.json: "), "el error %q empieza por el fichero", err)
+		require.ErrorContains(t, err, filepath.Join(dir, "servidor.json"))
+	})
+}
+
 // mensajeInit es el system/init de los transcripts que escriben los tests sobre
 // t.TempDir(), con la forma de research.md V7 y su salto de línea.
 const mensajeInit = `{"type":"system","subtype":"init","model":"` + modeloDeLasSesiones +
@@ -242,8 +621,9 @@ const mensajeInit = `{"type":"system","subtype":"init","model":"` + modeloDeLasS
 // (data-model §10.1; contrato job-de-evals §4; FR-072): sin type; system/init sin
 // model o sin claude_code_version, o con un campo de otro tipo; assistant sin la
 // lista message.content o con otra cosa en ella; el tool_use de Skill sin entrada
-// o sin input.skill; y result sin subtype o sin is_error, con un campo de otro
-// tipo o, con subtype success e is_error falso, sin result. La sesión es ilegible
+// o sin input.skill; user con un message que no es un objeto; y result sin
+// subtype o sin is_error, con un campo de otro tipo o, con subtype success e
+// is_error falso, sin result. La sesión es ilegible
 // y el error empieza por sesion.jsonl y nombra su ruta y la línea del mensaje.
 func TestLeerSesionConMensajesSinSuForma(t *testing.T) {
 	t.Parallel()
@@ -303,6 +683,12 @@ func TestLeerSesionConMensajesSinSuForma(t *testing.T) {
 				`"name":"Skill","input":{"args":"art. 21 de la Ley 39/2015"}}]}}` + "\n",
 			linea:  2,
 			motivo: "el bloque tool_use de Skill no nombra ninguna skill en input.skill",
+		},
+		{
+			nombre:     "user-con-message-que-no-es-un-objeto",
+			transcript: mensajeInit + `{"type":"user","message":"¿Qué dice el artículo 21 de la Ley 39/2015?"}` + "\n",
+			linea:      2,
+			motivo:     "el mensaje user no tiene la forma de stream-json",
 		},
 		{
 			nombre:     "result-con-is-error-que-no-es-booleano",

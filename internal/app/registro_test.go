@@ -227,8 +227,8 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H7: boe, graph, skills y territorio, y nada más, y el almacén del grafo del
-// mundo al que el kernel entrega. Los applets de ejemplo no se registran nunca
+// H21: boe, graph, mcp, skills y territorio, y nada más, y el almacén del grafo
+// del mundo al que el kernel entrega. Los applets de ejemplo no se registran nunca
 // aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
 // cualquier otro nombre desconocido (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1). Construirlo no pide nada ni abre
@@ -236,8 +236,9 @@ func TestRegistroRechaza(t *testing.T) {
 // puerto-y-applet §4 y §5 de H4), territorio recibe los ficheros que viajan en el
 // binario (contrato del applet territorio §7), skills lee lo empotrado la
 // primera vez que se ejecuta uno de sus verbos (contracts/applet-skills.md §1 de
-// H19), y graph y el almacén resuelven la ruta de world.db en cada invocación
-// (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7).
+// H19), graph y el almacén resuelven la ruta de world.db en cada invocación
+// (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7), y mcp
+// solo lee de su entrada cuando sirve (contracts/servidor-mcp.md §1 de H21).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
@@ -245,8 +246,8 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe", "graph", "skills", "territorio"}, registro.Nombres(),
-		"el binario distribuido registra exactamente boe, graph, skills y territorio")
+	assert.Equal(t, []string{"boe", "graph", "mcp", "skills", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe, graph, mcp, skills y territorio")
 
 	applet, existe := registro.Buscar("graph")
 	require.True(t, existe)
@@ -263,6 +264,11 @@ func TestRegistroDeProduccion(t *testing.T) {
 	applet, existe = registro.Buscar("boe")
 	require.True(t, existe)
 	assert.Len(t, applet.Verbos(), 6, "con sus seis verbos (FR-001)")
+
+	applet, existe = registro.Buscar("mcp")
+	require.True(t, existe)
+	assert.Equal(t, []string{"serve"}, nombresDeLosVerbos(applet),
+		"con su único verbo (contracts/servidor-mcp.md §1 de H21)")
 
 	applet, existe = registro.Buscar("skills")
 	require.True(t, existe)

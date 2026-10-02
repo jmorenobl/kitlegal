@@ -1,0 +1,73 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md: «Total: 7 hallazgos (0 CRITICAL, 0 HIGH, 1 MEDIUM, 6 LOW)»; ninguno CRITICAL ni HIGH. El MEDIUM (E1, `--timeout` sin control) era el motivo de la ronda anterior y está resuelto en los artefactos: ver c. analyze.md es de las 20:37 y no se regeneró tras la corrección (tasks.md, 20:51), así que sigue describiendo E1 como abierto; no cambia el criterio. gates/tasks-precheck.txt se regeneró después de la corrección (20:52:13) y está vacío (0 bytes): ningún defecto mecánico. No existe gates/tasks-pendiente.md. Segunda ronda: gates/tasks.json anterior (idéntico a tasks-r1.json, comprobado con `cmp`) y gates/tasks-correccion-r1.diff leídos enteros."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las 18 tareas (T001 a T018, contadas en esta sesión) terminan citando sus FR/SC tras la raya. tasks.md, «Trazabilidad: requisitos → tareas», da tarea a FR-001 a FR-090 y a SC-001 y SC-003 a SC-013; quedan sin tarea, por diseño y dicho así, FR-078 (el job del cierre lo lanza el workflow: criterio i) y SC-002 (la mide una persona tras fusionar). La fila de FR-020 ya reparte sus tres partes: `--offline` y `--no-graph` en los guiones (T001, T009), ninguna bandera global en los esquemas (T004, T007) y `--timeout` con `TestPlazoDeCadaLlamada` (T007); spec.md FR-020 nombra ese test como su «Comprobable» y plan.md lo lleva en «Tests nuevos», en «Trazabilidad» (fila de la interfaz `servidor`) y en el paso 5. Controles de umbral: 22 filas en plan.md y 22 en tasks.md, «Controles de umbral → tareas» (contadas con `grep -c` en esta sesión), cada una con su tarea y el test que la ve fallar: los ocho umbrales por modo en T016 con `TestUmbralesDelInforme` (cada uno incumplido en un solo modo; 3 de 54 y 0 de 54; 901 s en una tanda) y sus mutantes (modos sumados, `decide: false`); `TestHerramientasDelServidor` (T007, sin la exclusión de `skills`); `TestInstrucciones` (T002, una frase tras el byte 512); `TestSkillsDelRepositorio` (T012, tres líneas más); `TestDefinicionDelJob` (T010 con 122 y T013 con 200); los tres del sondeo (T011); `TestLlamadasSimultaneas` (T007, búfer compartido); los guiones (mutantes de T001 y T009). El plazo de `--timeout` no es un umbral agregado del spec (ningún SC lo mide) y no pide fila propia."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda anterior, corregido (gates/tasks-correccion-r1.diff). T007 trae ahora `TestPlazoDeCadaLlamada` en internal/app/mcp_test.go, en proceso, con un registro local que lleva `AppletMCP` y un applet del test con dos verbos sin red ni disco y `mcp serve --timeout=<plazo corto>`: (1) la llamada al verbo que espera a su contexto devuelve como error de herramienta el sobre de `fuente-no-disponible`, y no antes del plazo; (2) la llamada enviada después, con el plazo ya vencido desde el arranque, recibe su sobre con `ok` verdadero y el servidor termina con 0 al cerrarse la entrada. Dos mutantes nuevos: el servidor llamado con el `context.WithTimeout` que `ejecutarVerbo` da hoy a todo verbo, y la llamada sin `--timeout=<plazo>`. Cita FR-020 y el caso límite del spec, y está en «Prueba independiente» de la Fase 3, en la fila de US4 de «Criterios de prueba independiente por historia» y en la orden de quickstart.md §4, que T018 ejecuta. Comprobado en el repositorio que lo que el test afirma es lo que hace el kernel: `conPlazoAgotado` (internal/app/main.go:532-543) convierte el plazo vencido en `cli.ErrFuenteNoDisponible` devuelva el applet lo que devuelva, así que un verbo que solo espera a su contexto da esa clase; el plazo de hoy está en internal/app/main.go:449 y `--timeout` es un `time.Duration` con 30 s por omisión y sin mínimo (internal/cli/globales.go:16 y :38); los tests de internal/app ya definen applets propios con su `Ejecutar` (main_test.go:58, codigos_test.go:85, aviso_test.go:79), así que el registro local con un verbo que espera es el patrón del paquete; y `make test-tiempos` solo ejecuta las medidas nombradas en `MEDIDAS_DE_TIEMPO` (Makefile:93-94), de modo que un test de alrededor de un segundo no toca ninguna cota. La corrección no introduce ningún defecto: T008 conserva el registro local donde el test necesita verbos que producción no tiene. Lo demás, como en la ronda anterior: el orden es ejecutable (tabla «Dependencias y orden de ejecución») y las excepciones a la rebanada están declaradas (T001, T008, T010, T014, T009, T012, T017, T018). No he ejecutado `make ci` ni ningún test."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "La corrección no cambió la lista de rutas de ninguna tarea (el diff de T007 y T008 deja igual lo que sigue a «rutas:»). Ejecutado en esta sesión el extractor de scripts/workflow/tarea.sh:141 sobre las líneas de T007 y T008, las dos que cambiaron: todas las rutas son de fichero concreto (internal/app/main.go, herramientas.go, mcp.go, registro.go, despacho.go, internal/arch_test.go; y las de T008, con schemas/servidor.json y argumentos.txtar); ninguna genérica. `TestPlazoDeCadaLlamada` vive en internal/app/mcp_test.go, que el guardián admite por internal/app/mcp.go declarado y que la línea de T007 nombra además de forma literal. Las otras 16 líneas no cambian respecto a la ronda anterior, que las dio por concretas con el mismo extractor; releídas aquí, cada una acaba en «rutas:» con ficheros, o el directorio acotado de T014 (internal/evals/testdata/sesiones/leer-llamadas/) y el de la suite (specs/015-h21-kitlegal-mcp-serve/aceptacion/)."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Las etiquetas, listadas en esta sesión: `[datos]` solo en T008 (schemas/servidor.json y las dos líneas de argumentos.txtar), T010 (schemas/eval.yaml.json) y T014 (internal/evals/testdata/sesiones/leer-llamadas/), que son las únicas que tocan `schemas/` o un `testdata/`; el precheck, que busca esas rutas en líneas sin la etiqueta, salió vacío tras la corrección. Lo que mezclan es lo que el dato obliga a cambiar a la vez, con «y nada más» en T008 y T010 y justificado en plan.md, Complexity Tracking (quinta y sexta filas) y en el preámbulo de tasks.md. La corrección no toca ningún dato: el verbo que espera de `TestPlazoDeCadaLlamada` es código del test, sin fichero en `testdata/`. schemas/servidor.json lo escribe `TestEsquemasPublicados -actualizar-esquemas`, no una mano. No hay datos externos (plan.md, «Datos externos: Ninguno»): ningún manifiesto ni grabación nueva; los guiones usan las grabaciones de H4 y las derivadas de H7 y H7.1."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "Contra docs/ROADMAP.md §1, leído en esta sesión (líneas 22-36): §1.6, e2e del comportamiento visible (T001, T009) y CHANGELOG *Unreleased* (T017); §1.7, ningún ADR por FR-090, y T018 lo comprueba con `git diff --name-status main`; §1.8, docs/SOURCES.md no cambia porque no se toca ninguna fuente, y T018 lo comprueba; §1.4, esquemas publicados y `schema-check` (T008, T010); §1.2, datos de prueba (T014) y tests offline en cada tarea; §1.9, cobertura global ≥ 70 % y dominio ≥ 85 % medidas en T018; §1.10, las dos evals entran en T010, antes que el texto de las skills (T012), `SKILL.md` < 300 líneas y tabla regenerada sin drift (T012); §1.11, `territorio_resolver` con Leganés y Tordesillas en `mcp-llamadas` (T001); §1.12, el applet `mcp` no observa identidades por sí mismo: cada llamada entrega las operaciones de su verbo (T007, FR-013). README y CONTRIBUTING, en T017."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md: 16 marcas `[x]` y 0 sin marcar (contadas en esta sesión). Contrastadas con spec.md tal como queda tras la corrección: 0 apariciones de `NEEDS CLARIFICATION` y la aclaración de FR-050 en «Clarifications»; están las secciones obligatorias, «Edge Cases» con los casos que el ítem enumera («una llamada que falla o agota su plazo» incluida, ahora con su clase y con el servidor que sigue atendiendo), «Fuera de alcance», «Assumptions» y «Relación con H5, H6, H7.4 y H19»; US1 a US7 con escenarios Dado/Cuando/Entonces; SC-001 a SC-013 con recuentos y su control. El ítem de requisitos comprobables es más cierto que en la ronda anterior: FR-020 lleva ya en su «Comprobable» el test de `make ci` para `--timeout`."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "T001 es la primera tarea y la única `[aceptacion]`. Sus cinco guiones cubren los escenarios con comportamiento del binario: US1-1, US1-5 y US1-6 (`mcp-llamadas`), US1-2 a US1-4 (`mcp-errores`), US6-1, US6-2 y US4-6 (`mcp-herramientas`), US4-1 y US4-2 (`mcp-protocolo`), US4-3, US4-4, US4-5 y US4-7 (`mcp-proceso`). plan.md, «Aceptación e2e», justifica sin guion US2, US3, US5 y US7 (texto de las skills, juicio e informe del job, documentación), US4-8 (`TestLlamadasSimultaneas`, para que `-race` vea el servidor), US1-7 (el job del cierre) y, desde la corrección, el plazo de cada llamada: la orden `mcp` del arnés no tiene esperas y ningún verbo del binario de e2e se queda esperando, así que lo fija `TestPlazoDeCadaLlamada` en proceso; tasks.md lo repite en su preámbulo. Cada guion empieza por la precondición `exec kitlegal --help` + `stdout '^\\s+mcp\\s'`, que hoy falla en su aserción. La corrección no toca T001."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea exige a una persona, publica la rama, abre la propuesta de cambio ni mide CI o evals remotas: el precheck, que busca esas formas, salió vacío tras la corrección. La batería de tasks.md lo prohíbe («Sin red ni modelo», «Sin personas a mitad») y T011, T013 y T016 dicen que ninguna tarea ejecuta `TestSondeo` ni `TestEjecucionDelJob`. T018 deja fuera quickstart §11 (sondeo, lo lanza una persona), §12 (job del cierre, lo lanza el workflow) y §13 (prueba humana). El test nuevo de T007 corre en proceso, sin red ni modelo. La única red es la de la herramienta `go` en T002 y la de `make vuln`, que el ADR 0032 admite."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "T007, mutante del plazo de vida: la tarea predice que, con el servidor llamado con el contexto con plazo de `ejecutarVerbo`, `TestPlazoDeCadaLlamada` «falla en (2)». El plazo del servidor vence un instante antes que el de la primera llamada (que empieza tras el saludo), así que lo probable es que el servidor termine con esa llamada en curso y el test falle ya en (1), con la conexión cerrada en lugar del sobre de `fuente-no-disponible`. El test ve el mutante en los dos casos; lo impreciso es dónde. No lo he medido: es una lectura de la tarea, no una ejecución.",
+    "La corrección dejó tres líneas sin partir a las 120 columnas que usa el resto del documento: plan.md:240 y :474 y quickstart.md:89. Sin efecto en ninguna tarea.",
+    "gates/analyze.md no se regeneró tras la corrección: sigue dando E1 como abierto y FR-020 como «Parcial». Quien lo lea junto a tasks.md debe saberlo.",
+    "T012 escribe la cabecera de la tabla como «| Orden | Herramienta | Qué hace | Qué devuelve en data |», sin `data` como código; contracts/skills.md §4 (una aparición, con las comillas invertidas, comprobada con `grep -c -F`) y quickstart.md §8 la llevan con ellas. La propia T012 ejecuta quickstart §8, cuyo `grep` daría 0 con la forma sin código, así que la tarea lo ve. Ya observado en la ronda anterior.",
+    "US6-3 (los dos esquemas de cada herramienta son los de `--describe`) no tiene guion y plan.md, «Aceptación e2e», no lo nombra entre los escenarios sin guion. Lo cubre `TestHerramientasDelServidor` (T007), que es la prueba independiente que el spec da a US6 (FR-070, SC-003). Ya observado en la ronda anterior.",
+    "T013 comprueba el mutante `timeout-minutes: 200` «en una copia de `git archive`»: una copia de `HEAD` no lleva el `peorCasoDelTrabajo` por tandas que la propia tarea aún no ha commiteado, y con la fórmula de un solo modo (7 557 s) el tope de 200 minutos no fallaría. La copia tiene que salir del árbol de trabajo (por ejemplo, de un árbol hecho con `git stash create`). Ya observado en la ronda anterior.",
+    "plan.md, «Obligaciones para tasks.md», sigue diciendo que las `[datos]` son las de los pasos 5, 6, 8 y 9; tasks.md etiqueta T008, T010 y T014 y lo explica en «Dependencias y orden», precisiones 4 y 5 (analyze I3).",
+    "FR-006 y SC-010 miden las `instructions` en caracteres y plan.md, T002 y `TestInstrucciones` en bytes (analyze I1): 512 bytes es más estricto y no deja pasar nada que el spec rechace. plan.md habla de un tope efectivo de 298 líneas cuyo origen no he encontrado (analyze I2).",
+    "Los transcripts sintéticos de T014 fijan la forma de una llamada MCP en el `stream-json` de Claude Code sobre el supuesto S5 de research, que ninguna sesión del run puede medir (ADR 0032). Lo mide el job del cierre.",
+    "El código que mide la duración de cada tanda y la entrega al informe vive en internal/evals/job_test.go (etiqueta `evals`) y ninguna tarea lo ejecuta; el control de `duracion_de_las_sesiones:<modo>` se prueba con duraciones sintéticas (analyze G1). El informe final no debería darlo por medido en una tarea.",
+    "Lo que no he medido: no he ejecutado `make ci`, ningún test, ningún guion, ningún mutante ni ningún prototipo. Qué hace el SDK de MCP cuando vence el contexto de `Run` con una llamada en curso no lo he comprobado. Las afirmaciones de research.md (tabla V y supuestos S) no se han vuelto a medir aquí, salvo las que cito con fichero y línea. De research.md, data-model.md y los contratos solo he leído lo que cambia gates/tasks-correccion-r1.diff y las cabeceras de contracts/servidor-mcp.md; no he leído contracts/arnes-e2e.md, contracts/evals-en-dos-modos.md ni contracts/skills-prototipo.diff."
+  ]
+}

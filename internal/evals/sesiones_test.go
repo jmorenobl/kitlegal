@@ -2,6 +2,7 @@ package evals
 
 import (
 	"context"
+	"encoding/json/v2"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -323,15 +324,44 @@ func exigirLosDirectoriosDeLaSesion(t *testing.T, dir, skills string) {
 func exigirLaOrdenDeLaSesion(t *testing.T, s sustitutos, dir, sesion string, traza bool) {
 	t.Helper()
 
-	pregunta := strings.TrimSuffix(contenidoDeLaSesion(t, dir, ficheroDeLaPregunta), "\n")
+	pregunta := preguntaDeLaSesion(t, dir)
 	require.Contains(t, pregunta, "\n\n", "la pregunta de la prueba de red lleva varias lineas")
 
-	orden := []string{
+	exigirLosArgumentosDeLaSesion(t, s, sesion, ordenDeLaSesion(pregunta), traza)
+}
+
+// preguntaDeLaSesion es la pregunta de pregunta.txt del directorio de la
+// sesión, sin su salto de línea final, que es como la recibe la orden.
+func preguntaDeLaSesion(t *testing.T, dir string) string {
+	t.Helper()
+
+	return strings.TrimSuffix(contenidoDeLaSesion(t, dir, ficheroDeLaPregunta), "\n")
+}
+
+// ordenDeLaSesion son los argumentos de la orden de una sesión sin servidor.json
+// con la pregunta dada y modeloDeLaSesion: la de siempre, carácter a carácter
+// (contracts/ejecucion-del-job.md §2 de H7.3).
+func ordenDeLaSesion(pregunta string) []string {
+	return []string{
 		"-p", pregunta, "--model", modeloDeLaSesion, "--output-format", "stream-json", "--verbose",
 		"--max-turns", "30", "--no-session-persistence", "--setting-sources", "user",
 		"--settings", `{"sandbox":{"enabled":false}}`, "--permission-mode", "bypassPermissions",
 		"--disallowedTools", "WebFetch", "WebSearch",
 	}
+}
+
+// conElServidor es la orden dada con lo que el guion le añade al final cuando
+// la sesión tiene servidor.json (contracts/evals-en-dos-modos.md §2.3 de H21).
+func conElServidor(orden []string) []string {
+	return slices.Concat(orden, []string{"--mcp-config", "../servidor.json"})
+}
+
+// exigirLosArgumentosDeLaSesion exige que el sustituto de claude reciba en la
+// sesión la orden dada y que, con traza, el de strace la reciba detrás de la
+// suya, con su traza en ../traza/t; sin traza, strace no se ejecuta.
+func exigirLosArgumentosDeLaSesion(t *testing.T, s sustitutos, sesion string, orden []string, traza bool) {
+	t.Helper()
+
 	assert.Equal(t, orden, s.argumentos(t, sustitutoClaude, sesion))
 
 	if !traza {
@@ -411,6 +441,278 @@ func exigirElEntornoDeLaSesion(t *testing.T, s sustitutos, dir, sesion string, t
 
 	if !traza {
 		assert.NotContains(t, anotado, "KITLEGAL_EVALS_TRAZA", "sin traza, la variable no llega a la sesion")
+	}
+}
+
+// preguntaDelGuion es la pregunta de las sesiones de TestGuionDeLaSesion: con
+// varias líneas, comillas y un dólar, que la orden recibe tal cual.
+const preguntaDelGuion = "¿Qué dice el art. 21 de la Ley 39/2015?\n\nCon \"comillas\", 'apóstrofos' y $HOME."
+
+// TestGuionDeLaSesion fija la orden que ejecuta scripts/evals-sesion.sh según
+// haya o no servidor.json en el directorio de la sesión
+// (contracts/evals-en-dos-modos.md §2.3 y §8 de H21; research V21 de H21;
+// FR-040), con los sustitutos de claude y strace y una sesión creada a mano:
+// sin el fichero, la orden es la de siempre, carácter a carácter; con él, la
+// misma con --mcp-config ../servidor.json al final. Con traza, la de strace va
+// delante de una y de otra.
+func TestGuionDeLaSesion(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre      string
+		conServidor bool
+		traza       bool
+	}{
+		{nombre: "sin-servidor"},
+		{nombre: "sin-servidor-con-traza", traza: true},
+		{nombre: "con-servidor", conServidor: true},
+		{nombre: "con-servidor-y-traza", conServidor: true, traza: true},
+	}
+
+	guion, err := filepath.Abs(guionDeLaSesion)
+	require.NoError(t, err)
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+
+			dir := filepath.Join(t.TempDir(), caso.nombre)
+			require.NoError(t, crearDirectorioDeSesion(dir, skillsInstaladas(t)))
+
+			escritos := map[string]string{
+				ficheroDeLaPregunta: preguntaDelGuion + "\n",
+				ficheroDelModelo:    modeloDeLaSesion + "\n",
+			}
+			if caso.conServidor {
+				escritos[ficheroDelServidor] = "{}\n"
+			}
+
+			for fichero, contenido := range escritos {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, fichero), []byte(contenido), 0o600))
+			}
+
+			codigo, err := ejecutarElGuion(t.Context().Done(), guion, sesionEnMarcha{
+				dir:     dir,
+				entorno: entornoDeLaSesion(s.base(), dir, caso.traza),
+				tope:    topeSinCorte,
+				margen:  margenDeLosTests,
+			})
+			require.NoError(t, err)
+			require.Zerof(t, codigo, "el guion termina con 0; sesion.err:\n%s",
+				contenidoDeLaSesion(t, dir, ficheroDeSalidaDeError))
+
+			orden := ordenDeLaSesion(preguntaDelGuion)
+			if caso.conServidor {
+				orden = conElServidor(orden)
+			}
+
+			exigirLosArgumentosDeLaSesion(t, s, caso.nombre, orden, caso.traza)
+		})
+	}
+}
+
+// TestSesionesPorModo fija lo que el repartidor da a la sesión de cada modo
+// (contracts/evals-en-dos-modos.md §2.2 y §8 de H21; data-model §6 y §11 de H21;
+// research D16 de H21; FR-041, FR-046), con el claude sustituto: la del modo
+// orden, lo de siempre, con kitlegal en su PATH y sin servidor.json; la del modo
+// herramienta, servidor.json con el contenido del contrato carácter a carácter y
+// el PATH de la base sin el directorio del binario; y la de la eval sin binario
+// ni servidor, ese mismo PATH y ningún servidor.json. Sin la ruta absoluta del
+// binario no se abre ninguna sesión, y una sesión cuyo servidor.json no se puede
+// escribir no se abre.
+func TestSesionesPorModo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cada-modo", probarLaSesionDeCadaModo)
+	t.Run("binario-sin-ruta-absoluta", probarElBinarioSinRutaAbsoluta)
+	t.Run("servidor-que-no-se-escribe", probarElServidorQueNoSeEscribe)
+}
+
+// sesionDelModo es lo que el repartidor da a la sesión de un modo: su PATH, si
+// en él está el binario y si tiene servidor.json.
+type sesionDelModo struct {
+	path        string
+	conBinario  bool
+	conServidor bool
+}
+
+// probarLaSesionDeCadaModo abre, con el repartidor, una sesión del modo orden,
+// una del modo herramienta y una de la eval sin binario ni servidor, y exige lo
+// de cada una.
+func probarLaSesionDeCadaModo(t *testing.T) {
+	t.Parallel()
+
+	s := escribirSustitutos(t)
+	ejecucion := sesionesEnDosModos(t, s)
+	require.Equal(t, []Modo{ModoOrden, ModoHerramienta, ""}, modosDe(ejecucion.Plan),
+		"premisa: el plan tiene una sesion de cada modo")
+
+	for _, sesion := range ejecucion.Plan {
+		s.escribirTranscript(t, sesion.Nombre, transcriptTerminado)
+	}
+
+	ejecutada, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+	require.NoError(t, err)
+	require.Equal(t, nombresDe(ejecucion.Plan), ejecutada.Abiertas)
+
+	delBinario := filepath.Dir(ejecucion.Binario)
+	sinElBinario := s.bin + string(os.PathListSeparator) + os.Getenv("PATH")
+	esperadas := map[Modo]sesionDelModo{
+		ModoOrden:       {path: pathConElBinario(s, delBinario), conBinario: true},
+		ModoHerramienta: {path: sinElBinario, conServidor: true},
+		"":              {path: sinElBinario},
+	}
+
+	for _, sesion := range ejecucion.Plan {
+		exigirLaSesionDelModo(t, s, ejecucion, sesion, esperadas[sesion.Modo])
+	}
+}
+
+// exigirLaSesionDelModo exige que la sesión se abra con lo esperado de su modo:
+// el PATH que ve el sustituto de claude y si resuelve en él el binario; la caché
+// preparada y lo que es propio de cada sesión, como en todos los modos; y, según
+// tenga o no servidor.json, su contenido, que repite la caché y los proxies que
+// ve la sesión, y la orden que lo declara, o la orden de siempre.
+func exigirLaSesionDelModo(
+	t *testing.T, s sustitutos, ejecucion SesionesAEjecutar, sesion SesionPlanificada, esperada sesionDelModo,
+) {
+	t.Helper()
+
+	dir := filepath.Join(ejecucion.Sesiones, sesion.Nombre)
+	require.Truef(t, s.llego(t, sesion.Nombre), "el sustituto de claude se ejecuta en la sesion %s; sesion.err:\n%s",
+		sesion.Nombre, contenidoDeLaSesion(t, dir, ficheroDeSalidaDeError))
+
+	anotado := s.entorno(t, sesion.Nombre)
+	assert.Equalf(t, esperada.path, anotado["PATH"], "el PATH de la sesion %s", sesion.Nombre)
+	assert.Equalf(t, esperada.conBinario, anotado["kitlegal"] == ejecucion.Binario,
+		"la sesion %s resuelve el binario en su PATH; resuelve %q", sesion.Nombre, anotado["kitlegal"])
+
+	assert.FileExistsf(t, filepath.Join(dir, "cache", "cache.db"), "la cache de la sesion %s se prepara", sesion.Nombre)
+	exigirLosDirectoriosPropios(t, s, dir, sesion.Nombre)
+
+	orden := ordenDeLaSesion(preguntaDeLaSesion(t, dir))
+
+	if !esperada.conServidor {
+		assert.NoFileExists(t, filepath.Join(dir, "servidor.json"))
+		exigirLosArgumentosDeLaSesion(t, s, sesion.Nombre, orden, false)
+
+		return
+	}
+
+	escrito := contenidoDeLaSesion(t, dir, "servidor.json")
+	assert.Equal(t, servidorEsperado(ejecucion.Binario, dir), escrito)
+	exigirLosArgumentosDeLaSesion(t, s, sesion.Nombre, conElServidor(orden), false)
+
+	var declarado struct {
+		Servidores map[string]struct {
+			Entorno map[string]string `json:"env"`
+		} `json:"mcpServers"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(escrito), &declarado))
+
+	entorno := declarado.Servidores["kitlegal"].Entorno
+	assert.Len(t, entorno, 7, "la cache y los seis proxies")
+
+	for variable, valor := range entorno {
+		assert.Equalf(t, anotado[variable], valor, "el servidor repite la variable %s de la sesion", variable)
+	}
+}
+
+// servidorEsperado es el servidor.json de contracts/evals-en-dos-modos.md §2.2
+// de H21 para el binario y el directorio de sesión dados, carácter a carácter y
+// con su salto de línea final.
+func servidorEsperado(binario, dir string) string {
+	return `{"mcpServers":{"kitlegal":{"command":"` + binario + `","args":["mcp","serve"],"env":{` +
+		`"KITLEGAL_CACHE_DIR":"` + dir + `/cache","HTTP_PROXY":"http://127.0.0.1:9",` +
+		`"HTTPS_PROXY":"http://127.0.0.1:9","http_proxy":"http://127.0.0.1:9",` +
+		`"https_proxy":"http://127.0.0.1:9","NO_PROXY":"api.anthropic.com","no_proxy":"api.anthropic.com"}}}}` + "\n"
+}
+
+// probarElBinarioSinRutaAbsoluta fija que, con una sesión que no es del modo
+// orden en el plan, un Binario que no es una ruta absoluta es un error antes de
+// abrir ninguna: sin él no hay directorio que quitar del PATH ni orden que
+// declarar. El error lo nombra y el directorio de sesiones queda vacío.
+func probarElBinarioSinRutaAbsoluta(t *testing.T) {
+	t.Parallel()
+
+	for nombre, binario := range map[string]string{"vacio": "", "relativo": "bin/kitlegal"} {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			ejecucion := sesionesEnDosModos(t, s)
+			ejecucion.Binario = binario
+
+			_, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+			require.ErrorContains(t, err, "el binario de kitlegal es "+strconv.Quote(binario)+
+				" y tiene que ser una ruta absoluta")
+
+			entradas, err := os.ReadDir(ejecucion.Sesiones)
+			require.NoError(t, err)
+			assert.Empty(t, entradas, "no se abre ninguna sesion")
+		})
+	}
+}
+
+// probarElServidorQueNoSeEscribe fija que una sesión del modo herramienta cuyo
+// servidor.json no se puede escribir no se abre: porque su ruta ya es un
+// directorio, o porque la ruta del binario lleva octetos que no son UTF-8 y no
+// cabe en un texto de JSON. El error nombra la sesión y el fichero, el
+// sustituto de claude no llega y la sesión queda sin codigo-de-la-sesion.
+func probarElServidorQueNoSeEscribe(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		preparar func(t *testing.T, ejecucion *SesionesAEjecutar, dir string)
+
+		// fragmento es lo que el error dice del fichero.
+		fragmento string
+	}{
+		{
+			nombre: "su-ruta-es-un-directorio",
+			preparar: func(t *testing.T, _ *SesionesAEjecutar, dir string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(filepath.Join(dir, "servidor.json"), 0o700))
+			},
+			fragmento: "servidor.json: is a directory",
+		},
+		{
+			nombre: "binario-que-no-es-utf8",
+			preparar: func(t *testing.T, ejecucion *SesionesAEjecutar, _ string) {
+				t.Helper()
+
+				ejecucion.Binario = "/kitlegal-\xff/kitlegal"
+			},
+			fragmento: "servidor.json no se puede codificar",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			ejecucion := sesionesEnDosModos(t, s)
+
+			sesion := ejecucion.Plan[1]
+			require.Equal(t, ModoHerramienta, sesion.Modo, "premisa: la segunda sesion del plan es del modo herramienta")
+
+			ejecucion.Plan = []SesionPlanificada{sesion}
+			dir := filepath.Join(ejecucion.Sesiones, sesion.Nombre)
+			caso.preparar(t, &ejecucion, dir)
+
+			_, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+			require.ErrorContains(t, err, "la sesión "+sesion.Nombre+":")
+			require.ErrorContains(t, err, caso.fragmento)
+
+			assert.False(t, s.llego(t, sesion.Nombre), "sin su servidor.json la sesion no se abre")
+			assert.NoFileExists(t, filepath.Join(dir, ficheroDelCodigo))
+		})
 	}
 }
 
@@ -907,6 +1209,82 @@ func sesionesConRepeticiones(t *testing.T, s sustitutos, traza bool, repeticione
 		Tope:          topeDeLosTests,
 		MargenDelTope: margenDeLosTests,
 	}
+}
+
+// ficheroDeEvalSinBinario es la eval sin binario ni servidor de los tests del
+// repartidor con los dos modos.
+const ficheroDeEvalSinBinario = "02-sin-binario-ni-servidor.yaml"
+
+// sesionesEnDosModos son las sesiones que abre un test del repartidor con los
+// dos modos: el plan de la eval sintética del art. 21 de la LPAC y de una eval
+// sin binario ni servidor, con modeloDeLaSesion y una repetición —una sesión del
+// modo orden, una del modo herramienta y una sin binario ni servidor—; un
+// kitlegal que no hace nada, en su propio directorio, como Binario; y la base de
+// los sustitutos con el PATH de pathConElBinario. Lo demás, como en
+// sesionesDelTest, sin traza y con un tope que no corta ninguna.
+func sesionesEnDosModos(t *testing.T, s sustitutos) SesionesAEjecutar {
+	t.Helper()
+
+	evals := crearConjunto(t, []entradaDeConjunto{
+		{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+		{nombre: ficheroDeEvalSinBinario, contenido: evalSinBinarioDeBoeLegislacion},
+	})
+
+	conjunto, err := LeerConjunto(evals)
+	require.NoError(t, err)
+	require.Empty(t, conjunto.MalFormados)
+
+	plan := PlanDeEvals{
+		Evals: conjunto.Evals, ModeloQueDecide: modeloDeLaSesion, Repeticiones: 1,
+		Modos: []Modo{ModoOrden, ModoHerramienta},
+	}
+	require.NoError(t, plan.Comprobar())
+
+	guion, err := filepath.Abs(guionDeLaSesion)
+	require.NoError(t, err)
+
+	binario := escribirElKitlegalDeLaBase(t)
+
+	return SesionesAEjecutar{
+		Plan:          plan.Sesiones(),
+		Concurrencia:  1,
+		Evals:         evals,
+		Sesiones:      t.TempDir(),
+		Skills:        skillsInstaladas(t),
+		Guion:         guion,
+		Binario:       binario,
+		Entorno:       sobreLaBase(s.base(), []string{"PATH=" + pathConElBinario(s, filepath.Dir(binario))}),
+		Tope:          topeSinCorte,
+		MargenDelTope: margenDeLosTests,
+	}
+}
+
+// pathConElBinario es el PATH de la base de sesionesEnDosModos: el de la base
+// de los sustitutos con el directorio del binario detrás del de los sustitutos
+// y, otra vez y escrito con la barra final, al final. Sin ese directorio, las
+// dos veces, es el de la base de los sustitutos.
+func pathConElBinario(s sustitutos, delBinario string) string {
+	return strings.Join([]string{
+		s.bin, delBinario, os.Getenv("PATH"), delBinario + string(filepath.Separator),
+	}, string(os.PathListSeparator))
+}
+
+// escribirElKitlegalDeLaBase escribe, en un directorio temporal del test y a
+// través de un os.Root, un kitlegal que no hace nada, y devuelve su ruta: el
+// Binario de los tests del repartidor con los dos modos.
+func escribirElKitlegalDeLaBase(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	raiz, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, escribirEjecutable(raiz, programaDeLasConsultas, kitlegalQueNoHaceNada))
+
+	return filepath.Join(dir, programaDeLasConsultas)
 }
 
 // skillsInstaladas crea un directorio temporal de skills instaladas con una

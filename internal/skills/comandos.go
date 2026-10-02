@@ -29,9 +29,14 @@ const (
 	// contracts/skills-e-invocacion.md §2 de H19; FR-080).
 	programaDeLasOrdenes = "kitlegal"
 
+	// separadorDeLaHerramienta une el applet y el verbo en el nombre de la
+	// herramienta del servidor MCP de una fila: `<applet>_<verbo>` (H21 FR-003,
+	// FR-030).
+	separadorDeLaHerramienta = "_"
+
 	// columnasDeLaTabla son la fila de títulos de la tabla de un applet y su fila
-	// de separación.
-	columnasDeLaTabla = "| Orden | Qué hace | Qué devuelve en `data` |\n|---|---|---|"
+	// de separación (contracts/skills.md §4 de H21).
+	columnasDeLaTabla = "| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|"
 
 	// Lo que devuelve un verbo en data, según su forma.
 	textoDeObjeto          = "objeto"
@@ -469,7 +474,7 @@ func (p propiedadesEnOrden) nombres() []string {
 // RenderizarTabla da la región de la tabla de comandos de SKILL.md, lo que va
 // entre sus dos marcas, para los applets que la skill declara y las descripciones
 // de los verbos del registro (contrato sincronizacion-y-comprobacion §3;
-// data-model §2.2; FR-032, FR-034):
+// data-model §2.2; FR-032, FR-034; contracts/skills.md §4 y FR-030 de H21):
 //
 //   - una sección ### por applet, en el orden de applets, con `kitlegal
 //     <applet>` como título y una tabla con una fila por verbo del applet, en el
@@ -478,10 +483,12 @@ func (p propiedadesEnOrden) nombres() []string {
 //   - cada fila da la sintaxis de la orden —<nombre> por cada argumento,
 //     <nombre>... si admite varios valores, y con [ delante si es opcional, con
 //     los corchetes cerrados al final, como la ayuda de Kong: [<norma>
-//     [<bloques>...]]—, lo que hace y lo que devuelve en data; en cada celda la
+//     [<bloques>...]]—, la herramienta del servidor MCP que hace lo mismo,
+//     `<applet>_<verbo>`, lo que hace y lo que devuelve en data; en cada celda la
 //     barra se escribe \| y un salto de línea es un espacio;
-//   - detrás de la última sección, la línea del sobre y la de las banderas
-//     comunes, que valen para todas las órdenes de la tabla.
+//   - detrás de la última sección, la línea del sobre, que es el mismo por la
+//     orden y por la herramienta de cada fila, y la de las banderas comunes, que
+//     valen para todas las órdenes de la tabla.
 //
 // Empieza y termina con una línea en blanco y usa \n como fin de línea; las
 // mismas entradas dan siempre los mismos bytes. Es un defecto, sin tabla, no
@@ -559,10 +566,15 @@ func nombreDeLaOrden(descripcion DescripcionDeVerbo) string {
 	return descripcion.Applet + " " + descripcion.Verbo
 }
 
-// filaDelVerbo es la fila de la tabla de un verbo: su sintaxis, lo que hace y lo
-// que devuelve en data, cada celda con su texto escapado.
+// filaDelVerbo es la fila de la tabla de un verbo: su sintaxis, su herramienta,
+// lo que hace y lo que devuelve en data, cada celda con su texto escapado.
 func filaDelVerbo(verbo DescripcionDeVerbo) string {
-	celdas := []string{"`" + sintaxisDeLaOrden(verbo) + "`", verbo.Hace, verbo.Devuelve.texto()}
+	celdas := []string{
+		"`" + sintaxisDeLaOrden(verbo) + "`",
+		"`" + nombreDeLaHerramienta(verbo) + "`",
+		verbo.Hace,
+		verbo.Devuelve.texto(),
+	}
 
 	for indice, celda := range celdas {
 		celdas[indice] = escapeDeCelda.Replace(celda)
@@ -598,6 +610,15 @@ func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 	return strings.Join(partes, " ") + strings.Repeat("]", abiertos)
 }
 
+// nombreDeLaHerramienta es el de la herramienta del servidor MCP de un verbo:
+// su applet y su verbo, los mismos de la orden, unidos por un guion bajo (H21
+// FR-003). Que el servidor la anuncia lo comprueba
+// TestOrdenesDeLasSkillsEmpotradas contra el registro de producción (H21
+// FR-031).
+func nombreDeLaHerramienta(verbo DescripcionDeVerbo) string {
+	return verbo.Applet + separadorDeLaHerramienta + verbo.Verbo
+}
+
 // texto es lo que devuelve un verbo como lo escribe la tabla: la forma y, si la
 // definición declara claves, «con» y sus claves separadas por «, ».
 func (d Devuelve) texto() string {
@@ -620,9 +641,11 @@ func (d Devuelve) texto() string {
 }
 
 // lineaDelSobre es la línea que da las claves del sobre y las de data en un
-// sobre de fallo.
+// sobre de fallo, y que dice que la orden y la herramienta de cada fila
+// devuelven el mismo (H21 FR-030).
 func lineaDelSobre(sobre Sobre) string {
-	return "Todas devuelven el sobre " + strings.Join(comoCodigo(sobre.Claves), ", ") +
+	return "La orden y la herramienta de cada fila devuelven el mismo sobre: " +
+		strings.Join(comoCodigo(sobre.Claves), ", ") +
 		"; con `ok` falso, `" + claveDeLosDatos + "` lleva " + enumerar(comoCodigo(sobre.ClavesDeFallo)) + "."
 }
 

@@ -539,6 +539,12 @@ func TestReplayRechazaOpciones(t *testing.T) {
 			mencion:    "ConIntervalo",
 		},
 		{
+			nombre:     "ni el ritmo común a más de un cliente, que es el mismo escalón",
+			directorio: directorio,
+			opciones:   []Opcion{ConRitmo(NuevoRitmo(time.Second))},
+			mencion:    "ConRitmo",
+		},
+		{
 			nombre:     "ni los intentos, que no se repite ninguna búsqueda",
 			directorio: directorio,
 			opciones:   []Opcion{ConIntentos(2)},

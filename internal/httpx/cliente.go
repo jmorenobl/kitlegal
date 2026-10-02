@@ -64,9 +64,11 @@ type Cliente struct {
 	// sitios es el registro de sitios de este cliente: uno solo, del que sale el
 	// ritmo de cada sitio y del que saldrán sus reglas de robots.txt, porque la
 	// clave de sitio es una y su exclusión tiene que ser compartida
-	// (data-model.md §4, D14). Es nulo en un cliente de reproducción, cuya
-	// cadena no lleva ni ritmo ni robots.txt y que por tanto no tiene nada que
-	// guardar por sitio (FR-049).
+	// (data-model.md §4, D14). El registro es siempre de este cliente; el turno
+	// de cada sitio lo toma de su Ritmo, que es propio salvo que se declare uno
+	// con ConRitmo. Es nulo en un cliente de reproducción, cuya cadena no lleva
+	// ni ritmo ni robots.txt y que por tanto no tiene nada que guardar por sitio
+	// (FR-049).
 	sitios *sitios
 	// fuente es el nombre lógico de la fuente que usa este cliente, el que
 	// nombrará el directorio de las grabaciones (FR-039).
@@ -86,11 +88,16 @@ type Cliente struct {
 type configuracionDelCliente struct {
 	fuente          string
 	raizDeGrabacion string
-	intervalo       time.Duration
-	intentos        int
-	reloj           relojDeEspera
-	registrador     *slog.Logger
-	hora            func() time.Time
+	// intervalo y ritmo son las dos formas de declarar el ritmo del cliente, y
+	// de las dos queda escrita solo la última: ConIntervalo borra el ritmo y
+	// ConRitmo el intervalo. Así el cero de cada uno sigue diciendo quién lo
+	// declaró, que es lo que Replay necesita para nombrar la opción que sobra.
+	intervalo   time.Duration
+	ritmo       *Ritmo
+	intentos    int
+	reloj       relojDeEspera
+	registrador *slog.Logger
+	hora        func() time.Time
 }
 
 // Opcion declara una variación del cliente. Devuelve el error de la opción
@@ -154,6 +161,10 @@ func ConRaizDeGrabacion(dir string) Opcion {
 // Un intervalo nulo o negativo es un error de argumentos: un ritmo sin espera es
 // lo contrario de lo que este cliente garantiza, y no hay ninguna opción para
 // desactivarlo (D8).
+//
+// El ritmo que declara es de ese cliente y de ninguno más. El que comparten
+// varios se declara con ConRitmo, que va en su lugar: dadas las dos, vale la
+// última, como con una opción repetida.
 func ConIntervalo(d time.Duration) Opcion {
 	return func(config *configuracionDelCliente) error {
 		if d <= 0 {
@@ -162,6 +173,36 @@ func ConIntervalo(d time.Duration) Opcion {
 		}
 
 		config.intervalo = d
+		config.ritmo = nil
+
+		return nil
+	}
+}
+
+// ConRitmo declara el Ritmo en el que el cliente espera turno, que es también el
+// de todo cliente que reciba el mismo: entre todos, cada sitio recibe una
+// petición por intervalo como mucho, también la del robots.txt de cada uno. Lo
+// demás sigue siendo de cada cliente —lo que recuerda del robots.txt de un sitio
+// no pasa de él—, y sin esta opción un cliente tiene su propio ritmo.
+//
+// Va en lugar de ConIntervalo, porque el intervalo es el del Ritmo: dadas las
+// dos, vale la última. Un Ritmo nulo o de intervalo nulo o negativo es un error
+// de argumentos, por lo mismo que lo es ConIntervalo(0) (D8).
+func ConRitmo(ritmo *Ritmo) Opcion {
+	return func(config *configuracionDelCliente) error {
+		if ritmo == nil {
+			return errorDeArgumentos(Peticion{}, nil,
+				"el ritmo en el que el cliente espera turno no puede ser nulo (ConRitmo)")
+		}
+
+		if ritmo.intervalo <= 0 {
+			return errorDeArgumentos(Peticion{}, nil,
+				"el intervalo del ritmo entre peticiones a un mismo sitio tiene que ser mayor que cero (ConRitmo): "+
+					ritmo.intervalo.String())
+		}
+
+		config.ritmo = ritmo
+		config.intervalo = 0
 
 		return nil
 	}
@@ -260,7 +301,7 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		return nil, err
 	}
 
-	registro := nuevosSitios(config.intervalo)
+	registro := nuevosSitios(config.ritmoDelCliente())
 
 	// La cadena se compone de dentro afuera, que es el orden en que cada
 	// escalón depende del anterior: la marca de emisión es lo que envuelve al
@@ -386,6 +427,18 @@ func (config *configuracionDelCliente) completar() {
 	}
 }
 
+// ritmoDelCliente es el Ritmo en el que espera turno el cliente que se está
+// construyendo: el que recibió con ConRitmo o, si no recibió ninguno, uno propio
+// con su intervalo, que nadie más usa. Se pide con la configuración ya completa,
+// de modo que el intervalo sea el declarado o el de por omisión.
+func (config *configuracionDelCliente) ritmoDelCliente() *Ritmo {
+	if config.ritmo != nil {
+		return config.ritmo
+	}
+
+	return NuevoRitmo(config.intervalo)
+}
+
 // comprobarReproduccion aplica la tabla de construcción de Replay del contrato
 // §3, y la aplica entera antes de que exista ningún cliente: el directorio tiene
 // que existir y ser un directorio —se declara para leer de algo que ya está—, la
@@ -423,11 +476,11 @@ func comprobarReproduccion(dir string, config configuracionDelCliente) error {
 	return comprobarOpcionesDeReproduccion(config)
 }
 
-// comprobarOpcionesDeReproduccion rechaza las tres opciones que solo tienen
-// sentido contra una fuente real: la raíz de grabación —que además sería grabar
-// y reproducir a la vez (FR-043)— y el ritmo y los intentos, cuyos escalones no
-// están en esta cadena. Rechazarlas es lo que impide que quien las declare crea
-// que hacen algo (contrato §3, D1).
+// comprobarOpcionesDeReproduccion rechaza las opciones que solo tienen sentido
+// contra una fuente real: la raíz de grabación —que además sería grabar y
+// reproducir a la vez (FR-043)— y el ritmo, en sus dos formas, y los intentos,
+// cuyos escalones no están en esta cadena. Rechazarlas es lo que impide que
+// quien las declare crea que hacen algo (contrato §3, D1).
 func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 	switch {
 	case config.raizDeGrabacion != "":
@@ -437,6 +490,10 @@ func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 	case config.intervalo != 0:
 		return errorDeArgumentos(Peticion{}, nil,
 			"ConIntervalo no tiene sentido en reproducción: la reproducción no espera nunca (FR-048)")
+
+	case config.ritmo != nil:
+		return errorDeArgumentos(Peticion{}, nil,
+			"ConRitmo no tiene sentido en reproducción: la reproducción no espera nunca (FR-048)")
 
 	case config.intentos != 0:
 		return errorDeArgumentos(Peticion{}, nil,

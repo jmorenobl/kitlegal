@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -207,6 +208,145 @@ func TestRitmoRespetaElContexto(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRitmoCompartido fija qué es de todos y qué no cuando más de un cliente
+// recibe el mismo Ritmo con ConRitmo, que es como un proceso que construye un
+// cliente por llamada sigue pidiendo a cada sitio una sola petición por
+// intervalo: los turnos del sitio son de todos, y lo que cada cliente recuerda
+// del robots.txt sigue siendo suyo (FR-010 y FR-014 de H21, research D8).
+func TestRitmoCompartido(t *testing.T) {
+	t.Parallel()
+
+	t.Run("las llegadas de un cliente y de otro no se adelantan a su turno", probarLlegadasConRitmoCompartido)
+	t.Run("el robots.txt sigue siendo de cada cliente", probarRobotsDeCadaCliente)
+}
+
+// probarLlegadasConRitmoCompartido mide el ritmo como
+// TestRitmoSeparaPeticionesDelMismoSitio —en las llegadas al servidor y contra
+// el turno de cada una, contado desde un comienzo tomado antes de la primera
+// petición—, pero con un cliente más: cada uno pide su robots.txt y su recurso,
+// y las cuatro peticiones ocupan cuatro turnos del mismo sitio.
+//
+// Los dos piden a la vez, que es como llegan las llamadas simultáneas a un
+// servidor: con un ritmo por cliente, el robots.txt del segundo llegaría con el
+// del primero, sin haber esperado nada, y con cualquier intervalo. Las llegadas
+// se anotan en el orden en que el servidor las ve, y la cota no lleva holgura
+// porque la fija el limitador: la llegada i no puede adelantarse a i veces el
+// intervalo tras el comienzo.
+func probarLlegadasConRitmoCompartido(t *testing.T) {
+	t.Parallel()
+
+	const intervalo = 150 * time.Millisecond
+
+	anotador := &llegadas{}
+	contador := &contadorDeIdentificacion{}
+	servidor := servidorLocal(t, contador.vigila(anotador.anota(robotsSinReglas(redireccionesDePrueba()))))
+	norma := Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"}
+
+	ritmo := NuevoRitmo(intervalo)
+	delProceso := []*Cliente{
+		clienteDePrueba(t, ConRitmo(ritmo)),
+		clienteDePrueba(t, ConRitmo(ritmo)),
+	}
+
+	// Lo que cada goroutine obtiene se comprueba después, en la del test: dentro
+	// de las otras no se puede terminar el test.
+	estados := make([]int, len(delProceso))
+	fallos := make([]error, len(delProceso))
+	ctx := t.Context()
+
+	var grupo sync.WaitGroup
+
+	comienzo := time.Now()
+
+	for i, cliente := range delProceso {
+		grupo.Go(func() {
+			respuesta, err := cliente.Pedir(ctx, schema.Contexto{}, norma)
+			estados[i], fallos[i] = respuesta.Estado, err
+		})
+	}
+
+	grupo.Wait()
+
+	for i := range delProceso {
+		require.NoError(t, fallos[i], "el cliente %d lee el recurso cuando le llega el turno", i)
+		require.Equal(t, http.StatusOK, estados[i])
+	}
+
+	assert.Equal(t, int64(len(delProceso)), contador.robots.Load(),
+		"cada cliente pide el robots.txt del sitio: lo que recuerda de él es solo suyo (FR-010)")
+	assert.Equal(t, int64(len(delProceso)), contador.total.Load(), "y cada uno pide su recurso")
+
+	anotadas := anotador.instantes()
+	require.Len(t, anotadas, 2*len(delProceso), "el robots.txt y el recurso de cada cliente")
+
+	for i, llegada := range anotadas {
+		assert.GreaterOrEqual(t, llegada.Sub(comienzo), time.Duration(i)*intervalo,
+			"la llegada %d al sitio no se adelanta a su turno, a %d × intervalo del comienzo: "+
+				"los dos esperan turno en el mismo Ritmo (FR-014)", i, i)
+	}
+}
+
+// probarRobotsDeCadaCliente comprueba la otra mitad: compartir los turnos no es
+// compartir lo que se sabe del robots.txt. El sitio responde 429 la primera vez
+// que se le pide y sus reglas después; el primer cliente se queda con la
+// denegación —y no vuelve a pedirlo, ni antes ni después de que el segundo
+// lea—, y el segundo, que nace sin saber nada del sitio, lo pide y lee el
+// recurso. Es lo que hace que un fallo pasajero al obtenerlo no pase del cliente
+// que lo sufre (research D8, V43).
+func probarRobotsDeCadaCliente(t *testing.T) {
+	t.Parallel()
+
+	var obtenciones atomic.Int64
+
+	servidor, contador := servidorConRobots(t, func(escritor http.ResponseWriter, peticion *http.Request) {
+		if obtenciones.Add(1) == 1 {
+			robotsConEstado(http.StatusTooManyRequests)(escritor, peticion)
+
+			return
+		}
+
+		robotsQueDice("User-agent: *\nAllow: /\n")(escritor, peticion)
+	}, redireccionesDePrueba())
+
+	norma := Peticion{Metodo: http.MethodGet, URL: servidor.URL + "/norma"}
+
+	// El intervalo se aparta del camino: aquí no se mide ningún turno.
+	ritmo := NuevoRitmo(time.Millisecond)
+	primero := clienteDePrueba(t, ConRitmo(ritmo))
+
+	exigeDenegado := func(obtenidas int64) {
+		t.Helper()
+
+		respuesta, err := primero.Pedir(t.Context(), schema.Contexto{}, norma)
+
+		fallo := falloDe(t, err)
+		assert.Equal(t, schema.ClaseLimiteOTos, fallo.Clase(),
+			"el primer cliente no pudo obtener el robots.txt y el sitio le queda denegado (FR-010)")
+		assert.Equal(t, http.StatusTooManyRequests, fallo.Estado, "con el estado con que la fuente respondió")
+		assert.Equal(t, Respuesta{}, respuesta, "sin permiso no hay respuesta que entregar")
+		assert.Equal(t, obtenidas, contador.robots.Load(), "y no vuelve a pedir el robots.txt")
+	}
+
+	exigeDenegado(1)
+	exigeDenegado(1)
+
+	assert.Zero(t, contador.total.Load(), "sin permiso no se emite ninguna petición del recurso")
+
+	segundo := clienteDePrueba(t, ConRitmo(ritmo))
+
+	respuesta, err := segundo.Pedir(t.Context(), schema.Contexto{}, norma)
+	require.NoError(t, err, "el segundo cliente no hereda la denegación del primero (FR-010)")
+
+	assert.Equal(t, http.StatusOK, respuesta.Estado)
+	assert.Equal(t, contenidoDePrueba, string(respuesta.Cuerpo), "y lee el recurso")
+	assert.Equal(t, int64(2), contador.robots.Load(), "después de pedir él el robots.txt del sitio")
+	assert.Equal(t, int64(1), contador.total.Load())
+
+	// Y lo que el segundo leyó tampoco pasa al primero: cada cliente recuerda lo
+	// que él obtuvo, mientras vive.
+	exigeDenegado(2)
 }
 
 // llegadas anota el instante en que cada petición llega al servidor, que es

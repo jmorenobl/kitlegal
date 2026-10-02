@@ -107,7 +107,7 @@ func TestJuicioDelSondeo(t *testing.T) {
 		assert.Equal(t, expresionesDeLaTransicion, cortada.ExpresionesProhibidas,
 			"la respuesta de la sesi\xc3\xb3n sin terminar lleva sus expresiones: el caso no pasa en vac\xc3\xado")
 
-		assert.Equal(t, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0}}, juicio.recuento)
+		assert.Equal(t, []RecuentoDeExpresiones{recuentoEsperado(modeloQueDecide, ModoOrden, 0, 0)}, juicio.recuento)
 		assert.Contains(t, juicio.salida(),
 			"\nRespuestas con alguna expresi\xc3\xb3n prohibida en las evals que activan la skill: 0 de 0 (0,0 %); ")
 	})
@@ -354,7 +354,7 @@ func entradasSinMedirYSinAbrir(t *testing.T) InformeAEscribir {
 
 	entradas := entradasDeLaCopia(t, copia)
 	entradas.SinAbrir = []SesionPlanificada{
-		{Nombre: sesionDeNoActivacion, Fichero: ficheroDeNoActivacion, Modelo: modeloQueDecide},
+		{Nombre: sesionDeNoActivacion, Fichero: ficheroDeNoActivacion, Modelo: modeloQueDecide, Modo: ModoOrden},
 	}
 
 	return entradas
@@ -408,7 +408,10 @@ func exigirLaSalidaConLista(t *testing.T) {
 	require.NoError(t, os.RemoveAll(sesionDelSondeo(copia, 5, 3)))
 
 	juicio := juicioDelSondeoDe(t, entradasDelSondeo(copia, []SesionPlanificada{
-		{Nombre: sesionSintetica(5, modeloSonnet5, 3), Fichero: ficheroSintetico(5), Modelo: modeloSonnet5},
+		{
+			Nombre: sesionSintetica(5, modeloSonnet5, 3), Fichero: ficheroSintetico(5), Modelo: modeloSonnet5,
+			Modo: ModoOrden,
+		},
 	}))
 	salida := juicio.salida()
 
@@ -594,12 +597,15 @@ type casoDeComprobarElSondeo struct {
 // llega si un argumento no vale. Los errores de los argumentos y el de la
 // credencial son errores de uso (errorDeUso); el de una definición del job que
 // no se puede leer, que llega antes, no lo es (contracts/sondeo.md §1 y §4 de
-// H7.4; FR-080, FR-081 de H7.4).
+// H7.4; FR-080, FR-081 de H7.4). Desde H21, una eval sin binario ni servidor
+// pedida en EVALS es otro error de uso, con su línea donde iría la del número
+// que no es de ninguna eval (casosDeLasEvalsSinBinarioNiServidor; FR-050,
+// FR-084 de H21).
 func TestComprobarElSondeo(t *testing.T) {
 	t.Parallel()
 
-	for _, caso := range slices.Concat(casosDeLosArgumentos(), casosDeLasEvals(), casosDeLosEnteros(),
-		casosDeLaSuscripcion()) {
+	for _, caso := range slices.Concat(casosDeLosArgumentos(), casosDeLasEvals(), casosDeLasEvalsSinBinarioNiServidor(),
+		casosDeLosEnteros(), casosDeLaSuscripcion()) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
@@ -819,6 +825,55 @@ func casosDeLasEvals() []casoDeComprobarElSondeo {
 	)
 }
 
+// Lo que el sondeo dice de una eval sin binario ni servidor pedida en EVALS,
+// detrás de su número (contracts/evals-en-dos-modos.md §7 de H21; FR-050 de
+// H21), y la línea entera de la 21 de boe-legislacion, la del repositorio.
+const (
+	soloLaMideElJob           = " es una eval sin binario ni servidor: solo la mide el job de evals"
+	lineaDeLaEvalSinBinario21 = "EVALS: 21" + soloLaMideElJob
+)
+
+// casosDeLasEvalsSinBinarioNiServidor son los casos de TestComprobarElSondeo de
+// una eval sin binario ni servidor pedida en EVALS (contracts/evals-en-dos-modos.md
+// §7 y §8 de H21; FR-050, FR-084 de H21): la del repositorio sola; con otras que
+// el sondeo sí mide, que no la salvan; y dos de ellas, en una carpeta escrita en
+// t.TempDir() —el repositorio tiene una por skill—, cada una con su línea, en el
+// orden de EVALS, entre la del número que no es de ninguna eval y las de los
+// demás argumentos que no valen.
+func casosDeLasEvalsSinBinarioNiServidor() []casoDeComprobarElSondeo {
+	return []casoDeComprobarElSondeo{
+		{
+			nombre:  "evals-sin-binario-ni-servidor-sola",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Evals = "21" },
+			errores: []string{lineaDeLaEvalSinBinario21},
+		},
+		{
+			nombre:  "evals-sin-binario-ni-servidor-con-otras-que-se-miden",
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) { s.Argumentos.Evals = "14,21,03" },
+			errores: []string{lineaDeLaEvalSinBinario21},
+		},
+		{
+			nombre: "evals-sin-binario-ni-servidor-dos-en-su-orden",
+			ajustar: func(t *testing.T, s *SondeoAEjecutar) {
+				t.Helper()
+
+				s.EvalsDeLasSkills = carpetasDeEvals(t, skillQueSondea,
+					entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+					entradaDeConjunto{nombre: "05-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion},
+					entradaDeConjunto{nombre: "07-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion})
+				s.Argumentos.Evals, s.Argumentos.Modelo, s.Argumentos.Repeticiones = "07,98,01,05", "", "0"
+			},
+			errores: []string{
+				"EVALS: 07" + soloLaMideElJob,
+				"EVALS: 98 no es ninguna eval de " + skillQueSondea,
+				"EVALS: 05" + soloLaMideElJob,
+				"MODELO: est\xc3\xa1 vac\xc3\xado",
+				"REPETICIONES: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1",
+			},
+		},
+	}
+}
+
 // casosDeLosEnteros son los casos de TestComprobarElSondeo de REPETICIONES y
 // CONCURRENCIA con un valor que no es un entero mayor o igual que 1; la
 // concurrencia vacía no es un error, sino la del job.
@@ -896,7 +951,7 @@ type casoDeSondear struct {
 	nombre       string
 	repeticiones string
 	concurrencia string
-	ajustar      func(s *SondeoAEjecutar)
+	ajustar      func(t *testing.T, s *SondeoAEjecutar)
 	codigo       int
 	transcripts  func(t *testing.T) map[int]string
 	esperas      map[int]int
@@ -917,8 +972,10 @@ type casoDeSondear struct {
 // segunda termina y se juzga y las que faltan salen sin medir. Con un argumento
 // o una credencial que no valen, devuelve el error, que es un error de uso
 // (errorDeUso), sin preparar el árbol, sin abrir ninguna sesión y sin escribir
-// nada en el temporal (contracts/sondeo.md §4 de H7.4; FR-080 de H7.4). Las
-// sesiones no ven ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN ni ninguna otra
+// nada en el temporal (contracts/sondeo.md §4 de H7.4; FR-080 de H7.4); y lo
+// mismo con una eval sin binario ni servidor pedida en EVALS, sola o con otra
+// que el sondeo sí mide (contracts/evals-en-dos-modos.md §7 de H21; FR-050,
+// FR-084 de H21). Las sesiones no ven ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN ni ninguna otra
 // variable de la base que no sea de contracts/sondeo.md §5, aunque estén en
 // ella; ven CLAUDE_CODE_OAUTH_TOKEN y las demás de §5 con su valor de la base,
 // el PATH de la base con el bin/ del temporal delante —el primer kitlegal que
@@ -996,16 +1053,43 @@ func casosDeSondear() []casoDeSondear {
 		},
 		{
 			nombre: "sin-la-credencial", repeticiones: "1",
-			ajustar: func(s *SondeoAEjecutar) { s.Entorno = sobreLaBase(s.Entorno, nil, variableDeLaSuscripcion) },
-			error:   faltaLaSuscripcion,
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
+				s.Entorno = sobreLaBase(s.Entorno, nil, variableDeLaSuscripcion)
+			},
+			error: faltaLaSuscripcion,
 		},
 		{
 			nombre: "con-la-credencial-vacia", repeticiones: "1",
-			ajustar: func(s *SondeoAEjecutar) {
+			ajustar: func(_ *testing.T, s *SondeoAEjecutar) {
 				s.Entorno = sobreLaBase(s.Entorno, []string{variableDeLaSuscripcion + "="})
 			},
 			error: faltaLaSuscripcion,
 		},
+		{
+			nombre: "una-eval-sin-binario-ni-servidor", repeticiones: "1",
+			ajustar: pedirConUnaSinBinarioNiServidor("02"),
+			error:   "EVALS: 02" + soloLaMideElJob,
+		},
+		{
+			nombre: "una-eval-sin-binario-ni-servidor-y-otra-que-se-mide", repeticiones: "1",
+			ajustar: pedirConUnaSinBinarioNiServidor("01,02"),
+			error:   "EVALS: 02" + soloLaMideElJob,
+		},
+	}
+}
+
+// pedirConUnaSinBinarioNiServidor es el ajuste de un caso de TestSondear que
+// deja en la carpeta de la skill, junto a la eval sintética del art. 21, que el
+// sondeo mide, la 02, sin binario ni servidor, y pide en EVALS los números
+// dados.
+func pedirConUnaSinBinarioNiServidor(evals string) func(t *testing.T, s *SondeoAEjecutar) {
+	return func(t *testing.T, s *SondeoAEjecutar) {
+		t.Helper()
+
+		s.EvalsDeLasSkills = carpetasDeEvals(t, skillQueSondea,
+			entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			entradaDeConjunto{nombre: "02-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion})
+		s.Argumentos.Evals = evals
 	}
 }
 
@@ -1124,7 +1208,7 @@ func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 	}
 
 	if caso.ajustar != nil {
-		caso.ajustar(&sondeo.ejecutar)
+		caso.ajustar(t, &sondeo.ejecutar)
 	}
 
 	sondeo.plan = planDelSondeoDelTest(t, sondeo.ejecutar, caso.repeticiones)
@@ -1322,13 +1406,16 @@ exit "$codigo"
 // Lo que el go que deja el uso escribe en uso.txt en los casos de
 // TestGuionDelSondeo, con el salto de línea final con el que lo escribe
 // TestSondeo (contracts/sondeo.md §3 de H7.4): los errores de MODELO vacío y
-// REPETICIONES=0, uno por línea y en el orden de la orden, y el de la
-// credencial que falta.
+// REPETICIONES=0, uno por línea y en el orden de la orden, el de la credencial
+// que falta y el de la eval 21 de boe-legislacion, sin binario ni servidor, que
+// es el de comprobarElSondeo con ella sola en EVALS (TestComprobarElSondeo;
+// contracts/evals-en-dos-modos.md §7 de H21).
 const (
 	usoConDosArgumentos = "MODELO: est\xc3\xa1 vac\xc3\xado\n" +
 		"REPETICIONES: \xc2\xab0\xc2\xbb no es un entero mayor o igual que 1\n"
 	usoSinLaCredencial = "falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripci\xc3\xb3n que da " +
 		"claude setup-token, no est\xc3\xa1 en el entorno o est\xc3\xa1 vac\xc3\xada\n"
+	usoConUnaEvalSinBinarioNiServidor = lineaDeLaEvalSinBinario21 + "\n"
 )
 
 // nombreDelTemporalDelSondeo es el del directorio que el guion del sondeo crea
@@ -1369,7 +1456,9 @@ type casoDelGuionDelSondeo struct {
 // con el de la credencial, el guion sale con 1, su salida estándar queda vacía
 // aunque haya salida.txt y la de error es exactamente uso.txt, sin nada de go
 // test (contracts/sondeo.md §3 y §4 de H7.4; FR-080, FR-099 de H7.4; SC-009 de
-// H7.4); si go test falla, aunque deje uso.txt, lo que se imprime es su
+// H7.4), y lo mismo con el de una eval sin binario ni servidor pedida en EVALS:
+// su línea sola (contracts/evals-en-dos-modos.md §7 de H21; FR-050, FR-084 de
+// H21); si go test falla, aunque deje uso.txt, lo que se imprime es su
 // registro, que va primero (FR-081 de H7.4). Sin cinco argumentos, el uso y el
 // código 1, sin ejecutar go. En todos los casos, el TMPDIR del test queda
 // vacío: lo que go test deja en su TMPDIR —su directorio de trabajo, el de go
@@ -1431,8 +1520,9 @@ func exigirLaSalidaDeErrorDelGuion(t *testing.T, caso casoDelGuionDelSondeo, deE
 // casosDelGuionDelSondeo son los casos de TestGuionDelSondeo: go test sale con
 // 0, con la concurrencia vacía; sale con 1 y con 2, con una concurrencia
 // pedida; sale con 0 y deja uso.txt, con los errores de MODELO vacío y
-// REPETICIONES=0 o con el de la credencial que falta; sale con 1 y deja
-// uso.txt; y el guion recibe cuatro argumentos.
+// REPETICIONES=0, con el de la credencial que falta o con el de una eval sin
+// binario ni servidor; sale con 1 y deja uso.txt; y el guion recibe cuatro
+// argumentos.
 func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
 	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
 
@@ -1477,6 +1567,14 @@ func casosDelGuionDelSondeo() []casoDelGuionDelSondeo {
 				return exec.CommandContext(ctx, guion, skillQueSondea, "03", modeloSonnet5, "1", "")
 			},
 			uso:    usoSinLaCredencial,
+			codigo: 1,
+		},
+		{
+			nombre: "uso-con-una-eval-sin-binario-ni-servidor",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillQueSondea, "21", modeloSonnet5, "1", "")
+			},
+			uso:    usoConUnaEvalSinBinarioNiServidor,
 			codigo: 1,
 		},
 		{

@@ -1,0 +1,84 @@
+# El proceso del servidor: termina con 0 cuando el cliente le cierra la
+# entrada; mcp serve --asunto es un error de argumentos, con el código 2, que
+# no atiende ningún mensaje; mcp serve --dry-run tampoco atiende ninguno,
+# termina con 0 sin esperar a que se cierre la entrada, deja la salida estándar
+# vacía y la descripción del kernel en la salida de error; y lanzado desde una
+# ruta con espacios y con la raíz del sistema de ficheros como directorio de
+# trabajo, responde igual, con el grafo donde siempre.
+#
+# Cubre: US4.3, US4.4, US4.5, US4.7 · FR-021, FR-022, FR-024, FR-025 · SC-008.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3: si el programa termina sin completar el saludo
+# escribe «sin respuesta» y el código, y falla, de modo que se escribe con «!»;
+# la entrada del programa sigue entonces abierta hasta que termina. mcp.out,
+# cada línea que el programa escribió en su salida estándar, solo lo deja con
+# -anterior. El mensaje de --asunto y la descripción de --dry-run son los de
+# contracts/servidor-mcp.md §1. territorio resolver no consulta ninguna fuente
+# y fecha con sus datos, así que su sobre no depende del reloj ni del
+# directorio de trabajo.
+
+# Precondición: el binario registra el applet mcp (FR-001).
+exec kitlegal --help
+stdout '^\s+mcp\s'
+
+# --- Al cerrarse la entrada, termina con 0 (US4.3, FR-024) ---
+mcp lista.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout cierre.txt
+
+# --- --asunto: código 2, sin atender ningún mensaje (US4.5, FR-021) ---
+! mcp -anterior lista.txt $KITLEGAL_T0_BIN mcp serve --asunto x
+cmp stdout asunto.txt
+grep '^argumentos inválidos: mcp serve no admite --asunto: el servidor no expone nada del asunto$' mcp.err
+cmp mcp.out vacio
+
+# Se retira para que el vacío que se compara después sea el de la ejecución
+# siguiente y no este.
+rm mcp.out
+
+# --- --dry-run: no sirve ni espera a que se cierre la entrada (US4.7, FR-022) ---
+! mcp -anterior lista.txt $KITLEGAL_T0_BIN mcp serve --dry-run
+cmp stdout ensayo.txt
+grep '^--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "mcp", el verbo "serve", con los argumentos \["serve" "--dry-run"\]$' mcp.err
+cmp mcp.out vacio
+
+# --- Desde una ruta con espacios y con / como directorio de trabajo (US4.4, FR-025) ---
+#
+# El sobre de referencia es el de la orden, pedido con --no-graph para que el
+# grafo no exista todavía: lo crea el servidor, en la caché del guion y no en
+# su directorio de trabajo.
+exec $KITLEGAL_T0_BIN territorio resolver Leganés --json --no-graph
+cp stdout orden.json
+! exists cache/world.db
+
+# El binario se copia con el cp del sistema y no con la orden cp de los
+# guiones: un ejecutable escrito desde el proceso de los tests y ejecutado
+# mientras otros guiones lanzan procesos da «text file busy» en Linux.
+mkdir 'con espacios'
+exec cp $KITLEGAL_T0_BIN 'con espacios/kitlegal'
+mcp -dir / territorio.txt $WORK/'con espacios'/kitlegal mcp serve
+cmp stdout raiz.txt
+cmp mcp-1.json orden.json
+exists cache/world.db
+
+-- lista.txt --
+herramientas
+-- cierre.txt --
+protocolo 2026-07-28
+capacidades tools
+1 herramientas 13
+salida 0
+-- asunto.txt --
+sin respuesta
+salida 2
+-- ensayo.txt --
+sin respuesta
+salida 0
+-- vacio --
+-- territorio.txt --
+territorio_resolver {"consulta":"Leganés"}
+-- raiz.txt --
+protocolo 2026-07-28
+capacidades tools
+1 territorio_resolver resultado
+salida 0

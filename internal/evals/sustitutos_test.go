@@ -36,14 +36,21 @@ import (
 // sesión con <sesión>.espera en el directorio de transcripts es la de ese
 // fichero. Con variableDeCalentar, termina con 0 sin hacer nada.
 //
-// Si no ignora TERM, duerme en una subshell que lo atiende, lo anota y sale, y
-// la shell, al recibirlo, espera a la subshell antes de salir: la anotación
-// dice que TERM llegó a otro proceso del grupo, y si llega solo a la shell, la
-// subshell sigue durmiendo y la sesión no sale hasta el KILL. Las dos esperan
-// con wait, que TERM interrumpe, y la subshell anota que empieza la espera
-// cuando ya lo atiende: TERM no puede caer entre el fork y el exec de sleep,
-// donde la shell hija aún tiene su manejador y la señal se pierde. La marca de
-// abierta se retira antes de salir, también con TERM; con KILL queda.
+// Si no ignora TERM, quien duerme es un sh aparte, hijo de una subshell que
+// atiende TERM, lo anota y sale, y la shell, al recibirlo, sale cuando ha
+// terminado la subshell: la anotación dice que TERM llegó a otro proceso del
+// grupo, y si llega solo a la shell, la subshell sigue esperando y la sesión no
+// sale hasta el KILL. Todo va en primer plano, porque una shell atiende la señal
+// en cuanto termina la orden que tiene en marcha, llegue cuando llegue, y wait
+// solo se interrumpe si ya ha empezado a esperar: con sleep en segundo plano y
+// wait, un TERM que caía justo antes se quedaba sin atender hasta que terminaba
+// sleep, y con 16 sustitutos a la vez 15 de 3000 no anotaban el TERM. Y la marca
+// de que empieza la espera la anota quien duerme, tras su exec y sin manejador
+// de TERM: desde que existe, TERM lo termina siempre, y no puede caer entre el
+// fork y el exec, donde la shell hija aún tiene el manejador de su madre y la
+// señal se pierde. La subshell deja dicho en la salida de error que su hijo
+// terminó por una señal. La marca de abierta se retira antes de salir, también
+// con TERM; con KILL queda.
 const sustitutoDeClaude = `#!/bin/sh
 if [ "${KITLEGAL_SUSTITUTO_CALENTAR:-}" = si ]; then exit 0; fi
 set -eu
@@ -88,14 +95,11 @@ if [ "${KITLEGAL_SUSTITUTO_IGNORA_TERM:-no}" = si ]; then
 	: > "$anotaciones/espera-empezada"
 	sleep "$espera"
 else
-	trap 'wait; rmdir "$abierta"; exit 143' TERM
+	trap 'rmdir "$abierta"; exit 143' TERM
 	(
 		trap ': > "$anotaciones/term-recibido"; exit 143' TERM
-		: > "$anotaciones/espera-empezada"
-		sleep "$espera" &
-		wait $!
-	) &
-	wait $!
+		/bin/sh -c ': > "$1"; exec sleep "$2"' sh "$anotaciones/espera-empezada" "$espera" || exit $?
+	) || exit $?
 fi
 : > "$anotaciones/espera-cumplida"
 rmdir "$abierta"
@@ -387,8 +391,9 @@ func (s sustitutos) cumplioLaEspera(t *testing.T, sesion string) bool {
 	return existe(t, filepath.Join(s.comun, sustitutoClaude, sesion, "espera-cumplida"))
 }
 
-// recibioTERM dice si TERM llegó en la sesión a la subshell en la que duerme el
-// sustituto de claude, otro proceso de su grupo, y la subshell lo atendió.
+// recibioTERM dice si TERM llegó en la sesión a la subshell que espera a quien
+// duerme en el sustituto de claude, otro proceso de su grupo, y la subshell lo
+// atendió.
 func (s sustitutos) recibioTERM(t *testing.T, sesion string) bool {
 	t.Helper()
 

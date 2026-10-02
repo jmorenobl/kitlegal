@@ -102,12 +102,17 @@ func Describir(p Presentador, def Verbo) error {
 // ambas comparten, reunidas en la raíz porque es contra ella donde resuelven las
 // referencias `#/$defs/…`.
 func (d Verbo) esquema() (*jsonschema.Schema, error) {
-	g := nuevoGenerador()
-
-	entrada, err := g.entrada(d.Argumentos)
+	campos, err := camposDeLosArgumentos(d.Argumentos)
 	if err != nil {
 		return nil, err
 	}
+
+	g := nuevoGenerador()
+
+	// Los argumentos del verbo y, detrás, las ocho banderas globales que el
+	// applet no declara y recibe igualmente (FR-018, SC-010): quien invoca no
+	// distingue una bandera del kernel de un argumento del verbo.
+	entrada := g.entrada(append(campos, camposVisibles(tipoDeGlobales)...))
 
 	salida, err := g.salida(d.Salida)
 	if err != nil {
@@ -164,27 +169,22 @@ func nuevoGenerador() *generador {
 	}
 }
 
-// entrada describe lo que se escribe en la línea de órdenes: los argumentos del
-// verbo y, detrás, las ocho banderas globales que el applet no declara y recibe
-// igualmente (FR-018, SC-010).
+// entrada describe lo que se escribe con esos campos: un objeto cerrado con una
+// propiedad por campo, obligatoria si la gramática la exige.
 //
-// Se recorren los campos en lugar de reflejar el struct entero porque las dos
-// mitades vienen de dos tipos distintos y el documento las presenta como una
-// sola: quien invoca no distingue una bandera del kernel de un argumento del
-// verbo.
-func (g *generador) entrada(argumentos any) (*jsonschema.Schema, error) {
-	campos, err := camposDeLosArgumentos(argumentos)
-	if err != nil {
-		return nil, err
-	}
-
+// Se recorren los campos en lugar de reflejar un struct entero porque quien
+// decide cuáles son es quien llama: el documento de --describe presenta como una
+// sola las dos mitades de la línea de órdenes, que vienen de dos tipos distintos
+// —los argumentos del verbo y las globales—, y una herramienta del servidor MCP
+// solo los del verbo (herramienta.go).
+func (g *generador) entrada(campos []reflect.StructField) *jsonschema.Schema {
 	entrada := &jsonschema.Schema{
 		Type:                 "object",
 		Properties:           jsonschema.NewProperties(),
 		AdditionalProperties: jsonschema.FalseSchema,
 	}
 
-	for _, campo := range append(campos, camposVisibles(tipoDeGlobales)...) {
+	for _, campo := range campos {
 		nombre := nombreEnLaInvocacion(campo)
 		entrada.Properties.Set(nombre, g.reflejar(campo.Type))
 
@@ -193,7 +193,7 @@ func (g *generador) entrada(argumentos any) (*jsonschema.Schema, error) {
 		}
 	}
 
-	return entrada, nil
+	return entrada
 }
 
 // salida describe el sobre completo con `data` condicionado a `ok`: el del
@@ -490,15 +490,25 @@ func exigidoPorLaGramatica(campo reflect.StructField) bool {
 	return dePosicion
 }
 
+// sangradoDelDocumento es el de cada nivel del documento de --describe.
+const sangradoDelDocumento = "  "
+
 // serializar escribe el documento sin escapar caracteres HTML —la misma regla que
 // el sobre— y con sangrado, porque lo lee tanto una persona como un agente. El
 // salto final lo pone quien escribe, no este texto.
 func serializar(esquema *jsonschema.Schema) (string, error) {
+	return codificar(esquema, sangradoDelDocumento)
+}
+
+// codificar es la única escritura de un esquema, con el sangrado que pida quien
+// llama: el del documento de --describe o ninguno, que es el JSON compacto de los
+// esquemas de una herramienta (herramienta.go).
+func codificar(esquema *jsonschema.Schema, sangrado string) (string, error) {
 	var documento strings.Builder
 
 	codificador := json.NewEncoder(&documento)
 	codificador.SetEscapeHTML(false)
-	codificador.SetIndent("", "  ")
+	codificador.SetIndent("", sangrado)
 
 	if err := codificador.Encode(esquema); err != nil {
 		return "", fmt.Errorf("%w: %w", errEsquemaImposible, err)
