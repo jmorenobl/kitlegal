@@ -93,7 +93,9 @@ type informeLeido struct {
 // umbrales, la duración de las sesiones, los reintentos por límite de ritmo y las
 // sesiones sin medir de la raíz y, de cada sesión, sus avisos encontrados y
 // ausentes, sus expresiones prohibidas, sus reintentos, si quedó sin medir y, de
-// cada una de sus invocaciones, su código y sus conexiones.
+// cada una de sus invocaciones, su código y sus conexiones. Desde H21, de cada
+// sesión, además, su modo, si lleva la línea sin consulta y sus citas sin
+// consulta, y de cada invocación, si es una llamada a una herramienta.
 type informeCrudo struct {
 	Motivos                        jsontext.Value   `json:"motivos"`
 	Tasas                          []tasaCruda      `json:"tasas"`
@@ -117,9 +119,12 @@ type tasaCruda struct {
 // resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
 // prohibidos ejecutados, sus avisos, sus hallazgos, su territorio, sus expresiones
 // prohibidas, sus reintentos por límite de ritmo, si quedó sin medir y sus
-// invocaciones tal como están escritos.
+// invocaciones tal como están escritos; y, desde H21, su modo, si lleva la línea
+// sin consulta y sus citas sin consulta (contracts/evals-en-dos-modos.md §4 de
+// H21).
 type resultadoCrudo struct {
 	Sesion                       string            `json:"sesion"`
+	Modo                         jsontext.Value    `json:"modo"`
 	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
 	AvisosEncontrados            jsontext.Value    `json:"avisos_encontrados"`
 	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
@@ -130,6 +135,8 @@ type resultadoCrudo struct {
 	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
 	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
 	ExpresionesProhibidas        jsontext.Value    `json:"expresiones_prohibidas"`
+	LineaSinConsulta             jsontext.Value    `json:"linea_sin_consulta"`
+	CitasSinConsulta             jsontext.Value    `json:"citas_sin_consulta"`
 	ReintentosPorLimiteDeRitmo   jsontext.Value    `json:"reintentos_por_limite_de_ritmo"`
 	SinMedir                     jsontext.Value    `json:"sin_medir"`
 	Invocaciones                 []invocacionCruda `json:"invocaciones"`
@@ -198,12 +205,14 @@ var encabezadosDeLaTablaDeTasas = []string{
 // hallazgos: una lista vacía, no nil, igual que la que se lee de informe.json.
 var sinFormasExigidas = []string{}
 
-// invocacionCruda es una invocación de informe.json con su código y sus
-// conexiones tal como están escritos.
+// invocacionCruda es una invocación de informe.json con su código, sus
+// conexiones y, desde H21, su marca de llamada a una herramienta tal como están
+// escritos.
 type invocacionCruda struct {
 	Orden      string         `json:"orden"`
 	Codigo     jsontext.Value `json:"codigo"`
 	Conexiones jsontext.Value `json:"conexiones"`
+	Llamada    jsontext.Value `json:"llamada"`
 }
 
 // TestInforme fija EscribirInforme sobre cada ejecución sintética del contrato
@@ -1946,6 +1955,28 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 		assert.Equal(t, "[]", string(resultado.TerritorioAusente),
 			"territorio_ausente de %s es una lista vacía, no null", resultado.Sesion)
 	}
+
+	// Las dos sesiones son del modo orden, de evals que no son sin binario ni
+	// servidor, y sus invocaciones son órdenes de la traza: cada sesión escribe su
+	// modo, linea_sin_consulta falso y citas_sin_consulta como una lista vacía, no
+	// null, y cada invocación, llamada falso (contracts/evals-en-dos-modos.md §4 de
+	// H21).
+	var invocaciones int
+
+	for _, resultado := range leido.crudo.Evals {
+		assert.JSONEq(t, `"orden"`, string(resultado.Modo), "modo de %s", resultado.Sesion)
+		assert.Equal(t, "false", string(resultado.LineaSinConsulta), "linea_sin_consulta de %s", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.CitasSinConsulta),
+			"citas_sin_consulta de %s es una lista vacía, no null", resultado.Sesion)
+
+		for _, invocacion := range resultado.Invocaciones {
+			invocaciones++
+
+			assert.Equal(t, "false", string(invocacion.Llamada), "llamada de %s en %s", invocacion.Orden, resultado.Sesion)
+		}
+	}
+
+	assert.Positive(t, invocaciones, "alguna sesión del caso tiene invocaciones que mirar")
 
 	// Sin hallazgos esperados, ninguna serie exige forma: formas es una lista
 	// vacía, no null, y su celda de la tabla de las series dice «ninguna».

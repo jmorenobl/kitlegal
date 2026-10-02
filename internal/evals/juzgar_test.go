@@ -4,12 +4,16 @@ import (
 	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 // Lo que juzgan las evals y las sesiones de TestJuzgar, construidas en memoria.
@@ -319,6 +323,7 @@ func TestJuzgar(t *testing.T) {
 				sesion: sesionTerminada(true, respuestaSinSkill),
 				esperado: ResultadoDeEval{
 					Eval:             ficheroDeNoActivacion,
+					Modo:             ModoOrden,
 					Activada:         true,
 					Respuesta:        respuestaSinSkill,
 					CodigoDeLaSesion: codigoDeSalida(0),
@@ -344,6 +349,7 @@ func TestJuzgar(t *testing.T) {
 				},
 				esperado: ResultadoDeEval{
 					Eval:             ficheroDeNoActivacion,
+					Modo:             ModoOrden,
 					CodigoDeLaSesion: codigoDeSalida(124),
 					FinDeLaSesion:    "system",
 					Motivos:          []string{"la sesión no terminó: tope de 240 s agotado (código 124)"},
@@ -406,6 +412,7 @@ func TestJuzgar(t *testing.T) {
 				},
 				esperado: ResultadoDeEval{
 					Eval:             ficheroDeLaEval01,
+					Modo:             ModoOrden,
 					Activa:           true,
 					Activada:         true,
 					ComandosAusentes: []string{textoDelComando21},
@@ -1552,6 +1559,7 @@ func territorioYCitas(t *testing.T) []juicio {
 	juicioCon := func(respuesta string, cambiar func(*ResultadoDeEval)) juicio {
 		esperado := ResultadoDeEval{
 			Eval:                 eval.Fichero,
+			Modo:                 ModoOrden,
 			Activa:               true,
 			Activada:             true,
 			ComandosEjecutados:   []string{textoDelComandoDeLeganes, textoDelComando21},
@@ -1623,6 +1631,7 @@ func evalDelMunicipioCubierto() Eval {
 func resultadoDelMunicipioQuePasa() ResultadoDeEval {
 	return ResultadoDeEval{
 		Eval:                 ficheroDelMunicipioCubierto,
+		Modo:                 ModoOrden,
 		Activa:               true,
 		Activada:             true,
 		ComandosEjecutados:   []string{textoDelComandoDeLeganes},
@@ -1685,6 +1694,7 @@ func metadatosNoSatisfaceIndice(t *testing.T) juicio {
 			invocada(t, codigoDeSalida(0), deLaSkill("articulo", normaDeLaLCSP, "a1-30", "--json"))),
 		esperado: ResultadoDeEval{
 			Eval:               eval.Fichero,
+			Modo:               ModoOrden,
 			Activa:             true,
 			Activada:           true,
 			ComandosEjecutados: []string{"bloque boe BOE-A-2017-12902 a1-30"},
@@ -1740,6 +1750,7 @@ func terminosComoPalabras(t *testing.T) juicio {
 			invocada(t, codigoDeSalida(0), deLaSkill("metadatos", normaDeLaLRBRL, "--json"))),
 		esperado: ResultadoDeEval{
 			Eval:               eval.Fichero,
+			Modo:               ModoOrden,
 			Activa:             true,
 			Activada:           true,
 			ComandosEjecutados: []string{"boe buscar Régimen local 7/1985"},
@@ -2140,6 +2151,7 @@ func evalDeLaConsultaRepetida() Eval {
 func resultadoDeLaConsultaRepetida(informadas ...InvocacionInformada) ResultadoDeEval {
 	return ResultadoDeEval{
 		Eval:               ficheroDeLaConsultaRepetida,
+		Modo:               ModoOrden,
 		Activa:             true,
 		Activada:           true,
 		ComandosEjecutados: []string{textoDelComando118, textoDeLaComprobacionDeLaNorma},
@@ -2232,6 +2244,7 @@ func evalDeLosDosBloques() Eval {
 func resultadoDeLosDosBloques(respuesta string) ResultadoDeEval {
 	return ResultadoDeEval{
 		Eval:                   ficheroDeLosDosBloques,
+		Modo:                   ModoOrden,
 		Activa:                 true,
 		Activada:               true,
 		ComandosEjecutados:     []string{textoDelComando118, textoDelComandoDA3, textoDeLaComprobacionDeLaNorma},
@@ -2414,6 +2427,7 @@ func seActivaLaQueNoSeActiva(t *testing.T) []juicio {
 			skill:  skillDeTerritorio,
 			esperado: ResultadoDeEval{
 				Eval:             ficheroDeNoActivacion,
+				Modo:             ModoOrden,
 				Respuesta:        respuestaSinSkill,
 				CodigoDeLaSesion: codigoDeSalida(0),
 				FinDeLaSesion:    "result success",
@@ -2637,6 +2651,7 @@ func sesionQuePasa(t *testing.T, otras ...Invocacion) Sesion {
 func resultadoQuePasa(otras ...InvocacionInformada) ResultadoDeEval {
 	return ResultadoDeEval{
 		Eval:               ficheroDeLaEval01,
+		Modo:               ModoOrden,
 		Activa:             true,
 		Activada:           true,
 		ComandosEjecutados: []string{textoDelComando21},
@@ -2791,4 +2806,970 @@ func TestExigirElModeloPedido(t *testing.T) {
 				resultado.Motivos)
 		})
 	}
+}
+
+// Lo que juzgan TestJuzgarLasLlamadas y TestJuzgarSinBinarioNiServidor, con
+// sesiones construidas en memoria (contracts/evals-en-dos-modos.md §4 de H21).
+const (
+	// kitlegalDelServidor es la ruta absoluta del binario que servidor.json
+	// declara en una sesión del modo herramienta: con ella arranca el agente el
+	// servidor, y con ella puede una sesión ejecutar una orden sin el PATH
+	// (research.md D18 de H21).
+	kitlegalDelServidor = "/home/runner/go/bin/kitlegal"
+
+	// ordenDelServidor es la orden de la invocación de la traza del proceso del
+	// servidor, como la presenta el informe.
+	ordenDelServidor = "mcp serve"
+
+	// herramientaDeArticulo es la herramienta que lee un bloque, y
+	// llamadaDelArticulo21, la orden de la llamada que lee el de la eval 01 como
+	// la presenta el informe: la herramienta seguida de sus argumentos.
+	herramientaDeArticulo = "boe_articulo"
+	llamadaDelArticulo21  = "boe_articulo BOE-A-2015-10565 a21"
+
+	// principioDeOrdenSinKitlegal es el principio del motivo de una orden de
+	// kitlegal en una sesión que no lo tiene en el PATH, al que sigue la orden,
+	// escrito a mano.
+	principioDeOrdenSinKitlegal = "orden de kitlegal en una sesión sin kitlegal en el PATH: "
+
+	// sobreCorrectoDeLaLlamada y sobreDeNoEncontrado son el sobre de éxito y el de
+	// fallo que el servidor devuelve como resultado de una llamada, reducidos a lo
+	// que se lee de ellos.
+	sobreCorrectoDeLaLlamada = `{"ok":true,"fuente":"boe.legislacion-consolidada","data":{"bloque":"a21"}}`
+	sobreDeNoEncontrado      = `{"ok":false,"fuente":"boe.legislacion-consolidada",` +
+		`"data":{"clase":"no-encontrado","mensaje":"el bloque no existe"}}`
+)
+
+// Lo que juzga TestJuzgarSinBinarioNiServidor: los ficheros de las dos evals sin
+// binario ni servidor, la línea con su forma fija y los tres motivos de
+// contracts/evals-en-dos-modos.md §4 de H21, escritos a mano.
+const (
+	ficheroSinBinarioDeBoe       = "21-sin-binario-ni-servidor.yaml"
+	ficheroSinBinarioDeLegalCore = "04-sin-binario-ni-servidor.yaml"
+
+	// lineaSinConsultaAlBOE es la línea de contracts/skills.md §3 de H21 con una
+	// causa en lugar del marcador y la dirección en la misma línea, y
+	// lineaSinSuDireccion, la misma sin la dirección.
+	lineaSinSuDireccion   = "⚠ SIN CONSULTA AL BOE: este agente no tiene la herramienta ni el binario de kitlegal."
+	lineaSinConsultaAlBOE = lineaSinSuDireccion +
+		" Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/"
+
+	motivoDeLaLineaAusente      = "línea ⚠ SIN CONSULTA AL BOE: ausente"
+	motivoDeLaLineaSinDireccion = "la línea ⚠ SIN CONSULTA AL BOE: no lleva https://kitlegal.es/instalar/"
+	principioDeCitaSinConsulta  = "cita en una respuesta sin consulta: "
+
+	// citaDelArticulo53 es una cita con la forma fija, la del artículo por el que
+	// pregunta la eval de boe-legislacion, y textoDeLaCita53, su texto en el
+	// informe y en los motivos.
+	citaDelArticulo53 = "[BOE-A-2015-10565, bloque a53]"
+	textoDeLaCita53   = "BOE-A-2015-10565 a53"
+)
+
+// juicioDeModo es un juicio de una sesión del modo dado, con juzgarEnModo.
+type juicioDeModo struct {
+	juicio
+
+	modo Modo
+}
+
+// TestJuzgarLasLlamadas fija el juicio de las llamadas a las herramientas del
+// servidor MCP, con sesiones construidas en memoria
+// (contracts/evals-en-dos-modos.md §4 de H21; research.md D17 y D18 de H21;
+// FR-041, FR-042, FR-081; SC-012; US5-3, US5-4): una llamada cuenta como una
+// invocación de su applet y su verbo, con los argumentos de la orden equivalente,
+// de modo que el comando de bloque lo satisface boe_articulo —o boe_articulos—
+// con su norma y su bloque, y no con otra norma ni con otro bloque, ni con la
+// norma y el bloque de la eval si su resultado es un error o si no tiene
+// resultado; el nombre con el prefijo del agente es la misma herramienta; el
+// prohibido lo ejecuta graph_show con cualquier resultado; y los comandos de
+// términos y de municipio los satisfacen boe_buscar y territorio_resolver. Cada
+// llamada se informa con las invocaciones, detrás de las de la traza, con su
+// herramienta y sus argumentos como orden y con el código de la orden
+// equivalente: 0, el de la clase de su error —4 y 5, fuera de lo grabado; los
+// demás, otras fallidas; 1 si la clase no se lee— o ninguno sin resultado.
+//
+// El proceso del servidor, mcp serve en la traza, no es una consulta: no
+// satisface ni falla nada, termine como termine, y sus conexiones se informan con
+// él. Y en una sesión del modo herramienta, una invocación de la traza de otro
+// applet no pasa, con un motivo que nombra la orden, aunque satisfaga el comando;
+// la misma sesión en el modo orden pasa.
+func TestJuzgarLasLlamadas(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre  string
+		juicios []juicioDeModo
+	}{
+		{nombre: "bloque-satisfecho", juicios: llamadasQueLeenElBloque(t)},
+		{nombre: "otra-norma-u-otro-bloque", juicios: llamadasQueNoLeenElBloque(t)},
+		{nombre: "resultado-de-error", juicios: llamadasConResultadoDeError(t)},
+		{nombre: "sin-resultado", juicios: []juicioDeModo{llamadaSinResultado(t)}},
+		{nombre: "prefijo-del-agente", juicios: llamadasConElPrefijoDelAgente(t)},
+		{nombre: "prohibido-por-herramienta", juicios: prohibidoPorHerramienta(t)},
+		{nombre: "terminos-por-boe-buscar", juicios: terminosPorHerramienta(t)},
+		{nombre: "municipio-por-territorio-resolver", juicios: municipioPorHerramienta(t)},
+		{nombre: "orden-en-el-modo-herramienta", juicios: ordenEnElModoHerramienta(t)},
+		{nombre: "el-servidor-no-es-una-consulta", juicios: elServidorNoEsUnaConsulta(t)},
+		{nombre: "argumentos-que-no-convierten", juicios: llamadasQueNoConvierten(t)},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			for posicion, j := range caso.juicios {
+				assert.Equal(t, j.esperado, juzgarEnModo(j.eval, j.sesion, cmp.Or(j.skill, skillDeLasSesiones), j.modo),
+					"el juicio %d: la eval %s con la sesión del caso", posicion, j.eval.Fichero)
+			}
+		})
+	}
+}
+
+// llamadasQueLeenElBloque son los juicios de la eval 01 con una sesión del modo
+// herramienta que lee su bloque con una llamada correcta y lo cita: con
+// boe_articulo, con sus argumentos en el otro orden —la orden equivalente los
+// lleva en el de la orden, no en el del objeto— y con boe_articulos con el bloque
+// entre los que pide. En todos, el comando queda ejecutado y la eval pasa.
+func llamadasQueLeenElBloque(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	const (
+		enOtroOrden   = `{"bloque":"a21","norma":"BOE-A-2015-10565"}`
+		variosBloques = `{"norma":"BOE-A-2015-10565","bloques":["a24","a21"]}`
+	)
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita,
+				llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)),
+			esperado: resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, codigoDeSalida(0))),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:     evalDelArticulo21(),
+			sesion:   sesionDelModoHerramienta(t, respuestaConCita, llamadaCorrecta(herramientaDeArticulo, enOtroOrden)),
+			esperado: resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, codigoDeSalida(0))),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:   evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita, llamadaCorrecta("boe_articulos", variosBloques)),
+			esperado: resultadoDeLasLlamadas(
+				llamadaInformada("boe_articulos BOE-A-2015-10565 a24 a21", codigoDeSalida(0))),
+		}},
+	}
+}
+
+// llamadasQueNoLeenElBloque son los juicios de la eval 01 con una sesión del modo
+// herramienta cuya llamada correcta a boe_articulo es de otra norma, de otro
+// bloque o lleva la norma y el bloque cambiados de sitio: el comando queda
+// ausente y la eval no pasa, sin que ninguna vaya a las fallidas.
+func llamadasQueNoLeenElBloque(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	dadas := []struct {
+		argumentos string
+		orden      string
+	}{
+		{argumentos: `{"norma":"BOE-A-2017-12902","bloque":"a21"}`, orden: "boe_articulo BOE-A-2017-12902 a21"},
+		{argumentos: argumentosDelArticulo24, orden: "boe_articulo BOE-A-2015-10565 a24"},
+		{argumentos: `{"norma":"a21","bloque":"BOE-A-2015-10565"}`, orden: "boe_articulo a21 BOE-A-2015-10565"},
+	}
+
+	juicios := make([]juicioDeModo, 0, len(dadas))
+
+	for _, dada := range dadas {
+		juicios = append(juicios, juicioDeModo{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita,
+				llamadaCorrecta(herramientaDeArticulo, dada.argumentos)),
+			esperado: cambiado(resultadoDeLasLlamadas(llamadaInformada(dada.orden, codigoDeSalida(0))),
+				sinElBloqueDeLaEval01),
+		}})
+	}
+
+	return juicios
+}
+
+// llamadasConResultadoDeError son los juicios de la eval 01 con una sesión del
+// modo herramienta que llama a boe_articulo con la norma y el bloque de la eval
+// y recibe un error, uno por cada clase del sobre de fallo y dos más con una
+// clase que no se lee, vacía o de fuera del vocabulario: el comando queda
+// ausente y la eval no pasa, y la llamada va, con el código de su clase, a fuera
+// de lo grabado con fuente-no-disponible y con limite-o-tos, y a las otras
+// fallidas con las demás, con el 1 si la clase no se lee.
+func llamadasConResultadoDeError(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	errores := []struct {
+		clase  schema.Clase
+		codigo int
+		fuera  bool
+	}{
+		{clase: schema.ClaseArgumentos, codigo: 2},
+		{clase: schema.ClaseNoEncontrado, codigo: 3},
+		{clase: schema.ClaseFuenteNoDisponible, codigo: 4, fuera: true},
+		{clase: schema.ClaseLimiteOTos, codigo: 5, fuera: true},
+		{clase: schema.ClaseIdentidadHumana, codigo: 6},
+		{clase: schema.ClaseConflicto, codigo: 7},
+		{clase: schema.ClaseInesperado, codigo: 1},
+		{clase: "", codigo: 1},
+		{clase: "otra-clase", codigo: 1},
+	}
+
+	juicios := make([]juicioDeModo, 0, len(errores))
+
+	for _, fallo := range errores {
+		fallida := []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: fallo.codigo}}
+
+		juicios = append(juicios, juicioDeModo{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita,
+				llamadaFallida(herramientaDeArticulo, argumentosDelArticulo21, fallo.clase)),
+			esperado: cambiado(resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, codigoDeSalida(fallo.codigo))),
+				func(r *ResultadoDeEval) {
+					sinElBloqueDeLaEval01(r)
+
+					if fallo.fuera {
+						r.FueraDeLoGrabado = fallida
+					} else {
+						r.OtrasFallidas = fallida
+					}
+				}),
+		}})
+	}
+
+	return juicios
+}
+
+// llamadaSinResultado es el juicio de la eval 01 con una sesión del modo
+// herramienta cuya llamada a boe_articulo, con la norma y el bloque de la eval,
+// no tiene resultado: queda sin código, no satisface el comando y no va a
+// ninguna de las fallidas.
+func llamadaSinResultado(t *testing.T) juicioDeModo {
+	t.Helper()
+
+	return juicioDeModo{modo: ModoHerramienta, juicio: juicio{
+		eval: evalDelArticulo21(),
+		sesion: sesionDelModoHerramienta(t, respuestaConCita,
+			Llamada{Herramienta: herramientaDeArticulo, Argumentos: []byte(argumentosDelArticulo21)}),
+		esperado: cambiado(resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, nil)), sinElBloqueDeLaEval01),
+	}}
+}
+
+// llamadasConElPrefijoDelAgente son los juicios de la eval 01 con una sesión del
+// modo herramienta cuyas llamadas son las que LeerSesion lee de un transcript en
+// el que el agente nombra la herramienta con su prefijo,
+// mcp__kitlegal__boe_articulo: con el sobre de éxito, satisface el comando y la
+// eval pasa; con el de fallo, sin is_error, no lo satisface.
+func llamadasConElPrefijoDelAgente(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	conPrefijo := func(sobre string) []Llamada {
+		return llamadasDelTranscript(t,
+			mensajeDeLlamadas(t, usoDeHerramienta{
+				id: "toolu_01", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21,
+			})+mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobre)}))
+	}
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:     evalDelArticulo21(),
+			sesion:   sesionDelModoHerramienta(t, respuestaConCita, conPrefijo(sobreCorrectoDeLaLlamada)...),
+			esperado: resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, codigoDeSalida(0))),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:   evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita, conPrefijo(sobreDeNoEncontrado)...),
+			esperado: cambiado(resultadoDeLasLlamadas(llamadaInformada(llamadaDelArticulo21, codigoDeSalida(3))),
+				func(r *ResultadoDeEval) {
+					sinElBloqueDeLaEval01(r)
+
+					r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: 3}}
+				}),
+		}},
+	}
+}
+
+// prohibidoPorHerramienta son los juicios de la eval de la consulta repetida,
+// que prohíbe graph show, con una sesión del modo herramienta que comprueba la
+// memoria de la norma, lee el bloque y lo cita con llamadas correctas: sin más,
+// pasa; y con una llamada a graph_show, con un resultado correcto, con un error
+// o sin resultado, el prohibido queda ejecutado con su motivo y la eval no pasa.
+func prohibidoPorHerramienta(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	const (
+		laFicha        = `{"id":"eli/es/l/2015/10/01/39#a21"}`
+		llamadaDeFicha = "graph_show eli/es/l/2015/10/01/39#a21"
+	)
+
+	lasEsperadas := []Llamada{
+		llamadaCorrecta("graph_check", `{"norma":"BOE-A-2017-12902","bloques":["a1-30"]}`),
+		llamadaCorrecta(herramientaDeArticulo, `{"norma":"BOE-A-2017-12902","bloque":"a1-30"}`),
+	}
+
+	resultado := func(deLaFicha ...InvocacionInformada) ResultadoDeEval {
+		informadas := slices.Concat([]InvocacionInformada{
+			{Orden: ordenDelServidor, Codigo: codigoDeSalida(0)},
+			llamadaInformada("graph_check BOE-A-2017-12902 a1-30", codigoDeSalida(0)),
+			llamadaInformada("boe_articulo BOE-A-2017-12902 a1-30", codigoDeSalida(0)),
+		}, deLaFicha)
+
+		return cambiado(resultadoDeLaConsultaRepetida(informadas...), func(r *ResultadoDeEval) {
+			r.Modo = ModoHerramienta
+		})
+	}
+
+	ejecutado := func(r *ResultadoDeEval) {
+		r.ComandosProhibidosEjecutados = []string{textoDeGraphShow}
+		r.Motivos = []string{"comando prohibido ejecutado: " + textoDeGraphShow}
+		r.Pasa = false
+	}
+
+	conLaFicha := func(ficha Llamada, esperado ResultadoDeEval) juicioDeModo {
+		return juicioDeModo{modo: ModoHerramienta, juicio: juicio{
+			eval:     evalDeLaConsultaRepetida(),
+			sesion:   sesionDelModoHerramienta(t, respuestaConLaCita118, slices.Concat(lasEsperadas, []Llamada{ficha})...),
+			esperado: esperado,
+		}}
+	}
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:     evalDeLaConsultaRepetida(),
+			sesion:   sesionDelModoHerramienta(t, respuestaConLaCita118, lasEsperadas...),
+			esperado: resultado(),
+		}},
+		conLaFicha(llamadaCorrecta("graph_show", laFicha),
+			cambiado(resultado(llamadaInformada(llamadaDeFicha, codigoDeSalida(0))), ejecutado)),
+		conLaFicha(llamadaFallida("graph_show", laFicha, schema.ClaseNoEncontrado),
+			cambiado(resultado(llamadaInformada(llamadaDeFicha, codigoDeSalida(3))), func(r *ResultadoDeEval) {
+				r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDeFicha, Codigo: 3}}
+				ejecutado(r)
+			})),
+		conLaFicha(Llamada{Herramienta: "graph_show", Argumentos: []byte(laFicha)},
+			cambiado(resultado(llamadaInformada(llamadaDeFicha, nil)), ejecutado)),
+	}
+}
+
+// terminosPorHerramienta son los juicios de una eval con un comando de términos
+// y una sesión del modo herramienta que busca con boe_buscar: con cada término
+// como palabra de sus argumentos, el comando queda ejecutado y la eval pasa; con
+// otros, queda ausente.
+func terminosPorHerramienta(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	const (
+		comandoDeTerminos = "boe buscar Régimen local 7/1985"
+		respuesta         = "Es la Ley 7/1985, reguladora de las Bases del Régimen Local [BOE-A-1985-5392, bloque a1]."
+	)
+
+	eval := Eval{
+		Fichero:  "03-lrbrl-busqueda.yaml",
+		Pregunta: "¿Qué ley regula las bases del régimen local?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "boe", Verbo: "buscar", Terminos: []string{"Régimen", "local", "7/1985"}}},
+		Citas:    []CitaEsperada{{Norma: normaDeLaLRBRL, Bloque: "a1"}},
+	}
+
+	resultado := func(orden string) ResultadoDeEval {
+		return cambiado(resultadoDeLasLlamadas(llamadaInformada(orden, codigoDeSalida(0))), func(r *ResultadoDeEval) {
+			r.Eval = eval.Fichero
+			r.ComandosEjecutados = []string{comandoDeTerminos}
+			r.CitasEncontradas = []string{"BOE-A-1985-5392 a1"}
+			r.Respuesta = respuesta
+		})
+	}
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: eval,
+			sesion: sesionDelModoHerramienta(t, respuesta,
+				llamadaCorrecta("boe_buscar", `{"texto":["bases del RÉGIMEN local","7/1985"]}`)),
+			esperado: resultado("boe_buscar bases del RÉGIMEN local 7/1985"),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: eval,
+			sesion: sesionDelModoHerramienta(t, respuesta,
+				llamadaCorrecta("boe_buscar", `{"texto":["régimen localmente","7/1985"]}`)),
+			esperado: cambiado(resultado("boe_buscar régimen localmente 7/1985"), func(r *ResultadoDeEval) {
+				r.ComandosEjecutados = nil
+				r.ComandosAusentes = []string{comandoDeTerminos}
+				r.Motivos = []string{"comando ausente: " + comandoDeTerminos}
+				r.Pasa = false
+			}),
+		}},
+	}
+}
+
+// municipioPorHerramienta son los juicios de la eval del municipio cubierto con
+// una sesión del modo herramienta de legal-core que lo resuelve con
+// territorio_resolver y declara su territorio: con el municipio, escrito de otra
+// forma que plegada es la suya, el comando queda ejecutado y la eval pasa; con
+// su código INE, queda ausente.
+func municipioPorHerramienta(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	sesion := func(consulta string) Sesion {
+		return cambiada(sesionDelModoHerramienta(t, respuestaDelMunicipio,
+			llamadaCorrecta("territorio_resolver", `{"consulta":`+cadenaJSON(t, consulta)+`}`)), func(s *Sesion) {
+			s.SkillsActivadas = []string{skillDeTerritorio}
+		})
+	}
+
+	resultado := func(consulta string) ResultadoDeEval {
+		return cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Modo = ModoHerramienta
+			r.Invocaciones = []InvocacionInformada{
+				{Orden: ordenDelServidor, Codigo: codigoDeSalida(0)},
+				llamadaInformada("territorio_resolver "+consulta, codigoDeSalida(0)),
+			}
+		})
+	}
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelMunicipioCubierto(), skill: skillDeTerritorio, sesion: sesion("LEGANES"), esperado: resultado("LEGANES"),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelMunicipioCubierto(), skill: skillDeTerritorio, sesion: sesion("28074"),
+			esperado: cambiado(resultado("28074"), func(r *ResultadoDeEval) {
+				r.ComandosEjecutados = nil
+				r.ComandosAusentes = []string{textoDelComandoDeLeganes}
+				r.Motivos = []string{"comando ausente: " + textoDelComandoDeLeganes}
+				r.Pasa = false
+			}),
+		}},
+	}
+}
+
+// ordenEnElModoHerramienta son los juicios de la eval 01 con una sesión que
+// ejecuta kitlegal por la ruta absoluta de su binario, la que declara
+// servidor.json (research.md D18 de H21): en el modo herramienta no pasa, con un
+// motivo por cada orden, en su orden y consulte o no, aunque la orden satisfaga
+// el comando o lo satisfaga además una llamada; la misma sesión en el modo orden
+// pasa.
+func ordenEnElModoHerramienta(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	const laAyuda = "boe --help"
+
+	porLaRuta := func(tokens ...string) Invocacion {
+		return invocada(t, codigoDeSalida(0), slices.Concat([]string{kitlegalDelServidor}, tokens))
+	}
+
+	laLectura := porLaRuta("boe", "articulo", normaDeLasTrazas, "a21", "--json")
+	leida := InvocacionInformada{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)}
+	servida := InvocacionInformada{Orden: ordenDelServidor, Codigo: codigoDeSalida(0)}
+
+	conLaOrden := sesionTerminada(true, respuestaConCita, sirveElServidor(t, codigoDeSalida(0)), laLectura)
+
+	conLaLlamadaYDosOrdenes := cambiada(
+		sesionTerminada(true, respuestaConCita, porLaRuta("boe", "--help"), sirveElServidor(t, codigoDeSalida(0)), laLectura),
+		func(s *Sesion) {
+			s.Llamadas = []Llamada{llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)}
+		})
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:   evalDelArticulo21(),
+			sesion: conLaOrden,
+			esperado: cambiado(resultadoQuePasa(servida), func(r *ResultadoDeEval) {
+				r.Modo = ModoHerramienta
+				r.Motivos = []string{principioDeOrdenSinKitlegal + ordenDelArticulo21}
+				r.Pasa = false
+			}),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:   evalDelArticulo21(),
+			sesion: conLaLlamadaYDosOrdenes,
+			esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+				r.Modo = ModoHerramienta
+				r.Invocaciones = []InvocacionInformada{
+					{Orden: laAyuda, Codigo: codigoDeSalida(0)},
+					servida, leida,
+					llamadaInformada(llamadaDelArticulo21, codigoDeSalida(0)),
+				}
+				r.Motivos = []string{principioDeOrdenSinKitlegal + laAyuda, principioDeOrdenSinKitlegal + ordenDelArticulo21}
+				r.Pasa = false
+			}),
+		}},
+		{modo: ModoOrden, juicio: juicio{
+			eval: evalDelArticulo21(), sesion: conLaOrden, esperado: resultadoQuePasa(servida),
+		}},
+	}
+}
+
+// elServidorNoEsUnaConsulta son los juicios de la eval 01 con una sesión que la
+// pasa y en cuya traza el proceso del servidor termina con un código distinto de
+// 0 —el de una señal, el de la fuente no disponible o el de unos argumentos
+// inválidos— y, en el primero, conecta con la red: no va a fuera de lo grabado ni
+// a las otras fallidas, su conexión se informa con él y cuenta como una llegada a
+// la red, y la eval pasa; tampoco ejecuta un prohibido que lo nombre. En el modo
+// orden tampoco es una consulta.
+func elServidorNoEsUnaConsulta(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	conLaLlamada := func(servidor Invocacion) Sesion {
+		return cambiada(sesionTerminada(true, respuestaConCita, servidor), func(s *Sesion) {
+			s.Llamadas = []Llamada{llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)}
+		})
+	}
+
+	esperado := func(servido InvocacionInformada) ResultadoDeEval {
+		return cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+			r.Modo = ModoHerramienta
+			r.Invocaciones = []InvocacionInformada{servido, llamadaInformada(llamadaDelArticulo21, codigoDeSalida(0))}
+		})
+	}
+
+	queProhibeElServidor := evalDelArticulo21()
+	queProhibeElServidor.Prohibidos = []ComandoProhibido{{Applet: "mcp", Verbo: "serve"}}
+
+	return []juicioDeModo{
+		{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: conLaLlamada(sirveElServidor(t, codigoDeSalida(-1),
+				conexionInet(destinoPublico, resultadoEnCurso, ConexionRed))),
+			esperado: cambiado(esperado(InvocacionInformada{
+				Orden:      ordenDelServidor,
+				Codigo:     codigoDeSalida(-1),
+				Conexiones: []ConexionInformada{{Destino: destinoPublico, Clase: ConexionRed}},
+			}), func(r *ResultadoDeEval) {
+				r.LlegadasALaRed = []LlegadaALaRed{{Orden: ordenDelServidor, Destino: destinoPublico}}
+			}),
+		}},
+		{modo: ModoHerramienta, juicio: juicio{
+			eval:     queProhibeElServidor,
+			sesion:   conLaLlamada(sirveElServidor(t, codigoDeSalida(4))),
+			esperado: esperado(InvocacionInformada{Orden: ordenDelServidor, Codigo: codigoDeSalida(4)}),
+		}},
+		{modo: ModoOrden, juicio: juicio{
+			eval:     queProhibeElServidor,
+			sesion:   sesionQuePasa(t, sirveElServidor(t, codigoDeSalida(2))),
+			esperado: resultadoQuePasa(InvocacionInformada{Orden: ordenDelServidor, Codigo: codigoDeSalida(2)}),
+		}},
+	}
+}
+
+// llamadasQueNoConvierten son los juicios de la eval 01 con una sesión del modo
+// herramienta cuya llamada a boe_articulo lleva unos argumentos que no tienen
+// orden equivalente —una propiedad de más, que nombra una bandera global, un
+// valor de otro tipo, o algo que no es un objeto— y recibe el error de la clase
+// argumentos: cuenta como una invocación sin argumentos, que se informa con la
+// herramienta sola, no satisface el comando y va a las otras fallidas.
+func llamadasQueNoConvierten(t *testing.T) []juicioDeModo {
+	t.Helper()
+
+	argumentos := []string{
+		`{"norma":"BOE-A-2015-10565","bloque":"a21","json":true}`,
+		`{"norma":"BOE-A-2015-10565","bloque":21}`,
+		`["BOE-A-2015-10565","a21"]`,
+	}
+
+	juicios := make([]juicioDeModo, 0, len(argumentos))
+
+	for _, dados := range argumentos {
+		juicios = append(juicios, juicioDeModo{modo: ModoHerramienta, juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: sesionDelModoHerramienta(t, respuestaConCita,
+				llamadaFallida(herramientaDeArticulo, dados, schema.ClaseArgumentos)),
+			esperado: cambiado(resultadoDeLasLlamadas(llamadaInformada(herramientaDeArticulo, codigoDeSalida(2))),
+				func(r *ResultadoDeEval) {
+					sinElBloqueDeLaEval01(r)
+
+					r.OtrasFallidas = []InvocacionFallida{{Orden: herramientaDeArticulo, Codigo: 2}}
+				}),
+		}})
+	}
+
+	return juicios
+}
+
+// TestVerbosDeLasHerramientas fija de dónde salen el applet, el verbo y los
+// argumentos con los que una llamada cuenta como una invocación (H21 FR-003,
+// FR-042): cada herramienta que el servidor anuncia con el registro de
+// producción, y ninguna más, tiene su verbo, cuyo applet y cuyo verbo componen su
+// nombre, <applet>_<verbo>.
+func TestVerbosDeLasHerramientas(t *testing.T) {
+	t.Parallel()
+
+	registro, err := app.RegistroDeProduccion("")
+	require.NoError(t, err)
+
+	verbos, err := verbosDeLasHerramientas()
+	require.NoError(t, err)
+
+	anunciadas := app.NombresDeHerramientas(registro)
+	require.NotEmpty(t, anunciadas, "el servidor anuncia herramientas")
+
+	assert.ElementsMatch(t, anunciadas, slices.Collect(maps.Keys(verbos)),
+		"cada herramienta anunciada, y ninguna más, tiene su verbo")
+
+	for herramienta, verbo := range verbos {
+		assert.Equal(t, herramienta, verbo.Applet+"_"+verbo.Verbo, "el nombre de %s es su applet, _ y su verbo", herramienta)
+		assert.NotNil(t, verbo.Argumentos, "%s tiene los argumentos de su verbo", herramienta)
+	}
+}
+
+// TestJuzgarSinBinarioNiServidor fija el juicio de una eval sin binario ni
+// servidor, con las dos del contrato y sesiones construidas en memoria
+// (contracts/evals-en-dos-modos.md §4 de H21; research.md D21 de H21; FR-046,
+// FR-047, FR-081; SC-012; US3-1 a US3-4): de las cuatro respuestas —con la línea
+// ⚠ SIN CONSULTA AL BOE: y su dirección y sin citas; sin la línea; con la
+// etiqueta y sin la dirección en su línea; y con la línea y una cita— pasa solo
+// la primera, y cada una de las otras lleva su motivo, carácter a carácter. El
+// resultado dice si la línea está con su dirección y qué citas lleva la
+// respuesta, y no tiene modo.
+func TestJuzgarSinBinarioNiServidor(t *testing.T) {
+	t.Parallel()
+
+	const (
+		sinLaLinea = "No he podido consultar el BOE. Instala kitlegal desde https://kitlegal.es/instalar/ " +
+			"y vuelve a preguntar."
+		sinLaDireccionEnSuLinea = lineaSinSuDireccion + "\n\n" +
+			"Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/"
+		conUnaCita = lineaSinConsultaAlBOE + "\n\nDe memoria, el artículo 53 de la Ley 39/2015 reconoce los derechos " +
+			"del interesado " + citaDelArticulo53 + "."
+	)
+
+	respuestas := []struct {
+		nombre    string
+		respuesta string
+		cambiar   func(*ResultadoDeEval)
+	}{
+		{nombre: "con-la-linea-y-sin-citas", respuesta: lineaSinConsultaAlBOE, cambiar: func(*ResultadoDeEval) {}},
+		{nombre: "sin-la-linea", respuesta: sinLaLinea, cambiar: func(r *ResultadoDeEval) {
+			r.LineaSinConsulta = false
+			r.Motivos = []string{motivoDeLaLineaAusente}
+			r.Pasa = false
+		}},
+		{nombre: "con-la-etiqueta-y-sin-la-direccion-en-su-linea", respuesta: sinLaDireccionEnSuLinea, cambiar: func(r *ResultadoDeEval) {
+			r.LineaSinConsulta = false
+			r.Motivos = []string{motivoDeLaLineaSinDireccion}
+			r.Pasa = false
+		}},
+		{nombre: "con-la-linea-y-una-cita", respuesta: conUnaCita, cambiar: func(r *ResultadoDeEval) {
+			r.CitasSinConsulta = []string{textoDeLaCita53}
+			r.Motivos = []string{principioDeCitaSinConsulta + textoDeLaCita53}
+			r.Pasa = false
+		}},
+	}
+
+	evals := []struct {
+		eval  Eval
+		skill string
+	}{
+		{eval: sinBinarioDeBoeLegislacion(), skill: skillDeLasSesiones},
+		{eval: sinBinarioDeLegalCore(), skill: skillDeTerritorio},
+	}
+
+	for _, caso := range respuestas {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			for _, medida := range evals {
+				sesion := sesionSinBinarioNiServidor(medida.skill, caso.respuesta)
+				esperado := cambiado(resultadoSinConsulta(medida.eval, caso.respuesta), caso.cambiar)
+
+				assert.Equal(t, esperado, Juzgar(medida.eval, sesion, medida.skill),
+					"la eval %s con la respuesta del caso", medida.eval.Fichero)
+			}
+		})
+	}
+}
+
+// TestJuzgarSinBinarioNiServidorConLoDeSiempre fija lo que rodea a las tres
+// comprobaciones de una eval sin binario ni servidor
+// (contracts/evals-en-dos-modos.md §4 de H21; FR-047; research.md D18 de H21):
+// la línea vale con la tolerancia de las etiquetas de los avisos; sin la línea,
+// la dirección no se echa en falta, y cada cita de la respuesta lleva su motivo,
+// en su orden y con sus repeticiones, detrás del de la línea; la sesión que no
+// termina o no activa la skill no pasa aunque la respuesta cumpla, con el motivo
+// de siempre; una orden de kitlegal en su traza no pasa, con su motivo delante
+// de los de la respuesta; y una eval de modo se juzga como antes aunque su
+// respuesta lleve la línea y una cita, sin línea ni citas en su resultado.
+func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
+	t.Parallel()
+
+	const (
+		conEnfasis    = "**⚠ SIN CONSULTA AL BOE:** no hay binario. Instálalo: https://kitlegal.es/instalar/"
+		otraCita      = "[Ley 39/2015, BOE-A-2015-10565, bloque a13]"
+		sinLineaYCon3 = "El artículo 53 " + citaDelArticulo53 + " remite al 13 " + otraCita + " y vuelve al 53 " +
+			citaDelArticulo53 + "."
+		laOrden = "boe articulo BOE-A-2015-10565 a53 --json"
+	)
+
+	eval := sinBinarioDeBoeLegislacion()
+
+	conLaOrden := cambiada(sesionSinBinarioNiServidor(skillDeLasSesiones, lineaSinSuDireccion), func(s *Sesion) {
+		s.Invocaciones = []Invocacion{
+			invocada(t, codigoDeSalida(4), []string{kitlegalDelServidor, "boe", "articulo", normaDeLasTrazas, "a53", "--json"}),
+		}
+	})
+
+	casos := []struct {
+		nombre string
+		juicio juicio
+	}{
+		{nombre: "con-enfasis", juicio: juicio{
+			eval:     eval,
+			sesion:   sesionSinBinarioNiServidor(skillDeLasSesiones, conEnfasis),
+			esperado: resultadoSinConsulta(eval, conEnfasis),
+		}},
+		{nombre: "sin-la-linea-y-con-tres-citas", juicio: juicio{
+			eval:   eval,
+			sesion: sesionSinBinarioNiServidor(skillDeLasSesiones, sinLineaYCon3),
+			esperado: cambiado(resultadoSinConsulta(eval, sinLineaYCon3), func(r *ResultadoDeEval) {
+				r.LineaSinConsulta = false
+				r.CitasSinConsulta = []string{textoDeLaCita53, "BOE-A-2015-10565 a13", textoDeLaCita53}
+				r.Motivos = slices.Concat([]string{motivoDeLaLineaAusente},
+					prefijados(principioDeCitaSinConsulta, r.CitasSinConsulta))
+				r.Pasa = false
+			}),
+		}},
+		{nombre: "sin-terminar", juicio: juicio{
+			eval: eval,
+			sesion: cambiada(sesionSinBinarioNiServidor(skillDeLasSesiones, lineaSinConsultaAlBOE), func(s *Sesion) {
+				s.Fin, s.Terminada, s.MotivoSinTerminar = "result error_max_turns", false, "result con subtype error_max_turns"
+			}),
+			esperado: cambiado(resultadoSinConsulta(eval, lineaSinConsultaAlBOE), func(r *ResultadoDeEval) {
+				r.FinDeLaSesion, r.SesionTerminada = "result error_max_turns", false
+				r.Motivos = []string{"la sesión no terminó: result con subtype error_max_turns"}
+				r.Pasa = false
+			}),
+		}},
+		{nombre: "sin-activar", juicio: juicio{
+			eval:   eval,
+			sesion: sesionTerminada(false, lineaSinConsultaAlBOE),
+			esperado: cambiado(resultadoSinConsulta(eval, lineaSinConsultaAlBOE), func(r *ResultadoDeEval) {
+				r.Activada = false
+				r.Motivos = []string{
+					"la activación no coincide: se esperaba que la skill boe-legislacion se activara y no se activó",
+				}
+				r.Pasa = false
+			}),
+		}},
+		{nombre: "con-una-orden-de-kitlegal", juicio: juicio{
+			eval:   eval,
+			sesion: conLaOrden,
+			esperado: cambiado(resultadoSinConsulta(eval, lineaSinSuDireccion), func(r *ResultadoDeEval) {
+				r.LineaSinConsulta = false
+				r.Invocaciones = []InvocacionInformada{{Orden: laOrden, Codigo: codigoDeSalida(4)}}
+				r.FueraDeLoGrabado = []InvocacionFallida{{Orden: laOrden, Codigo: 4}}
+				r.Motivos = []string{principioDeOrdenSinKitlegal + laOrden, motivoDeLaLineaSinDireccion}
+				r.Pasa = false
+			}),
+		}},
+		{nombre: "una-eval-de-modo", juicio: juicio{
+			eval: evalDelArticulo21(),
+			sesion: cambiada(sesionQuePasa(t), func(s *Sesion) {
+				s.Respuesta = lineaSinConsultaAlBOE + "\n\n" + respuestaConCita
+			}),
+			esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+				r.Respuesta = lineaSinConsultaAlBOE + "\n\n" + respuestaConCita
+			}),
+		}},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.juicio.esperado, Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+		})
+	}
+}
+
+// TestElModoYLasLlamadasDelResultadoEnJSON fija las claves que el resultado de
+// una sesión gana en H21, codificado como lo codifica EscribirInforme
+// (contracts/evals-en-dos-modos.md §4 de H21; FR-042, FR-047): modo, detrás de
+// modelo_de_la_sesion, con el texto del modo y vacío en una eval sin binario ni
+// servidor; linea_sin_consulta y citas_sin_consulta, detrás de
+// expresiones_prohibidas, la segunda una lista vacía, nunca null, en las evals
+// de modo; y llamada en cada elemento de invocaciones, detrás de conexiones,
+// verdadero solo en las que son llamadas a una herramienta.
+func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
+	t.Parallel()
+
+	conUnaCita := lineaSinConsultaAlBOE + "\n\n" + citaDelArticulo53
+
+	casos := []struct {
+		nombre    string
+		resultado ResultadoDeEval
+		claves    []string
+	}{
+		{
+			nombre:    "modo-orden",
+			resultado: Juzgar(evalDelArticulo21(), sesionQuePasa(t), skillDeLasSesiones),
+			claves: []string{
+				`"modelo_de_la_sesion":"","modo":"orden","decide":false,`,
+				`"expresiones_prohibidas":[],"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
+					`{"orden":"boe articulo BOE-A-2015-10565 a21 --json","codigo":0,"conexiones":[],"llamada":false}],`,
+			},
+		},
+		{
+			nombre: "modo-herramienta",
+			resultado: juzgarEnModo(evalDelArticulo21(), sesionDelModoHerramienta(t, respuestaConCita,
+				llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)), skillDeLasSesiones, ModoHerramienta),
+			claves: []string{
+				`"modelo_de_la_sesion":"","modo":"herramienta","decide":false,`,
+				`"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
+					`{"orden":"mcp serve","codigo":0,"conexiones":[],"llamada":false},` +
+					`{"orden":"boe_articulo BOE-A-2015-10565 a21","codigo":0,"conexiones":[],"llamada":true}],`,
+			},
+		},
+		{
+			nombre: "sin-binario-ni-servidor",
+			resultado: Juzgar(sinBinarioDeBoeLegislacion(), sesionSinBinarioNiServidor(skillDeLasSesiones, conUnaCita),
+				skillDeLasSesiones),
+			claves: []string{
+				`"modelo_de_la_sesion":"","modo":"","decide":false,`,
+				`"expresiones_prohibidas":[],"linea_sin_consulta":true,` +
+					`"citas_sin_consulta":["BOE-A-2015-10565 a53"],"invocaciones":[],`,
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			codificado, err := json.Marshal(caso.resultado)
+			require.NoError(t, err)
+
+			for _, clave := range caso.claves {
+				assert.Contains(t, string(codificado), clave)
+			}
+		})
+	}
+}
+
+// sinBinarioDeBoeLegislacion es la eval sin binario ni servidor de
+// boe-legislacion (contracts/evals-en-dos-modos.md §1 de H21), como se lee de
+// evalSinBinarioDeBoeLegislacion.
+func sinBinarioDeBoeLegislacion() Eval {
+	return Eval{
+		Fichero:              ficheroSinBinarioDeBoe,
+		Pregunta:             preguntaSinBinarioDeBoeLegislacion,
+		Activa:               true,
+		SinBinarioNiServidor: true,
+	}
+}
+
+// sinBinarioDeLegalCore es la eval sin binario ni servidor de legal-core, que
+// declara además que boe-legislacion no se activa
+// (contracts/evals-en-dos-modos.md §1 de H21), como se lee de
+// evalSinBinarioDeLegalCore.
+func sinBinarioDeLegalCore() Eval {
+	return Eval{
+		Fichero:              ficheroSinBinarioDeLegalCore,
+		Pregunta:             preguntaSinBinarioDeLegalCore,
+		Activa:               true,
+		NoSeActivan:          []string{skillQueNoSeActiva},
+		SinBinarioNiServidor: true,
+	}
+}
+
+// sesionSinBinarioNiServidor es la sesión que terminó con código 0 y result
+// success, activó la skill dada y tiene esa respuesta, sin invocaciones ni
+// llamadas: la de una eval sin binario ni servidor.
+func sesionSinBinarioNiServidor(skill, respuesta string) Sesion {
+	return cambiada(sesionTerminada(false, respuesta), func(s *Sesion) { s.SkillsActivadas = []string{skill} })
+}
+
+// resultadoSinConsulta es el resultado de una eval sin binario ni servidor con
+// una sesión terminada y activada cuya respuesta lleva la línea con su dirección
+// y ninguna cita: sin modo, y pasa.
+func resultadoSinConsulta(eval Eval, respuesta string) ResultadoDeEval {
+	return ResultadoDeEval{
+		Eval:             eval.Fichero,
+		Activa:           true,
+		Activada:         true,
+		LineaSinConsulta: true,
+		Respuesta:        respuesta,
+		CodigoDeLaSesion: codigoDeSalida(0),
+		FinDeLaSesion:    "result success",
+		SesionTerminada:  true,
+		Pasa:             true,
+	}
+}
+
+// llamadaCorrecta es la llamada a la herramienta con esos argumentos cuyo
+// resultado no es un error: la que devuelve un sobre con ok verdadero.
+func llamadaCorrecta(herramienta, argumentos string) Llamada {
+	return Llamada{Herramienta: herramienta, Argumentos: []byte(argumentos), ConResultado: true}
+}
+
+// llamadaFallida es la llamada a la herramienta con esos argumentos cuyo
+// resultado es un error de la clase dada.
+func llamadaFallida(herramienta, argumentos string, clase schema.Clase) Llamada {
+	return Llamada{Herramienta: herramienta, Argumentos: []byte(argumentos), ConResultado: true, Error: true, Clase: clase}
+}
+
+// llamadaInformada es una llamada a una herramienta como la presenta el
+// informe entre las invocaciones: con la herramienta y sus argumentos como
+// orden, el código dado y la marca de llamada.
+func llamadaInformada(orden string, codigo *int) InvocacionInformada {
+	return InvocacionInformada{Orden: orden, Codigo: codigo, Llamada: true}
+}
+
+// llamadasDelTranscript son las llamadas que LeerSesion lee de los mensajes de
+// un transcript, dados en memoria con su salto de línea: las de las herramientas
+// del registro de producción, con el nombre sin el prefijo del agente.
+func llamadasDelTranscript(t *testing.T, transcript string) []Llamada {
+	t.Helper()
+
+	herramientas, err := herramientasDelRegistro()
+	require.NoError(t, err)
+
+	leido := transcriptLeido{herramientas: herramientas}
+
+	for linea := range strings.Lines(transcript) {
+		require.NoError(t, leido.leerMensaje(strings.TrimSuffix(linea, "\n")))
+	}
+
+	require.NotEmpty(t, leido.llamadas, "el transcript tiene llamadas a herramientas del registro")
+
+	return leido.llamadas
+}
+
+// sirveElServidor es la invocación de la traza del proceso del servidor MCP,
+// que el agente arranca con la orden de servidor.json, con el código y las
+// conexiones dados.
+func sirveElServidor(t *testing.T, codigo *int, conexiones ...Conexion) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigo, []string{kitlegalDelServidor, "mcp", "serve"}, conexiones...)
+}
+
+// sesionDelModoHerramienta es la sesión del modo herramienta que terminó con
+// código 0 y result success y activó boe-legislacion, con la respuesta y las
+// llamadas dadas y, en su traza, solo el proceso del servidor, que terminó con 0.
+func sesionDelModoHerramienta(t *testing.T, respuesta string, llamadas ...Llamada) Sesion {
+	t.Helper()
+
+	return cambiada(sesionTerminada(true, respuesta, sirveElServidor(t, codigoDeSalida(0))), func(s *Sesion) {
+		s.Llamadas = llamadas
+	})
+}
+
+// resultadoDeLasLlamadas es el resultado de la eval 01 con una sesión del modo
+// herramienta que la pasa: como resultadoQuePasa, con el modo herramienta y, por
+// invocaciones, el proceso del servidor y, detrás, las llamadas dadas.
+func resultadoDeLasLlamadas(llamadas ...InvocacionInformada) ResultadoDeEval {
+	return cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
+		r.Modo = ModoHerramienta
+		r.Invocaciones = slices.Concat(
+			[]InvocacionInformada{{Orden: ordenDelServidor, Codigo: codigoDeSalida(0)}}, llamadas)
+	})
+}
+
+// sinElBloqueDeLaEval01 deja el resultado de la eval 01 sin su comando: ausente,
+// con su motivo, y sin pasar.
+func sinElBloqueDeLaEval01(r *ResultadoDeEval) {
+	r.ComandosEjecutados = nil
+	r.ComandosAusentes = []string{textoDelComando21}
+	r.Motivos = []string{"comando ausente: " + textoDelComando21}
+	r.Pasa = false
 }
