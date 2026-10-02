@@ -101,19 +101,27 @@ var (
 //     entorno del job debajo del de cada sesión, las skills instaladas de
 //     -skills, el binario de -kitlegal, que es el servidor del modo herramienta
 //     y lo que sale del PATH de las sesiones que no son del modo orden, y el
-//     tope de 240 s con su margen de 10 s. SIGINT y SIGTERM cierran las abiertas
-//     con la secuencia del tope, y el test falla con el error que nombra cada
-//     una, sin escribir el informe (FR-037 de H7.3);
-//  3. escribe informe.md e informe.json con EscribirInforme: las mismas evals,
-//     las sesiones, las que el repartidor no abrió tras el mensaje del límite de
-//     uso y la duración que midió, en segundos redondeados hacia arriba, frente
-//     al objetivo de -objetivo-de-duracion (FR-044, FR-050 y FR-051 de H7.3).
+//     tope de 240 s con su margen de 10 s. Lo llama una vez por tanda, con
+//     ejecutarPorTandas —la del modo orden, la del modo herramienta y la de las
+//     evals sin binario ni servidor—, y mide cada una; si una acaba con sesiones
+//     sin abrir por el límite de uso, las siguientes no se abren
+//     (contracts/evals-en-dos-modos.md §2.2 de H21). SIGINT y SIGTERM cierran
+//     las abiertas con la secuencia del tope, y el test falla con el error que
+//     nombra cada una, sin escribir el informe (FR-037 de H7.3);
+//  3. escribe informe.md e informe.json con EscribirInforme: las mismas evals y
+//     los mismos modos, las sesiones, las que el repartidor no abrió tras el
+//     mensaje del límite de uso y las duraciones que midió, en segundos
+//     redondeados hacia arriba —la suma de las tres tandas y la de la tanda de
+//     cada modo—, frente al objetivo de -objetivo-de-duracion (FR-044, FR-050 y
+//     FR-051 de H7.3; FR-043 de H21).
 //
 // Falla con un error o con el veredicto fallo, nombrando sus motivos: así el job
-// sale en rojo por una serie que no pasa, por un umbral que decide y no se
-// cumple, por la duración o por sesiones sin medir (FR-043 de H7.3). Solo lo
-// ejecuta scripts/evals.sh, porque abre sesiones con modelo; lo que decide lo
-// fijan TestPlan, los tests del repartidor, TestInforme y TestUmbralesDelInforme.
+// sale en rojo por una serie que no pasa en un modo, por un umbral que decide y
+// no se cumple en un modo, por la duración de una tanda o por sesiones sin medir
+// (FR-043 de H7.3; FR-044 de H21). Solo lo ejecuta scripts/evals.sh, porque abre
+// sesiones con modelo; lo que decide lo fijan TestPlan, TestPlanEnDosModos, los
+// tests del repartidor, TestEjecutarPorTandas, TestInforme,
+// TestInformeEnDosModos y TestUmbralesDelInforme.
 func TestEjecucionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -147,18 +155,24 @@ func TestEjecucionDelJob(t *testing.T) {
 	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer dejarDeEscuchar()
 
-	ejecucion, err := ejecutarSesiones(senales.Done(), SesionesAEjecutar{
-		Plan:          plan.Sesiones(),
-		Concurrencia:  concurrencia,
-		Evals:         evals,
-		Sesiones:      *banderaSesiones,
-		Skills:        *banderaSkills,
-		Guion:         guion,
-		Binario:       *banderaKitlegal,
-		Entorno:       os.Environ(),
-		Traza:         true,
-		Tope:          topeDeUnaSesion,
-		MargenDelTope: margenDelTopeDeUnaSesion,
+	// El repartidor no recibe un contexto sino el Done() del que las señales
+	// cancelan (research.md D9 de H7.3), que se toma aquí, fuera del cierre.
+	interrupcion := senales.Done()
+
+	ejecucion, err := ejecutarPorTandas(plan.Sesiones(), func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+		return ejecutarSesiones(interrupcion, SesionesAEjecutar{
+			Plan:          tanda,
+			Concurrencia:  concurrencia,
+			Evals:         evals,
+			Sesiones:      *banderaSesiones,
+			Skills:        *banderaSkills,
+			Guion:         guion,
+			Binario:       *banderaKitlegal,
+			Entorno:       os.Environ(),
+			Traza:         true,
+			Tope:          topeDeUnaSesion,
+			MargenDelTope: margenDelTopeDeUnaSesion,
+		})
 	})
 	require.NoError(t, err)
 
@@ -171,21 +185,16 @@ func TestEjecucionDelJob(t *testing.T) {
 		ModelosInformativos:   plan.ModelosInformativos,
 		Repeticiones:          repeticiones,
 		Umbral:                *banderaUmbral,
+		Modos:                 plan.Modos,
 		Commit:                *banderaCommit,
 		SinPython:             *banderaSinPython,
-		SinAbrir:              ejecucion.SinAbrir,
-		DuracionDeLasSesiones: segundosHaciaArriba(ejecucion.Duracion),
+		SinAbrir:              ejecucion.sinAbrir,
+		DuracionDeLasSesiones: ejecucion.duracion,
+		DuracionDeLosModos:    ejecucion.porModo,
 		ObjetivoDeDuracion:    *banderaObjetivo,
 	})
 	require.NoError(t, err)
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
-}
-
-// segundosHaciaArriba son los segundos enteros de una duración, redondeados
-// hacia arriba: 900,4 s son 901 y no cumplen un objetivo de 900 (research.md D14
-// de H7.3).
-func segundosHaciaArriba(duracion time.Duration) int {
-	return int((duracion + time.Second - 1) / time.Second)
 }
 
 // enteroDeLaBandera es el entero del valor de la bandera de la ejecución del

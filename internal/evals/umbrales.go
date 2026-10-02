@@ -19,22 +19,26 @@ const (
 )
 
 // Lo que lleva cada umbral del informe (contrato informe-del-job §1 de H7.3;
-// contracts/informe-del-job.md §2 de H7.4; data-model §1). Los de las
-// respuestas de un modelo se nombran con lo que miden seguido del modelo, y su
-// descripción lo nombra; y la única comparación es «<=», que informe.md escribe
-// «≤».
+// contracts/informe-del-job.md §2 de H7.4; data-model §1;
+// contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10 de H21). Cada uno
+// se mide sobre las sesiones de un solo modo: los de las respuestas de un modelo
+// se nombran con lo que miden seguido del modelo y del modo, y el de la
+// duración, con el modo; su descripción los nombra, primero el modelo y después
+// el modo; y la única comparación es «<=», que informe.md escribe «≤».
 const (
 	prefijoDelUmbralDeExpresiones  = "expresiones_prohibidas:"
 	prefijoDelUmbralSinActivar     = "sin_activar:"
 	prefijoDelUmbralDeRedaccion    = "redaccion_no_leida:"
-	nombreDelUmbralDeLaDuracion    = "duracion_de_las_sesiones"
-	descripcionDelUmbralDeUnModelo = "Respuestas de %s con alguna expresión prohibida, sobre sus respuestas medidas en " +
-		"las evals que activan la skill"
-	descripcionDelUmbralSinActivar = "Respuestas de %s sin la skill activada, sobre sus respuestas medidas en las evals " +
-		"que la activan"
-	descripcionDelUmbralDeRedaccion = "Respuestas de %s con alguna expresión de redaccion_no_leida (una redacción que " +
-		"ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill"
-	descripcionDelUmbralDeLaDuracion = "Segundos desde que se prepara la primera sesión hasta que termina la última"
+	prefijoDelUmbralDeLaDuracion   = "duracion_de_las_sesiones:"
+	separadorDelModoDelUmbral      = ":"
+	descripcionDelUmbralDeUnModelo = "Respuestas de %s en el modo %s con alguna expresión prohibida, sobre sus " +
+		"respuestas medidas en las evals que activan la skill"
+	descripcionDelUmbralSinActivar = "Respuestas de %s en el modo %s sin la skill activada, sobre sus respuestas " +
+		"medidas en las evals que la activan"
+	descripcionDelUmbralDeRedaccion = "Respuestas de %s en el modo %s con alguna expresión de redaccion_no_leida " +
+		"(una redacción que ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill"
+	descripcionDelUmbralDeLaDuracion = "Segundos de la tanda del modo %s, desde que se prepara su primera sesión " +
+		"hasta que termina la última"
 
 	comparacionMenorOIgual = "<="
 	signoMenorOIgual       = "≤ "
@@ -55,21 +59,24 @@ const (
 // umbrales en informe.json.
 type Umbral struct {
 	// Nombre es lo que cita el plan en evals:<skill>:<nombre>, único en el
-	// informe: expresiones_prohibidas:<modelo>, sin_activar:<modelo>,
-	// redaccion_no_leida:<modelo> o duracion_de_las_sesiones.
+	// informe: expresiones_prohibidas:<modelo>:<modo>, sin_activar:<modelo>:<modo>,
+	// redaccion_no_leida:<modelo>:<modo> o duracion_de_las_sesiones:<modo>, con
+	// <modo> orden u herramienta (data-model §10 de H21).
 	Nombre string `json:"nombre"`
 
-	// Descripcion dice en una línea qué se mide y sobre qué respuestas.
+	// Descripcion dice en una línea qué se mide, en qué modo y sobre qué
+	// respuestas.
 	Descripcion string `json:"descripcion"`
 
-	// Medida es lo medido: las respuestas con alguna expresión prohibida, sin la
-	// skill activada o con alguna expresión de redaccion_no_leida, o los segundos
-	// de las sesiones.
+	// Medida es lo medido en las sesiones de su modo: las respuestas con alguna
+	// expresión prohibida, sin la skill activada o con alguna expresión de
+	// redaccion_no_leida, o los segundos de su tanda.
 	Medida float64 `json:"medida"`
 
 	// Total, solo en los de las respuestas, son las respuestas medidas del
-	// modelo en las evals que activan la skill: con él, lo que se compara es la
-	// proporción Medida/Total, 0 si Total es 0. Sin él, la propia Medida.
+	// modelo en ese modo en las evals que activan la skill: con él, lo que se
+	// compara es la proporción Medida/Total, 0 si Total es 0. Sin él, la propia
+	// Medida.
 	Total *int `json:"total,omitzero"`
 
 	// Comparacion es siempre «<=» en este hito, y Umbral, el valor con el que se
@@ -94,9 +101,19 @@ type Umbral struct {
 // prohibidas, con las respuestas con alguna como medida, que decide solo en el
 // modelo que decide; y, detrás de él y solo en el que decide, el de las
 // respuestas sin la skill activada y el de las que llevan alguna expresión de
-// redaccion_no_leida, que deciden con 0. Detrás de todos, el de la duración de
+// redaccion_no_leida, que deciden con 0. Detrás de todos, los de la duración de
 // las sesiones si el job da un objetivo mayor que 0, sin total y decidiendo.
 // Nil, [] en informe.json, si no hay ninguno.
+//
+// Desde H21 (contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10;
+// research.md D19; FR-043 a FR-045), cada umbral es de un modo del plan y lo
+// nombra: el recuento lleva un elemento por modelo y modo, los del modo orden
+// delante, así que los de las respuestas de un modo van seguidos, y detrás de
+// todos, el de la duración de cada modo, en su orden, que mide los segundos de
+// la tanda de ese modo frente al mismo objetivo. Ninguno suma las medidas de dos
+// modos ni cuenta las sesiones o la tanda de las evals sin binario ni servidor.
+// Con el plan del job, los dos modos, y la lista y el objetivo de
+// boe-legislacion son diez, ocho de ellos decidiendo.
 func umbralesDelInforme(e InformeAEscribir, recuento []recuentoDeRespuestas) []Umbral {
 	var umbrales []Umbral
 
@@ -116,35 +133,43 @@ func umbralesDelInforme(e InformeAEscribir, recuento []recuentoDeRespuestas) []U
 	}
 
 	if e.ObjetivoDeDuracion > 0 {
-		umbrales = append(umbrales, compararUmbral(Umbral{
-			Nombre:      nombreDelUmbralDeLaDuracion,
-			Descripcion: descripcionDelUmbralDeLaDuracion,
-			Medida:      float64(e.DuracionDeLasSesiones),
-			Umbral:      float64(e.ObjetivoDeDuracion),
-			Decide:      true,
-		}))
+		for _, modo := range e.plan(nil).modos() {
+			umbrales = append(umbrales, compararUmbral(Umbral{
+				Nombre:      prefijoDelUmbralDeLaDuracion + string(modo),
+				Descripcion: fmt.Sprintf(descripcionDelUmbralDeLaDuracion, modo),
+				Medida:      float64(e.DuracionDeLosModos[modo]),
+				Umbral:      float64(e.ObjetivoDeDuracion),
+				Decide:      true,
+			}))
+		}
 	}
 
 	return umbrales
 }
 
-// umbralDeRespuestas es el umbral de las respuestas medidas de un modelo con el
-// prefijo y la descripción dados, la medida dada sobre ellas y el umbral dado,
-// ya comparado: se nombra con el prefijo seguido del modelo, y su descripción lo
-// nombra.
+// umbralDeRespuestas es el umbral de las respuestas medidas de un modelo en un
+// modo con el prefijo y la descripción dados, la medida dada sobre ellas y el
+// umbral dado, ya comparado: se nombra con el prefijo seguido del modelo y del
+// modo, y su descripción los nombra.
 func umbralDeRespuestas(
 	prefijo, descripcion string, delModelo recuentoDeRespuestas, medida int, umbral float64, decide bool,
 ) Umbral {
 	total := delModelo.respuestas
 
 	return compararUmbral(Umbral{
-		Nombre:      prefijo + delModelo.modelo,
-		Descripcion: fmt.Sprintf(descripcion, delModelo.modelo),
+		Nombre:      prefijo + delModelo.modelo + separadorDelModoDelUmbral + string(delModelo.modo),
+		Descripcion: fmt.Sprintf(descripcion, delModelo.modelo, delModelo.modo),
 		Medida:      float64(medida),
 		Total:       &total,
 		Umbral:      umbral,
 		Decide:      decide,
 	})
+}
+
+// esDeLaDuracion dice si el umbral es el de la duración de las sesiones de un
+// modo: su motivo no es de la skill sino de la ejecución.
+func (u Umbral) esDeLaDuracion() bool {
+	return strings.HasPrefix(u.Nombre, prefijoDelUmbralDeLaDuracion)
 }
 
 // compararUmbral pone al umbral su comparación, «<=», y su resultado: su valor
@@ -171,15 +196,17 @@ func (u Umbral) valor() float64 {
 }
 
 // motivosDeLosUmbrales son los motivos de la raíz de los umbrales que deciden y no
-// se cumplen, en su orden, sin el de la duración, que es de la ejecución
-// (motivoDeLaDuracionDeLasSesiones): «umbral <nombre>: <medida>, y tiene que ser
+// se cumplen, en su orden, sin los de la duración, que son de la ejecución
+// (motivosDeLaDuracionDeLasSesiones): «umbral <nombre>: <medida>, y tiene que ser
 // <condición>», con la medida y la condición como en informe.md (contrato
-// informe-del-job §2.1 de H7.3; FR-003).
+// informe-del-job §2.1 de H7.3; FR-003). El nombre lleva el modo del umbral, y
+// con él lo nombra el motivo (contracts/evals-en-dos-modos.md §5.2 de H21;
+// FR-044).
 func motivosDeLosUmbrales(umbrales []Umbral) []string {
 	var motivos []string
 
 	for _, umbral := range umbrales {
-		if umbral.Nombre == nombreDelUmbralDeLaDuracion || !umbral.Decide || umbral.Cumple {
+		if umbral.esDeLaDuracion() || !umbral.Decide || umbral.Cumple {
 			continue
 		}
 
@@ -190,18 +217,22 @@ func motivosDeLosUmbrales(umbrales []Umbral) []string {
 	return motivos
 }
 
-// motivoDeLaDuracionDeLasSesiones es el motivo de la raíz del umbral de la
-// duración si decide y no se cumple, con el prefijo de la ejecución: no es de la
-// skill (contrato informe-del-job §2.3 de H7.3; FR-051). Ninguno si no lo hay.
-func motivoDeLaDuracionDeLasSesiones(umbrales []Umbral) []string {
+// motivosDeLaDuracionDeLasSesiones son los motivos de la raíz de los umbrales de
+// la duración que deciden y no se cumplen, en su orden, uno por modo, con el
+// prefijo de la ejecución: no son de la skill (contrato informe-del-job §2.3 de
+// H7.3; contracts/evals-en-dos-modos.md §5.2 de H21; FR-051). Ninguno si no los
+// hay.
+func motivosDeLaDuracionDeLasSesiones(umbrales []Umbral) []string {
+	var motivos []string
+
 	for _, umbral := range umbrales {
-		if umbral.Nombre == nombreDelUmbralDeLaDuracion && umbral.Decide && !umbral.Cumple {
-			return []string{motivoDeLaEjecucion + fmt.Sprintf(motivoDeLaDuracion, umbral.Nombre,
-				umbral.medidaEscrita(), umbral.condicionEscrita())}
+		if umbral.esDeLaDuracion() && umbral.Decide && !umbral.Cumple {
+			motivos = append(motivos, motivoDeLaEjecucion+fmt.Sprintf(motivoDeLaDuracion, umbral.Nombre,
+				umbral.medidaEscrita(), umbral.condicionEscrita()))
 		}
 	}
 
-	return nil
+	return motivos
 }
 
 // medidaEscrita es la medida del umbral como la escriben informe.md y los

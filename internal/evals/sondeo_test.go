@@ -107,7 +107,7 @@ func TestJuicioDelSondeo(t *testing.T) {
 		assert.Equal(t, expresionesDeLaTransicion, cortada.ExpresionesProhibidas,
 			"la respuesta de la sesi\xc3\xb3n sin terminar lleva sus expresiones: el caso no pasa en vac\xc3\xado")
 
-		assert.Equal(t, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0}}, juicio.recuento)
+		assert.Equal(t, []RecuentoDeExpresiones{recuentoEsperado(modeloQueDecide, ModoOrden, 0, 0)}, juicio.recuento)
 		assert.Contains(t, juicio.salida(),
 			"\nRespuestas con alguna expresi\xc3\xb3n prohibida en las evals que activan la skill: 0 de 0 (0,0 %); ")
 	})
@@ -354,7 +354,7 @@ func entradasSinMedirYSinAbrir(t *testing.T) InformeAEscribir {
 
 	entradas := entradasDeLaCopia(t, copia)
 	entradas.SinAbrir = []SesionPlanificada{
-		{Nombre: sesionDeNoActivacion, Fichero: ficheroDeNoActivacion, Modelo: modeloQueDecide},
+		{Nombre: sesionDeNoActivacion, Fichero: ficheroDeNoActivacion, Modelo: modeloQueDecide, Modo: ModoOrden},
 	}
 
 	return entradas
@@ -408,7 +408,10 @@ func exigirLaSalidaConLista(t *testing.T) {
 	require.NoError(t, os.RemoveAll(sesionDelSondeo(copia, 5, 3)))
 
 	juicio := juicioDelSondeoDe(t, entradasDelSondeo(copia, []SesionPlanificada{
-		{Nombre: sesionSintetica(5, modeloSonnet5, 3), Fichero: ficheroSintetico(5), Modelo: modeloSonnet5},
+		{
+			Nombre: sesionSintetica(5, modeloSonnet5, 3), Fichero: ficheroSintetico(5), Modelo: modeloSonnet5,
+			Modo: ModoOrden,
+		},
 	}))
 	salida := juicio.salida()
 
