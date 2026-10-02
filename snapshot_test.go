@@ -99,6 +99,11 @@ type snapshotLeido struct {
 // sin fijar el total de líneas; en dist/ no hay SBOM ni firmas; y el binario de
 // la plataforma que ejecuta el test imprime en version la versión y el commit de
 // metadata.json. Sin archivo para esa plataforma, falla.
+//
+// Desde H22 comprueba además las dos piezas con las que kitlegal se instala sin
+// terminal, kitlegal.mcpb y kitlegal-plugin.zip, contra ese mismo binario: sus
+// seis subpruebas están en snapshot_piezas_test.go (H22 contracts/release.md
+// §3; FR-060 a FR-064, FR-066).
 func TestSnapshot(t *testing.T) {
 	t.Parallel()
 
@@ -112,6 +117,12 @@ func TestSnapshot(t *testing.T) {
 		{"checksums-de-los-archivos", probarChecksumsDeLosArchivos},
 		{"sin-sbom-ni-firmas", probarSinSBOMNiFirmas},
 		{"version-del-binario", probarVersionDelBinario},
+		{"dos-piezas", probarDosPiezas},
+		{"manifiesto-de-la-extension", probarManifiestoDeLaExtension},
+		{"binarios-de-la-extension", probarBinariosDeLaExtension},
+		{"icono-de-la-extension", probarIconoDeLaExtension},
+		{"servidor-de-la-extension", probarServidorDeLaExtension},
+		{"skills-del-plugin", probarSkillsDelPlugin},
 	}
 
 	for _, caso := range casos {

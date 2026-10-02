@@ -221,6 +221,27 @@ const (
 	// existir, porque sin él el snapshot falla (research.md D23, V48).
 	instaladorEnLaRelease = "./scripts/install.sh"
 
+	// extensionEnLaRelease y pluginEnLaRelease son las dos piezas de H22 como
+	// las nombran checksum.extra_files y release.extra_files: las deja en dist/
+	// el paso que empaqueta, antes de que goreleaser calcule las huellas (H22
+	// FR-002; contracts/release.md §1 de H22).
+	extensionEnLaRelease = "./dist/kitlegal.mcpb"
+	pluginEnLaRelease    = "./dist/kitlegal-plugin.zip"
+
+	// idDeLaConstruccion es el de la única construcción, que nombran el
+	// universal y los archivos, e idDelUniversal, el del binario universal de
+	// macOS: uno propio, para que ningún archivo lo lleve (H22 FR-006; research.md
+	// D7 de H22).
+	idDeLaConstruccion = "kitlegal"
+	idDelUniversal     = "kitlegal-universal"
+
+	// ordenDelPaso es la del gancho del universal, carácter a carácter: el paso
+	// que empaqueta, con la versión y la ruta del universal que le da goreleaser,
+	// el binario de Windows amd64 de la construcción, el icono versionado y dist/
+	// como salida (H22 FR-001, FR-002; contracts/release.md §1 de H22).
+	ordenDelPaso = "go run ./cmd/empaquetar piezas -version {{ .Version }} -macos {{ .Path }} " +
+		"-windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -icono mcp/icon.png -salida dist"
+
 	// herramientaGoreleaser es la invocación de goreleaser, como la de las demás
 	// herramientas: su versión la fija tools/goreleaser/go.mod (FR-096).
 	herramientaGoreleaser = "go tool -modfile=tools/goreleaser/go.mod goreleaser"
@@ -244,6 +265,16 @@ var inyeccionesDeLaRelease = map[string]string{
 	"main.commit":           "{{ .FullCommit }}",
 	"main.fecha":            "{{ .Date }}",
 	simboloDeLaVersionDeRed: plantillaDeVersion,
+}
+
+// ficherosExtraDeLaRelease son, en orden, los de checksum.extra_files y los de
+// release.extra_files: install.sh y, detrás, las dos piezas de H22. Lo que no
+// está en las dos listas no se publica con su huella bajo la firma (H22
+// FR-002).
+var ficherosExtraDeLaRelease = []ficheroExtra{
+	{Glob: instaladorEnLaRelease},
+	{Glob: extensionEnLaRelease},
+	{Glob: pluginEnLaRelease},
 }
 
 // recetasDeLaRelease son, por objetivo, las recetas de contracts/release.md §3,
@@ -317,23 +348,27 @@ var (
 // estricta: una clave que no está aquí —otra sección, una propiedad obsoleta
 // como brews o archives.format, o una que cambie lo que fija la tabla de
 // contracts/release.md §2, como builds.ignore o archives.wrap_in_directory—
-// hace fallar el test.
+// hace fallar el test. Desde H22 lleva también lo que fija la tabla de su
+// contracts/release.md §1: el id de la construcción, el universal de macOS con
+// su gancho y los ids de los archivos.
 type configuracionDeGoreleaser struct {
-	Version       int                  `yaml:"version"`
-	ProjectName   string               `yaml:"project_name"`
-	Builds        []binarioDeLaRelease `yaml:"builds"`
-	Archives      []empaquetado        `yaml:"archives"`
-	Checksum      sumasDeLaRelease     `yaml:"checksum"`
-	SBOMs         []inventario         `yaml:"sboms"`
-	Signs         []firma              `yaml:"signs"`
-	HomebrewCasks []cask               `yaml:"homebrew_casks"`
-	Scoops        []manifiestoDeScoop  `yaml:"scoops"`
-	NFPMs         []paqueteDelSistema  `yaml:"nfpms"`
-	Release       publicacionEnGitHub  `yaml:"release"`
-	Changelog     notasDeLaPublicacion `yaml:"changelog"`
+	Version           int                  `yaml:"version"`
+	ProjectName       string               `yaml:"project_name"`
+	Builds            []binarioDeLaRelease `yaml:"builds"`
+	UniversalBinaries []binarioUniversal   `yaml:"universal_binaries"`
+	Archives          []empaquetado        `yaml:"archives"`
+	Checksum          sumasDeLaRelease     `yaml:"checksum"`
+	SBOMs             []inventario         `yaml:"sboms"`
+	Signs             []firma              `yaml:"signs"`
+	HomebrewCasks     []cask               `yaml:"homebrew_casks"`
+	Scoops            []manifiestoDeScoop  `yaml:"scoops"`
+	NFPMs             []paqueteDelSistema  `yaml:"nfpms"`
+	Release           publicacionEnGitHub  `yaml:"release"`
+	Changelog         notasDeLaPublicacion `yaml:"changelog"`
 }
 
 type binarioDeLaRelease struct {
+	ID      string   `yaml:"id"`
 	Main    string   `yaml:"main"`
 	Binary  string   `yaml:"binary"`
 	Env     []string `yaml:"env"`
@@ -343,7 +378,30 @@ type binarioDeLaRelease struct {
 	Ldflags []string `yaml:"ldflags"`
 }
 
+// binarioUniversal es una entrada de universal_binaries. Replace es un puntero
+// para distinguir el `replace: false` escrito del que falta: los dos valen lo
+// mismo para goreleaser, y el contrato lo pide escrito.
+type binarioUniversal struct {
+	ID      string              `yaml:"id"`
+	IDs     []string            `yaml:"ids"`
+	Replace *bool               `yaml:"replace"`
+	Hooks   ganchosDelUniversal `yaml:"hooks"`
+}
+
+type ganchosDelUniversal struct {
+	Pre  []ordenDeGancho `yaml:"pre"`
+	Post []ordenDeGancho `yaml:"post"`
+}
+
+// ordenDeGancho es un gancho de goreleaser escrito con su forma larga: la orden
+// y si su salida se enseña en el registro de la release.
+type ordenDeGancho struct {
+	Cmd    string `yaml:"cmd"`
+	Output bool   `yaml:"output"`
+}
+
 type empaquetado struct {
+	IDs             []string            `yaml:"ids"`
 	NameTemplate    string              `yaml:"name_template"`
 	Formats         []string            `yaml:"formats"`
 	FormatOverrides []formatoPorSistema `yaml:"format_overrides"`
@@ -483,6 +541,13 @@ type laRelease struct {
 // trabajo snapshot de ci.yml, sin id-token ni ningún secreto, ejecuta make
 // release y make snapshot-check (FR-120). Que ninguna propiedad esté obsoleta lo
 // comprueba goreleaser check, en make ci (FR-094).
+//
+// Desde H22 fija además lo que su contracts/release.md §1 y §7 dicen de
+// .goreleaser.yaml: el id de la construcción, el universal de macOS —con un id
+// propio, sin sustituir a los dos binarios de macOS y con el paso que empaqueta
+// como único gancho—, los archivos acotados a la construcción y las dos piezas,
+// kitlegal.mcpb y kitlegal-plugin.zip, en checksums.txt y en la release (H22
+// FR-002, FR-006, FR-068).
 func TestConfiguracionDeLaRelease(t *testing.T) {
 	t.Parallel()
 
@@ -494,6 +559,7 @@ func TestConfiguracionDeLaRelease(t *testing.T) {
 	}{
 		{"proyecto", probarProyecto},
 		{"plataformas", probarPlataformas},
+		{"universal", probarUniversal},
 		{"inyecciones", probarInyecciones},
 		{"archivos", probarArchivos},
 		{"checksums", probarChecksums},
@@ -641,18 +707,47 @@ func probarProyecto(t *testing.T, release laRelease) {
 }
 
 // probarPlataformas: kitlegal para darwin, linux y windows en amd64 y arm64,
-// sin cgo y con -trimpath (FR-090).
+// sin cgo y con -trimpath (FR-090), con el id que nombran el universal y los
+// archivos (H22 FR-006).
 func probarPlataformas(t *testing.T, release laRelease) {
 	t.Helper()
 
 	construida := unica(t, "builds", release.goreleaser.Builds)
 
+	assert.Equal(t, idDeLaConstruccion, construida.ID,
+		"builds[0].id es el que nombran universal_binaries[0].ids y archives[0].ids (H22 FR-006)")
 	assert.Equal(t, "./cmd/kitlegal", construida.Main)
 	assert.Equal(t, nombreDelProyecto, construida.Binary)
 	assert.Equal(t, []string{"CGO_ENABLED=0"}, construida.Env)
 	assert.Equal(t, []string{"-trimpath"}, construida.Flags)
 	assert.ElementsMatch(t, []string{"darwin", "linux", "windows"}, construida.Goos)
 	assert.ElementsMatch(t, []string{"amd64", "arm64"}, construida.Goarch)
+}
+
+// probarUniversal: un solo binario universal de macOS, de la construcción
+// kitlegal, con un id propio y `replace: false` escrito —con otro id, ningún
+// archivo lo lleva; sin sustituir, los dos binarios de macOS siguen en los
+// suyos—, sin ningún gancho `pre` y con un solo gancho `post`: el paso que
+// empaqueta las dos piezas, con la orden del contrato carácter a carácter y su
+// salida en el registro de la release (H22 FR-001, FR-002, FR-006, FR-068;
+// contracts/release.md §1 y §7 de H22).
+func probarUniversal(t *testing.T, release laRelease) {
+	t.Helper()
+
+	universal := unica(t, "universal_binaries", release.goreleaser.UniversalBinaries)
+
+	assert.Equal(t, idDelUniversal, universal.ID,
+		"universal_binaries[0].id es uno propio: con el de la construcción, archives lo empaquetaría (H22 FR-006)")
+	assert.Equal(t, []string{idDeLaConstruccion}, universal.IDs)
+
+	if assert.NotNil(t, universal.Replace, "universal_binaries[0].replace se escribe (H22 contracts/release.md §1)") {
+		assert.False(t, *universal.Replace,
+			"universal_binaries[0].replace es falso: los dos binarios de macOS siguen en sus archivos (H22 FR-006)")
+	}
+
+	assert.Empty(t, universal.Hooks.Pre, "universal_binaries[0].hooks.pre: ningún gancho antes del universal")
+	assert.Equal(t, []ordenDeGancho{{Cmd: ordenDelPaso, Output: true}}, universal.Hooks.Post,
+		"universal_binaries[0].hooks.post es un solo gancho, el paso que empaqueta (H22 FR-002)")
 }
 
 // probarInyecciones: builds[0].ldflags son exactamente cuatro -X, una por
@@ -689,11 +784,13 @@ func probarInyecciones(t *testing.T, release laRelease) {
 // probarArchivos: un archivo por plataforma, tar.gz y zip en Windows, sin
 // versión en el nombre y con el binario en la raíz, que es lo que hace
 // goreleaser sin wrap_in_directory, que la lectura estricta no admite (FR-093;
-// research.md D22).
+// research.md D22). Solo de la construcción kitlegal: sin ids, el universal
+// daría un séptimo archivo (H22 FR-006, FR-068).
 func probarArchivos(t *testing.T, release laRelease) {
 	t.Helper()
 
 	assert.Equal(t, empaquetado{
+		IDs:             []string{idDeLaConstruccion},
 		NameTemplate:    "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}",
 		Formats:         []string{"tar.gz"},
 		FormatOverrides: []formatoPorSistema{{Goos: "windows", Formats: []string{"zip"}}},
@@ -702,13 +799,14 @@ func probarArchivos(t *testing.T, release laRelease) {
 
 // probarChecksums: checksums.txt, con el SHA-256 por omisión, lleva también la
 // huella de install.sh, que existe con la ruta que lo nombra (FR-093;
-// research.md D23, V48).
+// research.md D23, V48), y, detrás y en ese orden, las de las dos piezas de
+// H22 (H22 FR-002, FR-068).
 func probarChecksums(t *testing.T, release laRelease) {
 	t.Helper()
 
 	assert.Equal(t, sumasDeLaRelease{
 		NameTemplate: "checksums.txt",
-		ExtraFiles:   []ficheroExtra{{Glob: instaladorEnLaRelease}},
+		ExtraFiles:   ficherosExtraDeLaRelease,
 	}, release.goreleaser.Checksum)
 
 	estado, err := fs.Stat(release.raiz, path.Clean(instaladorEnLaRelease))
@@ -785,13 +883,14 @@ func probarPaquetes(t *testing.T, release laRelease) {
 
 // probarPublicacion: la release en jmorenobl/kitlegal, fijado para que goreleaser
 // check no dependa de git ni de un remote, con install.sh adjunto (FR-093,
-// FR-109; research.md V2).
+// FR-109; research.md V2) y, detrás y en ese orden, las dos piezas de H22 (H22
+// FR-002, FR-068).
 func probarPublicacion(t *testing.T, release laRelease) {
 	t.Helper()
 
 	assert.Equal(t, publicacionEnGitHub{
 		GitHub:     repositorioDeGitHub{Owner: propietarioEnGitHub, Name: nombreDelProyecto},
-		ExtraFiles: []ficheroExtra{{Glob: instaladorEnLaRelease}},
+		ExtraFiles: ficherosExtraDeLaRelease,
 	}, release.goreleaser.Release)
 }
 

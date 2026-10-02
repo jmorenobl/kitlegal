@@ -11,14 +11,23 @@
 # con 2 ante una (FR-094). TestConfiguracionDeLaRelease (release_test.go) lo lee
 # de forma estricta: una sección o una propiedad que no fija el contrato lo hace
 # fallar.
+#
+# H22 añade las dos piezas con las que kitlegal se instala sin terminal,
+# kitlegal.mcpb y kitlegal-plugin.zip: el universal de macOS, el paso que las
+# empaqueta y sus huellas. Contrato:
+# specs/016-h22-instalar-sin-terminal/contracts/release.md §1; decisiones en su
+# research.md D6 y D7.
 version: 2
 
 project_name: kitlegal
 
 builds:
   # Seis plataformas, sin cgo y con -trimpath, como `make build` (FR-090). goarch
-  # se declara entero: el valor por omisión incluiría 386 (research.md V16).
-  - main: ./cmd/kitlegal
+  # se declara entero: el valor por omisión incluiría 386 (research.md V16). El
+  # id es el valor por omisión, y se escribe porque lo nombran el universal y
+  # los archivos (H22 research.md D7).
+  - id: kitlegal
+    main: ./cmd/kitlegal
     binary: kitlegal
     env:
       - CGO_ENABLED=0
@@ -38,12 +47,32 @@ builds:
       - "-X main.fecha={{ .Date }}"
       - "-X github.com/jmorenobl/kitlegal/internal/httpx.version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}"
 
+universal_binaries:
+  # El binario universal de macOS que lleva la extensión de escritorio, con un
+  # id propio y sin sustituir a los dos de macOS: no entra en ningún archivo ni
+  # en checksums.txt, y no se publica (H22 FR-006; research.md D7, V6, V8). Su
+  # gancho es el único sitio en el que goreleaser tiene ya todos los binarios y
+  # todavía no ha calculado las huellas: ejecuta el paso que empaqueta, que deja
+  # en dist/ kitlegal.mcpb y kitlegal-plugin.zip, y si el paso falla, falla la
+  # release (H22 FR-002, FR-005; research.md D6). La ruta del binario de Windows
+  # lleva el sufijo que goreleaser pone a su carpeta (research.md V7).
+  - id: kitlegal-universal
+    ids: [kitlegal]
+    replace: false
+    hooks:
+      post:
+        - cmd: go run ./cmd/empaquetar piezas -version {{ .Version }} -macos {{ .Path }} -windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -icono mcp/icon.png -salida dist
+          output: true
+
 archives:
   # Sin versión en el nombre, para que «la última release» sea una URL fija de
   # GitHub que install.sh descarga sin consultar la API (research.md D22). El
   # binario va en la raíz del archivo, con la licencia, el README y el CHANGELOG
-  # (los ficheros por omisión; research.md V7).
-  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+  # (los ficheros por omisión; research.md V7). Con ids, solo los binarios de la
+  # construcción: sin él saldría un séptimo archivo, con el universal (H22
+  # FR-006; research.md V6).
+  - ids: [kitlegal]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     format_overrides:
       - goos: windows
@@ -54,10 +83,14 @@ checksum:
   # adjunta con release.extra_files, que no entra aquí, y por eso se nombra
   # también en checksum.extra_files: así la firma de los checksums lo cubre
   # (research.md D23, V8). La ruta es literal y tiene que existir, o el snapshot
-  # falla (research.md V48).
+  # falla (research.md V48). Lo mismo las dos piezas de H22, que el gancho del
+  # universal ya ha dejado en dist/ cuando se calculan las huellas (H22 FR-002;
+  # research.md V8).
   name_template: checksums.txt
   extra_files:
     - glob: ./scripts/install.sh
+    - glob: ./dist/kitlegal.mcpb
+    - glob: ./dist/kitlegal-plugin.zip
 
 sboms:
   # Un SBOM de syft por archivo (research.md V9). syft solo lo instala
@@ -122,12 +155,15 @@ nfpms:
 
 release:
   # Fijado, para que `goreleaser check` no dependa de git ni de un remote
-  # (research.md V2); install.sh va adjunto a la release (FR-109).
+  # (research.md V2); install.sh va adjunto a la release (FR-109), y con él las
+  # dos piezas de H22 (H22 FR-002).
   github:
     owner: jmorenobl
     name: kitlegal
   extra_files:
     - glob: ./scripts/install.sh
+    - glob: ./dist/kitlegal.mcpb
+    - glob: ./dist/kitlegal-plugin.zip
 
 changelog:
   # Las notas de la release, desde los Conventional Commits (FR-093). Cada
