@@ -26,6 +26,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -288,6 +289,37 @@ func manifiestoDe(t *testing.T, extension zipDelSnapshot) manifiestoLeido {
 	return manifiesto
 }
 
+// esquemaOficialDelManifiesto es el esquema JSON de la versión `0.3` del
+// manifiesto de MCP Bundle, tal como lo publica su fuente
+// (testdata/mcpb/README.md); que el fichero es el de la fuente lo fija
+// TestEsquemaOficial, en make ci.
+const esquemaOficialDelManifiesto = "testdata/mcpb/mcpb-manifest-v0.3.schema.json"
+
+// validarConElEsquemaOficial devuelve el error de validar un manifiesto contra
+// el esquema oficial de la versión `0.3`.
+func validarConElEsquemaOficial(t *testing.T, manifiesto []byte) error {
+	t.Helper()
+
+	const url = "https://kitlegal.es/" + esquemaOficialDelManifiesto
+
+	leido, err := os.ReadFile(filepath.FromSlash(esquemaOficialDelManifiesto))
+	require.NoError(t, err)
+
+	esquema, err := jsonschema.UnmarshalJSON(bytes.NewReader(leido))
+	require.NoError(t, err)
+
+	compilador := jsonschema.NewCompiler()
+	require.NoError(t, compilador.AddResource(url, esquema))
+
+	compilado, err := compilador.Compile(url)
+	require.NoError(t, err)
+
+	documento, err := jsonschema.UnmarshalJSON(bytes.NewReader(manifiesto))
+	require.NoError(t, err)
+
+	return compilado.Validate(documento)
+}
+
 // binarioDeLaPlataforma es la ruta del binario del snapshot de la plataforma
 // que ejecuta el test, que tiene que ser uno. En el trabajo snapshot de la
 // integración continua es el de linux/amd64.
@@ -377,7 +409,8 @@ func probarDosPiezas(t *testing.T, snapshot snapshotLeido) {
 // paquete del paso y, como `version`, la que imprime el binario del snapshot,
 // sin su `v`; y su descripción corta no pasa de 120 caracteres (H22 FR-061,
 // FR-066; SC-004, SC-009). `tools` tiene que estar: que sea lo que el binario
-// anuncia lo fija servidor-de-la-extension.
+// anuncia lo fija servidor-de-la-extension. Y cumple el esquema oficial de la
+// versión `0.3`, versionado en testdata/mcpb/ (FR-017).
 func probarManifiestoDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 	t.Helper()
 
@@ -386,6 +419,10 @@ func probarManifiestoDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 	var manifiesto manifiestoLeido
 
 	leerEstricto(t, manifiestoDeLaExtension+" de "+extension.ruta, extension.leer(t, manifiestoDeLaExtension), &manifiesto)
+
+	require.NoErrorf(t, validarConElEsquemaOficial(t, extension.leer(t, manifiestoDeLaExtension)),
+		"%s de %s no cumple el esquema oficial de la versión `0.3` del manifiesto de MCP Bundle (%s)",
+		manifiestoDeLaExtension, extension.ruta, esquemaOficialDelManifiesto)
 
 	assert.NotEmpty(t, manifiesto.Herramientas, "al manifiesto le falta `tools` (FR-061)")
 
