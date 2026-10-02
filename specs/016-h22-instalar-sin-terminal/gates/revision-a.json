@@ -1,0 +1,81 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (17:00, sobre el árbol de la cabeza 874d502, cuyo último commit solo toca specs/). Reproducido en esta sesión en un clon limpio de 874d502 bajo $TMPDIR, en dos órdenes que suman los doce prerrequisitos de ci: `make fmt-check lint test` (código 0; «0 issues.»; todos los paquetes ok, internal/empaquetado 98,3 %) y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check` (código 0; 0 vulnerabilidades; «1 configuration file(s) validated»; «no leaks found»; «all modules verified»). Árbol limpio: `git status --short` solo da registros de gates/ sin versionar (revision-cambios.md, revision-ciclo.json y el veredicto del otro juez, que no he leído)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene tests offline: internal/empaquetado/{piezas,ejecutar,catalogo,textos}_test.go, internal/app/herramientas_test.go:499 (TestHerramientasAnunciadas) e internal/arch_test.go (TestElBinarioNoEnlazaElPaso, con su control positivo sobre ./cmd/empaquetar). Detectan lo que dicen, visto con mutantes en un clon bajo $TMPDIR: Descripcion de 121 caracteres → rojo TestDescripcionCorta y TestEjecutar; HerramientasAnunciadas sin la última herramienta → rojo las cuatro subpruebas de TestHerramientasAnunciadas; `Modified: time.Now()` en piezas.go:416 → rojo TestPiezas; checksum.extra_files sin el .mcpb, VERSION_DE_CLAUDE_CODE 2.1.285 en ci.yml y `needs: [publicar]` en catalogo → rojo checksums, trabajo-de-snapshot y catalogo de TestConfiguracionDeLaRelease; archives sin ids → rojo `archivos` y, tras `make release`, TestSnapshot/seis-archivos (sale kitlegal_darwin_all.tar.gz); gancho con `-version 9.9.9` y el .exe de arm64 → rojo `universal`, y sobre el snapshot manifiesto-de-la-extension y binarios-de-la-extension. Sin mutantes: `make release` y `make snapshot-check` en el clon, código 0, con las diez subpruebas de TestSnapshot en PASS y los guiones instalador- en verde. Suite de aceptación: el plan dice «Aceptación e2e: no aplica» (el binario no cambia, FR-001 y FR-080) y no hay suite de H22; las suites congeladas de los hitos anteriores no están en el diff (`git diff --name-status main...HEAD` no toca specs/0NN ni internal/app/testdata) y pasan en `make test` (internal/app ok)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas fuera de specs/, la única coincidencia de net/http, os.Exit, fmt.Print* o panic( es `os.Exit(empaquetado.Ejecutar(os.Args[1:], os.Stderr))` de cmd/empaquetar/main.go:20, que R4 admite en cmd/. internal/empaquetado solo importa biblioteca estándar, internal/app y el paquete raíz (piezas.go:3-17, ejecutar.go:3-11, catalogo.go:3-9); entra en la lista core de depguard (.golangci.yml:129-130) y en paquetesInternos (internal/arch_test.go:896-898, once). golangci-lint «0 issues.» en el clon limpio, con la etiqueta snapshot incluida (.golangci.yml:39-44); TestArquitectura y TestElBinarioNoEnlazaElPaso en verde. Ninguna dependencia nueva: go.mod y go.sum no están en el diff."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet cambia su salida: el único fichero de producción del cierre de cmd/kitlegal que cambia es internal/app/herramientas.go (+28: el tipo HerramientaAnunciada y la función HerramientasAnunciadas, líneas 91-117, que el binario no llama); schemas/ no está en el diff y `make schema-check` (TestEsquemasPublicados) sale en verde en el clon; TestHerramientasDelServidor sigue con diez herramientas y los esquemas de --describe. El paso no es un applet y no lleva sobre (contracts/paso.md §1); sus tres documentos JSON se leen de forma estricta, campo a campo, en TestPiezas, TestCatalogo y, sobre el snapshot real, en manifiesto-de-la-extension y skills-del-plugin (snapshot_piezas_test.go:381 y 683)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El contrato de resultados del binario no cambia. El paso promete 0 o 1 y una línea `empaquetar: …` (contracts/paso.md §1; ejecutar.go:68-76): compilado en el clon y ejecutado en esta sesión, sin orden da la línea de uso y código 1; con `-macos /no/existe`, «empaquetar: falta el binario de macOS: open /no/existe: no such file or directory» y 1; `catalogo -sha256 \"\"`, «empaquetar: falta -sha256» y 1; `piezas` y `catalogo` válidos, código 0, nada en la salida de error y 0 bytes en la salida estándar. FR-005 de extremo a extremo: con el gancho apuntando a un binario que no existe, `make release` termina con error («release failed … post hook failed», con la línea del paso) y dist/ queda sin archivos, sin checksums.txt y sin piezas. Ningún panic: todos los fallos vuelven como error (piezas.go:121-141, 395-411; catalogo.go:70-102); TestEjecutar cubre 21 casos."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:65-84, tres entradas en «Añadido» de Unreleased (la extensión, el plugin con su catálogo, el apartado del README). README.md:55-102 «Instalar sin terminal» con los ocho contenidos de FR-050 (oficial y probada en la app de escritorio de Claude en macOS; los dos pasos con las dos direcciones de releases/latest/download; el aviso rojo, con la cita literal de docs/USO.md:31, y lo que kitlegal hace; las dos piezas; actualizar, dicho como previsto y sin probar; skills dos veces; Linux; web y móvil con la línea, idéntica a skills/boe-legislacion/SKILL.md:296); README.md:104 «Instalar con la terminal»; README.md:149-193 «Otras instalaciones, sin probar» con Windows, ChatGPT y Codex, Antigravity, las incidencias e info@kitlegal.es; ya no dice «todavía no» de Cowork ni anuncia el plugin en «Lo que viene» (grep: 0 coincidencias en README). CONTRIBUTING.md:258-370 explica el paso, las cuatro órdenes, las seis subpruebas, los tres trabajos y PUBLISHER_TOKEN, y lo que afirma se comprobó contra el producto (las órdenes, los tests y los trabajos existen; los anclajes internos resuelven). docs/SOURCES.md y docs/ADR sin cambios: ni fuente ni decisión nueva (ADR 0035 ya la tomó). cierre.md separa lo medido de lo no medido (S1 a S11) y sus cifras cuadran con las de esta sesión."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El módulo no gana ninguna llamada HTTP: el paso no importa net/http ni internal/httpx y no pide nada a la red (piezas.go, ejecutar.go, catalogo.go). Ningún dato externo: testdata/, schemas/, data/ y evidencias/ no están en el diff, y el esquema oficial del manifiesto no se versiona (FR-017). Sin secretos en el repositorio (gitleaks «no leaks found»); PUBLISHER_TOKEN solo se lee en el entorno de dos pasos de release.yml —el de goreleaser y «Publicar el catálogo» (release.yml:66 y 317)—, catalogo tiene `permissions: contents: read` y `persist-credentials: false`, y humo sigue sin secretos; lo fija TestConfiguracionDeLaRelease (tokens-de-la-publicacion, catalogo). La única escritura fuera es el marketplace.json del catálogo, desde el flujo de la release que dispara una etiqueta humana (ADR 0020), como el tap y el bucket: no es una sede ni actúa con la identidad de quien usa el kit. Ningún dato de persona: la autoría es «kitlegal» (textos.go:35)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD` fuera de specs/: 0 coincidencias de nolint, t.Skip, TODO, FIXME y XXX en las líneas añadidas. Ninguna exclusión de lint nueva salvo la entrada de depguard del paquete. El único error que no se propaga, el de escribir la línea de fallo (ejecutar.go:65-70), está razonado en el comentario y tiene su test (comprobarLaSalidaDeErrorRota, ejecutar_test.go:269-273): el código sigue siendo 1. Ningún fixture ajustado: no hay fixtures; los tests crean sus binarios y sus iconos en t.TempDir(). TestPluginValido falla, y no se salta, si `claude` no está en el PATH (snapshot_piezas_test.go:863-873)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ son los 25 ficheros de cierre.md §1, cada uno trazado a un requisito (plan.md, «Trazabilidad»): el paso, HerramientasAnunciadas, goreleaser, las subpruebas del snapshot, plugin-check, release.yml y la documentación. No toca skills/, evals/, web/, docs/, scripts/ ni .specify/. Los supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: los textos y la autoría sin nombre de persona; la plantilla del catálogo como código para que los textos vivan en un solo sitio (FR-015, FR-030); el esquema oficial fuera del run (Clarifications 2); README partido en tres sin tocar el primer párrafo; los guiones nuevos de humo y de catalogo fijados enteros. Ninguno añade comportamiento que el hito no pida."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en el clon sobre el snapshot de 874d502: kitlegal.mcpb, 42 745 220 bytes, cuatro entradas (manifest.json 2 939 bytes con diez herramientas, icon.png 20 539, server/kitlegal 51 800 256, server/kitlegal.exe 26 475 008); kitlegal-plugin.zip, 17 739 bytes, seis entradas (plugin.json 260 bytes y los cinco ficheros de las dos skills, 44 237); el catálogo de una versión, 619 bytes y una entrada; dos líneas más en checksums.txt (166 bytes); la línea de fallo del paso, una. Ninguna depende de lo consultado: salen de la versión, del registro y de lo empotrado, y tres ejecuciones del paso (el gancho y dos a mano) dan las mismas huellas (58c85869… y 4e04f030…). Lo que crece con el uso —caché y grafo— no cambia: el binario distribuido solo gana una función que no llama, así que los bytes por llamada y las invocaciones por pregunta son los de H21 (las dos SKILL.md van byte a byte, comprobado por skills-del-plugin contra `kitlegal skills install`). Señales: ninguna pieza da señales; el catálogo sustituye su única entrada en cada etiqueta y la versión nueva deja de ofrecerse al instalarla; la línea `⚠ SIN CONSULTA AL BOE:` es la de H21 y deja de darse al instalar la extensión."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las catorce filas de plan.md «Controles de umbral» tienen su control en el código, y los que lo pedían se vieron en rojo con mutantes en el clon. En make ci: 120 caracteres → TestDescripcionCorta (textos_test.go:25; rojo con 121 en textos.go); icono 512 × 512 → TestIcono (piezas_test.go:715: mide mcp/icon.png y rechaza 256 × 256, 512 × 256, 256 × 512 y lo que no es PNG); 0 bytes entre dos ejecuciones → TestPiezasReproducibles (piezas_test.go:549) con la fecha fija de TestPiezas (rojo con time.Now()); cuatro entradas, manifiesto exacto y skills exactas → TestPiezas y TestEjecutar, con listas exactas y lectura estricta; tools → TestEjecutar + TestHerramientasAnunciadas (rojo sin una herramienta); 0 paquetes del paso en el binario → TestElBinarioNoEnlazaElPaso; 3 trabajos, 2 pasos con el token, 9 sujetos, 12 pasos de humo, 6 pasos del snapshot con la versión de Claude Code de evals.yml → TestConfiguracionDeLaRelease (rojo con cada mutante de .goreleaser.yaml, ci.yml y release.yml). En el cierre, por el trabajo snapshot de ci.yml (ci.yml:139-159: make release, make snapshot-check, make plugin-check), que el workflow cuenta: dos-piezas, seis-archivos (rojo con siete archivos), binarios-de-la-extension y manifiesto-de-la-extension (rojos con el gancho mutado), servidor-de-la-extension, icono-de-la-extension, skills-del-plugin y TestPluginValido, que falla con cualquier código distinto de 0 de `claude plugin validate`. Ningún umbral queda solo publicado. El job de evals no gana umbrales: las skills no cambian."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "No medido en esta sesión: los seis guiones nuevos de humo y los dos de catalogo. Ejecutar un guion de shell pedía una aprobación que la sesión no tiene, así que se juzgaron leídos (cabecera del universal: magia, número de arquitecturas y veinte bytes por arquitectura desde el byte 8; `head -c | tail -c`; tubería con nombre) y por lo que fija TestConfiguracionDeLaRelease con `bash -n`. Su primera ejecución real es la primera release (research S1, S2, S5, S6; cierre.md §5 lo dice).",
+    "No medido en el run ni aquí: `claude plugin validate` sobre el plugin y sobre el catálogo con fuente `archive` (SC-008; research S3, S4). El control existe y decide en el trabajo snapshot de la propuesta de cambio: si Claude Code 2.1.284 no admite esa fuente, intenta descargar la dirección o `npm install -g` falla en ubuntu-latest, el cierre sale en rojo.",
+    "TestPiezasReproducibles, por sí solo, no ve una cabecera que dependa de la hora: con `Modified: time.Now()` pasa (las dos ejecuciones caen en el mismo segundo) y quien se pone en rojo es TestPiezas, por la fecha fija. make ci falla igual, y el comentario del test lo dice.",
+    "El control literal del hito «el esquema de la versión 0.3 se versiona en testdata/» no se cumple al pie de la letra: lo sustituye una lectura estricta propia (Clarifications 2, conservadora: sin red y sin fila en docs/SOURCES.md). Queda como pendiente de la persona (spec «Fuera de alcance»; cierre.md §6.5).",
+    "web/src/pages/instalar/index.astro:162 sigue diciendo que Cowork y el chat de Claude «todavía no», y es la página a la que apunta la línea `⚠ SIN CONSULTA AL BOE:`. La web está fuera del hito (ADR 0024): la cambia la persona.",
+    "Si falla la escritura del segundo fichero, kitlegal.mcpb queda en la carpeta de salida. contracts/paso.md §1 dice que no se promete nada ahí y goreleaser falla con el paso: por debajo del umbral de materialidad.",
+    "Los tamaños del plan (42 711 814 y 17 739 bytes) son los del prototipo sobre 751b76e; los de la cabeza son 42 745 220 y 17 739. No son umbrales, y cierre.md §3 ya lo anota."
+  ]
+}

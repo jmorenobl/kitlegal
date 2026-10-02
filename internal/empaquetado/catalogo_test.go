@@ -47,7 +47,7 @@ type fuenteLeida struct {
 // huella, el documento, leído de forma estricta, lleva una sola entrada,
 // `kitlegal`, de fuente `archive`, con la dirección de la release de esa
 // versión y no la de la última, la huella, la versión y los textos de su único
-// sitio; sin versión, o con una huella que no tiene su forma, error.
+// sitio; con una huella que no tiene su forma, error.
 func TestCatalogo(t *testing.T) {
 	t.Parallel()
 
@@ -108,11 +108,6 @@ func TestCatalogo(t *testing.T) {
 		mensaje string
 	}{
 		{
-			nombre:  "sin versión",
-			huella:  huellaDePrueba,
-			mensaje: "la versión del catálogo está vacía",
-		},
-		{
 			nombre:  "con una huella de 63 dígitos",
 			version: "0.4.0",
 			huella:  huellaDePrueba[1:],
@@ -157,7 +152,7 @@ func TestCatalogo(t *testing.T) {
 			escrito, err := empaquetado.DocumentoDelCatalogo(caso.version, caso.huella)
 
 			require.EqualError(t, err, caso.mensaje)
-			assert.Empty(t, escrito, "sin versión o sin huella no hay catálogo")
+			assert.Empty(t, escrito, "sin una huella con su forma no hay catálogo")
 		})
 	}
 }

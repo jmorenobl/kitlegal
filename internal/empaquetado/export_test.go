@@ -11,6 +11,5 @@ type PiezasAEscribir = piezasAEscribir
 var EscribirPiezas = escribirPiezas
 
 // DocumentoDelCatalogo es documentoDelCatalogo para los tests del paquete
-// externo: con él leen el catálogo de una versión y una huella, y fijan el
-// error de una versión vacía, que las banderas de Ejecutar no dejan pasar.
+// externo: con él leen el catálogo de una versión y una huella.
 var DocumentoDelCatalogo = documentoDelCatalogo

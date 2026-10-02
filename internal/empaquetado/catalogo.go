@@ -2,7 +2,6 @@ package empaquetado
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -65,13 +64,9 @@ type fuenteDelCatalogo struct {
 // textos de textos.go (contracts/paso.md §4 de H22; H22 FR-030, FR-031). La
 // versión llega sin `v`; la dirección lleva la etiqueta, que la tiene.
 //
-// Rechaza una versión vacía y una huella que no tiene su forma: un catálogo
-// con cualquiera de las dos apuntaría a un plugin que nadie puede instalar.
+// Rechaza una huella que no tiene su forma: un catálogo con ella apuntaría a
+// un plugin que nadie puede instalar.
 func documentoDelCatalogo(version, huella string) ([]byte, error) {
-	if version == "" {
-		return nil, errors.New("la versión del catálogo está vacía")
-	}
-
 	if !formaDeLaHuella.MatchString(huella) {
 		return nil, fmt.Errorf("«%s» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas", huella)
 	}

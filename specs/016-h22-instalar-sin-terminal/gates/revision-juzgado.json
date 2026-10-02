@@ -1,0 +1,11 @@
+{
+  "rondas": [
+    {
+      "ronda": 1,
+      "ciclo": 1,
+      "sha": "874d502d62257119ac101714472ca193d5d298fb",
+      "juez_a": "aprobado",
+      "juez_b": "rechazado"
+    }
+  ]
+}
