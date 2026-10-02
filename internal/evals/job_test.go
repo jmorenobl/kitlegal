@@ -46,7 +46,10 @@ var (
 		"añade la sesión de la primera eval con el texto de la prueba de red")
 	banderaObjetivo = flag.Int("objetivo-de-duracion", 0,
 		"segundos que el job admite para sus sesiones; 0, sin objetivo")
-	banderaSkills    = flag.String("skills", "", "directorio de las skills instaladas, el que deja make install")
+	banderaSkills   = flag.String("skills", "", "directorio de las skills instaladas, el que deja make install")
+	banderaKitlegal = flag.String("kitlegal", "",
+		"ruta absoluta de kitlegal: la orden del servidor del modo herramienta, y el directorio que sale del PATH "+
+			"de las sesiones que no son del modo orden")
 	banderaCommit    = flag.String("commit", "", "commit evaluado")
 	banderaSinPython = flag.String("sin-python", "", "ruta de sin-python.txt")
 	banderaSesiones  = flag.String("sesiones", "", "directorio en el que se crea el de cada sesión")
@@ -88,15 +91,19 @@ var (
 //
 //  1. lee las evals de la skill de la raíz del repositorio y compone el plan de
 //     sesiones con los modelos, las repeticiones y la prueba de red de sus
-//     banderas. Falla si el directorio tiene algún fichero mal formado: el guion
-//     ya lo ha comprobado antes, y planificar sobre un conjunto incompleto
-//     abriría menos sesiones sin decirlo;
+//     banderas, en el modo orden y en el modo herramienta
+//     (contracts/evals-en-dos-modos.md §2.1 de H21). Falla si el directorio
+//     tiene algún fichero mal formado: el guion ya lo ha comprobado antes, y
+//     planificar sobre un conjunto incompleto abriría menos sesiones sin
+//     decirlo;
 //  2. reparte las sesiones del plan con ejecutarSesiones, como mucho
 //     -concurrencia a la vez, bajo strace, con scripts/evals-sesion.sh, el
 //     entorno del job debajo del de cada sesión, las skills instaladas de
-//     -skills y el tope de 240 s con su margen de 10 s. SIGINT y SIGTERM cierran
-//     las abiertas con la secuencia del tope, y el test falla con el error que
-//     nombra cada una, sin escribir el informe (FR-037 de H7.3);
+//     -skills, el binario de -kitlegal, que es el servidor del modo herramienta
+//     y lo que sale del PATH de las sesiones que no son del modo orden, y el
+//     tope de 240 s con su margen de 10 s. SIGINT y SIGTERM cierran las abiertas
+//     con la secuencia del tope, y el test falla con el error que nombra cada
+//     una, sin escribir el informe (FR-037 de H7.3);
 //  3. escribe informe.md e informe.json con EscribirInforme: las mismas evals,
 //     las sesiones, las que el repartidor no abrió tras el mensaje del límite de
 //     uso y la duración que midió, en segundos redondeados hacia arriba, frente
@@ -110,8 +117,8 @@ var (
 func TestEjecucionDelJob(t *testing.T) {
 	t.Parallel()
 
-	exigirBanderas(t, "skill", "modelo-que-decide", "repeticiones", "umbral", "concurrencia", "skills", "commit",
-		"sin-python", "sesiones", "informe")
+	exigirBanderas(t, "skill", "modelo-que-decide", "repeticiones", "umbral", "concurrencia", "skills", "kitlegal",
+		"commit", "sin-python", "sesiones", "informe")
 
 	repeticiones := enteroDeLaBandera(t, "repeticiones")
 	concurrencia := enteroDeLaBandera(t, "concurrencia")
@@ -127,6 +134,7 @@ func TestEjecucionDelJob(t *testing.T) {
 		ModeloQueDecide:     *banderaQueDecide,
 		ModelosInformativos: separarLosModelos(*banderaInformativos),
 		Repeticiones:        repeticiones,
+		Modos:               []Modo{ModoOrden, ModoHerramienta},
 		PruebaDeRed:         *banderaPruebaDeRed,
 	}
 	require.NoError(t, plan.Comprobar())
@@ -146,6 +154,7 @@ func TestEjecucionDelJob(t *testing.T) {
 		Sesiones:      *banderaSesiones,
 		Skills:        *banderaSkills,
 		Guion:         guion,
+		Binario:       *banderaKitlegal,
 		Entorno:       os.Environ(),
 		Traza:         true,
 		Tope:          topeDeUnaSesion,
