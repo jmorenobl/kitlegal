@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-03
+
 ### Corregido
 
 - **El catálogo `jmorenobl/kitlegal-plugins` lleva el plugin dentro, y la app de escritorio de Claude lo sincroniza.**
