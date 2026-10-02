@@ -5,9 +5,13 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 )
 
@@ -37,18 +41,50 @@ const verboArticulos = "articulos"
 // H7.4, el de una redacción modificada ausente va seguido de su texto
 // (RedaccionEsperada.texto), y el de una skill que la eval dice que no se activa,
 // que la nombra en medio, lo compone motivoDeLaQueNoSeActiva
-// (contracts/evals-y-juicio.md §2 de H7.4).
+// (contracts/evals-y-juicio.md §2 de H7.4). Desde H21, el de una orden de kitlegal
+// en una sesión que no lo tiene en el PATH va seguido de la orden, y el de una
+// cita en la respuesta de una eval sin binario ni servidor, de su texto
+// (contracts/evals-en-dos-modos.md §4 de H21).
 const (
 	motivoDeSesionSinTerminar  = "la sesión no terminó: "
 	motivoDeComandoAusente     = "comando ausente: "
 	motivoDeComandoProhibido   = "comando prohibido ejecutado: "
+	motivoDeOrdenSinKitlegal   = "orden de kitlegal en una sesión sin kitlegal en el PATH: "
 	motivoDeCitaAusente        = "cita ausente: "
 	motivoDeAvisoAusente       = "aviso ausente: "
 	motivoDeHallazgoAusente    = "forma de hallazgo ausente: "
 	motivoDeRedaccionAusente   = "redacción modificada ausente: "
 	motivoDeTerritorioAusente  = "territorio ausente: "
+	motivoDeCitaSinConsulta    = "cita en una respuesta sin consulta: "
 	motivoDeExpresionProhibida = "expresión prohibida: "
 	motivoDeOtroModelo         = "la sesión no declara el modelo que se le pidió: "
+)
+
+// Los dos motivos de texto fijo de la línea con la que la respuesta de una eval
+// sin binario ni servidor dice que no ha consultado nada
+// (contracts/evals-en-dos-modos.md §4 de H21): el de la línea que no está y el
+// de la que está sin su dirección.
+const (
+	motivoDeLineaSinConsultaAusente = "línea ⚠ " + etiquetaSinConsulta + ": ausente"
+	motivoDeLineaSinDireccion       = "la línea ⚠ " + etiquetaSinConsulta + ": no lleva " + direccionParaInstalar
+)
+
+// motivoDeLlamadasSinJuzgar es el principio del motivo de una sesión cuyas
+// llamadas no se pueden juzgar porque el registro de applets del binario no se
+// puede construir, al que sigue el error: sin él no hay verbo del que sacar la
+// orden equivalente a ninguna, y la sesión no pasa en vacío.
+const motivoDeLlamadasSinJuzgar = "las llamadas a las herramientas no se pueden juzgar: "
+
+// Lo que el juicio sabe de una llamada a una herramienta del servidor MCP
+// (contracts/evals-en-dos-modos.md §4 de H21).
+const (
+	// separadorDeHerramienta une el applet y el verbo en el nombre de una
+	// herramienta, <applet>_<verbo> (FR-003 de H21).
+	separadorDeHerramienta = "_"
+
+	// terminadorDeLaLlamada es lo que cli.LineaDeLlamada pone entre las banderas
+	// de una llamada y sus argumentos de posición, que no es un argumento.
+	terminadorDeLaLlamada = "--"
 )
 
 // ResultadoDeEval es el juicio de una sesión con su eval (data-model §10.2): lo
@@ -69,6 +105,11 @@ type ResultadoDeEval struct {
 	// transcript. Los dos los pone EscribirInforme: Juzgar no los conoce.
 	Modelo           string `json:"modelo"`
 	ModeloDeLaSesion string `json:"modelo_de_la_sesion"`
+
+	// Modo es el modo con el que se juzga la sesión, lo que tenía para
+	// consultar: orden, herramienta o, en la de una eval sin binario ni servidor,
+	// ninguno (data-model §6 de H21).
+	Modo Modo `json:"modo"`
 
 	// Decide dice si la sesión pertenece a una serie que decide el veredicto; lo
 	// pone EscribirInforme al repartir las sesiones en series (data-model §10.4).
@@ -137,17 +178,31 @@ type ResultadoDeEval struct {
 	// su skill no tiene lista (contrato lista-y-juicio §4 de H7.2; FR-052).
 	ExpresionesProhibidas []string `json:"expresiones_prohibidas"`
 
+	// LineaSinConsulta dice, en una eval sin binario ni servidor, si la respuesta
+	// lleva una línea que empieza por ⚠ SIN CONSULTA AL BOE: con su dirección en
+	// esa misma línea (ExtraerSinConsulta). Falso en las demás evals, que no la
+	// juzgan (contracts/evals-en-dos-modos.md §4 de H21; FR-047).
+	LineaSinConsulta bool `json:"linea_sin_consulta"`
+
+	// CitasSinConsulta son, en una eval sin binario ni servidor, las citas de la
+	// respuesta (ExtraerCitas), en su orden y con sus repeticiones, cada una con
+	// su texto: <norma> <bloque>. Vacía si no lleva ninguna y en las demás evals.
+	CitasSinConsulta []string `json:"citas_sin_consulta"`
+
 	// Invocaciones son todas las invocaciones de applet de la sesión, en su
-	// orden.
+	// orden: las de su traza y, detrás, las que cuentan por sus llamadas a las
+	// herramientas del servidor MCP.
 	Invocaciones []InvocacionInformada `json:"invocaciones"`
 
 	// FueraDeLoGrabado son las invocaciones con consulta y código 4 o 5, en su
-	// orden.
+	// orden: también las llamadas con un error de la clase fuente-no-disponible o
+	// limite-o-tos.
 	FueraDeLoGrabado []InvocacionFallida `json:"fuera_de_lo_grabado"`
 
 	// OtrasFallidas son las invocaciones con consulta y otro código distinto de
-	// 0, en su orden; no las que quedaron sin código porque el tope cortó la
-	// sesión antes de que acabaran.
+	// 0, en su orden, y con ellas las llamadas con un error de otra clase; no las
+	// que quedaron sin código porque el tope cortó la sesión antes de que
+	// acabaran, ni las llamadas sin resultado.
 	OtrasFallidas []InvocacionFallida `json:"otras_fallidas"`
 
 	// LlegadasALaRed tienen una entrada por cada invocación y destino de sus
@@ -187,6 +242,15 @@ type ResultadoDeEval struct {
 	// prohibida; y el modelo que la sesión declara sin ser el pedido, que pone
 	// EscribirInforme. Vacío si pasa. La sesión sin medir lleva solo el del límite
 	// (FR-040 de H7.3; contracts/evals-y-juicio.md §2 de H7.4).
+	//
+	// Desde H21, detrás de los de los comandos prohibidos va el de cada orden de
+	// kitlegal de una sesión que no lo tiene en el PATH; y, en una eval sin binario
+	// ni servidor, detrás de los del territorio y delante de los de las
+	// expresiones, el de la línea ⚠ SIN CONSULTA AL BOE: ausente o sin su
+	// dirección y el de cada cita de la respuesta
+	// (contracts/evals-en-dos-modos.md §4 de H21). El de las llamadas que no se
+	// pueden juzgar, que solo se da si el registro de applets del binario no se
+	// puede construir, va delante de los de los comandos.
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no se activó
@@ -196,7 +260,10 @@ type ResultadoDeEval struct {
 	// prohibido y la respuesta no lleva ninguna expresión prohibida. No lo cambian
 	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
 	// de un aviso o de un hallazgo, ni una línea de redacción modificada, que la
-	// eval no espera. Una sesión sin medir no pasa.
+	// eval no espera. Una sesión sin medir no pasa. Desde H21, tampoco pasa la
+	// sesión sin kitlegal en el PATH que ejecuta una orden suya ni, en una eval
+	// sin binario ni servidor, la respuesta sin la línea con su dirección o con
+	// alguna cita.
 	Pasa bool `json:"pasa"`
 }
 
@@ -204,17 +271,25 @@ type ResultadoDeEval struct {
 // el informe (data-model §10.2).
 type InvocacionInformada struct {
 	// Orden es el applet seguido de los argumentos que le siguen en argv,
-	// separados por un espacio.
+	// separados por un espacio; en una llamada a una herramienta, la herramienta
+	// seguida de sus argumentos, los de la orden equivalente.
 	Orden string `json:"orden"`
 
 	// Codigo es el de la invocación, o nil en la que quedó sin código porque el
-	// tope cortó la sesión (data-model §9).
+	// tope cortó la sesión (data-model §9). En una llamada, 0 si su resultado no
+	// es un error, el de la clase de su error si lo es y nil si no tiene
+	// resultado.
 	Codigo *int `json:"codigo"`
 
 	// Conexiones tiene una entrada por pareja distinta de destino y clase de las
 	// conexiones de la invocación, en el orden en que aparece por primera vez;
-	// vacía si la invocación no conectó.
+	// vacía si la invocación no conectó. Las de una llamada no se conocen: son del
+	// proceso del servidor, y se informan con él.
 	Conexiones []ConexionInformada `json:"conexiones"`
+
+	// Llamada dice si es una llamada a una herramienta del servidor MCP, leída
+	// del transcript, y no una invocación de la traza.
+	Llamada bool `json:"llamada"`
 }
 
 // ConexionInformada es una pareja de destino y clase de las conexiones de una
@@ -292,11 +367,48 @@ type LlegadaALaRed struct {
 // ausente impide pasar. Una eval sin esas claves deja vacías las dos listas y su
 // juicio es el de antes (contracts/evals-y-juicio.md §2 de H7.4; FR-003, FR-052,
 // FR-053).
+//
+// Desde H21, juzga la sesión con el modo que da su eval sola, el de una sesión
+// sin servidor.json: el modo orden o, si la eval es sin binario ni servidor,
+// ninguno. La sesión del modo herramienta la juzga juzgarEnModo, que dice lo que
+// el juicio gana en ese hito (contracts/evals-en-dos-modos.md §4 de H21).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
+	return juzgarEnModo(eval, sesion, skill, modoSinServidor(eval))
+}
+
+// modoSinServidor es el modo de una sesión que no tiene servidor.json, que da su
+// eval sola (data-model §6 de H21): ninguno, el valor vacío, si la eval es sin
+// binario ni servidor, y el modo orden en otro caso.
+func modoSinServidor(eval Eval) Modo {
+	if eval.SinBinarioNiServidor {
+		return ""
+	}
+
+	return ModoOrden
+}
+
+// juzgarEnModo es Juzgar con el modo de la sesión, el que da su directorio
+// (contracts/evals-en-dos-modos.md §4 de H21; research.md D17, D18 y D21 de H21;
+// FR-041, FR-042, FR-046, FR-047):
+//
+//   - cada llamada de la sesión a una herramienta del servidor MCP cuenta como
+//     una invocación (invocacionDeLaLlamada), detrás de las de la traza, de modo
+//     que los comandos esperados, los prohibidos, lo que queda fuera de lo
+//     grabado y las otras fallidas valen para ella con las reglas de la orden;
+//   - el proceso del servidor, mcp serve en la traza, no es una consulta: no
+//     satisface ni falla nada, y sus conexiones se informan con él;
+//   - en una sesión sin kitlegal en el PATH, la del modo herramienta y la de una
+//     eval sin binario ni servidor, cada invocación de la traza de otro applet que
+//     el del servidor lleva su motivo, y la eval no pasa;
+//   - y en una eval sin binario ni servidor, la respuesta tiene que llevar la
+//     línea ⚠ SIN CONSULTA AL BOE: con su dirección y ninguna cita, y lo que
+//     falte de eso lleva su motivo.
+func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
 	resultado := ResultadoDeEval{
 		Eval:                       eval.Fichero,
+		Modo:                       modo,
 		Activa:                     eval.Activa,
 		Activada:                   sesion.Activada(skill),
 		Respuesta:                  sesion.Respuesta,
@@ -314,26 +426,211 @@ func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 		resultado.Motivos = append(resultado.Motivos, motivoDeActivacion(skill, eval.Activa))
 	}
 
+	citas := ExtraerCitas(sesion.Respuesta)
+
 	activadasSinDeber := resultado.anotarLasQueNoSeActivan(eval.NoSeActivan, sesion)
-	resultado.repartirComandos(eval.Comandos, sesion.Invocaciones)
-	resultado.anotarProhibidos(eval.Prohibidos, sesion.Invocaciones)
-	resultado.repartirCitas(eval.Citas, ExtraerCitas(sesion.Respuesta))
+	invocaciones, conLasLlamadas := resultado.invocacionesDe(sesion)
+	resultado.repartirComandos(eval.Comandos, invocaciones)
+	resultado.anotarProhibidos(eval.Prohibidos, invocaciones)
+	ordenesSinKitlegal := resultado.anotarLasOrdenesSinKitlegal(sesion.Invocaciones)
+	resultado.repartirCitas(eval.Citas, citas)
 	resultado.AvisosEncontrados, resultado.AvisosAusentes = resultado.repartirFormas(eval.Avisos,
 		ExtraerAvisos(sesion.Respuesta), motivoDeAvisoAusente)
 	resultado.HallazgosEncontrados, resultado.HallazgosAusentes = resultado.repartirFormas(eval.Hallazgos,
 		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
 	resultado.repartirRedacciones(eval.RedaccionesModificadas, ExtraerRedaccionesModificadas(sesion.Respuesta))
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
+	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
 	resultado.anotarExpresionesProhibidas(eval, sesion.Respuesta)
 
-	for _, invocacion := range sesion.Invocaciones {
-		resultado.informar(invocacion)
+	for _, invocacion := range invocaciones {
+		resultado.informarLaJuzgada(invocacion)
 	}
 
-	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && resultado.cumpleLoEsperado()
+	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
+		sinConsultaComoSeEspera && resultado.cumpleLoEsperado()
 
 	return resultado
 }
+
+// invocacionJuzgada es una invocación de la sesión como la ve el juicio
+// (contracts/evals-en-dos-modos.md §4 de H21): la de la traza o la que cuenta
+// por una llamada a una herramienta del servidor MCP.
+type invocacionJuzgada struct {
+	Invocacion
+
+	// orden es la invocación como la presenta el informe: la de
+	// ordenDeLaInvocacion en la de la traza y, en una llamada, la herramienta
+	// seguida de sus argumentos.
+	orden string
+
+	// llamada dice si cuenta por una llamada a una herramienta.
+	llamada bool
+}
+
+// invocacionesDe son las invocaciones con las que se juzga la sesión: las de su
+// traza, en su orden, y detrás, las que cuentan por sus llamadas a las
+// herramientas del servidor MCP, en el del transcript. Las dos listas no tienen
+// un reloj común: el proceso del servidor arranca antes de la primera llamada, y
+// por eso va delante.
+//
+// Dice además si las llamadas se han podido juzgar. Solo deja de poderse si el
+// registro de applets del binario no se puede construir: entonces anota su
+// motivo y devuelve solo las de la traza, y la sesión no pasa. Una sesión sin
+// llamadas no lo necesita.
+func (r *ResultadoDeEval) invocacionesDe(sesion Sesion) ([]invocacionJuzgada, bool) {
+	juzgadas := make([]invocacionJuzgada, 0, len(sesion.Invocaciones)+len(sesion.Llamadas))
+
+	for _, invocacion := range sesion.Invocaciones {
+		juzgadas = append(juzgadas, invocacionDeLaTraza(invocacion))
+	}
+
+	if len(sesion.Llamadas) == 0 {
+		return juzgadas, true
+	}
+
+	verbos, err := verbosDeLasHerramientas()
+	if err != nil {
+		r.Motivos = append(r.Motivos, motivoDeLlamadasSinJuzgar+err.Error())
+
+		return juzgadas, false
+	}
+
+	for _, llamada := range sesion.Llamadas {
+		juzgadas = append(juzgadas, invocacionDeLaLlamada(llamada, verbos[llamada.Herramienta]))
+	}
+
+	return juzgadas, true
+}
+
+// invocacionDeLaTraza es una invocación de la traza como la ve el juicio. La del
+// proceso del servidor MCP, mcp serve, no es una consulta: sirve las llamadas,
+// que son las que consultan y las que se juzgan, de modo que no satisface ni
+// ejecuta nada ni va a las fallidas, termine como termine —lo normal es que el
+// agente lo termine con una señal—, y sus conexiones se informan con ella
+// (research.md D17 de H21; FR-041).
+func invocacionDeLaTraza(invocacion Invocacion) invocacionJuzgada {
+	if invocacion.Applet == appletDelServidor && invocacion.Verbo == verboDelServidor {
+		invocacion.Consulta = false
+	}
+
+	return invocacionJuzgada{Invocacion: invocacion, orden: ordenDeLaInvocacion(invocacion)}
+}
+
+// invocacionDeLaLlamada es la invocación por la que cuenta una llamada a una
+// herramienta, con el verbo de esa herramienta (contracts/evals-en-dos-modos.md
+// §4 de H21; FR-042): el applet y el verbo son los de la herramienta; los
+// argumentos, los de la orden equivalente; consulta siempre, porque una llamada
+// no tiene ayuda, --describe ni --dry-run; y su código es el de esa orden
+// (codigoDeLaLlamada). Una herramienta sin verbo en el registro no tiene applet
+// ni orden equivalente: su llamada se informa, y no satisface ni ejecuta nada.
+func invocacionDeLaLlamada(llamada Llamada, verbo cli.Verbo) invocacionJuzgada {
+	argumentos := argumentosDeLaLlamada(verbo, llamada.Argumentos)
+
+	return invocacionJuzgada{
+		Invocacion: Invocacion{
+			Applet:     verbo.Applet,
+			Verbo:      verbo.Verbo,
+			Argumentos: argumentos,
+			Consulta:   true,
+			Codigo:     codigoDeLaLlamada(llamada),
+		},
+		orden:   strings.Join(slices.Concat([]string{llamada.Herramienta}, argumentos), " "),
+		llamada: true,
+	}
+}
+
+// argumentosDeLaLlamada son los argumentos de una llamada como los de la orden
+// equivalente: los de cli.LineaDeLlamada, que los da en el orden de la orden y
+// no en el del objeto, sin el terminador que separa las banderas de los de
+// posición. Ninguno si la llamada no convierte: una propiedad que el verbo no
+// declara, un valor de otro tipo o unos argumentos que no son un objeto no
+// tienen orden equivalente, y el servidor los rechaza sin ejecutar nada.
+func argumentosDeLaLlamada(verbo cli.Verbo, argumentos []byte) []string {
+	linea, err := cli.LineaDeLlamada(verbo, argumentos)
+	if err != nil {
+		return nil
+	}
+
+	// El terminador es el primer «--»: delante solo hay banderas con su valor,
+	// --<nombre>=<valor>, y detrás, un argumento de posición puede serlo.
+	if terminador := slices.Index(linea, terminadorDeLaLlamada); terminador >= 0 {
+		linea = slices.Delete(linea, terminador, terminador+1)
+	}
+
+	return linea
+}
+
+// codigoDeLaLlamada es el código con el que habría terminado la orden
+// equivalente a una llamada (data-model §2 de H21; research.md D17 de H21): 0 si
+// su resultado no es un error; el de su clase si lo es, que es 1, el de lo
+// inesperado, si la clase no se lee o no es del vocabulario; y ninguno si no
+// tiene resultado, como la invocación que el tope dejó sin código. Sale de la
+// tabla del kernel, cli.CodigoSalida, y no de otra escrita aquí.
+func codigoDeLaLlamada(llamada Llamada) *int {
+	if !llamada.ConResultado {
+		return nil
+	}
+
+	codigo := cli.CodigoSalida(nil)
+	if llamada.Error {
+		codigo = cli.CodigoSalida(falloDeLaLlamada{clase: llamada.Clase})
+	}
+
+	return &codigo
+}
+
+// falloDeLaLlamada es el error de una llamada cuyo resultado es un sobre de
+// fallo, con la clase que el sobre declara: con él se pregunta al kernel por el
+// código de esa clase (schema.ConClase).
+type falloDeLaLlamada struct {
+	clase schema.Clase
+}
+
+func (f falloDeLaLlamada) Error() string {
+	return fmt.Sprintf("la llamada devolvió un error de la clase %q", f.clase)
+}
+
+// Clase es la del sobre de fallo de la llamada.
+func (f falloDeLaLlamada) Clase() schema.Clase {
+	return f.clase
+}
+
+// verbosDeLasHerramientas da, por el nombre de cada herramienta que el servidor
+// MCP anuncia con el registro de producción, su verbo como lo describe el
+// kernel: el applet, el verbo y los argumentos de su fábrica, que es lo que
+// cli.LineaDeLlamada necesita para convertir una llamada en la orden
+// equivalente. Qué verbos dan herramienta lo dice app.NombresDeHerramientas, sin
+// repetir aquí qué applets no las dan; los argumentos solo se reflejan, de modo
+// que un valor por verbo vale para todos los juicios. El registro se construye
+// una sola vez, con la versión vacía, la de quien no tiene ninguna.
+//
+// Todo verbo que da herramienta tiene fábrica de argumentos: sin ella el
+// servidor no arranca (FR-002 a FR-004 de H21).
+var verbosDeLasHerramientas = sync.OnceValues(func() (map[string]cli.Verbo, error) {
+	registro, err := app.RegistroDeProduccion("")
+	if err != nil {
+		return nil, fmt.Errorf("el registro de applets del binario no se puede construir: %w", err)
+	}
+
+	herramientas := app.NombresDeHerramientas(registro)
+	verbos := make(map[string]cli.Verbo, len(herramientas))
+
+	for _, nombre := range registro.Nombres() {
+		applet, _ := registro.Buscar(nombre)
+
+		for _, verbo := range applet.Verbos() {
+			herramienta := nombre + separadorDeHerramienta + verbo.Nombre
+			if !slices.Contains(herramientas, herramienta) {
+				continue
+			}
+
+			verbos[herramienta] = cli.Verbo{Applet: nombre, Verbo: verbo.Nombre, Argumentos: verbo.Argumentos()}
+		}
+	}
+
+	return verbos, nil
+})
 
 // cumpleLoEsperado dice si la activación coincide con la esperada, no falta
 // ningún comando, ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción
@@ -417,11 +714,13 @@ func motivoDeLaQueNoSeActiva(nombre string) string {
 
 // repartirComandos reparte los comandos esperados entre ejecutados y ausentes,
 // con un motivo por cada ausente.
-func (r *ResultadoDeEval) repartirComandos(comandos []ComandoEsperado, invocaciones []Invocacion) {
+func (r *ResultadoDeEval) repartirComandos(comandos []ComandoEsperado, invocaciones []invocacionJuzgada) {
 	for _, comando := range comandos {
 		texto := textoDelComando(comando)
 
-		if slices.ContainsFunc(invocaciones, func(invocacion Invocacion) bool { return satisface(invocacion, comando) }) {
+		if slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
+			return satisface(juzgada.Invocacion, comando)
+		}) {
 			r.ComandosEjecutados = append(r.ComandosEjecutados, texto)
 
 			continue
@@ -434,10 +733,10 @@ func (r *ResultadoDeEval) repartirComandos(comandos []ComandoEsperado, invocacio
 
 // anotarProhibidos anota, con su motivo, cada comando prohibido que ejecuta
 // alguna invocación de la sesión.
-func (r *ResultadoDeEval) anotarProhibidos(prohibidos []ComandoProhibido, invocaciones []Invocacion) {
+func (r *ResultadoDeEval) anotarProhibidos(prohibidos []ComandoProhibido, invocaciones []invocacionJuzgada) {
 	for _, prohibido := range prohibidos {
-		if !slices.ContainsFunc(invocaciones, func(invocacion Invocacion) bool {
-			return ejecutaElProhibido(invocacion, prohibido)
+		if !slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
+			return ejecutaElProhibido(juzgada.Invocacion, prohibido)
 		}) {
 			continue
 		}
@@ -446,6 +745,69 @@ func (r *ResultadoDeEval) anotarProhibidos(prohibidos []ComandoProhibido, invoca
 		r.ComandosProhibidosEjecutados = append(r.ComandosProhibidosEjecutados, texto)
 		r.Motivos = append(r.Motivos, motivoDeComandoProhibido+texto)
 	}
+}
+
+// anotarLasOrdenesSinKitlegal anota, con su motivo y en su orden, cada
+// invocación de la traza de una sesión sin kitlegal en el PATH —la de cualquier
+// modo que no sea el modo orden: el modo herramienta y la de una eval sin
+// binario ni servidor— que no es del applet del servidor, consulte o no y
+// termine como termine, y devuelve cuántas son (research.md D18 de H21).
+//
+// Es lo que hace cierta la definición de esas sesiones: servidor.json lleva la
+// ruta absoluta del binario, y una sesión que la lea puede ejecutarlo sin el
+// PATH; sin esta regla, sus órdenes satisfarían los comandos y el modo
+// herramienta mediría órdenes.
+func (r *ResultadoDeEval) anotarLasOrdenesSinKitlegal(invocaciones []Invocacion) int {
+	if r.Modo == ModoOrden {
+		return 0
+	}
+
+	ordenes := 0
+
+	for _, invocacion := range invocaciones {
+		if invocacion.Applet == appletDelServidor {
+			continue
+		}
+
+		ordenes++
+
+		r.Motivos = append(r.Motivos, motivoDeOrdenSinKitlegal+ordenDeLaInvocacion(invocacion))
+	}
+
+	return ordenes
+}
+
+// juzgarLaRespuestaSinConsulta juzga, en una eval sin binario ni servidor, lo
+// que su respuesta tiene que llevar y lo que no (contracts/evals-en-dos-modos.md
+// §4 de H21; FR-047): una línea que empieza por ⚠ SIN CONSULTA AL BOE: con su
+// dirección en esa misma línea (ExtraerSinConsulta) y ninguna cita, sea de la
+// norma que sea. Anota si la línea está con su dirección y las citas de la
+// respuesta, con el motivo de la línea ausente o sin su dirección y uno por
+// cita, y dice si la respuesta cumple. En las demás evals no juzga nada y
+// cumple.
+func (r *ResultadoDeEval) juzgarLaRespuestaSinConsulta(eval Eval, respuesta string, citas []Cita) bool {
+	if !eval.SinBinarioNiServidor {
+		return true
+	}
+
+	// Sin la línea no hay dirección: la que va en otra línea no cuenta.
+	conLinea, conDireccion := ExtraerSinConsulta(respuesta)
+	r.LineaSinConsulta = conDireccion
+
+	switch {
+	case !conLinea:
+		r.Motivos = append(r.Motivos, motivoDeLineaSinConsultaAusente)
+	case !conDireccion:
+		r.Motivos = append(r.Motivos, motivoDeLineaSinDireccion)
+	}
+
+	for _, cita := range citas {
+		texto := cita.Norma + " " + cita.Bloque
+		r.CitasSinConsulta = append(r.CitasSinConsulta, texto)
+		r.Motivos = append(r.Motivos, motivoDeCitaSinConsulta+texto)
+	}
+
+	return r.LineaSinConsulta && len(r.CitasSinConsulta) == 0
 }
 
 // ejecutaElProhibido dice si la invocación ejecuta el comando prohibido
@@ -551,9 +913,22 @@ func (r *ResultadoDeEval) anotarExpresionesProhibidas(eval Eval, respuesta strin
 // clase, una llegada a la red por cada destino de clase red y, si consultó y
 // terminó con un código distinto de 0, la lleva a fuera de lo grabado con 4 o 5
 // y a las otras fallidas con cualquier otro. La que no consultó (la ayuda,
-// --describe o --dry-run) o quedó sin código no va a ninguna de las dos.
+// --describe o --dry-run) o quedó sin código no va a ninguna de las dos, y
+// tampoco el proceso del servidor MCP, que no es una consulta
+// (invocacionDeLaTraza).
 func (r *ResultadoDeEval) informar(invocacion Invocacion) {
-	informada := InvocacionInformada{Orden: ordenDeLaInvocacion(invocacion), Codigo: copiaDelCodigo(invocacion.Codigo)}
+	r.informarLaJuzgada(invocacionDeLaTraza(invocacion))
+}
+
+// informarLaJuzgada informa de una invocación como la ve el juicio, con las
+// reglas de informar: la de la traza o la que cuenta por una llamada a una
+// herramienta, que lleva su marca.
+func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
+	informada := InvocacionInformada{
+		Orden:   invocacion.orden,
+		Codigo:  copiaDelCodigo(invocacion.Codigo),
+		Llamada: invocacion.llamada,
+	}
 
 	for _, conexion := range invocacion.Conexiones {
 		pareja := ConexionInformada{Destino: conexion.Destino(), Clase: conexion.Clase}

@@ -1,0 +1,92 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:98-100 («ci: todos los controles en verde», exit=0). Reproducido en esta sesión sobre un clon de be4a12d bajo $TMPDIR, fuera del repositorio: `go test -race -shuffle=on -count=1` da ok en los 22 paquetes con tests (internal/app 27,8 s; internal/evals 69,9 s; internal/mcp y mcptest ok); golangci-lint con la configuración del repo, «0 issues» sobre cmd, internal, internal/app, cli, httpx, mcp, evals y skills; govulncheck: 0 alcanzables (la de módulo, GO-2026-5970, es de golang.org/x/text v0.14.0, que ya estaba en main); `go mod tidy -diff` sin salida y `go mod verify` ok; schema-check y skills-check (sus dos órdenes de go test) ok; `go vet -tags evals` con GOOS=linux ok. No reejecuté test-integration, test-tiempos, goreleaser check ni gitleaks: de esos solo tengo ci.log. Árbol: `git status --short` da solo gates/revision-cambios.md y gates/revision-ciclo.json, que escribe el workflow para los jueces."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta y activada: `git diff 253df46 HEAD -- specs/015-h21-kitlegal-mcp-serve/aceptacion/` no da nada (253df46 es el commit de gates/aceptacion-congelada.json) y `cmp` de los cinco guiones con internal/app/testdata/script/h21-mcp-*.txtar los da iguales; pasan dentro de TestEntregaDelHito. No pude ejecutar shasum en esta sesión: la integridad la comprobé por git y cmp, no recalculando los sha256. 21 mutantes en el clon, todos detectados: isError siempre falso (TestServir); fin de la entrada reconocido solo por io.EOF (TestServir, llamada en curso: confirma que lectorConFin hace falta); --no-graph sin propagar (TestLlamadaComoLaOrden y h21-mcp-llamadas:41); --offline sin propagar (TestLlamadaComoLaOrden y h21-mcp-errores:30); --timeout sin propagar (TestPlazoDeCadaLlamada); registro de las llamadas con avisador (TestSalidaDeErrorDelServidor y h21-mcp-protocolo:53, «have 3 matches, want 1»); skills sin excluir (TestHerramientasDelServidor, control de TestOrdenesDeLasSkillsEmpotradas y tres guiones); llamada con error contada con código 0 (TestJuzgarLasLlamadas/resultado-de-error); orden en sesión sin binario sin contar (…/orden-en-el-modo-herramienta); dirección en cualquier línea (TestExtraerSinConsulta y TestJuzgarSinBinarioNiServidor); citas ignoradas (…/con-la-linea-y-una-cita); PATH sin quitar (TestSesionesPorModo/cada-modo); --mcp-config quitado del guion (TestGuionDeLaSesion/con-servidor); serie del modo herramienta sin decidir (TestInformeEnDosModos); SDK importado desde internal/cli (TestArquitectura R7 y depguard); posicional sin el anterior (TestLineaDeLlamada); rechazo del sondeo quitado (TestComprobarElSondeo y TestSondear); y los cuatro de umbrales del criterio l. TestLlamadasSimultaneas (internal/app/mcp_test.go:523) lanza 40 llamadas con caché y world.db reales bajo -race."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "R7: con un fichero momentáneo en internal/cli que importa el SDK, falla TestArquitectura («R7 · importación reservada», internal/arch_test.go:130) y falla depguard (lista `mcp` de .golangci.yml:214-221). En las líneas añadidas de producto no hay net/http, os.Exit ni fmt.Print*: el único os.Stdin está en la raíz de composición (internal/app/mcp.go:37) y el protocolo sale por p.Salida() del presentador (mcp.go:118). internal/mcp e internal/app/herramientas.go no nombran os.Stdout ni os.Stderr. El net/http que enlaza el SDK está declarado en plan.md (Complexity Tracking) y ningún paquete del módulo lo importa fuera de internal/httpx (lint en 0)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Medido en esta sesión con el binario de e2e sobre las grabaciones de H4 y un validador genérico (santhosh-tekuri/jsonschema): el structuredContent real de 14 llamadas —las diez herramientas de producción con resultado, territorio_resolver cubierto y no cubierto, y tres resultados marcados con isError (un bloque que no existe, un argumento obligatorio que falta y un municipio que no está en la relación)— valida contra el outputSchema que el propio servidor anuncia en tools/list. h21-mcp-llamadas.txtar:76-105 compara byte a byte el sobre de cada herramienta con el de su orden con --json; TestHerramientasDelServidor compara los dos esquemas con --describe; schemas/servidor.json lo fija TestEsquemasPublicados (schema-check ok)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ejecutado con el binario de producción construido de be4a12d, HOME y caché temporales y `/` como directorio de trabajo: `kitlegal mcp` → 2 («verbos de mcp: serve»); `mcp serve --asunto x` → 2, stdout vacío y el mensaje del contrato; `mcp serve --dry-run` → 0 con 0 bytes en stdout sin esperar al cierre; entrada cerrada → 0; `--timeout 0s` y un argumento de más → 2; una línea que no es del protocolo → 1, clase `inesperado`. En una sesión de 11 llamadas a ese binario: fuente-no-disponible (--offline con la caché vacía), no-encontrado y argumentos llegan con su sobre de fallo (`ok` falso y su `clase`), las de después se atienden y el servidor termina con 0; que van marcadas con isError lo vi con el binario de e2e (criterio d) y lo fija h21-mcp-errores.txtar:39-43. Un valor que empieza por `--` (`--help`, `--describe`, `-x`) se trata como dato, detrás del terminador. Ningún panic( en las líneas añadidas."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md, Unreleased: «Añadido» (mcp serve, diez herramientas, banderas, instructions, schemas/servidor.json, la dependencia) y «Cambiado» (las dos skills, la tabla, el job en dos modos, el sondeo, la lista de applets). README.md:113-151 da las tres declaraciones de FR-060 y lo que no es compatible, y deja de anunciar el servidor como por venir. CONTRIBUTING lleva el applet, R7, los dos modos y el sondeo (FR-061). Sin ADR nuevo (ADR 0035) y sin cambios en docs/SOURCES.md. Contrastado con el binario: 10 herramientas y capabilities `{\"tools\":{}}` (tools/list real, 22 838 B), instructions de 485 B, códigos y mensajes de contracts/servidor-mcp.md §1 y §3, 198 y 42 sesiones (96+96+6 y 18+18+6 por el plan), 14 357 s de peor caso (lo imprime TestDefinicionDelJob). Las órdenes de Claude Code y el bloque de Antigravity del README no se han ejecutado: lo dice gates/supuestos.md (T017). Ver la primera observación sobre el `//nolint` que plan.md y tasks.md daban por no añadido."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición nueva: una llamada recorre internal/httpx por el camino de su orden (herramientas.go:240-259). El cambio de httpx es solo el turno compartido (ritmo.go:27-66, cliente.go:190-209): el limitador sigue siendo de un token por intervalo y un Ritmo nulo o de intervalo no positivo es error; DependenciasDeRed da un Ritmo por proceso (internal/app/boe.go:50-70) y TestDependenciasDeRed y TestRitmoCompartido lo fijan. Ningún método distinto de GET (http.MethodGet solo en tests). El servidor no abre puertos: su único transporte es sdk.IOTransport (internal/mcp/servir.go:115); el único net.Listen del diff es del test (boe_test.go). Sin cambios en data/, evidencias/, docs/SOURCES.md ni grabaciones (`git diff --stat main...HEAD` sobre esas rutas, vacío). Sin secretos (ci.log:84, «no leaks found») ni datos de persona. En el job, el servidor de cada sesión lleva en su env la caché y el proxy que rechaza (internal/evals/sesiones.go:550-562 y 592-620)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas fuera de specs/: ningún t.Skip, TODO ni FIXME; los `_ =` están solo en tests (boe_test.go, una llegada que solo gasta el turno) y ningún error de producto se descarta. Un `//nolint` nuevo, con justificación (internal/app/e2e_test.go:2492-2496, gosec G204 en la orden `mcp` del arnés), de la misma forma que los de tuberia_unix_test.go:98 y arch_test.go:971. Datos: de los guiones anteriores solo cambian las dos líneas de la lista de applets de argumentos.txtar; schemas/eval.yaml.json gana la clave y su rama; schemas/servidor.json es nuevo; los transcripts de leer-llamadas/ son sintéticos y nuevos; la suite congelada no cambia. Ningún umbral tocado: umbrales.go:16-18 son los valores de main y la lista de expresiones no está en el diff."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff no trae transporte de red, prompts ni resources, herramientas de skills, parámetros para las banderas globales, cambios en scripts/workflow/ ni en los verbos de hoy (schema-check sin drift; de scripts/ solo cambian evals.sh y evals-sesion.sh). Lo exportado nuevo se traza: httpx.Ritmo/NuevoRitmo/ConRitmo a FR-014, app.NombresDeHerramientas a FR-042, cli.EsquemasDeHerramienta y LineaDeLlamada a FR-003 y FR-011. Las dos correcciones de tests de hitos anteriores (sustitutos_test.go, tuberia_unix_test.go) son solo de test y están declaradas en tasks.md (T010, T017) y en gates/supuestos.md. Los supuestos leídos son lecturas conservadoras: SDK v1.7.0 por la caché verificada, sin cancelación, tope de 240 min, sondeo solo en el modo orden, D18."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en esta sesión. tools/list: 22 838 B con las diez herramientas, una vez por conexión. Resultado de una llamada con el binario de e2e sobre lo grabado (mensaje en el cable frente a su sobre): boe_indice de la Ley 39/2015, 26 410 B y 11 973 B; boe_articulo a21, 8 837 y 4 332; boe_articulos de tres bloques, 19 576 y 9 648; graph_check con norma y bloque, 776 y 323; graph_check sin argumentos, 732 y 302; territorio_resolver, 2 984 y 1 355: entre 2,0 y 2,4 veces el sobre, que es el de la orden y lo acotan la norma y los bloques pedidos, no lo acumulado. Por pregunta, SKILL.md pide por cada lectura de bloques boe_articulo (o boe_articulos) y, recibido su resultado, graph_check con esa norma y esos bloques (skills/boe-legislacion/SKILL.md, paso 3), más boe_buscar y boe_indice si hacen falta; legal-core, una llamada por municipio. El servidor no guarda nada propio entre llamadas: la caché se abre y se cierra en cada una (internal/source/boe/fuente.go:367), el cliente HTTP es de la llamada y sus conexiones ociosas caducan a los 90 s (transporte clonado del de la biblioteca), y Ritmo.turnos tiene una entrada por sitio. Señales: el aviso de versión, una vez por arranque (h21-mcp-protocolo:53); sin --verbose, en stderr solo las llamadas que fallan; la de graph_check la apaga la lectura siguiente (H7.1, sin cambios); la línea ⚠ SIN CONSULTA AL BOE: es una por respuesta. No medí qué parte del resultado entrega cada agente a su modelo."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo leído se traza: lectorConFin (servir.go:143-166) a FR-024, y el mutante que lo sustituye por errors.Is(err, io.EOF) falla con una llamada en curso; la interfaz sin exportar `servidor` (main.go:454-464) a FR-020 y FR-022; sinAvisador (registro.go:134-139) a FR-023; el cliente anterior de mcptest a FR-073, porque el SDK no deja elegir la versión desde fuera (go-sdk v1.7.0, mcp/client.go:250-252, campo sin exportar); Ritmo a FR-014; Modo, las tres tandas y los umbrales por modo a FR-040 a FR-047; la regla de la orden en sesión sin binario a lo que define el modo (D18). No hay opciones, reintentos ni paquetes sin requisito, y ningún guion congelado obliga a nada que no esté en un FR. Lo que queda como observación: la escritura de enteros y booleanos y de banderas no posicionales en LineaDeLlamada, que hoy no ejerce ningún verbo y se traza a FR-004 y FR-011; y errSinEntrada, que sigue la convención de errSinReloj (grafo.go:32) y del cliente nulo de boe (boe.go:257)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los ocho del cierre salen de umbralesDelInforme (internal/evals/umbrales.go:117-148) con decide:true por modo, y el job se los entrega al informe con sus dos modos y la duración de cada tanda (job_test.go, Modos y DuracionDeLosModos; el veredicto fallo lo hace fallar con require.Equalf). Mutantes en el clon: con los motivos de los umbrales `:herramienta` callados fallan sin-activar-solo-en-herramienta, redaccion-no-leida-solo-en-herramienta y tres-de-54-en-herramienta-y-cero-en-orden; con el de la duración callado en ese modo falla 901-s-en-herramienta-y-900-en-orden; con el umbral subido de 0,05 a 0,056 fallan tres-de-54 y los de dos modos (TestUmbralesDelInforme); con la serie del modo herramienta sin decidir falla TestInformeEnDosModos/una-serie-falla-solo-en-el-modo-herramienta. De make ci: timeout-minutes 239 hace fallar TestDefinicionDelJob («vale 239 (14340 s) … al menos … 14357 s»); las 512 de las instructions las fija TestInstrucciones con su subprueba de control (instrucciones_test.go:79-106; cuenta bytes, que acotan a los caracteres); el conjunto exacto de herramientas, TestHerramientasDelServidor y h21-mcp-herramientas; las 300 líneas, TestSkillsDelRepositorio (297 y 190 por wc -l); FR-084, TestComprobarElSondeo y TestSondear, que fallan con el rechazo quitado. Las 22 filas de «Controles de umbral» de plan.md nombran controles que existen. Que los ocho se cumplan en el job real lo mide el cierre, no esta revisión."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "plan.md:75 («ningún `//nolint`») y tasks.md:85 («ningún `//nolint` nuevo… se reestructura») no casan con el diff: internal/app/e2e_test.go:2496 añade un `//nolint:gosec` (G204, la orden `mcp` del arnés lanza el programa que nombra el guion), justificado y con la forma de los dos que ya había en tests; no está en gates/supuestos.md ni en cierre.md. No cambia nada observable; va aquí para quien lea el informe.",
+    "Entrada cerrada nada más enviar los mensajes (`printf … | kitlegal mcp serve`, con initialize y una llamada): 0 bytes en stdout —tampoco la respuesta al saludo—, código 0 y, sin --verbose, una línea del SDK en stderr, `level=ERROR msg=\"server session ended with error\" error=\"server is closing: EOF\"`. El spec lo admite (caso límite de la entrada que se cierra con llamadas en curso, FR-024), pero quien pruebe el servidor a mano con una tubería de un golpe no ve nada, y un final normal deja una línea de nivel ERROR.",
+    "`\"arguments\": null` da error de la clase `argumentos` («no son un objeto JSON»), también en graph_stats, que no tiene argumentos; sin la clave vale como `{}`. Los SDK de cliente habituales omiten la clave, así que no le veo vía real hoy.",
+    "internal/cli/herramienta.go:163-169 y 339-361: la escritura de banderas no posicionales, de booleanos y de enteros (con big.Rat, que admite `3`, `3.0` y `3e0`) no la ejerce ningún verbo de ningún registro: todos los argumentos de hoy son cadenas o listas de cadenas de posición (los 13 inputSchema del binario de e2e, vistos en esta sesión). Se traza a FR-004 y FR-011 y al contrato §3; es código para verbos que llegarán.",
+    "errSinEntrada y su rama en validar (internal/app/mcp.go:19 y 140-142), con la subprueba «sin entrada de la que leer», tratan un estado sin vía real: las dos raíces de composición dan os.Stdin. Sigue la convención de errSinReloj y del cliente nulo de boe.",
+    "Cada llamada que llega a la red crea su cliente: vuelve a pedir robots.txt y no reutiliza la conexión de la anterior (cada una deja como mucho una conexión ociosa 90 s). Con el ritmo de una petición por segundo entre todas y el plazo de 30 s por llamada, de unas quince llamadas simultáneas no cacheadas las últimas vencerían con fuente-no-disponible con la fuente disponible. No lo medí con red; la skill pide las lecturas de una en una.",
+    "internal/app/tuberia_unix_test.go lleva `//go:build unix`: TestTuberiaCerrada deja de compilarse en Windows. CI solo corre en ubuntu, así que lo medido no cambia. `go vet` con GOOS=windows pasa en app, mcp, httpx, cli y cmd; en internal/evals falla por Setpgid (sesiones.go), que ya estaba en main.",
+    "La subprueba linea-sin-consulta (internal/evals/conjunto_test.go:1363-1383) exige la línea ⚠ SIN CONSULTA AL BOE: al SKILL.md de toda skill de skills/, no solo a las dos del hito: una skill futura tendrá que llevarla o cambiar el test.",
+    "Los inputSchema no llevan `description` por propiedad, como la entrada de --describe: un agente con el servidor y sin la skill solo tiene el nombre de cada argumento (`texto`, `consulta`, `bloques`) y la descripción de la herramienta.",
+    "El evento de una llamada se registra antes de montar el sobre y de entregar al grafo (internal/app/herramientas.go:217-225); contracts/servidor-mcp.md §3 lo lista como paso 5. Solo cambia el orden de las líneas en stderr (supuesto de T007).",
+    "No medido en esta sesión, porque exige una sesión con modelo o la plataforma, y lo mide el cierre: que --mcp-config dé las herramientas desde el primer turno y bypassPermissions las deje llamar (S4), la forma del tool_result en stream-json (S5; los transcripts de leer-llamadas/ son sintéticos), el validador de Claude Code (S6), el PATH del shell del runner (S8), la duración del modo herramienta (S9) y timeout-minutes 240 (S10). El job pasa de 117 a 240 sesiones por medición entre las dos skills: más expuesto al límite de uso de la cuenta.",
+    "Errata en el nombre de una subprueba («intercaladaes», internal/mcp/mcptest/sesion_test.go:464), ya dicha en cierre.md §3."
+  ]
+}

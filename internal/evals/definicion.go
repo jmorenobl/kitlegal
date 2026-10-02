@@ -263,21 +263,31 @@ func separarLosModelos(lista string) []string {
 }
 
 // peorCasoDelTrabajo es lo más que puede tardar el trabajo de una skill:
-// fueraDeLasSesiones más una tanda de Concurrencia sesiones por cada ⌈Sesiones /
+// fueraDeLasSesiones más, por cada grupo de sesiones que el trabajo reparte por
+// separado, una tanda de Concurrencia sesiones por cada ⌈sesiones del grupo /
 // Concurrencia⌉, cada una con su preparación, su tope y el margen del tope
-// (research.md D13 de H7.3).
+// (research.md D13 de H7.3; contracts/evals-en-dos-modos.md §6 de H21;
+// research.md D20 de H21).
 type peorCasoDelTrabajo struct {
-	// Sesiones son las del plan de la skill, con la prueba de red.
-	Sesiones int
+	// SesionesPorGrupo son las sesiones de cada grupo del plan de la skill, en
+	// el orden en que se abren: las del modo orden con la prueba de red, las del
+	// modo herramienta y las de las evals sin binario ni servidor.
+	SesionesPorGrupo []int
 
 	// Concurrencia es la de la skill, al menos 1.
 	Concurrencia int
 }
 
-// tandas son las veces que el trabajo abre sus Concurrencia sesiones: ⌈Sesiones
-// / Concurrencia⌉.
+// tandas son las veces que el trabajo abre sus Concurrencia sesiones: la suma,
+// por grupo, de ⌈sesiones del grupo / Concurrencia⌉. Un grupo no llena la
+// última tanda con sesiones del siguiente.
 func (p peorCasoDelTrabajo) tandas() int {
-	return (p.Sesiones + p.Concurrencia - 1) / p.Concurrencia
+	tandas := 0
+	for _, sesiones := range p.SesionesPorGrupo {
+		tandas += (sesiones + p.Concurrencia - 1) / p.Concurrencia
+	}
+
+	return tandas
 }
 
 // Duracion es el peor caso.
@@ -285,11 +295,16 @@ func (p peorCasoDelTrabajo) Duracion() time.Duration {
 	return fueraDeLasSesiones + time.Duration(p.tandas())*(preparacionDeUnaSesion+topeDeUnaSesion+margenDelTopeDeUnaSesion)
 }
 
-// String presenta el peor caso en segundos con sus cuatro términos, como
-// «7013 s = 485 s + ⌈94 / 4⌉ × (22 s + 240 s + 10 s)».
+// String presenta el peor caso en segundos con sus términos, como
+// «14357 s = 485 s + (⌈97 / 4⌉ + ⌈96 / 4⌉ + ⌈6 / 4⌉) × (22 s + 240 s + 10 s)».
 func (p peorCasoDelTrabajo) String() string {
-	return fmt.Sprintf("%d s = %d s + ⌈%d / %d⌉ × (%d s + %d s + %d s)", segundos(p.Duracion()),
-		segundos(fueraDeLasSesiones), p.Sesiones, p.Concurrencia, segundos(preparacionDeUnaSesion),
+	porGrupo := make([]string, 0, len(p.SesionesPorGrupo))
+	for _, sesiones := range p.SesionesPorGrupo {
+		porGrupo = append(porGrupo, fmt.Sprintf("⌈%d / %d⌉", sesiones, p.Concurrencia))
+	}
+
+	return fmt.Sprintf("%d s = %d s + (%s) × (%d s + %d s + %d s)", segundos(p.Duracion()),
+		segundos(fueraDeLasSesiones), strings.Join(porGrupo, " + "), segundos(preparacionDeUnaSesion),
 		segundos(topeDeUnaSesion), segundos(margenDelTopeDeUnaSesion))
 }
 
@@ -298,12 +313,13 @@ func segundos(duracion time.Duration) int {
 	return int(duracion / time.Second)
 }
 
-// peorCaso es el peor caso del trabajo de la skill (research.md D13 de H7.3):
-// sus sesiones son las del PlanDeEvals de las evals bien formadas de su carpeta
-// dentro de evals, con los modelos y las repeticiones del env y la prueba de
-// red, que se cuenta aunque el trabajo no la lleve; su concurrencia, la que le da
-// include. Es un error una concurrencia menor que 1, una carpeta que no se puede
-// leer o un plan que no se puede componer.
+// peorCaso es el peor caso del trabajo de la skill (research.md D13 de H7.3;
+// contracts/evals-en-dos-modos.md §6 de H21): sus sesiones son las del
+// PlanDeEvals de las evals bien formadas de su carpeta dentro de evals, con los
+// modelos y las repeticiones del env, los dos modos y la prueba de red, que se
+// cuenta aunque el trabajo no la lleve, agrupadas como el trabajo las reparte;
+// su concurrencia, la que le da include. Es un error una concurrencia menor que
+// 1, una carpeta que no se puede leer o un plan que no se puede componer.
 func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, error) {
 	concurrencia := d.PorSkill[skill].Concurrencia
 	if concurrencia < 1 {
@@ -321,11 +337,29 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 		ModeloQueDecide:     d.ModeloQueDecide,
 		ModelosInformativos: d.ModelosInformativos,
 		Repeticiones:        d.Repeticiones,
+		Modos:               []Modo{ModoOrden, ModoHerramienta},
 		PruebaDeRed:         true,
 	}
 	if err := plan.Comprobar(); err != nil {
 		return peorCasoDelTrabajo{}, err
 	}
 
-	return peorCasoDelTrabajo{Sesiones: len(plan.Sesiones()), Concurrencia: concurrencia}, nil
+	return peorCasoDelTrabajo{SesionesPorGrupo: sesionesPorGrupo(plan.Sesiones()), Concurrencia: concurrencia}, nil
+}
+
+// sesionesPorGrupo es cuántas sesiones tiene cada grupo de las sesiones de un
+// plan, en su orden: el plan las da agrupadas por modo, así que un grupo son
+// las sesiones seguidas del mismo modo.
+func sesionesPorGrupo(sesiones []SesionPlanificada) []int {
+	var porGrupo []int
+
+	for posicion, sesion := range sesiones {
+		if posicion == 0 || sesion.Modo != sesiones[posicion-1].Modo {
+			porGrupo = append(porGrupo, 0)
+		}
+
+		porGrupo[len(porGrupo)-1]++
+	}
+
+	return porGrupo
 }

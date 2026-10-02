@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Ronda 2. La tabla de trazabilidad lleva cada viñeta del Alcance del hito (docs/ROADMAP.md, líneas 455-467) a requisitos: applet y herramientas (FR-001 a FR-008), la llamada como invocación del kernel (FR-010 a FR-015), banderas, salida estándar y arranque (FR-020 a FR-025), dependencia (FR-026), skills (FR-030 a FR-036), evals en dos modos (FR-040 a FR-051), documentación (FR-060, FR-061), los diez Controles (FR-070 a FR-079) y la Aceptación (SC-001, SC-002). Lo que la corrección r1 añade no sale del hito: `mcp serve --dry-run` (FR-022, FR-075, SC-008, US4.7) es una bandera global del principio VI con la lectura que menos comportamiento añade (no servir), anotada en gates/supuestos.md; la regla de éxito de FR-042 es la que hoy tiene la orden; y FR-048 solo acota lo que el `informe.sh` de hoy ya lee, sin salida nueva. No especifica caso a caso estados inalcanzables: la última viñeta de Edge Cases remite lo manipulado a la regla genérica (ADR 0023)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» lleva las siete exclusiones literales del hito (línea 468 del roadmap) y doce propias bajo «De lo que el hito no especifica»: cambiar los verbos de hoy, herramientas que escriban, parámetros para banderas globales y acceso al asunto, otras piezas del protocolo, otros cambios en las skills, comprobar en la eval sin binario más que la línea y las citas, umbrales nuevos o para `legal-core`, la prueba de red en el modo herramienta y Windows u otro agente, el workflow y el informe final (FR-048), sondear el modo herramienta (FR-050), evals nuevas, y editar hitos anteriores, la release y un ADR nuevo. La corrección r1 no saca nada de la lista ni añade nada sin declarar: cambiar `scripts/workflow/` sigue fuera, con su salida en FR-048."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "gates/clarify-respuestas.json tiene una respuesta (Q1, opción A, conservadora, impacto `alcance`). Está en «Clarifications» (Session 2026-10-01, con «auto: conservadora», criterio y fuente), en FR-050 (los cinco argumentos sin cambios; error de uso con una línea por eval, salida estándar vacía, ninguna sesión ni árbol preparado y salida 1, también con evals que sí se miden), en FR-061 (CONTRIBUTING, «Sondeo local»), en FR-084 (tests del sondeo en `make ci`) y en «Fuera de alcance» («Sondear el modo herramienta … y cualquier argumento nuevo del sondeo, incluido uno de modo»). Deja fuera exactamente lo dudoso. El diff de la corrección r1 no toca ninguno de esos textos."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "Los diez Controles del hito (roadmap, líneas 470-479), transcritos en «Criterios del hito, literales», están en FR-070 (conformidad), FR-071 (e2e con cliente real), FR-072 (manifiesto y `--verbose`), FR-073 (dos especificaciones), FR-074 (simultáneas con `-race`), FR-075 (cierre de la entrada), FR-076 (`/` y ruta con espacios), FR-077 (`skills-check`, nombres y 300 líneas), FR-078 (job en dos modos y las dos evals) y FR-079 (`depguard`, `make ci`), y en SC-003 a SC-013, cada uno como condición con recuento (10 de 10, 3 de 3, 0 líneas, 2 de 2, N de N, menos de 300, 512). La Aceptación del run es SC-001, con los ocho umbrales por modo, y la humana es SC-002, literal. Las siete historias llevan escenarios Dado/Cuando/Entonces; el nuevo US4.7 (`--dry-run`) y el US5.3 corregido también."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "stdio como único transporte y todo en el equipo (FR-001; ADR 0035 y 0027); herramientas y tabla generadas de `--describe` (FR-003, FR-030; principio VIII 2.10.0); las clases del ADR 0023 sin elegir códigos —los siete literales de FR-011 son los de internal/core/schema/error.go:19-38— y los hallazgos como resultado (FR-012); el sobre de la orden (FR-010); skills sin `scripts/` y por debajo de 300 líneas (FR-036); HTTP solo por `internal/httpx` con su ritmo (FR-010, FR-014); nada del asunto (FR-021); modelo que decide, repeticiones y regla por serie sin tocar (FR-040 y «Fuera de alcance»); el sondeo fuera del run (FR-050; ADR 0032); `scripts/workflow/` sin tocar (FR-048). Que `mcp serve` no imprima un sobre propio lo razona Assumptions con el propio hito («la salida estándar es solo protocolo»), y casa con lo que el kernel ya hace bajo `--dry-run`: descripción en la salida de error y ningún sobre (internal/app/main.go:455-463)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Las dos faltas de la ronda 1 están corregidas en la nota de «Requirements are testable and unambiguous» (diff r1, líneas 8-9): FR-075 «ejerce también `mcp serve --dry-run` (FR-022)» —cierto: FR-075 lo pide con la entrada abierta y un mensaje en ella— y FR-081 lleva «la llamada que falla y no satisface el `comando` de FR-042» —cierto en FR-081 y SC-012—; FR-080 «lee el informe de dos modos con `scripts/workflow/informe.sh`», cierto en FR-080 y SC-011. El resto: 0 marcadores [NEEDS CLARIFICATION] en spec.md (`grep -c` en esta sesión); SC-001 a SC-013 con cifra; US1 a US7 con escenarios; Edge Cases con los diez casos que enumera la nota; «Fuera de alcance» con las siete exclusiones literales; Assumptions y «Relación con H5, H6, H7.4 y H19». De las medidas de la nota final comprobé en esta sesión 2 625 y 4 433 bytes (`wc -c` de web/src/data/sobres/), 298 y 170 líneas (`wc -l`) y 7 779 bytes de `territorio resolver --describe` (`go run`); las demás, el spec dice de dónde salen."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "Los nombres técnicos son los que fija la sección del hito (`structuredContent`, `inputSchema`, `outputSchema`, `readOnlyHint`, `instructions`, `modelcontextprotocol/go-sdk`, `depguard`, `internal/httpx`) o existen en el repositorio (`Juzgar`; `TestDefinicionDelJob`, internal/evals/definicion_test.go:117; `skills-check`; `scripts/workflow/informe.sh`). La corrección r1 nombra a `informe.sh` como consumidor y da la condición sobre lo que lee (ninguna pareja de fila y modelo repetida entre modos, cada recuento con su modo) sin decir en qué campo va el modo: «El plan fija cómo» (FR-048). Quedan para el plan el paquete del servidor, el texto de las `instructions`, la forma exacta de la línea, la de la tabla generada, el nombre de cada umbral con su modo, cómo se declara el servidor a la sesión y cómo se lee de ella una llamada (Assumptions, última viñeta)."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "Los dos motivos de la ronda 1 están corregidos y comprobados contra el código. (1) FR-022 separa las banderas: `--describe` lo resuelve el kernel; `--dry-run` lo honra el applet, que no atiende ningún mensaje, deja la salida estándar vacía y termina sin esperar al cierre de la entrada, con la descripción del kernel en la salida de error. Es lo que el kernel hace con un applet que vuelve bajo `--dry-run`: llama a `Ejecutar`, escribe la descripción por el presentador y no presenta sobre (internal/app/main.go:452-463 y 484-521; internal/app/grafo.go:58-60). Lo ejercen FR-075, SC-008 y US4.7, y Assumptions ya no lo da por hecho. (2) FR-042 y US5.3: la llamada satisface el `comando` solo si su resultado no es un error de herramienta (sobre con `ok` verdadero), como la orden solo con código 0 (`satisface` y `consultoConExito`, internal/evals/juzgar.go:596-623), y un `prohibido` cuenta termine como termine, que es la regla de hoy (`ejecutaElProhibido`, juzgar.go:451-457); FR-081 y SC-012 llevan el caso de la herramienta correcta que falla. El texto nuevo no abre lecturas con resultado distinto ni contradice a otro requisito: FR-022 no choca con FR-023 (no hay servicio bajo `--dry-run`) ni FR-048 con FR-047 (las evals sin binario ni servidor no son de ningún modo). El resto sigue derivable: FR-011 da la clase de cada fallo, FR-013 lo observable de la entrega al grafo, FR-020 el plazo por llamada y el servidor sin plazo, FR-047 la línea y la cita comparadas sin modelo, y Edge Cases los límites."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 1 está corregido: FR-048 especifica las tasas por modo desde quien las consume —`scripts/workflow/informe.sh`, una vez por run, que da una celda por fila (eval) y modelo de `tasas` y una fila de expresiones por `modelo` (informe.sh:158-176 y 207-210, leído en esta sesión)—: ninguna pareja de fila y modelo repetida entre modos y cada recuento con su modo; FR-080 y SC-011 lo comprueban, y la fila «Las tasas y las sesiones del informe, por modo» de «Uso, de fuera adentro» nombra al consumidor. Cálculo de esa salida: en `boe-legislacion`, por modo, 20 series del modelo que decide y 12 del informativo = 32; × 2 modos = 64, + 2 de la eval sin binario ni servidor = 66 series, cada una con su celda (antes, 32 de las 66 sin celda); recuentos de expresiones, 2 modelos × 2 modos = 4 filas; `umbrales`, 10 elementos de ≈ 250 bytes. Lo fija el conjunto de evals, no el uso, y cada job lo mide de nuevo. El resto, como en la ronda 1 (FR-010, FR-033): una pregunta por el art. 118 de la LCSP que necesita el índice son tres llamadas, 34 720 (cifra del spec, no remedida) + 2 625 (`wc -c` en esta sesión) + ≈ 325 = ≈ 37 670 bytes de sobres, dos veces en el mensaje (≈ 75 KB); con el id conocido, 2 × (2 625 + 325) ≈ 5,9 KB. Lo acotan la norma y los bloques pedidos, no los cientos de normas ni los miles de bloques acumulados. Pertinencia: cada `version-obsoleta` se da una vez y la apaga la siguiente lectura (en la consulta siguiente y al cabo de un mes no da nada si el BOE no publica otra redacción); la línea `⚠ SIN CONSULTA AL BOE:` (FR-035), una por respuesta hasta instalar o declarar el servidor; el aviso de versión, uno por arranque hasta reinstalar las skills (FR-023); un umbral incumplido, hasta el primer job que lo cumple."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral medido sin persona nombra la comprobación que sale en rojo. Los ocho de FR-043 (por modo: expresiones ≤ 0,05, es decir 2 de 54; sin activar ≤ 0; redacción no leída ≤ 0; duración ≤ 900 s), en el job de evals: «el job de evals de la skill sale en rojo, con el veredicto `fallo`» (SC-001, FR-044), sin sumar modos (FR-043) y con FR-049 vedando rebajarlos; FR-080 lo prueba en `make ci` con 3 de 54 en un solo modo. Las series que deciden y la de la eval sin binario ni servidor: el mismo rojo (SC-001, FR-044, FR-046). Menos de 300 líneas por `SKILL.md`: «`skills-check` falla con 300 líneas o más» (SC-009, FR-077; el control existe, internal/skills/sincronia.go:359). Los 512 caracteres de las `instructions`: «un test falla en `make ci`» (SC-010, FR-077). 10 herramientas exactas, 0 `prompts` y 0 `resources`: el control de conformidad (SC-003, FR-070). 10 de 10 sobres y 3 de 3 fallos: el e2e (SC-004, FR-071). 0 líneas ajenas al protocolo y 1 aviso (SC-005, FR-072). 2 de 2 clientes (SC-006, FR-073). N de N llamadas con `-race` (SC-007, FR-074). Los dos umbrales que añade la corrección r1 también lo llevan: `--dry-run` con 0 mensajes respondidos y 0 bytes en la salida estándar, «los e2e fallan en `make ci`» (SC-008, FR-075); y 0 series de los dos modos sin celda propia, «fallan en `make ci`» (SC-011, FR-080). 0 importaciones del SDK fuera de su paquete: `depguard` (SC-013, FR-079). El tope del trabajo: `TestDefinicionDelJob` (FR-083). SC-002 lo mide una persona y lo dice."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Ronda 2: los tres motivos de la ronda 1 (`--dry-run` en FR-022; cuándo satisface una llamada un `comando`, FR-042; las tasas por modo vistas desde `informe.sh`, FR-048) están corregidos en gates/spec-correccion-r1.diff, y gates/spec-precheck.txt está vacío.",
+    "FR-020 y FR-024: el plazo por llamada y el servidor sin plazo siguen sin control nombrado (FR-071 solo nombra `--offline` y `--no-graph`). Hoy el kernel envuelve todo `Ejecutar` en el plazo de `--timeout` y convierte el plazo vencido en código 4 aunque el applet termine bien (internal/app/main.go:449-453 y 532-543): un servidor que viva más que ese plazo terminaría con 4 y no con 0, y un e2e rápido no lo vería. El requisito está bien escrito; cubrir esa forma es del plan y de la suite de aceptación.",
+    "FR-080 y SC-011 piden leer el informe con `scripts/workflow/informe.sh` dentro de `make ci`. Hoy ningún `_test.go`, ni el Makefile, ni .github/workflows/ci.yml ejecutan nada de `scripts/workflow/` ni usan `jq` (grep en esta sesión), y el guion se sitúa en la raíz del repositorio y lee `.specify/feature.json`, `git` y `gates/`: el test necesita un árbol propio. Cómo se hace es del plan; si no cupiera, vale la salida de FR-048.",
+    "FR-048: `informe.sh` busca la marca «nueva/cambiada» por `evals/<skill>/<eval>` (línea 162), la de «informativa» por `modelo == modelo_que_decide` (163) y solo enseña `.modelo` en la fila de expresiones (210); e internal/evals restringe la forma del modelo y del nombre de eval (plan.go:14, conjunto.go:19). El campo que lleve el modo cambia una de esas marcas o el recuento «N evals» de la cabecera. Es del plan.",
+    "FR-022, US4.7 y SC-008 no escriben el código de salida de `mcp serve --dry-run`: «como termina cualquier verbo con `--dry-run`» es 0 por el kernel (internal/app/main.go:484-497), una sola lectura.",
+    "US5.1 nombra los umbrales como `expresiones_prohibidas:<modelo>` y a la vez pide que el nombre diga el modo; el patrón del ADR 0029 (`^[a-z0-9_.:-]+$`) lo admite y FR-043 deja la forma al plan.",
+    "FR-014: «Comprobable: FR-074», pero FR-074 solo comprueba que cada llamada recibe su resultado; el ritmo por sitio entre llamadas simultáneas a una misma fuente no tiene control nombrado. Es diseño del plan.",
+    "La lista de expresiones prohibidas lleva `graph check`, `graph show`, `graph stats` y `kitlegal graph` (evals/boe-legislacion/expresiones-prohibidas.yaml:12-15): los nombres de herramienta `graph_check`, `graph_show` y `graph_stats` no casan, así que esa familia mide menos en el modo herramienta. El hito no pide ampliar la lista; conviene que la persona lo tenga presente al leer el recuento del modo herramienta.",
+    "FR-035 y FR-047, en `legal-core`: la condición «ninguna cita» es vacía, porque sus respuestas de territorio no llevan `[BOE-A-…, bloque …]`; «tampoco ningún dato de territorio» queda sin comprobar. Es lo que pide el hito, y «Fuera de alcance» lo declara.",
+    "FR-004 y FR-005: el primer verbo que no sea de solo lectura (H10, H11) aparecerá como herramienta «sin ningún cambio en `mcp`», y cómo se anuncia queda para entonces («Fuera de alcance»). Hoy no hay emisor.",
+    "FR-048 y FR-083: con los dos modos, el peor caso de `boe-legislacion` (7 285 s con 97 sesiones y un tope de 122 minutos, .github/workflows/evals.yml:156-158) se acerca al doble, por encima de las 3 h que espera `cierre.sh` (línea 52). El spec lo deja al plan, que tendrá que resolverlo sin tocar `scripts/workflow/`.",
+    "Al registrar `mcp serve`, `TestEsquemasCubrenTodosLosVerbos` (internal/app/esquemas_test.go:340) y `TestTablaDeComandosCoincideConLaGramatica` (internal/app/skills_test.go:165) recorren cada verbo de producción y tocarán `mcp`. Es del plan (FR-051, FR-079).",
+    "La tabla de trazabilidad y dos notas del checklist dicen «FR-070 a FR-083»; FR-084, que añadió clarify, queda fuera del rango.",
+    "«Uso, de fuera adentro» no dice quién pide `graph_show` ni `graph_stats`: ninguna skill los usa y la eval 20 prohíbe `graph show`. Los fija la Entrega del hito.",
+    "No ejecutado en esta sesión: el binario con `graph show --no-graph`, `boe articulo --offline` y `--dry-run` sobre una caché temporal (el control de permisos rechazó las órdenes con variables de entorno); lo que digo de ellos sale de leer internal/app/main.go, internal/app/grafo.go e internal/evals/juzgar.go. Tampoco volví a medir los 46 184 bytes de los diez `--describe`, los 1 356 de `territorio resolver Leganés --json` ni los 34 720 del índice de la LCSP; sí medí 7 779 (`territorio resolver --describe`), 2 625 y 4 433 (`wc -c`) y 298 y 170 líneas, que casan con el spec. Compilé el binario con `go build` en el directorio temporal, sin ejecutarlo."
+  ],
+  "entrada": []
+}

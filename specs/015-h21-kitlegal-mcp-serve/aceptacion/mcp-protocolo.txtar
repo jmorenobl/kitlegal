@@ -1,0 +1,82 @@
+# El mismo binario atiende a un cliente de la especificación vigente del
+# protocolo (2026-07-28) y a uno de la anterior (2025-11-25): los dos listan
+# las mismas herramientas y reciben el mismo sobre de una misma llamada. Y
+# mientras sirve, la salida estándar lleva solo mensajes del protocolo: con las
+# skills instaladas por un binario de otra versión y --verbose, el aviso de
+# versión distinta y el registro de eventos van a la salida de error, y el
+# aviso se da una vez por arranque, no una por llamada.
+#
+# Cubre: US4.1, US4.2 · FR-007, FR-023 · SC-005, SC-006.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3: sin -anterior conecta el cliente del SDK del
+# protocolo, que negocia la versión vigente, y con -anterior, uno de la
+# 2025-11-25, que además hace fallar el guion si una línea de la salida
+# estándar del programa no es un mensaje JSON-RPC 2.0. El binario que avisa es
+# $KITLEGAL_V2_BIN (v0.2.0) y el que instala, $KITLEGAL_V1_BIN (v0.1.0), como
+# en h19-skills-aviso; la línea del aviso es la de H19, sin cambios, y la forma
+# del evento de una llamada, la de contracts/servidor-mcp.md §4. Con el reloj
+# T0, la segunda lectura del bloque la sirve la caché con la fecha de consulta
+# de la primera, así que los dos sobres se comparan byte a byte.
+
+# Precondición: el binario registra el applet mcp (FR-001).
+exec kitlegal --help
+stdout '^\s+mcp\s'
+
+# --- El cliente de la especificación vigente (US4.2, FR-007) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout vigente.txt
+
+# Lo que dejó este cliente se aparta con otro nombre, para que lo que se
+# compare después sea lo que deja el otro.
+mv mcp-1.txt herramientas-vigente.txt
+mv mcp-2.json sobre-vigente.json
+
+# --- El de la anterior, contra el mismo binario (US4.2, FR-007, SC-006) ---
+#
+# La misma lista de herramientas y el mismo sobre de la misma llamada.
+mcp -anterior llamadas.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout anterior.txt
+cmp mcp-1.txt herramientas-vigente.txt
+cmp mcp-2.json sobre-vigente.json
+
+# --- Skills de otra versión y --verbose (US4.1, FR-023, SC-005) ---
+#
+# La orden no falla: cada línea de la salida estándar del servidor es un
+# mensaje del protocolo. El aviso está en la salida de error exactamente una
+# vez, con dos llamadas hechas, y allí está también el evento de una llamada.
+env HOME=$WORK/home
+mkdir $WORK/home
+exec $KITLEGAL_V1_BIN skills install
+mcp -anterior dos-llamadas.txt $KITLEGAL_V2_BIN mcp serve --verbose
+cmp stdout otra-version.txt
+grep -count=1 '^aviso: ' mcp.err
+grep '^aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install$' mcp.err
+grep 'msg=invocación applet=territorio verbo=resolver' mcp.err
+
+-- llamadas.txt --
+herramientas
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+-- vigente.txt --
+protocolo 2026-07-28
+capacidades tools
+1 herramientas 13
+2 boe_articulo resultado
+salida 0
+-- anterior.txt --
+protocolo 2025-11-25
+capacidades tools
+1 herramientas 13
+2 boe_articulo resultado
+salida 0
+-- dos-llamadas.txt --
+herramientas
+territorio_resolver {"consulta":"Leganés"}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+-- otra-version.txt --
+protocolo 2025-11-25
+capacidades tools
+1 herramientas 13
+2 territorio_resolver resultado
+3 boe_articulo resultado
+salida 0

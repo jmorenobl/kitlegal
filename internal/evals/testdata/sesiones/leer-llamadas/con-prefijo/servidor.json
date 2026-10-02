@@ -1,0 +1,1 @@
+{"mcpServers":{"kitlegal":{"command":"/tmp/evals/bin/kitlegal","args":["mcp","serve"],"env":{"KITLEGAL_CACHE_DIR":"/tmp/evals/sesiones/con-prefijo/cache","HTTP_PROXY":"http://127.0.0.1:9","HTTPS_PROXY":"http://127.0.0.1:9","http_proxy":"http://127.0.0.1:9","https_proxy":"http://127.0.0.1:9","NO_PROXY":"api.anthropic.com","no_proxy":"api.anthropic.com"}}}}

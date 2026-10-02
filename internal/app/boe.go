@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/core"
@@ -37,14 +38,31 @@ type DependenciasDeBoe struct {
 // con el nombre de la fuente, el intervalo entre peticiones que fija su fila de
 // SOURCES.md y el registrador que el kernel entrega al applet, y la caché de la
 // cuenta o la de KITLEGAL_CACHE_DIR (FR-122; contrato puerto-y-applet §4).
-// Componerlas no construye nada: el cliente lo construye la invocación que pide
+// Componerlas no construye ningún cliente: lo construye la invocación que pide
 // algo.
+//
+// El cliente es de cada invocación y los turnos de todas: unas dependencias
+// llevan un Ritmo, y cada cliente que construyen espera turno en él. En la
+// orden, que es una invocación por proceso, hay un cliente y un Ritmo que nadie
+// más usa, como siempre; en un proceso que atiende varias, el BOE no recibe de
+// entre todas más de una petición por intervalo, y lo que cada cliente recuerda
+// del robots.txt se va con su invocación (H21 FR-010, FR-014; research D8).
 func DependenciasDeRed() DependenciasDeBoe {
+	return dependenciasDeRedConIntervalo(boe.IntervaloEntrePeticiones)
+}
+
+// dependenciasDeRedConIntervalo son las de DependenciasDeRed con el intervalo
+// que recibe, que es lo único que DependenciasDeRed pone: el del BOE. El Ritmo
+// nace aquí, uno por dependencias, y no dentro de la construcción del cliente,
+// que entonces daría uno a cada invocación.
+func dependenciasDeRedConIntervalo(intervalo time.Duration) DependenciasDeBoe {
+	ritmo := httpx.NuevoRitmo(intervalo)
+
 	return DependenciasDeBoe{
 		Cliente: func(registrador *slog.Logger) (*httpx.Cliente, error) {
 			return httpx.New(
 				httpx.ConFuente(boe.NombreDeLaFuente),
-				httpx.ConIntervalo(boe.IntervaloEntrePeticiones),
+				httpx.ConRitmo(ritmo),
 				httpx.ConRegistrador(registrador),
 			)
 		},

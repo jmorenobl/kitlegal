@@ -118,13 +118,19 @@ func TestClaveDeSitio(t *testing.T) {
 // goroutines la piden a la vez. Es lo que permite que el ritmo y el robots.txt
 // de un sitio sean uno solo por cliente y no uno por petición (FR-021, SC-011,
 // D14).
+//
+// El limitador de cada entrada sale del Ritmo con el que se construye el mapa:
+// dos mapas con el mismo Ritmo —el de un cliente y el de otro que lo reciben con
+// ConRitmo— tienen cada uno su entrada del sitio y un solo limitador entre los
+// dos (research D8 de H21).
 func TestMapaDeSitios(t *testing.T) {
 	t.Parallel()
 
 	t.Run("dos direcciones del mismo sitio comparten entrada", func(t *testing.T) {
 		t.Parallel()
 
-		sitios := nuevosSitios(intervaloDePrueba)
+		ritmo := NuevoRitmo(intervaloDePrueba)
+		sitios := nuevosSitios(ritmo)
 
 		primero := sitios.de(direccionDePrueba(t, "http://fuente.prueba/norma?id=1"))
 		segundo := sitios.de(direccionDePrueba(t, "http://fuente.prueba:80/otra"))
@@ -133,6 +139,8 @@ func TestMapaDeSitios(t *testing.T) {
 		assert.Equal(t, "http://fuente.prueba:80", primero.clave)
 
 		require.NotNil(t, primero.limitador, "el sitio nace con su limitador de ritmo (data-model.md §4)")
+		assert.Same(t, ritmo.turnoDe(primero.clave), primero.limitador,
+			"que es el turno de ese sitio en el Ritmo del cliente")
 		exigeIntervalo(t, primero, intervaloDePrueba)
 
 		// El literal, y no la constante del paquete: comparar la ráfaga con la
@@ -145,7 +153,7 @@ func TestMapaDeSitios(t *testing.T) {
 	t.Run("dos sitios distintos tienen entradas distintas", func(t *testing.T) {
 		t.Parallel()
 
-		sitios := nuevosSitios(intervaloDePrueba)
+		sitios := nuevosSitios(NuevoRitmo(intervaloDePrueba))
 
 		uno := sitios.de(direccionDePrueba(t, "http://fuente.prueba"))
 		otro := sitios.de(direccionDePrueba(t, "http://otra.prueba"))
@@ -161,12 +169,57 @@ func TestMapaDeSitios(t *testing.T) {
 		exigeIntervalo(t, otro, intervaloDePrueba)
 	})
 
+	t.Run("dos registros con el mismo Ritmo comparten el turno del sitio y nada más", func(t *testing.T) {
+		t.Parallel()
+
+		ritmo := NuevoRitmo(intervaloDePrueba)
+		direccion := direccionDePrueba(t, "http://fuente.prueba/norma")
+
+		deUno := nuevosSitios(ritmo).de(direccion)
+		deOtro := nuevosSitios(ritmo).de(direccion)
+
+		assert.NotSame(t, deUno, deOtro,
+			"cada cliente tiene su entrada del sitio, con lo que él recuerda de su robots.txt")
+		assert.Same(t, deUno.limitador, deOtro.limitador,
+			"y los dos esperan turno en el mismo limitador, que es del Ritmo y no del cliente (FR-014 de H21)")
+
+		deTercero := nuevosSitios(NuevoRitmo(intervaloDePrueba)).de(direccion)
+
+		assert.NotSame(t, deUno.limitador, deTercero.limitador,
+			"con otro Ritmo, aunque declare el mismo intervalo, el turno es otro")
+	})
+
+	t.Run("varios registros a la vez obtienen del Ritmo el mismo turno", func(t *testing.T) {
+		t.Parallel()
+
+		const goroutines = 16
+
+		ritmo := NuevoRitmo(intervaloDePrueba)
+		direccion := direccionDePrueba(t, "http://fuente.prueba/ruta")
+		obtenidos := make([]*sitio, goroutines)
+
+		var grupo sync.WaitGroup
+
+		for i := range goroutines {
+			grupo.Go(func() {
+				obtenidos[i] = nuevosSitios(ritmo).de(direccion)
+			})
+		}
+
+		grupo.Wait()
+
+		for _, obtenido := range obtenidos {
+			assert.Same(t, obtenidos[0].limitador, obtenido.limitador,
+				"el Ritmo es seguro para varias goroutines: un solo limitador por sitio")
+		}
+	})
+
 	t.Run("varias goroutines a la vez obtienen la misma entrada", func(t *testing.T) {
 		t.Parallel()
 
 		const goroutines = 16
 
-		sitios := nuevosSitios(intervaloDePrueba)
+		sitios := nuevosSitios(NuevoRitmo(intervaloDePrueba))
 		// La dirección se interpreta aquí, en la goroutine del test: dentro de
 		// las otras no se puede fallar el test.
 		direccion := direccionDePrueba(t, "http://fuente.prueba/ruta")

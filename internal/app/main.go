@@ -140,6 +140,12 @@ func fallarAlArrancar(argv []string, stdout, stderr io.Writer, err error) int {
 // binario que se publica o el del binario de e2e—. version, commit y fecha
 // son los datos de construcción que inyecta -ldflags y que atiende el verbo
 // reservado «version» (D16).
+//
+// stdout y stderr los escribe una sola gorrutina en toda invocación menos en
+// una: el verbo que sirve (`mcp serve`) atiende sus llamadas a la vez, y cada
+// una que falla deja su mensaje en stderr mientras el registro de eventos
+// escribe en él. Quien llame a Main con ese verbo le da un stderr que admita
+// escrituras simultáneas, como lo admite el descriptor de un proceso.
 func Main(
 	argv []string,
 	registro *Registro,
@@ -154,9 +160,19 @@ func Main(
 	fin := resolver(presentador, registro, argv, previo,
 		fmt.Sprintf(formatoDeVersion, version, commit, fecha))
 
-	// Un desenlace sin sobre y sin fallo —«version», la ayuda, --describe y
-	// --dry-run— no cita nada: su código sale de la misma traducción, que sin
-	// error es 0 (FR-022, FR-026, FR-049).
+	return emitir(presentador, registro, fin)
+}
+
+// emitir es el final de una invocación ya resuelta: escribe lo que su desenlace
+// deba escribir, entrega al grafo del mundo lo que observó y devuelve su código
+// de salida. Lo comparten Main y cada llamada a una herramienta del servidor
+// MCP, que es una invocación del kernel con otro presentador, de modo que el
+// sobre de una llamada es el de su orden por construcción (H21 FR-010;
+// research.md D3 de H21).
+func emitir(p cli.Presentador, registro *Registro, fin desenlace) int {
+	// Un desenlace sin sobre y sin fallo —«version», la ayuda, --describe,
+	// --dry-run y el verbo que sirve— no cita nada: su código sale de la misma
+	// traducción, que sin error es 0 (FR-022, FR-026, FR-049).
 	if fin.err == nil && !fin.conSobre {
 		return cli.CodigoSalida(nil)
 	}
@@ -176,7 +192,7 @@ func Main(
 	// (FR-026).
 	montador := cli.Montador{Grafo: almacenDeLaInvocacion(registro, fin)}
 
-	return montador.Emitir(ctx, presentador, fin.enJSON, fin.resultado, fin.err)
+	return montador.Emitir(ctx, p, fin.enJSON, fin.resultado, fin.err)
 }
 
 // almacenDeLaInvocacion es el almacén al que se entrega lo que observó la
@@ -220,8 +236,9 @@ type desenlace struct {
 	// análisis termina bien (research.md D25).
 	enJSON bool
 	// conSobre dice si la invocación produjo algo que presentar en la salida
-	// estándar. Es falso en «version», en la ayuda, en --describe y en
-	// --dry-run, que escriben por su cuenta o no escriben nada.
+	// estándar. Es falso en «version», en la ayuda, en --describe, en
+	// --dry-run y en el verbo que sirve, que escriben por su cuenta o no
+	// escriben nada.
 	conSobre bool
 	// resultado es lo que devolvió el applet. En un fallo aporta la procedencia
 	// de la fuente que se estaba consultando, que es la que cita el sobre de
@@ -377,7 +394,7 @@ func resolverApplet(
 
 		return fin, analisis.Verbo
 	case cli.DecisionEjecutar:
-		return ejecutarVerbo(p, registrador, despacho, analisis, gramatica, fin)
+		return ejecutarVerbo(p, registrador, registro, despacho, analisis, gramatica, fin)
 	}
 
 	fin.err = fmt.Errorf("%w: decisión %q", errSinAtender, analisis.Decision)
@@ -423,12 +440,36 @@ func avisar(p cli.Presentador, registro *Registro) {
 	_ = p.Aviso(linea)
 }
 
+// servidor es el verbo que sirve: el que, en lugar de devolver un resultado,
+// atiende peticiones hasta que quien se las envía termina. Hoy es uno solo,
+// `mcp serve`, y por eso la interfaz no se exporta ni es parte del contrato de
+// un applet (research.md D4 de H21).
+//
+// Un verbo así no cabe en el camino de los demás, que le pondría el plazo de
+// --timeout a su vida entera, lo convertiría en «fuente no disponible» al
+// vencer y presentaría un sobre con lo que devolviera (research.md V22 de
+// H21): el kernel lo reconoce y lo llama con un contexto sin plazo y con lo que
+// necesita para atender cada petición como una invocación —el contexto de
+// ejecución, el registrador, su presentador y el registro—.
+type servidor interface {
+	// servir atiende hasta que la entrada de quien sirve se cierra, que es su
+	// final normal y devuelve nil. Cualquier otro final es un error.
+	servir(
+		ctx context.Context,
+		ec schema.Contexto,
+		registrador *slog.Logger,
+		p cli.Presentador,
+		registro *Registro,
+	) error
+}
+
 // ejecutarVerbo entrega el control al applet con el contexto de ejecución —las
 // seis opciones globales que le llegan ya interpretadas— y el registrador ya
 // montado, de modo que no tenga que leer ninguna bandera (FR-018).
 func ejecutarVerbo(
 	p cli.Presentador,
 	registrador *slog.Logger,
+	registro *Registro,
 	despacho Despacho,
 	analisis cli.Analisis,
 	gramatica gramaticaDelApplet,
@@ -443,6 +484,16 @@ func ejecutarVerbo(
 	}
 
 	ejecucion := analisis.Globales.Contexto()
+
+	// El verbo que sirve no tiene plazo: --timeout es el de cada petición que
+	// atiende, y nunca el de su vida. Termina sin sobre: con 0 si vuelve sin
+	// error y con el fallo de siempre si no. Con --dry-run no sirve, y sigue el
+	// camino de todo verbo (H21 FR-020, FR-022; research.md D4 de H21).
+	if sirve, es := argumentos.(servidor); es && !ejecucion.DryRun {
+		fin.err = sirve.servir(context.Background(), ejecucion, registrador, p, registro)
+
+		return fin, analisis.Verbo
+	}
 
 	// --timeout es el plazo de **toda** la operación y no el de una petición
 	// suelta (FR-020, research.md D9).
@@ -563,15 +614,21 @@ func describir(p cli.Presentador, applet Applet, nombre string) error {
 		return fmt.Errorf("%w: %q de %q", errVerboDesconocido, nombre, applet.Nombre())
 	}
 
-	ayuda := verbo.Descripcion
+	return cli.Describir(p, verboDescrito(applet, verbo, verbo.Argumentos()))
+}
 
-	return cli.Describir(p, cli.Verbo{
+// verboDescrito es el verbo del registro tal como el kernel lo describe, con
+// los argumentos que su fábrica ha devuelto. De él salen el documento de
+// --describe y, con el mismo generador, los dos esquemas de su herramienta en
+// el servidor MCP (research.md D6 de H21).
+func verboDescrito(applet Applet, verbo Verbo, argumentos any) cli.Verbo {
+	return cli.Verbo{
 		Applet:     applet.Nombre(),
 		Verbo:      verbo.Nombre,
-		Ayuda:      ayuda,
-		Argumentos: verbo.Argumentos(),
+		Ayuda:      verbo.Descripcion,
+		Argumentos: argumentos,
 		Salida:     verbo.Salida,
-	})
+	}
 }
 
 // verboDe busca en el catálogo del applet el verbo que se llama así. El registro

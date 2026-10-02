@@ -1,0 +1,57 @@
+# Lo que el servidor anuncia a quien se conecta: una herramienta por cada verbo
+# del registro salvo los de skills y mcp, con el nombre <applet>_<verbo> y de
+# solo lectura; ninguna otra capacidad que tools; y unas instructions de texto
+# fijo, con sus cinco frases. El binario de e2e lleva en su registro, además de
+# los applets de producción, los de ejemplo, así que su lista tiene las diez
+# herramientas de producción y contar_letras, contar_palabras y echo_repetir:
+# un applet más aparece como herramienta sin tocar mcp.
+#
+# Cubre: US6.1, US6.2, US4.6 · FR-001, FR-002, FR-003, FR-004, FR-005, FR-006,
+# FR-008 · SC-003.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3; las trece herramientas, las de §2. El orden de la
+# lista y la capacidad son los de contracts/servidor-mcp.md §2 y §6, y el texto
+# de las instructions, el de §5. Los esquemas y la descripción de cada
+# herramienta no se miran aquí: los compara con --describe el control de
+# conformidad (FR-070).
+
+# Precondición: el binario registra el applet mcp (FR-001).
+exec kitlegal --help
+stdout '^\s+mcp\s'
+
+# --- La lista, la capacidad y las instructions (US6.1, US6.2, US4.6) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+cmp stdout salida.txt
+
+# Las trece, en el orden del servidor y todas de solo lectura: ninguna de
+# skills, ninguna de mcp y ninguna del verbo reservado version (FR-002,
+# FR-004, FR-005).
+cmp mcp-1.txt herramientas.txt
+
+# Las cinco frases, en su orden (FR-006).
+cmp mcp.instrucciones instrucciones.txt
+
+-- llamadas.txt --
+herramientas
+-- salida.txt --
+protocolo 2026-07-28
+capacidades tools
+1 herramientas 13
+salida 0
+-- herramientas.txt --
+boe_analisis lectura=true
+boe_articulo lectura=true
+boe_articulos lectura=true
+boe_buscar lectura=true
+boe_indice lectura=true
+boe_metadatos lectura=true
+contar_letras lectura=true
+contar_palabras lectura=true
+echo_repetir lectura=true
+graph_check lectura=true
+graph_show lectura=true
+graph_stats lectura=true
+territorio_resolver lectura=true
+-- instrucciones.txt --
+Herramientas de kitlegal: consultan fuentes legales públicas españolas y devuelven un sobre con el texto vigente de una norma consolidada del BOE o con el territorio de un municipio. No afirmes ningún contenido legal que no venga del texto devuelto en esta conversación. Cada afirmación lleva su cita, con la norma y el bloque: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]. Traslada los avisos del sobre (data.avisos). El protocolo completo son las skills de kitlegal.

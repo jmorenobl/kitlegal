@@ -5,7 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,6 +23,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/render"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
@@ -158,10 +161,12 @@ func TestSkillsDelRepositorio(t *testing.T) {
 // research.md D6). Para cada verbo del registro de producción, la sintaxis de su
 // fila en la tabla generada se convierte en la invocación mínima que la cumple,
 // seguida de --describe, y esa invocación termina en 0 describiendo ese verbo.
-// Los dos últimos subtests demuestran que la comprobación no pasa en vacío: con
-// argumentos obligatorios presentados como opcionales —uno solo, y uno seguido de
-// otro de varios valores, anidados como los escribe Kong—, la gramática rechaza la
-// invocación que sale de la tabla.
+// Desde H21, la fila lleva además la herramienta de ese mismo verbo, su título
+// con un guion bajo en lugar del espacio (contracts/skills.md §4 de H21;
+// FR-030). Los dos últimos subtests demuestran que la comprobación no pasa en
+// vacío: con argumentos obligatorios presentados como opcionales —uno solo, y uno
+// seguido de otro de varios valores, anidados como los escribe Kong—, la
+// gramática rechaza la invocación que sale de la tabla.
 func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 	t.Parallel()
 
@@ -170,14 +175,14 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 
 	descripciones := describirApplets(t, registro, registro.Nombres())
 	verbos := verbosDeProduccion(t)
-	ordenes := sintaxisDeLaTabla(t, registro.Nombres(), descripciones)
-	require.Len(t, ordenes, len(verbos), "la tabla tiene una fila por verbo del registro")
+	filas := filasDeLaTablaGenerada(t, registro.Nombres(), descripciones)
+	require.Len(t, filas, len(verbos), "la tabla tiene una fila por verbo del registro")
 
-	for indice, orden := range ordenes {
+	for indice, fila := range filas {
 		t.Run(verbos[indice], func(t *testing.T) {
 			t.Parallel()
 
-			argv := invocacionDeLaSintaxis(t, orden)
+			argv := invocacionDeLaSintaxis(t, fila.orden)
 
 			res := invocar(t, registro, argv...)
 			require.Equal(t, 0, res.codigo, "%s: %s", strings.Join(argv, " "), res.errores)
@@ -185,6 +190,9 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 			documento, err := objetoJSON([]byte(res.salida))
 			require.NoError(t, err)
 			assert.Equal(t, verbos[indice], documento["title"], "%s describe su verbo", strings.Join(argv, " "))
+
+			assert.Equal(t, strings.ReplaceAll(verbos[indice], " ", separadorDeHerramienta), fila.herramienta,
+				"la fila de %s nombra la herramienta de su verbo", verbos[indice])
 		})
 	}
 
@@ -251,17 +259,25 @@ func probarObligatoriosComoOpcionales(t *testing.T, registro *Registro, descripc
 // binario solo mandan ejecutar lo que ese binario sabe hacer
 // (contracts/skills-e-invocacion.md §3 de H19; FR-084, SC-014): cada orden de la
 // región generada del SKILL.md de cada skill empotrada empieza por kitlegal, un
-// applet del registro de producción y un verbo de ese applet. Lee lo empotrado y
-// no el árbol, porque es lo que se instala. Para que no pase en vacío, las skills
-// exigidas están empotradas y cada skill que declara applets tiene alguna orden;
-// y el subtest de control demuestra que la comprobación falla con una orden por
-// el enlace de la instalación anterior, sin verbo, con un applet sin registrar y
-// con un verbo sin registrar, y que no cuenta lo que queda fuera de la región.
+// applet del registro de producción y un verbo de ese applet. Desde H21, cada
+// fila nombra además una herramienta, y esa herramienta es una de las que
+// anuncia el servidor: las que da herramientasDe con el registro de producción
+// (contracts/skills.md §5 de H21; FR-031, FR-077, SC-009). Lee lo empotrado y no
+// el árbol, porque es lo que se instala. Para que no pase en vacío, las skills
+// exigidas están empotradas, cada skill que declara applets tiene alguna orden
+// y el servidor anuncia alguna herramienta; y el subtest de control demuestra
+// que la comprobación falla con una orden por el enlace de la instalación
+// anterior, sin verbo, con un applet sin registrar y con un verbo sin
+// registrar —una orden inventada—, y con una herramienta inventada, con la de
+// un applet registrado que el servidor no anuncia y con una fila que no nombra
+// ninguna, y que no cuenta lo que queda fuera de la región.
 func TestOrdenesDeLasSkillsEmpotradas(t *testing.T) {
 	t.Parallel()
 
 	registro, err := RegistroDeProduccion("")
 	require.NoError(t, err)
+
+	anunciadas := herramientasDelServidor(t, registro)
 
 	empotradas, err := skillsEmpotradas()
 	require.NoError(t, err)
@@ -279,12 +295,13 @@ func TestOrdenesDeLasSkillsEmpotradas(t *testing.T) {
 			frontmatter, err := skills.LeerFrontmatter(skillMd)
 			require.NoError(t, err)
 
-			ordenes := ordenesDeLaRegion(t, string(skillMd))
+			filas := filasDeLaRegion(t, string(skillMd))
 			if len(frontmatter.DeclaracionDeKitlegal().Applets) > 0 {
-				require.NotEmpty(t, ordenes, "la tabla de comandos de %s tiene alguna orden", skill.Nombre)
+				require.NotEmpty(t, filas, "la tabla de comandos de %s tiene alguna orden", skill.Nombre)
 			}
 
-			assert.Empty(t, ordenesSinRegistrar(registro, ordenes))
+			assert.Empty(t, ordenesSinRegistrar(registro, ordenesDe(filas)))
+			assert.Empty(t, herramientasSinAnunciar(anunciadas, filas))
 		})
 	}
 
@@ -293,26 +310,58 @@ func TestOrdenesDeLasSkillsEmpotradas(t *testing.T) {
 	t.Run("control", func(t *testing.T) {
 		t.Parallel()
 
-		skillMd := "| `kitlegal boe inventado` | Fuera de la región: no cuenta. | nada |\n" +
+		skillMd := "| `kitlegal boe inventado` | `boe_inventado` | Fuera de la región: no cuenta. | nada |\n" +
 			inicioDeLaTablaDeComandos + "\n" +
-			"\n### `kitlegal boe`\n\n| Orden | Qué hace | Qué devuelve en `data` |\n|---|---|---|\n" +
-			"| `kitlegal boe articulo <norma> <bloque>` | Registrada. | objeto |\n" +
-			"| `scripts/boe articulo <norma> <bloque>` | Por el enlace de la instalación anterior. | objeto |\n" +
-			"| `kitlegal boe` | Sin verbo. | objeto |\n" +
-			"| `kitlegal inventado leer <bloque>` | Applet sin registrar. | objeto |\n" +
-			"| `kitlegal boe inventado <norma>` | Verbo sin registrar. | objeto |\n" +
+			"\n### `kitlegal boe`\n\n" +
+			"| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|\n" +
+			"| `kitlegal boe articulo <norma> <bloque>` | `boe_articulo` | Registrada y anunciada. | objeto |\n" +
+			"| `scripts/boe articulo <norma> <bloque>` | `boe_articulo` | Por el enlace de la instalación " +
+			"anterior. | objeto |\n" +
+			"| `kitlegal boe` | `boe_articulo` | Sin verbo. | objeto |\n" +
+			"| `kitlegal inventado leer <bloque>` | `inventado_leer` | Applet sin registrar. | objeto |\n" +
+			"| `kitlegal boe inventado <norma>` | `boe_inventado` | Verbo sin registrar. | objeto |\n" +
+			"| `kitlegal boe indice <norma>` | `boe_inventada` | Herramienta inventada. | objeto |\n" +
+			"| `kitlegal skills list` | `skills_list` | Registrada, y el servidor no la anuncia. | objeto |\n" +
+			"| `kitlegal boe indice <norma>` | Sin herramienta. | objeto |\n" +
 			finDeLaTablaDeComandos + "\n"
 
-		ordenes := ordenesDeLaRegion(t, skillMd)
-		require.Len(t, ordenes, 5, "solo cuentan las filas de la región")
+		filas := filasDeLaRegion(t, skillMd)
+		require.Len(t, filas, 8, "solo cuentan las filas de la región")
 
 		assert.Equal(t, []string{
 			"«scripts/boe articulo <norma> <bloque>» no empieza por kitlegal <applet> <verbo>",
 			"«kitlegal boe» no empieza por kitlegal <applet> <verbo>",
 			"«kitlegal inventado leer <bloque>»: el applet inventado no está registrado",
 			"«kitlegal boe inventado <norma>»: el applet boe no tiene el verbo inventado",
-		}, ordenesSinRegistrar(registro, ordenes))
+		}, ordenesSinRegistrar(registro, ordenesDe(filas)))
+
+		assert.Equal(t, []string{
+			"«kitlegal inventado leer <bloque>»: la herramienta inventado_leer no está entre las del servidor",
+			"«kitlegal boe inventado <norma>»: la herramienta boe_inventado no está entre las del servidor",
+			"«kitlegal boe indice <norma>»: la herramienta boe_inventada no está entre las del servidor",
+			"«kitlegal skills list»: la herramienta skills_list no está entre las del servidor",
+			"«kitlegal boe indice <norma>» no nombra ninguna herramienta",
+		}, herramientasSinAnunciar(anunciadas, filas))
 	})
+}
+
+// herramientasDelServidor son los nombres de las herramientas que anuncia el
+// servidor MCP con el registro: las de herramientasDe, la función con la que
+// `mcp serve` las construye (H21 FR-031). Anuncia alguna: sin ninguna, la
+// comprobación de las tablas no podría pasar, pero tampoco diría por qué.
+func herramientasDelServidor(t *testing.T, registro *Registro) []string {
+	t.Helper()
+
+	herramientas, err := herramientasDe(registro, schema.Contexto{}, slog.New(slog.DiscardHandler), io.Discard)
+	require.NoError(t, err)
+	require.NotEmpty(t, herramientas, "el servidor anuncia alguna herramienta")
+
+	nombres := make([]string, 0, len(herramientas))
+	for _, herramienta := range herramientas {
+		nombres = append(nombres, herramienta.Nombre)
+	}
+
+	return nombres
 }
 
 // ficheroEmpotrado son los bytes del fichero de la ruta, relativa a su carpeta,
@@ -328,10 +377,9 @@ func ficheroEmpotrado(t *testing.T, skill instalacion.SkillEmpotrada, ruta strin
 	return skill.Ficheros[indice].Contenido
 }
 
-// ordenesDeLaRegion son las órdenes de las filas de la región generada del
-// SKILL.md, entre sus dos marcas, en su orden; ninguna si no tiene las marcas en
-// su orden.
-func ordenesDeLaRegion(t *testing.T, skillMd string) []string {
+// filasDeLaRegion son las filas de la región generada del SKILL.md, entre sus dos
+// marcas, en su orden; ninguna si no tiene las marcas en su orden.
+func filasDeLaRegion(t *testing.T, skillMd string) []filaDeLaTabla {
 	t.Helper()
 
 	_, tras, conInicio := strings.Cut(skillMd, inicioDeLaTablaDeComandos+"\n")
@@ -341,7 +389,26 @@ func ordenesDeLaRegion(t *testing.T, skillMd string) []string {
 		return nil
 	}
 
-	return ordenesDeLaTabla(t, region)
+	return filasDeLaTabla(t, region)
+}
+
+// herramientasSinAnunciar es un fallo por cada fila que no nombra ninguna
+// herramienta o cuya herramienta no está entre las anunciadas, en su orden; nil
+// si no hay ninguno.
+func herramientasSinAnunciar(anunciadas []string, filas []filaDeLaTabla) []string {
+	var fallos []string
+
+	for _, fila := range filas {
+		switch {
+		case fila.herramienta == "":
+			fallos = append(fallos, fmt.Sprintf("«%s» no nombra ninguna herramienta", fila.orden))
+		case !slices.Contains(anunciadas, fila.herramienta):
+			fallos = append(fallos, fmt.Sprintf("«%s»: la herramienta %s no está entre las del servidor", fila.orden,
+				fila.herramienta))
+		}
+	}
+
+	return fallos
 }
 
 // ordenesSinRegistrar es un fallo por cada orden que no empieza por kitlegal, un
@@ -1315,19 +1382,50 @@ func indiceDelVerbo(t *testing.T, descripciones []skills.DescripcionDeVerbo, app
 func sintaxisDeLaTabla(t *testing.T, applets []string, descripciones []skills.DescripcionDeVerbo) []string {
 	t.Helper()
 
+	return ordenesDe(filasDeLaTablaGenerada(t, applets, descripciones))
+}
+
+// filasDeLaTablaGenerada son las filas de la tabla de comandos que se genera
+// para los applets, en su orden.
+func filasDeLaTablaGenerada(t *testing.T, applets []string, descripciones []skills.DescripcionDeVerbo,
+) []filaDeLaTabla {
+	t.Helper()
+
 	tabla, err := skills.RenderizarTabla(applets, descripciones)
 	require.NoError(t, err)
 
-	return ordenesDeLaTabla(t, string(tabla))
+	return filasDeLaTabla(t, string(tabla))
 }
 
-// ordenesDeLaTabla son las órdenes de las filas de una tabla de comandos, en su
-// orden: el texto de la primera celda, sin las comillas de código, de cada línea
-// que empieza por una celda de código.
-func ordenesDeLaTabla(t *testing.T, tabla string) []string {
+// filaDeLaTabla es lo que una fila de una tabla de comandos nombra de dos
+// formas: la orden y la herramienta (contracts/skills.md §4 de H21).
+type filaDeLaTabla struct {
+	// orden es el texto de la primera celda, sin las comillas de código.
+	orden string
+
+	// herramienta es el texto de la segunda celda, sin las comillas de código, o
+	// vacío si esa celda no es solo un tramo de código.
+	herramienta string
+}
+
+// ordenesDe son las órdenes de las filas, en su orden.
+func ordenesDe(filas []filaDeLaTabla) []string {
+	ordenes := make([]string, 0, len(filas))
+	for _, fila := range filas {
+		ordenes = append(ordenes, fila.orden)
+	}
+
+	return ordenes
+}
+
+// filasDeLaTabla son las filas de una tabla de comandos, en su orden: de cada
+// línea que empieza por una celda de código, el texto de esa celda, que es la
+// orden, y el de la celda siguiente si es también solo un tramo de código, que es
+// la herramienta.
+func filasDeLaTabla(t *testing.T, tabla string) []filaDeLaTabla {
 	t.Helper()
 
-	var ordenes []string
+	var filas []filaDeLaTabla
 
 	for linea := range strings.Lines(tabla) {
 		celda, esFila := strings.CutPrefix(linea, "| `")
@@ -1335,13 +1433,28 @@ func ordenesDeLaTabla(t *testing.T, tabla string) []string {
 			continue
 		}
 
-		orden, _, cerrada := strings.Cut(celda, "` |")
+		orden, resto, cerrada := strings.Cut(celda, "` |")
 		require.True(t, cerrada, "la primera celda de %q se cierra", linea)
 
-		ordenes = append(ordenes, orden)
+		segunda, _, _ := strings.Cut(resto, " |")
+
+		filas = append(filas, filaDeLaTabla{orden: orden, herramienta: tramoDeCodigo(strings.TrimSpace(segunda))})
 	}
 
-	return ordenes
+	return filas
+}
+
+// tramoDeCodigo es el texto de una celda que es solo un tramo de código, sin sus
+// comillas; vacío si la celda lleva algo más, o nada.
+func tramoDeCodigo(celda string) string {
+	codigo, abierto := strings.CutPrefix(celda, "`")
+	codigo, cerrado := strings.CutSuffix(codigo, "`")
+
+	if !abierto || !cerrado || strings.Contains(codigo, "`") {
+		return ""
+	}
+
+	return codigo
 }
 
 // invocacionDeLaSintaxis es la invocación mínima que cumple una sintaxis de la

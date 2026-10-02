@@ -74,8 +74,9 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #         sistema (trustd), y sin `enableWeakerNetworkIsolation` govulncheck no llega
 #         a vuln.go.dev (x509: OSStatus -26276);
 #       – escritura: el repositorio, el directorio temporal ($TMPDIR, que el sandbox
-#         pone a la sesión, y el del usuario en macOS) y las cachés de Go y de
-#         golangci-lint. Ni /tmp ni el resto del equipo;
+#         pone a la sesión, y el del usuario en macOS) y las cachés de Go —la de
+#         compilación, la de módulos y la de la base de sumas— y de golangci-lint. Ni
+#         /tmp ni el resto del equipo;
 #       – lectura: todo menos los directorios con secretos: ~/.config/kitlegal,
 #         ~/.config/gh, ~/.ssh y los de KITLEGAL_SECRETOS (rutas absolutas separadas
 #         por «:»). Una regla `deny` de Read sola no basta: no cubre un `cat`.
@@ -105,9 +106,15 @@ case "$(uname -s)" in
   Darwin) caches="$HOME/Library/Caches"; temporal="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || true)";;
   *) caches="${XDG_CACHE_HOME:-$HOME/.cache}"; temporal="";;
 esac
+# Donde Go guarda lo que ya ha comprobado de la base de sumas (sum.golang.org): está junto
+# a la caché de módulos, no dentro, y sin poder escribir ahí `go get` y `go mod tidy` no
+# verifican ningún módulo que la caché no tenga ya. En H21 eso fijó la versión de una
+# dependencia por lo que había en la caché del equipo y no por la que el plan quería.
+gopath="$(go env GOPATH 2>/dev/null || true)"; gopath="${gopath%%:*}"
+gosumdb=""; [ -n "$gopath" ] && gosumdb="$gopath/pkg/sumdb"
 ajustes="$(jq -cn --argjson base "$base" --arg home "$HOME" --arg secretos "${KITLEGAL_SECRETOS:-}" \
   --arg gocache "$(go env GOCACHE 2>/dev/null || true)" --arg gomodcache "$(go env GOMODCACHE 2>/dev/null || true)" \
-  --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" \
+  --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" --arg gosumdb "$gosumdb" \
   --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" '
   ([$home + "/.config/kitlegal", $home + "/.config/gh", $home + "/.ssh"]
     + ($secretos | split(":") | map(select(startswith("/"))))) as $vedados
@@ -119,7 +126,7 @@ ajustes="$(jq -cn --argjson base "$base" --arg home "$HOME" --arg secretos "${KI
         autoAllowBashIfSandboxed: false,
         enableWeakerNetworkIsolation: true,
         filesystem: {
-          allowWrite: ([$temporal, $gocache, $gomodcache, $gotelemetria, $golangci] | map(select(startswith("/")))),
+          allowWrite: ([$temporal, $gocache, $gomodcache, $gosumdb, $gotelemetria, $golangci] | map(select(startswith("/")))),
           denyRead: $vedados
         },
         network: {

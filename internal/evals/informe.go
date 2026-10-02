@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 )
@@ -79,27 +80,39 @@ const (
 	// cuántas (contrato informe-del-job §4 de H7.3).
 	medidaEnElInforme = "no"
 	serieSinMedir     = "sin medir (%d)"
+
+	// sinModoEnElInforme es la celda «Modo» de una serie o una sesión que no es
+	// de ningún modo: las de una eval sin binario ni servidor
+	// (contracts/evals-en-dos-modos.md §5.3 de H21).
+	sinModoEnElInforme = "—"
 )
 
+// modeloConSuModo es el modelo de lo que el informe publica de un modo cuando
+// tiene que distinguirse por su modelo del mismo en otro modo: el id seguido del
+// modo entre paréntesis (contracts/evals-en-dos-modos.md §5 de H21; research.md
+// D19 y V33 de H21).
+const modeloConSuModo = "%s (%s)"
+
 // Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
-// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3 y de H7.4).
+// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3 y de H7.4;
+// contracts/evals-en-dos-modos.md §5.3 de H21).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
 	encabezadosDeSesiones         = []string{
-		"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
+		"Sesión", "Eval", "Modelo", "Modo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
 		"Hallazgos encontrados", "Hallazgos ausentes", "Redacciones modificadas encontradas",
 		"Redacciones modificadas ausentes", "Territorio encontrado", "Territorio ausente",
 		"Expresiones prohibidas", "Reintentos por límite de ritmo", "Sin medir", "Resultado",
 	}
 	encabezadosDeSinMedir     = []string{"Sesión", "Eval", "Modelo", "Motivo"}
-	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones"}
+	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones", "Llamada"}
 	encabezadosDeTasas        = []string{
-		"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 	}
 	encabezadosDeExpresiones = []string{
-		"Modelo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
+		"Modelo", "Modo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
 	}
 	encabezadosDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
 )
@@ -141,6 +154,11 @@ type InformeAEscribir struct {
 	Repeticiones int
 	Umbral       int
 
+	// Modos son los modos del plan, los de PlanDeEvals.Modos: el job da el modo
+	// orden y el modo herramienta; vacío es solo el modo orden, que es el plan
+	// del sondeo (contracts/evals-en-dos-modos.md §2.1 de H21).
+	Modos []Modo
+
 	// Commit es el commit evaluado.
 	Commit string
 
@@ -153,13 +171,24 @@ type InformeAEscribir struct {
 	// H7.3; data-model §4).
 	SinAbrir []SesionPlanificada
 
-	// DuracionDeLasSesiones son los segundos que midió el repartidor, desde que
-	// empezó a preparar la primera sesión hasta que terminó la última, y
-	// ObjetivoDeDuracion, los que el job admite: con 0, la skill no tiene
-	// objetivo ni umbral de la duración; uno negativo impide escribir el informe
-	// (contrato informe-del-job §5 de H7.3; FR-050, FR-051).
+	// DuracionDeLasSesiones son los segundos que midió el repartidor: la suma de
+	// los de sus tandas, cada una desde que empezó a preparar su primera sesión
+	// hasta que terminó la última (contrato informe-del-job §5 de H7.3;
+	// contracts/evals-en-dos-modos.md §5 de H21; FR-050).
 	DuracionDeLasSesiones int
-	ObjetivoDeDuracion    int
+
+	// DuracionDeLosModos son, por modo, los segundos de su tanda, que es lo que
+	// mide el umbral de la duración de ese modo; la tanda de las evals sin
+	// binario ni servidor no es de ninguno, y solo cuenta en
+	// DuracionDeLasSesiones (contracts/evals-en-dos-modos.md §2.2 y §5.1 de H21;
+	// FR-043, FR-047).
+	DuracionDeLosModos map[Modo]int
+
+	// ObjetivoDeDuracion son los segundos que el job admite para la tanda de
+	// cada modo: con 0, la skill no tiene objetivo ni umbrales de la duración;
+	// uno negativo impide escribir el informe (contrato informe-del-job §5 de
+	// H7.3; FR-051).
+	ObjetivoDeDuracion int
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -203,15 +232,19 @@ type Informe struct {
 	// §10.3; vacío con el veredicto aprobado, que es justo cuando no hay ninguna.
 	Motivos []string `json:"motivos"`
 
-	// Tasas son las series —las sesiones de una eval con un modelo— con cuántas
-	// de sus sesiones pasan: primero las que el plan pide, en su orden, y después
-	// las observadas que el plan no pide (data-model §10.4).
+	// Tasas son las series —las sesiones de una eval con un modelo en un modo—
+	// con cuántas de sus sesiones pasan: primero las que el plan pide, en su
+	// orden —las del modo orden, las del modo herramienta y las de las evals sin
+	// binario ni servidor—, y después las observadas que el plan no pide
+	// (data-model §10.4; contracts/evals-en-dos-modos.md §5 de H21).
 	Tasas []TasaDelInforme `json:"tasas"`
 
 	// ExpresionesProhibidasPorModelo es el recuento de las respuestas con alguna
-	// expresión prohibida, uno por modelo del job: el que decide y después los
-	// informativos, en su orden. Vacío, [] en informe.json, si la skill no tiene
-	// lista (contrato lista-y-juicio §5 de H7.2; FR-053).
+	// expresión prohibida, uno por modelo del job y modo del plan: los del modo
+	// orden delante y, en cada modo, el que decide y después los informativos, en
+	// su orden. Vacío, [] en informe.json, si la skill no tiene lista (contrato
+	// lista-y-juicio §5 de H7.2; contracts/evals-en-dos-modos.md §5 de H21;
+	// FR-053).
 	ExpresionesProhibidasPorModelo []RecuentoDeExpresiones `json:"expresiones_prohibidas_por_modelo"`
 
 	// Umbrales son los del contrato del ADR 0029, en el orden de
@@ -219,8 +252,9 @@ type Informe struct {
 	// objetivo de duración (contrato informe-del-job §1 de H7.3; FR-001, FR-006).
 	Umbrales []Umbral `json:"umbrales"`
 
-	// DuracionDeLasSesiones son los segundos recibidos, tal cual (FR-050 de
-	// H7.3).
+	// DuracionDeLasSesiones son los segundos recibidos, tal cual: la suma de las
+	// tandas del repartidor (FR-050 de H7.3; contracts/evals-en-dos-modos.md §5
+	// de H21).
 	DuracionDeLasSesiones int `json:"duracion_de_las_sesiones"`
 
 	// ReintentosPorLimiteDeRitmo es la suma de los de cada sesión (FR-033 de
@@ -248,14 +282,24 @@ type FicheroMalFormadoDelInforme struct {
 	Error   string `json:"error"`
 }
 
-// TasaDelInforme es una serie —las sesiones de una eval con un modelo— con
-// cuántas de ellas pasan (data-model §10.4). Con el umbral, es lo que sustituye
-// a «10 de 10 en una sola tirada» (ADR 0016).
+// TasaDelInforme es una serie —las sesiones de una eval con un modelo en un
+// modo— con cuántas de ellas pasan (data-model §10.4). Con el umbral, es lo que
+// sustituye a «10 de 10 en una sola tirada» (ADR 0016).
 type TasaDelInforme struct {
-	// Eval es el fichero de la eval con la que se juzgan sus sesiones, y Modelo,
-	// el id del modelo con el que se abrieron.
-	Eval   string `json:"eval"`
+	// Eval es el fichero de la eval con la que se juzgan sus sesiones.
+	Eval string `json:"eval"`
+
+	// Modelo es el id del modelo con el que se abrieron en el modo orden y en una
+	// eval sin binario ni servidor, y «<id> (herramienta)» en el modo
+	// herramienta: así ninguna pareja de eval y modelo se repite entre modos, y
+	// scripts/workflow/informe.sh, que enseña la primera serie de cada una, da su
+	// celda a cada serie (modeloDeLaSerie; contracts/evals-en-dos-modos.md §5 de
+	// H21; research.md D19 y V33 de H21; FR-048).
 	Modelo string `json:"modelo"`
+
+	// Modo es el modo de sus sesiones; ninguno, en las de una eval sin binario ni
+	// servidor.
+	Modo Modo `json:"modo"`
 
 	// PreguntaAmpliada dice que la pregunta de sus sesiones no es la de la eval
 	// sino la de la eval con algo más: la sesión de la prueba de red (contrato
@@ -288,31 +332,42 @@ type TasaDelInforme struct {
 	Pasa     bool `json:"pasa"`
 }
 
-// RecuentoDeExpresiones es, para un modelo del job, cuántas respuestas de las
-// evals que activan la skill llevan alguna expresión prohibida (contrato
-// lista-y-juicio §5 de H7.2; data-model §3; FR-053). Es lo que se compara con el
+// RecuentoDeExpresiones es, para un modelo del job en un modo, cuántas
+// respuestas de las evals que activan la skill llevan alguna expresión prohibida
+// (contrato lista-y-juicio §5 de H7.2; data-model §3;
+// contracts/evals-en-dos-modos.md §5 de H21; FR-053). Es lo que se compara con el
 // umbral de SC-001.
 type RecuentoDeExpresiones struct {
-	// Modelo es el id del modelo, tal como lo fija el job.
+	// Modelo es el id del modelo, tal como lo fija el job, seguido de su modo
+	// entre paréntesis, «<id> (orden)» o «<id> (herramienta)»:
+	// scripts/workflow/informe.sh da una fila por recuento con su modelo, y así
+	// cada fila dice de qué modo es (research.md V33 de H21; FR-048).
 	Modelo string `json:"modelo"`
+
+	// Modo es el modo de las sesiones que cuenta.
+	Modo Modo `json:"modo"`
 
 	// ConAlguna son las de Respuestas que llevan alguna expresión prohibida.
 	ConAlguna int `json:"con_alguna"`
 
-	// Respuestas son las respuestas medidas del modelo: sus sesiones juzgadas
-	// —no las ilegibles—, no sin medir y terminadas de las series que pide el plan
-	// con ese modelo cuya eval espera que la skill se active
-	// (contracts/informe-del-job.md §1 de H7.4; FR-045).
+	// Respuestas son las respuestas medidas del modelo en ese modo: sus sesiones
+	// juzgadas —no las ilegibles—, no sin medir y terminadas de las series de ese
+	// modo que pide el plan con ese modelo cuya eval espera que la skill se
+	// active (contracts/informe-del-job.md §1 de H7.4; FR-045). Las de una eval
+	// sin binario ni servidor no son de ningún modo y no entran en ninguno
+	// (FR-047 de H21).
 	Respuestas int `json:"respuestas"`
 }
 
-// recuentoDeRespuestas es, para un modelo del job, el recuento de sus
-// respuestas medidas (data-model §5 de H7.4): lo que publica
-// expresiones_prohibidas_por_modelo —el modelo, las respuestas y las que llevan
-// alguna expresión— y, para los umbrales del modelo que decide, las que llevan
-// alguna de redaccion_no_leida y las que no activaron la skill (FR-041, FR-042).
+// recuentoDeRespuestas es, para un modelo del job en un modo del plan, el
+// recuento de sus respuestas medidas (data-model §5 de H7.4; data-model §10 de
+// H21): lo que publica expresiones_prohibidas_por_modelo —el modelo, el modo,
+// las respuestas y las que llevan alguna expresión— y, para los umbrales del
+// modelo que decide en ese modo, las que llevan alguna de redaccion_no_leida y
+// las que no activaron la skill (FR-041, FR-042).
 type recuentoDeRespuestas struct {
 	modelo string
+	modo   Modo
 
 	// respuestas son las medidas; conAlguna, las que llevan alguna expresión de
 	// la lista; conRedaccionNoLeida, las que llevan alguna de
@@ -340,9 +395,10 @@ func (r *recuentoDeRespuestas) contar(resultado ResultadoDeEval, lista Expresion
 }
 
 // expresionesPorModelo es lo que publica expresiones_prohibidas_por_modelo del
-// recuento: por modelo, en su orden, el modelo, las respuestas con alguna
-// expresión y las respuestas medidas (contracts/informe-del-job.md §1 de H7.4).
-// Nil, [] en informe.json, si no hay recuento: la skill no tiene lista.
+// recuento: por modelo y modo, en su orden, el modelo con su modo, el modo, las
+// respuestas con alguna expresión y las respuestas medidas
+// (contracts/informe-del-job.md §1 de H7.4; contracts/evals-en-dos-modos.md §5
+// de H21). Nil, [] en informe.json, si no hay recuento: la skill no tiene lista.
 func expresionesPorModelo(recuento []recuentoDeRespuestas) []RecuentoDeExpresiones {
 	if recuento == nil {
 		return nil
@@ -351,11 +407,27 @@ func expresionesPorModelo(recuento []recuentoDeRespuestas) []RecuentoDeExpresion
 	publicado := make([]RecuentoDeExpresiones, 0, len(recuento))
 	for _, delModelo := range recuento {
 		publicado = append(publicado, RecuentoDeExpresiones{
-			Modelo: delModelo.modelo, ConAlguna: delModelo.conAlguna, Respuestas: delModelo.respuestas,
+			Modelo:     fmt.Sprintf(modeloConSuModo, delModelo.modelo, delModelo.modo),
+			Modo:       delModelo.modo,
+			ConAlguna:  delModelo.conAlguna,
+			Respuestas: delModelo.respuestas,
 		})
 	}
 
 	return publicado
+}
+
+// modeloDeLaSerie es el modelo que publica la serie de un modelo en un modo: el
+// id en el modo orden y en una eval sin binario ni servidor, como hasta H21, y
+// el id con su modo en el modo herramienta (contracts/evals-en-dos-modos.md §5
+// de H21; research.md D19 de H21). Con él nombran también el modo los motivos
+// de la serie.
+func modeloDeLaSerie(modelo string, modo Modo) string {
+	if modo != ModoHerramienta {
+		return modelo
+	}
+
+	return fmt.Sprintf(modeloConSuModo, modelo, modo)
 }
 
 // SesionSinMedir es una sesión que quedó sin medir por un límite de uso de la
@@ -402,40 +474,54 @@ type RedDelInforme struct {
 //     §3 de H7.3); si no, la sesión no pasa, con un motivo «sesión ilegible:
 //     <fichero>: <error>» por cada fichero que falta o no se puede leer, o por
 //     el eval.txt que no nombra
-//     ninguna eval, en el orden eval.txt, modelo.txt, pregunta.txt, sesión y
-//     traza. Una entrada que no es un directorio no se salta: sus ficheros no se
-//     pueden leer. Lo que sí se leyó de una sesión sin juzgar —la eval que
+//     ninguna eval, en el orden eval.txt, modelo.txt, pregunta.txt,
+//     servidor.json —si no se puede saber si lo tiene—, sesión y traza. Una
+//     entrada que no es un directorio no se salta: sus ficheros no se pueden
+//     leer. Lo que sí se leyó de una sesión sin juzgar —la eval que
 //     nombra, lo observado de la sesión y lo que hicieron sus invocaciones— se
 //     informa igual, para que ninguna llegada a la red quede sin detectar
 //     (FR-076);
-//  3. reparte las sesiones en series —eval, modelo y si la pregunta es la de la
-//     eval— y las compara con las que pide el plan (PlanDeEvals): cada serie
-//     lleva su tasa, y una serie que decide pasa si llegan al umbral
-//     (data-model §10.4; ADR 0016) y ninguna quedó sin medir, contando como sin
-//     medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con la lista de
-//     expresiones prohibidas de la skill, cuenta además por modelo las
-//     respuestas medidas —terminadas— de las series que pide el plan cuya eval
-//     activa la skill, las que llevan alguna expresión, alguna de
-//     redaccion_no_leida o no activaron la skill (recontarExpresiones;
+//  3. reparte las sesiones en series —eval, modelo, modo y si la pregunta es la
+//     de la eval— y las compara con las que pide el plan (PlanDeEvals) en los
+//     modos de e.Modos: cada serie lleva su tasa, y una serie que decide pasa si
+//     llegan al umbral (data-model §10.4; ADR 0016) y ninguna quedó sin medir,
+//     contando como sin medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con la
+//     lista de expresiones prohibidas de la skill, cuenta además por modelo y
+//     modo las respuestas medidas —terminadas— de las series de ese modo que
+//     pide el plan cuya eval activa la skill, las que llevan alguna expresión,
+//     alguna de redaccion_no_leida o no activaron la skill (recontarExpresiones;
 //     contrato lista-y-juicio §5 de H7.2; contracts/informe-del-job.md §1 de
 //     H7.4), sin que eso cambie la regla del veredicto: una sesión con una
 //     expresión es una sesión que no pasa (FR-054), y una sin terminar sigue sin
 //     pasar en su serie;
 //  4. con el recuento, compone los umbrales (umbralesDelInforme): si la skill
-//     tiene lista, los tres del modelo que decide y los de las expresiones de
-//     los informativos, y el de la duración si hay objetivo (contrato
-//     informe-del-job §1 de H7.3; contracts/informe-del-job.md §2 de H7.4);
+//     tiene lista, por cada modo, los tres del modelo que decide y los de las
+//     expresiones de los informativos, y los de la duración de cada modo si hay
+//     objetivo (contrato informe-del-job §1 de H7.3; contracts/informe-del-job.md
+//     §2 de H7.4; contracts/evals-en-dos-modos.md §5.1 de H21);
 //  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
 //     sesión ilegible que no se hayan escrito ya; ninguna eval bien formada que
 //     juzgar; cada fichero mal formado; cada petición llegada a la red; el de
-//     cada umbral que decide y no se cumple, salvo el de la duración (FR-003 de
+//     cada umbral que decide y no se cumple, salvo los de la duración (FR-003 de
 //     H7.3); con alguna sesión sin medir, uno solo de la ejecución que las nombra
-//     (FR-043 de H7.3); y, si decide y no se cumple, el de la duración, también
-//     de la ejecución (FR-051 de H7.3). El veredicto es fallo si hay algún motivo
-//     y aprobado si no hay ninguno, de modo que los motivos son exactamente las
-//     causas del fallo, y un umbral que decide y no se cumple lo pone en fallo.
+//     (FR-043 de H7.3); y, si deciden y no se cumplen, los de la duración,
+//     también de la ejecución (FR-051 de H7.3). El veredicto es fallo si hay
+//     algún motivo y aprobado si no hay ninguno, de modo que los motivos son
+//     exactamente las causas del fallo, y un umbral que decide y no se cumple lo
+//     pone en fallo.
+//
+// Desde H21 (contracts/evals-en-dos-modos.md §3 a §5; FR-043, FR-044, FR-047,
+// FR-048), cada sesión se juzga con el modo que da su directorio
+// (modoDeLaSesion): la del modo herramienta, con sus llamadas, y la de una eval
+// sin binario ni servidor, sin ninguno. Una serie es de un modo, y la que decide
+// y no llega al umbral en uno pone el veredicto en fallo aunque la de la misma
+// eval pase en el otro; las medidas de un modo no se suman a las del otro; y las
+// sesiones de una eval sin binario ni servidor forman su serie, que decide, y no
+// entran en ningún recuento ni en ningún umbral. El modo lo nombran el modelo de
+// la serie (modeloDeLaSerie), el del recuento y el nombre del umbral, y con ellos
+// los motivos.
 //
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
 // un objetivo de duración negativo, o sin-python.txt, las evals o las sesiones
@@ -494,6 +580,96 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 	return informe, nil
 }
 
+// ejecucionPorTandas es lo que el informe recibe del repartidor cuando ejecuta el
+// plan tanda a tanda (contracts/evals-en-dos-modos.md §2.2 y §5 de H21).
+type ejecucionPorTandas struct {
+	// sinAbrir son las sesiones del plan que no se abrieron tras una sesión con
+	// el mensaje del límite de uso, en su orden: las de su tanda y todas las de
+	// las tandas siguientes. Es el SinAbrir del informe.
+	sinAbrir []SesionPlanificada
+
+	// duracion es la suma de los segundos de las tandas ejecutadas, cada una
+	// redondeada hacia arriba: el DuracionDeLasSesiones del informe.
+	duracion int
+
+	// porModo son los segundos de la tanda de cada modo que se ejecutó: el
+	// DuracionDeLosModos del informe. La tanda de las evals sin binario ni
+	// servidor, que no es de ninguno, no está.
+	porModo map[Modo]int
+}
+
+// ejecutarPorTandas ejecuta el plan con una llamada a ejecutar por tanda, en su
+// orden, y reúne lo que el informe necesita de ellas
+// (contracts/evals-en-dos-modos.md §2.2 de H21; research.md D16 de H21): la
+// duración de un modo es la de su tanda, y la de las sesiones, la suma de las de
+// todas. Si una tanda acaba con sesiones sin abrir por el mensaje del límite de
+// uso, las siguientes no se ejecutan y todas sus sesiones cuentan como sin
+// abrir. El error de una tanda es el de la ejecución, y las siguientes tampoco
+// se ejecutan.
+//
+// ejecutar es el repartidor, ejecutarSesiones, con la tanda como plan: lo recibe
+// para que TestEjecucionDelJob, que es quien abre sesiones con modelo, no sea el
+// único sitio en el que está el reparto por tandas.
+func ejecutarPorTandas(
+	plan []SesionPlanificada, ejecutar func(tanda []SesionPlanificada) (EjecucionDeSesiones, error),
+) (ejecucionPorTandas, error) {
+	ejecucion := ejecucionPorTandas{porModo: map[Modo]int{}}
+
+	for _, tanda := range tandasDelPlan(plan) {
+		if len(ejecucion.sinAbrir) > 0 {
+			ejecucion.sinAbrir = append(ejecucion.sinAbrir, tanda...)
+
+			continue
+		}
+
+		deLaTanda, err := ejecutar(tanda)
+		if err != nil {
+			return ejecucionPorTandas{}, err
+		}
+
+		segundos := segundosHaciaArriba(deLaTanda.Duracion)
+		ejecucion.duracion += segundos
+
+		if modo := tanda[0].Modo; modo != "" {
+			ejecucion.porModo[modo] = segundos
+		}
+
+		// Una copia: lo que se le añada después no puede escribir en el plan.
+		ejecucion.sinAbrir = slices.Clone(deLaTanda.SinAbrir)
+	}
+
+	return ejecucion, nil
+}
+
+// tandasDelPlan parte las sesiones del plan, sin cambiar su orden, en sus
+// tandas: cada racha de sesiones seguidas del mismo modo. Con el plan de
+// PlanDeEvals.Sesiones son, como mucho, tres: la del modo orden, con la prueba
+// de red, la del modo herramienta y la de las evals sin binario ni servidor
+// (contracts/evals-en-dos-modos.md §2.1 de H21).
+func tandasDelPlan(plan []SesionPlanificada) [][]SesionPlanificada {
+	var tandas [][]SesionPlanificada
+
+	inicio := 0
+
+	for posicion := 1; posicion <= len(plan); posicion++ {
+		if posicion < len(plan) && plan[posicion].Modo == plan[inicio].Modo {
+			continue
+		}
+
+		tandas = append(tandas, plan[inicio:posicion])
+		inicio = posicion
+	}
+
+	return tandas
+}
+
+// segundosHaciaArriba son los segundos enteros de una duración, redondeados
+// hacia arriba: 900,4 s son 901 y no cumplen un objetivo de 900 (research.md D14
+// de H7.3).
+func segundosHaciaArriba(duracion time.Duration) int {
+	return int((duracion + time.Second - 1) / time.Second)
+}
+
 // sesionJuzgada es lo que el informe lleva de una sesión: su resultado y, para su
 // sección de informe.md, lo leído de ella.
 type sesionJuzgada struct {
@@ -521,32 +697,37 @@ type sesionJuzgada struct {
 }
 
 // claveDeSerie identifica la serie de una sesión: la eval con la que se juzga, el
-// modelo con el que se abrió y si su pregunta es la de la eval o la de la eval
-// con algo más (data-model §10.4).
+// modelo con el que se abrió, el modo que da su directorio y si su pregunta es
+// la de la eval o la de la eval con algo más (data-model §10.4; data-model §6 de
+// H21).
 type claveDeSerie struct {
 	eval             string
 	modelo           string
+	modo             Modo
 	preguntaAmpliada bool
 }
 
-// serieJuzgada es una serie con su tasa, las posiciones de sus sesiones en el
-// orden en que se leyeron y cuántas de las suyas no abrió el repartidor tras el
-// mensaje del límite de uso.
+// serieJuzgada es una serie con su clave, su tasa, las posiciones de sus sesiones
+// en el orden en que se leyeron y cuántas de las suyas no abrió el repartidor
+// tras el mensaje del límite de uso.
 type serieJuzgada struct {
+	clave    claveDeSerie
 	tasa     TasaDelInforme
 	sesiones []int
 	sinAbrir int
 }
 
 // plan es el plan de sesiones que el informe exige que se haya ejecutado, con las
-// evals bien formadas. Sin prueba de red: esa sesión no forma serie planificada,
-// porque no pregunta lo que pregunta la eval (contrato job-de-evals §6).
+// evals bien formadas y en los modos recibidos. Sin prueba de red: esa sesión no
+// forma serie planificada, porque no pregunta lo que pregunta la eval (contrato
+// job-de-evals §6).
 func (e InformeAEscribir) plan(evals []Eval) PlanDeEvals {
 	return PlanDeEvals{
 		Evals:               evals,
 		ModeloQueDecide:     e.ModeloQueDecide,
 		ModelosInformativos: e.ModelosInformativos,
 		Repeticiones:        e.Repeticiones,
+		Modos:               e.Modos,
 	}
 }
 
@@ -567,8 +748,10 @@ func juzgarSesiones(e InformeAEscribir, evals []Eval) ([]sesionJuzgada, error) {
 }
 
 // juzgarSesion lee la sesión del subdirectorio nombre y la juzga con la eval que
-// nombra su eval.txt, o la deja sin pasar con un motivo por cada fichero que no
-// se pudo leer (paso 2 de EscribirInforme).
+// nombra su eval.txt y el modo que da su directorio, o la deja sin pasar con un
+// motivo por cada fichero que no se pudo leer (paso 2 de EscribirInforme). Si no
+// se puede saber si tiene servidor.json, su motivo va detrás del de pregunta.txt
+// y la sesión queda sin modo.
 func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada {
 	dir := filepath.Join(e.Sesiones, nombre)
 
@@ -599,6 +782,16 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		juzgada.clave.preguntaAmpliada = errDeEval == nil && juzgada.pregunta != eval.Pregunta+"\n"
 	}
 
+	// El modo lo da el directorio, y no el transcript ni el nombre de la sesión:
+	// con una eval que no se pudo leer, el de una sesión sin servidor.json es el
+	// modo orden.
+	modo, err := modoDeLaSesion(dir, eval)
+	if err != nil {
+		motivos = append(motivos, motivoDeSesionIlegible+err.Error())
+	} else {
+		juzgada.clave.modo = modo
+	}
+
 	juzgada.sesion, err = LeerSesion(dir)
 	if err != nil {
 		motivos = append(motivos, motivoDeSesionIlegible+err.Error())
@@ -616,7 +809,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 	}
 
 	if len(motivos) == 0 {
-		juzgada.resultado = Juzgar(eval, juzgada.sesion, e.Skill)
+		juzgada.resultado = juzgarEnModo(eval, juzgada.sesion, e.Skill, modo)
 		juzgada.resultado.Sesion = nombre
 		juzgada.resultado.Modelo = juzgada.clave.modelo
 		juzgada.resultado.ModeloDeLaSesion = juzgada.sesion.Modelo
@@ -628,7 +821,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 
 	juzgada.ilegible = true
 	juzgada.resultado = ResultadoDeEval{
-		Sesion: nombre, Eval: nombreDeEval, Modelo: juzgada.clave.modelo,
+		Sesion: nombre, Eval: nombreDeEval, Modelo: juzgada.clave.modelo, Modo: juzgada.clave.modo,
 		ModeloDeLaSesion: juzgada.sesion.Modelo, Motivos: motivos,
 	}
 
@@ -748,32 +941,45 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 // serie pasa si no tiene ninguna sin medir y sus sesiones que pasan llegan al
 // umbral (FR-042 de H7.3), y declara las formas que exige su eval
 // (formasExigidas).
+//
+// Desde H21, la serie es además de un modo: las del plan van en el orden de
+// PlanDeEvals.Series —las del modo orden, las del modo herramienta y las de las
+// evals sin binario ni servidor, sin modo—, y cada sesión cae en la de su eval,
+// su modelo y el modo que da su directorio, de modo que la que se abrió en un
+// modo que el plan no pide queda en una serie que el plan no pide. La tasa
+// publica el modo y, como modelo, el de modeloDeLaSerie
+// (contracts/evals-en-dos-modos.md §5 de H21).
 func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada) []serieJuzgada {
 	var series []serieJuzgada
 
 	posiciones := map[claveDeSerie]int{}
 
-	// enSeries es la posición de la serie de la clave, que se añade como una de
-	// las observadas que el plan no pide si aún no está.
-	enSeries := func(clave claveDeSerie) int {
-		posicion, esta := posiciones[clave]
-		if !esta {
-			posicion = len(series)
-			posiciones[clave] = posicion
-			series = append(series, serieJuzgada{tasa: TasaDelInforme{
-				Eval: clave.eval, Modelo: clave.modelo, PreguntaAmpliada: clave.preguntaAmpliada,
-			}})
-		}
+	// anadir añade la serie de la clave, con lo que el plan dice de ella, y da
+	// su posición.
+	anadir := func(clave claveDeSerie, planificada, decide bool) int {
+		posicion := len(series)
+		posiciones[clave] = posicion
+		series = append(series, serieJuzgada{clave: clave, tasa: TasaDelInforme{
+			Eval: clave.eval, Modelo: modeloDeLaSerie(clave.modelo, clave.modo), Modo: clave.modo,
+			PreguntaAmpliada: clave.preguntaAmpliada, Planificada: planificada, Decide: decide,
+		}})
 
 		return posicion
 	}
 
+	// enSeries es la posición de la serie de la clave, que se añade como una de
+	// las observadas que el plan no pide si aún no está.
+	enSeries := func(clave claveDeSerie) int {
+		if posicion, esta := posiciones[clave]; esta {
+			return posicion
+		}
+
+		return anadir(clave, false, false)
+	}
+
 	for _, planificada := range e.plan(evals).Series() {
-		clave := claveDeSerie{eval: planificada.Eval, modelo: planificada.Modelo}
-		posiciones[clave] = len(series)
-		series = append(series, serieJuzgada{tasa: TasaDelInforme{
-			Eval: clave.eval, Modelo: clave.modelo, Planificada: true, Decide: planificada.Decide,
-		}})
+		anadir(claveDeSerie{eval: planificada.Eval, modelo: planificada.Modelo, modo: planificada.Modo}, true,
+			planificada.Decide)
 	}
 
 	// enSeries puede añadir a series: la posición se toma antes de indexar, porque
@@ -794,7 +1000,7 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 
 	for _, sinAbrir := range e.SinAbrir {
 		enLaSerie := enSeries(claveDeSerie{
-			eval: sinAbrir.Fichero, modelo: sinAbrir.Modelo, preguntaAmpliada: sinAbrir.PruebaDeRed,
+			eval: sinAbrir.Fichero, modelo: sinAbrir.Modelo, modo: sinAbrir.Modo, preguntaAmpliada: sinAbrir.PruebaDeRed,
 		})
 		serie := &series[enLaSerie]
 		serie.sinAbrir++
@@ -825,6 +1031,13 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 // en informe.json, si la skill no tiene lista —si están vacías sus cuatro
 // familias (contracts/lista-de-expresiones.md §3 de H7.3 y de H7.4)—: un
 // recuento de cero diría que se buscó.
+//
+// Desde H21 (contracts/evals-en-dos-modos.md §5 de H21; research.md D19; FR-043,
+// FR-047), hay un elemento por modelo y modo del plan, los del modo orden
+// delante, y cada uno cuenta solo las respuestas de las series de su modo: las
+// de un modo no se suman a las del otro. Las series de una eval sin binario ni
+// servidor, que el plan pide sin modo, no cuentan en ninguno, aunque su eval
+// espere que la skill se active.
 func recontarExpresiones(
 	e InformeAEscribir, lista ExpresionesProhibidas, sesiones []sesionJuzgada, series []serieJuzgada,
 ) []recuentoDeRespuestas {
@@ -832,20 +1045,28 @@ func recontarExpresiones(
 		return nil
 	}
 
+	modos := e.plan(nil).modos()
 	modelos := slices.Concat([]string{e.ModeloQueDecide}, e.ModelosInformativos)
 
-	recuento := make([]recuentoDeRespuestas, 0, len(modelos))
-	for _, modelo := range modelos {
-		recuento = append(recuento, recuentoDeRespuestas{modelo: modelo})
+	recuento := make([]recuentoDeRespuestas, 0, len(modos)*len(modelos))
+
+	for _, modo := range modos {
+		for _, modelo := range modelos {
+			recuento = append(recuento, recuentoDeRespuestas{modelo: modelo, modo: modo})
+		}
 	}
 
 	for _, serie := range series {
-		if !serie.tasa.Planificada {
+		// Las series que pide el plan son de los modelos del job y, las que
+		// tienen modo, de uno de los suyos.
+		enElRecuento := slices.IndexFunc(recuento, func(r recuentoDeRespuestas) bool {
+			return r.modelo == serie.clave.modelo && r.modo == serie.clave.modo
+		})
+		if !serie.tasa.Planificada || enElRecuento < 0 {
 			continue
 		}
 
-		// Las series que pide el plan son de los modelos del job.
-		delModelo := &recuento[slices.Index(modelos, serie.tasa.Modelo)]
+		delModelo := &recuento[enElRecuento]
 
 		for _, posicion := range serie.sesiones {
 			juzgada := sesiones[posicion]
@@ -907,13 +1128,15 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // sin medir, su tasa con los motivos de sus sesiones que no pasan; los de cada
 // sesión ilegible que no se hayan escrito ya; que no haya ninguna eval que
 // juzgar; cada fichero mal formado; cada petición llegada a la red; el de cada
-// umbral que decide y no se cumple, salvo el de la duración (FR-003 de H7.3;
+// umbral que decide y no se cumple, salvo los de la duración (FR-003 de H7.3;
 // contrato informe-del-job §2.1); con alguna sesión sin medir, uno solo de la
-// ejecución que las nombra (FR-043 de H7.3; contrato informe-del-job §2.2); y el
-// de la duración, también de la ejecución, si decide y no se cumple (FR-051 de
-// H7.3; contrato informe-del-job §2.3). Una sesión que no pasa de una serie que
-// sí llega al umbral no da ningún motivo: eso es lo que el umbral absorbe
-// (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de H7.3).
+// ejecución que las nombra (FR-043 de H7.3; contrato informe-del-job §2.2); y
+// los de la duración de cada modo, también de la ejecución, si deciden y no se
+// cumplen (FR-051 de H7.3; contrato informe-del-job §2.3). Una sesión que no
+// pasa de una serie que sí llega al umbral no da ningún motivo: eso es lo que el
+// umbral absorbe (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de
+// H7.3). Los de una serie nombran su modelo, y los de un umbral, su nombre: con
+// ellos nombran su modo (contracts/evals-en-dos-modos.md §5.2 de H21; FR-044).
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 ) []string {
@@ -949,7 +1172,7 @@ func motivosDelInforme(
 		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
 	}
 
-	return append(motivos, motivoDeLaDuracionDeLasSesiones(informe.Umbrales)...)
+	return append(motivos, motivosDeLaDuracionDeLasSesiones(informe.Umbrales)...)
 }
 
 // motivosDeLaSerie son los motivos de la raíz que da una serie: si el plan la
@@ -1081,7 +1304,10 @@ func retirarFichero(ruta string) error {
 // por eval; el recuento de las expresiones prohibidas por modelo, o el párrafo de
 // la skill sin lista (contrato lista-y-juicio §5 de H7.2); junto a él, los
 // umbrales, o «ninguno»; las sesiones sin medir, o «ninguna»; la tabla de las
-// sesiones; y una sección por sesión.
+// sesiones; y una sección por sesión. Las tablas de las tasas, de las
+// expresiones y de las sesiones llevan el modo detrás del modelo, y la de las
+// invocaciones de cada sesión, si cada una es una llamada a una herramienta
+// (contracts/evals-en-dos-modos.md §5.3 de H21).
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -1212,12 +1438,12 @@ func filasDeRed(red []RedDelInforme) [][]string {
 	return filas
 }
 
-// filasDeTasas son las filas de la tabla de las series: eval, modelo, si decide,
-// si el plan la pide, las formas que exige su eval junto a la tasa (contrato
-// evals-y-skill §6 de H7.1), la tasa «<pasan> de <sesiones>» y si llega al umbral
-// o, con alguna sesión sin medir, cuántas (contrato informe-del-job §4 de H7.3).
-// La eval de una serie con la pregunta ampliada lleva detrás con qué se amplió,
-// que es la prueba de red.
+// filasDeTasas son las filas de la tabla de las series: eval, modelo, modo, si
+// decide, si el plan la pide, las formas que exige su eval junto a la tasa
+// (contrato evals-y-skill §6 de H7.1), la tasa «<pasan> de <sesiones>» y si llega
+// al umbral o, con alguna sesión sin medir, cuántas (contrato informe-del-job §4
+// de H7.3). La eval de una serie con la pregunta ampliada lleva detrás con qué
+// se amplió, que es la prueba de red.
 func filasDeTasas(tasas []TasaDelInforme) [][]string {
 	filas := make([][]string, 0, len(tasas))
 
@@ -1230,6 +1456,7 @@ func filasDeTasas(tasas []TasaDelInforme) [][]string {
 		filas = append(filas, []string{
 			eval,
 			tasa.Modelo,
+			modoEscrito(tasa.Modo),
 			siONo(tasa.Decide),
 			siONo(tasa.Planificada),
 			unidosOVacio(tasa.Formas, ningunaEnElInforme),
@@ -1253,17 +1480,25 @@ func filasDeSinMedir(sinMedir []SesionSinMedir) [][]string {
 }
 
 // filasDeExpresiones son las filas de la tabla del recuento de las expresiones
-// prohibidas: por modelo, las respuestas con alguna expresión y las respuestas en
-// evals que activan la skill.
+// prohibidas: por modelo y modo, el modelo, el modo, las respuestas con alguna
+// expresión y las respuestas en evals que activan la skill.
 func filasDeExpresiones(recuento []RecuentoDeExpresiones) [][]string {
 	filas := make([][]string, 0, len(recuento))
 	for _, delModelo := range recuento {
 		filas = append(filas, []string{
-			delModelo.Modelo, strconv.Itoa(delModelo.ConAlguna), strconv.Itoa(delModelo.Respuestas),
+			delModelo.Modelo, modoEscrito(delModelo.Modo), strconv.Itoa(delModelo.ConAlguna),
+			strconv.Itoa(delModelo.Respuestas),
 		})
 	}
 
 	return filas
+}
+
+// modoEscrito es el modo como lo escribe la columna «Modo» de informe.md:
+// «orden», «herramienta» o, si no es ninguno, «—»
+// (contracts/evals-en-dos-modos.md §5.3 de H21).
+func modoEscrito(modo Modo) string {
+	return cmp.Or(string(modo), sinModoEnElInforme)
 }
 
 // resultadoDeLaSerie dice cuántas sesiones de la serie quedaron sin medir, si
@@ -1280,7 +1515,7 @@ func resultadoDeLaSerie(tasa TasaDelInforme) string {
 }
 
 // filasDeSesiones son las filas de la tabla de las sesiones: sesión, eval, modelo,
-// activa, activada, sesión terminada con su código, comandos ausentes, comandos
+// modo, activa, activada, sesión terminada con su código, comandos ausentes, comandos
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
 // hallazgos encontrados, hallazgos ausentes, redacciones modificadas encontradas,
 // redacciones modificadas ausentes, territorio encontrado, territorio ausente,
@@ -1313,6 +1548,7 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			resultado.Sesion,
 			resultado.Eval,
 			resultado.Modelo,
+			modoEscrito(resultado.Modo),
 			siONo(resultado.Activa),
 			siONo(resultado.Activada),
 			siONo(resultado.SesionTerminada) + " (" + codigo + ")",
@@ -1338,8 +1574,10 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 }
 
 // filasDeInvocaciones son las filas de la tabla de invocaciones de una sesión:
-// la orden, su código o «sin código (sesión cortada)» y sus conexiones, cada una
-// con su destino y su clase, o «sin conexiones».
+// la orden, su código o «sin código (sesión cortada)», sus conexiones, cada una
+// con su destino y su clase, o «sin conexiones», y la marca de las que son una
+// llamada a una herramienta del servidor y no una orden de la traza
+// (contracts/evals-en-dos-modos.md §5.3 de H21).
 func filasDeInvocaciones(invocaciones []InvocacionInformada) [][]string {
 	filas := make([][]string, 0, len(invocaciones))
 
@@ -1354,7 +1592,9 @@ func filasDeInvocaciones(invocaciones []InvocacionInformada) [][]string {
 			conexiones = append(conexiones, conexion.Destino+" ("+string(conexion.Clase)+")")
 		}
 
-		filas = append(filas, []string{invocacion.Orden, codigo, unidosOVacio(conexiones, sinConexiones)})
+		filas = append(filas, []string{
+			invocacion.Orden, codigo, unidosOVacio(conexiones, sinConexiones), siONo(invocacion.Llamada),
+		})
 	}
 
 	return filas

@@ -2,10 +2,11 @@
 # Abre una sesión de evals con Claude Code (contracts/ejecucion-del-job.md §2 de H7.3; research.md D8 de H7.3). Lo
 # ejecuta el repartidor de internal/evals, sin argumentos, en el directorio trabajo/ de la sesión que acaba de preparar:
 # lee la pregunta y el modelo de ../pregunta.txt y ../modelo.txt y ejecuta con exec la orden de la sesión de siempre,
-# carácter a carácter. Con KITLEGAL_EVALS_TRAZA=si, el job, la ejecuta bajo strace, con la traza en ../traza/. El grupo
-# de procesos, el tope de 240 s, el entorno —la caché, el proxy que rechaza toda petición salvo la del modelo, el estado
-# de Claude Code y el temporal de la sesión— y los ficheros de su salida los pone el repartidor. No usa nada posterior
-# a bash 3.2, el de macOS.
+# carácter a carácter. Si la sesión tiene ../servidor.json, el del modo herramienta, la orden lo declara al final con
+# --mcp-config (contracts/evals-en-dos-modos.md §2.3 de H21). Con KITLEGAL_EVALS_TRAZA=si, el job, la ejecuta bajo
+# strace, con la traza en ../traza/. El grupo de procesos, el tope de 240 s, el entorno —la caché, el proxy que rechaza
+# toda petición salvo la del modelo, el estado de Claude Code, el temporal de la sesión y su PATH—, el servidor.json y
+# los ficheros de su salida los pone el repartidor. No usa nada posterior a bash 3.2, el de macOS.
 #
 # Abre una sesión con modelo y consume la credencial de Claude Code: solo lo ejecuta el repartidor, en el job de evals y
 # en el sondeo; ni make ci, ni los ganchos, ni ninguna tarea del workflow.
@@ -20,6 +21,13 @@ modelo="$(cat ../modelo.txt)"
 sesion=(claude -p "$pregunta" --model "$modelo" --output-format stream-json --verbose --max-turns 30
 	--no-session-persistence --setting-sources user --settings '{"sandbox":{"enabled":false}}'
 	--permission-mode bypassPermissions --disallowedTools WebFetch WebSearch)
+
+# El servidor MCP de kitlegal, solo en la sesión del modo herramienta, que es la que tiene servidor.json (research.md
+# V21 de H21). Que sus herramientas estén desde el primer turno y que bypassPermissions las deje llamar sin preguntar
+# es un supuesto que mide el job (research.md S4 de H21). Sin el fichero, la orden es la de siempre, carácter a carácter.
+if [[ -f ../servidor.json ]]; then
+	sesion+=(--mcp-config ../servidor.json)
+fi
 
 # La traza lleva entera cada cadena de un execve: -s 131072 es el tamaño máximo de un argumento en Linux, y con -s 4096
 # la instantánea de shell que Claude Code crea antes de la primera orden de Bash sale cortada y deja ilegible la traza

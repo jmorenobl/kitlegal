@@ -1,0 +1,16 @@
+{
+  "tarea": "T001",
+  "commit": "253df468226b2ef3130be659efb041adae229db8",
+  "ficheros": {
+    "specs/015-h21-kitlegal-mcp-serve/aceptacion/mcp-errores.txtar": "815bca3b956f00ecf902b46fa24b473fbd7b1286937b039719c71e5d1f72627d",
+    "specs/015-h21-kitlegal-mcp-serve/aceptacion/mcp-herramientas.txtar": "0e80fe3bb36415fb40491fe7928ed99bf112557a9e8275910329071ea035553d",
+    "specs/015-h21-kitlegal-mcp-serve/aceptacion/mcp-llamadas.txtar": "60ae16068da9b77a1cc8315cd029368f496840e10a12bc0e70255d500612c568",
+    "specs/015-h21-kitlegal-mcp-serve/aceptacion/mcp-proceso.txtar": "622df248b25f9059fea093d6248f6cebbdbcb6eba36ea89fe8ebf54a248d9725",
+    "specs/015-h21-kitlegal-mcp-serve/aceptacion/mcp-protocolo.txtar": "1ff7f052fa3bba509d1c0a76d062acb6d0a88d4b591d9f9497193f28e614e9d2",
+    "internal/app/testdata/script/h21-mcp-errores.txtar": "815bca3b956f00ecf902b46fa24b473fbd7b1286937b039719c71e5d1f72627d",
+    "internal/app/testdata/script/h21-mcp-herramientas.txtar": "0e80fe3bb36415fb40491fe7928ed99bf112557a9e8275910329071ea035553d",
+    "internal/app/testdata/script/h21-mcp-llamadas.txtar": "60ae16068da9b77a1cc8315cd029368f496840e10a12bc0e70255d500612c568",
+    "internal/app/testdata/script/h21-mcp-proceso.txtar": "622df248b25f9059fea093d6248f6cebbdbcb6eba36ea89fe8ebf54a248d9725",
+    "internal/app/testdata/script/h21-mcp-protocolo.txtar": "1ff7f052fa3bba509d1c0a76d062acb6d0a88d4b591d9f9497193f28e614e9d2"
+  }
+}

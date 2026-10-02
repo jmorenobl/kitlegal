@@ -1,7 +1,9 @@
 package evals
 
 import (
+	"bytes"
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"os"
@@ -37,7 +39,26 @@ const (
 	// directorioDeSkills es, dentro de directorioDeClaude, el de las skills de
 	// usuario, que Claude Code carga con --setting-sources user.
 	directorioDeSkills = "skills"
+
+	// ficheroDelServidor es, solo en las sesiones del modo herramienta, la
+	// declaración del servidor MCP de kitlegal, que el guion de la sesión pasa
+	// a Claude Code con --mcp-config (contracts/evals-en-dos-modos.md §2.2 y
+	// §2.3 de H21; data-model §11 de H21).
+	ficheroDelServidor = "servidor.json"
 )
+
+// Lo que declara servidor.json (contracts/evals-en-dos-modos.md §2.2 de H21):
+// el nombre del servidor, del que Claude Code saca el de sus herramientas
+// (research.md V21 de H21), y los argumentos con los que lo arranca.
+const (
+	nombreDelServidor = "kitlegal"
+	appletDelServidor = "mcp"
+	verboDelServidor  = "serve"
+)
+
+// variableDelPATH es la variable de entorno con las rutas en las que la sesión
+// busca sus órdenes.
+const variableDelPATH = "PATH"
 
 // permisosDeLaSesion son los de cada directorio que el repartidor crea en el de
 // la sesión: solo para quien la abre, como pide Claude Code para su temporal
@@ -89,6 +110,13 @@ type SesionesAEjecutar struct {
 
 	// Guion es la ruta de scripts/evals-sesion.sh, que abre la sesión.
 	Guion string
+
+	// Binario es la ruta absoluta de kitlegal: la orden del servidor de las
+	// sesiones del modo herramienta, y el binario cuyo directorio sale del PATH
+	// de toda sesión que no es del modo orden. Un plan con solo el modo orden,
+	// el del sondeo, no lo necesita (contracts/evals-en-dos-modos.md §2.2 de
+	// H21).
+	Binario string
 
 	// Entorno es la base del entorno de cada sesión: el del job, entero, o la
 	// lista del sondeo. Lo de contracts/ejecucion-del-job.md §4 de H7.3 va
@@ -147,12 +175,21 @@ type EjecucionDeSesiones struct {
 // de las sesiones interrumpidas o, si no había ninguna abierta,
 // errSesionInterrumpida. Ninguna sesión se reintenta ni se abre dos veces
 // (FR-037 de H7.3). Una Concurrencia menor que 1 es un error antes de abrir
-// ninguna.
+// ninguna, y también un Binario que no es una ruta absoluta si alguna sesión
+// del plan no es del modo orden: sin él no hay directorio que quitar de su PATH
+// ni orden que declarar como su servidor (contracts/evals-en-dos-modos.md §2.2
+// de H21).
 func ejecutarSesiones(interrupcion <-chan struct{}, e SesionesAEjecutar) (EjecucionDeSesiones, error) {
 	if e.Concurrencia < 1 {
 		return EjecucionDeSesiones{}, fmt.Errorf(
 			"las sesiones no se pueden abrir: la concurrencia es %d y tiene que ser un entero mayor o igual que 1",
 			e.Concurrencia)
+	}
+
+	sinKitlegalEnElPATH := func(sesion SesionPlanificada) bool { return sesion.Modo != ModoOrden }
+	if slices.ContainsFunc(e.Plan, sinKitlegalEnElPATH) && !filepath.IsAbs(e.Binario) {
+		return EjecucionDeSesiones{}, fmt.Errorf(
+			"las sesiones no se pueden abrir: el binario de kitlegal es %q y tiene que ser una ruta absoluta", e.Binario)
 	}
 
 	inicio := time.Now()
@@ -358,11 +395,14 @@ func (r *repartidor) desenlace() (trasElLimite bool, err error) {
 //  2. la prepara justo antes de abrirla con PrepararSesion, en proceso: las
 //     evals de la skill, UnionDeGrabaciones(), su eval, su modelo y la prueba de
 //     red. Una falta de lo grabado es un error, como el de preparación;
-//  3. ejecuta el guion en trabajo/, en su propio grupo de procesos, con el
+//  3. le da lo que pide su modo, con disponerElModo: en el modo herramienta,
+//     servidor.json; y, salvo en el modo orden, el PATH sin el directorio de
+//     Binario (contracts/evals-en-dos-modos.md §2.2 de H21);
+//  4. ejecuta el guion en trabajo/, en su propio grupo de procesos, con el
 //     entorno de la sesión y su salida estándar y su salida de error en
 //     sesion.jsonl y sesion.err; a los Tope envía TERM al grupo y, pasado
 //     MargenDelTope, KILL;
-//  4. escribe codigo-de-la-sesion: 124 si bastó TERM, 137 si hizo falta KILL, o
+//  5. escribe codigo-de-la-sesion: 124 si bastó TERM, 137 si hizo falta KILL, o
 //     el del proceso si terminó antes.
 //
 // No recibe un contexto, sino interrupcion, el Done() del contexto que el job y
@@ -410,9 +450,14 @@ func abrirSesion(interrupcion <-chan struct{}, e SesionesAEjecutar, sesion Sesio
 			sesion.Nombre, strings.Join(textos, "\n"))
 	}
 
+	entorno, err := disponerElModo(e, dir, sesion.Modo)
+	if err != nil {
+		return fmt.Errorf("la sesión %s: %w", sesion.Nombre, err)
+	}
+
 	codigo, err := ejecutarElGuion(interrupcion, e.Guion, sesionEnMarcha{
 		dir:     dir,
-		entorno: entornoDeLaSesion(e.Entorno, dir, e.Traza),
+		entorno: entorno,
 		tope:    e.Tope,
 		margen:  e.MargenDelTope,
 	})
@@ -481,7 +526,29 @@ func enlazarLasSkills(destino, skills string) error {
 func entornoDeLaSesion(base []string, dir string, traza bool) []string {
 	temporal := filepath.Join(dir, directorioTemporal)
 
-	variables := []string{
+	variables := append(variablesDeLasConsultas(dir),
+		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
+		"CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
+		"CLAUDE_CONFIG_DIR="+filepath.Join(dir, directorioDeClaude),
+		"TMPDIR="+temporal,
+		"CLAUDE_CODE_TMPDIR="+temporal,
+	)
+	if traza {
+		variables = append(variables, variableDeLaTraza+"="+valorDeLaTraza)
+	}
+
+	return sobreLaBase(base, variables, variableDeLaTraza)
+}
+
+// variablesDeLasConsultas son las variables de la sesión del directorio dir de
+// las que depende una consulta de kitlegal, sea una orden o una llamada a una
+// herramienta: su caché, con su grafo, y el proxy que rechaza toda petición. Van
+// en el entorno de la sesión y, repetidas, en el del servidor que declara
+// servidor.json, para no depender de qué entorno hereda de Claude Code el
+// servidor (research.md S7 de H21). Su orden es el de
+// contracts/evals-en-dos-modos.md §2.2 de H21.
+func variablesDeLasConsultas(dir string) []string {
+	return []string{
 		cache.VariableDirectorio + "=" + filepath.Join(dir, directorioDeLaCache),
 		"HTTP_PROXY=" + proxyQueRechaza,
 		"HTTPS_PROXY=" + proxyQueRechaza,
@@ -489,17 +556,90 @@ func entornoDeLaSesion(base []string, dir string, traza bool) []string {
 		"https_proxy=" + proxyQueRechaza,
 		"NO_PROXY=" + destinoSinProxy,
 		"no_proxy=" + destinoSinProxy,
-		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
-		"CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
-		"CLAUDE_CONFIG_DIR=" + filepath.Join(dir, directorioDeClaude),
-		"TMPDIR=" + temporal,
-		"CLAUDE_CODE_TMPDIR=" + temporal,
 	}
-	if traza {
-		variables = append(variables, variableDeLaTraza+"="+valorDeLaTraza)
+}
+
+// disponerElModo da a la sesión del directorio dir lo que pide su modo y
+// devuelve su entorno (contracts/evals-en-dos-modos.md §2.2 de H21; research.md
+// D16 de H21): en el modo orden, el de siempre; en el modo herramienta,
+// servidor.json en el directorio de la sesión y el PATH de la base sin el
+// directorio de Binario; y sin modo, en la sesión de una eval sin binario ni
+// servidor, ese mismo PATH y ningún servidor.json. La caché, las skills, los
+// proxies, el temporal y el tope son los de siempre en los tres.
+func disponerElModo(e SesionesAEjecutar, dir string, modo Modo) ([]string, error) {
+	entorno := entornoDeLaSesion(e.Entorno, dir, e.Traza)
+	if modo == ModoOrden {
+		return entorno, nil
 	}
 
-	return sobreLaBase(base, variables, variableDeLaTraza)
+	if modo == ModoHerramienta {
+		if err := escribirElServidor(dir, e.Binario); err != nil {
+			return nil, err
+		}
+	}
+
+	return sinElDirectorioEnElPATH(entorno, filepath.Dir(e.Binario)), nil
+}
+
+// escribirElServidor escribe servidor.json en el directorio de la sesión: la
+// declaración del servidor MCP de kitlegal para --mcp-config, con el binario
+// como orden, mcp serve como argumentos y, en su env, las variables de
+// variablesDeLasConsultas, de modo que el servidor usa la caché y el grafo de
+// la sesión y no tiene más red que la que tiene una orden (FR-041 de H21). Es
+// el JSON de contracts/evals-en-dos-modos.md §2.2 de H21, carácter a carácter y
+// con un salto de línea final: sus claves van en ese orden, y no en el de un
+// mapa. Un binario cuya ruta no es UTF-8 no cabe en él, y es un error.
+func escribirElServidor(dir, binario string) error {
+	tokens := []jsontext.Token{
+		jsontext.BeginObject, jsontext.String("mcpServers"),
+		jsontext.BeginObject, jsontext.String(nombreDelServidor),
+		jsontext.BeginObject,
+		jsontext.String("command"), jsontext.String(binario),
+		jsontext.String("args"),
+		jsontext.BeginArray, jsontext.String(appletDelServidor), jsontext.String(verboDelServidor), jsontext.EndArray,
+		jsontext.String("env"), jsontext.BeginObject,
+	}
+
+	for _, variable := range variablesDeLasConsultas(dir) {
+		nombre, valor, _ := strings.Cut(variable, "=")
+		tokens = append(tokens, jsontext.String(nombre), jsontext.String(valor))
+	}
+
+	tokens = append(tokens, jsontext.EndObject, jsontext.EndObject, jsontext.EndObject, jsontext.EndObject)
+
+	var contenido bytes.Buffer
+
+	codificador := jsontext.NewEncoder(&contenido)
+	for _, token := range tokens {
+		if err := codificador.WriteToken(token); err != nil {
+			return fmt.Errorf("%s no se puede codificar: %w", ficheroDelServidor, err)
+		}
+	}
+
+	return escribirFichero(filepath.Join(dir, ficheroDelServidor), contenido.Bytes())
+}
+
+// sinElDirectorioEnElPATH es el entorno con su PATH sin el directorio dado,
+// esté las veces que esté y con barra final o sin ella: la sesión deja de
+// resolver lo que solo estaba en él. El PATH es el último del entorno, que es el
+// que vale para el proceso, y sus demás rutas quedan en su orden.
+func sinElDirectorioEnElPATH(entorno []string, directorio string) []string {
+	var lista string
+
+	for _, variable := range entorno {
+		if valor, es := strings.CutPrefix(variable, variableDelPATH+"="); es {
+			lista = valor
+		}
+	}
+
+	quitado := filepath.Clean(directorio)
+	rutas := slices.DeleteFunc(filepath.SplitList(lista), func(ruta string) bool {
+		return filepath.Clean(ruta) == quitado
+	})
+
+	return sobreLaBase(entorno, []string{
+		variableDelPATH + "=" + strings.Join(rutas, string(os.PathListSeparator)),
+	})
 }
 
 // sobreLaBase es la base sin ninguna variable con el nombre de una de las

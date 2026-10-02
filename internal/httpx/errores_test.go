@@ -332,6 +332,23 @@ func TestErrorMensajesEnEspanol(t *testing.T) {
 			mensaje: "sobra la opción ConIntervalo: en reproducción no hay ritmo que respetar",
 		},
 		{
+			nombre:  "sin petición: el ritmo nulo nombra su opción",
+			fallo:   falloDeLaOpcion(t, ConRitmo(nil)),
+			mensaje: "el ritmo en el que el cliente espera turno no puede ser nulo (ConRitmo)",
+		},
+		{
+			nombre: "sin petición: el ritmo sin intervalo nombra su opción y el intervalo que trae",
+			fallo:  falloDeLaOpcion(t, ConRitmo(NuevoRitmo(-time.Second))),
+			mensaje: "el intervalo del ritmo entre peticiones a un mismo sitio tiene que ser mayor que cero " +
+				"(ConRitmo): -1s",
+		},
+		{
+			nombre: "sin petición: el ritmo que sobra en reproducción nombra su opción",
+			fallo: falloDe(t, comprobarOpcionesDeReproduccion(
+				configuracionDelCliente{ritmo: NuevoRitmo(time.Second)})),
+			mensaje: "ConRitmo no tiene sentido en reproducción: la reproducción no espera nunca (FR-048)",
+		},
+		{
 			nombre:  "petición sin dirección: no hay sitio ni ruta que nombrar",
 			fallo:   errorDeArgumentos(Peticion{Metodo: "GET"}, nil, "la dirección no puede estar vacía"),
 			mensaje: "la dirección no puede estar vacía",
@@ -923,6 +940,17 @@ func exigeClaseYCodigo(t *testing.T, clase schema.Clase, codigo int, err error) 
 	assert.NotEqual(t, 3, salida, "el código 3 no lo produce ninguna ruta del cliente")
 	assert.NotEqual(t, 6, salida, "y el 6 tampoco")
 	assert.NotZero(t, salida, "un fallo no sale nunca con el código del éxito")
+}
+
+// falloDeLaOpcion devuelve el fallo con que la construcción de un cliente
+// rechaza una opción inválida, tal como sale de New: el mensaje que se comprueba
+// es el que lee quien la declaró, no uno escrito para la tabla.
+func falloDeLaOpcion(t *testing.T, opcion Opcion) *Error {
+	t.Helper()
+
+	_, err := New(opcion)
+
+	return falloDe(t, err)
 }
 
 // clienteSinEsperas es el cliente contra la red de esta tabla, con las dos

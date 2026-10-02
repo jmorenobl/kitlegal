@@ -109,7 +109,10 @@ var entornoDelTrabajo = map[string]string{
 // contrato; cada definición sintética que se aparta de él en una sola clave da
 // una línea que nombra esa clave, el valor encontrado y el esperado; y una
 // definición que no se puede leer, o un peor caso que no se puede obtener, es un
-// error. Comprueba también la tanda (contracts/tanda-del-job.md §4 de H7.4;
+// error. El peor caso suma una tanda por cada grupo de sesiones —modo orden,
+// modo herramienta y sin binario ni servidor—, y el tope de la definición lo
+// cubre con las evals del repositorio (contracts/evals-en-dos-modos.md §6 de
+// H21; FR-083 de H21). Comprueba también la tanda (contracts/tanda-del-job.md §4 de H7.4;
 // FR-054, FR-070, FR-071 y FR-100 de H7.4; SC-010 de H7.4): el trabajo tanda y
 // la dependencia del trabajo evals de él son los del contrato, un segundo
 // disparo no mide mientras una ejecución anterior sin terminar mide, y la
@@ -120,6 +123,7 @@ func TestDefinicionDelJob(t *testing.T) {
 	t.Run("del-repositorio", probarLaDefinicionDelRepositorio)
 	t.Run("sinteticas", probarLasDefinicionesSinteticas)
 	t.Run("errores", probarLosErroresDeLaDefinicion)
+	t.Run("peor-caso", probarElPeorCasoDelTrabajo)
 	t.Run("segundo-disparo", probarElSegundoDisparo)
 	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
 }
@@ -353,7 +357,7 @@ func fallosDelEntorno(leida DefinicionDelJob) []string {
 }
 
 // fallosDelTope comprueba §7.4: para cada skill de la matriz, timeout-minutes
-// cubre su peor caso, que nombra con sus cuatro términos.
+// cubre su peor caso, que nombra con sus términos.
 func fallosDelTope(leida DefinicionDelJob, evals string) []string {
 	var fallos []string
 
@@ -438,10 +442,11 @@ const trabajoDeLaTandaDelContrato = `  tanda:
 // definicionDelContrato es una definición sintética del job con las claves de
 // los contratos y el env de hoy (contracts/ejecucion-del-job.md §6 de H7.3;
 // contracts/tanda-del-job.md §1 de H7.4). Con las evals de evalsSinteticas,
-// cada skill tiene 7 sesiones —la eval con el modelo que decide y con el de
-// Haiku, tres veces con cada uno, y la prueba de red—, así que el peor caso es
-// de 1029 s en boe-legislacion (⌈7 / 4⌉ = 2 tandas) y de 2389 s en legal-core
-// (7 tandas): 120 minutos los cubren.
+// cada skill tiene 7 sesiones en el modo orden —la eval con el modelo que decide
+// y con el de Haiku, tres veces con cada uno, y la prueba de red— y 6 en el modo
+// herramienta, así que el peor caso es de 1573 s en boe-legislacion (⌈7 / 4⌉ +
+// ⌈6 / 4⌉ = 4 tandas) y de 4021 s en legal-core (13 tandas): 120 minutos los
+// cubren.
 const definicionDelContrato = `name: evals
 on:
   pull_request:
@@ -537,7 +542,7 @@ func definicionesSinteticas() []definicionSintetica {
 		repeticionesEnv  = "REPETICIONES_DE_EVALS: 3"
 		ajustesDeBoe     = "{concurrencia: 4, objetivo_de_duracion: 900}"
 		ajustesDeLegal   = "{concurrencia: 1, objetivo_de_duracion: 0}"
-		peorCasoDeLegal  = "2389 s = 485 s + \xe2\x8c\x887 / 1\xe2\x8c\x89 \xc3\x97 (22 s + 240 s + 10 s)"
+		peorCasoDeLegal  = "4021 s = 485 s + (\xe2\x8c\x887 / 1\xe2\x8c\x89 + \xe2\x8c\x886 / 1\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
 		esperadoDelGrupo = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
 		pruebaDeRed      = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
 		ejecucionDeGh    = ` -ejecucion "$EJECUCION"`
@@ -702,40 +707,45 @@ func definicionesSinteticas() []definicionSintetica {
 				`"${{ matrix.objetivo_de_duracion }}"`},
 		},
 		{
+			// 67 minutos son 4020 s, uno menos que el peor caso de legal-core, y
+			// cubren el de boe-legislacion.
 			nombre:  "tope-por-debajo-del-peor-caso",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 30"}},
-			fallos: []string{"jobs.evals.timeout-minutes: vale 30 (1800 s), y lo esperado es al menos el peor " +
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 67"}},
+			fallos: []string{"jobs.evals.timeout-minutes: vale 67 (4020 s), y lo esperado es al menos el peor " +
 				"caso de legal-core, " + peorCasoDeLegal},
 		},
 		{
 			nombre:  "tope-por-debajo-de-los-dos",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 17"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 26"}},
 			fallos: []string{
-				"jobs.evals.timeout-minutes: vale 17 (1020 s), y lo esperado es al menos el peor caso de " +
-					"boe-legislacion, 1029 s = 485 s + \xe2\x8c\x887 / 4\xe2\x8c\x89 \xc3\x97 (22 s + 240 s + 10 s)",
-				"jobs.evals.timeout-minutes: vale 17 (1020 s), y lo esperado es al menos el peor caso de " +
+				"jobs.evals.timeout-minutes: vale 26 (1560 s), y lo esperado es al menos el peor caso de " +
+					"boe-legislacion, 1573 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
+					"\xc3\x97 (22 s + 240 s + 10 s)",
+				"jobs.evals.timeout-minutes: vale 26 (1560 s), y lo esperado es al menos el peor caso de " +
 					"legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
 			nombre:  "tope-que-cubre-el-peor-caso",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 40"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 68"}},
 		},
 		{
-			// Con una repetición, 3 sesiones por skill: 485 + 3 × 272 = 1301 s en
-			// legal-core, que 30 minutos cubren.
+			// Con una repetición, 3 sesiones por skill en el modo orden y 2 en el
+			// modo herramienta: 485 + 5 × 272 = 1845 s en legal-core, que 31
+			// minutos cubren.
 			nombre: "tope-con-las-repeticiones-del-env",
 			cambios: []cambioDeLaDefinicion{
-				{topeDelJob, "timeout-minutes: 30"},
+				{topeDelJob, "timeout-minutes: 31"},
 				{repeticionesEnv, "REPETICIONES_DE_EVALS: 1"},
 			},
 		},
 		{
-			// Sin modelos informativos, 4 sesiones por skill: 485 + 4 × 272 =
-			// 1573 s en legal-core, que 30 minutos cubren.
+			// Sin modelos informativos, 4 sesiones por skill en el modo orden y 3
+			// en el modo herramienta: 485 + 7 × 272 = 2389 s en legal-core, que 40
+			// minutos cubren.
 			nombre: "tope-con-los-modelos-del-env",
 			cambios: []cambioDeLaDefinicion{
-				{topeDelJob, "timeout-minutes: 30"},
+				{topeDelJob, "timeout-minutes: 40"},
 				{"MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001", `MODELOS_INFORMATIVOS_DE_EVALS: ""`},
 			},
 		},
@@ -807,6 +817,62 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	leida.ModeloQueDecide = "Claude Sonnet"
 	_, err = leida.peorCaso(evalsSinteticas(t), "boe-legislacion")
 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
+}
+
+// probarElPeorCasoDelTrabajo fija el peor caso del trabajo de una skill desde
+// H21 (contracts/evals-en-dos-modos.md §6 de H21; research.md D20 de H21;
+// FR-083 de H21): una tanda por cada grupo de sesiones —las del modo orden con
+// la prueba de red, las del modo herramienta y las de las evals sin binario ni
+// servidor— y no por la suma de todas. Con las evals del repositorio y la
+// definición del job son 14 357 s en boe-legislacion y 12 181 s en legal-core,
+// que cuenta la prueba de red aunque su trabajo no la lleve, y el tope de la
+// definición los cubre.
+func probarElPeorCasoDelTrabajo(t *testing.T) {
+	t.Parallel()
+
+	leida, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+
+	const terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
+
+	casos := []struct {
+		skill    string
+		peor     peorCasoDelTrabajo
+		duracion time.Duration
+		texto    string
+	}{
+		{
+			skill:    "boe-legislacion",
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{97, 96, 6}, Concurrencia: 4},
+			duracion: 14357 * time.Second,
+			texto: "14357 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
+				"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda,
+		},
+		{
+			skill:    "legal-core",
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{19, 18, 6}, Concurrencia: 1},
+			duracion: 12181 * time.Second,
+			texto: "12181 s = 485 s + (\xe2\x8c\x8819 / 1\xe2\x8c\x89 + \xe2\x8c\x8818 / 1\xe2\x8c\x89 + " +
+				"\xe2\x8c\x886 / 1\xe2\x8c\x89)" + terminosDeUnaTanda,
+		},
+	}
+
+	for _, caso := range casos {
+		peor, err := leida.peorCaso(directorioDeEvals, caso.skill)
+		require.NoError(t, err, caso.skill)
+
+		assert.Equal(t, caso.peor, peor, caso.skill)
+		assert.Equal(t, caso.duracion, peor.Duracion(), caso.skill)
+		assert.Equal(t, caso.texto, peor.String(), caso.skill)
+		assert.GreaterOrEqual(t, time.Duration(leida.TopeEnMinutos)*time.Minute, peor.Duracion(),
+			"el tope de la definici\xc3\xb3n cubre el peor caso de %s", caso.skill)
+	}
+
+	// Las 199 sesiones de boe-legislacion en un solo grupo serían 50 tandas, una
+	// menos que las 51 de sus tres grupos: el peor caso no es el de la suma.
+	enUnSoloGrupo := peorCasoDelTrabajo{SesionesPorGrupo: []int{199}, Concurrencia: 4}
+	assert.Equal(t, 14085*time.Second, enUnSoloGrupo.Duracion())
+	assert.Equal(t, "14085 s = 485 s + (\xe2\x8c\x88199 / 4\xe2\x8c\x89)"+terminosDeUnaTanda, enUnSoloGrupo.String())
 }
 
 // ejecucionPropia es la ejecución que decide en segundo-disparo: las de

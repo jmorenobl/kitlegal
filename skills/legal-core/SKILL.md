@@ -26,8 +26,16 @@ tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
-Sigue los pasos en orden: del 1 al 4 siempre, y el 5 y el 6 cuando la pregunta va más allá del territorio. Escribe
-todas las órdenes con `--json`: el sobre trae entonces `fuente`, `url`, `fecha_consulta` y `hash` junto a `data`.
+Sigue los pasos en orden: del 1 al 4 siempre, y el 5 y el 6 cuando la pregunta va más allá del territorio. El
+territorio se pide de una de dos formas, que devuelven el mismo sobre, con `fuente`, `url`, `fecha_consulta` y `hash`
+junto a `data`:
+
+- **Con la herramienta** `territorio_resolver`, si entre las tuyas hay una con ese nombre, solo o detrás del prefijo
+  que le ponga tu agente, como `mcp__kitlegal__territorio_resolver`. Si la tienes, úsala siempre.
+- **Con la orden** `kitlegal territorio resolver … --json`, si no la tienes.
+
+Donde un paso dice que la orden termina con un código, con la herramienta el resultado viene marcado como error y su
+`data.clase` dice cuál («Comandos»).
 
 ### 1. Identificar el territorio
 
@@ -40,6 +48,8 @@ Antes de razonar sobre ninguna norma, averigua de qué municipio se habla.
 
 ### 2. Resolverlo con `kitlegal territorio`
 
+Llama a `territorio_resolver` con el municipio en `consulta` o, si no tienes la herramienta, ejecuta su orden:
+
 ```bash
 kitlegal territorio resolver <nombre o código INE> --json
 ```
@@ -48,9 +58,10 @@ kitlegal territorio resolver <nombre o código INE> --json
 - Ningún dato de territorio —comunidad, provincia, régimen, DIR3, boletines— se da por sabido ni se escribe de
   memoria, aunque parezca evidente: todos salen de `data` en esta conversación. Ningún municipio ni ninguna comunidad
   tiene un trato propio: lo que cambia de un territorio a otro lo dice `data`.
-- Con el código 0, `data` trae siempre ocho claves —`municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`,
-  `regimen`, `boletines` y `cobertura`—, y cada dato lleva su `source`.
-- Si `kitlegal` no está en el `PATH`, di que falta instalar kitlegal y no suplas los datos.
+- Con el código 0, o con un resultado de la herramienta que no es un error, `data` trae siempre ocho claves
+  —`municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines` y `cobertura`—, y cada dato
+  lleva su `source`.
+- Si no tienes ni la herramienta ni el binario, vale la regla 7.
 
 ### 3. Leer `cobertura` y trasladarla a la respuesta
 
@@ -80,15 +91,15 @@ kitlegal territorio resolver <nombre o código INE> --json
 
 ### 4. Ambigüedad y ausencia
 
-- **Código 2 con candidatos**: el nombre es el de más de un municipio, y `data.mensaje` los da todos, cada uno como
-  `<código INE> <nombre> (<provincia>)`. Ofrécelos todos, pregunta a cuál se refiere la persona y vuelve al paso 2 con
-  el código INE del que elija. No elijas por ella.
-- **Código 2 sin candidatos**: la consulta no forma un código INE válido o su dígito de control no es el oficial, y el
-  mensaje dice qué falla. Díselo a la persona y pide el nombre o el código; no corrijas tú el código.
-- **Código 3**: ese nombre o ese código no están en la relación de municipios que lleva kitlegal. Dilo así —«no está
-  en la relación»—, sin concluir que el municipio no exista: puede estar escrito de otra forma o haber cambiado de
-  nombre. Pide otra forma del nombre o su código INE.
-- Con cualquier otro código, di que no se pudo resolver el territorio y no suplas sus datos.
+- **Código 2 (`argumentos`) con candidatos**: el nombre es el de más de un municipio, y `data.mensaje` los da todos,
+  cada uno como `<código INE> <nombre> (<provincia>)`. Ofrécelos todos, pregunta a cuál se refiere la persona y vuelve
+  al paso 2 con el código INE del que elija. No elijas por ella.
+- **Código 2 (`argumentos`) sin candidatos**: la consulta no forma un código INE válido o su dígito de control no es el
+  oficial, y el mensaje dice qué falla. Díselo a la persona y pide el nombre o el código; no corrijas tú el código.
+- **Código 3 (`no-encontrado`)**: ese nombre o ese código no están en la relación de municipios que lleva kitlegal.
+  Dilo así —«no está en la relación»—, sin concluir que el municipio no exista: puede estar escrito de otra forma o
+  haber cambiado de nombre. Pide otra forma del nombre o su código INE.
+- Con cualquier otro código, o cualquier otra `clase`, di que no se pudo resolver el territorio y no suplas sus datos.
 
 ### 5. Razonar con las referencias
 
@@ -134,19 +145,20 @@ dir3: <valor>
 
 ## Comandos
 
-`kitlegal` se invoca desde el `PATH`. Responde con la relación de municipios y la
-configuración territorial que lleva dentro el binario, sin consultar ninguna fuente. Códigos de salida: 0 correcto, 2
-argumentos inválidos —también un nombre que es el de más de un municipio—, 3 no está en la relación.
+`kitlegal` se invoca desde el `PATH`, y la herramienta, por el nombre de su fila. Responde con la relación de
+municipios y la configuración territorial que lleva dentro el binario, sin consultar ninguna fuente. Códigos de salida,
+y entre paréntesis la `data.clase` del error de la herramienta: 0 correcto, 2 (`argumentos`) argumentos inválidos
+—también un nombre que es el de más de un municipio—, 3 (`no-encontrado`) no está en la relación.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
 ### `kitlegal territorio`
 
-| Orden | Qué hace | Qué devuelve en `data` |
-|---|---|---|
-| `kitlegal territorio resolver <consulta>` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. | objeto con `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines`, `cobertura` |
+| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
+|---|---|---|---|
+| `kitlegal territorio resolver <consulta>` | `territorio_resolver` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. | objeto con `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines`, `cobertura` |
 
-Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
+La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 
 Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.
 
@@ -168,3 +180,11 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    referencia.
 6. **Ninguna acción con identidad.** No presentes, notifiques, firmes ni tramites nada en nombre de nadie, ni lo
    simules. Si la pregunta lo pide, di que es una acción que hace la persona.
+7. **Sin herramienta y sin binario, la respuesta lo dice.** Si no tienes la herramienta y la orden falla porque
+   `kitlegal` no está —el shell no lo encuentra, o no puedes ejecutar órdenes—, no has consultado nada: no afirmes
+   ningún dato de territorio ni nada del contenido de una norma, tampoco de memoria ni con salvedades, y no escribas
+   ninguna cita. La respuesta lleva esta línea, con la causa en lugar del marcador y la dirección en la misma línea:
+
+   ```text
+   ⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
+   ```

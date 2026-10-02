@@ -1,0 +1,112 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I-IX) y por regla de dependencia (R1-R6 y la nueva R7), más los gates por capa. Cotejado con el código: `Presentador.Salida()` existe (internal/cli/presentador.go:46), `forbidigo` no veda `os.Stdin` (.golangci.yml:243-261), R2 y la garantía sin red miran importaciones directas y aristas del módulo (internal/arch_test.go:78-90, 581-620). La fila I habrá que rehacerla con el motivo de D8, que es de los criterios h y m."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Una dependencia directa, `modelcontextprotocol/go-sdk`, que el principio V prevé y el ADR 0035 adelanta; los seis módulos que arrastra y las dos indirectas fijadas están en «Complexity Tracking». Comprobado en la caché de módulos: están v1.7.0 del SDK, x/oauth2 v0.37.0, segmentio/asm v1.2.1, jsonschema-go v0.4.3, segmentio/encoding v0.5.4, uritemplate v3.0.2 y x/sync v0.22.0 con su zip y su huella; de la v1.8.0 solo hay .info y .mod."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "`internal/mcp` es el único que importa el SDK (R7 en depguard y en TestArquitectura) y no importa `net/http`, SQLite ni llama a `os.Exit`; escribe el protocolo en el escritor de `internal/render` que recibe; el applet y la llamada viven en `internal/app`, que ya importan `internal/evals` e `internal/cli` (go list). El `net/http` que enlaza el SDK está declarado en «Complexity Tracking»."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo: en una llamada, la clase del ADR 0023 va en `data.clase` del sobre de fallo, montado por el mismo `cli.Montador` (internal/cli/sobre.go:91-115, 199-207); `mcp serve` sale con 0 al cerrarse la entrada, 2 con `--asunto` y 1 con cualquier otro final. Comprobado con el binario de hoy el sobre de fallo de `argumentos` y el `--dry-run` sin sobre que el contrato reproduce."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "«Aceptación e2e» nombra cinco guiones congelados con su precondición `exec kitlegal --help` + `stdout '^\\s+mcp\\s'`, que hoy falla por aserción (la ayuda de hoy no lista `mcp` y empieza por `uso: `; scripts/workflow/aceptacion.sh:52-56). «Controles mecánicos» nombra los tests nuevos, los que cambian (todos existen hoy con ese nombre), las tareas `[datos]` y las grabaciones de H4 que bastan (internal/source/boe/testdata: buscar, índice, bloques, metadatos y análisis)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza del plan se traza a un FR del spec («Trazabilidad»). Las dos desviaciones están declaradas y son las mínimas: la lista de applets de `argumentos.txtar` (D26) y la regla de D18; van a observaciones."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "El plan no prevé ningún `//nolint`, `t.Skip`, TODO ni error silenciado; los tests que cambian se actualizan, ninguno se desactiva («Tests existentes que cambian»), y FR-049 queda como obligación de tasks.md."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": false,
+      "evidencia": "D1-D26 llevan su alternativa rechazada, pero D8 elige un cliente HTTP por proceso sin tratar lo que ese cliente recuerda de `robots.txt`, y rechaza darle vigencia por alcance («cambia un requisito de H2»), no por calidad. Leído el código: `reglasDelSitio` guarda también las denegaciones por no haber podido obtener `robots.txt` (internal/httpx/robots.go:26-38, 116-137, 291-312), y research solo declara la copia de las reglas. Ver motivo."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Rehechas en esta sesión contra el SDK v1.7.0 de la caché y el repositorio: V3 (go.mod), V6 (shared.go:45-63; server.go:912-927), V7 (server.go:250-321), V8 (server.go:109-137, 615-663), V9 (transport.go:112-138), V10 (server.go:1272-1312), V14 (client.go:249-253, 313-376), V17 (server.go:955-962), V20 y V21 (cadenas del binario de Claude Code 2.1.284), V22-V24 y V39-V40 (main.go y el binario construido de la cabeza), V26 (sitio.go, boe.go:42-52), V27, V28, V30-V34, V36, V37 (485 bytes), V41 y V42. Lo que no se pudo comprobar figura como S1-S11. No pude rehacer V11-V13, V15, V16, V18 y V19 (los prototipos ya no existen) ni ejecutar los tests de V35 (sí apliqué el diff en seco: 297 y 190 líneas)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "No se puede ejecutar antes de implementar: lo dice su cabecera. Cotejado con el repositorio: `-X main.reloj` y `reproduccion/boe.legislacion-consolidada` son los del binario de e2e (ejemplo/kitlegal-e2e/main.go:59-93, 232-247), el sobre de `territorio resolver Leganés` mide 1 356 bytes, los `grep` de §8 casan con el prototipo (una línea por fichero; dos y una cabeceras de tabla), todo va bajo `$T` y §14 compara `git status`. Los escenarios con modelo o red (§11-§13) están declarados fuera de las tareas."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguno: ni fuente ni grabación nuevas, `docs/SOURCES.md` no cambia y `grabar_datos` no tiene nada que grabar (D23). `schemas/servidor.json` lo escribe `-actualizar-esquemas`; lo demás bajo `schemas/` y `testdata/` son formato y datos sintéticos, en tareas `[datos]`."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea para una persona ni de plataforma: el sondeo, el job y la prueba humana quedan fuera de las tareas («Obligaciones para tasks.md»), y el módulo entra con versiones ya verificadas en la caché, sin escribir en `sumdb` (V1, V2)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": false,
+      "evidencia": "Cálculo rehecho: `boe_articulo` tiene 144 B de esquema de entrada y ≈ 1 700 B de salida, como dice el contrato; art. 21 LPAC, 4 433 B de sobre y ≈ 325 B de `graph_check`, dos llamadas por bloque; nada crece con lo acumulado. Pero una señal no se apaga: con el cliente por proceso de D8, un fallo pasajero al pedir `robots.txt` deja el sitio denegado lo que viva el servidor, y toda llamada posterior a `boe_*` que necesite la red repite `limite-o-tos` sin información nueva. «Uso» dice que el error «deja de darse con la primera llamada que no falla», y en ese estado ninguna deja de fallar hasta reiniciar. Ver motivo."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad» lleva cada paquete, función exportada, fichero y test a su FR, y el plan remite a la regla genérica lo que llega manipulado (mensaje que no es del protocolo, `world.db` tocado a mano, transcript ilegible). Lo rechazado por no pedirlo el spec está nombrado (validador de esquemas, campo exportado en `Verbo`, contexto de cancelación, binario cliente)."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "22 filas: las ocho de FR-082 (`evals:boe-legislacion:<recuento>:claude-sonnet-5-5:<modo>` y `duracion_de_las_sesiones:<modo>`, con `decide: true` y sin sumar modos) y una por cada umbral de `make ci` (conjunto exacto de herramientas, 300 líneas, 512 bytes, SC-004 a SC-013, FR-083, FR-084). Recorrido rehecho: `informe.sh` resuelve el nombre por los dos primeros `:` (:260) y `ci:<ruta>:<Test>` con `git grep` (:255-257); `skills-check` está en `make ci` (Makefile:125, 240); el peor caso da 14 357 s ≤ 240 min. Los umbrales de `legal-core` no existen (FR-045) y SC-002 lo mide una persona."
+    }
+  ],
+  "motivos": [
+    "[h][m] D8, un cliente HTTP por proceso (research.md D8; plan.md, Summary pieza 3, Constitution Check I, «Decisiones», «Trazabilidad» y «Uso»; contracts/servidor-mcp.md §3, §7, §8 y §9; gates/supuestos.md). Lo que `internal/httpx` recuerda de `robots.txt` por sitio pasa de vivir una invocación a vivir lo que el servidor, y no son solo las reglas: `reglasDelSitio.denegado` guarda «sin caducidad» el 429, el 5xx y el fallo de transporte al pedir `robots.txt` (internal/httpx/robots.go:26-38, 116-137, 291-312), que con 3 intentos se agota en unos 4 s, dentro del plazo de 30 s. research solo declara que la copia de las reglas «se vuelve a leer al arrancarlo», y H2 fijó «sin caducidad» porque «un cliente vive una invocación, que dura segundos» (specs/003-h2-internal-httpx-cliente/spec.md:31). Vía: una app de escritorio mantiene `mcp serve` vivo horas o días, y la primera llamada que necesita la red llega sin conexión, o el BOE responde 5xx o 429 a `/robots.txt`. Diferencia: desde ahí toda llamada a `boe_*` que no esté en caché devuelve `limite-o-tos` hasta reiniciar la app, y la skill dice que la fuente limitó las consultas; la orden, con cliente nuevo, lee en cuanto vuelve la red. Es otro sobre para la misma entrada y el mismo estado (FR-010) y una señal que no se apaga y se repite en cada consulta. Además las reglas dejan de leerse durante días (RFC 9309 §2.4 pide no usar la copia más de 24 h; principio I). Qué cambiar: que las llamadas compartan el ritmo por sitio (FR-014) sin que el resultado de `robots.txt`, reglas o denegación, viva más que en la orden: o vale para la llamada que lo obtuvo, como hoy para la invocación, o caduca (la denegación por no haberlo podido obtener se reintenta en la llamada siguiente; las reglas, a las 24 h como mucho). Rehacer D8 con esa solución y la rechazada; la fila I del Constitution Check; la fila de `DependenciasDeRed` en «Trazabilidad»; el test que lo fija (un servidor cuyo `robots.txt` falla una vez y después responde: la llamada siguiente lee) en «Tests» y en contracts/servidor-mcp.md §9; la fila «Error de herramienta» de «Uso»; y retirar de gates/supuestos.md el supuesto de `robots.txt`. Si la solución da vigencia a la copia dentro de `internal/httpx`, spec.md lo nombra en «Sustituye» (H2 FR 015, la vigencia de la copia)."
+  ],
+  "observaciones": [
+    "`timeout-minutes: 240` (D20) deja el peor caso por encima de las 3 h que espera el cierre, y también el de `legal-core` (12 181 s, 203 min): solo se alcanza si casi todas las sesiones agotan su tope, y entonces el cierre se detiene con dossier en lugar de leer un `fallo`. Quien lance el hito puede subir la espera con `KITLEGAL_CIERRE_ESPERA_MAX` sin tocar `scripts/workflow/`.",
+    "D18 (una orden de `kitlegal` en una sesión sin binario la deja sin pasar) cambia el juicio más allá de FR-042, que el spec deja en «Fuera de alcance»; se sostiene en FR-040 (lo que define el modo) y evita medir órdenes como si fueran herramientas. En gates/supuestos.md figura como `interno` y cambia el veredicto de una sesión.",
+    "El SDK se fija en la v1.7.0 y no en la v1.8.0 del ADR 0035 porque el sandbox del run no deja escribir en `sumdb` (V1; en la caché, de la v1.8.0 solo hay .info y .mod): es un defecto del proceso, que va en su propia rama, y condiciona cualquier hito que añada un módulo.",
+    "S4, S5 y S6 (que Claude Code ofrezca las herramientas desde el primer turno, la forma de `tool_use`/`tool_result` en el transcript y que su validador acepte el `outputSchema` de `--describe`) deciden SC-001 en el modo herramienta y solo las mide el job de cierre.",
+    "Las dos evals nuevas no entran en la suite congelada (su clave no existe hasta la tarea del formato), como en H7.2; el guardián no las protege después.",
+    "`argumentos.txtar` (guion de H1) cambia en su lista de applets pese a «Fuera de alcance: editar los guiones de los hitos anteriores»: es lo que registrar un applet cambia desde H6, está en Complexity Tracking y en supuestos.",
+    "`cli.LineaDeLlamada` prevé booleanos, enteros y campos no posicionales, y hoy ningún verbo de producción ni de ejemplo los tiene (solo posicionales de cadena o lista de cadenas): se traza a FR-004 y no a un emisor de hoy.",
+    "Todas las herramientas se anuncian con `readOnlyHint`, también las de applets futuros: el primer verbo que escriba (fase 2) aparecería como de solo lectura sin tocar `mcp`. El spec lo deja fuera de alcance hasta ese verbo.",
+    "Cada resultado lleva el sobre dos veces (`structuredContent` y texto), como pide el hito: el índice de la LCSP son ≈ 70 KB en el mensaje. Qué parte entrega cada agente a su modelo sigue sin medirse; no pude leerlo del binario de Claude Code (la búsqueda agotó su plazo).",
+    "Constitution Check IV dice que `AddTool` solo entra en pánico por el esquema de entrada; también lo hace con un esquema de salida que no se serializa y con anotaciones de cabecera inválidas (server.go:300-314). No aplica a los esquemas generados.",
+    "En `tasas`, el modo orden lleva `modelo` `<id>` y el recuento de expresiones `<id> (orden)`: lo impone la marca `informativa` de `informe.sh`; la columna del modo orden del informe final no dirá su modo.",
+    "Una línea del prototipo de `boe-legislacion` pasa de las 120 columnas; partirla puede dejar el fichero en 298 líneas, por debajo de 300."
+  ]
+}

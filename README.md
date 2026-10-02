@@ -110,6 +110,46 @@ una skill —una carpeta tuya, un fichero editado—, lo nombra y no cambia nada
 instalado y, si algo no está como lo dejó, da la orden de una línea que lo arregla. Cada archivo publicado lleva su
 atestación de procedencia, comprobable con `gh attestation verify <archivo> --repo jmorenobl/kitlegal`.
 
+## El servidor MCP: las mismas consultas, como herramientas
+
+Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
+otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
+varios artículos, sus metadatos y su análisis, situar un municipio y repasar lo ya consultado—, con el mismo resultado
+que su orden: el texto con su fuente, su dirección, su fecha de consulta y su huella. Las skills usan la herramienta
+siempre que tu agente la tiene, y la orden cuando no; se instalan igual, con `kitlegal skills install`.
+
+El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
+ningún puerto. Necesita el programa instalado, y se declara una vez en cada agente:
+
+- **Claude Code**:
+
+  ```sh
+  claude mcp add kitlegal -- kitlegal mcp serve
+  ```
+
+- **La app de escritorio de ChatGPT y Codex**, que comparten la configuración: en *Settings > MCP servers*, con la
+  orden `kitlegal` y los argumentos `mcp serve`, o desde una terminal:
+
+  ```sh
+  codex mcp add kitlegal -- kitlegal mcp serve
+  ```
+
+- **Antigravity**: en `~/.gemini/config/mcp_config.json`, o en `.agents/mcp_config.json` para un solo proyecto:
+
+  ```json
+  {
+    "mcpServers": {
+      "kitlegal": { "command": "kitlegal", "args": ["mcp", "serve"] }
+    }
+  }
+  ```
+
+Si tu agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del programa, la que da
+`command -v kitlegal`.
+
+**ChatGPT y Claude en la web y en el móvil no son compatibles**: solo admiten servidores remotos, y el de kitlegal
+corre en tu equipo.
+
 ## Cómo funciona y qué te garantiza
 
 - **Tu agente lee la fuente, no su memoria.** No responde con lo que «sabe» de una ley: ejecuta `kitlegal`, que
@@ -200,8 +240,8 @@ Catastro, los datos abiertos de las administraciones; y los boletines de cada co
 régimen foral y las haciendas forales, conforme se configuren. Añadir un territorio es añadir datos, no cambiar las
 skills.
 
-**Y otras formas de usarlo**: un servidor MCP para cualquier agente que hable ese protocolo, un plugin para Claude
-—Claude Code, Cowork y el chat—, paquetes por especialidad y una librería Go para quien quiera construir encima.
+**Y otras formas de usarlo**: un plugin para Claude —Claude Code, Cowork y el chat—, paquetes por especialidad y una
+librería Go para quien quiera construir encima.
 
 ### Para quién
 

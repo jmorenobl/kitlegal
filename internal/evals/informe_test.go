@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,7 +95,9 @@ type informeLeido struct {
 // umbrales, la duración de las sesiones, los reintentos por límite de ritmo y las
 // sesiones sin medir de la raíz y, de cada sesión, sus avisos encontrados y
 // ausentes, sus expresiones prohibidas, sus reintentos, si quedó sin medir y, de
-// cada una de sus invocaciones, su código y sus conexiones.
+// cada una de sus invocaciones, su código y sus conexiones. Desde H21, de cada
+// sesión, además, su modo, si lleva la línea sin consulta y sus citas sin
+// consulta, y de cada invocación, si es una llamada a una herramienta.
 type informeCrudo struct {
 	Motivos                        jsontext.Value   `json:"motivos"`
 	Tasas                          []tasaCruda      `json:"tasas"`
@@ -105,11 +109,12 @@ type informeCrudo struct {
 	Evals                          []resultadoCrudo `json:"evals"`
 }
 
-// tasaCruda es una serie de informe.json con sus formas exigidas y sus sesiones
-// sin medir tal como están escritas.
+// tasaCruda es una serie de informe.json con su modo, sus formas exigidas y sus
+// sesiones sin medir tal como están escritos.
 type tasaCruda struct {
 	Eval     string         `json:"eval"`
 	Modelo   string         `json:"modelo"`
+	Modo     jsontext.Value `json:"modo"`
 	Formas   jsontext.Value `json:"formas"`
 	SinMedir jsontext.Value `json:"sin_medir"`
 }
@@ -117,9 +122,12 @@ type tasaCruda struct {
 // resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
 // prohibidos ejecutados, sus avisos, sus hallazgos, su territorio, sus expresiones
 // prohibidas, sus reintentos por límite de ritmo, si quedó sin medir y sus
-// invocaciones tal como están escritos.
+// invocaciones tal como están escritos; y, desde H21, su modo, si lleva la línea
+// sin consulta y sus citas sin consulta (contracts/evals-en-dos-modos.md §4 de
+// H21).
 type resultadoCrudo struct {
 	Sesion                       string            `json:"sesion"`
+	Modo                         jsontext.Value    `json:"modo"`
 	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
 	AvisosEncontrados            jsontext.Value    `json:"avisos_encontrados"`
 	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
@@ -130,6 +138,8 @@ type resultadoCrudo struct {
 	TerritorioEncontrado         jsontext.Value    `json:"territorio_encontrado"`
 	TerritorioAusente            jsontext.Value    `json:"territorio_ausente"`
 	ExpresionesProhibidas        jsontext.Value    `json:"expresiones_prohibidas"`
+	LineaSinConsulta             jsontext.Value    `json:"linea_sin_consulta"`
+	CitasSinConsulta             jsontext.Value    `json:"citas_sin_consulta"`
 	ReintentosPorLimiteDeRitmo   jsontext.Value    `json:"reintentos_por_limite_de_ritmo"`
 	SinMedir                     jsontext.Value    `json:"sin_medir"`
 	Invocaciones                 []invocacionCruda `json:"invocaciones"`
@@ -148,8 +158,9 @@ const columnaDeExpresiones = "Expresiones prohibidas"
 // territorio ausente y el resultado, las expresiones prohibidas (contrato
 // lista-y-juicio §5 de H7.2) y, detrás de ellas, los reintentos por límite de
 // ritmo y si la sesión quedó sin medir (contrato informe-del-job §4 de H7.3).
+// Desde H21, el modo va detrás del modelo (contracts/evals-en-dos-modos.md §5.3).
 var encabezadosDeLaTablaDeSesiones = []string{
-	"Sesión", "Eval", "Modelo", "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
+	"Sesión", "Eval", "Modelo", columnaDelModo, "Activa", "Activada", "Sesión terminada", "Comandos ausentes",
 	"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
 	"Hallazgos encontrados", "Hallazgos ausentes", columnaDeRedaccionesEncontradas, columnaDeRedaccionesAusentes,
 	"Territorio encontrado", "Territorio ausente", columnaDeExpresiones, columnaDeReintentos, columnaSinMedir,
@@ -178,32 +189,52 @@ const (
 // medir» de informe.md (contrato informe-del-job §4 de H7.3).
 var encabezadosDeLaTablaSinMedir = []string{"Sesión", "Eval", "Modelo", "Motivo"}
 
+// columnaDelModo es la columna de las tablas de las series, de las sesiones y de
+// las expresiones prohibidas de informe.md que dice el modo —orden o
+// herramienta—, y celdaSinModo, lo que lleva en una serie o una sesión de
+// una eval sin binario ni servidor, que no es de ninguno
+// (contracts/evals-en-dos-modos.md §5.3 de H21).
+const (
+	columnaDelModo = "Modo"
+	celdaSinModo   = "—"
+)
+
 // encabezadosDeLaTablaDeExpresiones son los de la tabla de la sección «Expresiones
-// prohibidas por modelo» de informe.md (contrato lista-y-juicio §5 de H7.2).
+// prohibidas por modelo» de informe.md (contrato lista-y-juicio §5 de H7.2), con
+// el modo de cada recuento detrás de su modelo desde H21.
 var encabezadosDeLaTablaDeExpresiones = []string{
-	"Modelo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
+	"Modelo", columnaDelModo, "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
 }
+
+// encabezadosDeLaTablaDeInvocaciones son los de la tabla de las invocaciones de
+// la sección de cada sesión de informe.md: detrás de las conexiones, desde H21,
+// si la invocación es una llamada a una herramienta
+// (contracts/evals-en-dos-modos.md §5.3 de H21).
+var encabezadosDeLaTablaDeInvocaciones = []string{"Orden", "Código", "Conexiones", "Llamada"}
 
 // parrafoDeLaSkillSinLista es lo que dice esa sección cuando la skill no tiene
 // lista: un recuento de cero diría que se buscó (research D7 de H7.2).
 const parrafoDeLaSkillSinLista = "la skill no tiene lista de expresiones prohibidas"
 
 // encabezadosDeLaTablaDeTasas son los de la tabla de las series de informe.md,
-// con las formas exigidas junto a la tasa (contrato evals-y-skill §6 de H7.1).
+// con las formas exigidas junto a la tasa (contrato evals-y-skill §6 de H7.1) y,
+// desde H21, el modo detrás del modelo.
 var encabezadosDeLaTablaDeTasas = []string{
-	"Eval", "Modelo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+	"Eval", "Modelo", columnaDelModo, "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 }
 
 // sinFormasExigidas son las formas exigidas de la serie de una eval que no espera
 // hallazgos: una lista vacía, no nil, igual que la que se lee de informe.json.
 var sinFormasExigidas = []string{}
 
-// invocacionCruda es una invocación de informe.json con su código y sus
-// conexiones tal como están escritos.
+// invocacionCruda es una invocación de informe.json con su código, sus
+// conexiones y, desde H21, su marca de llamada a una herramienta tal como están
+// escritos.
 type invocacionCruda struct {
 	Orden      string         `json:"orden"`
 	Codigo     jsontext.Value `json:"codigo"`
 	Conexiones jsontext.Value `json:"conexiones"`
+	Llamada    jsontext.Value `json:"llamada"`
 }
 
 // TestInforme fija EscribirInforme sobre cada ejecución sintética del contrato
@@ -531,10 +562,10 @@ func TestInformeConAvisos(t *testing.T) {
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
-				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", caso.citasAusentes, "derogada", "vigencia-agotada", "ninguno", "ninguno",
 					"ninguna", "ninguna", "ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
-				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "orden", "no", "no", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 					"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
@@ -651,15 +682,16 @@ func TestInformeConProhibidos(t *testing.T) {
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
-		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "sí (código 0)",
 			"ninguno", textoDeGraphShow, "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 			"ninguno", "ninguno", "ninguna", "0", "no", "no pasa"),
-		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "orden", "no", "no", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21),
-		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones"))
+		filaDeTabla(encabezadosDeLaTablaDeInvocaciones...),
+		filaDeTabla(ordenDeGraphShow, "3", "sin conexiones", "no"))
 }
 
 // copiaDelCasoAprobadoConProhibido copia el caso aprobado de TestInforme en un
@@ -779,7 +811,7 @@ func TestInformeConHallazgos(t *testing.T) {
 			}
 
 			assert.Equal(t, TasaDelInforme{
-				Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+				Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
 				Formas: []string{formaDeVersionObsoleta}, Sesiones: 1, Pasan: pasan, Pasa: caso.pasa,
 			}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide))
 			assert.Equal(t, sinFormasExigidas,
@@ -815,17 +847,17 @@ func TestInformeConHallazgos(t *testing.T) {
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
 				filaDeTabla(encabezadosDeLaTablaDeTasas...),
 				filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeTasas))...),
-				filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", formaDeVersionObsoleta, caso.tasa,
+				filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", formaDeVersionObsoleta, caso.tasa,
 					caso.umbral),
-				filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1",
+				filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "orden", "sí", "sí", "ninguna", "1 de 1",
 					"llega al umbral"))
 
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 				filaDeTabla(encabezadosDeLaTablaDeSesiones...),
-				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+				filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", caso.encontrados, caso.ausentes, "ninguna",
 					"ninguna", "ninguno", "ninguno", "ninguna", "0", "no", caso.resultado),
-				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+				filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "orden", "no", "no", "sí (código 0)",
 					"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 					"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
@@ -962,16 +994,13 @@ func exigirExpresionesDelCaso(t *testing.T, pruebaDeRed bool) {
 
 	exigirExpresionesPorSesion(t, leido, esperadas)
 
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{
-		{Modelo: modeloQueDecide, ConAlguna: 1, Respuestas: 1},
-		{Modelo: modeloInformativoDelCaso, ConAlguna: 0, Respuestas: 1},
-	}, `[{"modelo":"`+modeloQueDecide+`","con_alguna":1,"respuestas":1},`+
-		`{"modelo":"`+modeloInformativoDelCaso+`","con_alguna":0,"respuestas":1}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 1, 1),
+		recuentoEsperado(modeloInformativoDelCaso, ModoOrden, 0, 1))
 
 	exigirMotivosDeLaRaiz(t, leido, slices.Concat(
 		[]string{motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1)},
 		motivosDeLaTransicion(sesionDelArticulo21),
-		[]string{"umbral expresiones_prohibidas:" + modeloQueDecide + ": 1 de 1 (100,0 %), y tiene que ser ≤ 5,0 %"})...)
+		[]string{"umbral expresiones_prohibidas:" + modeloQueDecide + ":orden: 1 de 1 (100,0 %), y tiene que ser ≤ 5,0 %"})...)
 	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 }
 
@@ -1011,11 +1040,8 @@ func exigirExpresionesConUnaSesionIlegible(t *testing.T) {
 		{sesion: sesionDeNoActivacionConOpus},
 	})
 
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{
-		{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0},
-		{Modelo: modeloInformativoDelCaso, ConAlguna: 0, Respuestas: 1},
-	}, `[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":0},`+
-		`{"modelo":"`+modeloInformativoDelCaso+`","con_alguna":0,"respuestas":1}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 0, 0),
+		recuentoEsperado(modeloInformativoDelCaso, ModoOrden, 0, 1))
 
 	motivo := exigirSesionIlegible(t, leido, "codigo-de-la-sesion")
 	exigirMotivosDeLaRaiz(t, leido, motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
@@ -1070,21 +1096,20 @@ func exigirLaSerieConExpresiones(t *testing.T, informativa bool) {
 	}
 
 	assert.Equal(t, TasaDelInforme{
-		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: !informativa,
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: !informativa,
 		Formas: sinFormasExigidas, Sesiones: 3, Pasan: 1,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide))
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
-		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, decide, "sí", "ninguna", "1 de 3", "no llega al umbral"))
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "orden", decide, "sí", "ninguna", "1 de 3", "no llega al umbral"))
 
 	exigirExpresionesPorSesion(t, leido, []expresionesDeLaSesion{
 		{sesion: sesionDeLaSerie(1)},
 		{sesion: sesionDeLaSerie(2), encontradas: expresionesDeLaTransicion},
 		{sesion: sesionDeLaSerie(3), encontradas: []string{"te confirmé"}},
 	})
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 2, Respuestas: 3}},
-		`[{"modelo":"`+modeloQueDecide+`","con_alguna":2,"respuestas":3}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 2, 3))
 
-	delUmbral := "umbral expresiones_prohibidas:" + modeloQueDecide + ": 2 de 3 (66,7 %), y tiene que ser ≤ 5,0 %"
+	delUmbral := "umbral expresiones_prohibidas:" + modeloQueDecide + ":orden: 2 de 3 (66,7 %), y tiene que ser ≤ 5,0 %"
 
 	if informativa {
 		exigirMotivosDeLaRaiz(t, leido, delUmbral)
@@ -1170,6 +1195,17 @@ var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", 
 // la primera, y la de la disposición adicional tercera, que no traslada ninguna,
 // en la segunda. Las líneas con su cita no cuentan como expresión prohibida. Sin
 // redacciones esperadas, las tres celdas dicen «ninguna».
+//
+// Desde H21 (contracts/evals-en-dos-modos.md §5.1 y §5.3; FR-043, FR-048), cada
+// fila nombra su modo: las de un plan de un modo, el modo orden; y las del plan
+// del job, las diez del contrato —las cuatro de las respuestas del modo orden,
+// las del modo herramienta y las dos duraciones—, con la suma de las tres tandas
+// en la cabecera. Y las tablas de las series, de las sesiones y de las
+// expresiones llevan la columna «Modo» detrás del modelo, con «orden»,
+// «herramienta» o, en una serie o una sesión de la eval sin binario ni servidor,
+// «—»; la serie del modo herramienta lleva su modo también en su modelo, como en
+// informe.json, y la sección de una sesión del modo herramienta marca la
+// invocación que es una llamada.
 func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 	t.Parallel()
 
@@ -1186,6 +1222,9 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 		// encontradas y ausentes, las celdas de las redacciones modificadas de cada
 		// sesión de «Sesiones». Vacías, «ninguna».
 		formas, encontradas, ausentes string
+
+		// exigir, si no es nil, exige lo que el caso fija además de su tabla.
+		exigir func(t *testing.T, leido informeLeido)
 	}{
 		{
 			nombre: "las-filas-del-contrato",
@@ -1193,12 +1232,53 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 				e.conAlguna, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 2}, 544, 900
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5-5`", "2 de 54 (3,7 %)", "≤ 5,0 %", "sí", "sí"},
-				{"`sin_activar:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
-				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
-				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
-				{"`duracion_de_las_sesiones`", "544", "≤ 900", "sí", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5:orden`", "2 de 54 (3,7 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5:orden`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5:orden`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{
+					"`expresiones_prohibidas:claude-haiku-4-5-20251001:orden`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí",
+					"no: solo se publica",
+				},
+				{"`duracion_de_las_sesiones:orden`", "544", "≤ 900", "sí", "sí"},
 			},
+			exigir: func(t *testing.T, leido informeLeido) {
+				t.Helper()
+
+				exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Tasas por eval"), encabezadosDeLaTablaDeTasas,
+					columnaDelModo, "orden")
+				exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Sesiones"), encabezadosDeLaTablaDeSesiones,
+					columnaDelModo, "orden")
+				exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Expresiones prohibidas por modelo"),
+					encabezadosDeLaTablaDeExpresiones, columnaDelModo, "orden")
+			},
+		},
+		{
+			nombre: "las-diez-filas-de-los-dos-modos",
+			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
+				e.dosModos, e.conLaSinBinarioNiServidor = true, true
+				e.conAlguna = map[string]int{modeloSonnet55: 2}
+				e.enHerramienta.conAlguna = map[string]int{modeloSonnet55: 1, modeloHaiku45: 2}
+				e.duracion, e.duracionEnHerramienta, e.duracionSinModo, e.objetivo = 544, 612, 31, 900
+			}),
+			filas: [][]string{
+				{"`expresiones_prohibidas:claude-sonnet-5-5:orden`", "2 de 54 (3,7 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5:orden`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5:orden`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{
+					"`expresiones_prohibidas:claude-haiku-4-5-20251001:orden`", "0 de 30 (0,0 %)", "≤ 5,0 %", "sí",
+					"no: solo se publica",
+				},
+				{"`expresiones_prohibidas:claude-sonnet-5-5:herramienta`", "1 de 54 (1,9 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5:herramienta`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5:herramienta`", "0 de 54 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{
+					"`expresiones_prohibidas:claude-haiku-4-5-20251001:herramienta`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no",
+					"no: solo se publica",
+				},
+				{"`duracion_de_las_sesiones:orden`", "544", "≤ 900", "sí", "sí"},
+				{"`duracion_de_las_sesiones:herramienta`", "612", "≤ 900", "sí", "sí"},
+			},
+			exigir: exigirLaColumnaDelModo,
 		},
 		{
 			nombre: "los-cinco-sin-cumplir",
@@ -1207,11 +1287,14 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 				e.sinActivar, e.conRedaccionNoLeida = 1, 1
 			}),
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5-5`", "3 de 54 (5,6 %)", "≤ 5,0 %", "no", "sí"},
-				{"`sin_activar:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
-				{"`redaccion_no_leida:claude-sonnet-5-5`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
-				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no", "no: solo se publica"},
-				{"`duracion_de_las_sesiones`", "901", "≤ 900", "no", "sí"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5:orden`", "3 de 54 (5,6 %)", "≤ 5,0 %", "no", "sí"},
+				{"`sin_activar:claude-sonnet-5-5:orden`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5:orden`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
+				{
+					"`expresiones_prohibidas:claude-haiku-4-5-20251001:orden`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no",
+					"no: solo se publica",
+				},
+				{"`duracion_de_las_sesiones:orden`", "901", "≤ 900", "no", "sí"},
 			},
 		},
 		{
@@ -1226,10 +1309,13 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 				prefijoDeLasRespuestas: lineaConLaCitaDel118() + "\n\n",
 			},
 			filas: [][]string{
-				{"`expresiones_prohibidas:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 5,0 %", "sí", "sí"},
-				{"`sin_activar:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
-				{"`redaccion_no_leida:claude-sonnet-5-5`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
-				{"`expresiones_prohibidas:claude-haiku-4-5-20251001`", "0 de 3 (0,0 %)", "≤ 5,0 %", "sí", "no: solo se publica"},
+				{"`expresiones_prohibidas:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 5,0 %", "sí", "sí"},
+				{"`sin_activar:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`redaccion_no_leida:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{
+					"`expresiones_prohibidas:claude-haiku-4-5-20251001:orden`", "0 de 3 (0,0 %)", "≤ 5,0 %", "sí",
+					"no: solo se publica",
+				},
 			},
 			formas: formaDeVersionObsoleta + ", " + formaDeVersionObsoleta + " " + redaccionDelArticulo118 + ", " +
 				formaDeVersionObsoleta + " " + redaccionDeLaDA3,
@@ -1245,7 +1331,7 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 			leido := escribirEjecucionConUmbrales(t, caso.ejecucion)
 
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
-				"Duración de las sesiones: "+strconv.Itoa(caso.ejecucion.duracion)+" s")
+				"Duración de las sesiones: "+strconv.Itoa(caso.ejecucion.duracionDeLasTandas())+" s")
 
 			exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Tasas por eval"), encabezadosDeLaTablaDeTasas,
 				"Formas exigidas", cmp.Or(caso.formas, "ninguna"))
@@ -1253,6 +1339,10 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 				columnaDeRedaccionesEncontradas, cmp.Or(caso.encontradas, "ninguna"))
 			exigirCadaCelda(t, seccionDelInforme(t, leido.md, "Sesiones"), encabezadosDeLaTablaDeSesiones,
 				columnaDeRedaccionesAusentes, cmp.Or(caso.ausentes, "ninguna"))
+
+			if caso.exigir != nil {
+				caso.exigir(t, leido)
+			}
 
 			if caso.filas == nil {
 				exigirSinUmbrales(t, leido)
@@ -1273,6 +1363,60 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 	}
 }
 
+// exigirLaColumnaDelModo exige, del caso las-diez-filas-de-los-dos-modos de
+// TestInformeMarkdownDeLosUmbrales, la columna «Modo» de las tablas de las
+// series, de las sesiones y de las expresiones de informe.md, con lo que cada
+// una dice en informe.json (contracts/evals-en-dos-modos.md §5 y §5.3 de H21):
+// en las de la eval 02, que nadie altera, «orden» y «herramienta», con el modo
+// también en el modelo de la serie del modo herramienta; en las de la eval sin
+// binario ni servidor, «—»; un recuento por modelo y modo, los del modo orden
+// delante; y, en la sección de una sesión del modo herramienta, la invocación del
+// servidor sin marca y la llamada con ella, y ninguna marcada en la del modo
+// orden.
+func exigirLaColumnaDelModo(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	const (
+		enHerramienta = modeloSonnet55 + " (herramienta)"
+		sinBinario    = 19
+	)
+
+	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
+		filaDeTabla(encabezadosDeLaTablaDeTasas...),
+		filaDeTabla(ficheroSintetico(2), modeloSonnet55, "orden", "sí", "sí", "ninguna", "3 de 3", "llega al umbral"),
+		filaDeTabla(ficheroSintetico(2), enHerramienta, "herramienta", "sí", "sí", "ninguna", "3 de 3", "llega al umbral"),
+		filaDeTabla(ficheroSintetico(sinBinario), modeloSonnet55, celdaSinModo, "sí", "sí", "ninguna", "3 de 3",
+			"llega al umbral"),
+		filaDeTabla(ficheroSintetico(sinBinario), modeloHaiku45, celdaSinModo, "no", "sí", "ninguna", "3 de 3",
+			"llega al umbral"))
+
+	sesiones := map[string]Modo{
+		sesionSinteticaEn(ModoOrden, 2, modeloSonnet55, 1):       ModoOrden,
+		sesionSinteticaEn(ModoHerramienta, 2, modeloSonnet55, 1): ModoHerramienta,
+		sesionSintetica(sinBinario, modeloSonnet55, 1):           "",
+	}
+	for sesion, modo := range sesiones {
+		assert.Equal(t, modo, resultadoDeLaSesion(t, leido.informe, sesion).Modo, "modo de %s", sesion)
+		assert.JSONEq(t, cadenaJSON(t, string(modo)), string(resultadoEscrito(t, leido, sesion).Modo), "modo de %s", sesion)
+		assert.Equal(t, cmp.Or(string(modo), celdaSinModo), celdaDeLaSesion(t, leido.md, sesion, columnaDelModo),
+			"celda del modo de %s", sesion)
+	}
+
+	exigirRecuento(t, leido,
+		recuentoEsperado(modeloSonnet55, ModoOrden, 2, 54), recuentoEsperado(modeloHaiku45, ModoOrden, 0, 30),
+		recuentoEsperado(modeloSonnet55, ModoHerramienta, 1, 54), recuentoEsperado(modeloHaiku45, ModoHerramienta, 2, 30))
+
+	deHerramienta := seccionDelInforme(t, leido.md, "Sesión "+sesionSinteticaEn(ModoHerramienta, 2, modeloSonnet55, 1))
+	exigirLineas(t, deHerramienta,
+		filaDeTabla(encabezadosDeLaTablaDeInvocaciones...),
+		filaDeTabla(ordenDelServidor, "0", "sin conexiones", "no"),
+		filaDeTabla(llamadaDelArticulo21, "0", "sin conexiones", "sí"))
+
+	deOrden := seccionDelInforme(t, leido.md, "Sesión "+sesionSinteticaEn(ModoOrden, 2, modeloSonnet55, 1))
+	exigirLineas(t, deOrden, filaDeTabla(encabezadosDeLaTablaDeInvocaciones...))
+	assert.NotContains(t, deOrden, " | sí |", "ninguna invocación de la sesión del modo orden es una llamada")
+}
+
 // exigirSinUmbrales exige lo que publica el informe de una skill sin lista de
 // expresiones prohibidas ni objetivo de duración (FR-006 de H7.3): umbrales es
 // una lista vacía, no null, y su sección de informe.md, el párrafo «ninguno».
@@ -1282,6 +1426,689 @@ func exigirSinUmbrales(t *testing.T, leido informeLeido) {
 	assert.Empty(t, leido.informe.Umbrales)
 	assert.Equal(t, "[]", compacto(t, leido.crudo.Umbrales), "umbrales es una lista vacía, no null")
 	assert.Equal(t, "ninguno", seccionDelInforme(t, leido.md, "Umbrales"))
+}
+
+// Lo que TestInformeEnDosModos lee del repositorio sin cambiarlo (research.md
+// D24, V33 de H21; FR-045, FR-048).
+const (
+	// guionDelInformeFinal es el guion del workflow que escribe con informe.json
+	// la sección de evals del informe final, lo único que lee la persona.
+	guionDelInformeFinal = "../../scripts/workflow/informe.sh"
+
+	// Las marcas de texto entre las que está el programa jq de seccion_evals,
+	// que escribe la tabla de tasas, y aquellas entre las que está el de
+	// recuentos_y_umbrales, que escribe la de los recuentos de expresiones.
+	principioDelProgramaDeTasas     = `jq -r --argjson cambios "$cambios" --arg cabeza "$cabeza" '` + "\n"
+	finalDelProgramaDeTasas         = `' "$f"` + "\n"
+	principioDelProgramaDeRecuentos = `jq -r "$jq_umbral"'` + "\n"
+	finalDelProgramaDeRecuentos     = `' "$1"` + "\n"
+
+	// skillSinUmbrales y evalsDeLaSkillSinUmbrales son la skill que no tiene
+	// lista de expresiones ni objetivo de duración y sus evals del repositorio.
+	skillSinUmbrales          = "legal-core"
+	evalsDeLaSkillSinUmbrales = "../../evals/legal-core"
+)
+
+// Las líneas del programa jq de seccion_evals y del de recuentos_y_umbrales de
+// guionDelInformeFinal que aplican la regla de research.md V33 de H21, sin su
+// sangrado: la tabla de tasas tiene una columna por el modelo que decide, por
+// cada modelo de los informativos y por cada modelo de tasas; cada serie va a la
+// fila de su eval, con un sufijo si su pregunta es ampliada o está fuera del
+// plan; la fila se marca informativa si tiene una serie planificada que no
+// decide cuyo modelo es exactamente el que decide; cada celda es la primera
+// serie de la fila con el modelo de su columna, con ✗ si decide y no pasa; y
+// cada recuento de expresiones da una fila con su modelo.
+var (
+	lineasDelProgramaDeTasas = []string{
+		`| ([$inf.modelo_que_decide] + $inf.modelos_informativos + [$inf.tasas[].modelo]) | ` +
+			`reduce .[] as $m ([]; if index([$m]) then . else . + [$m] end) | . as $modelos`,
+		`| [$inf.tasas[] | .fila = (.eval + (if .pregunta_ampliada then " (prueba de red)" ` +
+			`elif (.planificada | not) then " (fuera del plan)" else "" end))]`,
+		`| group_by(.fila) | map({fila: .[0].fila, eval: .[0].eval, series: .}) as $filas`,
+		`informativa: ([.series[] | select(.modelo == $inf.modelo_que_decide and .planificada and (.decide | not))] ` +
+			`| length > 0)}] as $filas`,
+		`+ ([$modelos[] as $m | ([$r.series[] | select(.modelo == $m)][0]`,
+		`| if . == null then "—" else "\(.pasan)/\(.sesiones)" + (if .decide and (.pasa | not) then " ✗" else "" end) ` +
+			`end)] | join(" | "))`,
+	}
+
+	lineasDelProgramaDeRecuentos = []string{
+		"(.expresiones_prohibidas_por_modelo[] | \"| `\\(.modelo)` | \\(.con_alguna) | \\(.respuestas) | " +
+			"\\(pct(.con_alguna; .respuestas)) |\"), \"\"",
+	}
+)
+
+// TestInformeEnDosModos fija el informe de un job que mide los dos modos y la
+// eval sin binario ni servidor (contracts/evals-en-dos-modos.md §5 y §8 de H21;
+// data-model §6 y §10; research D19, D24, V33; FR-044, FR-045, FR-047, FR-048,
+// FR-080; SC-011; US5-2, US5-5, US5-6), con ejecuciones sintéticas de
+// ejecucionConUmbrales escritas con EscribirInforme en t.TempDir():
+//
+//   - tasas lleva una serie por eval, modelo y modo, en el orden del contrato
+//     —las del modo orden, las del modo herramienta y las de la eval sin binario
+//     ni servidor—, con el id como modelo en el modo orden y en la eval sin
+//     binario ni servidor y con «<id> (herramienta)» en el modo herramienta; y
+//     el recuento de las expresiones, un elemento por modelo y modo, los del modo
+//     orden delante, cada uno con un modelo que nombra su modo;
+//   - una serie que decide y no llega al umbral solo en el modo herramienta pone
+//     el veredicto en fallo, con el motivo que nombra su modelo y con él su modo,
+//     aunque la misma eval pase en el modo orden y todos los umbrales se cumplan;
+//     y lo mismo la serie de la eval sin binario ni servidor;
+//   - con la regla que aplica cada programa jq de scripts/workflow/informe.sh
+//     —cuyas líneas siguen siendo las de hoy en el guion, que se lee sin
+//     ejecutarlo—, ninguna pareja de fila y modelo se repite en tasas: cada serie
+//     de cada modo tiene su celda, con su ✗ la que no pasa, y la fila de la eval
+//     informativa conserva su marca;
+//   - y legal-core, con las evals del repositorio, sin lista, y el objetivo de la
+//     definición del job, que es 0, publica umbrales como [] y las series de sus
+//     dos modos y de su eval sin binario ni servidor, que son lo que decide.
+func TestInformeEnDosModos(t *testing.T) {
+	t.Parallel()
+
+	// enDosModos es una ejecución del job con dos evals que deciden, una
+	// informativa y la eval sin binario ni servidor, con los dos modelos.
+	enDosModos := ejecucionConUmbrales{
+		queDeciden: 2, informativas: 1, conHaiku: true, dosModos: true, conLaSinBinarioNiServidor: true,
+	}
+
+	t.Run("una-serie-falla-solo-en-el-modo-herramienta", func(t *testing.T) {
+		t.Parallel()
+
+		copia := armarEjecucionConUmbrales(t, enDosModos)
+
+		sinCita := []string{
+			sesionSinteticaEn(ModoHerramienta, 1, modeloSonnet55, 2),
+			sesionSinteticaEn(ModoHerramienta, 1, modeloSonnet55, 3),
+		}
+		for _, sesion := range sinCita {
+			dir := filepath.Join(copia, "sesiones", sesion)
+			escribirEnLaCopia(t, dir, "sesion.jsonl",
+				sustituirDosVeces(t, contenidoDeLaSesion(t, dir, "sesion.jsonl"), citaDeLaRespuesta, ""))
+		}
+
+		leido := informeDeLaCopia(t, copia, enDosModos.ajustar)
+
+		enHerramienta := modeloSonnet55 + " (herramienta)"
+
+		assert.Equal(t, tasasDeLosDosModos(func(tasa *TasaDelInforme) {
+			if tasa.Eval == ficheroSintetico(1) && tasa.Modelo == enHerramienta {
+				tasa.Pasan, tasa.Pasa = 1, false
+			}
+		}), leido.informe.Tasas)
+
+		exigirMotivosDeLaRaiz(t, leido,
+			ficheroSintetico(1)+" con claude-sonnet-5-5 (herramienta): pasan 1 de 3, y el umbral es 2",
+			sinCita[0]+": cita ausente: "+textoDeLaCita21,
+			sinCita[1]+": cita ausente: "+textoDeLaCita21)
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+		// Ningún umbral falla: lo que pone el veredicto en fallo es la serie.
+		exigirUmbrales(t, leido, slices.Concat(umbralesCumplidosDeNueveYSeis(ModoOrden),
+			umbralesCumplidosDeNueveYSeis(ModoHerramienta)))
+		exigirRecuento(t, leido,
+			recuentoEsperado(modeloSonnet55, ModoOrden, 0, 9), recuentoEsperado(modeloHaiku45, ModoOrden, 0, 6),
+			recuentoEsperado(modeloSonnet55, ModoHerramienta, 0, 9), recuentoEsperado(modeloHaiku45, ModoHerramienta, 0, 6))
+
+		tabla := tablaDelInformeFinal(t, leido.informe)
+
+		assert.Equal(t, []string{modeloSonnet55, modeloHaiku45, enHerramienta, modeloHaiku45 + " (herramienta)"},
+			tabla.modelos, "una columna por modelo y modo")
+		assert.Len(t, tabla.celdas, len(leido.informe.Tasas), "cada serie de cada modo tiene su celda")
+		assert.Equal(t, "3/3", tabla.celdas[celdaDelInformeFinal{fila: ficheroSintetico(1), modelo: modeloSonnet55}],
+			"la serie del modo orden de la eval pasa")
+		assert.Equal(t, "1/3 ✗", tabla.celdas[celdaDelInformeFinal{fila: ficheroSintetico(1), modelo: enHerramienta}],
+			"la serie del modo herramienta de la misma eval no pasa, con su ✗")
+		assert.Equal(t, "3/3", tabla.celdas[celdaDelInformeFinal{fila: ficheroSintetico(4), modelo: modeloSonnet55}],
+			"la serie de la eval sin binario ni servidor, en la columna del id")
+		assert.Equal(t, []string{ficheroSintetico(3)}, tabla.informativas, "la eval informativa conserva su marca")
+
+		exigirUnModeloPorRecuento(t, leido.informe)
+	})
+
+	t.Run("la-serie-de-la-eval-sin-binario-ni-servidor-falla", func(t *testing.T) {
+		t.Parallel()
+
+		leido := escribirEjecucionConUmbrales(t, conCambios(enDosModos, func(e *ejecucionConUmbrales) {
+			e.sinBinarioAlteradas = 2
+		}))
+
+		assert.Equal(t, tasasDeLosDosModos(func(tasa *TasaDelInforme) {
+			if tasa.Eval == ficheroSintetico(4) && tasa.Modelo == modeloSonnet55 {
+				tasa.Pasan, tasa.Pasa = 1, false
+			}
+		}), leido.informe.Tasas)
+
+		motivos := []string{ficheroSintetico(4) + " con claude-sonnet-5-5: pasan 1 de 3, y el umbral es 2"}
+
+		for vez := 1; vez <= 2; vez++ {
+			sesion := sesionSintetica(4, modeloSonnet55, vez)
+
+			resultado := resultadoDeLaSesion(t, leido.informe, sesion)
+			require.NotEmpty(t, resultado.Motivos, "%s no pasa", sesion)
+
+			for _, motivo := range resultado.Motivos {
+				motivos = append(motivos, sesion+": "+motivo)
+			}
+		}
+
+		exigirMotivosDeLaRaiz(t, leido, motivos...)
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+		// Sus sesiones no entran en ninguna medida: ningún umbral falla.
+		exigirUmbrales(t, leido, slices.Concat(umbralesCumplidosDeNueveYSeis(ModoOrden),
+			umbralesCumplidosDeNueveYSeis(ModoHerramienta)))
+
+		tabla := tablaDelInformeFinal(t, leido.informe)
+		assert.Len(t, tabla.celdas, len(leido.informe.Tasas), "cada serie tiene su celda")
+		assert.Equal(t, "1/3 ✗", tabla.celdas[celdaDelInformeFinal{fila: ficheroSintetico(4), modelo: modeloSonnet55}])
+	})
+
+	t.Run("legal-core", func(t *testing.T) {
+		t.Parallel()
+		exigirElInformeDeLaSkillSinUmbrales(t)
+	})
+
+	t.Run("sin-poder-saber-el-modo", func(t *testing.T) {
+		t.Parallel()
+		exigirLaSesionSinModoConocido(t)
+	})
+
+	t.Run("las-lineas-del-guion-del-informe-final", func(t *testing.T) {
+		t.Parallel()
+
+		guion := contenidoDeLaSesion(t, filepath.Dir(guionDelInformeFinal), filepath.Base(guionDelInformeFinal))
+
+		exigirLasLineasDelPrograma(t, guion, principioDelProgramaDeTasas, finalDelProgramaDeTasas, lineasDelProgramaDeTasas)
+		exigirLasLineasDelPrograma(t, guion, principioDelProgramaDeRecuentos, finalDelProgramaDeRecuentos,
+			lineasDelProgramaDeRecuentos)
+	})
+}
+
+// umbralesCumplidosDeNueveYSeis son los cuatro umbrales de las respuestas de un
+// modo de la ejecución de TestInformeEnDosModos, con tres evals que activan la
+// skill, una de ellas informativa, sin ninguna respuesta alterada: 0 de 9 y 0 de
+// 6.
+func umbralesCumplidosDeNueveYSeis(modo Modo) []Umbral {
+	return []Umbral{
+		umbralDeExpresiones(modeloSonnet55, modo, 0, 9, true, true),
+		umbralSinActivar(modeloSonnet55, modo, 0, 9, true),
+		umbralDeRedaccionNoLeida(modeloSonnet55, modo, 0, 9, true),
+		umbralDeExpresiones(modeloHaiku45, modo, 0, 6, true, false),
+	}
+}
+
+// tasasDeLosDosModos son las tasas de la ejecución de TestInformeEnDosModos con
+// todas sus sesiones pasando, en el orden de contracts/evals-en-dos-modos.md §5
+// de H21, escritas a mano, y con lo que cambie cambiar en cada una: las del modo
+// orden —las dos evals que deciden, con los dos modelos, y la informativa, solo
+// con el que decide—, las mismas del modo herramienta, con el modo en su modelo,
+// y las de la eval sin binario ni servidor, sin modo.
+func tasasDeLosDosModos(cambiar func(tasa *TasaDelInforme)) []TasaDelInforme {
+	tasa := func(numero int, modelo string, modo Modo, decide bool) TasaDelInforme {
+		return TasaDelInforme{
+			Eval: ficheroSintetico(numero), Modelo: modelo, Modo: modo, Planificada: true, Decide: decide,
+			Formas: sinFormasExigidas, Sesiones: 3, Pasan: 3, Pasa: true,
+		}
+	}
+
+	tasas := []TasaDelInforme{
+		tasa(1, "claude-sonnet-5-5", ModoOrden, true),
+		tasa(1, "claude-haiku-4-5-20251001", ModoOrden, false),
+		tasa(2, "claude-sonnet-5-5", ModoOrden, true),
+		tasa(2, "claude-haiku-4-5-20251001", ModoOrden, false),
+		tasa(3, "claude-sonnet-5-5", ModoOrden, false),
+		tasa(1, "claude-sonnet-5-5 (herramienta)", ModoHerramienta, true),
+		tasa(1, "claude-haiku-4-5-20251001 (herramienta)", ModoHerramienta, false),
+		tasa(2, "claude-sonnet-5-5 (herramienta)", ModoHerramienta, true),
+		tasa(2, "claude-haiku-4-5-20251001 (herramienta)", ModoHerramienta, false),
+		tasa(3, "claude-sonnet-5-5 (herramienta)", ModoHerramienta, false),
+		tasa(4, "claude-sonnet-5-5", "", true),
+		tasa(4, "claude-haiku-4-5-20251001", "", false),
+	}
+
+	for posicion := range tasas {
+		cambiar(&tasas[posicion])
+	}
+
+	return tasas
+}
+
+// celdaDelInformeFinal es una celda de la tabla de tasas que escribe
+// scripts/workflow/informe.sh: la de una fila y un modelo.
+type celdaDelInformeFinal struct {
+	fila, modelo string
+}
+
+// tablaDeTasasDelInformeFinal es la tabla de tasas que escribe
+// scripts/workflow/informe.sh con un informe: los modelos, uno por columna y en
+// su orden; el texto de cada celda con serie; y las filas que marca informativa,
+// en el orden de tasas.
+type tablaDeTasasDelInformeFinal struct {
+	modelos      []string
+	celdas       map[celdaDelInformeFinal]string
+	informativas []string
+}
+
+// tablaDelInformeFinal aplica al informe la regla del programa jq de
+// seccion_evals de scripts/workflow/informe.sh (research.md V33 de H21), sin
+// ejecutarlo: hay una columna por el modelo que decide, por cada uno de los
+// informativos y por cada modelo de tasas, sin repetir; cada serie va a su fila
+// (filaDelInformeFinal), y la celda de una fila y un modelo es la de la serie
+// (textoDeLaCelda); y la fila es informativa si tiene una serie planificada que
+// no decide cuyo modelo es exactamente el que decide. El guion enseña solo la
+// primera serie de cada fila y modelo: una pareja repetida dejaría una serie sin
+// celda, y aquí es un fallo.
+func tablaDelInformeFinal(t *testing.T, informe Informe) tablaDeTasasDelInformeFinal {
+	t.Helper()
+
+	tabla := tablaDeTasasDelInformeFinal{celdas: map[celdaDelInformeFinal]string{}}
+
+	for _, modelo := range slices.Concat([]string{informe.ModeloQueDecide}, informe.ModelosInformativos) {
+		tabla.modelos = conElQueFalte(tabla.modelos, modelo)
+	}
+
+	for _, tasa := range informe.Tasas {
+		tabla.modelos = conElQueFalte(tabla.modelos, tasa.Modelo)
+
+		fila := filaDelInformeFinal(tasa)
+		celda := celdaDelInformeFinal{fila: fila, modelo: tasa.Modelo}
+
+		_, repetida := tabla.celdas[celda]
+		if !assert.Falsef(t, repetida, "la pareja de fila %q y modelo %q se repite en tasas: informe.sh solo enseña "+
+			"la primera serie, y la del modo %q se queda sin celda", fila, tasa.Modelo, tasa.Modo) {
+			continue
+		}
+
+		tabla.celdas[celda] = textoDeLaCelda(tasa)
+
+		if tasa.Modelo == informe.ModeloQueDecide && tasa.Planificada && !tasa.Decide {
+			tabla.informativas = conElQueFalte(tabla.informativas, fila)
+		}
+	}
+
+	return tabla
+}
+
+// conElQueFalte es la lista con el valor al final si no lo tenía, sea el que sea:
+// como el reduce del programa jq, que no descarta ninguno.
+func conElQueFalte(lista []string, valor string) []string {
+	if slices.Contains(lista, valor) {
+		return lista
+	}
+
+	return append(lista, valor)
+}
+
+// filaDelInformeFinal es la fila de la tabla de tasas de
+// scripts/workflow/informe.sh a la que va la serie: la de su eval, con « (prueba
+// de red)» si su pregunta es ampliada y « (fuera del plan)» si el plan no la
+// pide.
+func filaDelInformeFinal(tasa TasaDelInforme) string {
+	switch {
+	case tasa.PreguntaAmpliada:
+		return tasa.Eval + " (prueba de red)"
+	case !tasa.Planificada:
+		return tasa.Eval + " (fuera del plan)"
+	default:
+		return tasa.Eval
+	}
+}
+
+// textoDeLaCelda es lo que scripts/workflow/informe.sh escribe en la celda de
+// la serie: «<pasan>/<sesiones>», con « ✗» si decide y no pasa.
+func textoDeLaCelda(tasa TasaDelInforme) string {
+	texto := strconv.Itoa(tasa.Pasan) + "/" + strconv.Itoa(tasa.Sesiones)
+	if tasa.Decide && !tasa.Pasa {
+		texto += " ✗"
+	}
+
+	return texto
+}
+
+// exigirUnModeloPorRecuento exige lo que la fila de cada recuento de expresiones
+// necesita en la tabla que escribe scripts/workflow/informe.sh, que da una fila
+// por elemento con su modelo (research.md V33 de H21; FR-048): cada recuento
+// tiene un modelo distinto, y ese modelo nombra su modo.
+func exigirUnModeloPorRecuento(t *testing.T, informe Informe) {
+	t.Helper()
+
+	require.NotEmpty(t, informe.ExpresionesProhibidasPorModelo, "el informe tiene recuentos que mirar")
+
+	var modelos []string
+
+	for _, recuento := range informe.ExpresionesProhibidasPorModelo {
+		assert.NotContains(t, modelos, recuento.Modelo, "el modelo de cada recuento es distinto")
+		modelos = append(modelos, recuento.Modelo)
+
+		require.NotEmpty(t, recuento.Modo, "el recuento de %s es de un modo", recuento.Modelo)
+		assert.True(t, strings.HasSuffix(recuento.Modelo, " ("+string(recuento.Modo)+")"),
+			"el modelo del recuento %q nombra su modo, %s", recuento.Modelo, recuento.Modo)
+	}
+}
+
+// exigirLasLineasDelPrograma exige que el programa jq del guion que está entre
+// las dos marcas de texto tenga, sin su sangrado, cada una de las líneas dadas:
+// las que aplican la regla que comprueba TestInformeEnDosModos. Si una falta, el
+// test la nombra: la regla que comprueba ya no sería la del informe.sh de hoy
+// (research.md D24 de H21).
+func exigirLasLineasDelPrograma(t *testing.T, guion, principio, final string, lineas []string) {
+	t.Helper()
+
+	_, resto, hay := strings.Cut(guion, principio)
+	require.True(t, hay, "%s tiene un programa jq que empieza por %q", guionDelInformeFinal, principio)
+
+	programa, _, hay := strings.Cut(resto, final)
+	require.True(t, hay, "el programa jq de %s que empieza por %q termina en %q", guionDelInformeFinal, principio, final)
+
+	var delPrograma []string
+
+	for linea := range strings.Lines(programa) {
+		delPrograma = append(delPrograma, strings.TrimSpace(linea))
+	}
+
+	for _, linea := range lineas {
+		assert.True(t, slices.Contains(delPrograma, linea),
+			"el programa jq de %s que empieza por %q ya no tiene la línea %q", guionDelInformeFinal, principio, linea)
+	}
+}
+
+// exigirElInformeDeLaSkillSinUmbrales escribe el informe de legal-core con sus
+// evals del repositorio, el plan del job en sus dos modos y el objetivo de
+// duración que le da la definición del job, sin ninguna sesión, y exige que la
+// skill siga sin umbrales (FR-045): no tiene lista ni objetivo, y umbrales es [],
+// también con las duraciones de sus tandas; y que sus series sean las de sus tres
+// evals de modo en cada modo, con los dos modelos, y las de su eval sin binario
+// ni servidor, una sola vez, con las del modelo que decide decidiendo: 14, en el
+// orden del contrato.
+func exigirElInformeDeLaSkillSinUmbrales(t *testing.T) {
+	t.Helper()
+
+	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+
+	ajustes, esta := delJob.PorSkill[skillSinUmbrales]
+	require.True(t, esta, "la definición del job tiene los ajustes de %s", skillSinUmbrales)
+	require.Zero(t, ajustes.ObjetivoDeDuracion, "%s no tiene objetivo de duración", skillSinUmbrales)
+
+	conjunto, err := LeerConjunto(evalsDeLaSkillSinUmbrales)
+	require.NoError(t, err)
+	require.Empty(t, conjunto.MalFormados)
+	require.Empty(t, conjunto.Prohibidas.expresiones(), "%s no tiene lista de expresiones prohibidas", skillSinUmbrales)
+
+	destino := t.TempDir()
+
+	informe, err := EscribirInforme(InformeAEscribir{
+		Skill:                 skillSinUmbrales,
+		Evals:                 evalsDeLaSkillSinUmbrales,
+		Sesiones:              t.TempDir(),
+		Destino:               destino,
+		ModeloQueDecide:       modeloSonnet55,
+		ModelosInformativos:   []string{modeloHaiku45},
+		Repeticiones:          repeticionesConUmbrales,
+		Umbral:                umbralConUmbrales,
+		Modos:                 []Modo{ModoOrden, ModoHerramienta},
+		Commit:                commitEvaluado,
+		SinPython:             filepath.Join(casosDeInforme, ficheroSinPython),
+		DuracionDeLasSesiones: 2000,
+		DuracionDeLosModos:    map[Modo]int{ModoOrden: 950, ModoHerramienta: 1000},
+		ObjetivoDeDuracion:    ajustes.ObjetivoDeDuracion,
+	})
+	require.NoError(t, err)
+
+	assert.Empty(t, informe.Umbrales)
+	assert.Empty(t, informe.ExpresionesProhibidasPorModelo)
+
+	var crudo informeCrudo
+	require.NoError(t, json.Unmarshal([]byte(contenidoDelInforme(t, destino, "informe.json")), &crudo))
+	assert.Equal(t, "[]", compacto(t, crudo.Umbrales), "umbrales es una lista vacía, no null")
+
+	type serie struct {
+		eval, modelo string
+		modo         Modo
+		decide       bool
+	}
+
+	deModo := []string{
+		"01-territorio-municipio-cubierto.yaml", "02-territorio-municipio-no-cubierto.yaml",
+		"03-no-activa-receta-de-cocina.yaml",
+	}
+
+	var esperadas []serie
+
+	for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+		sufijo := ""
+		if modo == ModoHerramienta {
+			sufijo = " (herramienta)"
+		}
+
+		for _, eval := range deModo {
+			esperadas = append(esperadas,
+				serie{eval: eval, modelo: modeloSonnet55 + sufijo, modo: modo, decide: true},
+				serie{eval: eval, modelo: modeloHaiku45 + sufijo, modo: modo})
+		}
+	}
+
+	esperadas = append(esperadas,
+		serie{eval: ficheroSinBinarioDeLegalCore, modelo: modeloSonnet55, decide: true},
+		serie{eval: ficheroSinBinarioDeLegalCore, modelo: modeloHaiku45})
+
+	series := make([]serie, 0, len(informe.Tasas))
+	for _, tasa := range informe.Tasas {
+		assert.True(t, tasa.Planificada, "%s con %s es una serie del plan", tasa.Eval, tasa.Modelo)
+		series = append(series, serie{eval: tasa.Eval, modelo: tasa.Modelo, modo: tasa.Modo, decide: tasa.Decide})
+	}
+
+	assert.Equal(t, esperadas, series)
+	assert.Len(t, tablaDelInformeFinal(t, informe).celdas, len(esperadas), "cada serie de cada modo tiene su celda")
+}
+
+// exigirLaSesionSinModoConocido escribe el informe de una copia del caso aprobado
+// con una entrada más en su directorio de sesiones que no es un directorio, y
+// exige lo que el informe hace con una sesión de la que no se puede saber si
+// tiene servidor.json (contracts/evals-en-dos-modos.md §3 de H21): no la toma por
+// una del modo orden; queda ilegible, con el motivo de servidor.json, que nombra
+// su ruta, detrás de los de eval.txt, modelo.txt y pregunta.txt y delante del de
+// la sesión; y sin modo, en informe.json y en su celda de informe.md. Las demás
+// sesiones conservan el suyo.
+func exigirLaSesionSinModoConocido(t *testing.T) {
+	t.Helper()
+
+	const entrada = "99-no-es-un-directorio"
+
+	copia := copiaDelCasoAprobadoConLaLista(t)
+	escribirEnLaCopia(t, filepath.Join(copia, "sesiones"), entrada, "no es el directorio de una sesión\n")
+
+	leido := informeDeLaCopia(t, copia, nil)
+
+	resultado := resultadoDeLaSesion(t, leido.informe, entrada)
+	assert.False(t, resultado.Pasa)
+	assert.Empty(t, resultado.Modo, "de una sesión cuyo servidor.json no se puede mirar no se sabe el modo")
+	assert.Equal(t, celdaSinModo, celdaDeLaSesion(t, leido.md, entrada, columnaDelModo))
+
+	principios := []string{"eval.txt: ", "modelo.txt: ", "pregunta.txt: ", "servidor.json: ", ""}
+	require.Len(t, resultado.Motivos, len(principios), "un motivo por fichero que no se puede leer: %q", resultado.Motivos)
+
+	for posicion, principio := range principios {
+		assert.True(t, strings.HasPrefix(resultado.Motivos[posicion], "sesión ilegible: "+principio),
+			"el motivo %q empieza por %q", resultado.Motivos[posicion], "sesión ilegible: "+principio)
+	}
+
+	assert.Contains(t, resultado.Motivos[3], filepath.Join(copia, "sesiones", entrada, "servidor.json")+
+		" no se puede comprobar: ")
+
+	assert.Equal(t, ModoOrden, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Modo)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// TestEjecutarPorTandas fija cómo se reparte el plan del job, una llamada al
+// repartidor por tanda, y lo que el informe recibe de ello
+// (contracts/evals-en-dos-modos.md §2.2 y §5 de H21; research.md D14 de H7.3;
+// FR-043, FR-047), con un repartidor de pega que no abre nada: las tandas son las
+// sesiones seguidas del mismo modo, que con el plan del job son tres —la del
+// modo orden, con la prueba de red, la del modo herramienta y la de la eval sin
+// binario ni servidor—, y cada una se ejecuta en su llamada, en su orden; la
+// duración es la suma de los segundos de las tres, cada una redondeada hacia
+// arriba, y la de cada modo, la de su tanda, sin la de la eval sin binario ni
+// servidor; si una tanda acaba con sesiones sin abrir por el límite de uso, las
+// siguientes no se ejecutan y todas sus sesiones cuentan como sin abrir, detrás
+// de las suyas; y el error de una tanda es el de la ejecución, sin ejecutar las
+// siguientes.
+func TestEjecutarPorTandas(t *testing.T) {
+	t.Parallel()
+
+	plan := PlanDeEvals{
+		Evals:           []Eval{{Fichero: ficheroDeLaEval01}, {Fichero: ficheroSinBinarioDeBoe, SinBinarioNiServidor: true}},
+		ModeloQueDecide: modeloQueDecide,
+		Repeticiones:    2,
+		Modos:           []Modo{ModoOrden, ModoHerramienta},
+		PruebaDeRed:     true,
+	}.Sesiones()
+
+	require.Len(t, plan, 7, "el plan tiene tres sesiones del modo orden, dos del modo herramienta y dos sin modo")
+
+	delModoOrden, delModoHerramienta, sinModo := plan[:3], plan[3:5], plan[5:]
+
+	errDeLaTanda := errors.New("la sesión no se puede abrir")
+
+	casos := []struct {
+		nombre string
+
+		// ejecuciones son lo que devuelve el repartidor de pega en cada llamada, y
+		// errores, su error; las que faltan son la ejecución vacía, sin error.
+		ejecuciones []EjecucionDeSesiones
+		errores     []error
+
+		tandas   [][]SesionPlanificada
+		esperado ejecucionPorTandas
+		conError bool
+	}{
+		{
+			nombre: "tres-tandas",
+			ejecuciones: []EjecucionDeSesiones{
+				{Duracion: 900*time.Second + 400*time.Millisecond}, {Duracion: 12 * time.Second}, {Duracion: 3 * time.Second},
+			},
+			tandas: [][]SesionPlanificada{delModoOrden, delModoHerramienta, sinModo},
+			esperado: ejecucionPorTandas{
+				duracion: 901 + 12 + 3, porModo: map[Modo]int{ModoOrden: 901, ModoHerramienta: 12},
+			},
+		},
+		{
+			nombre: "limite-de-uso-en-la-primera-tanda",
+			ejecuciones: []EjecucionDeSesiones{
+				{Duracion: 40 * time.Second, SinAbrir: delModoOrden[2:]},
+			},
+			tandas: [][]SesionPlanificada{delModoOrden},
+			esperado: ejecucionPorTandas{
+				sinAbrir: plan[2:], duracion: 40, porModo: map[Modo]int{ModoOrden: 40},
+			},
+		},
+		{
+			nombre: "limite-de-uso-en-la-segunda-tanda",
+			ejecuciones: []EjecucionDeSesiones{
+				{Duracion: 40 * time.Second}, {Duracion: 5 * time.Second, SinAbrir: delModoHerramienta[1:]},
+			},
+			tandas: [][]SesionPlanificada{delModoOrden, delModoHerramienta},
+			esperado: ejecucionPorTandas{
+				sinAbrir: plan[4:], duracion: 45, porModo: map[Modo]int{ModoOrden: 40, ModoHerramienta: 5},
+			},
+		},
+		{
+			nombre:      "error-en-la-segunda-tanda",
+			ejecuciones: []EjecucionDeSesiones{{Duracion: 40 * time.Second}},
+			errores:     []error{nil, errDeLaTanda},
+			tandas:      [][]SesionPlanificada{delModoOrden, delModoHerramienta},
+			conError:    true,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			var tandas [][]SesionPlanificada
+
+			ejecucion, err := ejecutarPorTandas(plan, func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+				llamada := len(tandas)
+				tandas = append(tandas, tanda)
+
+				var (
+					ejecutada EjecucionDeSesiones
+					err       error
+				)
+
+				if llamada < len(caso.ejecuciones) {
+					ejecutada = caso.ejecuciones[llamada]
+				}
+
+				if llamada < len(caso.errores) {
+					err = caso.errores[llamada]
+				}
+
+				return ejecutada, err
+			})
+
+			assert.Equal(t, caso.tandas, tandas, "una llamada al repartidor por tanda, en su orden")
+
+			if caso.conError {
+				require.ErrorIs(t, err, errDeLaTanda)
+				assert.Zero(t, ejecucion)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.esperado, ejecucion)
+		})
+	}
+
+	t.Run("un-solo-modo", func(t *testing.T) {
+		t.Parallel()
+
+		// El plan de un solo modo, sin eval sin binario ni servidor, es una tanda.
+		deUnModo := PlanDeEvals{
+			Evals: []Eval{{Fichero: ficheroDeLaEval01}}, ModeloQueDecide: modeloQueDecide, Repeticiones: 2,
+		}.Sesiones()
+
+		llamadas := 0
+
+		ejecucion, err := ejecutarPorTandas(deUnModo, func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+			llamadas++
+
+			assert.Equal(t, deUnModo, tanda)
+
+			return EjecucionDeSesiones{Duracion: time.Second}, nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 1, llamadas)
+		assert.Equal(t, ejecucionPorTandas{duracion: 1, porModo: map[Modo]int{ModoOrden: 1}}, ejecucion)
+	})
+
+	t.Run("sin-sesiones", func(t *testing.T) {
+		t.Parallel()
+
+		ejecucion, err := ejecutarPorTandas(nil, func([]SesionPlanificada) (EjecucionDeSesiones, error) {
+			assert.Fail(t, "sin sesiones no hay ninguna tanda que ejecutar")
+
+			return EjecucionDeSesiones{}, nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, ejecucionPorTandas{porModo: map[Modo]int{}}, ejecucion)
+	})
+
+	t.Run("segundos-hacia-arriba", func(t *testing.T) {
+		t.Parallel()
+
+		// 900,4 s son 901 y no cumplen un objetivo de 900 (research.md D14 de H7.3).
+		for duracion, segundos := range map[time.Duration]int{
+			0:                                      0,
+			time.Nanosecond:                        1,
+			900 * time.Second:                      900,
+			900*time.Second + time.Nanosecond:      901,
+			900*time.Second + 400*time.Millisecond: 901,
+		} {
+			assert.Equal(t, segundos, segundosHaciaArriba(duracion), "%s", duracion)
+		}
+	})
 }
 
 // Las clases con que una sesión queda sin medir tal como las publica el informe,
@@ -1384,12 +2211,11 @@ func exigirUnaSesionSinMedir(t *testing.T, codigo int, trasElInit, clase string,
 	assert.True(t, resultadoDeLaSesion(t, leido.informe, sesionDeNoActivacion).Pasa)
 
 	exigirTasaSinMedir(t, leido, TasaDelInforme{
-		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
 		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0, SinMedir: 1,
 	})
 
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 0}},
-		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":0}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 0, 0))
 
 	sinMedir := SesionSinMedir{Sesion: sesionDelArticulo21, Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Motivo: clase}
 	exigirSesionesSinMedir(t, leido, sinMedir)
@@ -1426,7 +2252,7 @@ func exigirLasSesionesSinAbrir(t *testing.T) {
 	leido := informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
 		entradas.Repeticiones, entradas.Umbral = 3, 2
 		entradas.SinAbrir = []SesionPlanificada{
-			{Nombre: sesionDeLaSerie(3), Fichero: ficheroDeLaEval01, Modelo: modeloQueDecide},
+			{Nombre: sesionDeLaSerie(3), Fichero: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden},
 		}
 	})
 
@@ -1435,18 +2261,17 @@ func exigirLasSesionesSinAbrir(t *testing.T) {
 	assert.Len(t, leido.informe.Evals, 3, "la sesión que no se abrió no tiene resultado")
 
 	exigirTasaSinMedir(t, leido, TasaDelInforme{
-		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
 		Formas: sinFormasExigidas, Sesiones: 2, Pasan: 1, SinMedir: 2,
 	})
 	assert.Equal(t, TasaDelInforme{
-		Eval: ficheroDeNoActivacion, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Eval: ficheroDeNoActivacion, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
 		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 1,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeNoActivacion, modeloQueDecide))
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
-		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "no llega al umbral"))
+		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "orden", "sí", "sí", "ninguna", "1 de 1", "no llega al umbral"))
 
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 1}},
-		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":1}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 0, 1))
 
 	sinMedir := []SesionSinMedir{
 		{Sesion: sesionDeLaSerie(2), Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Motivo: sinMedirPorElMensaje},
@@ -1499,8 +2324,7 @@ func exigirLosReintentosRecuperados(t *testing.T) {
 	assert.Equal(t, "3", string(leido.crudo.ReintentosPorLimiteDeRitmo))
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"), "Reintentos por límite de ritmo: 3")
 
-	exigirRecuento(t, leido, []RecuentoDeExpresiones{{Modelo: modeloQueDecide, ConAlguna: 0, Respuestas: 1}},
-		`[{"modelo":"`+modeloQueDecide+`","con_alguna":0,"respuestas":1}]`)
+	exigirRecuento(t, leido, recuentoEsperado(modeloQueDecide, ModoOrden, 0, 1))
 	exigirSesionesSinMedir(t, leido)
 	exigirMotivosDeLaRaiz(t, leido)
 	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
@@ -1547,7 +2371,8 @@ func exigirTasaSinMedir(t *testing.T, leido informeLeido, esperada TasaDelInform
 	assert.Equal(t, strconv.Itoa(esperada.SinMedir), string(leido.crudo.Tasas[posicion].SinMedir))
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
-		filaDeTabla(esperada.Eval, esperada.Modelo, siONo(esperada.Decide), siONo(esperada.Planificada), "ninguna",
+		filaDeTabla(esperada.Eval, esperada.Modelo, string(esperada.Modo), siONo(esperada.Decide),
+			siONo(esperada.Planificada), "ninguna",
 			fmt.Sprintf("%d de %d", esperada.Pasan, esperada.Sesiones), fmt.Sprintf("sin medir (%d)", esperada.SinMedir)))
 }
 
@@ -1816,24 +2641,38 @@ func exigirExpresionesPorSesion(t *testing.T, leido informeLeido, esperadas []ex
 	}
 }
 
-// exigirRecuento exige el recuento de las expresiones prohibidas por modelo: el
-// del Informe, el escrito en informe.json, sin blancos, y la sección de
-// informe.md, que es su tabla con una fila por modelo, en su orden.
-func exigirRecuento(t *testing.T, leido informeLeido, esperado []RecuentoDeExpresiones, escrito string) {
+// recuentoEsperado es el recuento de las expresiones prohibidas de un modelo en
+// un modo tal como lo fija contracts/evals-en-dos-modos.md §5 de H21, con su
+// modelo escrito a mano: el id seguido de su modo entre paréntesis.
+func recuentoEsperado(modelo string, modo Modo, conAlguna, respuestas int) RecuentoDeExpresiones {
+	return RecuentoDeExpresiones{
+		Modelo: modelo + " (" + string(modo) + ")", Modo: modo, ConAlguna: conAlguna, Respuestas: respuestas,
+	}
+}
+
+// exigirRecuento exige el recuento de las expresiones prohibidas por modelo y
+// modo: el del Informe; el escrito en informe.json, sin blancos, con sus cuatro
+// claves en el orden del contrato; y la sección de informe.md, que es su tabla
+// con una fila por modelo y modo, en su orden.
+func exigirRecuento(t *testing.T, leido informeLeido, esperado ...RecuentoDeExpresiones) {
 	t.Helper()
 
 	assert.Equal(t, esperado, leido.informe.ExpresionesProhibidasPorModelo)
-	assert.Equal(t, escrito, compacto(t, leido.crudo.ExpresionesProhibidasPorModelo))
 
+	escritos := make([]string, 0, len(esperado))
 	filas := []string{
 		filaDeTabla(encabezadosDeLaTablaDeExpresiones...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeExpresiones))...),
 	}
+
 	for _, recuento := range esperado {
-		filas = append(filas, filaDeTabla(recuento.Modelo, strconv.Itoa(recuento.ConAlguna),
+		escritos = append(escritos, fmt.Sprintf(`{"modelo":%s,"modo":%s,"con_alguna":%d,"respuestas":%d}`,
+			cadenaJSON(t, recuento.Modelo), cadenaJSON(t, string(recuento.Modo)), recuento.ConAlguna, recuento.Respuestas))
+		filas = append(filas, filaDeTabla(recuento.Modelo, string(recuento.Modo), strconv.Itoa(recuento.ConAlguna),
 			strconv.Itoa(recuento.Respuestas)))
 	}
 
+	assert.Equal(t, "["+strings.Join(escritos, ",")+"]", compacto(t, leido.crudo.ExpresionesProhibidasPorModelo))
 	assert.Equal(t, strings.Join(filas, "\n"), seccionDelInforme(t, leido.md, "Expresiones prohibidas por modelo"))
 }
 
@@ -1947,6 +2786,28 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 			"territorio_ausente de %s es una lista vacía, no null", resultado.Sesion)
 	}
 
+	// Las dos sesiones son del modo orden, de evals que no son sin binario ni
+	// servidor, y sus invocaciones son órdenes de la traza: cada sesión escribe su
+	// modo, linea_sin_consulta falso y citas_sin_consulta como una lista vacía, no
+	// null, y cada invocación, llamada falso (contracts/evals-en-dos-modos.md §4 de
+	// H21).
+	var invocaciones int
+
+	for _, resultado := range leido.crudo.Evals {
+		assert.JSONEq(t, `"orden"`, string(resultado.Modo), "modo de %s", resultado.Sesion)
+		assert.Equal(t, "false", string(resultado.LineaSinConsulta), "linea_sin_consulta de %s", resultado.Sesion)
+		assert.Equal(t, "[]", string(resultado.CitasSinConsulta),
+			"citas_sin_consulta de %s es una lista vacía, no null", resultado.Sesion)
+
+		for _, invocacion := range resultado.Invocaciones {
+			invocaciones++
+
+			assert.Equal(t, "false", string(invocacion.Llamada), "llamada de %s en %s", invocacion.Orden, resultado.Sesion)
+		}
+	}
+
+	assert.Positive(t, invocaciones, "alguna sesión del caso tiene invocaciones que mirar")
+
 	// Sin hallazgos esperados, ninguna serie exige forma: formas es una lista
 	// vacía, no null, y su celda de la tabla de las series dice «ninguna».
 	require.Len(t, leido.crudo.Tasas, 2, "informe.json tiene las dos series del caso")
@@ -1955,13 +2816,18 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 		assert.Equal(t, "[]", string(tasa.Formas), "formas de %s con %s es una lista vacía, no null",
 			tasa.Eval, tasa.Modelo)
 		assert.Equal(t, sinFormasExigidas, tasaDeLaSerie(t, leido.informe, tasa.Eval, tasa.Modelo).Formas)
+
+		// Las dos series son del modo orden, el único de un plan sin modos, y su
+		// modelo es el id a secas (contracts/evals-en-dos-modos.md §5 de H21).
+		assert.JSONEq(t, `"orden"`, string(tasa.Modo), "modo de %s con %s", tasa.Eval, tasa.Modelo)
+		assert.Equal(t, modeloQueDecide, tasa.Modelo)
 	}
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
 		filaDeTabla(encabezadosDeLaTablaDeTasas...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeTasas))...),
-		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "llega al umbral"),
-		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "sí", "sí", "ninguna", "1 de 1", "llega al umbral"))
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "ninguna", "1 de 1", "llega al umbral"),
+		filaDeTabla(ficheroDeNoActivacion, modeloQueDecide, "orden", "sí", "sí", "ninguna", "1 de 1", "llega al umbral"))
 
 	// Los comandos prohibidos ejecutados van en la tabla de las sesiones detrás
 	// de los comandos ausentes, los hallazgos encontrados y los ausentes, detrás de
@@ -1972,10 +2838,10 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Sesiones"),
 		filaDeTabla(encabezadosDeLaTablaDeSesiones...),
 		filaDeTabla(slices.Repeat([]string{"---"}, len(encabezadosDeLaTablaDeSesiones))...),
-		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "sí (código 0)",
+		filaDeTabla(sesionDelArticulo21, ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"),
-		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "no", "no", "sí (código 0)",
+		filaDeTabla(sesionDeNoActivacion, ficheroDeNoActivacion, modeloQueDecide, "orden", "no", "no", "sí (código 0)",
 			"ninguno", "ninguno", "ninguna", "ninguno", "ninguno", "ninguno", "ninguno", "ninguna", "ninguna",
 			"ninguno", "ninguno", "ninguna", "0", "no", "pasa"))
 
@@ -2290,7 +3156,7 @@ func comprobarUmbralAlcanzado(t *testing.T, leido informeLeido) {
 
 	tasa := tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloQueDecide)
 	assert.Equal(t, TasaDelInforme{
-		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Planificada: true, Decide: true,
+		Eval: ficheroDeLaEval01, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
 		Formas: sinFormasExigidas, Sesiones: 3, Pasan: 2, Pasa: true,
 	}, tasa)
 
@@ -2300,7 +3166,7 @@ func comprobarUmbralAlcanzado(t *testing.T, leido informeLeido) {
 	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
-		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "sí", "sí", "ninguna", "2 de 3", "llega al umbral"))
+		filaDeTabla(ficheroDeLaEval01, modeloQueDecide, "orden", "sí", "sí", "ninguna", "2 de 3", "llega al umbral"))
 }
 
 // comprobarUmbralNoAlcanzado exige que la serie con solo una sesión que pasa de
@@ -2328,7 +3194,7 @@ func comprobarEvalInformativa(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	assert.Equal(t, TasaDelInforme{
-		Eval: ficheroDeLaEvalInformativa, Modelo: modeloQueDecide, Planificada: true,
+		Eval: ficheroDeLaEvalInformativa, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true,
 		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEvalInformativa, modeloQueDecide))
 
@@ -2344,7 +3210,7 @@ func comprobarModeloInformativo(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	assert.Equal(t, TasaDelInforme{
-		Eval: ficheroDeLaEval01, Modelo: modeloInformativoDelCaso, Planificada: true,
+		Eval: ficheroDeLaEval01, Modelo: modeloInformativoDelCaso, Modo: ModoOrden, Planificada: true,
 		Formas: sinFormasExigidas, Sesiones: 1, Pasan: 0,
 	}, tasaDeLaSerie(t, leido.informe, ficheroDeLaEval01, modeloInformativoDelCaso))
 
