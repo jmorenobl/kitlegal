@@ -14,6 +14,49 @@ sustituyen a este fichero.
 
 ### Añadido
 
+- **`kitlegal mcp serve`, el servidor MCP de kitlegal** (ADR 0035): el applet `mcp`, registrado en el binario
+  distribuido, con un solo verbo, `serve`, y ninguno por omisión —sin verbo termina con `2` nombrándolo—. Atiende el
+  protocolo MCP por la entrada y la salida estándar hasta que la entrada se cierra, y entonces termina con `0`: lo
+  arranca el agente que lo declara, corre en el equipo de quien lo usa y no abre ningún puerto. Por la salida estándar
+  solo van mensajes del protocolo. Anuncia `capabilities` `{"tools":{}}` y nada más —ni `prompts` ni `resources`—, y
+  `serverInfo` con el nombre `kitlegal` y la versión del binario.
+  - **Diez herramientas**, una por cada verbo de consulta del binario, con el nombre `<applet>_<verbo>`:
+    `boe_buscar`, `boe_indice`, `boe_articulo`, `boe_articulos`, `boe_metadatos`, `boe_analisis`,
+    `territorio_resolver`, `graph_check`, `graph_show` y `graph_stats`. Cada una lleva la descripción de su verbo, como
+    `inputSchema` la `entrada` de su `--describe` sin las banderas globales, como `outputSchema` su `salida`, y se
+    anuncia de solo lectura. Salen del registro de applets, sin ninguna lista aparte: los verbos de `skills` y de
+    `mcp`, y `version`, no son herramientas, y llamar a una que el servidor no anuncia es un error del protocolo.
+  - **El resultado de una llamada es el sobre de su orden**: lo que `kitlegal <applet> <verbo> … --json` escribe para
+    esa entrada, como texto y como `structuredContent`, con `isError` si el sobre lleva `ok` falso, y entonces
+    `data.clase` y `data.mensaje` dicen qué falló. Una llamada lee la misma caché y entrega al mismo grafo del mundo
+    que la orden; los hallazgos de `graph_check` van en `data` y no son un error. Los argumentos van por su nombre
+    (`norma`, `bloque`, `bloques`, `texto`, `consulta`, `id`): unos que no son un objeto, una propiedad de más
+    —también el nombre de una bandera— o un valor que no es del tipo declarado son un fallo de la clase `argumentos`,
+    sin ejecutar nada. Una llamada que falla no detiene el servidor. Varias llamadas a la vez reciben cada una su
+    resultado, y las que piden al BOE esperan turno en un mismo ritmo: una petición por intervalo entre todas.
+  - **Banderas.** `--timeout`, `--offline` y `--no-graph` valen para todas las llamadas; el plazo es de cada llamada,
+    no del servidor, y la que lo agota devuelve `fuente-no-disponible`. `--verbose` sube el detalle del registro de
+    eventos en la salida de error, adonde van también el aviso de versión distinta de las skills instaladas, una vez
+    por arranque, y el mensaje de cada llamada que falla. `--json` no cambia nada del protocolo. Con `--asunto`
+    termina con `2` sin atender nada (`mcp serve no admite --asunto: el servidor no expone nada del asunto`), y con
+    `--dry-run`, con `0`, sin atender nada ni esperar a que se cierre la entrada.
+  - **`instructions`**: un texto fijo de 485 bytes que el agente lee una vez por conexión, con cinco frases: qué
+    consultan las herramientas, que no se afirma ningún contenido legal que no venga del texto devuelto en la
+    conversación, que cada afirmación lleva su cita con la norma y el bloque, que los avisos del sobre se trasladan y
+    que el protocolo completo son las skills de kitlegal.
+  - **Cómo se declara**, en el README: en Claude Code, `claude mcp add kitlegal -- kitlegal mcp serve`; en la app de
+    escritorio de ChatGPT y en Codex, `codex mcp add kitlegal -- kitlegal mcp serve`, o *Settings > MCP servers*; y
+    en Antigravity, en `mcp_config.json`. ChatGPT y Claude en la web y en el móvil solo admiten servidores remotos
+    y no son compatibles.
+- **Esquema publicado del verbo `serve`**: `schemas/servidor.json`, el que emite `kitlegal mcp serve --describe`,
+  que `make schema-check` compara como los demás. El verbo no declara ninguna salida propia —al servir no emite
+  ningún sobre—, así que su `data` queda sin restringir.
+- **Dependencia nueva: el SDK de MCP para Go**, `github.com/modelcontextprotocol/go-sdk`, en su v1.7.0 (prevista en
+  el principio V de la constitución y adelantada por el ADR 0035). Solo la importa `internal/mcp`, el adaptador del
+  protocolo: es la regla de arquitectura R7, que hacen cumplir `depguard` en `make lint` y `TestArquitectura` en
+  `make test`. Con ella llegan al binario seis módulos indirectos: `github.com/google/jsonschema-go`,
+  `github.com/segmentio/encoding`, `github.com/segmentio/asm`, `github.com/yosida95/uritemplate/v3`,
+  `golang.org/x/oauth2` y `golang.org/x/sync`. El binario sigue compilándose sin cgo.
 - **La web lleva fotografías**: una en la cabecera de cada portada, una en cada consulta de `/consultas/` y en su
   índice, y una en `/instalar/`, más los cinco pasos de «cómo funciona» sobre la comparación de las portadas. Las
   fotografías están generadas con IA —el pie lo dice— y ninguna enseña texto legible, marcas ni logotipos de una
@@ -22,6 +65,69 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **`boe-legislacion` v0.1.5 y `legal-core` v0.1: cada operación, de dos formas.** Las dos skills piden cada consulta
+  **con su herramienta, si el agente la tiene** —una con su nombre, `boe_articulo`, `graph_check`,
+  `territorio_resolver`…, solo o detrás del prefijo que le ponga el agente, como `mcp__kitlegal__boe_articulo`, y con
+  sus argumentos por su nombre—, y **con su orden, `kitlegal <applet> <verbo> … --json`, si no la tiene**. Si la
+  tiene, la usa siempre. Las dos formas devuelven el mismo sobre, así que la respuesta, su cita y sus avisos son los
+  mismos. Donde un paso encadena dos órdenes con `&&` —leer un bloque y comprobar su redacción—, con herramientas son
+  dos llamadas seguidas, `boe_articulo` o `boe_articulos` y después `graph_check` con la misma norma y los mismos
+  bloques, la segunda solo si la primera no falló; y donde un paso mira el código con el que termina una orden, con
+  herramientas mira la `data.clase` del resultado marcado como error: `2` o `argumentos`, `3` o `no-encontrado`, `4`
+  o `fuente-no-disponible`, `5` o `limite-o-tos`, `6` o `identidad-humana` y `1` o `inesperado`. **Sin herramienta y
+  sin binario, la respuesta lo dice**: si el agente no tiene la herramienta y la orden falla porque `kitlegal` no
+  está —el shell no lo encuentra, o no puede ejecutar órdenes—, no ha consultado nada, y la respuesta no afirma nada
+  del contenido de la norma ni ningún dato de territorio, tampoco de memoria ni con salvedades, no lleva ninguna cita
+  y lleva esta línea, con la causa en lugar del marcador y la dirección en la misma línea:
+  `⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/`.
+  Antes, sin `kitlegal` en el `PATH`, la skill decía que faltaba instalar kitlegal, sin forma fija. No cambia lo que
+  pide cada paso del protocolo, ni la `description`, la forma de la cita, la de los avisos de vigencia, la de
+  `⚠ REDACCIÓN MODIFICADA:` ni las órdenes para PowerShell. Sustituyen a `boe-legislacion` v0.1.4 y a `legal-core`
+  v0.
+- **La tabla de comandos de cada skill gana la columna «Herramienta»**: `make skills-sync` genera
+  ``| Orden | Herramienta | Qué hace | Qué devuelve en `data` |``, con la herramienta de cada orden en su fila
+  (`kitlegal boe articulo <norma> <bloque>` y `boe_articulo`), y la cierra con «La orden y la herramienta de cada
+  fila devuelven el mismo sobre», en lugar de «Todas devuelven el sobre». Las filas son las mismas.
+  `make skills-check` comprueba además que cada herramienta de la tabla de cada skill empotrada es una de las que
+  anuncia el servidor, y que la línea `⚠ SIN CONSULTA AL BOE:` de cada `SKILL.md` es la que reconoce el juicio de las
+  evals.
+- **El job de evals mide en dos modos**, y cada umbral se cumple en cada uno. Cada eval se abre en el **modo orden**
+  —la sesión de siempre, con `kitlegal` en el `PATH`— y en el **modo herramienta** —con el servidor declarado
+  (`kitlegal mcp serve`, por `--mcp-config`) y sin `kitlegal` en el `PATH`—, en dos tandas seguidas, y una serie que
+  decide y no llega a su umbral en un modo da `fallo` aunque pase en el otro.
+  - **El juicio lee las llamadas**: una llamada a una herramienta de kitlegal cuenta como la invocación de su orden
+    —cumple un `comandos`, incumple un `prohibidos` o queda fuera de lo grabado con las mismas reglas—, y en una
+    sesión sin `kitlegal` en el `PATH` una orden de `kitlegal` la deja sin pasar, con el motivo
+    `orden de kitlegal en una sesión sin kitlegal en el PATH: <orden>`.
+  - **Dos evals nuevas, sin binario ni servidor**: `evals/boe-legislacion/21-sin-binario-ni-servidor.yaml` y
+    `evals/legal-core/04-sin-binario-ni-servidor.yaml`, con la clave nueva del formato de eval,
+    `sin_binario_ni_servidor`, que solo admite `true` (`schemas/eval.yaml.json`): la sesión tiene la skill y nada
+    más, sus series se abren una sola vez, sin modo y en una tercera tanda, y pasa si la respuesta lleva la línea
+    `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa línea y ninguna cita. Su serie con el modelo
+    que decide decide el veredicto. Una eval así no lleva `comandos`, `citas`, `territorio` ni ninguna otra clave de
+    lo esperado, y cada conjunto lleva exactamente una.
+  - **Umbrales por modo.** Cada umbral del informe es de un modo y lo nombra:
+    `expresiones_prohibidas:<modelo>:<modo>` (≤ 5 %), `sin_activar:<modelo>:<modo>` (0),
+    `redaccion_no_leida:<modelo>:<modo>` (0) y `duracion_de_las_sesiones:<modo>` (≤ 900 s en `boe-legislacion`, sobre
+    los segundos de la tanda de ese modo), con `<modo>` `orden` u `herramienta`; los nombres sin modo de antes ya no
+    se publican. Las medidas de un modo no se suman a las del otro, y las sesiones de las evals sin binario ni
+    servidor no entran en ninguno. `boe-legislacion` publica diez, ocho de ellos decidiendo, y `legal-core`, `[]`.
+  - **El informe distingue los modos**: cada elemento de `tasas` lleva `modo`, y su `modelo` es
+    `<id> (herramienta)` en el modo herramienta; `expresiones_prohibidas_por_modelo` da un recuento por modelo y
+    modo, con `modelo` `<id> (orden)` o `<id> (herramienta)`; `duracion_de_las_sesiones` es la suma de las tres
+    tandas; y cada resultado de `evals` gana `modo`, `linea_sin_consulta`, `citas_sin_consulta` y, en cada una de sus
+    `invocaciones`, `llamada`. `informe.md` gana la columna «Modo» en «Tasas por eval», «Expresiones prohibidas por
+    modelo» y «Sesiones», y «Llamada» en las invocaciones de cada sesión.
+  - **Más sesiones y otro tope**: el trabajo de `boe-legislacion` abre 198 sesiones (96, 96 y 6) y el de
+    `legal-core`, 42 (18, 18 y 6), y el tope de cada trabajo pasa de 122 a 240 minutos, que cubre el peor caso de las
+    tres tandas (14 357 s en `boe-legislacion`); `TestDefinicionDelJob` lo recalcula en `make ci`.
+- **El sondeo local rechaza una eval sin binario ni servidor.** `make evals-sondeo` sigue midiendo solo el modo
+  orden, con los mismos argumentos, la misma salida y los mismos códigos: el modo herramienta y las evals sin binario
+  ni servidor son del job de evals. Un número de `EVALS` que es el de una de esas evals es un error de uso, con su
+  línea junto a las de los demás argumentos que no valen:
+  `EVALS: <nn> es una eval sin binario ni servidor: solo la mide el job de evals`.
+- **La ayuda y los errores del binario enumeran `mcp`**: `kitlegal --help` lo lista y el error de un applet
+  desconocido dice `applets disponibles: boe, graph, mcp, skills, territorio`.
 - **La web habla a quien tiene el asunto** (ADR 0034): la portada de https://kitlegal.es es la de la ciudadanía y
   la de despachos pasa a `/despachos/` (`/ciudadania/` redirige a la portada). Seis **consultas con su cita** en
   `/consultas/` —plazo del recurso de alzada, silencio administrativo, devolución de la fianza, preaviso de la baja

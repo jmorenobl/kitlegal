@@ -1,3 +1,5 @@
+//go:build unix
+
 package app_test
 
 import (
@@ -38,6 +40,8 @@ const mensajeDeSalidaRota = "no se pudo escribir en la salida estándar"
 // Es un test del binario y no del kernel en memoria a propósito, y por eso vive
 // junto al e2e y usa el binario que TestMain construye: la señal la desarma el
 // proceso entero, y solo un proceso entero puede demostrar que está desarmada.
+// Y vive en un fichero solo para Unix porque la tubería se pide con
+// syscall.Pipe (tuberiaSinLector), que en Windows tiene otra forma.
 func TestTuberiaCerrada(t *testing.T) {
 	t.Parallel()
 
@@ -70,11 +74,12 @@ func TestTuberiaCerrada(t *testing.T) {
 }
 
 // lanzarConLectorCerrado ejecuta el binario con la salida estándar conectada a
-// una tubería cuyo extremo de lectura se cierra **antes** de arrancarlo, de modo
-// que la primera escritura falle con EPIPE. Devuelve el código con el que
-// terminó y lo que dejó en la salida de error, y exige que haya terminado por
-// su cuenta y no por una señal: un proceso muerto por SIGPIPE no tiene código
-// de salida, que es justo lo que este test existe para descartar.
+// una tubería que no tiene lector desde **antes** de arrancarlo
+// (tuberiaSinLector), de modo que la primera escritura falle con EPIPE.
+// Devuelve el código con el que terminó y lo que dejó en la salida de error, y
+// exige que haya terminado por su cuenta y no por una señal: un proceso muerto
+// por SIGPIPE no tiene código de salida, que es justo lo que este test existe
+// para descartar.
 //
 // El nivel del registro se fija vacío en el entorno del subproceso para que la
 // salida de error lleve solo el mensaje, sea cual sea el entorno de quien
@@ -82,9 +87,7 @@ func TestTuberiaCerrada(t *testing.T) {
 func lanzarConLectorCerrado(t *testing.T, binario string, argv ...string) (int, string) {
 	t.Helper()
 
-	lector, escritor, err := os.Pipe()
-	require.NoError(t, err)
-	require.NoError(t, lector.Close(), "cerrar el lector es lo que deja la tubería sin nadie que lea")
+	escritor := tuberiaSinLector(t)
 
 	var errores bytes.Buffer
 
@@ -112,4 +115,40 @@ func lanzarConLectorCerrado(t *testing.T, binario string, argv ...string) (int, 
 			"la raíz de composición no ha desarmado SIGPIPE", estado.Signal())
 
 	return fallo.ExitCode(), errores.String()
+}
+
+// tuberiaSinLector devuelve el extremo de escritura de una tubería cuyo extremo
+// de lectura no ha heredado ningún proceso: la crea y cierra el lector con
+// syscall.ForkLock tomado para lectura. Un proceso que otro test en paralelo
+// crea hereda, entre su fork y su exec, una copia de cada descriptor abierto;
+// con os.Pipe y un Close después, el lector existe en esa ventana, y si el
+// binario escribe mientras la copia sigue abierta, la escritura tiene quien la
+// lea, no falla y el binario termina con 0: con 16 lanzamientos a la vez pasaba
+// en entre 8 y 44 de cada 16 000. Go toma ForkLock para escritura en cada fork,
+// así que con él tomado para lectura ningún fork ocurre mientras el lector
+// existe, y cerrado ya no lo hereda ningún proceso. La tubería se pide con
+// syscall.Pipe y no con os.Pipe porque os.Pipe toma ese mismo candado y lo
+// suelta antes de volver, y un candado de lectura no se toma dos veces.
+//
+// El escritor queda marcado para cerrarse en el exec, como lo deja os.Pipe: el
+// binario lo recibe como su salida estándar y ningún otro proceso lo conserva.
+func tuberiaSinLector(t *testing.T) *os.File {
+	t.Helper()
+
+	var extremos [2]int
+
+	syscall.ForkLock.RLock()
+
+	err := syscall.Pipe(extremos[:])
+	if err == nil {
+		syscall.CloseOnExec(extremos[1])
+
+		err = syscall.Close(extremos[0])
+	}
+
+	syscall.ForkLock.RUnlock()
+
+	require.NoError(t, err, "la tubería se crea y su lector se cierra sin que nadie lo herede")
+
+	return os.NewFile(uintptr(extremos[1]), "tubería sin lector")
 }
