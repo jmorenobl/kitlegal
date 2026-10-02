@@ -6,7 +6,7 @@ description: >-
   público, transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué
   dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una
   materia—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita.
-  Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y cómo citar lo dice la skill.
+  Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill.
   La norma puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura
   (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma
   estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con kitlegal y responde citando

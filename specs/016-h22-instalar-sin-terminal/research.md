@@ -328,7 +328,7 @@ versionado.
 **Por qué**: SC-009 pide un test que falle «con 121 caracteres o con un icono de otro tamaño». El paso lee el icono de
 todos modos: mirarle la cabecera no añade ninguna entrada.
 
-### D21 · Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas (v0.1.6)
+### D21 · Reparación del cierre: la `description` de `boe-legislacion` nombra las herramientas de `boe` (v0.1.6)
 
 **La medición** (cierre, ronda 1, sobre `4b350fa`; `gates/cierre.json` y `gates/evals/boe-legislacion.json`): `ci`,
 `snapshot`, `construir` y `evals (legal-core)` en verde; `evals (boe-legislacion)` en rojo, con el veredicto `fallo` y
@@ -360,13 +360,34 @@ protege.
 
 1. «sin leer la norma con el binario, la respuesta no tiene cita» pasa a «sin leer la norma con kitlegal, la respuesta
    no tiene cita»: la razón de H7.4, cierta en los dos modos.
-2. Detrás, una frase nueva: «Actívala también antes de llamar a sus herramientas (boe_articulo…): qué pedir y cómo
-   citar lo dice la skill.» Da la razón y no una prohibición, como la de H7.4 (research D1 de H7.4, alternativa c).
+2. Detrás, una frase nueva: «Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar
+   lo dice la skill.» Da la razón y no una prohibición, como la de H7.4 (research D1 de H7.4, alternativa c). Nombra
+   solo las herramientas con las que se lee una norma: `boe_articulo`, la de la sesión medida, y las demás del applet
+   `boe` por su prefijo (`boe_buscar`, `boe_indice`, `boe_articulos`, `boe_metadatos` y `boe_analisis`), con la forma
+   que la `description` ya usa para «su identificador BOE-A-…». No nombra `territorio_resolver`, que es de
+   `legal-core`, ni las de `graph`: `graph_check` la pide el protocolo después de leer, con la skill ya activada.
 3. «Lee el índice y los artículos con el binario kitlegal» pasa a «con kitlegal».
 
-Es `boe-legislacion` v0.1.6 (`CHANGELOG.md`, *Unreleased*). Medido en esta sesión: la `description` tiene 1 021
-caracteres (máximo 1 024; tenía 924), `SKILL.md` 298 líneas (máximo 299; tenía 297) y 24 049 bytes (tenía 23 944), y
-los cinco ficheros de las dos skills suman 44 342 bytes (44 237 en `main`); `make skills-check` y `make ci`, en verde.
+La reparación escribió primero la frase del punto 2 como «Actívala también antes de llamar a sus herramientas
+(boe_articulo…): qué pedir y cómo citar lo dice la skill.», y la revisión final la acotó (ronda 3, motivo [i]): «sus»
+va detrás de «con kitlegal» y la lista quedaba abierta, de modo que podía leerse como las diez herramientas del
+servidor, y la medición solo pide la activación antes de leer una norma con `boe_articulo`.
+
+Es `boe-legislacion` v0.1.6 (`CHANGELOG.md`, *Unreleased*). Medido sobre el texto que queda, en la sesión que lo acotó:
+la `description` tiene 1 018 caracteres (máximo 1 024; tenía 924), `SKILL.md` 298 líneas (máximo 299; tenía 297) y
+24 045 bytes (tenía 23 944), y los cinco ficheros de las dos skills suman 44 338 bytes (44 237 en `main`);
+`make skills-check` y `make ci`, en verde.
+
+**Por qué no contradice FR-003 de H7.4** («La skill MUST NOT activarse con lo que no es de su ámbito»,
+`specs/014-h7-4-boe-legislacion-sin/spec.md`): H7.4 sostuvo ese requisito en que el ámbito de la `description` es lo
+que dice una norma consolidada del BOE (su research, «La activación»: «Contra la sobreactivación»). La frase nueva no
+sale de ahí: las seis herramientas `boe_…` consultan la legislación consolidada del BOE y nada más, así que quien va a
+llamar a una va a leer una norma, que es el ámbito de la skill. Las preguntas de `legal-core` no pasan por ellas: en
+`gates/evals/legal-core.json`, de 42 sesiones, las 12 llamadas a una herramienta son a `territorio_resolver` (las
+evals 01 y 02 en el modo herramienta) y ninguna a una `boe_…`; y `legal-core` no lee artículos, delega su texto en
+`boe-legislacion` (su paso 6). Sus cuatro evals declaran `no_se_activan: [boe-legislacion]`, y una sesión que la
+active no pasa (`internal/evals/juzgar.go`, `anotarLasQueNoSeActivan`): es el control de FR-003, y este cambio no lo
+toca.
 
 **De qué se aparta**: el spec deja las dos skills como están —«Se queda: … las dos skills, byte a byte; el job de evals
 y sus umbrales» («Relación con H19 y H21»), «las skills no cambian» («Fuera de alcance») y «Este hito no toca las
@@ -392,8 +413,14 @@ sea (`TestPiezas`, `skills-del-plugin`).
 - *Relanzar la medición sin cambiar nada*, como una fluctuación de 1 entre 108: el umbral es 0, la sesión responde sin
   el protocolo y la `description` dejaba el hueco. Y *rebajar el umbral, sacarlo del veredicto o tocar la eval 01*: no
   se arregla ahí (ADR 0029).
+- *Otras formas de la frase del punto 2*: los seis nombres de `boe`, uno a uno, no caben (la frase mediría 150
+  caracteres y la `description`, 1 062); con «Actívala también antes de…» la `description` mediría 1 026; y nombrar
+  también las de `graph`, los dos applets de la skill, es más de lo que pide la medición (lectura conservadora).
 
-**Lo que no se ha medido**: el efecto del cambio en la activación, en ninguno de los dos modos. Este paso no abre
-sesiones con modelo (ADR 0032), así que no hay sondeo ni ninguna otra medida del texto nuevo: lo mide el job de evals
-en la medición siguiente del cierre, después de que los dos jueces lo juzguen (ADR 0030). La `description` cambia
-también lo que lee el modo orden, que estaba en 0 de 108: eso lo mide el mismo job.
+**Lo que no se ha medido**: el efecto del cambio en la activación, en ninguno de los dos modos. Ni el paso que reparó
+el cierre ni el que acotó la frase abren sesiones con modelo (ADR 0032), así que no hay sondeo ni ninguna otra medida
+del texto nuevo: lo mide el job de evals en la medición siguiente del cierre, después de que los dos jueces lo juzguen
+(ADR 0030). La `description` cambia también lo que lee el modo orden, que estaba en 0 de 108: eso lo mide el mismo job.
+Y tampoco se ha medido si `boe-legislacion` se activa de más en una pregunta de territorio: las sesiones de las evals de
+`legal-core` la ven instalada, así que el job de `legal-core` de esa misma medición también mide este cambio, con
+`no_se_activan` en sus cuatro evals, y la 01, la 02 y la 03, en los dos modos.
