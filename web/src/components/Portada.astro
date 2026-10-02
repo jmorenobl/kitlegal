@@ -1,13 +1,25 @@
 ---
-// La portada de una audiencia: las secciones de la maqueta de Stitch con los
-// datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
-import { type Audiencia, audiencias, type Tono } from "../data/audiencias";
+// La portada de una audiencia: los datos de audiencias.ts, las citas de
+// citas.yaml y las cifras de data/.
+//
+// La caja de preguntas cambia de tema sin JavaScript, que la página no admite
+// (ADR 0024): cada tema es un botón de opción, los cuatro paneles salen ya en
+// el HTML y el CSS enseña el del botón marcado.
+import { type Audiencia, audiencias, ciudadania } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
+import {
+  boton,
+  chipPequeno,
+  chipVigente,
+  etiquetaMayusculas,
+  etiquetaSeccion,
+  pagina,
+  punto,
+  titularSeccion,
+} from "../lib/clases";
 import { fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
-import Icono from "./Icono.astro";
-import Ilustracion from "./Ilustracion.astro";
 
 interface Props {
   audiencia: Audiencia;
@@ -17,27 +29,24 @@ const { audiencia } = Astro.props;
 const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
+const esPortada = audiencia === ciudadania;
 
-const tinta: Record<Tono, string> = {
-  sello: "text-sello-tinta",
-  derogada: "text-derogada-tinta",
-  agente: "text-agente",
-  vigente: "text-vigente-tinta",
-};
-const icono: Record<Tono, string> = {
-  sello: "text-sello",
-  derogada: "text-derogada",
-  agente: "text-agente",
-  vigente: "text-vigente",
-};
+// El panel de cada tema se ve cuando su botón está marcado. Las clases van
+// escritas enteras para que Tailwind las encuentre.
+const visible = [
+  "group-has-[#tema-0:checked]/caja:block",
+  "group-has-[#tema-1:checked]/caja:block",
+  "group-has-[#tema-2:checked]/caja:block",
+  "group-has-[#tema-3:checked]/caja:block",
+];
 
 // Lo que ocurre entre la pregunta y la respuesta, en orden.
 const pasos = [
-  { icono: "chat", texto: "Preguntas con tus palabras" },
-  { icono: "smart-toy", texto: "Tu asistente llama a kitlegal" },
-  { icono: "menu-book", texto: "kitlegal lee la norma en el BOE" },
-  { icono: "history-toggle-off", texto: "Comprueba si sigue en vigor" },
-  { icono: "verified", texto: "Recibes la respuesta con su cita" },
+  "Preguntas con tus palabras",
+  "Tu asistente llama a kitlegal",
+  "kitlegal lee la norma en el BOE",
+  "Comprueba si sigue en vigor",
+  "Recibes la respuesta con su cita",
 ];
 
 // La respuesta de memoria, partida alrededor de las marcas del error.
@@ -46,432 +55,324 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   texto: trozo,
   marcado: comparativa.marcas.includes(trozo),
 }));
+
+const [primario, secundario] = audiencia.botones;
 ---
 
-<section class="relative overflow-hidden border-b border-linea/50 bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-24 md:pt-28 md:pb-32">
-  <div class="mx-auto max-w-7xl px-4 sm:px-10">
-   <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-    <div class="text-center lg:text-left">
-    <p class="mb-8 inline-flex items-center gap-2 rounded-md border border-linea bg-white px-3.5 py-1.5 shadow-xs">
-      <span class="font-mono text-estampa font-semibold uppercase text-tinta">
-        {audiencia.insignia}
-      </span>
-    </p>
-
-    <nav aria-label="Audiencia" class="mb-8 flex justify-center lg:justify-start">
-      <ul class="grid w-full max-w-md grid-cols-2 gap-1 rounded-lg border border-linea/80 bg-panel p-1 sm:inline-flex sm:w-auto sm:max-w-none">
-        {
-          audiencias.map(({ ruta, nombre: texto, icono: nombre }) => {
+<section class:list={[pagina, "flex flex-col items-center gap-6 pt-16 text-center"]}>
+  {
+    !esPortada && (
+      <nav aria-label="Audiencia">
+        <ul class="flex flex-wrap justify-center gap-1 rounded-3xl border border-linea bg-white p-1 text-sm font-semibold">
+          {audiencias.map(({ ruta, nombre }) => {
             const actual = ruta === audiencia.ruta;
             return (
               <li class="flex">
                 <a
                   href={ruta}
                   aria-current={actual ? "page" : undefined}
-                  class:list={[
-                    "flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-center text-xs transition-colors sm:px-5 sm:text-sm",
-                    actual
-                      ? "bg-noche font-semibold text-white shadow-xs"
-                      : "font-medium text-tenue hover:text-tinta",
-                  ]}
+                  class:list={["tocable rounded-full px-3.5 py-[7px]", actual ? "bg-tinta text-white" : "text-tenue"]}
                 >
-                  <Icono nombre={nombre} class:list={["size-4", actual && "text-sello"]} />
-                  {texto}
+                  {nombre}
                 </a>
               </li>
             );
-          })
-        }
-      </ul>
-    </nav>
-
-    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl lg:mx-0 lg:text-[2.75rem]">
-      {audiencia.h1}
-    </h1>
-    <p class="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-tenue lg:mx-0">{audiencia.subtitulo}</p>
-
-    <div class="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
-      <a
-        href="#diferencia"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
-      >
-        <Icono nombre="find-in-page" class="size-[18px] text-sello" />
-        Ver cómo funciona
-      </a>
-      <a
-        href={audiencia.secundario.destino}
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-linea bg-white px-7 py-3.5 text-sm font-semibold text-tinta shadow-sm transition-colors hover:border-linea-2 hover:bg-papel sm:w-auto"
-      >
-        <Icono nombre={audiencia.secundario.icono} class="size-[18px] text-tenue" />
-        {audiencia.secundario.texto}
-      </a>
-    </div>
-    </div>
-
-    <Ilustracion
-      nombre={audiencia.ilustracion.nombre}
-      alt={audiencia.ilustracion.alt}
-      sizes="(min-width: 1024px) 560px, 100vw"
-      prioritaria
-      class:list={["aspect-[4/3] w-full rounded-xl border border-linea object-cover shadow-lg", audiencia.ilustracion.foco]}
-    />
-   </div>
-
-    <dl class="mt-20 grid grid-cols-2 gap-6 border-t border-linea/80 pt-12 text-left md:grid-cols-4">
-      {
-        audiencia.metricas.map(({ etiqueta, valor, texto, tono }) => (
-          <div class="flex flex-col">
-            <dt class:list={["mb-1 font-mono text-estampa font-semibold uppercase", tinta[tono]]}>{etiqueta}</dt>
-            <dd class="mb-1 font-serif text-2xl font-semibold text-tinta">{valor}</dd>
-            <dd class="text-xs leading-relaxed text-tenue">{texto}</dd>
-          </div>
-        ))
-      }
-    </dl>
-  </div>
+          })}
+        </ul>
+      </nav>
+    )
+  }
+  <p class={chipVigente}>{audiencia.insignia}</p>
+  <h1
+    class:list={[
+      "font-titular font-bold text-balance",
+      esPortada ? "max-w-[1040px] text-h1" : "max-w-[1060px] text-h1-pagina",
+    ]}
+  >
+    {audiencia.h1}
+  </h1>
+  <p class="max-w-[760px] text-entradilla text-pretty text-tenue">{audiencia.subtitulo}</p>
 </section>
 
-<section id="diferencia" aria-labelledby="titulo-diferencia" class="bg-lienzo py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
-    <div class="mb-16 max-w-2xl">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">Contraste de rigor</p>
-      <h2 id="titulo-diferencia" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        La diferencia entre responder de memoria y responder con la cita
-      </h2>
-      <p class="leading-relaxed text-tenue">
-        Un modelo generalista responde con lo que recuerda y no sabe qué normas siguen en vigor. Con kitlegal, tu
-        asistente lee el texto consolidado del BOE antes de responder y te dice de dónde sale cada frase.
-      </p>
-    </div>
-
-    <ol class="mb-16 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:gap-0" aria-label="Cómo funciona, paso a paso">
-      {
-        pasos.map(({ icono: nombre, texto }, indice) => (
-          <li class="relative flex items-center gap-4 rounded-lg border border-linea bg-white p-4 shadow-xs sm:mx-2 sm:flex-col sm:gap-3 sm:p-5 sm:text-center">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-panel text-agente">
-              <Icono nombre={nombre} class="size-6" />
-            </span>
-            <span class="text-sm leading-snug font-medium text-tinta">{texto}</span>
-            {indice < pasos.length - 1 && (
-              <Icono
-                nombre="arrow-forward"
-                class="absolute top-1/2 -right-[1.1rem] z-10 hidden size-5 -translate-y-1/2 rounded-full bg-lienzo text-sello sm:block"
-              />
-            )}
-          </li>
-        ))
-      }
-    </ol>
-
-    <div class="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2">
+<section
+  id="casos"
+  aria-label="Preguntas de ejemplo, con su cita"
+  class="group/caja mx-auto mt-12 flex w-full max-w-[960px] flex-col gap-4 px-margen"
+>
+  <fieldset class="flex flex-wrap justify-center gap-2">
+    <legend class="sr-only">Elige un tema</legend>
+    {
+      audiencia.casos.map(({ etiqueta }, indice) => (
+        <label class="tocable cursor-pointer rounded-full border border-linea-2 bg-white px-[18px] py-2.5 text-[15px] font-semibold has-checked:border-tinta has-checked:bg-tinta has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-agente">
+          <input type="radio" name="tema" id={`tema-${indice}`} checked={indice === 0} class="sr-only" />
+          {etiqueta}
+        </label>
+      ))
+    }
+  </fieldset>
+  {
+    audiencia.casos.map(({ pregunta, cita, consulta }, indice) => (
       <article
-        aria-labelledby="titulo-sin"
-        class="flex flex-col justify-between rounded-lg border border-derogada-borde/70 bg-white p-6 shadow-[0_2px_12px_rgba(239,68,68,0.05)] sm:p-8"
+        class:list={[
+          "hidden overflow-hidden rounded-3xl border border-linea bg-white text-left shadow-destacada",
+          visible[indice],
+        ]}
       >
-        <div class="space-y-6">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
-            <h3 id="titulo-sin" class="flex items-center gap-2 text-sm font-semibold text-derogada-tinta">
-              <Icono nombre="cancel" class="size-5 text-derogada" />
-              Asistente de IA sin kitlegal
-            </h3>
-            <span
-              class="rounded-sm border border-derogada-borde bg-derogada-fondo px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-derogada-tinta uppercase"
-            >
-              {comparativa.insignia}
-            </span>
-          </div>
-          <p class="rounded-md border border-linea/50 bg-panel/60 p-3.5 font-mono text-xs text-tenue">
-            <span class="font-sans font-semibold text-tinta">Consulta:</span>{" "}
-            {comparativa.consulta}
-          </p>
-          <p class="leading-relaxed text-tinta italic">
-            <span class="sr-only">Respuesta de ejemplo, sin fuente: </span>
-            {
-              respuesta.map(({ texto, marcado }) =>
-                marcado ? (
-                  <mark class="rounded-sm bg-derogada-fondo px-1 font-semibold text-derogada-tinta not-italic">
-                    {texto}
-                  </mark>
-                ) : (
-                  texto
-                ),
-              )
-            }
-          </p>
-          <div class="space-y-1.5 rounded-lg border border-derogada-borde/60 bg-derogada-fondo/80 p-4 text-xs text-derogada-tinta">
-            <p class="flex items-center gap-1.5 text-sm font-bold">
-              <Icono nombre="error" class="size-[18px] text-derogada" />
-              {comparativa.alertaTitulo}
-            </p>
-            <p class="leading-relaxed">{comparativa.alertaTexto}</p>
-          </div>
-        </div>
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
-          <span class="flex items-center gap-1.5 font-medium text-derogada-tinta">
-            <span class="size-1.5 rounded-full bg-derogada"></span>
-            Respuesta de memoria
-          </span>
-          <span class="font-semibold text-derogada-tinta uppercase">{comparativa.pieMalo}</span>
-        </div>
-      </article>
-
-      <article
-        aria-labelledby="titulo-con"
-        class="flex flex-col justify-between rounded-lg border-2 border-vigente/40 bg-white p-6 shadow-[0_4px_20px_rgba(16,185,129,0.08)] sm:p-8"
-      >
-        <div class="space-y-6">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
-            <h3 id="titulo-con" class="flex items-center gap-2 text-sm font-semibold text-vigente-tinta">
-              <Icono nombre="verified" class="size-5 text-vigente" />
-              Tu asistente con kitlegal
-            </h3>
-            <span
-              class="rounded-sm border border-vigente-borde bg-vigente-fondo px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-vigente-tinta uppercase"
-            >
-              Cita del BOE
-            </span>
-          </div>
-          <p class="rounded-md border border-linea/50 bg-panel/60 p-3.5 font-mono text-xs text-tenue">
-            <span class="font-sans font-semibold text-tinta">Consulta:</span>{" "}
-            {comparativa.consulta}
-          </p>
-          <div
-            role="note"
-            class="rounded-lg border border-derogada-borde bg-derogada-fondo/70 p-3 font-mono text-xs text-derogada-tinta"
+        <div class="flex items-center gap-3.5 border-b border-linea-suave px-7 py-[22px] max-sm:px-5">
+          <span
+            aria-hidden="true"
+            class="grid size-9 flex-none place-items-center rounded-full bg-panel font-bold text-agente"
           >
-            <p>
-              <strong>{avisoDerogada.texto}</strong>{" "}
-              <a href={derogada.enlace} class="underline decoration-derogada-borde underline-offset-2 hover:text-tinta">
-                {derogada.referencia} [{derogada.norma}]
-              </a>
-              <span class="block pt-1 text-tenue">
-                kitlegal boe metadatos · {fechaCorta(derogada.fechaConsulta)} · {huellaCorta(derogada.hash)}
-              </span>
-            </p>
-          </div>
-          <div class="rounded-lg border border-linea bg-papel p-5 shadow-xs">
-            <CitaArticulo id={comparativa.cita} variante="destacada" />
-          </div>
-        </div>
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
-          <span class="flex items-center gap-1.5 font-medium text-vigente-tinta">
-            <span class="size-1.5 rounded-full bg-vigente"></span>
-            Texto consolidado del BOE
+            ?
           </span>
-          <span class="font-semibold text-agente">Con fuente verificable</span>
+          <h2 class="text-xl font-semibold">{pregunta}</h2>
+        </div>
+        <div class="flex flex-col gap-4 p-7 max-sm:p-5">
+          <span class:list={[chipPequeno, "bg-vigente-fondo text-vigente-tinta"]}>Texto literal del BOE</span>
+          <CitaArticulo id={cita} variante="pregunta" />
+          {consulta && (
+            <a href={rutaDeConsulta(consulta)} class="tocable self-start text-[15px] font-semibold text-agente">
+              Ver la respuesta, punto por punto →
+            </a>
+          )}
         </div>
       </article>
-    </div>
+    ))
+  }
+  <div class="flex flex-wrap justify-center gap-3 pt-4">
+    <a href={primario.destino} class={boton.primario}>{primario.texto}</a>
+    <a href={secundario.destino} class={boton.secundario}>{secundario.texto}</a>
   </div>
 </section>
 
-<section id="pilares" aria-labelledby="titulo-pilares" class="border-y border-linea bg-panel/50 py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
-    <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">{garantias.antetitulo}</p>
-      <h2 id="titulo-pilares" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        {garantias.titulo}
-      </h2>
-      <p class="leading-relaxed text-tenue">{garantias.texto}</p>
-    </div>
-    <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-      {
-        garantias.pilares.map(({ icono: nombre, tono, fondo, titulo, texto, pie }) => (
-          <div class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
-            <div class="space-y-4">
-              <div class:list={["flex size-12 items-center justify-center rounded-lg", fondo, icono[tono]]}>
-                <Icono nombre={nombre} class="size-[26px]" />
-              </div>
-              <h3 class="font-serif text-xl font-semibold text-tinta">{titulo}</h3>
-              <p class="text-sm leading-relaxed text-tenue">{texto}</p>
-            </div>
-            <p class:list={["mt-6 border-t border-linea pt-6 font-mono text-xs font-semibold", tinta[tono]]}>{pie}</p>
-          </div>
-        ))
-      }
-    </div>
-  </div>
-</section>
-
-<section id="casos" aria-labelledby="titulo-casos" class="bg-lienzo py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
-    <div class="mb-16 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-      <div>
-        <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">Aplicación inmediata</p>
-        <h2 id="titulo-casos" class="text-balance mt-2 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-          Consultas habituales, con su cita
-        </h2>
+<section
+  id="pilares"
+  aria-label="Lo que te garantiza"
+  class:list={[pagina, "grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-4 pt-seccion-1"]}
+>
+  {
+    audiencia.metricas.map(({ etiqueta, valor, texto, punto: color }) => (
+      <div class="flex flex-col gap-2.5 rounded-[20px] border border-linea bg-white p-[26px]">
+        <span aria-hidden="true" class:list={["size-2.5 rounded-full", punto[color]]} />
+        <p class={etiquetaMayusculas}>{etiqueta}</p>
+        <p class="font-titular text-2xl leading-[1.1] font-bold">{valor}</p>
+        <p class="text-[15px] leading-[1.55] text-tenue">{texto}</p>
       </div>
-      <p class="max-w-md text-sm leading-relaxed text-tenue">
-        Cuatro preguntas y el fragmento literal del BOE que las responde, con la norma y el bloque del que sale, tal
-        como lo devuelve kitlegal.
+    ))
+  }
+</section>
+
+<section id="diferencia" aria-labelledby="titulo-diferencia" class:list={[pagina, "flex flex-col gap-10 pt-seccion"]}>
+  <div class="flex flex-col items-center gap-3.5 text-center">
+    <p class={etiquetaSeccion}>Contraste de rigor</p>
+    <h2 id="titulo-diferencia" class:list={[titularSeccion, "max-w-[860px]"]}>
+      La diferencia entre responder de memoria y responder con la cita
+    </h2>
+    <p class="max-w-[760px] text-lg leading-[1.6] text-tenue">
+      Un modelo generalista responde con lo que recuerda y no sabe qué normas siguen en vigor. Con kitlegal, tu
+      asistente lee el texto consolidado del BOE antes de responder y te dice de dónde sale cada frase.
+    </p>
+  </div>
+
+  <ol aria-label="Cómo funciona, paso a paso" class="flex flex-wrap justify-center gap-2.5">
+    {
+      pasos.map((texto, indice) => (
+        <li class="flex items-center gap-2.5 rounded-full border border-linea bg-white py-2 pr-4 pl-2 text-[15px] font-medium">
+          <span
+            aria-hidden="true"
+            class="grid size-7 flex-none place-items-center rounded-full bg-tinta text-[13px] font-bold text-white"
+          >
+            {indice + 1}
+          </span>
+          {texto}
+        </li>
+      ))
+    }
+  </ol>
+
+  <p class="text-center text-[17px] text-tenue">
+    <b class="text-tinta">Consulta:</b>{" "}
+    {comparativa.consulta}
+  </p>
+
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-5">
+    <article
+      aria-labelledby="titulo-sin"
+      class="flex flex-col gap-4 rounded-3xl border border-derogada-borde bg-derogada-fondo p-tarjeta"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 id="titulo-sin" class="text-[19px] font-bold">Asistente de IA sin kitlegal</h3>
+        <span class:list={[chipPequeno, "bg-white text-derogada-tinta"]}>{comparativa.insignia}</span>
+      </div>
+      <p class="text-[21px] leading-[1.5]">
+        <span class="sr-only">Respuesta de ejemplo, sin fuente: </span>
+        {
+          respuesta.map(({ texto, marcado }) =>
+            marcado ? (
+              <mark class="bg-derogada-borde font-semibold text-derogada-tinta">{texto}</mark>
+            ) : (
+              texto
+            ),
+          )
+        }
       </p>
-    </div>
-    <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
-      {
-        audiencia.casos.map(({ icono: nombre, tono, etiqueta, pregunta, cita, consulta }) => (
-          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8">
-            <div>
-              <p class="mb-3 flex items-center gap-2">
-                <Icono nombre={nombre} class:list={["size-[18px]", icono[tono]]} />
-                <span class:list={["font-mono text-estampa font-bold uppercase", tinta[tono]]}>{etiqueta}</span>
-              </p>
-              <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
-            </div>
-            <CitaArticulo id={cita} />
-            {consulta && (
-              <a
-                href={rutaDeConsulta(consulta)}
-                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
-              >
-                Ver la respuesta, punto por punto
-                <Icono nombre="arrow-forward" class="size-4" />
-              </a>
-            )}
-          </article>
-        ))
-      }
-    </div>
+      <div class="mt-auto flex flex-col gap-1 rounded-[14px] bg-white px-[18px] py-4">
+        <b class="text-derogada-tinta">{comparativa.alertaTitulo}</b>
+        <p class="text-[15px] leading-[1.55] text-tenue">{comparativa.alertaTexto}</p>
+      </div>
+    </article>
+
+    <article
+      aria-labelledby="titulo-con"
+      class="flex flex-col gap-4 rounded-3xl border border-vigente-borde bg-vigente-fondo p-tarjeta"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 id="titulo-con" class="text-[19px] font-bold">Tu asistente con kitlegal</h3>
+        <span class:list={[chipPequeno, "bg-white text-vigente-tinta"]}>Cita del BOE</span>
+      </div>
+      <p role="note" class="text-[13px] leading-[1.6] text-derogada-tinta">
+        <strong class="font-semibold">{avisoDerogada.texto}</strong>{" "}
+        <a href={derogada.enlace} class="tocable font-mono underline decoration-derogada-borde underline-offset-2">
+          {derogada.referencia} [{derogada.norma}]
+        </a>
+        <span class="block font-mono text-tenue">
+          kitlegal boe metadatos · {fechaCorta(derogada.fechaConsulta)} · {huellaCorta(derogada.hash)}
+        </span>
+      </p>
+      <CitaArticulo id={comparativa.cita} variante="comparativa" />
+    </article>
   </div>
 </section>
 
-<section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
-  <div class="mx-auto max-w-5xl px-4 sm:px-10">
-    <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">Qué necesitas</p>
-      <h2 id="titulo-integracion" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        Se instala una vez y se usa preguntando
-      </h2>
-      <p class="leading-relaxed text-tenue">
-        Hace falta un asistente de IA de los que trabajan en tu ordenador: hoy, Claude Code, Codex o Antigravity.
-        Con los chats del navegador o del móvil (ChatGPT, el chat de Claude, Gemini) todavía no funciona.
-      </p>
-    </div>
-    <ol class="mb-14 grid grid-cols-1 items-stretch gap-8 md:grid-cols-2">
-      <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
-        <div>
-          <div class="mb-6 flex items-center justify-between">
-            <span class="flex size-9 items-center justify-center rounded-lg bg-noche font-mono text-sm font-bold text-white">
-              1
-            </span>
-            <span class="font-mono text-xs font-semibold text-tenue uppercase">Una sola vez</span>
-          </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
-          <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Son dos líneas que se copian y se pegan en la terminal de tu ordenador: una instala el programa y la otra
-            enseña a tu asistente a usarlo. No hace falta saber programar, y la guía lo explica paso a paso.
-          </p>
-        </div>
-        <a
-          href="/instalar/"
-          class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-4 py-3 text-sm font-semibold text-white hover:bg-noche-2"
-        >
-          <Icono nombre="download" class="size-4 text-sello" />
-          Ver la guía de instalación
-        </a>
-      </li>
-      <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
-        <div>
-          <div class="mb-6 flex items-center justify-between">
-            <span class="flex size-9 items-center justify-center rounded-lg bg-sello font-mono text-sm font-bold text-noche">
-              2
-            </span>
-            <span class="font-mono text-xs font-semibold text-vigente-tinta uppercase">En tu día a día</span>
-          </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Preguntas con tus palabras</h3>
-          <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Escribes en tu asistente como siempre. Él ejecuta kitlegal, lee el BOE y te responde con la cita: la norma,
-            el artículo y la fecha de consulta.
-          </p>
-        </div>
-        <p class="rounded-sm border border-linea bg-panel p-3 text-xs text-tinta italic">
-          «¿Cuál es el plazo para interponer un recurso de alzada según la ley vigente?»
-        </p>
-      </li>
-    </ol>
-    <div class="flex flex-col items-center justify-between gap-4 rounded-lg border border-linea bg-white p-5 font-mono text-estampa text-tenue sm:flex-row">
-      <p class="flex items-center gap-2">
-        <Icono nombre="verified-user" class="size-[18px] text-vigente" />
-        Funciona con Claude Code, Codex y Antigravity
-      </p>
-      <p class="text-tinta">kitlegal no envía tus consultas a ningún servidor propio</p>
-    </div>
+<section
+  aria-labelledby="titulo-garantias"
+  class:list={[pagina, "grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4 pt-seccion"]}
+>
+  <div class="col-span-full mb-6 flex flex-col gap-3.5">
+    <p class={etiquetaSeccion}>{garantias.antetitulo}</p>
+    <h2 id="titulo-garantias" class:list={[titularSeccion, "max-w-[820px]"]}>{garantias.titulo}</h2>
+    <p class="max-w-[820px] text-lg leading-[1.6] text-tenue">{garantias.texto}</p>
+  </div>
+  {
+    garantias.pilares.map(({ titulo, texto, pie }, indice) => (
+      <div class="flex flex-col gap-3 rounded-3xl bg-tinta p-tarjeta text-white">
+        <span aria-hidden="true" class="font-titular text-[40px] font-bold text-acento-oscuro">
+          {String(indice + 1).padStart(2, "0")}
+        </span>
+        <h3 class="text-[22px] font-bold">{titulo}</h3>
+        <p class="text-[15px] leading-[1.6] text-sobre-oscuro">{texto}</p>
+        <p class="mt-auto text-[13px] font-semibold text-codigo-indicador">{pie}</p>
+      </div>
+    ))
+  }
+</section>
+
+<section
+  id="integracion"
+  aria-labelledby="titulo-integracion"
+  class:list={[pagina, "grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-5 pt-seccion"]}
+>
+  <div class="col-span-full mb-6 flex flex-col items-center gap-3.5 text-center">
+    <p class={etiquetaSeccion}>Qué necesitas</p>
+    <h2 id="titulo-integracion" class={titularSeccion}>Se instala una vez y se usa preguntando</h2>
+    <p class="max-w-[760px] text-lg leading-[1.6] text-tenue">
+      Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code. En
+      la web y en el móvil (ChatGPT, el chat de Claude, Gemini) todavía no funciona.
+    </p>
+  </div>
+  <div class="flex flex-col gap-3 rounded-3xl border border-linea bg-white p-tarjeta-amplia">
+    <span
+      aria-hidden="true"
+      class="grid size-12 place-items-center rounded-full bg-agente font-titular text-[22px] font-bold text-white"
+    >
+      1
+    </span>
+    <p class={etiquetaMayusculas}>Una sola vez</p>
+    <h3 class="font-titular text-[28px] leading-[1.1] font-bold">Instalas kitlegal</h3>
+    <p class="text-base leading-[1.6] text-tenue">
+      Son dos descargas que se abren en la app de escritorio de Claude, sin terminal: la extensión, que lee el BOE, y
+      el plugin, que enseña a Claude a citarlo. No hace falta saber programar, y la guía lo explica paso a paso.
+    </p>
+    <a href="/instalar/" class:list={[boton.pequeno, "mt-2 self-start"]}>Ver la guía de instalación</a>
+  </div>
+  <div class="flex flex-col gap-3 rounded-3xl border border-linea bg-white p-tarjeta-amplia">
+    <span
+      aria-hidden="true"
+      class="grid size-12 place-items-center rounded-full bg-vigente font-titular text-[22px] font-bold text-white"
+    >
+      2
+    </span>
+    <p class={etiquetaMayusculas}>En tu día a día</p>
+    <h3 class="font-titular text-[28px] leading-[1.1] font-bold">Preguntas con tus palabras</h3>
+    <p class="text-base leading-[1.6] text-tenue">
+      Escribes en tu asistente como siempre. Él consulta kitlegal, lee el BOE y te responde con la cita: la norma, el
+      artículo y la fecha de consulta.
+    </p>
+    <p class="mt-2 rounded-2xl bg-panel px-[18px] py-3.5 text-base font-medium">
+      «¿Cuál es el plazo para interponer un recurso de alzada según la ley vigente?»
+    </p>
   </div>
 </section>
 
 {
   contacto && (
-    <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-lienzo py-24 md:py-32">
-      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
-        <div>
-          <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
-            {contacto.antetitulo}
-          </p>
-          <h2 id="titulo-contacto" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-            {contacto.titulo}
-          </h2>
-          <p class="mb-8 leading-relaxed text-tenue">{contacto.texto}</p>
-          <a
-            href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`}
-            class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
-          >
-            <Icono nombre="mail" class="size-[18px] text-sello" />
-            {CORREO}
-          </a>
-        </div>
-        <div class="rounded-lg border border-linea bg-white p-6 shadow-sm sm:p-8">
-          <h3 class="mb-4 font-serif text-xl font-semibold text-tinta">Lo que más nos ayuda saber</h3>
-          <ul class="mb-6 space-y-3 text-sm leading-relaxed text-tenue">
+    <section id="contacto" aria-labelledby="titulo-contacto" class:list={[pagina, "flex flex-col gap-8 pt-seccion"]}>
+      <div class="flex flex-col items-center gap-3.5 text-center">
+        <p class={etiquetaSeccion}>{contacto.antetitulo}</p>
+        <h2 id="titulo-contacto" class={titularSeccion}>
+          {contacto.titulo}
+        </h2>
+        <p class="max-w-[780px] text-lg leading-[1.6] text-tenue">{contacto.texto}</p>
+        <a href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`} class:list={[boton.oscuro, "mt-2"]}>
+          {CORREO}
+        </a>
+      </div>
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-5">
+        <div class="flex flex-col gap-4 rounded-3xl border border-linea bg-white p-tarjeta">
+          <h3 class="text-[22px] font-bold">Lo que más nos ayuda saber</h3>
+          <ul class="flex flex-col gap-4">
             {contacto.peticiones.map((peticion) => (
-              <li class="flex items-start gap-2.5">
-                <Icono nombre="check-circle" class="mt-0.5 size-[18px] text-vigente" />
+              <li class="flex gap-3 text-base leading-[1.55]">
+                <span aria-hidden="true" class="mt-2 size-2 flex-none rounded-full bg-vigente" />
                 <span>{peticion}</span>
               </li>
             ))}
           </ul>
-          <h3 class="mb-3 border-t border-linea pt-5 font-serif text-lg font-semibold text-tinta">Lo que hoy no hace</h3>
-          <ul class="mb-3 space-y-3 text-sm leading-relaxed text-tenue">
+        </div>
+        <div class="flex flex-col gap-4 rounded-3xl border border-linea bg-white p-tarjeta">
+          <h3 class="text-[22px] font-bold">Lo que hoy no hace</h3>
+          <ul class="flex flex-col gap-4">
             {contacto.todavia.map((frase) => (
-              <li class="flex items-start gap-2.5">
-                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
+              <li class="flex gap-3 text-base leading-[1.55] text-tenue">
+                <span aria-hidden="true" class="mt-2 size-2 flex-none rounded-full bg-sello" />
                 <span>{frase}</span>
               </li>
             ))}
           </ul>
-          <p class="mb-5 text-sm">
-            <a href={contacto.detalle.destino} class="font-semibold text-agente underline underline-offset-2">
-              {contacto.detalle.texto}
-            </a>
-          </p>
-          <p class="text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
+          <a href={contacto.detalle.destino} class="tocable text-[15px] font-semibold text-agente">
+            {contacto.detalle.texto} →
+          </a>
         </div>
       </div>
+      <p class="text-center text-sm text-tenue">{contacto.aviso}</p>
     </section>
   )
 }
 
-<section aria-labelledby="titulo-cta" class="relative overflow-hidden bg-noche py-24 text-white md:py-32">
-  <div class="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-10">
-    <div class="mx-auto mb-8 flex size-14 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-sello">
-      <Icono nombre="balance" class="size-8" />
+<div class={pagina}>
+  <section
+    aria-labelledby="titulo-cta"
+    class="mt-seccion flex flex-col items-center gap-5 rounded-[32px] bg-agente px-[clamp(22px,5vw,72px)] py-[clamp(40px,6vw,72px)] text-center text-white"
+  >
+    <h2 id="titulo-cta" class="max-w-[820px] font-titular text-h2-cta font-bold text-balance">{audiencia.cta.titulo}</h2>
+    <p class="max-w-[640px] text-lg leading-[1.6]">{audiencia.cta.texto}</p>
+    <div class="flex flex-wrap justify-center gap-3">
+      <a href="/instalar/" class={boton.claro}>Instalar kitlegal, paso a paso</a>
+      <a href={`${REPOSITORIO}#readme`} class={boton.contorno}>Leer la documentación</a>
     </div>
-    <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold md:text-5xl">{audiencia.cta.titulo}</h2>
-    <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed font-light text-sobre-noche">{audiencia.cta.texto}</p>
-    <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
-      <a
-        href="/instalar/"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-sello px-8 py-3.5 text-sm font-semibold text-noche shadow-lg transition-colors hover:bg-sello/90 sm:w-auto"
-      >
-        <Icono nombre="download" class="size-[18px]" />
-        Instalar kitlegal, paso a paso
-      </a>
-      <a
-        href={`${REPOSITORIO}#readme`}
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-codigo-borde bg-noche-2 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-noche-2/80 sm:w-auto"
-      >
-        <Icono nombre="article" class="size-[18px] text-sobre-noche" />
-        Leer la documentación
-      </a>
-    </div>
-  </div>
-</section>
+    <p class="text-sm">
+      Funciona en la app de escritorio de Claude y en Claude Code · kitlegal no envía tus consultas a ningún servidor
+      propio
+    </p>
+  </section>
+</div>

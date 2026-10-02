@@ -1,7 +1,7 @@
 ---
 import { audiencias } from "../data/audiencias";
+import { pagina } from "../lib/clases";
 import { CORREO, LICENCIA, REPOSITORIO } from "../lib/proyecto";
-import Icono from "./Icono.astro";
 import Logo from "./Logo.astro";
 
 const columnas = [
@@ -22,15 +22,6 @@ const columnas = [
     ],
   },
   {
-    titulo: "Funciona con",
-    enlaces: [
-      { texto: "Claude Code", destino: "/instalar/#agentes" },
-      { texto: "Codex", destino: "/instalar/#agentes" },
-      { texto: "Antigravity", destino: "/instalar/#agentes" },
-      { texto: "Estándar Agent Skills", destino: "https://agentskills.io/" },
-    ],
-  },
-  {
     titulo: "Proyecto",
     enlaces: [
       { texto: "Repositorio en GitHub", destino: REPOSITORIO },
@@ -45,26 +36,28 @@ const columnas = [
 const anio = new Date().getFullYear();
 ---
 
-<footer class="border-t border-linea bg-panel/70 py-16">
-  <div class="mx-auto max-w-7xl px-4 sm:px-10">
-    <div class="grid grid-cols-1 gap-12 border-b border-linea pb-14 md:grid-cols-2 lg:grid-cols-6">
-      <div class="space-y-4 lg:col-span-2">
-        <Logo tamano="pequeno" />
-        <p class="max-w-sm text-sm leading-relaxed text-tenue">
-          Skills de agente y un programa que dan a tu asistente de IA el texto vigente del BOE y la cita exacta. Software
-          libre bajo la Licencia Pública de la Unión Europea (EUPL-1.2).
-        </p>
-        <p class="text-xs text-tenue">Fuente de los datos citados: Agencia Estatal Boletín Oficial del Estado.</p>
-        <p class="text-xs text-tenue">Las fotografías son ilustrativas y están generadas con IA.</p>
-      </div>
+<footer class:list={[pagina, "mt-[clamp(48px,6vw,80px)] text-sm leading-[1.8] text-tenue"]}>
+  <div class="grid gap-x-16 gap-y-10 border-t border-linea pt-12 pb-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+    <div class="flex max-w-[560px] flex-col gap-2.5">
+      <Logo tamano="pequeno" />
+      <p>
+        Skills de agente y un programa que dan a tu asistente de IA el texto vigente del BOE y la cita exacta. Software
+        libre bajo la Licencia Pública de la Unión Europea (EUPL-1.2).
+      </p>
+      <p class="text-[13px]">
+        kitlegal consulta y cita fuentes oficiales; no presta asesoramiento jurídico ni sustituye a un profesional.
+        Fuente de los datos citados: Agencia Estatal Boletín Oficial del Estado. © {anio} kitlegal
+      </p>
+    </div>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(min(170px,100%),1fr))] gap-x-10 gap-y-8">
       {
         columnas.map(({ titulo, enlaces }) => (
-          <div class="space-y-3">
-            <h2 class="font-mono text-estampa font-semibold uppercase text-tinta">{titulo}</h2>
-            <ul class="space-y-2 text-sm text-tenue">
+          <div class="flex flex-col">
+            <h2 class="font-bold text-tinta">{titulo}</h2>
+            <ul>
               {enlaces.map(({ texto, destino }) => (
                 <li>
-                  <a href={destino} class="transition-colors hover:text-tinta">
+                  <a href={destino} class="tocable">
                     {texto}
                   </a>
                 </li>
@@ -73,13 +66,6 @@ const anio = new Date().getFullYear();
           </div>
         ))
       }
-    </div>
-    <div class="flex flex-col items-start justify-between gap-4 pt-8 text-xs text-tenue md:flex-row md:items-center">
-      <p class="flex items-start gap-2 font-serif text-sm italic">
-        <Icono nombre="gavel" class="mt-0.5 size-4 text-sello" />
-        kitlegal consulta y cita fuentes oficiales; no presta asesoramiento jurídico ni sustituye a un profesional.
-      </p>
-      <span class="shrink-0 font-mono">© {anio} kitlegal</span>
     </div>
   </div>
 </footer>

@@ -1,43 +1,26 @@
 ---
-// El marco de las páginas de texto: una cabecera con etiqueta, título y
-// entradilla, y el cuerpo con el estilo de lectura de DESIGN.md. Si la página
-// tiene fotografía, abre el cuerpo.
-import Ilustracion from "./Ilustracion.astro";
+// El marco de las páginas de texto: una cabecera centrada con etiqueta, título
+// y entradilla, y el cuerpo en una columna de lectura.
+import { chipVigente, pagina } from "../lib/clases";
 
 interface Props {
   etiqueta: string;
   titulo: string;
   entradilla: string;
-  ilustracion?: { nombre: string; alt: string };
 }
 
-const { etiqueta, titulo, entradilla, ilustracion } = Astro.props;
+const { etiqueta, titulo, entradilla } = Astro.props;
 ---
 
-<article class="bg-lienzo">
-  <header class="border-b border-linea/60 bg-gradient-to-b from-lienzo to-panel/40 py-16 md:py-24">
-    <div class="mx-auto max-w-3xl px-4 sm:px-10">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">{etiqueta}</p>
-      <h1 class="text-balance mt-2 mb-6 font-serif text-4xl leading-tight font-semibold tracking-tight text-tinta md:text-5xl">
-        {titulo}
-      </h1>
-      <p class="text-lg leading-relaxed text-tenue">{entradilla}</p>
-    </div>
+<article>
+  <header class:list={[pagina, "flex flex-col items-center gap-[22px] pt-16 text-center"]}>
+    <p class={chipVigente}>{etiqueta}</p>
+    <h1 class="font-titular text-h1-pagina font-bold text-balance">{titulo}</h1>
+    <p class="max-w-[700px] text-entradilla text-pretty text-tenue">{entradilla}</p>
   </header>
   <div
-    class="mx-auto max-w-3xl space-y-6 px-4 py-16 leading-relaxed text-tinta sm:px-10 [&>h2:first-child]:mt-0 [&_a]:text-agente [&_a]:underline [&_a]:underline-offset-2 [&_h2]:mt-14 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-8 [&_h3]:font-serif [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_p>code]:rounded-sm [&_p>code]:bg-panel-2 [&_p>code]:px-1.5 [&_p>code]:py-0.5 [&_p>code]:font-mono [&_p>code]:text-[0.85em] [&_li>code]:rounded-sm [&_li>code]:bg-panel-2 [&_li>code]:px-1.5 [&_li>code]:py-0.5 [&_li>code]:font-mono [&_li>code]:text-[0.85em] [&_ul]:space-y-2"
+    class="codigo-en-linea mx-auto flex max-w-[880px] flex-col gap-5 px-margen pt-16 text-base leading-[1.6] [&_a]:tocable [&_a]:text-agente [&_h2]:mt-8 [&_h2]:font-titular [&_h2]:text-[26px] [&_h2]:font-bold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_li]:marker:text-agente [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-2"
   >
-    {
-      ilustracion && (
-        <Ilustracion
-          nombre={ilustracion.nombre}
-          alt={ilustracion.alt}
-          sizes="(min-width: 768px) 688px, 100vw"
-          prioritaria
-          class="aspect-[2/1] w-full rounded-xl border border-linea object-cover shadow-sm"
-        />
-      )
-    }
     <slot />
   </div>
 </article>

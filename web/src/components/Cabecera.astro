@@ -1,6 +1,9 @@
 ---
-import { REPOSITORIO, versionPublicada } from "../lib/proyecto";
-import Icono from "./Icono.astro";
+// La cabecera: el logotipo, la navegación en una pastilla y el botón de
+// instalar. Por debajo de 860 px la navegación se pliega en un menú, que es un
+// <details>: se abre y se cierra sin JavaScript, que la página no admite.
+import { boton, pagina } from "../lib/clases";
+import { REPOSITORIO } from "../lib/proyecto";
 import Logo from "./Logo.astro";
 
 interface Props {
@@ -9,55 +12,75 @@ interface Props {
 }
 
 const { inicio = "/" } = Astro.props;
-const version = versionPublicada();
+const ruta = Astro.url.pathname;
 
 const secciones = [
   { texto: "Cómo funciona", destino: `${inicio}#diferencia` },
   { texto: "Garantías", destino: `${inicio}#pilares` },
-  { texto: "Ejemplos", destino: `${inicio}#casos` },
-  { texto: "Consultas", destino: "/consultas/" },
-  { texto: "Instalar", destino: "/instalar/" },
+  { texto: "Consultas", destino: "/consultas/", actual: ruta.startsWith("/consultas/") },
+  { texto: "Despachos", destino: "/despachos/", actual: ruta.startsWith("/despachos/") },
+  { texto: "GitHub", destino: REPOSITORIO },
 ];
+
+const menu = [
+  { texto: "Inicio", destino: "/", actual: ruta === "/" },
+  { texto: "Consultas", destino: "/consultas/", actual: ruta.startsWith("/consultas/") },
+  { texto: "Para despachos", destino: "/despachos/", actual: ruta.startsWith("/despachos/") },
+  { texto: "Instalar", destino: "/instalar/", actual: ruta.startsWith("/instalar/") },
+  { texto: "GitHub", destino: REPOSITORIO },
+];
+
+// En la propia página de instalar, el botón va en oscuro.
+const enInstalar = ruta.startsWith("/instalar/");
 ---
 
-<header class="fixed inset-x-0 top-0 z-50 border-b border-linea/60 bg-lienzo/90 backdrop-blur-md">
-  <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-10">
-    <div class="flex items-center gap-4">
-      <a href="/" aria-label="kitlegal, inicio">
-        <Logo />
-      </a>
-      <a
-        href={`${REPOSITORIO}/releases/tag/${version}`}
-        class="hidden border-l border-linea pl-3 sm:block"
-        title="Última versión publicada"
+<header class:list={[pagina, "relative z-50 flex items-center justify-between gap-3 py-5"]}>
+  <a href="/" aria-label="kitlegal, inicio" class="tocable">
+    <Logo />
+  </a>
+  <nav
+    aria-label="Secciones"
+    class="hidden gap-1.5 rounded-full border border-linea bg-white p-[5px] text-[15px] font-medium min-[860px]:flex"
+  >
+    {
+      secciones.map(({ texto, destino, actual }) => (
+        <a
+          href={destino}
+          aria-current={actual ? "page" : undefined}
+          class:list={["tocable rounded-full px-3.5 py-2", actual && "bg-panel text-agente"]}
+        >
+          {texto}
+        </a>
+      ))
+    }
+  </nav>
+  <div class="flex items-center gap-2">
+    <a href="/instalar/" class={enInstalar ? boton.pequeno.replace("bg-agente", "bg-tinta") : boton.pequeno}>
+      Instalar gratis
+    </a>
+    <details class="group min-[860px]:hidden">
+      <summary
+        class="tocable flex min-h-11 cursor-pointer list-none items-center rounded-full border border-linea-2 bg-white px-4 text-[15px] font-semibold [&::-webkit-details-marker]:hidden"
       >
-        <span class="rounded-sm bg-panel-2 px-2 py-0.5 font-mono text-estampa font-semibold text-tinta">{version}</span>
-      </a>
-    </div>
-    <nav aria-label="Secciones" class="hidden items-center gap-8 md:flex">
-      {
-        secciones.map(({ texto, destino }) => (
-          <a href={destino} class="text-sm font-medium text-tenue transition-colors hover:text-tinta">
-            {texto}
-          </a>
-        ))
-      }
-    </nav>
-    <div class="flex items-center gap-4">
-      <a
-        href={REPOSITORIO}
-        class="hidden items-center gap-1.5 text-sm font-medium text-tenue transition-colors hover:text-tinta sm:inline-flex"
+        <span class="group-open:hidden">Menú</span>
+        <span class="hidden group-open:inline">Cerrar</span>
+      </summary>
+      <nav
+        aria-label="Menú"
+        class="absolute inset-x-5 top-full flex flex-col rounded-[20px] border border-linea bg-white p-2 text-[17px] font-semibold shadow-destacada"
       >
-        <Icono nombre="code" class="size-[18px]" />
-        GitHub
-      </a>
-      <a
-        href="/instalar/"
-        class="inline-flex items-center gap-2 rounded-sm bg-noche px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-noche-2"
-      >
-        <Icono nombre="download" class="size-4 text-sello" />
-        Instalar
-      </a>
-    </div>
+        {
+          menu.map(({ texto, destino, actual }) => (
+            <a
+              href={destino}
+              aria-current={actual ? "page" : undefined}
+              class:list={["tocable rounded-xl px-4 py-3.5", actual && "bg-panel text-agente"]}
+            >
+              {texto}
+            </a>
+          ))
+        }
+      </nav>
+    </details>
   </div>
 </header>

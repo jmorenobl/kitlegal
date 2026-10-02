@@ -1,6 +1,7 @@
 ---
-// Una orden de terminal, en el marco oscuro de DESIGN.md. Cada línea es un
-// bloque, y el indicador no se selecciona al copiar.
+// Una orden de terminal, en el bloque oscuro de DESIGN.md. Cada línea es un
+// bloque, con el indicador en verde, que no se selecciona; un clic en la línea
+// la selecciona entera para copiarla.
 interface Props {
   lineas: string[];
   indicador?: string;
@@ -10,19 +11,20 @@ interface Props {
 const { lineas, indicador = "$", etiqueta } = Astro.props;
 ---
 
-<figure class="overflow-hidden rounded-lg border border-codigo-borde bg-codigo">
+<figure class="overflow-hidden rounded-[14px] bg-codigo font-mono text-sm leading-6 text-codigo-texto">
   {
     etiqueta && (
-      <figcaption class="border-b border-codigo-borde px-4 py-2 font-mono text-estampa text-sobre-noche uppercase">
+      <figcaption class="border-b border-codigo-boton px-[18px] py-2 text-xs text-sobre-oscuro uppercase">
         {etiqueta}
       </figcaption>
     )
   }
-  <code class="block overflow-x-auto p-4 font-mono text-sm leading-6 whitespace-pre text-cian">
+  <code class="block overflow-x-auto py-3.5 pr-3.5 pl-[18px] whitespace-pre">
     {
       lineas.map((linea) => (
         <span class="block">
-          <span class="text-sobre-noche select-none">{indicador} </span>{linea}
+          {indicador && <span class="text-codigo-indicador select-none">{indicador} </span>}
+          <span class="select-all">{linea}</span>
         </span>
       ))
     }

@@ -3,11 +3,11 @@
 // con la cita que lo sostiene.
 import type { GetStaticPaths } from "astro";
 import CitaArticulo from "../../components/CitaArticulo.astro";
-import Icono from "../../components/Icono.astro";
-import Ilustracion from "../../components/Ilustracion.astro";
 import { type Consulta, consultas } from "../../data/consultas";
 import { consultas as indice } from "../../data/paginas";
 import Base from "../../layouts/Base.astro";
+import { chipPequeno, etiquetaSeccion } from "../../lib/clases";
+import { articulo } from "../../lib/citas";
 import { migas, pregunta } from "../../lib/estructurados";
 import { imagenDeConsulta } from "../../lib/imagenes";
 
@@ -21,6 +21,10 @@ interface Props {
 const { consulta } = Astro.props;
 const ruta = `/consultas/${consulta.slug}/`;
 const otras = consultas.filter(({ slug }) => slug !== consulta.slug);
+const columna = "mx-auto w-full max-w-[960px] px-margen";
+// Los avisos de vigencia de una norma van con la cita principal; un punto solo
+// los repite si cita otra norma.
+const normaPrincipal = articulo(consulta.cita).norma;
 ---
 
 <Base
@@ -32,105 +36,117 @@ const otras = consultas.filter(({ slug }) => slug !== consulta.slug);
     ...pregunta(consulta.pregunta, consulta.respuesta),
   ]}
 >
-  <article class="bg-lienzo">
-    <header class="border-b border-linea/60 bg-gradient-to-b from-lienzo to-panel/40 py-16 md:py-24">
-      <div class="mx-auto max-w-3xl px-4 sm:px-10">
-        <p class="flex items-center gap-2 font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
-          <a href={indice.ruta} class="underline-offset-2 hover:underline">Consultas</a>
-          <span aria-hidden="true">·</span>
-          {consulta.etiqueta}
-        </p>
-        <h1 class="text-balance mt-2 mb-6 font-serif text-4xl leading-tight font-semibold tracking-tight text-tinta md:text-5xl">
-          {consulta.pregunta}
-        </h1>
-        <p class="text-xl leading-relaxed text-tinta">{consulta.respuesta}</p>
+  <article>
+    <header class:list={[columna, "flex flex-col gap-[22px] pt-10"]}>
+      <nav aria-label="Migas" class="flex flex-wrap items-center gap-2 text-sm font-medium text-tenue">
+        <a href={indice.ruta} class="tocable text-agente">Consultas</a>
+        <span aria-hidden="true">›</span>
+        <span>{consulta.etiqueta}</span>
+      </nav>
+      <h1 class="font-titular text-h1-consulta font-bold text-balance">{consulta.pregunta}</h1>
+      <div class="overflow-hidden rounded-3xl border border-linea bg-white shadow-destacada">
+        <div class="flex flex-col gap-3 border-b border-linea-suave p-tarjeta">
+          <span class:list={[chipPequeno, "bg-panel text-agente"]}>La respuesta corta</span>
+          <p class="text-[clamp(19px,2.2vw,23px)] leading-[1.5] font-medium text-pretty">{consulta.respuesta}</p>
+        </div>
+        <div class="flex flex-col gap-3 bg-pie-tarjeta p-tarjeta">
+          <span class:list={[chipPequeno, "bg-vigente-fondo text-vigente-tinta"]}>Texto literal del BOE</span>
+          <CitaArticulo id={consulta.cita} variante="consulta" />
+        </div>
       </div>
     </header>
 
-    <div class="mx-auto max-w-3xl space-y-16 px-4 py-16 sm:px-10">
-      <Ilustracion
-        nombre={consulta.ilustracion}
-        alt={consulta.alt}
-        sizes="(min-width: 768px) 688px, 100vw"
-        prioritaria
-        class="aspect-[2/1] w-full rounded-xl border border-linea object-cover shadow-sm"
-      />
+    <section aria-labelledby="titulo-puntos" class:list={[columna, "flex flex-col gap-5 pt-seccion-1"]}>
+      <div class="flex flex-col gap-2.5">
+        <p class={etiquetaSeccion}>Punto por punto</p>
+        <h2 id="titulo-puntos" class="font-titular text-[clamp(28px,3.6vw,40px)] leading-[1.08] font-bold tracking-[-0.02em]">
+          Lo que conviene saber
+        </h2>
+        <p class="text-base leading-[1.6] text-tenue">Cada punto va con el fragmento literal del BOE que lo sostiene.</p>
+      </div>
+      {
+        consulta.puntos.map(({ titulo, texto, cita }, numero) => (
+          <article class="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-3xl border border-linea bg-white">
+            <div class="flex flex-col gap-2.5 p-[clamp(22px,3vw,30px)]">
+              <div class="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  class="grid size-[30px] flex-none place-items-center rounded-full bg-tinta text-[13px] font-bold text-white"
+                >
+                  {numero + 1}
+                </span>
+                <h3 class="text-xl leading-[1.25] font-bold">{titulo}</h3>
+              </div>
+              <p class="text-base leading-[1.65] text-tinta-cuerpo">{texto}</p>
+            </div>
+            <div class="border-l border-linea-suave bg-superficie-2 p-[clamp(22px,3vw,30px)]">
+              <CitaArticulo id={cita} variante="punto" avisos={articulo(cita).norma !== normaPrincipal} />
+            </div>
+          </article>
+        ))
+      }
+    </section>
 
-      <section aria-labelledby="titulo-cita">
-        <h2 id="titulo-cita" class="mb-5 font-serif text-2xl font-semibold text-tinta">Lo que dice la norma</h2>
-        <div class="rounded-lg border-2 border-vigente/40 bg-white p-6 shadow-[0_4px_20px_rgba(16,185,129,0.08)] sm:p-8">
-          <CitaArticulo id={consulta.cita} variante="destacada" />
-        </div>
-      </section>
-
-      <section aria-labelledby="titulo-puntos">
-        <h2 id="titulo-puntos" class="mb-5 font-serif text-2xl font-semibold text-tinta">Lo que conviene saber</h2>
-        <div class="space-y-6">
+    <div
+      class:list={[columna, "grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-5 pt-seccion-1"]}
+    >
+      <section
+        aria-labelledby="titulo-limites"
+        class="flex flex-col gap-3.5 rounded-3xl border border-sello-borde bg-sello-fondo p-tarjeta"
+      >
+        <h2 id="titulo-limites" class="text-xl font-bold">Lo que esta página no te dice</h2>
+        <ul class="flex flex-col gap-3.5">
           {
-            consulta.puntos.map(({ titulo, texto, cita }) => (
-              <article class="rounded-lg border border-linea bg-white p-6 shadow-xs sm:p-8">
-                <h3 class="mb-2 font-serif text-lg font-semibold text-tinta">{titulo}</h3>
-                <p class="mb-5 leading-relaxed text-tinta">{texto}</p>
-                <CitaArticulo id={cita} />
-              </article>
-            ))
-          }
-        </div>
-      </section>
-
-      <section aria-labelledby="titulo-limites" class="rounded-lg border border-linea bg-panel/60 p-6 sm:p-8">
-        <h2 id="titulo-limites" class="mb-4 font-serif text-xl font-semibold text-tinta">Lo que esta página no te dice</h2>
-        <ul class="space-y-3 text-sm leading-relaxed text-tenue">
-          {
-            consulta.limites.map((limite) => (
-              <li class="flex items-start gap-2.5">
-                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
+            [
+              ...consulta.limites,
+              "No es asesoramiento jurídico: cita la norma, no valora tu caso. Para una decisión con consecuencias, acude a un profesional.",
+            ].map((limite) => (
+              <li class="flex gap-3 text-[15px] leading-[1.6] text-tenue">
+                <span aria-hidden="true" class="mt-2 size-2 flex-none rounded-full bg-sello" />
                 <span>{limite}</span>
               </li>
             ))
           }
-          <li class="flex items-start gap-2.5">
-            <Icono nombre="gavel" class="mt-0.5 size-[18px] text-sello" />
-            <span>
-              No es asesoramiento jurídico: cita la norma, no valora tu caso. Para una decisión con consecuencias, acude
-              a un profesional.
-            </span>
-          </li>
         </ul>
       </section>
-
-      <section aria-labelledby="titulo-asistente" class="rounded-lg bg-noche p-6 text-white sm:p-10">
-        <h2 id="titulo-asistente" class="mb-3 font-serif text-2xl font-semibold">Pregúntaselo a tu asistente, con tu caso</h2>
-        <p class="mb-5 leading-relaxed text-sobre-noche">
+      <section
+        aria-labelledby="titulo-asistente"
+        class="flex flex-col gap-3.5 rounded-3xl bg-tinta p-tarjeta text-white"
+      >
+        <h2 id="titulo-asistente" class="text-xl font-bold">Pregúntaselo a tu asistente, con tu caso</h2>
+        <p class="text-[15px] leading-[1.6] text-sobre-oscuro">
           Con kitlegal instalado, tu asistente de IA lee estos artículos en el BOE en el momento en que preguntas y te
           responde con la cita. Por ejemplo:
         </p>
-        <p class="mb-6 rounded-sm border border-codigo-borde bg-noche-2 p-4 font-serif text-white italic">
+        <p class="rounded-[16px_16px_16px_4px] bg-oscuro-2 px-[18px] py-3.5 text-base leading-[1.5] font-medium">
           «{consulta.ejemplo}»
         </p>
         <a
           href="/instalar/"
-          class="inline-flex items-center justify-center gap-2 rounded-sm bg-sello px-7 py-3.5 text-sm font-semibold text-noche transition-colors hover:bg-sello/90"
+          class="tocable mt-auto inline-flex min-h-11 items-center self-start rounded-full bg-white px-[22px] py-[13px] text-[15px] font-semibold text-tinta"
         >
-          <Icono nombre="download" class="size-[18px]" />
           Instalar kitlegal, paso a paso
         </a>
       </section>
-
-      <nav aria-labelledby="titulo-otras">
-        <h2 id="titulo-otras" class="mb-4 font-serif text-xl font-semibold text-tinta">Otras consultas</h2>
-        <ul class="space-y-2">
-          {
-            otras.map(({ slug, pregunta: otra }) => (
-              <li>
-                <a href={`/consultas/${slug}/`} class="text-agente underline underline-offset-2">
-                  {otra}
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
     </div>
+
+    <nav aria-labelledby="titulo-otras" class:list={[columna, "flex flex-col gap-4 pt-seccion-1"]}>
+      <h2 id="titulo-otras" class="text-xl font-bold">Otras consultas</h2>
+      <ul class="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-3">
+        {
+          otras.map(({ slug, etiqueta, pregunta: otra }) => (
+            <li class="flex">
+              <a
+                href={`/consultas/${slug}/`}
+                class="flex w-full flex-col gap-1.5 rounded-[18px] border border-linea bg-white px-5 py-[18px] transition-colors hover:border-linea-hover"
+              >
+                <span class="text-[13px] font-semibold text-tenue">{etiqueta}</span>
+                <span class="text-base leading-[1.35] font-semibold">{otra}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
   </article>
 </Base>

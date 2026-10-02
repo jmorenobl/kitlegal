@@ -1,12 +1,12 @@
 ---
-import "@fontsource-variable/inter";
-import "@fontsource-variable/newsreader";
-import "@fontsource-variable/newsreader/wght-italic.css";
+import "@fontsource-variable/figtree";
+// Con el eje de tamaño óptico: los titulares grandes se dibujan más ceñidos.
+import "@fontsource-variable/bricolage-grotesque/opsz.css";
 import "@fontsource-variable/jetbrains-mono";
 import "../styles/global.css";
 
-import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
-import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url";
+import figtreeLatin from "@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2?url";
+import bricolageLatin from "@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2?url";
 
 import Cabecera from "../components/Cabecera.astro";
 import Pie from "../components/Pie.astro";
@@ -74,10 +74,10 @@ const politica = [
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#0b1325" />
+    <meta name="theme-color" content="#f7f8fb" />
 
-    <link rel="preload" href={newsreaderLatin} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={bricolageLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={figtreeLatin} as="font" type="font/woff2" crossorigin />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="kitlegal" />
@@ -96,12 +96,12 @@ const politica = [
   <body class="flex min-h-screen flex-col">
     <a
       href="#contenido"
-      class="sr-only z-[60] rounded-sm bg-noche px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
+      class="sr-only z-[60] rounded-full bg-tinta px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
     >
       Saltar al contenido
     </a>
     <Cabecera inicio={inicio} />
-    <main id="contenido" class="flex-1 pt-20">
+    <main id="contenido" class="flex-1">
       <slot />
     </main>
     <Pie />
