@@ -92,14 +92,15 @@ const (
 		"### `kitlegal dos`\n" +
 		"\n" +
 		columnasDeLaTabla +
-		"| `kitlegal dos listar` | Lista los bloques. | lista de objetos con `bloque` |\n" +
+		"| `kitlegal dos listar` | `dos_listar` | Lista los bloques. | lista de objetos con `bloque` |\n" +
 		"\n" +
 		"### `kitlegal uno`\n" +
 		"\n" +
 		columnasDeLaTabla +
-		"| `kitlegal uno leer <bloque>` | Lee un bloque. | objeto con `texto` |\n" +
+		"| `kitlegal uno leer <bloque>` | `uno_leer` | Lee un bloque. | objeto con `texto` |\n" +
 		"\n" +
-		"Todas devuelven el sobre `ok`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.\n" +
+		"La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `data`; con `ok` falso, `data` " +
+		"lleva `clase` y `mensaje`.\n" +
 		"\n" +
 		"Banderas comunes: `--json`, `--timeout <valor>`.\n" +
 		"\n"

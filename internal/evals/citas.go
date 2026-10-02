@@ -1,6 +1,9 @@
 package evals
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // formaDeCita es la expresión con la que se extrae la parte mecánica de una
 // cita: los corchetes, abiertos y cerrados en la misma línea, que terminan en
@@ -38,4 +41,42 @@ func ExtraerCitas(respuesta string) []Cita {
 	}
 
 	return citas
+}
+
+// Lo que lleva la línea con la que una respuesta dice que no ha consultado nada
+// porque el agente no tiene ni la herramienta ni el binario
+// (contracts/skills.md §3 de H21; data-model §9 de H21).
+const (
+	// etiquetaSinConsulta es la etiqueta de su forma fija, la que va entre la
+	// marca y los dos puntos.
+	etiquetaSinConsulta = "SIN CONSULTA AL BOE"
+
+	// direccionParaInstalar es la dirección que la línea lleva detrás de la causa.
+	direccionParaInstalar = "https://kitlegal.es/instalar/"
+)
+
+// lineaSinConsulta casa con cada línea que empieza por la forma fija de
+// etiquetaSinConsulta, con la tolerancia de las etiquetas de los avisos
+// (patronDeEtiqueta): blancos y énfasis de Markdown delante de la marca y
+// alrededor de las partes. El grupo es lo que sigue a los dos puntos hasta el
+// final de la línea.
+var lineaSinConsulta = regexp.MustCompile(`(?m)^` + separadorDeAviso + patronDeEtiqueta(etiquetaSinConsulta) +
+	`([^\n]*)$`)
+
+// ExtraerSinConsulta dice si la respuesta tiene una línea que empieza por la
+// forma fija ⚠ SIN CONSULTA AL BOE: —la marca, la etiqueta y los dos puntos, con
+// la tolerancia de las etiquetas de los avisos— y si alguna de esas líneas lleva
+// detrás, en la misma línea, https://kitlegal.es/instalar/. La dirección en otra
+// línea no cuenta, y sin la línea no hay dirección. No lee la causa ni ninguna
+// otra redacción (H21 FR-035, FR-047).
+func ExtraerSinConsulta(respuesta string) (conLinea, conDireccion bool) {
+	for _, partes := range lineaSinConsulta.FindAllStringSubmatch(respuesta, -1) {
+		conLinea = true
+
+		if strings.Contains(partes[1], direccionParaInstalar) {
+			conDireccion = true
+		}
+	}
+
+	return conLinea, conDireccion
 }

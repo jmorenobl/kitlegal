@@ -1334,6 +1334,156 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.Empty(t, defectos, "%s enseña cada orden de lectura y comprobación con su forma para PowerShell:\n%s",
 			skillDelRepositorio, strings.Join(defectos, "\n"))
 	})
+
+	t.Run("linea-sin-consulta", probarLineaSinConsulta)
+}
+
+const (
+	// raizDeLasSkills es la raíz del repositorio, relativa al directorio de este
+	// paquete: en su directorio skills/ está cada skill con su SKILL.md.
+	raizDeLasSkills = "../.."
+
+	// lineaSinConsultaDeLasSkills es la línea que cada SKILL.md enseña para la
+	// respuesta de quien no tiene ni la herramienta ni el binario, con el
+	// marcador de la causa, carácter a carácter (contracts/skills.md §3 de H21).
+	lineaSinConsultaDeLasSkills = "⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: " +
+		"https://kitlegal.es/instalar/"
+)
+
+// skillsConLineaSinConsulta son las skills que skills/ tiene que tener para que
+// la subprueba linea-sin-consulta no pase en vacío para ninguna de las dos que
+// llevan la regla (FR-035 de H21).
+var skillsConLineaSinConsulta = []string{"boe-legislacion", "legal-core"}
+
+// probarLineaSinConsulta es la subprueba linea-sin-consulta de
+// TestEvalsDelRepositorio (contracts/skills.md §5 de H21; FR-035, FR-077): el
+// SKILL.md de cada skill de skills/ dice la línea de contracts/skills.md §3 tal
+// cual en un bloque de código text, y esa línea casa con lo que el juicio
+// reconoce, ExtraerSinConsulta, con su dirección. Cada defecto nombra la skill.
+func probarLineaSinConsulta(t *testing.T) {
+	t.Parallel()
+
+	nombres, err := skills.Listar(raizDeLasSkills)
+	require.NoError(t, err)
+	require.Subset(t, nombres, skillsConLineaSinConsulta, "skills/ tiene las skills que llevan la regla")
+
+	var defectos []string
+
+	for _, nombre := range nombres {
+		skill, err := skills.Cargar(raizDeLasSkills, nombre)
+		require.NoError(t, err)
+
+		for _, defecto := range defectosDeLaLineaSinConsulta(string(skill.Contenido)) {
+			defectos = append(defectos, nombre+": "+defecto)
+		}
+	}
+
+	assert.Empty(t, defectos, "cada SKILL.md de skills/ enseña la línea %s en un bloque text:\n%s",
+		formaEscrita(etiquetaSinConsulta), strings.Join(defectos, "\n"))
+}
+
+// defectosDeLaLineaSinConsulta da los defectos de un SKILL.md respecto de la
+// línea de contracts/skills.md §3 de H21, o nil si no tiene ninguno: que ningún
+// bloque de código text sea, sin su sangría, exactamente esa línea; o que
+// ExtraerSinConsulta no la reconozca, en el bloque tal como está escrito, con su
+// dirección.
+func defectosDeLaLineaSinConsulta(markdown string) []string {
+	bloques := bloquesDeTexto(markdown)
+
+	indice := slices.IndexFunc(bloques, func(bloque string) bool {
+		return strings.TrimSpace(bloque) == lineaSinConsultaDeLasSkills
+	})
+	if indice < 0 {
+		return []string{"SKILL.md no dice en un bloque text la línea «" + lineaSinConsultaDeLasSkills + "»"}
+	}
+
+	conLinea, conDireccion := ExtraerSinConsulta(bloques[indice])
+	if !conLinea || !conDireccion {
+		return []string{"el juicio no reconoce con su dirección la línea «" + lineaSinConsultaDeLasSkills +
+			"» del bloque text de SKILL.md"}
+	}
+
+	return nil
+}
+
+// TestLineaSinConsultaDeUnaSkill fija la comprobación de la subprueba
+// linea-sin-consulta, defectosDeLaLineaSinConsulta, sobre Markdown escrito aquí
+// (contracts/skills.md §5 de H21; FR-035): la línea sola en un bloque text, con
+// la sangría de un elemento de lista o sin ella, no tiene defectos; y sí los
+// tiene sin la línea, con una palabra cambiada, sin su dirección, con otra línea
+// en su mismo bloque, en la prosa o en un bloque que no es text.
+func TestLineaSinConsultaDeUnaSkill(t *testing.T) {
+	t.Parallel()
+
+	const (
+		regla     = "8. **Sin herramienta y sin binario, la respuesta lo dice.** La respuesta lleva esta línea:\n"
+		noLaDice  = "SKILL.md no dice en un bloque text la línea «" + lineaSinConsultaDeLasSkills + "»"
+		otraFrase = "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior."
+	)
+
+	enUnBloque := func(lenguaje, sangria string, lineas ...string) string {
+		bloque := sangria + "```" + lenguaje + "\n"
+		for _, linea := range lineas {
+			bloque += sangria + linea + "\n"
+		}
+
+		return bloque + sangria + "```\n"
+	}
+
+	casos := []struct {
+		nombre   string
+		markdown string
+		defectos []string
+	}{
+		{
+			nombre:   "en-un-bloque-de-una-lista",
+			markdown: enUnBloque("text", "   ", otraFrase) + regla + enUnBloque("text", "   ", lineaSinConsultaDeLasSkills),
+		},
+		{
+			nombre:   "en-un-bloque-sin-sangria",
+			markdown: regla + "\n" + enUnBloque("text", "", lineaSinConsultaDeLasSkills),
+		},
+		{
+			nombre:   "sin-la-linea",
+			markdown: regla + enUnBloque("text", "   ", otraFrase),
+			defectos: []string{noLaDice},
+		},
+		{
+			nombre: "con-una-palabra-cambiada",
+			markdown: regla + enUnBloque("text", "   ",
+				strings.Replace(lineaSinConsultaDeLasSkills, "hace falta", "tienes que", 1)),
+			defectos: []string{noLaDice},
+		},
+		{
+			nombre: "sin-su-direccion",
+			markdown: regla + enUnBloque("text", "   ",
+				strings.TrimSuffix(lineaSinConsultaDeLasSkills, " https://kitlegal.es/instalar/")),
+			defectos: []string{noLaDice},
+		},
+		{
+			nombre:   "con-otra-linea-en-su-bloque",
+			markdown: regla + enUnBloque("text", "   ", lineaSinConsultaDeLasSkills, otraFrase),
+			defectos: []string{noLaDice},
+		},
+		{
+			nombre:   "en-la-prosa",
+			markdown: regla + "   " + lineaSinConsultaDeLasSkills + "\n",
+			defectos: []string{noLaDice},
+		},
+		{
+			nombre:   "en-un-bloque-que-no-es-text",
+			markdown: regla + enUnBloque("bash", "   ", lineaSinConsultaDeLasSkills),
+			defectos: []string{noLaDice},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.defectos, defectosDeLaLineaSinConsulta(caso.markdown))
+		})
+	}
 }
 
 // Los informes del job de evals de boe-legislacion en el cierre de H7.1, de
