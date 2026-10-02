@@ -119,7 +119,11 @@ que su orden: el texto con su fuente, su dirección, su fecha de consulta y su h
 siempre que tu agente la tiene, y la orden cuando no; se instalan igual, con `kitlegal skills install`.
 
 El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
-ningún puerto. Necesita el programa instalado, y se declara una vez en cada agente:
+ningún puerto. Necesita el programa instalado, y se declara una vez en cada agente.
+
+Está probado en **Claude Code** y en la **app de escritorio de Claude** en macOS. En los demás, lo que sigue es lo
+que dice la documentación de cada uno: **no está probado**. Si lo intentas, cuéntanos si te funciona o qué falla, en
+[las incidencias](https://github.com/jmorenobl/kitlegal/issues) o en `info@kitlegal.es`.
 
 - **Claude Code**:
 
@@ -127,14 +131,14 @@ ningún puerto. Necesita el programa instalado, y se declara una vez en cada age
   claude mcp add kitlegal -- kitlegal mcp serve
   ```
 
-- **La app de escritorio de ChatGPT y Codex**, que comparten la configuración: en *Settings > MCP servers*, con la
+- **La app de escritorio de ChatGPT y Codex** (sin probar), que comparten la configuración: en *Settings > MCP servers*, con la
   orden `kitlegal` y los argumentos `mcp serve`, o desde una terminal:
 
   ```sh
   codex mcp add kitlegal -- kitlegal mcp serve
   ```
 
-- **Antigravity**: en `~/.gemini/config/mcp_config.json`, o en `.agents/mcp_config.json` para un solo proyecto:
+- **Antigravity** (sin probar): en `~/.gemini/config/mcp_config.json`, o en `.agents/mcp_config.json` para un solo proyecto:
 
   ```json
   {
