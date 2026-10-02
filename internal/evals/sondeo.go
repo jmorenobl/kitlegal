@@ -573,12 +573,12 @@ func comprobarElSondeo(s SondeoAEjecutar) (sondeoComprobado, error) {
 // H7.3; research D16; FR-060, FR-067): SKILL, la forma de un nombre de skill,
 // una carpeta de evals legible y sin ficheros mal formados, y en la matriz del
 // job; EVALS, números de dos cifras separados por comas, sin repetir, cada uno
-// el de una eval de la skill; MODELO, no vacío y con la forma de un id de
-// modelo; REPETICIONES, un entero mayor o igual que 1; y CONCURRENCIA, vacía,
-// la del job para la skill, o un entero mayor o igual que 1. Con una skill que
-// no vale, de EVALS solo se comprueba la forma. Los errores de todos los
-// argumentos van juntos, uno por línea y en ese orden, para que quien lanza la
-// orden los corrija de una vez.
+// el de una eval de la skill que no sea sin binario ni servidor (FR-050 de
+// H21); MODELO, no vacío y con la forma de un id de modelo; REPETICIONES, un
+// entero mayor o igual que 1; y CONCURRENCIA, vacía, la del job para la skill, o
+// un entero mayor o igual que 1. Con una skill que no vale, de EVALS solo se
+// comprueba la forma. Los errores de todos los argumentos van juntos, uno por
+// línea y en ese orden, para que quien lanza la orden los corrija de una vez.
 func (a ArgumentosDelSondeo) comprobar(evalsDeLasSkills string, job DefinicionDelJob) (sondeoComprobado, error) {
 	comprobado := sondeoComprobado{skill: a.Skill, evals: filepath.Join(evalsDeLasSkills, a.Skill), modelo: a.Modelo}
 
@@ -647,26 +647,32 @@ func numerosDeLasEvals(valor string) ([]string, error) {
 
 // evalsPedidas son las evals del conjunto cuyo fichero empieza por cada número
 // y un guion, en el orden de los números. Un número que no es el de ninguna es
-// un error que lo nombra, uno por número.
+// un error que lo nombra, y el de una eval sin binario ni servidor, otro: el
+// sondeo mide solo el modo orden, y esa eval solo la mide el job de evals
+// (contracts/evals-en-dos-modos.md §7 de H21; FR-050 de H21). Uno por número,
+// en el orden de los números.
 func evalsPedidas(numeros []string, skill string, conjunto Conjunto) ([]Eval, error) {
 	pedidas := make([]Eval, 0, len(numeros))
 
-	var faltan []error
+	var noValen []error
 
 	for _, numero := range numeros {
 		posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool {
 			return strings.HasPrefix(eval.Fichero, numero+"-")
 		})
-		if posicion < 0 {
-			faltan = append(faltan, fmt.Errorf("%s: %s no es ninguna eval de %s", argumentoEvals, numero, skill))
 
-			continue
+		switch {
+		case posicion < 0:
+			noValen = append(noValen, fmt.Errorf("%s: %s no es ninguna eval de %s", argumentoEvals, numero, skill))
+		case conjunto.Evals[posicion].SinBinarioNiServidor:
+			noValen = append(noValen, fmt.Errorf("%s: %s es una eval sin binario ni servidor: solo la mide el job de evals",
+				argumentoEvals, numero))
+		default:
+			pedidas = append(pedidas, conjunto.Evals[posicion])
 		}
-
-		pedidas = append(pedidas, conjunto.Evals[posicion])
 	}
 
-	return pedidas, errors.Join(faltan...)
+	return pedidas, errors.Join(noValen...)
 }
 
 // comprobarElModelo exige un MODELO no vacío y con la forma de un id de modelo.

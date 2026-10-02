@@ -1,30 +1,17 @@
 {
-  "id": "T010",
-  "texto": "T010 [datos] [US3] `sin_binario_ni_servidor` en el esquema de eval y en el tipo que la lee, las reglas del conjunto, las dos evals nuevas y el tope del trabajo que exigen, y **nada más** que la corrección del `claude` sustituto de los tests del repartidor, cuya intermitencia dejó en rojo el `make ci` del intento 1 (contracts/evals-en-dos-modos.md §1 y §6; data-model §7; research D20, D21, V36; plan.md, paso 6 y *Complexity Tracking*): schemas/eval.yaml.json gana la propiedad `\"sin_binario_ni_servidor\": { \"const\": true }` y su rama —con `activa: true`, o bien la clave y entonces ninguna de `comandos`, `prohibidos`, `grafo_previo`, `citas`, `avisos`, `hallazgos`, `redacciones_modificadas`, `territorio`, `informativa` ni `reproduce`, o bien, como hoy, `comandos` y una de `citas` o `territorio`; con `activa: false`, tampoco puede llevarla—; internal/evals/formato.go: `Eval.SinBinarioNiServidor bool` (`yaml:\"sin_binario_ni_servidor\"`), con su comentario; `Juzgar` no lo mira todavía (T015); internal/evals/conjunto.go: el tamaño de `boe-legislacion` pasa a «entre 10 y 21»; una eval sin binario ni servidor no cuenta como positiva (las diez positivas, las materias y las normas se quedan como están); y los dos juegos ganan la regla `sin binario ni servidor`: exactamente una eval que lo declara; evals/boe-legislacion/21-sin-binario-ni-servidor.yaml y evals/legal-core/04-sin-binario-ni-servidor.yaml, nuevas, carácter a carácter las de contracts §1; .github/workflows/evals.yml: `timeout-minutes: 240` en el trabajo `evals`, con su comentario (el peor caso por tandas de research D20; con 21 evals, el de un solo modo ya es 7 557 s y no cabe en los 122 minutos de hoy), sin cambiar ninguna otra clave; internal/evals/definicion.go solo si el comentario del peor caso nombra el tope (el cálculo por tandas llega en T013); tests: en `TestEsquemaDeEval` y `TestLeerEval` (internal/evals/formato_test.go), los casos de contracts §8 —la clave con `activa: true` y nada más valida y se lee; con `comandos`, con `citas`, con `informativa` y con `activa: false`, mal formada—; `TestConjuntoDeEvals` y `TestEvalsDelRepositorio` (internal/evals/conjunto_test.go) con 21 y 4 evals y la regla nueva (un conjunto sin ninguna y uno con dos no pasan); los tests que cuentan las evals o las sesiones del repositorio, buscados antes con `git grep` de las cifras de hoy (20 evals, 97 sesiones) en los tests del paquete de evals —internal/evals/plan_test.go, internal/evals/consultas_test.go, internal/evals/grabaciones_test.go, internal/evals/sondeo_test.go e internal/evals/definicion_test.go—, se actualizan sin desactivar ninguno; ninguna grabación cambia: las dos evals no piden nada; y, redelimitada tras el intento 1 —su `make ci` cayó en el caso `abierta` de `TestInterrumpirLaSesion`, una intermitencia del `claude` sustituto de H7.3 que la nota de la tarea reproduce, mide y explica, y todo lo anterior ya está hecho en el árbol—, internal/evals/sustitutos_test.go: en la rama de `sustitutoDeClaude` que atiende TERM todo va en primer plano y sin `wait` —la shell atiende TERM y sale cuando ha terminado la subshell; la subshell lo atiende, lo anota y sale; y quien duerme es un `sh -c` aparte, hijo de la subshell, que anota él `espera-empezada` tras su exec y hace exec de `sleep`—, con el comentario del sustituto y el de `recibioTERM` al día: el diff exacto es el de la nota de la tarea, sin ningún otro byte de código ni de tests y sin tocar ningún test ni ninguna cota; verificación: con la regla nueva quitada un momento, el caso del conjunto sin ninguna eval así deja de fallar y su test lo ve; con `timeout-minutes: 122` un momento, `TestDefinicionDelJob` falla por el tope (se restauran antes de `make ci`); el test de la release, que también lee la definición del job, sigue en verde sin tocarlo; `TestTopeDeLaSesion`, `TestInterrumpirLaSesion`, `TestEjecutarSesionesConElContextoCancelado` y `TestEjecutarSesionesConUnError` con `-race -count=40` en verde, y con el TERM de la interrupción enviado solo al líder del grupo un momento en `esperarConElMargen`, el caso `abierta` falla por «el sustituto recibe TERM» (se restaura antes de `make ci`); `make skills-check` y `make ci` en verde — FR-046, FR-048, FR-051, FR-083; SC-001 (las dos evals que mide); US3-1, US3-2; rutas: schemas/eval.yaml.json, internal/evals/formato.go, internal/evals/conjunto.go, evals/boe-legislacion/21-sin-binario-ni-servidor.yaml, evals/legal-core/04-sin-binario-ni-servidor.yaml, .github/workflows/evals.yml, internal/evals/definicion.go, internal/evals/plan_test.go, internal/evals/consultas_test.go, internal/evals/grabaciones_test.go, internal/evals/sondeo_test.go, internal/evals/sustitutos_test.go",
-  "intento": 2,
-  "datos": true,
+  "id": "T011",
+  "texto": "T011 [US5] El sondeo rechaza una eval sin binario ni servidor como error de uso, y lo demás no cambia (contracts/evals-en-dos-modos.md §7; research D22; spec, Clarifications; plan.md, paso 6, final): internal/evals/sondeo.go: `evalsPedidas` da, por cada número de `EVALS` que es el de una eval que declara `sin_binario_ni_servidor`, el error `EVALS: <nn> es una eval sin binario ni servidor: solo la mide el job de evals`, uno por eval así, en el orden de `EVALS` y junto a los demás errores de argumentos, donde hoy va «no es ninguna eval de»; es un `errorDeUso` como los de hoy: una línea por error en la salida de error, la salida estándar vacía, ninguna sesión abierta ni árbol preparado y salida 1, también cuando la lista lleva evals que el sondeo sí mide; los cinco argumentos, la preparación, el juicio, la salida y los códigos de las demás evals no cambian; tests, con el `claude` y el `go` sustitutos de hoy: `TestComprobarElSondeo` (internal/evals/sondeo_test.go) gana los casos de la eval sola, con otras que sí se miden y con dos de ellas en su orden entre los demás errores, y comprueba que son `errorDeUso`; `TestSondear`, que con ese error no se prepara el árbol ni se abre ninguna sesión; `TestGuionDelSondeo`, que el guion sale con 1, con la línea sola en la salida de error y la estándar vacía; y los casos de hoy con evals que el sondeo mide siguen dando la misma preparación, la misma salida y los mismos códigos; ninguna tarea ejecuta `TestSondeo` ni el sondeo con modelo; verificación: con la comprobación nueva quitada un momento de `evalsPedidas`, los tres casos nuevos fallan (se restaura antes de `make ci`); `go vet` con la etiqueta `evals` sobre el paquete sin salida; `make ci` en verde — FR-050, FR-084; rutas: internal/evals/sondeo.go",
+  "intento": 1,
+  "datos": false,
   "aceptacion": false,
-  "base": "404df1049e46eb4aeb735cf237680687d17739c9",
+  "base": "d93bbe1076a4e87b7dd402eaf7a24d761d6b247f",
   "rutas": [
-    ".github/workflows/evals.yml",
     "contracts/evals-en-dos-modos.md",
-    "evals/boe-legislacion/21-sin-binario-ni-servidor.yaml",
-    "evals/legal-core/04-sin-binario-ni-servidor.yaml",
-    "internal/evals/conjunto.go",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/consultas_test.go",
-    "internal/evals/definicion.go",
-    "internal/evals/definicion_test.go",
-    "internal/evals/formato.go",
-    "internal/evals/formato_test.go",
-    "internal/evals/grabaciones_test.go",
-    "internal/evals/plan_test.go",
+    "internal/evals/sondeo.go",
     "internal/evals/sondeo_test.go",
-    "internal/evals/sustitutos_test.go",
-    "plan.md",
-    "schemas/eval.yaml.json"
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "013bd122ac9627a3868d59931cd1a3af3f6f7d955f0ee88d0e583924e06d9ff4"
+  "nota": "-"
 }
