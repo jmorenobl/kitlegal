@@ -1,0 +1,73 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "analyze.md: 0 CRITICAL y 1 HIGH (C1: el control literal del hito, «el manifiesto cumple el esquema 0.3 versionado en testdata/», no se construye). Está cerrado en los artefactos con la lectura conservadora que pide la constitución (criterio de decisión autónoma, punto 4; capa 3: sin fila revisada en docs/SOURCES.md de main nada se graba, y el run no tiene red): spec.md, Clarifications Q2 «(auto: conservadora; criterio d)», con impacto `alcance` en gates/clarify-respuestas.json; FR-017 y FR-061 (comprobación propia: versión 0.3, cada campo de FR-012 y ninguno más, `version` y `tools`); «Criterios del hito, literales», que dice que ese control no se cumple al pie de la letra; «Fuera de alcance», primer punto de la segunda lista; plan.md, «Datos externos»; gates/supuestos.md, línea `[alcance] plan: el esquema oficial…`; y tasks.md, T007 (6), que lo lleva a cierre.md como pendiente de la persona. El control sustituto existe y decide: `TestPiezas` en make ci (T002) y `manifiesto-de-la-extension` en make snapshot-check (T003). Una tarea que versionara el esquema incumpliría el criterio e (dato externo sin manifiesto ni grabación). El propio hallazgo recomienda no cambiar artefactos. Los MEDIUM (C2 a C4) y los LOW no cuentan para este criterio."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las siete líneas de tarea citan FR/SC tras la raya final (T001: FR-014, FR-069, FR-080, SC-004 … T007: FR-053, FR-068 a FR-070, FR-080, SC-001, SC-011). La tabla «Requisitos → tareas» cubre los 41 FR del spec (FR-001 a 006, 010 a 017, 020 a 023, 030 a 032, 040 a 043, 050 a 053, 060 a 070, 080) y los 12 SC; SC-002 es humano y SC-001 lo mide el cierre. Las 14 filas de plan.md, «Controles de umbral», tienen su fila en «Controles de umbral (plan.md) → tarea que construye el control», con el mismo test que la columna «Dónde» del plan: `TestDescripcionCorta` (121 caracteres falla), `TestIcono` (256 × 256 y bytes que no son PNG fallan), `TestPiezasReproducibles`, `TestPiezas`, `TestEjecutar`, `TestElBinarioNoEnlazaElPaso` en T002; `TestHerramientasAnunciadas` con mutante en T001; `TestConfiguracionDeLaRelease` con mutantes de .goreleaser.yaml en T003, de ci.yml y del Makefile en T004 y de release.yml en T005; `TestEntregaDelHito` ya existe (internal/app/e2e_test.go:514, guion h21-mcp-proceso.txtar). Las cinco medidas que solo existen sobre el snapshot real tienen su control en make snapshot-check (T003) y make plugin-check (T004), como declara el plan. Las subpruebas de contracts/release.md §7 están todas repartidas entre T003, T004 y T005."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "T001 a T005 traen test e implementación en el mismo diff y terminan con make ci. El orden T001 → T007 es ejecutable: T002 usa `app.HerramientasAnunciadas` (T001); T003 necesita el paso (T002) para el gancho y para importar sus textos; T004 añade `TestPluginValido` al fichero que crea T003; T005 usa la orden `catalogo` (T002). Comprobado en el árbol: los tests de la raíz son del paquete `kitlegal_test` (release_test.go:1, snapshot_test.go:3), así que importar internal/empaquetado, que importa el paquete raíz, no cierra un ciclo; `release_test.go` lee .goreleaser.yaml, el Makefile y los flujos de forma estricta y cada tarea lo cambia junto al fichero que fija (T003, T004, T005); ningún `_test.go` lee README.md ni CONTRIBUTING.md, y el único enlace a `README.md#instalar` es CONTRIBUTING.md:423, que T006 mueve. T002 va entera por una razón declarada (sin el `main`, `unused` dejaría make ci en rojo). T006 (documentación) y T007 (cierre.md, patrón de specs/011 a 015) no llevan test propio y lo declaran con su verificación: SC-012 no tiene umbral y lo comprueba la revisión final. No ejecuté make ci ni ninguna tarea: que cada una quede en verde es lo que el plan afirma con su prototipo (research V21, V24, V31), no una medida de esta sesión."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Apliqué el extractor de scripts/workflow/tarea.sh (línea 141) a las siete líneas. T001: internal/app/herramientas.go (su `_test.go` lo admite el guardián). T002: cmd/empaquetar/main.go, internal/empaquetado/ (el directorio del paquete nuevo, no una ruta genérica), internal/arch_test.go, .golangci.yml. T003: snapshot_piezas_test.go, snapshot_test.go, .goreleaser.yaml, release_test.go. T004: snapshot_piezas_test.go, Makefile, .github/workflows/ci.yml, release_test.go. T005: .github/workflows/release.yml, release_test.go. T006: README.md, CONTRIBUTING.md, CHANGELOG.md. T007: specs/016-h22-instalar-sin-terminal/cierre.md. Cubren lo que cada tarea dice tocar: las dos listas de R1 (`paquetesInternos`, internal/arch_test.go:869; lista `core` de depguard), la tabla de `TestSnapshot` (snapshot_test.go:111) y los tipos estrictos de release_test.go. Los demás nombres que el extractor recoge (archive/zip, image/png, debug/macho, contracts/…, plan.md, checksums.txt, evals.yml, SKILL.md, SOURCES.md…) no casan con ningún fichero del árbol y no amplían lo que una tarea puede tocar."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Ninguna línea de tarea nombra testdata/, schemas/ ni evidencias/ (0 coincidencias con las expresiones de precheck.sh), y ninguna lleva [datos]. plan.md, «Datos externos»: ninguno; los tests crean sus binarios de prueba y un icono de otro tamaño en t.TempDir() y leen mcp/icon.png, que ya está versionado (PNG de 512 × 512, comprobado con `file`). El esquema oficial del manifiesto no entra en el repositorio (FR-017, research D18): no hay dato externo que salga de la red, de una persona ni de la memoria. gates/tasks-precheck.txt está vacío."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md, «Definition of Done (ROADMAP.md §1) → tareas», recorre los trece puntos: make ci en todas; tests unitarios offline en T001 a T005; `os.Exit` solo en el `main` y R1 en T002; sin esquema nuevo, con schema-check sin drift (T002, T007); CHANGELOG.md, *Unreleased*, en T006 (FR-053); ADR no aplica (spec, «Relación con H19 y H21»: ninguna decisión que no cambiara ya el ADR 0035) y T007 lo constata; docs/SOURCES.md sin cambios (FR-053), constatado en T007 (1); cobertura con `go tool cover -func` sobre coverage.out y coverage-integration.out (los dos perfiles que escribe el Makefile, líneas 86 y 90) en T007 (2); sin fixtures ni evals, porque no hay red ni cambia ninguna skill."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md: 16 marcas [x] y ninguna sin marcar. Contrastadas con spec.md: 0 apariciones de NEEDS CLARIFICATION y tres entradas en «Clarifications» (FR-006, FR-017, FR-031), como dice la nota; existen User Scenarios & Testing, Requirements, Success Criteria, Assumptions y «Fuera de alcance»; US1 a US5 llevan escenarios Dado/Cuando/Entonces; «Edge Cases» tiene los casos que el ítem enumera; «Fuera de alcance» transcribe las nueve exclusiones literales del hito (docs/ROADMAP.md, línea 496); cada FR lleva «Comprobable» o un control de FR-060 a FR-070; SC-001 a SC-011 llevan recuento o comprobación que falla, SC-002 es humano y SC-012 no tiene umbral."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "plan.md, «Aceptación e2e: no aplica», con su motivo (research D13): el hito no añade ni cambia ningún comportamiento del binario (FR-001 y FR-080 lo prohíben) y el arnés e2e ejerce `kitlegal`, no un programa de construcción. El plan dice qué fija cada escenario del spec: las seis subpruebas nuevas de `TestSnapshot` (US1 1 a 6, US5), `TestPluginValido` (US2 1), `TestConfiguracionDeLaRelease` (US2 2 y 3, US3 5), los tests del paso y make ci (US3 1 a 4), los tests que ya fijan el binario y `TestElBinarioNoEnlazaElPaso` (US3 6), la revisión final (US4) y la prueba humana (US1 7). tasks.md no tiene ninguna tarea [aceptacion], que es lo que exige precheck.sh con ese «no aplica», y T003 escribe las subpruebas y las ve en rojo antes del cambio de goreleaser."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna línea de tarea casa con las expresiones de plataforma ni de persona de precheck.sh (0 coincidencias; gates/tasks-precheck.txt vacío). T004 no ejecuta `claude` ni make plugin-check (solo `go vet -tags=snapshot .`, lint y make ci); T005 no ejecuta el flujo, no etiqueta y no publica; T007 ejecuta quickstart.md §1 a §9, todo local y en primer plano, y anota §10 (make plugin-check, release.yml, SC-002 y el cierre) como no ejecutado. Empujar la rama, abrir la propuesta de cambio y medir la CI, el trabajo `snapshot` y las evals quedan para el workflow («Modo» y «Estrategia de implementación»). Lo temporal va bajo $TMPDIR."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Qué ejecuté y qué no: leí spec.md, plan.md, tasks.md, quickstart.md, data-model.md, los tres contratos, la checklist, analyze.md, supuestos.md y los veredictos del spec y del plan; apliqué a tasks.md el extractor de rutas de tarea.sh y las expresiones de precheck.sh; y contrasté con el árbol lo que las tareas nombran (release_test.go, snapshot_test.go, internal/arch_test.go, .golangci.yml, internal/app/herramientas.go, Makefile, ci.yml, release.yml, evals.yml, README.md, CONTRIBUTING.md). No ejecuté make ci, make release, make snapshot-check, goreleaser, el paso ni ningún test: lo que research V1 a V32 dice haber medido con el prototipo no está reverificado aquí.",
+    "[a] C1 sigue siendo lo primero que la persona tiene que ver en el informe final: nadie valida en el run el manifiesto contra el esquema oficial 0.3, y el control del roadmap que lo pedía no se construye. Lo decide ella: versionar el esquema en una propuesta propia o enmendar el control del hito.",
+    "[a] C2 (MEDIUM): FR-030 y «Key Entities» hablan de un fichero de plantilla del catálogo; el plan y T002 la hacen código (internal/empaquetado/catalogo.go). Está en gates/supuestos.md con impacto `comportamiento`; el spec no se ajustó.",
+    "[b] La línea de T003 no cita FR-001 ni FR-014, que la tabla «Requisitos → tareas» le atribuye (el gancho; `servidor-de-la-extension`). La cobertura no cambia: los cita T002 y sus controles del snapshot están en FR-060 a FR-064.",
+    "[b] En la tabla de controles de tasks.md, «Cómo se ve en rojo» de tres filas (0 bytes entre dos ejecuciones, 4 entradas, 0 paquetes del paso en el binario) describe el control y no el caso que lo pone en rojo; T002 solo lo dice en general («cada uno con el caso que lo pone en rojo»). Y las seis subpruebas nuevas de `TestSnapshot` se ven en rojo solo porque faltan las dos piezas, no cada una por encima de su umbral (un byte distinto, una quinta entrada, un campo de más): la revisión final puede pedirlo con un mutante (ADR 0029).",
+    "[b] analyze I2: T004 dice que el catálogo se escribe «por su función», y contracts/paso.md §6 solo exporta `Ejecutar` y los cuatro textos. La vía es `paso.Ejecutar` con la orden `catalogo`; el ejecutor no debería exportar nada más.",
+    "[c] `TestPluginValido` (T004) y los cuerpos de los pasos nuevos de `humo` y de `catalogo` (T005) no los ejecuta ninguna tarea: su primera ejecución es el trabajo `snapshot` de la propuesta de cambio y la primera release (analyze C3 y C4; research S1 a S5). Si el fallo estuviera en ci.yml, la reparación del cierre no puede tocar .github/ (observación del juez del plan).",
+    "[c] analyze U1: que goreleaser aborte cuando el gancho sale con 1 (FR-005, US3 escenario 3) solo lo respalda research V4; ninguna tarea lo ejerce.",
+    "[c] quickstart.md §2 a §4 comparten la variable `trabajo` «en una misma terminal». T002 y T007 tienen que lanzar los tres bloques en una sola orden: entre dos órdenes de una sesión el estado del shell no se conserva.",
+    "[g] El ítem «Requirements are testable» conserva la frase «Lo que dependa de los dos marcadores se cierra con ellos», anterior a clarify; y «No implementation details» es cierto solo con su anotación: FR-041 describe la cabecera del binario universal, que no viene de la sección del hito. Ninguna de las dos cambia lo que se construye.",
+    "[f] Ninguna tarea toca CLAUDE.md («Estado del repositorio»): por precedente lo actualiza la persona fuera del run (su historial solo tiene commits de documentación y de proceso)."
+  ]
+}
