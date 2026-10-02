@@ -480,3 +480,128 @@ func compruebaLasCapacidadesEnElCable(t *testing.T, lineas []string) {
 	require.NoError(t, json.Unmarshal([]byte(lineas[0]), &saludo))
 	assert.JSONEq(t, `{"tools":{}}`, string(saludo.Resultado.Capacidades))
 }
+
+// TestHerramientasAnunciadas es el control en `make ci` de FR-014 de H22: lo
+// que app.HerramientasAnunciadas da de un registro, que es lo que el paso que
+// empaqueta la extensión escribe en `tools` de su manifiesto sin arrancar
+// ningún servidor, es lo que el servidor lista por MCP con ese registro. Con el
+// servidor arrancado en proceso y el cliente de prueba de cada especificación,
+// sobre los applets del registro de producción y sobre un registro local que
+// lleva además los de ejemplo: el nombre y la descripción de cada herramienta
+// de la lista son los que da la función, comparados como conjunto y no por
+// posición, porque el orden de la lista lo pone el SDK, por nombre, y el de la
+// función es el del registro —applets por nombre, verbos en el orden de su
+// catálogo—, que se comprueba aparte (FR-014, FR-061; SC-004; research.md D15
+// de H22).
+//
+// La lista sale de lo que el servidor escribe, no del registro: una función que
+// omita una herramienta o cambie una descripción deja de cuadrar con ella.
+func TestHerramientasAnunciadas(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre          string
+		conLosDeEjemplo bool
+		anterior        bool
+	}{
+		{nombre: "con los applets de producción, el cliente de la especificación vigente"},
+		{nombre: "con los applets de producción, el cliente de la especificación anterior", anterior: true},
+		{
+			nombre:          "con los de producción y los de ejemplo, el cliente de la especificación vigente",
+			conLosDeEjemplo: true,
+		},
+		{
+			nombre:          "con los de producción y los de ejemplo, el cliente de la especificación anterior",
+			conLosDeEjemplo: true,
+			anterior:        true,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			registro, listadas := herramientasListadas(t, caso.conLosDeEjemplo, caso.anterior)
+
+			anunciadas := app.HerramientasAnunciadas(registro)
+
+			assert.ElementsMatch(t, listadas, anunciadas,
+				"el nombre y la descripción de cada herramienta que el servidor lista son los que da "+
+					"app.HerramientasAnunciadas, ni una de más ni una de menos (FR-014)")
+
+			nombres := make([]string, 0, len(anunciadas))
+			for _, anunciada := range anunciadas {
+				nombres = append(nombres, anunciada.Nombre)
+			}
+
+			assert.Equal(t, herramientasEnElOrdenDelRegistro(t, registro), nombres,
+				"app.HerramientasAnunciadas las da en el orden del registro: applets por nombre, verbos en el de su catálogo")
+		})
+	}
+}
+
+// herramientasListadas arranca el servidor sobre los applets del registro de
+// producción y, si se piden, los de ejemplo, le pide su lista con el cliente de
+// esa especificación y la devuelve reducida al nombre y a la descripción de
+// cada herramienta, junto al registro del que el servidor las saca: el de
+// producción tal cual, que es el que lee el paso que empaqueta, o el local que
+// lleva además los de ejemplo, que producción no tiene.
+func herramientasListadas(
+	t *testing.T, conLosDeEjemplo, anterior bool,
+) (*app.Registro, []app.HerramientaAnunciada) {
+	t.Helper()
+
+	distribuido, err := app.RegistroDeProduccion("")
+	require.NoError(t, err)
+
+	servido := registroParaServir(t, distribuido, conLosDeEjemplo)
+	servidor := arrancarElServidor(t, servido, anterior)
+
+	anunciadas, err := servidor.sesion.Herramientas(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, anunciadas, "el servidor lista sus herramientas: una lista vacía cuadraría con cualquier omisión")
+
+	require.Equal(t, 0, servidor.cerrar(t), servidor.errores.lineas())
+
+	listadas := make([]app.HerramientaAnunciada, 0, len(anunciadas))
+	for _, anunciada := range anunciadas {
+		listadas = append(listadas, app.HerramientaAnunciada{
+			Nombre:      anunciada.Nombre,
+			Descripcion: anunciada.Descripcion,
+		})
+	}
+
+	if conLosDeEjemplo {
+		return servido, listadas
+	}
+
+	require.Equal(t, distribuido.Nombres(), servido.Nombres(),
+		"el servidor se arranca sobre los applets del registro de producción, y ninguno más")
+
+	return distribuido, listadas
+}
+
+// herramientasEnElOrdenDelRegistro son los nombres de las herramientas de un
+// registro en el orden que el registro da: sus applets por nombre, menos los
+// excluidos, y los verbos de cada uno en el orden de su catálogo. Lo saca del
+// registro por su cuenta, sin el código que se prueba.
+func herramientasEnElOrdenDelRegistro(t *testing.T, registro *app.Registro) []string {
+	t.Helper()
+
+	var nombres []string
+
+	for _, nombre := range registro.Nombres() {
+		if slices.Contains(appletsSinHerramientas, nombre) {
+			continue
+		}
+
+		applet, registrado := registro.Buscar(nombre)
+		require.True(t, registrado, nombre)
+
+		for _, verbo := range applet.Verbos() {
+			nombres = append(nombres, verboConHerramienta{applet: applet, verbo: verbo}.herramienta())
+		}
+	}
+
+	return nombres
+}

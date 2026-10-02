@@ -88,6 +88,34 @@ func NombresDeHerramientas(registro *Registro) []string {
 	return nombres
 }
 
+// HerramientaAnunciada es lo que el servidor MCP dice de una herramienta a
+// quien la elige: su nombre, `<applet>_<verbo>`, y la descripción de su verbo.
+type HerramientaAnunciada struct {
+	Nombre      string
+	Descripcion string
+}
+
+// HerramientasAnunciadas son las herramientas que el servidor MCP anuncia con
+// ese registro, cada una con su nombre y su descripción: las de herramientasDe,
+// en el orden del registro —applets por nombre, verbos en el orden de su
+// catálogo—, que no es el de la lista del servidor, ordenada por nombre. Es lo
+// que lee quien tiene que escribirlas sin arrancar el servidor —el paso que
+// empaqueta la extensión de escritorio, en `tools` de su manifiesto— y sin
+// repetir qué applets no dan herramientas (H22 FR-014; data-model §7 y
+// research.md D2 y D15 de H22).
+func HerramientasAnunciadas(registro *Registro) []HerramientaAnunciada {
+	var anunciadas []HerramientaAnunciada
+
+	for _, anunciado := range verbosAnunciados(registro) {
+		anunciadas = append(anunciadas, HerramientaAnunciada{
+			Nombre:      anunciado.herramienta,
+			Descripcion: anunciado.verbo.Descripcion,
+		})
+	}
+
+	return anunciadas
+}
+
 // herramientasDe da las herramientas del servidor MCP: una por cada verbo de
 // cada applet del registro, salvo los de appletsSinHerramientas, con el nombre
 // `<applet>_<verbo>`, la descripción del verbo y los dos esquemas que salen del

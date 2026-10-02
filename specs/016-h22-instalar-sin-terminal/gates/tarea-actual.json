@@ -1,0 +1,17 @@
+{
+  "id": "T001",
+  "texto": "T001 Las herramientas anunciadas, desde el registro (contracts/paso.md §6 y §7; data-model §7; research D2, D15, V27; plan.md, «Orden de implementación», paso 1): en el fichero de herramientas del paquete `app`, el tipo exportado `HerramientaAnunciada{Nombre, Descripcion}` y la función `HerramientasAnunciadas(registro *Registro) []HerramientaAnunciada`, que da el nombre `<applet>_<verbo>` y la descripción de cada verbo en el orden del registro —applets por nombre, verbos en el orden de su catálogo, sin los de `mcp` ni los de `skills`— sobre el mismo recorrido (`verbosAnunciados`) del que el servidor saca lo que anuncia, sin cambiar `verbosAnunciados`, `NombresDeHerramientas` ni nada de lo que el servidor anuncia (FR-080). Con su test en el mismo diff, `TestHerramientasAnunciadas`: con el servidor en proceso y el cliente `mcptest`, sobre los applets de producción y con los de ejemplo añadidos, el nombre y la descripción de cada herramienta que el servidor lista son, comparados como conjunto y no por posición, los que da la función; el test se ve en rojo si la función omite una herramienta o cambia una descripción (se comprueba con un mutante temporal que no queda en el diff). `TestHerramientasDelServidor` no se toca y sigue en verde. Control de umbral de la fila «herramientas» de plan.md (FR-014, FR-061, SC-004), en su parte de `make ci`. — FR-014, FR-069, FR-080; SC-004. Rutas: internal/app/herramientas.go (y su `herramientas_test.go`).",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": false,
+  "base": "6a77a4aabe64aefea441afabf5dce4cbd064a251",
+  "rutas": [
+    "contracts/paso.md",
+    "herramientas_test.go",
+    "internal/app/herramientas.go",
+    "plan.md"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
