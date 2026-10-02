@@ -176,9 +176,9 @@ release: las notas de cada release las genera goreleaser desde los Conventional 
 
 `make ci` es **el veredicto del repositorio**: si está en verde en local, la propuesta de cambio pasa,
 porque la integración continua ejecuta esa misma orden y no aplica ningún control por otra vía; lo único
-que añade es el trabajo `snapshot`, que ejecuta otras dos órdenes del mismo `Makefile`, `make release` y
-`make snapshot-check` ([La release](#la-release)). `make ci` no modifica ningún fichero versionado, así
-que se puede ejecutar con el árbol sucio sin miedo.
+que añade es el trabajo `snapshot`, que ejecuta otras tres órdenes del mismo `Makefile`, `make release`,
+`make snapshot-check` y `make plugin-check` ([La release](#la-release)). `make ci` no modifica ningún fichero
+versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 
 | Control | Orden | ¿En `make ci`? |
 |---|---|---|
@@ -201,8 +201,9 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
-| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
-| Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
+| Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
+| Comprobación del snapshot (`TestSnapshot`, que comprueba también las dos piezas: su huella, el manifiesto, los binarios, el icono y el servidor de la extensión, y las skills del plugin) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
+| El plugin del snapshot y el catálogo de su versión, válidos para `claude plugin validate` (`TestPluginValido`), sin sesión con modelo ni credencial | `make plugin-check` | no — necesita Claude Code y el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | La web: tipos, cada cita contra su sobre y construcción en `web/dist` ([La web](#la-web)) | `make web` | no — necesita Node y pnpm; lo ejecuta el flujo `web` |
 | La web en local, con recarga al guardar | `make web-dev` | no — servidor de desarrollo |
 | Sobres de las citas de la web, regenerados con el binario de `make build` | `make web-citas` | no — toca la red y escribe en el árbol |
@@ -259,36 +260,113 @@ Las herramientas de los controles no son dependencias del producto: viven en su 
 Desde H19 ninguna orden del `Makefile` espera su contenido de un hito posterior: la última, `make release`,
 construye ya la release. La define `.goreleaser.yaml` y la construye goreleaser, un módulo de herramienta
 más (`tools/goreleaser/go.mod`), que se invoca como los demás y que `make mod-verify` y Dependabot cubren.
-Tres órdenes:
+Cuatro órdenes:
 
 - **`make goreleaser-check`**, dentro de `make ci`: `goreleaser check` valida la configuración sin construir
   nada, y falla si usa una propiedad que la versión fijada de goreleaser declara obsoleta.
 - **`make release`** construye el snapshot en `dist/` con `goreleaser release --snapshot --clean
   --skip=publish,sign,sbom`: los seis archivos (`kitlegal_{darwin,linux}_{amd64,arm64}.tar.gz` y
   `kitlegal_windows_{amd64,arm64}.zip`), `checksums.txt` y los paquetes `.deb` y `.rpm`, sin publicar, sin firmar y
-  sin SBOM, así que no necesita syft, cosign ni ningún secreto. Es la única definición del snapshot. `dist/` está
-  en `.gitignore`.
+  sin SBOM, así que no necesita syft, cosign ni ningún secreto. Desde H22 deja además las dos piezas de la
+  instalación sin terminal, `kitlegal.mcpb` y `kitlegal-plugin.zip`, cada una con su línea en `checksums.txt`, y el
+  binario universal de macOS que va dentro de la extensión (`kitlegal-universal` en `.goreleaser.yaml`), que no se
+  publica ni entra en `checksums.txt` ([El paso que empaqueta](#el-paso-que-empaqueta)). Es la única definición del
+  snapshot. `dist/` está en `.gitignore`.
 - **`make snapshot-check`**, sobre el `dist/` de `make release`: `TestSnapshot` comprueba que están los seis
   archivos con su huella en `checksums.txt`, que no hay SBOM ni firmas y que el binario de la plataforma que lo
-  ejecuta imprime en `version` la versión y el commit del snapshot; y los guiones `instalador-` del e2e ejecutan
-  `scripts/install.sh` contra ese `dist/`, sin red. Sin ningún guion `instalador-` que ejecutar, falla en lugar de
-  pasar en vacío.
+  ejecuta imprime en `version` la versión y el commit del snapshot, y, con las seis subpruebas de la tabla de abajo,
+  las dos piezas; y los guiones `instalador-` del e2e ejecutan `scripts/install.sh` contra ese `dist/`, sin red. Sin
+  ningún guion `instalador-` que ejecutar, falla en lugar de pasar en vacío.
+- **`make plugin-check`**, también sobre ese `dist/`: `TestPluginValido` extrae `kitlegal-plugin.zip` en una
+  carpeta, escribe en otra el catálogo de la versión del snapshot, con la huella que `checksums.txt` da al plugin, y
+  ejecuta `claude plugin validate .` en cada una. Necesita Claude Code en el `PATH`, y falla si no está; no abre
+  ninguna sesión con modelo ni usa ninguna credencial. Va aparte de `make snapshot-check` porque es la única de las
+  cuatro que necesita Claude Code.
 
-Las dos últimas no están en `make ci` porque construyen seis plataformas; las ejecuta, en cada propuesta de
-cambio y en cada push a `main`, el trabajo `snapshot` del flujo `ci`, sin `id-token` y sin ningún secreto.
+Las seis subpruebas de `TestSnapshot` sobre las dos piezas (`snapshot_piezas_test.go`), que fallan nombrando lo que
+falta, sobra o difiere:
 
-**Publicar es humano.** Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el flujo
-`release` (`.github/workflows/release.yml`). Su trabajo `publicar` construye con el mismo goreleaser, genera los
-SBOM con syft, firma `checksums.txt` con cosign sin clave, publica la release con `install.sh` adjunto, el cask
-del tap `jmorenobl/homebrew-tap` y el manifiesto del bucket `jmorenobl/scoop-bucket`, y atesta la procedencia de
-los seis archivos y de `checksums.txt`. Su trabajo `humo` comprueba lo publicado como lo recibe quien lo instala,
-sin el código del repositorio: la huella del archivo linux/amd64, `gh attestation verify` contra el repositorio,
-que `kitlegal version` imprime la etiqueta, que `kitlegal boe articulo BOE-A-2015-10565 a21 --offline` con una
-caché vacía sale con `4` y que `kitlegal skills install` en un directorio vacío deja
-`.agents/skills/boe-legislacion/SKILL.md`. El único secreto de la publicación es `PUBLISHER_TOKEN`, con permiso
-de escritura en el tap y en el bucket, y solo lo ve el paso que publica. Los dos repositorios ya existen, públicos y
+| Subprueba | Qué comprueba |
+|---|---|
+| `dos-piezas` | `kitlegal.mcpb` y `kitlegal-plugin.zip` están en `dist/`, y `checksums.txt` lleva de cada uno una línea con la huella del fichero |
+| `manifiesto-de-la-extension` | `manifest.json`, leído de forma estricta, lleva sus campos y ninguno más —tampoco `user_config`—: la versión `0.3` del manifiesto, los textos de `internal/empaquetado`, como `version` la que imprime el binario del snapshot, sin su `v`, y una descripción corta de 120 caracteres como mucho |
+| `binarios-de-la-extension` | la extensión lleva exactamente sus cuatro entradas; `server/kitlegal`, con el bit de ejecución, es un universal de dos arquitecturas, `amd64` y `arm64`, cada una byte a byte el `kitlegal` del archivo de macOS de su arquitectura; y `server/kitlegal.exe` es byte a byte el de `kitlegal_windows_amd64.zip` |
+| `icono-de-la-extension` | `icon.png` de la extensión es, byte a byte, `mcp/icon.png`, un PNG de 512 × 512 px |
+| `servidor-de-la-extension` | con la extensión extraída en una carpeta cuyo nombre lleva espacios y la orden de su manifiesto, el servidor completa el saludo y lista exactamente las herramientas de `tools` |
+| `skills-del-plugin` | el plugin lleva `.claude-plugin/plugin.json` y, bajo `skills/`, los ficheros que deja `kitlegal skills install` del binario del snapshot, byte a byte, y nada más; y `plugin.json` no lleva ningún campo de más —tampoco `mcpServers`—, con la versión y los textos del manifiesto |
+
+Las tres últimas órdenes no están en `make ci`: construyen seis plataformas o leen su `dist/`, y la última
+necesita además Claude Code. Las ejecuta, en cada propuesta de cambio y en cada push a `main`, el trabajo `snapshot`
+del flujo `ci`, sin `id-token` y sin ningún secreto, que para `make plugin-check` instala Claude Code en la versión
+del job de evals (`VERSION_DE_CLAUDE_CODE`; `TestConfiguracionDeLaRelease`, en `make ci`, falla si las dos
+difieren).
+
+### El paso que empaqueta
+
+Las dos piezas las escribe un programa del repositorio, `cmd/empaquetar`, cuya lógica está en
+`internal/empaquetado`. No es un applet ni un verbo de `kitlegal`, no se instala y no viaja en el binario:
+`TestElBinarioNoEnlazaElPaso` falla si `cmd/kitlegal` llegara a enlazarlo. Tiene dos órdenes, con todas sus banderas
+obligatorias. No pide nada a la red ni escribe nada en la salida estándar; termina con `0` si escribe lo pedido y
+con `1` ante cualquier fallo, con una línea `empaquetar: …` en la salida de error que nombra lo que falta o lo que
+falló. Dos ejecuciones sobre las mismas entradas dan los mismos bytes.
+
+| Orden | Qué lee | Qué escribe |
+|---|---|---|
+| `go run ./cmd/empaquetar piezas -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>` | los dos binarios, que copia sin mirar; el icono, que tiene que ser un PNG de 512 × 512 px; las herramientas que anuncia el registro de applets; y las skills empotradas | `<carpeta>/kitlegal.mcpb`, con `manifest.json`, `icon.png`, `server/kitlegal` y `server/kitlegal.exe`, y `<carpeta>/kitlegal-plugin.zip`, con `.claude-plugin/plugin.json` y `skills/` |
+| `go run ./cmd/empaquetar catalogo -version <versión> -sha256 <huella> -salida <fichero>` | solo sus banderas | en `<fichero>`, el `marketplace.json` de esa versión: una entrada, `kitlegal`, de fuente `archive`, con la dirección de `kitlegal-plugin.zip` en la release de esa versión y su huella |
+
+De dónde sale cada cosa, sin ninguna lista escrita a mano:
+
+- **La versión**, de `-version`, sin `v`: goreleaser da su `.Version`, y va tal cual al manifiesto de la extensión
+  y a `plugin.json`.
+- **`tools`** del manifiesto, del registro de applets, por `app.HerramientasAnunciadas`
+  (`internal/app/herramientas.go`): el nombre y la descripción de cada herramienta que anuncia el
+  [servidor MCP](#el-servidor-mcp-internalmcp). Un verbo nuevo llega a la ficha de la extensión sin tocar el paso.
+- **Las skills** del plugin, de lo empotrado en el binario: los ficheros que instala `kitlegal skills install`.
+- **Los textos** —el nombre visible, la descripción corta, la descripción larga y la autoría—, de
+  `internal/empaquetado/textos.go`, el único sitio en el que están escritos.
+
+**Quién lo ejecuta.** `piezas`, goreleaser, en el gancho `post` de `universal_binaries` de `.goreleaser.yaml`, con
+el universal de macOS que acaba de componer y el binario de Windows de `dist/`: por eso `make release` y la release
+de una etiqueta dejan las dos piezas sin ningún paso aparte, y si el paso falla, falla goreleaser y nada se publica.
+`catalogo`, el trabajo `catalogo` del flujo `release` y `make plugin-check`.
+
+**Cómo probarlo en local.** `go test ./internal/empaquetado/` ejerce el paso con binarios de prueba, sin construir
+ninguna plataforma, y va en `make ci`; `make release` seguido de `make snapshot-check` lo ejecuta de verdad y
+comprueba lo que deja.
+
+### Publicar es humano
+
+Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el flujo `release`
+(`.github/workflows/release.yml`), con tres trabajos:
+
+- **`publicar`** construye con el mismo goreleaser, que ejecuta también el paso que empaqueta; genera los SBOM con
+  syft; firma `checksums.txt` con cosign sin clave; publica la release con `install.sh`, `kitlegal.mcpb` y
+  `kitlegal-plugin.zip` adjuntos, el cask del tap `jmorenobl/homebrew-tap` y el manifiesto del bucket
+  `jmorenobl/scoop-bucket`; y atesta la procedencia de los seis archivos, de `checksums.txt` y de las dos piezas:
+  nueve sujetos.
+- **`humo`** comprueba lo publicado como lo recibe quien lo instala, sin el código del repositorio: la huella del
+  archivo linux/amd64, `gh attestation verify` contra el repositorio, que `kitlegal version` imprime la etiqueta, que
+  `kitlegal boe articulo BOE-A-2015-10565 a21 --offline` con una caché vacía sale con `4` y que
+  `kitlegal skills install` en un directorio vacío deja `.agents/skills/boe-legislacion/SKILL.md`. Desde H22, con
+  seis pasos más: descarga la extensión, el plugin y los tres archivos que llevan sus binarios; comprueba la huella
+  de los cinco contra `checksums.txt`; verifica la atestación de la extensión y del plugin; comprueba que el
+  manifiesto de la extensión lleva la versión de la etiqueta y sus campos fijos; que sus binarios son los de los
+  archivos publicados; y que el servidor, arrancado con el binario de Linux de la release, lista las herramientas de
+  `tools` del manifiesto.
+- **`catalogo`** solo corre si `humo` sale en verde. Compone con `go run ./cmd/empaquetar catalogo` el catálogo de
+  la etiqueta —la versión sin `v`, la dirección de `kitlegal-plugin.zip` en esa release y la huella que le da el
+  `checksums.txt` publicado— y lo escribe en `.claude-plugin/marketplace.json` de `jmorenobl/kitlegal-plugins`, el
+  único fichero que toca y que sustituye entero. No puede escribir en este repositorio. Si falla, el catálogo sigue
+  apuntando a la etiqueta anterior, sin afectar a `publicar` ni a `humo`, y volver a ejecutarlo escribe lo mismo.
+
+El único secreto de la publicación es `PUBLISHER_TOKEN`, con permiso de escritura en el tap, en el bucket y en
+`jmorenobl/kitlegal-plugins`. Solo lo ven dos pasos: el de goreleaser, en `publicar`, y el que publica el catálogo,
+en `catalogo`; `humo` no ve ningún secreto. Los repositorios del tap y del bucket ya existen, públicos y
 vacíos; antes de la primera etiqueta, una persona da de alta el secreto y hace público este, desde cuya rama `main`
-se sirve `install.sh` y sin el cual no se puede verificar la atestación. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cierra bajo su número y su fecha
+se sirve `install.sh` y sin el cual no se puede verificar la atestación. Que `PUBLISHER_TOKEN` pueda escribir en el
+repositorio del catálogo lo da una persona, antes de la primera release que lleve las dos piezas y fuera del run de
+cualquier hito. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cierra bajo su número y su fecha
 ([Versionado y `CHANGELOG.md`](#versionado-y-changelogmd)).
 
 ## `make schema-check` y `make verify-sources`
@@ -420,7 +498,8 @@ operación de la skill se pide de dos formas (ADR 0035): con la herramienta `<ap
 `⚠ SIN CONSULTA AL BOE:`, que cada `SKILL.md` lleva tal cual en un bloque `text`. El binario lleva las skills
 empotradas y las instala con `kitlegal skills install`. Qué son los tres directorios llamados `skills` está en
 [Tres directorios llamados `skills`](#tres-directorios-llamados-skills) y cómo se instala, en el
-[`README.md`](README.md#instalar); esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
+[`README.md`](README.md#instalar-con-la-terminal); esta sección es lo que hace falta para cambiar una skill, sus
+datos o sus evals.
 
 **Lo generado no se edita.** `references/*.md` y la tabla de comandos de `SKILL.md` —entre sus marcas— se derivan de
 `data/*.yaml` y de `--describe` del binario. Tras cambiar `data/`, añadir un verbo o cambiar su entrada o su salida,

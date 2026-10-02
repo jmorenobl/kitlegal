@@ -52,9 +52,59 @@ común o foral, boletines oficiales— y te dice qué parte de eso está configu
 configurados para la Comunidad de Madrid; para el resto de España sitúa el municipio igual y declara que su boletín
 autonómico y su boletín provincial no están configurados, en lugar de inventarlos.
 
-## Instalar
+## Instalar sin terminal
 
-Dos órdenes. La primera instala el programa; la segunda, las skills, en el proyecto en el que estés.
+Es la instalación oficial de kitlegal, y está probada en la **app de escritorio de Claude en macOS**. En Windows los
+pasos son los mismos y nadie los ha probado ([Otras instalaciones, sin probar](#otras-instalaciones-sin-probar)).
+
+Son dos pasos y dos ficheros, los de la última release, siempre en la misma dirección:
+
+1. **La extensión, que lleva las herramientas.** Descarga
+   [`kitlegal.mcpb`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal.mcpb) y ábrelo con doble
+   clic. La app de Claude enseña una ficha con el nombre, el icono, la descripción y la lista de herramientas de
+   kitlegal, y un botón para instalarla. Enseña también un aviso en rojo, que se explica más abajo.
+2. **El plugin, que lleva las skills.** Descarga
+   [`kitlegal-plugin.zip`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal-plugin.zip) y
+   súbelo en *Customize > Plugins > Add > Upload plugin*, estando en el modo de chat de la app y no en Code: lo que se
+   sube desde Code no llega a las conversaciones de chat. En lugar de subir el zip puedes añadir, en
+   *Customize > Plugins > Add*, el marketplace `jmorenobl/kitlegal-plugins`; que la app lo admita no está probado,
+   así que si no lo acepta, sube el zip.
+
+Después abre una conversación nueva y pregunta.
+
+**El aviso rojo.** Al instalar la extensión, la app avisa en rojo de que instalarla «otorgará a esta extensión acceso
+a todo lo que hay en tu computadora» y de que su desarrollador no está verificado por Anthropic. El aviso es de la
+app, no de kitlegal, y dice lo que una extensión podría hacer, porque es un programa que corre en tu equipo. Lo que
+kitlegal hace de verdad: lee fuentes públicas —hoy, el BOE—, escribe solo en `~/.cache/kitlegal/`, donde guarda lo
+que ya ha leído, y no envía nada a ningún servidor propio.
+
+**Hacen falta las dos piezas.** Con las dos, la respuesta lleva la cita con su forma:
+`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`. Solo con la extensión hay herramientas, y Claude lee el
+BOE, pero la respuesta puede no llevar la cita con esa forma. Solo con el plugin hay skills y ninguna herramienta:
+Claude no puede consultar nada, y la respuesta es la línea `⚠ SIN CONSULTA AL BOE:` de más abajo.
+
+**Actualizar.** Lo previsto, que nadie ha probado todavía: la extensión se actualiza descargando el `kitlegal.mcpb`
+de la release nueva y abriéndolo; el plugin, subiendo el zip nuevo, o sin hacer nada si añadiste el marketplace, que
+ofrece la versión nueva cuando cambia.
+
+**Si ya tienes las skills con `kitlegal skills install`** y además instalas el plugin, en Claude Code las tienes dos
+veces: las de tu disco y las del plugin, que llega también a Claude Code.
+
+**En Linux** no hay app de escritorio de Claude en la que abrir la extensión: se usa el programa instalado, con
+Claude Code, como hasta ahora ([Instalar con la terminal](#instalar-con-la-terminal)).
+
+**En la web y en el móvil no funciona**: ahí no hay dónde instalar la extensión, porque solo admiten servidores
+remotos y el de kitlegal corre en tu equipo. Si las skills del plugin te llegan también ahí, lo que verás, en lugar
+de una respuesta de memoria, es esta línea:
+
+```text
+⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
+```
+
+## Instalar con la terminal
+
+Para Claude Code, y la forma de usar kitlegal en Linux. Dos órdenes: la primera instala el programa; la segunda, las
+skills, en el proyecto en el que estés.
 
 **macOS y Linux**
 
@@ -75,27 +125,13 @@ Si ya usas Homebrew: `brew install jmorenobl/tap/kitlegal`. Cada release adjunta
 con Go instalado vale `go install github.com/jmorenobl/kitlegal/cmd/kitlegal@latest`.
 
 `kitlegal skills install` deja las skills en `.agents/skills/` del directorio en el que lo ejecutes —así van con el
-proyecto—, que es donde las leen Codex y Antigravity cuando abres ese directorio. Claude Code las carga de
-`.claude/skills/`: si el proyecto ya tiene un `.claude/`, las enlaza también ahí, y en una carpeta nueva lo hace
-`kitlegal skills install --host claude`. Después, abre el agente en ese directorio y pregunta.
+proyecto—. Claude Code las carga de `.claude/skills/`: si el proyecto ya tiene un `.claude/`, las enlaza también ahí,
+y en una carpeta nueva lo hace `kitlegal skills install --host claude`. Después, abre Claude Code en ese directorio y
+pregunta.
 
 Para tenerlas en todos tus proyectos a la vez, en lugar de en uno: `kitlegal skills install -g`. Las deja en
-`~/.agents/skills/`, donde las lee Codex, y las enlaza en `~/.claude/skills/` si usas Claude Code y en
-`~/.gemini/config/skills/` si usas Antigravity, que en global no lee `~/.agents/skills/`. Si aún no has abierto uno
-de los dos, `--host claude` o `--host antigravity` (o las dos) lo enlazan igual.
-
-- **Codex** ejecuta las órdenes en un entorno aislado y sin red, así que te pedirá permiso cada vez que tu agente
-  consulte el BOE con `kitlegal`. Si no quieres aprobarlo en cada consulta, añade esta regla a
-  `~/.codex/rules/default.rules` (las reglas de Codex son todavía experimentales); con ella, Codex ejecuta `kitlegal`
-  sin preguntar y fuera de ese entorno aislado:
-
-  ```
-  prefix_rule(pattern = ["kitlegal"], decision = "allow")
-  ```
-
-- **Claude Cowork y el chat de Claude** todavía no: cargan las skills de tu cuenta de Claude y no las de tu disco,
-  así que lo que instala `kitlegal skills install` no les llega. Llegarán con un plugin (ver
-  [Lo que viene](#lo-que-viene)).
+`~/.agents/skills/` y las enlaza en `~/.claude/skills/` si usas Claude Code; si aún no lo has abierto,
+`--host claude` las enlaza igual.
 
 **Actualizar**: repite la primera orden (o `brew upgrade kitlegal`, o `scoop update kitlegal`) y vuelve a ejecutar
 `kitlegal skills install`. Mientras lo instalado sea de una versión anterior a la del programa, el programa se lo hace
@@ -110,35 +146,39 @@ una skill —una carpeta tuya, un fichero editado—, lo nombra y no cambia nada
 instalado y, si algo no está como lo dejó, da la orden de una línea que lo arregla. Cada archivo publicado lleva su
 atestación de procedencia, comprobable con `gh attestation verify <archivo> --repo jmorenobl/kitlegal`.
 
-## El servidor MCP: las mismas consultas, como herramientas
+## Otras instalaciones, sin probar
 
-Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
-otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
-varios artículos, sus metadatos y su análisis, situar un municipio y repasar lo ya consultado—, con el mismo resultado
-que su orden: el texto con su fuente, su dirección, su fecha de consulta y su huella. Las skills usan la herramienta
-siempre que tu agente la tiene, y la orden cuando no; se instalan igual, con `kitlegal skills install`.
-
-El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
-ningún puerto. Necesita el programa instalado, y se declara una vez en cada agente.
-
-Está probado en **Claude Code** y en la **app de escritorio de Claude** en macOS. En los demás, lo que sigue es lo
-que dice la documentación de cada uno: **no está probado**. Si lo intentas, cuéntanos si te funciona o qué falla, en
+Así se haría en cada uno de estos, y nadie lo ha probado: lo que sigue sale de lo que kitlegal ya lleva y de la
+documentación de cada programa. Si lo intentas, cuéntanos si te funciona o qué falla, en
 [las incidencias](https://github.com/jmorenobl/kitlegal/issues) o en `info@kitlegal.es`.
 
-- **Claude Code**:
+- **La extensión en Windows**: los dos pasos de [Instalar sin terminal](#instalar-sin-terminal), en la app de
+  escritorio de Claude para Windows. `kitlegal.mcpb` lleva ya el programa para Windows.
 
-  ```sh
-  claude mcp add kitlegal -- kitlegal mcp serve
+- **La app de escritorio de ChatGPT y Codex**, con el programa instalado
+  ([Instalar con la terminal](#instalar-con-la-terminal)). Codex lee las skills de `.agents/skills/` cuando abres el
+  directorio en el que las dejó `kitlegal skills install`, y de `~/.agents/skills/`, donde las deja
+  `kitlegal skills install -g`. Ejecuta las órdenes en un entorno aislado y sin red, así que te pedirá permiso cada
+  vez que tu agente consulte el BOE con `kitlegal`. Si no quieres aprobarlo en cada consulta, añade esta regla a
+  `~/.codex/rules/default.rules` (las reglas de Codex son todavía experimentales); con ella, Codex ejecuta `kitlegal`
+  sin preguntar y fuera de ese entorno aislado:
+
+  ```
+  prefix_rule(pattern = ["kitlegal"], decision = "allow")
   ```
 
-- **La app de escritorio de ChatGPT y Codex** (sin probar), que comparten la configuración: en *Settings > MCP servers*, con la
-  orden `kitlegal` y los argumentos `mcp serve`, o desde una terminal:
+  El [servidor MCP](#el-servidor-mcp-las-mismas-consultas-como-herramientas) se declara una vez para los dos, que
+  comparten la configuración: en *Settings > MCP servers*, con la orden `kitlegal` y los argumentos `mcp serve`, o
+  desde una terminal:
 
   ```sh
   codex mcp add kitlegal -- kitlegal mcp serve
   ```
 
-- **Antigravity** (sin probar): en `~/.gemini/config/mcp_config.json`, o en `.agents/mcp_config.json` para un solo proyecto:
+- **Antigravity**, también con el programa instalado. Lee las skills de `.agents/skills/` cuando abres ese
+  directorio; en global no lee `~/.agents/skills/`, y `kitlegal skills install -g` las enlaza en
+  `~/.gemini/config/skills/` (si aún no lo has abierto, con `--host antigravity`). El servidor MCP se declara en
+  `~/.gemini/config/mcp_config.json`, o en `.agents/mcp_config.json` para un solo proyecto:
 
   ```json
   {
@@ -148,8 +188,32 @@ que dice la documentación de cada uno: **no está probado**. Si lo intentas, cu
   }
   ```
 
-Si tu agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del programa, la que da
+Si el agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del programa, la que da
 `command -v kitlegal`.
+
+## El servidor MCP: las mismas consultas, como herramientas
+
+Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
+otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
+varios artículos, sus metadatos y su análisis, situar un municipio y repasar lo ya consultado—, con el mismo resultado
+que su orden: el texto con su fuente, su dirección, su fecha de consulta y su huella. Las skills usan la herramienta
+siempre que tu agente la tiene, y la orden cuando no.
+
+El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
+ningún puerto. En la app de escritorio de Claude lo trae la extensión de
+[Instalar sin terminal](#instalar-sin-terminal), y no hay nada que declarar. En **Claude Code** necesita el programa
+instalado y se declara una vez:
+
+```sh
+claude mcp add kitlegal -- kitlegal mcp serve
+```
+
+Si Claude Code no encuentra `kitlegal`, escribe en su lugar la ruta completa del programa, la que da
+`command -v kitlegal`.
+
+Está probado en **Claude Code** y en la **app de escritorio de Claude** en macOS. Cómo se declararía en la app de
+escritorio de ChatGPT, en Codex y en Antigravity está en
+[Otras instalaciones, sin probar](#otras-instalaciones-sin-probar).
 
 **ChatGPT y Claude en la web y en el móvil no son compatibles**: solo admiten servidores remotos, y el de kitlegal
 corre en tu equipo.
@@ -244,8 +308,7 @@ Catastro, los datos abiertos de las administraciones; y los boletines de cada co
 régimen foral y las haciendas forales, conforme se configuren. Añadir un territorio es añadir datos, no cambiar las
 skills.
 
-**Y otras formas de usarlo**: un plugin para Claude —Claude Code, Cowork y el chat—, paquetes por especialidad y una
-librería Go para quien quiera construir encima.
+**Y otras formas de usarlo**: paquetes por especialidad y una librería Go para quien quiera construir encima.
 
 ### Para quién
 

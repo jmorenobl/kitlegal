@@ -62,6 +62,26 @@ sustituyen a este fichero.
   fotografías están generadas con IA —el pie lo dice— y ninguna enseña texto legible, marcas ni logotipos de una
   institución. Viven en `web/src/assets/ilustraciones/` y Astro las sirve en AVIF y WebP a varios anchos; la web
   pasa a depender de `sharp`. No cambia el binario ni las skills.
+- **`kitlegal.mcpb`, la extensión de escritorio, en cada release** (ADR 0035): un fichero que se instala con doble
+  clic en la app de escritorio de Claude y lleva dentro el servidor MCP, sin instalar antes el programa. Lleva
+  cuatro entradas: `manifest.json` —versión `0.3` del manifiesto, con el nombre, la descripción, el icono y, en
+  `tools`, las diez herramientas que anuncia `kitlegal mcp serve`, con la descripción de su verbo—, `icon.png`,
+  `server/kitlegal`, un binario universal de macOS con las arquitecturas `amd64` y `arm64`, y
+  `server/kitlegal.exe`, el de Windows `amd64`; los binarios son, byte a byte, los de los archivos de esa misma
+  release. La app lo arranca con `mcp serve`. Está en `checksums.txt` y lleva su atestación de procedencia, como los
+  archivos. La extensión en Windows no está probada. No cambia el binario ni las skills.
+- **`kitlegal-plugin.zip`, el plugin de Claude con las skills, en cada release, y su catálogo**: el plugin lleva
+  `.claude-plugin/plugin.json` y, bajo `skills/`, las skills que instala `kitlegal skills install`, byte a byte, sin
+  servidor ni binario: las herramientas las da la extensión. Se sube en la app de Claude desde *Customize > Plugins*
+  y, como la extensión, está en `checksums.txt` y lleva su atestación. Cada etiqueta, después de comprobar lo
+  publicado, actualiza además el catálogo `jmorenobl/kitlegal-plugins` —su `.claude-plugin/marketplace.json`, con una
+  entrada de fuente `archive` que apunta al plugin de esa release, con su versión y su huella—, para quien prefiera
+  añadir el marketplace a subir el zip.
+- **El apartado «Instalar sin terminal» del README**: la instalación oficial, en la app de escritorio de Claude en
+  macOS, con los dos pasos —la extensión y el plugin—, qué dice el aviso rojo de la app y qué hace kitlegal de
+  verdad, qué pasa con una sola pieza, cómo se actualiza cada una y dónde no funciona. El «Instalar» de antes pasa a
+  llamarse «Instalar con la terminal», y lo que el README decía de la app de escritorio de ChatGPT, de Codex y de
+  Antigravity, junto a la extensión en Windows, va en «Otras instalaciones, sin probar».
 
 ### Cambiado
 
