@@ -150,7 +150,31 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
 - Del backlog de distribución quedan los packs, `pkg/legalkit`, un plugin para la app de ChatGPT y el servidor
   remoto.
 
-## Pendiente de verificar (antes de detallar H22)
+## Prueba con el binario de H21 (2026-10-02)
+
+Con H21 en `main` (`097af64`), la prueba a mano de su aceptación en la app de escritorio de Claude para macOS, con
+el binario universal de `main` dentro de un `.mcpb` hecho fuera del repositorio (manifiesto `0.3`, `server.type:
+binary`, `${__dirname}/server/kitlegal mcp serve`; validado con la herramienta `mcpb`) e instalado con doble clic,
+y la pregunta «¿qué dice el art. 21 de la Ley 39/2015?» en una conversación nueva sin carpeta:
+
+- **Con la extensión sola**, la conversación llama a `boe_articulo` y devuelve el texto del BOE, pero sin la cita
+  con su forma, con un enlace que no viene de ninguna herramienta y con vocabulario interno («respuesta en caché»).
+  Las `instructions` del servidor, que piden esa forma con ese ejemplo, no bastan en esta app.
+- **Con la extensión y un plugin solo con las skills**, subido como zip en el modo de chat, `boe-legislacion` se
+  activa con la pregunta, llama a `boe_indice`, `boe_articulo` y `graph_check` y responde con
+  `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`.
+- **Al instalar**, la app enseña una ficha con el aviso en rojo («otorgará a esta extensión acceso a todo lo que hay
+  en tu computadora», desarrollador sin verificar por Anthropic), el icono genérico si el manifiesto no trae uno y
+  la descripción cortada si es larga. macOS no puso reparos a un `.mcpb` creado en el mismo equipo.
+
+Confirma la opción 5 —dos piezas de la misma etiqueta— con el binario real, y con ello se detalla H22
+(`docs/ROADMAP.md`). Para el marketplace del plugin, la documentación de Claude Code (leída el 2026-10-02,
+code.claude.com/docs/en/plugins/marketplace-reference y …/host-marketplace) da una fuente `archive` —un zip por
+HTTPS con su `sha256`— y dice que quien lo añade recibe una versión nueva cuando cambia `version`.
+
+La mitad de la aceptación de H21 en la app de escritorio de ChatGPT no se ha hecho.
+
+## Pendiente de verificar (pasa a la aceptación humana de H22)
 
 1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si
    macOS lo bloquea, hace falta notarizarlo: una cuenta de Apple Developer, que es una credencial y una decisión
@@ -159,3 +183,4 @@ que pide al BOE el artículo 21 de la Ley 39/2015 y escribe un fichero en `~/.ca
    actualiza el plugin solo.
 3. Qué responde Claude en la web y en el móvil, donde puede haber skill y no hay herramienta.
 4. Lo mismo en Windows, donde nadie lo ha probado.
+5. Si la app de Claude admite añadir un marketplace cuya entrada es de fuente `archive`.

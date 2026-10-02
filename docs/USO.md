@@ -10,6 +10,31 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-02 · La prueba a mano de H21 en la app de Claude: con la extensión sola no sale la cita
+
+- **Qué se pidió.** La aceptación humana de H21 en la app de escritorio de Claude: «¿qué dice el art. 21 de la Ley
+  39/2015?» en una conversación sin carpeta, con el binario de `main` (`097af64`) dentro de un `.mcpb` hecho a mano e
+  instalado con doble clic. La mitad de la app de ChatGPT queda para otro día.
+- **Qué pasó.**
+  - **Con la extensión sola**: la conversación recibió las herramientas y llamó a `boe_articulo`. El texto fue el
+    literal del BOE y dijo que no había avisos de vigencia. Pero no llevó la cita con su forma, añadió un enlace a
+    `boe.es` que no venía de ninguna herramienta, habló de «respuesta en caché» y dio por «redacción original» lo que
+    dedujo de las fechas del sobre. Las `instructions` del servidor piden la forma de la cita con ese mismo ejemplo: o
+    la app no se las pasa al modelo o el modelo no las sigue.
+  - **Con la extensión y un plugin solo con las dos skills**, subido como zip en el modo de chat: `boe-legislacion` se
+    activó con la pregunta, sin `/`; leyó `normas.md`; llamó a `boe_indice`, `boe_articulo` y `graph_check`; y la
+    respuesta llevó `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, el recordatorio de que el texto
+    consolidado es informativo y ninguna mención de la caché. El enlace a `boe.es` salió de la `url` del índice.
+    Resumió los seis apartados con títulos suyos en lugar de transcribirlos.
+- **Qué faltó.**
+  - **La ficha de la extensión**: sin icono, con la descripción cortada en la cabecera, y con el aviso rojo de la app
+    —«otorgará a esta extensión acceso a todo lo que hay en tu computadora», desarrollador sin verificar por
+    Anthropic—, que a quien no es técnico le va a parar.
+  - **Lo que sigue sin probar**: los dos ficheros descargados con un navegador en otro Mac (macOS no puso reparos, pero
+    el `.mcpb` se había creado en el mismo equipo), cómo se actualizan, Windows, y la web y el móvil.
+- **Qué se hizo.** H22 detallado en el roadmap con dos piezas por release —la extensión y el plugin—, la ficha con
+  icono y descripción corta, y el README explicando el aviso. Lo que sigue sin probar es la aceptación humana de H22.
+
 ### 2026-10-01 · Usar kitlegal desde Claude Cowork: hoy no se puede
 
 - **Qué se pidió.** El 2026-09-28: cómo usar kitlegal desde Claude Cowork, y si hacía falta un servidor MCP.
@@ -37,7 +62,8 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   H20. El servidor remoto queda aplazado: tiene que pensarlo, porque kitlegal pasaría a recibir las preguntas de
   quien lo usa (ADR 0027) y pagaría un servidor que otros consumen sin coste; donde un servidor local no llega se
   dice que no es compatible. ADR 0035: H21 (`kitlegal mcp serve`, las skills con orden y herramienta, las evals en
-  los dos modos) y H22 (la extensión de escritorio con el servidor y el plugin con las skills), que se detalla al cerrar H21.
+  los dos modos) y H22 (la extensión de escritorio con el servidor y el plugin con las skills), que se detalla al cerrar H21
+  (detallado el 2026-10-02, entrada de arriba).
 
 ### 2026-10-01 · La web no respondía a nada que la gente busque, y ninguna de sus dos audiencias usa una terminal
 
