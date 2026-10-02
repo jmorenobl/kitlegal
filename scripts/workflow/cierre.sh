@@ -73,7 +73,11 @@ recoger_evals() {
     [ -n "$skill" ] && [ -n "$run" ] && [ -n "$job" ] || continue
     destino="$e/$skill.json"
     # gh run view --log antepone trabajo, paso y hora a cada línea: se quitan con cut y sed.
-    gh run view "$run" --job "$job" --log 2>/dev/null | cut -f3- | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
+    # GitHub guarda el registro en trozos y cada uno empieza por la marca de orden de bytes
+    # (EF BB BF), que queda delante de la hora: un informe largo cruza un trozo, y con la
+    # marca delante la hora no se quitaba y el informe dejaba de ser JSON (H21: el de
+    # boe-legislacion en dos modos, 821 kB, quedó fuera del informe final).
+    gh run view "$run" --job "$job" --log 2>/dev/null | cut -f3- | sed $'s/^\xef\xbb\xbf//' | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
       | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$destino" || true
     if jq -e '.skill and (.tasas | type == "array")' "$destino" >/dev/null 2>&1; then
       echo "evals: informe de $skill en $destino" >&2
