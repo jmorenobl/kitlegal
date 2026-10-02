@@ -92,6 +92,15 @@ type Eval struct {
 	// eval no lo espera. Solo lo admite una eval que activa la skill, y con él
 	// puede no llevar citas (contrato de evals §1.2 y §1.3 de H6).
 	Territorio TerritorioEsperado `yaml:"territorio"`
+
+	// SinBinarioNiServidor dice que la sesión de la eval tiene la skill y nada
+	// más: ni kitlegal en el PATH ni el servidor declarado, así que la respuesta
+	// no puede consultar nada. Solo lo admite una eval que activa la skill, sin
+	// comandos, prohibidos, grafo previo, citas, avisos, hallazgos, redacciones
+	// modificadas, territorio, informativa ni reproduce: decide siempre y se mide
+	// una vez por modelo, fuera de los dos modos (data-model §7 y
+	// contracts/evals-en-dos-modos.md §1 de H21; FR-046).
+	SinBinarioNiServidor bool `yaml:"sin_binario_ni_servidor"`
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las

@@ -126,6 +126,22 @@ const (
 		hallazgoDeVersionObsoleta + redaccionesModificadasDeLaLCSP
 )
 
+// Las dos evals sin binario ni servidor de contracts/evals-en-dos-modos.md §1 de
+// H21, sin su comentario y con sus líneas completas, y la pregunta de cada una
+// tal como se lee: la de boe-legislacion y la de legal-core, que además declara
+// la skill que su sesión no puede activar (FR-046).
+const (
+	preguntaSinBinarioDeBoeLegislacion = "\xc2\xbfQu\xc3\xa9 dice el art. 53 de la Ley 39/2015 sobre los derechos " +
+		"del interesado en el procedimiento administrativo?"
+	preguntaSinBinarioDeLegalCore = "\xc2\xbfQu\xc3\xa9 comunidad aut\xc3\xb3noma, provincia y boletines oficiales " +
+		"corresponden al Ayuntamiento de Getafe?"
+	sinBinarioNiServidor           = "sin_binario_ni_servidor: true\n"
+	evalSinBinarioDeBoeLegislacion = "pregunta: \"" + preguntaSinBinarioDeBoeLegislacion + "\"\n" +
+		"activa: true\n" + sinBinarioNiServidor
+	evalSinBinarioDeLegalCore = "pregunta: \"" + preguntaSinBinarioDeLegalCore + "\"\n" +
+		"activa: true\n" + noSeActivaBoeLegislacion + sinBinarioNiServidor
+)
+
 // leidaDeDosBloquesDeLaLCSP es lo que se lee de evalDeDosBloquesDeLaLCSP con el
 // nombre de fichero dado: sus dos bloques en el grafo previo y en los comandos,
 // la comprobación de la norma, graph show prohibido, las dos citas, el hallazgo
@@ -194,6 +210,12 @@ func leidaDeDosBloquesDeLaLCSP(fichero string) Eval {
 // eval de no activación, y una sin fecha_vigencia_reciente, con una fecha de
 // siete cifras o con el mes 13 se rechazan: cada documento es el bien formado
 // con solo ese defecto (contracts/evals-y-juicio.md §1; FR-003, FR-004, FR-053).
+//
+// Desde H21, la eval sin binario ni servidor se lee con SinBinarioNiServidor,
+// con activa: true y nada más, y también con las skills que su sesión no puede
+// activar: las dos de contracts/evals-en-dos-modos.md §1. Con comandos, con
+// citas, con informativa, en una eval de no activación o con el valor false se
+// rechaza (contracts/evals-en-dos-modos.md §1 y §8; FR-046).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -722,6 +744,57 @@ func TestLeerEval(t *testing.T) {
 			error: nombreDeEval + ": redacciones_modificadas/0/fecha_vigencia_reciente, línea 37: " +
 				"'20201306' does not match pattern " + patronDeFecha,
 		},
+		{
+			// La eval de boe-legislacion de contracts/evals-en-dos-modos.md §1 de
+			// H21, sin su comentario.
+			nombre:    "sin-binario-ni-servidor",
+			documento: evalSinBinarioDeBoeLegislacion,
+			leida: Eval{
+				Fichero:              nombreDeEval,
+				Pregunta:             preguntaSinBinarioDeBoeLegislacion,
+				Activa:               true,
+				SinBinarioNiServidor: true,
+			},
+		},
+		{
+			// La de legal-core del mismo contrato, sin su comentario.
+			nombre:    "sin-binario-ni-servidor-con-no-se-activan",
+			documento: evalSinBinarioDeLegalCore,
+			leida: Eval{
+				Fichero:              nombreDeEval,
+				Pregunta:             preguntaSinBinarioDeLegalCore,
+				Activa:               true,
+				NoSeActivan:          []string{"boe-legislacion"},
+				SinBinarioNiServidor: true,
+			},
+		},
+		{
+			nombre:    "sin-binario-ni-servidor-con-comandos",
+			documento: evalSinBinarioDeBoeLegislacion + comandoDelArticulo21,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "sin-binario-ni-servidor-con-citas",
+			documento: evalSinBinarioDeBoeLegislacion + citaDelArticulo21,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "sin-binario-ni-servidor-con-informativa",
+			documento: evalSinBinarioDeBoeLegislacion + "informativa: true\n",
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre:    "no-activa-sin-binario-ni-servidor",
+			documento: evalDeLaReceta + sinBinarioNiServidor,
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			// Con false, la eval activa no llevaría nada que comprobar: la clave
+			// solo se escribe para declararlo.
+			nombre:    "sin-binario-ni-servidor-falso",
+			documento: preguntaDelArticulo21 + "activa: true\nsin_binario_ni_servidor: false\n",
+			error:     nombreDeEval + ": sin_binario_ni_servidor, línea 3: value must be true",
+		},
 	}
 
 	for _, caso := range casos {
@@ -844,6 +917,10 @@ func TestFormaDelComando(t *testing.T) {
 //
 // Desde H7.4, la que no escribe no_se_activan ni redacciones_modificadas se lee
 // sin ellas, así que su juicio no cambia (contracts/evals-y-juicio.md §1; FR-053).
+//
+// Desde H21, la que no escribe sin_binario_ni_servidor se lee sin ella, y la
+// rama del esquema de esa clave es la de contracts/evals-en-dos-modos.md §1
+// (probarLaRamaSinBinarioNiServidor; FR-046).
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
@@ -886,6 +963,10 @@ func TestEsquemaDeEval(t *testing.T) {
 				assert.Nil(t, eval.RedaccionesModificadas, "%s no escribe redacciones_modificadas y se lee sin ellas", ruta)
 			}
 
+			_, escribeSinBinario := claves["sin_binario_ni_servidor"]
+			assert.Equal(t, escribeSinBinario, eval.SinBinarioNiServidor,
+				"%s se lee sin binario ni servidor si y solo si escribe sin_binario_ni_servidor", ruta)
+
 			for posicion, comando := range eval.Comandos {
 				assert.Equal(t, comando.Verbo == "check", formaDelComando(comando) == formaComprobacion,
 					"el comando %d de %s tiene la forma de comprobación si y solo si su verbo es check", posicion, ruta)
@@ -893,6 +974,70 @@ func TestEsquemaDeEval(t *testing.T) {
 
 			exigirComprobacionesSinNormaLeidasSinElla(t, ruta, claves, eval.Comandos)
 		}
+	}
+
+	t.Run("sin-binario-ni-servidor", probarLaRamaSinBinarioNiServidor)
+}
+
+// probarLaRamaSinBinarioNiServidor fija la rama del esquema de la clave
+// sin_binario_ni_servidor (contracts/evals-en-dos-modos.md §1 y §8 de H21;
+// FR-046): con activa: true y nada más, la eval es válida, también con las
+// skills que su sesión no puede activar; con cualquiera de las diez claves de lo
+// que una sesión consulta o de lo que su respuesta tiene que llevar, con activa:
+// false o con el valor false, no. Cada clave se prueba con un valor que el
+// formato admite en una eval positiva, de modo que el rechazo solo puede ser el
+// de la rama.
+func probarLaRamaSinBinarioNiServidor(t *testing.T) {
+	t.Parallel()
+
+	const norma, bloque = "BOE-A-2015-10565", "a21"
+
+	comando := map[string]any{"applet": "boe", "norma": norma, "bloque": bloque}
+	cita := map[string]any{"norma": norma, "bloque": bloque}
+
+	// La eval sin binario ni servidor bien formada, con esa clave puesta a ese
+	// valor: una de las suyas o una que no lleva.
+	sinBinario := func(clave string, valor any) map[string]any {
+		documento := map[string]any{
+			"pregunta": preguntaSinBinarioDeBoeLegislacion, "activa": true, "sin_binario_ni_servidor": true,
+		}
+		documento[clave] = valor
+
+		return documento
+	}
+
+	assert.True(t, aceptaLaEval(t, sinBinario("activa", true)),
+		"la clave con activa: true y nada m\xc3\xa1s es una eval v\xc3\xa1lida")
+	assert.True(t, aceptaLaEval(t, sinBinario("no_se_activan", []any{"boe-legislacion"})),
+		"la eval sin binario ni servidor admite las skills que su sesi\xc3\xb3n no puede activar")
+	assert.False(t, aceptaLaEval(t, sinBinario("activa", false)),
+		"una eval de no activaci\xc3\xb3n no puede ser sin binario ni servidor")
+	assert.False(t, aceptaLaEval(t, sinBinario("sin_binario_ni_servidor", false)),
+		"la clave solo admite el valor true")
+
+	excluidas := map[string]any{
+		"comandos":     []any{comando},
+		"prohibidos":   []any{map[string]any{"applet": "graph", "verbo": "show"}},
+		"grafo_previo": map[string]any{"grabaciones": "lcsp-a1-30-redaccion-original", "comandos": []any{comando}},
+		"citas":        []any{cita},
+		"avisos":       []any{"derogada"},
+		"hallazgos":    []any{"version-obsoleta"},
+		"redacciones_modificadas": []any{map[string]any{
+			"norma": norma, "bloque": bloque, "fecha_vigencia": "20180309", "fecha_vigencia_reciente": "20200206",
+		}},
+		"territorio":  map[string]any{"comunidad": "Comunidad de Madrid"},
+		"informativa": true,
+		"reproduce":   "boe-fiscal",
+	}
+
+	for clave, valor := range excluidas {
+		positiva := evalPositiva(comando, cita)
+		positiva[clave] = valor
+
+		require.True(t, aceptaLaEval(t, positiva),
+			"una eval positiva admite %s con ese valor: sin eso, un rechazo no dir\xc3\xada nada de la rama", clave)
+		assert.False(t, aceptaLaEval(t, sinBinario(clave, valor)),
+			"una eval sin binario ni servidor no admite %s", clave)
 	}
 }
 

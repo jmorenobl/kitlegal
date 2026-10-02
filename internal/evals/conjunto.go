@@ -200,10 +200,11 @@ type DefectoDelConjunto struct {
 }
 
 // Lo que fijan las reglas del conjunto de evals de boe-legislacion (data-model
-// §6.3; FR-062 a FR-064).
+// §6.3; FR-062 a FR-064). El máximo es de 21 desde H21, con la eval sin binario
+// ni servidor (contracts/evals-en-dos-modos.md §1 de H21).
 const (
 	minimoDeEvals             = 10
-	maximoDeEvals             = 20
+	maximoDeEvals             = 21
 	positivasDelConjunto      = 10
 	preguntaDelArticulo21Eval = "¿qué dice el art. 21 de la Ley 39/2015?"
 	normaDelArticulo21        = "BOE-A-2015-10565"
@@ -227,6 +228,11 @@ const (
 	valorNoConfigurado = "no-configurado"
 )
 
+// sinBinarioNiServidorDelConjunto son las evals sin binario ni servidor que
+// lleva el conjunto de cada skill: exactamente una (contracts/evals-en-dos-modos.md
+// §1 de H21; FR-046).
+const sinBinarioNiServidorDelConjunto = 1
+
 // ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
 // su nombre en la tabla de ese juego. Los juegos los dan ReglasDeBoeLegislacion y
 // ReglasDeLegalCore, y los aplica ComprobarConjunto.
@@ -240,7 +246,8 @@ type ReglaDelConjunto struct {
 
 // ReglasDeBoeLegislacion son las reglas del conjunto de evals de boe-legislacion
 // de data-model §6.3 de H5, en el orden de su tabla, salvo la de revisión (sin
-// municipio), que no es mecánica. Cada llamada devuelve un juego nuevo.
+// municipio), que no es mecánica, y, detrás, la de la eval sin binario ni
+// servidor de H21. Cada llamada devuelve un juego nuevo.
 func ReglasDeBoeLegislacion() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
 		{nombre: "tamaño", incumplimiento: incumplimientoDelTamanio},
@@ -253,12 +260,17 @@ func ReglasDeBoeLegislacion() []ReglaDelConjunto {
 		{nombre: "fiscal", incumplimiento: incumplimientoFiscal},
 		{nombre: "boe-fiscal", incumplimiento: incumplimientoDeBoeFiscal},
 		{nombre: "normas conocidas", incumplimiento: incumplimientoDeNormasConocidas},
+		{nombre: reglaSinBinarioNiServidor, incumplimiento: incumplimientoDeSinBinarioNiServidor},
 	}
 }
 
+// reglaSinBinarioNiServidor es el nombre, en los dos juegos, de la regla de la
+// eval sin binario ni servidor (contracts/evals-en-dos-modos.md §1 de H21).
+const reglaSinBinarioNiServidor = "sin binario ni servidor"
+
 // ReglasDeLegalCore son las reglas del conjunto de evals de legal-core del
-// contrato de evals §3 de H6, en el orden de su tabla. Cada llamada devuelve un
-// juego nuevo.
+// contrato de evals §3 de H6, en el orden de su tabla, y, detrás, la de la eval
+// sin binario ni servidor de H21. Cada llamada devuelve un juego nuevo.
 func ReglasDeLegalCore() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
 		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDeLegalCore},
@@ -266,6 +278,7 @@ func ReglasDeLegalCore() []ReglaDelConjunto {
 		{nombre: "no cubierto", incumplimiento: incumplimientoDelMunicipioNoCubierto},
 		{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
 		{nombre: "esperado verificable", incumplimiento: incumplimientoDelEsperadoVerificable},
+		{nombre: reglaSinBinarioNiServidor, incumplimiento: incumplimientoDeSinBinarioNiServidor},
 	}
 }
 
@@ -296,11 +309,17 @@ type conjuntoAComprobar struct {
 	normas map[string]NormaConocida
 
 	// positivas son las posiciones de las evals con activa: true que deciden el
-	// veredicto, es decir, las que no son informativas. Las reglas que cuentan
-	// materias miran solo estas: una eval informativa no decide el veredicto, y
-	// una pregunta por materia repite además la norma de la positiva de la que
-	// sale (ADR 0016).
+	// veredicto, es decir, las que no son informativas, sin la eval sin binario
+	// ni servidor. Las reglas que cuentan materias miran solo estas: una eval
+	// informativa no decide el veredicto, y una pregunta por materia repite
+	// además la norma de la positiva de la que sale (ADR 0016); y la eval sin
+	// binario ni servidor decide, pero no consulta ni cita ninguna norma
+	// (contracts/evals-en-dos-modos.md §1 de H21).
 	positivas []int
+
+	// sinBinarioNiServidor son las posiciones de las evals con
+	// sin_binario_ni_servidor: true.
+	sinBinarioNiServidor []int
 
 	// informativas son las posiciones de las evals con informativa: true, y
 	// informativasSinActivar, las de esas que además no son positivas.
@@ -339,6 +358,12 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 			}
 		}
 
+		if eval.SinBinarioNiServidor {
+			conjunto.sinBinarioNiServidor = append(conjunto.sinBinarioNiServidor, posicion)
+
+			continue
+		}
+
 		if eval.Informativa {
 			continue
 		}
@@ -361,7 +386,7 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 	return conjunto
 }
 
-// incumplimientoDelTamanio: entre 10 y 20 ficheros.
+// incumplimientoDelTamanio: entre 10 y 21 ficheros.
 func incumplimientoDelTamanio(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.evals) >= minimoDeEvals && len(conjunto.evals) <= maximoDeEvals {
 		return ""
@@ -372,7 +397,7 @@ func incumplimientoDelTamanio(conjunto *conjuntoAComprobar) string {
 }
 
 // incumplimientoDePositivas: exactamente 10 con activa: true que deciden, es
-// decir, sin contar las informativas.
+// decir, sin contar las informativas, ni la eval sin binario ni servidor.
 func incumplimientoDePositivas(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.positivas) == positivasDelConjunto {
 		return ""
@@ -616,12 +641,14 @@ func incumplimientoDelMunicipioNoCubierto(conjunto *conjuntoAComprobar) string {
 }
 
 // incumplimientoDelEsperadoVerificable: toda eval activa declara citas o
-// territorio en lo esperado. Nombra las que no.
+// territorio en lo esperado, salvo la eval sin binario ni servidor, cuyo formato
+// no admite ni las unas ni el otro: lo que su respuesta tiene que llevar lo fija
+// su juicio. Nombra las que no.
 func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 	var sinVerificable []int
 
 	for posicion, eval := range conjunto.evals {
-		if eval.Activa && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 {
+		if eval.Activa && !eval.SinBinarioNiServidor && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 {
 			sinVerificable = append(sinVerificable, posicion)
 		}
 	}
@@ -631,6 +658,18 @@ func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 	}
 
 	return "evals activas sin citas ni territorio en lo esperado: " + conjunto.ficheros(sinVerificable)
+}
+
+// incumplimientoDeSinBinarioNiServidor: exactamente una eval con
+// sin_binario_ni_servidor: true (FR-046 de H21). Nombra las que lo declaran.
+func incumplimientoDeSinBinarioNiServidor(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.sinBinarioNiServidor) == sinBinarioNiServidorDelConjunto {
+		return ""
+	}
+
+	return fmt.Sprintf("hay %d evals sin binario ni servidor (sin_binario_ni_servidor: true) "+
+		"y el conjunto lleva exactamente %d: %s", len(conjunto.sinBinarioNiServidor),
+		sinBinarioNiServidorDelConjunto, conjunto.ficheros(conjunto.sinBinarioNiServidor))
 }
 
 // deComunidadSinConfiguracion dice si la eval espera el territorio de un
