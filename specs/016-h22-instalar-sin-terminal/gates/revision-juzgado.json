@@ -6,6 +6,13 @@
       "sha": "874d502d62257119ac101714472ca193d5d298fb",
       "juez_a": "aprobado",
       "juez_b": "rechazado"
+    },
+    {
+      "ronda": 2,
+      "ciclo": 1,
+      "sha": "a9c64f92b6848d96157bd6cd40e7f4e5f3376639",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado"
     }
   ]
 }
