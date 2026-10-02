@@ -63,12 +63,12 @@ Son dos pasos y dos ficheros, los de la última release, siempre en la misma dir
    [`kitlegal.mcpb`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal.mcpb) y ábrelo con doble
    clic. La app de Claude enseña una ficha con el nombre, el icono, la descripción y la lista de herramientas de
    kitlegal, y un botón para instalarla. Enseña también un aviso en rojo, que se explica más abajo.
-2. **El plugin, que lleva las skills.** Descarga
+2. **El plugin, que lleva las skills.** En *Customize > Plugins > Add*, estando en el modo de chat de la app y no en
+   Code, añade el marketplace `jmorenobl/kitlegal-plugins`, con «Sincronizar automáticamente» activado, e instala
+   desde él el plugin `kitlegal`. Lo que se añade desde Code no llega a las conversaciones de chat. Si prefieres no
+   añadir un marketplace, descarga
    [`kitlegal-plugin.zip`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal-plugin.zip) y
-   súbelo en *Customize > Plugins > Add > Upload plugin*, estando en el modo de chat de la app y no en Code: lo que se
-   sube desde Code no llega a las conversaciones de chat. En lugar de subir el zip puedes añadir, en
-   *Customize > Plugins > Add*, el marketplace `jmorenobl/kitlegal-plugins`; que la app lo admita no está probado,
-   así que si no lo acepta, sube el zip.
+   súbelo en *Customize > Plugins > Add > Upload plugin*: lleva las mismas skills, pero no se actualiza solo.
 
 Después abre una conversación nueva y pregunta.
 
@@ -84,8 +84,8 @@ BOE, pero la respuesta puede no llevar la cita con esa forma. Solo con el plugin
 Claude no puede consultar nada, y la respuesta es la línea `⚠ SIN CONSULTA AL BOE:` de más abajo.
 
 **Actualizar.** Lo previsto, que nadie ha probado todavía: la extensión se actualiza descargando el `kitlegal.mcpb`
-de la release nueva y abriéndolo; el plugin, subiendo el zip nuevo, o sin hacer nada si añadiste el marketplace, que
-ofrece la versión nueva cuando cambia.
+de la release nueva y abriéndolo; el plugin, sin hacer nada si añadiste el marketplace, que lleva el de cada release
+nueva, o subiendo el zip nuevo si lo subiste a mano.
 
 **Si ya tienes las skills con `kitlegal skills install`** y además instalas el plugin, en Claude Code las tienes dos
 veces: las de tu disco y las del plugin, que llega también a Claude Code.

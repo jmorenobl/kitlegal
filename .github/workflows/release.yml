@@ -274,10 +274,11 @@ jobs:
             exit 1
           fi
 
-  # El catálogo del plugin, en jmorenobl/kitlegal-plugins, pasa a apuntar a esta etiqueta solo si `humo` sale en verde:
-  # si no, sigue en la anterior (H22 FR-031). El catálogo no guarda ningún fichero: el plugin sigue en la release de
-  # este repositorio, con su huella bajo la firma (H22 FR-032). Si el último paso no puede escribir, falla y este
-  # trabajo sale en rojo, sin afectar a los otros dos; volver a ejecutarlo escribe lo mismo.
+  # El catálogo del plugin, en jmorenobl/kitlegal-plugins, pasa a ser el de esta etiqueta solo si `humo` sale en verde:
+  # si no, sigue en la anterior (H22 FR-031). Lleva el plugin dentro, como carpeta, porque la app de escritorio de
+  # Claude no sincroniza un catálogo que apunta a un zip de fuera (ADR 0035, «Prueba con la v0.4.0»): es el contenido
+  # del kitlegal-plugin.zip de la release, comprobado contra su huella de checksums.txt. Si el último paso no puede
+  # escribir, falla y este trabajo sale en rojo, sin afectar a los otros dos; volver a ejecutarlo deja lo mismo.
   catalogo:
     needs: [humo]
     runs-on: ubuntu-latest
@@ -297,31 +298,38 @@ jobs:
           go-version-file: go.mod
           cache: false
 
-      # La versión es la etiqueta sin su v, y la huella, la que el checksums.txt publicado da para el plugin: sin esa
-      # línea la huella queda vacía, y el paso que empaqueta la rechaza. Con el token de la ejecución, que solo lee.
+      # La versión es la etiqueta sin su v, y el plugin, el de la release, que tiene que dar la huella que el
+      # checksums.txt publicado le da: sin esa línea no hay nada que comprobar, y sha256sum falla. Con el token de la
+      # ejecución, que solo lee.
       - name: Componer el catálogo de la etiqueta
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --dir "$RUNNER_TEMP"
+          gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --pattern kitlegal-plugin.zip --dir "$RUNNER_TEMP"
           huella=$(awk '$2 == "kitlegal-plugin.zip" { print $1 }' "$RUNNER_TEMP/checksums.txt")
-          go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -sha256 "$huella" -salida "$RUNNER_TEMP/marketplace.json"
+          echo "$huella  $RUNNER_TEMP/kitlegal-plugin.zip" | sha256sum --check --strict
+          mkdir "$RUNNER_TEMP/catalogo"
+          go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -plugin "$RUNNER_TEMP/kitlegal-plugin.zip" -salida "$RUNNER_TEMP/catalogo"
 
-      # PUBLISHER_TOKEN, solo en el entorno de este paso. Escribe un único fichero, .claude-plugin/marketplace.json, con
-      # la API de contenidos, y lo sustituye entero: con el sha del que hay, si lo hay.
+      # PUBLISHER_TOKEN, solo en el entorno de este paso: git lo pide a gh, y no queda en el clon. Sustituye enteras las
+      # dos carpetas del catálogo, .claude-plugin y plugins, en un solo commit, y no toca nada más del repositorio; si
+      # ya lleva lo mismo, no hay commit.
       - name: Publicar el catálogo
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
         run: |
           set -euo pipefail
-          destino=repos/jmorenobl/kitlegal-plugins/contents/.claude-plugin/marketplace.json
-          contenido=$(base64 < "$RUNNER_TEMP/marketplace.json" | tr -d '\n')
-          if anterior=$(gh api "$destino" --jq .sha); then
-            cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" --arg sha "$anterior" '{message: $message, content: $content, sha: $sha}')
-          else
-            cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" '{message: $message, content: $content}')
+          gh auth setup-git
+          git clone --quiet --depth 1 https://github.com/jmorenobl/kitlegal-plugins.git "$RUNNER_TEMP/kitlegal-plugins"
+          cd "$RUNNER_TEMP/kitlegal-plugins"
+          git rm -r --quiet --ignore-unmatch .claude-plugin plugins
+          cp -R "$RUNNER_TEMP/catalogo/." .
+          git add --all .claude-plugin plugins
+          if git diff --cached --quiet; then
+            exit 0
           fi
-          gh api --method PUT "$destino" --silent --input - <<< "$cuerpo"
+          git -c user.name=kitlegal -c user.email=info@kitlegal.es commit --quiet --message "kitlegal $GITHUB_REF_NAME"
+          git push --quiet origin HEAD

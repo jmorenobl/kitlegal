@@ -12,6 +12,17 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Corregido
+
+- **El catálogo `jmorenobl/kitlegal-plugins` lleva el plugin dentro, y la app de escritorio de Claude lo sincroniza.**
+  El de la v0.4.0 apuntaba al `kitlegal-plugin.zip` de la release con una fuente `archive`, que Claude Code admite y la
+  app no: al añadir el marketplace daba «Error al sincronizar el marketplace». Desde ahora cada release publica en el
+  catálogo `.claude-plugin/marketplace.json`, cuya entrada `kitlegal` tiene como fuente `./plugins/kitlegal`, y esa
+  carpeta, con el contenido del `kitlegal-plugin.zip` de la release, comprobado contra su huella de `checksums.txt`.
+  Quien añade el marketplace recibe el plugin de cada release nueva sin volver a subir un zip. El README recomienda el
+  marketplace para instalar el plugin y deja el zip como alternativa. `kitlegal-plugin.zip` y `kitlegal.mcpb` no
+  cambian (ADR 0035, «Prueba con la v0.4.0»).
+
 ## [0.4.0] - 2026-10-02
 
 ### Añadido

@@ -31,7 +31,7 @@ const (
 	banderaMacOS   = "macos"
 	banderaWindows = "windows"
 	banderaIcono   = "icono"
-	banderaHuella  = "sha256"
+	banderaPlugin  = "plugin"
 	banderaSalida  = "salida"
 )
 
@@ -43,18 +43,19 @@ const prefijoDeLaLinea = "empaquetar: "
 // dos órdenes: sin orden, con una que no existe, con una bandera que la orden
 // no tiene o que llega sin su valor, o con un argumento de más.
 var errUso = errors.New("uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … | " +
-	"empaquetar catalogo -version … -sha256 … -salida …")
+	"empaquetar catalogo -version … -plugin … -salida …")
 
 // Ejecutar atiende la línea de órdenes del paso que empaqueta y devuelve su
 // código (contracts/paso.md §1 de H22):
 //
 //	empaquetar piezas   -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>
-//	empaquetar catalogo -version <versión> -sha256 <huella> -salida <fichero>
+//	empaquetar catalogo -version <versión> -plugin <kitlegal-plugin.zip> -salida <carpeta>
 //
 // piezas escribe en la carpeta kitlegal.mcpb y kitlegal-plugin.zip, con las
 // herramientas que el registro de producción anuncia por MCP y las skills
 // empotradas, las dos del mismo árbol del que se compila el paso; catalogo
-// escribe en el fichero el marketplace.json de esa versión.
+// escribe en la carpeta el catálogo de esa versión: su marketplace.json y,
+// dentro, el plugin de ese zip.
 //
 // Devuelve 0 si escribe lo pedido y 1 con cualquier fallo, también con una
 // invocación que no vale. En un fallo escribe en errores una sola línea, que
@@ -128,18 +129,18 @@ func ejecutarPiezas(args []string) error {
 
 // ejecutarCatalogo atiende la orden catalogo.
 func ejecutarCatalogo(args []string) error {
-	var version, huella, salida string
+	var version, plugin, salida string
 
 	err := analizar(ordenCatalogo, args,
 		bandera{nombre: banderaVersion, valor: &version},
-		bandera{nombre: banderaHuella, valor: &huella},
+		bandera{nombre: banderaPlugin, valor: &plugin},
 		bandera{nombre: banderaSalida, valor: &salida},
 	)
 	if err != nil {
 		return err
 	}
 
-	return escribirCatalogo(version, huella, salida)
+	return escribirCatalogo(version, plugin, salida)
 }
 
 // bandera es una bandera de una orden: su nombre y dónde se deja su valor.
