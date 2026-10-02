@@ -494,6 +494,8 @@ func comprobarLaExtension(t *testing.T, piezas empaquetado.PiezasAEscribir) {
 	assert.Equal(t, esperado, manifiesto,
 		"el manifiesto lleva cada campo de data-model §3 con su valor, sin `user_config` ni ninguno más, con la versión "+
 			"tal cual y `tools` de las herramientas que se le dan, en su orden (FR-012 a FR-015, FR-017)")
+	require.NoError(t, validarConElEsquemaOficial(t, escrito),
+		"el manifiesto cumple el esquema oficial de la versión `0.3` del manifiesto de MCP Bundle (FR-017)")
 	assert.Equal(t, conLaFormaDelContrato(t, esperado), string(escrito),
 		"el manifiesto va con sus campos en el orden del contrato, sangría de dos espacios, sin escapar `<`, `>` ni "+
 			"`&` y con salto de línea final (contracts/paso.md §5)")

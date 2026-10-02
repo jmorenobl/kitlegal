@@ -289,7 +289,7 @@ falta, sobra o difiere:
 | Subprueba | Qué comprueba |
 |---|---|
 | `dos-piezas` | `kitlegal.mcpb` y `kitlegal-plugin.zip` están en `dist/`, y `checksums.txt` lleva de cada uno una línea con la huella del fichero |
-| `manifiesto-de-la-extension` | `manifest.json`, leído de forma estricta, lleva sus campos y ninguno más —tampoco `user_config`—: la versión `0.3` del manifiesto, los textos de `internal/empaquetado`, como `version` la que imprime el binario del snapshot, sin su `v`, y una descripción corta de 120 caracteres como mucho |
+| `manifiesto-de-la-extension` | `manifest.json`, leído de forma estricta, lleva sus campos y ninguno más —tampoco `user_config`—: la versión `0.3` del manifiesto, los textos de `internal/empaquetado`, como `version` la que imprime el binario del snapshot, sin su `v`, y una descripción corta de 120 caracteres como mucho; y cumple el esquema oficial de esa versión, versionado en `testdata/mcpb/` tal como lo publica su fuente (`testdata/mcpb/README.md`) |
 | `binarios-de-la-extension` | la extensión lleva exactamente sus cuatro entradas; `server/kitlegal`, con el bit de ejecución, es un universal de dos arquitecturas, `amd64` y `arm64`, cada una byte a byte el `kitlegal` del archivo de macOS de su arquitectura; y `server/kitlegal.exe` es byte a byte el de `kitlegal_windows_amd64.zip` |
 | `icono-de-la-extension` | `icon.png` de la extensión es, byte a byte, `mcp/icon.png`, un PNG de 512 × 512 px |
 | `servidor-de-la-extension` | con la extensión extraída en una carpeta cuyo nombre lleva espacios y la orden de su manifiesto, el servidor completa el saludo y lista exactamente las herramientas de `tools` |
